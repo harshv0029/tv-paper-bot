@@ -10,6 +10,9 @@ Endpoints:
   GET  /trades        -> full trade log
   GET  /pnl           -> realized + unrealized P&L summary
   GET  /health        -> uptime check
+  GET  /history       -> historical OHLC data for strategy research/backtesting
+                         (this server has real internet access; Claude's own
+                         workspace does not, so this is the automatic data path)
 """
 
 import json
@@ -17,6 +20,9 @@ import os
 import sqlite3
 import time
 from contextlib import closing
+
+import pandas as pd
+import yfinance as yf
 
 from fastapi import FastAPI, Request, HTTPException
 from pydantic import BaseModel
@@ -183,6 +189,58 @@ def pnl():
         "open_positions": {k: v for k, v in book.items() if abs(v["qty"]) > 1e-9},
         "note": "Unrealized P&L needs a live price feed — pull latest price per symbol "
                 "and compare to avg_price from /positions to compute it.",
+    }
+
+
+@app.get("/history")
+def history(symbol: str, period: str = "6mo", interval: str = "1d"):
+    """
+    Historical OHLC data for strategy research/backtesting.
+
+    symbol   - Yahoo Finance style ticker. Examples:
+                 "^NSEI"        -> NIFTY 50 index
+                 "^NSEBANK"     -> BANK NIFTY index
+                 "RELIANCE.NS"  -> Reliance Industries (NSE)
+                 "TCS.NS"       -> TCS (NSE)
+    period   - "1mo","3mo","6mo","1y","2y","5y","max"
+    interval - "1d","1h","30m","15m","5m" (intraday intervals only return
+                recent history - Yahoo limits how far back intraday data goes)
+    """
+    df = yf.download(symbol, period=period, interval=interval, progress=False)
+
+    if df.empty:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No data for symbol={symbol!r} period={period!r} interval={interval!r}. "
+                   f"Check the symbol is a valid Yahoo Finance ticker.",
+        )
+
+    # yfinance sometimes returns MultiIndex columns like ('Close', '^NSEI')
+    # even for a single symbol - flatten them.
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+
+    df = df.reset_index()
+    date_col = "Date" if "Date" in df.columns else "Datetime"
+
+    records = [
+        {
+            "date": row[date_col].isoformat(),
+            "open": float(row["Open"]),
+            "high": float(row["High"]),
+            "low": float(row["Low"]),
+            "close": float(row["Close"]),
+            "volume": float(row["Volume"]),
+        }
+        for _, row in df.iterrows()
+    ]
+
+    return {
+        "symbol": symbol,
+        "period": period,
+        "interval": interval,
+        "count": len(records),
+        "data": records,
     }
 
 
