@@ -20,7 +20,9 @@ import os
 import sqlite3
 import time
 from contextlib import closing
+from itertools import product
 
+import numpy as np
 import pandas as pd
 import yfinance as yf
 
@@ -244,7 +246,21 @@ def history(symbol: str, period: str = "6mo", interval: str = "1d"):
     }
 
 
+_DATA_CACHE: dict[tuple, tuple[float, pd.DataFrame]] = {}
+_CACHE_TTL_SECONDS = 180  # re-fetch at most every 3 minutes per (symbol, period, interval)
+
+
 def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
+    """Fetches OHLC data, cached briefly in memory so a sweep of many strategy
+    params against the same symbol/period/interval only hits Yahoo Finance once,
+    not once per combination."""
+    key = (symbol, period, interval)
+    now = time.time()
+
+    cached = _DATA_CACHE.get(key)
+    if cached and (now - cached[0]) < _CACHE_TTL_SECONDS:
+        return cached[1].copy()
+
     df = yf.download(symbol, period=period, interval=interval, progress=False)
     if df.empty:
         raise HTTPException(
@@ -256,7 +272,10 @@ def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
     df = df.reset_index()
     date_col = "Date" if "Date" in df.columns else "Datetime"
     df = df.rename(columns={date_col: "Date"}).dropna(subset=["Open", "High", "Low", "Close"])
-    return df.reset_index(drop=True)
+    df = df.reset_index(drop=True)
+
+    _DATA_CACHE[key] = (now, df)
+    return df.copy()
 
 
 def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.DataFrame:
@@ -298,42 +317,58 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
     return df.dropna(subset=["long"]).reset_index(drop=True)
 
 
-def extract_trades(df: pd.DataFrame, qty: float) -> tuple[list[dict], dict | None]:
-    """Walk the 'long' signal column and turn flips into a long-only trade log.
-    Returns (closed_trades, still_open_position_or_None)."""
-    trades = []
-    in_position = False
-    entry_price = entry_date = None
+def extract_trades_fast(
+    long_arr: np.ndarray, close_arr: np.ndarray, dates: np.ndarray, qty: float
+) -> tuple[list[dict], dict | None]:
+    """Vectorized (numpy, no Python row loop) version of trade extraction -
+    entries/exits found via array shifts instead of iterating. This is the
+    version used by the sweep endpoint, since it runs once per parameter
+    combination and needs to stay fast even for thousands of combinations."""
+    shifted = np.roll(long_arr, 1)
+    shifted[0] = False
+    entries = np.where(long_arr & ~shifted)[0]
+    exits = np.where(~long_arr & shifted)[0]
 
-    for i in range(len(df)):
-        want_long = bool(df["long"].iloc[i])
-        price = float(df["Close"].iloc[i])
-        date = df["Date"].iloc[i].isoformat()
+    n_closed = min(len(entries), len(exits))
+    closed_entries = entries[:n_closed]
+    closed_exits = exits[:n_closed]
 
-        if want_long and not in_position:
-            in_position = True
-            entry_price, entry_date = price, date
-        elif not want_long and in_position:
-            in_position = False
-            trades.append({
-                "entry_date": entry_date,
-                "entry_price": entry_price,
-                "exit_date": date,
-                "exit_price": price,
-                "pnl": round((price - entry_price) * qty, 2),
-            })
+    entry_prices = close_arr[closed_entries]
+    exit_prices = close_arr[closed_exits]
+    pnls = (exit_prices - entry_prices) * qty
+
+    trades = [
+        {
+            "entry_date": str(dates[e]),
+            "entry_price": round(float(entry_prices[i]), 4),
+            "exit_date": str(dates[x]),
+            "exit_price": round(float(exit_prices[i]), 4),
+            "pnl": round(float(pnls[i]), 2),
+        }
+        for i, (e, x) in enumerate(zip(closed_entries, closed_exits))
+    ]
 
     open_position = None
-    if in_position:
-        last_price = float(df["Close"].iloc[-1])
+    if len(entries) > n_closed:
+        last_entry_idx = entries[n_closed]
+        last_price = float(close_arr[-1])
+        entry_price = float(close_arr[last_entry_idx])
         open_position = {
-            "entry_date": entry_date,
+            "entry_date": str(dates[last_entry_idx]),
             "entry_price": entry_price,
             "current_price": last_price,
             "unrealized_pnl": round((last_price - entry_price) * qty, 2),
         }
 
     return trades, open_position
+
+
+def extract_trades(df: pd.DataFrame, qty: float) -> tuple[list[dict], dict | None]:
+    """Convenience wrapper for a single ad-hoc backtest (/backtest)."""
+    long_arr = df["long"].to_numpy()
+    close_arr = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].apply(lambda d: d.isoformat()).to_numpy()
+    return extract_trades_fast(long_arr, close_arr, dates, qty)
 
 
 @app.get("/backtest")
@@ -386,6 +421,129 @@ def backtest(
         "avg_loss": round(sum(t["pnl"] for t in losses) / len(losses), 2) if losses else None,
         "open_position": open_position,
         "last_10_trades": trades[-10:],
+    }
+
+
+MAX_SWEEP_COMBINATIONS = 3000
+
+
+def _parse_num_list(raw: str, cast) -> list:
+    try:
+        return [cast(x.strip()) for x in raw.split(",") if x.strip() != ""]
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Could not parse number list: {raw!r}")
+
+
+@app.get("/sweep")
+def sweep(
+    symbol: str,
+    period: str = "7d",
+    interval: str = "1m",
+    strategy: str = "sma_crossover",
+    qty: float = 1,
+    rank_by: str = "total_pnl",  # total_pnl | win_rate_pct | num_trades
+    top_n: int = 15,
+    # sma_crossover params - comma-separated lists, e.g. fast=3,5,8,10
+    fast: str = "5,10,15,20",
+    slow: str = "20,50,100,150",
+    # rsi_reversal params - comma-separated lists
+    rsi_period: str = "7,14,21",
+    oversold: str = "20,25,30",
+    overbought: str = "70,75,80",
+):
+    """
+    Tests every combination of the given parameter lists against ONE fetch of
+    the data (cached), and returns only the ranked summary - not every trade
+    from every combination - so this stays fast and the response stays small
+    even for thousands of combinations.
+
+    Example (sma_crossover): fetch OHLC once, then test every (fast, slow)
+    pair where fast in {5,10,15,20} and slow in {20,50,100,150} = 16 runs.
+    """
+    df = fetch_ohlc(symbol, period, interval)
+    close_arr = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].apply(lambda d: d.isoformat()).to_numpy()
+
+    if strategy == "sma_crossover":
+        fast_list = _parse_num_list(fast, int)
+        slow_list = _parse_num_list(slow, int)
+        combos = [
+            {"fast": f, "slow": s} for f, s in product(fast_list, slow_list) if f < s
+        ]
+    elif strategy == "rsi_reversal":
+        rp_list = _parse_num_list(rsi_period, int)
+        os_list = _parse_num_list(oversold, float)
+        ob_list = _parse_num_list(overbought, float)
+        combos = [
+            {"rsi_period": rp, "oversold": o, "overbought": b}
+            for rp, o, b in product(rp_list, os_list, ob_list)
+            if o < b
+        ]
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal",
+        )
+
+    if not combos:
+        raise HTTPException(status_code=400, detail="No valid parameter combinations (check your ranges).")
+    if len(combos) > MAX_SWEEP_COMBINATIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{len(combos)} combinations requested, max is {MAX_SWEEP_COMBINATIONS}. "
+                    f"Narrow your ranges or split into multiple sweep calls.",
+        )
+
+    results = []
+    for params in combos:
+        sig_df = add_strategy_signal(df, strategy, params)
+        long_arr = sig_df["long"].to_numpy()
+        aligned_close = sig_df["Close"].to_numpy(dtype=float)
+        aligned_dates = sig_df["Date"].apply(lambda d: d.isoformat()).to_numpy()
+
+        trades, _ = extract_trades_fast(long_arr, aligned_close, aligned_dates, qty)
+        if not trades:
+            continue
+
+        wins = [t for t in trades if t["pnl"] > 0]
+        total_pnl = round(sum(t["pnl"] for t in trades), 2)
+        results.append({
+            "params": params,
+            "num_trades": len(trades),
+            "win_rate_pct": round(100 * len(wins) / len(trades), 1),
+            "total_pnl": total_pnl,
+        })
+
+    if rank_by not in ("total_pnl", "win_rate_pct", "num_trades"):
+        raise HTTPException(status_code=400, detail="rank_by must be total_pnl, win_rate_pct, or num_trades")
+
+    results.sort(key=lambda r: r[rank_by], reverse=True)
+
+    all_pnls = [r["total_pnl"] for r in results]
+    summary = {
+        "combinations_tested": len(combos),
+        "combinations_with_trades": len(results),
+        "median_total_pnl": round(float(np.median(all_pnls)), 2) if all_pnls else None,
+        "pct_profitable_combos": round(100 * sum(1 for p in all_pnls if p > 0) / len(all_pnls), 1) if all_pnls else None,
+    }
+
+    return {
+        "symbol": symbol,
+        "period": period,
+        "interval": interval,
+        "strategy": strategy,
+        "bars_used": len(df),
+        "rank_by": rank_by,
+        "summary": summary,
+        "top_results": results[:top_n],
+        "note": (
+            "Testing many parameter combinations on ONE historical window risks "
+            "overfitting - the single best combo here may just be curve-fit noise. "
+            "Look at 'median_total_pnl' and 'pct_profitable_combos' too: a strategy "
+            "where most nearby parameter combos are also profitable is more trustworthy "
+            "than one lone spike at the top. Validate top candidates on a different "
+            "date range before trusting them."
+        ),
     }
 
 
