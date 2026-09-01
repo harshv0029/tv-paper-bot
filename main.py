@@ -244,6 +244,151 @@ def history(symbol: str, period: str = "6mo", interval: str = "1d"):
     }
 
 
+def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
+    df = yf.download(symbol, period=period, interval=interval, progress=False)
+    if df.empty:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No data for symbol={symbol!r} period={period!r} interval={interval!r}.",
+        )
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+    df = df.reset_index()
+    date_col = "Date" if "Date" in df.columns else "Datetime"
+    df = df.rename(columns={date_col: "Date"}).dropna(subset=["Open", "High", "Low", "Close"])
+    return df.reset_index(drop=True)
+
+
+def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.DataFrame:
+    """Adds a boolean 'long' column: True = want to be long, False = want to be flat.
+    Long-only, single-position. Extend here to add more strategies."""
+    df = df.copy()
+
+    if strategy == "sma_crossover":
+        fast, slow = params["fast"], params["slow"]
+        df["fast_ma"] = df["Close"].rolling(fast).mean()
+        df["slow_ma"] = df["Close"].rolling(slow).mean()
+        df["long"] = df["fast_ma"] > df["slow_ma"]
+
+    elif strategy == "rsi_reversal":
+        period = params["rsi_period"]
+        oversold, overbought = params["oversold"], params["overbought"]
+        delta = df["Close"].diff()
+        gain = delta.clip(lower=0).rolling(period).mean()
+        loss = (-delta.clip(upper=0)).rolling(period).mean()
+        rs = gain / loss.replace(0, float("nan"))
+        df["rsi"] = 100 - (100 / (1 + rs))
+
+        holding, flags = False, []
+        for r in df["rsi"]:
+            if pd.notna(r):
+                if not holding and r < oversold:
+                    holding = True
+                elif holding and r > overbought:
+                    holding = False
+            flags.append(holding)
+        df["long"] = flags
+
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal",
+        )
+
+    return df.dropna(subset=["long"]).reset_index(drop=True)
+
+
+def extract_trades(df: pd.DataFrame, qty: float) -> tuple[list[dict], dict | None]:
+    """Walk the 'long' signal column and turn flips into a long-only trade log.
+    Returns (closed_trades, still_open_position_or_None)."""
+    trades = []
+    in_position = False
+    entry_price = entry_date = None
+
+    for i in range(len(df)):
+        want_long = bool(df["long"].iloc[i])
+        price = float(df["Close"].iloc[i])
+        date = df["Date"].iloc[i].isoformat()
+
+        if want_long and not in_position:
+            in_position = True
+            entry_price, entry_date = price, date
+        elif not want_long and in_position:
+            in_position = False
+            trades.append({
+                "entry_date": entry_date,
+                "entry_price": entry_price,
+                "exit_date": date,
+                "exit_price": price,
+                "pnl": round((price - entry_price) * qty, 2),
+            })
+
+    open_position = None
+    if in_position:
+        last_price = float(df["Close"].iloc[-1])
+        open_position = {
+            "entry_date": entry_date,
+            "entry_price": entry_price,
+            "current_price": last_price,
+            "unrealized_pnl": round((last_price - entry_price) * qty, 2),
+        }
+
+    return trades, open_position
+
+
+@app.get("/backtest")
+def backtest(
+    symbol: str,
+    period: str = "7d",
+    interval: str = "1m",
+    strategy: str = "sma_crossover",
+    fast: int = 5,
+    slow: int = 20,
+    rsi_period: int = 14,
+    oversold: float = 30,
+    overbought: float = 70,
+    qty: float = 1,
+):
+    """
+    Runs a long-only backtest server-side (real internet + pandas live here)
+    and returns just the results - keeps responses small regardless of how
+    many bars were analyzed.
+
+    strategy=sma_crossover -> params: fast, slow
+    strategy=rsi_reversal  -> params: rsi_period, oversold, overbought
+    """
+    df = fetch_ohlc(symbol, period, interval)
+
+    params = (
+        {"fast": fast, "slow": slow}
+        if strategy == "sma_crossover"
+        else {"rsi_period": rsi_period, "oversold": oversold, "overbought": overbought}
+    )
+
+    df = add_strategy_signal(df, strategy, params)
+    trades, open_position = extract_trades(df, qty)
+
+    wins = [t for t in trades if t["pnl"] > 0]
+    losses = [t for t in trades if t["pnl"] <= 0]
+    total_pnl = round(sum(t["pnl"] for t in trades), 2)
+
+    return {
+        "symbol": symbol,
+        "period": period,
+        "interval": interval,
+        "strategy": strategy,
+        "params": params,
+        "bars_used": len(df),
+        "num_trades": len(trades),
+        "win_rate_pct": round(100 * len(wins) / len(trades), 1) if trades else None,
+        "total_pnl": total_pnl,
+        "avg_win": round(sum(t["pnl"] for t in wins) / len(wins), 2) if wins else None,
+        "avg_loss": round(sum(t["pnl"] for t in losses) / len(losses), 2) if losses else None,
+        "open_position": open_position,
+        "last_10_trades": trades[-10:],
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "alive", "time": time.time()}
