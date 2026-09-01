@@ -27,6 +27,7 @@ import pandas as pd
 import yfinance as yf
 
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 DB_PATH = os.environ.get("DB_PATH", "paper_trades.db")
@@ -34,6 +35,17 @@ WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "change-me")
 STARTING_CASH = float(os.environ.get("STARTING_CASH", "100000"))  # paper capital
 
 app = FastAPI(title="TradingView Paper Trading Bot")
+
+# Allows the dashboard (a page hosted on a different domain) to call /history,
+# /backtest, /sweep directly from the browser. Fine for these read-only,
+# unauthenticated GET endpoints - /webhook is POST-only and still requires the
+# secret, so this does not weaken that.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 
 def get_db():
