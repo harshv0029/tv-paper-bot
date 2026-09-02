@@ -21,7 +21,7 @@ jobs:
       - name: Poll auto-signal for each symbol
         run: |
           BASE="https://tv-paper-bot-gdan.onrender.com/auto-signal"
-          COMMON="capital=200000&daily_risk_pct=2&risk_per_trade_pct=1&rr=2&orb_minutes=15&sma_fast=9&sma_slow=21"
+          COMMON="capital=200000&daily_risk_pct=2&risk_per_trade_pct=2&stop_pct=2&rr=2&orb_minutes=15&sma_fast=9&sma_slow=21"
 
           curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/health" || true
           echo
