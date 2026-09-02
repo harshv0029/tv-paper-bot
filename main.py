@@ -812,13 +812,20 @@ def auto_signal(
     orb_minutes: int = 15,
     sma_fast: int = 9,
     sma_slow: int = 21,
+    interval: str = "5m",
 ):
     """
     Intraday opening-range-breakout (ORB) signal engine, long-only, paper trades
-    only. Designed to be called repeatedly (e.g. every 15 min during market
+    only. Designed to be called repeatedly (e.g. every 5 min during market
     hours via a GitHub Actions cron) - all state (open position, today's
     realized P&L) is persisted in SQLite so it survives Render restarts/sleeps
-    between calls.
+    between calls. `interval` sets the candle size this all runs on (1m, 2m,
+    5m, 15m, 30m, 60m/1h - anything yfinance supports intraday); orb_minutes,
+    sma_fast/slow are all in that candle's own units (minutes / bar-count).
+    Note: polling faster than `interval` gains nothing - a new candle only
+    closes every `interval`. This is same-day only (ORB needs an intraday
+    opening range); a multi-day/swing engine on daily+ candles is a separate,
+    not-yet-built strategy shape.
 
     Rules (all tweakable via query params):
       - Opening range = high/low of the first `orb_minutes` after 9:15 IST.
@@ -862,7 +869,7 @@ def auto_signal(
         halted = remaining_budget <= 0
 
         try:
-            df = fetch_ohlc(symbol, "5d", "5m")
+            df = fetch_ohlc(symbol, "5d", interval)
             ts = pd.to_datetime(df["Date"])
             ts_ist = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts.dt.tz_localize(
                 "UTC"
