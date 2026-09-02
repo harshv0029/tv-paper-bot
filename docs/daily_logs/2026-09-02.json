@@ -1,0 +1,22 @@
+{
+  "date_ist": "2026-09-02",
+  "market": "NSE/BSE",
+  "capital": 200000.0,
+  "daily_loss_cap": 4000.0,
+  "daily_loss_cap_pct": 2.0,
+  "realized_pnl": 0.0,
+  "realized_pnl_pct": 0.0,
+  "budget_remaining": 4000.0,
+  "halted_for_day": false,
+  "closed_trades_count": 0,
+  "win_rate_pct": null,
+  "open_positions": [],
+  "closed_trades": [],
+  "note": "Only 1 of ~75 expected GitHub Actions scheduled polls actually fired today (13:33 IST) - see KNOWN_ISSUES.md. No breakout signal was live at that single check (all 3 indices trending up but below their opening-range high). No trades taken. Capital fully intact.",
+  "single_check_result": {
+    "time_ist": "2026-09-02 13:33:xx",
+    "NIFTY": {"last_close": 23873.10, "orb_high": 23879.40, "trend": "up", "action_taken": "no_signal"},
+    "BANKNIFTY": {"last_close": 57055.35, "orb_high": 57065.60, "trend": "up", "action_taken": "no_signal"},
+    "SENSEX": {"last_close": 76446.43, "orb_high": 76494.36, "trend": "up", "action_taken": "no_signal"}
+  }
+}
