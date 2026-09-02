@@ -15,6 +15,7 @@ Endpoints:
                          workspace does not, so this is the automatic data path)
 """
 
+import datetime as dt
 import json
 import math
 import os
@@ -80,6 +81,22 @@ def init_db():
                 symbol TEXT PRIMARY KEY,
                 qty REAL NOT NULL,
                 avg_price REAL NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS signal_state (
+                symbol TEXT PRIMARY KEY,
+                day TEXT NOT NULL,
+                status TEXT NOT NULL,   -- 'long'
+                entry_price REAL,
+                stop_loss REAL,
+                target REAL,
+                qty REAL,
+                entry_ts REAL,
+                orb_high REAL,
+                orb_low REAL
             )
             """
         )
@@ -746,6 +763,305 @@ def options_backtest_endpoint(
         },
         "backtest": result["summary"],
         "sample_trades": result["trades"],
+    }
+
+
+IST_OFFSET_MIN = 330  # UTC+5:30, no holiday calendar
+ORB_STRATEGY_PREFIX = "orb-"
+
+
+def ist_now() -> dt.datetime:
+    return dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN)
+
+
+def ist_midnight_epoch(now_ist: dt.datetime) -> float:
+    midnight_ist = now_ist.replace(hour=0, minute=0, second=0, microsecond=0)
+    midnight_utc = midnight_ist - dt.timedelta(minutes=IST_OFFSET_MIN)
+    return midnight_utc.replace(tzinfo=dt.timezone.utc).timestamp()
+
+
+def today_realized_pnl(conn, since_ts: float) -> float:
+    """Realized P&L today across all auto-signal ('orb-*') trades, all symbols -
+    this is the shared capital/risk pool the daily loss cap applies to."""
+    trades_today = conn.execute(
+        "SELECT symbol, action, qty, price FROM trades "
+        "WHERE strategy LIKE ? AND ts >= ? ORDER BY id",
+        (ORB_STRATEGY_PREFIX + "%", since_ts),
+    ).fetchall()
+    book: dict[str, dict] = {}
+    realized = 0.0
+    for t in trades_today:
+        b = book.setdefault(t["symbol"], {"qty": 0.0, "avg": 0.0})
+        if t["action"] == "buy":
+            new_qty = b["qty"] + t["qty"]
+            b["avg"] = ((b["qty"] * b["avg"]) + (t["qty"] * t["price"])) / new_qty if new_qty else 0.0
+            b["qty"] = new_qty
+        else:
+            realized += (t["price"] - b["avg"]) * min(t["qty"], b["qty"])
+            b["qty"] -= t["qty"]
+    return realized
+
+
+@app.get("/auto-signal")
+def auto_signal(
+    symbol: str,
+    capital: float = 200000,
+    daily_risk_pct: float = 2.0,
+    risk_per_trade_pct: float = 1.0,
+    rr: float = 2.0,
+    orb_minutes: int = 15,
+    sma_fast: int = 9,
+    sma_slow: int = 21,
+):
+    """
+    Intraday opening-range-breakout (ORB) signal engine, long-only, paper trades
+    only. Designed to be called repeatedly (e.g. every 15 min during market
+    hours via a GitHub Actions cron) - all state (open position, today's
+    realized P&L) is persisted in SQLite so it survives Render restarts/sleeps
+    between calls.
+
+    Rules (all tweakable via query params):
+      - Opening range = high/low of the first `orb_minutes` after 9:15 IST.
+      - Entry: 5m close breaks above the opening range high AND SMA(fast) >
+        SMA(slow) (trend filter). Long only - no shorting in this book.
+      - Stop-loss: opening range low. Target: entry + rr * (entry - stop).
+      - Position size: risk_amount / (entry - stop), where risk_amount =
+        min(risk_per_trade_pct% of capital, remaining daily loss budget).
+      - Daily loss cap: daily_risk_pct% of capital. Once today's realized loss
+        (across all symbols) hits this, no new entries and any open position
+        is squared off immediately.
+      - End-of-day square-off at 15:20 IST regardless of stop/target.
+    """
+    strategy_tag = f"{ORB_STRATEGY_PREFIX}{orb_minutes}m-sma{sma_fast}-{sma_slow}"
+    now_ist = ist_now()
+    today_str = now_ist.strftime("%Y-%m-%d")
+    mins_now = now_ist.hour * 60 + now_ist.minute
+
+    if now_ist.weekday() >= 5:
+        return {"symbol": symbol, "status": "closed_weekend", "time_ist": str(now_ist)}
+    if mins_now < 9 * 60 + 15:
+        return {"symbol": symbol, "status": "pre_open", "time_ist": str(now_ist)}
+
+    is_squareoff_time = mins_now >= 15 * 60 + 20
+    is_market_open = mins_now <= 15 * 60 + 30
+    if not is_market_open:
+        return {"symbol": symbol, "status": "closed", "time_ist": str(now_ist)}
+
+    with closing(get_db()) as conn:
+        row = conn.execute("SELECT * FROM signal_state WHERE symbol = ?", (symbol,)).fetchone()
+        if row and row["day"] != today_str:
+            conn.execute("DELETE FROM signal_state WHERE symbol = ?", (symbol,))
+            conn.commit()
+            row = None
+
+        since_ts = ist_midnight_epoch(now_ist)
+        realized_today = today_realized_pnl(conn, since_ts)
+        daily_loss_cap = capital * daily_risk_pct / 100
+        loss_so_far = max(0.0, -realized_today)
+        remaining_budget = max(0.0, daily_loss_cap - loss_so_far)
+        halted = remaining_budget <= 0
+
+        try:
+            df = fetch_ohlc(symbol, "5d", "5m")
+            ts = pd.to_datetime(df["Date"])
+            ts_ist = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts.dt.tz_localize(
+                "UTC"
+            ).dt.tz_convert("Asia/Kolkata")
+            df = df.assign(ts_ist=ts_ist)
+            df["date_ist"] = df["ts_ist"].dt.strftime("%Y-%m-%d")
+            today_df = df[df["date_ist"] == today_str].reset_index(drop=True)
+        except Exception as e:
+            return {"symbol": symbol, "status": "data_error", "detail": str(e)}
+
+        if today_df.empty:
+            return {"symbol": symbol, "status": "no_intraday_data_yet", "time_ist": str(now_ist)}
+
+        today_df["mins"] = today_df["ts_ist"].dt.hour * 60 + today_df["ts_ist"].dt.minute
+        orb_cutoff = 9 * 60 + 15 + orb_minutes
+        orb_df = today_df[today_df["mins"] < orb_cutoff]
+        if orb_df.empty or today_df["mins"].max() < orb_cutoff:
+            return {
+                "symbol": symbol, "status": "waiting_for_opening_range",
+                "bars_so_far": len(today_df), "time_ist": str(now_ist),
+            }
+
+        orb_high = float(orb_df["High"].max())
+        orb_low = float(orb_df["Low"].min())
+        last = today_df.iloc[-1]
+        last_close = float(last["Close"])
+
+        closes = today_df["Close"].to_numpy(dtype=float)
+        sma_f = float(np.mean(closes[-sma_fast:])) if len(closes) >= sma_fast else None
+        sma_s = float(np.mean(closes[-sma_slow:])) if len(closes) >= sma_slow else None
+        trend = ("up" if sma_f > sma_s else "down") if (sma_f is not None and sma_s is not None) else None
+
+        result = {
+            "symbol": symbol, "status": "checked", "time_ist": str(now_ist),
+            "last_close": last_close, "orb_high": orb_high, "orb_low": orb_low,
+            "sma_fast": sma_f, "sma_slow": sma_s, "trend": trend,
+            "capital": capital, "daily_loss_cap": daily_loss_cap,
+            "realized_today": round(realized_today, 2),
+            "realized_today_pct": round(100 * realized_today / capital, 3),
+            "budget_remaining": round(remaining_budget, 2),
+            "halted_for_day": halted, "action_taken": "none",
+        }
+
+        # ---- manage an existing open position ----
+        if row and row["status"] == "long":
+            exit_reason = None
+            if halted:
+                exit_reason = "daily_loss_cap_hit"
+            elif last_close >= row["target"]:
+                exit_reason = "target_hit"
+            elif last_close <= row["stop_loss"]:
+                exit_reason = "stop_hit"
+            elif is_squareoff_time:
+                exit_reason = "eod_squareoff"
+
+            if exit_reason:
+                qty = row["qty"]
+                pnl = (last_close - row["entry_price"]) * qty
+                stop_dist = row["entry_price"] - row["stop_loss"]
+                rr_achieved = round((last_close - row["entry_price"]) / stop_dist, 2) if stop_dist else None
+                payload = {
+                    "symbol": symbol, "action": "sell", "qty": qty, "price": last_close,
+                    "strategy": strategy_tag, "exit_reason": exit_reason,
+                    "entry_price": row["entry_price"], "stop_loss": row["stop_loss"],
+                    "target": row["target"], "rr_target": rr, "rr_achieved": rr_achieved,
+                    "pnl": round(pnl, 2), "pnl_pct_of_capital": round(100 * pnl / capital, 3),
+                }
+                apply_paper_trade(conn, symbol, "sell", qty, last_close)
+                conn.execute(
+                    "INSERT INTO trades (ts, symbol, action, qty, price, strategy, raw_payload) "
+                    "VALUES (?, ?, 'sell', ?, ?, ?, ?)",
+                    (time.time(), symbol, qty, last_close, strategy_tag, json.dumps(payload)),
+                )
+                conn.execute("DELETE FROM signal_state WHERE symbol = ?", (symbol,))
+                conn.commit()
+                result.update(
+                    action_taken=f"exited_{exit_reason}", exit_pnl=payload["pnl"],
+                    exit_pnl_pct=payload["pnl_pct_of_capital"], rr_achieved=rr_achieved,
+                )
+                return result
+
+            result["open_position"] = dict(row)
+            return result
+
+        # ---- look for a new entry ----
+        if halted:
+            result["action_taken"] = "blocked_daily_loss_cap"
+            return result
+        if is_squareoff_time:
+            result["action_taken"] = "no_new_entries_market_closing"
+            return result
+
+        if last_close > orb_high and trend == "up":
+            stop_loss = orb_low
+            stop_dist = last_close - stop_loss
+            if stop_dist <= 0:
+                result["action_taken"] = "invalid_stop_skipped"
+                return result
+            target = last_close + rr * stop_dist
+            risk_amount = min(capital * risk_per_trade_pct / 100, remaining_budget)
+            qty = int(risk_amount // stop_dist)
+            if qty < 1:
+                result["action_taken"] = "budget_too_small_for_1_unit"
+                return result
+
+            payload = {
+                "symbol": symbol, "action": "buy", "qty": qty, "price": last_close,
+                "strategy": strategy_tag, "entry_reason": "orb_breakout_with_trend",
+                "stop_loss": stop_loss, "target": target, "rr_target": rr,
+                "risk_amount": round(risk_amount, 2),
+                "risk_pct_of_capital": round(100 * risk_amount / capital, 3),
+            }
+            apply_paper_trade(conn, symbol, "buy", qty, last_close)
+            conn.execute(
+                "INSERT INTO trades (ts, symbol, action, qty, price, strategy, raw_payload) "
+                "VALUES (?, ?, 'buy', ?, ?, ?, ?)",
+                (time.time(), symbol, qty, last_close, strategy_tag, json.dumps(payload)),
+            )
+            conn.execute(
+                "INSERT INTO signal_state "
+                "(symbol, day, status, entry_price, stop_loss, target, qty, entry_ts, orb_high, orb_low) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
+                "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
+                "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
+                "orb_high=excluded.orb_high, orb_low=excluded.orb_low",
+                (symbol, today_str, last_close, stop_loss, target, qty, time.time(), orb_high, orb_low),
+            )
+            conn.commit()
+            result.update(action_taken="entered_long", entry=payload)
+            return result
+
+        result["action_taken"] = "no_signal"
+        return result
+
+
+@app.get("/daily-summary")
+def daily_summary(capital: float = 200000, daily_risk_pct: float = 2.0):
+    """Aggregated view of today's auto-signal paper trading across all symbols:
+    realized P&L (Rs and % of capital), win rate, risk-reward achieved per
+    trade, remaining daily-loss budget, and any still-open positions."""
+    now_ist = ist_now()
+    today_str = now_ist.strftime("%Y-%m-%d")
+    since_ts = ist_midnight_epoch(now_ist)
+
+    with closing(get_db()) as conn:
+        trades_today = conn.execute(
+            "SELECT id, ts, symbol, action, qty, price, strategy, raw_payload FROM trades "
+            "WHERE strategy LIKE ? AND ts >= ? ORDER BY id",
+            (ORB_STRATEGY_PREFIX + "%", since_ts),
+        ).fetchall()
+        open_state = conn.execute(
+            "SELECT * FROM signal_state WHERE day = ? AND status = 'long'", (today_str,)
+        ).fetchall()
+
+    book: dict[str, dict] = {}
+    realized = 0.0
+    closed_trades = []
+    for t in trades_today:
+        sym = t["symbol"]
+        b = book.setdefault(sym, {"qty": 0.0, "avg": 0.0})
+        if t["action"] == "buy":
+            new_qty = b["qty"] + t["qty"]
+            b["avg"] = ((b["qty"] * b["avg"]) + (t["qty"] * t["price"])) / new_qty if new_qty else 0.0
+            b["qty"] = new_qty
+        else:
+            pnl = (t["price"] - b["avg"]) * min(t["qty"], b["qty"])
+            realized += pnl
+            b["qty"] -= t["qty"]
+            try:
+                extra = json.loads(t["raw_payload"])
+            except Exception:
+                extra = {}
+            closed_trades.append({
+                "symbol": sym, "exit_time_utc": t["ts"], "entry_price": extra.get("entry_price"),
+                "exit_price": t["price"], "qty": t["qty"], "pnl": round(pnl, 2),
+                "pnl_pct_of_capital": round(100 * pnl / capital, 3),
+                "exit_reason": extra.get("exit_reason"), "rr_target": extra.get("rr_target"),
+                "rr_achieved": extra.get("rr_achieved"),
+            })
+
+    daily_loss_cap = capital * daily_risk_pct / 100
+    loss_so_far = max(0.0, -realized)
+    budget_remaining = max(0.0, daily_loss_cap - loss_so_far)
+    wins = [c for c in closed_trades if c["pnl"] > 0]
+
+    return {
+        "date_ist": today_str,
+        "capital": capital,
+        "daily_loss_cap": daily_loss_cap,
+        "daily_loss_cap_pct": daily_risk_pct,
+        "realized_pnl": round(realized, 2),
+        "realized_pnl_pct": round(100 * realized / capital, 3),
+        "budget_remaining": round(budget_remaining, 2),
+        "halted_for_day": budget_remaining <= 0,
+        "closed_trades_count": len(closed_trades),
+        "win_rate_pct": round(100 * len(wins) / len(closed_trades), 1) if closed_trades else None,
+        "open_positions": [dict(r) for r in open_state],
+        "closed_trades": closed_trades,
     }
 
 
