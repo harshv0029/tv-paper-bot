@@ -1289,41 +1289,47 @@ def auto_signal(
 WATCHLIST = [
     # NSE/BSE - IST 9:15-15:30, weekdays. Params from 2026-09-02 research
     # (docs/daily_logs/2026-09-02-entry-trigger-research.md).
+    # risk_pct/stop_pct: 2% is the account-wide MAXIMUM (docs/TRADING_CONSTRAINTS.md),
+    # not a fixed rate - set lower per symbol where evidence supports it.
+    # NIFTY/BANKNIFTY/SENSEX ran the full evidence-backed ceiling (2%) since
+    # they have real 60-day backtest evidence behind this exact strategy
+    # (docs/daily_logs/2026-09-02-entry-trigger-research.md). SPY/QQQ/AAPL/
+    # BTC-USD/ETH-USD have NEVER been backtested with orb_breakout - no
+    # evidence yet, so they run at half the ceiling (1%) until they build a
+    # track record worth trusting with the full 2%.
     {"symbol": "^NSEI", "orb_minutes": 30, "sma_fast": 5, "sma_slow": 50,
      "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR"},
+     "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^NSEBANK", "orb_minutes": 5, "sma_fast": 9, "sma_slow": 50,
      "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR"},
+     "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50,
      "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR"},
-    # Crypto - UTC, 24/7, trades weekends too. Quoted in USD.
+     "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
+    # Crypto - UTC, 24/7, trades weekends too. Quoted in USD. No backtest evidence yet.
     {"symbol": "BTC-USD", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
      "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
-     "trade_weekends": True, "currency": "USD"},
+     "trade_weekends": True, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
     {"symbol": "ETH-USD", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
      "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
-     "trade_weekends": True, "currency": "USD"},
-    # US markets - ET, quoted in USD. tz_offset_min=-240 is EDT (UTC-4),
-    # correct through early Nov 2026; needs -300 (EST) after the US DST
-    # changeover.
+     "trade_weekends": True, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    # US markets - ET, quoted in USD. No backtest evidence yet. tz_offset_min=-240
+    # is EDT (UTC-4), correct through early Nov 2026; needs -300 (EST) after
+    # the US DST changeover.
     {"symbol": "SPY", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
      "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD"},
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
     {"symbol": "QQQ", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
      "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD"},
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
     {"symbol": "AAPL", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
      "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD"},
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
 ]
 
 SCHEDULER_INTERVAL_SECONDS = 30
 SCHEDULER_CAPITAL = 200000
-SCHEDULER_DAILY_RISK_PCT = 2.0
-SCHEDULER_RISK_PER_TRADE_PCT = 2.0
-SCHEDULER_STOP_PCT = 2.0
+SCHEDULER_DAILY_RISK_PCT = 2.0  # account-wide daily loss cap - always the full 2%, not per-symbol
 SCHEDULER_RR = 2.0
 
 _scheduler_last_tick_ts = 0.0
@@ -1339,8 +1345,8 @@ async def _scheduler_loop():
                     _auto_signal_core,
                     symbol=cfg["symbol"], capital=SCHEDULER_CAPITAL,
                     daily_risk_pct=SCHEDULER_DAILY_RISK_PCT,
-                    risk_per_trade_pct=SCHEDULER_RISK_PER_TRADE_PCT,
-                    stop_pct=SCHEDULER_STOP_PCT, rr=SCHEDULER_RR,
+                    risk_per_trade_pct=cfg["risk_pct"],
+                    stop_pct=cfg["stop_pct"], rr=SCHEDULER_RR,
                     orb_minutes=cfg["orb_minutes"], sma_fast=cfg["sma_fast"], sma_slow=cfg["sma_slow"],
                     interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
                     close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],

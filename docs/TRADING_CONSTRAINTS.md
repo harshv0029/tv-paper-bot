@@ -9,10 +9,23 @@ change is the bug.
 |---|---|---|
 | **Capital** | ₹2,00,000, one shared pool across every market (NSE, crypto, US) | `capital` param, default across all WATCHLIST entries |
 | **Max loss per day** | **2% of capital (₹4,000)** — resets at IST midnight, every calendar day, automatically | `daily_risk_pct=2.0` + `ist_midnight_epoch()` in `today_realized_pnl()` |
-| **Max risk per trade** | 2% of capital (₹4,000) | `risk_per_trade_pct=2.0` |
-| **Per-trade stop-loss cap** | 2% of that trade's value max (tighter of this or the strategy's own ORB-low level) | `stop_pct=2.0` |
+| **Max risk per trade** | **2% of capital is a CEILING, not a fixed rate** — set lower per symbol where evidence supports it | `risk_per_trade_pct`, per-symbol in `WATCHLIST` |
+| **Per-trade stop-loss cap** | Same ceiling logic, tighter of this or the strategy's own ORB-low level | `stop_pct`, per-symbol in `WATCHLIST` |
 | **Risk:Reward target** | 1:2 (target = entry + 2 × stop distance) | `rr=2.0` |
 | **Capital deployed cap** | Total notional across all open positions never exceeds ₹2,00,000 | `deployed_notional()` capital check in the entry path |
+
+## Per-trade risk: 2% is a ceiling, tuned down by evidence
+
+Current split (as of 2026-09-02):
+- **NIFTY, BANKNIFTY, SENSEX: full 2%.** These have real 60-day backtest
+  evidence behind this exact ORB strategy
+  (`docs/daily_logs/2026-09-02-entry-trigger-research.md`) — profitable on
+  95.8-100% of swept parameter combinations, not a lone lucky spike.
+- **SPY, QQQ, AAPL, BTC-USD, ETH-USD: 1% (half the ceiling).** The ORB
+  strategy has never been backtested on these symbols — no evidence yet
+  that it works there. Runs conservative until it builds a track record;
+  raise toward 2% only once there's real evidence to justify it, the same
+  way NIFTY/BANKNIFTY/SENSEX earned theirs.
 
 ## The daily loss cap, specifically
 
