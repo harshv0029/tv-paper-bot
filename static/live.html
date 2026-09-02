@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Live Market Monitor</title>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121822; --border:#1f2937; --text:#e5e7eb; --muted:#8b98a9;
+    --up:#22c55e; --down:#ef4444; --accent:#3b82f6; --warn:#f59e0b;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:20px;}
+  h1{font-size:18px;font-weight:600;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:12px;margin-bottom:18px;}
+  .status{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:.03em;margin-left:8px;}
+  .status.open{background:rgba(34,197,94,.15);color:var(--up);}
+  .status.closed{background:rgba(139,152,169,.15);color:var(--muted);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;}
+  .card h2{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .price-row{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;}
+  .ltp{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .chg{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .chg.up{color:var(--up);} .chg.down{color:var(--down);}
+  .meta{font-size:11px;color:var(--muted);margin-bottom:8px;}
+  .chart{height:140px;}
+  .badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600;}
+  .badge.low{background:rgba(59,130,246,.15);color:var(--accent);}
+  .badge.normal{background:rgba(139,152,169,.15);color:var(--muted);}
+  .badge.high{background:rgba(239,68,68,.15);color:var(--down);}
+  .err{color:var(--down);font-size:12px;}
+  footer{margin-top:16px;color:var(--muted);font-size:11px;}
+</style>
+</head>
+<body>
+
+<h1>Live Market Monitor <span id="mkt-status" class="status closed">—</span></h1>
+<div class="sub">Paper-trading research view. Not investment advice. <span id="last-update"></span></div>
+
+<div class="grid" id="grid"></div>
+
+<footer>Polls <code>/history</code> every 60s while NSE is open (9:15–15:30 IST Mon–Fri), every 5min otherwise. IST market-hours check is time/weekday only — no holiday calendar.</footer>
+
+<script>
+const INSTRUMENTS = [
+  { key: "nifty",     ticker: "^NSEI",    label: "NIFTY 50" },
+  { key: "banknifty", ticker: "^NSEBANK", label: "BANKNIFTY" },
+  { key: "sensex",    ticker: "^BSESN",   label: "SENSEX" },
+  { key: "vix",       ticker: "^INDIAVIX",label: "INDIA VIX", isVix: true },
+];
+
+const HISTORY_BASE = window.location.origin + "/history";
+const charts = {};
+
+function buildCards() {
+  const grid = document.getElementById("grid");
+  INSTRUMENTS.forEach(inst => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <h2>${inst.label}</h2>
+      <div class="price-row">
+        <span class="ltp" id="ltp-${inst.key}">—</span>
+        <span class="chg" id="chg-${inst.key}">—</span>
+      </div>
+      <div class="meta" id="meta-${inst.key}">loading…</div>
+      <div class="chart" id="chart-${inst.key}"></div>
+    `;
+    grid.appendChild(card);
+
+    if (!inst.isVix) {
+      const chart = LightweightCharts.createChart(document.getElementById(`chart-${inst.key}`), {
+        layout: { background: { color: "transparent" }, textColor: "#8b98a9" },
+        grid: { vertLines: { color: "#1f2937" }, horzLines: { color: "#1f2937" } },
+        rightPriceScale: { borderColor: "#1f2937" },
+        timeScale: { borderColor: "#1f2937", timeVisible: true },
+        handleScroll: false,
+        handleScale: false,
+      });
+      const series = chart.addLineSeries({ color: "#3b82f6", lineWidth: 2 });
+      charts[inst.key] = { chart, series };
+      new ResizeObserver(entries => {
+        const { width } = entries[0].contentRect;
+        chart.applyOptions({ width });
+      }).observe(document.getElementById(`chart-${inst.key}`));
+    }
+  });
+}
+
+function isMarketOpen() {
+  // IST = UTC+5:30, no holiday calendar.
+  const now = new Date();
+  const ist = new Date(now.getTime() + (5.5 * 60 - now.getTimezoneOffset()) * 60000);
+  const day = ist.getDay(); // 0 Sun .. 6 Sat
+  if (day === 0 || day === 6) return false;
+  const mins = ist.getHours() * 60 + ist.getMinutes();
+  return mins >= (9 * 60 + 15) && mins <= (15 * 60 + 30);
+}
+
+function fmt(n, d = 2) {
+  return Number(n).toLocaleString("en-IN", { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
+async function fetchHistory(ticker, period, interval) {
+  const url = `${HISTORY_BASE}?symbol=${encodeURIComponent(ticker)}&period=${period}&interval=${interval}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
+
+async function updateInstrument(inst) {
+  try {
+    const data = await fetchHistory(inst.ticker, "5d", "5m");
+    const rows = data.candles || data.data || data;
+    if (!Array.isArray(rows) || rows.length === 0) throw new Error("no data");
+
+    const closes = rows.map(r => r.close ?? r.Close);
+    const times = rows.map(r => (r.time ?? r.Date ?? r.date));
+    const last = closes[closes.length - 1];
+    const prevCloseRow = rows.length > 1 ? closes[0] : last;
+    const chg = last - prevCloseRow;
+    const chgPct = (chg / prevCloseRow) * 100;
+
+    document.getElementById(`ltp-${inst.key}`).textContent = fmt(last);
+    const chgEl = document.getElementById(`chg-${inst.key}`);
+    chgEl.textContent = `${chg >= 0 ? "+" : ""}${fmt(chg)} (${chg >= 0 ? "+" : ""}${fmt(chgPct)}%)`;
+    chgEl.className = "chg " + (chg >= 0 ? "up" : "down");
+
+    if (inst.isVix) {
+      const avg1y = 13.86, lo = 9.15, hi = 27.89; // reference band, static
+      let regime = "normal", cls = "normal";
+      if (last < avg1y * 0.85) { regime = "low"; cls = "low"; }
+      else if (last > avg1y * 1.15) { regime = "high"; cls = "high"; }
+      document.getElementById(`meta-${inst.key}`).innerHTML =
+        `1y avg ${fmt(avg1y)} · range ${fmt(lo)}–${fmt(hi)} <span class="badge ${cls}">${regime} vol</span>`;
+    } else {
+      const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / Math.min(20, closes.length);
+      document.getElementById(`meta-${inst.key}`).textContent = `Daily SMA20 ≈ ${fmt(sma20)}`;
+      const c = charts[inst.key];
+      if (c) {
+        const series = times.map((t, i) => ({
+          time: typeof t === "number" ? t : Math.floor(new Date(t).getTime() / 1000),
+          value: closes[i],
+        })).filter(p => Number.isFinite(p.value));
+        c.series.setData(series);
+        c.chart.timeScale().fitContent();
+      }
+    }
+  } catch (e) {
+    document.getElementById(`meta-${inst.key}`).innerHTML = `<span class="err">fetch failed: ${e.message}</span>`;
+  }
+}
+
+async function refreshAll() {
+  const open = isMarketOpen();
+  const statusEl = document.getElementById("mkt-status");
+  statusEl.textContent = open ? "MARKET OPEN" : "CLOSED";
+  statusEl.className = "status " + (open ? "open" : "closed");
+  document.getElementById("last-update").textContent =
+    "Last update: " + new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
+
+  await Promise.all(INSTRUMENTS.map(updateInstrument));
+
+  const delay = open ? 60_000 : 300_000;
+  setTimeout(refreshAll, delay);
+}
+
+buildCards();
+refreshAll();
+</script>
+</body>
+</html>

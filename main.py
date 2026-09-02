@@ -28,6 +28,8 @@ import yfinance as yf
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 DB_PATH = os.environ.get("DB_PATH", "paper_trades.db")
@@ -35,6 +37,7 @@ WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "change-me")
 STARTING_CASH = float(os.environ.get("STARTING_CASH", "100000"))  # paper capital
 
 app = FastAPI(title="TradingView Paper Trading Bot")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Allows the dashboard (a page hosted on a different domain) to call /history,
 # /backtest, /sweep directly from the browser. Fine for these read-only,
@@ -562,3 +565,9 @@ def sweep(
 @app.get("/health")
 def health():
     return {"status": "alive", "time": time.time()}
+
+
+@app.get("/live")
+def live():
+    """Self-refreshing NIFTY/BANKNIFTY/SENSEX/India VIX dashboard."""
+    return FileResponse("static/live.html")
