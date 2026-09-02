@@ -341,10 +341,70 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
             flags.append(holding)
         df["long"] = flags
 
+    elif strategy in ("orb_breakout", "orb_volume"):
+        orb_minutes = int(params.get("orb_minutes", 15))
+        sma_fast = int(params.get("sma_fast", 9))
+        sma_slow = int(params.get("sma_slow", 21))
+        open_min = int(params.get("open_min", 9 * 60 + 15))
+        volume_mult = float(params.get("volume_mult", 1.5))
+
+        ts = pd.to_datetime(df["Date"])
+        ts_ist = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts.dt.tz_localize(
+            "UTC"
+        ).dt.tz_convert("Asia/Kolkata")
+        day = ts_ist.dt.strftime("%Y-%m-%d")
+        mins = ts_ist.dt.hour * 60 + ts_ist.dt.minute
+
+        df["fast_ma"] = df["Close"].rolling(sma_fast).mean()
+        df["slow_ma"] = df["Close"].rolling(sma_slow).mean()
+        trend_up = df["fast_ma"] > df["slow_ma"]
+
+        in_orb_window = (mins >= open_min) & (mins < open_min + orb_minutes)
+        orb_high = df["High"].where(in_orb_window).groupby(day).transform("max")
+        orb_high = orb_high.groupby(day).ffill()  # holds the ORB high for the rest of that day
+
+        after_orb = mins >= open_min + orb_minutes
+        raw = (df["Close"] > orb_high) & after_orb & trend_up.fillna(False)
+
+        if strategy == "orb_volume":
+            vol_avg = df["Volume"].rolling(20).mean()
+            raw = raw & (df["Volume"] > vol_avg * volume_mult)
+
+        # Once triggered, stay long for the rest of that trading day (flat overnight).
+        df["long"] = raw.groupby(day).cummax()
+
+    elif strategy == "vwap_reclaim":
+        ts = pd.to_datetime(df["Date"])
+        ts_ist = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts.dt.tz_localize(
+            "UTC"
+        ).dt.tz_convert("Asia/Kolkata")
+        day = ts_ist.dt.strftime("%Y-%m-%d")
+
+        typical = (df["High"] + df["Low"] + df["Close"]) / 3
+        pv = typical * df["Volume"]
+        cum_pv = pv.groupby(day).cumsum()
+        cum_vol = df["Volume"].groupby(day).cumsum().replace(0, float("nan"))
+        vwap = cum_pv / cum_vol
+
+        raw = df["Close"] > vwap
+        df["long"] = raw.groupby(day).cummax()
+        df["vwap"] = vwap
+
+    elif strategy == "macd_cross":
+        fast_span = int(params.get("macd_fast", 12))
+        slow_span = int(params.get("macd_slow", 26))
+        signal_span = int(params.get("macd_signal", 9))
+        ema_fast = df["Close"].ewm(span=fast_span, adjust=False).mean()
+        ema_slow = df["Close"].ewm(span=slow_span, adjust=False).mean()
+        macd = ema_fast - ema_slow
+        signal_line = macd.ewm(span=signal_span, adjust=False).mean()
+        df["long"] = macd > signal_line
+
     else:
         raise HTTPException(
             status_code=400,
-            detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal",
+            detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
+                   f"orb_breakout, orb_volume, vwap_reclaim, macd_cross",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -415,6 +475,14 @@ def backtest(
     rsi_period: int = 14,
     oversold: float = 30,
     overbought: float = 70,
+    orb_minutes: int = 15,
+    sma_fast: int = 9,
+    sma_slow: int = 21,
+    open_min: int = 9 * 60 + 15,
+    volume_mult: float = 1.5,
+    macd_fast: int = 12,
+    macd_slow: int = 26,
+    macd_signal: int = 9,
     qty: float = 1,
 ):
     """
@@ -422,16 +490,30 @@ def backtest(
     and returns just the results - keeps responses small regardless of how
     many bars were analyzed.
 
-    strategy=sma_crossover -> params: fast, slow
-    strategy=rsi_reversal  -> params: rsi_period, oversold, overbought
+    strategy=sma_crossover        -> params: fast, slow
+    strategy=rsi_reversal         -> params: rsi_period, oversold, overbought
+    strategy=orb_breakout/orb_volume -> params: orb_minutes, sma_fast, sma_slow,
+                                        open_min (orb_volume also: volume_mult)
+    strategy=vwap_reclaim         -> no extra params
+    strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
     """
     df = fetch_ohlc(symbol, period, interval)
 
-    params = (
-        {"fast": fast, "slow": slow}
-        if strategy == "sma_crossover"
-        else {"rsi_period": rsi_period, "oversold": oversold, "overbought": overbought}
-    )
+    if strategy == "sma_crossover":
+        params = {"fast": fast, "slow": slow}
+    elif strategy == "rsi_reversal":
+        params = {"rsi_period": rsi_period, "oversold": oversold, "overbought": overbought}
+    elif strategy in ("orb_breakout", "orb_volume"):
+        params = {
+            "orb_minutes": orb_minutes, "sma_fast": sma_fast, "sma_slow": sma_slow,
+            "open_min": open_min, "volume_mult": volume_mult,
+        }
+    elif strategy == "vwap_reclaim":
+        params = {}
+    elif strategy == "macd_cross":
+        params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
+    else:
+        params = {}
 
     df = add_strategy_signal(df, strategy, params)
     trades, open_position = extract_trades(df, qty)
@@ -483,6 +565,11 @@ def sweep(
     rsi_period: str = "7,14,21",
     oversold: str = "20,25,30",
     overbought: str = "70,75,80",
+    # orb_breakout / orb_volume params - comma-separated lists
+    orb_minutes: str = "5,15,30",
+    sma_fast: str = "5,9,20",
+    sma_slow: str = "20,21,50",
+    volume_mult: str = "1.2,1.5,2.0",
 ):
     """
     Tests every combination of the given parameter lists against ONE fetch of
@@ -512,10 +599,28 @@ def sweep(
             for rp, o, b in product(rp_list, os_list, ob_list)
             if o < b
         ]
+    elif strategy in ("orb_breakout", "orb_volume"):
+        om_list = _parse_num_list(orb_minutes, int)
+        sf_list = _parse_num_list(sma_fast, int)
+        ss_list = _parse_num_list(sma_slow, int)
+        if strategy == "orb_volume":
+            vm_list = _parse_num_list(volume_mult, float)
+            combos = [
+                {"orb_minutes": om, "sma_fast": sf, "sma_slow": ss, "volume_mult": vm}
+                for om, sf, ss, vm in product(om_list, sf_list, ss_list, vm_list)
+                if sf < ss
+            ]
+        else:
+            combos = [
+                {"orb_minutes": om, "sma_fast": sf, "sma_slow": ss}
+                for om, sf, ss in product(om_list, sf_list, ss_list)
+                if sf < ss
+            ]
     else:
         raise HTTPException(
             status_code=400,
-            detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal",
+            detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
+                   f"orb_breakout, orb_volume",
         )
 
     if not combos:
