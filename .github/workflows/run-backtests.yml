@@ -1,0 +1,39 @@
+name: Run Strategy Backtests
+
+# Manual utility: hits the deployed /options-backtest endpoint (which has real
+# internet access via the Render host) for each strategy in docs/STRATEGY_LOG.md
+# and prints the JSON results to the job log, since this repo's Claude sessions
+# cannot reach the Render host directly (egress-blocked). Not scheduled.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run backtests against live server
+        run: |
+          BASE="https://tv-paper-bot-gdan.onrender.com/options-backtest"
+          COMMON="expiry_days=15&iv_mode=realized&lookback=2y&step_days=5"
+
+          run() {
+            name="$1"; symbol="$2"; legs="$3"
+            echo "### $name"
+            curl -sS -m 60 "$BASE?symbol=${symbol}&legs=${legs}&${COMMON}"
+            echo
+          }
+
+          # Wake the free-tier server first (it sleeps when idle).
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+
+          run "bull_call_spread"    "%5ENSEBANK" "C:buy:0.0,C:sell:0.03"
+          run "protective_put"      "%5ENSEBANK" "U:buy:0.0,P:buy:-0.03"
+          run "covered_call"        "%5ENSEBANK" "U:buy:0.0,C:sell:0.03"
+          run "collar"              "%5ENSEBANK" "U:buy:0.0,P:buy:-0.03,C:sell:0.03"
+          run "bull_put_spread"     "%5ENSEBANK" "P:sell:-0.03,P:buy:-0.06"
+          run "long_straddle"       "%5ENSEI"    "C:buy:0.0,P:buy:0.0"
+          run "iron_condor_nifty"   "%5ENSEI"    "P:buy:-0.08,P:sell:-0.04,C:sell:0.04,C:buy:0.08"
+          run "bear_put_spread"     "%5EBSESN"   "P:buy:0.0,P:sell:-0.03"
+          run "short_strangle"      "%5EBSESN"   "C:sell:0.05,P:sell:-0.05"
+          run "iron_condor_sensex"  "%5EBSESN"   "P:buy:-0.08,P:sell:-0.04,C:sell:0.04,C:buy:0.08"
