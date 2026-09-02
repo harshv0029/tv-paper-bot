@@ -73,7 +73,7 @@
 <body>
 
 <h1>Trade View <span id="hdr-status" class="status flat">—</span></h1>
-<div class="sub">Live scalp-style view — candles, entry/stop/target ladder, floating P&amp;L. Not investment advice. <span id="last-update"></span></div>
+<div class="sub">Live scalp-style view — candles, entry/stop/target ladder, floating P&amp;L. Not investment advice. <span id="last-update"></span> · next refresh in <span id="countdown" class="mono">10</span>s</div>
 
 <div class="cards" id="cards"><div class="empty">Loading…</div></div>
 
@@ -178,8 +178,11 @@ function setPriceLines(entry, pos) {
   add(pos.orb_low_native, "#f59e0b", "ORB low");
 }
 
-async function updateCandles(symbol, entry) {
-  const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(symbol)}&period=5d&interval=5m`);
+async function updateCandles(symbol, entry, interval) {
+  // Today's session only, at the SAME candle size the trade was actually
+  // taken on - a multi-day fetch squeezes hundreds of bars onto one chart,
+  // which makes each 5-min candle look coarser than it is.
+  const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(symbol)}&period=1d&interval=${encodeURIComponent(interval || "5m")}`);
   const rows = data.data || [];
   const candles = rows.map(r => ({
     time: toChartTime(r.date), open: r.open, high: r.high, low: r.low, close: r.close,
@@ -267,7 +270,7 @@ async function refresh() {
 
     for (const pos of openPositions) {
       const entry = ensureCard(pos.symbol);
-      const lastClose = await updateCandles(pos.symbol, entry);
+      const lastClose = await updateCandles(pos.symbol, entry, pos.interval);
       if (lastClose === null) continue;
       setPriceLines(entry, pos);
       updateLtp(pos.symbol, lastClose);
@@ -279,8 +282,20 @@ async function refresh() {
   }
 }
 
+const REFRESH_SECONDS = 10;
+let secondsLeft = REFRESH_SECONDS;
+
+function tickCountdown() {
+  secondsLeft -= 1;
+  if (secondsLeft <= 0) {
+    secondsLeft = REFRESH_SECONDS;
+    refresh();
+  }
+  document.getElementById("countdown").textContent = secondsLeft;
+}
+
 refresh();
-setInterval(refresh, 10_000);
+setInterval(tickCountdown, 1000);
 </script>
 </body>
 </html>
