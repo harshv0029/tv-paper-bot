@@ -99,7 +99,8 @@ def init_db():
                 entry_ts REAL,
                 orb_high REAL,
                 orb_low REAL,
-                fx_to_inr REAL NOT NULL DEFAULT 1.0  -- captured at entry; entry_price*fx_to_inr = INR/unit
+                fx_to_inr REAL NOT NULL DEFAULT 1.0,  -- captured at entry; entry_price*fx_to_inr = INR/unit
+                interval TEXT NOT NULL DEFAULT '5m'   -- candle size this trade was taken on
             )
             """
         )
@@ -1222,13 +1223,14 @@ def _auto_signal_core(
             )
             conn.execute(
                 "INSERT INTO signal_state "
-                "(symbol, day, status, entry_price, stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?) "
+                "(symbol, day, status, entry_price, stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
                 "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
                 "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
-                "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr",
-                (symbol, today_str, last_close, stop_loss, target, qty, time.time(), orb_high, orb_low, fx_to_inr),
+                "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, "
+                "interval=excluded.interval",
+                (symbol, today_str, last_close, stop_loss, target, qty, time.time(), orb_high, orb_low, fx_to_inr, interval),
             )
             conn.commit()
             result.update(action_taken="entered_long", entry=payload)
@@ -1429,7 +1431,7 @@ def daily_summary(capital: float = 200000, daily_risk_pct: float = 2.0):
             "target_native": r["target"], "fx_to_inr": r["fx_to_inr"],
             "notional_inr": round(notional_inr, 2),
             "orb_high_native": r["orb_high"], "orb_low_native": r["orb_low"],
-            "entry_ts": r["entry_ts"],
+            "entry_ts": r["entry_ts"], "interval": r["interval"],
         })
 
     daily_loss_cap = capital * daily_risk_pct / 100
