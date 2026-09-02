@@ -77,7 +77,7 @@
 
 <div class="cards" id="cards"><div class="empty">Loading…</div></div>
 
-<footer>Polls <code>/daily-summary</code> + <code>/history</code> every 30s. Amber lines = opening-range high/low (the strategy's own support/resistance).</footer>
+<footer>Polls <code>/daily-summary</code> + <code>/history</code> every 10s. Amber lines = opening-range high/low (the strategy's own support/resistance).</footer>
 
 <script>
 const ORIGIN = window.location.origin;
@@ -280,7 +280,7 @@ async function refresh() {
 }
 
 refresh();
-setInterval(refresh, 30_000);
+setInterval(refresh, 10_000);
 </script>
 </body>
 </html>
