@@ -782,22 +782,31 @@ def ist_midnight_epoch(now_ist: dt.datetime) -> float:
 
 def today_realized_pnl(conn, since_ts: float) -> float:
     """Realized P&L today across all auto-signal ('orb-*') trades, all symbols -
-    this is the shared capital/risk pool the daily loss cap applies to."""
-    trades_today = conn.execute(
-        "SELECT symbol, action, qty, price FROM trades "
-        "WHERE strategy LIKE ? AND ts >= ? ORDER BY id",
-        (ORB_STRATEGY_PREFIX + "%", since_ts),
+    this is the shared capital/risk pool the daily loss cap applies to.
+
+    Builds the cost-basis book from the FULL trade history (not just today's
+    rows) so a position opened before today's cutoff still has a correct avg
+    price - needed for any market whose session can span the IST midnight
+    boundary (e.g. US markets, ~19:00-01:30 IST), where the entry and exit
+    would otherwise land in different day-buckets and this would wrongly
+    treat the exit as a sell with no matching buy. Only sells at/after
+    `since_ts` count toward the returned figure."""
+    all_trades = conn.execute(
+        "SELECT symbol, action, qty, price, ts FROM trades WHERE strategy LIKE ? ORDER BY id",
+        (ORB_STRATEGY_PREFIX + "%",),
     ).fetchall()
     book: dict[str, dict] = {}
     realized = 0.0
-    for t in trades_today:
+    for t in all_trades:
         b = book.setdefault(t["symbol"], {"qty": 0.0, "avg": 0.0})
         if t["action"] == "buy":
             new_qty = b["qty"] + t["qty"]
             b["avg"] = ((b["qty"] * b["avg"]) + (t["qty"] * t["price"])) / new_qty if new_qty else 0.0
             b["qty"] = new_qty
         else:
-            realized += (t["price"] - b["avg"]) * min(t["qty"], b["qty"])
+            pnl = (t["price"] - b["avg"]) * min(t["qty"], b["qty"])
+            if t["ts"] >= since_ts:
+                realized += pnl
             b["qty"] -= t["qty"]
     return realized
 
@@ -827,6 +836,11 @@ def auto_signal(
     sma_fast: int = 9,
     sma_slow: int = 21,
     interval: str = "5m",
+    tz_offset_min: int = IST_OFFSET_MIN,
+    open_min: int = 9 * 60 + 15,
+    close_min: int = 15 * 60 + 30,
+    squareoff_min: int = 15 * 60 + 20,
+    trade_weekends: bool = False,
 ):
     """
     Intraday opening-range-breakout (ORB) signal engine, long-only, paper trades
@@ -841,9 +855,23 @@ def auto_signal(
     opening range); a multi-day/swing engine on daily+ candles is a separate,
     not-yet-built strategy shape.
 
+    Market session is fully configurable, so this same engine covers any
+    market/asset class, not just NSE - tz_offset_min/open_min/close_min/
+    squareoff_min are all minutes-since-local-midnight in that market's own
+    timezone (defaults = NSE/BSE, IST 9:15-15:30). For a 24/7 market (e.g.
+    crypto), pass open_min=0, close_min=1439, squareoff_min=1439,
+    trade_weekends=true. NOTE: the shared Rs-capital daily-loss cap and
+    capital-deployed cap (see deployed_notional/today_realized_pnl) always
+    reset at IST midnight regardless of this market's own session, since
+    that's the single account's "day" - a position whose session spans IST
+    midnight (e.g. US markets, ~19:00-01:30 IST) is handled correctly for
+    P&L (see today_realized_pnl's docstring) but still counts against
+    *today's* (IST) budget at exit even if it opened "yesterday" IST.
+
     Rules (all tweakable via query params):
-      - Opening range = high/low of the first `orb_minutes` after 9:15 IST.
-      - Entry: 5m close breaks above the opening range high AND SMA(fast) >
+      - Opening range = high/low of the first `orb_minutes` after the market
+        opens (open_min, in its own local time).
+      - Entry: candle closes above the opening range high AND SMA(fast) >
         SMA(slow) (trend filter). Long only - no shorting in this book.
       - Stop-loss: the strategy's own technical level (opening-range low),
         capped at stop_pct% max below entry - whichever is tighter, so max
@@ -854,26 +882,28 @@ def auto_signal(
         i.e. how much capital gets deployed into the trade is set so a
         stop_pct% move costs at most risk_per_trade_pct% of capital.
       - Daily loss cap: daily_risk_pct% of capital. Once today's realized loss
-        (across all symbols) hits this, no new entries and any open position
-        is squared off immediately. With risk_per_trade_pct == daily_risk_pct
-        (both 2% by default), one stopped-out trade can use the whole day's
-        budget - by design, per the user's stated risk rule.
-      - End-of-day square-off at 15:20 IST regardless of stop/target.
+        (across all symbols AND all markets - the capital is one shared pool)
+        hits this, no new entries and any open position is squared off
+        immediately. With risk_per_trade_pct == daily_risk_pct (both 2% by
+        default), one stopped-out trade can use the whole day's budget - by
+        design, per the user's stated risk rule.
+      - End-of-day square-off at squareoff_min regardless of stop/target.
     """
     strategy_tag = f"{ORB_STRATEGY_PREFIX}{orb_minutes}m-sma{sma_fast}-{sma_slow}"
     now_ist = ist_now()
-    today_str = now_ist.strftime("%Y-%m-%d")
-    mins_now = now_ist.hour * 60 + now_ist.minute
+    now_local = dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)
+    today_str = now_local.strftime("%Y-%m-%d")
+    mins_now = now_local.hour * 60 + now_local.minute
 
-    if now_ist.weekday() >= 5:
-        return {"symbol": symbol, "status": "closed_weekend", "time_ist": str(now_ist)}
-    if mins_now < 9 * 60 + 15:
-        return {"symbol": symbol, "status": "pre_open", "time_ist": str(now_ist)}
+    if not trade_weekends and now_local.weekday() >= 5:
+        return {"symbol": symbol, "status": "closed_weekend", "time_local": str(now_local)}
+    if mins_now < open_min:
+        return {"symbol": symbol, "status": "pre_open", "time_local": str(now_local)}
 
-    is_squareoff_time = mins_now >= 15 * 60 + 20
-    is_market_open = mins_now <= 15 * 60 + 30
+    is_squareoff_time = mins_now >= squareoff_min
+    is_market_open = mins_now <= close_min
     if not is_market_open:
-        return {"symbol": symbol, "status": "closed", "time_ist": str(now_ist)}
+        return {"symbol": symbol, "status": "closed", "time_local": str(now_local)}
 
     with closing(get_db()) as conn:
         row = conn.execute("SELECT * FROM signal_state WHERE symbol = ?", (symbol,)).fetchone()
@@ -882,6 +912,8 @@ def auto_signal(
             conn.commit()
             row = None
 
+        # Shared account budget always resets on the IST calendar day,
+        # regardless of which market/timezone this call is for.
         since_ts = ist_midnight_epoch(now_ist)
         realized_today = today_realized_pnl(conn, since_ts)
         daily_loss_cap = capital * daily_risk_pct / 100
@@ -892,25 +924,24 @@ def auto_signal(
         try:
             df = fetch_ohlc(symbol, "5d", interval)
             ts = pd.to_datetime(df["Date"])
-            ts_ist = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts.dt.tz_localize(
-                "UTC"
-            ).dt.tz_convert("Asia/Kolkata")
-            df = df.assign(ts_ist=ts_ist)
-            df["date_ist"] = df["ts_ist"].dt.strftime("%Y-%m-%d")
-            today_df = df[df["date_ist"] == today_str].reset_index(drop=True)
+            ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+            ts_local = ts_utc + pd.Timedelta(minutes=tz_offset_min)
+            df = df.assign(ts_local=ts_local)
+            df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+            today_df = df[df["date_local"] == today_str].reset_index(drop=True)
         except Exception as e:
             return {"symbol": symbol, "status": "data_error", "detail": str(e)}
 
         if today_df.empty:
-            return {"symbol": symbol, "status": "no_intraday_data_yet", "time_ist": str(now_ist)}
+            return {"symbol": symbol, "status": "no_intraday_data_yet", "time_local": str(now_local)}
 
-        today_df["mins"] = today_df["ts_ist"].dt.hour * 60 + today_df["ts_ist"].dt.minute
-        orb_cutoff = 9 * 60 + 15 + orb_minutes
+        today_df["mins"] = today_df["ts_local"].dt.hour * 60 + today_df["ts_local"].dt.minute
+        orb_cutoff = open_min + orb_minutes
         orb_df = today_df[today_df["mins"] < orb_cutoff]
         if orb_df.empty or today_df["mins"].max() < orb_cutoff:
             return {
                 "symbol": symbol, "status": "waiting_for_opening_range",
-                "bars_so_far": len(today_df), "time_ist": str(now_ist),
+                "bars_so_far": len(today_df), "time_local": str(now_local),
             }
 
         orb_high = float(orb_df["High"].max())
@@ -924,7 +955,7 @@ def auto_signal(
         trend = ("up" if sma_f > sma_s else "down") if (sma_f is not None and sma_s is not None) else None
 
         result = {
-            "symbol": symbol, "status": "checked", "time_ist": str(now_ist),
+            "symbol": symbol, "status": "checked", "time_local": str(now_local),
             "last_close": last_close, "orb_high": orb_high, "orb_low": orb_low,
             "sma_fast": sma_f, "sma_slow": sma_s, "trend": trend,
             "capital": capital, "daily_loss_cap": daily_loss_cap,
@@ -1057,19 +1088,22 @@ def daily_summary(capital: float = 200000, daily_risk_pct: float = 2.0):
     since_ts = ist_midnight_epoch(now_ist)
 
     with closing(get_db()) as conn:
-        trades_today = conn.execute(
+        # Full history for correct cost-basis (see today_realized_pnl) - only
+        # sells at/after since_ts are reported as "today's" closed trades.
+        all_trades = conn.execute(
             "SELECT id, ts, symbol, action, qty, price, strategy, raw_payload FROM trades "
-            "WHERE strategy LIKE ? AND ts >= ? ORDER BY id",
-            (ORB_STRATEGY_PREFIX + "%", since_ts),
+            "WHERE strategy LIKE ? ORDER BY id",
+            (ORB_STRATEGY_PREFIX + "%",),
         ).fetchall()
-        open_state = conn.execute(
-            "SELECT * FROM signal_state WHERE day = ? AND status = 'long'", (today_str,)
-        ).fetchall()
+        # No day filter - a genuinely open position should show regardless of
+        # which local trading day it was opened on (relevant once a market
+        # other than NSE, with its own local "day", is in the mix).
+        open_state = conn.execute("SELECT * FROM signal_state WHERE status = 'long'").fetchall()
 
     book: dict[str, dict] = {}
     realized = 0.0
     closed_trades = []
-    for t in trades_today:
+    for t in all_trades:
         sym = t["symbol"]
         b = book.setdefault(sym, {"qty": 0.0, "avg": 0.0})
         if t["action"] == "buy":
@@ -1078,8 +1112,10 @@ def daily_summary(capital: float = 200000, daily_risk_pct: float = 2.0):
             b["qty"] = new_qty
         else:
             pnl = (t["price"] - b["avg"]) * min(t["qty"], b["qty"])
-            realized += pnl
             b["qty"] -= t["qty"]
+            if t["ts"] < since_ts:
+                continue
+            realized += pnl
             try:
                 extra = json.loads(t["raw_payload"])
             except Exception:
