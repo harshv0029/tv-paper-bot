@@ -15,6 +15,7 @@ Endpoints:
                          workspace does not, so this is the automatic data path)
 """
 
+import asyncio
 import datetime as dt
 import json
 import math
@@ -929,8 +930,7 @@ def deployed_notional(conn) -> float:
     return sum(r["qty"] * r["entry_price"] for r in rows)
 
 
-@app.get("/auto-signal")
-def auto_signal(
+def _auto_signal_core(
     symbol: str,
     capital: float = 200000,
     daily_risk_pct: float = 2.0,
@@ -948,6 +948,11 @@ def auto_signal(
     trade_weekends: bool = False,
 ):
     """
+    Plain function version of the /auto-signal logic - callable directly
+    (no HTTP round-trip) by both the /auto-signal endpoint below and the
+    in-process background scheduler (see WATCHLIST/_scheduler_loop), so
+    there is exactly one implementation of the actual trading rules.
+
     Intraday opening-range-breakout (ORB) signal engine, long-only, paper trades
     only. Designed to be called repeatedly (e.g. every 5 min during market
     hours via a GitHub Actions cron) - all state (open position, today's
@@ -1183,6 +1188,132 @@ def auto_signal(
         return result
 
 
+@app.get("/auto-signal")
+def auto_signal(
+    symbol: str,
+    capital: float = 200000,
+    daily_risk_pct: float = 2.0,
+    risk_per_trade_pct: float = 2.0,
+    stop_pct: float = 2.0,
+    rr: float = 2.0,
+    orb_minutes: int = 15,
+    sma_fast: int = 9,
+    sma_slow: int = 21,
+    interval: str = "5m",
+    tz_offset_min: int = IST_OFFSET_MIN,
+    open_min: int = 9 * 60 + 15,
+    close_min: int = 15 * 60 + 30,
+    squareoff_min: int = 15 * 60 + 20,
+    trade_weekends: bool = False,
+):
+    """HTTP wrapper around _auto_signal_core - see that function's docstring
+    for the actual rules. Kept as a thin pass-through so manual/GH-Actions
+    calls and the in-process scheduler share one implementation."""
+    return _auto_signal_core(
+        symbol=symbol, capital=capital, daily_risk_pct=daily_risk_pct,
+        risk_per_trade_pct=risk_per_trade_pct, stop_pct=stop_pct, rr=rr,
+        orb_minutes=orb_minutes, sma_fast=sma_fast, sma_slow=sma_slow, interval=interval,
+        tz_offset_min=tz_offset_min, open_min=open_min, close_min=close_min,
+        squareoff_min=squareoff_min, trade_weekends=trade_weekends,
+    )
+
+
+# ---------------------------------------------------------------------------
+# In-process scheduler: replaces reliance on GitHub Actions' `schedule:` cron
+# for the actual timing of entries/exits. GH Actions scheduled runs proved
+# unreliable in practice (2026-09-02: ~1 of ~75 expected 5-min NSE polls
+# actually fired; similar drop rate on crypto/US - see docs/KNOWN_ISSUES.md).
+# This loop runs inside the same always-imported process Render keeps alive,
+# checking every SCHEDULER_INTERVAL_SECONDS with no dependency on any
+# external trigger. It does NOT fix Render free-tier sleep (the process
+# stops running entirely when asleep, scheduler included) - only an
+# always-on paid plan does that. The external GH Actions workflows are kept
+# as a redundant backstop (harmless: _auto_signal_core is idempotent, checked
+# against DB state on every call) and, more importantly, as one of the ways
+# the server gets woken back up.
+# ---------------------------------------------------------------------------
+
+WATCHLIST = [
+    # NSE/BSE - IST 9:15-15:30, weekdays. Params from 2026-09-02 research
+    # (docs/daily_logs/2026-09-02-entry-trigger-research.md).
+    {"symbol": "^NSEI", "orb_minutes": 30, "sma_fast": 5, "sma_slow": 50,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False},
+    {"symbol": "^NSEBANK", "orb_minutes": 5, "sma_fast": 9, "sma_slow": 50,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False},
+    {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False},
+    # Crypto - UTC, 24/7, trades weekends too.
+    {"symbol": "BTC-USD", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
+     "trade_weekends": True},
+    {"symbol": "ETH-USD", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
+     "trade_weekends": True},
+    # US markets - ET. tz_offset_min=-240 is EDT (UTC-4), correct through
+    # early Nov 2026; needs -300 (EST) after the US DST changeover.
+    {"symbol": "SPY", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False},
+    {"symbol": "QQQ", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False},
+    {"symbol": "AAPL", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False},
+]
+
+SCHEDULER_INTERVAL_SECONDS = 30
+SCHEDULER_CAPITAL = 200000
+SCHEDULER_DAILY_RISK_PCT = 2.0
+SCHEDULER_RISK_PER_TRADE_PCT = 2.0
+SCHEDULER_STOP_PCT = 2.0
+SCHEDULER_RR = 2.0
+
+_scheduler_last_tick_ts = 0.0
+_scheduler_last_error = None
+
+
+async def _scheduler_loop():
+    global _scheduler_last_tick_ts, _scheduler_last_error
+    while True:
+        for cfg in WATCHLIST:
+            try:
+                await asyncio.to_thread(
+                    _auto_signal_core,
+                    symbol=cfg["symbol"], capital=SCHEDULER_CAPITAL,
+                    daily_risk_pct=SCHEDULER_DAILY_RISK_PCT,
+                    risk_per_trade_pct=SCHEDULER_RISK_PER_TRADE_PCT,
+                    stop_pct=SCHEDULER_STOP_PCT, rr=SCHEDULER_RR,
+                    orb_minutes=cfg["orb_minutes"], sma_fast=cfg["sma_fast"], sma_slow=cfg["sma_slow"],
+                    interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
+                    close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
+                    trade_weekends=cfg["trade_weekends"],
+                )
+            except Exception as e:
+                _scheduler_last_error = f"{cfg['symbol']}: {e}"
+        _scheduler_last_tick_ts = time.time()
+        await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
+
+
+@app.on_event("startup")
+async def _start_scheduler():
+    asyncio.create_task(_scheduler_loop())
+
+
+@app.get("/scheduler-status")
+def scheduler_status():
+    return {
+        "watchlist_size": len(WATCHLIST),
+        "interval_seconds": SCHEDULER_INTERVAL_SECONDS,
+        "last_tick_ts": _scheduler_last_tick_ts,
+        "last_tick_ago_seconds": round(time.time() - _scheduler_last_tick_ts, 1) if _scheduler_last_tick_ts else None,
+        "last_error": _scheduler_last_error,
+    }
+
+
 @app.get("/daily-summary")
 def daily_summary(capital: float = 200000, daily_risk_pct: float = 2.0):
     """Aggregated view of today's auto-signal paper trading across all symbols:
@@ -1251,6 +1382,194 @@ def daily_summary(capital: float = 200000, daily_risk_pct: float = 2.0):
         "win_rate_pct": round(100 * len(wins) / len(closed_trades), 1) if closed_trades else None,
         "open_positions": [dict(r) for r in open_state],
         "closed_trades": closed_trades,
+    }
+
+
+DRY_RUN_DEFAULT_SYMBOLS = [
+    {"symbol": "^NSEI", "orb_minutes": 30, "sma_fast": 5, "sma_slow": 50},
+    {"symbol": "^NSEBANK", "orb_minutes": 5, "sma_fast": 9, "sma_slow": 50},
+    {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50},
+]
+
+
+@app.get("/dry-run-day")
+def dry_run_day(
+    date: str,
+    capital: float = 200000,
+    daily_risk_pct: float = 2.0,
+    risk_per_trade_pct: float = 2.0,
+    stop_pct: float = 2.0,
+    rr: float = 2.0,
+    orb_minutes_override: int = 0,  # 0 = use each symbol's validated default
+):
+    """
+    Sandboxed same-day replay: re-runs the exact ORB+trend rules the live
+    /auto-signal uses, tick by tick across NIFTY/BANKNIFTY/SENSEX together
+    (sharing one capital pool, exactly like the real workflows), against
+    REAL historical 5-min data for `date` - but writes NOTHING to the real
+    paper_trades.db. Pure simulation, safe to run anytime, for any past
+    trading day still in yfinance's 5m window (~60 days).
+
+    Uses each symbol's evidence-backed params from the 2026-09-02 research
+    (see docs/daily_logs/2026-09-02-entry-trigger-research.md) unless
+    orb_minutes_override is set (applies the same orb_minutes to all 3,
+    sma_fast/slow unchanged).
+    """
+    symbols = DRY_RUN_DEFAULT_SYMBOLS
+    open_min = 9 * 60 + 15
+    squareoff_min = 15 * 60 + 20
+
+    per_symbol_df = {}
+    for cfg in symbols:
+        sym = cfg["symbol"]
+        try:
+            raw = fetch_ohlc(sym, "5d", "5m")
+        except HTTPException as e:
+            return {"error": f"data fetch failed for {sym}: {e.detail}"}
+        ts = pd.to_datetime(raw["Date"])
+        ts_ist = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts.dt.tz_localize(
+            "UTC"
+        ).dt.tz_convert("Asia/Kolkata")
+        raw = raw.assign(ts_ist=ts_ist, date_ist=ts_ist.dt.strftime("%Y-%m-%d"))
+        day_df = raw[raw["date_ist"] == date].reset_index(drop=True)
+        if day_df.empty:
+            return {"error": f"no 5m data for {sym} on {date} (outside yfinance's ~60d intraday window?)"}
+        day_df["mins"] = day_df["ts_ist"].dt.hour * 60 + day_df["ts_ist"].dt.minute
+        per_symbol_df[sym] = day_df
+
+    # Precompute each symbol's ORB high/orb window/trend using the same
+    # vectorized logic as add_strategy_signal's orb_breakout branch.
+    precomputed = {}
+    for cfg in symbols:
+        sym = cfg["symbol"]
+        om = orb_minutes_override or cfg["orb_minutes"]
+        sf, ss = cfg["sma_fast"], cfg["sma_slow"]
+        df = per_symbol_df[sym].copy()
+        df["fast_ma"] = df["Close"].rolling(sf).mean()
+        df["slow_ma"] = df["Close"].rolling(ss).mean()
+        df["trend_up"] = df["fast_ma"] > df["slow_ma"]
+        in_window = df["mins"] < open_min + om
+        df["orb_high_running"] = df["High"].where(in_window).cummax().ffill()
+        df["orb_low_running"] = df["Low"].where(in_window).cummin().ffill()
+        precomputed[sym] = {"df": df, "orb_minutes": om, "cutoff": open_min + om}
+
+    all_times = sorted(set(t for cfg in symbols for t in per_symbol_df[cfg["symbol"]]["mins"]))
+
+    daily_loss_cap = capital * daily_risk_pct / 100
+    state = {cfg["symbol"]: None for cfg in symbols}  # None or dict(entry,stop,target,qty)
+    realized = 0.0
+    events = []
+    checkpoints = []
+    orb_summary = {}
+
+    def remaining_budget():
+        loss_so_far = max(0.0, -realized)
+        return max(0.0, daily_loss_cap - loss_so_far)
+
+    def deployed_notional():
+        return sum(s["qty"] * s["entry"] for s in state.values() if s)
+
+    for t_idx, m in enumerate(all_times):
+        for cfg in symbols:
+            sym = cfg["symbol"]
+            pc = precomputed[sym]
+            df = pc["df"]
+            rows = df[df["mins"] == m]
+            if rows.empty:
+                continue
+            row = rows.iloc[-1]
+            close = float(row["Close"])
+            time_str = str(row["ts_ist"])[11:16]
+            pos = state[sym]
+            halted = remaining_budget() <= 0
+
+            # record ORB formation once
+            if sym not in orb_summary and m >= pc["cutoff"] - 1 and pd.notna(row["orb_high_running"]):
+                orb_summary[sym] = {
+                    "orb_high": round(float(row["orb_high_running"]), 2),
+                    "orb_low": round(float(row["orb_low_running"]), 2),
+                    "formed_by": time_str,
+                }
+
+            if pos:
+                reason = None
+                if halted:
+                    reason = "daily_loss_cap_hit"
+                elif close >= pos["target"]:
+                    reason = "target_hit"
+                elif close <= pos["stop"]:
+                    reason = "stop_hit"
+                elif m >= squareoff_min:
+                    reason = "eod_squareoff"
+                if reason:
+                    pnl = (close - pos["entry"]) * pos["qty"]
+                    realized += pnl
+                    rr_ach = round((close - pos["entry"]) / (pos["entry"] - pos["stop"]), 2)
+                    events.append({
+                        "time": time_str, "symbol": sym, "event": f"exited_{reason}",
+                        "price": round(close, 2), "pnl": round(pnl, 2),
+                        "pnl_pct_of_capital": round(100 * pnl / capital, 3), "rr_achieved": rr_ach,
+                    })
+                    state[sym] = None
+                continue
+
+            if halted or m >= squareoff_min or m < pc["cutoff"]:
+                continue
+
+            orb_high = row["orb_high_running"]
+            trend_up = bool(row["trend_up"]) if pd.notna(row["trend_up"]) else False
+            if pd.notna(orb_high) and close > float(orb_high) and trend_up:
+                orb_low = float(row["orb_low_running"])
+                stop = max(orb_low, close * (1 - stop_pct / 100))
+                stop_dist = close - stop
+                if stop_dist <= 0:
+                    continue
+                target = close + rr * stop_dist
+                risk_amount = min(capital * risk_per_trade_pct / 100, remaining_budget())
+                avail_capital = max(0.0, capital - deployed_notional())
+                qty = min(int(risk_amount // stop_dist), int(avail_capital // close))
+                if qty < 1:
+                    continue
+                state[sym] = {"entry": close, "stop": stop, "target": target, "qty": qty}
+                events.append({
+                    "time": time_str, "symbol": sym, "event": "entered_long",
+                    "price": round(close, 2), "stop": round(stop, 2), "target": round(target, 2),
+                    "qty": qty, "notional": round(qty * close, 2),
+                })
+
+        if m % 30 == 0:
+            snap = {"time_mins": m}
+            for cfg in symbols:
+                sym = cfg["symbol"]
+                rows = precomputed[sym]["df"]
+                rr_ = rows[rows["mins"] == m]
+                if rr_.empty:
+                    continue
+                r = rr_.iloc[-1]
+                snap[sym] = {
+                    "close": round(float(r["Close"]), 2),
+                    "position": "long" if state[sym] else "flat",
+                }
+            checkpoints.append(snap)
+
+    wins = [e for e in events if e["event"].startswith("exited_") and e.get("pnl", 0) > 0]
+    exits = [e for e in events if e["event"].startswith("exited_")]
+
+    return {
+        "date": date,
+        "capital": capital,
+        "daily_loss_cap": daily_loss_cap,
+        "orb_formation": orb_summary,
+        "events": events,
+        "checkpoints_every_30min": checkpoints,
+        "summary": {
+            "realized_pnl": round(realized, 2),
+            "realized_pnl_pct": round(100 * realized / capital, 3),
+            "trades_closed": len(exits),
+            "win_rate_pct": round(100 * len(wins) / len(exits), 1) if exits else None,
+            "still_open_at_session_end": {k: v for k, v in state.items() if v},
+            "budget_remaining": round(remaining_budget(), 2),
+        },
     }
 
 
