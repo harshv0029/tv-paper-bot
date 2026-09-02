@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trade View</title>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080b0f; --panel:#12181f; --panel-2:#161e27; --border:#232d3a; --text:#e7ecf2; --muted:#7c8a9c;
+    --up:#22c55e; --up-dim:rgba(34,197,94,.14); --down:#ef4444; --down-dim:rgba(239,68,68,.14);
+    --accent:#3b82f6; --warn:#f59e0b;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;padding:16px;}
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  h1{font-size:16px;font-weight:700;margin:0 0 3px;display:flex;align-items:center;gap:10px;}
+  .sub{color:var(--muted);font-size:11px;margin-bottom:14px;}
+  .status{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:700;letter-spacing:.04em;}
+  .status.long{background:var(--up-dim);color:var(--up);}
+  .status.flat{background:rgba(124,138,156,.14);color:var(--muted);}
+  .status.closed{background:rgba(59,130,246,.14);color:var(--accent);}
+  .cards{display:flex;flex-direction:column;gap:14px;}
+
+  .term{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .term-head{display:flex;align-items:baseline;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--panel-2);}
+  .term-head .sym{font-size:15px;font-weight:700;letter-spacing:.02em;}
+  .ltp-row{display:flex;align-items:baseline;gap:10px;}
+  .ltp{font-size:26px;font-weight:700;transition:color .15s;}
+  .ltp.flash-up{animation:flashUp .5s ease-out;}
+  .ltp.flash-down{animation:flashDown .5s ease-out;}
+  @keyframes flashUp{0%{color:#fff;}100%{color:var(--up);}}
+  @keyframes flashDown{0%{color:#fff;}100%{color:var(--down);}}
+  .chg{font-size:12.5px;font-weight:600;}
+  .chg.up{color:var(--up);} .chg.down{color:var(--down);}
+
+  .term-body{display:grid;grid-template-columns:1fr 220px;gap:0;}
+  @media(max-width:760px){.term-body{grid-template-columns:1fr;}}
+  .chart{height:420px;padding:10px 6px;}
+
+  .ladder{border-left:1px solid var(--border);padding:14px;display:flex;flex-direction:column;gap:10px;}
+  .pnl-hero{text-align:center;padding:10px 8px;border-radius:8px;background:var(--panel-2);}
+  .pnl-hero .lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .pnl-hero .amt{font-size:22px;font-weight:700;margin-top:2px;}
+  .pnl-hero .amt.up{color:var(--up);} .pnl-hero .amt.down{color:var(--down);}
+  .pnl-hero .pct{font-size:11px;margin-top:1px;}
+
+  .gauge{position:relative;height:180px;display:flex;}
+  .gauge-track{position:relative;width:6px;border-radius:3px;background:linear-gradient(to top,var(--down) 0%,var(--down) 45%,var(--border) 45%,var(--border) 55%,var(--up) 55%,var(--up) 100%);margin:0 auto;}
+  .gauge-marker{position:absolute;left:50%;transform:translate(-50%,50%);width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.25);transition:bottom .3s ease;}
+  .gauge-labels{position:relative;width:100%;}
+  .gauge-lbl{position:absolute;left:14px;font-size:10.5px;white-space:nowrap;}
+  .gauge-lbl .tag{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.03em;display:block;}
+  .gauge-lbl .px{font-weight:700;}
+  .gauge-lbl.target{color:var(--up);}
+  .gauge-lbl.entry{color:var(--accent);}
+  .gauge-lbl.stop{color:var(--down);}
+
+  .row-stats{display:flex;flex-direction:column;gap:6px;font-size:11.5px;}
+  .row-stats .r{display:flex;justify-content:space-between;color:var(--muted);}
+  .row-stats .r b{color:var(--text);font-weight:600;}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);padding:0 16px 12px;}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .swatch{width:13px;height:2px;display:inline-block;}
+  .empty{color:var(--muted);font-size:13px;padding:34px;text-align:center;}
+  .err{color:var(--down);font-size:12px;}
+  footer{margin-top:14px;color:var(--muted);font-size:10.5px;}
+</style>
+</head>
+<body>
+
+<h1>Trade View <span id="hdr-status" class="status flat">—</span></h1>
+<div class="sub">Live scalp-style view — candles, entry/stop/target ladder, floating P&amp;L. Not investment advice. <span id="last-update"></span></div>
+
+<div class="cards" id="cards"><div class="empty">Loading…</div></div>
+
+<footer>Polls <code>/daily-summary</code> + <code>/history</code> every 30s. Amber lines = opening-range high/low (the strategy's own support/resistance).</footer>
+
+<script>
+const ORIGIN = window.location.origin;
+const charts = {};
+const lastPrice = {};
+
+function fmt(n, d = 2) {
+  if (n === null || n === undefined || Number.isNaN(n)) return "—";
+  return Number(n).toLocaleString("en-IN", { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+async function fetchJSON(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
+function toChartTime(iso) { return Math.floor(new Date(iso).getTime() / 1000); }
+
+function ensureCard(symbol) {
+  if (charts[symbol]) return charts[symbol];
+  const container = document.getElementById("cards");
+  const empty = container.querySelector(".empty");
+  if (empty) empty.remove();
+
+  const term = document.createElement("div");
+  term.className = "term";
+  term.id = `term-${symbol}`;
+  term.innerHTML = `
+    <div class="term-head">
+      <div>
+        <div class="sym">${symbol}</div>
+        <span class="status long" id="status-${symbol}">LONG</span>
+      </div>
+      <div class="ltp-row">
+        <div class="ltp mono" id="ltp-${symbol}">—</div>
+        <div class="chg mono" id="chg-${symbol}"></div>
+      </div>
+    </div>
+    <div class="term-body">
+      <div class="chart" id="chart-${symbol}"></div>
+      <div class="ladder">
+        <div class="pnl-hero">
+          <div class="lbl">Unrealized P&amp;L</div>
+          <div class="amt mono" id="pnl-${symbol}">—</div>
+          <div class="pct mono" id="pnlpct-${symbol}"></div>
+        </div>
+        <div class="gauge">
+          <div class="gauge-track"><div class="gauge-marker" id="marker-${symbol}" style="bottom:50%"></div></div>
+          <div class="gauge-labels">
+            <div class="gauge-lbl target" id="lbl-target-${symbol}" style="bottom:88%"><span class="tag">Target</span><span class="px mono"></span></div>
+            <div class="gauge-lbl entry" id="lbl-entry-${symbol}" style="bottom:50%"><span class="tag">Entry</span><span class="px mono"></span></div>
+            <div class="gauge-lbl stop" id="lbl-stop-${symbol}" style="bottom:8%"><span class="tag">Stop</span><span class="px mono"></span></div>
+          </div>
+        </div>
+        <div class="row-stats" id="stats-${symbol}"></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="swatch" style="background:#3b82f6"></i>Entry</span>
+      <span><i class="swatch" style="background:#ef4444"></i>Stop</span>
+      <span><i class="swatch" style="background:#22c55e"></i>Target</span>
+      <span><i class="swatch" style="background:#f59e0b"></i>Opening range</span>
+    </div>
+  `;
+  container.appendChild(term);
+
+  const chart = LightweightCharts.createChart(document.getElementById(`chart-${symbol}`), {
+    layout: { background: { color: "transparent" }, textColor: "#7c8a9c", fontFamily: "IBM Plex Mono, monospace" },
+    grid: { vertLines: { color: "#1a222c" }, horzLines: { color: "#1a222c" } },
+    rightPriceScale: { borderColor: "#232d3a" },
+    timeScale: { borderColor: "#232d3a", timeVisible: true, secondsVisible: false },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+  });
+  const series = chart.addCandlestickSeries({
+    upColor: "#22c55e", downColor: "#ef4444", borderVisible: false,
+    wickUpColor: "#22c55e", wickDownColor: "#ef4444",
+  });
+  new ResizeObserver(entries => chart.applyOptions({ width: entries[0].contentRect.width }))
+    .observe(document.getElementById(`chart-${symbol}`));
+
+  charts[symbol] = { chart, series, priceLines: [] };
+  return charts[symbol];
+}
+
+function setPriceLines(entry, pos) {
+  entry.priceLines.forEach(l => entry.series.removePriceLine(l));
+  entry.priceLines = [];
+  const add = (price, color, title) => {
+    if (price === null || price === undefined) return;
+    entry.priceLines.push(entry.series.createPriceLine({
+      price, color, lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed,
+      axisLabelVisible: true, title,
+    }));
+  };
+  add(pos.entry_price_native, "#3b82f6", "Entry");
+  add(pos.stop_loss_native, "#ef4444", "Stop");
+  add(pos.target_native, "#22c55e", "Target");
+  add(pos.orb_high_native, "#f59e0b", "ORB high");
+  add(pos.orb_low_native, "#f59e0b", "ORB low");
+}
+
+async function updateCandles(symbol, entry) {
+  const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(symbol)}&period=5d&interval=5m`);
+  const rows = data.data || [];
+  const candles = rows.map(r => ({
+    time: toChartTime(r.date), open: r.open, high: r.high, low: r.low, close: r.close,
+  })).filter(c => Number.isFinite(c.close));
+  entry.series.setData(candles);
+  entry.chart.timeScale().fitContent();
+  return candles.length ? candles[candles.length - 1].close : null;
+}
+
+function updateLtp(symbol, lastClose) {
+  const ltpEl = document.getElementById(`ltp-${symbol}`);
+  const chgEl = document.getElementById(`chg-${symbol}`);
+  const prev = lastPrice[symbol];
+  ltpEl.textContent = fmt(lastClose);
+  if (prev !== undefined && lastClose !== prev) {
+    ltpEl.classList.remove("flash-up", "flash-down");
+    void ltpEl.offsetWidth; // restart animation
+    ltpEl.classList.add(lastClose > prev ? "flash-up" : "flash-down");
+  }
+  if (prev !== undefined) {
+    const d = lastClose - prev;
+    chgEl.textContent = `${d >= 0 ? "+" : ""}${fmt(d)}`;
+    chgEl.className = "chg mono " + (d >= 0 ? "up" : "down");
+  }
+  lastPrice[symbol] = lastClose;
+}
+
+function updateLadder(symbol, pos, lastClose) {
+  const lo = Math.min(pos.stop_loss_native, pos.target_native);
+  const hi = Math.max(pos.stop_loss_native, pos.target_native);
+  const span = hi - lo || 1;
+  const pct = (v) => Math.max(2, Math.min(98, ((v - lo) / span) * 100));
+
+  document.getElementById(`marker-${symbol}`).style.bottom = pct(lastClose) + "%";
+  const setLbl = (id, price, val) => {
+    const el = document.getElementById(id);
+    el.style.bottom = pct(price) + "%";
+    el.querySelector(".px").textContent = fmt(val ?? price);
+  };
+  setLbl(`lbl-target-${symbol}`, pos.target_native, pos.target_native);
+  setLbl(`lbl-entry-${symbol}`, pos.entry_price_native, pos.entry_price_native);
+  setLbl(`lbl-stop-${symbol}`, pos.stop_loss_native, pos.stop_loss_native);
+}
+
+function renderStats(symbol, pos, lastClose) {
+  const statsEl = document.getElementById(`stats-${symbol}`);
+  const unrealizedNative = (lastClose - pos.entry_price_native) * pos.qty;
+  const unrealizedInr = unrealizedNative * pos.fx_to_inr;
+  const pnlEl = document.getElementById(`pnl-${symbol}`);
+  const pnlPctEl = document.getElementById(`pnlpct-${symbol}`);
+  pnlEl.textContent = `${unrealizedInr >= 0 ? "+" : ""}₹${fmt(unrealizedInr)}`;
+  pnlEl.className = "amt mono " + (unrealizedInr >= 0 ? "up" : "down");
+  pnlPctEl.textContent = `${((unrealizedInr / pos.notional_inr) * 100).toFixed(2)}% of position`;
+
+  statsEl.innerHTML = `
+    <div class="r"><span>Qty</span><b class="mono">${pos.qty}</b></div>
+    <div class="r"><span>Notional</span><b class="mono">₹${fmt(pos.notional_inr)}</b></div>
+    <div class="r"><span>FX (₹/unit)</span><b class="mono">${fmt(pos.fx_to_inr)}</b></div>
+    <div class="r"><span>R:R to go</span><b class="mono">${fmt(Math.abs((pos.target_native - lastClose) / (lastClose - pos.stop_loss_native || 1)), 2)}</b></div>
+  `;
+}
+
+async function refresh() {
+  document.getElementById("last-update").textContent =
+    "Last update: " + new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
+  try {
+    const summary = await fetchJSON(`${ORIGIN}/daily-summary?capital=200000&daily_risk_pct=2`);
+    const openPositions = summary.open_positions || [];
+    const hdrStatus = document.getElementById("hdr-status");
+
+    if (openPositions.length === 0) {
+      hdrStatus.textContent = "FLAT";
+      hdrStatus.className = "status flat";
+      const lastClosed = (summary.closed_trades || []).slice(-1)[0];
+      if (!Object.keys(charts).length) {
+        document.getElementById("cards").innerHTML = lastClosed
+          ? `<div class="empty">No open positions. Last closed: ${lastClosed.symbol} — ${lastClosed.exit_reason}, P&amp;L ₹${fmt(lastClosed.pnl_inr)}. Waiting for next signal…</div>`
+          : `<div class="empty">No open positions yet. Waiting for the strategy to fire…</div>`;
+      }
+      return;
+    }
+
+    hdrStatus.textContent = `${openPositions.length} OPEN`;
+    hdrStatus.className = "status long";
+
+    for (const pos of openPositions) {
+      const entry = ensureCard(pos.symbol);
+      const lastClose = await updateCandles(pos.symbol, entry);
+      if (lastClose === null) continue;
+      setPriceLines(entry, pos);
+      updateLtp(pos.symbol, lastClose);
+      updateLadder(pos.symbol, pos, lastClose);
+      renderStats(pos.symbol, pos, lastClose);
+    }
+  } catch (e) {
+    document.getElementById("cards").innerHTML = `<div class="err">fetch failed: ${e.message}</div>`;
+  }
+}
+
+refresh();
+setInterval(refresh, 30_000);
+</script>
+</body>
+</html>

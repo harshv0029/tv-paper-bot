@@ -1428,6 +1428,8 @@ def daily_summary(capital: float = 200000, daily_risk_pct: float = 2.0):
             "entry_price_native": r["entry_price"], "stop_loss_native": r["stop_loss"],
             "target_native": r["target"], "fx_to_inr": r["fx_to_inr"],
             "notional_inr": round(notional_inr, 2),
+            "orb_high_native": r["orb_high"], "orb_low_native": r["orb_low"],
+            "entry_ts": r["entry_ts"],
         })
 
     daily_loss_cap = capital * daily_risk_pct / 100
@@ -1650,3 +1652,12 @@ def health():
 def live():
     """Self-refreshing NIFTY/BANKNIFTY/SENSEX/India VIX dashboard."""
     return FileResponse("static/live.html")
+
+
+@app.get("/trade-view")
+def trade_view():
+    """Self-refreshing candlestick chart for whatever position(s) are
+    currently open, with entry/stop/target/opening-range lines overlaid -
+    pulls live from /daily-summary + /history client-side, same pattern
+    as /live."""
+    return FileResponse("static/trade-view.html")
