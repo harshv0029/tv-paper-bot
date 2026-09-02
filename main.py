@@ -71,6 +71,7 @@ def init_db():
                 action TEXT NOT NULL,      -- buy | sell
                 qty REAL NOT NULL,
                 price REAL NOT NULL,
+                fx_to_inr REAL NOT NULL DEFAULT 1.0,  -- price*fx_to_inr = INR value/unit
                 strategy TEXT,
                 raw_payload TEXT
             )
@@ -91,13 +92,14 @@ def init_db():
                 symbol TEXT PRIMARY KEY,
                 day TEXT NOT NULL,
                 status TEXT NOT NULL,   -- 'long'
-                entry_price REAL,
-                stop_loss REAL,
-                target REAL,
+                entry_price REAL,       -- native currency (e.g. USD for SPY)
+                stop_loss REAL,         -- native currency
+                target REAL,            -- native currency
                 qty REAL,
                 entry_ts REAL,
                 orb_high REAL,
-                orb_low REAL
+                orb_low REAL,
+                fx_to_inr REAL NOT NULL DEFAULT 1.0  -- captured at entry; entry_price*fx_to_inr = INR/unit
             )
             """
         )
@@ -310,6 +312,18 @@ def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
 
     _DATA_CACHE[key] = (now, df)
     return df.copy()
+
+
+def get_fx_to_inr(currency: str) -> float:
+    """1 unit of `currency` -> this many INR. Live rate (cached like any
+    other fetch_ohlc call), not a hardcoded guess - USD/INR moves enough
+    that a stale constant would itself become a sizing error."""
+    if currency == "INR":
+        return 1.0
+    if currency == "USD":
+        df = fetch_ohlc("INR=X", "5d", "1d")
+        return float(df["Close"].iloc[-1])
+    raise HTTPException(status_code=400, detail=f"No FX rate wired up for currency={currency!r}")
 
 
 def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.DataFrame:
@@ -898,19 +912,24 @@ def today_realized_pnl(conn, since_ts: float) -> float:
     treat the exit as a sell with no matching buy. Only sells at/after
     `since_ts` count toward the returned figure."""
     all_trades = conn.execute(
-        "SELECT symbol, action, qty, price, ts FROM trades WHERE strategy LIKE ? ORDER BY id",
+        "SELECT symbol, action, qty, price, fx_to_inr, ts FROM trades WHERE strategy LIKE ? ORDER BY id",
         (ORB_STRATEGY_PREFIX + "%",),
     ).fetchall()
     book: dict[str, dict] = {}
     realized = 0.0
     for t in all_trades:
+        # Normalize to INR/unit at the row's own fx rate so symbols in
+        # different currencies (NSE in INR, US/crypto in USD) can be summed
+        # together correctly - mixing raw $ and Rs numbers would silently
+        # misstate P&L by the exchange rate (~83-88x for USD).
+        price_inr = t["price"] * t["fx_to_inr"]
         b = book.setdefault(t["symbol"], {"qty": 0.0, "avg": 0.0})
         if t["action"] == "buy":
             new_qty = b["qty"] + t["qty"]
-            b["avg"] = ((b["qty"] * b["avg"]) + (t["qty"] * t["price"])) / new_qty if new_qty else 0.0
+            b["avg"] = ((b["qty"] * b["avg"]) + (t["qty"] * price_inr)) / new_qty if new_qty else 0.0
             b["qty"] = new_qty
         else:
-            pnl = (t["price"] - b["avg"]) * min(t["qty"], b["qty"])
+            pnl = (price_inr - b["avg"]) * min(t["qty"], b["qty"])
             if t["ts"] >= since_ts:
                 realized += pnl
             b["qty"] -= t["qty"]
@@ -923,11 +942,13 @@ def deployed_notional(conn) -> float:
     how much a new entry can size into regardless of that trade's own risk
     budget. Without this, two symbols breaking out in the same poll cycle
     could each size a full position independently and jointly overspend the
-    account."""
+    account. entry_price is native currency; fx_to_inr (captured at entry)
+    converts it to INR so USD positions (SPY etc.) don't get sized as if
+    $1 == Rs 1."""
     rows = conn.execute(
-        "SELECT qty, entry_price FROM signal_state WHERE status = 'long'"
+        "SELECT qty, entry_price, fx_to_inr FROM signal_state WHERE status = 'long'"
     ).fetchall()
-    return sum(r["qty"] * r["entry_price"] for r in rows)
+    return sum(r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in rows)
 
 
 def _auto_signal_core(
@@ -946,6 +967,7 @@ def _auto_signal_core(
     close_min: int = 15 * 60 + 30,
     squareoff_min: int = 15 * 60 + 20,
     trade_weekends: bool = False,
+    currency: str = "INR",
 ):
     """
     Plain function version of the /auto-signal logic - callable directly
@@ -998,6 +1020,16 @@ def _auto_signal_core(
         default), one stopped-out trade can use the whole day's budget - by
         design, per the user's stated risk rule.
       - End-of-day square-off at squareoff_min regardless of stop/target.
+
+    `currency` is the symbol's OWN quote currency ("INR" for NSE/BSE, "USD"
+    for US stocks/ETFs and crypto). All price levels fetched from yfinance
+    (close, orb_high/low, stop, target) stay in that native currency - they
+    have to, since that's what the live quote is in. Only capital sizing,
+    the daily-loss/capital caps, and reported P&L are converted to INR
+    (via a live USD/INR rate, fetched the same cached way as price data),
+    because capital and the caps are one shared Rs 2L pool across every
+    market. Getting this wrong (treating $1 == Rs 1) would size USD
+    positions ~83-88x too large in real terms.
     """
     strategy_tag = f"{ORB_STRATEGY_PREFIX}{orb_minutes}m-sma{sma_fast}-{sma_slow}"
     now_ist = ist_now()
@@ -1030,6 +1062,11 @@ def _auto_signal_core(
         loss_so_far = max(0.0, -realized_today)
         remaining_budget = max(0.0, daily_loss_cap - loss_so_far)
         halted = remaining_budget <= 0
+
+        try:
+            fx_to_inr = get_fx_to_inr(currency)
+        except HTTPException as e:
+            return {"symbol": symbol, "status": "fx_error", "detail": e.detail}
 
         try:
             df = fetch_ohlc(symbol, "5d", interval)
@@ -1066,6 +1103,7 @@ def _auto_signal_core(
 
         result = {
             "symbol": symbol, "status": "checked", "time_local": str(now_local),
+            "currency": currency, "fx_to_inr": round(fx_to_inr, 4),
             "last_close": last_close, "orb_high": orb_high, "orb_low": orb_low,
             "sma_fast": sma_f, "sma_slow": sma_s, "trend": trend,
             "capital": capital, "daily_loss_cap": daily_loss_cap,
@@ -1089,26 +1127,30 @@ def _auto_signal_core(
 
             if exit_reason:
                 qty = row["qty"]
-                pnl = (last_close - row["entry_price"]) * qty
+                entry_fx = row["fx_to_inr"]  # same rate used at entry, for a consistent round-trip
+                pnl_native = (last_close - row["entry_price"]) * qty
+                pnl_inr = pnl_native * entry_fx
                 stop_dist = row["entry_price"] - row["stop_loss"]
                 rr_achieved = round((last_close - row["entry_price"]) / stop_dist, 2) if stop_dist else None
                 payload = {
                     "symbol": symbol, "action": "sell", "qty": qty, "price": last_close,
+                    "currency": currency, "fx_to_inr": entry_fx,
                     "strategy": strategy_tag, "exit_reason": exit_reason,
                     "entry_price": row["entry_price"], "stop_loss": row["stop_loss"],
                     "target": row["target"], "rr_target": rr, "rr_achieved": rr_achieved,
-                    "pnl": round(pnl, 2), "pnl_pct_of_capital": round(100 * pnl / capital, 3),
+                    "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
+                    "pnl_pct_of_capital": round(100 * pnl_inr / capital, 3),
                 }
                 apply_paper_trade(conn, symbol, "sell", qty, last_close)
                 conn.execute(
-                    "INSERT INTO trades (ts, symbol, action, qty, price, strategy, raw_payload) "
-                    "VALUES (?, ?, 'sell', ?, ?, ?, ?)",
-                    (time.time(), symbol, qty, last_close, strategy_tag, json.dumps(payload)),
+                    "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                    "VALUES (?, ?, 'sell', ?, ?, ?, ?, ?)",
+                    (time.time(), symbol, qty, last_close, entry_fx, strategy_tag, json.dumps(payload)),
                 )
                 conn.execute("DELETE FROM signal_state WHERE symbol = ?", (symbol,))
                 conn.commit()
                 result.update(
-                    action_taken=f"exited_{exit_reason}", exit_pnl=payload["pnl"],
+                    action_taken=f"exited_{exit_reason}", exit_pnl_inr=payload["pnl_inr"],
                     exit_pnl_pct=payload["pnl_pct_of_capital"], rr_achieved=rr_achieved,
                 )
                 return result
@@ -1136,8 +1178,14 @@ def _auto_signal_core(
                 result["action_taken"] = "invalid_stop_skipped"
                 return result
             target = last_close + rr * stop_dist
-            risk_amount = min(capital * risk_per_trade_pct / 100, remaining_budget)
-            qty = int(risk_amount // stop_dist)
+
+            # risk_amount is Rs (part of the shared capital pool); stop_dist
+            # is native currency (e.g. USD for SPY) - must convert one to
+            # the other's currency before dividing, or a USD stop distance
+            # gets divided into a Rs budget as if $1 == Rs 1.
+            risk_amount_inr = min(capital * risk_per_trade_pct / 100, remaining_budget)
+            stop_dist_inr = stop_dist * fx_to_inr
+            qty = int(risk_amount_inr // stop_dist_inr) if stop_dist_inr > 0 else 0
 
             # Capital is shared and finite - cap qty so this trade's notional
             # doesn't push total deployed capital across all open symbols
@@ -1145,40 +1193,42 @@ def _auto_signal_core(
             # a given poll cycle gets first claim on the remaining capital
             # (see /daily-summary and the workflow's call order); a true
             # cross-symbol "best signal wins" ranking is a fast-follow.
-            available_capital = max(0.0, capital - deployed_notional(conn))
-            qty = min(qty, int(available_capital // last_close))
+            available_capital_inr = max(0.0, capital - deployed_notional(conn))
+            qty = min(qty, int(available_capital_inr // (last_close * fx_to_inr)))
 
             if qty < 1:
                 result["action_taken"] = (
-                    "insufficient_capital" if available_capital < last_close
+                    "insufficient_capital" if available_capital_inr < last_close * fx_to_inr
                     else "budget_too_small_for_1_unit"
                 )
-                result["available_capital"] = round(available_capital, 2)
+                result["available_capital_inr"] = round(available_capital_inr, 2)
                 return result
 
+            notional_inr = qty * last_close * fx_to_inr
             payload = {
                 "symbol": symbol, "action": "buy", "qty": qty, "price": last_close,
+                "currency": currency, "fx_to_inr": fx_to_inr,
                 "strategy": strategy_tag, "entry_reason": "orb_breakout_with_trend",
                 "stop_loss": stop_loss, "target": target, "rr_target": rr,
-                "risk_amount": round(risk_amount, 2),
-                "risk_pct_of_capital": round(100 * risk_amount / capital, 3),
-                "notional": round(qty * last_close, 2),
+                "risk_amount_inr": round(risk_amount_inr, 2),
+                "risk_pct_of_capital": round(100 * risk_amount_inr / capital, 3),
+                "notional_native": round(qty * last_close, 2), "notional_inr": round(notional_inr, 2),
             }
             apply_paper_trade(conn, symbol, "buy", qty, last_close)
             conn.execute(
-                "INSERT INTO trades (ts, symbol, action, qty, price, strategy, raw_payload) "
-                "VALUES (?, ?, 'buy', ?, ?, ?, ?)",
-                (time.time(), symbol, qty, last_close, strategy_tag, json.dumps(payload)),
+                "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+                (time.time(), symbol, qty, last_close, fx_to_inr, strategy_tag, json.dumps(payload)),
             )
             conn.execute(
                 "INSERT INTO signal_state "
-                "(symbol, day, status, entry_price, stop_loss, target, qty, entry_ts, orb_high, orb_low) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?) "
+                "(symbol, day, status, entry_price, stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
                 "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
                 "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
-                "orb_high=excluded.orb_high, orb_low=excluded.orb_low",
-                (symbol, today_str, last_close, stop_loss, target, qty, time.time(), orb_high, orb_low),
+                "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr",
+                (symbol, today_str, last_close, stop_loss, target, qty, time.time(), orb_high, orb_low, fx_to_inr),
             )
             conn.commit()
             result.update(action_taken="entered_long", entry=payload)
@@ -1205,6 +1255,7 @@ def auto_signal(
     close_min: int = 15 * 60 + 30,
     squareoff_min: int = 15 * 60 + 20,
     trade_weekends: bool = False,
+    currency: str = "INR",
 ):
     """HTTP wrapper around _auto_signal_core - see that function's docstring
     for the actual rules. Kept as a thin pass-through so manual/GH-Actions
@@ -1214,7 +1265,7 @@ def auto_signal(
         risk_per_trade_pct=risk_per_trade_pct, stop_pct=stop_pct, rr=rr,
         orb_minutes=orb_minutes, sma_fast=sma_fast, sma_slow=sma_slow, interval=interval,
         tz_offset_min=tz_offset_min, open_min=open_min, close_min=close_min,
-        squareoff_min=squareoff_min, trade_weekends=trade_weekends,
+        squareoff_min=squareoff_min, trade_weekends=trade_weekends, currency=currency,
     )
 
 
@@ -1238,31 +1289,32 @@ WATCHLIST = [
     # (docs/daily_logs/2026-09-02-entry-trigger-research.md).
     {"symbol": "^NSEI", "orb_minutes": 30, "sma_fast": 5, "sma_slow": 50,
      "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False},
+     "trade_weekends": False, "currency": "INR"},
     {"symbol": "^NSEBANK", "orb_minutes": 5, "sma_fast": 9, "sma_slow": 50,
      "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False},
+     "trade_weekends": False, "currency": "INR"},
     {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50,
      "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False},
-    # Crypto - UTC, 24/7, trades weekends too.
+     "trade_weekends": False, "currency": "INR"},
+    # Crypto - UTC, 24/7, trades weekends too. Quoted in USD.
     {"symbol": "BTC-USD", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
      "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
-     "trade_weekends": True},
+     "trade_weekends": True, "currency": "USD"},
     {"symbol": "ETH-USD", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
      "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
-     "trade_weekends": True},
-    # US markets - ET. tz_offset_min=-240 is EDT (UTC-4), correct through
-    # early Nov 2026; needs -300 (EST) after the US DST changeover.
+     "trade_weekends": True, "currency": "USD"},
+    # US markets - ET, quoted in USD. tz_offset_min=-240 is EDT (UTC-4),
+    # correct through early Nov 2026; needs -300 (EST) after the US DST
+    # changeover.
     {"symbol": "SPY", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
      "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False},
+     "trade_weekends": False, "currency": "USD"},
     {"symbol": "QQQ", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
      "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False},
+     "trade_weekends": False, "currency": "USD"},
     {"symbol": "AAPL", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
      "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False},
+     "trade_weekends": False, "currency": "USD"},
 ]
 
 SCHEDULER_INTERVAL_SECONDS = 30
@@ -1290,7 +1342,7 @@ async def _scheduler_loop():
                     orb_minutes=cfg["orb_minutes"], sma_fast=cfg["sma_fast"], sma_slow=cfg["sma_slow"],
                     interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
                     close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
-                    trade_weekends=cfg["trade_weekends"],
+                    trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
                 )
             except Exception as e:
                 _scheduler_last_error = f"{cfg['symbol']}: {e}"
@@ -1327,7 +1379,7 @@ def daily_summary(capital: float = 200000, daily_risk_pct: float = 2.0):
         # Full history for correct cost-basis (see today_realized_pnl) - only
         # sells at/after since_ts are reported as "today's" closed trades.
         all_trades = conn.execute(
-            "SELECT id, ts, symbol, action, qty, price, strategy, raw_payload FROM trades "
+            "SELECT id, ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload FROM trades "
             "WHERE strategy LIKE ? ORDER BY id",
             (ORB_STRATEGY_PREFIX + "%",),
         ).fetchall()
@@ -1341,13 +1393,14 @@ def daily_summary(capital: float = 200000, daily_risk_pct: float = 2.0):
     closed_trades = []
     for t in all_trades:
         sym = t["symbol"]
+        price_inr = t["price"] * t["fx_to_inr"]
         b = book.setdefault(sym, {"qty": 0.0, "avg": 0.0})
         if t["action"] == "buy":
             new_qty = b["qty"] + t["qty"]
-            b["avg"] = ((b["qty"] * b["avg"]) + (t["qty"] * t["price"])) / new_qty if new_qty else 0.0
+            b["avg"] = ((b["qty"] * b["avg"]) + (t["qty"] * price_inr)) / new_qty if new_qty else 0.0
             b["qty"] = new_qty
         else:
-            pnl = (t["price"] - b["avg"]) * min(t["qty"], b["qty"])
+            pnl = (price_inr - b["avg"]) * min(t["qty"], b["qty"])
             b["qty"] -= t["qty"]
             if t["ts"] < since_ts:
                 continue
@@ -1357,21 +1410,36 @@ def daily_summary(capital: float = 200000, daily_risk_pct: float = 2.0):
             except Exception:
                 extra = {}
             closed_trades.append({
-                "symbol": sym, "exit_time_utc": t["ts"], "entry_price": extra.get("entry_price"),
-                "exit_price": t["price"], "qty": t["qty"], "pnl": round(pnl, 2),
-                "pnl_pct_of_capital": round(100 * pnl / capital, 3),
+                "symbol": sym, "exit_time_utc": t["ts"],
+                "entry_price_native": extra.get("entry_price"), "exit_price_native": t["price"],
+                "currency": extra.get("currency", "INR"), "qty": t["qty"],
+                "pnl_inr": round(pnl, 2), "pnl_pct_of_capital": round(100 * pnl / capital, 3),
                 "exit_reason": extra.get("exit_reason"), "rr_target": extra.get("rr_target"),
                 "rr_achieved": extra.get("rr_achieved"),
             })
 
+    open_positions = []
+    capital_deployed_inr = 0.0
+    for r in open_state:
+        notional_inr = r["qty"] * r["entry_price"] * r["fx_to_inr"]
+        capital_deployed_inr += notional_inr
+        open_positions.append({
+            "symbol": r["symbol"], "qty": r["qty"],
+            "entry_price_native": r["entry_price"], "stop_loss_native": r["stop_loss"],
+            "target_native": r["target"], "fx_to_inr": r["fx_to_inr"],
+            "notional_inr": round(notional_inr, 2),
+        })
+
     daily_loss_cap = capital * daily_risk_pct / 100
     loss_so_far = max(0.0, -realized)
     budget_remaining = max(0.0, daily_loss_cap - loss_so_far)
-    wins = [c for c in closed_trades if c["pnl"] > 0]
+    wins = [c for c in closed_trades if c["pnl_inr"] > 0]
 
     return {
         "date_ist": today_str,
         "capital": capital,
+        "capital_deployed_inr": round(capital_deployed_inr, 2),
+        "capital_available_inr": round(capital - capital_deployed_inr, 2),
         "daily_loss_cap": daily_loss_cap,
         "daily_loss_cap_pct": daily_risk_pct,
         "realized_pnl": round(realized, 2),
@@ -1380,7 +1448,7 @@ def daily_summary(capital: float = 200000, daily_risk_pct: float = 2.0):
         "halted_for_day": budget_remaining <= 0,
         "closed_trades_count": len(closed_trades),
         "win_rate_pct": round(100 * len(wins) / len(closed_trades), 1) if closed_trades else None,
-        "open_positions": [dict(r) for r in open_state],
+        "open_positions": open_positions,
         "closed_trades": closed_trades,
     }
 
