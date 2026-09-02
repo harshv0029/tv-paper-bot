@@ -807,7 +807,8 @@ def auto_signal(
     symbol: str,
     capital: float = 200000,
     daily_risk_pct: float = 2.0,
-    risk_per_trade_pct: float = 1.0,
+    risk_per_trade_pct: float = 2.0,
+    stop_pct: float = 2.0,
     rr: float = 2.0,
     orb_minutes: int = 15,
     sma_fast: int = 9,
@@ -831,12 +832,17 @@ def auto_signal(
       - Opening range = high/low of the first `orb_minutes` after 9:15 IST.
       - Entry: 5m close breaks above the opening range high AND SMA(fast) >
         SMA(slow) (trend filter). Long only - no shorting in this book.
-      - Stop-loss: opening range low. Target: entry + rr * (entry - stop).
+      - Stop-loss: flat stop_pct% below entry (this trade's own max loss, e.g.
+        2% of that trade's value). Target: entry + rr * (entry - stop).
       - Position size: risk_amount / (entry - stop), where risk_amount =
-        min(risk_per_trade_pct% of capital, remaining daily loss budget).
+        min(risk_per_trade_pct% of capital, remaining daily loss budget) -
+        i.e. how much capital gets deployed into the trade is set so a
+        stop_pct% move costs at most risk_per_trade_pct% of capital.
       - Daily loss cap: daily_risk_pct% of capital. Once today's realized loss
         (across all symbols) hits this, no new entries and any open position
-        is squared off immediately.
+        is squared off immediately. With risk_per_trade_pct == daily_risk_pct
+        (both 2% by default), one stopped-out trade can use the whole day's
+        budget - by design, per the user's stated risk rule.
       - End-of-day square-off at 15:20 IST regardless of stop/target.
     """
     strategy_tag = f"{ORB_STRATEGY_PREFIX}{orb_minutes}m-sma{sma_fast}-{sma_slow}"
@@ -963,7 +969,7 @@ def auto_signal(
             return result
 
         if last_close > orb_high and trend == "up":
-            stop_loss = orb_low
+            stop_loss = last_close * (1 - stop_pct / 100)
             stop_dist = last_close - stop_loss
             if stop_dist <= 0:
                 result["action_taken"] = "invalid_stop_skipped"
