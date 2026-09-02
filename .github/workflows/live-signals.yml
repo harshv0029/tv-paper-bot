@@ -1,0 +1,35 @@
+name: Live Intraday Signals (paper trading)
+
+# Runs entirely on GitHub's infrastructure - independent of any laptop/device
+# being online. Polls /auto-signal every 15 min during NSE/BSE cash hours
+# (9:15-15:30 IST = 3:45-10:00 UTC) on weekdays, for each symbol below.
+# Also runnable on demand via workflow_dispatch.
+on:
+  schedule:
+    # UTC 3:00-10:45 = IST 8:30-16:15, every 15 min, Mon-Fri. Covers the full
+    # 9:15-15:30 IST session with a buffer either side; calls outside actual
+    # market hours are harmless no-ops (the endpoint itself checks the time).
+    - cron: "0,15,30,45 3-10 * * 1-5"
+  workflow_dispatch: {}
+
+jobs:
+  signal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poll auto-signal for each symbol
+        run: |
+          BASE="https://tv-paper-bot-gdan.onrender.com/auto-signal"
+          COMMON="capital=200000&daily_risk_pct=2&risk_per_trade_pct=1&rr=2&orb_minutes=15&sma_fast=9&sma_slow=21"
+
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+
+          for SYMBOL in "%5ENSEI" "%5ENSEBANK" "%5EBSESN"; do
+            echo "### $SYMBOL"
+            curl -sS -m 60 "$BASE?symbol=${SYMBOL}&${COMMON}"
+            echo
+          done
+
+          echo "### daily-summary"
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=200000&daily_risk_pct=2"
+          echo
