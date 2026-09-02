@@ -16,6 +16,7 @@ Endpoints:
 """
 
 import json
+import math
 import os
 import sqlite3
 import time
@@ -559,6 +560,192 @@ def sweep(
             "than one lone spike at the top. Validate top candidates on a different "
             "date range before trusting them."
         ),
+    }
+
+
+def _norm_cdf(x: float) -> float:
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
+
+def bs_price(S: float, K: float, T: float, r: float, sigma: float, option_type: str) -> float:
+    """Black-Scholes European option price. Falls back to intrinsic value at/after
+    expiry or for degenerate (zero) vol."""
+    if T <= 0 or sigma <= 0:
+        return max(S - K, 0.0) if option_type == "C" else max(K - S, 0.0)
+    d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * math.sqrt(T))
+    d2 = d1 - sigma * math.sqrt(T)
+    if option_type == "C":
+        return S * _norm_cdf(d1) - K * math.exp(-r * T) * _norm_cdf(d2)
+    return K * math.exp(-r * T) * _norm_cdf(-d2) - S * _norm_cdf(-d1)
+
+
+def parse_legs(legs_str: str) -> list[dict]:
+    """Parses 'TYPE:ACTION:OFFSET,...' e.g. 'C:buy:0.0,C:sell:0.03'.
+    TYPE: C=call, P=put, U=underlying (long only). OFFSET: strike = spot*(1+OFFSET)."""
+    legs = []
+    for part in legs_str.split(","):
+        typ, action, offset = part.split(":")
+        legs.append({"type": typ.strip().upper(), "action": action.strip().lower(), "offset": float(offset)})
+    return legs
+
+
+def run_options_backtest(
+    df: pd.DataFrame, legs: list[dict], expiry_days: int, iv_mode: str, r: float, step_days: int
+) -> dict:
+    """Rolling-window backtest: every `step_days` trading days, opens the given
+    multi-leg structure priced via Black-Scholes at that day's spot/vol, holds to
+    `expiry_days` later, settles at intrinsic value against the actual historical
+    close. This is a MODEL ESTIMATE (no historical options-chain data source is
+    wired in) - useful for comparing strategy structures against real underlying
+    price history, not a substitute for real fill/IV data."""
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].apply(lambda d: d.isoformat()).to_numpy()
+    n = len(closes)
+    log_ret = np.diff(np.log(closes))
+    T = expiry_days / 365.0
+
+    def leg_strike(spot: float, leg: dict) -> float:
+        return spot * (1 + leg["offset"])
+
+    def classify_risk() -> str:
+        has_underlying = any(l["type"] == "U" for l in legs)
+        call_sells = [l for l in legs if l["type"] == "C" and l["action"] == "sell"]
+        call_buys = [l for l in legs if l["type"] == "C" and l["action"] == "buy"]
+        put_sells = [l for l in legs if l["type"] == "P" and l["action"] == "sell"]
+        put_buys = [l for l in legs if l["type"] == "P" and l["action"] == "buy"]
+        naked_calls = call_sells and not call_buys and not has_underlying
+        naked_puts = put_sells and not put_buys
+        covered_calls = call_sells and not call_buys and has_underlying and not put_buys
+        if naked_calls or naked_puts:
+            return "large/undefined (naked short exposure)"
+        if covered_calls:
+            return "large (covered by underlying - same downside as holding it outright)"
+        return "defined/capped"
+
+    def structure_pnl(spot_entry: float, spot_exit: float, sigma: float, entry_cf: float) -> float:
+        expiry_cf, underlying_pnl = 0.0, 0.0
+        for leg in legs:
+            if leg["type"] == "U":
+                underlying_pnl += spot_exit - spot_entry
+                continue
+            K = leg_strike(spot_entry, leg)
+            payoff = max(spot_exit - K, 0.0) if leg["type"] == "C" else max(K - spot_exit, 0.0)
+            expiry_cf += -payoff if leg["action"] == "sell" else payoff
+        return entry_cf + expiry_cf + underlying_pnl
+
+    trades = []
+    i = 60
+    while i + expiry_days < n:
+        S0 = float(closes[i])
+        if iv_mode == "realized":
+            window = log_ret[max(0, i - 20): i]
+            sigma = float(np.std(window) * math.sqrt(252)) if len(window) > 5 else 0.14
+            sigma = max(sigma, 0.05)
+        else:
+            sigma = 0.14
+
+        entry_cf = 0.0
+        for leg in legs:
+            if leg["type"] == "U":
+                continue
+            K = leg_strike(S0, leg)
+            premium = bs_price(S0, K, T, r, sigma, leg["type"])
+            entry_cf += premium if leg["action"] == "sell" else -premium
+
+        ST = float(closes[i + expiry_days])
+        pnl = structure_pnl(S0, ST, sigma, entry_cf)
+        trades.append({
+            "entry_date": str(dates[i]),
+            "entry_spot": round(S0, 2),
+            "expiry_date": str(dates[i + expiry_days]),
+            "expiry_spot": round(ST, 2),
+            "iv_used_pct": round(sigma * 100, 2),
+            "pnl_points": round(pnl, 2),
+        })
+        i += step_days
+
+    if not trades:
+        return {"trades": [], "summary": None}
+
+    pnls = np.array([t["pnl_points"] for t in trades])
+    equity = np.cumsum(pnls)
+    max_dd = float((equity - np.maximum.accumulate(equity)).min())
+
+    # Crude worst-case risk proxy: reprice the same structure at the last entry
+    # spot/flat-IV and evaluate payoff at extreme moves (halved / doubled spot).
+    S0_ref = float(closes[max(i - step_days, 0)])
+    entry_cf_ref = 0.0
+    for leg in legs:
+        if leg["type"] == "U":
+            continue
+        K = leg_strike(S0_ref, leg)
+        entry_cf_ref += bs_price(S0_ref, K, T, r, 0.14, leg["type"]) * (1 if leg["action"] == "sell" else -1)
+    worst = min(
+        structure_pnl(S0_ref, S0_ref * 0.5, 0.14, entry_cf_ref),
+        structure_pnl(S0_ref, S0_ref * 2.0, 0.14, entry_cf_ref),
+    )
+
+    summary = {
+        "trades_count": len(trades),
+        "win_rate_pct": round(100 * float((pnls > 0).mean()), 1),
+        "avg_pnl_points": round(float(pnls.mean()), 2),
+        "total_pnl_points": round(float(pnls.sum()), 2),
+        "max_drawdown_points": round(max_dd, 2),
+        "best_trade_points": round(float(pnls.max()), 2),
+        "worst_trade_points": round(float(pnls.min()), 2),
+        "max_loss_proxy_points": round(float(worst), 2),
+        "risk": classify_risk(),
+    }
+    return {"trades": trades[-3:], "summary": summary}
+
+
+@app.get("/options-backtest")
+def options_backtest_endpoint(
+    symbol: str,
+    legs: str,
+    expiry_days: int = 15,
+    iv_mode: str = "realized",
+    lookback: str = "2y",
+    step_days: int = 5,
+    r: float = 0.0525,
+):
+    """
+    Rolling-window historical backtest for a multi-leg options strategy, priced
+    with Black-Scholes. No historical options-chain data source is wired in -
+    this simulates fair-value premiums against the underlying's REAL price
+    history (yfinance), it does not replay actual historical option prices.
+
+    legs     - comma-separated TYPE:ACTION:OFFSET, e.g. "C:buy:0.0,C:sell:0.03"
+               TYPE: C=call, P=put, U=underlying (long only)
+               ACTION: buy | sell
+               OFFSET: strike = spot_at_entry * (1 + OFFSET)
+    iv_mode  - "realized" (trailing 20-day realized vol, annualized) or "flat14"
+    """
+    df = fetch_ohlc(symbol, lookback, "1d")
+    parsed_legs = parse_legs(legs)
+    result = run_options_backtest(df, parsed_legs, expiry_days, iv_mode, r, step_days)
+
+    closes = df["Close"].to_numpy(dtype=float)
+    log_ret = np.diff(np.log(closes))
+    spot = float(closes[-1])
+    sma20 = float(np.mean(closes[-20:]))
+    sma50 = float(np.mean(closes[-50:])) if len(closes) >= 50 else None
+    realized_vol_20d = float(np.std(log_ret[-20:]) * math.sqrt(252)) if len(log_ret) >= 20 else None
+    trend_60d_pct = float((closes[-1] / closes[-60] - 1) * 100) if len(closes) >= 60 else None
+
+    return {
+        "symbol": symbol,
+        "legs": parsed_legs,
+        "params": {"expiry_days": expiry_days, "iv_mode": iv_mode, "lookback": lookback, "step_days": step_days},
+        "current": {
+            "spot": round(spot, 2),
+            "sma20": round(sma20, 2),
+            "sma50": round(sma50, 2) if sma50 else None,
+            "realized_vol_20d_pct": round(realized_vol_20d * 100, 2) if realized_vol_20d else None,
+            "trend_60d_pct": round(trend_60d_pct, 2) if trend_60d_pct else None,
+        },
+        "backtest": result["summary"],
+        "sample_trades": result["trades"],
     }
 
 
