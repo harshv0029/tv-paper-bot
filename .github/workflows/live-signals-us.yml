@@ -1,0 +1,39 @@
+name: Live Intraday Signals - US Markets (paper trading)
+
+# NYSE/NASDAQ cash session, 9:30am-4:00pm ET. tz_offset_min=-240 assumes EDT
+# (UTC-4) - correct through early Nov 2026; needs updating to -300 (EST)
+# after the US DST changeover, or the session will drift by an hour. Runs on
+# GitHub's infra, independent of any local device. Shares the SAME Rs 2L
+# capital pool and 2% daily-loss cap as the other markets (one account, one
+# pool) - budget resets at IST midnight; see today_realized_pnl's docstring
+# in main.py for how a session spanning IST midnight (this one always does,
+# ~19:00-01:30 IST) is still accounted for correctly.
+on:
+  schedule:
+    # UTC 13:00-20:55, every 5 min, Mon-Fri = ET 9:00am-4:55pm (EDT). Covers
+    # the 9:30-16:00 ET session with a buffer either side; calls outside
+    # actual market hours are harmless no-ops (the endpoint checks the time).
+    - cron: "*/5 13-20 * * 1-5"
+  workflow_dispatch: {}
+
+jobs:
+  signal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poll auto-signal for US symbols
+        run: |
+          BASE="https://tv-paper-bot-gdan.onrender.com/auto-signal"
+          COMMON="capital=200000&daily_risk_pct=2&risk_per_trade_pct=2&stop_pct=2&rr=2&orb_minutes=15&sma_fast=9&sma_slow=21&tz_offset_min=-240&open_min=570&close_min=960&squareoff_min=950"
+
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+
+          for SYMBOL in "SPY" "QQQ" "AAPL"; do
+            echo "### $SYMBOL"
+            curl -sS -m 60 "$BASE?symbol=${SYMBOL}&${COMMON}"
+            echo
+          done
+
+          echo "### daily-summary"
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=200000&daily_risk_pct=2"
+          echo

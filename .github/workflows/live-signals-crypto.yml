@@ -1,0 +1,33 @@
+name: Live Intraday Signals - Crypto (paper trading)
+
+# 24/7 market - no session hours, no weekday restriction. Runs on GitHub's
+# infra, independent of any local device being online. Shares the SAME
+# Rs 2L capital pool and 2% daily-loss cap as the NSE workflow (the account
+# is one pool across every market) - budget resets at IST midnight
+# regardless of this being UTC-timed.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  signal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poll auto-signal for crypto symbols
+        run: |
+          BASE="https://tv-paper-bot-gdan.onrender.com/auto-signal"
+          COMMON="capital=200000&daily_risk_pct=2&risk_per_trade_pct=2&stop_pct=2&rr=2&orb_minutes=15&sma_fast=9&sma_slow=21&tz_offset_min=0&open_min=0&close_min=1439&squareoff_min=1439&trade_weekends=true"
+
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+
+          for SYMBOL in "BTC-USD" "ETH-USD"; do
+            echo "### $SYMBOL"
+            curl -sS -m 60 "$BASE?symbol=${SYMBOL}&${COMMON}"
+            echo
+          done
+
+          echo "### daily-summary"
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=200000&daily_risk_pct=2"
+          echo
