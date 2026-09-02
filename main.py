@@ -802,6 +802,19 @@ def today_realized_pnl(conn, since_ts: float) -> float:
     return realized
 
 
+def deployed_notional(conn) -> float:
+    """Capital currently tied up in open auto-signal positions, across all
+    symbols - capital is shared and finite (only Rs 2L total), so this caps
+    how much a new entry can size into regardless of that trade's own risk
+    budget. Without this, two symbols breaking out in the same poll cycle
+    could each size a full position independently and jointly overspend the
+    account."""
+    rows = conn.execute(
+        "SELECT qty, entry_price FROM signal_state WHERE status = 'long'"
+    ).fetchall()
+    return sum(r["qty"] * r["entry_price"] for r in rows)
+
+
 @app.get("/auto-signal")
 def auto_signal(
     symbol: str,
@@ -984,8 +997,22 @@ def auto_signal(
             target = last_close + rr * stop_dist
             risk_amount = min(capital * risk_per_trade_pct / 100, remaining_budget)
             qty = int(risk_amount // stop_dist)
+
+            # Capital is shared and finite - cap qty so this trade's notional
+            # doesn't push total deployed capital across all open symbols
+            # past `capital`. Whichever symbol's entry is evaluated first in
+            # a given poll cycle gets first claim on the remaining capital
+            # (see /daily-summary and the workflow's call order); a true
+            # cross-symbol "best signal wins" ranking is a fast-follow.
+            available_capital = max(0.0, capital - deployed_notional(conn))
+            qty = min(qty, int(available_capital // last_close))
+
             if qty < 1:
-                result["action_taken"] = "budget_too_small_for_1_unit"
+                result["action_taken"] = (
+                    "insufficient_capital" if available_capital < last_close
+                    else "budget_too_small_for_1_unit"
+                )
+                result["available_capital"] = round(available_capital, 2)
                 return result
 
             payload = {
@@ -994,6 +1021,7 @@ def auto_signal(
                 "stop_loss": stop_loss, "target": target, "rr_target": rr,
                 "risk_amount": round(risk_amount, 2),
                 "risk_pct_of_capital": round(100 * risk_amount / capital, 3),
+                "notional": round(qty * last_close, 2),
             }
             apply_paper_trade(conn, symbol, "buy", qty, last_close)
             conn.execute(
