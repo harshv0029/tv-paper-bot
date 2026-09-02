@@ -1,0 +1,28 @@
+name: Fetch Chart Data
+
+# One-off/manual: pulls recent OHLC candles for a symbol via /history, for
+# building candlestick chart snapshots. workflow_dispatch only.
+on:
+  workflow_dispatch:
+    inputs:
+      symbol:
+        description: "Yahoo Finance symbol (URL-encoded, e.g. SPY or %5ENSEI)"
+        required: true
+        default: "SPY"
+      period:
+        description: "yfinance period (e.g. 1d, 5d)"
+        required: false
+        default: "1d"
+      interval:
+        description: "yfinance interval (e.g. 5m)"
+        required: false
+        default: "5m"
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch history
+        run: |
+          curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/history?symbol=${{ inputs.symbol }}&period=${{ inputs.period }}&interval=${{ inputs.interval }}"
+          echo
