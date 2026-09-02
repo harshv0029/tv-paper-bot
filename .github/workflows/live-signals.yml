@@ -19,18 +19,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Poll auto-signal for each symbol
+        # orb_minutes/sma_fast/sma_slow below are per-symbol, chosen by
+        # backtesting orb_breakout against 60 days of real 5-min data
+        # (entry-trigger-research.yml, run 2026-09-02) - not the same
+        # one-size-fits-all defaults for every symbol. See
+        # docs/daily_logs/2026-09-02-entry-trigger-research.md for the
+        # comparison against orb_volume/vwap_reclaim/macd_cross and the
+        # full sweep grid each of these was picked from.
         run: |
           BASE="https://tv-paper-bot-gdan.onrender.com/auto-signal"
-          COMMON="capital=200000&daily_risk_pct=2&risk_per_trade_pct=2&stop_pct=2&rr=2&orb_minutes=15&sma_fast=9&sma_slow=21"
+          RISK="capital=200000&daily_risk_pct=2&risk_per_trade_pct=2&stop_pct=2&rr=2"
 
           curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/health" || true
           echo
 
-          for SYMBOL in "%5ENSEI" "%5ENSEBANK" "%5EBSESN"; do
-            echo "### $SYMBOL"
-            curl -sS -m 60 "$BASE?symbol=${SYMBOL}&${COMMON}"
-            echo
-          done
+          echo "### NIFTY (^NSEI)"
+          curl -sS -m 60 "$BASE?symbol=%5ENSEI&${RISK}&orb_minutes=30&sma_fast=5&sma_slow=50"
+          echo
+
+          echo "### BANKNIFTY (^NSEBANK)"
+          curl -sS -m 60 "$BASE?symbol=%5ENSEBANK&${RISK}&orb_minutes=5&sma_fast=9&sma_slow=50"
+          echo
+
+          echo "### SENSEX (^BSESN)"
+          curl -sS -m 60 "$BASE?symbol=%5EBSESN&${RISK}&orb_minutes=30&sma_fast=20&sma_slow=50"
+          echo
 
           echo "### daily-summary"
           curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=200000&daily_risk_pct=2"
