@@ -6,10 +6,12 @@ name: Live Intraday Signals (paper trading)
 # Also runnable on demand via workflow_dispatch.
 on:
   schedule:
-    # UTC 3:00-10:45 = IST 8:30-16:15, every 15 min, Mon-Fri. Covers the full
+    # UTC 3:00-10:55 = IST 8:30-16:25, every 5 min, Mon-Fri. Matches the
+    # engine's own data resolution (5-min candles) - polling faster than the
+    # underlying bar interval wouldn't see anything new. Covers the full
     # 9:15-15:30 IST session with a buffer either side; calls outside actual
     # market hours are harmless no-ops (the endpoint itself checks the time).
-    - cron: "0,15,30,45 3-10 * * 1-5"
+    - cron: "*/5 3-10 * * 1-5"
   workflow_dispatch: {}
 
 jobs:
