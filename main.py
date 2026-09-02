@@ -832,8 +832,10 @@ def auto_signal(
       - Opening range = high/low of the first `orb_minutes` after 9:15 IST.
       - Entry: 5m close breaks above the opening range high AND SMA(fast) >
         SMA(slow) (trend filter). Long only - no shorting in this book.
-      - Stop-loss: flat stop_pct% below entry (this trade's own max loss, e.g.
-        2% of that trade's value). Target: entry + rr * (entry - stop).
+      - Stop-loss: the strategy's own technical level (opening-range low),
+        capped at stop_pct% max below entry - whichever is tighter, so max
+        loss per trade is bounded at stop_pct% of that trade's value even if
+        the ORB range is wider. Target: entry + rr * (entry - stop).
       - Position size: risk_amount / (entry - stop), where risk_amount =
         min(risk_per_trade_pct% of capital, remaining daily loss budget) -
         i.e. how much capital gets deployed into the trade is set so a
@@ -969,7 +971,12 @@ def auto_signal(
             return result
 
         if last_close > orb_high and trend == "up":
-            stop_loss = last_close * (1 - stop_pct / 100)
+            # Stop is the strategy's own technical level (opening-range low),
+            # capped at stop_pct% max risk - whichever is tighter (closer to
+            # entry) wins, so the trade never risks more than the cap even if
+            # the ORB range itself is wider than that.
+            stop_loss_cap = last_close * (1 - stop_pct / 100)
+            stop_loss = max(orb_low, stop_loss_cap)
             stop_dist = last_close - stop_loss
             if stop_dist <= 0:
                 result["action_taken"] = "invalid_stop_skipped"
