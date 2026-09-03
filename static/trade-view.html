@@ -590,13 +590,19 @@ function optionLabel(pos) {
 function renderTradeLog(summary, history) {
   const body = document.getElementById("log-body");
   const openPositions = summary.open_positions || [];
-  // Closed trades come from /trade-history (docs/trade_outcomes_log.json,
-  // git-tracked and journal-synced), NOT summary.closed_trades - the live
-  // DB's `trades` table gets wiped on every Render redeploy, so a trade
-  // that closed before the most recent redeploy would otherwise vanish
-  // from this list even though it genuinely happened today. History is
-  // already sorted most-recent-first server-side.
-  const closed = history.trades || [];
+  // Closed trades: UNION of /trade-history (docs/trade_outcomes_log.json,
+  // durable across redeploys, but only as fresh as the last journal-sync)
+  // and summary.closed_trades (live DB, real-time, but wiped on the next
+  // redeploy). Neither alone is enough - the durable file has a gap of up
+  // to a sync cycle right after a trade closes (it hasn't been written yet)
+  // while the live DB has a gap after any redeploy (it's already gone).
+  // Union + dedup on the same key journal-sync.yml itself dedups on means
+  // a just-closed trade is visible immediately (from the DB) and stays
+  // visible after a redeploy wipes the DB (from the file, once synced).
+  const closedByKey = new Map();
+  for (const t of (history.trades || [])) closedByKey.set(`${t.symbol}|${t.exit_time_utc}`, t);
+  for (const t of (summary.closed_trades || [])) closedByKey.set(`${t.symbol}|${t.exit_time_utc}`, t);
+  const closed = [...closedByKey.values()].sort((a, b) => (b.exit_time_utc || 0) - (a.exit_time_utc || 0));
 
   const pnlSpan = (v) => `<span class="num ${v >= 0 ? "up" : "down"}">${v >= 0 ? "+" : ""}₹${fmt(v)}</span>`;
   const dash = `<span class="scan-idle">—</span>`;
@@ -657,7 +663,7 @@ function renderTradeLog(summary, history) {
     </tr>`;
   });
 
-  const totalRealisedInr = history.net_pnl_inr ?? 0;
+  const totalRealisedInr = closed.reduce((s, t) => s + (t.pnl_inr ?? 0), 0);
   const combinedInr = totalRealisedInr + totalUnrealisedInr;
   const totalRow = `<tr class="log-total-row">
       <td colspan="6">TOTAL — realised (closed) + unrealised (live)</td>
@@ -674,17 +680,18 @@ function renderTradeLog(summary, history) {
   if (liveRows.length || closedRows.length) sections.push(totalRow);
   body.innerHTML = sections.join("");
 
-  // Net P&L for the day = sum of realized P&L on transacted (closed)
-  // trades only, from the durable /trade-history record - so it stays
-  // correct across however many redeploys have happened today, unlike
-  // summary.realized_pnl which only reflects the current DB instance.
-  const pnl = history.net_pnl_inr ?? 0;
+  // Net P&L for the day = sum of realized P&L on the merged (durable file
+  // UNION live-DB) closed-trade list above - stays correct across however
+  // many redeploys have happened today (the file) AND includes anything
+  // that closed since the last sync but hasn't been wiped yet (the DB).
+  const pnl = totalRealisedInr;
   const pnlEl = document.getElementById("ds-pnl");
   pnlEl.textContent = `${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}`;
   pnlEl.className = "ds-val mono " + (pnl >= 0 ? "up" : "down");
-  document.getElementById("ds-count").textContent = history.trades_count ?? closed.length;
-  document.getElementById("ds-winrate").textContent = history.win_rate_pct === null || history.win_rate_pct === undefined
-    ? "—" : `${fmt(history.win_rate_pct, 1)}%`;
+  document.getElementById("ds-count").textContent = closed.length;
+  const wins = closed.filter(t => (t.pnl_inr ?? 0) > 0).length;
+  document.getElementById("ds-winrate").textContent = closed.length
+    ? `${fmt(100 * wins / closed.length, 1)}%` : "—";
   document.getElementById("ds-budget").textContent = summary.budget_remaining !== undefined
     ? `₹${fmt(summary.budget_remaining)}` : "—";
 }
@@ -705,7 +712,11 @@ async function refresh() {
     hdrStatus.className = openPositions.length ? "status long" : "status flat";
 
     if (equityPositions.length === 0) {
-      const lastClosed = (history.trades || [])[0]; // most-recent-first already
+      // Same merge as renderTradeLog: a trade that closed since the last
+      // journal-sync is only in summary.closed_trades (DB) yet, not history.
+      const mergedClosed = [...(summary.closed_trades || []), ...(history.trades || [])]
+        .sort((a, b) => (b.exit_time_utc || 0) - (a.exit_time_utc || 0));
+      const lastClosed = mergedClosed[0];
       if (!Object.keys(charts).length) {
         document.getElementById("cards").innerHTML = openPositions.length
           ? `<div class="empty">No equity chart to show — see the live options row(s) in the trade log below.</div>`
