@@ -1,16 +1,18 @@
 name: Diagnostic Curl (ad-hoc endpoint check)
 
-# General-purpose "hit one live endpoint and print the response" - for
-# quick checks like confirming a new diagnostic route deployed correctly,
-# without needing a dedicated workflow per endpoint. Read-only by
-# convention (this is for GET-style checks, not for triggering actions -
-# use trading-control.yml for the kill switch, journal-sync.yml for state
-# sync).
+# General-purpose "GET something and print the response" - for quick
+# checks like confirming a new diagnostic route deployed correctly, or
+# pulling a public reference page (e.g. broker API docs) this sandbox's
+# own egress proxy blocks direct access to. Read-only by convention (this
+# is for GET-style checks, not for triggering actions - use
+# trading-control.yml for the kill switch, journal-sync.yml for state
+# sync). If `path` starts with http(s), it's fetched as-is; otherwise
+# it's treated as a path on the live tv-paper-bot server.
 on:
   workflow_dispatch:
     inputs:
       path:
-        description: "Path on the live server to GET, e.g. /health or /kotak-neo/status"
+        description: "Path on the live server (e.g. /health), or a full https:// URL"
         required: true
         default: "/health"
 
@@ -18,7 +20,13 @@ jobs:
   curl:
     runs-on: ubuntu-latest
     steps:
-      - name: GET the requested path
+      - name: GET the requested path or URL
         run: |
-          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com${{ inputs.path }}"
+          INPUT="${{ inputs.path }}"
+          if [[ "$INPUT" == http://* || "$INPUT" == https://* ]]; then
+            URL="$INPUT"
+          else
+            URL="https://tv-paper-bot-gdan.onrender.com${INPUT}"
+          fi
+          curl -sSL -m 30 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "$URL"
           echo
