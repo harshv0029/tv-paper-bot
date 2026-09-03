@@ -101,3 +101,31 @@ def login():
         raise RuntimeError("Kotak Neo login did not establish a session (no edit_token/edit_sid)")
 
     return client
+
+
+# --- Phase 2: read-only account data (2026-09-03) ---------------------------
+# Explicit user instruction: "do phase 2" - read-only market/account data,
+# still no order placement. Each function below logs in fresh (no session
+# caching yet - these are low-frequency diagnostic calls, not a hot path)
+# and returns whatever dict/list the SDK itself returns. Callers in main.py
+# are responsible for gating access (see KOTAK_NEO_API_TOKEN) - this module
+# stays agnostic of HTTP/auth concerns, same as login().
+
+
+def holdings():
+    """Current portfolio holdings for the real account. Read-only - places
+    no order. Returns the SDK's own response shape unmodified."""
+    return login().holdings()
+
+
+def positions():
+    """Current open positions for the real account. Read-only - places no
+    order. Returns the SDK's own response shape unmodified."""
+    return login().positions()
+
+
+def limits():
+    """Available margin/funds across all segments for the real account.
+    Read-only - places no order. Returns the SDK's own response shape
+    unmodified."""
+    return login().limits()

@@ -3521,6 +3521,81 @@ def kotak_neo_test_login():
         return {"logged_in": False, "error": str(e)}
 
 
+# Phase 2 (2026-09-03): read-only account data (holdings, positions, funds).
+# Unlike /kotak-neo/status and /test-login, these return REAL account data -
+# so unlike the rest of this app (which has no auth at all, fine for fake
+# paper-trading data), these are gated behind a shared-secret token. Fails
+# CLOSED: if KOTAK_NEO_API_TOKEN isn't set, the endpoint refuses rather than
+# serving real data on an effectively-unprotected URL.
+KOTAK_NEO_API_TOKEN = os.environ.get("KOTAK_NEO_API_TOKEN")
+
+
+def _require_kotak_token(request: Request):
+    if not KOTAK_NEO_API_TOKEN:
+        raise HTTPException(
+            status_code=503,
+            detail="KOTAK_NEO_API_TOKEN not set on the server - this endpoint refuses to run "
+                   "unauthenticated since it returns real account data.",
+        )
+    supplied = request.query_params.get("token")
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        supplied = supplied or auth_header[len("Bearer "):]
+    if supplied != KOTAK_NEO_API_TOKEN:
+        raise HTTPException(status_code=401, detail="Bad or missing token")
+
+
+def _kotak_json_safe(result):
+    """The SDK's own holdings()/positions()/limits() catch their internal
+    errors and hand back {"Error": <Exception instance>} rather than a
+    string - not JSON-serializable as-is, which would 500 the endpoint on
+    exactly the failure case a caller most needs to see. Round-trip through
+    json with default=str so any such object becomes its string form
+    instead of crashing the response."""
+    return json.loads(json.dumps(result, default=str))
+
+
+@app.get("/kotak-neo/holdings")
+def kotak_neo_holdings(request: Request):
+    """Real portfolio holdings from the live Kotak Neo account. Read-only -
+    places no order. Requires ?token=<KOTAK_NEO_API_TOKEN> (or an
+    'Authorization: Bearer <token>' header) - see docs/TRADING_CONSTRAINTS.md
+    'Kotak Neo connection' for why this is gated unlike the rest of this
+    app's endpoints."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        return _kotak_json_safe(kotak_neo.holdings())
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/kotak-neo/positions")
+def kotak_neo_positions(request: Request):
+    """Real open positions from the live Kotak Neo account. Read-only -
+    places no order. Requires ?token=<KOTAK_NEO_API_TOKEN> (or an
+    'Authorization: Bearer <token>' header)."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        return _kotak_json_safe(kotak_neo.positions())
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/kotak-neo/limits")
+def kotak_neo_limits(request: Request):
+    """Real available margin/funds from the live Kotak Neo account.
+    Read-only - places no order. Requires ?token=<KOTAK_NEO_API_TOKEN> (or
+    an 'Authorization: Bearer <token>' header)."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        return _kotak_json_safe(kotak_neo.limits())
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/live")
 def live():
     """Self-refreshing NIFTY/BANKNIFTY/SENSEX/India VIX dashboard."""
