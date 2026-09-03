@@ -111,6 +111,26 @@ def init_db():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS option_state (
+                opt_symbol TEXT PRIMARY KEY,  -- "{underlying}:OPT-CALL" / "{underlying}:OPT-PUT"
+                underlying TEXT NOT NULL,
+                day TEXT NOT NULL,
+                right TEXT NOT NULL,          -- call | put
+                expiry TEXT NOT NULL,         -- YYYY-MM-DD
+                strike REAL NOT NULL,
+                contracts REAL NOT NULL,      -- 1 contract = 100 shares, the real multiplier
+                entry_premium REAL NOT NULL,  -- native currency, per share
+                stop_premium REAL NOT NULL,
+                target_premium REAL NOT NULL,
+                entry_iv REAL,
+                entry_delta REAL,
+                entry_ts REAL NOT NULL,
+                fx_to_inr REAL NOT NULL DEFAULT 1.0
+            )
+            """
+        )
         conn.commit()
 
 
@@ -1015,7 +1035,460 @@ def deployed_notional(conn) -> float:
     rows = conn.execute(
         "SELECT qty, entry_price, fx_to_inr FROM signal_state WHERE status = 'long'"
     ).fetchall()
-    return sum(r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in rows)
+    equity_notional = sum(r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in rows)
+    opt_rows = conn.execute(
+        "SELECT contracts, entry_premium, fx_to_inr FROM option_state"
+    ).fetchall()
+    # Same shared pool as equities (docs/TRADING_CONSTRAINTS.md) - an open
+    # option position's cost basis (premium paid, its real max loss on a
+    # total wipeout) counts against the same capital cap so options and
+    # equities can't jointly overspend the account.
+    option_notional = sum(r["contracts"] * 100 * r["entry_premium"] * r["fx_to_inr"] for r in opt_rows)
+    return equity_notional + option_notional
+
+
+# ---------------------------------------------------------------------------
+# Options overlay: buy real, currently-quoted calls/puts on symbols with a
+# live yfinance options chain (SPY/QQQ/AAPL - see OPTIONS_ELIGIBLE_SYMBOLS).
+# NSE/BSE index and stock options are explicitly NOT covered here - there is
+# no real chain/IV data for them without a broker connection (Kotak Neo,
+# not yet wired up - docs/TRADING_CONSTRAINTS.md); synthesizing one would be
+# exactly the kind of fabricated-data shortcut this project has repeatedly
+# ruled out. The equity engine above (_auto_signal_core) stays long-only and
+# untouched by any of this - direction detection here is a read-only mirror
+# of its own bullish logic (plus the bearish case it deliberately doesn't
+# trade), used only to decide "buy a call" vs "buy a put".
+OPTIONS_ELIGIBLE_SYMBOLS = ["SPY", "QQQ", "AAPL"]
+OPTIONS_TARGET_DELTA = 0.35     # moderately OTM: real leverage (bigger % payoff on a win) without
+                                 # betting on a near-impossible move - deep ITM has little leverage,
+                                 # far OTM is a lottery ticket the IV check below would flag anyway.
+OPTIONS_MIN_DTE = 2             # skip 0-1 DTE - gamma/pin risk dominates, not the underlying's trend.
+OPTIONS_MAX_DTE = 10            # weekly-ish - long-dated options carry theta we don't need for an
+                                 # intraday-signal-driven entry.
+OPTIONS_MAX_IV_VS_ATM = 1.6     # IV oversight: reject a strike priced >60% rich vs the chain's own
+                                 # ATM IV - a skew/event spike means this specific line is expensive
+                                 # relative to the rest of the curve and prone to giving the gain
+                                 # straight back to IV crush even if the direction call is right.
+OPTIONS_MAX_SPREAD_PCT = 15.0   # liquidity guard: (ask-bid)/ask must be tighter than this, or the
+                                 # quote is too thin to trust as a real fill.
+OPTIONS_STOP_PCT = 45.0         # premium-based stop - options swing harder than the underlying, so
+                                 # this plays the same role stop_pct plays for equities.
+OPTIONS_STRATEGY_TAG = f"{ORB_STRATEGY_PREFIX}option"
+
+
+def _norm_cdf(x: float) -> float:
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
+
+def _bs_delta(spot: float, strike: float, iv: float, dte_years: float, right: str, r: float = 0.05):
+    """Black-Scholes delta from the chain's own quoted IV - yfinance doesn't
+    return delta directly, and this is the standard way to derive it (no
+    scipy dependency needed; math.erf gives the normal CDF)."""
+    if spot <= 0 or strike <= 0 or iv <= 0 or dte_years <= 0:
+        return None
+    d1 = (math.log(spot / strike) + (r + 0.5 * iv * iv) * dte_years) / (iv * math.sqrt(dte_years))
+    nd1 = _norm_cdf(d1)
+    return nd1 if right == "call" else nd1 - 1.0
+
+
+def select_option_contract(underlying: str, spot: float, right: str):
+    """Picks one real, currently-quoted contract from yfinance's live chain.
+    See the module docstring above for the strike/expiry/IV rules. Returns
+    (contract_dict, None) on success or (None, reason_str) - never invents a
+    contract; a chain fetch failure or no qualifying line is reported, not
+    silently defaulted."""
+    try:
+        t = yf.Ticker(underlying)
+        expiries = t.options
+    except Exception as e:
+        return None, f"options_chain_error: {e}"
+    if not expiries:
+        return None, "no_expiries_listed"
+
+    now = dt.datetime.utcnow()
+    in_range = []
+    all_dtes = []
+    for exp in expiries:
+        dte = (dt.datetime.strptime(exp, "%Y-%m-%d") - now).days
+        all_dtes.append((exp, dte))
+        if OPTIONS_MIN_DTE <= dte <= OPTIONS_MAX_DTE:
+            in_range.append((exp, dte))
+    if in_range:
+        expiry, dte = min(in_range, key=lambda c: c[1])
+    else:
+        # No expiry in the preferred window - fall back to the nearest one
+        # that's still past OPTIONS_MIN_DTE (never 0-1 DTE) rather than
+        # refusing to trade a symbol just because this week's calendar is odd.
+        beyond = [c for c in all_dtes if c[1] >= OPTIONS_MIN_DTE]
+        if not beyond:
+            return None, "no_expiry_beyond_min_dte"
+        expiry, dte = min(beyond, key=lambda c: c[1])
+    dte_years = max(dte, 1) / 365.0
+
+    try:
+        chain = t.option_chain(expiry)
+    except Exception as e:
+        return None, f"chain_fetch_error: {e}"
+    book = chain.calls if right == "call" else chain.puts
+    if book is None or book.empty:
+        return None, "empty_chain"
+
+    book = book.copy()
+    book["dist_to_atm"] = (book["strike"] - spot).abs()
+    atm_row = book.loc[book["dist_to_atm"].idxmin()]
+    atm_iv = float(atm_row["impliedVolatility"]) if atm_row["impliedVolatility"] and atm_row["impliedVolatility"] > 0 else None
+
+    best = None  # (delta_dist, row, iv, delta)
+    for _, row in book.iterrows():
+        iv = float(row["impliedVolatility"]) if row["impliedVolatility"] else 0.0
+        bid = float(row["bid"]) if row["bid"] else 0.0
+        ask = float(row["ask"]) if row["ask"] else 0.0
+        if iv <= 0 or bid <= 0 or ask <= 0:
+            continue
+        if (ask - bid) / ask * 100 > OPTIONS_MAX_SPREAD_PCT:
+            continue
+        delta = _bs_delta(spot, float(row["strike"]), iv, dte_years, right)
+        if delta is None:
+            continue
+        delta_dist = abs(abs(delta) - OPTIONS_TARGET_DELTA)
+        if best is None or delta_dist < best[0]:
+            best = (delta_dist, row, iv, delta)
+
+    if best is None:
+        return None, "no_liquid_contract_near_target_delta"
+
+    _, row, iv, delta = best
+    if atm_iv and iv > atm_iv * OPTIONS_MAX_IV_VS_ATM:
+        return None, f"iv_too_rich_vs_atm ({iv:.2f} vs atm {atm_iv:.2f})"
+
+    mid = (float(row["bid"]) + float(row["ask"])) / 2.0
+    return {
+        "underlying": underlying, "right": right, "expiry": expiry, "dte": dte,
+        "strike": float(row["strike"]), "premium": round(mid, 4),
+        "bid": float(row["bid"]), "ask": float(row["ask"]),
+        "iv": round(iv, 4), "atm_iv": round(atm_iv, 4) if atm_iv else None,
+        "delta": round(delta, 3), "open_interest": int(row.get("openInterest") or 0),
+        "volume": int(row.get("volume") or 0),
+    }, None
+
+
+def _requote_contract(underlying: str, expiry: str, strike: float, right: str):
+    """Re-fetches the live bid/ask for one already-open contract, to mark an
+    open option position to a real quote (not the entry price) when checking
+    stop/target. Returns mid price or None if the chain can't be fetched or
+    the strike is no longer listed (e.g. past expiry)."""
+    try:
+        t = yf.Ticker(underlying)
+        chain = t.option_chain(expiry)
+    except Exception:
+        return None
+    book = chain.calls if right == "call" else chain.puts
+    if book is None or book.empty:
+        return None
+    match = book[(book["strike"] - strike).abs() < 0.01]
+    if match.empty:
+        return None
+    row = match.iloc[0]
+    bid, ask = float(row["bid"] or 0), float(row["ask"] or 0)
+    if bid <= 0 or ask <= 0:
+        return None
+    return round((bid + ask) / 2.0, 4)
+
+
+def _detect_direction_signal(symbol: str, orb_minutes: int, sma_fast: int, sma_slow: int,
+                              trend_sma: int, tz_offset_min: int, open_min: int, interval: str = "5m"):
+    """Direction-only signal (bullish/bearish/None) for the options overlay.
+    Mirrors _auto_signal_core's own orb_breakout-with-trend and
+    bullish_engulfing entry logic, PLUS their bearish mirrors (orb breakdown,
+    bearish engulfing) that the equity engine deliberately never trades (it
+    stays long-only). This function trades nothing itself and never opens an
+    equity position - it only tells the options layer below which direction,
+    if any, the same evidence-backed patterns are currently pointing."""
+    now_local = dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)
+    today_str = now_local.strftime("%Y-%m-%d")
+    try:
+        df = fetch_ohlc(symbol, "5d", interval)
+        ts = pd.to_datetime(df["Date"])
+        ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+        ts_local = ts_utc + pd.Timedelta(minutes=tz_offset_min)
+        df = df.assign(ts_local=ts_local)
+        df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+        today_df = df[df["date_local"] == today_str].reset_index(drop=True)
+    except Exception as e:
+        return None, f"data_error: {e}", None
+    if today_df.empty or len(df) < 2:
+        return None, "no_data_yet", None
+    today_df = today_df.copy()
+    today_df["mins"] = today_df["ts_local"].dt.hour * 60 + today_df["ts_local"].dt.minute
+
+    last_close = float(today_df.iloc[-1]["Close"])
+    closes = today_df["Close"].to_numpy(dtype=float)
+    sma_f = float(np.mean(closes[-sma_fast:])) if len(closes) >= sma_fast else None
+    sma_s = float(np.mean(closes[-sma_slow:])) if len(closes) >= sma_slow else None
+    trend = ("up" if sma_f > sma_s else "down") if (sma_f is not None and sma_s is not None) else None
+
+    orb_cutoff = open_min + orb_minutes
+    orb_df = today_df[today_df["mins"] < orb_cutoff]
+    if not orb_df.empty and today_df["mins"].max() >= orb_cutoff:
+        orb_high, orb_low = float(orb_df["High"].max()), float(orb_df["Low"].min())
+        if last_close > orb_high and trend == "up":
+            return "bullish", "orb_breakout_with_trend", last_close
+        if last_close < orb_low and trend == "down":
+            return "bearish", "orb_breakdown_with_trend", last_close
+
+    cur_bar, prev_bar = df.iloc[-1], df.iloc[-2]
+    cur_bullish, cur_bearish = cur_bar["Close"] > cur_bar["Open"], cur_bar["Close"] < cur_bar["Open"]
+    prev_bearish, prev_bullish = prev_bar["Close"] < prev_bar["Open"], prev_bar["Close"] > prev_bar["Open"]
+    trend_ok_up = trend_ok_down = True
+    if trend_sma > 0:
+        full_closes = df["Close"].to_numpy(dtype=float)
+        if len(full_closes) < trend_sma:
+            trend_ok_up = trend_ok_down = False
+        else:
+            sma_ref = float(np.mean(full_closes[-trend_sma:]))
+            trend_ok_up, trend_ok_down = last_close > sma_ref, last_close < sma_ref
+
+    if (cur_bullish and prev_bearish and cur_bar["Open"] <= prev_bar["Close"]
+            and cur_bar["Close"] >= prev_bar["Open"] and trend_ok_up):
+        return "bullish", "bullish_engulfing", last_close
+    if (cur_bearish and prev_bullish and cur_bar["Open"] >= prev_bar["Close"]
+            and cur_bar["Close"] <= prev_bar["Open"] and trend_ok_down):
+        return "bearish", "bearish_engulfing", last_close
+
+    return None, "no_signal", last_close
+
+
+def _options_signal_core(
+    underlying: str, capital: float = 400000, daily_risk_pct: float = 2.0,
+    risk_per_trade_pct: float = 2.0, rr: float = 3.0, option_stop_pct: float = OPTIONS_STOP_PCT,
+    orb_minutes: int = 15, sma_fast: int = 9, sma_slow: int = 21, trend_sma: int = 20,
+    interval: str = "5m", tz_offset_min: int = IST_OFFSET_MIN, open_min: int = 9 * 60 + 15,
+    close_min: int = 15 * 60 + 30, squareoff_min: int = 15 * 60 + 20, trade_weekends: bool = False,
+    currency: str = "USD",
+):
+    """Options equivalent of _auto_signal_core: same shared capital pool,
+    daily-loss cap, RR-minimum and EOD-squareoff discipline
+    (docs/TRADING_CONSTRAINTS.md), applied to a real call/put contract
+    instead of the underlying. `underlying` must be in OPTIONS_ELIGIBLE_SYMBOLS.
+    Position is tracked in option_state, keyed by "{underlying}:OPT-{RIGHT}"
+    so it can never collide with that same symbol's own equity position in
+    signal_state, and its buy/sell legs are logged into the SAME `trades`
+    table (qty = contracts*100, price = premium/share) so today's realized
+    P&L and the daily loss cap automatically include it alongside equities -
+    one account, one shared risk budget, regardless of instrument."""
+    if underlying not in OPTIONS_ELIGIBLE_SYMBOLS:
+        return {"underlying": underlying, "status": "not_options_eligible"}
+
+    now_ist = ist_now()
+    now_local = dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)
+    today_str = now_local.strftime("%Y-%m-%d")
+    mins_now = now_local.hour * 60 + now_local.minute
+
+    if not trade_weekends and now_local.weekday() >= 5:
+        return {"underlying": underlying, "status": "closed_weekend", "time_local": str(now_local)}
+    if mins_now < open_min:
+        return {"underlying": underlying, "status": "pre_open", "time_local": str(now_local)}
+    is_squareoff_time = mins_now >= squareoff_min
+    if mins_now > close_min:
+        return {"underlying": underlying, "status": "closed", "time_local": str(now_local)}
+
+    with closing(get_db()) as conn:
+        since_ts = ist_midnight_epoch(now_ist)
+        realized_today = today_realized_pnl(conn, since_ts)
+        daily_loss_cap = capital * daily_risk_pct / 100
+        remaining_budget = max(0.0, daily_loss_cap - max(0.0, -realized_today))
+        halted = remaining_budget <= 0
+
+        try:
+            fx_to_inr = get_fx_to_inr(currency)
+        except HTTPException as e:
+            return {"underlying": underlying, "status": "fx_error", "detail": e.detail}
+
+        result = {
+            "underlying": underlying, "status": "checked", "time_local": str(now_local),
+            "realized_today": round(realized_today, 2), "budget_remaining": round(remaining_budget, 2),
+            "halted_for_day": halted, "action_taken": "none",
+        }
+
+        # ---- manage any open option position on this underlying (either right) ----
+        for right in ("call", "put"):
+            opt_symbol = f"{underlying}:OPT-{right.upper()}"
+            row = conn.execute("SELECT * FROM option_state WHERE opt_symbol = ?", (opt_symbol,)).fetchone()
+            if not row:
+                continue
+
+            premium = _requote_contract(underlying, row["expiry"], row["strike"], right)
+            exit_reason = None
+            dte_left = (dt.datetime.strptime(row["expiry"], "%Y-%m-%d") - dt.datetime.utcnow()).days
+            if halted:
+                exit_reason = "daily_loss_cap_hit"
+            elif dte_left <= 0:
+                exit_reason = "expiry_reached"
+            elif is_squareoff_time:
+                exit_reason = "eod_squareoff"
+            elif premium is not None and premium >= row["target_premium"]:
+                exit_reason = "target_hit"
+            elif premium is not None and premium <= row["stop_premium"]:
+                exit_reason = "stop_hit"
+
+            if exit_reason:
+                # A stale/failed requote must never block a forced exit
+                # (daily halt, EOD, expiry) - fall back to entry premium
+                # (0 P&L) rather than leaving a position open past the risk
+                # framework's own hard deadlines.
+                exit_premium = premium if premium is not None else row["entry_premium"]
+                contracts = row["contracts"]
+                qty = contracts * 100
+                entry_fx = row["fx_to_inr"]
+                pnl_native = (exit_premium - row["entry_premium"]) * qty
+                pnl_inr = pnl_native * entry_fx
+                risk_per_contract = row["entry_premium"] - row["stop_premium"]
+                rr_achieved = round((exit_premium - row["entry_premium"]) / risk_per_contract, 2) if risk_per_contract else None
+                payload = {
+                    "symbol": opt_symbol, "underlying": underlying, "right": right, "action": "sell",
+                    "qty": qty, "contracts": contracts, "price": exit_premium, "currency": currency,
+                    "fx_to_inr": entry_fx, "strategy": OPTIONS_STRATEGY_TAG, "exit_reason": exit_reason,
+                    "entry_price": row["entry_premium"], "stop_loss": row["stop_premium"],
+                    "target": row["target_premium"], "rr_target": rr, "rr_achieved": rr_achieved,
+                    "strike": row["strike"], "expiry": row["expiry"],
+                    "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
+                    "pnl_pct_of_capital": round(100 * pnl_inr / capital, 3),
+                }
+                apply_paper_trade(conn, opt_symbol, "sell", qty, exit_premium)
+                conn.execute(
+                    "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                    "VALUES (?, ?, 'sell', ?, ?, ?, ?, ?)",
+                    (time.time(), opt_symbol, qty, exit_premium, entry_fx, OPTIONS_STRATEGY_TAG, json.dumps(payload)),
+                )
+                conn.execute("DELETE FROM option_state WHERE opt_symbol = ?", (opt_symbol,))
+                conn.commit()
+                result.update(action_taken=f"exited_{right}_{exit_reason}", exit_pnl_inr=payload["pnl_inr"], rr_achieved=rr_achieved)
+                return result
+
+            result["open_position"] = dict(row)
+            return result
+
+        # ---- look for a new entry ----
+        if halted:
+            result["action_taken"] = "blocked_daily_loss_cap"
+            return result
+        if is_squareoff_time:
+            result["action_taken"] = "no_new_entries_market_closing"
+            return result
+
+        direction, reason, spot = _detect_direction_signal(
+            underlying, orb_minutes, sma_fast, sma_slow, trend_sma, tz_offset_min, open_min, interval,
+        )
+        result["direction_signal"] = direction
+        result["direction_reason"] = reason
+        result["spot"] = spot
+        if not direction or spot is None:
+            result["action_taken"] = "no_signal"
+            return result
+
+        right = "call" if direction == "bullish" else "put"
+        contract, err = select_option_contract(underlying, spot, right)
+        if contract is None:
+            result["action_taken"] = "no_qualifying_contract"
+            result["reason"] = err
+            return result
+
+        entry_premium = contract["premium"]
+        stop_premium = round(entry_premium * (1 - option_stop_pct / 100), 4)
+        target_premium = round(entry_premium * (1 + rr * option_stop_pct / 100), 4)
+        risk_per_contract_native = entry_premium - stop_premium
+        risk_per_contract_inr = risk_per_contract_native * 100 * fx_to_inr
+        if risk_per_contract_inr <= 0:
+            result["action_taken"] = "invalid_stop_skipped"
+            return result
+
+        risk_amount_inr = min(capital * risk_per_trade_pct / 100, remaining_budget)
+        contracts = math.floor(risk_amount_inr / risk_per_contract_inr)
+        # 1 contract (100 shares) is the smallest tradeable unit - real
+        # option premiums often make even 1 contract's risk-at-stop exceed
+        # this one trade's risk_per_trade_pct target (unlike equities, which
+        # can size down to a fraction of a share). Rather than silently
+        # zeroing out a real, qualified signal the same way the pre-fix
+        # integer-floored equity qty did, take the smallest unit whenever
+        # its own risk still fits the FULL remaining daily-loss budget - the
+        # same "one trade can use the whole day's budget" ceiling
+        # docs/TRADING_CONSTRAINTS.md already applies to equities when
+        # risk_per_trade_pct == daily_risk_pct, just made explicit here for
+        # the contract-quantization case.
+        if contracts < 1 and risk_per_contract_inr <= remaining_budget:
+            contracts = 1
+
+        available_capital_inr = max(0.0, capital - deployed_notional(conn))
+        max_single_trade_inr = capital / CAPITAL_TRANCHES
+        usable_capital_inr = min(available_capital_inr, max_single_trade_inr)
+        notional_per_contract_inr = entry_premium * 100 * fx_to_inr
+        if notional_per_contract_inr > 0:
+            contracts = min(contracts, math.floor(usable_capital_inr / notional_per_contract_inr))
+
+        if contracts < 1:
+            result["action_taken"] = (
+                "insufficient_capital" if available_capital_inr < notional_per_contract_inr
+                else "budget_too_small_for_1_contract"
+            )
+            result["available_capital_inr"] = round(available_capital_inr, 2)
+            result["contract_considered"] = contract
+            return result
+
+        opt_symbol = f"{underlying}:OPT-{right.upper()}"
+        qty = contracts * 100
+        notional_inr = round(qty * entry_premium * fx_to_inr, 2)
+        payload = {
+            "symbol": opt_symbol, "underlying": underlying, "right": right, "action": "buy",
+            "qty": qty, "contracts": contracts, "price": entry_premium, "currency": currency,
+            "fx_to_inr": fx_to_inr, "strategy": OPTIONS_STRATEGY_TAG, "entry_reason": reason,
+            "strike": contract["strike"], "expiry": contract["expiry"], "dte": contract["dte"],
+            "iv": contract["iv"], "atm_iv": contract["atm_iv"], "delta": contract["delta"],
+            "stop_loss": stop_premium, "target": target_premium, "rr_target": rr,
+            "risk_amount_inr": round(risk_amount_inr, 2), "notional_inr": notional_inr,
+        }
+        apply_paper_trade(conn, opt_symbol, "buy", qty, entry_premium)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), opt_symbol, qty, entry_premium, fx_to_inr, OPTIONS_STRATEGY_TAG, json.dumps(payload)),
+        )
+        conn.execute(
+            "INSERT INTO option_state "
+            "(opt_symbol, underlying, day, right, expiry, strike, contracts, entry_premium, "
+            "stop_premium, target_premium, entry_iv, entry_delta, entry_ts, fx_to_inr) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(opt_symbol) DO UPDATE SET day=excluded.day, expiry=excluded.expiry, "
+            "strike=excluded.strike, contracts=excluded.contracts, entry_premium=excluded.entry_premium, "
+            "stop_premium=excluded.stop_premium, target_premium=excluded.target_premium, "
+            "entry_iv=excluded.entry_iv, entry_delta=excluded.entry_delta, entry_ts=excluded.entry_ts, "
+            "fx_to_inr=excluded.fx_to_inr",
+            (opt_symbol, underlying, today_str, right, contract["expiry"], contract["strike"], contracts,
+             entry_premium, stop_premium, target_premium, contract["iv"], contract["delta"], time.time(), fx_to_inr),
+        )
+        conn.commit()
+        result.update(action_taken=f"entered_{right}", entry=payload)
+        return result
+
+
+@app.get("/options-signal")
+def options_signal(
+    underlying: str, capital: float = 400000, daily_risk_pct: float = 2.0,
+    risk_per_trade_pct: float = 2.0, rr: float = 3.0, option_stop_pct: float = OPTIONS_STOP_PCT,
+    orb_minutes: int = 15, sma_fast: int = 9, sma_slow: int = 21, trend_sma: int = 20,
+    interval: str = "5m", tz_offset_min: int = -240, open_min: int = 570,
+    close_min: int = 960, squareoff_min: int = 950, trade_weekends: bool = False, currency: str = "USD",
+):
+    """HTTP wrapper around _options_signal_core - see that function's and the
+    options-overlay module docstring above for the actual rules. Defaults
+    match the US-market session (SPY/QQQ/AAPL, the only options-eligible
+    symbols today - OPTIONS_ELIGIBLE_SYMBOLS)."""
+    return _options_signal_core(
+        underlying=underlying, capital=capital, daily_risk_pct=daily_risk_pct,
+        risk_per_trade_pct=risk_per_trade_pct, rr=rr, option_stop_pct=option_stop_pct,
+        orb_minutes=orb_minutes, sma_fast=sma_fast, sma_slow=sma_slow, trend_sma=trend_sma,
+        interval=interval, tz_offset_min=tz_offset_min, open_min=open_min, close_min=close_min,
+        squareoff_min=squareoff_min, trade_weekends=trade_weekends, currency=currency,
+    )
 
 
 def _auto_signal_core(
@@ -1530,6 +2003,48 @@ def reconcile_open_positions_from_journal():
     with closing(get_db()) as conn:
         for pos in journal.get("open_positions", []):
             symbol = pos["symbol"]
+
+            if pos.get("instrument") == "option":
+                # A different table (option_state, not signal_state) and a
+                # different row shape (strike/expiry/right, no orb_high/low)
+                # - see _options_signal_core. Restored the same way in
+                # spirit: a real 'buy' leg in trades for correct cost basis,
+                # plus the open row so the very next scheduler tick manages
+                # it (requote/stop/target/eod-squareoff) exactly as if the
+                # redeploy never happened.
+                already_open_opt = conn.execute(
+                    "SELECT 1 FROM option_state WHERE opt_symbol = ?", (symbol,)
+                ).fetchone()
+                if already_open_opt:
+                    continue
+                entry_ts = pos["entry_ts"]
+                day_str = (
+                    dt.datetime.utcfromtimestamp(entry_ts) + dt.timedelta(minutes=IST_OFFSET_MIN)
+                ).strftime("%Y-%m-%d")
+                conn.execute(
+                    "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                    "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+                    (entry_ts, symbol, pos["qty"], pos["entry_price_native"], pos["fx_to_inr"],
+                     OPTIONS_STRATEGY_TAG, json.dumps({"recovered_from_journal": True, **pos})),
+                )
+                apply_paper_trade(conn, symbol, "buy", pos["qty"], pos["entry_price_native"])
+                conn.execute(
+                    "INSERT INTO option_state "
+                    "(opt_symbol, underlying, day, right, expiry, strike, contracts, entry_premium, "
+                    "stop_premium, target_premium, entry_iv, entry_delta, entry_ts, fx_to_inr) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                    "ON CONFLICT(opt_symbol) DO UPDATE SET day=excluded.day, expiry=excluded.expiry, "
+                    "strike=excluded.strike, contracts=excluded.contracts, entry_premium=excluded.entry_premium, "
+                    "stop_premium=excluded.stop_premium, target_premium=excluded.target_premium, "
+                    "entry_iv=excluded.entry_iv, entry_delta=excluded.entry_delta, entry_ts=excluded.entry_ts, "
+                    "fx_to_inr=excluded.fx_to_inr",
+                    (symbol, pos["underlying"], day_str, pos["right"], pos["expiry"], pos["strike"],
+                     pos["contracts"], pos["entry_price_native"], pos["stop_loss_native"],
+                     pos["target_native"], pos.get("entry_iv"), pos.get("entry_delta"), entry_ts, pos["fx_to_inr"]),
+                )
+                recovered.append(symbol)
+                continue
+
             already_open = conn.execute(
                 "SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
             ).fetchone()
@@ -1614,6 +2129,35 @@ async def _scheduler_loop():
                     "checked_at_utc": time.time(), "symbol": cfg["symbol"],
                     "status": "error", "detail": str(e),
                 }
+
+        # Options overlay - real calls/puts on the symbols with a live
+        # yfinance chain (OPTIONS_ELIGIBLE_SYMBOLS), using that same
+        # symbol's own WATCHLIST session config (hours/tz/currency) so it
+        # follows the same market clock as the equity engine on that ticker.
+        watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
+        for underlying in OPTIONS_ELIGIBLE_SYMBOLS:
+            cfg = watchlist_by_symbol.get(underlying)
+            if not cfg:
+                continue
+            key = f"{underlying}:OPT"
+            try:
+                result = await asyncio.to_thread(
+                    _options_signal_core,
+                    underlying=underlying, capital=SCHEDULER_CAPITAL,
+                    daily_risk_pct=SCHEDULER_DAILY_RISK_PCT,
+                    risk_per_trade_pct=cfg["risk_pct"], rr=SCHEDULER_RR,
+                    trend_sma=cfg.get("trend_sma", 20),
+                    tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
+                    close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
+                    trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
+                )
+                _scheduler_last_results[key] = {"checked_at_utc": time.time(), **result}
+            except Exception as e:
+                _scheduler_last_results[key] = {
+                    "checked_at_utc": time.time(), "underlying": underlying,
+                    "status": "error", "detail": str(e),
+                }
+
         _scheduler_last_tick_ts = time.time()
         await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
 
@@ -1667,6 +2211,7 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
         # which local trading day it was opened on (relevant once a market
         # other than NSE, with its own local "day", is in the mix).
         open_state = conn.execute("SELECT * FROM signal_state WHERE status = 'long'").fetchall()
+        open_option_state = conn.execute("SELECT * FROM option_state").fetchall()
 
     book: dict[str, dict] = {}
     realized = 0.0
@@ -1710,6 +2255,27 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
             "notional_inr": round(notional_inr, 2),
             "orb_high_native": r["orb_high"], "orb_low_native": r["orb_low"],
             "entry_ts": r["entry_ts"], "interval": r["interval"],
+        })
+    for r in open_option_state:
+        qty = r["contracts"] * 100
+        notional_inr = qty * r["entry_premium"] * r["fx_to_inr"]
+        capital_deployed_inr += notional_inr
+        opt_symbol = r["opt_symbol"]
+        open_positions.append({
+            # symbol stays the unique bookkeeping key ("SPY:OPT-CALL") so it
+            # never collides with that same underlying's own equity card;
+            # "underlying" is the real fetchable ticker for anything (e.g.
+            # trade-view's chart) that wants the underlying's own price
+            # action instead - the option's own premium isn't a candle
+            # series yfinance exposes historically.
+            "symbol": opt_symbol, "underlying": r["underlying"], "instrument": "option",
+            "right": r["right"], "strike": r["strike"], "expiry": r["expiry"],
+            "contracts": r["contracts"], "qty": qty,
+            "entry_price_native": r["entry_premium"], "stop_loss_native": r["stop_premium"],
+            "target_native": r["target_premium"], "fx_to_inr": r["fx_to_inr"],
+            "notional_inr": round(notional_inr, 2),
+            "entry_iv": r["entry_iv"], "entry_delta": r["entry_delta"],
+            "entry_ts": r["entry_ts"], "interval": "5m",
         })
 
     daily_loss_cap = capital * daily_risk_pct / 100

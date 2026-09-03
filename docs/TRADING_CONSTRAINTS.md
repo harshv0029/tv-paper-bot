@@ -56,11 +56,66 @@ symbol is being traded.
   logic like this is deliberately deterministic code, never routed through
   an LLM's discretion.
 
+## Options overlay (calls/puts) - added 2026-09-03
+
+Real, currently-quoted contracts on **SPY, QQQ, AAPL only** (`OPTIONS_ELIGIBLE_SYMBOLS`
+in `main.py`) - the only symbols with a live options chain this system can
+actually fetch (`yfinance`'s `option_chain()`). **NSE/BSE index and stock
+options are NOT covered** - there is no real chain/IV data for them without a
+broker connection (Kotak Neo, not yet wired up); this project does not
+synthesize a fake options chain as a workaround, the same standing rule as
+NSE real tick/futures data.
+
+- **Direction -> right**: a bullish signal (ORB breakout with trend, or
+  bullish engulfing) buys a **call**; the same patterns' bearish mirror
+  (ORB breakdown, bearish engulfing - `_detect_direction_signal` in
+  `main.py`) buys a **put**. The equity engine itself stays long-only and
+  is untouched by this - direction detection here only decides call vs put.
+- **Strike selection - "bigger profit, don't lose sight of IV"**: nearest
+  live contract to **0.35 delta** (`OPTIONS_TARGET_DELTA`), computed via
+  Black-Scholes from the chain's own quoted IV - moderately OTM for real
+  leverage on a win without betting on a near-impossible move. Rejected if
+  its IV is more than **1.6x the chain's own ATM IV** (`OPTIONS_MAX_IV_VS_ATM`)
+  - a skew/event spike means that strike is priced rich and prone to giving
+    the gain back to IV crush even if the direction call is right - or if
+  its bid/ask spread is illiquid (>15%, `OPTIONS_MAX_SPREAD_PCT`).
+- **Expiry**: nearest with 2-10 days to expiry (`OPTIONS_MIN_DTE`/`MAX_DTE`)
+  - skips 0-1 DTE gamma/pin risk and avoids paying for theta on a
+    signal-driven intraday entry.
+- **Stop/target**: premium-based - stop at **45% below entry premium**
+  (`OPTIONS_STOP_PCT`), target at entry + `rr` x that same risk, so the
+  standing **1:3 minimum RR still applies**, just to the option's own P&L
+  basis instead of the underlying's.
+- **Sizing**: same shared capital pool and tranche cap as everything else
+  (`deployed_notional` now sums both `signal_state` and `option_state`).
+  Contracts = risk budget / risk-per-contract, floored - but never silently
+  zeroed by that floor the way un-fixed equity qty once was: if 1 contract's
+  own risk still fits inside today's *full* remaining daily-loss budget, it
+  takes that 1 contract even if its risk slightly exceeds this one trade's
+  own `risk_per_trade_pct` target (the same "one trade can use the whole
+  day's budget" ceiling already applied to equities when `risk_per_trade_pct
+  == daily_risk_pct`, made explicit for the options case since a 100-share
+  multiplier can't size down to a fraction of a contract the way BTC/gold
+  size down to a fraction of a unit).
+- **Exit**: stop/target/EOD-squareoff exactly like equities, plus a forced
+  exit if the contract's own expiry is reached - never held into or past
+  expiry.
+- Position tracked in `option_state` (DB) + journaled the same way open
+  equity positions are (`state/open_positions.json`, restored on every
+  Render redeploy via `reconcile_open_positions_from_journal`), and its
+  buy/sell legs land in the SAME `trades` table as equities (qty =
+  contracts x 100, price = premium/share) tagged `orb-option` - so realized
+  P&L, the daily loss cap, and `/daily-summary` automatically include
+  options alongside equities as one account, one shared risk budget.
+
 ## Where this is currently duplicated (keep in sync if you change a number)
 
 - `main.py`: `SCHEDULER_DAILY_RISK_PCT`, `SCHEDULER_RISK_PER_TRADE_PCT`,
-  `SCHEDULER_STOP_PCT`, `SCHEDULER_RR` (used by the in-process scheduler)
+  `SCHEDULER_STOP_PCT`, `SCHEDULER_RR` (used by the in-process scheduler),
+  and `OPTIONS_ELIGIBLE_SYMBOLS`/`OPTIONS_TARGET_DELTA`/`OPTIONS_STOP_PCT`/
+  `OPTIONS_MAX_IV_VS_ATM` for the options overlay
 - `.github/workflows/live-signals.yml`, `live-signals-us.yml`,
-  `live-signals-crypto.yml` (redundant GH Actions backstop calls)
+  `live-signals-crypto.yml` (redundant GH Actions backstop calls -
+  `live-signals-us.yml`'s `OPT_COMMON` block is the options backstop)
 - `/dry-run-day`, `/trade-view`, `/live` default query params in their own
   fetch calls

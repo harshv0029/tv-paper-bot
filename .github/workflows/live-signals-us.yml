@@ -49,3 +49,20 @@ jobs:
           echo "### daily-summary"
           curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=400000&daily_risk_pct=2"
           echo
+
+          # Options overlay backstop (calls/puts on real yfinance chains -
+          # docs/TRADING_CONSTRAINTS.md). Same reason the equity calls above
+          # exist: the in-process scheduler already polls this every 30s,
+          # but Render's free tier can sleep/miss a cycle - this redundant
+          # call is a safety net, never the primary path. Must mirror
+          # main.py's OPTIONS_ELIGIBLE_SYMBOLS/OPTIONS_STOP_PCT or this
+          # backstop and the in-process scheduler would disagree.
+          OPT_COMMON="capital=400000&daily_risk_pct=2&rr=3&option_stop_pct=45&tz_offset_min=-240&open_min=570&close_min=960&squareoff_min=950&currency=USD"
+          for U in "SPY" "QQQ"; do
+            echo "### ${U} options"
+            curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/options-signal?underlying=${U}&risk_per_trade_pct=1&${OPT_COMMON}"
+            echo
+          done
+          echo "### AAPL options"
+          curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/options-signal?underlying=AAPL&risk_per_trade_pct=2&trend_sma=20&${OPT_COMMON}"
+          echo
