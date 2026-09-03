@@ -1378,6 +1378,150 @@ def _trailing_stop_target(df: pd.DataFrame, today_df: pd.DataFrame, entry_price:
     return max(breakeven_stop, chandelier_stop)
 
 
+# ---- Capital reallocation: exit part of a weaker live position to fund a
+# stronger new signal, when the capital pool is genuinely full (2026-09-03,
+# explicit user instruction - see docs/TRADING_CONSTRAINTS.md "Capital
+# reallocation" for the full rationale and the guardrails these constants
+# encode). This is the "cross-symbol best-signal-wins" fast-follow the
+# capital-sizing block's own comment already flagged as a future step -
+# NOT a license to chase every shinier signal: the trailing-stop backtest
+# already showed cutting a position early, on its own, tends to destroy
+# value here - so this only ever fires when there's a genuine capital
+# shortage (not routinely), only trims the SINGLE weakest eligible
+# position, never below breakeven, and is capped per day.
+REALLOCATION_MIN_CONFIDENCE_GAP = 0.20  # new candidate's trend confidence must
+# exceed an existing position's by at least this much - not "any edge",
+# a clear, auditable gap (using the same 0-1 _trend_confidence scale the
+# 95%-confidence trend_weakened exit already uses).
+REALLOCATION_MAX_PER_DAY = 2  # hard ceiling - bounds how much churn this can
+# ever introduce even if the capital pool is repeatedly maxed out; a
+# smaller number than "as many as qualify" on purpose.
+
+
+def _count_reallocations_today(conn, since_ts: float) -> int:
+    rows = conn.execute(
+        "SELECT raw_payload FROM trades WHERE action = 'sell' AND ts >= ? AND strategy LIKE ?",
+        (since_ts, ORB_STRATEGY_PREFIX + "%"),
+    ).fetchall()
+    count = 0
+    for r in rows:
+        try:
+            if json.loads(r["raw_payload"]).get("exit_reason") == "partial_exit_reallocated":
+                count += 1
+        except Exception:
+            continue
+    return count
+
+
+def _find_reallocation_source(conn, new_symbol: str, new_confidence: float, needed_capital_inr: float):
+    """Looks across every OTHER open equity position for one weak enough,
+    and safe enough, to partially exit in favor of `new_symbol`'s stronger
+    signal. Eligibility (ALL must hold, not just the confidence gap):
+      - still trending the direction that justified holding ("up" - a
+        position already trending down would exit via trend_weakened on
+        its own shortly anyway, no special handling needed here).
+      - unrealized P&L >= 0 - NEVER realize a loss just to chase a new
+        opportunity; only ever trims something already at or above
+        breakeven.
+      - its own current trend confidence trails new_confidence by at least
+        REALLOCATION_MIN_CONFIDENCE_GAP.
+    Among eligible positions, picks the one with the LOWEST confidence
+    (the weakest link) - if it's still not enough capital on its own, that
+    single position is trimmed as far as it can go and nothing else is
+    touched (bounded blast radius, one position at a time, never a cascade
+    across several to fund one new entry).
+    Returns None if nothing eligible, else a dict describing the trim."""
+    watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
+    open_state = conn.execute(
+        "SELECT * FROM signal_state WHERE status = 'long' AND symbol != ?", (new_symbol,)
+    ).fetchall()
+
+    best = None
+    for row in open_state:
+        sym = row["symbol"]
+        cfg = watchlist_by_symbol.get(sym)
+        if not cfg:
+            continue  # no live params to evaluate against (e.g. a recovered/delisted symbol) - skip, don't guess
+        try:
+            last_close = float(fetch_ohlc(sym, "1d", cfg.get("interval", "5m"))["Close"].iloc[-1])
+        except Exception:
+            continue
+        unrealized_inr = (last_close - row["entry_price"]) * row["qty"] * row["fx_to_inr"]
+        if unrealized_inr < 0:
+            continue
+        direction, confidence = _compute_trend(
+            sym, cfg["sma_fast"], cfg["sma_slow"], cfg["tz_offset_min"], cfg.get("interval", "5m")
+        )
+        if direction != "up":
+            continue
+        if (new_confidence - confidence) < REALLOCATION_MIN_CONFIDENCE_GAP:
+            continue
+        if best is None or confidence < best["confidence"]:
+            best = {
+                "symbol": sym, "confidence": confidence, "last_close": last_close,
+                "entry_price": row["entry_price"], "fx_to_inr": row["fx_to_inr"], "qty": row["qty"],
+            }
+
+    if best is None:
+        return None
+
+    # Sized off entry_price (not current price) - deployed_notional() itself
+    # measures deployed capital that way, so freeing capital "as
+    # deployed_notional sees it" needs the same basis or the caller's
+    # post-trim capital math would be wrong.
+    entry_notional_per_unit = best["entry_price"] * best["fx_to_inr"]
+    qty_to_sell = min(best["qty"], needed_capital_inr / entry_notional_per_unit) if entry_notional_per_unit > 0 else 0.0
+    qty_to_sell = round(qty_to_sell, 6)
+    if qty_to_sell <= 0:
+        return None
+    best["qty_to_sell"] = qty_to_sell
+    return best
+
+
+def _execute_partial_exit(conn, symbol: str, qty_to_sell: float, last_close: float, freed_for_symbol: str, new_confidence: float):
+    """Sells qty_to_sell out of an open position that _find_reallocation_source
+    already vetted, WITHOUT closing the rest of it - the remaining qty keeps
+    running under its existing stop/target/trailing-stop exactly as before,
+    just smaller. Logged with its own exit_reason so it's fully visible
+    (not folded into an ordinary stop/target exit) in the trade log and
+    durable trade history."""
+    row = conn.execute("SELECT * FROM signal_state WHERE symbol = ?", (symbol,)).fetchone()
+    if row is None:
+        return 0.0
+    entry_fx = row["fx_to_inr"]
+    pnl_native = (last_close - row["entry_price"]) * qty_to_sell
+    pnl_inr = pnl_native * entry_fx
+    remaining_qty = round(row["qty"] - qty_to_sell, 6)
+
+    # Best-effort real strategy tag for the record (same book-lookup the
+    # closed-trades/open-positions endpoints already use) - falls back to a
+    # clearly-labeled placeholder rather than guessing.
+    buy_row = conn.execute(
+        "SELECT strategy FROM trades WHERE symbol = ? AND action = 'buy' ORDER BY id DESC LIMIT 1", (symbol,)
+    ).fetchone()
+    strategy_tag = buy_row["strategy"] if buy_row else f"{ORB_STRATEGY_PREFIX}unknown"
+
+    payload = {
+        "symbol": symbol, "action": "sell", "qty": qty_to_sell, "price": last_close,
+        "fx_to_inr": entry_fx, "strategy": strategy_tag, "exit_reason": "partial_exit_reallocated",
+        "entry_price": row["entry_price"], "remaining_qty": remaining_qty,
+        "freed_capital_for_symbol": freed_for_symbol, "new_candidate_confidence": round(new_confidence, 4),
+        "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
+    }
+    apply_paper_trade(conn, symbol, "sell", qty_to_sell, last_close)
+    conn.execute(
+        "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+        "VALUES (?, ?, 'sell', ?, ?, ?, ?, ?)",
+        (time.time(), symbol, qty_to_sell, last_close, entry_fx, strategy_tag, json.dumps(payload)),
+    )
+    if remaining_qty <= 1e-9:
+        conn.execute("DELETE FROM signal_state WHERE symbol = ?", (symbol,))
+    else:
+        conn.execute("UPDATE signal_state SET qty = ? WHERE symbol = ?", (remaining_qty, symbol))
+    conn.commit()
+    return pnl_inr
+
+
 def _detect_direction_signal(symbol: str, orb_minutes: int, sma_fast: int, sma_slow: int,
                               trend_sma: int, tz_offset_min: int, open_min: int, interval: str = "5m"):
     """Direction-only signal (bullish/bearish/None) for the options overlay.
@@ -2050,6 +2194,34 @@ def _auto_signal_core(
             available_capital_inr = max(0.0, capital - deployed_notional(conn))
             max_single_trade_inr = capital / CAPITAL_TRANCHES
             usable_capital_inr = min(available_capital_inr, max_single_trade_inr)
+            notional_per_unit_inr = last_close * fx_to_inr
+
+            # Capital reallocation (2026-09-03, explicit user instruction -
+            # docs/TRADING_CONSTRAINTS.md "Capital reallocation"): the pool
+            # is genuinely full - before giving up on this signal, see if a
+            # weaker, still-fine (breakeven-or-better, still trending the
+            # right way) live position should hand over just enough capital
+            # to fund it. Only tried when there's a real shortage (not
+            # routinely), one position at a time, capped per day - see
+            # REALLOCATION_MIN_CONFIDENCE_GAP/REALLOCATION_MAX_PER_DAY.
+            if usable_capital_inr < notional_per_unit_inr and notional_per_unit_inr > 0:
+                if _count_reallocations_today(conn, since_ts) < REALLOCATION_MAX_PER_DAY:
+                    new_confidence = _trend_confidence(closes, sma_fast, sma_slow)
+                    source = _find_reallocation_source(
+                        conn, symbol, new_confidence, max_single_trade_inr - available_capital_inr
+                    )
+                    if source is not None:
+                        _execute_partial_exit(
+                            conn, source["symbol"], source["qty_to_sell"], source["last_close"],
+                            symbol, new_confidence,
+                        )
+                        available_capital_inr = max(0.0, capital - deployed_notional(conn))
+                        usable_capital_inr = min(available_capital_inr, max_single_trade_inr)
+                        result["reallocated_from"] = {
+                            "symbol": source["symbol"], "qty_sold": source["qty_to_sell"],
+                            "its_confidence": round(source["confidence"], 4),
+                            "new_candidate_confidence": round(new_confidence, 4),
+                        }
 
             # Per-trade risk is risk_per_trade_pct% of the capital actually
             # INVESTED IN THIS TRADE (usable_capital_inr - the tranche/
@@ -2074,7 +2246,6 @@ def _auto_signal_core(
             # silently discarding a good signal to a rounding artifact.
             qty = risk_amount_inr / stop_dist_inr if stop_dist_inr > 0 else 0.0
 
-            notional_per_unit_inr = last_close * fx_to_inr
             if notional_per_unit_inr > 0:
                 qty = min(qty, usable_capital_inr / notional_per_unit_inr)
             qty = round(qty, 6)
@@ -2100,6 +2271,7 @@ def _auto_signal_core(
                 "risk_amount_inr": round(risk_amount_inr, 2),
                 "risk_pct_of_capital": round(100 * risk_amount_inr / capital, 3),
                 "notional_native": round(qty * last_close, 2), "notional_inr": round(notional_inr, 2),
+                "reallocated_from": result.get("reallocated_from"),
             }
             apply_paper_trade(conn, symbol, "buy", qty, last_close)
             conn.execute(
