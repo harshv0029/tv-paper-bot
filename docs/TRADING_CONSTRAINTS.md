@@ -365,6 +365,73 @@ this is spelled out explicitly:
   the daily cap is the outer bound multiple smaller trades collectively
   respect, and the per-trade cap is what limits any ONE of them.
 
+## Capital reallocation - trimming a weaker live position to fund a stronger new one (added 2026-09-03)
+
+Explicit user instruction: when the capital pool is genuinely full and a
+stronger new signal appears, decide how much of an existing position to
+exit so the stronger one can be taken - "maximising profit is the only
+aim of this." Implemented as the "cross-symbol best-signal-wins" step the
+capital-sizing code's own comment had already flagged as a future step -
+but NOT as license to chase every shinier signal: the trailing-stop
+backtest already showed cutting a position early, on its own, tends to
+destroy value here (letting a real winner run to its own stop/target
+mattered more than reacting fast - see "Trailing stop loss" above). So
+this is deliberately narrow, not an aggressive reallocation engine:
+
+- **Only tried when there's a genuine capital shortage** - `usable_capital_inr
+  < notional_per_unit_inr` for the new signal, checked right where the
+  entry path would otherwise give up with `insufficient_capital`. A
+  routinely-available new signal that the account can already afford
+  never touches this path at all.
+- **The new candidate's edge must be real, not just "different."**
+  Measured on the same 0-1 scale the 95%-confidence `trend_weakened` exit
+  already uses (`_trend_confidence` - the normal-CDF read on the SMA gap
+  vs. recent volatility, not a fudged number). An existing position is
+  only a reallocation candidate if the new signal's confidence exceeds
+  its OWN current confidence by at least `REALLOCATION_MIN_CONFIDENCE_GAP`
+  (0.20) - a clear, auditable gap, not "any edge at all."
+- **Never realizes a loss to chase something else.** A candidate position
+  must have unrealized P&L >= 0 at the moment of the check - trimming a
+  red position for this reason would be panic-selling with extra steps.
+- **Never touches a position that's about to exit on its own anyway.**
+  Only a position still trending the direction that justified holding it
+  ("up") is eligible - one already trending down is on its way out via
+  `trend_weakened` regardless, no special handling needed.
+- **Weakest link, one position, bounded size.** Among eligible candidates,
+  only the SINGLE one with the LOWEST confidence is trimmed - never two
+  or more to fund one new entry (bounded blast radius, no cascade). Sized
+  to free at most one tranche's worth of headroom
+  (`max_single_trade_inr - available_capital_inr`), capped at that
+  position's own held quantity - "how many out of N need to exit," never
+  more than the minimum needed, never the whole position unless that IS
+  the minimum needed.
+- **The remainder keeps running normally.** A partial exit reduces
+  `signal_state.qty` in place - it does NOT reset or replace the
+  position's stop/target/trailing-stop; whatever's left of the original
+  position continues exactly as it would have, just smaller.
+- **Capped at `REALLOCATION_MAX_PER_DAY` (2) reallocation events per day**,
+  hard ceiling, regardless of how many times the pool gets maxed out -
+  bounds the churn this can ever introduce.
+- **Fully auditable**: logged with its own distinct exit_reason
+  (`partial_exit_reallocated`, never folded into an ordinary stop/target/
+  trend_weakened exit) carrying both confidence numbers and which symbol
+  it freed capital for; the funded entry's own payload carries
+  `reallocated_from` pointing back the other way.
+- **Equity only, for now** - same scoping as trailing stop loss; the
+  options overlay has zero live trades to build this against
+  (`OPTIONS_ELIGIBLE_SYMBOLS = []`).
+- **Untested against real market data.** Unlike the trailing-stop
+  threshold, this genuinely can't be backtested with the existing
+  single-symbol bar-by-bar replay harness (`trailing-stop-threshold-
+  backtest.yml`/deploy-gate's own check) - reallocation is inherently
+  cross-symbol (it depends on which OTHER positions happen to be open at
+  the same moment), which that harness doesn't model. Shipped with
+  conservative, explicit, auditable gates instead of a backtested number -
+  flagged plainly rather than pretended to be evidence-backed. A proper
+  multi-symbol portfolio-level backtest would be the real way to validate
+  `REALLOCATION_MIN_CONFIDENCE_GAP`/`REALLOCATION_MAX_PER_DAY` before
+  trusting them the way `TRAIL_ACTIVATE_R` is now trusted.
+
 ## Per-trade risk: 2% is a ceiling, tuned down by evidence
 
 Current split (as of 2026-09-03):
