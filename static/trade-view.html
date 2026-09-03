@@ -109,6 +109,26 @@
   table.counts .count-val{width:20px;text-align:right;}
   table.counts .zero{color:var(--muted);}
   table.counts td.meta{color:var(--muted);font-size:11px;white-space:nowrap;}
+
+  /* Trade log - live open positions + closed trade history, bottom of page */
+  .log-panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-top:18px;overflow:hidden;}
+  .log-head{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--panel-2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;}
+  .log-scroll{max-height:480px;overflow-y:auto;overflow-x:auto;}
+  table.log{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;}
+  table.log thead th{position:sticky;top:0;background:var(--panel-2);color:var(--muted);text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:8px 14px;border-bottom:1px solid var(--border);}
+  table.log thead th.num{text-align:right;}
+  table.log td{padding:8px 14px;border-bottom:1px solid rgba(35,45,58,.6);}
+  table.log tbody tr:last-child td{border-bottom:none;}
+  table.log tbody tr:hover{background:rgba(59,130,246,.06);}
+  table.log tr.live{background:rgba(34,197,94,.05);}
+  table.log .sym{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  table.log .num{text-align:right;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  table.log .num.up{color:var(--up);} table.log .num.down{color:var(--down);}
+  .log-status{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:20px;}
+  .log-status.live{background:var(--up-dim);color:var(--up);}
+  .log-status.closed{background:rgba(124,138,156,.14);color:var(--muted);}
+  .log-status .dot{width:6px;height:6px;border-radius:50%;background:var(--up);animation:scanPulse 1.1s ease-in-out infinite;}
+  .log-type{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
 </style>
 </head>
 <body>
@@ -146,12 +166,26 @@
 
 <div class="cards" id="cards"><div class="empty">Loading…</div></div>
 
+<div class="log-panel">
+  <div class="log-head">Trade log — live positions + today's closed trades</div>
+  <div class="log-scroll">
+    <table class="log">
+      <thead><tr>
+        <th>Status</th><th>Asset</th><th>Type</th><th class="num">Entry</th><th class="num">Exit / Now</th>
+        <th class="num">Qty</th><th class="num">P&amp;L (₹)</th><th class="num">P&amp;L %</th><th>Reason</th><th>Time</th>
+      </tr></thead>
+      <tbody id="log-body"><tr><td colspan="10" class="scan-idle">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
 <footer>Polls <code>/daily-summary</code> + <code>/history</code> every 10s. Amber lines = opening-range high/low (the strategy's own support/resistance).</footer>
 
 <script>
 const ORIGIN = window.location.origin;
 const charts = {};
 const lastPrice = {};
+const lastCloseBySymbol = {}; // captured during the equity card loop, reused by the trade-log's live rows
 
 function fmt(n, d = 2) {
   if (n === null || n === undefined || Number.isNaN(n)) return "—";
@@ -164,7 +198,7 @@ async function fetchJSON(url) {
 }
 function toChartTime(iso) { return Math.floor(new Date(iso).getTime() / 1000); }
 
-function ensureCard(symbol) {
+function ensureCard(symbol, label) {
   if (charts[symbol]) return charts[symbol];
   const container = document.getElementById("cards");
   const empty = container.querySelector(".empty");
@@ -176,7 +210,7 @@ function ensureCard(symbol) {
   term.innerHTML = `
     <div class="term-head">
       <div>
-        <div class="sym">${symbol}</div>
+        <div class="sym">${label || symbol}</div>
         <span class="status long" id="status-${symbol}">LONG</span>
       </div>
       <div class="ltp-row">
@@ -314,6 +348,14 @@ function renderStats(symbol, pos, lastClose) {
   `;
 }
 
+// Mirrors main.py's SYMBOL_DISPLAY_NAMES - a raw yfinance ticker like
+// "^NSEI" doesn't read as "NIFTY 50" at a glance. Client-side fallback for
+// anywhere a plain symbol string shows up without a server-supplied
+// `display` field already attached (e.g. daily-summary's open_positions/
+// closed_trades, which don't carry one).
+const TICKER_LABELS = { "^NSEI": "NIFTY 50", "^NSEBANK": "BANK NIFTY", "^BSESN": "SENSEX", "GC=F": "GOLD" };
+function displayName(symbol) { return TICKER_LABELS[symbol] || symbol; }
+
 function scanTagFor(actionTaken) {
   const a = actionTaken || "";
   if (a.startsWith("entered")) return { cls: "entered", label: a.replace("entered_", "") };
@@ -340,7 +382,7 @@ function renderScanner(p) {
         const tag = scanTagFor(r.action_taken);
         const label = tag.label !== "—" ? tag.label : (r.status || "—");
         return `<div class="scan-item">
-          <span class="sym">${r.symbol}</span>
+          <span class="sym">${r.display || r.symbol}</span>
           <span class="scan-tag ${tag.cls}">${label}</span>
           <span class="meta">${timeAgo(r.checked_at_utc)}</span>
         </div>`;
@@ -349,12 +391,12 @@ function renderScanner(p) {
 
   const cc = p.currently_checking;
   document.getElementById("scan-now").innerHTML = cc
-    ? `<div class="scan-now-item"><span class="scan-dot"></span><span class="sym">${cc.symbol}</span><span class="meta">${cc.kind}</span></div>`
+    ? `<div class="scan-now-item"><span class="scan-dot"></span><span class="sym">${displayName(cc.symbol)}</span><span class="meta">${cc.kind}</span></div>`
     : `<div class="scan-idle">Idle — between ticks (next in ≤${p.scheduler_interval_seconds ?? 30}s)</div>`;
 
   const next = p.next_up || [];
   document.getElementById("scan-next").innerHTML = next.length
-    ? next.map((s, i) => `<div class="scan-next-item"><span class="scan-next-idx">${i + 1}</span><span class="sym">${s}</span></div>`).join("")
+    ? next.map((n, i) => `<div class="scan-next-item"><span class="scan-next-idx">${i + 1}</span><span class="sym">${n.display || n.symbol}</span></div>`).join("")
     : `<div class="scan-idle">Every symbol has an open position</div>`;
 }
 
@@ -372,7 +414,7 @@ function renderCounts(p) {
     const label = tag.label !== "—" ? tag.label : (r.last_action || "—");
     const barPct = Math.round((r.checks_today / maxCount) * 100);
     return `<tr>
-      <td class="sym">${r.symbol}</td>
+      <td class="sym">${r.display || r.symbol}</td>
       <td class="num">
         <span class="count-bar-wrap">
           <span class="count-bar" style="width:${Math.max(6, barPct * 0.5)}px"></span>
@@ -396,38 +438,110 @@ async function refreshScanner() {
   }
 }
 
+function optionLabel(pos) {
+  return `${pos.underlying} ${(pos.right || "").toUpperCase()} ${fmt(pos.strike, 0)}`;
+}
+
+function renderTradeLog(summary) {
+  const body = document.getElementById("log-body");
+  const openPositions = summary.open_positions || [];
+  const closed = (summary.closed_trades || []).slice().reverse(); // most recent first
+
+  const liveRows = openPositions.map(pos => {
+    const isOption = pos.instrument === "option";
+    const label = isOption ? optionLabel(pos) : displayName(pos.symbol);
+    const type = isOption ? (pos.right || "").toUpperCase() : "Equity";
+    let now = null, pnlInr = null, pnlPct = null;
+    if (!isOption) {
+      now = lastCloseBySymbol[pos.symbol];
+      if (now !== undefined && now !== null) {
+        pnlInr = (now - pos.entry_price_native) * pos.qty * pos.fx_to_inr;
+        pnlPct = (pnlInr / pos.notional_inr) * 100;
+      }
+    }
+    // Option premiums re-quote server-side every scheduler tick (see
+    // _requote_contract in main.py) but not from this page directly - a
+    // client-side chain fetch is too heavy for a 10s UI poll, so a live
+    // option row shows its entry/stop/target premium without a live P&L
+    // number rather than showing a stale or fabricated one.
+    const pnlCell = pnlInr === null
+      ? `<span class="scan-idle">—</span>`
+      : `<span class="num ${pnlInr >= 0 ? "up" : "down"}">${pnlInr >= 0 ? "+" : ""}₹${fmt(pnlInr)}</span>`;
+    const pnlPctCell = pnlPct === null ? "—" : `${pnlPct >= 0 ? "+" : ""}${fmt(pnlPct)}%`;
+    return `<tr class="live">
+      <td><span class="log-status live"><span class="dot"></span>LIVE</span></td>
+      <td class="sym">${label}</td>
+      <td class="log-type">${type}</td>
+      <td class="num">${fmt(pos.entry_price_native, isOption ? 4 : 2)}</td>
+      <td class="num">${isOption ? "—" : (now !== undefined && now !== null ? fmt(now) : "—")}</td>
+      <td class="num">${isOption ? pos.contracts : fmt(pos.qty, 4)}</td>
+      <td class="num">${pnlCell}</td>
+      <td class="num">${pnlPctCell}</td>
+      <td class="log-type">open</td>
+      <td class="meta">${timeAgo(pos.entry_ts)}</td>
+    </tr>`;
+  });
+
+  const closedRows = closed.map(t => {
+    const isOption = (t.symbol || "").includes(":OPT-");
+    const label = isOption ? t.symbol.replace(":OPT-", " ") : displayName(t.symbol);
+    const type = isOption ? t.symbol.split(":OPT-")[1] : "Equity";
+    const pnl = t.pnl_inr ?? 0;
+    return `<tr>
+      <td><span class="log-status closed">CLOSED</span></td>
+      <td class="sym">${label}</td>
+      <td class="log-type">${type}</td>
+      <td class="num">${fmt(t.entry_price_native, isOption ? 4 : 2)}</td>
+      <td class="num">${fmt(t.exit_price_native, isOption ? 4 : 2)}</td>
+      <td class="num">${fmt(t.qty, isOption ? 0 : 4)}</td>
+      <td class="num"><span class="num ${pnl >= 0 ? "up" : "down"}">${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}</span></td>
+      <td class="num">${(t.pnl_pct_of_capital ?? 0) >= 0 ? "+" : ""}${fmt(t.pnl_pct_of_capital ?? 0)}%</td>
+      <td class="log-type">${(t.exit_reason || "—").replace(/_/g, " ")}</td>
+      <td class="meta">${timeAgo(t.exit_time_utc)}</td>
+    </tr>`;
+  });
+
+  const rows = [...liveRows, ...closedRows];
+  body.innerHTML = rows.length ? rows.join("") : `<tr><td colspan="10" class="scan-idle">No trades yet today</td></tr>`;
+}
+
 async function refresh() {
   document.getElementById("last-update").textContent =
     "Last update: " + new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
   try {
     const summary = await fetchJSON(`${ORIGIN}/daily-summary?capital=400000&daily_risk_pct=2`);
     const openPositions = summary.open_positions || [];
+    const equityPositions = openPositions.filter(p => p.instrument !== "option");
     const hdrStatus = document.getElementById("hdr-status");
 
-    if (openPositions.length === 0) {
-      hdrStatus.textContent = "FLAT";
-      hdrStatus.className = "status flat";
+    hdrStatus.textContent = openPositions.length ? `${openPositions.length} OPEN` : "FLAT";
+    hdrStatus.className = openPositions.length ? "status long" : "status flat";
+
+    if (equityPositions.length === 0) {
       const lastClosed = (summary.closed_trades || []).slice(-1)[0];
       if (!Object.keys(charts).length) {
-        document.getElementById("cards").innerHTML = lastClosed
-          ? `<div class="empty">No open positions. Last closed: ${lastClosed.symbol} — ${lastClosed.exit_reason}, P&amp;L ₹${fmt(lastClosed.pnl_inr)}. Waiting for next signal…</div>`
-          : `<div class="empty">No open positions yet. Waiting for the strategy to fire…</div>`;
+        document.getElementById("cards").innerHTML = openPositions.length
+          ? `<div class="empty">No equity chart to show — see the live options row(s) in the trade log below.</div>`
+          : lastClosed
+            ? `<div class="empty">No open positions. Last closed: ${displayName(lastClosed.symbol)} — ${lastClosed.exit_reason}, P&amp;L ₹${fmt(lastClosed.pnl_inr)}. Waiting for next signal…</div>`
+            : `<div class="empty">No open positions yet. Waiting for the strategy to fire…</div>`;
       }
+      renderTradeLog(summary);
       return;
     }
 
-    hdrStatus.textContent = `${openPositions.length} OPEN`;
-    hdrStatus.className = "status long";
-
-    for (const pos of openPositions) {
-      const entry = ensureCard(pos.symbol);
+    for (const pos of equityPositions) {
+      const entry = ensureCard(pos.symbol, displayName(pos.symbol));
       const lastClose = await updateCandles(pos.symbol, entry, pos.interval);
       if (lastClose === null) continue;
+      lastCloseBySymbol[pos.symbol] = lastClose;
       setPriceLines(entry, pos);
       updateLtp(pos.symbol, lastClose);
       updateLadder(pos.symbol, pos, lastClose);
       renderStats(pos.symbol, pos, lastClose);
     }
+
+    renderTradeLog(summary);
   } catch (e) {
     document.getElementById("cards").innerHTML = `<div class="err">fetch failed: ${e.message}</div>`;
   }
