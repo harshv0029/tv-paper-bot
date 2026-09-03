@@ -28,7 +28,7 @@ jobs:
         # full sweep grid each of these was picked from.
         run: |
           BASE="https://tv-paper-bot-gdan.onrender.com/auto-signal"
-          RISK="capital=200000&daily_risk_pct=2&risk_per_trade_pct=2&stop_pct=2&rr=2"
+          RISK="capital=400000&daily_risk_pct=2&risk_per_trade_pct=2&stop_pct=2&rr=3"
 
           curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/health" || true
           echo
@@ -46,5 +46,5 @@ jobs:
           echo
 
           echo "### daily-summary"
-          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=200000&daily_risk_pct=2"
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=400000&daily_risk_pct=2"
           echo
