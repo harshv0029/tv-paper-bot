@@ -2551,5 +2551,330 @@
         "time_local": "2026-09-03 04:22:20.069256"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-03T08:26:33Z",
+    "attempts": {
+      "QQQ": {
+        "checked_at_utc": 1788423968.2973049,
+        "symbol": "QQQ",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:26:08.297222"
+      },
+      "ETH-USD": {
+        "checked_at_utc": 1788423968.3077195,
+        "symbol": "ETH-USD",
+        "status": "checked",
+        "time_local": "2026-09-03 08:26:08.297370",
+        "currency": "USD",
+        "fx_to_inr": 94.475,
+        "last_close": 2401.280029296875,
+        "orb_high": 2394.419921875,
+        "orb_low": 2386.68994140625,
+        "sma_fast": 2402.6400282118057,
+        "sma_slow": 2406.353341238839,
+        "trend": "down",
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "no_signal"
+      },
+      "GC=F": {
+        "checked_at_utc": 1788423968.3928905,
+        "symbol": "GC=F",
+        "status": "checked",
+        "time_local": "2026-09-03 08:26:08.307815",
+        "currency": "USD",
+        "fx_to_inr": 94.475,
+        "last_close": 4478.0,
+        "orb_high": 4438.0,
+        "orb_low": 4429.89990234375,
+        "sma_fast": 4473.2650146484375,
+        "sma_slow": 4473.071451822917,
+        "trend": "up",
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "none",
+        "open_position": {
+          "symbol": "GC=F",
+          "day": "2026-09-03",
+          "status": "long",
+          "entry_price": 4485.89990234375,
+          "stop_loss": 4429.89990234375,
+          "target": 4653.89990234375,
+          "qty": 0.47189,
+          "entry_ts": 1788423375.3712797,
+          "orb_high": 4438.0,
+          "orb_low": 4429.89990234375,
+          "fx_to_inr": 94.4800033569336,
+          "interval": "5m"
+        }
+      },
+      "BTC-USD": {
+        "checked_at_utc": 1788423968.4018564,
+        "symbol": "BTC-USD",
+        "status": "checked",
+        "time_local": "2026-09-03 08:26:08.393020",
+        "currency": "USD",
+        "fx_to_inr": 94.475,
+        "last_close": 77842.90625,
+        "orb_high": 77363.3125,
+        "orb_low": 77134.9765625,
+        "sma_fast": 77800.75,
+        "sma_slow": 77858.26934523809,
+        "trend": "down",
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "no_signal"
+      },
+      "SPY": {
+        "checked_at_utc": 1788423968.4932294,
+        "symbol": "SPY",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:26:08.493164"
+      },
+      "^BSESN": {
+        "checked_at_utc": 1788423968.4990697,
+        "symbol": "^BSESN",
+        "status": "checked",
+        "time_local": "2026-09-03 13:56:08.493301",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 76611.578125,
+        "orb_high": 76918.703125,
+        "orb_low": 76706.6875,
+        "sma_fast": 76626.465234375,
+        "sma_slow": 76720.49484375,
+        "trend": "down",
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "no_signal"
+      },
+      "^NSEI": {
+        "checked_at_utc": 1788423938.295351,
+        "symbol": "^NSEI",
+        "status": "checked",
+        "time_local": "2026-09-03 13:55:38.201803",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 23905.400390625,
+        "orb_high": 24020.599609375,
+        "orb_low": 23955.400390625,
+        "sma_fast": 23913.119921875,
+        "sma_slow": 23947.7990234375,
+        "trend": "down",
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "no_signal"
+      },
+      "^NSEBANK": {
+        "checked_at_utc": 1788423968.493022,
+        "symbol": "^NSEBANK",
+        "status": "checked",
+        "time_local": "2026-09-03 13:56:08.401979",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 57556.80078125,
+        "orb_high": 57660.75,
+        "orb_low": 57472.1015625,
+        "sma_fast": 57550.43315972222,
+        "sma_slow": 57585.694765625,
+        "trend": "down",
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "no_signal"
+      },
+      "SPY:OPT": {
+        "checked_at_utc": 1788423968.4993474,
+        "underlying": "SPY",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:26:08.499294"
+      },
+      "QQQ:OPT": {
+        "checked_at_utc": 1788423968.499462,
+        "underlying": "QQQ",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:26:08.499412"
+      },
+      "NVDA": {
+        "checked_at_utc": 1788423907.7934074,
+        "symbol": "NVDA",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:07.793309"
+      },
+      "TSLA": {
+        "checked_at_utc": 1788423907.7935834,
+        "symbol": "TSLA",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:07.793512"
+      },
+      "AMZN": {
+        "checked_at_utc": 1788423907.7937565,
+        "symbol": "AMZN",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:07.793663"
+      },
+      "MSFT": {
+        "checked_at_utc": 1788423907.8089557,
+        "symbol": "MSFT",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:07.808715"
+      },
+      "GOOGL": {
+        "checked_at_utc": 1788423907.8093297,
+        "symbol": "GOOGL",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:07.809106"
+      },
+      "META": {
+        "checked_at_utc": 1788423907.8096917,
+        "symbol": "META",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:07.809553"
+      },
+      "AAPL": {
+        "checked_at_utc": 1788423968.4992251,
+        "symbol": "AAPL",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:26:08.499163"
+      },
+      "AAPL:OPT": {
+        "checked_at_utc": 1788423968.4995751,
+        "underlying": "AAPL",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:26:08.499526"
+      },
+      "MSFT:OPT": {
+        "checked_at_utc": 1788423907.810722,
+        "underlying": "MSFT",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:07.810424"
+      },
+      "GOOGL:OPT": {
+        "checked_at_utc": 1788423907.8108544,
+        "underlying": "GOOGL",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:07.810785"
+      },
+      "AMZN:OPT": {
+        "checked_at_utc": 1788423907.810942,
+        "underlying": "AMZN",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:07.810901"
+      },
+      "META:OPT": {
+        "checked_at_utc": 1788423907.811265,
+        "underlying": "META",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:07.810999"
+      },
+      "NVDA:OPT": {
+        "checked_at_utc": 1788423907.8115978,
+        "underlying": "NVDA",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:07.811334"
+      },
+      "TSLA:OPT": {
+        "checked_at_utc": 1788423907.8119462,
+        "underlying": "TSLA",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:07.811659"
+      },
+      "NFLX": {
+        "checked_at_utc": 1788423938.190496,
+        "symbol": "NFLX",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:38.190417"
+      },
+      "DIA": {
+        "checked_at_utc": 1788423938.1922588,
+        "symbol": "DIA",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:38.190610"
+      },
+      "JPM": {
+        "checked_at_utc": 1788423938.1924863,
+        "symbol": "JPM",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:38.192421"
+      },
+      "V": {
+        "checked_at_utc": 1788423938.192625,
+        "symbol": "V",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:38.192568"
+      },
+      "AMD": {
+        "checked_at_utc": 1788423938.2955217,
+        "symbol": "AMD",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:38.295459"
+      },
+      "IWM": {
+        "checked_at_utc": 1788423938.2956245,
+        "symbol": "IWM",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:38.295578"
+      },
+      "NFLX:OPT": {
+        "checked_at_utc": 1788423938.2957592,
+        "underlying": "NFLX",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:38.295710"
+      },
+      "AMD:OPT": {
+        "checked_at_utc": 1788423938.2958527,
+        "underlying": "AMD",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:38.295808"
+      },
+      "JPM:OPT": {
+        "checked_at_utc": 1788423938.2959416,
+        "underlying": "JPM",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:38.295896"
+      },
+      "V:OPT": {
+        "checked_at_utc": 1788423938.2960465,
+        "underlying": "V",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:38.295992"
+      },
+      "DIA:OPT": {
+        "checked_at_utc": 1788423938.2961347,
+        "underlying": "DIA",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:38.296092"
+      },
+      "IWM:OPT": {
+        "checked_at_utc": 1788423938.2962215,
+        "underlying": "IWM",
+        "status": "pre_open",
+        "time_local": "2026-09-03 04:25:38.296178"
+      }
+    }
   }
 ]
