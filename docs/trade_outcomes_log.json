@@ -1,1 +1,15 @@
-[]
+[
+  {
+    "symbol": "BTC-USD",
+    "exit_time_utc": 1788411302.5845876,
+    "entry_price_native": 77637.3984375,
+    "exit_price_native": 77758.421875,
+    "currency": "USD",
+    "qty": 0.027293,
+    "pnl_inr": 311.76,
+    "pnl_pct_of_capital": 0.078,
+    "exit_reason": "trend_weakened",
+    "rr_target": 3.0,
+    "rr_achieved": 0.24
+  }
+]
