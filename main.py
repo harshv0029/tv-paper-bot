@@ -2053,6 +2053,19 @@ def _auto_signal_core(
             if trail_candidate is not None and trail_candidate > current_stop:
                 current_stop = trail_candidate
                 conn.execute("UPDATE signal_state SET stop_loss = ? WHERE symbol = ?", (current_stop, symbol))
+                # Without this, the ratchet was computed correctly every tick
+                # (visible in /scheduler-attempts' own per-tick result) but
+                # silently discarded - sqlite3 connections don't autocommit,
+                # and this position-management branch's only OTHER commit()
+                # sits inside `if exit_reason:` below, which a still-open
+                # position never reaches. The connection closing at the end
+                # of `with closing(get_db())` rolled the UPDATE back before
+                # /daily-summary's own fresh SELECT ever saw it - confirmed
+                # 2026-09-03 from the live GC=F/SI=F positions: their
+                # scheduler-attempts-computed stop had clearly ratcheted
+                # (e.g. SI=F 65.79 -> 66.52) while daily-summary's (and so
+                # trade-view's) stop_loss_native was stuck at the original.
+                conn.commit()
 
             exit_reason = None
             if halted:
