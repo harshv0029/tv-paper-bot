@@ -183,36 +183,6 @@
   <div class="ctrl-msg" id="ctrl-msg"></div>
 </div>
 
-<div class="scanner">
-  <div class="scan-col">
-    <div class="scan-head"><span>Recently checked</span></div>
-    <div class="scan-list" id="scan-recent"><div class="scan-idle">Loading…</div></div>
-  </div>
-  <div class="scan-col">
-    <div class="scan-head"><span>Now checking</span></div>
-    <div class="scan-list" id="scan-now"><div class="scan-idle">Loading…</div></div>
-  </div>
-  <div class="scan-col">
-    <div class="scan-head"><span>Next up (queue)</span></div>
-    <div class="scan-list" id="scan-next"><div class="scan-idle">Loading…</div></div>
-  </div>
-</div>
-
-<div class="counts-panel">
-  <div class="counts-head">
-    <span class="title">Checks today, per asset</span>
-    <span class="day mono" id="counts-day"></span>
-  </div>
-  <div class="counts-scroll">
-    <table class="counts">
-      <thead><tr><th>Symbol</th><th class="num">Checks today</th><th>Last result</th><th>Last checked</th></tr></thead>
-      <tbody id="counts-body"><tr><td colspan="4" class="scan-idle">Loading…</td></tr></tbody>
-    </table>
-  </div>
-</div>
-
-<div class="cards" id="cards"><div class="empty">Loading…</div></div>
-
 <div class="log-panel">
   <div class="log-head">
     <div class="log-head-top">
@@ -248,6 +218,36 @@
     </table>
   </div>
 </div>
+
+<div class="scanner">
+  <div class="scan-col">
+    <div class="scan-head"><span>Recently checked</span></div>
+    <div class="scan-list" id="scan-recent"><div class="scan-idle">Loading…</div></div>
+  </div>
+  <div class="scan-col">
+    <div class="scan-head"><span>Now checking</span></div>
+    <div class="scan-list" id="scan-now"><div class="scan-idle">Loading…</div></div>
+  </div>
+  <div class="scan-col">
+    <div class="scan-head"><span>Next up (queue)</span></div>
+    <div class="scan-list" id="scan-next"><div class="scan-idle">Loading…</div></div>
+  </div>
+</div>
+
+<div class="counts-panel">
+  <div class="counts-head">
+    <span class="title">Checks today, per asset</span>
+    <span class="day mono" id="counts-day"></span>
+  </div>
+  <div class="counts-scroll">
+    <table class="counts">
+      <thead><tr><th>Symbol</th><th class="num">Checks today</th><th>Last result</th><th>Last checked</th></tr></thead>
+      <tbody id="counts-body"><tr><td colspan="4" class="scan-idle">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="cards" id="cards"><div class="empty">Loading…</div></div>
 
 <footer>Polls <code>/daily-summary</code> + <code>/history</code> every 10s. Amber lines = opening-range high/low (the strategy's own support/resistance).</footer>
 
