@@ -1,5 +1,9 @@
 fastapi==0.115.0
-uvicorn[standard]==0.30.6
+# uvicorn's [standard] extra pulls in websockets>=10.4, which hard-conflicts
+# with neo_api_client's pinned websockets==8.1 (see below). This app doesn't
+# use uvicorn's websocket/uvloop extras (HTTP-only), so dropping [standard]
+# is a no-op for behavior and resolves the conflict.
+uvicorn==0.30.6
 pydantic==2.9.2
 yfinance>=0.2.40
 pandas>=2.2.0
