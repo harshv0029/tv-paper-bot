@@ -58,13 +58,27 @@ symbol is being traded.
 
 ## Options overlay (calls/puts) - added 2026-09-03
 
-Real, currently-quoted contracts on **SPY, QQQ, AAPL only** (`OPTIONS_ELIGIBLE_SYMBOLS`
-in `main.py`) - the only symbols with a live options chain this system can
-actually fetch (`yfinance`'s `option_chain()`). **NSE/BSE index and stock
-options are NOT covered** - there is no real chain/IV data for them without a
+Real, currently-quoted contracts on **SPY, QQQ, AAPL, MSFT, GOOGL, AMZN,
+META, NVDA, TSLA, NFLX, AMD, JPM, V, DIA, IWM** (`OPTIONS_ELIGIBLE_SYMBOLS`
+in `main.py`) - 15 of the most heavily-optioned, most liquid US mega-caps/
+ETFs, expanded 2026-09-03 from just SPY/QQQ/AAPL per explicit user
+instruction not to skip stocks with a real options market. This is a
+curated list, not literally every optionable US equity (~4,000+ names via
+the OCC) - scanning that whole universe every 30s against Yahoo's free/
+unofficial API would trip rate limits and blow past the scheduler's own
+cycle time, for no real benefit since an un-backtested symbol trades at the
+same conservative ceiling regardless of how it was found. Tell me specific
+tickers to add beyond this set any time. **NSE/BSE index and stock options
+are NOT covered** - there is no real chain/IV data for them without a
 broker connection (Kotak Neo, not yet wired up); this project does not
 synthesize a fake options chain as a workaround, the same standing rule as
 NSE real tick/futures data.
+
+Every options-eligible symbol is also a `WATCHLIST` equity entry (same
+`orb_breakout`, 1% ceiling as SPY/QQQ until one earns real evidence the way
+AAPL/NIFTY/BANKNIFTY/SENSEX/GC=F did) - the scheduler needs that entry for
+session hours/currency/risk_pct, so an options-eligible symbol missing from
+`WATCHLIST` is silently skipped, not an error.
 
 - **Direction -> right**: a bullish signal (ORB breakout with trend, or
   bullish engulfing) buys a **call**; the same patterns' bearish mirror

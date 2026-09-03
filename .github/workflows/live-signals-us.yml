@@ -36,7 +36,14 @@ jobs:
           curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/health" || true
           echo
 
-          for SYMBOL in "SPY" "QQQ"; do
+          # 2026-09-03: expanded from just SPY/QQQ - added every symbol in
+          # main.py's WATCHLIST that has a real options market too (mega-cap
+          # tech + a couple of blue chips/ETFs), per explicit user
+          # instruction not to skip optionable stocks. All run the same
+          # unevidenced-symbol defaults (orb_breakout, 1% ceiling) as SPY/QQQ
+          # until one earns real evidence the way AAPL/NIFTY/BANKNIFTY/
+          # SENSEX/GC=F did.
+          for SYMBOL in "SPY" "QQQ" "MSFT" "GOOGL" "AMZN" "META" "NVDA" "TSLA" "NFLX" "AMD" "JPM" "V" "DIA" "IWM"; do
             echo "### $SYMBOL"
             curl -sS -m 60 "$BASE?symbol=${SYMBOL}&${COMMON}"
             echo
@@ -58,7 +65,7 @@ jobs:
           # main.py's OPTIONS_ELIGIBLE_SYMBOLS/OPTIONS_STOP_PCT or this
           # backstop and the in-process scheduler would disagree.
           OPT_COMMON="capital=400000&daily_risk_pct=2&rr=3&option_stop_pct=45&tz_offset_min=-240&open_min=570&close_min=960&squareoff_min=950&currency=USD"
-          for U in "SPY" "QQQ"; do
+          for U in "SPY" "QQQ" "MSFT" "GOOGL" "AMZN" "META" "NVDA" "TSLA" "NFLX" "AMD" "JPM" "V" "DIA" "IWM"; do
             echo "### ${U} options"
             curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/options-signal?underlying=${U}&risk_per_trade_pct=1&${OPT_COMMON}"
             echo
