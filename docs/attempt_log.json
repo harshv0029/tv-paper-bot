@@ -880,5 +880,172 @@
         "action_taken": "no_signal"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-03T04:26:36Z",
+    "attempts": {
+      "^NSEI": {
+        "checked_at_utc": 1788409576.8665075,
+        "symbol": "^NSEI",
+        "status": "checked",
+        "time_local": "2026-09-03 09:56:16.860575",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 24009.25,
+        "orb_high": 24020.599609375,
+        "orb_low": 23955.400390625,
+        "sma_fast": 24010.75,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "no_signal"
+      },
+      "^NSEBANK": {
+        "checked_at_utc": 1788409576.8710365,
+        "symbol": "^NSEBANK",
+        "status": "checked",
+        "time_local": "2026-09-03 09:56:16.866595",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 57680.3515625,
+        "orb_high": 57660.75,
+        "orb_low": 57472.1015625,
+        "sma_fast": 57651.561631944445,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "no_signal"
+      },
+      "^BSESN": {
+        "checked_at_utc": 1788409576.8749838,
+        "symbol": "^BSESN",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 6,
+        "time_local": "2026-09-03 09:56:16.871097"
+      },
+      "BTC-USD": {
+        "checked_at_utc": 1788409576.9575455,
+        "symbol": "BTC-USD",
+        "status": "checked",
+        "time_local": "2026-09-03 04:26:16.875052",
+        "currency": "USD",
+        "fx_to_inr": 94.46,
+        "last_close": 77592.1484375,
+        "orb_high": 77363.3125,
+        "orb_low": 77134.9765625,
+        "sma_fast": 77648.93923611111,
+        "sma_slow": 77697.92336309524,
+        "trend": "down",
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "none",
+        "open_position": {
+          "symbol": "BTC-USD",
+          "day": "2026-09-03",
+          "status": "long",
+          "entry_price": 77637.3984375,
+          "stop_loss": 77134.9765625,
+          "target": 78642.2421875,
+          "qty": 0.027293,
+          "entry_ts": 1788406839.037865,
+          "orb_high": 77363.3125,
+          "orb_low": 77134.9765625,
+          "fx_to_inr": 94.38500213623047,
+          "interval": "5m"
+        }
+      },
+      "ETH-USD": {
+        "checked_at_utc": 1788409577.0535939,
+        "symbol": "ETH-USD",
+        "status": "checked",
+        "time_local": "2026-09-03 04:26:16.957641",
+        "currency": "USD",
+        "fx_to_inr": 94.46,
+        "last_close": 2398.409912109375,
+        "orb_high": 2394.419921875,
+        "orb_low": 2386.68994140625,
+        "sma_fast": 2401.0488552517363,
+        "sma_slow": 2402.683303106399,
+        "trend": "down",
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "no_signal"
+      },
+      "SPY": {
+        "checked_at_utc": 1788409577.0537605,
+        "symbol": "SPY",
+        "status": "pre_open",
+        "time_local": "2026-09-03 00:26:17.053679"
+      },
+      "QQQ": {
+        "checked_at_utc": 1788409577.0538616,
+        "symbol": "QQQ",
+        "status": "pre_open",
+        "time_local": "2026-09-03 00:26:17.053801"
+      },
+      "AAPL": {
+        "checked_at_utc": 1788409577.0539572,
+        "symbol": "AAPL",
+        "status": "pre_open",
+        "time_local": "2026-09-03 00:26:17.053899"
+      },
+      "GC=F": {
+        "checked_at_utc": 1788409577.0648758,
+        "symbol": "GC=F",
+        "status": "checked",
+        "time_local": "2026-09-03 04:26:17.053993",
+        "currency": "USD",
+        "fx_to_inr": 94.46,
+        "last_close": 4476.10009765625,
+        "orb_high": 4438.0,
+        "orb_low": 4429.89990234375,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "no_signal"
+      },
+      "SPY:OPT": {
+        "checked_at_utc": 1788409577.0650387,
+        "underlying": "SPY",
+        "status": "pre_open",
+        "time_local": "2026-09-03 00:26:17.064961"
+      },
+      "QQQ:OPT": {
+        "checked_at_utc": 1788409577.0651383,
+        "underlying": "QQQ",
+        "status": "pre_open",
+        "time_local": "2026-09-03 00:26:17.065077"
+      },
+      "AAPL:OPT": {
+        "checked_at_utc": 1788409577.0652323,
+        "underlying": "AAPL",
+        "status": "pre_open",
+        "time_local": "2026-09-03 00:26:17.065175"
+      }
+    }
   }
 ]
