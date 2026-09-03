@@ -100,7 +100,13 @@ def init_db():
                 day TEXT NOT NULL,
                 status TEXT NOT NULL,   -- 'long'
                 entry_price REAL,       -- native currency (e.g. USD for SPY)
-                stop_loss REAL,         -- native currency
+                stop_loss REAL,         -- native currency - LIVE value, ratchets up as the trailing
+                                        -- stop engages (see _trailing_stop_target); this is what the
+                                        -- stop_hit check actually compares against
+                initial_stop_loss REAL, -- native currency - the stop AT ENTRY, frozen forever; R
+                                        -- (entry_price - initial_stop_loss) is the trailing stop's
+                                        -- own activation/breakeven yardstick, independent of how far
+                                        -- stop_loss has already trailed
                 target REAL,            -- native currency
                 qty REAL,
                 entry_ts REAL,
@@ -1304,6 +1310,69 @@ def _compute_trend(symbol: str, sma_fast: int, sma_slow: int, tz_offset_min: int
     return direction, _trend_confidence(closes, sma_fast, sma_slow)
 
 
+TRAIL_ACTIVATE_R = 1.0          # don't trail at all below 1R unrealized gain
+TRAIL_BREAKEVEN_BUFFER_PCT = 0.1  # breakeven-lock sits slightly above entry, not exactly on it
+TRAIL_CHANDELIER_K = 3.0        # standard Chandelier Exit multiplier (Chuck LeBeau's own default)
+TRAIL_ATR_PERIOD = 14           # standard ATR lookback
+
+
+def _trailing_stop_target(df: pd.DataFrame, today_df: pd.DataFrame, entry_price: float,
+                           initial_stop: float, entry_ts: float, tz_offset_min: int) -> float | None:
+    """Long-only trailing-stop candidate for THIS tick (see docs/TRADING_CONSTRAINTS.md
+    "Trailing stop loss" for the full rationale). Two stages, gated on R =
+    entry_price - initial_stop (the trade's OWN original risk, frozen at
+    entry - see signal_state.initial_stop_loss - so this doesn't move the
+    goalposts as the stop itself trails):
+
+      1. Below TRAIL_ACTIVATE_R * R of unrealized gain: not activated yet -
+         returns None, caller keeps the existing stop untouched.
+      2. At/above that: locks to breakeven (+ a small buffer to cover
+         round-trip cost) at minimum, then ratchets further via a
+         Chandelier Exit - highest close since THIS trade's own entry,
+         minus TRAIL_CHANDELIER_K * ATR(TRAIL_ATR_PERIOD) - as price
+         extends. ATR is read off `df` (the multi-day history already
+         fetched this tick), not `today_df` alone, so there's enough bars
+         for a real ATR reading even early in today's own session.
+
+    Returns the candidate stop (native currency), or None if not yet
+    activated. The caller takes max(current_stop, candidate) - this
+    function only ever proposes moving the stop UP; it never proposes
+    loosening it, and never proposes anything before activation."""
+    r = entry_price - initial_stop
+    if r <= 0:
+        return None
+    last_close = float(today_df["Close"].iloc[-1])
+    if (last_close - entry_price) < TRAIL_ACTIVATE_R * r:
+        return None
+
+    breakeven_stop = entry_price * (1 + TRAIL_BREAKEVEN_BUFFER_PCT / 100)
+
+    high = df["High"].to_numpy(dtype=float)
+    low = df["Low"].to_numpy(dtype=float)
+    close = df["Close"].to_numpy(dtype=float)
+    if len(close) < TRAIL_ATR_PERIOD + 1:
+        return breakeven_stop  # not enough bars for a real ATR yet - breakeven lock still applies
+
+    prev_close = close[:-1]
+    true_range = np.maximum(
+        high[1:] - low[1:],
+        np.maximum(np.abs(high[1:] - prev_close), np.abs(low[1:] - prev_close)),
+    )
+    atr = float(np.mean(true_range[-TRAIL_ATR_PERIOD:]))
+
+    # Highest close since THIS trade's own entry - same-day only (this
+    # engine is intraday, squared off every day, so entry never crosses a
+    # session boundary). Mirrors the mins-since-local-midnight comparison
+    # _auto_signal_core already uses for mins_now/today_df["mins"].
+    entry_local = dt.datetime.utcfromtimestamp(entry_ts) + dt.timedelta(minutes=tz_offset_min)
+    entry_mins = entry_local.hour * 60 + entry_local.minute
+    since_entry = today_df[today_df["mins"] >= entry_mins]
+    highest_close = float(since_entry["Close"].max()) if not since_entry.empty else last_close
+
+    chandelier_stop = highest_close - TRAIL_CHANDELIER_K * atr
+    return max(breakeven_stop, chandelier_stop)
+
+
 def _detect_direction_signal(symbol: str, orb_minutes: int, sma_fast: int, sma_slow: int,
                               trend_sma: int, tz_offset_min: int, open_min: int, interval: str = "5m"):
     """Direction-only signal (bullish/bearish/None) for the options overlay.
@@ -1822,12 +1891,26 @@ def _auto_signal_core(
 
         # ---- manage an existing open position ----
         if row and row["status"] == "long":
+            # Trailing stop - ratchet stop_loss up (NEVER down) before any
+            # exit check below runs, so stop_hit already sees today's trail.
+            # initial_stop_loss is the frozen entry-time stop (R yardstick);
+            # falls back to the live stop_loss for a pre-migration row that
+            # predates the column (see signal_state's own comment).
+            current_stop = row["stop_loss"]
+            trail_candidate = _trailing_stop_target(
+                df, today_df, row["entry_price"], row["initial_stop_loss"] or row["stop_loss"],
+                row["entry_ts"], tz_offset_min,
+            )
+            if trail_candidate is not None and trail_candidate > current_stop:
+                current_stop = trail_candidate
+                conn.execute("UPDATE signal_state SET stop_loss = ? WHERE symbol = ?", (current_stop, symbol))
+
             exit_reason = None
             if halted:
                 exit_reason = "daily_loss_cap_hit"
             elif last_close >= row["target"]:
                 exit_reason = "target_hit"
-            elif last_close <= row["stop_loss"]:
+            elif last_close <= current_stop:
                 exit_reason = "stop_hit"
             elif trend == "down" and _trend_confidence(closes, sma_fast, sma_slow) >= TREND_WEAKENED_MIN_CONFIDENCE:
                 # The position is long because trend was "up" at entry
@@ -1857,13 +1940,19 @@ def _auto_signal_core(
                 entry_fx = row["fx_to_inr"]  # same rate used at entry, for a consistent round-trip
                 pnl_native = (last_close - row["entry_price"]) * qty
                 pnl_inr = pnl_native * entry_fx
-                stop_dist = row["entry_price"] - row["stop_loss"]
+                # rr_achieved is measured against the ORIGINAL planned risk
+                # (initial_stop_loss), not the trailed stop - otherwise a
+                # trade that trailed close to exit would report an inflated
+                # R-multiple off its own shrunken stop_dist.
+                stop_dist = row["entry_price"] - (row["initial_stop_loss"] or row["stop_loss"])
                 rr_achieved = round((last_close - row["entry_price"]) / stop_dist, 2) if stop_dist else None
                 payload = {
                     "symbol": symbol, "action": "sell", "qty": qty, "price": last_close,
                     "currency": currency, "fx_to_inr": entry_fx,
                     "strategy": strategy_tag, "exit_reason": exit_reason,
-                    "entry_price": row["entry_price"], "stop_loss": row["stop_loss"],
+                    "entry_price": row["entry_price"], "stop_loss": current_stop,
+                    "initial_stop_loss": row["initial_stop_loss"],
+                    "trailing_active": current_stop > (row["initial_stop_loss"] or row["stop_loss"]),
                     "target": row["target"], "rr_target": rr, "rr_achieved": rr_achieved,
                     "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
                     "pnl_pct_of_capital": round(100 * pnl_inr / capital, 3),
@@ -1882,7 +1971,7 @@ def _auto_signal_core(
                 )
                 return result
 
-            result["open_position"] = dict(row)
+            result["open_position"] = {**dict(row), "stop_loss": current_stop}
             return result
 
         # ---- look for a new entry ----
@@ -2015,14 +2104,15 @@ def _auto_signal_core(
             )
             conn.execute(
                 "INSERT INTO signal_state "
-                "(symbol, day, status, entry_price, stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
                 "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
+                "initial_stop_loss=excluded.initial_stop_loss, "
                 "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
                 "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, "
                 "interval=excluded.interval",
-                (symbol, today_str, last_close, stop_loss, target, qty, time.time(), orb_high, orb_low, fx_to_inr, interval),
+                (symbol, today_str, last_close, stop_loss, stop_loss, target, qty, time.time(), orb_high, orb_low, fx_to_inr, interval),
             )
             conn.commit()
             result.update(action_taken="entered_long", entry=payload)
@@ -2446,14 +2536,21 @@ def reconcile_open_positions_from_journal():
             apply_paper_trade(conn, symbol, "buy", pos["qty"], pos["entry_price_native"])
             conn.execute(
                 "INSERT INTO signal_state "
-                "(symbol, day, status, entry_price, stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
                 "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
+                "initial_stop_loss=excluded.initial_stop_loss, "
                 "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
                 "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, "
                 "interval=excluded.interval",
+                # initial_stop_loss_native only exists in a journal snapshot
+                # written after this feature shipped - fall back to
+                # stop_loss_native (whatever the live stop was at sync time,
+                # possibly already trailed) for an older one, same spirit as
+                # the strategy-tag fallback just above.
                 (symbol, day_str, pos["entry_price_native"], pos["stop_loss_native"],
+                 pos.get("initial_stop_loss_native", pos["stop_loss_native"]),
                  pos["target_native"], pos["qty"], entry_ts, pos["orb_high_native"],
                  pos["orb_low_native"], pos["fx_to_inr"], pos.get("interval", "5m")),
             )
@@ -2902,6 +2999,15 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
         open_positions.append({
             "symbol": r["symbol"], "qty": r["qty"],
             "entry_price_native": r["entry_price"], "stop_loss_native": r["stop_loss"],
+            # The live, possibly-already-trailed stop is stop_loss_native
+            # above (what the chart/ladder shows and what stop_hit actually
+            # compares against); initial_stop_loss_native is the ORIGINAL
+            # stop at entry, frozen - carried through the journal so a
+            # redeploy mid-trail doesn't lose the R-multiple yardstick the
+            # trailing stop measures activation against (see
+            # _trailing_stop_target). None for a trade opened before this
+            # column existed.
+            "initial_stop_loss_native": r["initial_stop_loss"],
             "target_native": r["target"], "fx_to_inr": r["fx_to_inr"],
             "notional_inr": round(notional_inr, 2),
             "orb_high_native": r["orb_high"], "orb_low_native": r["orb_low"],
