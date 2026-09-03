@@ -95,7 +95,7 @@
   .counts-head{display:flex;align-items:baseline;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--panel-2);}
   .counts-head .title{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;}
   .counts-head .day{font-size:10.5px;color:var(--muted);}
-  .counts-scroll{max-height:340px;overflow-y:auto;}
+  .counts-scroll{max-height:460px;overflow-y:auto;}
   table.counts{width:100%;border-collapse:collapse;font-size:12px;}
   table.counts thead th{position:sticky;top:0;background:var(--panel-2);color:var(--muted);text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:8px 16px;border-bottom:1px solid var(--border);}
   table.counts thead th.num{text-align:right;}
@@ -570,10 +570,16 @@ function optionLabel(pos) {
   return `${pos.underlying} ${(pos.right || "").toUpperCase()} ${fmt(pos.strike, 0)}`;
 }
 
-function renderTradeLog(summary) {
+function renderTradeLog(summary, history) {
   const body = document.getElementById("log-body");
   const openPositions = summary.open_positions || [];
-  const closed = (summary.closed_trades || []).slice().reverse(); // most recent first
+  // Closed trades come from /trade-history (docs/trade_outcomes_log.json,
+  // git-tracked and journal-synced), NOT summary.closed_trades - the live
+  // DB's `trades` table gets wiped on every Render redeploy, so a trade
+  // that closed before the most recent redeploy would otherwise vanish
+  // from this list even though it genuinely happened today. History is
+  // already sorted most-recent-first server-side.
+  const closed = history.trades || [];
 
   const liveRows = openPositions.map(pos => {
     const isOption = pos.instrument === "option";
@@ -637,16 +643,16 @@ function renderTradeLog(summary) {
   body.innerHTML = sections.join("");
 
   // Net P&L for the day = sum of realized P&L on transacted (closed)
-  // trades only - daily-summary's own realized_pnl, not something summed
-  // client-side, so it always matches the same number the daily-loss-cap
-  // check itself uses (today_realized_pnl in main.py).
-  const pnl = summary.realized_pnl ?? 0;
+  // trades only, from the durable /trade-history record - so it stays
+  // correct across however many redeploys have happened today, unlike
+  // summary.realized_pnl which only reflects the current DB instance.
+  const pnl = history.net_pnl_inr ?? 0;
   const pnlEl = document.getElementById("ds-pnl");
   pnlEl.textContent = `${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}`;
   pnlEl.className = "ds-val mono " + (pnl >= 0 ? "up" : "down");
-  document.getElementById("ds-count").textContent = summary.closed_trades_count ?? closed.length;
-  document.getElementById("ds-winrate").textContent = summary.win_rate_pct === null || summary.win_rate_pct === undefined
-    ? "—" : `${fmt(summary.win_rate_pct, 1)}%`;
+  document.getElementById("ds-count").textContent = history.trades_count ?? closed.length;
+  document.getElementById("ds-winrate").textContent = history.win_rate_pct === null || history.win_rate_pct === undefined
+    ? "—" : `${fmt(history.win_rate_pct, 1)}%`;
   document.getElementById("ds-budget").textContent = summary.budget_remaining !== undefined
     ? `₹${fmt(summary.budget_remaining)}` : "—";
 }
@@ -655,7 +661,10 @@ async function refresh() {
   document.getElementById("last-update").textContent =
     "Last update: " + new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
   try {
-    const summary = await fetchJSON(`${ORIGIN}/daily-summary?capital=400000&daily_risk_pct=2`);
+    const [summary, history] = await Promise.all([
+      fetchJSON(`${ORIGIN}/daily-summary?capital=400000&daily_risk_pct=2`),
+      fetchJSON(`${ORIGIN}/trade-history?days=1`),
+    ]);
     const openPositions = summary.open_positions || [];
     const equityPositions = openPositions.filter(p => p.instrument !== "option");
     const hdrStatus = document.getElementById("hdr-status");
@@ -664,7 +673,7 @@ async function refresh() {
     hdrStatus.className = openPositions.length ? "status long" : "status flat";
 
     if (equityPositions.length === 0) {
-      const lastClosed = (summary.closed_trades || []).slice(-1)[0];
+      const lastClosed = (history.trades || [])[0]; // most-recent-first already
       if (!Object.keys(charts).length) {
         document.getElementById("cards").innerHTML = openPositions.length
           ? `<div class="empty">No equity chart to show — see the live options row(s) in the trade log below.</div>`
@@ -672,7 +681,7 @@ async function refresh() {
             ? `<div class="empty">No open positions. Last closed: ${displayName(lastClosed.symbol)} — ${lastClosed.exit_reason}, P&amp;L ₹${fmt(lastClosed.pnl_inr)}. Waiting for next signal…</div>`
             : `<div class="empty">No open positions yet. Waiting for the strategy to fire…</div>`;
       }
-      renderTradeLog(summary);
+      renderTradeLog(summary, history);
       return;
     }
 
@@ -687,7 +696,7 @@ async function refresh() {
       renderStats(pos.symbol, pos, lastClose);
     }
 
-    renderTradeLog(summary);
+    renderTradeLog(summary, history);
   } catch (e) {
     document.getElementById("cards").innerHTML = `<div class="err">fetch failed: ${e.message}</div>`;
   }

@@ -98,3 +98,27 @@ can't have changed meaningfully faster than the cache refreshes anyway).
 `/scheduler-attempts`' `checked_at_utc` per symbol now honestly reflects
 this - a flat symbol's timestamp only advances on its own round-robin turn,
 not every tick.
+
+## `/daily-summary`'s closed_trades undercounts on a day with redeploys
+
+**Found:** 2026-09-03, building /trade-view's trade log.
+
+`/daily-summary`'s `closed_trades` (and `realized_pnl`) are computed from
+the live SQLite `trades` table - which, like every other table, gets wiped
+clean on every Render redeploy (no persistent disk). Reconciliation on
+startup restores any still-*open* position from the journal, but a trade
+that already *closed* before the most recent redeploy is never
+reconstructed into the fresh DB - it's just gone from `/daily-summary`'s
+view, even though it genuinely happened today. On a day with several
+redeploys (normal during active development - this session alone had over
+a dozen), `/daily-summary`'s "today's P&L" badly undercounts the real day.
+
+**Fix:** `docs/trade_outcomes_log.json` (git-tracked, appended to and
+deduped by `journal-sync.yml` every sync, survives every redeploy) was
+already the durable record for exactly this reason. Added `GET
+/trade-history?days=1`, which reads that file directly instead of the DB,
+filters to the IST calendar day, and returns the honest count/net P&L/win
+rate. `/trade-view`'s trade log and its "Net P&L today" stat now use this
+endpoint for closed trades - `/daily-summary` stays the source for what's
+currently *open* (which the live DB tracks correctly via reconciliation)
+but is no longer trusted for historical closed-trade totals.
