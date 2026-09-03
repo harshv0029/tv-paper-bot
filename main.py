@@ -3485,16 +3485,40 @@ def _env_presence(name: str) -> dict:
 
 @app.get("/kotak-neo/status")
 def kotak_neo_status():
-    """Diagnostic only - confirms whether Render actually picked up the
-    Kotak Neo credential env vars, without ever echoing the real value back
+    """Diagnostic only - confirms whether Render actually picked up each
+    Kotak Neo credential env var, without ever echoing the real value back
     (a masked preview only). No connection to Kotak is attempted here -
-    that's the next step, once credentials are confirmed present. See
-    docs/TRADING_CONSTRAINTS.md 'Kotak Neo connection' for where this fits
-    in the broader plan."""
-    return {
-        "consumer_key": _env_presence("KOTAK_NEO_CONSUMER_KEY"),
-        "consumer_secret": _env_presence("KOTAK_NEO_CONSUMER_SECRET"),
-    }
+    see /kotak-neo/test-login for that. Field list matches kotak_neo.py's
+    REQUIRED_ENV_VARS - confirmed against Kotak's own actively-maintained
+    SDK that the current login flow needs consumer_key, NOT a separate
+    consumer secret (see docs/TRADING_CONSTRAINTS.md 'Kotak Neo
+    connection')."""
+    try:
+        import kotak_neo
+        return {name: _env_presence(name) for name in kotak_neo.REQUIRED_ENV_VARS}
+    except ImportError as e:
+        return {"error": f"kotak_neo module not importable: {e}"}
+
+
+@app.get("/kotak-neo/test-login")
+def kotak_neo_test_login():
+    """Attempts a REAL login to the live Kotak Neo account (environment=
+    'prod') and reports success/failure ONLY - no account data (holdings,
+    positions, balances) is ever returned by this endpoint. This app has
+    no authentication of its own yet, so anything beyond a plain boolean
+    here would be a real account-data exposure on a public URL - see
+    docs/TRADING_CONSTRAINTS.md 'Kotak Neo connection' for why this stays
+    deliberately minimal. Does not place, modify, or cancel any order -
+    auth only."""
+    try:
+        import kotak_neo
+    except ImportError as e:
+        return {"logged_in": False, "error": f"kotak_neo module not importable: {e}"}
+    try:
+        kotak_neo.login()
+        return {"logged_in": True}
+    except Exception as e:
+        return {"logged_in": False, "error": str(e)}
 
 
 @app.get("/live")
