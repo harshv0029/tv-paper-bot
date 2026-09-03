@@ -26,6 +26,24 @@ Kotak Neo/Zerodha actually let a real account trade this":
   batch size raised 7 -> 12 (`SCHEDULER_ENTRY_SCAN_BATCH_SIZE`) to keep the
   full-rotation time reasonable (~4.3 min) at this larger size. Tell me
   specific tickers, or "go to Nifty 200/500," any time.
+  - **Tried and abandoned: fetching NSE's true exhaustive equity list
+    (~2,000+ symbols) automatically.** Per "Index are also tradable on
+    Zerodha. All listing should be exhaustive" - built
+    `refresh-nse-universe.yml` to pull NSE's own `EQUITY_L.csv`
+    (`SERIES=EQ`) and write `docs/nse_universe.json` for `main.py` to
+    load. Confirmed (3 dispatches, 2026-09-03) this doesn't work from
+    GitHub Actions: both `archives.nseindia.com` and
+    `nsearchives.nseindia.com` return the identical HTML block page in
+    ~1.2s regardless of cookies, a real browser-session handshake, or
+    browser-like headers - that's NSE's Akamai bot protection
+    edge-blocking the runner's datacenter IP before any app logic runs,
+    not a fixable header/cookie gap. The workflow is kept
+    (`workflow_dispatch`-only, no schedule) in case NSE's posture ever
+    changes, but isn't relied on. The Nifty 100 above is the practical
+    ceiling until/unless someone downloads `EQUITY_L.csv` from a real
+    browser session and commits it by hand for `main.py` to load - true
+    automation of "exhaustive" isn't viable against NSE's current bot
+    defenses.
 - **MCX commodities - restored**: gold (`GC=F`), silver (`SI=F`), crude oil
   (`CL=F`). These ARE real Zerodha/Kotak-Neo-tradable instruments via the
   MCX segment - unlike crypto/US equities, excluding them was overreach.

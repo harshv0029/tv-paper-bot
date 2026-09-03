@@ -21,10 +21,16 @@ name: Refresh NSE Universe (full equity list)
 # committed) and main.py just keeps using whatever universe file (or
 # fallback list) it already has.
 on:
-  schedule:
-    # Weekly, Sunday 02:00 UTC (07:30 IST) - the equity list changes
-    # rarely (new listings, delistings), no need for anything faster.
-    - cron: "0 2 * * 0"
+  # No schedule: confirmed (3 dispatches, 2026-09-03) that NSE's Akamai
+  # bot protection edge-blocks GitHub Actions' datacenter IPs outright -
+  # both archives.nseindia.com and nsearchives.nseindia.com return the
+  # same HTML block page in ~1.2s regardless of cookies/headers/host,
+  # which is a network-level block, not something fixable from curl in
+  # CI. Kept as workflow_dispatch only in case NSE's blocking posture
+  # ever changes; a weekly cron would just fail loudly every week for no
+  # reason. See docs/TRADING_CONSTRAINTS.md for the practical fallback
+  # (the hardcoded Nifty 100 list) and how to get a true exhaustive list
+  # if still wanted (a one-time human browser download, not automation).
   workflow_dispatch: {}
 
 permissions:
