@@ -1327,6 +1327,84 @@ WATCHLIST = [
      "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
 ]
 
+# ---------------------------------------------------------------------------
+# Startup reconciliation: Render's free tier has no persistent disk, so every
+# redeploy wipes the SQLite DB clean - including any open position, which
+# would otherwise just vanish from tracking (never checked against its
+# stop/target again, no exit ever recorded). state/open_positions.json is a
+# plain git-tracked file, not part of the DB, so it survives every redeploy
+# (it's baked into each fresh checkout). The GH Actions workflows
+# (live-signals*.yml) write it after every poll, so it's never more than one
+# poll interval (<=5 min) stale - not perfectly real-time, but a position is
+# never silently forgotten.
+STATE_JOURNAL_PATH = os.path.join(os.path.dirname(__file__), "state", "open_positions.json")
+
+
+def reconcile_open_positions_from_journal():
+    """Restore any position the journal remembers but a freshly-wiped DB
+    doesn't - as a real 'buy' in trades (so today_realized_pnl's cost-basis
+    book is correct once it's eventually closed) and as an open row in
+    signal_state (so the normal stop/target/eod-squareoff check on the very
+    next scheduler tick picks it up and closes it exactly as if the redeploy
+    never happened)."""
+    if not os.path.exists(STATE_JOURNAL_PATH):
+        return
+    try:
+        with open(STATE_JOURNAL_PATH) as f:
+            journal = json.load(f)
+    except Exception as e:
+        print(f"[reconcile] could not read {STATE_JOURNAL_PATH}: {e}")
+        return
+
+    tz_by_symbol = {cfg["symbol"]: cfg["tz_offset_min"] for cfg in WATCHLIST}
+    recovered = []
+    with closing(get_db()) as conn:
+        for pos in journal.get("open_positions", []):
+            symbol = pos["symbol"]
+            already_open = conn.execute(
+                "SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
+            ).fetchone()
+            if already_open:
+                continue
+
+            entry_ts = pos["entry_ts"]
+            tz_offset_min = tz_by_symbol.get(symbol, IST_OFFSET_MIN)
+            # Same day derivation _auto_signal_core uses (utcnow + tz offset),
+            # applied at entry_ts instead of "now" - if this doesn't match,
+            # the very next poll treats the position as stale-from-a-prior-day
+            # and silently deletes it (see the row["day"] != today_str check).
+            day_str = (
+                dt.datetime.utcfromtimestamp(entry_ts) + dt.timedelta(minutes=tz_offset_min)
+            ).strftime("%Y-%m-%d")
+
+            strategy_tag = f"{ORB_STRATEGY_PREFIX}recovered"
+            conn.execute(
+                "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+                (entry_ts, symbol, pos["qty"], pos["entry_price_native"], pos["fx_to_inr"],
+                 strategy_tag, json.dumps({"recovered_from_journal": True, **pos})),
+            )
+            apply_paper_trade(conn, symbol, "buy", pos["qty"], pos["entry_price_native"])
+            conn.execute(
+                "INSERT INTO signal_state "
+                "(symbol, day, status, entry_price, stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
+                "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
+                "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
+                "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, "
+                "interval=excluded.interval",
+                (symbol, day_str, pos["entry_price_native"], pos["stop_loss_native"],
+                 pos["target_native"], pos["qty"], entry_ts, pos["orb_high_native"],
+                 pos["orb_low_native"], pos["fx_to_inr"], pos.get("interval", "5m")),
+            )
+            recovered.append(symbol)
+        conn.commit()
+
+    if recovered:
+        print(f"[reconcile] restored {len(recovered)} open position(s) from journal: {recovered}")
+
+
 SCHEDULER_INTERVAL_SECONDS = 30
 SCHEDULER_CAPITAL = 200000
 SCHEDULER_DAILY_RISK_PCT = 2.0  # account-wide daily loss cap - always the full 2%, not per-symbol
@@ -1360,6 +1438,7 @@ async def _scheduler_loop():
 
 @app.on_event("startup")
 async def _start_scheduler():
+    reconcile_open_positions_from_journal()
     asyncio.create_task(_scheduler_loop())
 
 
