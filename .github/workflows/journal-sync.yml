@@ -9,6 +9,13 @@ name: Position Journal Sync
 # DB doesn't - main.py reads it on startup and restores anything the fresh
 # DB is missing (see reconcile_open_positions_from_journal in main.py).
 #
+# Also appends every newly-closed trade to docs/trade_outcomes_log.json -
+# the DB's `trades` table is just as exposed to a redeploy wipe as open
+# positions were, and this is the durable, growing record the Research
+# Agent needs to compute real historical probabilities (e.g. "of trades
+# that got X% of the way to target, what fraction actually hit it") instead
+# of guessing at a confidence number.
+#
 # workflow_dispatch only, deliberately NOT `schedule:` - GH Actions'
 # schedule cron proved unreliable in practice earlier today (see
 # docs/KNOWN_ISSUES.md), which would defeat the point of a safety net. A
@@ -26,25 +33,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch current open positions and write the journal
+      - name: Fetch current state from the live server
         run: |
           mkdir -p state
           curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=200000&daily_risk_pct=2" \
             -o /tmp/daily-summary.json
           cat /tmp/daily-summary.json
           echo
+
+      - name: Write the open-positions journal
+        run: |
           jq '{synced_at_utc: (now | todate), open_positions: .open_positions}' /tmp/daily-summary.json \
             > state/open_positions.json
           cat state/open_positions.json
 
-      - name: Commit journal if it changed
+      - name: Append newly-closed trades to the outcome history
+        run: |
+          test -f docs/trade_outcomes_log.json || echo '[]' > docs/trade_outcomes_log.json
+          jq -s '
+            (.[0] // []) as $existing |
+            (.[1].closed_trades // []) as $new |
+            ($existing + $new)
+            | group_by(.symbol + "|" + (.exit_time_utc|tostring))
+            | map(.[0])
+            | sort_by(.exit_time_utc)
+          ' docs/trade_outcomes_log.json /tmp/daily-summary.json > /tmp/trade_outcomes_merged.json
+          mv /tmp/trade_outcomes_merged.json docs/trade_outcomes_log.json
+          echo "trade_outcomes_log.json now has $(jq 'length' docs/trade_outcomes_log.json) trades"
+
+      - name: Commit journal/history if either changed
         run: |
           git config user.name "tv-paper-bot journal sync"
           git config user.email "actions@users.noreply.github.com"
-          git add state/open_positions.json
+          git add state/open_positions.json docs/trade_outcomes_log.json
           if git diff --cached --quiet; then
-            echo "No change in open positions - nothing to commit."
+            echo "No change - nothing to commit."
           else
-            git commit -m "Sync position journal ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+            git commit -m "Sync position journal + trade outcome history ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
             git push
           fi
