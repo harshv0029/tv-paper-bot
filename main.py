@@ -1304,7 +1304,16 @@ def _auto_signal_core(
             # gets divided into a Rs budget as if $1 == Rs 1.
             risk_amount_inr = min(capital * risk_per_trade_pct / 100, remaining_budget)
             stop_dist_inr = stop_dist * fx_to_inr
-            qty = int(risk_amount_inr // stop_dist_inr) if stop_dist_inr > 0 else 0
+            # Fractional qty, not integer-floored: a high-priced unit (gold
+            # ~Rs 4.2L/oz, BTC ~Rs 73L/coin) costs more than this account's
+            # entire Rs 2L capital, so int() silently zeroed every such
+            # trade to "insufficient_capital" regardless of the strategy's
+            # real edge - confirmed this had been blocking every BTC-USD/
+            # ETH-USD entry all session. Real brokers (crypto exchanges,
+            # fractional-share equity brokers, gold ETF/mini-lot products)
+            # support this; treat it the same way here rather than
+            # silently discarding a good signal to a rounding artifact.
+            qty = risk_amount_inr / stop_dist_inr if stop_dist_inr > 0 else 0.0
 
             # Capital is shared and finite - cap qty so this trade's notional
             # doesn't push total deployed capital across all open symbols
@@ -1313,11 +1322,18 @@ def _auto_signal_core(
             # (see /daily-summary and the workflow's call order); a true
             # cross-symbol "best signal wins" ranking is a fast-follow.
             available_capital_inr = max(0.0, capital - deployed_notional(conn))
-            qty = min(qty, int(available_capital_inr // (last_close * fx_to_inr)))
+            notional_per_unit_inr = last_close * fx_to_inr
+            if notional_per_unit_inr > 0:
+                qty = min(qty, available_capital_inr / notional_per_unit_inr)
+            qty = round(qty, 6)
 
-            if qty < 1:
+            # A trade sized to a few rupees isn't a real position - guard
+            # against dust-sized fills from float rounding rather than
+            # requiring a whole unit.
+            MIN_TRADE_NOTIONAL_INR = 100.0
+            if qty <= 0 or qty * notional_per_unit_inr < MIN_TRADE_NOTIONAL_INR:
                 result["action_taken"] = (
-                    "insufficient_capital" if available_capital_inr < last_close * fx_to_inr
+                    "insufficient_capital" if available_capital_inr < notional_per_unit_inr
                     else "budget_too_small_for_1_unit"
                 )
                 result["available_capital_inr"] = round(available_capital_inr, 2)
