@@ -39,6 +39,13 @@ DB_PATH = os.environ.get("DB_PATH", "paper_trades.db")
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "change-me")
 STARTING_CASH = float(os.environ.get("STARTING_CASH", "100000"))  # paper capital
 
+# No single new trade may claim more than capital/CAPITAL_TRANCHES of the
+# shared pool, even when more sits free - reserves room for other real
+# opportunities to be taken in parallel rather than one position locking
+# out the rest of the day. 2 = the account's current split (a trade can use
+# at most half the pool at once); raise for finer-grained parallelism.
+CAPITAL_TRANCHES = 2
+
 app = FastAPI(title="TradingView Paper Trading Bot")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -1317,14 +1324,21 @@ def _auto_signal_core(
 
             # Capital is shared and finite - cap qty so this trade's notional
             # doesn't push total deployed capital across all open symbols
-            # past `capital`. Whichever symbol's entry is evaluated first in
-            # a given poll cycle gets first claim on the remaining capital
-            # (see /daily-summary and the workflow's call order); a true
-            # cross-symbol "best signal wins" ranking is a fast-follow.
+            # past `capital`. Also: no single new trade may claim more than
+            # one tranche (capital / CAPITAL_TRANCHES) of the pool, even if
+            # more is sitting free - reserves room for other opportunities
+            # to be taken in parallel instead of one big position locking
+            # out everything else for the rest of the day (this happened
+            # for real 2026-09-03: one BTC-USD entry used the entire pool).
+            # Whichever symbol is evaluated first in a poll cycle still gets
+            # first claim within its tranche limit; a true cross-symbol
+            # "best signal wins" ranking is a fast-follow.
             available_capital_inr = max(0.0, capital - deployed_notional(conn))
+            max_single_trade_inr = capital / CAPITAL_TRANCHES
+            usable_capital_inr = min(available_capital_inr, max_single_trade_inr)
             notional_per_unit_inr = last_close * fx_to_inr
             if notional_per_unit_inr > 0:
-                qty = min(qty, available_capital_inr / notional_per_unit_inr)
+                qty = min(qty, usable_capital_inr / notional_per_unit_inr)
             qty = round(qty, 6)
 
             # A trade sized to a few rupees isn't a real position - guard

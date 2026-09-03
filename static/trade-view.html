@@ -249,7 +249,7 @@ async function refresh() {
   document.getElementById("last-update").textContent =
     "Last update: " + new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
   try {
-    const summary = await fetchJSON(`${ORIGIN}/daily-summary?capital=200000&daily_risk_pct=2`);
+    const summary = await fetchJSON(`${ORIGIN}/daily-summary?capital=400000&daily_risk_pct=2`);
     const openPositions = summary.open_positions || [];
     const hdrStatus = document.getElementById("hdr-status");
 
