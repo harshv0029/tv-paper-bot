@@ -2261,12 +2261,19 @@ WATCHLIST = [
     # equities (genuinely not offered by Kotak Neo/Zerodha at all, so they
     # stay excluded), gold/silver/crude oil ARE real Zerodha-tradable
     # instruments via the MCX segment. yfinance has no free MCX ticker, so
-    # these run on the international futures contract (GC=F/SI=F/CL=F,
-    # USD-denominated) as a PRICE-ACTION PROXY - MCX's own INR price
-    # differs (import duty, currency, local demand/supply) but tracks the
-    # same underlying commodity closely enough that a candlestick pattern/
-    # breakout signal should transfer directionally. Same near-24h shape
-    # as before (COMEX/NYMEX close weekends same as MCX broadly does).
+    # these run on the international futures contract as a PRICE-ACTION
+    # PROXY for the real MCX contract each maps to (real symbol names
+    # confirmed by the user 2026-09-03, matters once Kotak Neo/Zerodha
+    # execution actually needs the MCX-side symbol):
+    #   GC=F (COMEX Gold, USD/troy oz)   -> MCX "GOLD"
+    #   SI=F (COMEX Silver, USD/troy oz) -> MCX "SILVER" (30 kg, 999 purity contract)
+    #   CL=F (NYMEX WTI Crude, USD/bbl)  -> MCX "CRUDEOIL" (MCX's own contract
+    #                                       is explicitly WTI-benchmarked)
+    # MCX's own INR price differs from each of these (import duty, currency,
+    # local demand/supply) but tracks the same underlying commodity closely
+    # enough that a candlestick pattern/breakout signal should transfer
+    # directionally. Same near-24h shape as before (COMEX/NYMEX close
+    # weekends same as MCX broadly does).
     # Gold: real evidence already exists (100% of 24 swept combos
     # profitable, best 65% win rate/+676.50 over 60d -
     # docs/strategy_log.xlsx, from before this symbol was briefly removed

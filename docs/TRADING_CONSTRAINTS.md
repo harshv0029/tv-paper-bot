@@ -86,13 +86,20 @@ Kotak Neo/Zerodha actually let a real account trade this":
   (`CL=F`). These ARE real Zerodha/Kotak-Neo-tradable instruments via the
   MCX segment - unlike crypto/US equities, excluding them was overreach.
   yfinance has no free MCX ticker, so these run on the international
-  futures contract (COMEX/NYMEX, USD-denominated) as a **price-action
-  proxy** - MCX's own INR price differs (import duty, currency, local
-  supply/demand) but tracks the same underlying commodity closely enough
-  that a candlestick pattern/breakout signal should transfer directionally.
-  Gold already has real backtest evidence (100% of 24 swept combos
-  profitable - docs/strategy_log.xlsx) - full 2% ceiling; silver/crude are
-  unproven - half ceiling (1%) until they earn one.
+  futures contract as a **price-action proxy** for the real MCX contract
+  each maps to - confirmed by the user 2026-09-03, matters once real
+  execution needs the actual MCX-side symbol:
+  - `GC=F` (COMEX Gold, USD/troy oz) -> MCX **GOLD**
+  - `SI=F` (COMEX Silver, USD/troy oz) -> MCX **SILVER** (30 kg, 999-purity contract)
+  - `CL=F` (NYMEX WTI Crude, USD/bbl) -> MCX **CRUDEOIL** (MCX's own
+    contract is explicitly WTI-benchmarked, per MCX itself)
+
+  MCX's own INR price differs from each of these (import duty, currency,
+  local supply/demand) but tracks the same underlying commodity closely
+  enough that a candlestick pattern/breakout signal should transfer
+  directionally. Gold already has real backtest evidence (100% of 24
+  swept combos profitable - docs/strategy_log.xlsx) - full 2% ceiling;
+  silver/crude are unproven - half ceiling (1%) until they earn one.
 
 Tell me specific NSE tickers (or other MCX/currency instruments Zerodha
 lists) to add beyond this set any time.
