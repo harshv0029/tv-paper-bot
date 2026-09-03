@@ -2200,9 +2200,36 @@ SCHEDULER_ENTRY_SCAN_BATCH_SIZE = 7  # flat symbols freshly entry-scanned per ti
 # nothing is being missed by not re-scanning it every single 30s tick -
 # the "wasted" cycles just go to other symbols instead.
 
+# Live pipeline visibility for /scheduler-pipeline (trade-view's scanner
+# panel) - what's actively in flight right now, not just the last completed
+# result. _scheduler_currently_checking is set right before the blocking
+# call and cleared right after, so a poll mid-tick shows the real in-flight
+# symbol; None means the loop is between ticks (sleeping).
+_scheduler_currently_checking: dict | None = None
+
+
+def _scheduler_peek_next_batch(n: int = 5) -> list:
+    """What the round-robin will scan on its NEXT turn through the flat
+    (no open position) symbols, without mutating the real cursor - a pure
+    peek, safe to call from an HTTP handler at any time. Mirrors the same
+    selection _scheduler_loop itself uses, off the CURRENT (already-
+    advanced-past-this-tick) cursor position."""
+    with closing(get_db()) as conn:
+        open_equity_symbols = {
+            r["symbol"] for r in conn.execute(
+                "SELECT symbol FROM signal_state WHERE status = 'long'"
+            ).fetchall()
+        }
+    flat_symbols = [cfg["symbol"] for cfg in WATCHLIST if cfg["symbol"] not in open_equity_symbols]
+    if not flat_symbols:
+        return []
+    m = len(flat_symbols)
+    count = min(n, m)
+    return [flat_symbols[(_scheduler_rr_cursor + i) % m] for i in range(count)]
+
 
 async def _scheduler_loop():
-    global _scheduler_last_tick_ts, _scheduler_last_error, _scheduler_rr_cursor
+    global _scheduler_last_tick_ts, _scheduler_last_error, _scheduler_rr_cursor, _scheduler_currently_checking
     while True:
         watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
 
@@ -2238,6 +2265,9 @@ async def _scheduler_loop():
             cfg = watchlist_by_symbol.get(symbol)
             if not cfg:
                 continue
+            _scheduler_currently_checking = {
+                "symbol": symbol, "kind": "equity", "started_at_utc": time.time(),
+            }
             try:
                 result = await asyncio.to_thread(
                     _auto_signal_core,
@@ -2259,6 +2289,8 @@ async def _scheduler_loop():
                     "checked_at_utc": time.time(), "symbol": cfg["symbol"],
                     "status": "error", "detail": str(e),
                 }
+            finally:
+                _scheduler_currently_checking = None
 
         # Options overlay - real calls/puts on the symbols with a live
         # yfinance chain (OPTIONS_ELIGIBLE_SYMBOLS), using that same
@@ -2277,6 +2309,9 @@ async def _scheduler_loop():
             if not cfg:
                 continue
             key = f"{underlying}:OPT"
+            _scheduler_currently_checking = {
+                "symbol": key, "kind": "options", "started_at_utc": time.time(),
+            }
             try:
                 result = await asyncio.to_thread(
                     _options_signal_core,
@@ -2294,6 +2329,8 @@ async def _scheduler_loop():
                     "checked_at_utc": time.time(), "underlying": underlying,
                     "status": "error", "detail": str(e),
                 }
+            finally:
+                _scheduler_currently_checking = None
 
         _scheduler_last_tick_ts = time.time()
         await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
@@ -2325,6 +2362,29 @@ def scheduler_attempts():
     persistent trail of what was attempted and why, not just closed
     trades."""
     return _scheduler_last_results
+
+
+@app.get("/scheduler-pipeline")
+def scheduler_pipeline(recent: int = 10, next_n: int = 5):
+    """Live scanner view for /trade-view: what was just checked, what's
+    being checked RIGHT NOW, and what's queued up next in the round-robin
+    (see _scheduler_loop/SCHEDULER_ENTRY_SCAN_BATCH_SIZE). `recent` is the
+    max number of most-recently-checked entries to return; `next_n` is how
+    far to peek ahead into the round-robin queue."""
+    last_checked = sorted(
+        ({"symbol": k, **v} for k, v in _scheduler_last_results.items()),
+        key=lambda r: r.get("checked_at_utc", 0),
+        reverse=True,
+    )[:recent]
+    return {
+        "last_checked": last_checked,
+        "currently_checking": _scheduler_currently_checking,
+        "next_up": _scheduler_peek_next_batch(next_n),
+        "scheduler_interval_seconds": SCHEDULER_INTERVAL_SECONDS,
+        "entry_scan_batch_size": SCHEDULER_ENTRY_SCAN_BATCH_SIZE,
+        "last_tick_ts": _scheduler_last_tick_ts,
+        "server_time_utc": time.time(),
+    }
 
 
 @app.get("/daily-summary")
