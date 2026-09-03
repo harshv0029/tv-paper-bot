@@ -2697,7 +2697,15 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
             }
             for k in all_keys
         ),
-        key=lambda r: (-r["checks_today"], r["symbol"]),
+        # NSE indices pinned to the very top, in a fixed order - the user
+        # specifically asked to be able to find NIFTY/BANKNIFTY/SENSEX
+        # without hunting through a count-sorted, scrollable list of 36
+        # rows; everything else still sorts by checks_today desc.
+        key=lambda r: (
+            {"^NSEI": 0, "^NSEBANK": 1, "^BSESN": 2}.get(r["symbol"], 99),
+            -r["checks_today"],
+            r["symbol"],
+        ),
     )
 
     return {
@@ -2712,6 +2720,51 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "entry_scan_batch_size": SCHEDULER_ENTRY_SCAN_BATCH_SIZE,
         "last_tick_ts": _scheduler_last_tick_ts,
         "server_time_utc": time.time(),
+    }
+
+
+DOCS_TRADE_OUTCOMES_PATH = os.path.join(os.path.dirname(__file__), "docs", "trade_outcomes_log.json")
+
+
+@app.get("/trade-history")
+def trade_history(days: int = 1):
+    """Every closed trade in the last `days` IST calendar days (default:
+    today only), read from docs/trade_outcomes_log.json - the git-tracked,
+    journal-synced, append-only record - NOT the live DB's `trades` table.
+
+    This distinction matters: Render's free tier has no persistent disk, so
+    every redeploy wipes the DB clean. A trade that closed BEFORE the most
+    recent redeploy is gone from /daily-summary's closed_trades (that
+    endpoint only ever sees what's in the current DB instance) even though
+    it genuinely happened - on a day with several redeploys (common during
+    active development), /daily-summary's realized_pnl/closed_trades badly
+    undercounts the real day. This endpoint is the honest "what actually
+    closed today" answer, immune to how many times the server has
+    restarted since. See journal-sync.yml for how the file gets appended to."""
+    try:
+        with open(DOCS_TRADE_OUTCOMES_PATH) as f:
+            all_trades = json.load(f)
+    except Exception:
+        all_trades = []
+
+    now_ist = ist_now()
+    cutoff_ts = ist_midnight_epoch(now_ist) - (days - 1) * 86400
+    today_str = now_ist.strftime("%Y-%m-%d")
+
+    trades = sorted(
+        (t for t in all_trades if t.get("exit_time_utc", 0) >= cutoff_ts),
+        key=lambda t: t.get("exit_time_utc", 0),
+        reverse=True,
+    )
+    net_pnl_inr = round(sum(t.get("pnl_inr", 0) for t in trades), 2)
+    wins = [t for t in trades if t.get("pnl_inr", 0) > 0]
+    return {
+        "date_ist": today_str,
+        "days": days,
+        "trades_count": len(trades),
+        "net_pnl_inr": net_pnl_inr,
+        "win_rate_pct": round(100 * len(wins) / len(trades), 1) if trades else None,
+        "trades": trades,
     }
 
 
