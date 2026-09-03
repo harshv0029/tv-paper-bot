@@ -364,6 +364,25 @@ this is spelled out explicitly:
   (since a tranche is always a fraction of total capital), so in practice
   the daily cap is the outer bound multiple smaller trades collectively
   respect, and the per-trade cap is what limits any ONE of them.
+- **The daily cap is a HALT, not a shrinking allowance (fixed 2026-09-03).**
+  Explicit user instruction: "I want net loss to be 2% for all trades for
+  the day. Not that loss budget." Before this, a new trade's own sizing
+  was ALSO capped at `min(risk_per_trade_pct% of its tranche,
+  remaining_budget)` - so as the day's running net P&L got closer to -2%,
+  every SUBSEQUENT new trade would silently size smaller than its own
+  stated risk_per_trade_pct, even though nothing had actually halted yet.
+  That's gone: `risk_amount_inr` is now always the full
+  `usable_capital_inr * risk_per_trade_pct / 100`, every time, with no
+  reference to the day's running P&L. The daily cap's ONLY remaining job
+  is the binary halt itself (`halted = remaining_budget <= 0`, i.e. net
+  realized P&L today <= -daily_risk_pct% of capital) - once that trips,
+  `blocked_daily_loss_cap` stops every new entry outright and any open
+  position gets squared off; until it trips, every entry sizes at its
+  full, undiminished risk_per_trade_pct. One consequence worth being
+  explicit about: since sizing no longer throttles down as the day
+  worsens, a trade taken right before the halt trips can still be
+  full-sized - the halt itself is what bounds the day's net loss at ~2%,
+  not smaller-and-smaller trades approaching it.
 
 ## Capital reallocation - trimming a weaker live position to fund a stronger new one (added 2026-09-03)
 
