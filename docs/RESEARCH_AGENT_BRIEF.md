@@ -20,6 +20,29 @@ Actions access you don't and will dispatch it and log the real results —
 this is the expected division of labor, not something to keep retrying
 workarounds for.
 
+## 2026-09-03 update: log liberally, adopt strictly, source widely
+
+**Two different bars — don't conflate them.** The user has explicitly
+authorized the main session to move a strategy to live `WATCHLIST` params
+without asking again each time, *when it's genuinely backtested* — but
+that only means candidates meeting the SAME robustness bar the current
+live params already meet (NIFTY/BANKNIFTY/SENSEX ORB, AAPL
+bullish_engulfing: all ~90-100% of swept parameter combos profitable, not
+a lone spike). That is a materially higher bar than what gets **logged**.
+
+**Logging bar: log anything with more than 50% swept-combo profitability**
+(`pct_profitable_combos > 0.5` in the strategy log's own terms) — i.e. more
+likely than not to have real edge, even if not yet adoption-grade. Keep
+logging losers and mixed results too, as already practiced — the log's
+value is the honest full picture, not a highlight reel.
+
+**Source widely — there are thousands of documented strategies, not just
+the two or three checked so far.** Keep pulling from trading-education
+sites, backtest write-ups, competition/prop-trading strategy discussions,
+not just re-testing the same couple of sources. Breadth matters here as
+much as depth — the point is to build up real coverage over many daily
+cycles, not to over-polish one candidate.
+
 ## 2026-09-03 update: scope across markets, use real historical outcomes, options/futures where legitimately available
 
 **Test across every WATCHLIST market, not just NSE.** The user's own framing:
