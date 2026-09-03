@@ -39,9 +39,22 @@ jobs:
       - name: Fetch NSE's official equity list
         run: |
           mkdir -p docs
-          curl -sS --retry 3 --retry-delay 5 -m 30 \
-            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36" \
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+          # NSE's archives endpoint blocks requests with no browser session -
+          # hit the real site first to pick up the cookies it expects
+          # (confirmed necessary: a bare curl straight to the CSV came back
+          # an HTML block page, not data), then reuse that cookie jar for
+          # the actual CSV request.
+          curl -sS -c /tmp/nse_cookies.txt -m 30 \
+            -H "User-Agent: $UA" \
+            -H "Accept: text/html,application/xhtml+xml" \
+            "https://www.nseindia.com/market-data/securities-available-for-trading" \
+            -o /dev/null || true
+          sleep 2
+          curl -sS -b /tmp/nse_cookies.txt --retry 3 --retry-delay 5 -m 30 \
+            -H "User-Agent: $UA" \
             -H "Accept: text/csv,*/*" \
+            -H "Referer: https://www.nseindia.com/market-data/securities-available-for-trading" \
             "https://archives.nseindia.com/content/equity/EQUITY_L.csv" \
             -o /tmp/EQUITY_L.csv
           echo "Downloaded $(wc -l < /tmp/EQUITY_L.csv) lines"
