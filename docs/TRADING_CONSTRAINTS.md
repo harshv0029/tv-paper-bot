@@ -8,12 +8,37 @@ change is the bug.
 | Constraint | Value | Enforced by |
 |---|---|---|
 | **Capital** | ₹4,00,000 (raised from ₹2,00,000 2026-09-03, per user instruction "for today"), one shared pool across every market (NSE, crypto, US) | `capital` param, default across all WATCHLIST entries |
-| **Max loss per day** | **2% of capital (₹8,000 at current capital)** — resets at IST midnight, every calendar day, automatically | `daily_risk_pct=2.0` + `ist_midnight_epoch()` in `today_realized_pnl()` |
-| **Max risk per trade** | **2% of capital is a CEILING, not a fixed rate** — set lower per symbol where evidence supports it | `risk_per_trade_pct`, per-symbol in `WATCHLIST` |
+| **Max loss per day** | **2% of TOTAL capital at the start of the day (₹8,000 at current capital)** — resets at IST midnight, every calendar day, automatically | `daily_risk_pct=2.0` + `ist_midnight_epoch()` in `today_realized_pnl()` |
+| **Max risk per trade** | **2% of the capital actually INVESTED IN THAT TRADE** (the tranche/available-capital-capped amount it can deploy — `usable_capital_inr`), NOT 2% of total account capital — explicit standing policy, clarified 2026-09-03. A CEILING, not a fixed rate — set lower per symbol where evidence supports it. Both this cap and the daily cap apply independently; whichever binds first forces the exit/entry-block | `risk_per_trade_pct` × `usable_capital_inr`, per-symbol in `WATCHLIST` |
 | **Per-trade stop-loss cap** | Same ceiling logic, tighter of this or the strategy's own ORB-low level | `stop_pct`, per-symbol in `WATCHLIST` |
 | **Risk:Reward minimum** | **1:3** (target = entry + 3 × stop distance) — raised 2026-09-03 from 1:2 per standing user instruction; a trade is only entered if it clears this | `rr=3.0`, `SCHEDULER_RR` |
 | **Capital deployed cap** | Total notional across all open positions never exceeds current `capital` | `deployed_notional()` capital check in the entry path |
 | **Position sizing** | Fractional units, not integer-floored — a whole-unit floor was silently blocking every BTC-USD/ETH-USD/gold entry (unit price exceeds a ₹2L pool) regardless of signal quality; fixed 2026-09-03 | qty computed as a float in `_auto_signal_core`, min ₹100 notional guard |
+
+## Two independent caps, two different bases (clarified 2026-09-03)
+
+The per-trade cap and the daily cap are measured against **different
+amounts of money on purpose** - conflating them was a real bug risk, so
+this is spelled out explicitly:
+
+- **Per-trade cap**: `risk_per_trade_pct`% of **that trade's own allocated
+  capital** (`usable_capital_inr` = min(capital available right now,
+  capital/`CAPITAL_TRANCHES`) - the slice this specific trade can deploy).
+  A ₹2,00,000 tranche at the 2% ceiling risks at most ₹4,000 on that one
+  trade, not ₹8,000. If the strategy's own stop is tighter than the
+  `stop_pct` cap (common - see BTC-USD's live example, where a ~0.65%
+  structural stop meant the real risk taken was well under even this),
+  the realized risk is smaller still.
+- **Daily cap**: `daily_risk_pct`% of **total account capital as of the
+  start of the IST day** (`capital`, currently ₹4,00,000 -> ₹8,000/day),
+  shared across every open trade and every market.
+- Both are hard, independently-enforced exits - hitting either one forces
+  the corresponding action (stop-loss exit for the per-trade cap,
+  no-new-entries + square-off-everything for the daily cap) regardless of
+  the other. A single trade's per-trade cap is always <= the daily cap
+  (since a tranche is always a fraction of total capital), so in practice
+  the daily cap is the outer bound multiple smaller trades collectively
+  respect, and the per-trade cap is what limits any ONE of them.
 
 ## Per-trade risk: 2% is a ceiling, tuned down by evidence
 
