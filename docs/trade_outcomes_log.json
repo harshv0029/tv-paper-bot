@@ -50,5 +50,18 @@
     "exit_reason": "manual_kill_switch",
     "rr_target": 3.0,
     "rr_achieved": 0.07
+  },
+  {
+    "symbol": "LICI.NS",
+    "exit_time_utc": 1788429074.3269591,
+    "entry_price_native": 415.70001220703125,
+    "exit_price_native": 415.70001220703125,
+    "currency": "INR",
+    "qty": 481.116175,
+    "pnl_inr": 0.0,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "eod_squareoff",
+    "rr_target": 3.0,
+    "rr_achieved": 0.0
   }
 ]

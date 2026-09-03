@@ -1,19 +1,6 @@
 {
-  "synced_at_utc": "2026-09-03T09:49:12Z",
+  "synced_at_utc": "2026-09-03T10:03:59Z",
   "open_positions": [
-    {
-      "symbol": "LICI.NS",
-      "qty": 481.116175,
-      "entry_price_native": 415.70001220703125,
-      "stop_loss_native": 411.54301208496094,
-      "target_native": 428.1710125732422,
-      "fx_to_inr": 1.0,
-      "notional_inr": 200000.0,
-      "orb_high_native": 414.54998779296875,
-      "orb_low_native": 411.25,
-      "entry_ts": 1788428716.0331748,
-      "interval": "5m"
-    },
     {
       "symbol": "CL=F",
       "qty": 23.111018,
@@ -25,6 +12,19 @@
       "orb_high_native": 90.76000213623047,
       "orb_low_native": 90.51000213623047,
       "entry_ts": 1788428783.9312232,
+      "interval": "5m"
+    },
+    {
+      "symbol": "GC=F",
+      "qty": 0.472993,
+      "entry_price_native": 4475.2001953125,
+      "stop_loss_native": 4429.89990234375,
+      "target_native": 4611.10107421875,
+      "fx_to_inr": 94.48500061035156,
+      "notional_inr": 200000.03,
+      "orb_high_native": 4438.0,
+      "orb_low_native": 4429.89990234375,
+      "entry_ts": 1788429341.7099674,
       "interval": "5m"
     }
   ]
