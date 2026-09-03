@@ -513,18 +513,37 @@ function renderStats(symbol, pos, lastClose) {
   // Trailing stop: pos.stop_loss_native IS the live value (main.py ratchets
   // it in place - see _trailing_stop_target) - stop_loss_native above
   // initial_stop_loss_native means it has actually engaged and moved.
+  // Below TRAIL_ACTIVATE_R (0.5) unrealized gain it's supposed to sit at
+  // the initial stop untouched - not a bug, so say so explicitly instead
+  // of just showing a static number with no context (a genuinely
+  // profitable-but-not-yet-0.5R position looks identical to a stuck one
+  // otherwise - this is exactly what prompted the question).
   const initialStop = pos.initial_stop_loss_native;
-  const trailActive = initialStop !== null && initialStop !== undefined && pos.stop_loss_native > initialStop;
-  const trailRow = initialStop !== null && initialStop !== undefined
-    ? `<div class="r"><span>Initial stop</span><b class="mono">${fmt(initialStop, pos.qty && pos.qty < 1 ? 4 : 2)}</b></div>`
+  const hasInitial = initialStop !== null && initialStop !== undefined;
+  const trailActive = hasInitial && pos.stop_loss_native > initialStop;
+  const decimals = pos.qty && pos.qty < 1 ? 4 : 2;
+  let trailHint = "";
+  if (hasInitial && !trailActive) {
+    const r = pos.entry_price_native - initialStop;
+    if (r > 0) {
+      const activatesAt = pos.entry_price_native + TRAIL_ACTIVATE_R * r;
+      const gainSoFar = lastClose - pos.entry_price_native;
+      trailHint = gainSoFar >= 0
+        ? `<div class="r"><span>Trail activates at</span><b class="mono">${fmt(activatesAt, decimals)} <span class="scan-idle">(now ${fmt(lastClose, decimals)})</span></b></div>`
+        : `<div class="r"><span>Trail activates at</span><b class="mono">${fmt(activatesAt, decimals)}</b></div>`;
+    }
+  }
+  const trailRow = hasInitial
+    ? `<div class="r"><span>Initial stop</span><b class="mono">${fmt(initialStop, decimals)}</b></div>`
     : "";
 
   statsEl.innerHTML = `
     <div class="r"><span>Qty</span><b class="mono">${pos.qty}</b></div>
     <div class="r"><span>Notional</span><b class="mono">₹${fmt(pos.notional_inr)}</b></div>
     <div class="r"><span>FX (₹/unit)</span><b class="mono">${fmt(pos.fx_to_inr)}</b></div>
-    <div class="r"><span>Trailing stop${trailActive ? " <b class=\"trail-active\">●&nbsp;active</b>" : ""}</span><b class="mono">${fmt(pos.stop_loss_native)}</b></div>
+    <div class="r"><span>Trailing stop${trailActive ? " <b class=\"trail-active\">●&nbsp;active</b>" : ""}</span><b class="mono">${fmt(pos.stop_loss_native, decimals)}</b></div>
     ${trailRow}
+    ${trailHint}
     <div class="r"><span>R:R to go</span><b class="mono">${fmt(Math.abs((pos.target_native - lastClose) / (lastClose - pos.stop_loss_native || 1)), 2)}</b></div>
   `;
 }
