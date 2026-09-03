@@ -1,0 +1,90 @@
+name: Refresh NSE Universe (full equity list)
+
+# Fetches NSE's own official, exhaustive list of listed equity securities
+# and writes it to docs/nse_universe.json - a real "public available
+# listing," per explicit user instruction ("All listing should be
+# exhaustive"), replacing any hand-picked/hardcoded symbol list in
+# main.py. main.py loads this file at startup to build WATCHLIST (falling
+# back to its own small hardcoded list if the file is missing/unreadable,
+# so a fetch failure here never takes the live app down).
+#
+# Source: NSE's own published EQUITY_L.csv (SYMBOL, NAME OF COMPANY,
+# SERIES, ...) - the standard reference for "every security listed for
+# trading on NSE's equity segment." Filtered to SERIES=EQ (the main board
+# equity series - excludes debt instruments, SME-platform-only series,
+# etc.) since those are what a Kotak Neo/Zerodha equity account can
+# actually trade the same way as everything else in this system.
+#
+# NSE's site is known to sometimes reject non-browser requests - a
+# realistic User-Agent and a couple of retries are included; if it still
+# fails, the job fails loudly (no partial/corrupt universe is ever
+# committed) and main.py just keeps using whatever universe file (or
+# fallback list) it already has.
+on:
+  schedule:
+    # Weekly, Sunday 02:00 UTC (07:30 IST) - the equity list changes
+    # rarely (new listings, delistings), no need for anything faster.
+    - cron: "0 2 * * 0"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch NSE's official equity list
+        run: |
+          mkdir -p docs
+          curl -sS --retry 3 --retry-delay 5 -m 30 \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36" \
+            -H "Accept: text/csv,*/*" \
+            "https://archives.nseindia.com/content/equity/EQUITY_L.csv" \
+            -o /tmp/EQUITY_L.csv
+          echo "Downloaded $(wc -l < /tmp/EQUITY_L.csv) lines"
+          head -5 /tmp/EQUITY_L.csv
+
+      - name: Parse into docs/nse_universe.json
+        run: |
+          python3 - <<'PYEOF'
+          import csv, json
+
+          with open("/tmp/EQUITY_L.csv", newline="") as f:
+              rows = list(csv.DictReader(f))
+
+          if not rows or "SYMBOL" not in rows[0]:
+              raise SystemExit(f"Unexpected CSV format - columns were: {list(rows[0].keys()) if rows else 'no rows'}")
+
+          symbols = sorted({
+              f"{r['SYMBOL'].strip()}.NS"
+              for r in rows
+              if r.get("SERIES", "").strip() == "EQ" and r.get("SYMBOL", "").strip()
+          })
+
+          if len(symbols) < 500:
+              # Sanity floor - NSE's main board has had 1,900+ EQ-series
+              # symbols for years. A number far below that means something
+              # broke upstream (a format change, a partial/blocked
+              # download) - refuse to commit a corrupt/truncated universe.
+              raise SystemExit(f"Only {len(symbols)} EQ symbols parsed - refusing to write, looks wrong")
+
+          with open("docs/nse_universe.json", "w") as f:
+              json.dump({"source": "NSE EQUITY_L.csv", "series": "EQ", "count": len(symbols), "symbols": symbols}, f, indent=2)
+
+          print(f"Wrote {len(symbols)} NSE EQ-series symbols to docs/nse_universe.json")
+          PYEOF
+
+      - name: Commit if changed
+        run: |
+          git config user.name "tv-paper-bot nse universe refresh"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/nse_universe.json
+          if git diff --cached --quiet; then
+            echo "No change - nothing to commit."
+          else
+            git commit -m "Refresh NSE universe list ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+            git push
+          fi
