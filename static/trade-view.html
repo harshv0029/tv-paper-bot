@@ -135,6 +135,22 @@
   .log-status.live{background:var(--up-dim);color:var(--up);}
   .log-status.closed{background:rgba(124,138,156,.14);color:var(--muted);}
   .log-status .dot{width:6px;height:6px;border-radius:50%;background:var(--up);animation:scanPulse 1.1s ease-in-out infinite;}
+
+  /* Master control bar - pause/resume + kill switch */
+  .control-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;}
+  .control-bar.paused{border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.06);}
+  .ctrl-status{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;}
+  .ctrl-dot{width:9px;height:9px;border-radius:50%;background:var(--up);box-shadow:0 0 0 3px var(--up-dim);}
+  .ctrl-status.paused .ctrl-dot{background:var(--warn);box-shadow:0 0 0 3px rgba(245,158,11,.18);animation:none;}
+  .ctrl-meta{color:var(--muted);font-size:11px;}
+  .ctrl-actions{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;}
+  .ctrl-btn{font-family:inherit;font-size:11.5px;font-weight:700;letter-spacing:.02em;padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);cursor:pointer;transition:filter .15s;}
+  .ctrl-btn:hover{filter:brightness(1.2);}
+  .ctrl-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .ctrl-btn.pause{border-color:rgba(245,158,11,.5);color:var(--warn);}
+  .ctrl-btn.resume{border-color:rgba(34,197,94,.5);color:var(--up);}
+  .ctrl-btn.kill{border-color:rgba(239,68,68,.6);background:rgba(239,68,68,.12);color:var(--down);}
+  .ctrl-msg{font-size:11px;color:var(--muted);width:100%;}
   .log-type{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
 </style>
 </head>
@@ -142,6 +158,17 @@
 
 <h1>Trade View <span id="hdr-status" class="status flat">—</span></h1>
 <div class="sub">Live scalp-style view — candles, entry/stop/target ladder, floating P&amp;L. Not investment advice. <span id="last-update"></span> · next refresh in <span id="countdown" class="mono">10</span>s</div>
+
+<div class="control-bar" id="control-bar">
+  <div class="ctrl-status" id="ctrl-status"><span class="ctrl-dot"></span><span id="ctrl-status-text">Loading…</span></div>
+  <span class="ctrl-meta" id="ctrl-meta"></span>
+  <div class="ctrl-actions">
+    <button class="ctrl-btn pause" id="btn-pause" onclick="doTradingControl('pause')">Pause new entries</button>
+    <button class="ctrl-btn resume" id="btn-resume" onclick="doTradingControl('resume')" hidden>Resume trading</button>
+    <button class="ctrl-btn kill" id="btn-kill" onclick="doKillSwitch()">Kill all trades now</button>
+  </div>
+  <div class="ctrl-msg" id="ctrl-msg"></div>
+</div>
 
 <div class="scanner">
   <div class="scan-col">
@@ -220,8 +247,8 @@ function fmt(n, d = 2) {
   if (n === null || n === undefined || Number.isNaN(n)) return "—";
   return Number(n).toLocaleString("en-IN", { minimumFractionDigits: d, maximumFractionDigits: d });
 }
-async function fetchJSON(url) {
-  const res = await fetch(url);
+async function fetchJSON(url, opts) {
+  const res = await fetch(url, opts);
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json();
 }
@@ -467,6 +494,78 @@ async function refreshScanner() {
   }
 }
 
+function renderControlBar(status) {
+  const bar = document.getElementById("control-bar");
+  const dot = document.getElementById("ctrl-status");
+  const text = document.getElementById("ctrl-status-text");
+  const meta = document.getElementById("ctrl-meta");
+  const enabled = status.enabled !== false;
+
+  bar.className = "control-bar" + (enabled ? "" : " paused");
+  dot.className = "ctrl-status" + (enabled ? "" : " paused");
+  text.textContent = enabled ? "TRADING ON — scanning for new entries" : "PAUSED — no new entries (open positions still managed)";
+
+  meta.textContent = status.updated_at
+    ? `Last changed ${timeAgo(status.updated_at)}${status.reason ? " — " + status.reason : ""}`
+    : "";
+
+  document.getElementById("btn-pause").hidden = !enabled;
+  document.getElementById("btn-resume").hidden = enabled;
+}
+
+async function refreshControlStatus() {
+  try {
+    const status = await fetchJSON(`${ORIGIN}/trading-control`);
+    renderControlBar(status);
+  } catch (e) {
+    // Non-fatal - leave the bar showing its last-known state.
+  }
+}
+
+async function doTradingControl(action) {
+  const btns = ["btn-pause", "btn-resume", "btn-kill"].map(id => document.getElementById(id));
+  btns.forEach(b => b.disabled = true);
+  const msgEl = document.getElementById("ctrl-msg");
+  msgEl.textContent = action === "pause" ? "Pausing…" : "Resuming…";
+  try {
+    const res = await fetchJSON(`${ORIGIN}/trading-control?action=${action}`, { method: "POST" });
+    msgEl.textContent = action === "pause"
+      ? "Paused. New entries are blocked; any open position keeps being managed normally."
+      : "Resumed. Scanning for new entries again.";
+    await refreshControlStatus();
+  } catch (e) {
+    msgEl.textContent = `Failed: ${e.message}`;
+  } finally {
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+async function doKillSwitch() {
+  const confirmed = confirm(
+    "Kill switch: this force-closes EVERY open position (equity and options) right now at the current market price, " +
+    "and pauses new entries until you resume. This cannot be undone. Proceed?"
+  );
+  if (!confirmed) return;
+
+  const btns = ["btn-pause", "btn-resume", "btn-kill"].map(id => document.getElementById(id));
+  btns.forEach(b => b.disabled = true);
+  const msgEl = document.getElementById("ctrl-msg");
+  msgEl.textContent = "Closing all open positions…";
+  try {
+    const res = await fetchJSON(`${ORIGIN}/trading-control?action=kill`, { method: "POST" });
+    const pnl = res.total_pnl_inr ?? 0;
+    msgEl.textContent = res.closed_count > 0
+      ? `Closed ${res.closed_count} position(s). Total P&L: ${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}. Trading paused.`
+      : "No open positions to close. Trading paused.";
+    await refreshControlStatus();
+    await refresh();
+  } catch (e) {
+    msgEl.textContent = `Failed: ${e.message}`;
+  } finally {
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
 function optionLabel(pos) {
   return `${pos.underlying} ${(pos.right || "").toUpperCase()} ${fmt(pos.strike, 0)}`;
 }
@@ -603,12 +702,14 @@ function tickCountdown() {
     secondsLeft = REFRESH_SECONDS;
     refresh();
     refreshScanner();
+    refreshControlStatus();
   }
   document.getElementById("countdown").textContent = secondsLeft;
 }
 
 refresh();
 refreshScanner();
+refreshControlStatus();
 setInterval(tickCountdown, 1000);
 </script>
 </body>

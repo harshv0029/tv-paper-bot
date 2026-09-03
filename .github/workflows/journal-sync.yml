@@ -53,12 +53,27 @@ jobs:
             -o /tmp/scheduler-attempts.json
           cat /tmp/scheduler-attempts.json
           echo
+          curl -sS --retry 2 --retry-delay 5 -m 30 \
+            "https://tv-paper-bot-gdan.onrender.com/trading-control" \
+            -o /tmp/trading-control.json
+          cat /tmp/trading-control.json
+          echo
 
       - name: Write the open-positions journal
         run: |
           jq '{synced_at_utc: (now | todate), open_positions: .open_positions}' /tmp/daily-summary.json \
             > state/open_positions.json
           cat state/open_positions.json
+
+      - name: Write the trading-control (kill switch / pause) journal
+        run: |
+          # A pause/kill state must survive a redeploy the same way an open
+          # position does - the DB (and its fresh default enabled=1 row)
+          # gets wiped just like signal_state does. Without this, pausing
+          # would silently lift on the next push. reconcile_trading_control_
+          # from_journal() in main.py restores it on startup.
+          cp /tmp/trading-control.json state/trading_control.json
+          cat state/trading_control.json
 
       - name: Append newly-closed trades to the outcome history
         run: |
@@ -93,7 +108,7 @@ jobs:
         run: |
           git config user.name "tv-paper-bot journal sync"
           git config user.email "actions@users.noreply.github.com"
-          git add state/open_positions.json docs/trade_outcomes_log.json docs/attempt_log.json
+          git add state/open_positions.json state/trading_control.json docs/trade_outcomes_log.json docs/attempt_log.json
           if git diff --cached --quiet; then
             echo "No change - nothing to commit."
           else
