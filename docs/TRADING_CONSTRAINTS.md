@@ -153,12 +153,22 @@ phases so each phase can be verified before the next is built:
 - **Phase 0** - account/API registration on Kotak's side (the user's own
   steps: enabling Trade API access, TOTP registration). Done outside this
   repo.
-- **Phase 1 (this phase)** - credentials + auth-only code. This app can log
-  in to the real account and confirm the session is valid. It does **not**
-  read or place anything.
-- **Phase 2 (not started)** - read-only market data / account data (e.g.
-  quotes, holdings, positions) pulled from the real account, still without
+- **Phase 1 (done, verified live 2026-09-03)** - credentials + auth-only
+  code. This app can log in to the real account and confirm the session is
+  valid. `GET /kotak-neo/test-login` returned `{"logged_in": true}` against
+  the real account. It does **not** read or place anything.
+- **Phase 2 (done 2026-09-03)** - read-only account data (holdings,
+  positions, funds/margin) pulled from the real account, still without
   ever placing an order.
+- **Phase 2.5 (in progress 2026-09-03)** - real NSE option chain data (ATM
+  and nearby strikes for NIFTY). `search_scrip()` is wired up as a
+  diagnostic endpoint (`GET /kotak-neo/search-scrip`) but deliberately NOT
+  yet turned into a polished "give me the ATM chain with live quotes"
+  endpoint - the SDK's source doesn't document which scrip-master column
+  is the instrument token `quotes()` needs, and guessing that on financial
+  data risks silently matching the wrong contract. Next step: call
+  `/kotak-neo/search-scrip` for real, read the actual field names back,
+  then finish the ATM-chain-with-quotes function against confirmed data.
 - **Phase 3 (not started, needs its own separate go-ahead)** - real order
   placement. Explicitly deferred; building this is a distinct decision from
   everything above it.
@@ -184,23 +194,74 @@ logged, never returned by any endpoint):
 
 **Code.** `kotak_neo.py` is a module deliberately isolated from the trading
 engine - nothing in `main.py`'s scheduler/entry/exit logic imports or calls
-it. It only knows how to log in: `login()` builds a `NeoAPI` client
-(`environment="prod"`), calls `totp_login()` then `totp_validate()`, and
-confirms a real session via the SDK's own convention
-(`client.configuration.edit_token` and `edit_sid` both set). Two read-only
-diagnostic endpoints in `main.py`:
+it. `login()` builds a `NeoAPI` client (`environment="prod"`), calls
+`totp_login()` then `totp_validate()`, and confirms a real session via the
+SDK's own convention (`client.configuration.edit_token` and `edit_sid`
+both set). `holdings()`, `positions()`, and `limits()` (Phase 2) each log
+in fresh and return the SDK's own response shape unmodified - no session
+caching yet, since these are low-frequency diagnostic calls, not a hot
+path. `search_scrip()` (Phase 2.5) wraps the SDK method 1:1, no
+reshaping - see the Phase 2.5 note above for why. Six endpoints in
+`main.py`:
 - `GET /kotak-neo/status` - reports which of the required env vars are
   present (`{"set": bool, "length": int, "preview": "abcd..."}` shape per
-  var), never the real values.
+  var), never the real values. Unauthenticated - no real data exposed.
 - `GET /kotak-neo/test-login` - calls `login()` and returns **only**
   `{"logged_in": true}` or `{"logged_in": false, "error": "..."}`. It
   deliberately never returns holdings, positions, balance, or any other
-  real account data.
+  real account data. Unauthenticated - no real data exposed.
+- `GET /kotak-neo/holdings`, `GET /kotak-neo/positions`,
+  `GET /kotak-neo/limits` (Phase 2), `GET /kotak-neo/search-scrip`
+  (Phase 2.5, query params `exchange_segment`/`symbol`/`expiry`/
+  `option_type`/`strike_price`/`limit`) - return REAL account/market
+  data, so unlike every other endpoint in this app they're gated behind a
+  shared-secret token (see Security note below). The three Phase 2
+  endpoints wrap their result through a JSON-safety pass
+  (`_kotak_json_safe`, `json.dumps(..., default=str)`) because the SDK's
+  own `positions()`/`holdings()` catch their internal errors and hand back
+  `{"Error": <Exception instance>}` - not directly JSON-serializable,
+  which would otherwise 500 the endpoint on exactly the failure case a
+  caller most needs to see. `search-scrip` truncates its (potentially
+  large) match list to `limit` (default 20) rather than wrapping through
+  the same helper, since its rows are already plain JSON from a
+  `pandas.to_json()` round-trip.
 
-**Security note.** This app has zero authentication on any endpoint today -
-fine for fake paper-trading data, not fine for real account data. Until a
-real auth layer is designed separately, no endpoint touching the live
-Kotak account may expose anything beyond a bare pass/fail boolean.
+**`GET /watchlist`** (2026-09-03, unauthenticated, no real Kotak data) -
+answers "what are you monitoring, and where does the price come from" -
+lists every symbol in `WATCHLIST` with its `asset_class` (index /
+nse_equity / mcx_commodity_proxy) and `data_source`. As of this writing
+every monitored symbol's `data_source` is `"yahoo_finance"` - Kotak Neo is
+not used for any monitoring/price data yet, only the account-level Phase
+1/2 endpoints above. This is a different question from `/trade-view`,
+which shows only currently-open positions, not the full scan universe.
+
+**Security note.** This app has zero authentication on every other
+endpoint - fine for fake paper-trading data, not fine for real account
+data. The four Phase 2/2.5 endpoints above are the exception: gated
+behind `KOTAK_NEO_API_TOKEN` (Render env var), checked via `?token=...` or
+an `Authorization: Bearer ...` header. Fails **closed** - if
+`KOTAK_NEO_API_TOKEN` isn't set on the server at all, the endpoints refuse
+with a 503 rather than silently serving real data unauthenticated. A
+proper auth layer for the rest of the app is still undesigned; until then,
+no endpoint touching the live Kotak account may expose real data without
+this kind of explicit gate (a bare pass/fail boolean, as Phase 1's two
+endpoints do, or a fixed set of already-public strings, as `/watchlist`
+does, doesn't need one).
+
+**Deploy gotcha found while shipping Phase 1 (2026-09-03): Render doesn't
+read this repo's `Procfile`.** The service has an explicit Start Command
+configured in the Render dashboard that overrides it - editing `Procfile`
+alone silently does nothing. Learned the hard way: `neo_api_client` pins
+`websockets==8.1`, and even after dropping uvicorn's own `[standard]`
+extra (see `requirements.txt` comment), uvicorn's default `--ws auto`
+still auto-imports whatever `websockets` package it finds at startup -
+finds the SDK's old pinned copy, which predates the `websockets.legacy`
+module uvicorn 0.30 expects, and crash-loops the whole app
+(`ModuleNotFoundError: No module named 'websockets.legacy'`). Fixed by
+adding `--ws none` to the Start Command directly in the Render dashboard
+(this app never uses WebSockets - HTTP only). If a future dependency ever
+needs an incompatible `websockets` version again, check the *dashboard*
+Start Command, not just `Procfile`.
 
 ## Kill switch / pause-resume (added 2026-09-03)
 
