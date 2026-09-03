@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-03T09:31:22Z",
+  "synced_at_utc": "2026-09-03T09:40:06Z",
   "open_positions": [
     {
       "symbol": "BTC-USD",
@@ -12,6 +12,19 @@
       "orb_high_native": 77363.3125,
       "orb_low_native": 77134.9765625,
       "entry_ts": 1788425606.1911764,
+      "interval": "5m"
+    },
+    {
+      "symbol": "ASIANPAINT.NS",
+      "qty": 78.795999,
+      "entry_price_native": 2538.199951171875,
+      "stop_loss_native": 2518.0,
+      "target_native": 2598.7998046875,
+      "fx_to_inr": 1.0,
+      "notional_inr": 200000.0,
+      "orb_high_native": 2528.5,
+      "orb_low_native": 2518.0,
+      "entry_ts": 1788427971.4328415,
       "interval": "5m"
     }
   ]
