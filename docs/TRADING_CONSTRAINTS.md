@@ -197,6 +197,78 @@ justified this trade still intact?":
   continues under its existing stop/target/eod-squareoff, exactly per
   instruction ("else it should not close the entered trade").
 
+## Trailing stop loss (added 2026-09-03) - equity engine only for now
+
+Direct user request: a trailing stop for every entered trade, plus rules to
+review. **Equity (`_auto_signal_core`) only** - the options overlay has
+zero live trades right now (`OPTIONS_ELIGIBLE_SYMBOLS = []`), so there's
+nothing to validate a trailing rule against there yet; same treatment is a
+natural fast-follow once that overlay is re-enabled. Two-stage rule,
+implemented in `_trailing_stop_target()`:
+
+1. **Activation gate - `TRAIL_ACTIVATE_R = 1.0`.** Below 1R of unrealized
+   gain (R = entry_price - the ORIGINAL stop at entry, frozen forever in
+   the new `signal_state.initial_stop_loss` column so it doesn't move as
+   the live stop trails), nothing changes - the trade still runs on its
+   plain fixed stop. Rationale: a trade that hasn't even recovered its own
+   risk yet shouldn't have its stop tightened on top of normal opening
+   noise - that's how a real winner gets shaken out before it ever gets
+   going. Industry-standard practice, not specific to this system.
+2. **Breakeven lock, then a Chandelier Exit.** At/above 1R, the stop locks
+   to breakeven + `TRAIL_BREAKEVEN_BUFFER_PCT` (0.1%, to clear round-trip
+   cost) at minimum - the trade can no longer become a real loss. Beyond
+   that, it ratchets further via a **Chandelier Exit**: `highest close
+   since this trade's own entry - TRAIL_CHANDELIER_K (3.0) * ATR(14)`,
+   whichever of that or the breakeven lock is higher. This is a real,
+   widely-published technique (Chuck LeBeau's own default k=3,
+   period=14), not invented for this project - it adapts the trail's
+   width to each stock's OWN actual volatility (a quiet blue-chip and a
+   choppy mid-cap get different-width trails automatically) instead of one
+   arbitrary fixed percentage applied to everyone alike. ATR is read off
+   the multi-day candle history already fetched every tick (not just
+   today's bars), so there's a real reading even early in the session.
+3. **Only ever ratchets up, never down** - the caller takes
+   `max(current_stop, candidate)`; `_trailing_stop_target` itself never
+   proposes loosening. Persisted in place (`signal_state.stop_loss` IS the
+   live, possibly-trailed value - `stop_hit` needs no separate check), so
+   the trade-view UI's existing stop/ladder display already reflects it
+   with no separate field.
+4. **Never overrides the fixed target.** `target_hit` still exits
+   immediately at the planned R-multiple if price gets there first -
+   trailing only ever tightens the floor beneath it. Letting a strong
+   trend run PAST the original target once trailing has activated (a
+   "let winners run" upgrade) is a separate, bigger design decision I've
+   deliberately not made unilaterally - say the word if you want that too.
+5. **Runs alongside, not instead of, the 95%-confidence `trend_weakened`
+   exit above** - both checks run every tick; whichever condition is met
+   first exits the trade. Trailing is mechanical/price-based (fires fast
+   once price gives back enough); `trend_weakened` is statistical (fires
+   only on a real reversal). Together they cover both "the move already
+   gave back its gain" and "the setup itself broke."
+6. `rr_achieved` on exit is now measured against the ORIGINAL R
+   (`initial_stop_loss`), not the trailed stop - otherwise a trade that
+   trailed close to its own exit price would report an inflated R-multiple
+   off its own shrunken `stop_dist`. The exit payload also carries
+   `initial_stop_loss` and a `trailing_active` flag for genuine visibility
+   into which trades it actually engaged on.
+7. **Survives a redeploy.** `daily_summary()`'s `open_positions` now
+   exposes `initial_stop_loss_native` (the frozen entry stop) alongside
+   the existing `stop_loss_native` (the live, possibly-trailed one) - both
+   round-trip through the journal file, so `initial_stop_loss` is not lost
+   across a redeploy and the R-multiple yardstick trailing measures
+   against doesn't reset with it. A journal snapshot from before this
+   field existed falls back to whatever `stop_loss_native` it has (that
+   trade's true original R is a small, honest known-gap for pre-existing
+   positions only, not new ones going forward).
+
+**Untested against real market data** - like every new rule in this
+system, it's shipped conservative (parameters are widely-published
+defaults, not tuned to this specific watchlist) rather than backtested
+first, per the same evidence standard the rest of `docs/TRADING_CONSTRAINTS.md`
+holds new logic to. Worth a real backtest pass (`entry-trigger-research.yml`'s
+pattern) before trusting the exact k=3.0/period=14/activate=1.0R numbers
+over the plain fixed stop this replaces.
+
 ## Two independent caps, two different bases (clarified 2026-09-03)
 
 The per-trade cap and the daily cap are measured against **different
