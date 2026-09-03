@@ -26057,5 +26057,22 @@
         "time_local": "2026-09-04 03:23:57.553778"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-03T23:04:50Z",
+    "attempts": {
+      "GC=F": {
+        "checked_at_utc": 1788476666.681606,
+        "symbol": "GC=F",
+        "status": "fx_error",
+        "detail": "No data for symbol='INR=X' period='5d' interval='1d'."
+      },
+      "CL=F": {
+        "checked_at_utc": 1788476668.6724463,
+        "symbol": "CL=F",
+        "status": "fx_error",
+        "detail": "No data for symbol='INR=X' period='5d' interval='1d'."
+      }
+    }
   }
 ]
