@@ -111,5 +111,112 @@
         "available_capital_inr": 200000
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-03T03:38:44Z",
+    "attempts": {
+      "^NSEI": {
+        "checked_at_utc": 1788406721.9916723,
+        "symbol": "^NSEI",
+        "status": "pre_open",
+        "time_local": "2026-09-03 09:08:41.991542"
+      },
+      "^NSEBANK": {
+        "checked_at_utc": 1788406721.9918656,
+        "symbol": "^NSEBANK",
+        "status": "pre_open",
+        "time_local": "2026-09-03 09:08:41.991796"
+      },
+      "^BSESN": {
+        "checked_at_utc": 1788406721.9919727,
+        "symbol": "^BSESN",
+        "status": "pre_open",
+        "time_local": "2026-09-03 09:08:41.991914"
+      },
+      "BTC-USD": {
+        "checked_at_utc": 1788406722.0092144,
+        "symbol": "BTC-USD",
+        "status": "checked",
+        "time_local": "2026-09-03 03:38:41.992023",
+        "currency": "USD",
+        "fx_to_inr": 94.415,
+        "last_close": 77648.40625,
+        "orb_high": 77363.3125,
+        "orb_low": 77134.9765625,
+        "sma_fast": 77728.80034722222,
+        "sma_slow": 77631.93415178571,
+        "trend": "up",
+        "capital": 200000,
+        "daily_loss_cap": 4000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 4000.0,
+        "halted_for_day": false,
+        "action_taken": "insufficient_capital",
+        "available_capital_inr": 200000
+      },
+      "ETH-USD": {
+        "checked_at_utc": 1788406722.089259,
+        "symbol": "ETH-USD",
+        "status": "checked",
+        "time_local": "2026-09-03 03:38:42.009302",
+        "currency": "USD",
+        "fx_to_inr": 94.415,
+        "last_close": 2400.6201171875,
+        "orb_high": 2394.419921875,
+        "orb_low": 2386.68994140625,
+        "sma_fast": 2404.01220703125,
+        "sma_slow": 2398.8528413318454,
+        "trend": "up",
+        "capital": 200000,
+        "daily_loss_cap": 4000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 4000.0,
+        "halted_for_day": false,
+        "action_taken": "insufficient_capital",
+        "available_capital_inr": 200000
+      },
+      "SPY": {
+        "checked_at_utc": 1788406722.0894113,
+        "symbol": "SPY",
+        "status": "closed",
+        "time_local": "2026-09-02 23:38:42.089353"
+      },
+      "QQQ": {
+        "checked_at_utc": 1788406722.0895147,
+        "symbol": "QQQ",
+        "status": "closed",
+        "time_local": "2026-09-02 23:38:42.089467"
+      },
+      "AAPL": {
+        "checked_at_utc": 1788406722.089613,
+        "symbol": "AAPL",
+        "status": "closed",
+        "time_local": "2026-09-02 23:38:42.089565"
+      },
+      "GC=F": {
+        "checked_at_utc": 1788406722.1851423,
+        "symbol": "GC=F",
+        "status": "checked",
+        "time_local": "2026-09-03 03:38:42.089655",
+        "currency": "USD",
+        "fx_to_inr": 94.415,
+        "last_close": 4472.7001953125,
+        "orb_high": 4438.0,
+        "orb_low": 4429.89990234375,
+        "sma_fast": 4462.600024414062,
+        "sma_slow": 4462.138113839285,
+        "trend": "up",
+        "capital": 200000,
+        "daily_loss_cap": 4000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 4000.0,
+        "halted_for_day": false,
+        "action_taken": "insufficient_capital",
+        "available_capital_inr": 200000
+      }
+    }
   }
 ]
