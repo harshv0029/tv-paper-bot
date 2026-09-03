@@ -261,13 +261,52 @@ implemented in `_trailing_stop_target()`:
    trade's true original R is a small, honest known-gap for pre-existing
    positions only, not new ones going forward).
 
-**Untested against real market data** - like every new rule in this
-system, it's shipped conservative (parameters are widely-published
-defaults, not tuned to this specific watchlist) rather than backtested
-first, per the same evidence standard the rest of `docs/TRADING_CONSTRAINTS.md`
-holds new logic to. Worth a real backtest pass (`entry-trigger-research.yml`'s
-pattern) before trusting the exact k=3.0/period=14/activate=1.0R numbers
-over the plain fixed stop this replaces.
+**Activation threshold backtested 2026-09-03** (direct user request -
+`.github/workflows/trailing-stop-threshold-backtest.yml`, workflow_dispatch,
+read-only). Imports `main.py` directly and calls its own
+`_trailing_stop_target`/`_trend_confidence` (not a reimplementation that
+could drift from what's live) - only `TRAIL_ACTIVATE_R` varied per
+variant; Chandelier k/ATR period/breakeven buffer held at their shipped
+defaults. Entries found via the live `orb_breakout` rule, replayed
+bar-by-bar across ~59 days of real 5-min data (yfinance's own intraday
+window), 12 symbols (the 3 NSE indices + 10 liquid Nifty 50 names -
+`TATAMOTORS.NS` skipped, Yahoo now 404s that ticker), 380 pooled entries
+per variant:
+
+| Variant | Win % | Total R | Avg R | Profit factor |
+|---|---|---|---|---|
+| No trailing | 34.7% | -7.77 | -0.020 | 0.93 |
+| **0.5R** | **41.6%** | **-3.76** | **-0.010** | **0.96** |
+| 1.0R (old default) | 35.8% | -6.20 | -0.016 | 0.95 |
+| 1.5R | 34.7% | -9.39 | -0.025 | 0.92 |
+| 2.0R | 34.7% | -9.42 | -0.025 | 0.92 |
+
+`TRAIL_ACTIVATE_R` changed **1.0 -> 0.5** - clear winner on every metric.
+Mechanism visible in the exit-reason breakdown: at 0.5R, `stop_hit` count
+jumps from 24 (no trailing) to 129, converting a lot of what would
+otherwise be outright `trend_weakened` losses (248 -> 173) into
+scratch/small-win exits near breakeven instead. 1.5R/2.0R are actually
+*worse* than no trailing at all - waiting that long to engage lets a few
+real winners run into a normal 3xATR pullback and get stopped just short
+of the fixed target, giving back more than the early protection saves
+elsewhere. Chandelier k=3.0/ATR period=14 themselves were NOT swept in
+this pass - still the standard published defaults, not yet evidenced for
+this watchlist specifically.
+
+**Bigger finding this backtest also surfaced, unresolved:** every single
+variant - including the winning 0.5R - is net LOSING on this sample
+(total R negative, profit factor < 1). `trend_weakened` alone accounts for
+46-65% of all exits across variants. The trailing-stop threshold is a
+second-order lever on top of an `orb_breakout` + exit-stack combination
+that loses money in aggregate on this ~59-day window, at least for these
+12 symbols. Sample-size/regime caveats apply (one recent window, ~380
+trades, could reflect one specific choppy/range-bound stretch rather than
+a durable edge - same caution `/sweep`'s own note gives). Flagging this
+plainly rather than fixing it unilaterally: worth a real investigation
+(a wider backtest window, and/or whether `trend_weakened`'s 95% gate or
+`orb_breakout`'s own entry filter needs revisiting) before trusting this
+watchlist's current live setup to be profitable over time - separate from,
+and larger than, the trailing-stop question this session answered.
 
 ## Two independent caps, two different bases (clarified 2026-09-03)
 
