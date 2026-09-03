@@ -2860,11 +2860,16 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
     for t in all_trades:
         sym = t["symbol"]
         price_inr = t["price"] * t["fx_to_inr"]
-        b = book.setdefault(sym, {"qty": 0.0, "avg": 0.0})
+        b = book.setdefault(sym, {"qty": 0.0, "avg": 0.0, "last_strategy": None})
         if t["action"] == "buy":
             new_qty = b["qty"] + t["qty"]
             b["avg"] = ((b["qty"] * b["avg"]) + (t["qty"] * price_inr)) / new_qty if new_qty else 0.0
             b["qty"] = new_qty
+            # The strategy that ACTUALLY opened this position, not whatever
+            # the exit's own (recomputed-from-current-params) trades row
+            # happens to carry - kept on the book so a later sell/open-
+            # position lookup can name it.
+            b["last_strategy"] = t["strategy"]
         else:
             pnl = (price_inr - b["avg"]) * min(t["qty"], b["qty"])
             b["qty"] -= t["qty"]
@@ -2881,7 +2886,7 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
                 "currency": extra.get("currency", "INR"), "qty": t["qty"],
                 "pnl_inr": round(pnl, 2), "pnl_pct_of_capital": round(100 * pnl / capital, 3),
                 "exit_reason": extra.get("exit_reason"), "rr_target": extra.get("rr_target"),
-                "rr_achieved": extra.get("rr_achieved"),
+                "rr_achieved": extra.get("rr_achieved"), "strategy": b.get("last_strategy"),
             })
 
     open_positions = []
@@ -2896,6 +2901,11 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
             "notional_inr": round(notional_inr, 2),
             "orb_high_native": r["orb_high"], "orb_low_native": r["orb_low"],
             "entry_ts": r["entry_ts"], "interval": r["interval"],
+            # signal_state itself has no strategy column - read the same
+            # book the closed_trades loop above just built from the
+            # trades table's own buy rows, so this and a later close of
+            # the same position always agree on which strategy opened it.
+            "strategy": book.get(r["symbol"], {}).get("last_strategy"),
         })
     for r in open_option_state:
         qty = r["contracts"] * 100
@@ -2917,6 +2927,7 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
             "notional_inr": round(notional_inr, 2),
             "entry_iv": r["entry_iv"], "entry_delta": r["entry_delta"],
             "entry_ts": r["entry_ts"], "interval": "5m",
+            "strategy": OPTIONS_STRATEGY_TAG,  # the only strategy tag the options overlay ever uses
         })
 
     daily_loss_cap = capital * daily_risk_pct / 100
