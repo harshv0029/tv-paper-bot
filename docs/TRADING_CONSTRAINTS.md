@@ -160,6 +160,15 @@ phases so each phase can be verified before the next is built:
 - **Phase 2 (done 2026-09-03)** - read-only account data (holdings,
   positions, funds/margin) pulled from the real account, still without
   ever placing an order.
+- **Phase 2.5 (in progress 2026-09-03)** - real NSE option chain data (ATM
+  and nearby strikes for NIFTY). `search_scrip()` is wired up as a
+  diagnostic endpoint (`GET /kotak-neo/search-scrip`) but deliberately NOT
+  yet turned into a polished "give me the ATM chain with live quotes"
+  endpoint - the SDK's source doesn't document which scrip-master column
+  is the instrument token `quotes()` needs, and guessing that on financial
+  data risks silently matching the wrong contract. Next step: call
+  `/kotak-neo/search-scrip` for real, read the actual field names back,
+  then finish the ATM-chain-with-quotes function against confirmed data.
 - **Phase 3 (not started, needs its own separate go-ahead)** - real order
   placement. Explicitly deferred; building this is a distinct decision from
   everything above it.
@@ -191,7 +200,9 @@ SDK's own convention (`client.configuration.edit_token` and `edit_sid`
 both set). `holdings()`, `positions()`, and `limits()` (Phase 2) each log
 in fresh and return the SDK's own response shape unmodified - no session
 caching yet, since these are low-frequency diagnostic calls, not a hot
-path. Five endpoints in `main.py`:
+path. `search_scrip()` (Phase 2.5) wraps the SDK method 1:1, no
+reshaping - see the Phase 2.5 note above for why. Six endpoints in
+`main.py`:
 - `GET /kotak-neo/status` - reports which of the required env vars are
   present (`{"set": bool, "length": int, "preview": "abcd..."}` shape per
   var), never the real values. Unauthenticated - no real data exposed.
@@ -200,18 +211,33 @@ path. Five endpoints in `main.py`:
   deliberately never returns holdings, positions, balance, or any other
   real account data. Unauthenticated - no real data exposed.
 - `GET /kotak-neo/holdings`, `GET /kotak-neo/positions`,
-  `GET /kotak-neo/limits` (Phase 2) - return REAL account data, so unlike
-  every other endpoint in this app they're gated behind a shared-secret
-  token (see Security note below). Each wraps its result through a
-  JSON-safety pass (`_kotak_json_safe`, `json.dumps(..., default=str)`)
-  because the SDK's own `positions()`/`holdings()` catch their internal
-  errors and hand back `{"Error": <Exception instance>}` - not directly
-  JSON-serializable, which would otherwise 500 the endpoint on exactly the
-  failure case a caller most needs to see.
+  `GET /kotak-neo/limits` (Phase 2), `GET /kotak-neo/search-scrip`
+  (Phase 2.5, query params `exchange_segment`/`symbol`/`expiry`/
+  `option_type`/`strike_price`/`limit`) - return REAL account/market
+  data, so unlike every other endpoint in this app they're gated behind a
+  shared-secret token (see Security note below). The three Phase 2
+  endpoints wrap their result through a JSON-safety pass
+  (`_kotak_json_safe`, `json.dumps(..., default=str)`) because the SDK's
+  own `positions()`/`holdings()` catch their internal errors and hand back
+  `{"Error": <Exception instance>}` - not directly JSON-serializable,
+  which would otherwise 500 the endpoint on exactly the failure case a
+  caller most needs to see. `search-scrip` truncates its (potentially
+  large) match list to `limit` (default 20) rather than wrapping through
+  the same helper, since its rows are already plain JSON from a
+  `pandas.to_json()` round-trip.
+
+**`GET /watchlist`** (2026-09-03, unauthenticated, no real Kotak data) -
+answers "what are you monitoring, and where does the price come from" -
+lists every symbol in `WATCHLIST` with its `asset_class` (index /
+nse_equity / mcx_commodity_proxy) and `data_source`. As of this writing
+every monitored symbol's `data_source` is `"yahoo_finance"` - Kotak Neo is
+not used for any monitoring/price data yet, only the account-level Phase
+1/2 endpoints above. This is a different question from `/trade-view`,
+which shows only currently-open positions, not the full scan universe.
 
 **Security note.** This app has zero authentication on every other
 endpoint - fine for fake paper-trading data, not fine for real account
-data. The three Phase 2 endpoints above are the one exception: gated
+data. The four Phase 2/2.5 endpoints above are the exception: gated
 behind `KOTAK_NEO_API_TOKEN` (Render env var), checked via `?token=...` or
 an `Authorization: Bearer ...` header. Fails **closed** - if
 `KOTAK_NEO_API_TOKEN` isn't set on the server at all, the endpoints refuse
@@ -219,7 +245,8 @@ with a 503 rather than silently serving real data unauthenticated. A
 proper auth layer for the rest of the app is still undesigned; until then,
 no endpoint touching the live Kotak account may expose real data without
 this kind of explicit gate (a bare pass/fail boolean, as Phase 1's two
-endpoints do, doesn't need one).
+endpoints do, or a fixed set of already-public strings, as `/watchlist`
+does, doesn't need one).
 
 **Deploy gotcha found while shipping Phase 1 (2026-09-03): Render doesn't
 read this repo's `Procfile`.** The service has an explicit Start Command
