@@ -1058,7 +1058,16 @@ def deployed_notional(conn) -> float:
 # untouched by any of this - direction detection here is a read-only mirror
 # of its own bullish logic (plus the bearish case it deliberately doesn't
 # trade), used only to decide "buy a call" vs "buy a put".
-OPTIONS_ELIGIBLE_SYMBOLS = ["SPY", "QQQ", "AAPL"]
+# 2026-09-03: expanded from just SPY/QQQ/AAPL per explicit user instruction
+# ("don't skip stocks with options available") - every name here is a
+# heavily-optioned, deeply liquid US mega-cap/ETF, so chain availability
+# isn't in question. Each must also be a WATCHLIST entry (session hours/
+# currency/risk_pct come from there) - see the WATCHLIST comment above this
+# set for why it's a curated list, not literally every optionable US stock.
+OPTIONS_ELIGIBLE_SYMBOLS = [
+    "SPY", "QQQ", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA",
+    "NFLX", "AMD", "JPM", "V", "DIA", "IWM",
+]
 OPTIONS_TARGET_DELTA = 0.35     # moderately OTM: real leverage (bigger % payoff on a win) without
                                  # betting on a near-impossible move - deep ITM has little leverage,
                                  # far OTM is a lottery ticket the IV check below would flag anyway.
@@ -1958,6 +1967,56 @@ WATCHLIST = [
      "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
      "trade_weekends": False, "currency": "USD", "risk_pct": 2.0, "stop_pct": 2.0,
      "strategy": "bullish_engulfing", "trend_sma": 20, "volume_confirm": False},
+    # Added 2026-09-03 per explicit user instruction: don't skip stocks with
+    # a real options/futures market - watch them too, not just SPY/QQQ/AAPL.
+    # These are the most heavily-optioned, most liquid US mega-caps/ETFs -
+    # every one of them has deep, liquid listed options (no chain-
+    # availability doubt the way a random small-cap would carry). This is a
+    # curated set, not literally every optionable US equity (~4,000+ names
+    # via the OCC) - scanning that whole universe every 30s against Yahoo's
+    # free/unofficial API would trip rate limits and blow well past the
+    # scheduler's own cycle time for no real benefit, since an un-backtested
+    # symbol trades at the same conservative 1% ceiling regardless. Same
+    # equity engine (orb_breakout, unproven -> half ceiling) as SPY/QQQ;
+    # also added to OPTIONS_ELIGIBLE_SYMBOLS below so the options overlay
+    # (real strike/IV selection - docs/TRADING_CONSTRAINTS.md) covers them
+    # too. Tell me specific tickers to add beyond this set any time.
+    {"symbol": "MSFT", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "GOOGL", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "AMZN", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "META", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "NVDA", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "TSLA", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "NFLX", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "AMD", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "JPM", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "V", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "DIA", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "IWM", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
     # Gold futures - near-24h (COMEX has a brief daily settlement pause,
     # simplified here to the same always-open shape as crypto below).
     # Added 2026-09-03: orb_breakout evidenced strongly on real data - 100%
