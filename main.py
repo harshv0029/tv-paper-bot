@@ -1081,7 +1081,7 @@ def deployed_notional(conn) -> float:
 # missing here just falls back to showing its raw ticker.
 SYMBOL_DISPLAY_NAMES = {
     "^NSEI": "NIFTY 50", "^NSEBANK": "BANK NIFTY", "^BSESN": "SENSEX",
-    "GC=F": "GOLD",
+    "GC=F": "GOLD", "SI=F": "SILVER", "CL=F": "CRUDE OIL",
 }
 
 
@@ -2114,6 +2114,31 @@ WATCHLIST = [
     {"symbol": "ASIANPAINT.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
      "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
      "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    # MCX commodities - restored 2026-09-03 per explicit user instruction
+    # ("keep all those assets listed in Zerodha") - unlike crypto and US
+    # equities (genuinely not offered by Kotak Neo/Zerodha at all, so they
+    # stay excluded), gold/silver/crude oil ARE real Zerodha-tradable
+    # instruments via the MCX segment. yfinance has no free MCX ticker, so
+    # these run on the international futures contract (GC=F/SI=F/CL=F,
+    # USD-denominated) as a PRICE-ACTION PROXY - MCX's own INR price
+    # differs (import duty, currency, local demand/supply) but tracks the
+    # same underlying commodity closely enough that a candlestick pattern/
+    # breakout signal should transfer directionally. Same near-24h shape
+    # as before (COMEX/NYMEX close weekends same as MCX broadly does).
+    # Gold: real evidence already exists (100% of 24 swept combos
+    # profitable, best 65% win rate/+676.50 over 60d -
+    # docs/strategy_log.xlsx, from before this symbol was briefly removed
+    # then restored) - full 2% ceiling, same bar as the NSE indices.
+    # Silver/crude: no evidence yet - half ceiling (1%) until they earn one.
+    {"symbol": "GC=F", "orb_minutes": 15, "sma_fast": 20, "sma_slow": 21,
+     "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 2.0, "stop_pct": 2.0},
+    {"symbol": "SI=F", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "CL=F", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
 ]
 
 # ---------------------------------------------------------------------------

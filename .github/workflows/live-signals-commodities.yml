@@ -1,0 +1,48 @@
+name: Live Intraday Signals - Commodities (paper trading)
+
+# Gold/silver/crude oil - restored 2026-09-03 per explicit user instruction
+# ("keep all those assets listed in Zerodha") - real Zerodha-tradable
+# instruments via the MCX segment. yfinance has no free MCX ticker, so
+# these run on the international futures contract (GC=F/SI=F/CL=F, USD)
+# as a price-action proxy - see main.py's WATCHLIST comment for the full
+# reasoning. Near-24h market, no session hours/weekday restriction - same
+# reason this cron slot used to run the (now excluded, not Zerodha-
+# tradable) crypto backstop. Shares the SAME capital pool and 2%
+# daily-loss cap as the NSE workflow (one account, one pool) - budget
+# resets at IST midnight regardless of this being UTC-timed.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  signal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poll auto-signal for commodity symbols
+        run: |
+          BASE="https://tv-paper-bot-gdan.onrender.com/auto-signal"
+
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+
+          # Gold: real evidence exists (100% of 24 swept combos profitable
+          # - docs/strategy_log.xlsx) - full 2% ceiling, same bar as the
+          # NSE indices. Must match main.py's WATCHLIST exactly.
+          GOLD="capital=400000&daily_risk_pct=2&risk_per_trade_pct=2&stop_pct=2&rr=3&orb_minutes=15&sma_fast=20&sma_slow=21&tz_offset_min=0&open_min=0&close_min=1439&squareoff_min=1439&trade_weekends=false&currency=USD"
+          echo "### GC=F (Gold)"
+          curl -sS -m 60 "$BASE?symbol=GC=F&${GOLD}"
+          echo
+
+          # Silver/crude: no backtest evidence yet - half ceiling (1%)
+          # until they earn one, same as any other unproven symbol.
+          COMMON="capital=400000&daily_risk_pct=2&risk_per_trade_pct=1&stop_pct=1&rr=3&orb_minutes=15&sma_fast=9&sma_slow=21&tz_offset_min=0&open_min=0&close_min=1439&squareoff_min=1439&trade_weekends=false&currency=USD"
+          for SYMBOL in "SI=F" "CL=F"; do
+            echo "### $SYMBOL"
+            curl -sS -m 60 "$BASE?symbol=${SYMBOL}&${COMMON}"
+            echo
+          done
+
+          echo "### daily-summary"
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=400000&daily_risk_pct=2"
+          echo

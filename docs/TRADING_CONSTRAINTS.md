@@ -1,28 +1,40 @@
 # Trading Constraints (standing rules)
 
-## Scope: NSE/BSE only (rescoped 2026-09-03)
+## Scope: instruments actually tradeable via Kotak Neo/Zerodha (rescoped 2026-09-03)
 
 Explicit user instruction: "currently work on only Indian stock market and
-stocks available to Indian trader via Kotak Neo and Zerodha accounts.
-Screen only these stocks and index." Every non-Indian instrument this
-system ever traded - crypto (BTC-USD, ETH-USD), US mega-caps/ETFs (SPY,
-QQQ, AAPL, and 12 more added earlier the same day), COMEX gold futures
-(GC=F), and the entire US-options overlay built on top of them - is
-removed from `WATCHLIST`/`OPTIONS_ELIGIBLE_SYMBOLS`. None of those were
-ever a real path to a live trade: Kotak Neo and Zerodha don't offer crypto
-or US-listed instruments, so paper-trading them had no future beyond the
-paper account itself.
+stocks available to Indian trader via Kotak Neo and Zerodha accounts" -
+then, on seeing gold drop out entirely: "why only NSE, but keep all those
+assets listed in Zerodha." The actual line isn't "NSE-only," it's "would
+Kotak Neo/Zerodha actually let a real account trade this":
 
-`WATCHLIST` now covers: NIFTY 50 (`^NSEI`), BANK NIFTY (`^NSEBANK`),
-SENSEX (`^BSESN`), and 15 curated, heavily-liquid NSE large-caps
-(RELIANCE, TCS, HDFCBANK, INFY, ICICIBANK, HINDUNILVR, ITC, SBIN,
-BHARTIARTL, KOTAKBANK, LT, AXISBANK, BAJFINANCE, MARUTI, ASIANPAINT - all
-`.NS` tickers). Same "curated, not exhaustive" reasoning as before applies
-to the size of the list, just scoped to NSE now: there are ~2,000+
-NSE-listed stocks, and scanning all of them every 30s against Yahoo's free
-endpoint would trip rate limits for no benefit, since an un-backtested
-stock trades at the same conservative 1% ceiling regardless of how it was
-found. Tell me specific NSE tickers to add beyond this set any time.
+- **Removed and staying removed**: crypto (BTC-USD, ETH-USD) and US
+  mega-caps/ETFs (SPY, QQQ, AAPL, and 12 more) - neither broker offers
+  either at all, so paper-trading them had no path to a real trade. The
+  US-options overlay built on top of them is correspondingly disabled.
+- **NSE/BSE equity** - `^NSEI` (NIFTY 50), `^NSEBANK` (BANK NIFTY),
+  `^BSESN` (SENSEX), and 15 curated, heavily-liquid NSE large-caps
+  (RELIANCE, TCS, HDFCBANK, INFY, ICICIBANK, HINDUNILVR, ITC, SBIN,
+  BHARTIARTL, KOTAKBANK, LT, AXISBANK, BAJFINANCE, MARUTI, ASIANPAINT -
+  `.NS` tickers). Same "curated, not exhaustive" reasoning as before: there
+  are ~2,000+ NSE-listed stocks, and scanning all of them every 30s against
+  Yahoo's free endpoint would trip rate limits for no benefit, since an
+  un-backtested stock trades at the same conservative 1% ceiling regardless
+  of how it was found.
+- **MCX commodities - restored**: gold (`GC=F`), silver (`SI=F`), crude oil
+  (`CL=F`). These ARE real Zerodha/Kotak-Neo-tradable instruments via the
+  MCX segment - unlike crypto/US equities, excluding them was overreach.
+  yfinance has no free MCX ticker, so these run on the international
+  futures contract (COMEX/NYMEX, USD-denominated) as a **price-action
+  proxy** - MCX's own INR price differs (import duty, currency, local
+  supply/demand) but tracks the same underlying commodity closely enough
+  that a candlestick pattern/breakout signal should transfer directionally.
+  Gold already has real backtest evidence (100% of 24 swept combos
+  profitable - docs/strategy_log.xlsx) - full 2% ceiling; silver/crude are
+  unproven - half ceiling (1%) until they earn one.
+
+Tell me specific NSE tickers (or other MCX/currency instruments Zerodha
+lists) to add beyond this set any time.
 
 Real NSE options/futures data still requires the same Kotak Neo broker
 connection this project has always been gated on (not yet wired up) - the
