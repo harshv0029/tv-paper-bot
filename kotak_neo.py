@@ -101,3 +101,53 @@ def login():
         raise RuntimeError("Kotak Neo login did not establish a session (no edit_token/edit_sid)")
 
     return client
+
+
+# --- Phase 2: read-only account data (2026-09-03) ---------------------------
+# Explicit user instruction: "do phase 2" - read-only market/account data,
+# still no order placement. Each function below logs in fresh (no session
+# caching yet - these are low-frequency diagnostic calls, not a hot path)
+# and returns whatever dict/list the SDK itself returns. Callers in main.py
+# are responsible for gating access (see KOTAK_NEO_API_TOKEN) - this module
+# stays agnostic of HTTP/auth concerns, same as login().
+
+
+def holdings():
+    """Current portfolio holdings for the real account. Read-only - places
+    no order. Returns the SDK's own response shape unmodified."""
+    return login().holdings()
+
+
+def positions():
+    """Current open positions for the real account. Read-only - places no
+    order. Returns the SDK's own response shape unmodified."""
+    return login().positions()
+
+
+def limits():
+    """Available margin/funds across all segments for the real account.
+    Read-only - places no order. Returns the SDK's own response shape
+    unmodified."""
+    return login().limits()
+
+
+def search_scrip(exchange_segment, symbol="", expiry=None, option_type=None, strike_price=None):
+    """Searches Kotak's live scrip master for contracts matching the given
+    filters (e.g. exchange_segment="nse_fo", symbol="nifty",
+    option_type="ce,pe" for an options chain). Read-only - no order placed.
+
+    Deliberately NOT wrapped into a higher-level "ATM strike chain"
+    function yet: the SDK's own source (scrip_search.py) confirms this
+    returns whatever columns Kotak's live scrip-master CSV has (including
+    'dStrikePrice;' and 'pOptionType', confirmed from the SDK's own filter
+    logic) but does not document the column that names the instrument
+    token quotes() needs - guessing that column name risks silently
+    matching the wrong contract, which matters a lot more for financial
+    data than most bugs. Call this directly (via
+    GET /kotak-neo/search-scrip) to see the real column names first, then
+    build the ATM-chain-with-live-quotes function on confirmed data rather
+    than a guess."""
+    return login().search_scrip(
+        exchange_segment=exchange_segment, symbol=symbol, expiry=expiry,
+        option_type=option_type, strike_price=strike_price,
+    )

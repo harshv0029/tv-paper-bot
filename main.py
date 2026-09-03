@@ -3473,6 +3473,39 @@ def health():
     return {"status": "alive", "time": time.time()}
 
 
+# Data source per monitored symbol (2026-09-03) - "MCX_PROXY" symbols run on
+# an international futures contract as a stand-in for the real MCX contract
+# (see the WATCHLIST comment block above), never MCX's own price directly.
+_MCX_PROXY_FOR = {"GC=F": "MCX GOLD", "SI=F": "MCX SILVER (30kg, 999 purity)", "CL=F": "MCX CRUDEOIL"}
+_INDEX_SYMBOLS = {"^NSEI", "^NSEBANK", "^BSESN"}
+
+
+@app.get("/watchlist")
+def watchlist():
+    """Every symbol the scheduler actually scans, each with a data_source
+    label - a distinct question from /trade-view, which shows only
+    currently-open positions, not the full scan universe. Reality as of
+    2026-09-03: 100% of monitored symbols are priced via Yahoo Finance
+    (yfinance) - Kotak Neo is not used for any monitoring/price data yet,
+    only for account-level auth/holdings/positions/limits (Phase 1/2, see
+    docs/TRADING_CONSTRAINTS.md 'Kotak Neo connection'). This changes once
+    real NSE options/futures data via Kotak is wired up."""
+    entries = []
+    for cfg in WATCHLIST:
+        sym = cfg["symbol"]
+        asset_class = "index" if sym in _INDEX_SYMBOLS else ("mcx_commodity_proxy" if sym in _MCX_PROXY_FOR else "nse_equity")
+        entries.append({
+            "symbol": sym,
+            "display_name": _display_name(sym),
+            "asset_class": asset_class,
+            "data_source": "yahoo_finance",
+            "mcx_proxy_for": _MCX_PROXY_FOR.get(sym),
+            "risk_pct": cfg.get("risk_pct"),
+            "stop_pct": cfg.get("stop_pct"),
+        })
+    return {"count": len(entries), "symbols": entries}
+
+
 def _env_presence(name: str) -> dict:
     """Reports whether an env var is SET, without ever exposing its value -
     just a length and a masked preview (first 4 chars, for the user to
@@ -3519,6 +3552,116 @@ def kotak_neo_test_login():
         return {"logged_in": True}
     except Exception as e:
         return {"logged_in": False, "error": str(e)}
+
+
+# Phase 2 (2026-09-03): read-only account data (holdings, positions, funds).
+# Unlike /kotak-neo/status and /test-login, these return REAL account data -
+# so unlike the rest of this app (which has no auth at all, fine for fake
+# paper-trading data), these are gated behind a shared-secret token. Fails
+# CLOSED: if KOTAK_NEO_API_TOKEN isn't set, the endpoint refuses rather than
+# serving real data on an effectively-unprotected URL.
+KOTAK_NEO_API_TOKEN = os.environ.get("KOTAK_NEO_API_TOKEN")
+
+
+def _require_kotak_token(request: Request):
+    if not KOTAK_NEO_API_TOKEN:
+        raise HTTPException(
+            status_code=503,
+            detail="KOTAK_NEO_API_TOKEN not set on the server - this endpoint refuses to run "
+                   "unauthenticated since it returns real account data.",
+        )
+    supplied = request.query_params.get("token")
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        supplied = supplied or auth_header[len("Bearer "):]
+    if supplied != KOTAK_NEO_API_TOKEN:
+        raise HTTPException(status_code=401, detail="Bad or missing token")
+
+
+def _kotak_json_safe(result):
+    """The SDK's own holdings()/positions()/limits() catch their internal
+    errors and hand back {"Error": <Exception instance>} rather than a
+    string - not JSON-serializable as-is, which would 500 the endpoint on
+    exactly the failure case a caller most needs to see. Round-trip through
+    json with default=str so any such object becomes its string form
+    instead of crashing the response."""
+    return json.loads(json.dumps(result, default=str))
+
+
+@app.get("/kotak-neo/holdings")
+def kotak_neo_holdings(request: Request):
+    """Real portfolio holdings from the live Kotak Neo account. Read-only -
+    places no order. Requires ?token=<KOTAK_NEO_API_TOKEN> (or an
+    'Authorization: Bearer <token>' header) - see docs/TRADING_CONSTRAINTS.md
+    'Kotak Neo connection' for why this is gated unlike the rest of this
+    app's endpoints."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        return _kotak_json_safe(kotak_neo.holdings())
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/kotak-neo/positions")
+def kotak_neo_positions(request: Request):
+    """Real open positions from the live Kotak Neo account. Read-only -
+    places no order. Requires ?token=<KOTAK_NEO_API_TOKEN> (or an
+    'Authorization: Bearer <token>' header)."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        return _kotak_json_safe(kotak_neo.positions())
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/kotak-neo/limits")
+def kotak_neo_limits(request: Request):
+    """Real available margin/funds from the live Kotak Neo account.
+    Read-only - places no order. Requires ?token=<KOTAK_NEO_API_TOKEN> (or
+    an 'Authorization: Bearer <token>' header)."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        return _kotak_json_safe(kotak_neo.limits())
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/kotak-neo/search-scrip")
+def kotak_neo_search_scrip(
+    request: Request,
+    exchange_segment: str = "nse_fo",
+    symbol: str = "nifty",
+    expiry: str | None = None,
+    option_type: str | None = "ce,pe",
+    strike_price: str | None = None,
+    limit: int = 20,
+):
+    """DIAGNOSTIC step toward a NIFTY option chain (2026-09-03) - returns
+    RAW records from Kotak's live scrip master, unmodified except for
+    truncation to `limit` rows. Deliberately not turned into a polished
+    ATM-strike-chain-with-quotes endpoint yet: see kotak_neo.search_scrip's
+    docstring for why (the instrument-token column name isn't documented
+    anywhere in the SDK's source, so this is here to show it on real data
+    before anything is built on top of it - guessing a field name on
+    financial data risks silently matching the wrong contract). Real
+    login required - places no order. Requires
+    ?token=<KOTAK_NEO_API_TOKEN> (or an 'Authorization: Bearer <token>'
+    header)."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        result = kotak_neo.search_scrip(
+            exchange_segment=exchange_segment, symbol=symbol, expiry=expiry,
+            option_type=option_type, strike_price=strike_price,
+        )
+        if isinstance(result, list):
+            return {"total_matched": len(result), "showing": result[:limit]}
+        return _kotak_json_safe(result)
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.get("/live")
