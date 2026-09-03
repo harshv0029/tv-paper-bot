@@ -431,6 +431,14 @@ this is deliberately narrow, not an aggressive reallocation engine:
   multi-symbol portfolio-level backtest would be the real way to validate
   `REALLOCATION_MIN_CONFIDENCE_GAP`/`REALLOCATION_MAX_PER_DAY` before
   trusting them the way `TRAIL_ACTIVATE_R` is now trusted.
+- **Watched, not just shipped**: a dedicated read-only CCR agent
+  ("Reallocation Auditor - tv-paper-bot", daily 04:30 UTC / 10:00 IST)
+  reviews every `partial_exit_reallocated` event after the fact - checks
+  it actually followed its own stated rules, and the real substance of
+  the review: whether it looks, WITH HINDSIGHT, like it actually served
+  "maximising profit" or not. It never executes, resizes, or reallocates
+  anything itself - flags the user if something looks off, otherwise a
+  quiet one-line all-clear (including "no events to review").
 
 ## Per-trade risk: 2% is a ceiling, tuned down by evidence
 
