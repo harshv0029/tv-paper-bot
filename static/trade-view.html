@@ -137,20 +137,27 @@
   .log-status .dot{width:6px;height:6px;border-radius:50%;background:var(--up);animation:scanPulse 1.1s ease-in-out infinite;}
 
   /* Master control bar - pause/resume + kill switch */
-  .control-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;}
-  .control-bar.paused{border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.06);}
+  .control-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;transition:border-color .2s,background .2s;}
+  .control-bar.killed{border-color:rgba(239,68,68,.55);background:rgba(239,68,68,.07);}
   .ctrl-status{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;}
   .ctrl-dot{width:9px;height:9px;border-radius:50%;background:var(--up);box-shadow:0 0 0 3px var(--up-dim);}
-  .ctrl-status.paused .ctrl-dot{background:var(--warn);box-shadow:0 0 0 3px rgba(245,158,11,.18);animation:none;}
+  .ctrl-status.killed .ctrl-dot{background:var(--down);box-shadow:0 0 0 3px var(--down-dim);animation:none;}
   .ctrl-meta{color:var(--muted);font-size:11px;}
-  .ctrl-actions{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;}
-  .ctrl-btn{font-family:inherit;font-size:11.5px;font-weight:700;letter-spacing:.02em;padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);cursor:pointer;transition:filter .15s;}
-  .ctrl-btn:hover{filter:brightness(1.2);}
-  .ctrl-btn:disabled{opacity:.5;cursor:not-allowed;}
-  .ctrl-btn.pause{border-color:rgba(245,158,11,.5);color:var(--warn);}
-  .ctrl-btn.resume{border-color:rgba(34,197,94,.5);color:var(--up);}
-  .ctrl-btn.kill{border-color:rgba(239,68,68,.6);background:rgba(239,68,68,.12);color:var(--down);}
+  .ctrl-actions{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;align-items:center;}
   .ctrl-msg{font-size:11px;color:var(--muted);width:100%;}
+
+  /* Kill switch toggle - OFF (green track) = trading live, ON (red track) = paused + everything closed */
+  .kill-toggle{display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;}
+  .kill-toggle input{position:absolute;opacity:0;width:0;height:0;}
+  .kt-lbl{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .kt-track{position:relative;width:44px;height:24px;border-radius:12px;background:var(--up);transition:background .2s;flex-shrink:0;}
+  .kt-thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .2s;}
+  .kill-toggle input:checked + .kt-track{background:var(--down);}
+  .kill-toggle input:checked + .kt-track .kt-thumb{transform:translateX(20px);}
+  .kill-toggle input:disabled + .kt-track{opacity:.5;cursor:not-allowed;}
+  .kt-state{font-size:12px;font-weight:700;font-family:'IBM Plex Mono',monospace;min-width:32px;}
+  .kill-toggle input:checked ~ .kt-state{color:var(--down);}
+  .kill-toggle input:not(:checked) ~ .kt-state{color:var(--up);}
   .log-type{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
 </style>
 </head>
@@ -163,9 +170,12 @@
   <div class="ctrl-status" id="ctrl-status"><span class="ctrl-dot"></span><span id="ctrl-status-text">Loading…</span></div>
   <span class="ctrl-meta" id="ctrl-meta"></span>
   <div class="ctrl-actions">
-    <button class="ctrl-btn pause" id="btn-pause" onclick="doTradingControl('pause')">Pause new entries</button>
-    <button class="ctrl-btn resume" id="btn-resume" onclick="doTradingControl('resume')" hidden>Resume trading</button>
-    <button class="ctrl-btn kill" id="btn-kill" onclick="doKillSwitch()">Kill all trades now</button>
+    <label class="kill-toggle">
+      <span class="kt-lbl">Kill switch</span>
+      <input type="checkbox" id="kill-toggle-input" onchange="onKillToggle(this.checked)">
+      <span class="kt-track"><span class="kt-thumb"></span></span>
+      <span class="kt-state" id="kill-toggle-state">OFF</span>
+    </label>
   </div>
   <div class="ctrl-msg" id="ctrl-msg"></div>
 </div>
@@ -494,23 +504,34 @@ async function refreshScanner() {
   }
 }
 
+// Single toggle, per explicit user instruction: OFF = trading live
+// (scanning + taking new entries normally). ON (red) = the kill switch -
+// no new trades AND every currently open position is exited by the agent
+// right now. Stays exactly as set - the account never auto-resumes -
+// until this same toggle is flipped OFF again at the user's end.
+let killSwitchBusy = false;
+
 function renderControlBar(status) {
   const bar = document.getElementById("control-bar");
   const dot = document.getElementById("ctrl-status");
   const text = document.getElementById("ctrl-status-text");
   const meta = document.getElementById("ctrl-meta");
-  const enabled = status.enabled !== false;
+  const input = document.getElementById("kill-toggle-input");
+  const stateLbl = document.getElementById("kill-toggle-state");
+  const killed = status.enabled === false;
 
-  bar.className = "control-bar" + (enabled ? "" : " paused");
-  dot.className = "ctrl-status" + (enabled ? "" : " paused");
-  text.textContent = enabled ? "TRADING ON — scanning for new entries" : "PAUSED — no new entries (open positions still managed)";
+  bar.className = "control-bar" + (killed ? " killed" : "");
+  dot.className = "ctrl-status" + (killed ? " killed" : "");
+  text.textContent = killed
+    ? "KILL SWITCH ON — no new trades, all positions closed"
+    : "TRADING LIVE — scanning for new entries";
 
   meta.textContent = status.updated_at
     ? `Last changed ${timeAgo(status.updated_at)}${status.reason ? " — " + status.reason : ""}`
     : "";
 
-  document.getElementById("btn-pause").hidden = !enabled;
-  document.getElementById("btn-resume").hidden = enabled;
+  if (!killSwitchBusy) input.checked = killed;
+  stateLbl.textContent = killed ? "ON" : "OFF";
 }
 
 async function refreshControlStatus() {
@@ -522,47 +543,39 @@ async function refreshControlStatus() {
   }
 }
 
-async function doTradingControl(action) {
-  const btns = ["btn-pause", "btn-resume", "btn-kill"].map(id => document.getElementById(id));
-  btns.forEach(b => b.disabled = true);
+async function onKillToggle(turningOn) {
+  const input = document.getElementById("kill-toggle-input");
   const msgEl = document.getElementById("ctrl-msg");
-  msgEl.textContent = action === "pause" ? "Pausing…" : "Resuming…";
-  try {
-    const res = await fetchJSON(`${ORIGIN}/trading-control?action=${action}`, { method: "POST" });
-    msgEl.textContent = action === "pause"
-      ? "Paused. New entries are blocked; any open position keeps being managed normally."
-      : "Resumed. Scanning for new entries again.";
-    await refreshControlStatus();
-  } catch (e) {
-    msgEl.textContent = `Failed: ${e.message}`;
-  } finally {
-    btns.forEach(b => b.disabled = false);
+
+  if (turningOn) {
+    const confirmed = confirm(
+      "Kill switch ON: force-closes EVERY open position (equity and options) right now at the current market price, " +
+      "and blocks all new trades until you switch it back off. This cannot be undone. Proceed?"
+    );
+    if (!confirmed) { input.checked = false; return; }
   }
-}
 
-async function doKillSwitch() {
-  const confirmed = confirm(
-    "Kill switch: this force-closes EVERY open position (equity and options) right now at the current market price, " +
-    "and pauses new entries until you resume. This cannot be undone. Proceed?"
-  );
-  if (!confirmed) return;
-
-  const btns = ["btn-pause", "btn-resume", "btn-kill"].map(id => document.getElementById(id));
-  btns.forEach(b => b.disabled = true);
-  const msgEl = document.getElementById("ctrl-msg");
-  msgEl.textContent = "Closing all open positions…";
+  killSwitchBusy = true;
+  input.disabled = true;
+  msgEl.textContent = turningOn ? "Switching on — closing all open positions…" : "Switching off — resuming…";
   try {
-    const res = await fetchJSON(`${ORIGIN}/trading-control?action=kill`, { method: "POST" });
-    const pnl = res.total_pnl_inr ?? 0;
-    msgEl.textContent = res.closed_count > 0
-      ? `Closed ${res.closed_count} position(s). Total P&L: ${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}. Trading paused.`
-      : "No open positions to close. Trading paused.";
+    const res = await fetchJSON(`${ORIGIN}/trading-control?action=${turningOn ? "kill" : "resume"}`, { method: "POST" });
+    if (turningOn) {
+      const pnl = res.total_pnl_inr ?? 0;
+      msgEl.textContent = res.closed_count > 0
+        ? `Kill switch ON. Closed ${res.closed_count} position(s), total P&L ${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}. No new trades until switched off.`
+        : "Kill switch ON. No open positions to close. No new trades until switched off.";
+    } else {
+      msgEl.textContent = "Kill switch OFF. Scanning for new entries again.";
+    }
     await refreshControlStatus();
     await refresh();
   } catch (e) {
     msgEl.textContent = `Failed: ${e.message}`;
+    input.checked = !turningOn; // revert the visual toggle on failure
   } finally {
-    btns.forEach(b => b.disabled = false);
+    killSwitchBusy = false;
+    input.disabled = false;
   }
 }
 
