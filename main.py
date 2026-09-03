@@ -3473,6 +3473,30 @@ def health():
     return {"status": "alive", "time": time.time()}
 
 
+def _env_presence(name: str) -> dict:
+    """Reports whether an env var is SET, without ever exposing its value -
+    just a length and a masked preview (first 4 chars, for the user to
+    eyeball-match against what they pasted into Render, nothing more)."""
+    val = os.environ.get(name)
+    if not val:
+        return {"set": False}
+    return {"set": True, "length": len(val), "preview": val[:4] + "…" if len(val) > 4 else "…"}
+
+
+@app.get("/kotak-neo/status")
+def kotak_neo_status():
+    """Diagnostic only - confirms whether Render actually picked up the
+    Kotak Neo credential env vars, without ever echoing the real value back
+    (a masked preview only). No connection to Kotak is attempted here -
+    that's the next step, once credentials are confirmed present. See
+    docs/TRADING_CONSTRAINTS.md 'Kotak Neo connection' for where this fits
+    in the broader plan."""
+    return {
+        "consumer_key": _env_presence("KOTAK_NEO_CONSUMER_KEY"),
+        "consumer_secret": _env_presence("KOTAK_NEO_CONSUMER_SECRET"),
+    }
+
+
 @app.get("/live")
 def live():
     """Self-refreshing NIFTY/BANKNIFTY/SENSEX/India VIX dashboard."""
