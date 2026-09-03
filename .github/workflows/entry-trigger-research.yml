@@ -1,11 +1,16 @@
 name: Entry Trigger Research (backtest candidates)
 
 # One-off/manual research run: backtests several candidate entry-trigger
-# strategies (orb_breakout, orb_volume, vwap_reclaim, macd_cross) against
-# real historical intraday data for NIFTY/BANKNIFTY/SENSEX, so the live
+# strategies (orb_breakout, orb_volume, vwap_reclaim, macd_cross,
+# bullish_engulfing) against real historical intraday data, so the live
 # /auto-signal trigger logic is chosen on evidence, not asserted.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      run_price_action_research:
+        description: "Also sweep bullish_engulfing on indices + real-volume stocks (AAPL/SPY/QQQ)"
+        type: boolean
+        default: true
 
 jobs:
   research:
@@ -44,5 +49,47 @@ jobs:
 
             echo "--- backtest: orb_breakout (current /auto-signal defaults: 15/9/21) ---"
             curl -sS -m 60 "$BT?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=orb_breakout&orb_minutes=15&sma_fast=9&sma_slow=21"
+            echo
+          done
+
+      - name: "Price action: bullish_engulfing sweep (indices, no volume filter)"
+        if: ${{ inputs.run_price_action_research }}
+        run: |
+          SW="https://tv-paper-bot-gdan.onrender.com/sweep"
+          PERIOD="60d"
+          INTERVAL="5m"
+          for SYMBOL in "%5ENSEI" "%5ENSEBANK" "%5EBSESN"; do
+            echo "=========================================="
+            echo "SYMBOL: $SYMBOL  strategy=bullish_engulfing (trend_sma sweep only - no volume, indices report 0)"
+            echo "=========================================="
+            curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=bullish_engulfing&rank_by=total_pnl&top_n=8&trend_sma=0,20,50&volume_confirm=false"
+            echo
+          done
+
+      - name: "Price action: bullish_engulfing sweep (real-volume stocks)"
+        if: ${{ inputs.run_price_action_research }}
+        run: |
+          SW="https://tv-paper-bot-gdan.onrender.com/sweep"
+          BT="https://tv-paper-bot-gdan.onrender.com/backtest"
+          PERIOD="60d"
+          INTERVAL="5m"
+          # These report real volume on Yahoo (unlike the indices above), so
+          # also re-test the two strategies the 2026-09-02 research flagged
+          # as "untestable" on indices due to zero volume.
+          for SYMBOL in "AAPL" "SPY" "QQQ"; do
+            echo "=========================================="
+            echo "SYMBOL: $SYMBOL"
+            echo "=========================================="
+
+            echo "--- sweep: bullish_engulfing (trend_sma x volume_confirm) ---"
+            curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=bullish_engulfing&rank_by=total_pnl&top_n=8&trend_sma=0,20,50&volume_confirm=false,true"
+            echo
+
+            echo "--- backtest: vwap_reclaim (re-test on real volume) ---"
+            curl -sS -m 60 "$BT?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=vwap_reclaim"
+            echo
+
+            echo "--- sweep: orb_volume (re-test on real volume) ---"
+            curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=orb_volume&rank_by=total_pnl&top_n=8&orb_minutes=5,15,30&sma_fast=9&sma_slow=21&volume_mult=1.2,1.5,2.0"
             echo
           done
