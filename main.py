@@ -2431,7 +2431,12 @@ def reconcile_open_positions_from_journal():
                 dt.datetime.utcfromtimestamp(entry_ts) + dt.timedelta(minutes=tz_offset_min)
             ).strftime("%Y-%m-%d")
 
-            strategy_tag = f"{ORB_STRATEGY_PREFIX}recovered"
+            # Use the real entry strategy if the journal snapshot carries one
+            # (added 2026-09-03, alongside daily_summary()'s own "strategy"
+            # field) - only fall back to the generic "recovered" placeholder
+            # for an older journal file written before that field existed,
+            # where the true originating strategy is genuinely unknown.
+            strategy_tag = pos.get("strategy") or f"{ORB_STRATEGY_PREFIX}recovered"
             conn.execute(
                 "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
                 "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
