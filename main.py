@@ -1411,7 +1411,17 @@ def _options_signal_core(
             result["action_taken"] = "invalid_stop_skipped"
             return result
 
-        risk_amount_inr = min(capital * risk_per_trade_pct / 100, remaining_budget)
+        available_capital_inr = max(0.0, capital - deployed_notional(conn))
+        max_single_trade_inr = capital / CAPITAL_TRANCHES
+        usable_capital_inr = min(available_capital_inr, max_single_trade_inr)
+
+        # Per-trade risk is risk_per_trade_pct% of the capital actually
+        # INVESTED IN THIS TRADE (usable_capital_inr), not of the whole
+        # account - same explicit standing policy as the equity engine
+        # (see _auto_signal_core). remaining_budget is the separate,
+        # independently-enforced daily cap measured against TOTAL capital -
+        # both apply, whichever binds first.
+        risk_amount_inr = min(usable_capital_inr * risk_per_trade_pct / 100, remaining_budget)
         contracts = math.floor(risk_amount_inr / risk_per_contract_inr)
         # 1 contract (100 shares) is the smallest tradeable unit - real
         # option premiums often make even 1 contract's risk-at-stop exceed
@@ -1427,9 +1437,6 @@ def _options_signal_core(
         if contracts < 1 and risk_per_contract_inr <= remaining_budget:
             contracts = 1
 
-        available_capital_inr = max(0.0, capital - deployed_notional(conn))
-        max_single_trade_inr = capital / CAPITAL_TRANCHES
-        usable_capital_inr = min(available_capital_inr, max_single_trade_inr)
         notional_per_contract_inr = entry_premium * 100 * fx_to_inr
         if notional_per_contract_inr > 0:
             contracts = min(contracts, math.floor(usable_capital_inr / notional_per_contract_inr))
@@ -1791,18 +1798,7 @@ def _auto_signal_core(
             # is native currency (e.g. USD for SPY) - must convert one to
             # the other's currency before dividing, or a USD stop distance
             # gets divided into a Rs budget as if $1 == Rs 1.
-            risk_amount_inr = min(capital * risk_per_trade_pct / 100, remaining_budget)
             stop_dist_inr = stop_dist * fx_to_inr
-            # Fractional qty, not integer-floored: a high-priced unit (gold
-            # ~Rs 4.2L/oz, BTC ~Rs 73L/coin) costs more than this account's
-            # entire Rs 2L capital, so int() silently zeroed every such
-            # trade to "insufficient_capital" regardless of the strategy's
-            # real edge - confirmed this had been blocking every BTC-USD/
-            # ETH-USD entry all session. Real brokers (crypto exchanges,
-            # fractional-share equity brokers, gold ETF/mini-lot products)
-            # support this; treat it the same way here rather than
-            # silently discarding a good signal to a rounding artifact.
-            qty = risk_amount_inr / stop_dist_inr if stop_dist_inr > 0 else 0.0
 
             # Capital is shared and finite - cap qty so this trade's notional
             # doesn't push total deployed capital across all open symbols
@@ -1818,6 +1814,30 @@ def _auto_signal_core(
             available_capital_inr = max(0.0, capital - deployed_notional(conn))
             max_single_trade_inr = capital / CAPITAL_TRANCHES
             usable_capital_inr = min(available_capital_inr, max_single_trade_inr)
+
+            # Per-trade risk is risk_per_trade_pct% of the capital actually
+            # INVESTED IN THIS TRADE (usable_capital_inr - the tranche/
+            # available-capital-capped amount this trade can deploy), not
+            # risk_per_trade_pct% of the whole account - explicit standing
+            # policy (2026-09-03). The daily loss cap (remaining_budget) is
+            # a separate, independently-enforced limit measured against
+            # TOTAL capital at the start of the day (see daily_loss_cap
+            # above) - both caps apply, whichever binds first forces the
+            # exit/entry-block. min() with remaining_budget still means one
+            # stopped-out trade can burn the rest of today's whole budget if
+            # that's smaller than this trade's own 2%.
+            risk_amount_inr = min(usable_capital_inr * risk_per_trade_pct / 100, remaining_budget)
+            # Fractional qty, not integer-floored: a high-priced unit (gold
+            # ~Rs 4.2L/oz, BTC ~Rs 73L/coin) costs more than this account's
+            # entire Rs 2L capital, so int() silently zeroed every such
+            # trade to "insufficient_capital" regardless of the strategy's
+            # real edge - confirmed this had been blocking every BTC-USD/
+            # ETH-USD entry all session. Real brokers (crypto exchanges,
+            # fractional-share equity brokers, gold ETF/mini-lot products)
+            # support this; treat it the same way here rather than
+            # silently discarding a good signal to a rounding artifact.
+            qty = risk_amount_inr / stop_dist_inr if stop_dist_inr > 0 else 0.0
+
             notional_per_unit_inr = last_close * fx_to_inr
             if notional_per_unit_inr > 0:
                 qty = min(qty, usable_capital_inr / notional_per_unit_inr)
