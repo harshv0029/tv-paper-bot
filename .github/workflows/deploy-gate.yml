@@ -1,0 +1,276 @@
+name: Deploy Gate (backtest + safety checks before production push)
+
+# Explicit user request: an agent that deploys code to production, but
+# backtests every candidate first - flags the user and does NOT push if
+# any rule is breached; pushes only when every rule is green. This
+# workflow IS the actual gate; docs/DEPLOY_GATE_RULES.md is the rule spec
+# it's held to (read that file for what/why - this is the "how").
+#
+# Dispatched with source_ref = the branch/commit to validate (normally
+# `staging` - trading-logic changes land there, not directly on `main`,
+# from 2026-09-03 onward). Render deploys from `main` on every push, so
+# "don't push to main" IS "don't deploy" here - there's no separate
+# approval step on Render's side to gate.
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "Branch or commit to validate and (if it passes) deploy to main"
+        required: true
+        default: "staging"
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run static safety checks + backtest regression check
+        run: |
+          python3 - <<'PYEOF'
+          import sys, json, inspect, datetime
+          sys.path.insert(0, ".")
+          import main as m
+          import pandas as pd, numpy as np
+
+          breaches = []
+
+          # ---- A. Static safety checks (docs/DEPLOY_GATE_RULES.md section A) ----
+          for cfg in m.WATCHLIST:
+              risk = cfg.get("risk_pct")
+              stop = cfg.get("stop_pct")
+              if risk is not None and risk > 2.0:
+                  breaches.append(f"WATCHLIST[{cfg['symbol']}].risk_pct={risk} > 2.0 ceiling")
+              if stop is not None and stop > 2.0:
+                  breaches.append(f"WATCHLIST[{cfg['symbol']}].stop_pct={stop} > 2.0 ceiling")
+
+          APPROVED_SUFFIXES = (".NS",)
+          APPROVED_EXACT = {"^NSEI", "^NSEBANK", "^BSESN", "GC=F", "SI=F", "CL=F"}
+          for cfg in m.WATCHLIST:
+              sym = cfg["symbol"]
+              if sym in APPROVED_EXACT or sym.endswith(APPROVED_SUFFIXES):
+                  continue
+              breaches.append(f"WATCHLIST contains a non-approved symbol: {sym}")
+
+          src_auto = inspect.getsource(m._auto_signal_core)
+          src_opt = inspect.getsource(m._options_signal_core)
+          if "is_trading_enabled(conn)" not in src_auto:
+              breaches.append("_auto_signal_core no longer checks is_trading_enabled - kill switch regression")
+          if "is_trading_enabled(conn)" not in src_opt:
+              breaches.append("_options_signal_core no longer checks is_trading_enabled - kill switch regression")
+
+          print("=== A. Static safety checks ===")
+          print("clean" if not breaches else f"{len(breaches)} breach(es) found")
+          for b in breaches:
+              print(f" - {b}")
+
+          # ---- B. Backtest regression check (docs/DEPLOY_GATE_RULES.md section B) ----
+          # Same replay method as trailing-stop-threshold-backtest.yml - imports
+          # the CANDIDATE's own main.py and calls its real live functions.
+          SYMBOLS = [
+              {"symbol": "^NSEI", "orb_minutes": 30, "sma_fast": 5, "sma_slow": 50, "stop_pct": 2.0},
+              {"symbol": "^NSEBANK", "orb_minutes": 5, "sma_fast": 9, "sma_slow": 50, "stop_pct": 2.0},
+              {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50, "stop_pct": 2.0},
+          ] + [
+              {"symbol": s, "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21, "stop_pct": 1.0}
+              for s in ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS",
+                        "SBIN.NS", "TATASTEEL.NS", "MARUTI.NS", "ASIANPAINT.NS"]
+          ]
+          RR = 3.0
+          OPEN_MIN = 555
+          SQUAREOFF_MIN = 920
+          TZ_OFF = m.IST_OFFSET_MIN
+
+          trades = []
+          try:
+              for cfg in SYMBOLS:
+                  sym, om, sf, ss, stop_pct = cfg["symbol"], cfg["orb_minutes"], cfg["sma_fast"], cfg["sma_slow"], cfg["stop_pct"]
+                  try:
+                      raw = m.fetch_ohlc(sym, "60d", "5m")
+                  except Exception as e:
+                      print(f"SKIP {sym}: {e}")
+                      continue
+                  ts = pd.to_datetime(raw["Date"])
+                  ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+                  ts_ist = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+                  raw = raw.assign(ts_utc=ts_utc, date_ist=ts_ist.dt.strftime("%Y-%m-%d"))
+                  raw["mins"] = ts_ist.dt.hour * 60 + ts_ist.dt.minute
+                  raw = raw.reset_index(drop=True)
+
+                  for day in sorted(raw["date_ist"].unique()):
+                      day_idx = raw.index[raw["date_ist"] == day]
+                      if len(day_idx) < 2:
+                          continue
+                      day_start, day_end = day_idx[0], day_idx[-1]
+                      orb_window = raw.loc[day_start:day_end]
+                      orb_window = orb_window[orb_window["mins"] < OPEN_MIN + om]
+                      if orb_window.empty:
+                          continue
+                      orb_high = float(orb_window["High"].max())
+                      orb_low = float(orb_window["Low"].min())
+
+                      entry_pos = None
+                      closes_all = raw["Close"].to_numpy(dtype=float)
+                      for pos in range(day_start, day_end + 1):
+                          mins = raw.at[pos, "mins"]
+                          if mins < OPEN_MIN + om:
+                              continue
+                          if mins >= SQUAREOFF_MIN:
+                              break
+                          if pos + 1 < max(sf, ss):
+                              continue
+                          sma_f = closes_all[pos + 1 - sf:pos + 1].mean()
+                          sma_s = closes_all[pos + 1 - ss:pos + 1].mean()
+                          if raw.at[pos, "Close"] > orb_high and sma_f > sma_s:
+                              entry_pos = pos
+                              break
+                      if entry_pos is None:
+                          continue
+
+                      entry_price = float(raw.at[entry_pos, "Close"])
+                      stop_cap = entry_price * (1 - stop_pct / 100)
+                      initial_stop = max(orb_low, stop_cap)
+                      if initial_stop >= entry_price:
+                          continue
+                      R = entry_price - initial_stop
+                      target = entry_price + RR * R
+                      entry_ts = raw.at[entry_pos, "ts_utc"].timestamp()
+
+                      stop = initial_stop
+                      exit_reason, exit_price = None, None
+                      pos = entry_pos + 1
+                      while pos <= day_end:
+                          close = float(raw.at[pos, "Close"])
+                          mins = int(raw.at[pos, "mins"])
+                          today_slice = raw.loc[day_start:pos]
+                          df_slice = raw.loc[:pos]
+
+                          cand = m._trailing_stop_target(df_slice, today_slice, entry_price, initial_stop, entry_ts, TZ_OFF)
+                          if cand is not None and cand > stop:
+                              stop = cand
+
+                          if close >= target:
+                              exit_reason, exit_price = "target_hit", close
+                              break
+                          if close <= stop:
+                              exit_reason, exit_price = "stop_hit", close
+                              break
+                          closes_upto = df_slice["Close"].to_numpy(dtype=float)
+                          if len(closes_upto) >= max(sf, ss):
+                              smaf2 = closes_upto[-sf:].mean()
+                              smas2 = closes_upto[-ss:].mean()
+                              if smaf2 < smas2 and m._trend_confidence(closes_upto, sf, ss) >= m.TREND_WEAKENED_MIN_CONFIDENCE:
+                                  exit_reason, exit_price = "trend_weakened", close
+                                  break
+                          if mins >= SQUAREOFF_MIN:
+                              exit_reason, exit_price = "eod_squareoff", close
+                              break
+                          pos += 1
+                      else:
+                          exit_reason, exit_price = "eod_squareoff", float(raw.at[day_end, "Close"])
+
+                      trades.append((exit_price - entry_price) / R)
+          except Exception as e:
+              breaches.append(f"Backtest script raised {type(e).__name__}: {e}")
+              trades = []
+
+          print("\n=== B. Backtest regression check ===")
+          with open("docs/deploy_baseline.json") as f:
+              baseline = json.load(f)["result"]
+
+          if trades:
+              wins = [r for r in trades if r > 0]
+              losses = [r for r in trades if r <= 0]
+              total_r = sum(trades)
+              win_rate = 100 * len(wins) / len(trades)
+              gross_win = sum(wins)
+              gross_loss = -sum(losses)
+              pf = (gross_win / gross_loss) if gross_loss > 0 else float("inf")
+              min_r = min(trades)
+              max_r = max(trades)
+
+              result = {
+                  "n_trades": len(trades), "win_rate_pct": round(win_rate, 2),
+                  "total_R": round(total_r, 3), "avg_R": round(total_r / len(trades), 4),
+                  "min_R": round(min_r, 3), "max_R": round(max_r, 3), "profit_factor": round(pf, 3),
+              }
+              print("Candidate:", json.dumps(result))
+              print("Baseline: ", json.dumps(baseline))
+
+              pf_floor = baseline["profit_factor"] * 0.9
+              if pf < pf_floor:
+                  breaches.append(f"profit_factor {pf:.3f} < floor {pf_floor:.3f} (baseline {baseline['profit_factor']:.3f}, -10% tolerance)")
+              wr_floor = baseline["win_rate_pct"] - 5.0
+              if win_rate < wr_floor:
+                  breaches.append(f"win_rate_pct {win_rate:.2f} < floor {wr_floor:.2f} (baseline {baseline['win_rate_pct']:.2f}, -5pp tolerance)")
+              if min_r < -2.5:
+                  breaches.append(f"min_R {min_r:.3f} worse than hard floor -2.5R")
+
+              with open("/tmp/gate_result.json", "w") as f:
+                  json.dump(result, f)
+          elif not breaches:
+              breaches.append("Backtest produced zero trades - cannot evaluate, treated as a breach rather than a silent pass")
+
+          print("\n=== VERDICT ===")
+          if breaches:
+              print("FLAGGED - NOT DEPLOYING. Breach(es):")
+              for b in breaches:
+                  print(f" - {b}")
+              with open("/tmp/gate_verdict", "w") as f:
+                  f.write("FLAGGED\n" + "\n".join(breaches) + "\n")
+          else:
+              print("ALL RULES PASSED - deploying.")
+              with open("/tmp/gate_verdict", "w") as f:
+                  f.write("PASS\n")
+          PYEOF
+
+      - name: Deploy (merge to main + push) only if the gate passed
+        run: |
+          VERDICT=$(head -1 /tmp/gate_verdict)
+          echo "Verdict: $VERDICT"
+          if [ "$VERDICT" != "PASS" ]; then
+            echo "### Gate FLAGGED - main left untouched, nothing deployed. ###"
+            cat /tmp/gate_verdict
+            exit 1
+          fi
+
+          git config user.name "tv-paper-bot deploy gate"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git merge --no-ff "origin/${{ inputs.source_ref }}" -m "Deploy gate: merge ${{ inputs.source_ref }} (all rules passed)"
+
+          if [ -f /tmp/gate_result.json ]; then
+            python3 - <<'PYEOF'
+          import json, subprocess, datetime
+          with open("/tmp/gate_result.json") as f:
+              result = json.load(f)
+          with open("docs/deploy_baseline.json") as f:
+              baseline = json.load(f)
+          baseline["result"] = result
+          baseline["seeded_from"] = "deploy-gate.yml"
+          baseline["commit"] = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
+          baseline["seeded_at_utc"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+          with open("docs/deploy_baseline.json", "w") as f:
+              json.dump(baseline, f, indent=2)
+              f.write("\n")
+          PYEOF
+            git add docs/deploy_baseline.json
+            git commit -m "Deploy gate: update baseline after passing gate" || true
+          fi
+
+          git push origin main
+          echo "Deployed - pushed to main, Render will redeploy from here."
