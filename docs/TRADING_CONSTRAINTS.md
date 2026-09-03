@@ -141,6 +141,67 @@ The open GC=F and BTC-USD positions at the time of this change were
 force-closed via the kill switch (`action=kill`, then `resume`) before the
 new `WATCHLIST` deployed, so nothing was orphaned by their removal.
 
+## Kotak Neo connection (added 2026-09-03)
+
+Explicit user instruction: work toward connecting a real Kotak Neo broker
+account, so this app can eventually replace the fake fills with real ones.
+Standing constraint, unchanged: **100% paper trading, no real order placed,
+no real money moved, until a separate, explicit go-ahead is given for that
+specific step.** Everything below is scaffolding toward that, done in
+phases so each phase can be verified before the next is built:
+
+- **Phase 0** - account/API registration on Kotak's side (the user's own
+  steps: enabling Trade API access, TOTP registration). Done outside this
+  repo.
+- **Phase 1 (this phase)** - credentials + auth-only code. This app can log
+  in to the real account and confirm the session is valid. It does **not**
+  read or place anything.
+- **Phase 2 (not started)** - read-only market data / account data (e.g.
+  quotes, holdings, positions) pulled from the real account, still without
+  ever placing an order.
+- **Phase 3 (not started, needs its own separate go-ahead)** - real order
+  placement. Explicitly deferred; building this is a distinct decision from
+  everything above it.
+
+**Credential finding, corrected.** An older Kotak support article describes
+a legacy WSO2-portal OAuth2 flow needing a separate "Consumer Secret". That
+is not what the actively-maintained SDK actually uses. Verified directly
+against Kotak's own SDK source (`github.com/Kotak-Neo/Kotak-neo-api-v2`,
+`neo_api.py`): the real, current login only needs a **Consumer Key** (the
+"default application" token shown under Neo app/web -> Invest tab -> Trade
+API). No secret parameter is read by the current code path.
+
+**Required env vars** (Render -> Environment tab; never committed, never
+logged, never returned by any endpoint):
+- `KOTAK_NEO_CONSUMER_KEY` - the Trade API "default application" token.
+- `KOTAK_NEO_MOBILE_NUMBER` - registered mobile number, with country code.
+- `KOTAK_NEO_UCC` - Unique Client Code (Neo app -> Profile).
+- `KOTAK_NEO_MPIN` - the account's MPIN.
+- `KOTAK_NEO_TOTP_SEED` - the TOTP secret shown once at TOTP setup time
+  (the same value the QR code encodes) - needed so an unattended backend
+  can generate its own 6-digit codes via `pyotp`, instead of a human typing
+  one in every 30 seconds.
+
+**Code.** `kotak_neo.py` is a module deliberately isolated from the trading
+engine - nothing in `main.py`'s scheduler/entry/exit logic imports or calls
+it. It only knows how to log in: `login()` builds a `NeoAPI` client
+(`environment="prod"`), calls `totp_login()` then `totp_validate()`, and
+confirms a real session via the SDK's own convention
+(`client.configuration.edit_token` and `edit_sid` both set). Two read-only
+diagnostic endpoints in `main.py`:
+- `GET /kotak-neo/status` - reports which of the required env vars are
+  present (`{"set": bool, "length": int, "preview": "abcd..."}` shape per
+  var), never the real values.
+- `GET /kotak-neo/test-login` - calls `login()` and returns **only**
+  `{"logged_in": true}` or `{"logged_in": false, "error": "..."}`. It
+  deliberately never returns holdings, positions, balance, or any other
+  real account data.
+
+**Security note.** This app has zero authentication on any endpoint today -
+fine for fake paper-trading data, not fine for real account data. Until a
+real auth layer is designed separately, no endpoint touching the live
+Kotak account may expose anything beyond a bare pass/fail boolean.
+
 ## Kill switch / pause-resume (added 2026-09-03)
 
 Explicit user instruction: "I want to decide when to do trading and when
