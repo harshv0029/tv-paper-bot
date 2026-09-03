@@ -105,6 +105,31 @@ options overlay's code (`select_option_contract`,
 connection exists. It is never synthesized as a workaround in the
 meantime - same standing rule as NSE cash-market tick data.
 
+**Standing instruction (2026-09-03): build and execute an iron condor
+strategy on NIFTY once Kotak Neo is connected.** Explicitly asked for,
+explicitly deferred to that point - not built now, since it needs
+infrastructure this project doesn't have yet:
+- **Multi-leg execution** - today's options overlay only ever manages ONE
+  leg (a single long call or put, via `select_option_contract`/
+  `_options_signal_core`). An iron condor is 4 simultaneous legs (sell an
+  OTM call spread + sell an OTM put spread) with net-credit accounting and
+  per-leg fill/risk handling - genuinely new infrastructure, not a
+  parameter change to the existing single-leg code.
+- **A different signal entirely** - every live entry (`orb_breakout`,
+  `bullish_engulfing`, the options overlay's directional call/put) wants
+  price to MOVE. An iron condor wants the opposite: range-bound price +
+  IV compression (theta decay). It needs its own signal (e.g. IV
+  percentile vs. expected realized move, no event in the expiry window),
+  not a reuse of the trend/breakout logic.
+- **Real NIFTY option chain data** - yfinance carries no NSE index options
+  chain at all; this literally cannot be built, paper or otherwise, until
+  Kotak Neo (or Zerodha) supplies real strikes/IV/quotes. This is the
+  actual blocker, not just a nice-to-have.
+When that connection lands: revisit this note, design the signal + wing-
+width/defined-max-loss rules properly (not guessed), and build multi-leg
+execution before wiring an iron condor into the live engine - same
+evidence-first standard everything else in this file is held to.
+
 The open GC=F and BTC-USD positions at the time of this change were
 force-closed via the kill switch (`action=kill`, then `resume`) before the
 new `WATCHLIST` deployed, so nothing was orphaned by their removal.
