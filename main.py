@@ -2041,6 +2041,50 @@ def auto_signal(
 # connection as real NSE cash-market data does (see docs/
 # TRADING_CONSTRAINTS.md's standing NSE-data-gating rule) and stays off
 # until that exists, never synthesized as a workaround.
+# NSE stock universe - expanded 2026-09-03 per explicit user pushback on
+# the earlier 15-name curated list: "Use list for now from public
+# available listing of assets... why not u getting whole set of assets."
+# Fair - a hand-picked 15 was an arbitrary editorial cut. This is the
+# Nifty 100 (Nifty 50 + Nifty Next 50) - NSE's own published index
+# constituent lists, i.e. an actual "public available listing," not
+# picks of my own. ~6.7x the previous list. Still short of literally
+# every NSE-listed stock (~2,000+, most illiquid/thinly-traded, some
+# ticker-symbol drift possible below since index composition changes
+# periodically - a stale/wrong ticker fails safe as one symbol's
+# data_error, never a crash) - going further (Nifty 200/500, or a workflow
+# that fetches NSE's live official list instead of this hardcoded one) is
+# a reasonable next step if this still isn't enough.
+NSE_STOCK_DEFAULT_PARAMS = {
+    "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+    "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+    "trade_weekends": False, "currency": "INR",
+    "risk_pct": 1.0, "stop_pct": 1.0,  # unproven -> half ceiling until evidenced, same as before
+}
+NSE_STOCK_UNIVERSE = [
+    # Nifty 50
+    "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS",
+    "HINDUNILVR.NS", "ITC.NS", "SBIN.NS", "BHARTIARTL.NS", "KOTAKBANK.NS",
+    "LT.NS", "AXISBANK.NS", "BAJFINANCE.NS", "MARUTI.NS", "ASIANPAINT.NS",
+    "HCLTECH.NS", "SUNPHARMA.NS", "TITAN.NS", "ULTRACEMCO.NS", "WIPRO.NS",
+    "NESTLEIND.NS", "BAJAJFINSV.NS", "POWERGRID.NS", "NTPC.NS", "TATAMOTORS.NS",
+    "TATASTEEL.NS", "M&M.NS", "INDUSINDBK.NS", "JSWSTEEL.NS", "ADANIENT.NS",
+    "ADANIPORTS.NS", "COALINDIA.NS", "GRASIM.NS", "HINDALCO.NS", "CIPLA.NS",
+    "DRREDDY.NS", "EICHERMOT.NS", "TECHM.NS", "BRITANNIA.NS", "DIVISLAB.NS",
+    "APOLLOHOSP.NS", "BAJAJ-AUTO.NS", "TATACONSUM.NS", "SBILIFE.NS", "HDFCLIFE.NS",
+    "LTIM.NS", "SHRIRAMFIN.NS", "TRENT.NS", "HEROMOTOCO.NS", "UPL.NS",
+    # Nifty Next 50
+    "ADANIGREEN.NS", "ADANIPOWER.NS", "AMBUJACEM.NS", "DMART.NS", "BANKBARODA.NS",
+    "BOSCHLTD.NS", "CANBK.NS", "CHOLAFIN.NS", "DABUR.NS", "DLF.NS",
+    "GODREJCP.NS", "HAVELLS.NS", "HAL.NS", "HINDPETRO.NS", "ICICIGI.NS",
+    "ICICIPRULI.NS", "INDIGO.NS", "IOC.NS", "IRFC.NS", "JINDALSTEL.NS",
+    "JIOFIN.NS", "LICI.NS", "MARICO.NS", "MOTHERSON.NS", "MUTHOOTFIN.NS",
+    "NHPC.NS", "ONGC.NS", "PIDILITIND.NS", "PNB.NS", "PFC.NS",
+    "RECLTD.NS", "SIEMENS.NS", "SRF.NS", "TATAPOWER.NS", "TORNTPHARM.NS",
+    "UNIONBANK.NS", "MCDOWELL-N.NS", "VEDL.NS", "ZOMATO.NS", "ZYDUSLIFE.NS",
+    "BEL.NS", "BPCL.NS", "GAIL.NS", "NAUKRI.NS", "LUPIN.NS",
+    "POLYCAB.NS", "UBL.NS",
+]
+
 WATCHLIST = [
     # NSE/BSE indices - IST 9:15-15:30, weekdays. Params from 2026-09-02
     # research (docs/daily_logs/2026-09-02-entry-trigger-research.md).
@@ -2058,62 +2102,9 @@ WATCHLIST = [
     {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50,
      "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
-    # NSE large-caps - same NSE session as the indices above, orb_breakout,
-    # unproven -> half ceiling (1%) until one earns real backtest evidence
-    # the way the indices did. A curated set of the most liquid Nifty 50
-    # constituents (real, deep volume - no data-quality doubt), not every
-    # NSE-listed stock (~2,000+) - same "curated, not exhaustive" reasoning
-    # already applied to the (now-removed) US roster: an un-backtested
-    # symbol trades at the same conservative ceiling regardless of how it
-    # was found, and scanning thousands of tickers every 30s against
-    # Yahoo's free endpoint would trip rate limits for no real benefit.
-    # Yahoo Finance ticker convention: NSE symbol + ".NS". Tell me specific
-    # tickers to add beyond this set any time.
-    {"symbol": "RELIANCE.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "TCS.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "HDFCBANK.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "INFY.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "ICICIBANK.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "HINDUNILVR.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "ITC.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "SBIN.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "BHARTIARTL.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "KOTAKBANK.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "LT.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "AXISBANK.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "BAJFINANCE.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "MARUTI.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "ASIANPAINT.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
-     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+] + [
+    {"symbol": sym, **NSE_STOCK_DEFAULT_PARAMS} for sym in NSE_STOCK_UNIVERSE
+] + [
     # MCX commodities - restored 2026-09-03 per explicit user instruction
     # ("keep all those assets listed in Zerodha") - unlike crypto and US
     # equities (genuinely not offered by Kotak Neo/Zerodha at all, so they
@@ -2471,12 +2462,16 @@ _scheduler_last_results: dict = {}
 # tick (time-critical - stop/target/eod), and flat symbols rotate through
 # a bounded batch per tick instead of all being scanned every time.
 _scheduler_rr_cursor = 0
-SCHEDULER_ENTRY_SCAN_BATCH_SIZE = 7  # flat symbols freshly entry-scanned per tick, round-robin -
-# chosen so a full rotation (21 equity symbols / 7 ~= 3 ticks ~= 90s) lands
-# comfortably inside fetch_ohlc's own 180s cache TTL: a flat symbol's
-# candle data can't have changed meaningfully faster than that anyway, so
-# nothing is being missed by not re-scanning it every single 30s tick -
-# the "wasted" cycles just go to other symbols instead.
+SCHEDULER_ENTRY_SCAN_BATCH_SIZE = 12  # flat symbols freshly entry-scanned per tick, round-robin -
+# bumped from 7 -> 12 on 2026-09-03 when the watchlist grew from 21 to 103
+# symbols (Nifty 100 + indices + commodities) to keep the full-rotation
+# time reasonable (103/12 ~= 9 ticks ~= ~4.3 min) without pushing the real
+# Yahoo Finance call rate too high (12 req/30s ~= 0.4 req/s average,
+# comfortably inside what the free/unofficial endpoint tolerates - well
+# short of the 21-symbol/batch-7 rate that was already running fine).
+# Doesn't need to fit inside fetch_ohlc's 180s cache TTL as neatly as the
+# smaller watchlist did - candle data can go slightly stale between a
+# symbol's own turns, same tradeoff as before, just spread over more names.
 
 # Live pipeline visibility for /scheduler-pipeline (trade-view's scanner
 # panel) - what's actively in flight right now, not just the last completed

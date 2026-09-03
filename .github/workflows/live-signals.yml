@@ -45,15 +45,22 @@ jobs:
           curl -sS -m 60 "$BASE?symbol=%5EBSESN&${RISK}&orb_minutes=30&sma_fast=20&sma_slow=50"
           echo
 
-          # NSE large-caps added 2026-09-03 (rescoped to NSE-only - see
-          # main.py's WATCHLIST comment). Unproven -> half ceiling (1%),
-          # same orb_breakout defaults as main.py's WATCHLIST entries -
-          # must stay in sync with it or this backstop would fight the
-          # in-process scheduler for the same symbol.
+          # NSE stock universe expanded 2026-09-03 to the Nifty 100 (Nifty
+          # 50 + Nifty Next 50 - NSE's own published index constituent
+          # lists) per explicit user pushback on the earlier hand-picked
+          # 15-name list - see main.py's NSE_STOCK_UNIVERSE comment for the
+          # full reasoning. Unproven -> half ceiling (1%), same
+          # orb_breakout defaults as main.py's WATCHLIST entries - must
+          # stay in sync with it (same symbol list, same params) or this
+          # backstop would fight the in-process scheduler for the same
+          # symbol. Symbol is URL-encoded (handles "M&M.NS" correctly,
+          # a literal & would otherwise be parsed as a query delimiter).
           STOCK_RISK="capital=400000&daily_risk_pct=2&risk_per_trade_pct=1&stop_pct=1&rr=3&orb_minutes=15&sma_fast=9&sma_slow=21"
-          for SYMBOL in "RELIANCE.NS" "TCS.NS" "HDFCBANK.NS" "INFY.NS" "ICICIBANK.NS" "HINDUNILVR.NS" "ITC.NS" "SBIN.NS" "BHARTIARTL.NS" "KOTAKBANK.NS" "LT.NS" "AXISBANK.NS" "BAJFINANCE.NS" "MARUTI.NS" "ASIANPAINT.NS"; do
+          NSE_STOCKS="RELIANCE.NS TCS.NS HDFCBANK.NS INFY.NS ICICIBANK.NS HINDUNILVR.NS ITC.NS SBIN.NS BHARTIARTL.NS KOTAKBANK.NS LT.NS AXISBANK.NS BAJFINANCE.NS MARUTI.NS ASIANPAINT.NS HCLTECH.NS SUNPHARMA.NS TITAN.NS ULTRACEMCO.NS WIPRO.NS NESTLEIND.NS BAJAJFINSV.NS POWERGRID.NS NTPC.NS TATAMOTORS.NS TATASTEEL.NS M&M.NS INDUSINDBK.NS JSWSTEEL.NS ADANIENT.NS ADANIPORTS.NS COALINDIA.NS GRASIM.NS HINDALCO.NS CIPLA.NS DRREDDY.NS EICHERMOT.NS TECHM.NS BRITANNIA.NS DIVISLAB.NS APOLLOHOSP.NS BAJAJ-AUTO.NS TATACONSUM.NS SBILIFE.NS HDFCLIFE.NS LTIM.NS SHRIRAMFIN.NS TRENT.NS HEROMOTOCO.NS UPL.NS ADANIGREEN.NS ADANIPOWER.NS AMBUJACEM.NS DMART.NS BANKBARODA.NS BOSCHLTD.NS CANBK.NS CHOLAFIN.NS DABUR.NS DLF.NS GODREJCP.NS HAVELLS.NS HAL.NS HINDPETRO.NS ICICIGI.NS ICICIPRULI.NS INDIGO.NS IOC.NS IRFC.NS JINDALSTEL.NS JIOFIN.NS LICI.NS MARICO.NS MOTHERSON.NS MUTHOOTFIN.NS NHPC.NS ONGC.NS PIDILITIND.NS PNB.NS PFC.NS RECLTD.NS SIEMENS.NS SRF.NS TATAPOWER.NS TORNTPHARM.NS UNIONBANK.NS MCDOWELL-N.NS VEDL.NS ZOMATO.NS ZYDUSLIFE.NS BEL.NS BPCL.NS GAIL.NS NAUKRI.NS LUPIN.NS POLYCAB.NS UBL.NS"
+          for SYMBOL in $NSE_STOCKS; do
+            ENC=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$SYMBOL")
             echo "### $SYMBOL"
-            curl -sS -m 60 "$BASE?symbol=${SYMBOL}&${STOCK_RISK}"
+            curl -sS -m 60 "$BASE?symbol=${ENC}&${STOCK_RISK}"
             echo
           done
 

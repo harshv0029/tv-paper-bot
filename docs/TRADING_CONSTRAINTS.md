@@ -13,14 +13,19 @@ Kotak Neo/Zerodha actually let a real account trade this":
   either at all, so paper-trading them had no path to a real trade. The
   US-options overlay built on top of them is correspondingly disabled.
 - **NSE/BSE equity** - `^NSEI` (NIFTY 50), `^NSEBANK` (BANK NIFTY),
-  `^BSESN` (SENSEX), and 15 curated, heavily-liquid NSE large-caps
-  (RELIANCE, TCS, HDFCBANK, INFY, ICICIBANK, HINDUNILVR, ITC, SBIN,
-  BHARTIARTL, KOTAKBANK, LT, AXISBANK, BAJFINANCE, MARUTI, ASIANPAINT -
-  `.NS` tickers). Same "curated, not exhaustive" reasoning as before: there
-  are ~2,000+ NSE-listed stocks, and scanning all of them every 30s against
-  Yahoo's free endpoint would trip rate limits for no benefit, since an
-  un-backtested stock trades at the same conservative 1% ceiling regardless
-  of how it was found.
+  `^BSESN` (SENSEX), and the **Nifty 100** (Nifty 50 + Nifty Next 50, ~97
+  stocks - NSE's own published index constituent lists, `NSE_STOCK_UNIVERSE`
+  in `main.py`) - `.NS` tickers. Expanded from an earlier hand-picked
+  15-name list on direct user pushback ("why not u getting whole set of
+  assets... use list from public available listing") - a real public
+  index is a defensible "whole set," an editorial pick of 15 wasn't. Still
+  short of literally every NSE-listed stock (~2,000+, mostly illiquid) -
+  scanning that many every 30s against Yahoo's free endpoint would trip
+  rate limits for no benefit, since an un-backtested stock trades at the
+  same conservative 1% ceiling regardless of how it was found. Round-robin
+  batch size raised 7 -> 12 (`SCHEDULER_ENTRY_SCAN_BATCH_SIZE`) to keep the
+  full-rotation time reasonable (~4.3 min) at this larger size. Tell me
+  specific tickers, or "go to Nifty 200/500," any time.
 - **MCX commodities - restored**: gold (`GC=F`), silver (`SI=F`), crude oil
   (`CL=F`). These ARE real Zerodha/Kotak-Neo-tradable instruments via the
   MCX segment - unlike crypto/US equities, excluding them was overreach.
