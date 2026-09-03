@@ -16,12 +16,30 @@ name: Position Journal Sync
 # that got X% of the way to target, what fraction actually hit it") instead
 # of guessing at a confidence number.
 #
-# workflow_dispatch only, deliberately NOT `schedule:` - GH Actions'
-# schedule cron proved unreliable in practice earlier today (see
-# docs/KNOWN_ISSUES.md), which would defeat the point of a safety net. A
-# separate lightweight CCR session ("Position Journal Sync Agent") calls
-# this on a reliable recurring trigger instead.
+# Two triggers, for two different loss windows (found 2026-09-03 -
+# see docs/TRADING_CONSTRAINTS.md "Trade-view sync" section):
+#  - `push` to main: a push here is what actually causes a Render
+#    redeploy (which wipes the DB) - syncing right after the push, before
+#    Render finishes rebuilding (~10s vs Render's 1-3 min), catches any
+#    trade that closed just before the push, which the old hourly-only
+#    cadence could otherwise lose permanently. Pushes made by this
+#    workflow's own commit step use the default GITHUB_TOKEN, which
+#    GitHub does not let re-trigger push-triggered workflows - no loop
+#    risk - but paths-ignore below skips them anyway to avoid a wasted run.
+#  - `workflow_dispatch`: manual/on-demand, and what the recurring CCR
+#    Routine ("Journal sync - tv-paper-bot") calls on a schedule as a
+#    backstop for redeploys NOT caused by a push here (e.g. Render's
+#    free-tier inactivity spin-down). GH Actions' own `schedule:` cron
+#    proved unreliable in practice earlier - the Routine is the reliable
+#    recurring trigger instead.
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "state/open_positions.json"
+      - "state/trading_control.json"
+      - "docs/trade_outcomes_log.json"
+      - "docs/attempt_log.json"
   workflow_dispatch: {}
 
 permissions:

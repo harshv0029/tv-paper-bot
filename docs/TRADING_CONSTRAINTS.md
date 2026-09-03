@@ -1,5 +1,43 @@
 # Trading Constraints (standing rules)
 
+## Trade-view sync: closing the "trade vanished" gap (2026-09-03)
+
+User report: trades known to have executed were inconsistently visible on
+`/trade-view` - sometimes missing entirely. Root cause: two closed-trade
+sources with different freshness, and the page trusted only one of them.
+
+- `/daily-summary`'s `closed_trades` - live SQLite, real-time, wiped on
+  every Render redeploy (no persistent disk).
+- `/trade-history` - reads `docs/trade_outcomes_log.json`, durable across
+  redeploys, but only as fresh as the last `journal-sync.yml` run.
+- `trade-view.html` read only the durable file (to dodge the DB-wipe
+  undercounting this same file was built to fix - see
+  `docs/KNOWN_ISSUES.md`) - so a trade was invisible from the moment it
+  closed until the next sync, and if a redeploy hit inside that window,
+  gone from BOTH sources permanently (the DB it hadn't been read from yet
+  was wiped before the next sync could read it).
+
+**Fix, three parts:**
+1. `trade-view.html` now unions both sources client-side (dedup by
+   `symbol+exit_time_utc`, same key `journal-sync.yml` dedups on) - a
+   trade is visible the instant it closes (from the DB) and stays visible
+   after a redeploy wipes the DB (from the file, once synced).
+2. `journal-sync.yml` now also triggers on every push to `main`, not just
+   the hourly Routine - a push is what actually causes the redeploy that
+   wipes the DB, and a push-triggered sync (~10s) finishes well before
+   Render's redeploy (1-3 min), catching trades that closed just before
+   *my own* pushes - the dominant redeploy cause during active dev.
+3. The hourly hosted Routine ("Journal sync - tv-paper-bot") stays as a
+   backstop for redeploys not caused by a push here (e.g. Render's
+   free-tier inactivity spin-down/cold-start). Confirmed the platform
+   won't allow tightening it below hourly.
+
+Residual gap: a redeploy that lands in the few seconds between a trade
+closing and the push-triggered sync completing, with no push involved
+(pure inactivity spin-down) can still be lost for up to the hourly
+Routine's cycle. Not fully closed without a persistent DB (paid Render
+tier) - documented as a known, small residual risk, not pretended away.
+
 ## Scope: instruments actually tradeable via Kotak Neo/Zerodha (rescoped 2026-09-03)
 
 Explicit user instruction: "currently work on only Indian stock market and
