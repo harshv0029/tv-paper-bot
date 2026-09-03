@@ -1,17 +1,17 @@
 {
-  "synced_at_utc": "2026-09-03T08:26:33Z",
+  "synced_at_utc": "2026-09-03T08:57:05Z",
   "open_positions": [
     {
-      "symbol": "GC=F",
-      "qty": 0.47189,
-      "entry_price_native": 4485.89990234375,
-      "stop_loss_native": 4429.89990234375,
-      "target_native": 4653.89990234375,
-      "fx_to_inr": 94.4800033569336,
-      "notional_inr": 200000.12,
-      "orb_high_native": 4438.0,
-      "orb_low_native": 4429.89990234375,
-      "entry_ts": 1788423375.3712797,
+      "symbol": "BTC-USD",
+      "qty": 0.027216,
+      "entry_price_native": 77776.2578125,
+      "stop_loss_native": 77134.9765625,
+      "target_native": 79700.1015625,
+      "fx_to_inr": 94.48249816894531,
+      "notional_inr": 199996.64,
+      "orb_high_native": 77363.3125,
+      "orb_low_native": 77134.9765625,
+      "entry_ts": 1788425606.1911764,
       "interval": "5m"
     }
   ]

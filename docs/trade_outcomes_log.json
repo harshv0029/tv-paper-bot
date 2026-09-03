@@ -11,5 +11,18 @@
     "exit_reason": "trend_weakened",
     "rr_target": 3.0,
     "rr_achieved": 0.24
+  },
+  {
+    "symbol": "GC=F",
+    "exit_time_utc": 1788425605.7999208,
+    "entry_price_native": 4485.89990234375,
+    "exit_price_native": 4479.0,
+    "currency": "USD",
+    "qty": 0.47189,
+    "pnl_inr": -307.63,
+    "pnl_pct_of_capital": -0.077,
+    "exit_reason": "trend_weakened",
+    "rr_target": 3.0,
+    "rr_achieved": -0.12
   }
 ]
