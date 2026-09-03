@@ -77,5 +77,33 @@
     "rr_target": 3.0,
     "rr_achieved": 1.02,
     "strategy": "orb-recovered"
+  },
+  {
+    "symbol": "GC=F",
+    "exit_time_utc": 1788443806.7803502,
+    "entry_price_native": 4475.2001953125,
+    "exit_price_native": 4510.2998046875,
+    "currency": "USD",
+    "qty": 0.472993,
+    "pnl_inr": 1568.63,
+    "pnl_pct_of_capital": 0.392,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": 0.77,
+    "strategy": "orb-recovered"
+  },
+  {
+    "symbol": "SI=F",
+    "exit_time_utc": 1788443987.4749794,
+    "entry_price_native": 66.31999969482422,
+    "exit_price_native": 66.6500015258789,
+    "currency": "USD",
+    "qty": 31.920415,
+    "pnl_inr": 995.18,
+    "pnl_pct_of_capital": 0.249,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": 0.62,
+    "strategy": "orb-15m-sma9-21"
   }
 ]
