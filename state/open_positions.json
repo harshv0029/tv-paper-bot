@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-03T11:03:13Z",
+  "synced_at_utc": "2026-09-03T11:05:15Z",
   "open_positions": [
     {
       "symbol": "CL=F",
@@ -12,7 +12,8 @@
       "orb_high_native": 90.76000213623047,
       "orb_low_native": 90.51000213623047,
       "entry_ts": 1788428783.9312232,
-      "interval": "5m"
+      "interval": "5m",
+      "strategy": "orb-recovered"
     },
     {
       "symbol": "GC=F",
@@ -25,7 +26,8 @@
       "orb_high_native": 4438.0,
       "orb_low_native": 4429.89990234375,
       "entry_ts": 1788429341.7099674,
-      "interval": "5m"
+      "interval": "5m",
+      "strategy": "orb-recovered"
     }
   ]
 }
