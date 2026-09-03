@@ -36,9 +36,22 @@ jobs:
       - name: Fetch current state from the live server
         run: |
           mkdir -p state
-          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=200000&daily_risk_pct=2" \
+          # Render free-tier can be cold (asleep, or mid-redeploy from a
+          # push earlier in this same session) - a bare 30s timeout failed
+          # a real run today during exactly that. Wake it first with a
+          # generous health check, then retry the actual fetch a few times
+          # with backoff instead of failing the whole sync on one slow response.
+          curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+          curl -sS --retry 4 --retry-delay 5 --retry-connrefused -m 45 \
+            "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=200000&daily_risk_pct=2" \
             -o /tmp/daily-summary.json
           cat /tmp/daily-summary.json
+          echo
+          curl -sS --retry 2 --retry-delay 5 -m 30 \
+            "https://tv-paper-bot-gdan.onrender.com/scheduler-attempts" \
+            -o /tmp/scheduler-attempts.json
+          cat /tmp/scheduler-attempts.json
           echo
 
       - name: Write the open-positions journal
@@ -61,14 +74,28 @@ jobs:
           mv /tmp/trade_outcomes_merged.json docs/trade_outcomes_log.json
           echo "trade_outcomes_log.json now has $(jq 'length' docs/trade_outcomes_log.json) trades"
 
-      - name: Commit journal/history if either changed
+      - name: Append this cycle's entry-condition checks to the attempt log
+        run: |
+          # Real visibility into what the engine checked and decided, every
+          # cycle - not just closed trades. One snapshot per sync (hourly),
+          # not per 30s tick, to keep this readable and the file small.
+          mkdir -p docs
+          test -f docs/attempt_log.json || echo '[]' > docs/attempt_log.json
+          jq -s '
+            .[0] + [{synced_at_utc: (now | todate), attempts: .[1]}]
+            | if length > 500 then .[-500:] else . end
+          ' docs/attempt_log.json /tmp/scheduler-attempts.json > /tmp/attempt_log_merged.json
+          mv /tmp/attempt_log_merged.json docs/attempt_log.json
+          echo "attempt_log.json now has $(jq 'length' docs/attempt_log.json) snapshots"
+
+      - name: Commit journal/history/attempts if any changed
         run: |
           git config user.name "tv-paper-bot journal sync"
           git config user.email "actions@users.noreply.github.com"
-          git add state/open_positions.json docs/trade_outcomes_log.json
+          git add state/open_positions.json docs/trade_outcomes_log.json docs/attempt_log.json
           if git diff --cached --quiet; then
             echo "No change - nothing to commit."
           else
-            git commit -m "Sync position journal + trade outcome history ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+            git commit -m "Sync position journal + trade outcome + attempt log ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
             git push
           fi

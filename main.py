@@ -1455,6 +1455,15 @@ WATCHLIST = [
      "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
      "trade_weekends": False, "currency": "USD", "risk_pct": 2.0, "stop_pct": 2.0,
      "strategy": "bullish_engulfing", "trend_sma": 20, "volume_confirm": False},
+    # Gold futures - near-24h (COMEX has a brief daily settlement pause,
+    # simplified here to the same always-open shape as crypto below).
+    # Added 2026-09-03: orb_breakout evidenced strongly on real data - 100%
+    # of 24 swept combos profitable, best combo 65% win rate/+676.50 over
+    # 60d (docs/strategy_log.xlsx) - a stronger result than most NSE
+    # symbols got. Full 2% ceiling, same bar as everything else here.
+    {"symbol": "GC=F", "orb_minutes": 15, "sma_fast": 20, "sma_slow": 21,
+     "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
+     "trade_weekends": False, "currency": "USD", "risk_pct": 2.0, "stop_pct": 2.0},
 ]
 
 # ---------------------------------------------------------------------------
@@ -1542,6 +1551,12 @@ SCHEDULER_RR = 2.0
 
 _scheduler_last_tick_ts = 0.0
 _scheduler_last_error = None
+# Latest _auto_signal_core result per symbol, from the real scheduler tick
+# (not a synthetic re-check) - exposed via /scheduler-attempts so there's
+# real visibility into what the engine actually decided and why, not just
+# closed trades. journal-sync.yml snapshots this into a durable, growing
+# attempt log each sync.
+_scheduler_last_results: dict = {}
 
 
 async def _scheduler_loop():
@@ -1549,7 +1564,7 @@ async def _scheduler_loop():
     while True:
         for cfg in WATCHLIST:
             try:
-                await asyncio.to_thread(
+                result = await asyncio.to_thread(
                     _auto_signal_core,
                     symbol=cfg["symbol"], capital=SCHEDULER_CAPITAL,
                     daily_risk_pct=SCHEDULER_DAILY_RISK_PCT,
@@ -1562,8 +1577,13 @@ async def _scheduler_loop():
                     strategy=cfg.get("strategy", "orb_breakout"),
                     trend_sma=cfg.get("trend_sma", 0), volume_confirm=cfg.get("volume_confirm", False),
                 )
+                _scheduler_last_results[cfg["symbol"]] = {"checked_at_utc": time.time(), **result}
             except Exception as e:
                 _scheduler_last_error = f"{cfg['symbol']}: {e}"
+                _scheduler_last_results[cfg["symbol"]] = {
+                    "checked_at_utc": time.time(), "symbol": cfg["symbol"],
+                    "status": "error", "detail": str(e),
+                }
         _scheduler_last_tick_ts = time.time()
         await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
 
@@ -1583,6 +1603,17 @@ def scheduler_status():
         "last_tick_ago_seconds": round(time.time() - _scheduler_last_tick_ts, 1) if _scheduler_last_tick_ts else None,
         "last_error": _scheduler_last_error,
     }
+
+
+@app.get("/scheduler-attempts")
+def scheduler_attempts():
+    """The real-time scheduler's latest entry-condition check per symbol -
+    what it actually saw and decided (checked/no_signal/entered_long/
+    exited_.../pre_open/etc.), not a synthetic re-check. journal-sync.yml
+    snapshots this into docs/attempt_log.json each sync so there's a
+    persistent trail of what was attempted and why, not just closed
+    trades."""
+    return _scheduler_last_results
 
 
 @app.get("/daily-summary")
