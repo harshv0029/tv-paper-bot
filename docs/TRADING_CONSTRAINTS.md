@@ -182,6 +182,20 @@ justified this trade still intact?":
   the point is to often exit BEFORE the stop is hit (smaller loss, or
   locking in a partial gain) once the setup's own premise has broken,
   rather than mechanically riding every trade all the way to its stop.
+- **Gated at 95% confidence (added 2026-09-03).** Direct user instruction:
+  a bare SMA-fast-crosses-SMA-slow flip can be one noisy bar, not a real
+  reversal - closing a trade on that alone risks getting shaken out and
+  missing the recovery. `_trend_confidence()` turns the SMA gap into a
+  one-tailed statistical confidence via the normal CDF (`_norm_cdf` -
+  same machinery `_bs_delta` already uses for option delta, not a fudged
+  number): it standard-errors the gap against recent per-bar price
+  volatility (`sigma_price * sqrt(1/sma_fast + 1/sma_slow)`), then reads
+  the z-score's confidence off the normal distribution.
+  `TREND_WEAKENED_MIN_CONFIDENCE = 0.95` - `trend_weakened` only fires at
+  or above that; below it (including whenever there isn't yet enough
+  same-day history to size volatility) the trade is left alone and simply
+  continues under its existing stop/target/eod-squareoff, exactly per
+  instruction ("else it should not close the entered trade").
 
 ## Two independent caps, two different bases (clarified 2026-09-03)
 

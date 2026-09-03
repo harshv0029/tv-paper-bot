@@ -1234,13 +1234,57 @@ def _requote_contract(underlying: str, expiry: str, strike: float, right: str):
     return round((bid + ask) / 2.0, 4)
 
 
+TREND_WEAKENED_MIN_CONFIDENCE = 0.95  # explicit user instruction 2026-09-03:
+# the early "trend weakened" exit must only fire on a statistically real
+# reversal, not a marginal single-bar SMA crossover - if confidence falls
+# short, the trade stays open (stop/target/eod-squareoff still apply).
+
+
+def _trend_confidence(closes: np.ndarray, sma_fast: int, sma_slow: int) -> float:
+    """One-tailed statistical confidence, via the normal CDF, that the
+    sma_fast/sma_slow gap's sign is a real move and not just noise around a
+    flat/random-walk price - the same normal-distribution machinery
+    _bs_delta already uses (_norm_cdf) applied to trend strength instead of
+    option delta, not a fudged threshold.
+
+    Treats each SMA as an independent sample mean of the closes in its own
+    window, so the standard error of their gap is
+    sigma_price * sqrt(1/sma_fast + 1/sma_slow), where sigma_price is the
+    recent per-bar price volatility (std of returns * price level). The
+    gap's z-score against that standard error, run through the normal CDF,
+    is the confidence that a gap this size wouldn't show up by chance.
+    Returns 0.0 (never confident) when there isn't enough same-day history
+    yet to estimate volatility - direction alone is not evidence."""
+    n = len(closes)
+    if n < sma_slow + 2:
+        return 0.0
+    sma_f = float(np.mean(closes[-sma_fast:]))
+    sma_s = float(np.mean(closes[-sma_slow:]))
+    spread = sma_f - sma_s
+    window = closes[-(sma_slow + 1):]
+    rets = np.diff(window) / window[:-1]
+    sigma_ret = float(np.std(rets, ddof=1)) if len(rets) > 1 else 0.0
+    if not np.isfinite(sigma_ret) or sigma_ret <= 0:
+        return 0.0
+    sigma_price = sigma_ret * sma_s
+    se = sigma_price * math.sqrt(1.0 / sma_fast + 1.0 / sma_slow)
+    if not np.isfinite(se) or se <= 0:
+        return 0.0
+    z = abs(spread) / se
+    return _norm_cdf(z)
+
+
 def _compute_trend(symbol: str, sma_fast: int, sma_slow: int, tz_offset_min: int, interval: str = "5m"):
     """Same sma_fast/sma_slow trend read _auto_signal_core computes at
     every check (not just at entry) - factored out so the options overlay's
     open-position management can check it too. Reuses fetch_ohlc's own
     180s cache, so calling this for a symbol already checked elsewhere this
     tick is normally a cache hit, not a fresh network call. Returns
-    'up'/'down'/None (None = not enough candles yet)."""
+    (direction, confidence): direction is 'up'/'down'/None (None = not
+    enough candles yet), confidence is _trend_confidence's 0..1 read on
+    that direction (0.0 alongside a direction just means "not enough same-
+    day history to size it yet" - the caller decides what bar to hold it
+    to, e.g. TREND_WEAKENED_MIN_CONFIDENCE for the early-exit check)."""
     try:
         df = fetch_ohlc(symbol, "5d", interval)
         ts = pd.to_datetime(df["Date"])
@@ -1251,12 +1295,13 @@ def _compute_trend(symbol: str, sma_fast: int, sma_slow: int, tz_offset_min: int
         today_df = df[df["ts_local"].dt.strftime("%Y-%m-%d") == today_str]
         closes = today_df["Close"].to_numpy(dtype=float)
     except Exception:
-        return None
+        return None, 0.0
     if len(closes) < max(sma_fast, sma_slow):
-        return None
+        return None, 0.0
     sma_f = float(np.mean(closes[-sma_fast:]))
     sma_s = float(np.mean(closes[-sma_slow:]))
-    return "up" if sma_f > sma_s else "down"
+    direction = "up" if sma_f > sma_s else "down"
+    return direction, _trend_confidence(closes, sma_fast, sma_slow)
 
 
 def _detect_direction_signal(symbol: str, orb_minutes: int, sma_fast: int, sma_slow: int,
@@ -1399,12 +1444,16 @@ def _options_signal_core(
                 # intact?" check the equity engine runs on every open
                 # position (docs/TRADING_CONSTRAINTS.md) - a call is a
                 # bullish bet (exit if the underlying's trend flips down),
-                # a put is a bearish bet (exit if it flips up). Standing
+                # a put is a bearish bet (exit if it flips up). Only acted
+                # on at TREND_WEAKENED_MIN_CONFIDENCE (95%) or better - a
+                # marginal single-bar crossover is noise, not evidence the
+                # setup broke, and must never close the trade. Standing
                 # policy per explicit user instruction 2026-09-03.
-                trend_now = _compute_trend(underlying, sma_fast, sma_slow, tz_offset_min, interval)
-                if right == "call" and trend_now == "down":
+                trend_now, trend_conf = _compute_trend(underlying, sma_fast, sma_slow, tz_offset_min, interval)
+                trend_confident = trend_conf >= TREND_WEAKENED_MIN_CONFIDENCE
+                if right == "call" and trend_now == "down" and trend_confident:
                     exit_reason = "trend_weakened"
-                elif right == "put" and trend_now == "up":
+                elif right == "put" and trend_now == "up" and trend_confident:
                     exit_reason = "trend_weakened"
 
             if exit_reason:
@@ -1780,7 +1829,7 @@ def _auto_signal_core(
                 exit_reason = "target_hit"
             elif last_close <= row["stop_loss"]:
                 exit_reason = "stop_hit"
-            elif trend == "down":
+            elif trend == "down" and _trend_confidence(closes, sma_fast, sma_slow) >= TREND_WEAKENED_MIN_CONFIDENCE:
                 # The position is long because trend was "up" at entry
                 # (orb_breakout requires it directly; bullish_engulfing's
                 # own trend_sma filter serves the same purpose) - if the
@@ -1792,6 +1841,13 @@ def _auto_signal_core(
                 # riding it all the way down to stop_loss on a trade whose
                 # own premise has already broken - standing policy per
                 # explicit user instruction 2026-09-03 (docs/TRADING_CONSTRAINTS.md).
+                #
+                # Gated at TREND_WEAKENED_MIN_CONFIDENCE (95%, via
+                # _trend_confidence's normal-CDF read on the SMA gap vs
+                # recent volatility) per explicit user instruction
+                # 2026-09-03: a marginal single-bar crossover is noise, not
+                # evidence the setup broke, and must NOT close the trade -
+                # it just rides on to its existing stop/target/eod-squareoff.
                 exit_reason = "trend_weakened"
             elif is_squareoff_time:
                 exit_reason = "eod_squareoff"
