@@ -5,6 +5,21 @@ Read this file at the start of every research cycle, alongside
 channel the user/main session uses to hand you new direction between
 sessions — treat it as current instructions, not a one-time note.
 
+## Structural constraint: you cannot dispatch GitHub Actions yourself
+
+Confirmed 2026-09-03: your session has no GitHub Actions MCP tool, and
+direct HTTP to the live server (curl, WebFetch) is blocked by this
+environment's network egress policy (`EGRESS_BLOCKED`) — this is not a
+bug to work around, it's how this environment is configured. **You can
+still write and push backtest-engine code** (new strategies in
+`add_strategy_signal()`, new workflow steps in
+`entry-trigger-research.yml`) — but when you need it actually *run*
+against real data, log the blocker plainly (as you already did for
+`bullish_engulfing`) and stop there. The main session has the GitHub
+Actions access you don't and will dispatch it and log the real results —
+this is the expected division of labor, not something to keep retrying
+workarounds for.
+
 ## 2026-09-03 update: scope across markets, use real historical outcomes, options/futures where legitimately available
 
 **Test across every WATCHLIST market, not just NSE.** The user's own framing:
