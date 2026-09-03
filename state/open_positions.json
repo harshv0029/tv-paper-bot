@@ -1,5 +1,4 @@
 {
-  "synced_at_utc": null,
-  "open_positions": [],
-  "note": "Written by .github/workflows/journal-sync.yml after every sync. Read on startup by reconcile_open_positions_from_journal() in main.py to restore any open position lost to a Render redeploy wiping the ephemeral SQLite DB."
+  "synced_at_utc": "2026-09-03T02:40:11Z",
+  "open_positions": []
 }
