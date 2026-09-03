@@ -3473,6 +3473,39 @@ def health():
     return {"status": "alive", "time": time.time()}
 
 
+# Data source per monitored symbol (2026-09-03) - "MCX_PROXY" symbols run on
+# an international futures contract as a stand-in for the real MCX contract
+# (see the WATCHLIST comment block above), never MCX's own price directly.
+_MCX_PROXY_FOR = {"GC=F": "MCX GOLD", "SI=F": "MCX SILVER (30kg, 999 purity)", "CL=F": "MCX CRUDEOIL"}
+_INDEX_SYMBOLS = {"^NSEI", "^NSEBANK", "^BSESN"}
+
+
+@app.get("/watchlist")
+def watchlist():
+    """Every symbol the scheduler actually scans, each with a data_source
+    label - a distinct question from /trade-view, which shows only
+    currently-open positions, not the full scan universe. Reality as of
+    2026-09-03: 100% of monitored symbols are priced via Yahoo Finance
+    (yfinance) - Kotak Neo is not used for any monitoring/price data yet,
+    only for account-level auth/holdings/positions/limits (Phase 1/2, see
+    docs/TRADING_CONSTRAINTS.md 'Kotak Neo connection'). This changes once
+    real NSE options/futures data via Kotak is wired up."""
+    entries = []
+    for cfg in WATCHLIST:
+        sym = cfg["symbol"]
+        asset_class = "index" if sym in _INDEX_SYMBOLS else ("mcx_commodity_proxy" if sym in _MCX_PROXY_FOR else "nse_equity")
+        entries.append({
+            "symbol": sym,
+            "display_name": _display_name(sym),
+            "asset_class": asset_class,
+            "data_source": "yahoo_finance",
+            "mcx_proxy_for": _MCX_PROXY_FOR.get(sym),
+            "risk_pct": cfg.get("risk_pct"),
+            "stop_pct": cfg.get("stop_pct"),
+        })
+    return {"count": len(entries), "symbols": entries}
+
+
 def _env_presence(name: str) -> dict:
     """Reports whether an env var is SET, without ever exposing its value -
     just a length and a masked preview (first 4 chars, for the user to
@@ -3592,6 +3625,41 @@ def kotak_neo_limits(request: Request):
     try:
         import kotak_neo
         return _kotak_json_safe(kotak_neo.limits())
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/kotak-neo/search-scrip")
+def kotak_neo_search_scrip(
+    request: Request,
+    exchange_segment: str = "nse_fo",
+    symbol: str = "nifty",
+    expiry: str | None = None,
+    option_type: str | None = "ce,pe",
+    strike_price: str | None = None,
+    limit: int = 20,
+):
+    """DIAGNOSTIC step toward a NIFTY option chain (2026-09-03) - returns
+    RAW records from Kotak's live scrip master, unmodified except for
+    truncation to `limit` rows. Deliberately not turned into a polished
+    ATM-strike-chain-with-quotes endpoint yet: see kotak_neo.search_scrip's
+    docstring for why (the instrument-token column name isn't documented
+    anywhere in the SDK's source, so this is here to show it on real data
+    before anything is built on top of it - guessing a field name on
+    financial data risks silently matching the wrong contract). Real
+    login required - places no order. Requires
+    ?token=<KOTAK_NEO_API_TOKEN> (or an 'Authorization: Bearer <token>'
+    header)."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        result = kotak_neo.search_scrip(
+            exchange_segment=exchange_segment, symbol=symbol, expiry=expiry,
+            option_type=option_type, strike_price=strike_price,
+        )
+        if isinstance(result, list):
+            return {"total_matched": len(result), "showing": result[:limit]}
+        return _kotak_json_safe(result)
     except Exception as e:
         return {"error": str(e)}
 
