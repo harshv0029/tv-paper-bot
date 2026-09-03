@@ -61,6 +61,7 @@
   .row-stats{display:flex;flex-direction:column;gap:6px;font-size:11.5px;}
   .row-stats .r{display:flex;justify-content:space-between;color:var(--muted);}
   .row-stats .r b{color:var(--text);font-weight:600;}
+  .trail-active{color:var(--up);font-weight:700;font-size:9.5px;text-transform:uppercase;letter-spacing:.02em;}
 
   .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);padding:0 16px 12px;}
   .legend span{display:inline-flex;align-items:center;gap:5px;}
@@ -356,7 +357,7 @@ function setPriceLines(entry, pos) {
     }));
   };
   add(pos.entry_price_native, "#3b82f6", "Entry");
-  add(pos.stop_loss_native, "#ef4444", "Stop");
+  add(pos.stop_loss_native, "#ef4444", "Trailing Stop");
   add(pos.target_native, "#22c55e", "Target");
   add(pos.orb_high_native, "#f59e0b", "ORB high");
   add(pos.orb_low_native, "#f59e0b", "ORB low");
@@ -454,10 +455,21 @@ function renderStats(symbol, pos, lastClose) {
   pnlEl.className = "amt mono " + (unrealizedInr >= 0 ? "up" : "down");
   pnlPctEl.textContent = `${((unrealizedInr / pos.notional_inr) * 100).toFixed(2)}% of position`;
 
+  // Trailing stop: pos.stop_loss_native IS the live value (main.py ratchets
+  // it in place - see _trailing_stop_target) - stop_loss_native above
+  // initial_stop_loss_native means it has actually engaged and moved.
+  const initialStop = pos.initial_stop_loss_native;
+  const trailActive = initialStop !== null && initialStop !== undefined && pos.stop_loss_native > initialStop;
+  const trailRow = initialStop !== null && initialStop !== undefined
+    ? `<div class="r"><span>Initial stop</span><b class="mono">${fmt(initialStop, pos.qty && pos.qty < 1 ? 4 : 2)}</b></div>`
+    : "";
+
   statsEl.innerHTML = `
     <div class="r"><span>Qty</span><b class="mono">${pos.qty}</b></div>
     <div class="r"><span>Notional</span><b class="mono">₹${fmt(pos.notional_inr)}</b></div>
     <div class="r"><span>FX (₹/unit)</span><b class="mono">${fmt(pos.fx_to_inr)}</b></div>
+    <div class="r"><span>Trailing stop${trailActive ? " <b class=\"trail-active\">●&nbsp;active</b>" : ""}</span><b class="mono">${fmt(pos.stop_loss_native)}</b></div>
+    ${trailRow}
     <div class="r"><span>R:R to go</span><b class="mono">${fmt(Math.abs((pos.target_native - lastClose) / (lastClose - pos.stop_loss_native || 1)), 2)}</b></div>
   `;
 }
