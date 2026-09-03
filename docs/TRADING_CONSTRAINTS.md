@@ -14,6 +14,34 @@ change is the bug.
 | **Risk:Reward minimum** | **1:3** (target = entry + 3 × stop distance) — raised 2026-09-03 from 1:2 per standing user instruction; a trade is only entered if it clears this | `rr=3.0`, `SCHEDULER_RR` |
 | **Capital deployed cap** | Total notional across all open positions never exceeds current `capital` | `deployed_notional()` capital check in the entry path |
 | **Position sizing** | Fractional units, not integer-floored — a whole-unit floor was silently blocking every BTC-USD/ETH-USD/gold entry (unit price exceeds a ₹2L pool) regardless of signal quality; fixed 2026-09-03 | qty computed as a float in `_auto_signal_core`, min ₹100 notional guard |
+| **Trend exit** | An open LONG position exits early (before stop/target/eod) if the short-term trend that justified holding it flips against the trade — checked on every tick, not just at entry | `trend == "down"` (equity) / `_compute_trend()` vs. call-or-put (options) in the position-management branch |
+
+## Trend health is monitored for the life of the trade, not just at entry (added 2026-09-03)
+
+Direct user instruction: entries already required a favorable trend
+(`orb_breakout` requires `trend == "up"`; `bullish_engulfing` has an
+optional `trend_sma` filter), but an OPEN position was never re-checked
+against it — only stop/target/eod-squareoff/daily-halt could close a
+trade early. Now every open-position check also asks "is the trend that
+justified this trade still intact?":
+
+- **Equity** (`_auto_signal_core`): `sma_fast`/`sma_slow` are already
+  recomputed on every check (used for the entry trend filter) - a long
+  position now also exits with `trend_weakened` the moment that same
+  read flips to `"down"`, regardless of where price sits between stop and
+  target. Checked after target/stop (a live price-level hit still takes
+  priority for reason-labeling) and before eod-squareoff.
+- **Options overlay** (`_options_signal_core`): a **call** (bullish bet)
+  exits `trend_weakened` if the underlying's trend flips to `"down"`; a
+  **put** (bearish bet) exits if it flips to `"up"`. Uses the same
+  `sma_fast`/`sma_slow` read via a shared helper (`_compute_trend`),
+  reusing `fetch_ohlc`'s cache so this doesn't add a real extra network
+  call when the underlying was already checked elsewhere this tick.
+- This is a genuinely new, lower-priority exit trigger, not a replacement
+  for the hard stop/target/daily-cap/expiry limits above it in priority -
+  the point is to often exit BEFORE the stop is hit (smaller loss, or
+  locking in a partial gain) once the setup's own premise has broken,
+  rather than mechanically riding every trade all the way to its stop.
 
 ## Two independent caps, two different bases (clarified 2026-09-03)
 

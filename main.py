@@ -1204,6 +1204,31 @@ def _requote_contract(underlying: str, expiry: str, strike: float, right: str):
     return round((bid + ask) / 2.0, 4)
 
 
+def _compute_trend(symbol: str, sma_fast: int, sma_slow: int, tz_offset_min: int, interval: str = "5m"):
+    """Same sma_fast/sma_slow trend read _auto_signal_core computes at
+    every check (not just at entry) - factored out so the options overlay's
+    open-position management can check it too. Reuses fetch_ohlc's own
+    180s cache, so calling this for a symbol already checked elsewhere this
+    tick is normally a cache hit, not a fresh network call. Returns
+    'up'/'down'/None (None = not enough candles yet)."""
+    try:
+        df = fetch_ohlc(symbol, "5d", interval)
+        ts = pd.to_datetime(df["Date"])
+        ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+        ts_local = ts_utc + pd.Timedelta(minutes=tz_offset_min)
+        df = df.assign(ts_local=ts_local)
+        today_str = (dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)).strftime("%Y-%m-%d")
+        today_df = df[df["ts_local"].dt.strftime("%Y-%m-%d") == today_str]
+        closes = today_df["Close"].to_numpy(dtype=float)
+    except Exception:
+        return None
+    if len(closes) < max(sma_fast, sma_slow):
+        return None
+    sma_f = float(np.mean(closes[-sma_fast:]))
+    sma_s = float(np.mean(closes[-sma_slow:]))
+    return "up" if sma_f > sma_s else "down"
+
+
 def _detect_direction_signal(symbol: str, orb_minutes: int, sma_fast: int, sma_slow: int,
                               trend_sma: int, tz_offset_min: int, open_min: int, interval: str = "5m"):
     """Direction-only signal (bullish/bearish/None) for the options overlay.
@@ -1339,6 +1364,18 @@ def _options_signal_core(
                 exit_reason = "target_hit"
             elif premium is not None and premium <= row["stop_premium"]:
                 exit_reason = "stop_hit"
+            else:
+                # Same "is the trend that justified this trade still
+                # intact?" check the equity engine runs on every open
+                # position (docs/TRADING_CONSTRAINTS.md) - a call is a
+                # bullish bet (exit if the underlying's trend flips down),
+                # a put is a bearish bet (exit if it flips up). Standing
+                # policy per explicit user instruction 2026-09-03.
+                trend_now = _compute_trend(underlying, sma_fast, sma_slow, tz_offset_min, interval)
+                if right == "call" and trend_now == "down":
+                    exit_reason = "trend_weakened"
+                elif right == "put" and trend_now == "up":
+                    exit_reason = "trend_weakened"
 
             if exit_reason:
                 # A stale/failed requote must never block a forced exit
@@ -1710,6 +1747,19 @@ def _auto_signal_core(
                 exit_reason = "target_hit"
             elif last_close <= row["stop_loss"]:
                 exit_reason = "stop_hit"
+            elif trend == "down":
+                # The position is long because trend was "up" at entry
+                # (orb_breakout requires it directly; bullish_engulfing's
+                # own trend_sma filter serves the same purpose) - if the
+                # short-term trend (same sma_fast/sma_slow this function
+                # already recomputes every check) has since flipped
+                # against the trade, that's real evidence the setup that
+                # justified holding is gone, not just the market's normal
+                # noise around a fixed stop/target. Exit now instead of
+                # riding it all the way down to stop_loss on a trade whose
+                # own premise has already broken - standing policy per
+                # explicit user instruction 2026-09-03 (docs/TRADING_CONSTRAINTS.md).
+                exit_reason = "trend_weakened"
             elif is_squareoff_time:
                 exit_reason = "eod_squareoff"
 
