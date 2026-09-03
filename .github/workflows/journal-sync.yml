@@ -1,0 +1,50 @@
+name: Position Journal Sync
+
+# Render's free tier has no persistent disk - every redeploy wipes the
+# SQLite DB, including any open auto-signal position. Without this, an open
+# position would just vanish from tracking: never checked against its
+# stop/target again, no exit ever recorded, silently forgotten until a human
+# notices. state/open_positions.json is a plain git-tracked file, so it
+# survives every redeploy (baked into each fresh checkout) even though the
+# DB doesn't - main.py reads it on startup and restores anything the fresh
+# DB is missing (see reconcile_open_positions_from_journal in main.py).
+#
+# workflow_dispatch only, deliberately NOT `schedule:` - GH Actions'
+# schedule cron proved unreliable in practice earlier today (see
+# docs/KNOWN_ISSUES.md), which would defeat the point of a safety net. A
+# separate lightweight CCR session ("Position Journal Sync Agent") calls
+# this on a reliable recurring trigger instead.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch current open positions and write the journal
+        run: |
+          mkdir -p state
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=200000&daily_risk_pct=2" \
+            -o /tmp/daily-summary.json
+          cat /tmp/daily-summary.json
+          echo
+          jq '{synced_at_utc: (now | todate), open_positions: .open_positions}' /tmp/daily-summary.json \
+            > state/open_positions.json
+          cat state/open_positions.json
+
+      - name: Commit journal if it changed
+        run: |
+          git config user.name "tv-paper-bot journal sync"
+          git config user.email "actions@users.noreply.github.com"
+          git add state/open_positions.json
+          if git diff --cached --quiet; then
+            echo "No change in open positions - nothing to commit."
+          else
+            git commit -m "Sync position journal ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+            git push
+          fi
