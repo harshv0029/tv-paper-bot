@@ -16,16 +16,28 @@ change is the bug.
 
 ## Per-trade risk: 2% is a ceiling, tuned down by evidence
 
-Current split (as of 2026-09-02):
-- **NIFTY, BANKNIFTY, SENSEX: full 2%.** These have real 60-day backtest
-  evidence behind this exact ORB strategy
+Current split (as of 2026-09-03):
+- **NIFTY, BANKNIFTY, SENSEX: full 2%, strategy `orb_breakout`.** Real
+  60-day backtest evidence behind this exact ORB strategy
   (`docs/daily_logs/2026-09-02-entry-trigger-research.md`) — profitable on
   95.8-100% of swept parameter combinations, not a lone lucky spike.
-- **SPY, QQQ, AAPL, BTC-USD, ETH-USD: 1% (half the ceiling).** The ORB
-  strategy has never been backtested on these symbols — no evidence yet
-  that it works there. Runs conservative until it builds a track record;
-  raise toward 2% only once there's real evidence to justify it, the same
-  way NIFTY/BANKNIFTY/SENSEX earned theirs.
+- **AAPL: full 2%, strategy `bullish_engulfing` (trend_sma=20).** Switched
+  2026-09-03 from unvalidated `orb_breakout` defaults once real evidence
+  existed for a different strategy on this symbol — 100% of 6 swept
+  combos profitable (`docs/strategy_log.xlsx`). Live exits still use the
+  same bounded-risk framework (stop/target/EOD-squareoff) as every other
+  symbol, not the backtest's own open-ended exit — see the docstring on
+  `_auto_signal_core` in `main.py`.
+- **SPY, QQQ, BTC-USD, ETH-USD: 1% (half the ceiling), strategy
+  `orb_breakout`.** No evidence yet that any strategy works on these -
+  runs conservative until one earns a track record, the same way
+  NIFTY/BANKNIFTY/SENSEX and AAPL did.
+
+Per-symbol `strategy` is set in `main.py`'s `WATCHLIST`; the redundant
+GH Actions backstop workflows (`live-signals*.yml`) must pass matching
+`strategy`/params for any symbol that isn't plain `orb_breakout`, or the
+backstop call and the in-process scheduler will disagree about how that
+symbol is being traded.
 
 ## The daily loss cap, specifically
 
