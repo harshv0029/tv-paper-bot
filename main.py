@@ -3021,6 +3021,31 @@ def scheduler_status():
     }
 
 
+# Data source per monitored symbol (2026-09-03) - "MCX_PROXY" symbols run on
+# an international futures contract as a stand-in for the real MCX contract
+# (see the WATCHLIST comment block above), never MCX's own price directly.
+_MCX_PROXY_FOR = {"GC=F": "MCX GOLD", "SI=F": "MCX SILVER (30kg, 999 purity)", "CL=F": "MCX CRUDEOIL"}
+_INDEX_SYMBOLS = {"^NSEI", "^NSEBANK", "^BSESN"}
+
+
+def _asset_class_and_source(symbol: str):
+    """(asset_class, data_source, mcx_proxy_for) for any symbol the
+    scheduler might check - WATCHLIST entries and options rows
+    ('{underlying}:OPT') alike. Reality as of 2026-09-03: every asset is
+    priced via Yahoo Finance (yfinance) - Kotak Neo isn't used for any
+    monitoring/price data yet, only account-level auth/holdings/positions/
+    limits (see docs/TRADING_CONSTRAINTS.md 'Kotak Neo connection'). Shared
+    by /watchlist and /scheduler-pipeline so both answer "checks today, per
+    asset, from where" consistently."""
+    if symbol in _INDEX_SYMBOLS:
+        return "index", "yahoo_finance", None
+    if symbol in _MCX_PROXY_FOR:
+        return "mcx_commodity_proxy", "yahoo_finance", _MCX_PROXY_FOR[symbol]
+    if symbol.endswith(":OPT"):
+        return "options", "yahoo_finance", None
+    return "nse_equity", "yahoo_finance", None
+
+
 @app.get("/scheduler-attempts")
 def scheduler_attempts():
     """The real-time scheduler's latest entry-condition check per symbol -
@@ -3054,20 +3079,24 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     all_keys = set(_scheduler_check_counts) | set(_scheduler_last_results) | {
         cfg["symbol"] for cfg in WATCHLIST
     } | {f"{u}:OPT" for u in OPTIONS_ELIGIBLE_SYMBOLS}
+    check_counts_today_rows = []
+    for k in all_keys:
+        asset_class, data_source, mcx_proxy_for = _asset_class_and_source(k)
+        check_counts_today_rows.append({
+            "symbol": k,
+            "display": _display_name(k),
+            "checks_today": _scheduler_check_counts.get(k, 0),
+            "last_action": (
+                _scheduler_last_results.get(k, {}).get("action_taken")
+                or _scheduler_last_results.get(k, {}).get("status")
+            ),
+            "last_checked_at_utc": _scheduler_last_results.get(k, {}).get("checked_at_utc"),
+            "asset_class": asset_class,
+            "data_source": data_source,
+            "mcx_proxy_for": mcx_proxy_for,
+        })
     check_counts_today = sorted(
-        (
-            {
-                "symbol": k,
-                "display": _display_name(k),
-                "checks_today": _scheduler_check_counts.get(k, 0),
-                "last_action": (
-                    _scheduler_last_results.get(k, {}).get("action_taken")
-                    or _scheduler_last_results.get(k, {}).get("status")
-                ),
-                "last_checked_at_utc": _scheduler_last_results.get(k, {}).get("checked_at_utc"),
-            }
-            for k in all_keys
-        ),
+        check_counts_today_rows,
         # NSE indices pinned to the very top, in a fixed order - the user
         # specifically asked to be able to find NIFTY/BANKNIFTY/SENSEX
         # without hunting through a count-sorted, scrollable list of 36
@@ -3473,13 +3502,6 @@ def health():
     return {"status": "alive", "time": time.time()}
 
 
-# Data source per monitored symbol (2026-09-03) - "MCX_PROXY" symbols run on
-# an international futures contract as a stand-in for the real MCX contract
-# (see the WATCHLIST comment block above), never MCX's own price directly.
-_MCX_PROXY_FOR = {"GC=F": "MCX GOLD", "SI=F": "MCX SILVER (30kg, 999 purity)", "CL=F": "MCX CRUDEOIL"}
-_INDEX_SYMBOLS = {"^NSEI", "^NSEBANK", "^BSESN"}
-
-
 @app.get("/watchlist")
 def watchlist():
     """Every symbol the scheduler actually scans, each with a data_source
@@ -3493,13 +3515,13 @@ def watchlist():
     entries = []
     for cfg in WATCHLIST:
         sym = cfg["symbol"]
-        asset_class = "index" if sym in _INDEX_SYMBOLS else ("mcx_commodity_proxy" if sym in _MCX_PROXY_FOR else "nse_equity")
+        asset_class, data_source, mcx_proxy_for = _asset_class_and_source(sym)
         entries.append({
             "symbol": sym,
             "display_name": _display_name(sym),
             "asset_class": asset_class,
-            "data_source": "yahoo_finance",
-            "mcx_proxy_for": _MCX_PROXY_FOR.get(sym),
+            "data_source": data_source,
+            "mcx_proxy_for": mcx_proxy_for,
             "risk_pct": cfg.get("risk_pct"),
             "stop_pct": cfg.get("stop_pct"),
         })
