@@ -120,6 +120,9 @@
   .ds-val{font-size:19px;font-weight:700;}
   .ds-val.up{color:var(--up);} .ds-val.down{color:var(--down);}
   .log-section-row td{background:rgba(124,138,156,.06);color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:5px 14px !important;}
+  .log-total-row{position:sticky;bottom:0;}
+  .log-total-row td{background:var(--panel-2);border-top:2px solid var(--border);border-bottom:none;font-weight:700;font-size:11.5px;}
+  .log-total-row td:first-child{color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;}
   .log-scroll{max-height:480px;overflow-y:auto;overflow-x:auto;}
   table.log{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;}
   table.log thead th{position:sticky;top:0;background:var(--panel-2);color:var(--muted);text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:8px 14px;border-bottom:1px solid var(--border);}
@@ -238,9 +241,10 @@
     <table class="log">
       <thead><tr>
         <th>Status</th><th>Asset</th><th>Type</th><th class="num">Entry</th><th class="num">Exit / Now</th>
-        <th class="num">Qty</th><th class="num">P&amp;L (₹)</th><th class="num">P&amp;L %</th><th>Reason</th><th>Time</th>
+        <th class="num">Qty</th><th class="num">Realised P&amp;L (₹)</th><th class="num">Unrealised P&amp;L (₹)</th>
+        <th class="num">P&amp;L %</th><th>Reason</th><th>Time</th>
       </tr></thead>
-      <tbody id="log-body"><tr><td colspan="10" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="log-body"><tr><td colspan="11" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -594,6 +598,10 @@ function renderTradeLog(summary, history) {
   // already sorted most-recent-first server-side.
   const closed = history.trades || [];
 
+  const pnlSpan = (v) => `<span class="num ${v >= 0 ? "up" : "down"}">${v >= 0 ? "+" : ""}₹${fmt(v)}</span>`;
+  const dash = `<span class="scan-idle">—</span>`;
+  let totalUnrealisedInr = 0;
+
   const liveRows = openPositions.map(pos => {
     const isOption = pos.instrument === "option";
     const label = isOption ? optionLabel(pos) : displayName(pos.symbol);
@@ -604,16 +612,15 @@ function renderTradeLog(summary, history) {
       if (now !== undefined && now !== null) {
         pnlInr = (now - pos.entry_price_native) * pos.qty * pos.fx_to_inr;
         pnlPct = (pnlInr / pos.notional_inr) * 100;
+        totalUnrealisedInr += pnlInr;
       }
     }
     // Option premiums re-quote server-side every scheduler tick (see
     // _requote_contract in main.py) but not from this page directly - a
     // client-side chain fetch is too heavy for a 10s UI poll, so a live
     // option row shows its entry/stop/target premium without a live P&L
-    // number rather than showing a stale or fabricated one.
-    const pnlCell = pnlInr === null
-      ? `<span class="scan-idle">—</span>`
-      : `<span class="num ${pnlInr >= 0 ? "up" : "down"}">${pnlInr >= 0 ? "+" : ""}₹${fmt(pnlInr)}</span>`;
+    // number rather than showing a stale or fabricated one (and is left
+    // out of the Unrealised total below for the same reason).
     const pnlPctCell = pnlPct === null ? "—" : `${pnlPct >= 0 ? "+" : ""}${fmt(pnlPct)}%`;
     return `<tr class="live">
       <td><span class="log-status live"><span class="dot"></span>LIVE</span></td>
@@ -622,7 +629,8 @@ function renderTradeLog(summary, history) {
       <td class="num">${fmt(pos.entry_price_native, isOption ? 4 : 2)}</td>
       <td class="num">${isOption ? "—" : (now !== undefined && now !== null ? fmt(now) : "—")}</td>
       <td class="num">${isOption ? pos.contracts : fmt(pos.qty, 4)}</td>
-      <td class="num">${pnlCell}</td>
+      <td class="num">${dash}</td>
+      <td class="num">${pnlInr === null ? dash : pnlSpan(pnlInr)}</td>
       <td class="num">${pnlPctCell}</td>
       <td class="log-type">open</td>
       <td class="meta">${timeAgo(pos.entry_ts)}</td>
@@ -641,18 +649,29 @@ function renderTradeLog(summary, history) {
       <td class="num">${fmt(t.entry_price_native, isOption ? 4 : 2)}</td>
       <td class="num">${fmt(t.exit_price_native, isOption ? 4 : 2)}</td>
       <td class="num">${fmt(t.qty, isOption ? 0 : 4)}</td>
-      <td class="num"><span class="num ${pnl >= 0 ? "up" : "down"}">${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}</span></td>
+      <td class="num">${pnlSpan(pnl)}</td>
+      <td class="num">${dash}</td>
       <td class="num">${(t.pnl_pct_of_capital ?? 0) >= 0 ? "+" : ""}${fmt(t.pnl_pct_of_capital ?? 0)}%</td>
       <td class="log-type">${(t.exit_reason || "—").replace(/_/g, " ")}</td>
       <td class="meta">${timeAgo(t.exit_time_utc)}</td>
     </tr>`;
   });
 
-  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="10">${label}</td></tr>`;
+  const totalRealisedInr = history.net_pnl_inr ?? 0;
+  const combinedInr = totalRealisedInr + totalUnrealisedInr;
+  const totalRow = `<tr class="log-total-row">
+      <td colspan="6">TOTAL — realised (closed) + unrealised (live)</td>
+      <td class="num">${pnlSpan(totalRealisedInr)}</td>
+      <td class="num">${pnlSpan(totalUnrealisedInr)}</td>
+      <td colspan="3">Combined: ${pnlSpan(combinedInr)}</td>
+    </tr>`;
+
+  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="11">${label}</td></tr>`;
   const sections = [];
   if (liveRows.length) sections.push(sectionRow(`Live positions (${liveRows.length})`), ...liveRows);
   sections.push(sectionRow(`Closed today (${closedRows.length}) — transacted, realized P&amp;L`));
-  sections.push(...(closedRows.length ? closedRows : [`<tr><td colspan="10" class="scan-idle">No trades closed yet today</td></tr>`]));
+  sections.push(...(closedRows.length ? closedRows : [`<tr><td colspan="11" class="scan-idle">No trades closed yet today</td></tr>`]));
+  if (liveRows.length || closedRows.length) sections.push(totalRow);
   body.innerHTML = sections.join("");
 
   // Net P&L for the day = sum of realized P&L on transacted (closed)
