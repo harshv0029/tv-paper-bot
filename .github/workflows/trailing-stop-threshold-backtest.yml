@@ -1,0 +1,191 @@
+name: Trailing Stop Threshold Backtest (research)
+
+# Answers a direct question: which TRAIL_ACTIVATE_R (the R-multiple of
+# unrealized gain that has to be reached before the trailing stop engages
+# at all - see main.py's _trailing_stop_target/docs/TRADING_CONSTRAINTS.md)
+# actually performs best against REAL historical 5-min data, instead of
+# guessing. Imports main.py directly and calls its OWN
+# _trailing_stop_target/_trend_confidence functions (not a reimplementation
+# that could silently drift from what's actually live) - only the R-multiple
+# activation gate is varied per variant via TRAIL_ACTIVATE_R; Chandelier
+# k=3.0/ATR period=14/breakeven buffer stay at their shipped defaults.
+#
+# Entries are found using the SAME orb_breakout rule the live engine uses
+# (opening-range breakout + SMA fast>slow trend filter), replayed bar-by-bar
+# across each of the last ~60 days (yfinance's own 5m intraday window) for
+# a representative sample: the 3 NSE indices (their own evidence-backed
+# params) + 10 liquid Nifty 50 names sharing the same params every other
+# NSE stock in WATCHLIST uses. Read-only research - writes nothing to any
+# repo file, touches no live state, safe to run anytime.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run threshold comparison
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import main as m
+          import pandas as pd, numpy as np
+
+          SYMBOLS = [
+              {"symbol": "^NSEI", "orb_minutes": 30, "sma_fast": 5, "sma_slow": 50, "stop_pct": 2.0},
+              {"symbol": "^NSEBANK", "orb_minutes": 5, "sma_fast": 9, "sma_slow": 50, "stop_pct": 2.0},
+              {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50, "stop_pct": 2.0},
+          ] + [
+              {"symbol": s, "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21, "stop_pct": 1.0}
+              for s in ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS",
+                        "SBIN.NS", "TATAMOTORS.NS", "TATASTEEL.NS", "MARUTI.NS", "ASIANPAINT.NS"]
+          ]
+          RR = 3.0
+          OPEN_MIN = 555        # 9:15 IST
+          SQUAREOFF_MIN = 920   # 15:20 IST
+          TZ_OFF = m.IST_OFFSET_MIN
+
+          VARIANTS = {"no_trailing": None, "0.5R": 0.5, "1.0R_current": 1.0, "1.5R": 1.5, "2.0R": 2.0}
+          trades_by_variant = {k: [] for k in VARIANTS}
+          orig_activate_r = m.TRAIL_ACTIVATE_R
+
+          for cfg in SYMBOLS:
+              sym, om, sf, ss, stop_pct = cfg["symbol"], cfg["orb_minutes"], cfg["sma_fast"], cfg["sma_slow"], cfg["stop_pct"]
+              try:
+                  raw = m.fetch_ohlc(sym, "60d", "5m")
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+
+              ts = pd.to_datetime(raw["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_ist = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              raw = raw.assign(ts_utc=ts_utc, date_ist=ts_ist.dt.strftime("%Y-%m-%d"))
+              raw["mins"] = ts_ist.dt.hour * 60 + ts_ist.dt.minute
+              raw = raw.reset_index(drop=True)
+
+              days = sorted(raw["date_ist"].unique())
+              symbol_entries = 0
+
+              for day in days:
+                  day_idx = raw.index[raw["date_ist"] == day]
+                  if len(day_idx) < 2:
+                      continue
+                  day_start, day_end = day_idx[0], day_idx[-1]
+
+                  orb_window = raw.loc[day_start:day_end]
+                  orb_window = orb_window[orb_window["mins"] < OPEN_MIN + om]
+                  if orb_window.empty:
+                      continue
+                  orb_high = float(orb_window["High"].max())
+                  orb_low = float(orb_window["Low"].min())
+
+                  entry_pos = None
+                  closes_all = raw["Close"].to_numpy(dtype=float)
+                  for pos in range(day_start, day_end + 1):
+                      mins = raw.at[pos, "mins"]
+                      if mins < OPEN_MIN + om:
+                          continue
+                      if mins >= SQUAREOFF_MIN:
+                          break
+                      if pos + 1 < max(sf, ss):
+                          continue
+                      sma_f = closes_all[pos + 1 - sf:pos + 1].mean()
+                      sma_s = closes_all[pos + 1 - ss:pos + 1].mean()
+                      if raw.at[pos, "Close"] > orb_high and sma_f > sma_s:
+                          entry_pos = pos
+                          break
+                  if entry_pos is None:
+                      continue
+
+                  entry_price = float(raw.at[entry_pos, "Close"])
+                  stop_cap = entry_price * (1 - stop_pct / 100)
+                  initial_stop = max(orb_low, stop_cap)
+                  if initial_stop >= entry_price:
+                      continue
+                  R = entry_price - initial_stop
+                  target = entry_price + RR * R
+                  entry_ts = raw.at[entry_pos, "ts_utc"].timestamp()
+                  symbol_entries += 1
+
+                  for variant_name, activate_r in VARIANTS.items():
+                      m.TRAIL_ACTIVATE_R = activate_r if activate_r is not None else float("inf")
+                      stop = initial_stop
+                      exit_reason, exit_price = None, None
+                      pos = entry_pos + 1
+                      while pos <= day_end:
+                          close = float(raw.at[pos, "Close"])
+                          mins = int(raw.at[pos, "mins"])
+                          today_slice = raw.loc[day_start:pos]
+                          df_slice = raw.loc[:pos]
+
+                          cand = m._trailing_stop_target(df_slice, today_slice, entry_price, initial_stop, entry_ts, TZ_OFF)
+                          if cand is not None and cand > stop:
+                              stop = cand
+
+                          if close >= target:
+                              exit_reason, exit_price = "target_hit", close
+                              break
+                          if close <= stop:
+                              exit_reason, exit_price = "stop_hit", close
+                              break
+                          closes_upto = df_slice["Close"].to_numpy(dtype=float)
+                          if len(closes_upto) >= max(sf, ss):
+                              smaf2 = closes_upto[-sf:].mean()
+                              smas2 = closes_upto[-ss:].mean()
+                              if smaf2 < smas2 and m._trend_confidence(closes_upto, sf, ss) >= m.TREND_WEAKENED_MIN_CONFIDENCE:
+                                  exit_reason, exit_price = "trend_weakened", close
+                                  break
+                          if mins >= SQUAREOFF_MIN:
+                              exit_reason, exit_price = "eod_squareoff", close
+                              break
+                          pos += 1
+                      else:
+                          exit_reason, exit_price = "eod_squareoff", float(raw.at[day_end, "Close"])
+
+                      r_achieved = (exit_price - entry_price) / R
+                      trades_by_variant[variant_name].append({
+                          "symbol": sym, "day": day, "reason": exit_reason, "R": round(r_achieved, 3),
+                      })
+              print(f"{sym}: {symbol_entries} entries over {len(days)} days")
+
+          m.TRAIL_ACTIVATE_R = orig_activate_r
+
+          print("\n=== THRESHOLD COMPARISON (R-multiples, all symbols/days pooled) ===")
+          header = f"{'variant':16s} {'n':>5s} {'win%':>7s} {'total_R':>9s} {'avg_R':>8s} {'min_R':>8s} {'max_R':>8s} {'profit_factor':>14s}"
+          print(header)
+          print("-" * len(header))
+          for name, trades in trades_by_variant.items():
+              if not trades:
+                  print(f"{name:16s}   no trades")
+                  continue
+              rs = [t["R"] for t in trades]
+              wins = [r for r in rs if r > 0]
+              losses = [r for r in rs if r <= 0]
+              total_r = sum(rs)
+              win_rate = 100 * len(wins) / len(rs)
+              avg_r = total_r / len(rs)
+              gross_win = sum(wins)
+              gross_loss = -sum(losses)
+              pf = (gross_win / gross_loss) if gross_loss > 0 else float("inf")
+              print(f"{name:16s} {len(rs):5d} {win_rate:6.1f}% {total_r:9.2f} {avg_r:8.3f} {min(rs):8.2f} {max(rs):8.2f} {pf:14.2f}")
+
+          print("\n=== EXIT REASON BREAKDOWN ===")
+          for name, trades in trades_by_variant.items():
+              if not trades:
+                  continue
+              reasons = {}
+              for t in trades:
+                  reasons[t["reason"]] = reasons.get(t["reason"], 0) + 1
+              print(f"{name}: " + ", ".join(f"{k}={v}" for k, v in sorted(reasons.items())))
+          PYEOF
