@@ -58,6 +58,9 @@ jobs:
             -o /tmp/trading-control.json
           cat /tmp/trading-control.json
           echo
+          curl -sS --retry 2 --retry-delay 5 -m 30 \
+            "https://tv-paper-bot-gdan.onrender.com/trade-history?days=1"
+          echo
 
       - name: Write the open-positions journal
         run: |

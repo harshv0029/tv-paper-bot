@@ -1089,10 +1089,15 @@ def _display_name(symbol: str) -> str:
     return SYMBOL_DISPLAY_NAMES.get(symbol, symbol)
 
 
-OPTIONS_ELIGIBLE_SYMBOLS = [
-    "SPY", "QQQ", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA",
-    "NFLX", "AMD", "JPM", "V", "DIA", "IWM",
-]
+# Emptied 2026-09-03: rescoped to NSE-only (see the WATCHLIST comment
+# above) - every symbol this ever covered was a US underlier, not
+# available to trade via Kotak Neo/Zerodha, so the overlay is inert until
+# real NSE F&O data exists (same broker-connection gate as NSE cash-market
+# data). The strike/IV-selection code itself (select_option_contract,
+# _options_signal_core, etc.) is left in place, unused - it's generic
+# infrastructure, not US-specific, and is exactly what would drive real
+# NSE options once that data source exists.
+OPTIONS_ELIGIBLE_SYMBOLS = []
 OPTIONS_TARGET_DELTA = 0.35     # moderately OTM: real leverage (bigger % payoff on a win) without
                                  # betting on a near-impossible move - deep ITM has little leverage,
                                  # far OTM is a lottery ticket the IV check below would flag anyway.
@@ -2021,17 +2026,29 @@ def auto_signal(
 # the server gets woken back up.
 # ---------------------------------------------------------------------------
 
+# 2026-09-03: rescoped to NSE/BSE ONLY, per explicit user instruction -
+# "currently work on only Indian stock market and stocks available to
+# Indian trader via Kotak Neo and Zerodha accounts. Screen only these
+# stocks and index." Every non-Indian entry (crypto, US mega-caps/ETFs,
+# COMEX gold futures) is removed - none of those are instruments an Indian
+# trader can actually place through Kotak Neo or Zerodha, so backtesting/
+# paper-trading them had no path to ever becoming real trades. The open
+# GC=F position was force-closed (POST /trading-control?action=kill, then
+# resumed) before this change landed, so nothing was orphaned by its
+# removal from WATCHLIST. Options overlay is correspondingly disabled
+# (OPTIONS_ELIGIBLE_SYMBOLS = [] below) - it only ever covered US
+# underliers; real NSE F&O still requires the same Kotak Neo broker
+# connection as real NSE cash-market data does (see docs/
+# TRADING_CONSTRAINTS.md's standing NSE-data-gating rule) and stays off
+# until that exists, never synthesized as a workaround.
 WATCHLIST = [
-    # NSE/BSE - IST 9:15-15:30, weekdays. Params from 2026-09-02 research
-    # (docs/daily_logs/2026-09-02-entry-trigger-research.md).
-    # risk_pct/stop_pct: 2% is the account-wide MAXIMUM (docs/TRADING_CONSTRAINTS.md),
-    # not a fixed rate - set lower per symbol where evidence supports it.
-    # NIFTY/BANKNIFTY/SENSEX ran the full evidence-backed ceiling (2%) since
-    # they have real 60-day backtest evidence behind this exact strategy
-    # (docs/daily_logs/2026-09-02-entry-trigger-research.md). SPY/QQQ/AAPL/
-    # BTC-USD/ETH-USD have NEVER been backtested with orb_breakout - no
-    # evidence yet, so they run at half the ceiling (1%) until they build a
-    # track record worth trusting with the full 2%.
+    # NSE/BSE indices - IST 9:15-15:30, weekdays. Params from 2026-09-02
+    # research (docs/daily_logs/2026-09-02-entry-trigger-research.md).
+    # risk_pct/stop_pct: 2% is the account-wide MAXIMUM
+    # (docs/TRADING_CONSTRAINTS.md), not a fixed rate - set lower per
+    # symbol where evidence supports it. NIFTY/BANKNIFTY/SENSEX run the
+    # full evidence-backed ceiling (2%) - real 60-day backtest evidence
+    # behind this exact strategy.
     {"symbol": "^NSEI", "orb_minutes": 30, "sma_fast": 5, "sma_slow": 50,
      "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
@@ -2041,92 +2058,62 @@ WATCHLIST = [
     {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50,
      "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
-    # Crypto - UTC, 24/7, trades weekends too. Quoted in USD. No backtest evidence yet.
-    {"symbol": "BTC-USD", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
-     "trade_weekends": True, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "ETH-USD", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
-     "trade_weekends": True, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    # US markets - ET, quoted in USD. No backtest evidence yet. tz_offset_min=-240
-    # is EDT (UTC-4), correct through early Nov 2026; needs -300 (EST) after
-    # the US DST changeover.
-    {"symbol": "SPY", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "QQQ", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    # AAPL: switched 2026-09-03 from unvalidated orb_breakout defaults to
-    # bullish_engulfing (trend_sma=20, no volume filter) - the swept params
-    # that were actually evidenced for this symbol (100% of 6 swept combos
-    # profitable, docs/strategy_log.xlsx). Promoted to the full 2% risk
-    # ceiling now that real evidence exists, same bar NIFTY/BANKNIFTY/SENSEX
-    # met. orb_minutes/sma_fast/sma_slow are unused by bullish_engulfing but
-    # kept here so this dict shape stays uniform across WATCHLIST.
-    {"symbol": "AAPL", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 2.0, "stop_pct": 2.0,
-     "strategy": "bullish_engulfing", "trend_sma": 20, "volume_confirm": False},
-    # Added 2026-09-03 per explicit user instruction: don't skip stocks with
-    # a real options/futures market - watch them too, not just SPY/QQQ/AAPL.
-    # These are the most heavily-optioned, most liquid US mega-caps/ETFs -
-    # every one of them has deep, liquid listed options (no chain-
-    # availability doubt the way a random small-cap would carry). This is a
-    # curated set, not literally every optionable US equity (~4,000+ names
-    # via the OCC) - scanning that whole universe every 30s against Yahoo's
-    # free/unofficial API would trip rate limits and blow well past the
-    # scheduler's own cycle time for no real benefit, since an un-backtested
-    # symbol trades at the same conservative 1% ceiling regardless. Same
-    # equity engine (orb_breakout, unproven -> half ceiling) as SPY/QQQ;
-    # also added to OPTIONS_ELIGIBLE_SYMBOLS below so the options overlay
-    # (real strike/IV selection - docs/TRADING_CONSTRAINTS.md) covers them
-    # too. Tell me specific tickers to add beyond this set any time.
-    {"symbol": "MSFT", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "GOOGL", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "AMZN", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "META", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "NVDA", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "TSLA", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "NFLX", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "AMD", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "JPM", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "V", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "DIA", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    {"symbol": "IWM", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
-    # Gold futures - near-24h (COMEX has a brief daily settlement pause,
-    # simplified here to the same always-open shape as crypto below).
-    # Added 2026-09-03: orb_breakout evidenced strongly on real data - 100%
-    # of 24 swept combos profitable, best combo 65% win rate/+676.50 over
-    # 60d (docs/strategy_log.xlsx) - a stronger result than most NSE
-    # symbols got. Full 2% ceiling, same bar as everything else here.
-    {"symbol": "GC=F", "orb_minutes": 15, "sma_fast": 20, "sma_slow": 21,
-     "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 2.0, "stop_pct": 2.0},
+    # NSE large-caps - same NSE session as the indices above, orb_breakout,
+    # unproven -> half ceiling (1%) until one earns real backtest evidence
+    # the way the indices did. A curated set of the most liquid Nifty 50
+    # constituents (real, deep volume - no data-quality doubt), not every
+    # NSE-listed stock (~2,000+) - same "curated, not exhaustive" reasoning
+    # already applied to the (now-removed) US roster: an un-backtested
+    # symbol trades at the same conservative ceiling regardless of how it
+    # was found, and scanning thousands of tickers every 30s against
+    # Yahoo's free endpoint would trip rate limits for no real benefit.
+    # Yahoo Finance ticker convention: NSE symbol + ".NS". Tell me specific
+    # tickers to add beyond this set any time.
+    {"symbol": "RELIANCE.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "TCS.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "HDFCBANK.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "INFY.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "ICICIBANK.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "HINDUNILVR.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "ITC.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "SBIN.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "BHARTIARTL.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "KOTAKBANK.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "LT.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "AXISBANK.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "BAJFINANCE.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "MARUTI.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
+    {"symbol": "ASIANPAINT.NS", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "trade_weekends": False, "currency": "INR", "risk_pct": 1.0, "stop_pct": 1.0},
 ]
 
 # ---------------------------------------------------------------------------
