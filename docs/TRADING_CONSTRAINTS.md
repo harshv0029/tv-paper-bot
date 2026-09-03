@@ -235,6 +235,16 @@ not used for any monitoring/price data yet, only the account-level Phase
 1/2 endpoints above. This is a different question from `/trade-view`,
 which shows only currently-open positions, not the full scan universe.
 
+`_asset_class_and_source(symbol)` (`main.py`) is the single source of
+truth behind both `/watchlist` and `/scheduler-pipeline`'s
+`check_counts_today` rows - added so the same per-asset source label
+shows up in two places without drifting apart: the raw API and the
+"Checks today, per asset" table on `/trade-view` itself (added a
+**Source** column, 2026-09-03 - shows "Yahoo Finance" per row today, with
+a hover tooltip naming the real MCX contract for the three commodity
+proxies). When real Kotak-sourced pricing exists for any symbol, update
+this one function and both surfaces pick it up.
+
 **Security note.** This app has zero authentication on every other
 endpoint - fine for fake paper-trading data, not fine for real account
 data. The four Phase 2/2.5 endpoints above are the exception: gated
