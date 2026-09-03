@@ -112,7 +112,14 @@
 
   /* Trade log - live open positions + closed trade history, bottom of page */
   .log-panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-top:18px;overflow:hidden;}
-  .log-head{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--panel-2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;}
+  .log-head{border-bottom:1px solid var(--border);background:var(--panel-2);}
+  .log-head-top{padding:12px 16px 0;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;}
+  .day-summary{display:flex;flex-wrap:wrap;gap:22px;padding:12px 16px 16px;}
+  .ds-item{display:flex;flex-direction:column;gap:3px;}
+  .ds-lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .ds-val{font-size:19px;font-weight:700;}
+  .ds-val.up{color:var(--up);} .ds-val.down{color:var(--down);}
+  .log-section-row td{background:rgba(124,138,156,.06);color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:5px 14px !important;}
   .log-scroll{max-height:480px;overflow-y:auto;overflow-x:auto;}
   table.log{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;}
   table.log thead th{position:sticky;top:0;background:var(--panel-2);color:var(--muted);text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:8px 14px;border-bottom:1px solid var(--border);}
@@ -167,7 +174,29 @@
 <div class="cards" id="cards"><div class="empty">Loading…</div></div>
 
 <div class="log-panel">
-  <div class="log-head">Trade log — live positions + today's closed trades</div>
+  <div class="log-head">
+    <div class="log-head-top">
+      <span class="title">Trade log — live positions + today's closed trades</span>
+    </div>
+    <div class="day-summary" id="day-summary">
+      <div class="ds-item">
+        <span class="ds-lbl">Net P&amp;L today (closed trades)</span>
+        <span class="ds-val mono" id="ds-pnl">—</span>
+      </div>
+      <div class="ds-item">
+        <span class="ds-lbl">Trades closed</span>
+        <span class="ds-val mono" id="ds-count">—</span>
+      </div>
+      <div class="ds-item">
+        <span class="ds-lbl">Win rate</span>
+        <span class="ds-val mono" id="ds-winrate">—</span>
+      </div>
+      <div class="ds-item">
+        <span class="ds-lbl">Daily loss budget left</span>
+        <span class="ds-val mono" id="ds-budget">—</span>
+      </div>
+    </div>
+  </div>
   <div class="log-scroll">
     <table class="log">
       <thead><tr>
@@ -501,8 +530,26 @@ function renderTradeLog(summary) {
     </tr>`;
   });
 
-  const rows = [...liveRows, ...closedRows];
-  body.innerHTML = rows.length ? rows.join("") : `<tr><td colspan="10" class="scan-idle">No trades yet today</td></tr>`;
+  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="10">${label}</td></tr>`;
+  const sections = [];
+  if (liveRows.length) sections.push(sectionRow(`Live positions (${liveRows.length})`), ...liveRows);
+  sections.push(sectionRow(`Closed today (${closedRows.length}) — transacted, realized P&amp;L`));
+  sections.push(...(closedRows.length ? closedRows : [`<tr><td colspan="10" class="scan-idle">No trades closed yet today</td></tr>`]));
+  body.innerHTML = sections.join("");
+
+  // Net P&L for the day = sum of realized P&L on transacted (closed)
+  // trades only - daily-summary's own realized_pnl, not something summed
+  // client-side, so it always matches the same number the daily-loss-cap
+  // check itself uses (today_realized_pnl in main.py).
+  const pnl = summary.realized_pnl ?? 0;
+  const pnlEl = document.getElementById("ds-pnl");
+  pnlEl.textContent = `${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}`;
+  pnlEl.className = "ds-val mono " + (pnl >= 0 ? "up" : "down");
+  document.getElementById("ds-count").textContent = summary.closed_trades_count ?? closed.length;
+  document.getElementById("ds-winrate").textContent = summary.win_rate_pct === null || summary.win_rate_pct === undefined
+    ? "—" : `${fmt(summary.win_rate_pct, 1)}%`;
+  document.getElementById("ds-budget").textContent = summary.budget_remaining !== undefined
+    ? `₹${fmt(summary.budget_remaining)}` : "—";
 }
 
 async function refresh() {
