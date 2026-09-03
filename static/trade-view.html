@@ -89,6 +89,26 @@
   .scan-idle{color:var(--muted);font-size:11.5px;padding:4px 0;}
   .scan-next-item{display:flex;align-items:center;gap:9px;}
   .scan-next-idx{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:10px;width:12px;flex-shrink:0;}
+
+  /* Per-asset check-count table - how many times each symbol was checked today */
+  .counts-panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden;}
+  .counts-head{display:flex;align-items:baseline;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--panel-2);}
+  .counts-head .title{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;}
+  .counts-head .day{font-size:10.5px;color:var(--muted);}
+  .counts-scroll{max-height:340px;overflow-y:auto;}
+  table.counts{width:100%;border-collapse:collapse;font-size:12px;}
+  table.counts thead th{position:sticky;top:0;background:var(--panel-2);color:var(--muted);text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:8px 16px;border-bottom:1px solid var(--border);}
+  table.counts thead th.num{text-align:right;}
+  table.counts td{padding:7px 16px;border-bottom:1px solid rgba(35,45,58,.6);}
+  table.counts tbody tr:last-child td{border-bottom:none;}
+  table.counts tbody tr:hover{background:rgba(59,130,246,.06);}
+  table.counts .sym{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  table.counts .num{text-align:right;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  table.counts .count-bar-wrap{display:inline-flex;align-items:center;gap:8px;justify-content:flex-end;width:100%;}
+  table.counts .count-bar{height:5px;border-radius:3px;background:var(--accent);opacity:.55;}
+  table.counts .count-val{width:20px;text-align:right;}
+  table.counts .zero{color:var(--muted);}
+  table.counts td.meta{color:var(--muted);font-size:11px;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -108,6 +128,19 @@
   <div class="scan-col">
     <div class="scan-head"><span>Next up (queue)</span></div>
     <div class="scan-list" id="scan-next"><div class="scan-idle">Loading…</div></div>
+  </div>
+</div>
+
+<div class="counts-panel">
+  <div class="counts-head">
+    <span class="title">Checks today, per asset</span>
+    <span class="day mono" id="counts-day"></span>
+  </div>
+  <div class="counts-scroll">
+    <table class="counts">
+      <thead><tr><th>Symbol</th><th class="num">Checks today</th><th>Last result</th><th>Last checked</th></tr></thead>
+      <tbody id="counts-body"><tr><td colspan="4" class="scan-idle">Loading…</td></tr></tbody>
+    </table>
   </div>
 </div>
 
@@ -325,10 +358,38 @@ function renderScanner(p) {
     : `<div class="scan-idle">Every symbol has an open position</div>`;
 }
 
+function renderCounts(p) {
+  document.getElementById("counts-day").textContent = p.check_counts_day ? `Day: ${p.check_counts_day} IST` : "";
+  const rows = p.check_counts_today || [];
+  const body = document.getElementById("counts-body");
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="4" class="scan-idle">No data yet</td></tr>`;
+    return;
+  }
+  const maxCount = Math.max(1, ...rows.map(r => r.checks_today));
+  body.innerHTML = rows.map(r => {
+    const tag = scanTagFor(r.last_action);
+    const label = tag.label !== "—" ? tag.label : (r.last_action || "—");
+    const barPct = Math.round((r.checks_today / maxCount) * 100);
+    return `<tr>
+      <td class="sym">${r.symbol}</td>
+      <td class="num">
+        <span class="count-bar-wrap">
+          <span class="count-bar" style="width:${Math.max(6, barPct * 0.5)}px"></span>
+          <span class="count-val ${r.checks_today === 0 ? 'zero' : ''}">${r.checks_today}</span>
+        </span>
+      </td>
+      <td>${r.checks_today > 0 ? `<span class="scan-tag ${tag.cls}">${label}</span>` : `<span class="scan-idle">—</span>`}</td>
+      <td class="meta">${r.last_checked_at_utc ? timeAgo(r.last_checked_at_utc) : "—"}</td>
+    </tr>`;
+  }).join("");
+}
+
 async function refreshScanner() {
   try {
     const p = await fetchJSON(`${ORIGIN}/scheduler-pipeline?recent=10&next_n=5`);
     renderScanner(p);
+    renderCounts(p);
   } catch (e) {
     // Non-fatal - the position cards below are the primary content; leave
     // the scanner panel showing its last-good state rather than erroring.

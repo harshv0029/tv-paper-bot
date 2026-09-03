@@ -2257,6 +2257,27 @@ SCHEDULER_ENTRY_SCAN_BATCH_SIZE = 7  # flat symbols freshly entry-scanned per ti
 # symbol; None means the loop is between ticks (sleeping).
 _scheduler_currently_checking: dict | None = None
 
+# How many times each symbol/underlying has actually been checked TODAY
+# (IST calendar day, same "day" boundary as the rest of the account -
+# ist_midnight_epoch) - for /trade-view's per-asset check-count table.
+# Purely in-memory, like _scheduler_last_results itself - resets on a
+# Render redeploy the same way the rest of this visibility state does;
+# it's a display counter, not a financial record (docs/attempt_log.json is
+# the durable, journal-synced trail of what was checked).
+_scheduler_check_counts: dict = {}
+_scheduler_check_counts_day: str = ""
+
+
+def _record_scheduler_check(key: str):
+    """Bumps key's today-count, resetting everyone's count first if the
+    IST calendar day has rolled over since the last check."""
+    global _scheduler_check_counts_day
+    today_str = ist_now().strftime("%Y-%m-%d")
+    if today_str != _scheduler_check_counts_day:
+        _scheduler_check_counts.clear()
+        _scheduler_check_counts_day = today_str
+    _scheduler_check_counts[key] = _scheduler_check_counts.get(key, 0) + 1
+
 
 def _scheduler_peek_next_batch(n: int = 5) -> list:
     """What the round-robin will scan on its NEXT turn through the flat
@@ -2318,6 +2339,7 @@ async def _scheduler_loop():
             _scheduler_currently_checking = {
                 "symbol": symbol, "kind": "equity", "started_at_utc": time.time(),
             }
+            _record_scheduler_check(symbol)
             try:
                 result = await asyncio.to_thread(
                     _auto_signal_core,
@@ -2362,6 +2384,7 @@ async def _scheduler_loop():
             _scheduler_currently_checking = {
                 "symbol": key, "kind": "options", "started_at_utc": time.time(),
             }
+            _record_scheduler_check(key)
             try:
                 result = await asyncio.to_thread(
                     _options_signal_core,
@@ -2426,10 +2449,38 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         key=lambda r: r.get("checked_at_utc", 0),
         reverse=True,
     )[:recent]
+
+    # Every symbol ever checked today (equity WATCHLIST entries and
+    # "{underlying}:OPT" options rows alike), with its running today-count
+    # and its latest known status - the full per-asset table for
+    # /trade-view, not just the most-recent few. Includes a symbol that's
+    # been checked 0 times today (pre-open all day, say) so the table
+    # reflects the whole watchlist, not only what's fired so far.
+    all_keys = set(_scheduler_check_counts) | set(_scheduler_last_results) | {
+        cfg["symbol"] for cfg in WATCHLIST
+    } | {f"{u}:OPT" for u in OPTIONS_ELIGIBLE_SYMBOLS}
+    check_counts_today = sorted(
+        (
+            {
+                "symbol": k,
+                "checks_today": _scheduler_check_counts.get(k, 0),
+                "last_action": (
+                    _scheduler_last_results.get(k, {}).get("action_taken")
+                    or _scheduler_last_results.get(k, {}).get("status")
+                ),
+                "last_checked_at_utc": _scheduler_last_results.get(k, {}).get("checked_at_utc"),
+            }
+            for k in all_keys
+        ),
+        key=lambda r: (-r["checks_today"], r["symbol"]),
+    )
+
     return {
         "last_checked": last_checked,
         "currently_checking": _scheduler_currently_checking,
         "next_up": _scheduler_peek_next_batch(next_n),
+        "check_counts_today": check_counts_today,
+        "check_counts_day": _scheduler_check_counts_day,
         "scheduler_interval_seconds": SCHEDULER_INTERVAL_SECONDS,
         "entry_scan_batch_size": SCHEDULER_ENTRY_SCAN_BATCH_SIZE,
         "last_tick_ts": _scheduler_last_tick_ts,
