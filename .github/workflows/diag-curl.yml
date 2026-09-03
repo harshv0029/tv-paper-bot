@@ -1,0 +1,24 @@
+name: Diagnostic Curl (ad-hoc endpoint check)
+
+# General-purpose "hit one live endpoint and print the response" - for
+# quick checks like confirming a new diagnostic route deployed correctly,
+# without needing a dedicated workflow per endpoint. Read-only by
+# convention (this is for GET-style checks, not for triggering actions -
+# use trading-control.yml for the kill switch, journal-sync.yml for state
+# sync).
+on:
+  workflow_dispatch:
+    inputs:
+      path:
+        description: "Path on the live server to GET, e.g. /health or /kotak-neo/status"
+        required: true
+        default: "/health"
+
+jobs:
+  curl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: GET the requested path
+        run: |
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com${{ inputs.path }}"
+          echo
