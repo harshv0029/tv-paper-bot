@@ -1064,6 +1064,20 @@ def deployed_notional(conn) -> float:
 # isn't in question. Each must also be a WATCHLIST entry (session hours/
 # currency/risk_pct come from there) - see the WATCHLIST comment above this
 # set for why it's a curated list, not literally every optionable US stock.
+# Raw yfinance tickers aren't how anyone actually refers to the NSE
+# indices ("^NSEI" means nothing at a glance - it's NIFTY 50) - this is
+# purely a display label, never used for any fetch/lookup, so a symbol
+# missing here just falls back to showing its raw ticker.
+SYMBOL_DISPLAY_NAMES = {
+    "^NSEI": "NIFTY 50", "^NSEBANK": "BANK NIFTY", "^BSESN": "SENSEX",
+    "GC=F": "GOLD",
+}
+
+
+def _display_name(symbol: str) -> str:
+    return SYMBOL_DISPLAY_NAMES.get(symbol, symbol)
+
+
 OPTIONS_ELIGIBLE_SYMBOLS = [
     "SPY", "QQQ", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA",
     "NFLX", "AMD", "JPM", "V", "DIA", "IWM",
@@ -2445,7 +2459,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     max number of most-recently-checked entries to return; `next_n` is how
     far to peek ahead into the round-robin queue."""
     last_checked = sorted(
-        ({"symbol": k, **v} for k, v in _scheduler_last_results.items()),
+        ({"symbol": k, "display": _display_name(k), **v} for k, v in _scheduler_last_results.items()),
         key=lambda r: r.get("checked_at_utc", 0),
         reverse=True,
     )[:recent]
@@ -2463,6 +2477,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         (
             {
                 "symbol": k,
+                "display": _display_name(k),
                 "checks_today": _scheduler_check_counts.get(k, 0),
                 "last_action": (
                     _scheduler_last_results.get(k, {}).get("action_taken")
@@ -2478,7 +2493,9 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     return {
         "last_checked": last_checked,
         "currently_checking": _scheduler_currently_checking,
-        "next_up": _scheduler_peek_next_batch(next_n),
+        "next_up": [
+            {"symbol": s, "display": _display_name(s)} for s in _scheduler_peek_next_batch(next_n)
+        ],
         "check_counts_today": check_counts_today,
         "check_counts_day": _scheduler_check_counts_day,
         "scheduler_interval_seconds": SCHEDULER_INTERVAL_SECONDS,
