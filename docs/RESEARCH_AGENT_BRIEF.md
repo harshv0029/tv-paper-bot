@@ -20,6 +20,24 @@ Actions access you don't and will dispatch it and log the real results —
 this is the expected division of labor, not something to keep retrying
 workarounds for.
 
+## 2026-09-03 update: strategy is asset-class-agnostic — include gold + forex
+
+The user's framing: "strategy is strategy irrespective of market... gold
+trade or currency trade which are live 24x7." Since every strategy here
+only needs candlestick data, extend your test universe beyond the current
+8 WATCHLIST symbols to include: **gold futures (`GC=F`)** and **forex
+(`EURUSD=X`, `USDINR=X`)** — all fetchable via `yfinance` the same way as
+everything else, no new data source needed. These trade far closer to
+24x7 than equities (forex ~24x5, gold futures ~23x5) - note in the
+strategy log if that changes anything about which strategy/params work
+(e.g. no natural "opening range" on a market with no real open). The main
+session kicked off an initial sweep on these on 2026-09-03
+(`entry-trigger-research.yml`'s new `run_new_asset_research` input) - read
+its results in `docs/strategy_log.xlsx` before re-testing the same ground.
+Same rules apply as any other symbol: logging bar >50% combo
+profitability, live-adoption bar ~90-100%, no live `WATCHLIST` change
+without that evidence.
+
 ## 2026-09-03 update: log liberally, adopt strictly, source widely
 
 **Two different bars — don't conflate them.** The user has explicitly
