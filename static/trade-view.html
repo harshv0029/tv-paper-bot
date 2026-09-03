@@ -68,12 +68,48 @@
   .empty{color:var(--muted);font-size:13px;padding:34px;text-align:center;}
   .err{color:var(--down);font-size:12px;}
   footer{margin-top:14px;color:var(--muted);font-size:10.5px;}
+
+  /* Scanner: what the round-robin engine is doing right now (docs/KNOWN_ISSUES.md) */
+  .scanner{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;}
+  @media(max-width:760px){.scanner{grid-template-columns:1fr;}}
+  .scan-col{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+  .scan-head{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin-bottom:9px;display:flex;justify-content:space-between;}
+  .scan-list{display:flex;flex-direction:column;gap:7px;max-height:168px;overflow-y:auto;}
+  .scan-col .sym{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;}
+  .scan-item{display:flex;align-items:center;gap:8px;}
+  .scan-item .meta{color:var(--muted);font-size:10px;white-space:nowrap;margin-left:auto;}
+  .scan-tag{font-size:9px;padding:1.5px 7px;border-radius:10px;font-weight:700;letter-spacing:.02em;white-space:nowrap;text-transform:uppercase;}
+  .scan-tag.entered{background:var(--up-dim);color:var(--up);}
+  .scan-tag.exited{background:rgba(59,130,246,.14);color:var(--accent);}
+  .scan-tag.blocked{background:var(--down-dim);color:var(--down);}
+  .scan-tag.none{background:rgba(124,138,156,.14);color:var(--muted);}
+  .scan-now-item{display:flex;align-items:center;gap:9px;font-size:13.5px;}
+  .scan-dot{width:8px;height:8px;border-radius:50%;background:var(--warn);flex-shrink:0;animation:scanPulse 1.1s ease-in-out infinite;}
+  @keyframes scanPulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.35;transform:scale(.7);}}
+  .scan-idle{color:var(--muted);font-size:11.5px;padding:4px 0;}
+  .scan-next-item{display:flex;align-items:center;gap:9px;}
+  .scan-next-idx{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:10px;width:12px;flex-shrink:0;}
 </style>
 </head>
 <body>
 
 <h1>Trade View <span id="hdr-status" class="status flat">—</span></h1>
 <div class="sub">Live scalp-style view — candles, entry/stop/target ladder, floating P&amp;L. Not investment advice. <span id="last-update"></span> · next refresh in <span id="countdown" class="mono">10</span>s</div>
+
+<div class="scanner">
+  <div class="scan-col">
+    <div class="scan-head"><span>Recently checked</span></div>
+    <div class="scan-list" id="scan-recent"><div class="scan-idle">Loading…</div></div>
+  </div>
+  <div class="scan-col">
+    <div class="scan-head"><span>Now checking</span></div>
+    <div class="scan-list" id="scan-now"><div class="scan-idle">Loading…</div></div>
+  </div>
+  <div class="scan-col">
+    <div class="scan-head"><span>Next up (queue)</span></div>
+    <div class="scan-list" id="scan-next"><div class="scan-idle">Loading…</div></div>
+  </div>
+</div>
 
 <div class="cards" id="cards"><div class="empty">Loading…</div></div>
 
@@ -245,6 +281,60 @@ function renderStats(symbol, pos, lastClose) {
   `;
 }
 
+function scanTagFor(actionTaken) {
+  const a = actionTaken || "";
+  if (a.startsWith("entered")) return { cls: "entered", label: a.replace("entered_", "") };
+  if (a.startsWith("exited")) return { cls: "exited", label: a.replace("exited_", "") };
+  if (a.includes("blocked") || a.includes("insufficient") || a.includes("budget_too_small") || a.includes("no_qualifying")) {
+    return { cls: "blocked", label: a.replace(/_/g, " ") };
+  }
+  if (!a || a === "none") return { cls: "none", label: "—" };
+  return { cls: "none", label: a.replace(/_/g, " ") };
+}
+
+function timeAgo(ts) {
+  if (!ts) return "";
+  const s = Math.max(0, Math.round(Date.now() / 1000 - ts));
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  return `${Math.round(s / 3600)}h ago`;
+}
+
+function renderScanner(p) {
+  const recent = p.last_checked || [];
+  document.getElementById("scan-recent").innerHTML = recent.length
+    ? recent.map(r => {
+        const tag = scanTagFor(r.action_taken);
+        const label = tag.label !== "—" ? tag.label : (r.status || "—");
+        return `<div class="scan-item">
+          <span class="sym">${r.symbol}</span>
+          <span class="scan-tag ${tag.cls}">${label}</span>
+          <span class="meta">${timeAgo(r.checked_at_utc)}</span>
+        </div>`;
+      }).join("")
+    : `<div class="scan-idle">No checks yet</div>`;
+
+  const cc = p.currently_checking;
+  document.getElementById("scan-now").innerHTML = cc
+    ? `<div class="scan-now-item"><span class="scan-dot"></span><span class="sym">${cc.symbol}</span><span class="meta">${cc.kind}</span></div>`
+    : `<div class="scan-idle">Idle — between ticks (next in ≤${p.scheduler_interval_seconds ?? 30}s)</div>`;
+
+  const next = p.next_up || [];
+  document.getElementById("scan-next").innerHTML = next.length
+    ? next.map((s, i) => `<div class="scan-next-item"><span class="scan-next-idx">${i + 1}</span><span class="sym">${s}</span></div>`).join("")
+    : `<div class="scan-idle">Every symbol has an open position</div>`;
+}
+
+async function refreshScanner() {
+  try {
+    const p = await fetchJSON(`${ORIGIN}/scheduler-pipeline?recent=10&next_n=5`);
+    renderScanner(p);
+  } catch (e) {
+    // Non-fatal - the position cards below are the primary content; leave
+    // the scanner panel showing its last-good state rather than erroring.
+  }
+}
+
 async function refresh() {
   document.getElementById("last-update").textContent =
     "Last update: " + new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
@@ -290,11 +380,13 @@ function tickCountdown() {
   if (secondsLeft <= 0) {
     secondsLeft = REFRESH_SECONDS;
     refresh();
+    refreshScanner();
   }
   document.getElementById("countdown").textContent = secondsLeft;
 }
 
 refresh();
+refreshScanner();
 setInterval(tickCountdown, 1000);
 </script>
 </body>
