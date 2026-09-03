@@ -1,11 +1,11 @@
 {
-  "synced_at_utc": "2026-09-03T13:40:23Z",
+  "synced_at_utc": "2026-09-03T13:46:33Z",
   "open_positions": [
     {
       "symbol": "GC=F",
       "qty": 0.472993,
       "entry_price_native": 4475.2001953125,
-      "stop_loss_native": 4429.89990234375,
+      "stop_loss_native": 4508.264229910715,
       "initial_stop_loss_native": 4429.89990234375,
       "target_native": 4611.10107421875,
       "fx_to_inr": 94.48500061035156,
@@ -22,7 +22,7 @@
       "symbol": "SI=F",
       "qty": 31.920415,
       "entry_price_native": 66.31999969482422,
-      "stop_loss_native": 65.79000091552734,
+      "stop_loss_native": 66.51429203578404,
       "initial_stop_loss_native": 65.79000091552734,
       "target_native": 67.90999603271484,
       "fx_to_inr": 94.4749984741211,
