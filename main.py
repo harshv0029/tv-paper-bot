@@ -1028,6 +1028,9 @@ def _auto_signal_core(
     squareoff_min: int = 15 * 60 + 20,
     trade_weekends: bool = False,
     currency: str = "INR",
+    strategy: str = "orb_breakout",
+    trend_sma: int = 0,
+    volume_confirm: bool = False,
 ):
     """
     Plain function version of the /auto-signal logic - callable directly
@@ -1090,8 +1093,22 @@ def _auto_signal_core(
     because capital and the caps are one shared Rs 2L pool across every
     market. Getting this wrong (treating $1 == Rs 1) would size USD
     positions ~83-88x too large in real terms.
+
+    `strategy` selects the ENTRY trigger only ("orb_breakout" - the above -
+    or "bullish_engulfing", a candlestick-pattern entry backtested
+    2026-09-03, docs/strategy_log.xlsx). Stop-loss/target/EOD-squareoff/
+    daily-loss-cap risk management is identical either way - deliberately
+    NOT the open-ended "hold until opposite signal" exit the backtest used,
+    so every live strategy stays on the same bounded-risk framework
+    (docs/TRADING_CONSTRAINTS.md), not whatever exit its own backtest
+    happened to use.
     """
-    strategy_tag = f"{ORB_STRATEGY_PREFIX}{orb_minutes}m-sma{sma_fast}-{sma_slow}"
+    if strategy == "orb_breakout":
+        strategy_tag = f"{ORB_STRATEGY_PREFIX}{orb_minutes}m-sma{sma_fast}-{sma_slow}"
+    elif strategy == "bullish_engulfing":
+        strategy_tag = f"{ORB_STRATEGY_PREFIX}bullish-engulfing-trend{trend_sma}"
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown live strategy {strategy!r}")
     now_ist = ist_now()
     now_local = dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)
     today_str = now_local.strftime("%Y-%m-%d")
@@ -1143,16 +1160,31 @@ def _auto_signal_core(
             return {"symbol": symbol, "status": "no_intraday_data_yet", "time_local": str(now_local)}
 
         today_df["mins"] = today_df["ts_local"].dt.hour * 60 + today_df["ts_local"].dt.minute
-        orb_cutoff = open_min + orb_minutes
-        orb_df = today_df[today_df["mins"] < orb_cutoff]
-        if orb_df.empty or today_df["mins"].max() < orb_cutoff:
-            return {
-                "symbol": symbol, "status": "waiting_for_opening_range",
-                "bars_so_far": len(today_df), "time_local": str(now_local),
-            }
 
-        orb_high = float(orb_df["High"].max())
-        orb_low = float(orb_df["Low"].min())
+        if strategy == "orb_breakout":
+            orb_cutoff = open_min + orb_minutes
+            orb_df = today_df[today_df["mins"] < orb_cutoff]
+            if orb_df.empty or today_df["mins"].max() < orb_cutoff:
+                return {
+                    "symbol": symbol, "status": "waiting_for_opening_range",
+                    "bars_so_far": len(today_df), "time_local": str(now_local),
+                }
+            orb_high = float(orb_df["High"].max())
+            orb_low = float(orb_df["Low"].min())
+        else:
+            # bullish_engulfing needs no opening range - just enough candles
+            # (across days, same as its backtest) to compare two consecutive
+            # bars. orb_high/orb_low stay unset here; filled from the
+            # pattern candle itself below if/when it fires, purely so
+            # signal_state's existing columns have a meaningful "structural
+            # reference level" regardless of which strategy is live.
+            if len(df) < 2:
+                return {
+                    "symbol": symbol, "status": "waiting_for_pattern_data",
+                    "bars_so_far": len(today_df), "time_local": str(now_local),
+                }
+            orb_high = orb_low = None
+
         last = today_df.iloc[-1]
         last_close = float(last["Close"])
 
@@ -1226,13 +1258,40 @@ def _auto_signal_core(
             result["action_taken"] = "no_new_entries_market_closing"
             return result
 
-        if last_close > orb_high and trend == "up":
-            # Stop is the strategy's own technical level (opening-range low),
-            # capped at stop_pct% max risk - whichever is tighter (closer to
-            # entry) wins, so the trade never risks more than the cap even if
-            # the ORB range itself is wider than that.
+        if strategy == "orb_breakout":
+            entry_signal = last_close > orb_high and trend == "up"
+            structural_low = orb_low
+            entry_reason = "orb_breakout_with_trend"
+        else:  # bullish_engulfing - see add_strategy_signal() for the backtested version
+            cur_bar, prev_bar = df.iloc[-1], df.iloc[-2]
+            cur_bullish = cur_bar["Close"] > cur_bar["Open"]
+            prev_bearish = prev_bar["Close"] < prev_bar["Open"]
+            entry_signal = bool(
+                cur_bullish and prev_bearish
+                and cur_bar["Open"] <= prev_bar["Close"] and cur_bar["Close"] >= prev_bar["Open"]
+            )
+            if entry_signal and trend_sma > 0:
+                full_closes = df["Close"].to_numpy(dtype=float)
+                if len(full_closes) < trend_sma:
+                    entry_signal = False
+                else:
+                    entry_signal = last_close > float(np.mean(full_closes[-trend_sma:]))
+            if entry_signal and volume_confirm:
+                vol_hist = df["Volume"].to_numpy(dtype=float)
+                vol_avg = float(np.mean(vol_hist[-21:-1])) if len(vol_hist) >= 21 else None
+                entry_signal = bool(vol_avg) and float(cur_bar["Volume"]) > vol_avg
+            structural_low = float(cur_bar["Low"])
+            orb_high, orb_low = float(cur_bar["High"]), structural_low  # for result/signal_state display only
+            entry_reason = f"bullish_engulfing_trend{trend_sma}"
+
+        if entry_signal:
+            # Stop is the strategy's own technical level (opening-range low
+            # for orb_breakout, the entry candle's own low for
+            # bullish_engulfing), capped at stop_pct% max risk - whichever
+            # is tighter (closer to entry) wins, so the trade never risks
+            # more than the cap even if the structural level is wider.
             stop_loss_cap = last_close * (1 - stop_pct / 100)
-            stop_loss = max(orb_low, stop_loss_cap)
+            stop_loss = max(structural_low, stop_loss_cap)
             stop_dist = last_close - stop_loss
             if stop_dist <= 0:
                 result["action_taken"] = "invalid_stop_skipped"
@@ -1268,7 +1327,7 @@ def _auto_signal_core(
             payload = {
                 "symbol": symbol, "action": "buy", "qty": qty, "price": last_close,
                 "currency": currency, "fx_to_inr": fx_to_inr,
-                "strategy": strategy_tag, "entry_reason": "orb_breakout_with_trend",
+                "strategy": strategy_tag, "entry_reason": entry_reason,
                 "stop_loss": stop_loss, "target": target, "rr_target": rr,
                 "risk_amount_inr": round(risk_amount_inr, 2),
                 "risk_pct_of_capital": round(100 * risk_amount_inr / capital, 3),
@@ -1317,6 +1376,9 @@ def auto_signal(
     squareoff_min: int = 15 * 60 + 20,
     trade_weekends: bool = False,
     currency: str = "INR",
+    strategy: str = "orb_breakout",
+    trend_sma: int = 0,
+    volume_confirm: bool = False,
 ):
     """HTTP wrapper around _auto_signal_core - see that function's docstring
     for the actual rules. Kept as a thin pass-through so manual/GH-Actions
@@ -1327,6 +1389,7 @@ def auto_signal(
         orb_minutes=orb_minutes, sma_fast=sma_fast, sma_slow=sma_slow, interval=interval,
         tz_offset_min=tz_offset_min, open_min=open_min, close_min=close_min,
         squareoff_min=squareoff_min, trade_weekends=trade_weekends, currency=currency,
+        strategy=strategy, trend_sma=trend_sma, volume_confirm=volume_confirm,
     )
 
 
@@ -1381,9 +1444,17 @@ WATCHLIST = [
     {"symbol": "QQQ", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
      "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
      "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+    # AAPL: switched 2026-09-03 from unvalidated orb_breakout defaults to
+    # bullish_engulfing (trend_sma=20, no volume filter) - the swept params
+    # that were actually evidenced for this symbol (100% of 6 swept combos
+    # profitable, docs/strategy_log.xlsx). Promoted to the full 2% risk
+    # ceiling now that real evidence exists, same bar NIFTY/BANKNIFTY/SENSEX
+    # met. orb_minutes/sma_fast/sma_slow are unused by bullish_engulfing but
+    # kept here so this dict shape stays uniform across WATCHLIST.
     {"symbol": "AAPL", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
      "tz_offset_min": -240, "open_min": 570, "close_min": 960, "squareoff_min": 950,
-     "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
+     "trade_weekends": False, "currency": "USD", "risk_pct": 2.0, "stop_pct": 2.0,
+     "strategy": "bullish_engulfing", "trend_sma": 20, "volume_confirm": False},
 ]
 
 # ---------------------------------------------------------------------------
@@ -1488,6 +1559,8 @@ async def _scheduler_loop():
                     interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
                     close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
                     trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
+                    strategy=cfg.get("strategy", "orb_breakout"),
+                    trend_sma=cfg.get("trend_sma", 0), volume_confirm=cfg.get("volume_confirm", False),
                 )
             except Exception as e:
                 _scheduler_last_error = f"{cfg['symbol']}: {e}"
