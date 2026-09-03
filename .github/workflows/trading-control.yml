@@ -1,0 +1,39 @@
+name: Trading Control (kill / pause / resume)
+
+# Manual admin utility around POST /trading-control - the same kill switch
+# exposed as a toggle on /trade-view, callable from here too (e.g. when
+# trade-view itself isn't reachable, or for a one-off scripted action like
+# closing a position ahead of a watchlist change). workflow_dispatch only -
+# this should never fire on a schedule.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "kill (force-close everything + pause) | pause (block new entries) | resume (allow new entries again)"
+        required: true
+        type: choice
+        options: [kill, pause, resume]
+      reason:
+        description: "Optional reason, shown in /trading-control's status"
+        required: false
+        type: string
+
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call POST /trading-control
+        run: |
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+          ACTION="${{ github.event.inputs.action }}"
+          REASON="${{ github.event.inputs.reason }}"
+          URL="https://tv-paper-bot-gdan.onrender.com/trading-control?action=${ACTION}"
+          if [ -n "$REASON" ]; then
+            URL="${URL}&reason=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$REASON")"
+          fi
+          curl -sS -m 60 -X POST "$URL"
+          echo
+          echo "### current status"
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/trading-control"
+          echo
