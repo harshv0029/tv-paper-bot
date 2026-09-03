@@ -406,6 +406,50 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         df["long"] = raw.groupby(day).cummax()
         df["vwap"] = vwap
 
+    elif strategy == "bullish_engulfing":
+        # Price-action candlestick strategy. Sources (2026-09-03 research):
+        # standalone bullish engulfing ~53-55% win rate; rises to ~55-65% when
+        # combined with a trend/support-context filter and volume confirmation
+        # (liberatedstocktrader.com, tradingrush.net backtest write-ups).
+        # Enter long on a bullish engulfing candle (optionally only in an
+        # uptrend per trend_sma), exit on the next bearish engulfing candle -
+        # same enter/exit-loop shape as rsi_reversal above.
+        trend_sma = int(params.get("trend_sma", 0))  # 0 = no trend filter
+        volume_confirm = bool(params.get("volume_confirm", False))
+
+        prev_open = df["Open"].shift(1)
+        prev_close = df["Close"].shift(1)
+        prev_bearish = prev_close < prev_open
+        prev_bullish = prev_close > prev_open
+        cur_bullish = df["Close"] > df["Open"]
+        cur_bearish = df["Close"] < df["Open"]
+
+        engulf_long = (
+            cur_bullish & prev_bearish
+            & (df["Open"] <= prev_close) & (df["Close"] >= prev_open)
+        )
+        engulf_exit = (
+            cur_bearish & prev_bullish
+            & (df["Open"] >= prev_close) & (df["Close"] <= prev_open)
+        )
+
+        if trend_sma > 0:
+            sma = df["Close"].rolling(trend_sma).mean()
+            engulf_long = engulf_long & (df["Close"] > sma)
+
+        if volume_confirm:
+            vol_avg = df["Volume"].rolling(20).mean()
+            engulf_long = engulf_long & (df["Volume"] > vol_avg)
+
+        holding, flags = False, []
+        for is_entry, is_exit in zip(engulf_long, engulf_exit):
+            if not holding and is_entry:
+                holding = True
+            elif holding and is_exit:
+                holding = False
+            flags.append(holding)
+        df["long"] = flags
+
     elif strategy == "macd_cross":
         fast_span = int(params.get("macd_fast", 12))
         slow_span = int(params.get("macd_slow", 26))
@@ -420,7 +464,7 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
-                   f"orb_breakout, orb_volume, vwap_reclaim, macd_cross",
+                   f"orb_breakout, orb_volume, vwap_reclaim, bullish_engulfing, macd_cross",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -499,6 +543,8 @@ def backtest(
     macd_fast: int = 12,
     macd_slow: int = 26,
     macd_signal: int = 9,
+    trend_sma: int = 0,
+    volume_confirm: bool = False,
     qty: float = 1,
 ):
     """
@@ -511,6 +557,7 @@ def backtest(
     strategy=orb_breakout/orb_volume -> params: orb_minutes, sma_fast, sma_slow,
                                         open_min (orb_volume also: volume_mult)
     strategy=vwap_reclaim         -> no extra params
+    strategy=bullish_engulfing    -> params: trend_sma (0=off), volume_confirm
     strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
     """
     df = fetch_ohlc(symbol, period, interval)
@@ -526,6 +573,8 @@ def backtest(
         }
     elif strategy == "vwap_reclaim":
         params = {}
+    elif strategy == "bullish_engulfing":
+        params = {"trend_sma": trend_sma, "volume_confirm": volume_confirm}
     elif strategy == "macd_cross":
         params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
     else:
@@ -586,6 +635,9 @@ def sweep(
     sma_fast: str = "5,9,20",
     sma_slow: str = "20,21,50",
     volume_mult: str = "1.2,1.5,2.0",
+    # bullish_engulfing params - comma-separated lists
+    trend_sma: str = "0,20,50",
+    volume_confirm: str = "false,true",
 ):
     """
     Tests every combination of the given parameter lists against ONE fetch of
@@ -632,11 +684,18 @@ def sweep(
                 for om, sf, ss in product(om_list, sf_list, ss_list)
                 if sf < ss
             ]
+    elif strategy == "bullish_engulfing":
+        ts_list = _parse_num_list(trend_sma, int)
+        vc_list = [v.strip().lower() == "true" for v in volume_confirm.split(",") if v.strip() != ""]
+        combos = [
+            {"trend_sma": ts, "volume_confirm": vc}
+            for ts, vc in product(ts_list, vc_list)
+        ]
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
-                   f"orb_breakout, orb_volume",
+                   f"orb_breakout, orb_volume, bullish_engulfing",
         )
 
     if not combos:
