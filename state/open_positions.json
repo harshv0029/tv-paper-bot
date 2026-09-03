@@ -1,25 +1,12 @@
 {
-  "synced_at_utc": "2026-09-03T11:28:26Z",
+  "synced_at_utc": "2026-09-03T11:50:05Z",
   "open_positions": [
-    {
-      "symbol": "CL=F",
-      "qty": 23.111018,
-      "entry_price_native": 91.58999633789062,
-      "stop_loss_native": 90.67409637451172,
-      "target_native": 94.33769622802734,
-      "fx_to_inr": 94.48500061035156,
-      "notional_inr": 200000.0,
-      "orb_high_native": 90.76000213623047,
-      "orb_low_native": 90.51000213623047,
-      "entry_ts": 1788428783.9312232,
-      "interval": "5m",
-      "strategy": "orb-recovered"
-    },
     {
       "symbol": "GC=F",
       "qty": 0.472993,
       "entry_price_native": 4475.2001953125,
       "stop_loss_native": 4429.89990234375,
+      "initial_stop_loss_native": 4429.89990234375,
       "target_native": 4611.10107421875,
       "fx_to_inr": 94.48500061035156,
       "notional_inr": 200000.03,
@@ -28,6 +15,21 @@
       "entry_ts": 1788429341.7099674,
       "interval": "5m",
       "strategy": "orb-recovered"
+    },
+    {
+      "symbol": "SI=F",
+      "qty": 31.920415,
+      "entry_price_native": 66.31999969482422,
+      "stop_loss_native": 65.79000091552734,
+      "initial_stop_loss_native": 65.79000091552734,
+      "target_native": 67.90999603271484,
+      "fx_to_inr": 94.4749984741211,
+      "notional_inr": 199999.97,
+      "orb_high_native": 65.93499755859375,
+      "orb_low_native": 65.79000091552734,
+      "entry_ts": 1788436196.710336,
+      "interval": "5m",
+      "strategy": "orb-15m-sma9-21"
     }
   ]
 }
