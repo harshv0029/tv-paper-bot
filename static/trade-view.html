@@ -194,6 +194,10 @@
         <span class="ds-val mono" id="ds-pnl">—</span>
       </div>
       <div class="ds-item">
+        <span class="ds-lbl">Unrealised P&amp;L (open)</span>
+        <span class="ds-val mono" id="ds-unrealised">—</span>
+      </div>
+      <div class="ds-item">
         <span class="ds-lbl">Trades closed</span>
         <span class="ds-val mono" id="ds-count">—</span>
       </div>
@@ -210,11 +214,11 @@
   <div class="log-scroll">
     <table class="log">
       <thead><tr>
-        <th>Status</th><th>Asset</th><th>Type</th><th class="num">Entry</th><th class="num">Exit / Now</th>
+        <th>Status</th><th>Asset</th><th>Type</th><th>Strategy</th><th class="num">Entry</th><th class="num">Exit / Now</th>
         <th class="num">Qty</th><th class="num">Realised P&amp;L (₹)</th><th class="num">Unrealised P&amp;L (₹)</th>
         <th class="num">P&amp;L %</th><th>Reason</th><th>Time</th>
       </tr></thead>
-      <tbody id="log-body"><tr><td colspan="11" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="log-body"><tr><td colspan="12" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -606,6 +610,10 @@ function renderTradeLog(summary, history) {
 
   const pnlSpan = (v) => `<span class="num ${v >= 0 ? "up" : "down"}">${v >= 0 ? "+" : ""}₹${fmt(v)}</span>`;
   const dash = `<span class="scan-idle">—</span>`;
+  // Strategy tags come straight from main.py's own strategy_tag/OPTIONS_STRATEGY_TAG
+  // (e.g. "orb-15m-sma9-21", "orb-bullish-engulfing-trend20", "orb-option") -
+  // strip the constant "orb-" prefix here since every tag has it.
+  const strategyLabel = (s) => s ? s.replace(/^orb-/, "") : "—";
   let totalUnrealisedInr = 0;
 
   const liveRows = openPositions.map(pos => {
@@ -632,6 +640,7 @@ function renderTradeLog(summary, history) {
       <td><span class="log-status live"><span class="dot"></span>LIVE</span></td>
       <td class="sym">${label}</td>
       <td class="log-type">${type}</td>
+      <td class="log-type">${strategyLabel(pos.strategy)}</td>
       <td class="num">${fmt(pos.entry_price_native, isOption ? 4 : 2)}</td>
       <td class="num">${isOption ? "—" : (now !== undefined && now !== null ? fmt(now) : "—")}</td>
       <td class="num">${isOption ? pos.contracts : fmt(pos.qty, 4)}</td>
@@ -652,6 +661,7 @@ function renderTradeLog(summary, history) {
       <td><span class="log-status closed">CLOSED</span></td>
       <td class="sym">${label}</td>
       <td class="log-type">${type}</td>
+      <td class="log-type">${strategyLabel(t.strategy)}</td>
       <td class="num">${fmt(t.entry_price_native, isOption ? 4 : 2)}</td>
       <td class="num">${fmt(t.exit_price_native, isOption ? 4 : 2)}</td>
       <td class="num">${fmt(t.qty, isOption ? 0 : 4)}</td>
@@ -666,17 +676,17 @@ function renderTradeLog(summary, history) {
   const totalRealisedInr = closed.reduce((s, t) => s + (t.pnl_inr ?? 0), 0);
   const combinedInr = totalRealisedInr + totalUnrealisedInr;
   const totalRow = `<tr class="log-total-row">
-      <td colspan="6">TOTAL — realised (closed) + unrealised (live)</td>
+      <td colspan="7">TOTAL — realised (closed) + unrealised (live)</td>
       <td class="num">${pnlSpan(totalRealisedInr)}</td>
       <td class="num">${pnlSpan(totalUnrealisedInr)}</td>
       <td colspan="3">Combined: ${pnlSpan(combinedInr)}</td>
     </tr>`;
 
-  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="11">${label}</td></tr>`;
+  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="12">${label}</td></tr>`;
   const sections = [];
   if (liveRows.length) sections.push(sectionRow(`Live positions (${liveRows.length})`), ...liveRows);
   sections.push(sectionRow(`Closed today (${closedRows.length}) — transacted, realized P&amp;L`));
-  sections.push(...(closedRows.length ? closedRows : [`<tr><td colspan="11" class="scan-idle">No trades closed yet today</td></tr>`]));
+  sections.push(...(closedRows.length ? closedRows : [`<tr><td colspan="12" class="scan-idle">No trades closed yet today</td></tr>`]));
   if (liveRows.length || closedRows.length) sections.push(totalRow);
   body.innerHTML = sections.join("");
 
@@ -688,6 +698,14 @@ function renderTradeLog(summary, history) {
   const pnlEl = document.getElementById("ds-pnl");
   pnlEl.textContent = `${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}`;
   pnlEl.className = "ds-val mono " + (pnl >= 0 ? "up" : "down");
+
+  // Same totalUnrealisedInr the trade log's own TOTAL row uses - live
+  // equity positions only (option premiums aren't re-quoted client-side,
+  // same caveat as the log row above).
+  const unrealisedEl = document.getElementById("ds-unrealised");
+  unrealisedEl.textContent = `${totalUnrealisedInr >= 0 ? "+" : ""}₹${fmt(totalUnrealisedInr)}`;
+  unrealisedEl.className = "ds-val mono " + (totalUnrealisedInr >= 0 ? "up" : "down");
+
   document.getElementById("ds-count").textContent = closed.length;
   const wins = closed.filter(t => (t.pnl_inr ?? 0) > 0).length;
   document.getElementById("ds-winrate").textContent = closed.length
