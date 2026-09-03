@@ -44,7 +44,7 @@ jobs:
           curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" || true
           echo
           curl -sS --retry 4 --retry-delay 5 --retry-connrefused -m 45 \
-            "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=200000&daily_risk_pct=2" \
+            "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=400000&daily_risk_pct=2" \
             -o /tmp/daily-summary.json
           cat /tmp/daily-summary.json
           echo
@@ -78,12 +78,13 @@ jobs:
         run: |
           # Real visibility into what the engine checked and decided, every
           # cycle - not just closed trades. One snapshot per sync (hourly),
-          # not per 30s tick, to keep this readable and the file small.
+          # not per 30s tick, to keep this readable. Kept forever, uncapped,
+          # per explicit user instruction - this is the permanent record of
+          # every attempt made, not a rolling window.
           mkdir -p docs
           test -f docs/attempt_log.json || echo '[]' > docs/attempt_log.json
           jq -s '
             .[0] + [{synced_at_utc: (now | todate), attempts: .[1]}]
-            | if length > 500 then .[-500:] else . end
           ' docs/attempt_log.json /tmp/scheduler-attempts.json > /tmp/attempt_log_merged.json
           mv /tmp/attempt_log_merged.json docs/attempt_log.json
           echo "attempt_log.json now has $(jq 'length' docs/attempt_log.json) snapshots"

@@ -7,12 +7,13 @@ change is the bug.
 
 | Constraint | Value | Enforced by |
 |---|---|---|
-| **Capital** | ₹2,00,000, one shared pool across every market (NSE, crypto, US) | `capital` param, default across all WATCHLIST entries |
-| **Max loss per day** | **2% of capital (₹4,000)** — resets at IST midnight, every calendar day, automatically | `daily_risk_pct=2.0` + `ist_midnight_epoch()` in `today_realized_pnl()` |
+| **Capital** | ₹4,00,000 (raised from ₹2,00,000 2026-09-03, per user instruction "for today"), one shared pool across every market (NSE, crypto, US) | `capital` param, default across all WATCHLIST entries |
+| **Max loss per day** | **2% of capital (₹8,000 at current capital)** — resets at IST midnight, every calendar day, automatically | `daily_risk_pct=2.0` + `ist_midnight_epoch()` in `today_realized_pnl()` |
 | **Max risk per trade** | **2% of capital is a CEILING, not a fixed rate** — set lower per symbol where evidence supports it | `risk_per_trade_pct`, per-symbol in `WATCHLIST` |
 | **Per-trade stop-loss cap** | Same ceiling logic, tighter of this or the strategy's own ORB-low level | `stop_pct`, per-symbol in `WATCHLIST` |
-| **Risk:Reward target** | 1:2 (target = entry + 2 × stop distance) | `rr=2.0` |
-| **Capital deployed cap** | Total notional across all open positions never exceeds ₹2,00,000 | `deployed_notional()` capital check in the entry path |
+| **Risk:Reward minimum** | **1:3** (target = entry + 3 × stop distance) — raised 2026-09-03 from 1:2 per standing user instruction; a trade is only entered if it clears this | `rr=3.0`, `SCHEDULER_RR` |
+| **Capital deployed cap** | Total notional across all open positions never exceeds current `capital` | `deployed_notional()` capital check in the entry path |
+| **Position sizing** | Fractional units, not integer-floored — a whole-unit floor was silently blocking every BTC-USD/ETH-USD/gold entry (unit price exceeds a ₹2L pool) regardless of signal quality; fixed 2026-09-03 | qty computed as a float in `_auto_signal_core`, min ₹100 notional guard |
 
 ## Per-trade risk: 2% is a ceiling, tuned down by evidence
 

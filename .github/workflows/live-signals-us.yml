@@ -25,13 +25,13 @@ jobs:
           BASE="https://tv-paper-bot-gdan.onrender.com/auto-signal"
           # SPY/QQQ: risk/stop at 1% not 2% - no backtest evidence yet for
           # these with orb_breakout (see docs/TRADING_CONSTRAINTS.md).
-          COMMON="capital=200000&daily_risk_pct=2&risk_per_trade_pct=1&stop_pct=1&rr=2&orb_minutes=15&sma_fast=9&sma_slow=21&tz_offset_min=-240&open_min=570&close_min=960&squareoff_min=950&currency=USD"
+          COMMON="capital=400000&daily_risk_pct=2&risk_per_trade_pct=1&stop_pct=1&rr=3&orb_minutes=15&sma_fast=9&sma_slow=21&tz_offset_min=-240&open_min=570&close_min=960&squareoff_min=950&currency=USD"
           # AAPL: switched 2026-09-03 to bullish_engulfing (evidenced, 100%
           # of swept combos profitable - docs/strategy_log.xlsx), full 2%
           # ceiling. Must match main.py's WATCHLIST exactly, or this
           # redundant backstop call would fight the in-process scheduler's
           # own strategy for the same symbol.
-          AAPL_PARAMS="capital=200000&daily_risk_pct=2&risk_per_trade_pct=2&stop_pct=2&rr=2&strategy=bullish_engulfing&trend_sma=20&volume_confirm=false&tz_offset_min=-240&open_min=570&close_min=960&squareoff_min=950&currency=USD"
+          AAPL_PARAMS="capital=400000&daily_risk_pct=2&risk_per_trade_pct=2&stop_pct=2&rr=3&strategy=bullish_engulfing&trend_sma=20&volume_confirm=false&tz_offset_min=-240&open_min=570&close_min=960&squareoff_min=950&currency=USD"
 
           curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/health" || true
           echo
@@ -47,5 +47,5 @@ jobs:
           echo
 
           echo "### daily-summary"
-          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=200000&daily_risk_pct=2"
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=400000&daily_risk_pct=2"
           echo

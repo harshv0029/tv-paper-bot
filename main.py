@@ -1013,11 +1013,11 @@ def deployed_notional(conn) -> float:
 
 def _auto_signal_core(
     symbol: str,
-    capital: float = 200000,
+    capital: float = 400000,
     daily_risk_pct: float = 2.0,
     risk_per_trade_pct: float = 2.0,
     stop_pct: float = 2.0,
-    rr: float = 2.0,
+    rr: float = 3.0,
     orb_minutes: int = 15,
     sma_fast: int = 9,
     sma_slow: int = 21,
@@ -1377,11 +1377,11 @@ def _auto_signal_core(
 @app.get("/auto-signal")
 def auto_signal(
     symbol: str,
-    capital: float = 200000,
+    capital: float = 400000,
     daily_risk_pct: float = 2.0,
     risk_per_trade_pct: float = 2.0,
     stop_pct: float = 2.0,
-    rr: float = 2.0,
+    rr: float = 3.0,
     orb_minutes: int = 15,
     sma_fast: int = 9,
     sma_slow: int = 21,
@@ -1561,9 +1561,9 @@ def reconcile_open_positions_from_journal():
 
 
 SCHEDULER_INTERVAL_SECONDS = 30
-SCHEDULER_CAPITAL = 200000
+SCHEDULER_CAPITAL = 400000  # 2026-09-03: raised from Rs 2L to Rs 4L per user instruction ("for today")
 SCHEDULER_DAILY_RISK_PCT = 2.0  # account-wide daily loss cap - always the full 2%, not per-symbol
-SCHEDULER_RR = 2.0
+SCHEDULER_RR = 3.0  # 2026-09-03: raised from 1:2 to a 1:3 minimum per standing user instruction
 
 _scheduler_last_tick_ts = 0.0
 _scheduler_last_error = None
@@ -1633,7 +1633,7 @@ def scheduler_attempts():
 
 
 @app.get("/daily-summary")
-def daily_summary(capital: float = 200000, daily_risk_pct: float = 2.0):
+def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
     """Aggregated view of today's auto-signal paper trading across all symbols:
     realized P&L (Rs and % of capital), win rate, risk-reward achieved per
     trade, remaining daily-loss budget, and any still-open positions."""
@@ -1731,11 +1731,11 @@ DRY_RUN_DEFAULT_SYMBOLS = [
 @app.get("/dry-run-day")
 def dry_run_day(
     date: str,
-    capital: float = 200000,
+    capital: float = 400000,
     daily_risk_pct: float = 2.0,
     risk_per_trade_pct: float = 2.0,
     stop_pct: float = 2.0,
-    rr: float = 2.0,
+    rr: float = 3.0,
     orb_minutes_override: int = 0,  # 0 = use each symbol's validated default
 ):
     """
