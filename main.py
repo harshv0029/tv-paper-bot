@@ -2182,11 +2182,62 @@ _scheduler_last_error = None
 # attempt log each sync.
 _scheduler_last_results: dict = {}
 
+# Round-robin cursor into WATCHLIST for entry-scanning "flat" symbols (no
+# open position) - persists across ticks. 2026-09-03: the watchlist grew
+# from 9 to 21 symbols (+ 15 options underlyings) in one session; scanning
+# every single one, every 30s tick, on Yahoo Finance's free/unofficial
+# endpoint risks tripping rate limits and can make one tick's real wall-
+# clock time exceed SCHEDULER_INTERVAL_SECONDS, silently degrading the
+# actual check cadence for everyone as the roster grows. Round-robin fixes
+# this without losing coverage: an open position is ALWAYS checked every
+# tick (time-critical - stop/target/eod), and flat symbols rotate through
+# a bounded batch per tick instead of all being scanned every time.
+_scheduler_rr_cursor = 0
+SCHEDULER_ENTRY_SCAN_BATCH_SIZE = 7  # flat symbols freshly entry-scanned per tick, round-robin -
+# chosen so a full rotation (21 equity symbols / 7 ~= 3 ticks ~= 90s) lands
+# comfortably inside fetch_ohlc's own 180s cache TTL: a flat symbol's
+# candle data can't have changed meaningfully faster than that anyway, so
+# nothing is being missed by not re-scanning it every single 30s tick -
+# the "wasted" cycles just go to other symbols instead.
+
 
 async def _scheduler_loop():
-    global _scheduler_last_tick_ts, _scheduler_last_error
+    global _scheduler_last_tick_ts, _scheduler_last_error, _scheduler_rr_cursor
     while True:
-        for cfg in WATCHLIST:
+        watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
+
+        with closing(get_db()) as conn:
+            open_equity_symbols = {
+                r["symbol"] for r in conn.execute(
+                    "SELECT symbol FROM signal_state WHERE status = 'long'"
+                ).fetchall()
+            }
+            open_option_underlyings = {
+                r["underlying"] for r in conn.execute(
+                    "SELECT underlying FROM option_state"
+                ).fetchall()
+            }
+
+        all_symbols = [cfg["symbol"] for cfg in WATCHLIST]
+        flat_symbols = [s for s in all_symbols if s not in open_equity_symbols]
+        if flat_symbols:
+            n = len(flat_symbols)
+            batch_size = min(SCHEDULER_ENTRY_SCAN_BATCH_SIZE, n)
+            rr_batch = [flat_symbols[(_scheduler_rr_cursor + i) % n] for i in range(batch_size)]
+            _scheduler_rr_cursor = (_scheduler_rr_cursor + batch_size) % n
+        else:
+            rr_batch = []
+
+        # Always: every symbol with an open equity position (time-critical
+        # stop/target/eod check) + every underlying with an open option
+        # position (same reason, for the overlay below) + this tick's
+        # round-robin entry-scan batch of otherwise-flat symbols.
+        symbols_this_tick = open_equity_symbols | open_option_underlyings | set(rr_batch)
+
+        for symbol in symbols_this_tick:
+            cfg = watchlist_by_symbol.get(symbol)
+            if not cfg:
+                continue
             try:
                 result = await asyncio.to_thread(
                     _auto_signal_core,
@@ -2213,8 +2264,15 @@ async def _scheduler_loop():
         # yfinance chain (OPTIONS_ELIGIBLE_SYMBOLS), using that same
         # symbol's own WATCHLIST session config (hours/tz/currency) so it
         # follows the same market clock as the equity engine on that ticker.
-        watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
+        # Covers the SAME symbols_this_tick set as the equity loop above
+        # (open positions + this tick's round-robin batch) - not a
+        # separate schedule - so a symbol's OHLC fetch (fetch_ohlc, cached
+        # 180s) is shared between the two checks instead of doubling the
+        # network calls for symbols that are both an equity WATCHLIST entry
+        # and options-eligible.
         for underlying in OPTIONS_ELIGIBLE_SYMBOLS:
+            if underlying not in symbols_this_tick:
+                continue
             cfg = watchlist_by_symbol.get(underlying)
             if not cfg:
                 continue
