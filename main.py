@@ -3005,6 +3005,14 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
 
     open_positions = []
     capital_deployed_inr = 0.0
+    # For the trade-view chart's entry-indicator overlay (sma_fast/sma_slow
+    # lines) - signal_state has no sma_fast/sma_slow columns of its own, so
+    # this reads each symbol's CURRENT WATCHLIST config. That's the config
+    # actually in effect right now, not necessarily verbatim what fired at
+    # entry if WATCHLIST changed mid-trade (rare - these are static per
+    # deployment) - close enough for a live-only display, not claimed as
+    # an exact historical record.
+    watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
     for r in open_state:
         notional_inr = r["qty"] * r["entry_price"] * r["fx_to_inr"]
         capital_deployed_inr += notional_inr
@@ -3029,6 +3037,8 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
             # trades table's own buy rows, so this and a later close of
             # the same position always agree on which strategy opened it.
             "strategy": book.get(r["symbol"], {}).get("last_strategy"),
+            "sma_fast": watchlist_by_symbol.get(r["symbol"], {}).get("sma_fast"),
+            "sma_slow": watchlist_by_symbol.get(r["symbol"], {}).get("sma_slow"),
         })
     for r in open_option_state:
         qty = r["contracts"] * 100

@@ -316,6 +316,7 @@ function ensureCard(symbol, label) {
       <span><i class="swatch" style="background:#ef4444"></i>Stop</span>
       <span><i class="swatch" style="background:#22c55e"></i>Target</span>
       <span><i class="swatch" style="background:#f59e0b"></i>Opening range</span>
+      <span class="sma-legend" id="sma-legend-${symbol}"></span>
     </div>
   `;
   container.appendChild(term);
@@ -331,10 +332,16 @@ function ensureCard(symbol, label) {
     upColor: "#22c55e", downColor: "#ef4444", borderVisible: false,
     wickUpColor: "#22c55e", wickDownColor: "#ef4444",
   });
+  // Entry-indicator overlay: the SAME sma_fast/sma_slow trend read the live
+  // engine requires ("trend == up") before it ever takes this trade, and
+  // keeps rechecking for trend_weakened/trailing-stop for as long as it's
+  // open - live positions only (see refresh()'s equityPositions loop).
+  const smaFastSeries = chart.addLineSeries({ color: "#a78bfa", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+  const smaSlowSeries = chart.addLineSeries({ color: "#38bdf8", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
   new ResizeObserver(entries => chart.applyOptions({ width: entries[0].contentRect.width }))
     .observe(document.getElementById(`chart-${symbol}`));
 
-  charts[symbol] = { chart, series, priceLines: [] };
+  charts[symbol] = { chart, series, smaFastSeries, smaSlowSeries, priceLines: [] };
   return charts[symbol];
 }
 
@@ -355,7 +362,22 @@ function setPriceLines(entry, pos) {
   add(pos.orb_low_native, "#f59e0b", "ORB low");
 }
 
-async function updateCandles(symbol, entry, interval) {
+function computeSmaLine(candles, period) {
+  // Same "enough same-day bars" behavior as the live engine's own SMA read
+  // (_auto_signal_core/_compute_trend filter to today's own candles too) -
+  // no point before `period` closes exist, not a lookback into other days.
+  if (!period || period < 1) return [];
+  const out = [];
+  let sum = 0;
+  for (let i = 0; i < candles.length; i++) {
+    sum += candles[i].close;
+    if (i >= period) sum -= candles[i - period].close;
+    if (i >= period - 1) out.push({ time: candles[i].time, value: sum / period });
+  }
+  return out;
+}
+
+async function updateCandles(symbol, entry, interval, smaFast, smaSlow) {
   // Today's session only, at the SAME candle size the trade was actually
   // taken on - a multi-day fetch squeezes hundreds of bars onto one chart,
   // which makes each 5-min candle look coarser than it is.
@@ -365,6 +387,24 @@ async function updateCandles(symbol, entry, interval) {
     time: toChartTime(r.date), open: r.open, high: r.high, low: r.low, close: r.close,
   })).filter(c => Number.isFinite(c.close));
   entry.series.setData(candles);
+
+  // Entry-indicator overlay (live positions only - see refresh()). Only
+  // drawn once both periods are known (WATCHLIST lookup on the server
+  // side) - a recovered-from-journal position predating that field just
+  // shows no overlay rather than a wrong one.
+  const legendEl = document.getElementById(`sma-legend-${symbol}`);
+  if (smaFast && smaSlow) {
+    entry.smaFastSeries.setData(computeSmaLine(candles, smaFast));
+    entry.smaSlowSeries.setData(computeSmaLine(candles, smaSlow));
+    if (legendEl) legendEl.innerHTML =
+      `<i class="swatch" style="background:#a78bfa"></i>SMA(${smaFast})` +
+      `<i class="swatch" style="background:#38bdf8;margin-left:10px"></i>SMA(${smaSlow})`;
+  } else {
+    entry.smaFastSeries.setData([]);
+    entry.smaSlowSeries.setData([]);
+    if (legendEl) legendEl.innerHTML = "";
+  }
+
   entry.chart.timeScale().fitContent();
   return candles.length ? candles[candles.length - 1].close : null;
 }
@@ -748,7 +788,7 @@ async function refresh() {
 
     for (const pos of equityPositions) {
       const entry = ensureCard(pos.symbol, displayName(pos.symbol));
-      const lastClose = await updateCandles(pos.symbol, entry, pos.interval);
+      const lastClose = await updateCandles(pos.symbol, entry, pos.interval, pos.sma_fast, pos.sma_slow);
       if (lastClose === null) continue;
       lastCloseBySymbol[pos.symbol] = lastClose;
       setPriceLines(entry, pos);
