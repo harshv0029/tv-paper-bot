@@ -20248,5 +20248,142 @@
         "available_capital_inr": 0.12
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-03T19:04:32Z",
+    "attempts": {
+      "CL=F": {
+        "checked_at_utc": 1788462265.001353,
+        "symbol": "CL=F",
+        "status": "checked",
+        "time_local": "2026-09-03 19:04:24.002004",
+        "currency": "USD",
+        "fx_to_inr": 94.475,
+        "last_close": 91.55000305175781,
+        "orb_high": 90.76000213623047,
+        "orb_low": 90.51000213623047,
+        "sma_fast": 91.32777828640408,
+        "sma_slow": 91.47190493629093,
+        "trend": "down",
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "exited_trend_weakened",
+        "exit_pnl_inr": 87.42,
+        "exit_pnl_pct": 0.022,
+        "rr_achieved": 0.04
+      },
+      "BHARTIARTL.NS": {
+        "checked_at_utc": 1788462265.0016122,
+        "symbol": "BHARTIARTL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-04 00:34:25.001539"
+      },
+      "ICICIBANK.NS": {
+        "checked_at_utc": 1788462265.0017593,
+        "symbol": "ICICIBANK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-04 00:34:25.001709"
+      },
+      "^BSESN": {
+        "checked_at_utc": 1788462265.0018842,
+        "symbol": "^BSESN",
+        "status": "pre_open",
+        "time_local": "2026-09-04 00:34:25.001837"
+      },
+      "^NSEBANK": {
+        "checked_at_utc": 1788462265.0020747,
+        "symbol": "^NSEBANK",
+        "status": "pre_open",
+        "time_local": "2026-09-04 00:34:25.002029"
+      },
+      "INFY.NS": {
+        "checked_at_utc": 1788462265.0021932,
+        "symbol": "INFY.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-04 00:34:25.002152"
+      },
+      "TCS.NS": {
+        "checked_at_utc": 1788462265.002304,
+        "symbol": "TCS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-04 00:34:25.002262"
+      },
+      "^NSEI": {
+        "checked_at_utc": 1788462265.0024383,
+        "symbol": "^NSEI",
+        "status": "pre_open",
+        "time_local": "2026-09-04 00:34:25.002392"
+      },
+      "HDFCBANK.NS": {
+        "checked_at_utc": 1788462265.0025415,
+        "symbol": "HDFCBANK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-04 00:34:25.002503"
+      },
+      "HINDUNILVR.NS": {
+        "checked_at_utc": 1788462265.0026443,
+        "symbol": "HINDUNILVR.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-04 00:34:25.002605"
+      },
+      "ITC.NS": {
+        "checked_at_utc": 1788462265.0027463,
+        "symbol": "ITC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-04 00:34:25.002708"
+      },
+      "SBIN.NS": {
+        "checked_at_utc": 1788462265.0028505,
+        "symbol": "SBIN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-04 00:34:25.002809"
+      },
+      "RELIANCE.NS": {
+        "checked_at_utc": 1788462265.0030053,
+        "symbol": "RELIANCE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-04 00:34:25.002942"
+      },
+      "GC=F": {
+        "checked_at_utc": 1788462265.4965343,
+        "symbol": "GC=F",
+        "status": "checked",
+        "time_local": "2026-09-03 19:04:25.003057",
+        "currency": "USD",
+        "fx_to_inr": 94.475,
+        "last_close": 4523.60009765625,
+        "orb_high": 4438.0,
+        "orb_low": 4429.89990234375,
+        "sma_fast": 4533.665063476563,
+        "sma_slow": 4533.742908296131,
+        "trend": "down",
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 87.42,
+        "realized_today_pct": 0.022,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "none",
+        "open_position": {
+          "symbol": "GC=F",
+          "day": "2026-09-03",
+          "status": "long",
+          "entry_price": 4507.5,
+          "stop_loss": 4429.89990234375,
+          "initial_stop_loss": 4429.89990234375,
+          "target": 4740.30029296875,
+          "qty": 0.469653,
+          "entry_ts": 1788444018.5764008,
+          "orb_high": 4438.0,
+          "orb_low": 4429.89990234375,
+          "fx_to_inr": 94.4749984741211,
+          "interval": "5m"
+        }
+      }
+    }
   }
 ]
