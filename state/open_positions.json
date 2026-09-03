@@ -1,4 +1,18 @@
 {
-  "synced_at_utc": "2026-09-03T03:38:44Z",
-  "open_positions": []
+  "synced_at_utc": "2026-09-03T03:42:23Z",
+  "open_positions": [
+    {
+      "symbol": "BTC-USD",
+      "qty": 0.027293,
+      "entry_price_native": 77637.3984375,
+      "stop_loss_native": 77134.9765625,
+      "target_native": 78642.2421875,
+      "fx_to_inr": 94.38500213623047,
+      "notional_inr": 199997.81,
+      "orb_high_native": 77363.3125,
+      "orb_low_native": 77134.9765625,
+      "entry_ts": 1788406839.037865,
+      "interval": "5m"
+    }
+  ]
 }
