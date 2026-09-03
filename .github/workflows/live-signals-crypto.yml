@@ -6,8 +6,13 @@ name: Live Intraday Signals - Crypto (paper trading)
 # is one pool across every market) - budget resets at IST midnight
 # regardless of this being UTC-timed.
 on:
-  schedule:
-    - cron: "*/5 * * * *"
+  # Schedule disabled 2026-09-03: rescoped to NSE-only, per explicit user
+  # instruction - "currently work on only Indian stock market and stocks
+  # available to Indian trader via Kotak Neo and Zerodha accounts." Crypto
+  # isn't tradeable through either broker; BTC-USD/ETH-USD are gone from
+  # WATCHLIST in main.py. Left in place (not deleted) for easy
+  # reactivation if the scope ever widens back to crypto -
+  # workflow_dispatch still works for a manual one-off call.
   workflow_dispatch: {}
 
 jobs:

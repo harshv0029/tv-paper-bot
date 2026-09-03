@@ -5,6 +5,22 @@ Read this file at the start of every research cycle, alongside
 channel the user/main session uses to hand you new direction between
 sessions — treat it as current instructions, not a one-time note.
 
+## 2026-09-03 update (SUPERSEDES the gold/forex section below): NSE-only scope
+
+Explicit user instruction: "currently work on only Indian stock market and
+stocks available to Indian trader via Kotak Neo and Zerodha accounts."
+Every non-Indian instrument (crypto, US mega-caps, COMEX gold GC=F, forex
+EURUSD=X/USDINR=X) is now OUT of scope — stop researching/backtesting
+them, even though the section below once asked you to include gold/forex.
+Live `WATCHLIST` (main.py) is now: `^NSEI`, `^NSEBANK`, `^BSESN`, and 15
+NSE large-caps (RELIANCE.NS, TCS.NS, HDFCBANK.NS, INFY.NS, ICICIBANK.NS,
+HINDUNILVR.NS, ITC.NS, SBIN.NS, BHARTIARTL.NS, KOTAKBANK.NS, LT.NS,
+AXISBANK.NS, BAJFINANCE.NS, MARUTI.NS, ASIANPAINT.NS). Focus research on
+these and any other NSE/BSE-listed symbol (Yahoo ticker convention:
+`SYMBOL.NS` for NSE, `SYMBOL.BO` for BSE) — real strategies on real,
+Kotak-Neo/Zerodha-tradeable instruments, not paper-only exercises on
+markets that can never become real trades through this account.
+
 ## Structural constraint: you cannot dispatch GitHub Actions yourself
 
 Confirmed 2026-09-03: your session has no GitHub Actions MCP tool, and

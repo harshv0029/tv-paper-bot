@@ -45,6 +45,18 @@ jobs:
           curl -sS -m 60 "$BASE?symbol=%5EBSESN&${RISK}&orb_minutes=30&sma_fast=20&sma_slow=50"
           echo
 
+          # NSE large-caps added 2026-09-03 (rescoped to NSE-only - see
+          # main.py's WATCHLIST comment). Unproven -> half ceiling (1%),
+          # same orb_breakout defaults as main.py's WATCHLIST entries -
+          # must stay in sync with it or this backstop would fight the
+          # in-process scheduler for the same symbol.
+          STOCK_RISK="capital=400000&daily_risk_pct=2&risk_per_trade_pct=1&stop_pct=1&rr=3&orb_minutes=15&sma_fast=9&sma_slow=21"
+          for SYMBOL in "RELIANCE.NS" "TCS.NS" "HDFCBANK.NS" "INFY.NS" "ICICIBANK.NS" "HINDUNILVR.NS" "ITC.NS" "SBIN.NS" "BHARTIARTL.NS" "KOTAKBANK.NS" "LT.NS" "AXISBANK.NS" "BAJFINANCE.NS" "MARUTI.NS" "ASIANPAINT.NS"; do
+            echo "### $SYMBOL"
+            curl -sS -m 60 "$BASE?symbol=${SYMBOL}&${STOCK_RISK}"
+            echo
+          done
+
           echo "### daily-summary"
           curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/daily-summary?capital=400000&daily_risk_pct=2"
           echo

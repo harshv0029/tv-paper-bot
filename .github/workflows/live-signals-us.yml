@@ -9,11 +9,14 @@ name: Live Intraday Signals - US Markets (paper trading)
 # in main.py for how a session spanning IST midnight (this one always does,
 # ~19:00-01:30 IST) is still accounted for correctly.
 on:
-  schedule:
-    # UTC 13:00-20:55, every 5 min, Mon-Fri = ET 9:00am-4:55pm (EDT). Covers
-    # the 9:30-16:00 ET session with a buffer either side; calls outside
-    # actual market hours are harmless no-ops (the endpoint checks the time).
-    - cron: "*/5 13-20 * * 1-5"
+  # Schedule disabled 2026-09-03: rescoped to NSE-only, per explicit user
+  # instruction - "currently work on only Indian stock market and stocks
+  # available to Indian trader via Kotak Neo and Zerodha accounts." US
+  # symbols are gone from WATCHLIST in main.py; this backstop would just
+  # be calling /auto-signal for tickers the live scheduler no longer
+  # tracks. Left in place (not deleted) for easy reactivation if the
+  # scope ever widens back to US markets - workflow_dispatch still works
+  # for a manual one-off call.
   workflow_dispatch: {}
 
 jobs:

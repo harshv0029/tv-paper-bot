@@ -4,6 +4,20 @@ Read this file at the start of every scan cycle, alongside your existing
 routine. This is the channel the user/main session uses to hand you new
 direction between sessions — treat it as current instructions.
 
+## 2026-09-03 update: NSE-only scope
+
+Explicit user instruction: "currently work on only Indian stock market and
+stocks available to Indian trader via Kotak Neo and Zerodha accounts."
+Crypto (BTC/ETH) and US names (SPY/QQQ/AAPL/etc.) are OUT of scope now —
+drop them from your scan, including the sector pass below (its BTC/ETH and
+tech/broad-US mentions are stale). Live `WATCHLIST` is NIFTY/BANKNIFTY/
+SENSEX plus 15 NSE large-caps (RELIANCE, TCS, HDFCBANK, INFY, ICICIBANK,
+HINDUNILVR, ITC, SBIN, BHARTIARTL, KOTAKBANK, LT, AXISBANK, BAJFINANCE,
+MARUTI, ASIANPAINT — see docs/TRADING_CONSTRAINTS.md for the full list).
+Sector coverage should now mean real NSE sectors — banking/financials,
+IT, FMCG, auto, energy, infra — and any stock-pick signal you flag should
+be an NSE/BSE-listed name only.
+
 ## 2026-09-03 update: sector analysis + sentiment-driven stock picks
 
 In addition to the per-symbol sentiment read you already produce, add a

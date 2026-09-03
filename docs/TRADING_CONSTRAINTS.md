@@ -1,5 +1,41 @@
 # Trading Constraints (standing rules)
 
+## Scope: NSE/BSE only (rescoped 2026-09-03)
+
+Explicit user instruction: "currently work on only Indian stock market and
+stocks available to Indian trader via Kotak Neo and Zerodha accounts.
+Screen only these stocks and index." Every non-Indian instrument this
+system ever traded - crypto (BTC-USD, ETH-USD), US mega-caps/ETFs (SPY,
+QQQ, AAPL, and 12 more added earlier the same day), COMEX gold futures
+(GC=F), and the entire US-options overlay built on top of them - is
+removed from `WATCHLIST`/`OPTIONS_ELIGIBLE_SYMBOLS`. None of those were
+ever a real path to a live trade: Kotak Neo and Zerodha don't offer crypto
+or US-listed instruments, so paper-trading them had no future beyond the
+paper account itself.
+
+`WATCHLIST` now covers: NIFTY 50 (`^NSEI`), BANK NIFTY (`^NSEBANK`),
+SENSEX (`^BSESN`), and 15 curated, heavily-liquid NSE large-caps
+(RELIANCE, TCS, HDFCBANK, INFY, ICICIBANK, HINDUNILVR, ITC, SBIN,
+BHARTIARTL, KOTAKBANK, LT, AXISBANK, BAJFINANCE, MARUTI, ASIANPAINT - all
+`.NS` tickers). Same "curated, not exhaustive" reasoning as before applies
+to the size of the list, just scoped to NSE now: there are ~2,000+
+NSE-listed stocks, and scanning all of them every 30s against Yahoo's free
+endpoint would trip rate limits for no benefit, since an un-backtested
+stock trades at the same conservative 1% ceiling regardless of how it was
+found. Tell me specific NSE tickers to add beyond this set any time.
+
+Real NSE options/futures data still requires the same Kotak Neo broker
+connection this project has always been gated on (not yet wired up) - the
+options overlay's code (`select_option_contract`,
+`_options_signal_core`, etc.) is left in place, unused
+(`OPTIONS_ELIGIBLE_SYMBOLS = []`), ready for real NSE F&O data once that
+connection exists. It is never synthesized as a workaround in the
+meantime - same standing rule as NSE cash-market tick data.
+
+The open GC=F and BTC-USD positions at the time of this change were
+force-closed via the kill switch (`action=kill`, then `resume`) before the
+new `WATCHLIST` deployed, so nothing was orphaned by their removal.
+
 ## Kill switch / pause-resume (added 2026-09-03)
 
 Explicit user instruction: "I want to decide when to do trading and when
@@ -27,8 +63,9 @@ redundant GH Actions backstop calls can't bypass it):
   - `state/trading_control.json` (written by `journal-sync.yml`,
   restored on startup by `reconcile_trading_control_from_journal`) -
   without this, a pause would silently lift on the next code push.
-- Controlled from `/trade-view`'s control bar (Pause / Resume / Kill All
-  buttons) as well as directly via the HTTP endpoints above.
+- Controlled from `/trade-view`'s control bar - a single toggle switch
+  (OFF = trading live, ON/red = kill switch: blocks new trades and closes
+  everything) - as well as directly via the HTTP endpoints above.
 
 These are the hard limits the live paper-trading engine (`_auto_signal_core`
 in `main.py`) enforces on every check, for every market. They are the
@@ -37,7 +74,7 @@ change is the bug.
 
 | Constraint | Value | Enforced by |
 |---|---|---|
-| **Capital** | ₹4,00,000 (raised from ₹2,00,000 2026-09-03, per user instruction "for today"), one shared pool across every market (NSE, crypto, US) | `capital` param, default across all WATCHLIST entries |
+| **Capital** | ₹4,00,000 (raised from ₹2,00,000 2026-09-03, per user instruction "for today"), one shared pool across the NSE/BSE watchlist (rescoped to NSE-only 2026-09-03 - see the scope section above) | `capital` param, default across all WATCHLIST entries |
 | **Max loss per day** | **2% of TOTAL capital at the start of the day (₹8,000 at current capital)** — resets at IST midnight, every calendar day, automatically | `daily_risk_pct=2.0` + `ist_midnight_epoch()` in `today_realized_pnl()` |
 | **Max risk per trade** | **2% of the capital actually INVESTED IN THAT TRADE** (the tranche/available-capital-capped amount it can deploy — `usable_capital_inr`), NOT 2% of total account capital — explicit standing policy, clarified 2026-09-03. A CEILING, not a fixed rate — set lower per symbol where evidence supports it. Both this cap and the daily cap apply independently; whichever binds first forces the exit/entry-block | `risk_per_trade_pct` × `usable_capital_inr`, per-symbol in `WATCHLIST` |
 | **Per-trade stop-loss cap** | Same ceiling logic, tighter of this or the strategy's own ORB-low level | `stop_pct`, per-symbol in `WATCHLIST` |
@@ -141,25 +178,21 @@ symbol is being traded.
 
 ## Options overlay (calls/puts) - added 2026-09-03
 
-Real, currently-quoted contracts on **SPY, QQQ, AAPL, MSFT, GOOGL, AMZN,
-META, NVDA, TSLA, NFLX, AMD, JPM, V, DIA, IWM** (`OPTIONS_ELIGIBLE_SYMBOLS`
-in `main.py`) - 15 of the most heavily-optioned, most liquid US mega-caps/
-ETFs, expanded 2026-09-03 from just SPY/QQQ/AAPL per explicit user
-instruction not to skip stocks with a real options market. This is a
-curated list, not literally every optionable US equity (~4,000+ names via
-the OCC) - scanning that whole universe every 30s against Yahoo's free/
-unofficial API would trip rate limits and blow past the scheduler's own
-cycle time, for no real benefit since an un-backtested symbol trades at the
-same conservative ceiling regardless of how it was found. Tell me specific
-tickers to add beyond this set any time. **NSE/BSE index and stock options
-are NOT covered** - there is no real chain/IV data for them without a
-broker connection (Kotak Neo, not yet wired up); this project does not
-synthesize a fake options chain as a workaround, the same standing rule as
-NSE real tick/futures data.
+**Disabled 2026-09-03** (`OPTIONS_ELIGIBLE_SYMBOLS = []`) - rescoped to
+NSE-only (see the scope section at the top of this file). Every symbol
+this ever covered (SPY, QQQ, AAPL, and 12 more) was a US underlier, not
+tradeable via Kotak Neo/Zerodha. The mechanics below are left documented
+and the code left in place, unused - this is exactly the strike/IV
+selection logic real NSE F&O would use once a broker connection (Kotak
+Neo) provides real NSE options chain/IV data; **NSE/BSE index and stock
+options are NOT covered today** - there is no real chain/IV data for them
+without that connection, and this project does not synthesize a fake
+options chain as a workaround, the same standing rule as NSE real
+tick/futures data.
 
-Every options-eligible symbol is also a `WATCHLIST` equity entry (same
-`orb_breakout`, 1% ceiling as SPY/QQQ until one earns real evidence the way
-AAPL/NIFTY/BANKNIFTY/SENSEX/GC=F did) - the scheduler needs that entry for
+Every options-eligible symbol also had to be a `WATCHLIST` equity entry
+(same `orb_breakout`, 1% ceiling until one earns real evidence the way
+AAPL/NIFTY/BANKNIFTY/SENSEX did) - the scheduler needs that entry for
 session hours/currency/risk_pct, so an options-eligible symbol missing from
 `WATCHLIST` is silently skipped, not an error.
 
