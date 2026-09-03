@@ -11,6 +11,10 @@ on:
         description: "Also sweep bullish_engulfing on indices + real-volume stocks (AAPL/SPY/QQQ)"
         type: boolean
         default: true
+      run_new_asset_research:
+        description: "Also sweep orb_breakout + bullish_engulfing on gold (GC=F) and forex (EURUSD=X, USDINR=X)"
+        type: boolean
+        default: true
 
 jobs:
   research:
@@ -91,5 +95,31 @@ jobs:
 
             echo "--- sweep: orb_volume (re-test on real volume) ---"
             curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=orb_volume&rank_by=total_pnl&top_n=8&orb_minutes=5,15,30&sma_fast=9&sma_slow=21&volume_mult=1.2,1.5,2.0"
+            echo
+          done
+
+      - name: "New asset classes: gold + forex (near-24x7 markets)"
+        if: ${{ inputs.run_new_asset_research }}
+        run: |
+          SW="https://tv-paper-bot-gdan.onrender.com/sweep"
+          PERIOD="60d"
+          INTERVAL="5m"
+          # Strategy is asset-class-agnostic (candlestick data only) - same
+          # sweep grids already evidenced on NSE indices/AAPL, tested here on
+          # gold futures and two forex pairs. Both trade far closer to 24x7
+          # than equities (forex: ~24x5, closed weekends; gold futures:
+          # ~23x5 with a daily settlement break) - see if that changes
+          # anything about which strategy/params work.
+          for SYMBOL in "GC=F" "EURUSD=X" "USDINR=X"; do
+            echo "=========================================="
+            echo "SYMBOL: $SYMBOL"
+            echo "=========================================="
+
+            echo "--- sweep: orb_breakout ---"
+            curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=orb_breakout&rank_by=total_pnl&top_n=8&orb_minutes=5,15,30&sma_fast=5,9,20&sma_slow=20,21,50"
+            echo
+
+            echo "--- sweep: bullish_engulfing ---"
+            curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=bullish_engulfing&rank_by=total_pnl&top_n=8&trend_sma=0,20,50&volume_confirm=false"
             echo
           done
