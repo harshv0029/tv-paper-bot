@@ -1310,7 +1310,12 @@ def _compute_trend(symbol: str, sma_fast: int, sma_slow: int, tz_offset_min: int
     return direction, _trend_confidence(closes, sma_fast, sma_slow)
 
 
-TRAIL_ACTIVATE_R = 1.0          # don't trail at all below 1R unrealized gain
+TRAIL_ACTIVATE_R = 0.5          # don't trail at all below 0.5R unrealized gain - backtested
+# 2026-09-03 (.github/workflows/trailing-stop-threshold-backtest.yml) against
+# 380 real orb_breakout entries (12 NSE symbols, ~59 days of 5-min data):
+# 0.5R beat 1.0R/1.5R/2.0R/no-trailing on every metric (win rate, total R,
+# profit factor) - see docs/TRADING_CONSTRAINTS.md "Trailing stop loss"
+# for the full comparison table and the bigger caveat it also surfaced.
 TRAIL_BREAKEVEN_BUFFER_PCT = 0.1  # breakeven-lock sits slightly above entry, not exactly on it
 TRAIL_CHANDELIER_K = 3.0        # standard Chandelier Exit multiplier (Chuck LeBeau's own default)
 TRAIL_ATR_PERIOD = 14           # standard ATR lookback
