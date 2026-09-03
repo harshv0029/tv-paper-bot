@@ -40,23 +40,45 @@ jobs:
         run: |
           mkdir -p docs
           UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
-          # NSE's archives endpoint blocks requests with no browser session -
-          # hit the real site first to pick up the cookies it expects
-          # (confirmed necessary: a bare curl straight to the CSV came back
-          # an HTML block page, not data), then reuse that cookie jar for
-          # the actual CSV request.
-          curl -sS -c /tmp/nse_cookies.txt -m 30 \
-            -H "User-Agent: $UA" \
+          COMMON_HDRS=(
+            -H "User-Agent: $UA"
+            -H "Accept-Language: en-US,en;q=0.9"
+            -H "Accept-Encoding: gzip, deflate, br"
+            -H "sec-ch-ua: \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\", \"Not=A?Brand\";v=\"99\""
+            -H "sec-ch-ua-mobile: ?0"
+            -H "sec-ch-ua-platform: \"Windows\""
+          )
+          # NSE's archive endpoints sit behind Akamai bot protection - a
+          # cookie handshake alone did NOT get past it (confirmed: run
+          # 33737521205 still came back the same HTML block page even after
+          # visiting www.nseindia.com first and reusing its cookies). Try
+          # both the legacy archives.nseindia.com host and NSE's newer
+          # nsearchives.nseindia.com host (migrated ~2024) - whichever
+          # answers with real CSV wins; if neither does, this step fails
+          # loudly rather than writing a corrupt file, and the caller falls
+          # back to a static list.
+          curl -sS -c /tmp/nse_cookies.txt -m 30 "${COMMON_HDRS[@]}" \
             -H "Accept: text/html,application/xhtml+xml" \
             "https://www.nseindia.com/market-data/securities-available-for-trading" \
             -o /dev/null || true
           sleep 2
-          curl -sS -b /tmp/nse_cookies.txt --retry 3 --retry-delay 5 -m 30 \
-            -H "User-Agent: $UA" \
-            -H "Accept: text/csv,*/*" \
-            -H "Referer: https://www.nseindia.com/market-data/securities-available-for-trading" \
-            "https://archives.nseindia.com/content/equity/EQUITY_L.csv" \
-            -o /tmp/EQUITY_L.csv
+
+          for HOST in nsearchives.nseindia.com archives.nseindia.com; do
+            echo "--- trying $HOST ---"
+            curl -sS -b /tmp/nse_cookies.txt --compressed --retry 2 --retry-delay 5 -m 30 \
+              "${COMMON_HDRS[@]}" \
+              -H "Accept: text/csv,*/*" \
+              -H "Referer: https://www.nseindia.com/market-data/securities-available-for-trading" \
+              "https://${HOST}/content/equity/EQUITY_L.csv" \
+              -o /tmp/EQUITY_L.csv || true
+            LINES=$(wc -l < /tmp/EQUITY_L.csv || echo 0)
+            echo "$HOST -> $LINES lines"
+            if head -1 /tmp/EQUITY_L.csv | grep -qi '^"\?SYMBOL'; then
+              echo "Got real CSV from $HOST"
+              break
+            fi
+            sleep 2
+          done
           echo "Downloaded $(wc -l < /tmp/EQUITY_L.csv) lines"
           head -5 /tmp/EQUITY_L.csv
 
