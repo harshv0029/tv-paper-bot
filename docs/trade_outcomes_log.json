@@ -24,5 +24,31 @@
     "exit_reason": "trend_weakened",
     "rr_target": 3.0,
     "rr_achieved": -0.12
+  },
+  {
+    "symbol": "BTC-USD",
+    "exit_time_utc": 1788428651.139542,
+    "entry_price_native": 77776.2578125,
+    "exit_price_native": 77699.9765625,
+    "currency": "INR",
+    "qty": 0.027216,
+    "pnl_inr": -196.15,
+    "pnl_pct_of_capital": -0.049,
+    "exit_reason": "manual_kill_switch",
+    "rr_target": 3.0,
+    "rr_achieved": -0.12
+  },
+  {
+    "symbol": "ASIANPAINT.NS",
+    "exit_time_utc": 1788428651.139902,
+    "entry_price_native": 2538.199951171875,
+    "exit_price_native": 2539.60009765625,
+    "currency": "INR",
+    "qty": 78.795999,
+    "pnl_inr": 110.33,
+    "pnl_pct_of_capital": 0.028,
+    "exit_reason": "manual_kill_switch",
+    "rr_target": 3.0,
+    "rr_achieved": 0.07
   }
 ]
