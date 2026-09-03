@@ -378,11 +378,55 @@ function computeSmaLine(candles, period) {
   return out;
 }
 
-async function updateCandles(symbol, entry, interval, smaFast, smaSlow) {
+// Mirrors main.py's _trailing_stop_target exactly (same constants) -
+// computed client-side from the SAME candle data already being polled
+// every 10s for the chart itself, so the displayed trailing stop doesn't
+// have to wait for the backend's own scheduler tick (up to 30s) plus its
+// data-fetch cache (up to 180s) to catch up. DISPLAY ONLY - the backend's
+// persisted stop_loss_native is still what actually governs exits; the
+// caller always takes Math.max(persisted, this preview) so the number
+// shown can never be LOWER (less protective) than reality, only fresher.
+const TRAIL_ACTIVATE_R = 0.5;
+const TRAIL_BREAKEVEN_BUFFER_PCT = 0.1;
+const TRAIL_CHANDELIER_K = 3.0;
+const TRAIL_ATR_PERIOD = 14;
+
+function computeTrailingStopPreview(candles, entryPrice, initialStop, entryTimeSec) {
+  if (!candles.length || !initialStop || !entryPrice) return null;
+  const r = entryPrice - initialStop;
+  if (r <= 0) return null;
+  const lastClose = candles[candles.length - 1].close;
+  if ((lastClose - entryPrice) < TRAIL_ACTIVATE_R * r) return null; // not activated yet
+
+  const breakevenStop = entryPrice * (1 + TRAIL_BREAKEVEN_BUFFER_PCT / 100);
+  // Only today's own bars are fetched here (see updateCandles) vs. the
+  // backend's multi-day ATR window - so early in the session this preview
+  // may lag the backend's own (already-live) Chandelier read. Harmless:
+  // the Math.max combination at the call site means the more-protective,
+  // already-persisted backend value just wins until this preview catches up.
+  if (candles.length < TRAIL_ATR_PERIOD + 1) return breakevenStop;
+
+  let trSum = 0;
+  for (let i = candles.length - TRAIL_ATR_PERIOD; i < candles.length; i++) {
+    const cur = candles[i], prev = candles[i - 1];
+    trSum += Math.max(cur.high - cur.low, Math.abs(cur.high - prev.close), Math.abs(cur.low - prev.close));
+  }
+  const atr = trSum / TRAIL_ATR_PERIOD;
+
+  let highestClose = -Infinity;
+  for (const c of candles) {
+    if (c.time >= entryTimeSec && c.close > highestClose) highestClose = c.close;
+  }
+  if (highestClose === -Infinity) highestClose = lastClose;
+
+  return Math.max(breakevenStop, highestClose - TRAIL_CHANDELIER_K * atr);
+}
+
+async function updateCandles(symbol, entry, pos) {
   // Today's session only, at the SAME candle size the trade was actually
   // taken on - a multi-day fetch squeezes hundreds of bars onto one chart,
   // which makes each 5-min candle look coarser than it is.
-  const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(symbol)}&period=1d&interval=${encodeURIComponent(interval || "5m")}`);
+  const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(symbol)}&period=1d&interval=${encodeURIComponent(pos.interval || "5m")}`);
   const rows = data.data || [];
   const candles = rows.map(r => ({
     time: toChartTime(r.date), open: r.open, high: r.high, low: r.low, close: r.close,
@@ -393,6 +437,7 @@ async function updateCandles(symbol, entry, interval, smaFast, smaSlow) {
   // drawn once both periods are known (WATCHLIST lookup on the server
   // side) - a recovered-from-journal position predating that field just
   // shows no overlay rather than a wrong one.
+  const { sma_fast: smaFast, sma_slow: smaSlow } = pos;
   const legendEl = document.getElementById(`sma-legend-${symbol}`);
   if (smaFast && smaSlow) {
     entry.smaFastSeries.setData(computeSmaLine(candles, smaFast));
@@ -404,6 +449,16 @@ async function updateCandles(symbol, entry, interval, smaFast, smaSlow) {
     entry.smaFastSeries.setData([]);
     entry.smaSlowSeries.setData([]);
     if (legendEl) legendEl.innerHTML = "";
+  }
+
+  // Live trailing-stop preview - see computeTrailingStopPreview's own
+  // comment. Mutates pos in place so setPriceLines/renderStats (called
+  // right after this, same refresh cycle) both use the freshest number.
+  const preview = computeTrailingStopPreview(
+    candles, pos.entry_price_native, pos.initial_stop_loss_native, pos.entry_ts
+  );
+  if (preview !== null && preview > pos.stop_loss_native) {
+    pos.stop_loss_native = preview;
   }
 
   entry.chart.timeScale().fitContent();
@@ -800,7 +855,7 @@ async function refresh() {
 
     for (const pos of equityPositions) {
       const entry = ensureCard(pos.symbol, displayName(pos.symbol));
-      const lastClose = await updateCandles(pos.symbol, entry, pos.interval, pos.sma_fast, pos.sma_slow);
+      const lastClose = await updateCandles(pos.symbol, entry, pos);
       if (lastClose === null) continue;
       lastCloseBySymbol[pos.symbol] = lastClose;
       setPriceLines(entry, pos);
