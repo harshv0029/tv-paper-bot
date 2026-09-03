@@ -246,8 +246,8 @@
   </div>
   <div class="counts-scroll">
     <table class="counts">
-      <thead><tr><th>Symbol</th><th class="num">Checks today</th><th>Last result</th><th>Last checked</th></tr></thead>
-      <tbody id="counts-body"><tr><td colspan="4" class="scan-idle">Loading…</td></tr></tbody>
+      <thead><tr><th>Symbol</th><th class="num">Checks today</th><th>Last result</th><th>Last checked</th><th>Source</th></tr></thead>
+      <tbody id="counts-body"><tr><td colspan="5" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -605,7 +605,7 @@ function renderCounts(p) {
   const rows = p.check_counts_today || [];
   const body = document.getElementById("counts-body");
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="4" class="scan-idle">No data yet</td></tr>`;
+    body.innerHTML = `<tr><td colspan="5" class="scan-idle">No data yet</td></tr>`;
     return;
   }
   const maxCount = Math.max(1, ...rows.map(r => r.checks_today));
@@ -613,6 +613,13 @@ function renderCounts(p) {
     const tag = scanTagFor(r.last_action);
     const label = tag.label !== "—" ? tag.label : (r.last_action || "—");
     const barPct = Math.round((r.checks_today / maxCount) * 100);
+    // data_source: today every asset is "yahoo_finance" - Kotak Neo is
+    // account-data-only so far, not wired into any price fetch yet (see
+    // docs/TRADING_CONSTRAINTS.md "Kotak Neo connection"). mcx_proxy_for
+    // (set only for GC=F/SI=F/CL=F) shows as a tooltip, not a second row,
+    // since the source itself is still Yahoo either way.
+    const sourceLabel = r.data_source === "yahoo_finance" ? "Yahoo Finance" : (r.data_source || "—");
+    const sourceTitle = r.mcx_proxy_for ? ` title="Price-action proxy for ${r.mcx_proxy_for}"` : "";
     return `<tr>
       <td class="sym">${r.display || r.symbol}</td>
       <td class="num">
@@ -623,6 +630,7 @@ function renderCounts(p) {
       </td>
       <td>${r.checks_today > 0 ? `<span class="scan-tag ${tag.cls}">${label}</span>` : `<span class="scan-idle">—</span>`}</td>
       <td class="meta">${r.last_checked_at_utc ? timeAgo(r.last_checked_at_utc) : "—"}</td>
+      <td class="meta"${sourceTitle}>${sourceLabel}${r.mcx_proxy_for ? " *" : ""}</td>
     </tr>`;
   }).join("");
 }
