@@ -1755,10 +1755,16 @@ def _options_signal_core(
         # Per-trade risk is risk_per_trade_pct% of the capital actually
         # INVESTED IN THIS TRADE (usable_capital_inr), not of the whole
         # account - same explicit standing policy as the equity engine
-        # (see _auto_signal_core). remaining_budget is the separate,
-        # independently-enforced daily cap measured against TOTAL capital -
-        # both apply, whichever binds first.
-        risk_amount_inr = min(usable_capital_inr * risk_per_trade_pct / 100, remaining_budget)
+        # (see _auto_signal_core). Sizing no longer shrinks as the day's
+        # running P&L worsens (explicit user instruction 2026-09-03 -
+        # "I want net loss to be 2% for all trades for the day, not that
+        # loss budget") - remaining_budget stays a separate, independently-
+        # enforced HALT: once net loss for the day reaches daily_risk_pct%,
+        # `halted` blocks every new entry outright (see above), rather than
+        # this sizing math quietly shrinking trades as that threshold gets
+        # closer. Every entry sizes at its own full risk_per_trade_pct
+        # until the moment trading actually halts.
+        risk_amount_inr = usable_capital_inr * risk_per_trade_pct / 100
         contracts = math.floor(risk_amount_inr / risk_per_contract_inr)
         # 1 contract (100 shares) is the smallest tradeable unit - real
         # option premiums often make even 1 contract's risk-at-stop exceed
@@ -2240,14 +2246,17 @@ def _auto_signal_core(
             # INVESTED IN THIS TRADE (usable_capital_inr - the tranche/
             # available-capital-capped amount this trade can deploy), not
             # risk_per_trade_pct% of the whole account - explicit standing
-            # policy (2026-09-03). The daily loss cap (remaining_budget) is
-            # a separate, independently-enforced limit measured against
-            # TOTAL capital at the start of the day (see daily_loss_cap
-            # above) - both caps apply, whichever binds first forces the
-            # exit/entry-block. min() with remaining_budget still means one
-            # stopped-out trade can burn the rest of today's whole budget if
-            # that's smaller than this trade's own 2%.
-            risk_amount_inr = min(usable_capital_inr * risk_per_trade_pct / 100, remaining_budget)
+            # policy (2026-09-03). Sizing no longer shrinks as the day's
+            # running P&L worsens (explicit user instruction 2026-09-03 -
+            # "I want net loss to be 2% for all trades for the day, not
+            # that loss budget") - remaining_budget stays a separate,
+            # independently-enforced HALT: once net loss for the day
+            # reaches daily_risk_pct%, `halted` blocks every new entry
+            # outright (see blocked_daily_loss_cap above), rather than this
+            # sizing math quietly shrinking trades as that threshold gets
+            # closer. Every entry sizes at its own full risk_per_trade_pct
+            # until the moment trading actually halts.
+            risk_amount_inr = usable_capital_inr * risk_per_trade_pct / 100
             # Fractional qty, not integer-floored: a high-priced unit (gold
             # ~Rs 4.2L/oz, BTC ~Rs 73L/coin) costs more than this account's
             # entire Rs 2L capital, so int() silently zeroed every such
