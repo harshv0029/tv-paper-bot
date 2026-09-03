@@ -1,5 +1,35 @@
 # Trading Constraints (standing rules)
 
+## Kill switch / pause-resume (added 2026-09-03)
+
+Explicit user instruction: "I want to decide when to do trading and when
+not." A single master switch, checked by `_auto_signal_core` and
+`_options_signal_core` themselves (not just the scheduler, so the
+redundant GH Actions backstop calls can't bypass it):
+
+- **`POST /trading-control?action=pause`** - blocks every NEW entry,
+  equity and options alike, across every symbol. Does **NOT** stop
+  managing an already-open position - stop/target/trend/eod-squareoff all
+  keep running exactly as before. A paused account must never mean an
+  unwatched open position.
+- **`POST /trading-control?action=resume`** - lifts the pause.
+- **`POST /trading-control?action=kill`** - the actual kill switch:
+  force-closes **every** open position (equity + options) right now at
+  the best available current price, regardless of stop/target, tagged
+  `exit_reason=manual_kill_switch`, AND pauses (so nothing reopens on the
+  very next tick). Standalone code path from the normal exit logic on
+  purpose (`_force_close_all_positions`) - an emergency stop should never
+  share a code path with, or risk being broken by some future change to,
+  the everyday exit logic that protects every other open position.
+- **`GET /trading-control`** - current state (`enabled`, who/when/why it
+  last changed).
+- Survives a Render redeploy the same way an open position's journal does
+  - `state/trading_control.json` (written by `journal-sync.yml`,
+  restored on startup by `reconcile_trading_control_from_journal`) -
+  without this, a pause would silently lift on the next code push.
+- Controlled from `/trade-view`'s control bar (Pause / Resume / Kill All
+  buttons) as well as directly via the HTTP endpoints above.
+
 These are the hard limits the live paper-trading engine (`_auto_signal_core`
 in `main.py`) enforces on every check, for every market. They are the
 canonical reference — if a future change conflicts with this file, the

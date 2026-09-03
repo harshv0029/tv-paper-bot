@@ -131,6 +131,17 @@ def init_db():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS trading_control (
+                id INTEGER PRIMARY KEY CHECK (id = 1),  -- single row - one master switch, not per-symbol
+                enabled INTEGER NOT NULL DEFAULT 1,     -- 1 = new entries allowed, 0 = paused
+                updated_at REAL,
+                updated_by TEXT,
+                reason TEXT
+            )
+            """
+        )
         conn.commit()
 
 
@@ -1432,6 +1443,9 @@ def _options_signal_core(
         if halted:
             result["action_taken"] = "blocked_daily_loss_cap"
             return result
+        if not is_trading_enabled(conn):
+            result["action_taken"] = "trading_paused"
+            return result
         if is_squareoff_time:
             result["action_taken"] = "no_new_entries_market_closing"
             return result
@@ -1814,6 +1828,9 @@ def _auto_signal_core(
         if halted:
             result["action_taken"] = "blocked_daily_loss_cap"
             return result
+        if not is_trading_enabled(conn):
+            result["action_taken"] = "trading_paused"
+            return result
         if is_squareoff_time:
             result["action_taken"] = "no_new_entries_market_closing"
             return result
@@ -2113,6 +2130,157 @@ WATCHLIST = [
 ]
 
 # ---------------------------------------------------------------------------
+# Kill switch / pause-resume - explicit standing user instruction 2026-09-03:
+# "I want to decide when to do trading and when not." A single master
+# switch (trading_control, one row) gates every NEW entry across every
+# symbol/instrument - equity and options alike - checked inside
+# _auto_signal_core/_options_signal_core themselves (not just in
+# _scheduler_loop) so the redundant GH Actions backstop calls
+# (live-signals*.yml, which hit /auto-signal and /options-signal directly)
+# can't bypass a pause. Pausing NEVER stops managing an already-open
+# position - stop/target/trend/eod-squareoff keep running exactly as
+# before, since an unwatched open position would be far more dangerous
+# than a paused account. The kill switch (action=kill) goes further: force-
+# closes every open position right now at the best available price AND
+# pauses, so nothing reopens on the very next tick.
+def is_trading_enabled(conn) -> bool:
+    row = conn.execute("SELECT enabled FROM trading_control WHERE id = 1").fetchone()
+    return bool(row["enabled"]) if row else True  # never explicitly set -> default ON
+
+
+def _force_close_all_positions(conn, reason: str) -> dict:
+    """The kill switch's actual work: exits EVERY open position (equity +
+    options) right now, at the best available current price, regardless of
+    where price sits versus stop/target. Deliberately standalone from the
+    normal tick-based exit code in _auto_signal_core/_options_signal_core -
+    an emergency-stop action should never share a code path with (and risk
+    being broken by some future change to) the everyday exit logic that
+    protects every other open position."""
+    watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
+    closed = []
+    total_pnl_inr = 0.0
+
+    for row in conn.execute("SELECT * FROM signal_state WHERE status = 'long'").fetchall():
+        symbol = row["symbol"]
+        cfg = watchlist_by_symbol.get(symbol, {})
+        interval = row["interval"] or "5m"
+        try:
+            df = fetch_ohlc(symbol, "5d", interval)
+            exit_price = float(df["Close"].iloc[-1])
+        except Exception:
+            exit_price = row["entry_price"]  # never let a data hiccup block a kill
+
+        strategy = cfg.get("strategy", "orb_breakout")
+        strategy_tag = (
+            f"{ORB_STRATEGY_PREFIX}{cfg.get('orb_minutes', 15)}m-sma{cfg.get('sma_fast', 9)}-{cfg.get('sma_slow', 21)}"
+            if strategy == "orb_breakout"
+            else f"{ORB_STRATEGY_PREFIX}bullish-engulfing-trend{cfg.get('trend_sma', 0)}"
+        )
+        qty = row["qty"]
+        entry_fx = row["fx_to_inr"]
+        pnl_native = (exit_price - row["entry_price"]) * qty
+        pnl_inr = pnl_native * entry_fx
+        stop_dist = row["entry_price"] - row["stop_loss"]
+        rr_achieved = round((exit_price - row["entry_price"]) / stop_dist, 2) if stop_dist else None
+        payload = {
+            "symbol": symbol, "action": "sell", "qty": qty, "price": exit_price,
+            "currency": cfg.get("currency", "INR"), "fx_to_inr": entry_fx,
+            "strategy": strategy_tag, "exit_reason": reason,
+            "entry_price": row["entry_price"], "stop_loss": row["stop_loss"], "target": row["target"],
+            "rr_target": SCHEDULER_RR, "rr_achieved": rr_achieved,
+            "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
+        }
+        apply_paper_trade(conn, symbol, "sell", qty, exit_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'sell', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, exit_price, entry_fx, strategy_tag, json.dumps(payload)),
+        )
+        conn.execute("DELETE FROM signal_state WHERE symbol = ?", (symbol,))
+        total_pnl_inr += pnl_inr
+        closed.append({"symbol": symbol, "instrument": "equity", "exit_price": exit_price, "pnl_inr": round(pnl_inr, 2)})
+
+    for row in conn.execute("SELECT * FROM option_state").fetchall():
+        opt_symbol = row["opt_symbol"]
+        exit_premium = _requote_contract(row["underlying"], row["expiry"], row["strike"], row["right"])
+        if exit_premium is None:
+            exit_premium = row["entry_premium"]  # same stale-requote fallback as the normal exit path
+
+        contracts = row["contracts"]
+        qty = contracts * 100
+        entry_fx = row["fx_to_inr"]
+        pnl_native = (exit_premium - row["entry_premium"]) * qty
+        pnl_inr = pnl_native * entry_fx
+        risk_per_contract = row["entry_premium"] - row["stop_premium"]
+        rr_achieved = round((exit_premium - row["entry_premium"]) / risk_per_contract, 2) if risk_per_contract else None
+        payload = {
+            "symbol": opt_symbol, "underlying": row["underlying"], "right": row["right"], "action": "sell",
+            "qty": qty, "contracts": contracts, "price": exit_premium, "currency": "USD", "fx_to_inr": entry_fx,
+            "strategy": OPTIONS_STRATEGY_TAG, "exit_reason": reason,
+            "entry_price": row["entry_premium"], "stop_loss": row["stop_premium"], "target": row["target_premium"],
+            "rr_target": SCHEDULER_RR, "rr_achieved": rr_achieved,
+            "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
+        }
+        apply_paper_trade(conn, opt_symbol, "sell", qty, exit_premium)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'sell', ?, ?, ?, ?, ?)",
+            (time.time(), opt_symbol, qty, exit_premium, entry_fx, OPTIONS_STRATEGY_TAG, json.dumps(payload)),
+        )
+        conn.execute("DELETE FROM option_state WHERE opt_symbol = ?", (opt_symbol,))
+        total_pnl_inr += pnl_inr
+        closed.append({"symbol": opt_symbol, "instrument": "option", "exit_price": exit_premium, "pnl_inr": round(pnl_inr, 2)})
+
+    conn.commit()
+    return {"closed_count": len(closed), "closed": closed, "total_pnl_inr": round(total_pnl_inr, 2)}
+
+
+@app.get("/trading-control")
+def get_trading_control():
+    with closing(get_db()) as conn:
+        row = conn.execute("SELECT * FROM trading_control WHERE id = 1").fetchone()
+    return dict(row) if row else {"id": 1, "enabled": True, "updated_at": None, "updated_by": None, "reason": None}
+
+
+@app.post("/trading-control")
+def set_trading_control(action: str, reason: str | None = None):
+    """The kill switch's HTTP surface. action:
+      - 'pause'  - stop taking NEW entries; existing open positions keep
+                   being managed normally (stop/target/trend/eod).
+      - 'resume' - allow new entries again.
+      - 'kill'   - force-close every open position right now (see
+                   _force_close_all_positions) AND pause, so nothing
+                   reopens on the very next tick.
+    """
+    if action not in ("pause", "resume", "kill"):
+        raise HTTPException(status_code=400, detail="action must be one of: pause, resume, kill")
+
+    with closing(get_db()) as conn:
+        if action == "kill":
+            summary = _force_close_all_positions(conn, reason or "manual_kill_switch")
+            conn.execute(
+                "INSERT INTO trading_control (id, enabled, updated_at, updated_by, reason) "
+                "VALUES (1, 0, ?, 'user', ?) "
+                "ON CONFLICT(id) DO UPDATE SET enabled=0, updated_at=excluded.updated_at, "
+                "updated_by=excluded.updated_by, reason=excluded.reason",
+                (time.time(), reason or "kill switch"),
+            )
+            conn.commit()
+            return {"status": "killed", "enabled": False, **summary}
+
+        enabled = 1 if action == "resume" else 0
+        conn.execute(
+            "INSERT INTO trading_control (id, enabled, updated_at, updated_by, reason) "
+            "VALUES (1, ?, ?, 'user', ?) "
+            "ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled, updated_at=excluded.updated_at, "
+            "updated_by=excluded.updated_by, reason=excluded.reason",
+            (enabled, time.time(), reason),
+        )
+        conn.commit()
+        return {"status": "paused" if action == "pause" else "resumed", "enabled": bool(enabled)}
+
+
+# ---------------------------------------------------------------------------
 # Startup reconciliation: Render's free tier has no persistent disk, so every
 # redeploy wipes the SQLite DB clean - including any open position, which
 # would otherwise just vanish from tracking (never checked against its
@@ -2232,6 +2400,40 @@ def reconcile_open_positions_from_journal():
         print(f"[reconcile] restored {len(recovered)} open position(s) from journal: {recovered}")
 
 
+STATE_TRADING_CONTROL_PATH = os.path.join(os.path.dirname(__file__), "state", "trading_control.json")
+
+
+def reconcile_trading_control_from_journal():
+    """A paused/killed state MUST survive a Render redeploy - the DB (and
+    its fresh trading_control row, default enabled=1) gets wiped just like
+    open positions do, so without this a pause would silently lift on the
+    next push/redeploy, which defeats the entire point of a kill switch.
+    journal-sync.yml writes state/trading_control.json from the live
+    /trading-control status every sync, the same journal pattern as open
+    positions."""
+    if not os.path.exists(STATE_TRADING_CONTROL_PATH):
+        return
+    try:
+        with open(STATE_TRADING_CONTROL_PATH) as f:
+            saved = json.load(f)
+    except Exception as e:
+        print(f"[reconcile] could not read {STATE_TRADING_CONTROL_PATH}: {e}")
+        return
+    if saved.get("enabled", True):
+        return  # default DB state is already enabled=1 - nothing to restore
+    with closing(get_db()) as conn:
+        conn.execute(
+            "INSERT INTO trading_control (id, enabled, updated_at, updated_by, reason) "
+            "VALUES (1, 0, ?, ?, ?) "
+            "ON CONFLICT(id) DO UPDATE SET enabled=0, updated_at=excluded.updated_at, "
+            "updated_by=excluded.updated_by, reason=excluded.reason",
+            (saved.get("updated_at") or time.time(), saved.get("updated_by", "user"),
+             saved.get("reason", "restored paused state from journal")),
+        )
+        conn.commit()
+    print("[reconcile] restored PAUSED trading state from journal")
+
+
 SCHEDULER_INTERVAL_SECONDS = 30
 SCHEDULER_CAPITAL = 400000  # 2026-09-03: raised from Rs 2L to Rs 4L per user instruction ("for today")
 SCHEDULER_DAILY_RISK_PCT = 2.0  # account-wide daily loss cap - always the full 2%, not per-symbol
@@ -2329,9 +2531,16 @@ async def _scheduler_loop():
                     "SELECT underlying FROM option_state"
                 ).fetchall()
             }
+            trading_paused = not is_trading_enabled(conn)
 
+        # When paused, don't waste a Yahoo Finance call scanning flat
+        # symbols for a NEW entry nobody wants right now - _auto_signal_core/
+        # _options_signal_core would reject it anyway (trading_paused), this
+        # just skips the round-robin batch itself. Open positions are NEVER
+        # gated by this - they still get checked every tick regardless
+        # (see symbols_this_tick below), same as always.
         all_symbols = [cfg["symbol"] for cfg in WATCHLIST]
-        flat_symbols = [s for s in all_symbols if s not in open_equity_symbols]
+        flat_symbols = [] if trading_paused else [s for s in all_symbols if s not in open_equity_symbols]
         if flat_symbols:
             n = len(flat_symbols)
             batch_size = min(SCHEDULER_ENTRY_SCAN_BATCH_SIZE, n)
@@ -2426,6 +2635,7 @@ async def _scheduler_loop():
 @app.on_event("startup")
 async def _start_scheduler():
     reconcile_open_positions_from_journal()
+    reconcile_trading_control_from_journal()
     asyncio.create_task(_scheduler_loop())
 
 
