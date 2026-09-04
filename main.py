@@ -4181,41 +4181,57 @@ def kotak_neo_search_scrip(
 
 
 @app.get("/kotak-neo/scrip-master")
-def kotak_neo_scrip_master(request: Request, exchange_segment: str = "nse_cm", preview: int = 10):
+def kotak_neo_scrip_master(request: Request, exchange_segment: str = "nse_cm", raw_bytes: int = 4000):
     """DIAGNOSTIC step toward sourcing the equity WATCHLIST universe from
     Kotak instead of NSE's own website (2026-09-05, explicit user
     instruction: "can't you source it from kotak neo" - NSE's own official
     list is unreachable both from GitHub Actions, per KNOWN_ISSUES.md-style
     Akamai bot-protection, and from this project's own sandbox, per its
-    network egress policy). Returns the CSV's real column names + a
-    `preview`-row sample + total row count, UNFILTERED - same "see the
-    real shape on real data before parsing it" discipline as
-    /kotak-neo/search-scrip, since Kotak's scrip-master CSV column names
-    aren't documented anywhere in the SDK's source either. Real login
-    required - places no order. Requires ?token=<KOTAK_NEO_API_TOKEN> (or
-    an 'Authorization: Bearer <token>' header)."""
+    network egress policy). Real login required - places no order.
+    Requires ?token=<KOTAK_NEO_API_TOKEN> (or an 'Authorization: Bearer
+    <token>' header).
+
+    Deliberately does NOT use pandas here (2026-09-05: an earlier version
+    did - pd.read_csv(csv_url) then df.to_dict() - and crashed live with a
+    bare, detail-free "Internal Server Error" even after fixing the
+    obvious numpy/NaN JSON-serialization issue. That signature (no
+    Python-level error at all, not even from this function's own
+    try/except) points at the worker process itself dying - most likely
+    an OOM kill from loading + parsing a full scrip-master CSV into a
+    DataFrame on Render's free-tier memory limit, not a code bug this
+    function can catch. Fixed by reading only the first `raw_bytes` of
+    the real file directly (urllib, streaming, capped) instead of loading
+    the whole thing - same "see the real shape on real data" goal, just
+    without the memory risk. Once real column names are confirmed this
+    way, the actual filtering step can stream+filter row-by-row rather
+    than holding the whole file in memory, avoiding this class of crash
+    for good."""
     _require_kotak_token(request)
     try:
         import kotak_neo
         csv_url = kotak_neo.scrip_master(exchange_segment=exchange_segment)
         if not isinstance(csv_url, str):
             return {"error": "scrip_master did not return a CSV URL", "raw": _kotak_json_safe(csv_url)}
-        df = pd.read_csv(csv_url)
-        # df.to_dict() leaves numpy int64/float64/NaN in the values, which
-        # FastAPI's default JSON encoder can't serialize (crashes AFTER this
-        # function returns successfully, as a bare 500 with no error detail -
-        # confirmed live 2026-09-05). Route through pandas' own to_json()
-        # instead, which handles numpy/NaN correctly, then parse that back
-        # into plain Python objects.
-        preview_rows = json.loads(df.head(preview).to_json(orient="records"))
+    except Exception as e:
+        return {"error": f"scrip_master() call failed: {e}"}
+
+    try:
+        import urllib.request
+        req = urllib.request.Request(csv_url, headers={"User-Agent": "tv-paper-bot/1.0"})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            content_length = resp.headers.get("Content-Length")
+            chunk = resp.read(raw_bytes)
+        text = chunk.decode("utf-8", errors="replace")
+        lines = text.splitlines()
         return {
             "csv_url": csv_url,
-            "total_rows": len(df),
-            "columns": list(df.columns),
-            "preview": preview_rows,
+            "content_length_bytes": content_length,
+            "bytes_actually_read": len(chunk),
+            "header_row": lines[0] if lines else None,
+            "next_few_rows": lines[1:6],
         }
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"raw fetch of the CSV failed: {e}", "csv_url": csv_url}
 
 
 @app.get("/kotak-neo/quotes")
