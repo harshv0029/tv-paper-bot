@@ -1,0 +1,359 @@
+<title>Agent Wiring Diagram</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #eef1f6;
+  --border: #d7dee6;
+  --text: #1a2230;
+  --text-muted: #5b6675;
+  --accent-main: #2f6fd6;
+  --accent-live: #14875e;
+  --accent-weak: #a5680f;
+  --accent-gap: #c1403d;
+  --accent-neutral: #8a94a3;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1117;
+    --surface: #151b23;
+    --surface-2: #1b232d;
+    --border: #2a3441;
+    --text: #e6edf3;
+    --text-muted: #8b98a8;
+    --accent-main: #6ea8fa;
+    --accent-live: #4fd8a0;
+    --accent-weak: #e6ac4f;
+    --accent-gap: #f0716f;
+    --accent-neutral: #7c8899;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1117;
+  --surface: #151b23;
+  --surface-2: #1b232d;
+  --border: #2a3441;
+  --text: #e6edf3;
+  --text-muted: #8b98a8;
+  --accent-main: #6ea8fa;
+  --accent-live: #4fd8a0;
+  --accent-weak: #e6ac4f;
+  --accent-gap: #f0716f;
+  --accent-neutral: #7c8899;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  line-height: 1.55;
+}
+.wrap { max-width: 1040px; margin: 0 auto; padding: 28px 18px 64px; }
+
+header { margin-bottom: 22px; }
+h1 {
+  font-size: clamp(1.5rem, 4.5vw, 2.05rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  margin: 0 0 8px;
+}
+.kicker {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-main);
+  margin: 0 0 6px;
+}
+.dek { color: var(--text-muted); max-width: 62ch; margin: 0; font-size: 0.98rem; }
+
+.legend {
+  display: flex; flex-wrap: wrap; gap: 10px 20px;
+  margin: 22px 0 30px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text-muted); }
+.legend-swatch { width: 22px; height: 0; border-top-width: 3px; border-top-style: solid; flex: none; }
+.sw-main { border-color: var(--accent-main); }
+.sw-live { border-color: var(--accent-live); border-top-width: 4px; }
+.sw-weak { border-color: var(--accent-weak); border-top-style: dashed; }
+.sw-gap { border-color: var(--accent-gap); border-top-style: dotted; border-top-width: 3px; }
+
+.panels { display: flex; flex-direction: column; gap: 28px; }
+@media (min-width: 900px) {
+  .panels { flex-direction: row; align-items: flex-start; }
+  .panels > figure { flex: 1 1 0; min-width: 0; }
+}
+
+figure {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 16px 4px;
+}
+figure svg { width: 100%; height: auto; display: block; }
+figcaption {
+  padding: 12px 4px 14px;
+  border-top: 1px solid var(--border);
+  margin-top: 10px;
+}
+figcaption .fig-title {
+  font-weight: 600; font-size: 0.95rem; margin: 0 0 3px;
+}
+figcaption .fig-sub {
+  color: var(--text-muted); font-size: 0.82rem; margin: 0;
+}
+
+section.notes { margin-top: 34px; }
+section.notes h2 {
+  font-size: 1.15rem; font-weight: 700; margin: 0 0 14px;
+}
+.change-list { display: grid; gap: 12px; }
+.change {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-live);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.change.neutral { border-left-color: var(--accent-neutral); }
+.change .edge {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
+  color: var(--accent-live);
+  margin: 0 0 5px;
+}
+.change.neutral .edge { color: var(--accent-neutral); }
+.change p { margin: 0; font-size: 0.88rem; color: var(--text); }
+.change p.why { color: var(--text-muted); margin-top: 4px; font-size: 0.85rem; }
+
+footer {
+  margin-top: 34px; padding-top: 16px; border-top: 1px solid var(--border);
+  color: var(--text-muted); font-size: 0.78rem; font-family: "IBM Plex Mono", monospace;
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="kicker">tv-paper-bot &middot; multi-agent topology</p>
+    <h1>Agent Wiring Diagram</h1>
+    <p class="dek">
+      Five Claude sessions run this project, coordinating through git rather than
+      direct messages in most cases. Every node below is a real LLM agent session
+      (never a workflow, file, or the user) and every line is a connection verified
+      against this repo's own <code>*_AGENT_BRIEF.md</code>/<code>DEPLOY_GATE_RULES.md</code>
+      files on 2026-09-04 &mdash; not assumed.
+    </p>
+  </header>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-swatch sw-main"></span>one-way instruction (working)</div>
+    <div class="legend-item"><span class="legend-swatch sw-live"></span>confirmed live channel</div>
+    <div class="legend-item"><span class="legend-swatch sw-weak"></span>weak / unverified return path</div>
+    <div class="legend-item"><span class="legend-swatch sw-gap"></span>documented gap</div>
+  </div>
+
+  <div class="panels">
+    <figure>
+      <svg viewBox="0 0 600 600" role="img" aria-label="Current agent topology: Main is a hub connected one-way to Research, Sentiment, and Deploy Gate by working instruction channels; their return paths to Main are weak or unverified; Main and Journal Sync are the one confirmed bidirectional live channel; Sentiment's intended hand-off to Research has no live channel and is marked a gap.">
+        <defs>
+          <marker id="ah-main" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 Z" fill="var(--accent-main)"></path>
+          </marker>
+          <marker id="ah-weak" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 Z" fill="var(--accent-weak)"></path>
+          </marker>
+          <marker id="ah-live" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 Z" fill="var(--accent-live)"></path>
+          </marker>
+          <marker id="ah-gap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 Z" fill="var(--accent-gap)"></path>
+          </marker>
+        </defs>
+
+        <!-- Sentiment -> Research: documented intent, no live channel -->
+        <path d="M141,279 Q135,150 279,141" fill="none" stroke="var(--accent-gap)" stroke-width="2" stroke-dasharray="1 7" stroke-linecap="round" marker-end="url(#ah-gap)"></path>
+        <text x="150" y="195" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--accent-gap)">gap: intended,</text>
+        <text x="150" y="210" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--accent-gap)">no live channel</text>
+
+        <!-- Main <-> Research -->
+        <line x1="291" y1="258" x2="291" y2="158" stroke="var(--accent-main)" stroke-width="2.5" marker-end="url(#ah-main)"></line>
+        <line x1="309" y1="158" x2="309" y2="258" stroke="var(--accent-weak)" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#ah-weak)"></line>
+        <text x="316" y="212" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--text-muted)">strategy_log.xlsx</text>
+        <text x="316" y="227" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--text-muted)">(unread)</text>
+
+        <!-- Main <-> Sentiment -->
+        <line x1="258" y1="291" x2="158" y2="291" stroke="var(--accent-main)" stroke-width="2.5" marker-end="url(#ah-main)"></line>
+        <line x1="158" y1="309" x2="258" y2="309" stroke="var(--accent-weak)" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#ah-weak)"></line>
+        <text x="163" y="333" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--text-muted)">sentiment_log/ (unread)</text>
+
+        <!-- Main <-> Deploy Gate -->
+        <line x1="291" y1="342" x2="291" y2="442" stroke="var(--accent-main)" stroke-width="2.5" marker-end="url(#ah-main)"></line>
+        <line x1="309" y1="442" x2="309" y2="342" stroke="var(--accent-weak)" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#ah-weak)"></line>
+        <text x="316" y="395" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--text-muted)">relays result -</text>
+        <text x="316" y="410" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--text-muted)">to Main? to user?</text>
+
+        <!-- Main <-> Journal Sync: confirmed live, both directions -->
+        <line x1="340" y1="300" x2="444" y2="300" stroke="var(--accent-live)" stroke-width="4" marker-start="url(#ah-live)" marker-end="url(#ah-live)"></line>
+        <text x="352" y="288" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--accent-live)" font-weight="600">SendMessage on trade close</text>
+
+        <!-- Nodes -->
+        <circle cx="300" cy="300" r="34" fill="var(--accent-main)"></circle>
+        <text x="300" y="296" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="700" fill="var(--surface)">Main</text>
+        <text x="300" y="311" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--surface)">this session</text>
+
+        <circle cx="300" cy="120" r="30" fill="var(--surface)" stroke="var(--text-muted)" stroke-width="2"></circle>
+        <text x="300" y="124" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="var(--text)">Research</text>
+        <text x="300" y="82" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--text-muted)">backtests candidates</text>
+
+        <circle cx="120" cy="300" r="30" fill="var(--surface)" stroke="var(--text-muted)" stroke-width="2"></circle>
+        <text x="120" y="297" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--text)">Sentiment</text>
+        <text x="120" y="311" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--text)">Agent</text>
+        <text x="120" y="356" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--text-muted)">news + sector reads</text>
+
+        <circle cx="480" cy="300" r="30" fill="var(--surface)" stroke="var(--accent-live)" stroke-width="2.5"></circle>
+        <text x="480" y="297" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--text)">Journal</text>
+        <text x="480" y="311" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--text)">Sync</text>
+        <text x="480" y="356" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--text-muted)">trade-close alerts</text>
+
+        <circle cx="300" cy="480" r="30" fill="var(--surface)" stroke="var(--text-muted)" stroke-width="2"></circle>
+        <text x="300" y="477" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--text)">Deploy</text>
+        <text x="300" y="491" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--text)">Gate</text>
+        <text x="300" y="530" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--text-muted)">staging -&gt; main checks</text>
+      </svg>
+      <figcaption>
+        <p class="fig-title">Today</p>
+        <p class="fig-sub">One confirmed live channel (Journal Sync), three working one-way instruction
+          channels out of Main, and three weak or ambiguous paths back &mdash; plus one hand-off
+          Sentiment's own brief calls for that was never actually wired.</p>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <svg viewBox="0 0 600 600" role="img" aria-label="Optimized agent topology: Research and Sentiment's return paths to Main are upgraded to confirmed SendMessage channels matching Journal Sync's proven pattern; Deploy Gate's relay is clarified to target Main only; the Sentiment-to-Research hand-off stays deliberately unconnected, annotated as Main's evidence-bar chokepoint rather than left as a silent gap.">
+        <defs>
+          <marker id="ah-main2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 Z" fill="var(--accent-main)"></path>
+          </marker>
+          <marker id="ah-live2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 Z" fill="var(--accent-live)"></path>
+          </marker>
+        </defs>
+
+        <!-- Sentiment -> Research: deliberately left unconnected -->
+        <path d="M141,279 Q135,150 279,141" fill="none" stroke="var(--accent-neutral)" stroke-width="1.5" stroke-dasharray="1 6" stroke-linecap="round"></path>
+        <text x="150" y="195" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--accent-neutral)">by design:</text>
+        <text x="150" y="210" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--accent-neutral)">Main is the gate</text>
+
+        <!-- Main <-> Research: both confirmed now -->
+        <line x1="291" y1="258" x2="291" y2="158" stroke="var(--accent-main)" stroke-width="2.5" marker-end="url(#ah-main2)"></line>
+        <line x1="309" y1="158" x2="309" y2="258" stroke="var(--accent-live)" stroke-width="3.5" marker-end="url(#ah-live2)"></line>
+        <text x="316" y="212" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--accent-live)">SendMessage on</text>
+        <text x="316" y="227" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--accent-live)">&gt;50% combo</text>
+
+        <!-- Main <-> Sentiment -->
+        <line x1="258" y1="291" x2="158" y2="291" stroke="var(--accent-main)" stroke-width="2.5" marker-end="url(#ah-main2)"></line>
+        <line x1="158" y1="309" x2="258" y2="309" stroke="var(--accent-live)" stroke-width="3.5" marker-end="url(#ah-live2)"></line>
+        <text x="163" y="333" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--accent-live)">SendMessage on flagged pick</text>
+
+        <!-- Main <-> Deploy Gate -->
+        <line x1="291" y1="342" x2="291" y2="442" stroke="var(--accent-main)" stroke-width="2.5" marker-end="url(#ah-main2)"></line>
+        <line x1="309" y1="442" x2="309" y2="342" stroke="var(--accent-main)" stroke-width="2.5" marker-end="url(#ah-main2)"></line>
+        <text x="316" y="395" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--text-muted)">relay result</text>
+        <text x="316" y="410" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--text-muted)">-&gt; Main only</text>
+
+        <!-- Main <-> Journal Sync: unchanged, the pattern being copied -->
+        <line x1="340" y1="300" x2="444" y2="300" stroke="var(--accent-live)" stroke-width="4" marker-start="url(#ah-live2)" marker-end="url(#ah-live2)"></line>
+        <text x="352" y="288" font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--accent-live)" font-weight="600">SendMessage on trade close</text>
+
+        <!-- Nodes -->
+        <circle cx="300" cy="300" r="34" fill="var(--accent-main)"></circle>
+        <text x="300" y="296" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="700" fill="var(--surface)">Main</text>
+        <text x="300" y="311" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--surface)">this session</text>
+
+        <circle cx="300" cy="120" r="30" fill="var(--surface)" stroke="var(--accent-live)" stroke-width="2.5"></circle>
+        <text x="300" y="124" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" fill="var(--text)">Research</text>
+        <text x="300" y="82" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--text-muted)">backtests candidates</text>
+
+        <circle cx="120" cy="300" r="30" fill="var(--surface)" stroke="var(--accent-live)" stroke-width="2.5"></circle>
+        <text x="120" y="297" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--text)">Sentiment</text>
+        <text x="120" y="311" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--text)">Agent</text>
+        <text x="120" y="356" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--text-muted)">news + sector reads</text>
+
+        <circle cx="480" cy="300" r="30" fill="var(--surface)" stroke="var(--accent-live)" stroke-width="2.5"></circle>
+        <text x="480" y="297" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--text)">Journal</text>
+        <text x="480" y="311" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--text)">Sync</text>
+        <text x="480" y="356" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--text-muted)">trade-close alerts</text>
+
+        <circle cx="300" cy="480" r="30" fill="var(--surface)" stroke="var(--text-muted)" stroke-width="2"></circle>
+        <text x="300" y="477" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--text)">Deploy</text>
+        <text x="300" y="491" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--text)">Gate</text>
+        <text x="300" y="530" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--text-muted)">staging -&gt; main checks</text>
+      </svg>
+      <figcaption>
+        <p class="fig-title">Optimized</p>
+        <p class="fig-sub">Four confirmed live channels instead of one &mdash; Research and Sentiment copy
+          Journal Sync's proven SendMessage pattern instead of relying on a file getting read.
+          Deploy Gate's relay is clarified, not expanded. Sentiment&rarr;Research stays open on
+          purpose, annotated instead of silently missing.</p>
+      </figcaption>
+    </figure>
+  </div>
+
+  <section class="notes">
+    <h2>What actually changes, and why</h2>
+    <div class="change-list">
+      <div class="change">
+        <p class="edge">Research &rarr; Main</p>
+        <p>Upgrade from "writes <code>strategy_log.xlsx</code>, hope Main reads it" to
+          Research Agent sending Main a message the moment a candidate crosses its own
+          stated &gt;50%-swept-combo logging bar.</p>
+        <p class="why">Why: this session's own audit found Main's <code>STRATEGY_LOG.md</code>
+          never once cross-referenced the xlsx &mdash; the file existed, the read didn't.
+          Journal Sync already proves this exact pattern works.</p>
+      </div>
+      <div class="change">
+        <p class="edge">Sentiment Agent &rarr; Main</p>
+        <p>Same upgrade: message Main directly when a sector read flags a specific,
+          named stock &mdash; the case <code>SENTIMENT_AGENT_BRIEF.md</code> already
+          describes as worth surfacing.</p>
+        <p class="why">Why: <code>docs/sentiment_log/</code> already holds three days of
+          real per-symbol and sector reads that had no confirmed path back into a
+          decision.</p>
+      </div>
+      <div class="change">
+        <p class="edge">Deploy Gate &rarr; Main</p>
+        <p>Clarify the relay target as Main only, not an ambiguous "relays to the user"
+          that could mean either.</p>
+        <p class="why">Why: Main is the one holding full context on why a change was
+          made &mdash; a status that reaches the user only through Main stays one
+          source of truth instead of two possibly-inconsistent ones.</p>
+      </div>
+      <div class="change neutral">
+        <p class="edge">Sentiment Agent &middot;&middot;&middot; Research Agent</p>
+        <p>Left unconnected on purpose, not fixed.</p>
+        <p class="why">Why: <code>SENTIMENT_AGENT_BRIEF.md</code> calls a flagged stock
+          "a research signal ... not an instruction to trade." Routing it through Main
+          keeps Main as the one place the backtest-evidence bar actually gets applied,
+          instead of Research quietly trusting an unvetted sentiment read. "Optimize"
+          here means confirming the chokepoint is deliberate, not adding a shortcut
+          around it.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Nodes = LLM agent sessions only (5 total) &mdash; GitHub Actions workflows, journal
+    files, and brief docs are the wiring, not nodes. Verified against
+    RESEARCH_AGENT_BRIEF.md, SENTIMENT_AGENT_BRIEF.md, JOURNAL_SYNC_AGENT_BRIEF.md,
+    DEPLOY_GATE_RULES.md, and docs/PROJECT_STRUCTURE_PLAN.md &middot; 2026-09-04
+  </footer>
+</div>
