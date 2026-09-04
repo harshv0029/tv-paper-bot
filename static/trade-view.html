@@ -277,6 +277,13 @@ async function fetchJSON(url, opts) {
 }
 function toChartTime(iso) { return Math.floor(new Date(iso).getTime() / 1000); }
 
+// Chart time axis + crosshair: fixed to Asia/Kolkata (NSE/MCX sessions
+// are always IST) regardless of the viewer's own browser/OS timezone.
+// tickFormatter omits seconds (matches timeScale.secondsVisible: false);
+// the crosshair formatter shows full HH:MM:SS for a precise readout.
+const istTickFormatter = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
+const istFormatter = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+
 function ensureCard(symbol, label) {
   if (charts[symbol]) return charts[symbol];
   const container = document.getElementById("cards");
@@ -330,7 +337,19 @@ function ensureCard(symbol, label) {
     layout: { background: { color: "transparent" }, textColor: "#7c8a9c", fontFamily: "IBM Plex Mono, monospace" },
     grid: { vertLines: { color: "#1a222c" }, horzLines: { color: "#1a222c" } },
     rightPriceScale: { borderColor: "#232d3a" },
-    timeScale: { borderColor: "#232d3a", timeVisible: true, secondsVisible: false },
+    // Explicit Asia/Kolkata formatting - by default lightweight-charts
+    // renders axis ticks and the crosshair label in the VIEWER'S browser
+    // timezone (real, confirmed from the library's own tick-mark/crosshair
+    // behavior, not assumed), which silently disagrees with IST for any
+    // viewer outside it. Real money is timed against NSE/MCX sessions
+    // (all IST) so every chart must read IST regardless of who's looking.
+    localization: {
+      timeFormatter: (t) => istFormatter.format(new Date(t * 1000)),
+    },
+    timeScale: {
+      borderColor: "#232d3a", timeVisible: true, secondsVisible: false,
+      tickMarkFormatter: (t) => istTickFormatter.format(new Date(t * 1000)),
+    },
     crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
   });
   const series = chart.addCandlestickSeries({
