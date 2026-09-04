@@ -683,32 +683,25 @@ async function refreshScanner() {
   }
 }
 
-// Single master toggle per explicit user instruction (2026-09-04): ONE
-// control, green = ALL trading on (rule engine live + real trading
-// armed), red = ALL trading off (rule engine killed - force-closes
-// every open position - AND real trading disabled). Replaces the
-// earlier two-toggle design (paper kill switch + separate real-trading
-// switch), which needed two clicks and used inverted color conventions
-// between them - confusing in practice.
-//
-// Backing state is still genuinely two independent server-side switches
-// (paper's /trading-control, needs no auth; stage 3's
-// /real-trading-control, token-gated) plus the Render-side
-// REAL_TRADING_ENABLED env var this page can never control - "ON" here
-// means both switches this page CAN control are on; the status text
-// says plainly if the env var gate is the one thing still missing.
-const REAL_TOKEN_KEY = "tvpb_real_token";
+// Single toggle, no token/popup (explicit user instruction, 2026-09-04):
+// this page controls ONLY the paper kill switch (/trading-control, no
+// auth needed) - green=ON means the rule engine is armed for both paper
+// AND real orders (real orders additionally require the Render-side
+// REAL_TRADING_ENABLED env var, set manually there, never from this
+// page); red=OFF means the kill switch is engaged, no new trades either
+// way. The separate token-gated /real-trading-control DB switch and its
+// unlock prompt are gone - real trading is now controlled by exactly two
+// things: this toggle, and the env var you set directly on Render.
 let masterToggleBusy = false;
-
-function getRealToken() { try { return sessionStorage.getItem(REAL_TOKEN_KEY); } catch (e) { return null; } }
-function setRealToken(t) { try { if (t) sessionStorage.setItem(REAL_TOKEN_KEY, t); else sessionStorage.removeItem(REAL_TOKEN_KEY); } catch (e) {} }
-
-function promptForRealToken() {
-  const t = prompt("Enter the Kotak Neo API token to control real trading (kept only in this browser tab, never saved to disk):");
-  return t ? t.trim() : null;
-}
-
-let lastPaperStatus = null, lastRealStatus = null;
+let lastPaperStatus = null;
+// The toggle's own switch position + ON/OFF label are manual-input-only
+// (explicit user instruction, 2026-09-04): they're set once on page load
+// from real server state, and after that ONLY by the user's own click
+// (see onMasterToggle) - the 10s periodic poll below never moves the
+// switch or relabels it on its own. The separate status line/dot/meta
+// text next to it still updates live every poll, so real server truth
+// stays visible even if it ever drifts from what the toggle shows.
+let toggleInitialized = false;
 
 function renderMasterToggle() {
   const bar = document.getElementById("control-bar");
@@ -718,58 +711,29 @@ function renderMasterToggle() {
   const input = document.getElementById("master-toggle-input");
   const stateLbl = document.getElementById("master-toggle-state");
 
-  const paperLive = lastPaperStatus ? lastPaperStatus.enabled !== false : false;
-  const realArmed = lastRealStatus ? !!lastRealStatus.real_trading_active : false;
-  const allOn = paperLive && realArmed;
+  const on = lastPaperStatus ? lastPaperStatus.enabled !== false : false;
 
-  bar.className = "control-bar master-toggle-bar" + (allOn ? "" : " off");
-  dot.className = "ctrl-status" + (allOn ? "" : " killed");
+  bar.className = "control-bar master-toggle-bar" + (on ? "" : " off");
+  dot.className = "ctrl-status" + (on ? "" : " killed");
+  text.textContent = on
+    ? "ALL TRADING ON — live (real orders fire too if the Render env var also allows it)"
+    : "ALL TRADING OFF — kill switch on, no new trades";
 
-  if (allOn) {
-    text.textContent = "ALL TRADING ON — live, real orders armed";
-  } else if (!paperLive) {
-    text.textContent = "ALL TRADING OFF — kill switch on, no new trades";
-  } else if (!lastRealStatus) {
-    text.textContent = "PAPER LIVE — unlock to see/control real trading";
-  } else if (!lastRealStatus.env_var_enabled) {
-    text.textContent = "PAPER LIVE — real trading OFF (Render env var not set)";
-  } else {
-    text.textContent = "PAPER LIVE — real trading OFF";
+  meta.textContent = (lastPaperStatus && lastPaperStatus.updated_at)
+    ? `Changed ${timeAgo(lastPaperStatus.updated_at)}${lastPaperStatus.reason ? " — " + lastPaperStatus.reason : ""}`
+    : "";
+
+  if (!toggleInitialized) {
+    input.checked = on;
+    stateLbl.textContent = on ? "ON" : "OFF";
+    toggleInitialized = true;
   }
-
-  const bits = [];
-  if (lastPaperStatus && lastPaperStatus.updated_at) {
-    bits.push(`Rule engine changed ${timeAgo(lastPaperStatus.updated_at)}${lastPaperStatus.reason ? " — " + lastPaperStatus.reason : ""}`);
-  }
-  if (lastRealStatus) {
-    const openCount = (lastRealStatus.open_real_positions || []).length;
-    bits.push(`Rs${fmt(lastRealStatus.today_spent_inr, 0)}/${fmt(lastRealStatus.daily_cap_inr, 0)} real spend today` +
-      (openCount ? ` · ${openCount} open real position(s)` : ""));
-  } else {
-    bits.push("Real trading: unlock to view");
-  }
-  meta.textContent = bits.join(" · ");
-
-  if (!masterToggleBusy) input.checked = allOn;
-  stateLbl.textContent = allOn ? "ON" : "OFF";
 }
 
 async function refreshControlStatus() {
   try {
     lastPaperStatus = await fetchJSON(`${ORIGIN}/trading-control`);
   } catch (e) { /* non-fatal - keep last-known */ }
-  const token = getRealToken();
-  if (token) {
-    try {
-      const res = await fetch(`${ORIGIN}/real-trading-control`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.status === 401 || res.status === 403) {
-        setRealToken(null);
-        lastRealStatus = null;
-      } else if (res.ok) {
-        lastRealStatus = await res.json();
-      }
-    } catch (e) { /* non-fatal - keep last-known */ }
-  }
   renderMasterToggle();
   // Clear a stale action message left over from a PRIOR toggle once the
   // status has genuinely moved on - nothing was clearing it on the
@@ -780,62 +744,46 @@ async function refreshControlStatus() {
 
 async function onMasterToggle(turningOn) {
   const input = document.getElementById("master-toggle-input");
+  const stateLbl = document.getElementById("master-toggle-state");
   const msgEl = document.getElementById("ctrl-msg");
-  let token = getRealToken();
-
-  if (turningOn && !token) {
-    token = promptForRealToken();
-    if (!token) { input.checked = false; return; }
-    setRealToken(token);
-  }
+  // Every path below sets both input.checked and stateLbl together, by
+  // hand - this function is now the ONLY place the toggle's visual
+  // position/label ever changes (see toggleInitialized above).
+  const setSwitch = (on) => { input.checked = on; stateLbl.textContent = on ? "ON" : "OFF"; };
 
   if (turningOn) {
     const confirmed = confirm(
-      "ALL TRADING ON: the live strategy starts scanning for new entries again, and any eligible NSE equity " +
-      "signal will ALSO place a REAL order with REAL money (fully automatic, no per-trade confirmation), " +
-      "capped at today's remaining daily budget. Proceed?"
+      "ALL TRADING ON: the live strategy starts scanning for new entries again. If the Render REAL_TRADING_ENABLED " +
+      "env var is also set to YES, eligible NSE equity signals will ALSO place REAL orders with REAL money " +
+      "(fully automatic, no per-trade confirmation), capped at today's remaining daily budget. Proceed?"
     );
-    if (!confirmed) { input.checked = false; return; }
+    if (!confirmed) { setSwitch(false); return; }
   } else {
     const confirmed = confirm(
-      "ALL TRADING OFF: force-closes EVERY open position (paper and real) right now at the current market " +
-      "price, and blocks all new trades - paper and real - until switched back on. This cannot be undone. Proceed?"
+      "ALL TRADING OFF: force-closes every open PAPER position right now at the current market price, and blocks " +
+      "all new trades until switched back on. This does NOT automatically close any open REAL position - check " +
+      "the Kotak Neo app directly if one might be open. This cannot be undone. Proceed?"
     );
-    if (!confirmed) { input.checked = true; return; }
+    if (!confirmed) { setSwitch(true); return; }
   }
 
   masterToggleBusy = true;
   input.disabled = true;
-  msgEl.textContent = turningOn ? "Switching on…" : "Switching off — closing all open positions…";
+  msgEl.textContent = turningOn ? "Switching on…" : "Switching off — closing all open paper positions…";
   try {
-    const paperRes = await fetchJSON(`${ORIGIN}/trading-control?action=${turningOn ? "resume" : "kill"}`, { method: "POST" });
-    let realMsg = "";
-    if (token) {
-      const realRes = await fetch(
-        `${ORIGIN}/real-trading-control?action=${turningOn ? "enable" : "disable"}`,
-        { method: "POST", headers: { Authorization: `Bearer ${token}` } },
-      );
-      if (realRes.status === 401 || realRes.status === 403) {
-        setRealToken(null);
-        realMsg = " Real-trading token was rejected - re-unlock to control it.";
-      } else if (!realRes.ok) {
-        realMsg = ` Real-trading side failed (${realRes.status}).`;
-      }
+    const res = await fetchJSON(`${ORIGIN}/trading-control?action=${turningOn ? "resume" : "kill"}`, { method: "POST" });
+    setSwitch(turningOn);
+    if (!turningOn && res.closed_count > 0) {
+      const pnl = res.total_pnl_inr ?? 0;
+      msgEl.textContent = `All trading OFF. Closed ${res.closed_count} paper position(s), total P&L ${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}.`;
     } else {
-      realMsg = " (real trading unchanged - not unlocked)";
-    }
-
-    if (!turningOn && paperRes.closed_count > 0) {
-      const pnl = paperRes.total_pnl_inr ?? 0;
-      msgEl.textContent = `All trading OFF. Closed ${paperRes.closed_count} position(s), total P&L ${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}.${realMsg}`;
-    } else {
-      msgEl.textContent = (turningOn ? "All trading ON." : "All trading OFF.") + realMsg;
+      msgEl.textContent = turningOn ? "All trading ON." : "All trading OFF.";
     }
     await refreshControlStatus();
     await refresh();
   } catch (e) {
     msgEl.textContent = `Failed: ${e.message}`;
-    input.checked = !turningOn;
+    setSwitch(!turningOn);
   } finally {
     masterToggleBusy = false;
     input.disabled = false;
