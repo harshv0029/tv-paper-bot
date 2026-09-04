@@ -4228,7 +4228,12 @@ def kotak_neo_scrip_master(request: Request, exchange_segment: str = "nse_cm", r
             "content_length_bytes": content_length,
             "bytes_actually_read": len(chunk),
             "header_row": lines[0] if lines else None,
-            "next_few_rows": lines[1:6],
+            "first_rows": lines[1:4],
+            # Search the whole fetched chunk for a known real equity
+            # (RELIANCE) - confirms what the pGroup/pInstType columns
+            # actually look like for a genuine EQ-series stock, vs. the
+            # index/InvIT rows the first few lines happened to show.
+            "reliance_rows": [ln for ln in lines if "RELIANCE" in ln][:5],
         }
     except Exception as e:
         return {"error": f"raw fetch of the CSV failed: {e}", "csv_url": csv_url}
