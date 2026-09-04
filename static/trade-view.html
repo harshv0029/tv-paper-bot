@@ -143,6 +143,18 @@
   /* Master control bar - pause/resume + kill switch */
   .control-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;transition:border-color .2s,background .2s;}
   .control-bar.killed{border-color:rgba(239,68,68,.55);background:rgba(239,68,68,.07);}
+
+  /* REAL money control - always gold-bordered, unmistakable from the paper
+     kill switch above it. Active (armed, placing real orders) = green dot;
+     inactive = amber dot (not "killed" red - being off is the safe/normal
+     state here, not an alarm). */
+  .control-bar.real-bar{border-color:rgba(245,158,11,.4);}
+  .control-bar.real-bar.real-active{background:rgba(34,197,94,.06);border-color:rgba(34,197,94,.5);}
+  #real-ctrl-status .ctrl-dot{background:var(--warn);box-shadow:0 0 0 3px rgba(245,158,11,.2);}
+  .real-bar.real-active #real-ctrl-status .ctrl-dot{background:var(--up);box-shadow:0 0 0 3px var(--up-dim);}
+  .real-toggle input:checked + .kt-track{background:var(--up);}
+  .real-auth-btn{background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:inherit;}
+  .real-auth-btn:hover{border-color:var(--accent);color:var(--text);}
   .ctrl-status{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;}
   .ctrl-dot{width:9px;height:9px;border-radius:50%;background:var(--up);box-shadow:0 0 0 3px var(--up-dim);}
   .ctrl-status.killed .ctrl-dot{background:var(--down);box-shadow:0 0 0 3px var(--down-dim);animation:none;}
@@ -182,6 +194,20 @@
     </label>
   </div>
   <div class="ctrl-msg" id="ctrl-msg"></div>
+</div>
+
+<div class="control-bar real-bar" id="real-control-bar">
+  <div class="ctrl-status" id="real-ctrl-status"><span class="ctrl-dot"></span><span id="real-ctrl-status-text">Loading…</span></div>
+  <span class="ctrl-meta" id="real-ctrl-meta"></span>
+  <div class="ctrl-actions">
+    <label class="kill-toggle real-toggle">
+      <span class="kt-lbl">Real trading</span>
+      <input type="checkbox" id="real-toggle-input" onchange="onRealToggle(this.checked)">
+      <span class="kt-track"><span class="kt-thumb"></span></span>
+      <span class="kt-state" id="real-toggle-state">OFF</span>
+    </label>
+  </div>
+  <div class="ctrl-msg" id="real-ctrl-msg"></div>
 </div>
 
 <div class="log-panel">
@@ -744,6 +770,132 @@ async function onKillToggle(turningOn) {
   }
 }
 
+// --- REAL trading control (Stage 3) -----------------------------------
+// Token-gated on the server (same KOTAK_NEO_API_TOKEN as every other
+// real-account endpoint) - this page NEVER ships the token in its own
+// source (that would leak it to anyone who can view this page). Instead
+// it's typed in once via prompt() and kept only in sessionStorage (this
+// browser tab's session only, never localStorage/disk) - same discipline
+// as not hardcoding a secret into a public file.
+const REAL_TOKEN_KEY = "tvpb_real_token";
+let realToggleBusy = false;
+
+function getRealToken() { try { return sessionStorage.getItem(REAL_TOKEN_KEY); } catch (e) { return null; } }
+function setRealToken(t) { try { if (t) sessionStorage.setItem(REAL_TOKEN_KEY, t); else sessionStorage.removeItem(REAL_TOKEN_KEY); } catch (e) {} }
+
+function promptForRealToken() {
+  const t = prompt("Enter the Kotak Neo API token to view/control real trading (kept only in this browser tab, never saved to disk):");
+  if (t) { setRealToken(t.trim()); refreshRealControlStatus(); }
+}
+
+function renderRealUnauthenticated(msg) {
+  const bar = document.getElementById("real-control-bar");
+  const text = document.getElementById("real-ctrl-status-text");
+  const meta = document.getElementById("real-ctrl-meta");
+  const actions = bar.querySelector(".ctrl-actions");
+  bar.className = "control-bar real-bar";
+  text.textContent = "REAL TRADING — not authenticated";
+  meta.textContent = msg || "Enter the API token to view/control real trading.";
+  actions.innerHTML = '<button class="real-auth-btn" onclick="promptForRealToken()">Unlock</button>';
+}
+
+function renderRealControlBar(status) {
+  const bar = document.getElementById("real-control-bar");
+  const text = document.getElementById("real-ctrl-status-text");
+  const meta = document.getElementById("real-ctrl-meta");
+  const actions = bar.querySelector(".ctrl-actions");
+  // The toggle markup may have been replaced by the "Unlock" button on a
+  // prior unauthenticated render - restore it if needed.
+  if (!document.getElementById("real-toggle-input")) {
+    actions.innerHTML = `
+      <label class="kill-toggle real-toggle">
+        <span class="kt-lbl">Real trading</span>
+        <input type="checkbox" id="real-toggle-input" onchange="onRealToggle(this.checked)">
+        <span class="kt-track"><span class="kt-thumb"></span></span>
+        <span class="kt-state" id="real-toggle-state">OFF</span>
+      </label>`;
+  }
+  const input = document.getElementById("real-toggle-input");
+  const stateLbl = document.getElementById("real-toggle-state");
+  const active = !!status.real_trading_active;
+
+  bar.className = "control-bar real-bar" + (active ? " real-active" : "");
+  text.textContent = active
+    ? "REAL TRADING ARMED — placing real orders on real signals"
+    : (status.env_var_enabled
+        ? "REAL TRADING OFF (this switch)"
+        : "REAL TRADING OFF (Render env var not set - this switch alone won't arm it)");
+
+  const openCount = (status.open_real_positions || []).length;
+  meta.textContent = `Rs${fmt(status.today_spent_inr, 0)}/${fmt(status.daily_cap_inr, 0)} spent today` +
+    ` · Rs${fmt(status.today_remaining_inr, 0)} remaining` +
+    (openCount ? ` · ${openCount} open real position(s)` : "") +
+    (status.reason ? ` · ${status.reason}` : "");
+
+  if (!realToggleBusy) input.checked = active;
+  stateLbl.textContent = active ? "ON" : "OFF";
+}
+
+async function refreshRealControlStatus() {
+  const token = getRealToken();
+  if (!token) { renderRealUnauthenticated(); return; }
+  try {
+    const res = await fetch(`${ORIGIN}/real-trading-control`, { headers: { Authorization: `Bearer ${token}` } });
+    if (res.status === 401 || res.status === 403) {
+      setRealToken(null);
+      renderRealUnauthenticated("Token rejected - try again.");
+      return;
+    }
+    if (!res.ok) throw new Error(res.status);
+    renderRealControlBar(await res.json());
+  } catch (e) {
+    // Non-fatal (e.g. a transient network hiccup) - leave the bar showing
+    // its last-known state rather than flashing an error every 10s.
+  }
+}
+
+async function onRealToggle(turningOn) {
+  const token = getRealToken();
+  if (!token) { document.getElementById("real-toggle-input") && (document.getElementById("real-toggle-input").checked = false); promptForRealToken(); return; }
+
+  const input = document.getElementById("real-toggle-input");
+  const msgEl = document.getElementById("real-ctrl-msg");
+
+  if (turningOn) {
+    const confirmed = confirm(
+      "Real trading ON: the live strategy will place REAL orders with REAL money on eligible NSE equity " +
+      "signals (fully automatic, no per-trade confirmation), capped at today's remaining daily budget. " +
+      "This does not by itself guarantee trades fire - the Render env var gate and the paper rule engine " +
+      "must also be on. Proceed?"
+    );
+    if (!confirmed) { input.checked = false; return; }
+  }
+
+  realToggleBusy = true;
+  input.disabled = true;
+  msgEl.textContent = turningOn ? "Enabling real trading…" : "Disabling real trading…";
+  try {
+    const res = await fetch(
+      `${ORIGIN}/real-trading-control?action=${turningOn ? "enable" : "disable"}`,
+      { method: "POST", headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (res.status === 401 || res.status === 403) {
+      setRealToken(null);
+      renderRealUnauthenticated("Token rejected - try again.");
+      return;
+    }
+    if (!res.ok) throw new Error(res.status);
+    msgEl.textContent = turningOn ? "Real trading ON." : "Real trading OFF.";
+    await refreshRealControlStatus();
+  } catch (e) {
+    msgEl.textContent = `Failed: ${e.message}`;
+    input.checked = !turningOn;
+  } finally {
+    realToggleBusy = false;
+    input.disabled = false;
+  }
+}
+
 function optionLabel(pos) {
   return `${pos.underlying} ${(pos.right || "").toUpperCase()} ${fmt(pos.strike, 0)}`;
 }
@@ -947,6 +1099,7 @@ function tickCountdown() {
     refresh();
     refreshScanner();
     refreshControlStatus();
+    refreshRealControlStatus();
   }
   document.getElementById("countdown").textContent = secondsLeft;
 }
@@ -954,6 +1107,7 @@ function tickCountdown() {
 refresh();
 refreshScanner();
 refreshControlStatus();
+refreshRealControlStatus();
 setInterval(tickCountdown, 1000);
 </script>
 </body>
