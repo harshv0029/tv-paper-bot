@@ -33,6 +33,11 @@ condition to a listed strategy before inventing a new one. Add a row for anythin
 | 22 | Liquidity Void Breakout | Directional, underlying only (not options) | A confirmed breakout runs into a thin, low-liquidity zone with little resting supply/demand to slow it — expect a fast, low-resistance move | Proposed — untested | Real-world liquidity-heatmap research, 2026-09-04 | **Approximable with OHLCV** as a volatility-expansion filter layered on `orb_breakout`: a real air-pocket move should show unusually wide-range bars, rising volume, and few pullback wicks vs. a normal breakout |
 | 23 | Liquidity Magnet Target (equal highs/lows, round numbers) | Not an entry trigger — a target/exit-setting concept | Untouched liquidity clusters (equal highs/lows, round numbers) act as statistical magnets price is drawn toward | Proposed — untested | Real-world liquidity-heatmap research, 2026-09-04 | **Approximable with OHLCV** by scanning for equal highs/lows within a small tolerance band and using the nearest untouched one as a profit target, not an entry signal — pairs with any of #19/#22 rather than standing alone |
 | 24 | Fake Wall / Spoofing Filter | Not a standalone strategy — a risk/validity filter on #20 | A visible wall that vanishes as price approaches was spoofed (placed to bait, then pulled), not real intent — trading it as real S/R gets faded the wrong way | Proposed — **blocked, no Level-2 data** | Real-world liquidity-heatmap research, 2026-09-04 | Needs order-placement/cancellation event data that OHLCV bars can never show; catalogued for completeness only, not implementable here |
+| 25 | India VIX Spike Contrarian Buy | Directional, underlying only (not options) | India VIX spikes sharply (fear/capitulation) while NIFTY/BANKNIFTY sells off hard — VIX is strongly inverse-correlated to the index | Proposed — untested | Real-world India VIX strategy research, 2026-09-04 | **Approximable with OHLCV**: `^INDIAVIX` and `^NSEI` are both plain yfinance tickers already used elsewhere in this project (`static/live.html`, `/history`) — no new data source needed. Entry = VIX N% above its own rolling mean AND the index makes a fresh multi-day low on the same session; exit on VIX reverting back toward its mean. Sizing matters more than direction here — "a VIX spike rarely stays elevated more than a week, and the panic trade is usually right, sizing is what kills it" |
+| 26 | India VIX Regime Filter (constraint on existing strategies, not standalone) | Applies to any directional strategy already in this log (`orb_breakout`, SMA crossover, VWAP rows, etc.) | VIX regime changes which strategy type actually works: trend-following wants a calm, orderly VIX; mean-reversion/fade setups want an elevated, spiking VIX | Proposed — untested | Real-world India VIX strategy research, 2026-09-04 | **This is the direct answer to "add VIX as a constraint."** Not implemented anywhere yet — `add_strategy_signal()`/`_auto_signal_core` read no VIX input today; `/live` only *displays* `^INDIAVIX`, nothing gates on it. Proposed rule: fetch `^INDIAVIX` alongside the traded symbol, then only take trend/breakout entries (#9, #14, #22) when VIX is inside its normal band, and only take mean-reversion/fade entries (#13, #19, #25) when VIX is elevated above its rolling mean — "match the strategy to the regime" |
+| 27 | India VIX-Elevated Premium Selling (timing overlay on #10–#12) | Applies to this log's existing Iron Condor/Bull Put Spread rows | Iron condors/strangles want to be sold when implied vol is rich vs. realized — India VIX **is** the market's own live IV read, more current than the flat 14% IV assumption #10–#12 already use | Proposed — untested | Real-world India VIX strategy research, 2026-09-04 | Refines #10–#12 rather than replacing them: only enter the premium-selling side when `^INDIAVIX` sits above its own N-day average (rich premium), skip/avoid when VIX is compressed near recent lows (poor risk/reward for a seller) — same read as those rows' "realized vol vs. assumed IV" comparison, just using VIX itself instead of a flat assumption |
+| 28 | India VIX Spike Position-Size Throttle (risk overlay, not standalone) | Applies to position sizing on any live strategy, paper or real | Position size should shrink as VIX rises, since a higher VIX means wider true price swings for the same rupee stop distance | Proposed — untested | Real-world India VIX strategy research, 2026-09-04 | **Approximable with OHLCV**: scale `risk_per_trade_pct` (already a real param in `_auto_signal_core`, see `TRADING_CONSTRAINTS.md`) down as `^INDIAVIX` rises above its rolling mean, rather than using a flat % regardless of regime — directly answers "VIX as a constraint" from the sizing side, complementing #26's entry-side filter |
+| 29 | India VIX Futures Mean Reversion / Term Structure | Long/short India VIX futures directly (NSE weekly-expiry VIX futures, not the index itself — India VIX is a calculated index, not directly tradable) | VIX futures trade rich/cheap to the spot VIX index depending on term structure, and both mean-revert | Proposed — **blocked, no F&O execution** | Real-world India VIX strategy research, 2026-09-04 | `kotak_real_orders.py` only places CNC cash-equity orders — no futures/options order placement exists anywhere in this codebase (the options-lab endpoints are backtest-only, never execute). Would need a real F&O execution module before this is anything but a paper idea |
 
 ## VWAP strategies (2026-09-04) — explicit user instruction to research and catalog
 
@@ -122,6 +127,45 @@ force-liquidated at certain price levels — a related but different data
 source (aggregated exchange liquidation data, not resting spot-market
 limit orders) and out of scope here since this project trades NSE cash
 equities/index, not crypto perpetual futures.
+
+## India VIX strategies (2026-09-04) — explicit user instruction: is VIX tracked as a constraint, and catalog its real strategies
+
+Answer to "do we track India VIX for adding as a constraint": **displayed,
+not used.** `static/live.html` fetches `^INDIAVIX` for the human-facing
+`/live` dashboard only. Confirmed by direct search of `main.py`: no VIX
+read anywhere in `add_strategy_signal()`, `_auto_signal_core`, or the
+scheduler — every strategy in this log runs the same way regardless of
+the day's VIX level. Rows #26 and #28 below are the concrete proposals to
+close that gap (entry-side regime filter and sizing throttle,
+respectively) — neither is implemented yet, same "proposed, not live"
+status as everything else in this log until backtested.
+
+Rows #25–29 cover the standard real-world India VIX strategies (verified
+via research, not invented): the classic contrarian buy on a VIX
+spike/index-selloff combo, using VIX as a regime filter that decides
+whether trend-following or mean-reversion is the right strategy family
+for the day, using VIX as a live richness read for the existing
+options-premium-selling rows (#10–#12), throttling position size down as
+VIX rises, and trading VIX futures directly (blocked here — no F&O
+execution). Sources: [5paisa's India VIX strategies guide](https://www.5paisa.com/blog/how-to-trade-using-india-vix-5-proven-strategies),
+[5paisa's VIX-extremes mean reversion writeup](https://www.5paisa.com/blog/mean-reversion-strategy-using-india-vix-extremes),
+[marketseasy's "match the strategy to the regime" guide](https://marketseasy.in/vix-strategies),
+[Finnovate's 2026 India VIX read](https://www.finnovate.in/learn/blog/india-vix-2026-what-fear-index-tells-investors),
+[NSE's official India VIX index page](https://www.nseindia.com/static/products-services/indices-indiavix-index)
+(source for the "index, not directly tradable; weekly VIX futures exist
+since Feb 2014" fact behind #29's blocked status).
+
+Scoping note distinct from the VWAP/heatmap batches: **India VIX itself
+is a calculated index (from the NIFTY options order book), not a security
+— you cannot buy or sell "VIX" directly.** NSE does list weekly-expiry
+India VIX futures, so #29 is a real market instrument, just one this
+project has no execution path for (`kotak_real_orders.py` is cash-equity
+CNC only, no F&O order placement anywhere in the codebase). Rows #25–28
+sidestep that entirely — they use the *index level* as an input/filter
+for trades already placed in equities/index/options, not as something
+traded on its own, so they need no new execution capability, only a VIX
+fetch (already available via the same `yfinance ^INDIAVIX` ticker
+`/live` already uses) wired into the signal/sizing logic.
 
 ## Cross-strategy read (2026-09-01)
 
