@@ -38,8 +38,12 @@ on:
     paths-ignore:
       - "state/open_positions.json"
       - "state/trading_control.json"
+      - "state/real_trading_control.json"
+      - "state/real_positions.json"
+      - "state/real_trades_today.json"
       - "docs/trade_outcomes_log.json"
       - "docs/attempt_log.json"
+      - "docs/real_trade_log.json"
   workflow_dispatch: {}
 
 permissions:
@@ -52,6 +56,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Fetch current state from the live server
+        env:
+          # Stage 3 (2026-09-04): real-money endpoints are token-gated -
+          # this secret must be set in the repo's Actions secrets (Settings
+          # -> Secrets and variables -> Actions), the SAME value as the
+          # KOTAK_NEO_API_TOKEN env var already set on Render. Until it is,
+          # the three real_* curl calls below just get a 503/empty response
+          # and their journals stay unwritten - real trading's own default-
+          # OFF gates still hold either way, but a real position/today's
+          # spend won't survive a mid-day restart without this secret set.
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
         run: |
           mkdir -p state
           # Render free-tier can be cold (asleep, or mid-redeploy from a
@@ -80,6 +94,21 @@ jobs:
             "https://tv-paper-bot-gdan.onrender.com/trade-history?days=1"
           echo
 
+          # Stage 3 real-money state - only meaningful once KOTAK_NEO_API_TOKEN
+          # is set as a repo secret (see the env: block above); `|| true` so a
+          # missing/rejected token degrades to an empty file, never fails the
+          # whole sync (paper-trading journaling above must never depend on this).
+          curl -sS --retry 2 --retry-delay 5 -m 30 \
+            "https://tv-paper-bot-gdan.onrender.com/real-trading-control?token=${KOTAK_NEO_API_TOKEN}" \
+            -o /tmp/real-trading-control.json || echo '{}' > /tmp/real-trading-control.json
+          cat /tmp/real-trading-control.json
+          echo
+          curl -sS --retry 2 --retry-delay 5 -m 30 \
+            "https://tv-paper-bot-gdan.onrender.com/kotak-neo/real-trades?token=${KOTAK_NEO_API_TOKEN}" \
+            -o /tmp/real-trades.json || echo '{"trades":[]}' > /tmp/real-trades.json
+          cat /tmp/real-trades.json
+          echo
+
       - name: Write the open-positions journal
         run: |
           jq '{synced_at_utc: (now | todate), open_positions: .open_positions}' /tmp/daily-summary.json \
@@ -95,6 +124,46 @@ jobs:
           # from_journal() in main.py restores it on startup.
           cp /tmp/trading-control.json state/trading_control.json
           cat state/trading_control.json
+
+      - name: Write the Stage 3 real-trading journals
+        run: |
+          # real_trading_control.json - the real-money kill switch's state,
+          # same durability need as trading_control.json above (default DB
+          # row is enabled=0, so only a saved enabled=1 ever needs restoring).
+          jq '{db_switch_enabled, updated_at, updated_by, reason}' /tmp/real-trading-control.json \
+            > state/real_trading_control.json
+          cat state/real_trading_control.json
+          echo
+          # real_positions.json - any REAL open position, so it's never
+          # forgotten by a fresh DB after a mid-day restart.
+          jq '{open_real_positions: (.open_real_positions // [])}' /tmp/real-trading-control.json \
+            > state/real_positions.json
+          cat state/real_positions.json
+          echo
+          # real_trades_today.json - today's already-CONFIRMED real spend,
+          # so the Rs 500/day cap can never silently reset to 0 mid-day.
+          jq '{day: .today_ist_date, spent_inr: .today_spent_inr}' /tmp/real-trading-control.json \
+            > state/real_trades_today.json
+          cat state/real_trades_today.json
+
+      - name: Append new real-order attempts to the permanent real-trade log
+        run: |
+          # The full audit trail for real money - kept forever, uncapped,
+          # same policy as docs/attempt_log.json/trade_outcomes_log.json.
+          # Deduped by id (real_trades' own AUTOINCREMENT primary key), so
+          # re-running this sync never double-appends the same attempt.
+          mkdir -p docs
+          test -f docs/real_trade_log.json || echo '[]' > docs/real_trade_log.json
+          jq -s '
+            (.[0] // []) as $existing |
+            (.[1].trades // []) as $new |
+            ($existing + $new)
+            | group_by(.id)
+            | map(.[0])
+            | sort_by(.id)
+          ' docs/real_trade_log.json /tmp/real-trades.json > /tmp/real_trade_log_merged.json
+          mv /tmp/real_trade_log_merged.json docs/real_trade_log.json
+          echo "real_trade_log.json now has $(jq 'length' docs/real_trade_log.json) entries"
 
       - name: Append newly-closed trades to the outcome history
         run: |
@@ -129,7 +198,9 @@ jobs:
         run: |
           git config user.name "tv-paper-bot journal sync"
           git config user.email "actions@users.noreply.github.com"
-          git add state/open_positions.json state/trading_control.json docs/trade_outcomes_log.json docs/attempt_log.json
+          git add state/open_positions.json state/trading_control.json \
+            state/real_trading_control.json state/real_positions.json state/real_trades_today.json \
+            docs/trade_outcomes_log.json docs/attempt_log.json docs/real_trade_log.json
           if git diff --cached --quiet; then
             echo "No change - nothing to commit."
           else

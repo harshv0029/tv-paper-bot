@@ -148,6 +148,67 @@ def init_db():
             )
             """
         )
+        # --- Stage 3: real order placement (2026-09-04) --------------------
+        # Explicit user instruction. Deliberately its OWN kill switch, NOT
+        # a reuse of trading_control above - pausing/resuming PAPER trading
+        # must never accidentally arm or disarm REAL trading, and vice
+        # versa. Default enabled=0 (OFF) - the opposite default of
+        # trading_control's enabled=1 - so a fresh DB (a redeploy with no
+        # journal yet, or the very first deploy of this table) never
+        # accidentally starts real trading; see is_real_trading_enabled()'s
+        # own second, independent gate (REAL_TRADING_ENABLED env var).
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS real_trading_control (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                enabled INTEGER NOT NULL DEFAULT 0,     -- 1 = real entries allowed, 0 = off (default)
+                updated_at REAL,
+                updated_by TEXT,
+                reason TEXT
+            )
+            """
+        )
+        # Currently-open REAL positions - mirrors signal_state's shape but
+        # kept fully separate (paper and real must never share a row/table,
+        # so a bug in one can't corrupt the other's state). One row per
+        # symbol with an open real position; deleted on real exit.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS real_positions (
+                symbol TEXT PRIMARY KEY,
+                kotak_trading_symbol TEXT NOT NULL,
+                qty INTEGER NOT NULL,
+                entry_price REAL NOT NULL,
+                entry_order_id TEXT,
+                opened_at REAL NOT NULL,
+                day TEXT NOT NULL
+            )
+            """
+        )
+        # Full audit log of every real-order ATTEMPT (confirmed, failed, or
+        # skipped-and-why) - the permanent record real money needs, kept
+        # uncapped like docs/attempt_log.json's paper equivalent. notional_inr
+        # is only set for a CONFIRMED buy - that's the only thing that counts
+        # against the Rs 500/day cap (see _real_today_spent_inr).
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS real_trades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts REAL NOT NULL,
+                day TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                kotak_trading_symbol TEXT,
+                side TEXT NOT NULL,               -- 'B' or 'S'
+                qty INTEGER,
+                price_est REAL,
+                notional_inr REAL,
+                status TEXT NOT NULL,             -- 'confirmed' | 'failed' | 'skipped_...'
+                order_id TEXT,
+                detail TEXT,
+                raw_response TEXT
+            )
+            """
+        )
         conn.commit()
 
 
@@ -2548,6 +2609,145 @@ def is_trading_enabled(conn) -> bool:
     return bool(row["enabled"]) if row else True  # never explicitly set -> default ON
 
 
+# --- Stage 3: real order placement (2026-09-04) -----------------------------
+REAL_TRADING_DAILY_CAP_INR = 500.0  # explicit user instruction, per IST calendar day
+
+
+def is_real_trading_enabled(conn) -> bool:
+    """TWO independent gates, both required - deliberately not one switch.
+    A code push alone can never turn real trading on: REAL_TRADING_ENABLED
+    is a Render env var (a separate, deliberate action from a deploy,
+    same discipline as KOTAK_NEO_API_TOKEN), and real_trading_control's
+    DB row defaults to 0 even once the env var is set (a second explicit
+    action via POST /real-trading-control). Either gate alone being off
+    is enough to keep real trading off."""
+    if os.environ.get("REAL_TRADING_ENABLED") != "YES":
+        return False
+    row = conn.execute("SELECT enabled FROM real_trading_control WHERE id = 1").fetchone()
+    return bool(row["enabled"]) if row else False  # never explicitly set -> default OFF
+
+
+def _real_today_spent_inr(conn) -> float:
+    """Sum of today's (IST calendar day) CONFIRMED real buy notional -
+    the only thing that counts against REAL_TRADING_DAILY_CAP_INR. Sourced
+    entirely from real_trades, which this codebase populates itself at
+    order-attempt time using a verified live LTP - not from parsing
+    Kotak's own trade_report()/order_report() (see kotak_real_orders.py's
+    module docstring for why those aren't trusted for this)."""
+    today = ist_now().strftime("%Y-%m-%d")
+    row = conn.execute(
+        "SELECT COALESCE(SUM(notional_inr), 0) AS s FROM real_trades "
+        "WHERE day = ? AND side = 'B' AND status = 'confirmed'",
+        (today,),
+    ).fetchone()
+    return float(row["s"] or 0.0)
+
+
+def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,
+                       price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None):
+    conn.execute(
+        "INSERT INTO real_trades (ts, day, symbol, kotak_trading_symbol, side, qty, price_est, "
+        "notional_inr, status, order_id, detail, raw_response) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (time.time(), ist_now().strftime("%Y-%m-%d"), symbol, kotak_trading_symbol, side, qty,
+         price_est, notional_inr, status, order_id, detail,
+         json.dumps(raw_response, default=str) if raw_response is not None else None),
+    )
+    conn.commit()
+
+
+def _maybe_place_real_entry(conn, symbol: str):
+    """Mirrors a paper "entered_long" as a REAL buy, ONLY when every gate
+    holds. Called from _scheduler_loop right after _auto_signal_core
+    returns action_taken == "entered_long" for an equity symbol - never
+    from inside _auto_signal_core itself, so paper trading's own logic
+    stays completely unaware of real trading. Never raises - any
+    unexpected error here must not break the scheduler tick (see the
+    try/except around this call site)."""
+    if not is_real_trading_enabled(conn):
+        return  # expected default state - not logged, this isn't an "attempt"
+
+    asset_class, _, _ = _asset_class_and_source(symbol)
+    if asset_class != "nse_equity":
+        _log_real_attempt(conn, symbol, "B", "skipped_not_eligible_asset_class")
+        return
+
+    if conn.execute("SELECT 1 FROM real_positions WHERE symbol = ?", (symbol,)).fetchone():
+        _log_real_attempt(conn, symbol, "B", "skipped_already_open")
+        return
+
+    import kotak_live_feed
+    tick = kotak_live_feed.get_live_ticks().get(symbol)
+    if not tick or not tick.get("ltp") or not tick.get("trading_symbol"):
+        _log_real_attempt(conn, symbol, "B", "skipped_no_live_tick")
+        return
+    ltp = float(tick["ltp"])
+    kotak_symbol = tick["trading_symbol"]
+    if ltp <= 0:
+        _log_real_attempt(conn, symbol, "B", "skipped_no_live_tick", kotak_trading_symbol=kotak_symbol)
+        return
+
+    remaining = REAL_TRADING_DAILY_CAP_INR - _real_today_spent_inr(conn)
+    if ltp > remaining:
+        _log_real_attempt(
+            conn, symbol, "B", "skipped_over_daily_cap", kotak_trading_symbol=kotak_symbol,
+            price_est=ltp, detail=f"1 share = Rs{ltp:.2f}, remaining budget Rs{remaining:.2f}",
+        )
+        return
+
+    import kotak_real_orders
+    result = kotak_real_orders.place_real_entry(kotak_symbol, ltp)
+    if result.get("ok"):
+        now = time.time()
+        conn.execute(
+            "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
+            "entry_order_id, opened_at, day) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (symbol, kotak_symbol, result["qty"], ltp, result["order_id"], now, ist_now().strftime("%Y-%m-%d")),
+        )
+        _log_real_attempt(
+            conn, symbol, "B", "confirmed", kotak_trading_symbol=kotak_symbol,
+            qty=result["qty"], price_est=ltp, notional_inr=result["qty"] * ltp,
+            order_id=result["order_id"], raw_response=result.get("raw_response"),
+        )
+        print(f"[REAL TRADE] BUY {result['qty']} {kotak_symbol} (order {result['order_id']}) ~Rs{ltp:.2f}")
+    else:
+        _log_real_attempt(
+            conn, symbol, "B", "failed", kotak_trading_symbol=kotak_symbol, price_est=ltp,
+            detail=result.get("detail"), raw_response=result.get("raw_response"),
+        )
+        print(f"[REAL TRADE] BUY FAILED {kotak_symbol}: {result.get('detail')}")
+
+
+def _maybe_place_real_exit(conn, symbol: str):
+    """Mirrors a paper exit (any exit_reason) as a REAL sell that closes
+    the matching real_positions row, if one exists. Deliberately NOT
+    gated by is_real_trading_enabled() - see kotak_real_orders.
+    place_real_exit's docstring: closing an already-open real position
+    must never be blocked by the same switch that gates new entries."""
+    row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
+    if not row:
+        return  # no real position was ever opened for this paper trade - nothing to close
+
+    import kotak_real_orders
+    result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"])
+    if result.get("ok"):
+        conn.execute("DELETE FROM real_positions WHERE symbol = ?", (symbol,))
+        _log_real_attempt(
+            conn, symbol, "S", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            qty=row["qty"], order_id=result["order_id"], raw_response=result.get("raw_response"),
+        )
+        print(f"[REAL TRADE] SELL {row['qty']} {row['kotak_trading_symbol']} (order {result['order_id']})")
+    else:
+        # The dangerous failure mode: a real position we believe is open
+        # and TRIED to close, but couldn't confirm. Left in real_positions
+        # deliberately (never guess it closed) - surfaces via
+        # GET /kotak-neo/real-positions until a human/retry resolves it.
+        _log_real_attempt(
+            conn, symbol, "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            qty=row["qty"], detail=result.get("detail"), raw_response=result.get("raw_response"),
+        )
+        print(f"[REAL TRADE] SELL FAILED {row['kotak_trading_symbol']}: {result.get('detail')} - POSITION STILL OPEN, NEEDS ATTENTION")
+
+
 def _force_close_all_positions(conn, reason: str) -> dict:
     """The kill switch's actual work: exits EVERY open position (equity +
     options) right now, at the best available current price, regardless of
@@ -2678,6 +2878,72 @@ def set_trading_control(action: str, reason: str | None = None):
         )
         conn.commit()
         return {"status": "paused" if action == "pause" else "resumed", "enabled": bool(enabled)}
+
+
+# --- Stage 3: real order placement - HTTP surface ---------------------------
+# Token-gated (same KOTAK_NEO_API_TOKEN as every other real-account
+# endpoint) - unlike /trading-control (paper, no token needed), these touch
+# real money and must never be callable by an unauthenticated request.
+
+
+@app.get("/real-trading-control")
+def get_real_trading_control(request: Request):
+    _require_kotak_token(request)
+    with closing(get_db()) as conn:
+        row = conn.execute("SELECT * FROM real_trading_control WHERE id = 1").fetchone()
+        open_positions = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
+        today_spent_inr = _real_today_spent_inr(conn)
+    db_enabled = bool(row["enabled"]) if row else False
+    env_enabled = os.environ.get("REAL_TRADING_ENABLED") == "YES"
+    return {
+        "db_switch_enabled": db_enabled, "env_var_enabled": env_enabled,
+        "real_trading_active": db_enabled and env_enabled,
+        "updated_at": row["updated_at"] if row else None,
+        "updated_by": row["updated_by"] if row else None,
+        "reason": row["reason"] if row else None,
+        "daily_cap_inr": REAL_TRADING_DAILY_CAP_INR,
+        "today_ist_date": ist_now().strftime("%Y-%m-%d"),  # journal-sync.yml needs this, not just the amount
+        "today_spent_inr": round(today_spent_inr, 2),
+        "today_remaining_inr": round(REAL_TRADING_DAILY_CAP_INR - today_spent_inr, 2),
+        "open_real_positions": open_positions,
+    }
+
+
+@app.post("/real-trading-control")
+def set_real_trading_control(request: Request, action: str, reason: str | None = None):
+    """The REAL-money kill switch's HTTP surface - completely separate
+    from /trading-control (paper). action:
+      - 'enable'  - allow real entries (still also needs
+                    REAL_TRADING_ENABLED=YES set as an env var - this
+                    alone is NOT enough to turn real trading on).
+      - 'disable' - stop taking new real entries; any already-open real
+                    position keeps being managed normally (its exit is
+                    never gated by this switch - see _maybe_place_real_exit).
+    """
+    _require_kotak_token(request)
+    if action not in ("enable", "disable"):
+        raise HTTPException(status_code=400, detail="action must be one of: enable, disable")
+    enabled = 1 if action == "enable" else 0
+    with closing(get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_trading_control (id, enabled, updated_at, updated_by, reason) "
+            "VALUES (1, ?, ?, 'user', ?) "
+            "ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled, updated_at=excluded.updated_at, "
+            "updated_by=excluded.updated_by, reason=excluded.reason",
+            (enabled, time.time(), reason),
+        )
+        conn.commit()
+    return {"status": "enabled" if enabled else "disabled", "db_switch_enabled": bool(enabled)}
+
+
+@app.get("/kotak-neo/real-trades")
+def kotak_neo_real_trades(request: Request):
+    """Full audit log of every real-order attempt (confirmed/failed/
+    skipped-and-why) - the permanent record for real money, uncapped."""
+    _require_kotak_token(request)
+    with closing(get_db()) as conn:
+        rows = [dict(r) for r in conn.execute("SELECT * FROM real_trades ORDER BY id DESC").fetchall()]
+    return {"count": len(rows), "trades": rows}
 
 
 # ---------------------------------------------------------------------------
@@ -2844,6 +3110,108 @@ def reconcile_trading_control_from_journal():
         )
         conn.commit()
     print("[reconcile] restored PAUSED trading state from journal")
+
+
+# --- Stage 3 journal reconciliation -----------------------------------------
+# Same Render-free-tier-has-no-persistent-disk reality as everything above,
+# but higher stakes: an unrecovered real_positions row means a REAL open
+# position silently drops off management (never exit-checked again), and an
+# unrecovered today's-spend means the Rs 500/day cap could be exceeded after
+# a mid-day restart. journal-sync.yml must have KOTAK_NEO_API_TOKEN available
+# as a GitHub Actions secret for these two syncs to run at all (they hit
+# token-gated endpoints) - if that secret isn't set, this reconciliation is a
+# harmless no-op (files just won't exist), but the durability gap it exists
+# to close stays open. See docs/TRADING_CONSTRAINTS.md "Stage 3".
+STATE_REAL_TRADING_CONTROL_PATH = os.path.join(os.path.dirname(__file__), "state", "real_trading_control.json")
+STATE_REAL_POSITIONS_PATH = os.path.join(os.path.dirname(__file__), "state", "real_positions.json")
+STATE_REAL_TRADES_TODAY_PATH = os.path.join(os.path.dirname(__file__), "state", "real_trades_today.json")
+
+
+def reconcile_real_trading_control_from_journal():
+    if not os.path.exists(STATE_REAL_TRADING_CONTROL_PATH):
+        return
+    try:
+        with open(STATE_REAL_TRADING_CONTROL_PATH) as f:
+            saved = json.load(f)
+    except Exception as e:
+        print(f"[reconcile] could not read {STATE_REAL_TRADING_CONTROL_PATH}: {e}")
+        return
+    if not saved.get("db_switch_enabled", False):
+        return  # default DB state is already enabled=0 - nothing to restore
+    with closing(get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_trading_control (id, enabled, updated_at, updated_by, reason) "
+            "VALUES (1, 1, ?, ?, ?) "
+            "ON CONFLICT(id) DO UPDATE SET enabled=1, updated_at=excluded.updated_at, "
+            "updated_by=excluded.updated_by, reason=excluded.reason",
+            (saved.get("updated_at") or time.time(), saved.get("updated_by", "user"),
+             saved.get("reason", "restored ENABLED real-trading state from journal")),
+        )
+        conn.commit()
+    print("[reconcile] restored real_trading_control ENABLED state from journal")
+
+
+def reconcile_real_positions_from_journal():
+    """Restore any REAL open position the journal remembers but a freshly-
+    wiped DB doesn't. Deliberately does NOT re-place any order - the
+    position already exists at the broker; this only restores this app's
+    own tracking of it so the next scheduler tick's exit-mirroring
+    (_maybe_place_real_exit) can find and manage it again."""
+    if not os.path.exists(STATE_REAL_POSITIONS_PATH):
+        return
+    try:
+        with open(STATE_REAL_POSITIONS_PATH) as f:
+            saved = json.load(f)
+    except Exception as e:
+        print(f"[reconcile] could not read {STATE_REAL_POSITIONS_PATH}: {e}")
+        return
+    positions = saved.get("open_real_positions", [])
+    if not positions:
+        return
+    with closing(get_db()) as conn:
+        restored = 0
+        for pos in positions:
+            if conn.execute("SELECT 1 FROM real_positions WHERE symbol = ?", (pos["symbol"],)).fetchone():
+                continue
+            conn.execute(
+                "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
+                "entry_order_id, opened_at, day) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
+                 pos.get("entry_order_id"), pos["opened_at"], pos["day"]),
+            )
+            restored += 1
+        conn.commit()
+    if restored:
+        print(f"[reconcile] restored {restored} REAL open position(s) from journal")
+
+
+def reconcile_real_trades_today_from_journal():
+    """Restores TODAY's already-confirmed real spend so a mid-day restart
+    can never let _real_today_spent_inr reset to 0 and re-open budget that
+    was already spent. Only applies if the journal's saved day is still
+    today (IST) - a stale prior day's snapshot must never carry over."""
+    if not os.path.exists(STATE_REAL_TRADES_TODAY_PATH):
+        return
+    try:
+        with open(STATE_REAL_TRADES_TODAY_PATH) as f:
+            saved = json.load(f)
+    except Exception as e:
+        print(f"[reconcile] could not read {STATE_REAL_TRADES_TODAY_PATH}: {e}")
+        return
+    today = ist_now().strftime("%Y-%m-%d")
+    if saved.get("day") != today:
+        return  # journal is from a previous day - today's spend genuinely starts at 0
+    saved_spent = float(saved.get("spent_inr") or 0)
+    if saved_spent <= 0:
+        return
+    with closing(get_db()) as conn:
+        if _real_today_spent_inr(conn) >= saved_spent - 0.01:
+            return  # already reflected (e.g. DB wasn't actually wiped this restart)
+        _log_real_attempt(
+            conn, "__reconciled__", "B", "confirmed", notional_inr=saved_spent,
+            detail=f"restored today's already-spent Rs{saved_spent:.2f} from journal after a restart",
+        )
+    print(f"[reconcile] restored today's real spend (Rs{saved_spent:.2f}) from journal")
 
 
 SCHEDULER_INTERVAL_SECONDS = 30
@@ -3049,6 +3417,24 @@ async def _scheduler_loop():
                     trend_sma=cfg.get("trend_sma", 0), volume_confirm=cfg.get("volume_confirm", False),
                 )
                 _scheduler_last_results[cfg["symbol"]] = {"checked_at_utc": time.time(), **result}
+
+                # Stage 3: mirror this SAME decision as a real order, only
+                # for the equity path (options/MCX are out of stage 3 v1 -
+                # explicit user instruction). Deliberately AFTER the paper
+                # result is already recorded, in its own try/except that
+                # can never propagate - a real-order hiccup must never look
+                # like a paper-trading scheduler failure or block the next
+                # symbol's tick.
+                try:
+                    action_taken = result.get("action_taken", "")
+                    if action_taken == "entered_long":
+                        with closing(get_db()) as real_conn:
+                            _maybe_place_real_entry(real_conn, cfg["symbol"])
+                    elif action_taken.startswith("exited_"):
+                        with closing(get_db()) as real_conn:
+                            _maybe_place_real_exit(real_conn, cfg["symbol"])
+                except Exception as e:
+                    print(f"[real_orders] unexpected error for {cfg['symbol']}: {e}")
             except Exception as e:
                 _scheduler_last_error = f"{cfg['symbol']}: {e}"
                 _scheduler_last_results[cfg["symbol"]] = {
@@ -3107,6 +3493,9 @@ async def _scheduler_loop():
 async def _start_scheduler():
     reconcile_open_positions_from_journal()
     reconcile_trading_control_from_journal()
+    reconcile_real_trading_control_from_journal()
+    reconcile_real_positions_from_journal()
+    reconcile_real_trades_today_from_journal()
     asyncio.create_task(_scheduler_loop())
     # Kotak Neo live tick feed (2026-09-04) - display data only, isolated
     # in its own task so a failure here (missing/misconfigured creds, a
