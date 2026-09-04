@@ -3761,7 +3761,7 @@ def kotak_neo_search_scrip(
     exchange_segment: str = "nse_fo",
     symbol: str = "nifty",
     expiry: str | None = None,
-    option_type: str | None = "ce,pe",
+    option_type: str | None = None,
     strike_price: str | None = None,
     limit: int = 20,
 ):
@@ -3775,7 +3775,14 @@ def kotak_neo_search_scrip(
     financial data risks silently matching the wrong contract). Real
     login required - places no order. Requires
     ?token=<KOTAK_NEO_API_TOKEN> (or an 'Authorization: Bearer <token>'
-    header)."""
+    header).
+
+    `option_type` defaults to None, not "ce,pe" (bug fixed 2026-09-04) -
+    a real call against exchange_segment=nse_cm (pure equity, no options)
+    with the old "ce,pe" default crashed inside the SDK itself
+    ("Can only use .str accessor with string values!") because nse_cm's
+    scrip master has no meaningful pOptionType column to filter on. Only
+    pass option_type for an actual options segment (nse_fo/bse_fo)."""
     _require_kotak_token(request)
     try:
         import kotak_neo
