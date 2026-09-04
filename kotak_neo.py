@@ -159,3 +159,18 @@ def search_scrip(exchange_segment, symbol="", expiry=None, option_type=None, str
         exchange_segment=exchange_segment, symbol=symbol, expiry=expiry,
         option_type=option_type, strike_price=strike_price,
     )
+
+
+def quotes(instrument_tokens, quote_type="ltp"):
+    """Live quote(s) for the given instruments. Read-only - no order
+    placed. instrument_tokens: list of {"instrument_token": str,
+    "exchange_segment": str} dicts.
+
+    Used 2026-09-04 as the verification tool for index instrument tokens
+    (e.g. is "Nifty Bank" a real, resolvable token for nse_cm) - indices
+    aren't rows in the scrip master search_scrip() reads, so search_scrip
+    can't confirm or deny an index token name; only an actual quotes()
+    call against it can. Never guess an index token name into
+    kotak_live_feed.py's _INDEX_TOKENS without confirming it here first,
+    same discipline as every other Kotak field-name claim this session."""
+    return login().quotes(instrument_tokens=instrument_tokens, quote_type=quote_type)
