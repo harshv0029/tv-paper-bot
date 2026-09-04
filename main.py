@@ -4239,6 +4239,68 @@ def kotak_neo_scrip_master(request: Request, exchange_segment: str = "nse_cm", r
         return {"error": f"raw fetch of the CSV failed: {e}", "csv_url": csv_url}
 
 
+@app.get("/kotak-neo/nse-universe")
+def kotak_neo_nse_universe(request: Request):
+    """Builds the real, current NSE cash-equity universe from Kotak's own
+    live scrip master (2026-09-05, explicit user instruction: "can't you
+    source it from kotak neo. all the tickers which it can provide" -
+    after NSE's own official Nifty 500 list turned out unreachable from
+    both GitHub Actions and this project's own sandbox). Filter confirmed
+    on real data via /kotak-neo/scrip-master before writing this: pGroup
+    == "EQ" is exactly NSE's own main-board equity series (excludes BE/BZ/
+    other restricted series - verified against real RELIANCE/RELINFRA/RHFL
+    rows), same semantic as the original NSE-direct refresh workflow's
+    SERIES=EQ filter, just sourced from Kotak's CDN instead of NSE's
+    Akamai-blocked one.
+
+    Uses csv.DictReader on the full response text, NOT pandas - the
+    scrip-master CSV is ~3.2MB with 70+ columns; an earlier version used
+    pd.read_csv() and crashed the whole worker (OOM on Render's free
+    tier), confirmed by isolating the raw fetch (safe) from the pandas
+    parse (not) via /kotak-neo/scrip-master. Reading the full text as a
+    plain string is confirmed safe at this file size; csv.DictReader has
+    none of a DataFrame's per-column dtype/numpy overhead.
+
+    Returns the same shape docs/nse_universe.json uses (source, series,
+    count, symbols) so a caller can write it directly. Real login
+    required - places no order. Requires ?token=<KOTAK_NEO_API_TOKEN> (or
+    an 'Authorization: Bearer <token>' header)."""
+    _require_kotak_token(request)
+    try:
+        import csv
+        import io
+        import kotak_neo
+        csv_url = kotak_neo.scrip_master(exchange_segment="nse_cm")
+        if not isinstance(csv_url, str):
+            return {"error": "scrip_master did not return a CSV URL", "raw": _kotak_json_safe(csv_url)}
+
+        import urllib.request
+        req = urllib.request.Request(csv_url, headers={"User-Agent": "tv-paper-bot/1.0"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            text = resp.read().decode("utf-8", errors="replace")
+
+        reader = csv.DictReader(io.StringIO(text))
+        symbols = set()
+        for row in reader:
+            if row.get("pGroup") == "EQ" and row.get("pExchSeg") == "nse_cm":
+                name = (row.get("pSymbolName") or "").strip()
+                if name:
+                    symbols.add(f"{name}.NS")
+
+        symbols = sorted(symbols)
+        if len(symbols) < 500:
+            # Sanity floor, same discipline as the original NSE-direct
+            # refresh workflow - refuse to look "successful" on a
+            # truncated/malformed fetch.
+            return {"error": f"Only {len(symbols)} EQ symbols parsed from Kotak's scrip master - "
+                              f"refusing to treat this as a real universe, looks wrong", "csv_url": csv_url}
+
+        return {"source": "Kotak Neo scrip master (nse_cm)", "series": "EQ",
+                "count": len(symbols), "symbols": symbols}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/kotak-neo/quotes")
 def kotak_neo_quotes(request: Request, exchange_segment: str = "nse_cm", instrument_token: str = "Nifty 50", quote_type: str = "ltp"):
     """Real live quote for ONE instrument. Read-only - places no order.
