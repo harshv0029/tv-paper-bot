@@ -1,1 +1,47 @@
-[]
+[
+  {
+    "id": 1,
+    "ts": 1788504558.509974,
+    "day": "2026-09-04",
+    "symbol": "HDFCBANK.NS",
+    "kotak_trading_symbol": "HDFCBANK-EQ",
+    "side": "B",
+    "qty": null,
+    "price_est": 715.05,
+    "notional_inr": null,
+    "status": "failed",
+    "order_id": null,
+    "detail": "no order id in response: {'stCode': 100008, 'errMsg': 'unauthorized', 'stat': 'Not_Ok'}",
+    "raw_response": "{\"stCode\": 100008, \"errMsg\": \"unauthorized\", \"stat\": \"Not_Ok\"}"
+  },
+  {
+    "id": 2,
+    "ts": 1788504628.7916293,
+    "day": "2026-09-04",
+    "symbol": "COALINDIA.NS",
+    "kotak_trading_symbol": "COALINDIA-EQ",
+    "side": "B",
+    "qty": null,
+    "price_est": 415.8,
+    "notional_inr": null,
+    "status": "failed",
+    "order_id": null,
+    "detail": "no order id in response: {'stCode': 100008, 'errMsg': 'unauthorized', 'stat': 'Not_Ok'}",
+    "raw_response": "{\"stCode\": 100008, \"errMsg\": \"unauthorized\", \"stat\": \"Not_Ok\"}"
+  },
+  {
+    "id": 3,
+    "ts": 1788504700.8904881,
+    "day": "2026-09-04",
+    "symbol": "CANBK.NS",
+    "kotak_trading_symbol": "CANBK-EQ",
+    "side": "B",
+    "qty": null,
+    "price_est": 126.99,
+    "notional_inr": null,
+    "status": "failed",
+    "order_id": null,
+    "detail": "no order id in response: {'stCode': 100008, 'errMsg': 'unauthorized', 'stat': 'Not_Ok'}",
+    "raw_response": "{\"stCode\": 100008, \"errMsg\": \"unauthorized\", \"stat\": \"Not_Ok\"}"
+  }
+]

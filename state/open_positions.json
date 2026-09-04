@@ -1,4 +1,56 @@
 {
-  "synced_at_utc": "2026-09-04T06:35:57Z",
-  "open_positions": []
+  "synced_at_utc": "2026-09-04T07:05:20Z",
+  "open_positions": [
+    {
+      "symbol": "HDFCBANK.NS",
+      "qty": 1.0,
+      "entry_price_native": 715.0,
+      "stop_loss_native": 709.3499755859375,
+      "initial_stop_loss_native": 709.3499755859375,
+      "target_native": 731.9500732421875,
+      "fx_to_inr": 1.0,
+      "notional_inr": 715.0,
+      "orb_high_native": 711.8499755859375,
+      "orb_low_native": 709.3499755859375,
+      "entry_ts": 1788504556.363945,
+      "interval": "5m",
+      "strategy": "orb-15m-sma9-21",
+      "sma_fast": 9,
+      "sma_slow": 21
+    },
+    {
+      "symbol": "COALINDIA.NS",
+      "qty": 2.0,
+      "entry_price_native": 415.8500061035156,
+      "stop_loss_native": 413.29998779296875,
+      "initial_stop_loss_native": 413.29998779296875,
+      "target_native": 423.50006103515625,
+      "fx_to_inr": 1.0,
+      "notional_inr": 831.7,
+      "orb_high_native": 415.3999938964844,
+      "orb_low_native": 413.29998779296875,
+      "entry_ts": 1788504626.5486157,
+      "interval": "5m",
+      "strategy": "orb-15m-sma9-21",
+      "sma_fast": 9,
+      "sma_slow": 21
+    },
+    {
+      "symbol": "CANBK.NS",
+      "qty": 3.0,
+      "entry_price_native": 126.98999786376953,
+      "stop_loss_native": 126.16999816894531,
+      "initial_stop_loss_native": 126.16999816894531,
+      "target_native": 129.4499969482422,
+      "fx_to_inr": 1.0,
+      "notional_inr": 380.97,
+      "orb_high_native": 126.7699966430664,
+      "orb_low_native": 126.16999816894531,
+      "entry_ts": 1788504698.7636619,
+      "interval": "5m",
+      "strategy": "orb-15m-sma9-21",
+      "sma_fast": 9,
+      "sma_slow": 21
+    }
+  ]
 }
