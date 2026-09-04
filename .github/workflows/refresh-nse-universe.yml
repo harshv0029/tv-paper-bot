@@ -1,36 +1,36 @@
 name: Refresh NSE Universe (full equity list)
 
-# Fetches NSE's own official, exhaustive list of listed equity securities
-# and writes it to docs/nse_universe.json - a real "public available
-# listing," per explicit user instruction ("All listing should be
-# exhaustive"), replacing any hand-picked/hardcoded symbol list in
-# main.py. main.py loads this file at startup to build WATCHLIST (falling
-# back to its own small hardcoded list if the file is missing/unreadable,
-# so a fetch failure here never takes the live app down).
+# Fetches the real, exhaustive NSE EQ-series equity list and writes it to
+# docs/nse_universe.json - main.py loads this file at import time to build
+# WATCHLIST's stock section (see _load_nse_universe_from_file() in
+# main.py), falling back to its own small hardcoded Nifty 100 list if the
+# file is missing/unreadable/too small, so a fetch failure here never
+# takes the live app down.
 #
-# Source: NSE's own published EQUITY_L.csv (SYMBOL, NAME OF COMPANY,
-# SERIES, ...) - the standard reference for "every security listed for
-# trading on NSE's equity segment." Filtered to SERIES=EQ (the main board
-# equity series - excludes debt instruments, SME-platform-only series,
-# etc.) since those are what a Kotak Neo/Zerodha equity account can
-# actually trade the same way as everything else in this system.
+# Source: Kotak Neo's own scrip master (kotak_neo.py:scrip_master(), via
+# the live server's GET /kotak-neo/nse-universe), NOT NSE's own site.
+# NSE's archive endpoints (EQUITY_L.csv) sit behind Akamai bot protection
+# that edge-blocks GitHub Actions' datacenter IPs outright - confirmed
+# blocked on multiple dispatches 2026-09-03, still true 2026-09-05, a
+# network-level block that isn't fixable from curl in CI. Explicit user
+# instruction (2026-09-05): "cant you source it from kotak neo. all the
+# tickers which it can provide" - Kotak's scrip-master host is a
+# different domain entirely and sidesteps the block. This filters to
+# pGroup=="EQ" (confirmed against real RELIANCE/RELINFRA/RHFL rows to be
+# exactly NSE's main-board equity series, same filter EQUITY_L.csv's own
+# SERIES=EQ would have applied) - see /kotak-neo/nse-universe in main.py
+# for the real filtering logic; this workflow just calls that endpoint
+# and commits its output.
 #
-# NSE's site is known to sometimes reject non-browser requests - a
-# realistic User-Agent and a couple of retries are included; if it still
-# fails, the job fails loudly (no partial/corrupt universe is ever
-# committed) and main.py just keeps using whatever universe file (or
-# fallback list) it already has.
+# Broader than Nifty 500 index membership, not narrower: Kotak's scrip
+# master carries no index-membership column, so this is every EQ-series
+# NSE stock (~2,600, ETFs included), not a curated 500.
 on:
-  # No schedule: confirmed (3 dispatches, 2026-09-03) that NSE's Akamai
-  # bot protection edge-blocks GitHub Actions' datacenter IPs outright -
-  # both archives.nseindia.com and nsearchives.nseindia.com return the
-  # same HTML block page in ~1.2s regardless of cookies/headers/host,
-  # which is a network-level block, not something fixable from curl in
-  # CI. Kept as workflow_dispatch only in case NSE's blocking posture
-  # ever changes; a weekly cron would just fail loudly every week for no
-  # reason. See docs/TRADING_CONSTRAINTS.md for the practical fallback
-  # (the hardcoded Nifty 100 list) and how to get a true exhaustive list
-  # if still wanted (a one-time human browser download, not automation).
+  schedule:
+    # Every Monday 03:00 UTC = 08:30 IST, well before NSE's 09:15 open -
+    # explicit user instruction ("setup a weekly update of list from
+    # market data and sync to my db to keep this updated. every monday").
+    - cron: "0 3 * * 1"
   workflow_dispatch: {}
 
 permissions:
@@ -42,90 +42,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch NSE's official equity list
+      - name: Fetch the real NSE EQ universe from the live server (Kotak-sourced)
+        env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
         run: |
           mkdir -p docs
-          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
-          COMMON_HDRS=(
-            -H "User-Agent: $UA"
-            -H "Accept-Language: en-US,en;q=0.9"
-            -H "Accept-Encoding: gzip, deflate, br"
-            -H "sec-ch-ua: \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\", \"Not=A?Brand\";v=\"99\""
-            -H "sec-ch-ua-mobile: ?0"
-            -H "sec-ch-ua-platform: \"Windows\""
-          )
-          # NSE's archive endpoints sit behind Akamai bot protection - a
-          # cookie handshake alone did NOT get past it (confirmed: run
-          # 33737521205 still came back the same HTML block page even after
-          # visiting www.nseindia.com first and reusing its cookies). Try
-          # both the legacy archives.nseindia.com host and NSE's newer
-          # nsearchives.nseindia.com host (migrated ~2024) - whichever
-          # answers with real CSV wins; if neither does, this step fails
-          # loudly rather than writing a corrupt file, and the caller falls
-          # back to a static list.
-          curl -sS -c /tmp/nse_cookies.txt -m 30 "${COMMON_HDRS[@]}" \
-            -H "Accept: text/html,application/xhtml+xml" \
-            "https://www.nseindia.com/market-data/securities-available-for-trading" \
-            -o /dev/null || true
-          sleep 2
+          # Render free tier can be cold - wake it first (same pattern as
+          # journal-sync.yml), then retry the real fetch with backoff.
+          curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+          curl -sS --retry 3 --retry-delay 10 --retry-connrefused -m 60 \
+            "https://tv-paper-bot-gdan.onrender.com/kotak-neo/nse-universe?token=${KOTAK_NEO_API_TOKEN}" \
+            -o /tmp/nse-universe.json
 
-          for HOST in nsearchives.nseindia.com archives.nseindia.com; do
-            echo "--- trying $HOST ---"
-            curl -sS -b /tmp/nse_cookies.txt --compressed --retry 2 --retry-delay 5 -m 30 \
-              "${COMMON_HDRS[@]}" \
-              -H "Accept: text/csv,*/*" \
-              -H "Referer: https://www.nseindia.com/market-data/securities-available-for-trading" \
-              "https://${HOST}/content/equity/EQUITY_L.csv" \
-              -o /tmp/EQUITY_L.csv || true
-            LINES=$(wc -l < /tmp/EQUITY_L.csv || echo 0)
-            echo "$HOST -> $LINES lines"
-            if head -1 /tmp/EQUITY_L.csv | grep -qi '^"\?SYMBOL'; then
-              echo "Got real CSV from $HOST"
-              break
-            fi
-            sleep 2
-          done
-          echo "Downloaded $(wc -l < /tmp/EQUITY_L.csv) lines"
-          head -5 /tmp/EQUITY_L.csv
+          COUNT=$(jq -r '.count // 0' /tmp/nse-universe.json)
+          ERR=$(jq -r '.error // empty' /tmp/nse-universe.json)
+          if [[ -n "$ERR" ]]; then
+            echo "::error::/kotak-neo/nse-universe returned an error: $ERR"
+            exit 1
+          fi
+          # Same "refuse a suspiciously small universe" floor as the
+          # endpoint itself (main.py checks < 500) - belt and suspenders
+          # against ever committing a corrupt/truncated list.
+          if [[ "$COUNT" -lt 500 ]]; then
+            echo "::error::Only $COUNT symbols returned - refusing to commit, looks wrong"
+            exit 1
+          fi
+          echo "Fetched $COUNT real EQ-series symbols from Kotak's scrip master"
 
-      - name: Parse into docs/nse_universe.json
+          jq --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{source, series, count, fetched_at_utc: $ts, symbols}' \
+            /tmp/nse-universe.json > docs/nse_universe.json
+
+      - name: Commit and push if the universe changed
         run: |
-          python3 - <<'PYEOF'
-          import csv, json
-
-          with open("/tmp/EQUITY_L.csv", newline="") as f:
-              rows = list(csv.DictReader(f))
-
-          if not rows or "SYMBOL" not in rows[0]:
-              raise SystemExit(f"Unexpected CSV format - columns were: {list(rows[0].keys()) if rows else 'no rows'}")
-
-          symbols = sorted({
-              f"{r['SYMBOL'].strip()}.NS"
-              for r in rows
-              if r.get("SERIES", "").strip() == "EQ" and r.get("SYMBOL", "").strip()
-          })
-
-          if len(symbols) < 500:
-              # Sanity floor - NSE's main board has had 1,900+ EQ-series
-              # symbols for years. A number far below that means something
-              # broke upstream (a format change, a partial/blocked
-              # download) - refuse to commit a corrupt/truncated universe.
-              raise SystemExit(f"Only {len(symbols)} EQ symbols parsed - refusing to write, looks wrong")
-
-          with open("docs/nse_universe.json", "w") as f:
-              json.dump({"source": "NSE EQUITY_L.csv", "series": "EQ", "count": len(symbols), "symbols": symbols}, f, indent=2)
-
-          print(f"Wrote {len(symbols)} NSE EQ-series symbols to docs/nse_universe.json")
-          PYEOF
-
-      - name: Commit if changed
-        run: |
-          git config user.name "tv-paper-bot nse universe refresh"
+          git config user.name "tv-paper-bot NSE universe refresh"
           git config user.email "actions@users.noreply.github.com"
           git add docs/nse_universe.json
           if git diff --cached --quiet; then
-            echo "No change - nothing to commit."
+            echo "No change in NSE universe - nothing to commit"
           else
-            git commit -m "Refresh NSE universe list ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+            COUNT=$(jq -r '.count' docs/nse_universe.json)
+            git commit -m "Weekly refresh: NSE EQ universe from Kotak scrip master ($COUNT symbols)"
             git push
           fi
