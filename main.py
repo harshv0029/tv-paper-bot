@@ -1351,6 +1351,15 @@ TREND_WEAKENED_MIN_CONFIDENCE = 0.95  # explicit user instruction 2026-09-03:
 # reversal, not a marginal single-bar SMA crossover - if confidence falls
 # short, the trade stays open (stop/target/eod-squareoff still apply).
 
+ENTRY_BREAKOUT_MARGIN_PCT = 0.1  # explicit user instruction 2026-09-04
+# ("make stronger trade entries... more transaction means more taxes"):
+# orb_breakout now requires the close to clear the opening-range high by
+# at least this % (not just touch/tick above it), on top of also requiring
+# TREND_WEAKENED_MIN_CONFIDENCE-level trend confidence (see _auto_signal_
+# core's entry check) - together these filter out the marginal setups
+# that were closing for a few rupees of P&L (real 2026-09-04 closed
+# trades: rr_achieved 0.05 and 0.38, far short of the 3.0 target).
+
 
 def _trend_confidence(closes: np.ndarray, sma_fast: int, sma_slow: int) -> float:
     """One-tailed statistical confidence, via the normal CDF, that the
@@ -2011,8 +2020,12 @@ def _auto_signal_core(
     Rules (all tweakable via query params):
       - Opening range = high/low of the first `orb_minutes` after the market
         opens (open_min, in its own local time).
-      - Entry: candle closes above the opening range high AND SMA(fast) >
-        SMA(slow) (trend filter). Long only - no shorting in this book.
+      - Entry: candle closes ENTRY_BREAKOUT_MARGIN_PCT% above the opening
+        range high (not just any tick above it) AND SMA(fast) > SMA(slow)
+        with at least TREND_WEAKENED_MIN_CONFIDENCE trend confidence (not
+        just any positive gap) - both tightened 2026-09-04, explicit user
+        instruction, to cut down on marginal-edge entries. Long only - no
+        shorting in this book.
       - Stop-loss: the strategy's own technical level (opening-range low),
         capped at stop_pct% max below entry - whichever is tighter, so max
         loss per trade is bounded at stop_pct% of that trade's value even if
@@ -2260,7 +2273,27 @@ def _auto_signal_core(
             return result
 
         if strategy == "orb_breakout":
-            entry_signal = last_close > orb_high and trend == "up"
+            # Stronger entries, explicit user instruction 2026-09-04: too
+            # many trades were closing at a few rupees of P&L (e.g. real
+            # closed trades this session hit only rr_achieved 0.05/0.38 -
+            # a tiny fraction of the 3.0 target) - more transactions also
+            # means more tax events for no real edge. Two tightenings, both
+            # reusing existing, already-justified thresholds rather than
+            # inventing new numbers:
+            #   1. The breakout must clear orb_high by a real margin, not
+            #      just touch it - ENTRY_BREAKOUT_MARGIN_PCT filters the
+            #      marginal single-tick "breakouts" that are really just
+            #      noise around the level.
+            #   2. The trend must be confidently up, not just
+            #      SMA-fast > SMA-slow by any amount - reuses the SAME
+            #      TREND_WEAKENED_MIN_CONFIDENCE (95%) bar already trusted
+            #      for the early-exit check, so entry and exit apply the
+            #      same statistical bar for "is this trend real."
+            breakout_level = orb_high * (1 + ENTRY_BREAKOUT_MARGIN_PCT / 100)
+            entry_signal = (
+                last_close > breakout_level and trend == "up"
+                and _trend_confidence(closes, sma_fast, sma_slow) >= TREND_WEAKENED_MIN_CONFIDENCE
+            )
             structural_low = orb_low
             entry_reason = "orb_breakout_with_trend"
         else:  # bullish_engulfing - see add_strategy_signal() for the backtested version
