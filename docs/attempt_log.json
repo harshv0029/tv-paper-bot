@@ -26074,5 +26074,40 @@
         "detail": "No data for symbol='INR=X' period='5d' interval='1d'."
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-04T00:04:51Z",
+    "attempts": {
+      "CL=F": {
+        "checked_at_utc": 1788479967.2553551,
+        "symbol": "CL=F",
+        "status": "checked",
+        "time_local": "2026-09-03 23:59:27.239907",
+        "currency": "USD",
+        "fx_to_inr": 94.475,
+        "last_close": 91.83000183105469,
+        "orb_high": 90.76000213623047,
+        "orb_low": 90.51000213623047,
+        "sma_fast": 91.83666653103299,
+        "sma_slow": 91.7961905343192,
+        "trend": "up",
+        "capital": 400000,
+        "daily_loss_cap": 8000.0,
+        "realized_today": 0.0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 8000.0,
+        "halted_for_day": false,
+        "action_taken": "exited_eod_squareoff",
+        "exit_pnl_inr": 545.97,
+        "exit_pnl_pct": 0.136,
+        "rr_achieved": 0.27
+      },
+      "GC=F": {
+        "checked_at_utc": 1788480027.2766078,
+        "symbol": "GC=F",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-04 00:00:27.266603"
+      }
+    }
   }
 ]

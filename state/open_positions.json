@@ -1,39 +1,4 @@
 {
-  "synced_at_utc": "2026-09-03T23:04:50Z",
-  "open_positions": [
-    {
-      "symbol": "GC=F",
-      "qty": 0.469653,
-      "entry_price_native": 4507.5,
-      "stop_loss_native": 4429.89990234375,
-      "initial_stop_loss_native": 4429.89990234375,
-      "target_native": 4740.30029296875,
-      "fx_to_inr": 94.4749984741211,
-      "notional_inr": 199999.88,
-      "orb_high_native": 4438.0,
-      "orb_low_native": 4429.89990234375,
-      "entry_ts": 1788444018.5764008,
-      "interval": "5m",
-      "strategy": "orb-15m-sma20-21",
-      "sma_fast": 20,
-      "sma_slow": 21
-    },
-    {
-      "symbol": "CL=F",
-      "qty": 23.115988,
-      "entry_price_native": 91.58000183105469,
-      "stop_loss_native": 90.66420181274414,
-      "initial_stop_loss_native": 90.66420181274414,
-      "target_native": 94.32740188598633,
-      "fx_to_inr": 94.4749984741211,
-      "notional_inr": 200000.0,
-      "orb_high_native": 90.76000213623047,
-      "orb_low_native": 90.51000213623047,
-      "entry_ts": 1788463943.6905658,
-      "interval": "5m",
-      "strategy": "orb-15m-sma9-21",
-      "sma_fast": 9,
-      "sma_slow": 21
-    }
-  ]
+  "synced_at_utc": "2026-09-04T00:04:51Z",
+  "open_positions": []
 }
