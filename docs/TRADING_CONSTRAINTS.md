@@ -1102,3 +1102,29 @@ ceiling. All other Stage 3 mechanics, gates, and disclosed limitations
 above are unchanged; every "Rs 500" reference above this note describes
 the original decision as made at the time, kept for the record rather
 than rewritten.
+
+## Stronger ORB entries (2026-09-04)
+
+Explicit user instruction, after watching real closed trades in trade
+view: "your strategies are not getting fruitful... make stronger trade
+entries as these are less profitable... more transaction means more
+taxes." Real evidence cited: closed trades this session (ITC.NS,
+HDFCBANK.NS) achieved rr_achieved 0.05 and 0.38 - a tiny fraction of the
+3.0 R:R target - and each closed trade is also a real transaction cost/
+tax event, not free.
+
+`orb_breakout` now requires BOTH, reusing existing thresholds rather than
+inventing new numbers:
+1. The close must clear the opening-range high by `ENTRY_BREAKOUT_MARGIN_
+   PCT` (0.1%), not just tick above it - filters marginal single-tick
+   "breakouts" that are noise around the level.
+2. `_trend_confidence()` (the SAME normal-CDF statistical read already
+   trusted for the `trend_weakened` early-exit check) must clear
+   `TREND_WEAKENED_MIN_CONFIDENCE` (95%) at entry too - not just any
+   positive SMA(fast) > SMA(slow) gap.
+
+Net effect: fewer entries, each requiring real conviction on both the
+breakout and the trend, rather than trading every marginal touch of the
+ORB high. Applies to `orb_breakout` only (the strategy actually running
+on the current watchlist) - `bullish_engulfing` already has its own
+trend_sma/volume_confirm filters and was left untouched.
