@@ -965,3 +965,131 @@ session hours/currency/risk_pct, so an options-eligible symbol missing from
   `live-signals-us.yml`'s `OPT_COMMON` block is the options backstop)
 - `/dry-run-day`, `/trade-view`, `/live` default query params in their own
   fetch calls
+
+## Stage 3: real order placement (2026-09-04)
+
+Explicit user instruction, given only after Phase 1/2/2.5 + the live tick
+feed (see "Kotak Neo connection" / "Kotak Neo live tick feed" above) were
+verified complete: "Ok go ahead" -> confirmed via AskUserQuestion to mean
+"Build stage 3 (real order placement)". This section is the design and the
+verification trail behind it - read it before touching any of this code.
+
+**The user's own explicit decisions (not my defaults):**
+- Cap: **Rs 500 TOTAL REAL BUY NOTIONAL PER IST CALENDAR DAY** - "in stage
+  3 all your experiments will use only upto INR 500 real money... not more
+  than that", then "per day" when asked to disambiguate per-trade / per-day
+  / lifetime.
+- Automation: **fully automatic** once enabled - explicitly chosen over a
+  manual-per-trade-confirm alternative.
+- Scope: **low-priced NSE cash equities only** - explicitly chosen over
+  "full watchlist, skip what doesn't fit" and "decide later". MCX/options/
+  indices are OUT of stage 3 v1 (a single MCX lot or option contract
+  already exceeds Rs 500 - confirmed from real search_scrip data the same
+  session; indices aren't directly tradeable).
+
+**Architecture - additive, never invasive.** `kotak_real_orders.py` (new,
+isolated, same discipline as `kotak_neo.py`) only knows how to place one
+real buy/sell via Kotak's place_order. All the decision logic - when to
+call it, whether the gates allow it - lives in main.py's
+`_maybe_place_real_entry`/`_maybe_place_real_exit`, called from
+`_scheduler_loop` right AFTER `_auto_signal_core` returns
+`action_taken == "entered_long"` or `"exited_..."` for an equity symbol -
+never from inside `_auto_signal_core` itself. Paper trading's own logic is
+completely unaware real trading exists; a real-order failure is caught in
+its own try/except at the call site and can never break a paper tick.
+
+**Two independent gates, both required** (`is_real_trading_enabled`):
+1. `REAL_TRADING_ENABLED=YES` (exact string) as a Render env var - a
+   separate, deliberate action from any code push, same discipline as
+   `KOTAK_NEO_API_TOKEN`.
+2. `real_trading_control` DB row, `enabled` default **0** - flipped only
+   via `POST /real-trading-control?action=enable` (token-gated). Its own
+   kill switch, deliberately NOT shared with paper trading's
+   `/trading-control` - pausing/resuming paper trading must never
+   accidentally arm or disarm real trading, or vice versa.
+
+Both default OFF. As of this write, `REAL_TRADING_ENABLED` is unset and
+the DB row has never been set to 1 - real trading has placed zero real
+orders. Turning it on requires the user's separate, fresh, in-the-moment
+instruction, same standing rule as every other stage of this project.
+
+**Exits are never gated.** `_maybe_place_real_exit`/`place_real_exit` have
+no enabled-check at all, by design: closing an already-open real position
+must never be blocked by the switch that gates new entries. Leaving a real
+position unmanaged is strictly more dangerous than closing it.
+
+**Order mechanics - verified against kotakneoapi==3.0.1's own installed
+source** (`neo_api_client/neo_api.py`'s `place_order` signature,
+`req_data_validation.py`'s real allowed values), not guessed:
+`exchange_segment="nse_cm"`, `product="CNC"` (cash, no leverage -
+deliberately not MIS/NRML/MTF, so Rs 500 of cap enforcement maps to Rs 500
+of real notional with no margin multiplier), `order_type="MKT"`,
+`transaction_type="B"`/`"S"`, `validity="DAY"`, fixed `quantity=1` (the
+most conservative starting point - no variable sizing in v1).
+
+**The one thing that could NOT be verified from a live call**: this
+account had placed zero real orders before this code existed, so
+`trade_report()`/`order_report()` had no real rows to inspect field names
+from, and the official docs domain (napi.kotaksecurities.com) and GitHub
+raw/blob content are both blocked by this sandbox's egress proxy outside
+the one repo already in scope. What WAS confirmed: Kotak's own published
+sample response (via two independent web-search hits pointing at
+Kotak-Neo/kotak-neo-api's docs) shows a real success response containing
+`"nOrdNo": "220621000000097"` alongside `"stat":"Ok"`/`"stCode":200`.
+`kotak_real_orders.py` recognizes success ONLY by a non-empty `nOrdNo` in
+the response - the single most positively-confirmable signal - and treats
+everything else (missing `nOrdNo`, an `error`/`Error` key, a non-dict
+response, a raised exception) as failed/uncertain. It never infers success
+from the absence of an error.
+
+**The daily cap is deliberately NOT sourced from `trade_report()`/
+`order_report()`** for the same reason - their per-row field names are
+equally unverified with zero real rows to check against. Instead,
+`_real_today_spent_inr` sums `real_trades.notional_inr` from THIS
+codebase's own SQLite table, populated at order-attempt time using a
+fixed `qty=1` and the real-time LTP already sourced from
+`kotak_live_feed.py` (built and confirmed against real ticks earlier the
+same session) - data this codebase fully generates and controls, so the
+risk-cap enforcement never depends on trusting an unverified external
+response shape.
+
+**Audit trail**: every real-order attempt (confirmed, failed, or
+skipped-and-why) is logged to `real_trades` (uncapped) -
+`GET /kotak-neo/real-trades` (token-gated). Currently-open real positions:
+`real_positions` table, visible via `GET /real-trading-control`
+(`open_real_positions`).
+
+**Durability gap, stated plainly rather than hidden**: like every other
+piece of this app's state, `real_trading_control`/`real_positions`/
+`real_trades` live in the same SQLite DB that a Render redeploy wipes.
+Reconciliation functions exist (`reconcile_real_trading_control_from_
+journal`, `reconcile_real_positions_from_journal`,
+`reconcile_real_trades_today_from_journal`, mirroring the existing paper-
+trading pattern) and `journal-sync.yml` has been extended to write
+`state/real_trading_control.json`, `state/real_positions.json`,
+`state/real_trades_today.json`, and append to `docs/real_trade_log.json` -
+but this requires **`KOTAK_NEO_API_TOKEN` to be added as a GitHub Actions
+repository secret** (Settings -> Secrets and variables -> Actions), the
+SAME value already set as the Render env var. Until that secret is added,
+those three real_* curl calls in journal-sync.yml get a 503/empty response
+and their journals stay unwritten - the OFF-by-default gates and the
+per-attempt audit log still hold regardless, but an open real position or
+today's already-spent amount would NOT survive an unexpected mid-day
+Render restart without this one manual step.
+
+**Standing real-money review policy applied**: this entire stage 3 build
+went through the same real, adversarial review discipline established
+2026-09-04 ("the agent which pushes code for production has to always do
+the thorough review before pushing the code to production") before
+touching `staging`/`main` - see the commit history for the review pass
+this section's own code went through.
+
+**Residual risk, disclosed rather than hidden**: the daily-cap check uses
+the live-feed LTP at attempt time as the notional estimate, not a
+broker-confirmed fill price (see above - trade_report()/order_report()
+field names are unverified). A `MKT` order on qty=1 of a liquid NSE
+large/mid-cap should fill within a small fraction of that estimate, but a
+real fill could differ slightly from the LTP snapshot, so the day's actual
+real spend could exceed the tracked Rs 500 by a small, bounded amount
+(normal market-order slippage on a single share, not a multiple of the
+cap). This is an accepted, disclosed limitation of v1, not an oversight.
