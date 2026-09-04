@@ -35016,5 +35016,82 @@
         "time_local": "2026-09-04 19:36:32.626629"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-04T15:06:00Z",
+    "attempts": {
+      "HDFCBANK.NS": {
+        "checked_at_utc": 1788534358.166137,
+        "symbol": "HDFCBANK.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 20:35:46.708477"
+      },
+      "RELIANCE.NS": {
+        "checked_at_utc": 1788534358.166765,
+        "symbol": "RELIANCE.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 20:35:58.166456"
+      },
+      "^NSEI": {
+        "checked_at_utc": 1788534358.1671922,
+        "symbol": "^NSEI",
+        "status": "closed",
+        "time_local": "2026-09-04 20:35:58.167086"
+      },
+      "INFY.NS": {
+        "checked_at_utc": 1788534358.1674442,
+        "symbol": "INFY.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 20:35:58.167307"
+      },
+      "ICICIBANK.NS": {
+        "checked_at_utc": 1788534358.1676774,
+        "symbol": "ICICIBANK.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 20:35:58.167562"
+      },
+      "BHARTIARTL.NS": {
+        "checked_at_utc": 1788534358.1678956,
+        "symbol": "BHARTIARTL.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 20:35:58.167771"
+      },
+      "TCS.NS": {
+        "checked_at_utc": 1788534358.1680765,
+        "symbol": "TCS.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 20:35:58.167990"
+      },
+      "HINDUNILVR.NS": {
+        "checked_at_utc": 1788534358.1682844,
+        "symbol": "HINDUNILVR.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 20:35:58.168159"
+      },
+      "ITC.NS": {
+        "checked_at_utc": 1788534358.16849,
+        "symbol": "ITC.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 20:35:58.168406"
+      },
+      "^NSEBANK": {
+        "checked_at_utc": 1788534358.168708,
+        "symbol": "^NSEBANK",
+        "status": "closed",
+        "time_local": "2026-09-04 20:35:58.168586"
+      },
+      "SBIN.NS": {
+        "checked_at_utc": 1788534358.168928,
+        "symbol": "SBIN.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 20:35:58.168815"
+      },
+      "^BSESN": {
+        "checked_at_utc": 1788534358.169117,
+        "symbol": "^BSESN",
+        "status": "closed",
+        "time_local": "2026-09-04 20:35:58.169014"
+      }
+    }
   }
 ]
