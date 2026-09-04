@@ -1093,3 +1093,12 @@ real fill could differ slightly from the LTP snapshot, so the day's actual
 real spend could exceed the tracked Rs 500 by a small, bounded amount
 (normal market-order slippage on a single share, not a multiple of the
 cap). This is an accepted, disclosed limitation of v1, not an oversight.
+
+**Cap raised to Rs 2000/day (2026-09-04, later same day)**: explicit user
+instruction "use 2000 as whole", confirmed via AskUserQuestion to mean
+raising `REAL_TRADING_DAILY_CAP_INR` from Rs 500 to Rs 2000 - same per-
+IST-day semantics as the original cap (see above), not a lifetime
+ceiling. All other Stage 3 mechanics, gates, and disclosed limitations
+above are unchanged; every "Rs 500" reference above this note describes
+the original decision as made at the time, kept for the record rather
+than rewritten.
