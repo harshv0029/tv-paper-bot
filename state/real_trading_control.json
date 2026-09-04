@@ -1,6 +1,6 @@
 {
-  "db_switch_enabled": false,
-  "updated_at": null,
-  "updated_by": null,
-  "reason": null
+  "db_switch_enabled": true,
+  "updated_at": 1788501825.901508,
+  "updated_by": "user",
+  "reason": "user explicit go-ahead 2026-09-04 - re-applied now that journal durability is fixed"
 }
