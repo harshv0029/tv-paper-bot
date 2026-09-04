@@ -21,12 +21,12 @@ condition to a listed strategy before inventing a new one. Add a row for anythin
 | 10 | NIFTY Iron Condor (live-tuned) | Short 24700CE/23700PE, long 24900CE/23500PE, ~2–3wk expiry | Vol squeeze: realized vol < assumed IV, range-bound (coil) | Proposed — pending `/sweep` backtest | Multi-timeframe scan, 2026-09-01 | Strikes set from Jun–Aug swing high/low (24774/23606); realized vol 10.6% ann. vs 14% assumed IV |
 | 11 | SENSEX Iron Condor (wider wings) | Short 78700CE/76200PE, long 79500CE/75400PE | Same vol-squeeze edge as #10, weaker weekly trend structure (below both weekly MAs) → wider wings for breakout risk | Proposed — pending `/sweep` backtest | Multi-timeframe scan, 2026-09-01 | Realized vol 11.0% ann. vs 14% assumed IV |
 | 12 | BANKNIFTY Bull Put Spread | Sell 57000PE, buy 56000PE | Pullback-to-support inside an intact uptrend; premium-selling edge weaker (realized vol ≈ assumed IV) | Proposed — pending `/sweep` backtest | Multi-timeframe scan, 2026-09-01 | Strongest 60-day trend of the three indices (+5.35%); defined-risk "buy the dip" |
-| 13 | VWAP Mean Reversion | Directional, underlying only (not options) | Price extended 1–2 SD away from session VWAP; expect reversion | Proposed — untested | Real-world VWAP strategy research, 2026-09-04 | Fade the extension, target back to VWAP itself; 1-SD bands = more/weaker signals, 2-SD = fewer/stronger |
-| 14 | VWAP Trend Filter | Directional, underlying only (not options) | Trending session; price sits clearly on one side of VWAP | Proposed — untested | Real-world VWAP strategy research, 2026-09-04 | Long only while price > VWAP, short only while price < VWAP — VWAP used purely as a directional filter, not the entry trigger itself; conceptually closest to this project's existing SMA-fast/SMA-slow trend filter |
-| 15 | VWAP Breakout + Retest | Directional, underlying only (not options) | Momentum break through a VWAP deviation band on volume, then a retest of VWAP itself as new support/resistance | Proposed — untested | Real-world VWAP strategy research, 2026-09-04 | Entry on the retest HOLDING, not on the initial break — filters fakeout breaks that don't get institutional follow-through |
-| 16 | Anchored VWAP — Trend Continuation | Directional, underlying only (not options) | AVWAP anchored at the breakout candle or a swing low; price holds above it making higher highs/lows | Proposed — untested | Real-world VWAP strategy research, 2026-09-04 | Dips back to the AVWAP line within an intact uptrend are the buy-the-dip entry |
-| 17 | Anchored VWAP — Trend Reversal | Directional, underlying only (not options) | AVWAP anchored at a swing high or major news candle; price repeatedly rejected from below it | Proposed — untested | Real-world VWAP strategy research, 2026-09-04 | Mirror read of #16 — repeated rejection (not reclaim) signals sustained selling pressure / a topping structure |
-| 18 | VWAP Multi-Period Reversal | Directional, underlying only (not options) | Price has sat on one side of VWAP for several consecutive periods, then crosses to the other side | Proposed — untested | Real-world VWAP strategy research, 2026-09-04 | The cross event itself is the trigger (not the distance from VWAP) — distinct from #13's "extended-then-fade" read |
+| 13 | VWAP Mean Reversion | Directional, underlying only (not options) | Price extended 1–2 SD away from session VWAP; expect reversion | **Tried — promising, unswept** | `/backtest`, RELIANCE.NS 5m/60d, 2026-09-04 | 60 trades, 70.0% win rate, total PnL **+62.3**, avg win 4.82 / avg loss −7.79 — only one of the six with a positive single-run result; needs a real `/sweep` across symbols/params before calling it robust |
+| 14 | VWAP Trend Filter | Directional, underlying only (not options) | Trending session; price sits clearly on one side of VWAP | **Tried — not robust** | `/backtest` (`vwap_reclaim`), RELIANCE.NS 5m/60d, 2026-09-04 | 55 trades, 41.8% win rate, total PnL **−64.3**, avg win 10.3 / avg loss −9.41 — loses money net of the win/loss split |
+| 15 | VWAP Breakout + Retest | Directional, underlying only (not options) | Momentum break through a VWAP deviation band on volume, then a retest of VWAP itself as new support/resistance | **Tried — not robust** | `/backtest`, RELIANCE.NS 5m/60d, 2026-09-04 | 93 trades, 20.4% win rate, total PnL **−26.4** — win rate far too low even with a favorable win/loss ratio (7.51 / −2.28) |
+| 16 | Anchored VWAP — Trend Continuation | Directional, underlying only (not options) | AVWAP anchored at the breakout candle or a swing low; price holds above it making higher highs/lows | **Tried — not robust** | `/backtest`, RELIANCE.NS 5m/60d, 2026-09-04 | 277 trades, 27.8% win rate, total PnL **−68.7** — highest trade count of all six (most overtrading, most tax drag) for the worst absolute loss |
+| 17 | Anchored VWAP — Trend Reversal | Directional, underlying only (not options) | AVWAP anchored at a swing high or major news candle; price repeatedly rejected from below it | **Tried — not robust** | `/backtest`, RELIANCE.NS 5m/60d, 2026-09-04 | 254 trades, 28.3% win rate, total PnL **−49.9** |
+| 18 | VWAP Multi-Period Reversal | Directional, underlying only (not options) | Price has sat on one side of VWAP for several consecutive periods, then crosses to the other side | **Tried — not robust** | `/backtest`, RELIANCE.NS 5m/60d, 2026-09-04 | 68 trades, 22.1% win rate, total PnL **−21.8** |
 
 ## VWAP strategies (2026-09-04) — explicit user instruction to research and catalog
 
@@ -46,10 +46,29 @@ to predict direction. Not applicable to this project's paper/real-money
 entries (those are always small, single-order fills, never sliced), but
 worth knowing the term also means this in the wild.
 
-None of #13–18 are wired into `_auto_signal_core`'s `strategy` param yet
-(currently only `orb_breakout` and `bullish_engulfing` are implemented) -
-per this log's own standing process, these stay `Proposed — untested` until
-actually backtested, same as the options rows above.
+Update, 2026-09-04 (real backtest results): all 6 are now implemented in
+`add_strategy_signal()` and backtested via the real `/backtest` endpoint
+against real Yahoo Finance data. **First attempt used `^NSEI` (NIFTY index)
+and came back `num_trades: 0` for all six** — traced to a real data-source
+issue, not a strategy flaw: Yahoo Finance reports `volume: 0` on every bar
+for index tickers (`^NSEI`, `^NSEBANK`, etc., since an index itself isn't
+traded), and every VWAP calculation here divides by cumulative volume, so
+`vwap` is `NaN` all session and every VWAP-based entry condition is
+unconditionally false. Re-ran against `RELIANCE.NS` (a real equity, real
+volume) and got real, differentiated results — see the Status/Notes columns
+above. Only #13 (VWAP Mean Reversion) came back net-positive on this single
+run; the other five lost money, with #16 (Anchored VWAP Continuation)
+overtrading the worst (277 trades in 60 days on one symbol). **Caveat: this
+is one symbol, one 60-day window, default params — a single `/backtest`
+run, not a `/sweep`.** None of #13–18 are wired into `_auto_signal_core`'s
+live `strategy` param — per this log's own standing process, none should be
+until a real `/sweep` across symbols/params confirms #13 holds up, and the
+other five should not be pursued further without a materially different
+entry read (they lose money net of their own win/loss split).
+
+Practical implication for any VWAP-based strategy going forward: only use
+it live on real equities/futures with genuine traded volume, never on a
+raw index ticker.
 
 ## Cross-strategy read (2026-09-01)
 
