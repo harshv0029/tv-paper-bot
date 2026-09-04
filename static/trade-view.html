@@ -264,8 +264,8 @@
   </div>
   <div class="counts-scroll">
     <table class="counts">
-      <thead><tr><th>Symbol</th><th class="num">Checks today</th><th>Last result</th><th>Last checked</th><th>Source</th></tr></thead>
-      <tbody id="counts-body"><tr><td colspan="5" class="scan-idle">Loading…</td></tr></tbody>
+      <thead><tr><th class="num">#</th><th>Symbol</th><th class="num">Checks today</th><th>Last result</th><th>Last checked</th><th>Source</th></tr></thead>
+      <tbody id="counts-body"><tr><td colspan="6" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -642,11 +642,11 @@ function renderCounts(p) {
   const rows = p.check_counts_today || [];
   const body = document.getElementById("counts-body");
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="5" class="scan-idle">No data yet</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" class="scan-idle">No data yet</td></tr>`;
     return;
   }
   const maxCount = Math.max(1, ...rows.map(r => r.checks_today));
-  body.innerHTML = rows.map(r => {
+  body.innerHTML = rows.map((r, i) => {
     const tag = scanTagFor(r.last_action);
     const label = tag.label !== "—" ? tag.label : (r.last_action || "—");
     const barPct = Math.round((r.checks_today / maxCount) * 100);
@@ -658,6 +658,7 @@ function renderCounts(p) {
     const sourceLabel = r.data_source === "yahoo_finance" ? "Yahoo Finance" : (r.data_source || "—");
     const sourceTitle = r.mcx_proxy_for ? ` title="Price-action proxy for ${r.mcx_proxy_for}"` : "";
     return `<tr>
+      <td class="num meta">${i + 1}</td>
       <td class="sym">${r.display || r.symbol}</td>
       <td class="num">
         <span class="count-bar-wrap">
