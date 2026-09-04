@@ -152,7 +152,6 @@
   .control-bar.real-bar.real-active{background:rgba(34,197,94,.06);border-color:rgba(34,197,94,.5);}
   #real-ctrl-status .ctrl-dot{background:var(--warn);box-shadow:0 0 0 3px rgba(245,158,11,.2);}
   .real-bar.real-active #real-ctrl-status .ctrl-dot{background:var(--up);box-shadow:0 0 0 3px var(--up-dim);}
-  .real-toggle input:checked + .kt-track{background:var(--up);}
   .real-auth-btn{background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:inherit;}
   .real-auth-btn:hover{border-color:var(--accent);color:var(--text);}
   .ctrl-status{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;}
@@ -174,6 +173,15 @@
   .kt-state{font-size:12px;font-weight:700;font-family:'IBM Plex Mono',monospace;min-width:32px;}
   .kill-toggle input:checked ~ .kt-state{color:var(--down);}
   .kill-toggle input:not(:checked) ~ .kt-state{color:var(--up);}
+
+  /* Real trading toggle - deliberately inverted from the kill switch above:
+     ON (armed, green) is the "everything's working" state here, not an
+     alarm - these rules must come AFTER the generic .kill-toggle ones
+     above (equal specificity, so source order decides the cascade) or
+     they're silently overridden and the track shows red for ON regardless. */
+  .real-toggle input:checked + .kt-track{background:var(--up);}
+  .real-toggle input:checked ~ .kt-state{color:var(--up);}
+  .real-toggle input:not(:checked) ~ .kt-state{color:var(--warn);}
   .log-type{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
 </style>
 </head>
@@ -729,6 +737,13 @@ async function refreshControlStatus() {
   try {
     const status = await fetchJSON(`${ORIGIN}/trading-control`);
     renderControlBar(status);
+    // Clear a stale action message left over from a PRIOR toggle once the
+    // status has genuinely moved on since then - onKillToggle sets this
+    // right after its own action, but nothing was clearing it on the
+    // periodic 10s refresh, so it could sit there contradicting the
+    // current (correct) toggle position after some other change touched
+    // the switch (e.g. a later action from the user themselves).
+    if (!killSwitchBusy) document.getElementById("ctrl-msg").textContent = "";
   } catch (e) {
     // Non-fatal - leave the bar showing its last-known state.
   }
