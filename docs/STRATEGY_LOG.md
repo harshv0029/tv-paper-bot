@@ -27,6 +27,12 @@ condition to a listed strategy before inventing a new one. Add a row for anythin
 | 16 | Anchored VWAP — Trend Continuation | Directional, underlying only (not options) | AVWAP anchored at the breakout candle or a swing low; price holds above it making higher highs/lows | **Tried — not robust** | `/backtest`, RELIANCE.NS 5m/60d, 2026-09-04 | 277 trades, 27.8% win rate, total PnL **−68.7** — highest trade count of all six (most overtrading, most tax drag) for the worst absolute loss |
 | 17 | Anchored VWAP — Trend Reversal | Directional, underlying only (not options) | AVWAP anchored at a swing high or major news candle; price repeatedly rejected from below it | **Tried — not robust** | `/backtest`, RELIANCE.NS 5m/60d, 2026-09-04 | 254 trades, 28.3% win rate, total PnL **−49.9** |
 | 18 | VWAP Multi-Period Reversal | Directional, underlying only (not options) | Price has sat on one side of VWAP for several consecutive periods, then crosses to the other side | **Tried — not robust** | `/backtest`, RELIANCE.NS 5m/60d, 2026-09-04 | 68 trades, 22.1% win rate, total PnL **−21.8** |
+| 19 | Liquidity Sweep Reversal (Stop Hunt) | Directional, underlying only (not options) | Price sharply wicks through a swing high/low where stop-loss/limit orders cluster (a "liquidity pool"), then reverses fast | Proposed — untested | Real-world liquidity-heatmap research, 2026-09-04 | **Approximable with OHLCV**: wick beyond a recent swing high/low + a volume spike on that bar + close back inside the prior range = the sweep-and-reversal signature. Enter on the reversal confirming, never on the sweep itself — "the best setups come after the stop hunt, not during it" |
+| 20 | Liquidity Wall Fade (order-book support/resistance) | Directional, underlying only (not options) | Price approaches a large resting bid/ask wall visible on the DOM/heatmap | Proposed — **blocked, no Level-2 data** | Real-world liquidity-heatmap research, 2026-09-04 | Needs real order-book depth (resting limit-order size per price level), which this project's yfinance OHLCV feed does not carry — not implementable/backtestable here without a Level-2/DOM data source |
+| 21 | Absorption Rejection vs. Failed-Absorption Continuation | Directional, underlying only (not options) | Aggressive market-order volume hits a resting wall: price stalls (wall absorbs → trade the rejection) or the wall gives way anyway (absorption fails → trade the continuation) | Proposed — **blocked, no Level-2 data** | Real-world liquidity-heatmap research, 2026-09-04 | Same DOM-dependency gap as #20 — telling absorption from a breakthrough needs to see the resting order size itself, not just price/volume |
+| 22 | Liquidity Void Breakout | Directional, underlying only (not options) | A confirmed breakout runs into a thin, low-liquidity zone with little resting supply/demand to slow it — expect a fast, low-resistance move | Proposed — untested | Real-world liquidity-heatmap research, 2026-09-04 | **Approximable with OHLCV** as a volatility-expansion filter layered on `orb_breakout`: a real air-pocket move should show unusually wide-range bars, rising volume, and few pullback wicks vs. a normal breakout |
+| 23 | Liquidity Magnet Target (equal highs/lows, round numbers) | Not an entry trigger — a target/exit-setting concept | Untouched liquidity clusters (equal highs/lows, round numbers) act as statistical magnets price is drawn toward | Proposed — untested | Real-world liquidity-heatmap research, 2026-09-04 | **Approximable with OHLCV** by scanning for equal highs/lows within a small tolerance band and using the nearest untouched one as a profit target, not an entry signal — pairs with any of #19/#22 rather than standing alone |
+| 24 | Fake Wall / Spoofing Filter | Not a standalone strategy — a risk/validity filter on #20 | A visible wall that vanishes as price approaches was spoofed (placed to bait, then pulled), not real intent — trading it as real S/R gets faded the wrong way | Proposed — **blocked, no Level-2 data** | Real-world liquidity-heatmap research, 2026-09-04 | Needs order-placement/cancellation event data that OHLCV bars can never show; catalogued for completeness only, not implementable here |
 
 ## VWAP strategies (2026-09-04) — explicit user instruction to research and catalog
 
@@ -69,6 +75,53 @@ entry read (they lose money net of their own win/loss split).
 Practical implication for any VWAP-based strategy going forward: only use
 it live on real equities/futures with genuine traded volume, never on a
 raw index ticker.
+
+## Liquidity heatmap strategies (2026-09-04) — explicit user instruction to research and catalog
+
+Rows #19–24 cover the standard, real-world liquidity-heatmap/order-flow
+strategies (verified via research, not invented): trading the reversal
+after a stop-hunt sweep of a liquidity pool, fading or trading through
+resting bid/ask walls, reading absorption at those walls, breaking out
+through thin liquidity voids, targeting untouched liquidity clusters as
+magnets, and filtering out spoofed ("fake") walls before acting on them.
+Sources: [ATAS's heatmap trading guide](https://atas.net/blog/heatmap/),
+[LuxAlgo's resting liquidity/liquidity-heatmap concept writeup](https://www.luxalgo.com/library/concept/resting-liquidity-liquidity-heatmap/),
+[AlphaSignal's order-book liquidity heatmap primer](https://alphasignal.digital/academy/order-book-liquidity-heatmaps),
+[Medium: Stop Hunts in Financial Markets](https://medium.com/@yavuzakbay/stop-hunts-in-financial-markets-789a240f64f3),
+[Bookmap's complete guide to heatmap trading](https://bookmap.com/blog/heatmap-in-trading-the-complete-guide-to-market-depth-visualization),
+[Bookmap on fake liquidity, bait walls, and phantom size](https://bookmap.com/blog/how-price-reacts-around-fake-liquidity-bait-walls-and-phantom-size).
+
+**Important scoping note, unlike the VWAP batch above: half of these
+(#20, #21, #24) are not implementable with this project's current data at
+all**, not just untested. A liquidity heatmap is fundamentally a
+visualization of the **live order book** (Level 2/DOM depth — the size of
+resting limit orders waiting at each price level, plus order
+placement/cancellation events to catch spoofing). This project's market
+data comes from Yahoo Finance OHLCV bars (`fetch_ohlc`/`yf.download`) —
+open/high/low/close/volume of *already-executed* trades, with zero
+visibility into resting/unfilled orders. There is no order-book endpoint
+in this codebase and yfinance does not provide one. Trading a "wall" or
+"absorption" or "spoofing" off OHLCV alone would just be guessing dressed
+up in heatmap language — flagged **blocked** rather than
+`Proposed — untested` so that distinction doesn't get lost.
+
+The other three (#19, #22, #23) are real, common approximations that
+don't need order-book depth: a liquidity *sweep* (#19) still leaves an
+OHLCV fingerprint (a wick beyond a swing point + a volume spike + a snap
+back inside range); a liquidity *void* breakout (#22) is really a
+volatility/volume expansion filter on top of the existing `orb_breakout`
+logic; and a liquidity *magnet* target (#23) is just equal-highs/lows
+detection used for exits, not entries. These three stay
+`Proposed — untested` and are legitimate next candidates for
+implementation + `/backtest`, same process as the VWAP rows.
+
+One more distinct, adjacent concept worth flagging separately (not a
+catalog row): a **liquidation heatmap** (Coinglass/Hyblock-style, popular
+in crypto derivatives) shows clusters of leveraged positions that get
+force-liquidated at certain price levels — a related but different data
+source (aggregated exchange liquidation data, not resting spot-market
+limit orders) and out of scope here since this project trades NSE cash
+equities/index, not crypto perpetual futures.
 
 ## Cross-strategy read (2026-09-01)
 
