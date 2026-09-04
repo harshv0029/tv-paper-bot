@@ -1,23 +1,31 @@
 """
-Kotak Neo TradeAPI - authentication only, for now.
+Kotak Neo TradeAPI - auth + read-only account/market data.
 
 Explicit user instruction (2026-09-03): connect a real Kotak Neo account.
-This module is deliberately isolated from main.py's trading engine - it
-does NOT place, modify, or cancel any order, and nothing in main.py's
-scheduler/entry/exit logic imports or calls anything here yet. Its only
-job right now is: can this app actually log in to the real account.
-See docs/TRADING_CONSTRAINTS.md "Kotak Neo connection" for the phased
-plan this is Phase 1 of - auth-only, still 100% paper trading throughout.
+This module is deliberately isolated from main.py's trading engine for
+order placement - nothing here places, modifies, or cancels any order,
+and nothing in main.py's scheduler/entry/exit logic imports or calls
+anything here for that purpose. get_scheduler_capital_inr() (main.py)
+DOES use limits() here for real position sizing (2026-09-04) - see
+docs/TRADING_CONSTRAINTS.md "Kotak Neo connection" for the full phased
+plan (Phase 1 auth, Phase 2 account data, Phase 2.5 market-data search;
+Phase 3 real order placement remains unbuilt, needs its own go-ahead).
+
+Runs on kotakneoapi==3.0.1 (2026-09-04, migrated from the legacy
+git-installed neo-api-client==2.0.2 - see requirements.txt comment and
+docs/TRADING_CONSTRAINTS.md for what changed). Same Python import name
+(neo_api_client), same method signatures and error shapes for every
+function this module calls - verified against the new SDK's actual
+source before migrating, not assumed from its docs.
 
 Credentials are read from env vars (Render's Environment tab), never
 committed to the repo, never logged, never returned by any endpoint:
   KOTAK_NEO_CONSUMER_KEY  - the "default application" token from the
                             Kotak Neo app/web -> Invest tab -> Trade API
                             card (confirmed via Kotak's own actively-
-                            maintained SDK: https://github.com/Kotak-Neo/
-                            Kotak-neo-api-v2 - consumer_key is the ONLY
-                            credential the current login flow needs; an
-                            older support article mentions a separate
+                            maintained SDK - consumer_key is the ONLY
+                            credential the login flow needs; an older
+                            support article mentions a separate
                             "Consumer Secret" via a WSO2 portal - that's
                             a legacy flow, not what this SDK's real,
                             current __init__ accepts).
