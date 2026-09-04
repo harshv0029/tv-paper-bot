@@ -175,5 +175,47 @@
     "rr_target": 3.0,
     "rr_achieved": 0.05,
     "strategy": "orb-15m-sma9-21"
+  },
+  {
+    "symbol": "COALINDIA.NS",
+    "exit_time_utc": 1788508418.3530471,
+    "entry_price_native": 415.8500061035156,
+    "exit_price_native": 414.0,
+    "currency": "INR",
+    "qty": 2.0,
+    "pnl_inr": -3.7,
+    "pnl_pct_of_capital": -0.001,
+    "exit_reason": "trend_weakened",
+    "rr_target": 3.0,
+    "rr_achieved": -0.73,
+    "strategy": "orb-15m-sma9-21"
+  },
+  {
+    "symbol": "HINDUNILVR.NS",
+    "exit_time_utc": 1788508611.556678,
+    "entry_price_native": 1980.199951171875,
+    "exit_price_native": 1980.300048828125,
+    "currency": "INR",
+    "qty": 0.505,
+    "pnl_inr": 0.05,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "partial_exit_reallocated",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-15m-sma9-21"
+  },
+  {
+    "symbol": "HINDUNILVR.NS",
+    "exit_time_utc": 1788508611.9602103,
+    "entry_price_native": 1980.199951171875,
+    "exit_price_native": 1980.300048828125,
+    "currency": "INR",
+    "qty": 0.505,
+    "pnl_inr": 0.05,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "partial_exit_reallocated",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-15m-sma9-21"
   }
 ]
