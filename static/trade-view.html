@@ -694,6 +694,14 @@ async function refreshScanner() {
 // things: this toggle, and the env var you set directly on Render.
 let masterToggleBusy = false;
 let lastPaperStatus = null;
+// The toggle's own switch position + ON/OFF label are manual-input-only
+// (explicit user instruction, 2026-09-04): they're set once on page load
+// from real server state, and after that ONLY by the user's own click
+// (see onMasterToggle) - the 10s periodic poll below never moves the
+// switch or relabels it on its own. The separate status line/dot/meta
+// text next to it still updates live every poll, so real server truth
+// stays visible even if it ever drifts from what the toggle shows.
+let toggleInitialized = false;
 
 function renderMasterToggle() {
   const bar = document.getElementById("control-bar");
@@ -715,8 +723,11 @@ function renderMasterToggle() {
     ? `Changed ${timeAgo(lastPaperStatus.updated_at)}${lastPaperStatus.reason ? " — " + lastPaperStatus.reason : ""}`
     : "";
 
-  if (!masterToggleBusy) input.checked = on;
-  stateLbl.textContent = on ? "ON" : "OFF";
+  if (!toggleInitialized) {
+    input.checked = on;
+    stateLbl.textContent = on ? "ON" : "OFF";
+    toggleInitialized = true;
+  }
 }
 
 async function refreshControlStatus() {
@@ -733,7 +744,12 @@ async function refreshControlStatus() {
 
 async function onMasterToggle(turningOn) {
   const input = document.getElementById("master-toggle-input");
+  const stateLbl = document.getElementById("master-toggle-state");
   const msgEl = document.getElementById("ctrl-msg");
+  // Every path below sets both input.checked and stateLbl together, by
+  // hand - this function is now the ONLY place the toggle's visual
+  // position/label ever changes (see toggleInitialized above).
+  const setSwitch = (on) => { input.checked = on; stateLbl.textContent = on ? "ON" : "OFF"; };
 
   if (turningOn) {
     const confirmed = confirm(
@@ -741,14 +757,14 @@ async function onMasterToggle(turningOn) {
       "env var is also set to YES, eligible NSE equity signals will ALSO place REAL orders with REAL money " +
       "(fully automatic, no per-trade confirmation), capped at today's remaining daily budget. Proceed?"
     );
-    if (!confirmed) { input.checked = false; return; }
+    if (!confirmed) { setSwitch(false); return; }
   } else {
     const confirmed = confirm(
       "ALL TRADING OFF: force-closes every open PAPER position right now at the current market price, and blocks " +
       "all new trades until switched back on. This does NOT automatically close any open REAL position - check " +
       "the Kotak Neo app directly if one might be open. This cannot be undone. Proceed?"
     );
-    if (!confirmed) { input.checked = true; return; }
+    if (!confirmed) { setSwitch(true); return; }
   }
 
   masterToggleBusy = true;
@@ -756,6 +772,7 @@ async function onMasterToggle(turningOn) {
   msgEl.textContent = turningOn ? "Switching on…" : "Switching off — closing all open paper positions…";
   try {
     const res = await fetchJSON(`${ORIGIN}/trading-control?action=${turningOn ? "resume" : "kill"}`, { method: "POST" });
+    setSwitch(turningOn);
     if (!turningOn && res.closed_count > 0) {
       const pnl = res.total_pnl_inr ?? 0;
       msgEl.textContent = `All trading OFF. Closed ${res.closed_count} paper position(s), total P&L ${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}.`;
@@ -766,7 +783,7 @@ async function onMasterToggle(turningOn) {
     await refresh();
   } catch (e) {
     msgEl.textContent = `Failed: ${e.message}`;
-    input.checked = !turningOn;
+    setSwitch(!turningOn);
   } finally {
     masterToggleBusy = false;
     input.disabled = false;
