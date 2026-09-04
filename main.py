@@ -2610,7 +2610,10 @@ def is_trading_enabled(conn) -> bool:
 
 
 # --- Stage 3: real order placement (2026-09-04) -----------------------------
-REAL_TRADING_DAILY_CAP_INR = 500.0  # explicit user instruction, per IST calendar day
+REAL_TRADING_DAILY_CAP_INR = 2000.0  # explicit user instruction 2026-09-04 ("use 2000 as whole" -
+# confirmed via AskUserQuestion to mean "raise the daily cap to Rs 2000",
+# same per-IST-day semantics as the original Rs 500 cap, not a lifetime
+# ceiling), raised from the original Rs 500.
 
 
 def is_real_trading_enabled(conn) -> bool:
