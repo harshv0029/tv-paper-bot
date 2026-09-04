@@ -437,6 +437,63 @@ value used against a divide-by-zero in `/daily-summary`'s own
 pct-of-capital math if the real fetch hasn't resolved yet (falls back to
 0 per `get_scheduler_capital_inr()`'s own contract).
 
+## Kotak Neo live tick feed (added 2026-09-04)
+
+Explicit user instruction: real-time streaming ticks from Kotak Neo,
+prompted by the SDK migration above. `kotak_live_feed.py` is a background
+asyncio task (launched from `main.py`'s startup event, isolated from the
+scheduler's own task - a crash or reconnect loop here can never affect
+paper-trading signal generation) that logs in once, resolves real
+instrument tokens, subscribes via `create_websocket()`/`subscribe_scrips
+()`, and keeps an in-memory `{symbol: {"ltp", "trading_symbol",
+"instrument_token", "updated_at_utc"}}` store updated as ticks arrive.
+`GET /kotak-neo/live-ticks` (unauthenticated - display data only, not
+account-specific, same reasoning as `/watchlist`) exposes the current
+store plus feed status (`connected`, `last_error`, `subscribed_symbols`,
+`unresolved_symbols`).
+
+**Display data only - this does not change how any trading decision gets
+made.** Entry signals (SMA crossover, ORB breakout) and the levels they
+compute (stop, target) still run entirely on Yahoo Finance candle
+history - Kotak's API has no historical-candle endpoint, unchanged by
+this feed. Wiring live ticks into *exit-check timing* specifically
+(checking a stop/target against the freshest available price instead of
+waiting for the scheduler's next ~30s cycle) was explicitly discussed as
+a genuine, bounded follow-up - not done in this change.
+
+**Instrument-token resolution**, `resolve_tokens()`:
+- NSE equities (`*.NS` in `WATCHLIST`): ONE `search_scrip(exchange_
+  segment="nse_cm", symbol="")` call for the whole segment (not one call
+  per symbol - each would re-download the entire scrip master CSV, slow
+  and wasteful for ~100 symbols), matched locally by **exact**
+  `pSymbolName` - a substring match wrongly matched `NIFTYFPI` for
+  "nifty" earlier the same day, so this never uses `.contains()`.
+- Indices: literal name-based tokens, not scrip-master rows - `"Nifty
+  50"` confirmed from the new SDK's own README example, `"Nifty Bank"`
+  independently verified 2026-09-04 via a real `quotes()` call
+  (`ltp: 57367.35` - a real Bank Nifty level) since `search_scrip` can't
+  confirm an index token at all (indices aren't scrip-master rows).
+  `GET /kotak-neo/quotes` was built specifically as this verification
+  tool and is kept for future token checks.
+- SENSEX and the 3 MCX commodity proxies (`GC=F`/`SI=F`/`CL=F`):
+  deliberately unresolved. No confirmed BSE index token exists yet for
+  SENSEX; the MCX proxies are stand-ins for a *different* real MCX
+  contract each (different currency, different unit - see the "Scope"
+  section above), and mapping one to a real, correctly-dated MCX
+  contract is an unresolved design question (which strike/expiry), not a
+  token-lookup problem to paper over with a guess.
+
+**Render free-tier reality, stated plainly**: the whole process suspends
+on inactivity, which kills this task along with everything else. It
+isn't "always-on" in the strict sense - it restarts fresh (re-login,
+re-resolve, re-subscribe) each time a request wakes the app, via the
+same startup event that launches it the first time. `last_error`/
+`connected: false` on `/kotak-neo/live-ticks` most commonly means exactly
+this - a fresh restart mid-reconnect, not a real failure.
+
+Still 100% paper trading throughout - this module places no order and is
+never called by anything that does.
+
 ## Kill switch / pause-resume (added 2026-09-03)
 
 Explicit user instruction: "I want to decide when to do trading and when
