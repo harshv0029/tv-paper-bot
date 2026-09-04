@@ -1,0 +1,53 @@
+name: REAL Trading Control (Stage 3 - places real orders with real money)
+
+# Manual admin utility around POST/GET /real-trading-control - the DB-side
+# half of stage 3's two-gate switch (see docs/TRADING_CONSTRAINTS.md
+# "Stage 3: real order placement"). Flipping this to enable does NOT by
+# itself let any real order fire - REAL_TRADING_ENABLED=YES must ALSO be
+# set as a Render env var (a separate action only the account owner can
+# take there), and paper trading's own /trading-control must be resumed
+# (real entries only mirror a paper "entered_long" decision). Deliberately
+# workflow_dispatch only, never on a schedule.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "status (just show current state) | enable | disable"
+        required: true
+        type: choice
+        options: [status, enable, disable]
+      reason:
+        description: "Optional reason, shown in /real-trading-control's status"
+        required: false
+        type: string
+      token:
+        description: "KOTAK_NEO_API_TOKEN (same value as the Render env var) - required for every action"
+        required: true
+        type: string
+
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /real-trading-control
+        run: |
+          curl -sS -m 30 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+          ACTION="${{ github.event.inputs.action }}"
+          REASON="${{ github.event.inputs.reason }}"
+          TOKEN="${{ github.event.inputs.token }}"
+          BASE="https://tv-paper-bot-gdan.onrender.com/real-trading-control?token=${TOKEN}"
+
+          if [ "$ACTION" != "status" ]; then
+            URL="${BASE}&action=${ACTION}"
+            if [ -n "$REASON" ]; then
+              URL="${URL}&reason=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$REASON")"
+            fi
+            echo "### applying action: $ACTION"
+            curl -sS -m 60 -X POST "$URL"
+            echo
+          fi
+
+          echo "### current status"
+          curl -sS -m 30 "$BASE"
+          echo
