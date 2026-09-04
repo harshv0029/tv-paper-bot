@@ -447,10 +447,10 @@ paper-trading signal generation) that logs in once, resolves real
 instrument tokens, subscribes via `create_websocket()`/`subscribe_scrips
 ()`, and keeps an in-memory `{symbol: {"ltp", "trading_symbol",
 "instrument_token", "updated_at_utc"}}` store updated as ticks arrive.
-`GET /kotak-neo/live-ticks` (unauthenticated - display data only, not
-account-specific, same reasoning as `/watchlist`) exposes the current
-store plus feed status (`connected`, `last_error`, `subscribed_symbols`,
-`unresolved_symbols`).
+`GET /kotak-neo/live-ticks` (token-gated - see the review note below for
+why this changed from an initial unauthenticated design) exposes the
+current store plus feed status (`connected`, `last_error`,
+`subscribed_symbols`, `unresolved_symbols`).
 
 **Display data only - this does not change how any trading decision gets
 made.** Entry signals (SMA crossover, ORB breakout) and the levels they
@@ -475,13 +475,52 @@ a genuine, bounded follow-up - not done in this change.
   confirm an index token at all (indices aren't scrip-master rows).
   `GET /kotak-neo/quotes` was built specifically as this verification
   tool and is kept for future token checks.
-- SENSEX and the 3 MCX commodity proxies (`GC=F`/`SI=F`/`CL=F`):
-  deliberately unresolved. No confirmed BSE index token exists yet for
-  SENSEX; the MCX proxies are stand-ins for a *different* real MCX
-  contract each (different currency, different unit - see the "Scope"
-  section above), and mapping one to a real, correctly-dated MCX
-  contract is an unresolved design question (which strike/expiry), not a
-  token-lookup problem to paper over with a guess.
+- MCX commodity proxies (`GC=F`/`SI=F`/`CL=F`) via `_resolve_mcx_tokens()`:
+  explicit user-confirmed mapping to real MCX contracts (GC=F->GOLD,
+  SI=F->SILVER, CL=F->CRUDEOIL), matched by **exact** `pSymbolName` -
+  "gold" alone real-matched 4,287 rows across GOLD/GOLDM (mini)/
+  GOLDGUINEA/GOLDTEN, confirmed from real data to be different contracts,
+  not variants of the same one. MCX futures carry multiple concurrent
+  expiry months per underlying (GOLD had live 05Feb2027 and 05Apr2027
+  contracts simultaneously) - resolves to the contract with the
+  **earliest still-live** `lExpiryDate`, the conventional "current"
+  contract a price-action proxy should track. One `search_scrip
+  (exchange_segment="mcx_fo", symbol="")` call for the whole segment,
+  same reasoning as nse_cm above (the SDK downloads the full CSV
+  regardless of the `symbol` filter value, confirmed from its source, so
+  one unfiltered call costs the same as three filtered ones).
+- SENSEX: deliberately unresolved. No confirmed BSE index token exists
+  yet - unlike NIFTY/BANKNIFTY, no real quotes() verification has been
+  done for a BSE-side index name, and guessing one risks silently
+  subscribing to nothing or the wrong instrument.
+
+**Real-money risk review (2026-09-04, before this feed's first activation
+was trusted)** - two real findings, both fixed before shipping further:
+1. `/kotak-neo/live-ticks` was briefly live **unauthenticated**. The
+   WebSocket connect/subscribe code path (unlike the REST calls) had
+   never actually been exercised against a real connection failure, so
+   its exception text wasn't verified caller-safe the way
+   `kotak_neo.login()`'s is - `last_error` could in principle echo
+   something from that unverified path onto a public URL. Fixed: gated
+   behind `KOTAK_NEO_API_TOKEN`, same as every other real-Kotak-data
+   endpoint.
+2. The reconnect loop retried every `RESTART_BACKOFF_SECONDS` (a flat
+   60s) forever - during a sustained outage that's a real TOTP login
+   against the live account roughly once a minute for however long the
+   outage lasts. Fixed: capped exponential backoff
+   (`RESTART_BACKOFF_MIN_SECONDS=60` -> doubles each consecutive failure
+   -> caps at `RESTART_BACKOFF_MAX_SECONDS=900`, resets to the minimum
+   the moment a connection actually succeeds).
+
+**Standing rule going forward, per explicit user instruction**: any code
+touching the real Kotak account (auth, data, and especially anything
+that will eventually touch order placement) gets a real correctness/
+security review - not just a pass through the automated Deploy Gate's
+backtest/static checks - before being pushed to production. The Deploy
+Gate catches trading-logic regressions; it does not catch things like an
+unauthenticated endpoint leaking unverified error text, or a reconnect
+loop that could hammer a real login endpoint. Both of the findings above
+came from doing this deliberately, not from the automated gate.
 
 **Render free-tier reality, stated plainly**: the whole process suspends
 on inactivity, which kills this task along with everything else. It

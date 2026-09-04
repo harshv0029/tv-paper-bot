@@ -47,10 +47,15 @@ _feed_status = {
 
 # After the SDK's own built-in initial-connect retries (max_connect_retries,
 # default 3) are exhausted, or after a post-connect failure exhausts
-# max_reconnect_attempts, this task waits this long before trying the
-# whole login+resolve+connect sequence again from scratch - rather than
-# giving up permanently or hot-looping against Kotak's real login endpoint.
-RESTART_BACKOFF_SECONDS = 60
+# max_reconnect_attempts, this task waits before trying the whole
+# login+resolve+connect sequence again from scratch - each attempt is a
+# REAL TOTP login against the live account, so a sustained outage must
+# never turn into a login every RESTART_BACKOFF_MIN_SECONDS for hours
+# (found in a real-money risk review 2026-09-04) - backoff doubles on
+# each consecutive failure, capped at RESTART_BACKOFF_MAX_SECONDS, and
+# resets to the minimum the moment a connection actually succeeds.
+RESTART_BACKOFF_MIN_SECONDS = 60
+RESTART_BACKOFF_MAX_SECONDS = 900  # 15 min ceiling
 
 
 def get_live_ticks() -> dict:
@@ -87,6 +92,62 @@ def _bare_nse_symbol(watchlist_symbol: str) -> str | None:
     return None
 
 
+# Explicit user-confirmed mapping (2026-09-04) - matches
+# docs/TRADING_CONSTRAINTS.md's existing "Scope" section:
+#   GC=F (COMEX Gold)      -> MCX GOLD
+#   SI=F (COMEX Silver)    -> MCX SILVER
+#   CL=F (NYMEX WTI Crude) -> MCX CRUDEOIL
+# Exact pSymbolName - "gold" alone real-matched 4,287 rows on 2026-09-04
+# across GOLD/GOLDM (mini)/GOLDGUINEA/GOLDTEN - different contracts, not
+# variants of the same one, confirmed from real search_scrip data.
+_MCX_SYMBOL_MAP = {"GC=F": "GOLD", "SI=F": "SILVER", "CL=F": "CRUDEOIL"}
+
+
+def _resolve_mcx_tokens(client, watchlist_symbols: list) -> dict:
+    """One search_scrip(exchange_segment="mcx_fo", symbol="") call for the
+    WHOLE segment - confirmed from the SDK's own source that it downloads
+    the full scrip-master CSV regardless of the `symbol` filter value (the
+    filter is applied client-side, after download), so one unfiltered
+    call costs the same as a filtered one and avoids downloading the same
+    large CSV three times for three symbols.
+
+    For each of GC=F/SI=F/CL=F, picks the real contract with the
+    EARLIEST lExpiryDate that hasn't already passed - MCX futures have
+    many concurrent expiry months per underlying (GOLD alone had 05Feb2027
+    and 05Apr2027 contracts live simultaneously, confirmed 2026-09-04);
+    the nearest one is the conventional "current" contract a price-action
+    proxy should track."""
+    wanted = {sym: _MCX_SYMBOL_MAP[sym] for sym in watchlist_symbols if sym in _MCX_SYMBOL_MAP}
+    if not wanted:
+        return {}
+    try:
+        all_mcx = client.search_scrip(exchange_segment="mcx_fo", symbol="")
+    except Exception:
+        return {}
+    if not isinstance(all_mcx, list):
+        return {}
+
+    now_ts = time.time()
+    nearest_by_kotak_name = {}
+    for row in all_mcx:
+        name = row.get("pSymbolName")
+        if name not in wanted.values():
+            continue
+        exp = row.get("lExpiryDate")
+        if not isinstance(exp, (int, float)) or exp <= now_ts:
+            continue  # skip malformed rows and already-expired contracts
+        current_best = nearest_by_kotak_name.get(name)
+        if current_best is None or exp < current_best["lExpiryDate"]:
+            nearest_by_kotak_name[name] = row
+
+    resolved = {}
+    for watchlist_sym, kotak_name in wanted.items():
+        row = nearest_by_kotak_name.get(kotak_name)
+        if row and row.get("pSymbol") is not None:
+            resolved[watchlist_sym] = ("mcx_fo", str(row["pSymbol"]))
+    return resolved
+
+
 def resolve_tokens(client, watchlist_symbols: list) -> dict:
     """{watchlist_symbol: (exchange_segment, instrument_token)} for every
     symbol this feed can actually resolve a real Kotak instrument for.
@@ -98,20 +159,17 @@ def resolve_tokens(client, watchlist_symbols: list) -> dict:
     and wasteful), matched locally by EXACT pSymbolName - a substring
     match wrongly matched NIFTYFPI for "nifty" earlier the same day, so
     this uses '==', never .contains()/.str.contains().
-    MCX proxies (GC=F/SI=F/CL=F): deliberately NOT resolved. They're a
-    price-action proxy for a different real MCX contract each (see
-    docs/TRADING_CONSTRAINTS.md) - mapping one to a real, correctly-dated
-    MCX-side contract is its own unresolved design question (expiry
-    rollover, which strike/month), not a token-lookup problem this
-    function should paper over with a guess.
+    MCX proxies (GC=F/SI=F/CL=F): resolved via _resolve_mcx_tokens() - see
+    its own docstring (explicit user-confirmed mapping to the real
+    MCX GOLD/SILVER/CRUDEOIL contracts, nearest live expiry).
 
-    Never raises - a segment whose search_scrip call itself fails leaves
-    those symbols simply unresolved (reported in _feed_status's
-    unresolved_symbols), so one Kotak-side hiccup doesn't take down
-    resolution for symbols in other segments.
+    Never raises - a segment whose search_scrip call itself fails just
+    leaves those symbols unresolved (they show up in _feed_status's
+    unresolved_symbols via run_feed's own check, not tracked in here), so
+    one Kotak-side hiccup doesn't take down resolution for symbols in
+    other segments.
     """
     resolved = {}
-    unresolved = []
 
     for sym in watchlist_symbols:
         if sym in _INDEX_TOKENS:
@@ -136,17 +194,12 @@ def resolve_tokens(client, watchlist_symbols: list) -> dict:
                     row = by_name.get(bare_name)
                     if row and row.get("pSymbol") is not None:
                         resolved[watchlist_sym] = ("nse_cm", str(row["pSymbol"]))
-                    else:
-                        unresolved.append(watchlist_sym)
-            else:
-                unresolved.extend(nse_names.values())
         except Exception:
-            unresolved.extend(nse_names.values())
+            pass  # left unresolved - run_feed's own check reports this
 
-    already_handled = set(resolved) | set(unresolved)
-    for sym in watchlist_symbols:
-        if sym not in already_handled and sym not in _INDEX_TOKENS and not _bare_nse_symbol(sym):
-            pass  # MCX proxies and anything else unresolvable by design - not an error, not reported
+    mcx_wanted = [sym for sym in watchlist_symbols if sym in _MCX_SYMBOL_MAP]
+    if mcx_wanted:
+        resolved.update(_resolve_mcx_tokens(client, mcx_wanted))
 
     return resolved
 
@@ -154,9 +207,11 @@ def resolve_tokens(client, watchlist_symbols: list) -> dict:
 async def run_feed(watchlist_symbols: list):
     """The background task main.py's startup event launches. Runs forever
     (until the process itself stops) - login, resolve tokens, connect,
-    stream, and on any failure wait RESTART_BACKOFF_SECONDS and start the
-    whole sequence over. See module docstring for the Render free-tier
-    caveat this design accepts rather than hides."""
+    stream, and on any failure wait (capped exponential backoff - see
+    RESTART_BACKOFF_MIN/MAX_SECONDS above) and start the whole sequence
+    over. See module docstring for the Render free-tier caveat this
+    design accepts rather than hides."""
+    backoff = RESTART_BACKOFF_MIN_SECONDS
     while True:
         try:
             client = kotak_neo.login()
@@ -164,12 +219,14 @@ async def run_feed(watchlist_symbols: list):
             _feed_status["subscribed_symbols"] = sorted(token_map.keys())
             _feed_status["unresolved_symbols"] = sorted(
                 s for s in watchlist_symbols
-                if s not in token_map and (s in _INDEX_TOKENS or _bare_nse_symbol(s))
+                if s not in token_map
+                and (s in _INDEX_TOKENS or _bare_nse_symbol(s) or s in _MCX_SYMBOL_MAP)
             )
             if not token_map:
                 _feed_status["last_error"] = "No instrument tokens resolved - nothing to subscribe to"
                 _feed_status["connected"] = False
-                await asyncio.sleep(RESTART_BACKOFF_SECONDS)
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2, RESTART_BACKOFF_MAX_SECONDS)
                 continue
 
             # WsToken/SFeedScrip import deferred to inside the function
@@ -190,6 +247,7 @@ async def run_feed(watchlist_symbols: list):
                 _feed_status["connected"] = True
                 _feed_status["started_at_utc"] = time.time()
                 _feed_status["last_error"] = None
+                backoff = RESTART_BACKOFF_MIN_SECONDS  # a real connection succeeded - reset the backoff
                 async for message in ws:
                     if isinstance(message, SFeedScrip):
                         key = reverse_lookup.get((message.exchange_segment, str(message.instrument_token)))
@@ -204,4 +262,5 @@ async def run_feed(watchlist_symbols: list):
             _feed_status["connected"] = False
             _feed_status["last_error"] = str(e)
 
-        await asyncio.sleep(RESTART_BACKOFF_SECONDS)
+        await asyncio.sleep(backoff)
+        backoff = min(backoff * 2, RESTART_BACKOFF_MAX_SECONDS)
