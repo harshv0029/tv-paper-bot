@@ -1,39 +1,4 @@
 {
-  "synced_at_utc": "2026-09-04T05:38:11Z",
-  "open_positions": [
-    {
-      "symbol": "HDFCBANK.NS",
-      "qty": 1.0,
-      "entry_price_native": 712.6500244140625,
-      "stop_loss_native": 709.3499755859375,
-      "initial_stop_loss_native": 709.3499755859375,
-      "target_native": 722.5501708984375,
-      "fx_to_inr": 1.0,
-      "notional_inr": 712.65,
-      "orb_high_native": 711.8499755859375,
-      "orb_low_native": 709.3499755859375,
-      "entry_ts": 1788500278.9100182,
-      "interval": "5m",
-      "strategy": "orb-15m-sma9-21",
-      "sma_fast": 9,
-      "sma_slow": 21
-    },
-    {
-      "symbol": "ITC.NS",
-      "qty": 3.0,
-      "entry_price_native": 264.8999938964844,
-      "stop_loss_native": 262.70001220703125,
-      "initial_stop_loss_native": 262.70001220703125,
-      "target_native": 271.49993896484375,
-      "fx_to_inr": 1.0,
-      "notional_inr": 794.7,
-      "orb_high_native": 263.95001220703125,
-      "orb_low_native": 262.70001220703125,
-      "entry_ts": 1788500281.805584,
-      "interval": "5m",
-      "strategy": "orb-15m-sma9-21",
-      "sma_fast": 9,
-      "sma_slow": 21
-    }
-  ]
+  "synced_at_utc": "2026-09-04T06:03:16Z",
+  "open_positions": []
 }
