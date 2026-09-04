@@ -3797,6 +3797,27 @@ def kotak_neo_search_scrip(
         return {"error": str(e)}
 
 
+@app.get("/kotak-neo/quotes")
+def kotak_neo_quotes(request: Request, exchange_segment: str = "nse_cm", instrument_token: str = "Nifty 50", quote_type: str = "ltp"):
+    """Real live quote for ONE instrument. Read-only - places no order.
+    Requires ?token=<KOTAK_NEO_API_TOKEN>.
+
+    Built 2026-09-04 specifically to verify index instrument-token names
+    (e.g. is "Nifty Bank" real) before hardcoding them into
+    kotak_live_feed.py - search_scrip can't confirm these since indices
+    aren't scrip-master rows; only an actual quotes() call can."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        result = kotak_neo.quotes(
+            instrument_tokens=[{"instrument_token": instrument_token, "exchange_segment": exchange_segment}],
+            quote_type=quote_type,
+        )
+        return _kotak_json_safe(result)
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/kotak-neo/comprehensive")
 def kotak_neo_comprehensive(request: Request):
     """Eligible stocks + the full NSE F&O universe, per explicit user
