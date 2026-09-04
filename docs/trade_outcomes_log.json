@@ -133,5 +133,19 @@
     "rr_target": 3.0,
     "rr_achieved": 0.04,
     "strategy": "orb-15m-sma9-21"
+  },
+  {
+    "symbol": "CL=F",
+    "exit_time_utc": 1788479967.2480555,
+    "entry_price_native": 91.58000183105469,
+    "exit_price_native": 91.83000183105469,
+    "currency": "USD",
+    "qty": 23.115988,
+    "pnl_inr": 545.97,
+    "pnl_pct_of_capital": 0.136,
+    "exit_reason": "eod_squareoff",
+    "rr_target": 3.0,
+    "rr_achieved": 0.27,
+    "strategy": "orb-15m-sma9-21"
   }
 ]
