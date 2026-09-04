@@ -2378,6 +2378,24 @@ def _auto_signal_core(
                 qty = min(qty, usable_capital_inr / notional_per_unit_inr)
             qty = round(qty, 6)
 
+            # NSE cash equities trade in WHOLE SHARES only - no fractional
+            # delivery orders, confirmed from Kotak's own place_order
+            # validation (quantity must be a positive integer string, see
+            # kotak_real_orders.py/req_data_validation.py). Explicit user
+            # instruction 2026-09-04 ("mimic as per NSE rules") after a real
+            # confusion this caused: paper showed ITC.NS qty=3.767898,
+            # HINDUNILVR.NS qty=0.506073 - positions no real NSE order could
+            # ever match, which is exactly backwards for a rehearsal meant
+            # to mirror what stage 3 will actually do. Floored, not rounded
+            # - never round UP past what the risk budget actually allows.
+            # Deliberately scoped to nse_equity only - the fractional-qty
+            # design above this comment was itself a deliberate fix for
+            # high-priced non-NSE units (BTC/ETH/gold) where int() had been
+            # silently zeroing every real-edge signal; that reasoning still
+            # holds for those asset classes, just not for NSE cash equities.
+            if _asset_class_and_source(symbol)[0] == "nse_equity":
+                qty = float(math.floor(qty))
+
             # A trade sized to a few rupees isn't a real position - guard
             # against dust-sized fills from float rounding rather than
             # requiring a whole unit.
