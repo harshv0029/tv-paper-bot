@@ -2480,6 +2480,54 @@ NSE_STOCK_UNIVERSE = [
     "POLYCAB.NS", "UBL.NS",
 ]
 
+def _load_nse_universe_from_file() -> list[str]:
+    """Loads the full NSE EQ-series universe from docs/nse_universe.json -
+    real data pulled from Kotak's own scrip master (kotak_neo.py:
+    scrip_master(), via GET /kotak-neo/nse-universe), not a hand-picked
+    index list. Falls back to the hardcoded Nifty 100 (NSE_STOCK_UNIVERSE
+    above) if the file is missing, unreadable, or looks too small to
+    trust - same "a data problem degrades, never crashes, the live app"
+    discipline as every other external fetch in this file.
+
+    Explicit user instructions (2026-09-05): "there is just 103 stocks in
+    the list. why not nifty 500 for this... all and nifty 500 all
+    inclusive", then "cant you source it from kotak neo. all the tickers
+    which it can provide." This is broader than Nifty 500 membership -
+    Kotak's scrip master carries no index-membership column, so it's
+    every EQ-series NSE stock (~2,600), ETFs included, not just the 500
+    names in that index.
+
+    NOT fetched live at import time (would make every process start
+    depend on Kotak's login flow succeeding) - reads the committed JSON
+    snapshot instead. See refresh-nse-universe.yml for the weekly
+    (Monday) job that keeps docs/nse_universe.json itself current."""
+    import json
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "nse_universe.json")
+    try:
+        with open(path) as f:
+            data = json.load(f)
+        symbols = data.get("symbols") or []
+        if len(symbols) < 500:
+            raise ValueError(f"only {len(symbols)} symbols in {path} - too small to trust")
+        return symbols
+    except Exception as e:
+        print(f"[nse_universe] {path} unusable ({e}) - falling back to hardcoded Nifty 100 list")
+        return list(NSE_STOCK_UNIVERSE)
+
+
+# Scale tradeoff, flagged rather than silently absorbed: growing from the
+# ~103-symbol Nifty 100 list to the ~2,600-symbol full EQ universe below
+# means round-robin entry-scanning (SCHEDULER_ENTRY_SCAN_BATCH_SIZE,
+# further down) takes a full rotation from ~4.5 minutes to well over an
+# hour at the CURRENT batch size - each flat symbol's entry condition is
+# checked far less often. Deliberately did NOT bump the batch size to
+# compensate here: more symbols fetched per 30s tick raises real risk of
+# either tripping Yahoo Finance's unofficial rate limit or making one
+# tick's wall-clock time exceed SCHEDULER_INTERVAL_SECONDS on Render's
+# free-tier CPU - both are worse failure modes than slower rotation. Left
+# for a deliberate follow-up decision instead of guessing.
+NSE_FULL_UNIVERSE = _load_nse_universe_from_file()
+
 WATCHLIST = [
     # NSE/BSE indices - IST 9:15-15:30, weekdays. Params from 2026-09-02
     # research (docs/daily_logs/2026-09-02-entry-trigger-research.md).
@@ -2498,7 +2546,7 @@ WATCHLIST = [
      "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
 ] + [
-    {"symbol": sym, **NSE_STOCK_DEFAULT_PARAMS} for sym in NSE_STOCK_UNIVERSE
+    {"symbol": sym, **NSE_STOCK_DEFAULT_PARAMS} for sym in NSE_FULL_UNIVERSE
 ] + [
     # MCX commodities - restored 2026-09-03 per explicit user instruction
     # ("keep all those assets listed in Zerodha") - unlike crypto and US
