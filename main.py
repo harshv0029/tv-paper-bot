@@ -4201,11 +4201,18 @@ def kotak_neo_scrip_master(request: Request, exchange_segment: str = "nse_cm", p
         if not isinstance(csv_url, str):
             return {"error": "scrip_master did not return a CSV URL", "raw": _kotak_json_safe(csv_url)}
         df = pd.read_csv(csv_url)
+        # df.to_dict() leaves numpy int64/float64/NaN in the values, which
+        # FastAPI's default JSON encoder can't serialize (crashes AFTER this
+        # function returns successfully, as a bare 500 with no error detail -
+        # confirmed live 2026-09-05). Route through pandas' own to_json()
+        # instead, which handles numpy/NaN correctly, then parse that back
+        # into plain Python objects.
+        preview_rows = json.loads(df.head(preview).to_json(orient="records"))
         return {
             "csv_url": csv_url,
             "total_rows": len(df),
             "columns": list(df.columns),
-            "preview": df.head(preview).to_dict(orient="records"),
+            "preview": preview_rows,
         }
     except Exception as e:
         return {"error": str(e)}
