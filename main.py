@@ -1398,10 +1398,10 @@ OPTIONS_STOP_PCT = 45.0         # premium-based stop - options swing harder than
                                  # this plays the same role stop_pct plays for equities.
 OPTIONS_STRATEGY_TAG = f"{ORB_STRATEGY_PREFIX}option"
 
-
-def _norm_cdf(x: float) -> float:
-    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
-
+# _norm_cdf is defined once, near bs_price above - this used to be a second,
+# byte-identical copy (dead duplication found in the 2026-09-04 structure
+# audit, see docs/PROJECT_STRUCTURE_PLAN.md #3.1). Removed rather than kept
+# in sync by hand.
 
 def _bs_delta(spot: float, strike: float, iv: float, dte_years: float, right: str, r: float = 0.05):
     """Black-Scholes delta from the chain's own quoted IV - yfinance doesn't
