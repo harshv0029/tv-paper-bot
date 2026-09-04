@@ -413,6 +413,30 @@ inside this app (reconnect logic, tick storage, a genuinely different
 runtime shape from the request/response endpoints here). Not started;
 would need its own explicit go-ahead, same as Phase 3.
 
+## Trade-view: real capital + per-trade invested amount (added 2026-09-04)
+
+`static/trade-view.html`'s top trade-log table gets an **Invested (₹)**
+column on live rows (`pos.notional_inr`, already computed server-side per
+position - just not previously surfaced in this table, only on the
+individual position cards below it). Closed rows show a dash there
+deliberately, not a guessed figure - closed-trade records don't carry
+`notional_inr`/`fx_to_inr`, and computing one for a commodity trade
+without the real FX rate at exit risks a silently wrong number.
+
+**Bug fixed in the same change**: the page's own fetch of `/daily-summary`
+hardcoded `?capital=400000` - the old fake paper number, now stale since
+the scheduler's real capital sizing shipped earlier the same day. Fixed
+to fetch `/scheduler-status` first and pass its real
+`scheduler_capital_inr` through instead, so `capital_deployed_inr`/
+`capital_available_inr`/`budget_remaining`/`pnl_pct_of_capital` all
+compute against the same real number the live scheduler actually sizes
+trades against - not two different capital figures on two different
+pages. A new **Capital available (real, Kotak Neo)** stat tile surfaces
+`capital_available_inr` directly. `Math.max(1, ...)` guards the capital
+value used against a divide-by-zero in `/daily-summary`'s own
+pct-of-capital math if the real fetch hasn't resolved yet (falls back to
+0 per `get_scheduler_capital_inr()`'s own contract).
+
 ## Kill switch / pause-resume (added 2026-09-03)
 
 Explicit user instruction: "I want to decide when to do trading and when
