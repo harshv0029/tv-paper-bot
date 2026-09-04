@@ -34194,5 +34194,82 @@
         "time_local": "2026-09-04 17:36:54.259160"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-04T13:06:25Z",
+    "attempts": {
+      "INFY.NS": {
+        "checked_at_utc": 1788527174.5224895,
+        "symbol": "INFY.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 18:35:58.736493"
+      },
+      "RELIANCE.NS": {
+        "checked_at_utc": 1788527174.5231166,
+        "symbol": "RELIANCE.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 18:36:14.522814"
+      },
+      "HDFCBANK.NS": {
+        "checked_at_utc": 1788527174.5235248,
+        "symbol": "HDFCBANK.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 18:36:14.523416"
+      },
+      "^NSEBANK": {
+        "checked_at_utc": 1788527174.611277,
+        "symbol": "^NSEBANK",
+        "status": "closed",
+        "time_local": "2026-09-04 18:36:14.611059"
+      },
+      "^BSESN": {
+        "checked_at_utc": 1788527174.6114671,
+        "symbol": "^BSESN",
+        "status": "closed",
+        "time_local": "2026-09-04 18:36:14.611392"
+      },
+      "ICICIBANK.NS": {
+        "checked_at_utc": 1788527174.611633,
+        "symbol": "ICICIBANK.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 18:36:14.611533"
+      },
+      "HINDUNILVR.NS": {
+        "checked_at_utc": 1788527174.6121507,
+        "symbol": "HINDUNILVR.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 18:36:14.611768"
+      },
+      "SBIN.NS": {
+        "checked_at_utc": 1788527174.6123574,
+        "symbol": "SBIN.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 18:36:14.612252"
+      },
+      "ITC.NS": {
+        "checked_at_utc": 1788527174.612529,
+        "symbol": "ITC.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 18:36:14.612428"
+      },
+      "^NSEI": {
+        "checked_at_utc": 1788527174.6126726,
+        "symbol": "^NSEI",
+        "status": "closed",
+        "time_local": "2026-09-04 18:36:14.612593"
+      },
+      "TCS.NS": {
+        "checked_at_utc": 1788527174.6128004,
+        "symbol": "TCS.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 18:36:14.612735"
+      },
+      "BHARTIARTL.NS": {
+        "checked_at_utc": 1788527174.6129193,
+        "symbol": "BHARTIARTL.NS",
+        "status": "closed",
+        "time_local": "2026-09-04 18:36:14.612856"
+      }
+    }
   }
 ]
