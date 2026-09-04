@@ -3108,6 +3108,17 @@ async def _start_scheduler():
     reconcile_open_positions_from_journal()
     reconcile_trading_control_from_journal()
     asyncio.create_task(_scheduler_loop())
+    # Kotak Neo live tick feed (2026-09-04) - display data only, isolated
+    # in its own task so a failure here (missing/misconfigured creds, a
+    # broken kotakneoapi install) can never affect the scheduler above.
+    # See kotak_live_feed.py's module docstring for what this is and
+    # isn't - real-time ticks for display, still no live-candle history
+    # (Kotak has none), still no order placement.
+    try:
+        import kotak_live_feed
+        asyncio.create_task(kotak_live_feed.run_feed([cfg["symbol"] for cfg in WATCHLIST]))
+    except Exception as e:
+        print(f"[kotak_live_feed] not started: {e}")
 
 
 @app.get("/scheduler-status")
@@ -3123,6 +3134,23 @@ def scheduler_status():
         "scheduler_capital_fetched_at_utc": _real_capital_cache["fetched_at"] or None,
         "scheduler_capital_fetch_error": _real_capital_cache["error"],
     }
+
+
+@app.get("/kotak-neo/live-ticks")
+def kotak_neo_live_ticks():
+    """Real-time ticks from Kotak Neo's SFeed WebSocket, as last received
+    by the background feed task (kotak_live_feed.py) - display data only,
+    not account-specific (just LTP per symbol), so unlike the Phase 2/2.5
+    endpoints this one is unauthenticated, same reasoning as /watchlist.
+    `status.connected: false` with a `last_error` means the feed isn't
+    currently streaming (see kotak_live_feed.py's module docstring for
+    why - most commonly Render's free-tier process having just restarted
+    from an inactivity spin-down, mid-reconnect)."""
+    try:
+        import kotak_live_feed
+        return {"ticks": kotak_live_feed.get_live_ticks(), "status": kotak_live_feed.get_feed_status()}
+    except Exception as e:
+        return {"ticks": {}, "status": {"connected": False, "last_error": str(e)}}
 
 
 # Data source per monitored symbol (2026-09-03) - "MCX_PROXY" symbols run on
