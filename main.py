@@ -169,8 +169,18 @@ def init_db():
         # versa. Default enabled=0 (OFF) - the opposite default of
         # trading_control's enabled=1 - so a fresh DB (a redeploy with no
         # journal yet, or the very first deploy of this table) never
-        # accidentally starts real trading; see is_real_trading_enabled()'s
-        # own second, independent gate (REAL_TRADING_ENABLED env var).
+        # accidentally starts real trading.
+        #
+        # VESTIGIAL as of 2026-09-04 (later same day): explicit user
+        # instruction removed this switch's UI (the token-gated unlock
+        # popup on trade-view) in favor of controlling real trading via
+        # just the paper kill switch + the Render env var. is_real_trading_
+        # enabled() below no longer reads this table - found live, the
+        # hard way: this row was sitting at enabled=1 with no UI control
+        # left to see or change it, which would have silently kept real
+        # orders armed. Table/endpoints kept (not deleted) as an inert
+        # audit trail rather than ripping out a live-money code path
+        # without more room to verify nothing else depends on it.
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS real_trading_control (
@@ -2551,17 +2561,26 @@ REAL_TRADING_DAILY_CAP_INR = 2000.0  # explicit user instruction 2026-09-04 ("us
 
 
 def is_real_trading_enabled(conn) -> bool:
-    """TWO independent gates, both required - deliberately not one switch.
-    A code push alone can never turn real trading on: REAL_TRADING_ENABLED
-    is a Render env var (a separate, deliberate action from a deploy,
-    same discipline as KOTAK_NEO_API_TOKEN), and real_trading_control's
-    DB row defaults to 0 even once the env var is set (a second explicit
-    action via POST /real-trading-control). Either gate alone being off
-    is enough to keep real trading off."""
-    if os.environ.get("REAL_TRADING_ENABLED") != "YES":
-        return False
-    row = conn.execute("SELECT enabled FROM real_trading_control WHERE id = 1").fetchone()
-    return bool(row["enabled"]) if row else False  # never explicitly set -> default OFF
+    """TWO independent gates, both required - explicit user instruction,
+    2026-09-04: (1) the paper kill switch (trading_control.enabled) - real
+    entries are only ever attempted right after _auto_signal_core itself
+    returns "entered_long" for an equity, which the kill switch already
+    blocks when off, so this function doesn't re-check it directly, and
+    (2) REAL_TRADING_ENABLED, a Render env var set manually there, kept
+    deliberately separate from any code push or UI action so real trading
+    can never turn on by itself.
+
+    Until today this also checked a third gate - a real_trading_control DB
+    row, toggled via a token-gated popup on trade-view. That popup was
+    removed per explicit user instruction ("I will control real money
+    trade from env variable manually whenever needed"); this function was
+    NOT updated at the same time, so the DB row - stuck at enabled=1 with
+    no UI left to see or change it - kept silently gating real trading
+    with no visibility. Found live and fixed same-day: dropped that check
+    entirely rather than leave an invisible switch armed. See
+    docs/TRADING_CONSTRAINTS.md for the full history if this needs
+    revisiting."""
+    return os.environ.get("REAL_TRADING_ENABLED") == "YES"
 
 
 def _real_today_spent_inr(conn) -> float:
