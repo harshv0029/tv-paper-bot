@@ -511,6 +511,161 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         df["long"] = raw.groupby(day).cummax()
         df["vwap"] = vwap
 
+    elif strategy == "vwap_mean_reversion":
+        # STRATEGY_LOG.md row #13. Session VWAP + rolling-std bands (the
+        # bands are an intrabar approximation of the usual SD-of-price
+        # bands, computed on the same per-day cumulative VWAP series
+        # vwap_reclaim already uses). Enter long when price closes below
+        # the LOWER band (oversold vs. VWAP), exit on reversion back
+        # ABOVE VWAP itself (not the far band) - same "target the middle,
+        # not the extreme" read the bollinger_mean_reversion research
+        # above already established as the realistic-win-rate version.
+        bb_std_v = float(params.get("bb_std", 2.0))
+        ts = pd.to_datetime(df["Date"])
+        ts_ist = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts.dt.tz_localize(
+            "UTC"
+        ).dt.tz_convert("Asia/Kolkata")
+        day = ts_ist.dt.strftime("%Y-%m-%d")
+        typical = (df["High"] + df["Low"] + df["Close"]) / 3
+        cum_pv = (typical * df["Volume"]).groupby(day).cumsum()
+        cum_vol = df["Volume"].groupby(day).cumsum().replace(0, float("nan"))
+        vwap = cum_pv / cum_vol
+        dev = (df["Close"] - vwap).groupby(day).expanding().std().reset_index(level=0, drop=True)
+        lower = vwap - bb_std_v * dev
+
+        holding, flags = False, []
+        for close, lo, vw in zip(df["Close"], lower, vwap):
+            if pd.notna(lo) and pd.notna(vw):
+                if not holding and close < lo:
+                    holding = True
+                elif holding and close > vw:
+                    holding = False
+            flags.append(holding)
+        df["long"] = flags
+        df["vwap"] = vwap
+
+    elif strategy == "vwap_breakout_retest":
+        # STRATEGY_LOG.md row #15. Break ABOVE the upper VWAP band on
+        # above-average volume (the momentum signal), then wait for a
+        # pullback to VWAP itself that HOLDS (low touches within
+        # retest_pct% of VWAP but closes above it) before entering -
+        # filters the fakeout breaks that never get a real retest hold.
+        # Exit on a close back below VWAP (the level just defended).
+        bb_std_v = float(params.get("bb_std", 2.0))
+        retest_pct = float(params.get("retest_pct", 0.3)) / 100
+        ts = pd.to_datetime(df["Date"])
+        ts_ist = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts.dt.tz_localize(
+            "UTC"
+        ).dt.tz_convert("Asia/Kolkata")
+        day = ts_ist.dt.strftime("%Y-%m-%d")
+        typical = (df["High"] + df["Low"] + df["Close"]) / 3
+        cum_pv = (typical * df["Volume"]).groupby(day).cumsum()
+        cum_vol = df["Volume"].groupby(day).cumsum().replace(0, float("nan"))
+        vwap = cum_pv / cum_vol
+        dev = (df["Close"] - vwap).groupby(day).expanding().std().reset_index(level=0, drop=True)
+        upper = vwap + bb_std_v * dev
+        vol_avg = df["Volume"].rolling(20).mean()
+        broke_out = ((df["Close"] > upper) & (df["Volume"] > vol_avg)).groupby(day).cummax()
+
+        holding, flags = False, []
+        for close, low, vw, up_ok in zip(df["Close"], df["Low"], vwap, broke_out):
+            if pd.notna(vw):
+                if not holding and up_ok and close > vw and low <= vw * (1 + retest_pct):
+                    holding = True
+                elif holding and close < vw:
+                    holding = False
+            flags.append(holding)
+        df["long"] = flags
+        df["vwap"] = vwap
+
+    elif strategy in ("anchored_vwap_continuation", "anchored_vwap_reversal"):
+        # STRATEGY_LOG.md rows #16/#17. A REAL anchored VWAP is anchored at
+        # a specific structural event (a swing low/high, a breakout
+        # candle) rather than session start - approximated here as a
+        # rolling anchor: the VWAP accumulated since each bar's own
+        # trailing N-bar swing low (continuation) or swing high
+        # (reversal), recomputed bar-by-bar (not per calendar day like
+        # the session-VWAP strategies above). Documented as an
+        # approximation, not a guess at the underlying math - a fixed
+        # rolling lookback is the standard simplification when there's no
+        # single hand-picked anchor event to backtest against.
+        anchor_lookback = int(params.get("anchor_lookback", 20))
+        typical = (df["High"] + df["Low"] + df["Close"]) / 3
+        pv = typical * df["Volume"]
+        cum_pv_all = pv.cumsum().to_numpy()
+        cum_vol_all = df["Volume"].cumsum().to_numpy()
+        n = len(df)
+        avwap = np.full(n, np.nan)
+        if strategy == "anchored_vwap_continuation":
+            anchor_idx = df["Low"].rolling(anchor_lookback).apply(lambda x: x.argmin(), raw=True)
+        else:
+            anchor_idx = df["High"].rolling(anchor_lookback).apply(lambda x: x.argmax(), raw=True)
+        for i in range(n):
+            if pd.isna(anchor_idx.iloc[i]):
+                continue
+            a = i - (anchor_lookback - 1) + int(anchor_idx.iloc[i])
+            pv_since = cum_pv_all[i] - (cum_pv_all[a - 1] if a > 0 else 0)
+            vol_since = cum_vol_all[i] - (cum_vol_all[a - 1] if a > 0 else 0)
+            if vol_since > 0:
+                avwap[i] = pv_since / vol_since
+        df["avwap"] = avwap
+
+        if strategy == "anchored_vwap_continuation":
+            # Price holds above AVWAP with higher highs/lows - approximated
+            # as: closes above AVWAP AND today's high > N-bar-ago high
+            # (structure still rising). Dips back to AVWAP that hold are
+            # implicitly the entries (any bar satisfying the condition).
+            structure_rising = df["High"] > df["High"].shift(anchor_lookback)
+            df["long"] = (df["Close"] > df["avwap"]) & structure_rising.fillna(False)
+        else:
+            # Reversal read: repeated rejection FROM BELOW the AVWAP
+            # (closes stayed under it across the lookback window), THEN a
+            # reclaim (close crosses back above) is the long entry - a
+            # long-only book can't short the rejection itself, only trade
+            # the eventual reclaim it sets up.
+            rejected_recently = (df["Close"] < df["avwap"]).rolling(anchor_lookback).sum() >= (anchor_lookback * 0.7)
+            reclaim = (df["Close"] > df["avwap"]) & rejected_recently.shift(1).fillna(False)
+            holding, flags = False, []
+            for is_entry, close, avw in zip(reclaim, df["Close"], df["avwap"]):
+                if pd.notna(avw):
+                    if not holding and is_entry:
+                        holding = True
+                    elif holding and close < avw:
+                        holding = False
+                flags.append(holding)
+            df["long"] = flags
+
+    elif strategy == "vwap_multi_period_reversal":
+        # STRATEGY_LOG.md row #18. Price sits on one side of session VWAP
+        # for >= min_periods consecutive bars, THEN crosses to the other
+        # side - the cross event itself is the trigger (not distance from
+        # VWAP, which is #13's read). Long entry: was below VWAP for the
+        # required run length, now closes above it.
+        min_periods = int(params.get("min_periods", 5))
+        ts = pd.to_datetime(df["Date"])
+        ts_ist = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts.dt.tz_localize(
+            "UTC"
+        ).dt.tz_convert("Asia/Kolkata")
+        day = ts_ist.dt.strftime("%Y-%m-%d")
+        typical = (df["High"] + df["Low"] + df["Close"]) / 3
+        cum_pv = (typical * df["Volume"]).groupby(day).cumsum()
+        cum_vol = df["Volume"].groupby(day).cumsum().replace(0, float("nan"))
+        vwap = cum_pv / cum_vol
+        below = df["Close"] < vwap
+        was_below_run = below.shift(1).rolling(min_periods).sum() >= min_periods
+        cross_up = (df["Close"] > vwap) & was_below_run.fillna(False)
+
+        holding, flags = False, []
+        for is_entry, close, vw in zip(cross_up, df["Close"], vwap):
+            if pd.notna(vw):
+                if not holding and is_entry:
+                    holding = True
+                elif holding and close < vw:
+                    holding = False
+            flags.append(holding)
+        df["long"] = flags
+        df["vwap"] = vwap
+
     elif strategy == "bullish_engulfing":
         # Price-action candlestick strategy. Sources (2026-09-03 research):
         # standalone bullish engulfing ~53-55% win rate; rises to ~55-65% when
@@ -599,7 +754,9 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
-                   f"orb_breakout, orb_volume, vwap_reclaim, bullish_engulfing, "
+                   f"orb_breakout, orb_volume, vwap_reclaim, vwap_mean_reversion, "
+                   f"vwap_breakout_retest, anchored_vwap_continuation, anchored_vwap_reversal, "
+                   f"vwap_multi_period_reversal, bullish_engulfing, "
                    f"bollinger_mean_reversion, macd_cross",
         )
 
@@ -683,6 +840,9 @@ def backtest(
     volume_confirm: bool = False,
     bb_period: int = 20,
     bb_std: float = 2.0,
+    retest_pct: float = 0.3,
+    anchor_lookback: int = 20,
+    min_periods: int = 5,
     qty: float = 1,
 ):
     """
@@ -695,6 +855,10 @@ def backtest(
     strategy=orb_breakout/orb_volume -> params: orb_minutes, sma_fast, sma_slow,
                                         open_min (orb_volume also: volume_mult)
     strategy=vwap_reclaim         -> no extra params
+    strategy=vwap_mean_reversion  -> params: bb_std
+    strategy=vwap_breakout_retest -> params: bb_std, retest_pct
+    strategy=anchored_vwap_continuation/anchored_vwap_reversal -> params: anchor_lookback
+    strategy=vwap_multi_period_reversal -> params: min_periods
     strategy=bullish_engulfing    -> params: trend_sma (0=off), volume_confirm
     strategy=bollinger_mean_reversion -> params: bb_period, bb_std
     strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
@@ -712,6 +876,14 @@ def backtest(
         }
     elif strategy == "vwap_reclaim":
         params = {}
+    elif strategy == "vwap_mean_reversion":
+        params = {"bb_std": bb_std}
+    elif strategy == "vwap_breakout_retest":
+        params = {"bb_std": bb_std, "retest_pct": retest_pct}
+    elif strategy in ("anchored_vwap_continuation", "anchored_vwap_reversal"):
+        params = {"anchor_lookback": anchor_lookback}
+    elif strategy == "vwap_multi_period_reversal":
+        params = {"min_periods": min_periods}
     elif strategy == "bullish_engulfing":
         params = {"trend_sma": trend_sma, "volume_confirm": volume_confirm}
     elif strategy == "bollinger_mean_reversion":
