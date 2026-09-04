@@ -3293,16 +3293,20 @@ _scheduler_last_results: dict = {}
 # tick (time-critical - stop/target/eod), and flat symbols rotate through
 # a bounded batch per tick instead of all being scanned every time.
 _scheduler_rr_cursor = 0
-SCHEDULER_ENTRY_SCAN_BATCH_SIZE = 12  # flat symbols freshly entry-scanned per tick, round-robin -
-# bumped from 7 -> 12 on 2026-09-03 when the watchlist grew from 21 to 103
-# symbols (Nifty 100 + indices + commodities) to keep the full-rotation
-# time reasonable (103/12 ~= 9 ticks ~= ~4.3 min) without pushing the real
-# Yahoo Finance call rate too high (12 req/30s ~= 0.4 req/s average,
-# comfortably inside what the free/unofficial endpoint tolerates - well
-# short of the 21-symbol/batch-7 rate that was already running fine).
-# Doesn't need to fit inside fetch_ohlc's 180s cache TTL as neatly as the
-# smaller watchlist did - candle data can go slightly stale between a
-# symbol's own turns, same tradeoff as before, just spread over more names.
+SCHEDULER_ENTRY_SCAN_BATCH_SIZE = 35  # flat symbols freshly entry-scanned per tick, round-robin -
+# bumped from 12 -> 35 on 2026-09-04, explicit user instruction, after the
+# watchlist grew from 103 to ~2,644 symbols (Kotak-sourced full NSE EQ
+# universe - see NSE_FULL_UNIVERSE above). Full rotation at 35:
+# ~2644/35 ~= 76 ticks ~= ~38 min (was ~110 min at the old batch=12 before
+# this bump, and would be ~4.3 min if the watchlist were still 103 names -
+# rotation speed depends on BOTH the batch size and watchlist size, always
+# recompute together). Each symbol in the batch is one sequential
+# (not parallel - see _scheduler_loop's for loop) Yahoo Finance fetch +
+# pandas compute, so this also raises worst-case tick wall-clock time -
+# watch /scheduler-status's last_tick_ago_seconds (should stay near
+# SCHEDULER_INTERVAL_SECONDS=30) and last_error after this change; if
+# ticks start backing up or Yahoo starts erroring, that's this constant's
+# fault first.
 
 # Live pipeline visibility for /scheduler-pipeline (trade-view's scanner
 # panel) - what's actively in flight right now, not just the last completed
