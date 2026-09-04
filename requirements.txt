@@ -1,11 +1,26 @@
 fastapi==0.115.0
-# uvicorn's [standard] extra pulls in websockets>=10.4, which hard-conflicts
-# with neo_api_client's pinned websockets==8.1 (see below). This app doesn't
-# use uvicorn's websocket/uvloop extras (HTTP-only), so dropping [standard]
-# is a no-op for behavior and resolves the conflict.
+# uvicorn's [standard] extra pulls in websockets>=10.4. That hard-conflicted
+# with the OLD Kotak SDK's pinned websockets==8.1 (kotakneoapi==3.0.1 below
+# uses websockets>=12.0, so the conflict is actually gone now - but this
+# app never used uvicorn's websocket/uvloop extras anyway (HTTP-only), so
+# there's no reason to add [standard] back.
 uvicorn==0.30.6
 pydantic==2.9.2
 yfinance>=0.2.40
 pandas>=2.2.0
 pyotp==2.9.0
-git+https://github.com/Kotak-Neo/Kotak-neo-api-v2.git@v2.0.2#egg=neo_api_client
+# Kotak Neo SDK v3 (2026-09-04) - migrated from the legacy git-installed
+# neo-api-client==2.0.2 (github.com/Kotak-Neo/Kotak-neo-api-v2, now
+# explicitly marked legacy by its own successor's README). kotakneoapi is
+# the real, actively-maintained PyPI package published by the "kotak-neo"
+# org (verified against PyPI's own package metadata, not just a claim) -
+# same Python import name (neo_api_client), same method signatures/error
+# shapes for everything this app calls (limits(), search_scrip(),
+# holdings(), positions(), totp_login()/totp_validate()) - see
+# docs/TRADING_CONSTRAINTS.md "Kotak Neo connection" for what changed vs
+# what didn't. Never install this into an environment that still has the
+# old neo-api-client package present (both populate the same
+# site-packages/neo_api_client/ - the SDK's own migration guide warns this
+# silently corrupts the install) - a fresh `pip install -r requirements.txt`
+# is always clean here since the old package is no longer listed at all.
+kotakneoapi==3.0.1
