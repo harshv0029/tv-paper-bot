@@ -37760,5 +37760,154 @@
         "time_local": "2026-09-05 02:06:22.245081"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-04T21:03:48Z",
+    "attempts": {
+      "HINDUNILVR.NS": {
+        "checked_at_utc": 1788555789.6767817,
+        "symbol": "HINDUNILVR.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:32:53.043957"
+      },
+      "SBIN.NS": {
+        "checked_at_utc": 1788555789.6772535,
+        "symbol": "SBIN.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:09.676920"
+      },
+      "HDFCBANK.NS": {
+        "checked_at_utc": 1788555789.677426,
+        "symbol": "HDFCBANK.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:09.677345"
+      },
+      "ICICIBANK.NS": {
+        "checked_at_utc": 1788555789.6775558,
+        "symbol": "ICICIBANK.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:09.677478"
+      },
+      "^NSEI": {
+        "checked_at_utc": 1788555789.6776748,
+        "symbol": "^NSEI",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:09.677604"
+      },
+      "ITC.NS": {
+        "checked_at_utc": 1788555789.677829,
+        "symbol": "ITC.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:09.677758"
+      },
+      "RELIANCE.NS": {
+        "checked_at_utc": 1788555789.6779494,
+        "symbol": "RELIANCE.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:09.677883"
+      },
+      "TCS.NS": {
+        "checked_at_utc": 1788555789.6781032,
+        "symbol": "TCS.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:09.678029"
+      },
+      "^BSESN": {
+        "checked_at_utc": 1788555789.6782215,
+        "symbol": "^BSESN",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:09.678154"
+      },
+      "INFY.NS": {
+        "checked_at_utc": 1788555789.6783395,
+        "symbol": "INFY.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:09.678269"
+      },
+      "BHARTIARTL.NS": {
+        "checked_at_utc": 1788555789.6784542,
+        "symbol": "BHARTIARTL.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:09.678385"
+      },
+      "^NSEBANK": {
+        "checked_at_utc": 1788555789.6785638,
+        "symbol": "^NSEBANK",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:09.678502"
+      },
+      "NESTLEIND.NS": {
+        "checked_at_utc": 1788555826.83991,
+        "symbol": "NESTLEIND.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:46.838295"
+      },
+      "MARUTI.NS": {
+        "checked_at_utc": 1788555826.8405406,
+        "symbol": "MARUTI.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:46.840076"
+      },
+      "ASIANPAINT.NS": {
+        "checked_at_utc": 1788555826.8785918,
+        "symbol": "ASIANPAINT.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:46.841024"
+      },
+      "KOTAKBANK.NS": {
+        "checked_at_utc": 1788555826.8792925,
+        "symbol": "KOTAKBANK.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:46.879095"
+      },
+      "ULTRACEMCO.NS": {
+        "checked_at_utc": 1788555826.8800964,
+        "symbol": "ULTRACEMCO.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:46.879805"
+      },
+      "LT.NS": {
+        "checked_at_utc": 1788555826.8805134,
+        "symbol": "LT.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:46.880444"
+      },
+      "HCLTECH.NS": {
+        "checked_at_utc": 1788555826.8806288,
+        "symbol": "HCLTECH.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:46.880575"
+      },
+      "BAJFINANCE.NS": {
+        "checked_at_utc": 1788555826.88077,
+        "symbol": "BAJFINANCE.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:46.880682"
+      },
+      "SUNPHARMA.NS": {
+        "checked_at_utc": 1788555826.8809075,
+        "symbol": "SUNPHARMA.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:46.880835"
+      },
+      "WIPRO.NS": {
+        "checked_at_utc": 1788555826.8810198,
+        "symbol": "WIPRO.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:46.880960"
+      },
+      "TITAN.NS": {
+        "checked_at_utc": 1788555826.8811245,
+        "symbol": "TITAN.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:46.881069"
+      },
+      "AXISBANK.NS": {
+        "checked_at_utc": 1788555826.8812299,
+        "symbol": "AXISBANK.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 02:33:46.881173"
+      }
+    }
   }
 ]
