@@ -133,6 +133,17 @@ def _resolve_mcx_tokens(client, watchlist_symbols: list) -> dict:
         name = row.get("pSymbolName")
         if name not in wanted.values():
             continue
+        # Real-money bug found + fixed 2026-09-04: pSymbolName alone isn't
+        # enough - options and the odd spot/index admin row ("GOLDPETALCOM",
+        # "MCXGOLDEXCOM") share the same pSymbolName as the futures contract
+        # and can have a nearer lExpiryDate, so the old code silently picked
+        # an OPTION for GC=F/CL=F in production (confirmed from a real
+        # /kotak-neo/live-ticks response: GC=F resolved to a PE, CL=F to a
+        # CE). pInstType == "FUTCOM" is the real field that isolates the
+        # future - verified against a live search_scrip(mcx_fo) response
+        # before adding this filter, not guessed.
+        if row.get("pInstType") != "FUTCOM":
+            continue
         exp = row.get("lExpiryDate")
         if not isinstance(exp, (int, float)) or exp <= now_ts:
             continue  # skip malformed rows and already-expired contracts
