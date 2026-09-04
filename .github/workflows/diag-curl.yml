@@ -7,7 +7,11 @@ name: Diagnostic Curl (ad-hoc endpoint check)
 # is for GET-style checks, not for triggering actions - use
 # trading-control.yml for the kill switch, journal-sync.yml for state
 # sync). If `path` starts with http(s), it's fetched as-is; otherwise
-# it's treated as a path on the live tv-paper-bot server.
+# it's treated as a path on the live tv-paper-bot server. Set
+# with_kotak_token: true to auto-append the KOTAK_NEO_API_TOKEN secret as
+# ?token=... for checking one of the /kotak-neo/* endpoints that require it
+# (_require_kotak_token in main.py) - same secret journal-sync.yml and
+# real-trading-control.yml already use, never printed/echoed here.
 on:
   workflow_dispatch:
     inputs:
@@ -15,10 +19,17 @@ on:
         description: "Path on the live server (e.g. /health), or a full https:// URL"
         required: true
         default: "/health"
+      with_kotak_token:
+        description: "Append ?token=<KOTAK_NEO_API_TOKEN secret> (for /kotak-neo/* endpoints only - ignored for full https:// URLs)"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   curl:
     runs-on: ubuntu-latest
+    env:
+      KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
     steps:
       - name: GET the requested path or URL
         run: |
@@ -27,6 +38,10 @@ jobs:
             URL="$INPUT"
           else
             URL="https://tv-paper-bot-gdan.onrender.com${INPUT}"
+            if [[ "${{ inputs.with_kotak_token }}" == "true" ]]; then
+              SEP="?"; [[ "$INPUT" == *"?"* ]] && SEP="&"
+              URL="${URL}${SEP}token=${KOTAK_NEO_API_TOKEN}"
+            fi
           fi
           curl -sSL -m 30 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "$URL"
           echo
