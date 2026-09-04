@@ -210,16 +210,20 @@
         <span class="ds-lbl">Daily loss budget left</span>
         <span class="ds-val mono" id="ds-budget">—</span>
       </div>
+      <div class="ds-item">
+        <span class="ds-lbl">Capital available (real, Kotak Neo)</span>
+        <span class="ds-val mono" id="ds-capital-available">—</span>
+      </div>
     </div>
   </div>
   <div class="log-scroll">
     <table class="log">
       <thead><tr>
         <th>Status</th><th>Asset</th><th>Type</th><th>Strategy</th><th class="num">Entry</th><th class="num">Exit / Now</th>
-        <th class="num">Qty</th><th class="num">Realised P&amp;L (₹)</th><th class="num">Unrealised P&amp;L (₹)</th>
+        <th class="num">Qty</th><th class="num">Invested (₹)</th><th class="num">Realised P&amp;L (₹)</th><th class="num">Unrealised P&amp;L (₹)</th>
         <th class="num">P&amp;L %</th><th>Reason</th><th>Time</th>
       </tr></thead>
-      <tbody id="log-body"><tr><td colspan="12" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="log-body"><tr><td colspan="13" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -778,6 +782,7 @@ function renderTradeLog(summary, history) {
       <td class="num">${fmt(pos.entry_price_native, isOption ? 4 : 2)}</td>
       <td class="num">${isOption ? "—" : (now !== undefined && now !== null ? fmt(now) : "—")}</td>
       <td class="num">${isOption ? pos.contracts : fmt(pos.qty, 4)}</td>
+      <td class="num">₹${fmt(pos.notional_inr)}</td>
       <td class="num">${dash}</td>
       <td class="num">${pnlInr === null ? dash : pnlSpan(pnlInr)}</td>
       <td class="num">${pnlPctCell}</td>
@@ -799,6 +804,7 @@ function renderTradeLog(summary, history) {
       <td class="num">${fmt(t.entry_price_native, isOption ? 4 : 2)}</td>
       <td class="num">${fmt(t.exit_price_native, isOption ? 4 : 2)}</td>
       <td class="num">${fmt(t.qty, isOption ? 0 : 4)}</td>
+      <td class="num">${dash}</td>
       <td class="num">${pnlSpan(pnl)}</td>
       <td class="num">${dash}</td>
       <td class="num">${(t.pnl_pct_of_capital ?? 0) >= 0 ? "+" : ""}${fmt(t.pnl_pct_of_capital ?? 0)}%</td>
@@ -810,17 +816,17 @@ function renderTradeLog(summary, history) {
   const totalRealisedInr = closed.reduce((s, t) => s + (t.pnl_inr ?? 0), 0);
   const combinedInr = totalRealisedInr + totalUnrealisedInr;
   const totalRow = `<tr class="log-total-row">
-      <td colspan="7">TOTAL — realised (closed) + unrealised (live)</td>
+      <td colspan="8">TOTAL — realised (closed) + unrealised (live)</td>
       <td class="num">${pnlSpan(totalRealisedInr)}</td>
       <td class="num">${pnlSpan(totalUnrealisedInr)}</td>
       <td colspan="3">Combined: ${pnlSpan(combinedInr)}</td>
     </tr>`;
 
-  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="12">${label}</td></tr>`;
+  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="13">${label}</td></tr>`;
   const sections = [];
   if (liveRows.length) sections.push(sectionRow(`Live positions (${liveRows.length})`), ...liveRows);
   sections.push(sectionRow(`Closed today (${closedRows.length}) — transacted, realized P&amp;L`));
-  sections.push(...(closedRows.length ? closedRows : [`<tr><td colspan="12" class="scan-idle">No trades closed yet today</td></tr>`]));
+  sections.push(...(closedRows.length ? closedRows : [`<tr><td colspan="13" class="scan-idle">No trades closed yet today</td></tr>`]));
   if (liveRows.length || closedRows.length) sections.push(totalRow);
   body.innerHTML = sections.join("");
 
@@ -852,10 +858,25 @@ async function refresh() {
   document.getElementById("last-update").textContent =
     "Last update: " + new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
   try {
+    // Real capital (Kotak Neo's "Net" available margin, cached server-side
+    // - see get_scheduler_capital_inr() in main.py) drives /daily-summary's
+    // capital_deployed_inr/capital_available_inr/budget_remaining. Used to
+    // be a hardcoded ?capital=400000 (the old fake paper number) - fixed
+    // 2026-09-04 alongside wiring real capital into the live scheduler
+    // itself, so this page shows the same real number the scheduler
+    // actually sizes trades against, not a stale fiction. Math.max(1, ...)
+    // guards against a divide-by-zero on daily-summary's own pct-of-capital
+    // math if the real fetch hasn't resolved yet (falls back to 0 - see
+    // get_scheduler_capital_inr()'s own docstring for why 0, not 400000).
+    const schedStatus = await fetchJSON(`${ORIGIN}/scheduler-status`).catch(() => null);
+    const realCapitalInr = Math.max(1, schedStatus?.scheduler_capital_inr ?? 0);
+
     const [summary, history] = await Promise.all([
-      fetchJSON(`${ORIGIN}/daily-summary?capital=400000&daily_risk_pct=2`),
+      fetchJSON(`${ORIGIN}/daily-summary?capital=${realCapitalInr}&daily_risk_pct=2`),
       fetchJSON(`${ORIGIN}/trade-history?days=1`),
     ]);
+    document.getElementById("ds-capital-available").textContent =
+      `₹${fmt(summary.capital_available_inr ?? realCapitalInr)}`;
     const openPositions = summary.open_positions || [];
     const equityPositions = openPositions.filter(p => p.instrument !== "option");
     const hdrStatus = document.getElementById("hdr-status");
