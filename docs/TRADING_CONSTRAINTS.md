@@ -347,6 +347,72 @@ not a substring search. Also confirmed from real records:
 Rs 840), and `pSymbol` (a small integer) is the likely `instrument_token`
 `quotes()` needs - not yet exercised end-to-end.
 
+## SDK migration: neo-api-client v2.0.2 -> kotakneoapi v3.0.1 (2026-09-04)
+
+Prompted by the user pasting a claim about a new Kotak WebSocket SDK -
+**verified for real before acting on it**, not taken on faith: confirmed
+via PyPI's own package metadata (real hashes, real upload timestamps,
+`ownership.roles` showing the real `kotak-neo` org as Owner) that
+`kotakneoapi` v3.0.1 genuinely exists and supersedes the old
+git-installed `neo-api-client`==2.0.2 this project used until now (that
+repo, `Kotak-Neo/Kotak-neo-api-v2`, now literally calls itself "legacy"
+in its successor's README). One detail in the pasted claim was NOT
+independently verified: a specific "September 15, 2026" deprecation date
+for the old feed - not present in the package metadata pulled, so it's
+treated as unconfirmed, not fact.
+
+**What migrating actually required** - re-cloned the new SDK's repo
+(`Kotak-Neo/kotak-neo-python`) and checked every function this project
+calls against its real source (not just its docs), same discipline as
+every other Kotak claim this session:
+- `NeoAPI.__init__`'s parameter order changed (`consumer_key` now comes
+  first) and its `environment` default flipped `"uat"` -> `"prod"` - a
+  real silent-breakage risk **only for positional calls**. This project's
+  `login()` already used keyword arguments throughout, so it needed no
+  change.
+- `limits()` now takes **zero** parameters (previously
+  `segment`/`exchange`/`product`) - this project's `limits()` wrapper
+  already called it with no arguments, so no change needed there either.
+- `search_scrip()`'s signature, and critically its response field names
+  (`pSymbolName`, `pOptionType`, `dStrikePrice;`, the `pandas.to_json
+  (orient="records")` shape) - all unchanged, confirmed against the new
+  SDK's actual `scrip_search.py`, not assumed from a similar-sounding
+  method name.
+- Error handling for every method this project calls (`limits()`,
+  `search_scrip()`, `holdings()`, `positions()`) is explicitly unchanged
+  in the new SDK's own migration guide - still `{"Error": ...}` /
+  `{"error": [...]}` dicts, not exceptions. `totp_login()`/
+  `totp_validate()` gained one new behavior: a network-level failure now
+  raises `ApiException` uncaught (previously it would have surfaced some
+  other way) - already handled here, since every endpoint that calls
+  `kotak_neo.login()` already wraps it in a broad `except Exception`.
+- Order placement, `modify_order`, and the async WebSocket client all
+  changed significantly in v3 - **irrelevant here**, since this project
+  places no orders and doesn't (yet) use any WebSocket/streaming feature.
+
+**Net result: zero logic changes to `kotak_neo.py`'s actual calls** -
+this was a dependency swap (`requirements.txt`) plus doc updates, not a
+rewrite. Verified locally against the *real* `kotakneoapi==3.0.1` package
+(not a v2 stand-in) with the full existing mocked-`kotak_neo` test suite
+- every endpoint still passes.
+
+**Bonus side effect**: `kotakneoapi` pins `websockets>=12.0` (confirmed
+`17.1` resolved in a clean install) - well above the `websockets.legacy`
+threshold that caused the earlier production crash and the `--ws none`
+Start Command workaround. That workaround is left in place regardless
+(this app still never uses WebSockets, so it's harmless either way) -
+not proven unnecessary now, just no longer the forced fix it was.
+
+**Deliberately NOT part of this migration**: the new SDK's actual live
+tick-streaming feature (`create_websocket()` / `subscribe_scrips()` /
+`SFeedScrip`) is real and confirmed working per the SDK's own docs, but
+building on it is a separate, larger decision - it still doesn't solve
+the historical-candle gap this file already documents (live ticks only,
+no backfill), and would mean a persistent async connection running
+inside this app (reconnect logic, tick storage, a genuinely different
+runtime shape from the request/response endpoints here). Not started;
+would need its own explicit go-ahead, same as Phase 3.
+
 ## Kill switch / pause-resume (added 2026-09-03)
 
 Explicit user instruction: "I want to decide when to do trading and when
