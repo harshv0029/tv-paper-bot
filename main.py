@@ -3137,15 +3137,25 @@ def scheduler_status():
 
 
 @app.get("/kotak-neo/live-ticks")
-def kotak_neo_live_ticks():
+def kotak_neo_live_ticks(request: Request):
     """Real-time ticks from Kotak Neo's SFeed WebSocket, as last received
-    by the background feed task (kotak_live_feed.py) - display data only,
-    not account-specific (just LTP per symbol), so unlike the Phase 2/2.5
-    endpoints this one is unauthenticated, same reasoning as /watchlist.
+    by the background feed task (kotak_live_feed.py).
+
+    Gated behind KOTAK_NEO_API_TOKEN (2026-09-04, fixed after a real-money
+    risk review flagged this) - unlike the Phase 2/2.5 REST endpoints, the
+    WebSocket connect/subscribe code path here has never actually been
+    exercised against a real connection failure, so its exception text
+    isn't verified caller-safe the way kotak_neo.login()'s is. `last_error`
+    could in principle echo something from that unverified path - this
+    was briefly live unauthenticated before the same review caught it.
+    Requires ?token=<KOTAK_NEO_API_TOKEN> (or an 'Authorization: Bearer
+    <token>' header), same as the rest of the real-Kotak-data endpoints.
+
     `status.connected: false` with a `last_error` means the feed isn't
     currently streaming (see kotak_live_feed.py's module docstring for
     why - most commonly Render's free-tier process having just restarted
     from an inactivity spin-down, mid-reconnect)."""
+    _require_kotak_token(request)
     try:
         import kotak_live_feed
         return {"ticks": kotak_live_feed.get_live_ticks(), "status": kotak_live_feed.get_feed_status()}
