@@ -36506,5 +36506,82 @@
         "action_taken": "no_signal"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-04T19:04:27Z",
+    "attempts": {
+      "ITC.NS": {
+        "checked_at_utc": 1788548658.0890837,
+        "symbol": "ITC.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 00:34:03.063393"
+      },
+      "HINDUNILVR.NS": {
+        "checked_at_utc": 1788548658.0896153,
+        "symbol": "HINDUNILVR.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 00:34:18.089380"
+      },
+      "^BSESN": {
+        "checked_at_utc": 1788548658.0899794,
+        "symbol": "^BSESN",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 00:34:18.089857"
+      },
+      "ICICIBANK.NS": {
+        "checked_at_utc": 1788548658.0901625,
+        "symbol": "ICICIBANK.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 00:34:18.090063"
+      },
+      "BHARTIARTL.NS": {
+        "checked_at_utc": 1788548658.0902932,
+        "symbol": "BHARTIARTL.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 00:34:18.090228"
+      },
+      "RELIANCE.NS": {
+        "checked_at_utc": 1788548658.0904403,
+        "symbol": "RELIANCE.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 00:34:18.090375"
+      },
+      "^NSEI": {
+        "checked_at_utc": 1788548658.0905836,
+        "symbol": "^NSEI",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 00:34:18.090507"
+      },
+      "SBIN.NS": {
+        "checked_at_utc": 1788548658.0907276,
+        "symbol": "SBIN.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 00:34:18.090656"
+      },
+      "TCS.NS": {
+        "checked_at_utc": 1788548658.0908415,
+        "symbol": "TCS.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 00:34:18.090782"
+      },
+      "^NSEBANK": {
+        "checked_at_utc": 1788548658.0909796,
+        "symbol": "^NSEBANK",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 00:34:18.090906"
+      },
+      "HDFCBANK.NS": {
+        "checked_at_utc": 1788548658.0910904,
+        "symbol": "HDFCBANK.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 00:34:18.091033"
+      },
+      "INFY.NS": {
+        "checked_at_utc": 1788548658.0912123,
+        "symbol": "INFY.NS",
+        "status": "closed_weekend",
+        "time_local": "2026-09-05 00:34:18.091136"
+      }
+    }
   }
 ]
