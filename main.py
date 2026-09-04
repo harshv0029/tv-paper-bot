@@ -2802,9 +2802,59 @@ def reconcile_trading_control_from_journal():
 
 
 SCHEDULER_INTERVAL_SECONDS = 30
-SCHEDULER_CAPITAL = 400000  # 2026-09-03: raised from Rs 2L to Rs 4L per user instruction ("for today")
 SCHEDULER_DAILY_RISK_PCT = 2.0  # account-wide daily loss cap - always the full 2%, not per-symbol
 SCHEDULER_RR = 3.0  # 2026-09-03: raised from 1:2 to a 1:3 minimum per standing user instruction
+
+# Real capital sourced from Kotak Neo (2026-09-04) - explicit user
+# instruction: "fetch the actual capital it has and apply % limit on the
+# trade." Replaces the old fixed SCHEDULER_CAPITAL = 400000 (a paper
+# number) - live sizing now scales off the real account's actual
+# available margin, via kotak_neo.limits()'s "Net" field (confirmed
+# against a real account call 2026-09-04 - Kotak's own field name, not a
+# guess).
+#
+# Cached with a TTL rather than fetched on every tick: the scheduler can
+# call this up to SCHEDULER_ENTRY_SCAN_BATCH_SIZE times per 30s tick, and
+# kotak_neo.login() is a REAL TOTP login against the live account each
+# time - hammering that on every tick risks Kotak's own 429 rate limit
+# (documented in its API) or looking like abuse on a real broker account.
+# Capital doesn't move fast enough to need fresher than this anyway.
+REAL_CAPITAL_CACHE_TTL_SECONDS = 600  # 10 min
+_real_capital_cache = {"value": None, "fetched_at": 0.0, "error": None}
+
+
+def _refresh_real_capital_cache():
+    """Fetches real available capital from Kotak Neo and updates the
+    module-level cache. Never raises - stores the error string instead, so
+    a transient Kotak failure (network blip, session hiccup) doesn't crash
+    a scheduler tick; get_scheduler_capital_inr() falls back to the last
+    known good value."""
+    try:
+        import kotak_neo
+        limits = kotak_neo.limits()
+        net = float(limits["Net"])
+        _real_capital_cache["value"] = net
+        _real_capital_cache["fetched_at"] = time.time()
+        _real_capital_cache["error"] = None
+    except Exception as e:
+        _real_capital_cache["error"] = str(e)
+
+
+def get_scheduler_capital_inr() -> float:
+    """Real capital for live position sizing, refreshed at most every
+    REAL_CAPITAL_CACHE_TTL_SECONDS (see comment above for why not on every
+    tick). Falls back to the last known cached value on a fresh-fetch
+    failure. If there has never been a successful fetch at all (e.g.
+    Kotak Neo not configured, or the very first tick after startup hasn't
+    resolved yet), falls back to 0.0 - deliberately NOT the old fake
+    Rs 4,00,000 paper number, since sizing real-shaped trades off a number
+    that isn't real would defeat the entire point of this change. 0.0
+    correctly sizes every trade to zero (no capital to risk) rather than
+    silently trading on a fabricated balance."""
+    age = time.time() - _real_capital_cache["fetched_at"]
+    if _real_capital_cache["value"] is None or age > REAL_CAPITAL_CACHE_TTL_SECONDS:
+        _refresh_real_capital_cache()
+    return _real_capital_cache["value"] if _real_capital_cache["value"] is not None else 0.0
 
 _scheduler_last_tick_ts = 0.0
 _scheduler_last_error = None
@@ -2926,6 +2976,11 @@ async def _scheduler_loop():
         # round-robin entry-scan batch of otherwise-flat symbols.
         symbols_this_tick = open_equity_symbols | open_option_underlyings | set(rr_batch)
 
+        # Hoisted once per tick, not per symbol - get_scheduler_capital_inr()
+        # is TTL-cached internally anyway, but this avoids re-checking cache
+        # freshness once per symbol in the loop below for no benefit.
+        scheduler_capital_inr = get_scheduler_capital_inr()
+
         for symbol in symbols_this_tick:
             cfg = watchlist_by_symbol.get(symbol)
             if not cfg:
@@ -2937,7 +2992,7 @@ async def _scheduler_loop():
             try:
                 result = await asyncio.to_thread(
                     _auto_signal_core,
-                    symbol=cfg["symbol"], capital=SCHEDULER_CAPITAL,
+                    symbol=cfg["symbol"], capital=scheduler_capital_inr,
                     daily_risk_pct=SCHEDULER_DAILY_RISK_PCT,
                     risk_per_trade_pct=cfg["risk_pct"],
                     stop_pct=cfg["stop_pct"], rr=SCHEDULER_RR,
@@ -2982,7 +3037,7 @@ async def _scheduler_loop():
             try:
                 result = await asyncio.to_thread(
                     _options_signal_core,
-                    underlying=underlying, capital=SCHEDULER_CAPITAL,
+                    underlying=underlying, capital=scheduler_capital_inr,
                     daily_risk_pct=SCHEDULER_DAILY_RISK_PCT,
                     risk_per_trade_pct=cfg["risk_pct"], rr=SCHEDULER_RR,
                     trend_sma=cfg.get("trend_sma", 20),
@@ -3018,6 +3073,10 @@ def scheduler_status():
         "last_tick_ts": _scheduler_last_tick_ts,
         "last_tick_ago_seconds": round(time.time() - _scheduler_last_tick_ts, 1) if _scheduler_last_tick_ts else None,
         "last_error": _scheduler_last_error,
+        "scheduler_capital_inr": _real_capital_cache["value"],
+        "scheduler_capital_source": "kotak_neo_real_account" if _real_capital_cache["value"] is not None else "not_yet_fetched",
+        "scheduler_capital_fetched_at_utc": _real_capital_cache["fetched_at"] or None,
+        "scheduler_capital_fetch_error": _real_capital_cache["error"],
     }
 
 
@@ -3684,6 +3743,55 @@ def kotak_neo_search_scrip(
         return _kotak_json_safe(result)
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.get("/kotak-neo/comprehensive")
+def kotak_neo_comprehensive(request: Request):
+    """Eligible stocks + the full NSE F&O universe, per explicit user
+    instruction (2026-09-04): "fetch eligible stocks for me and also the
+    futures and options data too in the comprehensive list" - "full raw
+    dump, no filtering" was the user's explicit choice after being warned
+    this would be large (a 'nifty' substring search alone matched 11,822
+    contracts the same day; this is the FULL nse_fo segment, markedly
+    bigger still - tens of thousands of rows, likely a multi-MB response.
+    Real login required - places no order. Requires
+    ?token=<KOTAK_NEO_API_TOKEN> (or an 'Authorization: Bearer <token>'
+    header).
+
+    Shape:
+      - eligible_equities: same rows as GET /watchlist (today's paper-
+        tradeable universe - indices + Nifty 100 + MCX commodity proxies,
+        see that endpoint's docstring for what "eligible" means here).
+      - fo_universe: EVERY contract in Kotak's live nse_fo scrip master -
+        every index/stock option and future, every strike, every expiry,
+        completely unfiltered (search_scrip's symbol="" skips Kotak's own
+        symbol filter entirely). Raw records, unmodified."""
+    _require_kotak_token(request)
+    eligible_equities = watchlist()["symbols"]
+    try:
+        import kotak_neo
+        fo_universe = kotak_neo.search_scrip(exchange_segment="nse_fo", symbol="")
+    except Exception as e:
+        return {
+            "eligible_equities_count": len(eligible_equities),
+            "eligible_equities": eligible_equities,
+            "fo_universe_error": str(e),
+        }
+    if not isinstance(fo_universe, list):
+        # A real Kotak-side error shape (e.g. {"error": [...]}), not a
+        # Python exception - _kotak_json_safe handles any non-serializable
+        # bits the same way the Phase 2 endpoints do.
+        return {
+            "eligible_equities_count": len(eligible_equities),
+            "eligible_equities": eligible_equities,
+            "fo_universe_error": _kotak_json_safe(fo_universe),
+        }
+    return {
+        "eligible_equities_count": len(eligible_equities),
+        "eligible_equities": eligible_equities,
+        "fo_universe_count": len(fo_universe),
+        "fo_universe": fo_universe,
+    }
 
 
 @app.get("/live")

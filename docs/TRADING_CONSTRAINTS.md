@@ -273,6 +273,80 @@ adding `--ws none` to the Start Command directly in the Render dashboard
 needs an incompatible `websockets` version again, check the *dashboard*
 Start Command, not just `Procfile`.
 
+## Real capital sizing + comprehensive F&O list (added 2026-09-04)
+
+Explicit user instruction: "fetch the actual capital it has and apply %
+limit on the trade. fetch eligivel stocks for me and also the futures and
+options data too in the comprehensive list." Before this, live position
+sizing scaled off `SCHEDULER_CAPITAL = 400000` - a fixed paper number, not
+the real account. Verified via a real call 2026-09-04: Kotak Neo's
+`limits()` returns a `"Net"` field (confirmed against the actual live
+response, not a guess) - that's now the real capital feeding the
+scheduler's risk sizing.
+
+**Not fetched on every tick.** `kotak_neo.login()` is a REAL TOTP login
+against the live account each call, and the scheduler can touch capital
+up to `SCHEDULER_ENTRY_SCAN_BATCH_SIZE` times per 30s tick - hammering
+Kotak's real login/limits API that often risks its own 429 rate limit or
+looking like abuse on a real broker account. `get_scheduler_capital_inr()`
+(`main.py`) caches the value for `REAL_CAPITAL_CACHE_TTL_SECONDS` (10 min)
+and only refetches once stale.
+
+**Failure handling, deliberately asymmetric:**
+- A fresh-fetch failure (network blip, session hiccup) falls back to the
+  **last known good value** - a transient Kotak error doesn't suddenly
+  zero out sizing on every open position's next check.
+- If there has **never** been a successful fetch at all (e.g. right after
+  a redeploy, before the first fetch resolves), falls back to **0.0** -
+  deliberately NOT the old fake Rs 4,00,000. Sizing real-shaped trades off
+  a number that isn't real would defeat the entire point of this change;
+  0.0 correctly sizes every trade to zero rather than trading on a
+  fabricated balance. `GET /scheduler-status` exposes the live cache state
+  (`scheduler_capital_inr`, `scheduler_capital_source`,
+  `scheduler_capital_fetched_at_utc`, `scheduler_capital_fetch_error`).
+
+**Verified real 2026-09-04**: `Net` came back `"0"` right after this
+shipped (zero available capital, confirmed real, not a bug - trades would
+size to zero), then `"2000"` once the user funded the account - proving
+the live wiring actually tracks the real account rather than a cached or
+fabricated figure. Don't read either number as a standing fact - `GET
+/scheduler-status` always has the current cached value, `Net` will keep
+moving as funds/positions change. Trading is separately paused via the
+kill switch (below) as of the same session, per explicit user instruction
+("we are pausing the paper trading for now").
+
+**No live price feed from Kotak, and none of this changes that** - only
+account data (capital, holdings, positions, scrip search) is wired to
+Kotak. Every strategy's price/candle data (SMA, ORB, ATR) is still 100%
+Yahoo Finance, per the earlier finding in this file that Kotak's Trade
+API has no historical-candle endpoint at all. `subscribe()` (Kotak's real
+tick-streaming method) has never been called anywhere in this codebase -
+no open WebSocket connection exists. Real-time ticks from Kotak would be
+a distinct, separate piece of work from anything in this section.
+
+**`GET /kotak-neo/comprehensive`** (token-gated, real Kotak calls) -
+`eligible_equities` (same as `GET /watchlist`) plus `fo_universe`: **every**
+contract in Kotak's live `nse_fo` scrip master, every strike, every
+expiry, completely unfiltered (`search_scrip(exchange_segment="nse_fo",
+symbol="")` - an empty symbol skips Kotak's own symbol filter entirely).
+Explicit user choice ("full raw dump, no filtering") after being told a
+`symbol="nifty"` substring search alone matched 11,822 contracts the same
+day - the full segment is markedly larger still, likely tens of thousands
+of rows / a multi-MB response. Not artificially truncated in code, per
+that instruction; a smaller diagnostic version
+(`GET /kotak-neo/search-scrip`, `limit=20` default) already exists for
+quick field-name checks without paying that cost.
+
+**Real-data gotcha, caught before it became a bug**: a naive
+`symbol="nifty"` search (substring match, not exact) surfaces
+**`NIFTYFPI`** contracts - a separate, niche, restricted NSE product, not
+the actual liquid NIFTY 50 index options. Anything built on top of
+`search_scrip` needs an exact match on `pSymbolName` (e.g. `== "NIFTY"`),
+not a substring search. Also confirmed from real records:
+`dStrikePrice;` is the strike **x 100** (e.g. `84000.0` means strike
+Rs 840), and `pSymbol` (a small integer) is the likely `instrument_token`
+`quotes()` needs - not yet exercised end-to-end.
+
 ## Kill switch / pause-resume (added 2026-09-03)
 
 Explicit user instruction: "I want to decide when to do trading and when
