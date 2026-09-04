@@ -494,6 +494,36 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
             flags.append(holding)
         df["long"] = flags
 
+    elif strategy == "bollinger_mean_reversion":
+        # Classic mean-reversion indicator strategy. Sources (2026-09-04
+        # research): realistic win rates ~58-65% in non-trending regimes when
+        # targeting the middle band (not the far band) as the exit, dropping
+        # toward ~45% without a regime filter (crosstrade.io, quant-signals.com);
+        # explicitly called out as workable on NIFTY 50 and other liquid
+        # NSE large-caps on the momentumiq.in "Bollinger Walk" write-up -
+        # directly relevant now that scope is NSE-only.
+        # Enter long when price closes below the lower band (oversold vs.
+        # its own recent range), exit when it reverts back above the middle
+        # band (the rolling mean) - same enter/exit-loop shape as
+        # rsi_reversal above.
+        bb_period = int(params.get("bb_period", 20))
+        bb_std = float(params.get("bb_std", 2.0))
+        mid = df["Close"].rolling(bb_period).mean()
+        std = df["Close"].rolling(bb_period).std()
+        lower = mid - bb_std * std
+        upper = mid + bb_std * std
+
+        holding, flags = False, []
+        for close, lo, mi in zip(df["Close"], lower, mid):
+            if pd.notna(lo) and pd.notna(mi):
+                if not holding and close < lo:
+                    holding = True
+                elif holding and close > mi:
+                    holding = False
+            flags.append(holding)
+        df["long"] = flags
+        df["bb_mid"], df["bb_upper"], df["bb_lower"] = mid, upper, lower
+
     elif strategy == "macd_cross":
         fast_span = int(params.get("macd_fast", 12))
         slow_span = int(params.get("macd_slow", 26))
@@ -508,7 +538,8 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
-                   f"orb_breakout, orb_volume, vwap_reclaim, bullish_engulfing, macd_cross",
+                   f"orb_breakout, orb_volume, vwap_reclaim, bullish_engulfing, "
+                   f"bollinger_mean_reversion, macd_cross",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -589,6 +620,8 @@ def backtest(
     macd_signal: int = 9,
     trend_sma: int = 0,
     volume_confirm: bool = False,
+    bb_period: int = 20,
+    bb_std: float = 2.0,
     qty: float = 1,
 ):
     """
@@ -602,6 +635,7 @@ def backtest(
                                         open_min (orb_volume also: volume_mult)
     strategy=vwap_reclaim         -> no extra params
     strategy=bullish_engulfing    -> params: trend_sma (0=off), volume_confirm
+    strategy=bollinger_mean_reversion -> params: bb_period, bb_std
     strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
     """
     df = fetch_ohlc(symbol, period, interval)
@@ -619,6 +653,8 @@ def backtest(
         params = {}
     elif strategy == "bullish_engulfing":
         params = {"trend_sma": trend_sma, "volume_confirm": volume_confirm}
+    elif strategy == "bollinger_mean_reversion":
+        params = {"bb_period": bb_period, "bb_std": bb_std}
     elif strategy == "macd_cross":
         params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
     else:
@@ -682,6 +718,9 @@ def sweep(
     # bullish_engulfing params - comma-separated lists
     trend_sma: str = "0,20,50",
     volume_confirm: str = "false,true",
+    # bollinger_mean_reversion params - comma-separated lists
+    bb_period: str = "10,20,30",
+    bb_std: str = "1.5,2.0,2.5",
 ):
     """
     Tests every combination of the given parameter lists against ONE fetch of
@@ -735,11 +774,17 @@ def sweep(
             {"trend_sma": ts, "volume_confirm": vc}
             for ts, vc in product(ts_list, vc_list)
         ]
+    elif strategy == "bollinger_mean_reversion":
+        bp_list = _parse_num_list(bb_period, int)
+        bs_list = _parse_num_list(bb_std, float)
+        combos = [
+            {"bb_period": bp, "bb_std": bs} for bp, bs in product(bp_list, bs_list)
+        ]
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
-                   f"orb_breakout, orb_volume, bullish_engulfing",
+                   f"orb_breakout, orb_volume, bullish_engulfing, bollinger_mean_reversion",
         )
 
     if not combos:

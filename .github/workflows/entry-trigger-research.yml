@@ -2,8 +2,9 @@ name: Entry Trigger Research (backtest candidates)
 
 # One-off/manual research run: backtests several candidate entry-trigger
 # strategies (orb_breakout, orb_volume, vwap_reclaim, macd_cross,
-# bullish_engulfing) against real historical intraday data, so the live
-# /auto-signal trigger logic is chosen on evidence, not asserted.
+# bullish_engulfing, bollinger_mean_reversion) against real historical
+# intraday data, so the live /auto-signal trigger logic is chosen on
+# evidence, not asserted.
 on:
   workflow_dispatch:
     inputs:
@@ -12,7 +13,11 @@ on:
         type: boolean
         default: true
       run_new_asset_research:
-        description: "Also sweep orb_breakout + bullish_engulfing on gold (GC=F) and forex (EURUSD=X, USDINR=X)"
+        description: "Also sweep orb_breakout + bullish_engulfing on gold (GC=F) and forex (EURUSD=X, USDINR=X) - OUT OF SCOPE per 2026-09-03 NSE-only direction, default off"
+        type: boolean
+        default: false
+      run_bollinger_research:
+        description: "Also sweep bollinger_mean_reversion on NSE indices + the 15 NSE large-caps"
         type: boolean
         default: true
 
@@ -121,5 +126,31 @@ jobs:
 
             echo "--- sweep: bullish_engulfing ---"
             curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=bullish_engulfing&rank_by=total_pnl&top_n=8&trend_sma=0,20,50&volume_confirm=false"
+            echo
+          done
+
+      - name: "Price action: bollinger_mean_reversion sweep (NSE indices + large-caps)"
+        if: ${{ inputs.run_bollinger_research }}
+        run: |
+          SW="https://tv-paper-bot-gdan.onrender.com/sweep"
+          PERIOD="60d"
+          INTERVAL="5m"
+          # 2026-09-04 candidate: classic mean-reversion, not yet tested here.
+          # Sourced win-rate context: ~58-65% in non-trending regimes when
+          # exiting at the middle band, dropping toward ~45% without a
+          # regime filter; explicitly documented as workable on NIFTY 50 and
+          # other liquid NSE large-caps (see docs/daily_logs for sources).
+          # Scoped to NSE only per the 2026-09-03 RESEARCH_AGENT_BRIEF.md
+          # update - indices (no real volume, irrelevant here since this
+          # strategy doesn't use volume) plus the 15 NSE large-caps now in
+          # WATCHLIST.
+          for SYMBOL in "%5ENSEI" "%5ENSEBANK" "%5EBSESN" \
+                        "RELIANCE.NS" "TCS.NS" "HDFCBANK.NS" "INFY.NS" "ICICIBANK.NS" \
+                        "HINDUNILVR.NS" "ITC.NS" "SBIN.NS" "BHARTIARTL.NS" "KOTAKBANK.NS" \
+                        "LT.NS" "AXISBANK.NS" "BAJFINANCE.NS" "MARUTI.NS" "ASIANPAINT.NS"; do
+            echo "=========================================="
+            echo "SYMBOL: $SYMBOL  strategy=bollinger_mean_reversion (bb_period x bb_std sweep)"
+            echo "=========================================="
+            curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=bollinger_mean_reversion&rank_by=total_pnl&top_n=8&bb_period=10,20,30&bb_std=1.5,2.0,2.5"
             echo
           done
