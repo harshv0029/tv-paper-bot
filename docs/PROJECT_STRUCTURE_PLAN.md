@@ -218,26 +218,52 @@ break them with the gate still reporting green.
 
 ### Phase 1 — split `main.py` into modules (the core structural fix)
 
-A **behavior-preserving** refactor — pure code motion, not logic changes —
-validated by running `deploy-gate.yml`'s backtest regression before and
-after and confirming byte-identical results. Proposed module boundaries,
-based on the actual function inventory read this session:
+A **behavior-preserving** refactor — pure code motion, not logic changes.
+Module boundaries, based on the actual function inventory read this
+session:
 
-| New module | Moves from `main.py` |
-|---|---|
-| `db.py` | `get_db`, `init_db`, all `reconcile_*_from_journal` |
-| `data_fetch.py` | `fetch_ohlc`, `get_fx_to_inr`, caching |
-| `strategies.py` | `add_strategy_signal`, `extract_trades`/`extract_trades_fast` |
-| `options_pricing.py` | `bs_price`, `_norm_cdf` (once), `select_option_contract`, `_requote_contract`, `run_options_backtest` |
-| `signal_core.py` | `_auto_signal_core`, `_options_signal_core`, `_detect_direction_signal`, `_trend_confidence`, `_compute_trend`, `_trailing_stop_target` |
-| `real_trading.py` | `is_real_trading_enabled`, `_real_today_spent_inr`, `_maybe_place_real_entry`/`_exit`, `_log_real_attempt` (pairs with existing `kotak_real_orders.py`) |
-| `scheduler.py` | `_scheduler_loop` and its helpers |
-| `main.py` (after) | FastAPI app setup + route wiring only — each route becomes a thin call into the modules above |
+| New module | Moves from `main.py` | Status |
+|---|---|---|
+| `constants.py` | `ORB_STRATEGY_PREFIX`, every `OPTIONS_*` constant | **Done, 2026-09-04** |
+| `data_fetch.py` | `fetch_ohlc`, `get_fx_to_inr`, `_DATA_CACHE`/`_CACHE_TTL_SECONDS` | **Done, 2026-09-04** |
+| `options_pricing.py` | `bs_price`, `_norm_cdf` (once), `_bs_delta`, `select_option_contract`, `_requote_contract`, `parse_legs`, `run_options_backtest` | **Done, 2026-09-04** |
+| `db.py` | `get_db`, `init_db`, all `reconcile_*_from_journal` | Not started |
+| `strategies.py` | `add_strategy_signal`, `extract_trades`/`extract_trades_fast` | Not started |
+| `signal_core.py` | `_auto_signal_core`, `_options_signal_core`, `_detect_direction_signal`, `_trend_confidence`, `_compute_trend`, `_trailing_stop_target` | Not started — highest-risk module (touches DB, real trading, scheduler state) |
+| `real_trading.py` | `is_real_trading_enabled`, `_real_today_spent_inr`, `_maybe_place_real_entry`/`_exit`, `_log_real_attempt` (pairs with existing `kotak_real_orders.py`) | Not started |
+| `scheduler.py` | `_scheduler_loop` and its helpers | Not started |
+| `main.py` (end state) | FastAPI app setup + route wiring only | In progress — 4,535 → 4,246 lines so far |
+
+**Done, 2026-09-04:** the three lowest-risk, most self-contained modules —
+each verified by (1) `ast.parse` on every touched/new file, (2) the Phase 3
+pytest suite passing unchanged, (3) an identity check confirming
+`main.bs_price is options_pricing.bs_price` etc. for every moved name (not
+just "a same-named symbol exists somewhere"), (4) a `TestClient` smoke test
+against the actually-running app (`/health`, `/watchlist`) confirming
+route wiring survives, not just that the file imports. That verification
+pass itself caught two real mistakes before they shipped: an inaccurate
+comment in an early draft of `constants.py` (rewritten from the real
+source, not a paraphrase), and a leftover second definition of
+`ORB_STRATEGY_PREFIX` still sitting in `main.py` after the move (harmless
+value-wise, but exactly the kind of duplicate-definition drift this
+refactor exists to remove) — both fixed before commit, not after.
+
+**Not done in this pass, deliberately:** `signal_core.py` in particular
+holds the live trading brain — `_auto_signal_core` alone is ~500 lines
+touching DB state, the scheduler, and real-order gating. Moving it needs
+either much heavier local fixtures than this session's synthetic-OHLCV
+tests, or a real run of `deploy-gate.yml`'s backtest regression against
+live market data (the project's own established validation method) before
+merging — this session's sandbox has no outbound network access to Yahoo
+Finance to run that check locally (confirmed: a live `/backtest` call
+here fails on a blocked connection, not a code error). Splitting that
+module deserves its own focused pass with that check available, not a
+rushed continuation of this one.
 
 Should land as its own `staging` branch, gated the normal way, done in one
-focused pass rather than interleaved with feature work (mixing "moved this
-code" diffs with "changed this logic" diffs is exactly what makes a future
-regression hard to bisect).
+focused pass per remaining module rather than interleaved with feature
+work (mixing "moved this code" diffs with "changed this logic" diffs is
+exactly what makes a future regression hard to bisect).
 
 ### Phase 2 — doc consolidation
 
@@ -280,13 +306,32 @@ regression hard to bisect).
 
 ## 5. What was fixed immediately vs. what's queued
 
-**Fixed in this pass:** the duplicate `_norm_cdf` (§3.1) — safe, mechanical,
-zero behavior change.
+**Fixed in this pass (2026-09-04, audit turn):** the duplicate `_norm_cdf`
+(§3.1) — safe, mechanical, zero behavior change.
 
-**Deliberately not done in this pass**, pending your sequencing call: the
-`main.py` module split (Phase 1) is a large, inherently riskier change
-that deserves its own staged rollout and explicit go-ahead rather than
-landing inside an audit turn; deleting `requirements_1.txt` is a one-way
-action flagged rather than taken; the doc consolidation in Phase 2 needs
-your decision on the xlsx files' respective roles before it can be done
-accurately rather than guessed.
+**Fixed in this pass (2026-09-04, follow-up "do the best possible way"
+turn):** started Phase 1 for real — `constants.py`, `data_fetch.py`,
+`options_pricing.py` split out of `main.py` (4,535 → 4,246 lines),
+verified via syntax check, the new pytest suite, per-symbol identity
+checks, and a live `TestClient` smoke test against the running app. Also
+added `tests/test_strategy_logic.py` + `requirements-dev.txt` (Phase 3,
+resequenced ahead of finishing Phase 1 on purpose — see §4 Phase 3 — so
+the riskier remaining modules have a real regression net to run against).
+
+**Deliberately not done in this pass**, and why:
+- The remaining, harder Phase 1 modules (`db.py`, `strategies.py`,
+  `signal_core.py`, `real_trading.py`, `scheduler.py`) — `signal_core.py`
+  especially touches live money-moving logic and needs the project's real
+  `deploy-gate.yml` backtest regression (real market data, real network)
+  to validate, not just local unit tests. This session's sandbox has no
+  outbound access to Yahoo Finance to run that locally.
+- Deploying anything in this pass to production: per the project's own
+  `DEPLOY_GATE_RULES.md`, a `main.py` change is trading-logic code and
+  must go `staging` → `deploy-gate.yml` → `main`. This session pushed to
+  the harness-designated docs branch, not `staging` — the code exists,
+  verified, on that branch, but reaching production needs someone to
+  carry it onto `staging` and run the gate.
+- Deleting `requirements_1.txt` — a one-way action flagged rather than
+  taken.
+- The doc consolidation in Phase 2 needs your decision on the xlsx files'
+  respective roles before it can be done accurately rather than guessed.
