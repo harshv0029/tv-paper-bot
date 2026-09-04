@@ -4180,6 +4180,37 @@ def kotak_neo_search_scrip(
         return {"error": str(e)}
 
 
+@app.get("/kotak-neo/scrip-master")
+def kotak_neo_scrip_master(request: Request, exchange_segment: str = "nse_cm", preview: int = 10):
+    """DIAGNOSTIC step toward sourcing the equity WATCHLIST universe from
+    Kotak instead of NSE's own website (2026-09-05, explicit user
+    instruction: "can't you source it from kotak neo" - NSE's own official
+    list is unreachable both from GitHub Actions, per KNOWN_ISSUES.md-style
+    Akamai bot-protection, and from this project's own sandbox, per its
+    network egress policy). Returns the CSV's real column names + a
+    `preview`-row sample + total row count, UNFILTERED - same "see the
+    real shape on real data before parsing it" discipline as
+    /kotak-neo/search-scrip, since Kotak's scrip-master CSV column names
+    aren't documented anywhere in the SDK's source either. Real login
+    required - places no order. Requires ?token=<KOTAK_NEO_API_TOKEN> (or
+    an 'Authorization: Bearer <token>' header)."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        csv_url = kotak_neo.scrip_master(exchange_segment=exchange_segment)
+        if not isinstance(csv_url, str):
+            return {"error": "scrip_master did not return a CSV URL", "raw": _kotak_json_safe(csv_url)}
+        df = pd.read_csv(csv_url)
+        return {
+            "csv_url": csv_url,
+            "total_rows": len(df),
+            "columns": list(df.columns),
+            "preview": df.head(preview).to_dict(orient="records"),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/kotak-neo/quotes")
 def kotak_neo_quotes(request: Request, exchange_segment: str = "nse_cm", instrument_token: str = "Nifty 50", quote_type: str = "ltp"):
     """Real live quote for ONE instrument. Read-only - places no order.
