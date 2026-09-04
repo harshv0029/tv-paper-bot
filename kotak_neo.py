@@ -161,6 +161,31 @@ def search_scrip(exchange_segment, symbol="", expiry=None, option_type=None, str
     )
 
 
+def scrip_master(exchange_segment="nse_cm"):
+    """Points at Kotak's own live scrip master for a whole exchange segment
+    (default "nse_cm" - NSE cash/equity market) - the real, always-current
+    list of every tradable instrument on that segment, straight from
+    Kotak's infrastructure. Read-only - no order placed.
+
+    Explicit user instruction (2026-09-05): "can't you source it from
+    kotak neo" - after NSE's own official list turned out unreachable both
+    from GitHub Actions (Akamai bot-protection blocks its IPs, confirmed
+    2026-09-03 and again today) and from this project's own sandbox
+    (network egress policy blocks nseindia.com's domains outright). Kotak's
+    scrip-master endpoint is a different host entirely, sidesteps both.
+
+    Per the SDK's own docstring, this needs only consumer_key (not a full
+    TOTP session) - reuses login() anyway for simplicity/consistency with
+    every other function in this module; the extra TOTP round trip costs
+    nothing on an occasional (weekly) refresh, not a hot path.
+
+    Returns a single URL string pointing at the real CSV file for that
+    segment (confirmed from the SDK's own source, services/scrip_master.py)
+    - the actual file still needs a follow-up plain GET, same "verify the
+    real shape before parsing it" discipline as search_scrip below."""
+    return login().scrip_master(exchange_segment=exchange_segment)
+
+
 def quotes(instrument_tokens, quote_type="ltp"):
     """Live quote(s) for the given instruments. Read-only - no order
     placed. instrument_tokens: list of {"instrument_token": str,
