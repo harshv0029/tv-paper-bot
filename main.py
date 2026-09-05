@@ -725,6 +725,60 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         df["long"] = flags
         df["bb_mid"], df["bb_upper"], df["bb_lower"] = mid, upper, lower
 
+    elif strategy == "supertrend":
+        # Trend-following indicator, extremely widely used by Indian retail/
+        # algo traders on NSE specifically. Sources (2026-09-05 research):
+        # ~40-55% hit ratio on 5-min NIFTY with standard params, but winners
+        # run 2-3x larger than losers since you ride the trend until it
+        # flips (thehonestquant.com, quantifiedstrategies.com); standard
+        # settings (10, 3.0) are noted as too slow for BANKNIFTY specifically,
+        # which moves 3-5x more intraday points than a typical NSE large-cap
+        # (marketcalls.in) - hence sweeping atr_period/multiplier per symbol
+        # rather than assuming one setting fits all NSE instruments.
+        atr_period = int(params.get("atr_period", 10))
+        multiplier = float(params.get("multiplier", 3.0))
+
+        prev_close = df["Close"].shift(1)
+        tr = pd.concat([
+            df["High"] - df["Low"],
+            (df["High"] - prev_close).abs(),
+            (df["Low"] - prev_close).abs(),
+        ], axis=1).max(axis=1)
+        atr = tr.rolling(atr_period).mean()
+
+        hl2 = (df["High"] + df["Low"]) / 2
+        basic_upper = (hl2 + multiplier * atr).to_numpy()
+        basic_lower = (hl2 - multiplier * atr).to_numpy()
+        close = df["Close"].to_numpy()
+        n = len(df)
+
+        final_upper = np.full(n, np.nan)
+        final_lower = np.full(n, np.nan)
+        in_uptrend = np.full(n, False)  # True = supertrend line is the lower band (price above it)
+
+        first_valid = int(np.argmax(~np.isnan(basic_upper))) if np.any(~np.isnan(basic_upper)) else n
+        for i in range(first_valid, n):
+            if i == first_valid:
+                final_upper[i] = basic_upper[i]
+                final_lower[i] = basic_lower[i]
+                in_uptrend[i] = True
+                continue
+            final_upper[i] = (
+                basic_upper[i] if (basic_upper[i] < final_upper[i - 1] or close[i - 1] > final_upper[i - 1])
+                else final_upper[i - 1]
+            )
+            final_lower[i] = (
+                basic_lower[i] if (basic_lower[i] > final_lower[i - 1] or close[i - 1] < final_lower[i - 1])
+                else final_lower[i - 1]
+            )
+            if in_uptrend[i - 1]:
+                in_uptrend[i] = close[i] >= final_lower[i]
+            else:
+                in_uptrend[i] = close[i] > final_upper[i]
+
+        df["long"] = in_uptrend
+        df["supertrend"] = np.where(in_uptrend, final_lower, final_upper)
+
     elif strategy == "macd_cross":
         fast_span = int(params.get("macd_fast", 12))
         slow_span = int(params.get("macd_slow", 26))
@@ -742,7 +796,7 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
                    f"orb_breakout, orb_volume, vwap_reclaim, vwap_mean_reversion, "
                    f"vwap_breakout_retest, anchored_vwap_continuation, anchored_vwap_reversal, "
                    f"vwap_multi_period_reversal, bullish_engulfing, "
-                   f"bollinger_mean_reversion, macd_cross",
+                   f"bollinger_mean_reversion, supertrend, macd_cross",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -828,6 +882,8 @@ def backtest(
     retest_pct: float = 0.3,
     anchor_lookback: int = 20,
     min_periods: int = 5,
+    atr_period: int = 10,
+    multiplier: float = 3.0,
     qty: float = 1,
 ):
     """
@@ -846,6 +902,7 @@ def backtest(
     strategy=vwap_multi_period_reversal -> params: min_periods
     strategy=bullish_engulfing    -> params: trend_sma (0=off), volume_confirm
     strategy=bollinger_mean_reversion -> params: bb_period, bb_std
+    strategy=supertrend           -> params: atr_period, multiplier
     strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
     """
     df = fetch_ohlc(symbol, period, interval)
@@ -873,6 +930,8 @@ def backtest(
         params = {"trend_sma": trend_sma, "volume_confirm": volume_confirm}
     elif strategy == "bollinger_mean_reversion":
         params = {"bb_period": bb_period, "bb_std": bb_std}
+    elif strategy == "supertrend":
+        params = {"atr_period": atr_period, "multiplier": multiplier}
     elif strategy == "macd_cross":
         params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
     else:
@@ -939,6 +998,9 @@ def sweep(
     # bollinger_mean_reversion params - comma-separated lists
     bb_period: str = "10,20,30",
     bb_std: str = "1.5,2.0,2.5",
+    # supertrend params - comma-separated lists
+    atr_period: str = "7,10,14",
+    multiplier: str = "2.0,3.0,4.0",
 ):
     """
     Tests every combination of the given parameter lists against ONE fetch of
@@ -998,11 +1060,18 @@ def sweep(
         combos = [
             {"bb_period": bp, "bb_std": bs} for bp, bs in product(bp_list, bs_list)
         ]
+    elif strategy == "supertrend":
+        ap_list = _parse_num_list(atr_period, int)
+        mult_list = _parse_num_list(multiplier, float)
+        combos = [
+            {"atr_period": ap, "multiplier": m} for ap, m in product(ap_list, mult_list)
+        ]
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
-                   f"orb_breakout, orb_volume, bullish_engulfing, bollinger_mean_reversion",
+                   f"orb_breakout, orb_volume, bullish_engulfing, bollinger_mean_reversion, "
+                   f"supertrend",
         )
 
     if not combos:
