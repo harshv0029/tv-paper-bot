@@ -226,12 +226,22 @@
     </div>
     <div class="day-summary" id="day-summary">
       <div class="ds-item">
-        <span class="ds-lbl">Net P&amp;L today (closed trades)</span>
+        <span class="ds-lbl">Paper net P&amp;L today (closed trades)</span>
         <span class="ds-val mono" id="ds-pnl">—</span>
       </div>
       <div class="ds-item">
-        <span class="ds-lbl">Unrealised P&amp;L (open)</span>
+        <span class="ds-lbl">Paper unrealised P&amp;L (open)</span>
         <span class="ds-val mono" id="ds-unrealised">—</span>
+      </div>
+      <div class="ds-item">
+        <span class="ds-lbl">Real P&amp;L today (Kotak, all trades)</span>
+        <span class="ds-val mono" id="ds-real-pnl">
+          <button onclick="showRealPnl()" id="ds-real-pnl-btn" style="font-size:10.5px;padding:3px 8px;background:var(--panel-2);border:1px solid var(--border);border-radius:5px;color:var(--text);cursor:pointer;">Show (needs token)</button>
+        </span>
+      </div>
+      <div class="ds-item">
+        <span class="ds-lbl">Real loss budget left (Kotak)</span>
+        <span class="ds-val mono" id="ds-real-budget">—</span>
       </div>
       <div class="ds-item">
         <span class="ds-lbl">Tax on realised profit (est.)</span>
@@ -256,7 +266,7 @@
         <span class="ds-val mono" id="ds-winrate">—</span>
       </div>
       <div class="ds-item">
-        <span class="ds-lbl">Daily loss budget left</span>
+        <span class="ds-lbl">Paper daily loss budget left</span>
         <span class="ds-val mono" id="ds-budget">—</span>
       </div>
       <div class="ds-item">
@@ -870,6 +880,46 @@ const CONSTRAINT_LABELS = {
   real_daily_cap_inr: "Real trading daily cap (₹)",
 };
 
+// Real (Kotak) P&L on the main dashboard (2026-09-07, explicit user
+// complaint: the paper-only "Net P&L today" tile didn't match Kotak's
+// real account at all - understandably confusing on a day with real
+// trades). GET /real-trading-control is token-gated (real account data),
+// so this prompts for the token ONCE (kept in memory only, never
+// localStorage/persisted - re-entered if the page reloads, same
+// lightweight-friction pattern as the constraints panel's real_daily_cap_inr
+// save) and then keeps it live on every 10s poll like everything else.
+let kotakToken = null;
+
+async function showRealPnl() {
+  if (!kotakToken) {
+    const t = prompt("Kotak API token (kept in memory only for this page load, not stored):");
+    if (!t) return;
+    kotakToken = t;
+  }
+  await refreshRealPnl();
+}
+
+async function refreshRealPnl() {
+  if (!kotakToken) return;  // not shown yet - cheap no-op on every poll until the user asks
+  try {
+    const data = await fetchJSON(`${ORIGIN}/real-trading-control?token=${encodeURIComponent(kotakToken)}`);
+    const pnl = data.real_pnl_today_inr;
+    const pnlEl = document.getElementById("ds-real-pnl");
+    if (pnl === null || pnl === undefined) {
+      pnlEl.innerHTML = `<span class="constraint-status err">unavailable${data.real_pnl_fetch_error ? ": " + data.real_pnl_fetch_error : ""}</span>`;
+      pnlEl.className = "ds-val mono";
+    } else {
+      pnlEl.textContent = `${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}`;
+      pnlEl.className = "ds-val mono " + (pnl >= 0 ? "up" : "down");
+    }
+    document.getElementById("ds-real-budget").textContent =
+      (data.real_loss_budget_remaining_inr ?? null) !== null ? `₹${fmt(data.real_loss_budget_remaining_inr)}` : "—";
+  } catch (e) {
+    document.getElementById("ds-real-pnl").innerHTML = `<span class="constraint-status err">failed - wrong token?</span>`;
+    kotakToken = null;  // let the next click re-prompt rather than silently retry a bad token forever
+  }
+}
+
 async function refreshConstraints() {
   let settings;
   try {
@@ -1188,6 +1238,7 @@ function tickCountdown() {
     refresh();
     refreshScanner();
     refreshControlStatus();
+    refreshRealPnl();  // no-op until the user clicks "Show" once (see showRealPnl)
   }
   document.getElementById("countdown").textContent = secondsLeft;
 }
