@@ -2925,6 +2925,35 @@ def _load_nse_universe_from_file() -> list[str]:
 # for a deliberate follow-up decision instead of guessing.
 NSE_FULL_UNIVERSE = _load_nse_universe_from_file()
 
+# Per-symbol evidenced param overrides - explicit user instruction
+# 2026-09-07 ("the nse equity or index win rate is low... how r u
+# planning to improve it" -> "do whatever you can so that whole day
+# becomes profitable"). Real /sweep backtest evidence (60d, 5m,
+# orb_breakout, grid: orb_minutes 10/15/30 x sma_fast 5/9/14 x sma_slow
+# 21/50 - 18 combos per symbol) - judged the same way gold's own
+# evidence bar requires: not the single best combo (curve-fit risk on
+# one historical window), but pct_profitable_combos and median_total_pnl
+# too, so a real, repeatable edge across nearby params, not a lone spike:
+#   RELIANCE.NS:  77.8% of combos profitable, median +11.1, best 56.7% win rate
+#   TCS.NS:       83.3% of combos profitable, median +98.95, best 69.0% win rate
+#   ICICIBANK.NS: 94.4% of combos profitable, median +25.9, best 56.8% win rate
+#   INFY.NS:      100%  of combos profitable, median +52.4, best 64.7% win rate
+# All four cleared risk_pct/stop_pct from the 1% "unproven" default to
+# the full 2% ceiling - same bar gold already cleared.
+# HDFCBANK.NS was ALSO swept the same day and came back the OPPOSITE way
+# (0% of 18 combos profitable, median -64.45, best win rate only 36.1%) -
+# left at the conservative 1% default deliberately, not raised. Real
+# evidence here argues against this exact strategy/param range on this
+# symbol - flagging rather than silently leaving it unexamined. The rest
+# of NSE_FULL_UNIVERSE hasn't been swept yet - stays on the untuned
+# default until it has, same "unproven -> half ceiling" rule as always.
+NSE_STOCK_PARAM_OVERRIDES = {
+    "RELIANCE.NS": {"orb_minutes": 15, "sma_fast": 5, "sma_slow": 21, "risk_pct": 2.0, "stop_pct": 2.0},
+    "TCS.NS": {"orb_minutes": 10, "sma_fast": 14, "sma_slow": 50, "risk_pct": 2.0, "stop_pct": 2.0},
+    "ICICIBANK.NS": {"orb_minutes": 10, "sma_fast": 5, "sma_slow": 21, "risk_pct": 2.0, "stop_pct": 2.0},
+    "INFY.NS": {"orb_minutes": 30, "sma_fast": 9, "sma_slow": 50, "risk_pct": 2.0, "stop_pct": 2.0},
+}
+
 WATCHLIST = [
     # NSE/BSE indices - IST 9:15-15:30, weekdays. Params from 2026-09-02
     # research (docs/daily_logs/2026-09-02-entry-trigger-research.md).
@@ -2943,7 +2972,8 @@ WATCHLIST = [
      "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
 ] + [
-    {"symbol": sym, **NSE_STOCK_DEFAULT_PARAMS} for sym in NSE_FULL_UNIVERSE
+    {"symbol": sym, **NSE_STOCK_DEFAULT_PARAMS, **NSE_STOCK_PARAM_OVERRIDES.get(sym, {})}
+    for sym in NSE_FULL_UNIVERSE
 ] + [
     # MCX commodities - restored 2026-09-03 per explicit user instruction
     # ("keep all those assets listed in Zerodha") - unlike crypto and US
