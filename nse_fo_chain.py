@@ -35,14 +35,14 @@ never guesses which to use, select_nse_future/select_nse_option_contract
 each take whatever underlying string is actually relevant to what
 they're resolving.
 
-quotes()'s exact response shape for nse_fo/mcx_fo has NOT been
-independently confirmed the way search_scrip/margin_required have -
-_extract_ltp is deliberately defensive (tries the field names
-kotak_neo.quotes's own docstring implies, gives up cleanly rather than
-guessing) so a shape surprise fails safe (refuses the contract) instead
-of ever returning a wrong premium. Verify with one live
-GET /kotak-neo/nse-fo-chain call before enabling real straddle/option
-trading on a new underlying.
+quotes()'s response shape IS confirmed (2026-09-07, live GET
+/kotak-neo/quotes against the real NIFTY future): a LIST of dicts, e.g.
+[{"exchange_token": "68407", "display_symbol": "NIFTY26SEPFUT",
+"exchange": "nse_fo", "ltp": "23866.1000"}] - see _extract_ltp's own
+comment. search_scrip's real shape (also confirmed the same day, after
+an actual live bug - see _fo_rows) is a plain LIST too, not the
+{"total_matched","showing"} shape that only exists in main.py's own
+/kotak-neo/search-scrip diagnostic wrapper.
 """
 import datetime as dt
 
@@ -252,15 +252,22 @@ def select_nse_option_contract(underlying: str, spot: float, right: str):
 
 
 def _extract_ltp(quotes_response) -> float | None:
-    """See this module's docstring: quotes()'s real nse_fo response shape
-    is unconfirmed - tries the field names kotak_neo.quotes's own
-    docstring implies, returns None (never a guessed number) on anything
-    unexpected."""
-    if not isinstance(quotes_response, dict):
+    """REAL, CONFIRMED response shape (2026-09-07, live GET
+    /kotak-neo/quotes?exchange_segment=nse_fo&instrument_token=68407 against
+    the real NIFTY future): a LIST of dicts, e.g.
+    [{"exchange_token": "68407", "display_symbol": "NIFTY26SEPFUT",
+    "exchange": "nse_fo", "ltp": "23866.1000"}] - same "assumed dict,
+    got a list" mistake this module's search_scrip parsing had (see
+    _fo_rows's own comment on that real bug) - fixed the same way here:
+    treat a list as the real success shape directly, a dict as an error
+    response (kotak_neo.quotes's own {"error": [...]} validation-failure
+    shape), and never guess past that."""
+    if isinstance(quotes_response, list):
+        data = quotes_response[0] if quotes_response else None
+    elif isinstance(quotes_response, dict):
+        return None  # error response (e.g. {"error": [...]}) - never guess a price from it
+    else:
         return None
-    data = quotes_response.get("data") or quotes_response.get("Success") or quotes_response
-    if isinstance(data, list) and data:
-        data = data[0]
     if not isinstance(data, dict):
         return None
     for key in ("ltp", "last_price", "lastPrice", "LTP"):
