@@ -1040,7 +1040,7 @@ function optionLabel(pos) {
   return `${pos.underlying} ${(pos.right || "").toUpperCase()} ${fmt(pos.strike, 0)}`;
 }
 
-function renderTradeLog(summary, history) {
+function renderTradeLog(summary, history, realTrades) {
   const body = document.getElementById("log-body");
   const openPositions = summary.open_positions || [];
   // Closed trades: UNION of /trade-history (docs/trade_outcomes_log.json,
@@ -1127,16 +1127,46 @@ function renderTradeLog(summary, history) {
   const totalRealisedInr = closed.reduce((s, t) => s + (t.pnl_inr ?? 0), 0);
   const combinedInr = totalRealisedInr + totalUnrealisedInr;
   const totalRow = `<tr class="log-total-row">
-      <td colspan="8">TOTAL — realised (closed) + unrealised (live)</td>
+      <td colspan="8">TOTAL (paper) — realised (closed) + unrealised (live)</td>
       <td class="num">${pnlSpan(totalRealisedInr)}</td>
       <td class="num">${pnlSpan(totalUnrealisedInr)}</td>
       <td colspan="3">Combined: ${pnlSpan(combinedInr)}</td>
     </tr>`;
 
+  // Real (Kotak) trades today - a SEPARATE section, never merged into the
+  // paper tallies above (totalRealisedInr/ds-count/ds-winrate stay paper-
+  // only, same strategy-evaluation purpose they always had). Explicit
+  // user finding (2026-09-07): "i can see no trade here, while you know
+  // that trade happened today" - this app's own trades table never had a
+  // row for anything traded directly on Kotak; /real-trades-today (no
+  // token, same as /real-pnl-today) is Kotak's own ground truth instead.
+  const realRows = (realTrades || []).map(t => `<tr class="real-trade-row">
+      <td><span class="log-status" style="background:rgba(168,85,247,.18);color:#c084fc;">REAL</span></td>
+      <td class="sym">${t.symbol}</td>
+      <td class="log-type">Equity</td>
+      <td class="log-type">${t.strategy}</td>
+      <td class="num">${fmt(t.entry_price_native, 2)}</td>
+      <td class="num">${fmt(t.exit_price_native, 2)}</td>
+      <td class="num">${fmt(t.qty, 0)}</td>
+      <td class="num">${dash}</td>
+      <td class="num">${pnlSpan(t.pnl_inr ?? 0)}</td>
+      <td class="num">${dash}</td>
+      <td class="num">${dash}</td>
+      <td class="log-type">Kotak (manual/external)</td>
+      <td class="meta">${timeAgo(t.exit_time_utc)}</td>
+    </tr>`);
+  const realTotalInr = (realTrades || []).reduce((s, t) => s + (t.pnl_inr ?? 0), 0);
+  const realTotalRow = realRows.length ? `<tr class="log-total-row">
+      <td colspan="8">TOTAL (real, Kotak)</td>
+      <td class="num">${pnlSpan(realTotalInr)}</td>
+      <td colspan="3"></td>
+    </tr>` : "";
+
   const sectionRow = (label) => `<tr class="log-section-row"><td colspan="13">${label}</td></tr>`;
   const sections = [];
   if (liveRows.length) sections.push(sectionRow(`Live positions (${liveRows.length})`), ...liveRows);
-  sections.push(sectionRow(`Closed today (${closedRows.length}) — transacted, realized P&amp;L`));
+  if (realRows.length) sections.push(sectionRow(`Real trades today (${realRows.length}) — Kotak, outside this app's own order placement`), ...realRows, realTotalRow);
+  sections.push(sectionRow(`Closed today, paper (${closedRows.length}) — transacted, realized P&amp;L`));
   sections.push(...(closedRows.length ? closedRows : [`<tr><td colspan="13" class="scan-idle">No trades closed yet today</td></tr>`]));
   if (liveRows.length || closedRows.length) sections.push(totalRow);
   body.innerHTML = sections.join("");
@@ -1196,9 +1226,10 @@ async function refresh() {
     const schedStatus = await fetchJSON(`${ORIGIN}/scheduler-status`).catch(() => null);
     const realCapitalInr = Math.max(1, schedStatus?.scheduler_capital_inr ?? 0);
 
-    const [summary, history] = await Promise.all([
+    const [summary, history, realTrades] = await Promise.all([
       fetchJSON(`${ORIGIN}/daily-summary?capital=${realCapitalInr}&daily_risk_pct=2&tax_slab_pct=${taxSlabPct}`),
       fetchJSON(`${ORIGIN}/trade-history?days=1`),
+      fetchJSON(`${ORIGIN}/real-trades-today`).catch(() => ({ trades: [] })),
     ]);
     document.getElementById("ds-capital-available").textContent =
       `₹${fmt(summary.capital_available_inr ?? realCapitalInr)}`;
@@ -1222,7 +1253,7 @@ async function refresh() {
             ? `<div class="empty">No open positions. Last closed: ${displayName(lastClosed.symbol)} — ${lastClosed.exit_reason}, P&amp;L ₹${fmt(lastClosed.pnl_inr)}. Waiting for next signal…</div>`
             : `<div class="empty">No open positions yet. Waiting for the strategy to fire…</div>`;
       }
-      renderTradeLog(summary, history);
+      renderTradeLog(summary, history, realTrades.trades);
       return;
     }
 
@@ -1237,7 +1268,7 @@ async function refresh() {
       renderStats(pos.symbol, pos, lastClose);
     }
 
-    renderTradeLog(summary, history);
+    renderTradeLog(summary, history, realTrades.trades);
   } catch (e) {
     document.getElementById("cards").innerHTML = `<div class="err">fetch failed: ${e.message}</div>`;
   }

@@ -3152,6 +3152,68 @@ def get_real_pnl_today():
     }
 
 
+@app.get("/real-trades-today")
+def get_real_trades_today():
+    """Every closed REAL trade today, Kotak's own ground truth - not just
+    the aggregate real_pnl_today_inr, and not this app's own real_trades
+    table (which only ever logs orders THIS code places, so it has zero
+    record of anything traded directly on Kotak - see get_real_pnl_today_inr's
+    docstring for the same gap). Explicit user finding (2026-09-07): "i can
+    see no trade here, while you know that trade happened today - they why
+    not in sync as of now?" - the trade-view Trade Log table only ever
+    showed PAPER trades; this is the real-trade equivalent, merged into
+    that same table client-side (see trade-view.html's renderTradeLog).
+
+    No token required, same reasoning as /real-pnl-today ("make it without
+    any checks") - per-trade symbol/qty/price is more detail than the
+    aggregate, but this is still a closed/historical trade list, not
+    account state or order IDs (those stay behind /kotak-neo/positions'
+    own token gate). Same fully-squared-off filter as get_real_pnl_today_inr
+    (flBuyQty == flSellQty, dated today) - an OPEN real position never
+    appears here, only completed round trips."""
+    try:
+        import kotak_neo
+        positions = kotak_neo.positions()
+    except Exception as e:
+        return {"error": str(e), "trades": []}
+
+    rows = positions.get("data") or [] if isinstance(positions, dict) else []
+    today_str = ist_now().strftime("%Y/%m/%d")
+    trades = []
+    for row in rows:
+        try:
+            if row.get("exSeg") != "nse_cm":
+                continue
+            fl_buy = float(row.get("flBuyQty", 0) or 0)
+            fl_sell = float(row.get("flSellQty", 0) or 0)
+            if fl_buy == 0 or fl_buy != fl_sell:
+                continue  # open position, not a closed trade
+            hs_up_tm = str(row.get("hsUpTm", ""))
+            if not hs_up_tm.startswith(today_str):
+                continue
+            buy_amt = float(row.get("buyAmt", 0) or 0)
+            sell_amt = float(row.get("sellAmt", 0) or 0)
+            qty = fl_buy
+            # hsUpTm is Kotak's own IST wall-clock string ("YYYY/MM/DD HH:MM:SS")
+            # - convert to a UTC epoch so the frontend's existing timeAgo()
+            # helper (which expects exit_time_utc, same as every paper trade
+            # row) works unmodified.
+            exit_dt_ist = dt.datetime.strptime(hs_up_tm, "%Y/%m/%d %H:%M:%S")
+            exit_time_utc = (exit_dt_ist - dt.timedelta(minutes=IST_OFFSET_MIN)).replace(tzinfo=dt.timezone.utc).timestamp()
+            trades.append({
+                "symbol": row.get("trdSym") or row.get("sym"), "exit_time_utc": exit_time_utc,
+                "entry_price_native": round(buy_amt / qty, 2) if qty else None,
+                "exit_price_native": round(sell_amt / qty, 2) if qty else None,
+                "qty": qty, "pnl_inr": round(sell_amt - buy_amt, 2),
+                "pnl_pct_of_capital": None, "exit_reason": "kotak_real_trade",
+                "rr_target": None, "rr_achieved": None, "strategy": "real (Kotak)",
+            })
+        except (TypeError, ValueError):
+            continue
+    trades.sort(key=lambda t: t["exit_time_utc"], reverse=True)
+    return {"date_ist": ist_now().strftime("%Y-%m-%d"), "trades_count": len(trades), "trades": trades}
+
+
 @app.get("/real-trading-control")
 def get_real_trading_control(request: Request):
     _require_kotak_token(request)
