@@ -761,9 +761,8 @@ async function onMasterToggle(turningOn) {
     if (!confirmed) { setSwitch(false); return; }
   } else {
     const confirmed = confirm(
-      "ALL TRADING OFF: force-closes every open PAPER position right now at the current market price, and blocks " +
-      "all new trades until switched back on. This does NOT automatically close any open REAL position - check " +
-      "the Kotak Neo app directly if one might be open. This cannot be undone. Proceed?"
+      "ALL TRADING OFF: force-closes EVERY open position right now at the current market price - paper AND any " +
+      "open REAL Kotak position - and blocks all new trades until switched back on. This cannot be undone. Proceed?"
     );
     if (!confirmed) { setSwitch(true); return; }
   }

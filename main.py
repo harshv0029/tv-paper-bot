@@ -1197,6 +1197,13 @@ IST_OFFSET_MIN = 330  # UTC+5:30, no holiday calendar
 # this used to be a second definition site for the same value, found during
 # the 2026-09-04 structure-split verification pass.
 
+DOCS_TRADE_OUTCOMES_PATH = os.path.join(os.path.dirname(__file__), "docs", "trade_outcomes_log.json")
+# Moved up from further down in this file (2026-09-07) so today_realized_pnl
+# can read it too - see that function and _durable_trade_outcomes_since for
+# why: this is the durable, git-tracked closed-trade record (synced by
+# journal-sync.yml) that survives a Render redeploy, unlike the live DB's
+# own `trades` table (free tier, no persistent disk).
+
 
 def ist_now() -> dt.datetime:
     return dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN)
@@ -1206,6 +1213,48 @@ def ist_midnight_epoch(now_ist: dt.datetime) -> float:
     midnight_ist = now_ist.replace(hour=0, minute=0, second=0, microsecond=0)
     midnight_utc = midnight_ist - dt.timedelta(minutes=IST_OFFSET_MIN)
     return midnight_utc.replace(tzinfo=dt.timezone.utc).timestamp()
+
+
+def _durable_trade_outcomes_since(since_ts: float) -> list[dict]:
+    """Closed trades from the durable, git-tracked journal
+    (docs/trade_outcomes_log.json, kept current by journal-sync.yml),
+    filtered to exit_time_utc >= since_ts. This is the record that
+    SURVIVES a Render redeploy - the live DB's own `trades` table does
+    not (free tier, no persistent disk: a redeploy starts a brand-new
+    empty DB). Never raises - a missing/unreadable file just means
+    nothing to merge in, not a crash."""
+    try:
+        with open(DOCS_TRADE_OUTCOMES_PATH) as f:
+            all_trades = json.load(f)
+    except Exception:
+        return []
+    return [t for t in all_trades if t.get("exit_time_utc", 0) >= since_ts]
+
+
+def _merge_closed_trades(db_trades: list[dict], durable_trades: list[dict]) -> list[dict]:
+    """Unions this DB instance's own closed-trade dicts with the durable
+    journal's, deduped by (symbol, rounded exit_time_utc) - both share the
+    same shape (symbol, exit_time_utc, pnl_inr, ...; see daily_summary's
+    closed_trades.append() and journal-sync.yml's own jq transform, which
+    copies that exact shape into the durable file). db_trades wins on a
+    key collision (this instance's own fresh computation); a durable-only
+    entry means that trade closed, then the DB got wiped by a redeploy,
+    before this instance ever saw it.
+
+    Found live 2026-09-07 as the root cause of three related, previously
+    unexplained symptoms: today's realized P&L silently resetting toward
+    zero after a mid-day redeploy, the account then blowing well past its
+    intended daily-loss cap in aggregate (the halt logic re-armed with a
+    full budget it hadn't earned), and the trade-view dashboard's win-rate/
+    closed-trades count not matching reality. All three traced to the same
+    bug: today_realized_pnl/daily_summary read ONLY the live DB's `trades`
+    table, which a redeploy empties. See docs/TRADING_CONSTRAINTS.md."""
+    merged: dict[tuple, dict] = {}
+    for t in durable_trades:
+        merged[(t.get("symbol"), round(t.get("exit_time_utc", 0)))] = t
+    for t in db_trades:
+        merged[(t.get("symbol"), round(t.get("exit_time_utc", 0)))] = t
+    return list(merged.values())
 
 
 def today_realized_pnl(conn, since_ts: float) -> float:
@@ -1218,13 +1267,19 @@ def today_realized_pnl(conn, since_ts: float) -> float:
     boundary (e.g. US markets, ~19:00-01:30 IST), where the entry and exit
     would otherwise land in different day-buckets and this would wrongly
     treat the exit as a sell with no matching buy. Only sells at/after
-    `since_ts` count toward the returned figure."""
+    `since_ts` count toward the returned figure.
+
+    2026-09-07: merges in the durable journal (see
+    _durable_trade_outcomes_since/_merge_closed_trades) so a same-day
+    redeploy can no longer silently erase realized losses/gains from this
+    figure - the daily-loss-cap halt this feeds must stay correct across
+    a redeploy, not just within one DB instance's lifetime."""
     all_trades = conn.execute(
         "SELECT symbol, action, qty, price, fx_to_inr, ts FROM trades WHERE strategy LIKE ? ORDER BY id",
         (ORB_STRATEGY_PREFIX + "%",),
     ).fetchall()
     book: dict[str, dict] = {}
-    realized = 0.0
+    db_closed = []
     for t in all_trades:
         # Normalize to INR/unit at the row's own fx rate so symbols in
         # different currencies (NSE in INR, US/crypto in USD) can be summed
@@ -1238,10 +1293,11 @@ def today_realized_pnl(conn, since_ts: float) -> float:
             b["qty"] = new_qty
         else:
             pnl = (price_inr - b["avg"]) * min(t["qty"], b["qty"])
-            if t["ts"] >= since_ts:
-                realized += pnl
             b["qty"] -= t["qty"]
-    return realized
+            if t["ts"] >= since_ts:
+                db_closed.append({"symbol": t["symbol"], "exit_time_utc": t["ts"], "pnl_inr": pnl})
+    merged = _merge_closed_trades(db_closed, _durable_trade_outcomes_since(since_ts))
+    return sum(t.get("pnl_inr", 0.0) for t in merged)
 
 
 def deployed_notional(conn) -> float:
@@ -2822,9 +2878,10 @@ def _maybe_place_real_exit(conn, symbol: str):
 
 
 def _force_close_all_positions(conn, reason: str) -> dict:
-    """The kill switch's actual work: exits EVERY open position (equity +
-    options) right now, at the best available current price, regardless of
-    where price sits versus stop/target. Deliberately standalone from the
+    """The kill switch's actual work: exits EVERY open position - paper
+    equity, paper options, AND real Kotak positions (added 2026-09-07) -
+    right now, at the best available current price, regardless of where
+    price sits versus stop/target. Deliberately standalone from the
     normal tick-based exit code in _auto_signal_core/_options_signal_core -
     an emergency-stop action should never share a code path with (and risk
     being broken by some future change to) the everyday exit logic that
@@ -2904,8 +2961,53 @@ def _force_close_all_positions(conn, reason: str) -> dict:
         total_pnl_inr += pnl_inr
         closed.append({"symbol": opt_symbol, "instrument": "option", "exit_price": exit_premium, "pnl_inr": round(pnl_inr, 2)})
 
+    # REAL Kotak positions - added 2026-09-07 ("Kill switch on render is
+    # not killing my live trade on Kotak"). Before this, the kill switch
+    # closed ONLY paper positions above - an "emergency stop" that left
+    # real money on the table was worse than having no kill switch at all.
+    # Unconditional, no is_real_trading_enabled gate - same principle
+    # _maybe_place_real_exit already established: closing an already-open
+    # real position must never be blocked by any switch, including this
+    # one's own reason for existing.
+    real_closed = []
+    real_close_failed = []
+    import kotak_real_orders
+    for row in conn.execute("SELECT * FROM real_positions").fetchall():
+        result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"])
+        if result.get("ok"):
+            conn.execute("DELETE FROM real_positions WHERE symbol = ?", (row["symbol"],))
+            _log_real_attempt(
+                conn, row["symbol"], "S", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                qty=row["qty"], order_id=result["order_id"], raw_response=result.get("raw_response"),
+                detail=reason,
+            )
+            real_closed.append({
+                "symbol": row["symbol"], "kotak_trading_symbol": row["kotak_trading_symbol"],
+                "qty": row["qty"], "order_id": result["order_id"],
+            })
+            print(f"[REAL TRADE] KILL SWITCH SELL {row['qty']} {row['kotak_trading_symbol']} (order {result['order_id']})")
+        else:
+            # Same dangerous-failure handling as _maybe_place_real_exit -
+            # left in real_positions, never guessed closed. Surfaced in the
+            # kill response itself (not just /kotak-neo/real-positions) so
+            # a human sees it immediately.
+            _log_real_attempt(
+                conn, row["symbol"], "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                qty=row["qty"], detail=result.get("detail"), raw_response=result.get("raw_response"),
+            )
+            real_close_failed.append({
+                "symbol": row["symbol"], "kotak_trading_symbol": row["kotak_trading_symbol"],
+                "qty": row["qty"], "detail": result.get("detail"),
+            })
+            print(f"[REAL TRADE] KILL SWITCH SELL FAILED {row['kotak_trading_symbol']}: "
+                  f"{result.get('detail')} - POSITION STILL OPEN, NEEDS ATTENTION")
+
     conn.commit()
-    return {"closed_count": len(closed), "closed": closed, "total_pnl_inr": round(total_pnl_inr, 2)}
+    return {
+        "closed_count": len(closed), "closed": closed, "total_pnl_inr": round(total_pnl_inr, 2),
+        "real_closed_count": len(real_closed), "real_closed": real_closed,
+        "real_close_failed_count": len(real_close_failed), "real_close_failed": real_close_failed,
+    }
 
 
 @app.get("/trading-control")
@@ -3731,9 +3833,6 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     }
 
 
-DOCS_TRADE_OUTCOMES_PATH = os.path.join(os.path.dirname(__file__), "docs", "trade_outcomes_log.json")
-
-
 @app.get("/trade-history")
 def trade_history(days: int = 1):
     """Every closed trade in the last `days` IST calendar days (default:
@@ -3833,6 +3932,18 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
                 "exit_reason": extra.get("exit_reason"), "rr_target": extra.get("rr_target"),
                 "rr_achieved": extra.get("rr_achieved"), "strategy": b.get("last_strategy"),
             })
+
+    # Merge in the durable journal (see _merge_closed_trades/
+    # today_realized_pnl for the full 2026-09-07 root-cause writeup) - a
+    # trade that closed before the most recent Render redeploy is invisible
+    # to the loop above (it only ever sees this DB instance's own `trades`
+    # table) but IS in docs/trade_outcomes_log.json. Without this merge,
+    # this endpoint's realized_pnl/win_rate_pct/closed_trades could disagree
+    # with today_realized_pnl's own (already-merged) figure - the exact
+    # "win rate mismatched" symptom reported 2026-09-07.
+    closed_trades = _merge_closed_trades(closed_trades, _durable_trade_outcomes_since(since_ts))
+    closed_trades.sort(key=lambda t: t.get("exit_time_utc", 0), reverse=True)
+    realized = sum(t.get("pnl_inr", 0.0) for t in closed_trades)
 
     open_positions = []
     capital_deployed_inr = 0.0
