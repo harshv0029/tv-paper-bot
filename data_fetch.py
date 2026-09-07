@@ -18,13 +18,32 @@ _CACHE_TTL_SECONDS = 180  # re-fetch at most every 3 minutes per (symbol, period
 def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
     """Fetches OHLC data, cached briefly in memory so a sweep of many strategy
     params against the same symbol/period/interval only hits Yahoo Finance once,
-    not once per combination."""
+    not once per combination.
+
+    2026-09-07: also prunes any cache entry past its TTL on every call.
+    Found live as the root cause of a Render OOM crash (Render's own email
+    alert; "all live trades vanished with all closed trades too" on the
+    restart that followed) - _DATA_CACHE entries were NEVER removed, only
+    ever overwritten by a fresh fetch of the exact same key. A stale entry
+    was already useless (the TTL check above never returns it as a hit),
+    it just wasn't being freed - so the dict grew for the entire life of
+    the process. Harmless at the old ~103-symbol watchlist; got much worse
+    once WATCHLIST grew to ~2,644 symbols (2026-09-05/07) - a single
+    round-robin rotation alone now touches every one of them, each
+    leaving behind a DataFrame that would otherwise sit in memory forever."""
     key = (symbol, period, interval)
     now = time.time()
 
     cached = _DATA_CACHE.get(key)
     if cached and (now - cached[0]) < _CACHE_TTL_SECONDS:
         return cached[1].copy()
+
+    # Prune everything past its TTL before adding a new entry - keeps
+    # _DATA_CACHE bounded to roughly "what's been fetched in the last TTL
+    # window," not "everything ever fetched since the process started."
+    expired_keys = [k for k, (ts, _) in _DATA_CACHE.items() if (now - ts) >= _CACHE_TTL_SECONDS]
+    for k in expired_keys:
+        del _DATA_CACHE[k]
 
     df = yf.download(symbol, period=period, interval=interval, progress=False)
     if df.empty:
