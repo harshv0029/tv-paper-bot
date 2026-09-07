@@ -235,9 +235,7 @@
       </div>
       <div class="ds-item">
         <span class="ds-lbl">Real P&amp;L today (Kotak, all trades)</span>
-        <span class="ds-val mono" id="ds-real-pnl">
-          <button onclick="showRealPnl()" id="ds-real-pnl-btn" style="font-size:10.5px;padding:3px 8px;background:var(--panel-2);border:1px solid var(--border);border-radius:5px;color:var(--text);cursor:pointer;">Show (needs token)</button>
-        </span>
+        <span class="ds-val mono" id="ds-real-pnl">—</span>
       </div>
       <div class="ds-item">
         <span class="ds-lbl">Real loss budget left (Kotak)</span>
@@ -268,6 +266,9 @@
       <div class="ds-item">
         <span class="ds-lbl">Paper daily loss budget left</span>
         <span class="ds-val mono" id="ds-budget">—</span>
+        <button onclick="resetPaperLossBudget()" id="ds-budget-reset"
+          style="font-size:10px;padding:2px 7px;margin-left:8px;background:var(--panel-2);border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;"
+          title="Resumes paper trading right now by excluding any paper loss that closed before this click from today's budget - does not touch real trading's own loss cap.">Reset</button>
       </div>
       <div class="ds-item">
         <span class="ds-lbl">Capital available (real, Kotak Neo)</span>
@@ -878,31 +879,21 @@ const CONSTRAINT_LABELS = {
   rr: "Minimum reward:risk",
   entry_scan_batch_size: "Entry-scan batch size (symbols/tick)",
   real_daily_cap_inr: "Real trading daily cap (₹)",
+  daily_loss_reset_epoch: "Paper loss-budget reset point (unix time) — use the Reset button above instead of editing this directly",
 };
 
 // Real (Kotak) P&L on the main dashboard (2026-09-07, explicit user
 // complaint: the paper-only "Net P&L today" tile didn't match Kotak's
-// real account at all - understandably confusing on a day with real
-// trades). GET /real-trading-control is token-gated (real account data),
-// so this prompts for the token ONCE (kept in memory only, never
-// localStorage/persisted - re-entered if the page reloads, same
-// lightweight-friction pattern as the constraints panel's real_daily_cap_inr
-// save) and then keeps it live on every 10s poll like everything else.
-let kotakToken = null;
-
-async function showRealPnl() {
-  if (!kotakToken) {
-    const t = prompt("Kotak API token (kept in memory only for this page load, not stored):");
-    if (!t) return;
-    kotakToken = t;
-  }
-  await refreshRealPnl();
-}
-
+// real account at all). GET /real-pnl-today is deliberately NOT token-
+// gated (explicit user instruction: "why token needed. make it without
+// any checks") - it's a narrower endpoint than /real-trading-control,
+// returning ONLY this P&L/budget summary, never open_real_positions
+// (symbol/qty/entry price/order id) or the enable/disable switch state -
+// those stay behind the token on /real-trading-control. Polled on the
+// same 10s cadence as everything else.
 async function refreshRealPnl() {
-  if (!kotakToken) return;  // not shown yet - cheap no-op on every poll until the user asks
   try {
-    const data = await fetchJSON(`${ORIGIN}/real-trading-control?token=${encodeURIComponent(kotakToken)}`);
+    const data = await fetchJSON(`${ORIGIN}/real-pnl-today`);
     const pnl = data.real_pnl_today_inr;
     const pnlEl = document.getElementById("ds-real-pnl");
     if (pnl === null || pnl === undefined) {
@@ -915,8 +906,7 @@ async function refreshRealPnl() {
     document.getElementById("ds-real-budget").textContent =
       (data.real_loss_budget_remaining_inr ?? null) !== null ? `₹${fmt(data.real_loss_budget_remaining_inr)}` : "—";
   } catch (e) {
-    document.getElementById("ds-real-pnl").innerHTML = `<span class="constraint-status err">failed - wrong token?</span>`;
-    kotakToken = null;  // let the next click re-prompt rather than silently retry a bad token forever
+    document.getElementById("ds-real-pnl").innerHTML = `<span class="constraint-status err">unavailable</span>`;
   }
 }
 
@@ -969,6 +959,31 @@ async function saveConstraint(key) {
     statusEl.textContent = "Saved — live on next scheduler tick"; statusEl.className = "constraint-status ok";
   } catch (e) {
     statusEl.textContent = `Failed: ${e.message || e}`; statusEl.className = "constraint-status err";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// Paper daily-loss "resume trading" button (2026-09-07, explicit user
+// request). Posts the same runtime_settings key the constraints panel
+// uses (daily_loss_reset_epoch) - no token, matches the "no checks"
+// instruction for real P&L visibility, and this is paper-only anyway
+// (real trading's own loss cap has no reset button, deliberately - see
+// that key's own description on the constraints panel above).
+async function resetPaperLossBudget() {
+  const btn = document.getElementById("ds-budget-reset");
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = "…";
+  try {
+    const resp = await fetch(`${ORIGIN}/runtime-settings?key=daily_loss_reset_epoch&value=${Date.now() / 1000}`, { method: "POST" });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    await refresh();  // pull the freshly-unlocked budget immediately, not on the next 10s poll
+    btn.textContent = "Reset ✓";
+    setTimeout(() => { btn.textContent = original; }, 3000);
+  } catch (e) {
+    btn.textContent = "Failed";
+    setTimeout(() => { btn.textContent = original; }, 3000);
   } finally {
     btn.disabled = false;
   }
@@ -1238,7 +1253,7 @@ function tickCountdown() {
     refresh();
     refreshScanner();
     refreshControlStatus();
-    refreshRealPnl();  // no-op until the user clicks "Show" once (see showRealPnl)
+    refreshRealPnl();
   }
   document.getElementById("countdown").textContent = secondsLeft;
 }
@@ -1258,6 +1273,7 @@ taxRateInput.addEventListener("change", () => {
 // one of its inputs. A save() call updates its own status text in place;
 // reload the page to see a value someone else changed elsewhere.
 refreshConstraints();
+refreshRealPnl();
 
 refresh();
 refreshScanner();
