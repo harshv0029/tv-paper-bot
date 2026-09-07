@@ -167,6 +167,57 @@ traded on its own, so they need no new execution capability, only a VIX
 fetch (already available via the same `yfinance ^INDIAVIX` ticker
 `/live` already uses) wired into the signal/sizing logic.
 
+## Smart Money Concepts / ICT strategies (2026-09-07) — explicit user instruction: catalog SMC strategies
+
+Rows #30–#34 below cover the standard Smart Money Concepts (SMC, also
+called ICT after Michael Huddleston's "Inner Circle Trader" material)
+retail methodology: reading market structure and price imbalance as a
+proxy for institutional order flow, entirely from candlestick data — no
+Level-2/order-book depth needed, which is the key difference from the
+liquidity-heatmap batch (#19–#24) that mostly needed real order-book
+depth this project doesn't have. **#19 (Liquidity Sweep Reversal) already
+covers SMC's own "liquidity sweep/stop hunt" concept** — not duplicated
+here, cross-referenced instead.
+
+Real-world evidence, not invented: independent SMC backtests report
+45–55% win rate with profit factor under 1.5 when only ONE component
+(order block, or FVG, or a bare structure break) is traded in isolation;
+requiring **confluence** — multiple SMC signals agreeing on the same
+trade — pushes reported win rates to 50–65%, per [a 2,600-trade SMC
+backtest writeup](https://medium.com/@space.garaa/i-backtested-2-600-trades-using-smart-money-concepts-heres-what-actually-works-bb3c671098c6)
+and [FXNX's backtest-evidence review](https://fxnx.com/en/blog/smart-money-concepts-work-backtest-evidence).
+Component definitions confirmed against [Strike Money's SMC guide](https://www.strike.money/technical-analysis/smart-money-concepts),
+[LuxAlgo's SMC/ICT concept library](https://www.luxalgo.com/library/concept/smart-money-concepts/),
+and [TradingWyckoff's SMC guide](https://tradingwyckoff.com/en/smart-money-concepts/)
+for order blocks/FVG, and [FluxCharts' BOS](https://www.fluxcharts.com/articles/break-of-structure-bos-explained)/[CHoCH](https://www.fluxcharts.com/articles/change-of-character-choch-explained)
+writeups for market-structure terminology.
+
+**Scoping note distinct from the earlier batches**: SMC's own "killzone"
+session-timing concept (Asian/London/New York windows, [LuxAlgo's
+killzone reference](https://www.luxalgo.com/library/concept/killzones/))
+is built for near-24h forex/futures markets and doesn't map onto NSE's
+single 9:15–15:30 IST session — this project's existing `orb_breakout`
+strategy already captures the "highest-probability window right after
+open" idea for a single-session market, so killzone timing isn't added
+as its own row; #30–#33 apply within NSE hours generally, same as every
+other row in this log.
+
+| # | Strategy | Legs | Best-fit condition | Status | Source / date | Notes |
+|---|---|---|---|---|---|---|
+| 30 | SMC Order Block Entry | Directional, underlying only (not options) | Price returns to the last opposing candle before a strong impulse move (the "order block") and reacts | Proposed — untested | Real-world SMC strategy research, 2026-09-07 | **Approximable with OHLCV**: an order block is the last down-close candle before a sharp up-move (bullish OB) or last up-close candle before a sharp down-move (bearish OB) — both fully derivable from candle open/close, no volume or L2 needed. Entry on price returning to that candle's range and reacting (wick rejection or a reversal candle), stop beyond the OB's far edge. Standalone reported win rate 45–55%, profit factor <1.5 — weakest of this batch alone, meant to combine with #32/#33 (see #34) |
+| 31 | Fair Value Gap (FVG) Fill | Directional, underlying only (not options) | A 3-candle sequence leaves a gap between candle 1's high/low and candle 3's low/high (candle 2 never traded that range) — price often returns to fill it | Proposed — untested | Real-world SMC strategy research, 2026-09-07 | **Approximable with OHLCV**: pure 3-bar high/low comparison, no new data source. Reported to fill ~70% of the time per SMC community backtests (search-cited above) — but "fills" and "is profitably tradeable" are different claims; needs its own `/backtest` run before trusting the 70% figure as an edge, not just a fact about price revisiting the gap. Related to but more precisely defined than #22 (Liquidity Void Breakout), which is a looser "thin zone" read rather than this exact 3-candle gap |
+| 32 | Market Structure Shift (BOS/CHoCH) Trend Entry | Directional, underlying only (not options) | A Change of Character (price fails to make the next expected higher-low/lower-high) signals a possible reversal; a following Break of Structure (a new swing high/low in the new direction) confirms it | Proposed — untested | Real-world SMC strategy research, 2026-09-07 | **Approximable with OHLCV**: both are pure swing-high/swing-low sequence logic (rolling pivot detection), same primitive `orb_breakout`'s opening-range high/low already uses, just applied to swing points across the whole session instead of just the opening range. CHoCH alone is the earlier, noisier signal ("structure raising its hand"); BOS after a CHoCH is the stronger, later confirmation ("structure standing up") — enter on BOS, not bare CHoCH, to avoid the higher false-signal rate CHoCH carries alone |
+| 33 | Premium/Discount (Optimal Trade Entry) Zone Filter | Applies to entry timing on #30–#32, not standalone | Only take longs when price sits in the "discount" half (below the midpoint) of the current swing range, and shorts only from the "premium" half (above the midpoint) | Proposed — untested | Real-world SMC strategy research, 2026-09-07 | **Approximable with OHLCV**: midpoint of the most recent confirmed swing high/low, no new data. SMC's "Optimal Trade Entry" convention narrows this further to the 62–79% retracement zone of the swing (a Fibonacci-style band) — same computation this project would need to build fresh, no existing helper does this yet. A filter, not a signal on its own — meant to gate #30–#32's entries, not replace them |
+| 34 | Full SMC Confluence (BOS/CHoCH + Order Block + FVG + Liquidity Sweep) | Directional, underlying only (not options) | All of #19 (liquidity sweep), #32 (structure shift), #30 (order block), and #31 (FVG) agree on the same directional call within a short window | Proposed — untested | Real-world SMC strategy research, 2026-09-07 | The confluence version is the one with real reported edge (50–65% win rate vs. 45–55% for any single component alone, per the search-cited backtests above) — and the most implementation work: needs #19/#30/#31/#32 all built and passing before this can even be attempted, not a quick win. Flagged as the actual target, not the individual rows, which are mostly scaffolding toward this one |
+
+Cross-cutting caveat for the whole SMC batch, same discipline as every
+other row in this log: **"approximable with OHLCV" is not the same claim
+as "has a real edge on NSE data."** Every SMC definition above is
+computable from the same candle data this project already fetches — but
+none of it has been run through `/backtest`/`/sweep` yet. Nothing in this
+batch goes live before it clears that bar, same standing rule as
+everything else here.
+
 ## Cross-strategy read (2026-09-01)
 
 All three indices (NIFTY, BANKNIFTY, SENSEX) were coiling: short-term pullback below daily
