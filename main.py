@@ -3750,12 +3750,50 @@ _scheduler_currently_checking: dict | None = None
 # How many times each symbol/underlying has actually been checked TODAY
 # (IST calendar day, same "day" boundary as the rest of the account -
 # ist_midnight_epoch) - for /trade-view's per-asset check-count table.
-# Purely in-memory, like _scheduler_last_results itself - resets on a
-# Render redeploy the same way the rest of this visibility state does;
-# it's a display counter, not a financial record (docs/attempt_log.json is
-# the durable, journal-synced trail of what was checked).
+# In-memory during the process's own life (cheap - bumped up to
+# entry_scan_batch_size times per 30s tick, no DB/file write on that hot
+# path), but RESTORED from a durable journal snapshot on startup (see
+# reconcile_scheduler_check_counts_from_journal below) - 2026-09-07,
+# explicit user finding: "'checks today' is not showing all the count of
+# checks done today. so it should not be depending on the memory of the
+# render account. but keep it fetched at the start of the render
+# session." Before this fix, a redeploy (this session alone triggered
+# several today) reset the displayed count to zero even though the
+# checks genuinely happened earlier the same day - same class of bug as
+# the daily P&L reset fixed earlier today, same fix shape: durable
+# journal on write, restored on startup, never trusted to survive purely
+# in the process's own memory.
 _scheduler_check_counts: dict = {}
 _scheduler_check_counts_day: str = ""
+
+STATE_SCHEDULER_CHECK_COUNTS_PATH = os.path.join(os.path.dirname(__file__), "state", "scheduler_check_counts.json")
+
+
+def reconcile_scheduler_check_counts_from_journal():
+    """Restores today's per-symbol check counts from the durable journal
+    on startup - see the module comment above _scheduler_check_counts for
+    why. journal-sync.yml writes state/scheduler_check_counts.json from
+    the live /scheduler-pipeline check_counts_today every sync. Only
+    restores if the saved day matches today's IST date - a stale prior-
+    day snapshot must never carry over, counts genuinely reset each day
+    (same rollover rule _record_scheduler_check itself already applies)."""
+    global _scheduler_check_counts_day
+    if not os.path.exists(STATE_SCHEDULER_CHECK_COUNTS_PATH):
+        return
+    try:
+        with open(STATE_SCHEDULER_CHECK_COUNTS_PATH) as f:
+            saved = json.load(f)
+    except Exception as e:
+        print(f"[reconcile] could not read {STATE_SCHEDULER_CHECK_COUNTS_PATH}: {e}")
+        return
+    today_str = ist_now().strftime("%Y-%m-%d")
+    if saved.get("day") != today_str:
+        return  # yesterday's (or older) snapshot - today starts fresh, same as any other day-rollover
+    counts = saved.get("counts") or {}
+    if counts:
+        _scheduler_check_counts.update(counts)
+        _scheduler_check_counts_day = today_str
+        print(f"[reconcile] restored {len(counts)} symbol check-count(s) from journal")
 
 
 def _record_scheduler_check(key: str):
@@ -3985,6 +4023,7 @@ async def _start_scheduler():
     reconcile_real_trading_control_from_journal()
     reconcile_real_positions_from_journal()
     reconcile_real_trades_today_from_journal()
+    reconcile_scheduler_check_counts_from_journal()
     asyncio.create_task(_scheduler_loop())
     # Kotak Neo live tick feed (2026-09-04) - display data only, isolated
     # in its own task so a failure here (missing/misconfigured creds, a
