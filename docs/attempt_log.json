@@ -89034,5 +89034,22 @@
         "time_local": "2026-09-07 21:03:30.972895"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-07T22:05:52Z",
+    "attempts": {
+      "CL=F": {
+        "checked_at_utc": 1788818739.5121462,
+        "symbol": "CL=F",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-07 22:05:22.053391"
+      },
+      "GC=F": {
+        "checked_at_utc": 1788818741.3059342,
+        "symbol": "GC=F",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-07 22:05:39.515322"
+      }
+    }
   }
 ]
