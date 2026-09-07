@@ -227,10 +227,17 @@ def init_db():
                 entry_price REAL NOT NULL,
                 entry_order_id TEXT,
                 opened_at REAL NOT NULL,
-                day TEXT NOT NULL
+                day TEXT NOT NULL,
+                sl_order_id TEXT,
+                sl_trigger_price REAL
             )
             """
         )
+        # sl_order_id/sl_trigger_price added 2026-09-07 for real resting
+        # stop-loss orders (see kotak_real_orders.place_real_stop_loss) -
+        # no ALTER TABLE needed, this app's SQLite DB has no persistent
+        # disk on Render's free tier (see data_fetch.py's memory-leak
+        # comment for the same fact) - every process start CREATEs fresh.
         # Full audit log of every real-order ATTEMPT (confirmed, failed, or
         # skipped-and-why) - the permanent record real money needs, kept
         # uncapped like docs/attempt_log.json's paper equivalent. notional_inr
@@ -2980,6 +2987,34 @@ def _maybe_place_real_entry(conn, symbol: str):
             order_id=result["order_id"], raw_response=result.get("raw_response"),
         )
         print(f"[REAL TRADE] BUY {result['qty']} {kotak_symbol} (order {result['order_id']}) ~Rs{ltp:.2f}")
+
+        # Real resting stop-loss (2026-09-07, explicit user instruction:
+        # "share stop-loss/trailing-stop to Kotak") - the paper stop this
+        # SAME tick's _auto_signal_core just computed and wrote to
+        # signal_state is the only stop this real position has ever had;
+        # mirror it to the broker immediately so it's protected even if
+        # this app never runs another tick. Best-effort: a failed SL
+        # placement is logged but does NOT undo the real entry above -
+        # the position genuinely exists at Kotak either way, and
+        # _maybe_sync_real_stop_loss retries placing it on every later
+        # tick for as long as real_positions.sl_order_id stays NULL.
+        paper_row = conn.execute(
+            "SELECT stop_loss FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
+        ).fetchone()
+        if paper_row and paper_row["stop_loss"]:
+            sl_result = kotak_real_orders.place_real_stop_loss(
+                kotak_symbol, result["qty"], round(paper_row["stop_loss"], 2)
+            )
+            if sl_result.get("ok"):
+                conn.execute(
+                    "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                    (sl_result["order_id"], sl_result["trigger_price"], symbol),
+                )
+                print(f"[REAL TRADE] SL-M resting @ Rs{sl_result['trigger_price']:.2f} for {kotak_symbol} "
+                      f"(order {sl_result['order_id']})")
+            else:
+                print(f"[REAL TRADE] SL placement FAILED for {kotak_symbol}: {sl_result.get('detail')} "
+                      f"- position open at Kotak with NO resting stop yet, will retry next tick")
     else:
         _log_real_attempt(
             conn, symbol, "B", "failed", kotak_trading_symbol=kotak_symbol, price_est=ltp,
@@ -2999,6 +3034,20 @@ def _maybe_place_real_exit(conn, symbol: str):
         return  # no real position was ever opened for this paper trade - nothing to close
 
     import kotak_real_orders
+    # Cancel the resting real stop-loss FIRST (if one was ever placed) -
+    # best-effort, never blocks the exit below even if the cancel fails
+    # (e.g. the SL already fired, which is itself a valid reason
+    # real_positions still shows this row - see the reconcile endpoint).
+    # Left behind uncancelled, a stale SL-M sell order with nothing left
+    # to sell once this exit fills would just sit as a harmless rejected
+    # order at Kotak, not a real risk - but cancelling first keeps the
+    # order book clean and avoids that rejection noise.
+    if row["sl_order_id"]:
+        cancel_result = kotak_real_orders.cancel_real_order(row["sl_order_id"])
+        if not cancel_result.get("ok"):
+            print(f"[REAL TRADE] SL cancel failed for {row['kotak_trading_symbol']} "
+                  f"(order {row['sl_order_id']}): {cancel_result.get('detail')} - proceeding with exit anyway")
+
     result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"])
     if result.get("ok"):
         conn.execute("DELETE FROM real_positions WHERE symbol = ?", (symbol,))
@@ -3017,6 +3066,66 @@ def _maybe_place_real_exit(conn, symbol: str):
             qty=row["qty"], detail=result.get("detail"), raw_response=result.get("raw_response"),
         )
         print(f"[REAL TRADE] SELL FAILED {row['kotak_trading_symbol']}: {result.get('detail')} - POSITION STILL OPEN, NEEDS ATTENTION")
+
+
+def _maybe_sync_real_stop_loss(conn, symbol: str):
+    """Keeps a real position's RESTING stop-loss order at Kotak in step
+    with the paper trailing stop _auto_signal_core just ratcheted (see
+    the `current_stop = trail_candidate` branch there) - explicit user
+    instruction 2026-09-07 ("update stop-loss to Kotak on trigger").
+    Called every tick for every symbol (cheap: one SELECT when there's no
+    real position for it), right after the entry/exit mirroring above -
+    deliberately NOT called from inside _auto_signal_core itself, same
+    isolation principle as _maybe_place_real_entry/_exit.
+
+    Only ever moves the resting stop UP (mirrors the paper trail, which
+    itself never ratchets down - see _auto_signal_core) and only replaces
+    it when the paper stop has actually moved since the last sync, so a
+    held position isn't cancel/replaced every single tick for no reason.
+    If no SL is resting yet (an earlier placement failed), this also
+    retries placing it fresh at the paper stop's current level - see
+    _maybe_place_real_entry's own comment on that retry path."""
+    real_row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
+    if not real_row:
+        return
+
+    paper_row = conn.execute(
+        "SELECT stop_loss FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
+    ).fetchone()
+    if not paper_row or not paper_row["stop_loss"]:
+        return
+    new_stop = round(paper_row["stop_loss"], 2)
+    current_sl_price = real_row["sl_trigger_price"]
+
+    if current_sl_price is not None and new_stop <= current_sl_price:
+        return  # no upward move since the last sync - nothing to do
+
+    import kotak_real_orders
+    if real_row["sl_order_id"]:
+        cancel_result = kotak_real_orders.cancel_real_order(real_row["sl_order_id"])
+        if not cancel_result.get("ok"):
+            print(f"[REAL TRADE] trailing-SL cancel failed for {real_row['kotak_trading_symbol']} "
+                  f"(order {real_row['sl_order_id']}): {cancel_result.get('detail')} - skipping this sync, will retry next tick")
+            return  # don't place a second resting SL on top of one that might still be live
+
+    sl_result = kotak_real_orders.place_real_stop_loss(real_row["kotak_trading_symbol"], real_row["qty"], new_stop)
+    if sl_result.get("ok"):
+        conn.execute(
+            "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+            (sl_result["order_id"], sl_result["trigger_price"], symbol),
+        )
+        conn.commit()
+        print(f"[REAL TRADE] trailing SL-M moved to Rs{new_stop:.2f} for {real_row['kotak_trading_symbol']} "
+              f"(order {sl_result['order_id']})")
+    else:
+        # Old order is already cancelled (or never existed) and the
+        # replacement failed - clear sl_order_id so the position isn't
+        # left pointing at a dead order id; next tick's retry path
+        # (sl_order_id NULL) will try placing a fresh one again.
+        conn.execute("UPDATE real_positions SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
+        conn.commit()
+        print(f"[REAL TRADE] trailing SL-M replacement FAILED for {real_row['kotak_trading_symbol']}: "
+              f"{sl_result.get('detail')} - position open at Kotak with NO resting stop, will retry next tick")
 
 
 def _force_close_all_positions(conn, reason: str) -> dict:
@@ -3116,6 +3225,11 @@ def _force_close_all_positions(conn, reason: str) -> dict:
     real_close_failed = []
     import kotak_real_orders
     for row in conn.execute("SELECT * FROM real_positions").fetchall():
+        if row["sl_order_id"]:
+            cancel_result = kotak_real_orders.cancel_real_order(row["sl_order_id"])
+            if not cancel_result.get("ok"):
+                print(f"[REAL TRADE] KILL SWITCH SL cancel failed for {row['kotak_trading_symbol']} "
+                      f"(order {row['sl_order_id']}): {cancel_result.get('detail')} - proceeding with exit anyway")
         result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"])
         if result.get("ok"):
             conn.execute("DELETE FROM real_positions WHERE symbol = ?", (row["symbol"],))
@@ -3576,9 +3690,10 @@ def reconcile_real_positions_from_journal():
                 continue
             conn.execute(
                 "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
-                "entry_order_id, opened_at, day) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
-                 pos.get("entry_order_id"), pos["opened_at"], pos["day"]),
+                 pos.get("entry_order_id"), pos["opened_at"], pos["day"],
+                 pos.get("sl_order_id"), pos.get("sl_trigger_price")),
             )
             restored += 1
         conn.commit()
@@ -4182,6 +4297,13 @@ async def _scheduler_loop():
                     elif action_taken.startswith("exited_"):
                         with closing(get_db()) as real_conn:
                             _maybe_place_real_exit(real_conn, cfg["symbol"])
+                    else:
+                        # Position still open (or never was one) - sync any
+                        # real resting stop-loss to the paper trail's latest
+                        # level. A no-op unless a real position is actually
+                        # open for this symbol (see _maybe_sync_real_stop_loss).
+                        with closing(get_db()) as real_conn:
+                            _maybe_sync_real_stop_loss(real_conn, cfg["symbol"])
                 except Exception as e:
                     print(f"[real_orders] unexpected error for {cfg['symbol']}: {e}")
             except Exception as e:
