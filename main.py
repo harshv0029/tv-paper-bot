@@ -5133,6 +5133,35 @@ def kotak_neo_search_scrip(
         return {"error": str(e)}
 
 
+@app.get("/kotak-neo/margin-required")
+def kotak_neo_margin_required(
+    request: Request, exchange_segment: str, instrument_token: str, transaction_type: str,
+    quantity: str = "1", order_type: str = "MKT", product: str = "NRML",
+    price: str = "0", trigger_price: str | None = None,
+):
+    """DIAGNOSTIC - computes margin for a HYPOTHETICAL order, places
+    NOTHING (see kotak_neo.margin_required's own docstring - it's a
+    dedicated margin-calculation endpoint, not place_order). Built
+    2026-09-07 as the real, non-destructive way to verify whether a
+    segment (F&O, currency, commodity) is actually tradeable on this
+    account, after an earlier guess from a scrip-master field
+    (iPermittedToTrade) turned out unreliable - the account's own Kotak
+    Neo "Segment activation" page is the authoritative source for that,
+    but this gives a real API-level signal to cross-check against.
+    Requires ?token=<KOTAK_NEO_API_TOKEN>, same as every other real-
+    Kotak-data endpoint."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        return _kotak_json_safe(kotak_neo.margin_required(
+            exchange_segment=exchange_segment, instrument_token=instrument_token,
+            transaction_type=transaction_type, quantity=quantity, order_type=order_type,
+            product=product, price=price, trigger_price=trigger_price,
+        ))
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/kotak-neo/scrip-master")
 def kotak_neo_scrip_master(request: Request, exchange_segment: str = "nse_cm", raw_bytes: int = 4000):
     """DIAGNOSTIC step toward sourcing the equity WATCHLIST universe from
