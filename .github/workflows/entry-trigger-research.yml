@@ -20,6 +20,10 @@ on:
         description: "Also sweep bollinger_mean_reversion on NSE indices + the 15 NSE large-caps"
         type: boolean
         default: true
+      run_supertrend_research:
+        description: "Also sweep supertrend (atr_period x multiplier) on NSE indices + the 15 NSE large-caps"
+        type: boolean
+        default: true
 
 jobs:
   research:
@@ -152,5 +156,31 @@ jobs:
             echo "SYMBOL: $SYMBOL  strategy=bollinger_mean_reversion (bb_period x bb_std sweep)"
             echo "=========================================="
             curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=bollinger_mean_reversion&rank_by=total_pnl&top_n=8&bb_period=10,20,30&bb_std=1.5,2.0,2.5"
+            echo
+          done
+
+      - name: "Trend-following: supertrend sweep (NSE indices + large-caps)"
+        if: ${{ inputs.run_supertrend_research }}
+        run: |
+          SW="https://tv-paper-bot-gdan.onrender.com/sweep"
+          PERIOD="60d"
+          INTERVAL="5m"
+          # 2026-09-05 candidate: ATR-based trend-following indicator,
+          # extremely widely used by Indian retail/algo traders on NSE
+          # specifically. Sourced win-rate context: ~40-55% hit ratio on
+          # 5-min NIFTY at standard params (10, 3.0), but winners run 2-3x
+          # larger than losers (ride the trend until it flips); standard
+          # settings noted as too slow for BANKNIFTY specifically, which
+          # moves 3-5x more intraday points than a typical NSE large-cap -
+          # see docs/daily_logs for sources. Sweeping atr_period x
+          # multiplier per symbol rather than assuming one setting fits all.
+          for SYMBOL in "%5ENSEI" "%5ENSEBANK" "%5EBSESN" \
+                        "RELIANCE.NS" "TCS.NS" "HDFCBANK.NS" "INFY.NS" "ICICIBANK.NS" \
+                        "HINDUNILVR.NS" "ITC.NS" "SBIN.NS" "BHARTIARTL.NS" "KOTAKBANK.NS" \
+                        "LT.NS" "AXISBANK.NS" "BAJFINANCE.NS" "MARUTI.NS" "ASIANPAINT.NS"; do
+            echo "=========================================="
+            echo "SYMBOL: $SYMBOL  strategy=supertrend (atr_period x multiplier sweep)"
+            echo "=========================================="
+            curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=supertrend&rank_by=total_pnl&top_n=8&atr_period=7,10,14&multiplier=2.0,3.0,4.0"
             echo
           done
