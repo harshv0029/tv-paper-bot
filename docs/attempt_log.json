@@ -88965,5 +88965,28 @@
         "time_local": "2026-09-07 18:49:31.037784"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-07T19:03:39Z",
+    "attempts": {
+      "GC=F": {
+        "checked_at_utc": 1788807796.5164902,
+        "symbol": "GC=F",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-07 19:03:11.762103"
+      },
+      "SI=F": {
+        "checked_at_utc": 1788807796.5227134,
+        "symbol": "SI=F",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-07 19:03:16.516611"
+      },
+      "CL=F": {
+        "checked_at_utc": 1788807796.549362,
+        "symbol": "CL=F",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-07 19:03:16.522813"
+      }
+    }
   }
 ]
