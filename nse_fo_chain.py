@@ -87,7 +87,29 @@ def _fo_rows(underlying: str, option_type: str | None = None):
         )
     except Exception as e:
         return [], f"search_scrip_error:{e}"
-    rows = resp.get("showing", []) if isinstance(resp, dict) else []
+    # REAL, CONFIRMED response shape (2026-09-07, found live - a genuine bug
+    # in an earlier version of this function, not a Kotak API limitation):
+    # kotak_neo.search_scrip returns the SDK's raw result UNMODIFIED - a
+    # plain LIST of scrip dicts on success (confirmed from main.py's own
+    # /kotak-neo/search-scrip endpoint: `if isinstance(result, list): ...` -
+    # the "total_matched"/"showing" shape only exists in THAT diagnostic
+    # endpoint's own wrapper, built by slicing the real list to `limit`;
+    # it is NOT what search_scrip itself returns). A dict response means
+    # an error (e.g. {"error": [...]} for bad TOTP, or the SDK's own
+    # {"Error": e, "message": "Exchange Segment is not available"}) - see
+    # kotak_neo.py's search_scrip docstring. The earlier version of this
+    # function looked for a "showing" key that never existed on the real
+    # list response, so _fo_rows always silently returned zero rows -
+    # caught live 2026-09-07 by comparing this function's own failure
+    # against a direct GET /kotak-neo/search-scrip call that DID find the
+    # real NIFTY future rows.
+    if isinstance(resp, list):
+        rows = resp
+    elif isinstance(resp, dict):
+        err = resp.get("error") or resp.get("Error") or resp.get("message")
+        return [], f"search_scrip_error_response:{err}"
+    else:
+        return [], f"unexpected_search_scrip_response_type:{type(resp).__name__}"
     exact = [r for r in rows if str(r.get("pSymbolName", "")).strip().upper() == fo_symbol]
     if not exact:
         return [], f"no_exact_pSymbolName_match_for:{fo_symbol}"
