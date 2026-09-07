@@ -199,3 +199,30 @@ def quotes(instrument_tokens, quote_type="ltp"):
     kotak_live_feed.py's _INDEX_TOKENS without confirming it here first,
     same discipline as every other Kotak field-name claim this session."""
     return login().quotes(instrument_tokens=instrument_tokens, quote_type=quote_type)
+
+
+def margin_required(exchange_segment, instrument_token, transaction_type, quantity,
+                     order_type="MKT", product="NRML", price="0", trigger_price=None):
+    """Computes the margin a hypothetical order would need - NEVER places
+    an order, read-only against the real account (confirmed from the
+    SDK's own source, neo_api.py:margin_required - it calls a dedicated
+    margin-calculation endpoint, not place_order). Used 2026-09-07 as the
+    real, non-destructive way to verify segment tradeability (F&O/
+    currency/commodity) instead of guessing from a scrip-master field
+    whose exact meaning wasn't independently confirmed - if the account
+    genuinely isn't permitted for a segment, this call is expected to
+    fail distinctly (same as search_scrip did for cde_fo: "Exchange
+    Segment is not available"), while a permitted segment returns real
+    margin figures.
+
+    order_type: exact match only - 'L' (limit), 'MKT' (market), 'SL'
+    (stop-loss limit), 'SL-M' (stop-loss market) - confirmed from the
+    SDK's own margin_required signature, the same real order types
+    place_order itself accepts (relevant for building a real resting
+    stop-loss order later, not just this margin check).
+    product: exact match only - 'CNC', 'NRML', 'MIS', 'MTF'."""
+    return login().margin_required(
+        exchange_segment=exchange_segment, price=price, order_type=order_type,
+        product=product, quantity=str(quantity), instrument_token=str(instrument_token),
+        transaction_type=transaction_type, trigger_price=trigger_price,
+    )
