@@ -2952,6 +2952,15 @@ NSE_STOCK_PARAM_OVERRIDES = {
     "TCS.NS": {"orb_minutes": 10, "sma_fast": 14, "sma_slow": 50, "risk_pct": 2.0, "stop_pct": 2.0},
     "ICICIBANK.NS": {"orb_minutes": 10, "sma_fast": 5, "sma_slow": 21, "risk_pct": 2.0, "stop_pct": 2.0},
     "INFY.NS": {"orb_minutes": 30, "sma_fast": 9, "sma_slow": 50, "risk_pct": 2.0, "stop_pct": 2.0},
+    # MARUTI.NS: 83.3% of combos profitable, median +136.0 - added in a
+    # second sweep batch the same day (9 more Nifty50 names tested; this
+    # was the only one of the 9 to clear the bar - HDFCBANK/HINDUNILVR/
+    # BHARTIARTL/KOTAKBANK/LT/AXISBANK/ASIANPAINT all came back negative,
+    # SBIN/BAJFINANCE flat - left on the untuned default, none raised).
+    # Its own best combo's win rate (46.9%) is BELOW 50% - the edge here
+    # is bigger average wins vs losses, not a favorable coin-flip, a
+    # genuinely different profile from the other four above.
+    "MARUTI.NS": {"orb_minutes": 30, "sma_fast": 14, "sma_slow": 21, "risk_pct": 2.0, "stop_pct": 2.0},
 }
 
 WATCHLIST = [
