@@ -2845,6 +2845,38 @@ def _maybe_place_real_entry(conn, symbol: str):
         )
         return
 
+    # REAL daily loss cap - added 2026-09-07 ("when ur data had been in
+    # sync with kotak then it would have seen the live trades and taken
+    # the wise step for the 2% calculations"). Before this, the ONLY real-
+    # money gate here was the notional SPEND cap above - nothing checked
+    # today's actual real P&L, whether from this bot's own orders or
+    # trades placed directly on Kotak (as happened today: ~25 manual
+    # trades, net -Rs41.60, invisible to this app's own real_trades table
+    # since it only ever logs orders THIS code places). get_real_pnl_today_inr()
+    # is Kotak's own ground truth instead - see its docstring. Fails
+    # CLOSED: an unknown real-P&L state (None - never fetched, or Kotak
+    # unreachable) refuses the entry rather than trading blind, the
+    # opposite default from get_scheduler_capital_inr's fail-to-0 (which
+    # already sizes to zero on failure) - both land on "don't trade
+    # without real data," just via different mechanisms.
+    real_pnl_today = get_real_pnl_today_inr()
+    real_capital = get_scheduler_capital_inr()
+    real_loss_cap = real_capital * get_runtime_setting(conn, "daily_risk_pct") / 100
+    if real_pnl_today is None:
+        _log_real_attempt(
+            conn, symbol, "B", "skipped_real_pnl_unknown", kotak_trading_symbol=kotak_symbol,
+            price_est=ltp, detail=f"could not fetch real P&L from Kotak: {_real_pnl_cache['error']}",
+        )
+        return
+    if -real_pnl_today >= real_loss_cap:
+        _log_real_attempt(
+            conn, symbol, "B", "skipped_real_daily_loss_cap_hit", kotak_trading_symbol=kotak_symbol,
+            price_est=ltp,
+            detail=f"real P&L today Rs{real_pnl_today:.2f} vs cap Rs{real_loss_cap:.2f} "
+                   f"({get_runtime_setting(conn, 'daily_risk_pct')}% of Rs{real_capital:.2f} real capital)",
+        )
+        return
+
     import kotak_real_orders
     result = kotak_real_orders.place_real_entry(kotak_symbol, ltp)
     if result.get("ok"):
@@ -3092,8 +3124,18 @@ def get_real_trading_control(request: Request):
         open_positions = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
         today_spent_inr = _real_today_spent_inr(conn)
         daily_cap_inr = get_runtime_setting(conn, "real_daily_cap_inr")
+        daily_risk_pct = get_runtime_setting(conn, "daily_risk_pct")
     db_enabled = bool(row["enabled"]) if row else False
     env_enabled = os.environ.get("REAL_TRADING_ENABLED") == "YES"
+    # REAL P&L and its own loss cap - added 2026-09-07, Kotak's own ground
+    # truth (see get_real_pnl_today_inr's docstring), NOT the paper-only
+    # figure /daily-summary's budget_remaining shows. This is the number
+    # that actually answers "how much more can this account lose today
+    # before the real-money gate refuses a new entry" - see the new check
+    # in _maybe_place_real_entry that enforces this same cap.
+    real_capital = get_scheduler_capital_inr()
+    real_pnl_today = get_real_pnl_today_inr()
+    real_loss_cap_inr = round(real_capital * daily_risk_pct / 100, 2)
     return {
         "db_switch_enabled": db_enabled, "env_var_enabled": env_enabled,
         "real_trading_active": db_enabled and env_enabled,
@@ -3104,6 +3146,13 @@ def get_real_trading_control(request: Request):
         "today_ist_date": ist_now().strftime("%Y-%m-%d"),  # journal-sync.yml needs this, not just the amount
         "today_spent_inr": round(today_spent_inr, 2),
         "today_remaining_inr": round(daily_cap_inr - today_spent_inr, 2),
+        "real_pnl_today_inr": round(real_pnl_today, 2) if real_pnl_today is not None else None,
+        "real_pnl_source": "kotak_positions_today" if real_pnl_today is not None else "unavailable",
+        "real_pnl_fetch_error": _real_pnl_cache["error"],
+        "real_loss_cap_inr": real_loss_cap_inr,
+        "real_loss_budget_remaining_inr": (
+            round(max(0.0, real_loss_cap_inr - max(0.0, -real_pnl_today)), 2) if real_pnl_today is not None else None
+        ),
         "open_real_positions": open_positions,
     }
 
@@ -3583,6 +3632,78 @@ def get_scheduler_capital_inr() -> float:
     if _real_capital_cache["value"] is None or age > REAL_CAPITAL_CACHE_TTL_SECONDS:
         _refresh_real_capital_cache()
     return _real_capital_cache["value"] if _real_capital_cache["value"] is not None else 0.0
+
+# REAL account P&L, sourced from Kotak's own positions() call - added
+# 2026-09-07. Explicit user finding: "when ur data had been in sync with
+# kotak then it would have seen the live trades and taken the wise step
+# for the 2% calculations" - today_realized_pnl/daily_summary (further up
+# this file) only ever tracked PAPER P&L, even though the daily loss cap
+# is sized off REAL capital; this account had zero awareness of real P&L
+# from ANY source (this bot's own real orders, or - as happened today -
+# ~25 trades placed directly on Kotak, net -Rs41.60, invisible to this
+# app's real_trades table since that only logs orders THIS code places).
+#
+# Ground truth instead of our own bookkeeping: sums (sellAmt - buyAmt)
+# across every FULLY SQUARED-OFF position (flBuyQty == flSellQty, i.e.
+# net-flat/realized, not an open one) Kotak's positions() returns -
+# confirmed live 2026-09-07 to return only the CURRENT day's activity
+# (every row's hsUpTm was today's date); hsUpTm is defensively re-checked
+# against today's IST date anyway in case that assumption is ever wrong.
+# Manually verified against this exact account 2026-09-07: this formula's
+# total matched the user's own reported real loss (-Rs41.60) exactly.
+REAL_PNL_CACHE_TTL_SECONDS = 300  # 5 min - same reasoning as REAL_CAPITAL_CACHE_TTL_SECONDS
+# (avoid hammering Kotak's login/positions call every tick), just shorter
+# since P&L changes faster than available capital and this gates every
+# new real entry, not just position sizing.
+_real_pnl_cache = {"value": None, "fetched_at": 0.0, "error": None, "day": None}
+
+
+def _refresh_real_pnl_cache():
+    """Never raises - stores the error string instead, same pattern as
+    _refresh_real_capital_cache, so a transient Kotak failure can't crash
+    a scheduler tick. See the module comment above _real_pnl_cache for the
+    full reasoning and the formula's live verification."""
+    try:
+        import kotak_neo
+        positions = kotak_neo.positions()
+        rows = positions.get("data") or [] if isinstance(positions, dict) else []
+        today_str = ist_now().strftime("%Y/%m/%d")  # Kotak's own hsUpTm format
+        total = 0.0
+        for row in rows:
+            try:
+                fl_buy = float(row.get("flBuyQty", 0) or 0)
+                fl_sell = float(row.get("flSellQty", 0) or 0)
+                if fl_buy == 0 or fl_buy != fl_sell:
+                    continue  # not fully squared off - open/unrealized, not today's realized P&L
+                if not str(row.get("hsUpTm", "")).startswith(today_str):
+                    continue
+                total += float(row.get("sellAmt", 0) or 0) - float(row.get("buyAmt", 0) or 0)
+            except (TypeError, ValueError):
+                continue
+        _real_pnl_cache["value"] = total
+        _real_pnl_cache["fetched_at"] = time.time()
+        _real_pnl_cache["error"] = None
+        _real_pnl_cache["day"] = ist_now().strftime("%Y-%m-%d")
+    except Exception as e:
+        _real_pnl_cache["error"] = str(e)
+
+
+def get_real_pnl_today_inr():
+    """TODAY's real realized P&L across the WHOLE Kotak account - bot-
+    placed and manually-placed trades alike, not just what this app's own
+    real_trades table happens to know about. Returns None if never
+    successfully fetched - callers gating a new real entry (see
+    _maybe_place_real_entry) MUST treat None as "can't verify, don't
+    trade," not as "assume zero loss." Force-refreshes on an IST day
+    rollover so yesterday's total is never carried into today by an
+    unlucky cache hit, same discipline as every other "today" figure in
+    this file (today_realized_pnl, _real_today_spent_inr)."""
+    today_str = ist_now().strftime("%Y-%m-%d")
+    age = time.time() - _real_pnl_cache["fetched_at"]
+    if _real_pnl_cache["value"] is None or age > REAL_PNL_CACHE_TTL_SECONDS or _real_pnl_cache["day"] != today_str:
+        _refresh_real_pnl_cache()
+    return _real_pnl_cache["value"]
+
 
 _scheduler_last_tick_ts = 0.0
 _scheduler_last_error = None
