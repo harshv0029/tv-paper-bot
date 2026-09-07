@@ -4661,6 +4661,109 @@ def kotak_neo_limits(request: Request):
         return {"error": str(e)}
 
 
+@app.post("/kotak-neo/reconcile-real-positions")
+def kotak_neo_reconcile_real_positions(request: Request):
+    """Corrects this app's own real_positions tracking against Kotak's own
+    live positions() data - a genuinely separate process from the 30s
+    trading scheduler, run by kotak-reconcile.yml on its own cadence
+    (2026-09-07, explicit user instruction: "a genuinely separate
+    scheduled process"; also the direct fix for "QTY not in sync",
+    "kotak balance left is not in sync", "portfolio positions should be
+    in sync with kotak", and the qty half of "cancellation order[s] ...
+    with right qty").
+
+    Places NO order - this is pure bookkeeping. Three things it does:
+
+    1. QTY CORRECTION: for each row this app already tracks in
+       real_positions, if Kotak's own OPEN (not squared-off) position for
+       that trading symbol shows a DIFFERENT qty, this app's row is
+       corrected to match Kotak's truth - the exact fix for the "wrong
+       qty" risk in _maybe_place_real_exit (which places a real sell for
+       row["qty"] shares; if that qty had drifted from what Kotak
+       actually holds, the exit would be wrong).
+    2. GHOST CLEANUP: if this app tracks an open real_positions row but
+       Kotak shows NO open position for that symbol at all (already
+       closed at the broker - a real sell we lost track of, or a manual
+       close), the stale row is removed. Never guesses a qty or price for
+       this - just removes the row, since re-deriving what actually
+       happened isn't possible from positions() alone.
+    3. UNTRACKED POSITIONS (reported, NOT auto-adopted): if Kotak shows
+       an open position this app has no record of at all (e.g. today's
+       ~25 manually-placed trades), it's surfaced in the response and
+       logged, but deliberately NOT added to real_positions - auto-
+       adopting a position this app didn't open and doesn't know the
+       intended stop/target for risks the kill switch or scheduler
+       later acting on it with no real context. A human decision, not
+       an automated one, for now.
+
+    Also returns the real account balance (kotak_neo.limits()) alongside,
+    for the same "sync balance, not just positions" ask.
+
+    Requires the same Kotak API token as every other real-money endpoint -
+    this both reads AND writes real-money tracking state."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        positions_resp = kotak_neo.positions()
+        limits_resp = kotak_neo.limits()
+    except Exception as e:
+        return {"error": f"Kotak fetch failed: {e}"}
+
+    rows = positions_resp.get("data") or [] if isinstance(positions_resp, dict) else []
+    # Open = not fully squared off (flBuyQty != flSellQty) on the nse_cm
+    # cash segment - the only segment/product this app's real trading
+    # touches (stage 3 v1 scope, see kotak_real_orders.py).
+    kotak_open_by_trdsym: dict[str, dict] = {}
+    for row in rows:
+        try:
+            if row.get("exSeg") != "nse_cm":
+                continue
+            fl_buy = float(row.get("flBuyQty", 0) or 0)
+            fl_sell = float(row.get("flSellQty", 0) or 0)
+            net_qty = fl_buy - fl_sell
+            if net_qty == 0:
+                continue  # fully squared off - not an open position
+            trd_sym = row.get("trdSym")
+            if trd_sym:
+                kotak_open_by_trdsym[trd_sym] = {"qty": abs(net_qty), "raw": row}
+        except (TypeError, ValueError):
+            continue
+
+    qty_corrected, removed_ghosts, untracked = [], [], []
+    with closing(get_db()) as conn:
+        our_rows = conn.execute("SELECT * FROM real_positions").fetchall()
+        our_trdsyms = set()
+        for r in our_rows:
+            our_trdsyms.add(r["kotak_trading_symbol"])
+            kotak_match = kotak_open_by_trdsym.get(r["kotak_trading_symbol"])
+            if kotak_match is None:
+                conn.execute("DELETE FROM real_positions WHERE symbol = ?", (r["symbol"],))
+                removed_ghosts.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
+                                        "was_tracked_qty": r["qty"]})
+            elif int(kotak_match["qty"]) != r["qty"]:
+                conn.execute("UPDATE real_positions SET qty = ? WHERE symbol = ?",
+                             (int(kotak_match["qty"]), r["symbol"]))
+                qty_corrected.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
+                                       "old_qty": r["qty"], "new_qty": int(kotak_match["qty"])})
+        for trd_sym, info in kotak_open_by_trdsym.items():
+            if trd_sym not in our_trdsyms:
+                untracked.append({"kotak_trading_symbol": trd_sym, "qty": int(info["qty"])})
+        conn.commit()
+
+    net_balance = None
+    try:
+        net_balance = float(limits_resp.get("Net")) if isinstance(limits_resp, dict) else None
+    except (TypeError, ValueError):
+        pass
+
+    return {
+        "reconciled_at_utc": time.time(), "real_balance_inr": net_balance,
+        "qty_corrected_count": len(qty_corrected), "qty_corrected": qty_corrected,
+        "removed_ghost_count": len(removed_ghosts), "removed_ghosts": removed_ghosts,
+        "untracked_open_positions_count": len(untracked), "untracked_open_positions": untracked,
+    }
+
+
 @app.get("/kotak-neo/search-scrip")
 def kotak_neo_search_scrip(
     request: Request,
