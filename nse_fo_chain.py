@@ -105,8 +105,24 @@ def select_nse_future(underlying: str):
     outright-futures signal exists, and a 1-lot NIFTY future's own margin
     made it impractical at every capital level checked live 2026-09-07).
     Exposed for manual/diagnostic use and so futures need no new
-    resolution code later, only a wiring decision."""
-    rows, err = _fo_rows(underlying)
+    resolution code later, only a wiring decision.
+
+    Real reliability finding (2026-09-07): search_scrip's `symbol` filter
+    is a broad substring match, and Kotak's OWN API only ever returns a
+    small top-N "showing" slice out of the real total_matched count (a
+    live "nifty" search returned total_matched=11840 but only ~20 rows) -
+    without a type filter, that slice can easily be dominated by
+    NIFTYFPI/FINNIFTY/MIDCPNIFTY/NIFTYNXT50/every NIFTY option strike
+    and miss the actual NIFTY future entirely (confirmed live: a bare
+    search_scrip("nse_fo","nifty") call found it, but this function's
+    OWN first version - which passed no option_type - did not, on the
+    live deployed endpoint). option_type="FUT" is the SDK's own real,
+    documented value for narrowing server-side to futures rows only
+    (confirmed from the SDK's own search_scrip docstring) - passing it
+    here makes the "showing" slice almost entirely futures contracts for
+    this symbol, not diluted by every option strike across every
+    similarly-named product."""
+    rows, err = _fo_rows(underlying, option_type="FUT")
     if err:
         return None, err
     # FUTIDX (NSE index futures) or FUTCOM (MCX commodity futures) -
@@ -141,7 +157,20 @@ def select_nse_option_contract(underlying: str, spot: float, right: str):
     (underlying/right/expiry/dte/strike/premium) but carries no greeks -
     Kotak's scrip master doesn't carry IV/delta the way a yfinance chain
     does, so ATM selection substitutes for delta-targeting here. premium
-    is a live LTP from kotak_neo.quotes(), never synthetic."""
+    is a live LTP from kotak_neo.quotes(), never synthetic.
+
+    KNOWN RELIABILITY GAP (2026-09-07, see select_nse_future's own
+    docstring for the fuller finding): Kotak's search_scrip only ever
+    returns a small top-N slice of a broad substring match, and for
+    "nifty" specifically that match competes against NIFTYFPI/FINNIFTY/
+    MIDCPNIFTY/NIFTYNXT50's own option strikes too - option_type
+    narrows to CE/PE only (already applied here) but can't fully
+    eliminate that competition the way option_type="FUT" does for
+    futures. This function still fails safe either way (a missed
+    contract returns "no_option_rows"/no_exact_pSymbolName_match, never
+    a wrong one - see _fo_rows's own exact-match filter) - it just may
+    more often report no contract for NIFTY specifically than for a less
+    crowded underlying (BANKNIFTY, GOLDM, SILVERM, CRUDEOILM)."""
     opt_type = "ce" if right == "call" else "pe"
     rows, err = _fo_rows(underlying, option_type=opt_type)
     if err:
