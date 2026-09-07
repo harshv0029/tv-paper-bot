@@ -162,6 +162,28 @@ def init_db():
             )
             """
         )
+        # Live-editable risk/scheduling thresholds (2026-09-07, explicit user
+        # instruction: "i want all of your constraints on the render web
+        # page so that i directly make changes for thresholds ... to make
+        # it go live immediately"). Before this, values like the daily loss
+        # cap % or the scheduler's entry-scan batch size were plain Python
+        # constants - changing them meant a code edit -> staging ->
+        # deploy-gate -> Render redeploy, same multi-minute ceremony as
+        # every other code change. This table is checked LIVE (see
+        # get_runtime_setting, RUNTIME_SETTINGS_DEFAULTS below) so a value
+        # written here takes effect on the VERY NEXT scheduler tick, no
+        # redeploy at all. Key-value, one row per setting, so adding a new
+        # tunable later never needs a schema migration.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS runtime_settings (
+                key TEXT PRIMARY KEY,
+                value REAL NOT NULL,
+                updated_at REAL,
+                updated_by TEXT
+            )
+            """
+        )
         # --- Stage 3: real order placement (2026-09-04) --------------------
         # Explicit user instruction. Deliberately its OWN kill switch, NOT
         # a reuse of trading_control above - pausing/resuming PAPER trading
@@ -2815,7 +2837,7 @@ def _maybe_place_real_entry(conn, symbol: str):
         _log_real_attempt(conn, symbol, "B", "skipped_no_live_tick", kotak_trading_symbol=kotak_symbol)
         return
 
-    remaining = REAL_TRADING_DAILY_CAP_INR - _real_today_spent_inr(conn)
+    remaining = get_runtime_setting(conn, "real_daily_cap_inr") - _real_today_spent_inr(conn)
     if ltp > remaining:
         _log_real_attempt(
             conn, symbol, "B", "skipped_over_daily_cap", kotak_trading_symbol=kotak_symbol,
@@ -2889,6 +2911,7 @@ def _force_close_all_positions(conn, reason: str) -> dict:
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
     closed = []
     total_pnl_inr = 0.0
+    live_rr = get_runtime_setting(conn, "rr")  # for the rr_target field below, live not static
 
     for row in conn.execute("SELECT * FROM signal_state WHERE status = 'long'").fetchall():
         symbol = row["symbol"]
@@ -2917,7 +2940,7 @@ def _force_close_all_positions(conn, reason: str) -> dict:
             "currency": cfg.get("currency", "INR"), "fx_to_inr": entry_fx,
             "strategy": strategy_tag, "exit_reason": reason,
             "entry_price": row["entry_price"], "stop_loss": row["stop_loss"], "target": row["target"],
-            "rr_target": SCHEDULER_RR, "rr_achieved": rr_achieved,
+            "rr_target": live_rr, "rr_achieved": rr_achieved,
             "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
         }
         apply_paper_trade(conn, symbol, "sell", qty, exit_price)
@@ -2948,7 +2971,7 @@ def _force_close_all_positions(conn, reason: str) -> dict:
             "qty": qty, "contracts": contracts, "price": exit_premium, "currency": "USD", "fx_to_inr": entry_fx,
             "strategy": OPTIONS_STRATEGY_TAG, "exit_reason": reason,
             "entry_price": row["entry_premium"], "stop_loss": row["stop_premium"], "target": row["target_premium"],
-            "rr_target": SCHEDULER_RR, "rr_achieved": rr_achieved,
+            "rr_target": live_rr, "rr_achieved": rr_achieved,
             "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
         }
         apply_paper_trade(conn, opt_symbol, "sell", qty, exit_premium)
@@ -3068,6 +3091,7 @@ def get_real_trading_control(request: Request):
         row = conn.execute("SELECT * FROM real_trading_control WHERE id = 1").fetchone()
         open_positions = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
         today_spent_inr = _real_today_spent_inr(conn)
+        daily_cap_inr = get_runtime_setting(conn, "real_daily_cap_inr")
     db_enabled = bool(row["enabled"]) if row else False
     env_enabled = os.environ.get("REAL_TRADING_ENABLED") == "YES"
     return {
@@ -3076,10 +3100,10 @@ def get_real_trading_control(request: Request):
         "updated_at": row["updated_at"] if row else None,
         "updated_by": row["updated_by"] if row else None,
         "reason": row["reason"] if row else None,
-        "daily_cap_inr": REAL_TRADING_DAILY_CAP_INR,
+        "daily_cap_inr": daily_cap_inr,
         "today_ist_date": ist_now().strftime("%Y-%m-%d"),  # journal-sync.yml needs this, not just the amount
         "today_spent_inr": round(today_spent_inr, 2),
-        "today_remaining_inr": round(REAL_TRADING_DAILY_CAP_INR - today_spent_inr, 2),
+        "today_remaining_inr": round(daily_cap_inr - today_spent_inr, 2),
         "open_real_positions": open_positions,
     }
 
@@ -3390,8 +3414,124 @@ def reconcile_real_trades_today_from_journal():
 
 
 SCHEDULER_INTERVAL_SECONDS = 30
-SCHEDULER_DAILY_RISK_PCT = 2.0  # account-wide daily loss cap - always the full 2%, not per-symbol
-SCHEDULER_RR = 3.0  # 2026-09-03: raised from 1:2 to a 1:3 minimum per standing user instruction
+SCHEDULER_DAILY_RISK_PCT = 2.0  # DEFAULT (fallback) - account-wide daily loss cap, live-editable below
+SCHEDULER_RR = 3.0  # DEFAULT (fallback) - 1:3 minimum reward:risk, live-editable below
+
+# --- Live-editable thresholds (2026-09-07) ----------------------------------
+# Explicit user instruction: "i want all of your constraints on the render
+# web page so that i directly make changes for thresholds ... to make it go
+# live immediately" - a value written to runtime_settings (see the CREATE
+# TABLE above) takes effect on the VERY NEXT scheduler tick, no code push/
+# redeploy at all. The module constants above (SCHEDULER_DAILY_RISK_PCT etc.)
+# stay as DEFAULTS - what a fresh DB (first deploy, or a redeploy before
+# anyone's ever changed a setting) starts with - and as the fallback if the
+# runtime_settings row is ever missing/corrupt.
+#
+# Scope, deliberately limited: this covers the SCHEDULE-WIDE risk/pacing
+# knobs (daily loss cap %, minimum reward:risk, entry-scan batch size), not
+# WATCHLIST's ~2,600 per-symbol params (orb_minutes/sma_fast/slow/strategy
+# per symbol) - that's a much bigger surface (thousands of values, one set
+# per symbol) and "thresholds" most naturally reads as the account-wide
+# risk knobs, not a per-symbol strategy editor. Flagged explicitly rather
+# than silently narrowed.
+RUNTIME_SETTINGS_META = {
+    # key: (default, min, max, requires_real_money_token, description)
+    "daily_risk_pct": (
+        SCHEDULER_DAILY_RISK_PCT, 0.1, 10.0, False,
+        "Account-wide daily loss cap, as % of capital. Once today's realized loss "
+        "reaches this, all new entries halt for the rest of the day (open positions "
+        "still get managed normally).",
+    ),
+    "rr": (
+        SCHEDULER_RR, 1.0, 10.0, False,
+        "Minimum reward:risk ratio (target distance / stop distance) required for "
+        "a new entry to be taken at all.",
+    ),
+    "entry_scan_batch_size": (
+        # Literal, not a reference to SCHEDULER_ENTRY_SCAN_BATCH_SIZE below -
+        # that constant is defined LATER in this file (module-level forward
+        # references fail at import time in Python), so this default is kept
+        # in sync by hand. Mirror any future change to that constant here too.
+        35.0, 1.0, 500.0, False,
+        "How many flat (no open position) symbols get scanned for a NEW entry per "
+        "30s tick, round-robin. Higher = faster coverage of the full watchlist but "
+        "more Yahoo Finance calls and longer tick time - see main.py's own comment "
+        "above SCHEDULER_ENTRY_SCAN_BATCH_SIZE for the tradeoff math. Open positions "
+        "are ALWAYS checked every tick regardless of this value.",
+    ),
+    "real_daily_cap_inr": (
+        REAL_TRADING_DAILY_CAP_INR, 0.0, 1000000.0, True,
+        "Maximum total REAL buy notional per IST calendar day, across all real "
+        "orders. Real money - changing this requires the same Kotak API token as "
+        "every other real-trading endpoint.",
+    ),
+}
+
+
+def _live_entry_scan_batch_size_for_display() -> int:
+    """Small convenience wrapper for read-only status endpoints that don't
+    already have a conn open (e.g. /scheduler-pipeline) - opens one just
+    for this single lookup. Not used on the scheduler's own hot path (see
+    _scheduler_loop, which reads live_batch_size once per tick already)."""
+    with closing(get_db()) as conn:
+        return int(get_runtime_setting(conn, "entry_scan_batch_size"))
+
+
+def get_runtime_setting(conn, key: str) -> float:
+    """Live value for one setting, falling back to RUNTIME_SETTINGS_META's
+    default if no row exists yet (fresh DB) or the row is somehow missing.
+    Cheap (one indexed lookup on a tiny table) - called once per scheduler
+    tick, not per symbol, so this is not a hot-path concern."""
+    default = RUNTIME_SETTINGS_META[key][0]
+    row = conn.execute("SELECT value FROM runtime_settings WHERE key = ?", (key,)).fetchone()
+    return float(row["value"]) if row else default
+
+
+@app.get("/runtime-settings")
+def get_runtime_settings():
+    """Current effective value of every live-editable threshold, plus its
+    default/min/max/description - what the trade-view constraints panel
+    reads to render itself. No token gate (matches /trading-control's own
+    precedent - this page's URL is the trust boundary for paper/scheduling
+    controls); real_daily_cap_inr is readable here too but its WRITE path
+    (see POST below) does require the token, same as every other real-
+    money endpoint."""
+    with closing(get_db()) as conn:
+        return {
+            key: {
+                "value": get_runtime_setting(conn, key),
+                "default": default, "min": lo, "max": hi,
+                "requires_token": requires_token, "description": desc,
+            }
+            for key, (default, lo, hi, requires_token, desc) in RUNTIME_SETTINGS_META.items()
+        }
+
+
+@app.post("/runtime-settings")
+def set_runtime_setting(request: Request, key: str, value: float):
+    """Writes ONE setting, live - the very next scheduler tick reads it
+    (see get_runtime_setting's call sites in _scheduler_loop). Bounds-
+    checked against RUNTIME_SETTINGS_META so a typo (e.g. daily_risk_pct=
+    200 meant as 2.00) can't silently arm a wildly wrong risk parameter.
+    real_daily_cap_inr requires the same Kotak token as every other real-
+    money endpoint (_require_kotak_token) - every other key does not,
+    matching /trading-control's own no-gate precedent."""
+    if key not in RUNTIME_SETTINGS_META:
+        raise HTTPException(status_code=400, detail=f"unknown setting key: {key!r}")
+    default, lo, hi, requires_token, desc = RUNTIME_SETTINGS_META[key]
+    if requires_token:
+        _require_kotak_token(request)
+    if not (lo <= value <= hi):
+        raise HTTPException(status_code=400, detail=f"{key} must be between {lo} and {hi} (got {value})")
+    with closing(get_db()) as conn:
+        conn.execute(
+            "INSERT INTO runtime_settings (key, value, updated_at, updated_by) VALUES (?, ?, ?, 'user') "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at, "
+            "updated_by=excluded.updated_by",
+            (key, value, time.time()),
+        )
+        conn.commit()
+    return {"key": key, "value": value, "status": "saved", "effective": "next scheduler tick"}
 
 # Real capital sourced from Kotak Neo (2026-09-04) - explicit user
 # instruction: "fetch the actual capital it has and apply % limit on the
@@ -3545,6 +3685,13 @@ async def _scheduler_loop():
                 ).fetchall()
             }
             trading_paused = not is_trading_enabled(conn)
+            # Live thresholds (see RUNTIME_SETTINGS_META/get_runtime_setting
+            # above) - read once per tick here, not per symbol, same reasoning
+            # as scheduler_capital_inr below. A value saved via POST
+            # /runtime-settings is picked up on the VERY NEXT tick.
+            live_daily_risk_pct = get_runtime_setting(conn, "daily_risk_pct")
+            live_rr = get_runtime_setting(conn, "rr")
+            live_batch_size = int(get_runtime_setting(conn, "entry_scan_batch_size"))
 
         # When paused, don't waste a Yahoo Finance call scanning flat
         # symbols for a NEW entry nobody wants right now - _auto_signal_core/
@@ -3556,7 +3703,7 @@ async def _scheduler_loop():
         flat_symbols = [] if trading_paused else [s for s in all_symbols if s not in open_equity_symbols]
         if flat_symbols:
             n = len(flat_symbols)
-            batch_size = min(SCHEDULER_ENTRY_SCAN_BATCH_SIZE, n)
+            batch_size = min(live_batch_size, n)
             rr_batch = [flat_symbols[(_scheduler_rr_cursor + i) % n] for i in range(batch_size)]
             _scheduler_rr_cursor = (_scheduler_rr_cursor + batch_size) % n
         else:
@@ -3585,9 +3732,9 @@ async def _scheduler_loop():
                 result = await asyncio.to_thread(
                     _auto_signal_core,
                     symbol=cfg["symbol"], capital=scheduler_capital_inr,
-                    daily_risk_pct=SCHEDULER_DAILY_RISK_PCT,
+                    daily_risk_pct=live_daily_risk_pct,
                     risk_per_trade_pct=cfg["risk_pct"],
-                    stop_pct=cfg["stop_pct"], rr=SCHEDULER_RR,
+                    stop_pct=cfg["stop_pct"], rr=live_rr,
                     orb_minutes=cfg["orb_minutes"], sma_fast=cfg["sma_fast"], sma_slow=cfg["sma_slow"],
                     interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
                     close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
@@ -3648,8 +3795,8 @@ async def _scheduler_loop():
                 result = await asyncio.to_thread(
                     _options_signal_core,
                     underlying=underlying, capital=scheduler_capital_inr,
-                    daily_risk_pct=SCHEDULER_DAILY_RISK_PCT,
-                    risk_per_trade_pct=cfg["risk_pct"], rr=SCHEDULER_RR,
+                    daily_risk_pct=live_daily_risk_pct,
+                    risk_per_trade_pct=cfg["risk_pct"], rr=live_rr,
                     trend_sma=cfg.get("trend_sma", 20),
                     tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
                     close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
@@ -3827,7 +3974,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "check_counts_today": check_counts_today,
         "check_counts_day": _scheduler_check_counts_day,
         "scheduler_interval_seconds": SCHEDULER_INTERVAL_SECONDS,
-        "entry_scan_batch_size": SCHEDULER_ENTRY_SCAN_BATCH_SIZE,
+        "entry_scan_batch_size": _live_entry_scan_batch_size_for_display(),
         "last_tick_ts": _scheduler_last_tick_ts,
         "server_time_utc": time.time(),
     }
@@ -3876,10 +4023,28 @@ def trade_history(days: int = 1):
 
 
 @app.get("/daily-summary")
-def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
+def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0, tax_slab_pct: float = 30.0):
     """Aggregated view of today's auto-signal paper trading across all symbols:
     realized P&L (Rs and % of capital), win rate, risk-reward achieved per
-    trade, remaining daily-loss budget, and any still-open positions."""
+    trade, remaining daily-loss budget, and any still-open positions.
+
+    tax_slab_pct (2026-09-07, explicit user request): an ESTIMATE of tax
+    owed on today's realized profit, not a filed/authoritative figure.
+    Same-day equity buy+sell (which is what this system's strategies do -
+    see squareoff_min) is treated by Indian tax law as speculative
+    business income (Income Tax Act s.43(5)), taxed at the trader's own
+    slab rate (5-30%+ surcharge/cess), NOT a flat capital-gains rate -
+    confirmed via web search 2026-09-07 (Groww/ICICI Direct/multiple CA-
+    authored guides agree on this classification for FY2025-26/AY2026-27).
+    This project has no way to know your actual slab (depends on your
+    total income across all sources) - tax_slab_pct defaults to 30% (the
+    top slab) as the conservative "don't understate what you may owe"
+    default; pass your own rate as a query param for an accurate figure.
+    Tax applies ONLY to a net positive realized_pnl for the day - a
+    speculative LOSS is never a negative tax; it can only be carried
+    forward and set off against future speculative gains (up to 4 years),
+    never against salary/other capital gains. This is an estimate for
+    planning, not tax advice - confirm your actual liability with a CA."""
     now_ist = ist_now()
     today_str = now_ist.strftime("%Y-%m-%d")
     since_ts = ist_midnight_epoch(now_ist)
@@ -4023,6 +4188,11 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
         "halted_for_day": budget_remaining <= 0,
         "closed_trades_count": len(closed_trades),
         "win_rate_pct": round(100 * len(wins) / len(closed_trades), 1) if closed_trades else None,
+        "tax_slab_pct": tax_slab_pct,
+        # ESTIMATE only, on net positive realized profit for the day - see
+        # this function's own docstring for the speculative-business-
+        # income reasoning and the "not tax advice" caveat.
+        "tax_on_realized_inr": round(max(0.0, realized) * tax_slab_pct / 100, 2),
         "open_positions": open_positions,
         "closed_trades": closed_trades,
     }

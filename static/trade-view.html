@@ -96,10 +96,31 @@
   .counts-head{display:flex;align-items:baseline;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--panel-2);}
   .counts-head .title{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;}
   .counts-head .day{font-size:10.5px;color:var(--muted);}
+
+  /* Live constraints panel (2026-09-07) - edit a threshold here, it's live
+     on the scheduler's next tick, no code push/redeploy. */
+  .constraints-panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden;}
+  .constraints-head{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--panel-2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;}
+  .constraints-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1px;background:var(--border);}
+  .constraint-item{background:var(--panel);padding:12px 16px;display:flex;flex-direction:column;gap:6px;}
+  .constraint-lbl{font-size:11.5px;font-weight:700;color:var(--text);}
+  .constraint-desc{font-size:10.5px;color:var(--muted);line-height:1.4;}
+  .constraint-row{display:flex;align-items:center;gap:8px;}
+  .constraint-row input[type="number"]{width:6em;background:var(--panel-2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'IBM Plex Mono',monospace;padding:5px 8px;font-size:12.5px;}
+  .constraint-row button{background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:700;padding:5px 10px;cursor:pointer;}
+  .constraint-row button:hover{opacity:.9;}
+  .constraint-row button:disabled{opacity:.5;cursor:not-allowed;}
+  .constraint-status{font-size:10.5px;min-height:13px;}
+  .constraint-status.ok{color:var(--up);}
+  .constraint-status.err{color:var(--down);}
+  .constraint-badge{font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--down);border:1px solid var(--down);border-radius:4px;padding:1px 5px;}
   .counts-scroll{max-height:460px;overflow-y:auto;}
   table.counts{width:100%;border-collapse:collapse;font-size:12px;}
   table.counts thead th{position:sticky;top:0;background:var(--panel-2);color:var(--muted);text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:8px 16px;border-bottom:1px solid var(--border);}
   table.counts thead th.num{text-align:right;}
+  table.counts thead th.sortable{cursor:pointer;user-select:none;}
+  table.counts thead th.sortable:hover{color:var(--text);}
+  table.counts thead th .sort-ind{margin-left:4px;opacity:.7;}
   table.counts td{padding:7px 16px;border-bottom:1px solid rgba(35,45,58,.6);}
   table.counts tbody tr:last-child td{border-bottom:none;}
   table.counts tbody tr:hover{background:rgba(59,130,246,.06);}
@@ -213,6 +234,20 @@
         <span class="ds-val mono" id="ds-unrealised">—</span>
       </div>
       <div class="ds-item">
+        <span class="ds-lbl">Tax on realised profit (est.)</span>
+        <span class="ds-val mono" id="ds-tax-realised">—</span>
+      </div>
+      <div class="ds-item">
+        <span class="ds-lbl">Tax on unrealised profit (est., if closed now)</span>
+        <span class="ds-val mono" id="ds-tax-unrealised">—</span>
+      </div>
+      <div class="ds-item">
+        <span class="ds-lbl">Tax slab rate (est.)</span>
+        <span class="ds-val mono">
+          <input type="number" id="ds-tax-rate" min="0" max="42.74" step="0.1" style="width:4.5em" />%
+        </span>
+      </div>
+      <div class="ds-item">
         <span class="ds-lbl">Trades closed</span>
         <span class="ds-val mono" id="ds-count">—</span>
       </div>
@@ -257,6 +292,11 @@
   </div>
 </div>
 
+<div class="constraints-panel">
+  <div class="constraints-head">Live constraints — edit and Save takes effect on the scheduler's next tick (~30s), no redeploy</div>
+  <div class="constraints-grid" id="constraints-grid">Loading…</div>
+</div>
+
 <div class="counts-panel">
   <div class="counts-head">
     <span class="title">Checks today, per asset</span>
@@ -264,7 +304,14 @@
   </div>
   <div class="counts-scroll">
     <table class="counts">
-      <thead><tr><th class="num">#</th><th>Symbol</th><th class="num">Checks today</th><th>Last result</th><th>Last checked</th><th>Source</th></tr></thead>
+      <thead><tr>
+        <th class="num">#</th>
+        <th class="sortable" data-sort-key="symbol">Symbol<span class="sort-ind"></span></th>
+        <th class="num sortable" data-sort-key="checks_today">Checks today<span class="sort-ind"></span></th>
+        <th class="sortable" data-sort-key="last_result">Last result<span class="sort-ind"></span></th>
+        <th class="sortable" data-sort-key="last_checked">Last checked<span class="sort-ind"></span></th>
+        <th class="sortable" data-sort-key="source">Source<span class="sort-ind"></span></th>
+      </tr></thead>
       <tbody id="counts-body"><tr><td colspan="6" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
@@ -637,13 +684,65 @@ function renderScanner(p) {
     : `<div class="scan-idle">Every symbol has an open position</div>`;
 }
 
+// Sortable "Checks today, per asset" table (explicit user request,
+// 2026-09-07: "sorting of all columns"). Click a header to sort by it,
+// click again to flip direction - state persists across the 10s poll
+// (lastCountsData caches the most recent /scheduler-pipeline payload so a
+// header click re-sorts immediately without waiting for the next poll).
+let countsSortKey = null;
+let countsSortDir = 1; // 1 = ascending, -1 = descending
+let lastCountsData = null;
+
+function countsSortValue(r, key) {
+  switch (key) {
+    case "symbol": return (r.display || r.symbol || "").toLowerCase();
+    case "checks_today": return r.checks_today ?? 0;
+    case "last_result": {
+      const tag = scanTagFor(r.last_action);
+      return (tag.label !== "—" ? tag.label : (r.last_action || "")).toLowerCase();
+    }
+    case "last_checked": return r.last_checked_at_utc ?? -Infinity;
+    case "source": return (r.data_source || "").toLowerCase();
+    default: return 0;
+  }
+}
+
+function sortCounts(key) {
+  if (countsSortKey === key) {
+    countsSortDir *= -1;
+  } else {
+    countsSortKey = key;
+    // Numeric columns default to descending (biggest/most-recent first);
+    // text columns default to ascending (A-Z) - matches what a first click
+    // on each column type usually means to someone scanning the table.
+    countsSortDir = (key === "checks_today" || key === "last_checked") ? -1 : 1;
+  }
+  document.querySelectorAll("table.counts th.sortable .sort-ind").forEach(el => el.textContent = "");
+  const activeInd = document.querySelector(`table.counts th[data-sort-key="${key}"] .sort-ind`);
+  if (activeInd) activeInd.textContent = countsSortDir === 1 ? "▲" : "▼";
+  if (lastCountsData) renderCounts(lastCountsData);
+}
+
+document.querySelectorAll("table.counts th.sortable").forEach(th => {
+  th.addEventListener("click", () => sortCounts(th.dataset.sortKey));
+});
+
 function renderCounts(p) {
+  lastCountsData = p;
   document.getElementById("counts-day").textContent = p.check_counts_day ? `Day: ${p.check_counts_day} IST` : "";
-  const rows = p.check_counts_today || [];
+  let rows = p.check_counts_today || [];
   const body = document.getElementById("counts-body");
   if (!rows.length) {
     body.innerHTML = `<tr><td colspan="6" class="scan-idle">No data yet</td></tr>`;
     return;
+  }
+  if (countsSortKey) {
+    rows = [...rows].sort((a, b) => {
+      const va = countsSortValue(a, countsSortKey), vb = countsSortValue(b, countsSortKey);
+      if (va < vb) return -1 * countsSortDir;
+      if (va > vb) return 1 * countsSortDir;
+      return 0;
+    });
   }
   const maxCount = Math.max(1, ...rows.map(r => r.checks_today));
   body.innerHTML = rows.map((r, i) => {
@@ -693,6 +792,18 @@ async function refreshScanner() {
 // way. The separate token-gated /real-trading-control DB switch and its
 // unlock prompt are gone - real trading is now controlled by exactly two
 // things: this toggle, and the env var you set directly on Render.
+// Tax slab rate for the P&L panel's "Tax (est.)" figures (2026-09-07) -
+// per-viewer setting, remembered in localStorage like any ordinary web
+// app preference (not shared/synced - this is just a UI convenience, the
+// server-side default of 30% is what a fresh browser/device sees first).
+// Wrapped in try/catch: a private window or blocked site data must never
+// break the page, just fall back to the 30% default.
+let taxSlabPct = 30;
+try {
+  const saved = localStorage.getItem("tv_tax_slab_pct");
+  if (saved !== null && !Number.isNaN(Number(saved))) taxSlabPct = Number(saved);
+} catch (e) { /* ignore - use default */ }
+
 let masterToggleBusy = false;
 let lastPaperStatus = null;
 // The toggle's own switch position + ON/OFF label are manual-input-only
@@ -741,6 +852,76 @@ async function refreshControlStatus() {
   // periodic 10s refresh otherwise, so it could sit there contradicting
   // the current (correct) toggle position.
   if (!masterToggleBusy) document.getElementById("ctrl-msg").textContent = "";
+}
+
+// Live constraints panel (2026-09-07, explicit user request: "i want all
+// of your constraints on the render web page so that i directly make
+// changes for thresholds ... to make it go live immediately"). Backed by
+// GET/POST /runtime-settings in main.py - a save here is live on the
+// scheduler's VERY NEXT tick, no code push/redeploy at all. Real-money
+// fields (currently just real_daily_cap_inr) require the same Kotak API
+// token every other real-trading endpoint does - prompted fresh at save
+// time, never stored, same lightweight-friction pattern used elsewhere on
+// this page rather than a persistent unlock popup.
+const CONSTRAINT_LABELS = {
+  daily_risk_pct: "Daily loss cap (% of capital)",
+  rr: "Minimum reward:risk",
+  entry_scan_batch_size: "Entry-scan batch size (symbols/tick)",
+  real_daily_cap_inr: "Real trading daily cap (₹)",
+};
+
+async function refreshConstraints() {
+  let settings;
+  try {
+    settings = await fetchJSON(`${ORIGIN}/runtime-settings`);
+  } catch (e) {
+    document.getElementById("constraints-grid").innerHTML =
+      `<div class="constraint-item"><span class="constraint-status err">Could not load constraints: ${e.message || e}</span></div>`;
+    return;
+  }
+  const grid = document.getElementById("constraints-grid");
+  grid.innerHTML = Object.entries(settings).map(([key, s]) => `
+    <div class="constraint-item">
+      <span class="constraint-lbl">${CONSTRAINT_LABELS[key] || key}${s.requires_token ? ' <span class="constraint-badge">real money</span>' : ""}</span>
+      <span class="constraint-desc">${s.description}</span>
+      <div class="constraint-row">
+        <input type="number" id="cs-input-${key}" value="${s.value}" min="${s.min}" max="${s.max}" step="any" />
+        <button onclick="saveConstraint('${key}')" id="cs-btn-${key}">Save</button>
+      </div>
+      <span class="constraint-status" id="cs-status-${key}">Default ${s.default} · range ${s.min}–${s.max}</span>
+    </div>
+  `).join("");
+}
+
+async function saveConstraint(key) {
+  const input = document.getElementById(`cs-input-${key}`);
+  const btn = document.getElementById(`cs-btn-${key}`);
+  const statusEl = document.getElementById(`cs-status-${key}`);
+  const value = Number(input.value);
+  if (Number.isNaN(value)) {
+    statusEl.textContent = "Not a number"; statusEl.className = "constraint-status err";
+    return;
+  }
+  let url = `${ORIGIN}/runtime-settings?key=${encodeURIComponent(key)}&value=${value}`;
+  if (key === "real_daily_cap_inr") {
+    const token = prompt("Kotak API token (real-money setting - not stored, re-entered each time):");
+    if (!token) return;
+    url += `&token=${encodeURIComponent(token)}`;
+  }
+  btn.disabled = true;
+  statusEl.textContent = "Saving…"; statusEl.className = "constraint-status";
+  try {
+    const resp = await fetch(url, { method: "POST" });
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({}));
+      throw new Error(body.detail || `HTTP ${resp.status}`);
+    }
+    statusEl.textContent = "Saved — live on next scheduler tick"; statusEl.className = "constraint-status ok";
+  } catch (e) {
+    statusEl.textContent = `Failed: ${e.message || e}`; statusEl.className = "constraint-status err";
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function onMasterToggle(turningOn) {
@@ -911,6 +1092,20 @@ function renderTradeLog(summary, history) {
   unrealisedEl.textContent = `${totalUnrealisedInr >= 0 ? "+" : ""}₹${fmt(totalUnrealisedInr)}`;
   unrealisedEl.className = "ds-val mono " + (totalUnrealisedInr >= 0 ? "up" : "down");
 
+  // Tax: ESTIMATES only, not filed/authoritative figures - see
+  // daily_summary()'s own docstring in main.py for the reasoning (same-day
+  // equity buy+sell is speculative business income under Indian tax law,
+  // taxed at the trader's own slab rate, only on a net positive day -
+  // never a negative tax on a loss). Realized tax comes straight from the
+  // server (computed at taxSlabPct, passed as a query param below);
+  // unrealized tax is computed here client-side from the same live
+  // unrealized total the log's own TOTAL row uses, at the same rate, so
+  // the two numbers can't drift apart.
+  document.getElementById("ds-tax-realised").textContent =
+    summary.tax_on_realized_inr !== undefined ? `₹${fmt(summary.tax_on_realized_inr)}` : "—";
+  const unrealisedTax = Math.max(0, totalUnrealisedInr) * taxSlabPct / 100;
+  document.getElementById("ds-tax-unrealised").textContent = `₹${fmt(unrealisedTax)}`;
+
   document.getElementById("ds-count").textContent = closed.length;
   const wins = closed.filter(t => (t.pnl_inr ?? 0) > 0).length;
   document.getElementById("ds-winrate").textContent = closed.length
@@ -937,7 +1132,7 @@ async function refresh() {
     const realCapitalInr = Math.max(1, schedStatus?.scheduler_capital_inr ?? 0);
 
     const [summary, history] = await Promise.all([
-      fetchJSON(`${ORIGIN}/daily-summary?capital=${realCapitalInr}&daily_risk_pct=2`),
+      fetchJSON(`${ORIGIN}/daily-summary?capital=${realCapitalInr}&daily_risk_pct=2&tax_slab_pct=${taxSlabPct}`),
       fetchJSON(`${ORIGIN}/trade-history?days=1`),
     ]);
     document.getElementById("ds-capital-available").textContent =
@@ -996,6 +1191,22 @@ function tickCountdown() {
   }
   document.getElementById("countdown").textContent = secondsLeft;
 }
+
+const taxRateInput = document.getElementById("ds-tax-rate");
+taxRateInput.value = taxSlabPct;
+taxRateInput.addEventListener("change", () => {
+  const v = Number(taxRateInput.value);
+  if (Number.isNaN(v) || v < 0) { taxRateInput.value = taxSlabPct; return; }
+  taxSlabPct = v;
+  try { localStorage.setItem("tv_tax_slab_pct", String(v)); } catch (e) { /* per-viewer convenience only */ }
+  refresh();
+});
+
+// Loaded once, not on the 10s poll like everything else - re-rendering
+// this grid every 10s would wipe out whatever the user is mid-typing in
+// one of its inputs. A save() call updates its own status text in place;
+// reload the page to see a value someone else changed elsewhere.
+refreshConstraints();
 
 refresh();
 refreshScanner();
