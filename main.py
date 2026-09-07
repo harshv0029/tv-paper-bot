@@ -3789,6 +3789,39 @@ def _scheduler_peek_next_batch(n: int = 5) -> list:
     return [flat_symbols[(_scheduler_rr_cursor + i) % m] for i in range(count)]
 
 
+def _market_open_for_cfg(cfg: dict) -> bool:
+    """Cheap, no-network check: is THIS WATCHLIST symbol's own market open
+    right now? Mirrors the exact same weekday/open_min/close_min gate
+    _auto_signal_core/_options_signal_core already apply per-call (this
+    does NOT replace those - they still make the real entry/exit
+    decision) - it's used ONLY to keep the scheduler's round-robin scan
+    pool restricted to symbols that can actually act right now.
+
+    Explicit user instruction (2026-09-07): "you also know the market
+    timing of all the asset classes. accordingly iterate your search or
+    monitoring and only on those market open asset classes... right now
+    only commodity segment should be active and at 9:30am all assets
+    should be tradable." Before this, the round-robin batch drew from
+    the FULL watchlist regardless of hours - _auto_signal_core already
+    short-circuits a closed symbol before any network fetch (so this
+    wasn't burning Yahoo calls), but it DID mean scan slots were spent
+    cycling through ~2,600 closed NSE symbols during NSE-closed hours
+    instead of concentrating on the handful of assets (currently just
+    the 3 near-24h MCX proxies) that are actually open - and conversely,
+    NSE symbols left mid-rotation when the market closes don't jump the
+    queue the moment it reopens; they wait their normal turn. Filtering
+    the POOL by market hours fixes both: during closed hours the pool
+    shrinks to what's genuinely tradeable (fast, relevant rotation);
+    the moment a market opens, its symbols re-enter the pool and get
+    picked up on the very next ticks rather than waiting out whatever
+    position the cursor happened to be in."""
+    now_local = dt.datetime.utcnow() + dt.timedelta(minutes=cfg.get("tz_offset_min", IST_OFFSET_MIN))
+    mins_now = now_local.hour * 60 + now_local.minute
+    if not cfg.get("trade_weekends", False) and now_local.weekday() >= 5:
+        return False
+    return cfg.get("open_min", 0) <= mins_now <= cfg.get("close_min", 1439)
+
+
 async def _scheduler_loop():
     global _scheduler_last_tick_ts, _scheduler_last_error, _scheduler_rr_cursor, _scheduler_currently_checking
     while True:
@@ -3821,7 +3854,16 @@ async def _scheduler_loop():
         # gated by this - they still get checked every tick regardless
         # (see symbols_this_tick below), same as always.
         all_symbols = [cfg["symbol"] for cfg in WATCHLIST]
-        flat_symbols = [] if trading_paused else [s for s in all_symbols if s not in open_equity_symbols]
+        # Market-hours-aware pool (see _market_open_for_cfg's own docstring
+        # for the full reasoning) - only symbols whose own market is open
+        # right now are candidates for entry-scanning. An open position is
+        # NEVER gated by this (open_equity_symbols/open_option_underlyings
+        # below are unconditional) - only the round-robin's flat-symbol
+        # scan pool is filtered.
+        flat_symbols = [] if trading_paused else [
+            s for s in all_symbols
+            if s not in open_equity_symbols and _market_open_for_cfg(watchlist_by_symbol[s])
+        ]
         if flat_symbols:
             n = len(flat_symbols)
             batch_size = min(live_batch_size, n)
