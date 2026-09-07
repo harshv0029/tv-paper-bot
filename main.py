@@ -1279,6 +1279,57 @@ def _merge_closed_trades(db_trades: list[dict], durable_trades: list[dict]) -> l
     return list(merged.values())
 
 
+# India's New Tax Regime slabs, FY2025-26/AY2026-27 (confirmed via web
+# search 2026-09-07 - PIB's own Budget 2025 press release, corroborated by
+# ClearTax/Bajaj/IndiaFirst Life; this is the DEFAULT regime since Budget
+# 2023). (upper bound INR, marginal rate on the band up to that bound):
+INDIA_NEW_REGIME_SLABS_INR = [
+    (400_000, 0.0), (800_000, 0.05), (1_200_000, 0.10), (1_600_000, 0.15),
+    (2_000_000, 0.20), (2_400_000, 0.25), (float("inf"), 0.30),
+]
+# Section 87A rebate (new regime): total taxable income up to this amount
+# owes ZERO NET TAX - not just the 0% slab up to Rs 4L, a full rebate on
+# whatever the slab table would otherwise compute. Marginal relief right
+# at this edge (a narrow band just above Rs 12L can still owe less than
+# the naive slab sum) is NOT implemented here - flagged as a
+# simplification, not silently smoothed over.
+INDIA_87A_REBATE_THRESHOLD_INR = 1_200_000
+
+
+def estimate_speculative_income_tax_inr(profit_inr: float) -> float:
+    """Automatic tax estimate on a speculative-business-income profit
+    figure (2026-09-07, explicit user instruction: "not an input like 30%
+    or something" - no manual rate; "fetch api data from kotak and
+    understand it to reach to actual tax" - compute it for real). Applies
+    India's actual New Regime progressive slabs (INDIA_NEW_REGIME_SLABS_INR)
+    plus the Section 87A full rebate below Rs 12L.
+
+    SIMPLIFICATION, stated plainly rather than hidden: Indian slabs are
+    progressive across TOTAL annual income from every source (salary,
+    other business income, etc.) - this project has no way to know that
+    and has no manual input for it either now, so it treats the given
+    profit_inr AS IF it were the sole/total annual income for the
+    marginal-rate lookup. That's the best fully-automatic estimate
+    possible without asking for income data; a real filing depends on
+    the full picture, and this stays a planning estimate, not tax advice.
+
+    Zero on a loss or zero profit - a speculative LOSS is never a
+    negative tax, it only carries forward against future speculative
+    gains (see today_realized_pnl's own docstring)."""
+    if profit_inr <= 0:
+        return 0.0
+    if profit_inr <= INDIA_87A_REBATE_THRESHOLD_INR:
+        return 0.0
+    tax = 0.0
+    lower = 0.0
+    for upper, rate in INDIA_NEW_REGIME_SLABS_INR:
+        if profit_inr <= lower:
+            break
+        tax += (min(profit_inr, upper) - lower) * rate
+        lower = upper
+    return round(tax, 2)
+
+
 def today_realized_pnl(conn, since_ts: float) -> float:
     """Realized P&L today across all auto-signal ('orb-*') trades, all symbols -
     this is the shared capital/risk pool the daily loss cap applies to.
@@ -1301,8 +1352,30 @@ def today_realized_pnl(conn, since_ts: float) -> float:
     reset point (runtime_settings key daily_loss_reset_epoch) if one was
     set later than the normal IST-midnight cutoff - see that key's own
     entry in RUNTIME_SETTINGS_META for the full reasoning (a "resume
-    trading" button next to the paper daily loss budget on trade-view)."""
+    trading" button next to the paper daily loss budget on trade-view).
+
+    2026-09-07 (second pass), explicit user instruction: "all data
+    remains in sync with kotak transaction details... unless i do
+    non-real money transaction." When real trading is active, NSE-equity
+    paper trades are EXCLUDED here and replaced by get_real_pnl_today_inr
+    (Kotak's own ground truth) instead - real trading only ever mirrors
+    NSE equity paper entries (stage 3 scope, see kotak_real_orders.py),
+    so those two figures represent the SAME underlying activity and must
+    not be double-counted. Paper trades on anything real trading doesn't
+    touch at all (MCX/options/indices - anything not ending '.NS') still
+    count via the paper book below - that IS the "non-real money
+    transaction" carve-out the instruction named: genuine paper-only
+    activity legitimately diverges and still needs its own risk
+    tracking, since nothing real is watching it. Falls back to paper-only
+    NSE-equity accounting (never silently drops it) if Kotak's real P&L
+    can't be fetched right now - this shared figure also drives paper-
+    only instruments that have nothing to do with a Kotak API hiccup."""
     since_ts = max(since_ts, get_runtime_setting(conn, "daily_loss_reset_epoch"))
+    real_trading_active = is_real_trading_enabled(conn)
+
+    def _real_covered(symbol: str) -> bool:
+        return real_trading_active and symbol.endswith(".NS")
+
     all_trades = conn.execute(
         "SELECT symbol, action, qty, price, fx_to_inr, ts FROM trades WHERE strategy LIKE ? ORDER BY id",
         (ORB_STRATEGY_PREFIX + "%",),
@@ -1323,10 +1396,18 @@ def today_realized_pnl(conn, since_ts: float) -> float:
         else:
             pnl = (price_inr - b["avg"]) * min(t["qty"], b["qty"])
             b["qty"] -= t["qty"]
-            if t["ts"] >= since_ts:
+            if t["ts"] >= since_ts and not _real_covered(t["symbol"]):
                 db_closed.append({"symbol": t["symbol"], "exit_time_utc": t["ts"], "pnl_inr": pnl})
-    merged = _merge_closed_trades(db_closed, _durable_trade_outcomes_since(since_ts))
-    return sum(t.get("pnl_inr", 0.0) for t in merged)
+    durable = [d for d in _durable_trade_outcomes_since(since_ts) if not _real_covered(d.get("symbol", ""))]
+    merged = _merge_closed_trades(db_closed, durable)
+    paper_total = sum(t.get("pnl_inr", 0.0) for t in merged)
+
+    if not real_trading_active:
+        return paper_total
+    real_pnl = get_real_pnl_today_inr(since_ts=since_ts)
+    if real_pnl is None:
+        return paper_total  # Kotak unreachable right now - never pretend zero real loss
+    return paper_total + real_pnl
 
 
 def deployed_notional(conn) -> float:
@@ -2872,7 +2953,7 @@ def _maybe_place_real_entry(conn, symbol: str):
     if real_pnl_today is None:
         _log_real_attempt(
             conn, symbol, "B", "skipped_real_pnl_unknown", kotak_trading_symbol=kotak_symbol,
-            price_est=ltp, detail=f"could not fetch real P&L from Kotak: {_real_pnl_cache['error']}",
+            price_est=ltp, detail=f"could not fetch real P&L from Kotak: {_real_trades_cache['error']}",
         )
         return
     if -real_pnl_today >= real_loss_cap:
@@ -3144,7 +3225,7 @@ def get_real_pnl_today():
     return {
         "real_pnl_today_inr": round(real_pnl_today, 2) if real_pnl_today is not None else None,
         "real_pnl_source": "kotak_positions_today" if real_pnl_today is not None else "unavailable",
-        "real_pnl_fetch_error": _real_pnl_cache["error"],
+        "real_pnl_fetch_error": _real_trades_cache["error"],
         "real_loss_cap_inr": real_loss_cap_inr,
         "real_loss_budget_remaining_inr": (
             round(max(0.0, real_loss_cap_inr - max(0.0, -real_pnl_today)), 2) if real_pnl_today is not None else None
@@ -3170,46 +3251,20 @@ def get_real_trades_today():
     account state or order IDs (those stay behind /kotak-neo/positions'
     own token gate). Same fully-squared-off filter as get_real_pnl_today_inr
     (flBuyQty == flSellQty, dated today) - an OPEN real position never
-    appears here, only completed round trips."""
-    try:
-        import kotak_neo
-        positions = kotak_neo.positions()
-    except Exception as e:
-        return {"error": str(e), "trades": []}
+    appears here, only completed round trips.
 
-    rows = positions.get("data") or [] if isinstance(positions, dict) else []
-    today_str = ist_now().strftime("%Y/%m/%d")
-    trades = []
-    for row in rows:
-        try:
-            if row.get("exSeg") != "nse_cm":
-                continue
-            fl_buy = float(row.get("flBuyQty", 0) or 0)
-            fl_sell = float(row.get("flSellQty", 0) or 0)
-            if fl_buy == 0 or fl_buy != fl_sell:
-                continue  # open position, not a closed trade
-            hs_up_tm = str(row.get("hsUpTm", ""))
-            if not hs_up_tm.startswith(today_str):
-                continue
-            buy_amt = float(row.get("buyAmt", 0) or 0)
-            sell_amt = float(row.get("sellAmt", 0) or 0)
-            qty = fl_buy
-            # hsUpTm is Kotak's own IST wall-clock string ("YYYY/MM/DD HH:MM:SS")
-            # - convert to a UTC epoch so the frontend's existing timeAgo()
-            # helper (which expects exit_time_utc, same as every paper trade
-            # row) works unmodified.
-            exit_dt_ist = dt.datetime.strptime(hs_up_tm, "%Y/%m/%d %H:%M:%S")
-            exit_time_utc = (exit_dt_ist - dt.timedelta(minutes=IST_OFFSET_MIN)).replace(tzinfo=dt.timezone.utc).timestamp()
-            trades.append({
-                "symbol": row.get("trdSym") or row.get("sym"), "exit_time_utc": exit_time_utc,
-                "entry_price_native": round(buy_amt / qty, 2) if qty else None,
-                "exit_price_native": round(sell_amt / qty, 2) if qty else None,
-                "qty": qty, "pnl_inr": round(sell_amt - buy_amt, 2),
-                "pnl_pct_of_capital": None, "exit_reason": "kotak_real_trade",
-                "rr_target": None, "rr_achieved": None, "strategy": "real (Kotak)",
-            })
-        except (TypeError, ValueError):
-            continue
+    2026-09-07 (second pass): now reads get_real_trades_today_list()'s
+    shared cache instead of its own separate positions() call - one
+    Kotak fetch serves this endpoint, get_real_pnl_today_inr, and the
+    account-wide daily-loss figure alike, instead of three."""
+    trades_raw = get_real_trades_today_list()
+    if trades_raw is None:
+        return {"error": _real_trades_cache["error"], "trades": []}
+    trades = [
+        {**t, "pnl_pct_of_capital": None, "exit_reason": "kotak_real_trade",
+         "rr_target": None, "rr_achieved": None, "strategy": "real (Kotak)"}
+        for t in trades_raw
+    ]
     trades.sort(key=lambda t: t["exit_time_utc"], reverse=True)
     return {"date_ist": ist_now().strftime("%Y-%m-%d"), "trades_count": len(trades), "trades": trades}
 
@@ -3246,7 +3301,7 @@ def get_real_trading_control(request: Request):
         "today_remaining_inr": round(daily_cap_inr - today_spent_inr, 2),
         "real_pnl_today_inr": round(real_pnl_today, 2) if real_pnl_today is not None else None,
         "real_pnl_source": "kotak_positions_today" if real_pnl_today is not None else "unavailable",
-        "real_pnl_fetch_error": _real_pnl_cache["error"],
+        "real_pnl_fetch_error": _real_trades_cache["error"],
         "real_loss_cap_inr": real_loss_cap_inr,
         "real_loss_budget_remaining_inr": (
             round(max(0.0, real_loss_cap_inr - max(0.0, -real_pnl_today)), 2) if real_pnl_today is not None else None
@@ -3614,17 +3669,21 @@ RUNTIME_SETTINGS_META = {
     ),
     "daily_loss_reset_epoch": (
         0.0, 0.0, 4102444800.0, False,
-        "Manual PAPER-only override (2026-09-07, explicit user request: a 'reset "
-        "button' next to the paper daily loss budget, 'to resume trading if i "
-        "want'): a unix timestamp. Any paper trade that closed BEFORE this moment "
-        "no longer counts toward today's loss cap, so a click sets this to right "
-        "now and immediately frees up the full budget again - PAPER trading only, "
-        "resumes on the very next scheduler tick. Deliberately does NOT touch the "
-        "real-money loss cap (real_pnl_today_inr/real_loss_budget_remaining_inr) - "
-        "a real loss already happened and can't be wished away; that gate has no "
-        "reset button, on purpose. Self-limiting: since this is always compared "
-        "against TODAY's own IST midnight via max(), a stale reset from a past day "
-        "has zero effect once the day rolls over - no expiry logic needed.",
+        "Manual 'resume trading' override (2026-09-07 button, extended "
+        "2026-09-07 second pass to the now-account-wide loss figure): a unix "
+        "timestamp. Any trade - paper OR real - that closed BEFORE this "
+        "moment no longer counts toward today's shared loss cap, so a click "
+        "sets this to right now and immediately frees up the full budget "
+        "again for the account-wide halt (today_realized_pnl/daily_summary), "
+        "resuming on the very next scheduler tick. Deliberately does NOT "
+        "touch _maybe_place_real_entry's OWN dedicated real-money loss gate "
+        "(always checks the FULL day's real P&L, since_ts=None, ignoring this "
+        "setting entirely) - a real loss already happened and can't be "
+        "wished away; that specific gate has no reset button, on purpose, "
+        "even though the shared display/halt figure now does. Self-limiting: "
+        "since this is always compared against TODAY's own IST midnight via "
+        "max(), a stale reset from a past day has zero effect once the day "
+        "rolls over - no expiry logic needed.",
     ),
 }
 
@@ -3767,54 +3826,105 @@ REAL_PNL_CACHE_TTL_SECONDS = 300  # 5 min - same reasoning as REAL_CAPITAL_CACHE
 # (avoid hammering Kotak's login/positions call every tick), just shorter
 # since P&L changes faster than available capital and this gates every
 # new real entry, not just position sizing.
-_real_pnl_cache = {"value": None, "fetched_at": 0.0, "error": None, "day": None}
+#
+# 2026-09-07 (second pass): refactored from a single cached total into a
+# cached LIST of individual closed-trade dicts - explicit user instruction
+# ("all data remains in sync with kotak transaction details... these two
+# must match") needs the account-wide daily-loss figure (today_realized_pnl/
+# daily_summary) to read REAL P&L too, but respecting the PAPER-only
+# manual reset point (daily_loss_reset_epoch - see that key's own
+# RUNTIME_SETTINGS_META entry) for THAT figure specifically, while
+# _maybe_place_real_entry's own real-money gate must NOT be resettable
+# (a real loss can't be wished away). Caching the raw trade list lets both
+# read paths filter by their own since_ts without hitting Kotak twice, and
+# /real-trades-today can reuse the exact same cache instead of its own
+# separate positions() call.
+_real_trades_cache = {"value": None, "fetched_at": 0.0, "error": None, "day": None}
 
 
-def _refresh_real_pnl_cache():
+def _refresh_real_trades_cache():
     """Never raises - stores the error string instead, same pattern as
     _refresh_real_capital_cache, so a transient Kotak failure can't crash
-    a scheduler tick. See the module comment above _real_pnl_cache for the
-    full reasoning and the formula's live verification."""
+    a scheduler tick. See the module comment above _real_trades_cache for
+    the full reasoning; this formula was manually verified against the
+    live account 2026-09-07 - its total matched the user's own reported
+    real loss (-Rs41.60) exactly."""
     try:
         import kotak_neo
         positions = kotak_neo.positions()
         rows = positions.get("data") or [] if isinstance(positions, dict) else []
         today_str = ist_now().strftime("%Y/%m/%d")  # Kotak's own hsUpTm format
-        total = 0.0
+        trades = []
         for row in rows:
             try:
+                if row.get("exSeg") != "nse_cm":
+                    continue
                 fl_buy = float(row.get("flBuyQty", 0) or 0)
                 fl_sell = float(row.get("flSellQty", 0) or 0)
                 if fl_buy == 0 or fl_buy != fl_sell:
                     continue  # not fully squared off - open/unrealized, not today's realized P&L
-                if not str(row.get("hsUpTm", "")).startswith(today_str):
+                hs_up_tm = str(row.get("hsUpTm", ""))
+                if not hs_up_tm.startswith(today_str):
                     continue
-                total += float(row.get("sellAmt", 0) or 0) - float(row.get("buyAmt", 0) or 0)
+                buy_amt = float(row.get("buyAmt", 0) or 0)
+                sell_amt = float(row.get("sellAmt", 0) or 0)
+                qty = fl_buy
+                # hsUpTm is Kotak's own IST wall-clock string - convert to
+                # a UTC epoch so since_ts filtering (IST-midnight-based,
+                # like every other "today" cutoff in this file) compares
+                # correctly.
+                exit_dt_ist = dt.datetime.strptime(hs_up_tm, "%Y/%m/%d %H:%M:%S")
+                exit_time_utc = (exit_dt_ist - dt.timedelta(minutes=IST_OFFSET_MIN)).replace(
+                    tzinfo=dt.timezone.utc).timestamp()
+                trades.append({
+                    "symbol": row.get("trdSym") or row.get("sym"), "exit_time_utc": exit_time_utc,
+                    "entry_price_native": round(buy_amt / qty, 2) if qty else None,
+                    "exit_price_native": round(sell_amt / qty, 2) if qty else None,
+                    "qty": qty, "pnl_inr": round(sell_amt - buy_amt, 2),
+                })
             except (TypeError, ValueError):
                 continue
-        _real_pnl_cache["value"] = total
-        _real_pnl_cache["fetched_at"] = time.time()
-        _real_pnl_cache["error"] = None
-        _real_pnl_cache["day"] = ist_now().strftime("%Y-%m-%d")
+        _real_trades_cache["value"] = trades
+        _real_trades_cache["fetched_at"] = time.time()
+        _real_trades_cache["error"] = None
+        _real_trades_cache["day"] = ist_now().strftime("%Y-%m-%d")
     except Exception as e:
-        _real_pnl_cache["error"] = str(e)
+        _real_trades_cache["error"] = str(e)
 
 
-def get_real_pnl_today_inr():
+def get_real_trades_today_list():
+    """Every closed real trade today, Kotak's own ground truth (list of
+    dicts - symbol/exit_time_utc/entry_price_native/exit_price_native/
+    qty/pnl_inr). None if never successfully fetched. Force-refreshes on
+    an IST day rollover so yesterday's list is never carried into today
+    by an unlucky cache hit, same discipline as every other "today"
+    figure in this file."""
+    today_str = ist_now().strftime("%Y-%m-%d")
+    age = time.time() - _real_trades_cache["fetched_at"]
+    if _real_trades_cache["value"] is None or age > REAL_PNL_CACHE_TTL_SECONDS or _real_trades_cache["day"] != today_str:
+        _refresh_real_trades_cache()
+    return _real_trades_cache["value"]
+
+
+def get_real_pnl_today_inr(since_ts: float | None = None):
     """TODAY's real realized P&L across the WHOLE Kotak account - bot-
     placed and manually-placed trades alike, not just what this app's own
     real_trades table happens to know about. Returns None if never
-    successfully fetched - callers gating a new real entry (see
-    _maybe_place_real_entry) MUST treat None as "can't verify, don't
-    trade," not as "assume zero loss." Force-refreshes on an IST day
-    rollover so yesterday's total is never carried into today by an
-    unlucky cache hit, same discipline as every other "today" figure in
-    this file (today_realized_pnl, _real_today_spent_inr)."""
-    today_str = ist_now().strftime("%Y-%m-%d")
-    age = time.time() - _real_pnl_cache["fetched_at"]
-    if _real_pnl_cache["value"] is None or age > REAL_PNL_CACHE_TTL_SECONDS or _real_pnl_cache["day"] != today_str:
-        _refresh_real_pnl_cache()
-    return _real_pnl_cache["value"]
+    successfully fetched - callers gating a new REAL entry (see
+    _maybe_place_real_entry) MUST call this with since_ts=None (the
+    default) and treat None as "can't verify, don't trade" - that gate is
+    deliberately never resettable, a real loss can't be wished away.
+
+    since_ts, if given, filters to trades at/after that UTC epoch - used
+    ONLY by the account-wide daily-loss display/halt (today_realized_pnl/
+    daily_summary), which DOES respect the PAPER-only manual reset button
+    (daily_loss_reset_epoch) now that it reads real P&L too."""
+    trades = get_real_trades_today_list()
+    if trades is None:
+        return None
+    if since_ts is not None:
+        trades = [t for t in trades if t["exit_time_utc"] >= since_ts]
+    return sum(t["pnl_inr"] for t in trades)
 
 
 _scheduler_last_tick_ts = 0.0
@@ -4337,28 +4447,30 @@ def trade_history(days: int = 1):
 
 
 @app.get("/daily-summary")
-def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0, tax_slab_pct: float = 30.0):
+def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
     """Aggregated view of today's auto-signal paper trading across all symbols:
     realized P&L (Rs and % of capital), win rate, risk-reward achieved per
     trade, remaining daily-loss budget, and any still-open positions.
 
-    tax_slab_pct (2026-09-07, explicit user request): an ESTIMATE of tax
-    owed on today's realized profit, not a filed/authoritative figure.
-    Same-day equity buy+sell (which is what this system's strategies do -
-    see squareoff_min) is treated by Indian tax law as speculative
-    business income (Income Tax Act s.43(5)), taxed at the trader's own
-    slab rate (5-30%+ surcharge/cess), NOT a flat capital-gains rate -
-    confirmed via web search 2026-09-07 (Groww/ICICI Direct/multiple CA-
-    authored guides agree on this classification for FY2025-26/AY2026-27).
-    This project has no way to know your actual slab (depends on your
-    total income across all sources) - tax_slab_pct defaults to 30% (the
-    top slab) as the conservative "don't understate what you may owe"
-    default; pass your own rate as a query param for an accurate figure.
-    Tax applies ONLY to a net positive realized_pnl for the day - a
-    speculative LOSS is never a negative tax; it can only be carried
-    forward and set off against future speculative gains (up to 4 years),
-    never against salary/other capital gains. This is an estimate for
-    planning, not tax advice - confirm your actual liability with a CA."""
+    tax_on_realized_inr (2026-09-07, explicit user request - "fetch api
+    data from kotak and understand it to reach to actual tax," "not an
+    input like 30% or something"): an ESTIMATE of tax owed on today's
+    account-wide realized profit, computed automatically from India's
+    real progressive tax slabs - no manual rate. Same-day equity buy+sell
+    (what this system's strategies do, and what a same-day CNC round trip
+    on Kotak also is - the shares never actually reach the demat account
+    either way) is speculative business income under the Income Tax Act's
+    own s.43(5) text (confirmed via web search 2026-09-07 against the
+    Act's definition of "speculative transaction" plus multiple CA
+    guides), taxed at the trader's slab rate, NOT a flat capital-gains
+    rate. See estimate_speculative_income_tax_inr's own docstring for the
+    slab table and the "treats today's profit as your only income"
+    simplification this project has no way around without knowing your
+    other income. Tax applies ONLY to a net positive day - a speculative
+    LOSS is never a negative tax; it can only be carried forward and set
+    off against future speculative gains (up to 4 years), never against
+    salary/other capital gains. This is an estimate for planning, not tax
+    advice - confirm your actual liability with a CA."""
     now_ist = ist_now()
     today_str = now_ist.strftime("%Y-%m-%d")
     since_ts = ist_midnight_epoch(now_ist)
@@ -4383,6 +4495,14 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0, tax_slab
         # other than NSE, with its own local "day", is in the mix).
         open_state = conn.execute("SELECT * FROM signal_state WHERE status = 'long'").fetchall()
         open_option_state = conn.execute("SELECT * FROM option_state").fetchall()
+        # The ACCOUNT-WIDE risk figure (2026-09-07, second pass) - reuses
+        # today_realized_pnl directly (single source of truth, so this
+        # endpoint's own budget/halt numbers can never drift from the
+        # scheduler's own halt logic again) rather than re-deriving it.
+        # closed_trades/win_rate_pct below stay PAPER-only (the strategy's
+        # own evaluation log) - this separate figure is what actually
+        # drives daily_loss_cap/budget_remaining/halted_for_day/tax.
+        account_wide_realized = today_realized_pnl(conn, since_ts)
 
     book: dict[str, dict] = {}
     realized = 0.0
@@ -4492,7 +4612,7 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0, tax_slab
         })
 
     daily_loss_cap = capital * daily_risk_pct / 100
-    loss_so_far = max(0.0, -realized)
+    loss_so_far = max(0.0, -account_wide_realized)
     budget_remaining = max(0.0, daily_loss_cap - loss_so_far)
     wins = [c for c in closed_trades if c["pnl_inr"] > 0]
 
@@ -4503,17 +4623,24 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0, tax_slab
         "capital_available_inr": round(capital - capital_deployed_inr, 2),
         "daily_loss_cap": daily_loss_cap,
         "daily_loss_cap_pct": daily_risk_pct,
-        "realized_pnl": round(realized, 2),
-        "realized_pnl_pct": round(100 * realized / capital, 3),
+        # Account-wide (real Kotak P&L for NSE equities when real trading
+        # is active + paper P&L for whatever it doesn't cover - see
+        # today_realized_pnl's own docstring), NOT the paper-only figure
+        # closed_trades below sums to. paper_realized_pnl is kept alongside
+        # for anyone who wants the pure-strategy number.
+        "realized_pnl": round(account_wide_realized, 2),
+        "realized_pnl_pct": round(100 * account_wide_realized / capital, 3),
+        "paper_realized_pnl": round(realized, 2),
         "budget_remaining": round(budget_remaining, 2),
         "halted_for_day": budget_remaining <= 0,
         "closed_trades_count": len(closed_trades),
         "win_rate_pct": round(100 * len(wins) / len(closed_trades), 1) if closed_trades else None,
-        "tax_slab_pct": tax_slab_pct,
-        # ESTIMATE only, on net positive realized profit for the day - see
-        # this function's own docstring for the speculative-business-
-        # income reasoning and the "not tax advice" caveat.
-        "tax_on_realized_inr": round(max(0.0, realized) * tax_slab_pct / 100, 2),
+        # ESTIMATE only, on net positive account-wide profit for the day -
+        # see estimate_speculative_income_tax_inr's own docstring for the
+        # speculative-business-income reasoning and the "not tax advice"
+        # caveat. Automatic (India's real progressive slabs), no manual
+        # rate input - explicit user instruction 2026-09-07.
+        "tax_on_realized_inr": estimate_speculative_income_tax_inr(account_wide_realized),
         "open_positions": open_positions,
         "closed_trades": closed_trades,
     }
