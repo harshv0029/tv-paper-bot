@@ -57,6 +57,27 @@ _feed_status = {
 RESTART_BACKOFF_MIN_SECONDS = 60
 RESTART_BACKOFF_MAX_SECONDS = 900  # 15 min ceiling
 
+# Cached resolved tokens - added 2026-09-07 after a second Render OOM
+# crash (Render's own email alert) with the earlier fetch_ohlc leak
+# already fixed. Root cause here: resolve_tokens() downloads and parses
+# Kotak's ENTIRE nse_cm scrip master (tens of thousands of rows, a large
+# CSV) via search_scrip - and, per its own docstring, that full download
+# happens regardless of how many symbols are actually being resolved, so
+# this was never proportional to watchlist size. The problem is WHEN it
+# ran: every single time run_feed's outer loop retried after ANY failure
+# (min 60s backoff, uncapped attempts) - a long-lived free-tier websocket
+# dropping periodically means this large transient parse repeats
+# indefinitely, and Python/glibc doesn't reliably return that memory to
+# the OS between parses, so RSS ratchets upward over many reconnects
+# rather than settling back down. Instrument tokens for a given symbol
+# don't change intraday, so there was never a need to re-resolve them on
+# every reconnect - cached here with a 24h TTL (resolved once per day,
+# reused across however many reconnects happen in between); a fresh
+# login is still required every reconnect (session tokens DO expire),
+# just not a fresh scrip-master download.
+_TOKEN_MAP_CACHE_TTL_SECONDS = 24 * 60 * 60
+_token_map_cache = {"value": None, "resolved_at": 0.0}
+
 
 def get_live_ticks() -> dict:
     """A snapshot copy - callers never get a reference into the live dict
@@ -226,7 +247,13 @@ async def run_feed(watchlist_symbols: list):
     while True:
         try:
             client = kotak_neo.login()
-            token_map = resolve_tokens(client, watchlist_symbols)
+            cache_age = time.time() - _token_map_cache["resolved_at"]
+            if _token_map_cache["value"] is None or cache_age > _TOKEN_MAP_CACHE_TTL_SECONDS:
+                token_map = resolve_tokens(client, watchlist_symbols)
+                _token_map_cache["value"] = token_map
+                _token_map_cache["resolved_at"] = time.time()
+            else:
+                token_map = _token_map_cache["value"]
             _feed_status["subscribed_symbols"] = sorted(token_map.keys())
             _feed_status["unresolved_symbols"] = sorted(
                 s for s in watchlist_symbols
