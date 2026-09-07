@@ -152,6 +152,39 @@ def init_db():
             )
             """
         )
+        # Long Straddle - NEW strategy added 2026-09-07, explicit user
+        # instruction ("there are strategies where put and call are
+        # together less than half of total cost too" - docs/
+        # STRATEGY_LOG.md row #3, "Expect big move, direction unknown
+        # (vol expansion)"). Genuinely separate from option_state above:
+        # that table (and the whole US-underlier options engine it
+        # belonged to) has been dormant since OPTIONS_ELIGIBLE_SYMBOLS
+        # was emptied 2026-09-03. This is a fresh, NSE-real-chain-backed
+        # (nse_fo_chain.py), NOT YET BACKTESTED strategy - paper-tracked
+        # here always; real order mirroring is a SEPARATE opt-in (see
+        # is_real_fo_trading_enabled + the real_straddle_enabled runtime
+        # setting, both default OFF) so real capital is never put behind
+        # an unproven signal without the user's own deliberate switch.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS nse_straddle_state (
+                underlying TEXT PRIMARY KEY,
+                day TEXT NOT NULL,
+                expiry TEXT NOT NULL,
+                strike REAL NOT NULL,
+                lot_size INTEGER NOT NULL,
+                qty INTEGER NOT NULL,
+                call_entry_premium REAL NOT NULL,
+                put_entry_premium REAL NOT NULL,
+                call_kotak_symbol TEXT,
+                put_kotak_symbol TEXT,
+                call_instrument_token TEXT,
+                put_instrument_token TEXT,
+                entry_ts REAL NOT NULL,
+                fx_to_inr REAL NOT NULL DEFAULT 1.0
+            )
+            """
+        )
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS trading_control (
@@ -257,6 +290,56 @@ def init_db():
                 price_est REAL,
                 notional_inr REAL,
                 status TEXT NOT NULL,             -- 'confirmed' | 'failed' | 'skipped_...'
+                order_id TEXT,
+                detail TEXT,
+                raw_response TEXT
+            )
+            """
+        )
+        # Real F&O positions/audit log - added 2026-09-07, explicit user
+        # instruction ("i can update the capital any time. so build it
+        # right now" + "there are strategies where put and call are
+        # together less than half of total cost too") - SEPARATE from
+        # real_positions/real_trades (equity, CNC, qty=1-share) on
+        # purpose: F&O is lot-sized, margin/premium-based, and gated by
+        # its OWN switch (see is_real_fo_trading_enabled) - enabling
+        # equity real trading never silently enables this too. leg_key
+        # is e.g. "NIFTY:CALL" (single-leg directional mirror) or
+        # "NIFTY:STRADDLE-CE"/"NIFTY:STRADDLE-PE" (long straddle, two
+        # rows, opened/closed together - see _straddle_signal_core).
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS real_fo_positions (
+                leg_key TEXT PRIMARY KEY,
+                underlying TEXT NOT NULL,
+                strategy_tag TEXT NOT NULL,
+                kotak_trading_symbol TEXT NOT NULL,
+                instrument_token TEXT NOT NULL,
+                exchange_segment TEXT NOT NULL,
+                expiry TEXT,
+                strike REAL,
+                lot_size INTEGER,
+                qty INTEGER NOT NULL,
+                entry_price REAL NOT NULL,
+                entry_order_id TEXT,
+                opened_at REAL NOT NULL,
+                day TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS real_fo_trades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts REAL NOT NULL,
+                day TEXT NOT NULL,
+                leg_key TEXT NOT NULL,
+                kotak_trading_symbol TEXT,
+                side TEXT NOT NULL,               -- 'B' or 'S'
+                qty INTEGER,
+                price_est REAL,
+                notional_inr REAL,                -- premium * qty (long options) - the real capital at risk
+                status TEXT NOT NULL,              -- 'confirmed' | 'failed' | 'skipped_...'
                 order_id TEXT,
                 detail TEXT,
                 raw_response TEXT
@@ -2101,6 +2184,41 @@ def options_signal(
     )
 
 
+VOL_CONTRACTION_RATIO = 0.5  # today's ORB range < this * recent-days' average = contraction signal
+
+
+def _orb_range_contraction_signal(df: pd.DataFrame, today_str: str, open_min: int, orb_minutes: int,
+                                   today_orb_range: float) -> bool | None:
+    """True if today's opening-range (High-Low over the first orb_minutes
+    after open_min) is unusually narrow vs the same window on recent
+    prior days already present in `df` (the same 5d fetch _auto_signal_core
+    itself made - no extra network cost) - a volatility-contraction/squeeze
+    proxy for the Long Straddle's entry signal (docs/STRATEGY_LOG.md row
+    #3, added 2026-09-07, NOT YET BACKTESTED - see that row's own note).
+    None when there isn't enough prior-day data in the window to compare
+    against (never invents a signal from too little data) or the day's
+    own range is invalid."""
+    if today_orb_range is None or today_orb_range <= 0:
+        return None
+    prior_days = sorted(d for d in df["date_local"].unique() if d != today_str)
+    if len(prior_days) < 2:
+        return None
+    prior_ranges = []
+    for d in prior_days:
+        day_df = df[df["date_local"] == d]
+        mins = day_df["ts_local"].dt.hour * 60 + day_df["ts_local"].dt.minute
+        orb_df = day_df[mins < open_min + orb_minutes]
+        if orb_df.empty:
+            continue
+        prior_ranges.append(float(orb_df["High"].max()) - float(orb_df["Low"].min()))
+    if len(prior_ranges) < 2:
+        return None
+    avg_prior_range = sum(prior_ranges) / len(prior_ranges)
+    if avg_prior_range <= 0:
+        return None
+    return today_orb_range < VOL_CONTRACTION_RATIO * avg_prior_range
+
+
 def _auto_signal_core(
     symbol: str,
     capital: float = 400000,
@@ -2255,6 +2373,7 @@ def _auto_signal_core(
 
         today_df["mins"] = today_df["ts_local"].dt.hour * 60 + today_df["ts_local"].dt.minute
 
+        vol_contraction_signal = None
         if strategy == "orb_breakout":
             orb_cutoff = open_min + orb_minutes
             orb_df = today_df[today_df["mins"] < orb_cutoff]
@@ -2265,6 +2384,20 @@ def _auto_signal_core(
                 }
             orb_high = float(orb_df["High"].max())
             orb_low = float(orb_df["Low"].min())
+            # Volatility-contraction signal (2026-09-07, explicit user
+            # instruction: "there are strategies where put and call are
+            # together less than half of total cost too" -> Long Straddle,
+            # docs/STRATEGY_LOG.md row #3, "Expect big move, direction
+            # unknown (vol expansion)"). Computed here from `df` this call
+            # already fetched (no extra network cost) purely so
+            # _straddle_signal_core has it without re-fetching OHLC itself.
+            # NOT YET BACKTESTED - see STRATEGY_LOG's own caution; a simple,
+            # documented proxy (today's opening range unusually narrow vs
+            # the same window on recent prior days already in this 5d
+            # dataset), not a claim of evidenced edge.
+            vol_contraction_signal = _orb_range_contraction_signal(
+                df, today_str, open_min, orb_minutes, orb_high - orb_low,
+            )
         else:
             # bullish_engulfing needs no opening range - just enough candles
             # (across days, same as its backtest) to compare two consecutive
@@ -2297,6 +2430,7 @@ def _auto_signal_core(
             "realized_today_pct": round(100 * realized_today / capital, 3),
             "budget_remaining": round(remaining_budget, 2),
             "halted_for_day": halted, "action_taken": "none",
+            "is_squareoff_time": is_squareoff_time, "vol_contraction_signal": vol_contraction_signal,
         }
 
         # ---- manage an existing open position ----
@@ -2922,6 +3056,46 @@ def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty
     conn.commit()
 
 
+def is_real_fo_trading_enabled() -> bool:
+    """SEPARATE gate from is_real_trading_enabled (equity) - explicit
+    user instruction 2026-09-07 ("i can update the capital any time. so
+    build it right now"). Same single-env-var pattern is_real_trading_
+    enabled itself settled on 2026-09-04 (a DB-row second switch was
+    tried and found to be an invisible, un-manageable gate - see that
+    function's own docstring) - REAL_FO_TRADING_ENABLED is a Render env
+    var set manually there, independent of REAL_TRADING_ENABLED, so
+    turning on equity real trading never silently turns on F&O too
+    (much larger notional/margin per lot)."""
+    return os.environ.get("REAL_FO_TRADING_ENABLED") == "YES"
+
+
+def _real_fo_today_spent_inr(conn) -> float:
+    """Sum of today's (IST calendar day) CONFIRMED real F&O buy notional
+    (premium * qty for a bought option) - what real_fo_daily_cap_inr
+    actually caps. Mirrors _real_today_spent_inr's own reasoning exactly,
+    sourced from real_fo_trades (this codebase's own record, populated at
+    order-attempt time), not from Kotak's own trade/order reports."""
+    today = ist_now().strftime("%Y-%m-%d")
+    row = conn.execute(
+        "SELECT COALESCE(SUM(notional_inr), 0) AS s FROM real_fo_trades "
+        "WHERE day = ? AND side = 'B' AND status = 'confirmed'",
+        (today,),
+    ).fetchone()
+    return float(row["s"] or 0.0)
+
+
+def _log_real_fo_attempt(conn, leg_key, side, status, kotak_trading_symbol=None, qty=None,
+                          price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None):
+    conn.execute(
+        "INSERT INTO real_fo_trades (ts, day, leg_key, kotak_trading_symbol, side, qty, price_est, "
+        "notional_inr, status, order_id, detail, raw_response) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (time.time(), ist_now().strftime("%Y-%m-%d"), leg_key, kotak_trading_symbol, side, qty,
+         price_est, notional_inr, status, order_id, detail,
+         json.dumps(raw_response, default=str) if raw_response is not None else None),
+    )
+    conn.commit()
+
+
 def _maybe_place_real_entry(conn, symbol: str):
     """Mirrors a paper "entered_long" as a REAL buy, ONLY when every gate
     holds. Called from _scheduler_loop right after _auto_signal_core
@@ -3147,6 +3321,339 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         conn.commit()
         print(f"[REAL TRADE] trailing SL-M replacement FAILED for {real_row['kotak_trading_symbol']}: "
               f"{sl_result.get('detail')} - position open at Kotak with NO resting stop, will retry next tick")
+
+
+# --- Real F&O trading (2026-09-07) -------------------------------------------
+# Explicit user instruction: "i can update the capital any time. so build it
+# right now" (real F&O order placement) + "there are strategies where put and
+# call are together less than half of total cost too" (Long Straddle - see
+# nse_straddle_state's own table comment). Two strategies wired here:
+#   1. Single-leg real CALL, mirroring the ALREADY-EVIDENCED bullish ORB-
+#      breakout signal WATCHLIST's own comment cites for NIFTY/BANKNIFTY
+#      ("real 60-day backtest evidence behind this exact strategy") - same
+#      "mirror a paper decision, invent nothing new" principle as equity
+#      real trading. No symmetric real PUT exists - the equity engine is
+#      long-only, so there is no evidenced bearish entry to mirror.
+#   2. Long Straddle - a genuinely NEW, NOT YET BACKTESTED strategy, paper-
+#      tracked unconditionally, real-mirrored only behind its own explicit
+#      opt-in (real_straddle_enabled runtime setting, default OFF).
+# Both share is_real_fo_trading_enabled()/real_fo_daily_cap_inr as their
+# gate/cap - SEPARATE from equity's real_trading_control/real_daily_cap_inr.
+#
+# MCX entries (2026-09-07, explicit user instruction "also mcx") map to
+# the MINI contract's pSymbolName (GOLDM/SILVERM/CRUDEOILM), not the
+# full-size one (GOLD/SILVER/CRUDEOIL) WATCHLIST's own comment/
+# kotak_live_feed.py use for price-proxy futures - the full-size contract
+# has no options chain at all (confirmed live 2026-09-07, see
+# nse_fo_chain.py's docstring). Mini is also the right size for a small
+# account regardless.
+_INDEX_TO_FO_UNDERLYING = {
+    "^NSEI": "NIFTY", "^NSEBANK": "BANKNIFTY",
+    "GC=F": "GOLDM", "SI=F": "SILVERM", "CL=F": "CRUDEOILM",
+}
+
+
+def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float):
+    """Mirrors a paper long (index OR MCX commodity, entered_long) as a
+    REAL long call on the matching F&O underlying, sized at exactly 1 lot
+    (smallest tradeable unit - same "qty=1" first-version precedent
+    kotak_real_orders.py set for equity). Never raises."""
+    if not is_real_fo_trading_enabled():
+        return
+    fo_underlying = _INDEX_TO_FO_UNDERLYING.get(symbol)
+    if fo_underlying is None:
+        return
+    leg_key = f"{fo_underlying}:CALL"
+    if conn.execute("SELECT 1 FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone():
+        _log_real_fo_attempt(conn, leg_key, "B", "skipped_already_open")
+        return
+
+    import nse_fo_chain
+    contract, err = nse_fo_chain.select_nse_option_contract(fo_underlying, spot, "call")
+    if contract is None:
+        _log_real_fo_attempt(conn, leg_key, "B", "skipped_no_contract", detail=err)
+        return
+
+    qty = contract["lot_size"]
+    notional_inr = qty * contract["premium"]  # every F&O underlying wired here is INR-native, no fx conversion
+    remaining = get_runtime_setting(conn, "real_fo_daily_cap_inr") - _real_fo_today_spent_inr(conn)
+    if notional_inr > remaining:
+        _log_real_fo_attempt(
+            conn, leg_key, "B", "skipped_over_daily_cap", kotak_trading_symbol=contract["kotak_trading_symbol"],
+            price_est=contract["premium"], qty=qty,
+            detail=f"1 lot = Rs{notional_inr:.2f}, remaining budget Rs{remaining:.2f}",
+        )
+        return
+
+    import kotak_real_fo_orders
+    margin_check = kotak_real_fo_orders.check_margin_affordable(
+        exchange_segment=contract["exchange_segment"], instrument_token=contract["instrument_token"],
+        transaction_type="B", quantity=qty,
+    )
+    if not margin_check["ok"]:
+        _log_real_fo_attempt(
+            conn, leg_key, "B", "skipped_margin_unaffordable", kotak_trading_symbol=contract["kotak_trading_symbol"],
+            price_est=contract["premium"], qty=qty, detail=margin_check["detail"],
+            raw_response=margin_check.get("raw_response"),
+        )
+        return
+
+    result = kotak_real_fo_orders.place_real_fo_entry(
+        contract["kotak_trading_symbol"], contract["exchange_segment"], qty,
+    )
+    if result.get("ok"):
+        conn.execute(
+            "INSERT INTO real_fo_positions (leg_key, underlying, strategy_tag, kotak_trading_symbol, "
+            "instrument_token, exchange_segment, expiry, strike, lot_size, qty, entry_price, entry_order_id, "
+            "opened_at, day) VALUES (?, ?, 'single_leg_call', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (leg_key, fo_underlying, contract["kotak_trading_symbol"], contract["instrument_token"],
+             contract["exchange_segment"], contract["expiry"], contract["strike"], contract["lot_size"], qty,
+             contract["premium"], result["order_id"], time.time(), ist_now().strftime("%Y-%m-%d")),
+        )
+        _log_real_fo_attempt(
+            conn, leg_key, "B", "confirmed", kotak_trading_symbol=contract["kotak_trading_symbol"],
+            qty=qty, price_est=contract["premium"], notional_inr=notional_inr,
+            order_id=result["order_id"], raw_response=result.get("raw_response"),
+        )
+        print(f"[REAL F&O] BUY CALL {qty} {contract['kotak_trading_symbol']} (order {result['order_id']}) "
+              f"~Rs{contract['premium']:.2f}")
+    else:
+        _log_real_fo_attempt(
+            conn, leg_key, "B", "failed", kotak_trading_symbol=contract["kotak_trading_symbol"],
+            qty=qty, price_est=contract["premium"], detail=result.get("detail"), raw_response=result.get("raw_response"),
+        )
+        print(f"[REAL F&O] BUY CALL FAILED {contract['kotak_trading_symbol']}: {result.get('detail')}")
+
+
+def _maybe_place_real_fo_call_exit(conn, symbol: str):
+    """Closes the real call leg _maybe_place_real_fo_call_entry opened,
+    when the SAME underlying's paper index position exits (any reason).
+    No gate of its own - same reasoning as _maybe_place_real_exit:
+    closing an already-open position must never be blocked."""
+    fo_underlying = _INDEX_TO_FO_UNDERLYING.get(symbol)
+    if fo_underlying is None:
+        return
+    leg_key = f"{fo_underlying}:CALL"
+    row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone()
+    if not row:
+        return
+
+    import kotak_real_fo_orders
+    result = kotak_real_fo_orders.place_real_fo_exit(row["kotak_trading_symbol"], row["exchange_segment"], row["qty"])
+    if result.get("ok"):
+        conn.execute("DELETE FROM real_fo_positions WHERE leg_key = ?", (leg_key,))
+        _log_real_fo_attempt(
+            conn, leg_key, "S", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            qty=row["qty"], order_id=result["order_id"], raw_response=result.get("raw_response"),
+        )
+        print(f"[REAL F&O] SELL CALL {row['qty']} {row['kotak_trading_symbol']} (order {result['order_id']})")
+    else:
+        _log_real_fo_attempt(
+            conn, leg_key, "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            qty=row["qty"], detail=result.get("detail"), raw_response=result.get("raw_response"),
+        )
+        print(f"[REAL F&O] SELL CALL FAILED {row['kotak_trading_symbol']}: {result.get('detail')} "
+              f"- POSITION STILL OPEN, NEEDS ATTENTION")
+
+
+STRADDLE_STOP_PCT = 40.0    # combined-premium stop, % below entry combined premium
+STRADDLE_TARGET_RR = 1.5    # combined-premium target, multiple of the stop distance
+
+
+def _close_real_straddle_legs(conn, fo_underlying: str):
+    """Closes both real straddle legs (whichever are actually open - a
+    failed entry earlier may have left only one). No gate - closing must
+    never be blocked, same principle as every other real-money exit."""
+    import kotak_real_fo_orders
+    for right in ("CE", "PE"):
+        leg_key = f"{fo_underlying}:STRADDLE-{right}"
+        row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone()
+        if not row:
+            continue
+        result = kotak_real_fo_orders.place_real_fo_exit(row["kotak_trading_symbol"], row["exchange_segment"], row["qty"])
+        if result.get("ok"):
+            conn.execute("DELETE FROM real_fo_positions WHERE leg_key = ?", (leg_key,))
+            _log_real_fo_attempt(
+                conn, leg_key, "S", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                qty=row["qty"], order_id=result["order_id"], raw_response=result.get("raw_response"),
+            )
+            print(f"[REAL F&O] SELL STRADDLE-{right} {row['qty']} {row['kotak_trading_symbol']} (order {result['order_id']})")
+        else:
+            _log_real_fo_attempt(
+                conn, leg_key, "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                qty=row["qty"], detail=result.get("detail"), raw_response=result.get("raw_response"),
+            )
+            print(f"[REAL F&O] SELL STRADDLE-{right} FAILED {row['kotak_trading_symbol']}: {result.get('detail')} "
+                  f"- POSITION STILL OPEN, NEEDS ATTENTION")
+
+
+def _straddle_signal_core(conn, fo_underlying: str, vol_signal, halted: bool, is_squareoff_time: bool, spot):
+    """Long Straddle (docs/STRATEGY_LOG.md row #3) - NOT YET BACKTESTED.
+    Paper-tracks unconditionally (nse_straddle_state); real order
+    mirroring only when is_real_fo_trading_enabled() AND the
+    real_straddle_enabled runtime setting are BOTH on. Called every
+    scheduler tick for NIFTY/BANKNIFTY, independent of the directional
+    single-leg call mirror above - manages any open straddle first (never
+    also opens a new one the same tick), else checks for a fresh entry."""
+    import nse_fo_chain
+    today_str = ist_now().strftime("%Y-%m-%d")
+    row = conn.execute("SELECT * FROM nse_straddle_state WHERE underlying = ?", (fo_underlying,)).fetchone()
+
+    if row:
+        call_c, _ = nse_fo_chain.select_nse_option_contract(fo_underlying, spot, "call") if spot else (None, None)
+        put_c, _ = nse_fo_chain.select_nse_option_contract(fo_underlying, spot, "put") if spot else (None, None)
+        # Only trust a requote when it's the SAME contract already held -
+        # spot moving far enough can shift the "ATM" search to a different
+        # strike; mark-to-market against the wrong contract would be worse
+        # than falling back to the flat entry premium (never guessed).
+        call_premium = call_c["premium"] if call_c and call_c["strike"] == row["strike"] else None
+        put_premium = put_c["premium"] if put_c and put_c["strike"] == row["strike"] else None
+        combined_now = (call_premium + put_premium) if (call_premium is not None and put_premium is not None) else None
+        combined_entry = row["call_entry_premium"] + row["put_entry_premium"]
+
+        dte_left = (dt.datetime.strptime(row["expiry"], "%Y-%m-%d") - dt.datetime.utcnow()).days
+        exit_reason = None
+        if halted:
+            exit_reason = "daily_loss_cap_hit"
+        elif dte_left <= 0:
+            exit_reason = "expiry_reached"
+        elif is_squareoff_time:
+            exit_reason = "eod_squareoff"
+        elif combined_now is not None:
+            stop_dist = combined_entry * STRADDLE_STOP_PCT / 100
+            if combined_now <= combined_entry - stop_dist:
+                exit_reason = "stop_hit"
+            elif combined_now >= combined_entry + STRADDLE_TARGET_RR * stop_dist:
+                exit_reason = "target_hit"
+
+        if exit_reason:
+            exit_call = call_premium if call_premium is not None else row["call_entry_premium"]
+            exit_put = put_premium if put_premium is not None else row["put_entry_premium"]
+            fx, qty = row["fx_to_inr"], row["qty"]
+            total_pnl_inr = 0.0
+            for right, exit_p, entry_p in (("CE", exit_call, row["call_entry_premium"]),
+                                            ("PE", exit_put, row["put_entry_premium"])):
+                pnl_inr = (exit_p - entry_p) * qty * fx
+                total_pnl_inr += pnl_inr
+                opt_symbol = f"{fo_underlying}:STRADDLE-{right}"
+                payload = {
+                    "symbol": opt_symbol, "underlying": fo_underlying, "right": right, "action": "sell",
+                    "qty": qty, "price": exit_p, "currency": "INR", "fx_to_inr": fx,
+                    "strategy": "long_straddle", "exit_reason": exit_reason,
+                    "entry_price": entry_p, "pnl_inr": round(pnl_inr, 2),
+                }
+                apply_paper_trade(conn, opt_symbol, "sell", qty, exit_p)
+                conn.execute(
+                    "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                    "VALUES (?, ?, 'sell', ?, ?, ?, 'long_straddle', ?)",
+                    (time.time(), opt_symbol, qty, exit_p, fx, json.dumps(payload)),
+                )
+            conn.execute("DELETE FROM nse_straddle_state WHERE underlying = ?", (fo_underlying,))
+            conn.commit()
+            print(f"[STRADDLE] paper exit {fo_underlying} ({exit_reason}) combined pnl Rs{round(total_pnl_inr, 2)}")
+            _close_real_straddle_legs(conn, fo_underlying)  # unconditional - closing is never gated
+        return  # managed (or held) this tick - never also check for a new entry the same tick
+
+    # ---- no straddle open - check for a fresh entry ----
+    if halted or is_squareoff_time or not vol_signal or spot is None:
+        return
+    # Once per day per underlying - STRATEGY_LOG's own "not yet
+    # backtested" caution argues for the conservative read here.
+    if conn.execute(
+        "SELECT 1 FROM trades WHERE symbol = ? AND strategy = 'long_straddle' AND ts >= ?",
+        (f"{fo_underlying}:STRADDLE-CE", ist_midnight_epoch(ist_now())),
+    ).fetchone():
+        return
+
+    call_c, _ = nse_fo_chain.select_nse_option_contract(fo_underlying, spot, "call")
+    put_c, _ = nse_fo_chain.select_nse_option_contract(fo_underlying, spot, "put")
+    if call_c is None or put_c is None or call_c["strike"] != put_c["strike"] or call_c["expiry"] != put_c["expiry"]:
+        return  # no matching ATM pair this tick - never force a mismatched strike/expiry pair
+
+    qty = call_c["lot_size"]
+    fx = 1.0  # every underlying wired to this strategy (NSE index, MCX commodity) is INR-native
+    conn.execute(
+        "INSERT INTO nse_straddle_state (underlying, day, expiry, strike, lot_size, qty, "
+        "call_entry_premium, put_entry_premium, call_kotak_symbol, put_kotak_symbol, "
+        "call_instrument_token, put_instrument_token, entry_ts, fx_to_inr) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (fo_underlying, today_str, call_c["expiry"], call_c["strike"], call_c["lot_size"], qty,
+         call_c["premium"], put_c["premium"], call_c["kotak_trading_symbol"], put_c["kotak_trading_symbol"],
+         call_c["instrument_token"], put_c["instrument_token"], time.time(), fx),
+    )
+    for right, c in (("CE", call_c), ("PE", put_c)):
+        opt_symbol = f"{fo_underlying}:STRADDLE-{right}"
+        payload = {
+            "symbol": opt_symbol, "underlying": fo_underlying, "right": right, "action": "buy",
+            "qty": qty, "price": c["premium"], "currency": "INR", "fx_to_inr": fx,
+            "strategy": "long_straddle", "entry_reason": "vol_contraction_signal",
+            "strike": c["strike"], "expiry": c["expiry"],
+        }
+        apply_paper_trade(conn, opt_symbol, "buy", qty, c["premium"])
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, 'long_straddle', ?)",
+            (time.time(), opt_symbol, qty, c["premium"], fx, json.dumps(payload)),
+        )
+    conn.commit()
+    print(f"[STRADDLE] paper entry {fo_underlying} strike {call_c['strike']} exp {call_c['expiry']} "
+          f"call Rs{call_c['premium']:.2f} put Rs{put_c['premium']:.2f}")
+
+    if not is_real_fo_trading_enabled() or get_runtime_setting(conn, "real_straddle_enabled") < 0.5:
+        return
+
+    import kotak_real_fo_orders
+    combined_notional = qty * (call_c["premium"] + put_c["premium"])
+    remaining = get_runtime_setting(conn, "real_fo_daily_cap_inr") - _real_fo_today_spent_inr(conn)
+    if combined_notional > remaining:
+        for right, c in (("CE", call_c), ("PE", put_c)):
+            _log_real_fo_attempt(
+                conn, f"{fo_underlying}:STRADDLE-{right}", "B", "skipped_over_daily_cap",
+                kotak_trading_symbol=c["kotak_trading_symbol"], price_est=c["premium"], qty=qty,
+                detail=f"combined 2-leg cost Rs{combined_notional:.2f}, remaining budget Rs{remaining:.2f}",
+            )
+        return
+
+    call_margin = kotak_real_fo_orders.check_margin_affordable(
+        call_c["exchange_segment"], call_c["instrument_token"], "B", qty)
+    put_margin = kotak_real_fo_orders.check_margin_affordable(
+        put_c["exchange_segment"], put_c["instrument_token"], "B", qty)
+    if not (call_margin["ok"] and put_margin["ok"]):
+        # Never place one leg alone - a naked single leg was not the
+        # signal that fired.
+        for right, c, m in (("CE", call_c, call_margin), ("PE", put_c, put_margin)):
+            _log_real_fo_attempt(
+                conn, f"{fo_underlying}:STRADDLE-{right}", "B", "skipped_only_one_leg_affordable",
+                kotak_trading_symbol=c["kotak_trading_symbol"], price_est=c["premium"], qty=qty,
+                detail=m["detail"], raw_response=m.get("raw_response"),
+            )
+        return
+
+    for right, c in (("CE", call_c), ("PE", put_c)):
+        result = kotak_real_fo_orders.place_real_fo_entry(c["kotak_trading_symbol"], c["exchange_segment"], qty)
+        leg_key = f"{fo_underlying}:STRADDLE-{right}"
+        if result.get("ok"):
+            conn.execute(
+                "INSERT INTO real_fo_positions (leg_key, underlying, strategy_tag, kotak_trading_symbol, "
+                "instrument_token, exchange_segment, expiry, strike, lot_size, qty, entry_price, entry_order_id, "
+                "opened_at, day) VALUES (?, ?, 'long_straddle', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (leg_key, fo_underlying, c["kotak_trading_symbol"], c["instrument_token"], c["exchange_segment"],
+                 c["expiry"], c["strike"], c["lot_size"], qty, c["premium"], result["order_id"],
+                 time.time(), today_str),
+            )
+            _log_real_fo_attempt(
+                conn, leg_key, "B", "confirmed", kotak_trading_symbol=c["kotak_trading_symbol"],
+                qty=qty, price_est=c["premium"], notional_inr=qty * c["premium"],
+                order_id=result["order_id"], raw_response=result.get("raw_response"),
+            )
+            print(f"[REAL F&O] BUY STRADDLE-{right} {qty} {c['kotak_trading_symbol']} (order {result['order_id']})")
+        else:
+            _log_real_fo_attempt(
+                conn, leg_key, "B", "failed", kotak_trading_symbol=c["kotak_trading_symbol"],
+                qty=qty, price_est=c["premium"], detail=result.get("detail"), raw_response=result.get("raw_response"),
+            )
+            print(f"[REAL F&O] BUY STRADDLE-{right} FAILED {c['kotak_trading_symbol']}: {result.get('detail')} "
+                  f"- OTHER LEG MAY ALREADY BE OPEN, NEEDS ATTENTION")
 
 
 def _force_close_all_positions(conn, reason: str) -> dict:
@@ -3443,6 +3950,46 @@ def get_real_trading_control(request: Request):
         ),
         "open_real_positions": open_positions,
     }
+
+
+@app.get("/kotak-neo/real-fo-control")
+def get_real_fo_control(request: Request):
+    """Status for the SEPARATE F&O real-trading gate (2026-09-07) - see
+    is_real_fo_trading_enabled's own docstring for why this is its own
+    switch, not shared with equity's real_trading_control."""
+    _require_kotak_token(request)
+    with closing(get_db()) as conn:
+        open_positions = [dict(r) for r in conn.execute("SELECT * FROM real_fo_positions").fetchall()]
+        open_straddles = [dict(r) for r in conn.execute("SELECT * FROM nse_straddle_state").fetchall()]
+        today_spent_inr = _real_fo_today_spent_inr(conn)
+        daily_cap_inr = get_runtime_setting(conn, "real_fo_daily_cap_inr")
+        straddle_enabled = get_runtime_setting(conn, "real_straddle_enabled") >= 0.5
+    return {
+        "env_var_enabled": is_real_fo_trading_enabled(),
+        "real_straddle_enabled": straddle_enabled,
+        "today_ist_date": ist_now().strftime("%Y-%m-%d"),
+        "daily_cap_inr": daily_cap_inr,
+        "today_spent_inr": round(today_spent_inr, 2),
+        "today_remaining_inr": round(daily_cap_inr - today_spent_inr, 2),
+        "open_real_fo_positions": open_positions,
+        "open_paper_straddles": open_straddles,
+    }
+
+
+@app.get("/kotak-neo/nse-fo-chain")
+def kotak_neo_nse_fo_chain(request: Request, underlying: str, right: str | None = None, spot: float | None = None):
+    """Diagnostic - manually verify nse_fo_chain.py's real contract
+    resolution before trusting it live (same "confirm before trusting"
+    discipline as every other Kotak-data endpoint in this file).
+    `right` ('call'/'put') + `spot` resolves an ATM option contract;
+    omit both for the nearest-expiry future instead."""
+    _require_kotak_token(request)
+    import nse_fo_chain
+    if right and spot is not None:
+        contract, err = nse_fo_chain.select_nse_option_contract(underlying.upper(), spot, right)
+    else:
+        contract, err = nse_fo_chain.select_nse_future(underlying.upper())
+    return {"contract": contract, "error": err}
 
 
 @app.post("/real-trading-control")
@@ -3802,6 +4349,25 @@ RUNTIME_SETTINGS_META = {
         "Maximum total REAL buy notional per IST calendar day, across all real "
         "orders. Real money - changing this requires the same Kotak API token as "
         "every other real-trading endpoint.",
+    ),
+    "real_fo_daily_cap_inr": (
+        2000.0, 0.0, 1000000.0, True,
+        "Maximum total REAL F&O premium spend (buy side only) per IST calendar "
+        "day, across the single-leg call mirror and the Long Straddle - separate "
+        "pool from real_daily_cap_inr (equity). Real money - requires the Kotak "
+        "API token. Raise this (and fund the account) to actually enable F&O "
+        "orders to place - check_margin_affordable's own live check is what "
+        "ultimately decides affordability at the moment of each attempt.",
+    ),
+    "real_straddle_enabled": (
+        0.0, 0.0, 1.0, True,
+        "0/1 - whether the Long Straddle strategy (docs/STRATEGY_LOG.md, NOT YET "
+        "BACKTESTED) is allowed to place REAL orders when its volatility-"
+        "contraction signal fires. Paper-tracks regardless of this setting - "
+        "turn this on only after reviewing paper results. Real money - requires "
+        "the Kotak API token. Also requires REAL_FO_TRADING_ENABLED (Render env "
+        "var) and real_fo_daily_cap_inr/margin affordability, same as every "
+        "other real F&O order.",
     ),
     "daily_loss_reset_epoch": (
         0.0, 0.0, 4102444800.0, False,
@@ -4348,6 +4914,30 @@ async def _scheduler_loop():
                             _maybe_sync_real_stop_loss(real_conn, cfg["symbol"])
                 except Exception as e:
                     print(f"[real_orders] unexpected error for {cfg['symbol']}: {e}")
+
+                # Real F&O (2026-09-07, extended to MCX same day per
+                # explicit user instruction "also mcx") - NIFTY/BANKNIFTY/
+                # GC=F/SI=F/CL=F only (see _INDEX_TO_FO_UNDERLYING). Same
+                # isolation principle: its
+                # own try/except, never able to break the equity mirror
+                # above or the next symbol's tick.
+                try:
+                    if cfg["symbol"] in _INDEX_TO_FO_UNDERLYING:
+                        fo_underlying = _INDEX_TO_FO_UNDERLYING[cfg["symbol"]]
+                        if action_taken == "entered_long":
+                            with closing(get_db()) as fo_conn:
+                                _maybe_place_real_fo_call_entry(fo_conn, cfg["symbol"], result.get("last_close"))
+                        elif action_taken.startswith("exited_"):
+                            with closing(get_db()) as fo_conn:
+                                _maybe_place_real_fo_call_exit(fo_conn, cfg["symbol"])
+                        with closing(get_db()) as fo_conn:
+                            _straddle_signal_core(
+                                fo_conn, fo_underlying, result.get("vol_contraction_signal"),
+                                result.get("halted_for_day", False), result.get("is_squareoff_time", False),
+                                result.get("last_close"),
+                            )
+                except Exception as e:
+                    print(f"[real_fo_orders] unexpected error for {cfg['symbol']}: {e}")
             except Exception as e:
                 _scheduler_last_error = f"{cfg['symbol']}: {e}"
                 _scheduler_last_results[cfg["symbol"]] = {
