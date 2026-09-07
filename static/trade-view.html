@@ -250,25 +250,19 @@
         <span class="ds-val mono" id="ds-tax-unrealised">—</span>
       </div>
       <div class="ds-item">
-        <span class="ds-lbl">Tax slab rate (est.)</span>
-        <span class="ds-val mono">
-          <input type="number" id="ds-tax-rate" min="0" max="42.74" step="0.1" style="width:4.5em" />%
-        </span>
-      </div>
-      <div class="ds-item">
-        <span class="ds-lbl">Trades closed</span>
+        <span class="ds-lbl">Trades closed (paper)</span>
         <span class="ds-val mono" id="ds-count">—</span>
       </div>
       <div class="ds-item">
-        <span class="ds-lbl">Win rate</span>
+        <span class="ds-lbl">Win rate (paper)</span>
         <span class="ds-val mono" id="ds-winrate">—</span>
       </div>
       <div class="ds-item">
-        <span class="ds-lbl">Paper daily loss budget left</span>
+        <span class="ds-lbl">Daily loss budget left (account-wide)</span>
         <span class="ds-val mono" id="ds-budget">—</span>
         <button onclick="resetPaperLossBudget()" id="ds-budget-reset"
           style="font-size:10px;padding:2px 7px;margin-left:8px;background:var(--panel-2);border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;"
-          title="Resumes paper trading right now by excluding any paper loss that closed before this click from today's budget - does not touch real trading's own loss cap.">Reset</button>
+          title="Resumes trading right now by excluding any loss that closed before this click from today's budget. Never touches real trading's own dedicated loss cap in _maybe_place_real_entry - a real loss can't be wished away.">Reset</button>
       </div>
       <div class="ds-item">
         <span class="ds-lbl">Capital available (real, Kotak Neo)</span>
@@ -803,17 +797,30 @@ async function refreshScanner() {
 // way. The separate token-gated /real-trading-control DB switch and its
 // unlock prompt are gone - real trading is now controlled by exactly two
 // things: this toggle, and the env var you set directly on Render.
-// Tax slab rate for the P&L panel's "Tax (est.)" figures (2026-09-07) -
-// per-viewer setting, remembered in localStorage like any ordinary web
-// app preference (not shared/synced - this is just a UI convenience, the
-// server-side default of 30% is what a fresh browser/device sees first).
-// Wrapped in try/catch: a private window or blocked site data must never
-// break the page, just fall back to the 30% default.
-let taxSlabPct = 30;
-try {
-  const saved = localStorage.getItem("tv_tax_slab_pct");
-  if (saved !== null && !Number.isNaN(Number(saved))) taxSlabPct = Number(saved);
-} catch (e) { /* ignore - use default */ }
+// Tax estimate for the P&L panel (2026-09-07, explicit user instruction:
+// "not an input like 30% or something" - no manual rate at all). Mirrors
+// main.py's estimate_speculative_income_tax_inr/INDIA_NEW_REGIME_SLABS_INR
+// exactly - India's real New Regime progressive slabs (FY2025-26/AY2026-27)
+// plus the Section 87A full rebate below Rs 12L. Kept in sync by hand with
+// that function; same "treats this profit as your only income" simplification
+// (no way to know your other income without asking, and this project isn't
+// asking) applies here as it does server-side.
+const INDIA_NEW_REGIME_SLABS_INR = [
+  [400000, 0.0], [800000, 0.05], [1200000, 0.10], [1600000, 0.15],
+  [2000000, 0.20], [2400000, 0.25], [Infinity, 0.30],
+];
+const INDIA_87A_REBATE_THRESHOLD_INR = 1200000;
+function estimateSpeculativeIncomeTaxInr(profitInr) {
+  if (profitInr <= 0) return 0;
+  if (profitInr <= INDIA_87A_REBATE_THRESHOLD_INR) return 0;
+  let tax = 0, lower = 0;
+  for (const [upper, rate] of INDIA_NEW_REGIME_SLABS_INR) {
+    if (profitInr <= lower) break;
+    tax += (Math.min(profitInr, upper) - lower) * rate;
+    lower = upper;
+  }
+  return Math.round(tax * 100) / 100;
+}
 
 let masterToggleBusy = false;
 let lastPaperStatus = null;
@@ -1192,14 +1199,14 @@ function renderTradeLog(summary, history, realTrades) {
   // equity buy+sell is speculative business income under Indian tax law,
   // taxed at the trader's own slab rate, only on a net positive day -
   // never a negative tax on a loss). Realized tax comes straight from the
-  // server (computed at taxSlabPct, passed as a query param below);
-  // unrealized tax is computed here client-side from the same live
-  // unrealized total the log's own TOTAL row uses, at the same rate, so
-  // the two numbers can't drift apart.
+  // server's automatic India-slab calculation (no manual rate - see
+  // estimate_speculative_income_tax_inr); unrealized tax runs the SAME
+  // slab function client-side (estimateSpeculativeIncomeTaxInr above) on
+  // the live unrealized total the log's own TOTAL row uses.
   document.getElementById("ds-tax-realised").textContent =
     summary.tax_on_realized_inr !== undefined ? `₹${fmt(summary.tax_on_realized_inr)}` : "—";
-  const unrealisedTax = Math.max(0, totalUnrealisedInr) * taxSlabPct / 100;
-  document.getElementById("ds-tax-unrealised").textContent = `₹${fmt(unrealisedTax)}`;
+  document.getElementById("ds-tax-unrealised").textContent =
+    `₹${fmt(estimateSpeculativeIncomeTaxInr(totalUnrealisedInr))}`;
 
   document.getElementById("ds-count").textContent = closed.length;
   const wins = closed.filter(t => (t.pnl_inr ?? 0) > 0).length;
@@ -1227,7 +1234,7 @@ async function refresh() {
     const realCapitalInr = Math.max(1, schedStatus?.scheduler_capital_inr ?? 0);
 
     const [summary, history, realTrades] = await Promise.all([
-      fetchJSON(`${ORIGIN}/daily-summary?capital=${realCapitalInr}&daily_risk_pct=2&tax_slab_pct=${taxSlabPct}`),
+      fetchJSON(`${ORIGIN}/daily-summary?capital=${realCapitalInr}&daily_risk_pct=2`),
       fetchJSON(`${ORIGIN}/trade-history?days=1`),
       fetchJSON(`${ORIGIN}/real-trades-today`).catch(() => ({ trades: [] })),
     ]);
@@ -1288,16 +1295,6 @@ function tickCountdown() {
   }
   document.getElementById("countdown").textContent = secondsLeft;
 }
-
-const taxRateInput = document.getElementById("ds-tax-rate");
-taxRateInput.value = taxSlabPct;
-taxRateInput.addEventListener("change", () => {
-  const v = Number(taxRateInput.value);
-  if (Number.isNaN(v) || v < 0) { taxRateInput.value = taxSlabPct; return; }
-  taxSlabPct = v;
-  try { localStorage.setItem("tv_tax_slab_pct", String(v)); } catch (e) { /* per-viewer convenience only */ }
-  refresh();
-});
 
 // Loaded once, not on the 10s poll like everything else - re-rendering
 // this grid every 10s would wipe out whatever the user is mid-typing in
