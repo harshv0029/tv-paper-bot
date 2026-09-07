@@ -43,6 +43,7 @@ from constants import (
     OPTIONS_MAX_SPREAD_PCT, OPTIONS_STOP_PCT, OPTIONS_STRATEGY_TAG,
 )
 from data_fetch import fetch_ohlc, get_fx_to_inr, _DATA_CACHE, _CACHE_TTL_SECONDS
+import sentiment_signals
 from options_pricing import (
     _norm_cdf, bs_price, parse_legs, run_options_backtest, _bs_delta,
     select_option_contract, _requote_contract,
@@ -2453,6 +2454,26 @@ def _auto_signal_core(
             orb_high, orb_low = float(cur_bar["High"]), structural_low  # for result/signal_state display only
             entry_reason = f"bullish_engulfing_trend{trend_sma}"
 
+        # Sentiment gate (2026-09-07, explicit user instruction: "i want
+        # this info to be used for sector specific knowledge to pick
+        # assets for trading ... in almost real time") - a soft, fail-
+        # open filter on top of the strategy's own technical signal, read
+        # from docs/sentiment_log/*.md (the external news-scan routine's
+        # own output - see sentiment_signals.py's docstring for exactly
+        # what is/isn't parseable from it). Never invents a reason to
+        # enter; only ever SUPPRESSES a technically-valid entry when the
+        # latest known sentiment for this symbol's proxy is Bearish.
+        # result["sentiment_gate"] is always set (even when entry_signal
+        # was already False) so /scheduler-pipeline's per-symbol detail
+        # shows what sentiment data this tick actually saw.
+        sentiment_allowed, sentiment_reason = True, "not_checked_no_entry_signal"
+        if entry_signal:
+            sentiment_allowed, sentiment_reason = sentiment_signals.allows_entry(symbol, ist_now().strftime("%Y-%m-%d"))
+            if not sentiment_allowed:
+                entry_signal = False
+                entry_reason = f"{entry_reason}_but_{sentiment_reason}"
+        result["sentiment_gate"] = {"allowed": sentiment_allowed, "reason": sentiment_reason}
+
         if entry_signal:
             # Stop is the strategy's own technical level (opening-range low
             # for orb_breakout, the entry candle's own low for
@@ -3820,6 +3841,27 @@ def get_runtime_setting(conn, key: str) -> float:
     default = RUNTIME_SETTINGS_META[key][0]
     row = conn.execute("SELECT value FROM runtime_settings WHERE key = ?", (key,)).fetchone()
     return float(row["value"]) if row else default
+
+
+@app.get("/sentiment-signals")
+def get_sentiment_signals():
+    """What the sentiment gate (see sentiment_signals.py, wired into
+    _auto_signal_core's entry check) currently sees - the parsed
+    symbol->sentiment map, which day's file it came from (as_of_date can
+    lag today if the external scan routine hasn't written today's first
+    table yet), and the WATCHLIST->proxy mapping this app applies. No
+    token gate - read-only, no account/order data, same precedent as
+    /runtime-settings."""
+    today_str = ist_now().strftime("%Y-%m-%d")
+    data = sentiment_signals.get_latest_sentiment(today_str)
+    proxies = {cfg["symbol"]: sentiment_signals.sentiment_proxy_for(cfg["symbol"]) for cfg in WATCHLIST}
+    return {
+        "today_ist_date": today_str,
+        "as_of_date": data["as_of_date"],
+        "source": data["source"],
+        "signals": data["signals"],
+        "watchlist_proxy_map": proxies,
+    }
 
 
 @app.get("/runtime-settings")

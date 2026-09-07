@@ -8,6 +8,11 @@ uvicorn==0.30.6
 pydantic==2.9.2
 yfinance>=0.2.40
 pandas>=2.2.0
+# Already an indirect dep (yfinance pulls it in) - pinned as a direct dep
+# now that sentiment_signals.py calls it explicitly (fetches
+# docs/sentiment_log/*.md live from raw.githubusercontent.com), so it's
+# not silently relying on another package's transitive requirement.
+requests>=2.31.0
 pyotp==2.9.0
 # Kotak Neo SDK v3 (2026-09-04) - migrated from the legacy git-installed
 # neo-api-client==2.0.2 (github.com/Kotak-Neo/Kotak-neo-api-v2, now
