@@ -1295,7 +1295,14 @@ def today_realized_pnl(conn, since_ts: float) -> float:
     _durable_trade_outcomes_since/_merge_closed_trades) so a same-day
     redeploy can no longer silently erase realized losses/gains from this
     figure - the daily-loss-cap halt this feeds must stay correct across
-    a redeploy, not just within one DB instance's lifetime."""
+    a redeploy, not just within one DB instance's lifetime.
+
+    Also 2026-09-07: since_ts is bumped forward to the PAPER-only manual
+    reset point (runtime_settings key daily_loss_reset_epoch) if one was
+    set later than the normal IST-midnight cutoff - see that key's own
+    entry in RUNTIME_SETTINGS_META for the full reasoning (a "resume
+    trading" button next to the paper daily loss budget on trade-view)."""
+    since_ts = max(since_ts, get_runtime_setting(conn, "daily_loss_reset_epoch"))
     all_trades = conn.execute(
         "SELECT symbol, action, qty, price, fx_to_inr, ts FROM trades WHERE strategy LIKE ? ORDER BY id",
         (ORB_STRATEGY_PREFIX + "%",),
@@ -3116,6 +3123,35 @@ def set_trading_control(action: str, reason: str | None = None):
 # real money and must never be callable by an unauthenticated request.
 
 
+@app.get("/real-pnl-today")
+def get_real_pnl_today():
+    """Real (Kotak) P&L summary only - no token required, unlike
+    /real-trading-control. Explicit user instruction (2026-09-07): "why
+    token needed. make it without any checks" - deliberately narrower
+    than /real-trading-control rather than just dropping that endpoint's
+    own gate: this returns ONLY the P&L/budget numbers, never
+    open_real_positions (symbol, qty, entry price, order id) or the
+    enable/disable switch state - the actual account/order detail stays
+    behind the token, only the summary figure the trade-view dashboard
+    shows is public. Same numbers as /real-trading-control's own
+    real_pnl_today_inr/real_loss_cap_inr/real_loss_budget_remaining_inr -
+    see get_real_pnl_today_inr's docstring for how this is computed."""
+    with closing(get_db()) as conn:
+        daily_risk_pct = get_runtime_setting(conn, "daily_risk_pct")
+    real_capital = get_scheduler_capital_inr()
+    real_pnl_today = get_real_pnl_today_inr()
+    real_loss_cap_inr = round(real_capital * daily_risk_pct / 100, 2)
+    return {
+        "real_pnl_today_inr": round(real_pnl_today, 2) if real_pnl_today is not None else None,
+        "real_pnl_source": "kotak_positions_today" if real_pnl_today is not None else "unavailable",
+        "real_pnl_fetch_error": _real_pnl_cache["error"],
+        "real_loss_cap_inr": real_loss_cap_inr,
+        "real_loss_budget_remaining_inr": (
+            round(max(0.0, real_loss_cap_inr - max(0.0, -real_pnl_today)), 2) if real_pnl_today is not None else None
+        ),
+    }
+
+
 @app.get("/real-trading-control")
 def get_real_trading_control(request: Request):
     _require_kotak_token(request)
@@ -3513,6 +3549,20 @@ RUNTIME_SETTINGS_META = {
         "Maximum total REAL buy notional per IST calendar day, across all real "
         "orders. Real money - changing this requires the same Kotak API token as "
         "every other real-trading endpoint.",
+    ),
+    "daily_loss_reset_epoch": (
+        0.0, 0.0, 4102444800.0, False,
+        "Manual PAPER-only override (2026-09-07, explicit user request: a 'reset "
+        "button' next to the paper daily loss budget, 'to resume trading if i "
+        "want'): a unix timestamp. Any paper trade that closed BEFORE this moment "
+        "no longer counts toward today's loss cap, so a click sets this to right "
+        "now and immediately frees up the full budget again - PAPER trading only, "
+        "resumes on the very next scheduler tick. Deliberately does NOT touch the "
+        "real-money loss cap (real_pnl_today_inr/real_loss_budget_remaining_inr) - "
+        "a real loss already happened and can't be wished away; that gate has no "
+        "reset button, on purpose. Self-limiting: since this is always compared "
+        "against TODAY's own IST midnight via max(), a stale reset from a past day "
+        "has zero effect once the day rolls over - no expiry logic needed.",
     ),
 }
 
@@ -4252,6 +4302,13 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0, tax_slab
     since_ts = ist_midnight_epoch(now_ist)
 
     with closing(get_db()) as conn:
+        # PAPER-only manual reset ("resume trading" button next to the
+        # paper daily loss budget on trade-view) - see today_realized_pnl's
+        # own docstring and daily_loss_reset_epoch's entry in
+        # RUNTIME_SETTINGS_META for the full reasoning. Applied here too so
+        # this endpoint's own closed_trades/realized/budget_remaining stay
+        # consistent with today_realized_pnl's (which the halt logic uses).
+        since_ts = max(since_ts, get_runtime_setting(conn, "daily_loss_reset_epoch"))
         # Full history for correct cost-basis (see today_realized_pnl) - only
         # sells at/after since_ts are reported as "today's" closed trades.
         all_trades = conn.execute(
