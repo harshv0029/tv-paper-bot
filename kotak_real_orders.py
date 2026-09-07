@@ -63,6 +63,27 @@ MIS/NRML/MTF - so the real cash-equity notional actually spent is
 exactly quantity * price with no margin multiplier, keeping the Rs 500
 cap meaningful in the currency it was set in (real rupees), not a
 margin-inflated exposure.
+
+--- Real resting stop-loss orders (2026-09-07) -------------------------------
+Explicit user instruction, from the original complaint list ("share stop-
+loss/trailing-stop to Kotak", "update stop-loss to Kotak on trigger"),
+re-confirmed 2026-09-07 ("Yes, build it") after being asked directly:
+until now, this bot's own "stop_loss" only ever lived in signal_state and
+was enforced by _auto_signal_core polling price once per scheduler tick -
+if Render's process was down or slow between ticks, a real position could
+blow through its stop with nothing resting at the broker to catch it.
+
+place_real_stop_loss places a REAL SL-M (stop-loss market) sell order at
+Kotak the moment a real position opens, so the stop fires at the exchange
+itself, independent of this app's own uptime. order_type "SL-M" and the
+trigger_price parameter are both confirmed real, exact values from the
+SDK's own place_order signature (neo_api.py) - same source already used
+to verify "L"/"MKT"/"SL"/"SL-M" and "CNC"/"NRML"/"MIS"/"MTF" for
+kotak_neo.margin_required. cancel_real_order lets the caller (main.py)
+cancel that resting order before either replacing it at a trailed-up
+trigger price or closing the position outright via place_real_exit - a
+stale resting SL left behind after the position is already closed would
+otherwise sit as a dangling sell order with nothing left to sell.
 """
 import kotak_neo
 
@@ -140,3 +161,63 @@ def place_real_exit(kotak_trading_symbol: str, qty: int) -> dict:
     if not order_id:
         return {"ok": False, "detail": f"no order id in response: {resp}", "raw_response": resp}
     return {"ok": True, "order_id": str(order_id), "raw_response": resp, "qty": qty}
+
+
+def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+    """Places a REAL resting SL-M sell order at Kotak for an already-open
+    real position, so the stop fires at the exchange even if this app or
+    Render's process is down between scheduler ticks. Same never-raises /
+    nOrdNo-confirms-success discipline as place_real_entry/place_real_exit
+    - see place_real_entry's docstring.
+
+    order_type="SL-M" (stop-loss market, triggers a market sell once LTP
+    touches trigger_price - no separate limit price needed) and
+    trigger_price are both confirmed real values/params from the SDK's
+    own place_order signature (see this module's docstring)."""
+    try:
+        client = kotak_neo.login()
+    except Exception as e:
+        return {"ok": False, "detail": f"login failed: {e}"}
+
+    try:
+        resp = client.place_order(
+            exchange_segment="nse_cm",
+            product="CNC",
+            price="0",
+            order_type="SL-M",
+            quantity=str(qty),
+            validity="DAY",
+            trading_symbol=kotak_trading_symbol,
+            transaction_type="S",
+            trigger_price=str(trigger_price),
+        )
+    except Exception as e:
+        return {"ok": False, "detail": f"place_order raised: {e}"}
+
+    order_id = resp.get("nOrdNo") if isinstance(resp, dict) else None
+    if not order_id:
+        return {"ok": False, "detail": f"no order id in response: {resp}", "raw_response": resp}
+    return {"ok": True, "order_id": str(order_id), "raw_response": resp, "trigger_price": trigger_price}
+
+
+def cancel_real_order(order_id: str) -> dict:
+    """Cancels a real resting order (e.g. a stop-loss placed by
+    place_real_stop_loss) at Kotak. Never raises - a cancel failure (the
+    order already filled, already cancelled, or a transient API error) is
+    reported back, never thrown; the caller treats a failed cancel as
+    best-effort (see main.py's real-SL sync/exit call sites) since the
+    exchange itself is always the source of truth on whether a given
+    order can still be cancelled."""
+    try:
+        client = kotak_neo.login()
+    except Exception as e:
+        return {"ok": False, "detail": f"login failed: {e}"}
+
+    try:
+        resp = client.cancel_order(order_id=str(order_id))
+    except Exception as e:
+        return {"ok": False, "detail": f"cancel_order raised: {e}"}
+
+    if isinstance(resp, dict) and resp.get("error"):
+        return {"ok": False, "detail": str(resp["error"]), "raw_response": resp}
+    return {"ok": True, "raw_response": resp}
