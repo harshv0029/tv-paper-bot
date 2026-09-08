@@ -6086,7 +6086,7 @@ def kotak_neo_limits(request: Request):
 
 
 @app.post("/kotak-neo/reconcile-real-positions")
-def kotak_neo_reconcile_real_positions(request: Request):
+def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = None):
     """Corrects this app's own real_positions tracking against Kotak's own
     live positions() data - a genuinely separate process from the 30s
     trading scheduler, run by kotak-reconcile.yml on its own cadence
@@ -6111,14 +6111,39 @@ def kotak_neo_reconcile_real_positions(request: Request):
        close), the stale row is removed. Never guesses a qty or price for
        this - just removes the row, since re-deriving what actually
        happened isn't possible from positions() alone.
-    3. UNTRACKED POSITIONS (reported, NOT auto-adopted): if Kotak shows
-       an open position this app has no record of at all (e.g. today's
-       ~25 manually-placed trades), it's surfaced in the response and
-       logged, but deliberately NOT added to real_positions - auto-
-       adopting a position this app didn't open and doesn't know the
-       intended stop/target for risks the kill switch or scheduler
-       later acting on it with no real context. A human decision, not
-       an automated one, for now.
+    3. UNTRACKED POSITIONS (reported, NOT auto-adopted by default): if
+       Kotak shows an open position this app has no record of at all
+       (e.g. a manually-placed trade), it's surfaced in the response and
+       logged, but NOT added to real_positions unless explicitly opted
+       into via `adopt` - auto-adopting a position this app didn't open
+       and doesn't know the intended stop/target for risks the kill
+       switch or scheduler later acting on it with no real context. A
+       human decision, not an automatic one.
+
+       `adopt` (2026-09-08, explicit user finding: a restart landed
+       between a bot-PLACED real entry+SL and the next journal-sync
+       snapshot capturing them, permanently losing this app's own
+       tracking of a position it itself opened moments earlier - the
+       real order and its resting SL stayed completely safe at Kotak
+       throughout, but real_positions no longer had a row for it, so
+       nothing blocked a second real buy if the paper engine's own
+       tracking, lost the same way, re-entered the same symbol) - a
+       comma-separated list of Kotak trading symbols (e.g. "ATL-EQ") to
+       adopt from `untracked_open_positions`, or "*" for all of them.
+       Only ever adopts a symbol this call ITSELF found genuinely open
+       and untracked - never guesses at one from a name alone. For each
+       adopted symbol: qty and a weighted-average entry_price come from
+       this SAME positions() data already fetched above (buyAmt/flBuyQty
+       for that row); entry_order_id and any still-resting SL
+       (sl_order_id/sl_trigger_price) are looked up from ONE
+       order_report() call (fetched once, reused for every symbol being
+       adopted this call) by matching trdSym - a genuinely still-open
+       real position adopted with its real, confirmed order data, not a
+       stub. Watchlist symbol is derived as "<bare trading symbol>.NS"
+       (trdSym minus its "-EQ" suffix) - this app's own established
+       nse_cm trading-symbol convention (kotak_live_feed's
+       _bare_nse_symbol, inverted), which every real trading symbol
+       observed on this account so far follows exactly.
 
     Also returns the real account balance (kotak_neo.limits()) alongside,
     for the same "sync balance, not just positions" ask.
@@ -6172,6 +6197,61 @@ def kotak_neo_reconcile_real_positions(request: Request):
         for trd_sym, info in kotak_open_by_trdsym.items():
             if trd_sym not in our_trdsyms:
                 untracked.append({"kotak_trading_symbol": trd_sym, "qty": int(info["qty"])})
+
+        adopted = []
+        if adopt and untracked:
+            wanted = None if adopt == "*" else {s.strip() for s in adopt.split(",") if s.strip()}
+            to_adopt = [u for u in untracked if wanted is None or u["kotak_trading_symbol"] in wanted]
+            if to_adopt:
+                order_rows = []
+                try:
+                    order_report = kotak_neo.order_report()
+                    order_rows = order_report.get("data") or [] if isinstance(order_report, dict) else []
+                except Exception as e:
+                    print(f"[reconcile] order_report fetch failed during adopt (proceeding without order-id/SL data): {e}")
+                TERMINAL_STATUSES = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
+                for u in to_adopt:
+                    trd_sym = u["kotak_trading_symbol"]
+                    raw = kotak_open_by_trdsym[trd_sym]["raw"]
+                    qty = int(kotak_open_by_trdsym[trd_sym]["qty"])
+                    try:
+                        buy_amt = float(raw.get("buyAmt", 0) or 0)
+                        fl_buy = float(raw.get("flBuyQty", 0) or 0)
+                        entry_price = round(buy_amt / fl_buy, 2) if fl_buy else None
+                    except (TypeError, ValueError):
+                        entry_price = None
+                    if entry_price is None:
+                        continue  # can't adopt without a real entry price - skip, stays untracked
+                    entry_order_id, sl_order_id, sl_trigger_price = None, None, None
+                    for row in order_rows:
+                        if row.get("trdSym") != trd_sym:
+                            continue
+                        st = str(row.get("ordSt", "")).lower()
+                        if row.get("trnsTp") == "B" and st == "complete" and not entry_order_id:
+                            entry_order_id = row.get("nOrdNo")
+                        elif (row.get("trnsTp") == "S" and str(row.get("prcTp", "")).upper() in ("SL", "SL-M")
+                              and st not in TERMINAL_STATUSES):
+                            sl_order_id = row.get("nOrdNo")
+                            try:
+                                sl_trigger_price = float(row.get("trgPrc"))
+                            except (TypeError, ValueError):
+                                sl_trigger_price = None
+                    watchlist_symbol = trd_sym[:-3] + ".NS" if trd_sym.endswith("-EQ") else trd_sym
+                    conn.execute(
+                        "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
+                        "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                        "ON CONFLICT(symbol) DO NOTHING",
+                        (watchlist_symbol, trd_sym, qty, entry_price, entry_order_id, time.time(),
+                         ist_now().strftime("%Y-%m-%d"), sl_order_id, sl_trigger_price),
+                    )
+                    adopted.append({
+                        "symbol": watchlist_symbol, "kotak_trading_symbol": trd_sym, "qty": qty,
+                        "entry_price": entry_price, "entry_order_id": entry_order_id,
+                        "sl_order_id": sl_order_id, "sl_trigger_price": sl_trigger_price,
+                    })
+                untracked = [u for u in untracked if u["kotak_trading_symbol"] not in
+                             {a["kotak_trading_symbol"] for a in adopted}]
         conn.commit()
 
     net_balance = None
@@ -6185,6 +6265,7 @@ def kotak_neo_reconcile_real_positions(request: Request):
         "qty_corrected_count": len(qty_corrected), "qty_corrected": qty_corrected,
         "removed_ghost_count": len(removed_ghosts), "removed_ghosts": removed_ghosts,
         "untracked_open_positions_count": len(untracked), "untracked_open_positions": untracked,
+        "adopted_count": len(adopted), "adopted": adopted,
     }
 
 
