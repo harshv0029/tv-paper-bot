@@ -5818,6 +5818,24 @@ def kotak_neo_holdings(request: Request):
         return {"error": str(e)}
 
 
+@app.get("/kotak-neo/order-report")
+def kotak_neo_order_report(request: Request, order_id: str | None = None):
+    """The real account's order book (or a single order, if order_id is
+    given) - the ONLY place a REJECTED real order's actual reason text
+    lives (2026-09-08, added to diagnose repeated REJECTED SL-M sell
+    orders on AGI/AGL that this app had never surfaced a reason for -
+    place_real_stop_loss only ever checked for order ACCEPTANCE via
+    nOrdNo, never final fill/reject status). Read-only - places no order.
+    Requires ?token=<KOTAK_NEO_API_TOKEN> (or an 'Authorization: Bearer
+    <token>' header)."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        return _kotak_json_safe(kotak_neo.order_report(order_id=order_id))
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/kotak-neo/positions")
 def kotak_neo_positions(request: Request):
     """Real open positions from the live Kotak Neo account. Read-only -
