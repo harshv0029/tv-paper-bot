@@ -193,6 +193,71 @@ def hydrate_real_positions_from_external() -> bool:
     return True
 
 
+# --- Scan-coverage external persistence (Upstash Redis) ----------------------
+# Same restart-race family as real_positions above, different symptom: the
+# round-robin scan cursor (_scheduler_rr_cursor, defined far below) is a
+# plain in-memory int, only ever persisted to the slower git-JSON journal
+# (state/scheduler_check_counts.json, synced ~every 15 min or on push - see
+# reconcile_scheduler_check_counts_from_journal's own docstring for the
+# original 2026-09-08 finding: "still stuck 358 distinct... how to ensure
+# it can scan all 2661 every 15 minutes"). That fix helped, but on a day
+# with MANY restarts close together (confirmed live 2026-09-08: rr_cursor
+# read back as 0 mid-afternoon, hours into the trading session, after a
+# string of deploys each restarting Render faster than journal-sync's own
+# cadence could keep up) the cursor keeps losing forward progress before a
+# single full rotation (2661/35 ~= 76 ticks ~= ~38 min) can complete -
+# every restart sends it back toward the START of WATCHLIST's ordering,
+# so the "distinct symbols scanned" count stalls even though the total
+# check count keeps climbing (re-scanning the same early symbols, not
+# covering new ones). Mirrors real_positions' fix exactly: a small,
+# synchronous, real-time mirror closes the gap the periodic journal can't.
+_RR_CURSOR_REDIS_KEY = "tv_paper_bot:rr_cursor:v1"
+
+
+def _sync_rr_cursor_external(cursor: int) -> None:
+    """Call this right after _scheduler_rr_cursor advances (every tick that
+    actually scans a round-robin batch). Best-effort and silent, same
+    pattern as _sync_real_positions_external - a failure here must never
+    break the scheduler tick that's calling it."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return
+    try:
+        requests.post(
+            f"{UPSTASH_REDIS_REST_URL}/set/{_RR_CURSOR_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            data=str(int(cursor)).encode("utf-8"),
+            timeout=5,
+        )
+    except Exception as e:
+        print(f"[rr_cursor_external] sync failed (non-fatal): {e}")
+
+
+def hydrate_rr_cursor_from_external() -> int | None:
+    """Startup-time restore, sourced from Upstash - real-time, so it wins
+    over the slower git journal (reconcile_scheduler_check_counts_from_journal
+    still runs too and restores everything else that file carries; its own
+    rr_cursor restore is now only reached when this returns None). Returns
+    the cursor value, or None if Upstash is unset/unreachable/empty - the
+    cursor is re-modded against the current flat-symbol count on every
+    tick regardless (see _scheduler_loop), so restoring a raw int here
+    needs no bounds-checking against today's specific watchlist/market-hours
+    state."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return None
+    try:
+        resp = requests.get(
+            f"{UPSTASH_REDIS_REST_URL}/get/{_RR_CURSOR_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        raw = resp.json().get("result")
+        return int(raw) if raw is not None else None
+    except Exception as e:
+        print(f"[rr_cursor_external] hydrate failed (non-fatal): {e}")
+        return None
+
+
 def init_db():
     with closing(get_db()) as conn:
         conn.execute(
@@ -5801,8 +5866,13 @@ def reconcile_scheduler_check_counts_from_journal():
         print(f"[reconcile] could not read {STATE_SCHEDULER_CHECK_COUNTS_PATH}: {e}")
         return
 
+    # Only fires when the cursor is still at its just-started default (0) -
+    # i.e. Upstash (see hydrate_rr_cursor_from_external, called first in
+    # the startup sequence) was unset, unreachable, or genuinely had
+    # nothing yet. A fresher Upstash-restored value must never be
+    # clobbered by this slower, up-to-~15-min-stale git journal.
     rr_cursor = saved.get("rr_cursor")
-    if isinstance(rr_cursor, int) and rr_cursor > 0:
+    if _scheduler_rr_cursor == 0 and isinstance(rr_cursor, int) and rr_cursor > 0:
         _scheduler_rr_cursor = rr_cursor
         print(f"[reconcile] restored round-robin cursor to {rr_cursor} from journal")
 
@@ -5955,6 +6025,7 @@ async def _scheduler_tick():
         batch_size = min(live_batch_size, n)
         rr_batch = [flat_symbols[(_scheduler_rr_cursor + i) % n] for i in range(batch_size)]
         _scheduler_rr_cursor = (_scheduler_rr_cursor + batch_size) % n
+        _sync_rr_cursor_external(_scheduler_rr_cursor)
     else:
         rr_batch = []
 
@@ -6113,6 +6184,16 @@ async def _start_scheduler():
     if not hydrate_real_positions_from_external():
         reconcile_real_positions_from_journal()
     reconcile_real_trades_today_from_journal()
+    # rr_cursor: Upstash first (real-time), same reasoning as
+    # real_positions above - reconcile_scheduler_check_counts_from_journal's
+    # own rr_cursor restore only fires when this leaves the cursor at its
+    # just-started default (0), so a fresher Upstash value never gets
+    # clobbered by the slower git journal.
+    global _scheduler_rr_cursor
+    _external_rr_cursor = hydrate_rr_cursor_from_external()
+    if _external_rr_cursor is not None:
+        _scheduler_rr_cursor = _external_rr_cursor
+        print(f"[rr_cursor_external] restored cursor to {_external_rr_cursor} from Upstash")
     reconcile_scheduler_check_counts_from_journal()
     asyncio.create_task(_scheduler_loop())
     # Kotak Neo live tick feed (2026-09-04) - display data only, isolated
