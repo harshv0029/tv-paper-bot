@@ -6871,6 +6871,85 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
     }
 
 
+@app.post("/kotak-neo/close-position")
+def kotak_neo_close_position(request: Request, kotak_trading_symbol: str, qty: int, reason: str = "manual_close"):
+    """Closes ONE real position by an EXPLICIT symbol + qty - a surgical
+    tool for exactly the gap real_positions/signal_state can fall into
+    (see this file's own history of untracked-position incidents): a
+    real holding at Kotak this app's own tracking has no row for at all
+    (so neither the kill switch - which only iterates real_positions -
+    nor the paper engine's stop/target/stale-timeout logic - which only
+    manages symbols in signal_state - can ever reach it), sitting with
+    NO resting stop, NO target, and NO time-based exit, indefinitely.
+
+    Built 2026-09-08, explicit user finding: 3 real positions (AARTIIND,
+    ADANIPOWER, ABSLNN50ET) open 1.7-2.8 hours, all essentially flat
+    (largest unrealized move +0.34%), none tracked in signal_state (a
+    Render restart wiped that tracking, same restart-race as always) so
+    none of them were ever going to hit this SAME session's own
+    just-shipped stale-timeout exit - that logic only runs for symbols
+    the paper engine still knows are open. "Take some action to avoid
+    opportunity cost" - this endpoint is that action, applied by hand to
+    a gap the automated system structurally cannot self-heal (adopting
+    into real_positions only restores tracking + a resting SL where one
+    already exists; it was never going to also fabricate a signal_state
+    row with a stop/target this app never itself computed for these).
+
+    Requires an EXPLICIT symbol + qty (never "figure out what's open and
+    close it") - real money, no guessing. Cancels any resting SL/target
+    order_id this app happens to have tracked for the symbol first (best-
+    effort), places the real sell, deletes the real_positions row if one
+    existed, and logs the event to both real_trades (_log_real_attempt)
+    and the order-state log (_log_real_order_event) - the SAME audit
+    trail every other real exit in this codebase writes to, so this
+    shows up in /real-order-log and /order-log like any other exit, not
+    as an invisible side-channel action.
+
+    Requires ?token=<KOTAK_NEO_API_TOKEN>."""
+    _require_kotak_token(request)
+    import kotak_real_orders
+
+    with closing(get_db()) as conn:
+        row = conn.execute(
+            "SELECT * FROM real_positions WHERE kotak_trading_symbol = ?", (kotak_trading_symbol,)
+        ).fetchone()
+        symbol_for_log = row["symbol"] if row else kotak_trading_symbol
+
+        if row and row["sl_order_id"]:
+            kotak_real_orders.cancel_real_order(row["sl_order_id"])
+        if row and row["target_order_id"]:
+            kotak_real_orders.cancel_real_order(row["target_order_id"])
+
+        result = kotak_real_orders.place_real_exit(kotak_trading_symbol, qty)
+        if result.get("ok"):
+            if row:
+                conn.execute("DELETE FROM real_positions WHERE kotak_trading_symbol = ?", (kotak_trading_symbol,))
+            exit_qty = int(result["qty"])
+            _log_real_attempt(
+                conn, symbol_for_log, "S", "confirmed", kotak_trading_symbol=kotak_trading_symbol,
+                qty=exit_qty, price_est=result.get("fill_price"),
+                notional_inr=exit_qty * result["fill_price"] if result.get("fill_price") else None,
+                order_id=result["order_id"], raw_response=result.get("raw_response"), detail=reason,
+            )
+            _log_real_order_event(
+                conn, symbol_for_log, "exit", "confirmed", kotak_trading_symbol=kotak_trading_symbol,
+                order_id=result["order_id"],
+                prev_state=f"long {qty}" + (f" @ Rs{row['entry_price']:.2f}" if row else ""),
+                new_state=f"closed, {exit_qty} @ Rs{result.get('fill_price') or 0:.2f}", detail=reason,
+            )
+            conn.commit()
+            return {"ok": True, "kotak_trading_symbol": kotak_trading_symbol, "qty": exit_qty,
+                    "fill_price": result.get("fill_price"), "fill_price_confirmed": result["fill_price_confirmed"],
+                    "order_id": result["order_id"], "reason": reason}
+        else:
+            _log_real_attempt(
+                conn, symbol_for_log, "S", "failed", kotak_trading_symbol=kotak_trading_symbol,
+                qty=qty, detail=result.get("detail"), raw_response=result.get("raw_response"),
+            )
+            conn.commit()
+            return {"ok": False, "kotak_trading_symbol": kotak_trading_symbol, "detail": result.get("detail")}
+
+
 @app.get("/kotak-neo/search-scrip")
 def kotak_neo_search_scrip(
     request: Request,
