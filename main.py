@@ -134,15 +134,31 @@ def _sync_real_positions_external(conn) -> None:
         print(f"[real_positions_external] sync failed (non-fatal): {e}")
 
 
-def hydrate_real_positions_from_external() -> None:
+def hydrate_real_positions_from_external() -> bool:
     """Startup-time restore, sourced from Upstash instead of (in addition
     to) the slower git-JSON journal - see reconcile_real_positions_from_journal
-    below, which still runs too as a second-layer fallback if Upstash is
-    unset or unreachable. Never places any order - only restores this app's
-    own tracking of a position that already exists at the broker, same as
-    the journal-based reconcile."""
+    below, which the startup call site now only runs as a second-layer
+    fallback when this returns False (Upstash unset or unreachable). Never
+    places any order - only restores this app's own tracking of a position
+    that already exists at the broker, same as the journal-based reconcile.
+
+    Returns True iff Upstash was actually reached, regardless of whether
+    any rows came back - an EMPTY-but-successful read is still
+    authoritative and must suppress the git-journal fallback below, not
+    just a non-empty one.
+
+    BUG found live 2026-09-08: this used to return None unconditionally,
+    so the startup call site always ALSO ran
+    reconcile_real_positions_from_journal regardless of whether Upstash
+    hydration succeeded - a symbol Upstash correctly held as CLOSED
+    (ghost-removed by an earlier reconcile) still got resurrected by the
+    git journal's own stale, up-to-~15-min-old snapshot, which has no way
+    to know about a cleanup that happened after its last sync. Confirmed
+    live: AGL.NS/BHANDARI.NS, already ghost-removed from real_positions
+    multiple times earlier the same day, came back again after this exact
+    restart."""
     if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
-        return
+        return False
     try:
         resp = requests.get(
             f"{UPSTASH_REDIS_REST_URL}/get/{_REAL_POSITIONS_REDIS_KEY}",
@@ -151,32 +167,30 @@ def hydrate_real_positions_from_external() -> None:
         )
         resp.raise_for_status()
         raw = resp.json().get("result")
-        if not raw:
-            return
-        rows = json.loads(raw).get("rows", [])
     except Exception as e:
         print(f"[real_positions_external] hydrate failed (non-fatal): {e}")
-        return
-    if not rows:
-        return
-    with closing(get_db()) as conn:
-        restored = 0
-        for pos in rows:
-            if conn.execute("SELECT 1 FROM real_positions WHERE symbol = ?", (pos["symbol"],)).fetchone():
-                continue
-            conn.execute(
-                "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
-                "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                "target_order_id, target_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
-                 pos.get("entry_order_id"), pos["opened_at"], pos["day"],
-                 pos.get("sl_order_id"), pos.get("sl_trigger_price"),
-                 pos.get("target_order_id"), pos.get("target_price")),
-            )
-            restored += 1
-        if restored:
-            conn.commit()
-            print(f"[real_positions_external] restored {restored} real position(s) from Upstash")
+        return False
+    rows = json.loads(raw).get("rows", []) if raw else []
+    if rows:
+        with closing(get_db()) as conn:
+            restored = 0
+            for pos in rows:
+                if conn.execute("SELECT 1 FROM real_positions WHERE symbol = ?", (pos["symbol"],)).fetchone():
+                    continue
+                conn.execute(
+                    "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
+                    "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
+                    "target_order_id, target_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
+                     pos.get("entry_order_id"), pos["opened_at"], pos["day"],
+                     pos.get("sl_order_id"), pos.get("sl_trigger_price"),
+                     pos.get("target_order_id"), pos.get("target_price")),
+                )
+                restored += 1
+            if restored:
+                conn.commit()
+                print(f"[real_positions_external] restored {restored} real position(s) from Upstash")
+    return True
 
 
 def init_db():
@@ -5988,12 +6002,16 @@ async def _start_scheduler():
     reconcile_open_positions_from_journal()
     reconcile_trading_control_from_journal()
     reconcile_real_trading_control_from_journal()
-    # Upstash first - real-time, so its row wins for any symbol also present
-    # in the (up to ~15-min-stale) git journal below; the journal then only
-    # fills in whatever Upstash didn't have (e.g. never configured, or a
-    # position that existed before Upstash was set up).
-    hydrate_real_positions_from_external()
-    reconcile_real_positions_from_journal()
+    # Upstash first - real-time and authoritative once configured, so its
+    # read (even an EMPTY one) wins outright over the git journal below,
+    # which only runs as a fallback when Upstash was unset or unreachable.
+    # BUG found live 2026-09-08: running the journal fallback
+    # unconditionally resurrected positions Upstash had already, correctly,
+    # recorded as ghost-removed (AGL.NS/BHANDARI.NS) - see
+    # hydrate_real_positions_from_external's own docstring for the full
+    # root cause.
+    if not hydrate_real_positions_from_external():
+        reconcile_real_positions_from_journal()
     reconcile_real_trades_today_from_journal()
     reconcile_scheduler_check_counts_from_journal()
     asyncio.create_task(_scheduler_loop())
