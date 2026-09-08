@@ -1672,8 +1672,82 @@ ENTRY_BREAKOUT_MARGIN_PCT = 0.1  # explicit user instruction 2026-09-04
 # that were closing for a few rupees of P&L (real 2026-09-04 closed
 # trades: rr_achieved 0.05 and 0.38, far short of the 3.0 target).
 
+VOLUME_CONFIRM_LOOKBACK = 20  # bars, same window bullish_engulfing's own
+# (pre-existing, opt-in) volume_confirm already used - now MANDATORY for
+# every strategy and every symbol, explicit user instruction 2026-09-08:
+# "volume is must have trigger constraint while deciding the trade entry
+# for all trades... without volume it will be difficult to [judge] the
+# directional movement of the stocks" (+ a same-day follow-up: "Price
+# action are not coming into picture for all ur trades. Very less
+# movement can be seen in ur selected trades. So high volume trades
+# should be chosen"). Was previously read but only ACTED on for
+# bullish_engulfing, and only when a symbol's own WATCHLIST entry opted
+# in (volume_confirm=True) - most symbols never set it, so orb_breakout
+# (the default strategy almost every symbol actually runs) was never
+# volume-gated at all. Now applied unconditionally to BOTH strategies
+# (see _volume_confirms's call sites in _auto_signal_core) - the
+# `volume_confirm` parameter/WATCHLIST field is kept for backward API
+# compatibility but no longer toggles anything on/off; the check always
+# runs as one more required confluence flag alongside breakout/trend/
+# confidence (explicit user instruction, same day: "keep a combo of
+# three four green flags before the trade entry").
 
-def _trend_confidence(closes: np.ndarray, sma_fast: int, sma_slow: int) -> float:
+
+def _volume_confirms(vol_series: np.ndarray) -> tuple[bool, float | None]:
+    """True if the CURRENT bar's volume exceeds the average of the
+    VOLUME_CONFIRM_LOOKBACK bars immediately before it (current bar
+    excluded from its own average) - real participation behind this
+    move, not a low-volume drift that's easy to reverse and gives no
+    real evidence of directional conviction. Returns
+    (confirmed, avg_volume); avg_volume is None (and confirmed is always
+    False) when there isn't enough prior history yet - a missing or
+    zero average is never treated as a pass, same fail-closed discipline
+    as every other real gate in this engine."""
+    if len(vol_series) < VOLUME_CONFIRM_LOOKBACK + 1:
+        return False, None
+    cur_vol = float(vol_series[-1])
+    avg_vol = float(np.mean(vol_series[-(VOLUME_CONFIRM_LOOKBACK + 1):-1]))
+    if avg_vol <= 0:
+        return False, avg_vol
+    return cur_vol > avg_vol, avg_vol
+
+
+def _moving_average(closes: np.ndarray, period: int, ma_type: str = "sma") -> float:
+    """The fast/slow trend average this engine's whole entry/exit gate is
+    built on - SMA (flat rolling mean, the default, UNCHANGED live
+    behavior) or EMA (exponentially-weighted, opt-in via ma_type="ema").
+
+    Added 2026-09-08, explicit user instruction: "Check whether people
+    are using SMA or only EMA in place of SMA. There is a need for u to
+    rethink on the prioritisation." Verified via web search rather than
+    assumed: 9/21 EMA (the SAME periods sma_fast/sma_slow already default
+    to here) is the most-used intraday crossover combination among day
+    traders specifically because EMA reacts faster to recent price than
+    SMA - the whole point of a 5-min-bar intraday engine trying to catch
+    a move early, not lagging it. Real evidence favoring a switch, but
+    switching the trend read that gates EVERY entry/exit on a live-money
+    system is a real behavioral change that deserves a backtest
+    comparison first (the existing sweep tooling already supports
+    comparing configurations) - so this defaults to "sma" (zero change
+    to current live behavior) and is opt-in per-symbol via WATCHLIST's
+    ma_type field, not flipped globally by this change alone.
+
+    EMA computed via the standard recursive formula (alpha = 2/(period+1),
+    seeded from the window's own first value) over the same trailing
+    `period`-bar window SMA already uses - not pandas' own .ewm() (which
+    would need the FULL closes history for its own warm-up, not just this
+    window) so behavior is directly comparable at the same window size."""
+    window = closes[-period:]
+    if ma_type == "ema":
+        alpha = 2.0 / (period + 1)
+        ema = float(window[0])
+        for c in window[1:]:
+            ema = alpha * float(c) + (1 - alpha) * ema
+        return ema
+    return float(np.mean(window))
+
+
+def _trend_confidence(closes: np.ndarray, sma_fast: int, sma_slow: int, ma_type: str = "sma") -> float:
     """One-tailed statistical confidence, via the normal CDF, that the
     sma_fast/sma_slow gap's sign is a real move and not just noise around a
     flat/random-walk price - the same normal-distribution machinery
@@ -1691,8 +1765,8 @@ def _trend_confidence(closes: np.ndarray, sma_fast: int, sma_slow: int) -> float
     n = len(closes)
     if n < sma_slow + 2:
         return 0.0
-    sma_f = float(np.mean(closes[-sma_fast:]))
-    sma_s = float(np.mean(closes[-sma_slow:]))
+    sma_f = _moving_average(closes, sma_fast, ma_type)
+    sma_s = _moving_average(closes, sma_slow, ma_type)
     spread = sma_f - sma_s
     window = closes[-(sma_slow + 1):]
     rets = np.diff(window) / window[:-1]
@@ -1803,6 +1877,52 @@ def _trailing_stop_target(df: pd.DataFrame, today_df: pd.DataFrame, entry_price:
 
     chandelier_stop = highest_close - TRAIL_CHANDELIER_K * atr
     return max(breakeven_stop, chandelier_stop)
+
+
+LEADING_TARGET_MIN_CONFIDENCE = TREND_WEAKENED_MIN_CONFIDENCE  # explicit
+# user instruction 2026-09-08: "keep updating the target higher and
+# higher if the confidence is high and signal is strong" - reuses the
+# SAME statistical bar (95%, via _trend_confidence) new entries and the
+# trend-weakened exit already trust for "strong," rather than inventing
+# a separate number here.
+
+
+def _leading_target_extend(current_target: float, entry_price: float, initial_stop: float,
+                            rr: float, last_close: float, trend: str | None,
+                            closes: np.ndarray, sma_fast: int, sma_slow: int,
+                            ma_type: str = "sma") -> float | None:
+    """Long-only LEADING (trailing-UP) target candidate - the mirror
+    image of _trailing_stop_target for the other side of the trade.
+    Explicit user instruction 2026-09-08: "updating the leading target
+    so that all trades are between range of trailing SL and leading
+    target."
+
+    Only ever proposes moving the target UP (never down), and only once
+    price has actually REACHED the current target AND the trend is still
+    genuinely strong (trend == 'up' at >= LEADING_TARGET_MIN_CONFIDENCE -
+    the same bar this engine already requires to open a trade in the
+    first place, not a separately-invented "strong" threshold). Extension
+    step is one more R-multiple of the trade's OWN original risk
+    (entry_price - initial_stop) - a trade originally aimed at 3R that
+    keeps re-qualifying steps up to 6R, then 9R, and so on, for as long
+    as the signal keeps re-confirming itself at each step, instead of
+    being forced to book profit the instant the first target is touched
+    while the move is still clearly working.
+
+    Returns the candidate target (native currency), or None if price
+    hasn't reached the current target, the trend has flipped, or
+    confidence has fallen below the bar - the caller then falls through
+    to the normal target_hit exit, so a trade that stops re-qualifying
+    still books its (already-extended) profit rather than riding on with
+    no upper bound at all."""
+    if last_close < current_target:
+        return None
+    r = entry_price - initial_stop
+    if r <= 0 or trend != "up":
+        return None
+    if _trend_confidence(closes, sma_fast, sma_slow, ma_type) < LEADING_TARGET_MIN_CONFIDENCE:
+        return None
+    return current_target + rr * r
 
 
 # ---- Capital reallocation: exit part of a weaker live position to fund a
@@ -2333,6 +2453,8 @@ def _auto_signal_core(
     trend_sma: int = 0,
     volume_confirm: bool = False,
     min_entry_confidence_pct: float = TREND_WEAKENED_MIN_CONFIDENCE * 100,
+    max_hold_minutes: float = 120.0,
+    ma_type: str = "sma",
 ):
     """
     Plain function version of the /auto-signal logic - callable directly
@@ -2510,8 +2632,8 @@ def _auto_signal_core(
         last_close = float(last["Close"])
 
         closes = today_df["Close"].to_numpy(dtype=float)
-        sma_f = float(np.mean(closes[-sma_fast:])) if len(closes) >= sma_fast else None
-        sma_s = float(np.mean(closes[-sma_slow:])) if len(closes) >= sma_slow else None
+        sma_f = _moving_average(closes, sma_fast, ma_type) if len(closes) >= sma_fast else None
+        sma_s = _moving_average(closes, sma_slow, ma_type) if len(closes) >= sma_slow else None
         trend = ("up" if sma_f > sma_s else "down") if (sma_f is not None and sma_s is not None) else None
 
         result = {
@@ -2556,14 +2678,34 @@ def _auto_signal_core(
                 # trade-view's) stop_loss_native was stuck at the original.
                 conn.commit()
 
+            # Leading (trailing-UP) target - explicit user instruction
+            # 2026-09-08: "keep updating the target higher and higher if
+            # the confidence is high and signal is strong... so that all
+            # trades are between range of trailing SL and leading
+            # target." Mirrors the trailing-stop ratchet above: checked
+            # (and possibly extended) BEFORE the exit_reason chain below,
+            # so a just-extended target is already what target_hit
+            # compares against this same tick - see
+            # _leading_target_extend's own docstring for the full logic.
+            current_target = row["target"]
+            if last_close >= current_target:
+                extended_target = _leading_target_extend(
+                    current_target, row["entry_price"], row["initial_stop_loss"] or row["stop_loss"],
+                    rr, last_close, trend, closes, sma_fast, sma_slow, ma_type,
+                )
+                if extended_target is not None:
+                    current_target = extended_target
+                    conn.execute("UPDATE signal_state SET target = ? WHERE symbol = ?", (current_target, symbol))
+                    conn.commit()
+
             exit_reason = None
             if halted:
                 exit_reason = "daily_loss_cap_hit"
-            elif last_close >= row["target"]:
+            elif last_close >= current_target:
                 exit_reason = "target_hit"
             elif last_close <= current_stop:
                 exit_reason = "stop_hit"
-            elif trend == "down" and _trend_confidence(closes, sma_fast, sma_slow) >= TREND_WEAKENED_MIN_CONFIDENCE:
+            elif trend == "down" and _trend_confidence(closes, sma_fast, sma_slow, ma_type) >= TREND_WEAKENED_MIN_CONFIDENCE:
                 # The position is long because trend was "up" at entry
                 # (orb_breakout requires it directly; bullish_engulfing's
                 # own trend_sma filter serves the same purpose) - if the
@@ -2583,6 +2725,38 @@ def _auto_signal_core(
                 # evidence the setup broke, and must NOT close the trade -
                 # it just rides on to its existing stop/target/eod-squareoff.
                 exit_reason = "trend_weakened"
+            elif (
+                (time.time() - row["entry_ts"]) >= max_hold_minutes * 60
+                and current_stop <= (row["initial_stop_loss"] or row["stop_loss"])
+            ):
+                # Time-based stale-position exit - explicit user
+                # instruction 2026-09-08: "If a target is not hit and
+                # neither the stop loss is hit means that stock moves in
+                # sideways... capital has limitation and it should be
+                # used for better profit opportunities rather than being
+                # stuck in a sideways moving equity stock." Only reached
+                # if NONE of the above already exited this tick (target/
+                # stop/trend-weakened all take priority, same as before).
+                #
+                # The second condition is the important refinement, found
+                # via a local integration test before this ever went
+                # live: "neither hit" taken literally would also catch a
+                # trade whose LEADING TARGET keeps extending (real,
+                # ongoing momentum, the opposite of sideways) just
+                # because it hasn't technically touched its
+                # ever-receding target. current_stop <= initial_stop
+                # means the trailing stop has NEVER activated (see
+                # TRAIL_ACTIVATE_R, 0.5R) - i.e. this trade has not even
+                # earned half an R of favorable movement in its entire
+                # life, which is the actual, unambiguous definition of
+                # "stuck sideways" this instruction describes. A trade
+                # that's moved enough to activate its trailing stop (or
+                # extend its leading target) is by definition not
+                # sideways and stays governed by stop/target instead.
+                # max_hold_minutes is a live runtime setting
+                # (RUNTIME_SETTINGS_META), not hardcoded - default 120
+                # min, tunable without a redeploy.
+                exit_reason = "stale_timeout"
             elif is_squareoff_time:
                 exit_reason = "eod_squareoff"
 
@@ -2604,7 +2778,9 @@ def _auto_signal_core(
                     "entry_price": row["entry_price"], "stop_loss": current_stop,
                     "initial_stop_loss": row["initial_stop_loss"],
                     "trailing_active": current_stop > (row["initial_stop_loss"] or row["stop_loss"]),
-                    "target": row["target"], "rr_target": rr, "rr_achieved": rr_achieved,
+                    "target": current_target,
+                    "leading_target_active": current_target > row["target"],
+                    "rr_target": rr, "rr_achieved": rr_achieved,
                     "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
                     "pnl_pct_of_capital": round(100 * pnl_inr / capital, 3),
                 }
@@ -2622,7 +2798,7 @@ def _auto_signal_core(
                 )
                 return result
 
-            result["open_position"] = {**dict(row), "stop_loss": current_stop}
+            result["open_position"] = {**dict(row), "stop_loss": current_stop, "target": current_target}
             return result
 
         # ---- look for a new entry ----
@@ -2655,13 +2831,27 @@ def _auto_signal_core(
             #      the min_entry_confidence_pct runtime setting (see
             #      RUNTIME_SETTINGS_META/trade-view's constraints panel) -
             #      the exit-side constant itself is untouched by that knob.
+            #   3. Real volume behind the move, not just a low-conviction
+            #      drift through the level - see VOLUME_CONFIRM_LOOKBACK's
+            #      own comment (explicit user instruction 2026-09-08:
+            #      "volume is must have trigger constraint... for all
+            #      trades"). This is the 4th required confluence flag
+            #      alongside breakout/trend/confidence, per the same-day
+            #      instruction to require "a combo of three four green
+            #      flags before the trade entry" rather than one indicator.
+            volume_ok, vol_avg = _volume_confirms(df["Volume"].to_numpy(dtype=float))
             breakout_level = orb_high * (1 + ENTRY_BREAKOUT_MARGIN_PCT / 100)
             entry_signal = (
                 last_close > breakout_level and trend == "up"
-                and _trend_confidence(closes, sma_fast, sma_slow) >= min_entry_confidence_pct / 100
+                and _trend_confidence(closes, sma_fast, sma_slow, ma_type) >= min_entry_confidence_pct / 100
+                and volume_ok
             )
             structural_low = orb_low
             entry_reason = "orb_breakout_with_trend"
+            result["volume_gate"] = {
+                "confirmed": volume_ok, "avg_volume": vol_avg,
+                "current_volume": float(df["Volume"].iloc[-1]) if len(df) else None,
+            }
         else:  # bullish_engulfing - see add_strategy_signal() for the backtested version
             cur_bar, prev_bar = df.iloc[-1], df.iloc[-2]
             cur_bullish = cur_bar["Close"] > cur_bar["Open"]
@@ -2676,10 +2866,20 @@ def _auto_signal_core(
                     entry_signal = False
                 else:
                     entry_signal = last_close > float(np.mean(full_closes[-trend_sma:]))
-            if entry_signal and volume_confirm:
-                vol_hist = df["Volume"].to_numpy(dtype=float)
-                vol_avg = float(np.mean(vol_hist[-21:-1])) if len(vol_hist) >= 21 else None
-                entry_signal = bool(vol_avg) and float(cur_bar["Volume"]) > vol_avg
+            # Volume confirmation is now UNCONDITIONAL (2026-09-08, explicit
+            # user instruction: "volume is must have trigger constraint...
+            # for all trades") - previously gated behind the volume_confirm
+            # parameter/WATCHLIST field, which most symbols never opted
+            # into. That parameter is kept (API compatibility) but no
+            # longer read here; _volume_confirms is the same shared check
+            # orb_breakout now also requires - see its own docstring.
+            volume_ok, vol_avg = _volume_confirms(df["Volume"].to_numpy(dtype=float))
+            if entry_signal:
+                entry_signal = volume_ok
+            result["volume_gate"] = {
+                "confirmed": volume_ok, "avg_volume": vol_avg,
+                "current_volume": float(cur_bar["Volume"]) if "Volume" in df.columns else None,
+            }
             structural_low = float(cur_bar["Low"])
             orb_high, orb_low = float(cur_bar["High"]), structural_low  # for result/signal_state display only
             entry_reason = f"bullish_engulfing_trend{trend_sma}"
@@ -2750,7 +2950,7 @@ def _auto_signal_core(
             # REALLOCATION_MIN_CONFIDENCE_GAP/REALLOCATION_MAX_PER_DAY.
             if usable_capital_inr < notional_per_unit_inr and notional_per_unit_inr > 0:
                 if _count_reallocations_today(conn, since_ts) < REALLOCATION_MAX_PER_DAY:
-                    new_confidence = _trend_confidence(closes, sma_fast, sma_slow)
+                    new_confidence = _trend_confidence(closes, sma_fast, sma_slow, ma_type)
                     source = _find_reallocation_source(
                         conn, symbol, new_confidence, max_single_trade_inr - available_capital_inr
                     )
@@ -2886,6 +3086,8 @@ def auto_signal(
     trend_sma: int = 0,
     volume_confirm: bool = False,
     min_entry_confidence_pct: float = TREND_WEAKENED_MIN_CONFIDENCE * 100,
+    max_hold_minutes: float = 120.0,
+    ma_type: str = "sma",
 ):
     """HTTP wrapper around _auto_signal_core - see that function's docstring
     for the actual rules. Kept as a thin pass-through so manual/GH-Actions
@@ -2897,7 +3099,8 @@ def auto_signal(
         tz_offset_min=tz_offset_min, open_min=open_min, close_min=close_min,
         squareoff_min=squareoff_min, trade_weekends=trade_weekends, currency=currency,
         strategy=strategy, trend_sma=trend_sma, volume_confirm=volume_confirm,
-        min_entry_confidence_pct=min_entry_confidence_pct,
+        min_entry_confidence_pct=min_entry_confidence_pct, max_hold_minutes=max_hold_minutes,
+        ma_type=ma_type,
     )
 
 
@@ -4876,7 +5079,18 @@ RUNTIME_SETTINGS_META = {
     "rr": (
         SCHEDULER_RR, 1.0, 10.0, False,
         "Minimum reward:risk ratio (target distance / stop distance) required for "
-        "a new entry to be taken at all.",
+        "a new entry to be taken at all. Also the step size the leading target "
+        "extends by each time it re-qualifies (see _leading_target_extend).",
+    ),
+    "max_hold_minutes": (
+        120.0, 15.0, 400.0, False,
+        "Explicit user instruction 2026-09-08: a position that has hit neither "
+        "its target nor its stop after this many minutes is exited anyway "
+        "('stale_timeout') - capital stuck in a sideways-moving trade is capital "
+        "unavailable for a better signal elsewhere. Only fires if target/stop/"
+        "trend-weakened haven't already exited the trade first. Default 120 min "
+        "(2h); NSE's own EOD square-off (~15:20 IST) still applies as the "
+        "absolute last-resort cap regardless of this setting.",
     ),
     "entry_scan_batch_size": (
         # Literal, not a reference to SCHEDULER_ENTRY_SCAN_BATCH_SIZE below -
@@ -5461,6 +5675,7 @@ async def _scheduler_tick():
         live_rr = get_runtime_setting(conn, "rr")
         live_batch_size = int(get_runtime_setting(conn, "entry_scan_batch_size"))
         live_min_entry_confidence_pct = get_runtime_setting(conn, "min_entry_confidence_pct")
+        live_max_hold_minutes = get_runtime_setting(conn, "max_hold_minutes")
 
     # When paused, don't waste a Yahoo Finance call scanning flat
     # symbols for a NEW entry nobody wants right now - _auto_signal_core/
@@ -5520,6 +5735,7 @@ async def _scheduler_tick():
                 strategy=cfg.get("strategy", "orb_breakout"),
                 trend_sma=cfg.get("trend_sma", 0), volume_confirm=cfg.get("volume_confirm", False),
                 min_entry_confidence_pct=live_min_entry_confidence_pct,
+                max_hold_minutes=live_max_hold_minutes, ma_type=cfg.get("ma_type", "sma"),
             )
             _scheduler_last_results[cfg["symbol"]] = {"checked_at_utc": time.time(), **result}
 
