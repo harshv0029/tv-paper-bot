@@ -805,6 +805,18 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         sma_slow = int(params.get("sma_slow", 21))
         open_min = int(params.get("open_min", 9 * 60 + 15))
         volume_mult = float(params.get("volume_mult", 1.5))
+        # ma_type - added 2026-09-08, explicit user instruction: "have you
+        # replaced sma with ema? ema are more reliable. do your research
+        # and do the needful." This is the piece of that research that
+        # was still missing: _moving_average (this file) already added
+        # EMA as an opt-in for the LIVE trend-confidence/leading-target
+        # gate, but orb_breakout's own entry-trigger trend filter (the
+        # fast_ma > slow_ma check right below) was still hardcoded to SMA
+        # regardless - meaning /backtest could never actually compare the
+        # two for what matters most, the entry decision itself. Default
+        # stays "sma" (zero change to current live behavior) until a real
+        # backtest comparison (see docs/STRATEGY_LOG.md) earns a switch.
+        ma_type = str(params.get("ma_type", "sma")).lower()
 
         ts = pd.to_datetime(df["Date"])
         ts_ist = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts.dt.tz_localize(
@@ -813,8 +825,12 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         day = ts_ist.dt.strftime("%Y-%m-%d")
         mins = ts_ist.dt.hour * 60 + ts_ist.dt.minute
 
-        df["fast_ma"] = df["Close"].rolling(sma_fast).mean()
-        df["slow_ma"] = df["Close"].rolling(sma_slow).mean()
+        if ma_type == "ema":
+            df["fast_ma"] = df["Close"].ewm(span=sma_fast, adjust=False).mean()
+            df["slow_ma"] = df["Close"].ewm(span=sma_slow, adjust=False).mean()
+        else:
+            df["fast_ma"] = df["Close"].rolling(sma_fast).mean()
+            df["slow_ma"] = df["Close"].rolling(sma_slow).mean()
         trend_up = df["fast_ma"] > df["slow_ma"]
 
         in_orb_window = (mins >= open_min) & (mins < open_min + orb_minutes)
@@ -1358,6 +1374,7 @@ def backtest(
     pin_ratio: float = 2.0,
     sr_lookback: int = 20,
     sr_tolerance_pct: float = 0.5,
+    ma_type: str = "sma",
     qty: float = 1,
 ):
     """
@@ -1368,7 +1385,13 @@ def backtest(
     strategy=sma_crossover        -> params: fast, slow
     strategy=rsi_reversal         -> params: rsi_period, oversold, overbought
     strategy=orb_breakout/orb_volume -> params: orb_minutes, sma_fast, sma_slow,
-                                        open_min (orb_volume also: volume_mult)
+                                        open_min, ma_type ("sma"/"ema" - see
+                                        that branch's own comment in
+                                        add_strategy_signal) (orb_volume also: volume_mult)
+    strategy=wyckoff_spring/wyckoff_sos -> params: range_lookback (60), range_flatness_pct
+                                        (3.0), spring_pierce_pct (0.3), volume_mult -
+                                        not yet exposed as its own query params, uses
+                                        add_strategy_signal's own defaults
     strategy=vwap_reclaim         -> no extra params
     strategy=vwap_mean_reversion  -> params: bb_std
     strategy=vwap_breakout_retest -> params: bb_std, retest_pct
@@ -1389,7 +1412,7 @@ def backtest(
     elif strategy in ("orb_breakout", "orb_volume"):
         params = {
             "orb_minutes": orb_minutes, "sma_fast": sma_fast, "sma_slow": sma_slow,
-            "open_min": open_min, "volume_mult": volume_mult,
+            "open_min": open_min, "volume_mult": volume_mult, "ma_type": ma_type,
         }
     elif strategy == "vwap_reclaim":
         params = {}
