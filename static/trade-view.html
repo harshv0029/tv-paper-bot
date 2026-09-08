@@ -141,6 +141,7 @@
   .ds-lbl{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
   .ds-val{font-size:19px;font-weight:700;}
   .ds-val.up{color:var(--up);} .ds-val.down{color:var(--down);}
+  .ds-sub{font-size:10px;color:var(--muted);}
   .log-section-row td{background:rgba(124,138,156,.06);color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:5px 14px !important;}
   .log-total-row{position:sticky;bottom:0;}
   .log-total-row td{background:var(--panel-2);border-top:2px solid var(--border);border-bottom:none;font-weight:700;font-size:11.5px;}
@@ -241,6 +242,11 @@
       <div class="ds-item">
         <span class="ds-lbl">Real loss budget left (Kotak)</span>
         <span class="ds-val mono" id="ds-real-budget">—</span>
+        <span class="ds-sub" id="ds-real-budget-sub"></span>
+      </div>
+      <div class="ds-item">
+        <span class="ds-lbl">Real capital deployed (open positions)</span>
+        <span class="ds-val mono" id="ds-real-deployed">—</span>
       </div>
       <div class="ds-item">
         <span class="ds-lbl">Tax on realised profit (est.)</span>
@@ -940,6 +946,17 @@ async function refreshRealPnl() {
     }
     document.getElementById("ds-real-budget").textContent =
       (data.real_loss_budget_remaining_inr ?? null) !== null ? `₹${fmt(data.real_loss_budget_remaining_inr)}` : "—";
+    // Context added 2026-09-08 (explicit user confusion: "how can this
+    // budget be decreased for today" when real P&L was 0) - the cap is
+    // daily_risk_pct% of AVAILABLE capital, which shrinks whenever money
+    // moves into open positions even with zero loss. Spelling that out
+    // here so a small number is never mistaken for a loss again.
+    const avail = data.real_capital_available_inr, deployed = data.real_capital_deployed_inr;
+    document.getElementById("ds-real-budget-sub").textContent =
+      (avail !== null && avail !== undefined)
+        ? `= % of ₹${fmt(avail)} available (not a loss - see deployed, right)` : "";
+    document.getElementById("ds-real-deployed").textContent =
+      (deployed !== null && deployed !== undefined) ? `₹${fmt(deployed)}` : "—";
   } catch (e) {
     document.getElementById("ds-real-pnl").innerHTML = `<span class="constraint-status err">unavailable</span>`;
   }
