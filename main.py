@@ -6180,8 +6180,15 @@ def _market_open_for_cfg(cfg: dict) -> bool:
     right now? Mirrors the exact same weekday/open_min/close_min gate
     _auto_signal_core/_options_signal_core already apply per-call (this
     does NOT replace those - they still make the real entry/exit
-    decision) - it's used ONLY to keep the scheduler's round-robin scan
-    pool restricted to symbols that can actually act right now.
+    decision).
+
+    NOT called from _scheduler_tick's round-robin pool any more as of
+    2026-09-08 (explicit user instruction: scan the full 2661-symbol
+    watchlist around the clock whenever the trading toggle is ON, so the
+    distinct-scanned coverage counter isn't capped by each symbol's own
+    market hours) - kept here, unused, in case a future change wants a
+    market-hours-aware pool again; _auto_signal_core/_options_signal_core
+    still gate the actual entry/exit decision independently either way.
 
     Explicit user instruction (2026-09-07): "you also know the market
     timing of all the asset classes. accordingly iterate your search or
@@ -6268,15 +6275,24 @@ async def _scheduler_tick():
     # gated by this - they still get checked every tick regardless
     # (see symbols_this_tick below), same as always.
     all_symbols = [cfg["symbol"] for cfg in WATCHLIST]
-    # Market-hours-aware pool (see _market_open_for_cfg's own docstring
-    # for the full reasoning) - only symbols whose own market is open
-    # right now are candidates for entry-scanning. An open position is
+    # Full-universe pool, NOT market-hours-filtered (explicit user
+    # instruction, 2026-09-08: "make this [361/2661 distinct scanned]
+    # running for whole 24 hour if the trading toggle is ON" - i.e. the
+    # round-robin must cycle through all 2661 watchlist symbols around
+    # the clock whenever the global trading toggle is on, so the
+    # distinct-scanned coverage counter can reach the full watchlist in
+    # a day rather than being capped by each symbol's own market hours.
+    # This reverses the 2026-09-07 market-hours pool filter (see the now
+    # UNUSED _market_open_for_cfg's own docstring for that reasoning) -
+    # confirmed via AskUserQuestion the tradeoff (scan slots spent on
+    # symbols whose market is currently shut, where _auto_signal_core/
+    # _options_signal_core will just no-op past the same market-hours
+    # gate before any entry decision) is accepted. An open position is
     # NEVER gated by this (open_equity_symbols/open_option_underlyings
-    # below are unconditional) - only the round-robin's flat-symbol
-    # scan pool is filtered.
+    # below are unconditional) - only the round-robin's flat-symbol scan
+    # pool composition changed.
     flat_symbols = [] if trading_paused else [
-        s for s in all_symbols
-        if s not in open_equity_symbols and _market_open_for_cfg(watchlist_by_symbol[s])
+        s for s in all_symbols if s not in open_equity_symbols
     ]
     if flat_symbols:
         n = len(flat_symbols)
