@@ -155,8 +155,33 @@ def test_hydrate_no_ops_silently_when_env_vars_unset():
     main.UPSTASH_REDIS_REST_URL = None
     main.UPSTASH_REDIS_REST_TOKEN = None
     with patch("main.requests.get") as mock_get:
-        main.hydrate_real_positions_from_external()
+        result = main.hydrate_real_positions_from_external()
         mock_get.assert_not_called()
+        assert result is False, "unset env vars must report 'not reached' so the journal fallback still runs"
+
+
+def test_hydrate_returns_true_on_a_successful_empty_read():
+    """Regression test for the bug found live 2026-09-08: an EMPTY-but-
+    successful Upstash read (real_positions genuinely has zero open rows,
+    e.g. right after a ghost-cleanup reconcile) must still report True -
+    otherwise the startup call site falls through to the stale git journal
+    and resurrects exactly the row Upstash just correctly confirmed gone
+    (confirmed live: AGL.NS/BHANDARI.NS, already ghost-removed multiple
+    times, came back again after a restart because this used to return
+    None/falsy on an empty-but-successful read)."""
+    _fresh_db()
+    main.UPSTASH_REDIS_REST_URL = "https://fake-upstash.example.com"
+    main.UPSTASH_REDIS_REST_TOKEN = "fake-token"
+    try:
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"result": None}  # key never written, or written empty
+        mock_resp.raise_for_status.return_value = None
+        with patch("main.requests.get", return_value=mock_resp):
+            result = main.hydrate_real_positions_from_external()
+        assert result is True, "a successful (even empty) Upstash read must suppress the journal fallback"
+    finally:
+        main.UPSTASH_REDIS_REST_URL = None
+        main.UPSTASH_REDIS_REST_TOKEN = None
 
 
 def test_hydrate_failure_is_swallowed_not_raised():
@@ -165,7 +190,8 @@ def test_hydrate_failure_is_swallowed_not_raised():
     main.UPSTASH_REDIS_REST_TOKEN = "fake-token"
     try:
         with patch("main.requests.get", side_effect=Exception("timeout")):
-            main.hydrate_real_positions_from_external()  # must not raise
+            result = main.hydrate_real_positions_from_external()  # must not raise
+            assert result is False, "an unreachable Upstash must report 'not reached' so the journal fallback still runs"
     finally:
         main.UPSTASH_REDIS_REST_URL = None
         main.UPSTASH_REDIS_REST_TOKEN = None
