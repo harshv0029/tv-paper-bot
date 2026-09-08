@@ -687,5 +687,30 @@
     "adopted": [],
     "governance_backfilled_count": 0,
     "governance_backfilled": []
+  },
+  {
+    "reconciled_at_utc": 1788877204.2711768,
+    "real_balance_inr": 1941.52,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 2,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      },
+      {
+        "symbol": "BHANDARI.NS",
+        "kotak_trading_symbol": "BHANDARI-EQ",
+        "was_tracked_qty": 36
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 0,
+    "governance_backfilled": []
   }
 ]
