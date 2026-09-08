@@ -4141,6 +4141,75 @@ def get_real_trades_today():
     return {"date_ist": ist_now().strftime("%Y-%m-%d"), "trades_count": len(trades), "trades": trades}
 
 
+@app.get("/real-trades-today-bot-only")
+def get_real_trades_today_bot_only():
+    """This app's OWN real trading only - both currently-open positions
+    and today's closed round-trips - filtered to just the orders THIS
+    code itself placed (real_trades/real_positions, tracked by order id),
+    unlike /real-trades-today's whole-account Kotak aggregate (which
+    deliberately includes manually-placed trades in the same symbol too -
+    that was explicit user-requested behavior on 2026-09-07, kept as-is).
+
+    Added 2026-09-08, explicit user request: "add a bot-only real-trade
+    view (filtered to just this app's own order IDs, separate from the
+    whole-account aggregate) so you have a row that's actually comparable
+    to the paper one at a glance" - when a symbol is also traded manually
+    outside this app (confirmed live today: AGL), the whole-account
+    number and the paper engine's own number are computed from
+    unrelated data and were never going to match; THIS view is what
+    actually corresponds 1:1 with a single paper decision, since it's
+    built from the exact rows _maybe_place_real_entry/_exit themselves
+    wrote when mirroring that decision.
+
+    No token required, same reasoning as /real-trades-today and
+    /real-pnl-today ("make it without any checks") - real symbol/qty/
+    price detail already exposed publicly there; this is the same data,
+    just re-filtered and re-shaped.
+
+    closed_trades pairs each day's confirmed BUY with the confirmed SELL
+    that follows it for the same symbol, in chronological order - safe
+    because this app only ever holds ONE open real position per symbol
+    at a time (see real_positions.symbol's PRIMARY KEY), so a B is always
+    immediately followed by its own matching S, never interleaved with
+    another B for the same symbol before that S. An unmatched trailing
+    BUY (position still open) is intentionally left out of closed_trades -
+    it's already visible in open_positions instead."""
+    today = ist_now().strftime("%Y-%m-%d")
+    with closing(get_db()) as conn:
+        open_positions = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
+        rows = conn.execute(
+            "SELECT symbol, kotak_trading_symbol, side, qty, price_est, notional_inr, ts, order_id "
+            "FROM real_trades WHERE day = ? AND status = 'confirmed' ORDER BY symbol, ts",
+            (today,),
+        ).fetchall()
+    closed_trades = []
+    open_buy_by_symbol: dict = {}
+    for r in rows:
+        r = dict(r)
+        if r["side"] == "B":
+            open_buy_by_symbol[r["symbol"]] = r
+        elif r["side"] == "S" and r["symbol"] in open_buy_by_symbol:
+            buy = open_buy_by_symbol.pop(r["symbol"])
+            qty = r["qty"] or buy["qty"] or 0
+            pnl_inr = round((r["price_est"] - buy["price_est"]) * qty, 2) if (
+                r["price_est"] is not None and buy["price_est"] is not None) else None
+            closed_trades.append({
+                "symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
+                "entry_price_native": buy["price_est"], "exit_price_native": r["price_est"],
+                "qty": qty, "pnl_inr": pnl_inr,
+                "entry_order_id": buy["order_id"], "exit_order_id": r["order_id"],
+                "entry_time_utc": buy["ts"], "exit_time_utc": r["ts"],
+                "strategy": "real-bot-own",
+            })
+    closed_trades.sort(key=lambda t: t["exit_time_utc"], reverse=True)
+    return {
+        "date_ist": today,
+        "open_positions": open_positions,
+        "closed_trades_count": len(closed_trades),
+        "closed_trades": closed_trades,
+    }
+
+
 @app.get("/real-trading-control")
 def get_real_trading_control(request: Request):
     _require_kotak_token(request)
