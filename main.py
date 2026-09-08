@@ -844,6 +844,33 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
             vol_avg = df["Volume"].rolling(20).mean()
             raw = raw & (df["Volume"] > vol_avg * volume_mult)
 
+        # docs/STRATEGY_LOG.md row #38 (VSA No Demand / No Supply Bar
+        # Filter) - explicit user instruction 2026-09-08: "do the needful"
+        # on the remaining catalog rows. Opt-in (vsa_filter=False by
+        # default - zero change to current live behavior until a real
+        # backtest earns turning it on): a "No Demand" bar is an UP bar
+        # (the only kind a breakout trigger bar can be, by construction)
+        # with a narrow spread AND low volume relative to recent bars -
+        # the classic VSA tell that an up-move lacks real buying interest,
+        # a red flag on the specific bar a breakout is triggering off of.
+        # (The row's own catalog note named the OPPOSITE bar type, "No
+        # Supply" - corrected here per standard VSA convention, where "No
+        # Supply" reads bullish, absence of selling, and would make no
+        # sense to filter OUT of a long entry.)
+        vsa_filter = bool(params.get("vsa_filter", False))
+        if vsa_filter:
+            no_demand_spread_mult = float(params.get("no_demand_spread_mult", 0.7))
+            no_demand_vol_mult = float(params.get("no_demand_vol_mult", 0.7))
+            spread = df["High"] - df["Low"]
+            spread_avg = spread.rolling(20).mean().shift(1)
+            vol_avg_vsa = df["Volume"].rolling(20).mean().shift(1)
+            no_demand = (
+                (df["Close"] > df["Open"])
+                & (spread < spread_avg * no_demand_spread_mult)
+                & (df["Volume"] < vol_avg_vsa * no_demand_vol_mult)
+            )
+            raw = raw & ~no_demand.fillna(False)
+
         # Once triggered, stay long for the rest of that trading day (flat overnight).
         df["long"] = raw.groupby(day).cummax()
 
@@ -1276,6 +1303,55 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
             # same bounded-exit convention orb_breakout/orb_volume use.
             df["long"] = breakout.groupby(day).cummax()
 
+    elif strategy == "vsa_climax_reversal":
+        # docs/STRATEGY_LOG.md row #39 (VSA Stopping Volume / Climax
+        # Reversal) - explicit user instruction 2026-09-08: "do the
+        # needful" on the remaining catalog rows. Standalone entry (unlike
+        # #38 below, which is a filter): an extended decline ends on an
+        # extreme-volume, wide-spread bar whose CLOSE lands well off that
+        # bar's own low - professional absorption of the crowd's
+        # capitulation (Wyckoff's Selling Climax, tradeable on its own
+        # without waiting for the rest of a Phase A-E range to confirm,
+        # per this row's own "Notes" column).
+        avg_lookback = int(params.get("avg_lookback", 20))
+        decline_lookback = int(params.get("decline_lookback", 10))
+        climax_volume_mult = float(params.get("climax_volume_mult", 2.0))
+        climax_spread_mult = float(params.get("climax_spread_mult", 1.5))
+        climax_close_pct = float(params.get("climax_close_pct", 0.5))
+
+        spread = df["High"] - df["Low"]
+        vol_avg = df["Volume"].rolling(avg_lookback).mean().shift(1)
+        spread_avg = spread.rolling(avg_lookback).mean().shift(1)
+        # Where the close landed within THIS bar's own range - 1.0 = closed
+        # at the high, 0.0 = closed at the low. A climax bar closing in the
+        # upper half (>= climax_close_pct) is the "struggle, not a clean
+        # continuation down" tell that separates absorption from a genuine
+        # breakdown (same distinction #22's own docstring in the log
+        # draws against this row).
+        close_position = (df["Close"] - df["Low"]) / spread.replace(0, float("nan"))
+        prior_decline = df["Close"] < df["Close"].shift(decline_lookback)
+
+        climax = (
+            prior_decline
+            & (df["Volume"] > vol_avg * climax_volume_mult)
+            & (spread > spread_avg * climax_spread_mult)
+            & (close_position >= climax_close_pct)
+        )
+
+        # Hold from a confirmed climax bar until price closes back below
+        # that bar's own low (invalidated - the absorption failed, it was
+        # a genuine breakdown after all) - same stateful-hold pattern
+        # wyckoff_spring above already uses.
+        long_flags, holding, climax_low = [], False, None
+        for i in range(len(df)):
+            if not holding and bool(climax.iloc[i]):
+                holding = True
+                climax_low = df["Low"].iloc[i]
+            elif holding and df["Close"].iloc[i] < climax_low:
+                holding = False
+            long_flags.append(holding)
+        df["long"] = long_flags
+
     else:
         raise HTTPException(
             status_code=400,
@@ -1283,7 +1359,8 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
                    f"orb_breakout, orb_volume, vwap_reclaim, vwap_mean_reversion, "
                    f"vwap_breakout_retest, anchored_vwap_continuation, anchored_vwap_reversal, "
                    f"vwap_multi_period_reversal, bullish_engulfing, pin_bar_reversal, "
-                   f"bollinger_mean_reversion, supertrend, macd_cross, wyckoff_spring, wyckoff_sos",
+                   f"bollinger_mean_reversion, supertrend, macd_cross, wyckoff_spring, wyckoff_sos, "
+                   f"vsa_climax_reversal",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -1378,6 +1455,14 @@ def backtest(
     range_lookback: int = 60,
     range_flatness_pct: float = 3.0,
     spring_pierce_pct: float = 0.3,
+    vsa_filter: bool = False,
+    no_demand_spread_mult: float = 0.7,
+    no_demand_vol_mult: float = 0.7,
+    avg_lookback: int = 20,
+    decline_lookback: int = 10,
+    climax_volume_mult: float = 2.0,
+    climax_spread_mult: float = 1.5,
+    climax_close_pct: float = 0.5,
     qty: float = 1,
 ):
     """
@@ -1390,9 +1475,16 @@ def backtest(
     strategy=orb_breakout/orb_volume -> params: orb_minutes, sma_fast, sma_slow,
                                         open_min, ma_type ("sma"/"ema" - see
                                         that branch's own comment in
-                                        add_strategy_signal) (orb_volume also: volume_mult)
+                                        add_strategy_signal) (orb_volume also: volume_mult),
+                                        vsa_filter (opt-in "No Demand" bar
+                                        filter on the trigger bar - see
+                                        STRATEGY_LOG.md #38), no_demand_spread_mult,
+                                        no_demand_vol_mult
     strategy=wyckoff_spring/wyckoff_sos -> params: range_lookback, range_flatness_pct,
                                         spring_pierce_pct, volume_mult
+    strategy=vsa_climax_reversal  -> params: avg_lookback, decline_lookback,
+                                        climax_volume_mult, climax_spread_mult,
+                                        climax_close_pct (STRATEGY_LOG.md #39)
     strategy=vwap_reclaim         -> no extra params
     strategy=vwap_mean_reversion  -> params: bb_std
     strategy=vwap_breakout_retest -> params: bb_std, retest_pct
@@ -1414,11 +1506,19 @@ def backtest(
         params = {
             "orb_minutes": orb_minutes, "sma_fast": sma_fast, "sma_slow": sma_slow,
             "open_min": open_min, "volume_mult": volume_mult, "ma_type": ma_type,
+            "vsa_filter": vsa_filter, "no_demand_spread_mult": no_demand_spread_mult,
+            "no_demand_vol_mult": no_demand_vol_mult,
         }
     elif strategy in ("wyckoff_spring", "wyckoff_sos"):
         params = {
             "range_lookback": range_lookback, "range_flatness_pct": range_flatness_pct,
             "spring_pierce_pct": spring_pierce_pct, "volume_mult": volume_mult,
+        }
+    elif strategy == "vsa_climax_reversal":
+        params = {
+            "avg_lookback": avg_lookback, "decline_lookback": decline_lookback,
+            "climax_volume_mult": climax_volume_mult, "climax_spread_mult": climax_spread_mult,
+            "climax_close_pct": climax_close_pct,
         }
     elif strategy == "vwap_reclaim":
         params = {}
