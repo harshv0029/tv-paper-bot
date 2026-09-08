@@ -401,6 +401,8 @@ function ensureCard(symbol, label) {
       <span><i class="swatch" style="background:#ef4444"></i>Stop</span>
       <span><i class="swatch" style="background:#22c55e"></i>Target</span>
       <span><i class="swatch" style="background:#f59e0b"></i>Opening range</span>
+      <span><i class="swatch" style="background:rgba(239,68,68,0.35)"></i>Risk zone</span>
+      <span><i class="swatch" style="background:rgba(34,197,94,0.35)"></i>Reward zone</span>
       <span class="sma-legend" id="sma-legend-${symbol}"></span>
     </div>
   `;
@@ -435,11 +437,53 @@ function ensureCard(symbol, label) {
   // open - live positions only (see refresh()'s equityPositions loop).
   const smaFastSeries = chart.addLineSeries({ color: "#a78bfa", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
   const smaSlowSeries = chart.addLineSeries({ color: "#38bdf8", lineWidth: 2, priceLineVisible: false, lastValueVisible: false });
+  // SL/target ZONE shading (2026-09-08, explicit user instruction + a
+  // reference screenshot: "draw similar SL and target graph... what
+  // each trade is aiming for") - the dashed priceLines below already
+  // marked the three levels, but a single line reads as "a boundary",
+  // not "the size of the risk you're taking vs. the reward you're
+  // aiming for" the way a shaded band does at a glance. Two area
+  // series, each filling between its own flat value line and a
+  // baseValue at another fixed price (lightweight-charts' own
+  // baseValue-relative-fill feature) - riskZoneSeries fills red between
+  // stop (base) and entry (value); targetZoneSeries fills green between
+  // entry (base) and target (value). Both redrawn every refresh (see
+  // setZones) so the red zone visibly shrinks as the trailing stop
+  // ratchets up, and the green zone visibly grows as the leading
+  // target extends - the two boundaries the strategy actually manages
+  // this trade between, made visible instead of implied.
+  const riskZoneSeries = chart.addAreaSeries({
+    baseValue: { type: "price", price: 0 }, topColor: "rgba(239,68,68,0.16)",
+    bottomColor: "rgba(239,68,68,0.03)", lineColor: "rgba(239,68,68,0.45)", lineWidth: 1,
+    priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+  });
+  const targetZoneSeries = chart.addAreaSeries({
+    baseValue: { type: "price", price: 0 }, topColor: "rgba(34,197,94,0.16)",
+    bottomColor: "rgba(34,197,94,0.03)", lineColor: "rgba(34,197,94,0.45)", lineWidth: 1,
+    priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+  });
   new ResizeObserver(entries => chart.applyOptions({ width: entries[0].contentRect.width }))
     .observe(document.getElementById(`chart-${symbol}`));
 
-  charts[symbol] = { chart, series, smaFastSeries, smaSlowSeries, priceLines: [] };
+  charts[symbol] = { chart, series, smaFastSeries, smaSlowSeries, riskZoneSeries, targetZoneSeries, priceLines: [] };
   return charts[symbol];
+}
+
+function setZones(entry, pos, candles) {
+  if (!candles.length || pos.stop_loss_native == null || pos.target_native == null || pos.entry_price_native == null) {
+    entry.riskZoneSeries.setData([]);
+    entry.targetZoneSeries.setData([]);
+    return;
+  }
+  const t0 = candles[0].time, t1 = candles[candles.length - 1].time;
+  entry.riskZoneSeries.applyOptions({ baseValue: { type: "price", price: pos.stop_loss_native } });
+  entry.riskZoneSeries.setData([
+    { time: t0, value: pos.entry_price_native }, { time: t1, value: pos.entry_price_native },
+  ]);
+  entry.targetZoneSeries.applyOptions({ baseValue: { type: "price", price: pos.entry_price_native } });
+  entry.targetZoneSeries.setData([
+    { time: t0, value: pos.target_native }, { time: t1, value: pos.target_native },
+  ]);
 }
 
 function setPriceLines(entry, pos) {
@@ -556,6 +600,7 @@ async function updateCandles(symbol, entry, pos) {
   if (preview !== null && preview > pos.stop_loss_native) {
     pos.stop_loss_native = preview;
   }
+  setZones(entry, pos, candles);
 
   entry.chart.timeScale().fitContent();
   return candles.length ? candles[candles.length - 1].close : null;
@@ -926,6 +971,7 @@ const CONSTRAINT_LABELS = {
   min_entry_confidence_pct: "Minimum trend confidence to enter (%)",
   daily_risk_pct: "Daily loss cap (% of capital)",
   rr: "Minimum reward:risk",
+  max_hold_minutes: "Max hold time before stale-timeout exit (min)",
   entry_scan_batch_size: "Entry-scan batch size (symbols/tick)",
   real_daily_cap_inr: "Real trading daily cap (₹)",
   daily_loss_reset_epoch: "Paper loss-budget reset point (unix time) — use the Reset button above instead of editing this directly",
