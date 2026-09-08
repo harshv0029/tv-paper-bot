@@ -152,6 +152,65 @@ def test_vwap_reclaim_signal_matches_hand_computed_vwap():
     assert out["vwap"].tolist() == pytest.approx([9.0, 10.0, 9.0 + 1 / 3], abs=1e-6)
 
 
+def _wyckoff_fixture():
+    # 23 bars, range_lookback=10 (small, so the fixture stays hand-
+    # verifiable), one calendar day (Asia/Kolkata, tz-aware so the
+    # function's own tz_convert is a no-op - same simplification the VWAP
+    # fixture above uses).
+    #
+    # Bars 0-19 (20 bars): flat baseline, Close=100 High=101 Low=99 Vol=100.
+    #   - warms up both rolling(10) (range) and rolling(20) (volume avg).
+    # Bar 20 (the Spring): Close=99.5 High=101 Low=98.0 Vol=200.
+    #   range_high[20]=max(High[10:20])=101, range_low[20]=min(Low[10:20])=99
+    #   range width = (101-99)/100 = 2% <= 3% -> is_range[20]=True
+    #   Low[20]=98.0 < range_low[20]*(1-0.005)=98.505 -> pierced
+    #   Close[20]=99.5 > range_low[20]=99 -> closed back inside
+    #   vol_avg[20]=mean(Vol[0:20])=100, 200 > 100*1.5=150 -> volume confirms
+    #   => spring[20] = True
+    # Bar 21 (hold): Close=100.5 High=101 Low=99.5 Vol=100.
+    #   range_low[21]=min(Low[11:21])=min(99*9, 98.0)=98.0 (bar 20's own
+    #   wick now enters the window) - Close[21]=100.5 is still > 98.0, so
+    #   the spring's hold is NOT invalidated.
+    # Bar 22 (the SOS breakout): Close=102 High=102.5 Low=100 Vol=300.
+    #   range_high[22]=max(High[12:22])=101, so Close[22]=102 > 101
+    #   vol_avg[22]=mean(Vol[2:22])=(18*100+200+100)/20=105, 300>105*1.5=157.5
+    #   spring_seen[22]=valid_spring_active[21]=True (never invalidated)
+    #   => breakout[22] = True
+    n_base = 20
+    closes = [100.0] * n_base + [99.5, 100.5, 102.0]
+    highs = [101.0] * n_base + [101.0, 101.0, 102.5]
+    lows = [99.0] * n_base + [98.0, 99.5, 100.0]
+    vols = [100.0] * n_base + [200.0, 100.0, 300.0]
+    dates = pd.date_range("2026-01-05 09:15", periods=len(closes), freq="5min", tz="Asia/Kolkata")
+    return pd.DataFrame({
+        "Date": dates, "Open": closes, "High": highs, "Low": lows, "Close": closes, "Volume": vols,
+    })
+
+
+def test_wyckoff_spring_signal_matches_hand_computed_range_and_spring():
+    df = _wyckoff_fixture()
+    out = main.add_strategy_signal(df, "wyckoff_spring", {"range_lookback": 10})
+    assert out["long"].tolist() == [False] * 20 + [True, True, True]
+
+
+def test_wyckoff_sos_signal_matches_hand_computed_breakout():
+    df = _wyckoff_fixture()
+    out = main.add_strategy_signal(df, "wyckoff_sos", {"range_lookback": 10})
+    assert out["long"].tolist() == [False] * 22 + [True]
+
+
+def test_wyckoff_sos_requires_a_prior_spring_not_a_bare_breakout():
+    # Same breakout bar (Close/High/Low/Volume unchanged) but with the
+    # spring bar's Low/Volume replaced by baseline values, so no spring
+    # ever fires - the SOS breakout must NOT trigger without one, even
+    # though the price/volume breakout condition alone is still met.
+    df = _wyckoff_fixture()
+    df.loc[20, "Low"] = 99.0
+    df.loc[20, "Volume"] = 100.0
+    out = main.add_strategy_signal(df, "wyckoff_sos", {"range_lookback": 10})
+    assert not out["long"].any(), "a bare breakout with no prior spring must not fire wyckoff_sos"
+
+
 def test_unsupported_strategy_raises():
     df = pd.DataFrame({
         "Date": pd.date_range("2026-01-01", periods=2, freq="D"),
