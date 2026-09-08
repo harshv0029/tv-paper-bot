@@ -404,6 +404,29 @@ def cancel_existing_resting_sl(kotak_trading_symbol: str) -> dict:
     return {"cancelled": cancelled, "detail": None}
 
 
+def _round_to_tick(price: float, tick: float = 0.05) -> float:
+    """Rounds `price` to the nearest multiple of `tick`. Default 0.05 is
+    NSE's standard cash-equity tick size (scrips priced under ~Rs 15 use
+    0.01, but every multiple of 0.05 is ALSO a valid multiple of 0.01, so
+    rounding to 0.05 is safe/compliant for both cases without needing a
+    per-symbol tick-size lookup this codebase doesn't have).
+
+    BUG found live 2026-09-08: place_real_stop_loss's own prior fix set
+    price = trigger_price with no rounding at all, reasoning that
+    trigger_price came from the paper engine's own real-candle-derived
+    stop level and was therefore already tick-aligned - true for the
+    ATR/swing-based stops that reasoning was written for, but NOT true
+    for main.py's reconcile-endpoint governance-backfill path, which
+    computes stop_loss/target synthetically as
+    round(entry_price * pct_math, 2) - plain 2-decimal rounding, with no
+    guarantee of tick alignment. AARTIIND-EQ's backfilled stop of 497.28
+    was rejected outright ("Order price is not a multiple of tick size"),
+    leaving a real position with NO resting stop. Rounding to the nearest
+    tick at the Kotak-order boundary (here, not at every computation
+    site) fixes every caller uniformly."""
+    return round(round(price / tick) * tick, 2)
+
+
 def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
     """Places a REAL resting stop-loss sell order at Kotak for an already-
     open real position, so the stop fires at the exchange even if this app
@@ -440,6 +463,7 @@ def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: flo
     except Exception as e:
         return {"ok": False, "detail": f"login failed: {e}"}
 
+    trigger_price = _round_to_tick(trigger_price)
     limit_price = trigger_price
     try:
         resp = client.place_order(
@@ -486,6 +510,7 @@ def place_real_target(kotak_trading_symbol: str, qty: int, target_price: float) 
     except Exception as e:
         return {"ok": False, "detail": f"login failed: {e}"}
 
+    target_price = _round_to_tick(target_price)
     try:
         resp = client.place_order(
             exchange_segment="nse_cm",
