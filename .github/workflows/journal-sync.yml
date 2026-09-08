@@ -59,6 +59,7 @@ on:
       - "docs/trade_outcomes_log.json"
       - "docs/attempt_log.json"
       - "docs/real_trade_log.json"
+      - "docs/real_order_log.json"
   schedule:
     # UTC 3:00-10:55 = IST 8:30-16:25, every 15 min, Mon-Fri - same market-
     # hours window as live-signals.yml, coarser interval (this job is
@@ -133,6 +134,18 @@ jobs:
             "https://tv-paper-bot-gdan.onrender.com/kotak-neo/real-trades?token=${KOTAK_NEO_API_TOKEN}" \
             -o /tmp/real-trades.json || echo '{"trades":[]}' > /tmp/real-trades.json
           cat /tmp/real-trades.json
+          echo
+          # Order state-transition log (2026-09-08, explicit user
+          # instruction: "I want to see the log of what order you have
+          # placed and from what prev state to what current new order
+          # state") - no token needed, same public-real-data precedent as
+          # /real-trades-today-bot-only. days=2 gives a little overlap
+          # margin over this job's own ~15min cadence, cheap since dedup
+          # below is by id anyway.
+          curl -sS --retry 2 --retry-delay 5 -m 30 \
+            "https://tv-paper-bot-gdan.onrender.com/real-order-log?days=2" \
+            -o /tmp/real-order-log.json || echo '{"events":[]}' > /tmp/real-order-log.json
+          cat /tmp/real-order-log.json
           echo
 
       - name: Write the open-positions journal
@@ -216,6 +229,26 @@ jobs:
           mv /tmp/real_trade_log_merged.json docs/real_trade_log.json
           echo "real_trade_log.json now has $(jq 'length' docs/real_trade_log.json) entries"
 
+      - name: Append new order state-transition events to the permanent order log
+        run: |
+          # The durable, forever-kept record behind static/order-log.html -
+          # real_order_events (SQLite) is exposed by the same reasoning as
+          # every other real_* table here. Deduped by id (real_order_events'
+          # own AUTOINCREMENT primary key), same pattern as real_trade_log.json
+          # above, so a re-run never double-appends the same event.
+          mkdir -p docs
+          test -f docs/real_order_log.json || echo '[]' > docs/real_order_log.json
+          jq -s '
+            (.[0] // []) as $existing |
+            (.[1].events // []) as $new |
+            ($existing + $new)
+            | group_by(.id)
+            | map(.[0])
+            | sort_by(.id)
+          ' docs/real_order_log.json /tmp/real-order-log.json > /tmp/real_order_log_merged.json
+          mv /tmp/real_order_log_merged.json docs/real_order_log.json
+          echo "real_order_log.json now has $(jq 'length' docs/real_order_log.json) entries"
+
       - name: Append newly-closed trades to the outcome history
         run: |
           test -f docs/trade_outcomes_log.json || echo '[]' > docs/trade_outcomes_log.json
@@ -252,7 +285,8 @@ jobs:
           git add state/open_positions.json state/trading_control.json \
             state/real_trading_control.json state/real_positions.json state/real_trades_today.json \
             state/scheduler_check_counts.json \
-            docs/trade_outcomes_log.json docs/attempt_log.json docs/real_trade_log.json
+            docs/trade_outcomes_log.json docs/attempt_log.json docs/real_trade_log.json \
+            docs/real_order_log.json
           if git diff --cached --quiet; then
             echo "No change - nothing to commit."
           else
