@@ -242,6 +242,69 @@ def test_wyckoff_sos_requires_a_prior_spring_not_a_bare_breakout():
     assert not out["long"].any(), "a bare breakout with no prior spring must not fire wyckoff_sos"
 
 
+def test_vsa_climax_reversal_matches_hand_computed_climax_and_invalidation():
+    # docs/STRATEGY_LOG.md #39. 18 bars, avg_lookback=10, decline_lookback=5.
+    # Bars 0-9 (10): baseline warmup, Close=100 High=101 Low=99 (spread=2) Vol=100.
+    # Bars 10-14 (5): decline, Close=98,96,94,92,90 (High=Close+1,Low=Close-1,
+    #   spread=2), Vol=100 - establishes prior_decline for bar 15
+    #   (Close[15] < Close[15-5]=Close[10]=98) and keeps spread/vol baseline
+    #   unchanged for the rolling(10) averages.
+    # Bar 15 (the climax): Close=88 High=92 Low=80 (spread=12) Vol=300.
+    #   vol_avg[15] = mean(Vol[5:15]) = 100 (all baseline/decline bars are
+    #   100) -> 300 > 100*2.0=200 (climax_volume_mult) -> volume confirms
+    #   spread_avg[15] = mean(spread[5:15]) = 2 -> 12 > 2*1.5=3 (climax_spread_mult)
+    #   close_position[15] = (88-80)/(92-80) = 0.667 >= 0.5 (climax_close_pct)
+    #   prior_decline[15]: Close[15]=88 < Close[10]=98 -> True
+    #   => climax[15] = True
+    # Bar 16 (hold): Close=90 > climax_low(80) -> still holding.
+    # Bar 17 (invalidated): Close=78 < climax_low(80) -> holding ends, False.
+    closes = [100.0] * 10 + [98.0, 96.0, 94.0, 92.0, 90.0] + [88.0, 90.0, 78.0]
+    highs = [101.0] * 10 + [99.0, 97.0, 95.0, 93.0, 91.0] + [92.0, 91.0, 79.0]
+    lows = [99.0] * 10 + [97.0, 95.0, 93.0, 91.0, 89.0] + [80.0, 89.0, 77.0]
+    vols = [100.0] * 15 + [300.0, 100.0, 100.0]
+    dates = pd.date_range("2026-01-05 09:15", periods=len(closes), freq="5min", tz="Asia/Kolkata")
+    df = pd.DataFrame({
+        "Date": dates, "Open": closes, "High": highs, "Low": lows, "Close": closes, "Volume": vols,
+    })
+    params = {
+        "avg_lookback": 10, "decline_lookback": 5, "climax_volume_mult": 2.0,
+        "climax_spread_mult": 1.5, "climax_close_pct": 0.5,
+    }
+    out = main.add_strategy_signal(df, "vsa_climax_reversal", params)
+    assert out["long"].tolist() == [False] * 15 + [True, True, False]
+
+
+def test_orb_breakout_vsa_filter_suppresses_a_no_demand_trigger_bar():
+    # docs/STRATEGY_LOG.md #38. 21 bars, orb_minutes=5 (only bar 0, at
+    # 09:15, is inside the ORB window) -> orb_high = High[0] = 101, held
+    # for the rest of the day. Bars 1-19 (19 bars, flat baseline Close=100
+    # High=101 Low=99 spread=2 Vol=1000) warm up the vsa_filter's own
+    # rolling(20) spread/volume averages (rolling(20).shift(1) at bar 20
+    # needs exactly bars 0-19). Bar 20 is a "No Demand" trigger bar: an UP
+    # bar (Close=101.2 > Open=101.1, and > orb_high=101, so the plain
+    # breakout condition IS met) with a narrow spread (0.3 < 2*0.7=1.4)
+    # and low volume (500 < 1000*0.7=700) - the classic weak-rally tell.
+    n_base = 20
+    closes = [100.0] * n_base + [101.2]
+    opens = [100.0] * n_base + [101.1]
+    highs = [101.0] * n_base + [101.3]
+    lows = [99.0] * n_base + [101.0]
+    vols = [1000.0] * n_base + [500.0]
+    dates = pd.date_range("2026-01-05 09:15", periods=len(closes), freq="5min", tz="Asia/Kolkata")
+    df = pd.DataFrame({
+        "Date": dates, "Open": opens, "High": highs, "Low": lows, "Close": closes, "Volume": vols,
+    })
+    params = {"orb_minutes": 5, "sma_fast": 2, "sma_slow": 3, "open_min": 9 * 60 + 15}
+
+    out_default = main.add_strategy_signal(df.copy(), "orb_breakout", params)
+    assert bool(out_default["long"].iloc[20]) is True, \
+        "vsa_filter defaults to False - a No Demand trigger bar must still fire, unchanged behavior"
+
+    out_filtered = main.add_strategy_signal(df.copy(), "orb_breakout", {**params, "vsa_filter": True})
+    assert bool(out_filtered["long"].iloc[20]) is False, \
+        "vsa_filter=True must suppress a breakout triggered by a No Demand bar"
+
+
 def test_unsupported_strategy_raises():
     df = pd.DataFrame({
         "Date": pd.date_range("2026-01-01", periods=2, freq="D"),
