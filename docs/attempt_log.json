@@ -113689,5 +113689,91 @@
         }
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-08T09:05:02Z",
+    "attempts": {
+      "ABBOTINDIA.NS": {
+        "checked_at_utc": 1788858294.7973156,
+        "symbol": "ABBOTINDIA.NS",
+        "status": "checked",
+        "time_local": "2026-09-08 14:34:35.232095",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 25555.0,
+        "orb_high": 25960.0,
+        "orb_low": 25750.0,
+        "sma_fast": 25496.666666666668,
+        "sma_slow": 25499.52380952381,
+        "trend": "down",
+        "capital": 282.29999999999995,
+        "daily_loss_cap": 5.645999999999999,
+        "realized_today": 6.08,
+        "realized_today_pct": 2.154,
+        "budget_remaining": 5.65,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "3BBLACKBIO.NS": {
+        "checked_at_utc": 1788858296.3974366,
+        "symbol": "3BBLACKBIO.NS",
+        "status": "checked",
+        "time_local": "2026-09-08 14:34:54.798004",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 1447.0,
+        "orb_high": 1565.0,
+        "orb_low": 1488.0,
+        "sma_fast": 1444.977783203125,
+        "sma_slow": 1446.385718936012,
+        "trend": "down",
+        "capital": 282.29999999999995,
+        "daily_loss_cap": 5.645999999999999,
+        "realized_today": 6.08,
+        "realized_today_pct": 2.154,
+        "budget_remaining": 5.65,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "ABFRL.NS": {
+        "checked_at_utc": 1788858299.15255,
+        "symbol": "ABFRL.NS",
+        "status": "checked",
+        "time_local": "2026-09-08 14:34:56.398027",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 51.900001525878906,
+        "orb_high": 53.060001373291016,
+        "orb_low": 52.31999969482422,
+        "sma_fast": 51.87333340115018,
+        "sma_slow": 52.09285699753534,
+        "trend": "down",
+        "capital": 282.29999999999995,
+        "daily_loss_cap": 5.645999999999999,
+        "realized_today": 6.08,
+        "realized_today_pct": 2.154,
+        "budget_remaining": 5.65,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      }
+    }
   }
 ]
