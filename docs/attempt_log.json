@@ -89166,5 +89166,44 @@
         "time_local": "2026-09-08 03:04:31.349445"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-08T03:54:24Z",
+    "attempts": {
+      "ABB.NS": {
+        "checked_at_utc": 1788839658.384752,
+        "symbol": "ABB.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 2,
+        "time_local": "2026-09-08 09:24:00.571676"
+      },
+      "^NSEBANK": {
+        "checked_at_utc": 1788839660.0815825,
+        "symbol": "^NSEBANK",
+        "status": "checked",
+        "time_local": "2026-09-08 09:24:18.471289",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 56924.6484375,
+        "orb_high": 57041.3515625,
+        "orb_low": 56857.75,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1945.07,
+        "daily_loss_cap": 38.901399999999995,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.9,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      }
+    }
   }
 ]
