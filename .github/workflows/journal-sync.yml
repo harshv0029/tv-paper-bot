@@ -16,8 +16,9 @@ name: Position Journal Sync
 # that got X% of the way to target, what fraction actually hit it") instead
 # of guessing at a confidence number.
 #
-# Two triggers, for two different loss windows (found 2026-09-03 -
-# see docs/TRADING_CONSTRAINTS.md "Trade-view sync" section):
+# Three triggers, for three different loss windows (push/dispatch found
+# 2026-09-03 - see docs/TRADING_CONSTRAINTS.md "Trade-view sync" section;
+# schedule: added 2026-09-08):
 #  - `push` to main: a push here is what actually causes a Render
 #    redeploy (which wipes the DB) - syncing right after the push, before
 #    Render finishes rebuilding (~10s vs Render's 1-3 min), catches any
@@ -27,11 +28,24 @@ name: Position Journal Sync
 #    GitHub does not let re-trigger push-triggered workflows - no loop
 #    risk - but paths-ignore below skips them anyway to avoid a wasted run.
 #  - `workflow_dispatch`: manual/on-demand, and what the recurring CCR
-#    Routine ("Journal sync - tv-paper-bot") calls on a schedule as a
-#    backstop for redeploys NOT caused by a push here (e.g. Render's
-#    free-tier inactivity spin-down). GH Actions' own `schedule:` cron
-#    proved unreliable in practice earlier - the Routine is the reliable
-#    recurring trigger instead.
+#    Routine ("Journal sync - tv-paper-bot") calls on an HOURLY schedule
+#    (1 hour is that Routine mechanism's own hard floor - confirmed live
+#    2026-09-08, a shorter interval is rejected outright) as a backstop
+#    for redeploys NOT caused by a push here (e.g. Render's free-tier
+#    inactivity spin-down).
+#  - `schedule` below: explicit user finding 2026-09-08 ("checks today"/
+#    scanned-count should be non-decreasing all day, "store it somewhere
+#    so this information is intact during the day") - an hourly-only
+#    backstop still loses up to ~1h of check-counts on an idle-spindown
+#    restart landing between syncs. GH Actions' own `schedule:` cron was
+#    avoided here originally (documented above as "unreliable in
+#    practice"), but live-signals.yml already runs one successfully every
+#    5 min for its own purpose - reusing that same proven cadence here,
+#    market-hours only (outside that window there's ~nothing new to
+#    scan/lose), shrinks the realistic loss window from ~1h down to
+#    ~15min even accounting for GH's occasional skipped firing (several
+#    tries per hour instead of one). Does not replace the hourly Routine -
+#    that's still the off-hours/overnight backstop.
 on:
   push:
     branches: [main]
@@ -41,9 +55,16 @@ on:
       - "state/real_trading_control.json"
       - "state/real_positions.json"
       - "state/real_trades_today.json"
+      - "state/scheduler_check_counts.json"
       - "docs/trade_outcomes_log.json"
       - "docs/attempt_log.json"
       - "docs/real_trade_log.json"
+  schedule:
+    # UTC 3:00-10:55 = IST 8:30-16:25, every 15 min, Mon-Fri - same market-
+    # hours window as live-signals.yml, coarser interval (this job is
+    # heavier: 6+ live HTTP fetches + a git commit, vs that one's simple
+    # polls) but still well under the CCR Routine's 1h floor.
+    - cron: "*/15 3-10 * * 1-5"
   workflow_dispatch: {}
 
 permissions:
