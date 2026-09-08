@@ -29,5 +29,33 @@
         "qty": 16
       }
     ]
+  },
+  {
+    "reconciled_at_utc": 1788849440.8780885,
+    "real_balance_inr": 1029.6599999999999,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 1,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 1,
+    "adopted": [
+      {
+        "symbol": "ATL.NS",
+        "kotak_trading_symbol": "ATL-EQ",
+        "qty": 16,
+        "entry_price": 25.94,
+        "entry_order_id": "260908000313004",
+        "sl_order_id": "260908000313366",
+        "sl_trigger_price": 25.68
+      }
+    ]
   }
 ]
