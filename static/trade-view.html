@@ -1092,7 +1092,7 @@ function optionLabel(pos) {
   return `${pos.underlying} ${(pos.right || "").toUpperCase()} ${fmt(pos.strike, 0)}`;
 }
 
-function renderTradeLog(summary, history, realTrades) {
+function renderTradeLog(summary, history, realTrades, botRealTrades) {
   const body = document.getElementById("log-body");
   const openPositions = summary.open_positions || [];
   // Closed trades: UNION of /trade-history (docs/trade_outcomes_log.json,
@@ -1214,9 +1214,42 @@ function renderTradeLog(summary, history, realTrades) {
       <td colspan="3"></td>
     </tr>` : "";
 
+  // Bot-only real trades - explicit user request 2026-09-08: "add a bot-
+  // only real-trade view (filtered to just this app's own order IDs,
+  // separate from the whole-account aggregate) so you have a row that's
+  // actually comparable to the paper one at a glance" - realRows above
+  // is the WHOLE Kotak account's activity in a symbol (deliberately
+  // includes manual trades too, per the 2026-09-07 finding), so it can
+  // diverge from the paper row for reasons that have nothing to do with
+  // this app's own logic (a manual trade in the same symbol). These rows
+  // are built the SAME shape as the paper closedRows below specifically
+  // so the two are directly comparable line-by-line.
+  const botRealRows = (botRealTrades?.closed_trades || []).map(t => `<tr class="real-trade-row">
+      <td><span class="log-status" style="background:rgba(168,85,247,.18);color:#c084fc;">REAL</span></td>
+      <td class="sym">${displayName(t.symbol)}</td>
+      <td class="log-type">Equity</td>
+      <td class="log-type">${t.strategy}</td>
+      <td class="num">${fmt(t.entry_price_native, 2)}</td>
+      <td class="num">${fmt(t.exit_price_native, 2)}</td>
+      <td class="num">${fmt(t.qty, 0)}</td>
+      <td class="num">${dash}</td>
+      <td class="num">${pnlSpan(t.pnl_inr ?? 0)}</td>
+      <td class="num">${dash}</td>
+      <td class="num">${dash}</td>
+      <td class="log-type">Kotak (this bot's own order)</td>
+      <td class="meta">${timeAgo(t.exit_time_utc)}</td>
+    </tr>`);
+  const botRealTotalInr = (botRealTrades?.closed_trades || []).reduce((s, t) => s + (t.pnl_inr ?? 0), 0);
+  const botRealTotalRow = botRealRows.length ? `<tr class="log-total-row">
+      <td colspan="8">TOTAL (real, this bot's own trades only)</td>
+      <td class="num">${pnlSpan(botRealTotalInr)}</td>
+      <td colspan="3"></td>
+    </tr>` : "";
+
   const sectionRow = (label) => `<tr class="log-section-row"><td colspan="13">${label}</td></tr>`;
   const sections = [];
   if (liveRows.length) sections.push(sectionRow(`Live positions (${liveRows.length})`), ...liveRows);
+  if (botRealRows.length) sections.push(sectionRow(`Real trades today, this bot's own only (${botRealRows.length}) — directly comparable to the paper row below`), ...botRealRows, botRealTotalRow);
   if (realRows.length) sections.push(sectionRow(`Real trades today (${realRows.length}) — Kotak, outside this app's own order placement`), ...realRows, realTotalRow);
   sections.push(sectionRow(`Closed today, paper (${closedRows.length}) — transacted, realized P&amp;L`));
   sections.push(...(closedRows.length ? closedRows : [`<tr><td colspan="13" class="scan-idle">No trades closed yet today</td></tr>`]));
@@ -1278,13 +1311,26 @@ async function refresh() {
     const schedStatus = await fetchJSON(`${ORIGIN}/scheduler-status`).catch(() => null);
     const realCapitalInr = Math.max(1, schedStatus?.scheduler_capital_inr ?? 0);
 
-    const [summary, history, realTrades] = await Promise.all([
+    const [summary, history, realTrades, botRealTrades] = await Promise.all([
       fetchJSON(`${ORIGIN}/daily-summary?capital=${realCapitalInr}&daily_risk_pct=2`),
       fetchJSON(`${ORIGIN}/trade-history?days=1`),
       fetchJSON(`${ORIGIN}/real-trades-today`).catch(() => ({ trades: [] })),
+      fetchJSON(`${ORIGIN}/real-trades-today-bot-only`).catch(() => ({ closed_trades: [] })),
     ]);
-    document.getElementById("ds-capital-available").textContent =
-      `₹${fmt(summary.capital_available_inr ?? realCapitalInr)}`;
+    // BUG found live 2026-09-08 (explicit user finding: "current balance
+    // is 1596 as of now but wrong here" - showing -Rs942.61 instead):
+    // this tile is labeled "real, Kotak Neo" but was fed summary.
+    // capital_available_inr - a PAPER-side figure (daily-summary's own
+    // capital minus PAPER capital_deployed_inr, i.e. paper position
+    // notional sized against a DIFFERENT, larger capital-at-entry-time).
+    // Subtracting paper notional from real capital produces nonsense
+    // (deeply negative) whenever paper sizing exceeds current real
+    // capital, which is exactly what happened. realCapitalInr (fetched
+    // above from /scheduler-status - the SAME live "Net" figure the
+    // scheduler itself sizes every real trade against) is already the
+    // correct, actually-real number - use it directly, no paper-notional
+    // subtraction at all for a tile that claims to be real.
+    document.getElementById("ds-capital-available").textContent = `₹${fmt(realCapitalInr)}`;
     const openPositions = summary.open_positions || [];
     const equityPositions = openPositions.filter(p => p.instrument !== "option");
     const hdrStatus = document.getElementById("hdr-status");
@@ -1305,7 +1351,7 @@ async function refresh() {
             ? `<div class="empty">No open positions. Last closed: ${displayName(lastClosed.symbol)} — ${lastClosed.exit_reason}, P&amp;L ₹${fmt(lastClosed.pnl_inr)}. Waiting for next signal…</div>`
             : `<div class="empty">No open positions yet. Waiting for the strategy to fire…</div>`;
       }
-      renderTradeLog(summary, history, realTrades.trades);
+      renderTradeLog(summary, history, realTrades.trades, botRealTrades);
       return;
     }
 
@@ -1320,7 +1366,7 @@ async function refresh() {
       renderStats(pos.symbol, pos, lastClose);
     }
 
-    renderTradeLog(summary, history, realTrades.trades);
+    renderTradeLog(summary, history, realTrades.trades, botRealTrades);
   } catch (e) {
     document.getElementById("cards").innerHTML = `<div class="err">fetch failed: ${e.message}</div>`;
   }
