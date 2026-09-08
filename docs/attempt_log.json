@@ -116883,5 +116883,43 @@
         "time_local": "2026-09-08 17:36:35.540419"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-08T13:05:47Z",
+    "attempts": {
+      "GC=F": {
+        "checked_at_utc": 1788872733.294298,
+        "symbol": "GC=F",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 107,
+        "time_local": "2026-09-08 13:05:33.286568"
+      },
+      "AGL.NS": {
+        "checked_at_utc": 1788872733.2952669,
+        "symbol": "AGL.NS",
+        "status": "closed",
+        "time_local": "2026-09-08 18:35:33.295164"
+      },
+      "CL=F": {
+        "checked_at_utc": 1788872734.5279615,
+        "symbol": "CL=F",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 108,
+        "time_local": "2026-09-08 13:05:33.295861"
+      },
+      "SI=F": {
+        "checked_at_utc": 1788872735.6343656,
+        "symbol": "SI=F",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 108,
+        "time_local": "2026-09-08 13:05:34.529218"
+      },
+      "BHANDARI.NS": {
+        "checked_at_utc": 1788872735.6355233,
+        "symbol": "BHANDARI.NS",
+        "status": "closed",
+        "time_local": "2026-09-08 18:35:35.635387"
+      }
+    }
   }
 ]
