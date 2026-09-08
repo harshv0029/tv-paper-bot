@@ -380,6 +380,30 @@ def init_db():
             )
             """
         )
+        # T1-holdings restriction blacklist (2026-09-08, explicit user
+        # instruction: "if ever such asset is classified as T1 holding then
+        # dont trade in that as they are risk"). Kotak's own RMS rule
+        # ("RMS:Rule: Check T1 holdings...No Holdings Present...") rejects
+        # an algo-tagged SELL (SL placement or exit) against a same-day CNC
+        # buy until T1 settlement - seen live, repeatedly, across many
+        # symbols this session (AGL, BHANDARI, AARTIIND, ADANIPOWER,
+        # ABSLNN50ET, ADVENTHTL). A symbol that's already hit this once
+        # today is a real execution risk (can't reliably protect a fresh
+        # position with a resting stop for potentially the rest of the
+        # day) - flagged here the first time it's seen, checked before any
+        # NEW real entry. day-scoped, not permanent: T1 settlement clears
+        # overnight, so a symbol flagged today may trade fine tomorrow.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS real_t1_restricted (
+                symbol TEXT NOT NULL,
+                day TEXT NOT NULL,
+                flagged_at REAL NOT NULL,
+                detail TEXT,
+                PRIMARY KEY (symbol, day)
+            )
+            """
+        )
         # sl_order_id/sl_trigger_price added 2026-09-07 for real resting
         # stop-loss orders (see kotak_real_orders.place_real_stop_loss) -
         # no ALTER TABLE needed, this app's SQLite DB has no persistent
@@ -3450,14 +3474,36 @@ WATCHLIST = [
     # docs/strategy_log.xlsx, from before this symbol was briefly removed
     # then restored) - full 2% ceiling, same bar as the NSE indices.
     # Silver/crude: no evidence yet - half ceiling (1%) until they earn one.
+    # BUG found live 2026-09-08 (explicit user finding: "if the commodity
+    # market is open then why this error? GOLD/SILVER/CRUDE OIL -
+    # waiting_for_opening_range"): open_min=0 assumed the ORB window
+    # (mins 0-14) falls right after UTC midnight - but a live /history
+    # pull for GC=F (period=1d, interval=5m) showed the FIRST bar of every
+    # UTC-dated "today" bucket lands at 2026-09-08T00:00:00-04:00 =
+    # 04:00 UTC, not 00:00 UTC - Yahoo's own intraday data for these US-
+    # exchange futures is day-bucketed against US Eastern midnight, not
+    # UTC midnight. The old open_min=0 window (00:00-00:14 UTC) therefore
+    # fell entirely inside a 4-hour span with ZERO bars, every single day
+    # - orb_df was always empty, permanently stuck at
+    # "waiting_for_opening_range" regardless of how many hours the actual
+    # market had been open. This had likely never generated a single live
+    # entry for gold/silver/crude since these were added, despite paper-
+    # tracking running the whole time. open_min=240 (4:00 UTC = US Eastern
+    # midnight, EDT) matches where real data is confirmed to start.
+    # CAVEAT this codebase already accepts elsewhere (see IST_OFFSET_MIN's
+    # own "no holiday calendar" comment): no DST tracking here either - US
+    # Eastern is EDT (UTC-4) roughly mid-March to early November and EST
+    # (UTC-5) the rest of the year, so this drifts by up to 1 hour outside
+    # EDT season. Re-verify against a live /history pull after the next
+    # US DST changeover if the "waiting_for_opening_range" symptom returns.
     {"symbol": "GC=F", "orb_minutes": 15, "sma_fast": 20, "sma_slow": 21,
-     "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
+     "tz_offset_min": 0, "open_min": 240, "close_min": 1439, "squareoff_min": 1439,
      "trade_weekends": False, "currency": "USD", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "SI=F", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
+     "tz_offset_min": 0, "open_min": 240, "close_min": 1439, "squareoff_min": 1439,
      "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
     {"symbol": "CL=F", "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-     "tz_offset_min": 0, "open_min": 0, "close_min": 1439, "squareoff_min": 1439,
+     "tz_offset_min": 0, "open_min": 240, "close_min": 1439, "squareoff_min": 1439,
      "trade_weekends": False, "currency": "USD", "risk_pct": 1.0, "stop_pct": 1.0},
 ]
 
@@ -3524,6 +3570,41 @@ def _real_today_spent_inr(conn) -> float:
         (today,),
     ).fetchone()
     return float(row["s"] or 0.0)
+
+
+_T1_HOLDINGS_MARKER = "T1 holdings"  # exact substring Kotak's own RMS rejection uses
+
+
+def _flag_if_t1_restricted(conn, symbol: str, detail: str | None) -> None:
+    """Records `symbol` as T1-restricted for today the first time its
+    detail string carries Kotak's own RMS rejection marker - see
+    real_t1_restricted's own CREATE TABLE comment for the full reasoning.
+    Call this at every site that logs a real SL/exit rejection detail.
+    Idempotent (day-scoped PRIMARY KEY, INSERT OR IGNORE) and never raises -
+    a failure to flag must never break the real order flow it's observing."""
+    if not detail or _T1_HOLDINGS_MARKER not in detail:
+        return
+    today = ist_now().strftime("%Y-%m-%d")
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO real_t1_restricted (symbol, day, flagged_at, detail) VALUES (?, ?, ?, ?)",
+            (symbol, today, time.time(), detail),
+        )
+        conn.commit()
+        print(f"[T1-restricted] {symbol} flagged for {today} - new real entries blocked until tomorrow: {detail}")
+    except Exception as e:
+        print(f"[T1-restricted] failed to flag {symbol} (non-fatal): {e}")
+
+
+def _is_t1_restricted(conn, symbol: str) -> bool:
+    """True if `symbol` already hit the T1-holdings rejection today -
+    checked before any NEW real equity entry (see _maybe_place_real_entry).
+    Equity-only: F&O positions aren't CNC holdings and carry no T1
+    settlement restriction, so this is never checked on that path."""
+    today = ist_now().strftime("%Y-%m-%d")
+    return conn.execute(
+        "SELECT 1 FROM real_t1_restricted WHERE symbol = ? AND day = ?", (symbol, today)
+    ).fetchone() is not None
 
 
 def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,
@@ -3616,6 +3697,14 @@ def _maybe_place_real_entry(conn, symbol: str):
 
     if conn.execute("SELECT 1 FROM real_positions WHERE symbol = ?", (symbol,)).fetchone():
         _log_real_attempt(conn, symbol, "B", "skipped_already_open")
+        return
+
+    if _is_t1_restricted(conn, symbol):
+        _log_real_attempt(
+            conn, symbol, "B", "skipped_t1_restricted",
+            detail="already hit Kotak's T1-holdings RMS rejection today - "
+                   "a fresh position here couldn't be reliably protected with a resting stop",
+        )
         return
 
     import kotak_live_feed
@@ -3761,6 +3850,7 @@ def _maybe_place_real_entry(conn, symbol: str):
                     conn, symbol, "sl", "failed", kotak_trading_symbol=kotak_symbol,
                     prev_state="none", new_state="none (placement failed)", detail=sl_result.get("detail"),
                 )
+                _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
 
         # Real resting target/profit-booking order (2026-09-08, explicit
         # user instruction: "place the target you have planned for each
@@ -3974,6 +4064,7 @@ def _maybe_place_real_exit(conn, symbol: str):
             prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
             new_state="still open - exit attempt failed", detail=result.get("detail"),
         )
+        _flag_if_t1_restricted(conn, symbol, result.get("detail"))
 
 
 def _maybe_sync_real_stop_loss(conn, symbol: str):
@@ -4064,6 +4155,7 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
             prev_state=f"Rs{current_sl_price:.2f}" if current_sl_price is not None else "none",
             new_state="none (replacement failed)", detail=sl_result.get("detail"),
         )
+        _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
 
 
 # --- Real F&O trading (2026-09-07) -------------------------------------------
@@ -4557,6 +4649,7 @@ def _force_close_all_positions(conn, reason: str) -> dict:
                 prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
                 new_state="still open - kill switch exit failed", detail=result.get("detail"),
             )
+            _flag_if_t1_restricted(conn, row["symbol"], result.get("detail"))
 
     conn.commit()
     return {
@@ -4805,6 +4898,12 @@ def get_real_trading_control(request: Request):
         today_spent_inr = _real_today_spent_inr(conn)
         daily_cap_inr = get_runtime_setting(conn, "real_daily_cap_inr")
         daily_risk_pct = get_runtime_setting(conn, "daily_risk_pct")
+        today_str = ist_now().strftime("%Y-%m-%d")
+        t1_restricted_today = [
+            dict(r) for r in conn.execute(
+                "SELECT symbol, flagged_at, detail FROM real_t1_restricted WHERE day = ?", (today_str,)
+            ).fetchall()
+        ]
     db_enabled = bool(row["enabled"]) if row else False
     env_enabled = os.environ.get("REAL_TRADING_ENABLED") == "YES"
     # REAL P&L and its own loss cap - added 2026-09-07, Kotak's own ground
@@ -4834,6 +4933,7 @@ def get_real_trading_control(request: Request):
             round(max(0.0, real_loss_cap_inr - max(0.0, -real_pnl_today)), 2) if real_pnl_today is not None else None
         ),
         "open_real_positions": open_positions,
+        "t1_restricted_today": t1_restricted_today,
     }
 
 
@@ -7118,6 +7218,7 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
                     )
                     backfill_entry["sl_placed"] = False
                     backfill_entry["sl_failure_detail"] = sl_result.get("detail")
+                    _flag_if_t1_restricted(conn, r["symbol"], sl_result.get("detail"))
             governance_backfilled.append(backfill_entry)
         conn.commit()
         _sync_real_positions_external(conn)
@@ -7214,6 +7315,7 @@ def kotak_neo_close_position(request: Request, kotak_trading_symbol: str, qty: i
                 conn, symbol_for_log, "S", "failed", kotak_trading_symbol=kotak_trading_symbol,
                 qty=qty, detail=result.get("detail"), raw_response=result.get("raw_response"),
             )
+            _flag_if_t1_restricted(conn, symbol_for_log, result.get("detail"))
             conn.commit()
             return {"ok": False, "kotak_trading_symbol": kotak_trading_symbol, "detail": result.get("detail")}
 
