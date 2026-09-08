@@ -303,6 +303,38 @@ def init_db():
             )
             """
         )
+        # Order STATE-TRANSITION log (2026-09-08) - explicit user
+        # instruction: "I want to see the log of what order you have
+        # placed and from what prev state to what current new order
+        # state." real_trades above is the spend-cap ledger (entry/exit
+        # only, side B/S, used by _real_today_spent_inr) - this table is
+        # a separate, purely-additive, human-readable history of EVERY
+        # real order-state change this app makes: entry, exit, AND the
+        # two resting legs (sl/target) that real_trades never covered at
+        # all (their placed/moved/cancelled/rejected events previously
+        # only ever went to a print() line in Render's own logs, gone the
+        # moment that log scrolled). Every call site that already changes
+        # a real order's state also calls _log_real_order_event - see that
+        # function's own docstring. Kept forever, uncapped, same durable-
+        # audit-trail policy as real_trades/attempt_log.json; surfaced via
+        # GET /real-order-log and static/order-log.html (GET /order-log).
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS real_order_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts REAL NOT NULL,
+                symbol TEXT NOT NULL,
+                kotak_trading_symbol TEXT,
+                leg TEXT NOT NULL,      -- 'entry' | 'exit' | 'sl' | 'target'
+                event TEXT NOT NULL,    -- 'placed' | 'moved' | 'cancelled' | 'cancel_failed' |
+                                        -- 'failed' | 'confirmed' | 'skipped_duplicate'
+                order_id TEXT,
+                prev_state TEXT,        -- human-readable, e.g. "resting SELL trigger Rs15.36" or "none"
+                new_state TEXT,         -- human-readable, e.g. "resting SELL trigger Rs15.66"
+                detail TEXT
+            )
+            """
+        )
         # Real F&O positions/audit log - added 2026-09-07, explicit user
         # instruction ("i can update the capital any time. so build it
         # right now" + "there are strategies where put and call are
@@ -3161,6 +3193,26 @@ def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty
     conn.commit()
 
 
+def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, order_id=None,
+                           prev_state=None, new_state=None, detail=None):
+    """Appends one row to the order state-transition log (real_order_events -
+    see its own CREATE TABLE comment) - explicit user instruction
+    2026-09-08: "I want to see the log of what order you have placed and
+    from what prev state to what current new order state." Called
+    alongside (never instead of) whatever else a call site already does
+    (real_positions updates, _log_real_attempt for entry/exit) - this
+    table's only job is a complete, human-readable, forever-kept history
+    of every entry/exit/sl/target order-state change this app makes.
+    Never raises on its own account - a plain INSERT/commit, same
+    simplicity as _log_real_attempt above."""
+    conn.execute(
+        "INSERT INTO real_order_events (ts, symbol, kotak_trading_symbol, leg, event, order_id, "
+        "prev_state, new_state, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (time.time(), symbol, kotak_trading_symbol, leg, event, order_id, prev_state, new_state, detail),
+    )
+    conn.commit()
+
+
 def is_real_fo_trading_enabled() -> bool:
     """SEPARATE gate from is_real_trading_enabled (equity) - explicit
     user instruction 2026-09-07 ("i can update the capital any time. so
@@ -3322,6 +3374,12 @@ def _maybe_place_real_entry(conn, symbol: str):
         )
         print(f"[REAL TRADE] BUY {real_qty} {kotak_symbol} (order {result['order_id']}) "
               f"~Rs{real_entry_price:.2f} (fill_confirmed={result['fill_price_confirmed']})")
+        _log_real_order_event(
+            conn, symbol, "entry", "confirmed", kotak_trading_symbol=kotak_symbol,
+            order_id=result["order_id"], prev_state="no position",
+            new_state=f"long {real_qty} @ Rs{real_entry_price:.2f}",
+            detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
+        )
 
         # Real resting stop-loss (2026-09-07, explicit user instruction:
         # "share stop-loss/trailing-stop to Kotak") - the paper stop this
@@ -3344,9 +3402,18 @@ def _maybe_place_real_entry(conn, symbol: str):
                 )
                 print(f"[REAL TRADE] SL resting @ Rs{sl_result['trigger_price']:.2f} for {kotak_symbol} "
                       f"(order {sl_result['order_id']})")
+                _log_real_order_event(
+                    conn, symbol, "sl", "placed", kotak_trading_symbol=kotak_symbol,
+                    order_id=sl_result["order_id"], prev_state="none",
+                    new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f}",
+                )
             else:
                 print(f"[REAL TRADE] SL placement FAILED for {kotak_symbol}: {sl_result.get('detail')} "
                       f"- position open at Kotak with NO resting stop yet, will retry next tick")
+                _log_real_order_event(
+                    conn, symbol, "sl", "failed", kotak_trading_symbol=kotak_symbol,
+                    prev_state="none", new_state="none (placement failed)", detail=sl_result.get("detail"),
+                )
 
         # Real resting target/profit-booking order (2026-09-08, explicit
         # user instruction: "place the target you have planned for each
@@ -3367,16 +3434,29 @@ def _maybe_place_real_entry(conn, symbol: str):
                 )
                 print(f"[REAL TRADE] TARGET resting @ Rs{target_result['target_price']:.2f} for {kotak_symbol} "
                       f"(order {target_result['order_id']})")
+                _log_real_order_event(
+                    conn, symbol, "target", "placed", kotak_trading_symbol=kotak_symbol,
+                    order_id=target_result["order_id"], prev_state="none",
+                    new_state=f"resting SELL limit Rs{target_result['target_price']:.2f}",
+                )
             else:
                 print(f"[REAL TRADE] TARGET placement FAILED for {kotak_symbol}: {target_result.get('detail')} "
                       f"- position open at Kotak with NO resting target, profit-booking still handled by "
                       f"the scheduler's own per-tick poll instead")
+                _log_real_order_event(
+                    conn, symbol, "target", "failed", kotak_trading_symbol=kotak_symbol,
+                    prev_state="none", new_state="none (placement failed)", detail=target_result.get("detail"),
+                )
     else:
         _log_real_attempt(
             conn, symbol, "B", "failed", kotak_trading_symbol=kotak_symbol, price_est=ltp,
             detail=result.get("detail"), raw_response=result.get("raw_response"),
         )
         print(f"[REAL TRADE] BUY FAILED {kotak_symbol}: {result.get('detail')}")
+        _log_real_order_event(
+            conn, symbol, "entry", "failed", kotak_trading_symbol=kotak_symbol,
+            prev_state="no position", new_state="no position (buy failed)", detail=result.get("detail"),
+        )
 
 
 def _kotak_symbol_still_open(kotak_trading_symbol: str) -> bool | None:
@@ -3451,6 +3531,11 @@ def _maybe_place_real_exit(conn, symbol: str):
         )
         print(f"[REAL TRADE] SKIPPED duplicate exit for {row['kotak_trading_symbol']} - "
               f"Kotak already shows it closed, stale local row cleared instead of re-selling")
+        _log_real_order_event(
+            conn, symbol, "exit", "skipped_duplicate", kotak_trading_symbol=row["kotak_trading_symbol"],
+            prev_state=f"tracked open (stale), long {row['qty']} @ Rs{row['entry_price']:.2f}",
+            new_state="cleared - Kotak already shows this closed",
+        )
         return
     # Cancel the resting real stop-loss FIRST (if one was ever placed) -
     # best-effort, never blocks the exit below even if the cancel fails
@@ -3462,18 +3547,40 @@ def _maybe_place_real_exit(conn, symbol: str):
     # order book clean and avoids that rejection noise.
     if row["sl_order_id"]:
         cancel_result = kotak_real_orders.cancel_real_order(row["sl_order_id"])
-        if not cancel_result.get("ok"):
+        if cancel_result.get("ok"):
+            _log_real_order_event(
+                conn, symbol, "sl", "cancelled", kotak_trading_symbol=row["kotak_trading_symbol"],
+                order_id=row["sl_order_id"], prev_state=f"resting @ Rs{row['sl_trigger_price']}",
+                new_state="cancelled (position exiting)",
+            )
+        else:
             print(f"[REAL TRADE] SL cancel failed for {row['kotak_trading_symbol']} "
                   f"(order {row['sl_order_id']}): {cancel_result.get('detail')} - proceeding with exit anyway")
+            _log_real_order_event(
+                conn, symbol, "sl", "cancel_failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                order_id=row["sl_order_id"], prev_state=f"resting @ Rs{row['sl_trigger_price']}",
+                new_state="cancel failed - may still be resting", detail=cancel_result.get("detail"),
+            )
     # Same reasoning, for the other resting leg (2026-09-08): whichever of
     # SL/target actually triggered this exit, the OTHER one is still
     # resting at Kotak with nothing left to sell once this order fills -
     # cancel it too, best-effort, before placing the exit itself.
     if row["target_order_id"]:
         cancel_result = kotak_real_orders.cancel_real_order(row["target_order_id"])
-        if not cancel_result.get("ok"):
+        if cancel_result.get("ok"):
+            _log_real_order_event(
+                conn, symbol, "target", "cancelled", kotak_trading_symbol=row["kotak_trading_symbol"],
+                order_id=row["target_order_id"], prev_state=f"resting @ Rs{row['target_price']}",
+                new_state="cancelled (position exiting)",
+            )
+        else:
             print(f"[REAL TRADE] target cancel failed for {row['kotak_trading_symbol']} "
                   f"(order {row['target_order_id']}): {cancel_result.get('detail')} - proceeding with exit anyway")
+            _log_real_order_event(
+                conn, symbol, "target", "cancel_failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                order_id=row["target_order_id"], prev_state=f"resting @ Rs{row['target_price']}",
+                new_state="cancel failed - may still be resting", detail=cancel_result.get("detail"),
+            )
 
     result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"])
     if result.get("ok"):
@@ -3495,6 +3602,13 @@ def _maybe_place_real_exit(conn, symbol: str):
         )
         print(f"[REAL TRADE] SELL {exit_qty} {row['kotak_trading_symbol']} (order {result['order_id']}) "
               f"(fill_confirmed={result['fill_price_confirmed']})")
+        _log_real_order_event(
+            conn, symbol, "exit", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            order_id=result["order_id"],
+            prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
+            new_state=f"closed, {exit_qty} @ Rs{result.get('fill_price') or 0:.2f}",
+            detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
+        )
     else:
         # The dangerous failure mode: a real position we believe is open
         # and TRIED to close, but couldn't confirm. Left in real_positions
@@ -3505,6 +3619,11 @@ def _maybe_place_real_exit(conn, symbol: str):
             qty=row["qty"], detail=result.get("detail"), raw_response=result.get("raw_response"),
         )
         print(f"[REAL TRADE] SELL FAILED {row['kotak_trading_symbol']}: {result.get('detail')} - POSITION STILL OPEN, NEEDS ATTENTION")
+        _log_real_order_event(
+            conn, symbol, "exit", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
+            new_state="still open - exit attempt failed", detail=result.get("detail"),
+        )
 
 
 def _maybe_sync_real_stop_loss(conn, symbol: str):
@@ -3573,6 +3692,12 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         conn.commit()
         print(f"[REAL TRADE] trailing SL moved to Rs{new_stop:.2f} for {real_row['kotak_trading_symbol']} "
               f"(order {sl_result['order_id']})")
+        _log_real_order_event(
+            conn, symbol, "sl", "moved", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+            order_id=sl_result["order_id"],
+            prev_state=f"Rs{current_sl_price:.2f}" if current_sl_price is not None else "none",
+            new_state=f"Rs{new_stop:.2f}",
+        )
     else:
         # Old order is already cancelled (or never existed) and the
         # replacement failed - clear sl_order_id so the position isn't
@@ -3582,6 +3707,11 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         conn.commit()
         print(f"[REAL TRADE] trailing SL replacement FAILED for {real_row['kotak_trading_symbol']}: "
               f"{sl_result.get('detail')} - position open at Kotak with NO resting stop, will retry next tick")
+        _log_real_order_event(
+            conn, symbol, "sl", "failed", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+            prev_state=f"Rs{current_sl_price:.2f}" if current_sl_price is not None else "none",
+            new_state="none (replacement failed)", detail=sl_result.get("detail"),
+        )
 
 
 # --- Real F&O trading (2026-09-07) -------------------------------------------
@@ -4019,11 +4149,23 @@ def _force_close_all_positions(conn, reason: str) -> dict:
             if not cancel_result.get("ok"):
                 print(f"[REAL TRADE] KILL SWITCH SL cancel failed for {row['kotak_trading_symbol']} "
                       f"(order {row['sl_order_id']}): {cancel_result.get('detail')} - proceeding with exit anyway")
+            _log_real_order_event(
+                conn, row["symbol"], "sl", "cancelled" if cancel_result.get("ok") else "cancel_failed",
+                kotak_trading_symbol=row["kotak_trading_symbol"], order_id=row["sl_order_id"],
+                prev_state=f"resting @ Rs{row['sl_trigger_price']}", new_state="cancelled (kill switch)",
+                detail=reason,
+            )
         if row["target_order_id"]:
             cancel_result = kotak_real_orders.cancel_real_order(row["target_order_id"])
             if not cancel_result.get("ok"):
                 print(f"[REAL TRADE] KILL SWITCH target cancel failed for {row['kotak_trading_symbol']} "
                       f"(order {row['target_order_id']}): {cancel_result.get('detail')} - proceeding with exit anyway")
+            _log_real_order_event(
+                conn, row["symbol"], "target", "cancelled" if cancel_result.get("ok") else "cancel_failed",
+                kotak_trading_symbol=row["kotak_trading_symbol"], order_id=row["target_order_id"],
+                prev_state=f"resting @ Rs{row['target_price']}", new_state="cancelled (kill switch)",
+                detail=reason,
+            )
         result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"])
         if result.get("ok"):
             conn.execute("DELETE FROM real_positions WHERE symbol = ?", (row["symbol"],))
@@ -4037,6 +4179,11 @@ def _force_close_all_positions(conn, reason: str) -> dict:
                 "qty": row["qty"], "order_id": result["order_id"],
             })
             print(f"[REAL TRADE] KILL SWITCH SELL {row['qty']} {row['kotak_trading_symbol']} (order {result['order_id']})")
+            _log_real_order_event(
+                conn, row["symbol"], "exit", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                order_id=result["order_id"], prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
+                new_state="closed (kill switch)", detail=reason,
+            )
         else:
             # Same dangerous-failure handling as _maybe_place_real_exit -
             # left in real_positions, never guessed closed. Surfaced in the
@@ -4052,6 +4199,11 @@ def _force_close_all_positions(conn, reason: str) -> dict:
             })
             print(f"[REAL TRADE] KILL SWITCH SELL FAILED {row['kotak_trading_symbol']}: "
                   f"{result.get('detail')} - POSITION STILL OPEN, NEEDS ATTENTION")
+            _log_real_order_event(
+                conn, row["symbol"], "exit", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
+                new_state="still open - kill switch exit failed", detail=result.get("detail"),
+            )
 
     conn.commit()
     return {
@@ -4253,6 +4405,42 @@ def get_real_trades_today_bot_only():
         "closed_trades_count": len(closed_trades),
         "closed_trades": closed_trades,
     }
+
+
+@app.get("/real-order-log")
+def get_real_order_log(days: int = 1):
+    """The order STATE-TRANSITION log - explicit user instruction
+    2026-09-08: "I want to see the log of what order you have placed and
+    from what prev state to what current new order state." Every real
+    entry/exit/sl/target state change this app makes gets one row here
+    (see _log_real_order_event and real_order_events' own CREATE TABLE
+    comment) - this is the raw feed static/order-log.html (GET /order-log)
+    renders, newest first.
+
+    days: how many days back to include (default 1 - today only; this
+    table is only as durable as the SQLite process it lives in between
+    journal-sync snapshots, same caveat as every other real_* table here -
+    see docs/real_order_log.json, appended by journal-sync.yml, for the
+    permanent record beyond a single Render process's lifetime).
+
+    No token required - same reasoning as /real-trades-today-bot-only:
+    this is the same real order data already exposed there, just reshaped
+    into a state-transition view."""
+    cutoff = time.time() - max(days, 1) * 86400
+    with closing(get_db()) as conn:
+        rows = conn.execute(
+            "SELECT * FROM real_order_events WHERE ts >= ? ORDER BY ts DESC", (cutoff,)
+        ).fetchall()
+    return {"count": len(rows), "events": [dict(r) for r in rows]}
+
+
+@app.get("/order-log")
+def order_log_page():
+    """Order state-transition log page - explicit user instruction
+    2026-09-08: "Create a bot where I can see those [order state
+    transitions]." Pulls live from /real-order-log client-side, same
+    self-refresh pattern as /live and /trade-view."""
+    return FileResponse("static/order-log.html")
 
 
 @app.get("/real-trading-control")

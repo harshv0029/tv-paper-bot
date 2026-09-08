@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real Order Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#080b0f; --panel:#12181f; --panel-2:#161e27; --border:#232d3a; --text:#e7ecf2; --muted:#7c8a9c;
+    --accent:#3b82f6; --warn:#f59e0b; --good:#22c55e; --bad:#ef4444;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;padding:16px;}
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  h1{font-size:16px;font-weight:700;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:12.5px;margin:0 0 16px;}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+  .toolbar select,.toolbar button{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:6px;color:var(--text);
+    font-family:inherit;font-size:12.5px;padding:6px 10px;cursor:pointer;
+  }
+  .toolbar button.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .status{color:var(--muted);font-size:11.5px;margin-left:auto;}
+  .status .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:5px;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .empty{padding:40px;text-align:center;color:var(--muted);font-size:13px;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  thead th{
+    text-align:left;padding:9px 12px;color:var(--muted);font-weight:600;font-size:10.5px;
+    text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);
+    background:var(--panel-2);position:sticky;top:0;
+  }
+  tbody td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:var(--panel-2);}
+  .sym{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .ts{color:var(--muted);white-space:nowrap;}
+  .leg{
+    display:inline-block;padding:2px 7px;border-radius:5px;font-size:10.5px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.03em;
+  }
+  .leg.entry{background:rgba(59,130,246,.16);color:var(--accent);}
+  .leg.exit{background:rgba(148,163,184,.16);color:#94a3b8;}
+  .leg.sl{background:rgba(239,68,68,.14);color:var(--bad);}
+  .leg.target{background:rgba(34,197,94,.14);color:var(--good);}
+  .event{font-weight:600;}
+  .event.confirmed,.event.placed,.event.moved,.event.cancelled{color:var(--good);}
+  .event.failed,.event.cancel_failed{color:var(--bad);}
+  .event.skipped_duplicate{color:var(--warn);}
+  .transition{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;}
+  .transition .prev{color:var(--muted);}
+  .transition .arrow{color:var(--muted);}
+  .transition .new{color:var(--text);font-weight:600;}
+  .oid{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .detail{color:var(--muted);font-size:11.5px;max-width:260px;}
+  a.nav{color:var(--accent);text-decoration:none;font-size:12px;}
+  a.nav:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+  <h1>Real order log</h1>
+  <p class="sub">Every real entry / exit / stop-loss / target order this bot has placed, moved, or cancelled at Kotak &mdash; previous state &rarr; new state, in order. &nbsp;<a class="nav" href="/trade-view">&larr; trade view</a></p>
+
+  <div class="toolbar">
+    <button data-leg="" class="active">All legs</button>
+    <button data-leg="entry">Entry</button>
+    <button data-leg="exit">Exit</button>
+    <button data-leg="sl">Stop-loss</button>
+    <button data-leg="target">Target</button>
+    <select id="days">
+      <option value="1">Today</option>
+      <option value="3">Last 3 days</option>
+      <option value="7">Last 7 days</option>
+    </select>
+    <span class="status" id="status"><span class="dot"></span>live</span>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:130px">Time (IST)</th>
+          <th style="width:90px">Symbol</th>
+          <th style="width:70px">Leg</th>
+          <th style="width:90px">Event</th>
+          <th>Prev state &rarr; new state</th>
+          <th style="width:130px">Order ID</th>
+          <th style="width:220px">Detail</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>No order events yet in this window.</div>
+  </div>
+
+<script>
+const ORIGIN = window.location.origin;
+let currentLeg = "";
+let allEvents = [];
+
+function fmtTime(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+  });
+}
+
+function render() {
+  const tbody = document.getElementById('rows');
+  const empty = document.getElementById('empty');
+  const filtered = currentLeg ? allEvents.filter(e => e.leg === currentLeg) : allEvents;
+  if (!filtered.length) {
+    tbody.innerHTML = '';
+    empty.hidden = false;
+    return;
+  }
+  empty.hidden = true;
+  tbody.innerHTML = filtered.map(e => `
+    <tr>
+      <td class="ts mono">${fmtTime(e.ts)}</td>
+      <td class="sym">${e.symbol}</td>
+      <td><span class="leg ${e.leg}">${e.leg}</span></td>
+      <td class="event ${e.event}">${e.event.replace(/_/g, ' ')}</td>
+      <td>
+        <div class="transition">
+          <span class="prev">${e.prev_state ?? '—'}</span>
+          <span class="arrow">&rarr;</span>
+          <span class="new">${e.new_state ?? '—'}</span>
+        </div>
+      </td>
+      <td class="oid">${e.order_id ?? '—'}</td>
+      <td class="detail">${e.detail ?? ''}</td>
+    </tr>
+  `).join('');
+}
+
+async function refresh() {
+  const days = document.getElementById('days').value;
+  try {
+    const resp = await fetch(`${ORIGIN}/real-order-log?days=${days}`);
+    const data = await resp.json();
+    allEvents = data.events || [];
+    render();
+    document.getElementById('status').innerHTML = '<span class="dot"></span>live &middot; ' + allEvents.length + ' events';
+  } catch (e) {
+    document.getElementById('status').textContent = 'refresh failed - retrying';
+  }
+}
+
+document.querySelectorAll('.toolbar button[data-leg]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.toolbar button[data-leg]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentLeg = btn.dataset.leg;
+    render();
+  });
+});
+document.getElementById('days').addEventListener('change', refresh);
+
+refresh();
+setInterval(refresh, 10000);
+</script>
+</body>
+</html>
