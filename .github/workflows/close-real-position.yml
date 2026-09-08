@@ -1,0 +1,58 @@
+name: Close One Real Position (manual, explicit symbol + qty)
+
+# A dedicated, deliberate-action workflow for POST /kotak-neo/close-
+# position (main.py) - real money. Kept SEPARATE from diag-curl.yml on
+# purpose: that one is GET-only by convention specifically so an ad-hoc
+# diagnostic check can never accidentally trigger a real action. This
+# workflow exists for exactly the opposite case - a real close, always
+# requiring an EXPLICIT kotak_trading_symbol + qty typed in by hand
+# (workflow_dispatch's own form), never inferred or looked up here.
+#
+# Built 2026-09-08, explicit user finding: 3 real positions (AARTIIND,
+# ADANIPOWER, ABSLNN50ET) sitting open for hours, essentially flat, with
+# NO stop/target/time-based-exit governance at all - none of them were
+# tracked in signal_state (a restart wiped that tracking, same restart-
+# race as always), so the paper engine's own stop/target/stale-timeout
+# logic could never reach them. "Take some action to avoid opportunity
+# cost" - see main.py's close-position endpoint docstring for the full
+# reasoning. Reusable for any future occurrence of the same gap, not a
+# one-off script.
+on:
+  workflow_dispatch:
+    inputs:
+      kotak_trading_symbol:
+        description: "Exact Kotak trading symbol to close (e.g. AARTIIND-EQ)"
+        required: true
+      qty:
+        description: "Exact quantity to sell - no guessing, must match the real held qty"
+        required: true
+      reason:
+        description: "Why this is being closed (goes into the audit log)"
+        required: false
+        default: "manual_close_opportunity_cost"
+
+permissions:
+  contents: read
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /kotak-neo/close-position
+        env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+        run: |
+          curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+          SYM=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "${{ inputs.kotak_trading_symbol }}")
+          REASON=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "${{ inputs.reason }}")
+          URL="https://tv-paper-bot-gdan.onrender.com/kotak-neo/close-position?token=${KOTAK_NEO_API_TOKEN}&kotak_trading_symbol=${SYM}&qty=${{ inputs.qty }}&reason=${REASON}"
+          curl -sS --retry 2 --retry-delay 10 --retry-connrefused -m 45 -X POST "$URL" -o /tmp/close-result.json
+          cat /tmp/close-result.json
+          echo
+
+          OK=$(jq -r '.ok' /tmp/close-result.json)
+          if [[ "$OK" != "true" ]]; then
+            echo "::error::close-position did not confirm ok=true for ${{ inputs.kotak_trading_symbol }} - see the response above"
+            exit 1
+          fi
