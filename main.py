@@ -27,6 +27,7 @@ from itertools import product
 
 import numpy as np
 import pandas as pd
+import requests
 import yfinance as yf
 
 from fastapi import FastAPI, Request, HTTPException
@@ -80,6 +81,102 @@ def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+# --- Real-money external persistence (Upstash Redis) ------------------------
+# Render's free tier has no persistent disk - every restart wipes real_positions
+# along with every other table (see data_fetch.py's own comment for the same
+# fact). A git-committed JSON journal already exists for this (see
+# STATE_REAL_POSITIONS_PATH / reconcile_real_positions_from_journal below),
+# but it's only as fresh as the last journal-sync run (up to ~15 min, or
+# worse mid-day) AND its own commit+push is itself another restart-triggering
+# event - provably too slow: the 2026-09-08 AARTIIND incident was exactly a
+# restart landing inside that gap, wiping a just-adopted real position's
+# governance before either the journal or the next scheduler tick caught up.
+#
+# Explicit user instruction 2026-09-08 ("free/minimal-cost path, real-money
+# tables only"): mirror real_positions - and ONLY real_positions, the table
+# that actually costs real money if silently lost - to Upstash Redis's free
+# tier (REST API, no persistent connection needed, comfortably within this
+# app's real write volume) on every single mutation, synchronously, in the
+# same request that made the change. No git commit, no push, no periodic-
+# sync wait in either direction - closes the exact race that bit AARTIIND.
+# The rest of the DB (paper trading, backtests, scan cursors) stays on
+# ephemeral SQLite exactly as before; those don't cost real money if wiped.
+#
+# Degrades to a silent no-op if the two env vars aren't set (same graceful-
+# degradation pattern as KOTAK_NEO_API_TOKEN elsewhere in this file) - the
+# git-JSON journal keeps working as a second-layer fallback regardless.
+UPSTASH_REDIS_REST_URL = os.environ.get("UPSTASH_REDIS_REST_URL")
+UPSTASH_REDIS_REST_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN")
+_REAL_POSITIONS_REDIS_KEY = "tv_paper_bot:real_positions:v1"
+
+
+def _sync_real_positions_external(conn) -> None:
+    """Pushes a full snapshot of real_positions to Upstash - call this right
+    after every commit that touches real_positions (INSERT on entry, UPDATE
+    on sl/target order id, DELETE on exit/ghost-cleanup). Best-effort and
+    silent: a failure here must never break real trading - the write has
+    already committed to SQLite; this is only the durability mirror, not
+    this process's own source of truth for its own lifetime."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return
+    try:
+        rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
+        payload = json.dumps({"synced_at": time.time(), "rows": rows})
+        requests.post(
+            f"{UPSTASH_REDIS_REST_URL}/set/{_REAL_POSITIONS_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            data=payload.encode("utf-8"),
+            timeout=5,
+        )
+    except Exception as e:
+        print(f"[real_positions_external] sync failed (non-fatal): {e}")
+
+
+def hydrate_real_positions_from_external() -> None:
+    """Startup-time restore, sourced from Upstash instead of (in addition
+    to) the slower git-JSON journal - see reconcile_real_positions_from_journal
+    below, which still runs too as a second-layer fallback if Upstash is
+    unset or unreachable. Never places any order - only restores this app's
+    own tracking of a position that already exists at the broker, same as
+    the journal-based reconcile."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return
+    try:
+        resp = requests.get(
+            f"{UPSTASH_REDIS_REST_URL}/get/{_REAL_POSITIONS_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        raw = resp.json().get("result")
+        if not raw:
+            return
+        rows = json.loads(raw).get("rows", [])
+    except Exception as e:
+        print(f"[real_positions_external] hydrate failed (non-fatal): {e}")
+        return
+    if not rows:
+        return
+    with closing(get_db()) as conn:
+        restored = 0
+        for pos in rows:
+            if conn.execute("SELECT 1 FROM real_positions WHERE symbol = ?", (pos["symbol"],)).fetchone():
+                continue
+            conn.execute(
+                "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
+                "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
+                "target_order_id, target_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
+                 pos.get("entry_order_id"), pos["opened_at"], pos["day"],
+                 pos.get("sl_order_id"), pos.get("sl_trigger_price"),
+                 pos.get("target_order_id"), pos.get("target_price")),
+            )
+            restored += 1
+        if restored:
+            conn.commit()
+            print(f"[real_positions_external] restored {restored} real position(s) from Upstash")
 
 
 def init_db():
@@ -3583,6 +3680,7 @@ def _maybe_place_real_entry(conn, symbol: str):
             new_state=f"long {real_qty} @ Rs{real_entry_price:.2f}",
             detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
         )
+        _sync_real_positions_external(conn)
 
         # Real resting stop-loss (2026-09-07, explicit user instruction:
         # "share stop-loss/trailing-stop to Kotak") - the paper stop this
@@ -3610,6 +3708,7 @@ def _maybe_place_real_entry(conn, symbol: str):
                     order_id=sl_result["order_id"], prev_state="none",
                     new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f}",
                 )
+                _sync_real_positions_external(conn)
             else:
                 print(f"[REAL TRADE] SL placement FAILED for {kotak_symbol}: {sl_result.get('detail')} "
                       f"- position open at Kotak with NO resting stop yet, will retry next tick")
@@ -3642,6 +3741,7 @@ def _maybe_place_real_entry(conn, symbol: str):
                     order_id=target_result["order_id"], prev_state="none",
                     new_state=f"resting SELL limit Rs{target_result['target_price']:.2f}",
                 )
+                _sync_real_positions_external(conn)
             else:
                 print(f"[REAL TRADE] TARGET placement FAILED for {kotak_symbol}: {target_result.get('detail')} "
                       f"- position open at Kotak with NO resting target, profit-booking still handled by "
@@ -3726,6 +3826,7 @@ def _maybe_place_real_exit(conn, symbol: str):
     if still_open is False:
         conn.execute("DELETE FROM real_positions WHERE symbol = ?", (symbol,))
         conn.commit()
+        _sync_real_positions_external(conn)
         _log_real_attempt(
             conn, symbol, "S", "skipped_already_closed_at_kotak", kotak_trading_symbol=row["kotak_trading_symbol"],
             qty=row["qty"],
@@ -3803,6 +3904,7 @@ def _maybe_place_real_exit(conn, symbol: str):
             order_id=result["order_id"], raw_response=result.get("raw_response"),
             detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
         )
+        _sync_real_positions_external(conn)
         print(f"[REAL TRADE] SELL {exit_qty} {row['kotak_trading_symbol']} (order {result['order_id']}) "
               f"(fill_confirmed={result['fill_price_confirmed']})")
         _log_real_order_event(
@@ -3893,6 +3995,7 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
             (sl_result["order_id"], sl_result["trigger_price"], symbol),
         )
         conn.commit()
+        _sync_real_positions_external(conn)
         print(f"[REAL TRADE] trailing SL moved to Rs{new_stop:.2f} for {real_row['kotak_trading_symbol']} "
               f"(order {sl_result['order_id']})")
         _log_real_order_event(
@@ -3908,6 +4011,7 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         # (sl_order_id NULL) will try placing a fresh one again.
         conn.execute("UPDATE real_positions SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
         conn.commit()
+        _sync_real_positions_external(conn)
         print(f"[REAL TRADE] trailing SL replacement FAILED for {real_row['kotak_trading_symbol']}: "
               f"{sl_result.get('detail')} - position open at Kotak with NO resting stop, will retry next tick")
         _log_real_order_event(
@@ -4387,6 +4491,7 @@ def _force_close_all_positions(conn, reason: str) -> dict:
                 order_id=result["order_id"], prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
                 new_state="closed (kill switch)", detail=reason,
             )
+            _sync_real_positions_external(conn)
         else:
             # Same dangerous-failure handling as _maybe_place_real_exit -
             # left in real_positions, never guessed closed. Surfaced in the
@@ -5002,6 +5107,8 @@ def reconcile_real_positions_from_journal():
             )
             restored += 1
         conn.commit()
+        if restored:
+            _sync_real_positions_external(conn)
     if restored:
         print(f"[reconcile] restored {restored} REAL open position(s) from journal")
 
@@ -5846,6 +5953,11 @@ async def _start_scheduler():
     reconcile_open_positions_from_journal()
     reconcile_trading_control_from_journal()
     reconcile_real_trading_control_from_journal()
+    # Upstash first - real-time, so its row wins for any symbol also present
+    # in the (up to ~15-min-stale) git journal below; the journal then only
+    # fills in whatever Upstash didn't have (e.g. never configured, or a
+    # position that existed before Upstash was set up).
+    hydrate_real_positions_from_external()
     reconcile_real_positions_from_journal()
     reconcile_real_trades_today_from_journal()
     reconcile_scheduler_check_counts_from_journal()
@@ -6955,6 +7067,7 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
                     backfill_entry["sl_failure_detail"] = sl_result.get("detail")
             governance_backfilled.append(backfill_entry)
         conn.commit()
+        _sync_real_positions_external(conn)
 
     net_balance = None
     try:
@@ -7039,6 +7152,7 @@ def kotak_neo_close_position(request: Request, kotak_trading_symbol: str, qty: i
                 new_state=f"closed, {exit_qty} @ Rs{result.get('fill_price') or 0:.2f}", detail=reason,
             )
             conn.commit()
+            _sync_real_positions_external(conn)
             return {"ok": True, "kotak_trading_symbol": kotak_trading_symbol, "qty": exit_qty,
                     "fill_price": result.get("fill_price"), "fill_price_confirmed": result["fill_price_confirmed"],
                     "order_id": result["order_id"], "reason": reason}
