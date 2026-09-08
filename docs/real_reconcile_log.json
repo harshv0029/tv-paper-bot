@@ -8,5 +8,26 @@
     "removed_ghosts": [],
     "untracked_open_positions_count": 0,
     "untracked_open_positions": []
+  },
+  {
+    "reconciled_at_utc": 1788849112.8432598,
+    "real_balance_inr": 776.8599999999999,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 1,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      }
+    ],
+    "untracked_open_positions_count": 1,
+    "untracked_open_positions": [
+      {
+        "kotak_trading_symbol": "ATL-EQ",
+        "qty": 16
+      }
+    ]
   }
 ]
