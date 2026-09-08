@@ -121521,5 +121521,220 @@
         "time_local": "2026-09-09 02:34:50.780774"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-08T22:06:14Z",
+    "attempts": {
+      "LAL.NS": {
+        "checked_at_utc": 1788905161.7994337,
+        "symbol": "LAL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:35:45.821019"
+      },
+      "LANCER.NS": {
+        "checked_at_utc": 1788905161.8006303,
+        "symbol": "LANCER.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.800252"
+      },
+      "KSL.NS": {
+        "checked_at_utc": 1788905161.80138,
+        "symbol": "KSL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.801269"
+      },
+      "KSHINTL.NS": {
+        "checked_at_utc": 1788905161.8020625,
+        "symbol": "KSHINTL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.801944"
+      },
+      "LALPATHLAB.NS": {
+        "checked_at_utc": 1788905161.8027794,
+        "symbol": "LALPATHLAB.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.802680"
+      },
+      "LAMBODHARA.NS": {
+        "checked_at_utc": 1788905161.8034155,
+        "symbol": "LAMBODHARA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.803316"
+      },
+      "KSB.NS": {
+        "checked_at_utc": 1788905161.804023,
+        "symbol": "KSB.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.803933"
+      },
+      "LALITHAA.NS": {
+        "checked_at_utc": 1788905161.8046157,
+        "symbol": "LALITHAA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.804523"
+      },
+      "KRITI.NS": {
+        "checked_at_utc": 1788905161.8052726,
+        "symbol": "KRITI.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.805174"
+      },
+      "KSOLVES.NS": {
+        "checked_at_utc": 1788905161.8059373,
+        "symbol": "KSOLVES.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.805816"
+      },
+      "LAKSHMIMIL.NS": {
+        "checked_at_utc": 1788905161.8065267,
+        "symbol": "LAKSHMIMIL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.806445"
+      },
+      "KSE.NS": {
+        "checked_at_utc": 1788905161.891626,
+        "symbol": "KSE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.891478"
+      },
+      "KRITINUT.NS": {
+        "checked_at_utc": 1788905161.8922486,
+        "symbol": "KRITINUT.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.892169"
+      },
+      "LANDMARK.NS": {
+        "checked_at_utc": 1788905161.892723,
+        "symbol": "LANDMARK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.892654"
+      },
+      "LADDERUP.NS": {
+        "checked_at_utc": 1788905161.8932824,
+        "symbol": "LADDERUP.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.893210"
+      },
+      "KRISHIVAL.NS": {
+        "checked_at_utc": 1788905161.8939474,
+        "symbol": "KRISHIVAL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.893821"
+      },
+      "KRISHNADEF.NS": {
+        "checked_at_utc": 1788905161.8945715,
+        "symbol": "KRISHNADEF.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.894472"
+      },
+      "KSR.NS": {
+        "checked_at_utc": 1788905161.8951762,
+        "symbol": "KSR.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.895094"
+      },
+      "KSHITIJPOL.NS": {
+        "checked_at_utc": 1788905161.8958774,
+        "symbol": "KSHITIJPOL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.895755"
+      },
+      "LAGNAM.NS": {
+        "checked_at_utc": 1788905161.896836,
+        "symbol": "LAGNAM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.896723"
+      },
+      "KRISHANA.NS": {
+        "checked_at_utc": 1788905161.8975337,
+        "symbol": "KRISHANA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.897423"
+      },
+      "KSCL.NS": {
+        "checked_at_utc": 1788905161.8982399,
+        "symbol": "KSCL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.898154"
+      },
+      "KUSUMGAR.NS": {
+        "checked_at_utc": 1788905161.8989034,
+        "symbol": "KUSUMGAR.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.898774"
+      },
+      "KTKBANK.NS": {
+        "checked_at_utc": 1788905161.8995636,
+        "symbol": "KTKBANK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.899476"
+      },
+      "KRITIKA.NS": {
+        "checked_at_utc": 1788905161.9003394,
+        "symbol": "KRITIKA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.900243"
+      },
+      "KRYSTAL.NS": {
+        "checked_at_utc": 1788905161.9009461,
+        "symbol": "KRYSTAL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.900827"
+      },
+      "LANCORHOL.NS": {
+        "checked_at_utc": 1788905161.9014044,
+        "symbol": "LANCORHOL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.901335"
+      },
+      "KRIDHANINF.NS": {
+        "checked_at_utc": 1788905161.9019477,
+        "symbol": "KRIDHANINF.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.901817"
+      },
+      "KUANTUM.NS": {
+        "checked_at_utc": 1788905161.902512,
+        "symbol": "KUANTUM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.902432"
+      },
+      "LAHOTIOV.NS": {
+        "checked_at_utc": 1788905161.903035,
+        "symbol": "LAHOTIOV.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.902949"
+      },
+      "KRSNAA.NS": {
+        "checked_at_utc": 1788905161.9036403,
+        "symbol": "KRSNAA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.903532"
+      },
+      "KREBSBIO.NS": {
+        "checked_at_utc": 1788905161.9042416,
+        "symbol": "KREBSBIO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.904157"
+      },
+      "KROSS.NS": {
+        "checked_at_utc": 1788905161.904823,
+        "symbol": "KROSS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.904733"
+      },
+      "KRN.NS": {
+        "checked_at_utc": 1788905161.9910064,
+        "symbol": "KRN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.905335"
+      },
+      "KWIL.NS": {
+        "checked_at_utc": 1788905161.9919424,
+        "symbol": "KWIL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-09 03:36:01.991798"
+      }
+    }
   }
 ]
