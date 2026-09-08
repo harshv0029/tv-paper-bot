@@ -152,6 +152,37 @@ def test_vwap_reclaim_signal_matches_hand_computed_vwap():
     assert out["vwap"].tolist() == pytest.approx([9.0, 10.0, 9.0 + 1 / 3], abs=1e-6)
 
 
+def test_orb_breakout_ma_type_ema_matches_pandas_ewm_and_differs_from_sma():
+    # 2026-09-08, explicit user instruction: "have you replaced sma with
+    # ema? ema are more reliable. do your research and do the needful" -
+    # orb_breakout's own trend filter was hardcoded to SMA regardless of
+    # the ma_type opt-in already wired into the live trend-confidence
+    # gate elsewhere; this confirms the new wiring actually switches the
+    # entry-trigger computation, not just that pandas.ewm itself works
+    # (trusted library code, not re-derived by hand here).
+    closes = [10, 12, 11, 15, 20, 18, 25, 30, 100, 60]
+    df_base = pd.DataFrame({
+        "Date": pd.date_range("2026-01-01 09:15", periods=len(closes), freq="5min", tz="Asia/Kolkata"),
+        "Open": closes, "High": closes, "Low": closes, "Close": closes,
+        "Volume": [1000] * len(closes),
+    })
+    params = {"orb_minutes": 5, "sma_fast": 2, "sma_slow": 3, "open_min": 9 * 60 + 15}
+
+    out_sma = main.add_strategy_signal(df_base.copy(), "orb_breakout", {**params, "ma_type": "sma"})
+    out_ema = main.add_strategy_signal(df_base.copy(), "orb_breakout", {**params, "ma_type": "ema"})
+
+    expected_fast_ema = pd.Series(closes, dtype=float).ewm(span=2, adjust=False).mean()
+    expected_slow_ema = pd.Series(closes, dtype=float).ewm(span=3, adjust=False).mean()
+    assert out_ema["fast_ma"].tolist() == pytest.approx(expected_fast_ema.tolist(), abs=1e-9)
+    assert out_ema["slow_ma"].tolist() == pytest.approx(expected_slow_ema.tolist(), abs=1e-9)
+    # SMA (rolling mean) and EMA (exponentially-weighted) are mathematically
+    # different formulas - on this deliberately spiky fixture (a 100 spike
+    # then a drop to 60) they must disagree somewhere, proving ma_type
+    # actually changed which formula ran, not just that both produced
+    # SOME numbers.
+    assert out_sma["fast_ma"].tolist() != pytest.approx(out_ema["fast_ma"].tolist(), abs=1e-9)
+
+
 def _wyckoff_fixture():
     # 23 bars, range_lookback=10 (small, so the fixture stays hand-
     # verifiable), one calendar day (Asia/Kolkata, tz-aware so the
