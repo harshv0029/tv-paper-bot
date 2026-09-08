@@ -139,6 +139,21 @@ def limits():
     return login().limits()
 
 
+def order_report(order_id: str | None = None):
+    """The real account's order book (or a single order, if order_id is
+    given) - the ONLY place a REJECTED order's actual reason text lives
+    (2026-09-08, added to diagnose real SL-M sell orders coming back
+    REJECTED with no reason ever surfaced by this codebase before now -
+    place_real_stop_loss's own "ok"/nOrdNo check only ever saw order
+    ACCEPTANCE, never final fill/reject status). Read-only - places no
+    order. Returns the SDK's own response shape unmodified; field names
+    for the rejection reason are NOT independently confirmed yet (Kotak's
+    own docs are the source, not a verified live response) - read the raw
+    response via GET /kotak-neo/order-report first rather than assuming a
+    key name."""
+    return login().order_report(order_id=order_id)
+
+
 def search_scrip(exchange_segment, symbol="", expiry=None, option_type=None, strike_price=None):
     """Searches Kotak's live scrip master for contracts matching the given
     filters (e.g. exchange_segment="nse_fo", symbol="nifty",
