@@ -218,6 +218,69 @@ none of it has been run through `/backtest`/`/sweep` yet. Nothing in this
 batch goes live before it clears that bar, same standing rule as
 everything else here.
 
+## Wyckoff Accumulation/Manipulation/Distribution + Volume strategies (2026-09-08) — explicit user instruction: catalog all strategies combining volume with accumulation/manipulation/distribution
+
+Rows #35–#43 below cover the standard Wyckoff Method (Richard Wyckoff,
+1930s) and its modern volume-reading companion, Volume Spread Analysis
+(VSA, Tom Williams) — the original, decades-older source of the
+"Accumulation → Manipulation → Distribution" framing popular retail SMC/ICT
+content (already cataloged as #30–#34) borrows without attribution.
+**#19 (Liquidity Sweep Reversal) already covers the OHLCV fingerprint of
+the "Manipulation" phase in isolation** — Wyckoff's own name for that exact
+price action is the **Spring** (accumulation side) / **Upthrust After
+Distribution, UTAD** (distribution side); #35/#36 below don't duplicate
+#19's detection logic, they add the range-context precondition (a genuine
+multi-week trading range with prior climax/rally/test structure) #19 alone
+doesn't require, same relationship #30-#33 have to #34 in the SMC batch.
+
+**Long-only constraint carries over from every other row in this log**:
+`add_strategy_signal()`'s own docstring is explicit — "Long-only,
+single-position." Distribution-side rows (#36, and the distribution half of
+#40/#41) are therefore cataloged as **exit/avoidance filters on an existing
+long**, not short-entry signals, same treatment #33 (Premium/Discount Zone)
+got as a filter rather than a standalone trigger.
+
+Sources: [Trader's Notes' Wyckoff schematics writeup](https://medium.com/@tradersnotes/wyckoff-trading-method-part-2-trading-schematics-accumulation-distribution-195bf4fcb55e),
+[Capital.com's Wyckoff Method guide](https://capital.com/en-int/learn/technical-analysis/the-wyckoff-method),
+[LuxAlgo's Wyckoff Accumulation Schematic concept page](https://www.luxalgo.com/library/concept/wyckoff-accumulation-schematic/),
+[Wyckoff Analytics (the method's own institute)](https://www.wyckoffanalytics.com/wyckoff-method/),
+[Come Learn Forex's Spring/framework writeup](https://www.comelearnforex.com/strategies/wyckoff-method/)
+for the accumulation/distribution schematic (Phase A–E, Spring/UTAD)
+definitions; [PyQuantLab's VSA backtesting writeup](https://pyquantlab.medium.com/volume-spread-analysis-vsa-strategy-quantifying-market-action-for-trading-signals-with-rolling-9aa57fb79fe9),
+[dotnettutorials' VSA guide](https://dotnettutorials.net/lesson/volume-spread-analysis-in-trading/),
+[Kotak Neo's own VSA explainer](https://www.kotakneo.com/investing-guide/share-market/volume-spread-analysis/)
+for No Demand/No Supply/Stopping Volume bar definitions; [StockCharts
+ChartSchool's OBV page](https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/on-balance-volume-obv)
+and [StockCharts' Accumulation/Distribution Line page](https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/accumulation-distribution-line)
+for OBV/Chaikin A-D/CMF; [TradingView's Volume Profile primer](https://www.tradingview.com/support/solutions/43000502040-volume-profile-indicators-basic-concepts/)
+and [PyQuantLab's POC/Value Area writeup](https://pyquantlab.medium.com/volume-point-of-control-and-value-area-analysis-for-trading-cd545c2e081b)
+for POC/Value Area.
+
+| # | Strategy | Legs | Best-fit condition | Status | Source / date | Notes |
+|---|---|---|---|---|---|---|
+| 35 | Wyckoff Spring Entry (Accumulation Phase C) | Directional, underlying only (not options) | Price has spent weeks inside a defined trading range (Phase A's Selling Climax + Automatic Rally + Secondary Test already printed), then briefly breaks range support on a volume spike and snaps back inside | Proposed — untested | Real-world Wyckoff research, 2026-09-08 | **Approximable with OHLCV**: same wick-beyond-support + volume-spike + close-back-inside fingerprint as #19, plus a new precondition this project doesn't compute yet — a prior range (rolling N-bar high/low that's stayed roughly flat, with an already-identified high-volume down bar for the Selling Climax and a snap-back rally off it for the Automatic Rally). A "spring" outside that range context is just #19's plain liquidity sweep; the range context is what makes it specifically Wyckoff's Phase-C entry, historically the highest-conviction of the schematic |
+| 36 | Wyckoff UTAD Exit/Avoidance Filter (Distribution Phase C) | Exit filter on an existing long / avoidance filter on new entries — not a short entry (long-only project) | Price breaks above a topping range's resistance on a volume spike, then snaps back inside — the bearish mirror of #35 | Proposed — untested | Real-world Wyckoff research, 2026-09-08 | **Approximable with OHLCV**, same detection as #35 flipped. Since this project is long-only, a confirmed UTAD is used two ways: (a) close out any open long in that symbol immediately rather than waiting for the paper stop to catch a markdown already underway, (b) block new long entries in that symbol until the range resolves — never as a short trigger |
+| 37 | Wyckoff Sign of Strength (SOS) Breakout | Directional, underlying only (not options) | A confirmed Spring (#35) is followed by a genuine breakout above the trading range's resistance on expanding volume | Proposed — untested | Real-world Wyckoff research, 2026-09-08 | **Approximable with OHLCV** — structurally this project's own `orb_volume` (volume-confirmed breakout, already implemented and live-gated per the mandatory-volume-constraint work this session) with one addition: requiring a confirmed #35 Spring earlier in the same range, so the breakout is read as "accumulation finished, markup starting" rather than a bare volume-confirmed breakout with no context on what came before it |
+| 38 | VSA No Demand / No Supply Bar Filter | Applies to entry/exit timing on any directional strategy already in this log | A single bar's spread (range) + volume + close-position tells whether a move is genuine or hollow: an up bar with narrow spread and low volume ("no demand") warns a rally lacks real buying, especially at resistance; a down bar with narrow spread and low volume ("no supply") warns a decline has run out of sellers, especially at support | Proposed — untested | Real-world VSA research, 2026-09-08 | **Approximable with OHLCV** — pure per-bar spread/volume/close-position math, no new data source. A filter, not a standalone entry, same role #33 plays for SMC: skip/delay an entry that shows a "no supply" bar right at the trigger candle even though price/volume conditions otherwise look ready, and treat a "no demand" bar near an open long's target as an early warning to tighten the stop |
+| 39 | VSA Stopping Volume / Climax Reversal | Directional, underlying only (not options) | An extended decline (or rally) ends on an extreme volume spike with a wide spread but a close well off the bar's extreme (a struggle, not a clean continuation) — professional absorption of the crowd's capitulation | Proposed — untested | Real-world VSA research, 2026-09-08 | **Approximable with OHLCV**: same climactic-volume fingerprint as Wyckoff's Selling/Buying Climax inside #35/#36's full schematic, but usable standalone as a faster (and noisier) reversal signal without waiting for the rest of the range to confirm — trades the SC/BC event itself rather than the full Phase A-E sequence. Cross-references #22 (Liquidity Void Breakout), which reads volume expansion the opposite way (continuation through thin liquidity) — the distinguishing tell here is the close landing away from the bar's extreme (struggle/absorption) vs. near it (clean continuation) |
+| 40 | On-Balance Volume (OBV) Divergence Filter | Applies to entry timing on any directional strategy already in this log, and to #35/#36 specifically as Phase-B confirmation | OBV (cumulative volume, added on up-closes/subtracted on down-closes) rising while price stays flat or drifts down = quiet accumulation underneath a range; OBV falling while price stays flat or drifts up = quiet distribution | Proposed — untested | Real-world OBV research, 2026-09-08 | **Approximable with OHLCV** — Joseph Granville's original 1963 formula, close-to-close direction times volume, cumulative. A regime/confluence filter like #26 (VIX regime), not a standalone trigger: an OBV uptrend during a #35 range's Phase B is the volume-side confirmation real accumulation happened before the Spring, distinct from a range that's just going nowhere |
+| 41 | Chaikin Accumulation/Distribution Line & Chaikin Money Flow (CMF) Divergence | Same role as #40, more precise variant | Chaikin's A/D Line weights each bar's volume by where the close landed within that bar's own high-low range (not just up-close/down-close like OBV), so it reads buying/selling pressure more granularly; CMF is A/D smoothed into an oscillator around zero over N bars | Proposed — untested | Real-world Chaikin research, 2026-09-08 | **Approximable with OHLCV** — Marc Chaikin's published formulas, no new data source. Sustained CMF > 0 through a #35-style range = accumulation bias, sustained CMF < 0 through a #36-style range = distribution bias; more precise than #40 but costs nothing extra to compute alongside it, worth backtesting both and keeping whichever actually discriminates better on real NSE data rather than assuming |
+| 42 | Volume Profile POC Mean Reversion / Value Area Breakout | Directional, underlying only (not options) | Price has moved away from the session's (or range's) Point of Control — the price level with the most traded volume — and either reverts toward it (fade, inside the value area) or holds beyond the Value Area High/Low on continued volume (genuine acceptance, breakout) | Proposed — untested | Real-world Volume Profile research, 2026-09-08 | **Approximable with OHLCV, but coarser than real footprint data** — true volume profile bins volume at every traded price within each bar (tick/intrabar data); this project's `fetch_ohlc` only has each bar's Close and total Volume, so POC/Value Area here can only be built by binning each bar's total volume at its Close (or typical price `(H+L+C)/3`), a real but blunter approximation, same "approximable, not blocked" caveat class as #19/#22/#23 rather than the fully-blocked #20/#21/#24 (no live order book needed, just enough bars of history to build the histogram) |
+| 43 | Full Wyckoff AMD + Volume Confluence Entry | Directional, underlying only (not options) | #35 (Spring/Manipulation) confirmed by #38/#39 (the Spring bar itself shows absorption/stopping-volume character, not a genuine breakdown) AND #40/#41 (OBV/CMF show real accumulation built through Phase B) AND #37 (the eventual SOS breakout carries expanding volume) all agree within the same range | Proposed — untested | Real-world Wyckoff + VSA + volume-indicator research, 2026-09-08 | **The actual target this batch is scaffolding toward**, same relationship #34 has to #30–#33 in the SMC batch — and the most implementation work, needing a trading-range detector (rolling-range/pivot logic this project doesn't have yet, closest existing primitive is `orb_breakout`'s opening-range high/low, applied here to a much longer multi-week range instead) plus #35/#37/#38/#39/#40/#41 all built and passing individually before attempting the combined version. This is the direct, literal answer to "combination of volume and accumulation+manipulation+distribution" — everything else in this section is a component of it |
+
+Cross-cutting caveat, same discipline as every other batch in this log:
+**nothing above is implemented in `add_strategy_signal()` or wired into
+`_auto_signal_core` yet, and none of it goes live before a real
+`/backtest`/`/sweep` run against actual NSE data**, same standing rule as
+the VWAP/liquidity-heatmap/VIX/SMC batches before it. Rows #35/#37 are the
+natural first candidates to build (they extend `orb_breakout`/`orb_volume`,
+already-live primitives, rather than needing new indicator math from
+scratch); #38–#41 are cheap, pure-arithmetic filters worth building
+alongside them; #42's range-histogram and #43's full confluence are
+correctly the last things attempted, once the range-detector primitive
+they both depend on exists and #35–#41 have each cleared their own
+backtest independently.
+
 ## Cross-strategy read (2026-09-01)
 
 All three indices (NIFTY, BANKNIFTY, SENSEX) were coiling: short-term pullback below daily
