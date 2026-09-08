@@ -892,6 +892,42 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         df["long"] = in_uptrend
         df["supertrend"] = np.where(in_uptrend, final_lower, final_upper)
 
+    elif strategy == "pin_bar_reversal":
+        # Price-action candlestick strategy, combining a reversal candle
+        # (hammer/pin bar) with support-zone context - both explicitly named
+        # in the original research brief. Sources (2026-09-08 research): a
+        # 10-year backtest on NSE Nifty 50 ranked the hammer #1 among
+        # reversal patterns at ~63% win rate (dailypriceaction.com); pin bars
+        # at key support/resistance levels showed a 15-20% higher success
+        # rate than the pattern alone (FXOpen backtest, 2015-2020, cited via
+        # colibritrader.com/innercircletrader.net) - hence requiring the low
+        # to sit at/near a rolling N-bar low, not just any long lower wick.
+        # Enter long on a bullish pin bar (hammer: long lower wick, small
+        # body, small upper wick) whose low is near the rolling sr_lookback-bar
+        # low; exit on the mirror bearish pin bar (shooting star) - same
+        # enter/exit-loop shape as bullish_engulfing above.
+        pin_ratio = float(params.get("pin_ratio", 2.0))
+        sr_lookback = int(params.get("sr_lookback", 20))
+        sr_tolerance_pct = float(params.get("sr_tolerance_pct", 0.5))
+
+        body = (df["Close"] - df["Open"]).abs().replace(0, 1e-9)
+        lower_wick = df[["Open", "Close"]].min(axis=1) - df["Low"]
+        upper_wick = df["High"] - df[["Open", "Close"]].max(axis=1)
+        rolling_low = df["Low"].rolling(sr_lookback).min()
+        near_support = df["Low"] <= rolling_low * (1 + sr_tolerance_pct / 100)
+
+        bullish_pin = (lower_wick >= pin_ratio * body) & (lower_wick > upper_wick) & near_support
+        bearish_pin = (upper_wick >= pin_ratio * body) & (upper_wick > lower_wick)
+
+        holding, flags = False, []
+        for is_entry, is_exit in zip(bullish_pin, bearish_pin):
+            if not holding and is_entry:
+                holding = True
+            elif holding and is_exit:
+                holding = False
+            flags.append(holding)
+        df["long"] = flags
+
     elif strategy == "macd_cross":
         fast_span = int(params.get("macd_fast", 12))
         slow_span = int(params.get("macd_slow", 26))
@@ -908,7 +944,7 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
                    f"orb_breakout, orb_volume, vwap_reclaim, vwap_mean_reversion, "
                    f"vwap_breakout_retest, anchored_vwap_continuation, anchored_vwap_reversal, "
-                   f"vwap_multi_period_reversal, bullish_engulfing, "
+                   f"vwap_multi_period_reversal, bullish_engulfing, pin_bar_reversal, "
                    f"bollinger_mean_reversion, supertrend, macd_cross",
         )
 
@@ -997,6 +1033,9 @@ def backtest(
     min_periods: int = 5,
     atr_period: int = 10,
     multiplier: float = 3.0,
+    pin_ratio: float = 2.0,
+    sr_lookback: int = 20,
+    sr_tolerance_pct: float = 0.5,
     qty: float = 1,
 ):
     """
@@ -1016,6 +1055,7 @@ def backtest(
     strategy=bullish_engulfing    -> params: trend_sma (0=off), volume_confirm
     strategy=bollinger_mean_reversion -> params: bb_period, bb_std
     strategy=supertrend           -> params: atr_period, multiplier
+    strategy=pin_bar_reversal     -> params: pin_ratio, sr_lookback, sr_tolerance_pct
     strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
     """
     df = fetch_ohlc(symbol, period, interval)
@@ -1045,6 +1085,8 @@ def backtest(
         params = {"bb_period": bb_period, "bb_std": bb_std}
     elif strategy == "supertrend":
         params = {"atr_period": atr_period, "multiplier": multiplier}
+    elif strategy == "pin_bar_reversal":
+        params = {"pin_ratio": pin_ratio, "sr_lookback": sr_lookback, "sr_tolerance_pct": sr_tolerance_pct}
     elif strategy == "macd_cross":
         params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
     else:
@@ -1114,6 +1156,10 @@ def sweep(
     # supertrend params - comma-separated lists
     atr_period: str = "7,10,14",
     multiplier: str = "2.0,3.0,4.0",
+    # pin_bar_reversal params - comma-separated lists
+    pin_ratio: str = "1.5,2.0,3.0",
+    sr_lookback: str = "10,20,30",
+    sr_tolerance_pct: str = "0.25,0.5,1.0",
 ):
     """
     Tests every combination of the given parameter lists against ONE fetch of
@@ -1179,12 +1225,20 @@ def sweep(
         combos = [
             {"atr_period": ap, "multiplier": m} for ap, m in product(ap_list, mult_list)
         ]
+    elif strategy == "pin_bar_reversal":
+        pr_list = _parse_num_list(pin_ratio, float)
+        sl_list = _parse_num_list(sr_lookback, int)
+        st_list = _parse_num_list(sr_tolerance_pct, float)
+        combos = [
+            {"pin_ratio": pr, "sr_lookback": sl, "sr_tolerance_pct": st}
+            for pr, sl, st in product(pr_list, sl_list, st_list)
+        ]
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
-                   f"orb_breakout, orb_volume, bullish_engulfing, bollinger_mean_reversion, "
-                   f"supertrend",
+                   f"orb_breakout, orb_volume, bullish_engulfing, pin_bar_reversal, "
+                   f"bollinger_mean_reversion, supertrend",
         )
 
     if not combos:
