@@ -310,6 +310,59 @@ def place_real_exit(kotak_trading_symbol: str, qty: int) -> dict:
     }
 
 
+def cancel_existing_resting_sl(kotak_trading_symbol: str) -> dict:
+    """Safety net for a stale/lost sl_order_id in main.py's own
+    real_positions tracking - found live 2026-09-08, explicit user
+    finding (screenshot): TWO live resting SL sell orders for the same
+    1-share AGL position, same trigger/limit price, 11 minutes apart.
+    Root cause: real_positions is SQLite, wiped on every Render restart
+    like every other table here, and is only as fresh as the last
+    journal-sync snapshot (state/real_positions.json) - a restart landing
+    between "an SL got placed" and "the next snapshot captured its
+    sl_order_id" restores the position with sl_order_id back to NULL even
+    though a real resting order still exists at Kotak. The next tick's
+    retry-when-no-SL-is-resting path (main.py's _maybe_sync_real_stop_loss)
+    then had nothing to cancel (its only cancel trigger is a KNOWN
+    sl_order_id) and placed a second one - orphaning the first, live, at
+    the broker, with nothing in this app's state pointing at it any more.
+
+    Call this BEFORE placing any "no known SL to replace" resting SL
+    (i.e. exactly the case main.py's own known-id cancel-then-replace
+    logic can't cover) - queries Kotak's OWN order book (ground truth,
+    not this app's possibly-stale DB state) for any non-terminal SELL/SL
+    order on this symbol and cancels every one found, so a duplicate can
+    never accumulate again regardless of why this app's own tracking went
+    stale. Never raises; a failure to even fetch the order book is
+    reported but treated as "nothing found to cancel" - fails open, since
+    the caller places its own fresh SL regardless of this call's outcome,
+    so a real position is never left unprotected over this check
+    failing."""
+    try:
+        client = kotak_neo.login()
+        report = client.order_report()
+        rows = report.get("data") if isinstance(report, dict) else None
+    except Exception as e:
+        return {"cancelled": [], "detail": f"could not fetch order book: {e}"}
+
+    TERMINAL_STATUSES = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
+    cancelled = []
+    for row in (rows or []):
+        if row.get("trdSym") != kotak_trading_symbol:
+            continue
+        if row.get("trnsTp") != "S":
+            continue
+        if str(row.get("prcTp", "")).upper() not in ("SL", "SL-M"):
+            continue
+        if str(row.get("ordSt", "")).lower() in TERMINAL_STATUSES:
+            continue
+        order_id = row.get("nOrdNo")
+        if not order_id:
+            continue
+        cancel_real_order(str(order_id))
+        cancelled.append(str(order_id))
+    return {"cancelled": cancelled, "detail": None}
+
+
 def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
     """Places a REAL resting stop-loss sell order at Kotak for an already-
     open real position, so the stop fires at the exchange even if this app

@@ -3348,6 +3348,45 @@ def _maybe_place_real_entry(conn, symbol: str):
         print(f"[REAL TRADE] BUY FAILED {kotak_symbol}: {result.get('detail')}")
 
 
+def _kotak_symbol_still_open(kotak_trading_symbol: str) -> bool | None:
+    """Ground-truth check against Kotak's OWN positions(), same query
+    shape as get_real_capital_deployed_inr - added 2026-09-08 after a
+    live-confirmed duplicate-exit finding (see _maybe_place_real_exit):
+    a Render restart landing between a real exit order being CONFIRMED
+    and its real_positions row's DELETE actually committing (SQLite,
+    wiped on every restart like every other table here) restores that
+    row from the last journal snapshot as if the position were still
+    open - if a second exit attempt then fires off this stale state, it
+    places a REAL duplicate sell with no legitimate open position behind
+    it, drawing from whatever the account happens to hold in that symbol
+    (confirmed live: this drew from a separate manually-purchased holding
+    in the same symbol, not this app's own tracked shares - net position
+    ended up flat by coincidence, not by design).
+
+    Returns True if Kotak shows a genuinely open (not fully squared-off)
+    position for this exact trading symbol, False if it shows none/fully
+    squared off, or None on a fetch failure (fails OPEN - never used to
+    silently swallow a legitimate exit over a transient API hiccup; see
+    the caller)."""
+    try:
+        import kotak_neo
+        positions = kotak_neo.positions()
+        rows = positions.get("data") or [] if isinstance(positions, dict) else []
+    except Exception:
+        return None
+    for row in rows:
+        if row.get("trdSym") != kotak_trading_symbol or row.get("exSeg") != "nse_cm":
+            continue
+        try:
+            fl_buy = float(row.get("flBuyQty", 0) or 0)
+            fl_sell = float(row.get("flSellQty", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if fl_buy > 0 and fl_buy != fl_sell:
+            return True
+    return False
+
+
 def _maybe_place_real_exit(conn, symbol: str):
     """Mirrors a paper exit (any exit_reason) as a REAL sell that closes
     the matching real_positions row, if one exists. Deliberately NOT
@@ -3359,6 +3398,29 @@ def _maybe_place_real_exit(conn, symbol: str):
         return  # no real position was ever opened for this paper trade - nothing to close
 
     import kotak_real_orders
+
+    # BUG found live 2026-09-08 (investigating a related duplicate-SL
+    # question): this app's own real_positions row can survive a restart
+    # that landed between "the exit already executed at Kotak" and "the
+    # DELETE that would have removed this row actually committing" - see
+    # _kotak_symbol_still_open's own docstring for the full mechanism.
+    # Verify against Kotak's OWN positions() before placing a second real
+    # sell for a position that may already be closed - None (fetch
+    # failed) still proceeds, since refusing a genuinely-needed exit is
+    # worse than risking a check that couldn't run.
+    still_open = _kotak_symbol_still_open(row["kotak_trading_symbol"])
+    if still_open is False:
+        conn.execute("DELETE FROM real_positions WHERE symbol = ?", (symbol,))
+        conn.commit()
+        _log_real_attempt(
+            conn, symbol, "S", "skipped_already_closed_at_kotak", kotak_trading_symbol=row["kotak_trading_symbol"],
+            qty=row["qty"],
+            detail="Kotak shows no open position for this symbol - stale real_positions row "
+                   "(likely a restart-interrupted DELETE from an earlier exit) cleared without a second sell",
+        )
+        print(f"[REAL TRADE] SKIPPED duplicate exit for {row['kotak_trading_symbol']} - "
+              f"Kotak already shows it closed, stale local row cleared instead of re-selling")
+        return
     # Cancel the resting real stop-loss FIRST (if one was ever placed) -
     # best-effort, never blocks the exit below even if the cancel fails
     # (e.g. the SL already fired, which is itself a valid reason
@@ -3444,6 +3506,23 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
             print(f"[REAL TRADE] trailing-SL cancel failed for {real_row['kotak_trading_symbol']} "
                   f"(order {real_row['sl_order_id']}): {cancel_result.get('detail')} - skipping this sync, will retry next tick")
             return  # don't place a second resting SL on top of one that might still be live
+    else:
+        # BUG found live 2026-09-08 (explicit user finding, screenshot):
+        # TWO live resting SL orders for the same 1-share AGL position,
+        # same trigger/limit price, 11 minutes apart. sl_order_id is NULL
+        # here for one of two reasons: no SL was ever placed yet (nothing
+        # to cancel, genuinely fine), OR - the actual bug - a Render
+        # restart landed between an earlier SL placement and the next
+        # journal-sync snapshot capturing its order id (real_positions is
+        # SQLite, wiped on every restart like every other table, only as
+        # fresh as the last snapshot), restoring this position with
+        # sl_order_id back to NULL even though a real order was already
+        # resting at Kotak. Sweep the broker's OWN order book first (the
+        # only ground truth this app's stale/lost tracking can't corrupt)
+        # so a leftover live SL is cancelled before a fresh one is placed,
+        # instead of accumulating a silent duplicate every time this
+        # exact race recurs.
+        kotak_real_orders.cancel_existing_resting_sl(real_row["kotak_trading_symbol"])
 
     sl_result = kotak_real_orders.place_real_stop_loss(real_row["kotak_trading_symbol"], real_row["qty"], new_stop)
     if sl_result.get("ok"):
