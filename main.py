@@ -4899,190 +4899,216 @@ def _market_open_for_cfg(cfg: dict) -> bool:
 
 
 async def _scheduler_loop():
-    global _scheduler_last_tick_ts, _scheduler_last_error, _scheduler_rr_cursor, _scheduler_currently_checking
+    """Resilient wrapper (2026-09-08, found live - see _scheduler_tick's
+    own docstring for the real incident this fixes) - the ENTIRE tick used
+    to run directly inside this function's `while True:`, with no top-
+    level exception handling. Every individual symbol's own check was
+    already isolated in its own try/except, but the DB/threshold setup at
+    the START of a tick (before any per-symbol block) was NOT - a single
+    unhandled exception there (a bad runtime_setting value, a transient
+    DB error, anything) would propagate out of this fire-and-forget
+    asyncio.create_task, silently killing the ENTIRE scheduler forever -
+    no more ticks, ever, until Render's next restart. Exactly matches a
+    real incident: "checks today is even less than 1 after 75 min of
+    market open" - the loop had died and nothing was left to notice or
+    restart it. Now the whole tick body lives in _scheduler_tick() and
+    THIS function is the only thing that can never die - any exception
+    from a tick, wherever it originates, is caught, recorded, and the
+    loop resumes on the very next iteration instead of stopping."""
+    global _scheduler_last_error
     while True:
-        watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
+        try:
+            await _scheduler_tick()
+        except Exception as e:
+            _scheduler_last_error = f"TICK CRASHED (recovered): {e}"
+            print(f"[scheduler] tick crashed, would have killed the whole loop before this fix: {e}")
+            await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
 
-        with closing(get_db()) as conn:
-            open_equity_symbols = {
-                r["symbol"] for r in conn.execute(
-                    "SELECT symbol FROM signal_state WHERE status = 'long'"
-                ).fetchall()
-            }
-            open_option_underlyings = {
-                r["underlying"] for r in conn.execute(
-                    "SELECT underlying FROM option_state"
-                ).fetchall()
-            }
-            trading_paused = not is_trading_enabled(conn)
-            # Live thresholds (see RUNTIME_SETTINGS_META/get_runtime_setting
-            # above) - read once per tick here, not per symbol, same reasoning
-            # as scheduler_capital_inr below. A value saved via POST
-            # /runtime-settings is picked up on the VERY NEXT tick.
-            live_daily_risk_pct = get_runtime_setting(conn, "daily_risk_pct")
-            live_rr = get_runtime_setting(conn, "rr")
-            live_batch_size = int(get_runtime_setting(conn, "entry_scan_batch_size"))
 
-        # When paused, don't waste a Yahoo Finance call scanning flat
-        # symbols for a NEW entry nobody wants right now - _auto_signal_core/
-        # _options_signal_core would reject it anyway (trading_paused), this
-        # just skips the round-robin batch itself. Open positions are NEVER
-        # gated by this - they still get checked every tick regardless
-        # (see symbols_this_tick below), same as always.
-        all_symbols = [cfg["symbol"] for cfg in WATCHLIST]
-        # Market-hours-aware pool (see _market_open_for_cfg's own docstring
-        # for the full reasoning) - only symbols whose own market is open
-        # right now are candidates for entry-scanning. An open position is
-        # NEVER gated by this (open_equity_symbols/open_option_underlyings
-        # below are unconditional) - only the round-robin's flat-symbol
-        # scan pool is filtered.
-        flat_symbols = [] if trading_paused else [
-            s for s in all_symbols
-            if s not in open_equity_symbols and _market_open_for_cfg(watchlist_by_symbol[s])
-        ]
-        if flat_symbols:
-            n = len(flat_symbols)
-            batch_size = min(live_batch_size, n)
-            rr_batch = [flat_symbols[(_scheduler_rr_cursor + i) % n] for i in range(batch_size)]
-            _scheduler_rr_cursor = (_scheduler_rr_cursor + batch_size) % n
-        else:
-            rr_batch = []
+async def _scheduler_tick():
+    global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
+    watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
 
-        # Always: every symbol with an open equity position (time-critical
-        # stop/target/eod check) + every underlying with an open option
-        # position (same reason, for the overlay below) + this tick's
-        # round-robin entry-scan batch of otherwise-flat symbols.
-        symbols_this_tick = open_equity_symbols | open_option_underlyings | set(rr_batch)
+    with closing(get_db()) as conn:
+        open_equity_symbols = {
+            r["symbol"] for r in conn.execute(
+                "SELECT symbol FROM signal_state WHERE status = 'long'"
+            ).fetchall()
+        }
+        open_option_underlyings = {
+            r["underlying"] for r in conn.execute(
+                "SELECT underlying FROM option_state"
+            ).fetchall()
+        }
+        trading_paused = not is_trading_enabled(conn)
+        # Live thresholds (see RUNTIME_SETTINGS_META/get_runtime_setting
+        # above) - read once per tick here, not per symbol, same reasoning
+        # as scheduler_capital_inr below. A value saved via POST
+        # /runtime-settings is picked up on the VERY NEXT tick.
+        live_daily_risk_pct = get_runtime_setting(conn, "daily_risk_pct")
+        live_rr = get_runtime_setting(conn, "rr")
+        live_batch_size = int(get_runtime_setting(conn, "entry_scan_batch_size"))
 
-        # Hoisted once per tick, not per symbol - get_scheduler_capital_inr()
-        # is TTL-cached internally anyway, but this avoids re-checking cache
-        # freshness once per symbol in the loop below for no benefit.
-        scheduler_capital_inr = get_scheduler_capital_inr()
+    # When paused, don't waste a Yahoo Finance call scanning flat
+    # symbols for a NEW entry nobody wants right now - _auto_signal_core/
+    # _options_signal_core would reject it anyway (trading_paused), this
+    # just skips the round-robin batch itself. Open positions are NEVER
+    # gated by this - they still get checked every tick regardless
+    # (see symbols_this_tick below), same as always.
+    all_symbols = [cfg["symbol"] for cfg in WATCHLIST]
+    # Market-hours-aware pool (see _market_open_for_cfg's own docstring
+    # for the full reasoning) - only symbols whose own market is open
+    # right now are candidates for entry-scanning. An open position is
+    # NEVER gated by this (open_equity_symbols/open_option_underlyings
+    # below are unconditional) - only the round-robin's flat-symbol
+    # scan pool is filtered.
+    flat_symbols = [] if trading_paused else [
+        s for s in all_symbols
+        if s not in open_equity_symbols and _market_open_for_cfg(watchlist_by_symbol[s])
+    ]
+    if flat_symbols:
+        n = len(flat_symbols)
+        batch_size = min(live_batch_size, n)
+        rr_batch = [flat_symbols[(_scheduler_rr_cursor + i) % n] for i in range(batch_size)]
+        _scheduler_rr_cursor = (_scheduler_rr_cursor + batch_size) % n
+    else:
+        rr_batch = []
 
-        for symbol in symbols_this_tick:
-            cfg = watchlist_by_symbol.get(symbol)
-            if not cfg:
-                continue
-            _scheduler_currently_checking = {
-                "symbol": symbol, "kind": "equity", "started_at_utc": time.time(),
-            }
-            _record_scheduler_check(symbol)
+    # Always: every symbol with an open equity position (time-critical
+    # stop/target/eod check) + every underlying with an open option
+    # position (same reason, for the overlay below) + this tick's
+    # round-robin entry-scan batch of otherwise-flat symbols.
+    symbols_this_tick = open_equity_symbols | open_option_underlyings | set(rr_batch)
+
+    # Hoisted once per tick, not per symbol - get_scheduler_capital_inr()
+    # is TTL-cached internally anyway, but this avoids re-checking cache
+    # freshness once per symbol in the loop below for no benefit.
+    scheduler_capital_inr = get_scheduler_capital_inr()
+
+    for symbol in symbols_this_tick:
+        cfg = watchlist_by_symbol.get(symbol)
+        if not cfg:
+            continue
+        _scheduler_currently_checking = {
+            "symbol": symbol, "kind": "equity", "started_at_utc": time.time(),
+        }
+        _record_scheduler_check(symbol)
+        try:
+            result = await asyncio.to_thread(
+                _auto_signal_core,
+                symbol=cfg["symbol"], capital=scheduler_capital_inr,
+                daily_risk_pct=live_daily_risk_pct,
+                risk_per_trade_pct=cfg["risk_pct"],
+                stop_pct=cfg["stop_pct"], rr=live_rr,
+                orb_minutes=cfg["orb_minutes"], sma_fast=cfg["sma_fast"], sma_slow=cfg["sma_slow"],
+                interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
+                close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
+                trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
+                strategy=cfg.get("strategy", "orb_breakout"),
+                trend_sma=cfg.get("trend_sma", 0), volume_confirm=cfg.get("volume_confirm", False),
+            )
+            _scheduler_last_results[cfg["symbol"]] = {"checked_at_utc": time.time(), **result}
+
+            # Stage 3: mirror this SAME decision as a real order, only
+            # for the equity path (options/MCX are out of stage 3 v1 -
+            # explicit user instruction). Deliberately AFTER the paper
+            # result is already recorded, in its own try/except that
+            # can never propagate - a real-order hiccup must never look
+            # like a paper-trading scheduler failure or block the next
+            # symbol's tick.
             try:
-                result = await asyncio.to_thread(
-                    _auto_signal_core,
-                    symbol=cfg["symbol"], capital=scheduler_capital_inr,
-                    daily_risk_pct=live_daily_risk_pct,
-                    risk_per_trade_pct=cfg["risk_pct"],
-                    stop_pct=cfg["stop_pct"], rr=live_rr,
-                    orb_minutes=cfg["orb_minutes"], sma_fast=cfg["sma_fast"], sma_slow=cfg["sma_slow"],
-                    interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
-                    close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
-                    trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
-                    strategy=cfg.get("strategy", "orb_breakout"),
-                    trend_sma=cfg.get("trend_sma", 0), volume_confirm=cfg.get("volume_confirm", False),
-                )
-                _scheduler_last_results[cfg["symbol"]] = {"checked_at_utc": time.time(), **result}
+                action_taken = result.get("action_taken", "")
+                if action_taken == "entered_long":
+                    with closing(get_db()) as real_conn:
+                        _maybe_place_real_entry(real_conn, cfg["symbol"])
+                elif action_taken.startswith("exited_"):
+                    with closing(get_db()) as real_conn:
+                        _maybe_place_real_exit(real_conn, cfg["symbol"])
+                else:
+                    # Position still open (or never was one) - sync any
+                    # real resting stop-loss to the paper trail's latest
+                    # level. A no-op unless a real position is actually
+                    # open for this symbol (see _maybe_sync_real_stop_loss).
+                    with closing(get_db()) as real_conn:
+                        _maybe_sync_real_stop_loss(real_conn, cfg["symbol"])
+            except Exception as e:
+                print(f"[real_orders] unexpected error for {cfg['symbol']}: {e}")
 
-                # Stage 3: mirror this SAME decision as a real order, only
-                # for the equity path (options/MCX are out of stage 3 v1 -
-                # explicit user instruction). Deliberately AFTER the paper
-                # result is already recorded, in its own try/except that
-                # can never propagate - a real-order hiccup must never look
-                # like a paper-trading scheduler failure or block the next
-                # symbol's tick.
-                try:
-                    action_taken = result.get("action_taken", "")
+            # Real F&O (2026-09-07, extended to MCX same day per
+            # explicit user instruction "also mcx") - NIFTY/BANKNIFTY/
+            # GC=F/SI=F/CL=F only (see _INDEX_TO_FO_UNDERLYING). Same
+            # isolation principle: its
+            # own try/except, never able to break the equity mirror
+            # above or the next symbol's tick.
+            try:
+                if cfg["symbol"] in _INDEX_TO_FO_UNDERLYING:
+                    fo_underlying = _INDEX_TO_FO_UNDERLYING[cfg["symbol"]]
                     if action_taken == "entered_long":
-                        with closing(get_db()) as real_conn:
-                            _maybe_place_real_entry(real_conn, cfg["symbol"])
-                    elif action_taken.startswith("exited_"):
-                        with closing(get_db()) as real_conn:
-                            _maybe_place_real_exit(real_conn, cfg["symbol"])
-                    else:
-                        # Position still open (or never was one) - sync any
-                        # real resting stop-loss to the paper trail's latest
-                        # level. A no-op unless a real position is actually
-                        # open for this symbol (see _maybe_sync_real_stop_loss).
-                        with closing(get_db()) as real_conn:
-                            _maybe_sync_real_stop_loss(real_conn, cfg["symbol"])
-                except Exception as e:
-                    print(f"[real_orders] unexpected error for {cfg['symbol']}: {e}")
-
-                # Real F&O (2026-09-07, extended to MCX same day per
-                # explicit user instruction "also mcx") - NIFTY/BANKNIFTY/
-                # GC=F/SI=F/CL=F only (see _INDEX_TO_FO_UNDERLYING). Same
-                # isolation principle: its
-                # own try/except, never able to break the equity mirror
-                # above or the next symbol's tick.
-                try:
-                    if cfg["symbol"] in _INDEX_TO_FO_UNDERLYING:
-                        fo_underlying = _INDEX_TO_FO_UNDERLYING[cfg["symbol"]]
-                        if action_taken == "entered_long":
-                            with closing(get_db()) as fo_conn:
-                                _maybe_place_real_fo_call_entry(fo_conn, cfg["symbol"], result.get("last_close"))
-                        elif action_taken.startswith("exited_"):
-                            with closing(get_db()) as fo_conn:
-                                _maybe_place_real_fo_call_exit(fo_conn, cfg["symbol"])
                         with closing(get_db()) as fo_conn:
-                            _straddle_signal_core(
-                                fo_conn, fo_underlying, result.get("vol_contraction_signal"),
-                                result.get("halted_for_day", False), result.get("is_squareoff_time", False),
-                                result.get("last_close"),
-                            )
-                except Exception as e:
-                    print(f"[real_fo_orders] unexpected error for {cfg['symbol']}: {e}")
+                            _maybe_place_real_fo_call_entry(fo_conn, cfg["symbol"], result.get("last_close"))
+                    elif action_taken.startswith("exited_"):
+                        with closing(get_db()) as fo_conn:
+                            _maybe_place_real_fo_call_exit(fo_conn, cfg["symbol"])
+                    with closing(get_db()) as fo_conn:
+                        _straddle_signal_core(
+                            fo_conn, fo_underlying, result.get("vol_contraction_signal"),
+                            result.get("halted_for_day", False), result.get("is_squareoff_time", False),
+                            result.get("last_close"),
+                        )
             except Exception as e:
-                _scheduler_last_error = f"{cfg['symbol']}: {e}"
-                _scheduler_last_results[cfg["symbol"]] = {
-                    "checked_at_utc": time.time(), "symbol": cfg["symbol"],
-                    "status": "error", "detail": str(e),
-                }
-            finally:
-                _scheduler_currently_checking = None
-
-        # Options overlay - real calls/puts on the symbols with a live
-        # yfinance chain (OPTIONS_ELIGIBLE_SYMBOLS), using that same
-        # symbol's own WATCHLIST session config (hours/tz/currency) so it
-        # follows the same market clock as the equity engine on that ticker.
-        # Covers the SAME symbols_this_tick set as the equity loop above
-        # (open positions + this tick's round-robin batch) - not a
-        # separate schedule - so a symbol's OHLC fetch (fetch_ohlc, cached
-        # 180s) is shared between the two checks instead of doubling the
-        # network calls for symbols that are both an equity WATCHLIST entry
-        # and options-eligible.
-        for underlying in OPTIONS_ELIGIBLE_SYMBOLS:
-            if underlying not in symbols_this_tick:
-                continue
-            cfg = watchlist_by_symbol.get(underlying)
-            if not cfg:
-                continue
-            key = f"{underlying}:OPT"
-            _scheduler_currently_checking = {
-                "symbol": key, "kind": "options", "started_at_utc": time.time(),
+                print(f"[real_fo_orders] unexpected error for {cfg['symbol']}: {e}")
+        except Exception as e:
+            _scheduler_last_error = f"{cfg['symbol']}: {e}"
+            _scheduler_last_results[cfg["symbol"]] = {
+                "checked_at_utc": time.time(), "symbol": cfg["symbol"],
+                "status": "error", "detail": str(e),
             }
-            _record_scheduler_check(key)
-            try:
-                result = await asyncio.to_thread(
-                    _options_signal_core,
-                    underlying=underlying, capital=scheduler_capital_inr,
-                    daily_risk_pct=live_daily_risk_pct,
-                    risk_per_trade_pct=cfg["risk_pct"], rr=live_rr,
-                    trend_sma=cfg.get("trend_sma", 20),
-                    tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
-                    close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
-                    trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
-                )
-                _scheduler_last_results[key] = {"checked_at_utc": time.time(), **result}
-            except Exception as e:
-                _scheduler_last_results[key] = {
-                    "checked_at_utc": time.time(), "underlying": underlying,
-                    "status": "error", "detail": str(e),
-                }
-            finally:
-                _scheduler_currently_checking = None
+        finally:
+            _scheduler_currently_checking = None
 
-        _scheduler_last_tick_ts = time.time()
-        await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
+    # Options overlay - real calls/puts on the symbols with a live
+    # yfinance chain (OPTIONS_ELIGIBLE_SYMBOLS), using that same
+    # symbol's own WATCHLIST session config (hours/tz/currency) so it
+    # follows the same market clock as the equity engine on that ticker.
+    # Covers the SAME symbols_this_tick set as the equity loop above
+    # (open positions + this tick's round-robin batch) - not a
+    # separate schedule - so a symbol's OHLC fetch (fetch_ohlc, cached
+    # 180s) is shared between the two checks instead of doubling the
+    # network calls for symbols that are both an equity WATCHLIST entry
+    # and options-eligible.
+    for underlying in OPTIONS_ELIGIBLE_SYMBOLS:
+        if underlying not in symbols_this_tick:
+            continue
+        cfg = watchlist_by_symbol.get(underlying)
+        if not cfg:
+            continue
+        key = f"{underlying}:OPT"
+        _scheduler_currently_checking = {
+            "symbol": key, "kind": "options", "started_at_utc": time.time(),
+        }
+        _record_scheduler_check(key)
+        try:
+            result = await asyncio.to_thread(
+                _options_signal_core,
+                underlying=underlying, capital=scheduler_capital_inr,
+                daily_risk_pct=live_daily_risk_pct,
+                risk_per_trade_pct=cfg["risk_pct"], rr=live_rr,
+                trend_sma=cfg.get("trend_sma", 20),
+                tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
+                close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
+                trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
+            )
+            _scheduler_last_results[key] = {"checked_at_utc": time.time(), **result}
+        except Exception as e:
+            _scheduler_last_results[key] = {
+                "checked_at_utc": time.time(), "underlying": underlying,
+                "status": "error", "detail": str(e),
+            }
+        finally:
+            _scheduler_currently_checking = None
+
+    _scheduler_last_tick_ts = time.time()
+    await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
 
 
 @app.on_event("startup")
