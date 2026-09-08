@@ -6214,6 +6214,23 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
        _bare_nse_symbol, inverted), which every real trading symbol
        observed on this account so far follows exactly.
 
+       BUG fixed 2026-09-08 (second occurrence of this exact gap, this
+       time AARTIIND - explicit user finding: "why so much u sync"): the
+       first version matched ANY complete BUY order for the symbol as
+       this app's own entry - a manually-placed buy would have been
+       silently adopted as if the bot opened it. Now only ever matches a
+       BUY carrying Kotak's own algo-order tag for this app (ordSrc
+       "ADMINCPPAPI_NEOTRADEAPI", algId not "NA"/blank - confirmed live,
+       distinct from a manual/mobile order's ordSrc "ADMINCPPAPI_MOB"/
+       algId "NA", every single time this session); a symbol with no
+       bot-tagged BUY in the order book is skipped (stays untracked, for
+       a human to review) rather than adopted from a guess. This is what
+       makes it now safe to run unattended - see kotak-reconcile.yml's
+       scheduled (every 15 min, market hours) run, which passes
+       adopt="*" for exactly this reason: self-heals this recurring gap
+       automatically instead of requiring a human to notice a missing
+       position in the Kotak app and report it each time.
+
     Also returns the real account balance (kotak_neo.limits()) alongside,
     for the same "sync balance, not just positions" ask.
 
@@ -6296,15 +6313,38 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
                         if row.get("trdSym") != trd_sym:
                             continue
                         st = str(row.get("ordSt", "")).lower()
-                        if row.get("trnsTp") == "B" and st == "complete" and not entry_order_id:
+                        # BUG found live 2026-09-08 (second occurrence of the
+                        # same untracked-position gap, this time AARTIIND -
+                        # explicit user finding: "why so much u sync"): the
+                        # first version of this adopt logic grabbed ANY
+                        # complete BUY order for the symbol as this app's
+                        # own entry, with no check that it was actually
+                        # BOT-placed - a manually-placed buy (e.g. the AGL
+                        # 62-share purchase earlier today) would have been
+                        # silently adopted as if this app opened it,
+                        # defeating the whole "only adopt what this app
+                        # itself is responsible for" safety reasoning. Kotak
+                        # tags every order this app places with its own
+                        # algo id (algId "99999", ordSrc
+                        # "ADMINCPPAPI_NEOTRADEAPI" - confirmed live,
+                        # distinct from a manual/mobile order's algId "NA"/
+                        # ordSrc "ADMINCPPAPI_MOB", every single time this
+                        # session) - only a BUY carrying that same tag is
+                        # ever treated as this app's own entry now.
+                        is_bot_placed = (row.get("ordSrc") == "ADMINCPPAPI_NEOTRADEAPI"
+                                          and row.get("algId") not in (None, "NA", ""))
+                        if row.get("trnsTp") == "B" and st == "complete" and is_bot_placed and not entry_order_id:
                             entry_order_id = row.get("nOrdNo")
                         elif (row.get("trnsTp") == "S" and str(row.get("prcTp", "")).upper() in ("SL", "SL-M")
-                              and st not in TERMINAL_STATUSES):
+                              and st not in TERMINAL_STATUSES and is_bot_placed):
                             sl_order_id = row.get("nOrdNo")
                             try:
                                 sl_trigger_price = float(row.get("trgPrc"))
                             except (TypeError, ValueError):
                                 sl_trigger_price = None
+                    if not entry_order_id:
+                        continue  # no bot-placed entry found for this symbol - a manual/unknown
+                        # position, leave it untracked rather than guessing whose it is
                     watchlist_symbol = trd_sym[:-3] + ".NS" if trd_sym.endswith("-EQ") else trd_sym
                     conn.execute(
                         "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
