@@ -1534,6 +1534,37 @@ def _durable_trade_outcomes_since(since_ts: float) -> list[dict]:
     return [t for t in all_trades if t.get("exit_time_utc", 0) >= since_ts]
 
 
+def _closed_in_durable_log(symbol: str, entry_price: float, entry_ts: float) -> bool:
+    """True if docs/trade_outcomes_log.json (see _durable_trade_outcomes_since
+    above) already recorded THIS exact trade as closed - matched by symbol +
+    entry price (small float tolerance), exit at or after this trade's own
+    entry_ts. Guards reconcile_open_positions_from_journal against
+    resurrecting a position from a state/open_positions.json snapshot that's
+    stale (up to ~15 min behind, worse mid-day - see journal-sync.yml's own
+    cadence comment) and predates a real close the scheduler already made
+    and durably logged.
+
+    BUG found live 2026-09-08 (explicit user finding, /live dashboard
+    screenshot): AGL.NS and BHANDARI.NS both showed LIVE/open, 7h old - but
+    docs/trade_outcomes_log.json already had a closed entry for the SAME
+    symbol+entry_price (AGL via eod_squareoff, BHANDARI via stale_timeout),
+    hours earlier. Every restart since then kept resurrecting the pre-close
+    open_positions.json snapshot, undoing an exit that had already happened
+    and was already durably recorded - same restart-race class as the
+    real_positions bugs found and fixed earlier this session (see
+    _sync_real_positions_external's own comment), just in the paper-side
+    journal this time. Paper data doesn't need that fix's synchronous
+    external mirror (no real money at stake, and the existing ~15-min git
+    journal cadence is otherwise fine) - it only needed to stop undoing a
+    close it had ALREADY durably recorded, which is what this check does."""
+    for t in _durable_trade_outcomes_since(entry_ts):
+        if t.get("symbol") != symbol:
+            continue
+        if abs(float(t.get("entry_price_native", 1e18)) - entry_price) < 1e-6:
+            return True
+    return False
+
+
 def _merge_closed_trades(db_trades: list[dict], durable_trades: list[dict]) -> list[dict]:
     """Unions this DB instance's own closed-trade dicts with the durable
     journal's, deduped by (symbol, rounded exit_time_utc) - both share the
@@ -4918,6 +4949,8 @@ def reconcile_open_positions_from_journal():
                 if already_open_opt:
                     continue
                 entry_ts = pos["entry_ts"]
+                if _closed_in_durable_log(symbol, pos["entry_price_native"], entry_ts):
+                    continue  # already durably closed - stale journal snapshot, don't resurrect
                 day_str = (
                     dt.datetime.utcfromtimestamp(entry_ts) + dt.timedelta(minutes=IST_OFFSET_MIN)
                 ).strftime("%Y-%m-%d")
@@ -4950,6 +4983,8 @@ def reconcile_open_positions_from_journal():
             ).fetchone()
             if already_open:
                 continue
+            if _closed_in_durable_log(symbol, pos["entry_price_native"], pos["entry_ts"]):
+                continue  # already durably closed - stale journal snapshot, don't resurrect
 
             entry_ts = pos["entry_ts"]
             tz_offset_min = tz_by_symbol.get(symbol, IST_OFFSET_MIN)
