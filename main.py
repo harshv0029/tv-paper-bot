@@ -1375,6 +1375,9 @@ def backtest(
     sr_lookback: int = 20,
     sr_tolerance_pct: float = 0.5,
     ma_type: str = "sma",
+    range_lookback: int = 60,
+    range_flatness_pct: float = 3.0,
+    spring_pierce_pct: float = 0.3,
     qty: float = 1,
 ):
     """
@@ -1388,10 +1391,8 @@ def backtest(
                                         open_min, ma_type ("sma"/"ema" - see
                                         that branch's own comment in
                                         add_strategy_signal) (orb_volume also: volume_mult)
-    strategy=wyckoff_spring/wyckoff_sos -> params: range_lookback (60), range_flatness_pct
-                                        (3.0), spring_pierce_pct (0.3), volume_mult -
-                                        not yet exposed as its own query params, uses
-                                        add_strategy_signal's own defaults
+    strategy=wyckoff_spring/wyckoff_sos -> params: range_lookback, range_flatness_pct,
+                                        spring_pierce_pct, volume_mult
     strategy=vwap_reclaim         -> no extra params
     strategy=vwap_mean_reversion  -> params: bb_std
     strategy=vwap_breakout_retest -> params: bb_std, retest_pct
@@ -1413,6 +1414,11 @@ def backtest(
         params = {
             "orb_minutes": orb_minutes, "sma_fast": sma_fast, "sma_slow": sma_slow,
             "open_min": open_min, "volume_mult": volume_mult, "ma_type": ma_type,
+        }
+    elif strategy in ("wyckoff_spring", "wyckoff_sos"):
+        params = {
+            "range_lookback": range_lookback, "range_flatness_pct": range_flatness_pct,
+            "spring_pierce_pct": spring_pierce_pct, "volume_mult": volume_mult,
         }
     elif strategy == "vwap_reclaim":
         params = {}
