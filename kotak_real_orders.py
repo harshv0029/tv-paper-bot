@@ -148,6 +148,47 @@ at all. Tick-size alignment is NOT verified (this function has no
 tick-size input) - a rejection for that specific reason would show up
 distinctly in _confirm_order_status's result and is a known, documented
 gap, not a silent one.
+
+--- Real resting target (profit-booking) orders (2026-09-08) -----------------
+Explicit user instruction: "place the target you have planned for each
+trade so that it can be booked once reached" - mirrors the resting-SL
+reasoning above for the OTHER side of the trade: until now, the paper
+engine's own target price only ever lived in signal_state and was
+enforced by the same once-per-tick poll (last_close >= row["target"] in
+main.py's _auto_signal_core) - a favorable move that happened and
+reversed between two ticks (or while Render's process was down/slow)
+could be missed entirely, same exposure the resting SL was built to
+close on the loss side.
+
+place_real_target places a REAL resting LIMIT sell (order_type "L", no
+trigger_price - this is a plain limit order, not a stop) at the paper
+engine's target price, the moment a real position opens (see main.py's
+_maybe_place_real_entry, right after the SL leg). A bare "L" limit sell
+was never implicated in the algo-tag MARKET-order block that broke SL-M
+(see place_real_stop_loss's own docstring) - every bot-placed real SELL
+observed on this account with order_type "L" has gone through cleanly,
+so no analogous rejection is expected here.
+
+Unlike the SL leg, the target price does NOT trail/change over the
+trade's life (the paper engine's own "target" is fixed at entry - only
+"stop_loss" ratchets), so there is no per-tick replace logic for this
+order the way _maybe_sync_real_stop_loss replaces the SL. Whichever leg
+fires first (SL or target) closing the real position, the OTHER resting
+order must be cancelled so it doesn't sit orphaned - see main.py's
+_maybe_place_real_exit, which now cancels both sl_order_id and
+target_order_id before selling.
+
+Deliberately NOT retried on a later tick if placement fails or the
+tracked order id goes stale (unlike the SL leg's cancel_existing_resting_sl
+sweep-and-retry) - a blind sweep-and-cancel of resting "L" limit sells for
+a symbol risks catching a genuine MANUAL limit order the user placed
+directly at Kotak (this account trades manually too - see this session's
+own history), which the SL sweep never risked (only this app ever places
+SL/SL-M orders). A failed/lost target placement is logged and left for a
+human/reconcile pass to notice, same discipline as every other
+known-and-documented gap in this module, rather than risking a wrong
+cancel of someone else's order. Tick-size alignment is NOT verified here
+either, same known gap as place_real_stop_loss.
 """
 import kotak_neo
 
@@ -426,6 +467,49 @@ def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: flo
 
     return {"ok": True, "order_id": str(order_id), "raw_response": resp,
             "trigger_price": trigger_price, "limit_price": limit_price}
+
+
+def place_real_target(kotak_trading_symbol: str, qty: int, target_price: float) -> dict:
+    """Places a REAL resting LIMIT sell order at Kotak for an already-open
+    real position, at the paper engine's own profit target, so a
+    favorable price move gets sold and booked at the exchange itself even
+    if this app's process is down or hasn't yet reached the tick that
+    would notice. See this module's top docstring ("Real resting target
+    (profit-booking) orders") for the full reasoning.
+
+    order_type="L" (a plain limit sell, no trigger_price) - not a stop
+    order, so none of place_real_stop_loss's algo-tag MARKET-order
+    concerns apply here. Same never-raises / rejection-confirmed
+    discipline as every other function in this module."""
+    try:
+        client = kotak_neo.login()
+    except Exception as e:
+        return {"ok": False, "detail": f"login failed: {e}"}
+
+    try:
+        resp = client.place_order(
+            exchange_segment="nse_cm",
+            product="CNC",
+            price=str(target_price),
+            order_type="L",
+            quantity=str(qty),
+            validity="DAY",
+            trading_symbol=kotak_trading_symbol,
+            transaction_type="S",
+        )
+    except Exception as e:
+        return {"ok": False, "detail": f"place_order raised: {e}"}
+
+    order_id = resp.get("nOrdNo") if isinstance(resp, dict) else None
+    if not order_id:
+        return {"ok": False, "detail": f"no order id in response: {resp}", "raw_response": resp}
+
+    status = _confirm_order_status(order_id)
+    if status["status"] == "rejected":
+        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
+                "raw_response": resp, "status_check": status["row"]}
+
+    return {"ok": True, "order_id": str(order_id), "raw_response": resp, "target_price": target_price}
 
 
 def cancel_real_order(order_id: str) -> dict:
