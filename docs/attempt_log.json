@@ -116834,5 +116834,23 @@
         "time_local": "2026-09-08 15:36:25.603663"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-08T11:06:19Z",
+    "attempts": {
+      "SI=F": {
+        "checked_at_utc": 1788865568.1030338,
+        "symbol": "SI=F",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 84,
+        "time_local": "2026-09-08 11:05:51.243437"
+      },
+      "BHANDARI.NS": {
+        "checked_at_utc": 1788865568.1924944,
+        "symbol": "BHANDARI.NS",
+        "status": "closed",
+        "time_local": "2026-09-08 16:36:08.191989"
+      }
+    }
   }
 ]
