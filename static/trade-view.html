@@ -1208,36 +1208,11 @@ function renderTradeLog(summary, history, realTrades, botRealTrades) {
     </tr>`;
   });
 
-  const closedRows = closed.map(t => {
-    const isOption = (t.symbol || "").includes(":OPT-");
-    const label = isOption ? t.symbol.replace(":OPT-", " ") : displayName(t.symbol);
-    const type = isOption ? t.symbol.split(":OPT-")[1] : "Equity";
-    const pnl = t.pnl_inr ?? 0;
-    return `<tr>
-      <td><span class="log-status closed">CLOSED</span></td>
-      <td class="sym">${label}</td>
-      <td class="log-type">${type}</td>
-      <td class="log-type">${strategyLabel(t.strategy)}</td>
-      <td class="num">${fmt(t.entry_price_native, isOption ? 4 : 2)}</td>
-      <td class="num">${fmt(t.exit_price_native, isOption ? 4 : 2)}</td>
-      <td class="num">${fmt(t.qty, isOption ? 0 : 4)}</td>
-      <td class="num">${dash}</td>
-      <td class="num">${pnlSpan(pnl)}</td>
-      <td class="num">${dash}</td>
-      <td class="num">${(t.pnl_pct_of_capital ?? 0) >= 0 ? "+" : ""}${fmt(t.pnl_pct_of_capital ?? 0)}%</td>
-      <td class="log-type">${(t.exit_reason || "—").replace(/_/g, " ")}</td>
-      <td class="meta">${timeAgo(t.exit_time_utc)}</td>
-    </tr>`;
-  });
 
+  // totalRealisedInr still feeds the page's top "Net P&L" stat below
+  // (ds-pnl) - kept even though the row-by-row rendering of it is
+  // removed next (see that comment).
   const totalRealisedInr = closed.reduce((s, t) => s + (t.pnl_inr ?? 0), 0);
-  const combinedInr = totalRealisedInr + totalUnrealisedInr;
-  const totalRow = `<tr class="log-total-row">
-      <td colspan="8">TOTAL (paper) — realised (closed) + unrealised (live)</td>
-      <td class="num">${pnlSpan(totalRealisedInr)}</td>
-      <td class="num">${pnlSpan(totalUnrealisedInr)}</td>
-      <td colspan="3">Combined: ${pnlSpan(combinedInr)}</td>
-    </tr>`;
 
   // Real (Kotak) trades today - a SEPARATE section, never merged into the
   // paper tallies above (totalRealisedInr/ds-count/ds-winrate stay paper-
@@ -1276,8 +1251,8 @@ function renderTradeLog(summary, history, realTrades, botRealTrades) {
   // includes manual trades too, per the 2026-09-07 finding), so it can
   // diverge from the paper row for reasons that have nothing to do with
   // this app's own logic (a manual trade in the same symbol). These rows
-  // are built the SAME shape as the paper closedRows below specifically
-  // so the two are directly comparable line-by-line.
+  // are built the SAME shape as realRows above specifically so the two
+  // are directly comparable line-by-line.
   const botRealRows = (botRealTrades?.closed_trades || []).map(t => `<tr class="real-trade-row">
       <td><span class="log-status" style="background:rgba(168,85,247,.18);color:#c084fc;">REAL</span></td>
       <td class="sym">${displayName(t.symbol)}</td>
@@ -1300,14 +1275,26 @@ function renderTradeLog(summary, history, realTrades, botRealTrades) {
       <td colspan="3"></td>
     </tr>` : "";
 
+  // Explicit user instruction 2026-09-08: "i dont want you to not to
+  // maintain the trade executions on your own. but always fetch from
+  // kotak and build logic based on tha. means keep only 'real' marked
+  // rows. not the Closed today, paper ones" - the described lifecycle:
+  // a paper trigger can still show while LIVE (liveRows below - "the
+  // algo gives a trigger to enter a trade, then you can keep that in
+  // that table"), but once a trade closes it must be shown from Kotak's
+  // own confirmed data (botRealRows/realRows), never from this app's own
+  // paper closed-trade bookkeeping as a second, parallel "closed" fact.
+  // closedRows/its own totalRow are computed above (still feeding the
+  // page's top Net P&L stat below) but deliberately NOT rendered here -
+  // the underlying paper engine keeps running (it's what decides when to
+  // trigger a real order in the first place), this only stops
+  // DISPLAYING its own closed-trade rows as if they were real.
   const sectionRow = (label) => `<tr class="log-section-row"><td colspan="13">${label}</td></tr>`;
   const sections = [];
   if (liveRows.length) sections.push(sectionRow(`Live positions (${liveRows.length})`), ...liveRows);
-  if (botRealRows.length) sections.push(sectionRow(`Real trades today, this bot's own only (${botRealRows.length}) — directly comparable to the paper row below`), ...botRealRows, botRealTotalRow);
+  if (botRealRows.length) sections.push(sectionRow(`Real trades today, this bot's own only (${botRealRows.length})`), ...botRealRows, botRealTotalRow);
   if (realRows.length) sections.push(sectionRow(`Real trades today (${realRows.length}) — Kotak, outside this app's own order placement`), ...realRows, realTotalRow);
-  sections.push(sectionRow(`Closed today, paper (${closedRows.length}) — transacted, realized P&amp;L`));
-  sections.push(...(closedRows.length ? closedRows : [`<tr><td colspan="13" class="scan-idle">No trades closed yet today</td></tr>`]));
-  if (liveRows.length || closedRows.length) sections.push(totalRow);
+  if (!sections.length) sections.push(`<tr><td colspan="13" class="scan-idle">No live positions or real trades today</td></tr>`);
   body.innerHTML = sections.join("");
 
   // Net P&L for the day = sum of realized P&L on the merged (durable file
