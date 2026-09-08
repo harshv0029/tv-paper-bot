@@ -204,6 +204,7 @@
 
 <h1>Trade View <span id="hdr-status" class="status flat">—</span></h1>
 <div class="sub">Live scalp-style view — candles, entry/stop/target ladder, floating P&amp;L. Not investment advice. <span id="last-update"></span> · next refresh in <span id="countdown" class="mono">10</span>s</div>
+<div class="sub mono" id="scanned-banner" style="font-weight:600;"></div>
 
 <div class="control-bar" id="control-bar">
   <div class="ctrl-status" id="ctrl-status"><span class="ctrl-dot"></span><span id="ctrl-status-text">Loading…</span></div>
@@ -777,11 +778,30 @@ function renderCounts(p) {
   }).join("");
 }
 
+// Top-of-page "scanned today" banner (2026-09-08, explicit user request:
+// "give me a total of how many stocks or asset you have scanned till now
+// during today's scanning done ... at the top of render web page"). Real
+// count straight from /scheduler-pipeline's scanned_today_count/_total
+// (same rows the "Checks today, per asset" table below is built from) -
+// not a fabricated or estimated number.
+function renderScannedBanner(p) {
+  const el = document.getElementById('scanned-banner');
+  if (!el) return;
+  const count = p.scanned_today_count;
+  const total = p.scanned_today_total;
+  if (typeof count !== 'number' || typeof total !== 'number') {
+    el.textContent = '';
+    return;
+  }
+  el.textContent = `${count} / ${total} stocks/assets scanned at least once today`;
+}
+
 async function refreshScanner() {
   try {
     const p = await fetchJSON(`${ORIGIN}/scheduler-pipeline?recent=10&next_n=5`);
     renderScanner(p);
     renderCounts(p);
+    renderScannedBanner(p);
   } catch (e) {
     // Non-fatal - the position cards below are the primary content; leave
     // the scanner panel showing its last-good state rather than erroring.

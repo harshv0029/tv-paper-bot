@@ -5262,12 +5262,22 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         ),
     )
 
+    # Aggregate scanned-today count for the banner at the top of /trade-view:
+    # distinct symbols/assets checked at least once today, out of the whole
+    # table (equities + indices + options-overlay rows). Computed straight
+    # from the same rows the per-asset table below is built from - no
+    # separate/fabricated number.
+    scanned_today_count = sum(1 for r in check_counts_today_rows if r["checks_today"] > 0)
+    scanned_today_total = len(check_counts_today_rows)
+
     return {
         "last_checked": last_checked,
         "currently_checking": _scheduler_currently_checking,
         "next_up": [
             {"symbol": s, "display": _display_name(s)} for s in _scheduler_peek_next_batch(next_n)
         ],
+        "scanned_today_count": scanned_today_count,
+        "scanned_today_total": scanned_today_total,
         "check_counts_today": check_counts_today,
         "check_counts_day": _scheduler_check_counts_day,
         "scheduler_interval_seconds": SCHEDULER_INTERVAL_SECONDS,
