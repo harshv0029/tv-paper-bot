@@ -6784,32 +6784,35 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
                         continue  # can't adopt without a real entry price - skip, stays untracked
                     entry_order_id, sl_order_id, sl_trigger_price = None, None, None
                     target_order_id, target_price = None, None
+                    fallback_entry_order_id = None
                     for row in order_rows:
                         if row.get("trdSym") != trd_sym:
                             continue
                         st = str(row.get("ordSt", "")).lower()
-                        # BUG found live 2026-09-08 (second occurrence of the
-                        # same untracked-position gap, this time AARTIIND -
-                        # explicit user finding: "why so much u sync"): the
-                        # first version of this adopt logic grabbed ANY
-                        # complete BUY order for the symbol as this app's
-                        # own entry, with no check that it was actually
-                        # BOT-placed - a manually-placed buy (e.g. the AGL
-                        # 62-share purchase earlier today) would have been
-                        # silently adopted as if this app opened it,
-                        # defeating the whole "only adopt what this app
-                        # itself is responsible for" safety reasoning. Kotak
-                        # tags every order this app places with its own
+                        # Kotak tags every order THIS app places with its own
                         # algo id (algId "99999", ordSrc
                         # "ADMINCPPAPI_NEOTRADEAPI" - confirmed live,
                         # distinct from a manual/mobile order's algId "NA"/
                         # ordSrc "ADMINCPPAPI_MOB", every single time this
-                        # session) - only a BUY carrying that same tag is
-                        # ever treated as this app's own entry now.
+                        # session). Still used to gate the SL/target LEGS
+                        # below (never touch/replace a resting order this
+                        # app didn't itself place), but explicit user
+                        # instruction 2026-09-08 ("pick the live entered
+                        # trades from Kotak and then track them for their
+                        # exit conditions, trailing SL and targets and
+                        # everything") deliberately widened the ENTRY match
+                        # itself to ANY completed buy, bot-placed or manual -
+                        # a real position sitting open at Kotak gets tracked
+                        # and governed either way now; is_bot_placed is kept
+                        # only to prefer this app's own order id for the
+                        # audit log when one exists.
                         is_bot_placed = (row.get("ordSrc") == "ADMINCPPAPI_NEOTRADEAPI"
                                           and row.get("algId") not in (None, "NA", ""))
-                        if row.get("trnsTp") == "B" and st == "complete" and is_bot_placed and not entry_order_id:
-                            entry_order_id = row.get("nOrdNo")
+                        if row.get("trnsTp") == "B" and st == "complete":
+                            if is_bot_placed and not entry_order_id:
+                                entry_order_id = row.get("nOrdNo")
+                            elif not fallback_entry_order_id:
+                                fallback_entry_order_id = row.get("nOrdNo")
                         elif (row.get("trnsTp") == "S" and str(row.get("prcTp", "")).upper() in ("SL", "SL-M")
                               and st not in TERMINAL_STATUSES and is_bot_placed):
                             sl_order_id = row.get("nOrdNo")
@@ -6833,8 +6836,9 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
                             except (TypeError, ValueError):
                                 target_price = None
                     if not entry_order_id:
-                        continue  # no bot-placed entry found for this symbol - a manual/unknown
-                        # position, leave it untracked rather than guessing whose it is
+                        entry_order_id = fallback_entry_order_id  # a manual buy - still adopted (see above),
+                        # just no bot-placed order id to attribute it to; None is fine here, entry_price
+                        # (computed above from buyAmt/flBuyQty) is what governance actually needs.
                     watchlist_symbol = trd_sym[:-3] + ".NS" if trd_sym.endswith("-EQ") else trd_sym
                     conn.execute(
                         "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
@@ -6854,6 +6858,59 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
                     })
                 untracked = [u for u in untracked if u["kotak_trading_symbol"] not in
                              {a["kotak_trading_symbol"] for a in adopted}]
+
+        # Governance backfill (2026-09-08, explicit user instruction:
+        # "pick the live entered trades from Kotak and then track them
+        # for their exit conditions, trailing SL and targets and
+        # everything") - adopting into real_positions alone only
+        # restores ORDER-ID tracking; it never fabricates a stop/target
+        # this app itself never computed for a position it didn't (or
+        # no longer remembers deciding to) open. Without a matching
+        # signal_state row, _auto_signal_core's own position-management
+        # block (trailing stop, leading target, trend-weakened, stale-
+        # timeout, eod-squareoff - everything the paper engine already
+        # does for its own entries) never runs for that symbol at all -
+        # it only manages symbols it still has an open signal_state row
+        # for. Runs UNCONDITIONALLY (not gated by `adopt`) so a symbol
+        # already tracked in real_positions but missing its signal_state
+        # counterpart (e.g. a restart wiped just the paper side) gets
+        # fixed too, not only freshly-adopted ones. Reads the CURRENT
+        # real_positions table and backfills any symbol with no open
+        # signal_state row, sized off that symbol's own WATCHLIST risk
+        # config (stop_pct, the live rr setting) applied to the REAL
+        # entry price already on the real_positions row - the same math
+        # a fresh entry would have used, computed after the fact.
+        # entry_ts is set to NOW (backfill time), not a guessed real
+        # fill time - pragmatic and safe: it only makes the trailing-
+        # stop's "highest close since entry" window and the stale-
+        # timeout's elapsed-time count start a little late, never early.
+        watchlist_by_symbol_reconcile = {cfg["symbol"]: cfg for cfg in WATCHLIST}
+        live_rr = get_runtime_setting(conn, "rr")
+        governance_backfilled = []
+        today_str_reconcile = ist_now().strftime("%Y-%m-%d")
+        for r in conn.execute("SELECT * FROM real_positions").fetchall():
+            already = conn.execute(
+                "SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", (r["symbol"],)
+            ).fetchone()
+            if already:
+                continue
+            cfg = watchlist_by_symbol_reconcile.get(r["symbol"], {})
+            stop_pct = cfg.get("stop_pct", 2.0)
+            entry_price = r["entry_price"]
+            stop_loss = round(entry_price * (1 - stop_pct / 100), 2)
+            target = round(entry_price + live_rr * (entry_price - stop_loss), 2)
+            conn.execute(
+                "INSERT INTO signal_state (symbol, day, status, entry_price, stop_loss, "
+                "initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, 1.0, '5m') "
+                "ON CONFLICT(symbol) DO NOTHING",
+                (r["symbol"], today_str_reconcile, entry_price, stop_loss, stop_loss, target,
+                 r["qty"], time.time()),
+            )
+            governance_backfilled.append({
+                "symbol": r["symbol"], "entry_price": entry_price,
+                "stop_loss": stop_loss, "target": target, "qty": r["qty"],
+            })
         conn.commit()
 
     net_balance = None
@@ -6868,6 +6925,7 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
         "removed_ghost_count": len(removed_ghosts), "removed_ghosts": removed_ghosts,
         "untracked_open_positions_count": len(untracked), "untracked_open_positions": untracked,
         "adopted_count": len(adopted), "adopted": adopted,
+        "governance_backfilled_count": len(governance_backfilled), "governance_backfilled": governance_backfilled,
     }
 
 
