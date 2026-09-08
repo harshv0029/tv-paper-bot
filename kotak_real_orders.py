@@ -369,16 +369,37 @@ def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: flo
     or Render's process is down between scheduler ticks. See this
     module's top docstring ("Real resting stop-loss orders" and "Real
     fill confirmation") for the order-type and rejection-confirmation
-    reasoning - order_type="SL" (a limit order gated behind trigger_price)
-    with `price` set 1% below trigger for this SELL, and a follow-up
-    _confirm_order_status call so a rejection is never mistaken for a
-    working resting stop."""
+    reasoning - order_type="SL" (a limit order gated behind trigger_price),
+    and a follow-up _confirm_order_status call so a rejection is never
+    mistaken for a working resting stop.
+
+    BUG found live 2026-09-08, within 30 minutes of the SL-M->SL fix
+    shipping: `price` (the limit) was originally set 1% below
+    trigger_price, rounded to 2 decimals - fine for AGL (tick size 0.01,
+    where any 2-decimal value is automatically tick-aligned) but AGI
+    (tick size 0.05) then had EVERY SL attempt rejected with "Order price
+    is not a multiple of tick size" (e.g. round(753.80*0.99, 2) = 746.26,
+    not a multiple of 0.05) - 14+ rejections over 25 minutes, zero real
+    stop-loss protection the whole time. This function has no tick-size
+    input to round against correctly. Fixed the only way that's safe
+    without one: `price = trigger_price` exactly, no discount - every
+    trigger_price value tried on this account so far (both AGI and AGL,
+    20+ attempts) has passed Kotak's tick validation without ever being
+    rejected for it, since it's the SAME price the paper engine's own
+    stop_loss level already computed from real candle closes. The
+    tradeoff: a limit order with zero buffer below trigger can miss a
+    fast/gapping decline (the classic SL-vs-SL-M risk) - but that risk is
+    strictly better than this account's ONLY compliant order type
+    (SL-M is blocked outright by the algo-tag rule - see the module's own
+    top docstring) being rejected on tick-size and leaving the position
+    with NO resting stop at all, which is what every AGI attempt has
+    actually been doing since the 1%-discount version shipped."""
     try:
         client = kotak_neo.login()
     except Exception as e:
         return {"ok": False, "detail": f"login failed: {e}"}
 
-    limit_price = round(trigger_price * 0.99, 2)
+    limit_price = trigger_price
     try:
         resp = client.place_order(
             exchange_segment="nse_cm",
