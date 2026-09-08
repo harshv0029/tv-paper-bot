@@ -780,20 +780,27 @@ function renderCounts(p) {
 
 // Top-of-page "scanned today" banner (2026-09-08, explicit user request:
 // "give me a total of how many stocks or asset you have scanned till now
-// during today's scanning done ... at the top of render web page"). Real
-// count straight from /scheduler-pipeline's scanned_today_count/_total
-// (same rows the "Checks today, per asset" table below is built from) -
-// not a fabricated or estimated number.
+// during today's scanning done ... at the top of render web page", then
+// "I want whole count. Not just distinct"). Leads with total_checks_today -
+// every individual check across every symbol today (a symbol checked 50
+// times counts 50) - with the distinct-symbols/total-watchlist figure kept
+// alongside for context. All real, straight from /scheduler-pipeline (same
+// rows the "Checks today, per asset" table below is built from) - nothing
+// fabricated or estimated.
 function renderScannedBanner(p) {
   const el = document.getElementById('scanned-banner');
   if (!el) return;
-  const count = p.scanned_today_count;
+  const totalChecks = p.total_checks_today;
+  const distinct = p.scanned_today_count;
   const total = p.scanned_today_total;
-  if (typeof count !== 'number' || typeof total !== 'number') {
+  if (typeof totalChecks !== 'number') {
     el.textContent = '';
     return;
   }
-  el.textContent = `${count} / ${total} stocks/assets scanned at least once today`;
+  el.textContent = `${totalChecks} total checks run today` +
+    (typeof distinct === 'number' && typeof total === 'number'
+      ? ` (${distinct} / ${total} distinct stocks/assets scanned at least once)`
+      : '');
 }
 
 async function refreshScanner() {
@@ -902,6 +909,7 @@ async function refreshControlStatus() {
 // time, never stored, same lightweight-friction pattern used elsewhere on
 // this page rather than a persistent unlock popup.
 const CONSTRAINT_LABELS = {
+  min_entry_confidence_pct: "Minimum trend confidence to enter (%)",
   daily_risk_pct: "Daily loss cap (% of capital)",
   rr: "Minimum reward:risk",
   entry_scan_batch_size: "Entry-scan batch size (symbols/tick)",

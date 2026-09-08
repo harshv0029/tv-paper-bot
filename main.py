@@ -2293,6 +2293,7 @@ def _auto_signal_core(
     strategy: str = "orb_breakout",
     trend_sma: int = 0,
     volume_confirm: bool = False,
+    min_entry_confidence_pct: float = TREND_WEAKENED_MIN_CONFIDENCE * 100,
 ):
     """
     Plain function version of the /auto-signal logic - callable directly
@@ -2609,14 +2610,16 @@ def _auto_signal_core(
             #      marginal single-tick "breakouts" that are really just
             #      noise around the level.
             #   2. The trend must be confidently up, not just
-            #      SMA-fast > SMA-slow by any amount - reuses the SAME
+            #      SMA-fast > SMA-slow by any amount - defaults to the SAME
             #      TREND_WEAKENED_MIN_CONFIDENCE (95%) bar already trusted
-            #      for the early-exit check, so entry and exit apply the
-            #      same statistical bar for "is this trend real."
+            #      for the early-exit check, but is now live-editable via
+            #      the min_entry_confidence_pct runtime setting (see
+            #      RUNTIME_SETTINGS_META/trade-view's constraints panel) -
+            #      the exit-side constant itself is untouched by that knob.
             breakout_level = orb_high * (1 + ENTRY_BREAKOUT_MARGIN_PCT / 100)
             entry_signal = (
                 last_close > breakout_level and trend == "up"
-                and _trend_confidence(closes, sma_fast, sma_slow) >= TREND_WEAKENED_MIN_CONFIDENCE
+                and _trend_confidence(closes, sma_fast, sma_slow) >= min_entry_confidence_pct / 100
             )
             structural_low = orb_low
             entry_reason = "orb_breakout_with_trend"
@@ -2843,6 +2846,7 @@ def auto_signal(
     strategy: str = "orb_breakout",
     trend_sma: int = 0,
     volume_confirm: bool = False,
+    min_entry_confidence_pct: float = TREND_WEAKENED_MIN_CONFIDENCE * 100,
 ):
     """HTTP wrapper around _auto_signal_core - see that function's docstring
     for the actual rules. Kept as a thin pass-through so manual/GH-Actions
@@ -2854,6 +2858,7 @@ def auto_signal(
         tz_offset_min=tz_offset_min, open_min=open_min, close_min=close_min,
         squareoff_min=squareoff_min, trade_weekends=trade_weekends, currency=currency,
         strategy=strategy, trend_sma=trend_sma, volume_confirm=volume_confirm,
+        min_entry_confidence_pct=min_entry_confidence_pct,
     )
 
 
@@ -4414,6 +4419,18 @@ SCHEDULER_RR = 3.0  # DEFAULT (fallback) - 1:3 minimum reward:risk, live-editabl
 # than silently narrowed.
 RUNTIME_SETTINGS_META = {
     # key: (default, min, max, requires_real_money_token, description)
+    "min_entry_confidence_pct": (
+        TREND_WEAKENED_MIN_CONFIDENCE * 100, 50.0, 99.9, False,
+        "Minimum statistical confidence (one-tailed normal-CDF read on the "
+        "SMA(fast) vs SMA(slow) gap - see _trend_confidence) that the trend "
+        "is real, required for a NEW orb_breakout entry (in addition to the "
+        "breakout clearing ENTRY_BREAKOUT_MARGIN_PCT above the opening-range "
+        "high). Lower = more entries taken on weaker/less-certain trend "
+        "evidence; higher = fewer, more selective entries. Default 95% "
+        "matches the same bar the early-exit 'trend weakened' check already "
+        "trusts (TREND_WEAKENED_MIN_CONFIDENCE), but that exit-side constant "
+        "is NOT changed by this setting - this only gates new entries.",
+    ),
     "daily_risk_pct": (
         SCHEDULER_DAILY_RISK_PCT, 0.1, 10.0, False,
         "Account-wide daily loss cap, as % of capital. Once today's realized loss "
@@ -4948,6 +4965,7 @@ async def _scheduler_tick():
         live_daily_risk_pct = get_runtime_setting(conn, "daily_risk_pct")
         live_rr = get_runtime_setting(conn, "rr")
         live_batch_size = int(get_runtime_setting(conn, "entry_scan_batch_size"))
+        live_min_entry_confidence_pct = get_runtime_setting(conn, "min_entry_confidence_pct")
 
     # When paused, don't waste a Yahoo Finance call scanning flat
     # symbols for a NEW entry nobody wants right now - _auto_signal_core/
@@ -5006,6 +5024,7 @@ async def _scheduler_tick():
                 trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
                 strategy=cfg.get("strategy", "orb_breakout"),
                 trend_sma=cfg.get("trend_sma", 0), volume_confirm=cfg.get("volume_confirm", False),
+                min_entry_confidence_pct=live_min_entry_confidence_pct,
             )
             _scheduler_last_results[cfg["symbol"]] = {"checked_at_utc": time.time(), **result}
 
@@ -5262,13 +5281,20 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         ),
     )
 
-    # Aggregate scanned-today count for the banner at the top of /trade-view:
-    # distinct symbols/assets checked at least once today, out of the whole
-    # table (equities + indices + options-overlay rows). Computed straight
-    # from the same rows the per-asset table below is built from - no
-    # separate/fabricated number.
+    # Aggregate scanned-today counts for the banner at the top of /trade-view.
+    # Computed straight from the same rows the per-asset table below is
+    # built from - no separate/fabricated number.
+    #   - scanned_today_count: DISTINCT symbols/assets checked >=1 time today.
+    #   - scanned_today_total: size of the whole table (equities + indices +
+    #     options-overlay rows) - the denominator for scanned_today_count.
+    #   - total_checks_today: the WHOLE count (explicit user instruction,
+    #     2026-09-08: "I want whole count. Not just distinct") - every
+    #     individual check across every symbol today, so a symbol checked
+    #     50 times counts 50, not 1. This is the number that actually
+    #     answers "how much scanning has happened today."
     scanned_today_count = sum(1 for r in check_counts_today_rows if r["checks_today"] > 0)
     scanned_today_total = len(check_counts_today_rows)
+    total_checks_today = sum(r["checks_today"] for r in check_counts_today_rows)
 
     return {
         "last_checked": last_checked,
@@ -5278,6 +5304,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         ],
         "scanned_today_count": scanned_today_count,
         "scanned_today_total": scanned_today_total,
+        "total_checks_today": total_checks_today,
         "check_counts_today": check_counts_today,
         "check_counts_day": _scheduler_check_counts_day,
         "scheduler_interval_seconds": SCHEDULER_INTERVAL_SECONDS,
