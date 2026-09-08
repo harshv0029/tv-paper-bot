@@ -13,6 +13,21 @@ from fastapi import HTTPException
 
 _DATA_CACHE: dict[tuple, tuple[float, pd.DataFrame]] = {}
 _CACHE_TTL_SECONDS = 180  # re-fetch at most every 3 minutes per (symbol, period, interval)
+# Hard ceiling on live entries, independent of TTL (2026-09-08, Render's
+# own "exceeded its memory limit" alert - a SECOND OOM after the
+# 2026-09-07 fix below, root-caused differently: TTL pruning only removes
+# entries that have gone STALE, so at ~2,661 symbols the cache can still
+# legitimately hold up to ~2,661 live DataFrames at once if a full
+# round-robin sweep completes inside one TTL window - not unbounded
+# growth over time, but a real worst-case working set the TTL alone
+# doesn't cap. This forces a hard ceiling regardless of TTL timing: once
+# over the cap, evict the OLDEST entries first (same "expired-first"
+# spirit as the TTL prune) until back under it. ~400 covers the biggest
+# batch this app draws in one go (SCHEDULER_ENTRY_SCAN_BATCH_SIZE, plus
+# open positions, plus interactive chart/backtest calls) with headroom,
+# without still holding a stale-but-not-yet-expired copy of the entire
+# watchlist.
+_MAX_CACHE_ENTRIES = 400
 
 
 def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
@@ -44,6 +59,15 @@ def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
     expired_keys = [k for k, (ts, _) in _DATA_CACHE.items() if (now - ts) >= _CACHE_TTL_SECONDS]
     for k in expired_keys:
         del _DATA_CACHE[k]
+
+    # Hard cap, on top of the TTL prune above (2026-09-08) - see
+    # _MAX_CACHE_ENTRIES' own comment for why TTL pruning alone isn't
+    # enough at this watchlist size. Oldest-first eviction, same as a
+    # simple LRU by insertion time.
+    if len(_DATA_CACHE) >= _MAX_CACHE_ENTRIES:
+        oldest_keys = sorted(_DATA_CACHE, key=lambda k: _DATA_CACHE[k][0])
+        for k in oldest_keys[: len(_DATA_CACHE) - _MAX_CACHE_ENTRIES + 1]:
+            del _DATA_CACHE[k]
 
     df = yf.download(symbol, period=period, interval=interval, progress=False)
     if df.empty:
