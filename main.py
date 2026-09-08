@@ -3303,7 +3303,7 @@ def _maybe_place_real_entry(conn, symbol: str):
                     "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                     (sl_result["order_id"], sl_result["trigger_price"], symbol),
                 )
-                print(f"[REAL TRADE] SL-M resting @ Rs{sl_result['trigger_price']:.2f} for {kotak_symbol} "
+                print(f"[REAL TRADE] SL resting @ Rs{sl_result['trigger_price']:.2f} for {kotak_symbol} "
                       f"(order {sl_result['order_id']})")
             else:
                 print(f"[REAL TRADE] SL placement FAILED for {kotak_symbol}: {sl_result.get('detail')} "
@@ -3331,7 +3331,7 @@ def _maybe_place_real_exit(conn, symbol: str):
     # best-effort, never blocks the exit below even if the cancel fails
     # (e.g. the SL already fired, which is itself a valid reason
     # real_positions still shows this row - see the reconcile endpoint).
-    # Left behind uncancelled, a stale SL-M sell order with nothing left
+    # Left behind uncancelled, a stale SL sell order with nothing left
     # to sell once this exit fills would just sit as a harmless rejected
     # order at Kotak, not a real risk - but cancelling first keeps the
     # order book clean and avoids that rejection noise.
@@ -3408,7 +3408,7 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
             (sl_result["order_id"], sl_result["trigger_price"], symbol),
         )
         conn.commit()
-        print(f"[REAL TRADE] trailing SL-M moved to Rs{new_stop:.2f} for {real_row['kotak_trading_symbol']} "
+        print(f"[REAL TRADE] trailing SL moved to Rs{new_stop:.2f} for {real_row['kotak_trading_symbol']} "
               f"(order {sl_result['order_id']})")
     else:
         # Old order is already cancelled (or never existed) and the
@@ -3417,7 +3417,7 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         # (sl_order_id NULL) will try placing a fresh one again.
         conn.execute("UPDATE real_positions SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
         conn.commit()
-        print(f"[REAL TRADE] trailing SL-M replacement FAILED for {real_row['kotak_trading_symbol']}: "
+        print(f"[REAL TRADE] trailing SL replacement FAILED for {real_row['kotak_trading_symbol']}: "
               f"{sl_result.get('detail')} - position open at Kotak with NO resting stop, will retry next tick")
 
 
