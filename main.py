@@ -1177,6 +1177,89 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         signal_line = macd.ewm(span=signal_span, adjust=False).mean()
         df["long"] = macd > signal_line
 
+    elif strategy in ("wyckoff_spring", "wyckoff_sos"):
+        # docs/STRATEGY_LOG.md rows #35 (Spring) and #37 (Sign of
+        # Strength breakout) - explicit user instruction 2026-09-08: "do
+        # the needful and complete this" (the Wyckoff AMD + Volume batch
+        # cataloged the same day). Shared range-context precondition for
+        # both: a rolling range_lookback-bar window (shifted by 1 bar to
+        # avoid lookahead - only bars STRICTLY before the current one
+        # define "the range") must be "flat enough" (width <=
+        # range_flatness_pct of its own midpoint) - approximating the
+        # schematic's PS/SC/AR/ST structure as "has genuinely been going
+        # nowhere," since those individual named sub-events don't have a
+        # clean OHLCV-only definition but the range itself is what
+        # actually matters for a tradeable Phase-C entry.
+        range_lookback = int(params.get("range_lookback", 60))
+        range_flatness_pct = float(params.get("range_flatness_pct", 3.0))
+        spring_pierce_pct = float(params.get("spring_pierce_pct", 0.3))
+        volume_mult = float(params.get("volume_mult", 1.5))
+
+        range_high = df["High"].rolling(range_lookback).max().shift(1)
+        range_low = df["Low"].rolling(range_lookback).min().shift(1)
+        range_mid = (range_high + range_low) / 2
+        is_range = ((range_high - range_low) / range_mid) <= (range_flatness_pct / 100)
+        vol_avg = df["Volume"].rolling(20).mean().shift(1)
+
+        # The Spring itself (Manipulation phase): a wick pierces below the
+        # range low on above-average volume, then closes back inside -
+        # same wick+volume-spike+snap-back fingerprint #19 (Liquidity
+        # Sweep Reversal) already uses, gated here to only fire inside a
+        # genuine prior range (what makes this specifically Wyckoff's
+        # Phase-C entry rather than a bare sweep).
+        spring = (
+            is_range
+            & (df["Low"] < range_low * (1 - spring_pierce_pct / 100))
+            & (df["Close"] > range_low)
+            & (df["Volume"] > vol_avg * volume_mult)
+        )
+
+        if strategy == "wyckoff_spring":
+            # Hold from a confirmed spring until price closes back below
+            # the range low (invalidated - it was a real breakdown, not a
+            # spring) - a stateful hold, same pattern rsi_reversal above
+            # already uses for its own until-invalidated exit.
+            long_flags, holding = [], False
+            for i in range(len(df)):
+                if not holding and bool(spring.iloc[i]):
+                    holding = True
+                elif holding and pd.notna(range_low.iloc[i]) and df["Close"].iloc[i] < range_low.iloc[i]:
+                    holding = False
+                long_flags.append(holding)
+            df["long"] = long_flags
+
+        else:  # wyckoff_sos
+            # Track "a still-valid spring has happened in the current
+            # range" the same way - valid from the spring bar until price
+            # closes back below range_low (the same invalidation the
+            # spring-holding loop above uses).
+            valid_spring_flags, valid_spring_active = [], False
+            for i in range(len(df)):
+                if bool(spring.iloc[i]):
+                    valid_spring_active = True
+                elif valid_spring_active and pd.notna(range_low.iloc[i]) and df["Close"].iloc[i] < range_low.iloc[i]:
+                    valid_spring_active = False
+                valid_spring_flags.append(valid_spring_active)
+            spring_seen = pd.Series(valid_spring_flags, index=df.index).shift(1).fillna(False)
+
+            # Sign of Strength: a genuine breakout above range resistance
+            # on expanding volume, ONLY after a still-valid spring earlier
+            # in the same range - structurally orb_volume (see that
+            # branch above) with this one precondition added, so the
+            # breakout is read as "accumulation finished, markup starting"
+            # rather than a bare volume-confirmed breakout with no context
+            # on what came before it.
+            breakout = (df["Close"] > range_high) & (df["Volume"] > vol_avg * volume_mult) & spring_seen
+
+            ts = pd.to_datetime(df["Date"])
+            ts_ist = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts.dt.tz_localize(
+                "UTC"
+            ).dt.tz_convert("Asia/Kolkata")
+            day = ts_ist.dt.strftime("%Y-%m-%d")
+            # Once triggered, stay long for the rest of that trading day -
+            # same bounded-exit convention orb_breakout/orb_volume use.
+            df["long"] = breakout.groupby(day).cummax()
+
     else:
         raise HTTPException(
             status_code=400,
@@ -1184,7 +1267,7 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
                    f"orb_breakout, orb_volume, vwap_reclaim, vwap_mean_reversion, "
                    f"vwap_breakout_retest, anchored_vwap_continuation, anchored_vwap_reversal, "
                    f"vwap_multi_period_reversal, bullish_engulfing, pin_bar_reversal, "
-                   f"bollinger_mean_reversion, supertrend, macd_cross",
+                   f"bollinger_mean_reversion, supertrend, macd_cross, wyckoff_spring, wyckoff_sos",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
