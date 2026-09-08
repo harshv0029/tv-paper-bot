@@ -147,5 +147,47 @@
         "sl_trigger_price": 495.3
       }
     ]
+  },
+  {
+    "reconciled_at_utc": 1788852492.769827,
+    "real_balance_inr": 145.49108899999987,
+    "qty_corrected_count": 1,
+    "qty_corrected": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "old_qty": 1,
+        "new_qty": 36
+      }
+    ],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 2,
+    "adopted": [
+      {
+        "symbol": "AARTIIND.NS",
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1,
+        "entry_price": 500.3,
+        "entry_order_id": "260908000341676",
+        "sl_order_id": "260908000341941",
+        "sl_trigger_price": 495.3,
+        "target_order_id": null,
+        "target_price": null
+      },
+      {
+        "symbol": "ADANIPOWER.NS",
+        "kotak_trading_symbol": "ADANIPOWER-EQ",
+        "qty": 3,
+        "entry_price": 207.91,
+        "entry_order_id": "260908000352736",
+        "sl_order_id": "260908000352913",
+        "sl_trigger_price": 205.67,
+        "target_order_id": null,
+        "target_price": null
+      }
+    ]
   }
 ]
