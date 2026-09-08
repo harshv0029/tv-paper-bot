@@ -127,6 +127,19 @@ jobs:
           # today" table to zero (2026-09-07, explicit user finding: "it
           # should not be depending on the memory of the render account.
           # but keep it fetched at the start of the render session").
+          #
+          # BUG found live 2026-09-08 (explicit user finding: "at least
+          # once scanned value is getting reset... should be non-decreasing
+          # ... why getting reset"): this step wrote the file correctly on
+          # every run, but the commit step below never included it in its
+          # `git add` list - so it was written to the runner's local
+          # checkout and then silently discarded when the job ended, NEVER
+          # actually committed. The file never existed in the repo at all,
+          # so reconcile_scheduler_check_counts_from_journal had nothing to
+          # restore from on every single restart since this feature was
+          # added - every Render redeploy or free-tier idle-spindown reset
+          # the count for real, with no backstop. Fixed by adding the path
+          # to the git add list below.
           jq '{day: .check_counts_day, counts: ((.check_counts_today // []) | map({(.symbol): .checks_today}) | add // {})}' \
             /tmp/scheduler-pipeline.json > state/scheduler_check_counts.json
           cat state/scheduler_check_counts.json
@@ -217,6 +230,7 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add state/open_positions.json state/trading_control.json \
             state/real_trading_control.json state/real_positions.json state/real_trades_today.json \
+            state/scheduler_check_counts.json \
             docs/trade_outcomes_log.json docs/attempt_log.json docs/real_trade_log.json
           if git diff --cached --quiet; then
             echo "No change - nothing to commit."
