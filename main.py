@@ -6907,10 +6907,53 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
                 (r["symbol"], today_str_reconcile, entry_price, stop_loss, stop_loss, target,
                  r["qty"], time.time()),
             )
-            governance_backfilled.append({
+            backfill_entry = {
                 "symbol": r["symbol"], "entry_price": entry_price,
                 "stop_loss": stop_loss, "target": target, "qty": r["qty"],
-            })
+            }
+            # Place the SL RIGHT HERE, in this same request - explicit
+            # user finding 2026-09-08 (AARTIIND re-adopted with a
+            # computed stop, still no resting SL minutes later): waiting
+            # for "the next scheduler tick" to place it lost the race
+            # almost every time, because this VERY endpoint's own
+            # caller (kotak-reconcile.yml) commits + pushes an audit-log
+            # file right after this call returns - and that push, like
+            # every push this session, triggers a Render restart. The
+            # restart routinely cut over and wiped the just-adopted
+            # tracking again before a live scheduler tick ever got a
+            # chance to run _maybe_sync_real_stop_loss for it. Placing
+            # the SL synchronously inside THIS request closes that race
+            # entirely - it happens before the wrapping workflow's own
+            # git push, not after. Best-effort, same as every other SL
+            # placement in this codebase (a failure here still leaves
+            # the position tracked, logged, and picked up by the
+            # scheduler's own normal retry-when-no-SL-is-resting path).
+            if not r["sl_order_id"]:
+                import kotak_real_orders
+                sl_result = kotak_real_orders.place_real_stop_loss(
+                    r["kotak_trading_symbol"], r["qty"], stop_loss
+                )
+                if sl_result.get("ok"):
+                    conn.execute(
+                        "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                        (sl_result["order_id"], sl_result["trigger_price"], r["symbol"]),
+                    )
+                    _log_real_order_event(
+                        conn, r["symbol"], "sl", "placed", kotak_trading_symbol=r["kotak_trading_symbol"],
+                        order_id=sl_result["order_id"], prev_state="none",
+                        new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f}",
+                        detail="placed synchronously during governance backfill",
+                    )
+                    backfill_entry["sl_order_id"] = sl_result["order_id"]
+                    backfill_entry["sl_placed"] = True
+                else:
+                    _log_real_order_event(
+                        conn, r["symbol"], "sl", "failed", kotak_trading_symbol=r["kotak_trading_symbol"],
+                        prev_state="none", new_state="none (placement failed)", detail=sl_result.get("detail"),
+                    )
+                    backfill_entry["sl_placed"] = False
+                    backfill_entry["sl_failure_detail"] = sl_result.get("detail")
+            governance_backfilled.append(backfill_entry)
         conn.commit()
 
     net_balance = None
