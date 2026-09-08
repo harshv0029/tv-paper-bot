@@ -20,7 +20,18 @@ name: Kotak Real Position Reconciliation
 on:
   schedule:
     - cron: "*/15 3-10 * * 1-5"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      adopt:
+        description: >-
+          Optional: comma-separated Kotak trading symbols (e.g. "ATL-EQ")
+          to adopt from untracked_open_positions into real_positions, or
+          "*" for all of them - see reconcile-real-positions's own
+          `adopt` param docstring in main.py (2026-09-08) for when this
+          is actually safe to use (a genuinely bot-placed position this
+          app lost track of, not an unrelated manual trade).
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -34,11 +45,16 @@ jobs:
       - name: Reconcile real_positions against Kotak's own live data
         env:
           KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+          ADOPT: ${{ inputs.adopt }}
         run: |
           curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" || true
           echo
+          URL="https://tv-paper-bot-gdan.onrender.com/kotak-neo/reconcile-real-positions?token=${KOTAK_NEO_API_TOKEN}"
+          if [[ -n "$ADOPT" ]]; then
+            URL="${URL}&adopt=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$ADOPT")"
+          fi
           curl -sS --retry 3 --retry-delay 10 --retry-connrefused -m 60 -X POST \
-            "https://tv-paper-bot-gdan.onrender.com/kotak-neo/reconcile-real-positions?token=${KOTAK_NEO_API_TOKEN}" \
+            "$URL" \
             -o /tmp/reconcile-result.json
           cat /tmp/reconcile-result.json
           echo
@@ -52,7 +68,8 @@ jobs:
           QTY_FIXED=$(jq -r '.qty_corrected_count' /tmp/reconcile-result.json)
           GHOSTS=$(jq -r '.removed_ghost_count' /tmp/reconcile-result.json)
           UNTRACKED=$(jq -r '.untracked_open_positions_count' /tmp/reconcile-result.json)
-          echo "qty corrected: $QTY_FIXED, ghosts removed: $GHOSTS, untracked open positions: $UNTRACKED"
+          ADOPTED=$(jq -r '.adopted_count // 0' /tmp/reconcile-result.json)
+          echo "qty corrected: $QTY_FIXED, ghosts removed: $GHOSTS, untracked open positions: $UNTRACKED, adopted: $ADOPTED"
           if [[ "$UNTRACKED" -gt 0 ]]; then
             echo "::warning::$UNTRACKED open Kotak position(s) have no record in this app's own tracking - see untracked_open_positions in the log below."
           fi
