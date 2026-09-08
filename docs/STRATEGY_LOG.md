@@ -258,9 +258,9 @@ for POC/Value Area.
 
 | # | Strategy | Legs | Best-fit condition | Status | Source / date | Notes |
 |---|---|---|---|---|---|---|
-| 35 | Wyckoff Spring Entry (Accumulation Phase C) | Directional, underlying only (not options) | Price has spent weeks inside a defined trading range (Phase A's Selling Climax + Automatic Rally + Secondary Test already printed), then briefly breaks range support on a volume spike and snaps back inside | Proposed — untested | Real-world Wyckoff research, 2026-09-08 | **Approximable with OHLCV**: same wick-beyond-support + volume-spike + close-back-inside fingerprint as #19, plus a new precondition this project doesn't compute yet — a prior range (rolling N-bar high/low that's stayed roughly flat, with an already-identified high-volume down bar for the Selling Climax and a snap-back rally off it for the Automatic Rally). A "spring" outside that range context is just #19's plain liquidity sweep; the range context is what makes it specifically Wyckoff's Phase-C entry, historically the highest-conviction of the schematic |
+| 35 | Wyckoff Spring Entry (Accumulation Phase C) | Directional, underlying only (not options) | Price has spent weeks inside a defined trading range (Phase A's Selling Climax + Automatic Rally + Secondary Test already printed), then briefly breaks range support on a volume spike and snaps back inside | **Tried — not robust** | Real-world Wyckoff research, 2026-09-08; implemented + backtested 2026-09-08 | **Approximable with OHLCV**: same wick-beyond-support + volume-spike + close-back-inside fingerprint as #19, plus a new precondition this project doesn't compute yet — a prior range (rolling N-bar high/low that's stayed roughly flat, with an already-identified high-volume down bar for the Selling Climax and a snap-back rally off it for the Automatic Rally). A "spring" outside that range context is just #19's plain liquidity sweep; the range context is what makes it specifically Wyckoff's Phase-C entry, historically the highest-conviction of the schematic. **Implemented** in `add_strategy_signal()` (`range_lookback`=60, `range_flatness_pct`=3.0, `spring_pierce_pct`=0.3, `volume_mult`=1.5 defaults), unit-tested against a hand-verified fixture, then run via live `/backtest` against real NSE data: RELIANCE.NS and TCS.NS on 7d/1m (2525 bars), plus RELIANCE.NS/ICICIBANK.NS/INFY.NS on 60d/5m (~4367 bars) — **0 trades in all 6 real symbol/window combinations**. The default thresholds are too strict to ever fire on these liquid large-caps in the sampled windows; needs either looser defaults (wider `range_flatness_pct`, more `range_lookback`) or testing against genuinely range-bound/less liquid names before it can be called robust either way |
 | 36 | Wyckoff UTAD Exit/Avoidance Filter (Distribution Phase C) | Exit filter on an existing long / avoidance filter on new entries — not a short entry (long-only project) | Price breaks above a topping range's resistance on a volume spike, then snaps back inside — the bearish mirror of #35 | Proposed — untested | Real-world Wyckoff research, 2026-09-08 | **Approximable with OHLCV**, same detection as #35 flipped. Since this project is long-only, a confirmed UTAD is used two ways: (a) close out any open long in that symbol immediately rather than waiting for the paper stop to catch a markdown already underway, (b) block new long entries in that symbol until the range resolves — never as a short trigger |
-| 37 | Wyckoff Sign of Strength (SOS) Breakout | Directional, underlying only (not options) | A confirmed Spring (#35) is followed by a genuine breakout above the trading range's resistance on expanding volume | Proposed — untested | Real-world Wyckoff research, 2026-09-08 | **Approximable with OHLCV** — structurally this project's own `orb_volume` (volume-confirmed breakout, already implemented and live-gated per the mandatory-volume-constraint work this session) with one addition: requiring a confirmed #35 Spring earlier in the same range, so the breakout is read as "accumulation finished, markup starting" rather than a bare volume-confirmed breakout with no context on what came before it |
+| 37 | Wyckoff Sign of Strength (SOS) Breakout | Directional, underlying only (not options) | A confirmed Spring (#35) is followed by a genuine breakout above the trading range's resistance on expanding volume | **Tried — not robust** | Real-world Wyckoff research, 2026-09-08; implemented + backtested 2026-09-08 | **Approximable with OHLCV** — structurally this project's own `orb_volume` (volume-confirmed breakout, already implemented and live-gated per the mandatory-volume-constraint work this session) with one addition: requiring a confirmed #35 Spring earlier in the same range, so the breakout is read as "accumulation finished, markup starting" rather than a bare volume-confirmed breakout with no context on what came before it. **Implemented** in `add_strategy_signal()` (requires a #35 spring earlier in the same range before arming the breakout), unit-tested (including a fixture proving a bare breakout with NO prior spring does NOT fire), then run via live `/backtest` alongside #35 on the same 6 real symbol/window combinations (RELIANCE.NS/TCS.NS 7d/1m, RELIANCE.NS/ICICIBANK.NS/INFY.NS 60d/5m) — **0 trades in all 6**, which necessarily follows from #35 never confirming a spring to build on in that same data. Same verdict and same next step as #35: current defaults are too strict for these liquid large-caps in the sampled windows |
 | 38 | VSA No Demand / No Supply Bar Filter | Applies to entry/exit timing on any directional strategy already in this log | A single bar's spread (range) + volume + close-position tells whether a move is genuine or hollow: an up bar with narrow spread and low volume ("no demand") warns a rally lacks real buying, especially at resistance; a down bar with narrow spread and low volume ("no supply") warns a decline has run out of sellers, especially at support | Proposed — untested | Real-world VSA research, 2026-09-08 | **Approximable with OHLCV** — pure per-bar spread/volume/close-position math, no new data source. A filter, not a standalone entry, same role #33 plays for SMC: skip/delay an entry that shows a "no supply" bar right at the trigger candle even though price/volume conditions otherwise look ready, and treat a "no demand" bar near an open long's target as an early warning to tighten the stop |
 | 39 | VSA Stopping Volume / Climax Reversal | Directional, underlying only (not options) | An extended decline (or rally) ends on an extreme volume spike with a wide spread but a close well off the bar's extreme (a struggle, not a clean continuation) — professional absorption of the crowd's capitulation | Proposed — untested | Real-world VSA research, 2026-09-08 | **Approximable with OHLCV**: same climactic-volume fingerprint as Wyckoff's Selling/Buying Climax inside #35/#36's full schematic, but usable standalone as a faster (and noisier) reversal signal without waiting for the rest of the range to confirm — trades the SC/BC event itself rather than the full Phase A-E sequence. Cross-references #22 (Liquidity Void Breakout), which reads volume expansion the opposite way (continuation through thin liquidity) — the distinguishing tell here is the close landing away from the bar's extreme (struggle/absorption) vs. near it (clean continuation) |
 | 40 | On-Balance Volume (OBV) Divergence Filter | Applies to entry timing on any directional strategy already in this log, and to #35/#36 specifically as Phase-B confirmation | OBV (cumulative volume, added on up-closes/subtracted on down-closes) rising while price stays flat or drifts down = quiet accumulation underneath a range; OBV falling while price stays flat or drifts up = quiet distribution | Proposed — untested | Real-world OBV research, 2026-09-08 | **Approximable with OHLCV** — Joseph Granville's original 1963 formula, close-to-close direction times volume, cumulative. A regime/confluence filter like #26 (VIX regime), not a standalone trigger: an OBV uptrend during a #35 range's Phase B is the volume-side confirmation real accumulation happened before the Spring, distinct from a range that's just going nowhere |
@@ -272,14 +272,39 @@ Cross-cutting caveat, same discipline as every other batch in this log:
 **nothing above is implemented in `add_strategy_signal()` or wired into
 `_auto_signal_core` yet, and none of it goes live before a real
 `/backtest`/`/sweep` run against actual NSE data**, same standing rule as
-the VWAP/liquidity-heatmap/VIX/SMC batches before it. Rows #35/#37 are the
+the VWAP/liquidity-heatmap/VIX/SMC batches before it. Rows #35/#37 were the
 natural first candidates to build (they extend `orb_breakout`/`orb_volume`,
 already-live primitives, rather than needing new indicator math from
-scratch); #38–#41 are cheap, pure-arithmetic filters worth building
-alongside them; #42's range-histogram and #43's full confluence are
-correctly the last things attempted, once the range-detector primitive
-they both depend on exists and #35–#41 have each cleared their own
-backtest independently.
+scratch) — **now built and backtested, see their rows above**; #38–#41 are
+cheap, pure-arithmetic filters worth building alongside them next; #42's
+range-histogram and #43's full confluence are correctly the last things
+attempted, once the range-detector primitive they both depend on exists
+and #35–#41 have each cleared their own backtest independently.
+
+### SMA vs EMA research (2026-09-08)
+
+`orb_breakout`/`orb_volume` already had an `ma_type` scalar-trend helper
+(`_moving_average`) used elsewhere, but the strategy's own entry-trigger
+`fast_ma`/`slow_ma` computation inside `add_strategy_signal()` was
+hardcoded to `.rolling(...).mean()` (SMA) regardless of that setting — so
+no backtest could ever actually have compared SMA vs EMA for the entry
+decision itself. Fixed: `ma_type` ("sma"/"ema") now threads into that
+branch (`.ewm(span=..., adjust=False).mean()` for EMA), exposed as a real
+`/backtest` query param, unit-tested against pandas' own `.ewm()` output.
+Real `/backtest` comparison, `orb_breakout`, 7d/1m: **RELIANCE.NS**
+(orb_minutes=15, sma_fast=5, sma_slow=21) — SMA and EMA produced
+**identical** results (4 trades, 75% win rate, +₹12.4 total, same 4 trade
+timestamps/prices). **TCS.NS** (orb_minutes=10, sma_fast=14, sma_slow=50)
+— also **identical** (3 trades, 0% win rate, -₹102.4 total). In both real
+symbol/window samples, SMA and EMA agreed on trend direction (fast > slow)
+at every single breakout moment, so the smoothing choice made zero
+difference to which trades fired. Verdict: **no evidence EMA outperforms
+SMA (or vice versa) for this trigger on these 2 symbols/7d** — the
+difference the two MA types produce mid-series apparently never landed on
+a breakout bar in this sample. Not enough evidence to switch any live
+WATCHLIST entry's `ma_type` off the "sma" default; would need a wider
+symbol/date sample (or a longer period once available) to find a case
+where the two actually diverge before concluding either is better.
 
 ## Cross-strategy read (2026-09-01)
 
