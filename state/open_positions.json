@@ -1,39 +1,4 @@
 {
-  "synced_at_utc": "2026-09-08T14:05:12Z",
-  "open_positions": [
-    {
-      "symbol": "AGL.NS",
-      "qty": 7.0,
-      "entry_price_native": 15.819999694824219,
-      "stop_loss_native": 15.661799697875976,
-      "initial_stop_loss_native": 15.661799697875976,
-      "target_native": 16.29459968566895,
-      "fx_to_inr": 1.0,
-      "notional_inr": 110.74,
-      "orb_high_native": 14.149999618530273,
-      "orb_low_native": 13.550000190734863,
-      "entry_ts": 1788850407.3013704,
-      "interval": "5m",
-      "strategy": "orb-15m-sma9-21",
-      "sma_fast": 9,
-      "sma_slow": 21
-    },
-    {
-      "symbol": "BHANDARI.NS",
-      "qty": 36.0,
-      "entry_price_native": 3.0199999809265137,
-      "stop_loss_native": 2.990000009536743,
-      "initial_stop_loss_native": 2.990000009536743,
-      "target_native": 3.109999895095825,
-      "fx_to_inr": 1.0,
-      "notional_inr": 108.72,
-      "orb_high_native": 3.0,
-      "orb_low_native": 2.990000009536743,
-      "entry_ts": 1788851060.6060684,
-      "interval": "5m",
-      "strategy": "orb-15m-sma9-21",
-      "sma_fast": 9,
-      "sma_slow": 21
-    }
-  ]
+  "synced_at_utc": "2026-09-08T14:33:18Z",
+  "open_positions": []
 }
