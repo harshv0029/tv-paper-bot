@@ -174,7 +174,13 @@ jobs:
           # added - every Render redeploy or free-tier idle-spindown reset
           # the count for real, with no backstop. Fixed by adding the path
           # to the git add list below.
-          jq '{day: .check_counts_day, counts: ((.check_counts_today // []) | map({(.symbol): .checks_today}) | add // {})}' \
+          # rr_cursor added 2026-09-08 (explicit user finding: "still
+          # stuck 358 distinct... how to ensure it can scan all 2661
+          # every 15 minutes") - restores the round-robin scan position
+          # across a restart, same reasoning as the counts themselves;
+          # see reconcile_scheduler_check_counts_from_journal's own
+          # docstring in main.py for the full root-cause.
+          jq '{day: .check_counts_day, counts: ((.check_counts_today // []) | map({(.symbol): .checks_today}) | add // {}), rr_cursor: .rr_cursor}' \
             /tmp/scheduler-pipeline.json > state/scheduler_check_counts.json
           cat state/scheduler_check_counts.json
           cat state/open_positions.json

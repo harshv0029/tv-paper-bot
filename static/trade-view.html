@@ -564,6 +564,14 @@ async function updateCandles(symbol, entry, pos) {
 function updateLtp(symbol, lastClose) {
   const ltpEl = document.getElementById(`ltp-${symbol}`);
   const chgEl = document.getElementById(`chg-${symbol}`);
+  // Bug found live 2026-09-08 ("fetch failed: null is not an object
+  // (evaluating 'ltpEl.textContent = fmt(lastClose)')"): a live-tick
+  // update can fire for a symbol whose card isn't in the DOM yet/anymore
+  // - e.g. a tick lands between the position list closing a card and the
+  // browser actually removing it, or before the first render has run.
+  // Bail out instead of throwing - the next full refresh redraws the
+  // card correctly either way.
+  if (!ltpEl || !chgEl) return;
   const prev = lastPrice[symbol];
   ltpEl.textContent = fmt(lastClose);
   if (prev !== undefined && lastClose !== prev) {
