@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "id": 1,
+    "ts": 1788861373.6528304,
+    "symbol": "BHANDARI.NS",
+    "kotak_trading_symbol": "BHANDARI-EQ",
+    "leg": "exit",
+    "event": "skipped_duplicate",
+    "order_id": null,
+    "prev_state": "tracked open (stale), long 36 @ Rs3.02",
+    "new_state": "cleared - Kotak already shows this closed",
+    "detail": null
+  },
+  {
+    "id": 2,
+    "ts": 1788861399.219087,
+    "symbol": "AGL.NS",
+    "kotak_trading_symbol": "AGL-EQ",
+    "leg": "exit",
+    "event": "skipped_duplicate",
+    "order_id": null,
+    "prev_state": "tracked open (stale), long 1 @ Rs15.34",
+    "new_state": "cleared - Kotak already shows this closed",
+    "detail": null
+  }
+]
