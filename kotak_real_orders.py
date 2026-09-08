@@ -164,27 +164,66 @@ def place_real_exit(kotak_trading_symbol: str, qty: int) -> dict:
 
 
 def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
-    """Places a REAL resting SL-M sell order at Kotak for an already-open
-    real position, so the stop fires at the exchange even if this app or
-    Render's process is down between scheduler ticks. Same never-raises /
-    nOrdNo-confirms-success discipline as place_real_entry/place_real_exit
-    - see place_real_entry's docstring.
+    """Places a REAL resting stop-loss sell order at Kotak for an already-
+    open real position, so the stop fires at the exchange even if this app
+    or Render's process is down between scheduler ticks. Same never-raises
+    discipline as place_real_entry/place_real_exit - see place_real_entry's
+    docstring - but NOT the same nOrdNo-confirms-success shortcut those two
+    still use: see the BUG note below for why this function additionally
+    confirms the order wasn't rejected before reporting ok=True.
 
-    order_type="SL-M" (stop-loss market, triggers a market sell once LTP
-    touches trigger_price - no separate limit price needed) and
-    trigger_price are both confirmed real values/params from the SDK's
-    own place_order signature (see this module's docstring)."""
+    order_type="SL" (stop-loss LIMIT), NOT "SL-M" (stop-loss market) -
+    changed 2026-09-08. BUG found live via the new /kotak-neo/order-report
+    diagnostic endpoint (explicit user finding: real SL sell orders on
+    AGI/AGL showing REJECTED in the Kotak app, 0/1 shares filled, no
+    reason ever surfaced by this codebase): EVERY SL-M order this function
+    ever placed came back nOrdNo-accepted (so place_real_entry logged it
+    as "SL resting", and real_positions.sl_order_id got set) but was then
+    silently RMS-REJECTED moments later with rejRsn "Market order with
+    Algo Id not allowed" - Kotak's algo/API order tag (algId, assigned to
+    every order this app places) blocks pure MARKET-priced orders, and
+    SL-M is fundamentally a market order once triggered. Net effect: real
+    positions had ZERO working resting stop-loss at the broker this whole
+    time, while the app's own state believed otherwise. "SL" (a LIMIT
+    order that only activates once trigger_price is touched) is not a bare
+    market order and is not subject to that same block - order_type "SL"
+    and req_data_validation.price_required_order_types (both confirmed
+    from the SDK's own settings.py source, 2026-09-08) show "SL" is one of
+    the two order types that REQUIRE a positive `price` in addition to
+    trigger_price (unlike "SL-M", which needs only trigger_price).
+
+    price (the limit) is set 1% below trigger_price for this SELL order -
+    once triggered, the sell only fills at that price or better (higher);
+    too tight a gap risks a no-fill in a fast-moving/gapping market (the
+    classic SL-vs-SL-M tradeoff), but a working limit stop that might
+    occasionally miss a fast gap is a large improvement over the SL-M this
+    replaces, which was rejected outright, every time, with NO stop
+    resting at all. Tick-size alignment is NOT verified (this function has
+    no tick-size input) - a rejection for that specific reason would show
+    up distinctly in the order_report check below and is a known,
+    documented gap, not a silent one.
+
+    BUG FIX, same finding: nOrdNo-acceptance is NOT fill/reject status
+    (this is exactly the "unverified failure-shape" gap this module's own
+    top docstring already flagged, now confirmed to have actually bitten
+    real positions) - after an accepted order id comes back, this
+    function makes ONE follow-up order_report(order_id) call and only
+    reports ok=True if that order's status is not "rejected". A rejection
+    detected this way is returned with Kotak's own rejRsn text in
+    `detail`, so the caller (main.py) never marks a rejected order as a
+    working resting stop."""
     try:
         client = kotak_neo.login()
     except Exception as e:
         return {"ok": False, "detail": f"login failed: {e}"}
 
+    limit_price = round(trigger_price * 0.99, 2)
     try:
         resp = client.place_order(
             exchange_segment="nse_cm",
             product="CNC",
-            price="0",
-            order_type="SL-M",
+            price=str(limit_price),
+            order_type="SL",
             quantity=str(qty),
             validity="DAY",
             trading_symbol=kotak_trading_symbol,
@@ -197,7 +236,26 @@ def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: flo
     order_id = resp.get("nOrdNo") if isinstance(resp, dict) else None
     if not order_id:
         return {"ok": False, "detail": f"no order id in response: {resp}", "raw_response": resp}
-    return {"ok": True, "order_id": str(order_id), "raw_response": resp, "trigger_price": trigger_price}
+
+    # Confirm it wasn't RMS-rejected after acceptance (see BUG note above) -
+    # best-effort: a failure to even query status does NOT itself count as
+    # a rejection (fails toward "trust the acceptance" rather than
+    # discarding a possibly-good order over a transient report-API hiccup),
+    # but an actual confirmed "rejected" status always overrides the
+    # earlier acceptance.
+    try:
+        report = client.order_report(order_id=str(order_id))
+        rows = report.get("data") if isinstance(report, dict) else None
+        row = next((r for r in (rows or []) if str(r.get("nOrdNo")) == str(order_id)), None)
+        if row and str(row.get("ordSt", "")).lower() == "rejected":
+            reason = row.get("rejRsn") or row.get("rejShortDesc") or "rejected (no reason returned)"
+            return {"ok": False, "detail": f"order {order_id} rejected: {reason}",
+                    "raw_response": resp, "status_check": row}
+    except Exception as e:
+        print(f"[REAL TRADE] order-status confirm failed for {order_id} (treating as accepted): {e}")
+
+    return {"ok": True, "order_id": str(order_id), "raw_response": resp,
+            "trigger_price": trigger_price, "limit_price": limit_price}
 
 
 def cancel_real_order(order_id: str) -> dict:
