@@ -1,11 +1,11 @@
 {
-  "synced_at_utc": "2026-09-08T05:38:27Z",
+  "synced_at_utc": "2026-09-08T06:05:04Z",
   "open_positions": [
     {
       "symbol": "AGL.NS",
       "qty": 63.0,
       "entry_price_native": 15.34000015258789,
-      "stop_loss_native": 15.186600151062011,
+      "stop_loss_native": 15.355340152740476,
       "initial_stop_loss_native": 15.186600151062011,
       "target_native": 15.800200157165529,
       "fx_to_inr": 1.0,
@@ -22,7 +22,7 @@
       "symbol": "AGI.NS",
       "qty": 1.0,
       "entry_price_native": 753.0499877929688,
-      "stop_loss_native": 745.519487915039,
+      "stop_loss_native": 753.8030377807617,
       "initial_stop_loss_native": 745.519487915039,
       "target_native": 775.641487426758,
       "fx_to_inr": 1.0,
