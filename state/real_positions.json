@@ -8,19 +8,19 @@
       "entry_order_id": "260908000258549",
       "opened_at": 1788845720.3662002,
       "day": "2026-09-08",
-      "sl_order_id": "260908000280213",
-      "sl_trigger_price": 15.36
+      "sl_order_id": "260908000364470",
+      "sl_trigger_price": 15.66
     },
     {
-      "symbol": "AGI.NS",
-      "kotak_trading_symbol": "AGI-EQ",
-      "qty": 1,
-      "entry_price": 753.05,
-      "entry_order_id": "260908000259122",
-      "opened_at": 1788845752.835341,
+      "symbol": "BHANDARI.NS",
+      "kotak_trading_symbol": "BHANDARI-EQ",
+      "qty": 36,
+      "entry_price": 3.02,
+      "entry_order_id": "260908000373777",
+      "opened_at": 1788851067.5040948,
       "day": "2026-09-08",
       "sl_order_id": null,
-      "sl_trigger_price": 745.52
+      "sl_trigger_price": null
     }
   ]
 }
