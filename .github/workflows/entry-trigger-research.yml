@@ -24,6 +24,10 @@ on:
         description: "Also sweep supertrend (atr_period x multiplier) on NSE indices + the 15 NSE large-caps"
         type: boolean
         default: true
+      run_pin_bar_research:
+        description: "Also sweep pin_bar_reversal (pin_ratio x sr_lookback x sr_tolerance_pct) on NSE indices + the 15 NSE large-caps"
+        type: boolean
+        default: true
 
 jobs:
   research:
@@ -182,5 +186,30 @@ jobs:
             echo "SYMBOL: $SYMBOL  strategy=supertrend (atr_period x multiplier sweep)"
             echo "=========================================="
             curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=supertrend&rank_by=total_pnl&top_n=8&atr_period=7,10,14&multiplier=2.0,3.0,4.0"
+            echo
+          done
+
+      - name: "Price action: pin_bar_reversal sweep (NSE indices + large-caps)"
+        if: ${{ inputs.run_pin_bar_research }}
+        run: |
+          SW="https://tv-paper-bot-gdan.onrender.com/sweep"
+          PERIOD="60d"
+          INTERVAL="5m"
+          # 2026-09-08 candidate: hammer/pin-bar reversal candle combined
+          # with support-zone context (low near a rolling N-bar low) - both
+          # explicitly named in the original research brief. Sourced
+          # win-rate context: a 10-year backtest on NSE Nifty 50 ranked the
+          # hammer #1 among reversal patterns at ~63% win rate; pin bars at
+          # key support/resistance levels showed a 15-20% higher success
+          # rate than the pattern alone - see docs/daily_logs for sources.
+          # Sweeping pin_ratio x sr_lookback x sr_tolerance_pct.
+          for SYMBOL in "%5ENSEI" "%5ENSEBANK" "%5EBSESN" \
+                        "RELIANCE.NS" "TCS.NS" "HDFCBANK.NS" "INFY.NS" "ICICIBANK.NS" \
+                        "HINDUNILVR.NS" "ITC.NS" "SBIN.NS" "BHARTIARTL.NS" "KOTAKBANK.NS" \
+                        "LT.NS" "AXISBANK.NS" "BAJFINANCE.NS" "MARUTI.NS" "ASIANPAINT.NS"; do
+            echo "=========================================="
+            echo "SYMBOL: $SYMBOL  strategy=pin_bar_reversal (pin_ratio x sr_lookback x sr_tolerance_pct sweep)"
+            echo "=========================================="
+            curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=pin_bar_reversal&rank_by=total_pnl&top_n=8&pin_ratio=1.5,2.0,3.0&sr_lookback=10,20,30&sr_tolerance_pct=0.25,0.5,1.0"
             echo
           done
