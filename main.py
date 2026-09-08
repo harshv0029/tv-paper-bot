@@ -5304,8 +5304,24 @@ def reconcile_scheduler_check_counts_from_journal():
     the live /scheduler-pipeline check_counts_today every sync. Only
     restores if the saved day matches today's IST date - a stale prior-
     day snapshot must never carry over, counts genuinely reset each day
-    (same rollover rule _record_scheduler_check itself already applies)."""
-    global _scheduler_check_counts_day
+    (same rollover rule _record_scheduler_check itself already applies).
+
+    Also restores the round-robin scan CURSOR (2026-09-08) - explicit
+    user finding: "still stuck 358 distinct... how to ensure it can scan
+    all 2661 every 15 minutes." Root cause: _scheduler_rr_cursor (below)
+    was a plain in-memory global, same class of bug as check-counts used
+    to be before the 2026-09-07 fix above - every restart reset it to 0,
+    so the round-robin ALWAYS restarted from the very beginning of
+    WATCHLIST's flat-symbol ordering. On a day with many restarts (this
+    session alone triggered several today, on top of Render's own memory-
+    limit restart), the cursor kept getting reset before a single full
+    lap (2661/35 ~= 76 ticks ~= ~38 min at the current batch size) could
+    ever complete - it was never actually stuck, it just kept re-scanning
+    the same first ~358 symbols in WATCHLIST's order every time. UNLIKE
+    the day-scoped counts above, the cursor is restored regardless of the
+    saved day - a scan position is a rotation-through-the-list concept,
+    not a per-day counter, so there's no reason to reset it at midnight."""
+    global _scheduler_check_counts_day, _scheduler_rr_cursor
     if not os.path.exists(STATE_SCHEDULER_CHECK_COUNTS_PATH):
         return
     try:
@@ -5314,9 +5330,15 @@ def reconcile_scheduler_check_counts_from_journal():
     except Exception as e:
         print(f"[reconcile] could not read {STATE_SCHEDULER_CHECK_COUNTS_PATH}: {e}")
         return
+
+    rr_cursor = saved.get("rr_cursor")
+    if isinstance(rr_cursor, int) and rr_cursor > 0:
+        _scheduler_rr_cursor = rr_cursor
+        print(f"[reconcile] restored round-robin cursor to {rr_cursor} from journal")
+
     today_str = ist_now().strftime("%Y-%m-%d")
     if saved.get("day") != today_str:
-        return  # yesterday's (or older) snapshot - today starts fresh, same as any other day-rollover
+        return  # yesterday's (or older) snapshot - today's COUNTS start fresh, same as any other day-rollover
     counts = saved.get("counts") or {}
     if counts:
         _scheduler_check_counts.update(counts)
@@ -5780,6 +5802,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "total_checks_today": total_checks_today,
         "check_counts_today": check_counts_today,
         "check_counts_day": _scheduler_check_counts_day,
+        "rr_cursor": _scheduler_rr_cursor,
         "scheduler_interval_seconds": SCHEDULER_INTERVAL_SECONDS,
         "entry_scan_batch_size": _live_entry_scan_batch_size_for_display(),
         "last_tick_ts": _scheduler_last_tick_ts,
