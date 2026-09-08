@@ -3225,11 +3225,32 @@ def _maybe_place_real_entry(conn, symbol: str):
         _log_real_attempt(conn, symbol, "B", "skipped_no_live_tick", kotak_trading_symbol=kotak_symbol)
         return
 
-    remaining = get_runtime_setting(conn, "real_daily_cap_inr") - _real_today_spent_inr(conn)
-    if ltp > remaining:
+    # Real qty - explicit user instruction 2026-09-08: "Qty should be same
+    # as you pick in render. No hard coding needed." The paper engine
+    # (_auto_signal_core, same tick, same symbol) already sized this exact
+    # signal and wrote its qty to signal_state - read that back rather
+    # than inventing a separate real sizing formula, then cap it down (an
+    # integer floor, NSE cash equities are whole-share-only) by whatever
+    # real money actually allows: the remaining real_daily_cap_inr budget
+    # AND the real account's own available capital. min() of the three -
+    # never buy more than the paper signal called for, and never more
+    # than real money can actually afford, whichever is smaller.
+    paper_row = conn.execute(
+        "SELECT qty, stop_loss FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
+    ).fetchone()
+    paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
+    remaining_cap_inr = get_runtime_setting(conn, "real_daily_cap_inr") - _real_today_spent_inr(conn)
+    real_capital_for_sizing = get_scheduler_capital_inr()
+    max_by_cap = math.floor(remaining_cap_inr / ltp) if ltp > 0 else 0
+    max_by_capital = math.floor(real_capital_for_sizing / ltp) if ltp > 0 else 0
+    qty = int(min(paper_qty, max_by_cap, max_by_capital))
+    if qty <= 0:
         _log_real_attempt(
-            conn, symbol, "B", "skipped_over_daily_cap", kotak_trading_symbol=kotak_symbol,
-            price_est=ltp, detail=f"1 share = Rs{ltp:.2f}, remaining budget Rs{remaining:.2f}",
+            conn, symbol, "B", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
+            price_est=ltp,
+            detail=f"paper qty {paper_qty}, 1 share = Rs{ltp:.2f} - capped to 0 by "
+                   f"remaining daily cap Rs{remaining_cap_inr:.2f} (max {max_by_cap}) "
+                   f"and/or real capital Rs{real_capital_for_sizing:.2f} (max {max_by_capital})",
         )
         return
 
@@ -3266,20 +3287,34 @@ def _maybe_place_real_entry(conn, symbol: str):
         return
 
     import kotak_real_orders
-    result = kotak_real_orders.place_real_entry(kotak_symbol, ltp)
+    result = kotak_real_orders.place_real_entry(kotak_symbol, qty, ltp)
     if result.get("ok"):
         now = time.time()
+        # Resync to Kotak's OWN confirmed fill data when available, not
+        # the pre-trade estimate - explicit user instruction 2026-09-08:
+        # "the exact buy or sell price vary due to gap in time of
+        # execution... resync data ... to match all decision making based
+        # on execution data." result["qty"]/["fill_price"] ARE the real
+        # fldQty/avgPrc from Kotak's order_report when
+        # fill_price_confirmed is True (see kotak_real_orders.
+        # place_real_entry) - falls back to the requested qty/ltp estimate
+        # only when Kotak hasn't reported a fill yet.
+        real_qty = int(result["qty"])
+        real_entry_price = result["fill_price"]
         conn.execute(
             "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
             "entry_order_id, opened_at, day) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (symbol, kotak_symbol, result["qty"], ltp, result["order_id"], now, ist_now().strftime("%Y-%m-%d")),
+            (symbol, kotak_symbol, real_qty, real_entry_price, result["order_id"], now,
+             ist_now().strftime("%Y-%m-%d")),
         )
         _log_real_attempt(
             conn, symbol, "B", "confirmed", kotak_trading_symbol=kotak_symbol,
-            qty=result["qty"], price_est=ltp, notional_inr=result["qty"] * ltp,
+            qty=real_qty, price_est=real_entry_price, notional_inr=real_qty * real_entry_price,
             order_id=result["order_id"], raw_response=result.get("raw_response"),
+            detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak - using requested qty/estimated LTP",
         )
-        print(f"[REAL TRADE] BUY {result['qty']} {kotak_symbol} (order {result['order_id']}) ~Rs{ltp:.2f}")
+        print(f"[REAL TRADE] BUY {real_qty} {kotak_symbol} (order {result['order_id']}) "
+              f"~Rs{real_entry_price:.2f} (fill_confirmed={result['fill_price_confirmed']})")
 
         # Real resting stop-loss (2026-09-07, explicit user instruction:
         # "share stop-loss/trailing-stop to Kotak") - the paper stop this
@@ -3291,12 +3326,9 @@ def _maybe_place_real_entry(conn, symbol: str):
         # the position genuinely exists at Kotak either way, and
         # _maybe_sync_real_stop_loss retries placing it on every later
         # tick for as long as real_positions.sl_order_id stays NULL.
-        paper_row = conn.execute(
-            "SELECT stop_loss FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
-        ).fetchone()
         if paper_row and paper_row["stop_loss"]:
             sl_result = kotak_real_orders.place_real_stop_loss(
-                kotak_symbol, result["qty"], round(paper_row["stop_loss"], 2)
+                kotak_symbol, real_qty, round(paper_row["stop_loss"], 2)
             )
             if sl_result.get("ok"):
                 conn.execute(
@@ -3344,11 +3376,23 @@ def _maybe_place_real_exit(conn, symbol: str):
     result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"])
     if result.get("ok"):
         conn.execute("DELETE FROM real_positions WHERE symbol = ?", (symbol,))
+        # Resync to Kotak's own confirmed fill data for the audit log, same
+        # reasoning as the entry side (explicit user instruction 2026-09-08)
+        # - fill_price is the real avgPrc when confirmed, else None (the
+        # real P&L figure this app displays/gates on is sourced separately,
+        # straight from Kotak's own positions() aggregation - see
+        # get_real_pnl_today_inr - so this is a logging-accuracy fix, not a
+        # P&L-correctness one).
+        exit_qty = int(result["qty"])
         _log_real_attempt(
             conn, symbol, "S", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
-            qty=row["qty"], order_id=result["order_id"], raw_response=result.get("raw_response"),
+            qty=exit_qty, price_est=result.get("fill_price"),
+            notional_inr=exit_qty * result["fill_price"] if result.get("fill_price") else None,
+            order_id=result["order_id"], raw_response=result.get("raw_response"),
+            detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
         )
-        print(f"[REAL TRADE] SELL {row['qty']} {row['kotak_trading_symbol']} (order {result['order_id']})")
+        print(f"[REAL TRADE] SELL {exit_qty} {row['kotak_trading_symbol']} (order {result['order_id']}) "
+              f"(fill_confirmed={result['fill_price_confirmed']})")
     else:
         # The dangerous failure mode: a real position we believe is open
         # and TRIED to close, but couldn't confirm. Left in real_positions
@@ -3961,6 +4005,7 @@ def get_real_pnl_today():
         daily_risk_pct = get_runtime_setting(conn, "daily_risk_pct")
     real_capital = get_scheduler_capital_inr()
     real_pnl_today = get_real_pnl_today_inr()
+    real_capital_deployed = get_real_capital_deployed_inr()
     real_loss_cap_inr = round(real_capital * daily_risk_pct / 100, 2)
     return {
         "real_pnl_today_inr": round(real_pnl_today, 2) if real_pnl_today is not None else None,
@@ -3970,6 +4015,14 @@ def get_real_pnl_today():
         "real_loss_budget_remaining_inr": (
             round(max(0.0, real_loss_cap_inr - max(0.0, -real_pnl_today)), 2) if real_pnl_today is not None else None
         ),
+        # Context for the cap above, added 2026-09-08 (explicit user
+        # confusion: "how can this budget be decreased for today" when no
+        # trade had closed) - real_loss_cap_inr is daily_risk_pct% of
+        # real_capital_available_inr, which SHRINKS as money moves into
+        # open positions even with zero P&L change; this is that
+        # "deployed, not lost" piece so the two are never conflated again.
+        "real_capital_available_inr": round(real_capital, 2),
+        "real_capital_deployed_inr": real_capital_deployed,
     }
 
 
@@ -4758,6 +4811,43 @@ def get_real_pnl_today_inr(since_ts: float | None = None):
     if since_ts is not None:
         trades = [t for t in trades if t["exit_time_utc"] >= since_ts]
     return sum(t["pnl_inr"] for t in trades)
+
+
+def get_real_capital_deployed_inr() -> float | None:
+    """Real notional currently tied up in OPEN (not fully squared-off)
+    Kotak positions - added 2026-09-08 to explain a real user confusion:
+    "REAL LOSS BUDGET LEFT (KOTAK) Rs4.06 - this info is wrong... how can
+    this budget be decreased for today" when real_pnl_today_inr was
+    correctly 0 (no trade had closed). The cap wasn't decreased by a
+    loss - it's 2% of get_scheduler_capital_inr()'s AVAILABLE (post-
+    deployment) capital, which was small because most of the account's
+    money was already sitting in open positions, not lost. This figure
+    is that "already deployed, not lost" piece, so the UI can show both
+    together instead of a single number that reads as a loss either way.
+    Reuses the same positions() call/shape already verified in
+    _refresh_real_trades_cache (buyAmt/flBuyQty/flSellQty), just the
+    OPPOSITE filter: NOT fully squared off = still open. Returns None on
+    a fetch failure (matches get_real_pnl_today_inr's None-on-failure
+    convention) rather than fabricating 0."""
+    try:
+        import kotak_neo
+        positions = kotak_neo.positions()
+        rows = positions.get("data") or [] if isinstance(positions, dict) else []
+    except Exception:
+        return None
+    total = 0.0
+    for row in rows:
+        try:
+            if row.get("exSeg") != "nse_cm":
+                continue
+            fl_buy = float(row.get("flBuyQty", 0) or 0)
+            fl_sell = float(row.get("flSellQty", 0) or 0)
+            if fl_buy == 0 or fl_buy == fl_sell:
+                continue  # 0 qty, or fully squared off - not an open position
+            total += float(row.get("buyAmt", 0) or 0) - float(row.get("sellAmt", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+    return round(total, 2)
 
 
 _scheduler_last_tick_ts = 0.0
