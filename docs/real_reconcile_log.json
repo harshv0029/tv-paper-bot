@@ -533,5 +533,67 @@
         "sl_failure_detail": "order 260908000597779 rejected: 16283 : Order price is not a multiple of tick size  "
       }
     ]
+  },
+  {
+    "reconciled_at_utc": 1788861073.962602,
+    "real_balance_inr": 905.81,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 1,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 2,
+    "adopted": [
+      {
+        "symbol": "ADVENTHTL.NS",
+        "kotak_trading_symbol": "ADVENTHTL-EQ",
+        "qty": 4,
+        "entry_price": 134.24,
+        "entry_order_id": "260908000569845",
+        "sl_order_id": null,
+        "sl_trigger_price": null,
+        "target_order_id": "260908000569964",
+        "target_price": 132.66
+      },
+      {
+        "symbol": "AARTIIND.NS",
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1,
+        "entry_price": 502.3,
+        "entry_order_id": "260908000565893",
+        "sl_order_id": null,
+        "sl_trigger_price": null,
+        "target_order_id": null,
+        "target_price": null
+      }
+    ],
+    "governance_backfilled_count": 2,
+    "governance_backfilled": [
+      {
+        "symbol": "ADVENTHTL.NS",
+        "entry_price": 134.24,
+        "stop_loss": 132.9,
+        "target": 138.26,
+        "qty": 4,
+        "sl_placed": false,
+        "sl_failure_detail": "order 260908000625351 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "AARTIIND.NS",
+        "entry_price": 502.3,
+        "stop_loss": 497.28,
+        "target": 517.36,
+        "qty": 1,
+        "sl_placed": false,
+        "sl_failure_detail": "order 260908000626495 rejected: 16283 : Order price is not a multiple of tick size  "
+      }
+    ]
   }
 ]
