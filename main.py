@@ -3814,33 +3814,24 @@ def _maybe_place_real_entry(conn, symbol: str):
 
     # REAL daily loss cap - added 2026-09-07 ("when ur data had been in
     # sync with kotak then it would have seen the live trades and taken
-    # the wise step for the 2% calculations"). Before this, the ONLY real-
-    # money gate here was the notional SPEND cap above - nothing checked
-    # today's actual real P&L, whether from this bot's own orders or
-    # trades placed directly on Kotak (as happened today: ~25 manual
-    # trades, net -Rs41.60, invisible to this app's own real_trades table
-    # since it only ever logs orders THIS code places). get_real_pnl_today_inr()
-    # is Kotak's own ground truth instead - see its docstring. Fails
-    # CLOSED: an unknown real-P&L state (None - never fetched, or Kotak
-    # unreachable) refuses the entry rather than trading blind, the
-    # opposite default from get_scheduler_capital_inr's fail-to-0 (which
-    # already sizes to zero on failure) - both land on "don't trade
-    # without real data," just via different mechanisms.
-    real_pnl_today = get_real_pnl_today_inr()
-    real_capital = get_scheduler_capital_inr()
-    real_loss_cap = real_capital * get_runtime_setting(conn, "daily_risk_pct") / 100
-    if real_pnl_today is None:
+    # the wise step for the 2% calculations"), 2026-09-08 (moved to the
+    # shared _real_loss_budget - "keep it as a % of total money available
+    # at the beginning of day. kotak balance" - a FIXED day-open capital
+    # basis, joint with F&O, not a live-refreshing per-check figure). See
+    # that function's own docstring/module comment for the full reasoning.
+    # Fails CLOSED: an unknown real-P&L state refuses the entry rather
+    # than trading blind.
+    loss_check = _real_loss_budget(conn)
+    if loss_check["real_pnl_today"] is None:
         _log_real_attempt(
             conn, symbol, "B", "skipped_real_pnl_unknown", kotak_trading_symbol=kotak_symbol,
-            price_est=ltp, detail=f"could not fetch real P&L from Kotak: {_real_trades_cache['error']}",
+            price_est=ltp, detail=loss_check["detail"],
         )
         return
-    if -real_pnl_today >= real_loss_cap:
+    if not loss_check["ok"]:
         _log_real_attempt(
             conn, symbol, "B", "skipped_real_daily_loss_cap_hit", kotak_trading_symbol=kotak_symbol,
-            price_est=ltp,
-            detail=f"real P&L today Rs{real_pnl_today:.2f} vs cap Rs{real_loss_cap:.2f} "
-                   f"({get_runtime_setting(conn, 'daily_risk_pct')}% of Rs{real_capital:.2f} real capital)",
+            price_est=ltp, detail=loss_check["detail"],
         )
         return
 
@@ -4285,6 +4276,23 @@ def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float):
         )
         return
 
+    # Joint real daily-loss cap (2026-09-08, explicit user instruction:
+    # "joint cap... keep it as a % of total money available at the
+    # beginning of day") - see _real_loss_budget's own docstring. Same
+    # gate equity's _maybe_place_real_entry already enforces; this was
+    # the missing half that made it not actually joint before.
+    loss_check = _real_loss_budget(conn)
+    if loss_check["real_pnl_today"] is None:
+        _log_real_fo_attempt(conn, leg_key, "B", "skipped_real_pnl_unknown",
+                              kotak_trading_symbol=contract["kotak_trading_symbol"],
+                              price_est=contract["premium"], qty=qty, detail=loss_check["detail"])
+        return
+    if not loss_check["ok"]:
+        _log_real_fo_attempt(conn, leg_key, "B", "skipped_real_daily_loss_cap_hit",
+                              kotak_trading_symbol=contract["kotak_trading_symbol"],
+                              price_est=contract["premium"], qty=qty, detail=loss_check["detail"])
+        return
+
     import kotak_real_fo_orders
     margin_check = kotak_real_fo_orders.check_margin_affordable(
         exchange_segment=contract["exchange_segment"], instrument_token=contract["instrument_token"],
@@ -4511,6 +4519,21 @@ def _straddle_signal_core(conn, fo_underlying: str, vol_signal, halted: bool, is
                 conn, f"{fo_underlying}:STRADDLE-{right}", "B", "skipped_over_daily_cap",
                 kotak_trading_symbol=c["kotak_trading_symbol"], price_est=c["premium"], qty=qty,
                 detail=f"combined 2-leg cost Rs{combined_notional:.2f}, remaining budget Rs{remaining:.2f}",
+            )
+        return
+
+    # Joint real daily-loss cap (2026-09-08) - see _real_loss_budget's own
+    # docstring; same gate equity and the single-leg F&O entry both
+    # enforce, applied here for the same "never place one leg alone"
+    # reasoning as the margin check below.
+    loss_check = _real_loss_budget(conn)
+    if not loss_check["ok"]:
+        status = "skipped_real_pnl_unknown" if loss_check["real_pnl_today"] is None else "skipped_real_daily_loss_cap_hit"
+        for right, c in (("CE", call_c), ("PE", put_c)):
+            _log_real_fo_attempt(
+                conn, f"{fo_underlying}:STRADDLE-{right}", "B", status,
+                kotak_trading_symbol=c["kotak_trading_symbol"], price_est=c["premium"], qty=qty,
+                detail=loss_check["detail"],
             )
         return
 
@@ -4789,11 +4812,11 @@ def get_real_pnl_today():
     real_pnl_today_inr/real_loss_cap_inr/real_loss_budget_remaining_inr -
     see get_real_pnl_today_inr's docstring for how this is computed."""
     with closing(get_db()) as conn:
-        daily_risk_pct = get_runtime_setting(conn, "daily_risk_pct")
+        loss_check = _real_loss_budget(conn)
     real_capital = get_scheduler_capital_inr()
-    real_pnl_today = get_real_pnl_today_inr()
+    real_pnl_today = loss_check["real_pnl_today"]
     real_capital_deployed = get_real_capital_deployed_inr()
-    real_loss_cap_inr = round(real_capital * daily_risk_pct / 100, 2)
+    real_loss_cap_inr = round(loss_check["cap_inr"], 2)
     return {
         "real_pnl_today_inr": round(real_pnl_today, 2) if real_pnl_today is not None else None,
         "real_pnl_source": "kotak_positions_today" if real_pnl_today is not None else "unavailable",
@@ -4802,12 +4825,15 @@ def get_real_pnl_today():
         "real_loss_budget_remaining_inr": (
             round(max(0.0, real_loss_cap_inr - max(0.0, -real_pnl_today)), 2) if real_pnl_today is not None else None
         ),
-        # Context for the cap above, added 2026-09-08 (explicit user
-        # confusion: "how can this budget be decreased for today" when no
-        # trade had closed) - real_loss_cap_inr is daily_risk_pct% of
-        # real_capital_available_inr, which SHRINKS as money moves into
-        # open positions even with zero P&L change; this is that
-        # "deployed, not lost" piece so the two are never conflated again.
+        # real_loss_cap_inr is now daily_risk_pct% of a FIXED day-open
+        # capital snapshot (2026-09-08, explicit user instruction: "keep
+        # it as a % of total money available at the beginning of day") -
+        # joint across equity + F&O, see _real_loss_budget's own
+        # docstring. real_capital_available_inr below stays the LIVE,
+        # continuously-refreshing figure (a different concept - "what's
+        # available right now", used for position sizing, not the cap) so
+        # the two are never conflated.
+        "real_capital_day_open_inr": round(loss_check["day_open_capital_inr"], 2),
         "real_capital_available_inr": round(real_capital, 2),
         "real_capital_deployed_inr": real_capital_deployed,
     }
@@ -4962,24 +4988,26 @@ def get_real_trading_control(request: Request):
         open_positions = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
         today_spent_inr = _real_today_spent_inr(conn)
         daily_cap_inr = get_runtime_setting(conn, "real_daily_cap_inr")
-        daily_risk_pct = get_runtime_setting(conn, "daily_risk_pct")
         today_str = ist_now().strftime("%Y-%m-%d")
         t1_restricted_today = [
             dict(r) for r in conn.execute(
                 "SELECT symbol, flagged_at, detail FROM real_t1_restricted WHERE day = ?", (today_str,)
             ).fetchall()
         ]
+        # REAL P&L and its own loss cap - added 2026-09-07, Kotak's own
+        # ground truth (see get_real_pnl_today_inr's docstring), NOT the
+        # paper-only figure /daily-summary's budget_remaining shows. This
+        # is the number that actually answers "how much more can this
+        # account lose today before the real-money gate refuses a new
+        # entry" - see _real_loss_budget, which every real entry path
+        # (equity, F&O single-leg, F&O straddle) now enforces identically
+        # (2026-09-08, "joint cap... % of total money available at the
+        # beginning of day").
+        loss_check = _real_loss_budget(conn)
     db_enabled = bool(row["enabled"]) if row else False
     env_enabled = os.environ.get("REAL_TRADING_ENABLED") == "YES"
-    # REAL P&L and its own loss cap - added 2026-09-07, Kotak's own ground
-    # truth (see get_real_pnl_today_inr's docstring), NOT the paper-only
-    # figure /daily-summary's budget_remaining shows. This is the number
-    # that actually answers "how much more can this account lose today
-    # before the real-money gate refuses a new entry" - see the new check
-    # in _maybe_place_real_entry that enforces this same cap.
-    real_capital = get_scheduler_capital_inr()
-    real_pnl_today = get_real_pnl_today_inr()
-    real_loss_cap_inr = round(real_capital * daily_risk_pct / 100, 2)
+    real_pnl_today = loss_check["real_pnl_today"]
+    real_loss_cap_inr = round(loss_check["cap_inr"], 2)
     return {
         "db_switch_enabled": db_enabled, "env_var_enabled": env_enabled,
         "real_trading_active": db_enabled and env_enabled,
@@ -4997,6 +5025,7 @@ def get_real_trading_control(request: Request):
         "real_loss_budget_remaining_inr": (
             round(max(0.0, real_loss_cap_inr - max(0.0, -real_pnl_today)), 2) if real_pnl_today is not None else None
         ),
+        "real_capital_day_open_inr": round(loss_check["day_open_capital_inr"], 2),
         "open_real_positions": open_positions,
         "t1_restricted_today": t1_restricted_today,
     }
@@ -5014,6 +5043,13 @@ def get_real_fo_control(request: Request):
         today_spent_inr = _real_fo_today_spent_inr(conn)
         daily_cap_inr = get_runtime_setting(conn, "real_fo_daily_cap_inr")
         straddle_enabled = get_runtime_setting(conn, "real_straddle_enabled") >= 0.5
+        # Joint real daily-loss cap (2026-09-08) - see _real_loss_budget's
+        # own docstring. Same number /real-trading-control shows - this
+        # cap is now SHARED across equity and F&O, not a separate F&O-only
+        # figure, so both endpoints report the identical joint state.
+        loss_check = _real_loss_budget(conn)
+    real_pnl_today = loss_check["real_pnl_today"]
+    real_loss_cap_inr = round(loss_check["cap_inr"], 2)
     return {
         "env_var_enabled": is_real_fo_trading_enabled(),
         "real_straddle_enabled": straddle_enabled,
@@ -5021,6 +5057,12 @@ def get_real_fo_control(request: Request):
         "daily_cap_inr": daily_cap_inr,
         "today_spent_inr": round(today_spent_inr, 2),
         "today_remaining_inr": round(daily_cap_inr - today_spent_inr, 2),
+        "real_pnl_today_inr": round(real_pnl_today, 2) if real_pnl_today is not None else None,
+        "real_loss_cap_inr": real_loss_cap_inr,
+        "real_loss_budget_remaining_inr": (
+            round(max(0.0, real_loss_cap_inr - max(0.0, -real_pnl_today)), 2) if real_pnl_today is not None else None
+        ),
+        "real_capital_day_open_inr": round(loss_check["day_open_capital_inr"], 2),
         "open_real_fo_positions": open_positions,
         "open_paper_straddles": open_straddles,
     }
@@ -5607,6 +5649,116 @@ def get_scheduler_capital_inr() -> float:
     if _real_capital_cache["value"] is None or age > REAL_CAPITAL_CACHE_TTL_SECONDS:
         _refresh_real_capital_cache()
     return _real_capital_cache["value"] if _real_capital_cache["value"] is not None else 0.0
+
+
+# --- Real daily-loss cap: fixed day-open capital basis, joint across
+# equity + F&O (2026-09-08, explicit user instruction: "keep it as a % of
+# total money available at the beginning of day. kotak balance") ------------
+# Before this, real_loss_cap_inr (the account-wide daily-loss circuit
+# breaker) was daily_risk_pct% of get_scheduler_capital_inr()'s LIVE,
+# continuously-refreshing figure - so the cap itself drifted throughout
+# the day as the account's own available balance moved (deployed capital,
+# realized P&L, deposits), a moving target rather than a fixed risk
+# ceiling set once against what was actually available this morning.
+# Explicit user finding, same message: it must be a % of capital AS OF
+# THE START OF THE DAY, captured once and held fixed - not the same as
+# resetting the loss-COUNTING clock (daily_loss_reset_epoch, unchanged,
+# still does that separately). Also, get_real_pnl_today_inr() was already
+# account-wide (every Kotak position, any segment) - the cap-CHECK itself
+# just hadn't been added to the F&O entry paths (_maybe_place_real_fo_call_entry,
+# _straddle_signal_core), so "joint" wasn't actually enforced anywhere
+# but equity. _real_loss_budget below is the one shared computation every
+# real entry path (equity, F&O single-leg, F&O straddle) and both status
+# endpoints now call, so the number a human sees is exactly the number
+# gating trades.
+_day_open_capital_cache: dict = {"day": None, "value": None}
+_DAY_OPEN_CAPITAL_REDIS_KEY = "tv_paper_bot:day_open_capital:v1"
+
+
+def _day_open_capital_inr(conn) -> float:
+    """The real Kotak capital figure captured ONCE at the start of today
+    (IST calendar day) and held fixed for every real-loss-cap check that
+    day, across both equity and F&O - see the module comment above for
+    the full reasoning. In-memory cache first (cheapest, correct for the
+    common case of one long-running process); falls back to Upstash (a
+    restart-surviving mirror, same family as real_positions/rr_cursor
+    above) before ever re-capturing a fresh value, so a restart mid-day
+    can never silently reset the day's own risk ceiling to whatever the
+    live balance happens to be at that moment - the whole point of fixing
+    it in the first place. Only captures fresh (and only then persists to
+    Upstash) when neither cache has today's value yet."""
+    today = ist_now().strftime("%Y-%m-%d")
+    if _day_open_capital_cache["day"] == today and _day_open_capital_cache["value"] is not None:
+        return _day_open_capital_cache["value"]
+
+    if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
+        try:
+            resp = requests.get(
+                f"{UPSTASH_REDIS_REST_URL}/get/{_DAY_OPEN_CAPITAL_REDIS_KEY}",
+                headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            raw = resp.json().get("result")
+            if raw:
+                saved = json.loads(raw)
+                if saved.get("day") == today and saved.get("value") is not None:
+                    _day_open_capital_cache["day"] = today
+                    _day_open_capital_cache["value"] = float(saved["value"])
+                    return _day_open_capital_cache["value"]
+        except Exception as e:
+            print(f"[day_open_capital] hydrate failed (non-fatal): {e}")
+
+    value = get_scheduler_capital_inr()
+    _day_open_capital_cache["day"] = today
+    _day_open_capital_cache["value"] = value
+    if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
+        try:
+            requests.post(
+                f"{UPSTASH_REDIS_REST_URL}/set/{_DAY_OPEN_CAPITAL_REDIS_KEY}",
+                headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+                data=json.dumps({"day": today, "value": value}).encode("utf-8"),
+                timeout=5,
+            )
+        except Exception as e:
+            print(f"[day_open_capital] sync failed (non-fatal): {e}")
+    print(f"[day_open_capital] captured Rs{value:.2f} for {today}")
+    return value
+
+
+def _real_loss_budget(conn) -> dict:
+    """Single source of truth for the joint (equity + F&O together) real
+    daily-loss cap - see the module comment above _day_open_capital_cache.
+    Every real entry path (equity, F&O single-leg, F&O straddle) and both
+    status endpoints (/real-trading-control, /kotak-neo/real-fo-control)
+    call this, so the number a human sees is exactly the number gating
+    trades. Returns {'ok', 'real_pnl_today', 'cap_inr',
+    'day_open_capital_inr', 'detail'} - 'ok' is False on either an
+    unknown P&L (fails closed, matches get_real_pnl_today_inr's own
+    "can't verify, don't trade" contract - real_pnl_today is None in that
+    case) or the cap being breached."""
+    real_pnl_today = get_real_pnl_today_inr()
+    day_open_capital = _day_open_capital_inr(conn)
+    cap_inr = day_open_capital * get_runtime_setting(conn, "daily_risk_pct") / 100
+    if real_pnl_today is None:
+        return {
+            "ok": False, "real_pnl_today": None, "cap_inr": cap_inr,
+            "day_open_capital_inr": day_open_capital,
+            "detail": f"could not fetch real P&L from Kotak: {_real_trades_cache['error']}",
+        }
+    if -real_pnl_today >= cap_inr:
+        return {
+            "ok": False, "real_pnl_today": real_pnl_today, "cap_inr": cap_inr,
+            "day_open_capital_inr": day_open_capital,
+            "detail": f"real P&L today Rs{real_pnl_today:.2f} vs joint cap Rs{cap_inr:.2f} "
+                      f"({get_runtime_setting(conn, 'daily_risk_pct')}% of Rs{day_open_capital:.2f} "
+                      f"day-open capital)",
+        }
+    return {
+        "ok": True, "real_pnl_today": real_pnl_today, "cap_inr": cap_inr,
+        "day_open_capital_inr": day_open_capital, "detail": None,
+    }
+
 
 # REAL account P&L, sourced from Kotak's own positions() call - added
 # 2026-09-07. Explicit user finding: "when ur data had been in sync with
