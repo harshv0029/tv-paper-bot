@@ -116985,5 +116985,106 @@
         "time_local": "2026-09-08 14:32:56.193325"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-08T15:05:39Z",
+    "attempts": {
+      "CL=F": {
+        "checked_at_utc": 1788879891.4040263,
+        "symbol": "CL=F",
+        "status": "checked",
+        "time_local": "2026-09-08 15:04:51.352942",
+        "currency": "USD",
+        "fx_to_inr": 94.808,
+        "last_close": 92.72000122070312,
+        "orb_high": 92.9800033569336,
+        "orb_low": 92.86000061035156,
+        "sma_fast": 93.13888888888889,
+        "sma_slow": 93.14666602725075,
+        "trend": "down",
+        "capital": 1941.52,
+        "daily_loss_cap": 38.8304,
+        "realized_today": -3.55,
+        "realized_today_pct": -0.183,
+        "budget_remaining": 35.28,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": true,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 2073.1,
+          "current_volume": 827.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SI=F": {
+        "checked_at_utc": 1788879905.5990257,
+        "symbol": "SI=F",
+        "status": "checked",
+        "time_local": "2026-09-08 15:05:05.473622",
+        "currency": "USD",
+        "fx_to_inr": 94.808,
+        "last_close": 66.63999938964844,
+        "orb_high": 67.76499938964844,
+        "orb_low": 67.63500213623047,
+        "sma_fast": 66.63499959309895,
+        "sma_slow": 66.78452337355841,
+        "trend": "down",
+        "capital": 1941.52,
+        "daily_loss_cap": 38.8304,
+        "realized_today": -3.55,
+        "realized_today_pct": -0.183,
+        "budget_remaining": 35.28,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": true,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 270.05,
+          "current_volume": 99.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "GC=F": {
+        "checked_at_utc": 1788879921.6980512,
+        "symbol": "GC=F",
+        "status": "checked",
+        "time_local": "2026-09-08 15:05:20.232703",
+        "currency": "USD",
+        "fx_to_inr": 94.808,
+        "last_close": 4440.2998046875,
+        "orb_high": 4488.7998046875,
+        "orb_low": 4483.2998046875,
+        "sma_fast": 4443.949951171875,
+        "sma_slow": 4444.380905877976,
+        "trend": "down",
+        "capital": 1941.52,
+        "daily_loss_cap": 38.8304,
+        "realized_today": -3.55,
+        "realized_today_pct": -0.183,
+        "budget_remaining": 35.28,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": true,
+        "volume_gate": {
+          "confirmed": true,
+          "avg_volume": 830.45,
+          "current_volume": 1367.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      }
+    }
   }
 ]
