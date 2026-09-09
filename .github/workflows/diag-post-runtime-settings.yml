@@ -1,0 +1,25 @@
+name: Diagnostic POST - runtime-settings reset (safe, idempotent)
+
+# Narrow POST-capable diagnostic, separate from diag-curl.yml (which is
+# deliberately GET-only "by convention" - see its own header comment -
+# to avoid a generic path+method tool that could accidentally trigger a
+# real action). This one is scoped to exactly ONE known-harmless,
+# idempotent call: POSTing the trade-view "Resume Trading" reset button's
+# own action (runtime_settings key daily_loss_reset_epoch = now) - paper
+# P&L accounting only, never touches real money or real orders. Built
+# 2026-09-09 to reproduce a live "Method Not Allowed" the user hit on the
+# trade-view dashboard - proves whether POST itself is broken on the
+# currently-deployed server, or the bug is specific to something else
+# (stale browser cache of an old page, a client-side URL bug, etc.)
+on:
+  workflow_dispatch: {}
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST runtime-settings (daily_loss_reset_epoch = now)
+        run: |
+          URL="https://tv-paper-bot-gdan.onrender.com/runtime-settings?key=daily_loss_reset_epoch&value=$(date +%s)"
+          curl -sSL -m 30 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+            -X POST -w "\nHTTP_STATUS:%{http_code}\n" "$URL"
