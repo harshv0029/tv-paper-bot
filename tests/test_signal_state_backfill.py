@@ -75,6 +75,41 @@ def test_ensure_signal_state_returns_false_and_does_not_overwrite_an_existing_ro
         assert row["stop_loss"] == 285.0, "an already-trailed stop must never be reset by the backfill"
 
 
+def test_ensure_signal_state_removes_a_ghost_real_position_instead_of_backfilling():
+    # 2026-09-09, explicit user finding right after the self-heal first
+    # shipped: DEEP.NS showed as REAL LIVE after already being exited -
+    # Kotak shows no open position for it (a restart-race ghost, same
+    # class _kotak_symbol_still_open already documents), so this must
+    # DELETE the ghost real_positions row instead of resurrecting paper
+    # tracking for a position that no longer exists.
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        _insert_real_position(conn, symbol="DEEP.NS")
+        real_row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", ("DEEP.NS",)).fetchone()
+        with patch("main._kotak_symbol_still_open", return_value=False):
+            created = main._ensure_signal_state_for_real_position(conn, real_row)
+        assert created is False
+        assert conn.execute("SELECT 1 FROM real_positions WHERE symbol = ?", ("DEEP.NS",)).fetchone() is None
+        assert conn.execute("SELECT 1 FROM signal_state WHERE symbol = ?", ("DEEP.NS",)).fetchone() is None
+
+
+def test_ensure_signal_state_still_backfills_on_a_transient_kotak_fetch_failure():
+    # still_open() returning None (fetch failed, not confirmed closed)
+    # must fail OPEN - same precedent _kotak_symbol_still_open's own
+    # docstring establishes - not silently abandon a genuinely open
+    # position over a transient API hiccup.
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        _insert_real_position(conn)
+        real_row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", ("MEDICAMEQ.NS",)).fetchone()
+        with patch("main._kotak_symbol_still_open", return_value=None):
+            created = main._ensure_signal_state_for_real_position(conn, real_row)
+        assert created is True
+        assert conn.execute(
+            "SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", ("MEDICAMEQ.NS",)
+        ).fetchone() is not None
+
+
 def test_maybe_sync_real_stop_loss_self_heals_and_places_the_real_sl():
     """End-to-end: a real position with NO signal_state row (the exact bug
     reported live) must still get a real trailing-stop order placed once
