@@ -25,6 +25,32 @@
       "sl_trigger_price": 337.1,
       "target_order_id": null,
       "target_price": null
+    },
+    {
+      "symbol": "MIDCAPADD.NS",
+      "kotak_trading_symbol": "MIDCAPADD-EQ",
+      "qty": 20,
+      "entry_price": 23.15,
+      "entry_order_id": "260909000471052",
+      "opened_at": 1788944730.219572,
+      "day": "2026-09-09",
+      "sl_order_id": "260909000471367",
+      "sl_trigger_price": 23.0,
+      "target_order_id": null,
+      "target_price": null
+    },
+    {
+      "symbol": "PAISALO.NS",
+      "kotak_trading_symbol": "PAISALO-EQ",
+      "qty": 3,
+      "entry_price": 79.88,
+      "entry_order_id": "260909000485591",
+      "opened_at": 1788945231.2360327,
+      "day": "2026-09-09",
+      "sl_order_id": "260909000496491",
+      "sl_trigger_price": 79.0,
+      "target_order_id": null,
+      "target_price": 82.21
     }
   ]
 }
