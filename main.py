@@ -2361,16 +2361,16 @@ def _compute_trend(symbol: str, sma_fast: int, sma_slow: int, tz_offset_min: int
     enough candles yet), confidence is _trend_confidence's 0..1 read on
     that direction (0.0 alongside a direction just means "not enough same-
     day history to size it yet" - the caller decides what bar to hold it
-    to, e.g. TREND_WEAKENED_MIN_CONFIDENCE for the early-exit check)."""
+    to, e.g. TREND_WEAKENED_MIN_CONFIDENCE for the early-exit check).
+
+    2026-09-09: closes now comes from the full multi-day `df`, not
+    today_df - same fix and same reasoning as _auto_signal_core's own
+    closes (see its comment there for the full root cause: a today-only
+    window made sma_f/sma_s/confidence mathematically unable to exist for
+    the first 1-4+ hours of every session)."""
     try:
         df = fetch_ohlc(symbol, "5d", interval)
-        ts = pd.to_datetime(df["Date"])
-        ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
-        ts_local = ts_utc + pd.Timedelta(minutes=tz_offset_min)
-        df = df.assign(ts_local=ts_local)
-        today_str = (dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)).strftime("%Y-%m-%d")
-        today_df = df[df["ts_local"].dt.strftime("%Y-%m-%d") == today_str]
-        closes = today_df["Close"].to_numpy(dtype=float)
+        closes = df["Close"].to_numpy(dtype=float)
     except Exception:
         return None, 0.0
     if len(closes) < max(sma_fast, sma_slow):
@@ -3201,7 +3201,28 @@ def _auto_signal_core(
         last = today_df.iloc[-1]
         last_close = float(last["Close"])
 
-        closes = today_df["Close"].to_numpy(dtype=float)
+        # Multi-day closes (df, not today_df) for the trend/SMA/confidence
+        # read - 2026-09-09, explicit user finding: "why don't you detect
+        # any signal in first one hour of market open while most traders
+        # do that early trade." Root cause: this used to be today_df-only,
+        # so sma_f needed sma_fast bars INTO TODAY before it existed at
+        # all (45 min for the default sma_fast=9 on 5m bars), sma_s needed
+        # sma_slow bars (105 min for sma_slow=21, up to 250 min/~4h10m for
+        # the sma_slow=50 symbols), and _trend_confidence needed
+        # sma_slow+2 bars before it could return anything above 0.0 (its
+        # own "not enough same-day history yet" floor) - a mathematical
+        # impossibility for the first 1-4+ hours of every session,
+        # regardless of how strong the actual move was. _volume_confirms
+        # right below already reads df (not today_df) for exactly this
+        # reason; this brings the trend read into line with that same,
+        # already-established precedent instead of being the one
+        # inconsistent piece. Standard practice on any real chart too - a
+        # 9/21 EMA/SMA on an intraday chart is continuous across session
+        # boundaries, not reset to zero every morning. orb_high/orb_low/
+        # last_close (the actual ORB definition and breakout trigger)
+        # remain strictly today-only, unchanged - only the TREND context
+        # now has enough history to be computable right at the open.
+        closes = df["Close"].to_numpy(dtype=float)
         sma_f = _moving_average(closes, sma_fast, ma_type) if len(closes) >= sma_fast else None
         sma_s = _moving_average(closes, sma_slow, ma_type) if len(closes) >= sma_slow else None
         trend = ("up" if sma_f > sma_s else "down") if (sma_f is not None and sma_s is not None) else None
