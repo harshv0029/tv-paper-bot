@@ -180,11 +180,13 @@ def hydrate_real_positions_from_external() -> bool:
                 conn.execute(
                     "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
                     "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                    "target_order_id, target_price, exit_legs_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "target_order_id, target_price, exit_legs_json, protection_degraded_since) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
                      pos.get("entry_order_id"), pos["opened_at"], pos["day"],
                      pos.get("sl_order_id"), pos.get("sl_trigger_price"),
-                     pos.get("target_order_id"), pos.get("target_price"), pos.get("exit_legs_json")),
+                     pos.get("target_order_id"), pos.get("target_price"), pos.get("exit_legs_json"),
+                     pos.get("protection_degraded_since")),
                 )
                 restored += 1
             if restored:
@@ -513,13 +515,29 @@ def init_db():
                 sl_trigger_price REAL,
                 target_order_id TEXT,
                 target_price REAL,
-                exit_legs_json TEXT  -- 2026-09-09, universal-score architecture revamp: mirrors
+                exit_legs_json TEXT, -- 2026-09-09, universal-score architecture revamp: mirrors
                                      -- signal_state.exit_legs_json's own staged-ladder JSON for the
                                      -- REAL position, so a resting target order at Kotak is only
                                      -- ever placed/tracked for the CURRENT unfilled leg (see
                                      -- _maybe_place_real_entry/_maybe_place_real_partial_exit) - NULL
                                      -- for any real position with no staged ladder (backfilled/
                                      -- adopted positions, see kotak_neo_reconcile_real_positions).
+                protection_degraded_since REAL  -- 2026-09-10, explicit user instruction after
+                                     -- review (state-machine correction on top of #13's own
+                                     -- fix): epoch seconds since this position was FIRST noticed
+                                     -- with no live resting SL order (sl_order_id NULL) -
+                                     -- "protection degraded", not yet an emergency. NULL whenever
+                                     -- a resting SL is confirmed live. See
+                                     -- _protection_degraded_timeout_seconds/_mark_protection_degraded/
+                                     -- _clear_protection_degraded and _maybe_sync_real_stop_loss's
+                                     -- own docstring for the full state machine: retry aggressively
+                                     -- while degraded, escalate to a full exit only once elapsed
+                                     -- time since this timestamp exceeds a capital-scaled tolerance -
+                                     -- the tick-based stop_hit check alone (see #13's own reverted
+                                     -- escalation) only ever protects against a SLOW move through
+                                     -- the stop, never a gap, flash move, halt reopening, or this
+                                     -- app/network itself being down - exactly when broker-side
+                                     -- protection matters most.
             )
             """
         )
@@ -2832,12 +2850,12 @@ def _place_real_stop_loss_with_retry(kotak_trading_symbol: str, qty: float, trig
     blocking time.sleep here does not stall the event loop.
 
     Returns the LAST attempt's result dict either way. A caller whose
-    retries are all exhausted just logs and clears its own tracked order
-    id (see both call sites) - the position stays protected regardless by
-    _auto_signal_core's own tick-based stop_hit check, which needs no
-    resting broker order to work (explicit user instruction 2026-09-10,
-    after review proposed and then reverted a force-close escalation
-    here)."""
+    retries are all exhausted marks the position's protection DEGRADED
+    (see _mark_protection_degraded) rather than either force-closing
+    immediately or trusting the tick-based stop_hit check alone to cover
+    the gap indefinitely - see _protection_degraded_timeout_seconds' own
+    docstring for why neither of those two extremes is right on its
+    own."""
     import kotak_real_orders
     result = {"ok": False, "detail": "no attempt made"}
     for attempt in range(1, attempts + 1):
@@ -2847,6 +2865,57 @@ def _place_real_stop_loss_with_retry(kotak_trading_symbol: str, qty: float, trig
         if attempt < attempts:
             time.sleep(2)
     return result
+
+
+def _protection_degraded_timeout_seconds(capital_inr: float) -> float:
+    """How long a real position may run with NO live resting SL order at
+    Kotak before this app escalates to a full exit - 2026-09-10, explicit
+    user instruction, a correction on top of #13's own first fix.
+
+    That first fix reasoned "the tick-based stop_hit check already
+    protects the position, so a failed SL replacement is harmless" - only
+    PARTIALLY true. The tick check catches a SLOW move through the stop;
+    it does NOT cover a gap-down, a flash move, a market-halt reopening,
+    an API outage, a network outage, or this app's OWN server being down
+    - precisely the scenarios broker-side protection exists for, because
+    the application itself may fail. So neither extreme is right on its
+    own: force-closing on the very first placement failure sells on an
+    API hiccup instead of a price event (over-reacts); trusting the tick
+    check alone and never escalating leaves exactly those failure modes
+    completely uncovered (under-reacts). The correct middle: retry
+    aggressively (_place_real_stop_loss_with_retry, and again every
+    subsequent tick), tolerate a bounded window with NO resting order
+    while retries keep trying, and only escalate to a full exit once that
+    window is exceeded - "operational risk scales with money," so the
+    tolerance shrinks as capital does."""
+    if capital_inr < 500_000:
+        return 60.0
+    elif capital_inr < 5_000_000:
+        return 20.0  # user's own "15-30s" band, midpoint
+    else:
+        return 10.0
+
+
+def _mark_protection_degraded(conn, symbol: str) -> None:
+    """Starts the degraded-protection clock for a real position - a no-op
+    if it's already running (never resets an existing clock back to now,
+    which would let a repeatedly-failing replacement dodge the timeout
+    forever by resetting it every tick)."""
+    conn.execute(
+        "UPDATE real_positions SET protection_degraded_since = ? "
+        "WHERE symbol = ? AND protection_degraded_since IS NULL",
+        (time.time(), symbol),
+    )
+    conn.commit()
+
+
+def _clear_protection_degraded(conn, symbol: str) -> None:
+    """Stops the degraded-protection clock - call this the moment a live
+    resting SL order is confirmed placed again."""
+    conn.execute(
+        "UPDATE real_positions SET protection_degraded_since = NULL WHERE symbol = ?", (symbol,)
+    )
+    conn.commit()
 
 
 def _open_positions_reserved_risk_inr(conn, exclude_symbol: str | None = None) -> float:
@@ -5344,6 +5413,13 @@ def _maybe_place_real_entry(conn, symbol: str):
                     prev_state="none", new_state="none (placement failed)", detail=sl_result.get("detail"),
                 )
                 _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
+                # 2026-09-10: unprotected from the moment of entry - same
+                # degraded-protection clock/timeout as every other SL gap,
+                # not a special case. _maybe_sync_real_stop_loss's own
+                # top-of-function check picks this up and either keeps
+                # retrying or escalates once the capital-scaled tolerance
+                # is exceeded.
+                _mark_protection_degraded(conn, symbol)
 
         # Real resting target/profit-booking order (2026-09-08, explicit
         # user instruction: "place the target you have planned for each
@@ -5670,6 +5746,7 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
                     "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                     (sl_result["order_id"], sl_result["trigger_price"], symbol),
                 )
+                _clear_protection_degraded(conn, symbol)
                 _log_real_order_event(
                     conn, symbol, "sl", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
                     order_id=sl_result["order_id"], prev_state="resized for staged leg booking",
@@ -5677,16 +5754,15 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
                 )
             else:
                 # 2026-09-10, explicit user instruction after review: no
-                # force-close escalation here either, same reasoning as
-                # _maybe_sync_real_stop_loss's own reverted escalation -
-                # the remaining qty stays protected by
-                # _auto_signal_core's own tick-based stop_hit check
-                # regardless of whether a resting order exists at Kotak,
-                # so escalating on a mere placement failure would sell on
-                # an API hiccup rather than an actual price event.
-                # _place_real_stop_loss_with_retry's own retries (above)
-                # are kept - cheap, and they close a transient gap faster.
+                # IMMEDIATE force-close here - starts (or leaves running)
+                # the same degraded-protection clock
+                # _maybe_sync_real_stop_loss's own top-of-function check
+                # escalates on, rather than either force-closing on this
+                # one failure or trusting the tick-based stop_hit check
+                # to cover the gap indefinitely. See
+                # _protection_degraded_timeout_seconds' own docstring.
                 conn.execute("UPDATE real_positions SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
+                _mark_protection_degraded(conn, symbol)
                 _log_real_order_event(
                     conn, symbol, "sl", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
                     prev_state="resized for staged leg booking",
@@ -5931,7 +6007,18 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
     held position isn't cancel/replaced every single tick for no reason.
     If no SL is resting yet (an earlier placement failed), this also
     retries placing it fresh at the paper stop's current level - see
-    _maybe_place_real_entry's own comment on that retry path."""
+    _maybe_place_real_entry's own comment on that retry path.
+
+    2026-09-10, explicit user instruction (state-machine correction on
+    top of #13's own fix): the FIRST thing this function does, every
+    call, is check whether the position is currently missing a resting
+    SL and if so how long that's been true - see
+    _protection_degraded_timeout_seconds' own docstring for the full
+    reasoning (the tick-based stop_hit check alone only covers a SLOW
+    move through the stop, never a gap/flash-move/halt/outage). Degraded
+    but within tolerance -> keep retrying below, same as always.
+    Degraded past tolerance -> force a full exit right here, before
+    anything else runs this tick."""
     real_row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
     if not real_row:
         return
@@ -5945,6 +6032,35 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
     # wasn't moving). Previously this only got fixed by a periodic/
     # manual reconcile dispatch; now it can never persist past one tick.
     _ensure_signal_state_for_real_position(conn, real_row)
+
+    # Degraded-protection timeout check (2026-09-10, explicit user
+    # instruction - the state-machine correction on #13's own fix) -
+    # runs FIRST, unconditionally, before anything below that could
+    # return early without ever seeing it. See
+    # _protection_degraded_timeout_seconds' own docstring for the full
+    # reasoning: retry aggressively while degraded (already happens every
+    # tick below), tolerate a bounded window, escalate to a full exit
+    # only once that window is genuinely exceeded - never on the very
+    # first failure, never indefinitely either.
+    if not real_row["sl_order_id"]:
+        if real_row["protection_degraded_since"] is None:
+            _mark_protection_degraded(conn, symbol)
+        else:
+            elapsed = time.time() - real_row["protection_degraded_since"]
+            timeout = _protection_degraded_timeout_seconds(get_scheduler_capital_inr())
+            if elapsed > timeout:
+                print(f"[REAL TRADE] {real_row['kotak_trading_symbol']} has had NO resting stop "
+                      f"for {elapsed:.0f}s (tolerance {timeout:.0f}s at current capital) - "
+                      f"forcing an emergency exit")
+                _log_real_order_event(
+                    conn, symbol, "sl", "emergency_exit_triggered", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+                    prev_state=f"unprotected for {elapsed:.0f}s", new_state="forcing full exit",
+                    detail=f"protection_degraded_since timeout ({timeout:.0f}s) exceeded",
+                )
+                _maybe_place_real_exit(conn, symbol)
+                return
+            # Still inside the tolerance window - fall through and keep
+            # retrying below, same as every other tick.
 
     paper_row = conn.execute(
         "SELECT stop_loss FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
@@ -5989,6 +6105,7 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
             (sl_result["order_id"], sl_result["trigger_price"], symbol),
         )
         conn.commit()
+        _clear_protection_degraded(conn, symbol)  # a live resting SL exists again - stop the clock
         _sync_real_positions_external(conn)
         print(f"[REAL TRADE] trailing SL moved to Rs{new_stop:.2f} for {real_row['kotak_trading_symbol']} "
               f"(order {sl_result['order_id']})")
@@ -6002,9 +6119,11 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         # Old order is already cancelled (or never existed) and the
         # replacement failed (even after _place_real_stop_loss_with_retry's
         # own retries) - clear sl_order_id so the position isn't left
-        # pointing at a dead order id.
+        # pointing at a dead order id, and start (or leave running) the
+        # degraded-protection clock the top-of-function check escalates on.
         conn.execute("UPDATE real_positions SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
         conn.commit()
+        _mark_protection_degraded(conn, symbol)
         _sync_real_positions_external(conn)
         print(f"[REAL TRADE] trailing SL replacement FAILED for {real_row['kotak_trading_symbol']}: "
               f"{sl_result.get('detail')}")
