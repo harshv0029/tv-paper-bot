@@ -4624,6 +4624,63 @@ def _maybe_place_real_exit(conn, symbol: str):
         _flag_if_t1_restricted(conn, symbol, result.get("detail"))
 
 
+def _ensure_signal_state_for_real_position(conn, real_row) -> bool:
+    """Backfills a missing signal_state row for a symbol that already has
+    an open real_positions row - factored out of
+    kotak_neo_reconcile_real_positions' own governance-backfill loop
+    (2026-09-08) so _maybe_sync_real_stop_loss (below) can call the SAME
+    logic on every tick, not just during a periodic/manual reconcile.
+
+    2026-09-09, explicit user finding: "the trailing stop loss is not
+    being maintained at the end of Kotak Neo... if not being done then
+    do that now." Root cause traced live: /daily-summary showed
+    open_positions: [] (paper signal_state completely empty) while 4 real
+    positions were genuinely open - this Render service's own restart
+    cadence (many deploys in a short window, same as every other restart-
+    race this session) wiped signal_state for these symbols before it
+    could be journal-synced. _maybe_sync_real_stop_loss's very first real
+    check (SELECT stop_loss FROM signal_state WHERE symbol=? AND
+    status='long') was returning nothing for every one of them, so it
+    returned early EVERY TICK - never once syncing the trailing stop to
+    Kotak, exactly matching what was reported. Worse: with no signal_state
+    row, _auto_signal_core's own open-position management branch never
+    even saw these symbols, so nothing was managing them past their
+    initial static stop at all.
+
+    Sized off the symbol's own WATCHLIST risk config (stop_pct) and the
+    live rr setting, applied to the REAL entry price already on the
+    real_positions row - the same math a fresh entry would have used,
+    computed after the fact. entry_ts is set to NOW (backfill time), not
+    a guessed real fill time - pragmatic and safe: it only makes the
+    trailing-stop's "highest close since entry" window and the stale-
+    timeout's elapsed-time count start a little late, never early.
+    Returns True if a row was created, False if one already existed."""
+    already = conn.execute(
+        "SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", (real_row["symbol"],)
+    ).fetchone()
+    if already:
+        return False
+    watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
+    cfg = watchlist_by_symbol.get(real_row["symbol"], {})
+    stop_pct = cfg.get("stop_pct", 2.0)
+    live_rr = get_runtime_setting(conn, "rr")
+    entry_price = real_row["entry_price"]
+    stop_loss = round(entry_price * (1 - stop_pct / 100), 2)
+    target = round(entry_price + live_rr * (entry_price - stop_loss), 2)
+    conn.execute(
+        "INSERT INTO signal_state (symbol, day, status, entry_price, stop_loss, "
+        "initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval) "
+        "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, 1.0, '5m') "
+        "ON CONFLICT(symbol) DO NOTHING",
+        (real_row["symbol"], ist_now().strftime("%Y-%m-%d"), entry_price, stop_loss, stop_loss, target,
+         real_row["qty"], time.time()),
+    )
+    conn.commit()
+    print(f"[signal_state_backfill] restored missing paper tracking for {real_row['symbol']} "
+          f"(entry Rs{entry_price:.2f}, stop Rs{stop_loss:.2f}, target Rs{target:.2f})")
+    return True
+
+
 def _maybe_sync_real_stop_loss(conn, symbol: str):
     """Keeps a real position's RESTING stop-loss order at Kotak in step
     with the paper trailing stop _auto_signal_core just ratcheted (see
@@ -4644,6 +4701,16 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
     real_row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
     if not real_row:
         return
+
+    # Self-heal a missing paper counterpart RIGHT HERE, every tick - see
+    # _ensure_signal_state_for_real_position's own docstring for the
+    # 2026-09-09 bug this closes (a restart wiping signal_state for a
+    # symbol that still has a genuinely open real position, silently
+    # stopping trailing-stop sync AND all other paper-side management of
+    # it, discovered only when the user reported the trailing stop
+    # wasn't moving). Previously this only got fixed by a periodic/
+    # manual reconcile dispatch; now it can never persist past one tick.
+    _ensure_signal_state_for_real_position(conn, real_row)
 
     paper_row = conn.execute(
         "SELECT stop_loss FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
@@ -8205,29 +8272,14 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
         # fill time - pragmatic and safe: it only makes the trailing-
         # stop's "highest close since entry" window and the stale-
         # timeout's elapsed-time count start a little late, never early.
-        watchlist_by_symbol_reconcile = {cfg["symbol"]: cfg for cfg in WATCHLIST}
-        live_rr = get_runtime_setting(conn, "rr")
         governance_backfilled = []
-        today_str_reconcile = ist_now().strftime("%Y-%m-%d")
         for r in conn.execute("SELECT * FROM real_positions").fetchall():
-            already = conn.execute(
-                "SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", (r["symbol"],)
+            if not _ensure_signal_state_for_real_position(conn, r):
+                continue  # already had a signal_state row - nothing to backfill
+            fresh = conn.execute(
+                "SELECT stop_loss, target FROM signal_state WHERE symbol = ? AND status = 'long'", (r["symbol"],)
             ).fetchone()
-            if already:
-                continue
-            cfg = watchlist_by_symbol_reconcile.get(r["symbol"], {})
-            stop_pct = cfg.get("stop_pct", 2.0)
-            entry_price = r["entry_price"]
-            stop_loss = round(entry_price * (1 - stop_pct / 100), 2)
-            target = round(entry_price + live_rr * (entry_price - stop_loss), 2)
-            conn.execute(
-                "INSERT INTO signal_state (symbol, day, status, entry_price, stop_loss, "
-                "initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, 1.0, '5m') "
-                "ON CONFLICT(symbol) DO NOTHING",
-                (r["symbol"], today_str_reconcile, entry_price, stop_loss, stop_loss, target,
-                 r["qty"], time.time()),
-            )
+            entry_price, stop_loss, target = r["entry_price"], fresh["stop_loss"], fresh["target"]
             backfill_entry = {
                 "symbol": r["symbol"], "entry_price": entry_price,
                 "stop_loss": stop_loss, "target": target, "qty": r["qty"],
