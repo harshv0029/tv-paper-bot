@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-09T10:06:27Z",
+  "synced_at_utc": "2026-09-09T11:06:51Z",
   "open_positions": [
     {
       "symbol": "HINDALCO.NS",
@@ -15,6 +15,57 @@
       "entry_ts": 1788941024.7189977,
       "interval": "5m",
       "strategy": "orb-15m-sma9-21",
+      "sma_fast": 9,
+      "sma_slow": 21
+    },
+    {
+      "symbol": "JSWINFRA.NS",
+      "qty": 1.0,
+      "entry_price_native": 340.85,
+      "stop_loss_native": 337.44,
+      "initial_stop_loss_native": 337.44,
+      "target_native": 351.08,
+      "fx_to_inr": 1.0,
+      "notional_inr": 340.85,
+      "orb_high_native": null,
+      "orb_low_native": null,
+      "entry_ts": 1788951965.2662988,
+      "interval": "5m",
+      "strategy": null,
+      "sma_fast": 9,
+      "sma_slow": 21
+    },
+    {
+      "symbol": "MIDCAPADD.NS",
+      "qty": 20.0,
+      "entry_price_native": 23.15,
+      "stop_loss_native": 22.92,
+      "initial_stop_loss_native": 22.92,
+      "target_native": 23.84,
+      "fx_to_inr": 1.0,
+      "notional_inr": 463.0,
+      "orb_high_native": null,
+      "orb_low_native": null,
+      "entry_ts": 1788951968.6266956,
+      "interval": "5m",
+      "strategy": null,
+      "sma_fast": 9,
+      "sma_slow": 21
+    },
+    {
+      "symbol": "PAISALO.NS",
+      "qty": 3.0,
+      "entry_price_native": 79.88,
+      "stop_loss_native": 79.08,
+      "initial_stop_loss_native": 79.08,
+      "target_native": 82.28,
+      "fx_to_inr": 1.0,
+      "notional_inr": 239.64,
+      "orb_high_native": null,
+      "orb_low_native": null,
+      "entry_ts": 1788951972.4060943,
+      "interval": "5m",
+      "strategy": null,
       "sma_fast": 9,
       "sma_slow": 21
     }
