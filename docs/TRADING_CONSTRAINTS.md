@@ -630,27 +630,28 @@ nothing to validate a trailing rule against there yet; same treatment is a
 natural fast-follow once that overlay is re-enabled. Two-stage rule,
 implemented in `_trailing_stop_target()`:
 
-1. **Activation gate - `TRAIL_ACTIVATE_R = 1.0`.** Below 1R of unrealized
-   gain (R = entry_price - the ORIGINAL stop at entry, frozen forever in
-   the new `signal_state.initial_stop_loss` column so it doesn't move as
-   the live stop trails), nothing changes - the trade still runs on its
-   plain fixed stop. Rationale: a trade that hasn't even recovered its own
-   risk yet shouldn't have its stop tightened on top of normal opening
-   noise - that's how a real winner gets shaken out before it ever gets
-   going. Industry-standard practice, not specific to this system.
-2. **Breakeven lock, then a Chandelier Exit.** At/above 1R, the stop locks
-   to breakeven + `TRAIL_BREAKEVEN_BUFFER_PCT` (0.1%, to clear round-trip
-   cost) at minimum - the trade can no longer become a real loss. Beyond
-   that, it ratchets further via a **Chandelier Exit**: `highest close
-   since this trade's own entry - TRAIL_CHANDELIER_K (3.0) * ATR(14)`,
-   whichever of that or the breakeven lock is higher. This is a real,
-   widely-published technique (Chuck LeBeau's own default k=3,
-   period=14), not invented for this project - it adapts the trail's
-   width to each stock's OWN actual volatility (a quiet blue-chip and a
-   choppy mid-cap get different-width trails automatically) instead of one
-   arbitrary fixed percentage applied to everyone alike. ATR is read off
-   the multi-day candle history already fetched every tick (not just
-   today's bars), so there's a real reading even early in the session.
+1. **Activation gate - `TRAIL_ACTIVATE_R = 0.5`** (lowered from an earlier
+   1.0 - see "Activation threshold backtested" below). Below 0.5R of
+   unrealized gain (R = entry_price - the ORIGINAL stop at entry, frozen
+   forever in the new `signal_state.initial_stop_loss` column so it
+   doesn't move as the live stop trails), nothing changes - the trade
+   still runs on its plain fixed stop. Rationale: a trade that hasn't even
+   recovered a meaningful fraction of its own risk yet shouldn't have its
+   stop tightened on top of normal opening noise - that's how a real
+   winner gets shaken out before it ever gets going.
+2. **Breakeven lock, then a fixed `TRAIL_ACTIVATE_R`-wide trail** (changed
+   2026-09-09, explicit user instruction: "trailing SL should keep 0.5R
+   always"). At/above 0.5R, the stop is kept at a CONSTANT gap of
+   `TRAIL_ACTIVATE_R * R` (0.5R) below the highest close since this
+   trade's own entry, floored at breakeven + `TRAIL_BREAKEVEN_BUFFER_PCT`
+   (0.1%, to clear round-trip cost) - the trade can no longer become a
+   real loss. At the exact moment of activation this equals breakeven;
+   beyond that it ratchets up 1:1 with the peak, always maintaining
+   exactly that same 0.5R cushion - never wider, never narrower.
+   Replaces an earlier Chandelier-Exit/ATR(14) version whose width
+   adapted to each stock's own volatility (and could open up wider, or
+   sit tighter, than 0.5R depending on it) - the constant-gap version is
+   simpler and matches the explicit "always 0.5R" instruction exactly.
 3. **Only ever ratchets up, never down** - the caller takes
    `max(current_stop, candidate)`; `_trailing_stop_target` itself never
    proposes loosening. Persisted in place (`signal_state.stop_loss` IS the
@@ -695,7 +696,12 @@ defaults. Entries found via the live `orb_breakout` rule, replayed
 bar-by-bar across ~59 days of real 5-min data (yfinance's own intraday
 window), 12 symbols (the 3 NSE indices + 10 liquid Nifty 50 names -
 `TATAMOTORS.NS` skipped, Yahoo now 404s that ticker), 380 pooled entries
-per variant:
+per variant. **Note:** this table's numbers were produced under the
+ORIGINAL Chandelier-Exit trail width, before the 2026-09-09 switch to a
+fixed `TRAIL_ACTIVATE_R`-wide gap above - they validated 0.5R as the
+ACTIVATION threshold, not the fixed-gap width mechanism itself, which has
+not been separately re-backtested (implemented directly per explicit
+user instruction, not re-litigated).
 
 | Variant | Win % | Total R | Avg R | Profit factor |
 |---|---|---|---|---|

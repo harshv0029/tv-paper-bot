@@ -7,8 +7,9 @@ name: Trailing Stop Threshold Backtest (research)
 # guessing. Imports main.py directly and calls its OWN
 # _trailing_stop_target/_trend_confidence functions (not a reimplementation
 # that could silently drift from what's actually live) - only the R-multiple
-# activation gate is varied per variant via TRAIL_ACTIVATE_R; Chandelier
-# k=3.0/ATR period=14/breakeven buffer stay at their shipped defaults.
+# activation gate is varied per variant via TRAIL_ACTIVATE_R; the fixed-gap
+# trail width (== TRAIL_ACTIVATE_R itself, since 2026-09-09) and breakeven
+# buffer stay at their shipped defaults.
 #
 # Entries are found using the SAME orb_breakout rule the live engine uses
 # (opening-range breakout + SMA fast>slow trend filter), replayed bar-by-bar
@@ -129,7 +130,7 @@ jobs:
                           today_slice = raw.loc[day_start:pos]
                           df_slice = raw.loc[:pos]
 
-                          cand = m._trailing_stop_target(df_slice, today_slice, entry_price, initial_stop, entry_ts, TZ_OFF)
+                          cand = m._trailing_stop_target(today_slice, entry_price, initial_stop, entry_ts, TZ_OFF)
                           if cand is not None and cand > stop:
                               stop = cand
 
