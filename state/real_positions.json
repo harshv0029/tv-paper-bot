@@ -1,19 +1,6 @@
 {
   "open_real_positions": [
     {
-      "symbol": "JGCHEM.NS",
-      "kotak_trading_symbol": "JGCHEM-EQ",
-      "qty": 1,
-      "entry_price": 627.3,
-      "entry_order_id": "260909000382820",
-      "opened_at": 1788939278.0203054,
-      "day": "2026-09-09",
-      "sl_order_id": "260909000382927",
-      "sl_trigger_price": 620.75,
-      "target_order_id": null,
-      "target_price": 646.11
-    },
-    {
       "symbol": "JSWINFRA.NS",
       "kotak_trading_symbol": "JSWINFRA-EQ",
       "qty": 1,
@@ -21,7 +8,7 @@
       "entry_order_id": "260909000460105",
       "opened_at": 1788944329.945195,
       "day": "2026-09-09",
-      "sl_order_id": "260909000460210",
+      "sl_order_id": null,
       "sl_trigger_price": 337.1,
       "target_order_id": null,
       "target_price": null
@@ -47,7 +34,7 @@
       "entry_order_id": "260909000485591",
       "opened_at": 1788945231.2360327,
       "day": "2026-09-09",
-      "sl_order_id": "260909000496491",
+      "sl_order_id": null,
       "sl_trigger_price": 79.0,
       "target_order_id": null,
       "target_price": 82.21
