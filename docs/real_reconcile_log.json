@@ -848,5 +848,67 @@
         "target_failure_detail": "order 260909000256842 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
       }
     ]
+  },
+  {
+    "reconciled_at_utc": 1788934427.1495578,
+    "real_balance_inr": 125.42000000000007,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 1,
+    "removed_ghosts": [
+      {
+        "symbol": "DEEP.NS",
+        "kotak_trading_symbol": "DEEP-EQ",
+        "was_tracked_qty": 5
+      }
+    ],
+    "untracked_open_positions_count": 1,
+    "untracked_open_positions": [
+      {
+        "kotak_trading_symbol": "NEWGEN-EQ",
+        "qty": 1
+      }
+    ],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 4,
+    "governance_backfilled": [
+      {
+        "symbol": "MEDICAMEQ.NS",
+        "entry_price": 291.4,
+        "stop_loss": 288.49,
+        "target": 300.13,
+        "qty": 3,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000273953 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "SILVERCASE.NS",
+        "entry_price": 23.59,
+        "stop_loss": 23.35,
+        "target": 24.31,
+        "qty": 7,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000274122 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "DCMSIL.NS",
+        "entry_price": 70.68,
+        "stop_loss": 69.97,
+        "target": 72.81,
+        "qty": 2,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000274314 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "GROWWSLVR.NS",
+        "entry_price": 22.89,
+        "stop_loss": 22.66,
+        "target": 23.58,
+        "qty": 5,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000274464 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      }
+    ]
   }
 ]
