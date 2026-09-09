@@ -1,19 +1,6 @@
 {
   "open_real_positions": [
     {
-      "symbol": "SILVERCASE.NS",
-      "kotak_trading_symbol": "SILVERCASE-EQ",
-      "qty": 7,
-      "entry_price": 23.59,
-      "entry_order_id": "260909000233215",
-      "opened_at": 1788931967.736302,
-      "day": "2026-09-09",
-      "sl_order_id": "260909000233345",
-      "sl_trigger_price": 23.5,
-      "target_order_id": null,
-      "target_price": 24.31
-    },
-    {
       "symbol": "JGCHEM.NS",
       "kotak_trading_symbol": "JGCHEM-EQ",
       "qty": 1,
@@ -25,6 +12,19 @@
       "sl_trigger_price": 620.75,
       "target_order_id": null,
       "target_price": 646.11
+    },
+    {
+      "symbol": "JSWINFRA.NS",
+      "kotak_trading_symbol": "JSWINFRA-EQ",
+      "qty": 1,
+      "entry_price": 340.85,
+      "entry_order_id": "260909000460105",
+      "opened_at": 1788944329.945195,
+      "day": "2026-09-09",
+      "sl_order_id": "260909000460210",
+      "sl_trigger_price": 337.1,
+      "target_order_id": null,
+      "target_price": null
     }
   ]
 }

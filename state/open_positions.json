@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-09T08:04:58Z",
+  "synced_at_utc": "2026-09-09T09:04:41Z",
   "open_positions": [
     {
       "symbol": "HINDALCO.NS",
@@ -15,23 +15,6 @@
       "entry_ts": 1788941024.7189977,
       "interval": "5m",
       "strategy": "orb-15m-sma9-21",
-      "sma_fast": 9,
-      "sma_slow": 21
-    },
-    {
-      "symbol": "SILVERCASE.NS",
-      "qty": 7.0,
-      "entry_price_native": 23.59,
-      "stop_loss_native": 23.35,
-      "initial_stop_loss_native": 23.35,
-      "target_native": 24.31,
-      "fx_to_inr": 1.0,
-      "notional_inr": 165.13,
-      "orb_high_native": null,
-      "orb_low_native": null,
-      "entry_ts": 1788941091.5155625,
-      "interval": "5m",
-      "strategy": null,
       "sma_fast": 9,
       "sma_slow": 21
     }
