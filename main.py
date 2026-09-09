@@ -4050,13 +4050,30 @@ def _flag_if_t1_restricted(conn, symbol: str, detail: str | None) -> None:
 
 
 def _is_t1_restricted(conn, symbol: str) -> bool:
-    """True if `symbol` already hit the T1-holdings rejection today -
-    checked before any NEW real equity entry (see _maybe_place_real_entry).
-    Equity-only: F&O positions aren't CNC holdings and carry no T1
-    settlement restriction, so this is never checked on that path."""
-    today = ist_now().strftime("%Y-%m-%d")
+    """True if `symbol` has EVER hit a T1-holdings or Trade-to-Trade (T2T)
+    same-day-sell rejection, on any day - checked before any NEW real
+    equity entry (see _maybe_place_real_entry). Equity-only: F&O
+    positions aren't CNC holdings and carry no T1/T2T settlement
+    restriction, so this is never checked on that path.
+
+    PERMANENT, not day-scoped, as of 2026-09-09 (explicit user
+    instruction: "if we can't exit same day then pick strategy
+    accordingly... else dont pick these restricted assets" - a T2T/T1
+    classification is a structural attribute of the STOCK ITSELF (its
+    exchange trading segment), not a one-day fluke that clears overnight.
+    Live finding the same day: MEDICAMEQ.NS and SILVERCASE.NS both hit
+    this same wall, and the OLD day-scoped check meant tomorrow's
+    scheduler would cheerfully re-enter the exact same T2T stock with
+    real capital and get exactly the same rejection again - this
+    strategy's whole design assumes a same-day exit is always possible,
+    so a symbol that has ever proven otherwise is permanently
+    incompatible with it, not just "restricted today." real_t1_restricted
+    itself still records EACH day a rejection is newly confirmed (its own
+    day-scoped PRIMARY KEY, unchanged - useful audit history), but this
+    read now checks for ANY row ever, regardless of which day it was
+    inserted on."""
     return conn.execute(
-        "SELECT 1 FROM real_t1_restricted WHERE symbol = ? AND day = ?", (symbol, today)
+        "SELECT 1 FROM real_t1_restricted WHERE symbol = ?", (symbol,)
     ).fetchone() is not None
 
 
@@ -4155,8 +4172,9 @@ def _maybe_place_real_entry(conn, symbol: str):
     if _is_t1_restricted(conn, symbol):
         _log_real_attempt(
             conn, symbol, "B", "skipped_t1_restricted",
-            detail="already hit Kotak's T1-holdings RMS rejection today - "
-                   "a fresh position here couldn't be reliably protected with a resting stop",
+            detail="permanently avoided - a real T1-holdings/T2T same-day-sell rejection was "
+                   "confirmed for this symbol before, and this strategy needs a same-day exit "
+                   "to be possible every time",
         )
         return
 
