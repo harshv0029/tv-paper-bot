@@ -2339,27 +2339,28 @@ TRAIL_ACTIVATE_R = 0.5          # don't trail at all below 0.5R unrealized gain 
 # profit factor) - see docs/TRADING_CONSTRAINTS.md "Trailing stop loss"
 # for the full comparison table and the bigger caveat it also surfaced.
 TRAIL_BREAKEVEN_BUFFER_PCT = 0.1  # breakeven-lock sits slightly above entry, not exactly on it
-TRAIL_CHANDELIER_K = 3.0        # standard Chandelier Exit multiplier (Chuck LeBeau's own default)
-TRAIL_ATR_PERIOD = 14           # standard ATR lookback
 
 
-def _trailing_stop_target(df: pd.DataFrame, today_df: pd.DataFrame, entry_price: float,
+def _trailing_stop_target(today_df: pd.DataFrame, entry_price: float,
                            initial_stop: float, entry_ts: float, tz_offset_min: int) -> float | None:
     """Long-only trailing-stop candidate for THIS tick (see docs/TRADING_CONSTRAINTS.md
-    "Trailing stop loss" for the full rationale). Two stages, gated on R =
-    entry_price - initial_stop (the trade's OWN original risk, frozen at
-    entry - see signal_state.initial_stop_loss - so this doesn't move the
-    goalposts as the stop itself trails):
+    "Trailing stop loss" for the full rationale). R = entry_price -
+    initial_stop (the trade's OWN original risk, frozen at entry - see
+    signal_state.initial_stop_loss - so this doesn't move the goalposts as
+    the stop itself trails):
 
       1. Below TRAIL_ACTIVATE_R * R of unrealized gain: not activated yet -
          returns None, caller keeps the existing stop untouched.
-      2. At/above that: locks to breakeven (+ a small buffer to cover
-         round-trip cost) at minimum, then ratchets further via a
-         Chandelier Exit - highest close since THIS trade's own entry,
-         minus TRAIL_CHANDELIER_K * ATR(TRAIL_ATR_PERIOD) - as price
-         extends. ATR is read off `df` (the multi-day history already
-         fetched this tick), not `today_df` alone, so there's enough bars
-         for a real ATR reading even early in today's own session.
+      2. At/above that: the stop is kept at a CONSTANT TRAIL_ACTIVATE_R * R
+         gap below the highest close since THIS trade's own entry, floored
+         at breakeven (+ a small buffer to cover round-trip cost).
+         Explicit user instruction 2026-09-09 ("trailing SL should keep
+         0.5R always") - replaces an earlier Chandelier-Exit/ATR-width
+         version (highest close - 3xATR(14)) whose gap could open wider or
+         tighter than 0.5R depending on each stock's own volatility. At the
+         exact moment of activation (gain == 0.5R) this equals breakeven;
+         it then ratchets up 1:1 with the peak, always keeping that same
+         0.5R cushion beneath it, never more, never less.
 
     Returns the candidate stop (native currency), or None if not yet
     activated. The caller takes max(current_stop, candidate) - this
@@ -2374,19 +2375,6 @@ def _trailing_stop_target(df: pd.DataFrame, today_df: pd.DataFrame, entry_price:
 
     breakeven_stop = entry_price * (1 + TRAIL_BREAKEVEN_BUFFER_PCT / 100)
 
-    high = df["High"].to_numpy(dtype=float)
-    low = df["Low"].to_numpy(dtype=float)
-    close = df["Close"].to_numpy(dtype=float)
-    if len(close) < TRAIL_ATR_PERIOD + 1:
-        return breakeven_stop  # not enough bars for a real ATR yet - breakeven lock still applies
-
-    prev_close = close[:-1]
-    true_range = np.maximum(
-        high[1:] - low[1:],
-        np.maximum(np.abs(high[1:] - prev_close), np.abs(low[1:] - prev_close)),
-    )
-    atr = float(np.mean(true_range[-TRAIL_ATR_PERIOD:]))
-
     # Highest close since THIS trade's own entry - same-day only (this
     # engine is intraday, squared off every day, so entry never crosses a
     # session boundary). Mirrors the mins-since-local-midnight comparison
@@ -2396,8 +2384,8 @@ def _trailing_stop_target(df: pd.DataFrame, today_df: pd.DataFrame, entry_price:
     since_entry = today_df[today_df["mins"] >= entry_mins]
     highest_close = float(since_entry["Close"].max()) if not since_entry.empty else last_close
 
-    chandelier_stop = highest_close - TRAIL_CHANDELIER_K * atr
-    return max(breakeven_stop, chandelier_stop)
+    fixed_gap_stop = highest_close - TRAIL_ACTIVATE_R * r
+    return max(breakeven_stop, fixed_gap_stop)
 
 
 LEADING_TARGET_MIN_CONFIDENCE = TREND_WEAKENED_MIN_CONFIDENCE  # explicit
@@ -3200,7 +3188,7 @@ def _auto_signal_core(
             # predates the column (see signal_state's own comment).
             current_stop = row["stop_loss"]
             trail_candidate = _trailing_stop_target(
-                df, today_df, row["entry_price"], row["initial_stop_loss"] or row["stop_loss"],
+                today_df, row["entry_price"], row["initial_stop_loss"] or row["stop_loss"],
                 row["entry_ts"], tz_offset_min,
             )
             if trail_candidate is not None and trail_candidate > current_stop:
