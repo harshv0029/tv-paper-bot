@@ -4325,6 +4325,19 @@ def _maybe_place_real_entry(conn, symbol: str):
                 print(f"[REAL TRADE] TARGET placement FAILED for {kotak_symbol}: {target_result.get('detail')} "
                       f"- position open at Kotak with NO resting target, profit-booking still handled by "
                       f"the scheduler's own per-tick poll instead")
+                # Still record the INTENDED target price even though no real
+                # order backs it (2026-09-09, explicit user instruction:
+                # "Show me on render what is target for each entered trade")
+                # - target_order_id stays null (honest: no real order is
+                # resting), but target_price is no longer conflated with
+                # "only ever set on a confirmed order" - the dashboard reads
+                # target_status (target_order_id null + real_t1_restricted/
+                # real_order_events lookup, see /real-open-positions) to
+                # show WHY, right next to this number.
+                conn.execute(
+                    "UPDATE real_positions SET target_price = ? WHERE symbol = ?",
+                    (round(paper_row["target"], 2), symbol),
+                )
                 _log_real_order_event(
                     conn, symbol, "target", "failed", kotak_trading_symbol=kotak_symbol,
                     prev_state="none", new_state="none (placement failed)", detail=target_result.get("detail"),
@@ -5464,12 +5477,49 @@ def get_real_open_positions():
         unrealized_pnl_pct = (
             round(100 * unrealized_pnl_inr / invested_inr, 3) if unrealized_pnl_inr is not None and invested_inr else None
         )
+        # target_status/target_status_detail (2026-09-09, explicit user
+        # instruction: "I don't see any resilient way from ur side that
+        # how u r booking profits when the target is reached. Show me on
+        # render what is target for each entered trade") - target_price
+        # alone doesn't tell the user whether a REAL resting order for it
+        # actually exists at Kotak right now, which is exactly what they're
+        # asking to see. "resting" = target_order_id is set, a real order
+        # is live at the broker. "blocked" = this symbol is flagged
+        # real_t1_restricted today (T1-holdings or T2T same-day-sell, see
+        # _flag_if_t1_restricted) - a real, unfixable-today reason no
+        # target/exit order can complete. "failed" = an attempt was made
+        # and rejected for some OTHER reason (surfaced verbatim so it's
+        # never silently hidden). "not_yet_attempted" = no target order
+        # has been tried at all yet (will be attempted on the next
+        # reconcile pass or scheduler tick, per the governance-backfill/
+        # entry-flow logic in kotak_neo_reconcile_real_positions).
+        target_status, target_status_detail = "resting", None
+        if not r["target_order_id"]:
+            with closing(get_db()) as conn2:
+                t1_row = conn2.execute(
+                    "SELECT detail FROM real_t1_restricted WHERE symbol = ? AND day = ?",
+                    (r["symbol"], ist_now().strftime("%Y-%m-%d")),
+                ).fetchone()
+                if t1_row:
+                    target_status, target_status_detail = "blocked", t1_row["detail"]
+                else:
+                    fail_row = conn2.execute(
+                        "SELECT detail FROM real_order_events WHERE symbol = ? AND leg = 'target' "
+                        "AND event = 'failed' ORDER BY ts DESC LIMIT 1",
+                        (r["symbol"],),
+                    ).fetchone()
+                    if fail_row:
+                        target_status, target_status_detail = "failed", fail_row["detail"]
+                    else:
+                        target_status = "not_yet_attempted"
         result.append({
             **r,
             "current_price": current_price,
             "invested_inr": invested_inr,
             "unrealized_pnl_inr": unrealized_pnl_inr,
             "unrealized_pnl_pct": unrealized_pnl_pct,
+            "target_status": target_status,
+            "target_status_detail": target_status_detail,
         })
     return {"open_real_positions": result, "count": len(result)}
 
@@ -8080,6 +8130,14 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
                     backfill_entry["target_order_id"] = target_result["order_id"]
                     backfill_entry["target_placed"] = True
                 else:
+                    # Still record the INTENDED target price - same
+                    # reasoning as the entry-flow's own failure branch
+                    # (2026-09-09, "Show me on render what is target for
+                    # each entered trade").
+                    conn.execute(
+                        "UPDATE real_positions SET target_price = ? WHERE symbol = ?",
+                        (target, r["symbol"]),
+                    )
                     _log_real_order_event(
                         conn, r["symbol"], "target", "failed", kotak_trading_symbol=r["kotak_trading_symbol"],
                         prev_state="none", new_state="none (placement failed)", detail=target_result.get("detail"),

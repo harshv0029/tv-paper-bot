@@ -50,6 +50,69 @@ def test_computes_current_price_and_unrealized_pnl_for_an_open_position():
     assert pos["invested_inr"] == 874.2  # 291.4 * 3
     assert pos["unrealized_pnl_inr"] == 18.3  # (297.5 - 291.4) * 3, rounded
     assert pos["unrealized_pnl_pct"] > 0
+    # No target_order_id, no real_t1_restricted row, no failed target
+    # event - nothing has been attempted yet.
+    assert pos["target_status"] == "not_yet_attempted"
+
+
+def test_target_status_resting_when_a_real_target_order_exists():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
+            "entry_order_id, opened_at, day, target_order_id, target_price) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            ("RELIANCE.NS", "RELIANCE-EQ", 5, 1300.0, "1", 1788931043.9, "2026-09-09", "9999", 1339.0),
+        )
+        conn.commit()
+    with patch("main.fetch_ohlc", side_effect=Exception("no network in test")):
+        result = main.get_real_open_positions()
+    pos = result["open_real_positions"][0]
+    assert pos["target_price"] == 1339.0
+    assert pos["target_status"] == "resting"
+    assert pos["target_status_detail"] is None
+
+
+def test_target_status_blocked_when_symbol_is_t1_restricted_today():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
+            "entry_order_id, opened_at, day, target_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            ("MEDICAMEQ.NS", "MEDICAMEQ-EQ", 3, 291.4, "1", 1788931043.9, "2026-09-09", 300.13),
+        )
+        main._flag_if_t1_restricted(
+            conn, "MEDICAMEQ.NS",
+            "Insufficient quantity held for this order... Selling Trade-to-Trade stocks on the "
+            "same day of purchase is not allowed.",
+        )
+        conn.commit()
+    with patch("main.fetch_ohlc", side_effect=Exception("no network in test")):
+        result = main.get_real_open_positions()
+    pos = result["open_real_positions"][0]
+    assert pos["target_price"] == 300.13
+    assert pos["target_status"] == "blocked"
+    assert "Trade-to-Trade" in pos["target_status_detail"]
+
+
+def test_target_status_failed_when_a_non_t1_rejection_is_logged():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
+            "entry_order_id, opened_at, day, target_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            ("TCS.NS", "TCS-EQ", 1, 2300.0, "1", 1788931043.9, "2026-09-09", 2350.0),
+        )
+        main._log_real_order_event(
+            conn, "TCS.NS", "target", "failed", kotak_trading_symbol="TCS-EQ",
+            detail="order rejected: some other reason",
+        )
+        conn.commit()
+    with patch("main.fetch_ohlc", side_effect=Exception("no network in test")):
+        result = main.get_real_open_positions()
+    pos = result["open_real_positions"][0]
+    assert pos["target_status"] == "failed"
+    assert pos["target_status_detail"] == "order rejected: some other reason"
 
 
 def test_current_price_none_when_fetch_ohlc_fails_not_a_crash():
