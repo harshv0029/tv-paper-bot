@@ -37,20 +37,59 @@
       "sl_order_id": "260909000256217",
       "sl_trigger_price": 69.85,
       "target_order_id": null,
-      "target_price": 72.69
+      "target_price": 72.81
     },
     {
-      "symbol": "DEEP.NS",
-      "kotak_trading_symbol": "DEEP-EQ",
+      "symbol": "GROWWSLVR.NS",
+      "kotak_trading_symbol": "GROWWSLVR-EQ",
       "qty": 5,
-      "entry_price": 37.6,
-      "entry_order_id": "260909000256829",
-      "opened_at": 1788933480.2127776,
+      "entry_price": 22.89,
+      "entry_order_id": "260909000269856",
+      "opened_at": 1788934063.395772,
       "day": "2026-09-09",
-      "sl_order_id": "260909000256932",
-      "sl_trigger_price": 37.2,
+      "sl_order_id": "260909000269972",
+      "sl_trigger_price": 22.75,
+      "target_order_id": null,
+      "target_price": 23.58
+    },
+    {
+      "symbol": "SHAREINDIA.NS",
+      "kotak_trading_symbol": "SHAREINDIA-EQ",
+      "qty": 1,
+      "entry_price": 179.69,
+      "entry_order_id": "260909000310847",
+      "opened_at": 1788936233.0528471,
+      "day": "2026-09-09",
+      "sl_order_id": "260909000310982",
+      "sl_trigger_price": 177.95,
       "target_order_id": null,
       "target_price": null
+    },
+    {
+      "symbol": "VIPIND.NS",
+      "kotak_trading_symbol": "VIPIND-EQ",
+      "qty": 1,
+      "entry_price": 310.7,
+      "entry_order_id": "260909000319707",
+      "opened_at": 1788936864.6243634,
+      "day": "2026-09-09",
+      "sl_order_id": "260909000319840",
+      "sl_trigger_price": 307.8,
+      "target_order_id": null,
+      "target_price": null
+    },
+    {
+      "symbol": "AJOONI.NS",
+      "kotak_trading_symbol": "AJOONI-EQ",
+      "qty": 67,
+      "entry_price": 3.49,
+      "entry_order_id": "260909000327210",
+      "opened_at": 1788937237.1734235,
+      "day": "2026-09-09",
+      "sl_order_id": "260909000327381",
+      "sl_trigger_price": 3.45,
+      "target_order_id": null,
+      "target_price": 3.58
     }
   ]
 }
