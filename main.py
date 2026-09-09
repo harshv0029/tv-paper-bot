@@ -3166,6 +3166,96 @@ def _index_trend_bullish(index_closes: np.ndarray, sma_fast: int, sma_slow: int,
     return bool(_moving_average(index_closes, sma_fast, ma_type) > _moving_average(index_closes, sma_slow, ma_type))
 
 
+# ==== Two-regime router (2026-09-10) ========================================
+# Explicit user instruction, final decision after the #1/#9 discussion:
+# "Option B - but only the two-regime version." The universal score above
+# is not wrong - it's a good TREND-CONTINUATION engine being asked to
+# operate in every market state, including ranging conditions where it
+# structurally can't win (see the VWAP-mean-reversion worked example: a
+# textbook oversold dip-buy scores near 0/100 on this engine, because
+# every one of its 8 factors rewards the same "price going up" read).
+# Fix chosen: keep the trend engine exactly as-is, gate it behind a small
+# regime classifier, and route RANGE-regime symbols to the one strategy
+# in the whole docs/STRATEGY_LOG.md catalog with real positive gross
+# backtest evidence (row #13, VWAP mean reversion: 60 trades, 70% win
+# rate, +Rs62.3) instead. Explicitly NOT the full regime x strategy-
+# family matrix from the declined probabilistic-EV framework - two
+# regimes, two engines, nothing more.
+#
+# "The objective should be: prove that selecting the correct engine for
+# the current market state improves net expectancy after costs. If
+# regime routing does not improve out-of-sample results, remove it." -
+# NOT yet proven either way; this ships live (same real-money go-ahead
+# as the rest of this engine) as a hypothesis to validate via a real
+# /sweep once it has trade history, not as a confirmed edge.
+
+def _classify_market_regime(df: pd.DataFrame, sma_fast: int, sma_slow: int, ma_type: str = "ema") -> str:
+    """TREND or RANGE - the entire regime gate, deliberately the simplest
+    version that reuses EXISTING, already-justified machinery rather than
+    inventing a new indicator: _trend_confidence (the same normal-CDF
+    statistical read the trend_weakened exit and the trend engine's own
+    entry gate already trust) at the SAME TREND_WEAKENED_MIN_CONFIDENCE
+    bar, AND a genuine higher-high/higher-low structure
+    (_swing_structure_bullish) - BOTH must agree to call it TREND.
+
+    Deliberately AND, not OR - found live while validating this exact
+    fix: _trend_confidence's z-score is sensitive to a SINGLE sharp bar
+    (a one-bar dip at the end of an otherwise genuinely ranging series
+    spiked confidence to >0.99 with no real sustained trend behind it,
+    which would have routed exactly the oversold-dip-buy setup this
+    router exists to catch right back into the trend engine that
+    structurally can't score it). Requiring _swing_structure_bullish too
+    (an actual higher-high/higher-low sequence across two windows, not a
+    single-bar statistic) filters that false positive out while still
+    correctly reading a genuine clean uptrend as TREND (both conditions
+    agree there).
+
+    Never raises on short history - _trend_confidence/_swing_structure_
+    bullish both already degrade to 0.0/None rather than crashing, and
+    None reads as "not established" here, same as False."""
+    closes = df["Close"].to_numpy(dtype=float)
+    trend_conf = _trend_confidence(closes, sma_fast, sma_slow, ma_type)
+    structure = _swing_structure_bullish(df)
+    if trend_conf >= TREND_WEAKENED_MIN_CONFIDENCE and structure:
+        return "trend"
+    return "range"
+
+
+def _vwap_mean_reversion_entry(today_df: pd.DataFrame, bb_std: float = 2.0) -> bool | None:
+    """Live single-tick entry trigger for the RANGE regime - the exact
+    same math as add_strategy_signal's own "vwap_mean_reversion" branch
+    (docs/STRATEGY_LOG.md row #13: session VWAP + an expanding standard
+    deviation of price-vs-VWAP, entering when close drops below the
+    LOWER band), just scoped to today_df alone rather than that
+    function's cross-day groupby - today_df is already same-day only, so
+    no grouping is needed to get the same per-session VWAP/std-dev
+    series. Returns only whether THIS bar is a fresh entry trigger (not
+    the whole stateful holding series that function returns for
+    backtesting) since _auto_signal_core only ever calls this when there
+    is no open position to begin with.
+
+    None (never a silent False) on a zero-volume session (index tickers -
+    same root cause _compute_session_vwap_value already documents) or
+    with fewer than 2 bars today (can't compute a standard deviation
+    yet)."""
+    if len(today_df) < 2:
+        return None
+    vol = today_df["Volume"].to_numpy(dtype=float)
+    if float(np.nansum(vol)) <= 0:
+        return None
+    typical = ((today_df["High"] + today_df["Low"] + today_df["Close"]) / 3.0).to_numpy(dtype=float)
+    cum_vol = np.cumsum(vol)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        vwap_series = cum_tp_vol_over_cum_vol = np.cumsum(typical * vol) / np.where(cum_vol > 0, cum_vol, np.nan)
+    closes = today_df["Close"].to_numpy(dtype=float)
+    dev = pd.Series(closes - vwap_series).expanding().std()
+    last_dev, last_vwap = dev.iloc[-1], vwap_series[-1]
+    if pd.isna(last_dev) or pd.isna(last_vwap):
+        return None
+    lower_band = last_vwap - bb_std * last_dev
+    return bool(closes[-1] < lower_band)
+
+
 def _compute_universal_entry_score(
     df: pd.DataFrame, today_df: pd.DataFrame,
     volume_ok: bool, sma_fast_val: float | None, sma_slow_val: float | None,
@@ -4387,15 +4477,34 @@ def _auto_signal_core(
                     index_closes = index_df["Close"].to_numpy(dtype=float)
                 except Exception:
                     index_closes = None
-            score_result = _compute_universal_entry_score(
-                df, today_df, volume_ok, sma_f, sma_s, index_closes, sma_fast, sma_slow, ma_type,
-                vol_ratio=vol_ratio,
-            )
-            result["universal_score"] = score_result
-            entry_signal = score_result["entry_allowed"]
+
             structural_low = float(df["Low"].iloc[-(UNIVERSAL_STRUCTURE_LOOKBACK + 1):].min())
             orb_high, orb_low = None, structural_low  # for result/signal_state display only
-            entry_reason = f"universal_score_{score_result['score_pct']}pct"
+
+            # Two-regime router (2026-09-10, explicit user decision -
+            # "Option B, but only the two-regime version") - see the
+            # module comment above _classify_market_regime for the full
+            # rationale. TREND runs the pre-existing 8-factor score
+            # UNCHANGED; RANGE routes to the one strategy in the whole
+            # catalog with real positive gross backtest evidence
+            # (docs/STRATEGY_LOG.md row #13) instead of forcing a trend-
+            # continuation read onto a setup it structurally can't score.
+            market_regime = _classify_market_regime(df, sma_fast, sma_slow, ma_type)
+            result["market_regime"] = market_regime
+
+            if market_regime == "range":
+                range_entry = _vwap_mean_reversion_entry(today_df)
+                result["vwap_mean_reversion_entry"] = range_entry
+                entry_signal = bool(range_entry)
+                entry_reason = "vwap_mean_reversion_range_regime"
+            else:
+                score_result = _compute_universal_entry_score(
+                    df, today_df, volume_ok, sma_f, sma_s, index_closes, sma_fast, sma_slow, ma_type,
+                    vol_ratio=vol_ratio,
+                )
+                result["universal_score"] = score_result
+                entry_signal = score_result["entry_allowed"]
+                entry_reason = f"universal_score_{score_result['score_pct']}pct"
 
         # Sentiment gate (2026-09-07, explicit user instruction: "i want
         # this info to be used for sector specific knowledge to pick

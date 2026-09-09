@@ -1369,3 +1369,44 @@ later reference:
 
 Full test suite after all of the above: 158 passing (110 pre-existing +
 48 new across this session's two rounds of fixes).
+
+### Two-regime router (2026-09-10) - final #1/#9 decision
+
+The #1/#9 discussion (see the "Entry score" section above) found the
+8-factor score is really a Long Trend-Continuation Confidence Engine,
+not a universal one - all 8 factors reward the same "price going up"
+read, so a textbook VWAP mean-reversion setup (docs/STRATEGY_LOG.md row
+#13, the one strategy in the whole catalog with real positive gross
+evidence) scores near 0/100. Final decision: **Option B, two-regime
+version only** - "Keep the existing engine. Rename it internally as a
+trend engine. Add a small regime gate that decides when it is allowed
+to operate," explicitly NOT the full regime x strategy-family matrix
+from the declined probabilistic-EV framework.
+
+`_classify_market_regime(df, sma_fast, sma_slow, ma_type)` - TREND
+requires BOTH `_trend_confidence >= TREND_WEAKENED_MIN_CONFIDENCE`
+(95%, the same statistical bar the trend engine's own entry gate and
+the `trend_weakened` exit already trust) AND `_swing_structure_bullish`
+(a genuine higher-high/higher-low sequence, not a single-bar
+statistic). Deliberately AND, not OR - found validating this exact fix:
+`_trend_confidence`'s z-score alone is sensitive to a single sharp bar,
+which would have routed exactly the oversold-dip-buy setup this router
+exists to catch right back into the trend engine. Neither condition
+holding -> RANGE.
+
+RANGE routes to `_vwap_mean_reversion_entry(today_df)` - the live
+single-tick version of `add_strategy_signal`'s own `"vwap_mean_reversion"`
+strategy (session VWAP + expanding std-dev bands, entering when close
+drops below the lower band), reusing that existing, already-implemented
+code rather than writing a new strategy from scratch. TREND still runs
+the pre-existing 8-factor score completely unchanged. Both regimes share
+the same downstream target-cluster/staged-exit-ladder/risk machinery -
+only the ENTRY trigger differs by regime.
+
+**Not yet validated either way** - ships live per this session's
+standing real-money go-ahead, as a hypothesis: "prove that selecting
+the correct engine for the current market state improves net
+expectancy after costs. If regime routing does not improve out-of-
+sample results, remove it." A real `/sweep` comparing WITH vs WITHOUT
+the router, once there's live trade history, is the fast-follow that
+actually answers that question - not yet run.
