@@ -7200,6 +7200,38 @@ async def _scheduler_tick():
                 "SELECT underlying FROM option_state"
             ).fetchall()
         }
+        # BUG found live 2026-09-09 (explicit user finding: real positions
+        # - JSWINFRA/MIDCAPADD/PAISALO - still open well past squareoff_min
+        # AND market close): open_equity_symbols above is sourced from
+        # signal_state (PAPER tracking) ONLY. _auto_signal_core (the ONLY
+        # place squareoff_min is ever evaluated) and the whole real-order-
+        # management block (_maybe_place_real_exit/_maybe_sync_real_stop_loss,
+        # including that function's OWN signal_state self-heal) only run
+        # for `symbol in symbols_this_tick` below - so a real position
+        # whose signal_state row is missing (the exact restart-wipe class
+        # this session already fixed ONCE inside _maybe_sync_real_stop_loss)
+        # was invisible to symbols_this_tick ENTIRELY unless it happened to
+        # be evidenced or the round-robin cursor (thousands of symbols)
+        # coincidentally reached it - the self-heal fix could never even
+        # get CALLED for it. real_positions symbols now get the exact same
+        # unconditional treatment open_equity_symbols/open_option_underlyings
+        # already have, closing that gap at its source instead of only at
+        # the one call site that happened to get fixed already.
+        real_position_rows = conn.execute("SELECT * FROM real_positions").fetchall()
+        open_real_symbols = {r["symbol"] for r in real_position_rows}
+        # Backfill BEFORE _auto_signal_core runs this tick, not only
+        # reactively inside _maybe_sync_real_stop_loss afterward - a real
+        # position with no signal_state row would otherwise look FLAT to
+        # _auto_signal_core (which only ever sees signal_state, never
+        # real_positions), risking a fresh paper "entry" at today's
+        # current price that clobbers the real position's own original
+        # entry economics, instead of the real entry price this helper
+        # actually restores. _ensure_signal_state_for_real_position's own
+        # first check is a cheap no-op SELECT when a row already exists,
+        # so calling it for every real position every tick costs nothing
+        # in the common case.
+        for real_row in real_position_rows:
+            _ensure_signal_state_for_real_position(conn, real_row)
         trading_paused = not is_trading_enabled(conn)
         # Live thresholds (see RUNTIME_SETTINGS_META/get_runtime_setting
         # above) - read once per tick here, not per symbol, same reasoning
@@ -7245,7 +7277,8 @@ async def _scheduler_tick():
     # universe instead of periodically re-covering ground already
     # guaranteed here.
     flat_symbols = [] if trading_paused else [
-        s for s in all_symbols if s not in open_equity_symbols and s not in EVIDENCED_SYMBOLS
+        s for s in all_symbols
+        if s not in open_equity_symbols and s not in EVIDENCED_SYMBOLS and s not in open_real_symbols
     ]
     if flat_symbols:
         n = len(flat_symbols)
@@ -7264,12 +7297,16 @@ async def _scheduler_tick():
     evidenced_flat = set() if trading_paused else (EVIDENCED_SYMBOLS - open_equity_symbols)
 
     # Always: every symbol with an open equity position (time-critical
-    # stop/target/eod check) + every underlying with an open option
-    # position (same reason, for the overlay below) + every evidenced,
-    # currently-flat symbol (preferred over the round-robin's turn) +
-    # this tick's round-robin entry-scan batch of the remaining,
-    # unevidenced flat symbols.
-    symbols_this_tick = open_equity_symbols | open_option_underlyings | evidenced_flat | set(rr_batch)
+    # stop/target/eod check) + every symbol with an open REAL position
+    # (same reason - a real position's squareoff/stop/target management
+    # must never depend on its paper counterpart still existing) + every
+    # underlying with an open option position (same reason, for the
+    # overlay below) + every evidenced, currently-flat symbol (preferred
+    # over the round-robin's turn) + this tick's round-robin entry-scan
+    # batch of the remaining, unevidenced flat symbols.
+    symbols_this_tick = (
+        open_equity_symbols | open_real_symbols | open_option_underlyings | evidenced_flat | set(rr_batch)
+    )
 
     # Hoisted once per tick, not per symbol - get_scheduler_capital_inr()
     # is TTL-cached internally anyway, but this avoids re-checking cache
