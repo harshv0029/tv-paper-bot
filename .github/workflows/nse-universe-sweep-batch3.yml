@@ -1,0 +1,107 @@
+name: NSE Universe Sweep - Batch 3 (research)
+
+# Continuation of nse-universe-sweep-research.yml (batch 2) - same
+# explicit user request ("cant you do the research for making me
+# profitable"), same "keep sweeping" follow-up instruction 2026-09-09.
+# Same exact methodology (18-combo grid: orb_minutes 10/15/30 x sma_fast
+# 5/9/14 x sma_slow 21/50, 60d of real 5-min data, strategy=orb_breakout,
+# judged on pct_profitable_combos >=75% AND median_total_pnl>0, not a
+# single best combo) applied to the next 15 untested liquid Nifty 50
+# names. Batch 1 (RELIANCE/TCS/ICICIBANK/INFY/MARUTI, see main.py's
+# NSE_STOCK_PARAM_OVERRIDES) + batch 2 (TITAN/GRASIM/BAJAJFINSV cleared;
+# HCLTECH/SUNPHARMA/ULTRACEMCO/WIPRO/NESTLEIND/POWERGRID/NTPC/TATASTEEL/
+# INDUSINDBK/JSWSTEEL/COALINDIA/ITC did not) + the earlier
+# HDFCBANK/HINDUNILVR/BHARTIARTL/KOTAKBANK/LT/AXISBANK/ASIANPAINT/SBIN/
+# BAJFINANCE batch already cover 29 of the ~100 Nifty 50/Next 50 names.
+# TATAMOTORS.NS still excluded (Yahoo 404s that ticker).
+#
+# Imports main.py directly and calls its own add_strategy_signal/
+# extract_trades_fast (the exact functions GET /sweep itself uses) - not
+# a reimplementation. Read-only research - writes nothing to any repo
+# file, touches no live state, safe to run anytime.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run batch-3 sweep
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import main as m
+          import numpy as np
+          from itertools import product
+
+          SYMBOLS = [
+              "ADANIENT.NS", "ADANIPORTS.NS", "HINDALCO.NS", "CIPLA.NS", "DRREDDY.NS",
+              "EICHERMOT.NS", "TECHM.NS", "BRITANNIA.NS", "DIVISLAB.NS", "APOLLOHOSP.NS",
+              "TATACONSUM.NS", "SBILIFE.NS", "HDFCLIFE.NS", "LTIM.NS", "SHRIRAMFIN.NS",
+          ]
+          OM_LIST = [10, 15, 30]
+          SF_LIST = [5, 9, 14]
+          SS_LIST = [21, 50]
+          COMBOS = [
+              {"orb_minutes": om, "sma_fast": sf, "sma_slow": ss}
+              for om, sf, ss in product(OM_LIST, SF_LIST, SS_LIST) if sf < ss
+          ]
+
+          rows = []
+          for sym in SYMBOLS:
+              try:
+                  df = m.fetch_ohlc(sym, "60d", "5m")
+              except Exception as e:
+                  print(f"SKIP {sym}: fetch failed - {e}")
+                  continue
+
+              results = []
+              for params in COMBOS:
+                  sig_df = m.add_strategy_signal(df, "orb_breakout", params)
+                  long_arr = sig_df["long"].to_numpy()
+                  close_arr = sig_df["Close"].to_numpy(dtype=float)
+                  dates = sig_df["Date"].apply(lambda d: d.isoformat()).to_numpy()
+                  trades, _ = m.extract_trades_fast(long_arr, close_arr, dates, 1)
+                  if not trades:
+                      continue
+                  wins = [t for t in trades if t["pnl"] > 0]
+                  total_pnl = round(sum(t["pnl"] for t in trades), 2)
+                  results.append({
+                      "params": params, "num_trades": len(trades),
+                      "win_rate_pct": round(100 * len(wins) / len(trades), 1),
+                      "total_pnl": total_pnl,
+                  })
+
+              if not results:
+                  print(f"{sym}: 0/{len(COMBOS)} combos produced any trades - no signal at all, SKIP")
+                  continue
+
+              all_pnls = [r["total_pnl"] for r in results]
+              pct_profitable = round(100 * sum(1 for p in all_pnls if p > 0) / len(all_pnls), 1)
+              median_pnl = round(float(np.median(all_pnls)), 2)
+              best = max(results, key=lambda r: r["total_pnl"])
+              rows.append({
+                  "symbol": sym, "pct_profitable_combos": pct_profitable,
+                  "median_total_pnl": median_pnl, "combos_with_trades": len(results),
+                  "combos_tested": len(COMBOS), "best": best,
+              })
+              print(f"{sym}: {pct_profitable}% of {len(results)}/{len(COMBOS)} combos profitable, "
+                    f"median {median_pnl}, best {best['params']} -> pnl {best['total_pnl']}, "
+                    f"win_rate {best['win_rate_pct']}%, {best['num_trades']} trades")
+
+          print()
+          print("=== VERDICT (same bar: >=75% combos profitable AND median > 0) ===")
+          for r in sorted(rows, key=lambda r: r["pct_profitable_combos"], reverse=True):
+              verdict = "CLEARS BAR" if r["pct_profitable_combos"] >= 75 and r["median_total_pnl"] > 0 else "does not clear"
+              print(f"{r['symbol']}: {verdict} ({r['pct_profitable_combos']}% profitable, median {r['median_total_pnl']})")
+          PYEOF
