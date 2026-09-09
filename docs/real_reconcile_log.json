@@ -712,5 +712,32 @@
     "adopted": [],
     "governance_backfilled_count": 0,
     "governance_backfilled": []
+  },
+  {
+    "reconciled_at_utc": 1788931242.3155317,
+    "real_balance_inr": 548.06,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 1,
+    "untracked_open_positions": [
+      {
+        "kotak_trading_symbol": "NEWGEN-EQ",
+        "qty": 1
+      }
+    ],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 1,
+    "governance_backfilled": [
+      {
+        "symbol": "MEDICAMEQ.NS",
+        "entry_price": 291.4,
+        "stop_loss": 288.49,
+        "target": 300.13,
+        "qty": 3
+      }
+    ]
   }
 ]
