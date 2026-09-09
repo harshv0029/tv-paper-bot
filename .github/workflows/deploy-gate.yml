@@ -158,7 +158,7 @@ jobs:
                           today_slice = raw.loc[day_start:pos]
                           df_slice = raw.loc[:pos]
 
-                          cand = m._trailing_stop_target(df_slice, today_slice, entry_price, initial_stop, entry_ts, TZ_OFF)
+                          cand = m._trailing_stop_target(today_slice, entry_price, initial_stop, entry_ts, TZ_OFF)
                           if cand is not None and cand > stop:
                               stop = cand
 
