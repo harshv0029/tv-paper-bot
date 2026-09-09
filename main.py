@@ -5405,6 +5405,54 @@ def get_real_trading_control(request: Request):
     }
 
 
+@app.get("/real-open-positions")
+def get_real_open_positions():
+    """Currently-OPEN real (Kotak) positions, with a LIVE current price and
+    computed unrealized P&L per row - no token required, same reasoning as
+    /real-pnl-today's own split-out from /real-trading-control (read-only
+    display data, not the enable/disable switch or a control action).
+
+    2026-09-09, explicit user finding: the /trade-view dashboard's live
+    table showed "No live positions or real trades today" while Kotak's
+    own account had a genuinely open real position (MEDICAMEQ.NS) -
+    trade-view.html's own refresh() had NO fetch of real_positions'
+    currently-open rows at all, only open PAPER positions (/daily-summary)
+    and CLOSED real trades (/real-trades-today, /real-trades-today-bot-
+    only) - an open-but-not-yet-closed real position had no data source
+    anywhere on the page. This is that missing source: current_price comes
+    from fetch_ohlc's own cached last close (the same live-price data
+    every other price on this page already reads, so this stays
+    consistent with the rest of the dashboard, not a second live-price
+    path), refreshed on the page's existing 10s poll cycle - no separate
+    faster polling loop needed, the gap was the missing fetch, not the
+    cadence."""
+    watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
+    with closing(get_db()) as conn:
+        rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
+
+    result = []
+    for r in rows:
+        current_price = None
+        try:
+            cfg = watchlist_by_symbol.get(r["symbol"], {})
+            current_price = float(fetch_ohlc(r["symbol"], "1d", cfg.get("interval", "5m"))["Close"].iloc[-1])
+        except Exception:
+            pass
+        invested_inr = round(r["entry_price"] * r["qty"], 2)
+        unrealized_pnl_inr = round((current_price - r["entry_price"]) * r["qty"], 2) if current_price is not None else None
+        unrealized_pnl_pct = (
+            round(100 * unrealized_pnl_inr / invested_inr, 3) if unrealized_pnl_inr is not None and invested_inr else None
+        )
+        result.append({
+            **r,
+            "current_price": current_price,
+            "invested_inr": invested_inr,
+            "unrealized_pnl_inr": unrealized_pnl_inr,
+            "unrealized_pnl_pct": unrealized_pnl_pct,
+        })
+    return {"open_real_positions": result, "count": len(result)}
+
+
 @app.get("/kotak-neo/real-fo-control")
 def get_real_fo_control(request: Request):
     """Status for the SEPARATE F&O real-trading gate (2026-09-07) - see
