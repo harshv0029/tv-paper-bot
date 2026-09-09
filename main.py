@@ -959,6 +959,73 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         df["long"] = raw.groupby(day).cummax()
         df["vwap"] = vwap
 
+    elif strategy == "heikin_ashi_vwap":
+        # Web-research addition, 2026-09-09 - explicit user instruction:
+        # "assign one ai agent that researches the web pages and social
+        # media for getting strategies and back test it." Source
+        # (liberatedstocktrader.com, the SAME site already cited for
+        # bullish_engulfing's own win-rate numbers above): "Using VWAP on
+        # a 5-minute day trading timeframe with a Heikin Ashi chart
+        # produced a superb win rate, outperforming 93% of stocks using
+        # a buy-and-hold strategy" - combining session VWAP (this
+        # module's own vwap_reclaim calc, reused verbatim) with Heikin
+        # Ashi's noise-smoothed candles as the trend-confirmation filter.
+        #
+        # Heikin Ashi candles (smoothed OHLC, NOT the real traded price -
+        # only used to read trend direction/strength here, never as an
+        # actual fill price): HA_close = mean(O,H,L,C); HA_open =
+        # mean(prev HA_open, prev HA_close) - first bar falls back to
+        # mean(O,C). Enter long when the HA candle is bullish (HA_close
+        # > HA_open) AND price is above session VWAP (the same
+        # trend-context role vwap_reclaim's own comparison plays) -
+        # optionally also requiring NO lower wick on the HA candle
+        # (require_no_lower_wick) as a stronger "clean uptrend" filter,
+        # a well-known Heikin Ashi reading (a flat bottom means buyers
+        # were in control the entire bar, no intrabar pullback at all).
+        # Exit on either a bearish HA candle or price falling back below
+        # VWAP - whichever comes first, same "two independent exit
+        # conditions" shape mtf_engulfing already uses for its own
+        # HTF-trend-flip exit.
+        require_no_lower_wick = bool(params.get("require_no_lower_wick", False))
+
+        ts = pd.to_datetime(df["Date"])
+        ts_ist = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts.dt.tz_localize(
+            "UTC"
+        ).dt.tz_convert("Asia/Kolkata")
+        day = ts_ist.dt.strftime("%Y-%m-%d")
+        typical = (df["High"] + df["Low"] + df["Close"]) / 3
+        cum_pv = (typical * df["Volume"]).groupby(day).cumsum()
+        cum_vol = df["Volume"].groupby(day).cumsum().replace(0, float("nan"))
+        vwap = cum_pv / cum_vol
+
+        o, h, l, c = df["Open"].to_numpy(), df["High"].to_numpy(), df["Low"].to_numpy(), df["Close"].to_numpy()
+        n = len(df)
+        ha_close = (o + h + l + c) / 4
+        ha_open = np.empty(n)
+        for i in range(n):
+            ha_open[i] = (o[0] + c[0]) / 2 if i == 0 else (ha_open[i - 1] + ha_close[i - 1]) / 2
+        ha_low = np.minimum(l, np.minimum(ha_open, ha_close))
+
+        ha_bullish = ha_close > ha_open
+        ha_bearish = ha_close < ha_open
+        if require_no_lower_wick:
+            ha_bullish = ha_bullish & (np.isclose(ha_low, ha_open) | np.isclose(ha_low, ha_close))
+
+        above_vwap = (df["Close"] > vwap).to_numpy()
+        entry = ha_bullish & above_vwap
+        exit_ = ha_bearish | (~above_vwap)
+
+        holding, flags = False, []
+        for is_entry, is_exit in zip(entry, exit_):
+            if not holding and is_entry:
+                holding = True
+            elif holding and is_exit:
+                holding = False
+            flags.append(holding)
+        df["long"] = flags
+        df["vwap"] = vwap
+        df["ha_open"], df["ha_close"] = ha_open, ha_close
+
     elif strategy == "vwap_mean_reversion":
         # STRATEGY_LOG.md row #13. Session VWAP + rolling-std bands (the
         # bands are an intrabar approximation of the usual SD-of-price
@@ -1545,7 +1612,7 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
-                   f"orb_breakout, orb_volume, vwap_reclaim, vwap_mean_reversion, "
+                   f"orb_breakout, orb_volume, vwap_reclaim, heikin_ashi_vwap, vwap_mean_reversion, "
                    f"vwap_breakout_retest, anchored_vwap_continuation, anchored_vwap_reversal, "
                    f"vwap_multi_period_reversal, bullish_engulfing, pin_bar_reversal, "
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, macd_cross, "
@@ -1656,6 +1723,7 @@ def backtest(
     htf_trend_fast: int = 9,
     htf_trend_slow: int = 21,
     max_wait_bars: int = 10,
+    require_no_lower_wick: bool = False,
     qty: float = 1,
 ):
     """
@@ -1679,6 +1747,7 @@ def backtest(
                                         climax_volume_mult, climax_spread_mult,
                                         climax_close_pct (STRATEGY_LOG.md #39)
     strategy=vwap_reclaim         -> no extra params
+    strategy=heikin_ashi_vwap     -> params: require_no_lower_wick
     strategy=vwap_mean_reversion  -> params: bb_std
     strategy=vwap_breakout_retest -> params: bb_std, retest_pct
     strategy=anchored_vwap_continuation/anchored_vwap_reversal -> params: anchor_lookback
@@ -1717,6 +1786,8 @@ def backtest(
         }
     elif strategy == "vwap_reclaim":
         params = {}
+    elif strategy == "heikin_ashi_vwap":
+        params = {"require_no_lower_wick": require_no_lower_wick}
     elif strategy == "vwap_mean_reversion":
         params = {"bb_std": bb_std}
     elif strategy == "vwap_breakout_retest":
