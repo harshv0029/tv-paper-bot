@@ -5788,6 +5788,94 @@ RUNTIME_SETTINGS_META = {
     ),
 }
 
+# runtime_settings external persistence (Upstash Redis) - 2026-09-09,
+# explicit user finding: "When I updated batch per ticker to be from 35
+# to 100, why it is getting reset to 35 again. Have u not made this
+# overwrite previous value by taking input from front end?" They were
+# right - the runtime_settings SQLite table (below) is exactly as
+# ephemeral as every other table on this Render service (wiped on every
+# restart, independent of any push), and unlike real_positions/rr_cursor/
+# check_counts above, it had NO external mirror at all - EVERY value a
+# user sets via POST /runtime-settings (batch size, daily_risk_pct, rr,
+# min_entry_confidence_pct, max_hold_minutes, the real-money caps, etc.)
+# silently reverted to RUNTIME_SETTINGS_META's hardcoded default on the
+# next restart, no matter how recently it was changed. Same Upstash-
+# mirror pattern as the others, applied here as one JSON snapshot of the
+# WHOLE table (not per-key) - simpler, and means a stale single-key
+# Upstash entry from a much older snapshot can never linger once any one
+# setting gets written again.
+_RUNTIME_SETTINGS_REDIS_KEY = "tv_paper_bot:runtime_settings:v1"
+
+
+def _sync_runtime_settings_external(conn) -> None:
+    """Call right after any runtime_settings write commits (see
+    set_runtime_setting below). Best-effort and silent, same pattern as
+    every other _sync_*_external above - a failure here must never break
+    the settings write that's calling it."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return
+    try:
+        rows = conn.execute("SELECT key, value FROM runtime_settings").fetchall()
+        snapshot = {r["key"]: r["value"] for r in rows}
+        requests.post(
+            f"{UPSTASH_REDIS_REST_URL}/set/{_RUNTIME_SETTINGS_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            data=json.dumps(snapshot).encode("utf-8"),
+            timeout=5,
+        )
+    except Exception as e:
+        print(f"[runtime_settings_external] sync failed (non-fatal): {e}")
+
+
+def hydrate_runtime_settings_from_external(conn) -> int:
+    """Startup-time restore, sourced from Upstash - real-time, so any
+    user-set override survives a restart at ANY cadence, not just ones
+    the user happens to re-apply by hand afterward. Writes each restored
+    key straight into the runtime_settings table via the same UPSERT
+    set_runtime_setting itself uses, so get_runtime_setting's normal
+    SQLite read path picks it up completely unchanged - no other code
+    needs to know this restore happened. Silently skips any key no
+    longer in RUNTIME_SETTINGS_META (a removed/renamed setting) rather
+    than erroring. Returns how many keys were restored (0 if Upstash is
+    unset/unreachable/empty/malformed)."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return 0
+    try:
+        resp = requests.get(
+            f"{UPSTASH_REDIS_REST_URL}/get/{_RUNTIME_SETTINGS_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        raw = resp.json().get("result")
+        if not raw:
+            return 0
+        snapshot = json.loads(raw)
+        if not isinstance(snapshot, dict):
+            return 0
+    except Exception as e:
+        print(f"[runtime_settings_external] hydrate failed (non-fatal): {e}")
+        return 0
+
+    restored = 0
+    now = time.time()
+    for key, value in snapshot.items():
+        if key not in RUNTIME_SETTINGS_META:
+            continue
+        try:
+            conn.execute(
+                "INSERT INTO runtime_settings (key, value, updated_at, updated_by) VALUES (?, ?, ?, 'restored') "
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at, "
+                "updated_by=excluded.updated_by",
+                (key, float(value), now),
+            )
+            restored += 1
+        except (TypeError, ValueError):
+            continue
+    if restored:
+        conn.commit()
+    return restored
+
 
 def _live_entry_scan_batch_size_for_display() -> int:
     """Small convenience wrapper for read-only status endpoints that don't
@@ -5873,6 +5961,13 @@ def set_runtime_setting(request: Request, key: str, value: float):
             (key, value, time.time()),
         )
         conn.commit()
+        # Real-time Upstash mirror (2026-09-09) - see
+        # _sync_runtime_settings_external's own docstring for the exact
+        # user-reported bug this closes ("batch per ticker... getting
+        # reset to 35 again"). Without this, a value only ever lived in
+        # this ephemeral SQLite table and reverted to its hardcoded
+        # default on the next restart, no matter how recently it was set.
+        _sync_runtime_settings_external(conn)
     return {"key": key, "value": value, "status": "saved", "effective": "next scheduler tick"}
 
 # Real capital sourced from Kotak Neo (2026-09-04) - explicit user
@@ -6626,6 +6721,14 @@ async def _scheduler_tick():
 
 @app.on_event("startup")
 async def _start_scheduler():
+    # runtime_settings: Upstash-restore FIRST, before anything else reads
+    # a live setting (the scheduler tick below, any endpoint) - see
+    # hydrate_runtime_settings_from_external's own docstring for the
+    # 2026-09-09 bug this closes.
+    with closing(get_db()) as _settings_conn:
+        _restored_settings = hydrate_runtime_settings_from_external(_settings_conn)
+        if _restored_settings:
+            print(f"[runtime_settings_external] restored {_restored_settings} setting(s) from Upstash")
     reconcile_open_positions_from_journal()
     reconcile_trading_control_from_journal()
     reconcile_real_trading_control_from_journal()
