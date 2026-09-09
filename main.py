@@ -878,9 +878,13 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         # fast_ma > slow_ma check right below) was still hardcoded to SMA
         # regardless - meaning /backtest could never actually compare the
         # two for what matters most, the entry decision itself. Default
-        # stays "sma" (zero change to current live behavior) until a real
-        # backtest comparison (see docs/STRATEGY_LOG.md) earns a switch.
-        ma_type = str(params.get("ma_type", "sma")).lower()
+        # flipped SMA -> EMA everywhere (2026-09-09, explicit user
+        # instruction: "stop using SMA and replace it with EMA with
+        # immediate effect everywhere") - the real backtest comparison
+        # (docs/STRATEGY_LOG.md) found no evidence either way on the
+        # sampled symbols/window, and the user chose to switch anyway.
+        # ma_type is still fully overridable per-call/per-symbol.
+        ma_type = str(params.get("ma_type", "ema")).lower()
 
         ts = pd.to_datetime(df["Date"])
         ts_ist = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts.dt.tz_localize(
@@ -1566,7 +1570,7 @@ def backtest(
     pin_ratio: float = 2.0,
     sr_lookback: int = 20,
     sr_tolerance_pct: float = 0.5,
-    ma_type: str = "sma",
+    ma_type: str = "ema",  # 2026-09-09: SMA -> EMA everywhere, explicit user instruction
     range_lookback: int = 60,
     range_flatness_pct: float = 3.0,
     spring_pierce_pct: float = 0.3,
@@ -2282,7 +2286,7 @@ def _volume_confirms(vol_series: np.ndarray) -> tuple[bool, float | None]:
     return cur_vol > avg_vol, avg_vol
 
 
-def _moving_average(closes: np.ndarray, period: int, ma_type: str = "sma") -> float:
+def _moving_average(closes: np.ndarray, period: int, ma_type: str = "ema") -> float:
     """The fast/slow trend average this engine's whole entry/exit gate is
     built on - SMA (flat rolling mean, the default, UNCHANGED live
     behavior) or EMA (exponentially-weighted, opt-in via ma_type="ema").
@@ -2317,7 +2321,7 @@ def _moving_average(closes: np.ndarray, period: int, ma_type: str = "sma") -> fl
     return float(np.mean(window))
 
 
-def _trend_confidence(closes: np.ndarray, sma_fast: int, sma_slow: int, ma_type: str = "sma") -> float:
+def _trend_confidence(closes: np.ndarray, sma_fast: int, sma_slow: int, ma_type: str = "ema") -> float:
     """One-tailed statistical confidence, via the normal CDF, that the
     sma_fast/sma_slow gap's sign is a real move and not just noise around a
     flat/random-walk price - the same normal-distribution machinery
@@ -2351,7 +2355,8 @@ def _trend_confidence(closes: np.ndarray, sma_fast: int, sma_slow: int, ma_type:
     return _norm_cdf(z)
 
 
-def _compute_trend(symbol: str, sma_fast: int, sma_slow: int, tz_offset_min: int, interval: str = "5m"):
+def _compute_trend(symbol: str, sma_fast: int, sma_slow: int, tz_offset_min: int,
+                    interval: str = "5m", ma_type: str = "ema"):
     """Same sma_fast/sma_slow trend read _auto_signal_core computes at
     every check (not just at entry) - factored out so the options overlay's
     open-position management can check it too. Reuses fetch_ohlc's own
@@ -2367,7 +2372,16 @@ def _compute_trend(symbol: str, sma_fast: int, sma_slow: int, tz_offset_min: int
     today_df - same fix and same reasoning as _auto_signal_core's own
     closes (see its comment there for the full root cause: a today-only
     window made sma_f/sma_s/confidence mathematically unable to exist for
-    the first 1-4+ hours of every session)."""
+    the first 1-4+ hours of every session).
+
+    2026-09-09 (explicit user instruction: "stop using SMA and replace it
+    with EMA with immediate effect everywhere"): this function never
+    actually had ma_type support before - it hardcoded plain np.mean
+    (SMA) regardless of what the rest of the engine was doing, the one
+    place in this whole trend-read family that was inconsistent even
+    before today's switch. Now uses the same _moving_average/
+    _trend_confidence machinery every other trend read uses, defaulting
+    to "ema" like the rest."""
     try:
         df = fetch_ohlc(symbol, "5d", interval)
         closes = df["Close"].to_numpy(dtype=float)
@@ -2375,10 +2389,10 @@ def _compute_trend(symbol: str, sma_fast: int, sma_slow: int, tz_offset_min: int
         return None, 0.0
     if len(closes) < max(sma_fast, sma_slow):
         return None, 0.0
-    sma_f = float(np.mean(closes[-sma_fast:]))
-    sma_s = float(np.mean(closes[-sma_slow:]))
+    sma_f = _moving_average(closes, sma_fast, ma_type)
+    sma_s = _moving_average(closes, sma_slow, ma_type)
     direction = "up" if sma_f > sma_s else "down"
-    return direction, _trend_confidence(closes, sma_fast, sma_slow)
+    return direction, _trend_confidence(closes, sma_fast, sma_slow, ma_type)
 
 
 TRAIL_ACTIVATE_R = 0.5          # don't trail at all below 0.5R unrealized gain - backtested
@@ -2460,7 +2474,7 @@ LEADING_TARGET_MIN_CONFIDENCE = TREND_WEAKENED_MIN_CONFIDENCE  # explicit
 def _leading_target_extend(current_target: float, entry_price: float, initial_stop: float,
                             rr: float, last_close: float, trend: str | None,
                             closes: np.ndarray, sma_fast: int, sma_slow: int,
-                            ma_type: str = "sma") -> float | None:
+                            ma_type: str = "ema") -> float | None:
     """Long-only LEADING (trailing-UP) target candidate - the mirror
     image of _trailing_stop_target for the other side of the trade.
     Explicit user instruction 2026-09-08: "updating the leading target
@@ -3024,7 +3038,7 @@ def _auto_signal_core(
     volume_confirm: bool = False,
     min_entry_confidence_pct: float = TREND_WEAKENED_MIN_CONFIDENCE * 100,
     max_hold_minutes: float = 120.0,
-    ma_type: str = "sma",
+    ma_type: str = "ema",  # 2026-09-09: SMA -> EMA everywhere, explicit user instruction
 ):
     """
     Plain function version of the /auto-signal logic - callable directly
@@ -3678,7 +3692,7 @@ def auto_signal(
     volume_confirm: bool = False,
     min_entry_confidence_pct: float = TREND_WEAKENED_MIN_CONFIDENCE * 100,
     max_hold_minutes: float = 120.0,
-    ma_type: str = "sma",
+    ma_type: str = "ema",  # 2026-09-09: SMA -> EMA everywhere, explicit user instruction
 ):
     """HTTP wrapper around _auto_signal_core - see that function's docstring
     for the actual rules. Kept as a thin pass-through so manual/GH-Actions
@@ -6691,7 +6705,14 @@ async def _scheduler_tick():
                 strategy=cfg.get("strategy", "orb_breakout"),
                 trend_sma=cfg.get("trend_sma", 0), volume_confirm=cfg.get("volume_confirm", False),
                 min_entry_confidence_pct=live_min_entry_confidence_pct,
-                max_hold_minutes=live_max_hold_minutes, ma_type=cfg.get("ma_type", "sma"),
+                max_hold_minutes=live_max_hold_minutes,
+                # 2026-09-09, explicit user instruction: "stop using SMA
+                # and replace it with EMA with immediate effect
+                # everywhere" - THIS is the live scheduler's own call
+                # site, the one that actually decides every real WATCHLIST
+                # symbol's trend read; a per-symbol "ma_type" WATCHLIST
+                # field still overrides this fallback if ever set.
+                ma_type=cfg.get("ma_type", "ema"),
             )
             _scheduler_last_results[cfg["symbol"]] = {"checked_at_utc": time.time(), **result}
 
