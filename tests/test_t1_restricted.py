@@ -47,6 +47,23 @@ def test_flag_matches_the_real_t2t_same_day_sell_rejection_string():
         assert main._is_t1_restricted(conn, "MEDICAMEQ.NS") is True
 
 
+def test_restriction_is_permanent_not_scoped_to_the_day_it_was_flagged():
+    # 2026-09-09, explicit user instruction: "if we can't exit same day
+    # then pick strategy accordingly... else dont pick these restricted
+    # assets" - a symbol flagged on an EARLIER day must still block entry
+    # today, not just on the day it was first discovered (the old
+    # day-scoped check would have cheerfully re-entered the same T2T
+    # stock every single day with real capital).
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_t1_restricted (symbol, day, flagged_at, detail) VALUES (?, ?, ?, ?)",
+            ("MEDICAMEQ.NS", "2020-01-01", 0.0, "stale day, real restriction"),
+        )
+        conn.commit()
+        assert main._is_t1_restricted(conn, "MEDICAMEQ.NS") is True
+
+
 def test_flag_ignores_unrelated_rejection_reasons():
     _fresh_db()
     with closing(main.get_db()) as conn:
