@@ -1,0 +1,113 @@
+name: MTF Engulfing Backtest (research)
+
+# Explicit user order 2026-09-09: candlestick-pattern-across-timeframes
+# entry conditions, "do through this approach only." Before this
+# replaces anything live, the SAME evidence discipline every other
+# strategy in this repo has been held to: real backtest against real
+# market data, judged on pct_profitable_combos + median_total_pnl
+# across a parameter grid (not a single cherry-picked combo), not just
+# "the mechanism compiles and passes unit tests."
+#
+# Grid: htf_minutes (15/30/60) x htf_trend_fast/slow (5/13, 9/21) = 6
+# combos, tested against a spread of symbols already known to have SOME
+# edge under a different strategy (RELIANCE/TCS/TITAN/DIVISLAB - the
+# evidenced-symbol sweep's own winners, docs/TRADING_CONSTRAINTS.md) so
+# this backtest is judged against names that are NOT already a hostile
+# environment for a long-only trend strategy, plus the NIFTY/BANKNIFTY
+# indices for a non-single-stock read. 60d of real 5-min data (yfinance's
+# own intraday window), same as every other sweep this session. Imports
+# main.py directly - calls its own add_strategy_signal/extract_trades_fast,
+# not a reimplementation. Read-only, writes nothing, changes no live
+# trading behavior by itself.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run mtf_engulfing backtest grid
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import main as m
+          import numpy as np
+          from itertools import product
+
+          SYMBOLS = ["RELIANCE.NS", "TCS.NS", "TITAN.NS", "DIVISLAB.NS", "^NSEI", "^NSEBANK"]
+          HTF_MIN_LIST = [15, 30, 60]
+          HTF_FAST_SLOW = [(5, 13), (9, 21)]
+          COMBOS = [
+              {"htf_minutes": hm, "htf_trend_fast": hf, "htf_trend_slow": hs}
+              for hm, (hf, hs) in product(HTF_MIN_LIST, HTF_FAST_SLOW)
+          ]
+
+          # Also run plain single-timeframe bullish_engulfing on the same
+          # data/symbols as a direct comparison baseline - the whole point
+          # of the multi-timeframe gate is to beat this, not just exist.
+          baseline_rows = []
+          rows = []
+          for sym in SYMBOLS:
+              try:
+                  df = m.fetch_ohlc(sym, "60d", "5m")
+              except Exception as e:
+                  print(f"SKIP {sym}: fetch failed - {e}")
+                  continue
+
+              base_sig = m.add_strategy_signal(df, "bullish_engulfing", {"trend_sma": 0, "volume_confirm": False})
+              base_trades, _ = m.extract_trades_fast(
+                  base_sig["long"].to_numpy(), base_sig["Close"].to_numpy(dtype=float),
+                  base_sig["Date"].apply(lambda d: d.isoformat()).to_numpy(), 1,
+              )
+              base_pnl = round(sum(t["pnl"] for t in base_trades), 2) if base_trades else 0.0
+              base_wr = round(100 * len([t for t in base_trades if t["pnl"] > 0]) / len(base_trades), 1) if base_trades else None
+              baseline_rows.append((sym, len(base_trades), base_wr, base_pnl))
+              print(f"[baseline bullish_engulfing] {sym}: {len(base_trades)} trades, "
+                    f"win_rate {base_wr}%, total_pnl {base_pnl}")
+
+              results = []
+              for params in COMBOS:
+                  sig_df = m.add_strategy_signal(df, "mtf_engulfing", params)
+                  long_arr = sig_df["long"].to_numpy()
+                  close_arr = sig_df["Close"].to_numpy(dtype=float)
+                  dates = sig_df["Date"].apply(lambda d: d.isoformat()).to_numpy()
+                  trades, _ = m.extract_trades_fast(long_arr, close_arr, dates, 1)
+                  if not trades:
+                      continue
+                  wins = [t for t in trades if t["pnl"] > 0]
+                  total_pnl = round(sum(t["pnl"] for t in trades), 2)
+                  results.append({
+                      "params": params, "num_trades": len(trades),
+                      "win_rate_pct": round(100 * len(wins) / len(trades), 1),
+                      "total_pnl": total_pnl,
+                  })
+
+              if not results:
+                  print(f"{sym}: 0/{len(COMBOS)} mtf_engulfing combos produced any trades - no signal at all")
+                  continue
+
+              all_pnls = [r["total_pnl"] for r in results]
+              pct_profitable = round(100 * sum(1 for p in all_pnls if p > 0) / len(all_pnls), 1)
+              median_pnl = round(float(np.median(all_pnls)), 2)
+              best = max(results, key=lambda r: r["total_pnl"])
+              rows.append({"symbol": sym, "pct_profitable_combos": pct_profitable, "median_total_pnl": median_pnl})
+              print(f"[mtf_engulfing] {sym}: {pct_profitable}% of {len(results)}/{len(COMBOS)} combos profitable, "
+                    f"median {median_pnl}, best {best['params']} -> pnl {best['total_pnl']}, "
+                    f"win_rate {best['win_rate_pct']}%, {best['num_trades']} trades")
+
+          print()
+          print("=== VERDICT (same bar as the symbol sweeps: >=75% combos profitable AND median > 0) ===")
+          for r in sorted(rows, key=lambda r: r["pct_profitable_combos"], reverse=True):
+              verdict = "CLEARS BAR" if r["pct_profitable_combos"] >= 75 and r["median_total_pnl"] > 0 else "does not clear"
+              print(f"{r['symbol']}: {verdict} ({r['pct_profitable_combos']}% profitable, median {r['median_total_pnl']})")
+          PYEOF
