@@ -1278,6 +1278,76 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
             flags.append(holding)
         df["long"] = flags
 
+    elif strategy == "mtf_engulfing":
+        # Multi-timeframe candlestick-pattern strategy - explicit user
+        # instruction 2026-09-09: "Ur strategy or entry setup or entry
+        # conditions should be such that it gives profit by recognising
+        # the pattern on candle stick diagram of different time frames.
+        # Do through this approach only... An order." Replaces the
+        # evidenced-symbol-sweep direction (SYMBOL selection) with a
+        # PATTERN-based one: a higher timeframe sets the trend context,
+        # a bullish engulfing candle on the entry timeframe (same
+        # detection as strategy="bullish_engulfing" above) is the actual
+        # trigger, and BOTH must agree - single-timeframe engulfing on
+        # its own only cites ~53-55% (see that strategy's own sources
+        # comment); requiring higher-timeframe trend alignment is the
+        # documented way that's pushed toward the higher end of
+        # published ranges.
+        #
+        # No lookahead: the higher-timeframe trend used for any entry
+        # bar is read off the LAST FULLY CLOSED higher-timeframe candle
+        # only, never the one still forming around that entry bar right
+        # now (shift(1) on the resampled series before mapping back down
+        # - same "shifted by 1 bar" discipline as wyckoff_spring/sos
+        # above) - exactly what a live trader glancing at a higher
+        # timeframe chart would actually see mid-candle.
+        htf_minutes = int(params.get("htf_minutes", 30))
+        htf_trend_fast = int(params.get("htf_trend_fast", 9))
+        htf_trend_slow = int(params.get("htf_trend_slow", 21))
+
+        d = df.set_index(pd.DatetimeIndex(df["Date"]))
+        htf = d[["Open", "High", "Low", "Close"]].resample(
+            f"{htf_minutes}min", label="left", closed="left"
+        ).agg({"Open": "first", "High": "max", "Low": "min", "Close": "last"}).dropna()
+        htf_ema_fast = htf["Close"].ewm(span=htf_trend_fast, adjust=False).mean()
+        htf_ema_slow = htf["Close"].ewm(span=htf_trend_slow, adjust=False).mean()
+        # shift(1): the trend state as of the PREVIOUS closed HTF candle,
+        # never the one an entry bar is currently sitting inside.
+        htf_up_prev = (htf_ema_fast > htf_ema_slow).shift(1)
+
+        htf_bucket = df["Date"].dt.floor(f"{htf_minutes}min")
+        htf_trend_on_entry_bars = htf_bucket.map(htf_up_prev).ffill().fillna(False)
+
+        prev_open = df["Open"].shift(1)
+        prev_close = df["Close"].shift(1)
+        prev_bearish = prev_close < prev_open
+        prev_bullish = prev_close > prev_open
+        cur_bullish = df["Close"] > df["Open"]
+        cur_bearish = df["Close"] < df["Open"]
+
+        engulf_long = (
+            cur_bullish & prev_bearish
+            & (df["Open"] <= prev_close) & (df["Close"] >= prev_open)
+            & htf_trend_on_entry_bars.to_numpy()
+        )
+        # Exit on either the mirror bearish engulfing candle, OR the
+        # higher timeframe itself flipping down - whichever comes first,
+        # same "two independent exit conditions" shape trend_weakened
+        # already runs alongside stop/target in the live equity engine.
+        engulf_exit = (
+            cur_bearish & prev_bullish
+            & (df["Open"] >= prev_close) & (df["Close"] <= prev_open)
+        ) | (~htf_trend_on_entry_bars.to_numpy())
+
+        holding, flags = False, []
+        for is_entry, is_exit in zip(engulf_long, engulf_exit):
+            if not holding and is_entry:
+                holding = True
+            elif holding and is_exit:
+                holding = False
+            flags.append(holding)
+        df["long"] = flags
+
     elif strategy == "inside_bar_breakout":
         # Price-action volatility-contraction strategy - the third pattern
         # explicitly named in the original brief alongside engulfing and pin
@@ -1479,7 +1549,7 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
                    f"vwap_breakout_retest, anchored_vwap_continuation, anchored_vwap_reversal, "
                    f"vwap_multi_period_reversal, bullish_engulfing, pin_bar_reversal, "
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, macd_cross, "
-                   f"wyckoff_spring, wyckoff_sos, vsa_climax_reversal",
+                   f"wyckoff_spring, wyckoff_sos, vsa_climax_reversal, mtf_engulfing",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -1582,6 +1652,9 @@ def backtest(
     climax_volume_mult: float = 2.0,
     climax_spread_mult: float = 1.5,
     climax_close_pct: float = 0.5,
+    htf_minutes: int = 30,
+    htf_trend_fast: int = 9,
+    htf_trend_slow: int = 21,
     max_wait_bars: int = 10,
     qty: float = 1,
 ):
@@ -1616,6 +1689,7 @@ def backtest(
     strategy=pin_bar_reversal     -> params: pin_ratio, sr_lookback, sr_tolerance_pct
     strategy=inside_bar_breakout  -> params: trend_sma (0=off), max_wait_bars
     strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
+    strategy=mtf_engulfing        -> params: htf_minutes, htf_trend_fast, htf_trend_slow
     """
     df = fetch_ohlc(symbol, period, interval)
 
@@ -1663,6 +1737,8 @@ def backtest(
         params = {"trend_sma": trend_sma, "max_wait_bars": max_wait_bars}
     elif strategy == "macd_cross":
         params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
+    elif strategy == "mtf_engulfing":
+        params = {"htf_minutes": htf_minutes, "htf_trend_fast": htf_trend_fast, "htf_trend_slow": htf_trend_slow}
     else:
         params = {}
 
