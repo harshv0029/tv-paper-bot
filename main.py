@@ -3792,6 +3792,25 @@ NSE_STOCK_PARAM_OVERRIDES = {
     # is bigger average wins vs losses, not a favorable coin-flip, a
     # genuinely different profile from the other four above.
     "MARUTI.NS": {"orb_minutes": 30, "sma_fast": 14, "sma_slow": 21, "risk_pct": 2.0, "stop_pct": 2.0},
+    # Batch 2, 2026-09-09 - explicit user request ("all of ur trades
+    # entered are giving me losses why - cant you do the research for
+    # making me profitable"). Root cause found live: WATCHLIST runs the
+    # entire ~2,655-symbol NSE_FULL_UNIVERSE on this same untuned
+    # default, and the day's real losers (MEDICAMEQ/SILVERCASE/DCMSIL/
+    # GROWWSLVR) were all untested micro-caps. Same sweep methodology,
+    # same bar (>=75% of 18 combos profitable AND median_total_pnl > 0)
+    # applied to the next 15 untested liquid Nifty 50/Next 50 names
+    # (.github/workflows/nse-universe-sweep-research.yml) - only these
+    # three cleared it; the other 12 (HCLTECH/WIPRO/JSWSTEEL/NESTLEIND/
+    # SUNPHARMA/ULTRACEMCO/POWERGRID/NTPC/TATASTEEL/INDUSINDBK/
+    # COALINDIA/ITC) stay on the untuned default - several came back
+    # sharply negative (ULTRACEMCO.NS: 0% of 18 combos profitable,
+    # median -720.5) rather than merely unproven, real evidence AGAINST
+    # trading them on this exact strategy, not just an absence of
+    # evidence for it.
+    "TITAN.NS": {"orb_minutes": 10, "sma_fast": 5, "sma_slow": 21, "risk_pct": 2.0, "stop_pct": 2.0},
+    "GRASIM.NS": {"orb_minutes": 15, "sma_fast": 5, "sma_slow": 50, "risk_pct": 2.0, "stop_pct": 2.0},
+    "BAJAJFINSV.NS": {"orb_minutes": 10, "sma_fast": 5, "sma_slow": 21, "risk_pct": 2.0, "stop_pct": 2.0},
 }
 
 WATCHLIST = [
