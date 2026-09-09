@@ -910,5 +910,58 @@
         "target_failure_detail": "order 260909000274464 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
       }
     ]
+  },
+  {
+    "reconciled_at_utc": 1788940390.372,
+    "real_balance_inr": 379.45000000000005,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 2,
+    "removed_ghosts": [
+      {
+        "symbol": "SHAREINDIA.NS",
+        "kotak_trading_symbol": "SHAREINDIA-EQ",
+        "was_tracked_qty": 1
+      },
+      {
+        "symbol": "VIPIND.NS",
+        "kotak_trading_symbol": "VIPIND-EQ",
+        "was_tracked_qty": 1
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 3,
+    "governance_backfilled": [
+      {
+        "symbol": "SILVERCASE.NS",
+        "entry_price": 23.59,
+        "stop_loss": 23.35,
+        "target": 24.31,
+        "qty": 7,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000399594 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "JGCHEM.NS",
+        "entry_price": 627.3,
+        "stop_loss": 621.03,
+        "target": 646.11,
+        "qty": 1,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000399786 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "KANPRPLA.NS",
+        "entry_price": 246.7,
+        "stop_loss": 244.23,
+        "target": 254.11,
+        "qty": 3,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000399989 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      }
+    ]
   }
 ]
