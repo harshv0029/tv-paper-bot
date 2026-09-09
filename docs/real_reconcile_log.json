@@ -768,5 +768,47 @@
         "target_failure_detail": "order 260909000226232 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
       }
     ]
+  },
+  {
+    "reconciled_at_utc": 1788932408.772752,
+    "real_balance_inr": 184.67000000000007,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 2,
+    "untracked_open_positions": [
+      {
+        "kotak_trading_symbol": "SANDUMA-EQ",
+        "qty": 1
+      },
+      {
+        "kotak_trading_symbol": "NEWGEN-EQ",
+        "qty": 1
+      }
+    ],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 2,
+    "governance_backfilled": [
+      {
+        "symbol": "MEDICAMEQ.NS",
+        "entry_price": 291.4,
+        "stop_loss": 288.49,
+        "target": 300.13,
+        "qty": 3,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000240135 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "SILVERCASE.NS",
+        "entry_price": 23.59,
+        "stop_loss": 23.35,
+        "target": 24.31,
+        "qty": 7,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000240238 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      }
+    ]
   }
 ]
