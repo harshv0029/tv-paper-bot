@@ -8501,6 +8501,55 @@ def kotak_neo_scrip_master(request: Request, exchange_segment: str = "nse_cm", r
         return {"error": f"raw fetch of the CSV failed: {e}", "csv_url": csv_url}
 
 
+@app.get("/nse-asm-probe")
+def nse_asm_probe():
+    """DIAGNOSTIC ONLY - one-shot reachability test for NSE's own ASM
+    (Additional Surveillance Measure) list, a step toward proactively
+    avoiding Trade-to-Trade (T2T) same-day-sell-restricted symbols BEFORE
+    a real entry, not just reactively after a rejection (explicit user
+    instruction 2026-09-09: "build a proactive filter... fetch NSE's
+    actual T2T securities list").
+
+    2026-09-09 finding that sent this here in the first place: Kotak's
+    own scrip master pGroup field (the field /kotak-neo/nse-universe
+    already trusts to build the whole WATCHLIST) does NOT catch this -
+    verified live: MEDICAMEQ.NS/SILVERCASE.NS/DCMSIL.NS/DEEP.NS (all 4
+    confirmed T2T-restricted via a real Kotak rejection today) are ALL
+    present in docs/nse_universe.json's pGroup=="EQ" list. This makes
+    sense once you know WHY: ASM/GSM (what actually caused today's
+    rejections) is a TEMPORARY surveillance overlay NSE applies to
+    otherwise-normal EQ-series stocks based on live volatility/
+    concentration criteria - reviewed periodically, not baked into the
+    static scrip master at all. The permanent BE/BZ series pGroup
+    already excludes is a DIFFERENT, unrelated T2T mechanism.
+
+    scrip_master()'s own docstring already found nseindia.com's domains
+    Akamai-blocked from both GitHub Actions and this project's sandbox -
+    but neither of those IS this app's own live egress path. This is the
+    one untested environment: Render itself. No token required (read-
+    only, no account data, same precedent as every other diagnostic
+    endpoint here) - reports success/failure/raw content preview so the
+    real proactive filter gets built on confirmed data, not a guess,
+    same "verify real shape before parsing it" discipline scrip_master's
+    own docstring already established."""
+    import urllib.request
+    url = "https://www.nseindia.com/reports/asm"
+    try:
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                          "(KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        })
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            chunk = resp.read(3000)
+        return {
+            "reachable": True, "url": url, "status": resp.status,
+            "content_preview": chunk.decode("utf-8", errors="replace"),
+        }
+    except Exception as e:
+        return {"reachable": False, "url": url, "error": str(e)}
+
+
 @app.get("/kotak-neo/nse-universe")
 def kotak_neo_nse_universe(request: Request):
     """Builds the real, current NSE cash-equity universe from Kotak's own
