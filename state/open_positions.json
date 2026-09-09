@@ -1,22 +1,4 @@
 {
-  "synced_at_utc": "2026-09-09T07:05:27Z",
-  "open_positions": [
-    {
-      "symbol": "AJOONI.NS",
-      "qty": 67.0,
-      "entry_price_native": 3.4800000190734863,
-      "stop_loss_native": 3.4452000188827516,
-      "initial_stop_loss_native": 3.4452000188827516,
-      "target_native": 3.5844000196456904,
-      "fx_to_inr": 1.0,
-      "notional_inr": 233.16,
-      "orb_high_native": 3.4700000286102295,
-      "orb_low_native": 3.430000066757202,
-      "entry_ts": 1788937230.1421633,
-      "interval": "5m",
-      "strategy": "orb-15m-sma9-21",
-      "sma_fast": 9,
-      "sma_slow": 21
-    }
-  ]
+  "synced_at_utc": "2026-09-09T07:57:37Z",
+  "open_positions": []
 }
