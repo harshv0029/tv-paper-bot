@@ -3813,6 +3813,28 @@ NSE_STOCK_PARAM_OVERRIDES = {
     "BAJAJFINSV.NS": {"orb_minutes": 10, "sma_fast": 5, "sma_slow": 21, "risk_pct": 2.0, "stop_pct": 2.0},
 }
 
+# Explicit user instruction 2026-09-09: "add preference to monitor these
+# stocks out of the evidenced symbols" - the round-robin entry-scan
+# (SCHEDULER_ENTRY_SCAN_BATCH_SIZE/_scheduler_rr_cursor further down)
+# gives every one of the ~2,655 WATCHLIST symbols EQUAL weight, so a
+# stock with real, swept, positive backtest evidence gets checked for a
+# new entry no more often than a random untested micro-cap - it can sit
+# for over an hour waiting its turn in the rotation while capital goes
+# to whatever the round-robin happens to land on first (exactly what
+# happened with MEDICAMEQ/SILVERCASE/DCMSIL/GROWWSLVR the same day this
+# was raised). EVIDENCED_SYMBOLS is every symbol that has actually
+# cleared the real /sweep evidence bar (NSE_STOCK_PARAM_OVERRIDES' keys,
+# same >=75% combos profitable + median_total_pnl>0 bar - see its own
+# comment above) plus the indices/gold that shipped with backtest
+# evidence from the start (_INDEX_SYMBOLS below + gold's GC=F - see
+# WATCHLIST's own risk_pct=2.0/stop_pct=2.0 for each). Wired into
+# _scheduler_tick's symbols_this_tick so these get evaluated EVERY tick,
+# same unconditional treatment as an open position, never waiting on the
+# round-robin cursor - and excluded from the round-robin's own flat_symbol
+# pool so they don't also eat a batch slot there, freeing more of the
+# batch for sweeping the rest of the untested universe.
+EVIDENCED_SYMBOLS = {"^NSEI", "^NSEBANK", "^BSESN", "GC=F"} | set(NSE_STOCK_PARAM_OVERRIDES.keys())
+
 WATCHLIST = [
     # NSE/BSE indices - IST 9:15-15:30, weekdays. Params from 2026-09-02
     # research (docs/daily_logs/2026-09-02-entry-trigger-research.md).
@@ -6991,8 +7013,18 @@ async def _scheduler_tick():
     # NEVER gated by this (open_equity_symbols/open_option_underlyings
     # below are unconditional) - only the round-robin's flat-symbol scan
     # pool composition changed.
+    # EVIDENCED_SYMBOLS (real, swept backtest evidence - see its own
+    # comment above NSE_STOCK_PARAM_OVERRIDES) are pulled OUT of the
+    # round-robin pool entirely and given to symbols_this_tick
+    # unconditionally below instead - explicit user instruction
+    # 2026-09-09 ("add preference to monitor these stocks out of the
+    # evidenced symbols"), so a proven symbol is never left waiting on
+    # the cursor's turn through ~2,655 mostly-unproven names, and the
+    # round-robin's own batch slots go further sweeping the rest of the
+    # universe instead of periodically re-covering ground already
+    # guaranteed here.
     flat_symbols = [] if trading_paused else [
-        s for s in all_symbols if s not in open_equity_symbols
+        s for s in all_symbols if s not in open_equity_symbols and s not in EVIDENCED_SYMBOLS
     ]
     if flat_symbols:
         n = len(flat_symbols)
@@ -7003,11 +7035,20 @@ async def _scheduler_tick():
     else:
         rr_batch = []
 
+    # Same trading_paused gate as the round-robin pool above - an
+    # evidenced symbol not currently open is still a NEW-entry scan
+    # nobody wants while trading is paused, so it's held back the same
+    # way flat_symbols is, not scanned unconditionally like an already-
+    # open position.
+    evidenced_flat = set() if trading_paused else (EVIDENCED_SYMBOLS - open_equity_symbols)
+
     # Always: every symbol with an open equity position (time-critical
     # stop/target/eod check) + every underlying with an open option
-    # position (same reason, for the overlay below) + this tick's
-    # round-robin entry-scan batch of otherwise-flat symbols.
-    symbols_this_tick = open_equity_symbols | open_option_underlyings | set(rr_batch)
+    # position (same reason, for the overlay below) + every evidenced,
+    # currently-flat symbol (preferred over the round-robin's turn) +
+    # this tick's round-robin entry-scan batch of the remaining,
+    # unevidenced flat symbols.
+    symbols_this_tick = open_equity_symbols | open_option_underlyings | evidenced_flat | set(rr_batch)
 
     # Hoisted once per tick, not per symbol - get_scheduler_capital_inr()
     # is TTL-cached internally anyway, but this avoids re-checking cache
