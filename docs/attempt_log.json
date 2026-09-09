@@ -124596,5 +124596,2925 @@
         "time_local": "2026-09-09 09:24:06.977418"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-09T04:03:51Z",
+    "attempts": {
+      "PROTEAN.NS": {
+        "checked_at_utc": 1788926222.5628133,
+        "symbol": "PROTEAN.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:26:46.253041"
+      },
+      "QNIFTY.NS": {
+        "checked_at_utc": 1788926223.8667479,
+        "symbol": "QNIFTY.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:02.563443"
+      },
+      "PROSTARM.NS": {
+        "checked_at_utc": 1788926226.3685658,
+        "symbol": "PROSTARM.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:03.867335"
+      },
+      "PSPPROJECT.NS": {
+        "checked_at_utc": 1788926228.2745097,
+        "symbol": "PSPPROJECT.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:06.369425"
+      },
+      "PVTBANK.NS": {
+        "checked_at_utc": 1788926229.6726573,
+        "symbol": "PVTBANK.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-09 09:27:08.361553"
+      },
+      "PRSMJOHNSN.NS": {
+        "checked_at_utc": 1788926230.967062,
+        "symbol": "PRSMJOHNSN.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:09.673363"
+      },
+      "QUESS.NS": {
+        "checked_at_utc": 1788926232.2710044,
+        "symbol": "QUESS.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:10.967671"
+      },
+      "PURVA.NS": {
+        "checked_at_utc": 1788926233.7700498,
+        "symbol": "PURVA.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:12.271774"
+      },
+      "PROZONER.NS": {
+        "checked_at_utc": 1788926235.272315,
+        "symbol": "PROZONER.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 2,
+        "time_local": "2026-09-09 09:27:13.771066"
+      },
+      "PSUBNKIETF.NS": {
+        "checked_at_utc": 1788926236.6683028,
+        "symbol": "PSUBNKIETF.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:15.273280"
+      },
+      "PYRAMID.NS": {
+        "checked_at_utc": 1788926238.3716042,
+        "symbol": "PYRAMID.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 2,
+        "time_local": "2026-09-09 09:27:16.671810"
+      },
+      "PSUBANK.NS": {
+        "checked_at_utc": 1788926239.8724241,
+        "symbol": "PSUBANK.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:18.372335"
+      },
+      "PVTBANKADD.NS": {
+        "checked_at_utc": 1788926241.568053,
+        "symbol": "PVTBANKADD.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:19.873147"
+      },
+      "PTCIL.NS": {
+        "checked_at_utc": 1788926243.6686032,
+        "symbol": "PTCIL.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:21.568809"
+      },
+      "PRISMX.NS": {
+        "checked_at_utc": 1788926245.7675998,
+        "symbol": "PRISMX.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 2,
+        "time_local": "2026-09-09 09:27:23.674383"
+      },
+      "QUALITY30.NS": {
+        "checked_at_utc": 1788926247.4684827,
+        "symbol": "QUALITY30.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 1,
+        "time_local": "2026-09-09 09:27:25.768739"
+      },
+      "PVTBANIETF.NS": {
+        "checked_at_utc": 1788926249.0629122,
+        "symbol": "PVTBANIETF.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:27.469079"
+      },
+      "PUNJABCHEM.NS": {
+        "checked_at_utc": 1788926250.5712512,
+        "symbol": "PUNJABCHEM.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:29.066408"
+      },
+      "PWL.NS": {
+        "checked_at_utc": 1788926252.073627,
+        "symbol": "PWL.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:30.572102"
+      },
+      "PRIVISCL.NS": {
+        "checked_at_utc": 1788926253.6617594,
+        "symbol": "PRIVISCL.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:32.160995"
+      },
+      "PTC.NS": {
+        "checked_at_utc": 1788926255.1692493,
+        "symbol": "PTC.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:33.662457"
+      },
+      "QGOLDHALF.NS": {
+        "checked_at_utc": 1788926256.868457,
+        "symbol": "QGOLDHALF.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:35.170114"
+      },
+      "QUICKHEAL.NS": {
+        "checked_at_utc": 1788926258.4672885,
+        "symbol": "QUICKHEAL.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:36.869482"
+      },
+      "PVSL.NS": {
+        "checked_at_utc": 1788926259.7710032,
+        "symbol": "PVSL.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 2,
+        "time_local": "2026-09-09 09:27:38.467924"
+      },
+      "QPOWER.NS": {
+        "checked_at_utc": 1788926261.3611336,
+        "symbol": "QPOWER.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:39.772600"
+      },
+      "PSUBANKADD.NS": {
+        "checked_at_utc": 1788926262.8618224,
+        "symbol": "PSUBANKADD.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:41.368653"
+      },
+      "PVRINOX.NS": {
+        "checked_at_utc": 1788926264.4718173,
+        "symbol": "PVRINOX.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:42.866139"
+      },
+      "QUAL30IETF.NS": {
+        "checked_at_utc": 1788926265.9663846,
+        "symbol": "QUAL30IETF.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-09 09:27:44.472527"
+      },
+      "PVP.NS": {
+        "checked_at_utc": 1788926267.3700502,
+        "symbol": "PVP.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:45.967541"
+      },
+      "PTL.NS": {
+        "checked_at_utc": 1788926268.869517,
+        "symbol": "PTL.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:47.371048"
+      },
+      "PRUDENT.NS": {
+        "checked_at_utc": 1788926270.3664937,
+        "symbol": "PRUDENT.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:48.870244"
+      },
+      "QUADFUTURE.NS": {
+        "checked_at_utc": 1788926275.1699214,
+        "symbol": "QUADFUTURE.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:50.367131"
+      },
+      "PSUBNKBEES.NS": {
+        "checked_at_utc": 1788926276.6710896,
+        "symbol": "PSUBNKBEES.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:55.170524"
+      },
+      "PVTBKGROWW.NS": {
+        "checked_at_utc": 1788926278.066622,
+        "symbol": "PVTBKGROWW.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:56.671753"
+      },
+      "PSB.NS": {
+        "checked_at_utc": 1788926279.277268,
+        "symbol": "PSB.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:27:58.067354"
+      },
+      "RAJRATAN.NS": {
+        "checked_at_utc": 1788926312.2729478,
+        "symbol": "RAJRATAN.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:30.487146"
+      },
+      "RAMAPHO.NS": {
+        "checked_at_utc": 1788926313.771243,
+        "symbol": "RAMAPHO.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 2,
+        "time_local": "2026-09-09 09:28:32.278747"
+      },
+      "QUINT.NS": {
+        "checked_at_utc": 1788926315.374084,
+        "symbol": "QUINT.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 1,
+        "time_local": "2026-09-09 09:28:33.772247"
+      },
+      "RAIN.NS": {
+        "checked_at_utc": 1788926316.871644,
+        "symbol": "RAIN.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:35.463141"
+      },
+      "RADICO.NS": {
+        "checked_at_utc": 1788926318.4649575,
+        "symbol": "RADICO.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:36.960048"
+      },
+      "RADIOCITY.NS": {
+        "checked_at_utc": 1788926320.0602558,
+        "symbol": "RADIOCITY.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 2,
+        "time_local": "2026-09-09 09:28:38.465776"
+      },
+      "RAMCOSYS.NS": {
+        "checked_at_utc": 1788926321.6674478,
+        "symbol": "RAMCOSYS.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:40.061482"
+      },
+      "RAMANEWS.NS": {
+        "checked_at_utc": 1788926323.261586,
+        "symbol": "RAMANEWS.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:41.669338"
+      },
+      "RANEHOLDIN.NS": {
+        "checked_at_utc": 1788926324.671168,
+        "symbol": "RANEHOLDIN.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:43.262442"
+      },
+      "RACE.NS": {
+        "checked_at_utc": 1788926326.0692086,
+        "symbol": "RACE.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 1,
+        "time_local": "2026-09-09 09:28:44.672627"
+      },
+      "RAJTV.NS": {
+        "checked_at_utc": 1788926327.5723011,
+        "symbol": "RAJTV.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-09 09:28:46.069840"
+      },
+      "RAJSREESUG.NS": {
+        "checked_at_utc": 1788926329.165989,
+        "symbol": "RAJSREESUG.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:47.573159"
+      },
+      "RAJMET.NS": {
+        "checked_at_utc": 1788926330.5686252,
+        "symbol": "RAJMET.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:49.166696"
+      },
+      "RATNAMANI.NS": {
+        "checked_at_utc": 1788926332.1708887,
+        "symbol": "RATNAMANI.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:50.569255"
+      },
+      "RAILTEL.NS": {
+        "checked_at_utc": 1788926333.761236,
+        "symbol": "RAILTEL.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:52.172024"
+      },
+      "RAYMONDREL.NS": {
+        "checked_at_utc": 1788926335.167554,
+        "symbol": "RAYMONDREL.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:53.766374"
+      },
+      "RAJPALAYAM.NS": {
+        "checked_at_utc": 1788926336.6710997,
+        "symbol": "RAJPALAYAM.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 1,
+        "time_local": "2026-09-09 09:28:55.168317"
+      },
+      "RAMRAT.NS": {
+        "checked_at_utc": 1788926337.9775052,
+        "symbol": "RAMRAT.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:56.671790"
+      },
+      "RADIANTCMS.NS": {
+        "checked_at_utc": 1788926339.4682598,
+        "symbol": "RADIANTCMS.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:58.060581"
+      },
+      "RAYMOND.NS": {
+        "checked_at_utc": 1788926340.9723282,
+        "symbol": "RAYMOND.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:28:59.468979"
+      },
+      "RACLGEAR.NS": {
+        "checked_at_utc": 1788926342.469915,
+        "symbol": "RACLGEAR.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:00.973063"
+      },
+      "RADAAN.NS": {
+        "checked_at_utc": 1788926343.960161,
+        "symbol": "RADAAN.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-09 09:29:02.470540"
+      },
+      "RATEGAIN.NS": {
+        "checked_at_utc": 1788926345.2684927,
+        "symbol": "RATEGAIN.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:03.961131"
+      },
+      "RALLIS.NS": {
+        "checked_at_utc": 1788926346.768308,
+        "symbol": "RALLIS.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:05.269227"
+      },
+      "RAMCOCEM.NS": {
+        "checked_at_utc": 1788926348.2693212,
+        "symbol": "RAMCOCEM.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:06.769654"
+      },
+      "RATNAVEER.NS": {
+        "checked_at_utc": 1788926349.861943,
+        "symbol": "RATNAVEER.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:08.270091"
+      },
+      "RADHIKAJWE.NS": {
+        "checked_at_utc": 1788926351.3681095,
+        "symbol": "RADHIKAJWE.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:09.862723"
+      },
+      "RAMCOIND.NS": {
+        "checked_at_utc": 1788926352.8674612,
+        "symbol": "RAMCOIND.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:11.369149"
+      },
+      "RAMBHAJO.NS": {
+        "checked_at_utc": 1788926354.4607806,
+        "symbol": "RAMBHAJO.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:12.868202"
+      },
+      "RBA.NS": {
+        "checked_at_utc": 1788926355.8703797,
+        "symbol": "RBA.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:14.463783"
+      },
+      "RANASUG.NS": {
+        "checked_at_utc": 1788926357.3692753,
+        "symbol": "RANASUG.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:15.871048"
+      },
+      "RAYMONDLSL.NS": {
+        "checked_at_utc": 1788926358.8704622,
+        "symbol": "RAYMONDLSL.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:17.369970"
+      },
+      "RBLBANK.NS": {
+        "checked_at_utc": 1788926360.3673415,
+        "symbol": "RBLBANK.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:18.872106"
+      },
+      "RAINBOW.NS": {
+        "checked_at_utc": 1788926361.7707431,
+        "symbol": "RAINBOW.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:20.368019"
+      },
+      "RAMKY.NS": {
+        "checked_at_utc": 1788926363.365932,
+        "symbol": "RAMKY.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:21.771397"
+      },
+      "RELIGARE.NS": {
+        "checked_at_utc": 1788926396.9714298,
+        "symbol": "RELIGARE.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:54.574202"
+      },
+      "RELTD.NS": {
+        "checked_at_utc": 1788926398.6610415,
+        "symbol": "RELTD.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:29:56.972156"
+      },
+      "RKDL.NS": {
+        "checked_at_utc": 1788926400.1678545,
+        "symbol": "RKDL.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 2,
+        "time_local": "2026-09-09 09:29:58.664765"
+      },
+      "RENUKA.NS": {
+        "checked_at_utc": 1788926401.7669723,
+        "symbol": "RENUKA.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:30:00.168523"
+      },
+      "RKEC.NS": {
+        "checked_at_utc": 1788926403.6610742,
+        "symbol": "RKEC.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:30:01.768779"
+      },
+      "RELCHEMQ.NS": {
+        "checked_at_utc": 1788926405.4690082,
+        "symbol": "RELCHEMQ.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:30:03.664779"
+      },
+      "REMSONSIND.NS": {
+        "checked_at_utc": 1788926407.3721526,
+        "symbol": "REMSONSIND.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:30:05.469743"
+      },
+      "RKFORGE.NS": {
+        "checked_at_utc": 1788926409.0709963,
+        "symbol": "RKFORGE.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:30:07.373056"
+      },
+      "RKSWAMY.NS": {
+        "checked_at_utc": 1788926410.6690526,
+        "symbol": "RKSWAMY.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:30:09.072239"
+      },
+      "REFEX.NS": {
+        "checked_at_utc": 1788926412.4675062,
+        "symbol": "REFEX.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:10.669934",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 275.25,
+        "orb_high": 276.75,
+        "orb_low": 274.79998779296875,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 3540.0,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RGL.NS": {
+        "checked_at_utc": 1788926414.5652928,
+        "symbol": "RGL.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:12.468259",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 148.75,
+        "orb_high": 149.49000549316406,
+        "orb_low": 147.7100067138672,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": true,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 12944.4,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "REGAAL.NS": {
+        "checked_at_utc": 1788926416.2647717,
+        "symbol": "REGAAL.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:14.568586",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 86.62000274658203,
+        "orb_high": 87.87000274658203,
+        "orb_low": 86.41000366210938,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 3149.9,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RECLTD.NS": {
+        "checked_at_utc": 1788926418.0668182,
+        "symbol": "RECLTD.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:16.269913",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 316.25,
+        "orb_high": 317.1000061035156,
+        "orb_low": 315.6000061035156,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 43583.35,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "REDINGTON.NS": {
+        "checked_at_utc": 1788926419.7726018,
+        "symbol": "REDINGTON.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:18.067667",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 377.5,
+        "orb_high": 379.79998779296875,
+        "orb_low": 376.79998779296875,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": true,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 80165.9,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RHIM.NS": {
+        "checked_at_utc": 1788926421.3608835,
+        "symbol": "RHIM.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:30:19.773298"
+      },
+      "RELAXO.NS": {
+        "checked_at_utc": 1788926422.9701078,
+        "symbol": "RELAXO.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:21.365119",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 329.8500061035156,
+        "orb_high": 333.45001220703125,
+        "orb_low": 329.29998779296875,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 1755.55,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RIR.NS": {
+        "checked_at_utc": 1788926424.6724854,
+        "symbol": "RIR.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:22.972034",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 186.74000549316406,
+        "orb_high": 188.39999389648438,
+        "orb_low": 184.67999267578125,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 25599.2,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "REDTAPE.NS": {
+        "checked_at_utc": 1788926426.4695063,
+        "symbol": "REDTAPE.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:24.673986",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 115.26000213623047,
+        "orb_high": 115.76000213623047,
+        "orb_low": 114.66000366210938,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 10563.4,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RITES.NS": {
+        "checked_at_utc": 1788926428.170187,
+        "symbol": "RITES.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:26.470277",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 212.16000366210938,
+        "orb_high": 212.9600067138672,
+        "orb_low": 211.6999969482422,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 3636.65,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RISHABH.NS": {
+        "checked_at_utc": 1788926429.8715248,
+        "symbol": "RISHABH.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:28.171094",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 826.9500122070312,
+        "orb_high": 834.7000122070312,
+        "orb_low": 804.2999877929688,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 4037.4,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RHETAN.NS": {
+        "checked_at_utc": 1788926431.5640748,
+        "symbol": "RHETAN.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:29.872228",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 28.510000228881836,
+        "orb_high": 28.760000228881836,
+        "orb_low": 28.510000228881836,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 721969.5,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RMC.NS": {
+        "checked_at_utc": 1788926433.7704859,
+        "symbol": "RMC.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:31.569025",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 227.25999450683594,
+        "orb_high": 229.66000366210938,
+        "orb_low": 224.88999938964844,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 842.15,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RBZJEWEL.NS": {
+        "checked_at_utc": 1788926435.4633284,
+        "symbol": "RBZJEWEL.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:33.771275",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 186.7899932861328,
+        "orb_high": 188.0,
+        "orb_low": 181.17999267578125,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 2098.0,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RETAIL.NS": {
+        "checked_at_utc": 1788926436.9690835,
+        "symbol": "RETAIL.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 2,
+        "time_local": "2026-09-09 09:30:35.467479"
+      },
+      "RICOAUTO.NS": {
+        "checked_at_utc": 1788926438.6756048,
+        "symbol": "RICOAUTO.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:36.969839",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 131.11000061035156,
+        "orb_high": 132.25,
+        "orb_low": 130.72000122070312,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 10664.55,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RESPONIND.NS": {
+        "checked_at_utc": 1788926440.3686018,
+        "symbol": "RESPONIND.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:38.761042",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 147.0,
+        "orb_high": 147.99000549316406,
+        "orb_low": 145.9199981689453,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 10947.1,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "REGENCERAM.NS": {
+        "checked_at_utc": 1788926442.0691857,
+        "symbol": "REGENCERAM.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 1,
+        "time_local": "2026-09-09 09:30:40.369384"
+      },
+      "RHL.NS": {
+        "checked_at_utc": 1788926443.6670496,
+        "symbol": "RHL.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-09 09:30:42.070220"
+      },
+      "RELIANCE.NS": {
+        "checked_at_utc": 1788926445.3648815,
+        "symbol": "RELIANCE.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:43.667807",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 1281.0999755859375,
+        "orb_high": 1285.199951171875,
+        "orb_low": 1277.9000244140625,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 258919.35,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RITCO.NS": {
+        "checked_at_utc": 1788926447.768154,
+        "symbol": "RITCO.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:45.366223",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 320.54998779296875,
+        "orb_high": 323.20001220703125,
+        "orb_low": 317.79998779296875,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 2698.6,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RELIABLE.NS": {
+        "checked_at_utc": 1788926449.3668575,
+        "symbol": "RELIABLE.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:47.768976",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 140.2100067138672,
+        "orb_high": 142.5,
+        "orb_low": 140.8699951171875,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 1388.35,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RIIL.NS": {
+        "checked_at_utc": 1788926451.0647337,
+        "symbol": "RIIL.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:49.367519",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 726.7000122070312,
+        "orb_high": 729.7000122070312,
+        "orb_low": 725.2999877929688,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 676.75,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RCF.NS": {
+        "checked_at_utc": 1788926452.7634678,
+        "symbol": "RCF.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:51.067800",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 112.69999694824219,
+        "orb_high": 113.05000305175781,
+        "orb_low": 112.58000183105469,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": true,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 12516.25,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "REPRO.NS": {
+        "checked_at_utc": 1788926454.5638463,
+        "symbol": "REPRO.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-09 09:30:52.768088"
+      },
+      "REPCOHOME.NS": {
+        "checked_at_utc": 1788926456.1705072,
+        "symbol": "REPCOHOME.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:30:54.569364",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 360.1499938964844,
+        "orb_high": 364.8500061035156,
+        "orb_low": 359.25,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 560.75,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RPSGVENT.NS": {
+        "checked_at_utc": 1788926490.1728415,
+        "symbol": "RPSGVENT.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:31:27.372918",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 825.75,
+        "orb_high": 827.9500122070312,
+        "orb_low": 803.1500244140625,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 354.4,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RUCHINFRA.NS": {
+        "checked_at_utc": 1788926491.773405,
+        "symbol": "RUCHINFRA.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:31:30.173450",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 5.610000133514404,
+        "orb_high": 5.739999771118164,
+        "orb_low": 5.53000020980835,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 1232.05,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RML.NS": {
+        "checked_at_utc": 1788926493.5734484,
+        "symbol": "RML.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:31:31.860723",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 1374.0,
+        "orb_high": 1402.699951171875,
+        "orb_low": 1368.300048828125,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 3187.1,
+          "current_volume": 35.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RRECL.NS": {
+        "checked_at_utc": 1788926495.2670429,
+        "symbol": "RRECL.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-09 09:31:33.574156"
+      },
+      "RPOWER.NS": {
+        "checked_at_utc": 1788926496.8678913,
+        "symbol": "RPOWER.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:31:35.267939",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 22.770000457763672,
+        "orb_high": 22.809999465942383,
+        "orb_low": 21.6299991607666,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": true,
+          "avg_volume": 940868.6,
+          "current_volume": 1452994.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RTSPOWR.NS": {
+        "checked_at_utc": 1788926499.0674512,
+        "symbol": "RTSPOWR.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 2,
+        "time_local": "2026-09-09 09:31:37.274333"
+      },
+      "RTNINDIA.NS": {
+        "checked_at_utc": 1788926500.6729612,
+        "symbol": "RTNINDIA.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:31:39.068369",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 27.950000762939453,
+        "orb_high": 28.1299991607666,
+        "orb_low": 27.799999237060547,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 16566.9,
+          "current_volume": 4076.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RTNPOWER.NS": {
+        "checked_at_utc": 1788926502.3735883,
+        "symbol": "RTNPOWER.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:31:40.673506",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 7.380000114440918,
+        "orb_high": 7.400000095367432,
+        "orb_low": 7.260000228881836,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 291333.4,
+          "current_volume": 62877.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "ROLEXRINGS.NS": {
+        "checked_at_utc": 1788926504.0612504,
+        "symbol": "ROLEXRINGS.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:31:42.374215",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 174.83999633789062,
+        "orb_high": 176.30999755859375,
+        "orb_low": 173.85000610351562,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 28837.25,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "ROUTE.NS": {
+        "checked_at_utc": 1788926505.861098,
+        "symbol": "ROUTE.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:31:44.065242",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 500.0,
+        "orb_high": 501.8500061035156,
+        "orb_low": 498.0,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 1627.5,
+          "current_volume": 651.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RUDRA.NS": {
+        "checked_at_utc": 1788926507.2691443,
+        "symbol": "RUDRA.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:31:45.864813",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 19.75,
+        "orb_high": 20.329999923706055,
+        "orb_low": 19.75,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 872.75,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RUCHIRA.NS": {
+        "checked_at_utc": 1788926508.963772,
+        "symbol": "RUCHIRA.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:31:47.269715",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 111.80000305175781,
+        "orb_high": 112.0,
+        "orb_low": 110.30999755859375,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 1880.2,
+          "current_volume": 394.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "ROSSARI.NS": {
+        "checked_at_utc": 1788926510.5710347,
+        "symbol": "ROSSARI.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:31:48.968171",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 455.3500061035156,
+        "orb_high": 456.8500061035156,
+        "orb_low": 453.54998779296875,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 823.45,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RPEL.NS": {
+        "checked_at_utc": 1788926516.2616982,
+        "symbol": "RPEL.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:31:50.571648",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 1705.0999755859375,
+        "orb_high": 1712.0,
+        "orb_low": 1688.0,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": true,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 1547.5,
+          "current_volume": 119.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "ROSSTECH.NS": {
+        "checked_at_utc": 1788926517.8618014,
+        "symbol": "ROSSTECH.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:31:56.266008",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 1227.5,
+        "orb_high": 1241.699951171875,
+        "orb_low": 1213.4000244140625,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 7222.7,
+          "current_volume": 807.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "ROML.NS": {
+        "checked_at_utc": 1788926519.2674353,
+        "symbol": "ROML.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-09 09:31:57.862817"
+      },
+      "RUSHIL.NS": {
+        "checked_at_utc": 1788926520.8675272,
+        "symbol": "RUSHIL.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:31:59.268135"
+      },
+      "RUBICON.NS": {
+        "checked_at_utc": 1788926522.5726423,
+        "symbol": "RUBICON.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:00.868474",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 1847.0,
+        "orb_high": 1863.0,
+        "orb_low": 1835.0,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 10266.05,
+          "current_volume": 651.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "ROTO.NS": {
+        "checked_at_utc": 1788926524.0630565,
+        "symbol": "ROTO.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:02.573343",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 64.4000015258789,
+        "orb_high": 65.44000244140625,
+        "orb_low": 64.41000366210938,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 10375.85,
+          "current_volume": 131.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RSSOFTWARE.NS": {
+        "checked_at_utc": 1788926525.5714526,
+        "symbol": "RSSOFTWARE.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 2,
+        "time_local": "2026-09-09 09:32:04.067198"
+      },
+      "RPTECH.NS": {
+        "checked_at_utc": 1788926527.1641054,
+        "symbol": "RPTECH.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:05.572329",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 802.0,
+        "orb_high": 815.0,
+        "orb_low": 800.0,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 8262.7,
+          "current_volume": 2520.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RUPA.NS": {
+        "checked_at_utc": 1788926528.8660982,
+        "symbol": "RUPA.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:07.167624",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 140.91000366210938,
+        "orb_high": 142.49000549316406,
+        "orb_low": 141.22000122070312,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 1323.4,
+          "current_volume": 158.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RPPINFRA.NS": {
+        "checked_at_utc": 1788926530.7667174,
+        "symbol": "RPPINFRA.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:08.867042",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 53.310001373291016,
+        "orb_high": 54.209999084472656,
+        "orb_low": 53.0,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 455.3,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RVHL.NS": {
+        "checked_at_utc": 1788926532.2662432,
+        "symbol": "RVHL.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:10.767582",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 39.79999923706055,
+        "orb_high": 40.0,
+        "orb_low": 39.75,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 493.75,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RSYSTEMS.NS": {
+        "checked_at_utc": 1788926533.968571,
+        "symbol": "RSYSTEMS.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:12.267726",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 240.88999938964844,
+        "orb_high": 245.02000427246094,
+        "orb_low": 239.11000061035156,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 2674.25,
+          "current_volume": 1120.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RUBYMILLS.NS": {
+        "checked_at_utc": 1788926535.5669813,
+        "symbol": "RUBYMILLS.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:13.969334",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 463.04998779296875,
+        "orb_high": 474.45001220703125,
+        "orb_low": 444.54998779296875,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 494.35,
+          "current_volume": 392.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RSL.NS": {
+        "checked_at_utc": 1788926537.1726418,
+        "symbol": "RSL.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:15.572436",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 189.72000122070312,
+        "orb_high": 191.25,
+        "orb_low": 188.0,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 6333.5,
+          "current_volume": 209.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RVNL.NS": {
+        "checked_at_utc": 1788926538.863993,
+        "symbol": "RVNL.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:17.173382",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 208.8300018310547,
+        "orb_high": 208.99000549316406,
+        "orb_low": 206.41000366210938,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": true,
+          "avg_volume": 68371.9,
+          "current_volume": 107056.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RUSTOMJEE.NS": {
+        "checked_at_utc": 1788926540.5635648,
+        "symbol": "RUSTOMJEE.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:18.864715",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 354.1499938964844,
+        "orb_high": 358.3500061035156,
+        "orb_low": 354.1499938964844,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 8982.2,
+          "current_volume": 34.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RPGLIFE.NS": {
+        "checked_at_utc": 1788926542.2726505,
+        "symbol": "RPGLIFE.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:20.564384",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 2935.0,
+        "orb_high": 2953.89990234375,
+        "orb_low": 2844.10009765625,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 1653.2,
+          "current_volume": 1093.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "ROSSELLIND.NS": {
+        "checked_at_utc": 1788926543.9731545,
+        "symbol": "ROSSELLIND.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:22.273237",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 55.79999923706055,
+        "orb_high": 56.599998474121094,
+        "orb_low": 55.36000061035156,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 1135.85,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RRIL.NS": {
+        "checked_at_utc": 1788926545.3751879,
+        "symbol": "RRIL.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 2,
+        "time_local": "2026-09-09 09:32:24.060092"
+      },
+      "ROHLTD.NS": {
+        "checked_at_utc": 1788926547.163823,
+        "symbol": "ROHLTD.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:25.460069",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 308.1000061035156,
+        "orb_high": 313.79998779296875,
+        "orb_low": 308.0,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 553.45,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RUBFILA.NS": {
+        "checked_at_utc": 1788926548.466114,
+        "symbol": "RUBFILA.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 1,
+        "time_local": "2026-09-09 09:32:27.167790"
+      },
+      "RRKABEL.NS": {
+        "checked_at_utc": 1788926550.0608754,
+        "symbol": "RRKABEL.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:32:28.466763",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 2454.10009765625,
+        "orb_high": 2465.39990234375,
+        "orb_low": 2435.5,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": true,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 9592.0,
+          "current_volume": 4096.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SANDUMA.NS": {
+        "checked_at_utc": 1788926583.066283,
+        "symbol": "SANDUMA.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:01.189784",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 197.22000122070312,
+        "orb_high": 197.77000427246094,
+        "orb_low": 195.8000030517578,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 5867.3,
+          "current_volume": 2635.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SANDESH.NS": {
+        "checked_at_utc": 1788926584.8753328,
+        "symbol": "SANDESH.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:33:03.072676"
+      },
+      "SAILIFE.NS": {
+        "checked_at_utc": 1788926586.3694623,
+        "symbol": "SAILIFE.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:04.878083",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 1664.800048828125,
+        "orb_high": 1672.0,
+        "orb_low": 1645.0,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 21604.5,
+          "current_volume": 15734.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SAKSOFT.NS": {
+        "checked_at_utc": 1788926588.0640998,
+        "symbol": "SAKSOFT.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:06.370210",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 150.19000244140625,
+        "orb_high": 150.7899932861328,
+        "orb_low": 148.02000427246094,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 6061.75,
+          "current_volume": 218.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SALSTEEL.NS": {
+        "checked_at_utc": 1788926589.5662472,
+        "symbol": "SALSTEEL.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:08.064799",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 79.7699966430664,
+        "orb_high": 80.70999908447266,
+        "orb_low": 79.23999786376953,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 7879.1,
+          "current_volume": 119.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SAGARDEEP.NS": {
+        "checked_at_utc": 1788926591.0740626,
+        "symbol": "SAGARDEEP.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:09.566966",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 23.93000030517578,
+        "orb_high": 24.229999542236328,
+        "orb_low": 23.600000381469727,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 55.75,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SAGILITY.NS": {
+        "checked_at_utc": 1788926592.7656653,
+        "symbol": "SAGILITY.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:11.161100",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 45.04999923706055,
+        "orb_high": 45.70000076293945,
+        "orb_low": 44.97999954223633,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 411747.2,
+          "current_volume": 259282.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SALZERELEC.NS": {
+        "checked_at_utc": 1788926594.2639394,
+        "symbol": "SALZERELEC.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:12.766553",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 554.4000244140625,
+        "orb_high": 554.7000122070312,
+        "orb_low": 548.25,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 746.65,
+          "current_volume": 199.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SAKHTISUG.NS": {
+        "checked_at_utc": 1788926595.8601525,
+        "symbol": "SAKHTISUG.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:14.268275",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 19.649999618530273,
+        "orb_high": 19.920000076293945,
+        "orb_low": 19.68000030517578,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": true,
+          "avg_volume": 1634.7,
+          "current_volume": 1840.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SAB.NS": {
+        "checked_at_utc": 1788926597.2743711,
+        "symbol": "SAB.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-09 09:33:15.860899"
+      },
+      "SAFARI.NS": {
+        "checked_at_utc": 1788926598.7642279,
+        "symbol": "SAFARI.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:17.275179",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 1519.800048828125,
+        "orb_high": 1540.800048828125,
+        "orb_low": 1515.5,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 503.5,
+          "current_volume": 66.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SAIL.NS": {
+        "checked_at_utc": 1788926600.2669516,
+        "symbol": "SAIL.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:18.764862",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 187.39999389648438,
+        "orb_high": 188.1199951171875,
+        "orb_low": 185.36000061035156,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 369799.95,
+          "current_volume": 104680.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SALONA.NS": {
+        "checked_at_utc": 1788926601.774517,
+        "symbol": "SALONA.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-09 09:33:20.267545"
+      },
+      "SADBHAV.NS": {
+        "checked_at_utc": 1788926603.3698914,
+        "symbol": "SADBHAV.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:21.775186",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 8.199999809265137,
+        "orb_high": 8.09000015258789,
+        "orb_low": 7.900000095367432,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": true,
+          "avg_volume": 3750.7,
+          "current_volume": 14015.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SAATVIKGL.NS": {
+        "checked_at_utc": 1788926605.0755525,
+        "symbol": "SAATVIKGL.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:23.370917",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 415.0,
+        "orb_high": 415.8999938964844,
+        "orb_low": 412.04998779296875,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 954.8,
+          "current_volume": 44.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SALASAR.NS": {
+        "checked_at_utc": 1788926606.865439,
+        "symbol": "SALASAR.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:25.076545",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 5.130000114440918,
+        "orb_high": 5.130000114440918,
+        "orb_low": 5.059999942779541,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": true,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 77840.0,
+          "current_volume": 72559.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "S&SPOWER.NS": {
+        "checked_at_utc": 1788926608.3711376,
+        "symbol": "S&SPOWER.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:33:26.866330"
+      },
+      "SANGAMIND.NS": {
+        "checked_at_utc": 1788926609.7734003,
+        "symbol": "SANGAMIND.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 3,
+        "time_local": "2026-09-09 09:33:28.372056"
+      },
+      "SAKAR.NS": {
+        "checked_at_utc": 1788926611.364322,
+        "symbol": "SAKAR.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:29.774354",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 1129.0,
+        "orb_high": 1175.800048828125,
+        "orb_low": 1120.0,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 4567.8,
+          "current_volume": 1338.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SAMBHAAV.NS": {
+        "checked_at_utc": 1788926612.770317,
+        "symbol": "SAMBHAAV.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:31.364963",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 6.03000020980835,
+        "orb_high": 5.710000038146973,
+        "orb_low": 5.710000038146973,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 199.9,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SAHLIBHFI.NS": {
+        "checked_at_utc": 1788926614.3741589,
+        "symbol": "SAHLIBHFI.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:32.771505",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 83.5199966430664,
+        "orb_high": 86.31999969482422,
+        "orb_low": 84.88999938964844,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 1090.65,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SAMBANDAM.NS": {
+        "checked_at_utc": 1788926615.767545,
+        "symbol": "SAMBANDAM.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-09 09:33:34.460375"
+      },
+      "SANDHAR.NS": {
+        "checked_at_utc": 1788926617.6713471,
+        "symbol": "SANDHAR.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:35.768279",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 623.8499755859375,
+        "orb_high": 627.0,
+        "orb_low": 621.0499877929688,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": true,
+          "avg_volume": 1411.8,
+          "current_volume": 3098.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SANATHAN.NS": {
+        "checked_at_utc": 1788926619.2601566,
+        "symbol": "SANATHAN.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:37.672674",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 481.79998779296875,
+        "orb_high": 483.29998779296875,
+        "orb_low": 472.29998779296875,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": true,
+          "avg_volume": 2476.9,
+          "current_volume": 4684.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SAHYADRI.NS": {
+        "checked_at_utc": 1788926620.7685304,
+        "symbol": "SAHYADRI.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:39.260981",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 377.70001220703125,
+        "orb_high": 385.3999938964844,
+        "orb_low": 376.54998779296875,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": true,
+          "avg_volume": 312.8,
+          "current_volume": 1496.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SAICAPI.NS": {
+        "checked_at_utc": 1788926622.471047,
+        "symbol": "SAICAPI.NS",
+        "status": "waiting_for_opening_range",
+        "bars_so_far": 1,
+        "time_local": "2026-09-09 09:33:40.769359"
+      },
+      "SAMHI.NS": {
+        "checked_at_utc": 1788926624.0702517,
+        "symbol": "SAMHI.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:42.471994",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 154.5500030517578,
+        "orb_high": 155.83999633789062,
+        "orb_low": 153.75,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": false,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 11919.5,
+          "current_volume": 1677.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "RVTH.NS": {
+        "checked_at_utc": 1788926626.7620647,
+        "symbol": "RVTH.NS",
+        "status": "checked",
+        "time_local": "2026-09-09 09:33:44.070997",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 773.0,
+        "orb_high": 775.0,
+        "orb_low": 752.4500122070312,
+        "sma_fast": null,
+        "sma_slow": null,
+        "trend": null,
+        "capital": 1937.96,
+        "daily_loss_cap": 38.7592,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 38.76,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 45.3,
+          "current_volume": 0.0
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      }
+    }
   }
 ]
