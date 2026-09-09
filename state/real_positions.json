@@ -1,19 +1,6 @@
 {
   "open_real_positions": [
     {
-      "symbol": "MEDICAMEQ.NS",
-      "kotak_trading_symbol": "MEDICAMEQ-EQ",
-      "qty": 3,
-      "entry_price": 291.4,
-      "entry_order_id": "260909000214760",
-      "opened_at": 1788931043.9426906,
-      "day": "2026-09-09",
-      "sl_order_id": "260909000214975",
-      "sl_trigger_price": 288.6,
-      "target_order_id": null,
-      "target_price": 300.13
-    },
-    {
       "symbol": "SILVERCASE.NS",
       "kotak_trading_symbol": "SILVERCASE-EQ",
       "qty": 7,
@@ -27,69 +14,30 @@
       "target_price": 24.31
     },
     {
-      "symbol": "DCMSIL.NS",
-      "kotak_trading_symbol": "DCMSIL-EQ",
-      "qty": 2,
-      "entry_price": 70.68,
-      "entry_order_id": "260909000256097",
-      "opened_at": 1788933428.8918905,
-      "day": "2026-09-09",
-      "sl_order_id": "260909000256217",
-      "sl_trigger_price": 69.85,
-      "target_order_id": null,
-      "target_price": 72.81
-    },
-    {
-      "symbol": "GROWWSLVR.NS",
-      "kotak_trading_symbol": "GROWWSLVR-EQ",
-      "qty": 5,
-      "entry_price": 22.89,
-      "entry_order_id": "260909000269856",
-      "opened_at": 1788934063.395772,
-      "day": "2026-09-09",
-      "sl_order_id": "260909000269972",
-      "sl_trigger_price": 22.75,
-      "target_order_id": null,
-      "target_price": 23.58
-    },
-    {
-      "symbol": "SHAREINDIA.NS",
-      "kotak_trading_symbol": "SHAREINDIA-EQ",
+      "symbol": "JGCHEM.NS",
+      "kotak_trading_symbol": "JGCHEM-EQ",
       "qty": 1,
-      "entry_price": 179.69,
-      "entry_order_id": "260909000310847",
-      "opened_at": 1788936233.0528471,
+      "entry_price": 627.3,
+      "entry_order_id": "260909000382820",
+      "opened_at": 1788939278.0203054,
       "day": "2026-09-09",
-      "sl_order_id": "260909000310982",
-      "sl_trigger_price": 177.95,
+      "sl_order_id": "260909000382927",
+      "sl_trigger_price": 620.75,
       "target_order_id": null,
-      "target_price": null
+      "target_price": 646.11
     },
     {
-      "symbol": "VIPIND.NS",
-      "kotak_trading_symbol": "VIPIND-EQ",
-      "qty": 1,
-      "entry_price": 310.7,
-      "entry_order_id": "260909000319707",
-      "opened_at": 1788936864.6243634,
+      "symbol": "KANPRPLA.NS",
+      "kotak_trading_symbol": "KANPRPLA-EQ",
+      "qty": 3,
+      "entry_price": 246.7,
+      "entry_order_id": "260909000383557",
+      "opened_at": 1788939328.661609,
       "day": "2026-09-09",
-      "sl_order_id": "260909000319840",
-      "sl_trigger_price": 307.8,
+      "sl_order_id": "260909000383657",
+      "sl_trigger_price": 243.8,
       "target_order_id": null,
-      "target_price": null
-    },
-    {
-      "symbol": "AJOONI.NS",
-      "kotak_trading_symbol": "AJOONI-EQ",
-      "qty": 67,
-      "entry_price": 3.49,
-      "entry_order_id": "260909000327210",
-      "opened_at": 1788937237.1734235,
-      "day": "2026-09-09",
-      "sl_order_id": "260909000327381",
-      "sl_trigger_price": 3.45,
-      "target_order_id": null,
-      "target_price": 3.58
+      "target_price": 254.11
     }
   ]
 }
