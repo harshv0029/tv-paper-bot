@@ -1,0 +1,62 @@
+name: Heikin Ashi VWAP Backtest (research)
+
+# Real backtest for heikin_ashi_vwap (main.py's add_strategy_signal) -
+# explicit user instruction 2026-09-09: research web/social sources for
+# strategies, backtest, then only execute what clears real evidence.
+# Sourced from liberatedstocktrader.com's "VWAP + Heikin Ashi... 93%"
+# claim - this is the test of whether that claim holds on real NSE
+# data, not just the site's own numbers taken on faith.
+#
+# Same symbol spread as mtf-engulfing-backtest.yml for direct
+# comparability (RELIANCE/TCS/TITAN/DIVISLAB + NIFTY/BANKNIFTY), 60d of
+# real 5-min data (the exact timeframe the source article itself
+# names), both require_no_lower_wick variants. Imports main.py directly
+# - calls its own add_strategy_signal/extract_trades_fast. Read-only,
+# writes nothing, changes no live trading behavior by itself.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run heikin_ashi_vwap backtest
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import main as m
+
+          SYMBOLS = ["RELIANCE.NS", "TCS.NS", "TITAN.NS", "DIVISLAB.NS", "^NSEI", "^NSEBANK"]
+          VARIANTS = {"loose (any HA bullish candle)": False, "strict (no lower wick)": True}
+
+          for sym in SYMBOLS:
+              try:
+                  df = m.fetch_ohlc(sym, "60d", "5m")
+              except Exception as e:
+                  print(f"SKIP {sym}: fetch failed - {e}")
+                  continue
+
+              for label, strict in VARIANTS.items():
+                  sig_df = m.add_strategy_signal(df, "heikin_ashi_vwap", {"require_no_lower_wick": strict})
+                  long_arr = sig_df["long"].to_numpy()
+                  close_arr = sig_df["Close"].to_numpy(dtype=float)
+                  dates = sig_df["Date"].apply(lambda d: d.isoformat()).to_numpy()
+                  trades, _ = m.extract_trades_fast(long_arr, close_arr, dates, 1)
+                  if not trades:
+                      print(f"{sym} [{label}]: 0 trades - no signal at all")
+                      continue
+                  wins = [t for t in trades if t["pnl"] > 0]
+                  total_pnl = round(sum(t["pnl"] for t in trades), 2)
+                  win_rate = round(100 * len(wins) / len(trades), 1)
+                  print(f"{sym} [{label}]: {len(trades)} trades, win_rate {win_rate}%, total_pnl {total_pnl}")
+          PYEOF
