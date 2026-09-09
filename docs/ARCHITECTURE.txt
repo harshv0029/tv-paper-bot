@@ -5,6 +5,10 @@ Repo:        harshv0029/tv-paper-bot
 Live app:    https://tv-paper-bot-gdan.onrender.com
 Written:     2026-09-09, end of the "universal entry-confidence engine"
              build + external-review fix session, for future reference.
+LAST_SYNCED_COMMIT: 0d3be913342e8a29dce53602075b693de3d0fcd7
+             (main's HEAD as of the content below -- an automated sync
+             Routine advances this line and the relevant sections after
+             every deploy-gate merge to main; see section 14.)
 Maintainer note: this file is a snapshot. main.py's own inline comments
 (dated, citing the explicit user instruction behind each change) are the
 real source of truth if this file and the code ever disagree -- update
@@ -671,4 +675,30 @@ All of the above were explicitly proposed and explicitly declined or
 deferred in-session, not overlooked -- see docs/TRADING_CONSTRAINTS.md's
 "What this explicitly does NOT do" section for the fuller reasoning
 behind each.
+================================================================================
+
+================================================================================
+14. KEEPING THIS FILE CURRENT (automated)
+================================================================================
+This file is kept in sync with `main` by a scheduled Claude Code Remote
+Routine ("Sync ARCHITECTURE.txt after main deploys"), explicit user
+request 2026-09-10 -- NOT a live GitHub-webhook trigger (no such bridge
+exists in this repo), a periodic check instead:
+
+  every ~6 hours, a fresh session:
+    1. reads this file's own LAST_SYNCED_COMMIT line (top of file)
+    2. diffs that commit against origin/main's current HEAD
+    3. if main hasn't moved: does nothing (expected, most checks)
+    4. if main HAS moved: reviews the intervening commits, updates
+       whichever sections above actually changed (skips journal-sync/
+       sentiment-log/research-only commits that don't touch live
+       trading behavior), advances LAST_SYNCED_COMMIT, and pushes the
+       update through deploy-gate.yml LIKE ANY OTHER CHANGE -- this
+       file's own automation does not get a shortcut around the "only
+       path to main" rule, even for a docs-only diff.
+
+If this section itself looks stale, or LAST_SYNCED_COMMIT is far behind
+main's actual HEAD, the Routine has likely stopped firing -- check
+`list_triggers` for "Sync ARCHITECTURE.txt after main deploys" rather
+than assuming the doc is simply wrong.
 ================================================================================
