@@ -30,6 +30,23 @@ def test_flag_matches_the_real_kotak_rejection_string():
         assert main._is_t1_restricted(conn, "AARTIIND.NS") is False
 
 
+def test_flag_matches_the_real_t2t_same_day_sell_rejection_string():
+    # 2026-09-09, MEDICAMEQ.NS - a genuinely different root cause (SEBI/
+    # exchange Trade-to-Trade surveillance category, not Kotak's own T1-
+    # holdings RMS check) surfacing under a completely different message.
+    _fresh_db()
+    detail = (
+        "order 260909000215155 rejected: Insufficient quantity held for this order. Try "
+        "placing an order with a lesser quantity / check open orders in the same scrip / "
+        "For MTF stock, select correct product type / Selling Trade-to-Trade stocks on the "
+        "same day of purchase is not allowed."
+    )
+    with closing(main.get_db()) as conn:
+        assert main._is_t1_restricted(conn, "MEDICAMEQ.NS") is False
+        main._flag_if_t1_restricted(conn, "MEDICAMEQ.NS", detail)
+        assert main._is_t1_restricted(conn, "MEDICAMEQ.NS") is True
+
+
 def test_flag_ignores_unrelated_rejection_reasons():
     _fresh_db()
     with closing(main.get_db()) as conn:
