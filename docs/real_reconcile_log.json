@@ -29,5 +29,939 @@
         "qty": 16
       }
     ]
+  },
+  {
+    "reconciled_at_utc": 1788849440.8780885,
+    "real_balance_inr": 1029.6599999999999,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 1,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 1,
+    "adopted": [
+      {
+        "symbol": "ATL.NS",
+        "kotak_trading_symbol": "ATL-EQ",
+        "qty": 16,
+        "entry_price": 25.94,
+        "entry_order_id": "260908000313004",
+        "sl_order_id": "260908000313366",
+        "sl_trigger_price": 25.68
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788850007.3301528,
+    "real_balance_inr": 821.04,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 1,
+    "removed_ghosts": [
+      {
+        "symbol": "AGI.NS",
+        "kotak_trading_symbol": "AGI-EQ",
+        "was_tracked_qty": 1
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 1,
+    "adopted": [
+      {
+        "symbol": "AARTIIND.NS",
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1,
+        "entry_price": 500.3,
+        "entry_order_id": "260908000341676",
+        "sl_order_id": "260908000341941",
+        "sl_trigger_price": 495.3
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788851871.1330457,
+    "real_balance_inr": 145.49108899999987,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 2,
+    "untracked_open_positions": [
+      {
+        "kotak_trading_symbol": "ADANIPOWER-EQ",
+        "qty": 3
+      },
+      {
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1
+      }
+    ],
+    "adopted_count": 1,
+    "adopted": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "qty": 36,
+        "entry_price": 15.75,
+        "entry_order_id": "260908000258549",
+        "sl_order_id": null,
+        "sl_trigger_price": null
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788851918.8467178,
+    "real_balance_inr": 145.49108899999987,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 2,
+    "adopted": [
+      {
+        "symbol": "ADANIPOWER.NS",
+        "kotak_trading_symbol": "ADANIPOWER-EQ",
+        "qty": 3,
+        "entry_price": 207.91,
+        "entry_order_id": "260908000352736",
+        "sl_order_id": "260908000352913",
+        "sl_trigger_price": 205.67
+      },
+      {
+        "symbol": "AARTIIND.NS",
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1,
+        "entry_price": 500.3,
+        "entry_order_id": "260908000341676",
+        "sl_order_id": "260908000341941",
+        "sl_trigger_price": 495.3
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788852492.769827,
+    "real_balance_inr": 145.49108899999987,
+    "qty_corrected_count": 1,
+    "qty_corrected": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "old_qty": 1,
+        "new_qty": 36
+      }
+    ],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 2,
+    "adopted": [
+      {
+        "symbol": "AARTIIND.NS",
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1,
+        "entry_price": 500.3,
+        "entry_order_id": "260908000341676",
+        "sl_order_id": "260908000341941",
+        "sl_trigger_price": 495.3,
+        "target_order_id": null,
+        "target_price": null
+      },
+      {
+        "symbol": "ADANIPOWER.NS",
+        "kotak_trading_symbol": "ADANIPOWER-EQ",
+        "qty": 3,
+        "entry_price": 207.91,
+        "entry_order_id": "260908000352736",
+        "sl_order_id": "260908000352913",
+        "sl_trigger_price": 205.67,
+        "target_order_id": null,
+        "target_price": null
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788852893.4683566,
+    "real_balance_inr": 821.04,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 2,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      },
+      {
+        "symbol": "BHANDARI.NS",
+        "kotak_trading_symbol": "BHANDARI-EQ",
+        "was_tracked_qty": 36
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 2,
+    "adopted": [
+      {
+        "symbol": "AARTIIND.NS",
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1,
+        "entry_price": 500.3,
+        "entry_order_id": "260908000341676",
+        "sl_order_id": "260908000341941",
+        "sl_trigger_price": 495.3,
+        "target_order_id": null,
+        "target_price": null
+      },
+      {
+        "symbol": "ADANIPOWER.NS",
+        "kotak_trading_symbol": "ADANIPOWER-EQ",
+        "qty": 3,
+        "entry_price": 207.91,
+        "entry_order_id": "260908000352736",
+        "sl_order_id": "260908000352913",
+        "sl_trigger_price": 205.67,
+        "target_order_id": null,
+        "target_price": null
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788853758.024205,
+    "real_balance_inr": 282.29999999999995,
+    "qty_corrected_count": 1,
+    "qty_corrected": [
+      {
+        "symbol": "ABSLNN50ET.NS",
+        "kotak_trading_symbol": "ABSLNN50ET-EQ",
+        "old_qty": 2,
+        "new_qty": 7
+      }
+    ],
+    "removed_ghost_count": 2,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      },
+      {
+        "symbol": "BHANDARI.NS",
+        "kotak_trading_symbol": "BHANDARI-EQ",
+        "was_tracked_qty": 36
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 2,
+    "adopted": [
+      {
+        "symbol": "AARTIIND.NS",
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1,
+        "entry_price": 500.3,
+        "entry_order_id": "260908000341676",
+        "sl_order_id": "260908000341941",
+        "sl_trigger_price": 495.3,
+        "target_order_id": null,
+        "target_price": null
+      },
+      {
+        "symbol": "ADANIPOWER.NS",
+        "kotak_trading_symbol": "ADANIPOWER-EQ",
+        "qty": 3,
+        "entry_price": 207.91,
+        "entry_order_id": "260908000352736",
+        "sl_order_id": "260908000352913",
+        "sl_trigger_price": 205.67,
+        "target_order_id": null,
+        "target_price": null
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788860218.5840487,
+    "real_balance_inr": 1442.77,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 0,
+    "adopted": []
+  },
+  {
+    "reconciled_at_utc": 1788860309.762035,
+    "real_balance_inr": 905.81,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 1,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 2,
+    "adopted": [
+      {
+        "symbol": "ADVENTHTL.NS",
+        "kotak_trading_symbol": "ADVENTHTL-EQ",
+        "qty": 4,
+        "entry_price": 134.24,
+        "entry_order_id": "260908000569845",
+        "sl_order_id": "260908000569964",
+        "sl_trigger_price": 132.66,
+        "target_order_id": null,
+        "target_price": null
+      },
+      {
+        "symbol": "AARTIIND.NS",
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1,
+        "entry_price": 502.3,
+        "entry_order_id": "260908000341676",
+        "sl_order_id": null,
+        "sl_trigger_price": null,
+        "target_order_id": null,
+        "target_price": null
+      }
+    ],
+    "governance_backfilled_count": 2,
+    "governance_backfilled": [
+      {
+        "symbol": "ADVENTHTL.NS",
+        "entry_price": 134.24,
+        "stop_loss": 132.9,
+        "target": 138.26,
+        "qty": 4
+      },
+      {
+        "symbol": "AARTIIND.NS",
+        "entry_price": 502.3,
+        "stop_loss": 497.28,
+        "target": 517.36,
+        "qty": 1
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788860472.8741827,
+    "real_balance_inr": 905.81,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 2,
+    "adopted": [
+      {
+        "symbol": "AARTIIND.NS",
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1,
+        "entry_price": 502.3,
+        "entry_order_id": "260908000565893",
+        "sl_order_id": null,
+        "sl_trigger_price": null,
+        "target_order_id": null,
+        "target_price": null
+      },
+      {
+        "symbol": "ADVENTHTL.NS",
+        "kotak_trading_symbol": "ADVENTHTL-EQ",
+        "qty": 4,
+        "entry_price": 134.24,
+        "entry_order_id": "260908000569845",
+        "sl_order_id": "260908000569964",
+        "sl_trigger_price": 132.66,
+        "target_order_id": null,
+        "target_price": null
+      }
+    ],
+    "governance_backfilled_count": 2,
+    "governance_backfilled": [
+      {
+        "symbol": "AARTIIND.NS",
+        "entry_price": 502.3,
+        "stop_loss": 497.28,
+        "target": 517.36,
+        "qty": 1
+      },
+      {
+        "symbol": "ADVENTHTL.NS",
+        "entry_price": 134.24,
+        "stop_loss": 132.9,
+        "target": 138.26,
+        "qty": 4
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788860686.3410666,
+    "real_balance_inr": 905.81,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 1,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 2,
+    "adopted": [
+      {
+        "symbol": "AARTIIND.NS",
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1,
+        "entry_price": 502.3,
+        "entry_order_id": "260908000565893",
+        "sl_order_id": null,
+        "sl_trigger_price": null,
+        "target_order_id": null,
+        "target_price": null
+      },
+      {
+        "symbol": "ADVENTHTL.NS",
+        "kotak_trading_symbol": "ADVENTHTL-EQ",
+        "qty": 4,
+        "entry_price": 134.24,
+        "entry_order_id": "260908000569845",
+        "sl_order_id": "260908000569964",
+        "sl_trigger_price": 132.66,
+        "target_order_id": null,
+        "target_price": null
+      }
+    ],
+    "governance_backfilled_count": 2,
+    "governance_backfilled": [
+      {
+        "symbol": "AARTIIND.NS",
+        "entry_price": 502.3,
+        "stop_loss": 497.28,
+        "target": 517.36,
+        "qty": 1
+      },
+      {
+        "symbol": "ADVENTHTL.NS",
+        "entry_price": 134.24,
+        "stop_loss": 132.9,
+        "target": 138.26,
+        "qty": 4
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788860760.738086,
+    "real_balance_inr": 905.81,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 2,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      },
+      {
+        "symbol": "BHANDARI.NS",
+        "kotak_trading_symbol": "BHANDARI-EQ",
+        "was_tracked_qty": 36
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 2,
+    "adopted": [
+      {
+        "symbol": "ADVENTHTL.NS",
+        "kotak_trading_symbol": "ADVENTHTL-EQ",
+        "qty": 4,
+        "entry_price": 134.24,
+        "entry_order_id": "260908000569845",
+        "sl_order_id": "260908000569964",
+        "sl_trigger_price": 132.66,
+        "target_order_id": null,
+        "target_price": null
+      },
+      {
+        "symbol": "AARTIIND.NS",
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1,
+        "entry_price": 502.3,
+        "entry_order_id": "260908000341676",
+        "sl_order_id": null,
+        "sl_trigger_price": null,
+        "target_order_id": null,
+        "target_price": null
+      }
+    ],
+    "governance_backfilled_count": 2,
+    "governance_backfilled": [
+      {
+        "symbol": "ADVENTHTL.NS",
+        "entry_price": 134.24,
+        "stop_loss": 132.9,
+        "target": 138.26,
+        "qty": 4
+      },
+      {
+        "symbol": "AARTIIND.NS",
+        "entry_price": 502.3,
+        "stop_loss": 497.28,
+        "target": 517.36,
+        "qty": 1,
+        "sl_placed": false,
+        "sl_failure_detail": "order 260908000597779 rejected: 16283 : Order price is not a multiple of tick size  "
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788861073.962602,
+    "real_balance_inr": 905.81,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 1,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 2,
+    "adopted": [
+      {
+        "symbol": "ADVENTHTL.NS",
+        "kotak_trading_symbol": "ADVENTHTL-EQ",
+        "qty": 4,
+        "entry_price": 134.24,
+        "entry_order_id": "260908000569845",
+        "sl_order_id": null,
+        "sl_trigger_price": null,
+        "target_order_id": "260908000569964",
+        "target_price": 132.66
+      },
+      {
+        "symbol": "AARTIIND.NS",
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1,
+        "entry_price": 502.3,
+        "entry_order_id": "260908000565893",
+        "sl_order_id": null,
+        "sl_trigger_price": null,
+        "target_order_id": null,
+        "target_price": null
+      }
+    ],
+    "governance_backfilled_count": 2,
+    "governance_backfilled": [
+      {
+        "symbol": "ADVENTHTL.NS",
+        "entry_price": 134.24,
+        "stop_loss": 132.9,
+        "target": 138.26,
+        "qty": 4,
+        "sl_placed": false,
+        "sl_failure_detail": "order 260908000625351 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "AARTIIND.NS",
+        "entry_price": 502.3,
+        "stop_loss": 497.28,
+        "target": 517.36,
+        "qty": 1,
+        "sl_placed": false,
+        "sl_failure_detail": "order 260908000626495 rejected: 16283 : Order price is not a multiple of tick size  "
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788861152.915921,
+    "real_balance_inr": 1438.07,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 1,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 1,
+    "adopted": [
+      {
+        "symbol": "AARTIIND.NS",
+        "kotak_trading_symbol": "AARTIIND-EQ",
+        "qty": 1,
+        "entry_price": 502.3,
+        "entry_order_id": "260908000341676",
+        "sl_order_id": null,
+        "sl_trigger_price": null,
+        "target_order_id": null,
+        "target_price": null
+      }
+    ],
+    "governance_backfilled_count": 1,
+    "governance_backfilled": [
+      {
+        "symbol": "AARTIIND.NS",
+        "entry_price": 502.3,
+        "stop_loss": 497.28,
+        "target": 517.36,
+        "qty": 1,
+        "sl_order_id": "260908000633933",
+        "sl_placed": true
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788871137.325358,
+    "real_balance_inr": 1941.52,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 2,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      },
+      {
+        "symbol": "BHANDARI.NS",
+        "kotak_trading_symbol": "BHANDARI-EQ",
+        "was_tracked_qty": 36
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 0,
+    "governance_backfilled": []
+  },
+  {
+    "reconciled_at_utc": 1788875310.3248065,
+    "real_balance_inr": 1941.52,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 2,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      },
+      {
+        "symbol": "BHANDARI.NS",
+        "kotak_trading_symbol": "BHANDARI-EQ",
+        "was_tracked_qty": 36
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 0,
+    "governance_backfilled": []
+  },
+  {
+    "reconciled_at_utc": 1788877204.2711768,
+    "real_balance_inr": 1941.52,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 2,
+    "removed_ghosts": [
+      {
+        "symbol": "AGL.NS",
+        "kotak_trading_symbol": "AGL-EQ",
+        "was_tracked_qty": 1
+      },
+      {
+        "symbol": "BHANDARI.NS",
+        "kotak_trading_symbol": "BHANDARI-EQ",
+        "was_tracked_qty": 36
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 0,
+    "governance_backfilled": []
+  },
+  {
+    "reconciled_at_utc": 1788931242.3155317,
+    "real_balance_inr": 548.06,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 1,
+    "untracked_open_positions": [
+      {
+        "kotak_trading_symbol": "NEWGEN-EQ",
+        "qty": 1
+      }
+    ],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 1,
+    "governance_backfilled": [
+      {
+        "symbol": "MEDICAMEQ.NS",
+        "entry_price": 291.4,
+        "stop_loss": 288.49,
+        "target": 300.13,
+        "qty": 3
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788931672.0321202,
+    "real_balance_inr": 349.79999999999995,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 1,
+    "untracked_open_positions": [
+      {
+        "kotak_trading_symbol": "NEWGEN-EQ",
+        "qty": 1
+      }
+    ],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 1,
+    "governance_backfilled": [
+      {
+        "symbol": "MEDICAMEQ.NS",
+        "entry_price": 291.4,
+        "stop_loss": 288.49,
+        "target": 300.13,
+        "qty": 3,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000226232 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788932408.772752,
+    "real_balance_inr": 184.67000000000007,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 2,
+    "untracked_open_positions": [
+      {
+        "kotak_trading_symbol": "SANDUMA-EQ",
+        "qty": 1
+      },
+      {
+        "kotak_trading_symbol": "NEWGEN-EQ",
+        "qty": 1
+      }
+    ],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 2,
+    "governance_backfilled": [
+      {
+        "symbol": "MEDICAMEQ.NS",
+        "entry_price": 291.4,
+        "stop_loss": 288.49,
+        "target": 300.13,
+        "qty": 3,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000240135 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "SILVERCASE.NS",
+        "entry_price": 23.59,
+        "stop_loss": 23.35,
+        "target": 24.31,
+        "qty": 7,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000240238 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788933483.897052,
+    "real_balance_inr": 241.56999999999994,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 1,
+    "untracked_open_positions": [
+      {
+        "kotak_trading_symbol": "NEWGEN-EQ",
+        "qty": 1
+      }
+    ],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 2,
+    "governance_backfilled": [
+      {
+        "symbol": "MEDICAMEQ.NS",
+        "entry_price": 291.4,
+        "stop_loss": 288.49,
+        "target": 300.13,
+        "qty": 3,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000256699 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "SILVERCASE.NS",
+        "entry_price": 23.59,
+        "stop_loss": 23.35,
+        "target": 24.31,
+        "qty": 7,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000256842 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788934427.1495578,
+    "real_balance_inr": 125.42000000000007,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 1,
+    "removed_ghosts": [
+      {
+        "symbol": "DEEP.NS",
+        "kotak_trading_symbol": "DEEP-EQ",
+        "was_tracked_qty": 5
+      }
+    ],
+    "untracked_open_positions_count": 1,
+    "untracked_open_positions": [
+      {
+        "kotak_trading_symbol": "NEWGEN-EQ",
+        "qty": 1
+      }
+    ],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 4,
+    "governance_backfilled": [
+      {
+        "symbol": "MEDICAMEQ.NS",
+        "entry_price": 291.4,
+        "stop_loss": 288.49,
+        "target": 300.13,
+        "qty": 3,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000273953 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "SILVERCASE.NS",
+        "entry_price": 23.59,
+        "stop_loss": 23.35,
+        "target": 24.31,
+        "qty": 7,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000274122 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "DCMSIL.NS",
+        "entry_price": 70.68,
+        "stop_loss": 69.97,
+        "target": 72.81,
+        "qty": 2,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000274314 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "GROWWSLVR.NS",
+        "entry_price": 22.89,
+        "stop_loss": 22.66,
+        "target": 23.58,
+        "qty": 5,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000274464 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      }
+    ]
+  },
+  {
+    "reconciled_at_utc": 1788940390.372,
+    "real_balance_inr": 379.45000000000005,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 2,
+    "removed_ghosts": [
+      {
+        "symbol": "SHAREINDIA.NS",
+        "kotak_trading_symbol": "SHAREINDIA-EQ",
+        "was_tracked_qty": 1
+      },
+      {
+        "symbol": "VIPIND.NS",
+        "kotak_trading_symbol": "VIPIND-EQ",
+        "was_tracked_qty": 1
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 3,
+    "governance_backfilled": [
+      {
+        "symbol": "SILVERCASE.NS",
+        "entry_price": 23.59,
+        "stop_loss": 23.35,
+        "target": 24.31,
+        "qty": 7,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000399594 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "JGCHEM.NS",
+        "entry_price": 627.3,
+        "stop_loss": 621.03,
+        "target": 646.11,
+        "qty": 1,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000399786 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "KANPRPLA.NS",
+        "entry_price": 246.7,
+        "stop_loss": 244.23,
+        "target": 254.11,
+        "qty": 3,
+        "target_placed": false,
+        "target_failure_detail": "order 260909000399989 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      }
+    ]
   }
 ]

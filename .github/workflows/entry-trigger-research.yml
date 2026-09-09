@@ -28,6 +28,10 @@ on:
         description: "Also sweep pin_bar_reversal (pin_ratio x sr_lookback x sr_tolerance_pct) on NSE indices + the 15 NSE large-caps"
         type: boolean
         default: true
+      run_inside_bar_research:
+        description: "Also sweep inside_bar_breakout (trend_sma x max_wait_bars) on NSE indices + the 15 NSE large-caps"
+        type: boolean
+        default: true
 
 jobs:
   research:
@@ -211,5 +215,29 @@ jobs:
             echo "SYMBOL: $SYMBOL  strategy=pin_bar_reversal (pin_ratio x sr_lookback x sr_tolerance_pct sweep)"
             echo "=========================================="
             curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=pin_bar_reversal&rank_by=total_pnl&top_n=8&pin_ratio=1.5,2.0,3.0&sr_lookback=10,20,30&sr_tolerance_pct=0.25,0.5,1.0"
+            echo
+          done
+
+      - name: "Price action: inside_bar_breakout sweep (NSE indices + large-caps)"
+        if: ${{ inputs.run_inside_bar_research }}
+        run: |
+          SW="https://tv-paper-bot-gdan.onrender.com/sweep"
+          PERIOD="60d"
+          INTERVAL="5m"
+          # 2026-09-09 candidate: the third price-action pattern named in the
+          # original brief alongside engulfing and pin bar. Inside bar
+          # (contraction within the prior "mother" bar's range) breakout
+          # above the mother bar's high, exit below its low. Sourced
+          # win-rate context: 50-60% traded with trend/context, 60-65% when
+          # aligned with the prevailing trend - see docs/daily_logs for
+          # sources. Sweeping trend_sma x max_wait_bars.
+          for SYMBOL in "%5ENSEI" "%5ENSEBANK" "%5EBSESN" \
+                        "RELIANCE.NS" "TCS.NS" "HDFCBANK.NS" "INFY.NS" "ICICIBANK.NS" \
+                        "HINDUNILVR.NS" "ITC.NS" "SBIN.NS" "BHARTIARTL.NS" "KOTAKBANK.NS" \
+                        "LT.NS" "AXISBANK.NS" "BAJFINANCE.NS" "MARUTI.NS" "ASIANPAINT.NS"; do
+            echo "=========================================="
+            echo "SYMBOL: $SYMBOL  strategy=inside_bar_breakout (trend_sma x max_wait_bars sweep)"
+            echo "=========================================="
+            curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=inside_bar_breakout&rank_by=total_pnl&top_n=8&trend_sma=0,20,50&max_wait_bars=5,10,20"
             echo
           done
