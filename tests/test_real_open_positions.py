@@ -8,9 +8,10 @@ cause."""
 import os
 import tempfile
 from contextlib import closing
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import pytest
 
 import main
 
@@ -27,6 +28,74 @@ def test_returns_empty_when_no_real_positions():
     _fresh_db()
     result = main.get_real_open_positions()
     assert result == {"open_real_positions": [], "count": 0}
+
+
+def test_includes_an_untracked_kotak_position_not_in_real_positions():
+    # 2026-09-09, explicit user finding: Kotak's own Positions tab showed
+    # 2 more open positions (NEWGEN, SANDUMA) than this endpoint did -
+    # "Why not in sync still? I want them to be in sync with at max 10
+    # second delay."
+    _fresh_db()
+    fake_kotak_neo = MagicMock()
+    fake_kotak_neo.positions.return_value = {
+        "data": [
+            {"exSeg": "nse_cm", "trdSym": "NEWGEN-EQ", "flBuyQty": "1", "flSellQty": "0", "buyAmt": "515.70"},
+        ],
+    }
+    fake_df = pd.DataFrame({"Close": [520.0]})
+    with patch.dict("sys.modules", {"kotak_neo": fake_kotak_neo}), patch("main.fetch_ohlc", return_value=fake_df):
+        result = main.get_real_open_positions()
+
+    assert result["count"] == 1
+    pos = result["open_real_positions"][0]
+    assert pos["symbol"] == "NEWGEN.NS"
+    assert pos["kotak_trading_symbol"] == "NEWGEN-EQ"
+    assert pos["qty"] == 1
+    assert pos["entry_price"] == 515.7
+    assert pos["source"] == "kotak_untracked"
+    assert pos["target_status"] == "not_bot_managed"
+    assert pos["current_price"] == 520.0
+    assert pos["unrealized_pnl_inr"] == pytest.approx(4.3, abs=1e-9)
+
+
+def test_does_not_duplicate_an_already_bot_tracked_position():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
+            "entry_order_id, opened_at, day) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            ("MEDICAMEQ.NS", "MEDICAMEQ-EQ", 3, 291.4, "1", 1788931043.9, "2026-09-09"),
+        )
+        conn.commit()
+    fake_kotak_neo = MagicMock()
+    fake_kotak_neo.positions.return_value = {
+        "data": [
+            {"exSeg": "nse_cm", "trdSym": "MEDICAMEQ-EQ", "flBuyQty": "3", "flSellQty": "0", "buyAmt": "874.20"},
+        ],
+    }
+    with patch.dict("sys.modules", {"kotak_neo": fake_kotak_neo}), \
+         patch("main.fetch_ohlc", side_effect=Exception("no network in test")):
+        result = main.get_real_open_positions()
+    assert result["count"] == 1
+    assert result["open_real_positions"][0]["source"] == "bot_tracked"
+
+
+def test_kotak_fetch_failure_still_returns_bot_tracked_rows():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
+            "entry_order_id, opened_at, day) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            ("MEDICAMEQ.NS", "MEDICAMEQ-EQ", 3, 291.4, "1", 1788931043.9, "2026-09-09"),
+        )
+        conn.commit()
+    fake_kotak_neo = MagicMock()
+    fake_kotak_neo.positions.side_effect = Exception("Kotak down")
+    with patch.dict("sys.modules", {"kotak_neo": fake_kotak_neo}), \
+         patch("main.fetch_ohlc", side_effect=Exception("no network in test")):
+        result = main.get_real_open_positions()  # must not raise
+    assert result["count"] == 1
+    assert result["open_real_positions"][0]["symbol"] == "MEDICAMEQ.NS"
 
 
 def test_computes_current_price_and_unrealized_pnl_for_an_open_position():

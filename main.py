@@ -5477,7 +5477,16 @@ def get_real_open_positions():
     consistent with the rest of the dashboard, not a second live-price
     path), refreshed on the page's existing 10s poll cycle - no separate
     faster polling loop needed, the gap was the missing fetch, not the
-    cadence."""
+    cadence.
+
+    Also returns any OPEN Kotak position this app never tracked at all
+    (source="kotak_untracked" rows, vs "bot_tracked" for real_positions'
+    own rows) - a second live finding the same day: Kotak's own Positions
+    tab showed 2 more open positions (NEWGEN, SANDUMA) than this endpoint
+    did. Never auto-adopted (same reasoning as reconcile's own `adopt`
+    param - a human decision, not automatic), but always SHOWN, so the
+    dashboard genuinely mirrors what's open at the broker within the
+    page's existing 10s poll, not just what this app remembers placing."""
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
     with closing(get_db()) as conn:
         rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
@@ -5514,9 +5523,13 @@ def get_real_open_positions():
         target_status, target_status_detail = "resting", None
         if not r["target_order_id"]:
             with closing(get_db()) as conn2:
+                # No day filter (2026-09-09) - matches _is_t1_restricted's
+                # own fix to the same bug: a restriction confirmed on an
+                # EARLIER day must still show as "blocked" today, not
+                # silently fall through to "not_yet_attempted"/"failed".
                 t1_row = conn2.execute(
-                    "SELECT detail FROM real_t1_restricted WHERE symbol = ? AND day = ?",
-                    (r["symbol"], ist_now().strftime("%Y-%m-%d")),
+                    "SELECT detail FROM real_t1_restricted WHERE symbol = ? ORDER BY flagged_at DESC LIMIT 1",
+                    (r["symbol"],),
                 ).fetchone()
                 if t1_row:
                     target_status, target_status_detail = "blocked", t1_row["detail"]
@@ -5538,7 +5551,71 @@ def get_real_open_positions():
             "unrealized_pnl_pct": unrealized_pnl_pct,
             "target_status": target_status,
             "target_status_detail": target_status_detail,
+            "source": "bot_tracked",
         })
+
+    # Untracked Kotak positions (2026-09-09, explicit user finding: Kotak's
+    # own Positions tab showed 4 open positions - MEDICAMEQ, SILVERCASE
+    # (both bot-tracked, above) plus NEWGEN and SANDUMA (neither) - while
+    # this endpoint only ever showed the bot-tracked two: "Why not in sync
+    # still? I want them to be in sync with at max 10 second delay." Same
+    # untracked-detection logic kotak_neo_reconcile_real_positions already
+    # uses (flBuyQty/flSellQty/trdSym on nse_cm) - reused here for DISPLAY
+    # only, never auto-adopted (adopting means placing real SL/target
+    # orders sized off risk parameters this app never decided for a
+    # position it didn't open - a human decision, unchanged from the
+    # reconcile endpoint's own `adopt` param). Best-effort: a Kotak fetch
+    # failure here still returns the bot-tracked rows above, same
+    # graceful-degradation the rest of this endpoint already has."""
+    try:
+        import kotak_neo
+        positions_resp = kotak_neo.positions()
+        kotak_rows = positions_resp.get("data") or [] if isinstance(positions_resp, dict) else []
+        our_trdsyms = {r["kotak_trading_symbol"] for r in rows}
+        for kr in kotak_rows:
+            try:
+                if kr.get("exSeg") != "nse_cm":
+                    continue
+                fl_buy = float(kr.get("flBuyQty", 0) or 0)
+                fl_sell = float(kr.get("flSellQty", 0) or 0)
+                net_qty = fl_buy - fl_sell
+                if net_qty == 0:
+                    continue  # fully squared off - not an open position
+                trd_sym = kr.get("trdSym")
+                if not trd_sym or trd_sym in our_trdsyms:
+                    continue
+                buy_amt = float(kr.get("buyAmt", 0) or 0)
+                avg_price = round(buy_amt / fl_buy, 2) if fl_buy else None
+                bare_symbol = trd_sym[:-3] + ".NS" if trd_sym.endswith("-EQ") else f"{trd_sym}.NS"
+                current_price = None
+                try:
+                    current_price = float(fetch_ohlc(bare_symbol, "1d", "5m")["Close"].iloc[-1])
+                except Exception:
+                    pass
+                invested_inr = round(avg_price * net_qty, 2) if avg_price is not None else None
+                unrealized_pnl_inr = (
+                    round((current_price - avg_price) * net_qty, 2)
+                    if current_price is not None and avg_price is not None else None
+                )
+                result.append({
+                    "symbol": bare_symbol, "kotak_trading_symbol": trd_sym, "qty": int(net_qty),
+                    "entry_price": avg_price, "entry_order_id": None, "opened_at": None,
+                    "day": ist_now().strftime("%Y-%m-%d"), "sl_order_id": None, "sl_trigger_price": None,
+                    "target_order_id": None, "target_price": None,
+                    "current_price": current_price, "invested_inr": invested_inr,
+                    "unrealized_pnl_inr": unrealized_pnl_inr,
+                    "unrealized_pnl_pct": (
+                        round(100 * unrealized_pnl_inr / invested_inr, 3)
+                        if unrealized_pnl_inr is not None and invested_inr else None
+                    ),
+                    "target_status": "not_bot_managed", "target_status_detail": None,
+                    "source": "kotak_untracked",
+                })
+            except (TypeError, ValueError):
+                continue
+    except Exception:
+        pass  # Kotak fetch failed - still return the bot-tracked rows above
+
     return {"open_real_positions": result, "count": len(result)}
 
 
