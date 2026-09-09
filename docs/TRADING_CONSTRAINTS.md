@@ -1275,8 +1275,10 @@ behavior, byte-for-byte unchanged.
 - No policy-comparison framework testing the 25/25/25/trail ladder
   against alternatives (full-trail, ATR-trail, time-exit, EV-decay-exit) -
   it is the fixed default.
-- No portfolio-level correlated-risk engine (sector/index-beta exposure
-  caps beyond the existing single shared capital pool + daily loss cap).
+- No SECTOR/index-beta correlated-risk engine - a simple, uncorrelated
+  aggregate open-risk cap WAS added (2026-09-10, see below); true
+  correlation modeling (RELIANCE+HDFCBANK+NIFTY behaving as one large
+  India-equity long on a selloff day) is still not built.
 - No incremental per-feature value testing (removing VIX/RSI/FVG one at a
   time to prove each actually helps) - all 8 score components and all 4
   rejection filters ship together, unvalidated individually.
@@ -1287,3 +1289,124 @@ for the standing process (nothing goes live before a real `/backtest`/
 `/sweep` confirms it; this engine's own threshold/weights are an explicit
 exception already live per this session's own real-money go-ahead, not
 yet swept).
+
+### Review-found fixes (2026-09-10)
+
+An external review of the architecture above (in-session, same day it
+shipped) found several real bugs and design gaps, all fixed the same
+day - full detail in the session transcript, short version here for
+later reference:
+
+- **Exit-state ambiguity (`target_hit` vs. the staged ladder)** -
+  `current_target` (the target-cluster's `primary_target`) can sit BELOW
+  an unfilled fixed leg's own R-multiple price (structure/ATR routinely
+  project a tighter move than 2.0R). Without a guard, `target_hit` fired
+  on ANY price >= `current_target` regardless of unfilled legs, dumping
+  the entire remaining qty at the first target touch and skipping the
+  ladder entirely on a large share of trades. Fixed: `target_hit` now
+  requires `_next_unfilled_leg(...) is None` too - full-exit-on-target
+  is reserved for once every fixed leg is already booked.
+- **Real partial-exit double-sell** - the resting target LIMIT order a
+  staged leg is protected by can fill on its own, at Kotak, between
+  scheduler ticks (that's exactly why it exists - downtime protection).
+  `_maybe_place_real_partial_exit` used to place a fresh market sell for
+  the leg's qty unconditionally, with no check against that possibility.
+  Fixed: cancels the leg's own resting order FIRST; a failed cancel
+  (`cancel_real_order`'s own docstring: "the order already filled" is
+  the leading cause) reconciles qty/leg status instead of selling again.
+- **Volume double-counting in the entry score** - `volume_ok` was both
+  the hard liquidity gate AND the `volume_breakout` score component, so
+  every gate survivor banked the full 15 points for free (the real bar
+  was 55/85 from the other seven, not 70/100 from eight). Fixed:
+  `volume_breakout` is now a genuine RVOL gradient (0 / half / full
+  credit at 1.0x / 1.5x rolling average), independent of the gate.
+  Found alongside it: `max_score` only ever shrank for the two index-
+  dependent components, not for ANY other component landing `None` -
+  fixed to exclude every `None` component from both sides of the ratio.
+- **Real fill price vs. paper R** - the real ladder's leg PRICES used to
+  be copied straight from paper's `exit_legs_json` (computed off the
+  paper signal's entry price). Real slippage silently shifted every real
+  leg's actual R. Fixed: real leg prices are recomputed from
+  `real_entry_price` and the real stop distance, same R fractions, real
+  numbers.
+- **Aggregate open-risk gate** - the daily-loss-cap halt only ever
+  counted REALIZED loss so far today; several concurrently-open
+  positions, each within its own per-trade ceiling, could still expose
+  far more than the daily cap in aggregate before any of them lost a
+  rupee. `_open_positions_reserved_risk_inr` sums every open position's
+  own worst-case stop risk; a new entry is blocked once realized loss
+  plus that sum would already reach the daily cap. Explicit user
+  instruction: "2% is daily cap, this can be treated as per trade
+  limits but within permissible daily limit" - the existing cap, not a
+  separate new number. Does NOT force-close any existing position -
+  only new entries are gated.
+- **Protective-order failure handling - a two-step correction.** First
+  pass added retries (`_place_real_stop_loss_with_retry`, 3 attempts)
+  plus an immediate force-close escalation on continued failure,
+  reasoning "the tick-based `stop_hit` check already covers the gap."
+  Corrected the same session: that's only PARTIALLY true - the tick
+  check catches a SLOW move through the stop, not a gap-down, flash
+  move, market-halt reopening, API outage, network outage, or this
+  app's own server failure, which is exactly when broker-side protection
+  matters. Final design: a `protection_degraded_since` timestamp starts
+  the moment a position has no live resting SL (any cause - failed
+  replace, failed initial placement, or a fresh/adopted position still
+  establishing its first one); every tick either restores it (clearing
+  the clock) or keeps retrying; only once elapsed time exceeds a
+  CAPITAL-SCALED tolerance (`_protection_degraded_timeout_seconds`: 60s
+  under Rs 5L, 20s up to Rs 50L, 10s above) does it escalate to a full
+  exit. Neither extreme alone was right - force-closing on the first
+  hiccup sells on an API failure instead of a price event; trusting the
+  tick check forever leaves exactly the failure modes broker-side
+  protection exists for completely uncovered.
+- **Unrelated bug found auditing the above, not from the review itself**
+  - `_execute_partial_exit` (the pre-existing capital-reallocation
+  function) had silently lost its own `conn.commit()`/`return pnl_inr`
+  during an earlier edit in this same session - a reallocation-driven
+  partial exit not followed by another commit on the same connection
+  could roll back invisibly. Fixed, with a regression test asserting
+  `conn.in_transaction is False` after the call.
+
+Full test suite after all of the above: 158 passing (110 pre-existing +
+48 new across this session's two rounds of fixes).
+
+### Two-regime router (2026-09-10) - final #1/#9 decision
+
+The #1/#9 discussion (see the "Entry score" section above) found the
+8-factor score is really a Long Trend-Continuation Confidence Engine,
+not a universal one - all 8 factors reward the same "price going up"
+read, so a textbook VWAP mean-reversion setup (docs/STRATEGY_LOG.md row
+#13, the one strategy in the whole catalog with real positive gross
+evidence) scores near 0/100. Final decision: **Option B, two-regime
+version only** - "Keep the existing engine. Rename it internally as a
+trend engine. Add a small regime gate that decides when it is allowed
+to operate," explicitly NOT the full regime x strategy-family matrix
+from the declined probabilistic-EV framework.
+
+`_classify_market_regime(df, sma_fast, sma_slow, ma_type)` - TREND
+requires BOTH `_trend_confidence >= TREND_WEAKENED_MIN_CONFIDENCE`
+(95%, the same statistical bar the trend engine's own entry gate and
+the `trend_weakened` exit already trust) AND `_swing_structure_bullish`
+(a genuine higher-high/higher-low sequence, not a single-bar
+statistic). Deliberately AND, not OR - found validating this exact fix:
+`_trend_confidence`'s z-score alone is sensitive to a single sharp bar,
+which would have routed exactly the oversold-dip-buy setup this router
+exists to catch right back into the trend engine. Neither condition
+holding -> RANGE.
+
+RANGE routes to `_vwap_mean_reversion_entry(today_df)` - the live
+single-tick version of `add_strategy_signal`'s own `"vwap_mean_reversion"`
+strategy (session VWAP + expanding std-dev bands, entering when close
+drops below the lower band), reusing that existing, already-implemented
+code rather than writing a new strategy from scratch. TREND still runs
+the pre-existing 8-factor score completely unchanged. Both regimes share
+the same downstream target-cluster/staged-exit-ladder/risk machinery -
+only the ENTRY trigger differs by regime.
+
+**Not yet validated either way** - ships live per this session's
+standing real-money go-ahead, as a hypothesis: "prove that selecting
+the correct engine for the current market state improves net
+expectancy after costs. If regime routing does not improve out-of-
+sample results, remove it." A real `/sweep` comparing WITH vs WITHOUT
+the router, once there's live trade history, is the fast-follow that
+actually answers that question - not yet run.

@@ -206,7 +206,12 @@ def _bullish_fixture(n=60):
 def test_universal_entry_score_high_for_a_clean_uptrend_with_index():
     df, today_df, sma_f, sma_s = _bullish_fixture()
     index_closes = np.linspace(200, 210, 60)  # bullish index too
-    out = main._compute_universal_entry_score(df, today_df, True, sma_f, sma_s, index_closes, 9, 21, "ema")
+    # vol_ratio=2.0 (exceptional RVOL) - see the 2026-09-10 volume
+    # double-counting fix: volume_breakout now needs a real RVOL reading
+    # to score at all, separate from the volume_ok gate boolean.
+    out = main._compute_universal_entry_score(
+        df, today_df, True, sma_f, sma_s, index_closes, 9, 21, "ema", vol_ratio=2.0,
+    )
     assert out["max_score"] == 100
     assert out["score_pct"] >= main.UNIVERSAL_ENTRY_SCORE_MIN
     assert out["entry_allowed"] is True
@@ -215,10 +220,29 @@ def test_universal_entry_score_high_for_a_clean_uptrend_with_index():
 
 def test_universal_entry_score_renormalizes_when_no_index_reference():
     df, today_df, sma_f, sma_s = _bullish_fixture()
-    out = main._compute_universal_entry_score(df, today_df, True, sma_f, sma_s, None, 9, 21, "ema")
+    out = main._compute_universal_entry_score(
+        df, today_df, True, sma_f, sma_s, None, 9, 21, "ema", vol_ratio=2.0,
+    )
     assert out["max_score"] == 80  # relative_strength + index_trend (20pts) dropped
     assert "relative_strength" not in out["breakdown"]
     assert "index_trend" not in out["breakdown"]
+
+
+def test_universal_entry_score_max_score_also_drops_a_none_non_index_component():
+    # 2026-09-10 fix: max_score used to only ever shrink for the two
+    # index-dependent components - any of the other 6 coming back None
+    # (no vol_ratio here) left max_score unfairly high. Every None
+    # component must drop from max_score, not just the index-dependent
+    # ones.
+    df, today_df, sma_f, sma_s = _bullish_fixture()
+    with_vol = main._compute_universal_entry_score(
+        df, today_df, True, sma_f, sma_s, None, 9, 21, "ema", vol_ratio=2.0,
+    )
+    without_vol = main._compute_universal_entry_score(
+        df, today_df, True, sma_f, sma_s, None, 9, 21, "ema", vol_ratio=None,
+    )
+    assert without_vol["breakdown"]["volume_breakout"] is None
+    assert without_vol["max_score"] == with_vol["max_score"] - main.UNIVERSAL_SCORE_WEIGHTS["volume_breakout"]
 
 
 def test_universal_entry_score_rejects_on_thin_liquidity():

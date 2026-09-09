@@ -180,11 +180,13 @@ def hydrate_real_positions_from_external() -> bool:
                 conn.execute(
                     "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
                     "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                    "target_order_id, target_price, exit_legs_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "target_order_id, target_price, exit_legs_json, protection_degraded_since) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
                      pos.get("entry_order_id"), pos["opened_at"], pos["day"],
                      pos.get("sl_order_id"), pos.get("sl_trigger_price"),
-                     pos.get("target_order_id"), pos.get("target_price"), pos.get("exit_legs_json")),
+                     pos.get("target_order_id"), pos.get("target_price"), pos.get("exit_legs_json"),
+                     pos.get("protection_degraded_since")),
                 )
                 restored += 1
             if restored:
@@ -513,13 +515,29 @@ def init_db():
                 sl_trigger_price REAL,
                 target_order_id TEXT,
                 target_price REAL,
-                exit_legs_json TEXT  -- 2026-09-09, universal-score architecture revamp: mirrors
+                exit_legs_json TEXT, -- 2026-09-09, universal-score architecture revamp: mirrors
                                      -- signal_state.exit_legs_json's own staged-ladder JSON for the
                                      -- REAL position, so a resting target order at Kotak is only
                                      -- ever placed/tracked for the CURRENT unfilled leg (see
                                      -- _maybe_place_real_entry/_maybe_place_real_partial_exit) - NULL
                                      -- for any real position with no staged ladder (backfilled/
                                      -- adopted positions, see kotak_neo_reconcile_real_positions).
+                protection_degraded_since REAL  -- 2026-09-10, explicit user instruction after
+                                     -- review (state-machine correction on top of #13's own
+                                     -- fix): epoch seconds since this position was FIRST noticed
+                                     -- with no live resting SL order (sl_order_id NULL) -
+                                     -- "protection degraded", not yet an emergency. NULL whenever
+                                     -- a resting SL is confirmed live. See
+                                     -- _protection_degraded_timeout_seconds/_mark_protection_degraded/
+                                     -- _clear_protection_degraded and _maybe_sync_real_stop_loss's
+                                     -- own docstring for the full state machine: retry aggressively
+                                     -- while degraded, escalate to a full exit only once elapsed
+                                     -- time since this timestamp exceeds a capital-scaled tolerance -
+                                     -- the tick-based stop_hit check alone (see #13's own reverted
+                                     -- escalation) only ever protects against a SLOW move through
+                                     -- the stop, never a gap, flash move, halt reopening, or this
+                                     -- app/network itself being down - exactly when broker-side
+                                     -- protection matters most.
             )
             """
         )
@@ -2798,6 +2816,153 @@ def _execute_partial_exit(conn, symbol: str, qty_to_sell: float, last_close: flo
         conn.execute("DELETE FROM signal_state WHERE symbol = ?", (symbol,))
     else:
         conn.execute("UPDATE signal_state SET qty = ? WHERE symbol = ?", (remaining_qty, symbol))
+    conn.commit()
+    return pnl_inr
+
+
+_SL_RETRY_ATTEMPTS = 3  # 2026-09-10, found in review: a single placement
+# failure right after a successful cancel used to leave a real position
+# with no resting SL until the next tick's own retry-when-none-is-resting
+# path happened to run. Retried a few times in the SAME call instead - see
+# _place_real_stop_loss_with_retry. An escalation to force-close the
+# position on continued failure was tried the same session and explicitly
+# reverted on the user's own instruction: the resting broker order was
+# never the ONLY protection - _auto_signal_core's own tick-based
+# stop_hit check (see its docstring) fires every scheduler tick
+# regardless of whether any resting order exists at Kotak at all, and
+# needs no resting order to place a real exit the moment price actually
+# crosses the trailing stop. Escalating on a mere placement failure would
+# sell on an API hiccup instead of a price event, for no protection the
+# tick check doesn't already give.
+
+
+def _place_real_stop_loss_with_retry(kotak_trading_symbol: str, qty: float, trigger_price: float,
+                                      attempts: int = _SL_RETRY_ATTEMPTS) -> dict:
+    """Fail-closed retry wrapper around kotak_real_orders.place_real_stop_loss.
+    A protective SL order is safety-critical - a single placement failure
+    right after a successful cancel used to leave a real position naked
+    until the NEXT scheduler tick's own retry-when-no-SL-is-resting path
+    happened to run. Retries a few times, a couple of seconds apart, IN
+    THIS SAME CALL rather than waiting for a future tick - transient
+    Kotak API hiccups (seen live this session) are common enough that a
+    same-request retry meaningfully closes the gap. Runs on a background
+    thread already (every caller is invoked via asyncio.to_thread), so a
+    blocking time.sleep here does not stall the event loop.
+
+    Returns the LAST attempt's result dict either way. A caller whose
+    retries are all exhausted marks the position's protection DEGRADED
+    (see _mark_protection_degraded) rather than either force-closing
+    immediately or trusting the tick-based stop_hit check alone to cover
+    the gap indefinitely - see _protection_degraded_timeout_seconds' own
+    docstring for why neither of those two extremes is right on its
+    own."""
+    import kotak_real_orders
+    result = {"ok": False, "detail": "no attempt made"}
+    for attempt in range(1, attempts + 1):
+        result = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, qty, trigger_price)
+        if result.get("ok"):
+            return result
+        if attempt < attempts:
+            time.sleep(2)
+    return result
+
+
+def _protection_degraded_timeout_seconds(capital_inr: float) -> float:
+    """How long a real position may run with NO live resting SL order at
+    Kotak before this app escalates to a full exit - 2026-09-10, explicit
+    user instruction, a correction on top of #13's own first fix.
+
+    That first fix reasoned "the tick-based stop_hit check already
+    protects the position, so a failed SL replacement is harmless" - only
+    PARTIALLY true. The tick check catches a SLOW move through the stop;
+    it does NOT cover a gap-down, a flash move, a market-halt reopening,
+    an API outage, a network outage, or this app's OWN server being down
+    - precisely the scenarios broker-side protection exists for, because
+    the application itself may fail. So neither extreme is right on its
+    own: force-closing on the very first placement failure sells on an
+    API hiccup instead of a price event (over-reacts); trusting the tick
+    check alone and never escalating leaves exactly those failure modes
+    completely uncovered (under-reacts). The correct middle: retry
+    aggressively (_place_real_stop_loss_with_retry, and again every
+    subsequent tick), tolerate a bounded window with NO resting order
+    while retries keep trying, and only escalate to a full exit once that
+    window is exceeded - "operational risk scales with money," so the
+    tolerance shrinks as capital does."""
+    if capital_inr < 500_000:
+        return 60.0
+    elif capital_inr < 5_000_000:
+        return 20.0  # user's own "15-30s" band, midpoint
+    else:
+        return 10.0
+
+
+def _mark_protection_degraded(conn, symbol: str) -> None:
+    """Starts the degraded-protection clock for a real position - a no-op
+    if it's already running (never resets an existing clock back to now,
+    which would let a repeatedly-failing replacement dodge the timeout
+    forever by resetting it every tick)."""
+    conn.execute(
+        "UPDATE real_positions SET protection_degraded_since = ? "
+        "WHERE symbol = ? AND protection_degraded_since IS NULL",
+        (time.time(), symbol),
+    )
+    conn.commit()
+
+
+def _clear_protection_degraded(conn, symbol: str) -> None:
+    """Stops the degraded-protection clock - call this the moment a live
+    resting SL order is confirmed placed again."""
+    conn.execute(
+        "UPDATE real_positions SET protection_degraded_since = NULL WHERE symbol = ?", (symbol,)
+    )
+    conn.commit()
+
+
+def _open_positions_reserved_risk_inr(conn, exclude_symbol: str | None = None) -> float:
+    """Sum, across every currently-open PAPER position, of that
+    position's OWN worst-case loss if it hit its original stop right now
+    - the "aggregate open risk" gap found in review (2026-09-10): the
+    existing daily-loss-cap halt only ever counted REALIZED loss so far
+    today, so several concurrently-open positions, each individually
+    inside its own per-trade risk ceiling, could still expose far more
+    than the daily cap in aggregate the moment a genuinely correlated bad
+    day hit all of them together - 4 positions each risking 1% is 4% of
+    real exposure sitting open, even though not one of them has lost a
+    rupee yet.
+
+    Explicit user instruction: "2% is daily cap, this can be treated as
+    per trade limits but within permissible daily limit" - i.e. the SUM
+    of concurrently-reserved per-trade risk must itself stay inside the
+    same daily_loss_cap that already governs realized loss, not a
+    separate new cap number. Wired into _auto_signal_core's entry gate
+    only (see blocked_aggregate_open_risk) - deliberately NOT folded into
+    `halted` itself, which also forces an immediate squareoff of every
+    open position; positions that haven't lost money yet must never be
+    squared off just because their combined RESERVED risk allocation
+    reached the cap - only NEW entries are blocked by this.
+
+    Uses initial_stop_loss (the frozen entry-time stop, R's own
+    yardstick) rather than the live trailed stop_loss - a position that's
+    already trailed favorably has genuinely LESS risk left than its
+    original allocation, but this stays conservative (the original
+    allocation) rather than assume a trail will hold. exclude_symbol lets
+    the caller's own about-to-be-opened symbol (which has no signal_state
+    row yet at the point this runs) be left out without a special case."""
+    rows = conn.execute(
+        "SELECT symbol, entry_price, stop_loss, initial_stop_loss, qty, fx_to_inr "
+        "FROM signal_state WHERE status = 'long'"
+    ).fetchall()
+    total = 0.0
+    for r in rows:
+        if exclude_symbol and r["symbol"] == exclude_symbol:
+            continue
+        stop = r["initial_stop_loss"] or r["stop_loss"]
+        if stop is None or r["qty"] is None:
+            continue
+        risk_per_unit = r["entry_price"] - stop
+        if risk_per_unit > 0:
+            total += risk_per_unit * r["qty"] * (r["fx_to_inr"] or 1.0)
+    return total
 
 
 # ==== Universal multi-factor entry-confidence engine (2026-09-09) ==========
@@ -2869,7 +3034,27 @@ UNIVERSAL_RSI_BAND = (55.0, 70.0)   # per this session's own proposal table
 UNIVERSAL_MIN_REWARD_RISK = 1.2         # nearest resistance vs stop distance
 UNIVERSAL_MAX_ATR_MULT = 2.5            # reject if current ATR > this x its own 20-bar rolling mean
 UNIVERSAL_MAX_VWAP_EXTENSION_ATR = 2.0  # reject if price already this many ATRs away from session VWAP
-UNIVERSAL_MIN_LIQUIDITY_MULT = 0.3      # matches _volume_confirms' own liquidity-floor convention
+# _volume_confirms() IS the actual liquidity gate (current bar's volume >
+# its own preceding VOLUME_CONFIRM_LOOKBACK-bar average, strictly - see
+# that function's own docstring) - liquidity_inadequate below reads its
+# boolean directly; there was never a separate 0.3x-average threshold
+# actually wired in anywhere despite a constant of that name existing
+# here (found in review, 2026-09-10) - removed rather than left dangling
+# and undocumented-as-dead.
+
+# Volume double-counting fix (2026-09-10, found in review): volume_ok
+# being BOTH the hard liquidity gate (below) AND the score's own
+# volume_breakout component meant every trade that survived the gate had
+# already banked the full 15 points for free - the "score" was really
+# only ever the other 7 components against an effective 55-point bar, not
+# 70/100. Fixed by keeping volume_ok as the (unchanged) hard gate, and
+# replacing the score component with a genuine RELATIVE-volume gradient
+# (RVOL = current bar's volume / its own rolling average) that only
+# differentiates AMONG gate survivors (RVOL>1.0, or the gate already
+# failed) - weak confirmation earns half credit, exceptional participation
+# earns full credit, adding real information the gate alone doesn't.
+UNIVERSAL_RVOL_PARTIAL_MULT = 1.0  # RVOL above this (but below FULL) -> half credit
+UNIVERSAL_RVOL_FULL_MULT = 1.5     # RVOL at/above this -> full credit
 
 
 def _atr_series(df: pd.DataFrame, period: int = 14) -> pd.Series:
@@ -2981,16 +3166,115 @@ def _index_trend_bullish(index_closes: np.ndarray, sma_fast: int, sma_slow: int,
     return bool(_moving_average(index_closes, sma_fast, ma_type) > _moving_average(index_closes, sma_slow, ma_type))
 
 
+# ==== Two-regime router (2026-09-10) ========================================
+# Explicit user instruction, final decision after the #1/#9 discussion:
+# "Option B - but only the two-regime version." The universal score above
+# is not wrong - it's a good TREND-CONTINUATION engine being asked to
+# operate in every market state, including ranging conditions where it
+# structurally can't win (see the VWAP-mean-reversion worked example: a
+# textbook oversold dip-buy scores near 0/100 on this engine, because
+# every one of its 8 factors rewards the same "price going up" read).
+# Fix chosen: keep the trend engine exactly as-is, gate it behind a small
+# regime classifier, and route RANGE-regime symbols to the one strategy
+# in the whole docs/STRATEGY_LOG.md catalog with real positive gross
+# backtest evidence (row #13, VWAP mean reversion: 60 trades, 70% win
+# rate, +Rs62.3) instead. Explicitly NOT the full regime x strategy-
+# family matrix from the declined probabilistic-EV framework - two
+# regimes, two engines, nothing more.
+#
+# "The objective should be: prove that selecting the correct engine for
+# the current market state improves net expectancy after costs. If
+# regime routing does not improve out-of-sample results, remove it." -
+# NOT yet proven either way; this ships live (same real-money go-ahead
+# as the rest of this engine) as a hypothesis to validate via a real
+# /sweep once it has trade history, not as a confirmed edge.
+
+def _classify_market_regime(df: pd.DataFrame, sma_fast: int, sma_slow: int, ma_type: str = "ema") -> str:
+    """TREND or RANGE - the entire regime gate, deliberately the simplest
+    version that reuses EXISTING, already-justified machinery rather than
+    inventing a new indicator: _trend_confidence (the same normal-CDF
+    statistical read the trend_weakened exit and the trend engine's own
+    entry gate already trust) at the SAME TREND_WEAKENED_MIN_CONFIDENCE
+    bar, AND a genuine higher-high/higher-low structure
+    (_swing_structure_bullish) - BOTH must agree to call it TREND.
+
+    Deliberately AND, not OR - found live while validating this exact
+    fix: _trend_confidence's z-score is sensitive to a SINGLE sharp bar
+    (a one-bar dip at the end of an otherwise genuinely ranging series
+    spiked confidence to >0.99 with no real sustained trend behind it,
+    which would have routed exactly the oversold-dip-buy setup this
+    router exists to catch right back into the trend engine that
+    structurally can't score it). Requiring _swing_structure_bullish too
+    (an actual higher-high/higher-low sequence across two windows, not a
+    single-bar statistic) filters that false positive out while still
+    correctly reading a genuine clean uptrend as TREND (both conditions
+    agree there).
+
+    Never raises on short history - _trend_confidence/_swing_structure_
+    bullish both already degrade to 0.0/None rather than crashing, and
+    None reads as "not established" here, same as False."""
+    closes = df["Close"].to_numpy(dtype=float)
+    trend_conf = _trend_confidence(closes, sma_fast, sma_slow, ma_type)
+    structure = _swing_structure_bullish(df)
+    if trend_conf >= TREND_WEAKENED_MIN_CONFIDENCE and structure:
+        return "trend"
+    return "range"
+
+
+def _vwap_mean_reversion_entry(today_df: pd.DataFrame, bb_std: float = 2.0) -> bool | None:
+    """Live single-tick entry trigger for the RANGE regime - the exact
+    same math as add_strategy_signal's own "vwap_mean_reversion" branch
+    (docs/STRATEGY_LOG.md row #13: session VWAP + an expanding standard
+    deviation of price-vs-VWAP, entering when close drops below the
+    LOWER band), just scoped to today_df alone rather than that
+    function's cross-day groupby - today_df is already same-day only, so
+    no grouping is needed to get the same per-session VWAP/std-dev
+    series. Returns only whether THIS bar is a fresh entry trigger (not
+    the whole stateful holding series that function returns for
+    backtesting) since _auto_signal_core only ever calls this when there
+    is no open position to begin with.
+
+    None (never a silent False) on a zero-volume session (index tickers -
+    same root cause _compute_session_vwap_value already documents) or
+    with fewer than 2 bars today (can't compute a standard deviation
+    yet)."""
+    if len(today_df) < 2:
+        return None
+    vol = today_df["Volume"].to_numpy(dtype=float)
+    if float(np.nansum(vol)) <= 0:
+        return None
+    typical = ((today_df["High"] + today_df["Low"] + today_df["Close"]) / 3.0).to_numpy(dtype=float)
+    cum_vol = np.cumsum(vol)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        vwap_series = cum_tp_vol_over_cum_vol = np.cumsum(typical * vol) / np.where(cum_vol > 0, cum_vol, np.nan)
+    closes = today_df["Close"].to_numpy(dtype=float)
+    dev = pd.Series(closes - vwap_series).expanding().std()
+    last_dev, last_vwap = dev.iloc[-1], vwap_series[-1]
+    if pd.isna(last_dev) or pd.isna(last_vwap):
+        return None
+    lower_band = last_vwap - bb_std * last_dev
+    return bool(closes[-1] < lower_band)
+
+
 def _compute_universal_entry_score(
     df: pd.DataFrame, today_df: pd.DataFrame,
     volume_ok: bool, sma_fast_val: float | None, sma_slow_val: float | None,
     index_closes: np.ndarray | None, sma_fast: int, sma_slow: int, ma_type: str = "ema",
+    vol_ratio: float | None = None,
 ) -> dict:
     """The engine's single entry decision - an 8-factor weighted score (see
     UNIVERSAL_SCORE_WEIGHTS) PLUS a separate set of hard rejection filters,
     exactly this session's own approved read: "given the market right now,
     should I trade" -> score >= UNIVERSAL_ENTRY_SCORE_MIN AND no rejection
     filter tripped -> entry_allowed.
+
+    `volume_ok` is the unchanged hard liquidity gate (feeds
+    `liquidity_inadequate` below only); `vol_ratio` (current bar's volume
+    over its own rolling average - i.e. RVOL) is a SEPARATE read that
+    drives the volume_breakout score component's actual gradient (weak/
+    partial/full credit) - kept distinct on purpose, see
+    UNIVERSAL_RVOL_PARTIAL_MULT/FULL_MULT's own comment for why they used
+    to be the same signal counted twice.
 
     Never raises on missing/short history - every component degrades to
     "not scored" (None in `breakdown`, excluded from both the achieved
@@ -3024,7 +3308,14 @@ def _compute_universal_entry_score(
         weights["breakout_resistance"] if last_close > resistance else 0.0
     )
 
-    breakdown["volume_breakout"] = weights["volume_breakout"] if volume_ok else 0.0
+    if vol_ratio is None:
+        breakdown["volume_breakout"] = None
+    elif vol_ratio >= UNIVERSAL_RVOL_FULL_MULT:
+        breakdown["volume_breakout"] = weights["volume_breakout"]
+    elif vol_ratio >= UNIVERSAL_RVOL_PARTIAL_MULT:
+        breakdown["volume_breakout"] = weights["volume_breakout"] * 0.5
+    else:
+        breakdown["volume_breakout"] = 0.0
 
     rsi_val = _compute_rsi_value(closes)
     lo, hi = UNIVERSAL_RSI_BAND
@@ -3036,7 +3327,23 @@ def _compute_universal_entry_score(
         idx_ok = _index_trend_bullish(index_closes, sma_fast, sma_slow, ma_type)
         breakdown["index_trend"] = weights["index_trend"] if idx_ok else 0.0
 
-    max_score = sum(weights.values())
+    # Bug found writing this fix's own regression test (2026-09-10): this
+    # used to be sum(weights.values()) unconditionally - which only ever
+    # actually shrank for relative_strength/index_trend (popped from
+    # `weights` above when has_index is False), NOT for any of the other
+    # 6 components whenever THEY come back None (e.g. above_vwap on a
+    # zero-volume session, structure_hh_hl/rsi_band on a symbol's first
+    # ~20-40 bars of history). The docstring's own claim - "every
+    # component degrades to not-scored, excluded from both score and
+    # max_score" - was true for exactly 2 of 8 components and silently
+    # false for the other 6, understating score_pct (denominator too
+    # large) precisely when data is sparsest, e.g. early in a session -
+    # the same "score looks too low right after the market opens" failure
+    # class already fixed once for the pre-revamp SMA/trend read (see
+    # _auto_signal_core's own 2026-09-09 comment on that exact bug for
+    # orb_breakout). Now genuinely excludes any None component from both
+    # sides of the ratio, matching the docstring for real.
+    max_score = sum(weights[k] for k, v in breakdown.items() if v is not None)
     score = sum(v for v in breakdown.values() if v is not None)
     score_pct = round(100.0 * score / max_score, 2) if max_score else 0.0
 
@@ -3228,8 +3535,6 @@ def _next_unfilled_leg(exit_legs_json: str | None) -> dict | None:
         if leg_entry["leg"] != "trail" and leg_entry["status"] == "open":
             return leg_entry
     return None
-    conn.commit()
-    return pnl_inr
 
 
 def _detect_direction_signal(symbol: str, orb_minutes: int, sma_fast: int, sma_slow: int,
@@ -3921,10 +4226,31 @@ def _auto_signal_core(
                     )
                     return result
 
+            # Exit-state fix (2026-09-10, found in review): `current_target`
+            # (primary_target from the target cluster, see
+            # _compute_target_cluster) can sit BELOW a still-unfilled fixed
+            # leg's own R-multiple price - e.g. primary_target=1.3R while
+            # T2 sits at 1.5R, or even below T1's 1.0R when structure/ATR
+            # both project a tighter move than 2.0R. Without this guard,
+            # `target_hit` fired on ANY price >= current_target regardless
+            # of unfilled legs, dumping the ENTIRE remaining qty the moment
+            # current_target was reached - which could (and, on a common
+            # target_cluster outcome, WOULD) skip the staged ladder
+            # entirely, exiting the whole position at the first target
+            # touch instead of booking T1/T2/T3 individually. `target_hit`
+            # (a FULL exit of whatever qty remains) is now reserved for
+            # once every fixed leg has already been individually booked -
+            # i.e. only the trail leg's own target/leading-target-extend
+            # governs a full exit-on-target from that point on, matching
+            # the ladder's actual intent. next_leg was already computed
+            # just above for the staged-leg check; None here means either
+            # no ladder exists at all (pre-revamp position) or every fixed
+            # leg is already filled - both cases where target_hit's old,
+            # single-target behavior is exactly what should still happen.
             exit_reason = None
             if halted:
                 exit_reason = "daily_loss_cap_hit"
-            elif last_close >= current_target:
+            elif last_close >= current_target and next_leg is None:
                 exit_reason = "target_hit"
             elif last_close <= current_stop:
                 exit_reason = "stop_hit"
@@ -4028,6 +4354,24 @@ def _auto_signal_core(
         if halted:
             result["action_taken"] = "blocked_daily_loss_cap"
             return result
+
+        # Aggregate open-risk gate (2026-09-10, found in review) - see
+        # _open_positions_reserved_risk_inr's own docstring for the full
+        # reasoning. `halted` above only ever looked at REALIZED loss so
+        # far today; this additionally blocks a NEW entry once today's
+        # realized loss plus every OTHER open position's own reserved
+        # (worst-case-stop) risk already sits at or above the same
+        # daily_loss_cap - explicit user instruction: "2% is daily cap,
+        # this can be treated as per trade limits but within permissible
+        # daily limit." Deliberately does NOT touch `halted` itself or
+        # force any existing position closed - only new entries are
+        # gated here.
+        open_reserved_risk_inr = _open_positions_reserved_risk_inr(conn, exclude_symbol=symbol)
+        if loss_so_far + open_reserved_risk_inr >= daily_loss_cap:
+            result["action_taken"] = "blocked_aggregate_open_risk"
+            result["open_reserved_risk_inr"] = round(open_reserved_risk_inr, 2)
+            return result
+
         if not is_trading_enabled(conn):
             result["action_taken"] = "trading_paused"
             return result
@@ -4109,9 +4453,15 @@ def _auto_signal_core(
 
         else:  # universal_score - 2026-09-09 architecture revamp, the WATCHLIST default
             volume_ok, vol_avg = _volume_confirms(df["Volume"].to_numpy(dtype=float))
+            current_volume = float(df["Volume"].iloc[-1]) if len(df) else None
+            # vol_ratio (RVOL) feeds the score's volume_breakout GRADIENT;
+            # volume_ok stays the separate, unchanged hard gate below - see
+            # _compute_universal_entry_score's own docstring for why these
+            # are kept distinct (2026-09-10 double-counting fix).
+            vol_ratio = (current_volume / vol_avg) if (vol_avg and vol_avg > 0 and current_volume is not None) else None
             result["volume_gate"] = {
                 "confirmed": volume_ok, "avg_volume": vol_avg,
-                "current_volume": float(df["Volume"].iloc[-1]) if len(df) else None,
+                "current_volume": current_volume, "vol_ratio": round(vol_ratio, 3) if vol_ratio is not None else None,
             }
             # Reference-index fetch for relative_strength/index_trend - never
             # attempted for the index/commodity symbols themselves (compares
@@ -4127,14 +4477,34 @@ def _auto_signal_core(
                     index_closes = index_df["Close"].to_numpy(dtype=float)
                 except Exception:
                     index_closes = None
-            score_result = _compute_universal_entry_score(
-                df, today_df, volume_ok, sma_f, sma_s, index_closes, sma_fast, sma_slow, ma_type,
-            )
-            result["universal_score"] = score_result
-            entry_signal = score_result["entry_allowed"]
+
             structural_low = float(df["Low"].iloc[-(UNIVERSAL_STRUCTURE_LOOKBACK + 1):].min())
             orb_high, orb_low = None, structural_low  # for result/signal_state display only
-            entry_reason = f"universal_score_{score_result['score_pct']}pct"
+
+            # Two-regime router (2026-09-10, explicit user decision -
+            # "Option B, but only the two-regime version") - see the
+            # module comment above _classify_market_regime for the full
+            # rationale. TREND runs the pre-existing 8-factor score
+            # UNCHANGED; RANGE routes to the one strategy in the whole
+            # catalog with real positive gross backtest evidence
+            # (docs/STRATEGY_LOG.md row #13) instead of forcing a trend-
+            # continuation read onto a setup it structurally can't score.
+            market_regime = _classify_market_regime(df, sma_fast, sma_slow, ma_type)
+            result["market_regime"] = market_regime
+
+            if market_regime == "range":
+                range_entry = _vwap_mean_reversion_entry(today_df)
+                result["vwap_mean_reversion_entry"] = range_entry
+                entry_signal = bool(range_entry)
+                entry_reason = "vwap_mean_reversion_range_regime"
+            else:
+                score_result = _compute_universal_entry_score(
+                    df, today_df, volume_ok, sma_f, sma_s, index_closes, sma_fast, sma_slow, ma_type,
+                    vol_ratio=vol_ratio,
+                )
+                result["universal_score"] = score_result
+                entry_signal = score_result["entry_allowed"]
+                entry_reason = f"universal_score_{score_result['score_pct']}pct"
 
         # Sentiment gate (2026-09-07, explicit user instruction: "i want
         # this info to be used for sector specific knowledge to pick
@@ -5061,24 +5431,39 @@ def _maybe_place_real_entry(conn, symbol: str):
         real_entry_price = result["fill_price"]
 
         # Staged profit-booking ladder for the REAL position (2026-09-09
-        # architecture revamp) - real_qty can be SMALLER than the paper
-        # signal's own qty (capped by remaining_cap_inr/real capital above),
-        # so the paper ladder's qty-per-leg can't just be copied over
-        # as-is. Re-derives a fresh, qty-appropriate ladder for real_qty
-        # using the SAME per-share target PRICES the paper side already
-        # computed (price levels don't change with qty, only how many
-        # shares book at each one) - see _split_exit_legs' own docstring
-        # for the qty-aware leg-count rule. None for any non-universal_score
-        # entry (paper_row["exit_legs_json"] is None there) - falls through
-        # to the pre-revamp single-target behavior unchanged.
+        # architecture revamp; price-recalculation fixed 2026-09-10, found
+        # in review). real_qty can be SMALLER than the paper signal's own
+        # qty (capped by remaining_cap_inr/real capital above), so the
+        # paper ladder's qty-per-leg can't just be copied over as-is - see
+        # _split_exit_legs' own docstring for the qty-aware leg-count rule.
+        #
+        # Leg PRICES can't be copied over either, and this used to do
+        # exactly that (paper's own target_price, verbatim). The real fill
+        # (real_entry_price, just resolved above from Kotak's own fill
+        # report) routinely differs from the paper signal's entry price by
+        # slippage - reusing paper's absolute price levels silently changes
+        # what R the real position is actually risking/targeting relative
+        # to its OWN real entry. Recomputed here instead: same R-multiple
+        # FRACTIONS (1.0R/1.5R/2.0R, parsed off each leg's own
+        # r_multiple label) applied to real_r = real_entry_price minus the
+        # real stop-loss PRICE LEVEL (paper_row["stop_loss"] - unchanged;
+        # that's the same absolute price the real SL order below is placed
+        # at, so this is real_r as actually risked by this real fill, not
+        # paper's R). None for any non-universal_score entry
+        # (paper_row["exit_legs_json"] is None there) - falls through to
+        # the pre-revamp single-target behavior unchanged.
         real_exit_legs = None
-        if paper_row and paper_row["exit_legs_json"]:
+        if paper_row and paper_row["exit_legs_json"] and paper_row["stop_loss"]:
             paper_legs = json.loads(paper_row["exit_legs_json"])
-            r_multiples_by_key = {
-                leg["r_multiple"]: leg["target_price"] for leg in paper_legs
-                if leg["r_multiple"] and leg["target_price"]
-            }
-            real_exit_legs = _split_exit_legs(real_qty, r_multiples_by_key)
+            real_r = real_entry_price - paper_row["stop_loss"]
+            if real_r > 0:
+                r_multiples_by_key = {}
+                for leg in paper_legs:
+                    if not leg["r_multiple"]:
+                        continue
+                    mult = float(leg["r_multiple"].rstrip("R"))
+                    r_multiples_by_key[leg["r_multiple"]] = real_entry_price + mult * real_r
+                real_exit_legs = _split_exit_legs(real_qty, r_multiples_by_key)
 
         conn.execute(
             "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
@@ -5137,6 +5522,13 @@ def _maybe_place_real_entry(conn, symbol: str):
                     prev_state="none", new_state="none (placement failed)", detail=sl_result.get("detail"),
                 )
                 _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
+                # 2026-09-10: unprotected from the moment of entry - same
+                # degraded-protection clock/timeout as every other SL gap,
+                # not a special case. _maybe_sync_real_stop_loss's own
+                # top-of-function check picks this up and either keeps
+                # retrying or escalates once the capital-scaled tolerance
+                # is exceeded.
+                _mark_protection_degraded(conn, symbol)
 
         # Real resting target/profit-booking order (2026-09-08, explicit
         # user instruction: "place the target you have planned for each
@@ -5300,40 +5692,90 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
         return
 
     import kotak_real_orders
-    result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], leg_qty)
-    if not result.get("ok"):
-        _log_real_attempt(
-            conn, symbol, "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
-            qty=leg_qty, detail=result.get("detail"), raw_response=result.get("raw_response"),
-        )
-        print(f"[REAL TRADE] STAGED LEG {leg_name} SELL FAILED {row['kotak_trading_symbol']}: "
-              f"{result.get('detail')} - position still holds the full qty, will retry next tick "
-              f"the same way any other unfilled real-order leg does")
-        _log_real_order_event(
-            conn, symbol, f"staged_{leg_name}", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
-            prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
-            new_state="unchanged - staged leg sell failed", detail=result.get("detail"),
-        )
-        _flag_if_t1_restricted(conn, symbol, result.get("detail"))
-        return
 
-    exit_qty = int(result["qty"])
-    remaining_qty = row["qty"] - exit_qty
-    _log_real_attempt(
-        conn, symbol, "S", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
-        qty=exit_qty, price_est=result.get("fill_price"),
-        notional_inr=exit_qty * result["fill_price"] if result.get("fill_price") else None,
-        order_id=result["order_id"], raw_response=result.get("raw_response"),
-        detail=f"staged leg {leg_name} partial exit"
-               + ("" if result["fill_price_confirmed"] else " - fill not yet confirmed by Kotak"),
-    )
-    print(f"[REAL TRADE] STAGED LEG {leg_name} SELL {exit_qty} {row['kotak_trading_symbol']} "
-          f"(order {result['order_id']}) - {remaining_qty} shares remain")
-    _log_real_order_event(
-        conn, symbol, f"staged_{leg_name}", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
-        order_id=result["order_id"], prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
-        new_state=f"long {remaining_qty} (booked {exit_qty} @ Rs{result.get('fill_price') or 0:.2f})",
-    )
+    # Double-sell fix (2026-09-10, found in review): the resting target
+    # LIMIT order this exact leg is protected by (row["target_order_id"])
+    # exists specifically so a downtime window doesn't leave the position
+    # unprotected - which means it can genuinely fill on its own, at
+    # Kotak, between one scheduler tick and the next, with NO involvement
+    # from this app. The code below used to place a fresh market sell for
+    # leg_qty unconditionally, with no check against that possibility -
+    # if the resting order had already filled for real, this would sell
+    # the same shares a SECOND time (an oversell CNC would likely reject,
+    # but silently corrupts this app's own qty/P&L bookkeeping either way).
+    #
+    # Fix: cancel the resting order for THIS leg FIRST. cancel_real_order's
+    # own docstring names "the order already filled" as the leading reason
+    # a cancel can fail - so a failed cancel here is treated as strong
+    # evidence the leg already executed at Kotak, and this reconciles the
+    # local qty/leg status from that inference instead of placing a
+    # redundant sell. A successful cancel proves the order was still
+    # resting (so it could not have filled), and only THEN is it safe to
+    # sell leg_qty at market ourselves.
+    already_filled_at_kotak = False
+    if row["target_order_id"]:
+        cancel_result = kotak_real_orders.cancel_real_order(row["target_order_id"])
+        if not cancel_result.get("ok"):
+            already_filled_at_kotak = True
+            print(f"[REAL TRADE] STAGED LEG {leg_name} resting target order for "
+                  f"{row['kotak_trading_symbol']} could not be cancelled "
+                  f"({cancel_result.get('detail')}) - most likely already filled at Kotak; "
+                  f"reconciling qty instead of placing a second sell")
+
+    if already_filled_at_kotak:
+        exit_qty = leg_qty
+        fill_price = real_leg.get("target_price") or row["entry_price"]
+        _log_real_attempt(
+            conn, symbol, "S", "confirmed_inferred", kotak_trading_symbol=row["kotak_trading_symbol"],
+            qty=exit_qty, price_est=fill_price, notional_inr=exit_qty * fill_price,
+            detail=f"staged leg {leg_name} - resting target order for this leg could not be "
+                   f"cancelled (already filled at Kotak independently of this app); qty "
+                   f"reconciled from the order's own price, NOT a fresh sell",
+        )
+        remaining_qty = row["qty"] - exit_qty
+        print(f"[REAL TRADE] STAGED LEG {leg_name} for {row['kotak_trading_symbol']} already filled "
+              f"at Kotak (resting order) - reconciling qty only, {remaining_qty} shares remain")
+        _log_real_order_event(
+            conn, symbol, f"staged_{leg_name}", "confirmed_inferred", kotak_trading_symbol=row["kotak_trading_symbol"],
+            prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
+            new_state=f"long {remaining_qty} (leg already filled at Kotak, qty reconciled, no new order placed)",
+        )
+    else:
+        result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], leg_qty)
+        if not result.get("ok"):
+            _log_real_attempt(
+                conn, symbol, "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                qty=leg_qty, detail=result.get("detail"), raw_response=result.get("raw_response"),
+            )
+            print(f"[REAL TRADE] STAGED LEG {leg_name} SELL FAILED {row['kotak_trading_symbol']}: "
+                  f"{result.get('detail')} - position still holds the full qty, will retry next tick "
+                  f"the same way any other unfilled real-order leg does")
+            _log_real_order_event(
+                conn, symbol, f"staged_{leg_name}", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
+                new_state="unchanged - staged leg sell failed", detail=result.get("detail"),
+            )
+            _flag_if_t1_restricted(conn, symbol, result.get("detail"))
+            return
+
+        exit_qty = int(result["qty"])
+        fill_price = result.get("fill_price")
+        remaining_qty = row["qty"] - exit_qty
+        _log_real_attempt(
+            conn, symbol, "S", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            qty=exit_qty, price_est=fill_price,
+            notional_inr=exit_qty * fill_price if fill_price else None,
+            order_id=result["order_id"], raw_response=result.get("raw_response"),
+            detail=f"staged leg {leg_name} partial exit"
+                   + ("" if result["fill_price_confirmed"] else " - fill not yet confirmed by Kotak"),
+        )
+        print(f"[REAL TRADE] STAGED LEG {leg_name} SELL {exit_qty} {row['kotak_trading_symbol']} "
+              f"(order {result['order_id']}) - {remaining_qty} shares remain")
+        _log_real_order_event(
+            conn, symbol, f"staged_{leg_name}", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            order_id=result["order_id"], prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
+            new_state=f"long {remaining_qty} (booked {exit_qty} @ Rs{fill_price or 0:.2f})",
+        )
 
     # Mark this leg filled in the real-side ladder (mirrors
     # _execute_staged_leg_exit's own paper-side bookkeeping) - reuses
@@ -5405,7 +5847,7 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     if row["sl_order_id"] and row["sl_trigger_price"]:
         cancel_result = kotak_real_orders.cancel_real_order(row["sl_order_id"])
         if cancel_result.get("ok"):
-            sl_result = kotak_real_orders.place_real_stop_loss(
+            sl_result = _place_real_stop_loss_with_retry(
                 row["kotak_trading_symbol"], remaining_qty, row["sl_trigger_price"]
             )
             if sl_result.get("ok"):
@@ -5413,13 +5855,23 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
                     "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                     (sl_result["order_id"], sl_result["trigger_price"], symbol),
                 )
+                _clear_protection_degraded(conn, symbol)
                 _log_real_order_event(
                     conn, symbol, "sl", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
                     order_id=sl_result["order_id"], prev_state="resized for staged leg booking",
                     new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f} for {remaining_qty} shares",
                 )
             else:
+                # 2026-09-10, explicit user instruction after review: no
+                # IMMEDIATE force-close here - starts (or leaves running)
+                # the same degraded-protection clock
+                # _maybe_sync_real_stop_loss's own top-of-function check
+                # escalates on, rather than either force-closing on this
+                # one failure or trusting the tick-based stop_hit check
+                # to cover the gap indefinitely. See
+                # _protection_degraded_timeout_seconds' own docstring.
                 conn.execute("UPDATE real_positions SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
+                _mark_protection_degraded(conn, symbol)
                 _log_real_order_event(
                     conn, symbol, "sl", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
                     prev_state="resized for staged leg booking",
@@ -5664,7 +6116,18 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
     held position isn't cancel/replaced every single tick for no reason.
     If no SL is resting yet (an earlier placement failed), this also
     retries placing it fresh at the paper stop's current level - see
-    _maybe_place_real_entry's own comment on that retry path."""
+    _maybe_place_real_entry's own comment on that retry path.
+
+    2026-09-10, explicit user instruction (state-machine correction on
+    top of #13's own fix): the FIRST thing this function does, every
+    call, is check whether the position is currently missing a resting
+    SL and if so how long that's been true - see
+    _protection_degraded_timeout_seconds' own docstring for the full
+    reasoning (the tick-based stop_hit check alone only covers a SLOW
+    move through the stop, never a gap/flash-move/halt/outage). Degraded
+    but within tolerance -> keep retrying below, same as always.
+    Degraded past tolerance -> force a full exit right here, before
+    anything else runs this tick."""
     real_row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
     if not real_row:
         return
@@ -5678,6 +6141,35 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
     # wasn't moving). Previously this only got fixed by a periodic/
     # manual reconcile dispatch; now it can never persist past one tick.
     _ensure_signal_state_for_real_position(conn, real_row)
+
+    # Degraded-protection timeout check (2026-09-10, explicit user
+    # instruction - the state-machine correction on #13's own fix) -
+    # runs FIRST, unconditionally, before anything below that could
+    # return early without ever seeing it. See
+    # _protection_degraded_timeout_seconds' own docstring for the full
+    # reasoning: retry aggressively while degraded (already happens every
+    # tick below), tolerate a bounded window, escalate to a full exit
+    # only once that window is genuinely exceeded - never on the very
+    # first failure, never indefinitely either.
+    if not real_row["sl_order_id"]:
+        if real_row["protection_degraded_since"] is None:
+            _mark_protection_degraded(conn, symbol)
+        else:
+            elapsed = time.time() - real_row["protection_degraded_since"]
+            timeout = _protection_degraded_timeout_seconds(get_scheduler_capital_inr())
+            if elapsed > timeout:
+                print(f"[REAL TRADE] {real_row['kotak_trading_symbol']} has had NO resting stop "
+                      f"for {elapsed:.0f}s (tolerance {timeout:.0f}s at current capital) - "
+                      f"forcing an emergency exit")
+                _log_real_order_event(
+                    conn, symbol, "sl", "emergency_exit_triggered", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+                    prev_state=f"unprotected for {elapsed:.0f}s", new_state="forcing full exit",
+                    detail=f"protection_degraded_since timeout ({timeout:.0f}s) exceeded",
+                )
+                _maybe_place_real_exit(conn, symbol)
+                return
+            # Still inside the tolerance window - fall through and keep
+            # retrying below, same as every other tick.
 
     paper_row = conn.execute(
         "SELECT stop_loss FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
@@ -5715,13 +6207,14 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         # exact race recurs.
         kotak_real_orders.cancel_existing_resting_sl(real_row["kotak_trading_symbol"])
 
-    sl_result = kotak_real_orders.place_real_stop_loss(real_row["kotak_trading_symbol"], real_row["qty"], new_stop)
+    sl_result = _place_real_stop_loss_with_retry(real_row["kotak_trading_symbol"], real_row["qty"], new_stop)
     if sl_result.get("ok"):
         conn.execute(
             "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
             (sl_result["order_id"], sl_result["trigger_price"], symbol),
         )
         conn.commit()
+        _clear_protection_degraded(conn, symbol)  # a live resting SL exists again - stop the clock
         _sync_real_positions_external(conn)
         print(f"[REAL TRADE] trailing SL moved to Rs{new_stop:.2f} for {real_row['kotak_trading_symbol']} "
               f"(order {sl_result['order_id']})")
@@ -5733,20 +6226,42 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         )
     else:
         # Old order is already cancelled (or never existed) and the
-        # replacement failed - clear sl_order_id so the position isn't
-        # left pointing at a dead order id; next tick's retry path
-        # (sl_order_id NULL) will try placing a fresh one again.
+        # replacement failed (even after _place_real_stop_loss_with_retry's
+        # own retries) - clear sl_order_id so the position isn't left
+        # pointing at a dead order id, and start (or leave running) the
+        # degraded-protection clock the top-of-function check escalates on.
         conn.execute("UPDATE real_positions SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
         conn.commit()
+        _mark_protection_degraded(conn, symbol)
         _sync_real_positions_external(conn)
         print(f"[REAL TRADE] trailing SL replacement FAILED for {real_row['kotak_trading_symbol']}: "
-              f"{sl_result.get('detail')} - position open at Kotak with NO resting stop, will retry next tick")
+              f"{sl_result.get('detail')}")
         _log_real_order_event(
             conn, symbol, "sl", "failed", kotak_trading_symbol=real_row["kotak_trading_symbol"],
             prev_state=f"Rs{current_sl_price:.2f}" if current_sl_price is not None else "none",
             new_state="none (replacement failed)", detail=sl_result.get("detail"),
         )
         _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
+
+        # 2026-09-10, explicit user instruction after review: the resting
+        # broker-side SL order was never the ONLY thing protecting this
+        # position - _auto_signal_core's own tick check
+        # (`elif last_close <= current_stop: exit_reason = "stop_hit"`)
+        # runs every scheduler tick regardless of whether any resting
+        # order exists at Kotak at all, and places a fresh market sell
+        # for the full qty the moment price actually crosses the trailing
+        # stop. That mechanism already proved itself live (GC=F/SI=F
+        # ratcheting correctly through real ticks this session) and needs
+        # no resting order to work. A force-close escalation here (tried,
+        # then reverted the same session) would have sold on an API
+        # hiccup instead of an actual price event - a real trade and its
+        # cost for no extra protection the tick check doesn't already
+        # give. _place_real_stop_loss_with_retry's own retries (above)
+        # are still worth attempting - cheap, and they close the gap
+        # faster on a genuinely transient failure - but no further escalation
+        # beyond retrying happens here; the next tick's stop_hit check is
+        # the real backstop, same as it always was for target/trend/
+        # stale-timeout/squareoff exits too.
 
 
 # --- Real F&O trading (2026-09-07) -------------------------------------------
