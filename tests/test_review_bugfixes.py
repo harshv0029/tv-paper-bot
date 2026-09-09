@@ -159,7 +159,14 @@ def test_place_real_stop_loss_with_retry_reports_failure_after_exhausting_attemp
     assert result["ok"] is False
 
 
-def test_maybe_sync_real_stop_loss_force_closes_when_a_tracked_sl_cannot_be_replaced():
+def test_maybe_sync_real_stop_loss_never_force_closes_on_a_replacement_failure():
+    # 2026-09-10, explicit user instruction after review: a force-close
+    # escalation here was built, then explicitly reverted - the resting
+    # broker order was never the ONLY protection; _auto_signal_core's own
+    # tick-based stop_hit check needs no resting order to work, so
+    # escalating on a mere placement failure would sell on an API hiccup
+    # rather than an actual price event. Retries still happen (cheap),
+    # but exhausting them must never trigger a full exit on its own.
     _fresh_db()
     with closing(main.get_db()) as conn:
         conn.execute(
@@ -181,13 +188,14 @@ def test_maybe_sync_real_stop_loss_force_closes_when_a_tracked_sl_cannot_be_repl
              patch.object(main.time, "sleep", return_value=None), \
              patch.object(main, "_maybe_place_real_exit") as mock_force_exit:
             main._maybe_sync_real_stop_loss(conn, "RELIANCE.NS")
-            mock_force_exit.assert_called_once_with(conn, "RELIANCE.NS")
+            mock_force_exit.assert_not_called()
+        row = conn.execute("SELECT sl_order_id FROM real_positions WHERE symbol='RELIANCE.NS'").fetchone()
+        assert row["sl_order_id"] is None  # cleared so the next tick retries placing a fresh one
 
 
 def test_maybe_sync_real_stop_loss_does_not_force_close_a_position_with_no_prior_sl():
-    # A fresh/adopted position that never had a tracked SL yet - a
-    # placement hiccup here is not a protection REGRESSION, so this must
-    # NOT escalate to a force-exit (see had_tracked_sl's own docstring).
+    # Same non-escalation guarantee for a fresh/adopted position that
+    # never had a tracked SL yet.
     _fresh_db()
     with closing(main.get_db()) as conn:
         conn.execute(

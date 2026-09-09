@@ -2802,11 +2802,20 @@ def _execute_partial_exit(conn, symbol: str, qty_to_sell: float, last_close: flo
     return pnl_inr
 
 
-_SL_RETRY_ATTEMPTS = 3  # 2026-09-10, found in review: "best-effort and fail-open"
-# was the single riskiest phrase in this whole codebase applied to a
-# PROTECTIVE order - see _place_real_stop_loss_with_retry and the
-# had_tracked_sl escalation in _maybe_sync_real_stop_loss/
-# _maybe_place_real_partial_exit for the full fix.
+_SL_RETRY_ATTEMPTS = 3  # 2026-09-10, found in review: a single placement
+# failure right after a successful cancel used to leave a real position
+# with no resting SL until the next tick's own retry-when-none-is-resting
+# path happened to run. Retried a few times in the SAME call instead - see
+# _place_real_stop_loss_with_retry. An escalation to force-close the
+# position on continued failure was tried the same session and explicitly
+# reverted on the user's own instruction: the resting broker order was
+# never the ONLY protection - _auto_signal_core's own tick-based
+# stop_hit check (see its docstring) fires every scheduler tick
+# regardless of whether any resting order exists at Kotak at all, and
+# needs no resting order to place a real exit the moment price actually
+# crosses the trailing stop. Escalating on a mere placement failure would
+# sell on an API hiccup instead of a price event, for no protection the
+# tick check doesn't already give.
 
 
 def _place_real_stop_loss_with_retry(kotak_trading_symbol: str, qty: float, trigger_price: float,
@@ -2822,9 +2831,13 @@ def _place_real_stop_loss_with_retry(kotak_trading_symbol: str, qty: float, trig
     thread already (every caller is invoked via asyncio.to_thread), so a
     blocking time.sleep here does not stall the event loop.
 
-    Returns the LAST attempt's result dict either way; the caller decides
-    what "still failing after every retry" means - see both call sites,
-    which force-close the position rather than leave it unprotected."""
+    Returns the LAST attempt's result dict either way. A caller whose
+    retries are all exhausted just logs and clears its own tracked order
+    id (see both call sites) - the position stays protected regardless by
+    _auto_signal_core's own tick-based stop_hit check, which needs no
+    resting broker order to work (explicit user instruction 2026-09-10,
+    after review proposed and then reverted a force-close escalation
+    here)."""
     import kotak_real_orders
     result = {"ok": False, "detail": "no attempt made"}
     for attempt in range(1, attempts + 1):
@@ -5663,13 +5676,16 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
                     new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f} for {remaining_qty} shares",
                 )
             else:
-                # Fail-closed escalation (2026-09-10, found in review) -
-                # same reasoning as _maybe_sync_real_stop_loss's own; this
-                # call site is unconditionally "a real, tracked SL just
-                # got cancelled" (gated by the outer `if row["sl_order_id"]`
-                # above), so no had_tracked_sl ambiguity here - a failure
-                # after _place_real_stop_loss_with_retry's own retries
-                # always means the remaining qty is genuinely unprotected.
+                # 2026-09-10, explicit user instruction after review: no
+                # force-close escalation here either, same reasoning as
+                # _maybe_sync_real_stop_loss's own reverted escalation -
+                # the remaining qty stays protected by
+                # _auto_signal_core's own tick-based stop_hit check
+                # regardless of whether a resting order exists at Kotak,
+                # so escalating on a mere placement failure would sell on
+                # an API hiccup rather than an actual price event.
+                # _place_real_stop_loss_with_retry's own retries (above)
+                # are kept - cheap, and they close a transient gap faster.
                 conn.execute("UPDATE real_positions SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
                 _log_real_order_event(
                     conn, symbol, "sl", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
@@ -5677,17 +5693,6 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
                     new_state="none (re-placement failed)", detail=sl_result.get("detail"),
                 )
                 _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
-                print(f"[REAL TRADE] {row['kotak_trading_symbol']} has NO resting stop after "
-                      f"{_SL_RETRY_ATTEMPTS} placement attempts (staged leg resize) - forcing an "
-                      f"emergency full exit rather than leaving the remaining {remaining_qty} shares unprotected")
-                _log_real_order_event(
-                    conn, symbol, "sl", "emergency_exit_triggered", kotak_trading_symbol=row["kotak_trading_symbol"],
-                    prev_state="unprotected - SL resize failed after retries",
-                    new_state="forcing full exit", detail=sl_result.get("detail"),
-                )
-                _sync_real_positions_external(conn)
-                _maybe_place_real_exit(conn, symbol)
-                return
     _sync_real_positions_external(conn)
 
 
@@ -5953,14 +5958,6 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         return  # no upward move since the last sync - nothing to do
 
     import kotak_real_orders
-    # Captured before either branch below touches sl_order_id - used by
-    # the fail-closed escalation further down to tell "a real protecting
-    # order just got cancelled and couldn't be replaced" (genuinely
-    # newly-unprotected - force-close) apart from "there was no tracked SL
-    # to begin with" (a fresh/adopted position still establishing its
-    # first SL - retry next tick, same as before this fix, not an
-    # escalation-worthy regression).
-    had_tracked_sl = bool(real_row["sl_order_id"])
     if real_row["sl_order_id"]:
         cancel_result = kotak_real_orders.cancel_real_order(real_row["sl_order_id"])
         if not cancel_result.get("ok"):
@@ -6018,30 +6015,25 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         )
         _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
 
-        # Fail-closed escalation (2026-09-10, found in review): "best-
-        # effort and fail-open" on a PROTECTIVE order is the single
-        # riskiest phrase in this whole codebase - a real position with
-        # NO resting stop is one bad candle away from an unbounded loss.
-        # Only escalates when we KNOW a real, tracked SL just got
-        # cancelled and could not be replaced (had_tracked_sl) - a fresh/
-        # adopted position still establishing its FIRST SL was never
-        # protected to begin with, so a placement hiccup there is not a
-        # regression and stays on the existing "retry next tick" path,
-        # unchanged. When it genuinely was a regression, force-close the
-        # WHOLE remaining position at market right now, via the same
-        # proven full-exit path _auto_signal_core's own target/stop/
-        # squareoff exits use - an unprotected real position is worse
-        # than an unplanned exit.
-        if had_tracked_sl:
-            print(f"[REAL TRADE] {real_row['kotak_trading_symbol']} has NO resting stop after "
-                  f"{_SL_RETRY_ATTEMPTS} placement attempts - forcing an emergency full exit "
-                  f"rather than leaving it unprotected")
-            _log_real_order_event(
-                conn, symbol, "sl", "emergency_exit_triggered", kotak_trading_symbol=real_row["kotak_trading_symbol"],
-                prev_state="unprotected - SL replacement failed after retries",
-                new_state="forcing full exit", detail=sl_result.get("detail"),
-            )
-            _maybe_place_real_exit(conn, symbol)
+        # 2026-09-10, explicit user instruction after review: the resting
+        # broker-side SL order was never the ONLY thing protecting this
+        # position - _auto_signal_core's own tick check
+        # (`elif last_close <= current_stop: exit_reason = "stop_hit"`)
+        # runs every scheduler tick regardless of whether any resting
+        # order exists at Kotak at all, and places a fresh market sell
+        # for the full qty the moment price actually crosses the trailing
+        # stop. That mechanism already proved itself live (GC=F/SI=F
+        # ratcheting correctly through real ticks this session) and needs
+        # no resting order to work. A force-close escalation here (tried,
+        # then reverted the same session) would have sold on an API
+        # hiccup instead of an actual price event - a real trade and its
+        # cost for no extra protection the tick check doesn't already
+        # give. _place_real_stop_loss_with_retry's own retries (above)
+        # are still worth attempting - cheap, and they close the gap
+        # faster on a genuinely transient failure - but no further escalation
+        # beyond retrying happens here; the next tick's stop_hit check is
+        # the real backstop, same as it always was for target/trend/
+        # stale-timeout/squareoff exits too.
 
 
 # --- Real F&O trading (2026-09-07) -------------------------------------------
