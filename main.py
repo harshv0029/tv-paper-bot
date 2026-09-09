@@ -3874,6 +3874,17 @@ NSE_STOCK_PARAM_OVERRIDES = {
     "TITAN.NS": {"orb_minutes": 10, "sma_fast": 5, "sma_slow": 21, "risk_pct": 2.0, "stop_pct": 2.0},
     "GRASIM.NS": {"orb_minutes": 15, "sma_fast": 5, "sma_slow": 50, "risk_pct": 2.0, "stop_pct": 2.0},
     "BAJAJFINSV.NS": {"orb_minutes": 10, "sma_fast": 5, "sma_slow": 21, "risk_pct": 2.0, "stop_pct": 2.0},
+    # Batch 3, 2026-09-09 - continuation of the same "keep sweeping"
+    # instruction, next 15 untested Nifty50 names
+    # (.github/workflows/nse-universe-sweep-batch3.yml). LTIM.NS
+    # excluded (Yahoo 404s that ticker, same as TATAMOTORS.NS). Only
+    # these four cleared the bar; the other 10 tested stay on the
+    # default, several sharply negative rather than merely unproven
+    # (BRITANNIA.NS: median -455.25, EICHERMOT.NS: median -291.75).
+    "ADANIENT.NS": {"orb_minutes": 30, "sma_fast": 9, "sma_slow": 50, "risk_pct": 2.0, "stop_pct": 2.0},
+    "DIVISLAB.NS": {"orb_minutes": 10, "sma_fast": 14, "sma_slow": 50, "risk_pct": 2.0, "stop_pct": 2.0},
+    "APOLLOHOSP.NS": {"orb_minutes": 10, "sma_fast": 9, "sma_slow": 21, "risk_pct": 2.0, "stop_pct": 2.0},
+    "ADANIPORTS.NS": {"orb_minutes": 15, "sma_fast": 9, "sma_slow": 50, "risk_pct": 2.0, "stop_pct": 2.0},
 }
 
 # Explicit user instruction 2026-09-09: "add preference to monitor these
