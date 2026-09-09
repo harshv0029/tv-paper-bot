@@ -25,19 +25,6 @@
       "sl_trigger_price": 620.75,
       "target_order_id": null,
       "target_price": 646.11
-    },
-    {
-      "symbol": "KANPRPLA.NS",
-      "kotak_trading_symbol": "KANPRPLA-EQ",
-      "qty": 3,
-      "entry_price": 246.7,
-      "entry_order_id": "260909000383557",
-      "opened_at": 1788939328.661609,
-      "day": "2026-09-09",
-      "sl_order_id": "260909000383657",
-      "sl_trigger_price": 243.8,
-      "target_order_id": null,
-      "target_price": 254.11
     }
   ]
 }
