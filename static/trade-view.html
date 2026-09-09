@@ -1246,23 +1246,32 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
     return `₹${fmt(pos.target_price, 2)} ${status}`;
   };
 
+  // Untracked-vs-bot-tracked badge (2026-09-09, explicit user finding:
+  // Kotak's own Positions tab had 2 MORE open positions than this table
+  // did - "Why not in sync still? I want them to be in sync with at max
+  // 10 second delay") - a distinct badge/color so it's never confused
+  // with a position this app actually opened and is managing (SL/target).
+  const realStatusBadge = (pos) => pos.source === "kotak_untracked"
+    ? `<span class="log-status" style="background:rgba(251,191,36,.18);color:#fbbf24;"><span class="dot"></span>REAL (untracked)</span>`
+    : `<span class="log-status" style="background:rgba(168,85,247,.18);color:#c084fc;"><span class="dot"></span>REAL LIVE</span>`;
+
   const openRealRows = (openRealPositions || []).map(pos => {
     const pnlInr = pos.unrealized_pnl_inr;
     const pnlPct = pos.unrealized_pnl_pct;
     return `<tr class="real-trade-row"${pos.target_status_detail ? ` title="${pos.target_status_detail.replace(/"/g, "'")}"` : ""}>
-      <td><span class="log-status" style="background:rgba(168,85,247,.18);color:#c084fc;"><span class="dot"></span>REAL LIVE</span></td>
+      <td>${realStatusBadge(pos)}</td>
       <td class="sym">${displayName(pos.symbol)}</td>
       <td class="log-type">Equity</td>
       <td class="log-type">—</td>
-      <td class="num">${fmt(pos.entry_price, 2)}</td>
+      <td class="num">${pos.entry_price !== null && pos.entry_price !== undefined ? fmt(pos.entry_price, 2) : "—"}</td>
       <td class="num">${pos.current_price !== null && pos.current_price !== undefined ? fmt(pos.current_price, 2) : "—"}</td>
       <td class="num">${fmt(pos.qty, 0)}</td>
-      <td class="num">₹${fmt(pos.invested_inr)}</td>
+      <td class="num">${pos.invested_inr !== null && pos.invested_inr !== undefined ? `₹${fmt(pos.invested_inr)}` : "—"}</td>
       <td class="num">${dash}</td>
       <td class="num">${pnlInr === null || pnlInr === undefined ? dash : pnlSpan(pnlInr)}</td>
       <td class="num">${pnlPct === null || pnlPct === undefined ? "—" : `${pnlPct >= 0 ? "+" : ""}${fmt(pnlPct)}%`}</td>
-      <td class="log-type">target: ${targetCell(pos)}</td>
-      <td class="meta">${timeAgo(pos.opened_at)}</td>
+      <td class="log-type">${pos.source === "kotak_untracked" ? "not bot-managed" : `target: ${targetCell(pos)}`}</td>
+      <td class="meta">${pos.opened_at ? timeAgo(pos.opened_at) : "—"}</td>
     </tr>`;
   });
 
