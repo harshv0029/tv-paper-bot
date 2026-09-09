@@ -4025,6 +4025,80 @@ _T1_HOLDINGS_MARKER = "T1 holdings"  # exact substring Kotak's own RMS rejection
 # avoid a migration) but now covers both root causes equally.
 _T2T_SAME_DAY_MARKER = "Trade-to-Trade stocks on the same day"
 
+# real_t1_restricted external persistence (Upstash Redis) - 2026-09-09,
+# found live right after making the restriction PERMANENT: MEDICAMEQ.NS
+# and SILVERCASE.NS had already been confirmed T1/T2T-restricted (a real
+# Kotak rejection, logged), but real_t1_restricted is a plain SQLite
+# table exactly as ephemeral as every other one on this Render service -
+# the very next deploy (of the "make it permanent" fix itself, and every
+# one since) wiped it clean again, so the dashboard's own target_status
+# fell back to "not_yet_attempted" instead of "blocked" and a fresh real
+# entry attempt tomorrow would have hit the exact same wall all over
+# again - the "permanent" fix wasn't actually permanent against this
+# app's own restart cadence. Same Upstash-mirror pattern as real_positions/
+# rr_cursor/check_counts/runtime_settings above, applied here as one JSON
+# snapshot of the whole table.
+_T1_RESTRICTED_REDIS_KEY = "tv_paper_bot:real_t1_restricted:v1"
+
+
+def _sync_t1_restricted_external(conn) -> None:
+    """Call right after a new row is flagged. Best-effort and silent, same
+    pattern as every other _sync_*_external above."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return
+    try:
+        rows = conn.execute("SELECT symbol, day, flagged_at, detail FROM real_t1_restricted").fetchall()
+        snapshot = [dict(r) for r in rows]
+        requests.post(
+            f"{UPSTASH_REDIS_REST_URL}/set/{_T1_RESTRICTED_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            data=json.dumps(snapshot).encode("utf-8"),
+            timeout=5,
+        )
+    except Exception as e:
+        print(f"[t1_restricted_external] sync failed (non-fatal): {e}")
+
+
+def hydrate_t1_restricted_from_external(conn) -> int:
+    """Startup-time restore, sourced from Upstash - real-time, so a
+    restriction confirmed on ANY earlier day/restart survives every
+    future restart, making the 2026-09-09 'permanent, not day-scoped' fix
+    to _is_t1_restricted actually permanent in practice, not just in
+    intent. Returns how many rows were restored (0 if Upstash is unset/
+    unreachable/empty)."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return 0
+    try:
+        resp = requests.get(
+            f"{UPSTASH_REDIS_REST_URL}/get/{_T1_RESTRICTED_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        raw = resp.json().get("result")
+        if not raw:
+            return 0
+        snapshot = json.loads(raw)
+        if not isinstance(snapshot, list):
+            return 0
+    except Exception as e:
+        print(f"[t1_restricted_external] hydrate failed (non-fatal): {e}")
+        return 0
+
+    restored = 0
+    for row in snapshot:
+        try:
+            conn.execute(
+                "INSERT OR IGNORE INTO real_t1_restricted (symbol, day, flagged_at, detail) VALUES (?, ?, ?, ?)",
+                (row["symbol"], row["day"], row["flagged_at"], row.get("detail")),
+            )
+            restored += 1
+        except (KeyError, TypeError, ValueError):
+            continue
+    if restored:
+        conn.commit()
+    return restored
+
 
 def _flag_if_t1_restricted(conn, symbol: str, detail: str | None) -> None:
     """Records `symbol` as T1/T2T-restricted for today the first time its
@@ -4044,7 +4118,8 @@ def _flag_if_t1_restricted(conn, symbol: str, detail: str | None) -> None:
             (symbol, today, time.time(), detail),
         )
         conn.commit()
-        print(f"[T1-restricted] {symbol} flagged for {today} - new real entries blocked until tomorrow: {detail}")
+        _sync_t1_restricted_external(conn)
+        print(f"[T1-restricted] {symbol} flagged for {today} - new real entries blocked permanently: {detail}")
     except Exception as e:
         print(f"[T1-restricted] failed to flag {symbol} (non-fatal): {e}")
 
@@ -7048,6 +7123,14 @@ async def _start_scheduler():
         _restored_settings = hydrate_runtime_settings_from_external(_settings_conn)
         if _restored_settings:
             print(f"[runtime_settings_external] restored {_restored_settings} setting(s) from Upstash")
+    # real_t1_restricted: same Upstash-first restore, before any real
+    # entry gate could otherwise re-attempt a symbol already confirmed
+    # T1/T2T-restricted on a prior restart - see hydrate_t1_restricted_
+    # from_external's own docstring for the 2026-09-09 bug this closes.
+    with closing(get_db()) as _t1_conn:
+        _restored_t1 = hydrate_t1_restricted_from_external(_t1_conn)
+        if _restored_t1:
+            print(f"[t1_restricted_external] restored {_restored_t1} restriction(s) from Upstash")
     reconcile_open_positions_from_journal()
     reconcile_trading_control_from_journal()
     reconcile_real_trading_control_from_journal()

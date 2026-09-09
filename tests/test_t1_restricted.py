@@ -5,6 +5,7 @@ comment and _flag_if_t1_restricted/_is_t1_restricted docstrings."""
 import os
 import tempfile
 from contextlib import closing
+from unittest.mock import MagicMock, patch
 
 import main
 
@@ -106,3 +107,81 @@ def test_entry_gate_skips_a_t1_restricted_symbol():
             "SELECT status FROM real_trades WHERE symbol = 'ADVENTHTL.NS' ORDER BY id DESC LIMIT 1"
         ).fetchone()
         assert row["status"] == "skipped_t1_restricted"
+
+
+# --- Upstash persistence (2026-09-09) -------------------------------------
+# Found live right after making the restriction permanent: real_t1_restricted
+# is a plain SQLite table, exactly as ephemeral as everything else on this
+# Render service - the very next deploy wiped the flag clean again, defeating
+# the "permanent" fix in practice. See main.py's _sync_t1_restricted_external/
+# hydrate_t1_restricted_from_external docstrings.
+
+def test_sync_no_ops_silently_when_env_vars_unset():
+    _fresh_db()
+    main.UPSTASH_REDIS_REST_URL = None
+    main.UPSTASH_REDIS_REST_TOKEN = None
+    with closing(main.get_db()) as conn:
+        with patch("main.requests.post") as mock_post:
+            main._sync_t1_restricted_external(conn)
+            mock_post.assert_not_called()
+
+
+def test_flagging_syncs_the_whole_table_to_upstash():
+    _fresh_db()
+    main.UPSTASH_REDIS_REST_URL = "https://fake-upstash.example.com"
+    main.UPSTASH_REDIS_REST_TOKEN = "fake-token"
+    try:
+        with closing(main.get_db()) as conn:
+            with patch("main.requests.post") as mock_post:
+                main._flag_if_t1_restricted(conn, "MEDICAMEQ.NS", "RMS:Rule: Check T1 holdings...")
+                mock_post.assert_called_once()
+                call = mock_post.call_args
+                assert call.args[0] == "https://fake-upstash.example.com/set/tv_paper_bot:real_t1_restricted:v1"
+                import json as json_mod
+                body = json_mod.loads(call.kwargs["data"])
+                assert len(body) == 1
+                assert body[0]["symbol"] == "MEDICAMEQ.NS"
+    finally:
+        main.UPSTASH_REDIS_REST_URL = None
+        main.UPSTASH_REDIS_REST_TOKEN = None
+
+
+def test_hydrate_restores_rows_and_is_t1_restricted_sees_them():
+    _fresh_db()
+    main.UPSTASH_REDIS_REST_URL = "https://fake-upstash.example.com"
+    main.UPSTASH_REDIS_REST_TOKEN = "fake-token"
+    try:
+        import json as json_mod
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "result": json_mod.dumps([
+                {"symbol": "MEDICAMEQ.NS", "day": "2026-09-09", "flagged_at": 123.0, "detail": "T2T"},
+            ]),
+        }
+        mock_resp.raise_for_status.return_value = None
+        with closing(main.get_db()) as conn:
+            with patch("main.requests.get", return_value=mock_resp):
+                restored = main.hydrate_t1_restricted_from_external(conn)
+            assert restored == 1
+            assert main._is_t1_restricted(conn, "MEDICAMEQ.NS") is True
+    finally:
+        main.UPSTASH_REDIS_REST_URL = None
+        main.UPSTASH_REDIS_REST_TOKEN = None
+
+
+def test_hydrate_returns_0_on_empty_or_failed_read():
+    _fresh_db()
+    main.UPSTASH_REDIS_REST_URL = "https://fake-upstash.example.com"
+    main.UPSTASH_REDIS_REST_TOKEN = "fake-token"
+    try:
+        with closing(main.get_db()) as conn:
+            empty_resp = MagicMock()
+            empty_resp.json.return_value = {"result": None}
+            empty_resp.raise_for_status.return_value = None
+            with patch("main.requests.get", return_value=empty_resp):
+                assert main.hydrate_t1_restricted_from_external(conn) == 0
+            with patch("main.requests.get", side_effect=Exception("timeout")):
+                assert main.hydrate_t1_restricted_from_external(conn) == 0  # must not raise
+    finally:
+        main.UPSTASH_REDIS_REST_URL = None
+        main.UPSTASH_REDIS_REST_TOKEN = None
