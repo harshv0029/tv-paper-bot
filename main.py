@@ -4654,11 +4654,42 @@ def _ensure_signal_state_for_real_position(conn, real_row) -> bool:
     a guessed real fill time - pragmatic and safe: it only makes the
     trailing-stop's "highest close since entry" window and the stale-
     timeout's elapsed-time count start a little late, never early.
-    Returns True if a row was created, False if one already existed."""
+    Returns True if a row was created, False if one already existed OR
+    real_row turned out to be a GHOST (Kotak shows no genuinely open
+    position for it - see the 2026-09-09 addition below).
+
+    2026-09-09, explicit user finding right after this self-heal first
+    shipped: DEEP.NS showed as REAL LIVE on the dashboard after already
+    being exited - this function would otherwise have backfilled a fresh
+    signal_state row (and _maybe_sync_real_stop_loss would then have
+    tried placing a real SL) for a real_positions row that was itself
+    already a GHOST (a restart landed between the exit's DELETE and its
+    own commit, same restart-race class as the SL-tracking bug
+    documented in _maybe_place_real_exit/_kotak_symbol_still_open).
+    Backfilling paper tracking for a position that's ALREADY CLOSED at
+    Kotak would have resurrected management of nothing, and any SL
+    placement attempt would have been a pointless, confusing rejection
+    (no real shares behind it). Ground-truth check FIRST, one Kotak
+    positions() call - cheap here specifically because this only runs
+    when a signal_state row is about to be freshly created (rare - once
+    per symbol whose tracking was actually wiped), never on the
+    steady-state per-tick path where a row already exists. still_open is
+    None (a fetch failure) is treated as "assume open" - the same fail-
+    OPEN precedent _kotak_symbol_still_open's own docstring already
+    establishes, since silently abandoning a genuinely open position over
+    a transient API hiccup is worse than one extra backfill attempt."""
     already = conn.execute(
         "SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", (real_row["symbol"],)
     ).fetchone()
     if already:
+        return False
+    still_open = _kotak_symbol_still_open(real_row["kotak_trading_symbol"])
+    if still_open is False:
+        conn.execute("DELETE FROM real_positions WHERE symbol = ?", (real_row["symbol"],))
+        conn.commit()
+        _sync_real_positions_external(conn)
+        print(f"[signal_state_backfill] {real_row['symbol']} is a ghost real_positions row "
+              f"(Kotak shows no open position) - removed instead of backfilling paper tracking for it")
         return False
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
     cfg = watchlist_by_symbol.get(real_row["symbol"], {})
