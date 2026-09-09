@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-09T11:06:51Z",
+  "synced_at_utc": "2026-09-09T12:06:01Z",
   "open_positions": [
     {
       "symbol": "HINDALCO.NS",
@@ -31,7 +31,7 @@
       "orb_low_native": null,
       "entry_ts": 1788951965.2662988,
       "interval": "5m",
-      "strategy": null,
+      "strategy": "orb-recovered",
       "sma_fast": 9,
       "sma_slow": 21
     },
@@ -48,7 +48,7 @@
       "orb_low_native": null,
       "entry_ts": 1788951968.6266956,
       "interval": "5m",
-      "strategy": null,
+      "strategy": "orb-recovered",
       "sma_fast": 9,
       "sma_slow": 21
     },
@@ -65,7 +65,7 @@
       "orb_low_native": null,
       "entry_ts": 1788951972.4060943,
       "interval": "5m",
-      "strategy": null,
+      "strategy": "orb-recovered",
       "sma_fast": 9,
       "sma_slow": 21
     }
