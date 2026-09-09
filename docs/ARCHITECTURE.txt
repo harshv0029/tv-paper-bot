@@ -1,0 +1,674 @@
+================================================================================
+TV-PAPER-BOT -- ARCHITECTURE & OPERATIONS REFERENCE
+================================================================================
+Repo:        harshv0029/tv-paper-bot
+Live app:    https://tv-paper-bot-gdan.onrender.com
+Written:     2026-09-09, end of the "universal entry-confidence engine"
+             build + external-review fix session, for future reference.
+Maintainer note: this file is a snapshot. main.py's own inline comments
+(dated, citing the explicit user instruction behind each change) are the
+real source of truth if this file and the code ever disagree -- update
+this file when they do, don't trust it blindly.
+
+================================================================================
+1. WHAT THIS PROJECT IS
+================================================================================
+A single FastAPI service that:
+  - Runs a fully automated PAPER trading engine (simulated fills, real
+    market data) across NSE equities/indices and MCX-style commodities
+    (gold/silver/crude via Yahoo tickers GC=F/SI=F/CL=F).
+  - Mirrors a subset of that paper engine's decisions as REAL orders on
+    a live Kotak Neo brokerage account (cash equity, CNC delivery only --
+    no F&O order placement for equities; a separate real-money F&O path
+    exists ONLY for NIFTY/BANKNIFTY/gold/silver/crude single-leg calls
+    and a Long Straddle, see section 7).
+  - Ships as ONE Python process (main.py, ~8,800 lines) deployed on
+    Render's free tier (no persistent disk -- every deploy/restart wipes
+    SQLite; durability comes from Upstash Redis mirrors + a git-committed
+    JSON journal, see section 6).
+  - Is developed and operated almost entirely through an AI coding agent
+    (this session's own Claude Code instance) acting on the account
+    owner's explicit, in-the-moment instructions -- paper trading is the
+    default; any real-money code change requires a fresh explicit
+    go-ahead each time, never inferred from an earlier one.
+
+================================================================================
+2. END-TO-END EXECUTION FLOW (the diagram)
+================================================================================
+
+  App startup (Render container boots)
+   |
+   |-- hydrate_real_positions_from_external()   (Upstash Redis, real-time)
+   |-- reconcile_*_from_journal()                (git JSON, ~15min-old fallback)
+   |-- asyncio.create_task(_scheduler_loop())     <-- THE live trading loop
+   |-- asyncio.create_task(kotak_live_feed.run_feed(...))  (streaming quotes,
+   |                                                        display only)
+   v
+  _scheduler_loop()  --  runs forever, ticks every SCHEDULER_INTERVAL_SECONDS
+   |                     (30s), each tick calling _scheduler_tick()
+   v
+  _scheduler_tick()
+   |
+   |-- Build this tick's symbol set (never re-scans all ~2,661 symbols
+   |   every tick -- would blow the 30s budget):
+   |
+   |     symbols_this_tick =
+   |         open_equity_symbols        (signal_state, paper positions open)
+   |       | open_real_symbols          (real_positions -- ALWAYS included,
+   |       |                             even with no signal_state row --
+   |       |                             2026-09-09 fix, see section 9)
+   |       | open_option_underlyings    (option_state)
+   |       | evidenced_flat             (EVIDENCED_SYMBOLS, scanned EVERY
+   |       |                             tick regardless of round-robin)
+   |       | rr_batch                   (this tick's slice of the
+   |                                     round-robin over the remaining,
+   |                                     unevidenced universe)
+   |
+   |-- Proactively self-heals a missing signal_state row for every
+   |   real_positions row BEFORE the loop below runs
+   |   (_ensure_signal_state_for_real_position)
+   |
+   |-- for symbol in symbols_this_tick:                <-- PER-SYMBOL LOOP
+   |     |
+   |     v
+   |   _auto_signal_core(symbol, capital, risk_pct, stop_pct, strategy=
+   |                      "universal_score", ...)       <-- section 3
+   |     |
+   |     |-- returns action_taken: one of
+   |     |     "entered_long" | "exited_<reason>" | "partial_booked_<leg>"
+   |     |     | "none" | "blocked_*" | "no_signal" | ...
+   |     v
+   |   dispatch the SAME decision to the REAL side (never re-decides,
+   |   only mirrors):                                   <-- section 5
+   |     entered_long          -> _maybe_place_real_entry
+   |     exited_*              -> _maybe_place_real_exit
+   |     partial_booked_<leg>  -> _maybe_place_real_partial_exit
+   |     (anything else)       -> _maybe_sync_real_stop_loss
+   |                              (also runs the degraded-protection
+   |                               timeout check every tick, section 8)
+   |     |
+   |     v
+   |   if symbol has NIFTY/BANKNIFTY/gold/silver/crude F&O mapping:
+   |     mirror the SAME decision into the real F&O call/straddle path
+   |     (_maybe_place_real_fo_call_entry/exit, _straddle_signal_core)
+   |
+   |-- Options overlay loop (separate, smaller symbol set:
+   |   OPTIONS_ELIGIBLE_SYMBOLS ∩ symbols_this_tick) -> _options_signal_core
+   |   (paper only, real F&O calls covered above)
+   |
+   |-- sync scan-coverage counters to Upstash + (periodically) git journal
+   v
+  (loop back to top after SCHEDULER_INTERVAL_SECONDS)
+
+Everything below the top level is what _auto_signal_core (section 3) and
+the real-order mirrors (section 5) actually do for ONE symbol on ONE
+tick.
+
+================================================================================
+3. _auto_signal_core -- the live decision engine, per symbol per tick
+================================================================================
+
+  entry point
+   |
+   |-- market-hours / weekend / trading-enabled / squareoff-time checks
+   |     -> early-return status strings (pre_open / closed / trading_paused
+   |        / no_new_entries_market_closing / ...) if any apply
+   |
+   |-- fetch_ohlc(symbol, "5d", "5m")  (yfinance, 180s cache)  -> df
+   |-- today_df = df filtered to today's IST date
+   |-- compute multi-day sma_fast/sma_slow (EMA by default), trend
+   |     direction, _trend_confidence (normal-CDF statistical read)
+   |
+   |==============================================================
+   |  BRANCH A: an open position already exists (row.status=='long')
+   |==============================================================
+   |   |-- ratchet the trailing stop UP (never down) -- fixed
+   |   |   TRAIL_ACTIVATE_R=0.5 gap below peak-since-entry, only once
+   |   |   0.5R unrealized gain has been reached
+   |   |-- extend the "leading target" UP if price re-confirms >=95%
+   |   |   trend confidence at the current target (never down)
+   |   |
+   |   |-- STAGED-LEG CHECK (runs BEFORE the full-exit chain below):
+   |   |     if the position has a staged exit_legs_json ladder
+   |   |     (see section 4) and price has reached the NEXT unfilled
+   |   |     fixed leg's own price -> book ONLY that leg's qty
+   |   |     (_execute_staged_leg_exit), tag action_taken=
+   |   |     "partial_booked_<leg>", RETURN immediately (next tick
+   |   |     continues managing the smaller remaining qty)
+   |   |
+   |   |-- full-exit chain (checked in this order, first match wins):
+   |   |     1. daily_loss_cap_hit    (today's realized loss >= 2% cap)
+   |   |     2. target_hit            (price >= current_target AND no
+   |   |                               unfilled fixed leg remains --
+   |   |                               2026-09-10 fix, see section 9)
+   |   |     3. stop_hit              (price <= the trailed stop)
+   |   |     4. trend_weakened        (trend flipped against the
+   |   |                               position at >=95% confidence)
+   |   |     5. stale_timeout         (held > max_hold_minutes with the
+   |   |                               trail never activating)
+   |   |     6. eod_squareoff         (past squareoff_min, 15:20 IST)
+   |   |-- on a match: full paper exit (apply_paper_trade, log the
+   |       trade, DELETE signal_state), action_taken="exited_<reason>"
+   |   |-- no match: return the open-position snapshot, action_taken=
+   |       "none"
+   |
+   |==============================================================
+   |  BRANCH B: no open position -- look for a new entry
+   |==============================================================
+   |   |-- blocked_daily_loss_cap        (today's realized loss >= cap)
+   |   |-- blocked_aggregate_open_risk   (realized loss + every OTHER
+   |   |    open position's own worst-case stop risk >= cap --
+   |   |    2026-09-10 fix, section 9; does NOT touch existing
+   |   |    positions, only gates new ones)
+   |   |-- trading_paused / no_new_entries_market_closing
+   |   |
+   |   |-- TWO-REGIME ROUTER (2026-09-10, section 4):
+   |   |     _classify_market_regime(df, sma_fast, sma_slow, ma_type)
+   |   |       TREND  (>=95% trend confidence AND real HH/HL structure)
+   |   |       RANGE  (either condition fails)
+   |   |
+   |   |     TREND -> _compute_universal_entry_score (8-factor score,
+   |   |              section 4) -> entry_signal = score>=70% AND no
+   |   |              rejection filter tripped
+   |   |     RANGE -> _vwap_mean_reversion_entry (session VWAP +/- std-
+   |   |              dev bands, live single-tick read of
+   |   |              add_strategy_signal's own "vwap_mean_reversion"
+   |   |              strategy) -> entry_signal = close below lower band
+   |   |
+   |   |-- sentiment gate (soft, fail-open -- only ever SUPPRESSES an
+   |   |     otherwise-valid entry when docs/sentiment_log/*.md's latest
+   |   |     read for this symbol is Bearish)
+   |   |
+   |   |-- if entry_signal:
+   |         stop_loss   = max(structural_low, entry*(1-stop_pct%))
+   |         target_cluster = median(2.0R, structure high, entry+2*ATR)
+   |                          (falls back to plain entry+rr*R if
+   |                          structure/ATR aren't computable yet)
+   |         qty = min(risk_amount_inr, remaining tranche/capital) /
+   |               stop_dist, floored to whole shares for NSE equities
+   |         exit_legs = _split_exit_legs(qty, target_cluster.r_multiples)
+   |               qty>=4 -> T1/T2/T3 @ 1.0R/1.5R/2.0R (25% each) + trail
+   |               qty==3 -> T1/T2 (1:1) + trail
+   |               qty==2 -> T1 (1) + trail
+   |               qty==1 -> single exit, no staging
+   |         INSERT signal_state (paper position opened),
+   |         action_taken = "entered_long"
+
+================================================================================
+4. THE UNIVERSAL ENTRY-CONFIDENCE ENGINE, IN FULL
+================================================================================
+strategy="universal_score" is the WATCHLIST default for every one of the
+~2,661 symbols (orb_breakout/bullish_engulfing still exist, byte-for-byte
+unchanged, for /backtest and /sweep research only -- not live).
+
+4a. Regime gate (two regimes only, by explicit decision -- NOT the full
+    regime x strategy-family matrix from a declined deeper framework):
+      TREND requires BOTH:
+        - _trend_confidence >= TREND_WEAKENED_MIN_CONFIDENCE (95%, the
+          SAME statistical bar the trend_weakened exit already trusts)
+        - _swing_structure_bullish (real higher-high/higher-low across
+          two 20-bar windows, not a single-bar statistic)
+      Deliberately AND, not OR: a single sharp bar alone can spike
+      trend-confidence without any real structure behind it -- would
+      have routed exactly the oversold-dip-buy setup RANGE exists to
+      catch right back into the engine that can't score it.
+      Neither condition -> RANGE.
+
+4b. TREND engine -- 8-factor weighted score, threshold 70% (UNVALIDATED
+    against real NSE history -- proposed by feel, live per explicit
+    real-money go-ahead, a /sweep target once it has trade history):
+
+      Component            Weight   Reads
+      -------------------- -------  --------------------------------
+      above_vwap             15     close > session VWAP
+      ema_cross              10     EMA(fast) > EMA(slow)
+      structure_hh_hl        15     HH+HL across last 20 bars (2 halves)
+      breakout_resistance    15     close > highest high of prior 20 bars
+      volume_breakout        15     RVOL graded: 0 / half / full credit
+                                     at 1.0x / 1.5x rolling-avg volume
+                                     (kept separate from the liquidity
+                                     GATE below -- 2026-09-10 fix, was
+                                     double-counting the same signal)
+      rsi_band                10     14-period RSI inside 55-70
+      relative_strength       10     symbol's 20-bar return > NIFTY's
+      index_trend             10     NIFTY's own EMA(fast) > EMA(slow)
+
+    relative_strength/index_trend (and, as of the 2026-09-10 max_score
+    fix, ANY other component) DROP OUT of both the score and the 100-
+    point ceiling when not computable (no index reference for
+    ^NSEI/^NSEBANK/^BSESN/GC=F/SI=F/CL=F, or too little history yet) --
+    the remaining components re-normalize to their own smaller scale.
+
+4c. RANGE engine -- _vwap_mean_reversion_entry: session VWAP + an
+    expanding standard deviation of (close - VWAP); entry trigger is
+    close dropping below (VWAP - bb_std * std), bb_std=2.0 default.
+    Live single-tick version of add_strategy_signal's own
+    "vwap_mean_reversion" strategy (docs/STRATEGY_LOG.md row #13 -- the
+    ONE strategy in that whole 43-row catalog with real positive GROSS
+    backtest evidence: 60 trades, 70% win rate, +Rs62.3).
+
+4d. Rejection filters -- independent of the score, checked for TREND
+    entries; ANY one tripping means no trade regardless of score:
+      reward_risk_below_minimum   (resistance-close)/(close-recent low)
+                                   < 1.2 -- guarded so a price that has
+                                   ALREADY cleared resistance (the
+                                   breakout itself) never trips this on
+                                   its own breakout
+      atr_abnormally_wide          current ATR(14) > 2.5x its own
+                                   trailing 20-bar mean
+      too_extended_from_vwap       |close - VWAP| > 2.0x current ATR
+      liquidity_inadequate         _volume_confirms() gate fails (same
+                                   proxy _auto_signal_core's ORB entries
+                                   already used)
+
+4e. Target cluster (TREND and RANGE both use this for the staged
+    ladder's fixed-leg prices):
+      candidates = [entry+2.0R, nearest un-broken resistance (only if
+                    still above entry), entry+2.0*ATR]
+      primary_target = median(candidates that exist), falls back to
+                        plain entry+rr*R if none of the richer
+                        candidates are computable yet
+    NOT a genuine statistical confluence check (median of 3
+    conceptually different quantities) -- flagged as an open item, not
+    yet fixed.
+
+4f. Staged profit-booking ladder (see _split_exit_legs, section 3B) --
+    the trail leg (always last) has NO fixed target; it rides the
+    position's target/leading-target-extend/trailing-stop machinery
+    exactly like a pre-revamp single-target position. This ladder was
+    shipped as the FIXED default, not tested against alternatives
+    (full-trail, ATR-trail, time-exit, EV-decay-exit) -- an explicitly
+    declined validation step.
+
+================================================================================
+5. REAL-MONEY ORDER MIRRORING
+================================================================================
+Real trading NEVER makes its own trading decision -- it only mirrors
+whatever _auto_signal_core (paper) already decided, in a separate,
+isolated try/except per call site so a real-order hiccup can never look
+like (or block) a paper-trading failure.
+
+Broker: Kotak Neo, via kotak_real_orders.py (order placement) and
+kotak_neo.py (auth/account data -- these two are deliberately separate
+modules). All real orders are CNC (cash-and-carry delivery), DAY
+validity -- no AMO (after-market order) support exists anywhere in this
+codebase.
+
+  _maybe_place_real_entry(symbol)
+    qty = min(paper's own qty, remaining real daily cap / price,
+              real account's available capital)
+    place_real_entry (MKT BUY) -> real_positions INSERT
+    re-derive a REAL exit-leg ladder for the REAL qty (can be smaller
+      than paper's), using REAL entry price + real stop distance (same
+      R fractions, NOT paper's absolute price levels -- 2026-09-10 fix
+      for slippage)
+    place_real_stop_loss (SL trigger order, full qty)
+    place_real_target (plain LIMIT order, sized/priced to the FIRST
+      unfilled fixed leg only -- not the whole qty)
+
+  _maybe_place_real_partial_exit(symbol, leg)
+    cancel the resting target order for THIS leg FIRST
+      cancel succeeds -> genuinely safe to sell -> place_real_exit
+        (MKT SELL) for the leg's own real qty
+      cancel FAILS -> the order most likely already filled at Kotak
+        independently (between ticks -- exactly what the resting order
+        exists to cover) -> reconcile qty/leg status, do NOT place a
+        second sell (2026-09-10 double-sell fix)
+    advance the resting target to the NEXT unfilled leg (if any);
+    resize (cancel+replace) the resting SL to the smaller remaining qty
+
+  _maybe_place_real_exit(symbol)
+    verify against Kotak's OWN positions() that this isn't already
+      closed (a restart can land between an earlier exit's fill and its
+      own DELETE committing -- _kotak_symbol_still_open) before selling
+      again
+    cancel both resting legs (SL + target), place_real_exit (MKT SELL,
+      full qty), DELETE real_positions
+
+  _maybe_sync_real_stop_loss(symbol)
+    FIRST, unconditionally: degraded-protection timeout check
+      (section 8) -- may force a full exit before anything else below
+      runs this tick
+    if the paper trail moved up: cancel + _place_real_stop_loss_with_
+      retry (3 attempts) to replace the resting SL at the new level
+
+T1/T2T same-day-settlement handling: a same-day CNC buy's shares are
+NOT yet in holdings (a Kotak settlement fact, not a quantity conflict)
+-- any real sell attempt against them gets RMS-rejected with one of two
+exact strings ("...T1 holdings..." / "...Trade-to-Trade stocks on the
+same day..."). The FIRST such rejection for a symbol permanently flags
+it (real_t1_restricted table, mirrored to Upstash) -- blocked from
+further real entries forever, not just for that day.
+
+Real F&O (separate, narrower path -- kotak_real_fo_orders.py,
+nse_fo_chain.py, options_pricing.py): single-leg calls on NIFTY/
+BANKNIFTY/gold/silver/crude mirroring the SAME equity/index ORB
+decision, plus a volatility-contraction-triggered Long Straddle
+(_straddle_signal_core) -- both paper-only for every OTHER underlying,
+real only for this fixed F&O-eligible set.
+
+================================================================================
+6. PERSISTENCE -- WHY REDIS MIRRORS EXIST AT ALL
+================================================================================
+Render's free tier has NO persistent disk -- every deploy/restart wipes
+the SQLite file (get_db()/DB_PATH) completely, tables recreated fresh
+from CREATE TABLE IF NOT EXISTS (so schema changes never need an ALTER
+TABLE migration -- just add the column to the CREATE statement).
+
+Real-money-critical state gets a SYNCHRONOUS Upstash Redis mirror on
+every mutation (write-through, not just periodic):
+  real_positions              (entries, exits, leg fills, SL moves --
+                                everything in section 5)
+  rr_cursor                   (round-robin scan position)
+  scheduler_check_counts      (per-symbol scan coverage today)
+  runtime_settings            (live-tunable knobs, e.g. rr, max_hold_
+                                minutes, min_entry_confidence_pct)
+  real_t1_restricted          (the permanent T1/T2T blocklist)
+
+A SLOWER, git-committed JSON journal (state/*.json, synced by
+journal-sync.yml roughly every 15 min or on push) is the SECOND-LAYER
+fallback for all of the above, used only when Upstash itself is
+unreachable at startup -- Upstash wins whenever both are available,
+since the journal's snapshot can be up to 15 min stale and would
+otherwise resurrect state Upstash already knows is gone (e.g. a
+ghost-removed real position).
+
+signal_state (PAPER tracking) has NO Redis mirror at all -- it is
+restored ONLY by the journal (up to 15 min stale) or by
+_ensure_signal_state_for_real_position's own backfill (re-derives stop/
+target from the REAL position's entry price + WATCHLIST's stop_pct/rr,
+entry_ts reset to "now"). This asymmetry has been the root cause of
+several bugs this project has hit and fixed (real positions surviving a
+restart with no paper-side management at all until the backfill runs).
+
+================================================================================
+7. RISK CONTROLS (the full stack, in the order they're actually checked)
+================================================================================
+  1. Per-trade risk ceiling      2% of usable capital for EVIDENCED
+                                  symbols (real backtest sweep cleared,
+                                  see section 10), 1% for everything else
+                                  (unproven default -- NOT reduced
+                                  further after continued live losses on
+                                  unevidenced names; explicitly left as
+                                  1%, not near-zero, per standing
+                                  instruction)
+  2. Capital tranches            CAPITAL_TRANCHES -- no single new trade
+                                  may claim more than 1/N of the whole
+                                  pool even if more sits free
+  3. Daily loss cap              2% of day-open capital -- once today's
+                                  REALIZED loss alone hits this, ALL open
+                                  positions are squared off immediately
+                                  and no new entries are allowed
+  4. Aggregate open-risk gate    (2026-09-10) blocks NEW entries once
+                                  realized loss + every OTHER open
+                                  position's own worst-case stop risk
+                                  would already reach the same 2% cap --
+                                  does NOT force-close existing positions
+  5. Capital reallocation        at most 2/day: trims ONE breakeven-or-
+                                  better, weaker (lower trend confidence)
+                                  open position to fund a stronger new
+                                  signal when the pool is genuinely full
+  6. Trailing stop                fixed TRAIL_ACTIVATE_R=0.5 gap below
+                                  peak-since-entry, activates only past
+                                  0.5R unrealized gain (backtested
+                                  2026-09-03 against 380 real orb_breakout
+                                  entries -- beat 1.0R/1.5R/2.0R/no-
+                                  trailing on every metric)
+  7. Leading target extension     extends the target up by one more R
+                                  whenever price re-confirms >=95% trend
+                                  confidence at the current target
+  8. Trend-weakened exit          closes early if the short-term trend
+                                  flips against the position at >=95%
+                                  statistical confidence
+  9. Stale-timeout exit           closes if held > max_hold_minutes (120
+                                  default) with the trail never once
+                                  activating (the "stuck sideways" case)
+ 10. EOD squareoff                forced exit at 15:20 IST regardless of
+                                  the above, market close 15:30 IST
+ 11. Degraded-protection timeout  (2026-09-10, section 8) escalates a
+                                  real position with no resting broker
+                                  SL to a full exit once a CAPITAL-SCALED
+                                  tolerance is exceeded
+
+================================================================================
+8. DEGRADED-PROTECTION STATE MACHINE (real SL failures)
+================================================================================
+A two-step correction found this session, kept here in full because
+it's easy to re-break by "simplifying" later:
+
+  Attempt 1 (too aggressive): force-close the position immediately on
+    ANY failed SL replacement. Reasoning at the time: "the tick-based
+    stop_hit check already protects it." Reverted the same session.
+
+  Attempt 2 (too permissive): trust the tick-based check alone, never
+    escalate. WRONG -- the tick check only catches a SLOW move through
+    the stop; it does NOT cover a gap-down, a flash move, a market-halt
+    reopening, an API outage, a network outage, or this app's OWN
+    server being down -- exactly the scenarios broker-side protection
+    exists for, because the application itself may fail.
+
+  Final design (live now):
+    real_positions.protection_degraded_since (epoch seconds, NULL = OK)
+      set (idempotent -- never resets an already-running clock) the
+      moment ANY of these leaves a position with no live resting SL:
+        - initial SL placement at entry fails
+        - the trailing-stop sync/replace fails (after 3 retries,
+          _place_real_stop_loss_with_retry, 2s apart)
+        - a staged-leg SL resize fails (after the same retries)
+      cleared the moment a resting SL is confirmed live again.
+
+    Every _maybe_sync_real_stop_loss call (every tick, every real
+    position) checks this FIRST, before anything else that tick:
+      not degraded            -> proceed normally
+      degraded, within budget -> keep retrying (unchanged below)
+      degraded, PAST budget   -> force a full exit right here
+
+    Timeout budget scales down with capital ("operational risk scales
+    with money"):
+      capital < Rs 5,00,000            -> 60s
+      Rs 5,00,000 <= capital < 50,00,000 -> 20s
+      capital >= Rs 50,00,000           -> 10s
+
+================================================================================
+9. NOTABLE BUGS FOUND AND FIXED THIS SESSION (chronological, for the record)
+================================================================================
+  - Real positions invisible to the scheduler tick past squareoff/close
+    (symbols_this_tick never included open_real_symbols directly) --
+    fixed, real positions now always in scope + proactive signal_state
+    backfill before the tick loop runs.
+  - target_hit fired on the FULL remaining qty even with unfilled staged
+    legs (primary_target can sit below a leg's own R-multiple price) --
+    fixed by gating target_hit on _next_unfilled_leg(...) is None.
+  - Real staged partial exit could double-sell if the resting order it
+    was protected by had already filled independently at Kotak -- fixed
+    by cancelling that exact leg's order FIRST and reconciling instead
+    of re-selling when the cancel fails.
+  - volume_ok was both the hard liquidity gate AND a score component --
+    every gate survivor banked those points for free. Fixed: the score
+    component is now a genuine RVOL gradient, independent of the gate.
+  - max_score only ever shrank for the two index-dependent score
+    components, not for any other landing None (e.g. on a zero-volume
+    session or too-short history) -- fixed to exclude every None
+    component from both sides of the ratio.
+  - Real ladder leg PRICES were copied verbatim from paper's own price
+    levels, ignoring real fill slippage -- fixed to recompute from the
+    REAL entry price + real stop distance.
+  - _execute_partial_exit (pre-existing capital-reallocation function)
+    silently lost its own conn.commit()/return during an in-session
+    edit -- an uncommitted reallocation could roll back invisibly.
+    Found auditing a different fix, not from the external review.
+    Fixed, with a regression test asserting conn.in_transaction is
+    False afterward.
+  - The degraded-protection state machine itself (section 8) went
+    through two wrong extremes before landing on the final design --
+    kept in full above as the cautionary example.
+  - The entry-confidence engine was originally described as "universal"
+    but its 8 factors all reward the same trend-continuation read,
+    structurally rejecting VWAP mean reversion (the one strategy in the
+    whole catalog with real positive evidence) -- fixed with the two-
+    regime router (section 4a).
+
+Full test suite after all of the above: 166 passing (110 pre-existing +
+56 new across this session's fixes). Every fix has its own regression
+test in tests/test_review_bugfixes.py, tests/test_regime_router.py, or
+tests/test_universal_score_engine.py.
+
+================================================================================
+10. SYMBOL UNIVERSE & EVIDENCE STATUS
+================================================================================
+NSE_FULL_UNIVERSE: ~2,661 symbols, loaded from docs/nse_universe.json
+(Kotak's own scrip master snapshot, refreshed weekly by
+refresh-nse-universe.yml). Every one of them now runs the SAME
+universal engine (section 4) -- there is no per-symbol strategy choice
+left in live use.
+
+Risk ceiling is the ONLY thing that still varies by symbol, and it
+tracks real backtest evidence, not the new engine (that evidence
+predates this session's revamp and was gathered against the OLD
+orb_breakout engine -- not yet re-validated against the new one):
+
+  EVIDENCED (2% ceiling) -- cleared >=75% of an 18-combo backtest grid
+  AND positive median PnL, 60d/5m, orb_breakout:
+    RELIANCE.NS, TCS.NS, ICICIBANK.NS, INFY.NS, MARUTI.NS, TITAN.NS,
+    GRASIM.NS, BAJAJFINSV.NS, ADANIENT.NS, DIVISLAB.NS, APOLLOHOSP.NS,
+    ADANIPORTS.NS, ^NSEI, ^NSEBANK, ^BSESN, GC=F
+
+  UNPROVEN (1% ceiling, the default) -- everything else, ~2,645 symbols,
+  no sweep run yet. Several have real evidence AGAINST them on the OLD
+  engine (e.g. ULTRACEMCO.NS median -720.5, HDFCBANK.NS 0% of 18 combos
+  profitable) -- left at the conservative default, not raised, but also
+  NOT blocked from real trading (a standing, previously re-raised and
+  declined decision -- "no need to categorise upfront", 2026-09-10).
+
+  PERMANENTLY T1/T2T-RESTRICTED -- any symbol that has ever triggered
+  the same-day-settlement rejection (section 5), tracked in
+  real_t1_restricted, mirrored to Upstash.
+
+================================================================================
+11. FILE MAP
+================================================================================
+  main.py                    Everything: FastAPI routes, WATCHLIST/
+                              NSE_STOCK_PARAM_OVERRIDES/EVIDENCED_SYMBOLS,
+                              add_strategy_signal (the ~20-strategy
+                              BACKTEST/RESEARCH dispatcher -- separate
+                              from the live engine), _auto_signal_core
+                              (the live engine, section 3),
+                              _scheduler_tick/_scheduler_loop, every
+                              real-order management function (section 5)
+  kotak_neo.py                Kotak Neo auth + read-only account/market
+                              data (limits, positions, holdings, scrip
+                              search). Does NOT place orders.
+  kotak_real_orders.py         Real equity order placement/cancellation
+                              wrappers (place_real_entry/exit/stop_loss/
+                              target, cancel_real_order, fill
+                              confirmation). No AMO support.
+  kotak_real_fo_orders.py       Real F&O order placement (the narrow
+                              NIFTY/BANKNIFTY/commodity call + straddle
+                              path, section 5).
+  kotak_live_feed.py           Streaming quote feed for the live
+                              dashboard -- display only, never feeds a
+                              trading decision.
+  nse_fo_chain.py               NSE F&O option-chain fetch/parsing.
+  options_pricing.py           Black-Scholes/greeks for the options
+                              overlay (paper) and real F&O sizing.
+  data_fetch.py                fetch_ohlc (yfinance, 180s cache),
+                              get_fx_to_inr.
+  sentiment_signals.py          Reads docs/sentiment_log/*.md (an
+                              external news-scan routine's own output)
+                              for the soft, fail-open sentiment gate.
+  constants.py                  Shared constants used across modules.
+  docs/TRADING_CONSTRAINTS.md    The living, dated spec of every trading
+                              rule/constant and why it's set that way --
+                              the most detailed single reference, this
+                              file is the shorter architectural map.
+  docs/STRATEGY_LOG.md           Catalog of all 43+ researched/tried
+                              strategies (only used live via the RANGE-
+                              regime router's vwap_mean_reversion and,
+                              historically, orb_breakout/
+                              bullish_engulfing -- everything else in
+                              that catalog is backtest-only research).
+  docs/nse_universe.json         The ~2,661-symbol NSE EQ universe
+                              snapshot.
+  docs/deploy_baseline.json      The backtest-regression baseline
+                              deploy-gate.yml compares every candidate
+                              push against.
+  tests/                          pytest suite, 166 tests -- pure-
+                              function unit tests plus DB-backed
+                              integration tests for every real-order
+                              state transition (never hits the live
+                              Kotak API; kotak_real_orders/kotak_neo
+                              calls are mocked).
+  .github/workflows/
+    deploy-gate.yml              THE ONLY path to `main` -- runs static
+                              safety checks + an independent backtest
+                              replay of orb_breakout against real 60d/5m
+                              data, compares profit_factor/win_rate/
+                              min_R against docs/deploy_baseline.json,
+                              merges + pushes to main ONLY if every rule
+                              passes. Render deploys from every push to
+                              main, so this IS the deploy approval gate.
+    journal-sync.yml              Periodic git-committed JSON snapshot
+                              of state that has no Redis mirror.
+    kotak-reconcile.yml            Adopts any Kotak position this app
+                              doesn't recognize + backfills missing SL/
+                              target orders for real_positions rows.
+    refresh-nse-universe.yml        Weekly refresh of docs/
+                              nse_universe.json from Kotak's scrip
+                              master.
+    trading-control.yml / real-trading-control.yml
+                                    Kill/pause/resume switches (paper
+                              and real, separately).
+    diag-curl.yml                   Ad-hoc GET against the live server
+                              for diagnostics.
+    *-backtest.yml / nse-universe-sweep-*.yml
+                                    One-off research workflows --
+                              read-only, import main.py directly, never
+                              touch live behavior by themselves.
+
+================================================================================
+12. DEPLOYMENT PIPELINE
+================================================================================
+  1. Edit main.py (or any file).
+  2. ast.parse validate.
+  3. Full local pytest run -- must be 100% green.
+  4. Commit (with attribution footer), push to the working branch
+     (currently claude/vigilant-fermi-bagcy0 -- historically `staging`,
+     recreated fresh from main whenever it doesn't exist).
+  5. Dispatch deploy-gate.yml with source_ref = that branch.
+  6. deploy-gate.yml: static safety checks (WATCHLIST risk/stop
+     ceilings <=2%, only approved symbol suffixes, kill-switch code
+     present) + an independent backtest replay -- if EVERY rule passes,
+     it merges the branch into main and pushes; if ANY rule fails,
+     main is left untouched and nothing deploys.
+  7. Render auto-redeploys from every push to main (1-5 min).
+  8. Verify live via diag-curl.yml (/health, /daily-summary, /real-
+     open-positions).
+
+================================================================================
+13. WHAT THIS PROJECT DELIBERATELY DOES NOT DO (open items, not oversights)
+================================================================================
+  - No probabilistic target-hit modeling (P(target before stop) from
+    real historical MFE/MAE event studies).
+  - No cost-adjusted (brokerage/STT/GST/slippage/spread) backtest
+    expectancy anywhere -- every historical result quoted in this
+    project to date is GROSS, not net.
+  - No walk-forward/out-of-sample validation of anything, including the
+    universal engine's own 70% threshold, 8 weights, or the two-regime
+    router itself ("if regime routing does not improve out-of-sample
+    results, remove it" -- not yet tested either way).
+  - No policy-comparison framework for the staged exit ladder against
+    alternatives (full-trail, ATR-trail, time-exit, EV-decay-exit).
+  - No SECTOR/index-beta correlated-risk engine (a simple, uncorrelated
+    aggregate-open-risk cap WAS added, section 7 item 4 -- true
+    correlation modeling was not).
+  - No incremental per-feature ablation (proving each of the 8 score
+    components/4 rejection filters individually adds value).
+  - No AMO (after-market order) support.
+  - No Level-2/order-book depth anywhere (liquidity is always an OHLCV
+    volume proxy).
+
+All of the above were explicitly proposed and explicitly declined or
+deferred in-session, not overlooked -- see docs/TRADING_CONSTRAINTS.md's
+"What this explicitly does NOT do" section for the fuller reasoning
+behind each.
+================================================================================
