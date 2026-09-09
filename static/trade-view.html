@@ -1222,10 +1222,34 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   // CLOSED real trades only - an OPEN real position had no row anywhere
   // on this page. /real-open-positions (new, no token) is that missing
   // source - see its own docstring in main.py.
+  // target cell (2026-09-09, explicit user instruction: "I don't see any
+  // resilient way from ur side that how u r booking profits when the
+  // target is reached. Show me on render what is target for each
+  // entered trade and pass that order to Kotak also") - shows the
+  // target PRICE (now recorded whether or not the real order succeeded,
+  // see main.py's target-failure UPDATE) plus whether a REAL resting
+  // order actually backs it at Kotak right now: a green check for
+  // "resting" (a real order exists), or the concrete reason it doesn't
+  // ("blocked" - a T1/T2T same-day-sell restriction, unfixable today;
+  // "failed" - some other rejection, shown verbatim; "not yet attempted"
+  // - still pending). Never just silently shows a number with no way to
+  // tell if it's a real order or only this app's own intention.
+  const targetStatusLabel = {
+    resting: `<span style="color:#4ade80;">✓ resting at Kotak</span>`,
+    blocked: `<span style="color:#f87171;">✗ blocked (T1/T2T)</span>`,
+    failed: `<span style="color:#f87171;">✗ failed</span>`,
+    not_yet_attempted: `<span style="color:#fbbf24;">… pending</span>`,
+  };
+  const targetCell = (pos) => {
+    if (pos.target_price === null || pos.target_price === undefined) return "—";
+    const status = targetStatusLabel[pos.target_status] || "";
+    return `₹${fmt(pos.target_price, 2)} ${status}`;
+  };
+
   const openRealRows = (openRealPositions || []).map(pos => {
     const pnlInr = pos.unrealized_pnl_inr;
     const pnlPct = pos.unrealized_pnl_pct;
-    return `<tr class="real-trade-row">
+    return `<tr class="real-trade-row"${pos.target_status_detail ? ` title="${pos.target_status_detail.replace(/"/g, "'")}"` : ""}>
       <td><span class="log-status" style="background:rgba(168,85,247,.18);color:#c084fc;"><span class="dot"></span>REAL LIVE</span></td>
       <td class="sym">${displayName(pos.symbol)}</td>
       <td class="log-type">Equity</td>
@@ -1237,7 +1261,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${dash}</td>
       <td class="num">${pnlInr === null || pnlInr === undefined ? dash : pnlSpan(pnlInr)}</td>
       <td class="num">${pnlPct === null || pnlPct === undefined ? "—" : `${pnlPct >= 0 ? "+" : ""}${fmt(pnlPct)}%`}</td>
-      <td class="log-type">open</td>
+      <td class="log-type">target: ${targetCell(pos)}</td>
       <td class="meta">${timeAgo(pos.opened_at)}</td>
     </tr>`;
   });
