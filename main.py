@@ -7915,6 +7915,45 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
                     backfill_entry["sl_placed"] = False
                     backfill_entry["sl_failure_detail"] = sl_result.get("detail")
                     _flag_if_t1_restricted(conn, r["symbol"], sl_result.get("detail"))
+            # Real resting target/profit-booking order - same gap as the
+            # SL leg above, found live 2026-09-09 (explicit user finding:
+            # "I can't see the order for profit booking order for each
+            # trade" - MEDICAMEQ.NS was tracked in real_positions with a
+            # real entry and (after this same backfill's SL leg) a real
+            # SL, but target_order_id/target_price had been null the
+            # whole time - the original entry flow's target placement
+            # (see its own "paper_row and paper_row['target']" comment)
+            # only fires when a matching signal_state row already exists
+            # AT THE MOMENT OF ENTRY; a position adopted/backfilled here
+            # never went through that path, so it was left with no
+            # profit-booking mechanism at the broker at all. Mirrors the
+            # SL backfill exactly - best-effort, never retried on a later
+            # tick (matches the original entry-time placement's own
+            # no-retry convention, see kotak_real_orders' "Real resting
+            # target" docstring).
+            if not r["target_order_id"]:
+                import kotak_real_orders
+                target_result = kotak_real_orders.place_real_target(r["kotak_trading_symbol"], r["qty"], target)
+                if target_result.get("ok"):
+                    conn.execute(
+                        "UPDATE real_positions SET target_order_id = ?, target_price = ? WHERE symbol = ?",
+                        (target_result["order_id"], target_result["target_price"], r["symbol"]),
+                    )
+                    _log_real_order_event(
+                        conn, r["symbol"], "target", "placed", kotak_trading_symbol=r["kotak_trading_symbol"],
+                        order_id=target_result["order_id"], prev_state="none",
+                        new_state=f"resting SELL limit Rs{target_result['target_price']:.2f}",
+                        detail="placed synchronously during governance backfill",
+                    )
+                    backfill_entry["target_order_id"] = target_result["order_id"]
+                    backfill_entry["target_placed"] = True
+                else:
+                    _log_real_order_event(
+                        conn, r["symbol"], "target", "failed", kotak_trading_symbol=r["kotak_trading_symbol"],
+                        prev_state="none", new_state="none (placement failed)", detail=target_result.get("detail"),
+                    )
+                    backfill_entry["target_placed"] = False
+                    backfill_entry["target_failure_detail"] = target_result.get("detail")
             governance_backfilled.append(backfill_entry)
         conn.commit()
         _sync_real_positions_external(conn)
