@@ -3949,16 +3949,30 @@ def _real_today_spent_inr(conn) -> float:
 
 
 _T1_HOLDINGS_MARKER = "T1 holdings"  # exact substring Kotak's own RMS rejection uses
+# Found live 2026-09-09 (MEDICAMEQ.NS - Medicamen Biotech Ltd, actually a
+# regulatory Trade-to-Trade/T2T-segment stock, not just Kotak's own T1-
+# holdings RMS check): the SAME same-day-sell restriction can surface
+# under a COMPLETELY different message - "Insufficient quantity held for
+# this order... Selling Trade-to-Trade stocks on the same day of purchase
+# is not allowed." This is a harder constraint than a broker RMS quirk -
+# it's SEBI/exchange surveillance-category enforced, meaning NEITHER a
+# target NOR (once triggered) a stop-loss can ever complete same-day for
+# a T2T stock, no workaround possible until T+1. Both markers are
+# checked; the flag/table name stays "t1_restricted" (not renamed to
+# avoid a migration) but now covers both root causes equally.
+_T2T_SAME_DAY_MARKER = "Trade-to-Trade stocks on the same day"
 
 
 def _flag_if_t1_restricted(conn, symbol: str, detail: str | None) -> None:
-    """Records `symbol` as T1-restricted for today the first time its
-    detail string carries Kotak's own RMS rejection marker - see
-    real_t1_restricted's own CREATE TABLE comment for the full reasoning.
-    Call this at every site that logs a real SL/exit rejection detail.
-    Idempotent (day-scoped PRIMARY KEY, INSERT OR IGNORE) and never raises -
-    a failure to flag must never break the real order flow it's observing."""
-    if not detail or _T1_HOLDINGS_MARKER not in detail:
+    """Records `symbol` as T1/T2T-restricted for today the first time its
+    detail string carries either of Kotak's own same-day-sell rejection
+    markers - see real_t1_restricted's own CREATE TABLE comment for the
+    full reasoning, and _T2T_SAME_DAY_MARKER's own comment above for why
+    there are two. Call this at every site that logs a real SL/exit
+    rejection detail. Idempotent (day-scoped PRIMARY KEY, INSERT OR
+    IGNORE) and never raises - a failure to flag must never break the
+    real order flow it's observing."""
+    if not detail or (_T1_HOLDINGS_MARKER not in detail and _T2T_SAME_DAY_MARKER not in detail):
         return
     today = ist_now().strftime("%Y-%m-%d")
     try:
