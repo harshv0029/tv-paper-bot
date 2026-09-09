@@ -315,6 +315,29 @@ realized vol ran below the dashboard's flat 14% IV assumption (favors premium-se
 BANKNIFTY's realized vol sat close to that assumption (favors a directional defined-risk play
 riding its stronger trend, #12) over pure theta harvesting.
 
+## Universal multi-factor entry-confidence engine (2026-09-09) - full architecture revamp
+
+Explicit user instruction: "revamp all of the strategy architecture from
+beginning." This log's own 43 rows above are exactly the gap that
+prompted it - each strategy fires on its own single rule in isolation,
+never combined into one scored decision. Full detail (weights, rejection
+filters, target-cluster/staged-exit mechanics, and what was explicitly
+declined - a deeper probabilistic expected-value framework proposed the
+same session, "ignore feedback then") lives in
+`docs/TRADING_CONSTRAINTS.md`'s own "Universal multi-factor entry-
+confidence engine" section, not duplicated here. Short version: replaces
+`orb_breakout`/`bullish_engulfing` as the live entry trigger for every
+WATCHLIST symbol (not deleted - `/backtest`/`/sweep` still use them for
+standalone research) with one 8-factor weighted score (`_compute_
+universal_entry_score`), a target CLUSTER instead of a single rr*R number
+(`_compute_target_cluster`), and a staged 25/25/25/trail profit-booking
+ladder (`_split_exit_legs`) wired into both paper and REAL order
+placement immediately (this session's own real-money go-ahead). NOT yet
+backtest-tuned against real NSE data - same "proposed, not yet swept"
+status as every other row in this log, flagged as an explicit exception
+since it went live before that sweep per direct user instruction rather
+than after.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the

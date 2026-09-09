@@ -180,11 +180,11 @@ def hydrate_real_positions_from_external() -> bool:
                 conn.execute(
                     "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
                     "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                    "target_order_id, target_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "target_order_id, target_price, exit_legs_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
                      pos.get("entry_order_id"), pos["opened_at"], pos["day"],
                      pos.get("sl_order_id"), pos.get("sl_trigger_price"),
-                     pos.get("target_order_id"), pos.get("target_price")),
+                     pos.get("target_order_id"), pos.get("target_price"), pos.get("exit_legs_json")),
                 )
                 restored += 1
             if restored:
@@ -368,7 +368,14 @@ def init_db():
                 orb_high REAL,
                 orb_low REAL,
                 fx_to_inr REAL NOT NULL DEFAULT 1.0,  -- captured at entry; entry_price*fx_to_inr = INR/unit
-                interval TEXT NOT NULL DEFAULT '5m'   -- candle size this trade was taken on
+                interval TEXT NOT NULL DEFAULT '5m',  -- candle size this trade was taken on
+                exit_legs_json TEXT  -- 2026-09-09, universal-score architecture revamp: staged
+                                     -- profit-booking ladder (see _split_exit_legs) as a JSON list
+                                     -- of {"leg","qty","r_multiple","target_price","status"} dicts.
+                                     -- NULL for any position not entered under strategy=
+                                     -- "universal_score" (e.g. a real-position governance backfill,
+                                     -- see _ensure_signal_state_for_real_position) - those keep the
+                                     -- pre-revamp single-target/single-exit behavior unchanged.
             )
             """
         )
@@ -505,7 +512,14 @@ def init_db():
                 sl_order_id TEXT,
                 sl_trigger_price REAL,
                 target_order_id TEXT,
-                target_price REAL
+                target_price REAL,
+                exit_legs_json TEXT  -- 2026-09-09, universal-score architecture revamp: mirrors
+                                     -- signal_state.exit_legs_json's own staged-ladder JSON for the
+                                     -- REAL position, so a resting target order at Kotak is only
+                                     -- ever placed/tracked for the CURRENT unfilled leg (see
+                                     -- _maybe_place_real_entry/_maybe_place_real_partial_exit) - NULL
+                                     -- for any real position with no staged ladder (backfilled/
+                                     -- adopted positions, see kotak_neo_reconcile_real_positions).
             )
             """
         )
@@ -2784,6 +2798,436 @@ def _execute_partial_exit(conn, symbol: str, qty_to_sell: float, last_close: flo
         conn.execute("DELETE FROM signal_state WHERE symbol = ?", (symbol,))
     else:
         conn.execute("UPDATE signal_state SET qty = ? WHERE symbol = ?", (remaining_qty, symbol))
+
+
+# ==== Universal multi-factor entry-confidence engine (2026-09-09) ==========
+# Explicit user instruction: "revamp all of the strategy architecture from
+# beginning" - full session context: a comparison against an externally-
+# proposed architecture (Market Context -> Entry Score -> Trade Validation
+# -> Target Calculation -> Dynamic Profit Booking -> Exit) surfaced real
+# gaps against this project's own docs/STRATEGY_LOG.md (43 cataloged
+# strategies, each firing on its OWN single rule in isolation - no
+# confluence/scoring across strategies, no pre-trade reward:risk check, no
+# staged profit-booking, no index-trend/relative-strength gate). Approved
+# this session, in order:
+#   1. every WATCHLIST symbol (full NSE universe, not a narrow pilot) is
+#      now scored by ONE universal engine instead of picking a named
+#      per-symbol strategy - see the strategy=cfg.get("strategy", ...)
+#      default at the scheduler's own call site further down.
+#   2. wired into REAL order placement immediately (not paper-only first) -
+#      this counts as this session's explicit real-money go-ahead.
+#   3. staged 4-way profit-booking ladder (25/25/25/trail), collapsing for
+#      small real share counts exactly as specified: qty>=4 -> 4 legs,
+#      qty==3 -> 3 legs (1:1:1), qty==2 -> 2 legs (1:1), qty==1 -> single
+#      exit, no staging - built as the FIXED default, no policy-comparison
+#      framework (a separate, deeper "probabilistic expected-value"
+#      architecture was proposed the same session and explicitly NOT
+#      adopted - "ignore feedback then").
+#
+# orb_breakout/bullish_engulfing are NOT deleted - /backtest and /sweep
+# (add_strategy_signal) still use those names for standalone strategy
+# research, and deploy-gate.yml's own backtest regression check replays
+# orb_breakout's entry math independently (see its own embedded script) and
+# must keep matching. Every component below is "approximable with OHLCV",
+# same standard docs/STRATEGY_LOG.md already applies throughout - no new
+# data source, no Level-2/order-book/news feed (all correctly flagged
+# BLOCKED there already, not attempted here either).
+UNIVERSAL_SCORE_WEIGHTS = {
+    "above_vwap": 15,
+    "ema_cross": 10,
+    "structure_hh_hl": 15,
+    "breakout_resistance": 15,
+    "volume_breakout": 15,
+    "rsi_band": 10,
+    "relative_strength": 10,
+    "index_trend": 10,
+}  # sums to 100 when the symbol has a usable reference-index read; the two
+# index-dependent components (relative_strength, index_trend) are dropped
+# and the rest re-normalized to a 0-100 scale when the traded symbol IS the
+# reference index itself (or has too little history) - see
+# _compute_universal_entry_score's own `has_index` branch.
+
+UNIVERSAL_ENTRY_SCORE_MIN = 70.0  # this session's own approved threshold.
+# NOT yet backtest-tuned against real NSE data (same "proposed, not yet
+# swept" honesty docs/STRATEGY_LOG.md applies everywhere else) - a fast-
+# follow /sweep target once this engine has real trade history to tune
+# against.
+UNIVERSAL_REFERENCE_INDEX = "^NSEI"  # NIFTY 50 - the one broad-market proxy
+# every NSE equity is compared against (no per-sector index mapping exists
+# in this codebase yet - a coarser but honest approximation, same class as
+# GC=F standing in for "commodities" generically elsewhere here).
+UNIVERSAL_RS_LOOKBACK = 20          # bars, for the relative-strength read
+UNIVERSAL_STRUCTURE_LOOKBACK = 20   # bars, for swing-structure/resistance
+UNIVERSAL_RSI_PERIOD = 14
+UNIVERSAL_RSI_BAND = (55.0, 70.0)   # per this session's own proposal table
+
+# Rejection filters - independent of the score above; ANY tripping means
+# "no trade" regardless of how high the score is. No bid/ask feed exists
+# anywhere in this codebase (yfinance OHLCV has none) - "liquidity" is
+# approximated via current-bar volume vs its own rolling average, the same
+# proxy _volume_confirms already uses elsewhere in this file.
+UNIVERSAL_MIN_REWARD_RISK = 1.2         # nearest resistance vs stop distance
+UNIVERSAL_MAX_ATR_MULT = 2.5            # reject if current ATR > this x its own 20-bar rolling mean
+UNIVERSAL_MAX_VWAP_EXTENSION_ATR = 2.0  # reject if price already this many ATRs away from session VWAP
+UNIVERSAL_MIN_LIQUIDITY_MULT = 0.3      # matches _volume_confirms' own liquidity-floor convention
+
+
+def _atr_series(df: pd.DataFrame, period: int = 14) -> pd.Series:
+    """True-range rolling-mean ATR (Wilder-style approximation, same class
+    of formula the existing chandelier-exit strategy's own atr_period
+    already uses elsewhere in add_strategy_signal) - the FULL series, not
+    just the last value, so callers needing both "current ATR" and "ATR's
+    own recent average" (the rejection filter below) derive both from one
+    computation instead of two."""
+    high = df["High"].to_numpy(dtype=float)
+    low = df["Low"].to_numpy(dtype=float)
+    close = df["Close"].to_numpy(dtype=float)
+    prev_close = np.roll(close, 1)
+    if len(prev_close):
+        prev_close[0] = close[0]
+    tr = np.maximum(high - low, np.maximum(np.abs(high - prev_close), np.abs(low - prev_close)))
+    return pd.Series(tr).rolling(period).mean()
+
+
+def _compute_atr_value(df: pd.DataFrame, period: int = 14) -> float | None:
+    """Last bar's ATR only - see _atr_series for the full series."""
+    series = _atr_series(df, period)
+    val = series.iloc[-1] if len(series) else None
+    return float(val) if val is not None and pd.notna(val) else None
+
+
+def _compute_rsi_value(closes: np.ndarray, period: int = UNIVERSAL_RSI_PERIOD) -> float | None:
+    """Standalone RSI reader for the universal engine, same Wilder-style
+    formula add_strategy_signal's own rsi_reversal branch already uses -
+    factored out fresh here (not reused from there) so this new engine can
+    never perturb that existing, already-backtested strategy's exact
+    numbers. Returns the LAST bar's RSI, or None if there isn't enough
+    history yet."""
+    if len(closes) < period + 1:
+        return None
+    s = pd.Series(closes)
+    delta = s.diff()
+    gain = delta.clip(lower=0).rolling(period).mean()
+    loss = (-delta.clip(upper=0)).rolling(period).mean()
+    last_gain, last_loss = gain.iloc[-1], loss.iloc[-1]
+    if pd.isna(last_gain) or pd.isna(last_loss):
+        return None
+    if last_loss == 0:
+        return 100.0
+    rs = last_gain / last_loss
+    return float(100 - (100 / (1 + rs)))
+
+
+def _compute_session_vwap_value(today_df: pd.DataFrame) -> float | None:
+    """Session VWAP (cumulative typical-price*volume / cumulative volume,
+    reset every session by definition) - the LAST bar's value only.
+    Returns None on a zero-volume session (index tickers - Yahoo reports
+    volume:0 for every index bar, the exact root cause
+    docs/STRATEGY_LOG.md's own VWAP-batch rows #13-18 already document, so
+    VWAP is genuinely undefined there) rather than a silently-wrong
+    divide-by-zero read."""
+    if len(today_df) == 0:
+        return None
+    vol = today_df["Volume"].to_numpy(dtype=float)
+    if float(np.nansum(vol)) <= 0:
+        return None
+    typical = ((today_df["High"] + today_df["Low"] + today_df["Close"]) / 3.0).to_numpy(dtype=float)
+    cum_vol = np.cumsum(vol)
+    cum_tp_vol = np.cumsum(typical * vol)
+    if cum_vol[-1] <= 0:
+        return None
+    vwap = cum_tp_vol[-1] / cum_vol[-1]
+    return float(vwap) if np.isfinite(vwap) else None
+
+
+def _swing_structure_bullish(df: pd.DataFrame, lookback: int = UNIVERSAL_STRUCTURE_LOOKBACK) -> bool | None:
+    """Approximates SMC/Wyckoff-style higher-high/higher-low market
+    structure (docs/STRATEGY_LOG.md rows #32/#35's own "swing-high/swing-
+    low sequence" definition) with the simplest honest OHLCV read: split
+    the trailing `lookback` bars into two equal halves and require BOTH
+    the high and the low of the second half to exceed the first half's -
+    price making a higher high AND a higher low over the window, not just
+    drifting up on one lopsided bar. Returns None if there isn't enough
+    history yet (never a silent False)."""
+    if len(df) < lookback * 2:
+        return None
+    window = df.iloc[-lookback * 2:]
+    first_half, second_half = window.iloc[:lookback], window.iloc[lookback:]
+    return bool(second_half["High"].max() > first_half["High"].max()
+                and second_half["Low"].min() > first_half["Low"].min())
+
+
+def _relative_strength_bullish(symbol_closes: np.ndarray, index_closes: np.ndarray,
+                                lookback: int = UNIVERSAL_RS_LOOKBACK) -> bool | None:
+    """Is this symbol outperforming the reference index over the same
+    trailing window (docs/STRATEGY_LOG.md's "select stronger instruments"
+    read) - plain %-return comparison, no data source beyond the index
+    fetch _compute_universal_entry_score's caller already does. Returns
+    None if either series doesn't have enough history yet."""
+    if len(symbol_closes) < lookback + 1 or len(index_closes) < lookback + 1:
+        return None
+    sym_ret = symbol_closes[-1] / symbol_closes[-lookback - 1] - 1
+    idx_ret = index_closes[-1] / index_closes[-lookback - 1] - 1
+    return bool(sym_ret > idx_ret)
+
+
+def _index_trend_bullish(index_closes: np.ndarray, sma_fast: int, sma_slow: int, ma_type: str = "ema") -> bool | None:
+    """Is the broad market itself trending up (docs/STRATEGY_LOG.md row
+    #26's "avoid fighting broader market") - the same _moving_average
+    fast>slow read this engine already trusts for the traded symbol's own
+    trend, applied to UNIVERSAL_REFERENCE_INDEX's closes instead."""
+    if len(index_closes) < max(sma_fast, sma_slow):
+        return None
+    return bool(_moving_average(index_closes, sma_fast, ma_type) > _moving_average(index_closes, sma_slow, ma_type))
+
+
+def _compute_universal_entry_score(
+    df: pd.DataFrame, today_df: pd.DataFrame,
+    volume_ok: bool, sma_fast_val: float | None, sma_slow_val: float | None,
+    index_closes: np.ndarray | None, sma_fast: int, sma_slow: int, ma_type: str = "ema",
+) -> dict:
+    """The engine's single entry decision - an 8-factor weighted score (see
+    UNIVERSAL_SCORE_WEIGHTS) PLUS a separate set of hard rejection filters,
+    exactly this session's own approved read: "given the market right now,
+    should I trade" -> score >= UNIVERSAL_ENTRY_SCORE_MIN AND no rejection
+    filter tripped -> entry_allowed.
+
+    Never raises on missing/short history - every component degrades to
+    "not scored" (None in `breakdown`, excluded from both the achieved
+    score and max_score) rather than crashing or silently scoring 0.
+    Returns a dict safe to drop straight into _auto_signal_core's own
+    `result`: score, max_score, score_pct, breakdown, rejection_reasons,
+    entry_allowed."""
+    closes = df["Close"].to_numpy(dtype=float)
+    last_close = float(closes[-1])
+    breakdown: dict[str, float | None] = {}
+    weights = dict(UNIVERSAL_SCORE_WEIGHTS)
+
+    has_index = index_closes is not None and len(index_closes) >= max(sma_fast, sma_slow, UNIVERSAL_RS_LOOKBACK + 1)
+    if not has_index:
+        weights.pop("relative_strength", None)
+        weights.pop("index_trend", None)
+
+    vwap = _compute_session_vwap_value(today_df)
+    breakdown["above_vwap"] = None if vwap is None else (weights["above_vwap"] if last_close > vwap else 0.0)
+
+    if sma_fast_val is not None and sma_slow_val is not None:
+        breakdown["ema_cross"] = weights["ema_cross"] if sma_fast_val > sma_slow_val else 0.0
+    else:
+        breakdown["ema_cross"] = None
+
+    structure_ok = _swing_structure_bullish(df)
+    breakdown["structure_hh_hl"] = None if structure_ok is None else (weights["structure_hh_hl"] if structure_ok else 0.0)
+
+    resistance = float(df["High"].iloc[-(UNIVERSAL_STRUCTURE_LOOKBACK + 1):-1].max()) if len(df) > UNIVERSAL_STRUCTURE_LOOKBACK else None
+    breakdown["breakout_resistance"] = None if resistance is None else (
+        weights["breakout_resistance"] if last_close > resistance else 0.0
+    )
+
+    breakdown["volume_breakout"] = weights["volume_breakout"] if volume_ok else 0.0
+
+    rsi_val = _compute_rsi_value(closes)
+    lo, hi = UNIVERSAL_RSI_BAND
+    breakdown["rsi_band"] = None if rsi_val is None else (weights["rsi_band"] if lo <= rsi_val <= hi else 0.0)
+
+    if has_index:
+        rs_ok = _relative_strength_bullish(closes, index_closes)
+        breakdown["relative_strength"] = weights["relative_strength"] if rs_ok else 0.0
+        idx_ok = _index_trend_bullish(index_closes, sma_fast, sma_slow, ma_type)
+        breakdown["index_trend"] = weights["index_trend"] if idx_ok else 0.0
+
+    max_score = sum(weights.values())
+    score = sum(v for v in breakdown.values() if v is not None)
+    score_pct = round(100.0 * score / max_score, 2) if max_score else 0.0
+
+    # ---- Rejection filters - independent of score, checked regardless ----
+    rejection_reasons = []
+    atr_series = _atr_series(df)
+    atr_val = float(atr_series.iloc[-1]) if len(atr_series) and pd.notna(atr_series.iloc[-1]) else None
+    atr_recent_mean = (
+        float(atr_series.iloc[-20:].mean())
+        if len(atr_series) >= 20 and atr_series.iloc[-20:].notna().all() else None
+    )
+    if atr_val is not None and atr_recent_mean and atr_val > UNIVERSAL_MAX_ATR_MULT * atr_recent_mean:
+        rejection_reasons.append("atr_abnormally_wide")
+    if vwap is not None and atr_val:
+        if abs(last_close - vwap) > UNIVERSAL_MAX_VWAP_EXTENSION_ATR * atr_val:
+            rejection_reasons.append("too_extended_from_vwap")
+    if not volume_ok:
+        rejection_reasons.append("liquidity_inadequate")
+    if resistance is not None and len(df) > UNIVERSAL_STRUCTURE_LOOKBACK:
+        risk_ref = last_close - float(df["Low"].iloc[-(UNIVERSAL_STRUCTURE_LOOKBACK + 1):].min())
+        reward_ref = resistance - last_close
+        # Only a meaningful rejection while price is still BELOW resistance
+        # (reward_ref > 0) - once last_close has cleared it (the breakout
+        # itself), this ratio stops being informative and is left to the
+        # score above instead.
+        if risk_ref > 0 and reward_ref > 0 and reward_ref / risk_ref < UNIVERSAL_MIN_REWARD_RISK:
+            rejection_reasons.append("reward_risk_below_minimum")
+
+    return {
+        "score": round(score, 1), "max_score": max_score, "score_pct": score_pct,
+        "breakdown": breakdown, "rejection_reasons": rejection_reasons,
+        "entry_allowed": bool(score_pct >= UNIVERSAL_ENTRY_SCORE_MIN and not rejection_reasons),
+    }
+
+
+def _compute_target_cluster(entry_price: float, stop_loss: float, df: pd.DataFrame, rr: float) -> dict:
+    """Target isn't one number - a small CLUSTER of independently-derived
+    candidates (this session's own approved architecture): pure R-multiples
+    of the trade's own risk, the nearest resistance structure already sits
+    at, and an ATR-projected move. `primary_target` (used to size the trail
+    leg - see _split_exit_legs) is the MEDIAN of [2.0R, structure, ATR-
+    projected] when at least one of the latter two exists, falling back to
+    plain entry + rr*R (this engine's pre-existing, already-live target
+    formula, UNCHANGED) whenever neither structure nor ATR can be computed
+    yet - never silently changes existing live behavior when there isn't
+    enough history for the richer read.
+
+    `confidence` is a crude 0-1 read on how tightly the candidates agree
+    (a tighter cluster reads as higher confidence) - NOT a probability
+    estimate of hitting the target, which would need real historical
+    event-study data this project doesn't have yet (see this session's own
+    "ignore feedback then" decision not to build that deeper framework)."""
+    r = entry_price - stop_loss
+    fallback_target = entry_price + rr * r
+    if r <= 0:
+        return {"r_multiples": {}, "structure_target": None, "atr_target": None,
+                "primary_target": round(fallback_target, 2), "confidence": None}
+
+    r_multiples = {
+        "1.0R": entry_price + 1.0 * r, "1.5R": entry_price + 1.5 * r,
+        "2.0R": entry_price + 2.0 * r, "3.0R": entry_price + 3.0 * r,
+    }
+
+    structure_target = None
+    if len(df) > UNIVERSAL_STRUCTURE_LOOKBACK:
+        recent_high = float(df["High"].iloc[-(UNIVERSAL_STRUCTURE_LOOKBACK + 1):-1].max())
+        if recent_high > entry_price:
+            structure_target = recent_high
+
+    atr_val = _compute_atr_value(df)
+    atr_target = entry_price + 2.0 * atr_val if atr_val else None
+
+    candidates = [c for c in [r_multiples["2.0R"], structure_target, atr_target] if c is not None]
+    primary_target = float(np.median(candidates)) if candidates else fallback_target
+    confidence = None
+    if len(candidates) >= 2 and primary_target:
+        spread_pct = 100.0 * (max(candidates) - min(candidates)) / primary_target
+        confidence = round(max(0.0, 1.0 - spread_pct / 20.0), 2)  # <20% spread across methods -> full confidence
+
+    return {
+        "r_multiples": {k: round(v, 2) for k, v in r_multiples.items()},
+        "structure_target": round(structure_target, 2) if structure_target else None,
+        "atr_target": round(atr_target, 2) if atr_target else None,
+        "primary_target": round(primary_target, 2),
+        "confidence": confidence,
+    }
+
+
+def _split_exit_legs(qty: float, r_multiples: dict) -> list[dict]:
+    """Staged profit-booking ladder - explicit user instruction: 4-way
+    25/25/25/trail for qty>=4 shares, collapsing to a proportional split
+    for smaller real positions exactly as specified: qty==3 -> 3 legs
+    (1:1:1), qty==2 -> 2 legs (1:1), qty==1 -> single exit, no staging at
+    all. Real NSE cash-equity positions are WHOLE SHARES only (see
+    _auto_signal_core's own math.floor comment) - this assumes an integer-
+    valued qty, same convention.
+
+    Each non-trail leg gets its own fixed R-multiple target (from
+    `r_multiples`, _compute_target_cluster's own output) so earlier legs
+    book at CLOSER, more certain levels and later legs reach further. The
+    trail leg (always last) has NO fixed target of its own - it's governed
+    by the position's existing target/leading-target-extend/trailing-stop
+    machinery exactly as before this change, just on the smaller remaining
+    qty once every fixed leg has filled.
+
+    Returns an ordered list of {"leg", "qty", "r_multiple", "target_price",
+    "status": "open"} dicts - the trail leg's r_multiple/target_price are
+    both None by design. Empty list for qty<=0."""
+    qty = int(qty)
+    if qty <= 0:
+        return []
+    if qty == 1:
+        return [{"leg": "trail", "qty": 1, "r_multiple": None, "target_price": None, "status": "open"}]
+    n_fixed = {2: 1, 3: 2}.get(qty, 3)  # qty>=4 -> classic 3 fixed legs + trail
+    fixed_rs = ["1.0R", "1.5R", "2.0R"][:n_fixed]
+    base_leg_qty = qty // (n_fixed + 1)
+    legs, used = [], 0
+    for i, rkey in enumerate(fixed_rs):
+        legs.append({
+            "leg": f"T{i + 1}", "qty": base_leg_qty, "r_multiple": rkey,
+            "target_price": r_multiples.get(rkey), "status": "open",
+        })
+        used += base_leg_qty
+    legs.append({"leg": "trail", "qty": qty - used, "r_multiple": None, "target_price": None, "status": "open"})
+    return legs
+
+
+def _execute_staged_leg_exit(conn, symbol: str, leg: str, qty_to_sell: float, last_close: float,
+                              entry_price: float, fx_to_inr: float) -> dict:
+    """Books one staged profit-taking LEG (see _split_exit_legs) - the same
+    partial-exit primitive _execute_partial_exit already established for
+    capital reallocation, tagged with its own exit_reason so a T1/T2/T3
+    booking is fully visible in the trade log, never folded into an
+    ordinary full stop/target exit. Marks the leg 'filled' in
+    signal_state.exit_legs_json and shrinks qty - the remaining qty (the
+    later legs plus the trail leg) keeps running under the position's
+    EXISTING stop/target/trailing-stop machinery exactly as before this
+    change, just smaller."""
+    row = conn.execute("SELECT * FROM signal_state WHERE symbol = ?", (symbol,)).fetchone()
+    if row is None:
+        return {"booked": False}
+    pnl_native = (last_close - entry_price) * qty_to_sell
+    pnl_inr = pnl_native * fx_to_inr
+    remaining_qty = round(row["qty"] - qty_to_sell, 6)
+    buy_row = conn.execute(
+        "SELECT strategy FROM trades WHERE symbol = ? AND action = 'buy' ORDER BY id DESC LIMIT 1", (symbol,)
+    ).fetchone()
+    strategy_tag = buy_row["strategy"] if buy_row else f"{ORB_STRATEGY_PREFIX}unknown"
+    payload = {
+        "symbol": symbol, "action": "sell", "qty": qty_to_sell, "price": last_close,
+        "fx_to_inr": fx_to_inr, "strategy": strategy_tag, "exit_reason": f"staged_leg_{leg}",
+        "entry_price": entry_price, "remaining_qty": remaining_qty,
+        "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
+    }
+    apply_paper_trade(conn, symbol, "sell", qty_to_sell, last_close)
+    conn.execute(
+        "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+        "VALUES (?, ?, 'sell', ?, ?, ?, ?, ?)",
+        (time.time(), symbol, qty_to_sell, last_close, fx_to_inr, strategy_tag, json.dumps(payload)),
+    )
+    legs = json.loads(row["exit_legs_json"]) if row["exit_legs_json"] else []
+    for leg_entry in legs:
+        if leg_entry["leg"] == leg:
+            leg_entry["status"] = "filled"
+            leg_entry["filled_price"] = last_close
+            leg_entry["filled_at"] = time.time()
+    if remaining_qty <= 1e-9:
+        conn.execute("DELETE FROM signal_state WHERE symbol = ?", (symbol,))
+    else:
+        conn.execute(
+            "UPDATE signal_state SET qty = ?, exit_legs_json = ? WHERE symbol = ?",
+            (remaining_qty, json.dumps(legs), symbol),
+        )
+    conn.commit()
+    return {
+        "booked": True, "leg": leg, "qty": qty_to_sell, "remaining_qty": remaining_qty,
+        "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
+    }
+
+
+def _next_unfilled_leg(exit_legs_json: str | None) -> dict | None:
+    """First not-yet-filled, price-targeted (non-trail) leg in a staged
+    exit ladder, or None if there's no ladder, every fixed leg is already
+    filled, or the only leg left is the trail leg (which has no fixed
+    target of its own - see _split_exit_legs)."""
+    if not exit_legs_json:
+        return None
+    for leg_entry in json.loads(exit_legs_json):
+        if leg_entry["leg"] != "trail" and leg_entry["status"] == "open":
+            return leg_entry
+    return None
     conn.commit()
     return pnl_inr
 
@@ -3254,6 +3698,12 @@ def _auto_signal_core(
         strategy_tag = f"{ORB_STRATEGY_PREFIX}{orb_minutes}m-sma{sma_fast}-{sma_slow}"
     elif strategy == "bullish_engulfing":
         strategy_tag = f"{ORB_STRATEGY_PREFIX}bullish-engulfing-trend{trend_sma}"
+    elif strategy == "universal_score":
+        # 2026-09-09 architecture revamp - see the "Universal multi-factor
+        # entry-confidence engine" block above _compute_universal_entry_score
+        # for the full rationale. This is now the WATCHLIST default (see the
+        # scheduler's own strategy=cfg.get("strategy", ...) call site).
+        strategy_tag = f"{ORB_STRATEGY_PREFIX}universal-score"
     else:
         raise HTTPException(status_code=400, detail=f"Unknown live strategy {strategy!r}")
     now_ist = ist_now()
@@ -3334,12 +3784,14 @@ def _auto_signal_core(
                 df, today_str, open_min, orb_minutes, orb_high - orb_low,
             )
         else:
-            # bullish_engulfing needs no opening range - just enough candles
-            # (across days, same as its backtest) to compare two consecutive
-            # bars. orb_high/orb_low stay unset here; filled from the
-            # pattern candle itself below if/when it fires, purely so
-            # signal_state's existing columns have a meaningful "structural
-            # reference level" regardless of which strategy is live.
+            # bullish_engulfing AND universal_score (2026-09-09 architecture
+            # revamp) both need no opening range - just enough candles
+            # (across days, same as bullish_engulfing's own backtest) for
+            # the multi-day reads below. orb_high/orb_low stay unset here;
+            # filled from the pattern candle itself below if/when it fires,
+            # purely so signal_state's existing columns have a meaningful
+            # "structural reference level" regardless of which strategy is
+            # live.
             if len(df) < 2:
                 return {
                     "symbol": symbol, "status": "waiting_for_pattern_data",
@@ -3437,6 +3889,37 @@ def _auto_signal_core(
                     current_target = extended_target
                     conn.execute("UPDATE signal_state SET target = ? WHERE symbol = ?", (current_target, symbol))
                     conn.commit()
+
+            # Staged profit-booking ladder (2026-09-09 architecture revamp) -
+            # checked BEFORE the exit_reason chain below, same "ratchet/
+            # extend first, then decide" ordering the trailing-stop/leading-
+            # target blocks above already establish. row["exit_legs_json"]
+            # is None for any position not entered under strategy=
+            # "universal_score" (orb_breakout/bullish_engulfing, or a real-
+            # position governance backfill - see _next_unfilled_leg's own
+            # docstring), so this is a pure no-op for every pre-revamp
+            # position - never changes their behavior.
+            #
+            # Only ONE leg is ever booked per tick, and this function
+            # RETURNS immediately after booking one - deliberately simpler
+            # and safer than trying to also evaluate the full exit_reason
+            # chain (stop/target/trend-weakened/stale-timeout/squareoff)
+            # against the now-smaller remaining qty in the SAME tick. The
+            # next scheduler tick (typically seconds to a few minutes later)
+            # picks up normal management on the reduced position exactly as
+            # it would have anyway.
+            next_leg = _next_unfilled_leg(row["exit_legs_json"])
+            if next_leg is not None and next_leg.get("target_price") and last_close >= next_leg["target_price"]:
+                booking = _execute_staged_leg_exit(
+                    conn, symbol, next_leg["leg"], next_leg["qty"], last_close,
+                    row["entry_price"], row["fx_to_inr"],
+                )
+                if booking.get("booked"):
+                    result.update(
+                        action_taken=f"partial_booked_{next_leg['leg']}",
+                        staged_exit=booking,
+                    )
+                    return result
 
             exit_reason = None
             if halted:
@@ -3592,7 +4075,7 @@ def _auto_signal_core(
                 "confirmed": volume_ok, "avg_volume": vol_avg,
                 "current_volume": float(df["Volume"].iloc[-1]) if len(df) else None,
             }
-        else:  # bullish_engulfing - see add_strategy_signal() for the backtested version
+        elif strategy == "bullish_engulfing":  # see add_strategy_signal() for the backtested version
             cur_bar, prev_bar = df.iloc[-1], df.iloc[-2]
             cur_bullish = cur_bar["Close"] > cur_bar["Open"]
             prev_bearish = prev_bar["Close"] < prev_bar["Open"]
@@ -3623,6 +4106,35 @@ def _auto_signal_core(
             structural_low = float(cur_bar["Low"])
             orb_high, orb_low = float(cur_bar["High"]), structural_low  # for result/signal_state display only
             entry_reason = f"bullish_engulfing_trend{trend_sma}"
+
+        else:  # universal_score - 2026-09-09 architecture revamp, the WATCHLIST default
+            volume_ok, vol_avg = _volume_confirms(df["Volume"].to_numpy(dtype=float))
+            result["volume_gate"] = {
+                "confirmed": volume_ok, "avg_volume": vol_avg,
+                "current_volume": float(df["Volume"].iloc[-1]) if len(df) else None,
+            }
+            # Reference-index fetch for relative_strength/index_trend - never
+            # attempted for the index/commodity symbols themselves (compares
+            # nonsense, e.g. NIFTY vs its own closes) or on a fetch failure;
+            # _compute_universal_entry_score degrades those two components
+            # to "not scored" (has_index=False) rather than crashing, same
+            # "a data problem degrades, never crashes" discipline as every
+            # other external fetch in this file.
+            index_closes = None
+            if symbol not in {UNIVERSAL_REFERENCE_INDEX, "^NSEBANK", "^BSESN", "GC=F", "SI=F", "CL=F"}:
+                try:
+                    index_df = fetch_ohlc(UNIVERSAL_REFERENCE_INDEX, "5d", interval)
+                    index_closes = index_df["Close"].to_numpy(dtype=float)
+                except Exception:
+                    index_closes = None
+            score_result = _compute_universal_entry_score(
+                df, today_df, volume_ok, sma_f, sma_s, index_closes, sma_fast, sma_slow, ma_type,
+            )
+            result["universal_score"] = score_result
+            entry_signal = score_result["entry_allowed"]
+            structural_low = float(df["Low"].iloc[-(UNIVERSAL_STRUCTURE_LOOKBACK + 1):].min())
+            orb_high, orb_low = None, structural_low  # for result/signal_state display only
+            entry_reason = f"universal_score_{score_result['score_pct']}pct"
 
         # Sentiment gate (2026-09-07, explicit user instruction: "i want
         # this info to be used for sector specific knowledge to pick
@@ -3656,7 +4168,22 @@ def _auto_signal_core(
             if stop_dist <= 0:
                 result["action_taken"] = "invalid_stop_skipped"
                 return result
-            target = last_close + rr * stop_dist
+
+            # Target cluster (2026-09-09 architecture revamp) - universal_score
+            # ONLY; orb_breakout/bullish_engulfing keep their pre-existing,
+            # already-live plain rr*R target formula UNCHANGED (never
+            # silently changed by this revamp, per deploy-gate.yml's own
+            # backtest regression, which replays orb_breakout's exact math
+            # independently and must keep matching). See
+            # _compute_target_cluster's own docstring for what "primary
+            # target" means and _split_exit_legs for how it seeds the
+            # staged profit-booking ladder below.
+            target_cluster = None
+            if strategy == "universal_score":
+                target_cluster = _compute_target_cluster(last_close, stop_loss, df, rr)
+                target = target_cluster["primary_target"]
+            else:
+                target = last_close + rr * stop_dist
 
             # risk_amount is Rs (part of the shared capital pool); stop_dist
             # is native currency (e.g. USD for SPY) - must convert one to
@@ -3767,6 +4294,18 @@ def _auto_signal_core(
                 result["available_capital_inr"] = round(available_capital_inr, 2)
                 return result
 
+            # Staged profit-booking ladder (2026-09-09 architecture revamp) -
+            # universal_score ONLY, same reasoning as the target-cluster
+            # branch above: orb_breakout/bullish_engulfing get exit_legs=None
+            # (single-target/single-exit behavior, byte-for-byte unchanged).
+            # See _split_exit_legs' own docstring for the exact qty-aware
+            # leg-count rule (explicit user instruction).
+            exit_legs = None
+            if strategy == "universal_score" and target_cluster is not None:
+                exit_legs = _split_exit_legs(qty, target_cluster["r_multiples"])
+                result["exit_legs"] = exit_legs
+                result["target_cluster"] = target_cluster
+
             notional_inr = qty * last_close * fx_to_inr
             payload = {
                 "symbol": symbol, "action": "buy", "qty": qty, "price": last_close,
@@ -3777,6 +4316,7 @@ def _auto_signal_core(
                 "risk_pct_of_capital": round(100 * risk_amount_inr / capital, 3),
                 "notional_native": round(qty * last_close, 2), "notional_inr": round(notional_inr, 2),
                 "reallocated_from": result.get("reallocated_from"),
+                "exit_legs": exit_legs,
             }
             apply_paper_trade(conn, symbol, "buy", qty, last_close)
             conn.execute(
@@ -3786,15 +4326,16 @@ def _auto_signal_core(
             )
             conn.execute(
                 "INSERT INTO signal_state "
-                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, exit_legs_json) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
                 "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
                 "initial_stop_loss=excluded.initial_stop_loss, "
                 "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
                 "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, "
-                "interval=excluded.interval",
-                (symbol, today_str, last_close, stop_loss, stop_loss, target, qty, time.time(), orb_high, orb_low, fx_to_inr, interval),
+                "interval=excluded.interval, exit_legs_json=excluded.exit_legs_json",
+                (symbol, today_str, last_close, stop_loss, stop_loss, target, qty, time.time(), orb_high, orb_low,
+                 fx_to_inr, interval, json.dumps(exit_legs) if exit_legs else None),
             )
             conn.commit()
             result.update(action_taken="entered_long", entry=payload)
@@ -4462,7 +5003,7 @@ def _maybe_place_real_entry(conn, symbol: str):
     # never buy more than the paper signal called for, and never more
     # than real money can actually afford, whichever is smaller.
     paper_row = conn.execute(
-        "SELECT qty, stop_loss, target FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
+        "SELECT qty, stop_loss, target, exit_legs_json FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
     ).fetchone()
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
     remaining_cap_inr = get_runtime_setting(conn, "real_daily_cap_inr") - _real_today_spent_inr(conn)
@@ -4518,11 +5059,32 @@ def _maybe_place_real_entry(conn, symbol: str):
         # only when Kotak hasn't reported a fill yet.
         real_qty = int(result["qty"])
         real_entry_price = result["fill_price"]
+
+        # Staged profit-booking ladder for the REAL position (2026-09-09
+        # architecture revamp) - real_qty can be SMALLER than the paper
+        # signal's own qty (capped by remaining_cap_inr/real capital above),
+        # so the paper ladder's qty-per-leg can't just be copied over
+        # as-is. Re-derives a fresh, qty-appropriate ladder for real_qty
+        # using the SAME per-share target PRICES the paper side already
+        # computed (price levels don't change with qty, only how many
+        # shares book at each one) - see _split_exit_legs' own docstring
+        # for the qty-aware leg-count rule. None for any non-universal_score
+        # entry (paper_row["exit_legs_json"] is None there) - falls through
+        # to the pre-revamp single-target behavior unchanged.
+        real_exit_legs = None
+        if paper_row and paper_row["exit_legs_json"]:
+            paper_legs = json.loads(paper_row["exit_legs_json"])
+            r_multiples_by_key = {
+                leg["r_multiple"]: leg["target_price"] for leg in paper_legs
+                if leg["r_multiple"] and leg["target_price"]
+            }
+            real_exit_legs = _split_exit_legs(real_qty, r_multiples_by_key)
+
         conn.execute(
             "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
-            "entry_order_id, opened_at, day) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "entry_order_id, opened_at, day, exit_legs_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (symbol, kotak_symbol, real_qty, real_entry_price, result["order_id"], now,
-             ist_now().strftime("%Y-%m-%d")),
+             ist_now().strftime("%Y-%m-%d"), json.dumps(real_exit_legs) if real_exit_legs else None),
         )
         _log_real_attempt(
             conn, symbol, "B", "confirmed", kotak_trading_symbol=kotak_symbol,
@@ -4584,9 +5146,20 @@ def _maybe_place_real_entry(conn, symbol: str):
         # but does not undo the real entry - see kotak_real_orders'
         # "Real resting target" docstring for why this one is NOT retried
         # on a later tick the way the SL is.
-        if paper_row and paper_row["target"]:
+        # Staged ladder (2026-09-09): the FIRST unfilled fixed leg's own
+        # qty/price, not the full real_qty/paper_row["target"] - later legs
+        # get their own resting target placed only once the one ahead of
+        # them books (see _maybe_place_real_partial_exit). Falls back to
+        # the exact pre-revamp single-target behavior (full real_qty at
+        # paper_row["target"]) when there's no ladder at all (real_exit_legs
+        # is None) OR the only leg is "trail" (qty<=1 at entry - see
+        # _split_exit_legs).
+        first_leg = next((l for l in (real_exit_legs or []) if l["leg"] != "trail"), None)
+        target_leg_qty = first_leg["qty"] if first_leg else real_qty
+        target_leg_price = first_leg["target_price"] if first_leg else (paper_row["target"] if paper_row else None)
+        if target_leg_qty and target_leg_price:
             target_result = kotak_real_orders.place_real_target(
-                kotak_symbol, real_qty, round(paper_row["target"], 2)
+                kotak_symbol, target_leg_qty, round(target_leg_price, 2)
             )
             if target_result.get("ok"):
                 conn.execute(
@@ -4594,7 +5167,8 @@ def _maybe_place_real_entry(conn, symbol: str):
                     (target_result["order_id"], target_result["target_price"], symbol),
                 )
                 print(f"[REAL TRADE] TARGET resting @ Rs{target_result['target_price']:.2f} for {kotak_symbol} "
-                      f"(order {target_result['order_id']})")
+                      f"(order {target_result['order_id']})"
+                      + (f" [leg {first_leg['leg']}, {target_leg_qty}/{real_qty} shares]" if first_leg else ""))
                 _log_real_order_event(
                     conn, symbol, "target", "placed", kotak_trading_symbol=kotak_symbol,
                     order_id=target_result["order_id"], prev_state="none",
@@ -4616,7 +5190,7 @@ def _maybe_place_real_entry(conn, symbol: str):
                 # show WHY, right next to this number.
                 conn.execute(
                     "UPDATE real_positions SET target_price = ? WHERE symbol = ?",
-                    (round(paper_row["target"], 2), symbol),
+                    (round(target_leg_price, 2), symbol),
                 )
                 _log_real_order_event(
                     conn, symbol, "target", "failed", kotak_trading_symbol=kotak_symbol,
@@ -4678,6 +5252,181 @@ def _kotak_symbol_still_open(kotak_trading_symbol: str) -> bool | None:
         if fl_buy > 0 and fl_buy != fl_sell:
             return True
     return False
+
+
+def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
+    """Mirrors ONE staged profit-booking LEG (see _execute_staged_leg_exit)
+    as a REAL partial sell - 2026-09-09 architecture revamp. Unlike
+    _maybe_place_real_exit (which always closes the FULL real_positions
+    row), this only ever sells the leg's own qty and UPDATES the row's qty
+    downward, advancing the resting target order to the NEXT unfilled leg
+    (if any) and re-sizing the resting stop-loss to the smaller remaining
+    qty - same cancel-then-replace pattern _maybe_place_real_exit already
+    uses for the SL leg, just without closing the position.
+
+    Best-effort at every step, same conventions as every other real-order
+    function in this file: a failure to advance the target/shrink the SL
+    is logged but never undoes the partial sell that already happened -
+    the position genuinely has fewer shares at Kotak either way."""
+    row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
+    if not row:
+        return  # no real position was ever opened for this paper trade - nothing to partially exit
+    leg_name = staged_exit.get("leg")
+    # The PAPER side's `staged_exit` only tells us WHICH leg just fired -
+    # how much to sell on the REAL side comes from the REAL position's own
+    # ladder (real_exit_legs, re-derived for real_qty at entry time - see
+    # _maybe_place_real_entry), NOT the paper leg's own qty. Real qty can be
+    # (and often is) smaller than paper qty, so the two ladders' same-named
+    # legs hold DIFFERENT qtys by design - using the paper qty here would
+    # over-sell the real position on its very first leg.
+    real_legs = json.loads(row["exit_legs_json"]) if row["exit_legs_json"] else []
+    real_leg = next((l for l in real_legs if l["leg"] == leg_name), None)
+    if real_leg is None or real_leg["status"] != "open":
+        # No matching (or already-filled) leg on the REAL side - this real
+        # position may never have been given a staged ladder at all (too
+        # small at entry - see _split_exit_legs's qty==1 case - or it
+        # predates this revamp/was adopted via reconcile), or this exact
+        # leg already booked at Kotak on an earlier tick. Either way there
+        # is nothing new to sell for THIS leg name; the position's existing
+        # full-exit path (_maybe_place_real_exit) still governs it normally
+        # once a real exit_reason eventually fires.
+        return
+    leg_qty = min(int(real_leg["qty"]), int(row["qty"]))
+    if leg_qty <= 0:
+        _log_real_attempt(
+            conn, symbol, "S", "skipped_zero_leg_qty", kotak_trading_symbol=row["kotak_trading_symbol"],
+            detail=f"staged leg {leg_name} had qty<=0 after capping to real position's own qty {row['qty']}",
+        )
+        return
+
+    import kotak_real_orders
+    result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], leg_qty)
+    if not result.get("ok"):
+        _log_real_attempt(
+            conn, symbol, "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            qty=leg_qty, detail=result.get("detail"), raw_response=result.get("raw_response"),
+        )
+        print(f"[REAL TRADE] STAGED LEG {leg_name} SELL FAILED {row['kotak_trading_symbol']}: "
+              f"{result.get('detail')} - position still holds the full qty, will retry next tick "
+              f"the same way any other unfilled real-order leg does")
+        _log_real_order_event(
+            conn, symbol, f"staged_{leg_name}", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
+            new_state="unchanged - staged leg sell failed", detail=result.get("detail"),
+        )
+        _flag_if_t1_restricted(conn, symbol, result.get("detail"))
+        return
+
+    exit_qty = int(result["qty"])
+    remaining_qty = row["qty"] - exit_qty
+    _log_real_attempt(
+        conn, symbol, "S", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+        qty=exit_qty, price_est=result.get("fill_price"),
+        notional_inr=exit_qty * result["fill_price"] if result.get("fill_price") else None,
+        order_id=result["order_id"], raw_response=result.get("raw_response"),
+        detail=f"staged leg {leg_name} partial exit"
+               + ("" if result["fill_price_confirmed"] else " - fill not yet confirmed by Kotak"),
+    )
+    print(f"[REAL TRADE] STAGED LEG {leg_name} SELL {exit_qty} {row['kotak_trading_symbol']} "
+          f"(order {result['order_id']}) - {remaining_qty} shares remain")
+    _log_real_order_event(
+        conn, symbol, f"staged_{leg_name}", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+        order_id=result["order_id"], prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
+        new_state=f"long {remaining_qty} (booked {exit_qty} @ Rs{result.get('fill_price') or 0:.2f})",
+    )
+
+    # Mark this leg filled in the real-side ladder (mirrors
+    # _execute_staged_leg_exit's own paper-side bookkeeping) - reuses
+    # real_legs computed above rather than re-parsing exit_legs_json.
+    legs = real_legs
+    for leg_entry in legs:
+        if leg_entry["leg"] == leg_name:
+            leg_entry["status"] = "filled"
+
+    if remaining_qty <= 0:
+        # Every leg (including trail) somehow booked here rather than
+        # through the normal full-exit path - close the row outright,
+        # same as _maybe_place_real_exit's own DELETE.
+        conn.execute("DELETE FROM real_positions WHERE symbol = ?", (symbol,))
+        conn.commit()
+        _sync_real_positions_external(conn)
+        return
+    conn.execute(
+        "UPDATE real_positions SET qty = ?, exit_legs_json = ? WHERE symbol = ?",
+        (remaining_qty, json.dumps(legs) if legs else None, symbol),
+    )
+    conn.commit()
+    _sync_real_positions_external(conn)
+
+    # Advance the resting target to the NEXT unfilled fixed leg (if any) -
+    # cancel the one that just filled (best-effort; it may already show
+    # filled/gone at Kotak, a cancel on an already-filled order is a
+    # harmless no-op rejection) and place a fresh one sized to the next
+    # leg's own qty/price. No new target is placed once only the "trail"
+    # leg remains - that qty is governed by the position's existing
+    # target/leading-target-extend/trailing-stop machinery exactly as a
+    # pre-revamp single-target position, via the normal full-exit path
+    # (_maybe_place_real_exit) whenever the paper engine's own exit_reason
+    # chain next fires.
+    if row["target_order_id"]:
+        kotak_real_orders.cancel_real_order(row["target_order_id"])
+    next_leg = next((l for l in legs if l["leg"] != "trail" and l["status"] == "open"), None)
+    if next_leg and next_leg.get("target_price"):
+        target_result = kotak_real_orders.place_real_target(
+            row["kotak_trading_symbol"], next_leg["qty"], round(next_leg["target_price"], 2)
+        )
+        if target_result.get("ok"):
+            conn.execute(
+                "UPDATE real_positions SET target_order_id = ?, target_price = ? WHERE symbol = ?",
+                (target_result["order_id"], target_result["target_price"], symbol),
+            )
+            _log_real_order_event(
+                conn, symbol, "target", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                order_id=target_result["order_id"], prev_state="advancing to next staged leg",
+                new_state=f"resting SELL limit Rs{target_result['target_price']:.2f} for leg {next_leg['leg']}",
+            )
+        else:
+            conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
+            _log_real_order_event(
+                conn, symbol, "target", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                prev_state="advancing to next staged leg",
+                new_state="none (placement failed)", detail=target_result.get("detail"),
+            )
+            _flag_if_t1_restricted(conn, symbol, target_result.get("detail"))
+    else:
+        conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
+
+    # Re-size the resting SL to the smaller remaining qty - same trigger
+    # price as before (unchanged; only the qty behind it shrinks). Best-
+    # effort: a failure here leaves the OLD (too-large) SL order resting,
+    # which Kotak would simply short-fill against the smaller real holding
+    # if it ever triggers - not a silent gap in protection, just a partial
+    # fill instead of an exact one.
+    if row["sl_order_id"] and row["sl_trigger_price"]:
+        cancel_result = kotak_real_orders.cancel_real_order(row["sl_order_id"])
+        if cancel_result.get("ok"):
+            sl_result = kotak_real_orders.place_real_stop_loss(
+                row["kotak_trading_symbol"], remaining_qty, row["sl_trigger_price"]
+            )
+            if sl_result.get("ok"):
+                conn.execute(
+                    "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                    (sl_result["order_id"], sl_result["trigger_price"], symbol),
+                )
+                _log_real_order_event(
+                    conn, symbol, "sl", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                    order_id=sl_result["order_id"], prev_state="resized for staged leg booking",
+                    new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f} for {remaining_qty} shares",
+                )
+            else:
+                conn.execute("UPDATE real_positions SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
+                _log_real_order_event(
+                    conn, symbol, "sl", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                    prev_state="resized for staged leg booking",
+                    new_state="none (re-placement failed)", detail=sl_result.get("detail"),
+                )
+                _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
+    _sync_real_positions_external(conn)
 
 
 def _maybe_place_real_exit(conn, symbol: str):
@@ -7332,7 +8081,18 @@ async def _scheduler_tick():
                 interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
                 close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
                 trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
-                strategy=cfg.get("strategy", "orb_breakout"),
+                # 2026-09-09 architecture revamp, explicit user instruction:
+                # "revamp all of the strategy architecture from beginning" +
+                # "full universe now" - the universal multi-factor scoring
+                # engine (see _compute_universal_entry_score) is now THE
+                # live entry trigger for every WATCHLIST symbol, replacing
+                # the old per-symbol orb_breakout/bullish_engulfing choice.
+                # No WATCHLIST entry sets its own "strategy" field (grep
+                # confirms none do), so this default is what actually governs
+                # literally every symbol - a per-symbol override remains
+                # possible (WATCHLIST's own "strategy" field still works) for
+                # deliberately pinning a symbol back to the old engine.
+                strategy=cfg.get("strategy", "universal_score"),
                 trend_sma=cfg.get("trend_sma", 0), volume_confirm=cfg.get("volume_confirm", False),
                 min_entry_confidence_pct=live_min_entry_confidence_pct,
                 max_hold_minutes=live_max_hold_minutes,
@@ -7361,6 +8121,14 @@ async def _scheduler_tick():
                 elif action_taken.startswith("exited_"):
                     with closing(get_db()) as real_conn:
                         _maybe_place_real_exit(real_conn, cfg["symbol"])
+                elif action_taken.startswith("partial_booked_"):
+                    # Staged profit-booking ladder (2026-09-09 architecture
+                    # revamp) - the paper side already booked one leg (see
+                    # _execute_staged_leg_exit); mirror it as a REAL partial
+                    # sell for the SAME leg qty, same isolation principle as
+                    # every other real-order mirror in this block.
+                    with closing(get_db()) as real_conn:
+                        _maybe_place_real_partial_exit(real_conn, cfg["symbol"], result.get("staged_exit") or {})
                 else:
                     # Position still open (or never was one) - sync any
                     # real resting stop-loss to the paper trail's latest

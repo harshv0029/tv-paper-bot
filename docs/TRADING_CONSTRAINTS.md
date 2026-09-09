@@ -1134,3 +1134,156 @@ breakout and the trend, rather than trading every marginal touch of the
 ORB high. Applies to `orb_breakout` only (the strategy actually running
 on the current watchlist) - `bullish_engulfing` already has its own
 trend_sma/volume_confirm filters and was left untouched.
+
+## Universal multi-factor entry-confidence engine (2026-09-09) - full
+## architecture revamp
+
+Explicit user instruction: "revamp all of the strategy architecture from
+beginning." Session context: a comparison against an externally-proposed
+architecture ("Market Context -> Entry Score -> Trade Validation -> Target
+Calculation -> Dynamic Profit Booking -> Exit") surfaced real gaps against
+this project's own docs/STRATEGY_LOG.md - 43 cataloged strategies, each
+firing on its OWN single rule in isolation, no confluence/scoring across
+strategies, no pre-trade reward:risk check, no staged profit-booking, no
+index-trend/relative-strength gate. A second, deeper "probabilistic
+expected-value" framework (target-hit probabilities from historical MFE/
+MAE event studies, walk-forward validation, cost-adjusted expectancy,
+incremental per-feature value testing, portfolio-level correlated risk)
+was also proposed the same session and explicitly declined ("ignore
+feedback then") - NOT built, flagged here only so it isn't silently lost
+if revisited later.
+
+**What actually shipped**, all three approved in order, same session:
+1. Every WATCHLIST symbol (the full ~2,661-symbol NSE universe, not a
+   narrow pilot) is now scored by ONE universal engine instead of picking
+   a named per-symbol strategy - `_auto_signal_core`'s own
+   `strategy=cfg.get("strategy", ...)` default (the scheduler's call site)
+   changed from `"orb_breakout"` to `"universal_score"`. No WATCHLIST entry
+   sets its own `"strategy"` field, so this default governs literally
+   every symbol; a per-symbol override remains possible for deliberately
+   pinning a symbol back to the old engine.
+2. Wired into REAL order placement immediately, not paper-only first -
+   this was this session's own explicit real-money go-ahead for this
+   specific change, not a standing exception to the "paper by default"
+   rule.
+3. A staged 4-way profit-booking ladder (25/25/25/trail), collapsing for
+   small real share counts exactly as specified: qty>=4 -> 4 legs,
+   qty==3 -> 3 legs (1:1:1), qty==2 -> 2 legs (1:1), qty==1 -> single exit,
+   no staging at all - built as the FIXED default (no policy-comparison
+   framework testing it against alternative exit rules, per the same
+   "ignore feedback then" decision above).
+
+`orb_breakout`/`bullish_engulfing` are NOT deleted - `/backtest` and
+`/sweep` (`add_strategy_signal`) still use those names for standalone
+strategy research, and `deploy-gate.yml`'s own backtest regression check
+replays `orb_breakout`'s entry math independently and must keep matching.
+Every component below is "approximable with OHLCV," the same standard
+`docs/STRATEGY_LOG.md` already applies throughout - no new data source, no
+Level-2/order-book/news feed (all correctly flagged BLOCKED there already,
+not attempted here either).
+
+### Entry score (8 weighted components, threshold-gated)
+
+`_compute_universal_entry_score()` in `main.py`. Weights sum to 100
+(`UNIVERSAL_SCORE_WEIGHTS`):
+
+| Component | Weight | Read |
+|---|---|---|
+| `above_vwap` | 15 | Last close above the session VWAP (None/not-scored on a zero-volume session - index tickers, same root cause as STRATEGY_LOG rows #13-18) |
+| `ema_cross` | 10 | `sma_fast` EMA/SMA > `sma_slow` (same trend read every other live strategy already uses) |
+| `structure_hh_hl` | 15 | Higher-high AND higher-low across two halves of the last `UNIVERSAL_STRUCTURE_LOOKBACK` (20) bars |
+| `breakout_resistance` | 15 | Last close above the highest High of the prior 20 bars (excluding the current bar) |
+| `volume_breakout` | 15 | `_volume_confirms()` - the SAME volume gate `orb_breakout`/`bullish_engulfing` already require |
+| `rsi_band` | 10 | 14-period RSI inside `UNIVERSAL_RSI_BAND` (55-70) |
+| `relative_strength` | 10 | Symbol's own 20-bar % return > `^NSEI`'s over the same window |
+| `index_trend` | 10 | `^NSEI`'s own EMA(fast) > EMA(slow) |
+
+`relative_strength`/`index_trend` are DROPPED (not scored 0 - excluded
+from both the achieved score and `max_score`, so the remaining 6
+components re-normalize to a 0-100 scale) when the traded symbol IS the
+reference index itself (`^NSEI`/`^NSEBANK`/`^BSESN`/`GC=F`/`SI=F`/`CL=F`)
+or the index fetch fails/has too little history. `UNIVERSAL_ENTRY_SCORE_MIN`
+(70%) is this session's own proposed threshold - NOT yet backtest-tuned
+against real NSE data (same "proposed, not yet swept" honesty
+`docs/STRATEGY_LOG.md` applies everywhere else); a fast-follow `/sweep`
+target once this engine has real trade history.
+
+### Rejection filters (independent of score - any one trips, no trade regardless of score)
+
+- `reward_risk_below_minimum` - (nearest resistance - last close) /
+  (last close - recent 20-bar low) < `UNIVERSAL_MIN_REWARD_RISK` (1.2)
+- `atr_abnormally_wide` - current 14-period ATR > `UNIVERSAL_MAX_ATR_MULT`
+  (2.5) x its own trailing 20-bar mean
+- `too_extended_from_vwap` - |last close - session VWAP| >
+  `UNIVERSAL_MAX_VWAP_EXTENSION_ATR` (2.0) x current ATR
+- `liquidity_inadequate` - `_volume_confirms()` failed (same proxy
+  `UNIVERSAL_MIN_LIQUIDITY_MULT` documents; no bid/ask feed exists
+  anywhere in this codebase, same as every other liquidity read here)
+
+### Target cluster and staged profit-booking (universal_score only)
+
+`_compute_target_cluster()` replaces the plain `entry + rr*R` target
+formula with a small CLUSTER of independently-derived candidates - pure
+R-multiples (1.0R/1.5R/2.0R/3.0R), the nearest resistance structure
+already sits at, and an ATR-projected move (`entry + 2*ATR`). The
+`primary_target` (median of [2.0R, structure, ATR-projected] when at
+least one of the latter two exists) becomes the position's `target` -
+the SAME column `_leading_target_extend`/the trailing-stop machinery
+already governs, so a `universal_score` position's FINAL/trail leg still
+extends and trails exactly like every pre-revamp position. `confidence`
+is a crude 0-1 read on how tightly the candidates agree - NOT a
+probability of hitting the target (that would need the declined
+event-study framework above).
+
+`_split_exit_legs(qty, r_multiples)` turns that cluster into the staged
+ladder: qty>=4 gets 3 fixed R-multiple legs (1.0R/1.5R/2.0R) + a trail
+leg absorbing the remainder; qty==3 gets 2 fixed legs + trail; qty==2
+gets 1 fixed leg + trail; qty==1 is a single exit, no staging. Stored as
+JSON on `signal_state.exit_legs_json` (paper) and `real_positions.
+exit_legs_json` (real, RE-DERIVED for the real qty using the SAME
+per-share target prices - real qty is capped by remaining daily cap/real
+capital and can be smaller than paper qty, so the two ladders' same-named
+legs can hold different quantities by design).
+
+Each scheduler tick, `_auto_signal_core`'s open-position management
+checks `_next_unfilled_leg()` BEFORE the normal exit_reason chain (target/
+stop/trend-weakened/stale-timeout/squareoff) - if the next fixed leg's
+price is reached, `_execute_staged_leg_exit()` books ONLY that leg's qty
+(paper) and returns immediately for that tick; the real mirror
+(`_maybe_place_real_partial_exit()`) sells the real ladder's own qty for
+that leg name, advances the resting Kotak target order to the NEXT
+unfilled leg, and re-sizes (cancel + replace) the resting stop-loss to
+the smaller remaining qty. Once every fixed leg has filled, only the
+trail leg's qty remains and the position's PRE-EXISTING single-target/
+trailing-stop/leading-target-extend machinery governs it unchanged, via
+the normal full-exit path (`_maybe_place_real_exit`) - no new real-money
+code path for the final leg at all.
+
+`exit_legs_json` is `NULL` for any position not entered under
+`strategy="universal_score"` (a real-position governance backfill via
+`_ensure_signal_state_for_real_position`, or an adopted/reconciled
+position with no matching paper signal - see `kotak_neo_reconcile_real_
+positions`) - those keep the exact pre-revamp single-target/single-exit
+behavior, byte-for-byte unchanged.
+
+### What this explicitly does NOT do (declined this session)
+
+- No probabilistic target-hit modeling (`P(target before stop)`) from
+  historical MFE/MAE event studies - "ignore feedback then."
+- No cost-adjusted (brokerage/STT/GST/slippage/spread) backtest
+  expectancy, no walk-forward/out-of-sample validation.
+- No policy-comparison framework testing the 25/25/25/trail ladder
+  against alternatives (full-trail, ATR-trail, time-exit, EV-decay-exit) -
+  it is the fixed default.
+- No portfolio-level correlated-risk engine (sector/index-beta exposure
+  caps beyond the existing single shared capital pool + daily loss cap).
+- No incremental per-feature value testing (removing VIX/RSI/FVG one at a
+  time to prove each actually helps) - all 8 score components and all 4
+  rejection filters ship together, unvalidated individually.
+
+All of the above remain open items if this gets revisited - see
+`docs/STRATEGY_LOG.md`'s own "How to use this log going forward" section
+for the standing process (nothing goes live before a real `/backtest`/
+`/sweep` confirms it; this engine's own threshold/weights are an explicit
+exception already live per this session's own real-money go-ahead, not
+yet swept).
