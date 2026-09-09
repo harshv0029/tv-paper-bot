@@ -258,6 +258,70 @@ def hydrate_rr_cursor_from_external() -> int | None:
         return None
 
 
+# check_counts (the "distinct symbols scanned today" state) - 2026-09-09,
+# explicit user finding: "751 total checks run today (751 / 2661
+# distinct)... these two numbers are getting reset again. why so? have u
+# not fixed?" They were right to push back - the rr_cursor fix above only
+# covered the round-robin CURSOR (an int), not the check_counts dict
+# itself (per-symbol counts, the thing "distinct scanned" is actually
+# computed from - see check_counts_today_rows below). That dict was STILL
+# only persisted to the slower git journal (journal-sync.yml, every 15
+# min - see reconcile_scheduler_check_counts_from_journal), with no
+# Upstash mirror of its own, so a restart happening more often than every
+# 15 min (this Render service's own restart cadence, independent of any
+# push) wipes it back to empty before the next journal sync could have
+# captured it, even though rr_cursor itself now survives fine. Same fix
+# family as rr_cursor, applied to the actual dict this time: synced once
+# per TICK (not per symbol - up to ~2661 keys, so a per-symbol sync would
+# be dozens of Upstash writes per tick), hydrated first on startup.
+_CHECK_COUNTS_REDIS_KEY = "tv_paper_bot:scheduler_check_counts:v1"
+
+
+def _sync_check_counts_external(day: str, counts: dict) -> None:
+    """Call once per scheduler tick, after that tick's checks have all
+    run. Best-effort and silent, same pattern as _sync_rr_cursor_external -
+    a failure here must never break the scheduler tick that's calling it."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return
+    try:
+        requests.post(
+            f"{UPSTASH_REDIS_REST_URL}/set/{_CHECK_COUNTS_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            data=json.dumps({"day": day, "counts": counts}).encode("utf-8"),
+            timeout=5,
+        )
+    except Exception as e:
+        print(f"[check_counts_external] sync failed (non-fatal): {e}")
+
+
+def hydrate_check_counts_from_external() -> tuple[str, dict] | None:
+    """Startup-time restore, sourced from Upstash - real-time (synced once
+    per ~30s tick), so it wins over the slower git journal
+    (reconcile_scheduler_check_counts_from_journal's own counts restore is
+    only reached when this returns None). Returns (day, counts), or None
+    if Upstash is unset/unreachable/empty/malformed."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return None
+    try:
+        resp = requests.get(
+            f"{UPSTASH_REDIS_REST_URL}/get/{_CHECK_COUNTS_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        raw = resp.json().get("result")
+        if not raw:
+            return None
+        saved = json.loads(raw)
+        day, counts = saved.get("day"), saved.get("counts")
+        if not day or not isinstance(counts, dict):
+            return None
+        return day, counts
+    except Exception as e:
+        print(f"[check_counts_external] hydrate failed (non-fatal): {e}")
+        return None
+
+
 def init_db():
     with closing(get_db()) as conn:
         conn.execute(
@@ -6307,7 +6371,13 @@ def reconcile_scheduler_check_counts_from_journal():
     if saved.get("day") != today_str:
         return  # yesterday's (or older) snapshot - today's COUNTS start fresh, same as any other day-rollover
     counts = saved.get("counts") or {}
-    if counts:
+    # Only fires when Upstash (hydrate_check_counts_from_external, called
+    # first in the startup sequence - see its own docstring, 2026-09-09)
+    # left this dict still empty - i.e. was unset, unreachable, or
+    # genuinely had nothing yet. A fresher Upstash-restored dict must
+    # never be clobbered by this slower, up-to-~15-min-stale git journal -
+    # same guard shape as the rr_cursor restore above.
+    if counts and not _scheduler_check_counts:
         _scheduler_check_counts.update(counts)
         _scheduler_check_counts_day = today_str
         print(f"[reconcile] restored {len(counts)} symbol check-count(s) from journal")
@@ -6607,6 +6677,12 @@ async def _scheduler_tick():
         finally:
             _scheduler_currently_checking = None
 
+    # Once per tick (not per symbol - see _CHECK_COUNTS_REDIS_KEY's own
+    # module comment for why), after every check this tick has made -
+    # keeps the "distinct scanned" dict surviving a restart at ANY
+    # cadence, not just ones slower than journal-sync's 15-min interval.
+    _sync_check_counts_external(_scheduler_check_counts_day, _scheduler_check_counts)
+
     _scheduler_last_tick_ts = time.time()
     await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
 
@@ -6637,6 +6713,20 @@ async def _start_scheduler():
     if _external_rr_cursor is not None:
         _scheduler_rr_cursor = _external_rr_cursor
         print(f"[rr_cursor_external] restored cursor to {_external_rr_cursor} from Upstash")
+    # check_counts (the "distinct scanned" dict itself): Upstash first,
+    # same reasoning as rr_cursor above - only applied if today's day
+    # matches (a stale prior-day snapshot must never carry over, same
+    # rollover rule _record_scheduler_check itself applies). The journal
+    # reconcile right below only fires when this left the dict still
+    # empty, so a fresher Upstash-restored dict is never clobbered.
+    global _scheduler_check_counts_day
+    _external_check_counts = hydrate_check_counts_from_external()
+    if _external_check_counts is not None:
+        _ext_day, _ext_counts = _external_check_counts
+        if _ext_day == ist_now().strftime("%Y-%m-%d"):
+            _scheduler_check_counts.update(_ext_counts)
+            _scheduler_check_counts_day = _ext_day
+            print(f"[check_counts_external] restored {len(_ext_counts)} symbol check-count(s) from Upstash")
     reconcile_scheduler_check_counts_from_journal()
     asyncio.create_task(_scheduler_loop())
     # Kotak Neo live tick feed (2026-09-04) - display data only, isolated
