@@ -1210,6 +1210,57 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
             flags.append(holding)
         df["long"] = flags
 
+    elif strategy == "inside_bar_breakout":
+        # Price-action volatility-contraction strategy - the third pattern
+        # explicitly named in the original brief alongside engulfing and pin
+        # bar. An inside bar (High/Low entirely within the prior "mother"
+        # bar's range) signals contraction; enter long when price closes
+        # back above the mother bar's high. Sources (2026-09-09 research):
+        # 50-60% win rate traded with trend/context; 60-65% when aligned
+        # with the prevailing trend (tradingstrategyguides.com,
+        # quantvps.com) - hence the optional trend_sma filter, matching the
+        # pattern already used for bullish_engulfing/pin_bar_reversal.
+        # Exit: close back below the mother bar's low (setup invalidated).
+        # A pending setup expires after max_wait_bars without a breakout,
+        # so a stale inside bar doesn't stay "watched" indefinitely.
+        trend_sma = int(params.get("trend_sma", 0))
+        max_wait_bars = int(params.get("max_wait_bars", 10))
+
+        high = df["High"].to_numpy()
+        low = df["Low"].to_numpy()
+        close = df["Close"].to_numpy()
+        n = len(df)
+
+        is_inside = np.zeros(n, dtype=bool)
+        is_inside[1:] = (high[1:] <= high[:-1]) & (low[1:] >= low[:-1])
+
+        if trend_sma > 0:
+            trend_up = (df["Close"].rolling(trend_sma).mean() < df["Close"]).to_numpy()
+        else:
+            trend_up = np.ones(n, dtype=bool)
+
+        holding = False
+        breakout_level = None
+        mother_low = None
+        bars_waited = 0
+        flags = []
+        for i in range(n):
+            if holding:
+                if close[i] < mother_low:
+                    holding = False
+            elif is_inside[i] and trend_up[i]:
+                breakout_level = high[i - 1]
+                mother_low = low[i - 1]
+                bars_waited = 0
+            elif breakout_level is not None:
+                bars_waited += 1
+                if close[i] > breakout_level:
+                    holding = True
+                elif bars_waited > max_wait_bars:
+                    breakout_level = None
+            flags.append(holding)
+        df["long"] = flags
+
     elif strategy == "macd_cross":
         fast_span = int(params.get("macd_fast", 12))
         slow_span = int(params.get("macd_slow", 26))
@@ -1359,8 +1410,8 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
                    f"orb_breakout, orb_volume, vwap_reclaim, vwap_mean_reversion, "
                    f"vwap_breakout_retest, anchored_vwap_continuation, anchored_vwap_reversal, "
                    f"vwap_multi_period_reversal, bullish_engulfing, pin_bar_reversal, "
-                   f"bollinger_mean_reversion, supertrend, macd_cross, wyckoff_spring, wyckoff_sos, "
-                   f"vsa_climax_reversal",
+                   f"inside_bar_breakout, bollinger_mean_reversion, supertrend, macd_cross, "
+                   f"wyckoff_spring, wyckoff_sos, vsa_climax_reversal",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -1463,6 +1514,7 @@ def backtest(
     climax_volume_mult: float = 2.0,
     climax_spread_mult: float = 1.5,
     climax_close_pct: float = 0.5,
+    max_wait_bars: int = 10,
     qty: float = 1,
 ):
     """
@@ -1494,6 +1546,7 @@ def backtest(
     strategy=bollinger_mean_reversion -> params: bb_period, bb_std
     strategy=supertrend           -> params: atr_period, multiplier
     strategy=pin_bar_reversal     -> params: pin_ratio, sr_lookback, sr_tolerance_pct
+    strategy=inside_bar_breakout  -> params: trend_sma (0=off), max_wait_bars
     strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
     """
     df = fetch_ohlc(symbol, period, interval)
@@ -1538,6 +1591,8 @@ def backtest(
         params = {"atr_period": atr_period, "multiplier": multiplier}
     elif strategy == "pin_bar_reversal":
         params = {"pin_ratio": pin_ratio, "sr_lookback": sr_lookback, "sr_tolerance_pct": sr_tolerance_pct}
+    elif strategy == "inside_bar_breakout":
+        params = {"trend_sma": trend_sma, "max_wait_bars": max_wait_bars}
     elif strategy == "macd_cross":
         params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
     else:
@@ -1611,6 +1666,8 @@ def sweep(
     pin_ratio: str = "1.5,2.0,3.0",
     sr_lookback: str = "10,20,30",
     sr_tolerance_pct: str = "0.25,0.5,1.0",
+    # inside_bar_breakout params - comma-separated lists (reuses trend_sma above)
+    max_wait_bars: str = "5,10,20",
 ):
     """
     Tests every combination of the given parameter lists against ONE fetch of
@@ -1684,12 +1741,18 @@ def sweep(
             {"pin_ratio": pr, "sr_lookback": sl, "sr_tolerance_pct": st}
             for pr, sl, st in product(pr_list, sl_list, st_list)
         ]
+    elif strategy == "inside_bar_breakout":
+        ts_list = _parse_num_list(trend_sma, int)
+        mw_list = _parse_num_list(max_wait_bars, int)
+        combos = [
+            {"trend_sma": ts, "max_wait_bars": mw} for ts, mw in product(ts_list, mw_list)
+        ]
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
                    f"orb_breakout, orb_volume, bullish_engulfing, pin_bar_reversal, "
-                   f"bollinger_mean_reversion, supertrend",
+                   f"inside_bar_breakout, bollinger_mean_reversion, supertrend",
         )
 
     if not combos:
