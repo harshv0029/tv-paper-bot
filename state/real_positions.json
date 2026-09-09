@@ -11,7 +11,8 @@
       "sl_order_id": "260909000646777",
       "sl_trigger_price": 337.45,
       "target_order_id": null,
-      "target_price": null
+      "target_price": null,
+      "exit_legs_json": null
     },
     {
       "symbol": "MIDCAPADD.NS",
@@ -24,7 +25,8 @@
       "sl_order_id": "260909000471367",
       "sl_trigger_price": 23.0,
       "target_order_id": null,
-      "target_price": null
+      "target_price": null,
+      "exit_legs_json": null
     },
     {
       "symbol": "PAISALO.NS",
@@ -37,7 +39,8 @@
       "sl_order_id": "260910000000001",
       "sl_trigger_price": 79.1,
       "target_order_id": null,
-      "target_price": 82.21
+      "target_price": 82.21,
+      "exit_legs_json": null
     }
   ]
 }
