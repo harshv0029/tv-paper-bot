@@ -1,3 +1,56 @@
 {
-  "open_real_positions": []
+  "open_real_positions": [
+    {
+      "symbol": "MEDICAMEQ.NS",
+      "kotak_trading_symbol": "MEDICAMEQ-EQ",
+      "qty": 3,
+      "entry_price": 291.4,
+      "entry_order_id": "260909000214760",
+      "opened_at": 1788931043.9426906,
+      "day": "2026-09-09",
+      "sl_order_id": "260909000214975",
+      "sl_trigger_price": 288.6,
+      "target_order_id": null,
+      "target_price": 300.13
+    },
+    {
+      "symbol": "SILVERCASE.NS",
+      "kotak_trading_symbol": "SILVERCASE-EQ",
+      "qty": 7,
+      "entry_price": 23.59,
+      "entry_order_id": "260909000233215",
+      "opened_at": 1788931967.736302,
+      "day": "2026-09-09",
+      "sl_order_id": "260909000233345",
+      "sl_trigger_price": 23.5,
+      "target_order_id": null,
+      "target_price": 24.31
+    },
+    {
+      "symbol": "DCMSIL.NS",
+      "kotak_trading_symbol": "DCMSIL-EQ",
+      "qty": 2,
+      "entry_price": 70.68,
+      "entry_order_id": "260909000256097",
+      "opened_at": 1788933428.8918905,
+      "day": "2026-09-09",
+      "sl_order_id": "260909000256217",
+      "sl_trigger_price": 69.85,
+      "target_order_id": null,
+      "target_price": 72.69
+    },
+    {
+      "symbol": "DEEP.NS",
+      "kotak_trading_symbol": "DEEP-EQ",
+      "qty": 5,
+      "entry_price": 37.6,
+      "entry_order_id": "260909000256829",
+      "opened_at": 1788933480.2127776,
+      "day": "2026-09-09",
+      "sl_order_id": "260909000256932",
+      "sl_trigger_price": 37.2,
+      "target_order_id": null,
+      "target_price": null
+    }
+  ]
 }
