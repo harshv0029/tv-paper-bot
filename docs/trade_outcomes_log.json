@@ -399,5 +399,19 @@
     "rr_target": 3.0,
     "rr_achieved": 0.29,
     "strategy": "orb-15m-sma9-21"
+  },
+  {
+    "symbol": "SILVERCASE.NS",
+    "exit_time_utc": 1788944572.3653765,
+    "entry_price_native": 23.59,
+    "exit_price_native": 23.649999618530273,
+    "currency": "INR",
+    "qty": 7.0,
+    "pnl_inr": 0.42,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "trend_weakened",
+    "rr_target": 3.0,
+    "rr_achieved": 0.25,
+    "strategy": "orb-recovered"
   }
 ]
