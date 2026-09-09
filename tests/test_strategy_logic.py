@@ -183,6 +183,34 @@ def test_orb_breakout_ma_type_ema_matches_pandas_ewm_and_differs_from_sma():
     assert out_sma["fast_ma"].tolist() != pytest.approx(out_ema["fast_ma"].tolist(), abs=1e-9)
 
 
+def test_orb_breakout_defaults_to_ema_when_ma_type_omitted():
+    # 2026-09-09, explicit user instruction: "stop using SMA and replace
+    # it with EMA with immediate effect everywhere" - confirms the
+    # DEFAULT actually flipped (params dict has no "ma_type" key at all
+    # here), not just that ma_type="ema" works when asked for explicitly.
+    closes = [10, 12, 11, 15, 20, 18, 25, 30, 100, 60]
+    df_base = pd.DataFrame({
+        "Date": pd.date_range("2026-01-01 09:15", periods=len(closes), freq="5min", tz="Asia/Kolkata"),
+        "Open": closes, "High": closes, "Low": closes, "Close": closes,
+        "Volume": [1000] * len(closes),
+    })
+    params = {"orb_minutes": 5, "sma_fast": 2, "sma_slow": 3, "open_min": 9 * 60 + 15}
+    out_default = main.add_strategy_signal(df_base.copy(), "orb_breakout", params)
+    out_explicit_ema = main.add_strategy_signal(df_base.copy(), "orb_breakout", {**params, "ma_type": "ema"})
+    assert out_default["fast_ma"].tolist() == pytest.approx(out_explicit_ema["fast_ma"].tolist(), abs=1e-9)
+
+
+def test_auto_signal_core_scheduler_call_site_defaults_to_ema():
+    # Same instruction, the actual live-trading call site: the scheduler
+    # tick's own cfg.get("ma_type", ...) fallback - confirms it reads
+    # "ema" now, not "sma", for any WATCHLIST symbol without an explicit
+    # per-symbol override (none currently set one).
+    import inspect
+    src = inspect.getsource(main)
+    assert 'ma_type=cfg.get("ma_type", "ema")' in src, \
+        "the live scheduler's own ma_type fallback must default to ema"
+
+
 def _wyckoff_fixture():
     # 23 bars, range_lookback=10 (small, so the fixture stays hand-
     # verifiable), one calendar day (Asia/Kolkata, tz-aware so the
