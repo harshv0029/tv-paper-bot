@@ -4315,6 +4315,13 @@ def _maybe_place_real_entry(conn, symbol: str):
                     conn, symbol, "target", "failed", kotak_trading_symbol=kotak_symbol,
                     prev_state="none", new_state="none (placement failed)", detail=target_result.get("detail"),
                 )
+                # Found live 2026-09-09 (MEDICAMEQ.NS): a plain limit SELL
+                # target can get Kotak's own T1-holdings RMS rejection even
+                # when the SL leg above (a contingent/trigger order) placed
+                # fine for the very same same-day CNC position -
+                # _flag_if_t1_restricted's own docstring says to call it at
+                # every real SL/exit rejection site; this one was missing.
+                _flag_if_t1_restricted(conn, symbol, target_result.get("detail"))
     else:
         _log_real_attempt(
             conn, symbol, "B", "failed", kotak_trading_symbol=kotak_symbol, price_est=ltp,
@@ -8065,6 +8072,17 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
                     )
                     backfill_entry["target_placed"] = False
                     backfill_entry["target_failure_detail"] = target_result.get("detail")
+                    # Found live 2026-09-09: MEDICAMEQ.NS's target attempt
+                    # was rejected with Kotak's own T1-holdings RMS marker
+                    # (same class the SL leg above already flags) - a plain
+                    # limit SELL apparently gets checked against SETTLED
+                    # holdings even though the SL leg (a contingent/trigger
+                    # order, not immediately live) placed fine minutes
+                    # earlier for the SAME same-day CNC position. Missing
+                    # here before now - _flag_if_t1_restricted's own
+                    # docstring says to call it at every real SL/exit
+                    # rejection site, and this is one.
+                    _flag_if_t1_restricted(conn, r["symbol"], target_result.get("detail"))
             governance_backfilled.append(backfill_entry)
         conn.commit()
         _sync_real_positions_external(conn)
