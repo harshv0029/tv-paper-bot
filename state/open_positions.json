@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-09T20:04:59Z",
+  "synced_at_utc": "2026-09-10T04:20:36Z",
   "open_positions": [
     {
       "symbol": "HINDALCO.NS",
@@ -66,6 +66,23 @@
       "entry_ts": 1788951972.4060943,
       "interval": "5m",
       "strategy": "orb-recovered",
+      "sma_fast": 9,
+      "sma_slow": 21
+    },
+    {
+      "symbol": "MKPL.NS",
+      "qty": 54.0,
+      "entry_price_native": 4.05,
+      "stop_loss_native": 4.01,
+      "initial_stop_loss_native": 4.01,
+      "target_native": 4.17,
+      "fx_to_inr": 1.0,
+      "notional_inr": 218.7,
+      "orb_high_native": null,
+      "orb_low_native": null,
+      "entry_ts": 1789014010.0292222,
+      "interval": "5m",
+      "strategy": null,
       "sma_fast": 9,
       "sma_slow": 21
     }
