@@ -213282,5 +213282,34 @@
         "time_local": "2026-09-10 01:34:55.855258"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-10T04:20:36Z",
+    "attempts": {
+      "OILIETF.NS": {
+        "checked_at_utc": 1789014031.7840722,
+        "symbol": "OILIETF.NS",
+        "status": "checked",
+        "time_local": "2026-09-10 09:50:14.365847",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 11.25,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 11.260448920253909,
+        "sma_slow": 11.25470057578156,
+        "trend": "up",
+        "capital": 638.395,
+        "daily_loss_cap": 12.7679,
+        "realized_today": -2.4,
+        "realized_today_pct": -0.376,
+        "budget_remaining": 10.37,
+        "halted_for_day": false,
+        "action_taken": "blocked_aggregate_open_risk",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "open_reserved_risk_inr": 2011.55
+      }
+    }
   }
 ]

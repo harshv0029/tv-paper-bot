@@ -1,46 +1,19 @@
 {
   "open_real_positions": [
     {
-      "symbol": "JSWINFRA.NS",
-      "kotak_trading_symbol": "JSWINFRA-EQ",
-      "qty": 1,
-      "entry_price": 340.85,
-      "entry_order_id": "260909000460105",
-      "opened_at": 1788944329.945195,
-      "day": "2026-09-09",
-      "sl_order_id": "260909000646777",
-      "sl_trigger_price": 337.45,
+      "symbol": "MKPL.NS",
+      "kotak_trading_symbol": "MKPL-EQ",
+      "qty": 54,
+      "entry_price": 4.05,
+      "entry_order_id": "260910000069497",
+      "opened_at": 1789012690.1850057,
+      "day": "2026-09-10",
+      "sl_order_id": "260910000075646",
+      "sl_trigger_price": 4.0,
       "target_order_id": null,
       "target_price": null,
-      "exit_legs_json": null
-    },
-    {
-      "symbol": "MIDCAPADD.NS",
-      "kotak_trading_symbol": "MIDCAPADD-EQ",
-      "qty": 20,
-      "entry_price": 23.15,
-      "entry_order_id": "260909000471052",
-      "opened_at": 1788944730.219572,
-      "day": "2026-09-09",
-      "sl_order_id": "260909000471367",
-      "sl_trigger_price": 23.0,
-      "target_order_id": null,
-      "target_price": null,
-      "exit_legs_json": null
-    },
-    {
-      "symbol": "PAISALO.NS",
-      "kotak_trading_symbol": "PAISALO-EQ",
-      "qty": 3,
-      "entry_price": 79.88,
-      "entry_order_id": "260909000485591",
-      "opened_at": 1788945231.2360327,
-      "day": "2026-09-09",
-      "sl_order_id": "260910000000001",
-      "sl_trigger_price": 79.1,
-      "target_order_id": null,
-      "target_price": 82.21,
-      "exit_legs_json": null
+      "exit_legs_json": "[{\"leg\": \"T1\", \"qty\": 13, \"r_multiple\": \"1.0R\", \"target_price\": 4.1, \"status\": \"open\"}, {\"leg\": \"T2\", \"qty\": 13, \"r_multiple\": \"1.5R\", \"target_price\": 4.125, \"status\": \"open\"}, {\"leg\": \"T3\", \"qty\": 13, \"r_multiple\": \"2.0R\", \"target_price\": 4.1499999999999995, \"status\": \"open\"}, {\"leg\": \"trail\", \"qty\": 15, \"r_multiple\": null, \"target_price\": null, \"status\": \"open\"}]",
+      "protection_degraded_since": null
     }
   ]
 }
