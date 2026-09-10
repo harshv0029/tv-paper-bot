@@ -73,5 +73,20 @@
     "order_id": "260908000373777",
     "detail": null,
     "raw_response": "{\"nOrdNo\": \"260908000373777\", \"stat\": \"Ok\", \"stCode\": 200}"
+  },
+  {
+    "id": 6,
+    "ts": 1789028412.5139933,
+    "day": "2026-09-10",
+    "symbol": "PAISALO.NS",
+    "kotak_trading_symbol": "PAISALO-EQ",
+    "side": "S",
+    "qty": 3,
+    "price_est": null,
+    "notional_inr": null,
+    "status": "failed",
+    "order_id": null,
+    "detail": "order 260910000463945 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:6.00, Available:3.00  for entity account-XUAEZ across exchange across segment across product ",
+    "raw_response": "{\"nOrdNo\": \"260910000463945\", \"stat\": \"Ok\", \"stCode\": 200}"
   }
 ]
