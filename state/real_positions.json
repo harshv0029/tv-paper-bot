@@ -23,8 +23,8 @@
       "entry_order_id": "260910000304813",
       "opened_at": 1789020870.3319542,
       "day": "2026-09-10",
-      "sl_order_id": "260910000435417",
-      "sl_trigger_price": 55.3,
+      "sl_order_id": "260910000455567",
+      "sl_trigger_price": 55.55,
       "target_order_id": null,
       "target_price": 55.3,
       "exit_legs_json": "[{\"leg\": \"T1\", \"qty\": 1, \"r_multiple\": \"1.0R\", \"target_price\": 55.3, \"status\": \"open\"}, {\"leg\": \"trail\", \"qty\": 1, \"r_multiple\": null, \"target_price\": null, \"status\": \"open\"}]",
@@ -73,7 +73,7 @@
       "target_order_id": null,
       "target_price": 23.73,
       "exit_legs_json": null,
-      "protection_degraded_since": null
+      "protection_degraded_since": 1789027347.7222154
     }
   ]
 }
