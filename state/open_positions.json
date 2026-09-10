@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-10T12:51:15Z",
+  "synced_at_utc": "2026-09-10T16:21:38Z",
   "open_positions": [
     {
       "symbol": "RANASUG.NS",
@@ -82,7 +82,7 @@
       "orb_low_native": null,
       "entry_ts": 1789044306.8510559,
       "interval": "5m",
-      "strategy": null,
+      "strategy": "orb-recovered",
       "sma_fast": 9,
       "sma_slow": 21
     }
