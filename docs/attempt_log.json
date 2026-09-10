@@ -228304,5 +228304,310 @@
         "time_local": "2026-09-10 21:51:24.306144"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-10T20:21:03Z",
+    "attempts": {
+      "360ONE.NS": {
+        "checked_at_utc": 1789071654.354491,
+        "symbol": "360ONE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:37.705102"
+      },
+      "ABFRL.NS": {
+        "checked_at_utc": 1789071654.355425,
+        "symbol": "ABFRL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.355123"
+      },
+      "AGARIND.NS": {
+        "checked_at_utc": 1789071654.3559625,
+        "symbol": "AGARIND.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.355881"
+      },
+      "ABSLAMC.NS": {
+        "checked_at_utc": 1789071654.3564353,
+        "symbol": "ABSLAMC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.356350"
+      },
+      "3MINDIA.NS": {
+        "checked_at_utc": 1789071654.3569307,
+        "symbol": "3MINDIA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.356852"
+      },
+      "63MOONS.NS": {
+        "checked_at_utc": 1789071654.3573813,
+        "symbol": "63MOONS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.357306"
+      },
+      "INFY.NS": {
+        "checked_at_utc": 1789071654.3578606,
+        "symbol": "INFY.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.357788"
+      },
+      "ADSL.NS": {
+        "checked_at_utc": 1789071654.3583295,
+        "symbol": "ADSL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.358252"
+      },
+      "NTCIND.NS": {
+        "checked_at_utc": 1789071654.3587859,
+        "symbol": "NTCIND.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.358693"
+      },
+      "AAREYDRUGS.NS": {
+        "checked_at_utc": 1789071654.3592236,
+        "symbol": "AAREYDRUGS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.359144"
+      },
+      "AIIL.NS": {
+        "checked_at_utc": 1789071654.3596804,
+        "symbol": "AIIL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.359602"
+      },
+      "AGROPHOS.NS": {
+        "checked_at_utc": 1789071654.3601408,
+        "symbol": "AGROPHOS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.360068"
+      },
+      "AFSL.NS": {
+        "checked_at_utc": 1789071654.3606238,
+        "symbol": "AFSL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.360552"
+      },
+      "ADANIENSOL.NS": {
+        "checked_at_utc": 1789071654.3610845,
+        "symbol": "ADANIENSOL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.361014"
+      },
+      "ABSLPSE.NS": {
+        "checked_at_utc": 1789071654.445533,
+        "symbol": "ABSLPSE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.361439"
+      },
+      "ABCOTS.NS": {
+        "checked_at_utc": 1789071654.4463542,
+        "symbol": "ABCOTS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.446241"
+      },
+      "ADOR.NS": {
+        "checked_at_utc": 1789071654.4468505,
+        "symbol": "ADOR.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.446777"
+      },
+      "TCS.NS": {
+        "checked_at_utc": 1789071654.4472945,
+        "symbol": "TCS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.447226"
+      },
+      "TITAN.NS": {
+        "checked_at_utc": 1789071654.4477675,
+        "symbol": "TITAN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.447665"
+      },
+      "APOLLOHOSP.NS": {
+        "checked_at_utc": 1789071654.4482043,
+        "symbol": "APOLLOHOSP.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.448130"
+      },
+      "ADANIGREEN.NS": {
+        "checked_at_utc": 1789071654.4486718,
+        "symbol": "ADANIGREEN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.448599"
+      },
+      "AKUMS.NS": {
+        "checked_at_utc": 1789071654.449161,
+        "symbol": "AKUMS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.449080"
+      },
+      "ADDIND.NS": {
+        "checked_at_utc": 1789071654.4496021,
+        "symbol": "ADDIND.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.449525"
+      },
+      "RELIANCE.NS": {
+        "checked_at_utc": 1789071654.4501019,
+        "symbol": "RELIANCE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.450025"
+      },
+      "AARTIPHARM.NS": {
+        "checked_at_utc": 1789071654.4505742,
+        "symbol": "AARTIPHARM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.450501"
+      },
+      "ADVANCE.NS": {
+        "checked_at_utc": 1789071654.4510634,
+        "symbol": "ADVANCE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.450987"
+      },
+      "PAISALO.NS": {
+        "checked_at_utc": 1789071654.4515202,
+        "symbol": "PAISALO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.451439"
+      },
+      "ADL.NS": {
+        "checked_at_utc": 1789071654.4520202,
+        "symbol": "ADL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.451944"
+      },
+      "AHLUCONT.NS": {
+        "checked_at_utc": 1789071654.4524417,
+        "symbol": "AHLUCONT.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.452376"
+      },
+      "AEPL.NS": {
+        "checked_at_utc": 1789071654.4529052,
+        "symbol": "AEPL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.452837"
+      },
+      "ABSLLIQUID.NS": {
+        "checked_at_utc": 1789071654.4533272,
+        "symbol": "ABSLLIQUID.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.453261"
+      },
+      "ACCELYA.NS": {
+        "checked_at_utc": 1789071654.4537945,
+        "symbol": "ACCELYA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.453722"
+      },
+      "AFFLE.NS": {
+        "checked_at_utc": 1789071654.4542272,
+        "symbol": "AFFLE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.454160"
+      },
+      "ACE.NS": {
+        "checked_at_utc": 1789071654.454681,
+        "symbol": "ACE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.454615"
+      },
+      "ACC.NS": {
+        "checked_at_utc": 1789071654.455151,
+        "symbol": "ACC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.455084"
+      },
+      "ABB.NS": {
+        "checked_at_utc": 1789071654.4556308,
+        "symbol": "ABB.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.455564"
+      },
+      "ADANIPORTS.NS": {
+        "checked_at_utc": 1789071654.4560835,
+        "symbol": "ADANIPORTS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.456012"
+      },
+      "AEROPLANE.NS": {
+        "checked_at_utc": 1789071654.4565105,
+        "symbol": "AEROPLANE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.456442"
+      },
+      "AKI.NS": {
+        "checked_at_utc": 1789071654.4569545,
+        "symbol": "AKI.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.456885"
+      },
+      "ABGSEC.NS": {
+        "checked_at_utc": 1789071654.457374,
+        "symbol": "ABGSEC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.457309"
+      },
+      "AJANTPHARM.NS": {
+        "checked_at_utc": 1789071654.4578283,
+        "symbol": "AJANTPHARM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.457765"
+      },
+      "ABSLBANETF.NS": {
+        "checked_at_utc": 1789071654.4582412,
+        "symbol": "ABSLBANETF.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.458179"
+      },
+      "AAVAS.NS": {
+        "checked_at_utc": 1789071654.4586525,
+        "symbol": "AAVAS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.458590"
+      },
+      "AHLEAST.NS": {
+        "checked_at_utc": 1789071654.4590995,
+        "symbol": "AHLEAST.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.459032"
+      },
+      "ABSLMSCIN.NS": {
+        "checked_at_utc": 1789071654.545545,
+        "symbol": "ABSLMSCIN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.459453"
+      },
+      "AGIIL.NS": {
+        "checked_at_utc": 1789071654.5464005,
+        "symbol": "AGIIL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.546283"
+      },
+      "ACL.NS": {
+        "checked_at_utc": 1789071654.5469036,
+        "symbol": "ACL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.546826"
+      },
+      "AJOONI.NS": {
+        "checked_at_utc": 1789071654.5473511,
+        "symbol": "AJOONI.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.547279"
+      },
+      "MARUTI.NS": {
+        "checked_at_utc": 1789071654.5478084,
+        "symbol": "MARUTI.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.547736"
+      },
+      "AERONEU.NS": {
+        "checked_at_utc": 1789071654.548246,
+        "symbol": "AERONEU.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-11 01:50:54.548175"
+      }
+    }
   }
 ]
