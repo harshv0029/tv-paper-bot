@@ -1508,6 +1508,45 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
             flags.append(holding)
         df["long"] = flags
 
+    elif strategy == "rsi_divergence":
+        # Named as a candidate in the original research brief, distinct
+        # from the simple threshold-crossing rsi_reversal above: a proper
+        # regular bullish divergence is price making a LOWER low while RSI
+        # makes a HIGHER low over the same window (momentum improving even
+        # as price falls further) - and the mirror bearish divergence for
+        # the exit. Sources (2026-09-10 research): 55-65% win rate when
+        # combined with confirmation (candlestick/trendline/MA cross),
+        # dropping below 40% traded on the raw divergence alone
+        # (forexbee.co, ezalgo.ai) - noted as a caveat below rather than
+        # added as another filter, to keep this candidate testable as the
+        # "raw" version first.
+        rsi_period = int(params.get("rsi_period", 14))
+        lookback = int(params.get("lookback", 14))
+
+        delta = df["Close"].diff()
+        gain = delta.clip(lower=0).rolling(rsi_period).mean()
+        loss = (-delta.clip(upper=0)).rolling(rsi_period).mean()
+        rs = gain / loss.replace(0, float("nan"))
+        rsi = 100 - (100 / (1 + rs))
+
+        prior_price_low = df["Low"].rolling(lookback).min().shift(1)
+        prior_rsi_low = rsi.rolling(lookback).min().shift(1)
+        prior_price_high = df["High"].rolling(lookback).max().shift(1)
+        prior_rsi_high = rsi.rolling(lookback).max().shift(1)
+
+        bullish_div = (df["Low"] < prior_price_low) & (rsi > prior_rsi_low)
+        bearish_div = (df["High"] > prior_price_high) & (rsi < prior_rsi_high)
+
+        holding, flags = False, []
+        for is_entry, is_exit in zip(bullish_div.fillna(False), bearish_div.fillna(False)):
+            if not holding and is_entry:
+                holding = True
+            elif holding and is_exit:
+                holding = False
+            flags.append(holding)
+        df["long"] = flags
+        df["rsi"] = rsi
+
     elif strategy == "macd_cross":
         fast_span = int(params.get("macd_fast", 12))
         slow_span = int(params.get("macd_slow", 26))
@@ -1657,8 +1696,8 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
                    f"orb_breakout, orb_volume, vwap_reclaim, heikin_ashi_vwap, vwap_mean_reversion, "
                    f"vwap_breakout_retest, anchored_vwap_continuation, anchored_vwap_reversal, "
                    f"vwap_multi_period_reversal, bullish_engulfing, pin_bar_reversal, "
-                   f"inside_bar_breakout, bollinger_mean_reversion, supertrend, macd_cross, "
-                   f"wyckoff_spring, wyckoff_sos, vsa_climax_reversal, mtf_engulfing",
+                   f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
+                   f"macd_cross, wyckoff_spring, wyckoff_sos, vsa_climax_reversal, mtf_engulfing",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -1766,6 +1805,7 @@ def backtest(
     htf_trend_slow: int = 21,
     max_wait_bars: int = 10,
     require_no_lower_wick: bool = False,
+    divergence_lookback: int = 14,
     qty: float = 1,
 ):
     """
@@ -1799,6 +1839,7 @@ def backtest(
     strategy=supertrend           -> params: atr_period, multiplier
     strategy=pin_bar_reversal     -> params: pin_ratio, sr_lookback, sr_tolerance_pct
     strategy=inside_bar_breakout  -> params: trend_sma (0=off), max_wait_bars
+    strategy=rsi_divergence       -> params: rsi_period, divergence_lookback
     strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
     strategy=mtf_engulfing        -> params: htf_minutes, htf_trend_fast, htf_trend_slow
     """
@@ -1848,6 +1889,8 @@ def backtest(
         params = {"pin_ratio": pin_ratio, "sr_lookback": sr_lookback, "sr_tolerance_pct": sr_tolerance_pct}
     elif strategy == "inside_bar_breakout":
         params = {"trend_sma": trend_sma, "max_wait_bars": max_wait_bars}
+    elif strategy == "rsi_divergence":
+        params = {"rsi_period": rsi_period, "lookback": divergence_lookback}
     elif strategy == "macd_cross":
         params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
     elif strategy == "mtf_engulfing":
@@ -1925,6 +1968,8 @@ def sweep(
     sr_tolerance_pct: str = "0.25,0.5,1.0",
     # inside_bar_breakout params - comma-separated lists (reuses trend_sma above)
     max_wait_bars: str = "5,10,20",
+    # rsi_divergence params - comma-separated lists (reuses rsi_period above)
+    divergence_lookback: str = "7,14,21",
 ):
     """
     Tests every combination of the given parameter lists against ONE fetch of
@@ -2004,12 +2049,18 @@ def sweep(
         combos = [
             {"trend_sma": ts, "max_wait_bars": mw} for ts, mw in product(ts_list, mw_list)
         ]
+    elif strategy == "rsi_divergence":
+        rp_list = _parse_num_list(rsi_period, int)
+        dl_list = _parse_num_list(divergence_lookback, int)
+        combos = [
+            {"rsi_period": rp, "lookback": dl} for rp, dl in product(rp_list, dl_list)
+        ]
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
                    f"orb_breakout, orb_volume, bullish_engulfing, pin_bar_reversal, "
-                   f"inside_bar_breakout, bollinger_mean_reversion, supertrend",
+                   f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence",
         )
 
     if not combos:
