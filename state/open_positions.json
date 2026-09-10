@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-10T12:23:38Z",
+  "synced_at_utc": "2026-09-10T12:51:15Z",
   "open_positions": [
     {
       "symbol": "RANASUG.NS",
@@ -64,6 +64,23 @@
       "orb_high_native": null,
       "orb_low_native": null,
       "entry_ts": 1789042979.7807777,
+      "interval": "5m",
+      "strategy": "orb-recovered",
+      "sma_fast": 9,
+      "sma_slow": 21
+    },
+    {
+      "symbol": "PAISALO.NS",
+      "qty": 3.0,
+      "entry_price_native": 79.79,
+      "stop_loss_native": 78.99,
+      "initial_stop_loss_native": 78.99,
+      "target_native": 82.19,
+      "fx_to_inr": 1.0,
+      "notional_inr": 239.37,
+      "orb_high_native": null,
+      "orb_low_native": null,
+      "entry_ts": 1789044306.8510559,
       "interval": "5m",
       "strategy": null,
       "sma_fast": 9,
