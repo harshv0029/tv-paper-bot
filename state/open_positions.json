@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-10T08:20:22Z",
+  "synced_at_utc": "2026-09-10T12:23:38Z",
   "open_positions": [
     {
       "symbol": "RANASUG.NS",
@@ -49,6 +49,23 @@
       "entry_ts": 1789028125.705637,
       "interval": "5m",
       "strategy": "orb-recovered",
+      "sma_fast": 9,
+      "sma_slow": 21
+    },
+    {
+      "symbol": "MIDCAPADD.NS",
+      "qty": 20.0,
+      "entry_price_native": 23.04,
+      "stop_loss_native": 22.81,
+      "initial_stop_loss_native": 22.81,
+      "target_native": 23.73,
+      "fx_to_inr": 1.0,
+      "notional_inr": 460.8,
+      "orb_high_native": null,
+      "orb_low_native": null,
+      "entry_ts": 1789042979.7807777,
+      "interval": "5m",
+      "strategy": null,
       "sma_fast": 9,
       "sma_slow": 21
     }
