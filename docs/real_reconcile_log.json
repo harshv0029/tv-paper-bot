@@ -977,5 +977,59 @@
     "adopted": [],
     "governance_backfilled_count": 0,
     "governance_backfilled": []
+  },
+  {
+    "reconciled_at_utc": 1789026795.6046798,
+    "real_balance_inr": 298.885,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 1,
+    "untracked_open_positions": [
+      {
+        "kotak_trading_symbol": "JSWINFRA-EQ",
+        "qty": 1
+      }
+    ],
+    "adopted_count": 2,
+    "adopted": [
+      {
+        "symbol": "PAISALO.NS",
+        "kotak_trading_symbol": "PAISALO-EQ",
+        "qty": 3,
+        "entry_price": 79.79,
+        "entry_order_id": "260910000024690",
+        "sl_order_id": null,
+        "sl_trigger_price": null,
+        "target_order_id": null,
+        "target_price": null
+      },
+      {
+        "symbol": "MIDCAPADD.NS",
+        "kotak_trading_symbol": "MIDCAPADD-EQ",
+        "qty": 20,
+        "entry_price": 23.04,
+        "entry_order_id": "260910000024673",
+        "sl_order_id": null,
+        "sl_trigger_price": null,
+        "target_order_id": null,
+        "target_price": null
+      }
+    ],
+    "governance_backfilled_count": 1,
+    "governance_backfilled": [
+      {
+        "symbol": "MIDCAPADD.NS",
+        "entry_price": 23.04,
+        "stop_loss": 22.81,
+        "target": 23.73,
+        "qty": 20,
+        "sl_placed": false,
+        "sl_failure_detail": "order 260910000433615 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-XUAEZ across exchange across segment across product ",
+        "target_placed": false,
+        "target_failure_detail": "order 260910000433733 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-XUAEZ across exchange across segment across product "
+      }
+    ]
   }
 ]
