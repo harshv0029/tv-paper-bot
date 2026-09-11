@@ -1074,5 +1074,19 @@
         "target_failure_detail": "order 260910000739092 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:6.00, Available:3.00  for entity account-XUAEZ across exchange across segment across product "
       }
     ]
+  },
+  {
+    "reconciled_at_utc": 1789112864.7728384,
+    "real_balance_inr": 1877.31,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 0,
+    "governance_backfilled": []
   }
 ]
