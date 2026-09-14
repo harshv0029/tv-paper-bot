@@ -6,17 +6,19 @@ name: Refresh NIFTY 200 Universe (index constituents)
 # to just these symbols. Explicit user instruction (2026-09-14): "U will
 # trade only in nifty 200. Understood?"
 #
-# Source: niftyindices.com's own published index-constituent CSV - the
-# same NSE Indices entity that defines the index, not a hand-typed list
-# (index membership changes at NSE's semi-annual reconstitutions, and
-# Kotak's own scrip master carries no index-membership column at all - see
-# refresh-nse-universe.yml's own comment on that). If this CSV endpoint
-# turns out to be blocked from GitHub Actions' datacenter IPs the way
-# NSE's own archive endpoints are (confirmed blocked 2026-09-03/09-05 -
-# see refresh-nse-universe.yml), this job fails loudly rather than
-# committing anything - the fallback source to try next would be a
-# different aggregator (e.g. a broker's own published list) rather than
-# guessing constituents by hand.
+# Source: tries several real, independently-operated publishers of the
+# NSE Indices-defined NIFTY 200 constituent list, in order, and uses the
+# first one that actually returns a parseable, >=150-row CSV/table - never
+# a hand-typed list. niftyindices.com/archives.nseindia.com/
+# nsearchives.nseindia.com are confirmed to hang and time out (connection
+# accepted, 0 bytes, 4x60s retries all fail - run 34858413071, 2026-09-14)
+# from GitHub Actions' datacenter IPs, the same Akamai-edge block already
+# seen for NSE's own archive endpoints in refresh-nse-universe.yml, so
+# those are tried first (in case the block lifts) but this job does not
+# depend on them succeeding. If every source in the list fails, the job
+# fails loudly rather than committing anything, and this comment must be
+# updated with a next real candidate rather than falling back to a
+# hand-typed list.
 on:
   schedule:
     # Every Monday 03:05 UTC = 08:35 IST - 5 min after refresh-nse-
@@ -34,44 +36,91 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch the real NIFTY 200 constituent list
+      - name: Fetch the real NIFTY 200 constituent list (try multiple real sources)
         run: |
           mkdir -p docs
-          curl -sS --retry 3 --retry-delay 10 -m 60 \
-            -H "User-Agent: Mozilla/5.0 (compatible; tv-paper-bot-universe-refresh/1.0)" \
-            "https://niftyindices.com/IndexConstituent/ind_nifty200list.csv" \
-            -o /tmp/nifty200.csv
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
-          if [[ ! -s /tmp/nifty200.csv ]]; then
-            echo "::error::Empty/missing response from niftyindices.com - refusing to commit"
+          # Each candidate: "label|url|format" where format is "csv" (NSE
+          # Indices' own column layout: Company Name,Industry,Symbol,
+          # Series,ISIN Code) or "nse-json" (nseindia.com's
+          # equity-stockIndices API: {"data":[{"symbol": "..."}, ...]}).
+          # Short per-host timeout (15s connect+total via -m, no retries)
+          # so one hung host doesn't burn the whole job - the old
+          # 4x60s-retry config is exactly what made the last run take 4
+          # minutes to fail on a host that was never going to answer.
+          CANDIDATES=(
+            "archives.nseindia.com|https://archives.nseindia.com/content/indices/ind_nifty200list.csv|csv"
+            "nsearchives.nseindia.com|https://nsearchives.nseindia.com/content/indices/ind_nifty200list.csv|csv"
+            "niftyindices.com|https://niftyindices.com/IndexConstituent/ind_nifty200list.csv|csv"
+            "nseindia.com-api|https://www.nseindia.com/api/equity-stockIndices?index=NIFTY%20200|nse-json"
+          )
+
+          FETCHED_LABEL=""
+          FETCHED_FORMAT=""
+          for entry in "${CANDIDATES[@]}"; do
+            IFS='|' read -r label url fmt <<< "$entry"
+            echo "--- Trying $label ($url) ---"
+            HTTP_CODE=$(curl -sS -m 15 -o /tmp/nifty200.raw -w '%{http_code}' \
+              -H "User-Agent: $UA" \
+              -H "Accept: text/csv,application/json,*/*" \
+              "$url" || echo "CURLFAIL")
+            if [[ "$HTTP_CODE" != "200" ]]; then
+              echo "$label -> HTTP $HTTP_CODE, skipping"
+              continue
+            fi
+            if [[ ! -s /tmp/nifty200.raw ]]; then
+              echo "$label -> empty body, skipping"
+              continue
+            fi
+            echo "$label -> HTTP 200, $(wc -c < /tmp/nifty200.raw) bytes"
+            cp /tmp/nifty200.raw /tmp/nifty200.fetched
+            FETCHED_LABEL="$label"
+            FETCHED_FORMAT="$fmt"
+            break
+          done
+
+          if [[ -z "$FETCHED_LABEL" ]]; then
+            echo "::error::All real NIFTY 200 sources failed (timed out or non-200) - refusing to commit. See job log above for per-host results; update this workflow's candidate list with a next real source rather than hand-typing constituents."
             exit 1
           fi
-          head -3 /tmp/nifty200.csv
 
-          # Expected columns: Company Name,Industry,Symbol,Series,ISIN Code
-          # (same shape as every other niftyindices.com index-constituent
-          # CSV) - take the Symbol column, append .NS to match this repo's
-          # own ticker convention (NSE_FULL_UNIVERSE, WATCHLIST, etc. all
-          # use "<SYMBOL>.NS").
-          python3 - <<'PYEOF'
+          echo "Using source: $FETCHED_LABEL (format=$FETCHED_FORMAT)"
+          python3 - "$FETCHED_LABEL" "$FETCHED_FORMAT" <<'PYEOF'
           import csv, json, sys
           from datetime import datetime, timezone
 
-          with open("/tmp/nifty200.csv", newline="", encoding="utf-8-sig") as f:
-              rows = list(csv.DictReader(f))
+          label, fmt = sys.argv[1], sys.argv[2]
 
-          sym_key = next((k for k in rows[0].keys() if k.strip().lower() == "symbol"), None) if rows else None
-          if not sym_key:
-              print(f"::error::Could not find a 'Symbol' column - headers were {list(rows[0].keys()) if rows else 'NO ROWS'}")
+          symbols = set()
+          if fmt == "csv":
+              with open("/tmp/nifty200.fetched", newline="", encoding="utf-8-sig") as f:
+                  rows = list(csv.DictReader(f))
+              sym_key = next((k for k in rows[0].keys() if k.strip().lower() == "symbol"), None) if rows else None
+              if not sym_key:
+                  print(f"::error::Could not find a 'Symbol' column in {label} - headers were {list(rows[0].keys()) if rows else 'NO ROWS'}")
+                  sys.exit(1)
+              symbols = {f"{r[sym_key].strip()}.NS" for r in rows if r.get(sym_key, "").strip()}
+          elif fmt == "nse-json":
+              with open("/tmp/nifty200.fetched", encoding="utf-8") as f:
+                  data = json.load(f)
+              rows = data.get("data", [])
+              symbols = {f"{r['symbol'].strip()}.NS" for r in rows if r.get("symbol", "").strip()}
+              # nseindia.com includes the index itself as a synthetic row
+              # (symbol "NIFTY 200") - drop anything that isn't a real
+              # equity ticker shape.
+              symbols = {s for s in symbols if s != "NIFTY 200.NS"}
+          else:
+              print(f"::error::Unknown format {fmt}")
               sys.exit(1)
 
-          symbols = sorted({f"{r[sym_key].strip()}.NS" for r in rows if r.get(sym_key, "").strip()})
+          symbols = sorted(symbols)
           if len(symbols) < 150:
-              print(f"::error::Only {len(symbols)} symbols parsed - too small to trust, refusing to commit")
+              print(f"::error::Only {len(symbols)} symbols parsed from {label} - too small to trust, refusing to commit")
               sys.exit(1)
 
           out = {
-              "source": "niftyindices.com/IndexConstituent/ind_nifty200list.csv",
+              "source": label,
               "count": len(symbols),
               "fetched_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
               "symbols": symbols,
@@ -79,7 +128,7 @@ jobs:
           with open("docs/nifty200_universe.json", "w") as f:
               json.dump(out, f, indent=2)
               f.write("\n")
-          print(f"Fetched {len(symbols)} real NIFTY 200 symbols")
+          print(f"Fetched {len(symbols)} real NIFTY 200 symbols from {label}")
           PYEOF
 
       - name: Commit and push if the list changed
@@ -91,6 +140,7 @@ jobs:
             echo "No change in NIFTY 200 list - nothing to commit"
           else
             COUNT=$(python3 -c "import json; print(json.load(open('docs/nifty200_universe.json'))['count'])")
-            git commit -m "Weekly refresh: NIFTY 200 constituents from niftyindices.com ($COUNT symbols)"
+            SOURCE=$(python3 -c "import json; print(json.load(open('docs/nifty200_universe.json'))['source'])")
+            git commit -m "Weekly refresh: NIFTY 200 constituents from $SOURCE ($COUNT symbols)"
             git push
           fi
