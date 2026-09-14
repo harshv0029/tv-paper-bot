@@ -90,12 +90,56 @@ plugs into:
       one. 16 new unit tests, all green. Not wired into `main.py` - lowest
       risk of the modules so far (doesn't touch entry/exit/sizing), but
       still nothing in this codebase's existing replay workflows calls it.
-- [ ] Phase 5+ — remaining modules (Module 483 Capital Migration, Module
-      484 Tool Performance Memory, Module 485 Financial Security, Module
-      486 Production Testing, Module 487 Production Deployment, the V62/V63
-      capital/ledger/learning/governance engines from sections 47-96+, and
-      eventual wiring into main.py once the user is ready to validate that),
-      prioritized with the user as each prior phase lands.
+- [x] **Phase 5 — Modules 483, 484, 486, 487** (Module 485 Financial
+      Security Engine deliberately SKIPPED - see below, a real decision
+      flagged to the user rather than made silently):
+      - `app/portfolio/capital_migration.py` (483, Capital Migration
+        Policy): stage-retention formula is an IMPLEMENTATION ASSUMPTION
+        (config, documented defaults 0.95/0.60/0.30 reflecting the
+        source's stated EARLY>MEDIUM>HIGH_WEALTH retention ordering);
+        AC-483-03 ("never migrate unrealized P&L as cash") enforced by
+        capping the recommendation at `realized_profit` regardless of how
+        large the stage-driven "excess" is.
+      - `app/governance/tool_performance.py` (484, Tool Performance
+        Memory): pre-commitment (`expected_benefit > cost`) vs
+        post-measurement (`actual_benefit > cost` → KEEP/REMOVE) split is
+        an IMPLEMENTATION ASSUMPTION; REPLACE has no derivable inputs in
+        the source (no "alternative" field anywhere) so it's exposed as
+        an explicit manual action instead of invented from data that
+        isn't there.
+      - `app/governance/production_testing.py` (486, Production Testing):
+        REQUIRED_CATEGORIES = {risk_portfolio_execution_integration,
+        crash_recovery} is a literal transcription of the two primary
+        rules into gate categories - an IMPLEMENTATION ASSUMPTION since
+        the source names no category strings.
+      - `app/governance/deployment.py` (487, Production Deployment): the
+        5-stage sequence (Development→Testing→Paper Trading→Small
+        Capital→Production) is SOURCE; the per-edge evidence gate is
+        IMPLEMENTATION ASSUMPTION derived from the module's named inputs.
+        Does NOT touch `REAL_TRADING_ENABLED` or deploy anything itself -
+        it only governs promotion *decisions* in its own tables.
+      - 47 new unit tests, all green.
+      - **Module 485 (Financial Security Engine) was NOT built this
+        phase.** Its primary rules ("API keys are encrypted", "secrets
+        are rotated") imply this codebase should stand up an actual
+        credential/secret store. But production's real secrets (Kotak API
+        keys, etc.) already live in Render env vars, deliberately kept out
+        of any database - introducing a new SQLite-backed "secrets" table
+        on a real-money system is a genuine security-posture decision
+        (encryption scheme, key management, whether secret material
+        belongs in this DB at all), not a business-logic judgment call
+        like the others in this phase. Flagged to the user rather than
+        decided unilaterally; scope depends on their answer:
+        (a) metadata/audit-only (rotation schedule, disablement status,
+        RBAC decisions - never touching actual secret VALUES, which stay
+        in Render env vars as today), or (b) an actual encrypted secret
+        store (a materially bigger, security-sensitive undertaking).
+- [ ] Phase 6+ — the much larger, less concretely-specified V62/V63
+      sections (47-96+: capital ledger, HWM ratchet, drawdown ladder,
+      capital journey stages, Monte Carlo/tail-risk, learning/drift
+      engines, etc.), Module 485 once scoped, and eventual wiring into
+      main.py once the user is ready to validate that - prioritized with
+      the user as each prior phase lands.
 
 ## Known pre-existing issue found while validating this phase (unrelated)
 
