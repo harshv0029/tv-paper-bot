@@ -1,0 +1,96 @@
+name: Refresh NIFTY 200 Universe (index constituents)
+
+# Fetches the real NIFTY 200 index constituent list and writes it to
+# docs/nifty200_universe.json - main.py loads this file at import time
+# (_load_nifty200_universe_from_file()) to restrict NSE_FULL_UNIVERSE down
+# to just these symbols. Explicit user instruction (2026-09-14): "U will
+# trade only in nifty 200. Understood?"
+#
+# Source: niftyindices.com's own published index-constituent CSV - the
+# same NSE Indices entity that defines the index, not a hand-typed list
+# (index membership changes at NSE's semi-annual reconstitutions, and
+# Kotak's own scrip master carries no index-membership column at all - see
+# refresh-nse-universe.yml's own comment on that). If this CSV endpoint
+# turns out to be blocked from GitHub Actions' datacenter IPs the way
+# NSE's own archive endpoints are (confirmed blocked 2026-09-03/09-05 -
+# see refresh-nse-universe.yml), this job fails loudly rather than
+# committing anything - the fallback source to try next would be a
+# different aggregator (e.g. a broker's own published list) rather than
+# guessing constituents by hand.
+on:
+  schedule:
+    # Every Monday 03:05 UTC = 08:35 IST - 5 min after refresh-nse-
+    # universe.yml's own weekly run, so this always filters against that
+    # run's freshest output rather than racing it.
+    - cron: "5 3 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch the real NIFTY 200 constituent list
+        run: |
+          mkdir -p docs
+          curl -sS --retry 3 --retry-delay 10 -m 60 \
+            -H "User-Agent: Mozilla/5.0 (compatible; tv-paper-bot-universe-refresh/1.0)" \
+            "https://niftyindices.com/IndexConstituent/ind_nifty200list.csv" \
+            -o /tmp/nifty200.csv
+
+          if [[ ! -s /tmp/nifty200.csv ]]; then
+            echo "::error::Empty/missing response from niftyindices.com - refusing to commit"
+            exit 1
+          fi
+          head -3 /tmp/nifty200.csv
+
+          # Expected columns: Company Name,Industry,Symbol,Series,ISIN Code
+          # (same shape as every other niftyindices.com index-constituent
+          # CSV) - take the Symbol column, append .NS to match this repo's
+          # own ticker convention (NSE_FULL_UNIVERSE, WATCHLIST, etc. all
+          # use "<SYMBOL>.NS").
+          python3 - <<'PYEOF'
+          import csv, json, sys
+          from datetime import datetime, timezone
+
+          with open("/tmp/nifty200.csv", newline="", encoding="utf-8-sig") as f:
+              rows = list(csv.DictReader(f))
+
+          sym_key = next((k for k in rows[0].keys() if k.strip().lower() == "symbol"), None) if rows else None
+          if not sym_key:
+              print(f"::error::Could not find a 'Symbol' column - headers were {list(rows[0].keys()) if rows else 'NO ROWS'}")
+              sys.exit(1)
+
+          symbols = sorted({f"{r[sym_key].strip()}.NS" for r in rows if r.get(sym_key, "").strip()})
+          if len(symbols) < 150:
+              print(f"::error::Only {len(symbols)} symbols parsed - too small to trust, refusing to commit")
+              sys.exit(1)
+
+          out = {
+              "source": "niftyindices.com/IndexConstituent/ind_nifty200list.csv",
+              "count": len(symbols),
+              "fetched_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "symbols": symbols,
+          }
+          with open("docs/nifty200_universe.json", "w") as f:
+              json.dump(out, f, indent=2)
+              f.write("\n")
+          print(f"Fetched {len(symbols)} real NIFTY 200 symbols")
+          PYEOF
+
+      - name: Commit and push if the list changed
+        run: |
+          git config user.name "tv-paper-bot NIFTY 200 universe refresh"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/nifty200_universe.json
+          if git diff --cached --quiet; then
+            echo "No change in NIFTY 200 list - nothing to commit"
+          else
+            COUNT=$(python3 -c "import json; print(json.load(open('docs/nifty200_universe.json'))['count'])")
+            git commit -m "Weekly refresh: NIFTY 200 constituents from niftyindices.com ($COUNT symbols)"
+            git push
+          fi
