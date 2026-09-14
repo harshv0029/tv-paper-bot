@@ -4875,7 +4875,62 @@ def _load_nse_universe_from_file() -> list[str]:
 # tick's wall-clock time exceed SCHEDULER_INTERVAL_SECONDS on Render's
 # free-tier CPU - both are worse failure modes than slower rotation. Left
 # for a deliberate follow-up decision instead of guessing.
+def _load_nifty200_universe_from_file() -> list[str] | None:
+    """Loads the real NIFTY 200 index constituent list from
+    docs/nifty200_universe.json - real index-membership data (NIFTY 100 +
+    NIFTY Midcap 100, per NSE's own index construction), sourced from
+    niftyindices.com's published constituent CSV via
+    refresh-nifty200-universe.yml, NOT hand-typed here: index membership
+    changes at NSE's semi-annual reconstitutions and Kotak's scrip master
+    carries no index-membership column (same reason NSE_FULL_UNIVERSE
+    itself isn't index-scoped), so this needs its own real, externally-
+    verified source rather than a guessed list.
+
+    Explicit user instruction (2026-09-14): "U will trade only in nifty
+    200. Understood?"
+
+    Returns None (never an empty list) when the file is missing/unreadable
+    or looks too small to trust (< 150 - NIFTY 200 should be close to 200)
+    - the caller must treat None as "cannot restrict yet", not as "the
+    real list is empty", so a fetch failure here can never silently
+    shrink the tradable universe to zero. Same "a data problem degrades,
+    never crashes" discipline as _load_nse_universe_from_file."""
+    import json
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "nifty200_universe.json")
+    try:
+        with open(path) as f:
+            data = json.load(f)
+        symbols = data.get("symbols") or []
+        if len(symbols) < 150:
+            raise ValueError(f"only {len(symbols)} symbols in {path} - too small to trust")
+        return symbols
+    except Exception as e:
+        print(f"[nifty200_universe] {path} unusable ({e}) - NOT restricting to NIFTY 200 "
+              f"until a real list is committed (refresh-nifty200-universe.yml)")
+        return None
+
+
 NSE_FULL_UNIVERSE = _load_nse_universe_from_file()
+
+# NIFTY 200 restriction (2026-09-14, explicit user instruction - see
+# _load_nifty200_universe_from_file's own docstring). Filters the full
+# ~2,600-symbol Kotak-sourced universe DOWN to its intersection with the
+# real NIFTY 200 constituent list, rather than using the NIFTY 200 list on
+# its own - this way a symbol that leaves Kotak's own tradable scrip
+# master (delisted, series change, etc.) is still excluded even if the
+# NIFTY 200 snapshot hasn't caught up yet. Falls back to the FULL universe,
+# unrestricted, with a loud warning, if the real NIFTY 200 list isn't
+# available yet - never silently narrows trading on a guessed or missing
+# list.
+_NIFTY_200_SYMBOLS = _load_nifty200_universe_from_file()
+if _NIFTY_200_SYMBOLS is not None:
+    _nifty200_set = set(_NIFTY_200_SYMBOLS)
+    NSE_FULL_UNIVERSE = [s for s in NSE_FULL_UNIVERSE if s in _nifty200_set]
+    print(f"[nifty200_universe] restricted NSE_FULL_UNIVERSE to {len(NSE_FULL_UNIVERSE)} "
+          f"NIFTY 200 symbols (of {len(_NIFTY_200_SYMBOLS)} in the index snapshot)")
+else:
+    print("[nifty200_universe] WARNING: real NIFTY 200 list not yet available - "
+          "trading is NOT restricted to NIFTY 200 yet, running the full NSE universe instead")
 
 # Per-symbol evidenced param overrides - explicit user instruction
 # 2026-09-07 ("the nse equity or index win rate is low... how r u
