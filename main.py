@@ -3026,6 +3026,19 @@ UNIVERSAL_STRUCTURE_LOOKBACK = 20   # bars, for swing-structure/resistance
 UNIVERSAL_RSI_PERIOD = 14
 UNIVERSAL_RSI_BAND = (55.0, 70.0)   # per this session's own proposal table
 
+# RANGE regime's stop-loss basis (2026-09-14 fix - see the "RANGE regime is
+# the one exception" comment at the stop-loss computation in
+# _auto_signal_core for the full root-cause). UNIVERSAL_STRUCTURE_LOOKBACK's
+# "recent N-bar low" is right for a TREND breakout stop but degenerate for
+# a RANGE mean-reversion entry, which fires AT a fresh local low by
+# construction - so RANGE uses an ATR-multiple floor instead. 1.5x ATR(14)
+# is a standard, unresearched-for-THIS-symbol-set starting point for a
+# volatility-anchored mean-reversion stop, still capped at stop_pct% max
+# risk exactly as every other regime is - not a tuned value, and not a
+# substitute for validating the fix against real replay data before it's
+# trusted further than that.
+RANGE_STOP_ATR_MULT = 1.5
+
 # Rejection filters - independent of the score above; ANY tripping means
 # "no trade" regardless of how high the score is. No bid/ask feed exists
 # anywhere in this codebase (yfinance OHLCV has none) - "liquidity" is
@@ -3502,6 +3515,36 @@ def _compute_target_cluster(entry_price: float, stop_loss: float, df: pd.DataFra
         "primary_target": round(primary_target, 2),
         "confidence": confidence,
     }
+
+
+def _range_regime_stop_loss(last_close: float, df: pd.DataFrame, stop_loss_cap: float) -> float:
+    """RANGE regime's stop-loss level (2026-09-14 fix - see the "RANGE
+    regime is the one exception" comment at this function's call site in
+    _auto_signal_core for the full root-cause). Every other regime/
+    strategy uses `max(structural_low, stop_loss_cap)` - the most recent
+    N-bar low, capped at stop_pct% max risk, whichever is tighter. That's
+    right for a TREND breakout (walking AWAY from its own recent low) but
+    degenerate for a RANGE mean-reversion entry, which fires AT a fresh
+    local low by construction (`_vwap_mean_reversion_entry`: close below
+    the lower VWAP band) - structural_low collapses to ~last_close there,
+    so the stop collapses to ~0 distance too. Confirmed against the
+    52-symbol/60-day validation replay (run 34858413071's era) as the
+    root cause of RANGE's 0.5% win rate (vs TREND's 9.6% on the same
+    data) and of RANGE trades sizing at the full capital tranche almost
+    every time (near-zero stop_dist inflates the risk-based qty far past
+    the notional cap - see max_single_trade_inr in _auto_signal_core).
+
+    Uses an ATR-multiple floor instead - real, volatility-anchored
+    distance, the standard basis for a mean-reversion stop - still capped
+    at stop_loss_cap (stop_pct% max risk) via the same "whichever is
+    tighter wins" rule as every other regime; only the distance fed into
+    that rule changes here. RANGE_STOP_ATR_MULT=1.5 is a first-cut,
+    unresearched-for-this-symbol-set starting point, not a tuned value -
+    falls back to stop_loss_cap alone if ATR can't be computed yet (not a
+    silent zero-distance stop)."""
+    atr_val = _compute_atr_value(df)
+    range_stop = last_close - RANGE_STOP_ATR_MULT * atr_val if atr_val and atr_val > 0 else stop_loss_cap
+    return max(range_stop, stop_loss_cap)
 
 
 def _split_exit_legs(qty: float, r_multiples: dict) -> list[dict]:
@@ -4613,8 +4656,35 @@ def _auto_signal_core(
             # bullish_engulfing), capped at stop_pct% max risk - whichever
             # is tighter (closer to entry) wins, so the trade never risks
             # more than the cap even if the structural level is wider.
+            #
+            # RANGE regime is the one exception (2026-09-14 fix, validation
+            # replay run 34858413071's era finding - docs/STRATEGY_LOG.md):
+            # `structural_low` (min low of the last UNIVERSAL_STRUCTURE_
+            # LOOKBACK bars) is the right stop level for a TREND breakout,
+            # which is walking AWAY from that low. It is degenerate for a
+            # RANGE mean-reversion entry, which fires on
+            # `close < lower_vwap_band` - i.e. AT a fresh local low by
+            # construction - so structural_low collapses to ~last_close,
+            # stop_dist collapses to ~0, and "whichever is tighter wins"
+            # then locks in that near-zero distance. Cascading effect
+            # confirmed against the 52-symbol/60-day replay: near-zero
+            # stop_dist inflates the risk-based qty far past the notional/
+            # tranche cap (see max_single_trade_inr below), so almost every
+            # RANGE trade sizes at the full tranche regardless of intended
+            # risk_per_trade_pct, while a near-zero stop sits so close to
+            # entry that ordinary bar-to-bar noise triggers it almost
+            # immediately (RANGE win rate was 0.5% against TREND's 9.6% on
+            # the same replay). Real, ATR-anchored volatility - not the
+            # most recent local low - is the standard mean-reversion stop
+            # basis, so RANGE uses an ATR-multiple floor instead, still
+            # capped at stop_pct% max risk via the same "tighter wins" rule
+            # (that invariant itself isn't in question - only which
+            # distance feeds it for this one regime).
             stop_loss_cap = last_close * (1 - stop_pct / 100)
-            stop_loss = max(structural_low, stop_loss_cap)
+            if strategy == "universal_score" and market_regime == "range":
+                stop_loss = _range_regime_stop_loss(last_close, df, stop_loss_cap)
+            else:
+                stop_loss = max(structural_low, stop_loss_cap)
             stop_dist = last_close - stop_loss
             if stop_dist <= 0:
                 result["action_taken"] = "invalid_stop_skipped"
