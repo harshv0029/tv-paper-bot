@@ -371,13 +371,23 @@ def init_db():
                 orb_low REAL,
                 fx_to_inr REAL NOT NULL DEFAULT 1.0,  -- captured at entry; entry_price*fx_to_inr = INR/unit
                 interval TEXT NOT NULL DEFAULT '5m',  -- candle size this trade was taken on
-                exit_legs_json TEXT  -- 2026-09-09, universal-score architecture revamp: staged
+                exit_legs_json TEXT, -- 2026-09-09, universal-score architecture revamp: staged
                                      -- profit-booking ladder (see _split_exit_legs) as a JSON list
                                      -- of {"leg","qty","r_multiple","target_price","status"} dicts.
                                      -- NULL for any position not entered under strategy=
                                      -- "universal_score" (e.g. a real-position governance backfill,
                                      -- see _ensure_signal_state_for_real_position) - those keep the
                                      -- pre-revamp single-target/single-exit behavior unchanged.
+                entry_regime TEXT   -- 2026-09-14 fix: market_regime ("trend"/"range") AT ENTRY, for
+                                     -- universal_score positions only - NULL for orb_breakout/
+                                     -- bullish_engulfing (no regime router) and for any position
+                                     -- recovered/backfilled without known regime (real-position
+                                     -- governance backfill, pre-fix journal resurrection). The
+                                     -- trend_weakened exit check (see _auto_signal_core) only
+                                     -- suppresses itself when this is exactly "range" - every other
+                                     -- value (including NULL/unknown) keeps the pre-fix behavior, so
+                                     -- this never silently changes exit behavior for a position whose
+                                     -- true regime isn't known.
             )
             """
         )
@@ -4369,7 +4379,10 @@ def _auto_signal_core(
                 exit_reason = "target_hit"
             elif last_close <= current_stop:
                 exit_reason = "stop_hit"
-            elif trend == "down" and _trend_confidence(closes, sma_fast, sma_slow, ma_type) >= TREND_WEAKENED_MIN_CONFIDENCE:
+            elif (
+                trend == "down" and row["entry_regime"] != "range"
+                and _trend_confidence(closes, sma_fast, sma_slow, ma_type) >= TREND_WEAKENED_MIN_CONFIDENCE
+            ):
                 # The position is long because trend was "up" at entry
                 # (orb_breakout requires it directly; bullish_engulfing's
                 # own trend_sma filter serves the same purpose) - if the
@@ -4388,6 +4401,28 @@ def _auto_signal_core(
                 # 2026-09-03: a marginal single-bar crossover is noise, not
                 # evidence the setup broke, and must NOT close the trade -
                 # it just rides on to its existing stop/target/eod-squareoff.
+                #
+                # `entry_regime != "range"` guard (2026-09-14 fix, second
+                # part of the validation-replay root-cause investigation -
+                # see _range_regime_stop_loss's own docstring for part one).
+                # This whole check's premise is "went long assuming an
+                # UPtrend, trend has since flipped down" - true for
+                # orb_breakout/bullish_engulfing and TREND-regime
+                # universal_score entries. RANGE mean-reversion entries are
+                # long BECAUSE the short-term trend is already down
+                # (_vwap_mean_reversion_entry fires on a dip below the
+                # lower VWAP band) - trend=="down" at high confidence is
+                # not evidence the RANGE trade's premise broke, it's often
+                # the same condition that justified the entry in the first
+                # place, so this fired on ~47% of ALL exits pooled (nearly
+                # as many as stop_hit) and closed RANGE trades almost
+                # immediately, before reversion could play out, regardless
+                # of stop distance (confirmed against the 52-symbol/60-day
+                # replay - RANGE win rate stayed 0.5% even after the stop-
+                # distance fix alone). Excludes RANGE only - every other
+                # value (including NULL/unknown regime, e.g. a backfilled
+                # or pre-fix-resurrected real position) keeps this check
+                # exactly as before.
                 exit_reason = "trend_weakened"
             elif (
                 (time.time() - row["entry_ts"]) >= max_hold_minutes * 60
@@ -4845,18 +4880,24 @@ def _auto_signal_core(
                 "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
                 (time.time(), symbol, qty, last_close, fx_to_inr, strategy_tag, json.dumps(payload)),
             )
+            # entry_regime (2026-09-14 fix) - NULL for orb_breakout/bullish_engulfing
+            # (no regime router; `market_regime` is only ever assigned in the
+            # strategy=="universal_score" branch above), the real value
+            # ("trend"/"range") otherwise - see the trend_weakened exit check
+            # below and signal_state's own column comment for why this matters.
+            entry_regime = market_regime if strategy == "universal_score" else None
             conn.execute(
                 "INSERT INTO signal_state "
-                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, exit_legs_json) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, exit_legs_json, entry_regime) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
                 "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
                 "initial_stop_loss=excluded.initial_stop_loss, "
                 "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
                 "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, "
-                "interval=excluded.interval, exit_legs_json=excluded.exit_legs_json",
+                "interval=excluded.interval, exit_legs_json=excluded.exit_legs_json, entry_regime=excluded.entry_regime",
                 (symbol, today_str, last_close, stop_loss, stop_loss, target, qty, time.time(), orb_high, orb_low,
-                 fx_to_inr, interval, json.dumps(exit_legs) if exit_legs else None),
+                 fx_to_inr, interval, json.dumps(exit_legs) if exit_legs else None, entry_regime),
             )
             conn.commit()
             result.update(action_taken="entered_long", entry=payload)
@@ -7734,23 +7775,27 @@ def reconcile_open_positions_from_journal():
             apply_paper_trade(conn, symbol, "buy", pos["qty"], pos["entry_price_native"])
             conn.execute(
                 "INSERT INTO signal_state "
-                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, entry_regime) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
                 "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
                 "initial_stop_loss=excluded.initial_stop_loss, "
                 "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
                 "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, "
-                "interval=excluded.interval",
+                "interval=excluded.interval, entry_regime=excluded.entry_regime",
                 # initial_stop_loss_native only exists in a journal snapshot
                 # written after this feature shipped - fall back to
                 # stop_loss_native (whatever the live stop was at sync time,
                 # possibly already trailed) for an older one, same spirit as
-                # the strategy-tag fallback just above.
+                # the strategy-tag fallback just above. entry_regime (2026-
+                # 09-14 fix) is the same story - None for any journal
+                # snapshot written before this shipped, the safe default
+                # that keeps the trend_weakened check exactly as before.
                 (symbol, day_str, pos["entry_price_native"], pos["stop_loss_native"],
                  pos.get("initial_stop_loss_native", pos["stop_loss_native"]),
                  pos["target_native"], pos["qty"], entry_ts, pos["orb_high_native"],
-                 pos["orb_low_native"], pos["fx_to_inr"], pos.get("interval", "5m")),
+                 pos["orb_low_native"], pos["fx_to_inr"], pos.get("interval", "5m"),
+                 pos.get("entry_regime")),
             )
             recovered.append(symbol)
         conn.commit()
@@ -9444,6 +9489,10 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
             "strategy": book.get(r["symbol"], {}).get("last_strategy"),
             "sma_fast": watchlist_by_symbol.get(r["symbol"], {}).get("sma_fast"),
             "sma_slow": watchlist_by_symbol.get(r["symbol"], {}).get("sma_slow"),
+            # 2026-09-14 fix - carried through a redeploy so the
+            # trend_weakened exit check's RANGE exclusion survives journal
+            # resurrection (see _reconcile_open_positions_from_journal).
+            "entry_regime": r["entry_regime"],
         })
     for r in open_option_state:
         qty = r["contracts"] * 100
