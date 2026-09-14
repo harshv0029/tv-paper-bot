@@ -67,10 +67,19 @@ plugs into:
       touch entry/exit/sizing — still not wired into `main.py`. Wiring
       requires the full replay-validation gate + explicit go-ahead, same
       as any other production sizing change, not done here.**
-- [ ] Phase 3 — Module 482 (Live Capital Guard Engine — Section 23 already
-      gives an exact severity/action algorithm to transcribe), Module 479
-      (Research Reproducibility Engine).
-- [ ] Phase 4+ — remaining modules, prioritized with the user as each
+- [x] **Phase 3 — Module 482, Live Capital Guard Engine**
+      (`app/risk/capital_guard.py`). Section 23's severity/action table and
+      `capital_guard()` pseudocode transcribed as SOURCE; the
+      per-dimension breach logic it calls (`evaluate_all_dimensions`) isn't
+      defined anywhere in the source, so it's an IMPLEMENTATION ASSUMPTION
+      (3-threshold-per-dimension model, documented in the module
+      docstring) — same treatment as Module 480's formula in Phase 2. The
+      "protection mode is durable" primary rule is a latch requiring an
+      explicit `clear_protection()` (privileged actor + checklist id,
+      mirroring Module 478's override-resume gate). 14 new unit tests, all
+      green. Not wired into `main.py`.
+- [ ] Phase 4 — Module 479 (Research Reproducibility Engine).
+- [ ] Phase 5+ — remaining modules, prioritized with the user as each
       prior phase lands.
 
 ## Known pre-existing issue found while validating this phase (unrelated)
