@@ -5652,13 +5652,24 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     _maybe_place_real_exit (which always closes the FULL real_positions
     row), this only ever sells the leg's own qty and UPDATES the row's qty
     downward, advancing the resting target order to the NEXT unfilled leg
-    (if any) and re-sizing the resting stop-loss to the smaller remaining
-    qty - same cancel-then-replace pattern _maybe_place_real_exit already
-    uses for the SL leg, just without closing the position.
+    (if any) and placing a fresh stop-loss sized to the smaller remaining
+    qty, without closing the position.
+
+    SL-first-cancel fix (2026-09-14, real live rejection - BECTORFOOD SELL
+    0/1 REJECTED "Insufficient quantity held for this order"): the resting
+    SL order (sized to the FULL original qty) is cancelled BEFORE this
+    leg's sell is attempted, not after. Kotak holds shares against ANY
+    resting sell order, so attempting a partial sell while the old SL is
+    still resting gets rejected outright - exactly what the live rejection
+    showed. A failed SL cancel defers the whole leg (most likely the SL
+    already triggered for real, or the true state is otherwise unknown -
+    never guess); a failed sell AFTER a successful SL cancel restores the
+    ORIGINAL stop (full qty) before returning, rather than leaving the
+    position naked over an unrelated sell failure.
 
     Best-effort at every step, same conventions as every other real-order
-    function in this file: a failure to advance the target/shrink the SL
-    is logged but never undoes the partial sell that already happened -
+    function in this file: a failure to advance the target/place the fresh
+    SL is logged but never undoes the partial sell that already happened -
     the position genuinely has fewer shares at Kotak either way."""
     row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
@@ -5722,6 +5733,48 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
                   f"({cancel_result.get('detail')}) - most likely already filled at Kotak; "
                   f"reconciling qty instead of placing a second sell")
 
+    # SL-first-cancel fix (2026-09-14, real live rejection - BECTORFOOD SELL
+    # 0/1 REJECTED "Insufficient quantity held for this order"): Kotak holds
+    # shares against ANY resting sell order, SL included - not just the
+    # leg's own target order handled above. Placing this leg's profit-
+    # booking sell while the OLD stop (still sized to the FULL qty) is
+    # resting gets rejected outright, exactly as seen live. Correct
+    # sequence (per the actual rejection, matching what was needed to fix
+    # it): cancel the resting SL FIRST, then sell the leg, then place a
+    # fresh SL sized to the remaining qty - never resize the old one in
+    # place, and never attempt the sell while the old one still rests.
+    # Applies regardless of already_filled_at_kotak: either way the
+    # position's qty is about to shrink, and the OLD SL (sized to the full
+    # original qty) must go before the end-of-function block below places
+    # a fresh one for the remaining qty - leaving it resting would create a
+    # SECOND, duplicate SL order alongside the new one, both racing to sell
+    # the same shares.
+    sl_was_cancelled = False
+    if row["sl_order_id"]:
+        sl_cancel_result = kotak_real_orders.cancel_real_order(row["sl_order_id"])
+        if sl_cancel_result.get("ok"):
+            sl_was_cancelled = True
+            # No resting broker-side stop exists from this instant until a
+            # fresh one lands below - the same degraded-protection clock
+            # every other SL gap already uses, not a silent hole.
+            _mark_protection_degraded(conn, symbol)
+        else:
+            # Could not cancel - most likely it already triggered for real
+            # (the position may already be closed for a loss at Kotak) or
+            # a transient API error masks the true state either way. Defer
+            # this leg's booking entirely rather than guess: the next tick
+            # (or _maybe_sync_real_stop_loss's own reconcile path) will
+            # sort out what actually happened before anything here risks
+            # compounding it with a sell against an unknown real state.
+            _log_real_attempt(
+                conn, symbol, "S", "skipped_sl_cancel_failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                detail=f"staged leg {leg_name}: could not cancel resting SL {row['sl_order_id']} "
+                       f"before partial booking ({sl_cancel_result.get('detail')})",
+            )
+            print(f"[REAL TRADE] STAGED LEG {leg_name} for {row['kotak_trading_symbol']} DEFERRED - "
+                  f"could not cancel resting SL first: {sl_cancel_result.get('detail')}")
+            return
+
     if already_filled_at_kotak:
         exit_qty = leg_qty
         fill_price = real_leg.get("target_price") or row["entry_price"]
@@ -5756,6 +5809,38 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
                 new_state="unchanged - staged leg sell failed", detail=result.get("detail"),
             )
             _flag_if_t1_restricted(conn, symbol, result.get("detail"))
+            if sl_was_cancelled:
+                # Nothing sold - the position still holds its full original
+                # qty, but the SL cancelled above is gone. Restore it
+                # (same qty, same trigger) rather than leaving the
+                # position naked over an unrelated sell failure.
+                restore = _place_real_stop_loss_with_retry(
+                    row["kotak_trading_symbol"], row["qty"], row["sl_trigger_price"]
+                )
+                if restore.get("ok"):
+                    conn.execute(
+                        "UPDATE real_positions SET sl_order_id = ? WHERE symbol = ?",
+                        (restore["order_id"], symbol),
+                    )
+                    conn.commit()
+                    _clear_protection_degraded(conn, symbol)
+                    _log_real_order_event(
+                        conn, symbol, "sl", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                        order_id=restore["order_id"], prev_state="restored after staged sell failure",
+                        new_state=f"resting SELL trigger Rs{restore['trigger_price']:.2f} for {row['qty']} shares",
+                    )
+                else:
+                    conn.execute("UPDATE real_positions SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
+                    conn.commit()
+                    # Stays degraded (already marked above) - the existing
+                    # _maybe_sync_real_stop_loss escalation machinery
+                    # covers this exactly as any other SL-placement gap.
+                    _log_real_order_event(
+                        conn, symbol, "sl", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                        prev_state="restoring after staged sell failure",
+                        new_state="none (re-placement failed)", detail=restore.get("detail"),
+                    )
+                    _flag_if_t1_restricted(conn, symbol, restore.get("detail"))
             return
 
         exit_qty = int(result["qty"])
@@ -5838,46 +5923,45 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     else:
         conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
 
-    # Re-size the resting SL to the smaller remaining qty - same trigger
-    # price as before (unchanged; only the qty behind it shrinks). Best-
-    # effort: a failure here leaves the OLD (too-large) SL order resting,
-    # which Kotak would simply short-fill against the smaller real holding
-    # if it ever triggers - not a silent gap in protection, just a partial
-    # fill instead of an exact one.
-    if row["sl_order_id"] and row["sl_trigger_price"]:
-        cancel_result = kotak_real_orders.cancel_real_order(row["sl_order_id"])
-        if cancel_result.get("ok"):
-            sl_result = _place_real_stop_loss_with_retry(
-                row["kotak_trading_symbol"], remaining_qty, row["sl_trigger_price"]
+    # Place a fresh SL sized to the smaller remaining qty. The OLD order was
+    # already cancelled UP FRONT (before the sell attempt above, per the
+    # 2026-09-14 fix) - this never resizes/cancels-then-replaces here, it
+    # only ever PLACES, since nothing is left resting to cancel. Also fires
+    # when there was no old sl_order_id at all but a trigger price is still
+    # known (e.g. a prior placement failure had already cleared it) - closes
+    # a pre-existing gap where such a position would never get a fresh SL
+    # attempt from this path.
+    if remaining_qty > 0 and row["sl_trigger_price"]:
+        sl_result = _place_real_stop_loss_with_retry(
+            row["kotak_trading_symbol"], remaining_qty, row["sl_trigger_price"]
+        )
+        if sl_result.get("ok"):
+            conn.execute(
+                "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                (sl_result["order_id"], sl_result["trigger_price"], symbol),
             )
-            if sl_result.get("ok"):
-                conn.execute(
-                    "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
-                    (sl_result["order_id"], sl_result["trigger_price"], symbol),
-                )
-                _clear_protection_degraded(conn, symbol)
-                _log_real_order_event(
-                    conn, symbol, "sl", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
-                    order_id=sl_result["order_id"], prev_state="resized for staged leg booking",
-                    new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f} for {remaining_qty} shares",
-                )
-            else:
-                # 2026-09-10, explicit user instruction after review: no
-                # IMMEDIATE force-close here - starts (or leaves running)
-                # the same degraded-protection clock
-                # _maybe_sync_real_stop_loss's own top-of-function check
-                # escalates on, rather than either force-closing on this
-                # one failure or trusting the tick-based stop_hit check
-                # to cover the gap indefinitely. See
-                # _protection_degraded_timeout_seconds' own docstring.
-                conn.execute("UPDATE real_positions SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
-                _mark_protection_degraded(conn, symbol)
-                _log_real_order_event(
-                    conn, symbol, "sl", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
-                    prev_state="resized for staged leg booking",
-                    new_state="none (re-placement failed)", detail=sl_result.get("detail"),
-                )
-                _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
+            _clear_protection_degraded(conn, symbol)
+            _log_real_order_event(
+                conn, symbol, "sl", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                order_id=sl_result["order_id"], prev_state="placed fresh after staged leg booking",
+                new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f} for {remaining_qty} shares",
+            )
+        else:
+            # 2026-09-10, explicit user instruction after review: no
+            # IMMEDIATE force-close here - starts (or leaves running) the
+            # same degraded-protection clock _maybe_sync_real_stop_loss's
+            # own top-of-function check escalates on, rather than either
+            # force-closing on this one failure or trusting the tick-based
+            # stop_hit check to cover the gap indefinitely. See
+            # _protection_degraded_timeout_seconds' own docstring.
+            conn.execute("UPDATE real_positions SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
+            _mark_protection_degraded(conn, symbol)
+            _log_real_order_event(
+                conn, symbol, "sl", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                prev_state="placing fresh after staged leg booking",
+                new_state="none (placement failed)", detail=sl_result.get("detail"),
+            )
+            _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
     _sync_real_positions_external(conn)
 
 

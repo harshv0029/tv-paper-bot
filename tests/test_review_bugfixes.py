@@ -338,10 +338,11 @@ def test_partial_exit_places_a_real_sell_when_the_resting_order_was_still_live()
                    return_value={"ok": True, "order_id": "SL-2", "trigger_price": 98.0}):
             main._maybe_place_real_partial_exit(conn, "RELIANCE.NS", {"leg": "T1", "qty": 2})
         # cancel_real_order is also legitimately called again later (once
-        # more for "T1-ORD" advancing to the next leg, and once for the
-        # SL resize's own old order) - the point of this test is only that
-        # the LEG's own order was checked before selling.
+        # more for "T1-ORD" advancing to the next leg) - the point of this
+        # test is only that BOTH the leg's own target order AND the old SL
+        # were checked/cancelled before selling.
         mock_cancel.assert_any_call("T1-ORD")
+        mock_cancel.assert_any_call("SL-1")
         mock_sell.assert_called_once()  # the resting order was cancellable -> genuinely safe to sell
         row = conn.execute("SELECT qty FROM real_positions WHERE symbol='RELIANCE.NS'").fetchone()
         assert row["qty"] == 6
@@ -351,7 +352,14 @@ def test_partial_exit_reconciles_instead_of_double_selling_when_leg_already_fill
     _fresh_db()
     with closing(main.get_db()) as conn:
         _insert_real_position_with_legs(conn)
-        with patch("kotak_real_orders.cancel_real_order", return_value={"ok": False, "detail": "order already complete"}) as mock_cancel, \
+        # Target already filled at Kotak (T1-ORD's own cancel fails), but
+        # the SL is still genuinely resting and cancellable (SL-1 succeeds)
+        # - the realistic combination: only the leg's own order was
+        # affected, not the whole position's stop.
+        def _cancel_side_effect(order_id):
+            return {"ok": False, "detail": "order already complete"} if order_id == "T1-ORD" \
+                else {"ok": True}
+        with patch("kotak_real_orders.cancel_real_order", side_effect=_cancel_side_effect) as mock_cancel, \
              patch("kotak_real_orders.place_real_exit") as mock_sell, \
              patch("kotak_real_orders.place_real_target",
                    return_value={"ok": True, "order_id": "T2-ORD", "target_price": 103.0}), \
@@ -365,3 +373,73 @@ def test_partial_exit_reconciles_instead_of_double_selling_when_leg_already_fill
         legs = json.loads(row["exit_legs_json"])
         t1 = next(l for l in legs if l["leg"] == "T1")
         assert t1["status"] == "filled"
+
+
+# ---- SL-first-cancel fix: _maybe_place_real_partial_exit --------------------
+# 2026-09-14, real live rejection: BECTORFOOD SELL 0/1 REJECTED "Insufficient
+# quantity held for this order" - the old SL (sized to the full qty) was
+# still resting when the partial profit-booking sell was attempted.
+
+def test_partial_exit_cancels_the_old_sl_before_attempting_the_sell():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        _insert_real_position_with_legs(conn)
+        call_order = []
+
+        def _cancel_side_effect(order_id):
+            call_order.append(order_id)
+            return {"ok": True}
+
+        def _sell_side_effect(kotak_trading_symbol, qty):
+            # The SL must already be cancelled by the time the sell fires.
+            assert "SL-1" in call_order, "SL was not cancelled before the sell was attempted"
+            return {"ok": True, "qty": qty, "fill_price": 102.1, "order_id": "S1", "fill_price_confirmed": True}
+
+        with patch("kotak_real_orders.cancel_real_order", side_effect=_cancel_side_effect), \
+             patch("kotak_real_orders.place_real_exit", side_effect=_sell_side_effect), \
+             patch("kotak_real_orders.place_real_target",
+                   return_value={"ok": True, "order_id": "T2-ORD", "target_price": 103.0}), \
+             patch("kotak_real_orders.place_real_stop_loss",
+                   return_value={"ok": True, "order_id": "SL-2", "trigger_price": 98.0}):
+            main._maybe_place_real_partial_exit(conn, "RELIANCE.NS", {"leg": "T1", "qty": 2})
+        assert call_order.index("SL-1") < call_order.index("T1-ORD") or "SL-1" in call_order
+        row = conn.execute("SELECT qty, sl_order_id, protection_degraded_since FROM real_positions "
+                            "WHERE symbol='RELIANCE.NS'").fetchone()
+        assert row["qty"] == 6
+        assert row["sl_order_id"] == "SL-2"  # a FRESH SL, never the old one resized
+        assert row["protection_degraded_since"] is None  # cleared once the fresh SL landed
+
+
+def test_partial_exit_defers_the_leg_when_the_old_sl_cannot_be_cancelled():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        _insert_real_position_with_legs(conn)
+
+        def _cancel_side_effect(order_id):
+            return {"ok": True} if order_id == "T1-ORD" else {"ok": False, "detail": "already triggered"}
+
+        with patch("kotak_real_orders.cancel_real_order", side_effect=_cancel_side_effect), \
+             patch("kotak_real_orders.place_real_exit") as mock_sell:
+            main._maybe_place_real_partial_exit(conn, "RELIANCE.NS", {"leg": "T1", "qty": 2})
+        mock_sell.assert_not_called()  # unknown real state (SL may have already fired) - never guess
+        row = conn.execute("SELECT qty FROM real_positions WHERE symbol='RELIANCE.NS'").fetchone()
+        assert row["qty"] == 8  # nothing changed locally - deferred entirely to the next tick
+
+
+def test_partial_exit_restores_the_original_sl_when_the_sell_fails_after_sl_cancel():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        _insert_real_position_with_legs(conn)
+        with patch("kotak_real_orders.cancel_real_order", return_value={"ok": True}), \
+             patch("kotak_real_orders.place_real_exit", return_value={"ok": False, "detail": "rejected"}), \
+             patch("kotak_real_orders.place_real_stop_loss",
+                   return_value={"ok": True, "order_id": "SL-RESTORED", "trigger_price": 98.0}) as mock_sl:
+            main._maybe_place_real_partial_exit(conn, "RELIANCE.NS", {"leg": "T1", "qty": 2})
+        # Restored for the FULL original qty (8), not the leg qty - nothing
+        # was actually sold.
+        mock_sl.assert_called_once_with("RELIANCE-EQ", 8, 98.0)
+        row = conn.execute("SELECT qty, sl_order_id, protection_degraded_since FROM real_positions "
+                            "WHERE symbol='RELIANCE.NS'").fetchone()
+        assert row["qty"] == 8  # unchanged - the sell failed
+        assert row["sl_order_id"] == "SL-RESTORED"
+        assert row["protection_degraded_since"] is None
