@@ -3056,6 +3056,18 @@ UNIVERSAL_MAX_VWAP_EXTENSION_ATR = 2.0  # reject if price already this many ATRs
 UNIVERSAL_RVOL_PARTIAL_MULT = 1.0  # RVOL above this (but below FULL) -> half credit
 UNIVERSAL_RVOL_FULL_MULT = 1.5     # RVOL at/above this -> full credit
 
+# Absolute liquidity/price-action gate (2026-09-14, explicit user
+# instruction backed by three live screenshot examples - LEXUS-EQ,
+# KKCL-EQ, RADIOCITY - of real trades taken into stocks with long gaps
+# of zero volume and a flatlined LTP: "This kind of volume profile is
+# not acceptable for trade entry... until there is price action or
+# volume action visible on graph"). volume_ok/RVOL above are both
+# RELATIVE to a symbol's OWN rolling average, so a symbol that's thin in
+# an ABSOLUTE sense throughout can still pass them - this is a separate,
+# additional hard gate. See _liquidity_gate's own docstring.
+LIQUIDITY_GATE_LOOKBACK_BARS = 3            # 15 min of 5-min bars, per "previous 15 minutes volume"
+LIQUIDITY_MIN_15MIN_TURNOVER_INR = 500_000.0  # first-cut floor, NOT researched - tune with real data
+
 
 def _atr_series(df: pd.DataFrame, period: int = 14) -> pd.Series:
     """True-range rolling-mean ATR (Wilder-style approximation, same class
@@ -3256,6 +3268,47 @@ def _vwap_mean_reversion_entry(today_df: pd.DataFrame, bb_std: float = 2.0) -> b
     return bool(closes[-1] < lower_band)
 
 
+def _liquidity_gate(df: pd.DataFrame) -> tuple[bool, list[str]]:
+    """Hard, fail-closed, regime-agnostic pre-entry liquidity/price-action
+    gate - see LIQUIDITY_GATE_LOOKBACK_BARS's own comment for the live
+    screenshots that motivated this. Three independent checks over the
+    last LIQUIDITY_GATE_LOOKBACK_BARS bars, ALL must pass:
+      1. every bar has nonzero volume - a gap bar (nothing traded that
+         interval) anywhere in the recent window means the tape isn't
+         continuously traded.
+      2. total turnover (sum of close*volume) over those bars is at
+         least LIQUIDITY_MIN_15MIN_TURNOVER_INR - an ABSOLUTE floor, not
+         relative to the symbol's own (possibly always-thin) history the
+         way volume_ok/RVOL both are.
+      3. price actually moved over the window (not every close is
+         identical) - a frozen LTP means no real two-sided trading even
+         where volume prints something.
+
+    Fail-closed on insufficient history (fewer than
+    LIQUIDITY_GATE_LOOKBACK_BARS bars total) - never a silent pass.
+    Returns (passed, reasons); reasons is empty iff passed. Applied to
+    BOTH regimes uniformly (tape quality is regime-agnostic) - see the
+    entry_candle_bullish check inside _compute_universal_entry_score for
+    the SEPARATE, TREND-only "buyers dominant on the entry candle" read
+    (deliberately not applied to the RANGE/mean-reversion path, which by
+    design buys INTO a down candle - see _vwap_mean_reversion_entry)."""
+    lookback = LIQUIDITY_GATE_LOOKBACK_BARS
+    if len(df) < lookback:
+        return False, ["insufficient_history_for_liquidity_gate"]
+    window = df.iloc[-lookback:]
+    closes = window["Close"].to_numpy(dtype=float)
+    volumes = window["Volume"].to_numpy(dtype=float)
+    reasons = []
+    if np.any(volumes <= 0):
+        reasons.append("zero_volume_bar_in_recent_window")
+    turnover = float(np.sum(closes * volumes))
+    if turnover < LIQUIDITY_MIN_15MIN_TURNOVER_INR:
+        reasons.append("turnover_below_minimum")
+    if np.all(closes == closes[0]):
+        reasons.append("price_not_moving")
+    return (len(reasons) == 0), reasons
+
+
 def _compute_universal_entry_score(
     df: pd.DataFrame, today_df: pd.DataFrame,
     volume_ok: bool, sma_fast_val: float | None, sma_slow_val: float | None,
@@ -3362,6 +3415,25 @@ def _compute_universal_entry_score(
             rejection_reasons.append("too_extended_from_vwap")
     if not volume_ok:
         rejection_reasons.append("liquidity_inadequate")
+    liquidity_gate_ok, liquidity_gate_reasons = _liquidity_gate(df)
+    if not liquidity_gate_ok:
+        rejection_reasons.extend(liquidity_gate_reasons)
+    # Entry-candle-bullish check (2026-09-14, explicit user instruction):
+    # "The candle at which u r buying then its respective volume should
+    # be in favour of the trade... if u r planning to buy then buyers in
+    # the volume of last candle's should be dominant." No bid/ask feed
+    # exists to split a candle's volume into buy/sell-initiated (same gap
+    # _liquidity_gate's own docstring notes), so this uses the standard
+    # OHLCV proxy for "buyers were in control this candle": close above
+    # open. TREND-only, deliberately NOT applied to the RANGE regime -
+    # _vwap_mean_reversion_entry buys INTO a down candle by design (a
+    # dip below the lower band), so requiring a green candle there would
+    # neuter the one strategy in this codebase with real positive
+    # backtest evidence (docs/STRATEGY_LOG.md row #13).
+    if "Open" in df.columns and len(df) >= 1:
+        last_open = float(df["Open"].iloc[-1])
+        if last_close <= last_open:
+            rejection_reasons.append("entry_candle_not_bullish")
     if resistance is not None and len(df) > UNIVERSAL_STRUCTURE_LOOKBACK:
         risk_ref = last_close - float(df["Low"].iloc[-(UNIVERSAL_STRUCTURE_LOOKBACK + 1):].min())
         reward_ref = resistance - last_close
@@ -4492,10 +4564,19 @@ def _auto_signal_core(
             market_regime = _classify_market_regime(df, sma_fast, sma_slow, ma_type)
             result["market_regime"] = market_regime
 
+            # Absolute liquidity/price-action gate (2026-09-14) - regime-
+            # agnostic, applied here once for BOTH branches below (the
+            # TREND branch's own score result also folds this in via its
+            # rejection_reasons - see _compute_universal_entry_score - but
+            # ANDing it here too keeps the RANGE branch, which has no
+            # rejection_reasons list of its own, held to the same bar).
+            liquidity_gate_ok, liquidity_gate_reasons = _liquidity_gate(df)
+            result["liquidity_gate_reasons"] = liquidity_gate_reasons
+
             if market_regime == "range":
                 range_entry = _vwap_mean_reversion_entry(today_df)
                 result["vwap_mean_reversion_entry"] = range_entry
-                entry_signal = bool(range_entry)
+                entry_signal = bool(range_entry) and liquidity_gate_ok
                 entry_reason = "vwap_mean_reversion_range_regime"
             else:
                 score_result = _compute_universal_entry_score(
