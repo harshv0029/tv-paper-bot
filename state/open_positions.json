@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-14T08:40:10Z",
+  "synced_at_utc": "2026-09-14T15:15:39Z",
   "open_positions": [
     {
       "symbol": "GENCON.NS",
@@ -15,25 +15,8 @@
       "entry_ts": 1789113057.604749,
       "interval": "5m",
       "strategy": "orb-universal-score",
-      "sma_fast": 9,
-      "sma_slow": 21
-    },
-    {
-      "symbol": "GC=F",
-      "qty": 0.002253,
-      "entry_price_native": 4351.0,
-      "stop_loss_native": 4348.0,
-      "initial_stop_loss_native": 4348.0,
-      "target_native": 4360.11,
-      "fx_to_inr": 95.54000091552734,
-      "notional_inr": 936.56,
-      "orb_high_native": null,
-      "orb_low_native": 4348.0,
-      "entry_ts": 1789375164.6268904,
-      "interval": "5m",
-      "strategy": "orb-universal-score",
-      "sma_fast": 20,
-      "sma_slow": 21
+      "sma_fast": null,
+      "sma_slow": null
     }
   ]
 }

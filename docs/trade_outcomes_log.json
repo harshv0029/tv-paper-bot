@@ -525,5 +525,19 @@
     "rr_target": 3.0,
     "rr_achieved": 3.34,
     "strategy": "orb-recovered"
+  },
+  {
+    "symbol": "GC=F",
+    "exit_time_utc": 1789398506.2380779,
+    "entry_price_native": 4351.0,
+    "exit_price_native": 4316.10009765625,
+    "currency": "USD",
+    "qty": 0.002253,
+    "pnl_inr": -7.51,
+    "pnl_pct_of_capital": -0.002,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": -11.63,
+    "strategy": "orb-universal-score"
   }
 ]
