@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-11T12:40:55Z",
+  "synced_at_utc": "2026-09-14T08:40:10Z",
   "open_positions": [
     {
       "symbol": "GENCON.NS",
@@ -19,20 +19,20 @@
       "sma_slow": 21
     },
     {
-      "symbol": "GILT5BETA.NS",
-      "qty": 14.0,
-      "entry_price_native": 66.30999755859375,
-      "stop_loss_native": 65.98999786376953,
-      "initial_stop_loss_native": 65.98999786376953,
-      "target_native": 66.95,
-      "fx_to_inr": 1.0,
-      "notional_inr": 928.34,
+      "symbol": "GC=F",
+      "qty": 0.002253,
+      "entry_price_native": 4351.0,
+      "stop_loss_native": 4348.0,
+      "initial_stop_loss_native": 4348.0,
+      "target_native": 4360.11,
+      "fx_to_inr": 95.54000091552734,
+      "notional_inr": 936.56,
       "orb_high_native": null,
-      "orb_low_native": 65.98999786376953,
-      "entry_ts": 1789113157.199555,
+      "orb_low_native": 4348.0,
+      "entry_ts": 1789375164.6268904,
       "interval": "5m",
       "strategy": "orb-universal-score",
-      "sma_fast": 9,
+      "sma_fast": 20,
       "sma_slow": 21
     }
   ]
