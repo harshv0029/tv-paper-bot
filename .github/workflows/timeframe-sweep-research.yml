@@ -1,0 +1,337 @@
+name: Timeframe Sweep (research)
+
+# Research-only, read-only pass (2026-09-14) - architectural follow-up to
+# the round-trip-cost investigation: the margin sweep (see
+# round-trip-cost-margin-sweep.yml) proved that filtering the EXISTING
+# 5-minute signal more strictly cannot reach profitability - cost drag
+# bottoms out around 105-111% of gross turnover-pnl even at the best
+# margin tested, and by 4.0x cost margin zero trades clear the bar at all.
+# That closes out "throttle via stricter entry filter" as a standalone fix.
+#
+# This tests a different, more structural lever instead: the SAME live
+# strategy (unchanged sma_fast/sma_slow=9/21 EMA, unchanged
+# UNIVERSAL_STRUCTURE_LOOKBACK/RANGE_STOP_ATR_MULT/ATR-period bar counts,
+# unchanged ROUND_TRIP_COST_PCT margin=1.0x - i.e. exactly what's live on
+# main right now), replayed on LARGER CANDLES (15m, 30m) instead of the
+# current 5m. Larger bars mean the SAME bar-count-based stop/target/ATR
+# logic naturally spans more real price movement (bigger stop distances,
+# bigger targets in price-% terms) while also producing structurally FEWER
+# round trips per day - both work in the direction cost economics need,
+# without hand-tuning any threshold. Real 60d data at each interval,
+# fetched fresh per interval (bars genuinely differ, can't be cached
+# across intervals) - a real, if slower, test rather than a guess.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run timeframe sweep
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import json
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          OPEN_MIN = 555
+          CLOSE_MIN = 930
+          SQUAREOFF_MIN = 920
+          TZ_OFF = m.IST_OFFSET_MIN
+          MAX_HOLD_MINUTES = 120.0
+          DEFAULT_SMA_FAST, DEFAULT_SMA_SLOW, DEFAULT_MA_TYPE = 9, 21, "ema"
+          DEFAULT_RR = 3.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+          # Same live entry gate (main.ROUND_TRIP_COST_PCT, margin=1.0x) -
+          # this sweep tests bar size, not the entry filter (already
+          # explored separately - see round-trip-cost-margin-sweep.yml).
+          INTERVALS = ["5m", "15m", "30m"]
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(ts_local=ts_local)
+              df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+              df["mins"] = df["ts_local"].dt.hour * 60 + df["ts_local"].dt.minute
+              return df
+
+
+          def replay_symbol(symbol, df, index_closes, risk_pct, stop_pct, capital, cost_model,
+                             sma_fast=DEFAULT_SMA_FAST, sma_slow=DEFAULT_SMA_SLOW, ma_type=DEFAULT_MA_TYPE):
+              closes_all = df["Close"].to_numpy(dtype=float)
+              n = len(df)
+              trades = []
+              position = None
+
+              for i in range(n):
+                  row = df.iloc[i]
+                  mins = int(row["mins"])
+                  if mins < OPEN_MIN or mins > CLOSE_MIN:
+                      continue
+                  day = row["date_local"]
+                  today_df = df[(df["date_local"] == day) & (df.index <= i)]
+                  df_so_far = df.iloc[: i + 1]
+                  closes_so_far = closes_all[: i + 1]
+                  last_close = float(row["Close"])
+                  last_ts = row["ts_local"].timestamp()
+
+                  if len(closes_so_far) < sma_slow:
+                      continue
+                  sma_f = m._moving_average(closes_so_far, sma_fast, ma_type)
+                  sma_s = m._moving_average(closes_so_far, sma_slow, ma_type)
+                  trend = "up" if sma_f > sma_s else "down"
+
+                  if position is not None:
+                      current_stop = position["stop"]
+                      trail = m._trailing_stop_target(
+                          today_df, position["entry_price"], position["initial_stop"], position["entry_ts"], TZ_OFF,
+                      )
+                      if trail is not None and trail > current_stop:
+                          current_stop = trail
+                          position["stop"] = current_stop
+
+                      current_target = position["target"]
+                      if last_close >= current_target:
+                          ext = m._leading_target_extend(
+                              current_target, position["entry_price"], position["initial_stop"],
+                              DEFAULT_RR, last_close, trend, closes_so_far, sma_fast, sma_slow, ma_type,
+                          )
+                          if ext is not None:
+                              current_target = ext
+                              position["target"] = current_target
+
+                      next_leg = m._next_unfilled_leg(position["legs_json"])
+                      if next_leg is not None and next_leg.get("target_price") and last_close >= next_leg["target_price"]:
+                          _book_leg(position, next_leg["leg"], next_leg["qty"], last_close, last_ts, cost_model)
+                          if position["remaining_qty"] <= 0:
+                              trades.append(_finalize_trade(position, "staged_ladder_complete", cost_model))
+                              position = None
+                          continue
+
+                      exit_reason = None
+                      if last_close >= current_target and next_leg is None:
+                          exit_reason = "target_hit"
+                      elif last_close <= current_stop:
+                          exit_reason = "stop_hit"
+                      elif trend == "down" and position["regime"] != "range" and m._trend_confidence(
+                          closes_so_far, sma_fast, sma_slow, ma_type
+                      ) >= m.TREND_WEAKENED_MIN_CONFIDENCE:
+                          exit_reason = "trend_weakened"
+                      elif (last_ts - position["entry_ts"]) >= MAX_HOLD_MINUTES * 60 and current_stop <= position["initial_stop"]:
+                          exit_reason = "stale_timeout"
+                      elif mins >= SQUAREOFF_MIN:
+                          exit_reason = "eod_squareoff"
+
+                      if exit_reason:
+                          _book_leg(position, "trail", position["remaining_qty"], last_close, last_ts, cost_model)
+                          trades.append(_finalize_trade(position, exit_reason, cost_model))
+                          position = None
+                      continue
+
+                  if mins >= SQUAREOFF_MIN:
+                      continue
+
+                  regime = m._classify_market_regime(df_so_far, sma_fast, sma_slow, ma_type)
+                  volume_ok, vol_avg = m._volume_confirms(df["Volume"].to_numpy(dtype=float)[: i + 1])
+                  current_volume = float(row["Volume"])
+                  vol_ratio = (current_volume / vol_avg) if (vol_avg and vol_avg > 0) else None
+
+                  if regime == "range":
+                      entry_signal = bool(m._vwap_mean_reversion_entry(today_df) or False)
+                      score_result = None
+                  else:
+                      idx_slice = index_closes[: i + 1] if index_closes is not None else None
+                      score_result = m._compute_universal_entry_score(
+                          df_so_far, today_df, volume_ok, sma_f, sma_s, idx_slice, sma_fast, sma_slow, ma_type,
+                          vol_ratio=vol_ratio,
+                      )
+                      entry_signal = score_result["entry_allowed"]
+
+                  if not entry_signal:
+                      continue
+
+                  stop_loss_cap = last_close * (1 - stop_pct / 100)
+                  if regime == "range":
+                      stop_loss = m._range_regime_stop_loss(last_close, df_so_far, stop_loss_cap)
+                  else:
+                      structural_low = float(df_so_far["Low"].iloc[-(m.UNIVERSAL_STRUCTURE_LOOKBACK + 1):].min())
+                      stop_loss = max(structural_low, stop_loss_cap)
+                  stop_dist = last_close - stop_loss
+                  if stop_dist <= 0:
+                      continue
+
+                  target_cluster = m._compute_target_cluster(last_close, stop_loss, df_so_far, DEFAULT_RR)
+
+                  target_move_pct = m._target_move_pct(target_cluster["primary_target"], last_close)
+                  if target_move_pct <= m.ROUND_TRIP_COST_PCT:
+                      continue
+
+                  usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100
+                  qty = risk_amount_inr / stop_dist
+                  qty = min(qty, usable_capital_inr / last_close)
+                  qty = int(np.floor(qty))
+                  if qty <= 0 or qty * last_close < 100:
+                      continue
+
+                  legs = m._split_exit_legs(qty, target_cluster["r_multiples"])
+                  position = {
+                      "symbol": symbol, "entry_price": last_close, "initial_stop": stop_loss,
+                      "stop": stop_loss, "target": target_cluster["primary_target"],
+                      "entry_ts": last_ts, "qty": qty, "remaining_qty": qty,
+                      "legs_json": json.dumps(legs), "regime": regime,
+                      "score_pct": score_result["score_pct"] if score_result else None,
+                      "fills": [], "entry_cost": _entry_cost(qty, last_close, cost_model),
+                  }
+
+              if position is not None:
+                  last_close = float(df["Close"].iloc[-1])
+                  last_ts = df["ts_local"].iloc[-1].timestamp()
+                  _book_leg(position, "trail", position["remaining_qty"], last_close, last_ts, cost_model)
+                  trades.append(_finalize_trade(position, "window_end_forced_close", cost_model))
+
+              return trades
+
+
+          def _book_leg(position, leg_name, qty, price, ts, cost_model):
+              sell_cost = _sell_cost(qty, price, cost_model)
+              position["fills"].append({"leg": leg_name, "qty": qty, "price": price, "ts": ts, "cost": sell_cost})
+              position["remaining_qty"] -= qty
+              if leg_name != "trail":
+                  legs = json.loads(position["legs_json"])
+                  for leg_entry in legs:
+                      if leg_entry["leg"] == leg_name:
+                          leg_entry["status"] = "filled"
+                  position["legs_json"] = json.dumps(legs)
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(position, exit_reason, cost_model):
+              gross_pnl = sum((f["price"] - position["entry_price"]) * f["qty"] for f in position["fills"])
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = position["entry_cost"] + sum(f["cost"] for f in position["fills"]) + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = position["entry_price"] - position["initial_stop"]
+              last_fill = position["fills"][-1]
+              return {
+                  "symbol": position["symbol"], "regime": position["regime"],
+                  "entry_ts": position["entry_ts"], "exit_ts": last_fill["ts"],
+                  "exit_reason": exit_reason,
+                  "gross_pnl": gross_pnl, "net_pnl": net_pnl, "total_cost": total_cost,
+                  "net_r": net_pnl / (r * position["qty"]) if r > 0 else None,
+              }
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          CAPITAL_INR = 400000.0
+
+          def _metrics_row(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0, cost_drag_pct=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              total_cost = sum(t["total_cost"] for t in trades)
+              cost_drag_pct = 100 * total_cost / max(1, sum(abs(t["gross_pnl"]) for t in trades))
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, cost_drag_pct=cost_drag_pct)
+
+          print(f"\n{'interval':>9} {'n':>6} {'win%':>7} {'PFnet':>7} {'PFgross':>8} {'avgNet':>10} {'avgGross':>10} {'costDrag%':>10}")
+          for interval in INTERVALS:
+              print(f"\n--- Fetching {len(SYMBOLS)} symbols ({interval}, 60d) + ^NSEI ---")
+              try:
+                  index_df = m.fetch_ohlc("^NSEI", "60d", interval)
+                  index_closes_full = index_df["Close"].to_numpy(dtype=float)
+              except Exception as e:
+                  print(f"SKIP interval {interval}: index fetch failed: {e}")
+                  continue
+
+              all_trades = []
+              skipped = 0
+              for sym in SYMBOLS:
+                  cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+                  try:
+                      raw = m.fetch_ohlc(sym, "60d", interval)
+                  except Exception:
+                      skipped += 1
+                      continue
+                  if raw is None or len(raw) < 50:
+                      skipped += 1
+                      continue
+                  df = _prep(raw)
+                  try:
+                      trades = replay_symbol(
+                          sym, df, index_closes_full, cfg["risk_pct"], cfg["stop_pct"], CAPITAL_INR,
+                          DEFAULT_COST_MODEL, cfg["sma_fast"], cfg["sma_slow"],
+                      )
+                  except Exception as e:
+                      print(f"ERROR {sym} @ {interval}: {e}")
+                      continue
+                  all_trades.extend(trades)
+              print(f"  fetched {len(SYMBOLS) - skipped}/{len(SYMBOLS)} symbols, {len(all_trades)} trades")
+              row = _metrics_row(all_trades)
+              print(f"{interval:>9} {row['n']:>6} {row['win_rate']:>6.1f}% {row['pf_net']:>7.2f} "
+                    f"{row['pf_gross']:>8.2f} {row['avg_net']:>10.2f} {row['avg_gross']:>10.2f} {row['cost_drag_pct']:>9.1f}%")
+          PYEOF
