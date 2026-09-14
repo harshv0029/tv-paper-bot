@@ -2583,6 +2583,39 @@ TRAIL_ACTIVATE_R = 0.5          # don't trail at all below 0.5R unrealized gain 
 TRAIL_BREAKEVEN_BUFFER_PCT = 0.1  # breakeven-lock sits slightly above entry, not exactly on it
 
 
+# Round-trip cost floor (2026-09-14, real-money profitability investigation -
+# 52-symbol/60-day validation replay showed net PF~0.00-0.01, avg net PnL/
+# trade locked at ~-Rs1,600 almost irrespective of exit-reason mix). Root
+# cause: qty = min(risk_based_qty, usable_capital_inr/notional_per_unit_inr)
+# below always binds to the FULL tranche whenever stop_dist_pct <
+# risk_per_trade_pct (the common case), so nearly every trade pays the SAME
+# round-trip cost (~0.8% of notional, ~Rs1,600 on a ~Rs2L tranche) regardless
+# of how small the target's own edge is. Since brokerage/STT/exchange/SEBI/
+# stamp/GST/slippage are all a pure % of notional, a trade whose target
+# implies a smaller gross move than round-trip cost is a guaranteed net
+# loser even on a perfect price call - independent of position size, so this
+# is checked BEFORE sizing, as a pure price-level gate. Derived from the
+# SAME cost-model components already used by docs/TRADING_CONSTRAINTS.md's
+# live cost model and .github/workflows/universal-score-validation-replay.yml's
+# DEFAULT_COST_MODEL (brokerage 0.20%/side, STT 0.1%/side, exchange txn
+# 0.00297%/side, SEBI 0.0001%/side, stamp duty 0.015% buy-only, GST 18% on
+# brokerage+exchange+SEBI, slippage 0.05%/side): buy leg ~0.405% + sell leg
+# ~0.390% = ~0.794%, rounded up to 0.8% for a small safety margin against
+# fee-schedule drift. NOT a backtest-tuned/fudge-factor number - it is the
+# actual fee schedule already documented and used elsewhere in this repo.
+ROUND_TRIP_COST_PCT = 0.8
+
+
+def _target_move_pct(target: float, last_close: float) -> float:
+    """Gross % move from last_close to target - long-only entries only, so
+    target is always meant to sit above last_close by construction. Used as
+    a pure price-level pre-sizing economic-viability check (qty-independent
+    - see ROUND_TRIP_COST_PCT above for why) in both the live entry path
+    and the validation-replay workflow, so both compare against the exact
+    same formula."""
+    return ((target - last_close) / last_close * 100) if last_close > 0 else 0.0
+
+
 def _trailing_stop_target(today_df: pd.DataFrame, entry_price: float,
                            initial_stop: float, entry_ts: float, tz_offset_min: int) -> float | None:
     """Long-only trailing-stop candidate for THIS tick (see docs/TRADING_CONSTRAINTS.md
@@ -4635,6 +4668,20 @@ def _auto_signal_core(
                 target = target_cluster["primary_target"]
             else:
                 target = last_close + rr * stop_dist
+
+            # Economic viability gate (2026-09-14, see ROUND_TRIP_COST_PCT
+            # above for the full derivation). Cost is a pure % of notional,
+            # so this check is qty-independent - runs before sizing, applies
+            # to every strategy uniformly (not regime-specific): a trade
+            # whose OWN target can't clear round-trip cost is a guaranteed
+            # net loser even on a perfect price call, however it gets sized.
+            # Long-only, so target is always meant to sit above last_close;
+            # guard divide-by-zero defensively anyway.
+            target_move_pct = _target_move_pct(target, last_close)
+            if target_move_pct <= ROUND_TRIP_COST_PCT:
+                result["action_taken"] = "cost_uneconomic_skipped"
+                result["target_move_pct"] = round(target_move_pct, 4)
+                return result
 
             # risk_amount is Rs (part of the shared capital pool); stop_dist
             # is native currency (e.g. USD for SPY) - must convert one to

@@ -216,6 +216,16 @@ jobs:
                       continue
           
                   target_cluster = m._compute_target_cluster(last_close, stop_loss, df_so_far, DEFAULT_RR)
+
+                  # Economic viability gate (2026-09-14) - mirrors the same
+                  # check in main.py's live entry path (see main.py's
+                  # ROUND_TRIP_COST_PCT for the full derivation): skip a
+                  # trade whose own target can't clear round-trip cost,
+                  # before it ever gets sized.
+                  target_move_pct = m._target_move_pct(target_cluster["primary_target"], last_close)
+                  if target_move_pct <= m.ROUND_TRIP_COST_PCT:
+                      continue
+
                   usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
                   risk_amount_inr = usable_capital_inr * risk_pct / 100
                   qty = risk_amount_inr / stop_dist
