@@ -78,9 +78,24 @@ plugs into:
       explicit `clear_protection()` (privileged actor + checklist id,
       mirroring Module 478's override-resume gate). 14 new unit tests, all
       green. Not wired into `main.py`.
-- [ ] Phase 4 — Module 479 (Research Reproducibility Engine).
-- [ ] Phase 5+ — remaining modules, prioritized with the user as each
-      prior phase lands.
+- [x] **Phase 4 — Module 479, Research Reproducibility Engine**
+      (`app/research/reproducibility.py`). AC-479-01 (old/new code versions
+      are separate strategies) enforced via a (strategy_name, code_hash)
+      uniqueness constraint; AC-479-02 (completed manifest immutable) via
+      rejecting a second `complete_backtest_run()` on the same run;
+      AC-479-03 (hashes captured before execution starts) via computing
+      `manifest_hash` at creation time, while status is still RUNNING.
+      Hash algorithm (sha256 over canonical JSON) is an IMPLEMENTATION
+      ASSUMPTION - the source names hashes everywhere but never specifies
+      one. 16 new unit tests, all green. Not wired into `main.py` - lowest
+      risk of the modules so far (doesn't touch entry/exit/sizing), but
+      still nothing in this codebase's existing replay workflows calls it.
+- [ ] Phase 5+ — remaining modules (Module 483 Capital Migration, Module
+      484 Tool Performance Memory, Module 485 Financial Security, Module
+      486 Production Testing, Module 487 Production Deployment, the V62/V63
+      capital/ledger/learning/governance engines from sections 47-96+, and
+      eventual wiring into main.py once the user is ready to validate that),
+      prioritized with the user as each prior phase lands.
 
 ## Known pre-existing issue found while validating this phase (unrelated)
 
