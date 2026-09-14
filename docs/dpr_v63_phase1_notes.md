@@ -54,11 +54,21 @@ plugs into:
 - [x] **Phase 1 — Module 478, State Transition Governance Engine**
       (`app/orchestrator/state_machine.py`, `app/core/enums.py`). 13 unit
       tests, all green. Not wired anywhere yet.
-- [ ] Phase 2 — Module 480 (Risk Budget Management Engine) + Module 481
-      (Position Sizing Production Engine): these two directly touch
-      entry/exit/sizing, so each needs the full replay-validation gate
-      before going anywhere near `main.py`.
-- [ ] Phase 3 — Module 482 (Live Capital Guard Engine), Module 479
+- [x] **Phase 2 — Module 480 (Risk Budget Management Engine) + Module 481
+      (Position Sizing Production Engine)** (`app/risk/risk_budget.py`,
+      `app/risk/position_sizing.py`). Module 481 transcribes Section 22's
+      exact `size_position()` algorithm verbatim (SOURCE). Module 480 has
+      no exact formula in the source — the allocation formula
+      (`nominal = requested * confidence`, then reduced by
+      `(1-correlation_factor)*(1-drawdown_factor)`, then capped to
+      remaining portfolio capacity) is an IMPLEMENTATION ASSUMPTION derived
+      from its three primary rules and AC-480-01/02/03; documented in the
+      module docstring. 33 new unit tests, all green. **These two directly
+      touch entry/exit/sizing — still not wired into `main.py`. Wiring
+      requires the full replay-validation gate + explicit go-ahead, same
+      as any other production sizing change, not done here.**
+- [ ] Phase 3 — Module 482 (Live Capital Guard Engine — Section 23 already
+      gives an exact severity/action algorithm to transcribe), Module 479
       (Research Reproducibility Engine).
 - [ ] Phase 4+ — remaining modules, prioritized with the user as each
       prior phase lands.
