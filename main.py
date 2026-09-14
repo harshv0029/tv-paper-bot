@@ -371,13 +371,23 @@ def init_db():
                 orb_low REAL,
                 fx_to_inr REAL NOT NULL DEFAULT 1.0,  -- captured at entry; entry_price*fx_to_inr = INR/unit
                 interval TEXT NOT NULL DEFAULT '5m',  -- candle size this trade was taken on
-                exit_legs_json TEXT  -- 2026-09-09, universal-score architecture revamp: staged
+                exit_legs_json TEXT, -- 2026-09-09, universal-score architecture revamp: staged
                                      -- profit-booking ladder (see _split_exit_legs) as a JSON list
                                      -- of {"leg","qty","r_multiple","target_price","status"} dicts.
                                      -- NULL for any position not entered under strategy=
                                      -- "universal_score" (e.g. a real-position governance backfill,
                                      -- see _ensure_signal_state_for_real_position) - those keep the
                                      -- pre-revamp single-target/single-exit behavior unchanged.
+                entry_regime TEXT   -- 2026-09-14 fix: market_regime ("trend"/"range") AT ENTRY, for
+                                     -- universal_score positions only - NULL for orb_breakout/
+                                     -- bullish_engulfing (no regime router) and for any position
+                                     -- recovered/backfilled without known regime (real-position
+                                     -- governance backfill, pre-fix journal resurrection). The
+                                     -- trend_weakened exit check (see _auto_signal_core) only
+                                     -- suppresses itself when this is exactly "range" - every other
+                                     -- value (including NULL/unknown) keeps the pre-fix behavior, so
+                                     -- this never silently changes exit behavior for a position whose
+                                     -- true regime isn't known.
             )
             """
         )
@@ -2583,6 +2593,39 @@ TRAIL_ACTIVATE_R = 0.5          # don't trail at all below 0.5R unrealized gain 
 TRAIL_BREAKEVEN_BUFFER_PCT = 0.1  # breakeven-lock sits slightly above entry, not exactly on it
 
 
+# Round-trip cost floor (2026-09-14, real-money profitability investigation -
+# 52-symbol/60-day validation replay showed net PF~0.00-0.01, avg net PnL/
+# trade locked at ~-Rs1,600 almost irrespective of exit-reason mix). Root
+# cause: qty = min(risk_based_qty, usable_capital_inr/notional_per_unit_inr)
+# below always binds to the FULL tranche whenever stop_dist_pct <
+# risk_per_trade_pct (the common case), so nearly every trade pays the SAME
+# round-trip cost (~0.8% of notional, ~Rs1,600 on a ~Rs2L tranche) regardless
+# of how small the target's own edge is. Since brokerage/STT/exchange/SEBI/
+# stamp/GST/slippage are all a pure % of notional, a trade whose target
+# implies a smaller gross move than round-trip cost is a guaranteed net
+# loser even on a perfect price call - independent of position size, so this
+# is checked BEFORE sizing, as a pure price-level gate. Derived from the
+# SAME cost-model components already used by docs/TRADING_CONSTRAINTS.md's
+# live cost model and .github/workflows/universal-score-validation-replay.yml's
+# DEFAULT_COST_MODEL (brokerage 0.20%/side, STT 0.1%/side, exchange txn
+# 0.00297%/side, SEBI 0.0001%/side, stamp duty 0.015% buy-only, GST 18% on
+# brokerage+exchange+SEBI, slippage 0.05%/side): buy leg ~0.405% + sell leg
+# ~0.390% = ~0.794%, rounded up to 0.8% for a small safety margin against
+# fee-schedule drift. NOT a backtest-tuned/fudge-factor number - it is the
+# actual fee schedule already documented and used elsewhere in this repo.
+ROUND_TRIP_COST_PCT = 0.8
+
+
+def _target_move_pct(target: float, last_close: float) -> float:
+    """Gross % move from last_close to target - long-only entries only, so
+    target is always meant to sit above last_close by construction. Used as
+    a pure price-level pre-sizing economic-viability check (qty-independent
+    - see ROUND_TRIP_COST_PCT above for why) in both the live entry path
+    and the validation-replay workflow, so both compare against the exact
+    same formula."""
+    return ((target - last_close) / last_close * 100) if last_close > 0 else 0.0
+
+
 def _trailing_stop_target(today_df: pd.DataFrame, entry_price: float,
                            initial_stop: float, entry_ts: float, tz_offset_min: int) -> float | None:
     """Long-only trailing-stop candidate for THIS tick (see docs/TRADING_CONSTRAINTS.md
@@ -3504,6 +3547,50 @@ def _compute_target_cluster(entry_price: float, stop_loss: float, df: pd.DataFra
     }
 
 
+# RANGE regime's stop-loss ATR multiple (2026-09-14 fix - see the "RANGE
+# regime is the one exception" comment at the stop-loss computation in
+# _auto_signal_core for the full root-cause). UNIVERSAL_STRUCTURE_LOOKBACK's
+# "recent N-bar low" is right for a TREND breakout stop but degenerate for
+# a RANGE mean-reversion entry, which fires AT a fresh local low by
+# construction - so RANGE uses an ATR-multiple floor instead. 1.5x ATR(14)
+# is a standard, unresearched-for-THIS-symbol-set starting point for a
+# volatility-anchored mean-reversion stop, still capped at stop_pct% max
+# risk exactly as every other regime is - not a tuned value, and not a
+# substitute for validating the fix against real replay data before it's
+# trusted further than that.
+RANGE_STOP_ATR_MULT = 1.5
+
+
+def _range_regime_stop_loss(last_close: float, df: pd.DataFrame, stop_loss_cap: float) -> float:
+    """RANGE regime's stop-loss level (2026-09-14 fix - see the "RANGE
+    regime is the one exception" comment at this function's call site in
+    _auto_signal_core for the full root-cause). Every other regime/
+    strategy uses `max(structural_low, stop_loss_cap)` - the most recent
+    N-bar low, capped at stop_pct% max risk, whichever is tighter. That's
+    right for a TREND breakout (walking AWAY from its own recent low) but
+    degenerate for a RANGE mean-reversion entry, which fires AT a fresh
+    local low by construction (`_vwap_mean_reversion_entry`: close below
+    the lower VWAP band) - structural_low collapses to ~last_close there,
+    so the stop collapses to ~0 distance too. Confirmed against the
+    52-symbol/60-day validation replay as the root cause of RANGE's 0.5%
+    win rate (vs TREND's 9.6% on the same data) and of RANGE trades sizing
+    at the full capital tranche almost every time (near-zero stop_dist
+    inflates the risk-based qty far past the notional cap - see
+    max_single_trade_inr in _auto_signal_core).
+
+    Uses an ATR-multiple floor instead - real, volatility-anchored
+    distance, the standard basis for a mean-reversion stop - still capped
+    at stop_loss_cap (stop_pct% max risk) via the same "whichever is
+    tighter wins" rule as every other regime; only the distance fed into
+    that rule changes here. RANGE_STOP_ATR_MULT=1.5 is a first-cut,
+    unresearched-for-this-symbol-set starting point, not a tuned value -
+    falls back to stop_loss_cap alone if ATR can't be computed yet (not a
+    silent zero-distance stop)."""
+    atr_val = _compute_atr_value(df)
+    range_stop = last_close - RANGE_STOP_ATR_MULT * atr_val if atr_val and atr_val > 0 else stop_loss_cap
+    return max(range_stop, stop_loss_cap)
+
+
 def _split_exit_legs(qty: float, r_multiples: dict) -> list[dict]:
     """Staged profit-booking ladder - explicit user instruction: 4-way
     25/25/25/trail for qty>=4 shares, collapsing to a proportional split
@@ -4326,7 +4413,10 @@ def _auto_signal_core(
                 exit_reason = "target_hit"
             elif last_close <= current_stop:
                 exit_reason = "stop_hit"
-            elif trend == "down" and _trend_confidence(closes, sma_fast, sma_slow, ma_type) >= TREND_WEAKENED_MIN_CONFIDENCE:
+            elif (
+                trend == "down" and row["entry_regime"] != "range"
+                and _trend_confidence(closes, sma_fast, sma_slow, ma_type) >= TREND_WEAKENED_MIN_CONFIDENCE
+            ):
                 # The position is long because trend was "up" at entry
                 # (orb_breakout requires it directly; bullish_engulfing's
                 # own trend_sma filter serves the same purpose) - if the
@@ -4345,6 +4435,26 @@ def _auto_signal_core(
                 # 2026-09-03: a marginal single-bar crossover is noise, not
                 # evidence the setup broke, and must NOT close the trade -
                 # it just rides on to its existing stop/target/eod-squareoff.
+                #
+                # `entry_regime != "range"` guard (2026-09-14 fix, second
+                # part of the validation-replay root-cause investigation -
+                # see _range_regime_stop_loss's own docstring for part one).
+                # This whole check's premise is "went long assuming an
+                # UPtrend, trend has since flipped down" - true for
+                # orb_breakout/bullish_engulfing and TREND-regime
+                # universal_score entries. RANGE mean-reversion entries are
+                # long BECAUSE the short-term trend is already down
+                # (_vwap_mean_reversion_entry fires on a dip below the
+                # lower VWAP band) - trend=="down" at high confidence is not
+                # evidence the RANGE trade's premise broke, it's often the
+                # same condition that justified the entry in the first
+                # place, so this fired on ~47% of ALL exits pooled (nearly
+                # as many as stop_hit) and closed RANGE trades almost
+                # immediately, before reversion could play out, regardless
+                # of stop distance. Excludes RANGE only - every other value
+                # (including NULL/unknown regime, e.g. a backfilled or
+                # pre-fix-resurrected real position) keeps this check
+                # exactly as before.
                 exit_reason = "trend_weakened"
             elif (
                 (time.time() - row["entry_ts"]) >= max_hold_minutes * 60
@@ -4613,8 +4723,34 @@ def _auto_signal_core(
             # bullish_engulfing), capped at stop_pct% max risk - whichever
             # is tighter (closer to entry) wins, so the trade never risks
             # more than the cap even if the structural level is wider.
+            #
+            # RANGE regime is the one exception (2026-09-14 fix, validation
+            # replay finding - docs/STRATEGY_LOG.md): `structural_low` (min
+            # low of the last UNIVERSAL_STRUCTURE_LOOKBACK bars) is the right
+            # stop level for a TREND breakout, which is walking AWAY from
+            # that low. It is degenerate for a RANGE mean-reversion entry,
+            # which fires on `close < lower_vwap_band` - i.e. AT a fresh
+            # local low by construction - so structural_low collapses to
+            # ~last_close, stop_dist collapses to ~0, and "whichever is
+            # tighter wins" then locks in that near-zero distance. Cascading
+            # effect confirmed against the 52-symbol/60-day replay:
+            # near-zero stop_dist inflates the risk-based qty far past the
+            # notional/tranche cap (see max_single_trade_inr below), so
+            # almost every RANGE trade sizes at the full tranche regardless
+            # of intended risk_per_trade_pct, while a near-zero stop sits so
+            # close to entry that ordinary bar-to-bar noise triggers it
+            # almost immediately (RANGE win rate was 0.5% against TREND's
+            # 9.6% on the same replay). Real, ATR-anchored volatility - not
+            # the most recent local low - is the standard mean-reversion
+            # stop basis, so RANGE uses an ATR-multiple floor instead, still
+            # capped at stop_pct% max risk via the same "tighter wins" rule
+            # (that invariant itself isn't in question - only which
+            # distance feeds it for this one regime).
             stop_loss_cap = last_close * (1 - stop_pct / 100)
-            stop_loss = max(structural_low, stop_loss_cap)
+            if strategy == "universal_score" and market_regime == "range":
+                stop_loss = _range_regime_stop_loss(last_close, df, stop_loss_cap)
+            else:
+                stop_loss = max(structural_low, stop_loss_cap)
             stop_dist = last_close - stop_loss
             if stop_dist <= 0:
                 result["action_taken"] = "invalid_stop_skipped"
@@ -4635,6 +4771,20 @@ def _auto_signal_core(
                 target = target_cluster["primary_target"]
             else:
                 target = last_close + rr * stop_dist
+
+            # Economic viability gate (2026-09-14, see ROUND_TRIP_COST_PCT
+            # above for the full derivation). Cost is a pure % of notional,
+            # so this check is qty-independent - runs before sizing, applies
+            # to every strategy uniformly (not regime-specific): a trade
+            # whose OWN target can't clear round-trip cost is a guaranteed
+            # net loser even on a perfect price call, however it gets sized.
+            # Long-only, so target is always meant to sit above last_close;
+            # guard divide-by-zero defensively anyway.
+            target_move_pct = _target_move_pct(target, last_close)
+            if target_move_pct <= ROUND_TRIP_COST_PCT:
+                result["action_taken"] = "cost_uneconomic_skipped"
+                result["target_move_pct"] = round(target_move_pct, 4)
+                return result
 
             # risk_amount is Rs (part of the shared capital pool); stop_dist
             # is native currency (e.g. USD for SPY) - must convert one to
@@ -4775,18 +4925,24 @@ def _auto_signal_core(
                 "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
                 (time.time(), symbol, qty, last_close, fx_to_inr, strategy_tag, json.dumps(payload)),
             )
+            # entry_regime (2026-09-14 fix) - NULL for orb_breakout/bullish_engulfing
+            # (no regime router; `market_regime` is only ever assigned in the
+            # strategy=="universal_score" branch above), the real value
+            # ("trend"/"range") otherwise - see the trend_weakened exit check
+            # below and signal_state's own column comment for why this matters.
+            entry_regime = market_regime if strategy == "universal_score" else None
             conn.execute(
                 "INSERT INTO signal_state "
-                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, exit_legs_json) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, exit_legs_json, entry_regime) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
                 "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
                 "initial_stop_loss=excluded.initial_stop_loss, "
                 "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
                 "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, "
-                "interval=excluded.interval, exit_legs_json=excluded.exit_legs_json",
+                "interval=excluded.interval, exit_legs_json=excluded.exit_legs_json, entry_regime=excluded.entry_regime",
                 (symbol, today_str, last_close, stop_loss, stop_loss, target, qty, time.time(), orb_high, orb_low,
-                 fx_to_inr, interval, json.dumps(exit_legs) if exit_legs else None),
+                 fx_to_inr, interval, json.dumps(exit_legs) if exit_legs else None, entry_regime),
             )
             conn.commit()
             result.update(action_taken="entered_long", entry=payload)
@@ -7664,23 +7820,27 @@ def reconcile_open_positions_from_journal():
             apply_paper_trade(conn, symbol, "buy", pos["qty"], pos["entry_price_native"])
             conn.execute(
                 "INSERT INTO signal_state "
-                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, entry_regime) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
                 "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
                 "initial_stop_loss=excluded.initial_stop_loss, "
                 "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
                 "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, "
-                "interval=excluded.interval",
+                "interval=excluded.interval, entry_regime=excluded.entry_regime",
                 # initial_stop_loss_native only exists in a journal snapshot
                 # written after this feature shipped - fall back to
                 # stop_loss_native (whatever the live stop was at sync time,
                 # possibly already trailed) for an older one, same spirit as
-                # the strategy-tag fallback just above.
+                # the strategy-tag fallback just above. entry_regime (2026-
+                # 09-14 fix) is the same story - None for any journal
+                # snapshot written before this shipped, the safe default
+                # that keeps the trend_weakened check exactly as before.
                 (symbol, day_str, pos["entry_price_native"], pos["stop_loss_native"],
                  pos.get("initial_stop_loss_native", pos["stop_loss_native"]),
                  pos["target_native"], pos["qty"], entry_ts, pos["orb_high_native"],
-                 pos["orb_low_native"], pos["fx_to_inr"], pos.get("interval", "5m")),
+                 pos["orb_low_native"], pos["fx_to_inr"], pos.get("interval", "5m"),
+                 pos.get("entry_regime")),
             )
             recovered.append(symbol)
         conn.commit()
@@ -9374,6 +9534,10 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
             "strategy": book.get(r["symbol"], {}).get("last_strategy"),
             "sma_fast": watchlist_by_symbol.get(r["symbol"], {}).get("sma_fast"),
             "sma_slow": watchlist_by_symbol.get(r["symbol"], {}).get("sma_slow"),
+            # 2026-09-14 fix - carried through a redeploy so the
+            # trend_weakened exit check's RANGE exclusion survives journal
+            # resurrection (see reconcile_open_positions_from_journal).
+            "entry_regime": r["entry_regime"],
         })
     for r in open_option_state:
         qty = r["contracts"] * 100
