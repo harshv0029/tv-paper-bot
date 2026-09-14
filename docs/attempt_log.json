@@ -235376,5 +235376,587 @@
         "time_local": "2026-09-11 18:10:27.190018"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-14T08:40:10Z",
+    "attempts": {
+      "MAGADSUGAR.NS": {
+        "checked_at_utc": 1789375071.962684,
+        "symbol": "MAGADSUGAR.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:07:34.940901"
+      },
+      "LTM.NS": {
+        "checked_at_utc": 1789375073.6599941,
+        "symbol": "LTM.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:07:51.963329"
+      },
+      "MEDICO.NS": {
+        "checked_at_utc": 1789375075.8663511,
+        "symbol": "MEDICO.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:07:53.660640"
+      },
+      "MBLINFRA.NS": {
+        "checked_at_utc": 1789375077.4557002,
+        "symbol": "MBLINFRA.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:07:55.867126"
+      },
+      "MCX.NS": {
+        "checked_at_utc": 1789375078.9609318,
+        "symbol": "MCX.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:07:57.456444"
+      },
+      "MEIL.NS": {
+        "checked_at_utc": 1789375080.3608675,
+        "symbol": "MEIL.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:07:58.961642"
+      },
+      "MAHSEAMLES.NS": {
+        "checked_at_utc": 1789375081.6716218,
+        "symbol": "MAHSEAMLES.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:00.361582"
+      },
+      "MAHAPEXLTD.NS": {
+        "checked_at_utc": 1789375083.1606803,
+        "symbol": "MAHAPEXLTD.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:01.672337"
+      },
+      "MARKSANS.NS": {
+        "checked_at_utc": 1789375084.8621888,
+        "symbol": "MARKSANS.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:03.161347"
+      },
+      "MAGNUM.NS": {
+        "checked_at_utc": 1789375086.2607253,
+        "symbol": "MAGNUM.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:04.863187"
+      },
+      "LXCHEM.NS": {
+        "checked_at_utc": 1789375087.6619837,
+        "symbol": "LXCHEM.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:06.261781"
+      },
+      "MAITHANALL.NS": {
+        "checked_at_utc": 1789375089.0604308,
+        "symbol": "MAITHANALL.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:07.662748"
+      },
+      "MANAKCOAT.NS": {
+        "checked_at_utc": 1789375090.3593879,
+        "symbol": "MANAKCOAT.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:09.061032"
+      },
+      "MANALIPETC.NS": {
+        "checked_at_utc": 1789375091.7570071,
+        "symbol": "MANALIPETC.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:10.360085"
+      },
+      "TITAN.NS": {
+        "checked_at_utc": 1789375093.273843,
+        "symbol": "TITAN.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:11.757769"
+      },
+      "MBAPL.NS": {
+        "checked_at_utc": 1789375094.7722821,
+        "symbol": "MBAPL.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:13.274518"
+      },
+      "LTGILTBEES.NS": {
+        "checked_at_utc": 1789375096.1712918,
+        "symbol": "LTGILTBEES.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:14.773113"
+      },
+      "MASPTOP50.NS": {
+        "checked_at_utc": 1789375097.5612836,
+        "symbol": "MASPTOP50.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:16.172090"
+      },
+      "METROBRAND.NS": {
+        "checked_at_utc": 1789375098.9606154,
+        "symbol": "METROBRAND.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:17.562136"
+      },
+      "^BSESN": {
+        "checked_at_utc": 1789375100.2722523,
+        "symbol": "^BSESN",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:18.961290"
+      },
+      "INFY.NS": {
+        "checked_at_utc": 1789375101.95714,
+        "symbol": "INFY.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:20.272869"
+      },
+      "MAWANASUG.NS": {
+        "checked_at_utc": 1789375103.271433,
+        "symbol": "MAWANASUG.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:21.957940"
+      },
+      "MAXESTATES.NS": {
+        "checked_at_utc": 1789375104.6717157,
+        "symbol": "MAXESTATES.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:23.272101"
+      },
+      "MADHAV.NS": {
+        "checked_at_utc": 1789375106.3603137,
+        "symbol": "MADHAV.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:24.672401"
+      },
+      "MASTERTR.NS": {
+        "checked_at_utc": 1789375107.7614732,
+        "symbol": "MASTERTR.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:26.361013"
+      },
+      "LUPIN.NS": {
+        "checked_at_utc": 1789375109.1739821,
+        "symbol": "LUPIN.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:27.762072"
+      },
+      "MAFANG.NS": {
+        "checked_at_utc": 1789375110.760042,
+        "symbol": "MAFANG.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:29.174751"
+      },
+      "MERCANTILE.NS": {
+        "checked_at_utc": 1789375111.974508,
+        "symbol": "MERCANTILE.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:30.760756"
+      },
+      "MARINE.NS": {
+        "checked_at_utc": 1789375113.4753242,
+        "symbol": "MARINE.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:31.975396"
+      },
+      "MANAKSIA.NS": {
+        "checked_at_utc": 1789375114.862183,
+        "symbol": "MANAKSIA.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:33.555606"
+      },
+      "MANCREDIT.NS": {
+        "checked_at_utc": 1789375116.16448,
+        "symbol": "MANCREDIT.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:34.862961"
+      },
+      "MANAKALUCO.NS": {
+        "checked_at_utc": 1789375117.6714888,
+        "symbol": "MANAKALUCO.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:36.165054"
+      },
+      "MAZDOCK.NS": {
+        "checked_at_utc": 1789375120.366017,
+        "symbol": "MAZDOCK.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:37.672135"
+      },
+      "ICICIBANK.NS": {
+        "checked_at_utc": 1789375121.672376,
+        "symbol": "ICICIBANK.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:40.366649"
+      },
+      "MADRASFERT.NS": {
+        "checked_at_utc": 1789375122.9665558,
+        "symbol": "MADRASFERT.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:41.673020"
+      },
+      "^NSEI": {
+        "checked_at_utc": 1789375124.460487,
+        "symbol": "^NSEI",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:42.967203"
+      },
+      "M&MFIN.NS": {
+        "checked_at_utc": 1789375125.9746509,
+        "symbol": "M&MFIN.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:44.463084"
+      },
+      "^NSEBANK": {
+        "checked_at_utc": 1789375127.5567787,
+        "symbol": "^NSEBANK",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:45.975769"
+      },
+      "APOLLOHOSP.NS": {
+        "checked_at_utc": 1789375128.971944,
+        "symbol": "APOLLOHOSP.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:47.558112"
+      },
+      "MCL.NS": {
+        "checked_at_utc": 1789375130.3720512,
+        "symbol": "MCL.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:48.972589"
+      },
+      "MANUFGBEES.NS": {
+        "checked_at_utc": 1789375131.7715752,
+        "symbol": "MANUFGBEES.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:50.372816"
+      },
+      "RELIANCE.NS": {
+        "checked_at_utc": 1789375133.2596204,
+        "symbol": "RELIANCE.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:51.772376"
+      },
+      "LTGILTCASE.NS": {
+        "checked_at_utc": 1789375134.4610238,
+        "symbol": "LTGILTCASE.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:53.260312"
+      },
+      "GILT5BETA.NS": {
+        "checked_at_utc": 1789375135.8730874,
+        "symbol": "GILT5BETA.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:54.461693"
+      },
+      "MANORAMA.NS": {
+        "checked_at_utc": 1789375137.3722367,
+        "symbol": "MANORAMA.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:55.873753"
+      },
+      "MAHLIFE.NS": {
+        "checked_at_utc": 1789375138.6601079,
+        "symbol": "MAHLIFE.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:57.373082"
+      },
+      "METAL.NS": {
+        "checked_at_utc": 1789375139.9658825,
+        "symbol": "METAL.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:58.660779"
+      },
+      "MARKOLINES.NS": {
+        "checked_at_utc": 1789375141.4719143,
+        "symbol": "MARKOLINES.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:08:59.966596"
+      },
+      "MCCHRLS-B.NS": {
+        "checked_at_utc": 1789375143.2599144,
+        "symbol": "MCCHRLS-B.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:01.472537"
+      },
+      "LT.NS": {
+        "checked_at_utc": 1789375144.7725093,
+        "symbol": "LT.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:03.260543"
+      },
+      "ADANIENT.NS": {
+        "checked_at_utc": 1789375146.071143,
+        "symbol": "ADANIENT.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:04.773408"
+      },
+      "LTF.NS": {
+        "checked_at_utc": 1789375147.4620092,
+        "symbol": "LTF.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:06.071851"
+      },
+      "LUMAXTECH.NS": {
+        "checked_at_utc": 1789375148.866913,
+        "symbol": "LUMAXTECH.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:07.462687"
+      },
+      "METALIETF.NS": {
+        "checked_at_utc": 1789375150.2760627,
+        "symbol": "METALIETF.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:08.867590"
+      },
+      "MEDPLUS.NS": {
+        "checked_at_utc": 1789375151.664069,
+        "symbol": "MEDPLUS.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:10.276867"
+      },
+      "MANAPPURAM.NS": {
+        "checked_at_utc": 1789375153.0612519,
+        "symbol": "MANAPPURAM.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:11.664786"
+      },
+      "MAHEPC.NS": {
+        "checked_at_utc": 1789375154.2646039,
+        "symbol": "MAHEPC.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:13.061856"
+      },
+      "LTTS.NS": {
+        "checked_at_utc": 1789375155.6617517,
+        "symbol": "LTTS.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:14.265330"
+      },
+      "MARATHON.NS": {
+        "checked_at_utc": 1789375156.9582546,
+        "symbol": "MARATHON.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:15.662425"
+      },
+      "GC=F": {
+        "checked_at_utc": 1789375164.6352565,
+        "symbol": "GC=F",
+        "status": "checked",
+        "time_local": "2026-09-14 08:39:16.958967",
+        "currency": "USD",
+        "fx_to_inr": 95.54,
+        "last_close": 4351.0,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 4356.360126261507,
+        "sma_slow": 4356.680250783516,
+        "trend": "down",
+        "capital": 1873.37,
+        "daily_loss_cap": 37.4674,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 37.47,
+        "halted_for_day": false,
+        "action_taken": "entered_long",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 392.85,
+          "current_volume": 147.0,
+          "vol_ratio": 0.374
+        },
+        "market_regime": "range",
+        "vwap_mean_reversion_entry": true,
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "no_sentiment_mapping"
+        },
+        "exit_legs": [],
+        "target_cluster": {
+          "r_multiples": {
+            "1.0R": 4354.0,
+            "1.5R": 4355.5,
+            "2.0R": 4357.0,
+            "3.0R": 4360.0
+          },
+          "structure_target": 4370.5,
+          "atr_target": 4360.11,
+          "primary_target": 4360.11,
+          "confidence": 0.98
+        },
+        "entry": {
+          "symbol": "GC=F",
+          "action": "buy",
+          "qty": 0.002253,
+          "price": 4351.0,
+          "currency": "USD",
+          "fx_to_inr": 95.54000091552734,
+          "strategy": "orb-universal-score",
+          "entry_reason": "vwap_mean_reversion_range_regime",
+          "stop_loss": 4348.0,
+          "target": 4360.11,
+          "rr_target": 3.0,
+          "risk_amount_inr": 18.73,
+          "risk_pct_of_capital": 1.0,
+          "notional_native": 9.8,
+          "notional_inr": 936.56,
+          "reallocated_from": null,
+          "exit_legs": []
+        }
+      },
+      "MANBA.NS": {
+        "checked_at_utc": 1789375173.2635128,
+        "symbol": "MANBA.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:31.868249"
+      },
+      "LTFOODS.NS": {
+        "checked_at_utc": 1789375174.5611682,
+        "symbol": "LTFOODS.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:33.264232"
+      },
+      "MASKINVEST.NS": {
+        "checked_at_utc": 1789375175.87085,
+        "symbol": "MASKINVEST.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:34.561928"
+      },
+      "MANIPALHOS.NS": {
+        "checked_at_utc": 1789375177.1741765,
+        "symbol": "MANIPALHOS.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:35.871641"
+      },
+      "MARICO.NS": {
+        "checked_at_utc": 1789375178.5725846,
+        "symbol": "MARICO.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:37.175135"
+      },
+      "MANINDS.NS": {
+        "checked_at_utc": 1789375179.8624787,
+        "symbol": "MANINDS.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:38.573396"
+      },
+      "MAFATIND.NS": {
+        "checked_at_utc": 1789375181.1607904,
+        "symbol": "MAFATIND.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:39.863165"
+      },
+      "TCS.NS": {
+        "checked_at_utc": 1789375182.462186,
+        "symbol": "TCS.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:41.161499"
+      },
+      "LUMINO.NS": {
+        "checked_at_utc": 1789375184.260832,
+        "symbol": "LUMINO.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:42.462884"
+      },
+      "ADANIPORTS.NS": {
+        "checked_at_utc": 1789375185.6678524,
+        "symbol": "ADANIPORTS.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:44.261436"
+      },
+      "MAXHEALTH.NS": {
+        "checked_at_utc": 1789375186.9750073,
+        "symbol": "MAXHEALTH.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:45.668667"
+      },
+      "MARALOVER.NS": {
+        "checked_at_utc": 1789375188.2693477,
+        "symbol": "MARALOVER.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:46.975906"
+      },
+      "MAHLOG.NS": {
+        "checked_at_utc": 1789375189.7605567,
+        "symbol": "MAHLOG.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:48.270037"
+      },
+      "MAKEINDIA.NS": {
+        "checked_at_utc": 1789375191.3595958,
+        "symbol": "MAKEINDIA.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:49.761324"
+      },
+      "MASTEK.NS": {
+        "checked_at_utc": 1789375192.9729552,
+        "symbol": "MASTEK.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:51.360276"
+      },
+      "MCLEODRUSS.NS": {
+        "checked_at_utc": 1789375194.4614122,
+        "symbol": "MCLEODRUSS.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:52.973767"
+      },
+      "MANORG.NS": {
+        "checked_at_utc": 1789375195.66375,
+        "symbol": "MANORG.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:54.462016"
+      },
+      "LUXIND.NS": {
+        "checked_at_utc": 1789375197.1598947,
+        "symbol": "LUXIND.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:55.664470"
+      },
+      "MANYAVAR.NS": {
+        "checked_at_utc": 1789375198.4633486,
+        "symbol": "MANYAVAR.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:57.160560"
+      },
+      "MAHESHWARI.NS": {
+        "checked_at_utc": 1789375199.760273,
+        "symbol": "MAHESHWARI.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:58.464101"
+      },
+      "MANINFRA.NS": {
+        "checked_at_utc": 1789375201.0597985,
+        "symbol": "MANINFRA.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:09:59.760968"
+      },
+      "DIVISLAB.NS": {
+        "checked_at_utc": 1789375202.4729862,
+        "symbol": "DIVISLAB.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:10:01.060429"
+      },
+      "MAKERSL.NS": {
+        "checked_at_utc": 1789375203.9715385,
+        "symbol": "MAKERSL.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:10:02.473725"
+      },
+      "MASFIN.NS": {
+        "checked_at_utc": 1789375205.2614653,
+        "symbol": "MASFIN.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:10:03.972148"
+      },
+      "BAJAJFINSV.NS": {
+        "checked_at_utc": 1789375206.4732125,
+        "symbol": "BAJAJFINSV.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:10:05.262142"
+      },
+      "MAHSCOOTER.NS": {
+        "checked_at_utc": 1789375207.8635154,
+        "symbol": "MAHSCOOTER.NS",
+        "status": "no_intraday_data_yet",
+        "time_local": "2026-09-14 14:10:06.473933"
+      }
+    }
   }
 ]
