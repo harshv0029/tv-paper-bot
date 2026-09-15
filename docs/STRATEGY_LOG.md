@@ -680,6 +680,142 @@ rate stays intact - a plausible path to a better PFnet than either
 current swing leader, since the entry itself is already the strongest,
 most literature-supported edge found all session.
 
+## RSI(2) mean reversion, tighter stop 1.5x ATR (2026-09-15)
+
+Follow-up to the open thread above: tightened the RSI(2) protective stop
+from 2.0x ATR(14) to 1.5x ATR(14), everything else unchanged (canonical
+Connors entry/exit, 10-day max-hold, 52-symbol universe, cost model).
+`swing-rsi2-tighter-stop-research.yml`, run 35011175664.
+
+| metric | 2.0x ATR (baseline) | 1.5x ATR (this test) |
+|---|---|---|
+| n | 454 | 467 |
+| win% | 51.5% | 51.0% |
+| PFgross | 1.04 | 1.06 |
+| PFnet | 0.45 | **0.46** |
+| cost drag | 37.4% | 37.8% |
+
+By exit reason (1.5x ATR run): `rsi_reverted` n=337, 70.0% win, PFgross
+28.69, avgGross +1,218 (both win rate and avgGross improved vs the 2.0x
+run's 67.0%/+837 - the tighter stop does cut some losers before they
+revert). `stop_hit` n=112 (up from 76 at 2.0x), 0% win, avgGross -3,266
+(essentially the same size loss as before, -3,241). `max_hold_timeout`
+n=10, `data_end_forced_close` n=8.
+
+**Verdict: marginal, not a fix.** PFnet moved 0.45 -> 0.46, within noise.
+Tightening the stop converted more trades into stop-outs (76 -> 112, a
+47% increase) without shrinking the average loss size when it does hit
+(-3,241 -> -3,266, essentially unchanged) - so the large-loss tail this
+test was meant to fix is just as large and now hits more often, offset
+almost exactly by the improved win rate/avgGross on the surviving
+`rsi_reverted` trades. Does not beat either session champion (Donchian
+0.55, Fibonacci-wide-trail 0.53). Not worth pushing further on the stop
+axis alone; the RSI(2) entry's edge is real but this exit architecture
+caps it around PFnet ~0.45-0.46 regardless of stop width in the
+1.5x-2.0x range tested.
+
+## Supertrend flip - implementation bug caught and fixed (2026-09-15)
+
+Per user request to search for a strategy popularized by trading
+YouTubers (as a genuinely different source from the academic/published
+research used for the Donchian, Fibonacci, and Connors RSI(2) tests),
+found the Supertrend indicator flip strategy (ATR period 10, multiplier
+3.0) - one of the most widely taught retail swing-trading signals on
+YouTube. Canonical rules: close>200SMA trend filter, entry on bullish
+Supertrend flip, exit on bearish flip (the indicator's own line is the
+trailing stop), plus a disclosed 60-day max-hold backstop (not part of
+the canonical indicator, added for real-money discipline as with every
+other swing test this session).
+
+**First implementation run (35011610436) reported 0/0 trades across all
+52 symbols** - correctly treated as a suspicious/degenerate result per
+CLAUDE.md's standing instruction to verify replay correctness rather
+than trust a result at face value, not logged as a "no signal" finding.
+
+**Root cause**: the Supertrend "sticky" final_upper/final_lower band
+recursion was seeded from `atr[0]`, which is NaN (index 0 has no
+previous close, so true range at index 0 is undefined). At `i==0` the
+code wrote this NaN into `final_upper[0]`/`final_lower[0]`. Every
+subsequent iteration's sticky-band update compares the current basic
+band against the *previous* final band
+(`basic_lower[i] > final_lower[i-1]`) - but any comparison against NaN
+in numpy evaluates `False`, so the update always fell through to `else
+final_lower[i-1]`, which was itself NaN. The NaN silently propagated
+through the entire recursion for the rest of the series, `direction`
+never flipped from its initial seed value, and no entry/exit condition
+ever fired for any symbol.
+
+**Fix** (commit `90859a8`): treat a NaN previous final_upper/final_lower
+as an additional reset condition (alongside `i==0` and `np.isnan(atr[i])`),
+so the recursion re-seeds from the fresh basic bands as soon as ATR
+becomes valid. Verified locally on synthetic OHLC data before re-running
+live: direction flipped 10 times over 500 bars post-fix vs 0 times
+pre-fix. Re-ran on `main` after merge (run 35012311949) and got a
+non-degenerate result (see next entry) - confirms the fix, not a
+coincidental pass.
+
+**Why this matters beyond this one test**: this is the exact failure
+mode CLAUDE.md's incident-prevention section warns about in a different
+form - a broken/drifted implementation silently producing a result that
+looks like a real finding (here, "0 trades" could easily have been
+mis-logged as "strategy has zero edge on NSE" instead of "the code is
+broken"). Caught by treating an all-zero/degenerate result as suspicious
+rather than trusting it, not by luck.
+
+## Supertrend flip, corrected result (2026-09-15)
+
+`swing-supertrend-flip-research.yml`, run 35012311949 (post-bugfix).
+
+| metric | value |
+|---|---|
+| n | 135 |
+| win% | 38.5% |
+| PFgross | 1.01 |
+| PFnet | **0.77** |
+| cost drag | 13.7% |
+| avg held | 32.8 days |
+
+By exit reason:
+
+| reason | n | win% | PFnet | PFgross | avgGross | avg held |
+|---|---|---|---|---|---|---|
+| max_hold_timeout | 22 | 100.0% | inf | inf | +4,223 | 60.0d |
+| supertrend_flip_bearish (intended exit) | 109 | 25.7% | 0.23 | 0.33 | -868 | 27.3d |
+| data_end_forced_close | 4 | 50.0% | 1.71 | 2.51 | +690 | 32.8d |
+
+**New session-best PFnet (0.77), beating both prior champions** (Donchian
+breakout 0.55, Fibonacci-wide-trail 0.53) **and clearing n>=100** (135
+trades) - but still well short of the 1.3 pool bar, so this does not
+change anything about production candidacy (nothing has cleared the
+bar; nothing is wired into `main.py` or the live WATCHLIST).
+
+The interesting structural finding is in the exit-reason split: the
+**intended exit (Supertrend flip) is a net loser** (PFnet 0.23, 81% of
+trades) - most flips happen after the trend has already given back most
+of its gains, since the indicator only exits after price closes back
+below the trailing line. All of the strategy's positive expectancy comes
+from the **60-day max-hold backstop** (n=22, 100% win rate, PFnet inf,
+avgGross +4,223) - trades still open and profitable at the 60-day mark
+get forced closed while still winning, effectively capturing the
+still-in-progress strong trends before the (lagging) flip exit can give
+them back. This is the same "wide trail wins" pattern seen in the
+Fibonacci-retracement test (#2 vs #5 in the leaderboard), now showing up
+independently in a completely different indicator family - suggestive
+that trailing-stop *distance*, not entry signal choice, may be the
+larger lever across this session's trend-following swing tests. Low cost
+drag (13.7%, the lowest of any swing test) is a direct consequence of
+the long 32.8-day average hold: fewer round-trips per unit of time held,
+so the fixed per-trade cost eats a smaller share of a larger average
+gross move.
+
+**Open thread**: worth testing whether widening the max-hold backstop
+further (or removing it and instead trailing looser, e.g. a lower
+Supertrend multiplier that flips less eagerly) pushes more trades into
+the profitable "still running" bucket instead of the lagging flip-exit
+bucket - directly testable without re-litigating the entry signal, which
+already clears this session's decisively-not-a-dead-end bar (session
+new-best PFnet on a real out-of-sample structural mechanism).
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
