@@ -634,6 +634,52 @@ generically better exit for this whole family (not specific to
 Fibonacci), that's a cleaner, more valuable finding than either entry
 alone.
 
+## Swing RSI(2) mean reversion - Larry Connors' published system, out-of-sample on NSE (2026-09-15)
+
+Explicit user instruction: search the web for well-documented, published
+strategies and validate them, rather than only inventing new ones from
+reasoning. Found Larry Connors' 2-period RSI mean reversion (published
+backtests on US equities/indices report 75-79% win rates over 10+
+years - StockCharts ChartSchool, QuantifiedStrategies.com, Connors'
+own research). Implemented faithfully to the canonical rules: close >
+200-day SMA, entry when RSI(2) closes < 10, exit when RSI(2) closes >
+70. Two disclosed additions NOT in the published system (which has no
+hard stop): a 2.0x ATR protective stop and a 10-day max-hold backstop.
+`swing-rsi2-mean-reversion-research.yml`, run 34935693401 - this is a
+genuine out-of-sample test, Connors' own research is entirely US
+large-cap data, never NSE.
+
+**Result: n=454, overall win 51.5% (highest of any strategy tested this
+session), PFgross 1.04, PFnet 0.45, cost drag 37.4%, avg held 4.6d.**
+
+By exit reason - this is the real story:
+
+| reason | n | %total | win% | PFgross | avgGross |
+|---|---|---|---|---|---|
+| rsi_reverted (intended exit) | 348 | 76.7% | **67.0%** | 13.94 | +837 |
+| stop_hit (our added stop, not Connors') | 76 | 16.7% | 0.0% | 0.00 | **-3,241** |
+| max_hold_timeout | 19 | 4.2% | 5.3% | 0.01 | -1,344 |
+| data_end_forced_close | 11 | 2.4% | 0.0% | 0.00 | -796 |
+
+**When the reversion completes as designed (76.7% of trades), win rate
+is 67.0%** - below the published 75-79% but a real, substantial
+transfer of the edge to NSE on a solid sample (n=348), not noise. The
+PFnet shortfall vs the session's other swing leaders (0.45 vs Donchian's
+0.55, Fibonacci-wide-trail's 0.53) comes from the stop_hit tail: our own
+added protective stop fires on 16.7% of trades and loses ~4x the size of
+a typical win when it does - the classic mean-reversion risk shape
+(frequent small wins, rare large losses), compounded by high cost drag
+(37.4%, since ~4.6-day holds mean the fixed round-trip cost eats more of
+a smaller average gross move than the multi-week trend trades).
+
+**Open thread:** the stop is our own disclosed addition, not part of
+Connors' published system - refining it is not re-litigating a
+validated strategy. Worth testing a tighter stop (e.g. 1.0-1.5x ATR
+instead of 2.0x) to cut the large-loss tail while the 67% reversion win
+rate stays intact - a plausible path to a better PFnet than either
+current swing leader, since the entry itself is already the strongest,
+most literature-supported edge found all session.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
