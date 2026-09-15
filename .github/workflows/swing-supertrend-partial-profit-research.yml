@@ -1,0 +1,335 @@
+name: Swing Supertrend Partial Profit-Take (research)
+
+# Research-only, read-only variant of swing-supertrend-flip-research.yml
+# (corrected run 35012311949: n=135, win 38.5%, PFgross 1.01, PFnet 0.77,
+# current session-best) and swing-supertrend-wide-trail-research.yml
+# (4.0x ATR: PFnet 0.71, worse - widening the trail was refuted as a fix,
+# see STRATEGY_LOG.md). This test is a structural exit change, not
+# another trail-width nudge, per the open thread both of those results
+# pointed at: the Supertrend flip exit is inherently lagging (it only
+# fires after price has already closed back through the trailing line),
+# so both baseline and wide-trail runs gave back most of a winning
+# trade's gain before the flip finally registered (flip-exit avgGross
+# -868 at 3.0x, -1,312 at 4.0x - both net losers on that bucket alone).
+#
+# Fix tested here: decouple profit protection from the lagging trail.
+# Once an open position reaches PARTIAL_TAKE_R (2.0x initial risk R,
+# where R = entry_price - initial Supertrend stop at entry), sell half
+# the position immediately at that price (banking the gain before the
+# lagging exit can give it back) and move the stop on the remaining half
+# to breakeven (entry price) - a hard floor independent of wherever the
+# Supertrend line itself currently sits. The remaining half still exits
+# on a Supertrend bearish flip, the new breakeven floor (whichever fires
+# first), or the same 60-day max-hold backstop as every other swing test.
+# Entry rules (close>200SMA filter, bullish Supertrend flip, ATR period
+# 10, multiplier 3.0 - the canonical/current-champion setting, not the
+# refuted 4.0x wide-trail) are unchanged from the baseline test.
+#
+# Same cost model, position-sizing formula, 52-symbol universe, and 2
+# years of daily bars as every prior swing test this session. Each
+# partial exit is costed as its own real sell transaction (sell-side
+# brokerage/STT/GST/slippage prorated to the leg's quantity, plus its own
+# DP charge) - not a free lunch, this reflects two real round-trip legs
+# instead of one.
+#
+# Does not call universal_score/orb_breakout/_vwap_mean_reversion_entry
+# signal code - reuses only pure data/cost plumbing from main.py.
+# Nothing wired into main.py's live path.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run swing Supertrend partial profit-take backtest
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import json
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          PERIOD = "2y"
+          INTERVAL = "1d"
+          TREND_SMA_N = 200
+          ST_ATR_N = 10
+          ST_MULT = 3.0
+          MAX_HOLD_DAYS = 60
+          PARTIAL_TAKE_R = 2.0
+          PARTIAL_TAKE_FRACTION = 0.5
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(symbol, entry_price, initial_stop, qty, entry_label, exit_price, exit_label,
+                               exit_reason, entry_cost, held_days, cost_model):
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - initial_stop
+              return {
+                  "symbol": symbol, "entry_ts": entry_label, "exit_ts": exit_label, "exit_reason": exit_reason,
+                  "gross_pnl": gross_pnl, "net_pnl": net_pnl, "total_cost": total_cost, "held_days": held_days,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def _supertrend(highs, lows, closes, atr_n, mult):
+              n = len(closes)
+              prev_close = np.concatenate(([np.nan], closes[:-1]))
+              tr = np.maximum(highs - lows, np.maximum(np.abs(highs - prev_close), np.abs(lows - prev_close)))
+              atr = pd.Series(tr).ewm(alpha=1.0 / atr_n, adjust=False).mean().to_numpy()
+              hl2 = (highs + lows) / 2.0
+              basic_upper = hl2 + mult * atr
+              basic_lower = hl2 - mult * atr
+
+              final_upper = np.full(n, np.nan)
+              final_lower = np.full(n, np.nan)
+              direction = np.zeros(n, dtype=int)
+              st = np.full(n, np.nan)
+
+              for i in range(n):
+                  reset = i == 0 or np.isnan(atr[i]) or np.isnan(final_lower[i - 1]) or np.isnan(final_upper[i - 1])
+                  if reset:
+                      final_upper[i] = basic_upper[i]
+                      final_lower[i] = basic_lower[i]
+                      direction[i] = 1
+                      st[i] = final_lower[i] if not np.isnan(final_lower[i]) else np.nan
+                      continue
+                  final_upper[i] = (basic_upper[i] if (basic_upper[i] < final_upper[i - 1] or closes[i - 1] > final_upper[i - 1])
+                                     else final_upper[i - 1])
+                  final_lower[i] = (basic_lower[i] if (basic_lower[i] > final_lower[i - 1] or closes[i - 1] < final_lower[i - 1])
+                                     else final_lower[i - 1])
+                  if direction[i - 1] == 1:
+                      direction[i] = -1 if closes[i] < final_lower[i] else 1
+                  else:
+                      direction[i] = 1 if closes[i] > final_upper[i] else -1
+                  st[i] = final_lower[i] if direction[i] == 1 else final_upper[i]
+
+              return st, direction, atr
+
+
+          def replay_symbol(symbol, df, risk_pct, capital, cost_model):
+              trades = []
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(TREND_SMA_N, ST_ATR_N) + 5
+              if n < min_lookback + 5:
+                  return trades
+              closes = df["Close"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+
+              sma_trend = pd.Series(closes).rolling(TREND_SMA_N).mean().to_numpy()
+              st, direction, atr = _supertrend(highs, lows, closes, ST_ATR_N, ST_MULT)
+
+              position = None
+
+              for i in range(n):
+                  if position is not None:
+                      held_days = i - position["entry_idx"]
+
+                      if not position["partial_taken"]:
+                          r = position["entry_price"] - position["initial_stop"]
+                          gain = closes[i] - position["entry_price"]
+                          if r > 0 and gain >= PARTIAL_TAKE_R * r:
+                              leg_qty = int(np.floor(position["qty"] * PARTIAL_TAKE_FRACTION))
+                              if leg_qty > 0:
+                                  leg_entry_cost = position["entry_cost"] * (leg_qty / position["qty"])
+                                  trades.append(_finalize_trade(
+                                      symbol, position["entry_price"], position["initial_stop"], leg_qty,
+                                      position["entry_label"], closes[i], dates[i], "partial_take_profit",
+                                      leg_entry_cost, held_days, cost_model,
+                                  ))
+                                  position["qty"] -= leg_qty
+                                  position["entry_cost"] -= leg_entry_cost
+                                  position["partial_taken"] = True
+                                  position["stop"] = position["entry_price"]
+                              continue
+
+                      exit_reason = None
+                      exit_price = closes[i]
+                      if position["partial_taken"] and closes[i] <= position["stop"]:
+                          exit_reason = "breakeven_stop_hit"
+                      elif direction[i] == -1 and direction[i - 1] == 1:
+                          exit_reason = "supertrend_flip_bearish"
+                      elif held_days >= MAX_HOLD_DAYS:
+                          exit_reason = "max_hold_timeout"
+                      if exit_reason:
+                          trades.append(_finalize_trade(
+                              symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_label"], exit_price, dates[i], exit_reason,
+                              position["entry_cost"], held_days, cost_model,
+                          ))
+                          position = None
+                      continue
+
+                  if i < min_lookback or i == 0:
+                      continue
+                  if np.isnan(atr[i]) or atr[i] <= 0 or np.isnan(sma_trend[i]) or np.isnan(st[i]):
+                      continue
+
+                  flipped_bullish = direction[i] == 1 and direction[i - 1] == -1
+                  if not flipped_bullish:
+                      continue
+                  if closes[i] <= sma_trend[i]:
+                      continue
+
+                  entry_price = closes[i]
+                  stop_loss = st[i]
+                  stop_dist = entry_price - stop_loss
+                  if stop_dist <= 0:
+                      continue
+
+                  usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100
+                  qty = risk_amount_inr / stop_dist
+                  qty = min(qty, usable_capital_inr / entry_price)
+                  qty = int(np.floor(qty))
+                  if qty <= 0 or qty * entry_price < 100:
+                      continue
+
+                  position = {
+                      "entry_price": entry_price, "initial_stop": stop_loss, "stop": stop_loss,
+                      "entry_idx": i, "entry_label": dates[i], "qty": qty,
+                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                      "partial_taken": False,
+                  }
+
+              if position is not None:
+                  held_days = (n - 1) - position["entry_idx"]
+                  trades.append(_finalize_trade(
+                      symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_label"], closes[-1], dates[-1], "data_end_forced_close",
+                      position["entry_cost"], held_days, cost_model,
+                  ))
+
+              return trades
+
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          CAPITAL_INR = 400000.0
+
+          def _metrics_row(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0, cost_drag_pct=0.0, avg_held_days=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              total_cost = sum(t["total_cost"] for t in trades)
+              cost_drag_pct = 100 * total_cost / max(1, sum(abs(t["gross_pnl"]) for t in trades))
+              avg_held_days = sum(t["held_days"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, cost_drag_pct=cost_drag_pct,
+                          avg_held_days=avg_held_days)
+
+          def _print_row(label, row):
+              print(f"{label:>28} {row['n']:>6} {row['win_rate']:>6.1f}% {row['pf_net']:>7.2f} "
+                    f"{row['pf_gross']:>8.2f} {row['avg_net']:>10.2f} {row['avg_gross']:>10.2f} "
+                    f"{row['cost_drag_pct']:>9.1f}% {row['avg_held_days']:>8.1f}d")
+
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) ---")
+          all_trades = []
+          skipped = 0
+          for sym in SYMBOLS:
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  raw = m.fetch_ohlc(sym, PERIOD, INTERVAL)
+              except Exception:
+                  skipped += 1
+                  continue
+              if raw is None or len(raw) < 100:
+                  skipped += 1
+                  continue
+              try:
+                  trades = replay_symbol(sym, raw, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              all_trades.extend(trades)
+          print(f"  fetched {len(SYMBOLS) - skipped}/{len(SYMBOLS)} symbols, {len(all_trades)} trades\n")
+
+          header = (f"{'bucket':>28} {'n':>6} {'win%':>7} {'PFnet':>7} {'PFgross':>8} "
+                    f"{'avgNet':>10} {'avgGross':>10} {'costDrag%':>10} {'avgHeld':>9}")
+
+          print("=== OVERALL ===")
+          print(header)
+          _print_row("ALL", _metrics_row(all_trades))
+
+          print("\n=== BY EXIT REASON ===")
+          print(header)
+          for reason in sorted(set(t["exit_reason"] for t in all_trades)):
+              _print_row(reason, _metrics_row([t for t in all_trades if t["exit_reason"] == reason]))
+
+          print("\n=== BY SYMBOL (n>=2, sorted by gross PF) ===")
+          print(header)
+          per_symbol = {}
+          for t in all_trades:
+              per_symbol.setdefault(t["symbol"], []).append(t)
+          symbol_rows = [(sym, _metrics_row(trades)) for sym, trades in per_symbol.items() if len(trades) >= 2]
+          symbol_rows.sort(key=lambda x: x[1]["pf_gross"], reverse=True)
+          for sym, row in symbol_rows:
+              _print_row(sym, row)
+          PYEOF
