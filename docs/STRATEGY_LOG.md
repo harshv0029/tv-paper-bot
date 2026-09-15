@@ -865,6 +865,74 @@ take once a trade is deep in gain, decoupled from the trailing exit
 entirely) is a bigger design change than a parameter nudge and would be
 a new test, not a variant of this one.
 
+## Supertrend partial profit-take (2R, decoupled breakeven floor) - flat, hypothesis refuted (2026-09-15)
+
+Structural exit fix (not a parameter nudge, per user request after the
+wide-trail 4.0x test was refuted) targeting the same defect both prior
+Supertrend tests identified: the flip exit lags, giving back gains
+before it fires. This variant: once an open position reaches 2.0x
+initial risk (2R), sell half immediately and move the remaining half's
+stop to breakeven (entry price) - a hard floor decoupled from wherever
+the Supertrend line itself sits. Remainder still exits on flip,
+breakeven, or the 60-day max-hold backstop. Entry unchanged (200SMA
+filter, bullish flip, ATR 10/mult 3.0 - the canonical/champion setting).
+New exit branch logic verified on hand-crafted price paths before
+pushing (per this entry family's earlier NaN-propagation incident -
+verify replay correctness before trusting a live run).
+`swing-supertrend-partial-profit-research.yml`, run 35014320203.
+
+| metric | 3.0x flip-only (baseline) | partial-take 2R (this test) |
+|---|---|---|
+| n (legs) | 135 | 153 |
+| win% | 38.5% | 45.8% |
+| PFgross | 1.01 | 1.01 |
+| PFnet | 0.77 | **0.77 (unchanged)** |
+| cost drag | 13.7% | 13.7% |
+| avg held | 32.8d | 32.6d |
+
+By exit reason (partial-take run): `partial_take_profit` n=18 (new
+bucket), 100% win, PFnet inf, avgGross +2,528 - these are exactly the 18
+of 135 trades that reached 2R. `max_hold_timeout` n=22 (same count as
+baseline), 100% win, avgGross +2,959 (down from baseline's +4,223, since
+half the size was already banked). `supertrend_flip_bearish` n=109 (same
+count as baseline, unaffected trades plus the smaller remainders),
+25.7% win (unchanged), avgGross -1,010 (slightly worse than baseline's
+-868). **`breakeven_stop_hit` bucket: zero occurrences** - the
+protective floor this test was built around never actually fired once,
+in any of the 18 trades that reached 2R, across the full sample.
+
+**Verdict: hypothesis refuted, PFnet is exactly flat (0.77 -> 0.77), not
+improved.** The mechanism didn't fail by backfiring (unlike the
+wide-trail test) - it failed by being irrelevant to this sample. None of
+the 18 trades that got deep enough into profit to trigger a partial-take
+ever gave back all the way to breakeven before their natural exit fired
+anyway, so "protect the winner" had nothing to protect against here -
+splitting each of those already-fine trades into two winning legs just
+inflated the trade-count win rate (38.5% -> 45.8%) as an accounting
+artifact, with no effect on money-weighted PFnet, while adding a second
+real transaction's worth of cost per split trade (cost drag held flat
+only because the added-cost and added-leg-count roughly cancelled).
+
+**The actual drag is untouched by this fix**: the 109-trade flip-exit
+bucket (81% of all original trades, only 25.7% win, PFnet ~0.15-0.23
+across all three Supertrend variants tested) never gets anywhere near 2R
+in the first place - these are trades that chop or reverse early, not
+trades that ran hard and gave it back. Protecting winners-that-are-
+already-fine doesn't fix losers-that-never-had-a-chance.
+
+**This closes the exit-engineering thread on the Supertrend entry
+family for now**: two structurally different exit fixes (wider trail,
+decoupled partial profit-take) have now both failed to beat the 3.0x
+canonical baseline's PFnet 0.77 - one made it worse, one left it flat.
+The 3.0x flip-only version remains the session-best strategy overall
+(PFnet 0.77, n=135), still well short of the 1.3/n>=100 pool bar. The
+more promising remaining lever on this entry family, if revisited, is
+almost certainly a better ENTRY filter to reduce the 81%-of-trades,
+25.7%-win flip-exit bucket at the source (e.g. a momentum/strength
+confirmation before entry, not another exit mechanic) - not more exit
+engineering, which this and the wide-trail test both suggest is close
+to exhausted as a lever on this specific entry signal.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
