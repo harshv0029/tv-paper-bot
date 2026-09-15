@@ -32,6 +32,14 @@ on:
         description: "Also sweep inside_bar_breakout (trend_sma x max_wait_bars) on NSE indices + the 15 NSE large-caps"
         type: boolean
         default: true
+      run_rsi_divergence_research:
+        description: "Also sweep rsi_divergence (rsi_period x divergence_lookback) on NSE indices + the 15 NSE large-caps"
+        type: boolean
+        default: true
+      run_stochastic_research:
+        description: "Also sweep stochastic_oversold_reversal (k_period x d_period x oversold x overbought) on NSE indices + the 15 NSE large-caps"
+        type: boolean
+        default: true
 
 jobs:
   research:
@@ -239,5 +247,53 @@ jobs:
             echo "SYMBOL: $SYMBOL  strategy=inside_bar_breakout (trend_sma x max_wait_bars sweep)"
             echo "=========================================="
             curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=inside_bar_breakout&rank_by=total_pnl&top_n=8&trend_sma=0,20,50&max_wait_bars=5,10,20"
+            echo
+          done
+
+      - name: "Indicator: rsi_divergence sweep (NSE indices + large-caps)"
+        if: ${{ inputs.run_rsi_divergence_research }}
+        run: |
+          SW="https://tv-paper-bot-gdan.onrender.com/sweep"
+          PERIOD="60d"
+          INTERVAL="5m"
+          # 2026-09-10 candidate: regular bullish divergence (price lower
+          # low, RSI higher low over the same window) as entry, mirror
+          # bearish divergence as exit - distinct from the simple
+          # threshold-based rsi_reversal already in the engine. Sourced
+          # win-rate context: 55-65% with confirmation, <40% on the raw
+          # signal alone - tested here as the "raw" version first, see
+          # docs/daily_logs for sources. Sweeping rsi_period x
+          # divergence_lookback.
+          for SYMBOL in "%5ENSEI" "%5ENSEBANK" "%5EBSESN" \
+                        "RELIANCE.NS" "TCS.NS" "HDFCBANK.NS" "INFY.NS" "ICICIBANK.NS" \
+                        "HINDUNILVR.NS" "ITC.NS" "SBIN.NS" "BHARTIARTL.NS" "KOTAKBANK.NS" \
+                        "LT.NS" "AXISBANK.NS" "BAJFINANCE.NS" "MARUTI.NS" "ASIANPAINT.NS"; do
+            echo "=========================================="
+            echo "SYMBOL: $SYMBOL  strategy=rsi_divergence (rsi_period x divergence_lookback sweep)"
+            echo "=========================================="
+            curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=rsi_divergence&rank_by=total_pnl&top_n=8&rsi_period=7,14,21&divergence_lookback=7,14,21"
+            echo
+          done
+
+      - name: "Indicator: stochastic_oversold_reversal sweep (NSE indices + large-caps)"
+        if: ${{ inputs.run_stochastic_research }}
+        run: |
+          SW="https://tv-paper-bot-gdan.onrender.com/sweep"
+          PERIOD="60d"
+          INTERVAL="5m"
+          # 2026-09-15 candidate: third classic oscillator alongside
+          # rsi_reversal/rsi_divergence. %K/%D crossover gated to the
+          # oversold zone for entry, overbought zone for exit - a naive
+          # crossover anywhere tested worse per sourced research (see
+          # docs/daily_logs). Sweeping k_period x d_period x oversold x
+          # overbought.
+          for SYMBOL in "%5ENSEI" "%5ENSEBANK" "%5EBSESN" \
+                        "RELIANCE.NS" "TCS.NS" "HDFCBANK.NS" "INFY.NS" "ICICIBANK.NS" \
+                        "HINDUNILVR.NS" "ITC.NS" "SBIN.NS" "BHARTIARTL.NS" "KOTAKBANK.NS" \
+                        "LT.NS" "AXISBANK.NS" "BAJFINANCE.NS" "MARUTI.NS" "ASIANPAINT.NS"; do
+            echo "=========================================="
+            echo "SYMBOL: $SYMBOL  strategy=stochastic_oversold_reversal (k_period x d_period x oversold x overbought sweep)"
+            echo "=========================================="
+            curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=stochastic_oversold_reversal&rank_by=total_pnl&top_n=8&k_period=9,14,21&d_period=3,5&oversold=20,25,30&overbought=70,75,80"
             echo
           done
