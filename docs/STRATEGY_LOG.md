@@ -816,6 +816,55 @@ bucket - directly testable without re-litigating the entry signal, which
 already clears this session's decisively-not-a-dead-end bar (session
 new-best PFnet on a real out-of-sample structural mechanism).
 
+## Supertrend wide-trail 4.0x ATR - hypothesis tested, refuted (2026-09-15)
+
+Follow-up to the corrected Supertrend flip result's open thread: widened
+the ATR multiplier 3.0 -> 4.0 (everything else unchanged: ATR period 10,
+close>200SMA filter, 60-day max-hold, universe, cost model), to test
+whether a looser trail pushes more trades into the profitable
+"still-running" state the max-hold backstop was capturing at 3.0x.
+`swing-supertrend-wide-trail-research.yml`, run 35013216418.
+
+| metric | 3.0x ATR (current champion) | 4.0x ATR (this test) |
+|---|---|---|
+| n | 135 | 89 |
+| win% | 38.5% | 38.2% |
+| PFgross | 1.01 | 0.92 |
+| PFnet | **0.77** | 0.71 |
+| cost drag | 13.7% | 13.1% |
+| avg held | 32.8d | 40.2d |
+
+By exit reason (4.0x run): `max_hold_timeout` n=27 (up from 22), win%
+dropped to 85.2% (from 100%), avgGross +2,332 (down from +4,223).
+`supertrend_flip_bearish` n=56 (down from 109, as expected - wider band
+flips less often), win% dropped further to 14.3% (from 25.7%), avgGross
+worsened to -1,312 (from -868). `data_end_forced_close` n=6, avgGross
++647.
+
+**Verdict: hypothesis refuted, PFnet got worse (0.77 -> 0.71), not
+better.** Widening the trail cuts both ways and the downside dominates:
+yes, fewer trades reach the flip exit (109 -> 56), but the wider band
+also lets losing trades bleed further before that already-lagging exit
+finally fires, so each flip-exit loss got bigger (-868 -> -1,312) even
+as win rate on that bucket fell (25.7% -> 14.3%). It also diluted the
+max-hold bucket's quality (100% win/+4,223 avgGross -> 85.2% win/+2,332
+avgGross) - some of the extra 60-day-timeout trades are marginal
+positions that a tighter trail would have exited earlier as flat/small
+losses, not the clean strong-trend winners the 3.0x version was
+selecting for. Net: the trail-width axis does not have more room to the
+wide side; 3.0x (the canonical setting, also the current session
+champion at PFnet 0.77) stays the leader on this entry family.
+
+**Do not push further wide on this axis** (5.0x+ ATR) - the direction is
+already shown to be net negative, this is the second data point after
+3.0x baseline confirming it, not a single-result judgment call. The
+actual defect (the flip exit itself lags and gives back gains) is
+structural to how Supertrend's own line trails, not fixable by widening
+the same mechanism further. A different fix shape (e.g. a partial-profit
+take once a trade is deep in gain, decoupled from the trailing exit
+entirely) is a bigger design change than a parameter nudge and would be
+a new test, not a variant of this one.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
