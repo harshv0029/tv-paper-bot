@@ -1031,6 +1031,60 @@ MACD crossover is now closed** - no further parameter nudges on this
 axis without a new idea (e.g. a volatility- or trend-strength-adaptive
 stop, not just a smaller fixed multiplier).
 
+## Bollinger Band squeeze breakout - fresh entry-signal thread (2026-09-15)
+
+Per user request, pivoted to a genuinely different signal family after
+closing the MACD stop-tightening thread. This is a volatility-
+contraction/expansion mechanic, structurally distinct from every prior
+test this session (not a trailing band, MA crossover, retracement,
+range breakout, or mean-reversion threshold). Canonical rules: Bollinger
+Bands(20, 2.0); a "squeeze" day is bandwidth at/below its 10th
+percentile over the trailing 126 days; entry on close breaking above
+the upper band within 20 days of a squeeze; exit on close crossing back
+below the middle band (20-SMA). Disclosed additions: 2.5x ATR(14)
+protective stop, 60-day max-hold backstop. Squeeze detection and
+breakout/exit logic verified on synthetic OHLC before pushing - caught
+and fixed two dev bugs: an overly-strict all-non-NaN window check that
+silently zeroed out every squeeze flag during the lookback warm-up
+period (same class of bug as the earlier Supertrend NaN incident), and
+a too-narrow "recent squeeze" lookback that missed genuine pre-breakout
+squeezes.
+`swing-bb-squeeze-breakout-research.yml`, run 35016984443.
+
+| metric | value |
+|---|---|
+| n | 212 |
+| win% | 27.8% |
+| PFgross | 0.84 |
+| PFnet | **0.56** |
+| cost drag | 22.2% |
+| avg held | 13.4d |
+
+By exit reason:
+
+| reason | n | %total | win% | PFnet | PFgross | avgGross |
+|---|---|---|---|---|---|---|
+| middle_band_cross (intended exit) | 192 | 90.6% | 29.2% | 0.56 | **0.89** | -96 |
+| stop_hit (our added stop, not canonical) | 15 | 7.1% | 0.0% | 0.00 | 0.00 | **-3,468** |
+| data_end_forced_close | 5 | 2.4% | 60.0% | 18.98 | 35.49 | +6,981 |
+
+**Weaker than MACD or Supertrend, mid-pack overall - and structurally
+different from both.** Unlike MACD (PFgross 1.25 on its intended exit)
+or Supertrend (positive edge concentrated in max-hold winners), this
+signal's own intended-exit bucket has **no real gross edge at all**
+(PFgross 0.89, below breakeven before any costs) - 90.6% of trades exit
+via the signal itself and lose money on average even gross. The
+handful of stop-outs (7.1%) show the same severe-tail pattern as every
+other test this session (-3,468 avgGross, ~36x a typical loss size).
+The 5 data-end-forced-close trades (still open positions riding a
+strong move) are the only bucket with real edge, but n=5 is too small
+to mean anything on its own. **Conclusion: the core squeeze-breakout
+signal, as canonically defined, does not have a real edge on this
+universe/timeframe** - not a stop-tightening or exit-engineering
+candidate (the problem is the entry signal itself, not cost drag or
+tail risk), so no follow-up planned on this thread without a
+fundamentally different entry filter.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
