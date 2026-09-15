@@ -532,6 +532,37 @@ rather than *when* to enter one - a different axis from both the entry
 timing changes tried so far (fresh breakout vs pullback vs slow
 breakout).
 
+## Swing Fibonacci retracement (2026-09-15) - best win rate, not the best money result
+
+Explicit user request to try a genuinely different technical method
+(not another Donchian/EMA-pullback variant). `swing-fibonacci-
+retracement-research.yml` (run 34931590052): buys the 38.2%-61.8%
+"golden pocket" retracement of a recent significant swing (40-day
+lookback, min 3% swing size) in an established uptrend (same 50-day
+rising-SMA filter as every prior swing test), confirmed by a green
+reversal day and volume participation; stop at the 78.6% retracement
+level or 2xATR, whichever tighter. Same proven exit machinery
+(chandelier trailing stop, 60-day max hold) as the Donchian tests.
+
+| signal | n | win% | PFgross | PFnet | cost drag |
+|---|---|---|---|---|---|
+| 55-day Donchian breakout (34930930995, current best) | 163 | 25.2% | 0.77 | **0.55** | 18.1% |
+| Fibonacci golden-pocket retracement (34931590052) | 41 | **34.1%** | 0.69 | 0.45 | 22.6% |
+
+Fibonacci found real support more often (34.1% win rate - the best of
+any swing test this session) but the wins weren't proportionally large
+enough relative to losses to beat Donchian on PFgross/PFnet, and the
+much smaller sample (41 vs 163 trades - the golden-pocket condition is
+a rare, narrow setup) makes this read less reliable regardless.
+**Verdict: does not beat the 55-day Donchian breakout - that remains
+the swing family's best result (PFnet 0.55).** Not a dead end (a real,
+different edge is visible in the win-rate number), but not yet
+competitive on the metric that matters. If revisited, the open question
+is whether the golden-pocket win rate can be paired with a
+proportionally larger target/trail (the entry is finding real turns,
+the exit isn't capturing enough of the subsequent move relative to the
+losers) - a different lever than anything tried on this entry so far.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
