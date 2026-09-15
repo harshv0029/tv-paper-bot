@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-15T03:52:53Z",
+  "synced_at_utc": "2026-09-15T03:54:51Z",
   "open_positions": [
     {
       "symbol": "GENCON.NS",
@@ -20,40 +20,40 @@
       "entry_regime": null
     },
     {
-      "symbol": "HDFCBANK.NS",
-      "qty": 1.0,
-      "entry_price_native": 728.9000244140625,
-      "stop_loss_native": 721.6110241699218,
-      "initial_stop_loss_native": 721.6110241699218,
-      "target_native": 739.88,
+      "symbol": "SUZLON.NS",
+      "qty": 21.0,
+      "entry_price_native": 44.38999938964844,
+      "stop_loss_native": 44.11464187077114,
+      "initial_stop_loss_native": 44.11464187077114,
+      "target_native": 44.88,
       "fx_to_inr": 1.0,
-      "notional_inr": 728.9,
+      "notional_inr": 932.19,
       "orb_high_native": null,
-      "orb_low_native": 690.5,
-      "entry_ts": 1789444067.514173,
+      "orb_low_native": 43.970001220703125,
+      "entry_ts": 1789444464.5130568,
       "interval": "5m",
       "strategy": "orb-universal-score",
       "sma_fast": 9,
       "sma_slow": 21,
-      "entry_regime": "trend"
+      "entry_regime": "range"
     },
     {
-      "symbol": "RVNL.NS",
-      "qty": 2.0,
-      "entry_price_native": 205.5500030517578,
-      "stop_loss_native": 203.49450302124023,
-      "initial_stop_loss_native": 203.49450302124023,
-      "target_native": 208.09,
+      "symbol": "YESBANK.NS",
+      "qty": 10.0,
+      "entry_price_native": 23.5,
+      "stop_loss_native": 23.34357132230486,
+      "initial_stop_loss_native": 23.34357132230486,
+      "target_native": 23.81,
       "fx_to_inr": 1.0,
-      "notional_inr": 411.1,
+      "notional_inr": 235.0,
       "orb_high_native": null,
-      "orb_low_native": 203.02000427246094,
-      "entry_ts": 1789444134.2941012,
+      "orb_low_native": 23.43000030517578,
+      "entry_ts": 1789444467.7129207,
       "interval": "5m",
       "strategy": "orb-universal-score",
       "sma_fast": 9,
       "sma_slow": 21,
-      "entry_regime": "trend"
+      "entry_regime": "range"
     }
   ]
 }
