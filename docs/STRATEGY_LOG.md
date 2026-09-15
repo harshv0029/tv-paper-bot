@@ -496,6 +496,42 @@ whipsaws, or requiring a higher-timeframe/index-relative-strength
 filter) rather than another quick variant, since two entries have now
 been tried on this exit architecture without clearing PFgross 1.
 
+## Swing breakout, slower Donchian window (2026-09-15) - best PFnet of the session, still short of the bar
+
+Follow-up to the recommendation above:
+`swing-breakout-slow-donchian-research.yml` (run 34930930995) - single,
+isolated change from `swing-breakout-continuation-research.yml` (run
+34929783550): the Donchian breakout lookback moved from 20 trading days
+to 55 (Turtle Trading System 2 convention - trades less often, only on
+much more established trends). The SMA-rising trend-filter's own
+comparison window was deliberately kept at a separate, unchanged 20-day
+constant, so this is a true single-variable isolation.
+
+| Donchian window | n | win% | PFgross | PFnet | cost drag | avg held |
+|---|---|---|---|---|---|---|
+| 20-day (run 34929783550) | 195 | 25.1% | 0.72 | 0.51 | 18.6% | 17.7d |
+| 55-day (run 34930930995) | 163 | 25.2% | **0.77** | **0.55** | 18.1% | 18.2d |
+
+Every metric moved the right direction (whipsaw share via `trail_stop_hit`
+dropped slightly, 96.9%→95.7%) - confirms the hypothesis, and **0.55 is
+the best PFnet of every strategy tested this session** (11 total,
+including the `universal_score` baseline at 0.05). Still PFgross <1
+(losing pre-cost) and far short of the PFnet≥1.3 pool bar - a real,
+modest improvement, not a breakthrough. Standing discipline note: no
+strategy from this session has cleared the pool bar, so nothing has been
+wired into `main.py` or the live WATCHLIST despite this being the
+session's best result - see this log's "Pool bar for going anywhere near
+production" entry above, which still applies unchanged.
+
+**Open thread:** the dominant remaining problem is unchanged from the
+20-day version - `trail_stop_hit` is still >95% of trades at ~24% win.
+Next reasoned step (not yet tried): a higher-timeframe or index-
+relative-strength filter (only take breakouts in stocks outperforming
+NIFTY over the same lookback), which targets *which* stocks to trade
+rather than *when* to enter one - a different axis from both the entry
+timing changes tried so far (fresh breakout vs pullback vs slow
+breakout).
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
