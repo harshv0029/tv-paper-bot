@@ -933,6 +933,65 @@ confirmation before entry, not another exit mechanic) - not more exit
 engineering, which this and the wide-trail test both suggest is close
 to exhausted as a lever on this specific entry signal.
 
+## MACD crossover - fresh entry-signal thread, 2nd-best strategy this session (2026-09-15)
+
+Per user request, pivoted to a genuinely different signal family after
+closing out the Supertrend exit-engineering thread (two structural exit
+fixes both failed to beat its PFnet 0.77 baseline). Searched for a
+strategy widely taught on YouTube/retail trading education: the MACD
+line/signal-line crossover - structurally distinct from every prior test
+this session (not a trailing band, retracement, range breakout, or
+mean-reversion threshold). Canonical rules: MACD(12,26,9), entry on
+bullish MACD/signal crossover with close>50-EMA (a different trend
+filter than the 200-SMA used elsewhere this session, since 50-EMA is
+what's actually cited alongside MACD specifically), exit on bearish
+crossover. Disclosed additions for real-money discipline: 2.5x ATR(14)
+protective stop, 60-day max-hold backstop. Crossover detection and
+exit/cost logic verified on synthetic OHLC before pushing.
+`swing-macd-crossover-research.yml`, run 35015205280.
+
+| metric | value |
+|---|---|
+| n | 503 |
+| win% | 29.8% |
+| PFgross | 0.98 |
+| PFnet | **0.61** |
+| cost drag | 25.9% |
+| avg held | 10.1d |
+
+By exit reason:
+
+| reason | n | %total | win% | PFnet | PFgross | avgGross |
+|---|---|---|---|---|---|---|
+| macd_bearish_cross (intended exit) | 473 | 94.0% | 31.7% | 0.74 | **1.25** | +164 |
+| stop_hit (our added stop, not canonical) | 27 | 5.4% | 0.0% | 0.00 | 0.00 | **-3,032** |
+| data_end_forced_close | 3 | 0.6% | 0.0% | 0.00 | 0.00 | -1,096 |
+
+**Ranks 2nd this session, ahead of everything except Supertrend**: PFnet
+0.61 vs Supertrend 3.0x flip-only's 0.77 (champion), Donchian breakout's
+0.55, Fibonacci-wide-trail's 0.53, RSI(2)'s 0.45-0.46. The intended exit
+bucket alone has a real positive gross edge (PFgross 1.25, 94% of all
+trades) - the crossover signal itself is not noise. Two factors cap
+PFnet below the gross edge: (1) the same stop-loss tail pattern seen in
+the RSI(2) test - a small minority of trades (5.4%) hit the disclosed
+protective stop and lose ~19x a typical win's average size (-3,032 vs
++164), a classic asymmetric-tail drag; (2) high cost drag (25.9%, the
+highest of any swing test this session) driven by the shortest average
+hold of any swing strategy tested (10.1 days vs 30+ for the
+Supertrend/Donchian/Fibonacci family) - MACD crossovers fire and reverse
+faster than a trailing-band or breakout signal, so the fixed per-trade
+cost eats a larger share of each smaller average gross move.
+
+**Not a dead end - a genuine mid-pack finding with a real edge and two
+identifiable, specific drags**, both consistent with patterns already
+seen elsewhere this session (RSI(2)'s stop-tail; Supertrend's cost-drag-
+vs-hold-time relationship). Worth a stop-tightening follow-up in the
+same spirit as the RSI(2) test if this thread is revisited, though that
+test's own result (tightening 2.0x->1.5x ATR barely moved PFnet, since
+more frequent smaller stop-outs offset the win-rate gain) suggests the
+same mechanical fix may again be marginal rather than decisive here -
+open thread, not yet tested on this signal.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
