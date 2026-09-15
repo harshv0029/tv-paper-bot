@@ -447,6 +447,55 @@ accepting NSE intraday cash-equity scalping at this cost structure may
 not clear the bar at all and revisiting swing/multi-day horizons, which
 pay round-trip costs far less often.
 
+## Swing/daily-bar time horizon: cost mechanism confirmed, entry quality still unresolved (2026-09-15)
+
+Following the recommendation above, tested a genuinely different time
+horizon instead of another intraday rule variant: daily bars, multi-day
+holds, chandelier trailing stop instead of a fixed target. Same
+52-symbol universe, same cost model, same position-sizing formula as
+every intraday test, but 2 years of daily bars instead of 60 days of 5m
+bars.
+
+**Swing breakout continuation** (`swing-breakout-continuation-research.yml`,
+run 34929783550): 20-day Donchian breakout + rising-50-day-SMA trend
+filter + 1.5x volume surge, tighter-of-(10-day-low, 2xATR) stop,
+chandelier trail (running max close - 2xATR-at-entry, ratchets up only),
+60-day max hold. Result: n=195, win 25.1%, **PFgross 0.72, PFnet 0.51**,
+**cost drag 18.6%** (vs 200-550% on every 5m intraday test this session -
+the cost-side hypothesis is confirmed: holding for weeks instead of
+minutes means the ~0.8% round-trip is paid once against a much larger
+targeted move, not repeatedly against thin 5-minute swings). 96.9% of
+trades exited via the trailing stop at 23.8% win (chasing a fresh
+breakout whipsaws most of the time - PFgross <1, still losing pre-cost).
+The 3 trades that ran the full 60-day hold averaged +₹4,048 gross but
+were too rare to carry the rest.
+
+**Swing pullback continuation** (`swing-pullback-continuation-research.yml`,
+run 34930361984) - same exit machinery, entry changed to buy a pullback
+inside an established uptrend (trend filter unchanged + recent 20-day
+high made within the last 10 days + close below the 20-day EMA +
+green reversal day + volume ≥ average) instead of chasing a new high.
+Result: n=59, win 25.4%, PFgross 0.81 (slightly better), **PFnet 0.42
+(worse)**, cost drag 36.4% (worse, vs 18.6%) - the stricter filter found
+marginally higher-quality setups but on a much smaller sample (59 vs
+195) with a shorter average hold (12.2d vs 17.7d), so cost ate more of
+a smaller edge. **Net conclusion: no improvement - the breakout entry
+(run 34929783550) remains the better of the two swing results.** Do not
+re-try this specific pullback filter unchanged; if revisited, the
+sample-size/hold-time tradeoff needs addressing, not just the entry
+condition.
+
+**Where this leaves the swing-horizon thread:** the cost mechanism is
+proven (18.6% is achievable, an order of magnitude better than any
+intraday result this session), but neither entry tested clears PFgross 1
+(pre-cost breakeven) with a comfortable sample. This is genuinely
+unresolved, not a dead end like the VWAP family - the next reasoned step
+is a swing entry with a real, evidenced trend-following edge (e.g. a
+longer/slower Donchian window per the "Turtle" convention to reduce
+whipsaws, or requiring a higher-timeframe/index-relative-strength
+filter) rather than another quick variant, since two entries have now
+been tried on this exit architecture without clearing PFgross 1.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
