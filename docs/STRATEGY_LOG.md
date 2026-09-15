@@ -563,6 +563,38 @@ proportionally larger target/trail (the entry is finding real turns,
 the exit isn't capturing enough of the subsequent move relative to the
 losers) - a different lever than anything tried on this entry so far.
 
+## Swing breakout + index relative-strength filter (2026-09-15) - null result, filter redundant with existing entry
+
+Per the "different axis" recommendation above: layered a classic index
+relative-strength filter (stock's trailing 60-day return > NIFTY 50's
+own trailing 60-day return) onto the swing family's best entry (55-day
+Donchian breakout, run 34930930995) - `swing-breakout-relative-
+strength-research.yml`, run 34933815366.
+
+**RS filter funnel: 166 candidates -> 157 passed -> only 9 rejected
+(5.4%).** Almost every 55-day-breakout-in-a-rising-uptrend candidate
+already outperforms NIFTY over a similar window - the two filters
+overlap heavily, so this is a near-null result, not a failed
+implementation.
+
+| | no RS filter (34930930995) | + RS filter (34933815366) |
+|---|---|---|
+| n | 163 | 157 |
+| PFgross | 0.77 | 0.78 |
+| PFnet | 0.55 | 0.56 |
+| cost drag | 18.1% | 18.0% |
+
+Essentially unchanged (6 trades differ between the two runs; the same
+top performers - VEDL.NS, POLYCAB.NS, MARUTI.NS - appear in both).
+**Verdict: a binary vs-index relative-strength check adds nothing on
+top of an already-strong trend/breakout/volume entry filter - do not
+re-try this exact check.** If the "which stocks" axis is revisited, it
+needs a genuinely independent signal from the entry timing filters
+already in place - e.g. RS *ranking* across the whole universe (trade
+only the top decile by RS, not just "beats the index at all") or a
+sector-relative-strength angle, not another binary threshold that a
+strong breakout entry already implies.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
