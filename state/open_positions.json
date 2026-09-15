@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-15T03:55:36Z",
+  "synced_at_utc": "2026-09-15T04:20:00Z",
   "open_positions": [
     {
       "symbol": "GENCON.NS",
@@ -38,17 +38,17 @@
       "entry_regime": "range"
     },
     {
-      "symbol": "YESBANK.NS",
-      "qty": 10.0,
-      "entry_price_native": 23.5,
-      "stop_loss_native": 23.34357132230486,
-      "initial_stop_loss_native": 23.34357132230486,
-      "target_native": 23.81,
+      "symbol": "ASHOKLEY.NS",
+      "qty": 1.0,
+      "entry_price_native": 162.50999450683594,
+      "stop_loss_native": 161.6324942452567,
+      "initial_stop_loss_native": 161.6324942452567,
+      "target_native": 164.26,
       "fx_to_inr": 1.0,
-      "notional_inr": 235.0,
+      "notional_inr": 162.51,
       "orb_high_native": null,
-      "orb_low_native": 23.43000030517578,
-      "entry_ts": 1789444467.7129207,
+      "orb_low_native": 162.14999389648438,
+      "entry_ts": 1789445568.7307837,
       "interval": "5m",
       "strategy": "orb-universal-score",
       "sma_fast": 9,
