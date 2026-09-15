@@ -992,6 +992,45 @@ more frequent smaller stop-outs offset the win-rate gain) suggests the
 same mechanical fix may again be marginal rather than decisive here -
 open thread, not yet tested on this signal.
 
+## MACD crossover, tighter stop 1.5x ATR - stop-tightening follow-up (2026-09-15)
+
+Direct follow-up to the open thread above. Only change from the 2.5x
+ATR baseline: `ATR_STOP_MULT` 2.5 -> 1.5. Everything else (MACD(12,26,9),
+50-EMA trend filter, bearish-crossover exit, 60-day max-hold, cost
+model, 52-symbol universe, 2y/1d bars, position sizing) identical.
+`swing-macd-tighter-stop-research.yml`, run 35016135473.
+
+| metric | value |
+|---|---|
+| n | 503 |
+| win% | 29.2% |
+| PFgross | 0.98 |
+| PFnet | **0.61** (unchanged vs 2.5x baseline) |
+| cost drag | 25.4% |
+| avg held | 9.8d |
+
+By exit reason:
+
+| reason | n | %total | win% | PFnet | PFgross | avgGross |
+|---|---|---|---|---|---|---|
+| macd_bearish_cross (intended exit) | 395 | 78.5% | 37.2% | 1.24 | **2.28** | +910 |
+| stop_hit (our added stop, not canonical) | 105 | 20.9% | 0.0% | 0.00 | 0.00 | **-3,474** |
+| data_end_forced_close | 3 | 0.6% | 0.0% | 0.00 | 0.00 | -1,851 |
+
+**Refuted - PFnet identical to baseline (0.61), unlike RSI(2)'s marginal
+nudge (0.45->0.46).** Same total n=503 (same entries; tighter stop just
+reclassifies which exit fires). The intended-exit bucket's gross edge
+actually improved sharply (PFgross 1.25->2.28, avgGross +164->+910) -
+cutting losers earlier does let the surviving trades ride a cleaner
+trend. But stop_hit frequency nearly quadrupled (27->105, 5.4%->20.9%
+of all trades) at a similar severe per-trade loss (-3,032 old vs -3,474
+new avgGross) - a classic case of a tighter stop converting slow bleeds
+into fast whipsaw losses at roughly the same aggregate cost. The two
+effects cancel exactly at the PFnet level. **Stop-tightening thread on
+MACD crossover is now closed** - no further parameter nudges on this
+axis without a new idea (e.g. a volatility- or trend-strength-adaptive
+stop, not just a smaller fixed multiplier).
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
