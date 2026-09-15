@@ -553,5 +553,33 @@
     "rr_target": 3.0,
     "rr_achieved": -1.02,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "ASHOKLEY.NS",
+    "exit_time_utc": 1789460727.6908298,
+    "entry_price_native": 162.50999450683594,
+    "exit_price_native": 158.80999755859375,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": -3.7,
+    "pnl_pct_of_capital": -0.001,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": -4.22,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "SUZLON.NS",
+    "exit_time_utc": 1789460825.200359,
+    "entry_price_native": 44.38999938964844,
+    "exit_price_native": 43.369998931884766,
+    "currency": "INR",
+    "qty": 21.0,
+    "pnl_inr": -21.42,
+    "pnl_pct_of_capital": -0.005,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": -3.7,
+    "strategy": "orb-universal-score"
   }
 ]

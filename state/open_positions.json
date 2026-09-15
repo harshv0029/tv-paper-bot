@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-15T08:21:07Z",
+  "synced_at_utc": "2026-09-15T08:28:49Z",
   "open_positions": [
     {
       "symbol": "GENCON.NS",
@@ -18,42 +18,6 @@
       "sma_fast": null,
       "sma_slow": null,
       "entry_regime": null
-    },
-    {
-      "symbol": "SUZLON.NS",
-      "qty": 21.0,
-      "entry_price_native": 44.38999938964844,
-      "stop_loss_native": 44.11464187077114,
-      "initial_stop_loss_native": 44.11464187077114,
-      "target_native": 44.88,
-      "fx_to_inr": 1.0,
-      "notional_inr": 932.19,
-      "orb_high_native": null,
-      "orb_low_native": 43.970001220703125,
-      "entry_ts": 1789444464.5130568,
-      "interval": "5m",
-      "strategy": "orb-universal-score",
-      "sma_fast": 9,
-      "sma_slow": 21,
-      "entry_regime": "range"
-    },
-    {
-      "symbol": "ASHOKLEY.NS",
-      "qty": 1.0,
-      "entry_price_native": 162.50999450683594,
-      "stop_loss_native": 161.6324942452567,
-      "initial_stop_loss_native": 161.6324942452567,
-      "target_native": 164.26,
-      "fx_to_inr": 1.0,
-      "notional_inr": 162.51,
-      "orb_high_native": null,
-      "orb_low_native": 162.14999389648438,
-      "entry_ts": 1789445568.7307837,
-      "interval": "5m",
-      "strategy": "orb-universal-score",
-      "sma_fast": 9,
-      "sma_slow": 21,
-      "entry_regime": "range"
     }
   ]
 }
