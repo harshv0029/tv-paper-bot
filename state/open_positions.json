@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-15T00:20:59Z",
+  "synced_at_utc": "2026-09-15T03:52:53Z",
   "open_positions": [
     {
       "symbol": "GENCON.NS",
@@ -18,6 +18,42 @@
       "sma_fast": null,
       "sma_slow": null,
       "entry_regime": null
+    },
+    {
+      "symbol": "HDFCBANK.NS",
+      "qty": 1.0,
+      "entry_price_native": 728.9000244140625,
+      "stop_loss_native": 721.6110241699218,
+      "initial_stop_loss_native": 721.6110241699218,
+      "target_native": 739.88,
+      "fx_to_inr": 1.0,
+      "notional_inr": 728.9,
+      "orb_high_native": null,
+      "orb_low_native": 690.5,
+      "entry_ts": 1789444067.514173,
+      "interval": "5m",
+      "strategy": "orb-universal-score",
+      "sma_fast": 9,
+      "sma_slow": 21,
+      "entry_regime": "trend"
+    },
+    {
+      "symbol": "RVNL.NS",
+      "qty": 2.0,
+      "entry_price_native": 205.5500030517578,
+      "stop_loss_native": 203.49450302124023,
+      "initial_stop_loss_native": 203.49450302124023,
+      "target_native": 208.09,
+      "fx_to_inr": 1.0,
+      "notional_inr": 411.1,
+      "orb_high_native": null,
+      "orb_low_native": 203.02000427246094,
+      "entry_ts": 1789444134.2941012,
+      "interval": "5m",
+      "strategy": "orb-universal-score",
+      "sma_fast": 9,
+      "sma_slow": 21,
+      "entry_regime": "trend"
     }
   ]
 }
