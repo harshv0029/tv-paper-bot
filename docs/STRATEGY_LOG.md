@@ -382,6 +382,71 @@ but individually worse (avgGross -₹799 vs -₹487 in #3) - a tighter
 stop or reduced size specifically for that residual failure mode is a
 plausible next lever, not another new architecture from scratch.
 
+## Range breakout follow-up: invalidation tightening (wash) + target-distance axis (2026-09-15)
+
+Two more iterations on #5 above (`range-breakout-tightened-filters-research.yml`,
+run 34927061777, PFgross 1.11/PFnet 0.03/n=528 - the pool's reference
+point for this family), same 52-symbol/60-day/5m/real-cost harness.
+
+**Invalidation tightening (`range-breakout-tight-invalidation-research.yml`,
+run 34927912381) - a wash, not an improvement.** Moved the
+`breakout_failed` invalidation trigger from `close<or_high` to the
+tighter `close<breakout_level` (the entry's own buffered threshold), to
+cut losses on fakeouts faster. Result: n unchanged (528), avgGross per
+failed trade improved (-799→-477) but the failure bucket's share nearly
+doubled (121→206/39.0%) because the tighter trigger also caught trades
+that wobbled then recovered - PFgross flat (1.11→1.10), cost drag
+**worse** (235.7%→265.0%). **Do not re-try tightening this specific
+invalidation rule** - it trades loss size for loss frequency with no net
+gain, same shape as the breakout-retest wash (#4 above).
+
+**Target-distance axis (`range-breakout-nearer-target-research.yml` /
+`-v2`, runs 34928561203 / 34929024597) - the best lever found this
+session, capped at 3 points on purpose.** Evidence: in run 34927061777,
+`breakout_timebox` was the largest bucket (281/528, 53%) with *positive*
+avgGross (+299) - trades working but timing out before the full 1.0x
+opening-range measured-move target, while the tiny `target_hit` bucket
+(18 trades) averaged +2582. Hypothesis: a nearer target converts more of
+that already-working bucket into actual hits.
+
+| MEASURED_MOVE_MULT | n | win% | PFgross | PFnet | cost drag |
+|---|---|---|---|---|---|
+| 1.0x (run 34927061777) | 528 | 7.4% | 1.11 | 0.03 | 235.7% |
+| 0.6x (run 34928561203) | 156 | 10.3% | 1.35 | 0.04 | 218.2% |
+| 0.5x (run 34929024597) | 97 | 11.3% | **1.62** | **0.05** | 213.2% |
+
+Every metric improved monotonically as the target moved closer - but n
+shrank in lockstep (528→156→97) because a nearer target more often fails
+the `ROUND_TRIP_COST_PCT` economic-viability gate outright (fewer trades
+recorded at all, not the same trades cut short). This is the textbook
+shape of curve-following into an ever-smaller, noisier sample, not
+necessarily a genuinely strengthening edge - the 0.5x number in
+particular should be read with that caveat, not taken at face value.
+
+**Logged ceiling: 0.6x (run 34928561203)** - the strongest point that
+still clears the n≥100 threshold agreed as part of the pool-entry bar.
+PFgross 1.35 is the best pre-cost signal quality found all session
+(above even the `universal_score` baseline's 1.12); PFnet 0.04 is still
+far short of the ≥1.3 pool bar. **This axis is capped here per the
+standing rule against repeated blind tuning - three points (1.0x, 0.6x,
+0.5x) is enough to establish the direction and its overfitting risk; do
+not keep pushing MEASURED_MOVE_MULT lower chasing a better single-run
+number.** The 0.5x result is recorded for reference, not as the
+recommended parameter.
+
+**Recommendation for a future session:** this family (range breakout
+momentum, tightened filters + or_high invalidation + 0.6x target) is the
+strongest candidate from all of 2026-09-15's research, but still ~30x
+short of the PFnet pool bar via exit/target tuning alone. Further
+progress likely needs either (a) a genuinely different lever - e.g. the
+cost side itself (segment/instrument choice, trade frequency reduction)
+rather than another entry/exit rule variant on this family, since every
+rule-level lever tried this session (entry filters, invalidation,
+target distance) caps out in the same PFnet 0.03-0.05 band, or (b)
+accepting NSE intraday cash-equity scalping at this cost structure may
+not clear the bar at all and revisiting swing/multi-day horizons, which
+pay round-trip costs far less often.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
