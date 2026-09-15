@@ -258755,5 +258755,120 @@
         "available_capital_inr": 84.73
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-15T08:21:07Z",
+    "attempts": {
+      "ASIANPAINT.NS": {
+        "checked_at_utc": 1789460461.279663,
+        "symbol": "ASIANPAINT.NS",
+        "status": "checked",
+        "time_local": "2026-09-15 13:50:42.771955",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 2426.800048828125,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 2424.9894637831253,
+        "sma_slow": 2426.721615421947,
+        "trend": "down",
+        "capital": 1873.37,
+        "daily_loss_cap": 37.4674,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 37.47,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 3669.05,
+          "current_volume": 0.0,
+          "vol_ratio": 0.0
+        },
+        "market_regime": "range",
+        "liquidity_gate_reasons": [
+          "zero_volume_bar_in_recent_window"
+        ],
+        "vwap_mean_reversion_entry": true,
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "SUNPHARMA.NS": {
+        "checked_at_utc": 1789460462.8764431,
+        "symbol": "SUNPHARMA.NS",
+        "status": "checked",
+        "time_local": "2026-09-15 13:51:01.280406",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 1845.0,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 1843.5276256837506,
+        "sma_slow": 1843.016249369657,
+        "trend": "up",
+        "capital": 1873.37,
+        "daily_loss_cap": 37.4674,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 37.47,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 14482.4,
+          "current_volume": 6702.0,
+          "vol_ratio": 0.463
+        },
+        "market_regime": "range",
+        "liquidity_gate_reasons": [],
+        "vwap_mean_reversion_entry": false,
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "TATASTEEL.NS": {
+        "checked_at_utc": 1789460464.2820008,
+        "symbol": "TATASTEEL.NS",
+        "status": "checked",
+        "time_local": "2026-09-15 13:51:02.877284",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 183.4600067138672,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 183.43146029652345,
+        "sma_slow": 183.35205322945475,
+        "trend": "up",
+        "capital": 1873.37,
+        "daily_loss_cap": 37.4674,
+        "realized_today": 0,
+        "realized_today_pct": 0.0,
+        "budget_remaining": 37.47,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 344867.25,
+          "current_volume": 16503.0,
+          "vol_ratio": 0.048
+        },
+        "market_regime": "range",
+        "liquidity_gate_reasons": [],
+        "vwap_mean_reversion_entry": false,
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      }
+    }
   }
 ]
