@@ -1,0 +1,325 @@
+name: Swing Bollinger Band Squeeze Breakout (research)
+
+# Research-only, read-only pass (2026-09-15) - fresh entry-signal family
+# after closing the MACD stop-tightening thread (refuted: PFnet unchanged
+# at 0.61 when tightening 2.5x->1.5x ATR; see STRATEGY_LOG.md). Per user
+# request, searching for a new signal family rather than iterating
+# further on MACD. This is a volatility-contraction/expansion mechanic,
+# structurally distinct from every prior test this session (not a
+# trailing band like Supertrend, not a moving-average crossover like
+# MACD, not a retracement like Fibonacci, not a range breakout like
+# Donchian, not a mean-reversion threshold like Connors RSI(2)).
+#
+# Canonical rules (widely taught retail "Bollinger squeeze" setup, not
+# invented for this test):
+#   1. Bollinger Bands(20, 2.0): middle = 20-day SMA, upper/lower =
+#      middle +/- 2.0 * 20-day rolling stddev of close.
+#   2. Bandwidth = (upper - lower) / middle. A "squeeze" day is one where
+#      bandwidth is at or below its 10th percentile over the trailing
+#      126 trading days (~6 months) - i.e. the bands are unusually tight,
+#      signaling a volatility contraction. (Percentile rather than exact
+#      running minimum: a strict running-minimum test only ever fires on
+#      the single tightest day in any 6-month window, which is too rare
+#      and brittle - verified on synthetic data during dev.)
+#   3. Entry: close breaks above the upper band (close[i] > upper[i],
+#      close[i-1] <= upper[i-1]) AND a squeeze day occurred within the
+#      last 20 trading days. Long-only, per this session's other swing
+#      tests.
+#   4. Exit: close crosses back below the middle band (20-SMA) - the
+#      canonical "momentum has faded" signal for a squeeze breakout
+#      trade, checked independently of price/trailing-stop mechanics,
+#      same exit philosophy as the MACD/RSI(2) signal-based exits.
+#
+# Two additions NOT part of the canonical squeeze-breakout system, made
+# for real-money discipline (disclosed, not hidden): a protective stop
+# at 2.5x ATR(14) below entry, and a 60-trading-day max-hold backstop -
+# consistent with every other swing test this session.
+#
+# Same cost model, position-sizing formula, 52-symbol universe, and 2
+# years of daily bars as every prior swing test this session, for a fair
+# comparison.
+#
+# Squeeze detection and breakout/exit logic verified on synthetic OHLC
+# before pushing (caught and fixed two bugs in dev: an overly-strict
+# all-non-NaN window check that silently blocked every squeeze flag
+# during the lookback warm-up period, and a too-narrow "recent squeeze"
+# window that missed genuine pre-breakout squeezes).
+#
+# Does not call universal_score/orb_breakout/_vwap_mean_reversion_entry
+# signal code at all - reuses only pure data/cost plumbing from main.py
+# (fetch_ohlc, symbol lists, cost model). Read-only: no live parameter
+# touched, nothing wired into main.py.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run swing Bollinger Band squeeze breakout backtest
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import json
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          PERIOD = "2y"
+          INTERVAL = "1d"
+          BB_PERIOD = 20
+          BB_STD = 2.0
+          SQUEEZE_LOOKBACK = 126
+          SQUEEZE_PERCENTILE = 10
+          RECENT_SQUEEZE_WINDOW = 20
+          ATR_N = 14
+          ATR_STOP_MULT = 2.5
+          MAX_HOLD_DAYS = 60
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(symbol, entry_price, initial_stop, qty, entry_label, exit_price, exit_label,
+                               exit_reason, entry_cost, held_days, cost_model):
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - initial_stop
+              return {
+                  "symbol": symbol, "entry_ts": entry_label, "exit_ts": exit_label, "exit_reason": exit_reason,
+                  "gross_pnl": gross_pnl, "net_pnl": net_pnl, "total_cost": total_cost, "held_days": held_days,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def _bollinger(closes, period, num_std):
+              s = pd.Series(closes)
+              sma = s.rolling(period).mean().to_numpy()
+              std = s.rolling(period).std(ddof=0).to_numpy()
+              upper = sma + num_std * std
+              lower = sma - num_std * std
+              return sma, upper, lower
+
+
+          def _squeeze_flags(bandwidth, lookback, percentile):
+              n = len(bandwidth)
+              is_squeeze = np.full(n, False)
+              for i in range(n):
+                  if np.isnan(bandwidth[i]):
+                      continue
+                  window = bandwidth[max(0, i - lookback + 1): i + 1]
+                  if np.all(np.isnan(window)):
+                      continue
+                  if bandwidth[i] <= np.nanpercentile(window, percentile):
+                      is_squeeze[i] = True
+              return is_squeeze
+
+
+          def replay_symbol(symbol, df, risk_pct, capital, cost_model):
+              trades = []
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(BB_PERIOD, SQUEEZE_LOOKBACK, ATR_N) + 5
+              if n < min_lookback + 5:
+                  return trades
+              closes = df["Close"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+
+              prev_close = np.concatenate(([np.nan], closes[:-1]))
+              tr = np.maximum(highs - lows, np.maximum(np.abs(highs - prev_close), np.abs(lows - prev_close)))
+              atr = pd.Series(tr).rolling(ATR_N).mean().to_numpy()
+
+              sma, upper, lower = _bollinger(closes, BB_PERIOD, BB_STD)
+              bandwidth = (upper - lower) / sma
+              is_squeeze = _squeeze_flags(bandwidth, SQUEEZE_LOOKBACK, SQUEEZE_PERCENTILE)
+
+              position = None
+
+              for i in range(n):
+                  if position is not None:
+                      held_days = i - position["entry_idx"]
+                      exit_reason = None
+                      exit_price = closes[i]
+                      if closes[i] <= position["stop"]:
+                          exit_reason = "stop_hit"
+                      elif closes[i] < sma[i] and closes[i - 1] >= sma[i - 1]:
+                          exit_reason = "middle_band_cross"
+                      elif held_days >= MAX_HOLD_DAYS:
+                          exit_reason = "max_hold_timeout"
+                      if exit_reason:
+                          trades.append(_finalize_trade(
+                              symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_label"], exit_price, dates[i], exit_reason,
+                              position["entry_cost"], held_days, cost_model,
+                          ))
+                          position = None
+                      continue
+
+                  if i < min_lookback or i == 0:
+                      continue
+                  if np.isnan(atr[i]) or atr[i] <= 0 or np.isnan(upper[i]) or np.isnan(sma[i]):
+                      continue
+
+                  breakout = closes[i] > upper[i] and closes[i - 1] <= upper[i - 1]
+                  if not breakout:
+                      continue
+                  recent_squeeze = np.any(is_squeeze[max(0, i - RECENT_SQUEEZE_WINDOW): i])
+                  if not recent_squeeze:
+                      continue
+
+                  entry_price = closes[i]
+                  stop_loss = entry_price - ATR_STOP_MULT * atr[i]
+                  stop_dist = entry_price - stop_loss
+                  if stop_dist <= 0:
+                      continue
+
+                  usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100
+                  qty = risk_amount_inr / stop_dist
+                  qty = min(qty, usable_capital_inr / entry_price)
+                  qty = int(np.floor(qty))
+                  if qty <= 0 or qty * entry_price < 100:
+                      continue
+
+                  position = {
+                      "entry_price": entry_price, "initial_stop": stop_loss, "stop": stop_loss,
+                      "entry_idx": i, "entry_label": dates[i], "qty": qty,
+                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                  }
+
+              if position is not None:
+                  held_days = (n - 1) - position["entry_idx"]
+                  trades.append(_finalize_trade(
+                      symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_label"], closes[-1], dates[-1], "data_end_forced_close",
+                      position["entry_cost"], held_days, cost_model,
+                  ))
+
+              return trades
+
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          CAPITAL_INR = 400000.0
+
+          def _metrics_row(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0, cost_drag_pct=0.0, avg_held_days=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              total_cost = sum(t["total_cost"] for t in trades)
+              cost_drag_pct = 100 * total_cost / max(1, sum(abs(t["gross_pnl"]) for t in trades))
+              avg_held_days = sum(t["held_days"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, cost_drag_pct=cost_drag_pct,
+                          avg_held_days=avg_held_days)
+
+          def _print_row(label, row):
+              print(f"{label:>28} {row['n']:>6} {row['win_rate']:>6.1f}% {row['pf_net']:>7.2f} "
+                    f"{row['pf_gross']:>8.2f} {row['avg_net']:>10.2f} {row['avg_gross']:>10.2f} "
+                    f"{row['cost_drag_pct']:>9.1f}% {row['avg_held_days']:>8.1f}d")
+
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) ---")
+          all_trades = []
+          skipped = 0
+          for sym in SYMBOLS:
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  raw = m.fetch_ohlc(sym, PERIOD, INTERVAL)
+              except Exception:
+                  skipped += 1
+                  continue
+              if raw is None or len(raw) < 100:
+                  skipped += 1
+                  continue
+              try:
+                  trades = replay_symbol(sym, raw, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              all_trades.extend(trades)
+          print(f"  fetched {len(SYMBOLS) - skipped}/{len(SYMBOLS)} symbols, {len(all_trades)} trades\n")
+
+          header = (f"{'bucket':>28} {'n':>6} {'win%':>7} {'PFnet':>7} {'PFgross':>8} "
+                    f"{'avgNet':>10} {'avgGross':>10} {'costDrag%':>10} {'avgHeld':>9}")
+
+          print("=== OVERALL ===")
+          print(header)
+          _print_row("ALL", _metrics_row(all_trades))
+
+          print("\n=== BY EXIT REASON ===")
+          print(header)
+          for reason in sorted(set(t["exit_reason"] for t in all_trades)):
+              _print_row(reason, _metrics_row([t for t in all_trades if t["exit_reason"] == reason]))
+
+          print("\n=== BY SYMBOL (n>=2, sorted by gross PF) ===")
+          print(header)
+          per_symbol = {}
+          for t in all_trades:
+              per_symbol.setdefault(t["symbol"], []).append(t)
+          symbol_rows = [(sym, _metrics_row(trades)) for sym, trades in per_symbol.items() if len(trades) >= 2]
+          symbol_rows.sort(key=lambda x: x[1]["pf_gross"], reverse=True)
+          for sym, row in symbol_rows:
+              _print_row(sym, row)
+          PYEOF
