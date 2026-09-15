@@ -1547,6 +1547,43 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         df["long"] = flags
         df["rsi"] = rsi
 
+    elif strategy == "stochastic_oversold_reversal":
+        # Third classic oscillator alongside rsi_reversal/rsi_divergence -
+        # very widely used by Indian retail traders alongside RSI. Sources
+        # (2026-09-15 research): a naive %K/%D crossover anywhere tested
+        # worse than gating it to the oversold/overbought zone
+        # (quantifiedstrategies.com) - hence requiring the crossover to
+        # happen IN the oversold zone for entry / overbought zone for exit,
+        # not a bare crossover. One NSE-specific study found CCI beat both
+        # Stochastic and RSI on Nifty 50 - noted as a follow-up candidate,
+        # not a reason to skip this one (worth its own real evidence).
+        k_period = int(params.get("k_period", 14))
+        d_period = int(params.get("d_period", 3))
+        oversold = float(params.get("oversold", 20))
+        overbought = float(params.get("overbought", 80))
+
+        lowest_low = df["Low"].rolling(k_period).min()
+        highest_high = df["High"].rolling(k_period).max()
+        percent_k = 100 * (df["Close"] - lowest_low) / (highest_high - lowest_low).replace(0, float("nan"))
+        percent_d = percent_k.rolling(d_period).mean()
+
+        k_above_d = percent_k > percent_d
+        cross_up = k_above_d & ~k_above_d.shift(1).fillna(False)
+        cross_down = (~k_above_d) & k_above_d.shift(1).fillna(False)
+
+        entry_signal = cross_up & (percent_k < oversold)
+        exit_signal = cross_down & (percent_k > overbought)
+
+        holding, flags = False, []
+        for is_entry, is_exit in zip(entry_signal.fillna(False), exit_signal.fillna(False)):
+            if not holding and is_entry:
+                holding = True
+            elif holding and is_exit:
+                holding = False
+            flags.append(holding)
+        df["long"] = flags
+        df["percent_k"], df["percent_d"] = percent_k, percent_d
+
     elif strategy == "macd_cross":
         fast_span = int(params.get("macd_fast", 12))
         slow_span = int(params.get("macd_slow", 26))
@@ -1697,7 +1734,8 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
                    f"vwap_breakout_retest, anchored_vwap_continuation, anchored_vwap_reversal, "
                    f"vwap_multi_period_reversal, bullish_engulfing, pin_bar_reversal, "
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
-                   f"macd_cross, wyckoff_spring, wyckoff_sos, vsa_climax_reversal, mtf_engulfing",
+                   f"stochastic_oversold_reversal, macd_cross, wyckoff_spring, wyckoff_sos, "
+                   f"vsa_climax_reversal, mtf_engulfing",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -1806,6 +1844,8 @@ def backtest(
     max_wait_bars: int = 10,
     require_no_lower_wick: bool = False,
     divergence_lookback: int = 14,
+    k_period: int = 14,
+    d_period: int = 3,
     qty: float = 1,
 ):
     """
@@ -1840,6 +1880,7 @@ def backtest(
     strategy=pin_bar_reversal     -> params: pin_ratio, sr_lookback, sr_tolerance_pct
     strategy=inside_bar_breakout  -> params: trend_sma (0=off), max_wait_bars
     strategy=rsi_divergence       -> params: rsi_period, divergence_lookback
+    strategy=stochastic_oversold_reversal -> params: k_period, d_period, oversold, overbought
     strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
     strategy=mtf_engulfing        -> params: htf_minutes, htf_trend_fast, htf_trend_slow
     """
@@ -1891,6 +1932,8 @@ def backtest(
         params = {"trend_sma": trend_sma, "max_wait_bars": max_wait_bars}
     elif strategy == "rsi_divergence":
         params = {"rsi_period": rsi_period, "lookback": divergence_lookback}
+    elif strategy == "stochastic_oversold_reversal":
+        params = {"k_period": k_period, "d_period": d_period, "oversold": oversold, "overbought": overbought}
     elif strategy == "macd_cross":
         params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
     elif strategy == "mtf_engulfing":
@@ -1970,6 +2013,9 @@ def sweep(
     max_wait_bars: str = "5,10,20",
     # rsi_divergence params - comma-separated lists (reuses rsi_period above)
     divergence_lookback: str = "7,14,21",
+    # stochastic_oversold_reversal params - comma-separated lists (reuses oversold/overbought above)
+    k_period: str = "9,14,21",
+    d_period: str = "3,5",
 ):
     """
     Tests every combination of the given parameter lists against ONE fetch of
@@ -2055,12 +2101,23 @@ def sweep(
         combos = [
             {"rsi_period": rp, "lookback": dl} for rp, dl in product(rp_list, dl_list)
         ]
+    elif strategy == "stochastic_oversold_reversal":
+        kp_list = _parse_num_list(k_period, int)
+        dp_list = _parse_num_list(d_period, int)
+        os_list = _parse_num_list(oversold, float)
+        ob_list = _parse_num_list(overbought, float)
+        combos = [
+            {"k_period": kp, "d_period": dp, "oversold": o, "overbought": b}
+            for kp, dp, o, b in product(kp_list, dp_list, os_list, ob_list)
+            if o < b
+        ]
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
                    f"orb_breakout, orb_volume, bullish_engulfing, pin_bar_reversal, "
-                   f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence",
+                   f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
+                   f"stochastic_oversold_reversal",
         )
 
     if not combos:
