@@ -338,6 +338,50 @@ status as every other row in this log, flagged as an explicit exception
 since it went live before that sweep per direct user instruction rather
 than after.
 
+## From-scratch entry signal redesign session (2026-09-15) - `universal_score` found unfixable, 5 new signals tried, none clear a profitability bar yet
+
+Context: `universal_score` (the live default entry since 2026-09-09, `main.py:8990`)
+was found unfixable via config/exit tuning after 4 separate rigorous
+cost-adjusted tests (margin sweep, timeframe sweep, gross-edge breakdown,
+early-exit counterfactual - all dead ends, see the session's transfer
+pack for full numbers). Per explicit user instruction, redesigned the
+entry signal from scratch instead of continuing to tune it. All tests
+below use the same harness: 52-symbol (NIFTY200-restricted, evidenced +
+sampled) / 60-day / 5m replay, real cost model (~0.8% round-trip:
+brokerage/STT/exchange/SEBI/stamp/GST/slippage/DP), ₹400,000 capital,
+read-only GitHub Actions workflows under `.github/workflows/*-research.yml`
+that import `main.py` for data/cost plumbing only - none of this is wired
+into `main.py`'s live strategy dispatch. **Baseline for comparison:**
+`universal_score` itself: n=1278, win 10.4%, PFgross 1.12, PFnet 0.05,
+cost drag 169.8%.
+
+| # | signal | workflow file | n | win% | PFgross | PFnet | cost drag | verdict |
+|---|---|---|---|---|---|---|---|---|
+| 1 | VWAP band-cross reversal (2.5σ, target=VWAP frozen, stop=signal-bar low, 45min timebox) | `vwap-reversal-signal-research.yml` | 286 | 2.8% | 0.84 | 0.01 | 285.4% | **Dead end** — PFgross <1, losing pre-cost. 54.5% of trades were `stop_hit` at 0% win (band-cross alone ≠ reversal confirmation). |
+| 2 | VWAP reclaim-confirmed (same, but waits for a close above the capitulation bar's high before entering, 30min confirm window) | `vwap-reclaim-confirmation-research.yml` | 110 | 2.7% | 0.86 | 0.01 | 209.2% | **Dead end, same as #1.** Confirmation cut stop_hit share 54.5%→28.2% as designed, but shrank winners equally (reversion_timebox PFgross 8.97→3.05) — a wash. Entry near VWAP (the fixed target) mechanically shrinks the move available before the cost gate. **Do not re-try the VWAP-reversion family without a genuinely different target/stop mechanic** - two independent tests converged on PFgross <1. |
+| 3 | Range breakout momentum (30min OR, close>OR_high, close>VWAP, vol>1.5x avg, target=1.0x measured move, stop=OR_low, 60min timebox) | `range-breakout-momentum-research.yml` | 674 | 6.5% | **1.05** | 0.03 | 261.1% | First signal with PFgross >1 pre-cost, broad-based across ~20/52 symbols. `breakout_failed` (entering right on the breakout candle, then fading) was 42.1% of trades, 0% win, avgGross -₹487 - the dominant drag. |
+| 4 | Breakout-retest continuation (#3's candidate filters, but WAITS for a pullback+reclaim retest within 45min instead of entering on the breakout bar) | `breakout-retest-continuation-research.yml` | 291 | 4.1% | 0.90 | 0.01 | 300.3% | **Made it worse, not better** - `breakout_failed` share went UP (42.1%→52.6%). A level that's already been broken-then-retested reads as exhaustion, not renewed strength, at 5m resolution. **Do not re-try a waiting/confirmation-stage fix on this signal family** - both waiting-stage attempts this session (#2 and #4) shrank the sample and made the targeted bucket the same or worse. |
+| 5 | Range breakout, tightened filters (#3 unchanged except vol surge 1.5x→2.0x and a new 0.15% minimum clearance above OR_high — single-bar, no waiting stage) | `range-breakout-tightened-filters-research.yml` | 528 | 7.4% | **1.11** | 0.03 | 235.7% | **Best result of the session so far.** `breakout_failed` share nearly halved (42.1%→22.9%) just from raising single-bar conviction thresholds - confirms lighter-touch filter tightening beats a second confirmation stage for this family. avgGross per trade more than doubled (+₹16→+₹36). Still PFnet 0.03 — cost drag (235.7%) still consumes the whole gross edge. **Most promising thread to keep pulling; not yet near the pool bar.** |
+
+**Pool bar for going anywhere near production** (agreed with user 2026-09-15,
+applies to all future signal candidates, not just these): PFnet ≥1.3,
+n≥100 trades, on this same real-cost validation replay. Then, and only
+then: implement as real `main.py` code → unit tests → full pytest green →
+re-validate the replay actually calls the implemented function (see this
+file's/CLAUDE.md's own drift warning) → report honestly → explicit user
+go-ahead **per strategy** before it touches `main.py`'s live dispatch or
+any WATCHLIST config. Nothing above has cleared this bar. Win rate alone
+(even >50%) is explicitly NOT the bar - a high-win-rate/negative-
+expectancy strategy (tight target, wide stop) is exactly the failure mode
+this criterion is designed to catch; PFnet is the actual money test.
+
+**Open thread for a future session:** #5 (tightened-filter range breakout)
+is the only non-dead-end signal from this batch. Next reasoned step (not
+yet tried): the surviving `breakout_failed` trades in #5 are now fewer
+but individually worse (avgGross -₹799 vs -₹487 in #3) - a tighter
+stop or reduced size specifically for that residual failure mode is a
+plausible next lever, not another new architecture from scratch.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
