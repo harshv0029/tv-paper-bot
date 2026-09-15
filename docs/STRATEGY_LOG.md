@@ -595,6 +595,45 @@ only the top decile by RS, not just "beats the index at all") or a
 sector-relative-strength angle, not another binary threshold that a
 strong breakout entry already implies.
 
+## Swing Fibonacci retracement, wide trail (2026-09-15) - closed most of the gap to the swing champion
+
+Follow-up to `swing-fibonacci-retracement-research.yml` (run
+34931590052: win 34.1%, PFgross 0.69, PFnet 0.45 - best win rate of any
+swing test, but the exit wasn't capturing enough of the subsequent move
+relative to the losers, per this log's own diagnosis). Single, isolated
+change (`swing-fibonacci-wide-trail-research.yml`, run 34934362142):
+`ATR_STOP_MULT` 2.0x -> 3.0x, applied identically to both the initial
+stop and the chandelier trailing stop - same convention as every other
+swing test, not cherry-picked to only widen one side.
+
+| | 2.0x ATR trail (34931590052) | 3.0x ATR trail (34934362142) | swing champion (55-day Donchian, 34930930995) |
+|---|---|---|---|
+| n | 41 | 40 | 163 |
+| win% | 34.1% | **40.0%** | 25.2% |
+| PFgross | 0.69 | 0.76 | 0.77 |
+| PFnet | 0.45 | **0.53** | 0.55 |
+| cost drag | 22.6% | 19.2% | 18.1% |
+| avg held | 19.3d | 27.9d | 18.2d |
+
+`max_hold_timeout` jumped from 1 trade to 7 (all 100% win, avgGross
++3,233) - the wider trail let positions that would have been stopped
+early survive to the 60-day cap as full winners instead of getting cut
+off mid-move. Confirms the diagnosis directly: the entry was finding
+real turns, the tighter trail was the bottleneck, not the entry. **This
+is now the second-best PFnet of all 14 strategies tested this session,
+essentially tied with the swing family's Donchian-breakout champion**
+(0.53 vs 0.55) - still short of the PFnet>=1.3 pool bar, nothing
+patched into `main.py` or the live system.
+
+**Open thread:** the swing family now has two independently-discovered,
+near-tied best results (55-day Donchian breakout, Fibonacci golden-
+pocket + wide trail) both landing around PFnet 0.53-0.55. Worth testing
+whether the wide-trail (3.0x ATR) change also helps the Donchian
+breakout entry, since it was only tried on Fibonacci so far - if it's a
+generically better exit for this whole family (not specific to
+Fibonacci), that's a cleaner, more valuable finding than either entry
+alone.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
