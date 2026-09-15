@@ -1,0 +1,327 @@
+name: VWAP Capitulation-Reversal Signal (research)
+
+# Research-only, read-only pass (2026-09-15) - a genuine from-scratch entry
+# signal redesign, per explicit user instruction after universal_score was
+# conclusively found unprofitable net of costs across 4 separate rigorous
+# tests this session (margin sweep, timeframe sweep, gross-edge breakdown,
+# early-exit counterfactual - none of which located a fixable bug; the
+# entry signal's own gross edge is structurally too thin).
+#
+# Grounded in two pieces of REAL evidence, not invented from nothing:
+#   1. docs/STRATEGY_LOG.md (2026-09-04): of 6 real-world VWAP strategies
+#      backtested on real data, only "VWAP Mean Reversion" (row #13) came
+#      back net-positive - the other 5 (incl. breakout/continuation
+#      variants) all lost money. That log's own standing caution: none
+#      should go live until a real multi-symbol/param sweep confirms #13
+#      holds up. That sweep was never done - this is it.
+#   2. This session's own gross-edge-breakdown-research.yml: RANGE regime
+#      (which already uses a bare version of VWAP mean reversion,
+#      _vwap_mean_reversion_entry) carried PFgross 1.18 (positive) while
+#      TREND regime carried PFgross 0.89 (negative, pre-cost) - the only
+#      positive-gross-edge slice found all session.
+#
+# The live _vwap_mean_reversion_entry is a bare band-cross (close < VWAP -
+# 2.0std) fed into the SAME generic RR=3.0/trailing-target/staged-ladder
+# exit machinery built for trend-following - likely why it still lost net
+# of costs despite positive gross edge (see RANGE row: PFnet 0.05, avgNet
+# -1521, in that same breakdown). This is a genuine redesign, not a
+# retune: new entry confirmation (reversal candle + volume, not just a
+# band cross; raised threshold to 2.5std for rarer/larger stretches) AND
+# a bespoke reversion-shaped exit (target = VWAP itself, frozen at entry,
+# not an RR-projected level; tight structural stop at the signal bar's
+# own low; a short 45-minute resolution time-box, not the generic
+# stale_timeout give-up). Chosen from reasoning before running this test,
+# not tuned after seeing a result - one shot, reported honestly either way.
+#
+# Does not call universal_score/orb_breakout signal code at all - reuses
+# only pure data/cost plumbing from main.py (fetch_ohlc, symbol lists,
+# ROUND_TRIP_COST_PCT gate, cost model). Read-only: no live parameter
+# touched, nothing wired into main.py.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run VWAP capitulation-reversal backtest
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import json
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          OPEN_MIN = 555
+          CLOSE_MIN = 930
+          SQUAREOFF_MIN = 920
+          TZ_OFF = m.IST_OFFSET_MIN
+          INTERVAL = "5m"
+          MIN_MINUTES_INTO_SESSION = 20  # skip opening-auction noise
+          EXT_STD_MULT = 2.5  # raised from live's 2.0 - rarer, larger stretches
+          REVERSION_TIMEBOX_MINUTES = 45.0
+          VOL_LOOKBACK = 20
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(ts_local=ts_local)
+              df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+              df["mins"] = df["ts_local"].dt.hour * 60 + df["ts_local"].dt.minute
+              return df
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(symbol, entry_price, initial_stop, qty, entry_ts, exit_price, exit_ts,
+                               exit_reason, entry_cost, cost_model):
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - initial_stop
+              return {
+                  "symbol": symbol, "entry_ts": entry_ts, "exit_ts": exit_ts, "exit_reason": exit_reason,
+                  "gross_pnl": gross_pnl, "net_pnl": net_pnl, "total_cost": total_cost,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def replay_symbol(symbol, df, risk_pct, stop_pct, capital, cost_model):
+              trades = []
+              position = None
+
+              for day, day_df in df.groupby("date_local", sort=True):
+                  day_df = day_df.reset_index(drop=True)
+                  vol = day_df["Volume"].to_numpy(dtype=float)
+                  if float(np.nansum(vol)) <= 0:
+                      continue
+                  typical = ((day_df["High"] + day_df["Low"] + day_df["Close"]) / 3.0).to_numpy(dtype=float)
+                  cum_vol = np.cumsum(vol)
+                  with np.errstate(invalid="ignore", divide="ignore"):
+                      vwap_series = np.cumsum(typical * vol) / np.where(cum_vol > 0, cum_vol, np.nan)
+                  closes = day_df["Close"].to_numpy(dtype=float)
+                  opens = day_df["Open"].to_numpy(dtype=float)
+                  lows = day_df["Low"].to_numpy(dtype=float)
+                  dev_series = pd.Series(closes - vwap_series).expanding().std().to_numpy(dtype=float)
+
+                  position = None
+                  for i in range(len(day_df)):
+                      row = day_df.iloc[i]
+                      mins = int(row["mins"])
+                      if mins < OPEN_MIN or mins > CLOSE_MIN:
+                          continue
+                      last_close = float(row["Close"])
+                      last_ts = row["ts_local"].timestamp()
+
+                      if position is not None:
+                          is_squareoff = mins >= SQUAREOFF_MIN
+                          held_minutes = (last_ts - position["entry_ts"]) / 60.0
+                          exit_reason = None
+                          exit_price = last_close
+                          if last_close <= position["stop"]:
+                              exit_reason = "stop_hit"
+                          elif last_close >= position["target"]:
+                              exit_reason = "target_hit"
+                          elif held_minutes >= REVERSION_TIMEBOX_MINUTES:
+                              exit_reason = "reversion_timebox"
+                          elif is_squareoff:
+                              exit_reason = "eod_squareoff"
+
+                          if exit_reason:
+                              trades.append(_finalize_trade(
+                                  symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                                  position["entry_ts"], exit_price, last_ts, exit_reason,
+                                  position["entry_cost"], cost_model,
+                              ))
+                              position = None
+                          continue
+
+                      if mins >= SQUAREOFF_MIN or mins < OPEN_MIN + MIN_MINUTES_INTO_SESSION:
+                          continue
+                      if i < VOL_LOOKBACK or i < 2:
+                          continue
+
+                      last_dev, last_vwap = dev_series[i], vwap_series[i]
+                      if np.isnan(last_dev) or np.isnan(last_vwap) or last_dev <= 0:
+                          continue
+
+                      lower_band = last_vwap - EXT_STD_MULT * last_dev
+                      extended = last_close < lower_band
+                      if not extended:
+                          continue
+
+                      is_green = closes[i] > opens[i]
+                      if not is_green:
+                          continue
+
+                      avg_vol = float(np.mean(vol[max(0, i - VOL_LOOKBACK): i]))
+                      current_vol = float(vol[i])
+                      if avg_vol <= 0 or current_vol < avg_vol:
+                          continue
+
+                      # Reversion-shaped exit: target = VWAP itself (frozen at
+                      # entry), stop = signal bar's own low, capped at stop_pct.
+                      target = last_vwap
+                      structural_stop = float(lows[i])
+                      stop_cap = last_close * (1 - stop_pct / 100)
+                      stop_loss = max(structural_stop, stop_cap)
+                      stop_dist = last_close - stop_loss
+                      if stop_dist <= 0:
+                          continue
+                      if target <= last_close:
+                          continue
+
+                      target_move_pct = m._target_move_pct(target, last_close)
+                      if target_move_pct <= m.ROUND_TRIP_COST_PCT:
+                          continue
+
+                      usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                      risk_amount_inr = usable_capital_inr * risk_pct / 100
+                      qty = risk_amount_inr / stop_dist
+                      qty = min(qty, usable_capital_inr / last_close)
+                      qty = int(np.floor(qty))
+                      if qty <= 0 or qty * last_close < 100:
+                          continue
+
+                      position = {
+                          "entry_price": last_close, "initial_stop": stop_loss, "stop": stop_loss,
+                          "target": target, "entry_ts": last_ts, "qty": qty,
+                          "entry_cost": _entry_cost(qty, last_close, cost_model),
+                      }
+
+                  if position is not None:
+                      last_close = float(day_df["Close"].iloc[-1])
+                      last_ts = day_df["ts_local"].iloc[-1].timestamp()
+                      trades.append(_finalize_trade(
+                          symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                          position["entry_ts"], last_close, last_ts, "window_end_forced_close",
+                          position["entry_cost"], cost_model,
+                      ))
+
+              return trades
+
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          CAPITAL_INR = 400000.0
+
+          def _metrics_row(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0, cost_drag_pct=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              total_cost = sum(t["total_cost"] for t in trades)
+              cost_drag_pct = 100 * total_cost / max(1, sum(abs(t["gross_pnl"]) for t in trades))
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, cost_drag_pct=cost_drag_pct)
+
+          def _print_row(label, row):
+              print(f"{label:>28} {row['n']:>6} {row['win_rate']:>6.1f}% {row['pf_net']:>7.2f} "
+                    f"{row['pf_gross']:>8.2f} {row['avg_net']:>10.2f} {row['avg_gross']:>10.2f} {row['cost_drag_pct']:>9.1f}%")
+
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, 60d) ---")
+          all_trades = []
+          skipped = 0
+          for sym in SYMBOLS:
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  raw = m.fetch_ohlc(sym, "60d", INTERVAL)
+              except Exception:
+                  skipped += 1
+                  continue
+              if raw is None or len(raw) < 50:
+                  skipped += 1
+                  continue
+              df = _prep(raw)
+              try:
+                  trades = replay_symbol(sym, df, cfg["risk_pct"], cfg["stop_pct"], CAPITAL_INR, DEFAULT_COST_MODEL)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              all_trades.extend(trades)
+          print(f"  fetched {len(SYMBOLS) - skipped}/{len(SYMBOLS)} symbols, {len(all_trades)} trades\n")
+
+          header = f"{'bucket':>28} {'n':>6} {'win%':>7} {'PFnet':>7} {'PFgross':>8} {'avgNet':>10} {'avgGross':>10} {'costDrag%':>10}"
+
+          print("=== OVERALL ===")
+          print(header)
+          _print_row("ALL", _metrics_row(all_trades))
+
+          print("\n=== BY EXIT REASON ===")
+          print(header)
+          for reason in sorted(set(t["exit_reason"] for t in all_trades)):
+              _print_row(reason, _metrics_row([t for t in all_trades if t["exit_reason"] == reason]))
+
+          print("\n=== BY SYMBOL (n>=3, sorted by gross PF) ===")
+          print(header)
+          per_symbol = {}
+          for t in all_trades:
+              per_symbol.setdefault(t["symbol"], []).append(t)
+          symbol_rows = [(sym, _metrics_row(trades)) for sym, trades in per_symbol.items() if len(trades) >= 3]
+          symbol_rows.sort(key=lambda x: x[1]["pf_gross"], reverse=True)
+          for sym, row in symbol_rows:
+              _print_row(sym, row)
+          PYEOF
