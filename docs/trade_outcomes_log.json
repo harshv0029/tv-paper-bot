@@ -539,5 +539,19 @@
     "rr_target": 3.0,
     "rr_achieved": -11.63,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "YESBANK.NS",
+    "exit_time_utc": 1789445532.8328025,
+    "entry_price_native": 23.5,
+    "exit_price_native": 23.34000015258789,
+    "currency": "INR",
+    "qty": 10.0,
+    "pnl_inr": -1.6,
+    "pnl_pct_of_capital": -0.0,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": -1.02,
+    "strategy": "orb-universal-score"
   }
 ]
