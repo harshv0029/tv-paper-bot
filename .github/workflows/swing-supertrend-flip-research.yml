@@ -135,7 +135,8 @@ jobs:
               st = np.full(n, np.nan)
 
               for i in range(n):
-                  if i == 0 or np.isnan(atr[i]):
+                  reset = i == 0 or np.isnan(atr[i]) or np.isnan(final_lower[i - 1]) or np.isnan(final_upper[i - 1])
+                  if reset:
                       final_upper[i] = basic_upper[i]
                       final_lower[i] = basic_lower[i]
                       direction[i] = 1
