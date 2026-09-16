@@ -53,8 +53,20 @@ import kotak_neo
 # options (NIFTY/BANKNIFTY) share one name for futures+options; MCX
 # commodities use TWO different names (full-size for futures, mini for
 # options - see docstring) so both appear here as separate keys.
+#
+# SENSEX added 2026-09-16 (explicit user request), confirmed live the
+# same day via GET /kotak-neo/search-scrip against exchange_segment=
+# bse_fo: real IF (future, lot_size=20) and IO (option, real CE/PE rows,
+# lot_size=20, 100-point strike spacing, e.g. 67000/67100/67200...)
+# contracts exist under the EXACT pSymbolName "SENSEX". A separate,
+# genuinely distinct BSE index "SENSEX50" (lot_size=75, ~23000-strike
+# range) is ALSO real and ALSO live on bse_fo and substring-matches
+# "sensex" - NOT added here, out of scope of what was asked; _fo_rows's
+# existing exact-pSymbolName filter already excludes it correctly, same
+# discipline as the NIFTY/NIFTYFPI and MCX GOLD/GOLDM cases above.
 _UNDERLYING_TO_SEGMENT = {
     "NIFTY": "nse_fo", "BANKNIFTY": "nse_fo",
+    "SENSEX": "bse_fo",
     "GOLD": "mcx_fo", "GOLDM": "mcx_fo",
     "SILVER": "mcx_fo", "SILVERM": "mcx_fo",
     "CRUDEOIL": "mcx_fo", "CRUDEOILM": "mcx_fo",
@@ -343,6 +355,72 @@ def select_nse_option_contract_by_expiry_class(underlying: str, spot: float, rig
         "kotak_trading_symbol": atm_row["pTrdSymbol"], "instrument_token": str(atm_row["pSymbol"]),
         "exchange_segment": segment, "lot_size": int(atm_row["lLotSize"]),
     }, None
+
+
+def list_nse_option_strike_chain(underlying: str, right: str, expiry_class: str):
+    """Every live strike (not just the single ATM contract
+    select_nse_option_contract_by_expiry_class picks) for `underlying`'s
+    `right` at the given `expiry_class` ('weekly'/'monthly') - added
+    2026-09-16, explicit user request to monitor "every strike" (e.g.
+    24500, 24550, 24600...) rather than only the nearest-to-spot one.
+    Returns (chain, None) or (None, reason_str). chain: list of dicts
+    sorted by strike ascending, same field shape as
+    select_nse_option_contract_by_expiry_class's single-contract dict
+    MINUS 'premium' - this is contract-resolution only (strike/expiry/
+    instrument-token/lot-size straight from Kotak's live scrip master, no
+    network call beyond that one search_scrip). Fetching a live LTP for
+    every strike in the chain (potentially dozens per underlying/expiry)
+    is a separate, not-yet-built concern: kotak_neo.quotes()'s
+    instrument_tokens param accepts a list, but this module has only ever
+    confirmed it live with a single-instrument list (see every other
+    quotes() call site here) - never assume multi-instrument batching
+    works without confirming it live first, same discipline as
+    everything else in this module."""
+    if expiry_class not in ("weekly", "monthly"):
+        return None, f"invalid_expiry_class:{expiry_class}"
+    opt_type = "ce" if right == "call" else "pe"
+    rows, err = _fo_rows(underlying, option_type=opt_type)
+    if err:
+        return None, err
+    opt_rows = [r for r in rows if str(r.get("pOptionType", "")).strip().lower() == opt_type]
+    if not opt_rows:
+        return None, "no_option_rows"
+
+    by_expiry: dict = {}
+    for r in opt_rows:
+        try:
+            exp = _parse_expiry(r["pExpiryDate"])
+        except Exception:
+            continue
+        by_expiry.setdefault(exp, []).append(r)
+
+    today = dt.date.today()
+    upcoming = [e for e in by_expiry if (e - today).days >= 0]
+    if not upcoming:
+        return None, "no_upcoming_expiry"
+    chosen = classify_expiries_weekly_monthly(upcoming)[expiry_class]
+    if chosen is None:
+        return None, "no_matching_expiry_class"
+
+    segment = _UNDERLYING_TO_SEGMENT[underlying.upper()]
+    dte = (chosen - today).days
+    chain = []
+    for r in by_expiry[chosen]:
+        # dStrikePrice; is the real strike * 100 - see
+        # select_nse_option_contract's own comment on this field.
+        strike = _to_float(r.get("dStrikePrice;"))
+        if strike is None:
+            continue
+        chain.append({
+            "underlying": underlying, "right": right, "expiry": chosen.strftime("%Y-%m-%d"),
+            "dte": dte, "expiry_class": expiry_class, "strike": strike / 100.0,
+            "kotak_trading_symbol": r["pTrdSymbol"], "instrument_token": str(r["pSymbol"]),
+            "exchange_segment": segment, "lot_size": int(r["lLotSize"]),
+        })
+    if not chain:
+        return None, "no_strike_data"
+    chain.sort(key=lambda c: c["strike"])
+    return chain, None
 
 
 def _extract_ltp(quotes_response) -> float | None:
