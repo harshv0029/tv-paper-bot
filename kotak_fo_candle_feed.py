@@ -344,7 +344,16 @@ async def run_fo_candle_feed():
                 # this exact pattern (asyncio.to_thread wrapping
                 # _auto_signal_core) for the same reason - this call site
                 # just never got it.
-                universe = await asyncio.to_thread(resolve_fo_universe)
+                #
+                # main._heavy_startup_resolve_lock (2026-09-16, live OOM
+                # follow-up): to_thread alone fixed the event-loop block
+                # but let this resolve run at the SAME TIME as kotak_
+                # live_feed's own heavy resolve_tokens() - see that
+                # lock's own docstring for why their peak memory usage
+                # stacking, rather than being accidentally serialized as
+                # before, is the live incident's actual root cause.
+                async with main._heavy_startup_resolve_lock:
+                    universe = await asyncio.to_thread(resolve_fo_universe)
                 _universe_cache["value"] = universe
                 _universe_cache["resolved_at"] = time.time()
             else:
