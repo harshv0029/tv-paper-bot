@@ -418,6 +418,24 @@ def init_db():
         )
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS fo_chain_snapshot (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts REAL NOT NULL,
+                underlying TEXT NOT NULL,      -- Kotak pSymbolName, e.g. 'NIFTY'/'GOLDM'
+                instrument_type TEXT NOT NULL, -- 'future' | 'option'
+                expiry_class TEXT,             -- 'weekly' | 'monthly' - NULL for a future row
+                right TEXT,                    -- 'call' | 'put' - NULL for a future row
+                strike REAL,                   -- NULL for a future row
+                expiry TEXT NOT NULL,          -- YYYY-MM-DD
+                dte INTEGER,
+                premium REAL,                  -- option LTP; NULL for a future row (see instrument_type)
+                lot_size INTEGER,
+                kotak_trading_symbol TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS option_state (
                 opt_symbol TEXT PRIMARY KEY,  -- "{underlying}:OPT-CALL" / "{underlying}:OPT-PUT"
                 underlying TEXT NOT NULL,
@@ -6987,6 +7005,104 @@ _INDEX_TO_FO_UNDERLYING = {
     "GC=F": "GOLDM", "SI=F": "SILVERM", "CL=F": "CRUDEOILM",
 }
 
+# ---------------------------------------------------------------------------
+# F&O chain monitoring (2026-09-16, explicit user request: "start
+# monitoring the single or multi leg future and option strike prices with
+# weekly and monthly expiry volumes separately"). READ-ONLY OBSERVABILITY
+# ONLY - _fo_chain_monitoring_snapshot places no order and opens no
+# position, it only logs current contract resolution + premium to
+# fo_chain_snapshot for later analysis. Not gated by REAL_TRADING_ENABLED
+# or is_real_fo_trading_enabled() - it never trades, so neither switch is
+# relevant to it.
+#
+# Scope: only the 5 underlyings this codebase's Kotak F&O integration
+# (nse_fo_chain.py) can resolve at all - NIFTY/BANKNIFTY index options and
+# GOLD/SILVER/CRUDEOIL (mini contract for options, per nse_fo_chain.py's
+# own confirmed-live docstring) MCX commodities. Does NOT cover
+# single-stock F&O on the 52-symbol equity swing/research universe -
+# nse_fo_chain.py has no segment mapping for individual NSE stocks (only
+# these 5 underlyings' exact Kotak pSymbolName has been confirmed live);
+# extending this to equity F&O would need its own live-verified
+# contract-resolution work, not attempted here.
+#
+# KNOWN GAP: only strike/premium/expiry/lot_size are captured, not volume
+# or open interest, despite the user asking for "volumes" specifically.
+# Kotak's CONFIRMED real quotes() response shape (nse_fo_chain.py's own
+# module docstring, 2026-09-07 live dump) exposes only
+# exchange_token/display_symbol/exchange/ltp - no volume/OI field. This
+# repo's established discipline (nse_fo_chain.py: "every
+# strike/expiry/lot-size/instrument-token... confirmed field-by-field
+# against real dumps... before this was written") is to never guess a
+# field name or synthesize a value presented as real, so volume/OI is left
+# as an explicit, disclosed follow-up requiring a live Kotak session to
+# confirm which endpoint/field (if any) actually carries them, rather than
+# shipped as a guess here.
+FO_MONITORED_UNDERLYINGS = {
+    # cash_symbol (for spot): (futures_pSymbolName, options_pSymbolName)
+    "^NSEI": ("NIFTY", "NIFTY"),
+    "^NSEBANK": ("BANKNIFTY", "BANKNIFTY"),
+    "GC=F": ("GOLD", "GOLDM"),
+    "SI=F": ("SILVER", "SILVERM"),
+    "CL=F": ("CRUDEOIL", "CRUDEOILM"),
+}
+FO_MONITOR_INTERVAL_SECONDS = 900  # 15 min - observability only, no need for tick-frequency polling
+_fo_monitor_last_snapshot_ts = 0.0
+
+
+def _fo_chain_monitoring_snapshot(conn):
+    """See the module comment above FO_MONITORED_UNDERLYINGS for full
+    scope/gaps. Guarded by FO_MONITOR_INTERVAL_SECONDS via the
+    module-level _fo_monitor_last_snapshot_ts (an in-memory guard, not
+    DB-persisted - a restart may cause one extra snapshot sooner than
+    15 minutes after the last one, an acceptable cost for a read-only
+    observability feature, unlike the real-money daily-loss-cap guards
+    elsewhere in this file which must survive a restart)."""
+    global _fo_monitor_last_snapshot_ts
+    now = time.time()
+    if now - _fo_monitor_last_snapshot_ts < FO_MONITOR_INTERVAL_SECONDS:
+        return
+    _fo_monitor_last_snapshot_ts = now
+
+    import nse_fo_chain
+    for cash_symbol, (fut_name, opt_name) in FO_MONITORED_UNDERLYINGS.items():
+        try:
+            df = fetch_ohlc(cash_symbol, "1d", "5m")
+            spot = float(df["Close"].iloc[-1]) if df is not None and len(df) else None
+        except Exception as e:
+            print(f"[FO_MONITOR] spot fetch failed for {cash_symbol}: {e}")
+            continue
+        if spot is None or spot <= 0:
+            continue
+
+        fut, err = nse_fo_chain.select_nse_future(fut_name)
+        if fut:
+            conn.execute(
+                "INSERT INTO fo_chain_snapshot (ts, underlying, instrument_type, expiry_class, "
+                "right, strike, expiry, dte, premium, lot_size, kotak_trading_symbol) "
+                "VALUES (?, ?, 'future', NULL, NULL, NULL, ?, ?, NULL, ?, ?)",
+                (now, fut_name, fut["expiry"], fut["dte"], fut["lot_size"], fut["kotak_trading_symbol"]),
+            )
+        else:
+            print(f"[FO_MONITOR] future unavailable for {fut_name}: {err}")
+
+        for right in ("call", "put"):
+            for expiry_class in ("weekly", "monthly"):
+                contract, err = nse_fo_chain.select_nse_option_contract_by_expiry_class(
+                    opt_name, spot, right, expiry_class
+                )
+                if contract:
+                    conn.execute(
+                        "INSERT INTO fo_chain_snapshot (ts, underlying, instrument_type, expiry_class, "
+                        "right, strike, expiry, dte, premium, lot_size, kotak_trading_symbol) "
+                        "VALUES (?, ?, 'option', ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (now, opt_name, expiry_class, right, contract["strike"], contract["expiry"],
+                         contract["dte"], contract["premium"], contract["lot_size"],
+                         contract["kotak_trading_symbol"]),
+                    )
+                else:
+                    print(f"[FO_MONITOR] {opt_name} {right} {expiry_class} unavailable: {err}")
+    conn.commit()
+
 
 def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float):
     """Mirrors a paper long (index OR MCX commodity, entered_long) as a
@@ -9248,6 +9364,11 @@ async def _scheduler_tick():
             _run_swing_scan(conn)
         except Exception as e:
             print(f"[SWING] scan failed (non-fatal, intraday tick continues): {e}")
+
+        try:
+            _fo_chain_monitoring_snapshot(conn)
+        except Exception as e:
+            print(f"[FO_MONITOR] snapshot failed (non-fatal, intraday tick continues): {e}")
 
         open_equity_symbols = {
             r["symbol"] for r in conn.execute(
