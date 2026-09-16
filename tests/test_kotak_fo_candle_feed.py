@@ -16,6 +16,7 @@ from unittest.mock import patch
 
 import kotak_fo_candle_feed as feed
 import main
+import nse_fo_chain
 
 
 def _fresh_conn():
@@ -148,7 +149,8 @@ def test_resolve_fo_universe_skips_an_underlying_with_no_spot_and_records_it():
         universe = feed.resolve_fo_universe()
     assert universe == {}
     assert all("spot_unavailable" in u for u in feed._feed_status["unresolved_legs"])
-    assert len(feed._feed_status["unresolved_legs"]) == len(feed.FO_CANDLE_UNDERLYINGS)
+    expected = len(feed.FO_CANDLE_UNDERLYINGS) + len(nse_fo_chain.STOCK_FO_UNDERLYINGS)
+    assert len(feed._feed_status["unresolved_legs"]) == expected
 
 
 def test_resolve_fo_universe_merges_future_and_option_legs():
@@ -165,9 +167,11 @@ def test_resolve_fo_universe_merges_future_and_option_legs():
          patch("nse_fo_chain.select_nse_future", return_value=(fut, None)), \
          patch("nse_fo_chain.select_atm_banded_option_strikes", return_value=([call_leg], None)):
         universe = feed.resolve_fo_universe()
-    # 3 underlyings x (1 future + 2 rights x 2 expiry_classes x 1 mocked leg each) = 3 x 5 = 15,
-    # but the future/option instrument_tokens are IDENTICAL mocks across all 3 underlyings/rights/
-    # expiry_classes here (same fixture reused), so they collapse to the same 2 dict keys.
+    # Every one of the 3 index + 210 stock underlyings resolves via these
+    # same two mocks regardless of which underlying/right/expiry_class it
+    # was called for (return_value, not side_effect) - since the mocked
+    # future/option instrument_tokens are IDENTICAL every time, they all
+    # collapse into the same 2 dict keys rather than 213x as many.
     assert len(universe) == 2
     assert universe[("nse_fo", "1")]["kind"] == "future"
     assert universe[("nse_fo", "2")]["kind"] == "option"
@@ -200,3 +204,53 @@ def test_init_db_creates_the_fo_option_candles_table():
     finally:
         main.DB_PATH = old_path
     assert {"instrument_token", "bucket_start_ts", "open", "high", "low", "close", "tick_count"} <= cols
+
+
+def test_stock_legs_are_resolved_with_the_stock_band_and_monthly_only():
+    calls = []
+
+    def fake_band(underlying, spot, right, expiry_class, band=None):
+        calls.append((underlying, right, expiry_class, band))
+        return [], "no_option_rows"  # empty band - only the call args matter here
+
+    with patch.object(feed, "_spot_price", return_value=100.0), \
+         patch("nse_fo_chain.select_nse_future", return_value=(None, "no_future_rows")), \
+         patch("nse_fo_chain.select_atm_banded_option_strikes", side_effect=fake_band):
+        feed.resolve_fo_universe()
+
+    stock_calls = [c for c in calls if c[0] == "RELIANCE"]
+    assert stock_calls, "RELIANCE should have been resolved as part of the stock universe"
+    assert all(c[2] == "monthly" for c in stock_calls), "stock legs must be monthly-only"
+    assert all(c[3] == feed.STOCK_ATM_STRIKE_BAND for c in stock_calls)
+    assert {c[1] for c in stock_calls} == {"call", "put"}
+
+
+def test_index_legs_still_use_the_wider_band_and_both_expiry_classes():
+    calls = []
+
+    def fake_band(underlying, spot, right, expiry_class, band=None):
+        calls.append((underlying, right, expiry_class, band))
+        return [], "no_option_rows"
+
+    with patch.object(feed, "_spot_price", return_value=24500.0), \
+         patch("nse_fo_chain.select_nse_future", return_value=(None, "no_future_rows")), \
+         patch("nse_fo_chain.select_atm_banded_option_strikes", side_effect=fake_band):
+        feed.resolve_fo_universe()
+
+    nifty_calls = [c for c in calls if c[0] == "NIFTY"]
+    assert {c[2] for c in nifty_calls} == {"weekly", "monthly"}
+    assert all(c[3] == nse_fo_chain.DEFAULT_ATM_STRIKE_BAND for c in nifty_calls)
+
+
+def test_stock_spot_lookup_uses_the_ns_ticker_suffix():
+    seen_symbols = []
+
+    def fake_spot(cash_symbol):
+        seen_symbols.append(cash_symbol)
+        return None  # short-circuits before any nse_fo_chain call
+
+    with patch.object(feed, "_spot_price", side_effect=fake_spot):
+        feed.resolve_fo_universe()
+
+    assert "RELIANCE.NS" in seen_symbols
+    assert "^NSEI" in seen_symbols  # index legs keep their existing yfinance-style ticker
