@@ -1,0 +1,389 @@
+name: Intraday Gap and Go, True Same-Day Version (research)
+
+# Research-only, read-only pass (2026-09-16) - a deliberate INTRADAY
+# adaptation of the already-validated DAILY-BAR swing "Gap and Go" idea
+# (swing-gap-and-go-5y-research.yml, PFnet 1.65/n=142, now implemented live
+# in main.py as gap_and_go_entry_signal/gap_and_go_exit_reason, a
+# multi-day swing engine - see main.py's SWING_GAP_PCT_THRESHOLD block).
+# This is NOT that strategy relabeled: the swing version holds up to 60
+# TRADING DAYS; this version enters near the open on a gap day and is
+# FLAT BY THE CLOSE OF THE SAME DAY, always. Every rule below is either a
+# direct 1:1 translation of the swing version's logic onto 5-minute bars,
+# or a disclosed, reasoned addition made necessary by trading within a
+# single session instead of across many daily candles.
+#
+# Canonical swing rule -> intraday adaptation, disclosed 1:1:
+#   1. Gap up (today's Open >= 2.0% above yesterday's Close) ->
+#      UNCHANGED threshold (2.0%), but now measured off the literal
+#      first 5m bar's Open of the trading day (the actual 9:15 IST
+#      opening print) vs the previous trading day's LAST 5m bar's Close -
+#      arguably a MORE faithful "gap" than the daily version's Open
+#      (which is whatever yfinance's daily-bar aggregation reports).
+#   2. Gap holds (Close > Open, Close in upper half of Open-High range) ->
+#      same shape, but "Open" becomes the day's opening print (not each
+#      bar's own open) and "High" becomes the day's high-so-far as of the
+#      candidate bar - i.e. "is price still holding above the gap and in
+#      the upper half of the range it has carved out since the open".
+#   3. Volume confirmation (Volume > 1.5x trailing 20-DAY average) ->
+#      DISCLOSED ADAPTATION: there is no "20 day" concept inside one
+#      session, so this becomes Volume > 1.5x a trailing 20-BAR (5m)
+#      average computed on the continuous bar series (spans ~100 minutes,
+#      usually same-day but can reach a few bars into the prior day's
+#      close for the first ~20 bars of a session - a known, accepted
+#      simplification, not a bug). VOL_MULT itself (1.5x) is unchanged.
+#   4. Entry at the gap day's close (single daily bar, no alternative) ->
+#      DISCLOSED ADDITION: intraday, entry is searched only within the
+#      first ENTRY_WINDOW_MINUTES (30 min = 6 bars) after the open. Gap
+#      and Go is fundamentally an opening-drive thesis - a "gap holding"
+#      confirmation found at 2pm is a different trade, not this one. At
+#      most ONE entry attempt per gapped day (mirrors the daily version,
+#      which structurally can only ever open one trade per gap day).
+#   5. Exit: close < gap day's own Low ("gap_filled") -> DISCLOSED
+#      ADAPTATION: "gap_low" becomes the day's low-so-far as of the
+#      entry bar (the intraday analog of "today's Low", since intraday
+#      there are many bars, not one). Checked every bar exactly like the
+#      daily version.
+#   6. Protective stop: 2.5x ATR(14) -> UNCHANGED multiplier, but ATR(14)
+#      is now computed on 5m bars (~70 minutes of true range), not daily
+#      bars - a materially tighter absolute stop, appropriately scaled to
+#      intraday volatility since ATR itself shrinks with the bar size.
+#   7. Max-hold backstop (60 trading days) -> REPLACED, not adapted: this
+#      is the whole point of "true intraday" - MANDATORY EOD SQUARE-OFF
+#      at 15:20 IST (SQUAREOFF_MIN=920, matching every other intraday
+#      workflow in this repo/live main.py's own open_min/close_min/
+#      squareoff_min defaults). No position is ever held past the same
+#      session's close. A data-cutoff safety net ("data_end_forced_close")
+#      covers only the rare case where the fetch window ends mid-session
+#      on the most recent day.
+#   8. Profit target -> GENUINE NEW ADDITION (the daily version has none -
+#      its only exits are stop/gap_filled/max_hold). Intraday, holding
+#      indefinitely for a gap fill or ATR stop with no target is a poor
+#      match for a session that must close in hours, not weeks, so a
+#      TARGET_R_MULT=2.0 fixed R-multiple target is added, chosen a
+#      priori (not tuned on this test's result). Exit priority per bar:
+#      stop_hit > gap_filled > target_hit > eod_squareoff, mirroring the
+#      swing version's own stop_hit > gap_filled > max_hold_timeout order
+#      with the two intraday-only exits appended after it.
+#   9. Economic-viability gate on the target (reused from this session's
+#      vwap-reclaim-confirmation-research.yml: skip if the target's move
+#      is too small to clear the round-trip cost, m.ROUND_TRIP_COST_PCT) -
+#      NEW, intraday-only, since the daily version pays costs over a much
+#      larger average move and never needed this gate.
+#
+# Does not call universal_score/orb_breakout/gap_and_go_entry_signal/
+# gap_and_go_exit_reason or any other live signal-dispatch code in main.py
+# at all - reuses only pure data/cost plumbing (fetch_ohlc, symbol lists,
+# CAPITAL_TRANCHES, ROUND_TRIP_COST_PCT, cost model), same as every other
+# research workflow this session. Read-only: no live parameter touched,
+# nothing wired into main.py. Signal logic below was unit-tested against
+# hand-built synthetic 5m OHLCV in a scratch script before this workflow
+# was committed (gap-detection/day-grouping/entry/exit all verified to
+# fire and exit correctly, no NaN-propagation from warm-up windows) - see
+# this branch's commit message for that check's results.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run intraday Gap and Go backtest
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          PERIOD = "60d"
+          INTERVAL = "5m"
+          TZ_OFF = m.IST_OFFSET_MIN
+          OPEN_MIN = 555      # 9:15 IST
+          CLOSE_MIN = 930     # 15:30 IST
+          SQUAREOFF_MIN = 920  # 15:20 IST, same convention as every other
+          # intraday workflow in this repo / main.py's own NSE default params.
+
+          GAP_PCT_THRESHOLD = 2.0   # unchanged from the swing version
+          VOL_MULT = 1.5            # unchanged from the swing version
+          VOL_AVG_LOOKBACK_BARS = 20  # per-bar analog of the swing version's
+          # 20-DAY volume average - see header comment, item 3.
+          ATR_N = 14                # 5m-bar ATR (~70 minutes), not daily-bar
+          ATR_STOP_MULT = 2.5       # unchanged multiplier from the swing version
+          ENTRY_WINDOW_MINUTES = 30  # disclosed addition - opening-drive only
+          ENTRY_WINDOW_BARS = ENTRY_WINDOW_MINUTES // 5
+          TARGET_R_MULT = 2.0       # genuine new addition, chosen a priori
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(ts_local=ts_local)
+              df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+              df["mins"] = df["ts_local"].dt.hour * 60 + df["ts_local"].dt.minute
+              df = df.reset_index(drop=True)
+
+              closes = df["Close"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              volumes = df["Volume"].to_numpy(dtype=float)
+              prev_close_bar = np.concatenate(([np.nan], closes[:-1]))
+              tr = np.maximum(highs - lows, np.maximum(np.abs(highs - prev_close_bar), np.abs(lows - prev_close_bar)))
+              df["atr"] = pd.Series(tr).rolling(ATR_N).mean().to_numpy()
+              df["vol_avg"] = pd.Series(volumes).rolling(VOL_AVG_LOOKBACK_BARS).mean().to_numpy()
+              return df
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(symbol, entry_price, initial_stop, qty, entry_ts, exit_price, exit_ts,
+                               exit_reason, entry_cost, cost_model):
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - initial_stop
+              return {
+                  "symbol": symbol, "entry_ts": entry_ts, "exit_ts": exit_ts, "exit_reason": exit_reason,
+                  "gross_pnl": gross_pnl, "net_pnl": net_pnl, "total_cost": total_cost,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def replay_symbol(symbol, df, risk_pct, capital, cost_model, day_stats):
+              trades = []
+              days = [(day, day_df.reset_index(drop=True)) for day, day_df in df.groupby("date_local", sort=True)]
+              prev_close_by_day = {}
+              for idx in range(1, len(days)):
+                  prev_close_by_day[days[idx][0]] = float(days[idx - 1][1]["Close"].iloc[-1])
+
+              for day, day_df in days:
+                  day_df = day_df[(day_df["mins"] >= OPEN_MIN) & (day_df["mins"] <= CLOSE_MIN)].reset_index(drop=True)
+                  if day_df.empty:
+                      continue
+                  prev_close = prev_close_by_day.get(day)
+                  if prev_close is None or not np.isfinite(prev_close) or prev_close <= 0:
+                      continue
+
+                  day_open = float(day_df["Open"].iloc[0])
+                  gap_pct = (day_open - prev_close) / prev_close * 100
+                  day_stats["days_seen"] += 1
+                  if gap_pct < GAP_PCT_THRESHOLD:
+                      continue
+                  day_stats["days_gapped"] += 1
+
+                  opens = day_df["Open"].to_numpy(dtype=float)
+                  highs = day_df["High"].to_numpy(dtype=float)
+                  lows = day_df["Low"].to_numpy(dtype=float)
+                  closes = day_df["Close"].to_numpy(dtype=float)
+                  volumes = day_df["Volume"].to_numpy(dtype=float)
+                  atr = day_df["atr"].to_numpy(dtype=float)
+                  vol_avg = day_df["vol_avg"].to_numpy(dtype=float)
+                  mins_arr = day_df["mins"].to_numpy(dtype=int)
+
+                  position = None
+                  entered = False
+                  high_so_far = -np.inf
+                  low_so_far = np.inf
+
+                  for i in range(len(day_df)):
+                      high_so_far = max(high_so_far, highs[i])
+                      low_so_far = min(low_so_far, lows[i])
+
+                      if position is not None:
+                          held_days_ts = day_df["ts_local"].iloc[i].timestamp()
+                          exit_reason = None
+                          exit_price = closes[i]
+                          if closes[i] <= position["stop"]:
+                              exit_reason = "stop_hit"
+                          elif closes[i] < position["gap_low"]:
+                              exit_reason = "gap_filled"
+                          elif closes[i] >= position["target"]:
+                              exit_reason = "target_hit"
+                          elif mins_arr[i] >= SQUAREOFF_MIN:
+                              exit_reason = "eod_squareoff"
+                          if exit_reason:
+                              trades.append(_finalize_trade(
+                                  symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                                  position["entry_ts"], exit_price, held_days_ts, exit_reason,
+                                  position["entry_cost"], cost_model,
+                              ))
+                              position = None
+                          continue
+
+                      if entered:
+                          continue
+                      if i >= ENTRY_WINDOW_BARS:
+                          entered = True
+                          continue
+                      if np.isnan(atr[i]) or atr[i] <= 0 or np.isnan(vol_avg[i]) or vol_avg[i] <= 0:
+                          continue
+
+                      held_gap = closes[i] > day_open
+                      closed_strong = closes[i] >= day_open + 0.5 * (high_so_far - day_open)
+                      vol_confirmed = volumes[i] > vol_avg[i] * VOL_MULT
+                      if not (held_gap and closed_strong and vol_confirmed):
+                          continue
+
+                      entry_price = closes[i]
+                      stop_loss = entry_price - ATR_STOP_MULT * atr[i]
+                      stop_dist = entry_price - stop_loss
+                      if stop_dist <= 0:
+                          continue
+                      target = entry_price + TARGET_R_MULT * stop_dist
+                      target_move_pct = m._target_move_pct(target, entry_price)
+                      if target_move_pct <= m.ROUND_TRIP_COST_PCT:
+                          continue
+
+                      usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                      risk_amount_inr = usable_capital_inr * risk_pct / 100
+                      qty = risk_amount_inr / stop_dist
+                      qty = min(qty, usable_capital_inr / entry_price)
+                      qty = int(np.floor(qty))
+                      if qty <= 0 or qty * entry_price < 100:
+                          continue
+
+                      position = {
+                          "entry_price": entry_price, "initial_stop": stop_loss, "stop": stop_loss,
+                          "target": target, "entry_ts": day_df["ts_local"].iloc[i].timestamp(), "qty": qty,
+                          "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                          "gap_low": low_so_far,
+                      }
+                      entered = True
+                      day_stats["days_entered"] += 1
+
+                  if position is not None:
+                      last_close = float(day_df["Close"].iloc[-1])
+                      last_ts = day_df["ts_local"].iloc[-1].timestamp()
+                      trades.append(_finalize_trade(
+                          symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                          position["entry_ts"], last_close, last_ts, "data_end_forced_close",
+                          position["entry_cost"], cost_model,
+                      ))
+
+              return trades
+
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          CAPITAL_INR = 400000.0
+
+          def _metrics_row(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0, cost_drag_pct=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              total_cost = sum(t["total_cost"] for t in trades)
+              cost_drag_pct = 100 * total_cost / max(1, sum(abs(t["gross_pnl"]) for t in trades))
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, cost_drag_pct=cost_drag_pct)
+
+          def _print_row(label, row):
+              print(f"{label:>28} {row['n']:>6} {row['win_rate']:>6.1f}% {row['pf_net']:>7.2f} "
+                    f"{row['pf_gross']:>8.2f} {row['avg_net']:>10.2f} {row['avg_gross']:>10.2f} {row['cost_drag_pct']:>9.1f}%")
+
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) ---")
+          all_trades = []
+          skipped = 0
+          day_stats = {"days_seen": 0, "days_gapped": 0, "days_entered": 0}
+          for sym in SYMBOLS:
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  raw = m.fetch_ohlc(sym, PERIOD, INTERVAL)
+              except Exception:
+                  skipped += 1
+                  continue
+              if raw is None or len(raw) < 50:
+                  skipped += 1
+                  continue
+              df = _prep(raw)
+              try:
+                  trades = replay_symbol(sym, df, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL, day_stats)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              all_trades.extend(trades)
+          print(f"  fetched {len(SYMBOLS) - skipped}/{len(SYMBOLS)} symbols, {len(all_trades)} trades")
+          print(f"  trading days seen: {day_stats['days_seen']}, gapped >= {GAP_PCT_THRESHOLD}%: "
+                f"{day_stats['days_gapped']}, entries taken: {day_stats['days_entered']}\n")
+
+          header = f"{'bucket':>28} {'n':>6} {'win%':>7} {'PFnet':>7} {'PFgross':>8} {'avgNet':>10} {'avgGross':>10} {'costDrag%':>10}"
+
+          print("=== OVERALL ===")
+          print(header)
+          _print_row("ALL", _metrics_row(all_trades))
+
+          print("\n=== BY EXIT REASON ===")
+          print(header)
+          for reason in sorted(set(t["exit_reason"] for t in all_trades)):
+              _print_row(reason, _metrics_row([t for t in all_trades if t["exit_reason"] == reason]))
+
+          print("\n=== BY SYMBOL (n>=2, sorted by gross PF) ===")
+          print(header)
+          per_symbol = {}
+          for t in all_trades:
+              per_symbol.setdefault(t["symbol"], []).append(t)
+          symbol_rows = [(sym, _metrics_row(trades)) for sym, trades in per_symbol.items() if len(trades) >= 2]
+          symbol_rows.sort(key=lambda x: x[1]["pf_gross"], reverse=True)
+          for sym, row in symbol_rows:
+              _print_row(sym, row)
+          PYEOF
