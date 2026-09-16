@@ -72,6 +72,68 @@ _UNDERLYING_TO_SEGMENT = {
     "CRUDEOIL": "mcx_fo", "CRUDEOILM": "mcx_fo",
 }
 
+# Single-stock F&O (2026-09-16, explicit user request: "Update this to
+# all tickers Not just equity" -> "Expand F&O trading to single-stock
+# options too"). Confirmed live the same day via GET /kotak-neo/
+# search-scrip against exchange_segment=nse_fo, option_type=FUT, no
+# symbol filter (downloads the whole nse_fo futures universe in one
+# call - same "one unfiltered call costs the same as a filtered one"
+# reasoning kotak_live_feed.py's _resolve_mcx_tokens already documents):
+# every pInstType=="FUTSTK" row's pSymbolName is EXACTLY the bare NSE
+# equity ticker (e.g. "RELIANCE"), same convention kotak_live_feed.py's
+# own _bare_nse_symbol already assumes for the cash-market side. 210
+# distinct FUTSTK names found live that day - this is that exact
+# confirmed list, not a guessed/scraped "F&O eligible stocks" list from
+# anywhere else, since NSE's F&O-eligible set changes periodically and
+# only Kotak's own live scrip master is this module's source of truth.
+#
+# CRITICAL, distinct from every other underlying in this module:
+# confirmed live the same day that single-stock F&O in India is
+# PHYSICALLY settled (pSettlementType="Physical" on a real RELIANCE
+# contract), not cash-settled like every index/commodity underlying
+# above. kotak_real_fo_orders.py's own docstring ("premium paid is the
+# entire risk, capped and known upfront") is true for index options and
+# FALSE for single-stock ones left open past expiry - a bought call/put
+# on any of these 210 names that isn't closed before expiry can result
+# in a REAL obligation to buy/sell the underlying shares (500+ per lot,
+# lot-size dependent), not a cash settlement. Any code that places real
+# orders against this list MUST force-close the position before expiry;
+# this module only resolves contracts, it never places or manages a
+# position, so that safety rule belongs wherever real orders eventually
+# get wired up, not here - flagging it at the point of definition so it
+# can't be missed later.
+STOCK_FO_UNDERLYINGS = (
+    "360ONE", "ABB", "ABCAPITAL", "ADANIENSOL", "ADANIENT", "ADANIGREEN", "ADANIPORTS",
+    "ADANIPOWER", "ALKEM", "AMBER", "AMBUJACEM", "ANGELONE", "APLAPOLLO", "APOLLOHOSP",
+    "ASHOKLEY", "ASIANPAINT", "ASTRAL", "ATHERENERG", "AUBANK", "AUROPHARMA", "AXISBANK",
+    "BAJAJ-AUTO", "BAJAJFINSV", "BAJAJHLDNG", "BAJFINANCE", "BANDHANBNK", "BANKBARODA",
+    "BANKINDIA", "BDL", "BEL", "BHARATFORG", "BHARTIARTL", "BHEL", "BIOCON", "BLUESTARCO",
+    "BOSCHLTD", "BPCL", "BRITANNIA", "BSE", "CAMS", "CANBK", "CDSL", "CGPOWER", "CHOLAFIN",
+    "CIPLA", "COALINDIA", "COCHINSHIP", "COFORGE", "COLPAL", "CONCOR", "CROMPTON",
+    "CUMMINSIND", "DABUR", "DELHIVERY", "DIVISLAB", "DIXON", "DLF", "DMART", "DRREDDY",
+    "EICHERMOT", "ETERNAL", "FEDERALBNK", "FORCEMOT", "FORTIS", "GAIL", "GLENMARK",
+    "GMRAIRPORT", "GODFRYPHLP", "GODREJCP", "GODREJPROP", "GRASIM", "GVT&D", "HAL", "HAVELLS",
+    "HCLTECH", "HDFCAMC", "HDFCBANK", "HDFCLIFE", "HEROMOTOCO", "HINDALCO", "HINDPETRO",
+    "HINDUNILVR", "HINDZINC", "HYUNDAI", "ICICIBANK", "ICICIGI", "ICICIPRULI", "IDEA",
+    "IDFCFIRSTB", "IEX", "INDHOTEL", "INDIANB", "INDIGO", "INDUSINDBK", "INDUSTOWER", "INFY",
+    "INOXWIND", "IOC", "IREDA", "IRFC", "ITC", "JINDALSTEL", "JIOFIN", "JSWENERGY", "JSWSTEEL",
+    "JUBLFOOD", "KALYANKJIL", "KAYNES", "KEI", "KFINTECH", "KOTAKBANK", "KPITTECH",
+    "LAURUSLABS", "LICHSGFIN", "LICI", "LODHA", "LT", "LTF", "LTM", "LUPIN", "M&M", "MAHABANK",
+    "MANAPPURAM", "MANKIND", "MARICO", "MARUTI", "MAXHEALTH", "MAZDOCK", "MCX", "MFSL",
+    "MOTHERSON", "MOTILALOFS", "MPHASIS", "MUTHOOTFIN", "NAM-INDIA", "NATIONALUM", "NAUKRI",
+    "NBCC", "NESTLEIND", "NHPC", "NMDC", "NTPC", "NYKAA", "OBEROIRLTY", "OFSS", "OIL", "ONGC",
+    "PAGEIND", "PATANJALI", "PAYTM", "PERSISTENT", "PETRONET", "PFC", "PGEL", "PHOENIXLTD",
+    "PIDILITIND", "PIIND", "PNB", "PNBHOUSING", "POLICYBZR", "POLYCAB", "POWERGRID",
+    "POWERINDIA", "PREMIERENE", "PRESTIGE", "RADICO", "RBLBANK", "RECLTD", "RELIANCE", "RVNL",
+    "SAGILITY", "SAIL", "SBICARD", "SBILIFE", "SBIN", "SHREECEM", "SHRIRAMFIN", "SIEMENS",
+    "SOLARINDS", "SONACOMS", "SRF", "SUNPHARMA", "SUPREMEIND", "SUZLON", "SWIGGY",
+    "TATACONSUM", "TATAELXSI", "TATAPOWER", "TATASTEEL", "TCS", "TECHM", "TIINDIA", "TITAN",
+    "TMPV", "TORNTPHARM", "TRENT", "TVSMOTOR", "ULTRACEMCO", "UNIONBANK", "UNITDSPR",
+    "UNOMINDA", "UPL", "VBL", "VEDL", "VMM", "VOLTAS", "WAAREEENER", "WIPRO", "YESBANK",
+    "ZYDUSLIFE",
+)
+_UNDERLYING_TO_SEGMENT.update({name: "nse_fo" for name in STOCK_FO_UNDERLYINGS})
+
 OPTIONS_MIN_DTE = 1
 OPTIONS_MAX_DTE = 10  # same near-week window options_pricing.py already uses for US chains
 
