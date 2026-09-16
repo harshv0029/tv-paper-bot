@@ -1263,6 +1263,60 @@ not a call into `main.py`'s live functions - the official validation
 replay must be run and confirmed to actually exercise the new
 implemented code before this is trusted as production-ready.
 
+## Gap and Go implementation status: swing engine built, live-validated, NOT YET MERGED TO MAIN (2026-09-16)
+
+Per user request, lowered production pool bar (PFnet>1, n>=100 kept) and
+implemented Gap and Go as real `main.py` code, following through on the
+finding above. Full status, so a future session (or a git-state check per
+this repo's own CLAUDE.md incident-prevention discipline) sees this
+accurately rather than trusting this prose:
+
+- **Architecture finding**: `main.py`'s existing engine (`_auto_signal_core`)
+  forces every position closed same-day (EOD squareoff or ~2hr max-hold).
+  Gap and Go's validated edge is structurally incompatible with that (avg
+  hold 32.9 days, 86% of the edge from positions held up to 60 days). User
+  chose to build a genuine swing execution capability rather than adapt
+  the signal into an unvalidated intraday shape.
+- **Implemented** (branch `claude/upbeat-brahmagupta-0ue0yj`, commit
+  `0dd1e39`): `signal_state_swing`/`swing_scan_log` tables,
+  `gap_and_go_entry_signal`/`gap_and_go_exit_reason` (line-for-line port of
+  the validated math, zero retuning), `SWING_WATCHLIST` (exactly the
+  validated 52-symbol universe), `_run_swing_scan` wired into
+  `_scheduler_tick` (once/IST-day, try/except-isolated from the intraday
+  tick), capital-sharing safety (`deployed_notional()` extended to include
+  swing's open notional; swing trades tagged with `SWING_STRATEGY_TAG`
+  which starts with `ORB_STRATEGY_PREFIX` so the existing shared daily-
+  loss-cap accounting picks up swing's realized P&L automatically).
+- **Explicitly NOT implemented**: real-order mirroring. `REAL_TRADING_ENABLED`
+  has no effect on this engine yet - paper trading only until Kotak
+  integration (matching `_maybe_place_real_entry`/`_maybe_place_real_exit`'s
+  broker-order/resting-stop-loss/fill-confirmation machinery) gets its own
+  dedicated, reviewed pass.
+- **Testing**: 14 new unit tests (`tests/test_swing_gap_and_go.py`) - entry/
+  exit signal correctness, validated-universe parity, capital integration,
+  scheduler wiring. Full suite: 203 passed (up from 189), same 2 pre-
+  existing unrelated failures as before (`test_trend_weakened_range_exclusion.py`).
+  `ast.parse` sanity-checked.
+- **Live-code validation replay** (`swing-gap-and-go-live-validation-replay.yml`,
+  run 35064464231, dispatched against the branch above): imports `main.py`
+  and calls the REAL `gap_and_go_entry_signal`/`gap_and_go_exit_reason`
+  functions directly (not a reimplementation), confirming the shipped code
+  reproduces the validated finding closely: **n=144, PFnet=1.60, PFgross=1.99**
+  vs. the validated n=142, PFnet=1.65, PFgross=2.06. The small 2-trade/0.05
+  PFnet difference is explained by the replay harness using a bounded
+  150-day rolling window recomputed fresh each day (vs. the original
+  research script's one-shot full-history rolling computation) - a
+  harness-level artifact, not drift in the shipped signal logic. Both
+  results comfortably clear the lowered pool bar (PFnet>1, n>=100) on
+  both legs.
+- **NOT merged to `main`.** Per this repo's CLAUDE.md, any change to entry/
+  exit/sizing logic needs the user's explicit go-ahead before merging to
+  `main` (which auto-deploys to Render on every push) - this implementation
+  is complete and validated but sits on its branch pending that go-ahead.
+  Even once merged, it will only ever paper-trade (see "explicitly NOT
+  implemented" above) until real-order mirroring is separately built and
+  approved.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
