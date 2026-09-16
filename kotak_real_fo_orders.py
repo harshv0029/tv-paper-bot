@@ -46,6 +46,23 @@ option's risk is capped at the premium already paid, so it doesn't need
 MIS's forced same-day squareoff the way a leveraged/short position
 would; this app's own exit logic (EOD squareoff, stop/target on the
 combined position) already manages the close explicitly.
+
+CRITICAL EXCEPTION to "premium paid is the entire risk" above, single-
+stock underlyings only (nse_fo_chain.STOCK_FO_UNDERLYINGS - 2026-09-16,
+confirmed live via RELIANCE's real scrip data): single-stock F&O in
+India settles by PHYSICAL DELIVERY of the underlying shares (option OR
+future) if left open past expiry, not cash settlement like every index/
+commodity underlying this module and nse_fo_chain.py otherwise resolve.
+A bought call/put or an open future on one of these 210 names that isn't
+closed before expiry can result in a real obligation to buy/sell the
+underlying shares - NOT capped at the premium paid. Any caller that
+opens a position in a STOCK_FO_UNDERLYINGS name MUST check
+nse_fo_chain.must_force_close_before_expiry(underlying, expiry) on every
+management tick and call place_real_fo_exit the moment it returns True -
+this module itself has no position-tracking/exit-loop of its own to
+enforce this (place_real_fo_entry/place_real_fo_exit are primitives, not
+a scheduler), so the requirement lives here, in writing, for whichever
+caller eventually manages these positions.
 """
 import kotak_neo
 

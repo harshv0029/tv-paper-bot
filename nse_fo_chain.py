@@ -134,6 +134,59 @@ STOCK_FO_UNDERLYINGS = (
 )
 _UNDERLYING_TO_SEGMENT.update({name: "nse_fo" for name in STOCK_FO_UNDERLYINGS})
 
+# Physical-settlement force-close safety rule (2026-09-16, explicit user
+# instruction after the physical-settlement risk finding: "do it").
+# Confirmed live the same day: RELIANCE's OWN FUTSTK row (the future, not
+# just an option) also carries pSettlementType="Physical" - the risk
+# applies to single-stock FUTURES too, not options alone, so this checks
+# any position in a STOCK_FO_UNDERLYINGS name, option or future.
+#
+# 2 trading days chosen as a deliberately conservative buffer (Kotak's
+# own physical-settlement mechanics - assignment cutoffs, margin calls on
+# an ITM position approaching expiry - haven't been live-verified in this
+# codebase; 2 days gives real margin for a scheduler tick to actually
+# catch and close the position before anything irreversible, rather than
+# cutting it exactly at expiry day itself).
+#
+# NOT YET WIRED to any caller: no F&O position-management/exit loop
+# exists yet for the ATM-banded candle-feed strategy engine (still being
+# built) - this is the pure, tested rule ready for that engine to call
+# once it exists. See kotak_real_fo_orders.py's own module docstring for
+# why its "premium paid is the entire risk" safety premise needs this
+# function's help to stay true for these 210 underlyings.
+PHYSICAL_SETTLEMENT_FORCE_CLOSE_DAYS_BEFORE_EXPIRY = 2
+
+
+def is_physically_settled(underlying: str) -> bool:
+    """True if `underlying` is one of the 210 confirmed single-stock F&O
+    names (settles by physical delivery, not cash) - i.e. it's in
+    STOCK_FO_UNDERLYINGS. Every index/commodity underlying this module
+    resolves (NIFTY/BANKNIFTY/SENSEX/GOLD/GOLDM/SILVER/SILVERM/
+    CRUDEOIL/CRUDEOILM) is cash-settled and always returns False here."""
+    return underlying in STOCK_FO_UNDERLYINGS
+
+
+def must_force_close_before_expiry(underlying: str, expiry: str, as_of: dt.date | None = None) -> bool:
+    """True if a position (option OR future) in `underlying` expiring on
+    `expiry` (YYYY-MM-DD) must be closed NOW to avoid reaching physical
+    settlement - i.e. `as_of` (defaults to today) is within
+    PHYSICAL_SETTLEMENT_FORCE_CLOSE_DAYS_BEFORE_EXPIRY days of `expiry`.
+    Always False for a cash-settled underlying
+    (is_physically_settled(underlying) is False) - a pure no-op for
+    every index/commodity underlying this module resolves, so it's safe
+    to call unconditionally on any position without first checking which
+    kind of underlying it is."""
+    if not is_physically_settled(underlying):
+        return False
+    expiry_date = _parse_iso_date(expiry)
+    today = as_of or dt.date.today()
+    return (expiry_date - today).days <= PHYSICAL_SETTLEMENT_FORCE_CLOSE_DAYS_BEFORE_EXPIRY
+
+
+def _parse_iso_date(iso_date: str) -> dt.date:
+    return dt.datetime.strptime(iso_date, "%Y-%m-%d").date()
+
+
 OPTIONS_MIN_DTE = 1
 OPTIONS_MAX_DTE = 10  # same near-week window options_pricing.py already uses for US chains
 
