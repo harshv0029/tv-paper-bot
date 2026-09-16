@@ -1355,6 +1355,49 @@ average hold is minutes-to-hours, not days. **Not a pool candidate, no
 follow-up planned** - the daily-bar swing version already validated and
 shipped is the version of this idea worth pursuing further, not this one.
 
+## CAGR across holding periods, all 11 swing/daily-bar strategies (2026-09-16)
+
+Explicit user request: "calculate and publish CAGR for holding periods in
+all non intraday strategies." Additive (non-compounding) methodology -
+every trade's (exit_date, net_pnl_inr) across all 52 symbols, applied to a
+running account balance in exit-date order; position sizing still uses
+each strategy's own existing per-trade formula against the fixed starting
+capital, never against the running balance. `CAGR = (final_balance /
+CAPITAL_INR)^(365.25/total_days) - 1`. **Caveat, not hidden: this does NOT
+enforce the shared/finite capital pool multiple concurrently-open
+positions would actually draw on in live trading** (main.py's real engine
+does, via `deployed_notional()`) - an idealized/upper-bound "if this
+account only ever ran this one strategy" figure, not a live-trading
+return guarantee. `swing-strategies-cagr-research.yml`, run 35067132822.
+
+| strategy | n | PFnet | CAGR% | final_balance | total_days |
+|---|---|---|---|---|---|
+| Gap and Go, 5-year window | 142 | 1.65 | **+5.25%** | Rs513,780 | 1787 |
+| Gap and Go, 2-year window | 59 | 1.08 | +0.66% | Rs404,966 | 685 |
+| Fibonacci retracement, wide trail 3.0x | 40 | 0.53 | -4.76% | Rs369,132 | 602 |
+| Supertrend 3.0x ATR flip-only | 135 | 0.76 | -8.69% | Rs359,677 | 427 |
+| Golden Cross 50/200 SMA | 37 | 0.37 | -13.45% | Rs337,589 | 429 |
+| Donchian breakout 55-day | 163 | 0.54 | -21.60% | Rs264,279 | 622 |
+| Bollinger Band squeeze breakout | 212 | 0.54 | -24.11% | Rs266,040 | 540 |
+| MACD crossover 12/26/9 | 503 | 0.60 | -35.32% | Rs189,093 | 628 |
+| RSI(2) mean reversion | 462 | 0.45 | -50.04% | Rs177,027 | 429 |
+| MACD crossover, tighter stop 1.5x | 503 | 0.61 | -68.73% | Rs54,371 | 627 |
+| RSI(2), tighter stop 1.5x | 479 | 0.45 | -70.95% | Rs93,640 | 429 |
+
+**Only Gap and Go clears CAGR > 0% of the 11 strategies tested.** Every
+other strategy in this batch - including some with PFnet nominally above
+1.0 on shorter/different windows tested elsewhere in this log - loses
+money once run to its full realistic holding period across the 52-symbol
+universe with costs applied. This is a stronger, more honest signal than
+PFnet alone: **CAGR is the number that should gate a strategy's promotion
+to the live pool going forward, not PFnet in isolation** - a positive
+PFnet with a negative CAGR means the strategy is a net capital-loser over
+its own realistic hold length once trade frequency/sizing/costs compound
+across a real multi-day campaign. No pool changes made from this alone,
+per this session's standing "never tune/promote blind on one result"
+discipline - flagging for the user's review alongside the rest of this
+session's combined report.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
