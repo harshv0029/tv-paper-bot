@@ -326,7 +326,25 @@ async def run_fo_candle_feed():
         try:
             cache_age = time.time() - _universe_cache["resolved_at"]
             if _universe_cache["value"] is None or cache_age > UNIVERSE_REFRESH_SECONDS:
-                universe = resolve_fo_universe()
+                # asyncio.to_thread (2026-09-16, live Render restart-loop
+                # fix): resolve_fo_universe() does a blocking search_scrip
+                # call per underlying/expiry-class across all ~213
+                # underlyings (3 index + 210 stock) - at Kotak's own
+                # documented 10 req/sec REST cap that's tens of seconds to
+                # minutes of pure synchronous I/O. Called bare (no await)
+                # inside this coroutine, that blocks the WHOLE asyncio
+                # event loop - the same loop uvicorn uses to serve every
+                # HTTP request, including Render's own health check -  on
+                # every process start (this cache is always None right
+                # after a restart) and every 4h refresh. A blocked health
+                # check reads as a dead app to Render, which restarts the
+                # process, which blocks the loop again on the next boot -
+                # an unbounded restart loop, exactly what was observed
+                # live. main.py's own _scheduler_tick already establishes
+                # this exact pattern (asyncio.to_thread wrapping
+                # _auto_signal_core) for the same reason - this call site
+                # just never got it.
+                universe = await asyncio.to_thread(resolve_fo_universe)
                 _universe_cache["value"] = universe
                 _universe_cache["resolved_at"] = time.time()
             else:
