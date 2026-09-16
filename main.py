@@ -1584,6 +1584,28 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         df["long"] = flags
         df["percent_k"], df["percent_d"] = percent_k, percent_d
 
+    elif strategy == "cci_breakout":
+        # Direct follow-up to yesterday's stochastic research: an
+        # NSE-specific 2004-2014 study on Nifty 50 found CCI outperformed
+        # both Stochastic and RSI (research.gate/paperswithbacktest.com
+        # summary, 2026-09-16). Classic Lambert momentum-breakout rule
+        # (distinct in character from the mean-reversion oscillators
+        # above): long while CCI stays above +threshold (default 100) -
+        # a trend-momentum signal, not a bounce. Sources also note a
+        # "quality" narrower-signal version (fewer trades, ~60-70% win
+        # rate) - threshold is exposed as a param so that can be swept
+        # rather than assumed.
+        period = int(params.get("period", 20))
+        threshold = float(params.get("threshold", 100))
+
+        typical = (df["High"] + df["Low"] + df["Close"]) / 3
+        sma_tp = typical.rolling(period).mean()
+        mean_dev = typical.rolling(period).apply(lambda x: np.abs(x - x.mean()).mean(), raw=True)
+        cci = (typical - sma_tp) / (0.015 * mean_dev.replace(0, float("nan")))
+
+        df["long"] = (cci > threshold).fillna(False)
+        df["cci"] = cci
+
     elif strategy == "macd_cross":
         fast_span = int(params.get("macd_fast", 12))
         slow_span = int(params.get("macd_slow", 26))
@@ -1734,8 +1756,8 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
                    f"vwap_breakout_retest, anchored_vwap_continuation, anchored_vwap_reversal, "
                    f"vwap_multi_period_reversal, bullish_engulfing, pin_bar_reversal, "
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
-                   f"stochastic_oversold_reversal, macd_cross, wyckoff_spring, wyckoff_sos, "
-                   f"vsa_climax_reversal, mtf_engulfing",
+                   f"stochastic_oversold_reversal, cci_breakout, macd_cross, wyckoff_spring, "
+                   f"wyckoff_sos, vsa_climax_reversal, mtf_engulfing",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -1846,6 +1868,8 @@ def backtest(
     divergence_lookback: int = 14,
     k_period: int = 14,
     d_period: int = 3,
+    cci_period: int = 20,
+    cci_threshold: float = 100,
     qty: float = 1,
 ):
     """
@@ -1881,6 +1905,7 @@ def backtest(
     strategy=inside_bar_breakout  -> params: trend_sma (0=off), max_wait_bars
     strategy=rsi_divergence       -> params: rsi_period, divergence_lookback
     strategy=stochastic_oversold_reversal -> params: k_period, d_period, oversold, overbought
+    strategy=cci_breakout         -> params: cci_period, cci_threshold
     strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
     strategy=mtf_engulfing        -> params: htf_minutes, htf_trend_fast, htf_trend_slow
     """
@@ -1934,6 +1959,8 @@ def backtest(
         params = {"rsi_period": rsi_period, "lookback": divergence_lookback}
     elif strategy == "stochastic_oversold_reversal":
         params = {"k_period": k_period, "d_period": d_period, "oversold": oversold, "overbought": overbought}
+    elif strategy == "cci_breakout":
+        params = {"period": cci_period, "threshold": cci_threshold}
     elif strategy == "macd_cross":
         params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
     elif strategy == "mtf_engulfing":
@@ -2016,6 +2043,9 @@ def sweep(
     # stochastic_oversold_reversal params - comma-separated lists (reuses oversold/overbought above)
     k_period: str = "9,14,21",
     d_period: str = "3,5",
+    # cci_breakout params - comma-separated lists
+    cci_period: str = "14,20,30",
+    cci_threshold: str = "80,100,150",
 ):
     """
     Tests every combination of the given parameter lists against ONE fetch of
@@ -2111,13 +2141,19 @@ def sweep(
             for kp, dp, o, b in product(kp_list, dp_list, os_list, ob_list)
             if o < b
         ]
+    elif strategy == "cci_breakout":
+        cp_list = _parse_num_list(cci_period, int)
+        ct_list = _parse_num_list(cci_threshold, float)
+        combos = [
+            {"period": cp, "threshold": ct} for cp, ct in product(cp_list, ct_list)
+        ]
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
                    f"orb_breakout, orb_volume, bullish_engulfing, pin_bar_reversal, "
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
-                   f"stochastic_oversold_reversal",
+                   f"stochastic_oversold_reversal, cci_breakout",
         )
 
     if not combos:
