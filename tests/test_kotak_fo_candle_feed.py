@@ -1,0 +1,202 @@
+"""Unit tests for kotak_fo_candle_feed.py (2026-09-16, explicit user
+instruction: run the existing trading algorithms on each ATM+/-15 option
+strike's own premium candles). Pure-logic pieces only - the actual
+websocket connect/subscribe loop needs a live Kotak session, same
+limitation as every other kotak_neo-dependent code path in this repo's
+test suite (see kotak_live_feed.py's own test file, if any, for the same
+pattern).
+
+Run: pytest tests/ -v
+"""
+import inspect
+import os
+import sqlite3
+import tempfile
+from unittest.mock import patch
+
+import kotak_fo_candle_feed as feed
+import main
+
+
+def _fresh_conn():
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    conn.execute(
+        """
+        CREATE TABLE fo_option_candles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            instrument_token TEXT NOT NULL,
+            kotak_trading_symbol TEXT NOT NULL,
+            underlying TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            right TEXT,
+            strike REAL,
+            expiry TEXT,
+            bucket_start_ts REAL NOT NULL,
+            open REAL NOT NULL, high REAL NOT NULL, low REAL NOT NULL, close REAL NOT NULL,
+            tick_count INTEGER NOT NULL,
+            UNIQUE(instrument_token, bucket_start_ts)
+        )
+        """
+    )
+    conn.commit()
+    return conn
+
+
+_DESC = {
+    "kind": "option", "underlying": "NIFTY", "right": "call", "strike": 24500.0,
+    "expiry": "2026-10-05", "kotak_trading_symbol": "NIFTY26OCT24500CE",
+}
+
+
+def setup_function(_):
+    feed._in_progress_candles.clear()
+
+
+def test_bucket_start_floors_to_the_candle_interval():
+    assert feed._bucket_start(0) == 0
+    assert feed._bucket_start(299) == 0
+    assert feed._bucket_start(300) == 300
+    assert feed._bucket_start(301) == 300
+    assert feed._bucket_start(599) == 300
+    assert feed._bucket_start(600) == 600
+
+
+def test_first_tick_starts_a_new_bar_and_returns_nothing_completed():
+    completed = feed.apply_tick("TOK1", 120.5, ts=100.0, descriptor=_DESC)
+    assert completed is None
+    bar = feed._in_progress_candles["TOK1"]
+    assert bar == {"bucket_start_ts": 0, "open": 120.5, "high": 120.5, "low": 120.5, "close": 120.5, "tick_count": 1}
+
+
+def test_ticks_within_the_same_bucket_update_ohlc_correctly():
+    feed.apply_tick("TOK1", 100.0, ts=10.0, descriptor=_DESC)
+    feed.apply_tick("TOK1", 110.0, ts=50.0, descriptor=_DESC)
+    feed.apply_tick("TOK1", 90.0, ts=90.0, descriptor=_DESC)
+    completed = feed.apply_tick("TOK1", 105.0, ts=200.0, descriptor=_DESC)
+    assert completed is None
+    bar = feed._in_progress_candles["TOK1"]
+    assert bar["open"] == 100.0
+    assert bar["high"] == 110.0
+    assert bar["low"] == 90.0
+    assert bar["close"] == 105.0
+    assert bar["tick_count"] == 4
+
+
+def test_a_tick_in_the_next_bucket_completes_and_returns_the_prior_bar():
+    feed.apply_tick("TOK1", 100.0, ts=10.0, descriptor=_DESC)
+    feed.apply_tick("TOK1", 120.0, ts=250.0, descriptor=_DESC)
+    completed = feed.apply_tick("TOK1", 130.0, ts=305.0, descriptor=_DESC)  # crosses into next 300s bucket
+    assert completed is not None
+    assert completed["bucket_start_ts"] == 0
+    assert completed["open"] == 100.0
+    assert completed["high"] == 120.0
+    assert completed["close"] == 120.0
+    assert completed["tick_count"] == 2
+    # the new bar has already started for the tick that crossed the boundary
+    new_bar = feed._in_progress_candles["TOK1"]
+    assert new_bar["bucket_start_ts"] == 300
+    assert new_bar["open"] == 130.0
+    assert new_bar["tick_count"] == 1
+
+
+def test_completed_candle_is_persisted_when_a_connection_is_given():
+    conn = _fresh_conn()
+    feed.apply_tick("TOK1", 100.0, ts=10.0, descriptor=_DESC, conn=conn)
+    feed.apply_tick("TOK1", 130.0, ts=305.0, descriptor=_DESC, conn=conn)  # completes bucket 0
+    rows = conn.execute("SELECT * FROM fo_option_candles").fetchall()
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["instrument_token"] == "TOK1"
+    assert row["kotak_trading_symbol"] == "NIFTY26OCT24500CE"
+    assert row["underlying"] == "NIFTY"
+    assert row["kind"] == "option"
+    assert row["right"] == "call"
+    assert row["strike"] == 24500.0
+    assert row["open"] == 100.0
+    assert row["close"] == 100.0  # only one tick landed in bucket 0 before it closed
+    assert row["tick_count"] == 1
+
+
+def test_no_persistence_call_without_a_connection():
+    # Same sequence as above but conn=None (the default) - must not raise,
+    # must not attempt any DB write.
+    feed.apply_tick("TOK1", 100.0, ts=10.0, descriptor=_DESC)
+    completed = feed.apply_tick("TOK1", 130.0, ts=305.0, descriptor=_DESC)
+    assert completed is not None  # aggregation still works, just nothing persisted
+
+
+def test_apply_tick_ignores_a_nonpositive_or_none_price():
+    assert feed.apply_tick("TOK1", None, ts=10.0, descriptor=_DESC) is None
+    assert feed.apply_tick("TOK1", 0.0, ts=10.0, descriptor=_DESC) is None
+    assert feed.apply_tick("TOK1", -5.0, ts=10.0, descriptor=_DESC) is None
+    assert "TOK1" not in feed._in_progress_candles
+
+
+def test_different_instrument_tokens_track_independent_bars():
+    feed.apply_tick("TOK1", 100.0, ts=10.0, descriptor=_DESC)
+    feed.apply_tick("TOK2", 50.0, ts=10.0, descriptor=_DESC)
+    feed.apply_tick("TOK1", 105.0, ts=50.0, descriptor=_DESC)
+    assert feed._in_progress_candles["TOK1"]["tick_count"] == 2
+    assert feed._in_progress_candles["TOK2"]["tick_count"] == 1
+
+
+def test_resolve_fo_universe_skips_an_underlying_with_no_spot_and_records_it():
+    with patch.object(feed, "_spot_price", return_value=None):
+        universe = feed.resolve_fo_universe()
+    assert universe == {}
+    assert all("spot_unavailable" in u for u in feed._feed_status["unresolved_legs"])
+    assert len(feed._feed_status["unresolved_legs"]) == len(feed.FO_CANDLE_UNDERLYINGS)
+
+
+def test_resolve_fo_universe_merges_future_and_option_legs():
+    fut = {
+        "underlying": "NIFTY", "kotak_trading_symbol": "NIFTY26OCTFUT", "instrument_token": "1",
+        "exchange_segment": "nse_fo", "lot_size": 65, "expiry": "2026-10-27", "dte": 10,
+    }
+    call_leg = {
+        "underlying": "NIFTY", "right": "call", "expiry": "2026-10-05", "dte": 5,
+        "expiry_class": "weekly", "strike": 24500.0, "kotak_trading_symbol": "NIFTY26OCT24500CE",
+        "instrument_token": "2", "exchange_segment": "nse_fo", "lot_size": 65,
+    }
+    with patch.object(feed, "_spot_price", return_value=24500.0), \
+         patch("nse_fo_chain.select_nse_future", return_value=(fut, None)), \
+         patch("nse_fo_chain.select_atm_banded_option_strikes", return_value=([call_leg], None)):
+        universe = feed.resolve_fo_universe()
+    # 3 underlyings x (1 future + 2 rights x 2 expiry_classes x 1 mocked leg each) = 3 x 5 = 15,
+    # but the future/option instrument_tokens are IDENTICAL mocks across all 3 underlyings/rights/
+    # expiry_classes here (same fixture reused), so they collapse to the same 2 dict keys.
+    assert len(universe) == 2
+    assert universe[("nse_fo", "1")]["kind"] == "future"
+    assert universe[("nse_fo", "2")]["kind"] == "option"
+    assert universe[("nse_fo", "2")]["strike"] == 24500.0
+
+
+def test_startup_event_launches_the_fo_candle_feed_task():
+    src = inspect.getsource(main._start_scheduler)
+    assert "kotak_fo_candle_feed" in src
+    assert "run_fo_candle_feed()" in src
+
+
+def test_startup_event_still_launches_the_equity_feed_task_unchanged():
+    # The new task must be ADDED, not have replaced the existing one.
+    src = inspect.getsource(main._start_scheduler)
+    assert "kotak_live_feed" in src
+    assert "run_feed(" in src
+
+
+def test_init_db_creates_the_fo_option_candles_table():
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    old_path = main.DB_PATH
+    try:
+        main.DB_PATH = path
+        main.init_db()
+        conn = sqlite3.connect(path)
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(fo_option_candles)").fetchall()}
+        conn.close()
+    finally:
+        main.DB_PATH = old_path
+    assert {"instrument_token", "bucket_start_ts", "open", "high", "low", "close", "tick_count"} <= cols
