@@ -436,6 +436,24 @@ def init_db():
         )
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS fo_option_candles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                instrument_token TEXT NOT NULL,
+                kotak_trading_symbol TEXT NOT NULL,
+                underlying TEXT NOT NULL,       -- Kotak pSymbolName, e.g. 'NIFTY'
+                kind TEXT NOT NULL,             -- 'option' | 'future'
+                right TEXT,                     -- 'call' | 'put' - NULL for a future row
+                strike REAL,                    -- NULL for a future row
+                expiry TEXT,                    -- YYYY-MM-DD
+                bucket_start_ts REAL NOT NULL,  -- start of this candle's interval, epoch seconds
+                open REAL NOT NULL, high REAL NOT NULL, low REAL NOT NULL, close REAL NOT NULL,
+                tick_count INTEGER NOT NULL,
+                UNIQUE(instrument_token, bucket_start_ts)
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS option_state (
                 opt_symbol TEXT PRIMARY KEY,  -- "{underlying}:OPT-CALL" / "{underlying}:OPT-PUT"
                 underlying TEXT NOT NULL,
@@ -9722,6 +9740,18 @@ async def _start_scheduler():
         asyncio.create_task(kotak_live_feed.run_feed([cfg["symbol"] for cfg in WATCHLIST]))
     except Exception as e:
         print(f"[kotak_live_feed] not started: {e}")
+    # F&O per-strike candle feed (2026-09-16, explicit user instruction:
+    # run the existing algorithms on each option strike's own premium
+    # candles, ATM+/-15 band) - own isolated task, own websocket
+    # connection, separate from kotak_live_feed above on purpose (that
+    # one is display-only; this one's candles will eventually feed real
+    # trading decisions - see kotak_fo_candle_feed.py's own module
+    # docstring for the full isolation reasoning).
+    try:
+        import kotak_fo_candle_feed
+        asyncio.create_task(kotak_fo_candle_feed.run_fo_candle_feed())
+    except Exception as e:
+        print(f"[kotak_fo_candle_feed] not started: {e}")
 
 
 @app.get("/scheduler-status")
@@ -9764,6 +9794,23 @@ def kotak_neo_live_ticks(request: Request):
         return {"ticks": kotak_live_feed.get_live_ticks(), "status": kotak_live_feed.get_feed_status()}
     except Exception as e:
         return {"ticks": {}, "status": {"connected": False, "last_error": str(e)}}
+
+
+@app.get("/kotak-neo/fo-candle-feed-status")
+def kotak_neo_fo_candle_feed_status(request: Request):
+    """Status of the F&O per-strike candle feed (kotak_fo_candle_feed.py) -
+    ATM+/-15 band across NIFTY/BANKNIFTY/SENSEX, weekly+monthly, calls+
+    puts, plus each underlying's near-month future. Gated behind
+    KOTAK_NEO_API_TOKEN, same reasoning as /kotak-neo/live-ticks (an
+    unverified-under-real-failure websocket code path). Candle rows
+    themselves live in fo_option_candles, not returned here - this is
+    connection/subscription health only."""
+    _require_kotak_token(request)
+    try:
+        import kotak_fo_candle_feed
+        return {"status": kotak_fo_candle_feed.get_feed_status()}
+    except Exception as e:
+        return {"status": {"connected": False, "last_error": str(e)}}
 
 
 # Data source per monitored symbol (2026-09-03) - "MCX_PROXY" symbols run on
