@@ -1398,6 +1398,83 @@ per this session's standing "never tune/promote blind on one result"
 discipline - flagging for the user's review alongside the rest of this
 session's combined report.
 
+## F&O (futures + options) backtests, all 8 validated swing strategies (2026-09-16)
+
+Explicit user request: "run the existing or already tested strategies on
+the future and options strikes and share outcomes." Same signal/exit
+logic as each strategy's already-validated equity swing backtest, byte-
+identical (AST-diff verified) - only the downstream sizing/cost/P&L layer
+is instrument-specific. 52-symbol universe, same as every other backtest
+in this log. **Exploratory/instrument-approximation, not a claim these are
+the real listed contracts** - see each workflow's own disclosure.
+`fo-futures-backtest-research.yml` run 35087286916,
+`fo-options-blackscholes-backtest-research.yml` run 35087289851.
+
+### Futures: 0/1,694 signals tradeable at this project's own risk budget
+
+Confirms Agent C's pre-flagged analytical finding, now with real numbers.
+Futures margin ~18%, lot sized so 1 lot's margin ~Rs 1 lakh (disclosed
+round-number assumption, not the real per-symbol NSE lot table). At this
+project's standing 1-2% risk_pct on Rs 4L capital, **every single one of
+the 1,694 raw signals across all 8 strategies rounded down to 0 whole
+lots** - avg fill ratio (risk-sized qty / one lot) ranged 0.06-0.11, i.e.
+the risk-based position size is roughly 1/10th of one lot. A
+supplementary, explicitly-non-tradeable "no lot rounding" variant (allows
+fractional lots, answers "was the sizing formula itself directionally
+sound" only) shows the same signal quality as the equity backtests
+(PFnet 0.48-1.96 depending on strategy) - the sizing logic itself isn't
+broken, but real NSE lot granularity makes it **structurally untradeable
+at this account's current capital/risk_pct combination**. Bigger capital
+or a materially higher risk_pct would be needed before futures is usable
+here at all - not a code bug, a capital-fit finding.
+
+### Options (Black-Scholes approx): tradeable, but tenor-mismatched and small-n
+
+Synthetic premiums via Black-Scholes on trailing 20-day realized
+volatility (not real market IV - no skew/smile, no liquidity/spread
+constraint modeled). Weekly expiry: 404/1,694 signals priced+sized (23.8%
+fill). Monthly: 89/1,694 (5.3% fill) - most raw signals skip on
+`premium_exceeds_risk_budget` (the option premium itself exceeds the
+per-trade risk amount) or `zero_entry_premium` (deep OTM/expired).
+
+Confirms Agent C's pre-flagged tenor-mismatch finding: **the overwhelming
+majority of weekly trades are forced to expiry-settle before the
+underlying strategy's own signal exit ever fires** - e.g. donchian_breakout
+38/38 (100%), supertrend weekly 25/25 (100%), macd_crossover weekly
+123/133 (92%), gap_and_go weekly 11/12 (92%). The option's own short tenor
+decides the exit, not the strategy's designed edge - theta/expiry, not
+the signal, governs these trades.
+
+| strategy | expiry | n | PFnet | avgHeld |
+|---|---|---|---|---|
+| macd_crossover | weekly | 133 | 4.03 | 1.5d |
+| rsi2_mean_reversion | weekly | 126 | 1.37 | 1.6d |
+| bb_squeeze_breakout | weekly | 57 | 1.53 | 1.6d |
+| donchian_breakout_55d | weekly | 38 | 2.23 | 1.5d |
+| supertrend_3x_flip | weekly | 25 | 2.42 | 1.6d |
+| golden_cross_50_200 | weekly | 6 | 0.12 | 1.5d |
+| fibonacci_wide_trail | weekly | 7 | 0.43 | 1.7d |
+| gap_and_go_5y | weekly | 12 | 3.39 | 1.5d |
+| macd_crossover | monthly | 32 | 10.07 | 2.1d |
+| donchian_breakout_55d | monthly | 6 | 5.15 | 1.7d |
+| others (monthly) | monthly | 1-3 each | not meaningful (n<5) | - |
+
+**Not a pool candidate from this alone.** The PFnet figures above look
+striking (some >4, one monthly bucket at 10.07) but per this session's
+standing "never tune/promote blind on one result" discipline: (1) most
+buckets have n<40 with fat right tails (a handful of large convex
+long-option wins dominate the sum - several monthly buckets show PFnet in
+the 50-100+ range on n=1-3, which is noise, not edge); (2) the exit is
+overwhelmingly expiry-driven, not signal-driven, so these numbers measure
+"buying a short-dated option shortly before this signal fires" more than
+they measure the swing strategy's own edge; (3) real IV (skew, event
+premium, liquidity) is not modeled - the synthetic Black-Scholes premium
+is a best-effort approximation, explicitly disclosed as such in the
+workflow's own header. Flagging macd_crossover and rsi2_mean_reversion
+weekly (the two buckets with both n>100 and PFnet>1) as the only
+candidates worth a follow-up with real IV data before any promotion
+decision - everything else here is exploratory color, not a finding.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
