@@ -9920,8 +9920,30 @@ async def _start_scheduler():
 
 @app.get("/scheduler-status")
 def scheduler_status():
+    # Unified count (2026-09-16, per the user's own earlier agreement
+    # that this should stop being equity-only once the F&O RSI2 engine
+    # was actually running on a schedule - see _run_fo_options_scan,
+    # now wired into _scheduler_tick above). watchlist_size stays an
+    # int (equity + every currently-subscribed F&O leg, options AND
+    # futures) so nothing reading it as a plain count breaks; the
+    # per-source split lives in watchlist_breakdown for anything that
+    # needs the detail. Never raises even if the F&O feed hasn't
+    # resolved a universe yet - falls back to an empty breakdown.
+    try:
+        import kotak_fo_candle_feed
+        fo_universe = kotak_fo_candle_feed.get_cached_fo_universe()
+    except Exception:
+        fo_universe = {}
+    fo_options = sum(1 for d in fo_universe.values() if d["kind"] == "option")
+    fo_futures = sum(1 for d in fo_universe.values() if d["kind"] == "future")
+    equity = len(WATCHLIST)
+    watchlist_breakdown = {
+        "equity": equity, "fo_options": fo_options, "fo_futures": fo_futures,
+        "total": equity + fo_options + fo_futures,
+    }
     return {
-        "watchlist_size": len(WATCHLIST),
+        "watchlist_size": watchlist_breakdown["total"],
+        "watchlist_breakdown": watchlist_breakdown,
         "interval_seconds": SCHEDULER_INTERVAL_SECONDS,
         "last_tick_ts": _scheduler_last_tick_ts,
         "last_tick_ago_seconds": round(time.time() - _scheduler_last_tick_ts, 1) if _scheduler_last_tick_ts else None,
