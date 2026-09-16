@@ -226,6 +226,17 @@ def resolve_tokens(client, watchlist_symbols: list) -> dict:
                     row = by_name.get(bare_name)
                     if row and row.get("pSymbol") is not None:
                         resolved[watchlist_sym] = ("nse_cm", str(row["pSymbol"]))
+                # Live Render OOM incident (2026-09-16): all_nse_cm/by_name
+                # together hold Kotak's ENTIRE nse_cm scrip master (tens
+                # of thousands of rows) - needed only for this brief
+                # lookup, but without freeing them here they'd stay
+                # referenced by this function's own frame all the way
+                # through the MCX resolution below, unnecessarily
+                # doubling this call's peak memory footprint for no
+                # reason (this module's own history already documents
+                # two prior Render OOM crashes from this exact download -
+                # see _TOKEN_MAP_CACHE_TTL_SECONDS's comment).
+                del all_nse_cm, by_name
         except Exception:
             pass  # left unresolved - run_feed's own check reports this
 
