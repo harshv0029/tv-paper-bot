@@ -9277,6 +9277,27 @@ _scheduler_last_results: dict = {}
 # this without losing coverage: an open position is ALWAYS checked every
 # tick (time-critical - stop/target/eod), and flat symbols rotate through
 # a bounded batch per tick instead of all being scanned every time.
+# Live Render incident (2026-09-16): after fixing the port-scan-timeout
+# bug (moving kotak_fo_candle_feed.resolve_fo_universe and kotak_live_
+# feed.resolve_tokens/login off the event loop via asyncio.to_thread -
+# see each call site's own comment), the app booted fast and served
+# real traffic, then the process vanished with NO Python traceback -
+# the signature of an OOM kill, not a code exception. Root cause:
+# before that fix, the two heavy resolves (F&O: ~213 underlyings'
+# worth of search_scrip calls; equity: a full nse_cm scrip-master
+# download - see kotak_live_feed's own _TOKEN_MAP_CACHE_TTL_SECONDS
+# comment for that one's documented prior OOM history) could only ever
+# run ONE AT A TIME, because each blocked the WHOLE event loop while
+# running - whichever started first monopolized the loop, so the other
+# couldn't even begin until it finished. Moving both to asyncio.to_thread
+# fixed the blocking bug but also removed that ACCIDENTAL serialization,
+# letting their peak memory usage stack on top of each other. This lock
+# restores serialization deliberately (each resolve still runs off the
+# event loop via to_thread - Render's port scan is unaffected - just
+# not at the same moment as the other one anymore), shared between
+# kotak_fo_candle_feed.run_fo_candle_feed and kotak_live_feed.run_feed.
+_heavy_startup_resolve_lock = asyncio.Lock()
+
 _scheduler_rr_cursor = 0
 SCHEDULER_ENTRY_SCAN_BATCH_SIZE = 35  # flat symbols freshly entry-scanned per tick, round-robin -
 # bumped from 12 -> 35 on 2026-09-04, explicit user instruction, after the
