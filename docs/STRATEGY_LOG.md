@@ -1085,6 +1085,68 @@ candidate (the problem is the entry signal itself, not cost drag or
 tail risk), so no follow-up planned on this thread without a
 fundamentally different entry filter.
 
+## Golden Cross 50/200 SMA - fresh entry-signal thread (2026-09-16)
+
+Per user request ("try the next strategy from a popular YouTuber"),
+tested the classic 50/200-day SMA "Golden Cross" position-trading
+system - one of the most widely taught trend-following setups in retail
+trading education, structurally distinct from every prior test this
+session (a very slow long-horizon MA crossover, not MACD's fast EMA
+crossover, not a volatility-band mechanic, not a retracement, not a
+range breakout, not a mean-reversion threshold). Canonical rules:
+entry when the 50-day SMA crosses above the 200-day SMA, exit on the
+reverse (death cross). Disclosed additions: 2.5x ATR(14) protective
+stop, and a 250-trading-day (~1 year) max-hold - deliberately much
+longer than every other test's 60-day cap, since Golden Cross positions
+are meant to be held for months and a 60-day cap would force nearly
+every trade to time out regardless of signal. Crossover math verified
+independently on synthetic decline->uptrend->downtrend data before
+pushing (both a golden cross entry and death cross exit confirmed to
+fire correctly).
+`swing-golden-cross-research.yml`, run 35059442241.
+
+| metric | value |
+|---|---|
+| n | 37 |
+| win% | 21.6% |
+| PFgross | 0.46 |
+| PFnet | **0.37** |
+| cost drag | 11.9% |
+| avg held | 65.8d |
+
+By exit reason:
+
+| reason | n | %total | win% | PFnet | PFgross | avgGross |
+|---|---|---|---|---|---|---|
+| stop_hit (our added stop, not canonical) | 23 | 62.2% | 0.0% | 0.00 | 0.00 | **-3,603** |
+| death_cross (intended exit) | 3 | 8.1% | 33.3% | 1.31 | 1.75 | +586 |
+| max_hold_timeout | 2 | 5.4% | 100.0% | inf | inf | +11,675 |
+| data_end_forced_close | 9 | 24.3% | 55.6% | 3.20 | 6.69 | +1,164 |
+
+**Worst PFnet of any strategy tested this session (0.37) - but on the
+smallest and least meaningful sample (n=37).** Golden crosses are rare
+events by design (a 200-day SMA only crosses a handful of times per
+symbol in 2 years), and the 200-day lookback consumes most of the
+2-year window before any signal can even fire, so this test never
+approached the session's usual ~200-500 trade samples. More
+importantly, the canonical exit (death_cross) fired on only 3 of 37
+trades (8.1%) - the disclosed protective stop did almost all the work
+(62.2% of trades), meaning this test mostly measured "how often does a
+freshly-crossed position immediately fail and hit its stop," not the
+Golden Cross system's actual designed behavior of riding a multi-month
+trend to its natural reversal. The few trades that did survive to a
+real exit (death_cross, max_hold, or still-open at data end) were
+mostly profitable, consistent with Golden Cross's reputation as a slow
+but real trend-following edge over long enough hold periods - the
+data-end-forced-close and max_hold buckets alone (11 trades, 30% of
+total) average solidly positive gross P&L. **Conclusion: inconclusive
+on this universe/timeframe, not refuted** - a fair test of this
+strategy needs a much longer backtest window (5-10+ years) to let
+enough crosses mature past the 1-year mark; the 2-year window used for
+every other test this session is structurally too short for a signal
+this infrequent. Not a candidate for follow-up within the current
+backtest infrastructure without first extending the data window.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
