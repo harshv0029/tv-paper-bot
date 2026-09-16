@@ -150,6 +150,43 @@ def test_start_scheduler_restores_check_counts_only_when_day_matches_today():
             p.stop()
 
 
+def test_start_scheduler_falls_back_when_a_hydrate_call_hangs_past_the_deadline():
+    # Live incident (2026-09-16): a hydrate call can hang INDEFINITELY -
+    # e.g. a stalled DNS lookup or a wedged TCP connection ignores
+    # requests' own timeout= entirely - which would stall the whole
+    # asyncio.gather forever with no way for that per-call timeout to
+    # ever fire. asyncio.wait_for's outer deadline must still let
+    # _start_scheduler complete (falling back exactly as it would for
+    # a clean Upstash-unreachable result) rather than hang the whole
+    # app's boot forever.
+    def _hangs_forever(*args, **kwargs):
+        time_module.sleep(5)  # far longer than the patched deadline below
+        return 999  # never actually reached within the test
+
+    patches, defaults = _patched_start_scheduler(hydrate_rr_cursor_from_external=_hangs_forever)
+    patches.append(patch("main.STARTUP_HYDRATION_TIMEOUT_SECONDS", 0.1))
+    for p in patches:
+        p.start()
+    try:
+        main._scheduler_rr_cursor = 5
+        # Not asserting on wall-clock elapsed time here: asyncio.run()
+        # shuts down its default thread-pool executor on exit and waits
+        # for the abandoned 5s-sleeping thread to actually finish first -
+        # a test-harness artifact of asyncio.run() itself, not something
+        # that happens in production (uvicorn's own event loop never
+        # closes after startup, so an abandoned thread just sits idle in
+        # the pool rather than blocking anything). What matters here is
+        # that _start_scheduler's own await returns via the fallback
+        # path rather than hanging on the stuck call forever.
+        asyncio.run(main._start_scheduler())
+    finally:
+        for p in patches:
+            p.stop()
+    # Left rr_cursor untouched - the exact same "nothing restored"
+    # outcome a clean Upstash-unreachable result would produce.
+    assert main._scheduler_rr_cursor == 5
+
+
 def test_start_scheduler_ignores_check_counts_from_a_stale_prior_day():
     patches, _ = _patched_start_scheduler(
         hydrate_check_counts_from_external=MagicMock(return_value=("2020-01-01", {"RELIANCE.NS": 3}))
