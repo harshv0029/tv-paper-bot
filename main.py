@@ -9877,22 +9877,58 @@ async def _scheduler_tick():
 
 @app.on_event("startup")
 async def _start_scheduler():
+    # 5 independent Upstash reads, run CONCURRENTLY (2026-09-16, live
+    # Render port-scan-timeout fix). Each is a single bounded-timeout
+    # requests call (see each hydrate_*_from_external's own timeout=),
+    # but running them SEQUENTIALLY - as this did before - sums their
+    # worst-case latency to up to ~50s. FastAPI/uvicorn's lifespan
+    # protocol gates the actual listening socket behind this startup
+    # handler returning, so that ~50s directly blocked Render's port
+    # scanner from ever seeing an open port - confirmed live (repeated
+    # "No open ports detected" until "Port scan timeout reached", right
+    # before "Application startup complete" finally printed). Running
+    # these 5 concurrently cuts worst-case wall time to the SLOWEST
+    # single call (~10s) instead of their sum, while changing nothing
+    # about ordering: every one of these is still fully awaited here,
+    # and nothing after this function returns (the scheduler tick, the
+    # webhook endpoint, any request at all) can be reached until ALL 5
+    # finish - exactly the same guarantee as before, just not paid for
+    # serially anymore. hydrate_runtime_settings_from_external and
+    # hydrate_t1_restricted_from_external each need a DB connection
+    # created AND used on the SAME thread (sqlite3 connections aren't
+    # cross-thread safe) - wrapped in a small closure below instead of
+    # passing one in from this thread.
+    def _hydrate_runtime_settings():
+        with closing(get_db()) as conn:
+            return hydrate_runtime_settings_from_external(conn)
+
+    def _hydrate_t1_restricted():
+        with closing(get_db()) as conn:
+            return hydrate_t1_restricted_from_external(conn)
+
+    (
+        _restored_settings, _restored_t1, _real_positions_hydrated,
+        _external_rr_cursor, _external_check_counts,
+    ) = await asyncio.gather(
+        asyncio.to_thread(_hydrate_runtime_settings),
+        asyncio.to_thread(_hydrate_t1_restricted),
+        asyncio.to_thread(hydrate_real_positions_from_external),
+        asyncio.to_thread(hydrate_rr_cursor_from_external),
+        asyncio.to_thread(hydrate_check_counts_from_external),
+    )
+
     # runtime_settings: Upstash-restore FIRST, before anything else reads
     # a live setting (the scheduler tick below, any endpoint) - see
     # hydrate_runtime_settings_from_external's own docstring for the
     # 2026-09-09 bug this closes.
-    with closing(get_db()) as _settings_conn:
-        _restored_settings = hydrate_runtime_settings_from_external(_settings_conn)
-        if _restored_settings:
-            print(f"[runtime_settings_external] restored {_restored_settings} setting(s) from Upstash")
+    if _restored_settings:
+        print(f"[runtime_settings_external] restored {_restored_settings} setting(s) from Upstash")
     # real_t1_restricted: same Upstash-first restore, before any real
     # entry gate could otherwise re-attempt a symbol already confirmed
     # T1/T2T-restricted on a prior restart - see hydrate_t1_restricted_
     # from_external's own docstring for the 2026-09-09 bug this closes.
-    with closing(get_db()) as _t1_conn:
-        _restored_t1 = hydrate_t1_restricted_from_external(_t1_conn)
-        if _restored_t1:
-            print(f"[t1_restricted_external] restored {_restored_t1} restriction(s) from Upstash")
+    if _restored_t1:
+        print(f"[t1_restricted_external] restored {_restored_t1} restriction(s) from Upstash")
     reconcile_open_positions_from_journal()
     reconcile_trading_control_from_journal()
     reconcile_real_trading_control_from_journal()
@@ -9904,7 +9940,7 @@ async def _start_scheduler():
     # recorded as ghost-removed (AGL.NS/BHANDARI.NS) - see
     # hydrate_real_positions_from_external's own docstring for the full
     # root cause.
-    if not hydrate_real_positions_from_external():
+    if not _real_positions_hydrated:
         reconcile_real_positions_from_journal()
     reconcile_real_trades_today_from_journal()
     # rr_cursor: Upstash first (real-time), same reasoning as
@@ -9913,7 +9949,6 @@ async def _start_scheduler():
     # just-started default (0), so a fresher Upstash value never gets
     # clobbered by the slower git journal.
     global _scheduler_rr_cursor
-    _external_rr_cursor = hydrate_rr_cursor_from_external()
     if _external_rr_cursor is not None:
         _scheduler_rr_cursor = _external_rr_cursor
         print(f"[rr_cursor_external] restored cursor to {_external_rr_cursor} from Upstash")
@@ -9924,7 +9959,6 @@ async def _start_scheduler():
     # reconcile right below only fires when this left the dict still
     # empty, so a fresher Upstash-restored dict is never clobbered.
     global _scheduler_check_counts_day
-    _external_check_counts = hydrate_check_counts_from_external()
     if _external_check_counts is not None:
         _ext_day, _ext_counts = _external_check_counts
         if _ext_day == ist_now().strftime("%Y-%m-%d"):
