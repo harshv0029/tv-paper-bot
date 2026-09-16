@@ -251,6 +251,100 @@ def select_nse_option_contract(underlying: str, spot: float, right: str):
     }, None
 
 
+def classify_expiries_weekly_monthly(expiries: list) -> dict:
+    """Pure function (no network call) - buckets a list of `datetime.date`
+    expiries into {"weekly": date|None, "monthly": date|None}. Added
+    2026-09-16 for F&O chain monitoring (weekly/monthly tracked
+    separately, per explicit user instruction).
+
+    Rule (a heuristic, not an NSE-published rule - NSE doesn't expose a
+    "this expiry is the monthly one" flag anywhere this codebase already
+    reads): "monthly" = the LATEST available expiry that falls within the
+    SOONEST expiry's own calendar month, since NSE's monthly index-options
+    contract for a given month simply IS that month's last weekly expiry
+    (same contract, not a separate listing). "weekly" = the SOONEST
+    available expiry overall (today's/next Thursday) - usually differs
+    from "monthly" except during the final week of a month, when they can
+    legitimately be the same date - both keys may then hold equal dates,
+    which is correct, not a bug.
+
+    `expiries` must be non-empty `datetime.date` objects, already filtered
+    to today-or-later by the caller (this function does no date-math
+    beyond grouping/comparison)."""
+    if not expiries:
+        return {"weekly": None, "monthly": None}
+    weekly = min(expiries)
+    this_month = [e for e in expiries if (e.year, e.month) == (weekly.year, weekly.month)]
+    monthly = max(this_month) if this_month else weekly
+    return {"weekly": weekly, "monthly": monthly}
+
+
+def select_nse_option_contract_by_expiry_class(underlying: str, spot: float, right: str, expiry_class: str):
+    """Same ATM-strike/live-premium resolution as select_nse_option_contract,
+    but lets the caller choose "weekly" or "monthly" instead of always the
+    single nearest-DTE-window expiry - added 2026-09-16 for F&O chain
+    monitoring, so weekly and monthly contracts can be tracked as two
+    genuinely separate rows rather than only ever seeing whichever one
+    select_nse_option_contract's OPTIONS_MIN_DTE/MAX_DTE window happened to
+    pick. Returns (contract_dict, None) or (None, reason_str) - same
+    fields as select_nse_option_contract, plus "expiry_class"."""
+    if expiry_class not in ("weekly", "monthly"):
+        return None, f"invalid_expiry_class:{expiry_class}"
+    opt_type = "ce" if right == "call" else "pe"
+    rows, err = _fo_rows(underlying, option_type=opt_type)
+    if err:
+        return None, err
+    opt_rows = [r for r in rows if str(r.get("pOptionType", "")).strip().lower() == opt_type]
+    if not opt_rows:
+        return None, "no_option_rows"
+
+    by_expiry: dict = {}
+    for r in opt_rows:
+        try:
+            exp = _parse_expiry(r["pExpiryDate"])
+        except Exception:
+            continue
+        by_expiry.setdefault(exp, []).append(r)
+
+    today = dt.date.today()
+    upcoming = [e for e in by_expiry if (e - today).days >= 0]
+    if not upcoming:
+        return None, "no_upcoming_expiry"
+    chosen = classify_expiries_weekly_monthly(upcoming)[expiry_class]
+    if chosen is None:
+        return None, "no_matching_expiry_class"
+
+    chain = by_expiry[chosen]
+    scored = []
+    for r in chain:
+        strike = _to_float(r.get("dStrikePrice;"))
+        if strike is None:
+            continue
+        scored.append((abs(strike / 100.0 - spot), strike / 100.0, r))
+    if not scored:
+        return None, "no_strike_data"
+    _, atm_strike, atm_row = min(scored, key=lambda t: t[0])
+
+    segment = _UNDERLYING_TO_SEGMENT[underlying.upper()]
+    try:
+        q = kotak_neo.quotes(
+            [{"instrument_token": str(atm_row["pSymbol"]), "exchange_segment": segment}], quote_type="ltp",
+        )
+    except Exception as e:
+        return None, f"quotes_error:{e}"
+    premium = _extract_ltp(q)
+    if premium is None or premium <= 0:
+        return None, "no_live_premium"
+
+    dte = (chosen - today).days
+    return {
+        "underlying": underlying, "right": right, "expiry": chosen.strftime("%Y-%m-%d"), "dte": dte,
+        "expiry_class": expiry_class, "strike": atm_strike, "premium": round(premium, 2),
+        "kotak_trading_symbol": atm_row["pTrdSymbol"], "instrument_token": str(atm_row["pSymbol"]),
+        "exchange_segment": segment, "lot_size": int(atm_row["lLotSize"]),
+    }, None
+
+
 def _extract_ltp(quotes_response) -> float | None:
     """REAL, CONFIRMED response shape (2026-09-07, live GET
     /kotak-neo/quotes?exchange_segment=nse_fo&instrument_token=68407 against
