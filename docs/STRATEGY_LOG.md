@@ -1317,6 +1317,44 @@ accurately rather than trusting this prose:
   implemented" above) until real-order mirroring is separately built and
   approved.
 
+## Intraday Gap and Go, true same-day version (2026-09-16)
+
+Per user request, tested the GENUINE intraday adaptation of Gap and Go
+(5m bars, entry within the first 30 minutes of a gap-up day, mandatory
+EOD square-off at 15:20 IST) - distinct from the daily-bar swing version
+(now live paper-trading, PFnet 1.65/n=142 on 5y). Rules adapted 1:1 from
+the swing version's exact live main.py logic, disclosed deviations: 20-BAR
+(not 20-day) volume average, 30-minute entry window (opening-drive thesis),
+2.0R fixed target (new), mandatory EOD exit replacing the 60-day max-hold.
+Entry/exit logic verified on synthetic 5m OHLCV before pushing (caught and
+fixed two dev bugs: a synthetic-day builder that didn't actually truncate
+days, and a double-applied IST offset in a test assertion).
+`intraday-gap-and-go-research.yml`, run 35066367252.
+
+| metric | value |
+|---|---|
+| n | **9** |
+| win% | 33.3% |
+| PFgross | 0.91 |
+| PFnet | **0.35** |
+| cost drag | 50.2% |
+
+Context: 2,964 symbol-days scanned, 29 gapped >=2%, only 9 actually
+entered (the 30-minute window + volume + strength filters cut hard).
+
+By exit reason: stop_hit n=6 (67%, all losers, avgGross -2,275) vs
+target_hit/eod_squareoff/data_end_forced_close n=1 each (all winners).
+
+**Inconclusive, not a clean refutation - n=9 is far too small to trust in
+either direction**, though directionally consistent with this session's
+earlier (pre-transfer-pack) intraday-family findings, all of which were
+much worse than every swing/daily-bar strategy tested. Cost drag (50.2%)
+alone is likely fatal at this trade frequency/hold length regardless of
+signal quality - fixed per-trade costs eat half of gross P&L when the
+average hold is minutes-to-hours, not days. **Not a pool candidate, no
+follow-up planned** - the daily-bar swing version already validated and
+shipped is the version of this idea worth pursuing further, not this one.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
