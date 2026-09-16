@@ -185,6 +185,44 @@ def test_startup_event_launches_the_fo_candle_feed_task():
     assert "run_fo_candle_feed()" in src
 
 
+def test_run_fo_candle_feed_resolves_the_universe_off_the_event_loop():
+    # Live Render restart-loop regression (2026-09-16): resolve_fo_universe()
+    # was called bare inside this coroutine, blocking the WHOLE asyncio
+    # event loop (uvicorn's request handling included) for however long
+    # its ~213-underlying search_scrip calls take. Confirms the fix (
+    # asyncio.to_thread) by name in source, AND functionally: a concurrent
+    # asyncio task must be able to make progress WHILE resolve_fo_universe
+    # is still running, not just after it returns.
+    src = inspect.getsource(feed.run_fo_candle_feed)
+    assert "await asyncio.to_thread(resolve_fo_universe)" in src
+
+    import asyncio
+    import time as time_module
+
+    progressed = []
+
+    def slow_resolve():
+        time_module.sleep(0.2)
+        return {}
+
+    async def other_task():
+        while len(progressed) < 3:
+            progressed.append(time_module.time())
+            await asyncio.sleep(0.03)
+
+    async def run():
+        task = asyncio.create_task(other_task())
+        await asyncio.to_thread(slow_resolve)
+        task.cancel()
+
+    asyncio.run(run())
+    # other_task only makes progress if the event loop is free to run it
+    # WHILE slow_resolve (standing in for resolve_fo_universe) is blocked
+    # on its own thread - a bare synchronous call here would have starved
+    # it until slow_resolve returned.
+    assert len(progressed) >= 2
+
+
 def test_startup_event_still_launches_the_equity_feed_task_unchanged():
     # The new task must be ADDED, not have replaced the existing one.
     src = inspect.getsource(main._start_scheduler)
