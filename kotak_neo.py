@@ -39,6 +39,7 @@ committed to the repo, never logged, never returned by any endpoint:
                             every 30 seconds.
 """
 import os
+import time
 
 import pyotp
 from neo_api_client import NeoAPI
@@ -154,6 +155,35 @@ def order_report(order_id: str | None = None):
     return login().order_report(order_id=order_id)
 
 
+# Live Render OOM/slowness incident (2026-09-16):
+# kotak_fo_candle_feed.resolve_fo_universe() calls search_scrip (via
+# nse_fo_chain._fo_rows, the shared choke point every contract-
+# resolution function in that module funnels through) roughly 645
+# times in a single pass (210 stocks x 3 + 3 indices x 5, per that
+# function's own capacity-math comment). Every one of those calls used
+# to go through this function's own bare login() - a REAL TOTP login,
+# per this module's own "Phase 2... no session caching yet" comment
+# above holdings() - meaning ~645 brand-new authenticated NeoAPI client
+# objects (each with its own HTTP session/connection state) created and
+# discarded in one resolution pass. That's real, previously
+# unrecognized resource churn - a major contributor to both this
+# resolution's own slowness and the app's live OOM crashes, on top of
+# the ~645 sequential TOTP round trips this also used to cost.
+#
+# Cached here (search_scrip only - login() itself is UNCHANGED and
+# stays fresh-every-call for every other caller, notably real-order
+# placement in kotak_real_orders.py/kotak_real_fo_orders.py, which
+# deliberately wants a fresh session each time) with a short TTL -
+# session tokens last far longer than this (kotak_live_feed.py's own
+# token-map cache uses 24h for the SAME underlying session concept).
+# Safe specifically because search_scrip is READ-ONLY contract/market
+# search: reusing the session changes nothing about the data itself -
+# every search_scrip call through the cached client still hits Kotak's
+# live API fresh - only how often a NEW client object gets created.
+_SEARCH_SCRIP_CLIENT_CACHE_TTL_SECONDS = 5 * 60  # 5 min
+_search_scrip_client_cache = {"value": None, "resolved_at": 0.0}
+
+
 def search_scrip(exchange_segment, symbol="", expiry=None, option_type=None, strike_price=None):
     """Searches Kotak's live scrip master for contracts matching the given
     filters (e.g. exchange_segment="nse_fo", symbol="nifty",
@@ -169,11 +199,33 @@ def search_scrip(exchange_segment, symbol="", expiry=None, option_type=None, str
     data than most bugs. Call this directly (via
     GET /kotak-neo/search-scrip) to see the real column names first, then
     build the ATM-chain-with-live-quotes function on confirmed data rather
-    than a guess."""
-    return login().search_scrip(
-        exchange_segment=exchange_segment, symbol=symbol, expiry=expiry,
-        option_type=option_type, strike_price=strike_price,
-    )
+    than a guess.
+
+    Uses a short-TTL cached login session (see
+    _search_scrip_client_cache above) rather than login()'s own always-
+    fresh default - see that cache's own comment for why this is safe
+    here specifically."""
+    now = time.time()
+    if (
+        _search_scrip_client_cache["value"] is None
+        or now - _search_scrip_client_cache["resolved_at"] > _SEARCH_SCRIP_CLIENT_CACHE_TTL_SECONDS
+    ):
+        _search_scrip_client_cache["value"] = login()
+        _search_scrip_client_cache["resolved_at"] = now
+    try:
+        return _search_scrip_client_cache["value"].search_scrip(
+            exchange_segment=exchange_segment, symbol=symbol, expiry=expiry,
+            option_type=option_type, strike_price=strike_price,
+        )
+    except Exception:
+        # A stale/invalid cached session could surface here - clear it
+        # so the NEXT call gets a fresh login instead of repeating the
+        # same failure for the rest of the TTL window, then re-raise so
+        # this call's own caller sees the failure exactly as before
+        # (every existing caller already treats a search_scrip
+        # exception as non-fatal for the one leg/lookup it was for).
+        _search_scrip_client_cache["value"] = None
+        raise
 
 
 def scrip_master(exchange_segment="nse_cm"):
