@@ -12,6 +12,7 @@ import inspect
 import os
 import sqlite3
 import tempfile
+from contextlib import closing
 from unittest.mock import patch
 
 import kotak_fo_candle_feed as feed
@@ -254,3 +255,82 @@ def test_stock_spot_lookup_uses_the_ns_ticker_suffix():
 
     assert "RELIANCE.NS" in seen_symbols
     assert "^NSEI" in seen_symbols  # index legs keep their existing yfinance-style ticker
+
+
+def _with_real_candles_table():
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    old_path = main.DB_PATH
+    main.DB_PATH = path
+    main.init_db()
+    return old_path
+
+
+def _insert_candle(conn, token, bucket_ts, o, h, l, c, ticks):
+    conn.execute(
+        "INSERT INTO fo_option_candles (instrument_token, kotak_trading_symbol, underlying, kind, "
+        "right, strike, expiry, bucket_start_ts, open, high, low, close, tick_count) "
+        "VALUES (?, 'NIFTY26OCT24500CE', 'NIFTY', 'option', 'call', 24500.0, '2026-10-27', "
+        "?, ?, ?, ?, ?, ?)",
+        (token, bucket_ts, o, h, l, c, ticks),
+    )
+    conn.commit()
+
+
+def test_read_fo_candles_returns_none_for_an_instrument_with_no_candles():
+    old_path = _with_real_candles_table()
+    try:
+        assert feed.read_fo_candles_as_df("NOTOKEN") is None
+    finally:
+        main.DB_PATH = old_path
+
+
+def test_read_fo_candles_shape_matches_fetch_ohlc():
+    old_path = _with_real_candles_table()
+    try:
+        with closing(main.get_db()) as conn:
+            _insert_candle(conn, "TOK1", 0, 100.0, 110.0, 95.0, 105.0, 12)
+            _insert_candle(conn, "TOK1", 300, 105.0, 108.0, 100.0, 102.0, 8)
+        df = feed.read_fo_candles_as_df("TOK1")
+    finally:
+        main.DB_PATH = old_path
+    assert list(df.columns) == ["Date", "Open", "High", "Low", "Close", "Volume"]
+    assert len(df) == 2
+    assert list(df.index) == [0, 1]  # plain RangeIndex, same as fetch_ohlc
+
+
+def test_read_fo_candles_is_ordered_oldest_first():
+    old_path = _with_real_candles_table()
+    try:
+        with closing(main.get_db()) as conn:
+            _insert_candle(conn, "TOK1", 600, 1.0, 1.0, 1.0, 1.0, 1)
+            _insert_candle(conn, "TOK1", 0, 2.0, 2.0, 2.0, 2.0, 1)
+            _insert_candle(conn, "TOK1", 300, 3.0, 3.0, 3.0, 3.0, 1)
+        df = feed.read_fo_candles_as_df("TOK1")
+    finally:
+        main.DB_PATH = old_path
+    assert list(df["Open"]) == [2.0, 3.0, 1.0]
+
+
+def test_read_fo_candles_only_returns_the_requested_instrument():
+    old_path = _with_real_candles_table()
+    try:
+        with closing(main.get_db()) as conn:
+            _insert_candle(conn, "TOK1", 0, 1.0, 1.0, 1.0, 1.0, 1)
+            _insert_candle(conn, "TOK2", 0, 2.0, 2.0, 2.0, 2.0, 1)
+        df = feed.read_fo_candles_as_df("TOK1")
+    finally:
+        main.DB_PATH = old_path
+    assert len(df) == 1
+    assert df["Open"].iloc[0] == 1.0
+
+
+def test_read_fo_candles_volume_is_tick_count():
+    old_path = _with_real_candles_table()
+    try:
+        with closing(main.get_db()) as conn:
+            _insert_candle(conn, "TOK1", 0, 1.0, 1.0, 1.0, 1.0, 42)
+        df = feed.read_fo_candles_as_df("TOK1")
+    finally:
+        main.DB_PATH = old_path
+    assert df["Volume"].iloc[0] == 42
