@@ -7598,12 +7598,14 @@ def _run_fo_options_scan(conn):
 
     open_rows = conn.execute("SELECT * FROM signal_state_fo_options").fetchall()
     for row in open_rows:
+        _record_scheduler_check(f"{row['kotak_trading_symbol']}:RSI2FO")
         _manage_open_fo_option_position(conn, row, descriptors_by_token.get(row["instrument_token"]))
 
     open_tokens = {row["instrument_token"] for row in open_rows}
     for (exchange_segment, instrument_token), descriptor in universe.items():
         if descriptor["kind"] != "option" or instrument_token in open_tokens:
             continue
+        _record_scheduler_check(f"{descriptor['kotak_trading_symbol']}:RSI2FO")
         if nse_fo_chain.must_force_close_before_expiry(descriptor["underlying"], descriptor["expiry"]):
             continue  # too close to physical settlement to open a fresh position on this leg
 
@@ -10148,19 +10150,24 @@ _INDEX_SYMBOLS = {"^NSEI", "^NSEBANK", "^BSESN"}
 
 def _asset_class_and_source(symbol: str):
     """(asset_class, data_source, mcx_proxy_for) for any symbol the
-    scheduler might check - WATCHLIST entries and options rows
-    ('{underlying}:OPT') alike. Reality as of 2026-09-03: every asset is
-    priced via Yahoo Finance (yfinance) - Kotak Neo isn't used for any
-    monitoring/price data yet, only account-level auth/holdings/positions/
-    limits (see docs/TRADING_CONSTRAINTS.md 'Kotak Neo connection'). Shared
-    by /watchlist and /scheduler-pipeline so both answer "checks today, per
-    asset, from where" consistently."""
+    scheduler might check - WATCHLIST entries, options rows
+    ('{underlying}:OPT'), and F&O per-strike RSI2 legs
+    ('{kotak_trading_symbol}:RSI2FO') alike. Reality as of 2026-09-03:
+    every equity/index/options-overlay asset is priced via Yahoo Finance
+    (yfinance) - Kotak Neo isn't used for any of THOSE - but F&O RSI2
+    legs (2026-09-16) are priced from kotak_fo_candle_feed's own tick-
+    built candles, never yfinance, so they get their own data_source
+    rather than being silently mislabeled by the nse_equity fallback
+    below. Shared by /watchlist and /scheduler-pipeline so both answer
+    "checks today, per asset, from where" consistently."""
     if symbol in _INDEX_SYMBOLS:
         return "index", "yahoo_finance", None
     if symbol in _MCX_PROXY_FOR:
         return "mcx_commodity_proxy", "yahoo_finance", _MCX_PROXY_FOR[symbol]
     if symbol.endswith(":OPT"):
         return "options", "yahoo_finance", None
+    if symbol.endswith(":RSI2FO"):
+        return "fo_option", "kotak_fo_candle_feed", None
     return "nse_equity", "yahoo_finance", None
 
 

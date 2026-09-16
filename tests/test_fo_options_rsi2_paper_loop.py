@@ -212,3 +212,49 @@ def test_scheduler_tick_calls_fo_options_scan():
     import inspect
     src = inspect.getsource(main._scheduler_tick)
     assert "_run_fo_options_scan(conn)" in src
+
+
+def test_scan_records_a_scheduler_check_for_each_flat_leg_considered():
+    old_path = _with_temp_db()
+    try:
+        main._scheduler_check_counts.clear()
+        with patch("kotak_fo_candle_feed.get_cached_fo_universe", return_value={UNIVERSE_KEY: DESCRIPTOR}), \
+             patch("kotak_fo_candle_feed.read_fo_candles_as_df", return_value=None), \
+             patch("fo_option_strategy.rsi2_mean_reversion_entry_signal"), \
+             patch("nse_fo_chain.must_force_close_before_expiry", return_value=False):
+            main._fo_options_scan_last_ts = 0.0
+            with closing(main.get_db()) as conn:
+                main._run_fo_options_scan(conn)
+        # Recorded even though this leg didn't fire a signal - "checked"
+        # means the scheduler looked at it this tick, same semantics
+        # _record_scheduler_check already has for equity/options-overlay
+        # symbols, not "a signal fired".
+        assert main._scheduler_check_counts.get("NIFTY26OCT24500CE:RSI2FO") == 1
+    finally:
+        _restore_db(old_path)
+
+
+def test_scan_records_a_scheduler_check_for_each_open_position_managed():
+    old_path = _with_temp_db()
+    try:
+        main._scheduler_check_counts.clear()
+        with closing(main.get_db()) as conn:
+            main._open_fo_option_paper_position(conn, "12345", "nse_fo", DESCRIPTOR, _entry_signal_dict())
+
+        with patch("kotak_fo_candle_feed.get_cached_fo_universe", return_value={}), \
+             patch("kotak_fo_candle_feed.read_fo_candles_as_df", return_value=None), \
+             patch("nse_fo_chain.must_force_close_before_expiry", return_value=False), \
+             patch("fo_option_strategy.rsi2_mean_reversion_exit_reason", return_value=None):
+            main._fo_options_scan_last_ts = 0.0
+            with closing(main.get_db()) as conn:
+                main._run_fo_options_scan(conn)
+        assert main._scheduler_check_counts.get("NIFTY26OCT24500CE:RSI2FO") == 1
+    finally:
+        _restore_db(old_path)
+
+
+def test_asset_class_and_source_recognizes_fo_rsi2_legs():
+    asset_class, data_source, mcx_proxy_for = main._asset_class_and_source("NIFTY26OCT24500CE:RSI2FO")
+    assert asset_class == "fo_option"
+    assert data_source == "kotak_fo_candle_feed"
+    assert mcx_proxy_for is None
