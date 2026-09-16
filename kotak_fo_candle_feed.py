@@ -49,6 +49,8 @@ import asyncio
 import time
 from contextlib import closing
 
+import pandas as pd
+
 import kotak_neo
 import nse_fo_chain
 
@@ -241,6 +243,61 @@ def apply_tick(instrument_token: str, price: float, ts: float, descriptor: dict,
         existing["tick_count"] += 1
 
     return completed
+
+
+MIN_BARS_FOR_SIGNAL_CHECK = 40  # see read_fo_candles_as_df's own docstring
+
+
+def read_fo_candles_as_df(instrument_token: str) -> pd.DataFrame | None:
+    """Every COMPLETED candle for `instrument_token` from fo_option_candles,
+    shaped exactly like data_fetch.fetch_ohlc's own return value (Date/
+    Open/High/Low/Close/Volume columns, oldest-first, integer
+    RangeIndex) so any existing strategy function in main.py can run
+    against it completely unmodified. Returns None if this instrument
+    has zero completed candles yet - never an empty DataFrame, so a
+    caller can use a plain `if df is None` check the same way every
+    fetch_ohlc call site already does for "no data".
+
+    Volume here is `tick_count` (this contract's own per-bar Kotak tick
+    count), NOT real traded volume or open interest - Kotak's live
+    quotes()/WebSocket feed exposes neither for F&O (see the "KNOWN GAP"
+    comment above FO_MONITORED_UNDERLYINGS in main.py; this module's
+    tick-driven candles inherit that same gap). A reasonable liquidity-
+    ish proxy - more ticks in an interval roughly tracks more trading
+    activity - but must never be read as literal contracts traded, same
+    disclosed-proxy-not-a-guess discipline kotak_live_feed.py's own MCX
+    price-proxy futures already established.
+
+    MIN_BARS_FOR_SIGNAL_CHECK exists here as a documented constant, not
+    because this function enforces it (it returns whatever history
+    exists, however short) - individual F&O contracts have
+    fundamentally SHORT, DISCONTINUOUS candle histories compared to an
+    underlying equity/index: a contract drops out of the ATM band (and
+    stops accumulating new candles) the moment spot moves it out of
+    range on the next universe re-resolution, and every contract expires
+    outright within weeks (weekly options) to a couple months (monthly
+    options, the only class kept for single stocks). Strategies needing
+    deep lookbacks (e.g. a 50/200-bar SMA crossover) will realistically
+    never accumulate enough history on any single contract's own candles
+    to fire at all - this is a real constraint on which existing
+    strategy functions make sense to wire against this data source, not
+    a bug in this reader."""
+    import main  # deferred - avoids a circular import at module load time
+    with closing(main.get_db()) as conn:
+        rows = conn.execute(
+            "SELECT bucket_start_ts, open, high, low, close, tick_count "
+            "FROM fo_option_candles WHERE instrument_token = ? ORDER BY bucket_start_ts ASC",
+            (instrument_token,),
+        ).fetchall()
+    if not rows:
+        return None
+    df = pd.DataFrame(
+        [dict(r) for r in rows],
+    ).rename(columns={
+        "open": "Open", "high": "High", "low": "Low", "close": "Close", "tick_count": "Volume",
+    })
+    df["Date"] = pd.to_datetime(df["bucket_start_ts"], unit="s", utc=True)
+    return df[["Date", "Open", "High", "Low", "Close", "Volume"]].reset_index(drop=True)
 
 
 async def run_fo_candle_feed():
