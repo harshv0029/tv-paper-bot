@@ -1,0 +1,854 @@
+name: F&O Futures Approximation Backtest, All 8 Swing Families (research)
+
+# ============================================================================
+# EXPLORATORY RESEARCH - READ THIS BEFORE TRUSTING ANY NUMBER BELOW.
+#
+# This workflow does NOT use real NSE single-stock-futures market data.
+# yfinance does not carry historical NSE F&O OHLC, so futures P&L here is
+# APPROXIMATED as point-for-point tracking of the underlying's real cash
+# price (same daily bars, same entry/exit signal timing/price levels as
+# this repo's validated swing-*-research.yml cash-equity backtests) -
+# resized using futures MARGIN economics instead of full notional. This is
+# weaker evidence than the cash-equity backtests it's derived from: no
+# real basis risk (futures price vs cash price divergence), no rollover
+# cost near monthly expiry, and lot sizes are a disclosed approximation
+# (see LOT_TARGET_MARGIN_INR below), not the real, periodically-revised
+# NSE lot size table. Treat every result here as "if futures tracked cash
+# 1:1 and margin/lot-size assumptions hold roughly" - a sizing/capital-
+# efficiency study, not a real futures-market validation.
+#
+# Signal logic itself is UNCHANGED: all 8 strategy families below
+# (Supertrend 3.0x flip, MACD crossover, Donchian 55-day breakout,
+# Fibonacci wide-trail, RSI(2) mean reversion, Bollinger Band squeeze
+# breakout, Golden Cross 50/200 SMA, Gap-and-Go 5y) reuse the EXACT
+# validated entry/exit signal math from their source
+# .github/workflows/swing-*-research.yml files, byte-for-byte - only the
+# position-sizing/cost/P&L layer downstream of the signal is instrument-
+# specific. Per docs/STRATEGY_LOG.md, none of these 8 families has yet
+# cleared this project's own PFnet>=1.3/n>=100 production pool bar on the
+# cash-equity backtest; this futures pass is a "what would the SAME
+# validated signal look like under futures margin economics" exploration,
+# not a new signal design and not a promotion of any of them toward
+# production.
+#
+# Sizing model: same risk-based formula as every equity backtest
+# (usable_capital = min(capital, capital/CAPITAL_TRANCHES); risk_amount =
+# usable_capital * risk_pct/100; qty = risk_amount/stop_dist) - EXCEPT the
+# capital cap is now margin-based (usable_capital/(entry_price*18%))
+# instead of full-notional-based (usable_capital/entry_price), reflecting
+# NSE F&O's ~15-20% SPAN+exposure margin for single-stock futures (18%
+# used here, a disclosed round-number assumption). This raises the
+# capital ceiling ~5.6x vs cash equity, but does NOT by itself make any
+# single trade bigger unless that trade was capital-constrained (not
+# risk-constrained) in the first place - for these ATR-based swing stops,
+# most trades are risk-constrained already, so the margin-cap increase
+# often doesn't bind. Reported honestly either way, not assumed.
+#
+# Lots, not shares: real NSE F&O trades in fixed lot sizes set by the
+# exchange and revised periodically per symbol. This workflow does NOT
+# hardcode those 52 real lot sizes (they change and getting them wrong
+# would misstate margin economics, per explicit instruction) - instead it
+# approximates lot_size = target_notional / price, choosing target_notional
+# so one lot's margin cost (target_notional * 18%) lands near the LOW end
+# of a disclosed Rs 1-2 lakh band (Rs 1,00,000, chosen deliberately to
+# give the position-sizing formula the best realistic chance of clearing
+# a whole lot - still fully within the disclosed range, not tuned to this
+# run's own result). IMPORTANT DISCLOSED FINDING (worked out analytically,
+# not fitted): at this project's own standing risk_pct (1-2% per trade)
+# on Rs 4,00,000 capital, the risk-based share quantity for ATR-stopped
+# swing trades is structurally smaller than a single Rs-1-2-lakh-margin
+# lot for every stop distance wider than roughly 0.7% of price - i.e.
+# every one of these 8 strategies' stops (all >=2% of price). Expect most
+# or all signals to round DOWN to zero lots and be skipped - this is not
+# a bug, it is the real-money consequence of combining this project's
+# conservative per-trade risk budget with realistically-sized F&O lots,
+# and is reported as a first-class metric (lot-fill rate), not hidden.
+#
+# Does not touch main.py or any live trading code. Read-only: no live
+# parameter changed, nothing wired into main.py, no workflow dispatched
+# by this session.
+# ============================================================================
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run F&O futures-approximation backtest (all 8 strategy families)
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import json
+          import math
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          # =====================================================================
+          # Strategy signal-detection functions - copied UNCHANGED (entry/exit
+          # math byte-for-byte identical) from their validated
+          # .github/workflows/swing-*-research.yml sources. Only the
+          # trade-recording tail is stripped to raw signal facts (entry/exit
+          # index, price, initial stop, exit reason) - sizing/cost/P&L happen
+          # downstream, once, in the futures-margin evaluator.
+          # =====================================================================
+
+          def _atr(highs, lows, closes, n, method="rolling"):
+              prev_close = np.concatenate(([np.nan], closes[:-1]))
+              tr = np.maximum(highs - lows, np.maximum(np.abs(highs - prev_close), np.abs(lows - prev_close)))
+              if method == "ewm":
+                  return pd.Series(tr).ewm(alpha=1.0 / n, adjust=False).mean().to_numpy()
+              return pd.Series(tr).rolling(n).mean().to_numpy()
+
+
+          def _rsi(closes, n):
+              delta = np.diff(closes, prepend=closes[0])
+              gain = np.where(delta > 0, delta, 0.0)
+              loss = np.where(delta < 0, -delta, 0.0)
+              avg_gain = pd.Series(gain).ewm(alpha=1.0 / n, adjust=False).mean().to_numpy()
+              avg_loss = pd.Series(loss).ewm(alpha=1.0 / n, adjust=False).mean().to_numpy()
+              with np.errstate(invalid="ignore", divide="ignore"):
+                  rs = avg_gain / avg_loss
+                  rsi = 100.0 - 100.0 / (1.0 + rs)
+              rsi = np.where(avg_loss == 0, 100.0, rsi)
+              return rsi
+
+
+          def _bollinger(closes, period, num_std):
+              s = pd.Series(closes)
+              sma = s.rolling(period).mean().to_numpy()
+              std = s.rolling(period).std(ddof=0).to_numpy()
+              return sma, sma + num_std * std, sma - num_std * std
+
+
+          def _squeeze_flags(bandwidth, lookback, percentile):
+              n = len(bandwidth)
+              is_squeeze = np.full(n, False)
+              for i in range(n):
+                  if np.isnan(bandwidth[i]):
+                      continue
+                  window = bandwidth[max(0, i - lookback + 1): i + 1]
+                  if np.all(np.isnan(window)):
+                      continue
+                  if bandwidth[i] <= np.nanpercentile(window, percentile):
+                      is_squeeze[i] = True
+              return is_squeeze
+
+
+          def _supertrend(highs, lows, closes, atr_n, mult):
+              n = len(closes)
+              atr = _atr(highs, lows, closes, atr_n, method="ewm")
+              hl2 = (highs + lows) / 2.0
+              basic_upper = hl2 + mult * atr
+              basic_lower = hl2 - mult * atr
+              final_upper = np.full(n, np.nan)
+              final_lower = np.full(n, np.nan)
+              direction = np.zeros(n, dtype=int)
+              st = np.full(n, np.nan)
+              for i in range(n):
+                  reset = i == 0 or np.isnan(atr[i]) or np.isnan(final_lower[i - 1]) or np.isnan(final_upper[i - 1])
+                  if reset:
+                      final_upper[i] = basic_upper[i]
+                      final_lower[i] = basic_lower[i]
+                      direction[i] = 1
+                      st[i] = final_lower[i] if not np.isnan(final_lower[i]) else np.nan
+                      continue
+                  final_upper[i] = (basic_upper[i] if (basic_upper[i] < final_upper[i - 1] or closes[i - 1] > final_upper[i - 1])
+                                     else final_upper[i - 1])
+                  final_lower[i] = (basic_lower[i] if (basic_lower[i] > final_lower[i - 1] or closes[i - 1] < final_lower[i - 1])
+                                     else final_lower[i - 1])
+                  if direction[i - 1] == 1:
+                      direction[i] = -1 if closes[i] < final_lower[i] else 1
+                  else:
+                      direction[i] = 1 if closes[i] > final_upper[i] else -1
+                  st[i] = final_lower[i] if direction[i] == 1 else final_upper[i]
+              return st, direction, atr
+
+
+          def _macd(closes, fast, slow, signal):
+              s = pd.Series(closes)
+              ema_fast = s.ewm(span=fast, adjust=False).mean()
+              ema_slow = s.ewm(span=slow, adjust=False).mean()
+              macd_line = (ema_fast - ema_slow).to_numpy()
+              signal_line = pd.Series(macd_line).ewm(span=signal, adjust=False).mean().to_numpy()
+              return macd_line, signal_line
+
+
+          def _rec(symbol, entry_idx, entry_date, entry_price, initial_stop, exit_idx, exit_date, exit_price, exit_reason):
+              return dict(symbol=symbol, entry_idx=entry_idx, entry_date=entry_date, entry_price=entry_price,
+                          initial_stop=initial_stop, exit_idx=exit_idx, exit_date=exit_date, exit_price=exit_price,
+                          exit_reason=exit_reason, held_days=exit_idx - entry_idx)
+
+
+          def replay_supertrend(symbol, df):
+              TREND_SMA_N, ST_ATR_N, ST_MULT, MAX_HOLD_DAYS = 200, 10, 3.0, 60
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(TREND_SMA_N, ST_ATR_N) + 5
+              if n < min_lookback + 5:
+                  return []
+              closes = df["Close"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              sma_trend = pd.Series(closes).rolling(TREND_SMA_N).mean().to_numpy()
+              st, direction, atr = _supertrend(highs, lows, closes, ST_ATR_N, ST_MULT)
+              trades, position = [], None
+              for i in range(n):
+                  if position is not None:
+                      held_days = i - position["entry_idx"]
+                      exit_reason = None
+                      if direction[i] == -1 and direction[i - 1] == 1:
+                          exit_reason = "supertrend_flip_bearish"
+                      elif held_days >= MAX_HOLD_DAYS:
+                          exit_reason = "max_hold_timeout"
+                      if exit_reason:
+                          trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                              position["initial_stop"], i, dates[i], closes[i], exit_reason))
+                          position = None
+                      continue
+                  if i < min_lookback or i == 0:
+                      continue
+                  if np.isnan(atr[i]) or atr[i] <= 0 or np.isnan(sma_trend[i]) or np.isnan(st[i]):
+                      continue
+                  flipped_bullish = direction[i] == 1 and direction[i - 1] == -1
+                  if not flipped_bullish or closes[i] <= sma_trend[i]:
+                      continue
+                  if closes[i] - st[i] <= 0:
+                      continue
+                  position = dict(entry_idx=i, entry_date=dates[i], entry_price=closes[i], initial_stop=st[i])
+              if position is not None:
+                  trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                      position["initial_stop"], n - 1, dates[-1], closes[-1], "data_end_forced_close"))
+              return trades
+
+
+          def replay_macd(symbol, df):
+              TREND_EMA_N, MACD_FAST, MACD_SLOW, MACD_SIGNAL = 50, 12, 26, 9
+              ATR_N, ATR_STOP_MULT, MAX_HOLD_DAYS = 14, 2.5, 60
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(TREND_EMA_N, MACD_SLOW + MACD_SIGNAL, ATR_N) + 5
+              if n < min_lookback + 5:
+                  return []
+              closes = df["Close"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              atr = _atr(highs, lows, closes, ATR_N)
+              ema_trend = pd.Series(closes).ewm(span=TREND_EMA_N, adjust=False).mean().to_numpy()
+              macd_line, signal_line = _macd(closes, MACD_FAST, MACD_SLOW, MACD_SIGNAL)
+              trades, position = [], None
+              for i in range(n):
+                  if position is not None:
+                      held_days = i - position["entry_idx"]
+                      exit_reason = None
+                      if closes[i] <= position["stop"]:
+                          exit_reason = "stop_hit"
+                      elif macd_line[i] < signal_line[i] and macd_line[i - 1] >= signal_line[i - 1]:
+                          exit_reason = "macd_bearish_cross"
+                      elif held_days >= MAX_HOLD_DAYS:
+                          exit_reason = "max_hold_timeout"
+                      if exit_reason:
+                          trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                              position["initial_stop"], i, dates[i], closes[i], exit_reason))
+                          position = None
+                      continue
+                  if i < min_lookback or i == 0:
+                      continue
+                  if np.isnan(atr[i]) or atr[i] <= 0 or np.isnan(ema_trend[i]):
+                      continue
+                  bullish_cross = macd_line[i] > signal_line[i] and macd_line[i - 1] <= signal_line[i - 1]
+                  if not bullish_cross or closes[i] <= ema_trend[i]:
+                      continue
+                  stop_loss = closes[i] - ATR_STOP_MULT * atr[i]
+                  if closes[i] - stop_loss <= 0:
+                      continue
+                  position = dict(entry_idx=i, entry_date=dates[i], entry_price=closes[i], initial_stop=stop_loss, stop=stop_loss)
+              if position is not None:
+                  trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                      position["initial_stop"], n - 1, dates[-1], closes[-1], "data_end_forced_close"))
+              return trades
+
+
+          def replay_donchian55(symbol, df):
+              DONCHIAN_N, TREND_RISING_LOOKBACK, TREND_SMA_N = 55, 20, 50
+              ATR_N, VOL_LOOKBACK, VOL_SURGE_MULT, ATR_STOP_MULT, MAX_HOLD_DAYS, STRUCT_LOW_N = 14, 20, 1.5, 2.0, 60, 10
+              df = df.reset_index(drop=True)
+              n = len(df)
+              if n < max(DONCHIAN_N, TREND_SMA_N, ATR_N, VOL_LOOKBACK) + 5:
+                  return []
+              closes = df["Close"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              vol = df["Volume"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              atr = _atr(highs, lows, closes, ATR_N)
+              sma_trend = pd.Series(closes).rolling(TREND_SMA_N).mean().to_numpy()
+              min_lookback = max(DONCHIAN_N, TREND_SMA_N + TREND_RISING_LOOKBACK, ATR_N, VOL_LOOKBACK, STRUCT_LOW_N) + 1
+              trades, position = [], None
+              for i in range(n):
+                  if position is not None:
+                      position["running_max_close"] = max(position["running_max_close"], closes[i])
+                      trail_stop = position["running_max_close"] - position["atr_at_entry"] * ATR_STOP_MULT
+                      if trail_stop > position["stop"]:
+                          position["stop"] = trail_stop
+                      held_days = i - position["entry_idx"]
+                      exit_reason = None
+                      if closes[i] <= position["stop"]:
+                          exit_reason = "trail_stop_hit"
+                      elif held_days >= MAX_HOLD_DAYS:
+                          exit_reason = "max_hold_timeout"
+                      if exit_reason:
+                          trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                              position["initial_stop"], i, dates[i], closes[i], exit_reason))
+                          position = None
+                      continue
+                  if i < min_lookback:
+                      continue
+                  if np.isnan(atr[i]) or atr[i] <= 0 or np.isnan(sma_trend[i]) or np.isnan(sma_trend[i - TREND_RISING_LOOKBACK]):
+                      continue
+                  donchian_high = float(np.max(highs[i - DONCHIAN_N:i]))
+                  if closes[i] <= donchian_high:
+                      continue
+                  trend_ok = closes[i] > sma_trend[i] and sma_trend[i] > sma_trend[i - TREND_RISING_LOOKBACK]
+                  if not trend_ok:
+                      continue
+                  avg_vol = float(np.mean(vol[i - VOL_LOOKBACK:i]))
+                  if avg_vol <= 0 or vol[i] < VOL_SURGE_MULT * avg_vol:
+                      continue
+                  struct_low = float(np.min(lows[i - STRUCT_LOW_N:i]))
+                  atr_stop = closes[i] - ATR_STOP_MULT * atr[i]
+                  stop_loss = max(struct_low, atr_stop)
+                  if closes[i] - stop_loss <= 0:
+                      continue
+                  position = dict(entry_idx=i, entry_date=dates[i], entry_price=closes[i], initial_stop=stop_loss,
+                                   stop=stop_loss, atr_at_entry=float(atr[i]), running_max_close=closes[i])
+              if position is not None:
+                  trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                      position["initial_stop"], n - 1, dates[-1], closes[-1], "data_end_forced_close"))
+              return trades
+
+
+          def replay_fib_wide_trail(symbol, df):
+              SWING_LOOKBACK, MIN_SWING_PCT = 40, 3.0
+              FIB_618, FIB_382, FIB_786 = 0.618, 0.382, 0.786
+              TREND_SMA_N, TREND_RISING_LOOKBACK, ATR_N, VOL_LOOKBACK = 50, 20, 14, 20
+              ATR_STOP_MULT, MAX_HOLD_DAYS = 3.0, 60
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(SWING_LOOKBACK, TREND_SMA_N + TREND_RISING_LOOKBACK, ATR_N, VOL_LOOKBACK) + 1
+              if n < min_lookback + 5:
+                  return []
+              closes = df["Close"].to_numpy(dtype=float)
+              opens = df["Open"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              vol = df["Volume"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              atr = _atr(highs, lows, closes, ATR_N)
+              sma_trend = pd.Series(closes).rolling(TREND_SMA_N).mean().to_numpy()
+              trades, position = [], None
+              for i in range(n):
+                  if position is not None:
+                      position["running_max_close"] = max(position["running_max_close"], closes[i])
+                      trail_stop = position["running_max_close"] - position["atr_at_entry"] * ATR_STOP_MULT
+                      if trail_stop > position["stop"]:
+                          position["stop"] = trail_stop
+                      held_days = i - position["entry_idx"]
+                      exit_reason = None
+                      if closes[i] <= position["stop"]:
+                          exit_reason = "trail_stop_hit"
+                      elif held_days >= MAX_HOLD_DAYS:
+                          exit_reason = "max_hold_timeout"
+                      if exit_reason:
+                          trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                              position["initial_stop"], i, dates[i], closes[i], exit_reason))
+                          position = None
+                      continue
+                  if i < min_lookback:
+                      continue
+                  if np.isnan(atr[i]) or atr[i] <= 0 or np.isnan(sma_trend[i]) or np.isnan(sma_trend[i - TREND_RISING_LOOKBACK]):
+                      continue
+                  trend_ok = closes[i] > sma_trend[i] and sma_trend[i] > sma_trend[i - TREND_RISING_LOOKBACK]
+                  if not trend_ok:
+                      continue
+                  window_start = i - SWING_LOOKBACK
+                  window_closes = closes[window_start:i]
+                  swing_high = float(np.max(window_closes))
+                  swing_high_idx = window_start + int(np.argmax(window_closes))
+                  low_window_start = max(0, swing_high_idx - SWING_LOOKBACK)
+                  swing_low = float(np.min(lows[low_window_start:swing_high_idx + 1]))
+                  swing_range = swing_high - swing_low
+                  if swing_range <= 0 or (swing_range / swing_high) * 100 < MIN_SWING_PCT:
+                      continue
+                  fib_618 = swing_high - FIB_618 * swing_range
+                  fib_382 = swing_high - FIB_382 * swing_range
+                  fib_786 = swing_high - FIB_786 * swing_range
+                  if not (fib_618 <= closes[i] <= fib_382):
+                      continue
+                  if not (closes[i] > closes[i - 1] and closes[i] > opens[i]):
+                      continue
+                  avg_vol = float(np.mean(vol[i - VOL_LOOKBACK:i]))
+                  if avg_vol <= 0 or vol[i] < avg_vol:
+                      continue
+                  atr_stop = closes[i] - ATR_STOP_MULT * atr[i]
+                  stop_loss = max(fib_786, atr_stop)
+                  if closes[i] - stop_loss <= 0:
+                      continue
+                  position = dict(entry_idx=i, entry_date=dates[i], entry_price=closes[i], initial_stop=stop_loss,
+                                   stop=stop_loss, atr_at_entry=float(atr[i]), running_max_close=closes[i])
+              if position is not None:
+                  trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                      position["initial_stop"], n - 1, dates[-1], closes[-1], "data_end_forced_close"))
+              return trades
+
+
+          def replay_rsi2(symbol, df):
+              TREND_SMA_N, RSI_N, RSI_ENTRY_MAX, RSI_EXIT_MIN = 200, 2, 10.0, 70.0
+              ATR_N, ATR_STOP_MULT, MAX_HOLD_DAYS = 14, 2.0, 10
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(TREND_SMA_N, ATR_N, RSI_N) + 5
+              if n < min_lookback + 5:
+                  return []
+              closes = df["Close"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              atr = _atr(highs, lows, closes, ATR_N)
+              sma_trend = pd.Series(closes).rolling(TREND_SMA_N).mean().to_numpy()
+              rsi2 = _rsi(closes, RSI_N)
+              trades, position = [], None
+              for i in range(n):
+                  if position is not None:
+                      held_days = i - position["entry_idx"]
+                      exit_reason = None
+                      if closes[i] <= position["stop"]:
+                          exit_reason = "stop_hit"
+                      elif rsi2[i] > RSI_EXIT_MIN:
+                          exit_reason = "rsi_reverted"
+                      elif held_days >= MAX_HOLD_DAYS:
+                          exit_reason = "max_hold_timeout"
+                      if exit_reason:
+                          trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                              position["initial_stop"], i, dates[i], closes[i], exit_reason))
+                          position = None
+                      continue
+                  if i < min_lookback:
+                      continue
+                  if np.isnan(atr[i]) or atr[i] <= 0 or np.isnan(sma_trend[i]):
+                      continue
+                  if closes[i] <= sma_trend[i] or rsi2[i] >= RSI_ENTRY_MAX:
+                      continue
+                  stop_loss = closes[i] - ATR_STOP_MULT * atr[i]
+                  if closes[i] - stop_loss <= 0:
+                      continue
+                  position = dict(entry_idx=i, entry_date=dates[i], entry_price=closes[i], initial_stop=stop_loss, stop=stop_loss)
+              if position is not None:
+                  trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                      position["initial_stop"], n - 1, dates[-1], closes[-1], "data_end_forced_close"))
+              return trades
+
+
+          def replay_bb_squeeze(symbol, df):
+              BB_PERIOD, BB_STD, SQUEEZE_LOOKBACK, SQUEEZE_PERCENTILE, RECENT_SQUEEZE_WINDOW = 20, 2.0, 126, 10, 20
+              ATR_N, ATR_STOP_MULT, MAX_HOLD_DAYS = 14, 2.5, 60
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(BB_PERIOD, SQUEEZE_LOOKBACK, ATR_N) + 5
+              if n < min_lookback + 5:
+                  return []
+              closes = df["Close"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              atr = _atr(highs, lows, closes, ATR_N)
+              sma, upper, lower = _bollinger(closes, BB_PERIOD, BB_STD)
+              bandwidth = (upper - lower) / sma
+              is_squeeze = _squeeze_flags(bandwidth, SQUEEZE_LOOKBACK, SQUEEZE_PERCENTILE)
+              trades, position = [], None
+              for i in range(n):
+                  if position is not None:
+                      held_days = i - position["entry_idx"]
+                      exit_reason = None
+                      if closes[i] <= position["stop"]:
+                          exit_reason = "stop_hit"
+                      elif closes[i] < sma[i] and closes[i - 1] >= sma[i - 1]:
+                          exit_reason = "middle_band_cross"
+                      elif held_days >= MAX_HOLD_DAYS:
+                          exit_reason = "max_hold_timeout"
+                      if exit_reason:
+                          trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                              position["initial_stop"], i, dates[i], closes[i], exit_reason))
+                          position = None
+                      continue
+                  if i < min_lookback or i == 0:
+                      continue
+                  if np.isnan(atr[i]) or atr[i] <= 0 or np.isnan(upper[i]) or np.isnan(sma[i]):
+                      continue
+                  breakout = closes[i] > upper[i] and closes[i - 1] <= upper[i - 1]
+                  if not breakout:
+                      continue
+                  if not np.any(is_squeeze[max(0, i - RECENT_SQUEEZE_WINDOW): i]):
+                      continue
+                  stop_loss = closes[i] - ATR_STOP_MULT * atr[i]
+                  if closes[i] - stop_loss <= 0:
+                      continue
+                  position = dict(entry_idx=i, entry_date=dates[i], entry_price=closes[i], initial_stop=stop_loss, stop=stop_loss)
+              if position is not None:
+                  trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                      position["initial_stop"], n - 1, dates[-1], closes[-1], "data_end_forced_close"))
+              return trades
+
+
+          def replay_golden_cross(symbol, df):
+              SMA_FAST, SMA_SLOW, ATR_N, ATR_STOP_MULT, MAX_HOLD_DAYS = 50, 200, 14, 2.5, 250
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(SMA_SLOW, ATR_N) + 5
+              if n < min_lookback + 5:
+                  return []
+              closes = df["Close"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              atr = _atr(highs, lows, closes, ATR_N)
+              sma_fast = pd.Series(closes).rolling(SMA_FAST).mean().to_numpy()
+              sma_slow = pd.Series(closes).rolling(SMA_SLOW).mean().to_numpy()
+              trades, position = [], None
+              for i in range(n):
+                  if position is not None:
+                      held_days = i - position["entry_idx"]
+                      exit_reason = None
+                      if closes[i] <= position["stop"]:
+                          exit_reason = "stop_hit"
+                      elif sma_fast[i] < sma_slow[i] and sma_fast[i - 1] >= sma_slow[i - 1]:
+                          exit_reason = "death_cross"
+                      elif held_days >= MAX_HOLD_DAYS:
+                          exit_reason = "max_hold_timeout"
+                      if exit_reason:
+                          trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                              position["initial_stop"], i, dates[i], closes[i], exit_reason))
+                          position = None
+                      continue
+                  if i < min_lookback or i == 0:
+                      continue
+                  if np.isnan(atr[i]) or atr[i] <= 0 or np.isnan(sma_fast[i]) or np.isnan(sma_slow[i]):
+                      continue
+                  golden_cross = sma_fast[i] > sma_slow[i] and sma_fast[i - 1] <= sma_slow[i - 1]
+                  if not golden_cross:
+                      continue
+                  stop_loss = closes[i] - ATR_STOP_MULT * atr[i]
+                  if closes[i] - stop_loss <= 0:
+                      continue
+                  position = dict(entry_idx=i, entry_date=dates[i], entry_price=closes[i], initial_stop=stop_loss, stop=stop_loss)
+              if position is not None:
+                  trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                      position["initial_stop"], n - 1, dates[-1], closes[-1], "data_end_forced_close"))
+              return trades
+
+
+          def replay_gap_and_go(symbol, df):
+              GAP_PCT_THRESHOLD, VOL_MULT, ATR_N, ATR_STOP_MULT, MAX_HOLD_DAYS = 2.0, 1.5, 14, 2.5, 60
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(ATR_N, 20) + 5
+              if n < min_lookback + 5:
+                  return []
+              opens = df["Open"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              closes = df["Close"].to_numpy(dtype=float)
+              volumes = df["Volume"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              atr = _atr(highs, lows, closes, ATR_N)
+              vol_avg = pd.Series(volumes).rolling(20).mean().to_numpy()
+              prev_close = np.concatenate(([np.nan], closes[:-1]))
+              gap_pct = (opens - prev_close) / prev_close * 100
+              trades, position = [], None
+              for i in range(n):
+                  if position is not None:
+                      held_days = i - position["entry_idx"]
+                      exit_reason = None
+                      if closes[i] <= position["stop"]:
+                          exit_reason = "stop_hit"
+                      elif closes[i] < position["gap_low"]:
+                          exit_reason = "gap_filled"
+                      elif held_days >= MAX_HOLD_DAYS:
+                          exit_reason = "max_hold_timeout"
+                      if exit_reason:
+                          trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                              position["initial_stop"], i, dates[i], closes[i], exit_reason))
+                          position = None
+                      continue
+                  if i < min_lookback or i == 0:
+                      continue
+                  if np.isnan(atr[i]) or atr[i] <= 0 or np.isnan(vol_avg[i]) or np.isnan(gap_pct[i]):
+                      continue
+                  gapped_up = gap_pct[i] >= GAP_PCT_THRESHOLD
+                  held_gap = closes[i] > opens[i]
+                  closed_strong = closes[i] >= opens[i] + 0.5 * (highs[i] - opens[i])
+                  vol_confirmed = volumes[i] > vol_avg[i] * VOL_MULT
+                  if not (gapped_up and held_gap and closed_strong and vol_confirmed):
+                      continue
+                  stop_loss = closes[i] - ATR_STOP_MULT * atr[i]
+                  if closes[i] - stop_loss <= 0:
+                      continue
+                  position = dict(entry_idx=i, entry_date=dates[i], entry_price=closes[i], initial_stop=stop_loss,
+                                   stop=stop_loss, gap_low=lows[i])
+              if position is not None:
+                  trades.append(_rec(symbol, position["entry_idx"], position["entry_date"], position["entry_price"],
+                                      position["initial_stop"], n - 1, dates[-1], closes[-1], "data_end_forced_close"))
+              return trades
+
+
+          STRATEGIES = [
+              ("supertrend_3x_flip", "2y", replay_supertrend),
+              ("macd_crossover", "2y", replay_macd),
+              ("donchian_breakout_55d", "2y", replay_donchian55),
+              ("fibonacci_wide_trail", "2y", replay_fib_wide_trail),
+              ("rsi2_mean_reversion", "2y", replay_rsi2),
+              ("bb_squeeze_breakout", "2y", replay_bb_squeeze),
+              ("golden_cross_50_200", "2y", replay_golden_cross),
+              ("gap_and_go_5y", "5y", replay_gap_and_go),
+          ]
+
+          # =====================================================================
+          # Futures margin-approximation sizing/cost layer (instrument-specific,
+          # applied downstream of the unchanged signal logic above).
+          # =====================================================================
+          CAPITAL_INR = 400000.0
+          FUTURES_MARGIN_PCT = 0.18  # disclosed round-number SPAN+exposure margin assumption
+
+          # Lot size: chosen so ONE lot's margin cost lands near the LOW end of
+          # the disclosed Rs 1-2 lakh band (not the real, periodically-revised
+          # per-symbol NSE lot table - explicitly not attempted, per instruction).
+          LOT_TARGET_MARGIN_INR = 100000.0
+          LOT_TARGET_NOTIONAL_INR = LOT_TARGET_MARGIN_INR / FUTURES_MARGIN_PCT
+
+          def lot_size_for(price):
+              if price <= 0:
+                  return 0
+              raw = LOT_TARGET_NOTIONAL_INR / price
+              return max(5, int(round(raw / 5.0) * 5))
+
+          FUTURES_COST_MODEL = {
+              # Approximate NSE F&O futures cost structure - NOT the exact
+              # current tariff. No rollover cost / basis risk modeled (futures
+              # P&L here is point-for-point cash-price tracking, per the
+              # disclosed instrument approximation).
+              "brokerage_flat": 20.0, "stt_sell_pct": 0.0002,
+              "exchange_txn_pct": 0.000019, "gst_pct": 0.18,
+          }
+
+          def _futures_order_cost(notional, side, cm):
+              brokerage = cm["brokerage_flat"]
+              exch = notional * cm["exchange_txn_pct"]
+              stt = notional * cm["stt_sell_pct"] if side == "sell" else 0.0
+              gst = (brokerage + exch) * cm["gst_pct"]
+              return brokerage + exch + stt + gst
+
+          def evaluate_futures_trade(trade, risk_pct, capital=CAPITAL_INR, capital_tranches=2):
+              entry_price = trade["entry_price"]
+              stop_dist = entry_price - trade["initial_stop"]
+              if stop_dist <= 0:
+                  return dict(skipped=True, reason="degenerate_stop")
+              usable_capital = min(capital, capital / capital_tranches)
+              risk_amount = usable_capital * risk_pct / 100.0
+              margin_per_share = entry_price * FUTURES_MARGIN_PCT
+              qty_by_risk = risk_amount / stop_dist
+              qty_by_margin_cap = usable_capital / margin_per_share if margin_per_share > 0 else 0.0
+              qty_shares = min(qty_by_risk, qty_by_margin_cap)
+              lot_size = lot_size_for(entry_price)
+              lots = int(qty_shares // lot_size) if lot_size > 0 else 0
+              if lots <= 0:
+                  return dict(skipped=True, reason="lot_size_rounds_to_zero", lot_size=lot_size,
+                              qty_shares_by_risk=qty_by_risk, fill_ratio=qty_shares / lot_size if lot_size else 0.0)
+              qty = lots * lot_size
+              entry_notional = qty * entry_price
+              exit_notional = qty * trade["exit_price"]
+              entry_cost = _futures_order_cost(entry_notional, "buy", FUTURES_COST_MODEL)
+              exit_cost = _futures_order_cost(exit_notional, "sell", FUTURES_COST_MODEL)
+              total_cost = entry_cost + exit_cost
+              gross_pnl = (trade["exit_price"] - entry_price) * qty
+              net_pnl = gross_pnl - total_cost
+              return dict(skipped=False, symbol=trade["symbol"], exit_reason=trade["exit_reason"],
+                          held_days=trade["held_days"], lots=lots, lot_size=lot_size, qty=qty,
+                          margin_used=qty * entry_price * FUTURES_MARGIN_PCT,
+                          gross_pnl=gross_pnl, net_pnl=net_pnl, total_cost=total_cost)
+
+          def evaluate_futures_trade_no_lot_rounding(trade, risk_pct, capital=CAPITAL_INR, capital_tranches=2):
+              """SUPPLEMENTARY, NOT A REALISTIC TRADE MODEL: same risk-based/
+              margin-capped qty_shares as evaluate_futures_trade() above, but
+              WITHOUT flooring to whole NSE lots (fractional 'shares of futures
+              exposure' allowed). Included only because the real, lot-rounded
+              model above skips almost every signal at this project's own
+              risk_pct (see header disclosure/report) - this variant answers
+              a different, narrower question: "ignoring lot-size granularity
+              entirely, would the margin-sized risk-based exposure itself have
+              been net profitable?" It is NOT something a real NSE account
+              could execute (you cannot buy 0.06 of a lot) and must never be
+              read as a tradeable backtest result - printed in its own clearly
+              labeled section only, never merged into the primary metrics."""
+              entry_price = trade["entry_price"]
+              stop_dist = entry_price - trade["initial_stop"]
+              if stop_dist <= 0:
+                  return dict(skipped=True, reason="degenerate_stop")
+              usable_capital = min(capital, capital / capital_tranches)
+              risk_amount = usable_capital * risk_pct / 100.0
+              margin_per_share = entry_price * FUTURES_MARGIN_PCT
+              qty_by_risk = risk_amount / stop_dist
+              qty_by_margin_cap = usable_capital / margin_per_share if margin_per_share > 0 else 0.0
+              qty = min(qty_by_risk, qty_by_margin_cap)
+              if qty <= 0:
+                  return dict(skipped=True, reason="degenerate_qty")
+              entry_notional = qty * entry_price
+              exit_notional = qty * trade["exit_price"]
+              entry_cost = _futures_order_cost(entry_notional, "buy", FUTURES_COST_MODEL)
+              exit_cost = _futures_order_cost(exit_notional, "sell", FUTURES_COST_MODEL)
+              total_cost = entry_cost + exit_cost
+              gross_pnl = (trade["exit_price"] - entry_price) * qty
+              net_pnl = gross_pnl - total_cost
+              return dict(skipped=False, symbol=trade["symbol"], exit_reason=trade["exit_reason"],
+                          held_days=trade["held_days"], qty=qty, gross_pnl=gross_pnl, net_pnl=net_pnl,
+                          total_cost=total_cost)
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          # DISCLOSURE: single-stock F&O in real NSE is only listed on a subset
+          # of these 52 symbols (many are cash-only). This pass treats the
+          # whole universe as "if these were all optionable/futures-eligible" -
+          # a sizing/signal exploration, not a claim all 52 have real contracts.
+
+          def _metrics_row(evals):
+              evals = [e for e in evals if not e.get("skipped")]
+              n = len(evals)
+              if n == 0:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0,
+                              cost_drag_pct=0.0, avg_held_days=0.0)
+              wins = [e for e in evals if e["net_pnl"] > 0]
+              losses = [e for e in evals if e["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(e["net_pnl"] for e in wins)
+              gl = -sum(e["net_pnl"] for e in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [e for e in evals if e["gross_pnl"] > 0]
+              losses_g = [e for e in evals if e["gross_pnl"] <= 0]
+              gwg = sum(e["gross_pnl"] for e in wins_g)
+              glg = -sum(e["gross_pnl"] for e in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(e["net_pnl"] for e in evals) / n
+              avg_gross = sum(e["gross_pnl"] for e in evals) / n
+              total_cost = sum(e["total_cost"] for e in evals)
+              cost_drag_pct = 100 * total_cost / max(1, sum(abs(e["gross_pnl"]) for e in evals))
+              avg_held_days = sum(e["held_days"] for e in evals) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross, avg_net=avg_net,
+                          avg_gross=avg_gross, cost_drag_pct=cost_drag_pct, avg_held_days=avg_held_days)
+
+          def _print_row(label, row):
+              print(f"{label:>26} {row['n']:>5} {row['win_rate']:>6.1f}% {row['pf_net']:>7.2f} "
+                    f"{row['pf_gross']:>8.2f} {row['avg_net']:>10.2f} {row['avg_gross']:>10.2f} "
+                    f"{row['cost_drag_pct']:>9.1f}% {row['avg_held_days']:>8.1f}d")
+
+          header = (f"{'bucket':>26} {'n':>5} {'win%':>7} {'PFnet':>7} {'PFgross':>8} "
+                    f"{'avgNet':>10} {'avgGross':>10} {'costDrag%':>10} {'avgHeld':>9}")
+
+          print(f"=== F&O FUTURES APPROXIMATION - {len(SYMBOLS)} symbols, {len(STRATEGIES)} strategies ===")
+          print("REMINDER: synthetic instrument approximation, not real NSE futures data - see header disclosure.\n")
+
+          _fetch_cache = {}
+          def _fetch(sym, period):
+              key = (sym, period)
+              if key not in _fetch_cache:
+                  try:
+                      raw = m.fetch_ohlc(sym, period, "1d")
+                  except Exception:
+                      raw = None
+                  _fetch_cache[key] = raw
+              return _fetch_cache[key]
+
+          overall_lots_ok = 0
+          overall_lots_skipped_granularity = 0
+
+          for strat_name, period, replay_fn in STRATEGIES:
+              print(f"\n{'#'*78}\n# STRATEGY: {strat_name}  (period={period})\n{'#'*78}")
+              all_evals = []
+              all_evals_no_lot = []
+              skip_reasons = {}
+              fill_ratios = []
+              skipped_symbols = 0
+              for sym in SYMBOLS:
+                  cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+                  raw = _fetch(sym, period)
+                  if raw is None or len(raw) < 100:
+                      skipped_symbols += 1
+                      continue
+                  try:
+                      trades = replay_fn(sym, raw)
+                  except Exception as e:
+                      print(f"ERROR {sym}: {e}")
+                      continue
+                  for t in trades:
+                      ev = evaluate_futures_trade(t, cfg["risk_pct"])
+                      if ev.get("skipped"):
+                          skip_reasons[ev["reason"]] = skip_reasons.get(ev["reason"], 0) + 1
+                          if ev["reason"] == "lot_size_rounds_to_zero":
+                              fill_ratios.append(ev["fill_ratio"])
+                              overall_lots_skipped_granularity += 1
+                      else:
+                          overall_lots_ok += 1
+                      all_evals.append(ev)
+                      all_evals_no_lot.append(evaluate_futures_trade_no_lot_rounding(t, cfg["risk_pct"]))
+
+              n_signals = len(all_evals)
+              n_tradeable = sum(1 for e in all_evals if not e.get("skipped"))
+              print(f"  fetched {len(SYMBOLS) - skipped_symbols}/{len(SYMBOLS)} symbols, "
+                    f"{n_signals} raw signals, {n_tradeable} sizeable into >=1 lot "
+                    f"({100*n_tradeable/n_signals:.1f}% lot-fill rate)" if n_signals else "  0 signals")
+              if skip_reasons:
+                  print(f"  skip reasons: {skip_reasons}")
+              if fill_ratios:
+                  print(f"  avg fill ratio for lot-granularity skips (qty_shares_by_risk/lot_size): "
+                        f"{sum(fill_ratios)/len(fill_ratios):.3f}  (>=1.0 would have filled a lot)")
+
+              print(header)
+              _print_row("ALL", _metrics_row(all_evals))
+
+              tradeable = [e for e in all_evals if not e.get("skipped")]
+              if tradeable:
+                  print("\n  -- BY EXIT REASON --")
+                  print(header)
+                  for reason in sorted(set(e["exit_reason"] for e in tradeable)):
+                      _print_row(reason, _metrics_row([e for e in tradeable if e["exit_reason"] == reason]))
+
+              print("\n  -- SUPPLEMENTARY, NOT TRADEABLE: same risk/margin-based qty WITHOUT flooring to "
+                    "whole NSE lots (answers 'was the sizing formula itself net-profitable, before lot "
+                    "granularity is applied' - never read this as an executable backtest result) --")
+              print(header)
+              _print_row("ALL (no lot rounding)", _metrics_row(all_evals_no_lot))
+
+          print(f"\n{'='*78}\nOVERALL LOT-FILL SUMMARY ACROSS ALL 8 STRATEGIES: "
+                f"{overall_lots_ok} trades sized into >=1 lot, "
+                f"{overall_lots_skipped_granularity} raw signals skipped purely on lot-size granularity "
+                f"(see header disclosure - this is the disclosed real-money consequence of this project's "
+                f"risk_pct budget combined with realistically-sized F&O lots, not a bug).")
+          PYEOF
