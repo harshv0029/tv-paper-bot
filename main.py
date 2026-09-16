@@ -7616,6 +7616,46 @@ def _run_fo_options_scan(conn):
         _open_fo_option_paper_position(conn, instrument_token, exchange_segment, descriptor, signal)
 
 
+# Explicit user decision (2026-09-16, AskUserQuestion) on how long the
+# RSI2-options paper engine must run before real-order wiring is even
+# CONSIDERED - not a technical constraint, a deliberately chosen bar
+# per CLAUDE.md's standing "never ship real-money logic blind"
+# discipline. Both conditions (see fo_rsi2_validation_status) must
+# hold; meeting them is necessary, not sufficient - an honest results
+# review (win rate/expectancy, not just count) still has to happen
+# before wiring is proposed, same as every other strategy here.
+FO_RSI2_VALIDATION_MIN_DAYS = 28  # 4 weeks
+FO_RSI2_VALIDATION_MIN_CLOSED_TRADES = 30
+
+
+def fo_rsi2_validation_status(conn) -> dict:
+    """Whether the RSI2-options paper engine has accumulated enough
+    paper-trading evidence to be considered for real-order wiring, per
+    FO_RSI2_VALIDATION_MIN_DAYS/FO_RSI2_VALIDATION_MIN_CLOSED_TRADES
+    above. A closed trade is counted as a 'sell' row tagged
+    strategy='rsi2_premium_reversion' in `trades` - each one is exactly
+    one position _manage_open_fo_option_position closed out."""
+    first_ts = conn.execute(
+        "SELECT MIN(ts) AS first_ts FROM trades WHERE strategy = 'rsi2_premium_reversion'"
+    ).fetchone()["first_ts"]
+    closed_trades = conn.execute(
+        "SELECT COUNT(*) AS n FROM trades WHERE strategy = 'rsi2_premium_reversion' AND action = 'sell'"
+    ).fetchone()["n"]
+    days_elapsed = (time.time() - first_ts) / 86400 if first_ts else 0.0
+    return {
+        "first_paper_trade_ts": first_ts,
+        "days_elapsed": round(days_elapsed, 1),
+        "days_required": FO_RSI2_VALIDATION_MIN_DAYS,
+        "closed_trades": closed_trades,
+        "closed_trades_required": FO_RSI2_VALIDATION_MIN_CLOSED_TRADES,
+        "meets_minimum_criteria": (
+            first_ts is not None
+            and days_elapsed >= FO_RSI2_VALIDATION_MIN_DAYS
+            and closed_trades >= FO_RSI2_VALIDATION_MIN_CLOSED_TRADES
+        ),
+    }
+
+
 def _force_close_all_positions(conn, reason: str) -> dict:
     """The kill switch's actual work: exits EVERY open position - paper
     equity, paper options, AND real Kotak positions (added 2026-09-07) -
@@ -9953,6 +9993,17 @@ def scheduler_status():
         "scheduler_capital_fetched_at_utc": _real_capital_cache["fetched_at"] or None,
         "scheduler_capital_fetch_error": _real_capital_cache["error"],
     }
+
+
+@app.get("/fo-rsi2-validation-status")
+def fo_rsi2_validation_status_endpoint():
+    """See fo_rsi2_validation_status's own docstring - whether the RSI2-
+    options paper engine (_run_fo_options_scan) has cleared the explicit
+    user-set bar (2026-09-16) for even being CONSIDERED for real-order
+    wiring. No Kotak token required - paper-only stats from this app's
+    own trades table, not real broker data."""
+    with closing(get_db()) as conn:
+        return fo_rsi2_validation_status(conn)
 
 
 @app.get("/kotak-neo/live-ticks")
