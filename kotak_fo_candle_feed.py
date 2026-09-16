@@ -49,6 +49,8 @@ import asyncio
 import time
 from contextlib import closing
 
+import pandas as pd
+
 import kotak_neo
 import nse_fo_chain
 
@@ -107,6 +109,19 @@ _universe_cache = {"value": None, "resolved_at": 0.0}
 
 def get_feed_status() -> dict:
     return dict(_feed_status)
+
+
+def get_cached_fo_universe() -> dict:
+    """{(exchange_segment, instrument_token): descriptor} as last resolved
+    by run_fo_candle_feed's own resolve_fo_universe() call (see that
+    function's docstring for the descriptor shape) - {} if the feed
+    hasn't resolved a universe yet (e.g. right after a restart, before
+    the background task's first loop iteration completes). Read-only
+    snapshot for callers (the RSI2 paper-position scan in main.py) that
+    need to iterate the same leg set the feed is actually subscribed to,
+    without reaching into this module's private _universe_cache
+    directly."""
+    return dict(_universe_cache["value"] or {})
 
 
 def _spot_price(cash_symbol: str):
@@ -243,6 +258,61 @@ def apply_tick(instrument_token: str, price: float, ts: float, descriptor: dict,
     return completed
 
 
+MIN_BARS_FOR_SIGNAL_CHECK = 40  # see read_fo_candles_as_df's own docstring
+
+
+def read_fo_candles_as_df(instrument_token: str) -> pd.DataFrame | None:
+    """Every COMPLETED candle for `instrument_token` from fo_option_candles,
+    shaped exactly like data_fetch.fetch_ohlc's own return value (Date/
+    Open/High/Low/Close/Volume columns, oldest-first, integer
+    RangeIndex) so any existing strategy function in main.py can run
+    against it completely unmodified. Returns None if this instrument
+    has zero completed candles yet - never an empty DataFrame, so a
+    caller can use a plain `if df is None` check the same way every
+    fetch_ohlc call site already does for "no data".
+
+    Volume here is `tick_count` (this contract's own per-bar Kotak tick
+    count), NOT real traded volume or open interest - Kotak's live
+    quotes()/WebSocket feed exposes neither for F&O (see the "KNOWN GAP"
+    comment above FO_MONITORED_UNDERLYINGS in main.py; this module's
+    tick-driven candles inherit that same gap). A reasonable liquidity-
+    ish proxy - more ticks in an interval roughly tracks more trading
+    activity - but must never be read as literal contracts traded, same
+    disclosed-proxy-not-a-guess discipline kotak_live_feed.py's own MCX
+    price-proxy futures already established.
+
+    MIN_BARS_FOR_SIGNAL_CHECK exists here as a documented constant, not
+    because this function enforces it (it returns whatever history
+    exists, however short) - individual F&O contracts have
+    fundamentally SHORT, DISCONTINUOUS candle histories compared to an
+    underlying equity/index: a contract drops out of the ATM band (and
+    stops accumulating new candles) the moment spot moves it out of
+    range on the next universe re-resolution, and every contract expires
+    outright within weeks (weekly options) to a couple months (monthly
+    options, the only class kept for single stocks). Strategies needing
+    deep lookbacks (e.g. a 50/200-bar SMA crossover) will realistically
+    never accumulate enough history on any single contract's own candles
+    to fire at all - this is a real constraint on which existing
+    strategy functions make sense to wire against this data source, not
+    a bug in this reader."""
+    import main  # deferred - avoids a circular import at module load time
+    with closing(main.get_db()) as conn:
+        rows = conn.execute(
+            "SELECT bucket_start_ts, open, high, low, close, tick_count "
+            "FROM fo_option_candles WHERE instrument_token = ? ORDER BY bucket_start_ts ASC",
+            (instrument_token,),
+        ).fetchall()
+    if not rows:
+        return None
+    df = pd.DataFrame(
+        [dict(r) for r in rows],
+    ).rename(columns={
+        "open": "Open", "high": "High", "low": "Low", "close": "Close", "tick_count": "Volume",
+    })
+    df["Date"] = pd.to_datetime(df["bucket_start_ts"], unit="s", utc=True)
+    return df[["Date", "Open", "High", "Low", "Close", "Volume"]].reset_index(drop=True)
+
+
 async def run_fo_candle_feed():
     """The background task main.py's startup event launches alongside
     (never instead of) kotak_live_feed.run_feed. Runs forever until the
@@ -256,7 +326,25 @@ async def run_fo_candle_feed():
         try:
             cache_age = time.time() - _universe_cache["resolved_at"]
             if _universe_cache["value"] is None or cache_age > UNIVERSE_REFRESH_SECONDS:
-                universe = resolve_fo_universe()
+                # asyncio.to_thread (2026-09-16, live Render restart-loop
+                # fix): resolve_fo_universe() does a blocking search_scrip
+                # call per underlying/expiry-class across all ~213
+                # underlyings (3 index + 210 stock) - at Kotak's own
+                # documented 10 req/sec REST cap that's tens of seconds to
+                # minutes of pure synchronous I/O. Called bare (no await)
+                # inside this coroutine, that blocks the WHOLE asyncio
+                # event loop - the same loop uvicorn uses to serve every
+                # HTTP request, including Render's own health check -  on
+                # every process start (this cache is always None right
+                # after a restart) and every 4h refresh. A blocked health
+                # check reads as a dead app to Render, which restarts the
+                # process, which blocks the loop again on the next boot -
+                # an unbounded restart loop, exactly what was observed
+                # live. main.py's own _scheduler_tick already establishes
+                # this exact pattern (asyncio.to_thread wrapping
+                # _auto_signal_core) for the same reason - this call site
+                # just never got it.
+                universe = await asyncio.to_thread(resolve_fo_universe)
                 _universe_cache["value"] = universe
                 _universe_cache["resolved_at"] = time.time()
             else:
