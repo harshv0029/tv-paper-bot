@@ -423,6 +423,42 @@ def list_nse_option_strike_chain(underlying: str, right: str, expiry_class: str)
     return chain, None
 
 
+# Explicit user instruction 2026-09-16: subscribe/trade a bounded ATM +/-
+# N strike band, not every listed strike - live-confirmed capacity math
+# against Kotak's WebSocket max_subscriptions=3000 cap (see
+# kotak_live_feed.py for where this actually gets subscribed): N=15 means
+# 15 strikes above + 15 below + ATM itself = 31 strikes x 2 rights (CE/PE)
+# x 3 underlyings (NIFTY/BANKNIFTY/SENSEX) x 2 expiry classes (weekly/
+# monthly) = 372 option contracts, plus ~6 futures - comfortably under
+# the cap alongside the existing 206-symbol equity/index watchlist
+# already on the same feed (206 + 372 + 6 ~= 584 of 3000).
+DEFAULT_ATM_STRIKE_BAND = 15
+
+
+def select_atm_banded_option_strikes(underlying: str, spot: float, right: str, expiry_class: str,
+                                      band: int = DEFAULT_ATM_STRIKE_BAND):
+    """The `band` strikes immediately above AND below the at-the-money
+    strike (up to 2*band + 1 strikes total - fewer at either end of a
+    short real chain) for `underlying`'s `right` at `expiry_class` -
+    added 2026-09-16, explicit user instruction to subscribe/trade a
+    bounded band around ATM rather than every listed strike (deep ITM/
+    OTM strikes rarely have real liquidity, and Kotak's WebSocket feed
+    has a hard subscription cap - see DEFAULT_ATM_STRIKE_BAND's own
+    comment for the capacity math this band size was chosen against).
+    Returns (chain, None) or (None, reason_str); chain is a sub-list of
+    list_nse_option_strike_chain's own return value, unchanged field
+    shape, still sorted by strike ascending."""
+    if band <= 0:
+        return None, f"invalid_band:{band}"
+    chain, err = list_nse_option_strike_chain(underlying, right, expiry_class)
+    if err:
+        return None, err
+    atm_idx = min(range(len(chain)), key=lambda i: abs(chain[i]["strike"] - spot))
+    lo = max(0, atm_idx - band)
+    hi = min(len(chain), atm_idx + band + 1)
+    return chain[lo:hi], None
+
+
 def _extract_ltp(quotes_response) -> float | None:
     """REAL, CONFIRMED response shape (2026-09-07, live GET
     /kotak-neo/quotes?exchange_segment=nse_fo&instrument_token=68407 against
