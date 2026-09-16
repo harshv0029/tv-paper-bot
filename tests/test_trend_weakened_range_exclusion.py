@@ -35,12 +35,25 @@ def _fresh_db():
 def _insert_open_position(conn, symbol: str, entry_regime):
     """Entry far from both stop and target so this fixture's mild price
     decline can never trigger stop_hit/target_hit - isolates whatever
-    exit_reason actually fires to the trend_weakened check under test."""
+    exit_reason actually fires to the trend_weakened check under test.
+
+    `day` must match the FIXED clock `_run_exit_check` patches
+    (`_FixedUtcNow`), not the real wall clock: `_auto_signal_core` deletes
+    any signal_state row whose `day` differs from its own computed
+    today_str before running any exit check at all (stale-day guard). This
+    used to call `main.ist_now()` (real, unpatched time) - which happened
+    to match `_FixedUtcNow`'s 2026-09-14 on the day this test was written,
+    then silently made `test_trend_weakened_still_closes_a_trend_regime_position`
+    and `..._with_unknown_regime` fail on every later date (row gets wiped
+    pre-exit-check, falls through to the unrelated entry-signal path,
+    returns action_taken="no_signal" instead of "exited_trend_weakened") -
+    found 2026-09-16 verifying a background agent's report against a clean
+    origin/main checkout, main.py's actual exit logic was NOT at fault."""
     conn.execute(
         "INSERT INTO signal_state (symbol, day, status, entry_price, stop_loss, "
         "initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval, entry_regime) "
         "VALUES (?, ?, 'long', 100.0, 80.0, 80.0, 130.0, 10, ?, 1.0, '5m', ?)",
-        (symbol, main.ist_now().strftime("%Y-%m-%d"), main.time.time(), entry_regime),
+        (symbol, _fixed_ist_day_str(), main.time.time(), entry_regime),
     )
     conn.execute(
         "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
@@ -56,6 +69,15 @@ class _FixedUtcNow(__import__("datetime").datetime):
     @classmethod
     def utcnow(cls):
         return cls._fixed
+
+
+def _fixed_ist_day_str() -> str:
+    """The IST calendar day _auto_signal_core computes from _FixedUtcNow's
+    fixed clock, matching main.ist_now()'s own UTC->IST math - used to
+    stamp fixture rows so they survive _auto_signal_core's stale-day guard
+    (see _insert_open_position's docstring)."""
+    ist = _FixedUtcNow._fixed + __import__("datetime").timedelta(minutes=main.IST_OFFSET_MIN)
+    return ist.strftime("%Y-%m-%d")
 
 
 def _mild_downtrend_fixture(days: int = 5, bars_per_day: int = 20) -> pd.DataFrame:
