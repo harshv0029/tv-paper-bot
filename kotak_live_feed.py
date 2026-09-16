@@ -246,10 +246,24 @@ async def run_feed(watchlist_symbols: list):
     backoff = RESTART_BACKOFF_MIN_SECONDS
     while True:
         try:
-            client = kotak_neo.login()
+            # asyncio.to_thread (2026-09-16, same live Render restart-loop
+            # fix applied to kotak_fo_candle_feed.resolve_fo_universe - see
+            # that call site's own comment for the full mechanism). Both
+            # calls here are blocking synchronous network I/O: login() is
+            # one request, but resolve_tokens() - per this module's own
+            # comment above _TOKEN_MAP_CACHE_TTL_SECONDS - downloads and
+            # parses Kotak's ENTIRE nse_cm scrip master (tens of thousands
+            # of rows) EVERY time this in-memory cache is empty, which is
+            # always true right after a fresh process start. Called bare
+            # inside this coroutine, on every single restart, that blocks
+            # the whole event loop - including uvicorn's own request
+            # handling and Render's health check - for however long that
+            # download+parse takes, same failure mode as the F&O universe
+            # resolve, just on the equity feed instead.
+            client = await asyncio.to_thread(kotak_neo.login)
             cache_age = time.time() - _token_map_cache["resolved_at"]
             if _token_map_cache["value"] is None or cache_age > _TOKEN_MAP_CACHE_TTL_SECONDS:
-                token_map = resolve_tokens(client, watchlist_symbols)
+                token_map = await asyncio.to_thread(resolve_tokens, client, watchlist_symbols)
                 _token_map_cache["value"] = token_map
                 _token_map_cache["resolved_at"] = time.time()
             else:
