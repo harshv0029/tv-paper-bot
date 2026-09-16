@@ -111,6 +111,19 @@ def get_feed_status() -> dict:
     return dict(_feed_status)
 
 
+def get_cached_fo_universe() -> dict:
+    """{(exchange_segment, instrument_token): descriptor} as last resolved
+    by run_fo_candle_feed's own resolve_fo_universe() call (see that
+    function's docstring for the descriptor shape) - {} if the feed
+    hasn't resolved a universe yet (e.g. right after a restart, before
+    the background task's first loop iteration completes). Read-only
+    snapshot for callers (the RSI2 paper-position scan in main.py) that
+    need to iterate the same leg set the feed is actually subscribed to,
+    without reaching into this module's private _universe_cache
+    directly."""
+    return dict(_universe_cache["value"] or {})
+
+
 def _spot_price(cash_symbol: str):
     import main  # deferred - avoids a circular import at module load time
     try:

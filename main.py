@@ -505,6 +505,29 @@ def init_db():
             )
             """
         )
+        # RSI(2) mean-reversion paper positions on F&O OPTION legs from
+        # kotak_fo_candle_feed's own per-strike candle universe (see
+        # _run_fo_options_scan) - one row per open leg, PAPER only, same
+        # not-yet-real-money posture as nse_straddle_state above.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS signal_state_fo_options (
+                instrument_token TEXT PRIMARY KEY,
+                kotak_trading_symbol TEXT NOT NULL,
+                underlying TEXT NOT NULL,
+                right TEXT NOT NULL,
+                strike REAL NOT NULL,
+                expiry TEXT NOT NULL,
+                exchange_segment TEXT NOT NULL,
+                lot_size INTEGER NOT NULL,
+                entry_price REAL NOT NULL,
+                initial_stop_loss REAL NOT NULL,
+                entry_bar_ts TEXT NOT NULL,
+                entry_ts REAL NOT NULL,
+                day TEXT NOT NULL
+            )
+            """
+        )
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS trading_control (
@@ -7457,6 +7480,142 @@ def _straddle_signal_core(conn, fo_underlying: str, vol_signal, halted: bool, is
                   f"- OTHER LEG MAY ALREADY BE OPEN, NEEDS ATTENTION")
 
 
+FO_OPTIONS_SCAN_INTERVAL_SECONDS = 300  # matches kotak_fo_candle_feed.CANDLE_INTERVAL_SECONDS - no point scanning faster than a new candle bar can complete
+_fo_options_scan_last_ts = 0.0
+
+
+def _open_fo_option_paper_position(conn, instrument_token: str, exchange_segment: str, descriptor: dict, signal: dict):
+    qty = descriptor["lot_size"]
+    entry_price = signal["entry_price"]
+    day = ist_now().strftime("%Y-%m-%d")
+    conn.execute(
+        "INSERT INTO signal_state_fo_options (instrument_token, kotak_trading_symbol, underlying, right, "
+        "strike, expiry, exchange_segment, lot_size, entry_price, initial_stop_loss, entry_bar_ts, entry_ts, day) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (instrument_token, descriptor["kotak_trading_symbol"], descriptor["underlying"], descriptor["right"],
+         descriptor["strike"], descriptor["expiry"], exchange_segment, qty, entry_price, signal["stop_loss"],
+         signal["entry_bar_ts"].isoformat(), time.time(), day),
+    )
+    paper_symbol = f"{descriptor['kotak_trading_symbol']}:RSI2FO"
+    payload = {
+        "symbol": paper_symbol, "underlying": descriptor["underlying"], "right": descriptor["right"],
+        "strike": descriptor["strike"], "expiry": descriptor["expiry"], "action": "buy", "qty": qty,
+        "price": entry_price, "strategy": "rsi2_premium_reversion", "entry_reason": "rsi2_mean_reversion_signal",
+        "rsi2": signal["rsi2"], "stop_loss": signal["stop_loss"],
+    }
+    apply_paper_trade(conn, paper_symbol, "buy", qty, entry_price)
+    conn.execute(
+        "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+        "VALUES (?, ?, 'buy', ?, ?, 1.0, 'rsi2_premium_reversion', ?)",
+        (time.time(), paper_symbol, qty, entry_price, json.dumps(payload)),
+    )
+    conn.commit()
+    print(f"[FO_RSI2] paper entry {descriptor['kotak_trading_symbol']} strike {descriptor['strike']} "
+          f"exp {descriptor['expiry']} premium Rs{entry_price:.2f} rsi2={signal['rsi2']:.2f}")
+
+
+def _manage_open_fo_option_position(conn, row, descriptor: dict | None):
+    """Exits `row` (a signal_state_fo_options row) on either a
+    physical-settlement force-close (checked unconditionally first -
+    same "closing must never be blocked" principle as
+    _close_real_straddle_legs) or fo_option_strategy's own RSI2 exit
+    signal. No-op if neither fires. `descriptor` may be None if this
+    leg dropped out of the currently resolved universe (e.g. a universe
+    refresh moved it out of the ATM band) - force-close and the candle
+    read both still work from the row's own stored fields in that case,
+    same "manage what's open regardless of subscription churn"
+    reasoning kotak_fo_candle_feed.read_fo_candles_as_df's own docstring
+    flags as a real constraint of this data source."""
+    import fo_option_strategy
+    import kotak_fo_candle_feed
+    import nse_fo_chain
+
+    force_close = nse_fo_chain.must_force_close_before_expiry(row["underlying"], row["expiry"])
+    df = kotak_fo_candle_feed.read_fo_candles_as_df(row["instrument_token"])
+
+    exit_reason = "physical_settlement_force_close" if force_close else None
+    if exit_reason is None and df is not None:
+        entry_bar_ts = pd.Timestamp(row["entry_bar_ts"])
+        exit_reason = fo_option_strategy.rsi2_mean_reversion_exit_reason(df, entry_bar_ts, row["initial_stop_loss"])
+    if exit_reason is None:
+        return
+
+    exit_price = float(df["Close"].iloc[-1]) if df is not None and len(df) else row["entry_price"]
+    qty = row["lot_size"]
+    pnl_inr = (exit_price - row["entry_price"]) * qty
+    paper_symbol = f"{row['kotak_trading_symbol']}:RSI2FO"
+    payload = {
+        "symbol": paper_symbol, "underlying": row["underlying"], "right": row["right"], "strike": row["strike"],
+        "expiry": row["expiry"], "action": "sell", "qty": qty, "price": exit_price,
+        "strategy": "rsi2_premium_reversion", "exit_reason": exit_reason,
+        "entry_price": row["entry_price"], "pnl_inr": round(pnl_inr, 2),
+    }
+    apply_paper_trade(conn, paper_symbol, "sell", qty, exit_price)
+    conn.execute(
+        "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+        "VALUES (?, ?, 'sell', ?, ?, 1.0, 'rsi2_premium_reversion', ?)",
+        (time.time(), paper_symbol, qty, exit_price, json.dumps(payload)),
+    )
+    conn.execute("DELETE FROM signal_state_fo_options WHERE instrument_token = ?", (row["instrument_token"],))
+    conn.commit()
+    print(f"[FO_RSI2] paper exit {row['kotak_trading_symbol']} ({exit_reason}) pnl Rs{round(pnl_inr, 2)}")
+
+
+def _run_fo_options_scan(conn):
+    """RSI(2) mean-reversion paper-trading loop over F&O OPTION legs from
+    kotak_fo_candle_feed's own resolved universe - FUTURES are skipped
+    entirely (matches kotak_real_fo_orders.py's own real-order scope,
+    which never auto-trades futures either). Guarded by
+    FO_OPTIONS_SCAN_INTERVAL_SECONDS via the module-level
+    _fo_options_scan_last_ts, same in-memory-guard/acceptable-restart-
+    cost tradeoff _fo_chain_monitoring_snapshot already uses - this is
+    PAPER only, not yet real money, so a restart causing one extra scan
+    sooner than 5 minutes after the last one is a non-issue.
+
+    Paper trades are tagged strategy='rsi2_premium_reversion', NOT
+    'orb-*' prefixed - matching nse_straddle_state's own 'long_straddle'
+    precedent, this deliberately excludes them from
+    today_realized_pnl's shared daily-loss-cap and from
+    deployed_notional's shared capital pool, consistent with every
+    other F&O options-buying engine in this file.
+
+    Manages every already-open position first (exit signal OR
+    force-close), and only then considers opening a new one on a leg
+    with nothing open - never both the same tick for the same leg, same
+    discipline as _straddle_signal_core."""
+    global _fo_options_scan_last_ts
+    now = time.time()
+    if now - _fo_options_scan_last_ts < FO_OPTIONS_SCAN_INTERVAL_SECONDS:
+        return
+    _fo_options_scan_last_ts = now
+
+    import fo_option_strategy
+    import kotak_fo_candle_feed
+    import nse_fo_chain
+
+    universe = kotak_fo_candle_feed.get_cached_fo_universe()
+    descriptors_by_token = {token: d for (_seg, token), d in universe.items()}
+
+    open_rows = conn.execute("SELECT * FROM signal_state_fo_options").fetchall()
+    for row in open_rows:
+        _manage_open_fo_option_position(conn, row, descriptors_by_token.get(row["instrument_token"]))
+
+    open_tokens = {row["instrument_token"] for row in open_rows}
+    for (exchange_segment, instrument_token), descriptor in universe.items():
+        if descriptor["kind"] != "option" or instrument_token in open_tokens:
+            continue
+        if nse_fo_chain.must_force_close_before_expiry(descriptor["underlying"], descriptor["expiry"]):
+            continue  # too close to physical settlement to open a fresh position on this leg
+
+        df = kotak_fo_candle_feed.read_fo_candles_as_df(instrument_token)
+        if df is None:
+            continue
+        signal = fo_option_strategy.rsi2_mean_reversion_entry_signal(df)
+        if signal is None:
+            continue
+        _open_fo_option_paper_position(conn, instrument_token, exchange_segment, descriptor, signal)
+
+
 def _force_close_all_positions(conn, reason: str) -> dict:
     """The kill switch's actual work: exits EVERY open position - paper
     equity, paper options, AND real Kotak positions (added 2026-09-07) -
@@ -9387,6 +9546,11 @@ async def _scheduler_tick():
             _fo_chain_monitoring_snapshot(conn)
         except Exception as e:
             print(f"[FO_MONITOR] snapshot failed (non-fatal, intraday tick continues): {e}")
+
+        try:
+            _run_fo_options_scan(conn)
+        except Exception as e:
+            print(f"[FO_RSI2] scan failed (non-fatal, intraday tick continues): {e}")
 
         open_equity_symbols = {
             r["symbol"] for r in conn.execute(
