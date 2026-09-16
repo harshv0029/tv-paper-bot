@@ -9896,6 +9896,9 @@ async def _scheduler_tick():
     await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
 
 
+STARTUP_HYDRATION_TIMEOUT_SECONDS = 15  # see _start_scheduler's own asyncio.wait_for comment
+
+
 @app.on_event("startup")
 async def _start_scheduler():
     # 5 independent Upstash reads, run CONCURRENTLY (2026-09-16, live
@@ -9927,16 +9930,47 @@ async def _start_scheduler():
         with closing(get_db()) as conn:
             return hydrate_t1_restricted_from_external(conn)
 
-    (
-        _restored_settings, _restored_t1, _real_positions_hydrated,
-        _external_rr_cursor, _external_check_counts,
-    ) = await asyncio.gather(
-        asyncio.to_thread(_hydrate_runtime_settings),
-        asyncio.to_thread(_hydrate_t1_restricted),
-        asyncio.to_thread(hydrate_real_positions_from_external),
-        asyncio.to_thread(hydrate_rr_cursor_from_external),
-        asyncio.to_thread(hydrate_check_counts_from_external),
-    )
+    # Hard outer deadline (2026-09-16, live follow-up): the concurrency
+    # fix above assumed each hydrate call's own requests timeout=
+    # bounds its worst case - but a live incident showed the app
+    # hanging INDEFINITELY at this exact point (Render's port scanner
+    # never even printed past its first couple of misses - not even
+    # reaching "Port scan timeout reached", which itself would mean
+    # SOME bounded wait). requests' timeout= only bounds the
+    # connect/read phases of an already-open socket; a stalled DNS
+    # lookup or a connection wedged at the TCP level can ignore it
+    # entirely and hang forever, which stalls the whole to_thread call
+    # (and therefore this asyncio.gather) with no way for the 10s
+    # per-call timeout to ever fire. asyncio.wait_for adds an
+    # asyncio-level deadline on top that fires regardless of what's
+    # wrong inside the underlying network call - on timeout, every
+    # hydrate is treated as "Upstash unreachable" (the exact same
+    # result each function already returns for that case), so the
+    # existing journal-fallback logic below runs exactly as it would
+    # for a clean failure. The abandoned worker thread(s) may still be
+    # stuck running in the background against the default executor's
+    # limited thread pool - a real but far smaller cost than the app
+    # never booting at all.
+    try:
+        (
+            _restored_settings, _restored_t1, _real_positions_hydrated,
+            _external_rr_cursor, _external_check_counts,
+        ) = await asyncio.wait_for(
+            asyncio.gather(
+                asyncio.to_thread(_hydrate_runtime_settings),
+                asyncio.to_thread(_hydrate_t1_restricted),
+                asyncio.to_thread(hydrate_real_positions_from_external),
+                asyncio.to_thread(hydrate_rr_cursor_from_external),
+                asyncio.to_thread(hydrate_check_counts_from_external),
+            ),
+            timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        print(f"[startup_hydration] timed out after {STARTUP_HYDRATION_TIMEOUT_SECONDS}s "
+              "(Upstash unreachable or network-hung) - falling back to journal-only restore, "
+              "same as a clean Upstash-unset/unreachable result")
+        _restored_settings, _restored_t1, _real_positions_hydrated = 0, 0, False
+        _external_rr_cursor, _external_check_counts = None, None
 
     # runtime_settings: Upstash-restore FIRST, before anything else reads
     # a live setting (the scheduler tick below, any endpoint) - see
