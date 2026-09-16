@@ -1147,6 +1147,67 @@ every other test this session is structurally too short for a signal
 this infrequent. Not a candidate for follow-up within the current
 backtest infrastructure without first extending the data window.
 
+## Gap and Go - fresh entry-signal thread, best PFnet this session (2026-09-16)
+
+Per user request ("try next" popular-YouTuber strategy), tested "Gap and
+Go" - a widely taught overnight-gap momentum-continuation setup,
+adapted for daily bars (the real intraday version enters within minutes
+of the open; this repo's data plumbing is daily-only, disclosed
+simplification). First test this session to use Open/Volume data.
+Canonical rules: entry on a day that gaps up >=2.0% at the open, closes
+green (Close > Open) and strong (in the upper half of the day's Open-
+to-High range), with Volume >1.5x its trailing 20-day average (the
+canonical "real buying interest" filter). Exit on the gap filling
+(Close falls below the gap day's own Low - the setup's invalidation).
+Disclosed additions: 2.5x ATR(14) stop, 60-day max-hold. Gap detection,
+volume filter, and gap-fill exit verified on synthetic OHLCV before
+pushing (entry confirmed to fire exactly on the gap day; gap-fill exit
+condition confirmed reachable via direct computation).
+`swing-gap-and-go-research.yml`, run 35061981930.
+
+| metric | value |
+|---|---|
+| n | 59 |
+| win% | 35.6% |
+| PFgross | 1.48 |
+| PFnet | **1.07** |
+| cost drag | 15.8% |
+| avg held | 33.5d |
+
+By exit reason:
+
+| reason | n | %total | win% | PFnet | PFgross | avgGross |
+|---|---|---|---|---|---|---|
+| gap_filled (intended exit/invalidation) | 29 | 49.2% | 0.0% | 0.00 | 0.00 | -1,488 |
+| max_hold_timeout | 24 | 40.7% | 75.0% | 10.18 | 14.62 | **+2,626** |
+| data_end_forced_close | 4 | 6.8% | 75.0% | 24.12 | 109.92 | +2,330 |
+| stop_hit (our added stop, not canonical) | 2 | 3.4% | 0.0% | 0.00 | 0.00 | -2,033 |
+
+**First strategy this session with PFnet above 1.0 - genuinely net
+profitable on this universe/timeframe, and the best PFnet of any test
+so far (beats Supertrend's 0.77 champion).** Still below the pool bar
+(PFnet>=1.3 AND n>=100) on both counts - PFnet 1.07 and n=59. The
+structure is notable and different from every prior test: "gap_filled"
+(the setup's own invalidation signal) always loses by definition - it
+IS the stop-loss in disguise, firing on 49% of trades - while positions
+that survive to the 60-day cap without filling the gap do very well
+(75% win rate, PFnet 10.18, the largest win-bucket edge seen this
+session). This strongly echoes the pattern the Golden Cross test
+surfaced: trades that avoid early failure and are given time to run
+perform disproportionately well, and the current 60-day max-hold may be
+cutting off genuine upside - the max_hold_timeout bucket's strength
+suggests a longer hold (or a trailing-stop exit instead of a hard
+timeout) is the most promising next lever on this specific signal,
+distinct from every previous "tighten the stop" experiment this
+session. **Also has by far the smallest cost drag among tests with
+n>20 (15.8%)**, since only 52 trades total over 2 years spread a fixed
+per-trade cost over long, well-selected holds.
+
+**Not a pool candidate yet** (n=59 < 100, PFnet 1.07 < 1.3), but the
+most promising thread of the session by a clear margin - flagged for a
+likely follow-up (longer hold / trailing exit variant) if the user
+wants to continue this specific thread rather than searching further.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
