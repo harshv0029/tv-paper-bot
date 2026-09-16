@@ -1208,6 +1208,61 @@ most promising thread of the session by a clear margin - flagged for a
 likely follow-up (longer hold / trailing exit variant) if the user
 wants to continue this specific thread rather than searching further.
 
+## Gap and Go, 5-year window - FIRST STRATEGY TO CLEAR THE POOL BAR (2026-09-16)
+
+Direct sample-size extension of the finding above. User lowered the
+production pool bar from PFnet>=1.3 to PFnet>1 (kept n>=100). The 2y
+Gap and Go test cleared PFnet (1.07) but not n (59). Re-ran with ZERO
+parameter changes - identical GAP_PCT_THRESHOLD, VOL_MULT,
+ATR_STOP_MULT, MAX_HOLD_DAYS, cost model, 52-symbol universe - only
+PERIOD extended 2y->5y, per real-money discipline (more data, not
+loosened thresholds, to fix a small-n problem).
+`swing-gap-and-go-5y-research.yml`, run 35062601024.
+
+| metric | value |
+|---|---|
+| n | **142** |
+| win% | 37.3% |
+| PFgross | 2.06 |
+| PFnet | **1.65** |
+| cost drag | 9.8% |
+| avg held | 32.9d |
+
+By exit reason:
+
+| reason | n | %total | win% | PFnet | PFgross | avgGross |
+|---|---|---|---|---|---|---|
+| gap_filled (intended exit/invalidation) | 67 | 47.2% | 0.0% | 0.00 | 0.00 | -1,459 |
+| max_hold_timeout | 58 | 40.8% | 86.2% | 38.35 | 53.07 | **+5,044** |
+| data_end_forced_close | 4 | 2.8% | 75.0% | 29.86 | 425.72 | +2,345 |
+| stop_hit (our added stop, not canonical) | 13 | 9.2% | 0.0% | 0.00 | 0.00 | -3,529 |
+
+**Clears the production pool bar on both legs (PFnet 1.65 > 1, n=142 >=
+100) - the first strategy this session to do so. Would even clear the
+session's original PFnet>=1.3 bar.** The finding held up and *improved*
+under more data (PFnet 1.07->1.65 with zero parameter changes), which
+is the opposite of what overfitting/small-sample luck looks like -
+strong evidence the edge is real on this universe, not a 2-year fluke.
+Same structural story as the 2y test, now with a much larger sample
+behind it: gap_filled (47.2% of trades) always loses by definition
+(the setup's own invalidation), but positions that survive to the
+60-day max-hold do extremely well (86.2% win rate, PFnet 38.35, avgGross
++5,044) - the single strongest win-bucket seen anywhere this session.
+Cost drag is the lowest of any strategy tested (9.8%), reflecting the
+low trade frequency (142 trades over 5 years / 52 symbols) and long
+average hold (32.9 days).
+
+**This clears the bar for entering the full real-money implementation
+pipeline** (implement in `main.py` -> unit tests -> full pytest suite
+green -> official validation replay via
+`.github/workflows/universal-score-validation-replay.yml` -> honest
+report -> explicit user go-ahead before any merge to `main` touching
+live logic), per this repo's `CLAUDE.md` standing discipline. Research-
+workflow backtests like this one are a semi-independent reimplementation,
+not a call into `main.py`'s live functions - the official validation
+replay must be run and confirmed to actually exercise the new
+implemented code before this is trusted as production-ready.
+
 ## How to use this log going forward
 
 1. On a new setup/pattern read, compare it against the **Best-fit condition** column — pick the
