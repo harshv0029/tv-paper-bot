@@ -263,7 +263,17 @@ async def run_feed(watchlist_symbols: list):
             client = await asyncio.to_thread(kotak_neo.login)
             cache_age = time.time() - _token_map_cache["resolved_at"]
             if _token_map_cache["value"] is None or cache_age > _TOKEN_MAP_CACHE_TTL_SECONDS:
-                token_map = await asyncio.to_thread(resolve_tokens, client, watchlist_symbols)
+                # main._heavy_startup_resolve_lock (2026-09-16, live OOM
+                # follow-up): to_thread alone fixed the event-loop block
+                # but let this resolve run at the SAME TIME as kotak_
+                # fo_candle_feed's own heavy resolve_fo_universe() - see
+                # that lock's own docstring for why their peak memory
+                # usage stacking, rather than being accidentally
+                # serialized as before, is the live incident's actual
+                # root cause.
+                import main  # deferred - avoids a circular import at module load time
+                async with main._heavy_startup_resolve_lock:
+                    token_map = await asyncio.to_thread(resolve_tokens, client, watchlist_symbols)
                 _token_map_cache["value"] = token_map
                 _token_map_cache["resolved_at"] = time.time()
             else:
