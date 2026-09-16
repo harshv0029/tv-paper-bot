@@ -393,6 +393,31 @@ def init_db():
         )
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS signal_state_swing (
+                symbol TEXT PRIMARY KEY,
+                strategy TEXT NOT NULL,   -- e.g. 'gap_and_go' - which swing signal opened this
+                entry_day TEXT NOT NULL,  -- IST date (YYYY-MM-DD) the position was opened
+                entry_price REAL NOT NULL,
+                initial_stop_loss REAL NOT NULL,  -- frozen at entry - gap_and_go does not trail
+                gap_low REAL,              -- gap day's own Low, gap_and_go's invalidation level
+                qty REAL NOT NULL,
+                entry_ts REAL NOT NULL,
+                fx_to_inr REAL NOT NULL DEFAULT 1.0
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS swing_scan_log (
+                scan_date TEXT PRIMARY KEY  -- IST date (YYYY-MM-DD) - marks that day's swing
+                                             -- scan as already done, separate from `trades` so
+                                             -- this once-a-day marker never pollutes real trade
+                                             -- history/P&L accounting
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS option_state (
                 opt_symbol TEXT PRIMARY KEY,  -- "{underlying}:OPT-CALL" / "{underlying}:OPT-PUT"
                 underlying TEXT NOT NULL,
@@ -2522,7 +2547,140 @@ def deployed_notional(conn) -> float:
     # total wipeout) counts against the same capital cap so options and
     # equities can't jointly overspend the account.
     option_notional = sum(r["contracts"] * 100 * r["entry_premium"] * r["fx_to_inr"] for r in opt_rows)
-    return equity_notional + option_notional
+    # 2026-09-16: swing engine's open notional (signal_state_swing) is part
+    # of this SAME shared, finite pool - included here (rather than at each
+    # of intraday's several available_capital_inr call sites) so every
+    # existing site that already reads deployed_notional() automatically
+    # accounts for capital the swing engine has in use, with no risk of one
+    # of those call sites being missed. See the swing engine's own module
+    # comment (above SWING_STRATEGY_TAG, below) for the fuller reasoning.
+    swing_rows = conn.execute(
+        "SELECT qty, entry_price, fx_to_inr FROM signal_state_swing"
+    ).fetchall()
+    swing_notional = sum(r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in swing_rows)
+    return equity_notional + option_notional + swing_notional
+
+
+# ---------------------------------------------------------------------------
+# Swing engine: daily-bar, multi-day-hold strategies - architecturally
+# SEPARATE from _auto_signal_core's intraday (5m, same-day-forced-exit)
+# engine further down. Added 2026-09-16 after "Gap and Go" (see
+# docs/STRATEGY_LOG.md, "Gap and Go, 5-year window" entry) became the first
+# research strategy this session to clear the production pool bar
+# (PFnet>1, n>=100): PFnet 1.65, n=142 on a 5-year/52-symbol swing backtest,
+# avg hold 32.9 days. That edge is structurally incompatible with
+# _auto_signal_core's forced same-day/EOD exit (86% of the edge comes from
+# positions held up to 60 days), so it needs its own engine rather than a
+# new `strategy` branch there.
+#
+# Scope of THIS implementation: PAPER TRADING ONLY. Real-order mirroring
+# (kotak_real_orders integration, matching _maybe_place_real_entry/
+# _maybe_place_real_exit's broker-order/resting-stop-loss/fill-confirmation
+# machinery - ~150 lines of carefully-tuned broker integration) is
+# deliberately NOT built here - that deserves its own dedicated, reviewed
+# pass rather than being bolted onto an already-large single change.
+# REAL_TRADING_ENABLED currently has NO effect on this engine; it only ever
+# places paper trades until real-order mirroring is built and separately
+# approved.
+#
+# Capital-sharing/risk-gate integration with the existing intraday engine
+# (both draw on the SAME shared, finite account capital):
+#   1. deployed_notional() above now includes signal_state_swing's open
+#      notional, so every existing intraday sizing call site automatically
+#      sees capital swing has in use.
+#   2. Swing's own closed trades are logged into the shared `trades` table
+#      tagged with SWING_STRATEGY_TAG, which starts with ORB_STRATEGY_PREFIX
+#      specifically so today_realized_pnl()'s `WHERE strategy LIKE 'orb-%'`
+#      query - the SAME query every existing daily-loss-cap halt check reads
+#      - picks up swing's realized P&L too, without a second, parallel
+#      loss-cap mechanism that could drift out of sync with the real one.
+
+SWING_STRATEGY_TAG = f"{ORB_STRATEGY_PREFIX}swing-gap-and-go"
+
+# Exactly the parameters validated in docs/STRATEGY_LOG.md's "Gap and Go,
+# 5-year window" finding (run 35062601024, PFnet 1.65, n=142) - zero
+# retuning between research and this live implementation, per this repo's
+# standing real-money discipline against tuning blind on one result.
+SWING_GAP_PCT_THRESHOLD = 2.0     # today's Open >= this % above yesterday's Close
+SWING_VOL_MULT = 1.5              # today's Volume must exceed this x its trailing 20d average
+SWING_ATR_N = 14
+SWING_ATR_STOP_MULT = 2.5         # protective stop = entry - this x ATR(14), disclosed addition
+SWING_MAX_HOLD_DAYS = 60          # disclosed addition, matches the validated backtest
+SWING_VOL_AVG_LOOKBACK = 20
+
+
+def _swing_atr(df: pd.DataFrame, n: int = SWING_ATR_N):
+    """True Range rolling-mean ATR - identical math to the validated
+    research workflow's replay_symbol()."""
+    highs = df["High"].to_numpy(dtype=float)
+    lows = df["Low"].to_numpy(dtype=float)
+    closes = df["Close"].to_numpy(dtype=float)
+    prev_close = np.concatenate(([np.nan], closes[:-1]))
+    tr = np.maximum(highs - lows, np.maximum(np.abs(highs - prev_close), np.abs(lows - prev_close)))
+    return pd.Series(tr).rolling(n).mean().to_numpy()
+
+
+def gap_and_go_entry_signal(df: pd.DataFrame) -> dict | None:
+    """Evaluates ONLY the last row of `df` (today) for a Gap and Go entry -
+    identical rules/thresholds to the validated research workflow
+    (swing-gap-and-go-5y-research.yml): today's Open gaps up
+    >=SWING_GAP_PCT_THRESHOLD% above yesterday's Close, today closes green
+    and in the upper half of its Open-High range, and Volume exceeds
+    SWING_VOL_MULT x its trailing 20-day average. Returns None if no signal
+    fires, else {"entry_price", "stop_loss", "gap_low"} for the caller to
+    size and open a position with. `df` must have Open/High/Low/Close/
+    Volume columns, oldest row first, at least
+    max(SWING_ATR_N, SWING_VOL_AVG_LOOKBACK) + 1 rows."""
+    n = len(df)
+    min_lookback = max(SWING_ATR_N, SWING_VOL_AVG_LOOKBACK) + 1
+    if n < min_lookback:
+        return None
+    opens = df["Open"].to_numpy(dtype=float)
+    highs = df["High"].to_numpy(dtype=float)
+    lows = df["Low"].to_numpy(dtype=float)
+    closes = df["Close"].to_numpy(dtype=float)
+    volumes = df["Volume"].to_numpy(dtype=float)
+    atr = _swing_atr(df)
+    vol_avg = pd.Series(volumes).rolling(SWING_VOL_AVG_LOOKBACK).mean().to_numpy()
+    i = n - 1
+    prev_close = closes[i - 1]
+    if prev_close <= 0 or np.isnan(atr[i]) or atr[i] <= 0 or np.isnan(vol_avg[i]):
+        return None
+    gap_pct = (opens[i] - prev_close) / prev_close * 100
+    gapped_up = gap_pct >= SWING_GAP_PCT_THRESHOLD
+    held_gap = closes[i] > opens[i]
+    closed_strong = closes[i] >= opens[i] + 0.5 * (highs[i] - opens[i])
+    vol_confirmed = volumes[i] > vol_avg[i] * SWING_VOL_MULT
+    if not (gapped_up and held_gap and closed_strong and vol_confirmed):
+        return None
+    entry_price = closes[i]
+    stop_loss = entry_price - SWING_ATR_STOP_MULT * atr[i]
+    if stop_loss >= entry_price:
+        return None
+    return {"entry_price": entry_price, "stop_loss": stop_loss, "gap_low": lows[i]}
+
+
+def gap_and_go_exit_reason(df: pd.DataFrame, entry_day: str, stop_loss: float, gap_low: float) -> str | None:
+    """Evaluates ONLY the last row of `df` (today) for a Gap and Go exit, for
+    a position already open. Priority matches the validated research
+    workflow exactly: stop_hit > gap_filled > max_hold_timeout. Returns None
+    if the position should stay open. `entry_day` is the IST date
+    (YYYY-MM-DD) the position was opened; `df`'s Date column (oldest first,
+    last row = today) is used to count trading days held since then,
+    matching the research workflow's index-difference definition."""
+    if len(df) == 0:
+        return None
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].astype(str).to_numpy()
+    i = len(df) - 1
+    if closes[i] <= stop_loss:
+        return "stop_hit"
+    if closes[i] < gap_low:
+        return "gap_filled"
+    held_days = int(np.sum(dates > entry_day))
+    if held_days >= SWING_MAX_HOLD_DAYS:
+        return "max_hold_timeout"
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -5380,6 +5538,22 @@ NSE_STOCK_PARAM_OVERRIDES = {
     "APOLLOHOSP.NS": {"orb_minutes": 10, "sma_fast": 9, "sma_slow": 21, "risk_pct": 2.0, "stop_pct": 2.0},
     "ADANIPORTS.NS": {"orb_minutes": 15, "sma_fast": 9, "sma_slow": 50, "risk_pct": 2.0, "stop_pct": 2.0},
 }
+
+# Exactly the 52-symbol universe the "Gap and Go, 5-year window" finding was
+# validated on (EVIDENCED = NSE_STOCK_PARAM_OVERRIDES.keys() union
+# UNEVIDENCED_SAMPLE below, see swing-gap-and-go-5y-research.yml) - trading
+# the swing engine live on any wider universe would be unvalidated, so this
+# is intentionally NOT derived from WATCHLIST/NSE_FULL_UNIVERSE.
+_SWING_UNEVIDENCED_SAMPLE = [
+    "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+    "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+    "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+    "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+    "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+    "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+    "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+]
+SWING_WATCHLIST = sorted(set(NSE_STOCK_PARAM_OVERRIDES.keys()) | set(_SWING_UNEVIDENCED_SAMPLE))
 
 # Explicit user instruction 2026-09-09: "add preference to monitor these
 # stocks out of the evidenced symbols" - the round-robin entry-scan
@@ -8973,11 +9147,108 @@ async def _scheduler_loop():
             await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
 
 
+def _run_swing_scan(conn):
+    """Once-per-day (IST) daily-bar scan for every symbol in SWING_WATCHLIST:
+    checks exits for open swing positions first, then entries for flat ones.
+    Paper trading only - see the swing engine's module comment (above
+    SWING_STRATEGY_TAG, near deployed_notional) for why real-order
+    mirroring isn't built yet. Called from _scheduler_tick every tick; the
+    swing_scan_log guard below makes every call after the first one in a
+    given IST day a no-op, so calling it unconditionally every tick is
+    cheap and safe."""
+    today = ist_now().strftime("%Y-%m-%d")
+    if conn.execute("SELECT 1 FROM swing_scan_log WHERE scan_date = ?", (today,)).fetchone():
+        return
+    conn.execute("INSERT INTO swing_scan_log (scan_date) VALUES (?)", (today,))
+    conn.commit()
+
+    capital = get_scheduler_capital_inr()
+
+    for symbol in SWING_WATCHLIST:
+        try:
+            df = fetch_ohlc(symbol, "2y", "1d")
+        except Exception as e:
+            print(f"[SWING] fetch_ohlc failed for {symbol}: {e}")
+            continue
+        if df is None or len(df) < 50:
+            continue
+
+        pos = conn.execute(
+            "SELECT * FROM signal_state_swing WHERE symbol = ?", (symbol,)
+        ).fetchone()
+
+        if pos:
+            reason = gap_and_go_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"], pos["gap_low"])
+            if reason:
+                exit_price = float(df["Close"].iloc[-1])
+                fx = pos["fx_to_inr"]
+                gross_pnl_native = (exit_price - pos["entry_price"]) * pos["qty"]
+                apply_paper_trade(conn, symbol, "sell", pos["qty"], exit_price)
+                conn.execute(
+                    "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                    "VALUES (?, ?, 'sell', ?, ?, ?, ?, ?)",
+                    (time.time(), symbol, pos["qty"], exit_price, fx, SWING_STRATEGY_TAG,
+                     json.dumps({"exit_reason": reason, "gross_pnl_native": gross_pnl_native})),
+                )
+                conn.execute("DELETE FROM signal_state_swing WHERE symbol = ?", (symbol,))
+                conn.commit()
+                print(f"[SWING] exit {symbol} ({reason}) qty={pos['qty']} @ {exit_price:.2f}")
+            continue  # never also check for a new entry the same day a position is/was open
+
+        signal = gap_and_go_entry_signal(df)
+        if not signal:
+            continue
+
+        cfg = NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
+        risk_pct = cfg["risk_pct"]
+        entry_price = signal["entry_price"]
+        stop_loss = signal["stop_loss"]
+        stop_dist = entry_price - stop_loss
+        if stop_dist <= 0:
+            continue
+
+        # Same shared-capital sizing formula as _auto_signal_core's own
+        # equity path - deployed_notional() already includes swing's own
+        # open notional (see its docstring), so this can't jointly overspend
+        # with the intraday engine.
+        available_capital_inr = max(0.0, capital - deployed_notional(conn))
+        max_single_trade_inr = capital / CAPITAL_TRANCHES
+        usable_capital_inr = min(available_capital_inr, max_single_trade_inr)
+        risk_amount_inr = usable_capital_inr * risk_pct / 100
+        qty = risk_amount_inr / stop_dist if stop_dist > 0 else 0
+        if entry_price > 0:
+            qty = min(qty, usable_capital_inr / entry_price)
+        qty = int(math.floor(qty))
+        if qty <= 0:
+            continue
+
+        fx = 1.0  # SWING_WATCHLIST is NSE (.NS) equities only
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, "gap_and_go", today, entry_price, stop_loss, signal["gap_low"], qty, time.time(), fx),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": "gap_and_go", "stop_loss": stop_loss, "gap_low": signal["gap_low"]})),
+        )
+        conn.commit()
+        print(f"[SWING] entry {symbol} qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+
+
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
 
     with closing(get_db()) as conn:
+        try:
+            _run_swing_scan(conn)
+        except Exception as e:
+            print(f"[SWING] scan failed (non-fatal, intraday tick continues): {e}")
+
         open_equity_symbols = {
             r["symbol"] for r in conn.execute(
                 "SELECT symbol FROM signal_state WHERE status = 'long'"
