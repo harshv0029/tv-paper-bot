@@ -1172,5 +1172,41 @@
     "adopted": [],
     "governance_backfilled_count": 0,
     "governance_backfilled": []
+  },
+  {
+    "reconciled_at_utc": 1789617722.7735012,
+    "real_balance_inr": 966.1700000000001,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 1,
+    "adopted": [
+      {
+        "symbol": "HUDCO.NS",
+        "kotak_trading_symbol": "HUDCO-EQ",
+        "qty": 5,
+        "entry_price": 172.0,
+        "entry_order_id": "260917000066295",
+        "sl_order_id": "260917000066885",
+        "sl_trigger_price": 170.3,
+        "target_order_id": null,
+        "target_price": null
+      }
+    ],
+    "governance_backfilled_count": 1,
+    "governance_backfilled": [
+      {
+        "symbol": "HUDCO.NS",
+        "entry_price": 172.0,
+        "stop_loss": 170.28,
+        "target": 177.16,
+        "qty": 5,
+        "target_placed": false,
+        "target_failure_detail": "order 260917000078043 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      }
+    ]
   }
 ]
