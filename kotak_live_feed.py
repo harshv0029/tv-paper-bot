@@ -57,6 +57,23 @@ _feed_status = {
 RESTART_BACKOFF_MIN_SECONDS = 60
 RESTART_BACKOFF_MAX_SECONDS = 900  # 15 min ceiling
 
+# Hard ceilings on this loop's own two blocking calls (2026-09-16/17,
+# live incident): a live check found BOTH this feed and
+# kotak_fo_candle_feed's own feed stuck at connected: false forever,
+# even though the app itself had booted fine. main._heavy_startup_
+# resolve_lock (shared by both feeds, to stop their heavy resolves'
+# peak memory from stacking) has no timeout of its own - if either of
+# THIS module's own calls hangs at a network layer that ignores its
+# own timeout (same failure class already found and fixed for the
+# Upstash hydration calls), the lock never gets released and the OTHER
+# feed then waits on it forever too. LOGIN_TIMEOUT_SECONDS is short -
+# login() is a single request. RESOLVE_TOKENS_TIMEOUT_SECONDS is
+# longer - resolve_tokens() downloads/parses Kotak's entire nse_cm
+# scrip master (see the comment above _TOKEN_MAP_CACHE_TTL_SECONDS
+# below), genuinely slower under healthy conditions than a plain login.
+LOGIN_TIMEOUT_SECONDS = 30
+RESOLVE_TOKENS_TIMEOUT_SECONDS = 120
+
 # Cached resolved tokens - added 2026-09-07 after a second Render OOM
 # crash (Render's own email alert) with the earlier fetch_ohlc leak
 # already fixed. Root cause here: resolve_tokens() downloads and parses
@@ -271,7 +288,15 @@ async def run_feed(watchlist_symbols: list):
             # handling and Render's health check - for however long that
             # download+parse takes, same failure mode as the F&O universe
             # resolve, just on the equity feed instead.
-            client = await asyncio.to_thread(kotak_neo.login)
+            # asyncio.wait_for (2026-09-16/17, live "both feeds stuck
+            # forever" follow-up) - see LOGIN_TIMEOUT_SECONDS's own
+            # comment above for why this must be bounded: a hang here
+            # ignoring asyncio.to_thread's own lack of a deadline would
+            # mean this coroutine (and, once resolve_tokens is reached,
+            # the shared lock) never moves forward again.
+            client = await asyncio.wait_for(
+                asyncio.to_thread(kotak_neo.login), timeout=LOGIN_TIMEOUT_SECONDS,
+            )
             cache_age = time.time() - _token_map_cache["resolved_at"]
             if _token_map_cache["value"] is None or cache_age > _TOKEN_MAP_CACHE_TTL_SECONDS:
                 # main._heavy_startup_resolve_lock (2026-09-16, live OOM
@@ -282,9 +307,19 @@ async def run_feed(watchlist_symbols: list):
                 # usage stacking, rather than being accidentally
                 # serialized as before, is the live incident's actual
                 # root cause.
+                #
+                # asyncio.wait_for here too, same reasoning as login()
+                # above: the lock has no timeout of its own, so a hang
+                # inside it (ignoring resolve_tokens' own lack of a
+                # deadline) would starve kotak_fo_candle_feed's own
+                # resolve forever, not just this one - a live-observed
+                # symptom (both feeds stuck at connected: false).
                 import main  # deferred - avoids a circular import at module load time
                 async with main._heavy_startup_resolve_lock:
-                    token_map = await asyncio.to_thread(resolve_tokens, client, watchlist_symbols)
+                    token_map = await asyncio.wait_for(
+                        asyncio.to_thread(resolve_tokens, client, watchlist_symbols),
+                        timeout=RESOLVE_TOKENS_TIMEOUT_SECONDS,
+                    )
                 _token_map_cache["value"] = token_map
                 _token_map_cache["resolved_at"] = time.time()
             else:

@@ -99,6 +99,16 @@ _in_progress_candles: dict = {}
 RESTART_BACKOFF_MIN_SECONDS = 60
 RESTART_BACKOFF_MAX_SECONDS = 900  # 15 min ceiling - same reasoning as kotak_live_feed.py
 
+# Hard ceiling on one resolve_fo_universe() call (2026-09-16, live
+# incident) - see run_fo_candle_feed's own asyncio.wait_for comment for
+# why this must be bounded now that it runs under a lock shared with
+# kotak_live_feed.py. Generous enough for the real ~645-call resolve
+# under healthy network conditions (each call now reuses a cached
+# login session - see kotak_neo.search_scrip's own cache - so this is
+# no longer ~645 TOTP round trips), short enough to actually recover
+# from a genuine network-level hang within a reasonable time.
+FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS = 180
+
 # Universe re-resolved at most this often (ATM shifts as spot moves
 # intraday, and expiries roll weekly) - not on every reconnect, to avoid
 # hammering search_scrip on a flaky connection the way
@@ -352,8 +362,28 @@ async def run_fo_candle_feed():
                 # lock's own docstring for why their peak memory usage
                 # stacking, rather than being accidentally serialized as
                 # before, is the live incident's actual root cause.
+                #
+                # asyncio.wait_for (2026-09-16, same-day follow-up): a
+                # live check afterward found BOTH feeds stuck forever at
+                # "never even started" (connected: false,
+                # started_at_utc: null) - the shared lock above has no
+                # timeout of its own, so if kotak_neo's underlying
+                # search_scrip/login calls hang at a network layer that
+                # ignores their own timeouts (same failure mode already
+                # found and fixed for the Upstash hydration calls), the
+                # feed holding the lock never releases it, and the OTHER
+                # feed then waits forever too - a hang in either feed
+                # now stalls both, which is strictly worse than before
+                # the lock existed. Bounding this resolve with a hard
+                # deadline means the lock can never be held forever:
+                # on timeout this raises TimeoutError, caught by this
+                # loop's own outer except below exactly like any other
+                # failure - backoff, retry, same as always.
                 async with main._heavy_startup_resolve_lock:
-                    universe = await asyncio.to_thread(resolve_fo_universe)
+                    universe = await asyncio.wait_for(
+                        asyncio.to_thread(resolve_fo_universe),
+                        timeout=FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS,
+                    )
                 _universe_cache["value"] = universe
                 _universe_cache["resolved_at"] = time.time()
             else:
