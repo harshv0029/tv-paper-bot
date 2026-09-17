@@ -378,7 +378,7 @@ def init_db():
                                      -- "universal_score" (e.g. a real-position governance backfill,
                                      -- see _ensure_signal_state_for_real_position) - those keep the
                                      -- pre-revamp single-target/single-exit behavior unchanged.
-                entry_regime TEXT   -- 2026-09-14 fix: market_regime ("trend"/"range") AT ENTRY, for
+                entry_regime TEXT,  -- 2026-09-14 fix: market_regime ("trend"/"range") AT ENTRY, for
                                      -- universal_score positions only - NULL for orb_breakout/
                                      -- bullish_engulfing (no regime router) and for any position
                                      -- recovered/backfilled without known regime (real-position
@@ -388,6 +388,19 @@ def init_db():
                                      -- value (including NULL/unknown) keeps the pre-fix behavior, so
                                      -- this never silently changes exit behavior for a position whose
                                      -- true regime isn't known.
+                peak_ltp REAL       -- 2026-09-17, explicit user instruction ("Replace with LTP -
+                                     -- Must have", live Fortis finding: trailing stop hadn't
+                                     -- activated despite live price already >0.5R above entry,
+                                     -- because _trailing_stop_target compared against the last
+                                     -- CLOSED candle, not the real-time tick): running max live LTP
+                                     -- seen since entry, ratcheted up only, NULL until this
+                                     -- position's first tick with a live feed price. Persisted here
+                                     -- because _trailing_stop_target itself is stateless and has no
+                                     -- other way to remember the last call's peak between calls.
+                                     -- NULL forever for a symbol the live feed never
+                                     -- ticks for (feed gap, or opened before this column existed) -
+                                     -- _trailing_stop_target falls back to the pre-existing
+                                     -- candle-close basis whenever no live price is available.
             )
             """
         )
@@ -3045,7 +3058,9 @@ def _target_move_pct(target: float, last_close: float) -> float:
 
 
 def _trailing_stop_target(today_df: pd.DataFrame, entry_price: float,
-                           initial_stop: float, entry_ts: float, tz_offset_min: int) -> float | None:
+                           initial_stop: float, entry_ts: float, tz_offset_min: int,
+                           live_price: float | None = None,
+                           known_peak: float | None = None) -> tuple[float | None, float | None]:
     """Long-only trailing-stop candidate for THIS tick (see docs/TRADING_CONSTRAINTS.md
     "Trailing stop loss" for the full rationale). R = entry_price -
     initial_stop (the trade's OWN original risk, frozen at entry - see
@@ -3053,9 +3068,9 @@ def _trailing_stop_target(today_df: pd.DataFrame, entry_price: float,
     the stop itself trails):
 
       1. Below TRAIL_ACTIVATE_R * R of unrealized gain: not activated yet -
-         returns None, caller keeps the existing stop untouched.
+         candidate stop is None, caller keeps the existing stop untouched.
       2. At/above that: the stop is kept at a CONSTANT TRAIL_ACTIVATE_R * R
-         gap below the highest close since THIS trade's own entry, floored
+         gap below the highest price since THIS trade's own entry, floored
          at breakeven (+ a small buffer to cover round-trip cost).
          Explicit user instruction 2026-09-09 ("trailing SL should keep
          0.5R always") - replaces an earlier Chandelier-Exit/ATR-width
@@ -3065,30 +3080,57 @@ def _trailing_stop_target(today_df: pd.DataFrame, entry_price: float,
          it then ratchets up 1:1 with the peak, always keeping that same
          0.5R cushion beneath it, never more, never less.
 
-    Returns the candidate stop (native currency), or None if not yet
-    activated. The caller takes max(current_stop, candidate) - this
-    function only ever proposes moving the stop UP; it never proposes
-    loosening it, and never proposes anything before activation."""
+    live_price/known_peak (2026-09-17, explicit user instruction "Replace
+    with LTP - Must have", live Fortis finding: price was already >0.5R
+    above entry but the trail hadn't activated, because this function only
+    ever compared against the last CLOSED candle - up to one whole
+    `interval` behind the real-time price by construction): when the caller
+    has a live tick for this symbol, pass it as live_price and the
+    position's own persisted signal_state.peak_ltp as known_peak (None on
+    a position's first tick, or one opened before that column existed) -
+    both the activation check and the peak this function ratchets against
+    then use the REAL-TIME price instead of the candle close. Round-robin
+    scan cadence (how often this function even gets CALLED for a given
+    symbol) is unchanged and NOT what this addresses - explicit user
+    instruction "I CAN accept round robin lag" - only the PRICE BASIS moves
+    from candle-close to live LTP. When live_price is None (no live tick
+    for this symbol - e.g. a transient feed gap), falls back to the
+    pre-existing candle-close basis UNCHANGED.
+
+    Returns (peak, candidate_stop): peak is the running high-water mark
+    (live LTP if available, else highest close since entry) - the caller
+    persists this to signal_state.peak_ltp on EVERY call, even when
+    candidate_stop is still None, so a peak reached before activation
+    isn't lost. candidate_stop is the candidate stop (native currency), or
+    None if not yet activated. The caller takes max(current_stop,
+    candidate_stop) when candidate_stop is not None - this function only
+    ever proposes moving the stop UP; it never proposes loosening it, and
+    never proposes anything before activation."""
     r = entry_price - initial_stop
     if r <= 0:
-        return None
-    last_close = float(today_df["Close"].iloc[-1])
-    if (last_close - entry_price) < TRAIL_ACTIVATE_R * r:
-        return None
+        return None, None
+
+    if live_price is not None and live_price > 0:
+        current_price = live_price
+        peak = max(known_peak or entry_price, live_price)
+    else:
+        current_price = float(today_df["Close"].iloc[-1])
+        # Highest close since THIS trade's own entry - same-day only (this
+        # engine is intraday, squared off every day, so entry never crosses
+        # a session boundary). Mirrors the mins-since-local-midnight
+        # comparison _auto_signal_core already uses for mins_now/
+        # today_df["mins"].
+        entry_local = dt.datetime.utcfromtimestamp(entry_ts) + dt.timedelta(minutes=tz_offset_min)
+        entry_mins = entry_local.hour * 60 + entry_local.minute
+        since_entry = today_df[today_df["mins"] >= entry_mins]
+        peak = float(since_entry["Close"].max()) if not since_entry.empty else current_price
+
+    if (current_price - entry_price) < TRAIL_ACTIVATE_R * r:
+        return peak, None
 
     breakeven_stop = entry_price * (1 + TRAIL_BREAKEVEN_BUFFER_PCT / 100)
-
-    # Highest close since THIS trade's own entry - same-day only (this
-    # engine is intraday, squared off every day, so entry never crosses a
-    # session boundary). Mirrors the mins-since-local-midnight comparison
-    # _auto_signal_core already uses for mins_now/today_df["mins"].
-    entry_local = dt.datetime.utcfromtimestamp(entry_ts) + dt.timedelta(minutes=tz_offset_min)
-    entry_mins = entry_local.hour * 60 + entry_local.minute
-    since_entry = today_df[today_df["mins"] >= entry_mins]
-    highest_close = float(since_entry["Close"].max()) if not since_entry.empty else last_close
-
-    fixed_gap_stop = highest_close - TRAIL_ACTIVATE_R * r
-    return max(breakeven_stop, fixed_gap_stop)
+    fixed_gap_stop = peak - TRAIL_ACTIVATE_R * r
+    return peak, max(breakeven_stop, fixed_gap_stop)
 
 
 LEADING_TARGET_MIN_CONFIDENCE = TREND_WEAKENED_MIN_CONFIDENCE  # explicit
@@ -4731,25 +4773,64 @@ def _auto_signal_core(
             # falls back to the live stop_loss for a pre-migration row that
             # predates the column (see signal_state's own comment).
             current_stop = row["stop_loss"]
-            trail_candidate = _trailing_stop_target(
+            # Live LTP for the trailing-stop basis (2026-09-17, explicit user
+            # instruction "Replace with LTP - Must have" - see
+            # _trailing_stop_target's own docstring for the live Fortis
+            # finding this fixes). Same live-tick source/lookup pattern
+            # _maybe_place_real_entry already uses; None for a symbol the
+            # feed has no tick for right now (transient gap, or a
+            # symbol outside its coverage) - the function falls back to the
+            # candle-close basis unchanged in that case.
+            import kotak_live_feed
+            tick = kotak_live_feed.get_live_ticks().get(symbol)
+            live_price = float(tick["ltp"]) if tick and tick.get("ltp") else None
+            # Same live-price basis for every EXIT decision below (leading
+            # target, staged-leg booking, target_hit, stop_hit) and for the
+            # actual recorded fill price - 2026-09-17, explicit user
+            # instruction ("Candle-close lag - replace this") extending the
+            # trailing-stop fix above to the exit checks themselves: a
+            # candle-close-based stop_hit/target_hit lags real price the
+            # exact same way the trailing-stop ratchet did, except here the
+            # cost of the lag is real slippage past the intended stop/
+            # target, not just a stale-looking dashboard number. Deciding
+            # off live_price but then recording the fill at the stale
+            # last_close would be self-contradictory (e.g. exit because
+            # price fell through the stop, then log a sell at a price still
+            # ABOVE it) - so exit_price is used consistently for BOTH the
+            # decision and the fill throughout this block. ENTRY-signal
+            # detection and every other use of last_close in this function
+            # are deliberately untouched - candle-close confirmation on
+            # entries is a separate, intentional design choice, not part of
+            # this fix. Falls back to last_close, exactly as before, when
+            # no live tick is available for this symbol.
+            exit_price = live_price if (live_price is not None and live_price > 0) else last_close
+            peak, trail_candidate = _trailing_stop_target(
                 today_df, row["entry_price"], row["initial_stop_loss"] or row["stop_loss"],
                 row["entry_ts"], tz_offset_min,
+                live_price=live_price, known_peak=row["peak_ltp"],
             )
+            dirty = False
+            if peak is not None and peak != row["peak_ltp"]:
+                conn.execute("UPDATE signal_state SET peak_ltp = ? WHERE symbol = ?", (peak, symbol))
+                dirty = True
             if trail_candidate is not None and trail_candidate > current_stop:
                 current_stop = trail_candidate
                 conn.execute("UPDATE signal_state SET stop_loss = ? WHERE symbol = ?", (current_stop, symbol))
-                # Without this, the ratchet was computed correctly every tick
-                # (visible in /scheduler-attempts' own per-tick result) but
-                # silently discarded - sqlite3 connections don't autocommit,
-                # and this position-management branch's only OTHER commit()
-                # sits inside `if exit_reason:` below, which a still-open
-                # position never reaches. The connection closing at the end
-                # of `with closing(get_db())` rolled the UPDATE back before
-                # /daily-summary's own fresh SELECT ever saw it - confirmed
-                # 2026-09-03 from the live GC=F/SI=F positions: their
-                # scheduler-attempts-computed stop had clearly ratcheted
-                # (e.g. SI=F 65.79 -> 66.52) while daily-summary's (and so
-                # trade-view's) stop_loss_native was stuck at the original.
+                dirty = True
+            if dirty:
+                # Without this, a ratcheted stop/peak was computed correctly
+                # every tick (visible in /scheduler-attempts' own per-tick
+                # result) but silently discarded - sqlite3 connections don't
+                # autocommit, and this position-management branch's only
+                # OTHER commit() sits inside `if exit_reason:` below, which a
+                # still-open position never reaches. The connection closing
+                # at the end of `with closing(get_db())` rolled the UPDATE
+                # back before /daily-summary's own fresh SELECT ever saw it -
+                # confirmed 2026-09-03 from the live GC=F/SI=F positions:
+                # their scheduler-attempts-computed stop had clearly
+                # ratcheted (e.g. SI=F 65.79 -> 66.52) while daily-summary's
+                # (and so trade-view's) stop_loss_native was stuck at the
+                # original.
                 conn.commit()
 
             # Leading (trailing-UP) target - explicit user instruction
@@ -4762,10 +4843,10 @@ def _auto_signal_core(
             # compares against this same tick - see
             # _leading_target_extend's own docstring for the full logic.
             current_target = row["target"]
-            if last_close >= current_target:
+            if exit_price >= current_target:
                 extended_target = _leading_target_extend(
                     current_target, row["entry_price"], row["initial_stop_loss"] or row["stop_loss"],
-                    rr, last_close, trend, closes, sma_fast, sma_slow, ma_type,
+                    rr, exit_price, trend, closes, sma_fast, sma_slow, ma_type,
                 )
                 if extended_target is not None:
                     current_target = extended_target
@@ -4791,9 +4872,9 @@ def _auto_signal_core(
             # picks up normal management on the reduced position exactly as
             # it would have anyway.
             next_leg = _next_unfilled_leg(row["exit_legs_json"])
-            if next_leg is not None and next_leg.get("target_price") and last_close >= next_leg["target_price"]:
+            if next_leg is not None and next_leg.get("target_price") and exit_price >= next_leg["target_price"]:
                 booking = _execute_staged_leg_exit(
-                    conn, symbol, next_leg["leg"], next_leg["qty"], last_close,
+                    conn, symbol, next_leg["leg"], next_leg["qty"], exit_price,
                     row["entry_price"], row["fx_to_inr"],
                 )
                 if booking.get("booked"):
@@ -4827,9 +4908,9 @@ def _auto_signal_core(
             exit_reason = None
             if halted:
                 exit_reason = "daily_loss_cap_hit"
-            elif last_close >= current_target and next_leg is None:
+            elif exit_price >= current_target and next_leg is None:
                 exit_reason = "target_hit"
-            elif last_close <= current_stop:
+            elif exit_price <= current_stop:
                 exit_reason = "stop_hit"
             elif (
                 trend == "down" and row["entry_regime"] != "range"
@@ -4912,16 +4993,22 @@ def _auto_signal_core(
             if exit_reason:
                 qty = row["qty"]
                 entry_fx = row["fx_to_inr"]  # same rate used at entry, for a consistent round-trip
-                pnl_native = (last_close - row["entry_price"]) * qty
+                # exit_price (live LTP when available, else last_close - see
+                # its own definition above) is the fill price for EVERY
+                # exit_reason here, not just stop_hit/target_hit: deciding
+                # off live price but then booking the trade at a stale
+                # candle close would understate/overstate the real P&L this
+                # exit actually realized.
+                pnl_native = (exit_price - row["entry_price"]) * qty
                 pnl_inr = pnl_native * entry_fx
                 # rr_achieved is measured against the ORIGINAL planned risk
                 # (initial_stop_loss), not the trailed stop - otherwise a
                 # trade that trailed close to exit would report an inflated
                 # R-multiple off its own shrunken stop_dist.
                 stop_dist = row["entry_price"] - (row["initial_stop_loss"] or row["stop_loss"])
-                rr_achieved = round((last_close - row["entry_price"]) / stop_dist, 2) if stop_dist else None
+                rr_achieved = round((exit_price - row["entry_price"]) / stop_dist, 2) if stop_dist else None
                 payload = {
-                    "symbol": symbol, "action": "sell", "qty": qty, "price": last_close,
+                    "symbol": symbol, "action": "sell", "qty": qty, "price": exit_price,
                     "currency": currency, "fx_to_inr": entry_fx,
                     "strategy": strategy_tag, "exit_reason": exit_reason,
                     "entry_price": row["entry_price"], "stop_loss": current_stop,
@@ -4933,11 +5020,11 @@ def _auto_signal_core(
                     "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
                     "pnl_pct_of_capital": round(100 * pnl_inr / capital, 3),
                 }
-                apply_paper_trade(conn, symbol, "sell", qty, last_close)
+                apply_paper_trade(conn, symbol, "sell", qty, exit_price)
                 conn.execute(
                     "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
                     "VALUES (?, ?, 'sell', ?, ?, ?, ?, ?)",
-                    (time.time(), symbol, qty, last_close, entry_fx, strategy_tag, json.dumps(payload)),
+                    (time.time(), symbol, qty, exit_price, entry_fx, strategy_tag, json.dumps(payload)),
                 )
                 conn.execute("DELETE FROM signal_state WHERE symbol = ?", (symbol,))
                 conn.commit()
