@@ -271295,5 +271295,1246 @@
         "time_local": "2026-09-16 17:52:11.406428"
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-17T00:20:27Z",
+    "attempts": {
+      "BDL.NS": {
+        "checked_at_utc": 1789604396.8528562,
+        "symbol": "BDL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.852770"
+      },
+      "GAIL.NS": {
+        "checked_at_utc": 1789604364.4936707,
+        "symbol": "GAIL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.493560"
+      },
+      "ENRIN.NS": {
+        "checked_at_utc": 1789604364.494217,
+        "symbol": "ENRIN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.494128"
+      },
+      "BRITANNIA.NS": {
+        "checked_at_utc": 1789604364.4952784,
+        "symbol": "BRITANNIA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.495208"
+      },
+      "EXIDEIND.NS": {
+        "checked_at_utc": 1789604364.4958317,
+        "symbol": "EXIDEIND.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.495749"
+      },
+      "ICICIGI.NS": {
+        "checked_at_utc": 1789604364.4964235,
+        "symbol": "ICICIGI.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.496281"
+      },
+      "IOC.NS": {
+        "checked_at_utc": 1789604364.4969306,
+        "symbol": "IOC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.496856"
+      },
+      "GVT&D.NS": {
+        "checked_at_utc": 1789604364.497497,
+        "symbol": "GVT&D.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.497415"
+      },
+      "HAL.NS": {
+        "checked_at_utc": 1789604364.498026,
+        "symbol": "HAL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.497942"
+      },
+      "TCS.NS": {
+        "checked_at_utc": 1789604396.8544657,
+        "symbol": "TCS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.854392"
+      },
+      "ASTRAL.NS": {
+        "checked_at_utc": 1789604396.8550239,
+        "symbol": "ASTRAL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.854949"
+      },
+      "ATGL.NS": {
+        "checked_at_utc": 1789604396.8555794,
+        "symbol": "ATGL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.855496"
+      },
+      "COFORGE.NS": {
+        "checked_at_utc": 1789604364.4990983,
+        "symbol": "COFORGE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.498999"
+      },
+      "HCLTECH.NS": {
+        "checked_at_utc": 1789604364.500176,
+        "symbol": "HCLTECH.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.500083"
+      },
+      "BAJAJHLDNG.NS": {
+        "checked_at_utc": 1789604396.8577704,
+        "symbol": "BAJAJHLDNG.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.857672"
+      },
+      "IRCTC.NS": {
+        "checked_at_utc": 1789604364.5012472,
+        "symbol": "IRCTC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.501167"
+      },
+      "RELIANCE.NS": {
+        "checked_at_utc": 1789604396.8590155,
+        "symbol": "RELIANCE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.858869"
+      },
+      "HEROMOTOCO.NS": {
+        "checked_at_utc": 1789604364.5023656,
+        "symbol": "HEROMOTOCO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.502241"
+      },
+      "GLENMARK.NS": {
+        "checked_at_utc": 1789604364.5029223,
+        "symbol": "GLENMARK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.502836"
+      },
+      "JUBLFOOD.NS": {
+        "checked_at_utc": 1789604364.5035155,
+        "symbol": "JUBLFOOD.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.503431"
+      },
+      "HUDCO.NS": {
+        "checked_at_utc": 1789604364.504089,
+        "symbol": "HUDCO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.503988"
+      },
+      "BAJAJFINSV.NS": {
+        "checked_at_utc": 1789604396.8601167,
+        "symbol": "BAJAJFINSV.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.860036"
+      },
+      "BSE.NS": {
+        "checked_at_utc": 1789604364.5053902,
+        "symbol": "BSE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.505276"
+      },
+      "WAAREEENER.NS": {
+        "checked_at_utc": 1789604396.8607318,
+        "symbol": "WAAREEENER.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.860649"
+      },
+      "BHARATFORG.NS": {
+        "checked_at_utc": 1789604396.8612404,
+        "symbol": "BHARATFORG.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.861160"
+      },
+      "BOSCHLTD.NS": {
+        "checked_at_utc": 1789604364.5059123,
+        "symbol": "BOSCHLTD.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.505834"
+      },
+      "JIOFIN.NS": {
+        "checked_at_utc": 1789604364.5070035,
+        "symbol": "JIOFIN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.506881"
+      },
+      "ADANIENSOL.NS": {
+        "checked_at_utc": 1789604396.8617778,
+        "symbol": "ADANIENSOL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.861704"
+      },
+      "ABB.NS": {
+        "checked_at_utc": 1789604396.8638663,
+        "symbol": "ABB.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.863786"
+      },
+      "SI=F": {
+        "checked_at_utc": 1789604396.8654964,
+        "symbol": "SI=F",
+        "status": "pre_open",
+        "time_local": "2026-09-17 00:19:56.865414"
+      },
+      "ABCAPITAL.NS": {
+        "checked_at_utc": 1789604396.8664002,
+        "symbol": "ABCAPITAL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.866323"
+      },
+      "BEL.NS": {
+        "checked_at_utc": 1789604396.866905,
+        "symbol": "BEL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.866834"
+      },
+      "IREDA.NS": {
+        "checked_at_utc": 1789604364.5075467,
+        "symbol": "IREDA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.507462"
+      },
+      "CIPLA.NS": {
+        "checked_at_utc": 1789604364.5086136,
+        "symbol": "CIPLA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.508533"
+      },
+      "AXISBANK.NS": {
+        "checked_at_utc": 1789604396.8685138,
+        "symbol": "AXISBANK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.868440"
+      },
+      "^NSEBANK": {
+        "checked_at_utc": 1789604396.8690352,
+        "symbol": "^NSEBANK",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.868954"
+      },
+      "BPCL.NS": {
+        "checked_at_utc": 1789604364.5110736,
+        "symbol": "BPCL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.511000"
+      },
+      "JINDALSTEL.NS": {
+        "checked_at_utc": 1789604364.5116498,
+        "symbol": "JINDALSTEL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.511558"
+      },
+      "HINDUNILVR.NS": {
+        "checked_at_utc": 1789604364.5121546,
+        "symbol": "HINDUNILVR.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.512080"
+      },
+      "HDFCLIFE.NS": {
+        "checked_at_utc": 1789604364.5127115,
+        "symbol": "HDFCLIFE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.512641"
+      },
+      "^NSEI": {
+        "checked_at_utc": 1789604396.8710344,
+        "symbol": "^NSEI",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.870953"
+      },
+      "ASIANPAINT.NS": {
+        "checked_at_utc": 1789604396.8725057,
+        "symbol": "ASIANPAINT.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.872434"
+      },
+      "MARUTI.NS": {
+        "checked_at_utc": 1789604396.8730223,
+        "symbol": "MARUTI.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.872938"
+      },
+      "ALKEM.NS": {
+        "checked_at_utc": 1789604396.8740988,
+        "symbol": "ALKEM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.874014"
+      },
+      "APLAPOLLO.NS": {
+        "checked_at_utc": 1789604396.8746445,
+        "symbol": "APLAPOLLO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.874562"
+      },
+      "DMART.NS": {
+        "checked_at_utc": 1789604364.5152323,
+        "symbol": "DMART.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.515161"
+      },
+      "TITAN.NS": {
+        "checked_at_utc": 1789604396.8757339,
+        "symbol": "TITAN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.875628"
+      },
+      "BHARTIARTL.NS": {
+        "checked_at_utc": 1789604364.516845,
+        "symbol": "BHARTIARTL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.516757"
+      },
+      "COCHINSHIP.NS": {
+        "checked_at_utc": 1789604364.5184526,
+        "symbol": "COCHINSHIP.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.518353"
+      },
+      "CUMMINSIND.NS": {
+        "checked_at_utc": 1789604364.5217206,
+        "symbol": "CUMMINSIND.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.521627"
+      },
+      "AUBANK.NS": {
+        "checked_at_utc": 1789604396.8798873,
+        "symbol": "AUBANK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.879812"
+      },
+      "JSWENERGY.NS": {
+        "checked_at_utc": 1789604364.5224276,
+        "symbol": "JSWENERGY.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.522329"
+      },
+      "CONCOR.NS": {
+        "checked_at_utc": 1789604364.523017,
+        "symbol": "CONCOR.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.522938"
+      },
+      "GROWW.NS": {
+        "checked_at_utc": 1789604364.523561,
+        "symbol": "GROWW.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.523482"
+      },
+      "AMBUJACEM.NS": {
+        "checked_at_utc": 1789604396.8814924,
+        "symbol": "AMBUJACEM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.881404"
+      },
+      "BANKBARODA.NS": {
+        "checked_at_utc": 1789604396.8826027,
+        "symbol": "BANKBARODA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.882516"
+      },
+      "JSWSTEEL.NS": {
+        "checked_at_utc": 1789604364.5246098,
+        "symbol": "JSWSTEEL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.524533"
+      },
+      "^BSESN": {
+        "checked_at_utc": 1789604396.8840532,
+        "symbol": "^BSESN",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.883973"
+      },
+      "GC=F": {
+        "checked_at_utc": 1789604396.8831146,
+        "symbol": "GC=F",
+        "status": "pre_open",
+        "time_local": "2026-09-17 00:19:56.883034"
+      },
+      "INDIANB.NS": {
+        "checked_at_utc": 1789604364.5267076,
+        "symbol": "INDIANB.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.526628"
+      },
+      "ADANIENT.NS": {
+        "checked_at_utc": 1789604396.8867211,
+        "symbol": "ADANIENT.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.886652"
+      },
+      "GMRAIRPORT.NS": {
+        "checked_at_utc": 1789604364.5277503,
+        "symbol": "GMRAIRPORT.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.527678"
+      },
+      "FORTIS.NS": {
+        "checked_at_utc": 1789604364.5282695,
+        "symbol": "FORTIS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.528177"
+      },
+      "INFY.NS": {
+        "checked_at_utc": 1789604396.8878338,
+        "symbol": "INFY.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.887750"
+      },
+      "ASHOKLEY.NS": {
+        "checked_at_utc": 1789604396.888903,
+        "symbol": "ASHOKLEY.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.888819"
+      },
+      "COROMANDEL.NS": {
+        "checked_at_utc": 1789604364.5298703,
+        "symbol": "COROMANDEL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.529786"
+      },
+      "GODREJCP.NS": {
+        "checked_at_utc": 1789604364.5293567,
+        "symbol": "GODREJCP.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.529229"
+      },
+      "APOLLOHOSP.NS": {
+        "checked_at_utc": 1789604396.8905783,
+        "symbol": "APOLLOHOSP.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.890498"
+      },
+      "ICICIAMC.NS": {
+        "checked_at_utc": 1789604364.5315037,
+        "symbol": "ICICIAMC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.531431"
+      },
+      "CHOLAFIN.NS": {
+        "checked_at_utc": 1789604364.5320053,
+        "symbol": "CHOLAFIN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.531925"
+      },
+      "IDEA.NS": {
+        "checked_at_utc": 1789604364.5325725,
+        "symbol": "IDEA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.532481"
+      },
+      "DIVISLAB.NS": {
+        "checked_at_utc": 1789604396.8917098,
+        "symbol": "DIVISLAB.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.891629"
+      },
+      "COLPAL.NS": {
+        "checked_at_utc": 1789604364.5335763,
+        "symbol": "COLPAL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.533504"
+      },
+      "DRREDDY.NS": {
+        "checked_at_utc": 1789604364.5340602,
+        "symbol": "DRREDDY.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.533987"
+      },
+      "HYUNDAI.NS": {
+        "checked_at_utc": 1789604364.5350614,
+        "symbol": "HYUNDAI.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.534986"
+      },
+      "COALINDIA.NS": {
+        "checked_at_utc": 1789604364.5355775,
+        "symbol": "COALINDIA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.535508"
+      },
+      "INDIGO.NS": {
+        "checked_at_utc": 1789604364.5360725,
+        "symbol": "INDIGO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.535994"
+      },
+      "ADANIPORTS.NS": {
+        "checked_at_utc": 1789604396.8933353,
+        "symbol": "ADANIPORTS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.893231"
+      },
+      "CGPOWER.NS": {
+        "checked_at_utc": 1789604364.5371084,
+        "symbol": "CGPOWER.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.537041"
+      },
+      "INDHOTEL.NS": {
+        "checked_at_utc": 1789604364.5376222,
+        "symbol": "INDHOTEL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.537552"
+      },
+      "HAVELLS.NS": {
+        "checked_at_utc": 1789604364.538101,
+        "symbol": "HAVELLS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.538026"
+      },
+      "BHEL.NS": {
+        "checked_at_utc": 1789604364.5386176,
+        "symbol": "BHEL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.538546"
+      },
+      "BAJAJ-AUTO.NS": {
+        "checked_at_utc": 1789604396.89383,
+        "symbol": "BAJAJ-AUTO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.893763"
+      },
+      "DABUR.NS": {
+        "checked_at_utc": 1789604364.539626,
+        "symbol": "DABUR.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.539552"
+      },
+      "AUROPHARMA.NS": {
+        "checked_at_utc": 1789604396.894881,
+        "symbol": "AUROPHARMA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.894789"
+      },
+      "HDFCAMC.NS": {
+        "checked_at_utc": 1789604364.5407224,
+        "symbol": "HDFCAMC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.540635"
+      },
+      "BANKINDIA.NS": {
+        "checked_at_utc": 1789604396.8959646,
+        "symbol": "BANKINDIA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.895877"
+      },
+      "WIPRO.NS": {
+        "checked_at_utc": 1789604396.8954372,
+        "symbol": "WIPRO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.895358"
+      },
+      "HINDZINC.NS": {
+        "checked_at_utc": 1789604364.5427725,
+        "symbol": "HINDZINC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.542695"
+      },
+      "CANBK.NS": {
+        "checked_at_utc": 1789604364.5433288,
+        "symbol": "CANBK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.543209"
+      },
+      "GRASIM.NS": {
+        "checked_at_utc": 1789604396.8986895,
+        "symbol": "GRASIM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.898619"
+      },
+      "ZYDUSLIFE.NS": {
+        "checked_at_utc": 1789604396.8992016,
+        "symbol": "ZYDUSLIFE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.899119"
+      },
+      "DLF.NS": {
+        "checked_at_utc": 1789604364.5448737,
+        "symbol": "DLF.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.544804"
+      },
+      "EICHERMOT.NS": {
+        "checked_at_utc": 1789604364.5454252,
+        "symbol": "EICHERMOT.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.545332"
+      },
+      "HINDALCO.NS": {
+        "checked_at_utc": 1789604364.5459247,
+        "symbol": "HINDALCO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.545854"
+      },
+      "INDUSINDBK.NS": {
+        "checked_at_utc": 1789604364.5469656,
+        "symbol": "INDUSINDBK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.546885"
+      },
+      "GODFRYPHLP.NS": {
+        "checked_at_utc": 1789604364.5474787,
+        "symbol": "GODFRYPHLP.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.547412"
+      },
+      "ITC.NS": {
+        "checked_at_utc": 1789604364.54797,
+        "symbol": "ITC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.547900"
+      },
+      "HINDPETRO.NS": {
+        "checked_at_utc": 1789604364.5486689,
+        "symbol": "HINDPETRO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.548579"
+      },
+      "BLUESTARCO.NS": {
+        "checked_at_utc": 1789604364.54941,
+        "symbol": "BLUESTARCO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.549288"
+      },
+      "360ONE.NS": {
+        "checked_at_utc": 1789604396.9057386,
+        "symbol": "360ONE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.905664"
+      },
+      "ICICIBANK.NS": {
+        "checked_at_utc": 1789604396.9062696,
+        "symbol": "ICICIBANK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.906194"
+      },
+      "INDUSTOWER.NS": {
+        "checked_at_utc": 1789604364.5507064,
+        "symbol": "INDUSTOWER.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.550608"
+      },
+      "IRFC.NS": {
+        "checked_at_utc": 1789604364.5512278,
+        "symbol": "IRFC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.551146"
+      },
+      "FEDERALBNK.NS": {
+        "checked_at_utc": 1789604364.5517602,
+        "symbol": "FEDERALBNK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.551689"
+      },
+      "ADANIGREEN.NS": {
+        "checked_at_utc": 1789604396.9085147,
+        "symbol": "ADANIGREEN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.908431"
+      },
+      "GODREJPROP.NS": {
+        "checked_at_utc": 1789604364.5523276,
+        "symbol": "GODREJPROP.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.552214"
+      },
+      "ADANIPOWER.NS": {
+        "checked_at_utc": 1789604396.9095643,
+        "symbol": "ADANIPOWER.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.909492"
+      },
+      "HDFCBANK.NS": {
+        "checked_at_utc": 1789604364.5528402,
+        "symbol": "HDFCBANK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.552757"
+      },
+      "IDFCFIRSTB.NS": {
+        "checked_at_utc": 1789604364.5533714,
+        "symbol": "IDFCFIRSTB.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.553267"
+      },
+      "BIOCON.NS": {
+        "checked_at_utc": 1789604364.5538762,
+        "symbol": "BIOCON.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.553803"
+      },
+      "CL=F": {
+        "checked_at_utc": 1789604396.9132545,
+        "symbol": "CL=F",
+        "status": "pre_open",
+        "time_local": "2026-09-17 00:19:56.913178"
+      },
+      "ETERNAL.NS": {
+        "checked_at_utc": 1789604364.554896,
+        "symbol": "ETERNAL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.554827"
+      },
+      "DIXON.NS": {
+        "checked_at_utc": 1789604364.5554178,
+        "symbol": "DIXON.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.555346"
+      },
+      "YESBANK.NS": {
+        "checked_at_utc": 1789604396.9158106,
+        "symbol": "YESBANK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.915729"
+      },
+      "BAJFINANCE.NS": {
+        "checked_at_utc": 1789604396.916853,
+        "symbol": "BAJFINANCE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.916782"
+      },
+      "POWERINDIA.NS": {
+        "checked_at_utc": 1789604396.8516107,
+        "symbol": "POWERINDIA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.851500"
+      },
+      "UNIONBANK.NS": {
+        "checked_at_utc": 1789604396.8522897,
+        "symbol": "UNIONBANK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.852182"
+      },
+      "KALYANKJIL.NS": {
+        "checked_at_utc": 1789604364.4947832,
+        "symbol": "KALYANKJIL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.494699"
+      },
+      "PFC.NS": {
+        "checked_at_utc": 1789604396.8534057,
+        "symbol": "PFC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.853282"
+      },
+      "VBL.NS": {
+        "checked_at_utc": 1789604396.853929,
+        "symbol": "VBL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.853840"
+      },
+      "M&M.NS": {
+        "checked_at_utc": 1789604364.4996636,
+        "symbol": "M&M.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.499580"
+      },
+      "MPHASIS.NS": {
+        "checked_at_utc": 1789604396.8560784,
+        "symbol": "MPHASIS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.855997"
+      },
+      "OFSS.NS": {
+        "checked_at_utc": 1789604396.8566563,
+        "symbol": "OFSS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.856578"
+      },
+      "TIINDIA.NS": {
+        "checked_at_utc": 1789604396.8571494,
+        "symbol": "TIINDIA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.857070"
+      },
+      "POWERGRID.NS": {
+        "checked_at_utc": 1789604396.858428,
+        "symbol": "POWERGRID.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.858333"
+      },
+      "PNB.NS": {
+        "checked_at_utc": 1789604396.8596084,
+        "symbol": "PNB.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.859531"
+      },
+      "RECLTD.NS": {
+        "checked_at_utc": 1789604396.8622828,
+        "symbol": "RECLTD.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.862200"
+      },
+      "TATACOMM.NS": {
+        "checked_at_utc": 1789604396.8628232,
+        "symbol": "TATACOMM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.862743"
+      },
+      "NESTLEIND.NS": {
+        "checked_at_utc": 1789604396.8633637,
+        "symbol": "NESTLEIND.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.863244"
+      },
+      "SBIN.NS": {
+        "checked_at_utc": 1789604396.864439,
+        "symbol": "SBIN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.864341"
+      },
+      "UNITDSPR.NS": {
+        "checked_at_utc": 1789604396.8649495,
+        "symbol": "UNITDSPR.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.864870"
+      },
+      "LENSKART.NS": {
+        "checked_at_utc": 1789604364.509105,
+        "symbol": "LENSKART.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.509033"
+      },
+      "NTPC.NS": {
+        "checked_at_utc": 1789604396.867961,
+        "symbol": "NTPC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.867888"
+      },
+      "TRENT.NS": {
+        "checked_at_utc": 1789604396.8674498,
+        "symbol": "TRENT.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.867368"
+      },
+      "TVSMOTOR.NS": {
+        "checked_at_utc": 1789604396.8699584,
+        "symbol": "TVSMOTOR.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.869885"
+      },
+      "POLICYBZR.NS": {
+        "checked_at_utc": 1789604396.8705175,
+        "symbol": "POLICYBZR.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.870440"
+      },
+      "PAGEIND.NS": {
+        "checked_at_utc": 1789604396.8719478,
+        "symbol": "PAGEIND.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.871874"
+      },
+      "VOLTAS.NS": {
+        "checked_at_utc": 1789604396.8735745,
+        "symbol": "VOLTAS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.873503"
+      },
+      "KEI.NS": {
+        "checked_at_utc": 1789604364.5146697,
+        "symbol": "KEI.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.514593"
+      },
+      "LTM.NS": {
+        "checked_at_utc": 1789604364.5157685,
+        "symbol": "LTM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.515699"
+      },
+      "MOTILALOFS.NS": {
+        "checked_at_utc": 1789604396.8751528,
+        "symbol": "MOTILALOFS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.875082"
+      },
+      "TMPV.NS": {
+        "checked_at_utc": 1789604396.8765569,
+        "symbol": "TMPV.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.876459"
+      },
+      "NATIONALUM.NS": {
+        "checked_at_utc": 1789604396.8772395,
+        "symbol": "NATIONALUM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.877166"
+      },
+      "PRESTIGE.NS": {
+        "checked_at_utc": 1789604396.8777957,
+        "symbol": "PRESTIGE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.877717"
+      },
+      "LODHA.NS": {
+        "checked_at_utc": 1789604364.5173833,
+        "symbol": "LODHA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.517273"
+      },
+      "LT.NS": {
+        "checked_at_utc": 1789604364.5178812,
+        "symbol": "LT.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.517811"
+      },
+      "RVNL.NS": {
+        "checked_at_utc": 1789604396.878339,
+        "symbol": "RVNL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.878216"
+      },
+      "SUZLON.NS": {
+        "checked_at_utc": 1789604396.878862,
+        "symbol": "SUZLON.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.878780"
+      },
+      "UPL.NS": {
+        "checked_at_utc": 1789604396.8793871,
+        "symbol": "UPL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.879286"
+      },
+      "LAURUSLABS.NS": {
+        "checked_at_utc": 1789604364.5189853,
+        "symbol": "LAURUSLABS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.518898"
+      },
+      "KPITTECH.NS": {
+        "checked_at_utc": 1789604364.5200481,
+        "symbol": "KPITTECH.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.519961"
+      },
+      "LGEINDIA.NS": {
+        "checked_at_utc": 1789604364.5195348,
+        "symbol": "LGEINDIA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.519464"
+      },
+      "MAXHEALTH.NS": {
+        "checked_at_utc": 1789604364.5206177,
+        "symbol": "MAXHEALTH.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.520546"
+      },
+      "MCX.NS": {
+        "checked_at_utc": 1789604364.5211132,
+        "symbol": "MCX.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.521039"
+      },
+      "TMCV.NS": {
+        "checked_at_utc": 1789604396.8804455,
+        "symbol": "TMCV.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.880366"
+      },
+      "SAIL.NS": {
+        "checked_at_utc": 1789604396.8809464,
+        "symbol": "SAIL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.880877"
+      },
+      "VEDL.NS": {
+        "checked_at_utc": 1789604396.8820176,
+        "symbol": "VEDL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.881936"
+      },
+      "NYKAA.NS": {
+        "checked_at_utc": 1789604396.8851109,
+        "symbol": "NYKAA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.885039"
+      },
+      "MFSL.NS": {
+        "checked_at_utc": 1789604396.8846085,
+        "symbol": "MFSL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.884538"
+      },
+      "SHRIRAMFIN.NS": {
+        "checked_at_utc": 1789604396.8856752,
+        "symbol": "SHRIRAMFIN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.885595"
+      },
+      "SOLARINDS.NS": {
+        "checked_at_utc": 1789604396.886186,
+        "symbol": "SOLARINDS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.886109"
+      },
+      "SBILIFE.NS": {
+        "checked_at_utc": 1789604396.887236,
+        "symbol": "SBILIFE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.887156"
+      },
+      "TECHM.NS": {
+        "checked_at_utc": 1789604396.8883893,
+        "symbol": "TECHM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.888312"
+      },
+      "MANKIND.NS": {
+        "checked_at_utc": 1789604364.5304267,
+        "symbol": "MANKIND.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.530337"
+      },
+      "SUNPHARMA.NS": {
+        "checked_at_utc": 1789604396.889459,
+        "symbol": "SUNPHARMA.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.889376"
+      },
+      "MRF.NS": {
+        "checked_at_utc": 1789604396.8911428,
+        "symbol": "MRF.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.891060"
+      },
+      "TATAPOWER.NS": {
+        "checked_at_utc": 1789604396.8900225,
+        "symbol": "TATAPOWER.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.889929"
+      },
+      "KOTAKBANK.NS": {
+        "checked_at_utc": 1789604364.5345833,
+        "symbol": "KOTAKBANK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.534514"
+      },
+      "OIL.NS": {
+        "checked_at_utc": 1789604396.892234,
+        "symbol": "OIL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.892143"
+      },
+      "SBICARD.NS": {
+        "checked_at_utc": 1789604396.8927925,
+        "symbol": "SBICARD.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.892701"
+      },
+      "SUPREMEIND.NS": {
+        "checked_at_utc": 1789604396.8943636,
+        "symbol": "SUPREMEIND.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.894256"
+      },
+      "MARICO.NS": {
+        "checked_at_utc": 1789604364.5417583,
+        "symbol": "MARICO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.541680"
+      },
+      "PERSISTENT.NS": {
+        "checked_at_utc": 1789604396.8965337,
+        "symbol": "PERSISTENT.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.896442"
+      },
+      "NMDC.NS": {
+        "checked_at_utc": 1789604396.8970797,
+        "symbol": "NMDC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.897002"
+      },
+      "LTF.NS": {
+        "checked_at_utc": 1789604364.5422492,
+        "symbol": "LTF.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.542176"
+      },
+      "LICHSGFIN.NS": {
+        "checked_at_utc": 1789604364.5438333,
+        "symbol": "LICHSGFIN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.543763"
+      },
+      "PATANJALI.NS": {
+        "checked_at_utc": 1789604396.8976336,
+        "symbol": "PATANJALI.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.897561"
+      },
+      "TATASTEEL.NS": {
+        "checked_at_utc": 1789604396.8981433,
+        "symbol": "TATASTEEL.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.898061"
+      },
+      "PHOENIXLTD.NS": {
+        "checked_at_utc": 1789604396.8997436,
+        "symbol": "PHOENIXLTD.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.899661"
+      },
+      "TATACONSUM.NS": {
+        "checked_at_utc": 1789604396.9003859,
+        "symbol": "TATACONSUM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.900253"
+      },
+      "MOTHERSON.NS": {
+        "checked_at_utc": 1789604396.900911,
+        "symbol": "MOTHERSON.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.900826"
+      },
+      "PREMIERENE.NS": {
+        "checked_at_utc": 1789604396.9015038,
+        "symbol": "PREMIERENE.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.901421"
+      },
+      "RADICO.NS": {
+        "checked_at_utc": 1789604396.9020174,
+        "symbol": "RADICO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.901945"
+      },
+      "SWIGGY.NS": {
+        "checked_at_utc": 1789604396.902599,
+        "symbol": "SWIGGY.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.902515"
+      },
+      "TATAELXSI.NS": {
+        "checked_at_utc": 1789604396.903114,
+        "symbol": "TATAELXSI.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.903030"
+      },
+      "MAZDOCK.NS": {
+        "checked_at_utc": 1789604364.54646,
+        "symbol": "MAZDOCK.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.546373"
+      },
+      "SIEMENS.NS": {
+        "checked_at_utc": 1789604396.9037778,
+        "symbol": "SIEMENS.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.903640"
+      },
+      "ULTRACEMCO.NS": {
+        "checked_at_utc": 1789604396.904592,
+        "symbol": "ULTRACEMCO.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.904485"
+      },
+      "TATAINVEST.NS": {
+        "checked_at_utc": 1789604396.9051464,
+        "symbol": "TATAINVEST.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.905066"
+      },
+      "MUTHOOTFIN.NS": {
+        "checked_at_utc": 1789604396.9068751,
+        "symbol": "MUTHOOTFIN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.906793"
+      },
+      "SRF.NS": {
+        "checked_at_utc": 1789604396.9074285,
+        "symbol": "SRF.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.907347"
+      },
+      "TATACAP.NS": {
+        "checked_at_utc": 1789604396.9079504,
+        "symbol": "TATACAP.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.907867"
+      },
+      "NAUKRI.NS": {
+        "checked_at_utc": 1789604396.9090233,
+        "symbol": "NAUKRI.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.908944"
+      },
+      "SHREECEM.NS": {
+        "checked_at_utc": 1789604396.9101183,
+        "symbol": "SHREECEM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.910004"
+      },
+      "NHPC.NS": {
+        "checked_at_utc": 1789604396.9107063,
+        "symbol": "NHPC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.910625"
+      },
+      "LUPIN.NS": {
+        "checked_at_utc": 1789604364.5543995,
+        "symbol": "LUPIN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.554320"
+      },
+      "OBEROIRLTY.NS": {
+        "checked_at_utc": 1789604396.9112148,
+        "symbol": "OBEROIRLTY.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.911140"
+      },
+      "POLYCAB.NS": {
+        "checked_at_utc": 1789604396.9118974,
+        "symbol": "POLYCAB.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.911786"
+      },
+      "PIIND.NS": {
+        "checked_at_utc": 1789604396.912725,
+        "symbol": "PIIND.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.912632"
+      },
+      "VMM.NS": {
+        "checked_at_utc": 1789604396.914211,
+        "symbol": "VMM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.914123"
+      },
+      "PIDILITIND.NS": {
+        "checked_at_utc": 1789604396.9147644,
+        "symbol": "PIDILITIND.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.914684"
+      },
+      "PAYTM.NS": {
+        "checked_at_utc": 1789604396.9152682,
+        "symbol": "PAYTM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.915192"
+      },
+      "ONGC.NS": {
+        "checked_at_utc": 1789604396.9163554,
+        "symbol": "ONGC.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.916252"
+      },
+      "M&MFIN.NS": {
+        "checked_at_utc": 1789604364.5559127,
+        "symbol": "M&MFIN.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:24.555840"
+      },
+      "TORNTPHARM.NS": {
+        "checked_at_utc": 1789604396.9173903,
+        "symbol": "TORNTPHARM.NS",
+        "status": "pre_open",
+        "time_local": "2026-09-17 05:49:56.917283"
+      }
+    }
   }
 ]
