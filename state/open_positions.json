@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-17T08:28:31Z",
+  "synced_at_utc": "2026-09-17T13:44:21Z",
   "open_positions": [
     {
       "symbol": "GENCON.NS",
@@ -17,60 +17,6 @@
       "strategy": "orb-universal-score",
       "sma_fast": null,
       "sma_slow": null,
-      "entry_regime": null
-    },
-    {
-      "symbol": "GC=F",
-      "qty": 0.002222,
-      "entry_price_native": 4282.89990234375,
-      "stop_loss_native": 4296.217878069197,
-      "initial_stop_loss_native": 4248.335658482143,
-      "target_native": 4352.03,
-      "fx_to_inr": 95.94999694824219,
-      "notional_inr": 913.12,
-      "orb_high_native": null,
-      "orb_low_native": 4273.2998046875,
-      "entry_ts": 1789586955.3005595,
-      "interval": "5m",
-      "strategy": "orb-universal-score",
-      "sma_fast": 20,
-      "sma_slow": 21,
-      "entry_regime": "range"
-    },
-    {
-      "symbol": "IREDA.NS",
-      "qty": 2.0,
-      "entry_price_native": 109.25,
-      "stop_loss_native": 108.19999694824219,
-      "initial_stop_loss_native": 108.19999694824219,
-      "target_native": 110.51,
-      "fx_to_inr": 1.0,
-      "notional_inr": 218.5,
-      "orb_high_native": null,
-      "orb_low_native": 108.19999694824219,
-      "entry_ts": 1789617143.7773776,
-      "interval": "5m",
-      "strategy": "orb-universal-score",
-      "sma_fast": 9,
-      "sma_slow": 21,
-      "entry_regime": "trend"
-    },
-    {
-      "symbol": "FEDERALBNK.NS",
-      "qty": 5.0,
-      "entry_price_native": 334.25,
-      "stop_loss_native": 330.91,
-      "initial_stop_loss_native": 330.91,
-      "target_native": 344.27,
-      "fx_to_inr": 1.0,
-      "notional_inr": 1671.25,
-      "orb_high_native": null,
-      "orb_low_native": null,
-      "entry_ts": 1789633692.9690235,
-      "interval": "5m",
-      "strategy": null,
-      "sma_fast": 9,
-      "sma_slow": 21,
       "entry_regime": null
     }
   ]
