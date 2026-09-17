@@ -44,6 +44,10 @@ on:
         description: "Also sweep cci_breakout (period x threshold) on NSE indices + the 15 NSE large-caps"
         type: boolean
         default: true
+      run_keltner_research:
+        description: "Also sweep keltner_channel_breakout (kc_period x kc_atr_period x kc_multiplier) on NSE indices + the 15 NSE large-caps"
+        type: boolean
+        default: true
 
 jobs:
   research:
@@ -322,5 +326,27 @@ jobs:
             echo "SYMBOL: $SYMBOL  strategy=cci_breakout (period x threshold sweep)"
             echo "=========================================="
             curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=cci_breakout&rank_by=total_pnl&top_n=8&cci_period=14,20,30&cci_threshold=80,100,150"
+            echo
+          done
+
+      - name: "Volatility: keltner_channel_breakout sweep (NSE indices + large-caps)"
+        if: ${{ inputs.run_keltner_research }}
+        run: |
+          SW="https://tv-paper-bot-gdan.onrender.com/sweep"
+          PERIOD="60d"
+          INTERVAL="5m"
+          # 2026-09-17 candidate: ATR-based volatility channel (EMA midline,
+          # unlike Bollinger's SMA/std-dev bands), breakout-oriented rather
+          # than mean-reversion. Sourced defaults (EMA20+ATR10@1.5x) from an
+          # H1 forex study reporting 57.8% win rate - see docs/daily_logs.
+          # Sweeping kc_period x kc_atr_period x kc_multiplier.
+          for SYMBOL in "%5ENSEI" "%5ENSEBANK" "%5EBSESN" \
+                        "RELIANCE.NS" "TCS.NS" "HDFCBANK.NS" "INFY.NS" "ICICIBANK.NS" \
+                        "HINDUNILVR.NS" "ITC.NS" "SBIN.NS" "BHARTIARTL.NS" "KOTAKBANK.NS" \
+                        "LT.NS" "AXISBANK.NS" "BAJFINANCE.NS" "MARUTI.NS" "ASIANPAINT.NS"; do
+            echo "=========================================="
+            echo "SYMBOL: $SYMBOL  strategy=keltner_channel_breakout (kc_period x kc_atr_period x kc_multiplier sweep)"
+            echo "=========================================="
+            curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=keltner_channel_breakout&rank_by=total_pnl&top_n=8&kc_period=10,20,30&kc_atr_period=6,10,14&kc_multiplier=1.0,1.5,2.0"
             echo
           done
