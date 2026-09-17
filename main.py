@@ -4784,6 +4784,26 @@ def _auto_signal_core(
             import kotak_live_feed
             tick = kotak_live_feed.get_live_ticks().get(symbol)
             live_price = float(tick["ltp"]) if tick and tick.get("ltp") else None
+            # Same live-price basis for every EXIT decision below (leading
+            # target, staged-leg booking, target_hit, stop_hit) and for the
+            # actual recorded fill price - 2026-09-17, explicit user
+            # instruction ("Candle-close lag - replace this") extending the
+            # trailing-stop fix above to the exit checks themselves: a
+            # candle-close-based stop_hit/target_hit lags real price the
+            # exact same way the trailing-stop ratchet did, except here the
+            # cost of the lag is real slippage past the intended stop/
+            # target, not just a stale-looking dashboard number. Deciding
+            # off live_price but then recording the fill at the stale
+            # last_close would be self-contradictory (e.g. exit because
+            # price fell through the stop, then log a sell at a price still
+            # ABOVE it) - so exit_price is used consistently for BOTH the
+            # decision and the fill throughout this block. ENTRY-signal
+            # detection and every other use of last_close in this function
+            # are deliberately untouched - candle-close confirmation on
+            # entries is a separate, intentional design choice, not part of
+            # this fix. Falls back to last_close, exactly as before, when
+            # no live tick is available for this symbol.
+            exit_price = live_price if (live_price is not None and live_price > 0) else last_close
             peak, trail_candidate = _trailing_stop_target(
                 today_df, row["entry_price"], row["initial_stop_loss"] or row["stop_loss"],
                 row["entry_ts"], tz_offset_min,
@@ -4823,10 +4843,10 @@ def _auto_signal_core(
             # compares against this same tick - see
             # _leading_target_extend's own docstring for the full logic.
             current_target = row["target"]
-            if last_close >= current_target:
+            if exit_price >= current_target:
                 extended_target = _leading_target_extend(
                     current_target, row["entry_price"], row["initial_stop_loss"] or row["stop_loss"],
-                    rr, last_close, trend, closes, sma_fast, sma_slow, ma_type,
+                    rr, exit_price, trend, closes, sma_fast, sma_slow, ma_type,
                 )
                 if extended_target is not None:
                     current_target = extended_target
@@ -4852,9 +4872,9 @@ def _auto_signal_core(
             # picks up normal management on the reduced position exactly as
             # it would have anyway.
             next_leg = _next_unfilled_leg(row["exit_legs_json"])
-            if next_leg is not None and next_leg.get("target_price") and last_close >= next_leg["target_price"]:
+            if next_leg is not None and next_leg.get("target_price") and exit_price >= next_leg["target_price"]:
                 booking = _execute_staged_leg_exit(
-                    conn, symbol, next_leg["leg"], next_leg["qty"], last_close,
+                    conn, symbol, next_leg["leg"], next_leg["qty"], exit_price,
                     row["entry_price"], row["fx_to_inr"],
                 )
                 if booking.get("booked"):
@@ -4888,9 +4908,9 @@ def _auto_signal_core(
             exit_reason = None
             if halted:
                 exit_reason = "daily_loss_cap_hit"
-            elif last_close >= current_target and next_leg is None:
+            elif exit_price >= current_target and next_leg is None:
                 exit_reason = "target_hit"
-            elif last_close <= current_stop:
+            elif exit_price <= current_stop:
                 exit_reason = "stop_hit"
             elif (
                 trend == "down" and row["entry_regime"] != "range"
@@ -4973,16 +4993,22 @@ def _auto_signal_core(
             if exit_reason:
                 qty = row["qty"]
                 entry_fx = row["fx_to_inr"]  # same rate used at entry, for a consistent round-trip
-                pnl_native = (last_close - row["entry_price"]) * qty
+                # exit_price (live LTP when available, else last_close - see
+                # its own definition above) is the fill price for EVERY
+                # exit_reason here, not just stop_hit/target_hit: deciding
+                # off live price but then booking the trade at a stale
+                # candle close would understate/overstate the real P&L this
+                # exit actually realized.
+                pnl_native = (exit_price - row["entry_price"]) * qty
                 pnl_inr = pnl_native * entry_fx
                 # rr_achieved is measured against the ORIGINAL planned risk
                 # (initial_stop_loss), not the trailed stop - otherwise a
                 # trade that trailed close to exit would report an inflated
                 # R-multiple off its own shrunken stop_dist.
                 stop_dist = row["entry_price"] - (row["initial_stop_loss"] or row["stop_loss"])
-                rr_achieved = round((last_close - row["entry_price"]) / stop_dist, 2) if stop_dist else None
+                rr_achieved = round((exit_price - row["entry_price"]) / stop_dist, 2) if stop_dist else None
                 payload = {
-                    "symbol": symbol, "action": "sell", "qty": qty, "price": last_close,
+                    "symbol": symbol, "action": "sell", "qty": qty, "price": exit_price,
                     "currency": currency, "fx_to_inr": entry_fx,
                     "strategy": strategy_tag, "exit_reason": exit_reason,
                     "entry_price": row["entry_price"], "stop_loss": current_stop,
@@ -4994,11 +5020,11 @@ def _auto_signal_core(
                     "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
                     "pnl_pct_of_capital": round(100 * pnl_inr / capital, 3),
                 }
-                apply_paper_trade(conn, symbol, "sell", qty, last_close)
+                apply_paper_trade(conn, symbol, "sell", qty, exit_price)
                 conn.execute(
                     "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
                     "VALUES (?, ?, 'sell', ?, ?, ?, ?, ?)",
-                    (time.time(), symbol, qty, last_close, entry_fx, strategy_tag, json.dumps(payload)),
+                    (time.time(), symbol, qty, exit_price, entry_fx, strategy_tag, json.dumps(payload)),
                 )
                 conn.execute("DELETE FROM signal_state WHERE symbol = ?", (symbol,))
                 conn.commit()
