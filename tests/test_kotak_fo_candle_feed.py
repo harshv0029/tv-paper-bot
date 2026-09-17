@@ -194,7 +194,12 @@ def test_run_fo_candle_feed_resolves_the_universe_off_the_event_loop():
     # asyncio task must be able to make progress WHILE resolve_fo_universe
     # is still running, not just after it returns.
     src = inspect.getsource(feed.run_fo_candle_feed)
-    assert "await asyncio.to_thread(resolve_fo_universe)" in src
+    # asyncio.to_thread(resolve_fo_universe) is now wrapped in
+    # asyncio.wait_for (2026-09-16/17, live "both feeds stuck forever"
+    # follow-up - see FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS's own
+    # comment) - still off the event loop, just also hard-bounded now.
+    assert "asyncio.to_thread(resolve_fo_universe)" in src
+    assert "asyncio.wait_for(" in src
 
     import asyncio
     import time as time_module
@@ -221,6 +226,43 @@ def test_run_fo_candle_feed_resolves_the_universe_off_the_event_loop():
     # on its own thread - a bare synchronous call here would have starved
     # it until slow_resolve returned.
     assert len(progressed) >= 2
+
+
+def test_fo_universe_resolve_timeout_releases_the_lock_promptly():
+    # Live follow-up (2026-09-16/17): both kotak_fo_candle_feed and
+    # kotak_live_feed's own heavy resolves now share
+    # main._heavy_startup_resolve_lock (asyncio.Lock, no timeout of its
+    # own). If resolve_fo_universe hangs at a network layer that
+    # ignores its own timeout (same failure class already found for
+    # Upstash), the lock would never be released and the OTHER feed
+    # would then wait on it FOREVER too - a live-observed symptom
+    # (both feeds stuck at connected: false indefinitely). Proves the
+    # asyncio.wait_for around the resolve call actually bounds how
+    # long the lock stays held, using a patched near-zero timeout
+    # rather than waiting out the real 180s.
+    import asyncio
+    import time as time_module
+
+    def _hangs_forever():
+        time_module.sleep(5)  # far longer than the patched deadline below
+        return {}
+
+    async def acquire_and_resolve():
+        async with main._heavy_startup_resolve_lock:
+            try:
+                await asyncio.wait_for(asyncio.to_thread(_hangs_forever), timeout=0.1)
+            except asyncio.TimeoutError:
+                pass  # exactly what feed.run_fo_candle_feed's own outer except catches
+
+    async def run():
+        await acquire_and_resolve()
+        # If the lock were still held (i.e. the timeout above didn't
+        # actually bound the wait), this would hang here too.
+        async with main._heavy_startup_resolve_lock:
+            return True
+
+    result = asyncio.run(asyncio.wait_for(run(), timeout=2.0))
+    assert result is True
 
 
 def test_startup_event_still_launches_the_equity_feed_task_unchanged():
