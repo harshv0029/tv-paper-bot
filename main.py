@@ -6110,8 +6110,9 @@ def is_real_fo_trading_enabled() -> bool:
 
 def _real_fo_today_spent_inr(conn) -> float:
     """Sum of today's (IST calendar day) CONFIRMED real F&O buy notional
-    (premium * qty for a bought option) - what real_fo_daily_cap_inr
-    actually caps. Mirrors _real_today_spent_inr's own reasoning exactly,
+    (premium * qty for a bought option) - what the F&O daily spend cap
+    (_day_open_capital_inr, see its call sites) actually caps against.
+    Mirrors _real_today_spent_inr's own reasoning exactly,
     sourced from real_fo_trades (this codebase's own record, populated at
     order-attempt time), not from Kotak's own trade/order reports."""
     today = ist_now().strftime("%Y-%m-%d")
@@ -7175,8 +7176,10 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
 #   2. Long Straddle - a genuinely NEW, NOT YET BACKTESTED strategy, paper-
 #      tracked unconditionally, real-mirrored only behind its own explicit
 #      opt-in (real_straddle_enabled runtime setting, default OFF).
-# Both share is_real_fo_trading_enabled()/real_fo_daily_cap_inr as their
-# gate/cap - SEPARATE from equity's real_trading_control/real_daily_cap_inr.
+# Both share is_real_fo_trading_enabled()/the F&O daily spend cap (2026-09-17:
+# _day_open_capital_inr - the account's own real capital as of today's open,
+# not a separately-configured fixed rupee figure) as their gate/cap -
+# SEPARATE from equity's real_trading_control/real_daily_cap_inr.
 #
 # MCX entries (2026-09-07, explicit user instruction "also mcx") map to
 # the MINI contract's pSymbolName (GOLDM/SILVERM/CRUDEOILM), not the
@@ -7312,7 +7315,15 @@ def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float):
 
     qty = contract["lot_size"]
     notional_inr = qty * contract["premium"]  # every F&O underlying wired here is INR-native, no fx conversion
-    remaining = get_runtime_setting(conn, "real_fo_daily_cap_inr") - _real_fo_today_spent_inr(conn)
+    # 2026-09-17, explicit user instruction ("Daily F&O cap = Kotak
+    # available capital. Not a fix number"): the daily F&O spend ceiling
+    # is now the account's OWN real capital as of today's open (the same
+    # _day_open_capital_inr basis the joint real-loss-cap right below
+    # already uses, for the same "keep it as a % of/here, all of real
+    # money available at the beginning of day" reasoning) - not a
+    # separately-configured runtime setting that could drift out of sync
+    # with what the account can actually afford.
+    remaining = _day_open_capital_inr(conn) - _real_fo_today_spent_inr(conn)
     if notional_inr > remaining:
         _log_real_fo_attempt(
             conn, leg_key, "B", "skipped_over_daily_cap", kotak_trading_symbol=contract["kotak_trading_symbol"],
@@ -7557,7 +7568,9 @@ def _straddle_signal_core(conn, fo_underlying: str, vol_signal, halted: bool, is
 
     import kotak_real_fo_orders
     combined_notional = qty * (call_c["premium"] + put_c["premium"])
-    remaining = get_runtime_setting(conn, "real_fo_daily_cap_inr") - _real_fo_today_spent_inr(conn)
+    # Same live-capital basis as the single-leg call entry above - see
+    # that call site's own comment.
+    remaining = _day_open_capital_inr(conn) - _real_fo_today_spent_inr(conn)
     if combined_notional > remaining:
         for right, c in (("CE", call_c), ("PE", put_c)):
             _log_real_fo_attempt(
@@ -8426,7 +8439,7 @@ def get_real_fo_control(request: Request):
         open_positions = [dict(r) for r in conn.execute("SELECT * FROM real_fo_positions").fetchall()]
         open_straddles = [dict(r) for r in conn.execute("SELECT * FROM nse_straddle_state").fetchall()]
         today_spent_inr = _real_fo_today_spent_inr(conn)
-        daily_cap_inr = get_runtime_setting(conn, "real_fo_daily_cap_inr")
+        daily_cap_inr = _day_open_capital_inr(conn)
         straddle_enabled = get_runtime_setting(conn, "real_straddle_enabled") >= 0.5
         # Joint real daily-loss cap (2026-09-08) - see _real_loss_budget's
         # own docstring. Same number /real-trading-control shows - this
@@ -8862,15 +8875,6 @@ RUNTIME_SETTINGS_META = {
         "orders. Real money - changing this requires the same Kotak API token as "
         "every other real-trading endpoint.",
     ),
-    "real_fo_daily_cap_inr": (
-        2000.0, 0.0, 1000000.0, True,
-        "Maximum total REAL F&O premium spend (buy side only) per IST calendar "
-        "day, across the single-leg call mirror and the Long Straddle - separate "
-        "pool from real_daily_cap_inr (equity). Real money - requires the Kotak "
-        "API token. Raise this (and fund the account) to actually enable F&O "
-        "orders to place - check_margin_affordable's own live check is what "
-        "ultimately decides affordability at the moment of each attempt.",
-    ),
     "real_straddle_enabled": (
         0.0, 0.0, 1.0, True,
         "0/1 - whether the Long Straddle strategy (docs/STRATEGY_LOG.md, NOT YET "
@@ -8878,8 +8882,8 @@ RUNTIME_SETTINGS_META = {
         "contraction signal fires. Paper-tracks regardless of this setting - "
         "turn this on only after reviewing paper results. Real money - requires "
         "the Kotak API token. Also requires REAL_FO_TRADING_ENABLED (Render env "
-        "var) and real_fo_daily_cap_inr/margin affordability, same as every "
-        "other real F&O order.",
+        "var), today's real capital not yet exhausted, and margin affordability, "
+        "same as every other real F&O order.",
     ),
     "daily_loss_reset_epoch": (
         0.0, 0.0, 4102444800.0, False,
