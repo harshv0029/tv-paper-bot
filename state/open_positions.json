@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-17T03:54:46Z",
+  "synced_at_utc": "2026-09-17T08:28:31Z",
   "open_positions": [
     {
       "symbol": "GENCON.NS",
@@ -54,6 +54,24 @@
       "sma_fast": 9,
       "sma_slow": 21,
       "entry_regime": "trend"
+    },
+    {
+      "symbol": "FEDERALBNK.NS",
+      "qty": 5.0,
+      "entry_price_native": 334.25,
+      "stop_loss_native": 330.91,
+      "initial_stop_loss_native": 330.91,
+      "target_native": 344.27,
+      "fx_to_inr": 1.0,
+      "notional_inr": 1671.25,
+      "orb_high_native": null,
+      "orb_low_native": null,
+      "entry_ts": 1789633692.9690235,
+      "interval": "5m",
+      "strategy": null,
+      "sma_fast": 9,
+      "sma_slow": 21,
+      "entry_regime": null
     }
   ]
 }

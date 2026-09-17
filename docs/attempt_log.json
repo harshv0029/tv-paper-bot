@@ -282340,5 +282340,245 @@
         }
       }
     }
+  },
+  {
+    "synced_at_utc": "2026-09-17T08:28:32Z",
+    "attempts": {
+      "COROMANDEL.NS": {
+        "checked_at_utc": 1789633700.822252,
+        "symbol": "COROMANDEL.NS",
+        "status": "checked",
+        "time_local": "2026-09-17 13:58:14.134396",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 1930.5,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 1931.0257290587501,
+        "sma_slow": 1931.4987669938282,
+        "trend": "down",
+        "capital": 5154.92,
+        "daily_loss_cap": 103.0984,
+        "realized_today": 8.25,
+        "realized_today_pct": 0.16,
+        "budget_remaining": 103.1,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 1012.05,
+          "current_volume": 71.0,
+          "vol_ratio": 0.07
+        },
+        "market_regime": "range",
+        "liquidity_gate_reasons": [],
+        "vwap_mean_reversion_entry": false,
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "GAIL.NS": {
+        "checked_at_utc": 1789633703.3956754,
+        "symbol": "GAIL.NS",
+        "status": "checked",
+        "time_local": "2026-09-17 13:58:20.824818",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 172.25,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 172.34886078500006,
+        "sma_slow": 172.34488246955283,
+        "trend": "up",
+        "capital": 5154.92,
+        "daily_loss_cap": 103.0984,
+        "realized_today": 8.25,
+        "realized_today_pct": 0.16,
+        "budget_remaining": 103.1,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 32094.6,
+          "current_volume": 31887.0,
+          "vol_ratio": 0.994
+        },
+        "market_regime": "range",
+        "liquidity_gate_reasons": [],
+        "vwap_mean_reversion_entry": false,
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "EICHERMOT.NS": {
+        "checked_at_utc": 1789633704.3058338,
+        "symbol": "EICHERMOT.NS",
+        "status": "checked",
+        "time_local": "2026-09-17 13:58:23.396446",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 7530.0,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 7531.959982080001,
+        "sma_slow": 7532.732052768971,
+        "trend": "down",
+        "capital": 5154.92,
+        "daily_loss_cap": 103.0984,
+        "realized_today": 8.25,
+        "realized_today_pct": 0.16,
+        "budget_remaining": 103.1,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 3115.5,
+          "current_volume": 297.0,
+          "vol_ratio": 0.095
+        },
+        "market_regime": "range",
+        "liquidity_gate_reasons": [],
+        "vwap_mean_reversion_entry": false,
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "HCLTECH.NS": {
+        "checked_at_utc": 1789633705.4092886,
+        "symbol": "HCLTECH.NS",
+        "status": "checked",
+        "time_local": "2026-09-17 13:58:24.306510",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 1244.0,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 1244.6398126762504,
+        "sma_slow": 1245.6275066666274,
+        "trend": "down",
+        "capital": 5154.92,
+        "daily_loss_cap": 103.0984,
+        "realized_today": 8.25,
+        "realized_today_pct": 0.16,
+        "budget_remaining": 103.1,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 8615.05,
+          "current_volume": 1895.0,
+          "vol_ratio": 0.22
+        },
+        "market_regime": "trend",
+        "liquidity_gate_reasons": [],
+        "universal_score": {
+          "score": 30.0,
+          "max_score": 100,
+          "score_pct": 30.0,
+          "breakdown": {
+            "above_vwap": 15,
+            "ema_cross": 0.0,
+            "structure_hh_hl": 15,
+            "breakout_resistance": 0.0,
+            "volume_breakout": 0.0,
+            "rsi_band": 0.0,
+            "relative_strength": 0.0,
+            "index_trend": 0.0
+          },
+          "rejection_reasons": [
+            "liquidity_inadequate",
+            "entry_candle_not_bullish"
+          ],
+          "entry_allowed": false
+        },
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "INDHOTEL.NS": {
+        "checked_at_utc": 1789633706.6308157,
+        "symbol": "INDHOTEL.NS",
+        "status": "checked",
+        "time_local": "2026-09-17 13:58:25.410259",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 722.7999877929688,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 723.116228239844,
+        "sma_slow": 722.8083733694841,
+        "trend": "up",
+        "capital": 5154.92,
+        "daily_loss_cap": 103.0984,
+        "realized_today": 8.25,
+        "realized_today_pct": 0.16,
+        "budget_remaining": 103.1,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 11828.45,
+          "current_volume": 6649.0,
+          "vol_ratio": 0.562
+        },
+        "market_regime": "range",
+        "liquidity_gate_reasons": [],
+        "vwap_mean_reversion_entry": false,
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      },
+      "INFY.NS": {
+        "checked_at_utc": 1789633707.6021698,
+        "symbol": "INFY.NS",
+        "status": "checked",
+        "time_local": "2026-09-17 13:58:26.631729",
+        "currency": "INR",
+        "fx_to_inr": 1.0,
+        "last_close": 1053.5,
+        "orb_high": null,
+        "orb_low": null,
+        "sma_fast": 1053.4822889025004,
+        "sma_slow": 1054.531237943259,
+        "trend": "down",
+        "capital": 5154.92,
+        "daily_loss_cap": 103.0984,
+        "realized_today": 8.25,
+        "realized_today_pct": 0.16,
+        "budget_remaining": 103.1,
+        "halted_for_day": false,
+        "action_taken": "no_signal",
+        "is_squareoff_time": false,
+        "vol_contraction_signal": null,
+        "volume_gate": {
+          "confirmed": false,
+          "avg_volume": 53386.4,
+          "current_volume": 27855.0,
+          "vol_ratio": 0.522
+        },
+        "market_regime": "range",
+        "liquidity_gate_reasons": [],
+        "vwap_mean_reversion_entry": false,
+        "sentiment_gate": {
+          "allowed": true,
+          "reason": "not_checked_no_entry_signal"
+        }
+      }
+    }
   }
 ]
