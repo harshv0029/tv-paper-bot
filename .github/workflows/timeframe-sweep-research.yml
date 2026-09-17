@@ -103,7 +103,7 @@ jobs:
 
                   if position is not None:
                       current_stop = position["stop"]
-                      trail = m._trailing_stop_target(
+                      _, trail = m._trailing_stop_target(
                           today_df, position["entry_price"], position["initial_stop"], position["entry_ts"], TZ_OFF,
                       )
                       if trail is not None and trail > current_stop:
