@@ -1690,6 +1690,45 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         df["long"] = (cci > threshold).fillna(False)
         df["cci"] = cci
 
+    elif strategy == "keltner_channel_breakout":
+        # ATR-based volatility channel (EMA midline, unlike Bollinger's
+        # SMA/std-dev bands) - genuinely different band construction from
+        # bollinger_mean_reversion, and breakout-oriented rather than
+        # mean-reversion. Sources (2026-09-17 research): breakout-variant
+        # backtests report ~35-58% win rate depending on market/settings
+        # (quantvps.com, pyquantlab.com); an EURUSD/GBPUSD/USDJPY H1 study
+        # found EMA(20)+ATR(10)@1.5x delivered 57.8% win rate, 1.33 Sharpe
+        # - used as this candidate's defaults. Enter long on a close above
+        # the upper band (breakout), exit when price falls back through the
+        # EMA midline (trend exhausted) - same enter/exit-loop shape as
+        # bollinger_mean_reversion/supertrend above.
+        period = int(params.get("period", 20))
+        atr_period = int(params.get("atr_period", 10))
+        multiplier = float(params.get("multiplier", 1.5))
+
+        middle = df["Close"].ewm(span=period, adjust=False).mean()
+        prev_close = df["Close"].shift(1)
+        tr = pd.concat([
+            df["High"] - df["Low"],
+            (df["High"] - prev_close).abs(),
+            (df["Low"] - prev_close).abs(),
+        ], axis=1).max(axis=1)
+        atr = tr.rolling(atr_period).mean()
+        upper = middle + multiplier * atr
+
+        entry_signal = df["Close"] > upper
+        exit_signal = df["Close"] < middle
+
+        holding, flags = False, []
+        for is_entry, is_exit in zip(entry_signal.fillna(False), exit_signal.fillna(False)):
+            if not holding and is_entry:
+                holding = True
+            elif holding and is_exit:
+                holding = False
+            flags.append(holding)
+        df["long"] = flags
+        df["kc_middle"], df["kc_upper"] = middle, upper
+
     elif strategy == "macd_cross":
         fast_span = int(params.get("macd_fast", 12))
         slow_span = int(params.get("macd_slow", 26))
@@ -1840,8 +1879,8 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
                    f"vwap_breakout_retest, anchored_vwap_continuation, anchored_vwap_reversal, "
                    f"vwap_multi_period_reversal, bullish_engulfing, pin_bar_reversal, "
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
-                   f"stochastic_oversold_reversal, cci_breakout, macd_cross, wyckoff_spring, "
-                   f"wyckoff_sos, vsa_climax_reversal, mtf_engulfing",
+                   f"stochastic_oversold_reversal, cci_breakout, keltner_channel_breakout, "
+                   f"macd_cross, wyckoff_spring, wyckoff_sos, vsa_climax_reversal, mtf_engulfing",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -1954,6 +1993,9 @@ def backtest(
     d_period: int = 3,
     cci_period: int = 20,
     cci_threshold: float = 100,
+    kc_period: int = 20,
+    kc_atr_period: int = 10,
+    kc_multiplier: float = 1.5,
     qty: float = 1,
 ):
     """
@@ -1990,6 +2032,7 @@ def backtest(
     strategy=rsi_divergence       -> params: rsi_period, divergence_lookback
     strategy=stochastic_oversold_reversal -> params: k_period, d_period, oversold, overbought
     strategy=cci_breakout         -> params: cci_period, cci_threshold
+    strategy=keltner_channel_breakout -> params: kc_period, kc_atr_period, kc_multiplier
     strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
     strategy=mtf_engulfing        -> params: htf_minutes, htf_trend_fast, htf_trend_slow
     """
@@ -2045,6 +2088,8 @@ def backtest(
         params = {"k_period": k_period, "d_period": d_period, "oversold": oversold, "overbought": overbought}
     elif strategy == "cci_breakout":
         params = {"period": cci_period, "threshold": cci_threshold}
+    elif strategy == "keltner_channel_breakout":
+        params = {"period": kc_period, "atr_period": kc_atr_period, "multiplier": kc_multiplier}
     elif strategy == "macd_cross":
         params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
     elif strategy == "mtf_engulfing":
@@ -2130,6 +2175,10 @@ def sweep(
     # cci_breakout params - comma-separated lists
     cci_period: str = "14,20,30",
     cci_threshold: str = "80,100,150",
+    # keltner_channel_breakout params - comma-separated lists
+    kc_period: str = "10,20,30",
+    kc_atr_period: str = "6,10,14",
+    kc_multiplier: str = "1.0,1.5,2.0",
 ):
     """
     Tests every combination of the given parameter lists against ONE fetch of
@@ -2231,13 +2280,21 @@ def sweep(
         combos = [
             {"period": cp, "threshold": ct} for cp, ct in product(cp_list, ct_list)
         ]
+    elif strategy == "keltner_channel_breakout":
+        kcp_list = _parse_num_list(kc_period, int)
+        kcap_list = _parse_num_list(kc_atr_period, int)
+        kcm_list = _parse_num_list(kc_multiplier, float)
+        combos = [
+            {"period": p, "atr_period": ap, "multiplier": m}
+            for p, ap, m in product(kcp_list, kcap_list, kcm_list)
+        ]
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
                    f"orb_breakout, orb_volume, bullish_engulfing, pin_bar_reversal, "
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
-                   f"stochastic_oversold_reversal, cci_breakout",
+                   f"stochastic_oversold_reversal, cci_breakout, keltner_channel_breakout",
         )
 
     if not combos:
