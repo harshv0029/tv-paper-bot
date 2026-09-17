@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-17T00:20:27Z",
+  "synced_at_utc": "2026-09-17T03:54:10Z",
   "open_positions": [
     {
       "symbol": "GENCON.NS",
@@ -36,6 +36,24 @@
       "sma_fast": 20,
       "sma_slow": 21,
       "entry_regime": "range"
+    },
+    {
+      "symbol": "IREDA.NS",
+      "qty": 2.0,
+      "entry_price_native": 109.25,
+      "stop_loss_native": 108.19999694824219,
+      "initial_stop_loss_native": 108.19999694824219,
+      "target_native": 110.51,
+      "fx_to_inr": 1.0,
+      "notional_inr": 218.5,
+      "orb_high_native": null,
+      "orb_low_native": 108.19999694824219,
+      "entry_ts": 1789617143.7773776,
+      "interval": "5m",
+      "strategy": "orb-universal-score",
+      "sma_fast": 9,
+      "sma_slow": 21,
+      "entry_regime": "trend"
     }
   ]
 }
