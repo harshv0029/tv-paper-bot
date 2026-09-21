@@ -225,8 +225,8 @@ def _run_range_exit_check(confidence_now):
         )
 
 
-def test_range_position_exits_when_confidence_decays_below_the_entry_bar():
-    decayed = main._norm_cdf(main.RANGE_CONFIDENCE_ENTRY_Z) - 0.05
+def test_range_position_exits_when_confidence_decays_below_the_decay_bar():
+    decayed = main._norm_cdf(main.RANGE_CONFIDENCE_DECAY_Z) - 0.05
     result = _run_range_exit_check(decayed)
     assert result["action_taken"] == "exited_range_confidence_weakened"
 
@@ -234,4 +234,17 @@ def test_range_position_exits_when_confidence_decays_below_the_entry_bar():
 def test_range_position_holds_while_confidence_stays_at_or_above_the_entry_bar():
     still_extreme = main._norm_cdf(main.RANGE_CONFIDENCE_FULL_Z)
     result = _run_range_exit_check(still_extreme)
+    assert result["action_taken"] != "exited_range_confidence_weakened"
+
+
+def test_range_position_holds_in_the_hysteresis_band_between_decay_and_entry_bars():
+    # The exact failure this hysteresis buffer fixes: confidence that has
+    # dipped below the entry bar (RANGE_CONFIDENCE_ENTRY_Z) but not yet
+    # down to the looser decay bar (RANGE_CONFIDENCE_DECAY_Z) is ordinary
+    # noise around the entry boundary, not real evidence the setup broke.
+    in_band = (
+        main._norm_cdf(main.RANGE_CONFIDENCE_ENTRY_Z)
+        + main._norm_cdf(main.RANGE_CONFIDENCE_DECAY_Z)
+    ) / 2
+    result = _run_range_exit_check(in_band)
     assert result["action_taken"] != "exited_range_confidence_weakened"
