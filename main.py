@@ -3923,6 +3923,22 @@ RANGE_CONFIDENCE_FULL_Z = 4.0  # z-score at which RANGE confidence-proportional
 # 2026-09-21, a symmetric doubling of RANGE_CONFIDENCE_ENTRY_Z (a ~4-sigma
 # VWAP deviation is rare, so most RANGE trades size well below max).
 
+RANGE_CONFIDENCE_DECAY_Z = 1.0  # hysteresis floor for the RANGE confidence-decay
+# exit (see its elif in _auto_signal_core). The original design compared
+# against RANGE_CONFIDENCE_ENTRY_Z itself (2.0) - since a RANGE trade's
+# z-score sits right at that bar at entry, ordinary tick-to-tick noise
+# around the exact boundary re-triggered the exit almost immediately
+# (85% of RANGE trades, ~37min avg hold vs ~105min baseline, confirmed
+# via the 52-symbol/60-day replay 2026-09-21 - see CLAUDE.md's incident
+# note on this exact failure shape, previously seen with trend_weakened
+# on RANGE positions). Fix (explicit user choice 2026-09-21, "hysteresis
+# buffer"): require the z-score to decay to HALF the entry bar, not just
+# below it - the same symmetric-doubling logic already used for
+# RANGE_CONFIDENCE_FULL_Z (2x entry), mirrored downward (0.5x entry).
+# This gives the same margin between "just entered" and "decayed enough
+# to exit" that TREND_WEAKENED_MIN_CONFIDENCE's 95% gate gives
+# trend_weakened - a real move back toward VWAP, not boundary noise.
+
 
 def _range_regime_confidence(today_df: pd.DataFrame) -> float | None:
     """RANGE-regime analog of _trend_confidence: how statistically
@@ -5168,7 +5184,7 @@ def _auto_signal_core(
             elif (
                 row["entry_regime"] == "range"
                 and range_confidence_now is not None
-                and range_confidence_now < _norm_cdf(RANGE_CONFIDENCE_ENTRY_Z)
+                and range_confidence_now < _norm_cdf(RANGE_CONFIDENCE_DECAY_Z)
             ):
                 # RANGE-regime analog of trend_weakened directly above -
                 # explicit user instruction 2026-09-21 (task #6): "as soon
@@ -5179,12 +5195,13 @@ def _auto_signal_core(
                 # here). A RANGE entry fires on a fresh VWAP-deviation
                 # z-score extreme (_vwap_mean_reversion_entry /
                 # _range_regime_confidence); once price has reverted back
-                # toward VWAP enough that the SAME z-score has decayed
-                # below the entry bar (RANGE_CONFIDENCE_ENTRY_Z), the
-                # extremity that justified holding is gone - exit now
-                # rather than riding back to stop_loss/target/
-                # stale_timeout on a setup whose own premise already
-                # resolved.
+                # toward VWAP enough that the SAME z-score has decayed to
+                # RANGE_CONFIDENCE_DECAY_Z (half the entry bar, not just
+                # below the entry bar itself - see that constant's own
+                # comment for why), the extremity that justified holding
+                # is gone - exit now rather than riding back to
+                # stop_loss/target/stale_timeout on a setup whose own
+                # premise already resolved.
                 exit_reason = "range_confidence_weakened"
             elif (
                 (time.time() - row["entry_ts"]) >= max_hold_minutes * 60

@@ -189,13 +189,17 @@ jobs:
                           # actually live - not a separate, drifted copy.
                           exit_reason = "trend_weakened"
                       elif position["regime"] == "range" and range_confidence_now is not None \
-                              and range_confidence_now < m._norm_cdf(m.RANGE_CONFIDENCE_ENTRY_Z):
+                              and range_confidence_now < m._norm_cdf(m.RANGE_CONFIDENCE_DECAY_Z):
                           # 2026-09-21 fix (task #6, confidence-proportional
                           # sizing + confidence-decay exit) - RANGE-regime
-                          # analog of trend_weakened directly above. Mirrors
-                          # main.py's live logic exactly (_auto_signal_core)
-                          # so this replay stays honest about what's
-                          # actually live.
+                          # analog of trend_weakened directly above. Redesigned
+                          # 2026-09-21 with a hysteresis buffer
+                          # (RANGE_CONFIDENCE_DECAY_Z, half the entry bar
+                          # instead of the entry bar itself) after the first
+                          # implementation fired on 85% of RANGE trades from
+                          # boundary noise. Mirrors main.py's live logic
+                          # exactly (_auto_signal_core) so this replay stays
+                          # honest about what's actually live.
                           exit_reason = "range_confidence_weakened"
                       elif (last_ts - position["entry_ts"]) >= MAX_HOLD_MINUTES * 60 and current_stop <= position["initial_stop"]:
                           exit_reason = "stale_timeout"
