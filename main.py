@@ -3840,20 +3840,17 @@ def _classify_market_regime(df: pd.DataFrame, sma_fast: int, sma_slow: int, ma_t
     return "range"
 
 
-def _vwap_mean_reversion_entry(today_df: pd.DataFrame, bb_std: float = 2.0) -> bool | None:
-    """Live single-tick entry trigger for the RANGE regime - the exact
-    same math as add_strategy_signal's own "vwap_mean_reversion" branch
-    (docs/STRATEGY_LOG.md row #13: session VWAP + an expanding standard
-    deviation of price-vs-VWAP, entering when close drops below the
-    LOWER band), just scoped to today_df alone rather than that
-    function's cross-day groupby - today_df is already same-day only, so
-    no grouping is needed to get the same per-session VWAP/std-dev
-    series. Returns only whether THIS bar is a fresh entry trigger (not
-    the whole stateful holding series that function returns for
-    backtesting) since _auto_signal_core only ever calls this when there
-    is no open position to begin with.
+def _vwap_deviation_z(today_df: pd.DataFrame) -> float | None:
+    """Shared basis for _vwap_mean_reversion_entry and
+    _range_regime_confidence: how many standard deviations today's
+    latest close sits BELOW the session VWAP (session VWAP + expanding
+    std-dev of price-vs-VWAP, same math as add_strategy_signal's own
+    "vwap_mean_reversion" branch, docs/STRATEGY_LOG.md row #13, just
+    scoped to today_df alone rather than that function's cross-day
+    groupby). Positive when below VWAP (the RANGE regime's mean-
+    reversion direction), negative when above.
 
-    None (never a silent False) on a zero-volume session (index tickers -
+    None (never a silent 0.0) on a zero-volume session (index tickers -
     same root cause _compute_session_vwap_value already documents) or
     with fewer than 2 bars today (can't compute a standard deviation
     yet)."""
@@ -3865,14 +3862,94 @@ def _vwap_mean_reversion_entry(today_df: pd.DataFrame, bb_std: float = 2.0) -> b
     typical = ((today_df["High"] + today_df["Low"] + today_df["Close"]) / 3.0).to_numpy(dtype=float)
     cum_vol = np.cumsum(vol)
     with np.errstate(invalid="ignore", divide="ignore"):
-        vwap_series = cum_tp_vol_over_cum_vol = np.cumsum(typical * vol) / np.where(cum_vol > 0, cum_vol, np.nan)
+        vwap_series = np.cumsum(typical * vol) / np.where(cum_vol > 0, cum_vol, np.nan)
     closes = today_df["Close"].to_numpy(dtype=float)
     dev = pd.Series(closes - vwap_series).expanding().std()
     last_dev, last_vwap = dev.iloc[-1], vwap_series[-1]
-    if pd.isna(last_dev) or pd.isna(last_vwap):
+    if pd.isna(last_dev) or pd.isna(last_vwap) or last_dev <= 0:
         return None
-    lower_band = last_vwap - bb_std * last_dev
-    return bool(closes[-1] < lower_band)
+    return float((last_vwap - closes[-1]) / last_dev)
+
+
+def _vwap_mean_reversion_entry(today_df: pd.DataFrame, bb_std: float = 2.0) -> bool | None:
+    """Live single-tick entry trigger for the RANGE regime: fires once
+    the close is bb_std standard deviations below session VWAP (a fresh
+    z-score test on _vwap_deviation_z). Returns only whether THIS bar is
+    a fresh entry trigger (not the whole stateful holding series that
+    add_strategy_signal's own vwap_mean_reversion branch returns for
+    backtesting) since _auto_signal_core only ever calls this when there
+    is no open position to begin with.
+
+    None (never a silent False) whenever _vwap_deviation_z itself can't
+    be computed yet - see its own docstring for exactly when."""
+    z = _vwap_deviation_z(today_df)
+    if z is None:
+        return None
+    return bool(z >= bb_std)
+
+
+RANGE_CONFIDENCE_ENTRY_Z = 2.0  # must match _vwap_mean_reversion_entry's own
+# bb_std default - the z-score an entry always clears by construction, so
+# this is _range_regime_confidence's natural "just barely qualified" floor
+# for confidence-proportional sizing (task #6) and its own decay-exit
+# threshold (the RANGE-regime analog of TREND_WEAKENED_MIN_CONFIDENCE).
+RANGE_CONFIDENCE_FULL_Z = 4.0  # z-score at which RANGE confidence-proportional
+# sizing saturates at full risk_per_trade_pct - explicit user choice
+# 2026-09-21, a symmetric doubling of RANGE_CONFIDENCE_ENTRY_Z (a ~4-sigma
+# VWAP deviation is rare, so most RANGE trades size well below max).
+
+
+def _range_regime_confidence(today_df: pd.DataFrame) -> float | None:
+    """RANGE-regime analog of _trend_confidence: how statistically
+    extreme today's VWAP deviation is, via the SAME normal-CDF transform
+    (_norm_cdf) _trend_confidence itself uses on its own z-score - not a
+    new statistical concept, just _vwap_deviation_z (already computed
+    internally by _vwap_mean_reversion_entry) exposed as a continuous
+    0-1 read instead of a boolean. Explicit user instruction 2026-09-21
+    (task #6, confidence-proportional sizing): RANGE previously had NO
+    continuous confidence measure at all, only a boolean entry trigger -
+    this is what that trigger's own z-score becomes once exposed.
+
+    A RANGE entry only ever fires at z >= RANGE_CONFIDENCE_ENTRY_Z by
+    construction, so this never reads below _norm_cdf(RANGE_CONFIDENCE_ENTRY_Z)
+    (~0.977) at entry time - it can still fall below that on a LATER tick
+    as price reverts back toward VWAP, which is exactly what the RANGE
+    confidence-decay exit (see _auto_signal_core) checks for.
+
+    None whenever _vwap_deviation_z can't be computed yet - never
+    fabricated."""
+    z = _vwap_deviation_z(today_df)
+    if z is None:
+        return None
+    return _norm_cdf(z)
+
+
+CONFIDENCE_SIZE_FLOOR = 0.25  # explicit user choice 2026-09-21 (task #6): a
+# trade that just barely clears its own entry confidence bar risks only
+# 25% of risk_per_trade_pct, scaling linearly up to the full 100% as
+# confidence rises toward its own regime's ceiling - see
+# _confidence_size_multiplier.
+
+
+def _confidence_size_multiplier(confidence: float, entry_min: float, full_at: float = 1.0) -> float:
+    """Linear confidence-proportional sizing (explicit user instruction
+    2026-09-21, task #6: "confidence should be directly proportional to
+    the qty you take for entry into that trade"). Scales risk_per_trade_pct
+    DOWN only - a trade at the bare entry_min confidence floor gets
+    CONFIDENCE_SIZE_FLOOR (25%) of the normal risk; a trade at full_at or
+    beyond gets the full 100%. Never scales ABOVE 1.0 - the existing
+    risk_per_trade_pct cap (1-2% of capital) is a hard ceiling this only
+    ever shrinks under, matching the standing real-money discipline that
+    a stronger signal must never risk MORE than the agreed cap.
+
+    full_at <= entry_min (a misconfigured/degenerate call) falls back to
+    1.0 (no scaling) rather than dividing by zero or inverting the
+    intended direction."""
+    if full_at <= entry_min:
+        return 1.0
+    frac = (confidence - entry_min) / (full_at - entry_min)
+    frac = max(0.0, min(1.0, frac))
+    return CONFIDENCE_SIZE_FLOOR + (1.0 - CONFIDENCE_SIZE_FLOOR) * frac
 
 
 def _liquidity_gate(df: pd.DataFrame) -> tuple[bool, list[str]]:
@@ -5009,6 +5086,10 @@ def _auto_signal_core(
             # no ladder exists at all (pre-revamp position) or every fixed
             # leg is already filled - both cases where target_hit's old,
             # single-target behavior is exactly what should still happen.
+            range_confidence_now = (
+                _range_regime_confidence(today_df) if row["entry_regime"] == "range" else None
+            )
+
             exit_reason = None
             if halted:
                 exit_reason = "daily_loss_cap_hit"
@@ -5059,6 +5140,27 @@ def _auto_signal_core(
                 # pre-fix-resurrected real position) keeps this check
                 # exactly as before.
                 exit_reason = "trend_weakened"
+            elif (
+                row["entry_regime"] == "range"
+                and range_confidence_now is not None
+                and range_confidence_now < _norm_cdf(RANGE_CONFIDENCE_ENTRY_Z)
+            ):
+                # RANGE-regime analog of trend_weakened directly above -
+                # explicit user instruction 2026-09-21 (task #6): "as soon
+                # as u feel that your confidence is getting low... u
+                # should exit or plan to exit", extended to the one
+                # regime trend_weakened deliberately excludes (see its
+                # own comment for why trend_weakened itself can't apply
+                # here). A RANGE entry fires on a fresh VWAP-deviation
+                # z-score extreme (_vwap_mean_reversion_entry /
+                # _range_regime_confidence); once price has reverted back
+                # toward VWAP enough that the SAME z-score has decayed
+                # below the entry bar (RANGE_CONFIDENCE_ENTRY_Z), the
+                # extremity that justified holding is gone - exit now
+                # rather than riding back to stop_loss/target/
+                # stale_timeout on a setup whose own premise already
+                # resolved.
+                exit_reason = "range_confidence_weakened"
             elif (
                 (time.time() - row["entry_ts"]) >= max_hold_minutes * 60
                 and current_stop <= (row["initial_stop_loss"] or row["stop_loss"])
@@ -5461,7 +5563,50 @@ def _auto_signal_core(
             # sizing math quietly shrinking trades as that threshold gets
             # closer. Every entry sizes at its own full risk_per_trade_pct
             # until the moment trading actually halts.
-            risk_amount_inr = usable_capital_inr * risk_per_trade_pct / 100
+            #
+            # Confidence-proportional sizing on top (2026-09-21, explicit
+            # user instruction, task #6: "confidence should be directly
+            # proportional to the qty you take for entry into that
+            # trade"). Reuses each path's own already-computed confidence
+            # measure - never invents a new one:
+            #   - universal_score/TREND: the 8-factor composite score_pct
+            #     (already the blended multi-factor measure requested),
+            #     gated at UNIVERSAL_ENTRY_SCORE_MIN.
+            #   - universal_score/RANGE: _range_regime_confidence - see
+            #     its own docstring for why this needed new (not
+            #     invented) machinery: RANGE had no continuous confidence
+            #     measure at all before this, only a boolean trigger.
+            #   - orb_breakout: _trend_confidence itself, gated at
+            #     min_entry_confidence_pct (the same bar its own entry
+            #     signal already requires).
+            #   - bullish_engulfing: no confidence measure exists for
+            #     this strategy (no score, no trend-confidence gate) -
+            #     left at 1.0x (unchanged) rather than fabricating one.
+            confidence = confidence_entry_min = confidence_full_at = None
+            if strategy == "universal_score" and market_regime == "range":
+                confidence = _range_regime_confidence(today_df)
+                confidence_entry_min = _norm_cdf(RANGE_CONFIDENCE_ENTRY_Z)
+                confidence_full_at = _norm_cdf(RANGE_CONFIDENCE_FULL_Z)
+            elif strategy == "universal_score":
+                confidence = score_result["score_pct"] / 100.0
+                confidence_entry_min = UNIVERSAL_ENTRY_SCORE_MIN / 100.0
+                confidence_full_at = 1.0
+            elif strategy == "orb_breakout":
+                confidence = _trend_confidence(closes, sma_fast, sma_slow, ma_type)
+                confidence_entry_min = min_entry_confidence_pct / 100.0
+                confidence_full_at = 1.0
+
+            size_multiplier = 1.0
+            if confidence is not None and confidence_entry_min is not None:
+                size_multiplier = _confidence_size_multiplier(
+                    confidence, confidence_entry_min, confidence_full_at
+                )
+            result["confidence_sizing"] = {
+                "confidence": round(confidence, 4) if confidence is not None else None,
+                "size_multiplier": round(size_multiplier, 4),
+            }
+
+            risk_amount_inr = usable_capital_inr * risk_per_trade_pct / 100 * size_multiplier
             # Fractional qty, not integer-floored: a high-priced unit (gold
             # ~Rs 4.2L/oz, BTC ~Rs 73L/coin) costs more than this account's
             # entire Rs 2L capital, so int() silently zeroed every such
@@ -5555,6 +5700,7 @@ def _auto_signal_core(
                 "notional_native": round(qty * last_close, 2), "notional_inr": round(notional_inr, 2),
                 "reallocated_from": result.get("reallocated_from"),
                 "exit_legs": exit_legs,
+                "confidence_sizing": result.get("confidence_sizing"),
             }
             apply_paper_trade(conn, symbol, "buy", qty, last_close)
             conn.execute(
