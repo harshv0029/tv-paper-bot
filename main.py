@@ -1837,6 +1837,114 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         df["long"] = long_flags
         df["fvg_top"], df["fvg_bottom"] = fvg_top_col, fvg_bottom_col
 
+    elif strategy == "sweep_engulf_retracement_v1":
+        # HTF liquidity-sweep + engulfing -> LTF retracement/break-of-
+        # structure entry - explicit user request 2026-09-21, adapted from
+        # a social-media strategy post (Instagram, @OmarAgag6): "On the
+        # 4-hour I need to see an engulfing candle with one condition...
+        # that it sweeps the prior candle's low... mark the lower half as
+        # a buy zone... drop to the 15-minute and wait for price to pull
+        # back in the box... wait for market structure to confirm we're
+        # back in alignment, a simple break is enough... a simple 2:1 risk
+        # to reward is enough." The source post gave no stop-loss rule and
+        # no precise definition of "structure break" - both resolved via
+        # explicit user decision 2026-09-21 rather than guessed: stop =
+        # the sweep candle's own low (the level whose breach invalidates
+        # the whole setup), entry trigger = a close back above the most
+        # recent LOCAL swing high formed since price entered the zone
+        # (classic break-of-structure).
+        #
+        # Genuinely multi-day/swing-capable per explicit user decision -
+        # unlike every other strategy in this file (all intraday/same-
+        # session only), this fetches LTF (15m) bars as the base df and
+        # resamples UP to htf_minutes (default 240 = 4h) for the higher-
+        # timeframe context, so the pullback this waits for can span
+        # multiple sessions. Backtest/signal-detection ONLY per explicit
+        # user decision 2026-09-21: no live order wiring, no CNC/delivery-
+        # margin handling - this file's real-order path is intraday-MIS-
+        # only throughout and switching that is a separate, much bigger
+        # decision for later, only after this shows real edge.
+        #
+        # Versioned name deliberately NOT "mtf_engulfing" (already exists
+        # in this file and is a different pattern - single-timeframe
+        # engulfing + a higher-timeframe EMA trend filter, no sweep, no
+        # retracement zone, no structure-break entry). Per explicit user
+        # instruction 2026-09-21: every materially different rule choice
+        # for this idea gets its OWN name/version rather than mutating
+        # this one in place, so each stays independently backtestable.
+        htf_minutes = int(params.get("htf_minutes", 240))
+        rr_multiple = float(params.get("rr_multiple", 2.0))
+
+        d = df.set_index(pd.DatetimeIndex(df["Date"]))
+        htf = d[["Open", "High", "Low", "Close"]].resample(
+            f"{htf_minutes}min", label="left", closed="left"
+        ).agg({"Open": "first", "High": "max", "Low": "min", "Close": "last"}).dropna()
+
+        htf_prev_open = htf["Open"].shift(1)
+        htf_prev_close = htf["Close"].shift(1)
+        htf_prev_low = htf["Low"].shift(1)
+        htf_engulf = (
+            (htf["Close"] > htf["Open"]) & (htf_prev_close < htf_prev_open)
+            & (htf["Open"] <= htf_prev_close) & (htf["Close"] >= htf_prev_open)
+        )
+        htf_sweep = htf["Low"] < htf_prev_low
+        htf_signal = (htf_engulf & htf_sweep).fillna(False)
+        # Buy zone = the lower half of the engulfing candle's own range
+        # (source post: "mark the lower half as a buy zone"). Stop = the
+        # candle's own low - the sweep level itself.
+        zone_top = ((htf["High"] + htf["Low"]) / 2).where(htf_signal)
+        zone_bottom = htf["Low"].where(htf_signal)
+
+        htf_bucket = df["Date"].dt.floor(f"{htf_minutes}min")
+        prev_bucket = htf_bucket.shift(1)
+        new_bucket = htf_bucket != prev_bucket
+
+        zone = None  # (top, bottom)
+        state = "idle"  # idle -> in_zone -> long
+        swing_high = None
+        stop_level = target_level = None
+        long_flags, zone_top_col, zone_bottom_col = [], [], []
+        for i in range(len(df)):
+            # A bucket's own signal is only knowable once it CLOSES, i.e.
+            # from the first LTF bar of the NEXT bucket onward - no
+            # lookahead into a still-forming HTF candle. Never replaces an
+            # already-open position's zone mid-trade.
+            if i > 0 and bool(new_bucket.iloc[i]) and state != "long":
+                closed_top = zone_top.get(prev_bucket.iloc[i])
+                closed_bottom = zone_bottom.get(prev_bucket.iloc[i])
+                if closed_top is not None and pd.notna(closed_top):
+                    zone = (float(closed_top), float(closed_bottom))
+                    state = "in_zone"
+                    swing_high = None
+
+            low_i = float(df["Low"].iloc[i])
+            high_i = float(df["High"].iloc[i])
+            close_i = float(df["Close"].iloc[i])
+
+            if state == "in_zone" and zone is not None:
+                top, bottom = zone
+                if close_i < bottom:
+                    # Closed clean through the zone/stop before ever
+                    # pulling back in properly and breaking structure -
+                    # the setup is invalidated, not a trade.
+                    zone, state, swing_high = None, "idle", None
+                elif low_i <= top:
+                    if swing_high is not None and close_i > swing_high:
+                        state = "long"
+                        stop_level = bottom
+                        target_level = close_i + rr_multiple * (close_i - stop_level)
+                    else:
+                        swing_high = high_i if swing_high is None else max(swing_high, high_i)
+            elif state == "long":
+                if close_i <= stop_level or close_i >= target_level:
+                    state, zone, swing_high = "idle", None, None
+
+            long_flags.append(state == "long")
+            zone_top_col.append(zone[0] if zone is not None else float("nan"))
+            zone_bottom_col.append(zone[1] if zone is not None else float("nan"))
+        df["long"] = long_flags
+        df["sweep_zone_top"], df["sweep_zone_bottom"] = zone_top_col, zone_bottom_col
+
     elif strategy == "macd_cross":
         fast_span = int(params.get("macd_fast", 12))
         slow_span = int(params.get("macd_slow", 26))
@@ -1989,7 +2097,7 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
                    f"stochastic_oversold_reversal, cci_breakout, keltner_channel_breakout, "
                    f"fair_value_gap, macd_cross, wyckoff_spring, wyckoff_sos, vsa_climax_reversal, "
-                   f"mtf_engulfing",
+                   f"mtf_engulfing, sweep_engulf_retracement_v1",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -2108,6 +2216,8 @@ def backtest(
     fvg_displacement_atr_mult: float = 1.5,
     fvg_volume_mult: float = 1.5,
     fvg_expiry_bars: int = 50,
+    sweep_htf_minutes: int = 240,
+    sweep_rr_multiple: float = 2.0,
     qty: float = 1,
 ):
     """
@@ -2147,6 +2257,12 @@ def backtest(
     strategy=keltner_channel_breakout -> params: kc_period, kc_atr_period, kc_multiplier
     strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
     strategy=mtf_engulfing        -> params: htf_minutes, htf_trend_fast, htf_trend_slow
+    strategy=sweep_engulf_retracement_v1 -> params: sweep_htf_minutes (HTF resample
+                                        window, default 240=4h), sweep_rr_multiple
+                                        (fixed risk:reward, default 2.0). Fetch
+                                        interval should be the LTF (e.g. "15m") -
+                                        see that branch's own comment in
+                                        add_strategy_signal for the full rule set.
     """
     df = fetch_ohlc(symbol, period, interval)
 
@@ -2212,6 +2328,8 @@ def backtest(
         params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
     elif strategy == "mtf_engulfing":
         params = {"htf_minutes": htf_minutes, "htf_trend_fast": htf_trend_fast, "htf_trend_slow": htf_trend_slow}
+    elif strategy == "sweep_engulf_retracement_v1":
+        params = {"htf_minutes": sweep_htf_minutes, "rr_multiple": sweep_rr_multiple}
     else:
         params = {}
 
