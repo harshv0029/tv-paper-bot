@@ -3046,6 +3046,17 @@ TRAIL_BREAKEVEN_BUFFER_PCT = 0.1  # breakeven-lock sits slightly above entry, no
 # actual fee schedule already documented and used elsewhere in this repo.
 ROUND_TRIP_COST_PCT = 0.8
 
+# 2026-09-21, explicit user instruction: "Make sure that u do not trade
+# between 9:15-9:30. As they are exceptional behaviour" - the opening 15
+# minutes of the NSE session sees exaggerated, unrepresentative price
+# action (overnight-gap unwind, opening-auction imbalance) that this
+# engine's own indicators (ORB range, SMA/VWAP reads) haven't had enough
+# same-session data to filter yet. Blocks NEW entries only - an already-
+# open position's exits/trailing-stop/target management are untouched,
+# same "only entries are gated" precedent as the aggregate-open-risk gate
+# just above this constant's call site.
+NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES = 15
+
 
 def _target_move_pct(target: float, last_close: float) -> float:
     """Gross % move from last_close to target - long-only entries only, so
@@ -4224,7 +4235,7 @@ def _options_signal_core(
     risk_per_trade_pct: float = 2.0, rr: float = 3.0, option_stop_pct: float = OPTIONS_STOP_PCT,
     orb_minutes: int = 15, sma_fast: int = 9, sma_slow: int = 21, trend_sma: int = 20,
     interval: str = "5m", tz_offset_min: int = IST_OFFSET_MIN, open_min: int = 9 * 60 + 15,
-    close_min: int = 15 * 60 + 30, squareoff_min: int = 15 * 60 + 20, trade_weekends: bool = False,
+    close_min: int = 15 * 60 + 30, squareoff_min: int = 15 * 60 + 15, trade_weekends: bool = False,
     currency: str = "USD",
 ):
     """Options equivalent of _auto_signal_core: same shared capital pool,
@@ -4533,7 +4544,7 @@ def _auto_signal_core(
     tz_offset_min: int = IST_OFFSET_MIN,
     open_min: int = 9 * 60 + 15,
     close_min: int = 15 * 60 + 30,
-    squareoff_min: int = 15 * 60 + 20,
+    squareoff_min: int = 15 * 60 + 15,
     trade_weekends: bool = False,
     currency: str = "INR",
     strategy: str = "orb_breakout",
@@ -5065,6 +5076,9 @@ def _auto_signal_core(
         if is_squareoff_time:
             result["action_taken"] = "no_new_entries_market_closing"
             return result
+        if mins_now < open_min + NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES:
+            result["action_taken"] = "no_new_entries_opening_volatility"
+            return result
 
         if strategy == "orb_breakout":
             # Stronger entries, explicit user instruction 2026-09-04: too
@@ -5497,7 +5511,7 @@ def auto_signal(
     tz_offset_min: int = IST_OFFSET_MIN,
     open_min: int = 9 * 60 + 15,
     close_min: int = 15 * 60 + 30,
-    squareoff_min: int = 15 * 60 + 20,
+    squareoff_min: int = 15 * 60 + 15,
     trade_weekends: bool = False,
     currency: str = "INR",
     strategy: str = "orb_breakout",
@@ -5567,7 +5581,7 @@ def auto_signal(
 # a reasonable next step if this still isn't enough.
 NSE_STOCK_DEFAULT_PARAMS = {
     "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-    "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+    "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
     "trade_weekends": False, "currency": "INR",
     "risk_pct": 1.0, "stop_pct": 1.0,  # unproven -> half ceiling until evidenced, same as before
 }
@@ -5814,13 +5828,13 @@ WATCHLIST = [
     # full evidence-backed ceiling (2%) - real 60-day backtest evidence
     # behind this exact strategy.
     {"symbol": "^NSEI", "orb_minutes": 30, "sma_fast": 5, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^NSEBANK", "orb_minutes": 5, "sma_fast": 9, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
 ] + [
     {"symbol": sym, **NSE_STOCK_DEFAULT_PARAMS, **NSE_STOCK_PARAM_OVERRIDES.get(sym, {})}
@@ -10731,7 +10745,7 @@ def dry_run_day(
     """
     symbols = DRY_RUN_DEFAULT_SYMBOLS
     open_min = 9 * 60 + 15
-    squareoff_min = 15 * 60 + 20
+    squareoff_min = 15 * 60 + 15
 
     per_symbol_df = {}
     for cfg in symbols:
