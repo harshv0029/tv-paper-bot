@@ -5387,6 +5387,31 @@ def _auto_signal_core(
             # holds for those asset classes, just not for NSE cash equities.
             if _asset_class_and_source(symbol)[0] == "nse_equity":
                 qty = float(math.floor(qty))
+            elif symbol in _PAPER_LOT_SIZE_UNDERLYING:
+                # 2026-09-21, explicit user instruction ("stop paper to do
+                # trading in fraction if exchange does not allow... Paper
+                # trading should mimic all conditions of exchange
+                # trading"; lot-size source explicitly chosen as "fetch
+                # live from Kotak", not a hardcoded constant): NIFTY/
+                # BANKNIFTY/SENSEX/GOLD/SILVER/CRUDE can never be bought
+                # fractionally for real - only as futures/options in a
+                # fixed exchange lot size. Resolves the REAL lot size live
+                # via the same nse_fo_chain.select_nse_future the real F&O
+                # order paths already trust (never guessed/hardcoded -
+                # same discipline nse_fo_chain.py holds itself to
+                # elsewhere), floors qty to a whole multiple of it. On any
+                # resolution failure (feed unreachable, no upcoming
+                # contract), skips this entry entirely rather than
+                # falling back to a fractional paper quantity no real
+                # order could ever match.
+                import nse_fo_chain
+                future, err = nse_fo_chain.select_nse_future(_PAPER_LOT_SIZE_UNDERLYING[symbol])
+                if future is None:
+                    result["action_taken"] = "skipped_no_lot_size"
+                    result["detail"] = err
+                    return result
+                lot_size = future["lot_size"]
+                qty = float(math.floor(qty / lot_size) * lot_size)
 
             # A trade sized to a few rupees isn't a real position - guard
             # against dust-sized fills from float rounding rather than
@@ -7192,6 +7217,19 @@ _INDEX_TO_FO_UNDERLYING = {
     "^NSEI": "NIFTY", "^NSEBANK": "BANKNIFTY",
     "GC=F": "GOLDM", "SI=F": "SILVERM", "CL=F": "CRUDEOILM",
 }
+
+# Paper-side lot-size lookup (2026-09-21, explicit user instruction: "stop
+# paper to do trading in fraction if exchange does not allow. Paper
+# trading should mimic all conditions of exchange trading") - a superset
+# of _INDEX_TO_FO_UNDERLYING that also covers ^BSESN (SENSEX), which has
+# no real-order mirror wired at all (see _maybe_place_real_fo_call_entry's
+# own _INDEX_TO_FO_UNDERLYING.get() miss for it) but is still a WATCHLIST
+# symbol paper-traded like every other index - it can't be bought
+# fractionally in real life either. nse_fo_chain.py's own confirmed-live
+# underlying key for it is the bare string "SENSEX" (not mapped through
+# an options-mini-contract like the MCX names are, since SENSEX futures
+# trade under their own full-size pSymbolName).
+_PAPER_LOT_SIZE_UNDERLYING = {**_INDEX_TO_FO_UNDERLYING, "^BSESN": "SENSEX"}
 
 # ---------------------------------------------------------------------------
 # F&O chain monitoring (2026-09-16, explicit user request: "start
