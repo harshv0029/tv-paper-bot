@@ -856,10 +856,20 @@ function renderScannedBanner(p) {
     el.textContent = '';
     return;
   }
+  // 2026-09-21, explicit user instruction: "I want an additional line
+  // mentioning that 'x is total scanned ones in last 30 seconds'" - the
+  // distinct/total figure above necessarily PLATEAUS once the whole
+  // (now 206-symbol, NIFTY 200) universe has been covered at least once
+  // today, which reads as "stalled" even while the scheduler keeps
+  // actively re-scanning it. This rolling-window count is the signal
+  // that actually answers "is scanning still happening right now" -
+  // healthy and nonzero while ticks continue, visibly 0 if they stop.
+  const recent = p.checks_last_30s;
   el.textContent = `${totalChecks} total checks run today` +
     (typeof distinct === 'number' && typeof total === 'number'
       ? ` (${distinct} / ${total} distinct stocks/assets scanned at least once)`
-      : '');
+      : '') +
+    (typeof recent === 'number' ? ` — ${recent} scanned in the last 30 seconds` : '');
 }
 
 async function refreshScanner() {
