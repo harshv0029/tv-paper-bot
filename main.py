@@ -20,6 +20,7 @@ import datetime as dt
 import json
 import math
 import os
+import resource
 import sqlite3
 import time
 from contextlib import closing
@@ -9816,6 +9817,13 @@ def get_real_capital_deployed_inr() -> float | None:
 
 _scheduler_last_tick_ts = 0.0
 _scheduler_last_error = None
+_scheduler_tick_count = 0
+_MEMORY_LOG_EVERY_N_TICKS = 20  # ~10 min at the 30s tick interval - explicit
+# user instruction 2026-09-21 ("find root cause... set limit"): Render's
+# own logs persist past a restart (unlike this process's in-memory state),
+# so a periodic RSS line here is what lets a FUTURE memory-limit email be
+# correlated against an actual growth trend instead of guessed at after
+# the fact. See _process_rss_mb's own comment for the fuller context.
 # Latest _auto_signal_core result per symbol, from the real scheduler tick
 # (not a synthetic re-check) - exposed via /scheduler-attempts so there's
 # real visibility into what the engine actually decided and why, not just
@@ -9896,6 +9904,29 @@ _scheduler_currently_checking: dict | None = None
 _scheduler_check_counts: dict = {}
 _scheduler_check_counts_day: str = ""
 
+# Recent-check throughput (2026-09-21, explicit user instruction: "I want
+# an additional line mentioning that 'x is total scanned ones in last 30
+# seconds'") - the cumulative "distinct scanned" count above necessarily
+# PLATEAUS once every symbol in WATCHLIST has been checked at least once
+# today (206/206 as of the NIFTY 200 universe restriction - see
+# nifty200_universe.py), which reads as "stalled" even when the scheduler
+# is actively re-scanning the full universe on every round-robin rotation.
+# This is a separate, rolling-window throughput signal instead: how many
+# checks landed in roughly the last _RECENT_CHECK_WINDOW_SECONDS, which
+# stays a healthy nonzero number as long as ticks are actually happening,
+# and visibly drops to 0 if the scheduler genuinely stops - the thing
+# "206/206" alone can never show once coverage is already complete.
+# Deliberately process-local/in-memory only (no Upstash/journal mirror,
+# unlike _scheduler_check_counts above) - a rolling few-second window has
+# no meaningful "restore across a restart" semantics; it should just
+# start reflecting reality again within one tick either way.
+_recent_check_timestamps: list = []
+_RECENT_CHECK_WINDOW_SECONDS = 30
+_RECENT_CHECK_RETENTION_SECONDS = 120  # prune stale entries with generous
+# headroom past the window itself, so a caller asking for a wider window
+# (see checks_in_last_seconds's own seconds param) still gets an honest
+# answer rather than silently-already-discarded data.
+
 STATE_SCHEDULER_CHECK_COUNTS_PATH = os.path.join(os.path.dirname(__file__), "state", "scheduler_check_counts.json")
 
 
@@ -9961,13 +9992,31 @@ def reconcile_scheduler_check_counts_from_journal():
 
 def _record_scheduler_check(key: str):
     """Bumps key's today-count, resetting everyone's count first if the
-    IST calendar day has rolled over since the last check."""
+    IST calendar day has rolled over since the last check. Also records
+    this check's timestamp for the rolling-window throughput signal (see
+    _recent_check_timestamps's own module comment) - single call site for
+    every kind of check (equity, F&O RSI2 leg) this file makes, so that
+    signal covers the whole scheduler, not just one asset class."""
     global _scheduler_check_counts_day
     today_str = ist_now().strftime("%Y-%m-%d")
     if today_str != _scheduler_check_counts_day:
         _scheduler_check_counts.clear()
         _scheduler_check_counts_day = today_str
     _scheduler_check_counts[key] = _scheduler_check_counts.get(key, 0) + 1
+
+    now = time.time()
+    _recent_check_timestamps.append(now)
+    cutoff = now - _RECENT_CHECK_RETENTION_SECONDS
+    while _recent_check_timestamps and _recent_check_timestamps[0] < cutoff:
+        _recent_check_timestamps.pop(0)
+
+
+def checks_in_last_seconds(seconds: float = _RECENT_CHECK_WINDOW_SECONDS) -> int:
+    """How many scheduler checks (any asset class) landed in roughly the
+    last `seconds` - see _recent_check_timestamps's own module comment
+    for why this exists alongside the daily distinct-scanned count."""
+    cutoff = time.time() - seconds
+    return sum(1 for ts in _recent_check_timestamps if ts >= cutoff)
 
 
 def _scheduler_peek_next_batch(n: int = 5) -> list:
@@ -10295,7 +10344,23 @@ async def _scheduler_tick():
     for symbol in symbols_this_tick:
         cfg = watchlist_by_symbol.get(symbol)
         if not cfg:
-            continue
+            # A symbol can be IN symbols_this_tick (open_equity_symbols/
+            # open_real_symbols, both sourced from DB state, not
+            # WATCHLIST) while no longer having a WATCHLIST entry at all -
+            # confirmed live 2026-09-21: GENCON.NS sat open, completely
+            # unmanaged (no stop/target/squareoff check, no real stop-loss
+            # sync, no exit) for ~10 days after the NIFTY 200 universe
+            # restriction dropped it from WATCHLIST while its position was
+            # still open. `continue` here silently threw away exactly the
+            # open-position coverage the comments above this loop promise
+            # ("must never depend on..."), for this one case - a symbol
+            # leaving WATCHLIST while a position is open was never
+            # exercised before (WATCHLIST had only ever grown, never
+            # shrunk, until that restriction). Falls back to the same
+            # conservative NSE_STOCK_DEFAULT_PARAMS a brand-new unproven
+            # symbol gets, rather than abandoning management of a real
+            # open position.
+            cfg = {**NSE_STOCK_DEFAULT_PARAMS, "symbol": symbol}
         _scheduler_currently_checking = {
             "symbol": symbol, "kind": "equity", "started_at_utc": time.time(),
         }
@@ -10447,6 +10512,12 @@ async def _scheduler_tick():
     # keeps the "distinct scanned" dict surviving a restart at ANY
     # cadence, not just ones slower than journal-sync's 15-min interval.
     _sync_check_counts_external(_scheduler_check_counts_day, _scheduler_check_counts)
+
+    global _scheduler_tick_count
+    _scheduler_tick_count += 1
+    if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0:
+        print(f"[memory] tick {_scheduler_tick_count}: rss_mb={_process_rss_mb()}, "
+              f"data_cache_entries={len(_DATA_CACHE)}, watchlist_size={len(WATCHLIST)}")
 
     _scheduler_last_tick_ts = time.time()
     await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
@@ -10633,6 +10704,7 @@ def scheduler_status():
         "last_tick_ts": _scheduler_last_tick_ts,
         "last_tick_ago_seconds": round(time.time() - _scheduler_last_tick_ts, 1) if _scheduler_last_tick_ts else None,
         "last_error": _scheduler_last_error,
+        "checks_last_30s": checks_in_last_seconds(30),
         "scheduler_capital_inr": _real_capital_cache["value"],
         "scheduler_capital_source": "kotak_neo_real_account" if _real_capital_cache["value"] is not None else "not_yet_fetched",
         "scheduler_capital_fetched_at_utc": _real_capital_cache["fetched_at"] or None,
@@ -10811,6 +10883,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "scanned_today_count": scanned_today_count,
         "scanned_today_total": scanned_today_total,
         "total_checks_today": total_checks_today,
+        "checks_last_30s": checks_in_last_seconds(30),
         "check_counts_today": check_counts_today,
         "check_counts_day": _scheduler_check_counts_day,
         "rr_cursor": _scheduler_rr_cursor,
@@ -11255,9 +11328,35 @@ def dry_run_day(
     }
 
 
+def _process_rss_mb() -> float | None:
+    """Current process resident memory, in MB - stdlib only (resource.
+    getrusage), no new dependency. 2026-09-21, explicit user instruction:
+    "can u find root cause and set limit on things required so that this
+    does not come into my email inbox every now n then" (Render's own
+    "exceeded its memory limit" restart-loop email). The known PAST cause
+    (_DATA_CACHE growing unbounded, data_fetch.py) was already fixed
+    2026-09-08 and is even safer now (WATCHLIST shrank from ~2,661 to 206
+    symbols since, per the NIFTY 200 restriction) - a live restart was
+    also directly observed today (a 502 from the deployed service,
+    recovered within ~2 minutes), confirming the alerts are current, not
+    stale, but this sandbox has no access to Render's own memory graphs
+    to pin down a NEW leak from a single snapshot. This is the missing
+    piece for next time: an actual RSS NUMBER, both on-demand here and
+    logged periodically by the scheduler (see _scheduler_tick), so a
+    future spike can be correlated against what was running at the time
+    instead of guessed at after the fact. Linux-only (ru_maxrss is KB on
+    Linux, bytes on macOS) - fine, Render's own runners are Linux; returns
+    None rather than raising if the platform ever differs."""
+    try:
+        kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return round(kb / 1024, 1)
+    except Exception:
+        return None
+
+
 @app.get("/health")
 def health():
-    return {"status": "alive", "time": time.time()}
+    return {"status": "alive", "time": time.time(), "rss_mb": _process_rss_mb()}
 
 
 @app.get("/watchlist")
