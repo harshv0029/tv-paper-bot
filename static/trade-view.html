@@ -865,11 +865,26 @@ function renderScannedBanner(p) {
   // that actually answers "is scanning still happening right now" -
   // healthy and nonzero while ticks continue, visibly 0 if they stop.
   const recent = p.checks_last_30s;
+  // 2026-09-21, explicit user request: "I want it to represent both.
+  // means equity, index and FnO and All" - the equity/index WATCHLIST
+  // figure above (~207 symbols) only ever told half the story; the F&O
+  // per-strike feed tracks a separate, much larger universe of currently
+  // subscribed option/future contracts. Kept as its own clause (not
+  // folded into distinct/total) since it's a live snapshot count, not a
+  // cumulative today's-checks figure - blending the two units into one
+  // number would misstate both.
+  const foCount = p.fo_subscribed_instruments;
+  const foConnected = p.fo_connected;
+  const allTotal = p.all_assets_tracked_total;
   el.textContent = `${totalChecks} total checks run today` +
     (typeof distinct === 'number' && typeof total === 'number'
       ? ` (${distinct} / ${total} distinct stocks/assets scanned at least once)`
       : '') +
-    (typeof recent === 'number' ? ` — ${recent} scanned in the last 30 seconds` : '');
+    (typeof recent === 'number' ? ` — ${recent} scanned in the last 30 seconds` : '') +
+    (typeof foCount === 'number'
+      ? ` · F&O: ${foCount} contract${foCount === 1 ? '' : 's'} subscribed${foConnected ? '' : ' (feed down)'}`
+      : '') +
+    (typeof allTotal === 'number' ? ` — All: ${allTotal} assets tracked` : '');
 }
 
 async function refreshScanner() {

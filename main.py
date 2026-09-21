@@ -10979,6 +10979,24 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     scanned_today_total = len(check_counts_today_rows)
     total_checks_today = sum(r["checks_today"] for r in check_counts_today_rows)
 
+    # F&O per-strike feed (kotak_fo_candle_feed.py, system #2 - see that
+    # module's own docstring) is a genuinely separate scanning universe
+    # from the equity/index WATCHLIST above: it tracks currently-
+    # subscribed option/future CONTRACTS (a live snapshot count), not a
+    # cumulative "checked N times today" figure the way scanned_today_*
+    # does - the two are different units and are reported separately
+    # rather than folded into one misleading blended number. Surfaced
+    # here (2026-09-21, explicit user request: "I want it to represent
+    # both. means equity, index and FnO and All") so /trade-view's
+    # banner can show the F&O side alongside the existing equity/index
+    # figures instead of only ever showing the ~207-symbol WATCHLIST
+    # count, which is what prompted the request in the first place -
+    # deferred import, see this module's other kotak_fo_candle_feed call
+    # sites for why (avoids a circular import at module load time).
+    import kotak_fo_candle_feed
+    fo_status = kotak_fo_candle_feed.get_feed_status()
+    fo_subscribed_instruments = fo_status["subscribed_instruments"]
+
     return {
         "last_checked": last_checked,
         "currently_checking": _scheduler_currently_checking,
@@ -10989,6 +11007,9 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "scanned_today_total": scanned_today_total,
         "total_checks_today": total_checks_today,
         "checks_last_30s": checks_in_last_seconds(30),
+        "fo_subscribed_instruments": fo_subscribed_instruments,
+        "fo_connected": fo_status["connected"],
+        "all_assets_tracked_total": scanned_today_total + fo_subscribed_instruments,
         "check_counts_today": check_counts_today,
         "check_counts_day": _scheduler_check_counts_day,
         "rr_cursor": _scheduler_rr_cursor,
