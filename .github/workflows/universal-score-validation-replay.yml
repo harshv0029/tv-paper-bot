@@ -166,7 +166,11 @@ jobs:
                               trades.append(_finalize_trade(position, "staged_ladder_complete", cost_model))
                               position = None
                           continue
-          
+
+                      range_confidence_now = (
+                          m._range_regime_confidence(today_df) if position["regime"] == "range" else None
+                      )
+
                       exit_reason = None
                       if last_close >= current_target and next_leg is None:
                           exit_reason = "target_hit"
@@ -184,6 +188,15 @@ jobs:
                           # exactly so this replay stays honest about what's
                           # actually live - not a separate, drifted copy.
                           exit_reason = "trend_weakened"
+                      elif position["regime"] == "range" and range_confidence_now is not None \
+                              and range_confidence_now < m._norm_cdf(m.RANGE_CONFIDENCE_ENTRY_Z):
+                          # 2026-09-21 fix (task #6, confidence-proportional
+                          # sizing + confidence-decay exit) - RANGE-regime
+                          # analog of trend_weakened directly above. Mirrors
+                          # main.py's live logic exactly (_auto_signal_core)
+                          # so this replay stays honest about what's
+                          # actually live.
+                          exit_reason = "range_confidence_weakened"
                       elif (last_ts - position["entry_ts"]) >= MAX_HOLD_MINUTES * 60 and current_stop <= position["initial_stop"]:
                           exit_reason = "stale_timeout"
                       elif mins >= SQUAREOFF_MIN:
@@ -242,8 +255,24 @@ jobs:
                   if target_move_pct <= m.ROUND_TRIP_COST_PCT:
                       continue
 
+                  # Confidence-proportional sizing (2026-09-21, task #6) -
+                  # mirrors main.py's live logic exactly (_auto_signal_core)
+                  # so this replay stays honest about what's actually live.
+                  if regime == "range":
+                      confidence = m._range_regime_confidence(today_df)
+                      confidence_entry_min = m._norm_cdf(m.RANGE_CONFIDENCE_ENTRY_Z)
+                      confidence_full_at = m._norm_cdf(m.RANGE_CONFIDENCE_FULL_Z)
+                  else:
+                      confidence = score_result["score_pct"] / 100.0
+                      confidence_entry_min = m.UNIVERSAL_ENTRY_SCORE_MIN / 100.0
+                      confidence_full_at = 1.0
+                  size_multiplier = (
+                      m._confidence_size_multiplier(confidence, confidence_entry_min, confidence_full_at)
+                      if confidence is not None else 1.0
+                  )
+
                   usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
-                  risk_amount_inr = usable_capital_inr * risk_pct / 100
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100 * size_multiplier
                   qty = risk_amount_inr / stop_dist
                   qty = min(qty, usable_capital_inr / last_close)
                   qty = int(np.floor(qty))
@@ -257,6 +286,7 @@ jobs:
                       "entry_ts": last_ts, "qty": qty, "remaining_qty": qty,
                       "legs_json": json.dumps(legs), "regime": regime,
                       "score_pct": score_result["score_pct"] if score_result else None,
+                      "size_multiplier": size_multiplier,
                       "fills": [], "entry_cost": _entry_cost(qty, last_close, cost_model),
                   }
           
@@ -313,6 +343,7 @@ jobs:
               last_fill = position["fills"][-1]
               return {
                   "symbol": position["symbol"], "regime": position["regime"], "score_pct": position["score_pct"],
+                  "size_multiplier": position["size_multiplier"],
                   "entry_price": position["entry_price"], "initial_stop": position["initial_stop"], "qty": position["qty"],
                   "entry_ts": position["entry_ts"], "exit_ts": last_fill["ts"],
                   "time_in_trade_min": (last_fill["ts"] - position["entry_ts"]) / 60.0,
