@@ -20,6 +20,7 @@ import datetime as dt
 import json
 import math
 import os
+import resource
 import sqlite3
 import time
 from contextlib import closing
@@ -388,7 +389,7 @@ def init_db():
                                      -- value (including NULL/unknown) keeps the pre-fix behavior, so
                                      -- this never silently changes exit behavior for a position whose
                                      -- true regime isn't known.
-                peak_ltp REAL       -- 2026-09-17, explicit user instruction ("Replace with LTP -
+                peak_ltp REAL,      -- 2026-09-17, explicit user instruction ("Replace with LTP -
                                      -- Must have", live Fortis finding: trailing stop hadn't
                                      -- activated despite live price already >0.5R above entry,
                                      -- because _trailing_stop_target compared against the last
@@ -401,6 +402,14 @@ def init_db():
                                      -- ticks for (feed gap, or opened before this column existed) -
                                      -- _trailing_stop_target falls back to the pre-existing
                                      -- candle-close basis whenever no live price is available.
+                strategy TEXT       -- 2026-09-21, explicit user instruction ("It also does not
+                                     -- mention which strategy or algo used for that trade enter
+                                     -- so mention that"): the strategy_tag this position was
+                                     -- entered under (e.g. "universal_score", "bullish_engulfing"),
+                                     -- so a real position mirroring this paper signal can carry
+                                     -- the same attribution forward (see _maybe_place_real_entry).
+                                     -- NULL for any position opened before this column existed or
+                                     -- backfilled/resurrected without a known strategy.
             )
             """
         )
@@ -629,7 +638,7 @@ def init_db():
                                      -- _maybe_place_real_entry/_maybe_place_real_partial_exit) - NULL
                                      -- for any real position with no staged ladder (backfilled/
                                      -- adopted positions, see kotak_neo_reconcile_real_positions).
-                protection_degraded_since REAL  -- 2026-09-10, explicit user instruction after
+                protection_degraded_since REAL, -- 2026-09-10, explicit user instruction after
                                      -- review (state-machine correction on top of #13's own
                                      -- fix): epoch seconds since this position was FIRST noticed
                                      -- with no live resting SL order (sl_order_id NULL) -
@@ -645,6 +654,13 @@ def init_db():
                                      -- the stop, never a gap, flash move, halt reopening, or this
                                      -- app/network itself being down - exactly when broker-side
                                      -- protection matters most.
+                strategy TEXT       -- 2026-09-21, explicit user instruction ("It also does not
+                                     -- mention which strategy or algo used for that trade enter
+                                     -- so mention that"): copied from the paper signal_state row's
+                                     -- own strategy at real-entry time (see _maybe_place_real_entry)
+                                     -- so /real-trades-today-bot-only can show real per-trade
+                                     -- attribution instead of a generic constant. NULL for a
+                                     -- position adopted/backfilled without a known paper origin.
             )
             """
         )
@@ -702,7 +718,16 @@ def init_db():
                 status TEXT NOT NULL,             -- 'confirmed' | 'failed' | 'skipped_...'
                 order_id TEXT,
                 detail TEXT,
-                raw_response TEXT
+                raw_response TEXT,
+                strategy TEXT                      -- 2026-09-21, explicit user instruction ("mention
+                                                    -- which strategy or algo used for that trade
+                                                    -- enter"): set on 'B' (buy) rows from the paper
+                                                    -- signal's own strategy at real-entry time (see
+                                                    -- _maybe_place_real_entry/_log_real_attempt) -
+                                                    -- /real-trades-today-bot-only reads it off the
+                                                    -- matched buy row for each closed round trip.
+                                                    -- NULL for 'S' rows and any attempt logged
+                                                    -- without a known paper origin.
             )
             """
         )
@@ -1742,6 +1767,76 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         df["long"] = flags
         df["kc_middle"], df["kc_upper"] = middle, upper
 
+    elif strategy == "fair_value_gap":
+        # Fair Value Gap (FVG) / Smart Money Concepts entry - explicit user
+        # instruction 2026-09-21 ("Implement this strategy and get this
+        # backtesting done"), scoped down to this file's established
+        # single-timeframe/single-boolean-column architecture: the user's
+        # full spec also covered multi-timeframe BOS/CHOCH market
+        # structure, a weighted scoring system, premium/discount Fib zones
+        # and liquidity-pool targets - all out of scope here, since (like
+        # every other strategy in this file) stop-loss/target/sizing is the
+        # CALLER's job, not this function's. Bullish-only (this engine is
+        # long-only throughout): a 3-candle gap (candle A two bars back,
+        # candle B the displacement candle, candle C the current bar) where
+        # Low(C) > High(A), filtered by displacement (B's body vs its own
+        # ATR) and volume (B's volume vs its own 20-bar average). Enter on
+        # the first retrace into the zone's 50% equilibrium level; exit on
+        # a close back below the zone's own bottom (High(A) - the same
+        # level that defined the gap, i.e. structural invalidation).
+        displacement_atr_mult = float(params.get("fvg_displacement_atr_mult", 1.5))
+        fvg_volume_mult = float(params.get("fvg_volume_mult", 1.5))
+        expiry_bars = int(params.get("fvg_expiry_bars", 50))
+
+        prev_close = df["Close"].shift(1)
+        tr = pd.concat([
+            df["High"] - df["Low"],
+            (df["High"] - prev_close).abs(),
+            (df["Low"] - prev_close).abs(),
+        ], axis=1).max(axis=1)
+        atr = tr.rolling(14).mean()
+        vol_avg = df["Volume"].rolling(20).mean()
+
+        high_a = df["High"].shift(2)
+        low_c = df["Low"]
+        body_b = (df["Close"].shift(1) - df["Open"].shift(1)).abs()
+        atr_b = atr.shift(1)
+        vol_b = df["Volume"].shift(1)
+        vol_avg_b = vol_avg.shift(1)
+
+        gap = (
+            (low_c > high_a)
+            & (body_b > atr_b * displacement_atr_mult)
+            & (vol_b > vol_avg_b * fvg_volume_mult)
+        ).fillna(False)
+
+        # Stateful: at most one active (unfilled, unexpired) FVG zone at a
+        # time - same single-active-setup shape wyckoff_spring/
+        # vsa_climax_reversal above already use for their own until-
+        # invalidated holds.
+        active = None  # (top, bottom, created_idx)
+        holding = False
+        long_flags, fvg_top_col, fvg_bottom_col = [], [], []
+        for i in range(len(df)):
+            if active is not None and not holding:
+                top, bottom, created_idx = active
+                if i - created_idx > expiry_bars:
+                    active = None
+                elif df["Low"].iloc[i] <= (top + bottom) / 2:
+                    holding = True
+            elif active is not None and holding:
+                _, bottom, _ = active
+                if df["Close"].iloc[i] < bottom:
+                    holding = False
+                    active = None
+            if active is None and bool(gap.iloc[i]):
+                active = (float(low_c.iloc[i]), float(high_a.iloc[i]), i)
+            long_flags.append(holding)
+            fvg_top_col.append(active[0] if active is not None else float("nan"))
+            fvg_bottom_col.append(active[1] if active is not None else float("nan"))
+        df["long"] = long_flags
+        df["fvg_top"], df["fvg_bottom"] = fvg_top_col, fvg_bottom_col
+
     elif strategy == "macd_cross":
         fast_span = int(params.get("macd_fast", 12))
         slow_span = int(params.get("macd_slow", 26))
@@ -1893,7 +1988,8 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
                    f"vwap_multi_period_reversal, bullish_engulfing, pin_bar_reversal, "
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
                    f"stochastic_oversold_reversal, cci_breakout, keltner_channel_breakout, "
-                   f"macd_cross, wyckoff_spring, wyckoff_sos, vsa_climax_reversal, mtf_engulfing",
+                   f"fair_value_gap, macd_cross, wyckoff_spring, wyckoff_sos, vsa_climax_reversal, "
+                   f"mtf_engulfing",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -2009,6 +2105,9 @@ def backtest(
     kc_period: int = 20,
     kc_atr_period: int = 10,
     kc_multiplier: float = 1.5,
+    fvg_displacement_atr_mult: float = 1.5,
+    fvg_volume_mult: float = 1.5,
+    fvg_expiry_bars: int = 50,
     qty: float = 1,
 ):
     """
@@ -2103,6 +2202,12 @@ def backtest(
         params = {"period": cci_period, "threshold": cci_threshold}
     elif strategy == "keltner_channel_breakout":
         params = {"period": kc_period, "atr_period": kc_atr_period, "multiplier": kc_multiplier}
+    elif strategy == "fair_value_gap":
+        params = {
+            "fvg_displacement_atr_mult": fvg_displacement_atr_mult,
+            "fvg_volume_mult": fvg_volume_mult,
+            "fvg_expiry_bars": fvg_expiry_bars,
+        }
     elif strategy == "macd_cross":
         params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
     elif strategy == "mtf_engulfing":
@@ -2192,6 +2297,10 @@ def sweep(
     kc_period: str = "10,20,30",
     kc_atr_period: str = "6,10,14",
     kc_multiplier: str = "1.0,1.5,2.0",
+    # fair_value_gap params - comma-separated lists
+    fvg_displacement_atr_mult: str = "1.0,1.5,2.0",
+    fvg_volume_mult: str = "1.0,1.5,2.0",
+    fvg_expiry_bars: str = "20,50,100",
 ):
     """
     Tests every combination of the given parameter lists against ONE fetch of
@@ -2301,13 +2410,22 @@ def sweep(
             {"period": p, "atr_period": ap, "multiplier": m}
             for p, ap, m in product(kcp_list, kcap_list, kcm_list)
         ]
+    elif strategy == "fair_value_gap":
+        fdam_list = _parse_num_list(fvg_displacement_atr_mult, float)
+        fvm_list = _parse_num_list(fvg_volume_mult, float)
+        feb_list = _parse_num_list(fvg_expiry_bars, int)
+        combos = [
+            {"fvg_displacement_atr_mult": d, "fvg_volume_mult": v, "fvg_expiry_bars": e}
+            for d, v, e in product(fdam_list, fvm_list, feb_list)
+        ]
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
                    f"orb_breakout, orb_volume, bullish_engulfing, pin_bar_reversal, "
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
-                   f"stochastic_oversold_reversal, cci_breakout, keltner_channel_breakout",
+                   f"stochastic_oversold_reversal, cci_breakout, keltner_channel_breakout, "
+                   f"fair_value_gap",
         )
 
     if not combos:
@@ -3747,20 +3865,17 @@ def _classify_market_regime(df: pd.DataFrame, sma_fast: int, sma_slow: int, ma_t
     return "range"
 
 
-def _vwap_mean_reversion_entry(today_df: pd.DataFrame, bb_std: float = 2.0) -> bool | None:
-    """Live single-tick entry trigger for the RANGE regime - the exact
-    same math as add_strategy_signal's own "vwap_mean_reversion" branch
-    (docs/STRATEGY_LOG.md row #13: session VWAP + an expanding standard
-    deviation of price-vs-VWAP, entering when close drops below the
-    LOWER band), just scoped to today_df alone rather than that
-    function's cross-day groupby - today_df is already same-day only, so
-    no grouping is needed to get the same per-session VWAP/std-dev
-    series. Returns only whether THIS bar is a fresh entry trigger (not
-    the whole stateful holding series that function returns for
-    backtesting) since _auto_signal_core only ever calls this when there
-    is no open position to begin with.
+def _vwap_deviation_z(today_df: pd.DataFrame) -> float | None:
+    """Shared basis for _vwap_mean_reversion_entry and
+    _range_regime_confidence: how many standard deviations today's
+    latest close sits BELOW the session VWAP (session VWAP + expanding
+    std-dev of price-vs-VWAP, same math as add_strategy_signal's own
+    "vwap_mean_reversion" branch, docs/STRATEGY_LOG.md row #13, just
+    scoped to today_df alone rather than that function's cross-day
+    groupby). Positive when below VWAP (the RANGE regime's mean-
+    reversion direction), negative when above.
 
-    None (never a silent False) on a zero-volume session (index tickers -
+    None (never a silent 0.0) on a zero-volume session (index tickers -
     same root cause _compute_session_vwap_value already documents) or
     with fewer than 2 bars today (can't compute a standard deviation
     yet)."""
@@ -3772,14 +3887,106 @@ def _vwap_mean_reversion_entry(today_df: pd.DataFrame, bb_std: float = 2.0) -> b
     typical = ((today_df["High"] + today_df["Low"] + today_df["Close"]) / 3.0).to_numpy(dtype=float)
     cum_vol = np.cumsum(vol)
     with np.errstate(invalid="ignore", divide="ignore"):
-        vwap_series = cum_tp_vol_over_cum_vol = np.cumsum(typical * vol) / np.where(cum_vol > 0, cum_vol, np.nan)
+        vwap_series = np.cumsum(typical * vol) / np.where(cum_vol > 0, cum_vol, np.nan)
     closes = today_df["Close"].to_numpy(dtype=float)
     dev = pd.Series(closes - vwap_series).expanding().std()
     last_dev, last_vwap = dev.iloc[-1], vwap_series[-1]
-    if pd.isna(last_dev) or pd.isna(last_vwap):
+    if pd.isna(last_dev) or pd.isna(last_vwap) or last_dev <= 0:
         return None
-    lower_band = last_vwap - bb_std * last_dev
-    return bool(closes[-1] < lower_band)
+    return float((last_vwap - closes[-1]) / last_dev)
+
+
+def _vwap_mean_reversion_entry(today_df: pd.DataFrame, bb_std: float = 2.0) -> bool | None:
+    """Live single-tick entry trigger for the RANGE regime: fires once
+    the close is bb_std standard deviations below session VWAP (a fresh
+    z-score test on _vwap_deviation_z). Returns only whether THIS bar is
+    a fresh entry trigger (not the whole stateful holding series that
+    add_strategy_signal's own vwap_mean_reversion branch returns for
+    backtesting) since _auto_signal_core only ever calls this when there
+    is no open position to begin with.
+
+    None (never a silent False) whenever _vwap_deviation_z itself can't
+    be computed yet - see its own docstring for exactly when."""
+    z = _vwap_deviation_z(today_df)
+    if z is None:
+        return None
+    return bool(z >= bb_std)
+
+
+RANGE_CONFIDENCE_ENTRY_Z = 2.0  # must match _vwap_mean_reversion_entry's own
+# bb_std default - the z-score an entry always clears by construction, so
+# this is _range_regime_confidence's natural "just barely qualified" floor
+# for confidence-proportional sizing (task #6).
+RANGE_CONFIDENCE_FULL_Z = 4.0  # z-score at which RANGE confidence-proportional
+# sizing saturates at full risk_per_trade_pct - explicit user choice
+# 2026-09-21, a symmetric doubling of RANGE_CONFIDENCE_ENTRY_Z (a ~4-sigma
+# VWAP deviation is rare, so most RANGE trades size well below max).
+#
+# A RANGE confidence-decay exit (range_confidence_weakened) was also tried
+# here 2026-09-21 as the RANGE-regime analog of trend_weakened - two
+# designs (decay at the entry bar itself, then a hysteresis buffer at half
+# the entry bar) were both validated via the 52-symbol/60-day replay and
+# BOTH badly broken the RANGE regime (win rate 10.3%->1.7%, then ->2.8%;
+# 85% and then 65% of RANGE trades still cut short almost immediately).
+# Per explicit user decision 2026-09-21, dropped entirely rather than
+# tuned further - confidence-proportional sizing (validated, neutral/
+# correct) is the only task #6 piece that shipped. Do not re-add this
+# exit without a genuinely different design, discussed with the user
+# first (not a threshold nudge on this same shape).
+
+
+def _range_regime_confidence(today_df: pd.DataFrame) -> float | None:
+    """RANGE-regime analog of _trend_confidence: how statistically
+    extreme today's VWAP deviation is, via the SAME normal-CDF transform
+    (_norm_cdf) _trend_confidence itself uses on its own z-score - not a
+    new statistical concept, just _vwap_deviation_z (already computed
+    internally by _vwap_mean_reversion_entry) exposed as a continuous
+    0-1 read instead of a boolean. Explicit user instruction 2026-09-21
+    (task #6, confidence-proportional sizing): RANGE previously had NO
+    continuous confidence measure at all, only a boolean entry trigger -
+    this is what that trigger's own z-score becomes once exposed.
+
+    A RANGE entry only ever fires at z >= RANGE_CONFIDENCE_ENTRY_Z by
+    construction, so this never reads below _norm_cdf(RANGE_CONFIDENCE_ENTRY_Z)
+    (~0.977) at entry time - it can still fall below that on a LATER tick
+    as price reverts back toward VWAP. Used for confidence-proportional
+    sizing only (task #6) - a RANGE confidence-decay exit built on this
+    same read was tried and dropped; see RANGE_CONFIDENCE_FULL_Z's comment.
+
+    None whenever _vwap_deviation_z can't be computed yet - never
+    fabricated."""
+    z = _vwap_deviation_z(today_df)
+    if z is None:
+        return None
+    return _norm_cdf(z)
+
+
+CONFIDENCE_SIZE_FLOOR = 0.25  # explicit user choice 2026-09-21 (task #6): a
+# trade that just barely clears its own entry confidence bar risks only
+# 25% of risk_per_trade_pct, scaling linearly up to the full 100% as
+# confidence rises toward its own regime's ceiling - see
+# _confidence_size_multiplier.
+
+
+def _confidence_size_multiplier(confidence: float, entry_min: float, full_at: float = 1.0) -> float:
+    """Linear confidence-proportional sizing (explicit user instruction
+    2026-09-21, task #6: "confidence should be directly proportional to
+    the qty you take for entry into that trade"). Scales risk_per_trade_pct
+    DOWN only - a trade at the bare entry_min confidence floor gets
+    CONFIDENCE_SIZE_FLOOR (25%) of the normal risk; a trade at full_at or
+    beyond gets the full 100%. Never scales ABOVE 1.0 - the existing
+    risk_per_trade_pct cap (1-2% of capital) is a hard ceiling this only
+    ever shrinks under, matching the standing real-money discipline that
+    a stronger signal must never risk MORE than the agreed cap.
+
+    full_at <= entry_min (a misconfigured/degenerate call) falls back to
+    1.0 (no scaling) rather than dividing by zero or inverting the
+    intended direction."""
+    if full_at <= entry_min:
+        return 1.0
+    frac = (confidence - entry_min) / (full_at - entry_min)
+    frac = max(0.0, min(1.0, frac))
+    return CONFIDENCE_SIZE_FLOOR + (1.0 - CONFIDENCE_SIZE_FLOOR) * frac
 
 
 def _liquidity_gate(df: pd.DataFrame) -> tuple[bool, list[str]]:
@@ -5368,7 +5575,50 @@ def _auto_signal_core(
             # sizing math quietly shrinking trades as that threshold gets
             # closer. Every entry sizes at its own full risk_per_trade_pct
             # until the moment trading actually halts.
-            risk_amount_inr = usable_capital_inr * risk_per_trade_pct / 100
+            #
+            # Confidence-proportional sizing on top (2026-09-21, explicit
+            # user instruction, task #6: "confidence should be directly
+            # proportional to the qty you take for entry into that
+            # trade"). Reuses each path's own already-computed confidence
+            # measure - never invents a new one:
+            #   - universal_score/TREND: the 8-factor composite score_pct
+            #     (already the blended multi-factor measure requested),
+            #     gated at UNIVERSAL_ENTRY_SCORE_MIN.
+            #   - universal_score/RANGE: _range_regime_confidence - see
+            #     its own docstring for why this needed new (not
+            #     invented) machinery: RANGE had no continuous confidence
+            #     measure at all before this, only a boolean trigger.
+            #   - orb_breakout: _trend_confidence itself, gated at
+            #     min_entry_confidence_pct (the same bar its own entry
+            #     signal already requires).
+            #   - bullish_engulfing: no confidence measure exists for
+            #     this strategy (no score, no trend-confidence gate) -
+            #     left at 1.0x (unchanged) rather than fabricating one.
+            confidence = confidence_entry_min = confidence_full_at = None
+            if strategy == "universal_score" and market_regime == "range":
+                confidence = _range_regime_confidence(today_df)
+                confidence_entry_min = _norm_cdf(RANGE_CONFIDENCE_ENTRY_Z)
+                confidence_full_at = _norm_cdf(RANGE_CONFIDENCE_FULL_Z)
+            elif strategy == "universal_score":
+                confidence = score_result["score_pct"] / 100.0
+                confidence_entry_min = UNIVERSAL_ENTRY_SCORE_MIN / 100.0
+                confidence_full_at = 1.0
+            elif strategy == "orb_breakout":
+                confidence = _trend_confidence(closes, sma_fast, sma_slow, ma_type)
+                confidence_entry_min = min_entry_confidence_pct / 100.0
+                confidence_full_at = 1.0
+
+            size_multiplier = 1.0
+            if confidence is not None and confidence_entry_min is not None:
+                size_multiplier = _confidence_size_multiplier(
+                    confidence, confidence_entry_min, confidence_full_at
+                )
+            result["confidence_sizing"] = {
+                "confidence": round(confidence, 4) if confidence is not None else None,
+                "size_multiplier": round(size_multiplier, 4),
+            }
+
+            risk_amount_inr = usable_capital_inr * risk_per_trade_pct / 100 * size_multiplier
             # Fractional qty, not integer-floored: a high-priced unit (gold
             # ~Rs 4.2L/oz, BTC ~Rs 73L/coin) costs more than this account's
             # entire Rs 2L capital, so int() silently zeroed every such
@@ -5462,6 +5712,7 @@ def _auto_signal_core(
                 "notional_native": round(qty * last_close, 2), "notional_inr": round(notional_inr, 2),
                 "reallocated_from": result.get("reallocated_from"),
                 "exit_legs": exit_legs,
+                "confidence_sizing": result.get("confidence_sizing"),
             }
             apply_paper_trade(conn, symbol, "buy", qty, last_close)
             conn.execute(
@@ -5477,16 +5728,17 @@ def _auto_signal_core(
             entry_regime = market_regime if strategy == "universal_score" else None
             conn.execute(
                 "INSERT INTO signal_state "
-                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, exit_legs_json, entry_regime) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, exit_legs_json, entry_regime, strategy) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
                 "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
                 "initial_stop_loss=excluded.initial_stop_loss, "
                 "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
                 "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, "
-                "interval=excluded.interval, exit_legs_json=excluded.exit_legs_json, entry_regime=excluded.entry_regime",
+                "interval=excluded.interval, exit_legs_json=excluded.exit_legs_json, entry_regime=excluded.entry_regime, "
+                "strategy=excluded.strategy",
                 (symbol, today_str, last_close, stop_loss, stop_loss, target, qty, time.time(), orb_high, orb_low,
-                 fx_to_inr, interval, json.dumps(exit_legs) if exit_legs else None, entry_regime),
+                 fx_to_inr, interval, json.dumps(exit_legs) if exit_legs else None, entry_regime, strategy_tag),
             )
             conn.commit()
             result.update(action_taken="entered_long", entry=payload)
@@ -6103,13 +6355,15 @@ def _is_t1_restricted(conn, symbol: str) -> bool:
 
 
 def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,
-                       price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None):
+                       price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None,
+                       strategy=None):
     conn.execute(
         "INSERT INTO real_trades (ts, day, symbol, kotak_trading_symbol, side, qty, price_est, "
-        "notional_inr, status, order_id, detail, raw_response) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "notional_inr, status, order_id, detail, raw_response, strategy) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (time.time(), ist_now().strftime("%Y-%m-%d"), symbol, kotak_trading_symbol, side, qty,
          price_est, notional_inr, status, order_id, detail,
-         json.dumps(raw_response, default=str) if raw_response is not None else None),
+         json.dumps(raw_response, default=str) if raw_response is not None else None, strategy),
     )
     conn.commit()
 
@@ -6226,7 +6480,8 @@ def _maybe_place_real_entry(conn, symbol: str):
     # never buy more than the paper signal called for, and never more
     # than real money can actually afford, whichever is smaller.
     paper_row = conn.execute(
-        "SELECT qty, stop_loss, target, exit_legs_json FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
+        "SELECT qty, stop_loss, target, exit_legs_json, strategy FROM signal_state WHERE symbol = ? AND status = 'long'",
+        (symbol,),
     ).fetchone()
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
     remaining_cap_inr = get_runtime_setting(conn, "real_daily_cap_inr") - _real_today_spent_inr(conn)
@@ -6318,17 +6573,25 @@ def _maybe_place_real_entry(conn, symbol: str):
                     r_multiples_by_key[leg["r_multiple"]] = real_entry_price + mult * real_r
                 real_exit_legs = _split_exit_legs(real_qty, r_multiples_by_key)
 
+        # strategy (2026-09-21) - copied from the paper signal that triggered
+        # this real entry, same reasoning as real_exit_legs just above: a
+        # real position mirrors a specific paper decision, so it should
+        # carry that decision's own attribution, not a generic constant.
+        # None whenever there's no matched paper_row (shouldn't normally
+        # happen for a fresh real entry, but never assumed).
+        real_strategy = paper_row["strategy"] if paper_row else None
         conn.execute(
             "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
-            "entry_order_id, opened_at, day, exit_legs_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "entry_order_id, opened_at, day, exit_legs_json, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (symbol, kotak_symbol, real_qty, real_entry_price, result["order_id"], now,
-             ist_now().strftime("%Y-%m-%d"), json.dumps(real_exit_legs) if real_exit_legs else None),
+             ist_now().strftime("%Y-%m-%d"), json.dumps(real_exit_legs) if real_exit_legs else None, real_strategy),
         )
         _log_real_attempt(
             conn, symbol, "B", "confirmed", kotak_trading_symbol=kotak_symbol,
             qty=real_qty, price_est=real_entry_price, notional_inr=real_qty * real_entry_price,
             order_id=result["order_id"], raw_response=result.get("raw_response"),
             detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak - using requested qty/estimated LTP",
+            strategy=real_strategy,
         )
         print(f"[REAL TRADE] BUY {real_qty} {kotak_symbol} (order {result['order_id']}) "
               f"~Rs{real_entry_price:.2f} (fill_confirmed={result['fill_price_confirmed']})")
@@ -8207,11 +8470,23 @@ def get_real_trades_today():
     trades_raw = get_real_trades_today_list()
     if trades_raw is None:
         return {"error": _real_trades_cache["error"], "trades": []}
-    trades = [
-        {**t, "pnl_pct_of_capital": None, "exit_reason": "kotak_real_trade",
-         "rr_target": None, "rr_achieved": None, "strategy": "real (Kotak)"}
-        for t in trades_raw
-    ]
+    trades = []
+    for t in trades_raw:
+        # pnl_pct (2026-09-21, explicit user instruction: "I can't see pnL
+        # % in each row. Update it") - same convention as the open real
+        # positions' own unrealized_pnl_pct (100 * pnl / invested), not a
+        # raw price move, so both are directly comparable at a glance.
+        # strategy stays "real (Kotak)" here - this is the WHOLE-ACCOUNT
+        # Kotak aggregate (deliberately includes manually-placed trades
+        # too, per the 2026-09-07 finding), so there is genuinely no way
+        # to attribute a given row to a specific strategy the way
+        # /real-trades-today-bot-only (this app's own order IDs only) can.
+        invested_inr = (t.get("entry_price_native") or 0) * (t.get("qty") or 0)
+        pnl_pct = round(100 * t["pnl_inr"] / invested_inr, 3) if invested_inr else None
+        trades.append({
+            **t, "pnl_pct_of_capital": None, "pnl_pct": pnl_pct, "exit_reason": "kotak_real_trade",
+            "rr_target": None, "rr_achieved": None, "strategy": "real (Kotak)",
+        })
     trades.sort(key=lambda t: t["exit_time_utc"], reverse=True)
     return {"date_ist": ist_now().strftime("%Y-%m-%d"), "trades_count": len(trades), "trades": trades}
 
@@ -8253,7 +8528,7 @@ def get_real_trades_today_bot_only():
     with closing(get_db()) as conn:
         open_positions = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
         rows = conn.execute(
-            "SELECT symbol, kotak_trading_symbol, side, qty, price_est, notional_inr, ts, order_id "
+            "SELECT symbol, kotak_trading_symbol, side, qty, price_est, notional_inr, ts, order_id, strategy "
             "FROM real_trades WHERE day = ? AND status = 'confirmed' ORDER BY symbol, ts",
             (today,),
         ).fetchall()
@@ -8268,13 +8543,24 @@ def get_real_trades_today_bot_only():
             qty = r["qty"] or buy["qty"] or 0
             pnl_inr = round((r["price_est"] - buy["price_est"]) * qty, 2) if (
                 r["price_est"] is not None and buy["price_est"] is not None) else None
+            # invested_inr/pnl_pct (2026-09-21, explicit user instruction:
+            # "I can't see pnL % in each row... does not mention which
+            # strategy or algo used") - pnl_pct matches the same convention
+            # open real positions' own unrealized_pnl_pct already uses
+            # (100 * pnl / invested); strategy is the ACTUAL strategy_tag
+            # this real entry mirrored (real_trades.strategy, set at entry
+            # time by _maybe_place_real_entry from the paper signal), not
+            # a generic placeholder - "unknown" only for a real_trades row
+            # logged before this column existed.
+            invested_inr = (buy["price_est"] or 0) * qty
+            pnl_pct = round(100 * pnl_inr / invested_inr, 3) if pnl_inr is not None and invested_inr else None
             closed_trades.append({
                 "symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
                 "entry_price_native": buy["price_est"], "exit_price_native": r["price_est"],
-                "qty": qty, "pnl_inr": pnl_inr,
+                "qty": qty, "pnl_inr": pnl_inr, "pnl_pct": pnl_pct,
                 "entry_order_id": buy["order_id"], "exit_order_id": r["order_id"],
                 "entry_time_utc": buy["ts"], "exit_time_utc": r["ts"],
-                "strategy": "real-bot-own",
+                "strategy": buy.get("strategy") or "unknown",
             })
     closed_trades.sort(key=lambda t: t["exit_time_utc"], reverse=True)
     return {
@@ -8735,14 +9021,14 @@ def reconcile_open_positions_from_journal():
             apply_paper_trade(conn, symbol, "buy", pos["qty"], pos["entry_price_native"])
             conn.execute(
                 "INSERT INTO signal_state "
-                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, entry_regime) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, entry_regime, strategy) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
                 "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
                 "initial_stop_loss=excluded.initial_stop_loss, "
                 "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
                 "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, "
-                "interval=excluded.interval, entry_regime=excluded.entry_regime",
+                "interval=excluded.interval, entry_regime=excluded.entry_regime, strategy=excluded.strategy",
                 # initial_stop_loss_native only exists in a journal snapshot
                 # written after this feature shipped - fall back to
                 # stop_loss_native (whatever the live stop was at sync time,
@@ -8751,11 +9037,14 @@ def reconcile_open_positions_from_journal():
                 # 09-14 fix) is the same story - None for any journal
                 # snapshot written before this shipped, the safe default
                 # that keeps the trend_weakened check exactly as before.
+                # strategy reuses the same strategy_tag already computed
+                # above (2026-09-03 journal-field fallback), just now
+                # threaded into signal_state too (2026-09-21).
                 (symbol, day_str, pos["entry_price_native"], pos["stop_loss_native"],
                  pos.get("initial_stop_loss_native", pos["stop_loss_native"]),
                  pos["target_native"], pos["qty"], entry_ts, pos["orb_high_native"],
                  pos["orb_low_native"], pos["fx_to_inr"], pos.get("interval", "5m"),
-                 pos.get("entry_regime")),
+                 pos.get("entry_regime"), strategy_tag),
             )
             recovered.append(symbol)
         conn.commit()
@@ -9515,6 +9804,13 @@ def get_real_capital_deployed_inr() -> float | None:
 
 _scheduler_last_tick_ts = 0.0
 _scheduler_last_error = None
+_scheduler_tick_count = 0
+_MEMORY_LOG_EVERY_N_TICKS = 20  # ~10 min at the 30s tick interval - explicit
+# user instruction 2026-09-21 ("find root cause... set limit"): Render's
+# own logs persist past a restart (unlike this process's in-memory state),
+# so a periodic RSS line here is what lets a FUTURE memory-limit email be
+# correlated against an actual growth trend instead of guessed at after
+# the fact. See _process_rss_mb's own comment for the fuller context.
 # Latest _auto_signal_core result per symbol, from the real scheduler tick
 # (not a synthetic re-check) - exposed via /scheduler-attempts so there's
 # real visibility into what the engine actually decided and why, not just
@@ -9595,6 +9891,29 @@ _scheduler_currently_checking: dict | None = None
 _scheduler_check_counts: dict = {}
 _scheduler_check_counts_day: str = ""
 
+# Recent-check throughput (2026-09-21, explicit user instruction: "I want
+# an additional line mentioning that 'x is total scanned ones in last 30
+# seconds'") - the cumulative "distinct scanned" count above necessarily
+# PLATEAUS once every symbol in WATCHLIST has been checked at least once
+# today (206/206 as of the NIFTY 200 universe restriction - see
+# nifty200_universe.py), which reads as "stalled" even when the scheduler
+# is actively re-scanning the full universe on every round-robin rotation.
+# This is a separate, rolling-window throughput signal instead: how many
+# checks landed in roughly the last _RECENT_CHECK_WINDOW_SECONDS, which
+# stays a healthy nonzero number as long as ticks are actually happening,
+# and visibly drops to 0 if the scheduler genuinely stops - the thing
+# "206/206" alone can never show once coverage is already complete.
+# Deliberately process-local/in-memory only (no Upstash/journal mirror,
+# unlike _scheduler_check_counts above) - a rolling few-second window has
+# no meaningful "restore across a restart" semantics; it should just
+# start reflecting reality again within one tick either way.
+_recent_check_timestamps: list = []
+_RECENT_CHECK_WINDOW_SECONDS = 30
+_RECENT_CHECK_RETENTION_SECONDS = 120  # prune stale entries with generous
+# headroom past the window itself, so a caller asking for a wider window
+# (see checks_in_last_seconds's own seconds param) still gets an honest
+# answer rather than silently-already-discarded data.
+
 STATE_SCHEDULER_CHECK_COUNTS_PATH = os.path.join(os.path.dirname(__file__), "state", "scheduler_check_counts.json")
 
 
@@ -9660,13 +9979,31 @@ def reconcile_scheduler_check_counts_from_journal():
 
 def _record_scheduler_check(key: str):
     """Bumps key's today-count, resetting everyone's count first if the
-    IST calendar day has rolled over since the last check."""
+    IST calendar day has rolled over since the last check. Also records
+    this check's timestamp for the rolling-window throughput signal (see
+    _recent_check_timestamps's own module comment) - single call site for
+    every kind of check (equity, F&O RSI2 leg) this file makes, so that
+    signal covers the whole scheduler, not just one asset class."""
     global _scheduler_check_counts_day
     today_str = ist_now().strftime("%Y-%m-%d")
     if today_str != _scheduler_check_counts_day:
         _scheduler_check_counts.clear()
         _scheduler_check_counts_day = today_str
     _scheduler_check_counts[key] = _scheduler_check_counts.get(key, 0) + 1
+
+    now = time.time()
+    _recent_check_timestamps.append(now)
+    cutoff = now - _RECENT_CHECK_RETENTION_SECONDS
+    while _recent_check_timestamps and _recent_check_timestamps[0] < cutoff:
+        _recent_check_timestamps.pop(0)
+
+
+def checks_in_last_seconds(seconds: float = _RECENT_CHECK_WINDOW_SECONDS) -> int:
+    """How many scheduler checks (any asset class) landed in roughly the
+    last `seconds` - see _recent_check_timestamps's own module comment
+    for why this exists alongside the daily distinct-scanned count."""
+    cutoff = time.time() - seconds
+    return sum(1 for ts in _recent_check_timestamps if ts >= cutoff)
 
 
 def _scheduler_peek_next_batch(n: int = 5) -> list:
@@ -9994,7 +10331,23 @@ async def _scheduler_tick():
     for symbol in symbols_this_tick:
         cfg = watchlist_by_symbol.get(symbol)
         if not cfg:
-            continue
+            # A symbol can be IN symbols_this_tick (open_equity_symbols/
+            # open_real_symbols, both sourced from DB state, not
+            # WATCHLIST) while no longer having a WATCHLIST entry at all -
+            # confirmed live 2026-09-21: GENCON.NS sat open, completely
+            # unmanaged (no stop/target/squareoff check, no real stop-loss
+            # sync, no exit) for ~10 days after the NIFTY 200 universe
+            # restriction dropped it from WATCHLIST while its position was
+            # still open. `continue` here silently threw away exactly the
+            # open-position coverage the comments above this loop promise
+            # ("must never depend on..."), for this one case - a symbol
+            # leaving WATCHLIST while a position is open was never
+            # exercised before (WATCHLIST had only ever grown, never
+            # shrunk, until that restriction). Falls back to the same
+            # conservative NSE_STOCK_DEFAULT_PARAMS a brand-new unproven
+            # symbol gets, rather than abandoning management of a real
+            # open position.
+            cfg = {**NSE_STOCK_DEFAULT_PARAMS, "symbol": symbol}
         _scheduler_currently_checking = {
             "symbol": symbol, "kind": "equity", "started_at_utc": time.time(),
         }
@@ -10146,6 +10499,12 @@ async def _scheduler_tick():
     # keeps the "distinct scanned" dict surviving a restart at ANY
     # cadence, not just ones slower than journal-sync's 15-min interval.
     _sync_check_counts_external(_scheduler_check_counts_day, _scheduler_check_counts)
+
+    global _scheduler_tick_count
+    _scheduler_tick_count += 1
+    if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0:
+        print(f"[memory] tick {_scheduler_tick_count}: rss_mb={_process_rss_mb()}, "
+              f"data_cache_entries={len(_DATA_CACHE)}, watchlist_size={len(WATCHLIST)}")
 
     _scheduler_last_tick_ts = time.time()
     await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
@@ -10332,6 +10691,7 @@ def scheduler_status():
         "last_tick_ts": _scheduler_last_tick_ts,
         "last_tick_ago_seconds": round(time.time() - _scheduler_last_tick_ts, 1) if _scheduler_last_tick_ts else None,
         "last_error": _scheduler_last_error,
+        "checks_last_30s": checks_in_last_seconds(30),
         "scheduler_capital_inr": _real_capital_cache["value"],
         "scheduler_capital_source": "kotak_neo_real_account" if _real_capital_cache["value"] is not None else "not_yet_fetched",
         "scheduler_capital_fetched_at_utc": _real_capital_cache["fetched_at"] or None,
@@ -10510,6 +10870,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "scanned_today_count": scanned_today_count,
         "scanned_today_total": scanned_today_total,
         "total_checks_today": total_checks_today,
+        "checks_last_30s": checks_in_last_seconds(30),
         "check_counts_today": check_counts_today,
         "check_counts_day": _scheduler_check_counts_day,
         "rr_cursor": _scheduler_rr_cursor,
@@ -10954,9 +11315,35 @@ def dry_run_day(
     }
 
 
+def _process_rss_mb() -> float | None:
+    """Current process resident memory, in MB - stdlib only (resource.
+    getrusage), no new dependency. 2026-09-21, explicit user instruction:
+    "can u find root cause and set limit on things required so that this
+    does not come into my email inbox every now n then" (Render's own
+    "exceeded its memory limit" restart-loop email). The known PAST cause
+    (_DATA_CACHE growing unbounded, data_fetch.py) was already fixed
+    2026-09-08 and is even safer now (WATCHLIST shrank from ~2,661 to 206
+    symbols since, per the NIFTY 200 restriction) - a live restart was
+    also directly observed today (a 502 from the deployed service,
+    recovered within ~2 minutes), confirming the alerts are current, not
+    stale, but this sandbox has no access to Render's own memory graphs
+    to pin down a NEW leak from a single snapshot. This is the missing
+    piece for next time: an actual RSS NUMBER, both on-demand here and
+    logged periodically by the scheduler (see _scheduler_tick), so a
+    future spike can be correlated against what was running at the time
+    instead of guessed at after the fact. Linux-only (ru_maxrss is KB on
+    Linux, bytes on macOS) - fine, Render's own runners are Linux; returns
+    None rather than raising if the platform ever differs."""
+    try:
+        kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return round(kb / 1024, 1)
+    except Exception:
+        return None
+
+
 @app.get("/health")
 def health():
-    return {"status": "alive", "time": time.time()}
+    return {"status": "alive", "time": time.time(), "rss_mb": _process_rss_mb()}
 
 
 @app.get("/watchlist")
