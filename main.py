@@ -6350,11 +6350,18 @@ def _maybe_place_real_entry(conn, symbol: str):
         # the position genuinely exists at Kotak either way, and
         # _maybe_sync_real_stop_loss retries placing it on every later
         # tick for as long as real_positions.sl_order_id stays NULL.
+        # sl_confirmed gates the target placement below (2026-09-21,
+        # explicit user instruction, live Cochin Shipyard incident - see
+        # that fix's full comment on the staged-leg version of this same
+        # SL-then-target sequencing in _maybe_place_real_partial_exit):
+        # never rest a target order for a position with no confirmed stop.
+        sl_confirmed = False
         if paper_row and paper_row["stop_loss"]:
             sl_result = kotak_real_orders.place_real_stop_loss(
                 kotak_symbol, real_qty, round(paper_row["stop_loss"], 2)
             )
             if sl_result.get("ok"):
+                sl_confirmed = True
                 conn.execute(
                     "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                     (sl_result["order_id"], sl_result["trigger_price"], symbol),
@@ -6399,10 +6406,18 @@ def _maybe_place_real_entry(conn, symbol: str):
         # paper_row["target"]) when there's no ladder at all (real_exit_legs
         # is None) OR the only leg is "trail" (qty<=1 at entry - see
         # _split_exit_legs).
+        # sl_confirmed gate (2026-09-21): only rest a target once the SL
+        # above is confirmed - see this block's own top comment.
         first_leg = next((l for l in (real_exit_legs or []) if l["leg"] != "trail"), None)
         target_leg_qty = first_leg["qty"] if first_leg else real_qty
         target_leg_price = first_leg["target_price"] if first_leg else (paper_row["target"] if paper_row else None)
-        if target_leg_qty and target_leg_price:
+        if not sl_confirmed and target_leg_qty and target_leg_price:
+            _log_real_order_event(
+                conn, symbol, "target", "skipped_sl_not_confirmed", kotak_trading_symbol=kotak_symbol,
+                prev_state="none",
+                new_state="none (SL placement failed or unavailable - target withheld to avoid a naked position)",
+            )
+        if sl_confirmed and target_leg_qty and target_leg_price:
             target_result = kotak_real_orders.place_real_target(
                 kotak_symbol, target_leg_qty, round(target_leg_price, 2)
             )
@@ -6738,57 +6753,37 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     conn.commit()
     _sync_real_positions_external(conn)
 
-    # Advance the resting target to the NEXT unfilled fixed leg (if any) -
-    # cancel the one that just filled (best-effort; it may already show
-    # filled/gone at Kotak, a cancel on an already-filled order is a
-    # harmless no-op rejection) and place a fresh one sized to the next
-    # leg's own qty/price. No new target is placed once only the "trail"
-    # leg remains - that qty is governed by the position's existing
-    # target/leading-target-extend/trailing-stop machinery exactly as a
-    # pre-revamp single-target position, via the normal full-exit path
-    # (_maybe_place_real_exit) whenever the paper engine's own exit_reason
-    # chain next fires.
-    if row["target_order_id"]:
-        kotak_real_orders.cancel_real_order(row["target_order_id"])
-    next_leg = next((l for l in legs if l["leg"] != "trail" and l["status"] == "open"), None)
-    if next_leg and next_leg.get("target_price"):
-        target_result = kotak_real_orders.place_real_target(
-            row["kotak_trading_symbol"], next_leg["qty"], round(next_leg["target_price"], 2)
-        )
-        if target_result.get("ok"):
-            conn.execute(
-                "UPDATE real_positions SET target_order_id = ?, target_price = ? WHERE symbol = ?",
-                (target_result["order_id"], target_result["target_price"], symbol),
-            )
-            _log_real_order_event(
-                conn, symbol, "target", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
-                order_id=target_result["order_id"], prev_state="advancing to next staged leg",
-                new_state=f"resting SELL limit Rs{target_result['target_price']:.2f} for leg {next_leg['leg']}",
-            )
-        else:
-            conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
-            _log_real_order_event(
-                conn, symbol, "target", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
-                prev_state="advancing to next staged leg",
-                new_state="none (placement failed)", detail=target_result.get("detail"),
-            )
-            _flag_if_t1_restricted(conn, symbol, target_result.get("detail"))
-    else:
-        conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
+    # 2026-09-21, explicit user instruction, live Cochin Shipyard incident:
+    # this path used to place the NEW target for the next leg FIRST, then
+    # the fresh SL for the same leg second - here the SL placement got
+    # REJECTED, leaving the position with a resting profit target but NO
+    # stop-loss at all until the user noticed and manually cancelled the
+    # target and re-placed the SL themselves. "First after entry, I want
+    # SL order then confirm and then send the target order." SL now goes
+    # FIRST; the new target is only placed once the SL is CONFIRMED - if
+    # SL placement fails, the new target is withheld entirely (same "no
+    # naked target" principle, not just a reordering) rather than resting
+    # an unprotected profit order. _maybe_sync_real_stop_loss keeps
+    # retrying the SL every later tick exactly as an outright SL-placement
+    # failure already does, and the scheduler's own per-tick poll
+    # (_maybe_place_real_exit) still handles this leg's profit-booking
+    # with no resting order backing it in the meantime.
 
-    # Place a fresh SL sized to the smaller remaining qty. The OLD order was
-    # already cancelled UP FRONT (before the sell attempt above, per the
-    # 2026-09-14 fix) - this never resizes/cancels-then-replaces here, it
-    # only ever PLACES, since nothing is left resting to cancel. Also fires
-    # when there was no old sl_order_id at all but a trigger price is still
-    # known (e.g. a prior placement failure had already cleared it) - closes
-    # a pre-existing gap where such a position would never get a fresh SL
-    # attempt from this path.
+    # Place a fresh SL sized to the smaller remaining qty FIRST. The OLD
+    # SL order was already cancelled UP FRONT (before the sell attempt
+    # above, per the 2026-09-14 fix) - this never resizes/cancels-then-
+    # replaces here, it only ever PLACES, since nothing is left resting
+    # to cancel. Also fires when there was no old sl_order_id at all but
+    # a trigger price is still known (e.g. a prior placement failure had
+    # already cleared it) - closes a pre-existing gap where such a
+    # position would never get a fresh SL attempt from this path.
+    sl_confirmed = False
     if remaining_qty > 0 and row["sl_trigger_price"]:
         sl_result = _place_real_stop_loss_with_retry(
             row["kotak_trading_symbol"], remaining_qty, row["sl_trigger_price"]
         )
         if sl_result.get("ok"):
+            sl_confirmed = True
             conn.execute(
                 "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                 (sl_result["order_id"], sl_result["trigger_price"], symbol),
@@ -6815,6 +6810,51 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
                 new_state="none (placement failed)", detail=sl_result.get("detail"),
             )
             _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
+
+    # Advance the resting target to the NEXT unfilled fixed leg (if any) -
+    # cancel the one that just filled (best-effort; it may already show
+    # filled/gone at Kotak, a cancel on an already-filled order is a
+    # harmless no-op rejection) and place a fresh one sized to the next
+    # leg's own qty/price - ONLY once the fresh SL above is confirmed
+    # resting (see this function's own 2026-09-21 comment above). No new
+    # target is placed once only the "trail" leg remains - that qty is
+    # governed by the position's existing target/leading-target-extend/
+    # trailing-stop machinery exactly as a pre-revamp single-target
+    # position, via the normal full-exit path (_maybe_place_real_exit)
+    # whenever the paper engine's own exit_reason chain next fires.
+    if row["target_order_id"]:
+        kotak_real_orders.cancel_real_order(row["target_order_id"])
+    next_leg = next((l for l in legs if l["leg"] != "trail" and l["status"] == "open"), None)
+    if sl_confirmed and next_leg and next_leg.get("target_price"):
+        target_result = kotak_real_orders.place_real_target(
+            row["kotak_trading_symbol"], next_leg["qty"], round(next_leg["target_price"], 2)
+        )
+        if target_result.get("ok"):
+            conn.execute(
+                "UPDATE real_positions SET target_order_id = ?, target_price = ? WHERE symbol = ?",
+                (target_result["order_id"], target_result["target_price"], symbol),
+            )
+            _log_real_order_event(
+                conn, symbol, "target", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                order_id=target_result["order_id"], prev_state="advancing to next staged leg",
+                new_state=f"resting SELL limit Rs{target_result['target_price']:.2f} for leg {next_leg['leg']}",
+            )
+        else:
+            conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
+            _log_real_order_event(
+                conn, symbol, "target", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                prev_state="advancing to next staged leg",
+                new_state="none (placement failed)", detail=target_result.get("detail"),
+            )
+            _flag_if_t1_restricted(conn, symbol, target_result.get("detail"))
+    else:
+        conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
+        if not sl_confirmed and next_leg and next_leg.get("target_price"):
+            _log_real_order_event(
+                conn, symbol, "target", "skipped_sl_not_confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                prev_state="advancing to next staged leg",
+                new_state="none (SL placement failed or unavailable - target withheld to avoid a naked position)",
+            )
     _sync_real_positions_external(conn)
 
 
