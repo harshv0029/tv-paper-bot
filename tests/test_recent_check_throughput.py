@@ -7,6 +7,7 @@ as "stalled" even while the scheduler keeps actively re-scanning it.
 This is the separate signal that actually shows live throughput)."""
 from unittest.mock import patch
 
+import kotak_fo_candle_feed
 import main
 
 
@@ -69,3 +70,18 @@ def test_scheduler_pipeline_and_scheduler_status_expose_checks_last_30s():
         status = main.scheduler_status()
     assert pipeline["checks_last_30s"] == 1
     assert status["checks_last_30s"] == 1
+
+
+def test_scheduler_pipeline_exposes_fo_feed_counts_alongside_equity_index(monkeypatch):
+    """2026-09-21, explicit user instruction: "I want it to represent
+    both. means equity, index and FnO and All" - /scheduler-pipeline's
+    equity/index scanned-today figures must be joined by the F&O feed's
+    own subscribed-instrument count (a separate unit: a live snapshot,
+    not a cumulative today's-checks figure) and a combined total."""
+    _reset()
+    monkeypatch.setitem(kotak_fo_candle_feed._feed_status, "subscribed_instruments", 2894)
+    monkeypatch.setitem(kotak_fo_candle_feed._feed_status, "connected", True)
+    pipeline = main.scheduler_pipeline()
+    assert pipeline["fo_subscribed_instruments"] == 2894
+    assert pipeline["fo_connected"] is True
+    assert pipeline["all_assets_tracked_total"] == pipeline["scanned_today_total"] + 2894
