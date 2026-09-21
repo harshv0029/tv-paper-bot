@@ -388,7 +388,7 @@ def init_db():
                                      -- value (including NULL/unknown) keeps the pre-fix behavior, so
                                      -- this never silently changes exit behavior for a position whose
                                      -- true regime isn't known.
-                peak_ltp REAL       -- 2026-09-17, explicit user instruction ("Replace with LTP -
+                peak_ltp REAL,      -- 2026-09-17, explicit user instruction ("Replace with LTP -
                                      -- Must have", live Fortis finding: trailing stop hadn't
                                      -- activated despite live price already >0.5R above entry,
                                      -- because _trailing_stop_target compared against the last
@@ -401,6 +401,14 @@ def init_db():
                                      -- ticks for (feed gap, or opened before this column existed) -
                                      -- _trailing_stop_target falls back to the pre-existing
                                      -- candle-close basis whenever no live price is available.
+                strategy TEXT       -- 2026-09-21, explicit user instruction ("It also does not
+                                     -- mention which strategy or algo used for that trade enter
+                                     -- so mention that"): the strategy_tag this position was
+                                     -- entered under (e.g. "universal_score", "bullish_engulfing"),
+                                     -- so a real position mirroring this paper signal can carry
+                                     -- the same attribution forward (see _maybe_place_real_entry).
+                                     -- NULL for any position opened before this column existed or
+                                     -- backfilled/resurrected without a known strategy.
             )
             """
         )
@@ -629,7 +637,7 @@ def init_db():
                                      -- _maybe_place_real_entry/_maybe_place_real_partial_exit) - NULL
                                      -- for any real position with no staged ladder (backfilled/
                                      -- adopted positions, see kotak_neo_reconcile_real_positions).
-                protection_degraded_since REAL  -- 2026-09-10, explicit user instruction after
+                protection_degraded_since REAL, -- 2026-09-10, explicit user instruction after
                                      -- review (state-machine correction on top of #13's own
                                      -- fix): epoch seconds since this position was FIRST noticed
                                      -- with no live resting SL order (sl_order_id NULL) -
@@ -645,6 +653,13 @@ def init_db():
                                      -- the stop, never a gap, flash move, halt reopening, or this
                                      -- app/network itself being down - exactly when broker-side
                                      -- protection matters most.
+                strategy TEXT       -- 2026-09-21, explicit user instruction ("It also does not
+                                     -- mention which strategy or algo used for that trade enter
+                                     -- so mention that"): copied from the paper signal_state row's
+                                     -- own strategy at real-entry time (see _maybe_place_real_entry)
+                                     -- so /real-trades-today-bot-only can show real per-trade
+                                     -- attribution instead of a generic constant. NULL for a
+                                     -- position adopted/backfilled without a known paper origin.
             )
             """
         )
@@ -702,7 +717,16 @@ def init_db():
                 status TEXT NOT NULL,             -- 'confirmed' | 'failed' | 'skipped_...'
                 order_id TEXT,
                 detail TEXT,
-                raw_response TEXT
+                raw_response TEXT,
+                strategy TEXT                      -- 2026-09-21, explicit user instruction ("mention
+                                                    -- which strategy or algo used for that trade
+                                                    -- enter"): set on 'B' (buy) rows from the paper
+                                                    -- signal's own strategy at real-entry time (see
+                                                    -- _maybe_place_real_entry/_log_real_attempt) -
+                                                    -- /real-trades-today-bot-only reads it off the
+                                                    -- matched buy row for each closed round trip.
+                                                    -- NULL for 'S' rows and any attempt logged
+                                                    -- without a known paper origin.
             )
             """
         )
@@ -5716,16 +5740,17 @@ def _auto_signal_core(
             entry_regime = market_regime if strategy == "universal_score" else None
             conn.execute(
                 "INSERT INTO signal_state "
-                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, exit_legs_json, entry_regime) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, exit_legs_json, entry_regime, strategy) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
                 "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
                 "initial_stop_loss=excluded.initial_stop_loss, "
                 "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
                 "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, "
-                "interval=excluded.interval, exit_legs_json=excluded.exit_legs_json, entry_regime=excluded.entry_regime",
+                "interval=excluded.interval, exit_legs_json=excluded.exit_legs_json, entry_regime=excluded.entry_regime, "
+                "strategy=excluded.strategy",
                 (symbol, today_str, last_close, stop_loss, stop_loss, target, qty, time.time(), orb_high, orb_low,
-                 fx_to_inr, interval, json.dumps(exit_legs) if exit_legs else None, entry_regime),
+                 fx_to_inr, interval, json.dumps(exit_legs) if exit_legs else None, entry_regime, strategy_tag),
             )
             conn.commit()
             result.update(action_taken="entered_long", entry=payload)
@@ -6342,13 +6367,15 @@ def _is_t1_restricted(conn, symbol: str) -> bool:
 
 
 def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,
-                       price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None):
+                       price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None,
+                       strategy=None):
     conn.execute(
         "INSERT INTO real_trades (ts, day, symbol, kotak_trading_symbol, side, qty, price_est, "
-        "notional_inr, status, order_id, detail, raw_response) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "notional_inr, status, order_id, detail, raw_response, strategy) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (time.time(), ist_now().strftime("%Y-%m-%d"), symbol, kotak_trading_symbol, side, qty,
          price_est, notional_inr, status, order_id, detail,
-         json.dumps(raw_response, default=str) if raw_response is not None else None),
+         json.dumps(raw_response, default=str) if raw_response is not None else None, strategy),
     )
     conn.commit()
 
@@ -6465,7 +6492,8 @@ def _maybe_place_real_entry(conn, symbol: str):
     # never buy more than the paper signal called for, and never more
     # than real money can actually afford, whichever is smaller.
     paper_row = conn.execute(
-        "SELECT qty, stop_loss, target, exit_legs_json FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
+        "SELECT qty, stop_loss, target, exit_legs_json, strategy FROM signal_state WHERE symbol = ? AND status = 'long'",
+        (symbol,),
     ).fetchone()
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
     remaining_cap_inr = get_runtime_setting(conn, "real_daily_cap_inr") - _real_today_spent_inr(conn)
@@ -6557,17 +6585,25 @@ def _maybe_place_real_entry(conn, symbol: str):
                     r_multiples_by_key[leg["r_multiple"]] = real_entry_price + mult * real_r
                 real_exit_legs = _split_exit_legs(real_qty, r_multiples_by_key)
 
+        # strategy (2026-09-21) - copied from the paper signal that triggered
+        # this real entry, same reasoning as real_exit_legs just above: a
+        # real position mirrors a specific paper decision, so it should
+        # carry that decision's own attribution, not a generic constant.
+        # None whenever there's no matched paper_row (shouldn't normally
+        # happen for a fresh real entry, but never assumed).
+        real_strategy = paper_row["strategy"] if paper_row else None
         conn.execute(
             "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
-            "entry_order_id, opened_at, day, exit_legs_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "entry_order_id, opened_at, day, exit_legs_json, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (symbol, kotak_symbol, real_qty, real_entry_price, result["order_id"], now,
-             ist_now().strftime("%Y-%m-%d"), json.dumps(real_exit_legs) if real_exit_legs else None),
+             ist_now().strftime("%Y-%m-%d"), json.dumps(real_exit_legs) if real_exit_legs else None, real_strategy),
         )
         _log_real_attempt(
             conn, symbol, "B", "confirmed", kotak_trading_symbol=kotak_symbol,
             qty=real_qty, price_est=real_entry_price, notional_inr=real_qty * real_entry_price,
             order_id=result["order_id"], raw_response=result.get("raw_response"),
             detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak - using requested qty/estimated LTP",
+            strategy=real_strategy,
         )
         print(f"[REAL TRADE] BUY {real_qty} {kotak_symbol} (order {result['order_id']}) "
               f"~Rs{real_entry_price:.2f} (fill_confirmed={result['fill_price_confirmed']})")
@@ -8446,11 +8482,23 @@ def get_real_trades_today():
     trades_raw = get_real_trades_today_list()
     if trades_raw is None:
         return {"error": _real_trades_cache["error"], "trades": []}
-    trades = [
-        {**t, "pnl_pct_of_capital": None, "exit_reason": "kotak_real_trade",
-         "rr_target": None, "rr_achieved": None, "strategy": "real (Kotak)"}
-        for t in trades_raw
-    ]
+    trades = []
+    for t in trades_raw:
+        # pnl_pct (2026-09-21, explicit user instruction: "I can't see pnL
+        # % in each row. Update it") - same convention as the open real
+        # positions' own unrealized_pnl_pct (100 * pnl / invested), not a
+        # raw price move, so both are directly comparable at a glance.
+        # strategy stays "real (Kotak)" here - this is the WHOLE-ACCOUNT
+        # Kotak aggregate (deliberately includes manually-placed trades
+        # too, per the 2026-09-07 finding), so there is genuinely no way
+        # to attribute a given row to a specific strategy the way
+        # /real-trades-today-bot-only (this app's own order IDs only) can.
+        invested_inr = (t.get("entry_price_native") or 0) * (t.get("qty") or 0)
+        pnl_pct = round(100 * t["pnl_inr"] / invested_inr, 3) if invested_inr else None
+        trades.append({
+            **t, "pnl_pct_of_capital": None, "pnl_pct": pnl_pct, "exit_reason": "kotak_real_trade",
+            "rr_target": None, "rr_achieved": None, "strategy": "real (Kotak)",
+        })
     trades.sort(key=lambda t: t["exit_time_utc"], reverse=True)
     return {"date_ist": ist_now().strftime("%Y-%m-%d"), "trades_count": len(trades), "trades": trades}
 
@@ -8492,7 +8540,7 @@ def get_real_trades_today_bot_only():
     with closing(get_db()) as conn:
         open_positions = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
         rows = conn.execute(
-            "SELECT symbol, kotak_trading_symbol, side, qty, price_est, notional_inr, ts, order_id "
+            "SELECT symbol, kotak_trading_symbol, side, qty, price_est, notional_inr, ts, order_id, strategy "
             "FROM real_trades WHERE day = ? AND status = 'confirmed' ORDER BY symbol, ts",
             (today,),
         ).fetchall()
@@ -8507,13 +8555,24 @@ def get_real_trades_today_bot_only():
             qty = r["qty"] or buy["qty"] or 0
             pnl_inr = round((r["price_est"] - buy["price_est"]) * qty, 2) if (
                 r["price_est"] is not None and buy["price_est"] is not None) else None
+            # invested_inr/pnl_pct (2026-09-21, explicit user instruction:
+            # "I can't see pnL % in each row... does not mention which
+            # strategy or algo used") - pnl_pct matches the same convention
+            # open real positions' own unrealized_pnl_pct already uses
+            # (100 * pnl / invested); strategy is the ACTUAL strategy_tag
+            # this real entry mirrored (real_trades.strategy, set at entry
+            # time by _maybe_place_real_entry from the paper signal), not
+            # a generic placeholder - "unknown" only for a real_trades row
+            # logged before this column existed.
+            invested_inr = (buy["price_est"] or 0) * qty
+            pnl_pct = round(100 * pnl_inr / invested_inr, 3) if pnl_inr is not None and invested_inr else None
             closed_trades.append({
                 "symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
                 "entry_price_native": buy["price_est"], "exit_price_native": r["price_est"],
-                "qty": qty, "pnl_inr": pnl_inr,
+                "qty": qty, "pnl_inr": pnl_inr, "pnl_pct": pnl_pct,
                 "entry_order_id": buy["order_id"], "exit_order_id": r["order_id"],
                 "entry_time_utc": buy["ts"], "exit_time_utc": r["ts"],
-                "strategy": "real-bot-own",
+                "strategy": buy.get("strategy") or "unknown",
             })
     closed_trades.sort(key=lambda t: t["exit_time_utc"], reverse=True)
     return {
@@ -8974,14 +9033,14 @@ def reconcile_open_positions_from_journal():
             apply_paper_trade(conn, symbol, "buy", pos["qty"], pos["entry_price_native"])
             conn.execute(
                 "INSERT INTO signal_state "
-                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, entry_regime) "
-                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, entry_regime, strategy) "
+                "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
                 "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
                 "initial_stop_loss=excluded.initial_stop_loss, "
                 "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, "
                 "orb_high=excluded.orb_high, orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, "
-                "interval=excluded.interval, entry_regime=excluded.entry_regime",
+                "interval=excluded.interval, entry_regime=excluded.entry_regime, strategy=excluded.strategy",
                 # initial_stop_loss_native only exists in a journal snapshot
                 # written after this feature shipped - fall back to
                 # stop_loss_native (whatever the live stop was at sync time,
@@ -8990,11 +9049,14 @@ def reconcile_open_positions_from_journal():
                 # 09-14 fix) is the same story - None for any journal
                 # snapshot written before this shipped, the safe default
                 # that keeps the trend_weakened check exactly as before.
+                # strategy reuses the same strategy_tag already computed
+                # above (2026-09-03 journal-field fallback), just now
+                # threaded into signal_state too (2026-09-21).
                 (symbol, day_str, pos["entry_price_native"], pos["stop_loss_native"],
                  pos.get("initial_stop_loss_native", pos["stop_loss_native"]),
                  pos["target_native"], pos["qty"], entry_ts, pos["orb_high_native"],
                  pos["orb_low_native"], pos["fx_to_inr"], pos.get("interval", "5m"),
-                 pos.get("entry_regime")),
+                 pos.get("entry_regime"), strategy_tag),
             )
             recovered.append(symbol)
         conn.commit()
