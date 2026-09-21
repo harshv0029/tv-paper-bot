@@ -1026,7 +1026,17 @@ async function refreshConstraints() {
     return;
   }
   const grid = document.getElementById("constraints-grid");
-  grid.innerHTML = Object.entries(settings).map(([key, s]) => `
+  grid.innerHTML = Object.entries(settings)
+    // real_daily_cap_inr removed from this panel (2026-09-21, explicit
+    // user instruction) - this page has no way to actually supply the
+    // Kotak API token its save path prompts for, so every save attempt
+    // here just failed with "Bad or missing token". Still a live,
+    // functioning backend setting (main.py's /runtime-settings still
+    // reads/writes it) - only this UI's editable control for it is gone;
+    // change it via a request carrying the real token instead (e.g.
+    // POST /runtime-settings with a valid ?token=... query param).
+    .filter(([key]) => key !== "real_daily_cap_inr")
+    .map(([key, s]) => `
     <div class="constraint-item">
       <span class="constraint-lbl">${CONSTRAINT_LABELS[key] || key}${s.requires_token ? ' <span class="constraint-badge">real money</span>' : ""}</span>
       <span class="constraint-desc">${s.description}</span>
