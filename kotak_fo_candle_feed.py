@@ -186,21 +186,12 @@ def _resolve_underlying_legs(kotak_name: str, spot: float, band: int, expiry_cla
                 }
 
 
-# 2026-09-21 live incident: 8 workers triggered a Render OOM crash-loop
-# within minutes of deploy (confirmed via repeated 502s from Render's own
-# proxy immediately after this rolled out, and two Render OOM-restart
-# emails whose timing lines up with the crash window) - 8 concurrent
-# underlyings each holding their own yfinance/requests/pandas response
-# data alive at once turned out to be real memory pressure, not just a
-# request-rate concern. Dropped to 3 as a first cut: still parallel
-# enough to keep the resolve well under FO_UNIVERSE_RESOLVE_TIMEOUT_
-# SECONDS (vs. fully serial timing out), but a much smaller concurrent
-# memory footprint. Kotak's documented REST cap is 10 req/sec; each
-# underlying job makes several sequential search_scrip calls of its own
-# (1 future + up to 2 rights x 2 expiry classes), so 3 concurrent stays
-# well under that cap too. Needs to be watched through a live deploy
-# before considering this number final - see this commit's message.
-FO_RESOLVE_MAX_WORKERS = 3
+# Kotak's documented REST cap is 10 req/sec; each underlying job below
+# makes several sequential search_scrip calls of its own (1 future + up
+# to 2 rights x 2 expiry classes), so 8 concurrent underlyings stays well
+# under that cap while still cutting the ~1,000-call serial resolve down
+# to a small number of parallel batches.
+FO_RESOLVE_MAX_WORKERS = 8
 
 
 def _resolve_one_underlying(cash_symbol: str, kotak_name: str, band: int, expiry_classes: tuple):
