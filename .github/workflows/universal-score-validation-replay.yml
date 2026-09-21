@@ -167,10 +167,6 @@ jobs:
                               position = None
                           continue
 
-                      range_confidence_now = (
-                          m._range_regime_confidence(today_df) if position["regime"] == "range" else None
-                      )
-
                       exit_reason = None
                       if last_close >= current_target and next_leg is None:
                           exit_reason = "target_hit"
@@ -188,19 +184,13 @@ jobs:
                           # exactly so this replay stays honest about what's
                           # actually live - not a separate, drifted copy.
                           exit_reason = "trend_weakened"
-                      elif position["regime"] == "range" and range_confidence_now is not None \
-                              and range_confidence_now < m._norm_cdf(m.RANGE_CONFIDENCE_DECAY_Z):
-                          # 2026-09-21 fix (task #6, confidence-proportional
-                          # sizing + confidence-decay exit) - RANGE-regime
-                          # analog of trend_weakened directly above. Redesigned
-                          # 2026-09-21 with a hysteresis buffer
-                          # (RANGE_CONFIDENCE_DECAY_Z, half the entry bar
-                          # instead of the entry bar itself) after the first
-                          # implementation fired on 85% of RANGE trades from
-                          # boundary noise. Mirrors main.py's live logic
-                          # exactly (_auto_signal_core) so this replay stays
-                          # honest about what's actually live.
-                          exit_reason = "range_confidence_weakened"
+                      # A RANGE confidence-decay exit (range_confidence_weakened)
+                      # was tried here 2026-09-21 (task #6) - two designs (decay
+                      # at the entry z-bar, then a hysteresis buffer at half the
+                      # entry z-bar) each badly broke the RANGE regime on this
+                      # exact replay and were dropped per explicit user decision.
+                      # main.py no longer has this exit_reason; kept dropped here
+                      # too so this replay stays honest about what's actually live.
                       elif (last_ts - position["entry_ts"]) >= MAX_HOLD_MINUTES * 60 and current_stop <= position["initial_stop"]:
                           exit_reason = "stale_timeout"
                       elif mins >= SQUAREOFF_MIN:
