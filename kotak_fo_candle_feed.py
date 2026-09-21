@@ -108,7 +108,7 @@ RESTART_BACKOFF_MAX_SECONDS = 900  # 15 min ceiling - same reasoning as kotak_li
 # login session - see kotak_neo.search_scrip's own cache - so this is
 # no longer ~645 TOTP round trips), short enough to actually recover
 # from a genuine network-level hang within a reasonable time.
-FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS = 240
+FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS = 180
 
 # Universe re-resolved at most this often (ATM shifts as spot moves
 # intraday, and expiries roll weekly) - not on every reconnect, to avoid
@@ -138,13 +138,7 @@ def get_cached_fo_universe() -> dict:
 def _spot_price(cash_symbol: str):
     import main  # deferred - avoids a circular import at module load time
     try:
-        # period "5d" (not "1d"): matches the main equity scheduler's own
-        # fetch_ohlc(symbol, "5d", interval) calls, so this hits main.py's
-        # warm _DATA_CACHE (keyed on (symbol, period, interval)) for any
-        # symbol the scheduler already fetched this cycle instead of
-        # forcing a fresh, uncached yfinance call - still just reads
-        # .iloc[-1] for the latest close, so behavior is unchanged.
-        df = main.fetch_ohlc(cash_symbol, "5d", "5m")
+        df = main.fetch_ohlc(cash_symbol, "1d", "5m")
         return float(df["Close"].iloc[-1]) if df is not None and len(df) else None
     except Exception:
         return None
@@ -186,34 +180,6 @@ def _resolve_underlying_legs(kotak_name: str, spot: float, band: int, expiry_cla
                 }
 
 
-# Kotak's documented REST cap is 10 req/sec; each underlying job below
-# makes several sequential search_scrip calls of its own (1 future + up
-# to 2 rights x 2 expiry classes), so 8 concurrent underlyings stays well
-# under that cap while still cutting the ~1,000-call serial resolve down
-# to a small number of parallel batches.
-FO_RESOLVE_MAX_WORKERS = 8
-
-
-def _resolve_one_underlying(cash_symbol: str, kotak_name: str, band: int, expiry_classes: tuple):
-    """One underlying's full resolve (spot lookup + _resolve_underlying_legs),
-    run in its own worker thread by resolve_fo_universe()'s executor - own
-    local universe/unresolved so concurrent workers never mutate shared
-    state, and wrapped in try/except so one bad underlying (a network
-    blip, an unexpected nse_fo_chain error) can't take the whole resolve
-    down, matching this module's existing one-hiccup discipline."""
-    local_universe = {}
-    local_unresolved = []
-    try:
-        spot = _spot_price(cash_symbol)
-        if spot is None or spot <= 0:
-            local_unresolved.append(f"{kotak_name}:spot_unavailable")
-            return local_universe, local_unresolved
-        _resolve_underlying_legs(kotak_name, spot, band, expiry_classes, local_universe, local_unresolved)
-    except Exception as e:
-        local_unresolved.append(f"{kotak_name}:resolve_error:{e}")
-    return local_universe, local_unresolved
-
-
 def resolve_fo_universe() -> dict:
     """{(exchange_segment, instrument_token): descriptor} for every leg
     this feed subscribes to: the 3 index underlyings at
@@ -226,33 +192,29 @@ def resolve_fo_universe() -> dict:
     spot fetch, no matching contract, etc.) is silently skipped and
     recorded in _feed_status["unresolved_legs"] - never raises, matching
     kotak_live_feed.resolve_tokens's own one-hiccup-doesn't-take-down-
-    everything-else discipline.
-
-    Each underlying is resolved independently via a ThreadPoolExecutor
-    (FO_RESOLVE_MAX_WORKERS workers) rather than serially - the ~1,000+
-    network calls this used to make one at a time (210 spot lookups + up
-    to ~645 Kotak search_scrip calls) were the direct cause of this
-    resolve blowing through FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS every
-    cycle in production. Per-underlying results are merged into the
-    shared universe/unresolved only in this calling thread, after each
-    future completes, to avoid any concurrent-mutation issue."""
+    everything-else discipline."""
     universe = {}
     unresolved = []
 
-    jobs = [
-        (cash_symbol, kotak_name, nse_fo_chain.DEFAULT_ATM_STRIKE_BAND, INDEX_EXPIRY_CLASSES)
-        for cash_symbol, kotak_name in FO_CANDLE_UNDERLYINGS.items()
-    ] + [
-        (f"{kotak_name}.NS", kotak_name, STOCK_ATM_STRIKE_BAND, STOCK_EXPIRY_CLASSES)
-        for kotak_name in nse_fo_chain.STOCK_FO_UNDERLYINGS
-    ]
+    for cash_symbol, kotak_name in FO_CANDLE_UNDERLYINGS.items():
+        spot = _spot_price(cash_symbol)
+        if spot is None or spot <= 0:
+            unresolved.append(f"{kotak_name}:spot_unavailable")
+            continue
+        _resolve_underlying_legs(
+            kotak_name, spot, nse_fo_chain.DEFAULT_ATM_STRIKE_BAND, INDEX_EXPIRY_CLASSES,
+            universe, unresolved,
+        )
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=FO_RESOLVE_MAX_WORKERS) as pool:
-        futures = [pool.submit(_resolve_one_underlying, *job) for job in jobs]
-        for fut in concurrent.futures.as_completed(futures):
-            local_universe, local_unresolved = fut.result()
-            universe.update(local_universe)
-            unresolved.extend(local_unresolved)
+    for kotak_name in nse_fo_chain.STOCK_FO_UNDERLYINGS:
+        spot = _spot_price(f"{kotak_name}.NS")
+        if spot is None or spot <= 0:
+            unresolved.append(f"{kotak_name}:spot_unavailable")
+            continue
+        _resolve_underlying_legs(
+            kotak_name, spot, STOCK_ATM_STRIKE_BAND, STOCK_EXPIRY_CLASSES,
+            universe, unresolved,
+        )
 
     _feed_status["unresolved_legs"] = unresolved
     return universe
