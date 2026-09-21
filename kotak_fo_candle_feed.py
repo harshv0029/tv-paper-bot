@@ -46,6 +46,7 @@ partial-candle persistence would cost real complexity for a candle
 interval (5 min) that's a small fraction of a trading day.
 """
 import asyncio
+import concurrent.futures
 import time
 from contextlib import closing
 
