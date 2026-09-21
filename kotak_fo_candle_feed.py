@@ -103,12 +103,35 @@ RESTART_BACKOFF_MAX_SECONDS = 900  # 15 min ceiling - same reasoning as kotak_li
 # Hard ceiling on one resolve_fo_universe() call (2026-09-16, live
 # incident) - see run_fo_candle_feed's own asyncio.wait_for comment for
 # why this must be bounded now that it runs under a lock shared with
-# kotak_live_feed.py. Generous enough for the real ~645-call resolve
-# under healthy network conditions (each call now reuses a cached
-# login session - see kotak_neo.search_scrip's own cache - so this is
-# no longer ~645 TOTP round trips), short enough to actually recover
-# from a genuine network-level hang within a reasonable time.
-FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS = 180
+# kotak_live_feed.py.
+#
+# 2026-09-21, raised 180 -> 600: live diagnostics this session (see
+# /kotak-neo/fo-candle-feed-status checks throughout 2026-09-21) showed
+# this resolve NEVER ONCE completing at 180s - connected stayed false,
+# subscribed_instruments stayed 0, indefinitely, every cycle. This
+# function makes ~1,000+ genuinely sequential network calls per resolve
+# (210 yfinance spot lookups + up to ~645 Kotak search_scrip calls across
+# future+call+put legs), which the 180s budget never actually covered
+# under real network conditions, comment above notwithstanding. A
+# same-session attempt to fix this via ThreadPoolExecutor parallelism
+# instead (8, then 3, concurrent workers) triggered a live Render OOM
+# crash-loop and was reverted - see this file's git history around
+# 2026-09-21 for that incident. This is the deliberately conservative
+# follow-up: stay fully sequential (no concurrency, no change to memory
+# profile - only one HTTP response/DataFrame alive at a time, same as
+# before this session started), and instead give the serial resolve
+# enough wall-clock time to actually finish. 600s is a generous estimate,
+# not measured against real production timing (no Render log access this
+# session) - needs live validation before being trusted as final; if a
+# full serial resolve still doesn't complete inside this window, the
+# actual per-call latency needs to be measured directly (e.g. instrument
+# _resolve_underlying_legs/_spot_price to log elapsed time), not another
+# blind timeout bump. Safe to run this long: resolve_fo_universe() runs
+# via asyncio.to_thread (see run_fo_candle_feed below), so a long resolve
+# does not block the event loop or Render's own health check - Render
+# staying responsive during this window was already confirmed by the
+# 2026-09-16 asyncio.to_thread fix, unrelated to this specific ceiling.
+FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS = 600
 
 # Universe re-resolved at most this often (ATM shifts as spot moves
 # intraday, and expiries roll weekly) - not on every reconnect, to avoid
