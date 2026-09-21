@@ -931,5 +931,33 @@
     "rr_target": 3.0,
     "rr_achieved": 15106.59,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "JUBLFOOD.NS",
+    "exit_time_utc": 1789984246.4689436,
+    "entry_price_native": 487.5,
+    "exit_price_native": 485.85,
+    "currency": "INR",
+    "qty": 6.0,
+    "pnl_inr": -9.9,
+    "pnl_pct_of_capital": -0.002,
+    "exit_reason": "eod_squareoff",
+    "rr_target": 3.0,
+    "rr_achieved": -0.77,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "MCX.NS",
+    "exit_time_utc": 1789984277.5083435,
+    "entry_price_native": 3171.0,
+    "exit_price_native": 3201.0,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 30.0,
+    "pnl_pct_of_capital": 0.007,
+    "exit_reason": "eod_squareoff",
+    "rr_target": 3.0,
+    "rr_achieved": 1.81,
+    "strategy": "orb-universal-score"
   }
 ]

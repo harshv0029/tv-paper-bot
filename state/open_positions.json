@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-21T08:41:43Z",
+  "synced_at_utc": "2026-09-21T13:07:00Z",
   "open_positions": [
     {
       "symbol": "GENCON.NS",
@@ -18,24 +18,6 @@
       "sma_fast": null,
       "sma_slow": null,
       "entry_regime": null
-    },
-    {
-      "symbol": "MCX.NS",
-      "qty": 1.0,
-      "entry_price_native": 3171.0,
-      "stop_loss_native": 3154.457205636161,
-      "initial_stop_loss_native": 3154.457205636161,
-      "target_native": 3204.09,
-      "fx_to_inr": 1.0,
-      "notional_inr": 3171.0,
-      "orb_high_native": null,
-      "orb_low_native": 3156.60009765625,
-      "entry_ts": 1789979953.1727211,
-      "interval": "5m",
-      "strategy": "orb-universal-score",
-      "sma_fast": 9,
-      "sma_slow": 21,
-      "entry_regime": "range"
     }
   ]
 }
