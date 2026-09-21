@@ -3046,6 +3046,17 @@ TRAIL_BREAKEVEN_BUFFER_PCT = 0.1  # breakeven-lock sits slightly above entry, no
 # actual fee schedule already documented and used elsewhere in this repo.
 ROUND_TRIP_COST_PCT = 0.8
 
+# 2026-09-21, explicit user instruction: "Make sure that u do not trade
+# between 9:15-9:30. As they are exceptional behaviour" - the opening 15
+# minutes of the NSE session sees exaggerated, unrepresentative price
+# action (overnight-gap unwind, opening-auction imbalance) that this
+# engine's own indicators (ORB range, SMA/VWAP reads) haven't had enough
+# same-session data to filter yet. Blocks NEW entries only - an already-
+# open position's exits/trailing-stop/target management are untouched,
+# same "only entries are gated" precedent as the aggregate-open-risk gate
+# just above this constant's call site.
+NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES = 15
+
 
 def _target_move_pct(target: float, last_close: float) -> float:
     """Gross % move from last_close to target - long-only entries only, so
@@ -4224,7 +4235,7 @@ def _options_signal_core(
     risk_per_trade_pct: float = 2.0, rr: float = 3.0, option_stop_pct: float = OPTIONS_STOP_PCT,
     orb_minutes: int = 15, sma_fast: int = 9, sma_slow: int = 21, trend_sma: int = 20,
     interval: str = "5m", tz_offset_min: int = IST_OFFSET_MIN, open_min: int = 9 * 60 + 15,
-    close_min: int = 15 * 60 + 30, squareoff_min: int = 15 * 60 + 20, trade_weekends: bool = False,
+    close_min: int = 15 * 60 + 30, squareoff_min: int = 15 * 60 + 15, trade_weekends: bool = False,
     currency: str = "USD",
 ):
     """Options equivalent of _auto_signal_core: same shared capital pool,
@@ -4533,7 +4544,7 @@ def _auto_signal_core(
     tz_offset_min: int = IST_OFFSET_MIN,
     open_min: int = 9 * 60 + 15,
     close_min: int = 15 * 60 + 30,
-    squareoff_min: int = 15 * 60 + 20,
+    squareoff_min: int = 15 * 60 + 15,
     trade_weekends: bool = False,
     currency: str = "INR",
     strategy: str = "orb_breakout",
@@ -5065,6 +5076,9 @@ def _auto_signal_core(
         if is_squareoff_time:
             result["action_taken"] = "no_new_entries_market_closing"
             return result
+        if mins_now < open_min + NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES:
+            result["action_taken"] = "no_new_entries_opening_volatility"
+            return result
 
         if strategy == "orb_breakout":
             # Stronger entries, explicit user instruction 2026-09-04: too
@@ -5387,6 +5401,31 @@ def _auto_signal_core(
             # holds for those asset classes, just not for NSE cash equities.
             if _asset_class_and_source(symbol)[0] == "nse_equity":
                 qty = float(math.floor(qty))
+            elif symbol in _PAPER_LOT_SIZE_UNDERLYING:
+                # 2026-09-21, explicit user instruction ("stop paper to do
+                # trading in fraction if exchange does not allow... Paper
+                # trading should mimic all conditions of exchange
+                # trading"; lot-size source explicitly chosen as "fetch
+                # live from Kotak", not a hardcoded constant): NIFTY/
+                # BANKNIFTY/SENSEX/GOLD/SILVER/CRUDE can never be bought
+                # fractionally for real - only as futures/options in a
+                # fixed exchange lot size. Resolves the REAL lot size live
+                # via the same nse_fo_chain.select_nse_future the real F&O
+                # order paths already trust (never guessed/hardcoded -
+                # same discipline nse_fo_chain.py holds itself to
+                # elsewhere), floors qty to a whole multiple of it. On any
+                # resolution failure (feed unreachable, no upcoming
+                # contract), skips this entry entirely rather than
+                # falling back to a fractional paper quantity no real
+                # order could ever match.
+                import nse_fo_chain
+                future, err = nse_fo_chain.select_nse_future(_PAPER_LOT_SIZE_UNDERLYING[symbol])
+                if future is None:
+                    result["action_taken"] = "skipped_no_lot_size"
+                    result["detail"] = err
+                    return result
+                lot_size = future["lot_size"]
+                qty = float(math.floor(qty / lot_size) * lot_size)
 
             # A trade sized to a few rupees isn't a real position - guard
             # against dust-sized fills from float rounding rather than
@@ -5472,7 +5511,7 @@ def auto_signal(
     tz_offset_min: int = IST_OFFSET_MIN,
     open_min: int = 9 * 60 + 15,
     close_min: int = 15 * 60 + 30,
-    squareoff_min: int = 15 * 60 + 20,
+    squareoff_min: int = 15 * 60 + 15,
     trade_weekends: bool = False,
     currency: str = "INR",
     strategy: str = "orb_breakout",
@@ -5542,7 +5581,7 @@ def auto_signal(
 # a reasonable next step if this still isn't enough.
 NSE_STOCK_DEFAULT_PARAMS = {
     "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-    "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+    "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
     "trade_weekends": False, "currency": "INR",
     "risk_pct": 1.0, "stop_pct": 1.0,  # unproven -> half ceiling until evidenced, same as before
 }
@@ -5789,13 +5828,13 @@ WATCHLIST = [
     # full evidence-backed ceiling (2%) - real 60-day backtest evidence
     # behind this exact strategy.
     {"symbol": "^NSEI", "orb_minutes": 30, "sma_fast": 5, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^NSEBANK", "orb_minutes": 5, "sma_fast": 9, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 920,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
 ] + [
     {"symbol": sym, **NSE_STOCK_DEFAULT_PARAMS, **NSE_STOCK_PARAM_OVERRIDES.get(sym, {})}
@@ -6110,8 +6149,9 @@ def is_real_fo_trading_enabled() -> bool:
 
 def _real_fo_today_spent_inr(conn) -> float:
     """Sum of today's (IST calendar day) CONFIRMED real F&O buy notional
-    (premium * qty for a bought option) - what real_fo_daily_cap_inr
-    actually caps. Mirrors _real_today_spent_inr's own reasoning exactly,
+    (premium * qty for a bought option) - what the F&O daily spend cap
+    (_day_open_capital_inr, see its call sites) actually caps against.
+    Mirrors _real_today_spent_inr's own reasoning exactly,
     sourced from real_fo_trades (this codebase's own record, populated at
     order-attempt time), not from Kotak's own trade/order reports."""
     today = ist_now().strftime("%Y-%m-%d")
@@ -6310,11 +6350,18 @@ def _maybe_place_real_entry(conn, symbol: str):
         # the position genuinely exists at Kotak either way, and
         # _maybe_sync_real_stop_loss retries placing it on every later
         # tick for as long as real_positions.sl_order_id stays NULL.
+        # sl_confirmed gates the target placement below (2026-09-21,
+        # explicit user instruction, live Cochin Shipyard incident - see
+        # that fix's full comment on the staged-leg version of this same
+        # SL-then-target sequencing in _maybe_place_real_partial_exit):
+        # never rest a target order for a position with no confirmed stop.
+        sl_confirmed = False
         if paper_row and paper_row["stop_loss"]:
             sl_result = kotak_real_orders.place_real_stop_loss(
                 kotak_symbol, real_qty, round(paper_row["stop_loss"], 2)
             )
             if sl_result.get("ok"):
+                sl_confirmed = True
                 conn.execute(
                     "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                     (sl_result["order_id"], sl_result["trigger_price"], symbol),
@@ -6359,10 +6406,18 @@ def _maybe_place_real_entry(conn, symbol: str):
         # paper_row["target"]) when there's no ladder at all (real_exit_legs
         # is None) OR the only leg is "trail" (qty<=1 at entry - see
         # _split_exit_legs).
+        # sl_confirmed gate (2026-09-21): only rest a target once the SL
+        # above is confirmed - see this block's own top comment.
         first_leg = next((l for l in (real_exit_legs or []) if l["leg"] != "trail"), None)
         target_leg_qty = first_leg["qty"] if first_leg else real_qty
         target_leg_price = first_leg["target_price"] if first_leg else (paper_row["target"] if paper_row else None)
-        if target_leg_qty and target_leg_price:
+        if not sl_confirmed and target_leg_qty and target_leg_price:
+            _log_real_order_event(
+                conn, symbol, "target", "skipped_sl_not_confirmed", kotak_trading_symbol=kotak_symbol,
+                prev_state="none",
+                new_state="none (SL placement failed or unavailable - target withheld to avoid a naked position)",
+            )
+        if sl_confirmed and target_leg_qty and target_leg_price:
             target_result = kotak_real_orders.place_real_target(
                 kotak_symbol, target_leg_qty, round(target_leg_price, 2)
             )
@@ -6698,57 +6753,37 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     conn.commit()
     _sync_real_positions_external(conn)
 
-    # Advance the resting target to the NEXT unfilled fixed leg (if any) -
-    # cancel the one that just filled (best-effort; it may already show
-    # filled/gone at Kotak, a cancel on an already-filled order is a
-    # harmless no-op rejection) and place a fresh one sized to the next
-    # leg's own qty/price. No new target is placed once only the "trail"
-    # leg remains - that qty is governed by the position's existing
-    # target/leading-target-extend/trailing-stop machinery exactly as a
-    # pre-revamp single-target position, via the normal full-exit path
-    # (_maybe_place_real_exit) whenever the paper engine's own exit_reason
-    # chain next fires.
-    if row["target_order_id"]:
-        kotak_real_orders.cancel_real_order(row["target_order_id"])
-    next_leg = next((l for l in legs if l["leg"] != "trail" and l["status"] == "open"), None)
-    if next_leg and next_leg.get("target_price"):
-        target_result = kotak_real_orders.place_real_target(
-            row["kotak_trading_symbol"], next_leg["qty"], round(next_leg["target_price"], 2)
-        )
-        if target_result.get("ok"):
-            conn.execute(
-                "UPDATE real_positions SET target_order_id = ?, target_price = ? WHERE symbol = ?",
-                (target_result["order_id"], target_result["target_price"], symbol),
-            )
-            _log_real_order_event(
-                conn, symbol, "target", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
-                order_id=target_result["order_id"], prev_state="advancing to next staged leg",
-                new_state=f"resting SELL limit Rs{target_result['target_price']:.2f} for leg {next_leg['leg']}",
-            )
-        else:
-            conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
-            _log_real_order_event(
-                conn, symbol, "target", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
-                prev_state="advancing to next staged leg",
-                new_state="none (placement failed)", detail=target_result.get("detail"),
-            )
-            _flag_if_t1_restricted(conn, symbol, target_result.get("detail"))
-    else:
-        conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
+    # 2026-09-21, explicit user instruction, live Cochin Shipyard incident:
+    # this path used to place the NEW target for the next leg FIRST, then
+    # the fresh SL for the same leg second - here the SL placement got
+    # REJECTED, leaving the position with a resting profit target but NO
+    # stop-loss at all until the user noticed and manually cancelled the
+    # target and re-placed the SL themselves. "First after entry, I want
+    # SL order then confirm and then send the target order." SL now goes
+    # FIRST; the new target is only placed once the SL is CONFIRMED - if
+    # SL placement fails, the new target is withheld entirely (same "no
+    # naked target" principle, not just a reordering) rather than resting
+    # an unprotected profit order. _maybe_sync_real_stop_loss keeps
+    # retrying the SL every later tick exactly as an outright SL-placement
+    # failure already does, and the scheduler's own per-tick poll
+    # (_maybe_place_real_exit) still handles this leg's profit-booking
+    # with no resting order backing it in the meantime.
 
-    # Place a fresh SL sized to the smaller remaining qty. The OLD order was
-    # already cancelled UP FRONT (before the sell attempt above, per the
-    # 2026-09-14 fix) - this never resizes/cancels-then-replaces here, it
-    # only ever PLACES, since nothing is left resting to cancel. Also fires
-    # when there was no old sl_order_id at all but a trigger price is still
-    # known (e.g. a prior placement failure had already cleared it) - closes
-    # a pre-existing gap where such a position would never get a fresh SL
-    # attempt from this path.
+    # Place a fresh SL sized to the smaller remaining qty FIRST. The OLD
+    # SL order was already cancelled UP FRONT (before the sell attempt
+    # above, per the 2026-09-14 fix) - this never resizes/cancels-then-
+    # replaces here, it only ever PLACES, since nothing is left resting
+    # to cancel. Also fires when there was no old sl_order_id at all but
+    # a trigger price is still known (e.g. a prior placement failure had
+    # already cleared it) - closes a pre-existing gap where such a
+    # position would never get a fresh SL attempt from this path.
+    sl_confirmed = False
     if remaining_qty > 0 and row["sl_trigger_price"]:
         sl_result = _place_real_stop_loss_with_retry(
             row["kotak_trading_symbol"], remaining_qty, row["sl_trigger_price"]
         )
         if sl_result.get("ok"):
+            sl_confirmed = True
             conn.execute(
                 "UPDATE real_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                 (sl_result["order_id"], sl_result["trigger_price"], symbol),
@@ -6775,6 +6810,64 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
                 new_state="none (placement failed)", detail=sl_result.get("detail"),
             )
             _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
+
+    # Advance the resting target to the NEXT unfilled fixed leg (if any) -
+    # cancel the one that just filled (best-effort; it may already show
+    # filled/gone at Kotak, a cancel on an already-filled order is a
+    # harmless no-op rejection) and place a fresh one sized to the next
+    # leg's own qty/price - ONLY once the fresh SL above is confirmed
+    # resting (see this function's own 2026-09-21 comment above). No new
+    # target is placed once only the "trail" leg remains - that qty is
+    # governed by the position's existing target/leading-target-extend/
+    # trailing-stop machinery exactly as a pre-revamp single-target
+    # position, via the normal full-exit path (_maybe_place_real_exit)
+    # whenever the paper engine's own exit_reason chain next fires.
+    if row["target_order_id"]:
+        kotak_real_orders.cancel_real_order(row["target_order_id"])
+    else:
+        # 2026-09-21, explicit user instruction ("check which order there
+        # and then if u want place a better order then cancel that from
+        # order book and then validate and then place new order") - same
+        # lost-tracking gap cancel_existing_resting_sl was built for
+        # (2026-09-08 AGL incident): target_order_id can be NULL here even
+        # though a real resting target still exists at Kotak (a restart
+        # landing between "a target got placed" and the next journal-sync
+        # snapshot capturing its id). Sweeps the broker's OWN order book
+        # (ground truth) for any bot-placed resting target on this symbol
+        # and cancels it first, so advancing to the next leg can never
+        # stack a duplicate target order on top of an orphaned one.
+        kotak_real_orders.cancel_existing_resting_target(row["kotak_trading_symbol"])
+    next_leg = next((l for l in legs if l["leg"] != "trail" and l["status"] == "open"), None)
+    if sl_confirmed and next_leg and next_leg.get("target_price"):
+        target_result = kotak_real_orders.place_real_target(
+            row["kotak_trading_symbol"], next_leg["qty"], round(next_leg["target_price"], 2)
+        )
+        if target_result.get("ok"):
+            conn.execute(
+                "UPDATE real_positions SET target_order_id = ?, target_price = ? WHERE symbol = ?",
+                (target_result["order_id"], target_result["target_price"], symbol),
+            )
+            _log_real_order_event(
+                conn, symbol, "target", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                order_id=target_result["order_id"], prev_state="advancing to next staged leg",
+                new_state=f"resting SELL limit Rs{target_result['target_price']:.2f} for leg {next_leg['leg']}",
+            )
+        else:
+            conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
+            _log_real_order_event(
+                conn, symbol, "target", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                prev_state="advancing to next staged leg",
+                new_state="none (placement failed)", detail=target_result.get("detail"),
+            )
+            _flag_if_t1_restricted(conn, symbol, target_result.get("detail"))
+    else:
+        conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
+        if not sl_confirmed and next_leg and next_leg.get("target_price"):
+            _log_real_order_event(
+                conn, symbol, "target", "skipped_sl_not_confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                prev_state="advancing to next staged leg",
+                new_state="none (SL placement failed or unavailable - target withheld to avoid a naked position)",
+            )
     _sync_real_positions_external(conn)
 
 
@@ -7175,8 +7268,10 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
 #   2. Long Straddle - a genuinely NEW, NOT YET BACKTESTED strategy, paper-
 #      tracked unconditionally, real-mirrored only behind its own explicit
 #      opt-in (real_straddle_enabled runtime setting, default OFF).
-# Both share is_real_fo_trading_enabled()/real_fo_daily_cap_inr as their
-# gate/cap - SEPARATE from equity's real_trading_control/real_daily_cap_inr.
+# Both share is_real_fo_trading_enabled()/the F&O daily spend cap (2026-09-17:
+# _day_open_capital_inr - the account's own real capital as of today's open,
+# not a separately-configured fixed rupee figure) as their gate/cap -
+# SEPARATE from equity's real_trading_control/real_daily_cap_inr.
 #
 # MCX entries (2026-09-07, explicit user instruction "also mcx") map to
 # the MINI contract's pSymbolName (GOLDM/SILVERM/CRUDEOILM), not the
@@ -7189,6 +7284,19 @@ _INDEX_TO_FO_UNDERLYING = {
     "^NSEI": "NIFTY", "^NSEBANK": "BANKNIFTY",
     "GC=F": "GOLDM", "SI=F": "SILVERM", "CL=F": "CRUDEOILM",
 }
+
+# Paper-side lot-size lookup (2026-09-21, explicit user instruction: "stop
+# paper to do trading in fraction if exchange does not allow. Paper
+# trading should mimic all conditions of exchange trading") - a superset
+# of _INDEX_TO_FO_UNDERLYING that also covers ^BSESN (SENSEX), which has
+# no real-order mirror wired at all (see _maybe_place_real_fo_call_entry's
+# own _INDEX_TO_FO_UNDERLYING.get() miss for it) but is still a WATCHLIST
+# symbol paper-traded like every other index - it can't be bought
+# fractionally in real life either. nse_fo_chain.py's own confirmed-live
+# underlying key for it is the bare string "SENSEX" (not mapped through
+# an options-mini-contract like the MCX names are, since SENSEX futures
+# trade under their own full-size pSymbolName).
+_PAPER_LOT_SIZE_UNDERLYING = {**_INDEX_TO_FO_UNDERLYING, "^BSESN": "SENSEX"}
 
 # ---------------------------------------------------------------------------
 # F&O chain monitoring (2026-09-16, explicit user request: "start
@@ -7312,7 +7420,15 @@ def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float):
 
     qty = contract["lot_size"]
     notional_inr = qty * contract["premium"]  # every F&O underlying wired here is INR-native, no fx conversion
-    remaining = get_runtime_setting(conn, "real_fo_daily_cap_inr") - _real_fo_today_spent_inr(conn)
+    # 2026-09-17, explicit user instruction ("Daily F&O cap = Kotak
+    # available capital. Not a fix number"): the daily F&O spend ceiling
+    # is now the account's OWN real capital as of today's open (the same
+    # _day_open_capital_inr basis the joint real-loss-cap right below
+    # already uses, for the same "keep it as a % of/here, all of real
+    # money available at the beginning of day" reasoning) - not a
+    # separately-configured runtime setting that could drift out of sync
+    # with what the account can actually afford.
+    remaining = _day_open_capital_inr(conn) - _real_fo_today_spent_inr(conn)
     if notional_inr > remaining:
         _log_real_fo_attempt(
             conn, leg_key, "B", "skipped_over_daily_cap", kotak_trading_symbol=contract["kotak_trading_symbol"],
@@ -7557,7 +7673,9 @@ def _straddle_signal_core(conn, fo_underlying: str, vol_signal, halted: bool, is
 
     import kotak_real_fo_orders
     combined_notional = qty * (call_c["premium"] + put_c["premium"])
-    remaining = get_runtime_setting(conn, "real_fo_daily_cap_inr") - _real_fo_today_spent_inr(conn)
+    # Same live-capital basis as the single-leg call entry above - see
+    # that call site's own comment.
+    remaining = _day_open_capital_inr(conn) - _real_fo_today_spent_inr(conn)
     if combined_notional > remaining:
         for right, c in (("CE", call_c), ("PE", put_c)):
             _log_real_fo_attempt(
@@ -8426,7 +8544,7 @@ def get_real_fo_control(request: Request):
         open_positions = [dict(r) for r in conn.execute("SELECT * FROM real_fo_positions").fetchall()]
         open_straddles = [dict(r) for r in conn.execute("SELECT * FROM nse_straddle_state").fetchall()]
         today_spent_inr = _real_fo_today_spent_inr(conn)
-        daily_cap_inr = get_runtime_setting(conn, "real_fo_daily_cap_inr")
+        daily_cap_inr = _day_open_capital_inr(conn)
         straddle_enabled = get_runtime_setting(conn, "real_straddle_enabled") >= 0.5
         # Joint real daily-loss cap (2026-09-08) - see _real_loss_budget's
         # own docstring. Same number /real-trading-control shows - this
@@ -8862,15 +8980,6 @@ RUNTIME_SETTINGS_META = {
         "orders. Real money - changing this requires the same Kotak API token as "
         "every other real-trading endpoint.",
     ),
-    "real_fo_daily_cap_inr": (
-        2000.0, 0.0, 1000000.0, True,
-        "Maximum total REAL F&O premium spend (buy side only) per IST calendar "
-        "day, across the single-leg call mirror and the Long Straddle - separate "
-        "pool from real_daily_cap_inr (equity). Real money - requires the Kotak "
-        "API token. Raise this (and fund the account) to actually enable F&O "
-        "orders to place - check_margin_affordable's own live check is what "
-        "ultimately decides affordability at the moment of each attempt.",
-    ),
     "real_straddle_enabled": (
         0.0, 0.0, 1.0, True,
         "0/1 - whether the Long Straddle strategy (docs/STRATEGY_LOG.md, NOT YET "
@@ -8878,8 +8987,8 @@ RUNTIME_SETTINGS_META = {
         "contraction signal fires. Paper-tracks regardless of this setting - "
         "turn this on only after reviewing paper results. Real money - requires "
         "the Kotak API token. Also requires REAL_FO_TRADING_ENABLED (Render env "
-        "var) and real_fo_daily_cap_inr/margin affordability, same as every "
-        "other real F&O order.",
+        "var), today's real capital not yet exhausted, and margin affordability, "
+        "same as every other real F&O order.",
     ),
     "daily_loss_reset_epoch": (
         0.0, 0.0, 4102444800.0, False,
@@ -10689,7 +10798,7 @@ def dry_run_day(
     """
     symbols = DRY_RUN_DEFAULT_SYMBOLS
     open_min = 9 * 60 + 15
-    squareoff_min = 15 * 60 + 20
+    squareoff_min = 15 * 60 + 15
 
     per_symbol_df = {}
     for cfg in symbols:
