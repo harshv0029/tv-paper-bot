@@ -178,19 +178,38 @@ order must be cancelled so it doesn't sit orphaned - see main.py's
 _maybe_place_real_exit, which now cancels both sl_order_id and
 target_order_id before selling.
 
-Deliberately NOT retried on a later tick if placement fails or the
-tracked order id goes stale (unlike the SL leg's cancel_existing_resting_sl
-sweep-and-retry) - a blind sweep-and-cancel of resting "L" limit sells for
-a symbol risks catching a genuine MANUAL limit order the user placed
-directly at Kotak (this account trades manually too - see this session's
-own history), which the SL sweep never risked (only this app ever places
-SL/SL-M orders). A failed/lost target placement is logged and left for a
-human/reconcile pass to notice, same discipline as every other
-known-and-documented gap in this module, rather than risking a wrong
-cancel of someone else's order. Tick-size alignment is NOT verified here
-either, same known gap as place_real_stop_loss.
+Deliberately NOT retried on a later tick if placement fails (unlike the
+SL leg's own per-tick replace in main.py's _maybe_sync_real_stop_loss) -
+a failed placement is logged and left for a human/reconcile pass to
+notice, same discipline as every other known-and-documented gap in this
+module.
+
+cancel_existing_resting_target (2026-09-21, explicit user instruction:
+"before placing next order when one entered position there and one same
+next order of same asset in order book then first check which order
+there... cancel that from order book and then validate and then place
+new order") - the target-side mirror of cancel_existing_resting_sl below,
+for the exact same lost-tracking gap (a restart landing between "a
+target got placed" and the next journal-sync snapshot capturing its
+target_order_id restores the position with target_order_id back to NULL
+even though a real resting order still exists at Kotak). A blind sweep-
+and-cancel of every resting "L" limit sell for a symbol WOULD risk
+catching a genuine MANUAL limit order the user placed directly at Kotak
+(this account trades manually too) - the exact reason this function
+didn't exist for a long time. What makes it safe now: every order this
+app itself places carries Kotak's own algo-order tag (ordSrc
+"ADMINCPPAPI_NEOTRADEAPI", algId not "NA"/blank - confirmed live,
+distinct from a manual/mobile order's ordSrc "ADMINCPPAPI_MOB"/algId
+"NA", same tag main.py's own reconcile-adopt logic already trusts), so
+this sweep filters on that tag too, not just symbol+side+order-type -
+only ever cancels an order THIS app itself placed, never a manual one.
 """
 import kotak_neo
+
+# Shared by cancel_existing_resting_sl/cancel_existing_resting_target - an
+# order in any of these statuses is already done (filled/dead), nothing to
+# cancel.
+_TERMINAL_ORDER_STATUSES = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
 
 
 def _confirm_order_status(order_id: str) -> dict:
@@ -385,7 +404,6 @@ def cancel_existing_resting_sl(kotak_trading_symbol: str) -> dict:
     except Exception as e:
         return {"cancelled": [], "detail": f"could not fetch order book: {e}"}
 
-    TERMINAL_STATUSES = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
     cancelled = []
     for row in (rows or []):
         if row.get("trdSym") != kotak_trading_symbol:
@@ -394,7 +412,55 @@ def cancel_existing_resting_sl(kotak_trading_symbol: str) -> dict:
             continue
         if str(row.get("prcTp", "")).upper() not in ("SL", "SL-M"):
             continue
-        if str(row.get("ordSt", "")).lower() in TERMINAL_STATUSES:
+        if str(row.get("ordSt", "")).lower() in _TERMINAL_ORDER_STATUSES:
+            continue
+        order_id = row.get("nOrdNo")
+        if not order_id:
+            continue
+        cancel_real_order(str(order_id))
+        cancelled.append(str(order_id))
+    return {"cancelled": cancelled, "detail": None}
+
+
+def cancel_existing_resting_target(kotak_trading_symbol: str) -> dict:
+    """Target-side mirror of cancel_existing_resting_sl above - see this
+    module's own top docstring ("Real resting target" section,
+    cancel_existing_resting_target paragraph) for the full reasoning,
+    including why the bot-order-tag filter below is what makes this safe
+    to sweep-and-cancel (unlike a bare symbol+side+order-type match, which
+    would risk catching a genuine manual limit order on this same
+    account).
+
+    Call this BEFORE placing a fresh target when target_order_id is
+    unknown (main.py's own known-id cancel-then-replace logic already
+    covers the case where it IS known) - queries Kotak's OWN order book
+    (ground truth, not this app's possibly-stale DB state) for any non-
+    terminal, THIS-APP-PLACED limit SELL on this symbol and cancels every
+    one found. Never raises; a failure to even fetch the order book is
+    reported but treated as "nothing found to cancel" - fails open, since
+    the caller places its own fresh target regardless of this call's
+    outcome, same fail-open contract as cancel_existing_resting_sl."""
+    try:
+        client = kotak_neo.login()
+        report = client.order_report()
+        rows = report.get("data") if isinstance(report, dict) else None
+    except Exception as e:
+        return {"cancelled": [], "detail": f"could not fetch order book: {e}"}
+
+    cancelled = []
+    for row in (rows or []):
+        if row.get("trdSym") != kotak_trading_symbol:
+            continue
+        if row.get("trnsTp") != "S":
+            continue
+        if str(row.get("prcTp", "")).upper() != "L":
+            continue
+        if str(row.get("ordSt", "")).lower() in _TERMINAL_ORDER_STATUSES:
+            continue
+        # The bot-order tag (confirmed live, see main.py's own reconcile-
+        # adopt logic for the same check) - this is what makes it safe to
+        # cancel a plain limit sell without risking a manual one.
+        if row.get("ordSrc") != "ADMINCPPAPI_NEOTRADEAPI" or row.get("algId") in (None, "NA", ""):
             continue
         order_id = row.get("nOrdNo")
         if not order_id:
