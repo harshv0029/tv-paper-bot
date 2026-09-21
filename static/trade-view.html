@@ -856,10 +856,20 @@ function renderScannedBanner(p) {
     el.textContent = '';
     return;
   }
+  // 2026-09-21, explicit user instruction: "I want an additional line
+  // mentioning that 'x is total scanned ones in last 30 seconds'" - the
+  // distinct/total figure above necessarily PLATEAUS once the whole
+  // (now 206-symbol, NIFTY 200) universe has been covered at least once
+  // today, which reads as "stalled" even while the scheduler keeps
+  // actively re-scanning it. This rolling-window count is the signal
+  // that actually answers "is scanning still happening right now" -
+  // healthy and nonzero while ticks continue, visibly 0 if they stop.
+  const recent = p.checks_last_30s;
   el.textContent = `${totalChecks} total checks run today` +
     (typeof distinct === 'number' && typeof total === 'number'
       ? ` (${distinct} / ${total} distinct stocks/assets scanned at least once)`
-      : '');
+      : '') +
+    (typeof recent === 'number' ? ` — ${recent} scanned in the last 30 seconds` : '');
 }
 
 async function refreshScanner() {
@@ -1175,6 +1185,12 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
 
   const pnlSpan = (v) => `<span class="num ${v >= 0 ? "up" : "down"}">${v >= 0 ? "+" : ""}₹${fmt(v)}</span>`;
   const dash = `<span class="scan-idle">—</span>`;
+  // 2026-09-21, explicit user instruction: "I can't see pnL % in each row.
+  // Update it" - same up/down styling pnlSpan already uses for the rupee
+  // figure, just for the % (null/undefined -> dash, never fabricated).
+  const pctSpan = (v) => (v === null || v === undefined)
+    ? dash
+    : `<span class="num ${v >= 0 ? "up" : "down"}">${v >= 0 ? "+" : ""}${fmt(v)}%</span>`;
   // Strategy tags come straight from main.py's own strategy_tag/OPTIONS_STRATEGY_TAG
   // (e.g. "orb-15m-sma9-21", "orb-bullish-engulfing-trend20", "orb-option") -
   // strip the constant "orb-" prefix here since every tag has it.
@@ -1303,7 +1319,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${dash}</td>
       <td class="num">${pnlSpan(t.pnl_inr ?? 0)}</td>
       <td class="num">${dash}</td>
-      <td class="num">${dash}</td>
+      <td class="num">${pctSpan(t.pnl_pct)}</td>
       <td class="log-type">Kotak (manual/external)</td>
       <td class="meta">${timeAgo(t.exit_time_utc)}</td>
     </tr>`);
@@ -1335,7 +1351,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${dash}</td>
       <td class="num">${pnlSpan(t.pnl_inr ?? 0)}</td>
       <td class="num">${dash}</td>
-      <td class="num">${dash}</td>
+      <td class="num">${pctSpan(t.pnl_pct)}</td>
       <td class="log-type">Kotak (this bot's own order)</td>
       <td class="meta">${timeAgo(t.exit_time_utc)}</td>
     </tr>`);
