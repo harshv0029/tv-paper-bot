@@ -3916,28 +3916,23 @@ def _vwap_mean_reversion_entry(today_df: pd.DataFrame, bb_std: float = 2.0) -> b
 RANGE_CONFIDENCE_ENTRY_Z = 2.0  # must match _vwap_mean_reversion_entry's own
 # bb_std default - the z-score an entry always clears by construction, so
 # this is _range_regime_confidence's natural "just barely qualified" floor
-# for confidence-proportional sizing (task #6) and its own decay-exit
-# threshold (the RANGE-regime analog of TREND_WEAKENED_MIN_CONFIDENCE).
+# for confidence-proportional sizing (task #6).
 RANGE_CONFIDENCE_FULL_Z = 4.0  # z-score at which RANGE confidence-proportional
 # sizing saturates at full risk_per_trade_pct - explicit user choice
 # 2026-09-21, a symmetric doubling of RANGE_CONFIDENCE_ENTRY_Z (a ~4-sigma
 # VWAP deviation is rare, so most RANGE trades size well below max).
-
-RANGE_CONFIDENCE_DECAY_Z = 1.0  # hysteresis floor for the RANGE confidence-decay
-# exit (see its elif in _auto_signal_core). The original design compared
-# against RANGE_CONFIDENCE_ENTRY_Z itself (2.0) - since a RANGE trade's
-# z-score sits right at that bar at entry, ordinary tick-to-tick noise
-# around the exact boundary re-triggered the exit almost immediately
-# (85% of RANGE trades, ~37min avg hold vs ~105min baseline, confirmed
-# via the 52-symbol/60-day replay 2026-09-21 - see CLAUDE.md's incident
-# note on this exact failure shape, previously seen with trend_weakened
-# on RANGE positions). Fix (explicit user choice 2026-09-21, "hysteresis
-# buffer"): require the z-score to decay to HALF the entry bar, not just
-# below it - the same symmetric-doubling logic already used for
-# RANGE_CONFIDENCE_FULL_Z (2x entry), mirrored downward (0.5x entry).
-# This gives the same margin between "just entered" and "decayed enough
-# to exit" that TREND_WEAKENED_MIN_CONFIDENCE's 95% gate gives
-# trend_weakened - a real move back toward VWAP, not boundary noise.
+#
+# A RANGE confidence-decay exit (range_confidence_weakened) was also tried
+# here 2026-09-21 as the RANGE-regime analog of trend_weakened - two
+# designs (decay at the entry bar itself, then a hysteresis buffer at half
+# the entry bar) were both validated via the 52-symbol/60-day replay and
+# BOTH badly broken the RANGE regime (win rate 10.3%->1.7%, then ->2.8%;
+# 85% and then 65% of RANGE trades still cut short almost immediately).
+# Per explicit user decision 2026-09-21, dropped entirely rather than
+# tuned further - confidence-proportional sizing (validated, neutral/
+# correct) is the only task #6 piece that shipped. Do not re-add this
+# exit without a genuinely different design, discussed with the user
+# first (not a threshold nudge on this same shape).
 
 
 def _range_regime_confidence(today_df: pd.DataFrame) -> float | None:
@@ -3954,8 +3949,9 @@ def _range_regime_confidence(today_df: pd.DataFrame) -> float | None:
     A RANGE entry only ever fires at z >= RANGE_CONFIDENCE_ENTRY_Z by
     construction, so this never reads below _norm_cdf(RANGE_CONFIDENCE_ENTRY_Z)
     (~0.977) at entry time - it can still fall below that on a LATER tick
-    as price reverts back toward VWAP, which is exactly what the RANGE
-    confidence-decay exit (see _auto_signal_core) checks for.
+    as price reverts back toward VWAP. Used for confidence-proportional
+    sizing only (task #6) - a RANGE confidence-decay exit built on this
+    same read was tried and dropped; see RANGE_CONFIDENCE_FULL_Z's comment.
 
     None whenever _vwap_deviation_z can't be computed yet - never
     fabricated."""
@@ -5127,10 +5123,6 @@ def _auto_signal_core(
             # no ladder exists at all (pre-revamp position) or every fixed
             # leg is already filled - both cases where target_hit's old,
             # single-target behavior is exactly what should still happen.
-            range_confidence_now = (
-                _range_regime_confidence(today_df) if row["entry_regime"] == "range" else None
-            )
-
             exit_reason = None
             if halted:
                 exit_reason = "daily_loss_cap_hit"
@@ -5181,28 +5173,6 @@ def _auto_signal_core(
                 # pre-fix-resurrected real position) keeps this check
                 # exactly as before.
                 exit_reason = "trend_weakened"
-            elif (
-                row["entry_regime"] == "range"
-                and range_confidence_now is not None
-                and range_confidence_now < _norm_cdf(RANGE_CONFIDENCE_DECAY_Z)
-            ):
-                # RANGE-regime analog of trend_weakened directly above -
-                # explicit user instruction 2026-09-21 (task #6): "as soon
-                # as u feel that your confidence is getting low... u
-                # should exit or plan to exit", extended to the one
-                # regime trend_weakened deliberately excludes (see its
-                # own comment for why trend_weakened itself can't apply
-                # here). A RANGE entry fires on a fresh VWAP-deviation
-                # z-score extreme (_vwap_mean_reversion_entry /
-                # _range_regime_confidence); once price has reverted back
-                # toward VWAP enough that the SAME z-score has decayed to
-                # RANGE_CONFIDENCE_DECAY_Z (half the entry bar, not just
-                # below the entry bar itself - see that constant's own
-                # comment for why), the extremity that justified holding
-                # is gone - exit now rather than riding back to
-                # stop_loss/target/stale_timeout on a setup whose own
-                # premise already resolved.
-                exit_reason = "range_confidence_weakened"
             elif (
                 (time.time() - row["entry_ts"]) >= max_hold_minutes * 60
                 and current_stop <= (row["initial_stop_loss"] or row["stop_loss"])

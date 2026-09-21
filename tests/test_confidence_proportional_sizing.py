@@ -8,8 +8,12 @@ into that trade... as soon as u feel that your confidence is getting low
     no continuous confidence measure at all, only a boolean entry trigger).
   - Linear sizing, 25% floor at the entry-confidence bar, 100% at each
     regime's own "full confidence" reference point.
-  - RANGE gets its own decay-exit (range_confidence_weakened), symmetric
-    with the existing TREND-only trend_weakened exit."""
+
+A RANGE confidence-decay exit (range_confidence_weakened) was also tried
+here as the RANGE-regime analog of trend_weakened, but two designs both
+broke the RANGE regime badly on replay and it was dropped entirely per
+explicit user decision - see the regression test below guarding against
+its reintroduction. Only confidence-proportional sizing shipped."""
 import datetime as real_datetime
 import json
 import os
@@ -198,7 +202,14 @@ def test_range_regime_sizing_at_full_z_gets_full_size():
     assert result["confidence_sizing"]["size_multiplier"] == pytest.approx(1.0)
 
 
-# ---- Integration: RANGE confidence-decay exit ------------------------------
+# ---- Regression: RANGE confidence-decay exit was tried and dropped --------
+# 2026-09-21: two decay-exit designs (decay at the entry z-bar, then a
+# hysteresis buffer at half the entry z-bar) were each validated via the
+# 52-symbol/60-day replay and each badly broke the RANGE regime (win rate
+# 10.3%->1.7%, then ->2.8%). Per explicit user decision, dropped entirely
+# rather than tuned further - RANGE positions exit only via stop/target/
+# stale_timeout/eod_squareoff, same as before task #6. This test guards
+# against silently reintroducing the exit_reason.
 
 def _insert_range_position(conn, symbol="TESTSTOCK.NS"):
     conn.execute(
@@ -210,41 +221,20 @@ def _insert_range_position(conn, symbol="TESTSTOCK.NS"):
     conn.commit()
 
 
-def _run_range_exit_check(confidence_now):
+def test_range_position_never_exits_via_confidence_decay():
     _fresh_db()
     fixture = _bullish_engulfing_fixture()
     with closing(main.get_db()) as conn:
         _insert_range_position(conn)
+    # Confidence at its lowest possible read (price back at VWAP, z=0) -
+    # if a decay-exit existed, this is exactly what would trigger it.
     with patch("main.dt.datetime", _FixedUtcNow), \
          patch("main.fetch_ohlc", return_value=fixture), \
-         patch("main._range_regime_confidence", return_value=confidence_now), \
+         patch("main._range_regime_confidence", return_value=main._norm_cdf(0.0)), \
          patch("kotak_live_feed.get_live_ticks", return_value={}):
-        return main._auto_signal_core(
+        result = main._auto_signal_core(
             "TESTSTOCK.NS", currency="INR", strategy="universal_score", rr=10.0,
             max_hold_minutes=100000.0,
         )
-
-
-def test_range_position_exits_when_confidence_decays_below_the_decay_bar():
-    decayed = main._norm_cdf(main.RANGE_CONFIDENCE_DECAY_Z) - 0.05
-    result = _run_range_exit_check(decayed)
-    assert result["action_taken"] == "exited_range_confidence_weakened"
-
-
-def test_range_position_holds_while_confidence_stays_at_or_above_the_entry_bar():
-    still_extreme = main._norm_cdf(main.RANGE_CONFIDENCE_FULL_Z)
-    result = _run_range_exit_check(still_extreme)
     assert result["action_taken"] != "exited_range_confidence_weakened"
-
-
-def test_range_position_holds_in_the_hysteresis_band_between_decay_and_entry_bars():
-    # The exact failure this hysteresis buffer fixes: confidence that has
-    # dipped below the entry bar (RANGE_CONFIDENCE_ENTRY_Z) but not yet
-    # down to the looser decay bar (RANGE_CONFIDENCE_DECAY_Z) is ordinary
-    # noise around the entry boundary, not real evidence the setup broke.
-    in_band = (
-        main._norm_cdf(main.RANGE_CONFIDENCE_ENTRY_Z)
-        + main._norm_cdf(main.RANGE_CONFIDENCE_DECAY_Z)
-    ) / 2
-    result = _run_range_exit_check(in_band)
-    assert result["action_taken"] != "exited_range_confidence_weakened"
+    assert not hasattr(main, "RANGE_CONFIDENCE_DECAY_Z")
