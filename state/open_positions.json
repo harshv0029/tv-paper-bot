@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-18T12:58:31Z",
+  "synced_at_utc": "2026-09-21T08:41:43Z",
   "open_positions": [
     {
       "symbol": "GENCON.NS",
@@ -20,17 +20,17 @@
       "entry_regime": null
     },
     {
-      "symbol": "TATACOMM.NS",
+      "symbol": "MCX.NS",
       "qty": 1.0,
-      "entry_price_native": 1748.199951171875,
-      "stop_loss_native": 1739.2534964425224,
-      "initial_stop_loss_native": 1739.2534964425224,
-      "target_native": 1766.09,
+      "entry_price_native": 3171.0,
+      "stop_loss_native": 3154.457205636161,
+      "initial_stop_loss_native": 3154.457205636161,
+      "target_native": 3204.09,
       "fx_to_inr": 1.0,
-      "notional_inr": 1748.2,
+      "notional_inr": 3171.0,
       "orb_high_native": null,
-      "orb_low_native": 1744.0,
-      "entry_ts": 1789718571.0831873,
+      "orb_low_native": 3156.60009765625,
+      "entry_ts": 1789979953.1727211,
       "interval": "5m",
       "strategy": "orb-universal-score",
       "sma_fast": 9,
