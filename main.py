@@ -6824,6 +6824,19 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     # whenever the paper engine's own exit_reason chain next fires.
     if row["target_order_id"]:
         kotak_real_orders.cancel_real_order(row["target_order_id"])
+    else:
+        # 2026-09-21, explicit user instruction ("check which order there
+        # and then if u want place a better order then cancel that from
+        # order book and then validate and then place new order") - same
+        # lost-tracking gap cancel_existing_resting_sl was built for
+        # (2026-09-08 AGL incident): target_order_id can be NULL here even
+        # though a real resting target still exists at Kotak (a restart
+        # landing between "a target got placed" and the next journal-sync
+        # snapshot capturing its id). Sweeps the broker's OWN order book
+        # (ground truth) for any bot-placed resting target on this symbol
+        # and cancels it first, so advancing to the next leg can never
+        # stack a duplicate target order on top of an orphaned one.
+        kotak_real_orders.cancel_existing_resting_target(row["kotak_trading_symbol"])
     next_leg = next((l for l in legs if l["leg"] != "trail" and l["status"] == "open"), None)
     if sl_confirmed and next_leg and next_leg.get("target_price"):
         target_result = kotak_real_orders.place_real_target(

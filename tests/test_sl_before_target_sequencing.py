@@ -86,7 +86,7 @@ def test_entry_withholds_target_when_sl_placement_fails():
     assert row["target_order_id"] is None
 
 
-def _run_partial_exit(sl_ok: bool):
+def _run_partial_exit(sl_ok: bool, target_order_id: str = "T0"):
     _fresh_db()
     with closing(main.get_db()) as conn:
         legs = [
@@ -99,12 +99,13 @@ def _run_partial_exit(sl_ok: bool):
             "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
             "entry_order_id, opened_at, day, exit_legs_json, sl_order_id, sl_trigger_price, "
             "target_order_id, target_price) VALUES "
-            "('TESTSTOCK.NS', 'TESTSTOCK-EQ', 10, 100.0, 'E1', ?, '2026-09-21', ?, 'SL0', 90.0, 'T0', 110.0)",
-            (main.time.time(), json.dumps(legs)),
+            "('TESTSTOCK.NS', 'TESTSTOCK-EQ', 10, 100.0, 'E1', ?, '2026-09-21', ?, 'SL0', 90.0, ?, 110.0)",
+            (main.time.time(), json.dumps(legs), target_order_id),
         )
         conn.commit()
 
-        with patch("kotak_real_orders.cancel_real_order", return_value={"ok": True}), \
+        with patch("kotak_real_orders.cancel_real_order", return_value={"ok": True}) as mock_cancel_by_id, \
+             patch("kotak_real_orders.cancel_existing_resting_target", return_value={"cancelled": [], "detail": None}) as mock_sweep, \
              patch("main._place_real_stop_loss_with_retry",
                    return_value={"ok": sl_ok, "order_id": "SL1", "trigger_price": 90.0, "detail": "rejected"}), \
              patch("kotak_real_orders.place_real_target") as mock_target, \
@@ -114,11 +115,11 @@ def _run_partial_exit(sl_ok: bool):
             mock_target.return_value = {"ok": True, "order_id": "T2", "target_price": 115.0}
             main._maybe_place_real_partial_exit(conn, "TESTSTOCK.NS", {"leg": "t1", "qty": 3})
         row = conn.execute("SELECT * FROM real_positions WHERE symbol = 'TESTSTOCK.NS'").fetchone()
-        return dict(row), mock_target
+        return dict(row), mock_target, mock_cancel_by_id, mock_sweep
 
 
 def test_staged_leg_advance_places_target_only_after_sl_confirmed():
-    row, mock_target = _run_partial_exit(sl_ok=True)
+    row, mock_target, _, _ = _run_partial_exit(sl_ok=True)
     mock_target.assert_called_once()
     call_args = mock_target.call_args
     assert call_args[0][1] == 3  # next leg's own qty (t2), not the full remaining qty
@@ -127,7 +128,24 @@ def test_staged_leg_advance_places_target_only_after_sl_confirmed():
 
 
 def test_staged_leg_advance_withholds_new_target_when_sl_placement_fails():
-    row, mock_target = _run_partial_exit(sl_ok=False)
+    row, mock_target, _, _ = _run_partial_exit(sl_ok=False)
     mock_target.assert_not_called()
     assert row["sl_order_id"] is None
     assert row["target_order_id"] is None
+
+
+def test_staged_leg_advance_sweeps_the_order_book_when_target_id_is_unknown():
+    # 2026-09-21: target_order_id NULL (lost tracking, e.g. a restart
+    # landed before the last journal-sync snapshot captured it) must
+    # trigger the order-book sweep (cancel_existing_resting_target),
+    # never a plain cancel_real_order(None) call and never skip
+    # cancellation silently.
+    _, mock_target, mock_cancel_by_id, mock_sweep = _run_partial_exit(sl_ok=True, target_order_id=None)
+    mock_sweep.assert_called_once_with("TESTSTOCK-EQ")
+    mock_target.assert_called_once()
+
+
+def test_staged_leg_advance_cancels_by_id_when_target_id_is_known():
+    _, mock_target, mock_cancel_by_id, mock_sweep = _run_partial_exit(sl_ok=True, target_order_id="T0")
+    mock_cancel_by_id.assert_any_call("T0")
+    mock_sweep.assert_not_called()
