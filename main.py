@@ -1742,6 +1742,76 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         df["long"] = flags
         df["kc_middle"], df["kc_upper"] = middle, upper
 
+    elif strategy == "fair_value_gap":
+        # Fair Value Gap (FVG) / Smart Money Concepts entry - explicit user
+        # instruction 2026-09-21 ("Implement this strategy and get this
+        # backtesting done"), scoped down to this file's established
+        # single-timeframe/single-boolean-column architecture: the user's
+        # full spec also covered multi-timeframe BOS/CHOCH market
+        # structure, a weighted scoring system, premium/discount Fib zones
+        # and liquidity-pool targets - all out of scope here, since (like
+        # every other strategy in this file) stop-loss/target/sizing is the
+        # CALLER's job, not this function's. Bullish-only (this engine is
+        # long-only throughout): a 3-candle gap (candle A two bars back,
+        # candle B the displacement candle, candle C the current bar) where
+        # Low(C) > High(A), filtered by displacement (B's body vs its own
+        # ATR) and volume (B's volume vs its own 20-bar average). Enter on
+        # the first retrace into the zone's 50% equilibrium level; exit on
+        # a close back below the zone's own bottom (High(A) - the same
+        # level that defined the gap, i.e. structural invalidation).
+        displacement_atr_mult = float(params.get("fvg_displacement_atr_mult", 1.5))
+        fvg_volume_mult = float(params.get("fvg_volume_mult", 1.5))
+        expiry_bars = int(params.get("fvg_expiry_bars", 50))
+
+        prev_close = df["Close"].shift(1)
+        tr = pd.concat([
+            df["High"] - df["Low"],
+            (df["High"] - prev_close).abs(),
+            (df["Low"] - prev_close).abs(),
+        ], axis=1).max(axis=1)
+        atr = tr.rolling(14).mean()
+        vol_avg = df["Volume"].rolling(20).mean()
+
+        high_a = df["High"].shift(2)
+        low_c = df["Low"]
+        body_b = (df["Close"].shift(1) - df["Open"].shift(1)).abs()
+        atr_b = atr.shift(1)
+        vol_b = df["Volume"].shift(1)
+        vol_avg_b = vol_avg.shift(1)
+
+        gap = (
+            (low_c > high_a)
+            & (body_b > atr_b * displacement_atr_mult)
+            & (vol_b > vol_avg_b * fvg_volume_mult)
+        ).fillna(False)
+
+        # Stateful: at most one active (unfilled, unexpired) FVG zone at a
+        # time - same single-active-setup shape wyckoff_spring/
+        # vsa_climax_reversal above already use for their own until-
+        # invalidated holds.
+        active = None  # (top, bottom, created_idx)
+        holding = False
+        long_flags, fvg_top_col, fvg_bottom_col = [], [], []
+        for i in range(len(df)):
+            if active is not None and not holding:
+                top, bottom, created_idx = active
+                if i - created_idx > expiry_bars:
+                    active = None
+                elif df["Low"].iloc[i] <= (top + bottom) / 2:
+                    holding = True
+            elif active is not None and holding:
+                _, bottom, _ = active
+                if df["Close"].iloc[i] < bottom:
+                    holding = False
+                    active = None
+            if active is None and bool(gap.iloc[i]):
+                active = (float(low_c.iloc[i]), float(high_a.iloc[i]), i)
+            long_flags.append(holding)
+            fvg_top_col.append(active[0] if active is not None else float("nan"))
+            fvg_bottom_col.append(active[1] if active is not None else float("nan"))
+        df["long"] = long_flags
+        df["fvg_top"], df["fvg_bottom"] = fvg_top_col, fvg_bottom_col
+
     elif strategy == "macd_cross":
         fast_span = int(params.get("macd_fast", 12))
         slow_span = int(params.get("macd_slow", 26))
@@ -1893,7 +1963,8 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
                    f"vwap_multi_period_reversal, bullish_engulfing, pin_bar_reversal, "
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
                    f"stochastic_oversold_reversal, cci_breakout, keltner_channel_breakout, "
-                   f"macd_cross, wyckoff_spring, wyckoff_sos, vsa_climax_reversal, mtf_engulfing",
+                   f"fair_value_gap, macd_cross, wyckoff_spring, wyckoff_sos, vsa_climax_reversal, "
+                   f"mtf_engulfing",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -2009,6 +2080,9 @@ def backtest(
     kc_period: int = 20,
     kc_atr_period: int = 10,
     kc_multiplier: float = 1.5,
+    fvg_displacement_atr_mult: float = 1.5,
+    fvg_volume_mult: float = 1.5,
+    fvg_expiry_bars: int = 50,
     qty: float = 1,
 ):
     """
@@ -2103,6 +2177,12 @@ def backtest(
         params = {"period": cci_period, "threshold": cci_threshold}
     elif strategy == "keltner_channel_breakout":
         params = {"period": kc_period, "atr_period": kc_atr_period, "multiplier": kc_multiplier}
+    elif strategy == "fair_value_gap":
+        params = {
+            "fvg_displacement_atr_mult": fvg_displacement_atr_mult,
+            "fvg_volume_mult": fvg_volume_mult,
+            "fvg_expiry_bars": fvg_expiry_bars,
+        }
     elif strategy == "macd_cross":
         params = {"macd_fast": macd_fast, "macd_slow": macd_slow, "macd_signal": macd_signal}
     elif strategy == "mtf_engulfing":
@@ -2192,6 +2272,10 @@ def sweep(
     kc_period: str = "10,20,30",
     kc_atr_period: str = "6,10,14",
     kc_multiplier: str = "1.0,1.5,2.0",
+    # fair_value_gap params - comma-separated lists
+    fvg_displacement_atr_mult: str = "1.0,1.5,2.0",
+    fvg_volume_mult: str = "1.0,1.5,2.0",
+    fvg_expiry_bars: str = "20,50,100",
 ):
     """
     Tests every combination of the given parameter lists against ONE fetch of
@@ -2301,13 +2385,22 @@ def sweep(
             {"period": p, "atr_period": ap, "multiplier": m}
             for p, ap, m in product(kcp_list, kcap_list, kcm_list)
         ]
+    elif strategy == "fair_value_gap":
+        fdam_list = _parse_num_list(fvg_displacement_atr_mult, float)
+        fvm_list = _parse_num_list(fvg_volume_mult, float)
+        feb_list = _parse_num_list(fvg_expiry_bars, int)
+        combos = [
+            {"fvg_displacement_atr_mult": d, "fvg_volume_mult": v, "fvg_expiry_bars": e}
+            for d, v, e in product(fdam_list, fvm_list, feb_list)
+        ]
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown strategy {strategy!r}. Supported: sma_crossover, rsi_reversal, "
                    f"orb_breakout, orb_volume, bullish_engulfing, pin_bar_reversal, "
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
-                   f"stochastic_oversold_reversal, cci_breakout, keltner_channel_breakout",
+                   f"stochastic_oversold_reversal, cci_breakout, keltner_channel_breakout, "
+                   f"fair_value_gap",
         )
 
     if not combos:
