@@ -48,6 +48,10 @@ on:
         description: "Also sweep keltner_channel_breakout (kc_period x kc_atr_period x kc_multiplier) on NSE indices + the 15 NSE large-caps"
         type: boolean
         default: true
+      run_donchian_research:
+        description: "Also sweep donchian_breakout (donchian_entry_period x donchian_exit_period) on NSE indices + the 15 NSE large-caps"
+        type: boolean
+        default: true
 
 jobs:
   research:
@@ -348,5 +352,28 @@ jobs:
             echo "SYMBOL: $SYMBOL  strategy=keltner_channel_breakout (kc_period x kc_atr_period x kc_multiplier sweep)"
             echo "=========================================="
             curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=keltner_channel_breakout&rank_by=total_pnl&top_n=8&kc_period=10,20,30&kc_atr_period=6,10,14&kc_multiplier=1.0,1.5,2.0"
+            echo
+          done
+
+      - name: "Trend-following: donchian_breakout sweep (NSE indices + large-caps)"
+        if: ${{ inputs.run_donchian_research }}
+        run: |
+          SW="https://tv-paper-bot-gdan.onrender.com/sweep"
+          PERIOD="60d"
+          INTERVAL="5m"
+          # 2026-09-22 candidate: classic Turtle Trading System entry - long
+          # on a close above the entry_period-bar rolling high, exit below
+          # the shorter exit_period-bar rolling low. Sub-50% win rate is
+          # expected/normal for this style (trend-following, not a bounce)
+          # - see docs/daily_logs for sources. Sweeping donchian_entry_period
+          # x donchian_exit_period.
+          for SYMBOL in "%5ENSEI" "%5ENSEBANK" "%5EBSESN" \
+                        "RELIANCE.NS" "TCS.NS" "HDFCBANK.NS" "INFY.NS" "ICICIBANK.NS" \
+                        "HINDUNILVR.NS" "ITC.NS" "SBIN.NS" "BHARTIARTL.NS" "KOTAKBANK.NS" \
+                        "LT.NS" "AXISBANK.NS" "BAJFINANCE.NS" "MARUTI.NS" "ASIANPAINT.NS"; do
+            echo "=========================================="
+            echo "SYMBOL: $SYMBOL  strategy=donchian_breakout (donchian_entry_period x donchian_exit_period sweep)"
+            echo "=========================================="
+            curl -sS -m 90 "$SW?symbol=${SYMBOL}&period=${PERIOD}&interval=${INTERVAL}&strategy=donchian_breakout&rank_by=total_pnl&top_n=8&donchian_entry_period=10,20,30&donchian_exit_period=5,10,15"
             echo
           done
