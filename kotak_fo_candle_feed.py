@@ -133,6 +133,27 @@ RESTART_BACKOFF_MAX_SECONDS = 900  # 15 min ceiling - same reasoning as kotak_li
 # 2026-09-16 asyncio.to_thread fix, unrelated to this specific ceiling.
 FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS = 600
 
+# 2026-09-21, second live finding the same evening: asyncio.wait_for
+# does NOT stop the asyncio.to_thread worker thread on timeout - it only
+# stops WAITING for it (documented asyncio behavior; a ThreadPoolExecutor
+# job already running can't be cancelled from outside). Confirmed live:
+# after a wait_for timeout fired, this module's own unresolved_legs was
+# found fully populated for all 213 underlyings several minutes later -
+# the "cancelled" resolve had kept running to completion the whole time,
+# its real result silently discarded, while main._heavy_startup_resolve_
+# lock had ALREADY been released (it's only held around the wait_for
+# call, not around the orphaned thread it abandons) - so the NEXT cycle
+# could start a fresh resolve while the previous one was still running
+# unprotected. resolve_fo_universe(deadline=...) now checks its own
+# budget cooperatively between underlyings and stops ITSELF, so in the
+# normal case wait_for's outer timeout should never even fire. This
+# grace margin is deliberately small (not doubled or generous) - if the
+# cooperative deadline is working, wait_for firing at all here means
+# something is stuck mid-underlying (a single hung network call, the
+# one case cooperative checking between underlyings can't catch), which
+# is exactly the genuine-hang case wait_for still exists to bound.
+FO_UNIVERSE_RESOLVE_GRACE_SECONDS = 60
+
 # Universe re-resolved at most this often (ATM shifts as spot moves
 # intraday, and expiries roll weekly) - not on every reconnect, to avoid
 # hammering search_scrip on a flaky connection the way
@@ -203,7 +224,7 @@ def _resolve_underlying_legs(kotak_name: str, spot: float, band: int, expiry_cla
                 }
 
 
-def resolve_fo_universe() -> dict:
+def resolve_fo_universe(deadline: float | None = None) -> dict:
     """{(exchange_segment, instrument_token): descriptor} for every leg
     this feed subscribes to: the 3 index underlyings at
     nse_fo_chain.DEFAULT_ATM_STRIKE_BAND (weekly+monthly) plus all 210
@@ -215,11 +236,35 @@ def resolve_fo_universe() -> dict:
     spot fetch, no matching contract, etc.) is silently skipped and
     recorded in _feed_status["unresolved_legs"] - never raises, matching
     kotak_live_feed.resolve_tokens's own one-hiccup-doesn't-take-down-
-    everything-else discipline."""
+    everything-else discipline.
+
+    `deadline` (a time.time()-style timestamp, optional - None means run
+    to completion regardless of how long it takes, the old behavior,
+    still the default for direct/test callers): 2026-09-21 live finding -
+    run_fo_candle_feed wraps this call in asyncio.wait_for(), but that
+    only stops WAITING on timeout, it does NOT stop the underlying
+    to_thread worker thread (documented asyncio behavior - a
+    ThreadPoolExecutor job already running can't be cancelled from
+    outside). Confirmed live: after a wait_for timeout, this function's
+    own unresolved_legs still showed up fully populated for all 213
+    underlyings minutes later - the "cancelled" resolve had kept running
+    the whole time, its real work silently thrown away, while
+    main._heavy_startup_resolve_lock had ALREADY been released (it's
+    only held around the wait_for call, not around this function's own
+    orphaned thread) - meaning a new resolve could start on the next
+    cycle while the old one was still running unprotected, network calls
+    and memory both. `deadline` makes this function cooperatively check
+    its OWN budget between underlyings (not mid-call - a single hung
+    network call still needs the outer wait_for as a backstop) and stop
+    itself, returning whatever it resolved so far, instead of running on
+    indefinitely after nobody's still waiting for it."""
     universe = {}
     unresolved = []
 
     for cash_symbol, kotak_name in FO_CANDLE_UNDERLYINGS.items():
+        if deadline is not None and time.time() >= deadline:
+            unresolved.append(f"{kotak_name}:deadline_exceeded")
+            continue
         spot = _spot_price(cash_symbol)
         if spot is None or spot <= 0:
             unresolved.append(f"{kotak_name}:spot_unavailable")
@@ -230,6 +275,9 @@ def resolve_fo_universe() -> dict:
         )
 
     for kotak_name in nse_fo_chain.STOCK_FO_UNDERLYINGS:
+        if deadline is not None and time.time() >= deadline:
+            unresolved.append(f"{kotak_name}:deadline_exceeded")
+            continue
         spot = _spot_price(f"{kotak_name}.NS")
         if spot is None or spot <= 0:
             unresolved.append(f"{kotak_name}:spot_unavailable")
@@ -404,9 +452,10 @@ async def run_fo_candle_feed():
                 # loop's own outer except below exactly like any other
                 # failure - backoff, retry, same as always.
                 async with main._heavy_startup_resolve_lock:
+                    resolve_deadline = time.time() + FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS
                     universe = await asyncio.wait_for(
-                        asyncio.to_thread(resolve_fo_universe),
-                        timeout=FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS,
+                        asyncio.to_thread(resolve_fo_universe, deadline=resolve_deadline),
+                        timeout=FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS + FO_UNIVERSE_RESOLVE_GRACE_SECONDS,
                     )
                 _universe_cache["value"] = universe
                 _universe_cache["resolved_at"] = time.time()

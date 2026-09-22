@@ -274,9 +274,21 @@ def select_nse_future(underlying: str):
     rows, err = _fo_rows(underlying, option_type="FUT")
     if err:
         return None, err
-    # FUTIDX (NSE index futures) or FUTCOM (MCX commodity futures) -
-    # both confirmed real pInstType values from the live 2026-09-07 dumps.
-    futs = [r for r in rows if r.get("pInstType") in ("FUTIDX", "FUTCOM")]
+    # FUTIDX (NSE index futures), FUTCOM (MCX commodity futures) - both
+    # confirmed real pInstType values from the live 2026-09-07 dumps -
+    # and FUTSTK (NSE single-stock futures, confirmed live 2026-09-16,
+    # see STOCK_FO_UNDERLYINGS's own comment above). FUTSTK was missing
+    # here from 2026-09-16 (when single-stock F&O was added) until
+    # 2026-09-21 (live diagnostic finding) - this function's own
+    # _fo_rows() call was finding the real row for every one of the 210
+    # stock underlyings (exact pSymbolName match succeeding), only for
+    # this filter to then discard every single one of them, so
+    # select_nse_future() has NEVER been able to return a real contract
+    # for ANY single stock, always failing "no_future_rows" regardless
+    # of the underlying's actual liquidity or contract availability.
+    # select_nse_option_contract() has no equivalent pInstType filter,
+    # so it was never affected by this - only the future leg was broken.
+    futs = [r for r in rows if r.get("pInstType") in ("FUTIDX", "FUTCOM", "FUTSTK")]
     if not futs:
         return None, "no_future_rows"
     with_dte = []
