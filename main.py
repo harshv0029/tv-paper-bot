@@ -664,6 +664,44 @@ def init_db():
             )
             """
         )
+        # Real position mirror for the swing (Gap and Go) engine - SEPARATE
+        # from real_positions (2026-09-22, real-order mirroring build).
+        # real_positions is keyed by symbol alone (PRIMARY KEY), and the
+        # swing/intraday paper engines already use separate tables
+        # (signal_state vs signal_state_swing) specifically so the same
+        # symbol can carry an open paper position in both simultaneously -
+        # sharing one real table would make a real swing position silently
+        # block a real intraday one on the same symbol, or vice versa, a
+        # behavior paper trading doesn't have. No target_order_id/
+        # target_price columns - Gap and Go has no fixed target leg (stop_
+        # hit/gap_filled/max_hold_timeout only), only a resting stop-loss
+        # is ever mirrored. Gated by REAL_SWING_TRADING_ENABLED, a
+        # separate env var from REAL_TRADING_ENABLED (see
+        # is_real_swing_trading_enabled) - never silently turned on by the
+        # intraday switch.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS real_positions_swing (
+                symbol TEXT PRIMARY KEY,
+                kotak_trading_symbol TEXT NOT NULL,
+                qty INTEGER NOT NULL,
+                entry_price REAL NOT NULL,
+                entry_order_id TEXT,
+                opened_at REAL NOT NULL,
+                day TEXT NOT NULL,
+                stop_loss REAL NOT NULL, -- the INTENDED stop level (the same paper
+                                     -- signal_state_swing.initial_stop_loss this real
+                                     -- entry mirrors), stored separately from
+                                     -- sl_trigger_price (the CONFIRMED broker trigger
+                                     -- once a resting SL actually gets placed) so a
+                                     -- retry after a failed placement has the right
+                                     -- level to retry AT, not just the entry price.
+                sl_order_id TEXT,
+                sl_trigger_price REAL,
+                strategy TEXT
+            )
+            """
+        )
         # T1-holdings restriction blacklist (2026-09-08, explicit user
         # instruction: "if ever such asset is classified as T1 holding then
         # dont trade in that as they are risk"). Kotak's own RMS rule
@@ -6655,6 +6693,18 @@ def is_real_fo_trading_enabled() -> bool:
     return os.environ.get("REAL_FO_TRADING_ENABLED") == "YES"
 
 
+def is_real_swing_trading_enabled() -> bool:
+    """SEPARATE gate from is_real_trading_enabled (intraday equity) and
+    is_real_fo_trading_enabled (F&O) - 2026-09-22, real-order mirroring
+    build for the Gap and Go swing engine. Same single-env-var pattern as
+    both of those - REAL_SWING_TRADING_ENABLED is its own Render env var,
+    independent of REAL_TRADING_ENABLED, so turning on intraday real
+    trading never silently turns on multi-day real trading too (capital
+    locked up for weeks at a time instead of minutes/hours - a materially
+    different risk shape that deserves its own explicit switch)."""
+    return os.environ.get("REAL_SWING_TRADING_ENABLED") == "YES"
+
+
 def _real_fo_today_spent_inr(conn) -> float:
     """Sum of today's (IST calendar day) CONFIRMED real F&O buy notional
     (premium * qty for a bought option) - what the F&O daily spend cap
@@ -10540,12 +10590,290 @@ async def _scheduler_loop():
             await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
 
 
+def _maybe_place_real_swing_exit(conn, symbol):
+    """Mirrors a paper swing exit (any exit_reason) as a REAL sell that
+    closes the matching real_positions_swing row, if one exists. Same
+    "never blocked by the entry gate" reasoning as _maybe_place_real_exit
+    (the intraday equivalent, see its own docstring) - closing an already-
+    open real position must never be gated by is_real_swing_trading_
+    enabled(), only opening a new one is. Mirrors that function's
+    structure closely; the one real difference is there's no
+    target_order_id/target_price leg to cancel (Gap and Go has no fixed
+    target)."""
+    row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+    if not row:
+        return  # no real position was ever opened for this paper swing trade - nothing to close
+
+    import kotak_real_orders
+
+    # Same restart/stale-row protection as the intraday engine's own
+    # _maybe_place_real_exit - see that function's docstring for the full
+    # live-confirmed mechanism this guards against. _kotak_symbol_still_
+    # open checks Kotak's own positions() by trading symbol, not by which
+    # local table tracks it, so it's directly reusable here.
+    still_open = _kotak_symbol_still_open(row["kotak_trading_symbol"])
+    if still_open is False:
+        conn.execute("DELETE FROM real_positions_swing WHERE symbol = ?", (symbol,))
+        conn.commit()
+        _log_real_attempt(
+            conn, symbol, "S", "skipped_already_closed_at_kotak", kotak_trading_symbol=row["kotak_trading_symbol"],
+            qty=row["qty"], strategy=row["strategy"],
+            detail="Kotak shows no open position for this symbol - stale real_positions_swing row "
+                   "cleared without a second sell",
+        )
+        print(f"[REAL SWING] SKIPPED duplicate exit for {row['kotak_trading_symbol']} - "
+              f"Kotak already shows it closed, stale local row cleared instead of re-selling")
+        _log_real_order_event(
+            conn, symbol, "exit", "skipped_duplicate", kotak_trading_symbol=row["kotak_trading_symbol"],
+            prev_state=f"tracked open (stale), long {row['qty']} @ Rs{row['entry_price']:.2f}",
+            new_state="cleared - Kotak already shows this closed",
+        )
+        return
+
+    if row["sl_order_id"]:
+        cancel_result = kotak_real_orders.cancel_real_order(row["sl_order_id"])
+        if cancel_result.get("ok"):
+            _log_real_order_event(
+                conn, symbol, "sl", "cancelled", kotak_trading_symbol=row["kotak_trading_symbol"],
+                order_id=row["sl_order_id"], prev_state=f"resting @ Rs{row['sl_trigger_price']}",
+                new_state="cancelled (position exiting)",
+            )
+        else:
+            print(f"[REAL SWING] SL cancel failed for {row['kotak_trading_symbol']} "
+                  f"(order {row['sl_order_id']}): {cancel_result.get('detail')} - proceeding with exit anyway")
+            _log_real_order_event(
+                conn, symbol, "sl", "cancel_failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                order_id=row["sl_order_id"], prev_state=f"resting @ Rs{row['sl_trigger_price']}",
+                new_state="cancel failed - may still be resting", detail=cancel_result.get("detail"),
+            )
+
+    result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"])
+    if result.get("ok"):
+        conn.execute("DELETE FROM real_positions_swing WHERE symbol = ?", (symbol,))
+        exit_qty = int(result["qty"])
+        _log_real_attempt(
+            conn, symbol, "S", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            qty=exit_qty, price_est=result.get("fill_price"),
+            notional_inr=exit_qty * result["fill_price"] if result.get("fill_price") else None,
+            order_id=result["order_id"], raw_response=result.get("raw_response"),
+            detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
+            strategy=row["strategy"],
+        )
+        conn.commit()
+        print(f"[REAL SWING] SELL {exit_qty} {row['kotak_trading_symbol']} (order {result['order_id']}) "
+              f"(fill_confirmed={result['fill_price_confirmed']})")
+        _log_real_order_event(
+            conn, symbol, "exit", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            order_id=result["order_id"],
+            prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
+            new_state="closed",
+            detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
+        )
+    else:
+        print(f"[REAL SWING] exit FAILED for {row['kotak_trading_symbol']}: {result.get('detail')} - "
+              f"position still tracked open, will retry next day's scan")
+        _log_real_attempt(
+            conn, symbol, "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            qty=row["qty"], detail=result.get("detail"), raw_response=result.get("raw_response"),
+            strategy=row["strategy"],
+        )
+        _log_real_order_event(
+            conn, symbol, "exit", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+            prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
+            new_state="still open (exit attempt failed)", detail=result.get("detail"),
+        )
+
+
+def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, paper_stop_loss, strategy):
+    """Mirrors a paper swing "gap_and_go" entry as a REAL buy, ONLY when
+    every gate holds. Called from _run_swing_scan right after the paper
+    INSERT into signal_state_swing, mirroring _maybe_place_real_entry's
+    own call-site convention (paper trading stays completely unaware of
+    real trading). Never raises - any unexpected error here must not
+    break the once-a-day swing scan for other symbols.
+
+    No T1-restriction check here (unlike the intraday version) -
+    _is_t1_restricted exists specifically because the intraday engine
+    needs a same-day sell to always be possible (EOD squareoff/stop exit
+    within the same session); Gap and Go never needs a same-day exit by
+    design (avg hold ~33 days), so that specific restriction doesn't
+    apply to this engine. A genuinely T1/T2T-restricted symbol would
+    still surface as a real order rejection at Kotak, logged like any
+    other entry failure, just not pre-filtered here."""
+    if not is_real_swing_trading_enabled():
+        return  # expected default state - not logged, this isn't an "attempt"
+
+    if conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone():
+        _log_real_attempt(conn, symbol, "B", "skipped_already_open", strategy=strategy)
+        return
+
+    import kotak_live_feed
+    tick = kotak_live_feed.get_live_ticks().get(symbol)
+    if not tick or not tick.get("ltp") or not tick.get("trading_symbol"):
+        _log_real_attempt(conn, symbol, "B", "skipped_no_live_tick", strategy=strategy)
+        return
+    ltp = float(tick["ltp"])
+    kotak_symbol = tick["trading_symbol"]
+    if ltp <= 0:
+        _log_real_attempt(conn, symbol, "B", "skipped_no_live_tick", kotak_trading_symbol=kotak_symbol, strategy=strategy)
+        return
+
+    # Same three-way qty cap as the intraday engine's _maybe_place_real_entry:
+    # never buy more than the paper signal called for, and never more than
+    # real money can actually afford (remaining daily spend cap, real
+    # capital) - min() of all three.
+    remaining_cap_inr = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
+    real_capital_for_sizing = get_scheduler_capital_inr()
+    max_by_cap = math.floor(remaining_cap_inr / ltp) if ltp > 0 else 0
+    max_by_capital = math.floor(real_capital_for_sizing / ltp) if ltp > 0 else 0
+    qty = int(min(paper_qty, max_by_cap, max_by_capital))
+    if qty <= 0:
+        _log_real_attempt(
+            conn, symbol, "B", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
+            price_est=ltp, strategy=strategy,
+            detail=f"paper qty {paper_qty}, 1 share = Rs{ltp:.2f} - capped to 0 by "
+                   f"remaining daily cap Rs{remaining_cap_inr:.2f} (max {max_by_cap}) "
+                   f"and/or real capital Rs{real_capital_for_sizing:.2f} (max {max_by_capital})",
+        )
+        return
+
+    # Same joint (equity + F&O + swing) real daily-loss cap as every other
+    # real entry path - see _real_loss_budget's own docstring. Fails
+    # CLOSED: an unknown real-P&L state refuses the entry rather than
+    # trading blind.
+    loss_check = _real_loss_budget(conn)
+    if loss_check["real_pnl_today"] is None:
+        _log_real_attempt(
+            conn, symbol, "B", "skipped_real_pnl_unknown", kotak_trading_symbol=kotak_symbol,
+            price_est=ltp, detail=loss_check["detail"], strategy=strategy,
+        )
+        return
+    if not loss_check["ok"]:
+        _log_real_attempt(
+            conn, symbol, "B", "skipped_real_daily_loss_cap_hit", kotak_trading_symbol=kotak_symbol,
+            price_est=ltp, detail=loss_check["detail"], strategy=strategy,
+        )
+        return
+
+    import kotak_real_orders
+    result = kotak_real_orders.place_real_entry(kotak_symbol, qty, ltp)
+    if not result.get("ok"):
+        print(f"[REAL SWING] entry FAILED for {kotak_symbol}: {result.get('detail')}")
+        _log_real_attempt(
+            conn, symbol, "B", "failed", kotak_trading_symbol=kotak_symbol, price_est=ltp,
+            detail=result.get("detail"), raw_response=result.get("raw_response"), strategy=strategy,
+        )
+        return
+
+    real_qty = int(result["qty"])
+    real_entry_price = result["fill_price"]
+    now = time.time()
+    conn.execute(
+        "INSERT INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, "
+        "entry_order_id, opened_at, day, stop_loss, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (symbol, kotak_symbol, real_qty, real_entry_price, result["order_id"], now,
+         ist_now().strftime("%Y-%m-%d"), paper_stop_loss, strategy),
+    )
+    _log_real_attempt(
+        conn, symbol, "B", "confirmed", kotak_trading_symbol=kotak_symbol,
+        qty=real_qty, price_est=real_entry_price, notional_inr=real_qty * real_entry_price,
+        order_id=result["order_id"], raw_response=result.get("raw_response"),
+        detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak - using requested qty/estimated LTP",
+        strategy=strategy,
+    )
+    print(f"[REAL SWING] BUY {real_qty} {kotak_symbol} (order {result['order_id']}) "
+          f"~Rs{real_entry_price:.2f} (fill_confirmed={result['fill_price_confirmed']})")
+    _log_real_order_event(
+        conn, symbol, "entry", "confirmed", kotak_trading_symbol=kotak_symbol,
+        order_id=result["order_id"], prev_state="no position",
+        new_state=f"long {real_qty} @ Rs{real_entry_price:.2f}",
+        detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
+    )
+
+    # Real resting stop-loss - the paper stop_loss this same scan just
+    # computed (paper_stop_loss, now also stored on this row for any later
+    # retry - see _maybe_sync_real_swing_stop_loss) is the only stop this
+    # real position has ever had; mirror it to the broker immediately, same
+    # reasoning as the intraday engine's own SL mirroring. No target leg
+    # (Gap and Go has none) - this is the only resting order this engine
+    # ever places. Best-effort: a failed placement is logged but does not
+    # undo the real entry.
+    sl_result = kotak_real_orders.place_real_stop_loss(kotak_symbol, real_qty, round(paper_stop_loss, 2))
+    if sl_result.get("ok"):
+        conn.execute(
+            "UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+            (sl_result["order_id"], sl_result["trigger_price"], symbol),
+        )
+        conn.commit()
+        print(f"[REAL SWING] SL resting @ Rs{sl_result['trigger_price']:.2f} for {kotak_symbol} "
+              f"(order {sl_result['order_id']})")
+        _log_real_order_event(
+            conn, symbol, "sl", "placed", kotak_trading_symbol=kotak_symbol,
+            order_id=sl_result["order_id"], prev_state="none",
+            new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f}",
+        )
+    else:
+        conn.commit()
+        print(f"[REAL SWING] SL placement FAILED for {kotak_symbol}: {sl_result.get('detail')} "
+              f"- position open at Kotak with NO resting stop yet, will retry next day's scan")
+        _log_real_order_event(
+            conn, symbol, "sl", "failed", kotak_trading_symbol=kotak_symbol,
+            prev_state="none", new_state="none (placement failed)", detail=sl_result.get("detail"),
+        )
+
+
+def _maybe_sync_real_swing_stop_loss(conn):
+    """Daily retry for any open real_positions_swing row still missing its
+    resting stop-loss (sl_order_id NULL) - e.g. the placement attempt in
+    _maybe_place_real_swing_entry failed. Retries at the row's own stored
+    stop_loss level (the original paper stop, not the entry price - see
+    that column's own comment on the CREATE TABLE). Unlike the intraday
+    engine's _maybe_sync_real_stop_loss, this has no multi-tick
+    "protection degraded" escalation clock - the swing scan only runs once
+    per IST day, so there is no same-day tick cadence to escalate within;
+    a position missing its resting stop simply gets another placement
+    attempt on each day's scan until one succeeds. Explicitly deferred,
+    not silently dropped: if this ever needs the same escalate-to-market-
+    exit behavior the intraday engine has, that needs its own
+    daily-cadence design, not a copy of the tick-based one."""
+    import kotak_real_orders
+    rows = conn.execute(
+        "SELECT * FROM real_positions_swing WHERE sl_order_id IS NULL"
+    ).fetchall()
+    for row in rows:
+        sl_result = kotak_real_orders.place_real_stop_loss(
+            row["kotak_trading_symbol"], row["qty"], round(row["stop_loss"], 2)
+        )
+        if sl_result.get("ok"):
+            conn.execute(
+                "UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                (sl_result["order_id"], sl_result["trigger_price"], row["symbol"]),
+            )
+            conn.commit()
+            print(f"[REAL SWING] SL resting @ Rs{sl_result['trigger_price']:.2f} for "
+                  f"{row['kotak_trading_symbol']} (order {sl_result['order_id']}, retried)")
+            _log_real_order_event(
+                conn, row["symbol"], "sl", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                order_id=sl_result["order_id"], prev_state="none (retry)",
+                new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f}",
+            )
+        else:
+            print(f"[REAL SWING] SL retry FAILED for {row['kotak_trading_symbol']}: "
+                  f"{sl_result.get('detail')} - still unprotected, will retry next day's scan")
+            _log_real_order_event(
+                conn, row["symbol"], "sl", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                prev_state="none (retry)", new_state="none (placement failed again)",
+                detail=sl_result.get("detail"),
+            )
+
+
 def _run_swing_scan(conn):
     """Once-per-day (IST) daily-bar scan for every symbol in SWING_WATCHLIST:
     checks exits for open swing positions first, then entries for flat ones.
-    Paper trading only - see the swing engine's module comment (above
-    SWING_STRATEGY_TAG, near deployed_notional) for why real-order
-    mirroring isn't built yet. Called from _scheduler_tick every tick; the
+    Always paper-trades unconditionally; additionally mirrors as a REAL
+    order (see _maybe_place_real_swing_entry/_maybe_place_real_swing_exit)
+    only when is_real_swing_trading_enabled() - 2026-09-22, real-order
+    mirroring build. Called from _scheduler_tick every tick; the
     swing_scan_log guard below makes every call after the first one in a
     given IST day a no-op, so calling it unconditionally every tick is
     cheap and safe."""
@@ -10554,6 +10882,12 @@ def _run_swing_scan(conn):
         return
     conn.execute("INSERT INTO swing_scan_log (scan_date) VALUES (?)", (today,))
     conn.commit()
+
+    if is_real_swing_trading_enabled():
+        try:
+            _maybe_sync_real_swing_stop_loss(conn)
+        except Exception as e:
+            print(f"[REAL SWING] SL retry pass failed (non-fatal): {e}")
 
     capital = get_scheduler_capital_inr()
 
@@ -10586,6 +10920,10 @@ def _run_swing_scan(conn):
                 conn.execute("DELETE FROM signal_state_swing WHERE symbol = ?", (symbol,))
                 conn.commit()
                 print(f"[SWING] exit {symbol} ({reason}) qty={pos['qty']} @ {exit_price:.2f}")
+                try:
+                    _maybe_place_real_swing_exit(conn, symbol)
+                except Exception as e:
+                    print(f"[REAL SWING] exit mirror failed for {symbol} (non-fatal, paper exit already recorded): {e}")
             continue  # never also check for a new entry the same day a position is/was open
 
         signal = gap_and_go_entry_signal(df)
@@ -10630,6 +10968,10 @@ def _run_swing_scan(conn):
         )
         conn.commit()
         print(f"[SWING] entry {symbol} qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "gap_and_go")
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
 
 
 async def _scheduler_tick():
