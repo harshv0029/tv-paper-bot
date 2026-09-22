@@ -4928,6 +4928,7 @@ def _auto_signal_core(
     min_entry_confidence_pct: float = TREND_WEAKENED_MIN_CONFIDENCE * 100,
     max_hold_minutes: float = 120.0,
     ma_type: str = "ema",  # 2026-09-09: SMA -> EMA everywhere, explicit user instruction
+    require_real_tradability: bool = False,
 ):
     """
     Plain function version of the /auto-signal logic - callable directly
@@ -5003,6 +5004,34 @@ def _auto_signal_core(
     so every live strategy stays on the same bounded-risk framework
     (docs/TRADING_CONSTRAINTS.md), not whatever exit its own backtest
     happened to use.
+
+    `require_real_tradability` (2026-09-22, explicit user instruction: "make
+    sure that paper trading also follow the exact replica of real money
+    trade engine... not a separate logic for giving false hope"): live
+    finding - a paper "entered_long" for an NSE equity can happen on pure
+    yfinance data even when _maybe_place_real_entry's own mirror step would
+    have refused the SAME symbol outright (no live Kotak tick yet, or the
+    symbol is permanently T1/T2T-restricted) - the paper book then shows an
+    open position with literally no real-money path, ever, for as long as
+    that restriction holds. False by default (every existing caller -
+    /auto-signal, backtests, the validation replay - keeps running on pure
+    historical/on-demand data with no live Kotak tick to check, unchanged).
+    The live scheduler's own call site sets this True for `.NS` symbols
+    only (the same universe _maybe_place_real_entry itself targets) so a
+    live paper entry is blocked on the exact same two existence gates real
+    trading enforces, using the exact same status strings
+    (_log_real_attempt's own "skipped_no_live_tick"/"skipped_t1_restricted")
+    so the two are directly comparable. Deliberately NOT gated on
+    REAL_TRADING_ENABLED itself (a manual, independent kill switch per
+    is_real_trading_enabled's own docstring) - live-tick/T1 eligibility is a
+    fact about the symbol and the moment, true or false whether or not the
+    switch happens to be flipped on today. Deliberately does NOT touch
+    entry PRICE (still last_close, yfinance) or capital/daily-cap/loss-
+    budget sizing - those are the REAL account's own rupee constraints, a
+    different kind of divergence (how much) from this one (whether at
+    all), and conflating them would size paper's fixed simulated capital
+    pool off the real account's live balance, a materially bigger change
+    nobody asked for here.
     """
     if strategy == "orb_breakout":
         strategy_tag = f"{ORB_STRATEGY_PREFIX}{orb_minutes}m-sma{sma_fast}-{sma_slow}"
@@ -5856,6 +5885,23 @@ def _auto_signal_core(
                 )
                 result["available_capital_inr"] = round(available_capital_inr, 2)
                 return result
+
+            # require_real_tradability (2026-09-22, see this function's own
+            # docstring) - block the paper entry itself on the exact same
+            # two existence gates _maybe_place_real_entry enforces, using
+            # the exact same status strings, so a paper "entered_long" is
+            # never shown for a symbol real trading would have refused
+            # outright. T1 checked first, matching _maybe_place_real_entry's
+            # own gate ordering.
+            if require_real_tradability:
+                if _is_t1_restricted(conn, symbol):
+                    result["action_taken"] = "skipped_t1_restricted"
+                    return result
+                import kotak_live_feed
+                tick = kotak_live_feed.get_live_ticks().get(symbol)
+                if not tick or not tick.get("ltp") or not tick.get("trading_symbol"):
+                    result["action_taken"] = "skipped_no_live_tick"
+                    return result
 
             # Staged profit-booking ladder (2026-09-09 architecture revamp) -
             # universal_score ONLY, same reasoning as the target-cluster
@@ -10553,6 +10599,13 @@ async def _scheduler_tick():
                 # symbol's trend read; a per-symbol "ma_type" WATCHLIST
                 # field still overrides this fallback if ever set.
                 ma_type=cfg.get("ma_type", "ema"),
+                # require_real_tradability (2026-09-22, see _auto_signal_core's
+                # own docstring) - True only for NSE equities, the exact same
+                # universe _maybe_place_real_entry below itself targets (its
+                # own asset_class != "nse_equity" check skips everything
+                # else) - a symbol real trading can't touch at all yet
+                # (indices/commodities/US) has no real gate to replicate.
+                require_real_tradability=cfg["symbol"].endswith(".NS"),
             )
             _scheduler_last_results[cfg["symbol"]] = {"checked_at_utc": time.time(), **result}
 
