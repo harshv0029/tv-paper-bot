@@ -109,6 +109,90 @@ def test_entry_gate_skips_a_t1_restricted_symbol():
         assert row["status"] == "skipped_t1_restricted"
 
 
+# --- /kotak-neo/t1-unflag (2026-09-22) --------------------------------------
+# Built after confirming _flag_if_t1_restricted had been permanently
+# blacklisting symbols (IDEA.NS/ASHOKLEY.NS/CONCOR.NS, live, same day) for a
+# competing-resting-order rejection rather than genuine evidence they're
+# unsellable same-day - this is how to correct a wrong flag (that one or any
+# future one) without a manual DB edit. Tests exercise the same DELETE +
+# _sync_t1_restricted_external pair the endpoint itself calls, matching this
+# file's own convention of testing the underlying logic rather than the thin
+# FastAPI wrapper.
+
+def test_unflagging_clears_the_restriction():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        main._flag_if_t1_restricted(conn, "ASHOKLEY.NS", "RMS:Rule: Check T1 holdings...No Holdings Present")
+        assert main._is_t1_restricted(conn, "ASHOKLEY.NS") is True
+        deleted = conn.execute("DELETE FROM real_t1_restricted WHERE symbol = ?", ("ASHOKLEY.NS",)).rowcount
+        conn.commit()
+        assert deleted == 1
+        assert main._is_t1_restricted(conn, "ASHOKLEY.NS") is False
+
+
+def test_unflagging_only_touches_the_named_symbol():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        main._flag_if_t1_restricted(conn, "ASHOKLEY.NS", "RMS:Rule: Check T1 holdings...No Holdings Present")
+        main._flag_if_t1_restricted(conn, "SAIL.NS", "RMS:Rule: Check T1 holdings...No Holdings Present")
+        conn.execute("DELETE FROM real_t1_restricted WHERE symbol = ?", ("ASHOKLEY.NS",))
+        conn.commit()
+        assert main._is_t1_restricted(conn, "ASHOKLEY.NS") is False
+        assert main._is_t1_restricted(conn, "SAIL.NS") is True  # untouched
+
+
+def test_unflagging_removes_every_day_the_symbol_was_ever_flagged():
+    # _is_t1_restricted reads ANY row ever (permanent, not day-scoped) - a
+    # partial unflag (e.g. only today's row) would leave the symbol just as
+    # restricted via an older row, so this must remove all of them.
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_t1_restricted (symbol, day, flagged_at, detail) VALUES (?, ?, ?, ?)",
+            ("ASHOKLEY.NS", "2026-09-15", 0.0, "old rejection"),
+        )
+        main._flag_if_t1_restricted(conn, "ASHOKLEY.NS", "RMS:Rule: Check T1 holdings...No Holdings Present")
+        conn.commit()
+        assert conn.execute(
+            "SELECT COUNT(*) AS n FROM real_t1_restricted WHERE symbol = 'ASHOKLEY.NS'"
+        ).fetchone()["n"] == 2
+        deleted = conn.execute("DELETE FROM real_t1_restricted WHERE symbol = ?", ("ASHOKLEY.NS",)).rowcount
+        conn.commit()
+        assert deleted == 2
+        assert main._is_t1_restricted(conn, "ASHOKLEY.NS") is False
+
+
+def test_unflagging_an_already_clear_symbol_is_a_harmless_noop():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        deleted = conn.execute("DELETE FROM real_t1_restricted WHERE symbol = ?", ("NEVERFLAGGED.NS",)).rowcount
+        conn.commit()  # must not raise
+        assert deleted == 0
+        assert main._is_t1_restricted(conn, "NEVERFLAGGED.NS") is False
+
+
+def test_unflagging_syncs_the_removal_to_upstash():
+    # Without this, a later restart's hydrate_t1_restricted_from_external
+    # would silently restore the old ban from Upstash's still-stale snapshot.
+    _fresh_db()
+    main.UPSTASH_REDIS_REST_URL = "https://fake-upstash.example.com"
+    main.UPSTASH_REDIS_REST_TOKEN = "fake-token"
+    try:
+        with closing(main.get_db()) as conn:
+            main._flag_if_t1_restricted(conn, "ASHOKLEY.NS", "RMS:Rule: Check T1 holdings...No Holdings Present")
+            conn.execute("DELETE FROM real_t1_restricted WHERE symbol = ?", ("ASHOKLEY.NS",))
+            conn.commit()
+            import json as json_mod
+            with patch("main.requests.post") as mock_post:
+                main._sync_t1_restricted_external(conn)
+                mock_post.assert_called_once()
+                body = json_mod.loads(mock_post.call_args.kwargs["data"])
+                assert body == []  # the removal is reflected in the full snapshot pushed
+    finally:
+        main.UPSTASH_REDIS_REST_URL = None
+        main.UPSTASH_REDIS_REST_TOKEN = None
+
+
 # --- Upstash persistence (2026-09-09) -------------------------------------
 # Found live right after making the restriction permanent: real_t1_restricted
 # is a plain SQLite table, exactly as ephemeral as everything else on this
