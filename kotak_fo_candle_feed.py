@@ -161,6 +161,17 @@ FO_UNIVERSE_RESOLVE_GRACE_SECONDS = 60
 UNIVERSE_REFRESH_SECONDS = 4 * 60 * 60  # 4h
 _universe_cache = {"value": None, "resolved_at": 0.0}
 
+# Live finding (2026-09-22): STOCK_FO_UNDERLYINGS is a fixed alphabetical
+# tuple and resolve_fo_universe() always walked it start-to-end - so once
+# a resolve hit its deadline partway through (confirmed live: ~146/210
+# stocks resolved before 600s ran out), the SAME ~64 alphabetically-last
+# names (PAGEIND..ZYDUSLIFE) were skipped as "deadline_exceeded" on every
+# single 4h refresh forever, never once getting a turn. This offset
+# rotates the stock loop's own starting point forward by however many
+# stocks got a real attempt last cycle, so the next cycle picks up where
+# the last one left off instead of restarting at "360ONE" every time.
+_stock_resolve_offset = {"value": 0}
+
 
 def get_feed_status() -> dict:
     return dict(_feed_status)
@@ -224,7 +235,8 @@ def _resolve_underlying_legs(kotak_name: str, spot: float, band: int, expiry_cla
                 }
 
 
-def resolve_fo_universe(deadline: float | None = None) -> dict:
+def resolve_fo_universe(deadline: float | None = None, stock_offset: int = 0,
+                         previous_universe: dict | None = None) -> dict:
     """{(exchange_segment, instrument_token): descriptor} for every leg
     this feed subscribes to: the 3 index underlyings at
     nse_fo_chain.DEFAULT_ATM_STRIKE_BAND (weekly+monthly) plus all 210
@@ -237,6 +249,24 @@ def resolve_fo_universe(deadline: float | None = None) -> dict:
     recorded in _feed_status["unresolved_legs"] - never raises, matching
     kotak_live_feed.resolve_tokens's own one-hiccup-doesn't-take-down-
     everything-else discipline.
+
+    `stock_offset` (2026-09-22 live finding, see _stock_resolve_offset's
+    own comment above): rotates where the STOCK_FO_UNDERLYINGS loop below
+    starts, so a deadline that cuts a resolve short doesn't strand the
+    same alphabetical tail unresolved on every cycle forever. 0 (the
+    default) walks the tuple in its normal order, unchanged for any
+    caller that doesn't pass it.
+
+    `previous_universe` (optional, the prior cycle's return value): legs
+    for a stock underlying this call never got to attempt (skipped
+    straight to "deadline_exceeded" below) are carried forward from here
+    instead of being dropped to zero - a stock that resolved fine two
+    cycles ago and simply wasn't its turn this cycle should stay
+    subscribed, not flap in and out based on where the rotation happens
+    to be. An underlying this call DID attempt always uses this call's
+    own fresh result (even if that result is worse, e.g. a contract that
+    genuinely stopped existing) - never a stale mix of old-and-new legs
+    for the same name.
 
     `deadline` (a time.time()-style timestamp, optional - None means run
     to completion regardless of how long it takes, the old behavior,
@@ -274,9 +304,15 @@ def resolve_fo_universe(deadline: float | None = None) -> dict:
             universe, unresolved,
         )
 
-    for kotak_name in nse_fo_chain.STOCK_FO_UNDERLYINGS:
+    stock_underlyings = nse_fo_chain.STOCK_FO_UNDERLYINGS
+    n_stocks = len(stock_underlyings)
+    stock_offset = stock_offset % n_stocks if n_stocks else 0
+    deadline_exceeded_stocks = set()
+    for i in range(n_stocks):
+        kotak_name = stock_underlyings[(stock_offset + i) % n_stocks]
         if deadline is not None and time.time() >= deadline:
             unresolved.append(f"{kotak_name}:deadline_exceeded")
+            deadline_exceeded_stocks.add(kotak_name)
             continue
         spot = _spot_price(f"{kotak_name}.NS")
         if spot is None or spot <= 0:
@@ -286,6 +322,11 @@ def resolve_fo_universe(deadline: float | None = None) -> dict:
             kotak_name, spot, STOCK_ATM_STRIKE_BAND, STOCK_EXPIRY_CLASSES,
             universe, unresolved,
         )
+
+    if previous_universe:
+        for key, descriptor in previous_universe.items():
+            if descriptor.get("underlying") in deadline_exceeded_stocks and key not in universe:
+                universe[key] = descriptor
 
     _feed_status["unresolved_legs"] = unresolved
     return universe
@@ -451,14 +492,40 @@ async def run_fo_candle_feed():
                 # on timeout this raises TimeoutError, caught by this
                 # loop's own outer except below exactly like any other
                 # failure - backoff, retry, same as always.
+                # _stock_resolve_offset / previous_universe (2026-09-22,
+                # live finding): without these, a deadline-truncated
+                # resolve always starts STOCK_FO_UNDERLYINGS over from
+                # "360ONE" next cycle too, so the same alphabetical tail
+                # (confirmed live: PAGEIND..ZYDUSLIFE, ~64 names) never
+                # once gets attempted - see _stock_resolve_offset's own
+                # comment. Passing this cycle's offset in and rotating it
+                # forward by however many stocks actually got attempted
+                # means the NEXT cycle resumes there instead; passing the
+                # still-cached universe in as previous_universe means a
+                # stock that isn't this cycle's turn keeps its
+                # last-known-good legs instead of dropping to unresolved.
+                stock_offset = _stock_resolve_offset["value"]
                 async with main._heavy_startup_resolve_lock:
                     resolve_deadline = time.time() + FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS
                     universe = await asyncio.wait_for(
-                        asyncio.to_thread(resolve_fo_universe, deadline=resolve_deadline),
+                        asyncio.to_thread(
+                            resolve_fo_universe, deadline=resolve_deadline,
+                            stock_offset=stock_offset, previous_universe=_universe_cache["value"],
+                        ),
                         timeout=FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS + FO_UNIVERSE_RESOLVE_GRACE_SECONDS,
                     )
                 _universe_cache["value"] = universe
                 _universe_cache["resolved_at"] = time.time()
+                n_stocks = len(nse_fo_chain.STOCK_FO_UNDERLYINGS)
+                if n_stocks:
+                    stock_names = set(nse_fo_chain.STOCK_FO_UNDERLYINGS)
+                    deadline_exceeded = sum(
+                        1 for entry in _feed_status["unresolved_legs"]
+                        if entry.endswith(":deadline_exceeded")
+                        and entry[:-len(":deadline_exceeded")] in stock_names
+                    )
+                    attempted = n_stocks - deadline_exceeded
+                    _stock_resolve_offset["value"] = (stock_offset + attempted) % n_stocks
             else:
                 universe = _universe_cache["value"]
             _feed_status["subscribed_instruments"] = len(universe)
