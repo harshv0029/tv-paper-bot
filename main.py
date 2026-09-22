@@ -4919,7 +4919,7 @@ def _auto_signal_core(
     tz_offset_min: int = IST_OFFSET_MIN,
     open_min: int = 9 * 60 + 15,
     close_min: int = 15 * 60 + 30,
-    squareoff_min: int = 15 * 60 + 15,
+    squareoff_min: int = 15 * 60 + 12,
     trade_weekends: bool = False,
     currency: str = "INR",
     strategy: str = "orb_breakout",
@@ -5977,7 +5977,7 @@ def auto_signal(
     tz_offset_min: int = IST_OFFSET_MIN,
     open_min: int = 9 * 60 + 15,
     close_min: int = 15 * 60 + 30,
-    squareoff_min: int = 15 * 60 + 15,
+    squareoff_min: int = 15 * 60 + 12,
     trade_weekends: bool = False,
     currency: str = "INR",
     strategy: str = "orb_breakout",
@@ -6047,7 +6047,13 @@ def auto_signal(
 # a reasonable next step if this still isn't enough.
 NSE_STOCK_DEFAULT_PARAMS = {
     "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-    "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
+    # squareoff_min=912 (3:12pm IST) - explicit user instruction 2026-09-22:
+    # "Keep intra day cut off to be 3:12pm and at this time... close the
+    # intraday trade at market price." Moved from 915 (3:15pm, the
+    # 2026-09-21 default). The market-price part was already true - every
+    # real exit (kotak_real_orders.place_real_exit) is order_type="MKT",
+    # eod_squareoff included - this only moves the trigger time earlier.
+    "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 912,
     "trade_weekends": False, "currency": "INR",
     "risk_pct": 1.0, "stop_pct": 1.0,  # unproven -> half ceiling until evidenced, same as before
 }
@@ -6294,13 +6300,13 @@ WATCHLIST = [
     # full evidence-backed ceiling (2%) - real 60-day backtest evidence
     # behind this exact strategy.
     {"symbol": "^NSEI", "orb_minutes": 30, "sma_fast": 5, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 912,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^NSEBANK", "orb_minutes": 5, "sma_fast": 9, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 912,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 912,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
 ] + [
     {"symbol": sym, **NSE_STOCK_DEFAULT_PARAMS, **NSE_STOCK_PARAM_OVERRIDES.get(sym, {})}
@@ -9584,7 +9590,7 @@ RUNTIME_SETTINGS_META = {
         "('stale_timeout') - capital stuck in a sideways-moving trade is capital "
         "unavailable for a better signal elsewhere. Only fires if target/stop/"
         "trend-weakened haven't already exited the trade first. Default 120 min "
-        "(2h); NSE's own EOD square-off (~15:20 IST) still applies as the "
+        "(2h); NSE's own EOD square-off (~15:12 IST) still applies as the "
         "absolute last-resort cap regardless of this setting.",
     ),
     "entry_scan_batch_size": (
@@ -11561,7 +11567,7 @@ def dry_run_day(
     """
     symbols = DRY_RUN_DEFAULT_SYMBOLS
     open_min = 9 * 60 + 15
-    squareoff_min = 15 * 60 + 15
+    squareoff_min = 15 * 60 + 12
 
     per_symbol_df = {}
     for cfg in symbols:
