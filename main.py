@@ -6340,6 +6340,16 @@ REAL_TRADING_DAILY_CAP_INR = 2000.0  # explicit user instruction 2026-09-04 ("us
 # confirmed via AskUserQuestion to mean "raise the daily cap to Rs 2000",
 # same per-IST-day semantics as the original Rs 500 cap, not a lifetime
 # ceiling), raised from the original Rs 500.
+#
+# Superseded 2026-09-22 as the day-to-day ENFORCED cap - explicit user
+# instruction: "The cap should be based on inr 2000. But it should be
+# based on money available in trading account. Hard coding should not be
+# done at all... Capital to be invested should be live from amount
+# available in trading account." See _effective_real_daily_cap_inr, the
+# actual enforcement path now - this constant only remains as the
+# RUNTIME_SETTINGS_META schema's "default" metadata field (never read for
+# enforcement), kept so a fresh runtime_settings row still has a sane
+# bound-check anchor.
 
 
 def is_real_trading_enabled(conn) -> bool:
@@ -6652,7 +6662,7 @@ def _maybe_place_real_entry(conn, symbol: str):
         (symbol,),
     ).fetchone()
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
-    remaining_cap_inr = get_runtime_setting(conn, "real_daily_cap_inr") - _real_today_spent_inr(conn)
+    remaining_cap_inr = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
     real_capital_for_sizing = get_scheduler_capital_inr()
     max_by_cap = math.floor(remaining_cap_inr / ltp) if ltp > 0 else 0
     max_by_capital = math.floor(real_capital_for_sizing / ltp) if ltp > 0 else 0
@@ -8894,7 +8904,7 @@ def get_real_trading_control(request: Request):
         row = conn.execute("SELECT * FROM real_trading_control WHERE id = 1").fetchone()
         open_positions = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
         today_spent_inr = _real_today_spent_inr(conn)
-        daily_cap_inr = get_runtime_setting(conn, "real_daily_cap_inr")
+        daily_cap_inr = _effective_real_daily_cap_inr(conn)
         today_str = ist_now().strftime("%Y-%m-%d")
         t1_restricted_today = [
             dict(r) for r in conn.execute(
@@ -9546,8 +9556,12 @@ RUNTIME_SETTINGS_META = {
     "real_daily_cap_inr": (
         REAL_TRADING_DAILY_CAP_INR, 0.0, 1000000.0, True,
         "Maximum total REAL buy notional per IST calendar day, across all real "
-        "orders. Real money - changing this requires the same Kotak API token as "
-        "every other real-trading endpoint.",
+        "orders. By DEFAULT (no manual override ever saved) this tracks the "
+        "live Kotak account balance every time it's read - NOT a fixed number - "
+        "see _effective_real_daily_cap_inr. POSTing a value here overrides that "
+        "live tracking with a fixed cap until changed again. Real money - "
+        "changing this requires the same Kotak API token as every other "
+        "real-trading endpoint.",
     ),
     "real_straddle_enabled": (
         0.0, 0.0, 1.0, True,
@@ -9720,7 +9734,13 @@ def get_runtime_settings():
     with closing(get_db()) as conn:
         return {
             key: {
-                "value": get_runtime_setting(conn, key),
+                # real_daily_cap_inr's live-vs-override split (2026-09-22)
+                # isn't representable by plain get_runtime_setting - see
+                # _effective_real_daily_cap_inr's own docstring.
+                "value": (
+                    _effective_real_daily_cap_inr(conn) if key == "real_daily_cap_inr"
+                    else get_runtime_setting(conn, key)
+                ),
                 "default": default, "min": lo, "max": hi,
                 "requires_token": requires_token, "description": desc,
             }
@@ -9811,6 +9831,34 @@ def get_scheduler_capital_inr() -> float:
     if _real_capital_cache["value"] is None or age > REAL_CAPITAL_CACHE_TTL_SECONDS:
         _refresh_real_capital_cache()
     return _real_capital_cache["value"] if _real_capital_cache["value"] is not None else 0.0
+
+
+def _effective_real_daily_cap_inr(conn) -> float:
+    """The real daily buy-notional cap actually enforced right now
+    (2026-09-22, explicit user instruction - see REAL_TRADING_DAILY_CAP_INR's
+    comment). Two states, same "no row = default" convention every other
+    runtime_setting already uses:
+
+    - No row ever saved for the 'real_daily_cap_inr' key (the common
+      case): tracks get_scheduler_capital_inr() LIVE, every call - the
+      cap simply follows whatever the live Kotak account actually holds,
+      no fixed number involved. Same "never a fabricated number" stance
+      as that function's own docstring: if the account balance genuinely
+      can't be read (never a successful fetch yet), this returns 0.0 too -
+      correctly blocking new real buys rather than inventing a number,
+      exactly matching what max_by_capital already does at the sizing
+      site below with the same live figure.
+    - A row exists (user explicitly called POST /runtime-settings?
+      key=real_daily_cap_inr, Kotak-token-gated same as always): that
+      saved value wins outright, live tracking OFF, until the user
+      changes it again - "If during the day I change limit or downgrade
+      limit then it can be changed" (their own words). No auto-revert to
+      live at midnight; this matches every other runtime_setting's own
+      day-agnostic persistence, so if that's not what's wanted, say so."""
+    row = conn.execute(
+        "SELECT value FROM runtime_settings WHERE key = 'real_daily_cap_inr'"
+    ).fetchone()
+    return float(row["value"]) if row is not None else get_scheduler_capital_inr()
 
 
 # --- Real daily-loss cap: fixed day-open capital basis, joint across
