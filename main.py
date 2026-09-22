@@ -10388,6 +10388,36 @@ _scheduler_currently_checking: dict | None = None
 _scheduler_check_counts: dict = {}
 _scheduler_check_counts_day: str = ""
 
+# Swing (Gap and Go) scan counters - 2026-09-22, explicit user request for
+# a counter/distinct-assets line on /trade-view for the swing engine,
+# mirroring the intraday banner above. Kept SEPARATE from
+# _scheduler_check_counts (same reasoning as the F&O contract count being
+# reported alongside rather than folded into the equity/index figure,
+# see fo_subscribed_instruments below): swing scans once per IST day via
+# _run_swing_scan's own swing_scan_log guard, a completely different
+# cadence from the intraday engine's continuous round-robin polling -
+# blending the two into one number would misstate both (a swing count
+# that plateaus at "52/52" the moment the daily scan finishes would read
+# as "stalled" next to the intraday figure, which is never true for it).
+# Deliberately process-local only, like _recent_check_timestamps - these
+# reset naturally every day anyway (_run_swing_scan only ever runs once
+# per IST day), so there's no meaningful "restore across a restart"
+# question the way the intraday dict's journal/Upstash mirror answers.
+_swing_check_counts: dict = {}
+_swing_check_counts_day: str = ""
+
+
+def _record_swing_check(symbol: str):
+    """Swing engine's own equivalent of _record_scheduler_check - see the
+    module comment above _swing_check_counts for why this is a separate
+    counter rather than a call to that shared function."""
+    global _swing_check_counts_day
+    today_str = ist_now().strftime("%Y-%m-%d")
+    if today_str != _swing_check_counts_day:
+        _swing_check_counts.clear()
+        _swing_check_counts_day = today_str
+    _swing_check_counts[symbol] = _swing_check_counts.get(symbol, 0) + 1
+
 # Recent-check throughput (2026-09-21, explicit user instruction: "I want
 # an additional line mentioning that 'x is total scanned ones in last 30
 # seconds'") - the cumulative "distinct scanned" count above necessarily
@@ -10892,6 +10922,7 @@ def _run_swing_scan(conn):
     capital = get_scheduler_capital_inr()
 
     for symbol in SWING_WATCHLIST:
+        _record_swing_check(symbol)
         try:
             df = fetch_ohlc(symbol, "2y", "1d")
         except Exception as e:
@@ -11675,6 +11706,13 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     fo_status = kotak_fo_candle_feed.get_feed_status()
     fo_subscribed_instruments = fo_status["subscribed_instruments"]
 
+    # Swing (Gap and Go) scan counters - see the module comment above
+    # _swing_check_counts for why these are separate fields rather than
+    # folded into the equity/index figures above.
+    swing_scanned_today_total = len(SWING_WATCHLIST)
+    swing_scanned_today_count = sum(1 for v in _swing_check_counts.values() if v > 0)
+    swing_total_checks_today = sum(_swing_check_counts.values())
+
     return {
         "last_checked": last_checked,
         "currently_checking": _scheduler_currently_checking,
@@ -11688,6 +11726,9 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "fo_subscribed_instruments": fo_subscribed_instruments,
         "fo_connected": fo_status["connected"],
         "all_assets_tracked_total": scanned_today_total + fo_subscribed_instruments,
+        "swing_scanned_today_count": swing_scanned_today_count,
+        "swing_scanned_today_total": swing_scanned_today_total,
+        "swing_total_checks_today": swing_total_checks_today,
         "check_counts_today": check_counts_today,
         "check_counts_day": _scheduler_check_counts_day,
         "rr_cursor": _scheduler_rr_cursor,
