@@ -472,6 +472,29 @@ def cancel_existing_resting_target(kotak_trading_symbol: str) -> dict:
     return {"cancelled": cancelled, "detail": None}
 
 
+def is_cas_transition_rejection(detail: str) -> bool:
+    """True if a rejection's detail text names NSE's Closing-Auction-
+    Session (CAS) transition - confirmed live 2026-09-22 (WAAREEENER.NS/
+    NATIONALUM.NS): a narrow order-freeze window in the last few minutes
+    before market close, distinct from the T1-holdings rule and the tick-
+    size rejection this module already handles separately. Rejection text
+    seen live: "OMS: Trading session is in Transition to CAS session".
+
+    Explicit user instruction: on this specific rejection, stop retrying
+    the resting LIMIT/SL-LIMIT order and place a market order instead.
+    The freeze itself briefly rejects EVERY order type, market included
+    (a manual MARKET sell placed mid-transition got the identical
+    rejection live, seconds before a repeat of the same manual MARKET
+    order succeeded once the freeze cleared) - so a single market retry
+    is not guaranteed to land on the first try, but it is the right thing
+    to keep retrying: unlike a resting LIMIT, a MARKET order doesn't go
+    stale against a price that moved while it waited, and the existing
+    tick-by-tick retry loop already re-attempts it every cycle until the
+    freeze clears. See main.py's _maybe_sync_real_stop_loss for the
+    caller that escalates straight to a market exit on this."""
+    return "transition to cas session" in (detail or "").lower()
+
+
 def _round_to_tick(price: float, tick: float = 0.05) -> float:
     """Rounds `price` to the nearest multiple of `tick`. Default 0.05 is
     NSE's standard cash-equity tick size (scrips priced under ~Rs 15 use
