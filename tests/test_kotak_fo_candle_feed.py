@@ -240,6 +240,62 @@ def test_resolve_fo_universe_merges_future_and_option_legs():
     assert universe[("nse_fo", "2")]["strike"] == 24500.0
 
 
+def test_resolve_fo_universe_stock_offset_rotates_which_names_get_attempted():
+    # 2026-09-22 live finding: STOCK_FO_UNDERLYINGS is a fixed tuple, and
+    # a deadline that always cuts the resolve off partway through always
+    # starved the same alphabetical tail. A non-zero stock_offset must
+    # start the stock loop somewhere other than index 0, so a truncated
+    # resolve attempts a DIFFERENT set of names than the default order.
+    calls = []
+
+    def fake_spot(cash_symbol):
+        calls.append(cash_symbol)
+        return None  # spot_unavailable - real attempt, not a deadline skip
+
+    stock_names = nse_fo_chain.STOCK_FO_UNDERLYINGS
+    offset = 5
+    with patch.object(feed, "_spot_price", side_effect=fake_spot):
+        feed.resolve_fo_universe(stock_offset=offset)
+
+    stock_calls = [c for c in calls if c.endswith(".NS")]
+    assert stock_calls[0] == f"{stock_names[offset]}.NS"
+
+
+def test_resolve_fo_universe_carries_forward_legs_for_stocks_the_deadline_skipped():
+    # A stock underlying this cycle never got to attempt (its name ended
+    # up in "deadline_exceeded") must keep whatever it resolved LAST
+    # cycle, not drop to zero - a previously-good, still-cached leg is
+    # strictly better than silently unsubscribing it until its next turn
+    # comes around in the rotation.
+    stock_names = nse_fo_chain.STOCK_FO_UNDERLYINGS
+    skipped_name = stock_names[-1]  # never reached: deadline is already past
+    stale_key = ("nse_fo", "999")
+    previous_universe = {
+        stale_key: {"kind": "future", "underlying": skipped_name, "kotak_trading_symbol": "X"},
+    }
+    with patch.object(feed, "_spot_price", return_value=None):
+        universe = feed.resolve_fo_universe(
+            deadline=time.time() - 1, previous_universe=previous_universe,
+        )
+    assert universe == {stale_key: previous_universe[stale_key]}
+
+
+def test_resolve_fo_universe_never_carries_forward_a_stock_it_did_attempt():
+    # An underlying this cycle DID get a turn always uses this cycle's
+    # own fresh result, even if that result is empty (e.g. a contract
+    # that genuinely stopped existing) - never a leftover stale leg from
+    # a previous cycle for a name that was actually re-checked.
+    stock_names = nse_fo_chain.STOCK_FO_UNDERLYINGS
+    attempted_name = stock_names[0]
+    stale_key = ("nse_fo", "999")
+    previous_universe = {
+        stale_key: {"kind": "future", "underlying": attempted_name, "kotak_trading_symbol": "X"},
+    }
+    with patch.object(feed, "_spot_price", return_value=None):
+        universe = feed.resolve_fo_universe(previous_universe=previous_universe)
+    assert universe == {}
+
+
 def test_startup_event_launches_the_fo_candle_feed_task():
     src = inspect.getsource(main._start_scheduler)
     assert "kotak_fo_candle_feed" in src
@@ -262,7 +318,14 @@ def test_run_fo_candle_feed_resolves_the_universe_off_the_event_loop():
     # 2026-09-21: also passes deadline= through to_thread, since
     # wait_for's own timeout doesn't stop the worker thread - see
     # FO_UNIVERSE_RESOLVE_GRACE_SECONDS's own comment.
-    assert "asyncio.to_thread(resolve_fo_universe, deadline=" in src
+    # 2026-09-22: also passes stock_offset=/previous_universe= through -
+    # see _stock_resolve_offset's own comment (rotates which stocks get
+    # priority when a deadline truncates the resolve, and carries
+    # forward last-known-good legs for stocks skipped this cycle).
+    assert "asyncio.to_thread(" in src
+    assert "resolve_fo_universe, deadline=" in src
+    assert "stock_offset=stock_offset" in src
+    assert "previous_universe=_universe_cache" in src
     assert "asyncio.wait_for(" in src
 
     import asyncio
