@@ -1,0 +1,518 @@
+name: Score-Signal Retest at 4h/1d (research)
+
+# Research-only, read-only pass (2026-09-22), idea 7b (part 2) - see
+# wctc-breakout-4h-1d-retest-research.yml's header for the same explicit
+# user instruction this responds to: retest every prior idea at 4h/1d
+# candles before moving to idea 8's robustness validation.
+#
+# Ideas 2 (sizing), 3 (selection), 4 (ride-winners exit), and 5 (ATR
+# stop) all share the SAME entry signal (main.py's real 8-factor
+# UNIVERSAL_SCORE_WEIGHTS, score>=70, EMA9>EMA21) - only sizing/selection/
+# exit differ between them. This workflow reuses idea 7's exact entry
+# scan (same vectorized score computation, same rolling-VWAP adaptation,
+# same bar-count-based indicators per docs/BACKTESTING_METHODOLOGY.md)
+# ONE TIME per timeframe, then re-derives each idea's own axis as a
+# variant against a SHARED BASELINE - idea 7's own winning daily config
+# (ATR_MULT=1.5 stop, 2.0R target, FLAT sizing, ALL_SIGNALS selection) -
+# varying exactly one axis per idea, same "isolate one variable" style
+# every prior idea in this session used:
+#
+#   - STOP axis (idea 5): ATR_MULT in {1.0, 1.5, 2.0}, target=2.0R,
+#     sizing=FLAT, selection=ALL_SIGNALS.
+#   - TARGET axis (idea 4): WITH_TARGET (2.0R, idea 7's baseline) vs
+#     NO_TARGET (ride to stop or MAX_HOLD_BARS, whichever first) -
+#     ATR_MULT=1.5, sizing=FLAT, selection=ALL_SIGNALS.
+#   - SIZING axis (idea 2): FLAT / LIVE_LINEAR (main.py's own shipped
+#     _confidence_size_multiplier) / QUADRATIC - ATR_MULT=1.5,
+#     target=2.0R, selection=ALL_SIGNALS.
+#   - SELECTION axis (idea 3): ALL_SIGNALS / BEST_OF_DAY (day = calendar
+#     date; at 1d this is the trading day itself, at 4h it's the day the
+#     4h candle falls on) - ATR_MULT=1.5, target=2.0R, sizing=FLAT.
+#
+# 5m/15m/1h are NOT re-run here (idea 7 already covers signal-only
+# comparison across all five timeframes; this workflow's job is ideas
+# 2-5's own axes specifically at the two timeframes idea 7 flagged as
+# promising). Same 20-bar MAX_HOLD_BARS, cost model, position-sizing
+# formula, economic-viability gate, and 52-symbol universe as every
+# other research workflow here.
+#
+# Does not call universal_score/orb_breakout live signal code, touches no
+# live parameter, nothing wired into main.py.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run score-signal retest at 4h/1d (stop/target/sizing/selection axes)
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          TZ_OFF = m.IST_OFFSET_MIN
+          RR = 2.0
+          SMA_FAST, SMA_SLOW = 9, 21
+          SCORE_MIN_PCT = m.UNIVERSAL_ENTRY_SCORE_MIN
+          WEIGHTS = dict(m.UNIVERSAL_SCORE_WEIGHTS)
+          RS_LOOKBACK = m.UNIVERSAL_RS_LOOKBACK
+          STRUCT_LOOKBACK = m.UNIVERSAL_STRUCTURE_LOOKBACK
+          RSI_PERIOD = m.UNIVERSAL_RSI_PERIOD
+          RSI_LO, RSI_HI = m.UNIVERSAL_RSI_BAND
+          RVOL_PARTIAL, RVOL_FULL = m.UNIVERSAL_RVOL_PARTIAL_MULT, m.UNIVERSAL_RVOL_FULL_MULT
+          VOL_LOOKBACK = m.VOLUME_CONFIRM_LOOKBACK
+          MAX_ATR_MULT = m.UNIVERSAL_MAX_ATR_MULT
+          MAX_VWAP_EXT_ATR = m.UNIVERSAL_MAX_VWAP_EXTENSION_ATR
+          REFERENCE_INDEX = m.UNIVERSAL_REFERENCE_INDEX
+          MAX_HOLD_BARS = 20
+          MIN_HISTORY = max(SMA_SLOW, STRUCT_LOOKBACK * 2, VOL_LOOKBACK + 1, RSI_PERIOD + 1) + 5
+          CONF_FLOOR = m.CONFIDENCE_SIZE_FLOOR
+          BASELINE_ATR_MULT = 1.5
+          TIMEFRAMES = ["4h", "1d"]
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(ts_local=ts_local)
+              return df.sort_values("ts_local").reset_index(drop=True)
+
+
+          def _resample(df, rule):
+              idx = df.set_index("ts_local")
+              agg = idx.resample(rule, label="left", closed="left").agg({
+                  "Open": "first", "High": "max", "Low": "min", "Close": "last", "Volume": "sum",
+              }).dropna(subset=["Open", "High", "Low", "Close"])
+              return agg.reset_index()
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(shape, exit_price, exit_ts, exit_reason, qty, entry_cost, cost_model, label):
+              entry_price = shape["entry_price"]
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - shape["stop_loss"]
+              return {
+                  "symbol": shape["symbol"], "variant": label, "entry_ts": shape["entry_ts"],
+                  "exit_ts": exit_ts, "exit_reason": exit_reason, "score_pct": shape["score_pct"],
+                  "day": shape["day"], "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def _quadratic_multiplier(score_pct, entry_min=SCORE_MIN_PCT, full_at=100.0):
+              if full_at <= entry_min:
+                  return 1.0
+              frac = max(0.0, min(1.0, (score_pct - entry_min) / (full_at - entry_min)))
+              return CONF_FLOOR + (1.0 - CONF_FLOOR) * frac * frac
+
+
+          def find_entries(symbol, df, idx_df):
+              """Identical entry scan to idea 7's replay_timeframe (same
+              vectorized score, same rolling-VWAP adaptation, same bar-count
+              indicators) but split from exit simulation - stop/target/exit
+              are computed per-variant below, entries are computed ONCE."""
+              n = len(df)
+              if n < MIN_HISTORY:
+                  return [], None
+
+              close = df["Close"].to_numpy(dtype=float)
+              open_ = df["Open"].to_numpy(dtype=float)
+              high = df["High"].to_numpy(dtype=float)
+              low = df["Low"].to_numpy(dtype=float)
+              vol = df["Volume"].to_numpy(dtype=float)
+              ts_local = df["ts_local"]
+              days_arr = ts_local.dt.strftime("%Y-%m-%d").to_numpy()
+
+              close_s = df["Close"]
+              ema_fast = close_s.ewm(span=SMA_FAST, adjust=False).mean().to_numpy(dtype=float)
+              ema_slow = close_s.ewm(span=SMA_SLOW, adjust=False).mean().to_numpy(dtype=float)
+
+              delta = np.diff(close, prepend=close[0])
+              gain = np.where(delta > 0, delta, 0.0)
+              loss = np.where(delta < 0, -delta, 0.0)
+              avg_gain = pd.Series(gain).ewm(alpha=1 / RSI_PERIOD, adjust=False).mean().to_numpy()
+              avg_loss = pd.Series(loss).ewm(alpha=1 / RSI_PERIOD, adjust=False).mean().to_numpy()
+              rs = np.divide(avg_gain, avg_loss, out=np.full(n, np.nan), where=avg_loss > 0)
+              rsi = 100 - (100 / (1 + rs))
+              rsi[avg_loss == 0] = 100.0
+
+              atr_series = m._atr_series(df)
+              atr_val_arr = atr_series.to_numpy(dtype=float)
+              atr_recent_mean_arr = atr_series.rolling(20).mean().to_numpy(dtype=float)
+
+              resistance_arr = pd.Series(high).shift(1).rolling(STRUCT_LOOKBACK).max().to_numpy(dtype=float)
+              fh_high = pd.Series(high).shift(STRUCT_LOOKBACK).rolling(STRUCT_LOOKBACK).max().to_numpy(dtype=float)
+              sh_high = pd.Series(high).rolling(STRUCT_LOOKBACK).max().to_numpy(dtype=float)
+              fh_low = pd.Series(low).shift(STRUCT_LOOKBACK).rolling(STRUCT_LOOKBACK).min().to_numpy(dtype=float)
+              sh_low = pd.Series(low).rolling(STRUCT_LOOKBACK).min().to_numpy(dtype=float)
+              structure_ok = (sh_high > fh_high) & (sh_low > fh_low)
+              structure_valid = ~(np.isnan(fh_high) | np.isnan(sh_high))
+
+              avg_vol_arr = pd.Series(vol).shift(1).rolling(VOL_LOOKBACK).mean().to_numpy(dtype=float)
+              vol_ratio_arr = np.divide(vol, avg_vol_arr, out=np.full(n, np.nan), where=avg_vol_arr > 0)
+              volume_ok_arr = (avg_vol_arr > 0) & (vol > avg_vol_arr)
+
+              typical = (high + low + close) / 3.0
+              tp_vol = typical * vol
+              roll_tp_vol = pd.Series(tp_vol).rolling(VOL_LOOKBACK).sum().to_numpy(dtype=float)
+              roll_vol = pd.Series(vol).rolling(VOL_LOOKBACK).sum().to_numpy(dtype=float)
+              vwap_arr = np.divide(roll_tp_vol, roll_vol, out=np.full(n, np.nan), where=roll_vol > 0)
+
+              if idx_df is not None and len(idx_df) > 0:
+                  merged = pd.merge_asof(df[["ts_local"]], idx_df[["ts_local", "Close"]].rename(
+                      columns={"Close": "idx_close"}), on="ts_local", direction="backward")
+                  idx_close = merged["idx_close"].to_numpy(dtype=float)
+              else:
+                  idx_close = np.full(n, np.nan)
+
+              has_idx_hist = ~np.isnan(idx_close)
+              idx_ema_fast = pd.Series(idx_close).ewm(span=SMA_FAST, adjust=False).mean().to_numpy(dtype=float)
+              idx_ema_slow = pd.Series(idx_close).ewm(span=SMA_SLOW, adjust=False).mean().to_numpy(dtype=float)
+              idx_ret_lb = np.roll(idx_close, RS_LOOKBACK)
+              sym_ret_lb = np.roll(close, RS_LOOKBACK)
+              with np.errstate(invalid="ignore", divide="ignore"):
+                  sym_ret = close / sym_ret_lb - 1
+                  idx_ret = idx_close / idx_ret_lb - 1
+              rs_bullish = sym_ret > idx_ret
+              idx_trend_bullish = idx_ema_fast > idx_ema_slow
+
+              entries = []
+              i = MIN_HISTORY
+              while i < n:
+                  bullish_trend = ema_fast[i] > ema_slow[i]
+                  if not bullish_trend:
+                      i += 1
+                      continue
+
+                  has_index = bool(has_idx_hist[i]) and i >= RS_LOOKBACK and i >= SMA_SLOW
+                  breakdown = {}
+                  weights = dict(WEIGHTS)
+                  if not has_index:
+                      weights.pop("relative_strength", None)
+                      weights.pop("index_trend", None)
+
+                  vwap_i = vwap_arr[i]
+                  breakdown["above_vwap"] = None if np.isnan(vwap_i) else (weights["above_vwap"] if close[i] > vwap_i else 0.0)
+                  breakdown["ema_cross"] = weights["ema_cross"] if bullish_trend else 0.0
+                  breakdown["structure_hh_hl"] = None if not structure_valid[i] else (weights["structure_hh_hl"] if structure_ok[i] else 0.0)
+                  resist_i = resistance_arr[i]
+                  breakdown["breakout_resistance"] = None if np.isnan(resist_i) else (weights["breakout_resistance"] if close[i] > resist_i else 0.0)
+                  vr = vol_ratio_arr[i]
+                  if np.isnan(vr):
+                      breakdown["volume_breakout"] = None
+                  elif vr >= RVOL_FULL:
+                      breakdown["volume_breakout"] = weights["volume_breakout"]
+                  elif vr >= RVOL_PARTIAL:
+                      breakdown["volume_breakout"] = weights["volume_breakout"] * 0.5
+                  else:
+                      breakdown["volume_breakout"] = 0.0
+                  rsi_i = rsi[i]
+                  breakdown["rsi_band"] = None if np.isnan(rsi_i) else (weights["rsi_band"] if RSI_LO <= rsi_i <= RSI_HI else 0.0)
+                  if has_index:
+                      breakdown["relative_strength"] = weights["relative_strength"] if rs_bullish[i] else 0.0
+                      breakdown["index_trend"] = weights["index_trend"] if idx_trend_bullish[i] else 0.0
+
+                  max_score = sum(weights[k] for k, v in breakdown.items() if v is not None)
+                  score = sum(v for v in breakdown.values() if v is not None)
+                  score_pct = round(100.0 * score / max_score, 2) if max_score else 0.0
+
+                  rejected = False
+                  atr_i, atr_mean_i = atr_val_arr[i], atr_recent_mean_arr[i]
+                  if not np.isnan(atr_i) and not np.isnan(atr_mean_i) and atr_mean_i > 0 and atr_i > MAX_ATR_MULT * atr_mean_i:
+                      rejected = True
+                  if not rejected and not np.isnan(vwap_i) and not np.isnan(atr_i) and atr_i:
+                      if abs(close[i] - vwap_i) > MAX_VWAP_EXT_ATR * atr_i:
+                          rejected = True
+                  if not rejected and not volume_ok_arr[i]:
+                      rejected = True
+                  if not rejected and close[i] <= open_[i]:
+                      rejected = True
+
+                  entry_allowed = (score_pct >= SCORE_MIN_PCT) and not rejected
+                  if not entry_allowed or np.isnan(atr_i) or atr_i <= 0:
+                      i += 1
+                      continue
+
+                  entries.append({
+                      "symbol": symbol, "i": i, "day": days_arr[i], "entry_ts": ts_local.iloc[i].timestamp(),
+                      "entry_price": float(close[i]), "score_pct": score_pct,
+                  })
+                  i += 1
+
+              return entries, atr_val_arr
+
+
+          def simulate_variant(symbol, df, entries, atr_val_arr, atr_mult, use_target, capital, risk_pct,
+                                sizing_mode, label):
+              close = df["Close"].to_numpy(dtype=float)
+              ts_local = df["ts_local"]
+              n = len(df)
+              usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+
+              trades = []
+              last_exit_i = -1
+              for entry in entries:
+                  i = entry["i"]
+                  if i <= last_exit_i:
+                      continue  # no overlapping positions per symbol
+                  entry_price = entry["entry_price"]
+                  atr_i = atr_val_arr[i]
+                  stop_loss = entry_price - atr_mult * atr_i
+                  stop_dist = entry_price - stop_loss
+                  if stop_dist <= 0:
+                      continue
+                  target = entry_price + RR * stop_dist if use_target else None
+                  if use_target:
+                      target_move_pct = m._target_move_pct(target, entry_price)
+                      if target_move_pct <= m.ROUND_TRIP_COST_PCT:
+                          continue
+
+                  if sizing_mode == "FLAT":
+                      multiplier = 1.0
+                  elif sizing_mode == "LIVE_LINEAR":
+                      multiplier = m._confidence_size_multiplier(entry["score_pct"] / 100.0, SCORE_MIN_PCT / 100.0, 1.0)
+                  elif sizing_mode == "QUADRATIC":
+                      multiplier = _quadratic_multiplier(entry["score_pct"])
+                  else:
+                      raise ValueError(sizing_mode)
+
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100 * multiplier
+                  qty = risk_amount_inr / stop_dist
+                  qty = min(qty, usable_capital_inr / entry_price)
+                  qty = float(np.floor(qty))
+                  if qty <= 0 or qty * entry_price < 100:
+                      continue
+
+                  last_j = min(n - 1, i + MAX_HOLD_BARS)
+                  exit_price, exit_ts, exit_reason = None, None, None
+                  for j in range(i + 1, last_j + 1):
+                      cj = float(close[j])
+                      if cj <= stop_loss:
+                          exit_price, exit_reason = cj, "stop_hit"
+                      elif use_target and cj >= target:
+                          exit_price, exit_reason = cj, "target_hit"
+                      if exit_reason:
+                          exit_ts = ts_local.iloc[j].timestamp()
+                          break
+                  if exit_reason is None:
+                      exit_price = float(close[last_j])
+                      exit_ts = ts_local.iloc[last_j].timestamp()
+                      exit_reason = "max_hold_exit" if last_j == i + MAX_HOLD_BARS else "window_end_forced_close"
+
+                  shape = dict(entry, stop_loss=stop_loss)
+                  entry_cost = _entry_cost(qty, entry_price, DEFAULT_COST_MODEL)
+                  trades.append(_finalize_trade(shape, exit_price, exit_ts, exit_reason, qty, entry_cost,
+                                                 DEFAULT_COST_MODEL, label))
+                  last_exit_i = last_j
+
+              return trades
+
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          CAPITAL_INR = 400000.0
+
+          def _metrics_row(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0, cost_drag_pct=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              total_cost = sum(t["total_cost"] for t in trades)
+              cost_drag_pct = 100 * total_cost / max(1, sum(abs(t["gross_pnl"]) for t in trades))
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, cost_drag_pct=cost_drag_pct)
+
+          def _print_row(label, row):
+              print(f"{label:>14} {row['n']:>6} {row['win_rate']:>6.1f}% {row['pf_net']:>7.2f} "
+                    f"{row['pf_gross']:>8.2f} {row['avg_net']:>10.2f} {row['avg_gross']:>10.2f} {row['cost_drag_pct']:>9.1f}%")
+
+          header = f"{'variant':>14} {'n':>6} {'win%':>7} {'PFnet':>7} {'PFgross':>8} {'avgNet':>10} {'avgGross':>10} {'costDrag%':>10}"
+
+          print("--- Fetching native data (1h/730d, 1d/5y) per symbol ---")
+          native = {"1h": {}, "1d": {}}
+          for sym in SYMBOLS:
+              try:
+                  native["1h"][sym] = _prep(m.fetch_ohlc(sym, "730d", "60m"))
+              except Exception:
+                  pass
+              try:
+                  native["1d"][sym] = _prep(m.fetch_ohlc(sym, "5y", "1d"))
+              except Exception:
+                  pass
+          for tf in ("1h", "1d"):
+              print(f"  {tf}: fetched {len(native[tf])}/{len(SYMBOLS)} symbols")
+
+          idx_native = {}
+          for tf, period, interval in (("1h", "730d", "60m"), ("1d", "5y", "1d")):
+              try:
+                  idx_native[tf] = _prep(m.fetch_ohlc(REFERENCE_INDEX, period, interval))
+              except Exception:
+                  idx_native[tf] = None
+          print()
+
+          per_tf_data = {
+              "4h": {sym: _resample(df, "4h") for sym, df in native["1h"].items() if len(df) > 0},
+              "1d": native["1d"],
+          }
+          idx_per_tf = {
+              "4h": _resample(idx_native["1h"], "4h") if idx_native["1h"] is not None else None,
+              "1d": idx_native["1d"],
+          }
+
+          for tf in TIMEFRAMES:
+              print(f"########## TIMEFRAME: {tf} ##########\n")
+              entries_by_symbol, atr_by_symbol = {}, {}
+              for sym, df in per_tf_data[tf].items():
+                  if df is None or len(df) < MIN_HISTORY:
+                      continue
+                  try:
+                      entries, atr_arr = find_entries(sym, df, idx_per_tf[tf])
+                  except Exception as e:
+                      print(f"ERROR scanning {sym} tf={tf}: {e}")
+                      continue
+                  entries_by_symbol[sym] = entries
+                  atr_by_symbol[sym] = atr_arr
+              total_entries = sum(len(v) for v in entries_by_symbol.values())
+              print(f"{tf}: {total_entries} qualifying entries across {len(entries_by_symbol)} symbols\n")
+
+              def run_variant(atr_mult, use_target, sizing_mode, source_entries_fn, label):
+                  trades = []
+                  for sym, entries in entries_by_symbol.items():
+                      picked = source_entries_fn(entries)
+                      if not picked:
+                          continue
+                      cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+                      trades.extend(simulate_variant(sym, per_tf_data[tf][sym], picked, atr_by_symbol[sym],
+                                                      atr_mult, use_target, CAPITAL_INR, cfg["risk_pct"],
+                                                      sizing_mode, label))
+                  return trades
+
+              def all_signals(entries):
+                  return entries
+
+              def best_of_day(entries):
+                  by_day = {}
+                  for e in entries:
+                      by_day.setdefault(e["day"], []).append(e)
+                  return [max(v, key=lambda e: e["score_pct"]) for v in by_day.values()]
+
+              # STOP axis (idea 5)
+              stop_variants = {
+                  "ATR_1.0": run_variant(1.0, True, "FLAT", all_signals, "ATR_1.0"),
+                  "ATR_1.5": run_variant(1.5, True, "FLAT", all_signals, "ATR_1.5"),
+                  "ATR_2.0": run_variant(2.0, True, "FLAT", all_signals, "ATR_2.0"),
+              }
+              print(f"=== {tf}: STOP axis (idea 5 - target=2R, sizing=FLAT, selection=ALL_SIGNALS) ===")
+              print(header)
+              for label, trades in stop_variants.items():
+                  _print_row(label, _metrics_row(trades))
+
+              # TARGET axis (idea 4)
+              target_variants = {
+                  "WITH_TARGET": stop_variants["ATR_1.5"],
+                  "NO_TARGET": run_variant(BASELINE_ATR_MULT, False, "FLAT", all_signals, "NO_TARGET"),
+              }
+              print(f"\n=== {tf}: TARGET axis (idea 4 - stop=ATR1.5, sizing=FLAT, selection=ALL_SIGNALS) ===")
+              print(header)
+              for label, trades in target_variants.items():
+                  _print_row(label, _metrics_row(trades))
+
+              # SIZING axis (idea 2)
+              sizing_variants = {
+                  "FLAT": stop_variants["ATR_1.5"],
+                  "LIVE_LINEAR": run_variant(BASELINE_ATR_MULT, True, "LIVE_LINEAR", all_signals, "LIVE_LINEAR"),
+                  "QUADRATIC": run_variant(BASELINE_ATR_MULT, True, "QUADRATIC", all_signals, "QUADRATIC"),
+              }
+              print(f"\n=== {tf}: SIZING axis (idea 2 - stop=ATR1.5, target=2R, selection=ALL_SIGNALS) ===")
+              print(header)
+              for label, trades in sizing_variants.items():
+                  _print_row(label, _metrics_row(trades))
+
+              # SELECTION axis (idea 3)
+              selection_variants = {
+                  "ALL_SIGNALS": stop_variants["ATR_1.5"],
+                  "BEST_OF_DAY": run_variant(BASELINE_ATR_MULT, True, "FLAT", best_of_day, "BEST_OF_DAY"),
+              }
+              print(f"\n=== {tf}: SELECTION axis (idea 3 - stop=ATR1.5, target=2R, sizing=FLAT) ===")
+              print(header)
+              for label, trades in selection_variants.items():
+                  _print_row(label, _metrics_row(trades))
+
+              print(f"\n=== {tf}: ATR_1.5 baseline BY SYMBOL (n>=3, sorted by gross PF) ===")
+              print(header)
+              per_symbol = {}
+              for t in stop_variants["ATR_1.5"]:
+                  per_symbol.setdefault(t["symbol"], []).append(t)
+              symbol_rows = [(sym, _metrics_row(sts)) for sym, sts in per_symbol.items() if len(sts) >= 3]
+              symbol_rows.sort(key=lambda x: x[1]["pf_gross"], reverse=True)
+              for sym, row in symbol_rows[:15]:
+                  _print_row(sym, row)
+              print()
+          PYEOF
