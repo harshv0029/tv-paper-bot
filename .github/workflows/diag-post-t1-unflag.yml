@@ -1,0 +1,47 @@
+name: Diagnostic POST - clear a wrong T1/T2T restriction flag
+
+# Narrow POST-capable diagnostic, same reasoning as diag-post-runtime-
+# settings.yml's own header comment: diag-curl.yml is deliberately GET-
+# only "by convention," to avoid a generic path+method tool that could
+# accidentally trigger a real action - a scoped, single-purpose POST
+# workflow per real action is this repo's own established pattern
+# instead of one generic POST tool. This one calls exactly ONE endpoint,
+# /kotak-neo/t1-unflag (see its own docstring in main.py) - itself
+# already real-money-safe by design (explicit symbol required, no
+# "clear everything" mode, idempotent on an already-clear symbol).
+# Built 2026-09-22 to correct IDEA.NS/ASHOKLEY.NS/CONCOR.NS, all wrongly
+# permanently blacklisted by a since-fixed bug (_flag_if_t1_restricted
+# firing on a competing-resting-order rejection, not genuine evidence a
+# symbol is unsellable same-day) - kept afterward as the reusable way to
+# correct any future wrong flag without a manual DB edit.
+on:
+  workflow_dispatch:
+    inputs:
+      symbol:
+        description: "Exact symbol to unflag, e.g. ASHOKLEY.NS (required, no wildcard/blank)"
+        required: true
+      reason:
+        description: "Why this symbol is being unflagged (recorded in the app's own log line)"
+        required: false
+        default: "manual_correction"
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    env:
+      KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+    steps:
+      - name: POST /kotak-neo/t1-unflag
+        run: |
+          SYMBOL="${{ inputs.symbol }}"
+          REASON="${{ inputs.reason }}"
+          if [[ -z "$SYMBOL" ]]; then
+            echo "symbol is required" >&2
+            exit 1
+          fi
+          URL="https://tv-paper-bot-gdan.onrender.com/kotak-neo/t1-unflag"
+          URL="${URL}?symbol=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$SYMBOL")"
+          URL="${URL}&reason=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$REASON")"
+          URL="${URL}&token=${KOTAK_NEO_API_TOKEN}"
+          curl -sSL -m 30 -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+            -X POST -w "\nHTTP_STATUS:%{http_code}\n" "$URL"
