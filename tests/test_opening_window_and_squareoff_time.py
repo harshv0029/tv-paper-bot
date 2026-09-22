@@ -1,9 +1,13 @@
-"""Tests for two 2026-09-21 explicit user instructions:
-1. "Make sure that u do not trade between 9:15-9:30. As they are
-   exceptional behaviour" - no NEW entries in the first
+"""Tests for three explicit user instructions:
+1. (2026-09-21) "Make sure that u do not trade between 9:15-9:30. As they
+   are exceptional behaviour" - no NEW entries in the first
    NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES minutes after open_min.
-2. "All intraday trade should be closed by 3:15pm" - squareoff_min
-   default moved from 15:20 to 15:15.
+2. (2026-09-21) "All intraday trade should be closed by 3:15pm" -
+   squareoff_min default moved from 15:20 to 15:15.
+3. (2026-09-22) "Keep intra day cut off to be 3:12pm" - squareoff_min
+   default moved again, from 15:15 to 15:12 (the market-price part of
+   that same instruction was already true - place_real_exit is always
+   order_type="MKT", eod_squareoff included).
 Reuses the bullish-engulfing entry fixture pattern from
 test_round_trip_cost_gate.py, parametrized on the fixed "now" clock so
 the entry bar's own timestamp can be placed at different points in the
@@ -136,14 +140,27 @@ def _run_exit_check_at(now_ist: str):
         return main._auto_signal_core("TESTSTOCK.NS", currency="INR", max_hold_minutes=100000.0)
 
 
-def test_squareoff_fires_at_915pm_under_the_new_default_not_the_old_920():
-    # 15:17 (917 min) is PAST the new 15:15 default but still BEFORE the
-    # old 15:20 default - proves the default actually moved, not just
+def test_squareoff_fires_at_912pm_under_the_new_default_not_the_old_915():
+    # 15:13 (913 min) is PAST the new 15:12 default but still BEFORE the
+    # old 15:15 default - proves the default actually moved, not just
     # that squareoff eventually fires.
-    result = _run_exit_check_at("15:17")
+    result = _run_exit_check_at("15:13")
     assert result["action_taken"] == "exited_eod_squareoff"
 
 
-def test_squareoff_does_not_fire_before_915pm():
+def test_squareoff_does_not_fire_before_912pm():
     result = _run_exit_check_at("15:10")
     assert result["action_taken"] != "exited_eod_squareoff"
+
+
+def test_real_exit_is_always_a_market_order_eod_squareoff_included():
+    # The other half of the 2026-09-22 instruction ("close the intraday
+    # trade at market price") was already true before this change - this
+    # just documents/locks it so a future edit can't silently swap in a
+    # resting limit order for the real EOD exit. See
+    # kotak_real_orders.place_real_exit's own docstring ("Places a REAL
+    # market SELL... order_type=MKT").
+    import inspect
+    import kotak_real_orders
+    src = inspect.getsource(kotak_real_orders.place_real_exit)
+    assert 'order_type="MKT"' in src
