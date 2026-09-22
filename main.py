@@ -10637,6 +10637,33 @@ async def _scheduler_loop():
             await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
 
 
+def _nse_equity_market_open_now() -> bool:
+    """True during NSE cash-equity regular trading hours (9:15-15:30 IST,
+    Mon-Fri) - 2026-09-22, real-order retry build. SWING_WATCHLIST is NSE
+    (.NS) equities only, so this uses the same fixed session window
+    _auto_signal_core's own open_min/close_min defaults use, not a
+    per-symbol configurable one (swing has no per-symbol session config).
+    Used to gate _retry_pending_real_swing_orders so a real order is never
+    attempted while the exchange itself is closed - see that function's
+    docstring for the bug this exists to fix."""
+    now_local = dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN)
+    if now_local.weekday() >= 5:
+        return False
+    mins_now = now_local.hour * 60 + now_local.minute
+    return (9 * 60 + 15) <= mins_now <= (15 * 60 + 30)
+
+
+# How far the live price may have drifted from the signal's own
+# entry_price before a delayed real-entry retry is skipped rather than
+# chasing it (2026-09-22, explicit user instruction after discussing the
+# retry-during-market-hours fix: "its good" in response to a proposed
+# ~2%). Entry-only - see _retry_pending_real_swing_orders' own docstring
+# for why exit retries are NOT given a price tolerance (a decided stop-
+# loss/gap-filled/max-hold exit must complete regardless of price; gating
+# it on price would work against the point of having a stop).
+SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT = 2.0
+
+
 def _maybe_place_real_swing_exit(conn, symbol):
     """Mirrors a paper swing exit (any exit_reason) as a REAL sell that
     closes the matching real_positions_swing row, if one exists. Same
@@ -10764,6 +10791,25 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     if ltp <= 0:
         _log_real_attempt(conn, symbol, "B", "skipped_no_live_tick", kotak_trading_symbol=kotak_symbol, strategy=strategy)
         return
+
+    # Price-tolerance gate (2026-09-22, real-order retry build) - this
+    # function can now be called well after the signal first fired (see
+    # _retry_pending_real_swing_orders), so the live price may have moved
+    # since paper_entry_price was recorded. Skip rather than chase a price
+    # that's drifted too far from what the signal actually confirmed -
+    # see SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT's own comment for why this
+    # is entry-only, never applied to exits.
+    if paper_entry_price > 0:
+        deviation_pct = abs(ltp - paper_entry_price) / paper_entry_price * 100
+        if deviation_pct > SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT:
+            _log_real_attempt(
+                conn, symbol, "B", "skipped_price_out_of_tolerance", kotak_trading_symbol=kotak_symbol,
+                price_est=ltp, strategy=strategy,
+                detail=f"live price Rs{ltp:.2f} is {deviation_pct:.1f}% away from the signal's "
+                       f"entry_price Rs{paper_entry_price:.2f} (tolerance "
+                       f"{SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT}%) - not chasing",
+            )
+            return
 
     # Same three-way qty cap as the intraday engine's _maybe_place_real_entry:
     # never buy more than the paper signal called for, and never more than
@@ -10914,6 +10960,70 @@ def _maybe_sync_real_swing_stop_loss(conn):
             )
 
 
+def _retry_pending_real_swing_orders(conn):
+    """Retries real-order mirroring for swing entries/exits/stop-losses
+    that couldn't complete on their first attempt (2026-09-22, explicit
+    user instruction after the once-per-IST-day scan was found to fire
+    outside NSE trading hours - e.g. just after IST midnight, when the
+    exchange is closed, so a real order attempted THEN would fail: no
+    live tick, or a broker-side rejection since the exchange isn't open).
+
+    Called every scheduler tick, but only ever does anything during
+    actual NSE market hours (_nse_equity_market_open_now) - never
+    attempts a real order while the exchange is closed. Gives up on a
+    given day's entry once that day ends: only signal_state_swing rows
+    with entry_day == today are retried, so a stale signal from a prior
+    day is never chased into a new session.
+
+    Entry retries go through _maybe_place_real_swing_entry unchanged,
+    which now itself enforces SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT - a
+    delayed fill will not chase a price that's drifted too far from the
+    signal's own entry_price. Exit and stop-loss retries have NO price
+    tolerance: a decided exit (stop_hit/gap_filled/max_hold_timeout) or
+    a missing protective stop must be handled regardless of current
+    price - gating either on price would work against the entire point
+    of risk control."""
+    if not is_real_swing_trading_enabled():
+        return
+    if not _nse_equity_market_open_now():
+        return
+
+    try:
+        _maybe_sync_real_swing_stop_loss(conn)
+    except Exception as e:
+        print(f"[REAL SWING] SL retry pass failed (non-fatal): {e}")
+
+    today = ist_now().strftime("%Y-%m-%d")
+    open_paper = conn.execute(
+        "SELECT symbol, strategy, entry_day, entry_price, initial_stop_loss, qty "
+        "FROM signal_state_swing WHERE entry_day = ?", (today,)
+    ).fetchall()
+    for row in open_paper:
+        has_real = conn.execute(
+            "SELECT 1 FROM real_positions_swing WHERE symbol = ?", (row["symbol"],)
+        ).fetchone()
+        if has_real:
+            continue
+        try:
+            _maybe_place_real_swing_entry(
+                conn, row["symbol"], row["qty"], row["entry_price"], row["initial_stop_loss"], row["strategy"],
+            )
+        except Exception as e:
+            print(f"[REAL SWING] entry retry failed for {row['symbol']} (non-fatal): {e}")
+
+    real_open = conn.execute("SELECT symbol FROM real_positions_swing").fetchall()
+    for row in real_open:
+        still_paper_open = conn.execute(
+            "SELECT 1 FROM signal_state_swing WHERE symbol = ?", (row["symbol"],)
+        ).fetchone()
+        if still_paper_open:
+            continue
+        try:
+            _maybe_place_real_swing_exit(conn, row["symbol"])
+        except Exception as e:
+            print(f"[REAL SWING] exit retry failed for {row['symbol']} (non-fatal): {e}")
+
+
 def _run_swing_scan(conn):
     """Once-per-day (IST) daily-bar scan for every symbol in SWING_WATCHLIST:
     checks exits for open swing positions first, then entries for flat ones.
@@ -11031,6 +11141,10 @@ async def _scheduler_tick():
             _run_swing_scan(conn)
         except Exception as e:
             print(f"[SWING] scan failed (non-fatal, intraday tick continues): {e}")
+        try:
+            _retry_pending_real_swing_orders(conn)
+        except Exception as e:
+            print(f"[REAL SWING] retry pass failed (non-fatal, intraday tick continues): {e}")
 
         try:
             _fo_chain_monitoring_snapshot(conn)
