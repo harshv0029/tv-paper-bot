@@ -1,0 +1,458 @@
+name: Davey-style ATR-based Stop (research)
+
+# Research-only, read-only pass (2026-09-22), idea 5 - part of the more
+# faithful reconstruction after ideas 1-3's loose analogies all failed
+# net of cost (see ride-winners-no-target-research.yml's header for the
+# same context / Andrea Unger reconstruction; this is the Kevin Davey
+# angle on the same "what did the actual winners do differently" ask).
+#
+# Kevin Davey (WCTC winner, 2006; runner-up 2005/2007; author of
+# "Building Winning Algorithmic Trading Systems") has publicly described
+# his systems as trend-following breakouts with a VOLATILITY-BASED risk
+# mechanism - an ATR-multiple stop that adapts to each symbol/day's own
+# realized volatility, rather than a flat % of price. Every research
+# workflow in this repo so far (ideas 1-4) used a fixed stop_pct - this
+# tests whether an ATR-anchored stop changes the picture, using the EXACT
+# SAME entry signal as ideas 2/3 (main.py's real 8-factor
+# UNIVERSAL_SCORE_WEIGHTS, score>=UNIVERSAL_ENTRY_SCORE_MIN, EMA9>EMA21)
+# so the comparison isolates the STOP-DISTANCE formula alone, not
+# entry quality. Same simplifications as ideas 2/3, noted there
+# honestly: no RANGE regime, no _liquidity_gate, no reward/risk-below-
+# minimum filter.
+#
+# Four variants (identical entries and target formula - target =
+# entry + 2.0R off whichever stop_dist each variant produces):
+#   a. FIXED_STOP_PCT - baseline: stop = entry*(1-stop_pct/100), same as
+#      every other research workflow here (idea 2's FLAT/ALL_SIGNALS).
+#   b/c/d. ATR_1.0 / ATR_1.5 / ATR_2.0 - stop = entry - k*ATR(14), for
+#      k in {1.0, 1.5, 2.0} (a small sweep bracketing Davey's own
+#      publicly described "volatility risk mechanism" concept - the
+#      exact multiple he uses isn't public, so this is a reasoned range,
+#      not a claimed reproduction of his precise number).
+#
+# Same economic-viability gate (m._target_move_pct vs
+# m.ROUND_TRIP_COST_PCT), same position sizing formula, cost model, and
+# 52-symbol/60-day/5m universe as ideas 1-4.
+#
+# Does not call universal_score/orb_breakout live signal code, touches no
+# live parameter, nothing wired into main.py.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run ATR-based stop backtest (4 variants)
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          OPEN_MIN = 555
+          CLOSE_MIN = 930
+          SQUAREOFF_MIN = 915
+          TZ_OFF = m.IST_OFFSET_MIN
+          INTERVAL = "5m"
+          RR = 2.0
+          SMA_FAST, SMA_SLOW = 9, 21
+          SCORE_MIN_PCT = m.UNIVERSAL_ENTRY_SCORE_MIN  # 70.0
+          WEIGHTS = dict(m.UNIVERSAL_SCORE_WEIGHTS)
+          RS_LOOKBACK = m.UNIVERSAL_RS_LOOKBACK
+          STRUCT_LOOKBACK = m.UNIVERSAL_STRUCTURE_LOOKBACK
+          RSI_PERIOD = m.UNIVERSAL_RSI_PERIOD
+          RSI_LO, RSI_HI = m.UNIVERSAL_RSI_BAND
+          RVOL_PARTIAL, RVOL_FULL = m.UNIVERSAL_RVOL_PARTIAL_MULT, m.UNIVERSAL_RVOL_FULL_MULT
+          VOL_LOOKBACK = m.VOLUME_CONFIRM_LOOKBACK
+          MAX_ATR_MULT = m.UNIVERSAL_MAX_ATR_MULT
+          MAX_VWAP_EXT_ATR = m.UNIVERSAL_MAX_VWAP_EXTENSION_ATR
+          REFERENCE_INDEX = m.UNIVERSAL_REFERENCE_INDEX
+          VARIANTS = ["FIXED_STOP_PCT", "ATR_1.0", "ATR_1.5", "ATR_2.0"]
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(ts_local=ts_local)
+              df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+              df["mins"] = df["ts_local"].dt.hour * 60 + df["ts_local"].dt.minute
+              return df.sort_values("ts_local").reset_index(drop=True)
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(entry, exit_price, exit_ts, exit_reason, qty, entry_cost, cost_model, variant):
+              entry_price = entry["entry_price"]
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - entry["stop_loss"]
+              return {
+                  "symbol": entry["symbol"], "variant": variant, "entry_ts": entry["entry_ts"],
+                  "exit_ts": exit_ts, "exit_reason": exit_reason, "score_pct": entry["score_pct"],
+                  "gross_pnl": gross_pnl, "net_pnl": net_pnl, "total_cost": total_cost,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def find_entries(symbol, df):
+              """Phase A: locate qualifying entries (score>=70, EMA9>EMA21,
+              core rejections) - IDENTICAL logic to ideas 2/3's own scan,
+              minus stop/target (computed per-variant below since the stop
+              formula is what's under test). Also returns the full ATR
+              series so variants can reuse it without recomputing."""
+              n = len(df)
+              if n < max(SMA_SLOW, STRUCT_LOOKBACK * 2, VOL_LOOKBACK + 1, RSI_PERIOD + 1) + 5:
+                  return [], None
+
+              close = df["Close"].to_numpy(dtype=float)
+              open_ = df["Open"].to_numpy(dtype=float)
+              high = df["High"].to_numpy(dtype=float)
+              low = df["Low"].to_numpy(dtype=float)
+              vol = df["Volume"].to_numpy(dtype=float)
+              mins_arr = df["mins"].to_numpy(dtype=int)
+              days_arr = df["date_local"].to_numpy()
+              ts_local = df["ts_local"]
+
+              close_s = df["Close"]
+              ema_fast = close_s.ewm(span=SMA_FAST, adjust=False).mean().to_numpy(dtype=float)
+              ema_slow = close_s.ewm(span=SMA_SLOW, adjust=False).mean().to_numpy(dtype=float)
+
+              delta = np.diff(close, prepend=close[0])
+              gain = np.where(delta > 0, delta, 0.0)
+              loss = np.where(delta < 0, -delta, 0.0)
+              avg_gain = pd.Series(gain).ewm(alpha=1 / RSI_PERIOD, adjust=False).mean().to_numpy()
+              avg_loss = pd.Series(loss).ewm(alpha=1 / RSI_PERIOD, adjust=False).mean().to_numpy()
+              rs = np.divide(avg_gain, avg_loss, out=np.full(n, np.nan), where=avg_loss > 0)
+              rsi = 100 - (100 / (1 + rs))
+              rsi[avg_loss == 0] = 100.0
+
+              atr_series = m._atr_series(df)
+              atr_val_arr = atr_series.to_numpy(dtype=float)
+              atr_recent_mean_arr = atr_series.rolling(20).mean().to_numpy(dtype=float)
+
+              resistance_arr = pd.Series(high).shift(1).rolling(STRUCT_LOOKBACK).max().to_numpy(dtype=float)
+
+              fh_high = pd.Series(high).shift(STRUCT_LOOKBACK).rolling(STRUCT_LOOKBACK).max().to_numpy(dtype=float)
+              sh_high = pd.Series(high).rolling(STRUCT_LOOKBACK).max().to_numpy(dtype=float)
+              fh_low = pd.Series(low).shift(STRUCT_LOOKBACK).rolling(STRUCT_LOOKBACK).min().to_numpy(dtype=float)
+              sh_low = pd.Series(low).rolling(STRUCT_LOOKBACK).min().to_numpy(dtype=float)
+              structure_ok = (sh_high > fh_high) & (sh_low > fh_low)
+              structure_valid = ~(np.isnan(fh_high) | np.isnan(sh_high))
+
+              avg_vol_arr = pd.Series(vol).shift(1).rolling(VOL_LOOKBACK).mean().to_numpy(dtype=float)
+              vol_ratio_arr = np.divide(vol, avg_vol_arr, out=np.full(n, np.nan), where=avg_vol_arr > 0)
+              volume_ok_arr = (avg_vol_arr > 0) & (vol > avg_vol_arr)
+
+              typical = (high + low + close) / 3.0
+              day_key = pd.Series(days_arr)
+              cum_tp_vol = pd.Series(typical * vol).groupby(day_key).cumsum().to_numpy()
+              cum_vol = pd.Series(vol).groupby(day_key).cumsum().to_numpy()
+              vwap_arr = np.divide(cum_tp_vol, cum_vol, out=np.full(n, np.nan), where=cum_vol > 0)
+
+              try:
+                  idx_raw = m.fetch_ohlc(REFERENCE_INDEX, "60d", INTERVAL)
+                  idx_df = _prep(idx_raw)[["ts_local", "Close"]].rename(columns={"Close": "idx_close"})
+                  merged = pd.merge_asof(df[["ts_local"]], idx_df, on="ts_local", direction="backward")
+                  idx_close = merged["idx_close"].to_numpy(dtype=float)
+              except Exception:
+                  idx_close = np.full(n, np.nan)
+
+              has_idx_hist = ~np.isnan(idx_close)
+              idx_ema_fast = pd.Series(idx_close).ewm(span=SMA_FAST, adjust=False).mean().to_numpy(dtype=float)
+              idx_ema_slow = pd.Series(idx_close).ewm(span=SMA_SLOW, adjust=False).mean().to_numpy(dtype=float)
+              idx_ret_ok_lookback = np.roll(idx_close, RS_LOOKBACK)
+              sym_ret_ok_lookback = np.roll(close, RS_LOOKBACK)
+              with np.errstate(invalid="ignore", divide="ignore"):
+                  sym_ret = close / sym_ret_ok_lookback - 1
+                  idx_ret = idx_close / idx_ret_ok_lookback - 1
+              rs_bullish = sym_ret > idx_ret
+              idx_trend_bullish = idx_ema_fast > idx_ema_slow
+
+              entries = []
+              days = sorted(set(days_arr.tolist()))
+              day_traded = {d: False for d in days}
+
+              for i in range(n):
+                  mins = int(mins_arr[i])
+                  day = days_arr[i]
+                  if mins < OPEN_MIN or mins > CLOSE_MIN:
+                      continue
+                  if i < STRUCT_LOOKBACK * 2 or i < RS_LOOKBACK or day_traded.get(day, True) or mins >= SQUAREOFF_MIN:
+                      continue
+
+                  bullish_trend = ema_fast[i] > ema_slow[i]
+                  if not bullish_trend:
+                      continue
+
+                  has_index = bool(has_idx_hist[i]) and i >= RS_LOOKBACK and i >= SMA_SLOW
+                  breakdown = {}
+                  weights = dict(WEIGHTS)
+                  if not has_index:
+                      weights.pop("relative_strength", None)
+                      weights.pop("index_trend", None)
+
+                  vwap_i = vwap_arr[i]
+                  breakdown["above_vwap"] = None if np.isnan(vwap_i) else (weights["above_vwap"] if close[i] > vwap_i else 0.0)
+                  breakdown["ema_cross"] = weights["ema_cross"] if bullish_trend else 0.0
+                  breakdown["structure_hh_hl"] = None if not structure_valid[i] else (weights["structure_hh_hl"] if structure_ok[i] else 0.0)
+                  resist_i = resistance_arr[i]
+                  breakdown["breakout_resistance"] = None if np.isnan(resist_i) else (weights["breakout_resistance"] if close[i] > resist_i else 0.0)
+                  vr = vol_ratio_arr[i]
+                  if np.isnan(vr):
+                      breakdown["volume_breakout"] = None
+                  elif vr >= RVOL_FULL:
+                      breakdown["volume_breakout"] = weights["volume_breakout"]
+                  elif vr >= RVOL_PARTIAL:
+                      breakdown["volume_breakout"] = weights["volume_breakout"] * 0.5
+                  else:
+                      breakdown["volume_breakout"] = 0.0
+                  rsi_i = rsi[i]
+                  breakdown["rsi_band"] = None if np.isnan(rsi_i) else (weights["rsi_band"] if RSI_LO <= rsi_i <= RSI_HI else 0.0)
+                  if has_index:
+                      breakdown["relative_strength"] = weights["relative_strength"] if rs_bullish[i] else 0.0
+                      breakdown["index_trend"] = weights["index_trend"] if idx_trend_bullish[i] else 0.0
+
+                  max_score = sum(weights[k] for k, v in breakdown.items() if v is not None)
+                  score = sum(v for v in breakdown.values() if v is not None)
+                  score_pct = round(100.0 * score / max_score, 2) if max_score else 0.0
+
+                  rejected = False
+                  atr_i, atr_mean_i = atr_val_arr[i], atr_recent_mean_arr[i]
+                  if not np.isnan(atr_i) and not np.isnan(atr_mean_i) and atr_mean_i > 0 and atr_i > MAX_ATR_MULT * atr_mean_i:
+                      rejected = True
+                  if not rejected and not np.isnan(vwap_i) and not np.isnan(atr_i) and atr_i:
+                      if abs(close[i] - vwap_i) > MAX_VWAP_EXT_ATR * atr_i:
+                          rejected = True
+                  if not rejected and not volume_ok_arr[i]:
+                      rejected = True
+                  if not rejected and close[i] <= open_[i]:
+                      rejected = True
+
+                  entry_allowed = (score_pct >= SCORE_MIN_PCT) and not rejected
+                  if not entry_allowed:
+                      continue
+
+                  day_traded[day] = True
+                  entries.append({
+                      "symbol": symbol, "i": i, "day": day, "entry_ts": ts_local.iloc[i].timestamp(),
+                      "entry_price": float(close[i]), "score_pct": score_pct,
+                  })
+
+              return entries, atr_val_arr
+
+
+          def simulate_and_size(symbol, df, entries, atr_val_arr, variant, atr_mult, stop_pct, capital, risk_pct, cost_model):
+              close = df["Close"].to_numpy(dtype=float)
+              mins_arr = df["mins"].to_numpy(dtype=int)
+              days_arr = df["date_local"].to_numpy()
+              ts_local = df["ts_local"]
+              n = len(df)
+              usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+
+              trades = []
+              for entry in entries:
+                  i = entry["i"]
+                  entry_price = entry["entry_price"]
+                  day = entry["day"]
+
+                  if variant == "FIXED_STOP_PCT":
+                      stop_loss = entry_price * (1 - stop_pct / 100)
+                  else:
+                      atr_i = atr_val_arr[i]
+                      if np.isnan(atr_i) or atr_i <= 0:
+                          continue
+                      stop_loss = entry_price - atr_mult * atr_i
+
+                  stop_dist = entry_price - stop_loss
+                  if stop_dist <= 0:
+                      continue
+                  target = entry_price + RR * stop_dist
+                  target_move_pct = m._target_move_pct(target, entry_price)
+                  if target_move_pct <= m.ROUND_TRIP_COST_PCT:
+                      continue
+
+                  exit_price, exit_ts, exit_reason = None, None, None
+                  for j in range(i + 1, n):
+                      if days_arr[j] != day:
+                          break
+                      mj = int(mins_arr[j])
+                      if mj < OPEN_MIN or mj > CLOSE_MIN:
+                          continue
+                      cj = float(close[j])
+                      if cj <= stop_loss:
+                          exit_price, exit_reason = cj, "stop_hit"
+                      elif cj >= target:
+                          exit_price, exit_reason = cj, "target_hit"
+                      elif mj >= SQUAREOFF_MIN:
+                          exit_price, exit_reason = cj, "eod_squareoff"
+                      if exit_reason:
+                          exit_ts = ts_local.iloc[j].timestamp()
+                          break
+                  if exit_reason is None:
+                      last_j = min(n - 1, i + 1)
+                      while last_j + 1 < n and days_arr[last_j + 1] == day:
+                          last_j += 1
+                      exit_price = float(close[last_j])
+                      exit_ts = ts_local.iloc[last_j].timestamp()
+                      exit_reason = "window_end_forced_close"
+
+                  entry_full = dict(entry, stop_loss=stop_loss)
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100
+                  qty = risk_amount_inr / stop_dist
+                  qty = min(qty, usable_capital_inr / entry_price)
+                  qty = float(np.floor(qty))
+                  if qty <= 0 or qty * entry_price < 100:
+                      continue
+                  entry_cost = _entry_cost(qty, entry_price, cost_model)
+                  trades.append(_finalize_trade(entry_full, exit_price, exit_ts, exit_reason, qty, entry_cost, cost_model, variant))
+
+              return trades
+
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          CAPITAL_INR = 400000.0
+          ATR_MULTS = {"FIXED_STOP_PCT": None, "ATR_1.0": 1.0, "ATR_1.5": 1.5, "ATR_2.0": 2.0}
+
+          def _metrics_row(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0, cost_drag_pct=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              total_cost = sum(t["total_cost"] for t in trades)
+              cost_drag_pct = 100 * total_cost / max(1, sum(abs(t["gross_pnl"]) for t in trades))
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, cost_drag_pct=cost_drag_pct)
+
+          def _print_row(label, row):
+              print(f"{label:>28} {row['n']:>6} {row['win_rate']:>6.1f}% {row['pf_net']:>7.2f} "
+                    f"{row['pf_gross']:>8.2f} {row['avg_net']:>10.2f} {row['avg_gross']:>10.2f} {row['cost_drag_pct']:>9.1f}%")
+
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, 60d) ---")
+          per_symbol_df = {}
+          for sym in SYMBOLS:
+              try:
+                  raw = m.fetch_ohlc(sym, "60d", INTERVAL)
+              except Exception:
+                  continue
+              if raw is None or len(raw) < 100:
+                  continue
+              per_symbol_df[sym] = _prep(raw)
+          print(f"  fetched {len(per_symbol_df)}/{len(SYMBOLS)} symbols\n")
+
+          print("--- Scanning entries (score >= %.0f, EMA9>EMA21) ---" % SCORE_MIN_PCT)
+          entries_by_symbol = {}
+          atr_by_symbol = {}
+          for sym, df in per_symbol_df.items():
+              try:
+                  entries, atr_arr = find_entries(sym, df)
+              except Exception as e:
+                  print(f"ERROR scanning {sym}: {e}")
+                  continue
+              entries_by_symbol[sym] = entries
+              atr_by_symbol[sym] = atr_arr
+          total_entries = sum(len(v) for v in entries_by_symbol.values())
+          print(f"  {total_entries} qualifying entries across {len(per_symbol_df)} symbols\n")
+
+          header = f"{'bucket':>28} {'n':>6} {'win%':>7} {'PFnet':>7} {'PFgross':>8} {'avgNet':>10} {'avgGross':>10} {'costDrag%':>10}"
+
+          trades_by_variant = {}
+          for variant in VARIANTS:
+              atr_mult = ATR_MULTS[variant]
+              variant_trades = []
+              for sym, entries in entries_by_symbol.items():
+                  if not entries:
+                      continue
+                  cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+                  variant_trades.extend(simulate_and_size(
+                      sym, per_symbol_df[sym], entries, atr_by_symbol[sym], variant, atr_mult,
+                      cfg["stop_pct"], CAPITAL_INR, cfg["risk_pct"], DEFAULT_COST_MODEL,
+                  ))
+              trades_by_variant[variant] = variant_trades
+
+          print("=== OVERALL, BY STOP-DISTANCE VARIANT ===")
+          print(header)
+          for variant in VARIANTS:
+              _print_row(variant, _metrics_row(trades_by_variant[variant]))
+
+          for variant in VARIANTS:
+              trades = trades_by_variant[variant]
+              print(f"\n=== {variant}: BY EXIT REASON ===")
+              print(header)
+              for reason in sorted(set(t["exit_reason"] for t in trades)):
+                  _print_row(reason, _metrics_row([t for t in trades if t["exit_reason"] == reason]))
+
+              print(f"\n=== {variant}: BY SYMBOL (n>=3, sorted by gross PF) ===")
+              print(header)
+              per_symbol = {}
+              for t in trades:
+                  per_symbol.setdefault(t["symbol"], []).append(t)
+              symbol_rows = [(sym, _metrics_row(sts)) for sym, sts in per_symbol.items() if len(sts) >= 3]
+              symbol_rows.sort(key=lambda x: x[1]["pf_gross"], reverse=True)
+              for sym, row in symbol_rows[:15]:
+                  _print_row(sym, row)
+          PYEOF

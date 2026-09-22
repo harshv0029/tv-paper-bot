@@ -1,0 +1,353 @@
+name: Williams-style High Risk-Per-Trade (PURE RESEARCH - not live-eligible)
+
+# Research-only, read-only pass (2026-09-22), idea 6 - EXPLICIT USER
+# APPROVAL required and given for this one, because it deliberately
+# relaxes this repo's own standing real-money discipline (CLAUDE.md:
+# risk_pct hard ceiling of ~1-2% of capital per trade, daily-loss halt)
+# for THIS BACKTEST ONLY. It touches no live parameter and is never
+# wired into main.py - see the repeated reminder at the bottom of this
+# header and in the job's own printed output.
+#
+# Context: user asked how WCTC winners actually won, given ideas 1-5 (see
+# ride-winners-no-target-research.yml and atr-based-stop-research.yml
+# headers) all failed or were marginal net of cost. Research turned up
+# that Larry Williams (1987 WCTC, 11,376%) has publicly said he risked
+# NEAR 30% OF ACCOUNT PER TRADE that year (not 1-2%), traded LEVERAGED
+# FUTURES (not NSE cash equities), scaled from 1 contract up to 50-100
+# contracts as the account grew, held positions overnight/multi-day (not
+# EOD-squareoff), and the account itself swung from a peak near $2.2M
+# down to ~$750k (a 50%+ INTRA-YEAR DRAWDOWN) before recovering to
+# ~$1.1M. He has since said those specific pit-era leverage/edge
+# conditions no longer exist and now recommends ~2-4% per trade. This is
+# not a strategy to copy - it is a real, drawdown-accepting risk profile,
+# and this workflow exists ONLY to show, honestly, what happens to the
+# EXISTING (already known non-viable, see idea 1) WCTC breakout signal
+# when risk-per-trade is pushed toward that historical figure, on THIS
+# universe/cost structure - not to find something worth deploying.
+#
+# Reuses the EXACT SAME entry/stop/target as idea 1
+# (wctc-volatility-breakout-research.yml), k=0.50 only (Williams' own
+# most commonly cited threshold - no re-sweep of k here, that question
+# was already answered in idea 1). ONLY risk_pct varies:
+#   a. 2%    - current repo discipline's own upper bound, included as
+#              the honest baseline for comparison.
+#   b. 10%   - an intermediate step.
+#   c. 20%   - an intermediate step.
+#   d. 30%   - Williams' own publicly stated 1987 figure.
+#
+# IMPORTANT INTERPRETATION CAVEAT, reported explicitly in the output:
+# qty is still capped by max_single_trade_inr = capital/CAPITAL_TRANCHES
+# (one tranche, same hard notional ceiling every other research workflow
+# here respects) - so nominal risk_pct above a certain point does NOT
+# translate 1:1 into $ actually at risk per trade; the notional cap binds
+# first. Real avg $ risked per trade (not just the nominal risk_pct
+# input) is printed for every variant so the result is honestly
+# interpretable, not just a bigger-looking number.
+#
+# THIS WORKFLOW NEVER TOUCHES main.py, NSE_STOCK_PARAM_OVERRIDES,
+# NSE_STOCK_DEFAULT_PARAMS, or any live config. Nothing here is
+# live-eligible regardless of result - that would require the user to
+# explicitly ask to relax the standing 1-2% risk_pct discipline for real
+# trading, a separate and much bigger decision this workflow does not
+# make or recommend.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run high risk-per-trade backtest (PURE RESEARCH, not live-eligible)
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          print("=" * 70)
+          print("PURE RESEARCH - this backtest deliberately relaxes the repo's own")
+          print("1-2% risk_pct discipline. Results here are NEVER live-eligible.")
+          print("=" * 70)
+
+          OPEN_MIN = 555
+          CLOSE_MIN = 930
+          SQUAREOFF_MIN = 915
+          TZ_OFF = m.IST_OFFSET_MIN
+          INTERVAL = "5m"
+          RR = 2.0
+          K = 0.50  # Williams' own most commonly cited value - see idea 1, not re-swept here
+          RISK_PCT_VARIANTS = [2.0, 10.0, 20.0, 30.0]
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(ts_local=ts_local)
+              df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+              df["mins"] = df["ts_local"].dt.hour * 60 + df["ts_local"].dt.minute
+              return df
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(symbol, entry_price, initial_stop, qty, entry_ts, exit_price, exit_ts,
+                               exit_reason, entry_cost, cost_model, risk_pct, risk_amount_inr):
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - initial_stop
+              return {
+                  "symbol": symbol, "risk_pct": risk_pct, "entry_ts": entry_ts, "exit_ts": exit_ts,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "net_r": net_pnl / (r * qty) if r > 0 else None,
+                  "risk_amount_inr": risk_amount_inr, "notional_inr": qty * entry_price,
+              }
+
+
+          def replay_symbol(symbol, df, risk_pct, stop_pct, capital, cost_model):
+              trades = []
+              days = sorted(df["date_local"].unique())
+              day_frames = {d: g.reset_index(drop=True) for d, g in df.groupby("date_local", sort=True)}
+
+              for idx in range(1, len(days)):
+                  prev_df = day_frames[days[idx - 1]]
+                  day_df = day_frames[days[idx]]
+                  if prev_df.empty or day_df.empty:
+                      continue
+                  prev_range = float(prev_df["High"].max() - prev_df["Low"].min())
+                  if prev_range <= 0:
+                      continue
+
+                  open_mask = day_df["mins"] == day_df["mins"].min()
+                  if not open_mask.any():
+                      continue
+                  today_open = float(day_df.loc[open_mask, "Open"].iloc[0])
+                  threshold = today_open + K * prev_range
+
+                  closes = day_df["Close"].to_numpy(dtype=float)
+                  mins_arr = day_df["mins"].to_numpy(dtype=int)
+
+                  position = None
+                  day_traded = False
+
+                  for i in range(len(day_df)):
+                      mins = int(mins_arr[i])
+                      if mins < OPEN_MIN or mins > CLOSE_MIN:
+                          continue
+                      last_close = float(closes[i])
+                      last_ts = day_df["ts_local"].iloc[i].timestamp()
+
+                      if position is not None:
+                          is_squareoff = mins >= SQUAREOFF_MIN
+                          exit_reason = None
+                          exit_price = last_close
+                          if last_close <= position["stop"]:
+                              exit_reason = "stop_hit"
+                          elif last_close >= position["target"]:
+                              exit_reason = "target_hit"
+                          elif is_squareoff:
+                              exit_reason = "eod_squareoff"
+
+                          if exit_reason:
+                              trades.append(_finalize_trade(
+                                  symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                                  position["entry_ts"], exit_price, last_ts, exit_reason,
+                                  position["entry_cost"], cost_model, risk_pct, position["risk_amount_inr"],
+                              ))
+                              position = None
+                          continue
+
+                      if day_traded:
+                          continue
+                      if mins >= SQUAREOFF_MIN:
+                          continue
+
+                      breakout = last_close > threshold
+                      if not breakout:
+                          continue
+
+                      day_traded = True
+
+                      stop_loss = last_close * (1 - stop_pct / 100)
+                      stop_dist = last_close - stop_loss
+                      if stop_dist <= 0:
+                          continue
+                      target = last_close + RR * stop_dist
+                      if target <= last_close:
+                          continue
+
+                      target_move_pct = m._target_move_pct(target, last_close)
+                      if target_move_pct <= m.ROUND_TRIP_COST_PCT:
+                          continue
+
+                      # SAME notional cap as every other research workflow here
+                      # (capital/CAPITAL_TRANCHES) - deliberately NOT relaxed,
+                      # only risk_pct is under test. This is what keeps very
+                      # high nominal risk_pct from translating 1:1 into $ risk
+                      # - see header's interpretation caveat.
+                      usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                      risk_amount_inr = usable_capital_inr * risk_pct / 100
+                      qty = risk_amount_inr / stop_dist
+                      qty = min(qty, usable_capital_inr / last_close)
+                      qty = int(np.floor(qty))
+                      if qty <= 0 or qty * last_close < 100:
+                          continue
+
+                      position = {
+                          "entry_price": last_close, "initial_stop": stop_loss, "stop": stop_loss,
+                          "target": target, "entry_ts": last_ts, "qty": qty,
+                          "entry_cost": _entry_cost(qty, last_close, cost_model),
+                          "risk_amount_inr": min(risk_amount_inr, qty * stop_dist),
+                      }
+
+                  if position is not None:
+                      last_close = float(day_df["Close"].iloc[-1])
+                      last_ts = day_df["ts_local"].iloc[-1].timestamp()
+                      trades.append(_finalize_trade(
+                          symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                          position["entry_ts"], last_close, last_ts, "window_end_forced_close",
+                          position["entry_cost"], cost_model, risk_pct, position["risk_amount_inr"],
+                      ))
+
+              return trades
+
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          CAPITAL_INR = 400000.0
+
+          def _metrics_row(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0,
+                              cost_drag_pct=0.0, max_dd_inr=0.0, avg_risk_inr=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              total_cost = sum(t["total_cost"] for t in trades)
+              cost_drag_pct = 100 * total_cost / max(1, sum(abs(t["gross_pnl"]) for t in trades))
+              # Running cumulative net P&L peak-to-trough drawdown, sorted by
+              # entry time - honest "how bad did it get" read, since Williams'
+              # own year included a 50%+ intra-year drawdown.
+              ordered = sorted(trades, key=lambda t: t["entry_ts"])
+              cum, peak, max_dd = 0.0, 0.0, 0.0
+              for t in ordered:
+                  cum += t["net_pnl"]
+                  peak = max(peak, cum)
+                  max_dd = max(max_dd, peak - cum)
+              avg_risk_inr = sum(t["risk_amount_inr"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, cost_drag_pct=cost_drag_pct,
+                          max_dd_inr=max_dd, avg_risk_inr=avg_risk_inr)
+
+          def _print_row(label, row):
+              print(f"{label:>12} {row['n']:>6} {row['win_rate']:>6.1f}% {row['pf_net']:>7.2f} "
+                    f"{row['pf_gross']:>8.2f} {row['avg_net']:>10.2f} {row['avg_gross']:>10.2f} "
+                    f"{row['cost_drag_pct']:>9.1f}% {row['avg_risk_inr']:>12.2f} {row['max_dd_inr']:>14.2f}")
+
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, 60d) ---")
+          per_symbol_df = {}
+          for sym in SYMBOLS:
+              try:
+                  raw = m.fetch_ohlc(sym, "60d", INTERVAL)
+              except Exception:
+                  continue
+              if raw is None or len(raw) < 100:
+                  continue
+              per_symbol_df[sym] = _prep(raw)
+          print(f"  fetched {len(per_symbol_df)}/{len(SYMBOLS)} symbols\n")
+
+          header = (f"{'riskPct':>12} {'n':>6} {'win%':>7} {'PFnet':>7} {'PFgross':>8} {'avgNet':>10} "
+                    f"{'avgGross':>10} {'costDrag%':>10} {'avgRiskINR':>12} {'maxDDinINR':>14}")
+
+          trades_by_risk = {}
+          for risk_pct in RISK_PCT_VARIANTS:
+              all_trades = []
+              for sym, df in per_symbol_df.items():
+                  cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+                  try:
+                      trades = replay_symbol(sym, df, risk_pct, cfg["stop_pct"], CAPITAL_INR, DEFAULT_COST_MODEL)
+                  except Exception as e:
+                      print(f"ERROR {sym} risk_pct={risk_pct}: {e}")
+                      continue
+                  all_trades.extend(trades)
+              trades_by_risk[risk_pct] = all_trades
+
+          print("=== OVERALL, BY RISK-PCT VARIANT (k=0.50 fixed, same as idea 1) ===")
+          print(header)
+          for risk_pct in RISK_PCT_VARIANTS:
+              _print_row(f"{risk_pct:.0f}%", _metrics_row(trades_by_risk[risk_pct]))
+
+          print("\nNote: avgRiskINR is the REAL average $ risked per trade after the")
+          print("capital/CAPITAL_TRANCHES notional cap - compare it to the nominal")
+          print("riskPct*capital to see how much of each variant's higher setting")
+          print("actually reached the trade vs. was capped by the tranche ceiling.")
+          print("maxDDinINR is running peak-to-trough net P&L drawdown, entry-time-ordered.")
+
+          for risk_pct in RISK_PCT_VARIANTS:
+              trades = trades_by_risk[risk_pct]
+              print(f"\n=== risk_pct={risk_pct}%: BY EXIT REASON ===")
+              print(header)
+              for reason in sorted(set(t["exit_reason"] for t in trades)):
+                  _print_row(reason, _metrics_row([t for t in trades if t["exit_reason"] == reason]))
+          PYEOF
