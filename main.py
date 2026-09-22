@@ -1767,6 +1767,40 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
         df["long"] = flags
         df["kc_middle"], df["kc_upper"] = middle, upper
 
+    elif strategy == "donchian_breakout":
+        # Classic Turtle Trading System (Dennis/Eckhardt) entry: long on a
+        # close above the entry_period-bar rolling high, exit on a close
+        # below the (shorter) exit_period-bar rolling low - the defining
+        # asymmetric dual-channel design (original: 20-bar entry, 10-bar
+        # exit), genuinely distinct from every breakout candidate already
+        # in the engine (none use a rolling high/low channel with a
+        # different lookback for entry vs. exit). Rolling windows are
+        # shifted by one bar so the channel never includes the bar it's
+        # being tested against (no lookahead). Sources (2026-09-22
+        # research): sub-50% win rate is the signature profile of this
+        # style (one backtest: 36% win rate on BTC, +36.5% total return
+        # over 25 trades) - it never misses a major trend and pays for
+        # that with many small losses offset by a few large trend
+        # captures, not a high hit rate.
+        entry_period = int(params.get("entry_period", 20))
+        exit_period = int(params.get("exit_period", 10))
+
+        entry_channel_high = df["High"].rolling(entry_period).max().shift(1)
+        exit_channel_low = df["Low"].rolling(exit_period).min().shift(1)
+
+        entry_signal = df["Close"] > entry_channel_high
+        exit_signal = df["Close"] < exit_channel_low
+
+        holding, flags = False, []
+        for is_entry, is_exit in zip(entry_signal.fillna(False), exit_signal.fillna(False)):
+            if not holding and is_entry:
+                holding = True
+            elif holding and is_exit:
+                holding = False
+            flags.append(holding)
+        df["long"] = flags
+        df["donchian_entry"], df["donchian_exit"] = entry_channel_high, exit_channel_low
+
     elif strategy == "fair_value_gap":
         # Fair Value Gap (FVG) / Smart Money Concepts entry - explicit user
         # instruction 2026-09-21 ("Implement this strategy and get this
@@ -2096,8 +2130,8 @@ def add_strategy_signal(df: pd.DataFrame, strategy: str, params: dict) -> pd.Dat
                    f"vwap_multi_period_reversal, bullish_engulfing, pin_bar_reversal, "
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
                    f"stochastic_oversold_reversal, cci_breakout, keltner_channel_breakout, "
-                   f"fair_value_gap, macd_cross, wyckoff_spring, wyckoff_sos, vsa_climax_reversal, "
-                   f"mtf_engulfing, sweep_engulf_retracement_v1",
+                   f"donchian_breakout, fair_value_gap, macd_cross, wyckoff_spring, wyckoff_sos, "
+                   f"vsa_climax_reversal, mtf_engulfing, sweep_engulf_retracement_v1",
         )
 
     return df.dropna(subset=["long"]).reset_index(drop=True)
@@ -2218,6 +2252,8 @@ def backtest(
     fvg_expiry_bars: int = 50,
     sweep_htf_minutes: int = 240,
     sweep_rr_multiple: float = 2.0,
+    donchian_entry_period: int = 20,
+    donchian_exit_period: int = 10,
     qty: float = 1,
 ):
     """
@@ -2255,6 +2291,7 @@ def backtest(
     strategy=stochastic_oversold_reversal -> params: k_period, d_period, oversold, overbought
     strategy=cci_breakout         -> params: cci_period, cci_threshold
     strategy=keltner_channel_breakout -> params: kc_period, kc_atr_period, kc_multiplier
+    strategy=donchian_breakout    -> params: donchian_entry_period, donchian_exit_period
     strategy=macd_cross           -> params: macd_fast, macd_slow, macd_signal
     strategy=mtf_engulfing        -> params: htf_minutes, htf_trend_fast, htf_trend_slow
     strategy=sweep_engulf_retracement_v1 -> params: sweep_htf_minutes (HTF resample
@@ -2318,6 +2355,8 @@ def backtest(
         params = {"period": cci_period, "threshold": cci_threshold}
     elif strategy == "keltner_channel_breakout":
         params = {"period": kc_period, "atr_period": kc_atr_period, "multiplier": kc_multiplier}
+    elif strategy == "donchian_breakout":
+        params = {"entry_period": donchian_entry_period, "exit_period": donchian_exit_period}
     elif strategy == "fair_value_gap":
         params = {
             "fvg_displacement_atr_mult": fvg_displacement_atr_mult,
@@ -2419,6 +2458,9 @@ def sweep(
     fvg_displacement_atr_mult: str = "1.0,1.5,2.0",
     fvg_volume_mult: str = "1.0,1.5,2.0",
     fvg_expiry_bars: str = "20,50,100",
+    # donchian_breakout params - comma-separated lists
+    donchian_entry_period: str = "10,20,30",
+    donchian_exit_period: str = "5,10,15",
 ):
     """
     Tests every combination of the given parameter lists against ONE fetch of
@@ -2536,6 +2578,14 @@ def sweep(
             {"fvg_displacement_atr_mult": d, "fvg_volume_mult": v, "fvg_expiry_bars": e}
             for d, v, e in product(fdam_list, fvm_list, feb_list)
         ]
+    elif strategy == "donchian_breakout":
+        dep_list = _parse_num_list(donchian_entry_period, int)
+        dxp_list = _parse_num_list(donchian_exit_period, int)
+        combos = [
+            {"entry_period": ep, "exit_period": xp}
+            for ep, xp in product(dep_list, dxp_list)
+            if xp < ep
+        ]
     else:
         raise HTTPException(
             status_code=400,
@@ -2543,7 +2593,7 @@ def sweep(
                    f"orb_breakout, orb_volume, bullish_engulfing, pin_bar_reversal, "
                    f"inside_bar_breakout, bollinger_mean_reversion, supertrend, rsi_divergence, "
                    f"stochastic_oversold_reversal, cci_breakout, keltner_channel_breakout, "
-                   f"fair_value_gap",
+                   f"donchian_breakout, fair_value_gap",
         )
 
     if not combos:
