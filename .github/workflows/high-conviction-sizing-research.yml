@@ -1,0 +1,514 @@
+name: Concentrated High-Conviction Sizing (research)
+
+# Research-only, read-only pass (2026-09-22), idea 2 of 3 ("try each one
+# but one by one, with its variants in mind"). Rationale: Rotman/Baruch
+# repeat-winner research says "extremely consistent, not lured by
+# break-the-bank strategies" - but also that top desks size UP their best
+# ideas rather than spreading risk flat across every qualifying signal.
+# This tests whether concentrating size on the day's highest-conviction
+# setup(s) beats flat sizing, using main.py's OWN live 8-factor
+# universal_score engine as the conviction metric (UNIVERSAL_SCORE_WEIGHTS,
+# UNIVERSAL_ENTRY_SCORE_MIN=70) - not a fabricated score.
+#
+# IMPORTANT, found while designing this: main.py ALREADY ships a
+# confidence-proportional sizing multiplier (_confidence_size_multiplier,
+# CONFIDENCE_SIZE_FLOOR=0.25, live since 2026-09-21, explicit user
+# instruction) - linear scaling from 25% risk at the entry-score floor to
+# 100% at score_pct=100. This workflow benchmarks that EXACT live formula
+# (variant "b" below) against a flat baseline and two more concentrated
+# alternatives, so the result speaks directly to whether production's own
+# sizing curve is already doing the right thing, is too timid, or too
+# aggressive - not a hypothetical comparison.
+#
+# Signal generation (SAME across all 4 sizing variants - only sizing
+# differs, so the comparison isolates position-sizing/selection, not
+# entry/exit quality):
+#   - Long-only, EMA9>EMA21 bullish (m.NSE_STOCK_DEFAULT_PARAMS convention).
+#   - Score >= UNIVERSAL_ENTRY_SCORE_MIN (70) on the real 8-factor
+#     UNIVERSAL_SCORE_WEIGHTS breakdown (above_vwap, ema_cross,
+#     structure_hh_hl, breakout_resistance, volume_breakout, rsi_band,
+#     relative_strength vs ^NSEI, index_trend), vectorized here (not a
+#     per-bar call into main.py's own function - O(n^2) at this scale) but
+#     matching its exact weights/thresholds/formulas.
+#   - Rejection filters reproduced: atr_abnormally_wide,
+#     too_extended_from_vwap, liquidity_inadequate (_volume_confirms proxy),
+#     entry_candle_not_bullish. NOT reproduced (simplification, noted
+#     honestly): the separate _liquidity_gate hard tape-quality gate and
+#     reward_risk_below_minimum - both rarely bind on the post-breakout
+#     candidates that clear score>=70 anyway, and this keeps the script's
+#     scope proportionate to the sizing question actually under test.
+#   - First qualifying bar per symbol per day only (no re-entry chasing,
+#     same discipline as every other research signal in this repo).
+#   - Stop: entry*(1-stop_pct/100) (plain convention, same as Idea 1 - the
+#     RANGE-regime ATR-floor stop logic is intentionally NOT pulled in
+#     here, this is a TREND-only long signal). Target: entry + 2.0R.
+#   - Same economic-viability gate (m._target_move_pct vs
+#     m.ROUND_TRIP_COST_PCT), same cost model, same 52-symbol/60-day/5m
+#     universe as every other research workflow here.
+#
+# Sizing variants (identical signal set and identical stop/target on every
+# trade - ONLY how much capital each trade gets differs):
+#   a. FLAT       - baseline: every qualifying signal gets the same
+#                   risk_pct of one capital tranche (multiplier = 1.0).
+#   b. LIVE_LINEAR - main.py's OWN shipped formula: m._confidence_size_multiplier,
+#                   25% floor at score=70 scaling linearly to 100% at
+#                   score=100, of one tranche.
+#   c. QUADRATIC  - a steeper, MORE concentrated curve than (b): same
+#                   25%-100% range but the fraction is squared, so only
+#                   very high scores get real size - untested in
+#                   production, a genuine "more concentrated than live"
+#                   variant.
+#   d. TOP1_PER_DAY - most concentrated: across the WHOLE 52-symbol
+#                   universe, only the single highest-scoring qualifying
+#                   signal each day is taken at all, sized with the FULL
+#                   capital pool (both tranches, not one) at 100% risk.
+#                   Every other symbol's qualifying signal that day is
+#                   walked away from entirely - the literal Rotman/Baruch
+#                   "one best idea" read.
+#
+# Does not call universal_score/orb_breakout live signal code at all -
+# reuses only pure data/cost/sizing plumbing and constants from main.py
+# (fetch_ohlc, UNIVERSAL_* constants, CONFIDENCE_SIZE_FLOOR,
+# _confidence_size_multiplier, _target_move_pct, ROUND_TRIP_COST_PCT,
+# CAPITAL_TRANCHES, symbol param overrides). Read-only: no live parameter
+# touched, nothing wired into main.py.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run concentrated high-conviction sizing backtest (4 variants)
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          OPEN_MIN = 555
+          CLOSE_MIN = 930
+          SQUAREOFF_MIN = 915
+          TZ_OFF = m.IST_OFFSET_MIN
+          INTERVAL = "5m"
+          RR = 2.0
+          SMA_FAST, SMA_SLOW = 9, 21
+          SCORE_MIN_PCT = m.UNIVERSAL_ENTRY_SCORE_MIN  # 70.0
+          CONF_FLOOR = m.CONFIDENCE_SIZE_FLOOR          # 0.25
+          WEIGHTS = dict(m.UNIVERSAL_SCORE_WEIGHTS)
+          RS_LOOKBACK = m.UNIVERSAL_RS_LOOKBACK
+          STRUCT_LOOKBACK = m.UNIVERSAL_STRUCTURE_LOOKBACK
+          RSI_PERIOD = m.UNIVERSAL_RSI_PERIOD
+          RSI_LO, RSI_HI = m.UNIVERSAL_RSI_BAND
+          RVOL_PARTIAL, RVOL_FULL = m.UNIVERSAL_RVOL_PARTIAL_MULT, m.UNIVERSAL_RVOL_FULL_MULT
+          VOL_LOOKBACK = m.VOLUME_CONFIRM_LOOKBACK
+          MAX_ATR_MULT = m.UNIVERSAL_MAX_ATR_MULT
+          MAX_VWAP_EXT_ATR = m.UNIVERSAL_MAX_VWAP_EXTENSION_ATR
+          REFERENCE_INDEX = m.UNIVERSAL_REFERENCE_INDEX
+          VARIANTS = ["FLAT", "LIVE_LINEAR", "QUADRATIC", "TOP1_PER_DAY"]
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(ts_local=ts_local)
+              df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+              df["mins"] = df["ts_local"].dt.hour * 60 + df["ts_local"].dt.minute
+              return df.sort_values("ts_local").reset_index(drop=True)
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(shape, qty, entry_cost, cost_model, variant):
+              entry_price, exit_price = shape["entry_price"], shape["exit_price"]
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - shape["initial_stop"]
+              return {
+                  "symbol": shape["symbol"], "variant": variant, "entry_ts": shape["entry_ts"],
+                  "exit_ts": shape["exit_ts"], "exit_reason": shape["exit_reason"],
+                  "score_pct": shape["score_pct"], "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def _quadratic_multiplier(score_pct, entry_min=SCORE_MIN_PCT, full_at=100.0):
+              if full_at <= entry_min:
+                  return 1.0
+              frac = (score_pct - entry_min) / (full_at - entry_min)
+              frac = max(0.0, min(1.0, frac))
+              return CONF_FLOOR + (1.0 - CONF_FLOOR) * frac * frac
+
+
+          def scan_symbol_signals(symbol, df, stop_pct):
+              """Phase A: ONE chronological pass, fully vectorized score/
+              rejection computation (matches _compute_universal_entry_score's
+              exact weights/thresholds - see workflow header for the two
+              filters intentionally not reproduced). Returns trade "shapes"
+              (entry/exit only - no qty/cost, that's variant-specific)."""
+              n = len(df)
+              if n < max(SMA_SLOW, STRUCT_LOOKBACK * 2, VOL_LOOKBACK + 1, RSI_PERIOD + 1) + 5:
+                  return []
+
+              close = df["Close"].to_numpy(dtype=float)
+              open_ = df["Open"].to_numpy(dtype=float)
+              high = df["High"].to_numpy(dtype=float)
+              low = df["Low"].to_numpy(dtype=float)
+              vol = df["Volume"].to_numpy(dtype=float)
+              mins_arr = df["mins"].to_numpy(dtype=int)
+              days_arr = df["date_local"].to_numpy()
+              ts_local = df["ts_local"]
+
+              close_s = df["Close"]
+              ema_fast = close_s.ewm(span=SMA_FAST, adjust=False).mean().to_numpy(dtype=float)
+              ema_slow = close_s.ewm(span=SMA_SLOW, adjust=False).mean().to_numpy(dtype=float)
+
+              # RSI (Wilder-style rolling avg gain/loss), matching
+              # m._compute_rsi_value's own approach.
+              delta = np.diff(close, prepend=close[0])
+              gain = np.where(delta > 0, delta, 0.0)
+              loss = np.where(delta < 0, -delta, 0.0)
+              avg_gain = pd.Series(gain).ewm(alpha=1 / RSI_PERIOD, adjust=False).mean().to_numpy()
+              avg_loss = pd.Series(loss).ewm(alpha=1 / RSI_PERIOD, adjust=False).mean().to_numpy()
+              rs = np.divide(avg_gain, avg_loss, out=np.full(n, np.nan), where=avg_loss > 0)
+              rsi = 100 - (100 / (1 + rs))
+              rsi[avg_loss == 0] = 100.0
+
+              atr_series = m._atr_series(df)
+              atr_val_arr = atr_series.to_numpy(dtype=float)
+              atr_recent_mean_arr = atr_series.rolling(20).mean().to_numpy(dtype=float)
+
+              resistance_arr = pd.Series(high).shift(1).rolling(STRUCT_LOOKBACK).max().to_numpy(dtype=float)
+
+              fh_high = pd.Series(high).shift(STRUCT_LOOKBACK).rolling(STRUCT_LOOKBACK).max().to_numpy(dtype=float)
+              sh_high = pd.Series(high).rolling(STRUCT_LOOKBACK).max().to_numpy(dtype=float)
+              fh_low = pd.Series(low).shift(STRUCT_LOOKBACK).rolling(STRUCT_LOOKBACK).min().to_numpy(dtype=float)
+              sh_low = pd.Series(low).rolling(STRUCT_LOOKBACK).min().to_numpy(dtype=float)
+              structure_ok = (sh_high > fh_high) & (sh_low > fh_low)
+              structure_valid = ~(np.isnan(fh_high) | np.isnan(sh_high))
+
+              avg_vol_arr = pd.Series(vol).shift(1).rolling(VOL_LOOKBACK).mean().to_numpy(dtype=float)
+              vol_ratio_arr = np.divide(vol, avg_vol_arr, out=np.full(n, np.nan), where=avg_vol_arr > 0)
+              volume_ok_arr = (avg_vol_arr > 0) & (vol > avg_vol_arr)
+
+              typical = (high + low + close) / 3.0
+              day_key = pd.Series(days_arr)
+              cum_tp_vol = (typical * vol)
+              cum_tp_vol = pd.Series(cum_tp_vol).groupby(day_key).cumsum().to_numpy()
+              cum_vol = pd.Series(vol).groupby(day_key).cumsum().to_numpy()
+              vwap_arr = np.divide(cum_tp_vol, cum_vol, out=np.full(n, np.nan), where=cum_vol > 0)
+
+              # Reference-index alignment (relative_strength/index_trend).
+              try:
+                  idx_raw = m.fetch_ohlc(REFERENCE_INDEX, "60d", INTERVAL)
+                  idx_df = _prep(idx_raw)[["ts_local", "Close"]].rename(columns={"Close": "idx_close"})
+                  merged = pd.merge_asof(df[["ts_local"]], idx_df, on="ts_local", direction="backward")
+                  idx_close = merged["idx_close"].to_numpy(dtype=float)
+              except Exception:
+                  idx_close = np.full(n, np.nan)
+
+              has_idx_hist = ~np.isnan(idx_close)
+              idx_ema_fast = pd.Series(idx_close).ewm(span=SMA_FAST, adjust=False).mean().to_numpy(dtype=float)
+              idx_ema_slow = pd.Series(idx_close).ewm(span=SMA_SLOW, adjust=False).mean().to_numpy(dtype=float)
+              idx_ret_ok_lookback = np.roll(idx_close, RS_LOOKBACK)
+              sym_ret_ok_lookback = np.roll(close, RS_LOOKBACK)
+              with np.errstate(invalid="ignore", divide="ignore"):
+                  sym_ret = close / sym_ret_ok_lookback - 1
+                  idx_ret = idx_close / idx_ret_ok_lookback - 1
+              rs_bullish = sym_ret > idx_ret
+              idx_trend_bullish = idx_ema_fast > idx_ema_slow
+
+              trades = []
+              days = sorted(set(days_arr.tolist()))
+              day_traded = {d: False for d in days}
+
+              i = 0
+              while i < n:
+                  mins = int(mins_arr[i])
+                  day = days_arr[i]
+                  if mins < OPEN_MIN or mins > CLOSE_MIN:
+                      i += 1
+                      continue
+                  if i < STRUCT_LOOKBACK * 2 or i < RS_LOOKBACK or day_traded.get(day, True) or mins >= SQUAREOFF_MIN:
+                      i += 1
+                      continue
+
+                  bullish_trend = ema_fast[i] > ema_slow[i]
+                  if not bullish_trend:
+                      i += 1
+                      continue
+
+                  has_index = bool(has_idx_hist[i]) and i >= RS_LOOKBACK and i >= SMA_SLOW
+                  breakdown = {}
+                  weights = dict(WEIGHTS)
+                  if not has_index:
+                      weights.pop("relative_strength", None)
+                      weights.pop("index_trend", None)
+
+                  vwap_i = vwap_arr[i]
+                  breakdown["above_vwap"] = None if np.isnan(vwap_i) else (weights["above_vwap"] if close[i] > vwap_i else 0.0)
+                  breakdown["ema_cross"] = weights["ema_cross"] if bullish_trend else 0.0
+                  breakdown["structure_hh_hl"] = None if not structure_valid[i] else (weights["structure_hh_hl"] if structure_ok[i] else 0.0)
+                  resist_i = resistance_arr[i]
+                  breakdown["breakout_resistance"] = None if np.isnan(resist_i) else (weights["breakout_resistance"] if close[i] > resist_i else 0.0)
+                  vr = vol_ratio_arr[i]
+                  if np.isnan(vr):
+                      breakdown["volume_breakout"] = None
+                  elif vr >= RVOL_FULL:
+                      breakdown["volume_breakout"] = weights["volume_breakout"]
+                  elif vr >= RVOL_PARTIAL:
+                      breakdown["volume_breakout"] = weights["volume_breakout"] * 0.5
+                  else:
+                      breakdown["volume_breakout"] = 0.0
+                  rsi_i = rsi[i]
+                  breakdown["rsi_band"] = None if np.isnan(rsi_i) else (weights["rsi_band"] if RSI_LO <= rsi_i <= RSI_HI else 0.0)
+                  if has_index:
+                      breakdown["relative_strength"] = weights["relative_strength"] if rs_bullish[i] else 0.0
+                      breakdown["index_trend"] = weights["index_trend"] if idx_trend_bullish[i] else 0.0
+
+                  max_score = sum(weights[k] for k, v in breakdown.items() if v is not None)
+                  score = sum(v for v in breakdown.values() if v is not None)
+                  score_pct = round(100.0 * score / max_score, 2) if max_score else 0.0
+
+                  rejected = False
+                  atr_i, atr_mean_i = atr_val_arr[i], atr_recent_mean_arr[i]
+                  if not np.isnan(atr_i) and not np.isnan(atr_mean_i) and atr_mean_i > 0 and atr_i > MAX_ATR_MULT * atr_mean_i:
+                      rejected = True
+                  if not rejected and not np.isnan(vwap_i) and not np.isnan(atr_i) and atr_i:
+                      if abs(close[i] - vwap_i) > MAX_VWAP_EXT_ATR * atr_i:
+                          rejected = True
+                  if not rejected and not volume_ok_arr[i]:
+                      rejected = True
+                  if not rejected and close[i] <= open_[i]:
+                      rejected = True
+
+                  entry_allowed = (score_pct >= SCORE_MIN_PCT) and not rejected
+                  if not entry_allowed:
+                      i += 1
+                      continue
+
+                  day_traded[day] = True
+                  entry_price = float(close[i])
+                  stop_loss = entry_price * (1 - stop_pct / 100)
+                  stop_dist = entry_price - stop_loss
+                  if stop_dist <= 0:
+                      i += 1
+                      continue
+                  target = entry_price + RR * stop_dist
+                  target_move_pct = m._target_move_pct(target, entry_price)
+                  if target_move_pct <= m.ROUND_TRIP_COST_PCT:
+                      i += 1
+                      continue
+
+                  exit_price, exit_ts, exit_reason = None, None, None
+                  for j in range(i + 1, n):
+                      if days_arr[j] != day:
+                          break
+                      mj = int(mins_arr[j])
+                      if mj < OPEN_MIN or mj > CLOSE_MIN:
+                          continue
+                      cj = float(close[j])
+                      if cj <= stop_loss:
+                          exit_price, exit_reason = cj, "stop_hit"
+                      elif cj >= target:
+                          exit_price, exit_reason = cj, "target_hit"
+                      elif mj >= SQUAREOFF_MIN:
+                          exit_price, exit_reason = cj, "eod_squareoff"
+                      if exit_reason:
+                          exit_ts = ts_local.iloc[j].timestamp()
+                          break
+                  if exit_reason is None:
+                      last_j = min(n - 1, i + 1)
+                      while last_j + 1 < n and days_arr[last_j + 1] == day:
+                          last_j += 1
+                      exit_price = float(close[last_j])
+                      exit_ts = ts_local.iloc[last_j].timestamp()
+                      exit_reason = "window_end_forced_close"
+
+                  trades.append({
+                      "symbol": symbol, "day": day, "entry_ts": ts_local.iloc[i].timestamp(),
+                      "entry_price": entry_price, "initial_stop": stop_loss, "stop_dist": stop_dist,
+                      "target": target, "score_pct": score_pct,
+                      "exit_price": exit_price, "exit_ts": exit_ts, "exit_reason": exit_reason,
+                  })
+                  i += 1
+
+              return trades
+
+
+          def size_and_finalize(shapes, variant, capital, risk_pct, cost_model):
+              out = []
+              for shape in shapes:
+                  if variant == "FLAT":
+                      usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                      multiplier = 1.0
+                  elif variant == "LIVE_LINEAR":
+                      usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                      confidence = shape["score_pct"] / 100.0
+                      multiplier = m._confidence_size_multiplier(confidence, SCORE_MIN_PCT / 100.0, 1.0)
+                  elif variant == "QUADRATIC":
+                      usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                      multiplier = _quadratic_multiplier(shape["score_pct"])
+                  elif variant == "TOP1_PER_DAY":
+                      usable_capital_inr = capital  # full pool - only one trade fires that day
+                      multiplier = 1.0
+                  else:
+                      raise ValueError(variant)
+
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100 * multiplier
+                  qty = risk_amount_inr / shape["stop_dist"] if shape["stop_dist"] > 0 else 0.0
+                  qty = min(qty, usable_capital_inr / shape["entry_price"]) if shape["entry_price"] > 0 else 0.0
+                  qty = float(np.floor(qty))
+                  if qty <= 0 or qty * shape["entry_price"] < 100:
+                      continue
+                  entry_cost = _entry_cost(qty, shape["entry_price"], cost_model)
+                  out.append(_finalize_trade(shape, qty, entry_cost, cost_model, variant))
+              return out
+
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          CAPITAL_INR = 400000.0
+
+          def _metrics_row(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0, cost_drag_pct=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              total_cost = sum(t["total_cost"] for t in trades)
+              cost_drag_pct = 100 * total_cost / max(1, sum(abs(t["gross_pnl"]) for t in trades))
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, cost_drag_pct=cost_drag_pct)
+
+          def _print_row(label, row):
+              print(f"{label:>28} {row['n']:>6} {row['win_rate']:>6.1f}% {row['pf_net']:>7.2f} "
+                    f"{row['pf_gross']:>8.2f} {row['avg_net']:>10.2f} {row['avg_gross']:>10.2f} {row['cost_drag_pct']:>9.1f}%")
+
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, 60d) ---")
+          per_symbol_df = {}
+          for sym in SYMBOLS:
+              try:
+                  raw = m.fetch_ohlc(sym, "60d", INTERVAL)
+              except Exception:
+                  continue
+              if raw is None or len(raw) < 100:
+                  continue
+              per_symbol_df[sym] = _prep(raw)
+          print(f"  fetched {len(per_symbol_df)}/{len(SYMBOLS)} symbols\n")
+
+          print("--- Scanning signals (score >= %.0f, EMA9>EMA21) ---" % SCORE_MIN_PCT)
+          all_shapes = []
+          for sym, df in per_symbol_df.items():
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  shapes = scan_symbol_signals(sym, df, cfg["stop_pct"])
+              except Exception as e:
+                  print(f"ERROR scanning {sym}: {e}")
+                  continue
+              all_shapes.extend(shapes)
+          print(f"  {len(all_shapes)} qualifying signals across {len(per_symbol_df)} symbols\n")
+
+          shapes_by_day = {}
+          for s in all_shapes:
+              shapes_by_day.setdefault(s["day"], []).append(s)
+          top1_shapes = [max(day_shapes, key=lambda s: s["score_pct"]) for day_shapes in shapes_by_day.values()]
+
+          header = f"{'bucket':>28} {'n':>6} {'win%':>7} {'PFnet':>7} {'PFgross':>8} {'avgNet':>10} {'avgGross':>10} {'costDrag%':>10}"
+
+          trades_by_variant = {}
+          for variant in VARIANTS:
+              source_shapes = top1_shapes if variant == "TOP1_PER_DAY" else all_shapes
+              variant_trades = []
+              by_symbol_shapes = {}
+              for s in source_shapes:
+                  by_symbol_shapes.setdefault(s["symbol"], []).append(s)
+              for sym, shapes in by_symbol_shapes.items():
+                  cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+                  variant_trades.extend(size_and_finalize(shapes, variant, CAPITAL_INR, cfg["risk_pct"], DEFAULT_COST_MODEL))
+              trades_by_variant[variant] = variant_trades
+
+          print("=== OVERALL, BY SIZING VARIANT ===")
+          print(header)
+          for variant in VARIANTS:
+              _print_row(variant, _metrics_row(trades_by_variant[variant]))
+
+          for variant in VARIANTS:
+              trades = trades_by_variant[variant]
+              print(f"\n=== {variant}: BY EXIT REASON ===")
+              print(header)
+              for reason in sorted(set(t["exit_reason"] for t in trades)):
+                  _print_row(reason, _metrics_row([t for t in trades if t["exit_reason"] == reason]))
+
+              print(f"\n=== {variant}: BY SYMBOL (n>=3, sorted by gross PF) ===")
+              print(header)
+              per_symbol = {}
+              for t in trades:
+                  per_symbol.setdefault(t["symbol"], []).append(t)
+              symbol_rows = [(sym, _metrics_row(sts)) for sym, sts in per_symbol.items() if len(sts) >= 3]
+              symbol_rows.sort(key=lambda x: x[1]["pf_gross"], reverse=True)
+              for sym, row in symbol_rows[:15]:
+                  _print_row(sym, row)
+          PYEOF
