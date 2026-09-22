@@ -7521,6 +7521,55 @@ def _ensure_signal_state_for_real_position(conn, real_row) -> bool:
     return True
 
 
+def _real_sl_order_is_live(order_id: str) -> bool | None:
+    """True if `order_id`'s own status at Kotak (via order_report) is a
+    genuinely still-resting/pending state; False if it's dead with no
+    fill (rejected/cancelled); None if the read itself failed or came
+    back unparseable - callers must treat None as "unknown this tick",
+    never as either live or dead (see _maybe_sync_real_stop_loss's own
+    call site for why).
+
+    2026-09-22 live finding (ASHOKLEY.NS, real position): a resting SL
+    order's own placement response only ever proves Kotak ACCEPTED the
+    conditional order - never that a future trigger-time sell will
+    succeed. Confirmed live same-day: a plain LIMIT sell (the profit
+    target, order 260922000149358) for this exact symbol was rejected
+    immediately with ordSt "rejected" / rejRsn "RMS:Rule: Check T1
+    holdings...", rejLongDesc "...Selling Trade-to-Trade stocks on the
+    same day of purchase is not allowed" - while the SL-TRG order (order
+    260922000149135, SAME symbol, same underlying shares) sat at ordSt
+    "trigger pending" with no rejection at all. A price-type "SL" order
+    is accepted to REST without this same-day-sell check; it is not
+    exempt from it once it actually fires. That means a resting SL for a
+    T1/T2T-restricted symbol can go from genuinely fine to silently dead
+    the instant it triggers, with NOTHING pushed back to this app -
+    _maybe_sync_real_stop_loss used to trust its own local sl_order_id
+    column as proof of live protection forever, with no active
+    reconciliation against Kotak's own order book to catch this."""
+    import kotak_neo
+    try:
+        resp = kotak_neo.order_report(order_id=order_id)
+    except Exception:
+        return None
+    rows = resp.get("data") if isinstance(resp, dict) else None
+    if not rows or not isinstance(rows, list) or not isinstance(rows[0], dict):
+        return None
+    ord_st = str(rows[0].get("ordSt", "")).strip().lower()
+    if not ord_st:
+        return None
+    # Confirmed live values (2026-09-22): "trigger pending" (resting,
+    # not yet fired - fine), "rejected" (dead, T1/T2T at trigger time -
+    # the case this exists to catch). "open"/"pending" added defensively
+    # for other still-resting phrasings Kotak may use elsewhere in its
+    # order lifecycle - never independently confirmed live, unlike the
+    # two above. Deliberately a live-state ALLOWLIST, not a dead-state
+    # blocklist: an unrecognized future status reads as dead (fail
+    # toward re-placing a fresh SL / escalating the existing degraded-
+    # protection timer, never toward silently trusting a status this
+    # app has never actually seen).
+    return ord_st in ("trigger pending", "open", "pending")
+
+
 def _maybe_sync_real_stop_loss(conn, symbol: str):
     """Keeps a real position's RESTING stop-loss order at Kotak in step
     with the paper trailing stop _auto_signal_core just ratcheted (see
@@ -7562,6 +7611,52 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
     # wasn't moving). Previously this only got fixed by a periodic/
     # manual reconcile dispatch; now it can never persist past one tick.
     _ensure_signal_state_for_real_position(conn, real_row)
+
+    # Active reconciliation against Kotak's own order book (2026-09-22,
+    # see _real_sl_order_is_live's own docstring for the live ASHOKLEY.NS
+    # finding this closes) - sl_order_id being set here only ever meant
+    # "the last placement attempt was accepted," never "still true right
+    # now." A resting SL-TRG order can go dead (rejected at trigger time,
+    # same T1/T2T restriction a same-day sell always risks) with nothing
+    # pushed back to this app - the only way to know is to ask. Runs
+    # before the degraded-protection check below so a confirmed-dead SL
+    # feeds the EXACT SAME escalation ladder as "no SL was ever placed,"
+    # not a separate path - re-fetches real_row after clearing so every
+    # later reference in this function sees the corrected state.
+    if real_row["sl_order_id"]:
+        sl_is_live = _real_sl_order_is_live(real_row["sl_order_id"])
+        if sl_is_live is False:
+            print(f"[REAL TRADE] resting SL {real_row['sl_order_id']} for "
+                  f"{real_row['kotak_trading_symbol']} found DEAD on reconcile "
+                  f"(no fill) - clearing it so the retry/escalation path below picks it up")
+            _log_real_order_event(
+                conn, symbol, "sl", "found_dead_on_reconcile", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+                order_id=real_row["sl_order_id"], prev_state="assumed resting",
+                new_state="dead at Kotak (rejected/cancelled, no fill)",
+            )
+            # sl_trigger_price cleared too, not just sl_order_id: left in
+            # place, it still represents the DEAD order's price, and the
+            # "no upward move since last sync" gate further down (`if
+            # current_sl_price is not None and new_stop <= current_sl_price:
+            # return`) would then skip re-placing this same tick whenever
+            # the paper stop hasn't moved since - the degraded clock would
+            # start but nothing would actually retry until it eventually
+            # does, working against "retry aggressively while degraded."
+            # NULL here reads as "no known resting price," same as a
+            # position that never had an SL yet, which already falls
+            # through to an immediate placement attempt.
+            conn.execute(
+                "UPDATE real_positions SET sl_order_id = NULL, sl_trigger_price = NULL WHERE symbol = ?",
+                (symbol,),
+            )
+            conn.commit()
+            real_row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
+        # sl_is_live is None (order_report itself failed/unparseable) or
+        # True: say nothing and trust the existing local state for this
+        # tick - an unreadable check must never force an exit on an API
+        # hiccup rather than a real event, same fail-quiet-on-unknown
+        # stance as _real_loss_budget's own "unknown -> refuse, don't
+        # force" philosophy elsewhere in this file.
 
     # Degraded-protection timeout check (2026-09-10, explicit user
     # instruction - the state-machine correction on #13's own fix) -
