@@ -1317,6 +1317,16 @@ accurately rather than trusting this prose:
   implemented" above) until real-order mirroring is separately built and
   approved.
 
+**CORRECTION (2026-09-22)**: the "NOT merged" line above went stale - this
+*is* now on `main` and running (verified directly against `origin/main`'s
+`main.py`: `gap_and_go_entry_signal`, `SWING_WATCHLIST`, `_run_swing_scan`
+all present, and `_run_swing_scan(conn)` is called unconditionally at the
+top of every `_scheduler_tick()`, non-fatally try/excepted). It is live,
+paper-trading only, on Render right now. What's still true and still not
+done: real-order mirroring - `REAL_TRADING_ENABLED` has no effect on this
+engine, no Kotak order placement wired in for it. That remains the one
+open piece if real-money swing execution is ever wanted.
+
 ## Intraday Gap and Go, true same-day version (2026-09-16)
 
 Per user request, tested the GENUINE intraday adaptation of Gap and Go
