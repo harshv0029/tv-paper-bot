@@ -204,6 +204,8 @@ distinct from a manual/mobile order's ordSrc "ADMINCPPAPI_MOB"/algId
 this sweep filters on that tag too, not just symbol+side+order-type -
 only ever cancels an order THIS app itself placed, never a manual one.
 """
+import time
+
 import kotak_neo
 
 # Shared by cancel_existing_resting_sl/cancel_existing_resting_target - an
@@ -474,8 +476,13 @@ def _round_to_tick(price: float, tick: float = 0.05) -> float:
     """Rounds `price` to the nearest multiple of `tick`. Default 0.05 is
     NSE's standard cash-equity tick size (scrips priced under ~Rs 15 use
     0.01, but every multiple of 0.05 is ALSO a valid multiple of 0.01, so
-    rounding to 0.05 is safe/compliant for both cases without needing a
-    per-symbol tick-size lookup this codebase doesn't have).
+    0.05 is a safe fallback covering both). NOT correct for every symbol
+    though - some (surveillance/ASM-linked ones confirmed live, see
+    _tick_size_for's own docstring for the ENRIN.NS incident this closes)
+    trade with a wider mandated tick. Both real callers below pass
+    _tick_size_for(kotak_trading_symbol) explicitly rather than relying on
+    this default - the default here only matters for a caller that can't
+    look one up.
 
     BUG found live 2026-09-08: place_real_stop_loss's own prior fix set
     price = trigger_price with no rounding at all, reasoning that
@@ -491,6 +498,60 @@ def _round_to_tick(price: float, tick: float = 0.05) -> float:
     tick at the Kotak-order boundary (here, not at every computation
     site) fixes every caller uniformly."""
     return round(round(price / tick) * tick, 2)
+
+
+_TICK_SIZE_CACHE_TTL_SECONDS = 24 * 60 * 60  # 24h - a scrip's tick size only
+# ever changes on a rare NSE/SEBI surveillance reclassification, never
+# intraday, so this doesn't need a short TTL like the live-price caches.
+_tick_size_cache: dict = {}
+
+
+def _tick_size_for(kotak_trading_symbol: str) -> float:
+    """Live per-symbol tick size from Kotak's own scrip master, falling
+    back to the previous blanket 0.05 default (still correct for most NSE
+    cash equities) on any lookup failure or miss - never blocks an SL/
+    target placement just because this lookup itself failed.
+
+    Root cause found live 2026-09-22 (ENRIN.NS/ENRIN-EQ, "SIEMENS ENERGY
+    INDIA LTD"): _round_to_tick's own 0.05-covers-everything assumption
+    (see its docstring) is FALSE for this symbol - a real GET
+    /kotak-neo/search-scrip?symbol=ENRIN&exchange_segment=nse_cm call
+    returned dTickSize=10 with lPrecision=2, i.e. a REAL tick of Rs 0.10,
+    not 0.05 (confirmed against this same payload's dHighPriceRange/
+    dLowPriceRange fields, which are 100x-scaled and match the human-
+    readable pCreditRating "2571.80-3857.60" range exactly - same
+    lPrecision=2 scaling convention). Every SL placement attempt for this
+    symbol was rejected ("16283: Order price is not a multiple of tick
+    size"), leaving the position naked until the 60s protection-degraded
+    timeout force-closed it (see main.py's _maybe_sync_real_stop_loss).
+    ENRIN's own surveillanceMessage ("PE greater than 50 for previous 4
+    trailing quarters") suggests this is an ASM/surveillance-linked wider
+    tick, not a one-off data error - i.e. other watchlist symbols could
+    hit the exact same rejection.
+
+    Cached _TICK_SIZE_CACHE_TTL_SECONDS per kotak_trading_symbol - this is
+    called on every real SL/target placement, so an uncached lookup on
+    every one of those would mean an extra live Kotak call in a path that
+    already needs to move fast to avoid a naked window."""
+    cached = _tick_size_cache.get(kotak_trading_symbol)
+    if cached is not None and time.time() - cached["fetched_at"] < _TICK_SIZE_CACHE_TTL_SECONDS:
+        return cached["value"]
+    try:
+        bare_symbol = kotak_trading_symbol.split("-")[0]
+        matches = kotak_neo.search_scrip(exchange_segment="nse_cm", symbol=bare_symbol)
+        if not isinstance(matches, list):
+            return 0.05
+        row = next((r for r in matches if r.get("pTrdSymbol") == kotak_trading_symbol), None)
+        if row is None:
+            return 0.05
+        precision = int(row.get("lPrecision") or 2)
+        tick = float(row["dTickSize"]) / (10 ** precision)
+        if tick <= 0:
+            return 0.05
+    except Exception:
+        return 0.05
+    _tick_size_cache[kotak_trading_symbol] = {"value": tick, "fetched_at": time.time()}
+    return tick
 
 
 def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
@@ -529,7 +590,7 @@ def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: flo
     except Exception as e:
         return {"ok": False, "detail": f"login failed: {e}"}
 
-    trigger_price = _round_to_tick(trigger_price)
+    trigger_price = _round_to_tick(trigger_price, _tick_size_for(kotak_trading_symbol))
     limit_price = trigger_price
     try:
         resp = client.place_order(
@@ -576,7 +637,7 @@ def place_real_target(kotak_trading_symbol: str, qty: int, target_price: float) 
     except Exception as e:
         return {"ok": False, "detail": f"login failed: {e}"}
 
-    target_price = _round_to_tick(target_price)
+    target_price = _round_to_tick(target_price, _tick_size_for(kotak_trading_symbol))
     try:
         resp = client.place_order(
             exchange_segment="nse_cm",
