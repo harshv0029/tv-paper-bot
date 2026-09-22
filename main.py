@@ -6887,13 +6887,25 @@ def _maybe_place_real_entry(conn, symbol: str):
                     conn, symbol, "target", "failed", kotak_trading_symbol=kotak_symbol,
                     prev_state="none", new_state="none (placement failed)", detail=target_result.get("detail"),
                 )
-                # Found live 2026-09-09 (MEDICAMEQ.NS): a plain limit SELL
-                # target can get Kotak's own T1-holdings RMS rejection even
-                # when the SL leg above (a contingent/trigger order) placed
-                # fine for the very same same-day CNC position -
-                # _flag_if_t1_restricted's own docstring says to call it at
-                # every real SL/exit rejection site; this one was missing.
-                _flag_if_t1_restricted(conn, symbol, target_result.get("detail"))
+                # NOT a _flag_if_t1_restricted call, on purpose (2026-09-22
+                # correction of the original 2026-09-09 MEDICAMEQ.NS
+                # reasoning below) - live research + this session's own
+                # evidence (3 symbols, same day: IDEA/ASHOKLEY/CONCOR all
+                # rejected here, then sold successfully seconds-to-minutes
+                # after their SL was cancelled - real T+1 settlement cannot
+                # clear that fast) confirms Kotak's RMS enforces "one exit
+                # order per holding" - this rejection fires because
+                # sl_confirmed is True, meaning the SL immediately above IS
+                # the competing resting order, not because this SYMBOL is
+                # unsellable same-day. Flagging it here would have
+                # permanently blacklisted every real position this
+                # architecture ever gives BOTH a resting SL and a resting
+                # target - which is every staged-ladder entry - eventually
+                # blacklisting the whole real-trading universe one symbol
+                # at a time. A genuine T1/T2T-restricted symbol still gets
+                # caught elsewhere: _maybe_place_real_exit's own rejection
+                # (after both legs are confirmed cancelled first) has no
+                # such competing-order explanation available.
     else:
         _log_real_attempt(
             conn, symbol, "B", "failed", kotak_trading_symbol=kotak_symbol, price_est=ltp,
@@ -7290,7 +7302,12 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
                 prev_state="advancing to next staged leg",
                 new_state="none (placement failed)", detail=target_result.get("detail"),
             )
-            _flag_if_t1_restricted(conn, symbol, target_result.get("detail"))
+            # NOT a _flag_if_t1_restricted call - same 2026-09-22 correction
+            # as the entry-flow target placement above (see its own comment
+            # for the full reasoning): sl_confirmed being True here means
+            # the fresh SL just placed above IS the competing resting
+            # order this rejection is actually about, not evidence this
+            # symbol is genuinely unsellable same-day.
     else:
         conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (symbol,))
         if not sl_confirmed and next_leg and next_leg.get("target_price"):
@@ -12155,17 +12172,17 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
                     )
                     backfill_entry["target_placed"] = False
                     backfill_entry["target_failure_detail"] = target_result.get("detail")
-                    # Found live 2026-09-09: MEDICAMEQ.NS's target attempt
-                    # was rejected with Kotak's own T1-holdings RMS marker
-                    # (same class the SL leg above already flags) - a plain
-                    # limit SELL apparently gets checked against SETTLED
-                    # holdings even though the SL leg (a contingent/trigger
-                    # order, not immediately live) placed fine minutes
-                    # earlier for the SAME same-day CNC position. Missing
-                    # here before now - _flag_if_t1_restricted's own
-                    # docstring says to call it at every real SL/exit
-                    # rejection site, and this is one.
-                    _flag_if_t1_restricted(conn, r["symbol"], target_result.get("detail"))
+                    # NOT a _flag_if_t1_restricted call (2026-09-22
+                    # correction of this exact MEDICAMEQ.NS reasoning - see
+                    # the entry-flow target placement's own comment,
+                    # _maybe_place_real_entry, for the full evidence): a
+                    # resting SL (already tracked in r["sl_order_id"], or
+                    # just placed in the block immediately above) is the
+                    # competing resting order Kotak's "one exit order per
+                    # holding" rule is actually rejecting this against -
+                    # not proof MEDICAMEQ.NS, or any other symbol reaching
+                    # this governance-backfill path, is genuinely
+                    # unsellable same-day.
             governance_backfilled.append(backfill_entry)
         conn.commit()
         _sync_real_positions_external(conn)
@@ -12265,6 +12282,40 @@ def kotak_neo_close_position(request: Request, kotak_trading_symbol: str, qty: i
             _flag_if_t1_restricted(conn, symbol_for_log, result.get("detail"))
             conn.commit()
             return {"ok": False, "kotak_trading_symbol": kotak_trading_symbol, "detail": result.get("detail")}
+
+
+@app.post("/kotak-neo/t1-unflag")
+def kotak_neo_t1_unflag(request: Request, symbol: str, reason: str = "manual_correction"):
+    """Clears `symbol`'s permanent T1/T2T-restriction flag(s) - built
+    2026-09-22, explicit user instruction, after confirming
+    _flag_if_t1_restricted had been firing on a plain competing-resting-
+    order rejection (Kotak's "one exit order per holding" rule - see that
+    function's own corrected call sites for the full live-confirmed
+    finding), not genuine evidence a symbol is unsellable same-day.
+    IDEA.NS/ASHOKLEY.NS/CONCOR.NS were all wrongly, permanently
+    blacklisted this exact way before the fix; this is how to undo a
+    wrong flag (that one or any future one) without a manual DB edit.
+
+    Deletes EVERY row for `symbol` (every day it was ever flagged,
+    matching _is_t1_restricted's own "ANY row ever" read - a partial
+    unflag would leave the symbol just as permanently restricted), then
+    re-syncs the correction to Upstash immediately (same
+    _sync_t1_restricted_external pair _flag_if_t1_restricted itself
+    uses) so a later restart's hydrate_t1_restricted_from_external can't
+    silently restore the old ban from a stale snapshot.
+
+    Requires an EXPLICIT symbol (never "clear everything at once") -
+    real money, no guessing. Idempotent: unflagging an already-clear
+    symbol is a harmless no-op (rows_removed: 0), not an error.
+
+    Requires ?token=<KOTAK_NEO_API_TOKEN>."""
+    _require_kotak_token(request)
+    with closing(get_db()) as conn:
+        deleted = conn.execute("DELETE FROM real_t1_restricted WHERE symbol = ?", (symbol,)).rowcount
+        conn.commit()
+        _sync_t1_restricted_external(conn)
+    print(f"[T1-restricted] {symbol} unflagged ({deleted} row(s) removed): {reason}")
+    return {"symbol": symbol, "rows_removed": deleted, "reason": reason}
 
 
 @app.get("/kotak-neo/search-scrip")
