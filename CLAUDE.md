@@ -5,6 +5,13 @@ entirely through Claude Code sessions. Mistakes here cost the user real
 money. Read this file fully before touching branches, git history, or
 entry/exit/sizing logic.
 
+## Communication rules (standing, do not relax without explicit user ask)
+
+- Always state times to the user in IST (UTC+5:30), never UTC. This applies
+  to timestamps in chat replies, status updates, and check-in schedules —
+  convert before speaking. Internal tool calls, git/CI timestamps, and code
+  can still use UTC as needed; only user-facing text must be IST.
+
 ## Incident: a validated real-money fix was silently lost (2026-09-14)
 
 A prior session implemented and fully validated two exit-logic bug fixes
