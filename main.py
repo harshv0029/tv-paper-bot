@@ -12284,6 +12284,40 @@ def kotak_neo_close_position(request: Request, kotak_trading_symbol: str, qty: i
             return {"ok": False, "kotak_trading_symbol": kotak_trading_symbol, "detail": result.get("detail")}
 
 
+@app.post("/kotak-neo/t1-unflag")
+def kotak_neo_t1_unflag(request: Request, symbol: str, reason: str = "manual_correction"):
+    """Clears `symbol`'s permanent T1/T2T-restriction flag(s) - built
+    2026-09-22, explicit user instruction, after confirming
+    _flag_if_t1_restricted had been firing on a plain competing-resting-
+    order rejection (Kotak's "one exit order per holding" rule - see that
+    function's own corrected call sites for the full live-confirmed
+    finding), not genuine evidence a symbol is unsellable same-day.
+    IDEA.NS/ASHOKLEY.NS/CONCOR.NS were all wrongly, permanently
+    blacklisted this exact way before the fix; this is how to undo a
+    wrong flag (that one or any future one) without a manual DB edit.
+
+    Deletes EVERY row for `symbol` (every day it was ever flagged,
+    matching _is_t1_restricted's own "ANY row ever" read - a partial
+    unflag would leave the symbol just as permanently restricted), then
+    re-syncs the correction to Upstash immediately (same
+    _sync_t1_restricted_external pair _flag_if_t1_restricted itself
+    uses) so a later restart's hydrate_t1_restricted_from_external can't
+    silently restore the old ban from a stale snapshot.
+
+    Requires an EXPLICIT symbol (never "clear everything at once") -
+    real money, no guessing. Idempotent: unflagging an already-clear
+    symbol is a harmless no-op (rows_removed: 0), not an error.
+
+    Requires ?token=<KOTAK_NEO_API_TOKEN>."""
+    _require_kotak_token(request)
+    with closing(get_db()) as conn:
+        deleted = conn.execute("DELETE FROM real_t1_restricted WHERE symbol = ?", (symbol,)).rowcount
+        conn.commit()
+        _sync_t1_restricted_external(conn)
+    print(f"[T1-restricted] {symbol} unflagged ({deleted} row(s) removed): {reason}")
+    return {"symbol": symbol, "rows_removed": deleted, "reason": reason}
+
+
 @app.get("/kotak-neo/search-scrip")
 def kotak_neo_search_scrip(
     request: Request,
