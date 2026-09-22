@@ -6,6 +6,9 @@ distinct pInstType=="FUTSTK" pSymbolName values found that day.
 
 Run: pytest tests/ -v
 """
+import datetime as dt
+from unittest.mock import patch
+
 import nse_fo_chain
 
 
@@ -34,3 +37,25 @@ def test_a_known_confirmed_stock_is_present():
     # RELIANCE - the specific stock live-confirmed with pInstType=FUTSTK,
     # lot_size=500, pSettlementType="Physical" this same session.
     assert "RELIANCE" in nse_fo_chain.STOCK_FO_UNDERLYINGS
+
+
+def test_select_nse_future_resolves_a_real_futstk_row():
+    # Live regression (2026-09-21): select_nse_future's own pInstType
+    # filter only ever allowed FUTIDX/FUTCOM, never FUTSTK (the real
+    # value this module's own docstring above confirms every single-
+    # stock future actually carries) - so this always returned
+    # "no_future_rows" for all 210 stock underlyings, live-confirmed via
+    # /kotak-neo/fo-candle-feed-status showing every one of them failing
+    # identically while NIFTY/BANKNIFTY (FUTIDX) succeeded. This proves
+    # the fix: a real FUTSTK row for RELIANCE must now resolve.
+    expiry = dt.date.today() + dt.timedelta(days=20)
+    row = {
+        "pSymbol": "12345", "pSymbolName": "RELIANCE", "pTrdSymbol": "RELIANCE26OCTFUT",
+        "pInstType": "FUTSTK", "pExpiryDate": expiry.strftime("%d%b%Y"), "lLotSize": 500,
+    }
+    with patch("nse_fo_chain.kotak_neo.search_scrip", return_value=[row]):
+        contract, err = nse_fo_chain.select_nse_future("RELIANCE")
+    assert err is None
+    assert contract is not None
+    assert contract["kotak_trading_symbol"] == "RELIANCE26OCTFUT"
+    assert contract["lot_size"] == 500
