@@ -3343,6 +3343,18 @@ ROUND_TRIP_COST_PCT = 0.8
 # just above this constant's call site.
 NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES = 15
 
+# Closing-side mirror of the above (2026-09-22, explicit user instruction:
+# "max entry time for intra day trade is 3:14pm and exit max time is
+# 3:15pm") - a NEW entry this close to squareoff_min would open with
+# almost no runway before the forced exit, and live evidence the same day
+# (WAAREEENER.NS/NATIONALUM.NS) showed exits right at squareoff_min can
+# land inside NSE's Closing-Auction-Session transition, where even a
+# retry struggles to fill - starting a fresh position 1 minute before
+# that is pure downside. Entries only; an already-open position's own
+# exit still fires at the unmodified squareoff_min (see is_squareoff_time
+# below) - only the entry gate reads 1 minute earlier.
+ENTRY_CUTOFF_BEFORE_SQUAREOFF_MINUTES = 1
+
 
 def _target_move_pct(target: float, last_close: float) -> float:
     """Gross % move from last_close to target - long-only entries only, so
@@ -4919,7 +4931,7 @@ def _auto_signal_core(
     tz_offset_min: int = IST_OFFSET_MIN,
     open_min: int = 9 * 60 + 15,
     close_min: int = 15 * 60 + 30,
-    squareoff_min: int = 15 * 60 + 12,
+    squareoff_min: int = 15 * 60 + 15,
     trade_weekends: bool = False,
     currency: str = "INR",
     strategy: str = "orb_breakout",
@@ -5477,7 +5489,11 @@ def _auto_signal_core(
         if not is_trading_enabled(conn):
             result["action_taken"] = "trading_paused"
             return result
-        if is_squareoff_time:
+        # Entry cutoff sits ENTRY_CUTOFF_BEFORE_SQUAREOFF_MINUTES before the
+        # actual squareoff_min - see that constant's own comment. Deliberately
+        # NOT the same `is_squareoff_time` the exit check below uses - an
+        # open position still gets the full runway up to squareoff_min itself.
+        if mins_now >= squareoff_min - ENTRY_CUTOFF_BEFORE_SQUAREOFF_MINUTES:
             result["action_taken"] = "no_new_entries_market_closing"
             return result
         if mins_now < open_min + NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES:
@@ -5977,7 +5993,7 @@ def auto_signal(
     tz_offset_min: int = IST_OFFSET_MIN,
     open_min: int = 9 * 60 + 15,
     close_min: int = 15 * 60 + 30,
-    squareoff_min: int = 15 * 60 + 12,
+    squareoff_min: int = 15 * 60 + 15,
     trade_weekends: bool = False,
     currency: str = "INR",
     strategy: str = "orb_breakout",
@@ -6047,13 +6063,21 @@ def auto_signal(
 # a reasonable next step if this still isn't enough.
 NSE_STOCK_DEFAULT_PARAMS = {
     "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-    # squareoff_min=912 (3:12pm IST) - explicit user instruction 2026-09-22:
-    # "Keep intra day cut off to be 3:12pm and at this time... close the
-    # intraday trade at market price." Moved from 915 (3:15pm, the
-    # 2026-09-21 default). The market-price part was already true - every
-    # real exit (kotak_real_orders.place_real_exit) is order_type="MKT",
-    # eod_squareoff included - this only moves the trigger time earlier.
-    "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 912,
+    # squareoff_min=915 (3:15pm IST) - reverted 2026-09-22 (was briefly 912/
+    # 3:12pm earlier the same day). Live evidence the same afternoon
+    # (WAAREEENER.NS/NATIONALUM.NS) showed exits landing right in NSE's
+    # ~3:16-3:20pm Closing-Auction-Session (CAS) transition, where a normal
+    # LIMIT/SL-LIMIT sell - and even a plain MARKET sell - gets rejected
+    # ("OMS: Trading session is in Transition to CAS session") regardless
+    # of exact cutoff minute; both bot attempts and a manual mobile order
+    # were rejected the same way until the transition cleared. Explicit
+    # user instruction: keep exit at 3:15pm, stop NEW entries a minute
+    # earlier (3:14pm, see ENTRY_CUTOFF_BEFORE_SQUAREOFF_MINUTES below) so
+    # a fresh position never opens with almost no runway before squareoff,
+    # and add a same-rejection-reason retry at market price (see
+    # kotak_real_orders._is_cas_transition_rejection) rather than relying
+    # on the cutoff minute alone to dodge the CAS window.
+    "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
     "trade_weekends": False, "currency": "INR",
     "risk_pct": 1.0, "stop_pct": 1.0,  # unproven -> half ceiling until evidenced, same as before
 }
@@ -6300,13 +6324,13 @@ WATCHLIST = [
     # full evidence-backed ceiling (2%) - real 60-day backtest evidence
     # behind this exact strategy.
     {"symbol": "^NSEI", "orb_minutes": 30, "sma_fast": 5, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 912,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^NSEBANK", "orb_minutes": 5, "sma_fast": 9, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 912,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 912,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
 ] + [
     {"symbol": sym, **NSE_STOCK_DEFAULT_PARAMS, **NSE_STOCK_PARAM_OVERRIDES.get(sym, {})}
@@ -6875,6 +6899,25 @@ def _maybe_place_real_entry(conn, symbol: str):
                     prev_state="none", new_state="none (placement failed)", detail=sl_result.get("detail"),
                 )
                 _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
+                # CAS-transition rejection (2026-09-22, see
+                # kotak_real_orders.is_cas_transition_rejection's own
+                # docstring) - this symbol's paper signal shouldn't even
+                # be firing an entry this close to squareoff_min any more
+                # (see ENTRY_CUTOFF_BEFORE_SQUAREOFF_MINUTES), but if it
+                # somehow still happens, don't wait out the usual degraded
+                # window on a position that's seconds old - go straight to
+                # a market exit attempt, same escalation as
+                # _maybe_sync_real_stop_loss uses for this exact rejection.
+                if kotak_real_orders.is_cas_transition_rejection(sl_result.get("detail")):
+                    print(f"[REAL TRADE] {kotak_symbol} SL rejected mid-CAS-transition right after entry - "
+                          f"escalating straight to a market exit attempt instead of waiting")
+                    _log_real_order_event(
+                        conn, symbol, "sl", "cas_transition_market_exit_attempt", kotak_trading_symbol=kotak_symbol,
+                        prev_state="none (placement failed, CAS transition)", new_state="attempting market exit",
+                        detail=sl_result.get("detail"),
+                    )
+                    _maybe_place_real_exit(conn, symbol)
+                    return
                 # 2026-09-10: unprotected from the moment of entry - same
                 # degraded-protection clock/timeout as every other SL gap,
                 # not a special case. _maybe_sync_real_stop_loss's own
@@ -7837,6 +7880,30 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
             new_state="none (replacement failed)", detail=sl_result.get("detail"),
         )
         _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
+
+        # CAS-transition rejection (2026-09-22, explicit user instruction,
+        # live finding WAAREEENER.NS/NATIONALUM.NS - see
+        # kotak_real_orders.is_cas_transition_rejection's own docstring):
+        # this specific rejection means retrying the SAME resting LIMIT/
+        # SL-LIMIT order is pointless - go straight to a market exit
+        # attempt instead of waiting out the usual degraded-protection
+        # timeout. _maybe_place_real_exit is already order_type="MKT" and
+        # fully state-aware (closes the position correctly if it fills,
+        # leaves state untouched if Kotak rejects this attempt too) - if
+        # the freeze hasn't cleared yet this call simply fails and the
+        # NEXT tick's own call into this same function retries it again,
+        # same self-healing cadence as every other real-order retry here.
+        if kotak_real_orders.is_cas_transition_rejection(sl_result.get("detail")):
+            print(f"[REAL TRADE] {real_row['kotak_trading_symbol']} SL rejected mid-CAS-transition - "
+                  f"escalating straight to a market exit attempt instead of waiting")
+            _log_real_order_event(
+                conn, symbol, "sl", "cas_transition_market_exit_attempt",
+                kotak_trading_symbol=real_row["kotak_trading_symbol"],
+                prev_state="none (replacement failed, CAS transition)", new_state="attempting market exit",
+                detail=sl_result.get("detail"),
+            )
+            _maybe_place_real_exit(conn, symbol)
+            return
 
         # 2026-09-10, explicit user instruction after review: the resting
         # broker-side SL order was never the ONLY thing protecting this
@@ -9590,7 +9657,7 @@ RUNTIME_SETTINGS_META = {
         "('stale_timeout') - capital stuck in a sideways-moving trade is capital "
         "unavailable for a better signal elsewhere. Only fires if target/stop/"
         "trend-weakened haven't already exited the trade first. Default 120 min "
-        "(2h); NSE's own EOD square-off (~15:12 IST) still applies as the "
+        "(2h); NSE's own EOD square-off (~15:15 IST) still applies as the "
         "absolute last-resort cap regardless of this setting.",
     ),
     "entry_scan_batch_size": (
@@ -11567,7 +11634,7 @@ def dry_run_day(
     """
     symbols = DRY_RUN_DEFAULT_SYMBOLS
     open_min = 9 * 60 + 15
-    squareoff_min = 15 * 60 + 12
+    squareoff_min = 15 * 60 + 15
 
     per_symbol_df = {}
     for cfg in symbols:

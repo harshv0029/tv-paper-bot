@@ -1,13 +1,23 @@
-"""Tests for three explicit user instructions:
+"""Tests for four explicit user instructions:
 1. (2026-09-21) "Make sure that u do not trade between 9:15-9:30. As they
    are exceptional behaviour" - no NEW entries in the first
    NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES minutes after open_min.
 2. (2026-09-21) "All intraday trade should be closed by 3:15pm" -
    squareoff_min default moved from 15:20 to 15:15.
-3. (2026-09-22) "Keep intra day cut off to be 3:12pm" - squareoff_min
-   default moved again, from 15:15 to 15:12 (the market-price part of
-   that same instruction was already true - place_real_exit is always
-   order_type="MKT", eod_squareoff included).
+3. (2026-09-22, same day, reverted) "Keep intra day cut off to be
+   3:12pm" - squareoff_min briefly moved to 15:12, then reverted the
+   same day once live evidence (WAAREEENER.NS/NATIONALUM.NS) showed the
+   exact minute wasn't the real problem - NSE's Closing-Auction-Session
+   (CAS) transition rejects orders in a window around squareoff_min
+   regardless of exactly which minute that is. squareoff_min is back to
+   15:15.
+4. (2026-09-22, later the same day) "max entry time for intra day trade
+   is 3:14pm and exit max time is 3:15pm" - a NEW, separate entry cutoff
+   (ENTRY_CUTOFF_BEFORE_SQUAREOFF_MINUTES=1) that fires a minute before
+   squareoff_min itself, so a fresh position is never opened with almost
+   no runway before the forced exit. The market-price part of the CAS
+   fix ("if reason is CSA then place market price order request") is
+   covered separately in tests/test_cas_transition_market_exit.py.
 Reuses the bullish-engulfing entry fixture pattern from
 test_round_trip_cost_gate.py, parametrized on the fixed "now" clock so
 the entry bar's own timestamp can be placed at different points in the
@@ -140,16 +150,35 @@ def _run_exit_check_at(now_ist: str):
         return main._auto_signal_core("TESTSTOCK.NS", currency="INR", max_hold_minutes=100000.0)
 
 
-def test_squareoff_fires_at_912pm_under_the_new_default_not_the_old_915():
-    # 15:13 (913 min) is PAST the new 15:12 default but still BEFORE the
-    # old 15:15 default - proves the default actually moved, not just
-    # that squareoff eventually fires.
-    result = _run_exit_check_at("15:13")
+def test_squareoff_fires_at_915pm():
+    result = _run_exit_check_at("15:15")
     assert result["action_taken"] == "exited_eod_squareoff"
 
 
-def test_squareoff_does_not_fire_before_912pm():
-    result = _run_exit_check_at("15:10")
+def test_squareoff_does_not_fire_before_915pm():
+    result = _run_exit_check_at("15:14")
+    assert result["action_taken"] != "exited_eod_squareoff"
+
+
+def test_no_entry_at_3_14pm_the_new_closing_window():
+    # 3:14pm (914 min) is 1 minute before squareoff_min (915) - blocked by
+    # ENTRY_CUTOFF_BEFORE_SQUAREOFF_MINUTES even though the market itself
+    # doesn't close/squareoff until a minute later.
+    result = _run_at(now_ist="15:14", entry_bar_ist="15:14")
+    assert result["action_taken"] == "no_new_entries_market_closing"
+
+
+def test_entry_allowed_at_3_13pm_just_before_the_closing_window():
+    result = _run_at(now_ist="15:13", entry_bar_ist="15:13")
+    assert result["action_taken"] == "entered_long"
+
+
+def test_open_position_still_gets_the_full_runway_to_915_not_914():
+    # The entry cutoff only blocks NEW entries - an already-open position
+    # must still be able to run all the way to the real squareoff_min
+    # (915), not get force-exited a minute early just because a fresh
+    # entry would have been blocked at 914.
+    result = _run_exit_check_at("15:14")
     assert result["action_taken"] != "exited_eod_squareoff"
 
 
