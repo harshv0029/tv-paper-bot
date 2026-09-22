@@ -12,6 +12,7 @@ import inspect
 import os
 import sqlite3
 import tempfile
+import time
 from contextlib import closing
 from unittest.mock import patch
 
@@ -154,6 +155,66 @@ def test_resolve_fo_universe_skips_an_underlying_with_no_spot_and_records_it():
     assert len(feed._feed_status["unresolved_legs"]) == expected
 
 
+def test_resolve_fo_universe_stops_itself_once_past_deadline():
+    # 2026-09-21 live finding: asyncio.wait_for's timeout doesn't stop
+    # the underlying to_thread worker, it only stops waiting for it - so
+    # resolve_fo_universe must be able to bound ITSELF cooperatively.
+    # An already-past deadline must make every underlying skip straight
+    # to "deadline_exceeded" without ever calling _spot_price - proves
+    # this stops doing real work once its budget is spent, rather than
+    # continuing to run (and consume memory/network) after the point
+    # nothing is still waiting on it.
+    calls = []
+
+    def fake_spot(cash_symbol):
+        calls.append(cash_symbol)
+        return 100.0
+
+    with patch.object(feed, "_spot_price", side_effect=fake_spot):
+        universe = feed.resolve_fo_universe(deadline=time.time() - 1)
+
+    assert universe == {}
+    assert calls == []
+    expected = len(feed.FO_CANDLE_UNDERLYINGS) + len(nse_fo_chain.STOCK_FO_UNDERLYINGS)
+    assert len(feed._feed_status["unresolved_legs"]) == expected
+    assert all("deadline_exceeded" in u for u in feed._feed_status["unresolved_legs"])
+
+
+def test_resolve_fo_universe_with_no_deadline_runs_to_completion_unchanged():
+    # deadline=None (the default) must behave exactly as before this
+    # session's fix - every existing caller (tests included) that never
+    # passed a deadline keeps working unmodified.
+    with patch.object(feed, "_spot_price", return_value=None):
+        universe = feed.resolve_fo_universe()
+    assert universe == {}
+    assert all("spot_unavailable" in u for u in feed._feed_status["unresolved_legs"])
+
+
+def test_resolve_fo_universe_partial_progress_survives_a_mid_run_deadline():
+    # A deadline that expires partway through must preserve whatever was
+    # already resolved before it hit, not discard everything - a partial,
+    # real universe is strictly better than none.
+    fut = {
+        "underlying": "NIFTY", "kotak_trading_symbol": "NIFTY26OCTFUT", "instrument_token": "1",
+        "exchange_segment": "nse_fo", "lot_size": 65, "expiry": "2026-10-27", "dte": 10,
+    }
+    deadline = time.time() + 0.2
+
+    def fake_spot(cash_symbol):
+        time.sleep(0.15)
+        return 100.0
+
+    with patch.object(feed, "_spot_price", side_effect=fake_spot), \
+         patch("nse_fo_chain.select_nse_future", return_value=(fut, None)), \
+         patch("nse_fo_chain.select_atm_banded_option_strikes", return_value=([], "no_option_rows")):
+        universe = feed.resolve_fo_universe(deadline=deadline)
+
+    # At least the first underlying resolved before the deadline hit;
+    # its future leg must be present, not thrown away.
+    assert len(universe) >= 1
+    assert any("deadline_exceeded" in u for u in feed._feed_status["unresolved_legs"])
+
+
 def test_resolve_fo_universe_merges_future_and_option_legs():
     fut = {
         "underlying": "NIFTY", "kotak_trading_symbol": "NIFTY26OCTFUT", "instrument_token": "1",
@@ -198,7 +259,10 @@ def test_run_fo_candle_feed_resolves_the_universe_off_the_event_loop():
     # asyncio.wait_for (2026-09-16/17, live "both feeds stuck forever"
     # follow-up - see FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS's own
     # comment) - still off the event loop, just also hard-bounded now.
-    assert "asyncio.to_thread(resolve_fo_universe)" in src
+    # 2026-09-21: also passes deadline= through to_thread, since
+    # wait_for's own timeout doesn't stop the worker thread - see
+    # FO_UNIVERSE_RESOLVE_GRACE_SECONDS's own comment.
+    assert "asyncio.to_thread(resolve_fo_universe, deadline=" in src
     assert "asyncio.wait_for(" in src
 
     import asyncio
