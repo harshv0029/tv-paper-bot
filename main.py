@@ -6315,11 +6315,12 @@ NSE_STOCK_PARAM_OVERRIDES = {
     "ADANIPORTS.NS": {"orb_minutes": 15, "sma_fast": 9, "sma_slow": 50, "risk_pct": 2.0, "stop_pct": 2.0},
 }
 
-# Exactly the 52-symbol universe the "Gap and Go, 5-year window" finding was
-# validated on (EVIDENCED = NSE_STOCK_PARAM_OVERRIDES.keys() union
-# UNEVIDENCED_SAMPLE below, see swing-gap-and-go-5y-research.yml) - trading
-# the swing engine live on any wider universe would be unvalidated, so this
-# is intentionally NOT derived from WATCHLIST/NSE_FULL_UNIVERSE.
+# The original 52-symbol universe the "Gap and Go, 5-year window" finding
+# was validated on (EVIDENCED = NSE_STOCK_PARAM_OVERRIDES.keys() union
+# UNEVIDENCED_SAMPLE below, see swing-gap-and-go-5y-research.yml). Kept as
+# its own name (still used elsewhere - e.g. idea 8's robustness-check
+# top-15-by-PF holdout) even though SWING_WATCHLIST below no longer stops
+# here.
 _SWING_UNEVIDENCED_SAMPLE = [
     "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
     "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
@@ -6329,7 +6330,23 @@ _SWING_UNEVIDENCED_SAMPLE = [
     "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
     "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
 ]
-SWING_WATCHLIST = sorted(set(NSE_STOCK_PARAM_OVERRIDES.keys()) | set(_SWING_UNEVIDENCED_SAMPLE))
+_SWING_VALIDATED_52 = sorted(set(NSE_STOCK_PARAM_OVERRIDES.keys()) | set(_SWING_UNEVIDENCED_SAMPLE))
+
+# WIDENED to the full NIFTY 200 equity universe (2026-09-22, explicit user
+# instruction, given after I flagged the tradeoff and the user chose to
+# proceed without a prior backtest on the extra ~150 symbols: "widen both
+# paper AND real together, now"). Reuses NSE_FULL_UNIVERSE - the SAME
+# NIFTY-200-restricted equity list the intraday engine's WATCHLIST is
+# built from - since this is the same asset class (NSE cash equities) the
+# existing broker code already handles; no new order-placement code was
+# needed for this widening. Still real, unhedged, unvalidated exposure:
+# the Gap and Go finding (PFnet 1.65, n=142, "Gap and Go, 5-year window",
+# docs/STRATEGY_LOG.md) was only ever backtested on _SWING_VALIDATED_52 -
+# whether the edge holds on the other ~150 names is genuinely unknown, not
+# just unconfirmed. If this widening turns out to hurt live results, the
+# fix is reverting to _SWING_VALIDATED_52, not re-tuning Gap and Go's own
+# parameters off a live result on symbols it was never designed against.
+SWING_WATCHLIST = sorted(set(NSE_FULL_UNIVERSE) | set(_SWING_VALIDATED_52))
 
 # Explicit user instruction 2026-09-09: "add preference to monitor these
 # stocks out of the evidenced symbols" - the round-robin entry-scan

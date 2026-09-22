@@ -173,9 +173,13 @@ class TestGapAndGoExitReason:
 
 
 class TestSwingWatchlist:
-    def test_matches_validated_research_universe_exactly(self):
-        # Guards against future drift: SWING_WATCHLIST must stay exactly the
-        # 52-symbol universe the PFnet 1.65/n=142 finding was validated on.
+    def test_validated_52_universe_is_preserved_exactly(self):
+        # Guards against silent drift in the ORIGINAL validated subset (the
+        # PFnet 1.65/n=142 finding) even though SWING_WATCHLIST itself was
+        # deliberately widened past it (2026-09-22, explicit user
+        # instruction) - _SWING_VALIDATED_52 is what any future re-backtest/
+        # holdout logic (e.g. idea 8's top-15-by-PF check) should still
+        # anchor to.
         unevidenced_sample = [
             "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
             "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
@@ -186,8 +190,21 @@ class TestSwingWatchlist:
             "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
         ]
         expected = sorted(set(main.NSE_STOCK_PARAM_OVERRIDES.keys()) | set(unevidenced_sample))
-        assert main.SWING_WATCHLIST == expected
-        assert len(main.SWING_WATCHLIST) == 52
+        assert main._SWING_VALIDATED_52 == expected
+        assert len(main._SWING_VALIDATED_52) == 52
+
+    def test_swing_watchlist_widened_to_full_nifty_200_superset(self):
+        # 2026-09-22, explicit user instruction after being told the extra
+        # ~150 symbols are unvalidated for Gap and Go: widen anyway, paper
+        # and real together, no prior backtest gate. This test just
+        # confirms the widening did what it was supposed to (NIFTY 200
+        # equities, same asset class, validated subset still included) -
+        # it is NOT a claim that the strategy has been shown to work on
+        # the wider set.
+        assert set(main._SWING_VALIDATED_52) <= set(main.SWING_WATCHLIST)
+        assert set(main.NSE_FULL_UNIVERSE) <= set(main.SWING_WATCHLIST)
+        assert len(main.SWING_WATCHLIST) >= len(main.NSE_FULL_UNIVERSE)
+        assert all(s.endswith(".NS") for s in main.SWING_WATCHLIST)
 
 
 class TestDeployedNotionalIncludesSwing:
