@@ -1057,5 +1057,19 @@
     "rr_target": 3.0,
     "rr_achieved": -0.19,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "MCX.NS",
+    "exit_time_utc": 1790156776.329296,
+    "entry_price_native": 3280.0,
+    "exit_price_native": 3369.0,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 89.0,
+    "pnl_pct_of_capital": 0.022,
+    "exit_reason": "eod_squareoff",
+    "rr_target": 3.0,
+    "rr_achieved": 2.71,
+    "strategy": "orb-universal-score"
   }
 ]
