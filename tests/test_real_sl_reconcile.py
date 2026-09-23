@@ -144,15 +144,17 @@ def test_dead_sl_is_detected_and_a_fresh_one_placed_in_the_same_tick():
         assert main._is_t1_restricted(conn, "ASHOKLEY.NS") is False
 
 
-# ---- T1/T2T infinite-retry-loop fix (2026-09-23, live SUZLON.NS finding) ---
-# A resting SL for a T1/T2T-restricted symbol is ALWAYS accepted at
-# placement (Kotak only enforces same-day-sell at trigger time), so the
-# OLD code path here would "succeed" every retry and clear the degraded
-# clock every cycle - meaning the position was genuinely unprotected the
-# whole time but the 60s emergency-exit escalation could never accumulate
-# enough elapsed time to fire. These tests pin the fix: once a symbol is
-# confirmed T1/T2T-restricted, no further doomed SL placement is
-# attempted, and the degraded clock is left running untouched.
+# ---- T1/T2T flagging correction (2026-09-23, live SUZLON.NS finding) -------
+# First cut of this fix (same day) called _flag_if_t1_restricted from this
+# reconcile path whenever a dead SL's rejection detail carried the T1/T2T
+# marker text - WRONG, per the exact precedent already documented above
+# _maybe_place_real_entry's own target-placement-failure branch
+# (2026-09-22, IDEA.NS/ASHOKLEY.NS/CONCOR.NS): a rejection here can
+# equally be caused by a competing resting order or by asking to sell
+# more than is currently held (see _reconcile_real_qty below), neither of
+# which is genuine same-day-sale restriction. These tests pin the
+# CORRECTED behavior: detail is logged for visibility, never fed to the
+# permanent-blacklist flag from this call site.
 
 def test_real_sl_rejection_detail_combines_rejrsn_and_rejlongdesc():
     with patch("kotak_neo.order_report", return_value=_LIVE_TARGET_REJECTED):
@@ -166,36 +168,46 @@ def test_real_sl_rejection_detail_none_on_failure():
         assert main._real_sl_rejection_detail("X") is None
 
 
-def test_dead_sl_with_t1_t2t_rejection_flags_symbol_and_skips_replacement():
+def test_dead_sl_with_t1_t2t_worded_rejection_does_not_flag_the_symbol():
     _fresh_db()
     with closing(main.get_db()) as conn:
         _insert_open_real_position(conn, sl_order_id="SL-OLD", sl_trigger_price=97.0)
         with patch("kotak_neo.order_report", return_value=_LIVE_TARGET_REJECTED), \
-             patch("kotak_real_orders.place_real_stop_loss") as mock_place, \
-             patch.object(main, "_maybe_place_real_exit") as mock_force_exit:
+             patch("kotak_real_orders.place_real_stop_loss",
+                   return_value={"ok": True, "order_id": "SL-NEW", "trigger_price": 97.0}), \
+             patch.object(main.time, "sleep", return_value=None):
             main._maybe_sync_real_stop_loss(conn, "ASHOKLEY.NS")
-            mock_place.assert_not_called()  # no doomed placement attempted
-            mock_force_exit.assert_not_called()  # not yet - degraded clock just started
-        assert main._is_t1_restricted(conn, "ASHOKLEY.NS") is True
-        row = conn.execute(
-            "SELECT sl_order_id, protection_degraded_since FROM real_positions WHERE symbol='ASHOKLEY.NS'"
+        # T2T-worded text was present in the rejection detail, but this
+        # call site must never treat that as proof - the false positive
+        # this whole correction exists to prevent.
+        assert main._is_t1_restricted(conn, "ASHOKLEY.NS") is False
+        events = conn.execute(
+            "SELECT detail FROM real_order_events WHERE symbol = 'ASHOKLEY.NS' AND event = 'found_dead_on_reconcile'"
         ).fetchone()
-        assert row["sl_order_id"] is None
-        assert row["protection_degraded_since"] is not None
+        assert "Trade-to-Trade stocks on the same day" in events["detail"]  # logged for visibility, not acted on
 
 
-def test_degraded_clock_survives_repeated_ticks_once_t1_restricted():
-    # The actual infinite-loop bug this fixes: across MULTIPLE consecutive
-    # calls (simulating repeated scheduler ticks), the clock must not
-    # reset - it must accumulate real elapsed time toward the escalation
-    # timeout, since a T1/T2T-restricted symbol will never get a genuinely
-    # live SL no matter how many times it's retried.
+def test_degraded_clock_survives_repeated_ticks_for_a_symbol_restricted_via_a_trusted_source():
+    # The actual infinite-loop bug: across MULTIPLE consecutive calls
+    # (simulating repeated scheduler ticks), the clock must not reset -
+    # it must accumulate real elapsed time toward the escalation timeout,
+    # since a genuinely T1/T2T-restricted symbol will never get a live SL
+    # no matter how many times it's retried. Restriction here comes from
+    # a TRUSTED source (direct DB row, standing in for
+    # _maybe_place_real_entry's own immediate-rejection flagging path,
+    # still valid) - not from this reconcile path, which no longer flags.
     _fresh_db()
     with closing(main.get_db()) as conn:
         _insert_open_real_position(conn, sl_order_id="SL-OLD", sl_trigger_price=97.0)
+        conn.execute(
+            "INSERT OR IGNORE INTO real_t1_restricted (symbol, day, flagged_at, detail) "
+            "VALUES ('ASHOKLEY.NS', ?, ?, 'Selling Trade-to-Trade stocks on the same day of purchase is not allowed.')",
+            (main.ist_now().strftime("%Y-%m-%d"), main.time.time()),
+        )
+        conn.commit()
         with patch("kotak_neo.order_report", return_value=_LIVE_TARGET_REJECTED), \
              patch("kotak_real_orders.place_real_stop_loss") as mock_place:
-            main._maybe_sync_real_stop_loss(conn, "ASHOKLEY.NS")  # tick 1: detects dead, flags, starts clock
+            main._maybe_sync_real_stop_loss(conn, "ASHOKLEY.NS")  # tick 1: detects dead, starts clock
             first = conn.execute(
                 "SELECT protection_degraded_since FROM real_positions WHERE symbol='ASHOKLEY.NS'"
             ).fetchone()["protection_degraded_since"]
@@ -208,6 +220,87 @@ def test_degraded_clock_survives_repeated_ticks_once_t1_restricted():
                 "SELECT protection_degraded_since FROM real_positions WHERE symbol='ASHOKLEY.NS'"
             ).fetchone()["protection_degraded_since"]
             assert second == first  # untouched across ticks - this is the bug fix
+
+
+# ---- Qty reconciliation (2026-09-23, live SUZLON.NS finding) ---------------
+# SUZLON.NS's real qty went 3->2 via an organic fill (a resting order
+# filled directly at Kotak, no corresponding call into this app's own
+# partial-exit mirror), but real_positions.qty never got corrected - every
+# subsequent SL placement kept sizing for 3 against a holding that only
+# had 2.
+
+_KOTAK_POSITIONS_HOLDS_2 = {
+    "data": [{"trdSym": "ASHOKLEY-EQ", "exSeg": "nse_cm", "flBuyQty": "3", "flSellQty": "1"}]
+}
+_KOTAK_POSITIONS_HOLDS_3 = {
+    "data": [{"trdSym": "ASHOKLEY-EQ", "exSeg": "nse_cm", "flBuyQty": "3", "flSellQty": "0"}]
+}
+_KOTAK_POSITIONS_FLAT = {
+    "data": [{"trdSym": "ASHOKLEY-EQ", "exSeg": "nse_cm", "flBuyQty": "3", "flSellQty": "3"}]
+}
+
+
+def test_real_held_qty_computes_net_of_fills():
+    with patch("kotak_neo.positions", return_value=_KOTAK_POSITIONS_HOLDS_2):
+        assert main._real_held_qty("ASHOKLEY-EQ") == 2.0
+
+
+def test_real_held_qty_none_on_failure():
+    with patch("kotak_neo.positions", side_effect=Exception("network hiccup")):
+        assert main._real_held_qty("ASHOKLEY-EQ") is None
+
+
+def test_reconcile_real_qty_corrects_a_stale_tracked_quantity():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        _insert_open_real_position(conn, sl_order_id="SL-OLD", sl_trigger_price=97.0)
+        real_row = conn.execute("SELECT * FROM real_positions WHERE symbol='ASHOKLEY.NS'").fetchone()
+        assert real_row["qty"] == 2  # fixture default
+        with patch("kotak_neo.positions", return_value=_KOTAK_POSITIONS_HOLDS_3):
+            corrected = main._reconcile_real_qty(conn, real_row)
+        assert corrected["qty"] == 3
+        row = conn.execute("SELECT qty FROM real_positions WHERE symbol='ASHOKLEY.NS'").fetchone()
+        assert row["qty"] == 3
+
+
+def test_reconcile_real_qty_leaves_matching_quantity_untouched():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        _insert_open_real_position(conn, sl_order_id="SL-OLD", sl_trigger_price=97.0)
+        real_row = conn.execute("SELECT * FROM real_positions WHERE symbol='ASHOKLEY.NS'").fetchone()
+        with patch("kotak_neo.positions", return_value=_KOTAK_POSITIONS_HOLDS_2):  # matches the fixture's qty=2
+            corrected = main._reconcile_real_qty(conn, real_row)
+        assert corrected["qty"] == 2
+
+
+def test_reconcile_real_qty_fails_quiet_on_unreadable_check():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        _insert_open_real_position(conn, sl_order_id="SL-OLD", sl_trigger_price=97.0)
+        real_row = conn.execute("SELECT * FROM real_positions WHERE symbol='ASHOKLEY.NS'").fetchone()
+        with patch("kotak_neo.positions", side_effect=Exception("network hiccup")):
+            corrected = main._reconcile_real_qty(conn, real_row)
+        assert corrected["qty"] == 2  # unchanged, never forced to 0 or guessed
+
+
+def test_sync_stop_loss_sizes_the_fresh_sl_off_the_corrected_qty():
+    # End-to-end: a stale local qty (3) is corrected to what Kotak
+    # actually holds (2) BEFORE the fresh SL placement, so the SL that
+    # actually gets sent is sized 2, not 3 - the exact live SUZLON.NS bug.
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        _insert_open_real_position(conn, sl_order_id="SL-OLD", sl_trigger_price=97.0)
+        conn.execute("UPDATE real_positions SET qty = 3 WHERE symbol = 'ASHOKLEY.NS'")
+        conn.commit()
+        with patch("kotak_neo.positions", return_value=_KOTAK_POSITIONS_HOLDS_2), \
+             patch("kotak_neo.order_report", return_value=_LIVE_SL_TRIGGER_PENDING), \
+             patch("kotak_real_orders.cancel_real_order", return_value={"ok": True}), \
+             patch("kotak_real_orders.place_real_stop_loss",
+                   return_value={"ok": True, "order_id": "SL-NEW", "trigger_price": 98.0}) as mock_place:
+            conn.execute("UPDATE signal_state SET stop_loss = 98.0 WHERE symbol = 'ASHOKLEY.NS'")
+            conn.commit()
+            main._maybe_sync_real_stop_loss(conn, "ASHOKLEY.NS")
+            mock_place.assert_called_once_with("ASHOKLEY-EQ", 2.0, 98.0)
 
 
 def test_t1_restricted_symbol_escalates_to_forced_exit_once_timeout_exceeded():
