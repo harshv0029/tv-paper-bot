@@ -6750,6 +6750,25 @@ def _log_real_fo_attempt(conn, leg_key, side, status, kotak_trading_symbol=None,
     conn.commit()
 
 
+def _describe_real_qty_sizing(paper_qty, max_by_cap, max_by_capital, qty):
+    """One-line, plain-English reason for why a REAL buy order requests
+    exactly `qty` shares - qty is always min(paper_qty, max_by_cap,
+    max_by_capital) (see _maybe_place_real_entry just below), but that
+    arithmetic was previously only ever visible in code, never in the
+    order log/ledger. User request 2026-09-23: "In each of scorecard add
+    a logic of placing why you buy only x qty when a buy order is placed
+    each time."."""
+    if qty == paper_qty:
+        return (f"sized to the paper signal's own qty ({paper_qty}) - "
+                f"remaining daily cap and real account capital both had room for at least that many")
+    binding = []
+    if max_by_cap <= qty:
+        binding.append(f"remaining daily cap (room for {max_by_cap})")
+    if max_by_capital <= qty:
+        binding.append(f"real account capital (room for {max_by_capital})")
+    return f"paper signal called for {paper_qty}, capped to {qty} by " + " and ".join(binding)
+
+
 def _maybe_place_real_entry(conn, symbol: str):
     """Mirrors a paper "entered_long" as a REAL buy, ONLY when every gate
     holds. Called from _scheduler_loop right after _auto_signal_core
@@ -6907,11 +6926,14 @@ def _maybe_place_real_entry(conn, symbol: str):
             (symbol, kotak_symbol, real_qty, real_entry_price, result["order_id"], now,
              ist_now().strftime("%Y-%m-%d"), json.dumps(real_exit_legs) if real_exit_legs else None, real_strategy),
         )
+        qty_reason = _describe_real_qty_sizing(paper_qty, max_by_cap, max_by_capital, qty)
+        if not result["fill_price_confirmed"]:
+            qty_reason += "; fill not yet confirmed by Kotak - using requested qty/estimated LTP"
         _log_real_attempt(
             conn, symbol, "B", "confirmed", kotak_trading_symbol=kotak_symbol,
             qty=real_qty, price_est=real_entry_price, notional_inr=real_qty * real_entry_price,
             order_id=result["order_id"], raw_response=result.get("raw_response"),
-            detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak - using requested qty/estimated LTP",
+            detail=qty_reason,
             strategy=real_strategy,
         )
         print(f"[REAL TRADE] BUY {real_qty} {kotak_symbol} (order {result['order_id']}) "
