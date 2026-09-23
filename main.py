@@ -7759,6 +7759,39 @@ def _real_sl_order_is_live(order_id: str) -> bool | None:
     return ord_st in ("trigger pending", "open", "pending")
 
 
+def _real_sl_rejection_detail(order_id: str) -> str | None:
+    """Best-effort fetch of WHY `order_id` was rejected, for the reconcile
+    path (2026-09-23, live SUZLON.NS finding - see the module comment
+    above _maybe_sync_real_stop_loss's T1/T2T handling). A SEPARATE call
+    from _real_sl_order_is_live (which only classifies live-vs-dead, by
+    design - its own 5 unit tests pin bool | None as its contract) rather
+    than changing that function's return shape.
+
+    Kotak's rejection reason can land in EITHER rejRsn or rejLongDesc
+    depending on rejection type - the live ASHOKLEY.NS fixture that
+    motivated _real_sl_order_is_live itself shows the T1/T2T same-day-sell
+    marker specifically in rejLongDesc, not rejRsn (rejRsn there was a
+    generic "RMS:Rule: Check T1 holdings..." line that _T1_HOLDINGS_MARKER
+    already catches, but the more specific T2T wording
+    _T2T_SAME_DAY_MARKER looks for is only in rejLongDesc) - so both are
+    concatenated and handed to _flag_if_t1_restricted's substring check
+    rather than guessing which field carries it. Returns None on any
+    failure - never raises, matching every other real-order read in this
+    file."""
+    import kotak_neo
+    try:
+        resp = kotak_neo.order_report(order_id=order_id)
+    except Exception:
+        return None
+    rows = resp.get("data") if isinstance(resp, dict) else None
+    if not rows or not isinstance(rows, list) or not isinstance(rows[0], dict):
+        return None
+    row = rows[0]
+    parts = [str(row.get("rejRsn") or "").strip(), str(row.get("rejLongDesc") or "").strip()]
+    detail = " ".join(p for p in parts if p)
+    return detail or None
+
+
 def _maybe_sync_real_stop_loss(conn, symbol: str):
     """Keeps a real position's RESTING stop-loss order at Kotak in step
     with the paper trailing stop _auto_signal_core just ratcheted (see
@@ -7823,6 +7856,16 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
                 order_id=real_row["sl_order_id"], prev_state="assumed resting",
                 new_state="dead at Kotak (rejected/cancelled, no fill)",
             )
+            # T1/T2T flagging (2026-09-23, live SUZLON.NS finding): this is
+            # the ONLY place a TRIGGER-time rejection (order accepted when
+            # placed, rejected later when it actually fired) is ever
+            # detected - _flag_if_t1_restricted's other call site only
+            # covers an IMMEDIATE placement-time rejection. Without this,
+            # a delayed T1/T2T rejection like SUZLON.NS's never gets
+            # recorded, so a future session could buy the exact same
+            # symbol tomorrow and hit the identical trap.
+            rejection_detail = _real_sl_rejection_detail(real_row["sl_order_id"])
+            _flag_if_t1_restricted(conn, symbol, rejection_detail)
             # sl_trigger_price cleared too, not just sl_order_id: left in
             # place, it still represents the DEAD order's price, and the
             # "no upward move since last sync" gate further down (`if
@@ -7886,6 +7929,39 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
 
     if current_sl_price is not None and new_stop <= current_sl_price:
         return  # no upward move since the last sync - nothing to do
+
+    # T1/T2T infinite-retry-loop fix (2026-09-23, live SUZLON.NS finding):
+    # a resting SL order for a T1/T2T-restricted symbol is ALWAYS accepted
+    # at placement (Kotak only enforces the same-day-sell rule when the
+    # order actually fires) - so placing a fresh one here always
+    # "succeeds," which used to unconditionally call
+    # _clear_protection_degraded below, resetting the degraded-protection
+    # clock back to zero every single cycle. Net effect: the position was
+    # genuinely unprotected the entire time (every SL dies again at its
+    # next trigger, detected on reconcile above, which is what flagged
+    # this restriction in the first place), but the clock never
+    # accumulated past a few seconds before being wiped, so the 60s
+    # emergency-exit escalation could never fire - an infinite loop of
+    # doomed placements that looked like progress but wasn't.
+    #
+    # Fix: once a symbol is confirmed T1/T2T-restricted, stop attempting
+    # to place a new SL for it at all - we already know it cannot
+    # genuinely protect the position. Ensure the degraded clock is
+    # running (idempotent - a no-op if already set) and let real wall-
+    # clock time accumulate untouched, so the top-of-function timeout
+    # check can correctly escalate to a forced exit attempt once it's
+    # actually been exceeded. That exit attempt will likely ALSO be
+    # rejected for the same T1/T2T reason (nothing sells a T2T stock
+    # same-day, no order type is exempt) - this does not un-stick the
+    # position, it stops the pointless repeated-placement spam and lets
+    # the system honestly reflect "cannot be protected today" instead of
+    # a resetting clock that never escalates.
+    if _is_t1_restricted(conn, symbol):
+        _mark_protection_degraded(conn, symbol)
+        print(f"[REAL TRADE] {real_row['kotak_trading_symbol']} is T1/T2T-restricted - "
+              f"not attempting another doomed SL placement, letting the degraded-protection "
+              f"clock run toward its own escalation instead of resetting on a fresh accept")
+        return
 
     import kotak_real_orders
     if real_row["sl_order_id"]:
