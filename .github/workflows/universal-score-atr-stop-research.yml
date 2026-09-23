@@ -23,6 +23,28 @@ name: Universal Score ATR-Based Stop Research (research)
 # intraday range per this session's own WebSearch research) against the
 # CURRENT structural_low formula, unchanged, as the baseline.
 #
+# 2026-09-23 "Option B" fix (user picked this after the first run's
+# comparison came back confusing): the first version of this workflow ran
+# one FULL independent replay pass per variant, which (1) silently
+# `continue`d past any candidate entry whose risk-based qty floored to
+# zero - undercounting trades differently per variant, since a wider ATR
+# stop makes qty floor to zero more often, and (2) let each variant see a
+# DIFFERENT population of candidate entries (whichever ones happened not
+# to floor to zero under its own stop), so the earlier atr_1.5x/atr_2.0x
+# vs current comparison was not apples-to-apples - part of what changed
+# was the entries themselves, not just the stop mechanics. Fixed here by:
+#   - computing regime classification + entry-signal scoring ONCE per bar,
+#     shared across all variants (also removes the ~3x redundant runtime
+#     that made the first version take 20-30 minutes),
+#   - every variant evaluates its OWN stop/qty against that SAME candidate
+#     entry, so all three variants see identical entry opportunities,
+#   - tracking explicit skip reasons (qty_zero, notional_too_small,
+#     stop_invalid, cost_gate_failed) per variant instead of silently
+#     dropping trades, and reporting them,
+#   - reporting a second "common entries" comparison restricted to entries
+#     where ALL THREE variants actually opened a position, isolating the
+#     stop mechanism's effect from the sizing/volume side-effect.
+#
 # Direct extension of universal-score-validation-replay.yml - same engine,
 # same 52-symbol/60-day set, same real cost model, every function reused
 # verbatim (imported from main.py, not reimplemented) except the stop
@@ -56,6 +78,7 @@ jobs:
           import sys
           sys.path.insert(0, ".")
           import json
+          from collections import Counter
           import numpy as np
           import pandas as pd
           import main as m
@@ -87,14 +110,50 @@ jobs:
               return df
 
 
-          def replay_symbol(symbol, raw_df, index_closes, risk_pct, stop_pct, capital, cost_model,
-                             atr_mult, sma_fast=DEFAULT_SMA_FAST, sma_slow=DEFAULT_SMA_SLOW,
-                             ma_type=DEFAULT_MA_TYPE):
+          def _stop_for_variant(atr_mult, regime, last_close, stop_loss_cap, df_so_far):
+              if regime == "range":
+                  return m._range_regime_stop_loss(last_close, df_so_far, stop_loss_cap)
+              if atr_mult is None:
+                  # "current" variant - the live, unchanged TREND formula:
+                  # structural_low vs the flat stop_pct% cap, whichever is
+                  # tighter wins. No ATR involved.
+                  structural_low = float(df_so_far["Low"].iloc[-(m.UNIVERSAL_STRUCTURE_LOOKBACK + 1):].min())
+                  return max(structural_low, stop_loss_cap)
+              # Option A: structural_low REPLACED by an ATR(14)-based
+              # distance, same "whichever is tighter wins, capped at
+              # stop_pct% max risk" invariant _range_regime_stop_loss
+              # already uses for RANGE - m._compute_atr_value is the SAME
+              # helper that function calls, not a reimplementation. Falls
+              # back to stop_loss_cap alone if ATR can't be computed yet
+              # (not a silent zero-distance stop), same fallback discipline
+              # as the RANGE formula.
+              atr_val = m._compute_atr_value(df_so_far)
+              atr_stop = last_close - atr_mult * atr_val if atr_val and atr_val > 0 else stop_loss_cap
+              return max(atr_stop, stop_loss_cap)
+
+
+          def replay_symbol_multi(symbol, raw_df, index_closes, risk_pct, stop_pct, capital, cost_model,
+                                   variants, sma_fast=DEFAULT_SMA_FAST, sma_slow=DEFAULT_SMA_SLOW,
+                                   ma_type=DEFAULT_MA_TYPE):
+              """Replay one symbol ONCE, sharing entry-signal detection
+              across every stop-loss variant so all variants evaluate the
+              SAME candidate entries (fair comparison, fixes the earlier
+              version's population mismatch) and entry scoring isn't
+              redundantly recomputed per variant (fixes the ~3x runtime
+              blowup of one full pass per variant). Each variant still
+              manages its own open position independently since stop
+              distance changes qty/target/exit behavior once in a trade,
+              and every skip is counted with an explicit reason instead of
+              silently dropped.
+              """
               df = _prep(raw_df)
               closes_all = df["Close"].to_numpy(dtype=float)
+              volumes_all = df["Volume"].to_numpy(dtype=float)
               n = len(df)
-              trades = []
-              position = None
+
+              positions = {name: None for name in variants}
+              trades = {name: [] for name in variants}
+              skips = {name: Counter() for name in variants}
 
               for i in range(n):
                   row = df.iloc[i]
@@ -114,7 +173,11 @@ jobs:
                   sma_s = m._moving_average(closes_so_far, sma_slow, ma_type)
                   trend = "up" if sma_f > sma_s else "down"
 
-                  if position is not None:
+                  just_exited = set()
+                  for name in variants:
+                      position = positions[name]
+                      if position is None:
+                          continue
                       current_stop = position["stop"]
                       _, trail = m._trailing_stop_target(
                           today_df, position["entry_price"], position["initial_stop"], position["entry_ts"], TZ_OFF,
@@ -137,8 +200,9 @@ jobs:
                       if next_leg is not None and next_leg.get("target_price") and last_close >= next_leg["target_price"]:
                           _book_leg(position, next_leg["leg"], next_leg["qty"], last_close, last_ts, cost_model)
                           if position["remaining_qty"] <= 0:
-                              trades.append(_finalize_trade(position, "staged_ladder_complete", cost_model))
-                              position = None
+                              trades[name].append(_finalize_trade(position, "staged_ladder_complete", cost_model))
+                              positions[name] = None
+                              just_exited.add(name)
                           continue
 
                       exit_reason = None
@@ -157,15 +221,27 @@ jobs:
 
                       if exit_reason:
                           _book_leg(position, "trail", position["remaining_qty"], last_close, last_ts, cost_model)
-                          trades.append(_finalize_trade(position, exit_reason, cost_model))
-                          position = None
-                      continue
+                          trades[name].append(_finalize_trade(position, exit_reason, cost_model))
+                          positions[name] = None
+                          just_exited.add(name)
 
                   if mins >= SQUAREOFF_MIN:
                       continue
 
+                  # A variant that just closed a position THIS bar does not
+                  # re-evaluate entry until the next bar, matching the
+                  # original single-variant loop's semantics (exit and
+                  # re-entry never happened on the same bar there either).
+                  eligible = [name for name in variants if positions[name] is None and name not in just_exited]
+                  if not eligible:
+                      continue
+
+                  # --- shared entry-signal detection: computed ONCE per
+                  # bar, reused by every eligible variant. Fairness fix
+                  # (identical candidate entries for every variant) and
+                  # speed fix (previously recomputed once per variant). ---
                   regime = m._classify_market_regime(df_so_far, sma_fast, sma_slow, ma_type)
-                  volume_ok, vol_avg = m._volume_confirms(df["Volume"].to_numpy(dtype=float)[: i + 1])
+                  volume_ok, vol_avg = m._volume_confirms(volumes_all[: i + 1])
                   current_volume = float(row["Volume"])
                   vol_ratio = (current_volume / vol_avg) if (vol_avg and vol_avg > 0) else None
 
@@ -183,76 +259,70 @@ jobs:
                   if not entry_signal:
                       continue
 
-                  stop_loss_cap = last_close * (1 - stop_pct / 100)
-                  if regime == "range":
-                      stop_loss = m._range_regime_stop_loss(last_close, df_so_far, stop_loss_cap)
-                  elif atr_mult is None:
-                      # "current" variant - the live, unchanged TREND
-                      # formula: structural_low vs the flat stop_pct% cap,
-                      # whichever is tighter wins. No ATR involved.
-                      structural_low = float(df_so_far["Low"].iloc[-(m.UNIVERSAL_STRUCTURE_LOOKBACK + 1):].min())
-                      stop_loss = max(structural_low, stop_loss_cap)
-                  else:
-                      # Option A: structural_low REPLACED by an ATR(14)-based
-                      # distance, same "whichever is tighter wins, capped at
-                      # stop_pct% max risk" invariant _range_regime_stop_loss
-                      # already uses for RANGE - m._compute_atr_value is the
-                      # SAME helper that function calls, not a
-                      # reimplementation. Falls back to stop_loss_cap alone
-                      # if ATR can't be computed yet (not a silent
-                      # zero-distance stop), same fallback discipline as the
-                      # RANGE formula.
-                      atr_val = m._compute_atr_value(df_so_far)
-                      atr_stop = last_close - atr_mult * atr_val if atr_val and atr_val > 0 else stop_loss_cap
-                      stop_loss = max(atr_stop, stop_loss_cap)
-                  stop_dist = last_close - stop_loss
-                  if stop_dist <= 0:
-                      continue
+                  # --- apply EACH eligible variant's own stop formula to
+                  # this SAME candidate entry, tracking explicit skip
+                  # reasons instead of silently dropping trades whose
+                  # risk-based qty floors to zero. ---
+                  for name in eligible:
+                      atr_mult = variants[name]
+                      stop_loss_cap = last_close * (1 - stop_pct / 100)
+                      stop_loss = _stop_for_variant(atr_mult, regime, last_close, stop_loss_cap, df_so_far)
+                      stop_dist = last_close - stop_loss
+                      if stop_dist <= 0:
+                          skips[name]["stop_invalid"] += 1
+                          continue
 
-                  target_cluster = m._compute_target_cluster(last_close, stop_loss, df_so_far, DEFAULT_RR)
-                  target_move_pct = m._target_move_pct(target_cluster["primary_target"], last_close)
-                  if target_move_pct <= m.ROUND_TRIP_COST_PCT:
-                      continue
+                      target_cluster = m._compute_target_cluster(last_close, stop_loss, df_so_far, DEFAULT_RR)
+                      target_move_pct = m._target_move_pct(target_cluster["primary_target"], last_close)
+                      if target_move_pct <= m.ROUND_TRIP_COST_PCT:
+                          skips[name]["cost_gate_failed"] += 1
+                          continue
 
-                  if regime == "range":
-                      confidence = m._range_regime_confidence(today_df)
-                      confidence_entry_min = m._norm_cdf(m.RANGE_CONFIDENCE_ENTRY_Z)
-                      confidence_full_at = m._norm_cdf(m.RANGE_CONFIDENCE_FULL_Z)
-                  else:
-                      confidence = score_result["score_pct"] / 100.0
-                      confidence_entry_min = m.UNIVERSAL_ENTRY_SCORE_MIN / 100.0
-                      confidence_full_at = 1.0
-                  size_multiplier = (
-                      m._confidence_size_multiplier(confidence, confidence_entry_min, confidence_full_at)
-                      if confidence is not None else 1.0
-                  )
+                      if regime == "range":
+                          confidence = m._range_regime_confidence(today_df)
+                          confidence_entry_min = m._norm_cdf(m.RANGE_CONFIDENCE_ENTRY_Z)
+                          confidence_full_at = m._norm_cdf(m.RANGE_CONFIDENCE_FULL_Z)
+                      else:
+                          confidence = score_result["score_pct"] / 100.0
+                          confidence_entry_min = m.UNIVERSAL_ENTRY_SCORE_MIN / 100.0
+                          confidence_full_at = 1.0
+                      size_multiplier = (
+                          m._confidence_size_multiplier(confidence, confidence_entry_min, confidence_full_at)
+                          if confidence is not None else 1.0
+                      )
 
-                  usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
-                  risk_amount_inr = usable_capital_inr * risk_pct / 100 * size_multiplier
-                  qty = risk_amount_inr / stop_dist
-                  qty = min(qty, usable_capital_inr / last_close)
-                  qty = int(np.floor(qty))
-                  if qty <= 0 or qty * last_close < 100:
-                      continue
+                      usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                      risk_amount_inr = usable_capital_inr * risk_pct / 100 * size_multiplier
+                      qty = risk_amount_inr / stop_dist
+                      qty = min(qty, usable_capital_inr / last_close)
+                      qty = int(np.floor(qty))
+                      if qty <= 0:
+                          skips[name]["qty_zero"] += 1
+                          continue
+                      if qty * last_close < 100:
+                          skips[name]["notional_too_small"] += 1
+                          continue
 
-                  legs = m._split_exit_legs(qty, target_cluster["r_multiples"])
-                  position = {
-                      "symbol": symbol, "entry_price": last_close, "initial_stop": stop_loss,
-                      "stop": stop_loss, "target": target_cluster["primary_target"],
-                      "entry_ts": last_ts, "qty": qty, "remaining_qty": qty,
-                      "legs_json": json.dumps(legs), "regime": regime,
-                      "score_pct": score_result["score_pct"] if score_result else None,
-                      "size_multiplier": size_multiplier,
-                      "fills": [], "entry_cost": _entry_cost(qty, last_close, cost_model),
-                  }
+                      legs = m._split_exit_legs(qty, target_cluster["r_multiples"])
+                      positions[name] = {
+                          "symbol": symbol, "entry_price": last_close, "initial_stop": stop_loss,
+                          "stop": stop_loss, "target": target_cluster["primary_target"],
+                          "entry_ts": last_ts, "qty": qty, "remaining_qty": qty,
+                          "legs_json": json.dumps(legs), "regime": regime,
+                          "score_pct": score_result["score_pct"] if score_result else None,
+                          "size_multiplier": size_multiplier,
+                          "fills": [], "entry_cost": _entry_cost(qty, last_close, cost_model),
+                      }
 
-              if position is not None:
-                  last_close = float(df["Close"].iloc[-1])
-                  last_ts = df["ts_local"].iloc[-1].timestamp()
-                  _book_leg(position, "trail", position["remaining_qty"], last_close, last_ts, cost_model)
-                  trades.append(_finalize_trade(position, "window_end_forced_close", cost_model))
+              for name in variants:
+                  position = positions[name]
+                  if position is not None:
+                      last_close = float(df["Close"].iloc[-1])
+                      last_ts = df["ts_local"].iloc[-1].timestamp()
+                      _book_leg(position, "trail", position["remaining_qty"], last_close, last_ts, cost_model)
+                      trades[name].append(_finalize_trade(position, "window_end_forced_close", cost_model))
 
-              return trades
+              return trades, skips
 
 
           def _book_leg(position, leg_name, qty, price, ts, cost_model):
@@ -342,7 +412,7 @@ jobs:
 
           def _metrics(trades, label):
               if not trades:
-                  print(f"  {label:16s}   no trades")
+                  print(f"  {label:24s}   no trades")
                   return
               n = len(trades)
               wins = [t for t in trades if t["net_pnl"] > 0]
@@ -363,27 +433,53 @@ jobs:
               reasons = {}
               for t in trades:
                   reasons[t["exit_reason"]] = reasons.get(t["exit_reason"], 0) + 1
-              print(f"  {label:16s} n={n:<5d} win%={win_rate:6.1f}  PFnet={pf_net:6.2f}  PFgross={pf_gross:6.2f}  "
+              print(f"  {label:24s} n={n:<5d} win%={win_rate:6.1f}  PFnet={pf_net:6.2f}  PFgross={pf_gross:6.2f}  "
                     f"avgNet={avg_net:9.2f}  avgR={avg_net_r if avg_net_r is None else round(avg_net_r,3)}  "
                     f"avgMin={avg_time:6.1f}  exits={reasons}")
 
 
-          for variant_name, atr_mult in VARIANTS.items():
-              print(f"=== VARIANT: {variant_name} (atr_mult={atr_mult}) ===")
-              all_trades = []
-              for sym, raw in raw_by_symbol.items():
-                  cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
-                  try:
-                      trades = replay_symbol(
-                          sym, raw, index_closes_full, cfg["risk_pct"], cfg["stop_pct"], CAPITAL_INR,
-                          DEFAULT_COST_MODEL, atr_mult, cfg["sma_fast"], cfg["sma_slow"],
-                      )
-                  except Exception as e:
-                      print(f"  ERROR {sym}: {e}")
-                      continue
-                  all_trades.extend(trades)
+          all_trades_by_variant = {name: [] for name in VARIANTS}
+          all_skips_by_variant = {name: Counter() for name in VARIANTS}
+
+          for sym, raw in raw_by_symbol.items():
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  trades, skips = replay_symbol_multi(
+                      sym, raw, index_closes_full, cfg["risk_pct"], cfg["stop_pct"], CAPITAL_INR,
+                      DEFAULT_COST_MODEL, VARIANTS, cfg["sma_fast"], cfg["sma_slow"],
+                  )
+              except Exception as e:
+                  print(f"  ERROR {sym}: {e}")
+                  continue
+              for name in VARIANTS:
+                  all_trades_by_variant[name].extend(trades[name])
+                  all_skips_by_variant[name].update(skips[name])
+
+          print("=== Per-variant results (same shared candidate entries across all three) ===\n")
+          for name in VARIANTS:
+              all_trades = all_trades_by_variant[name]
+              print(f"--- VARIANT: {name} (atr_mult={VARIANTS[name]}) ---")
               _metrics(all_trades, "ALL")
               _metrics([t for t in all_trades if t["regime"] == "trend"], "TREND only")
               _metrics([t for t in all_trades if t["exit_reason"] == "stop_hit"], "stop_hit only")
+              print(f"  skipped candidate entries (not silently dropped): {dict(all_skips_by_variant[name])}")
               print()
+
+          print("=== Common-entries comparison (only entries where ALL THREE variants ===")
+          print("=== actually opened a position - isolates the stop mechanism's effect ===")
+          print("=== from the sizing/volume side-effect of a wider ATR stop) ===\n")
+          keysets = {
+              name: set((t["symbol"], round(t["entry_ts"])) for t in trades)
+              for name, trades in all_trades_by_variant.items()
+          }
+          common_keys = set.intersection(*keysets.values()) if keysets else set()
+          print(f"entries where all 3 variants opened a position: {len(common_keys)}\n")
+          for name in VARIANTS:
+              common_trades = [
+                  t for t in all_trades_by_variant[name]
+                  if (t["symbol"], round(t["entry_ts"])) in common_keys
+              ]
+              _metrics(common_trades, f"{name} (common)")
+              _metrics([t for t in common_trades if t["regime"] == "trend"], f"{name} (common, TREND)")
+          print()
           PYEOF
