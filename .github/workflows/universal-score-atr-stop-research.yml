@@ -1,0 +1,389 @@
+name: Universal Score ATR-Based Stop Research (research)
+
+# Tests Option A from the 2026-09-23 dynamic-stop discussion (explicit user
+# instruction, after WebSearch-grounded industry research on ATR-based
+# stops: LuxAlgo/QuantVPS/Chandelier-Exit sources all agree a stop distance
+# that scales with realized volatility - not a flat % - is standard
+# practice, and beats fixed-% stops on real backtested evidence). This repo
+# ALREADY does this correctly for RANGE regime (_range_regime_stop_loss:
+# 1.5x ATR(14), capped at stop_pct%) but NOT for TREND regime, which uses
+# `max(structural_low, stop_loss_cap)` - a fixed recent-low/flat-% pair,
+# no volatility awareness at all. Live evidence this same session (SUZLON/
+# MCX/JINDALSTEL/MPHASIS, all TREND entries): MCX and JINDALSTEL both
+# stopped out at roughly HALF the nominal stop_pct within 17-19 minutes,
+# then ran hard afterward - classic tight-stop whipsaw, consistent with
+# structural_low sitting closer to entry than intended on a stock that
+# just broke out of a narrow range.
+#
+# Option A: replace structural_low with an ATR(14)-based distance for
+# TREND regime's initial stop, same "whichever is tighter wins, capped at
+# stop_pct% max risk" invariant RANGE already uses (_compute_atr_value is
+# the same helper _range_regime_stop_loss itself calls - not a
+# reimplementation). Tests ATR multipliers 1.5x and 2.0x (the standard
+# intraday range per this session's own WebSearch research) against the
+# CURRENT structural_low formula, unchanged, as the baseline.
+#
+# Direct extension of universal-score-validation-replay.yml - same engine,
+# same 52-symbol/60-day set, same real cost model, every function reused
+# verbatim (imported from main.py, not reimplemented) except the stop
+# computation itself.
+#
+# Read-only research - writes nothing to any repo file, touches no live
+# state, safe to run anytime. Per CLAUDE.md standing discipline: this is
+# root-caused, tested research, not a same-day live retune - no code in
+# main.py changes here, and nothing here is wired into the live engine
+# without a separate implement->test->validate->approve cycle if the
+# result supports it.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run ATR-stop variant comparison
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import json
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          OPEN_MIN = 555
+          CLOSE_MIN = 930
+          SQUAREOFF_MIN = 920
+          TZ_OFF = m.IST_OFFSET_MIN
+          MAX_HOLD_MINUTES = 120.0
+          DEFAULT_SMA_FAST, DEFAULT_SMA_SLOW, DEFAULT_MA_TYPE = 9, 21, "ema"
+          DEFAULT_RR = 3.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(ts_local=ts_local)
+              df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+              df["mins"] = df["ts_local"].dt.hour * 60 + df["ts_local"].dt.minute
+              return df
+
+
+          def replay_symbol(symbol, raw_df, index_closes, risk_pct, stop_pct, capital, cost_model,
+                             atr_mult, sma_fast=DEFAULT_SMA_FAST, sma_slow=DEFAULT_SMA_SLOW,
+                             ma_type=DEFAULT_MA_TYPE):
+              df = _prep(raw_df)
+              closes_all = df["Close"].to_numpy(dtype=float)
+              n = len(df)
+              trades = []
+              position = None
+
+              for i in range(n):
+                  row = df.iloc[i]
+                  mins = int(row["mins"])
+                  if mins < OPEN_MIN or mins > CLOSE_MIN:
+                      continue
+                  day = row["date_local"]
+                  today_df = df[(df["date_local"] == day) & (df.index <= i)]
+                  df_so_far = df.iloc[: i + 1]
+                  closes_so_far = closes_all[: i + 1]
+                  last_close = float(row["Close"])
+                  last_ts = row["ts_local"].timestamp()
+
+                  if len(closes_so_far) < sma_slow:
+                      continue
+                  sma_f = m._moving_average(closes_so_far, sma_fast, ma_type)
+                  sma_s = m._moving_average(closes_so_far, sma_slow, ma_type)
+                  trend = "up" if sma_f > sma_s else "down"
+
+                  if position is not None:
+                      current_stop = position["stop"]
+                      _, trail = m._trailing_stop_target(
+                          today_df, position["entry_price"], position["initial_stop"], position["entry_ts"], TZ_OFF,
+                      )
+                      if trail is not None and trail > current_stop:
+                          current_stop = trail
+                          position["stop"] = current_stop
+
+                      current_target = position["target"]
+                      if last_close >= current_target:
+                          ext = m._leading_target_extend(
+                              current_target, position["entry_price"], position["initial_stop"],
+                              DEFAULT_RR, last_close, trend, closes_so_far, sma_fast, sma_slow, ma_type,
+                          )
+                          if ext is not None:
+                              current_target = ext
+                              position["target"] = current_target
+
+                      next_leg = m._next_unfilled_leg(position["legs_json"])
+                      if next_leg is not None and next_leg.get("target_price") and last_close >= next_leg["target_price"]:
+                          _book_leg(position, next_leg["leg"], next_leg["qty"], last_close, last_ts, cost_model)
+                          if position["remaining_qty"] <= 0:
+                              trades.append(_finalize_trade(position, "staged_ladder_complete", cost_model))
+                              position = None
+                          continue
+
+                      exit_reason = None
+                      if last_close >= current_target and next_leg is None:
+                          exit_reason = "target_hit"
+                      elif last_close <= current_stop:
+                          exit_reason = "stop_hit"
+                      elif trend == "down" and position["regime"] != "range" and m._trend_confidence(
+                          closes_so_far, sma_fast, sma_slow, ma_type
+                      ) >= m.TREND_WEAKENED_MIN_CONFIDENCE:
+                          exit_reason = "trend_weakened"
+                      elif (last_ts - position["entry_ts"]) >= MAX_HOLD_MINUTES * 60 and current_stop <= position["initial_stop"]:
+                          exit_reason = "stale_timeout"
+                      elif mins >= SQUAREOFF_MIN:
+                          exit_reason = "eod_squareoff"
+
+                      if exit_reason:
+                          _book_leg(position, "trail", position["remaining_qty"], last_close, last_ts, cost_model)
+                          trades.append(_finalize_trade(position, exit_reason, cost_model))
+                          position = None
+                      continue
+
+                  if mins >= SQUAREOFF_MIN:
+                      continue
+
+                  regime = m._classify_market_regime(df_so_far, sma_fast, sma_slow, ma_type)
+                  volume_ok, vol_avg = m._volume_confirms(df["Volume"].to_numpy(dtype=float)[: i + 1])
+                  current_volume = float(row["Volume"])
+                  vol_ratio = (current_volume / vol_avg) if (vol_avg and vol_avg > 0) else None
+
+                  if regime == "range":
+                      entry_signal = bool(m._vwap_mean_reversion_entry(today_df) or False)
+                      score_result = None
+                  else:
+                      idx_slice = index_closes[: i + 1] if index_closes is not None else None
+                      score_result = m._compute_universal_entry_score(
+                          df_so_far, today_df, volume_ok, sma_f, sma_s, idx_slice, sma_fast, sma_slow, ma_type,
+                          vol_ratio=vol_ratio,
+                      )
+                      entry_signal = score_result["entry_allowed"]
+
+                  if not entry_signal:
+                      continue
+
+                  stop_loss_cap = last_close * (1 - stop_pct / 100)
+                  if regime == "range":
+                      stop_loss = m._range_regime_stop_loss(last_close, df_so_far, stop_loss_cap)
+                  elif atr_mult is None:
+                      # "current" variant - the live, unchanged TREND
+                      # formula: structural_low vs the flat stop_pct% cap,
+                      # whichever is tighter wins. No ATR involved.
+                      structural_low = float(df_so_far["Low"].iloc[-(m.UNIVERSAL_STRUCTURE_LOOKBACK + 1):].min())
+                      stop_loss = max(structural_low, stop_loss_cap)
+                  else:
+                      # Option A: structural_low REPLACED by an ATR(14)-based
+                      # distance, same "whichever is tighter wins, capped at
+                      # stop_pct% max risk" invariant _range_regime_stop_loss
+                      # already uses for RANGE - m._compute_atr_value is the
+                      # SAME helper that function calls, not a
+                      # reimplementation. Falls back to stop_loss_cap alone
+                      # if ATR can't be computed yet (not a silent
+                      # zero-distance stop), same fallback discipline as the
+                      # RANGE formula.
+                      atr_val = m._compute_atr_value(df_so_far)
+                      atr_stop = last_close - atr_mult * atr_val if atr_val and atr_val > 0 else stop_loss_cap
+                      stop_loss = max(atr_stop, stop_loss_cap)
+                  stop_dist = last_close - stop_loss
+                  if stop_dist <= 0:
+                      continue
+
+                  target_cluster = m._compute_target_cluster(last_close, stop_loss, df_so_far, DEFAULT_RR)
+                  target_move_pct = m._target_move_pct(target_cluster["primary_target"], last_close)
+                  if target_move_pct <= m.ROUND_TRIP_COST_PCT:
+                      continue
+
+                  if regime == "range":
+                      confidence = m._range_regime_confidence(today_df)
+                      confidence_entry_min = m._norm_cdf(m.RANGE_CONFIDENCE_ENTRY_Z)
+                      confidence_full_at = m._norm_cdf(m.RANGE_CONFIDENCE_FULL_Z)
+                  else:
+                      confidence = score_result["score_pct"] / 100.0
+                      confidence_entry_min = m.UNIVERSAL_ENTRY_SCORE_MIN / 100.0
+                      confidence_full_at = 1.0
+                  size_multiplier = (
+                      m._confidence_size_multiplier(confidence, confidence_entry_min, confidence_full_at)
+                      if confidence is not None else 1.0
+                  )
+
+                  usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100 * size_multiplier
+                  qty = risk_amount_inr / stop_dist
+                  qty = min(qty, usable_capital_inr / last_close)
+                  qty = int(np.floor(qty))
+                  if qty <= 0 or qty * last_close < 100:
+                      continue
+
+                  legs = m._split_exit_legs(qty, target_cluster["r_multiples"])
+                  position = {
+                      "symbol": symbol, "entry_price": last_close, "initial_stop": stop_loss,
+                      "stop": stop_loss, "target": target_cluster["primary_target"],
+                      "entry_ts": last_ts, "qty": qty, "remaining_qty": qty,
+                      "legs_json": json.dumps(legs), "regime": regime,
+                      "score_pct": score_result["score_pct"] if score_result else None,
+                      "size_multiplier": size_multiplier,
+                      "fills": [], "entry_cost": _entry_cost(qty, last_close, cost_model),
+                  }
+
+              if position is not None:
+                  last_close = float(df["Close"].iloc[-1])
+                  last_ts = df["ts_local"].iloc[-1].timestamp()
+                  _book_leg(position, "trail", position["remaining_qty"], last_close, last_ts, cost_model)
+                  trades.append(_finalize_trade(position, "window_end_forced_close", cost_model))
+
+              return trades
+
+
+          def _book_leg(position, leg_name, qty, price, ts, cost_model):
+              sell_cost = _sell_cost(qty, price, cost_model)
+              position["fills"].append({"leg": leg_name, "qty": qty, "price": price, "ts": ts, "cost": sell_cost})
+              position["remaining_qty"] -= qty
+              if leg_name != "trail":
+                  legs = json.loads(position["legs_json"])
+                  for leg_entry in legs:
+                      if leg_entry["leg"] == leg_name:
+                          leg_entry["status"] = "filled"
+                  position["legs_json"] = json.dumps(legs)
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(position, exit_reason, cost_model):
+              gross_pnl = sum((f["price"] - position["entry_price"]) * f["qty"] for f in position["fills"])
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = position["entry_cost"] + sum(f["cost"] for f in position["fills"]) + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = position["entry_price"] - position["initial_stop"]
+              last_fill = position["fills"][-1]
+              return {
+                  "symbol": position["symbol"], "regime": position["regime"],
+                  "entry_price": position["entry_price"], "initial_stop": position["initial_stop"], "qty": position["qty"],
+                  "entry_ts": position["entry_ts"], "exit_ts": last_fill["ts"],
+                  "time_in_trade_min": (last_fill["ts"] - position["entry_ts"]) / 60.0,
+                  "exit_reason": exit_reason, "n_legs_filled": len(position["fills"]),
+                  "gross_pnl": gross_pnl, "net_pnl": net_pnl, "total_cost": total_cost,
+                  "gross_r": gross_pnl / (r * position["qty"]) if r > 0 else None,
+                  "net_r": net_pnl / (r * position["qty"]) if r > 0 else None,
+              }
+
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          CAPITAL_INR = 400000.0
+          VARIANTS = {"current_structural_low": None, "atr_1.5x": 1.5, "atr_2.0x": 2.0}
+
+          print(f"Fetching {len(SYMBOLS)} symbols (60d/5m) + ^NSEI reference index...")
+          index_df = m.fetch_ohlc("^NSEI", "60d", "5m")
+          index_closes_full = index_df["Close"].to_numpy(dtype=float)
+
+          raw_by_symbol = {}
+          for sym in SYMBOLS:
+              try:
+                  raw = m.fetch_ohlc(sym, "60d", "5m")
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < 50:
+                  continue
+              raw_by_symbol[sym] = raw
+          print(f"  fetched {len(raw_by_symbol)}/{len(SYMBOLS)} symbols\n")
+
+
+          def _metrics(trades, label):
+              if not trades:
+                  print(f"  {label:16s}   no trades")
+                  return
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              net_rs = [t["net_r"] for t in trades if t["net_r"] is not None]
+              avg_net_r = sum(net_rs) / len(net_rs) if net_rs else None
+              avg_time = sum(t["time_in_trade_min"] for t in trades) / n
+              reasons = {}
+              for t in trades:
+                  reasons[t["exit_reason"]] = reasons.get(t["exit_reason"], 0) + 1
+              print(f"  {label:16s} n={n:<5d} win%={win_rate:6.1f}  PFnet={pf_net:6.2f}  PFgross={pf_gross:6.2f}  "
+                    f"avgNet={avg_net:9.2f}  avgR={avg_net_r if avg_net_r is None else round(avg_net_r,3)}  "
+                    f"avgMin={avg_time:6.1f}  exits={reasons}")
+
+
+          for variant_name, atr_mult in VARIANTS.items():
+              print(f"=== VARIANT: {variant_name} (atr_mult={atr_mult}) ===")
+              all_trades = []
+              for sym, raw in raw_by_symbol.items():
+                  cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+                  try:
+                      trades = replay_symbol(
+                          sym, raw, index_closes_full, cfg["risk_pct"], cfg["stop_pct"], CAPITAL_INR,
+                          DEFAULT_COST_MODEL, atr_mult, cfg["sma_fast"], cfg["sma_slow"],
+                      )
+                  except Exception as e:
+                      print(f"  ERROR {sym}: {e}")
+                      continue
+                  all_trades.extend(trades)
+              _metrics(all_trades, "ALL")
+              _metrics([t for t in all_trades if t["regime"] == "trend"], "TREND only")
+              _metrics([t for t in all_trades if t["exit_reason"] == "stop_hit"], "stop_hit only")
+              print()
+          PYEOF
