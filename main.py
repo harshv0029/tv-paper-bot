@@ -7151,6 +7151,77 @@ def _kotak_symbol_still_open(kotak_trading_symbol: str) -> bool | None:
     return False
 
 
+def _real_held_qty(kotak_trading_symbol: str) -> float | None:
+    """Ground-truth CURRENT quantity actually held at Kotak for this exact
+    trading symbol (flBuyQty - flSellQty), same query shape and fields as
+    _kotak_symbol_still_open - 2026-09-23, live SUZLON.NS finding. Returns
+    None on a fetch failure (never 0 - a failed read must never be
+    mistaken for a genuinely flat/closed position)."""
+    try:
+        import kotak_neo
+        positions = kotak_neo.positions()
+        rows = positions.get("data") or [] if isinstance(positions, dict) else []
+    except Exception:
+        return None
+    for row in rows:
+        if row.get("trdSym") != kotak_trading_symbol or row.get("exSeg") != "nse_cm":
+            continue
+        try:
+            fl_buy = float(row.get("flBuyQty", 0) or 0)
+            fl_sell = float(row.get("flSellQty", 0) or 0)
+        except (TypeError, ValueError):
+            return None
+        return fl_buy - fl_sell
+    return 0.0
+
+
+def _reconcile_real_qty(conn, real_row):
+    """Corrects real_positions.qty against what Kotak's own positions()
+    actually shows held, if they disagree - 2026-09-23, live SUZLON.NS
+    finding. A resting order (SL or target) can fill ORGANICALLY at
+    Kotak, matched directly by the exchange, entirely independent of this
+    app's own tick-based polling - that's the whole POINT of resting
+    orders (see the "Double-sell fix" comment in
+    _maybe_place_real_partial_exit for the same mechanism from the other
+    side). This app's own qty tracking only ever gets updated by a call
+    INTO that function, which itself only fires when the PAPER side's own
+    condition also independently decides a leg fired. If the two never
+    line up - the real fill lands first, or the paper condition never
+    matches the real one exactly - real_positions.qty silently goes stale
+    while Kotak's own book has already moved on, and every later SL
+    sizing decision (this function's own trailing-sync included) sizes
+    off the WRONG, too-high quantity from then on. Confirmed live:
+    SUZLON.NS's real qty went 3->2 via an organic fill at 11:32 (order
+    completed at Kotak, no corresponding entry in real_order_events - the
+    paper side never called into the partial-exit mirror for it), and
+    every SL placement attempt from 11:34 onward kept asking Kotak to
+    rest a sell for 3 shares against a holding that only had 2 - itself
+    plausibly why those specific attempts were rejected ("insufficient
+    quantity held" is one of the reasons Kotak's own compound rejection
+    message lists), independent of the T1/T2T question addressed
+    separately below.
+
+    Best-effort and fail-quiet on an unreadable check (returns real_row
+    unchanged) - the same "unknown -> don't force a change" stance as
+    every other broker reconciliation in this file. Returns the
+    (possibly re-fetched, corrected) real_row for the caller to use."""
+    held = _real_held_qty(real_row["kotak_trading_symbol"])
+    if held is None or held <= 0:
+        return real_row  # unreadable, or Kotak shows it fully closed - let the normal exit/cleanup paths handle that
+    if held == real_row["qty"]:
+        return real_row
+    print(f"[REAL TRADE] {real_row['kotak_trading_symbol']} qty mismatch - this app tracked "
+          f"{real_row['qty']}, Kotak actually holds {held:.0f} - correcting local record "
+          f"(a resting order likely filled organically without this app's own mirror firing)")
+    _log_real_order_event(
+        conn, real_row["symbol"], "qty", "reconciled", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+        prev_state=f"tracked qty {real_row['qty']}", new_state=f"corrected to Kotak's actual {held:.0f}",
+    )
+    conn.execute("UPDATE real_positions SET qty = ? WHERE symbol = ?", (held, real_row["symbol"]))
+    conn.commit()
+    return conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (real_row["symbol"],)).fetchone()
+
+
 def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     """Mirrors ONE staged profit-booking LEG (see _execute_staged_leg_exit)
     as a REAL partial sell - 2026-09-09 architecture revamp. Unlike
@@ -7856,6 +7927,14 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
     # manual reconcile dispatch; now it can never persist past one tick.
     _ensure_signal_state_for_real_position(conn, real_row)
 
+    # Qty reconciliation (2026-09-23, live SUZLON.NS finding) - see
+    # _reconcile_real_qty's own docstring for why this must run before any
+    # SL sizing decision below: an organic fill at Kotak this app's own
+    # mirror never caught leaves real_positions.qty stale and too HIGH,
+    # which then sizes every subsequent SL placement for more shares than
+    # are actually held.
+    real_row = _reconcile_real_qty(conn, real_row)
+
     # Active reconciliation against Kotak's own order book (2026-09-22,
     # see _real_sl_order_is_live's own docstring for the live ASHOKLEY.NS
     # finding this closes) - sl_order_id being set here only ever meant
@@ -7870,24 +7949,32 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
     if real_row["sl_order_id"]:
         sl_is_live = _real_sl_order_is_live(real_row["sl_order_id"])
         if sl_is_live is False:
+            # Logged for visibility only, NOT fed to _flag_if_t1_restricted
+            # (2026-09-23 correction of a mistake made earlier the same
+            # day, live SUZLON.NS - see the module comment above
+            # _maybe_place_real_entry's own target-placement-failure
+            # branch, "NOT a _flag_if_t1_restricted call, on purpose",
+            # 2026-09-22/IDEA.NS-ASHOKLEY.NS-CONCOR.NS finding: a rejection
+            # HERE can equally be caused by a competing resting order
+            # (Kotak's "one exit order per holding" rule) or by asking to
+            # sell MORE than is currently held (see _reconcile_real_qty,
+            # added the same day this SUZLON.NS case surfaced) - neither
+            # of which means the symbol is genuinely unsellable same-day.
+            # Flagging here without ruling those out is exactly the false-
+            # positive /kotak-neo/t1-unflag exists to undo. A genuine T1/T2T
+            # symbol still gets caught via _maybe_place_real_exit's own
+            # rejection, which has no such competing-order/qty explanation
+            # available by the time it fires.
+            rejection_detail = _real_sl_rejection_detail(real_row["sl_order_id"])
             print(f"[REAL TRADE] resting SL {real_row['sl_order_id']} for "
                   f"{real_row['kotak_trading_symbol']} found DEAD on reconcile "
-                  f"(no fill) - clearing it so the retry/escalation path below picks it up")
+                  f"(no fill) - clearing it so the retry/escalation path below picks it up. "
+                  f"detail: {rejection_detail}")
             _log_real_order_event(
                 conn, symbol, "sl", "found_dead_on_reconcile", kotak_trading_symbol=real_row["kotak_trading_symbol"],
                 order_id=real_row["sl_order_id"], prev_state="assumed resting",
-                new_state="dead at Kotak (rejected/cancelled, no fill)",
+                new_state="dead at Kotak (rejected/cancelled, no fill)", detail=rejection_detail,
             )
-            # T1/T2T flagging (2026-09-23, live SUZLON.NS finding): this is
-            # the ONLY place a TRIGGER-time rejection (order accepted when
-            # placed, rejected later when it actually fired) is ever
-            # detected - _flag_if_t1_restricted's other call site only
-            # covers an IMMEDIATE placement-time rejection. Without this,
-            # a delayed T1/T2T rejection like SUZLON.NS's never gets
-            # recorded, so a future session could buy the exact same
-            # symbol tomorrow and hit the identical trap.
-            rejection_detail = _real_sl_rejection_detail(real_row["sl_order_id"])
-            _flag_if_t1_restricted(conn, symbol, rejection_detail)
             # sl_trigger_price cleared too, not just sl_order_id: left in
             # place, it still represents the DEAD order's price, and the
             # "no upward move since last sync" gate further down (`if
