@@ -7781,6 +7781,39 @@ def _real_sl_order_is_live(order_id: str) -> bool | None:
     return ord_st in ("trigger pending", "open", "pending")
 
 
+def _real_sl_rejection_detail(order_id: str) -> str | None:
+    """Best-effort fetch of WHY `order_id` was rejected, for the reconcile
+    path (2026-09-23, live SUZLON.NS finding - see the module comment
+    above _maybe_sync_real_stop_loss's T1/T2T handling). A SEPARATE call
+    from _real_sl_order_is_live (which only classifies live-vs-dead, by
+    design - its own 5 unit tests pin bool | None as its contract) rather
+    than changing that function's return shape.
+
+    Kotak's rejection reason can land in EITHER rejRsn or rejLongDesc
+    depending on rejection type - the live ASHOKLEY.NS fixture that
+    motivated _real_sl_order_is_live itself shows the T1/T2T same-day-sell
+    marker specifically in rejLongDesc, not rejRsn (rejRsn there was a
+    generic "RMS:Rule: Check T1 holdings..." line that _T1_HOLDINGS_MARKER
+    already catches, but the more specific T2T wording
+    _T2T_SAME_DAY_MARKER looks for is only in rejLongDesc) - so both are
+    concatenated and handed to _flag_if_t1_restricted's substring check
+    rather than guessing which field carries it. Returns None on any
+    failure - never raises, matching every other real-order read in this
+    file."""
+    import kotak_neo
+    try:
+        resp = kotak_neo.order_report(order_id=order_id)
+    except Exception:
+        return None
+    rows = resp.get("data") if isinstance(resp, dict) else None
+    if not rows or not isinstance(rows, list) or not isinstance(rows[0], dict):
+        return None
+    row = rows[0]
+    parts = [str(row.get("rejRsn") or "").strip(), str(row.get("rejLongDesc") or "").strip()]
+    detail = " ".join(p for p in parts if p)
+    return detail or None
+
+
 def _maybe_sync_real_stop_loss(conn, symbol: str):
     """Keeps a real position's RESTING stop-loss order at Kotak in step
     with the paper trailing stop _auto_signal_core just ratcheted (see
@@ -7845,6 +7878,16 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
                 order_id=real_row["sl_order_id"], prev_state="assumed resting",
                 new_state="dead at Kotak (rejected/cancelled, no fill)",
             )
+            # T1/T2T flagging (2026-09-23, live SUZLON.NS finding): this is
+            # the ONLY place a TRIGGER-time rejection (order accepted when
+            # placed, rejected later when it actually fired) is ever
+            # detected - _flag_if_t1_restricted's other call site only
+            # covers an IMMEDIATE placement-time rejection. Without this,
+            # a delayed T1/T2T rejection like SUZLON.NS's never gets
+            # recorded, so a future session could buy the exact same
+            # symbol tomorrow and hit the identical trap.
+            rejection_detail = _real_sl_rejection_detail(real_row["sl_order_id"])
+            _flag_if_t1_restricted(conn, symbol, rejection_detail)
             # sl_trigger_price cleared too, not just sl_order_id: left in
             # place, it still represents the DEAD order's price, and the
             # "no upward move since last sync" gate further down (`if
@@ -7908,6 +7951,39 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
 
     if current_sl_price is not None and new_stop <= current_sl_price:
         return  # no upward move since the last sync - nothing to do
+
+    # T1/T2T infinite-retry-loop fix (2026-09-23, live SUZLON.NS finding):
+    # a resting SL order for a T1/T2T-restricted symbol is ALWAYS accepted
+    # at placement (Kotak only enforces the same-day-sell rule when the
+    # order actually fires) - so placing a fresh one here always
+    # "succeeds," which used to unconditionally call
+    # _clear_protection_degraded below, resetting the degraded-protection
+    # clock back to zero every single cycle. Net effect: the position was
+    # genuinely unprotected the entire time (every SL dies again at its
+    # next trigger, detected on reconcile above, which is what flagged
+    # this restriction in the first place), but the clock never
+    # accumulated past a few seconds before being wiped, so the 60s
+    # emergency-exit escalation could never fire - an infinite loop of
+    # doomed placements that looked like progress but wasn't.
+    #
+    # Fix: once a symbol is confirmed T1/T2T-restricted, stop attempting
+    # to place a new SL for it at all - we already know it cannot
+    # genuinely protect the position. Ensure the degraded clock is
+    # running (idempotent - a no-op if already set) and let real wall-
+    # clock time accumulate untouched, so the top-of-function timeout
+    # check can correctly escalate to a forced exit attempt once it's
+    # actually been exceeded. That exit attempt will likely ALSO be
+    # rejected for the same T1/T2T reason (nothing sells a T2T stock
+    # same-day, no order type is exempt) - this does not un-stick the
+    # position, it stops the pointless repeated-placement spam and lets
+    # the system honestly reflect "cannot be protected today" instead of
+    # a resetting clock that never escalates.
+    if _is_t1_restricted(conn, symbol):
+        _mark_protection_degraded(conn, symbol)
+        print(f"[REAL TRADE] {real_row['kotak_trading_symbol']} is T1/T2T-restricted - "
+              f"not attempting another doomed SL placement, letting the degraded-protection "
+              f"clock run toward its own escalation instead of resetting on a fresh accept")
+        return
 
     import kotak_real_orders
     if real_row["sl_order_id"]:
@@ -10659,6 +10735,33 @@ async def _scheduler_loop():
             await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
 
 
+def _nse_equity_market_open_now() -> bool:
+    """True during NSE cash-equity regular trading hours (9:15-15:30 IST,
+    Mon-Fri) - 2026-09-22, real-order retry build. SWING_WATCHLIST is NSE
+    (.NS) equities only, so this uses the same fixed session window
+    _auto_signal_core's own open_min/close_min defaults use, not a
+    per-symbol configurable one (swing has no per-symbol session config).
+    Used to gate _retry_pending_real_swing_orders so a real order is never
+    attempted while the exchange itself is closed - see that function's
+    docstring for the bug this exists to fix."""
+    now_local = dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN)
+    if now_local.weekday() >= 5:
+        return False
+    mins_now = now_local.hour * 60 + now_local.minute
+    return (9 * 60 + 15) <= mins_now <= (15 * 60 + 30)
+
+
+# How far the live price may have drifted from the signal's own
+# entry_price before a delayed real-entry retry is skipped rather than
+# chasing it (2026-09-22, explicit user instruction after discussing the
+# retry-during-market-hours fix: "its good" in response to a proposed
+# ~2%). Entry-only - see _retry_pending_real_swing_orders' own docstring
+# for why exit retries are NOT given a price tolerance (a decided stop-
+# loss/gap-filled/max-hold exit must complete regardless of price; gating
+# it on price would work against the point of having a stop).
+SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT = 2.0
+
+
 def _maybe_place_real_swing_exit(conn, symbol):
     """Mirrors a paper swing exit (any exit_reason) as a REAL sell that
     closes the matching real_positions_swing row, if one exists. Same
@@ -10786,6 +10889,25 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     if ltp <= 0:
         _log_real_attempt(conn, symbol, "B", "skipped_no_live_tick", kotak_trading_symbol=kotak_symbol, strategy=strategy)
         return
+
+    # Price-tolerance gate (2026-09-22, real-order retry build) - this
+    # function can now be called well after the signal first fired (see
+    # _retry_pending_real_swing_orders), so the live price may have moved
+    # since paper_entry_price was recorded. Skip rather than chase a price
+    # that's drifted too far from what the signal actually confirmed -
+    # see SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT's own comment for why this
+    # is entry-only, never applied to exits.
+    if paper_entry_price > 0:
+        deviation_pct = abs(ltp - paper_entry_price) / paper_entry_price * 100
+        if deviation_pct > SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT:
+            _log_real_attempt(
+                conn, symbol, "B", "skipped_price_out_of_tolerance", kotak_trading_symbol=kotak_symbol,
+                price_est=ltp, strategy=strategy,
+                detail=f"live price Rs{ltp:.2f} is {deviation_pct:.1f}% away from the signal's "
+                       f"entry_price Rs{paper_entry_price:.2f} (tolerance "
+                       f"{SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT}%) - not chasing",
+            )
+            return
 
     # Same three-way qty cap as the intraday engine's _maybe_place_real_entry:
     # never buy more than the paper signal called for, and never more than
@@ -10936,6 +11058,70 @@ def _maybe_sync_real_swing_stop_loss(conn):
             )
 
 
+def _retry_pending_real_swing_orders(conn):
+    """Retries real-order mirroring for swing entries/exits/stop-losses
+    that couldn't complete on their first attempt (2026-09-22, explicit
+    user instruction after the once-per-IST-day scan was found to fire
+    outside NSE trading hours - e.g. just after IST midnight, when the
+    exchange is closed, so a real order attempted THEN would fail: no
+    live tick, or a broker-side rejection since the exchange isn't open).
+
+    Called every scheduler tick, but only ever does anything during
+    actual NSE market hours (_nse_equity_market_open_now) - never
+    attempts a real order while the exchange is closed. Gives up on a
+    given day's entry once that day ends: only signal_state_swing rows
+    with entry_day == today are retried, so a stale signal from a prior
+    day is never chased into a new session.
+
+    Entry retries go through _maybe_place_real_swing_entry unchanged,
+    which now itself enforces SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT - a
+    delayed fill will not chase a price that's drifted too far from the
+    signal's own entry_price. Exit and stop-loss retries have NO price
+    tolerance: a decided exit (stop_hit/gap_filled/max_hold_timeout) or
+    a missing protective stop must be handled regardless of current
+    price - gating either on price would work against the entire point
+    of risk control."""
+    if not is_real_swing_trading_enabled():
+        return
+    if not _nse_equity_market_open_now():
+        return
+
+    try:
+        _maybe_sync_real_swing_stop_loss(conn)
+    except Exception as e:
+        print(f"[REAL SWING] SL retry pass failed (non-fatal): {e}")
+
+    today = ist_now().strftime("%Y-%m-%d")
+    open_paper = conn.execute(
+        "SELECT symbol, strategy, entry_day, entry_price, initial_stop_loss, qty "
+        "FROM signal_state_swing WHERE entry_day = ?", (today,)
+    ).fetchall()
+    for row in open_paper:
+        has_real = conn.execute(
+            "SELECT 1 FROM real_positions_swing WHERE symbol = ?", (row["symbol"],)
+        ).fetchone()
+        if has_real:
+            continue
+        try:
+            _maybe_place_real_swing_entry(
+                conn, row["symbol"], row["qty"], row["entry_price"], row["initial_stop_loss"], row["strategy"],
+            )
+        except Exception as e:
+            print(f"[REAL SWING] entry retry failed for {row['symbol']} (non-fatal): {e}")
+
+    real_open = conn.execute("SELECT symbol FROM real_positions_swing").fetchall()
+    for row in real_open:
+        still_paper_open = conn.execute(
+            "SELECT 1 FROM signal_state_swing WHERE symbol = ?", (row["symbol"],)
+        ).fetchone()
+        if still_paper_open:
+            continue
+        try:
+            _maybe_place_real_swing_exit(conn, row["symbol"])
+        except Exception as e:
+            print(f"[REAL SWING] exit retry failed for {row['symbol']} (non-fatal): {e}")
+
+
 def _run_swing_scan(conn):
     """Once-per-day (IST) daily-bar scan for every symbol in SWING_WATCHLIST:
     checks exits for open swing positions first, then entries for flat ones.
@@ -11053,6 +11239,10 @@ async def _scheduler_tick():
             _run_swing_scan(conn)
         except Exception as e:
             print(f"[SWING] scan failed (non-fatal, intraday tick continues): {e}")
+        try:
+            _retry_pending_real_swing_orders(conn)
+        except Exception as e:
+            print(f"[REAL SWING] retry pass failed (non-fatal, intraday tick continues): {e}")
 
         try:
             _fo_chain_monitoring_snapshot(conn)
