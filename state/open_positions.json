@@ -1,4 +1,23 @@
 {
-  "synced_at_utc": "2026-09-23T13:47:26Z",
-  "open_positions": []
+  "synced_at_utc": "2026-09-24T08:14:44Z",
+  "open_positions": [
+    {
+      "symbol": "SBICARD.NS",
+      "qty": 4.0,
+      "entry_price_native": 621.2000122070312,
+      "stop_loss_native": 618.6982291085379,
+      "initial_stop_loss_native": 618.6982291085379,
+      "target_native": 626.2,
+      "fx_to_inr": 1.0,
+      "notional_inr": 2484.8,
+      "orb_high_native": null,
+      "orb_low_native": 620.7000122070312,
+      "entry_ts": 1790237532.8420215,
+      "interval": "5m",
+      "strategy": "orb-universal-score",
+      "sma_fast": 9,
+      "sma_slow": 21,
+      "entry_regime": "range"
+    }
+  ]
 }
