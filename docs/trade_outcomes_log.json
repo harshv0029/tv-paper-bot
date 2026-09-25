@@ -1743,5 +1743,61 @@
     "rr_target": 3.0,
     "rr_achieved": -0.88,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "MAXHEALTH.NS",
+    "exit_time_utc": 1790328466.7081056,
+    "entry_price_native": 1010.4000244140625,
+    "exit_price_native": 1016.5,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 6.1,
+    "pnl_pct_of_capital": 0.002,
+    "exit_reason": "staged_leg_T1",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "MAXHEALTH.NS",
+    "exit_time_utc": 1790328608.5969646,
+    "entry_price_native": 1010.4000244140625,
+    "exit_price_native": 1014.0,
+    "currency": "INR",
+    "qty": 2.0,
+    "pnl_inr": 7.2,
+    "pnl_pct_of_capital": 0.002,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": 0.82,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "MARICO.NS",
+    "exit_time_utc": 1790329559.83843,
+    "entry_price_native": 814.2999877929688,
+    "exit_price_native": 822.0,
+    "currency": "INR",
+    "qty": 2.0,
+    "pnl_inr": 15.4,
+    "pnl_pct_of_capital": 0.004,
+    "exit_reason": "eod_squareoff",
+    "rr_target": 3.0,
+    "rr_achieved": 1.27,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "TATAINVEST.NS",
+    "exit_time_utc": 1790329566.1999493,
+    "entry_price_native": 653.2000122070312,
+    "exit_price_native": 652.3,
+    "currency": "INR",
+    "qty": 3.0,
+    "pnl_inr": -2.7,
+    "pnl_pct_of_capital": -0.001,
+    "exit_reason": "eod_squareoff",
+    "rr_target": 3.0,
+    "rr_achieved": -0.2,
+    "strategy": "orb-universal-score"
   }
 ]

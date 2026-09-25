@@ -1,23 +1,4 @@
 {
-  "synced_at_utc": "2026-09-25T08:37:14Z",
-  "open_positions": [
-    {
-      "symbol": "MARICO.NS",
-      "qty": 2.0,
-      "entry_price_native": 814.2999877929688,
-      "stop_loss_native": 808.25,
-      "initial_stop_loss_native": 808.25,
-      "target_native": 821.47,
-      "fx_to_inr": 1.0,
-      "notional_inr": 1628.6,
-      "orb_high_native": null,
-      "orb_low_native": 808.25,
-      "entry_ts": 1790325161.0743258,
-      "interval": "5m",
-      "strategy": "orb-universal-score",
-      "sma_fast": 9,
-      "sma_slow": 21,
-      "entry_regime": "trend"
-    }
-  ]
+  "synced_at_utc": "2026-09-25T14:11:00Z",
+  "open_positions": []
 }
