@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-09-28T09:29:40Z",
+  "synced_at_utc": "2026-09-28T15:49:58Z",
   "open_positions": [
     {
       "symbol": "INDUSTOWER.NS",
@@ -17,7 +17,8 @@
       "strategy": "orb-universal-score",
       "sma_fast": 9,
       "sma_slow": 21,
-      "entry_regime": "range"
+      "entry_regime": "range",
+      "real_entry_reason": "no real-entry attempt logged for this symbol today"
     },
     {
       "symbol": "NATIONALUM.NS",
@@ -35,7 +36,8 @@
       "strategy": "orb-universal-score",
       "sma_fast": 9,
       "sma_slow": 21,
-      "entry_regime": "range"
+      "entry_regime": "range",
+      "real_entry_reason": "no real-entry attempt logged for this symbol today"
     }
   ]
 }
