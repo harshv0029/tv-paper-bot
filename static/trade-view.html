@@ -204,7 +204,10 @@
 <body>
 
 <h1>Trade View <span id="hdr-status" class="status flat">—</span></h1>
-<div class="sub">Live scalp-style view — candles, entry/stop/target ladder, floating P&amp;L. Not investment advice. <span id="last-update"></span> · next refresh in <span id="countdown" class="mono">10</span>s</div>
+<!-- 2026-09-28: "Not investment advice." replaced with the last successful
+     deployment timestamp, explicit user ask - see APP_PROCESS_STARTED_AT_EPOCH
+     in main.py / scheduler-status's last_deploy_completed_at_epoch field. -->
+<div class="sub">Live scalp-style view — candles, entry/stop/target ladder, floating P&amp;L. <span id="last-deploy"></span> <span id="last-update"></span> · next refresh in <span id="countdown" class="mono">10</span>s</div>
 <div class="sub mono" id="scanned-banner" style="font-weight:600;"></div>
 <div class="sub mono" id="swing-scanned-banner" style="font-weight:600;"></div>
 
@@ -1049,8 +1052,18 @@ async function refreshRealPnl() {
       pnlEl.textContent = `${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}`;
       pnlEl.className = "ds-val mono " + (pnl >= 0 ? "up" : "down");
     }
+    // 2026-09-28: show "used/limit" (e.g. "114.91/134.00") instead of just
+    // the bare remaining figure - explicit user ask, remaining alone gave
+    // no sense of how much of the day's budget was already spent. Both
+    // numbers already come from the same /real-pnl-today response (used =
+    // cap - remaining), so this is a display-only change, no new backend
+    // field needed.
+    // (label already reads "Real loss budget left" - no "left" suffix
+    // needed on the value itself)
+    const remainingBudget = data.real_loss_budget_remaining_inr, capBudget = data.real_loss_cap_inr;
     document.getElementById("ds-real-budget").textContent =
-      (data.real_loss_budget_remaining_inr ?? null) !== null ? `₹${fmt(data.real_loss_budget_remaining_inr)}` : "—";
+      (remainingBudget !== null && remainingBudget !== undefined && capBudget !== null && capBudget !== undefined)
+        ? `₹${fmt(Math.max(0, capBudget - remainingBudget))}/${fmt(capBudget)}` : "—";
     // Context added 2026-09-08 (explicit user confusion: "how can this
     // budget be decreased for today" when real P&L was 0) - the cap is
     // daily_risk_pct% of AVAILABLE capital, which shrinks whenever money
@@ -1270,7 +1283,12 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${dash}</td>
       <td class="num">${pnlInr === null ? dash : pnlSpan(pnlInr)}</td>
       <td class="num">${pnlPctCell}</td>
-      <td class="log-type">open</td>
+      <!-- 2026-09-28: was a static "open" - now shows why this paper
+           position wasn't (yet) mirrored into a real order, see
+           real_entry_reason in main.py's /daily-summary. null means it
+           IS real-tracked already (see the Live real positions section)
+           or real trading doesn't apply (e.g. an option leg). -->
+      <td class="log-type"${pos.real_entry_reason ? ` title="${pos.real_entry_reason.replace(/"/g, "'")}"` : ""}>${pos.real_entry_reason || "open"}</td>
       <td class="meta">${timeAgo(pos.entry_ts)}</td>
     </tr>`;
   });
@@ -1417,12 +1435,30 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   // the underlying paper engine keeps running (it's what decides when to
   // trigger a real order in the first place), this only stops
   // DISPLAYING its own closed-trade rows as if they were real.
+  // 2026-09-28: combined total across "Live real positions" (currently
+  // open - explicit user ask: these two blocks read as disconnected, with
+  // no single figure tying them together) and "Real trades today, outside
+  // this app's own order placement" (already closed). Every open-position
+  // row's own Realised P&L cell is always "—" (nothing is realized while
+  // still open - see openRealRows above), so the combined Realised P&L is
+  // just realTotalInr; combinedUnrealisedInr is the open side's own total,
+  // shown separately (never blended into "realised", which would misname
+  // money that hasn't actually been booked yet) alongside their sum.
+  const combinedUnrealisedInr = (openRealPositions || []).reduce((s, p) => s + (p.unrealized_pnl_inr ?? 0), 0);
+  const combinedRealAndOpenTotalRow = (openRealRows.length || realRows.length) ? `<tr class="log-total-row">
+      <td colspan="8">TOTAL (real, open + closed today combined)</td>
+      <td class="num">${pnlSpan(realTotalInr)}</td>
+      <td class="num">${pnlSpan(combinedUnrealisedInr)}</td>
+      <td class="num" colspan="2">net ${pnlSpan(realTotalInr + combinedUnrealisedInr)}</td>
+    </tr>` : "";
+
   const sectionRow = (label) => `<tr class="log-section-row"><td colspan="13">${label}</td></tr>`;
   const sections = [];
   if (liveRows.length) sections.push(sectionRow(`Live positions (${liveRows.length})`), ...liveRows);
   if (openRealRows.length) sections.push(sectionRow(`Live real positions (${openRealRows.length}) — Kotak, currently open`), ...openRealRows);
   if (botRealRows.length) sections.push(sectionRow(`Real trades today, this bot's own only (${botRealRows.length})`), ...botRealRows, botRealTotalRow);
   if (realRows.length) sections.push(sectionRow(`Real trades today (${realRows.length}) — Kotak, outside this app's own order placement`), ...realRows, realTotalRow);
+  if (openRealRows.length || realRows.length) sections.push(combinedRealAndOpenTotalRow);
   if (!sections.length) sections.push(`<tr><td colspan="13" class="scan-idle">No live positions or real trades today</td></tr>`);
   body.innerHTML = sections.join("");
 
@@ -1480,6 +1516,12 @@ async function refresh() {
     // get_scheduler_capital_inr()'s own docstring for why 0, not 400000).
     const schedStatus = await fetchJSON(`${ORIGIN}/scheduler-status`).catch(() => null);
     const realCapitalInr = Math.max(1, schedStatus?.scheduler_capital_inr ?? 0);
+    // 2026-09-28: see last-deploy span's own HTML comment.
+    const deployEpoch = schedStatus?.last_deploy_completed_at_epoch;
+    document.getElementById("last-deploy").textContent = deployEpoch
+      ? "last successful deployment done at " +
+        new Date(deployEpoch * 1000).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST ·"
+      : "";
 
     const [summary, history, realTrades, botRealTrades, openRealPositions] = await Promise.all([
       fetchJSON(`${ORIGIN}/daily-summary?capital=${realCapitalInr}&daily_risk_pct=2`),
