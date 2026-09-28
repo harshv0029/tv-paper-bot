@@ -60,7 +60,31 @@ REGISTRY: list[StrategyDef] = [
         risk_profile={"sizing_source": "NSE_STOCK_PARAM_OVERRIDES / NSE_STOCK_DEFAULT_PARAMS"},
         source="main.py (live)",
         evidence="live trading history; ongoing tuning research in universal-score-*-research.yml",
-        notes="The only strategy actually trading real money today.",
+        notes="Live intraday (5m) engine, watchlist WATCHLIST.",
+    ),
+    StrategyDef(
+        name="gap_and_go_swing",
+        asset_class=AssetClass.EQUITY_SWING,
+        timeframe="1d",
+        status=StrategyStatus.LIVE,
+        entry_fn=None,  # lives in main.py.gap_and_go_entry_signal/_run_swing_scan - not duplicated here
+        risk_profile={"sizing_source": "get_scheduler_capital_inr(); watchlist SWING_WATCHLIST"},
+        source="main.py (live) - validated in swing-gap-and-go-5y-research.yml",
+        evidence=(
+            "swing-gap-and-go-5y-research.yml: PFnet 1.65, n=142, on the original "
+            "_SWING_VALIDATED_52 universe. 2026-09-22: widened live (paper AND real "
+            "together) to the full NIFTY-200/NSE_FULL_UNIVERSE-derived SWING_WATCHLIST "
+            "without a prior backtest on the extra ~150 symbols, per explicit user "
+            "instruction after the tradeoff was flagged - main.py's own SWING_WATCHLIST "
+            "comment documents this as a known, deliberate gap, not an oversight."
+        ),
+        notes=(
+            "Found live in main.py while researching for this registry (2026-09-28) - "
+            "was NOT in this registry's first version, which incorrectly listed "
+            "universal_score as the only live strategy. Real, unhedged, currently-"
+            "live real-money strategy; mirrors as a real order via "
+            "is_real_swing_trading_enabled()."
+        ),
     ),
     StrategyDef(
         name="universal_score_entry_floor_85",
