@@ -62,10 +62,11 @@ name: Swing Minervini Trend Template + VCP (Daily) Research (research)
 # exit mechanic cannot be the source of any PF difference between
 # variants here.
 #
-# Universe: same 52 NSE symbols as every other research workflow this
-# session. Data: 2 years of daily bars (yfinance via fetch_ohlc) - same
-# cost model and risk_pct-of-capital sizing formula as
-# swing-breakout-continuation-research.yml.
+# Universe: the FULL NSE EQ-series universe (main.py's NSE_FULL_UNIVERSE,
+# ~2,600 symbols - see the SYMBOLS assignment below for why this was
+# widened from the original 52-symbol pilot run). Data: 2 years of daily
+# bars (yfinance via fetch_ohlc) - same cost model and risk_pct-of-capital
+# sizing formula as swing-breakout-continuation-research.yml.
 #
 # Read-only research - writes nothing to any repo file, touches no live
 # state, safe to run anytime. Per CLAUDE.md standing discipline: no
@@ -338,17 +339,22 @@ jobs:
               return trades_by_variant["tt_generic_breakout"] + trades_by_variant["tt_vcp"]
 
 
-          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
-          UNEVIDENCED_SAMPLE = [
-              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
-              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
-              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
-              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
-              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
-              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
-              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
-          ]
-          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          # 2026-09-28 follow-up (explicit user instruction): widened from the
+          # original 52-symbol pilot to the FULL NSE EQ-series universe
+          # (main.py's NSE_FULL_UNIVERSE, ~2,600 real symbols sourced from
+          # Kotak's own scrip master - see _load_nse_universe_from_file's own
+          # docstring) so tt_vcp's n=15 sample (too thin to mean anything
+          # statistically) has a real chance to grow. Same reused SWING_WATCHLIST-
+          # style universe this codebase already trades Gap and Go on live - not
+          # a new sourcing mechanism invented for this test. Flagging the
+          # tradeoff rather than silently absorbing it (same discipline as
+          # SCHEDULER_ENTRY_SCAN_BATCH_SIZE's own comment in main.py): ~2,600
+          # sequential yfinance fetches is a real risk of tripping Yahoo's
+          # unofficial rate limit or the GitHub Actions job timeout - if this
+          # run fails partway, the honest fix is re-running (fetch_ohlc results
+          # aren't persisted across runs), not silently shrinking the universe
+          # back down without saying so.
+          SYMBOLS = sorted(set(m.NSE_FULL_UNIVERSE))
           CAPITAL_INR = 400000.0
 
           print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) ---")
