@@ -3918,6 +3918,21 @@ UNIVERSAL_RVOL_FULL_MULT = 1.5     # RVOL at/above this -> full credit
 LIQUIDITY_GATE_LOOKBACK_BARS = 3            # 15 min of 5-min bars, per "previous 15 minutes volume"
 LIQUIDITY_MIN_15MIN_TURNOVER_INR = 500_000.0  # first-cut floor, NOT researched - tune with real data
 
+# 2026-09-28: lower-circuit guard - explicit user instruction, backed by a
+# live example (POLICYBZR.NS, 2026-09-23 - _liquidity_gate's own flat-
+# tape/zero-volume checks did NOT reliably catch this: a circuit-locked
+# stock can still show nonzero volume/turnover and non-identical closes
+# within any single 3-bar lookback window, e.g. during the burst that
+# drove it into the lock, while being functionally frozen and untradeable
+# for the rest of the session). NSE's own circuit bands (2%/5%/10%/20%
+# depending on the stock, occasionally none for the largest caps) are set
+# relative to the PREVIOUS DAY's closing price - a genuinely different
+# signal from tape flatness, and a more direct match for what "hit lower
+# circuit" actually means. See _likely_lower_circuit_locked's own
+# docstring for why this is a conservative universal floor, not an exact
+# per-symbol circuit check.
+LOWER_CIRCUIT_GUARD_PCT = 9.0
+
 
 def _atr_series(df: pd.DataFrame, period: int = 14) -> pd.Series:
     """True-range rolling-mean ATR (Wilder-style approximation, same class
@@ -4246,6 +4261,45 @@ def _liquidity_gate(df: pd.DataFrame) -> tuple[bool, list[str]]:
     if np.all(closes == closes[0]):
         reasons.append("price_not_moving")
     return (len(reasons) == 0), reasons
+
+
+def _likely_lower_circuit_locked(df: pd.DataFrame, today_str: str,
+                                  threshold_pct: float = LOWER_CIRCUIT_GUARD_PCT) -> bool:
+    """True if the last available close is down threshold_pct% or more
+    from the PREVIOUS trading day's own close - see LOWER_CIRCUIT_GUARD_PCT's
+    own module comment for the live finding this closes (POLICYBZR.NS,
+    2026-09-23) and why this is a separate, distinct check from
+    _liquidity_gate's own tape-flatness read rather than a tuning of it.
+
+    threshold_pct is a conservative universal floor (default 9%, just
+    inside the tightest common NSE circuit bands of 10%/5%) - this app
+    has no per-stock circuit-band metadata to check an EXACT band. A
+    false negative (missing a 2%/5%-band stock's own tighter lock) is
+    possible; a false positive is unlikely since every entry path here
+    also requires its own bullish technical signal (TREND's 8-factor
+    score or RANGE's mean-reversion trigger) on the SAME bar - a stock
+    already down 9%+ rarely also satisfies either unless something
+    structural (like a lock, or the sharp drop feeding straight into a
+    mean-reversion trigger) is going on, which is exactly the failure
+    mode this guards against.
+
+    Fails OPEN (returns False, i.e. does NOT block entry) when there's no
+    prior trading day in `df` yet (a newly-listed symbol, or the very
+    first day this app has data for it) - refusing every symbol with
+    thin history is worse than occasionally missing a genuine circuit
+    day. `df` must carry a `date_local` column (every caller here already
+    has one - see _auto_signal_core's own df preparation)."""
+    if "date_local" not in df.columns or df.empty:
+        return False
+    prior_rows = df[df["date_local"] < today_str]
+    if prior_rows.empty:
+        return False
+    prior_close = float(prior_rows["Close"].iloc[-1])
+    if prior_close <= 0:
+        return False
+    last_close = float(df["Close"].iloc[-1])
+    move_pct = (last_close - prior_close) / prior_close * 100
+    return move_pct <= -threshold_pct
 
 
 def _compute_universal_entry_score(
@@ -5660,10 +5714,20 @@ def _auto_signal_core(
             liquidity_gate_ok, liquidity_gate_reasons = _liquidity_gate(df)
             result["liquidity_gate_reasons"] = liquidity_gate_reasons
 
+            # Lower-circuit guard (2026-09-28) - see LOWER_CIRCUIT_GUARD_PCT's
+            # own module comment. Applied at the same shared, regime-
+            # agnostic level as the liquidity gate just above, for the
+            # same reason: a circuit-locked stock is exactly as dangerous
+            # to enter under either regime, and _vwap_mean_reversion_entry
+            # (RANGE) buying INTO a sharp drop by design is if anything
+            # MORE likely to fire on a circuit day than TREND's own score.
+            circuit_locked = _likely_lower_circuit_locked(df, today_str)
+            result["lower_circuit_guard_triggered"] = circuit_locked
+
             if market_regime == "range":
                 range_entry = _vwap_mean_reversion_entry(today_df)
                 result["vwap_mean_reversion_entry"] = range_entry
-                entry_signal = bool(range_entry) and liquidity_gate_ok
+                entry_signal = bool(range_entry) and liquidity_gate_ok and not circuit_locked
                 entry_reason = "vwap_mean_reversion_range_regime"
             else:
                 score_result = _compute_universal_entry_score(
@@ -5671,7 +5735,7 @@ def _auto_signal_core(
                     vol_ratio=vol_ratio,
                 )
                 result["universal_score"] = score_result
-                entry_signal = score_result["entry_allowed"]
+                entry_signal = score_result["entry_allowed"] and not circuit_locked
                 entry_reason = f"universal_score_{score_result['score_pct']}pct"
 
         # Sentiment gate (2026-09-07, explicit user instruction: "i want
