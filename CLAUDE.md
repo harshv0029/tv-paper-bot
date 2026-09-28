@@ -65,3 +65,15 @@ of trusting the transfer pack's prose.
   go-ahead.
 - Every commit: full test suite green, `ast.parse` sanity check on
   `main.py`, Claude attribution footer.
+- **Thumb rule (2026-09-28, explicit user instruction): every strategy —
+  new or existing — gets checked for BOTH directions, long (buy-to-sell)
+  and short-sell, not just long.** When researching, backtesting, or
+  building a strategy, always ask "does this mirror into a short, and
+  should it?" as a matter of course, not only when short-selling is
+  explicitly requested. Applies going forward to every strategy in this
+  codebase, not only the one (RANGE-regime VWAP mean reversion) whose
+  short mirror was researched first — see
+  `.github/workflows/universal-score-range-short-research.yml` for the
+  first application of this rule and why a full TREND-side short mirror
+  was scoped out of that first pass (a separate, larger undertaking, not
+  a rule exception).
