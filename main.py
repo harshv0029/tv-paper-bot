@@ -9046,7 +9046,11 @@ def set_trading_control(action: str, reason: str | None = None):
     """The kill switch's HTTP surface. action:
       - 'pause'  - stop taking NEW entries; existing open positions keep
                    being managed normally (stop/target/trend/eod).
-      - 'resume' - allow new entries again.
+      - 'resume' - allow new entries again. Reconciles against Kotak's own
+                   live account FIRST (see the resume branch's own
+                   comment below) - explicit user ask 2026-09-28: "it
+                   should fetch live trades in kotak account first and
+                   then based on that it should decide what to do next."
       - 'kill'   - force-close every open position right now (see
                    _force_close_all_positions) AND pause, so nothing
                    reopens on the very next tick.
@@ -9067,6 +9071,29 @@ def set_trading_control(action: str, reason: str | None = None):
             conn.commit()
             return {"status": "killed", "enabled": False, **summary}
 
+        # 2026-09-28: reconcile against Kotak's own live account BEFORE
+        # resuming - explicit user ask, this switch also gates real order
+        # mirroring (is_real_trading_enabled's other, independent gate),
+        # so whatever happened at the broker while this was OFF (a manual
+        # trade, an organic fill, a position this app lost track of) is
+        # folded into real_positions/signal_state before new entries can
+        # fire again, rather than resuming blind against stale local
+        # state. adopt="*" (never a narrower symbol list) matches the
+        # existing scheduled reconcile's own policy (kotak-reconcile.yml)
+        # - only ever adopts a position whose entry carries Kotak's own
+        # bot-order tag (see _reconcile_real_positions_core's own
+        # docstring), so this can never silently take over a manual
+        # trade. Calls the CORE function directly (no token, no HTTP
+        # round trip - see that function's own 2026-09-28 note) and is
+        # best-effort: a Kotak/network hiccup must never block resuming
+        # PAPER trading, which doesn't itself depend on Kotak at all.
+        kotak_reconcile = None
+        if action == "resume":
+            try:
+                kotak_reconcile = _reconcile_real_positions_core(adopt="*")
+            except Exception as e:
+                kotak_reconcile = {"error": f"reconcile failed, resuming anyway: {e}"}
+
         enabled = 1 if action == "resume" else 0
         conn.execute(
             "INSERT INTO trading_control (id, enabled, updated_at, updated_by, reason) "
@@ -9076,7 +9103,10 @@ def set_trading_control(action: str, reason: str | None = None):
             (enabled, time.time(), reason),
         )
         conn.commit()
-        return {"status": "paused" if action == "pause" else "resumed", "enabled": bool(enabled)}
+        result = {"status": "paused" if action == "pause" else "resumed", "enabled": bool(enabled)}
+        if action == "resume":
+            result["kotak_reconcile"] = kotak_reconcile
+        return result
 
 
 # --- Stage 3: real order placement - HTTP surface ---------------------------
@@ -12764,8 +12794,7 @@ def kotak_neo_limits(request: Request):
         return {"error": str(e)}
 
 
-@app.post("/kotak-neo/reconcile-real-positions")
-def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = None):
+def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
     """Corrects this app's own real_positions tracking against Kotak's own
     live positions() data - a genuinely separate process from the 30s
     trading scheduler, run by kotak-reconcile.yml on its own cadence
@@ -12845,8 +12874,14 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
     for the same "sync balance, not just positions" ask.
 
     Requires the same Kotak API token as every other real-money endpoint -
-    this both reads AND writes real-money tracking state."""
-    _require_kotak_token(request)
+    this both reads AND writes real-money tracking state.
+
+    2026-09-28: factored out of the HTTP endpoint below (which now just
+    does the token check and calls this) so the ALL-TRADING resume path
+    (set_trading_control) can call the SAME reconcile logic directly,
+    in-process - no HTTP round trip and no token needed for an internal
+    call the token gate was never meant to restrict in the first place
+    (see set_trading_control's own resume-branch comment)."""
     try:
         import kotak_neo
         positions_resp = kotak_neo.positions()
@@ -13151,6 +13186,18 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
         "adopted_count": len(adopted), "adopted": adopted,
         "governance_backfilled_count": len(governance_backfilled), "governance_backfilled": governance_backfilled,
     }
+
+
+@app.post("/kotak-neo/reconcile-real-positions")
+def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = None):
+    """Token-gated HTTP surface for _reconcile_real_positions_core - see
+    that function's own docstring for the full reasoning. Kept as a thin
+    wrapper (2026-09-28) so the token check stays exactly where it always
+    was for any externally-reachable call, while an internal caller
+    (set_trading_control's resume branch) can invoke the core logic
+    directly without one."""
+    _require_kotak_token(request)
+    return _reconcile_real_positions_core(adopt)
 
 
 @app.post("/kotak-neo/close-position")
