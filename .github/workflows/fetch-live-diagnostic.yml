@@ -28,6 +28,17 @@ on:
           /real-trading-control path - those need the token this workflow
           deliberately never handles.
         required: true
+      jq_filter:
+        description: >-
+          Optional jq filter applied to the response before printing (e.g.
+          '.closed_trades[] | select(.symbol=="HDFCLIFE.NS" or
+          .symbol=="INDUSTOWER.NS")') - added 2026-09-28 after a full
+          /trade-history response got silently truncated by the log
+          viewer before the trades actually being looked for were
+          visible. Narrowing server-side avoids that entirely. Defaults
+          to "." (print everything, previous behavior) when left blank.
+        required: false
+        default: "."
 
 jobs:
   fetch:
@@ -47,13 +58,16 @@ jobs:
           echo "PATH_INPUT=$PATH_INPUT" >> "$GITHUB_ENV"
 
       - name: GET from the live app and print the result
+        env:
+          JQ_FILTER: ${{ inputs.jq_filter }}
         run: |
           URL="https://tv-paper-bot-gdan.onrender.com${PATH_INPUT}"
           echo "Fetching: $URL"
           curl -sS --retry 3 --retry-delay 5 --retry-connrefused -m 60 "$URL" -o /tmp/diagnostic-result.json
           echo
+          FILTER="${JQ_FILTER:-.}"
           if command -v jq >/dev/null 2>&1 && jq empty /tmp/diagnostic-result.json 2>/dev/null; then
-            jq . /tmp/diagnostic-result.json
+            jq "$FILTER" /tmp/diagnostic-result.json
           else
             cat /tmp/diagnostic-result.json
           fi
