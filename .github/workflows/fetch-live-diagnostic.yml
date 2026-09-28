@@ -1,0 +1,59 @@
+name: Fetch Live Diagnostic Data (read-only)
+
+# 2026-09-28: general-purpose read-only diagnostic fetcher, added because
+# the dev sandbox this session runs in has NO network route to the live
+# Render app (or Kotak/yfinance), while a GitHub Actions runner does -
+# same reasoning kotak-reconcile.yml already relies on to reach the same
+# host. Built for the immediate need (pulling real Sep-24 HDFCLIFE.NS/
+# INDUSTOWER.NS trade data off /real-order-log and /trade-history to
+# ground a sizing/stop-loss research request, rather than guessing at
+# numbers) but kept generic (a `path` input) so it's reusable for any
+# future "I need to see live prod data but can't reach it" ask.
+#
+# GET-only, no token accepted/forwarded - only ever hits this app's own
+# already-no-token-required read endpoints (see main.py: /real-order-log,
+# /trade-history, /daily-summary, /real-trades-today, /real-open-
+# positions, /scheduler-status, /health, etc. are all explicitly
+# documented as "no token required"). Never touches a token-gated
+# /kotak-neo/* or /real-trading-control path - writes nothing, places no
+# orders, changes no state. Safe to run anytime.
+on:
+  workflow_dispatch:
+    inputs:
+      path:
+        description: >-
+          Path + query string to GET from the live app, e.g.
+          "/real-order-log?days=5" or "/trade-history?days=5". Must start
+          with "/". Refused if it looks like a token-gated /kotak-neo/* or
+          /real-trading-control path - those need the token this workflow
+          deliberately never handles.
+        required: true
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate path is a no-token diagnostic endpoint
+        run: |
+          PATH_INPUT="${{ inputs.path }}"
+          if [[ "$PATH_INPUT" != /* ]]; then
+            echo "::error::path must start with / - got: $PATH_INPUT"
+            exit 1
+          fi
+          if [[ "$PATH_INPUT" == /kotak-neo/* || "$PATH_INPUT" == /real-trading-control* ]]; then
+            echo "::error::refusing a token-gated path ($PATH_INPUT) - this workflow never handles the Kotak token"
+            exit 1
+          fi
+          echo "PATH_INPUT=$PATH_INPUT" >> "$GITHUB_ENV"
+
+      - name: GET from the live app and print the result
+        run: |
+          URL="https://tv-paper-bot-gdan.onrender.com${PATH_INPUT}"
+          echo "Fetching: $URL"
+          curl -sS --retry 3 --retry-delay 5 --retry-connrefused -m 60 "$URL" -o /tmp/diagnostic-result.json
+          echo
+          if command -v jq >/dev/null 2>&1 && jq empty /tmp/diagnostic-result.json 2>/dev/null; then
+            jq . /tmp/diagnostic-result.json
+          else
+            cat /tmp/diagnostic-result.json
+          fi
