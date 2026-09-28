@@ -8072,6 +8072,28 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
               f"clock run toward its own escalation instead of resetting on a fresh accept")
         return
 
+    # Exit-in-flight race fix (2026-09-28, live IDEA.NS finding: an exit
+    # completed at Kotak, then THREE fresh SL-TRG sells for the original
+    # qty were placed and rejected one minute later, one per tick). This
+    # function only ever checked "is sl_order_id missing" before retrying
+    # a placement - it never asked whether the position is still actually
+    # open at Kotak. In the gap between _maybe_place_real_exit confirming
+    # a sell (which cancels the resting SL/target FIRST, before the sell
+    # itself fills) and its own DELETE of this real_positions row actually
+    # committing, this function can still see a real_row with no live SL
+    # and repeatedly attempt fresh placements against a position that's
+    # mid-exit or already fully closed - each doomed to rejection (no
+    # holding left / a competing exit order at Kotak). Ground-truth check
+    # closes the gap: None (fetch failed) still falls through and retries
+    # as before - failing open here, same as every other use of this
+    # check, since refusing a genuinely needed SL over a transient API
+    # hiccup is worse than one more retry next tick.
+    if _kotak_symbol_still_open(real_row["kotak_trading_symbol"]) is False:
+        print(f"[REAL TRADE] {real_row['kotak_trading_symbol']} shows no open position at Kotak - "
+              f"skipping SL placement (likely exiting/already closed, stale real_positions row "
+              f"will be cleared by the exit path or next reconcile)")
+        return
+
     import kotak_real_orders
     if real_row["sl_order_id"]:
         cancel_result = kotak_real_orders.cancel_real_order(real_row["sl_order_id"])
@@ -10501,6 +10523,15 @@ def get_real_capital_deployed_inr() -> float | None:
     return round(total, 2)
 
 
+# 2026-09-28: "last successful deployment" timestamp for the trade-view
+# banner (explicit user ask, replacing the static "Not investment advice."
+# text). Render restarts this process on every deploy and never otherwise
+# (aside from a crash) for a single-instance web service, so process-boot
+# time is an honest proxy for "deploy completed" - no separate CI/Render
+# API call needed. Set at MODULE LOAD, not inside the startup event
+# handler, so it reflects exactly when this process instance came up.
+APP_PROCESS_STARTED_AT_EPOCH = time.time()
+
 _scheduler_last_tick_ts = 0.0
 _scheduler_last_error = None
 _scheduler_tick_count = 0
@@ -11839,6 +11870,8 @@ def scheduler_status():
         "scheduler_capital_source": "kotak_neo_real_account" if _real_capital_cache["value"] is not None else "not_yet_fetched",
         "scheduler_capital_fetched_at_utc": _real_capital_cache["fetched_at"] or None,
         "scheduler_capital_fetch_error": _real_capital_cache["error"],
+        # 2026-09-28: see APP_PROCESS_STARTED_AT_EPOCH's own module comment.
+        "last_deploy_completed_at_epoch": APP_PROCESS_STARTED_AT_EPOCH,
     }
 
 
@@ -12202,6 +12235,48 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
     closed_trades.sort(key=lambda t: t.get("exit_time_utc", 0), reverse=True)
     realized = sum(t.get("pnl_inr", 0.0) for t in closed_trades)
 
+    # 2026-09-28: "Reason" column for the Live positions table, explicit
+    # user ask ("Reason should mention that why it was not pushed to real
+    # money transaction") - _maybe_place_real_entry already logs every
+    # skip via _log_real_attempt (real_trades, side='B'), this was just
+    # never surfaced on this endpoint. One connection, two cheap lookups
+    # (trading-enabled flag + the latest 'B'-side real_trades row per
+    # symbol today), reused for every open position below instead of a
+    # per-row query.
+    with closing(get_db()) as reason_conn:
+        real_trading_on = is_real_trading_enabled(reason_conn)
+        latest_buy_attempt_by_symbol: dict[str, dict] = {}
+        for row in reason_conn.execute(
+            "SELECT symbol, status, detail FROM real_trades WHERE side = 'B' AND day = ? ORDER BY ts",
+            (today_str,),
+        ):
+            latest_buy_attempt_by_symbol[row["symbol"]] = {"status": row["status"], "detail": row["detail"]}
+        real_tracked_symbols = {
+            r["symbol"] for r in reason_conn.execute("SELECT symbol FROM real_positions").fetchall()
+        }
+    _REAL_ENTRY_SKIP_LABELS = {
+        "skipped_not_eligible_asset_class": "not an equity symbol (real trading is NSE equity only)",
+        "skipped_already_open": "a real position was already open for this symbol",
+        "skipped_t1_restricted": "permanently avoided - T1/T2T same-day-sell restricted",
+        "skipped_no_live_tick": "no live price tick available at entry time",
+        "skipped_insufficient_real_qty": "sized to 0 shares (daily loss cap / available capital too low)",
+        "skipped_real_pnl_unknown": "could not confirm today's real P&L from Kotak, refused to trade blind",
+        "skipped_real_daily_loss_cap_hit": "real daily loss cap already hit",
+        "failed": "real order was attempted but rejected by Kotak",
+        "confirmed": "real order placed",
+    }
+
+    def _real_entry_reason(symbol: str) -> str | None:
+        if symbol in real_tracked_symbols:
+            return None  # already real - see the "Live real positions" section instead
+        if not real_trading_on:
+            return "real trading is OFF (toggle disabled)"
+        attempt = latest_buy_attempt_by_symbol.get(symbol)
+        if attempt is None:
+            return "no real-entry attempt logged for this symbol today"
+        label = _REAL_ENTRY_SKIP_LABELS.get(attempt["status"], attempt["status"])
+        return f"{label} - {attempt['detail']}" if attempt["detail"] else label
+
     open_positions = []
     capital_deployed_inr = 0.0
     # For the trade-view chart's entry-indicator overlay (sma_fast/sma_slow
@@ -12242,6 +12317,8 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
             # trend_weakened exit check's RANGE exclusion survives journal
             # resurrection (see reconcile_open_positions_from_journal).
             "entry_regime": r["entry_regime"],
+            # 2026-09-28: see _real_entry_reason's own comment above.
+            "real_entry_reason": _real_entry_reason(r["symbol"]),
         })
     for r in open_option_state:
         qty = r["contracts"] * 100
