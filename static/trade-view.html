@@ -1202,6 +1202,27 @@ async function onMasterToggle(turningOn) {
     if (!turningOn && res.closed_count > 0) {
       const pnl = res.total_pnl_inr ?? 0;
       msgEl.textContent = `All trading OFF. Closed ${res.closed_count} paper position(s), total P&L ${pnl >= 0 ? "+" : ""}₹${fmt(pnl)}.`;
+    } else if (turningOn) {
+      // 2026-09-28: surface what the pre-resume Kotak reconcile actually
+      // found/did - explicit user ask ("decide what to do next... actions
+      // taken by bot"). See set_trading_control's own resume-branch
+      // comment in main.py for why this runs before every resume.
+      const rc = res.kotak_reconcile;
+      if (!rc) {
+        msgEl.textContent = "All trading ON.";
+      } else if (rc.error) {
+        msgEl.textContent = `All trading ON (Kotak reconcile failed, resumed anyway: ${rc.error}).`;
+      } else {
+        const bits = [];
+        if (rc.qty_corrected_count) bits.push(`${rc.qty_corrected_count} qty corrected`);
+        if (rc.removed_ghost_count) bits.push(`${rc.removed_ghost_count} ghost position(s) removed`);
+        if (rc.adopted_count) bits.push(`${rc.adopted_count} position(s) adopted from Kotak`);
+        const stillUntracked = (rc.untracked_open_positions_count || 0) - (rc.adopted_count || 0);
+        if (stillUntracked > 0) bits.push(`${stillUntracked} still untracked (not bot-placed)`);
+        msgEl.textContent = bits.length
+          ? `All trading ON. Kotak reconcile: ${bits.join(", ")}.`
+          : "All trading ON. Kotak reconcile: already in sync.";
+      }
     } else {
       msgEl.textContent = turningOn ? "All trading ON." : "All trading OFF.";
     }

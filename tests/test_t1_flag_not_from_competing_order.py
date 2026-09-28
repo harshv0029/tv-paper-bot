@@ -130,16 +130,18 @@ def test_staged_leg_advance_target_rejection_does_not_blacklist_while_sl_is_rest
 
 def test_governance_backfill_no_longer_flags_its_target_rejection():
     # The governance-backfill target-placement block (inside
-    # kotak_neo_reconcile_real_positions) runs after an SL is already
-    # resting (either pre-existing or just placed by the SL block
-    # immediately above it in the same function) - same competing-order
-    # situation as the other two call sites, fixed the same way. The full
-    # endpoint needs a live-account-wide reconcile setup unrelated to this
-    # fix, so this confirms the actual invariant directly: no
-    # _flag_if_t1_restricted call remains between the target-rejection
-    # log line and the next function boundary.
+    # _reconcile_real_positions_core, factored out of the
+    # kotak_neo_reconcile_real_positions HTTP endpoint 2026-09-28 so the
+    # ALL-TRADING resume path can call the same logic in-process) runs
+    # after an SL is already resting (either pre-existing or just placed
+    # by the SL block immediately above it in the same function) - same
+    # competing-order situation as the other two call sites, fixed the
+    # same way. The full endpoint needs a live-account-wide reconcile
+    # setup unrelated to this fix, so this confirms the actual invariant
+    # directly: no _flag_if_t1_restricted call remains between the
+    # target-rejection log line and the next function boundary.
     import inspect
-    src = inspect.getsource(main.kotak_neo_reconcile_real_positions)
+    src = inspect.getsource(main._reconcile_real_positions_core)
     marker = 'new_state="none (placement failed)", detail=target_result.get("detail"),\n                    )'
     assert marker in src, "governance-backfill target-failed log line moved - re-locate before trusting this check"
     after_marker = src.split(marker, 1)[1]
