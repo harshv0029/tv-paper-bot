@@ -10,9 +10,12 @@ def test_registry_names_are_unique():
     assert len(names) == len(set(names))
 
 
-def test_exactly_one_live_strategy_today():
-    live = sr.strategies_by_status(sr.StrategyStatus.LIVE)
-    assert [s.name for s in live] == ["universal_score"]
+def test_live_strategies_match_known_live_engines():
+    # 2026-09-28: fixed after discovering gap_and_go_swing is ALSO live
+    # (both paper and real) on SWING_WATCHLIST - this registry's first
+    # version incorrectly listed universal_score as the only live one.
+    live_names = {s.name for s in sr.strategies_by_status(sr.StrategyStatus.LIVE)}
+    assert live_names == {"universal_score", "gap_and_go_swing"}
 
 
 def test_every_strategy_has_evidence_pointer():
