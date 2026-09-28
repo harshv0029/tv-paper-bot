@@ -1,0 +1,448 @@
+name: Swing Minervini Trend Template + VCP (Daily) Research (research)
+
+# Research-only, read-only pass (2026-09-28) - first strategy sourced
+# from docs/Trade Like a Stock Market Wizard (2013).pdf (Mark
+# Minervini), read this session per explicit user instruction to work
+# through the book and backtest what it describes. This implements the
+# book's two purely TECHNICAL/quantitative frameworks (no fundamentals
+# data - EPS/sales acceleration, institutional sponsorship etc. are
+# covered in other chapters but need data this bot doesn't have access
+# to, so they're out of scope for this pass):
+#
+# 1. "Trend Template" - an 8-criterion checklist used as a long-only
+#    entry qualifier, all 8 required together:
+#      1. close > 150-day SMA AND close > 200-day SMA
+#      2. 150-day SMA > 200-day SMA
+#      3. 200-day SMA has been rising for >=1 month (21 trading days)
+#      4. 50-day SMA > 150-day SMA AND 50-day SMA > 200-day SMA
+#      5. close > 50-day SMA
+#      6. close >= 1.30x the trailing 52-week (252-trading-day) low
+#      7. close >= 0.75x the trailing 52-week (252-trading-day) high
+#      8. relative strength vs the peer universe is in roughly the top
+#         30th percentile (the book uses IBD's proprietary RS Rank,
+#         unavailable here - proxied by cross-sectional percentile rank
+#         of trailing 126-trading-day (~6mo) return across this same
+#         52-symbol universe on that date, threshold >=70th percentile
+#         to match the book's own ">=70" cutoff)
+#
+# 2. "VCP" (Volatility Contraction Pattern) - a basing pattern that can
+#    form once the Trend Template criteria are met: within the trailing
+#    15-130 trading days, a sequence of swing-high-to-swing-low pullback
+#    legs ("contractions") that tighten from left to right, with the
+#    final contraction shallow (<=15%) and materially tighter than the
+#    base's first contraction (>=2x tighter) - simplified from the
+#    book's 2-6-contraction description (which also weighs volume
+#    dry-up leg by leg; this pass only checks the breakout day's own
+#    volume, not the full base's volume signature - a real
+#    simplification, flagged here rather than silently glossed over).
+#    Entry ("pivot breakout"): close breaks above the high that preceded
+#    the final contraction, with volume > 1.5x its trailing 20-day
+#    average.
+#
+# Fair multi-variant, single-pass-per-symbol architecture (same
+# philosophy as every universal-score-*-research.yml this session):
+# both variants share the SAME Trend Template gate and the SAME
+# position-management/exit/cost/sizing code, differing ONLY in entry
+# trigger, so any PF difference is attributable to the entry trigger
+# itself, not something else drifting between variants.
+#   - tt_generic_breakout: Trend Template gate + a plain 20-day Donchian
+#     breakout (classic trend-following trigger, same one used in
+#     swing-breakout-continuation-research.yml) + volume confirmation.
+#     Isolates what the FULL 8-point Trend Template adds over that
+#     workflow's simpler 50-SMA-only trend filter (that workflow ran
+#     2026-09-15, run 34929783550 - not re-run here; its own numbers
+#     are the comparison point for whatever tt_generic_breakout shows).
+#   - tt_vcp: Trend Template gate + the VCP contraction pattern instead
+#     of a plain breakout. Isolates whether the specific VCP structure
+#     adds edge over a generic breakout once the trend gate is already
+#     equalized between both variants.
+# Same exit for both: chandelier trailing stop (running peak close -
+# 2.0x ATR(14) at entry), 60-trading-day max hold - reused verbatim
+# from swing-breakout-continuation-research.yml, not reinvented, so the
+# exit mechanic cannot be the source of any PF difference between
+# variants here.
+#
+# Universe: same 52 NSE symbols as every other research workflow this
+# session. Data: 2 years of daily bars (yfinance via fetch_ohlc) - same
+# cost model and risk_pct-of-capital sizing formula as
+# swing-breakout-continuation-research.yml.
+#
+# Read-only research - writes nothing to any repo file, touches no live
+# state, safe to run anytime. Per CLAUDE.md standing discipline: no
+# main.py change here, nothing wired into the live engine without a
+# separate implement->test->validate->approve cycle, and this one
+# result alone (even if positive) does not justify changing main.py -
+# that still needs full pytest + validation replay + explicit user
+# go-ahead. Also per CLAUDE.md's 2026-09-28 thumb rule: this pass is
+# long-only, matching the book's own long-only methodology; a short
+# mirror (selling Trend-Template breakdowns) is a separate follow-up,
+# not done here.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run Trend Template + VCP backtest
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          PERIOD = "2y"
+          INTERVAL = "1d"
+          SMA_50, SMA_150, SMA_200 = 50, 150, 200
+          SMA200_RISING_LOOKBACK = 21
+          FIFTY_TWO_WEEK_N = 252
+          RS_RETURN_LOOKBACK = 126
+          RS_PERCENTILE_MIN = 70.0
+          DONCHIAN_N = 20
+          VOL_LOOKBACK = 20
+          VOL_SURGE_MULT = 1.5
+          ATR_N = 14
+          ATR_STOP_MULT = 2.0
+          MAX_HOLD_DAYS = 60
+          STRUCT_LOW_N = 10
+          PIVOT_FRACTAL_WIDTH = 5
+          VCP_BASE_MIN_DAYS = 15
+          VCP_BASE_MAX_DAYS = 130
+          VCP_FINAL_LEG_MAX_PCT = 15.0
+          VCP_TIGHTEN_RATIO_MIN = 2.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(symbol, variant, entry_price, initial_stop, qty, entry_label, exit_price,
+                               exit_label, exit_reason, entry_cost, held_days, cost_model):
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - initial_stop
+              return {
+                  "symbol": symbol, "variant": variant, "entry_ts": entry_label, "exit_ts": exit_label,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "held_days": held_days,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def _find_vcp_pivot(highs, lows, i):
+              """Look back from bar i (not yet including i) over up to
+              VCP_BASE_MAX_DAYS for a left-to-right tightening sequence of
+              swing-high-to-swing-low legs. Returns (pivot_high, final_leg_low)
+              if found, else None. Swing points use a simple fractal: bar j
+              is a swing high/low if it's the max/min High/Low within
+              +/-PIVOT_FRACTAL_WIDTH bars."""
+              lo = max(0, i - VCP_BASE_MAX_DAYS)
+              hi = i - PIVOT_FRACTAL_WIDTH
+              if hi - lo < VCP_BASE_MIN_DAYS:
+                  return None
+
+              swing_highs = []
+              swing_lows = []
+              for j in range(lo + PIVOT_FRACTAL_WIDTH, hi):
+                  window_hi = highs[j - PIVOT_FRACTAL_WIDTH: j + PIVOT_FRACTAL_WIDTH + 1]
+                  window_lo = lows[j - PIVOT_FRACTAL_WIDTH: j + PIVOT_FRACTAL_WIDTH + 1]
+                  if highs[j] == np.max(window_hi):
+                      swing_highs.append((j, highs[j]))
+                  if lows[j] == np.min(window_lo):
+                      swing_lows.append((j, lows[j]))
+
+              points = sorted(swing_highs + [(j, -v) for j, v in swing_lows])
+              legs = []
+              last_high = None
+              for j, v in sorted(swing_highs + swing_lows, key=lambda t: t[0]):
+                  is_high = (j, v) in swing_highs
+                  if is_high:
+                      last_high = (j, v)
+                  elif last_high is not None:
+                      depth_pct = 100.0 * (last_high[1] - v) / last_high[1] if last_high[1] > 0 else 0.0
+                      legs.append({"high_idx": last_high[0], "high": last_high[1], "low_idx": j, "low": v, "depth_pct": depth_pct})
+                      last_high = None
+
+              if len(legs) < 2:
+                  return None
+              legs = legs[-6:]
+              final_leg = legs[-1]
+              first_leg = legs[0]
+              if final_leg["depth_pct"] > VCP_FINAL_LEG_MAX_PCT:
+                  return None
+              if final_leg["depth_pct"] <= 0 or first_leg["depth_pct"] < VCP_TIGHTEN_RATIO_MIN * final_leg["depth_pct"]:
+                  return None
+              return final_leg["high"], final_leg["low"]
+
+
+          def replay_symbol(symbol, df, risk_pct, capital, cost_model, rs_pct_series):
+              trades = []
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(SMA_200, FIFTY_TWO_WEEK_N) + SMA200_RISING_LOOKBACK + 5
+              if n < min_lookback + 20:
+                  return trades
+
+              closes = df["Close"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              vol = df["Volume"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+
+              sma50 = pd.Series(closes).rolling(SMA_50).mean().to_numpy()
+              sma150 = pd.Series(closes).rolling(SMA_150).mean().to_numpy()
+              sma200 = pd.Series(closes).rolling(SMA_200).mean().to_numpy()
+              roll_low_252 = pd.Series(lows).rolling(FIFTY_TWO_WEEK_N).min().to_numpy()
+              roll_high_252 = pd.Series(highs).rolling(FIFTY_TWO_WEEK_N).max().to_numpy()
+              prev_close = np.concatenate(([np.nan], closes[:-1]))
+              tr = np.maximum(highs - lows, np.maximum(np.abs(highs - prev_close), np.abs(lows - prev_close)))
+              atr = pd.Series(tr).rolling(ATR_N).mean().to_numpy()
+              donchian_high = pd.Series(highs).rolling(DONCHIAN_N).max().shift(1).to_numpy()
+              vol_avg20 = pd.Series(vol).rolling(VOL_LOOKBACK).mean().shift(1).to_numpy()
+
+              positions = {"tt_generic_breakout": None, "tt_vcp": None}
+              trades_by_variant = {"tt_generic_breakout": [], "tt_vcp": []}
+
+              for i in range(min_lookback, n):
+                  for variant in positions:
+                      position = positions[variant]
+                      if position is None:
+                          continue
+                      position["running_max_close"] = max(position["running_max_close"], closes[i])
+                      trail_stop = position["running_max_close"] - position["atr_at_entry"] * ATR_STOP_MULT
+                      if trail_stop > position["stop"]:
+                          position["stop"] = trail_stop
+                      held_days = i - position["entry_idx"]
+                      exit_reason = None
+                      if closes[i] <= position["stop"]:
+                          exit_reason = "trail_stop_hit"
+                      elif held_days >= MAX_HOLD_DAYS:
+                          exit_reason = "max_hold_timeout"
+                      if exit_reason:
+                          trades_by_variant[variant].append(_finalize_trade(
+                              symbol, variant, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_label"], closes[i], dates[i], exit_reason,
+                              position["entry_cost"], held_days, cost_model,
+                          ))
+                          positions[variant] = None
+
+                  if np.isnan(sma200[i]) or np.isnan(sma200[i - SMA200_RISING_LOOKBACK]) or np.isnan(roll_low_252[i]):
+                      continue
+
+                  trend_template_ok = (
+                      closes[i] > sma150[i] and closes[i] > sma200[i]
+                      and sma150[i] > sma200[i]
+                      and sma200[i] > sma200[i - SMA200_RISING_LOOKBACK]
+                      and sma50[i] > sma150[i] and sma50[i] > sma200[i]
+                      and closes[i] > sma50[i]
+                      and closes[i] >= 1.30 * roll_low_252[i]
+                      and closes[i] >= 0.75 * roll_high_252[i]
+                  )
+                  rs_pct = rs_pct_series[i] if rs_pct_series is not None else None
+                  if rs_pct is not None and not np.isnan(rs_pct):
+                      trend_template_ok = trend_template_ok and rs_pct >= RS_PERCENTILE_MIN
+                  if not trend_template_ok:
+                      continue
+
+                  if np.isnan(vol_avg20[i]) or vol_avg20[i] <= 0 or vol[i] < VOL_SURGE_MULT * vol_avg20[i]:
+                      continue
+                  if np.isnan(atr[i]) or atr[i] <= 0:
+                      continue
+
+                  entry_price = closes[i]
+                  usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+
+                  if positions["tt_generic_breakout"] is None and not np.isnan(donchian_high[i]) and closes[i] > donchian_high[i]:
+                      struct_low = float(np.min(lows[i - STRUCT_LOW_N:i]))
+                      atr_stop = entry_price - ATR_STOP_MULT * atr[i]
+                      stop_loss = max(struct_low, atr_stop)
+                      stop_dist = entry_price - stop_loss
+                      if stop_dist > 0:
+                          risk_amount_inr = usable_capital_inr * risk_pct / 100
+                          qty = min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)
+                          qty = int(np.floor(qty))
+                          if qty > 0 and qty * entry_price >= 100:
+                              positions["tt_generic_breakout"] = {
+                                  "entry_price": entry_price, "initial_stop": stop_loss, "stop": stop_loss,
+                                  "entry_idx": i, "entry_label": dates[i], "qty": qty,
+                                  "atr_at_entry": float(atr[i]), "running_max_close": entry_price,
+                                  "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                              }
+
+                  if positions["tt_vcp"] is None:
+                      pivot = _find_vcp_pivot(highs, lows, i)
+                      if pivot is not None:
+                          pivot_high, final_leg_low = pivot
+                          if closes[i] > pivot_high:
+                              stop_loss = final_leg_low
+                              stop_dist = entry_price - stop_loss
+                              if stop_dist > 0:
+                                  risk_amount_inr = usable_capital_inr * risk_pct / 100
+                                  qty = min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)
+                                  qty = int(np.floor(qty))
+                                  if qty > 0 and qty * entry_price >= 100:
+                                      positions["tt_vcp"] = {
+                                          "entry_price": entry_price, "initial_stop": stop_loss, "stop": stop_loss,
+                                          "entry_idx": i, "entry_label": dates[i], "qty": qty,
+                                          "atr_at_entry": float(atr[i]), "running_max_close": entry_price,
+                                          "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                                      }
+
+              for variant, position in positions.items():
+                  if position is not None:
+                      held_days = (n - 1) - position["entry_idx"]
+                      trades_by_variant[variant].append(_finalize_trade(
+                          symbol, variant, position["entry_price"], position["initial_stop"], position["qty"],
+                          position["entry_label"], closes[-1], dates[-1], "data_end_forced_close",
+                          position["entry_cost"], held_days, cost_model,
+                      ))
+
+              return trades_by_variant["tt_generic_breakout"] + trades_by_variant["tt_vcp"]
+
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          CAPITAL_INR = 400000.0
+
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) ---")
+          raw_by_symbol = {}
+          for sym in SYMBOLS:
+              try:
+                  raw = m.fetch_ohlc(sym, PERIOD, INTERVAL)
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < 100:
+                  continue
+              raw_by_symbol[sym] = raw.reset_index(drop=True)
+          print(f"  fetched {len(raw_by_symbol)}/{len(SYMBOLS)} symbols\n")
+
+          # Cross-sectional RS proxy: build a date-aligned matrix of each
+          # symbol's trailing RS_RETURN_LOOKBACK-day return, then rank each
+          # symbol's return against the universe on that same date.
+          return_series = {}
+          for sym, raw in raw_by_symbol.items():
+              closes = raw["Close"].astype(float)
+              ret = closes.pct_change(RS_RETURN_LOOKBACK)
+              ret.index = raw["Date"].astype(str)
+              return_series[sym] = ret
+          returns_df = pd.DataFrame(return_series)
+          rs_pct_df = returns_df.rank(axis=1, pct=True) * 100.0
+
+          all_trades = []
+          for sym, raw in raw_by_symbol.items():
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              dates_str = raw["Date"].astype(str)
+              rs_series = rs_pct_df[sym].reindex(dates_str).to_numpy() if sym in rs_pct_df.columns else None
+              try:
+                  trades = replay_symbol(sym, raw, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL, rs_series)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              all_trades.extend(trades)
+          print(f"  {len(all_trades)} total trades across both variants\n")
+
+
+          def _metrics_row(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0, cost_drag_pct=0.0, avg_held_days=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              total_cost = sum(t["total_cost"] for t in trades)
+              cost_drag_pct = 100 * total_cost / max(1, sum(abs(t["gross_pnl"]) for t in trades))
+              avg_held_days = sum(t["held_days"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, cost_drag_pct=cost_drag_pct,
+                          avg_held_days=avg_held_days)
+
+          def _print_row(label, row):
+              print(f"{label:>28} {row['n']:>6} {row['win_rate']:>6.1f}% {row['pf_net']:>7.2f} "
+                    f"{row['pf_gross']:>8.2f} {row['avg_net']:>10.2f} {row['avg_gross']:>10.2f} "
+                    f"{row['cost_drag_pct']:>9.1f}% {row['avg_held_days']:>8.1f}d")
+
+          header = (f"{'bucket':>28} {'n':>6} {'win%':>7} {'PFnet':>7} {'PFgross':>8} "
+                    f"{'avgNet':>10} {'avgGross':>10} {'costDrag%':>10} {'avgHeld':>9}")
+
+          print("=== BY VARIANT ===")
+          print(header)
+          for variant in ("tt_generic_breakout", "tt_vcp"):
+              _print_row(variant, _metrics_row([t for t in all_trades if t["variant"] == variant]))
+
+          print("\n=== BY EXIT REASON (per variant) ===")
+          print(header)
+          for variant in ("tt_generic_breakout", "tt_vcp"):
+              variant_trades = [t for t in all_trades if t["variant"] == variant]
+              for reason in sorted(set(t["exit_reason"] for t in variant_trades)):
+                  _print_row(f"{variant}/{reason}", _metrics_row([t for t in variant_trades if t["exit_reason"] == reason]))
+
+          print("\n=== BY SYMBOL (tt_vcp, n>=2, sorted by gross PF) ===")
+          print(header)
+          per_symbol = {}
+          for t in all_trades:
+              if t["variant"] != "tt_vcp":
+                  continue
+              per_symbol.setdefault(t["symbol"], []).append(t)
+          symbol_rows = [(sym, _metrics_row(trades)) for sym, trades in per_symbol.items() if len(trades) >= 2]
+          symbol_rows.sort(key=lambda x: x[1]["pf_gross"], reverse=True)
+          for sym, row in symbol_rows:
+              _print_row(sym, row)
+          PYEOF
