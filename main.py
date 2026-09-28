@@ -8050,6 +8050,28 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
               f"clock run toward its own escalation instead of resetting on a fresh accept")
         return
 
+    # Exit-in-flight race fix (2026-09-28, live IDEA.NS finding: an exit
+    # completed at Kotak, then THREE fresh SL-TRG sells for the original
+    # qty were placed and rejected one minute later, one per tick). This
+    # function only ever checked "is sl_order_id missing" before retrying
+    # a placement - it never asked whether the position is still actually
+    # open at Kotak. In the gap between _maybe_place_real_exit confirming
+    # a sell (which cancels the resting SL/target FIRST, before the sell
+    # itself fills) and its own DELETE of this real_positions row actually
+    # committing, this function can still see a real_row with no live SL
+    # and repeatedly attempt fresh placements against a position that's
+    # mid-exit or already fully closed - each doomed to rejection (no
+    # holding left / a competing exit order at Kotak). Ground-truth check
+    # closes the gap: None (fetch failed) still falls through and retries
+    # as before - failing open here, same as every other use of this
+    # check, since refusing a genuinely needed SL over a transient API
+    # hiccup is worse than one more retry next tick.
+    if _kotak_symbol_still_open(real_row["kotak_trading_symbol"]) is False:
+        print(f"[REAL TRADE] {real_row['kotak_trading_symbol']} shows no open position at Kotak - "
+              f"skipping SL placement (likely exiting/already closed, stale real_positions row "
+              f"will be cleared by the exit path or next reconcile)")
+        return
+
     import kotak_real_orders
     if real_row["sl_order_id"]:
         cancel_result = kotak_real_orders.cancel_real_order(real_row["sl_order_id"])

@@ -373,3 +373,59 @@ def test_an_unreadable_reconcile_check_leaves_existing_state_untouched():
         ).fetchone()
         assert row["sl_order_id"] == "SL-LIVE"
         assert row["protection_degraded_since"] is None
+
+
+# ---- Exit-in-flight race fix (2026-09-28, live IDEA.NS finding) ------------
+# An exit completed at Kotak, then THREE fresh SL-TRG sells for the
+# original qty were placed and rejected a minute later, one per tick. This
+# function used to retry a placement whenever sl_order_id was simply
+# missing, with no check that the position is still actually open at
+# Kotak - in the gap between _maybe_place_real_exit confirming a sell and
+# its own DELETE of the real_positions row committing, a stale row with no
+# live SL got a fresh placement attempted against a position that was
+# mid-exit or already closed, doomed to rejection every time.
+
+def test_no_fresh_sl_attempted_when_kotak_shows_the_position_already_closed():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        _insert_open_real_position(conn, sl_order_id=None, sl_trigger_price=None)
+        with patch("kotak_neo.positions", return_value=_KOTAK_POSITIONS_FLAT), \
+             patch("kotak_real_orders.cancel_real_order") as mock_cancel, \
+             patch("kotak_real_orders.place_real_stop_loss") as mock_place:
+            main._maybe_sync_real_stop_loss(conn, "ASHOKLEY.NS")
+            mock_cancel.assert_not_called()
+            mock_place.assert_not_called()  # the doomed retry that used to fire
+
+
+def test_fresh_sl_still_attempted_when_kotak_confirms_the_position_is_open():
+    # Regression guard for the fix above: a genuinely open position (the
+    # overwhelming common case) must still get its normal retry - the new
+    # check must only ever SKIP a placement, never add a new requirement
+    # that blocks the existing working path.
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        _insert_open_real_position(conn, sl_order_id=None, sl_trigger_price=None)
+        with patch("kotak_neo.positions", return_value=_KOTAK_POSITIONS_HOLDS_2), \
+             patch("kotak_real_orders.cancel_existing_resting_sl", return_value=None), \
+             patch("kotak_real_orders.place_real_stop_loss",
+                   return_value={"ok": True, "order_id": "SL-NEW", "trigger_price": 97.0}) as mock_place:
+            main._maybe_sync_real_stop_loss(conn, "ASHOKLEY.NS")
+            mock_place.assert_called_once()
+        row = conn.execute("SELECT sl_order_id FROM real_positions WHERE symbol='ASHOKLEY.NS'").fetchone()
+        assert row["sl_order_id"] == "SL-NEW"
+
+
+def test_fresh_sl_still_attempted_when_the_open_check_itself_is_unreadable():
+    # None (fetch failed) must fall through and retry as before - failing
+    # open, same as every other use of _kotak_symbol_still_open, since
+    # refusing a genuinely needed SL over a transient API hiccup is worse
+    # than one more retry next tick.
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        _insert_open_real_position(conn, sl_order_id=None, sl_trigger_price=None)
+        with patch("kotak_neo.positions", side_effect=Exception("network hiccup")), \
+             patch("kotak_real_orders.cancel_existing_resting_sl", return_value=None), \
+             patch("kotak_real_orders.place_real_stop_loss",
+                   return_value={"ok": True, "order_id": "SL-NEW", "trigger_price": 97.0}) as mock_place:
+            main._maybe_sync_real_stop_loss(conn, "ASHOKLEY.NS")
+            mock_place.assert_called_once()
