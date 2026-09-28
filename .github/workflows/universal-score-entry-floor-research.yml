@@ -1,0 +1,453 @@
+name: Universal Score Entry Floor Research (research)
+
+# 2026-09-28, direct follow-up to gross-edge-breakdown-research.yml
+# (run 34900735363, job 104165809532, 2026-09-14 - never reported until
+# this session caught it via CLAUDE.md's "verify transfer-pack claims
+# against actual git/CI state" rule). That run's entry-score-decile
+# breakdown (TREND regime only) was the cleanest signal across every
+# research pass this session:
+#   score[70-80)  n=23   win%=0.0   PFnet=0.00  PFgross=0.33
+#   score[80-90)  n=90   win%=7.8   PFnet=0.05  PFgross=0.63
+#   score[90-100) n=126  win%=15.1  PFnet=0.10  PFgross=1.19  <- only
+#     bucket that's gross-profitable at all.
+# Live floor today is UNIVERSAL_ENTRY_SCORE_MIN = 70.0 (main.py:3865) -
+# roughly half of all TREND entries come from buckets with zero-to-
+# negative gross edge. That gross-edge breakdown did NOT net out costs
+# per bucket though, so it is not itself proof that raising the floor
+# improves NET PF - this workflow tests that directly.
+#
+# Tests raising UNIVERSAL_ENTRY_SCORE_MIN in isolation - RANGE-regime
+# entries (no score_pct) are identical across every variant; only the
+# TREND-regime score gate changes. Same fair-comparison, no-silent-drop,
+# single-pass-per-symbol architecture as the ATR-stop/confidence-stop/
+# HTF-filter research this session (see universal-score-htf-trend-
+# filter-research.yml for the precedent this file is copied from
+# verbatim except for the gate itself): entry-signal detection
+# (including the baseline score_pct >= 70 check) runs ONCE per bar,
+# shared across variants; each variant then applies its own additional
+# score-floor gate to the SAME candidate entry; every skip counted with
+# an explicit reason, never silently dropped.
+#
+# Read-only research - writes nothing to any repo file, touches no live
+# state, safe to run anytime. Per CLAUDE.md standing discipline: no code
+# in main.py changes here, nothing here is wired into the live engine
+# without a separate implement->test->validate->approve cycle, and this
+# one result alone does not justify changing UNIVERSAL_ENTRY_SCORE_MIN
+# even if it comes back positive - that still needs the full pytest +
+# 52-symbol/60-day validation-replay + explicit user go-ahead per
+# CLAUDE.md before touching main.py.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run entry score floor variant comparison
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import json
+          from collections import Counter
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          OPEN_MIN = 555
+          CLOSE_MIN = 930
+          SQUAREOFF_MIN = 920
+          TZ_OFF = m.IST_OFFSET_MIN
+          MAX_HOLD_MINUTES = 120.0
+          DEFAULT_SMA_FAST, DEFAULT_SMA_SLOW, DEFAULT_MA_TYPE = 9, 21, "ema"
+          DEFAULT_RR = 3.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(ts_local=ts_local)
+              df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+              df["mins"] = df["ts_local"].dt.hour * 60 + df["ts_local"].dt.minute
+              return df
+
+
+          def replay_symbol_multi(symbol, raw_df, index_closes, risk_pct, stop_pct, capital, cost_model,
+                                   variants, sma_fast=DEFAULT_SMA_FAST, sma_slow=DEFAULT_SMA_SLOW,
+                                   ma_type=DEFAULT_MA_TYPE):
+              """Replay one symbol ONCE, sharing entry-signal detection
+              (including the baseline score_pct >= 70 gate already live
+              in main.py) across every score-floor variant so all
+              variants evaluate the SAME candidate entries. Each variant
+              still manages its own open position independently, and
+              every skip is counted with an explicit reason instead of
+              silently dropped. Copied verbatim from the HTF-filter
+              research workflow (same session) except the gate itself.
+              """
+              df = _prep(raw_df)
+              closes_all = df["Close"].to_numpy(dtype=float)
+              volumes_all = df["Volume"].to_numpy(dtype=float)
+              n = len(df)
+
+              positions = {name: None for name in variants}
+              trades = {name: [] for name in variants}
+              skips = {name: Counter() for name in variants}
+
+              for i in range(n):
+                  row = df.iloc[i]
+                  mins = int(row["mins"])
+                  if mins < OPEN_MIN or mins > CLOSE_MIN:
+                      continue
+                  day = row["date_local"]
+                  today_df = df[(df["date_local"] == day) & (df.index <= i)]
+                  df_so_far = df.iloc[: i + 1]
+                  closes_so_far = closes_all[: i + 1]
+                  last_close = float(row["Close"])
+                  last_ts = row["ts_local"].timestamp()
+
+                  if len(closes_so_far) < sma_slow:
+                      continue
+                  sma_f = m._moving_average(closes_so_far, sma_fast, ma_type)
+                  sma_s = m._moving_average(closes_so_far, sma_slow, ma_type)
+                  trend = "up" if sma_f > sma_s else "down"
+
+                  just_exited = set()
+                  for name in variants:
+                      position = positions[name]
+                      if position is None:
+                          continue
+                      current_stop = position["stop"]
+                      _, trail = m._trailing_stop_target(
+                          today_df, position["entry_price"], position["initial_stop"], position["entry_ts"], TZ_OFF,
+                      )
+                      if trail is not None and trail > current_stop:
+                          current_stop = trail
+                          position["stop"] = current_stop
+
+                      current_target = position["target"]
+                      if last_close >= current_target:
+                          ext = m._leading_target_extend(
+                              current_target, position["entry_price"], position["initial_stop"],
+                              DEFAULT_RR, last_close, trend, closes_so_far, sma_fast, sma_slow, ma_type,
+                          )
+                          if ext is not None:
+                              current_target = ext
+                              position["target"] = current_target
+
+                      next_leg = m._next_unfilled_leg(position["legs_json"])
+                      if next_leg is not None and next_leg.get("target_price") and last_close >= next_leg["target_price"]:
+                          _book_leg(position, next_leg["leg"], next_leg["qty"], last_close, last_ts, cost_model)
+                          if position["remaining_qty"] <= 0:
+                              trades[name].append(_finalize_trade(position, "staged_ladder_complete", cost_model))
+                              positions[name] = None
+                              just_exited.add(name)
+                          continue
+
+                      exit_reason = None
+                      if last_close >= current_target and next_leg is None:
+                          exit_reason = "target_hit"
+                      elif last_close <= current_stop:
+                          exit_reason = "stop_hit"
+                      elif trend == "down" and position["regime"] != "range" and m._trend_confidence(
+                          closes_so_far, sma_fast, sma_slow, ma_type
+                      ) >= m.TREND_WEAKENED_MIN_CONFIDENCE:
+                          exit_reason = "trend_weakened"
+                      elif (last_ts - position["entry_ts"]) >= MAX_HOLD_MINUTES * 60 and current_stop <= position["initial_stop"]:
+                          exit_reason = "stale_timeout"
+                      elif mins >= SQUAREOFF_MIN:
+                          exit_reason = "eod_squareoff"
+
+                      if exit_reason:
+                          _book_leg(position, "trail", position["remaining_qty"], last_close, last_ts, cost_model)
+                          trades[name].append(_finalize_trade(position, exit_reason, cost_model))
+                          positions[name] = None
+                          just_exited.add(name)
+
+                  if mins >= SQUAREOFF_MIN:
+                      continue
+
+                  eligible = [name for name in variants if positions[name] is None and name not in just_exited]
+                  if not eligible:
+                      continue
+
+                  regime = m._classify_market_regime(df_so_far, sma_fast, sma_slow, ma_type)
+                  volume_ok, vol_avg = m._volume_confirms(volumes_all[: i + 1])
+                  current_volume = float(row["Volume"])
+                  vol_ratio = (current_volume / vol_avg) if (vol_avg and vol_avg > 0) else None
+
+                  if regime == "range":
+                      entry_signal = bool(m._vwap_mean_reversion_entry(today_df) or False)
+                      score_result = None
+                  else:
+                      idx_slice = index_closes[: i + 1] if index_closes is not None else None
+                      score_result = m._compute_universal_entry_score(
+                          df_so_far, today_df, volume_ok, sma_f, sma_s, idx_slice, sma_fast, sma_slow, ma_type,
+                          vol_ratio=vol_ratio,
+                      )
+                      entry_signal = score_result["entry_allowed"]
+
+                  if not entry_signal:
+                      continue
+
+                  for name in eligible:
+                      floor_pct = variants[name]
+                      if floor_pct is not None and regime != "range":
+                          if score_result["score_pct"] < floor_pct:
+                              skips[name]["below_score_floor"] += 1
+                              continue
+
+                      stop_loss_cap = last_close * (1 - stop_pct / 100)
+                      if regime == "range":
+                          stop_loss = m._range_regime_stop_loss(last_close, df_so_far, stop_loss_cap)
+                      else:
+                          structural_low = float(df_so_far["Low"].iloc[-(m.UNIVERSAL_STRUCTURE_LOOKBACK + 1):].min())
+                          stop_loss = max(structural_low, stop_loss_cap)
+                      stop_dist = last_close - stop_loss
+                      if stop_dist <= 0:
+                          skips[name]["stop_invalid"] += 1
+                          continue
+
+                      target_cluster = m._compute_target_cluster(last_close, stop_loss, df_so_far, DEFAULT_RR)
+                      target_move_pct = m._target_move_pct(target_cluster["primary_target"], last_close)
+                      if target_move_pct <= m.ROUND_TRIP_COST_PCT:
+                          skips[name]["cost_gate_failed"] += 1
+                          continue
+
+                      if regime == "range":
+                          confidence = m._range_regime_confidence(today_df)
+                          confidence_entry_min = m._norm_cdf(m.RANGE_CONFIDENCE_ENTRY_Z)
+                          confidence_full_at = m._norm_cdf(m.RANGE_CONFIDENCE_FULL_Z)
+                      else:
+                          confidence = score_result["score_pct"] / 100.0
+                          confidence_entry_min = m.UNIVERSAL_ENTRY_SCORE_MIN / 100.0
+                          confidence_full_at = 1.0
+                      size_multiplier = (
+                          m._confidence_size_multiplier(confidence, confidence_entry_min, confidence_full_at)
+                          if confidence is not None else 1.0
+                      )
+
+                      usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                      risk_amount_inr = usable_capital_inr * risk_pct / 100 * size_multiplier
+                      qty = risk_amount_inr / stop_dist
+                      qty = min(qty, usable_capital_inr / last_close)
+                      qty = int(np.floor(qty))
+                      if qty <= 0:
+                          skips[name]["qty_zero"] += 1
+                          continue
+                      if qty * last_close < 100:
+                          skips[name]["notional_too_small"] += 1
+                          continue
+
+                      legs = m._split_exit_legs(qty, target_cluster["r_multiples"])
+                      positions[name] = {
+                          "symbol": symbol, "entry_price": last_close, "initial_stop": stop_loss,
+                          "stop": stop_loss, "target": target_cluster["primary_target"],
+                          "entry_ts": last_ts, "qty": qty, "remaining_qty": qty,
+                          "legs_json": json.dumps(legs), "regime": regime,
+                          "score_pct": score_result["score_pct"] if score_result else None,
+                          "size_multiplier": size_multiplier,
+                          "fills": [], "entry_cost": _entry_cost(qty, last_close, cost_model),
+                      }
+
+              for name in variants:
+                  position = positions[name]
+                  if position is not None:
+                      last_close = float(df["Close"].iloc[-1])
+                      last_ts = df["ts_local"].iloc[-1].timestamp()
+                      _book_leg(position, "trail", position["remaining_qty"], last_close, last_ts, cost_model)
+                      trades[name].append(_finalize_trade(position, "window_end_forced_close", cost_model))
+
+              return trades, skips
+
+
+          def _book_leg(position, leg_name, qty, price, ts, cost_model):
+              sell_cost = _sell_cost(qty, price, cost_model)
+              position["fills"].append({"leg": leg_name, "qty": qty, "price": price, "ts": ts, "cost": sell_cost})
+              position["remaining_qty"] -= qty
+              if leg_name != "trail":
+                  legs = json.loads(position["legs_json"])
+                  for leg_entry in legs:
+                      if leg_entry["leg"] == leg_name:
+                          leg_entry["status"] = "filled"
+                  position["legs_json"] = json.dumps(legs)
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(position, exit_reason, cost_model):
+              gross_pnl = sum((f["price"] - position["entry_price"]) * f["qty"] for f in position["fills"])
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = position["entry_cost"] + sum(f["cost"] for f in position["fills"]) + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = position["entry_price"] - position["initial_stop"]
+              last_fill = position["fills"][-1]
+              return {
+                  "symbol": position["symbol"], "regime": position["regime"],
+                  "entry_price": position["entry_price"], "initial_stop": position["initial_stop"], "qty": position["qty"],
+                  "entry_ts": position["entry_ts"], "exit_ts": last_fill["ts"],
+                  "time_in_trade_min": (last_fill["ts"] - position["entry_ts"]) / 60.0,
+                  "exit_reason": exit_reason, "n_legs_filled": len(position["fills"]),
+                  "gross_pnl": gross_pnl, "net_pnl": net_pnl, "total_cost": total_cost,
+                  "gross_r": gross_pnl / (r * position["qty"]) if r > 0 else None,
+                  "net_r": net_pnl / (r * position["qty"]) if r > 0 else None,
+              }
+
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS", "INDUSTOWER.NS", "POLICYBZR.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          CAPITAL_INR = 400000.0
+          # "current_70" = live UNIVERSAL_ENTRY_SCORE_MIN, no extra gate on
+          # top of what entry_allowed already enforces.
+          VARIANTS = {
+              "current_70": None, "floor_80": 80.0, "floor_85": 85.0, "floor_90": 90.0,
+          }
+
+          print(f"Fetching {len(SYMBOLS)} symbols (60d/5m) + ^NSEI reference index...")
+          index_df = m.fetch_ohlc("^NSEI", "60d", "5m")
+          index_closes_full = index_df["Close"].to_numpy(dtype=float)
+
+          raw_by_symbol = {}
+          for sym in SYMBOLS:
+              try:
+                  raw = m.fetch_ohlc(sym, "60d", "5m")
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < 50:
+                  continue
+              raw_by_symbol[sym] = raw
+          print(f"  fetched {len(raw_by_symbol)}/{len(SYMBOLS)} symbols\n")
+
+
+          def _metrics(trades, label):
+              if not trades:
+                  print(f"  {label:24s}   no trades")
+                  return
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              net_rs = [t["net_r"] for t in trades if t["net_r"] is not None]
+              avg_net_r = sum(net_rs) / len(net_rs) if net_rs else None
+              avg_time = sum(t["time_in_trade_min"] for t in trades) / n
+              reasons = {}
+              for t in trades:
+                  reasons[t["exit_reason"]] = reasons.get(t["exit_reason"], 0) + 1
+              print(f"  {label:24s} n={n:<5d} win%={win_rate:6.1f}  PFnet={pf_net:6.2f}  PFgross={pf_gross:6.2f}  "
+                    f"avgNet={avg_net:9.2f}  avgR={avg_net_r if avg_net_r is None else round(avg_net_r,3)}  "
+                    f"avgMin={avg_time:6.1f}  exits={reasons}")
+
+
+          all_trades_by_variant = {name: [] for name in VARIANTS}
+          all_skips_by_variant = {name: Counter() for name in VARIANTS}
+
+          for sym, raw in raw_by_symbol.items():
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  trades, skips = replay_symbol_multi(
+                      sym, raw, index_closes_full, cfg["risk_pct"], cfg["stop_pct"], CAPITAL_INR,
+                      DEFAULT_COST_MODEL, VARIANTS, cfg["sma_fast"], cfg["sma_slow"],
+                  )
+              except Exception as e:
+                  print(f"  ERROR {sym}: {e}")
+                  continue
+              for name in VARIANTS:
+                  all_trades_by_variant[name].extend(trades[name])
+                  all_skips_by_variant[name].update(skips[name])
+
+          print("=== Per-variant results ===\n")
+          for name in VARIANTS:
+              all_trades = all_trades_by_variant[name]
+              print(f"--- VARIANT: {name} ---")
+              _metrics(all_trades, "ALL")
+              _metrics([t for t in all_trades if t["regime"] == "trend"], "TREND only")
+              _metrics([t for t in all_trades if t["regime"] == "range"], "RANGE only")
+              _metrics([t for t in all_trades if t["exit_reason"] == "stop_hit"], "stop_hit only")
+              print(f"  skipped candidate entries (not silently dropped): {dict(all_skips_by_variant[name])}")
+              print()
+
+          # Pairwise against baseline (current_70), not an n-way
+          # intersection - a raised floor is, by construction, a strict
+          # subset of the baseline's TREND entries (RANGE entries are
+          # identical across all variants), so baseline-vs-variant common
+          # entries ARE the variant's own natural population; this is
+          # mainly a sanity check that the "own population" and "common"
+          # views agree, kept for consistency with the other research
+          # workflows this session.
+          print("=== Pairwise common-entries comparison (each floor variant vs current_70, ===")
+          print("=== same underlying entries under both) ===\n")
+          keysets = {
+              name: set((t["symbol"], round(t["entry_ts"])) for t in trades)
+              for name, trades in all_trades_by_variant.items()
+          }
+          baseline_keys = keysets.get("current_70", set())
+          for name in VARIANTS:
+              if name == "current_70":
+                  continue
+              common_keys = baseline_keys & keysets.get(name, set())
+              print(f"--- {name} vs current_70: {len(common_keys)} shared entries ---")
+              for cmp_name in ("current_70", name):
+                  common_trades = [
+                      t for t in all_trades_by_variant[cmp_name]
+                      if (t["symbol"], round(t["entry_ts"])) in common_keys
+                  ]
+                  _metrics(common_trades, f"{cmp_name} (common)")
+              print()
+          PYEOF
