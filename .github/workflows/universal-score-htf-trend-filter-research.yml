@@ -22,7 +22,21 @@ name: Universal Score HTF Trend Filter Research (research)
 # candles, EMA9/EMA21 cross, shift(1) so only the PREVIOUS CLOSED HTF
 # candle's trend gates a live entry bar (no lookahead into a still-
 # forming HTF candle) - not a reimplementation, the identical formula.
-# VARIANTS = {"current_no_filter": None, "htf_30min_trend_filter": 30}.
+# VARIANTS = {"current_no_filter": None, "htf_15min": 15, "htf_30min": 30,
+#             "htf_60min": 60, "htf_120min": 120}.
+#
+# 2026-09-28 follow-up (same session, explicit user instruction after the
+# first 30-min-only result came back negative - filter blocked 75% of
+# candidates with no quality improvement among survivors): "make a few
+# factor changes in HTF, create its variants and then test again."
+# Widens the granularity sweep (15/30/60/120-min) rather than the EMA
+# periods themselves - the underlying question is whether a COARSER or
+# FINER "what's the bigger picture doing" read behaves differently, not
+# whether EMA9/21 specifically was the wrong pair; EMA period is a
+# separate, narrower follow-up if this sweep shows something worth
+# chasing. Still the exact same mtf_engulfing-validated EMA9/21-cross-
+# with-shift(1) formula at every granularity, just resampled to a
+# different bucket size - not a new indicator per variant.
 #
 # Same fair-comparison, no-silent-drop, single-pass-per-symbol
 # architecture as the ATR-stop and confidence-stop research (same
@@ -368,7 +382,10 @@ jobs:
           ]
           SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
           CAPITAL_INR = 400000.0
-          VARIANTS = {"current_no_filter": None, "htf_30min_trend_filter": 30}
+          VARIANTS = {
+              "current_no_filter": None, "htf_15min": 15, "htf_30min": 30,
+              "htf_60min": 60, "htf_120min": 120,
+          }
 
           print(f"Fetching {len(SYMBOLS)} symbols (60d/5m) + ^NSEI reference index...")
           index_df = m.fetch_ohlc("^NSEI", "60d", "5m")
@@ -443,13 +460,35 @@ jobs:
               print(f"  skipped candidate entries (not silently dropped): {dict(all_skips_by_variant[name])}")
               print()
 
-          print("=== Common-entries comparison (entries where BOTH variants opened a position) ===\n")
+          # 2026-09-28: with 5 variants, a single 5-way intersection would be
+          # dominated by the coarsest/most-restrictive filter and tell us
+          # little - PAIRWISE against the baseline (each HTF granularity
+          # vs current_no_filter) is the informative comparison: does THIS
+          # granularity's filtered subset perform differently from the
+          # same entries under no filter at all.
+          print("=== Pairwise common-entries comparison (each HTF variant vs baseline, ===")
+          print("=== same underlying entries under both) ===\n")
           keysets = {
               name: set((t["symbol"], round(t["entry_ts"])) for t in trades)
               for name, trades in all_trades_by_variant.items()
           }
+          baseline_keys = keysets.get("current_no_filter", set())
+          for name in VARIANTS:
+              if name == "current_no_filter":
+                  continue
+              common_keys = baseline_keys & keysets.get(name, set())
+              print(f"--- {name} vs current_no_filter: {len(common_keys)} shared entries ---")
+              for cmp_name in ("current_no_filter", name):
+                  common_trades = [
+                      t for t in all_trades_by_variant[cmp_name]
+                      if (t["symbol"], round(t["entry_ts"])) in common_keys
+                  ]
+                  _metrics(common_trades, f"{cmp_name} (common)")
+              print()
+
+          print("=== 5-way common entries (all variants opened a position) - context only ===\n")
           common_keys = set.intersection(*keysets.values()) if keysets else set()
-          print(f"entries where both variants opened a position: {len(common_keys)}\n")
+          print(f"entries where ALL variants opened a position: {len(common_keys)}\n")
           for name in VARIANTS:
               common_trades = [
                   t for t in all_trades_by_variant[name]
