@@ -1,43 +1,4 @@
 {
-  "synced_at_utc": "2026-09-29T00:20:12Z",
-  "open_positions": [
-    {
-      "symbol": "INDUSTOWER.NS",
-      "qty": 3.0,
-      "entry_price_native": 358.29998779296875,
-      "stop_loss_native": 358.65828778076167,
-      "initial_stop_loss_native": 354.7856935773577,
-      "target_native": 365.33,
-      "fx_to_inr": 1.0,
-      "notional_inr": 1074.9,
-      "orb_high_native": null,
-      "orb_low_native": 355.6000061035156,
-      "entry_ts": 1790585288.3013573,
-      "interval": "5m",
-      "strategy": "orb-universal-score",
-      "sma_fast": 9,
-      "sma_slow": 21,
-      "entry_regime": "range",
-      "real_entry_reason": "no real-entry attempt logged for this symbol today"
-    },
-    {
-      "symbol": "NATIONALUM.NS",
-      "qty": 6.0,
-      "entry_price_native": 345.25,
-      "stop_loss_native": 345.8035730634417,
-      "initial_stop_loss_native": 343.8571461268834,
-      "target_native": 348.04,
-      "fx_to_inr": 1.0,
-      "notional_inr": 2071.5,
-      "orb_high_native": null,
-      "orb_low_native": 344.3999938964844,
-      "entry_ts": 1790586414.2581832,
-      "interval": "5m",
-      "strategy": "orb-universal-score",
-      "sma_fast": 9,
-      "sma_slow": 21,
-      "entry_regime": "range",
-      "real_entry_reason": "no real-entry attempt logged for this symbol today"
-    }
-  ]
+  "synced_at_utc": "2026-09-29T04:19:40Z",
+  "open_positions": []
 }
