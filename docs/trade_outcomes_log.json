@@ -2149,5 +2149,47 @@
     "rr_target": 3.0,
     "rr_achieved": 0.02,
     "strategy": null
+  },
+  {
+    "symbol": "UPL.NS",
+    "exit_time_utc": 1790665480.13938,
+    "entry_price_native": 534.45,
+    "exit_price_native": 535.35,
+    "currency": "INR",
+    "qty": 5.0,
+    "pnl_inr": 0.0,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": 0.17,
+    "strategy": null
+  },
+  {
+    "symbol": "MFSL.NS",
+    "exit_time_utc": 1790667825.3090587,
+    "entry_price_native": 1389.4000244140625,
+    "exit_price_native": 1382.9,
+    "currency": "INR",
+    "qty": 2.0,
+    "pnl_inr": -13.0,
+    "pnl_pct_of_capital": -0.003,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": -1.1,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "UNIONBANK.NS",
+    "exit_time_utc": 1790668098.540011,
+    "entry_price_native": 169.9600067138672,
+    "exit_price_native": 169.99,
+    "currency": "INR",
+    "qty": 5.0,
+    "pnl_inr": 0.15,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": 0.02,
+    "strategy": "orb-universal-score"
   }
 ]
