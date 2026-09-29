@@ -117,3 +117,27 @@ of trusting the transfer pack's prose.
   registered or tried historically. Growing the overall registry never
   grows per-stock monitoring cost — only which (up to) 25 checks actually
   run each cycle changes as better strategies displace worse ones.
+- **Thumb rule (2026-09-29, explicit user instruction): keep searching for
+  better algorithms from a variety of sources, and test every strategy
+  across multiple candle sizes, not just parameter nudges on what's
+  already in this repo.** Two standing habits, applied whenever research/
+  strategy-building work happens here (on request, not as an unattended
+  background job — the user explicitly chose "standing discipline, not an
+  automated daily Routine" when this was raised):
+  1. Candidate strategies should keep coming from outside this repo's own
+     trial-and-error too — named/documented approaches from TA literature,
+     other markets, web research — not only factor tweaks on strategies
+     already tried here.
+  2. Every strategy (new or existing) should be tried across multiple
+     candle sizes/timeframes as a matter of course — **1m, 5m, 15m, 1h,
+     4h**, plus whatever timeframe actually fits its own use case (e.g.
+     1d for swing strategies like gap-and-go/Minervini VCP) — not just
+     the one timeframe it happened to be built on. A strategy's edge can
+     look completely different at another granularity; the RANGE VWAP
+     short mirror, the TREND-down short mirror, and the RSI-overbought
+     fade were all tested only at 5m this session and have never been
+     re-checked at another candle size.
+  Every other standing rule here still applies to this: no tuning blind
+  off one variant's result, full-universe validation before trusting a
+  number, and calling the real `main.py` function (not a reimplementation)
+  for anything that will actually inform a go/no-go call.
