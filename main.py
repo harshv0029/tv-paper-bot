@@ -3997,6 +3997,66 @@ def gap_and_go_exit_reason(df: pd.DataFrame, entry_day: str, stop_loss: float, g
     return None
 
 
+def gap_and_go_entry_signal_short(df: pd.DataFrame) -> dict | None:
+    """Short mirror of gap_and_go_entry_signal ("gap down and go", 2026-09-
+    29, explicit user instruction "Prep short mirror for others too" per
+    CLAUDE.md's 2026-09-28 standing thumb rule). Evaluates ONLY the last
+    row of `df` (today): today's Open gaps DOWN >=SWING_GAP_PCT_THRESHOLD%
+    below yesterday's Close, today closes red and in the lower half of its
+    Low-Open range, and Volume exceeds SWING_VOL_MULT x its trailing 20-
+    day average. All constants reused verbatim from the long side, only
+    comparison directions inverted. Returns None if no signal fires, else
+    {"entry_price", "stop_loss", "gap_high"} for the caller to size and
+    open a position with."""
+    n = len(df)
+    min_lookback = max(SWING_ATR_N, SWING_VOL_AVG_LOOKBACK) + 1
+    if n < min_lookback:
+        return None
+    opens = df["Open"].to_numpy(dtype=float)
+    highs = df["High"].to_numpy(dtype=float)
+    lows = df["Low"].to_numpy(dtype=float)
+    closes = df["Close"].to_numpy(dtype=float)
+    volumes = df["Volume"].to_numpy(dtype=float)
+    atr = _swing_atr(df)
+    vol_avg = pd.Series(volumes).rolling(SWING_VOL_AVG_LOOKBACK).mean().to_numpy()
+    i = n - 1
+    prev_close = closes[i - 1]
+    if prev_close <= 0 or np.isnan(atr[i]) or atr[i] <= 0 or np.isnan(vol_avg[i]):
+        return None
+    gap_pct = (prev_close - opens[i]) / prev_close * 100
+    gapped_down = gap_pct >= SWING_GAP_PCT_THRESHOLD
+    held_gap = closes[i] < opens[i]
+    closed_weak = closes[i] <= opens[i] - 0.5 * (opens[i] - lows[i])
+    vol_confirmed = volumes[i] > vol_avg[i] * SWING_VOL_MULT
+    if not (gapped_down and held_gap and closed_weak and vol_confirmed):
+        return None
+    entry_price = closes[i]
+    stop_loss = entry_price + SWING_ATR_STOP_MULT * atr[i]
+    if stop_loss <= entry_price:
+        return None
+    return {"entry_price": entry_price, "stop_loss": stop_loss, "gap_high": highs[i]}
+
+
+def gap_and_go_exit_reason_short(df: pd.DataFrame, entry_day: str, stop_loss: float, gap_high: float) -> str | None:
+    """Short mirror of gap_and_go_exit_reason. Evaluates ONLY the last row
+    of `df` (today) for a Gap and Go short exit, for a position already
+    open. Priority matches the long side exactly: stop_hit > gap_filled >
+    max_hold_timeout. Returns None if the position should stay open."""
+    if len(df) == 0:
+        return None
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].astype(str).to_numpy()
+    i = len(df) - 1
+    if closes[i] >= stop_loss:
+        return "stop_hit"
+    if closes[i] > gap_high:
+        return "gap_filled"
+    held_days = int(np.sum(dates > entry_day))
+    if held_days >= SWING_MAX_HOLD_DAYS:
+        return "max_hold_timeout"
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Options overlay: buy real, currently-quoted calls/puts on symbols with a
 # live yfinance options chain (SPY/QQQ/AAPL - see OPTIONS_ELIGIBLE_SYMBOLS).
