@@ -15,22 +15,29 @@ name: RANGE Short-Selling Validation Replay (research)
 # yet), this workflow imports and calls the REAL functions added this
 # session: m._vwap_mean_reversion_short_entry, m._range_regime_short_stop_loss,
 # m._range_regime_short_confidence, m._trailing_stop_target_short,
-# m._target_move_pct_short. The bar-by-bar loop/exit-sequencing/cost-model/
-# sizing-formula scaffolding around those calls is still necessarily
-# written here (same as universal-score-validation-replay.yml, the
-# canonical long-side validation replay, does for the long engine) - a
-# full in-process tick-by-tick simulation of _short_signal_core itself
-# (mocking datetime.utcnow/fetch_ohlc/sqlite) was considered and rejected
-# as needless complexity for the same reason the canonical replay doesn't
-# do that for the long side either: the ENTRY/STOP/TARGET/CONFIDENCE math
-# is the part that could silently drift, and that math now comes from
-# main.py directly, not from a copy of it.
+# m._target_move_pct_short.
+#
+# MATRIX-PARALLELIZED (2026-09-29, second fix, explicit user instruction
+# "parallelize the fetch across jobs"): a single sequential job fetching
+# 60d/5m data for the full ~2,680-symbol universe was still running after
+# 40+ minutes even AFTER the first fix (bounding the regime-classification
+# window - see that fix's own commit message) closed the O(n^2) compute
+# bug. The remaining cost is the FETCH itself - ~2,680 sequential Yahoo
+# Finance calls at 5-minute resolution (60 days x ~4,500 rows/symbol) is
+# simply a lot of network round-trips done one after another. Splitting
+# the universe into SHARD_COUNT shards, each fetched+replayed by its own
+# parallel GitHub Actions job, cuts wall-clock time by roughly the shard
+# count while still covering the FULL universe (the 2026-09-29 standing
+# thumb rule stays intact - this is a parallelization fix, not a sample-
+# size compromise). Each shard uploads its own trades as a JSON artifact;
+# a final `aggregate` job (needs: replay) downloads all of them and
+# computes the SAME pooled metrics a single-job run would have, using the
+# identical _metrics function - splitting the fetch never changes what
+# gets measured or how.
 #
 # Universe: per the 2026-09-29 standing thumb rule (CLAUDE.md), this runs
 # on the FULL NSE EQ-series universe (main._load_nse_universe_from_file(),
-# ~2,680 symbols) - not a narrow pilot, given the same rule's own evidence
-# that a 52-symbol sample moved a strategy's PFnet by as much as 0.35 vs
-# the full universe on this exact session's Minervini VCP research.
+# ~2,680 symbols) - not a narrow pilot.
 #
 # Read-only research - writes nothing to any repo file, touches no live
 # state, safe to run anytime. This replay result, whatever it shows, does
@@ -40,9 +47,16 @@ name: RANGE Short-Selling Validation Replay (research)
 on:
   workflow_dispatch: {}
 
+env:
+  SHARD_COUNT: 10
+
 jobs:
-  validate:
+  replay:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     steps:
       - uses: actions/checkout@v4
 
@@ -53,15 +67,22 @@ jobs:
       - name: Install dependencies
         run: pip install -q -r requirements.txt
 
-      - name: Run RANGE short-selling validation replay
+      - name: Run RANGE short-selling validation replay (this shard)
+        env:
+          SHARD_INDEX: ${{ matrix.shard }}
         run: |
           python3 - <<'PYEOF'
           import sys
           sys.path.insert(0, ".")
+          import json
+          import os
           from collections import Counter
           import numpy as np
           import pandas as pd
           import main as m
+
+          SHARD_INDEX = int(os.environ["SHARD_INDEX"])
+          SHARD_COUNT = int(os.environ["SHARD_COUNT"])
 
           OPEN_MIN = 555
           CLOSE_MIN = 930
@@ -70,6 +91,9 @@ jobs:
           MAX_HOLD_MINUTES = 120.0
           DEFAULT_SMA_FAST, DEFAULT_SMA_SLOW, DEFAULT_MA_TYPE = 9, 21, "ema"
           DEFAULT_RR = 3.0
+          LIVE_WINDOW_BARS = 375  # ~5 NSE trading days at 5-min bars - see this
+          # workflow's own module comment (first fix) for why this must be
+          # bounded, not an ever-growing df.iloc[:i+1].
 
           DEFAULT_COST_MODEL = {
               "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
@@ -91,7 +115,6 @@ jobs:
 
 
           def _sell_cost(qty, price, cm):
-              """Sell-to-open costs (STT sell-side, no stamp duty)."""
               notional = qty * price
               brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
               exch = notional * cm["exchange_txn_pct"]
@@ -103,7 +126,6 @@ jobs:
 
 
           def _buy_cost(qty, price, cm):
-              """Buy-to-cover costs (STT buy-side, stamp duty)."""
               notional = qty * price
               brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
               exch = notional * cm["exchange_txn_pct"]
@@ -120,11 +142,8 @@ jobs:
               """Bar-by-bar replay calling main.py's REAL short-side functions
               for every piece of entry/stop/target/confidence math - only the
               loop/position-bookkeeping/cost-application scaffolding is
-              written here, same division of labor as
-              universal-score-validation-replay.yml uses for the long
-              engine."""
+              written here."""
               df = _prep(raw_df)
-              closes_all = df["Close"].to_numpy(dtype=float)
               n = len(df)
 
               position = None
@@ -138,7 +157,7 @@ jobs:
                       continue
                   day = row["date_local"]
                   today_df = df[(df["date_local"] == day) & (df.index <= i)]
-                  df_so_far = df.iloc[: i + 1]
+                  df_so_far = df.iloc[max(0, i + 1 - LIVE_WINDOW_BARS): i + 1]
                   last_close = float(row["Close"])
                   last_ts = row["ts_local"].timestamp()
 
@@ -248,11 +267,15 @@ jobs:
               return trades, skips
 
 
-          print("Loading full NSE universe (bypassing the live NIFTY-200 restriction - see CLAUDE.md's own thumb rule on this)...")
-          SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          ALL_SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          # Interleaved partition (SYMBOLS[shard::SHARD_COUNT]), not a
+          # contiguous slice - spreads alphabetically-clustered sectors
+          # evenly across shards so no single shard is accidentally all
+          # thinly-traded small-caps or all large-caps.
+          SYMBOLS = ALL_SYMBOLS[SHARD_INDEX::SHARD_COUNT]
           CAPITAL_INR = 400000.0
 
-          print(f"--- Fetching {len(SYMBOLS)} symbols (5m, 60d) ---")
+          print(f"--- Shard {SHARD_INDEX}/{SHARD_COUNT}: fetching {len(SYMBOLS)} of {len(ALL_SYMBOLS)} symbols (5m, 60d) ---")
           all_trades = []
           all_skips = Counter()
           fetched = 0
@@ -276,8 +299,52 @@ jobs:
                   continue
               all_trades.extend(trades)
               all_skips.update(skips)
-          print(f"  fetched {fetched}/{len(SYMBOLS)} symbols, {len(all_trades)} short trades\n")
-          print(f"  skipped candidate entries (not silently dropped): {dict(all_skips)}\n")
+          print(f"  shard {SHARD_INDEX}: fetched {fetched}/{len(SYMBOLS)} symbols, {len(all_trades)} short trades")
+          print(f"  shard {SHARD_INDEX} skips: {dict(all_skips)}")
+
+          with open("shard_result.json", "w") as f:
+              json.dump({"shard": SHARD_INDEX, "fetched": fetched, "universe_size": len(SYMBOLS),
+                         "trades": all_trades, "skips": dict(all_skips)}, f)
+          PYEOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.shard }}-result
+          path: shard_result.json
+          retention-days: 3
+
+  aggregate:
+    needs: replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*-result
+          path: shards
+          merge-multiple: false
+
+      - name: Aggregate all shards and report pooled metrics
+        run: |
+          python3 - <<'PYEOF'
+          import glob
+          import json
+
+          all_trades = []
+          all_skips = {}
+          total_fetched = 0
+          total_universe = 0
+          for path in sorted(glob.glob("shards/shard-*-result/shard_result.json")):
+              with open(path) as f:
+                  data = json.load(f)
+              all_trades.extend(data["trades"])
+              total_fetched += data["fetched"]
+              total_universe += data["universe_size"]
+              for k, v in data["skips"].items():
+                  all_skips[k] = all_skips.get(k, 0) + v
+              print(f"  loaded {path}: {data['fetched']}/{data['universe_size']} symbols, {len(data['trades'])} trades")
+
+          print(f"\n--- Pooled: fetched {total_fetched}/{total_universe} symbols, {len(all_trades)} short trades total ---")
+          print(f"  skipped candidate entries (not silently dropped): {all_skips}\n")
 
 
           def _metrics(trades, label):
