@@ -258,11 +258,34 @@ jobs:
       - name: Append newly-closed trades to the outcome history
         run: |
           test -f docs/trade_outcomes_log.json || echo '[]' > docs/trade_outcomes_log.json
+          # Dedup key changed 2026-09-29 (see main.py's _closed_trade_merge_key
+          # docstring for the full incident writeup - "Fix now", explicit user
+          # instruction): grouping by (symbol, exit_time_utc) let a position
+          # resurrected from a stale state/open_positions.json snapshot on
+          # every restart in a tight redeploy window get appended as a "new"
+          # closed trade each time (each resurrection cycle gets a genuinely
+          # fresh exit_time_utc but reuses the exact same frozen
+          # entry_price_native/exit_reason/qty) - POLICYBZR.NS was recorded
+          # as 25 separate trades on 2026-09-24 this way, with an escalating
+          # pnl_inr that never matched its actual entry/exit prices.
+          # exit_reason and qty are both load-bearing in the group_by key,
+          # not just entry_price - a staged-ladder exit legitimately books
+          # T1/T2/trail as separate rows sharing the same symbol/day/
+          # entry_price (they're partial exits of ONE entry), always
+          # differing in exit_reason and qty; keying on entry_price alone
+          # would have silently discarded those real legs (confirmed
+          # against a real INFY.NS example before shipping this).
           jq -s '
             (.[0] // []) as $existing |
             (.[1].closed_trades // []) as $new |
             ($existing + $new)
-            | group_by(.symbol + "|" + (.exit_time_utc|tostring))
+            | group_by(
+                .symbol + "|"
+                + (((.exit_time_utc // 0) + 19800) | gmtime | strftime("%Y-%m-%d")) + "|"
+                + ((((.entry_price_native // 0) * 100) | round) / 100 | tostring) + "|"
+                + (.exit_reason // "unknown") + "|"
+                + ((((.qty // 0) * 10000) | round) / 10000 | tostring)
+              )
             | map(.[0])
             | sort_by(.exit_time_utc)
           ' docs/trade_outcomes_log.json /tmp/daily-summary.json > /tmp/trade_outcomes_merged.json
