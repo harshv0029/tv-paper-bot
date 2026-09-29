@@ -158,3 +158,22 @@ of trusting the transfer pack's prose.
   be treated as precedent for adding more — any new strategy needing real-
   order gating shares whichever of these three already fits its asset
   class/timeframe, unless the user explicitly asks for a new one.
+- **Thumb rule (2026-09-29, explicit user instruction): whenever the user
+  shares a book, PDF, or other resource, extract and try EVERY strategy it
+  describes — never skip any, never cherry-pick only the ones that look
+  most promising on a first read.** Each one gets the full established
+  cycle, no shortcuts: implement (or faithfully reimplement for research)
+  → unit test → full-universe validation replay calling the real `main.py`
+  functions → test across candle sizes per the 2026-09-29 candle-size
+  thumb rule where the strategy's own timeframe isn't obviously fixed →
+  report the honest result → add it to `strategy_registry.py`'s pool with
+  its real metrics regardless of outcome (a strategy that fails is still
+  record-worthy - see this file's own PFNET_LIVE_FLOOR/is_viable()
+  discipline). The explicit goal behind this (user's own words): "create
+  such universe with time and be profitable as per your hybrid strategy,
+  learn from your workings and mistakes" - the strategy pool is meant to
+  keep growing from real outside sources (not just this repo's own trial-
+  and-error) until a genuinely profitable combination emerges, and every
+  documented failure (the short-selling research log, the Minervini VCP
+  log) is itself the record of what's already been tried, so the search
+  never blindly repeats it.
