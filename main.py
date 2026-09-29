@@ -417,14 +417,20 @@ def init_db():
             """
             CREATE TABLE IF NOT EXISTS signal_state_swing (
                 symbol TEXT PRIMARY KEY,
-                strategy TEXT NOT NULL,   -- e.g. 'gap_and_go' - which swing signal opened this
+                strategy TEXT NOT NULL,   -- 'gap_and_go' | 'minervini_vcp' - which swing signal opened this
                 entry_day TEXT NOT NULL,  -- IST date (YYYY-MM-DD) the position was opened
                 entry_price REAL NOT NULL,
-                initial_stop_loss REAL NOT NULL,  -- frozen at entry - gap_and_go does not trail
-                gap_low REAL,              -- gap day's own Low, gap_and_go's invalidation level
+                initial_stop_loss REAL NOT NULL,  -- frozen at entry - gap_and_go does not trail;
+                                                   -- minervini_vcp's own chandelier trail lives in
+                                                   -- atr_at_entry/running_max_close below instead of
+                                                   -- mutating this column, so its name stays accurate
+                                                   -- for both strategies
+                gap_low REAL,              -- gap day's own Low, gap_and_go's invalidation level - NULL for minervini_vcp
                 qty REAL NOT NULL,
                 entry_ts REAL NOT NULL,
-                fx_to_inr REAL NOT NULL DEFAULT 1.0
+                fx_to_inr REAL NOT NULL DEFAULT 1.0,
+                atr_at_entry REAL,         -- minervini_vcp only (frozen ATR at entry) - NULL for gap_and_go
+                running_max_close REAL     -- minervini_vcp only (chandelier peak, updated every scan) - NULL for gap_and_go
             )
             """
         )
@@ -12637,16 +12643,62 @@ def _retry_pending_real_swing_orders(conn):
             print(f"[REAL SWING] exit retry failed for {row['symbol']} (non-fatal): {e}")
 
 
+def _swing_position_size(conn, capital: float, risk_pct: float, entry_price: float, stop_loss: float) -> int:
+    """Shared position-sizing formula for every swing strategy
+    (gap_and_go, minervini_vcp) - identical to _auto_signal_core's own
+    equity path. deployed_notional() already includes swing's own open
+    notional (see its docstring), so this can't jointly overspend with
+    the intraday engine or between the two swing strategies themselves
+    (each call reads the other's already-open positions)."""
+    stop_dist = entry_price - stop_loss
+    if stop_dist <= 0:
+        return 0
+    available_capital_inr = max(0.0, capital - deployed_notional(conn))
+    max_single_trade_inr = capital / CAPITAL_TRANCHES
+    usable_capital_inr = min(available_capital_inr, max_single_trade_inr)
+    risk_amount_inr = usable_capital_inr * risk_pct / 100
+    qty = risk_amount_inr / stop_dist
+    if entry_price > 0:
+        qty = min(qty, usable_capital_inr / entry_price)
+    return int(math.floor(qty))
+
+
 def _run_swing_scan(conn):
     """Once-per-day (IST) daily-bar scan for every symbol in SWING_WATCHLIST:
     checks exits for open swing positions first, then entries for flat ones.
     Always paper-trades unconditionally; additionally mirrors as a REAL
     order (see _maybe_place_real_swing_entry/_maybe_place_real_swing_exit)
     only when is_real_swing_trading_enabled() - 2026-09-22, real-order
-    mirroring build. Called from _scheduler_tick every tick; the
-    swing_scan_log guard below makes every call after the first one in a
-    given IST day a no-op, so calling it unconditionally every tick is
-    cheap and safe."""
+    mirroring build, extended 2026-09-29 to a second swing strategy
+    (Minervini VCP), sharing this SAME switch rather than getting its own
+    (explicit user instruction: one manual real-trading kill switch is
+    enough to track - see CLAUDE.md's "ask before creating any new
+    real-trading switch" thumb rule). Called from _scheduler_tick every
+    tick; the swing_scan_log guard below makes every call after the first
+    one in a given IST day a no-op, so calling it unconditionally every
+    tick is cheap and safe.
+
+    Two-pass (2026-09-29, added for Minervini VCP): pass 1 fetches every
+    symbol's OHLC once and builds the whole watchlist's closes, so RS
+    percentile (a genuinely cross-sectional stat - see
+    _compute_minervini_rs_percentiles's own docstring) can be computed
+    ONCE per scan cycle instead of per-symbol. Explicit, deliberate
+    limitation kept from the full-universe validation: this RS percentile
+    is computed against SWING_WATCHLIST (NIFTY-200-scoped, ~200-250
+    symbols per the 2026-09-14 live-trading-scope restriction), not the
+    ~2,362-symbol universe minervini-vcp-validation-replay.yml validated
+    against (PFnet 0.908) - a materially smaller peer group changes what
+    the RS>=70 percentile threshold actually selects. Flagged rather than
+    hidden per explicit user instruction (2026-09-29): wire it using the
+    live watchlist as its own peer group now, and require full backtest
+    validation before wiring any future strategy the same way.
+
+    Only one swing strategy can hold a position per symbol at a time
+    (signal_state_swing.symbol is a PRIMARY KEY) - gap_and_go is checked
+    first (its own validated PFnet, 1.65, clears PFNET_LIVE_FLOOR;
+    Minervini VCP's, 0.908, does not), so on a symbol where both would
+    fire the same day, gap_and_go wins and Minervini VCP simply doesn't
+    get a look until that symbol is flat again."""
     today = ist_now().strftime("%Y-%m-%d")
     if conn.execute("SELECT 1 FROM swing_scan_log WHERE scan_date = ?", (today,)).fetchone():
         return
@@ -12661,6 +12713,7 @@ def _run_swing_scan(conn):
 
     capital = get_scheduler_capital_inr()
 
+    dfs = {}
     for symbol in SWING_WATCHLIST:
         _record_swing_check(symbol)
         try:
@@ -12670,13 +12723,32 @@ def _run_swing_scan(conn):
             continue
         if df is None or len(df) < 50:
             continue
+        dfs[symbol] = df
 
+    try:
+        rs_pct = _compute_minervini_rs_percentiles({sym: df["Close"].to_numpy() for sym, df in dfs.items()})
+    except Exception as e:
+        print(f"[SWING] minervini RS percentile computation failed (non-fatal, entries skip the RS gate this cycle): {e}")
+        rs_pct = {}
+
+    for symbol, df in dfs.items():
         pos = conn.execute(
             "SELECT * FROM signal_state_swing WHERE symbol = ?", (symbol,)
         ).fetchone()
 
         if pos:
-            reason = gap_and_go_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"], pos["gap_low"])
+            if pos["strategy"] == "minervini_vcp":
+                reason, new_running_max = minervini_vcp_exit_reason(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
+                )
+                if not reason:
+                    conn.execute(
+                        "UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                        (new_running_max, symbol),
+                    )
+                    conn.commit()
+            else:
+                reason = gap_and_go_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"], pos["gap_low"])
             if reason:
                 exit_price = float(df["Close"].iloc[-1])
                 fx = pos["fx_to_inr"]
@@ -12686,61 +12758,75 @@ def _run_swing_scan(conn):
                     "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
                     "VALUES (?, ?, 'sell', ?, ?, ?, ?, ?)",
                     (time.time(), symbol, pos["qty"], exit_price, fx, SWING_STRATEGY_TAG,
-                     json.dumps({"exit_reason": reason, "gross_pnl_native": gross_pnl_native})),
+                     json.dumps({"exit_reason": reason, "gross_pnl_native": gross_pnl_native, "strategy": pos["strategy"]})),
                 )
                 conn.execute("DELETE FROM signal_state_swing WHERE symbol = ?", (symbol,))
                 conn.commit()
-                print(f"[SWING] exit {symbol} ({reason}) qty={pos['qty']} @ {exit_price:.2f}")
+                print(f"[SWING] exit {symbol} ({pos['strategy']}, {reason}) qty={pos['qty']} @ {exit_price:.2f}")
                 try:
                     _maybe_place_real_swing_exit(conn, symbol)
                 except Exception as e:
                     print(f"[REAL SWING] exit mirror failed for {symbol} (non-fatal, paper exit already recorded): {e}")
             continue  # never also check for a new entry the same day a position is/was open
 
-        signal = gap_and_go_entry_signal(df)
-        if not signal:
-            continue
-
         cfg = NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
         risk_pct = cfg["risk_pct"]
-        entry_price = signal["entry_price"]
-        stop_loss = signal["stop_loss"]
-        stop_dist = entry_price - stop_loss
-        if stop_dist <= 0:
+        fx = 1.0  # SWING_WATCHLIST is NSE (.NS) equities only
+
+        signal = gap_and_go_entry_signal(df)
+        if signal:
+            entry_price = signal["entry_price"]
+            stop_loss = signal["stop_loss"]
+            qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+            if qty <= 0:
+                continue
+            conn.execute(
+                "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+                "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (symbol, "gap_and_go", today, entry_price, stop_loss, signal["gap_low"], qty, time.time(), fx),
+            )
+            apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+            conn.execute(
+                "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+                (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+                 json.dumps({"entry_reason": "gap_and_go", "stop_loss": stop_loss, "gap_low": signal["gap_low"]})),
+            )
+            conn.commit()
+            print(f"[SWING] entry {symbol} (gap_and_go) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+            try:
+                _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "gap_and_go")
+            except Exception as e:
+                print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
             continue
 
-        # Same shared-capital sizing formula as _auto_signal_core's own
-        # equity path - deployed_notional() already includes swing's own
-        # open notional (see its docstring), so this can't jointly overspend
-        # with the intraday engine.
-        available_capital_inr = max(0.0, capital - deployed_notional(conn))
-        max_single_trade_inr = capital / CAPITAL_TRANCHES
-        usable_capital_inr = min(available_capital_inr, max_single_trade_inr)
-        risk_amount_inr = usable_capital_inr * risk_pct / 100
-        qty = risk_amount_inr / stop_dist if stop_dist > 0 else 0
-        if entry_price > 0:
-            qty = min(qty, usable_capital_inr / entry_price)
-        qty = int(math.floor(qty))
+        vcp_signal = minervini_vcp_entry_signal(df, rs_percentile=rs_pct.get(symbol))
+        if not vcp_signal:
+            continue
+        entry_price = vcp_signal["entry_price"]
+        stop_loss = vcp_signal["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
         if qty <= 0:
             continue
-
-        fx = 1.0  # SWING_WATCHLIST is NSE (.NS) equities only
         conn.execute(
             "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
-            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (symbol, "gap_and_go", today, entry_price, stop_loss, signal["gap_low"], qty, time.time(), fx),
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, "minervini_vcp", today, entry_price, stop_loss, None, qty, time.time(), fx,
+             vcp_signal["atr_at_entry"], entry_price),
         )
         apply_paper_trade(conn, symbol, "buy", qty, entry_price)
         conn.execute(
             "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
             "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
             (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
-             json.dumps({"entry_reason": "gap_and_go", "stop_loss": stop_loss, "gap_low": signal["gap_low"]})),
+             json.dumps({"entry_reason": "minervini_vcp", "stop_loss": stop_loss,
+                         "atr_at_entry": vcp_signal["atr_at_entry"]})),
         )
         conn.commit()
-        print(f"[SWING] entry {symbol} qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        print(f"[SWING] entry {symbol} (minervini_vcp) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
         try:
-            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "gap_and_go")
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "minervini_vcp")
         except Exception as e:
             print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
 

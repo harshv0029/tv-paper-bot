@@ -141,3 +141,20 @@ of trusting the transfer pack's prose.
   off one variant's result, full-universe validation before trusting a
   number, and calling the real `main.py` function (not a reimplementation)
   for anything that will actually inform a go/no-go call.
+- **Thumb rule (2026-09-29, explicit user instruction, after a same-day
+  revert): ask before creating any new real-trading kill switch.** Never
+  add a new `is_real_*_trading_enabled()` / `REAL_*_TRADING_ENABLED`
+  env-var gate on your own initiative, even to isolate a newly-wired
+  strategy "safely." The user wants exactly **one** switch for manually
+  shutting down live trading, not a growing set of category-specific
+  switches they can't track on Render — see the incident: a
+  `REAL_MINERVINI_VCP_TRADING_ENABLED` switch was built unasked when
+  Minervini VCP was wired into the live swing scan, and was reverted the
+  same day once flagged ("I just want one switch... not many trading
+  switches which I will not able to track"). `is_real_trading_enabled`
+  (equity), `is_real_fo_trading_enabled` (F&O), and
+  `is_real_swing_trading_enabled` (swing, now shared by both gap_and_go
+  and Minervini VCP) already exist from before this rule and are NOT to
+  be treated as precedent for adding more — any new strategy needing real-
+  order gating shares whichever of these three already fits its asset
+  class/timeframe, unless the user explicitly asks for a new one.
