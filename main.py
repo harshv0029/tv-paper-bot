@@ -4766,6 +4766,63 @@ def _range_regime_short_stop_loss(last_close: float, df: pd.DataFrame, stop_loss
     return min(range_stop, stop_loss_cap)
 
 
+def _compute_target_cluster_short(entry_price: float, stop_loss: float, df: pd.DataFrame, rr: float) -> dict:
+    """Short mirror of _compute_target_cluster (2026-09-29, root-caused after
+    range-short-validation-replay.yml's first full-universe run: PFnet 0.17,
+    win rate 15.3%, only 7.1% of exits were target_hit, against a plain
+    `last_close - rr*stop_dist` (implicit fixed 3R) target). A fixed 3R
+    single-shot target needs >25% win rate to break even before costs even
+    at rr=3.0 - the long RANGE path already avoids exactly this by using a
+    median-of-candidates target (closer, more often reachable, than a lone
+    3R shot); the short path's first cut used the plain formula instead.
+    This mirrors the long side's existing, already-validated architecture
+    rather than inventing a new one, to isolate whether target
+    achievability - not a directional edge problem - was the dominant
+    driver of the bad full-universe result.
+
+    All candidates point DOWN from entry (a short profits as price falls):
+    2.0R below entry, the nearest recent LOW below entry (mirror of the
+    long side's "recent resistance ahead"), and an ATR-projected move below
+    entry. `primary_target` is their median, falling back to the
+    pre-existing plain rr*R short target when neither structure nor ATR can
+    be computed yet - never silently changes behavior when there isn't
+    enough history for the richer read."""
+    r = stop_loss - entry_price
+    fallback_target = entry_price - rr * r
+    if r <= 0:
+        return {"r_multiples": {}, "structure_target": None, "atr_target": None,
+                "primary_target": round(fallback_target, 2), "confidence": None}
+
+    r_multiples = {
+        "1.0R": entry_price - 1.0 * r, "1.5R": entry_price - 1.5 * r,
+        "2.0R": entry_price - 2.0 * r, "3.0R": entry_price - 3.0 * r,
+    }
+
+    structure_target = None
+    if len(df) > UNIVERSAL_STRUCTURE_LOOKBACK:
+        recent_low = float(df["Low"].iloc[-(UNIVERSAL_STRUCTURE_LOOKBACK + 1):-1].min())
+        if recent_low < entry_price:
+            structure_target = recent_low
+
+    atr_val = _compute_atr_value(df)
+    atr_target = entry_price - 2.0 * atr_val if atr_val else None
+
+    candidates = [c for c in [r_multiples["2.0R"], structure_target, atr_target] if c is not None]
+    primary_target = float(np.median(candidates)) if candidates else fallback_target
+    confidence = None
+    if len(candidates) >= 2 and primary_target:
+        spread_pct = 100.0 * (max(candidates) - min(candidates)) / primary_target
+        confidence = round(max(0.0, 1.0 - spread_pct / 20.0), 2)
+
+    return {
+        "r_multiples": {k: round(v, 2) for k, v in r_multiples.items()},
+        "structure_target": round(structure_target, 2) if structure_target else None,
+        "atr_target": round(atr_target, 2) if atr_target else None,
+        "primary_target": round(primary_target, 2),
+        "confidence": confidence,
+    }
+
+
 def _split_exit_legs(qty: float, r_multiples: dict) -> list[dict]:
     """Staged profit-booking ladder - explicit user instruction: 4-way
     25/25/25/trail for qty>=4 shares, collapsing to a proportional split
@@ -6524,7 +6581,13 @@ def _short_signal_core(
             result["action_taken"] = "invalid_stop_skipped"
             return result
 
-        target = last_close - rr * stop_dist
+        # 2026-09-29 root-cause fix: was a plain `last_close - rr*stop_dist`
+        # (fixed 3R single-shot target, needing >25% win rate to break even
+        # before costs) - see _compute_target_cluster_short's own docstring
+        # for why this was replaced with the same median-of-candidates
+        # target the long RANGE path already uses.
+        target_cluster = _compute_target_cluster_short(last_close, stop_loss, df, rr)
+        target = target_cluster["primary_target"]
         target_move_pct = _target_move_pct_short(target, last_close)
         if target_move_pct <= ROUND_TRIP_COST_PCT:
             result["action_taken"] = "cost_uneconomic_skipped"
