@@ -526,6 +526,40 @@ REGISTRY: list[StrategyDef] = [
             "shorting than buying on this universe."
         ),
     ),
+    StrategyDef(
+        name="minervini_vcp_short_breakdown",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # main.py.minervini_vcp_entry_signal_short/minervini_vcp_exit_reason_short exist but are not wired into any scan
+        metrics=Metrics(
+            pfnet=0.014, pfgross=0.015, win_rate_pct=42.08, n_trades=701,
+            avg_net_inr=-49132.23,
+            universe="full_2680 (2362/2680 fetched)",
+            run_ref="minervini-vcp-short-validation-replay.yml run 36603511866 (2026-09-29, calls the real main.py functions)",
+        ),
+        source="main.py (minervini_vcp_entry_signal_short/minervini_vcp_exit_reason_short)",
+        evidence=(
+            "Full-universe run 36603511866: PFnet 0.014, PFgross 0.015, n=701, win_rate "
+            "42.08%, avg_net -Rs49,132.23/trade, avg held 18.2 days. By far the worst "
+            "PFnet AND worst avg_net_inr of any strategy tried this session, long or "
+            "short - trail_stop_hit trades (n=516, 74% of all trades) alone carry PFnet "
+            "0.008. Stage-4 VCP-down breakdown mirror does not work on this universe; "
+            "the long side's own Minervini VCP result (tt_vcp, see idea4_no_target's "
+            "sibling entries) was itself unremarkable, so a symmetric failure on the "
+            "short side is at least consistent, not a surprising anomaly."
+        ),
+        notes=(
+            "All Stage-4 trend-template SMA/lookback constants and the RS-percentile "
+            "cross-sectional table (MINERVINI_RS_PERCENTILE_MAX_SHORT=30, bottom "
+            "percentile) reused verbatim from the long side per CLAUDE.md's short-"
+            "mirror discipline - only comparison directions inverted. Never checked "
+            "across candle sizes (CLAUDE.md 2026-09-29 thumb rule) - 1d only so far; "
+            "given how badly it fails here, a candle-size sweep is unlikely to be a "
+            "priority ahead of higher-PFnet candidates."
+        ),
+    ),
 
     # ---- FUTURES / OPTIONS ------------------------------------------------
     # No entries: kotak_real_orders.py has NO futures or options order-
