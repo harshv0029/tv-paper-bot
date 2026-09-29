@@ -3473,6 +3473,174 @@ def minervini_vcp_exit_reason(
     return None, new_running_max
 
 
+# ---- Power Play / High Tight Flag (Minervini, chapter 10) -----------------
+#
+# 2026-09-29, explicit user instruction ("Build Power Play first") after a
+# second reading pass over docs/Trade Like a Stock Market Wizard (2013).pdf
+# turned up this as the most distinct genuinely-new strategy candidate - see
+# docs/minervini_book_notes.txt's own CHAPTER 10 (REST) section for the full
+# reading notes. Unlike tt_vcp, Power Play is explicitly NOT gated by the
+# Trend Template or fundamentals (the book's own words: "the only situation
+# I will enter with a dearth of fundamentals") - a momentum/velocity setup:
+# an explosive prior move, a tight sideways flag, then a breakout.
+#
+# Three numeric criteria from the book, all required:
+#   1. An explosive move: price up >=100% in under 8 weeks (~40 trading
+#      days) on high volume, after a period of relative dormancy.
+#   2. A "flag": sideways for 3-6 weeks (some as short as 12 calendar
+#      days - ~8-9 trading days), correcting no more than 20-25% from the
+#      peak.
+#   3. Final tightening: the last leg corrects no more than 10%, OR the
+#      flag shows VCP-style leg-by-leg contraction (this implementation
+#      uses the simpler, literal <=10% final-leg reading - the book
+#      presents the two as alternatives, not both required).
+#
+# Mechanical simplifications documented honestly (the book's own prose is
+# not a numeric spec):
+#   - "Relative dormancy" before the launch is not separately verified -
+#     requiring the launch's own low-to-high move to be >=100% within a
+#     bounded window is the only dormancy-adjacent check.
+#   - The launch's own "huge volume" is not independently checked against
+#     volume data (unlike the breakout day, which IS volume-gated) - only
+#     the price move is verified mechanically.
+#   - The flagpole's peak must fall within the last POWER_PLAY_
+#     PEAK_PROXIMITY_DAYS bars of the launch window (a sanity constraint
+#     so a stale, unrelated earlier high 40 days back can't satisfy the
+#     launch criterion on its own).
+#
+# Exit mirrors minervini_vcp_exit_reason's own chandelier-trail + max-hold
+# convention (same architecture, Power-Play-specific constants) - this
+# session's established pattern for swing/daily-bar strategies, not a
+# rule stated explicitly in the book for this particular setup.
+POWER_PLAY_LAUNCH_MAX_DAYS = 40       # ~8 weeks of trading days
+POWER_PLAY_LAUNCH_MIN_GAIN_PCT = 100.0
+POWER_PLAY_PEAK_PROXIMITY_DAYS = 10   # flagpole peak must sit near the launch window's own end
+POWER_PLAY_CONSOL_MIN_DAYS = 8        # ~12 calendar days
+POWER_PLAY_CONSOL_MAX_DAYS = 30       # ~6 weeks of trading days
+POWER_PLAY_CONSOL_MAX_DEPTH_PCT = 25.0
+POWER_PLAY_FINAL_LEG_DAYS = 5
+POWER_PLAY_FINAL_LEG_MAX_PCT = 10.0
+POWER_PLAY_VOL_LOOKBACK = 20
+POWER_PLAY_VOL_SURGE_MULT = 1.5
+POWER_PLAY_ATR_N = 14
+POWER_PLAY_ATR_STOP_MULT = 2.0        # matches MINERVINI_ATR_STOP_MULT's chandelier convention
+POWER_PLAY_MAX_HOLD_DAYS = 120        # ~6 months - the book's own power-play examples
+# run anywhere from 66 to 400+ days; not backtest-tuned, a middle estimate
+# pending the validation replay (per CLAUDE.md, never tune blind off one
+# result - this is a starting value to validate, not a swept optimum).
+
+
+def _find_power_play_setup(df: pd.DataFrame) -> dict | None:
+    """Evaluated as of the LAST row of `df` (today, itself excluded - it's
+    the candidate breakout bar, checked separately by
+    power_play_entry_signal). Searches consolidation lengths from
+    POWER_PLAY_CONSOL_MAX_DAYS down to POWER_PLAY_CONSOL_MIN_DAYS (prefers
+    a longer, more mature flag) for one immediately preceded by a
+    >=POWER_PLAY_LAUNCH_MIN_GAIN_PCT launch move within the
+    POWER_PLAY_LAUNCH_MAX_DAYS window before it. Returns
+    {"consol_high", "consol_low"} for the first valid (launch, flag) pair
+    found, else None."""
+    highs = df["High"].to_numpy(dtype=float)
+    lows = df["Low"].to_numpy(dtype=float)
+    i = len(df) - 1
+    for consol_len in range(POWER_PLAY_CONSOL_MAX_DAYS, POWER_PLAY_CONSOL_MIN_DAYS - 1, -1):
+        consol_start = i - consol_len
+        if consol_start < POWER_PLAY_PEAK_PROXIMITY_DAYS:
+            continue  # not enough bars left for even a minimal launch window
+        consol_highs = highs[consol_start:i]
+        consol_lows = lows[consol_start:i]
+        if len(consol_highs) == 0:
+            continue
+        consol_high = float(np.max(consol_highs))
+        consol_low = float(np.min(consol_lows))
+        if consol_high <= 0:
+            continue
+        depth_pct = 100.0 * (consol_high - consol_low) / consol_high
+        if depth_pct > POWER_PLAY_CONSOL_MAX_DEPTH_PCT:
+            continue
+
+        final_leg_start = max(consol_start, i - POWER_PLAY_FINAL_LEG_DAYS)
+        final_highs = highs[final_leg_start:i]
+        final_lows = lows[final_leg_start:i]
+        if len(final_highs) == 0:
+            continue
+        final_leg_pct = 100.0 * (float(np.max(final_highs)) - float(np.min(final_lows))) / consol_high
+        if final_leg_pct > POWER_PLAY_FINAL_LEG_MAX_PCT:
+            continue
+
+        launch_start = max(0, consol_start - POWER_PLAY_LAUNCH_MAX_DAYS)
+        launch_highs = highs[launch_start:consol_start]
+        launch_lows = lows[launch_start:consol_start]
+        if len(launch_highs) < POWER_PLAY_PEAK_PROXIMITY_DAYS:
+            continue
+        peak_rel = int(np.argmax(launch_highs))
+        if peak_rel < len(launch_highs) - POWER_PLAY_PEAK_PROXIMITY_DAYS:
+            continue  # the peak isn't near where the flag begins - not a clean flagpole
+        launch_high = float(launch_highs[peak_rel])
+        if launch_high > consol_high * 1.02:
+            continue  # a real flag stays below its own pole's top
+        low_before_peak = float(np.min(launch_lows[: peak_rel + 1]))
+        if low_before_peak <= 0:
+            continue
+        gain_pct = 100.0 * (launch_high - low_before_peak) / low_before_peak
+        if gain_pct < POWER_PLAY_LAUNCH_MIN_GAIN_PCT:
+            continue
+
+        return {"consol_high": consol_high, "consol_low": consol_low}
+    return None
+
+
+def power_play_entry_signal(df: pd.DataFrame) -> dict | None:
+    """Evaluates ONLY the last row of `df` (today) for a Power Play / high
+    tight flag entry: a valid _find_power_play_setup flag + today's close
+    breaking above the flag's high on a volume surge. Returns None if no
+    signal fires, else {"entry_price", "stop_loss", "atr_at_entry"} for the
+    caller to size and open a position with - same return shape as
+    minervini_vcp_entry_signal/gap_and_go_entry_signal."""
+    setup = _find_power_play_setup(df)
+    if setup is None:
+        return None
+    closes = df["Close"].to_numpy(dtype=float)
+    volumes = df["Volume"].to_numpy(dtype=float)
+    i = len(df) - 1
+    if closes[i] <= setup["consol_high"]:
+        return None
+    vol_avg = pd.Series(volumes).rolling(POWER_PLAY_VOL_LOOKBACK).mean().shift(1).to_numpy()
+    if np.isnan(vol_avg[i]) or vol_avg[i] <= 0 or volumes[i] < POWER_PLAY_VOL_SURGE_MULT * vol_avg[i]:
+        return None
+    atr = _swing_atr(df, n=POWER_PLAY_ATR_N)
+    if np.isnan(atr[i]) or atr[i] <= 0:
+        return None
+    stop_loss = setup["consol_low"]
+    if stop_loss >= closes[i]:
+        return None
+    return {"entry_price": closes[i], "stop_loss": stop_loss, "atr_at_entry": float(atr[i])}
+
+
+def power_play_exit_reason(
+    df: pd.DataFrame, entry_day: str, initial_stop: float, atr_at_entry: float, running_max_close: float,
+) -> tuple:
+    """Evaluates ONLY the last row of `df` (today) for a Power Play exit -
+    identical chandelier-trail + max-hold mechanics to
+    minervini_vcp_exit_reason, with Power-Play-specific constants (see this
+    section's own header comment for why). Returns
+    (exit_reason_or_None, updated_running_max_close)."""
+    if len(df) == 0:
+        return None, running_max_close
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].astype(str).to_numpy()
+    i = len(df) - 1
+    new_running_max = max(running_max_close, closes[i])
+    trail_stop = new_running_max - POWER_PLAY_ATR_STOP_MULT * atr_at_entry
+    current_stop = max(initial_stop, trail_stop)
+    if closes[i] <= current_stop:
+        return "trail_stop_hit", new_running_max
+    held_days = int(np.sum(dates > entry_day))
+    if held_days >= POWER_PLAY_MAX_HOLD_DAYS:
+        return "max_hold_timeout", new_running_max
+    return None, new_running_max
+
+
 def gap_and_go_entry_signal(df: pd.DataFrame) -> dict | None:
     """Evaluates ONLY the last row of `df` (today) for a Gap and Go entry -
     identical rules/thresholds to the validated research workflow
