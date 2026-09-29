@@ -156,17 +156,24 @@ REGISTRY: list[StrategyDef] = [
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
-            pfnet=0.06, pfgross=None, win_rate_pct=None, n_trades=None,
-            universe="52_symbol_sample", run_ref="universal-score-entry-floor-research.yml run 36444172866 (2026-09-28)",
+            pfnet=0.14, pfgross=1.31, win_rate_pct=17.1, n_trades=160937,
+            avg_net_inr=-1222.44, cost_drag_pct=123.0,
+            universe="full_2680 (2639/2680 fetched)",
+            run_ref="universal-score-entry-floor-validation-replay.yml run 36577670843 (2026-09-29, calls the real main.py functions)",
         ),
         risk_profile={"UNIVERSAL_ENTRY_SCORE_MIN": 85.0},
-        source=".github/workflows/universal-score-entry-floor-research.yml",
+        source="main.py (_compute_universal_entry_score, UNIVERSAL_ENTRY_SCORE_MIN overridden to 85.0)",
         evidence=(
-            "run 36444172866 (2026-09-28): TREND-only PFnet 0.09->0.13, PFgross 1.11->1.64, "
-            "win% 11.6->17.1 as the entry floor rises 70->85; ALL-population PFnet unchanged "
-            "at ~0.06 since TREND is only ~17% of trade volume and RANGE (untouched) dominates."
+            "Real-function full-universe validation (2026-09-29, run 36577670843): ALL PFnet "
+            "0.14 (n=160,937), TREND-only PFnet 0.14 (n=5,139), RANGE-only PFnet 0.14 "
+            "(n=155,798) - the earlier 52-symbol-sample finding's optimistic TREND-only lift "
+            "(PFnet 0.09->0.13 as floor rose 70->85) does NOT hold at full-universe scale: "
+            "current_70's own TREND-only PFnet was already 0.15 here, and floor_85 does not "
+            "improve on it. Also tested floor_90 in the same run: ALL PFnet 0.14 (n=160,790), "
+            "TREND-only PFnet 0.14 (n=4,980) - same flat result. Raising the entry-score floor "
+            "does not move PFnet at full-universe scale, in either direction."
         ),
-        notes="One replay result, not full-universe. Needs full pytest + full-universe validation replay + explicit user go-ahead before any live wiring.",
+        notes="Confined to research status - well below PFNET_LIVE_FLOOR, no meaningful improvement over the live 70-floor baseline. Not worth pursuing further as a standalone lever.",
     ),
 
     # ---- SWING ----------------------------------------------------------
