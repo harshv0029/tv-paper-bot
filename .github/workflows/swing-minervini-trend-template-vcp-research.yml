@@ -340,21 +340,30 @@ jobs:
 
 
           # 2026-09-28 follow-up (explicit user instruction): widened from the
-          # original 52-symbol pilot to the FULL NSE EQ-series universe
-          # (main.py's NSE_FULL_UNIVERSE, ~2,600 real symbols sourced from
-          # Kotak's own scrip master - see _load_nse_universe_from_file's own
-          # docstring) so tt_vcp's n=15 sample (too thin to mean anything
-          # statistically) has a real chance to grow. Same reused SWING_WATCHLIST-
-          # style universe this codebase already trades Gap and Go on live - not
-          # a new sourcing mechanism invented for this test. Flagging the
-          # tradeoff rather than silently absorbing it (same discipline as
-          # SCHEDULER_ENTRY_SCAN_BATCH_SIZE's own comment in main.py): ~2,600
-          # sequential yfinance fetches is a real risk of tripping Yahoo's
-          # unofficial rate limit or the GitHub Actions job timeout - if this
-          # run fails partway, the honest fix is re-running (fetch_ohlc results
-          # aren't persisted across runs), not silently shrinking the universe
-          # back down without saying so.
-          SYMBOLS = sorted(set(m.NSE_FULL_UNIVERSE))
+          # original 52-symbol pilot to grow tt_vcp's n=15 sample (too thin to
+          # mean anything statistically). FIRST ATTEMPT at this used
+          # m.NSE_FULL_UNIVERSE directly and only got 200 symbols, not the
+          # expected ~2,600 - caught after that run completed, not before:
+          # main.py restricts the module-level NSE_FULL_UNIVERSE name to its
+          # NIFTY-200 intersection at import time (2026-09-14, "trade only in
+          # NIFTY 200" live-trading-scope instruction - see main.py's own
+          # NIFTY 200 restriction comment just above its NSE_FULL_UNIVERSE
+          # reassignment), so by the time this script imports main, the name
+          # NSE_FULL_UNIVERSE no longer means what its own docstring says.
+          # That NIFTY-200 restriction is a LIVE-TRADING-SCOPE decision, not a
+          # backtest one, so this research script calls
+          # m._load_nse_universe_from_file() directly instead, to get the raw
+          # ~2,680-symbol Kotak-sourced universe unrestricted - bypassing the
+          # live filter is correct here, not a workaround of it, since
+          # nothing in this workflow places or influences a live/paper trade.
+          # Flagging the tradeoff rather than silently absorbing it (same
+          # discipline as SCHEDULER_ENTRY_SCAN_BATCH_SIZE's own comment in
+          # main.py): ~2,680 sequential yfinance fetches is a real risk of
+          # tripping Yahoo's unofficial rate limit or the GitHub Actions job
+          # timeout - if this run fails partway, the honest fix is re-running
+          # (fetch_ohlc results aren't persisted across runs), not silently
+          # shrinking the universe back down without saying so.
+          SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
           CAPITAL_INR = 400000.0
 
           print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) ---")
