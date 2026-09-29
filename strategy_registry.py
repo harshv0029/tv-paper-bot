@@ -259,6 +259,48 @@ REGISTRY: list[StrategyDef] = [
         ),
     ),
 
+    StrategyDef(
+        name="idea4_no_target",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # main.py.idea4_entry_signal/idea4_exit_reason exist but are not wired into _run_swing_scan
+        metrics=Metrics(
+            pfnet=0.999, pfgross=1.236, win_rate_pct=37.48, n_trades=21138,
+            avg_net_inr=-0.10,
+            universe="full_2680 (2366/2680 fetched)",
+            run_ref="idea4-validation-replay.yml run 36592165748 (2026-09-29, calls the real main.py functions)",
+        ),
+        source="main.py (idea4_entry_signal/idea4_exit_reason)",
+        evidence=(
+            "Real-function full-universe validation (2026-09-29, run 36592165748): PFnet "
+            "printed as 1.000 (3dp) with avg_net -Rs0.10/trade - net negative, so the true "
+            "PFnet is fractionally below 1.0; recorded here as 0.999 rather than the "
+            "printed 1.000 so is_viable() doesn't misreport this as clearing the real "
+            "PFNET_LIVE_FLOOR breakeven bar. n=21,138, win_rate 37.48%. The unvalidated "
+            "research number this implementation was built to check (score-signal-4h-1d-"
+            "retest-research.yml, 1d NO_TARGET variant, 52-symbol sample) was PFnet 1.04, "
+            "n=927, avg_net +Rs79.92 - full-universe scale does NOT confirm a profitable "
+            "edge. This also matches the same-day robustness check "
+            "(daily-no-target-robustness-research.yml, run 35770868637, 2026-09-22) that "
+            "had already flagged the edge as unstable: time-split PFnet decayed 1.39 "
+            "(first half) -> 0.75 (second half), and excluding the top-15-by-PF symbols "
+            "dropped PFnet from 1.04 to 0.82."
+        ),
+        notes=(
+            "8-factor UNIVERSAL_SCORE_WEIGHTS entry (score>=70, EMA9>EMA21) at 1-day "
+            "candles, above_vwap read via a rolling-VOLUME_CONFIRM_LOOKBACK-bar window "
+            "substituting for session VWAP (see main.py's own idea4_entry_signal "
+            "docstring). Fixed ATR(14)x1.5 stop set once at entry (never trailed), no "
+            "fixed target - ride to that stop or 20 trading days. avg_net_inr is slightly "
+            "negative despite pfnet rounding to 1.000 - essentially exact breakeven before "
+            "counting the strategy's own opportunity cost, not a profitable edge. Named "
+            "'Idea 4' per explicit user instruction (2026-09-29) after a critical review of "
+            "every real trade taken to date."
+        ),
+    ),
+
     # ---- SHORT SELL -----------------------------------------------------
     # Every entry below is BELOW PFNET_LIVE_FLOOR - see each metrics.pfnet
     # and is_viable(). Ranked here per explicit user instruction ("keep
@@ -287,12 +329,13 @@ REGISTRY: list[StrategyDef] = [
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
-            pfnet=0.23, pfgross=1.41, win_rate_pct=46.6, n_trades=51583,
-            avg_net_inr=-712.78, cost_drag_pct=95.1,
-            universe="full_2680", run_ref="range-short-validation-replay.yml (bb_std=3.0 variant, 2026-09-29)",
+            pfnet=0.23, pfgross=1.41, win_rate_pct=46.5, n_trades=51935,
+            avg_net_inr=-714.85, cost_drag_pct=95.2,
+            universe="full_2680 (2639/2680 fetched)",
+            run_ref="range-short-validation-replay.yml run 36592169599 (2026-09-29, reconfirms the O(n^2)-bug-fixed, fully-wired real short-side functions)",
         ),
         source=".github/workflows/range-short-validation-replay.yml",
-        evidence="Full-universe run: PFnet 0.23, n=51,583. Highest win rate + lowest cost drag of any short variant.",
+        evidence="Full-universe run 36592169599: PFnet 0.23, n=51,935 - reconfirms the earlier 51,583-trade result (PFnet 0.23, avg -Rs712.78) after the O(n^2) compute-bound fix and full reconciliation/real-order/scheduler wiring; numbers essentially unchanged. Highest win rate + lowest cost drag of any short variant.",
         notes="Same target-cluster + staged-ladder architecture as range_short_target_cluster, entry restricted to more extreme VWAP spikes (bb_std=3.0 vs live default 2.0).",
     ),
     StrategyDef(
@@ -302,12 +345,13 @@ REGISTRY: list[StrategyDef] = [
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
-            pfnet=0.22, pfgross=1.41, win_rate_pct=45.3, n_trades=96044,
-            avg_net_inr=-712.47, cost_drag_pct=99.0,
-            universe="full_2680", run_ref="range-short-validation-replay.yml (bb_std=2.5 variant, 2026-09-29)",
+            pfnet=0.22, pfgross=1.41, win_rate_pct=45.3, n_trades=96785,
+            avg_net_inr=-713.84, cost_drag_pct=99.0,
+            universe="full_2680 (2639/2680 fetched)",
+            run_ref="range-short-validation-replay.yml run 36592169599 (2026-09-29, reconfirms the O(n^2)-bug-fixed, fully-wired real short-side functions)",
         ),
         source=".github/workflows/range-short-validation-replay.yml",
-        evidence="Full-universe run: PFnet 0.22, n=96,044.",
+        evidence="Full-universe run 36592169599: PFnet 0.22, n=96,785 - reconfirms the earlier 96,044-trade result (PFnet 0.22, avg -Rs712.47) after the O(n^2) compute-bound fix and full reconciliation/real-order/scheduler wiring; numbers essentially unchanged.",
         notes="Same architecture, bb_std=2.5.",
     ),
     StrategyDef(
@@ -332,12 +376,13 @@ REGISTRY: list[StrategyDef] = [
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
-            pfnet=0.21, pfgross=1.43, win_rate_pct=44.9, n_trades=173120,
-            avg_net_inr=-609.61, cost_drag_pct=103.6,
-            universe="full_2680", run_ref="range-short-validation-replay.yml (staged ladder run, 2026-09-29)",
+            pfnet=0.21, pfgross=1.43, win_rate_pct=44.9, n_trades=174702,
+            avg_net_inr=-609.96, cost_drag_pct=103.6,
+            universe="full_2680 (2639/2680 fetched)",
+            run_ref="range-short-validation-replay.yml run 36592169599 (2026-09-29, reconfirms the O(n^2)-bug-fixed, fully-wired real short-side functions)",
         ),
         source=".github/workflows/range-short-validation-replay.yml",
-        evidence="Full-universe run: PFnet 0.21, n=173,120. Smallest avg loss/trade of any short variant (-Rs609.61).",
+        evidence="Full-universe run 36592169599: PFnet 0.21, n=174,702 - reconfirms the earlier 173,120-trade result (PFnet 0.21, avg -Rs609.61) after the O(n^2) compute-bound fix and full reconciliation/real-order/scheduler wiring; numbers essentially unchanged.",
         notes="Adds the long side's 25/25/25/trail staged exit ladder on top of the target-cluster fix - a faithful full architectural mirror, but PFnet did not improve over the target-cluster-only version (0.26->0.21).",
     ),
     StrategyDef(
