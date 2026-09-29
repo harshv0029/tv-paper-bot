@@ -1,0 +1,252 @@
+MINERVINI "TRADE LIKE A STOCK MARKET WIZARD" (2013) - WORKING NOTES
+====================================================================
+Source file: docs/Trade Like a Stock Market Wizard  (2013).pdf (353 pages,
+uploaded by the user 2026-09-28). These are MY OWN paraphrased/summarized
+notes for backtesting purposes - not a copy of the book's text. Read this
+file before re-reading the PDF in a future session; it says what's already
+been extracted and tested so that work isn't repeated from scratch.
+
+Status as of 2026-09-29: chapters 1-2, 4, 7-9, 11, 13 NOT YET READ.
+Chapters 3 (skimmed only), 5, 6, 10, 12 (partial) covered below.
+
+--------------------------------------------------------------------
+CHAPTER 5 - "TRADING WITH THE TREND" (fully read, fully testable)
+--------------------------------------------------------------------
+
+STAGE ANALYSIS (credited in the book to Stan Weinstein's own earlier work,
+Minervini's application of it): every stock's price history cycles through
+four stages -
+  Stage 1 - Neglect/consolidation: sideways, oscillating around the
+    200-day (40-week) MA, no real trend. Avoid buying here.
+  Stage 2 - Advancing/accumulation: the ONLY stage Minervini buys in.
+    Institutional volume support, higher-highs/higher-lows staircase.
+  Stage 3 - Topping/distribution: increased volatility, largest one-day/
+    one-week decline since the stage 2 advance began, MA rolling over.
+  Stage 4 - Declining/capitulation: price mostly below a downtrending
+    200-day MA, lower-highs/lower-lows, avoid/short.
+
+TREND TEMPLATE - the 8-criterion long-only entry qualifier, ALL 8 required
+together (this is the single most directly testable rule in the book):
+  1. Close > 150-day SMA AND close > 200-day SMA
+  2. 150-day SMA > 200-day SMA
+  3. 200-day SMA has been rising for >= 1 month (ideally 4-5 months)
+  4. 50-day SMA > 150-day SMA AND 50-day SMA > 200-day SMA
+  5. Close > 50-day SMA
+  6. Close >= 1.30x the trailing 52-week low (many of the best setups are
+     2x-4x+ above their 52-week low before the move that matters even
+     starts)
+  7. Close <= 1.0x and >= 0.75x the trailing 52-week high (within 25% of a
+     new high - closer is better)
+  8. Relative strength vs the peer universe (book uses IBD's proprietary
+     RS Rank, 0-100 scale) >= 70, ideally 80s-90s
+
+BASE COUNTING: within an ongoing stage-2 uptrend, price advances in
+"waves" separated by sideways bases (5-26 weeks each, typically). Base #1
+and #2 (coming off a market correction) are the highest-quality/earliest
+entries; by base #4-#5 the trend is well-known and failure risk is
+materially higher. Not itself a numeric rule, more a risk-context overlay
+on top of the Trend Template.
+
+TESTED (2026-09-28/29): main.py doesn't run the Trend Template today at
+all - it was implemented fresh for backtesting in
+.github/workflows/swing-minervini-trend-template-vcp-research.yml (see
+RESULTS section below).
+
+--------------------------------------------------------------------
+CHAPTER 10 - "A PICTURE IS WORTH A MILLION DOLLARS" / VCP (fully read
+the VCP section; rest of the chapter - other chart patterns - NOT read)
+--------------------------------------------------------------------
+
+VOLATILITY CONTRACTION PATTERN (VCP) - the book's own name for its central
+entry-timing concept. Once a stock already qualifies under the Trend
+Template, VCP identifies the specific low-risk entry point within an
+ongoing stage-2 base:
+  - A base forms as a sequence of pullback "legs" (high -> low), each one
+    progressively shallower than the last, left to right. Book calls each
+    leg a contraction or "T" (as in "4T" = four contractions).
+  - Typical progression example given in the book: ~25% first pullback ->
+    ~15% -> ~8%, i.e. each leg roughly HALF (plus/minus) of the prior
+    one's depth - not an exact ratio, a rule of thumb.
+  - Usually 2-4 contractions, occasionally up to 5-6.
+  - Volume should also contract through the base, especially drying up
+    markedly on the final/tightest leg (the book's "line of least
+    resistance" idea - few sellers left, so small demand moves price a
+    lot).
+  - The "technical footprint" shorthand the book uses to describe a base
+    at a glance: {weeks-in-base}{deepest-leg}/{shallowest-leg}{count of
+    legs}T, e.g. "40W 31/3 4T" = a 40-week base, deepest leg 31%,
+    shallowest leg 3%, 4 total contractions.
+  - ENTRY ("pivot buy point"): breakout above the high that precedes the
+    FINAL (tightest) contraction, ideally on a volume increase. Stop goes
+    just below that final contraction's low - a small, well-defined risk
+    because the base itself has already done the work of squeezing out
+    weak holders.
+  - Variant bases mentioned but NOT VCP by this definition: a flat/box
+    base (Darvas-style, 4-7 weeks, ~10-15% range, no real contraction).
+
+TESTED (2026-09-28/29): implemented as a simplified algorithmic detector
+in the same swing-minervini-trend-template-vcp-research.yml workflow -
+see RESULTS below and SIMPLIFICATIONS for exactly how it diverges from
+the book's full description (volume-through-the-base signature and exact
+contraction-ratio matching were NOT implemented, only breakout-day
+volume and final-leg-tightness/first-leg-depth ratio).
+
+--------------------------------------------------------------------
+CHAPTER 6 - "CATEGORIES, INDUSTRY GROUPS, AND CATALYSTS" (read the
+opening ~1/3, company-categorization section; same-store-sales retail
+metric section skimmed)
+--------------------------------------------------------------------
+
+Six informal company categories the book says most stocks fall into:
+market leaders, top competitors, institutional favorites, turnarounds,
+cyclicals, past leaders/laggards. "Market leader" (#1-3 in sales/earnings
+in a growing category, scalable growth, expanding margins) is the book's
+stated favorite hunting ground.
+
+Retail-specific diligence point: same-store-sales (comps) growth,
+double-digit-or-more considered healthy, >25-30% considered unsustainable;
+watch franchise-heavy store-count growth as a red flag if it outpaces
+~100 new stores/year.
+
+NOT TESTABLE with this codebase's current data: this whole chapter needs
+earnings/revenue growth, industry/category classification, and same-
+store-sales data. Confirmed via grep (2026-09-29) that main.py/
+data_fetch.py have NO fundamentals data source at all for NSE stocks -
+yfinance OHLCV only. Would need a new data source (e.g. a fundamentals
+API or scraped filings) before any of this chapter could become a
+backtest. Not started.
+
+--------------------------------------------------------------------
+CHAPTER 12 - "RISK MANAGEMENT PART 1: THE NATURE OF RISK" (read
+through the numeric loss-cap section; "Accepting the Market's
+Judgments"/disposition-effect section onward NOT yet read)
+--------------------------------------------------------------------
+
+Core numeric rule: hard stop-loss ceiling of 10% on any position, with an
+average REALIZED loss targeted well below that, around 6-7% - justified
+by loss-recovery asymmetry (a 10% loss needs +11% to recover; a 50% loss
+needs +100%; the book's own worked "Loss Adjustment Exercise" example:
+capping a real historical trade record's losses at -10% turned a -12.05%
+compounded result into +79.89%, with the same gains and just the losses
+capped).
+
+Also: once a position shows a paper gain, the discipline is to tighten
+the stop toward breakeven rather than giving the position the same
+downside room it had at entry ("yesterday's profit is part of today's
+principal," not house money). And: closing out or reassessing a position
+promptly if it does not do what was expected shortly after entry, even
+before it technically shows a loss.
+
+REALITY CHECK (not a backtest, just a comparison, 2026-09-29): the live
+intraday engine's default stop_pct is 1.0% (NSE_STOCK_DEFAULT_PARAMS,
+main.py:6184) - far tighter than this book's 10% ceiling, but the two
+aren't directly comparable: intraday 5-minute bars have much smaller
+natural price swings than the multi-week swings this book is written
+for. The swing-side strategies already live/tested in this codebase
+(Gap and Go) and the new VCP research already use structural/ATR-based
+stops, not a fixed small percentage, so they're the more relevant
+comparison point if this 10%-ceiling idea is ever tested directly.
+
+NOT YET DONE: chapter 13 (Risk Management Part 2 - likely has position-
+sizing/pyramiding specifics) has not been read yet.
+
+====================================================================
+BACKTEST RESULTS (Trend Template + VCP research, this session)
+====================================================================
+Workflow: .github/workflows/swing-minervini-trend-template-vcp-research.yml
+Two fair-comparison variants sharing the same exit (chandelier trail,
+2.0x ATR(14), 60-day max hold), cost model, and risk_pct-of-capital
+sizing - differ ONLY in entry trigger:
+  - tt_generic_breakout: Trend Template gate + plain 20-day Donchian
+    breakout + volume > 1.5x its 20-day average.
+  - tt_vcp: Trend Template gate + the VCP contraction pattern (see
+    SIMPLIFICATIONS below) instead of a plain breakout.
+Relative-strength criterion (#8 of the Trend Template) is PROXIED as
+cross-sectional percentile rank of trailing 126-trading-day return
+across whatever universe is being tested that day, threshold >=70th
+percentile (book's own IBD RS Rank is unavailable here).
+
+Run 1 - 52-symbol pilot (the session's original evidenced+sampled
+universe), 2 years daily, run 36448204442 (2026-09-28):
+  tt_generic_breakout: n=59, win%=28.8, PFnet=0.68, PFgross=0.94,
+    avgNet=-490, costDrag%=17.0, avgHeld=17.3d
+  tt_vcp:               n=15, win%=26.7, PFnet=0.65, PFgross=1.05,
+    avgNet=-362, costDrag%=26.2, avgHeld=13.9d
+  By-symbol (tt_vcp, n>=2): TITAN.NS n=3 PFnet 17.52 (driving most of the
+    aggregate), DIVISLAB.NS n=2 PFnet 6.01, SBIN.NS n=2 PFnet 0.00.
+  These are the best net numbers of the whole session (every intraday
+  universal_score variant tested elsewhere topped out at PFnet 0.13) -
+  but n=15 for tt_vcp is far too thin to trust statistically.
+
+Run 2 - accidental 200-symbol run, run 36462909971 (2026-09-28): MISTAKE,
+see CORRECTIONS below - only fetched the NIFTY-200-restricted symbol set,
+not the intended full universe.
+  tt_generic_breakout: n=195, win%=27.2, PFnet=0.57, PFgross=0.75
+  tt_vcp:               n=46, win%=21.7, PFnet=0.30, PFgross=0.44
+  Worse than the 52-symbol pilot on both variants - the extra ~148
+  NIFTY-200 names diluted the edge. By-symbol (tt_vcp, n>=2): TITAN.NS
+  n=3 PFnet 17.52 (same as run 1, still the best performer), DIVISLAB.NS
+  n=2 PFnet 6.01, SHRIRAMFIN.NS n=2 PFnet 1.00, INDUSINDBK.NS n=2 PFnet
+  0.54, LAURUSLABS.NS n=4 PFnet 0.24, SBIN.NS n=2 PFnet 0.00,
+  PHOENIXLTD.NS n=2 PFnet 0.00.
+
+Run 3 - full ~2,680-symbol universe (main._load_nse_universe_from_file(),
+bypassing the live NIFTY-200 restriction since this is research, not
+live trading): dispatched 2026-09-29, run 36519115035 - RESULT PENDING
+as of this note; check that run's job log before re-running.
+
+CORRECTIONS / GOTCHAS discovered while building this (record these so a
+future session doesn't repeat the same mistake):
+  1. main.py's module-level name NSE_FULL_UNIVERSE is NOT the full NSE
+     universe by the time a script imports main - it gets reassigned at
+     import time to its intersection with the real NIFTY-200 list (a
+     2026-09-14 "trade only in NIFTY 200" LIVE-TRADING-SCOPE decision,
+     main.py ~line 6304-6307). Its own docstring (on
+     _load_nse_universe_from_file) still says "~2,600" and is misleading
+     post-reassignment. To get the true raw ~2,680-symbol Kotak-sourced
+     universe for RESEARCH (not live trading) purposes, call
+     m._load_nse_universe_from_file() directly instead of reading
+     m.NSE_FULL_UNIVERSE.
+  2. strategy_registry.py's first version incorrectly listed
+     universal_score as the ONLY live strategy. gap_and_go_swing
+     (main.py's SWING_WATCHLIST-based once-daily scan, see
+     _run_swing_scan/gap_and_go_entry_signal) is ALSO live, both paper
+     and real money, on the NIFTY-200-restricted SWING_WATCHLIST -
+     caught and fixed same session. Always check strategy_registry.py's
+     REGISTRY list AND spot-check it against main.py before trusting
+     "what's live" from memory or an old transfer pack (this is the
+     exact failure pattern CLAUDE.md's own 2026-09-14 incident writeup
+     warns about).
+
+SIMPLIFICATIONS from the book's full description (flagged, not silently
+glossed over):
+  - VCP detection here only checks the breakout day's own volume (>1.5x
+    its 20-day average), not the full base's volume-contraction
+    signature leg by leg, which the book weighs heavily.
+  - Contraction "tightening" is checked as (first considered leg's depth
+    >= 2x the final leg's depth) and (final leg's depth <= 15%), using up
+    to the last 6 legs found by a +/-5-bar fractal swing detector over a
+    15-130 trading day lookback - NOT a strict monotonically-decreasing
+    check across every intermediate leg (real price data is noisier than
+    the book's clean illustrative examples).
+  - Relative strength (Trend Template criterion #8) is a same-universe
+    percentile-rank proxy, not the book's real IBD RS Rank.
+  - Both variants use ONE exit mechanic (chandelier trail + max hold) for
+    a fair entry-only comparison - not the book's own more nuanced sell
+    rules (Chapter 13, not yet read/implemented).
+
+NEXT STEPS (pick up here):
+  1. Read and log the full-universe run (36519115035) result.
+  2. Read chapter 13 (Risk Management Part 2) for position-sizing/
+     pyramiding rules - likely the next genuinely testable chapter.
+  3. Chapters 7-9 (fundamentals/earnings quality/institutional
+     ownership) and chapter 6's categorization scheme all need a
+     fundamentals data source this codebase doesn't have - flag to the
+     user before spending time reading them in similar backtest-focused
+     detail, since nothing will come of it without new data access.
+  4. Chapter 11 ("Don't Just Buy What You Know") and the rest of chapter
+     10 (other chart patterns besides VCP) not yet read.
+  5. Per CLAUDE.md: none of the above gets wired into main.py or
+     promoted past "research" status in strategy_registry.py without
+     the full pytest + validation-replay + explicit user go-ahead
+     cycle, regardless of how good a research number looks.
