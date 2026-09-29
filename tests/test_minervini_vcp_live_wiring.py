@@ -1,9 +1,13 @@
 """Tests for wiring Minervini VCP into the live swing scan as a second
 strategy alongside gap_and_go (2026-09-29, explicit user instruction after
 the full-universe real-function validation replay - PFnet 0.908,
-docs/MINERVINI_VCP_RESEARCH_LOG.md). Covers: the new independent real-
-trading switch (is_real_minervini_vcp_trading_enabled), the strategy
-dispatcher (_is_real_swing_trading_enabled_for_strategy), and
+docs/MINERVINI_VCP_RESEARCH_LOG.md). Covers: Minervini VCP's real-order
+mirror sharing gap_and_go's EXISTING is_real_swing_trading_enabled switch
+rather than getting its own (a separate REAL_MINERVINI_VCP_TRADING_ENABLED
+switch was built, then explicitly reverted same-day per user instruction -
+"I just want one switch for manual closure of live trading... not many
+trading switches which I will not able to track" - see CLAUDE.md's "ask
+before creating any new real-trading switch" thumb rule), and
 _run_swing_scan's two-pass RS-percentile computation + dual-strategy
 entry/exit dispatch end to end."""
 import os
@@ -25,54 +29,31 @@ def _fresh_db():
     return path
 
 
-# ---- independent real-trading switches --------------------------------------
+# ---- Minervini VCP shares gap_and_go's existing real-trading switch ---------
 
-def test_minervini_switch_reads_its_own_env_var():
-    os.environ.pop("REAL_MINERVINI_VCP_TRADING_ENABLED", None)
-    assert main.is_real_minervini_vcp_trading_enabled() is False
-    os.environ["REAL_MINERVINI_VCP_TRADING_ENABLED"] = "YES"
-    try:
-        assert main.is_real_minervini_vcp_trading_enabled() is True
-    finally:
-        os.environ.pop("REAL_MINERVINI_VCP_TRADING_ENABLED", None)
+def test_no_separate_minervini_switch_exists():
+    # Explicit user instruction (2026-09-29): only one manual real-trading
+    # kill switch, not a growing set the user can't track. Locks down that
+    # a separate is_real_minervini_vcp_trading_enabled never comes back.
+    assert not hasattr(main, "is_real_minervini_vcp_trading_enabled")
+    assert not hasattr(main, "_is_real_swing_trading_enabled_for_strategy")
 
 
-def test_minervini_switch_is_independent_of_swing_switch():
-    os.environ["REAL_SWING_TRADING_ENABLED"] = "YES"
-    os.environ.pop("REAL_MINERVINI_VCP_TRADING_ENABLED", None)
-    try:
-        assert main.is_real_swing_trading_enabled() is True
-        assert main.is_real_minervini_vcp_trading_enabled() is False
-    finally:
-        os.environ.pop("REAL_SWING_TRADING_ENABLED", None)
-
-
-def test_dispatcher_routes_each_strategy_to_its_own_switch():
-    os.environ["REAL_SWING_TRADING_ENABLED"] = "YES"
-    os.environ.pop("REAL_MINERVINI_VCP_TRADING_ENABLED", None)
-    try:
-        assert main._is_real_swing_trading_enabled_for_strategy("gap_and_go") is True
-        assert main._is_real_swing_trading_enabled_for_strategy("minervini_vcp") is False
-    finally:
-        os.environ.pop("REAL_SWING_TRADING_ENABLED", None)
-
-
-def test_real_minervini_entry_mirror_not_armed_by_swing_switch():
+def test_real_minervini_entry_mirror_gated_by_the_shared_swing_switch():
     _fresh_db()
-    os.environ["REAL_SWING_TRADING_ENABLED"] = "YES"  # gap_and_go's switch, not minervini's
-    os.environ.pop("REAL_MINERVINI_VCP_TRADING_ENABLED", None)
+    os.environ.pop("REAL_SWING_TRADING_ENABLED", None)
     try:
         with closing(main.get_db()) as conn:
             main._maybe_place_real_swing_entry(conn, "TESTSTOCK.NS", 10, 100.0, 90.0, "minervini_vcp")
             row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = 'TESTSTOCK.NS'").fetchone()
-            assert row is None
+            assert row is None  # switch off (default) - no real order for either strategy
     finally:
         os.environ.pop("REAL_SWING_TRADING_ENABLED", None)
 
 
-def test_real_minervini_entry_mirror_proceeds_once_its_own_switch_is_on():
+def test_real_minervini_entry_mirror_proceeds_once_the_shared_switch_is_on():
     _fresh_db()
-    os.environ["REAL_MINERVINI_VCP_TRADING_ENABLED"] = "YES"
+    os.environ["REAL_SWING_TRADING_ENABLED"] = "YES"  # same switch gap_and_go already uses
     patches = [
         patch("kotak_live_feed.get_live_ticks",
               return_value={"TESTSTOCK.NS": {"ltp": 100.0, "trading_symbol": "TESTSTOCK-EQ"}}),
@@ -92,7 +73,7 @@ def test_real_minervini_entry_mirror_proceeds_once_its_own_switch_is_on():
             assert row is not None
             assert row["strategy"] == "minervini_vcp"
     finally:
-        os.environ.pop("REAL_MINERVINI_VCP_TRADING_ENABLED", None)
+        os.environ.pop("REAL_SWING_TRADING_ENABLED", None)
         for p in patches:
             p.stop()
 

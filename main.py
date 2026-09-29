@@ -7902,34 +7902,6 @@ def is_real_swing_trading_enabled() -> bool:
     return os.environ.get("REAL_SWING_TRADING_ENABLED") == "YES"
 
 
-def is_real_minervini_vcp_trading_enabled() -> bool:
-    """SEPARATE gate from is_real_swing_trading_enabled (gap_and_go) -
-    2026-09-29, explicit user instruction to wire the Minervini VCP swing
-    strategy into real order placement with its own independent switch,
-    matching this repo's own established pattern (is_real_fo_trading_
-    enabled, is_real_swing_trading_enabled) of never letting one
-    category's real-trading switch silently arm another.
-    REAL_MINERVINI_VCP_TRADING_ENABLED is its own Render env var,
-    independent of REAL_SWING_TRADING_ENABLED, so turning on gap_and_go's
-    real trading (validated PFnet 1.65) never silently arms Minervini VCP
-    too (validated PFnet 0.908 - below PFNET_LIVE_FLOOR, see
-    docs/MINERVINI_VCP_RESEARCH_LOG.md). This switch exists so the user
-    can choose to run it for real anyway, fully informed, never by
-    accident."""
-    return os.environ.get("REAL_MINERVINI_VCP_TRADING_ENABLED") == "YES"
-
-
-def _is_real_swing_trading_enabled_for_strategy(strategy: str) -> bool:
-    """Routes to the correct independent real-trading switch for a
-    signal_state_swing/real_positions_swing row's own strategy tag -
-    gap_and_go and minervini_vcp are gated separately (see each
-    is_real_*_trading_enabled's own docstring above) so flipping one on
-    never silently arms the other."""
-    if strategy == "minervini_vcp":
-        return is_real_minervini_vcp_trading_enabled()
-    return is_real_swing_trading_enabled()
-
-
 def _real_fo_today_spent_inr(conn) -> float:
     """Sum of today's (IST calendar day) CONFIRMED real F&O buy notional
     (premium * qty for a bought option) - what the F&O daily spend cap
@@ -12421,7 +12393,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     apply to this engine. A genuinely T1/T2T-restricted symbol would
     still surface as a real order rejection at Kotak, logged like any
     other entry failure, just not pre-filtered here."""
-    if not _is_real_swing_trading_enabled_for_strategy(strategy):
+    if not is_real_swing_trading_enabled():
         return  # expected default state - not logged, this isn't an "attempt"
 
     if conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone():
@@ -12630,7 +12602,7 @@ def _retry_pending_real_swing_orders(conn):
     a missing protective stop must be handled regardless of current
     price - gating either on price would work against the entire point
     of risk control."""
-    if not (is_real_swing_trading_enabled() or is_real_minervini_vcp_trading_enabled()):
+    if not is_real_swing_trading_enabled():
         return
     if not _nse_equity_market_open_now():
         return
@@ -12696,13 +12668,15 @@ def _run_swing_scan(conn):
     checks exits for open swing positions first, then entries for flat ones.
     Always paper-trades unconditionally; additionally mirrors as a REAL
     order (see _maybe_place_real_swing_entry/_maybe_place_real_swing_exit)
-    only when the position's own strategy has its independent real-trading
-    switch on (_is_real_swing_trading_enabled_for_strategy) - 2026-09-22,
-    real-order mirroring build, extended 2026-09-29 to a second swing
-    strategy (Minervini VCP) with its own separate switch. Called from
-    _scheduler_tick every tick; the swing_scan_log guard below makes every
-    call after the first one in a given IST day a no-op, so calling it
-    unconditionally every tick is cheap and safe.
+    only when is_real_swing_trading_enabled() - 2026-09-22, real-order
+    mirroring build, extended 2026-09-29 to a second swing strategy
+    (Minervini VCP), sharing this SAME switch rather than getting its own
+    (explicit user instruction: one manual real-trading kill switch is
+    enough to track - see CLAUDE.md's "ask before creating any new
+    real-trading switch" thumb rule). Called from _scheduler_tick every
+    tick; the swing_scan_log guard below makes every call after the first
+    one in a given IST day a no-op, so calling it unconditionally every
+    tick is cheap and safe.
 
     Two-pass (2026-09-29, added for Minervini VCP): pass 1 fetches every
     symbol's OHLC once and builds the whole watchlist's closes, so RS
@@ -12731,7 +12705,7 @@ def _run_swing_scan(conn):
     conn.execute("INSERT INTO swing_scan_log (scan_date) VALUES (?)", (today,))
     conn.commit()
 
-    if is_real_swing_trading_enabled() or is_real_minervini_vcp_trading_enabled():
+    if is_real_swing_trading_enabled():
         try:
             _maybe_sync_real_swing_stop_loss(conn)
         except Exception as e:
