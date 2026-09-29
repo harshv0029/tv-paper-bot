@@ -122,10 +122,24 @@ jobs:
               loop/position-bookkeeping/cost-application scaffolding is
               written here, same division of labor as
               universal-score-validation-replay.yml uses for the long
-              engine."""
+              engine.
+
+              df_so_far is a BOUNDED trailing window (LIVE_WINDOW_BARS), not
+              df.iloc[:i+1] - 2026-09-29 fix, found live: the live
+              _short_signal_core calls fetch_ohlc(symbol, "5d", interval),
+              a bounded 5-trading-day rolling window, every single tick - it
+              NEVER sees an ever-growing history back to day 1 of some
+              60-day period. The unbounded version wasn't just slow
+              (O(n^2) per symbol from recomputing _classify_market_regime
+              over a growing window on nearly every bar - the actual cause
+              of a full-universe run taking hours instead of minutes), it
+              was also NOT a faithful replay of what the live code actually
+              sees at any point in time - a real fidelity bug, not only a
+              performance one."""
               df = _prep(raw_df)
               closes_all = df["Close"].to_numpy(dtype=float)
               n = len(df)
+              LIVE_WINDOW_BARS = 375  # ~5 NSE trading days at 5-min bars (375 min/day / 5)
 
               position = None
               trades = []
@@ -138,7 +152,7 @@ jobs:
                       continue
                   day = row["date_local"]
                   today_df = df[(df["date_local"] == day) & (df.index <= i)]
-                  df_so_far = df.iloc[: i + 1]
+                  df_so_far = df.iloc[max(0, i + 1 - LIVE_WINDOW_BARS): i + 1]
                   last_close = float(row["Close"])
                   last_ts = row["ts_local"].timestamp()
 
