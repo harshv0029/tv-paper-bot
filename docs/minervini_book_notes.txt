@@ -6,8 +6,11 @@ notes for backtesting purposes - not a copy of the book's text. Read this
 file before re-reading the PDF in a future session; it says what's already
 been extracted and tested so that work isn't repeated from scratch.
 
-Status as of 2026-09-29: chapters 1-2, 4, 7-9, 11, 13 NOT YET READ.
-Chapters 3 (skimmed only), 5, 6, 10, 12 (partial) covered below.
+Status as of 2026-09-29 (second pass): chapters 1-2, 4, 7-9 still NOT YET
+READ (7-9 need a fundamentals data source this codebase doesn't have - see
+CHAPTER 7-9 GAP note below, unchanged). Chapters 3 (skimmed only), 5, 6, 12
+(partial) as before. Chapter 10 now FULLY read (was: VCP section only).
+Chapters 11 and 13 now fully read (were: not yet read).
 
 --------------------------------------------------------------------
 CHAPTER 5 - "TRADING WITH THE TREND" (fully read, fully testable)
@@ -297,18 +300,158 @@ isn't lost)
     book's actual pyramiding rules - revisit this idea once that chapter
     is read rather than guessing at a mechanism now.
 
+--------------------------------------------------------------------
+CHAPTER 10 (REST) - OTHER CHART PATTERNS (2026-09-29, second pass -
+fully read now, was VCP-section-only before)
+--------------------------------------------------------------------
+
+POWER PLAY / HIGH TIGHT FLAG - the single most distinct NEW strategy
+candidate from this pass. A momentum/velocity setup, explicitly NOT
+gated by the Trend Template or fundamentals (book's own words: "the
+only situation I will enter with a dearth of fundamentals"). Three
+numeric criteria, all required:
+  1. Explosive prior move: price up >=100% in under 8 weeks on very
+     high volume, after a period of relative dormancy.
+  2. Consolidation/"flag": sideways for 3-6 weeks (some as short as
+     12 days), correcting no more than 20-25% from the peak.
+  3. Final tightening: the last leg corrects no more than 10%, OR the
+     consolidation shows VCP-style leg-by-leg contraction.
+  Entry (pivot): breakout above the high of the consolidation/flag on
+  a volume increase. No 150/200-day SMA maturity requirement (young,
+  fast-moving stocks explicitly qualify) - this is what makes it a
+  genuinely different strategy from tt_vcp, not a variant of it.
+  WORTH IMPLEMENTING AND TESTING: fully mechanical (prior-N-week
+  return, consolidation depth/duration, breakout trigger) - no
+  fundamentals data gap like chapters 7-9. Natural candle sizes: daily
+  (book's own timeframe, weeks-scale) plus a 1h/4h variant per the
+  standing candle-size thumb rule, since "100% in under 8 weeks" could
+  plausibly compress to something like "50%+ in a session" at
+  intraday granularity - worth checking rather than assuming daily-only.
+
+CUP-WITH-HANDLE / "3C" (cup completion cheat) - a more specific named
+sub-shape of the same VCP concept already implemented (tt_vcp), not a
+separate edge: prior move +25% to +300% over 3-36 months, above a
+rising 200-day MA, cup correction 15-50% (60%+ "too deep, prone to
+failure"), duration 3-45 weeks (most 7-25), handle forms in the upper
+third of the cup and corrects less than the cup itself. The "3C cheat"
+entry (buying at the LOW of the cup, before the handle even forms, for
+an early partial position) is the one genuinely distinct piece - an
+EARLIER, more aggressive entry trigger than tt_vcp's current
+breakout-above-final-contraction-high rule. Lower priority than Power
+Play since it's mostly redundant with tt_vcp; the cheat-entry timing
+variant is the only piece worth isolating for a test.
+
+THE LIVERMORE SYSTEM (two-pullback confirmation) - Jesse Livermore's
+entry timing, cited approvingly: don't buy the first breakout above a
+downtrend line. Wait for the stock to (a) break the downtrend, (b)
+pull back (reaction low #1), (c) rally again, (d) pull back again
+(reaction low #2), then buy only once price exceeds the SECOND
+reaction high. Explicitly framed as reducing whipsaw/false-breakout
+losses at the cost of a later, worse entry price. WORTH TESTING as an
+entry-timing FILTER layered on top of any existing breakout-based
+entry (tt_vcp, gap_and_go, universal_score, idea4) - "does requiring a
+second confirmed higher high improve win rate enough to offset the
+worse average entry price" is a clean, isolated one-axis test in this
+session's own established style.
+
+FAILURE RESET / "PIVOT RESET" - not a new pattern, but a repeatedly
+emphasized MECHANIC across chapters 10, 11, and 13 (see REENTRY note
+below) - being stopped out doesn't disqualify a symbol; if it resets
+and re-triggers a valid signal (sometimes within days - a "pivot
+reset" - sometimes needing a whole new base - a "base reset"), the
+second setup is often described as stronger than the first ("some of
+my biggest winners were stocks that stopped me out and then reset").
+
+--------------------------------------------------------------------
+CHAPTER 11 - "DON'T JUST BUY WHAT YOU KNOW" (2026-09-29, fully read,
+was not yet read before)
+--------------------------------------------------------------------
+
+PRIMARY BASE - buy a recently-IPO'd stock as it emerges from its FIRST
+buyable base, not a stage-2 continuation base. Genuinely distinct from
+tt_vcp because it deliberately targets YOUNG stocks that likely don't
+even have 150/200 days of trading history yet (so can't pass the
+Trend Template at all) - the book's own framing: "most superperformers
+go public within 8 to 10 years before the start of their
+superperformance phase," and youth is a "vital ingredient."
+  - Base forms during a correction of 3+ weeks (up to ~1 year for a
+    deeper reset), not correcting more than 25-35% for a short (3-5
+    week) base, or up to ~50% for a longer one; corrections beyond
+    that are described as "unbuyable" (book's own Facebook IPO 2012
+    counterexample: -43% in 12 days, never set up properly).
+  - Entry: breakout to a new ALL-TIME high (since IPO) from that base,
+    on a volume increase.
+  WORTH TESTING: needs an "IPO recency" proxy since this codebase has
+  no direct IPO-date field - candidate proxy is simply how much price
+  history exists before the current bar (e.g. first available bar via
+  a "max" period fetch), treating a short available history as a
+  recent-listing signal. Full-universe NSE test would need to actually
+  measure how many NSE_FULL_UNIVERSE symbols have short histories in
+  the data source before this is worth building - flag that as a
+  quick feasibility check before committing to the full build/test
+  cycle.
+
+--------------------------------------------------------------------
+CHAPTER 13 - "RISK MANAGEMENT PART 2" (2026-09-29, fully read, was not
+yet read before)
+--------------------------------------------------------------------
+
+Mostly psychology/discipline narrative (contingency planning, honoring
+stops, avoiding averaging down, position-count/diversification
+philosophy of 4-6 to 10-20 names) with three concretely testable
+mechanics:
+
+  1. BREAKEVEN-STOP AT 2R/3R (the precise version of chapter 12's
+     fuzzy "breakeven ratchet" note above): once unrealized gain
+     reaches 2x-3x the position's OWN initial risk (entry minus
+     initial stop), move the stop to breakeven, full stop - not a
+     trailing/chandelier mechanism. Simpler and more literal than the
+     chandelier trail (running peak close - ATR mult) already used for
+     tt_vcp/idea4. WORTH TESTING as an alternative exit against the
+     existing chandelier trail on whichever entry (tt_vcp, gap_and_go,
+     idea4) is already validated - a clean, isolated exit-only swap.
+
+  2. SCALE-IN POSITION CONSTRUCTION (also flagged, vaguely, in the
+     "MULTI-BASE PYRAMIDING" note above - chapter 13 gives the actual
+     mechanism): split entry into 2-3 tranches (e.g. 2%/2%/1% of
+     capital) added ONLY as price confirms with an open profit -
+     "never trust the first price unless the position shows a profit"
+     - stop set off the blended average cost, never averaging DOWN
+     into a loss. WORTH TESTING as a sizing variant against today's
+     single-shot flat/confidence-scaled entry.
+
+  3. REENTRY / no cooldown after a stop-out (ties together the
+     FAILURE RESET note above) - don't blacklist a symbol after being
+     stopped out; if the same signal fires again shortly after,
+     reenter. WORTH A QUICK CHECK first: does main.py's scheduler
+     already implicitly allow same-day/next-scan reentry on a fresh
+     signal, or is there an unintentional cooldown/blacklist
+     suppressing it? Cheap to verify before treating this as new work.
+
 NEXT STEPS (pick up here):
   1. Read and log the full-universe run (36519115035) result.
-  2. Read chapter 13 (Risk Management Part 2) for position-sizing/
-     pyramiding rules - likely the next genuinely testable chapter.
-  3. Chapters 7-9 (fundamentals/earnings quality/institutional
+  2. IMPLEMENT AND VALIDATE Power Play / High Tight Flag as a real
+     main.py function (entry + exit), per this session's established
+     cycle - unit test, full pytest, full-universe validation replay
+     calling the real function, candle-size variants, honest report,
+     register in strategy_registry.py regardless of outcome. This is
+     the clearest genuinely-new strategy from this reading pass.
+  3. Check reentry/cooldown behavior in the scheduler (cheap,
+     read-only) before deciding whether it's a real gap worth fixing.
+  4. Test the 2R/3R breakeven-stop as an alternative exit against the
+     existing chandelier trail on an already-validated entry.
+  5. Feasibility-check the Primary Base strategy's IPO-recency proxy
+     against the actual NSE data source before committing to a full
+     build.
+  6. Chapters 7-9 (fundamentals/earnings quality/institutional
      ownership) and chapter 6's categorization scheme all need a
      fundamentals data source this codebase doesn't have - flag to the
      user before spending time reading them in similar backtest-focused
      detail, since nothing will come of it without new data access.
-  4. Chapter 11 ("Don't Just Buy What You Know") and the rest of chapter
-     10 (other chart patterns besides VCP) not yet read.
-  5. Per CLAUDE.md: none of the above gets wired into main.py or
+     Chapters 1-2 and 4 remain unread (largely narrative/mindset
+     chapters per the book's own table of contents - lower priority
+     than the above).
+  7. Per CLAUDE.md: none of the above gets wired into main.py or
      promoted past "research" status in strategy_registry.py without
      the full pytest + validation-replay + explicit user go-ahead
      cycle, regardless of how good a research number looks.
