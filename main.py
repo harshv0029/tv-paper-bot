@@ -5103,6 +5103,119 @@ def _compute_universal_entry_score_short(
     }
 
 
+# ---- Idea 4: Unger-style ride-winners, no fixed target, 1-day candles ------
+#
+# Named "Idea 4" (2026-09-29, explicit user instruction "Okay keep it as
+# idea 4 / Named / And build it properly") after a critical review of every
+# trade taken to date turned up score-signal-4h-1d-retest-research.yml's
+# TARGET-axis finding: main.py's real 8-factor UNIVERSAL_SCORE_WEIGHTS
+# entry (score>=UNIVERSAL_ENTRY_SCORE_MIN AND EMA9>EMA21), run at 1-DAY
+# candles, with NO fixed target at all - ride to a fixed ATR(14)x1.5 stop
+# (set once at entry, never trailed) or IDEA4_MAX_HOLD_DAYS calendar days,
+# whichever comes first - the first result across this session's whole
+# "idea 1-9" universal_score research sequence to cross PFnet > 1.0
+# (PFnet 1.04, n=927, avg net +Rs79.92/trade, 5-year pooled). That number
+# came from an INDEPENDENT REIMPLEMENTATION (the research workflow's own
+# header: "does not call universal_score/orb_breakout live signal code");
+# idea4_entry_signal/idea4_exit_reason below are the real, callable main.py
+# functions this session's own CLAUDE.md discipline requires before that
+# number can be trusted for a go/no-go call - see
+# idea4-validation-replay.yml for the full-universe replay that calls them.
+#
+# Named after Andrea Unger (4-time World Cup Championship of Futures
+# Trading champion) - see ride-winners-no-target-research.yml for the
+# "let winners run, don't cap them with a fixed target" philosophy this
+# mirrors.
+
+IDEA4_ATR_STOP_MULT = 1.5  # matches the research script's BASELINE_ATR_MULT
+IDEA4_MAX_HOLD_DAYS = 20  # matches the research script's MAX_HOLD_BARS (1 daily bar = 1 day)
+
+
+def idea4_entry_signal(df: pd.DataFrame, index_closes: np.ndarray | None = None,
+                        sma_fast: int = 9, sma_slow: int = 21, ma_type: str = "ema") -> dict | None:
+    """Evaluates ONLY the last row of `df` (today, a 1-DAY candle) for an
+    Idea 4 entry: main.py's real, UNMODIFIED _compute_universal_entry_score
+    (score>=UNIVERSAL_ENTRY_SCORE_MIN and no rejection reason tripped),
+    gated by an explicit EMA9>EMA21 pre-filter (the research script's own
+    "score>=70, EMA9>EMA21" gate - the score's own ema_cross component
+    alone only scores 0 on a bearish cross, it doesn't hard-reject).
+
+    Daily bars have no intraday session, so `above_vwap` has no real
+    session VWAP to read. Rather than reimplementing VWAP, this passes the
+    trailing VOLUME_CONFIRM_LOOKBACK daily bars themselves as `today_df` -
+    _compute_session_vwap_value's own cumulative typical-price*volume /
+    volume formula, applied to that rolling window instead of a real
+    session, is exactly the "rolling-VWAP adaptation" the research script
+    computed by hand, so this reuses the real function unmodified rather
+    than forking a daily-bar copy of it.
+
+    Returns None if there isn't enough history yet, the trend/score/ATR
+    gate doesn't clear, or the resulting stop would sit at/above entry;
+    otherwise {entry_price, stop_loss, atr_at_entry, score_pct}."""
+    min_history = max(sma_slow, VOLUME_CONFIRM_LOOKBACK + 1, UNIVERSAL_STRUCTURE_LOOKBACK * 2,
+                       UNIVERSAL_RSI_PERIOD + 1) + 1
+    if len(df) < min_history:
+        return None
+    closes = df["Close"].to_numpy(dtype=float)
+    sma_f = _moving_average(closes, sma_fast, ma_type)
+    sma_s = _moving_average(closes, sma_slow, ma_type)
+    if sma_f <= sma_s:
+        return None
+
+    volume_ok, vol_avg = _volume_confirms(df["Volume"].to_numpy(dtype=float))
+    current_volume = float(df["Volume"].iloc[-1])
+    vol_ratio = (current_volume / vol_avg) if (vol_avg and vol_avg > 0) else None
+
+    today_df = df.iloc[-VOLUME_CONFIRM_LOOKBACK:]
+    score_result = _compute_universal_entry_score(
+        df, today_df, volume_ok, sma_f, sma_s, index_closes, sma_fast, sma_slow, ma_type,
+        vol_ratio=vol_ratio,
+    )
+    if not score_result["entry_allowed"]:
+        return None
+
+    atr_series = _atr_series(df)
+    if len(atr_series) == 0 or pd.isna(atr_series.iloc[-1]):
+        return None
+    atr_val = float(atr_series.iloc[-1])
+    if atr_val <= 0:
+        return None
+
+    entry_price = float(closes[-1])
+    stop_loss = entry_price - IDEA4_ATR_STOP_MULT * atr_val
+    if stop_loss >= entry_price:
+        return None
+
+    return {
+        "entry_price": entry_price, "stop_loss": stop_loss, "atr_at_entry": atr_val,
+        "score_pct": score_result["score_pct"],
+    }
+
+
+def idea4_exit_reason(df: pd.DataFrame, entry_day: str, stop_loss: float) -> str | None:
+    """Evaluates ONLY the last row of `df` (today) for an Idea 4 exit.
+    Unlike minervini_vcp_exit_reason's chandelier trail, Idea 4's own
+    validated research variant used a FIXED stop set once at entry (never
+    recomputed or trailed) and NO fixed target at all - ride the winner to
+    either that fixed stop or IDEA4_MAX_HOLD_DAYS calendar days, whichever
+    comes first. `entry_day` is the IST date (YYYY-MM-DD) the position was
+    opened, day-counted identically to gap_and_go_exit_reason/
+    minervini_vcp_exit_reason. Returns the exit reason string, or None to
+    keep holding - no running-max state to thread since there's nothing to
+    trail."""
+    if len(df) == 0:
+        return None
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].astype(str).to_numpy()
+    i = len(df) - 1
+    if closes[i] <= stop_loss:
+        return "stop_hit"
+    held_days = int(np.sum(dates > entry_day))
+    if held_days >= IDEA4_MAX_HOLD_DAYS:
+        return "max_hold_exit"
+    return None
+
+
 def _compute_target_cluster(entry_price: float, stop_loss: float, df: pd.DataFrame, rr: float) -> dict:
     """Target isn't one number - a small CLUSTER of independently-derived
     candidates (this session's own approved architecture): pure R-multiples

@@ -1,0 +1,250 @@
+name: Idea 4 Validation Replay (calls the REAL main.py functions)
+
+# 2026-09-29, explicit user instruction ("Okay keep it as idea 4 / Named /
+# And build it properly") after a critical review of every real trade
+# taken to date. CLAUDE.md's standing discipline: "before trusting a
+# replay result, verify the replay driver actually calls the changed
+# main.py code" - and separately, never merge/trust a strategy without a
+# full-universe replay against the REAL functions, not a reimplementation.
+#
+# score-signal-4h-1d-retest-research.yml's own TARGET-axis finding (idea 4:
+# main.py's real 8-factor UNIVERSAL_SCORE_WEIGHTS entry, score>=70 AND
+# EMA9>EMA21, run at 1-day candles, ATR(14)x1.5 FIXED stop, NO fixed
+# target - ride to that stop or 20 trading days, whichever first, flat
+# risk-pct sizing) was the first result across this session's whole
+# "idea 1-9" universal_score research sequence to cross PFnet > 1.0
+# (PFnet 1.04, n=927, avg net +Rs79.92/trade, 5-year pooled) - but that
+# number came from an INDEPENDENT REIMPLEMENTATION (that workflow's own
+# header: "does not call universal_score/orb_breakout live signal code").
+# idea4_entry_signal/idea4_exit_reason (main.py) are the real, callable
+# functions this workflow calls for every entry/exit/stop decision below -
+# only the position-bookkeeping/cost-application loop is written here,
+# same pattern as minervini-vcp-validation-replay.yml.
+#
+# Full NSE universe via m._load_nse_universe_from_file() (CLAUDE.md,
+# 2026-09-29 full-universe thumb rule) - not main.NSE_FULL_UNIVERSE, which
+# is silently restricted to the NIFTY-200 live-trading scope by the time
+# this script imports main.
+#
+# Read-only research: does not touch any live parameter, table, or
+# scheduler path, and idea4_entry_signal/idea4_exit_reason are NOT wired
+# into main.py's live scan/scheduler/order path (see strategy_registry.py's
+# "registering != trading" principle) - this replay is the honest number
+# to report before any further go/no-go decision on that.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run Idea 4 backtest against the real main.py functions
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          PERIOD = "5y"
+          INTERVAL = "1d"
+          CAPITAL_INR = 400000.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(symbol, entry_price, stop_loss, qty, entry_label, exit_price,
+                               exit_label, exit_reason, entry_cost, held_days, cost_model):
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - stop_loss
+              return {
+                  "symbol": symbol, "entry_ts": entry_label, "exit_ts": exit_label,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "held_days": held_days,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def replay_symbol(symbol, df, index_closes_aligned, risk_pct, capital, cost_model):
+              """Calls the REAL m.idea4_entry_signal and m.idea4_exit_reason
+              for every entry/exit/stop decision - only the position-
+              bookkeeping/cost-application loop is written here."""
+              trades = []
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = 60  # comfortably above idea4_entry_signal's own internal min-history gate
+              if n < min_lookback + 20:
+                  return trades
+
+              closes = df["Close"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              position = None
+
+              for i in range(min_lookback, n):
+                  sub_df = df.iloc[: i + 1]
+                  idx_sub = index_closes_aligned[: i + 1] if index_closes_aligned is not None else None
+
+                  if position is not None:
+                      reason = m.idea4_exit_reason(sub_df, position["entry_label"], position["stop_loss"])
+                      if reason:
+                          held_days = i - position["entry_idx"]
+                          trades.append(_finalize_trade(
+                              symbol, position["entry_price"], position["stop_loss"], position["qty"],
+                              position["entry_label"], closes[i], dates[i], reason,
+                              position["entry_cost"], held_days, cost_model,
+                          ))
+                          position = None
+
+                  if position is None:
+                      sig = m.idea4_entry_signal(sub_df, index_closes=idx_sub)
+                      if sig is not None:
+                          entry_price = sig["entry_price"]
+                          stop_loss = sig["stop_loss"]
+                          stop_dist = entry_price - stop_loss
+                          if stop_dist > 0:
+                              usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                              risk_amount_inr = usable_capital_inr * risk_pct / 100
+                              qty = min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)
+                              qty = int(np.floor(qty))
+                              if qty > 0 and qty * entry_price >= 100:
+                                  position = {
+                                      "entry_price": entry_price, "stop_loss": stop_loss,
+                                      "entry_idx": i, "entry_label": dates[i], "qty": qty,
+                                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                                  }
+
+              if position is not None:
+                  held_days = (n - 1) - position["entry_idx"]
+                  trades.append(_finalize_trade(
+                      symbol, position["entry_price"], position["stop_loss"], position["qty"],
+                      position["entry_label"], closes[-1], dates[-1], "data_end_forced_close",
+                      position["entry_cost"], held_days, cost_model,
+                  ))
+              return trades
+
+
+          SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) ---")
+          raw_by_symbol = {}
+          for sym in SYMBOLS:
+              try:
+                  raw = m.fetch_ohlc(sym, PERIOD, INTERVAL)
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < 100:
+                  continue
+              raw_by_symbol[sym] = raw.reset_index(drop=True)
+          print(f"  fetched {len(raw_by_symbol)}/{len(SYMBOLS)} symbols\n")
+
+          print(f"--- Fetching reference index {m.UNIVERSAL_REFERENCE_INDEX} ---")
+          idx_raw = m.fetch_ohlc(m.UNIVERSAL_REFERENCE_INDEX, PERIOD, INTERVAL).reset_index(drop=True)
+          idx_dates = pd.to_datetime(idx_raw["Date"])
+          idx_closes_df = pd.DataFrame({"Date": idx_dates, "idx_close": idx_raw["Close"].astype(float)})
+
+          all_trades = []
+          per_symbol_trade_count = {}
+          for sym, raw in raw_by_symbol.items():
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              sym_dates = pd.to_datetime(raw["Date"])
+              merged = pd.merge_asof(pd.DataFrame({"Date": sym_dates}), idx_closes_df, on="Date", direction="backward")
+              idx_aligned = merged["idx_close"].to_numpy(dtype=float)
+              try:
+                  trades = replay_symbol(sym, raw, idx_aligned, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              if trades:
+                  per_symbol_trade_count[sym] = len(trades)
+              all_trades.extend(trades)
+          print(f"  {len(all_trades)} total trades\n")
+
+
+          def _metrics(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0, avg_held_days=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              avg_held_days = sum(t["held_days"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, avg_held_days=avg_held_days)
+
+
+          print("=== POOLED RESULT (real main.py functions, idea 4) ===")
+          row = _metrics(all_trades)
+          print(f"n_trades={row['n']} win_rate={row['win_rate']:.2f}% "
+                f"pf_net={row['pf_net']:.3f} pf_gross={row['pf_gross']:.3f} "
+                f"avg_net_inr={row['avg_net']:.2f} avg_held_days={row['avg_held_days']:.1f}")
+          print("\nFor comparison, the original research script (inline "
+                "reimplementation, before idea4_entry_signal/idea4_exit_reason "
+                "existed as real functions, score-signal-4h-1d-retest-"
+                "research.yml, 1d NO_TARGET variant, 52-symbol evidenced+sample "
+                "universe): pf_net=1.04, n=927, avg_net_inr=+79.92, 5y pooled.")
+
+          print("\n=== By exit_reason ===")
+          by_reason = {}
+          for t in all_trades:
+              by_reason.setdefault(t["exit_reason"], []).append(t)
+          for reason, ts in sorted(by_reason.items(), key=lambda kv: -len(kv[1])):
+              m2 = _metrics(ts)
+              print(f"{reason}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_days={m2['avg_held_days']:.1f}")
+
+          print("\n=== Top 15 symbols by trade count ===")
+          for sym, cnt in sorted(per_symbol_trade_count.items(), key=lambda kv: -kv[1])[:15]:
+              print(f"{sym}: {cnt} trades")
+          PYEOF
