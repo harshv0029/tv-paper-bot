@@ -2135,5 +2135,19 @@
     "rr_target": 3.0,
     "rr_achieved": -0.16,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "PIIND.NS",
+    "exit_time_utc": 1790655423.386595,
+    "entry_price_native": 2302.9,
+    "exit_price_native": 2303.39990234375,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 0.0,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "trend_weakened",
+    "rr_target": 3.0,
+    "rr_achieved": 0.02,
+    "strategy": null
   }
 ]
