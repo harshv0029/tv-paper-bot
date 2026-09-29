@@ -55,6 +55,7 @@ jobs:
           sys.path.insert(0, ".")
           import numpy as np
           import pandas as pd
+          import yfinance as yf
           import main as m
 
           PERIOD = "5y"
@@ -166,18 +167,62 @@ jobs:
               return trades
 
 
+          def _fetch_universe_batched(symbols, period, interval, chunk_size=250):
+              """Bulk OHLC fetch via yfinance's own native multi-ticker
+              batch/thread download (2026-09-29, explicit user instruction
+              "optimise for upcoming runs" - the sequential one-symbol-at-
+              a-time loop this replaced took 42m20s just to fetch ~2,680
+              symbols in the very first dispatch of this workflow, nearly
+              all of this run's wall-clock time). Bypasses main.fetch_ohlc's
+              own cache/wrapper entirely - that cache is keyed for the LIVE
+              scheduler's repeated-symbol-lookup pattern, not a one-shot
+              full-universe research pull, and its underlying dict isn't
+              built for concurrent access - fetching raw yfinance data
+              directly in yfinance's own batched+threaded mode instead, then
+              reshaping each symbol's slice into the exact same Date/Open/
+              High/Low/Close/Volume, oldest-first shape main.fetch_ohlc
+              returns, so every downstream call (replay_symbol,
+              power_play_entry_signal, etc.) is unaffected. Returns
+              {symbol: DataFrame}; a symbol yfinance couldn't fill in its
+              batch (delisted, bad ticker, no data for the window) is
+              simply absent from the result, same as main.fetch_ohlc
+              raising and the caller skipping it."""
+              out = {}
+              for start in range(0, len(symbols), chunk_size):
+                  chunk = symbols[start:start + chunk_size]
+                  raw = yf.download(chunk, period=period, interval=interval, group_by="ticker",
+                                     threads=True, progress=False, auto_adjust=False)
+                  if raw.empty:
+                      continue
+                  if not isinstance(raw.columns, pd.MultiIndex):
+                      # A chunk that resolves to a single usable ticker comes
+                      # back single-level instead of (ticker, field) - treat
+                      # it as that one symbol.
+                      sub = raw.dropna(subset=["Open", "High", "Low", "Close"])
+                      if not sub.empty:
+                          sub = sub.reset_index()
+                          date_col = "Date" if "Date" in sub.columns else "Datetime"
+                          out[chunk[0]] = sub.rename(columns={date_col: "Date"}).reset_index(drop=True)
+                      continue
+                  top_level = set(raw.columns.get_level_values(0))
+                  for sym in chunk:
+                      if sym not in top_level:
+                          continue
+                      sub = raw[sym].dropna(subset=["Open", "High", "Low", "Close"])
+                      if sub.empty:
+                          continue
+                      sub = sub.reset_index()
+                      date_col = "Date" if "Date" in sub.columns else "Datetime"
+                      out[sym] = sub.rename(columns={date_col: "Date"}).reset_index(drop=True)
+              return out
+
+
           SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
-          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) ---")
-          raw_by_symbol = {}
-          for sym in SYMBOLS:
-              try:
-                  raw = m.fetch_ohlc(sym, PERIOD, INTERVAL)
-              except Exception as e:
-                  print(f"SKIP {sym}: {e}")
-                  continue
-              if raw is None or len(raw) < 100:
-                  continue
-              raw_by_symbol[sym] = raw.reset_index(drop=True)
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}), batched+threaded ---")
+          raw_by_symbol = {
+              sym: df for sym, df in _fetch_universe_batched(SYMBOLS, PERIOD, INTERVAL).items()
+              if len(df) >= 100
+          }
           print(f"  fetched {len(raw_by_symbol)}/{len(SYMBOLS)} symbols\n")
 
           print(f"--- Fetching reference index {m.UNIVERSAL_REFERENCE_INDEX} ---")
