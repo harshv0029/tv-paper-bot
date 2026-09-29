@@ -9,6 +9,7 @@ one end-to-end DB round trip through _short_signal_core - not a full
 replay of every edge case the long path's own test suite covers, matching
 the deliberately-scoped-down first cut documented in main.py's own
 _maybe_place_real_short_entry docstring."""
+import json
 import os
 import tempfile
 from contextlib import closing
@@ -255,3 +256,109 @@ def test_short_signal_core_stop_hit_closes_and_realizes_pnl(monkeypatch):
         closed = conn.execute("SELECT * FROM short_trades_closed WHERE symbol = ?", ("TESTSHORT.NS",)).fetchone()
         assert closed is not None
         assert closed["exit_reason"] == "stop_hit"
+
+
+# ---- _execute_staged_leg_exit_short (2026-09-29, explicit user instruction:
+# "mirror that buy to sell into a mirror opposite image ... and same for
+# remaining conditions" - don't stop at mirroring the entry trigger/stop/
+# target formulas, mirror the long side's staged profit-booking ladder too.
+# Mirrors test_universal_score_engine.py's own
+# test_execute_staged_leg_exit_* tests.) --------------------------------------
+
+def _insert_open_signal_state_short(conn, symbol="TESTSHORT.NS", entry_price=100.0, qty=8, exit_legs=None):
+    conn.execute(
+        "INSERT INTO signal_state_short (symbol, day, status, entry_price, stop_loss, "
+        "initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval, entry_regime, peak_ltp, strategy, exit_legs_json) "
+        "VALUES (?, ?, 'short', ?, ?, ?, ?, ?, ?, 1.0, '5m', 'range', ?, 'range_short', ?)",
+        (symbol, main.ist_now().strftime("%Y-%m-%d"), entry_price, entry_price + 2, entry_price + 2,
+         entry_price - 6, qty, main.time.time(), entry_price, json.dumps(exit_legs) if exit_legs else None),
+    )
+    conn.commit()
+
+
+def test_execute_staged_leg_exit_short_books_partial_qty_and_keeps_position_open():
+    _fresh_db()
+    # r_multiples point DOWN from entry, mirroring _compute_target_cluster_short
+    legs = main._split_exit_legs(8, {"1.0R": 98.0, "1.5R": 97.0, "2.0R": 96.0})
+    with closing(main.get_db()) as conn:
+        _insert_open_signal_state_short(conn, qty=8, exit_legs=legs)
+        booking = main._execute_staged_leg_exit_short(conn, "TESTSHORT.NS", "T1", 2, 97.5, 100.0, 1.0)
+        assert booking["booked"] is True
+        assert booking["remaining_qty"] == 6
+        assert booking["pnl_inr"] > 0, "price fell after a short - a covered leg must realize a gain"
+
+        row = conn.execute("SELECT * FROM signal_state_short WHERE symbol = 'TESTSHORT.NS'").fetchone()
+        assert row is not None, "position must stay open - only a partial qty covered"
+        assert row["qty"] == 6
+        stored_legs = json.loads(row["exit_legs_json"])
+        t1 = next(l for l in stored_legs if l["leg"] == "T1")
+        assert t1["status"] == "filled"
+
+        closed_rows = conn.execute(
+            "SELECT * FROM short_trades_closed WHERE symbol = 'TESTSHORT.NS'"
+        ).fetchall()
+        assert len(closed_rows) == 1
+        assert closed_rows[0]["exit_reason"] == "staged_leg_T1"
+        assert closed_rows[0]["qty"] == 2
+
+
+def test_execute_staged_leg_exit_short_closes_position_when_it_drains_the_remaining_qty():
+    _fresh_db()
+    legs = main._split_exit_legs(1, {})  # single trail leg, qty=1
+    with closing(main.get_db()) as conn:
+        _insert_open_signal_state_short(conn, qty=1, exit_legs=legs)
+        booking = main._execute_staged_leg_exit_short(conn, "TESTSHORT.NS", "trail", 1, 95.0, 100.0, 1.0)
+        assert booking["booked"] is True
+        assert booking["remaining_qty"] == 0
+        row = conn.execute("SELECT * FROM signal_state_short WHERE symbol = 'TESTSHORT.NS'").fetchone()
+        assert row is None  # fully closed
+
+
+def test_execute_staged_leg_exit_short_returns_not_booked_when_no_open_position():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        booking = main._execute_staged_leg_exit_short(conn, "NOPOS.NS", "T1", 1, 100.0, 100.0, 1.0)
+        assert booking == {"booked": False}
+
+
+def test_short_signal_core_books_a_staged_leg_and_keeps_the_rest_open(monkeypatch):
+    _fresh_db()
+    df = _ranging_with_a_sharp_spike()
+    monkeypatch.setattr(main, "fetch_ohlc", _FakeYFinance(df))
+    monkeypatch.setattr(main, "get_fx_to_inr", lambda currency: 1.0)
+
+    with closing(main.get_db()) as conn:
+        # qty=8 -> 3 fixed legs (T1/T2/T3) + trail, per _split_exit_legs.
+        # Entry 106.0, T1 at 104.5 (a shallow 1.5-point move) sits just
+        # ABOVE the fixture's own spike-bar close (104.0 - the fixed
+        # today_df/last_close this tick sees) so exit_price <= T1 fires and
+        # fills T1 only; T2/T3 sit further below and are untouched.
+        legs = main._split_exit_legs(8, {"1.0R": 104.5, "1.5R": 102.0, "2.0R": 100.0})
+        conn.execute(
+            "INSERT INTO signal_state_short (symbol, day, status, entry_price, stop_loss, "
+            "initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval, entry_regime, peak_ltp, strategy, exit_legs_json) "
+            "VALUES ('TESTSHORT.NS', ?, 'short', 106.0, 110.0, 110.0, 100.0, 8, ?, 1.0, '5m', 'range', 106.0, 'range_short', ?)",
+            (main.ist_now().strftime("%Y-%m-%d"), main.time.time(), json.dumps(legs)),
+        )
+        conn.commit()
+
+    result = main._short_signal_core(
+        symbol="TESTSHORT.NS", capital=400000, daily_risk_pct=2.0, risk_per_trade_pct=2.0,
+        stop_pct=2.0, rr=3.0, sma_fast=9, sma_slow=21, interval="5m",
+        tz_offset_min=main.IST_OFFSET_MIN, open_min=0, close_min=1439, squareoff_min=1438,
+        trade_weekends=True, currency="INR", max_hold_minutes=120.0, ma_type="ema",
+        require_real_tradability=False,
+    )
+    assert result["action_taken"] == "partial_booked_T1", result
+    assert result["staged_exit"]["booked"] is True
+
+    with closing(main.get_db()) as conn:
+        row = conn.execute("SELECT * FROM signal_state_short WHERE symbol = ?", ("TESTSHORT.NS",)).fetchone()
+        assert row is not None, "only T1 filled - position must stay open with the remaining qty"
+        assert row["qty"] == 6
+        closed = conn.execute(
+            "SELECT * FROM short_trades_closed WHERE symbol = ? AND exit_reason = 'staged_leg_T1'",
+            ("TESTSHORT.NS",),
+        ).fetchone()
+        assert closed is not None
+        assert closed["qty"] == 2
