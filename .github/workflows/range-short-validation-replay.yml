@@ -218,7 +218,12 @@ jobs:
                       skips["stop_invalid"] += 1
                       continue
 
-                  target = last_close - DEFAULT_RR * stop_dist
+                  # 2026-09-29 root-cause fix (was a plain fixed-3R target -
+                  # see _compute_target_cluster_short's own docstring in
+                  # main.py for the full derivation): calls the REAL,
+                  # just-changed main.py function, not a reimplementation.
+                  target_cluster = m._compute_target_cluster_short(last_close, stop_loss, df_so_far, DEFAULT_RR)
+                  target = target_cluster["primary_target"]
                   target_move_pct = m._target_move_pct_short(target, last_close)
                   if target_move_pct <= m.ROUND_TRIP_COST_PCT:
                       skips["cost_gate_failed"] += 1
