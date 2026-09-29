@@ -5677,6 +5677,86 @@ def idea4_exit_reason(df: pd.DataFrame, entry_day: str, stop_loss: float) -> str
     return None
 
 
+# ---- Idea 4 short mirror ("ride losers down, no target") -------------------
+#
+# 2026-09-29, explicit user instruction ("Prep short mirror for others
+# too") per CLAUDE.md's 2026-09-28 standing thumb rule. Mirrors
+# idea4_entry_signal/idea4_exit_reason direction only: calls
+# _compute_universal_entry_score_short (already built and validated this
+# session for the TREND-down short mirror - see its own docstring) instead
+# of the long score function, with the EMA9<EMA21 bearish pre-filter
+# mirroring the long side's EMA9>EMA21, and a fixed ATR(14)x1.5 stop set
+# ABOVE entry (never trailed) instead of below it. Every constant
+# (IDEA4_ATR_STOP_MULT, IDEA4_MAX_HOLD_DAYS, the rolling-VWAP-substitute
+# window) reused verbatim.
+
+
+def idea4_entry_signal_short(df: pd.DataFrame, index_closes: np.ndarray | None = None,
+                              sma_fast: int = 9, sma_slow: int = 21, ma_type: str = "ema") -> dict | None:
+    """Short mirror of idea4_entry_signal: calls the real, unmodified
+    _compute_universal_entry_score_short, gated by an explicit EMA9<EMA21
+    pre-filter, on 1-day candles. Returns None if there isn't enough
+    history yet, the trend/score/ATR gate doesn't clear, or the resulting
+    stop would sit at/below entry; otherwise {entry_price, stop_loss,
+    atr_at_entry, score_pct}."""
+    min_history = max(sma_slow, VOLUME_CONFIRM_LOOKBACK + 1, UNIVERSAL_STRUCTURE_LOOKBACK * 2,
+                       UNIVERSAL_RSI_PERIOD + 1) + 1
+    if len(df) < min_history:
+        return None
+    closes = df["Close"].to_numpy(dtype=float)
+    sma_f = _moving_average(closes, sma_fast, ma_type)
+    sma_s = _moving_average(closes, sma_slow, ma_type)
+    if sma_f >= sma_s:
+        return None
+
+    volume_ok, vol_avg = _volume_confirms(df["Volume"].to_numpy(dtype=float))
+    current_volume = float(df["Volume"].iloc[-1])
+    vol_ratio = (current_volume / vol_avg) if (vol_avg and vol_avg > 0) else None
+
+    today_df = df.iloc[-VOLUME_CONFIRM_LOOKBACK:]
+    score_result = _compute_universal_entry_score_short(
+        df, today_df, volume_ok, sma_f, sma_s, index_closes, sma_fast, sma_slow, ma_type,
+        vol_ratio=vol_ratio,
+    )
+    if not score_result["entry_allowed"]:
+        return None
+
+    atr_series = _atr_series(df)
+    if len(atr_series) == 0 or pd.isna(atr_series.iloc[-1]):
+        return None
+    atr_val = float(atr_series.iloc[-1])
+    if atr_val <= 0:
+        return None
+
+    entry_price = float(closes[-1])
+    stop_loss = entry_price + IDEA4_ATR_STOP_MULT * atr_val
+    if stop_loss <= entry_price:
+        return None
+
+    return {
+        "entry_price": entry_price, "stop_loss": stop_loss, "atr_at_entry": atr_val,
+        "score_pct": score_result["score_pct"],
+    }
+
+
+def idea4_exit_reason_short(df: pd.DataFrame, entry_day: str, stop_loss: float) -> str | None:
+    """Short mirror of idea4_exit_reason: fixed stop ABOVE entry (never
+    trailed), no fixed target, ride the winner to either that stop or
+    IDEA4_MAX_HOLD_DAYS calendar days, whichever comes first. Returns the
+    exit reason string, or None to keep holding."""
+    if len(df) == 0:
+        return None
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].astype(str).to_numpy()
+    i = len(df) - 1
+    if closes[i] >= stop_loss:
+        return "stop_hit"
+    held_days = int(np.sum(dates > entry_day))
+    if held_days >= IDEA4_MAX_HOLD_DAYS:
+        return "max_hold_exit"
+    return None
+
+
 def _compute_target_cluster(entry_price: float, stop_loss: float, df: pd.DataFrame, rr: float) -> dict:
     """Target isn't one number - a small CLUSTER of independently-derived
     candidates (this session's own approved architecture): pure R-multiples
