@@ -560,6 +560,39 @@ REGISTRY: list[StrategyDef] = [
             "priority ahead of higher-PFnet candidates."
         ),
     ),
+    StrategyDef(
+        name="power_play_short_fade",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # main.py.power_play_entry_signal_short/power_play_exit_reason_short exist but are not wired into any scan
+        metrics=Metrics(
+            pfnet=0.479, pfgross=0.580, win_rate_pct=36.00, n_trades=50,
+            avg_net_inr=-401.18,
+            universe="full_2680 (2366/2680 fetched)",
+            run_ref="power-play-short-validation-replay.yml run 36605194832 (2026-09-29, calls the real main.py functions)",
+        ),
+        source="main.py (power_play_entry_signal_short/power_play_exit_reason_short)",
+        evidence=(
+            "Full-universe run 36605194832: PFnet 0.479, PFgross 0.580, n=50, win_rate "
+            "36.00%, avg_net -Rs401.18/trade, avg held 24.0 days. Best PFnet of any "
+            "short-sell candidate tried this session by a wide margin (next best is "
+            "range_short_target_cluster at 0.26), but still well below "
+            "PFNET_LIVE_FLOOR and a fraction of the long side's own 5.023 PFnet on the "
+            "same setup. Confirms the crash-flag-breakdown structure does not mirror as "
+            "cleanly into the fade direction as the RANGE VWAP mean-reversion short did "
+            "relative to its own long side."
+        ),
+        notes=(
+            "'Power fade' - crash (>=50% halving, log-symmetric mirror of the long "
+            "side's +100% launch requirement per POWER_PLAY_CRASH_MIN_LOSS_PCT_SHORT) "
+            "+ tight flag + breakdown, chandelier-trail exit. n=50 is thin even by "
+            "Power Play's own rare-setup standard (long side n=109 on the identical "
+            "universe) - the long side's own thumb rule (rarest setup in the book) "
+            "applies doubly here. Never checked across candle sizes; 1d only so far."
+        ),
+    ),
 
     # ---- FUTURES / OPTIONS ------------------------------------------------
     # No entries: kotak_real_orders.py has NO futures or options order-
