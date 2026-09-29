@@ -10627,6 +10627,22 @@ def get_real_capital_deployed_inr() -> float | None:
 APP_PROCESS_STARTED_AT_EPOCH = time.time()
 
 _scheduler_last_tick_ts = 0.0
+_scheduler_last_reconcile_ts = 0.0  # 2026-09-29, see _maybe_run_real_position_reconcile
+_SCHEDULER_RECONCILE_INTERVAL_SECONDS = 300  # 5 min - real-money reconciliation
+# doesn't need 30s freshness, but it DOES need to actually run reliably, which
+# kotak-reconcile.yml's external GH Actions cron (nominally */15 min during
+# market hours) has repeatedly failed to do - explicit user finding
+# 2026-09-29 ("Why still untracked 4 of stocks in real money trade on Kotak
+# as of now"), confirmed by checking that workflow's own run history: actual
+# gaps of 8 hours and 3 days between runs, not the configured 15 minutes.
+# GitHub silently drops most scheduled firings for infrequently-active repos
+# (same root cause already documented for the swing engine's own reconcile
+# needs) - the fix is to stop depending on an external trigger firing
+# reliably at all, and instead reconcile from INSIDE this process's own 30s
+# tick loop, which Render's own uptime already keeps running. The external
+# workflow is NOT removed (kept as a redundant, independent check - defense
+# in depth, and it still runs after a Render restart before this process's
+# own tick loop would kick in) - this is an addition, not a replacement.
 _scheduler_last_error = None
 _scheduler_tick_count = 0
 _MEMORY_LOG_EVERY_N_TICKS = 20  # ~10 min at the 30s tick interval - explicit
@@ -11442,6 +11458,48 @@ def _run_swing_scan(conn):
             print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
 
 
+def _maybe_run_real_position_reconcile(conn):
+    """Runs _reconcile_real_positions_core(adopt="*") in-process, at most
+    once every _SCHEDULER_RECONCILE_INTERVAL_SECONDS, from inside this
+    process's own 30s tick loop (2026-09-29 - see
+    _scheduler_last_reconcile_ts's own module comment for the full
+    reasoning: kotak-reconcile.yml's external GH Actions cron has
+    repeatedly failed to fire reliably, leaving real positions untracked
+    for hours at a time despite the reconcile LOGIC itself working fine
+    every time it's actually invoked).
+
+    Only ever called when is_real_trading_enabled(conn) - reconciling
+    Kotak positions when real trading is off would just be extra API
+    calls against nothing, since real_positions/real_positions_short stay
+    empty. Never raises - any failure here must not break the intraday
+    tick it's piggybacking on; the caller wraps this in its own
+    try/except regardless, but this function fails safe on its own too
+    (an exception from _reconcile_real_positions_core is caught and
+    logged, not left to propagate)."""
+    global _scheduler_last_reconcile_ts
+    now = time.time()
+    if now - _scheduler_last_reconcile_ts < _SCHEDULER_RECONCILE_INTERVAL_SECONDS:
+        return
+    _scheduler_last_reconcile_ts = now
+    if not is_real_trading_enabled(conn):
+        return
+    try:
+        result = _reconcile_real_positions_core(adopt="*")
+        if result.get("error"):
+            print(f"[RECONCILE] in-process reconcile failed (non-fatal, external kotak-reconcile.yml "
+                  f"cron remains as a redundant check): {result['error']}")
+            return
+        untracked = result.get("untracked_open_positions_count", 0)
+        adopted = result.get("adopted_count", 0)
+        qty_fixed = result.get("qty_corrected_count", 0)
+        ghosts = result.get("removed_ghost_count", 0)
+        if untracked or adopted or qty_fixed or ghosts:
+            print(f"[RECONCILE] in-process: qty_fixed={qty_fixed} ghosts_removed={ghosts} "
+                  f"untracked={untracked} adopted={adopted}")
+    except Exception as e:
+        print(f"[RECONCILE] in-process reconcile raised (non-fatal): {e}")
+
+
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
@@ -11455,6 +11513,11 @@ async def _scheduler_tick():
             _retry_pending_real_swing_orders(conn)
         except Exception as e:
             print(f"[REAL SWING] retry pass failed (non-fatal, intraday tick continues): {e}")
+
+        try:
+            _maybe_run_real_position_reconcile(conn)
+        except Exception as e:
+            print(f"[RECONCILE] unexpected error (non-fatal, intraday tick continues): {e}")
 
         try:
             _fo_chain_monitoring_snapshot(conn)
