@@ -1,0 +1,446 @@
+name: RSI-Overbought Short Fade Research (research)
+
+# Third, genuinely distinct short-entry HYPOTHESIS this session (2026-09-29,
+# explicit user instruction: "I want a successful short sell conditions
+# for entry into short sell trades anyhow... RSI is just one example, use
+# whatever indicator or combination"). The first two families both
+# failed on the full universe:
+#   1. Mean-reversion via VWAP-spike (range-short-validation-replay.yml,
+#      3 variants + a stricter-filter test): PFnet 0.17-0.26.
+#   2. Momentum-continuation via the TREND-down 8-factor score
+#      (trend-short-validation-replay.yml): PFnet 0.09 - worse, and a
+#      very rare signal (1,531 trades total).
+# This tests a THIRD family: RSI-overbought mean-reversion fade (classic
+# "RSI>70/80 -> short, expect pullback"). Same broad category as #1
+# (fading an extreme), so tempered expectations, but a genuinely
+# different technical trigger, not yet tried, and a low-cost thing to
+# rule in/out before concluding no short-sell strategy works on this
+# universe.
+#
+# RESEARCH-STAGE, not a main.py mirror yet (unlike the other two
+# workflows in this repo): the entry trigger itself (an RSI threshold
+# check) doesn't exist as a main.py function - this is genuinely new
+# research, not a call to already-live code. Everything AROUND the
+# entry trigger - stop-loss, target, staged ladder, trailing stop,
+# regime gate - reuses the REAL, already-validated main.py short-side
+# functions (m._range_regime_short_stop_loss, m._compute_target_cluster_short,
+# m._split_exit_legs, m._next_unfilled_leg, m._trailing_stop_target_short,
+# m._classify_market_regime, m._compute_rsi_value), exactly the "prove it
+# first with real data before wiring into live code" discipline this
+# repo's own earlier research workflows (e.g.
+# universal-score-range-short-research.yml) already established. Only if
+# a threshold here shows real, full-universe, cost-net-positive edge does
+# it get graduated into a real main.py function + its own
+# call-the-real-function validation replay, same as the RANGE short
+# mirror's own history in this session.
+#
+# Fair single-fetch-multi-variant pattern: each symbol is fetched ONCE and
+# replayed under RSI_THRESHOLD in [65, 70, 75, 80], gated to RANGE regime
+# only (classic RSI-overbought-fade theory: in a genuine uptrend RSI can
+# stay overbought for a long time without reverting - "can remain
+# overbought longer than you can remain solvent" - so this is scoped the
+# same way the VWAP mean-reversion short already is, to give the fade its
+# best chance rather than catching genuine continuation moves).
+#
+# Universe: full NSE EQ-series (main._load_nse_universe_from_file(),
+# ~2,680 symbols) per the 2026-09-29 standing thumb rule. 40-shard matrix
+# (this account's observed concurrent-job ceiling).
+#
+# Read-only research - writes nothing, touches no live state. This result,
+# whatever it shows, does NOT by itself authorize any new code path in
+# main.py or a merge to main - both still need the user's explicit
+# go-ahead after seeing this report.
+on:
+  workflow_dispatch: {}
+
+env:
+  SHARD_COUNT: 40
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+                20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run RSI-overbought short fade research (this shard)
+        env:
+          SHARD_INDEX: ${{ matrix.shard }}
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import json
+          import os
+          from collections import Counter
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          SHARD_INDEX = int(os.environ["SHARD_INDEX"])
+          SHARD_COUNT = int(os.environ["SHARD_COUNT"])
+
+          OPEN_MIN = 555
+          CLOSE_MIN = 930
+          SQUAREOFF_MIN = 920
+          TZ_OFF = m.IST_OFFSET_MIN
+          MAX_HOLD_MINUTES = 120.0
+          DEFAULT_SMA_FAST, DEFAULT_SMA_SLOW, DEFAULT_MA_TYPE = 9, 21, "ema"
+          DEFAULT_RR = 3.0
+          LIVE_WINDOW_BARS = 375
+          RSI_THRESHOLDS = [65.0, 70.0, 75.0, 80.0]
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(ts_local=ts_local)
+              df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+              df["mins"] = df["ts_local"].dt.hour * 60 + df["ts_local"].dt.minute
+              return df
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _buy_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def replay_symbol_rsi_short(symbol, raw_df, rsi_threshold, risk_pct, stop_pct, capital, cost_model,
+                                       sma_fast=DEFAULT_SMA_FAST, sma_slow=DEFAULT_SMA_SLOW, ma_type=DEFAULT_MA_TYPE):
+              """Bar-by-bar RSI-overbought-fade short replay. Only the entry
+              TRIGGER (rsi_val >= rsi_threshold) is new/inline research code;
+              everything else calls the REAL, already-validated main.py
+              short-side functions - see this workflow's own module comment."""
+              df = _prep(raw_df)
+              n = len(df)
+
+              position = None
+              trades = []
+              skips = Counter()
+
+              for i in range(n):
+                  row = df.iloc[i]
+                  mins = int(row["mins"])
+                  if mins < OPEN_MIN or mins > CLOSE_MIN:
+                      continue
+                  day = row["date_local"]
+                  today_df = df[(df["date_local"] == day) & (df.index <= i)]
+                  df_so_far = df.iloc[max(0, i + 1 - LIVE_WINDOW_BARS): i + 1]
+                  last_close = float(row["Close"])
+                  last_ts = row["ts_local"].timestamp()
+
+                  if position is not None:
+                      trough, candidate_stop = m._trailing_stop_target_short(
+                          today_df, position["entry_price"], position["initial_stop"],
+                          position["entry_ts"], TZ_OFF,
+                      )
+                      if candidate_stop is not None and candidate_stop < position["stop"]:
+                          position["stop"] = candidate_stop
+
+                      next_leg = m._next_unfilled_leg(json.dumps(position["exit_legs"]))
+                      if next_leg is not None and next_leg.get("target_price") and last_close <= next_leg["target_price"]:
+                          leg_qty = next_leg["qty"]
+                          for leg_entry in position["exit_legs"]:
+                              if leg_entry["leg"] == next_leg["leg"]:
+                                  leg_entry["status"] = "filled"
+                          remaining_after = position["qty"] - leg_qty
+                          is_final = remaining_after <= 1e-9
+                          gross_pnl = (position["entry_price"] - last_close) * leg_qty
+                          leg_open_cost = position["open_cost_per_share"] * leg_qty
+                          leg_close_cost = _buy_cost(leg_qty, last_close, cost_model)
+                          dp_once = (cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]) if is_final else 0.0
+                          total_cost = leg_open_cost + leg_close_cost + dp_once
+                          net_pnl = gross_pnl - total_cost
+                          r = position["initial_stop"] - position["entry_price"]
+                          trades.append({
+                              "symbol": symbol, "entry_price": position["entry_price"], "exit_price": last_close,
+                              "entry_ts": position["entry_ts"], "exit_ts": last_ts,
+                              "time_in_trade_min": (last_ts - position["entry_ts"]) / 60.0,
+                              "exit_reason": f"staged_leg_{next_leg['leg']}", "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                              "total_cost": total_cost, "net_r": net_pnl / (r * leg_qty) if r > 0 else None,
+                          })
+                          position["qty"] = remaining_after
+                          if is_final:
+                              position = None
+                          continue
+
+                      exit_reason = None
+                      if last_close <= position["target"]:
+                          exit_reason = "target_hit"
+                      elif last_close >= position["stop"]:
+                          exit_reason = "stop_hit"
+                      elif (
+                          (last_ts - position["entry_ts"]) >= MAX_HOLD_MINUTES * 60
+                          and position["stop"] >= position["initial_stop"]
+                      ):
+                          exit_reason = "stale_timeout"
+                      elif mins >= SQUAREOFF_MIN:
+                          exit_reason = "eod_squareoff"
+
+                      if exit_reason:
+                          open_cost = position["open_cost_per_share"] * position["qty"]
+                          close_cost = _buy_cost(position["qty"], last_close, cost_model)
+                          dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+                          gross_pnl = (position["entry_price"] - last_close) * position["qty"]
+                          total_cost = open_cost + close_cost + dp_once
+                          net_pnl = gross_pnl - total_cost
+                          r = position["initial_stop"] - position["entry_price"]
+                          trades.append({
+                              "symbol": symbol, "entry_price": position["entry_price"], "exit_price": last_close,
+                              "entry_ts": position["entry_ts"], "exit_ts": last_ts,
+                              "time_in_trade_min": (last_ts - position["entry_ts"]) / 60.0,
+                              "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                              "total_cost": total_cost, "net_r": net_pnl / (r * position["qty"]) if r > 0 else None,
+                          })
+                          position = None
+                      continue
+
+                  if mins >= SQUAREOFF_MIN:
+                      continue
+
+                  regime = m._classify_market_regime(df_so_far, sma_fast, sma_slow, ma_type)
+                  if regime != "range":
+                      skips["not_range_regime"] += 1
+                      continue
+
+                  closes_so_far = df_so_far["Close"].to_numpy(dtype=float)
+                  rsi_val = m._compute_rsi_value(closes_so_far)
+                  if rsi_val is None or rsi_val < rsi_threshold:
+                      skips["rsi_below_threshold"] += 1
+                      continue
+
+                  stop_loss_cap = last_close * (1 + stop_pct / 100)
+                  stop_loss = m._range_regime_short_stop_loss(last_close, df_so_far, stop_loss_cap)
+                  stop_dist = stop_loss - last_close
+                  if stop_dist <= 0:
+                      skips["stop_invalid"] += 1
+                      continue
+
+                  target_cluster = m._compute_target_cluster_short(last_close, stop_loss, df_so_far, DEFAULT_RR)
+                  target = target_cluster["primary_target"]
+                  target_move_pct = m._target_move_pct_short(target, last_close)
+                  if target_move_pct <= m.ROUND_TRIP_COST_PCT:
+                      skips["cost_gate_failed"] += 1
+                      continue
+
+                  # No confidence-proportional sizing here (RESEARCH stage,
+                  # no live confidence measure exists yet for this new
+                  # trigger) - flat 1.0x, same simplification this repo's
+                  # own earlier research-stage workflows use before a
+                  # strategy graduates into a real main.py function.
+                  usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100
+                  qty = int(np.floor(min(risk_amount_inr / stop_dist, usable_capital_inr / last_close)))
+                  if qty <= 0:
+                      skips["qty_zero"] += 1
+                      continue
+                  if qty * last_close < 100:
+                      skips["notional_too_small"] += 1
+                      continue
+
+                  exit_legs = m._split_exit_legs(qty, target_cluster["r_multiples"])
+                  position = {
+                      "entry_price": last_close, "initial_stop": stop_loss, "stop": stop_loss,
+                      "target": target, "entry_ts": last_ts, "qty": qty,
+                      "open_cost_per_share": _sell_cost(qty, last_close, cost_model) / qty,
+                      "exit_legs": exit_legs,
+                  }
+
+              if position is not None:
+                  last_close = float(df["Close"].iloc[-1])
+                  last_ts = df["ts_local"].iloc[-1].timestamp()
+                  open_cost = position["open_cost_per_share"] * position["qty"]
+                  close_cost = _buy_cost(position["qty"], last_close, cost_model)
+                  dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+                  gross_pnl = (position["entry_price"] - last_close) * position["qty"]
+                  total_cost = open_cost + close_cost + dp_once
+                  net_pnl = gross_pnl - total_cost
+                  r = position["initial_stop"] - position["entry_price"]
+                  trades.append({
+                      "symbol": symbol, "entry_price": position["entry_price"], "exit_price": last_close,
+                      "entry_ts": position["entry_ts"], "exit_ts": last_ts,
+                      "time_in_trade_min": (last_ts - position["entry_ts"]) / 60.0,
+                      "exit_reason": "window_end_forced_close", "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                      "total_cost": total_cost, "net_r": net_pnl / (r * position["qty"]) if r > 0 else None,
+                  })
+
+              return trades, skips
+
+
+          ALL_SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          SYMBOLS = ALL_SYMBOLS[SHARD_INDEX::SHARD_COUNT]
+          CAPITAL_INR = 400000.0
+
+          print(f"--- Shard {SHARD_INDEX}/{SHARD_COUNT}: fetching {len(SYMBOLS)} of {len(ALL_SYMBOLS)} symbols (5m, 60d) ---")
+          all_trades_by_thr = {t: [] for t in RSI_THRESHOLDS}
+          all_skips_by_thr = {t: Counter() for t in RSI_THRESHOLDS}
+          fetched = 0
+          for sym in SYMBOLS:
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  raw = m.fetch_ohlc(sym, "60d", "5m")
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < 50:
+                  continue
+              fetched += 1
+              for thr in RSI_THRESHOLDS:
+                  try:
+                      trades, skips = replay_symbol_rsi_short(
+                          sym, raw, thr, cfg["risk_pct"], cfg["stop_pct"], CAPITAL_INR, DEFAULT_COST_MODEL,
+                          cfg["sma_fast"], cfg["sma_slow"],
+                      )
+                  except Exception as e:
+                      print(f"ERROR {sym} rsi>={thr}: {e}")
+                      continue
+                  all_trades_by_thr[thr].extend(trades)
+                  all_skips_by_thr[thr].update(skips)
+          for thr in RSI_THRESHOLDS:
+              print(f"  shard {SHARD_INDEX} rsi>={thr}: fetched {fetched}/{len(SYMBOLS)} symbols, "
+                    f"{len(all_trades_by_thr[thr])} trades, skips={dict(all_skips_by_thr[thr])}")
+
+          with open("shard_result.json", "w") as f:
+              json.dump({
+                  "shard": SHARD_INDEX, "fetched": fetched, "universe_size": len(SYMBOLS),
+                  "thresholds": {
+                      str(t): {"trades": all_trades_by_thr[t], "skips": dict(all_skips_by_thr[t])}
+                      for t in RSI_THRESHOLDS
+                  },
+              }, f)
+          PYEOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.shard }}-result
+          path: shard_result.json
+          retention-days: 3
+
+  aggregate:
+    needs: replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*-result
+          path: shards
+          merge-multiple: false
+
+      - name: Aggregate all shards and report pooled metrics
+        run: |
+          python3 - <<'PYEOF'
+          import glob
+          import json
+
+          RSI_THRESHOLDS = ["65.0", "70.0", "75.0", "80.0"]
+          all_trades_by_thr = {t: [] for t in RSI_THRESHOLDS}
+          all_skips_by_thr = {t: {} for t in RSI_THRESHOLDS}
+          total_fetched = 0
+          total_universe = 0
+          for path in sorted(glob.glob("shards/shard-*-result/shard_result.json")):
+              with open(path) as f:
+                  data = json.load(f)
+              total_fetched += data["fetched"]
+              total_universe += data["universe_size"]
+              for t in RSI_THRESHOLDS:
+                  tdata = data["thresholds"][t]
+                  all_trades_by_thr[t].extend(tdata["trades"])
+                  for k, cnt in tdata["skips"].items():
+                      all_skips_by_thr[t][k] = all_skips_by_thr[t].get(k, 0) + cnt
+              print(f"  loaded {path}: {data['fetched']}/{data['universe_size']} symbols, "
+                    + ", ".join(f"rsi{t}={len(data['thresholds'][t]['trades'])}" for t in RSI_THRESHOLDS))
+
+          print(f"\n--- Pooled: fetched {total_fetched}/{total_universe} symbols ---")
+          for t in RSI_THRESHOLDS:
+              print(f"  rsi>={t}: {len(all_trades_by_thr[t])} trades, skips: {all_skips_by_thr[t]}")
+          print()
+
+
+          def _metrics(trades, label):
+              if not trades:
+                  print(f"  {label:24s}   no trades")
+                  return
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              net_rs = [t["net_r"] for t in trades if t["net_r"] is not None]
+              avg_net_r = sum(net_rs) / len(net_rs) if net_rs else None
+              avg_time = sum(t["time_in_trade_min"] for t in trades) / n
+              cost_drag_pct = 100 * sum(t["total_cost"] for t in trades) / max(1, sum(abs(t["gross_pnl"]) for t in trades))
+              reasons = {}
+              for t in trades:
+                  reasons[t["exit_reason"]] = reasons.get(t["exit_reason"], 0) + 1
+              print(f"  {label:24s} n={n:<6d} win%={win_rate:6.1f}  PFnet={pf_net:6.2f}  PFgross={pf_gross:6.2f}  "
+                    f"avgNet={avg_net:9.2f}  avgR={avg_net_r if avg_net_r is None else round(avg_net_r,3)}  "
+                    f"avgMin={avg_time:6.1f}  costDrag%={cost_drag_pct:5.1f}  exits={reasons}")
+
+
+          print("=== RSI-OVERBOUGHT SHORT FADE - full-universe research replay ===")
+          for t in RSI_THRESHOLDS:
+              _metrics(all_trades_by_thr[t], f"ALL (rsi>={t})")
+
+          for t in RSI_THRESHOLDS:
+              print(f"\n=== BY SYMBOL rsi>={t} (n>=2, sorted by gross PF, top 15) ===")
+              per_symbol = {}
+              for tr in all_trades_by_thr[t]:
+                  per_symbol.setdefault(tr["symbol"], []).append(tr)
+              symbol_rows = []
+              for sym, trs in per_symbol.items():
+                  if len(trs) < 2:
+                      continue
+                  gwg = sum(tr["gross_pnl"] for tr in trs if tr["gross_pnl"] > 0)
+                  glg = -sum(tr["gross_pnl"] for tr in trs if tr["gross_pnl"] <= 0)
+                  pf_gross = (gwg / glg) if glg > 0 else float("inf")
+                  symbol_rows.append((sym, pf_gross, trs))
+              symbol_rows.sort(key=lambda x: x[1], reverse=True)
+              for sym, pf_gross, trs in symbol_rows[:15]:
+                  _metrics(trs, sym)
+          PYEOF
