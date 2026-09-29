@@ -47,7 +47,7 @@ def test_scan_universe_calls_entry_fn_for_wired_strategies():
     fired = sr.StrategyDef(
         name="test_only_strategy",
         asset_class=sr.AssetClass.EQUITY_INTRADAY,
-        category=sr.TradeCategory.BUY,
+        categories=(sr.TradeCategory.BUY,),
         timeframe="5m",
         status=sr.StrategyStatus.LIVE,
         entry_fn=lambda data: {"reason": "always_fires"} if data["symbol"] == "FOO.NS" else None,
@@ -67,21 +67,50 @@ def test_scan_universe_calls_entry_fn_for_wired_strategies():
 
 # ---- category / metrics / leaderboard (2026-09-29 addition) -----------------
 
-def test_every_strategy_has_a_category():
+def test_every_strategy_has_at_least_one_category():
     for strat in sr.REGISTRY:
-        assert isinstance(strat.category, sr.TradeCategory)
+        assert strat.categories
+        assert all(isinstance(c, sr.TradeCategory) for c in strat.categories)
 
 
 def test_strategies_by_category_filters_correctly():
     shorts = sr.strategies_by_category(sr.TradeCategory.SHORT_SELL)
     assert len(shorts) >= 5
-    assert all(s.category == sr.TradeCategory.SHORT_SELL for s in shorts)
+    assert all(sr.TradeCategory.SHORT_SELL in s.categories for s in shorts)
+
+
+def test_a_strategy_can_appear_in_more_than_one_categorys_leaderboard():
+    # CLAUDE.md, 2026-09-29 thumb rule: a strategy is not confined to one
+    # TradeCategory - categories is a tuple for exactly this reason.
+    dual = sr.StrategyDef(
+        name="dual_category_fixture_only", asset_class=sr.AssetClass.EQUITY_INTRADAY,
+        categories=(sr.TradeCategory.BUY, sr.TradeCategory.SWING),
+        timeframe="5m", status=sr.StrategyStatus.RESEARCH,
+        metrics=sr.Metrics(pfnet=0.5, pfgross=1.0, win_rate_pct=40.0, n_trades=10),
+        evidence="fixture",
+    )
+    original = list(sr.REGISTRY)
+    sr.REGISTRY.append(dual)
+    try:
+        assert dual in sr.strategies_by_category(sr.TradeCategory.BUY)
+        assert dual in sr.strategies_by_category(sr.TradeCategory.SWING)
+    finally:
+        sr.REGISTRY[:] = original
+
+
+def test_max_strategy_checks_per_symbol_per_cycle_is_25():
+    # CLAUDE.md, 2026-09-29 thumb rule: 5 categories x top-5 leaderboard
+    # slots each bounds live per-stock monitoring cost at 25 checks per
+    # round-robin cycle, regardless of registry size. Locks the number
+    # itself down so a future edit to the category count or top_n can't
+    # silently drift from what CLAUDE.md documents.
+    assert sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE == 25
 
 
 def test_is_viable_none_when_no_metrics():
     strat = sr.StrategyDef(
         name="no_metrics_yet", asset_class=sr.AssetClass.EQUITY_INTRADAY,
-        category=sr.TradeCategory.BUY, timeframe="5m", status=sr.StrategyStatus.RESEARCH,
+        categories=(sr.TradeCategory.BUY,), timeframe="5m", status=sr.StrategyStatus.RESEARCH,
         evidence="fixture",
     )
     assert strat.is_viable() is None
