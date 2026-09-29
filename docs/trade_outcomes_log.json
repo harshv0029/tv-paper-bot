@@ -2191,5 +2191,19 @@
     "rr_target": 3.0,
     "rr_achieved": 0.02,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "PRESTIGE.NS",
+    "exit_time_utc": 1790675043.281599,
+    "entry_price_native": 1425.2,
+    "exit_price_native": 1422.5,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 0.0,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "trend_weakened",
+    "rr_target": 3.0,
+    "rr_achieved": -0.19,
+    "strategy": null
   }
 ]
