@@ -192,7 +192,18 @@ class _FakeYFinance:
         self._df = df
 
     def __call__(self, symbol, period, interval):
-        return self._df.assign(Date=pd.date_range("2026-09-29 03:45", periods=len(self._df), freq="5min", tz="UTC"))
+        # Anchored to TODAY's IST calendar date at market open (03:45 UTC
+        # = 09:15 IST), not a fixed date (2026-09-29 fix, day-rollover
+        # flake: a hardcoded calendar date here broke the moment IST
+        # crossed midnight mid-session, since _short_signal_core's
+        # today_df filter drops every bar whose date_local isn't today -
+        # and simply anchoring to raw "now" instead left too few bars in
+        # today's own session near IST midnight). Mirrors the same
+        # UTC+offset arithmetic _short_signal_core itself uses.
+        today_ist_midnight = (pd.Timestamp.utcnow() + pd.Timedelta(minutes=main.IST_OFFSET_MIN)).normalize()
+        session_start_utc = (today_ist_midnight - pd.Timedelta(minutes=main.IST_OFFSET_MIN)
+                              + pd.Timedelta(hours=3, minutes=45))
+        return self._df.assign(Date=pd.date_range(session_start_utc, periods=len(self._df), freq="5min", tz="UTC"))
 
 
 def test_short_signal_core_enters_a_short_on_a_range_spike(monkeypatch):
