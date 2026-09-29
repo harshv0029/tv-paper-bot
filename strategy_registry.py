@@ -593,6 +593,46 @@ REGISTRY: list[StrategyDef] = [
             "applies doubly here. Never checked across candle sizes; 1d only so far."
         ),
     ),
+    StrategyDef(
+        name="idea4_short_ride_losers",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # main.py.idea4_entry_signal_short/idea4_exit_reason_short exist but are not wired into any scan
+        metrics=Metrics(
+            pfnet=0.119, pfgross=0.139, win_rate_pct=36.65, n_trades=12285,
+            avg_net_inr=-6730.43,
+            universe="full_2680 (2366/2680 fetched)",
+            run_ref="idea4-short-validation-replay.yml run 36605198734 (2026-09-29, calls the real main.py functions)",
+        ),
+        source="main.py (idea4_entry_signal_short/idea4_exit_reason_short)",
+        evidence=(
+            "Full-universe run 36605198734: PFnet 0.119, PFgross 0.139, n=12,285, "
+            "win_rate 36.65%, avg_net -Rs6,730.43/trade, avg held 13.9 days. By exit "
+            "reason: stop_hit (n=6,013, 49% of trades) is a total loss - PFnet 0.000, "
+            "0% win rate, every single one of these exits at a loss, same pattern as "
+            "the long side's own idea4_no_target where the fixed, never-trailed stop "
+            "is the weak point. max_hold_exit (n=5,945) and data_end_forced_close "
+            "(n=327) both show strong PFnet (7.5 and 6.7) but these are the trades "
+            "that were NOT stopped out - survivorship within the sample, not evidence "
+            "the strategy works, since the stop_hit half wipes out the gains from the "
+            "other half at the pooled level (net PFnet 0.119)."
+        ),
+        notes=(
+            "'Ride losers down' - mirrors idea4_no_target's own fixed ATR(14)x1.5 "
+            "stop set once at entry (never trailed), EMA9<EMA21 pre-filter, "
+            "_compute_universal_entry_score_short (reused unmodified from the TREND-"
+            "down short mirror) for the entry gate, ride to stop or "
+            "IDEA4_MAX_HOLD_DAYS=20 trading days. Slowest replay of the whole session "
+            "(~43 min vs VCP-short's 6 and Power Play-short's 15) - not a bug, this "
+            "strategy's entry gate is far wider than either of those two rare-setup "
+            "strategies (score>=70 + one EMA cross vs a multi-bar structural pattern), "
+            "so it fires far more often (n=12,285 vs 701/50) and does more per-symbol "
+            "work (merge_asof index-closes alignment every bar). Never checked across "
+            "candle sizes; 1d only so far."
+        ),
+    ),
 
     # ---- FUTURES / OPTIONS ------------------------------------------------
     # No entries: kotak_real_orders.py has NO futures or options order-
