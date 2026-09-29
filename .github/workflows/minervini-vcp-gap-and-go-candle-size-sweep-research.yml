@@ -1,0 +1,340 @@
+name: Minervini VCP + Gap and Go Candle-Size Sweep (research, calls the REAL main.py functions)
+
+# 2026-09-29, explicit user instruction ("Continue with #18, #19, and
+# #23") - candle-size sweeps for the two remaining long strategies never
+# checked outside 1-day candles, per CLAUDE.md's 2026-09-29 standing
+# thumb rule ("every strategy - new or existing - should be tried across
+# multiple candle sizes/timeframes as a matter of course - 1m, 5m, 15m,
+# 1h, 4h, plus whatever timeframe actually fits its own use case").
+#
+# Calls m.minervini_vcp_entry_signal/m.minervini_vcp_exit_reason and
+# m.gap_and_go_entry_signal/m.gap_and_go_exit_reason DIRECTLY, unmodified,
+# at every timeframe below - both are already bar-count-based (e.g.
+# MINERVINI_MAX_HOLD_DAYS=60, SWING_MAX_HOLD_DAYS=60 both really mean "N
+# bars", not literally calendar days), so testing at another candle size
+# means simply feeding differently-sampled OHLCV data, not writing a
+# reimplementation. Simplification, documented honestly: rs_percentile is
+# passed as None uniformly for Minervini VCP (no per-timeframe cross-
+# sectional RS table - that gate is skipped, same no-index-reference
+# fallback minervini_vcp_entry_signal's own docstring describes) - this is
+# a comparative candle-size sweep, not the final full-universe validation
+# call, so the same "small sample first, full-universe before trusting a
+# go/no-go" CLAUDE.md discipline applies before any of this would be
+# trusted to promote a variant past research status. Minervini VCP's own
+# 252-bar 52-week-high/low lookback is meaningless as literal calendar
+# time at 1m/5m/15m (252 minutes isn't a year) but is exactly what "same
+# function, different candle size" means here - same caveat this repo's
+# idea4/power-play sweep already carries for their own bar-count
+# constants.
+#
+# Universe: the same 52-symbol evidenced+sample set every other multi-
+# timeframe research workflow in this repo uses (score-signal-4h-1d-
+# retest-research.yml, idea4-power-play-candle-size-sweep-research.yml) -
+# a cheap comparative pass, not a full-universe run. Read-only research:
+# no live parameter touched, nothing wired into main.py's scan/scheduler/
+# order path.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run candle-size sweep against the real main.py functions
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import pandas as pd
+          import yfinance as yf
+          import main as m
+
+          TZ_OFF = m.IST_OFFSET_MIN
+          CAPITAL_INR = 400000.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(symbol, entry_price, stop_loss, qty, entry_label, exit_price,
+                               exit_label, exit_reason, entry_cost, held_bars, cost_model):
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - stop_loss
+              return {
+                  "symbol": symbol, "entry_ts": entry_label, "exit_ts": exit_label,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "held_bars": held_bars,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def replay_minervini_vcp(symbol, df, risk_pct, capital, cost_model):
+              trades = []
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(m.MINERVINI_SMA_200, m.MINERVINI_FIFTY_TWO_WEEK_N) + m.MINERVINI_SMA200_RISING_LOOKBACK + 5
+              if n < min_lookback + 20:
+                  return trades
+              closes = df["Close"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              position = None
+              for i in range(min_lookback, n):
+                  sub_df = df.iloc[: i + 1]
+                  if position is not None:
+                      reason, position["running_max_close"] = m.minervini_vcp_exit_reason(
+                          sub_df, position["entry_label"], position["initial_stop"],
+                          position["atr_at_entry"], position["running_max_close"],
+                      )
+                      if reason:
+                          held = i - position["entry_idx"]
+                          trades.append(_finalize_trade(
+                              symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_label"], closes[i], dates[i], reason,
+                              position["entry_cost"], held, cost_model,
+                          ))
+                          position = None
+                  if position is None:
+                      sig = m.minervini_vcp_entry_signal(sub_df, rs_percentile=None)
+                      if sig is not None:
+                          entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+                          stop_dist = entry_price - stop_loss
+                          if stop_dist > 0:
+                              usable = min(capital, capital / m.CAPITAL_TRANCHES)
+                              risk_amount = usable * risk_pct / 100
+                              qty = min(risk_amount / stop_dist, usable / entry_price)
+                              qty = int(np.floor(qty))
+                              if qty > 0 and qty * entry_price >= 100:
+                                  position = {
+                                      "entry_price": entry_price, "initial_stop": stop_loss,
+                                      "entry_idx": i, "entry_label": dates[i], "qty": qty,
+                                      "atr_at_entry": sig["atr_at_entry"], "running_max_close": entry_price,
+                                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                                  }
+              if position is not None:
+                  held = (n - 1) - position["entry_idx"]
+                  trades.append(_finalize_trade(
+                      symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_label"], closes[-1], dates[-1], "data_end_forced_close",
+                      position["entry_cost"], held, cost_model,
+                  ))
+              return trades
+
+
+          def replay_gap_and_go(symbol, df, risk_pct, capital, cost_model):
+              trades = []
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(m.SWING_ATR_N, m.SWING_VOL_AVG_LOOKBACK) + 1
+              if n < min_lookback + 20:
+                  return trades
+              closes = df["Close"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              position = None
+              for i in range(min_lookback, n):
+                  sub_df = df.iloc[: i + 1]
+                  if position is not None:
+                      reason = m.gap_and_go_exit_reason(
+                          sub_df, position["entry_label"], position["stop_loss"], position["gap_low"],
+                      )
+                      if reason:
+                          held = i - position["entry_idx"]
+                          trades.append(_finalize_trade(
+                              symbol, position["entry_price"], position["stop_loss"], position["qty"],
+                              position["entry_label"], closes[i], dates[i], reason,
+                              position["entry_cost"], held, cost_model,
+                          ))
+                          position = None
+                  if position is None:
+                      sig = m.gap_and_go_entry_signal(sub_df)
+                      if sig is not None:
+                          entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+                          stop_dist = entry_price - stop_loss
+                          if stop_dist > 0:
+                              usable = min(capital, capital / m.CAPITAL_TRANCHES)
+                              risk_amount = usable * risk_pct / 100
+                              qty = min(risk_amount / stop_dist, usable / entry_price)
+                              qty = int(np.floor(qty))
+                              if qty > 0 and qty * entry_price >= 100:
+                                  position = {
+                                      "entry_price": entry_price, "stop_loss": stop_loss,
+                                      "entry_idx": i, "entry_label": dates[i], "qty": qty,
+                                      "gap_low": sig["gap_low"],
+                                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                                  }
+              if position is not None:
+                  held = (n - 1) - position["entry_idx"]
+                  trades.append(_finalize_trade(
+                      symbol, position["entry_price"], position["stop_loss"], position["qty"],
+                      position["entry_label"], closes[-1], dates[-1], "data_end_forced_close",
+                      position["entry_cost"], held, cost_model,
+                  ))
+              return trades
+
+
+          def _metrics(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_held=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_held = sum(t["held_bars"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_held=avg_held)
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(Date=ts_local.dt.strftime("%Y-%m-%d %H:%M:%S"), ts_local=ts_local)
+              return df.sort_values("ts_local").reset_index(drop=True).drop(columns=["ts_local"])
+
+
+          def _resample_4h(df):
+              idx = df.copy()
+              idx["ts_local"] = pd.to_datetime(idx["Date"])
+              idx = idx.set_index("ts_local")
+              agg = idx.resample("4h", label="left", closed="left").agg({
+                  "Open": "first", "High": "max", "Low": "min", "Close": "last", "Volume": "sum",
+              }).dropna(subset=["Open", "High", "Low", "Close"])
+              agg = agg.reset_index()
+              agg["Date"] = agg["ts_local"].dt.strftime("%Y-%m-%d %H:%M:%S")
+              return agg.drop(columns=["ts_local"]).reset_index(drop=True)
+
+
+          def _fetch_universe_batched(symbols, period, interval, chunk_size=60):
+              out = {}
+              for start in range(0, len(symbols), chunk_size):
+                  chunk = symbols[start:start + chunk_size]
+                  try:
+                      raw = yf.download(chunk, period=period, interval=interval, group_by="ticker",
+                                         threads=True, progress=False, auto_adjust=False)
+                  except Exception as e:
+                      print(f"  chunk fetch error ({period}/{interval}): {e}")
+                      continue
+                  if raw.empty:
+                      continue
+                  if not isinstance(raw.columns, pd.MultiIndex):
+                      sub = raw.dropna(subset=["Open", "High", "Low", "Close"])
+                      if not sub.empty:
+                          sub = sub.reset_index()
+                          date_col = "Date" if "Date" in sub.columns else "Datetime"
+                          out[chunk[0]] = sub.rename(columns={date_col: "Date"}).reset_index(drop=True)
+                      continue
+                  top_level = set(raw.columns.get_level_values(0))
+                  for sym in chunk:
+                      if sym not in top_level:
+                          continue
+                      sub = raw[sym].dropna(subset=["Open", "High", "Low", "Close"])
+                      if sub.empty:
+                          continue
+                      sub = sub.reset_index()
+                      date_col = "Date" if "Date" in sub.columns else "Datetime"
+                      out[sym] = sub.rename(columns={date_col: "Date"}).reset_index(drop=True)
+              return out
+
+
+          EVIDENCED = sorted(m.NSE_STOCK_PARAM_OVERRIDES.keys())
+          UNEVIDENCED_SAMPLE = [
+              "ADANIPOWER.NS", "ASIANPAINT.NS", "BAJAJ-AUTO.NS", "BEL.NS", "BHARTIARTL.NS", "BPCL.NS",
+              "BRITANNIA.NS", "COALINDIA.NS", "DABUR.NS", "DRREDDY.NS", "EICHERMOT.NS", "HAL.NS",
+              "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "ICICIGI.NS", "ICICIPRULI.NS", "IOC.NS",
+              "IRFC.NS", "JINDALSTEL.NS", "KOTAKBANK.NS", "LT.NS", "LUPIN.NS", "MARICO.NS",
+              "MOTHERSON.NS", "NESTLEIND.NS", "PNB.NS", "POLYCAB.NS", "SBIN.NS", "SRF.NS",
+              "SUNPHARMA.NS", "TATACONSUM.NS", "TATAPOWER.NS", "TATASTEEL.NS", "TORNTPHARM.NS",
+              "UBL.NS", "UPL.NS", "VEDL.NS", "WIPRO.NS", "ZYDUSLIFE.NS",
+          ]
+          SYMBOLS = sorted(set(EVIDENCED) | set(UNEVIDENCED_SAMPLE))
+          print(f"Universe: {len(SYMBOLS)} symbols\n")
+
+          NATIVE_FETCH = {
+              "1m": ("7d", "1m"), "5m": ("60d", "5m"), "15m": ("60d", "15m"),
+              "1h": ("730d", "60m"), "1d": ("5y", "1d"),
+          }
+
+          native_by_tf = {}
+          for tf, (period, interval) in NATIVE_FETCH.items():
+              print(f"--- Fetching {tf} ({period}/{interval}) ---")
+              raw = _fetch_universe_batched(SYMBOLS, period, interval)
+              native_by_tf[tf] = {sym: _prep(df) for sym, df in raw.items() if len(df) > 20}
+              print(f"  fetched {len(native_by_tf[tf])}/{len(SYMBOLS)} symbols\n")
+
+          per_tf_data = dict(native_by_tf)
+          per_tf_data["4h"] = {sym: _resample_4h(df) for sym, df in native_by_tf.get("1h", {}).items()}
+          TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"]
+          cfg_by_symbol = {sym: m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS) for sym in SYMBOLS}
+
+          print("=== MINERVINI VCP + GAP AND GO CANDLE-SIZE SWEEP (real main.py functions) ===\n")
+          header = f"{'timeframe':>10} {'strategy':>14} {'n':>6} {'win%':>7} {'PFnet':>7} {'PFgross':>8} {'avgNet':>10} {'avgHeld':>8}"
+          print(header)
+          for tf in TIMEFRAMES:
+              data = per_tf_data.get(tf, {})
+              vcp_trades, gag_trades = [], []
+              for sym, df in data.items():
+                  cfg = cfg_by_symbol[sym]
+                  try:
+                      vcp_trades.extend(replay_minervini_vcp(sym, df, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL))
+                  except Exception as e:
+                      print(f"  ERROR minervini_vcp {sym} tf={tf}: {e}")
+                  try:
+                      gag_trades.extend(replay_gap_and_go(sym, df, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL))
+                  except Exception as e:
+                      print(f"  ERROR gap_and_go {sym} tf={tf}: {e}")
+              for label, trades in (("minervini_vcp", vcp_trades), ("gap_and_go", gag_trades)):
+                  row = _metrics(trades)
+                  print(f"{tf:>10} {label:>14} {row['n']:>6} {row['win_rate']:>6.1f}% {row['pf_net']:>7.2f} "
+                        f"{row['pf_gross']:>8.2f} {row['avg_net']:>10.2f} {row['avg_held']:>8.1f}")
+          PYEOF
