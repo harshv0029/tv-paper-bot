@@ -6,11 +6,62 @@ notes for backtesting purposes - not a copy of the book's text. Read this
 file before re-reading the PDF in a future session; it says what's already
 been extracted and tested so that work isn't repeated from scratch.
 
-Status as of 2026-09-29 (second pass): chapters 1-2, 4, 7-9 still NOT YET
-READ (7-9 need a fundamentals data source this codebase doesn't have - see
-CHAPTER 7-9 GAP note below, unchanged). Chapters 3 (skimmed only), 5, 6, 12
-(partial) as before. Chapter 10 now FULLY read (was: VCP section only).
-Chapters 11 and 13 now fully read (were: not yet read).
+Status as of 2026-09-29 (third pass): every chapter now read except 7-9,
+which need a fundamentals data source this codebase doesn't have - see
+CHAPTER 7-9 GAP note below, unchanged. Chapters 1, 2, 3 (full read, was
+skimmed-only), and 4 added this pass - NONE contain new mechanically-
+testable strategy rules (see their own short section below); chapters 5, 6,
+10, 11, 12 (partial), 13 as before.
+
+--------------------------------------------------------------------
+CHAPTERS 1-4 (2026-09-29, third pass - fully read, were unread/skimmed
+before). No new mechanically-testable strategy content in any of them -
+logged here so a future session doesn't re-read them looking for one.
+--------------------------------------------------------------------
+
+CHAPTER 1 ("An Introduction Worth Reading") and CHAPTER 2 ("What You Need
+to Know First") are pure biography/psychology/motivational narrative -
+discipline, persistence, "trading is a business," why paper trading is a
+poor substitute for real money, why individual traders have a structural
+advantage over institutions (need for liquidity forces institutions into
+large-float names, the opposite of the small-float bias already noted
+under CHAPTER 3 below). Zero numeric or mechanical content of any kind.
+
+CHAPTER 3 ("Specific Entry Point Analysis: The SEPA Strategy") is the
+book's own NAME for its overall methodology, not a separate pattern -
+it's the meta-framework that chapters 5 (Trend Template), 10 (VCP), and
+7-9 (fundamentals, blocked - see below) already supply the actual testable
+pieces of:
+  1. Trend Template gate (chapter 5) - candidate must qualify first.
+  2. A fundamentals/RS/volatility screen - ~95% of Trend-Template-passers
+     get cut here. Needs the same fundamentals data source chapters 7-9
+     need; blocked for the same reason.
+  3. "Leadership Profile" similarity scoring against historical
+     superperformers - fundamentals-dependent, same block.
+  4. Manual/final ranking pass - not mechanical by design (book's own
+     description), not a backtestable rule.
+  Two things worth carrying forward as REFINEMENTS to existing/planned
+  strategies rather than a new strategy of their own:
+  - Small-cap/small-float bias: "superperformers are usually small to
+    mid-cap, within ~10 years of IPO" - directly reinforces CHAPTER 11's
+    Primary Base finding (buy young stocks) and suggests a market-cap
+    filter could be worth testing as a refinement on tt_vcp/Power Play/
+    Primary Base once built, not a new standalone candidate.
+  - Screening philosophy critique: run several SEPARATE simpler screens
+    (e.g. one for trend/RS, one for fundamentals) rather than one giant
+    AND of many conditions, since requiring 12 conditions simultaneously
+    silently rejects a stock that clears 11 of 12 - a methodology note,
+    not a numeric rule; flagged in case a future entry-score redesign
+    wants it, not actionable on its own.
+
+CHAPTER 4 ("Value Comes at a Price") is entirely P/E-ratio philosophy:
+don't screen out high-P/E growth stocks, P/E is a sentiment barometer not
+a value signal, PEG ratio has the same blind spots. One quantifiable claim
+(P/E typically expands 2-3x from breakout to eventual top, useful as a
+rough "is this getting late-stage" signal) - but like chapters 7-9, this
+needs earnings/EPS-over-time data this codebase's data source
+(yfinance OHLCV) doesn't provide. Filed under the same CHAPTER 7-9 GAP
+below rather than a separate blocker.
 
 --------------------------------------------------------------------
 CHAPTER 5 - "TRADING WITH THE TREND" (fully read, fully testable)
@@ -429,28 +480,34 @@ mechanics:
      suppressing it? Cheap to verify before treating this as new work.
 
 NEXT STEPS (pick up here):
-  1. Read and log the full-universe run (36519115035) result.
-  2. IMPLEMENT AND VALIDATE Power Play / High Tight Flag as a real
-     main.py function (entry + exit), per this session's established
-     cycle - unit test, full pytest, full-universe validation replay
-     calling the real function, candle-size variants, honest report,
-     register in strategy_registry.py regardless of outcome. This is
-     the clearest genuinely-new strategy from this reading pass.
-  3. Check reentry/cooldown behavior in the scheduler (cheap,
+  0. BOOK READING STATUS (2026-09-29, third pass): every chapter now read
+     except 7-9 (and chapter 6's categorization scheme), which need a
+     fundamentals data source this codebase doesn't have - see item 6
+     below, unchanged blocker. Nothing left to read that doesn't need
+     that data, so future sessions should treat the book itself as
+     exhausted and focus on the STRATEGY/REFINEMENT backlog below instead
+     of re-reading.
+  1. DONE (2026-09-29): Power Play / High Tight Flag implemented as real
+     main.py functions (power_play_entry_signal/power_play_exit_reason),
+     unit-tested (11 tests), full pytest green, full-universe validation
+     replay built and dispatched (power-play-validation-replay.yml) -
+     result pending at time of this note. Registered in
+     strategy_registry.py once the real replay result is in hand.
+  2. Check reentry/cooldown behavior in the scheduler (cheap,
      read-only) before deciding whether it's a real gap worth fixing.
-  4. Test the 2R/3R breakeven-stop as an alternative exit against the
+  3. Test the 2R/3R breakeven-stop as an alternative exit against the
      existing chandelier trail on an already-validated entry.
-  5. Feasibility-check the Primary Base strategy's IPO-recency proxy
+  4. Feasibility-check the Primary Base strategy's IPO-recency proxy
      against the actual NSE data source before committing to a full
      build.
+  5. Small-cap/small-float filter (CHAPTER 3 note above) as a refinement
+     worth testing on tt_vcp/Power Play/Primary Base once each has a
+     baseline full-universe result to compare against.
   6. Chapters 7-9 (fundamentals/earnings quality/institutional
      ownership) and chapter 6's categorization scheme all need a
      fundamentals data source this codebase doesn't have - flag to the
      user before spending time reading them in similar backtest-focused
      detail, since nothing will come of it without new data access.
-     Chapters 1-2 and 4 remain unread (largely narrative/mindset
-     chapters per the book's own table of contents - lower priority
-     than the above).
   7. Per CLAUDE.md: none of the above gets wired into main.py or
      promoted past "research" status in strategy_registry.py without
      the full pytest + validation-replay + explicit user go-ahead
