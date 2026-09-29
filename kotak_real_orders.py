@@ -320,6 +320,109 @@ def place_real_entry(kotak_trading_symbol: str, qty: int, ltp: float) -> dict:
     }
 
 
+def place_real_short_entry(kotak_trading_symbol: str, qty: int, ltp: float) -> dict:
+    """Places a REAL market SELL-TO-OPEN for `qty` shares via Kotak Neo -
+    the short mirror of place_real_entry (2026-09-29, explicit user
+    instruction to implement short selling). Same never-raises /
+    rejection-confirmed discipline; only two things differ from
+    place_real_entry: transaction_type="S" (sell to open, not buy) and
+    product="MIS" instead of "CNC" - a naked equity short cannot be held
+    overnight (no shares to deliver at T+1 settlement without a
+    borrow this codebase has no mechanism for), so MIS's own broker-
+    enforced mandatory same-day square-off is the correct, and only
+    sound, product type here - it is not an arbitrary choice.
+
+    No short-sell-eligibility pre-check is performed here (explicit user
+    decision 2026-09-29, given the tradeoff: NSE Trade-to-Trade series
+    stocks cannot legally be sold short intraday and this codebase has no
+    T2T membership data source) - an ineligible symbol is expected to be
+    rejected by Kotak's own RMS, surfaced via the same _confirm_order_status
+    rejection path place_real_entry already uses, not silently placed.
+    """
+    try:
+        client = kotak_neo.login()
+    except Exception as e:
+        return {"ok": False, "detail": f"login failed: {e}"}
+
+    try:
+        resp = client.place_order(
+            exchange_segment="nse_cm",
+            product="MIS",
+            price="0",
+            order_type="MKT",
+            quantity=str(qty),
+            validity="DAY",
+            trading_symbol=kotak_trading_symbol,
+            transaction_type="S",
+        )
+    except Exception as e:
+        return {"ok": False, "detail": f"place_order raised: {e}"}
+
+    order_id = resp.get("nOrdNo") if isinstance(resp, dict) else None
+    if not order_id:
+        return {"ok": False, "detail": f"no order id in response: {resp}", "raw_response": resp}
+
+    status = _confirm_order_status(order_id)
+    if status["status"] == "rejected":
+        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
+                "raw_response": resp, "status_check": status["row"]}
+
+    fill_confirmed = status["avg_price"] is not None and status["filled_qty"] is not None
+    return {
+        "ok": True, "order_id": str(order_id), "raw_response": resp,
+        "qty": status["filled_qty"] if fill_confirmed else qty,
+        "fill_price": status["avg_price"] if fill_confirmed else ltp,
+        "fill_price_confirmed": fill_confirmed,
+        "requested_qty": qty, "est_price": ltp,
+    }
+
+
+def place_real_short_cover(kotak_trading_symbol: str, qty: int) -> dict:
+    """Places a REAL market BUY-TO-COVER to close a real short position,
+    MIS, on nse_cm - the short mirror of place_real_exit. Same never-
+    raises / rejection-confirmed discipline, and deliberately has NO gate
+    of its own for the exact same reason place_real_exit doesn't: closing
+    an already-open real short must never be blocked by the entry kill
+    switch - an unmanaged open short is more dangerous than covering it,
+    doubly so given a short's open-ended loss potential."""
+    try:
+        client = kotak_neo.login()
+    except Exception as e:
+        return {"ok": False, "detail": f"login failed: {e}"}
+
+    try:
+        resp = client.place_order(
+            exchange_segment="nse_cm",
+            product="MIS",
+            price="0",
+            order_type="MKT",
+            quantity=str(qty),
+            validity="DAY",
+            trading_symbol=kotak_trading_symbol,
+            transaction_type="B",
+        )
+    except Exception as e:
+        return {"ok": False, "detail": f"place_order raised: {e}"}
+
+    order_id = resp.get("nOrdNo") if isinstance(resp, dict) else None
+    if not order_id:
+        return {"ok": False, "detail": f"no order id in response: {resp}", "raw_response": resp}
+
+    status = _confirm_order_status(order_id)
+    if status["status"] == "rejected":
+        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
+                "raw_response": resp, "status_check": status["row"]}
+
+    fill_confirmed = status["avg_price"] is not None and status["filled_qty"] is not None
+    return {
+        "ok": True, "order_id": str(order_id), "raw_response": resp,
+        "qty": status["filled_qty"] if fill_confirmed else qty,
+        "fill_price": status["avg_price"] if fill_confirmed else None,
+        "fill_price_confirmed": fill_confirmed,
+        "requested_qty": qty,
+    }
+
+
 def place_real_exit(kotak_trading_symbol: str, qty: int) -> dict:
     """Places a REAL market SELL to close a real position, CNC, on
     nse_cm. Same never-raises / rejection-confirmed discipline as
@@ -643,6 +746,50 @@ def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: flo
             "trigger_price": trigger_price, "limit_price": limit_price}
 
 
+def place_real_short_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+    """Short mirror of place_real_stop_loss (2026-09-29) - a resting
+    BUY-stop (transaction_type="B") that triggers ABOVE the short's entry
+    price, to cover the position if it moves against it. Same order_type
+    "SL" (limit gated behind trigger_price), same zero-buffer
+    price=trigger_price choice as the long side (see place_real_stop_loss's
+    own docstring for why: no tick-size input to discount against safely,
+    and this exact price already passed the paper engine's own tick-
+    aligned stop-loss computation)."""
+    try:
+        client = kotak_neo.login()
+    except Exception as e:
+        return {"ok": False, "detail": f"login failed: {e}"}
+
+    trigger_price = _round_to_tick(trigger_price, _tick_size_for(kotak_trading_symbol))
+    limit_price = trigger_price
+    try:
+        resp = client.place_order(
+            exchange_segment="nse_cm",
+            product="MIS",
+            price=str(limit_price),
+            order_type="SL",
+            quantity=str(qty),
+            validity="DAY",
+            trading_symbol=kotak_trading_symbol,
+            transaction_type="B",
+            trigger_price=str(trigger_price),
+        )
+    except Exception as e:
+        return {"ok": False, "detail": f"place_order raised: {e}"}
+
+    order_id = resp.get("nOrdNo") if isinstance(resp, dict) else None
+    if not order_id:
+        return {"ok": False, "detail": f"no order id in response: {resp}", "raw_response": resp}
+
+    status = _confirm_order_status(order_id)
+    if status["status"] == "rejected":
+        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
+                "raw_response": resp, "status_check": status["row"]}
+
+    return {"ok": True, "order_id": str(order_id), "raw_response": resp,
+            "trigger_price": trigger_price, "limit_price": limit_price}
+
+
 def place_real_target(kotak_trading_symbol: str, qty: int, target_price: float) -> dict:
     """Places a REAL resting LIMIT sell order at Kotak for an already-open
     real position, at the paper engine's own profit target, so a
@@ -671,6 +818,44 @@ def place_real_target(kotak_trading_symbol: str, qty: int, target_price: float) 
             validity="DAY",
             trading_symbol=kotak_trading_symbol,
             transaction_type="S",
+        )
+    except Exception as e:
+        return {"ok": False, "detail": f"place_order raised: {e}"}
+
+    order_id = resp.get("nOrdNo") if isinstance(resp, dict) else None
+    if not order_id:
+        return {"ok": False, "detail": f"no order id in response: {resp}", "raw_response": resp}
+
+    status = _confirm_order_status(order_id)
+    if status["status"] == "rejected":
+        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
+                "raw_response": resp, "status_check": status["row"]}
+
+    return {"ok": True, "order_id": str(order_id), "raw_response": resp, "target_price": target_price}
+
+
+def place_real_short_target(kotak_trading_symbol: str, qty: int, target_price: float) -> dict:
+    """Short mirror of place_real_target (2026-09-29) - a resting LIMIT
+    BUY order at the short's profit target (BELOW entry price), to cover
+    and book the gain at the exchange itself. order_type="L", no
+    trigger_price, same as the long side - a plain limit order, not a
+    stop, so none of the SL algo-tag concerns apply here either."""
+    try:
+        client = kotak_neo.login()
+    except Exception as e:
+        return {"ok": False, "detail": f"login failed: {e}"}
+
+    target_price = _round_to_tick(target_price, _tick_size_for(kotak_trading_symbol))
+    try:
+        resp = client.place_order(
+            exchange_segment="nse_cm",
+            product="MIS",
+            price=str(target_price),
+            order_type="L",
+            quantity=str(qty),
+            validity="DAY",
+            trading_symbol=kotak_trading_symbol,
+            transaction_type="B",
         )
     except Exception as e:
         return {"ok": False, "detail": f"place_order raised: {e}"}

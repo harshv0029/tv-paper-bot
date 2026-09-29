@@ -26,6 +26,18 @@ explicitly so a "top 5" listing can never be mistaken for "5 good
 options" when none of them clear breakeven. As of 2026-09-29, EVERY
 short-sell candidate and the only live buy strategy are below that floor
 - see each entry's own `metrics`.
+
+Pool vs. monitoring, explicit user instruction, 2026-09-29 ("keep pool of
+strategies tested till date but while using to monitor the stocks, u apply
+or check entry condition for top 5 only, so ur pool gets bigger n bigger
+always"): REGISTRY itself never shrinks and never gets pruned - every
+strategy ever tried stays on the record, good or bad. But `scan_universe()`
+(and anything else that walks strategies to check entry conditions) only
+ever evaluates `top_strategies_for_monitoring()` - the CURRENT top
+TOP_N_PER_CATEGORY per category, re-ranked fresh on every call. Growing
+the registry never grows what gets checked per symbol per cycle; it only
+changes which (up to MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE) strategies
+currently hold those slots.
 """
 from dataclasses import dataclass, field
 from enum import Enum
@@ -42,12 +54,23 @@ class AssetClass(str, Enum):
 class TradeCategory(str, Enum):
     """The 5 pools the user asked to track a top-5 leaderboard for
     (2026-09-29). Distinct from AssetClass: a category is "what kind of
-    trade is this" (direction/timeframe), not "what instrument"."""
+    trade is this" (direction/timeframe), not "what instrument". A
+    strategy is never confined to exactly one of these - see
+    StrategyDef.categories and CLAUDE.md's 2026-09-29 "a strategy is not
+    confined to one TradeCategory" thumb rule."""
     SHORT_SELL = "short_sell"
     BUY = "buy"
     SWING = "swing"
     FUTURES = "futures"
     OPTIONS = "options"
+
+
+# CLAUDE.md, 2026-09-29 thumb rule: 5 categories x this many leaderboard
+# slots each bounds live per-stock monitoring cost at a fixed number of
+# strategy-checks per round-robin cycle, regardless of how large the
+# overall registry grows.
+TOP_N_PER_CATEGORY = 5
+MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE = len(TradeCategory) * TOP_N_PER_CATEGORY
 
 
 class StrategyStatus(str, Enum):
@@ -84,7 +107,7 @@ class Metrics:
 class StrategyDef:
     name: str
     asset_class: AssetClass
-    category: TradeCategory
+    categories: tuple  # tuple[TradeCategory, ...] - never a single TradeCategory, see its own docstring
     timeframe: str
     status: StrategyStatus
     entry_fn: Optional[Callable] = None
@@ -107,7 +130,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="universal_score",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.BUY,
+        categories=(TradeCategory.BUY,),
         timeframe="5m",
         status=StrategyStatus.LIVE,
         entry_fn=None,  # lives in main.py._compute_universal_entry_score - not duplicated here
@@ -129,7 +152,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="universal_score_entry_floor_85",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.BUY,
+        categories=(TradeCategory.BUY,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -150,7 +173,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="gap_and_go_swing",
         asset_class=AssetClass.EQUITY_SWING,
-        category=TradeCategory.SWING,
+        categories=(TradeCategory.SWING,),
         timeframe="1d",
         status=StrategyStatus.LIVE,
         entry_fn=None,  # lives in main.py.gap_and_go_entry_signal/_run_swing_scan - not duplicated here
@@ -178,7 +201,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="minervini_trend_template_generic_breakout",
         asset_class=AssetClass.EQUITY_SWING,
-        category=TradeCategory.SWING,
+        categories=(TradeCategory.SWING,),
         timeframe="1d",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -205,7 +228,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="minervini_trend_template_vcp",
         asset_class=AssetClass.EQUITY_SWING,
-        category=TradeCategory.SWING,
+        categories=(TradeCategory.SWING,),
         timeframe="1d",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -237,7 +260,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="range_short_target_cluster",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -252,7 +275,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="range_short_bb3.0_filter",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -267,7 +290,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="range_short_bb2.5_filter",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -282,7 +305,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="rsi_overbought_fade_65",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -297,7 +320,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="range_short_staged_ladder",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -312,7 +335,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="rsi_overbought_fade_70",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -327,7 +350,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="rsi_overbought_fade_75",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -342,7 +365,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="rsi_overbought_fade_80",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -357,7 +380,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="range_short_fixed_3r",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -372,7 +395,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="trend_down_momentum_short",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -413,7 +436,21 @@ def strategies_by_asset_class(asset_class: AssetClass) -> list[StrategyDef]:
 
 
 def strategies_by_category(category: TradeCategory) -> list[StrategyDef]:
-    return [s for s in REGISTRY if s.category == category]
+    return [s for s in REGISTRY if category in s.categories]
+
+
+def _ranked_by_pfnet(pool: list) -> list:
+    """Best validated PFnet first; strategies with no metrics yet sort
+    last (never crash, never silently outrank a measured result with an
+    unmeasured one). Shared by leaderboard() and
+    top_strategies_for_monitoring() so both use exactly the same
+    ranking - the registry keeps growing, but "what's currently best"
+    must mean the same thing everywhere it's asked."""
+    return sorted(
+        pool,
+        key=lambda s: s.metrics.pfnet if s.metrics is not None else float("-inf"),
+        reverse=True,
+    )
 
 
 def leaderboard(category: TradeCategory, top_n: int = 5) -> list[dict]:
@@ -426,12 +463,7 @@ def leaderboard(category: TradeCategory, top_n: int = 5) -> list[dict]:
     see this module's own docstring. Returns fewer than `top_n` rows
     when fewer than `top_n` strategies are registered for that category -
     never pads with fabricated entries."""
-    pool = strategies_by_category(category)
-    ranked = sorted(
-        pool,
-        key=lambda s: s.metrics.pfnet if s.metrics is not None else float("-inf"),
-        reverse=True,
-    )
+    ranked = _ranked_by_pfnet(strategies_by_category(category))
     return [
         {
             "rank": i + 1,
@@ -447,10 +479,52 @@ def leaderboard(category: TradeCategory, top_n: int = 5) -> list[dict]:
     ]
 
 
-def scan_universe(symbols, as_of_data_fn, statuses=(StrategyStatus.LIVE,)):
+def top_strategies_for_monitoring() -> list:
+    """The strategies actually eligible to be checked during a monitoring
+    cycle right now: the union of each TradeCategory's own current top-
+    TOP_N_PER_CATEGORY leaderboard slot (see _ranked_by_pfnet/leaderboard),
+    never the whole REGISTRY.
+
+    This is the code behind CLAUDE.md's 2026-09-29 "the pool keeps growing,
+    but only the top 5 per category ever get monitored" thumb rule: REGISTRY
+    can and should keep growing forever as more strategies get tried, but a
+    strategy only ever gets its entry_fn checked while it's actually ranked
+    in the top TOP_N_PER_CATEGORY of at least one category by validated
+    PFnet. The moment a better strategy is validated and added, it displaces
+    the worst-ranked incumbent from this pool automatically - nothing here
+    needs to be told when a strategy "graduates" or "falls out"; re-ranking
+    the live REGISTRY on every call is what makes that automatic.
+
+    A strategy occupying top-5 slots in more than one category (the
+    2026-09-29 multi-category thumb rule) is returned exactly once here,
+    never once per category - it still only ever costs ONE entry_fn call
+    per symbol per cycle, however many of the (up to)
+    MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE slots it occupies."""
+    seen = set()
+    top = []
+    for category in TradeCategory:
+        ranked = _ranked_by_pfnet(strategies_by_category(category))
+        for strat in ranked[:TOP_N_PER_CATEGORY]:
+            if strat.name not in seen:
+                seen.add(strat.name)
+                top.append(strat)
+    return top
+
+
+def scan_universe(symbols, as_of_data_fn, statuses=None):
     """Walk `symbols` one at a time; for each symbol, check every
-    registered strategy whose status is in `statuses`, in registry
-    order, before moving to the next symbol.
+    strategy in the CURRENT top_strategies_for_monitoring() pool, in that
+    pool's order, before moving to the next symbol - never the whole
+    REGISTRY (see top_strategies_for_monitoring()'s own docstring). Pass
+    `statuses` (an iterable of StrategyStatus) to further restrict that
+    pool to specific statuses (e.g. `(StrategyStatus.LIVE,)`); leave it
+    None (the default) to check every current top-5-per-category
+    strategy regardless of status - the normal case for this pool-
+    monitoring design, since tracking RESEARCH-status strategies toward
+    validation is the whole point of the pool. This function only ever
+    returns candidate signals; it never places an order regardless of a
+    strategy's status - that gate lives entirely in main.py/
+    kotak_real_orders.py, untouched by this module.
 
     `as_of_data_fn(symbol)` must return whatever each strategy's
     `entry_fn` needs - left abstract here since this scaffold does not
@@ -461,8 +535,10 @@ def scan_universe(symbols, as_of_data_fn, statuses=(StrategyStatus.LIVE,)):
 
     Design-only skeleton: not called from main.py's live scheduler.
     """
+    candidates = top_strategies_for_monitoring()
+    if statuses is not None:
+        candidates = [s for s in candidates if s.status in statuses]
     signals = []
-    candidates = [s for s in REGISTRY if s.status in statuses]
     for symbol in symbols:
         data = as_of_data_fn(symbol)
         for strat in candidates:

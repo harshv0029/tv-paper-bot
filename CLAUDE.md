@@ -93,3 +93,27 @@ of trusting the transfer pack's prose.
   2026-09-14 "trade only in NIFTY 200" instruction) and silently returns
   only ~200 symbols. Call `_load_nse_universe_from_file()` directly for
   research to get the true, unrestricted full universe.
+- **Thumb rule (2026-09-29, explicit user instruction): a strategy is not
+  confined to one `TradeCategory`.** The same validated strategy can
+  independently qualify for, and be ranked in, more than one of
+  `strategy_registry.py`'s 5 category leaderboards at once (short_sell,
+  buy, swing, futures, options) — categories are independent leaderboards
+  a strategy can sit on zero, one, or several of, never a partition that
+  forces a single home. `StrategyDef.categories` is a tuple for exactly
+  this reason. Adding a strategy to a second category still requires its
+  own separately validated `Metrics`/evidence pointer for that category's
+  actual entry/exit mechanics — never inherit a PFnet untested there just
+  because the strategy already cleared a different category elsewhere.
+- **Thumb rule (2026-09-29, explicit user instruction): each category's
+  top-5 leaderboard is a standing, ever-growing pool, never a one-time
+  snapshot.** Every strategy tried, in every category it qualifies for,
+  gets registered with its real metrics (never omitted for looking bad),
+  and the top-5 keeps updating to prefer whichever validated strategy is
+  actually best the instant a better one clears validation — see
+  `strategy_registry.py`'s `leaderboard()`. This bounds live monitoring
+  cost by construction, not by registry size: 5 categories × top 5
+  strategies each = **25 strategy-checks per stock/asset unit per
+  round-robin monitoring cycle**, however many strategies have ever been
+  registered or tried historically. Growing the overall registry never
+  grows per-stock monitoring cost — only which (up to) 25 checks actually
+  run each cycle changes as better strategies displace worse ones.
