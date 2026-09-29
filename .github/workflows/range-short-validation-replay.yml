@@ -169,6 +169,41 @@ jobs:
                       if candidate_stop is not None and candidate_stop < position["stop"]:
                           position["stop"] = candidate_stop
 
+                      # Staged profit-booking ladder short mirror (2026-09-29
+                      # - see main.py's _execute_staged_leg_exit_short
+                      # docstring). Checked BEFORE the exit_reason chain
+                      # below, same ordering main.py's own _short_signal_core
+                      # uses. Calls the REAL _next_unfilled_leg (direction-
+                      # agnostic, reused as-is); only the comparison
+                      # direction is mirrored (a short profits as price
+                      # FALLS: last_close <= target, long uses >=).
+                      next_leg = m._next_unfilled_leg(json.dumps(position["exit_legs"]))
+                      if next_leg is not None and next_leg.get("target_price") and last_close <= next_leg["target_price"]:
+                          leg_qty = next_leg["qty"]
+                          for leg_entry in position["exit_legs"]:
+                              if leg_entry["leg"] == next_leg["leg"]:
+                                  leg_entry["status"] = "filled"
+                          remaining_after = position["qty"] - leg_qty
+                          is_final = remaining_after <= 1e-9
+                          gross_pnl = (position["entry_price"] - last_close) * leg_qty
+                          leg_open_cost = position["open_cost_per_share"] * leg_qty
+                          leg_close_cost = _buy_cost(leg_qty, last_close, cost_model)
+                          dp_once = (cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]) if is_final else 0.0
+                          total_cost = leg_open_cost + leg_close_cost + dp_once
+                          net_pnl = gross_pnl - total_cost
+                          r = position["initial_stop"] - position["entry_price"]
+                          trades.append({
+                              "symbol": symbol, "entry_price": position["entry_price"], "exit_price": last_close,
+                              "entry_ts": position["entry_ts"], "exit_ts": last_ts,
+                              "time_in_trade_min": (last_ts - position["entry_ts"]) / 60.0,
+                              "exit_reason": f"staged_leg_{next_leg['leg']}", "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                              "total_cost": total_cost, "net_r": net_pnl / (r * leg_qty) if r > 0 else None,
+                          })
+                          position["qty"] = remaining_after
+                          if is_final:
+                              position = None
+                          continue
+
                       exit_reason = None
                       if last_close <= position["target"]:
                           exit_reason = "target_hit"
@@ -183,7 +218,7 @@ jobs:
                           exit_reason = "eod_squareoff"
 
                       if exit_reason:
-                          open_cost = position["open_cost"]
+                          open_cost = position["open_cost_per_share"] * position["qty"]
                           close_cost = _buy_cost(position["qty"], last_close, cost_model)
                           dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
                           gross_pnl = (position["entry_price"] - last_close) * position["qty"]
@@ -245,16 +280,24 @@ jobs:
                       skips["notional_too_small"] += 1
                       continue
 
+                  # 2026-09-29, explicit user instruction: mirror the long
+                  # side's staged profit-booking ladder too, not just the
+                  # entry/stop/target formulas - calls the REAL, just-
+                  # changed main.py function (_split_exit_legs is direction-
+                  # agnostic, reused as-is; see main.py's
+                  # _execute_staged_leg_exit_short docstring).
+                  exit_legs = m._split_exit_legs(qty, target_cluster["r_multiples"])
                   position = {
                       "entry_price": last_close, "initial_stop": stop_loss, "stop": stop_loss,
                       "target": target, "entry_ts": last_ts, "qty": qty,
-                      "open_cost": _sell_cost(qty, last_close, cost_model),
+                      "open_cost_per_share": _sell_cost(qty, last_close, cost_model) / qty,
+                      "exit_legs": exit_legs,
                   }
 
               if position is not None:
                   last_close = float(df["Close"].iloc[-1])
                   last_ts = df["ts_local"].iloc[-1].timestamp()
-                  open_cost = position["open_cost"]
+                  open_cost = position["open_cost_per_share"] * position["qty"]
                   close_cost = _buy_cost(position["qty"], last_close, cost_model)
                   dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
                   gross_pnl = (position["entry_price"] - last_close) * position["qty"]
