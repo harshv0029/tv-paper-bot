@@ -4221,6 +4221,61 @@ def _index_trend_bullish(index_closes: np.ndarray, sma_fast: int, sma_slow: int,
     return bool(_moving_average(index_closes, sma_fast, ma_type) > _moving_average(index_closes, sma_slow, ma_type))
 
 
+# ---- TREND-down short mirrors (2026-09-29, explicit user instruction: "I
+# need at least one strategy for the short sell... this helps me downward
+# trend of market... it's a must have" - built after the RANGE VWAP-spike
+# short mirror's three validation passes (target-cluster fix, staged
+# ladder, stricter entry filter) all left PFnet pinned at 0.17-0.26,
+# nowhere near viable. TREND is the ONE long-side engine in this codebase
+# with genuinely positive validated evidence (PFnet 0.09-0.13 in
+# universal-score-entry-floor-research.yml, vs RANGE's much weaker
+# ~0.06), so mirroring IT downward - not inventing a new signal from
+# scratch - is the most evidence-grounded next candidate. Exactly the
+# "TREND-down (8-factor score) mirror" CLAUDE.md already flagged as
+# scoped out of the original short-selling pass ("a separate, larger
+# undertaking, not a rule exception") - this is that undertaking.
+# Every weight/threshold constant (UNIVERSAL_SCORE_WEIGHTS,
+# UNIVERSAL_ENTRY_SCORE_MIN, UNIVERSAL_RVOL_*, UNIVERSAL_RSI_BAND,
+# UNIVERSAL_MAX_ATR_MULT, UNIVERSAL_MAX_VWAP_EXTENSION_ATR,
+# UNIVERSAL_MIN_REWARD_RISK, UNIVERSAL_STRUCTURE_LOOKBACK,
+# UNIVERSAL_RS_LOOKBACK) is REUSED verbatim from the already-validated
+# long side, never re-tuned for this mirror - "opposite setup, same
+# role", the same architecture confirmed for the RANGE short mirror.
+
+def _swing_structure_bearish(df: pd.DataFrame, lookback: int = UNIVERSAL_STRUCTURE_LOOKBACK) -> bool | None:
+    """Mirror of _swing_structure_bullish: lower-high/lower-low market
+    structure instead of higher-high/higher-low - require BOTH the high
+    and the low of the second half of the trailing window to sit BELOW
+    the first half's, not just one lopsided down bar."""
+    if len(df) < lookback * 2:
+        return None
+    window = df.iloc[-lookback * 2:]
+    first_half, second_half = window.iloc[:lookback], window.iloc[lookback:]
+    return bool(second_half["High"].max() < first_half["High"].max()
+                and second_half["Low"].min() < first_half["Low"].min())
+
+
+def _relative_strength_bearish(symbol_closes: np.ndarray, index_closes: np.ndarray,
+                                lookback: int = UNIVERSAL_RS_LOOKBACK) -> bool | None:
+    """Mirror of _relative_strength_bullish: is this symbol UNDERperforming
+    the reference index over the same trailing window - the natural short
+    candidate is the laggard, not the leader."""
+    if len(symbol_closes) < lookback + 1 or len(index_closes) < lookback + 1:
+        return None
+    sym_ret = symbol_closes[-1] / symbol_closes[-lookback - 1] - 1
+    idx_ret = index_closes[-1] / index_closes[-lookback - 1] - 1
+    return bool(sym_ret < idx_ret)
+
+
+def _index_trend_bearish(index_closes: np.ndarray, sma_fast: int, sma_slow: int, ma_type: str = "ema") -> bool | None:
+    """Mirror of _index_trend_bullish: is the broad market itself trending
+    down - same "avoid fighting the broader market" rationale, just
+    checking the fast MA is BELOW the slow one instead of above."""
+    if len(index_closes) < max(sma_fast, sma_slow):
+        return None
+    return bool(_moving_average(index_closes, sma_fast, ma_type) < _moving_average(index_closes, sma_slow, ma_type))
+
+
 # ==== Two-regime router (2026-09-10) ========================================
 # Explicit user instruction, final decision after the #1/#9 discussion:
 # "Option B - but only the two-regime version." The universal score above
@@ -4647,6 +4702,124 @@ def _compute_universal_entry_score(
         # (reward_ref > 0) - once last_close has cleared it (the breakout
         # itself), this ratio stops being informative and is left to the
         # score above instead.
+        if risk_ref > 0 and reward_ref > 0 and reward_ref / risk_ref < UNIVERSAL_MIN_REWARD_RISK:
+            rejection_reasons.append("reward_risk_below_minimum")
+
+    return {
+        "score": round(score, 1), "max_score": max_score, "score_pct": score_pct,
+        "breakdown": breakdown, "rejection_reasons": rejection_reasons,
+        "entry_allowed": bool(score_pct >= UNIVERSAL_ENTRY_SCORE_MIN and not rejection_reasons),
+    }
+
+
+def _compute_universal_entry_score_short(
+    df: pd.DataFrame, today_df: pd.DataFrame,
+    volume_ok: bool, sma_fast_val: float | None, sma_slow_val: float | None,
+    index_closes: np.ndarray | None, sma_fast: int, sma_slow: int, ma_type: str = "ema",
+    vol_ratio: float | None = None,
+) -> dict:
+    """TREND-down mirror of _compute_universal_entry_score (2026-09-29,
+    explicit user instruction: "I need at least one strategy for the
+    short sell... must have" - see the module comment above
+    _swing_structure_bearish for the full rationale). Every weight and
+    threshold is REUSED verbatim from the long side (UNIVERSAL_SCORE_WEIGHTS,
+    UNIVERSAL_ENTRY_SCORE_MIN, etc.) - only the DIRECTION of each factor
+    and rejection filter is mirrored. volume_breakout/rsi_band/
+    atr_abnormally_wide/too_extended_from_vwap/liquidity gates are kept
+    IDENTICAL (direction-agnostic by nature - a volume spike, an extreme
+    RSI reading, an abnormally wide ATR, or an over-extended VWAP distance
+    matter the same way regardless of which way price is moving)."""
+    closes = df["Close"].to_numpy(dtype=float)
+    last_close = float(closes[-1])
+    breakdown: dict[str, float | None] = {}
+    weights = dict(UNIVERSAL_SCORE_WEIGHTS)
+
+    has_index = index_closes is not None and len(index_closes) >= max(sma_fast, sma_slow, UNIVERSAL_RS_LOOKBACK + 1)
+    if not has_index:
+        weights.pop("relative_strength", None)
+        weights.pop("index_trend", None)
+
+    vwap = _compute_session_vwap_value(today_df)
+    breakdown["above_vwap"] = None if vwap is None else (weights["above_vwap"] if last_close < vwap else 0.0)
+
+    if sma_fast_val is not None and sma_slow_val is not None:
+        breakdown["ema_cross"] = weights["ema_cross"] if sma_fast_val < sma_slow_val else 0.0
+    else:
+        breakdown["ema_cross"] = None
+
+    structure_ok = _swing_structure_bearish(df)
+    breakdown["structure_hh_hl"] = None if structure_ok is None else (weights["structure_hh_hl"] if structure_ok else 0.0)
+
+    support = float(df["Low"].iloc[-(UNIVERSAL_STRUCTURE_LOOKBACK + 1):-1].min()) if len(df) > UNIVERSAL_STRUCTURE_LOOKBACK else None
+    breakdown["breakout_resistance"] = None if support is None else (
+        weights["breakout_resistance"] if last_close < support else 0.0
+    )
+
+    # Volume/RSI-band gradients are IDENTICAL to the long side - see this
+    # function's own docstring.
+    if vol_ratio is None:
+        breakdown["volume_breakout"] = None
+    elif vol_ratio >= UNIVERSAL_RVOL_FULL_MULT:
+        breakdown["volume_breakout"] = weights["volume_breakout"]
+    elif vol_ratio >= UNIVERSAL_RVOL_PARTIAL_MULT:
+        breakdown["volume_breakout"] = weights["volume_breakout"] * 0.5
+    else:
+        breakdown["volume_breakout"] = 0.0
+
+    # RSI is a bounded 0-100 oscillator, not a directionless quantity - the
+    # long side's UNIVERSAL_RSI_BAND (55.0, 70.0) defines "healthy bullish
+    # momentum, not yet overbought". Its short mirror is the band's
+    # reflection around 50, not the SAME absolute numbers reused verbatim
+    # (that would test for bullish momentum on a bearish setup - a real
+    # bug, not a values-are-direction-agnostic case like volume/ATR/VWAP-
+    # extension below): "healthy bearish momentum, not yet oversold".
+    rsi_val = _compute_rsi_value(closes)
+    lo, hi = UNIVERSAL_RSI_BAND
+    lo_short, hi_short = 100.0 - hi, 100.0 - lo
+    breakdown["rsi_band"] = None if rsi_val is None else (weights["rsi_band"] if lo_short <= rsi_val <= hi_short else 0.0)
+
+    if has_index:
+        rs_ok = _relative_strength_bearish(closes, index_closes)
+        breakdown["relative_strength"] = weights["relative_strength"] if rs_ok else 0.0
+        idx_ok = _index_trend_bearish(index_closes, sma_fast, sma_slow, ma_type)
+        breakdown["index_trend"] = weights["index_trend"] if idx_ok else 0.0
+
+    max_score = sum(weights[k] for k, v in breakdown.items() if v is not None)
+    score = sum(v for v in breakdown.values() if v is not None)
+    score_pct = round(100.0 * score / max_score, 2) if max_score else 0.0
+
+    # ---- Rejection filters - identical basis to the long side, mirrored direction only ----
+    rejection_reasons = []
+    atr_series = _atr_series(df)
+    atr_val = float(atr_series.iloc[-1]) if len(atr_series) and pd.notna(atr_series.iloc[-1]) else None
+    atr_recent_mean = (
+        float(atr_series.iloc[-20:].mean())
+        if len(atr_series) >= 20 and atr_series.iloc[-20:].notna().all() else None
+    )
+    if atr_val is not None and atr_recent_mean and atr_val > UNIVERSAL_MAX_ATR_MULT * atr_recent_mean:
+        rejection_reasons.append("atr_abnormally_wide")
+    if vwap is not None and atr_val:
+        if abs(last_close - vwap) > UNIVERSAL_MAX_VWAP_EXTENSION_ATR * atr_val:
+            rejection_reasons.append("too_extended_from_vwap")
+    if not volume_ok:
+        rejection_reasons.append("liquidity_inadequate")
+    liquidity_gate_ok, liquidity_gate_reasons = _liquidity_gate(df)
+    if not liquidity_gate_ok:
+        rejection_reasons.extend(liquidity_gate_reasons)
+    # Entry-candle-bearish mirror of the long side's entry-candle-bullish
+    # check: sellers must be dominant on the candle you're shorting into -
+    # close BELOW open (a red candle), not just any candle.
+    if "Open" in df.columns and len(df) >= 1:
+        last_open = float(df["Open"].iloc[-1])
+        if last_close >= last_open:
+            rejection_reasons.append("entry_candle_not_bearish")
+    if support is not None and len(df) > UNIVERSAL_STRUCTURE_LOOKBACK:
+        risk_ref = float(df["High"].iloc[-(UNIVERSAL_STRUCTURE_LOOKBACK + 1):].max()) - last_close
+        reward_ref = last_close - support
+        # Mirror of the long side's own comment: only meaningful while
+        # price is still ABOVE support (reward_ref > 0) - once last_close
+        # has broken below it (the breakdown itself), this ratio stops
+        # being informative and is left to the score above instead.
         if risk_ref > 0 and reward_ref > 0 and reward_ref / risk_ref < UNIVERSAL_MIN_REWARD_RISK:
             rejection_reasons.append("reward_risk_below_minimum")
 
@@ -6415,6 +6588,7 @@ def _auto_signal_core(
 
 
 RANGE_SHORT_STRATEGY_TAG = f"{ORB_STRATEGY_PREFIX}range-short"
+TREND_SHORT_STRATEGY_TAG = f"{ORB_STRATEGY_PREFIX}trend-short"
 
 
 def _close_short_position(conn, symbol: str, row, exit_price: float, exit_reason: str):
@@ -6458,27 +6632,38 @@ def _short_signal_core(
     ma_type: str = "ema",
     require_real_tradability: bool = False,
 ):
-    """RANGE-regime mean-reversion SHORT mirror of _auto_signal_core
-    (2026-09-29, explicit user instruction to implement short selling,
-    "build it properly first"). Deliberately scoped to ONLY the RANGE
-    mean-reversion mirror validated in
-    universal-score-range-short-research.yml - a TREND-down (8-factor
-    score) mirror stays out of scope, per CLAUDE.md's existing scoping
-    note on the long-side research this short mirrors.
+    """Two-regime SHORT mirror of _auto_signal_core (2026-09-29, explicit
+    user instruction to implement short selling, "build it properly
+    first"). Originally scoped to ONLY the RANGE mean-reversion mirror
+    validated in universal-score-range-short-research.yml, with the
+    TREND-down (8-factor score) mirror explicitly out of scope ("a
+    separate, larger undertaking, not a rule exception" - CLAUDE.md).
+    That TREND-down mirror was added 2026-09-29 (same day, later
+    session) per explicit user instruction ("I need at least one
+    strategy for the short sell... must have") after the RANGE mirror's
+    three validation passes (target-cluster fix, staged ladder, stricter
+    entry filter) all left PFnet pinned at 0.17-0.26 - see
+    _compute_universal_entry_score_short's own module comment for why
+    TREND (not a fourth RANGE variant) was the evidence-grounded next
+    candidate. Both regimes share the SAME stop/target/staged-ladder/
+    trailing-stop machinery below - only the entry trigger, stop-loss
+    reference level, and confidence measure branch by regime, mirroring
+    exactly how _auto_signal_core's own two-regime router works for the
+    long side.
 
     A SEPARATE function from _auto_signal_core, not a direction parameter
     threaded through it: that function's own long-only assumptions
     (staged exit ladder, orb_breakout/bullish_engulfing entry paths,
     trend_weakened's "went long assuming an uptrend" premise) don't apply
-    to this narrower short-only, RANGE-only surface, and touching the
-    live, currently-trading long path to thread a direction flag through
-    it risked a regression in code already trading real money - see this
-    function's own commit message / docs/minervini_book_notes.txt-
-    adjacent design notes for the tradeoff. Reuses every direction-
-    agnostic helper the long path already uses (liquidity gate, circuit
-    guard, sentiment gate, T1 check, capital/deployed_notional) rather
-    than reimplementing them - only the entry/stop/target math and the
-    table written to are new.
+    to this short-only surface, and touching the live, currently-trading
+    long path to thread a direction flag through it risked a regression
+    in code already trading real money - see this function's own commit
+    message / docs/minervini_book_notes.txt-adjacent design notes for the
+    tradeoff. Reuses every direction-agnostic helper the long path already
+    uses (liquidity gate, circuit guard, sentiment gate, T1 check,
+    capital/deployed_notional, _compute_target_cluster_short,
+    _split_exit_legs) rather than reimplementing them - only the entry/
+    stop/confidence math and the table written to are new.
 
     NOT gated on a separate kill switch (explicit user decision 2026-09-
     29, given the tradeoff was raised): real short order mirroring (once
@@ -6486,7 +6671,6 @@ def _short_signal_core(
     REAL_TRADING_ENABLED switch as the long side, not its own variable -
     turning on real long trading also arms real shorting once this ships.
     """
-    strategy_tag = RANGE_SHORT_STRATEGY_TAG
     now_ist = ist_now()
     now_local = dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)
     today_str = now_local.strftime("%Y-%m-%d")
@@ -6613,8 +6797,8 @@ def _short_signal_core(
 
         market_regime = _classify_market_regime(df, sma_fast, sma_slow, ma_type)
         result["market_regime"] = market_regime
-        if market_regime != "range":
-            result["action_taken"] = "no_signal_not_range"
+        if market_regime not in ("range", "trend"):
+            result["action_taken"] = "no_signal_not_range_or_trend"
             return result
 
         # A symbol already holding an OPEN LONG (signal_state) is skipped
@@ -6634,9 +6818,40 @@ def _short_signal_core(
         circuit_locked = _likely_lower_circuit_locked(df, today_str)
         result["lower_circuit_guard_triggered"] = circuit_locked
 
-        short_entry = _vwap_mean_reversion_short_entry(today_df)
-        result["vwap_mean_reversion_short_entry"] = short_entry
-        entry_signal = bool(short_entry) and liquidity_gate_ok and not circuit_locked
+        # Two-regime entry router (2026-09-29 addition - see
+        # _compute_universal_entry_score_short's own module comment for
+        # why TREND was added here, mirroring _auto_signal_core's own
+        # long-side router exactly). RANGE keeps its existing VWAP-spike
+        # mirror unchanged; TREND is the new 8-factor bearish-score mirror.
+        if market_regime == "range":
+            strategy_tag = RANGE_SHORT_STRATEGY_TAG
+            short_entry = _vwap_mean_reversion_short_entry(today_df)
+            result["vwap_mean_reversion_short_entry"] = short_entry
+            entry_signal = bool(short_entry) and liquidity_gate_ok and not circuit_locked
+        else:
+            strategy_tag = TREND_SHORT_STRATEGY_TAG
+            volume_ok, vol_avg = _volume_confirms(df["Volume"].to_numpy(dtype=float))
+            current_volume = float(df["Volume"].iloc[-1]) if len(df) else None
+            vol_ratio = (current_volume / vol_avg) if (vol_avg and vol_avg > 0 and current_volume is not None) else None
+            result["volume_gate"] = {
+                "confirmed": volume_ok, "avg_volume": vol_avg,
+                "current_volume": current_volume, "vol_ratio": round(vol_ratio, 3) if vol_ratio is not None else None,
+            }
+            sma_f = _moving_average(closes, sma_fast, ma_type) if len(closes) >= sma_fast else None
+            sma_s = _moving_average(closes, sma_slow, ma_type) if len(closes) >= sma_slow else None
+            index_closes = None
+            if symbol not in {UNIVERSAL_REFERENCE_INDEX, "^NSEBANK", "^BSESN", "GC=F", "SI=F", "CL=F"}:
+                try:
+                    index_df = fetch_ohlc(UNIVERSAL_REFERENCE_INDEX, "5d", interval)
+                    index_closes = index_df["Close"].to_numpy(dtype=float)
+                except Exception:
+                    index_closes = None
+            score_result = _compute_universal_entry_score_short(
+                df, today_df, volume_ok, sma_f, sma_s, index_closes, sma_fast, sma_slow, ma_type,
+                vol_ratio=vol_ratio,
+            )
+            result["universal_score_short"] = score_result
+            entry_signal = score_result["entry_allowed"] and not circuit_locked
         if not entry_signal:
             result["action_taken"] = "no_signal"
             return result
@@ -6648,7 +6863,17 @@ def _short_signal_core(
             return result
 
         stop_loss_cap = last_close * (1 + stop_pct / 100)
-        stop_loss = _range_regime_short_stop_loss(last_close, df, stop_loss_cap)
+        if market_regime == "range":
+            stop_loss = _range_regime_short_stop_loss(last_close, df, stop_loss_cap)
+        else:
+            # TREND-down mirror of the long side's `max(structural_low,
+            # stop_loss_cap)`: the stop sits ABOVE entry (min = tighter for
+            # a short), anchored to the recent N-bar HIGH the position is
+            # walking away from, not an ATR multiple (that's the RANGE
+            # basis, not TREND's - see _range_regime_short_stop_loss's own
+            # docstring for why the two regimes use different bases).
+            structural_high = float(df["High"].iloc[-(UNIVERSAL_STRUCTURE_LOOKBACK + 1):].max())
+            stop_loss = min(structural_high, stop_loss_cap)
         stop_dist = stop_loss - last_close
         if stop_dist <= 0:
             result["action_taken"] = "invalid_stop_skipped"
@@ -6658,7 +6883,8 @@ def _short_signal_core(
         # (fixed 3R single-shot target, needing >25% win rate to break even
         # before costs) - see _compute_target_cluster_short's own docstring
         # for why this was replaced with the same median-of-candidates
-        # target the long RANGE path already uses.
+        # target the long RANGE path already uses. Shared by BOTH regimes,
+        # mirroring how the long side's target_cluster is shared too.
         target_cluster = _compute_target_cluster_short(last_close, stop_loss, df, rr)
         target = target_cluster["primary_target"]
         target_move_pct = _target_move_pct_short(target, last_close)
@@ -6669,9 +6895,18 @@ def _short_signal_core(
 
         stop_dist_inr = stop_dist * fx_to_inr
 
-        confidence = _range_regime_short_confidence(today_df)
-        confidence_entry_min = _norm_cdf(RANGE_CONFIDENCE_ENTRY_Z)
-        confidence_full_at = _norm_cdf(RANGE_CONFIDENCE_FULL_Z)
+        if market_regime == "range":
+            confidence = _range_regime_short_confidence(today_df)
+            confidence_entry_min = _norm_cdf(RANGE_CONFIDENCE_ENTRY_Z)
+            confidence_full_at = _norm_cdf(RANGE_CONFIDENCE_FULL_Z)
+        else:
+            # Mirrors the long side's own universal_score/TREND branch:
+            # the 8-factor score_pct itself IS the confidence measure,
+            # gated at the same UNIVERSAL_ENTRY_SCORE_MIN bar entry_allowed
+            # already required - never a separately-invented number.
+            confidence = score_result["score_pct"] / 100.0
+            confidence_entry_min = UNIVERSAL_ENTRY_SCORE_MIN / 100.0
+            confidence_full_at = 1.0
         size_multiplier = 1.0
         if confidence is not None:
             size_multiplier = _confidence_size_multiplier(confidence, confidence_entry_min, confidence_full_at)
@@ -6691,8 +6926,8 @@ def _short_signal_core(
             qty = min(qty, usable_capital_inr / notional_per_unit_inr)
         # NSE cash equities, whole shares only - same reasoning as the long
         # side (see _auto_signal_core's own comment on this exact floor).
-        # This function is scoped to NSE equity only (RANGE mean-reversion
-        # short mirror) - no BTC/gold/lot-size branch needed here.
+        # This function is scoped to NSE equity only (RANGE + TREND short
+        # mirrors) - no BTC/gold/lot-size branch needed here.
         qty = float(math.floor(qty))
 
         MIN_TRADE_NOTIONAL_INR = 100.0
