@@ -307,6 +307,45 @@ REGISTRY: list[StrategyDef] = [
             "every real trade taken to date."
         ),
     ),
+    StrategyDef(
+        name="power_play_high_tight_flag",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING, TradeCategory.BUY),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # main.py.power_play_entry_signal/power_play_exit_reason exist but are not wired into _run_swing_scan
+        metrics=Metrics(
+            pfnet=5.023, pfgross=5.820, win_rate_pct=44.95, n_trades=109,
+            avg_net_inr=1953.04,
+            universe="full_2680 (2366/2680 fetched)",
+            run_ref="power-play-validation-replay.yml run 36599530532 (2026-09-29, calls the real main.py functions)",
+        ),
+        source="main.py (power_play_entry_signal/power_play_exit_reason)",
+        evidence=(
+            "Real-function full-universe validation (2026-09-29, run 36599530532): PFnet "
+            "5.023, PFgross 5.820, n=109, win_rate 44.95%, avg_net +Rs1953.04/trade, avg "
+            "held 16.2 days. By far the best full-universe PFnet found anywhere in this "
+            "session - every strategy tried before this one (universal_score family, "
+            "gap_and_go_swing's own 1.65 aside, tt_vcp, idea4, every short candidate) "
+            "landed at or below breakeven. 100% of exits were trail_stop_hit (none hit "
+            "POWER_PLAY_MAX_HOLD_DAYS=120) - the chandelier trail alone governs every exit "
+            "here, never the timeout."
+        ),
+        notes=(
+            "CAVEAT, do not skip: n=109 over 5 years across 2,366 symbols is a genuinely "
+            "thin sample for a strategy this strong - matches the book's own description of "
+            "Power Play as the RAREST setup it covers (explosive move + tight flag + "
+            "breakout, all three required), so a low trade count is expected, not "
+            "necessarily a red flag, but it does mean this result carries more variance/ "
+            "luck risk than a strategy with a five- or six-figure trade count would. Worth "
+            "a second look (longer period, symbol-holdout, time-split robustness checks, "
+            "same discipline already applied to idea4_no_target) before this is trusted "
+            "enough to consider live wiring - one strong replay is not itself a green light "
+            "per CLAUDE.md's 'never trust one result' standing rule. POWER_PLAY_MAX_HOLD_DAYS "
+            "(120) is an unswept starting estimate, not backtest-tuned - see main.py's own "
+            "constant comment."
+        ),
+    ),
 
     # ---- SHORT SELL -----------------------------------------------------
     # Every entry below is BELOW PFNET_LIVE_FLOOR - see each metrics.pfnet
