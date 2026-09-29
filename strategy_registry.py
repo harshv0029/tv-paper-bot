@@ -304,7 +304,13 @@ REGISTRY: list[StrategyDef] = [
             "negative despite pfnet rounding to 1.000 - essentially exact breakeven before "
             "counting the strategy's own opportunity cost, not a profitable edge. Named "
             "'Idea 4' per explicit user instruction (2026-09-29) after a critical review of "
-            "every real trade taken to date."
+            "every real trade taken to date. Candle-size sweep (CLAUDE.md 2026-09-29 thumb "
+            "rule; idea4-power-play-candle-size-sweep-research.yml run 36603190009, 52-symbol "
+            "sample, real idea4_entry_signal/idea4_exit_reason - not a reimplementation) "
+            "confirms 1d as the correct timeframe: PFnet degrades monotonically at finer "
+            "granularity (1m=0.01, 5m=0.05, 15m=0.15, 1h=0.49, 4h=0.60, 1d=0.87). Not enough "
+            "to flip this strategy viable at any timeframe, but rules out 'try a faster candle' "
+            "as a fix."
         ),
     ),
     StrategyDef(
@@ -343,7 +349,15 @@ REGISTRY: list[StrategyDef] = [
             "enough to consider live wiring - one strong replay is not itself a green light "
             "per CLAUDE.md's 'never trust one result' standing rule. POWER_PLAY_MAX_HOLD_DAYS "
             "(120) is an unswept starting estimate, not backtest-tuned - see main.py's own "
-            "constant comment."
+            "constant comment. Candle-size sweep attempted (CLAUDE.md 2026-09-29 thumb rule; "
+            "idea4-power-play-candle-size-sweep-research.yml run 36603190009, real "
+            "power_play_entry_signal/power_play_exit_reason, 52-symbol sample) but "
+            "inconclusive: 0 trades fired at every timeframe (1m/5m/15m/1h/4h/1d) including "
+            "1d itself. Not a bug - the full-universe 1d replay above found only 109 trades "
+            "across 2,366 symbols over 5 years (~0.046 trades/symbol), so a 52-symbol sample "
+            "would expect well under 3 trades even at the strategy's native timeframe; 0 is "
+            "consistent with that base rate, not evidence the setup fails at other candle "
+            "sizes. A real answer needs the full universe at each timeframe, not yet run."
         ),
     ),
 
