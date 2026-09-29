@@ -3808,6 +3808,132 @@ def power_play_exit_reason(
     return None, new_running_max
 
 
+# ---- Power Play short mirror ("power fade") --------------------------------
+#
+# 2026-09-29, explicit user instruction ("Prep short mirror for others
+# too") per CLAUDE.md's 2026-09-28 standing thumb rule. Mirrors
+# _find_power_play_setup/power_play_entry_signal/power_play_exit_reason
+# direction only - consolidation-depth/final-leg/peak-proximity/volume/
+# ATR-stop/max-hold constants are all reused verbatim from the long side.
+#
+# One threshold genuinely cannot be reused verbatim, and the mirror is
+# documented here rather than left as a silent asymmetry: the long side's
+# launch requires a >=100% GAIN (price at least doubles, ratio >=2.0x) -
+# a symmetric DOWN move of "-100%" is mathematically impossible (price
+# floors at 0). The principled mirror is a LOG-RETURN symmetric shock: a
+# 2x gain has log-return +ln(2) ~= +0.693; the equal-and-opposite shock is
+# a HALVING (0.5x, -50%), log-return -ln(2) ~= -0.693. So
+# POWER_PLAY_CRASH_MIN_LOSS_PCT_SHORT=50.0 (a halving) is the short
+# mirror's launch criterion, not a naive reuse of "100" as a loss
+# percentage (which would be nonsensical).
+POWER_PLAY_CRASH_MIN_LOSS_PCT_SHORT = 50.0  # mirror of +100% via log-symmetry (2x <-> 0.5x)
+
+
+def _find_power_play_setup_short(df: pd.DataFrame) -> dict | None:
+    """Short mirror of _find_power_play_setup: searches for a tight
+    consolidation ("flag") immediately preceded by a crash of at least
+    POWER_PLAY_CRASH_MIN_LOSS_PCT_SHORT within POWER_PLAY_LAUNCH_MAX_DAYS
+    bars. Returns {"consol_high", "consol_low"} for the first valid
+    (crash, flag) pair found, else None."""
+    highs = df["High"].to_numpy(dtype=float)
+    lows = df["Low"].to_numpy(dtype=float)
+    i = len(df) - 1
+    for consol_len in range(POWER_PLAY_CONSOL_MAX_DAYS, POWER_PLAY_CONSOL_MIN_DAYS - 1, -1):
+        consol_start = i - consol_len
+        if consol_start < POWER_PLAY_PEAK_PROXIMITY_DAYS:
+            continue
+        consol_highs = highs[consol_start:i]
+        consol_lows = lows[consol_start:i]
+        if len(consol_highs) == 0:
+            continue
+        consol_high = float(np.max(consol_highs))
+        consol_low = float(np.min(consol_lows))
+        if consol_high <= 0:
+            continue
+        depth_pct = 100.0 * (consol_high - consol_low) / consol_high
+        if depth_pct > POWER_PLAY_CONSOL_MAX_DEPTH_PCT:
+            continue
+
+        final_leg_start = max(consol_start, i - POWER_PLAY_FINAL_LEG_DAYS)
+        final_highs = highs[final_leg_start:i]
+        final_lows = lows[final_leg_start:i]
+        if len(final_highs) == 0:
+            continue
+        final_leg_pct = 100.0 * (float(np.max(final_highs)) - float(np.min(final_lows))) / consol_high
+        if final_leg_pct > POWER_PLAY_FINAL_LEG_MAX_PCT:
+            continue
+
+        crash_start = max(0, consol_start - POWER_PLAY_LAUNCH_MAX_DAYS)
+        crash_highs = highs[crash_start:consol_start]
+        crash_lows = lows[crash_start:consol_start]
+        if len(crash_lows) < POWER_PLAY_PEAK_PROXIMITY_DAYS:
+            continue
+        trough_rel = int(np.argmin(crash_lows))
+        if trough_rel < len(crash_lows) - POWER_PLAY_PEAK_PROXIMITY_DAYS:
+            continue  # the trough isn't near where the flag begins - not a clean crash-pole
+        crash_low = float(crash_lows[trough_rel])
+        if crash_low < consol_low * 0.98:
+            continue  # a real flag stays above its own pole's bottom
+        high_before_trough = float(np.max(crash_highs[: trough_rel + 1]))
+        if high_before_trough <= 0:
+            continue
+        loss_pct = 100.0 * (high_before_trough - crash_low) / high_before_trough
+        if loss_pct < POWER_PLAY_CRASH_MIN_LOSS_PCT_SHORT:
+            continue
+
+        return {"consol_high": consol_high, "consol_low": consol_low}
+    return None
+
+
+def power_play_entry_signal_short(df: pd.DataFrame) -> dict | None:
+    """Evaluates ONLY the last row of `df` (today) for a Power Play short
+    ("power fade") entry: a valid _find_power_play_setup_short flag +
+    today's close breaking below the flag's low on a volume surge. Returns
+    None if no signal fires, else {"entry_price", "stop_loss",
+    "atr_at_entry"}."""
+    setup = _find_power_play_setup_short(df)
+    if setup is None:
+        return None
+    closes = df["Close"].to_numpy(dtype=float)
+    volumes = df["Volume"].to_numpy(dtype=float)
+    i = len(df) - 1
+    if closes[i] >= setup["consol_low"]:
+        return None
+    vol_avg = pd.Series(volumes).rolling(POWER_PLAY_VOL_LOOKBACK).mean().shift(1).to_numpy()
+    if np.isnan(vol_avg[i]) or vol_avg[i] <= 0 or volumes[i] < POWER_PLAY_VOL_SURGE_MULT * vol_avg[i]:
+        return None
+    atr = _swing_atr(df, n=POWER_PLAY_ATR_N)
+    if np.isnan(atr[i]) or atr[i] <= 0:
+        return None
+    stop_loss = setup["consol_high"]
+    if stop_loss <= closes[i]:
+        return None
+    return {"entry_price": closes[i], "stop_loss": stop_loss, "atr_at_entry": float(atr[i])}
+
+
+def power_play_exit_reason_short(
+    df: pd.DataFrame, entry_day: str, initial_stop: float, atr_at_entry: float, running_min_close: float,
+) -> tuple:
+    """Short mirror of power_play_exit_reason: chandelier trail (running
+    TROUGH close plus POWER_PLAY_ATR_STOP_MULT x the ATR frozen at entry)
+    ratcheting DOWN only, plus the same POWER_PLAY_MAX_HOLD_DAYS timeout.
+    Returns (exit_reason_or_None, updated_running_min_close)."""
+    if len(df) == 0:
+        return None, running_min_close
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].astype(str).to_numpy()
+    i = len(df) - 1
+    new_running_min = min(running_min_close, closes[i])
+    trail_stop = new_running_min + POWER_PLAY_ATR_STOP_MULT * atr_at_entry
+    current_stop = min(initial_stop, trail_stop)
+    if closes[i] >= current_stop:
+        return "trail_stop_hit", new_running_min
+    held_days = int(np.sum(dates > entry_day))
+    if held_days >= POWER_PLAY_MAX_HOLD_DAYS:
+        return "max_hold_timeout", new_running_min
+    return None, new_running_min
+
+
 def gap_and_go_entry_signal(df: pd.DataFrame) -> dict | None:
     """Evaluates ONLY the last row of `df` (today) for a Gap and Go entry -
     identical rules/thresholds to the validated research workflow
