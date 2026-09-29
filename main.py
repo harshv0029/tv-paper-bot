@@ -737,7 +737,13 @@ def init_db():
                                         -- signal_state / a possible future trend-down mirror
                 peak_ltp REAL,          -- running MIN live LTP since entry for a short (mirrors
                                         -- signal_state.peak_ltp's running MAX for a long)
-                strategy TEXT NOT NULL DEFAULT 'range_short'
+                strategy TEXT NOT NULL DEFAULT 'range_short',
+                exit_legs_json TEXT     -- 2026-09-29, explicit user instruction to mirror the
+                                        -- long side's staged profit-booking ladder rather than a
+                                        -- single all-or-nothing exit (see _split_exit_legs,
+                                        -- _execute_staged_leg_exit_short) - no ALTER TABLE needed,
+                                        -- same ephemeral-DB reasoning as sl_order_id/target_order_id
+                                        -- above
             )
             """
         )
@@ -4928,6 +4934,52 @@ def _next_unfilled_leg(exit_legs_json: str | None) -> dict | None:
     return None
 
 
+def _execute_staged_leg_exit_short(conn, symbol: str, leg: str, qty_to_cover: float, last_close: float,
+                                    entry_price: float, fx_to_inr: float) -> dict:
+    """Short mirror of _execute_staged_leg_exit (2026-09-29, explicit user
+    instruction: "mirror that buy to sell into a mirror opposite image...
+    and same for remaining conditions" - i.e. don't stop at mirroring the
+    entry trigger/stop/target formulas, mirror the staged profit-booking
+    ladder too, not just a single all-or-nothing exit). Writes to
+    short_trades_closed (this table's OWN partial-booking rows, tagged
+    staged_leg_{leg} exactly like the long side's trades-table rows) rather
+    than apply_paper_trade/signal_state, for the same reason
+    _close_short_position already isn't routed through the shared long-only
+    bookkeeping - see that function's own docstring. pnl is POSITIVE when
+    last_close < entry_price (price fell after a short entry), the same
+    sign convention _close_short_position already uses for the final leg."""
+    row = conn.execute("SELECT * FROM signal_state_short WHERE symbol = ?", (symbol,)).fetchone()
+    if row is None:
+        return {"booked": False}
+    pnl_native = (entry_price - last_close) * qty_to_cover
+    pnl_inr = pnl_native * fx_to_inr
+    remaining_qty = round(row["qty"] - qty_to_cover, 6)
+    conn.execute(
+        "INSERT INTO short_trades_closed (ts, symbol, qty, entry_price, exit_price, fx_to_inr, pnl_inr, exit_reason, strategy) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (time.time(), symbol, qty_to_cover, entry_price, last_close, fx_to_inr, pnl_inr,
+         f"staged_leg_{leg}", row["strategy"]),
+    )
+    legs = json.loads(row["exit_legs_json"]) if row["exit_legs_json"] else []
+    for leg_entry in legs:
+        if leg_entry["leg"] == leg:
+            leg_entry["status"] = "filled"
+            leg_entry["filled_price"] = last_close
+            leg_entry["filled_at"] = time.time()
+    if remaining_qty <= 1e-9:
+        conn.execute("DELETE FROM signal_state_short WHERE symbol = ?", (symbol,))
+    else:
+        conn.execute(
+            "UPDATE signal_state_short SET qty = ?, exit_legs_json = ? WHERE symbol = ?",
+            (remaining_qty, json.dumps(legs), symbol),
+        )
+    conn.commit()
+    return {
+        "booked": True, "leg": leg, "qty": qty_to_cover, "remaining_qty": remaining_qty,
+        "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
+    }
+
+
 def _detect_direction_signal(symbol: str, orb_minutes: int, sma_fast: int, sma_slow: int,
                               trend_sma: int, tz_offset_min: int, open_min: int, interval: str = "5m"):
     """Direction-only signal (bullish/bearish/None) for the options overlay.
@@ -6507,6 +6559,27 @@ def _short_signal_core(
             conn.commit()
 
             exit_price = live_price if live_price else last_close
+
+            # Staged profit-booking ladder short mirror (2026-09-29, explicit
+            # user instruction - see _execute_staged_leg_exit_short's own
+            # docstring). Checked BEFORE the exit_reason chain below, same
+            # ordering the long side's own staged-ladder check uses in
+            # _auto_signal_core. Only the comparison direction is mirrored:
+            # a short profits as price FALLS, so a leg fills at
+            # exit_price <= target_price (long uses >=).
+            next_leg = _next_unfilled_leg(row["exit_legs_json"])
+            if next_leg is not None and next_leg.get("target_price") and exit_price <= next_leg["target_price"]:
+                booking = _execute_staged_leg_exit_short(
+                    conn, symbol, next_leg["leg"], next_leg["qty"], exit_price,
+                    row["entry_price"], row["fx_to_inr"],
+                )
+                if booking.get("booked"):
+                    result.update(
+                        action_taken=f"partial_booked_{next_leg['leg']}",
+                        staged_exit=booking,
+                    )
+                    return result
+
             exit_reason = None
             if halted:
                 exit_reason = "daily_loss_cap_hit"
@@ -6639,17 +6712,29 @@ def _short_signal_core(
                 result["action_taken"] = "skipped_no_live_tick"
                 return result
 
+        # 2026-09-29, explicit user instruction: mirror the long side's
+        # staged profit-booking ladder too, not just the entry/stop/target
+        # formulas - _split_exit_legs is direction-agnostic (works on qty
+        # and a target-VALUE dict, doesn't care whether those values sit
+        # above or below entry) so it's reused as-is; only the per-tick fill
+        # CHECK (see the `row` management branch above) needs its own
+        # opposite-direction comparison.
+        exit_legs = _split_exit_legs(qty, target_cluster["r_multiples"])
+        result["exit_legs"] = exit_legs
+
         conn.execute(
             "INSERT INTO signal_state_short "
-            "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval, entry_regime, peak_ltp, strategy) "
-            "VALUES (?, ?, 'short', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+            "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval, entry_regime, peak_ltp, strategy, exit_legs_json) "
+            "VALUES (?, ?, 'short', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
             "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
             "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
             "initial_stop_loss=excluded.initial_stop_loss, target=excluded.target, qty=excluded.qty, "
             "entry_ts=excluded.entry_ts, fx_to_inr=excluded.fx_to_inr, interval=excluded.interval, "
-            "entry_regime=excluded.entry_regime, peak_ltp=excluded.peak_ltp, strategy=excluded.strategy",
+            "entry_regime=excluded.entry_regime, peak_ltp=excluded.peak_ltp, strategy=excluded.strategy, "
+            "exit_legs_json=excluded.exit_legs_json",
             (symbol, today_str, last_close, stop_loss, stop_loss, target, qty, time.time(),
-             fx_to_inr, interval, market_regime, last_close, strategy_tag),
+             fx_to_inr, interval, market_regime, last_close, strategy_tag,
+             json.dumps(exit_legs) if exit_legs else None),
         )
         conn.commit()
         result.update(action_taken="entered_short", entry={
