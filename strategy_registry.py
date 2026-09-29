@@ -42,12 +42,23 @@ class AssetClass(str, Enum):
 class TradeCategory(str, Enum):
     """The 5 pools the user asked to track a top-5 leaderboard for
     (2026-09-29). Distinct from AssetClass: a category is "what kind of
-    trade is this" (direction/timeframe), not "what instrument"."""
+    trade is this" (direction/timeframe), not "what instrument". A
+    strategy is never confined to exactly one of these - see
+    StrategyDef.categories and CLAUDE.md's 2026-09-29 "a strategy is not
+    confined to one TradeCategory" thumb rule."""
     SHORT_SELL = "short_sell"
     BUY = "buy"
     SWING = "swing"
     FUTURES = "futures"
     OPTIONS = "options"
+
+
+# CLAUDE.md, 2026-09-29 thumb rule: 5 categories x this many leaderboard
+# slots each bounds live per-stock monitoring cost at a fixed number of
+# strategy-checks per round-robin cycle, regardless of how large the
+# overall registry grows.
+TOP_N_PER_CATEGORY = 5
+MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE = len(TradeCategory) * TOP_N_PER_CATEGORY
 
 
 class StrategyStatus(str, Enum):
@@ -84,7 +95,7 @@ class Metrics:
 class StrategyDef:
     name: str
     asset_class: AssetClass
-    category: TradeCategory
+    categories: tuple  # tuple[TradeCategory, ...] - never a single TradeCategory, see its own docstring
     timeframe: str
     status: StrategyStatus
     entry_fn: Optional[Callable] = None
@@ -107,7 +118,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="universal_score",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.BUY,
+        categories=(TradeCategory.BUY,),
         timeframe="5m",
         status=StrategyStatus.LIVE,
         entry_fn=None,  # lives in main.py._compute_universal_entry_score - not duplicated here
@@ -129,7 +140,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="universal_score_entry_floor_85",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.BUY,
+        categories=(TradeCategory.BUY,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -150,7 +161,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="gap_and_go_swing",
         asset_class=AssetClass.EQUITY_SWING,
-        category=TradeCategory.SWING,
+        categories=(TradeCategory.SWING,),
         timeframe="1d",
         status=StrategyStatus.LIVE,
         entry_fn=None,  # lives in main.py.gap_and_go_entry_signal/_run_swing_scan - not duplicated here
@@ -178,7 +189,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="minervini_trend_template_generic_breakout",
         asset_class=AssetClass.EQUITY_SWING,
-        category=TradeCategory.SWING,
+        categories=(TradeCategory.SWING,),
         timeframe="1d",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -205,7 +216,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="minervini_trend_template_vcp",
         asset_class=AssetClass.EQUITY_SWING,
-        category=TradeCategory.SWING,
+        categories=(TradeCategory.SWING,),
         timeframe="1d",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -237,7 +248,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="range_short_target_cluster",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -252,7 +263,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="range_short_bb3.0_filter",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -267,7 +278,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="range_short_bb2.5_filter",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -282,7 +293,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="rsi_overbought_fade_65",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -297,7 +308,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="range_short_staged_ladder",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -312,7 +323,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="rsi_overbought_fade_70",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -327,7 +338,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="rsi_overbought_fade_75",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -342,7 +353,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="rsi_overbought_fade_80",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -357,7 +368,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="range_short_fixed_3r",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -372,7 +383,7 @@ REGISTRY: list[StrategyDef] = [
     StrategyDef(
         name="trend_down_momentum_short",
         asset_class=AssetClass.EQUITY_INTRADAY,
-        category=TradeCategory.SHORT_SELL,
+        categories=(TradeCategory.SHORT_SELL,),
         timeframe="5m",
         status=StrategyStatus.RESEARCH,
         metrics=Metrics(
@@ -413,7 +424,7 @@ def strategies_by_asset_class(asset_class: AssetClass) -> list[StrategyDef]:
 
 
 def strategies_by_category(category: TradeCategory) -> list[StrategyDef]:
-    return [s for s in REGISTRY if s.category == category]
+    return [s for s in REGISTRY if category in s.categories]
 
 
 def leaderboard(category: TradeCategory, top_n: int = 5) -> list[dict]:
