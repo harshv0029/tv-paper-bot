@@ -98,6 +98,42 @@ def test_short_stop_loss_never_exceeds_the_stop_pct_cap():
     assert stop == tight_cap
 
 
+# ---- _compute_target_cluster_short ------------------------------------------
+# (2026-09-29 root-cause fix: range-short-validation-replay.yml's first
+# full-universe run showed PFnet 0.17 / win rate 15.3% against a plain fixed
+# 3R target - only 7.1% of exits were target_hit. Mirrors
+# test_universal_score_engine.py's own _compute_target_cluster tests.)
+
+def _flat_high_low_close_df_desc(n=40, start=120.0, end=100.0):
+    return pd.DataFrame({
+        "High": np.linspace(start, end, n) + 0.5,
+        "Low": np.linspace(start, end, n) - 0.5,
+        "Close": np.linspace(start, end, n),
+    })
+
+
+def test_compute_target_cluster_short_invalid_risk_falls_back_to_plain_rr():
+    df = _flat_high_low_close_df_desc()
+    out = main._compute_target_cluster_short(100.0, 100.0, df, rr=3.0)  # stop == entry -> r<=0
+    assert out["primary_target"] == 100.0  # entry - 3*0
+    assert out["confidence"] is None
+
+
+def test_compute_target_cluster_short_r_multiples_are_correct():
+    df = _flat_high_low_close_df_desc()
+    out = main._compute_target_cluster_short(118.0, 120.0, df, rr=3.0)
+    assert out["r_multiples"]["1.0R"] == 116.0
+    assert out["r_multiples"]["2.0R"] == 114.0
+    assert out["r_multiples"]["3.0R"] == 112.0
+
+
+def test_compute_target_cluster_short_primary_target_is_below_entry_with_history():
+    df = _flat_high_low_close_df_desc()
+    out = main._compute_target_cluster_short(118.0, 120.0, df, rr=3.0)
+    assert out["primary_target"] < 118.0
+    assert out["atr_target"] is not None
+
+
 # ---- _target_move_pct_short / _range_regime_short_confidence ---------------
 
 def test_target_move_pct_short_positive_for_a_target_below_close():
