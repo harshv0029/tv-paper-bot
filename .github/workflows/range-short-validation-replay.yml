@@ -147,11 +147,25 @@ jobs:
 
 
           def replay_symbol_short(symbol, raw_df, risk_pct, stop_pct, capital, cost_model,
-                                   sma_fast=DEFAULT_SMA_FAST, sma_slow=DEFAULT_SMA_SLOW, ma_type=DEFAULT_MA_TYPE):
+                                   sma_fast=DEFAULT_SMA_FAST, sma_slow=DEFAULT_SMA_SLOW, ma_type=DEFAULT_MA_TYPE,
+                                   bb_std=2.0):
               """Bar-by-bar replay calling main.py's REAL short-side functions
               for every piece of entry/stop/target/confidence math - only the
               loop/position-bookkeeping/cost-application scaffolding is
-              written here."""
+              written here.
+
+              bb_std (2026-09-29, explicit user instruction: "test the
+              stricter entry filter instead" - the two prior root-cause
+              fixes, target-cluster and staged ladder, gave a faithful
+              full mirror of the long side's exit architecture but PFnet
+              stayed pinned at 0.17-0.26; this tests whether only trading
+              the most extreme VWAP spikes - a stricter, rarer entry -
+              carries enough raw edge to clear round-trip cost, rather
+              than tuning exit mechanics further) is passed straight
+              through to the REAL m._vwap_mean_reversion_short_entry - not
+              a reimplementation of the z-score threshold. main.py's own
+              live default (bb_std=2.0) is untouched; this is called with
+              a stricter value ONLY from this research replay."""
               df = _prep(raw_df)
               n = len(df)
 
@@ -251,7 +265,7 @@ jobs:
                   if regime != "range":
                       continue
 
-                  short_entry = m._vwap_mean_reversion_short_entry(today_df)
+                  short_entry = m._vwap_mean_reversion_short_entry(today_df, bb_std=bb_std)
                   if not short_entry:
                       continue
 
@@ -332,9 +346,19 @@ jobs:
           SYMBOLS = ALL_SYMBOLS[SHARD_INDEX::SHARD_COUNT]
           CAPITAL_INR = 400000.0
 
+          # 2026-09-29, explicit user instruction: "test the stricter entry
+          # filter instead" - fair single-fetch-multi-variant pattern (this
+          # repo's own established convention, e.g.
+          # universal-score-range-short-research.yml): each symbol is
+          # fetched ONCE and replayed under every bb_std variant, so a
+          # stricter filter is never compared against a different sample.
+          # 2.0 is main.py's live default (baseline, unchanged); 2.5/3.0
+          # only trade progressively more extreme VWAP spikes.
+          BB_STD_VARIANTS = [2.0, 2.5, 3.0]
+
           print(f"--- Shard {SHARD_INDEX}/{SHARD_COUNT}: fetching {len(SYMBOLS)} of {len(ALL_SYMBOLS)} symbols (5m, 60d) ---")
-          all_trades = []
-          all_skips = Counter()
+          all_trades_by_variant = {v: [] for v in BB_STD_VARIANTS}
+          all_skips_by_variant = {v: Counter() for v in BB_STD_VARIANTS}
           fetched = 0
           for sym in SYMBOLS:
               cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
@@ -346,22 +370,29 @@ jobs:
               if raw is None or len(raw) < 50:
                   continue
               fetched += 1
-              try:
-                  trades, skips = replay_symbol_short(
-                      sym, raw, cfg["risk_pct"], cfg["stop_pct"], CAPITAL_INR, DEFAULT_COST_MODEL,
-                      cfg["sma_fast"], cfg["sma_slow"],
-                  )
-              except Exception as e:
-                  print(f"ERROR {sym}: {e}")
-                  continue
-              all_trades.extend(trades)
-              all_skips.update(skips)
-          print(f"  shard {SHARD_INDEX}: fetched {fetched}/{len(SYMBOLS)} symbols, {len(all_trades)} short trades")
-          print(f"  shard {SHARD_INDEX} skips: {dict(all_skips)}")
+              for bb_std in BB_STD_VARIANTS:
+                  try:
+                      trades, skips = replay_symbol_short(
+                          sym, raw, cfg["risk_pct"], cfg["stop_pct"], CAPITAL_INR, DEFAULT_COST_MODEL,
+                          cfg["sma_fast"], cfg["sma_slow"], bb_std=bb_std,
+                      )
+                  except Exception as e:
+                      print(f"ERROR {sym} bb_std={bb_std}: {e}")
+                      continue
+                  all_trades_by_variant[bb_std].extend(trades)
+                  all_skips_by_variant[bb_std].update(skips)
+          for bb_std in BB_STD_VARIANTS:
+              print(f"  shard {SHARD_INDEX} bb_std={bb_std}: fetched {fetched}/{len(SYMBOLS)} symbols, "
+                    f"{len(all_trades_by_variant[bb_std])} short trades, skips={dict(all_skips_by_variant[bb_std])}")
 
           with open("shard_result.json", "w") as f:
-              json.dump({"shard": SHARD_INDEX, "fetched": fetched, "universe_size": len(SYMBOLS),
-                         "trades": all_trades, "skips": dict(all_skips)}, f)
+              json.dump({
+                  "shard": SHARD_INDEX, "fetched": fetched, "universe_size": len(SYMBOLS),
+                  "variants": {
+                      str(v): {"trades": all_trades_by_variant[v], "skips": dict(all_skips_by_variant[v])}
+                      for v in BB_STD_VARIANTS
+                  },
+              }, f)
           PYEOF
 
       - uses: actions/upload-artifact@v4
@@ -386,22 +417,29 @@ jobs:
           import glob
           import json
 
-          all_trades = []
-          all_skips = {}
+          BB_STD_VARIANTS = ["2.0", "2.5", "3.0"]
+          all_trades_by_variant = {v: [] for v in BB_STD_VARIANTS}
+          all_skips_by_variant = {v: {} for v in BB_STD_VARIANTS}
           total_fetched = 0
           total_universe = 0
           for path in sorted(glob.glob("shards/shard-*-result/shard_result.json")):
               with open(path) as f:
                   data = json.load(f)
-              all_trades.extend(data["trades"])
               total_fetched += data["fetched"]
               total_universe += data["universe_size"]
-              for k, v in data["skips"].items():
-                  all_skips[k] = all_skips.get(k, 0) + v
-              print(f"  loaded {path}: {data['fetched']}/{data['universe_size']} symbols, {len(data['trades'])} trades")
+              for v in BB_STD_VARIANTS:
+                  vdata = data["variants"][v]
+                  all_trades_by_variant[v].extend(vdata["trades"])
+                  for k, cnt in vdata["skips"].items():
+                      all_skips_by_variant[v][k] = all_skips_by_variant[v].get(k, 0) + cnt
+              print(f"  loaded {path}: {data['fetched']}/{data['universe_size']} symbols, "
+                    + ", ".join(f"bb{v}={len(data['variants'][v]['trades'])}" for v in BB_STD_VARIANTS))
 
-          print(f"\n--- Pooled: fetched {total_fetched}/{total_universe} symbols, {len(all_trades)} short trades total ---")
-          print(f"  skipped candidate entries (not silently dropped): {all_skips}\n")
+          print(f"\n--- Pooled: fetched {total_fetched}/{total_universe} symbols ---")
+          for v in BB_STD_VARIANTS:
+              print(f"  bb_std={v}: {len(all_trades_by_variant[v])} short trades, "
+                    f"skips (not silently dropped): {all_skips_by_variant[v]}")
+          print()
 
 
           def _metrics(trades, label):
@@ -434,21 +472,25 @@ jobs:
 
 
           print("=== RANGE SHORT - full-universe validation replay (calls main.py's real short-side functions) ===")
-          _metrics(all_trades, "ALL")
+          print("(bb_std=2.0 is main.py's live default/baseline; 2.5/3.0 test only trading more extreme VWAP")
+          print(" spikes - explicit user instruction: \"test the stricter entry filter instead\")\n")
+          for v in BB_STD_VARIANTS:
+              _metrics(all_trades_by_variant[v], f"ALL (bb_std={v})")
 
-          print("\n=== BY SYMBOL (n>=2, sorted by gross PF) ===")
-          per_symbol = {}
-          for t in all_trades:
-              per_symbol.setdefault(t["symbol"], []).append(t)
-          symbol_rows = []
-          for sym, trades in per_symbol.items():
-              if len(trades) < 2:
-                  continue
-              gwg = sum(t["gross_pnl"] for t in trades if t["gross_pnl"] > 0)
-              glg = -sum(t["gross_pnl"] for t in trades if t["gross_pnl"] <= 0)
-              pf_gross = (gwg / glg) if glg > 0 else float("inf")
-              symbol_rows.append((sym, pf_gross, trades))
-          symbol_rows.sort(key=lambda x: x[1], reverse=True)
-          for sym, pf_gross, trades in symbol_rows[:30]:
-              _metrics(trades, sym)
+          for v in BB_STD_VARIANTS:
+              print(f"\n=== BY SYMBOL bb_std={v} (n>=2, sorted by gross PF, top 15) ===")
+              per_symbol = {}
+              for t in all_trades_by_variant[v]:
+                  per_symbol.setdefault(t["symbol"], []).append(t)
+              symbol_rows = []
+              for sym, trades in per_symbol.items():
+                  if len(trades) < 2:
+                      continue
+                  gwg = sum(t["gross_pnl"] for t in trades if t["gross_pnl"] > 0)
+                  glg = -sum(t["gross_pnl"] for t in trades if t["gross_pnl"] <= 0)
+                  pf_gross = (gwg / glg) if glg > 0 else float("inf")
+                  symbol_rows.append((sym, pf_gross, trades))
+              symbol_rows.sort(key=lambda x: x[1], reverse=True)
+              for sym, pf_gross, trades in symbol_rows[:15]:
+                  _metrics(trades, sym)
           PYEOF
