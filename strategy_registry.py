@@ -202,7 +202,14 @@ REGISTRY: list[StrategyDef] = [
         notes=(
             "The ONLY strategy in this entire registry with a validated PFnet above "
             "PFNET_LIVE_FLOOR - see is_viable(). Real, unhedged, currently-live real-money "
-            "strategy; mirrors as a real order via is_real_swing_trading_enabled()."
+            "strategy; mirrors as a real order via is_real_swing_trading_enabled(). "
+            "Candle-size sweep (2026-09-29, "
+            "minervini-vcp-gap-and-go-candle-size-sweep-research.yml run 36613040107, "
+            "52-symbol sample, real gap_and_go_entry_signal/exit_reason): 1d (PFnet "
+            "1.62, n=141) is comparable to the original validated 1.65/n=142, "
+            "confirming 1d is correctly chosen - 1h is close behind (PFnet 1.55, n=63) "
+            "and worth a full-universe check of its own, but 15m/5m/1m are too thin "
+            "(n<=6) to read anything from."
         ),
     ),
     StrategyDef(
@@ -631,6 +638,45 @@ REGISTRY: list[StrategyDef] = [
             "so it fires far more often (n=12,285 vs 701/50) and does more per-symbol "
             "work (merge_asof index-closes alignment every bar). Never checked across "
             "candle sizes; 1d only so far."
+        ),
+    ),
+    StrategyDef(
+        name="gap_and_go_short_fade",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # main.py.gap_and_go_entry_signal_short/gap_and_go_exit_reason_short exist but are not wired into any scan
+        metrics=Metrics(
+            pfnet=0.557, pfgross=0.670, win_rate_pct=25.98, n_trades=4576,
+            avg_net_inr=-471.81,
+            universe="full_2680 (2366/2680 fetched)",
+            run_ref="gap-and-go-short-validation-replay.yml run 36613045246 (2026-09-29, calls the real main.py functions)",
+        ),
+        source="main.py (gap_and_go_entry_signal_short/gap_and_go_exit_reason_short)",
+        evidence=(
+            "Full-universe run 36613045246: PFnet 0.557, PFgross 0.670, n=4,576, win_rate "
+            "25.98%, avg_net -Rs471.81/trade, avg held 27.0 days. Best short-sell PFnet "
+            "of the entire session, edging out power_play_short_fade (0.479) despite a "
+            "far larger, noisier sample. By exit reason: gap_filled (n=2,813, 61% of "
+            "trades) is a total loss - PFnet 0.000, 0% win rate, the same 'the exit is "
+            "the weak point, not the entry' pattern seen on idea4_no_target and its own "
+            "short mirror. The trades that survive to max_hold_timeout (n=1,239, PFnet "
+            "34.9, 88.6% win rate) or data_end_forced_close (n=107, PFnet 49.1) are "
+            "hugely profitable - pooled PFnet is dragged down entirely by the majority "
+            "gap_filled bucket exiting flat-to-negative before costs."
+        ),
+        notes=(
+            "'Gap down and go' - mirrors gap_and_go_swing's own gap-threshold/volume-"
+            "surge/ATR-stop/max-hold constants verbatim (SWING_GAP_PCT_THRESHOLD, "
+            "SWING_VOL_MULT, SWING_ATR_STOP_MULT, SWING_MAX_HOLD_DAYS), only comparison "
+            "directions inverted. Still well below PFNET_LIVE_FLOOR and not wired "
+            "anywhere live, but worth a second look given the gap_filled-exit weak "
+            "point looks fixable (a tighter/trailing exit there, mirroring what's "
+            "already suspected on the long side and on idea4_no_target) rather than a "
+            "structurally broken entry. The 2026-09-29 candle-size sweep (see "
+            "gap_and_go_swing's own notes) only covered the long side - this short "
+            "mirror has never been checked across candle sizes, 1d only so far."
         ),
     ),
 
