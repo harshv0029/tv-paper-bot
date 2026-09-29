@@ -177,3 +177,22 @@ of trusting the transfer pack's prose.
   documented failure (the short-selling research log, the Minervini VCP
   log) is itself the record of what's already been tried, so the search
   never blindly repeats it.
+- **Thumb rule (2026-09-29, explicit user instruction): whenever a
+  `strategy_registry.py` change shifts any category's top-5 leaderboard
+  ranking, the trade-view dashboard must reflect it automatically post-
+  merge - never a separate "go update the dashboard" step.** This is
+  already how it's built, and must stay that way: `static/trade-view.html`
+  fetches `GET /strategy-leaderboard` fresh on every ~10s poll cycle, and
+  that endpoint (`main.strategy_leaderboard()`) calls
+  `strategy_registry.leaderboard()` live, straight off the current
+  `REGISTRY` - there is no hardcoded snapshot, cached table, or build step
+  anywhere in between. The instruction that prompted this rule (after
+  `gap_and_go_short_fade`'s registration flipped short_sell's #1 slot,
+  2026-09-29): merging a registry change is the ONLY step required for the
+  dashboard's Category/Rank/Strategy/PFnet/Win% columns (both per-trade-
+  row and the appended full-leaderboard block) to pick up the new
+  ranking - the next page load after deploy already shows it. If a future
+  change to either file ever breaks this (e.g. caching the leaderboard
+  response, hardcoding rows, or gating the fetch behind something that
+  isn't "every poll"), that regresses this rule and must be fixed, not
+  worked around with a manual re-sync step.
