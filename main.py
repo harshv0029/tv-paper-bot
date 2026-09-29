@@ -2931,15 +2931,51 @@ def _closed_in_durable_log(symbol: str, entry_price: float, entry_ts: float) -> 
     return False
 
 
+def _closed_trade_merge_key(t: dict) -> tuple:
+    """(symbol, IST date, rounded entry_price_native, exit_reason, rounded
+    qty) - see _merge_closed_trades's own docstring for why this replaced
+    (symbol, exit_time_utc) on 2026-09-29. A resurrection-driven duplicate
+    (reconcile_open_positions_from_journal re-opening the SAME stuck
+    position from a stale journal snapshot on repeated restarts) always
+    reuses the exact same frozen entry_price_native, exit_reason, and qty
+    from that one snapshot, but gets a genuinely fresh exit_time_utc each
+    time it re-exits - so keying on exit_time_utc let every resurrection
+    cycle through as if it were a distinct trade, while keying on
+    (entry_price, exit_reason, qty) collapses them back to one.
+
+    exit_reason and qty are both load-bearing here, not just entry_price -
+    a first attempt at this fix keyed on (symbol, day, entry_price) alone
+    and would have silently destroyed real data: a staged-ladder exit
+    books T1/T2/trail as SEPARATE closed_trades rows that legitimately
+    share the same symbol/day/entry_price (they're all partial exits of
+    ONE entry) but always differ in exit_reason ('staged_leg_T1' vs
+    'staged_leg_T2' vs the final leg's own reason) and in qty (each leg is
+    a different slice of the original position) - confirmed against a
+    real INFY.NS example (three legs, same entry_price, qty=1.0 each,
+    exit_reason staged_leg_T1/staged_leg_T2/stop_hit) before shipping
+    this. A symbol legitimately re-entering and re-exiting more than once
+    in a day always does so at a freshly sampled market price, so two
+    real distinct trades matching on all of entry_price/exit_reason/qty
+    on the same day is not a real risk worth trading off against this."""
+    exit_ts = t.get("exit_time_utc") or 0
+    day = (dt.datetime.utcfromtimestamp(exit_ts) + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime("%Y-%m-%d")
+    entry_price = t.get("entry_price_native")
+    qty = t.get("qty")
+    return (
+        t.get("symbol"), day, round(entry_price, 2) if entry_price is not None else None,
+        t.get("exit_reason"), round(qty, 4) if qty is not None else None,
+    )
+
+
 def _merge_closed_trades(db_trades: list[dict], durable_trades: list[dict]) -> list[dict]:
     """Unions this DB instance's own closed-trade dicts with the durable
-    journal's, deduped by (symbol, rounded exit_time_utc) - both share the
-    same shape (symbol, exit_time_utc, pnl_inr, ...; see daily_summary's
-    closed_trades.append() and journal-sync.yml's own jq transform, which
-    copies that exact shape into the durable file). db_trades wins on a
-    key collision (this instance's own fresh computation); a durable-only
-    entry means that trade closed, then the DB got wiped by a redeploy,
-    before this instance ever saw it.
+    journal's, deduped by _closed_trade_merge_key - both share the same
+    shape (symbol, exit_time_utc, entry_price_native, pnl_inr, ...; see
+    daily_summary's closed_trades.append() and journal-sync.yml's own jq
+    transform, which copies that exact shape into the durable file).
+    db_trades wins on a key collision (this instance's own fresh
+    computation); a durable-only entry means that trade closed, then the
+    DB got wiped by a redeploy, before this instance ever saw it.
 
     Found live 2026-09-07 as the root cause of three related, previously
     unexplained symptoms: today's realized P&L silently resetting toward
@@ -2948,12 +2984,36 @@ def _merge_closed_trades(db_trades: list[dict], durable_trades: list[dict]) -> l
     full budget it hadn't earned), and the trade-view dashboard's win-rate/
     closed-trades count not matching reality. All three traced to the same
     bug: today_realized_pnl/daily_summary read ONLY the live DB's `trades`
-    table, which a redeploy empties. See docs/TRADING_CONSTRAINTS.md."""
+    table, which a redeploy empties. See docs/TRADING_CONSTRAINTS.md.
+
+    Dedup key changed 2026-09-29 (found via a critical review of every
+    trade taken to date, explicit user instruction "Fix now"): the
+    original (symbol, rounded exit_time_utc) key let POLICYBZR.NS get
+    recorded as 25 separate "closed trades" on 2026-09-24 with an
+    escalating, made-up pnl_inr that didn't match its actual entry/exit
+    prices at all - traced (confirmed against docs/attempt_log.json,
+    which shows the live scheduler itself only ever made ONE real
+    stop_hit decision that day, so real trading logic/capital was never
+    mismanaged) to reconcile_open_positions_from_journal() resurrecting
+    the same already-closed position on every one of many restarts in a
+    ~90-minute window, because its only guard (_closed_in_durable_log,
+    checking docs/trade_outcomes_log.json on disk) can't see a close that
+    journal-sync.yml's own ~15-minute cadence hasn't caught up to yet -
+    made much worse here by the matching real SELL order being stuck in a
+    circuit-breach rejection loop for over an hour, so the position
+    stayed "open" in state/open_positions.json's own stale snapshot far
+    longer than usual. This key doesn't stop the resurrection itself
+    (that needs either a slower redeploy cadence than the sync interval,
+    or a synchronous durable write on every exit - a bigger change, not
+    done here) but it does stop every resurrection cycle after the first
+    from ever being double-counted into realized P&L, which is what
+    actually mattered: that sum feeds today_realized_pnl's real-money
+    daily-loss-cap halt logic, not just the paper trade-outcome log."""
     merged: dict[tuple, dict] = {}
     for t in durable_trades:
-        merged[(t.get("symbol"), round(t.get("exit_time_utc", 0)))] = t
+        merged[_closed_trade_merge_key(t)] = t
     for t in db_trades:
-        merged[(t.get("symbol"), round(t.get("exit_time_utc", 0)))] = t
+        merged[_closed_trade_merge_key(t)] = t
     return list(merged.values())
 
 
