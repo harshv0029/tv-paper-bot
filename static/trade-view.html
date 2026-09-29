@@ -293,6 +293,30 @@
   </div>
 </div>
 
+<!-- 2026-09-29, explicit user instruction: "print these columns in the
+     render trade view at the end of live and opened and closed trades...
+     rank strategy pfnet and win % - all these from ur backtest". Backed
+     by /strategy-leaderboard (main.py), a read-only view onto
+     strategy_registry.py's REGISTRY - never fabricated here, and never a
+     live-trading signal: "viable" (green) means PFnet >= PFNET_LIVE_FLOOR
+     (real breakeven after costs), everything else is ranked-but-not-
+     tradeable research, per that registry's own "registering != trading"
+     principle. -->
+<div class="counts-panel">
+  <div class="counts-head">
+    <span class="title">Strategy leaderboard (backtest research, top 5 per category)</span>
+    <span class="day mono" id="leaderboard-updated"></span>
+  </div>
+  <div class="counts-scroll">
+    <table class="counts">
+      <thead><tr>
+        <th>Rank</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Win %</th><th>Status</th>
+      </tr></thead>
+      <tbody id="leaderboard-body"><tr><td colspan="5" class="scan-idle">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
 <div class="scanner">
   <div class="scan-col">
     <div class="scan-head"><span>Recently checked</span></div>
@@ -1521,6 +1545,51 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
     ? `₹${fmt(summary.budget_remaining)}` : "—";
 }
 
+// 2026-09-29, explicit user instruction: "print these columns in the
+// render trade view at the end of live and opened and closed trades...
+// rank strategy pfnet and win % - all these from ur backtest". `data` is
+// /strategy-leaderboard's response - {category: [rows]}, straight from
+// strategy_registry.py's own leaderboard(), never computed/faked here.
+// A category with 0 registered strategies (futures/options today) prints
+// "no strategies registered yet", never a fabricated row.
+function renderLeaderboard(data) {
+  const body = document.getElementById("leaderboard-body");
+  if (!data) {
+    body.innerHTML = `<tr><td colspan="5" class="scan-idle">Leaderboard unavailable</td></tr>`;
+    return;
+  }
+  const categoryLabel = {
+    short_sell: "Short sell", buy: "Buy", swing: "Swing",
+    futures: "Futures", options: "Options",
+  };
+  const statusCell = (row) => row.viable === true
+    ? `<span style="color:#4ade80;">✓ viable</span>`
+    : row.viable === false
+      ? `<span style="color:#f87171;">below floor</span>`
+      : `<span class="scan-idle">—</span>`;
+  const rows = [];
+  for (const cat of Object.keys(categoryLabel)) {
+    const board = data[cat] || [];
+    rows.push(`<tr class="log-section-row"><td colspan="5">${categoryLabel[cat]}</td></tr>`);
+    if (!board.length) {
+      rows.push(`<tr><td colspan="5" class="scan-idle">No strategies registered yet</td></tr>`);
+      continue;
+    }
+    for (const row of board) {
+      rows.push(`<tr>
+        <td>${row.rank}</td>
+        <td class="sym">${row.name}</td>
+        <td class="num">${row.pfnet !== null && row.pfnet !== undefined ? fmt(row.pfnet, 3) : "—"}</td>
+        <td class="num">${row.win_rate_pct !== null && row.win_rate_pct !== undefined ? fmt(row.win_rate_pct, 2) + "%" : "—"}</td>
+        <td>${statusCell(row)}</td>
+      </tr>`);
+    }
+  }
+  body.innerHTML = rows.join("");
+  document.getElementById("leaderboard-updated").textContent =
+    "from strategy_registry.py, refreshed " + new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
+}
+
 async function refresh() {
   document.getElementById("last-update").textContent =
     "Last update: " + new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
@@ -1544,13 +1613,15 @@ async function refresh() {
         new Date(deployEpoch * 1000).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST ·"
       : "";
 
-    const [summary, history, realTrades, botRealTrades, openRealPositions] = await Promise.all([
+    const [summary, history, realTrades, botRealTrades, openRealPositions, leaderboard] = await Promise.all([
       fetchJSON(`${ORIGIN}/daily-summary?capital=${realCapitalInr}&daily_risk_pct=2`),
       fetchJSON(`${ORIGIN}/trade-history?days=1`),
       fetchJSON(`${ORIGIN}/real-trades-today`).catch(() => ({ trades: [] })),
       fetchJSON(`${ORIGIN}/real-trades-today-bot-only`).catch(() => ({ closed_trades: [] })),
       fetchJSON(`${ORIGIN}/real-open-positions`).catch(() => ({ open_real_positions: [] })),
+      fetchJSON(`${ORIGIN}/strategy-leaderboard`).catch(() => null),
     ]);
+    renderLeaderboard(leaderboard);
     // BUG found live 2026-09-08 (explicit user finding: "current balance
     // is 1596 as of now but wrong here" - showing -Rs942.61 instead):
     // this tile is labeled "real, Kotak Neo" but was fed summary.
