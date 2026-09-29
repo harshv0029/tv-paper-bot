@@ -1,23 +1,31 @@
-"""Strategy registry scaffold (design-only, 2026-09-28).
+"""Strategy registry + leaderboard (2026-09-28, extended 2026-09-29).
 
 Purpose: a single place to register every strategy this codebase has
-researched or built - intraday, swing, futures, options - and track
-each one's validation status, so that as a strategy clears the full
-CLAUDE.md validation gate (unit tests -> full pytest -> 52-symbol/60-day
-validation replay -> explicit user go-ahead) it has one obvious place
-to be marked as such, instead of that status living only in a chat
-transcript or a transfer pack (see CLAUDE.md's own 2026-09-14 incident
-writeup on exactly that failure mode).
+researched or built - intraday, swing, futures, options, long and short -
+carrying its VALIDATED performance metrics (win rate, PFnet, PFgross,
+sample size, cost drag) and its status, so "keep testing, add everything
+to the pool, always prefer whichever is actually best" (explicit user
+instruction, 2026-09-29) has one durable, queryable place to live instead
+of scattered chat transcripts and transfer packs (see CLAUDE.md's own
+2026-09-14 incident writeup on exactly that failure mode - a status
+claimed in prose that was never actually true).
 
 NOTHING in this module is imported or called by main.py today, and
-nothing here changes live behavior. `scan_universe` is a walk-the-
-watchlist skeleton for a LATER, separately-approved change that would
-let the live scheduler check every LIVE-status strategy's entry
-condition per symbol before moving to the next symbol; wiring it in is
-its own implement/test/validate/approve cycle, not this commit.
-Registering a strategy here, or even marking it LIVE, does not by
-itself make it trade real money - only main.py's actual live order
-path does that.
+nothing here changes live behavior or places any order. Registering a
+strategy here, or even marking it LIVE, does not by itself make it trade
+real money - only main.py's actual live order path does that. This is a
+RESEARCH/TRACKING registry, not a live-trading gate.
+
+Explicit, load-bearing distinction (2026-09-29, after the user asked to
+"merge all of these into production into pool of strategies for
+monitoring... trade entry"): ranking a strategy #1 in its category means
+"best of what's been tried", NOT "profitable" or "safe for real money".
+`is_viable()` is the actual bar - PFnet >= PFNET_LIVE_FLOOR (1.0, real
+breakeven after costs) - and every leaderboard() row carries it
+explicitly so a "top 5" listing can never be mistaken for "5 good
+options" when none of them clear breakeven. As of 2026-09-29, EVERY
+short-sell candidate and the only live buy strategy are below that floor
+- see each entry's own `metrics`.
 """
 from dataclasses import dataclass, field
 from enum import Enum
@@ -31,43 +39,126 @@ class AssetClass(str, Enum):
     OPTIONS = "options"
 
 
+class TradeCategory(str, Enum):
+    """The 5 pools the user asked to track a top-5 leaderboard for
+    (2026-09-29). Distinct from AssetClass: a category is "what kind of
+    trade is this" (direction/timeframe), not "what instrument"."""
+    SHORT_SELL = "short_sell"
+    BUY = "buy"
+    SWING = "swing"
+    FUTURES = "futures"
+    OPTIONS = "options"
+
+
 class StrategyStatus(str, Enum):
     RESEARCH = "research"      # single-pass or early backtest result only
     VALIDATED = "validated"    # full pytest + validation replay passed; not yet wired live
     LIVE = "live"               # wired into main.py's live order path and trading real money
+    BLOCKED_NO_EXECUTION = "blocked_no_execution"  # no order-placement path exists for this asset class at all
+
+
+# Real breakeven after transaction costs. A strategy below this loses
+# money on average, however it ranks against its peers - see this
+# module's own docstring for why that distinction is load-bearing.
+PFNET_LIVE_FLOOR = 1.0
+
+
+@dataclass(frozen=True)
+class Metrics:
+    """Pointer to one specific validation run's pooled numbers - never a
+    hand-typed guess. `n_trades` and `universe` exist so a thin, easily-
+    noisy sample (e.g. n=2) is never confused with a full-universe result
+    (see this repo's own Minervini VCP 52-symbol-vs-full-universe finding,
+    which moved PFnet by 0.35 - CLAUDE.md's full-universe standing rule)."""
+    pfnet: float
+    pfgross: float
+    win_rate_pct: float
+    n_trades: int
+    avg_net_inr: Optional[float] = None
+    cost_drag_pct: Optional[float] = None
+    universe: str = ""          # "full_2680", "52_symbol_sample", etc. - never omit
+    run_ref: str = ""           # workflow file + run id, or commit, that produced this
 
 
 @dataclass(frozen=True)
 class StrategyDef:
     name: str
     asset_class: AssetClass
+    category: TradeCategory
     timeframe: str
     status: StrategyStatus
     entry_fn: Optional[Callable] = None
+    metrics: Optional[Metrics] = None
     risk_profile: dict = field(default_factory=dict)
     source: str = ""     # research workflow or doc this strategy came from
     evidence: str = ""   # pointer to the actual replay/run that justifies `status` - never trust a status without one
     notes: str = ""
 
+    def is_viable(self, floor: float = PFNET_LIVE_FLOOR) -> Optional[bool]:
+        """None if no metrics exist yet (can't judge), else whether this
+        strategy's own validated PFnet clears real breakeven."""
+        if self.metrics is None:
+            return None
+        return self.metrics.pfnet >= floor
+
 
 REGISTRY: list[StrategyDef] = [
+    # ---- BUY (long) ---------------------------------------------------
     StrategyDef(
         name="universal_score",
         asset_class=AssetClass.EQUITY_INTRADAY,
+        category=TradeCategory.BUY,
         timeframe="5m",
         status=StrategyStatus.LIVE,
         entry_fn=None,  # lives in main.py._compute_universal_entry_score - not duplicated here
+        metrics=Metrics(
+            pfnet=0.05, pfgross=1.20, win_rate_pct=10.6, n_trades=1233,
+            avg_net_inr=-1369.10, cost_drag_pct=170.4,
+            universe="52_symbol_sample", run_ref="universal-score-validation-replay.yml run 35729566196 (2026-09-22)",
+        ),
         risk_profile={"sizing_source": "NSE_STOCK_PARAM_OVERRIDES / NSE_STOCK_DEFAULT_PARAMS"},
         source="main.py (live)",
-        evidence="live trading history; ongoing tuning research in universal-score-*-research.yml",
-        notes="Live intraday (5m) engine, watchlist WATCHLIST.",
+        evidence="universal-score-validation-replay.yml run 35729566196 (2026-09-22) - last full validation of the exact live logic",
+        notes=(
+            "Live, trading real money, two-regime router (TREND 8-factor score / RANGE VWAP "
+            "mean-reversion) - see main.py._classify_market_regime. Its own last validated "
+            "PFnet (0.05) is BELOW PFNET_LIVE_FLOOR - see is_viable(). By regime: TREND-only "
+            "PFnet 0.08 (n=231), RANGE-only PFnet 0.05 (n=1002) on the same run."
+        ),
     ),
+    StrategyDef(
+        name="universal_score_entry_floor_85",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        category=TradeCategory.BUY,
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        metrics=Metrics(
+            pfnet=0.06, pfgross=None, win_rate_pct=None, n_trades=None,
+            universe="52_symbol_sample", run_ref="universal-score-entry-floor-research.yml run 36444172866 (2026-09-28)",
+        ),
+        risk_profile={"UNIVERSAL_ENTRY_SCORE_MIN": 85.0},
+        source=".github/workflows/universal-score-entry-floor-research.yml",
+        evidence=(
+            "run 36444172866 (2026-09-28): TREND-only PFnet 0.09->0.13, PFgross 1.11->1.64, "
+            "win% 11.6->17.1 as the entry floor rises 70->85; ALL-population PFnet unchanged "
+            "at ~0.06 since TREND is only ~17% of trade volume and RANGE (untouched) dominates."
+        ),
+        notes="One replay result, not full-universe. Needs full pytest + full-universe validation replay + explicit user go-ahead before any live wiring.",
+    ),
+
+    # ---- SWING ----------------------------------------------------------
     StrategyDef(
         name="gap_and_go_swing",
         asset_class=AssetClass.EQUITY_SWING,
+        category=TradeCategory.SWING,
         timeframe="1d",
         status=StrategyStatus.LIVE,
         entry_fn=None,  # lives in main.py.gap_and_go_entry_signal/_run_swing_scan - not duplicated here
+        metrics=Metrics(
+            pfnet=1.65, pfgross=None, win_rate_pct=None, n_trades=142,
+            universe="_SWING_VALIDATED_52 (original validated set)",
+            run_ref="swing-gap-and-go-5y-research.yml",
+        ),
         risk_profile={"sizing_source": "get_scheduler_capital_inr(); watchlist SWING_WATCHLIST"},
         source="main.py (live) - validated in swing-gap-and-go-5y-research.yml",
         evidence=(
@@ -79,40 +170,237 @@ REGISTRY: list[StrategyDef] = [
             "comment documents this as a known, deliberate gap, not an oversight."
         ),
         notes=(
-            "Found live in main.py while researching for this registry (2026-09-28) - "
-            "was NOT in this registry's first version, which incorrectly listed "
-            "universal_score as the only live strategy. Real, unhedged, currently-"
-            "live real-money strategy; mirrors as a real order via "
-            "is_real_swing_trading_enabled()."
+            "The ONLY strategy in this entire registry with a validated PFnet above "
+            "PFNET_LIVE_FLOOR - see is_viable(). Real, unhedged, currently-live real-money "
+            "strategy; mirrors as a real order via is_real_swing_trading_enabled()."
         ),
     ),
     StrategyDef(
-        name="universal_score_entry_floor_85",
-        asset_class=AssetClass.EQUITY_INTRADAY,
-        timeframe="5m",
+        name="minervini_trend_template_generic_breakout",
+        asset_class=AssetClass.EQUITY_SWING,
+        category=TradeCategory.SWING,
+        timeframe="1d",
         status=StrategyStatus.RESEARCH,
-        risk_profile={"UNIVERSAL_ENTRY_SCORE_MIN": 85.0},
-        source=".github/workflows/universal-score-entry-floor-research.yml",
-        evidence=(
-            "run 36444172866 (2026-09-28): TREND-only PFnet 0.09->0.13, PFgross 1.11->1.64, "
-            "win% 11.6->17.1; ALL-population PFnet unchanged at 0.06 since TREND is only "
-            "~17% of trade volume and RANGE (untouched) dominates."
+        metrics=Metrics(
+            pfnet=0.90, pfgross=None, win_rate_pct=None, n_trades=1367,
+            universe="full_2680 (2362/2680 fetched)",
+            run_ref="swing-minervini-trend-template-vcp-research.yml (2026-09-28/29 full-universe run)",
         ),
-        notes="One replay result. Needs full pytest + validation replay + explicit user go-ahead before any live wiring.",
+        source=".github/workflows/swing-minervini-trend-template-vcp-research.yml",
+        evidence=(
+            "Full-universe run: PFnet 0.90, n=1367, on 2362/2680 fetched symbols. Best "
+            "single-strategy PFnet found anywhere this session (long or short), and the "
+            "highest-n result with it. Never wired into main.py or unit-tested - a single "
+            "replay result, not a full CLAUDE.md validation cycle."
+        ),
+        notes=(
+            "Trend Template (8-criteria) breakout variant, long-only, sourced from "
+            "Minervini's Trade Like a Stock Market Wizard. Top-of-by-symbol-list caveat: "
+            "microcap/illiquid symbols dominated the top of the per-symbol breakdown in "
+            "this run - worth re-checking with a liquidity floor before trusting the "
+            "pooled number at face value. Highest-priority unbuilt candidate in this "
+            "registry per explicit user direction (2026-09-29)."
+        ),
     ),
     StrategyDef(
         name="minervini_trend_template_vcp",
         asset_class=AssetClass.EQUITY_SWING,
+        category=TradeCategory.SWING,
         timeframe="1d",
         status=StrategyStatus.RESEARCH,
+        metrics=Metrics(
+            pfnet=0.90, pfgross=None, win_rate_pct=None, n_trades=325,
+            universe="full_2680 (2362/2680 fetched)",
+            run_ref="swing-minervini-trend-template-vcp-research.yml (2026-09-28/29 full-universe run)",
+        ),
         source=".github/workflows/swing-minervini-trend-template-vcp-research.yml",
-        evidence="dispatched 2026-09-28; result pending",
+        evidence=(
+            "Full-universe run: PFnet 0.90, n=325, on 2362/2680 fetched symbols - same "
+            "pooled PFnet as the generic-breakout variant but on a much smaller, stricter "
+            "sample (a real VCP volatility-contraction pattern, not just Trend Template "
+            "clearance)."
+        ),
         notes=(
-            "Long-only, sourced from Trade Like a Stock Market Wizard (Minervini). "
-            "A short mirror is out of scope until the long side itself clears validation, "
-            "per the standing long/short thumb rule."
+            "Long-only. A short mirror is explicitly out of scope until the long side "
+            "itself clears full validation, per the standing long/short thumb rule. "
+            "max_hold_timeout exits were 100% win rate in this run - flagged as a sign "
+            "the timeout may be cutting winners short, worth investigating before wiring live."
         ),
     ),
+
+    # ---- SHORT SELL -----------------------------------------------------
+    # Every entry below is BELOW PFNET_LIVE_FLOOR - see each metrics.pfnet
+    # and is_viable(). Ranked here per explicit user instruction ("keep
+    # adding them into pool... prefer better version") but NONE should be
+    # wired into live stock monitoring/entry - see this module's own
+    # docstring on why "ranked" != "viable".
+    StrategyDef(
+        name="range_short_target_cluster",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        category=TradeCategory.SHORT_SELL,
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        metrics=Metrics(
+            pfnet=0.26, pfgross=1.54, win_rate_pct=22.8, n_trades=96127,
+            avg_net_inr=-1042.37, cost_drag_pct=98.9,
+            universe="full_2680", run_ref="range-short-validation-replay.yml (target-cluster fix run, 2026-09-29)",
+        ),
+        source=".github/workflows/range-short-validation-replay.yml",
+        evidence="Full-universe run: PFnet 0.26, n=96,127. Best short-sell PFnet found this session.",
+        notes="RANGE VWAP-spike mean-reversion short, median-of-candidates target (mirrors long side's _compute_target_cluster). Implemented in main.py on claude/relaxed-sagan-fcrt6u (unmerged).",
+    ),
+    StrategyDef(
+        name="range_short_bb3.0_filter",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        category=TradeCategory.SHORT_SELL,
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        metrics=Metrics(
+            pfnet=0.23, pfgross=1.41, win_rate_pct=46.6, n_trades=51583,
+            avg_net_inr=-712.78, cost_drag_pct=95.1,
+            universe="full_2680", run_ref="range-short-validation-replay.yml (bb_std=3.0 variant, 2026-09-29)",
+        ),
+        source=".github/workflows/range-short-validation-replay.yml",
+        evidence="Full-universe run: PFnet 0.23, n=51,583. Highest win rate + lowest cost drag of any short variant.",
+        notes="Same target-cluster + staged-ladder architecture as range_short_target_cluster, entry restricted to more extreme VWAP spikes (bb_std=3.0 vs live default 2.0).",
+    ),
+    StrategyDef(
+        name="range_short_bb2.5_filter",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        category=TradeCategory.SHORT_SELL,
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        metrics=Metrics(
+            pfnet=0.22, pfgross=1.41, win_rate_pct=45.3, n_trades=96044,
+            avg_net_inr=-712.47, cost_drag_pct=99.0,
+            universe="full_2680", run_ref="range-short-validation-replay.yml (bb_std=2.5 variant, 2026-09-29)",
+        ),
+        source=".github/workflows/range-short-validation-replay.yml",
+        evidence="Full-universe run: PFnet 0.22, n=96,044.",
+        notes="Same architecture, bb_std=2.5.",
+    ),
+    StrategyDef(
+        name="rsi_overbought_fade_65",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        category=TradeCategory.SHORT_SELL,
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        metrics=Metrics(
+            pfnet=0.22, pfgross=1.38, win_rate_pct=44.0, n_trades=239530,
+            avg_net_inr=-740.62, cost_drag_pct=100.5,
+            universe="full_2680", run_ref="rsi-overbought-short-research.yml (rsi>=65, 2026-09-29)",
+        ),
+        source=".github/workflows/rsi-overbought-short-research.yml",
+        evidence="Full-universe research replay: PFnet 0.22, n=239,530 - largest sample of any short candidate.",
+        notes="Classic RSI-overbought mean-reversion fade, gated to RANGE regime. RESEARCH-STAGE ONLY - entry trigger never wired into main.py (no real function exists yet); everything else reuses validated real short-side functions.",
+    ),
+    StrategyDef(
+        name="range_short_staged_ladder",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        category=TradeCategory.SHORT_SELL,
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        metrics=Metrics(
+            pfnet=0.21, pfgross=1.43, win_rate_pct=44.9, n_trades=173120,
+            avg_net_inr=-609.61, cost_drag_pct=103.6,
+            universe="full_2680", run_ref="range-short-validation-replay.yml (staged ladder run, 2026-09-29)",
+        ),
+        source=".github/workflows/range-short-validation-replay.yml",
+        evidence="Full-universe run: PFnet 0.21, n=173,120. Smallest avg loss/trade of any short variant (-Rs609.61).",
+        notes="Adds the long side's 25/25/25/trail staged exit ladder on top of the target-cluster fix - a faithful full architectural mirror, but PFnet did not improve over the target-cluster-only version (0.26->0.21).",
+    ),
+    StrategyDef(
+        name="rsi_overbought_fade_70",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        category=TradeCategory.SHORT_SELL,
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        metrics=Metrics(
+            pfnet=0.21, pfgross=1.30, win_rate_pct=44.0, n_trades=151543,
+            avg_net_inr=-769.42, cost_drag_pct=99.5,
+            universe="full_2680", run_ref="rsi-overbought-short-research.yml (rsi>=70, 2026-09-29)",
+        ),
+        source=".github/workflows/rsi-overbought-short-research.yml",
+        evidence="Full-universe research replay: PFnet 0.21, n=151,543.",
+        notes="Same as rsi_overbought_fade_65, threshold 70.",
+    ),
+    StrategyDef(
+        name="rsi_overbought_fade_75",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        category=TradeCategory.SHORT_SELL,
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        metrics=Metrics(
+            pfnet=0.21, pfgross=1.25, win_rate_pct=44.1, n_trades=92159,
+            avg_net_inr=-794.31, cost_drag_pct=98.6,
+            universe="full_2680", run_ref="rsi-overbought-short-research.yml (rsi>=75, 2026-09-29)",
+        ),
+        source=".github/workflows/rsi-overbought-short-research.yml",
+        evidence="Full-universe research replay: PFnet 0.21, n=92,159.",
+        notes="Same as rsi_overbought_fade_65, threshold 75.",
+    ),
+    StrategyDef(
+        name="rsi_overbought_fade_80",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        category=TradeCategory.SHORT_SELL,
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        metrics=Metrics(
+            pfnet=0.21, pfgross=1.21, win_rate_pct=44.3, n_trades=52442,
+            avg_net_inr=-814.61, cost_drag_pct=97.7,
+            universe="full_2680", run_ref="rsi-overbought-short-research.yml (rsi>=80, 2026-09-29)",
+        ),
+        source=".github/workflows/rsi-overbought-short-research.yml",
+        evidence="Full-universe research replay: PFnet 0.21, n=52,442. Threshold does not move PFnet regardless of how extreme (65->80 all land at 0.21-0.22) - same pattern as the bb_std filter test on the VWAP family.",
+        notes="Same as rsi_overbought_fade_65, threshold 80 (strictest tested).",
+    ),
+    StrategyDef(
+        name="range_short_fixed_3r",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        category=TradeCategory.SHORT_SELL,
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        metrics=Metrics(
+            pfnet=0.17, pfgross=1.36, win_rate_pct=15.3, n_trades=129898,
+            avg_net_inr=-1222.62, cost_drag_pct=123.3,
+            universe="full_2680", run_ref="range-short-validation-replay.yml (original fixed-3R run, 2026-09-29)",
+        ),
+        source=".github/workflows/range-short-validation-replay.yml",
+        evidence="Full-universe run: PFnet 0.17, n=129,898. Original RANGE short-sell mirror before the target-cluster root-cause fix - superseded by range_short_target_cluster.",
+        notes="Fixed last_close - rr*stop_dist target (needed >25% win rate to break even before costs, only hit 7.1%). Superseded, kept for the record.",
+    ),
+    StrategyDef(
+        name="trend_down_momentum_short",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        category=TradeCategory.SHORT_SELL,
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        metrics=Metrics(
+            pfnet=0.09, pfgross=1.08, win_rate_pct=31.4, n_trades=1531,
+            avg_net_inr=-581.85, cost_drag_pct=145.3,
+            universe="full_2680", run_ref="trend-short-validation-replay.yml (2026-09-29)",
+        ),
+        source=".github/workflows/trend-short-validation-replay.yml",
+        evidence="Full-universe run: PFnet 0.09, n=1,531 - worst PFnet AND rarest signal (7.76M/8.78M bar-checks skipped as not-trend-regime) of every short candidate tried.",
+        notes=(
+            "8-factor TREND-down mirror of the long side's universal_score engine "
+            "(momentum-continuation, not mean-reversion). Working theory for the "
+            "underperformance: NSE names have grinding, persistent uptrends but sharp, "
+            "short-lived downdrafts - momentum continuation is a structurally weaker bet "
+            "shorting than buying on this universe."
+        ),
+    ),
+
+    # ---- FUTURES / OPTIONS ------------------------------------------------
+    # No entries: kotak_real_orders.py has NO futures or options order-
+    # placement path at all (equity CNC/MIS only). Every options idea in
+    # docs/STRATEGY_LOG.md is "Template (untested)" or "Proposed -
+    # untested" - backtest-only, nothing ever placed an options or futures
+    # order in this codebase. A "top 5" in either category is not
+    # meaningful until real execution is built - that is itself a separate,
+    # larger infrastructure project, not a backtest/research task. See
+    # docs/STRATEGY_LOG.md rows #10-12, #29 for the closest existing
+    # (untested) candidates once that execution path exists.
 ]
 
 
@@ -122,6 +410,41 @@ def strategies_by_status(status: StrategyStatus) -> list[StrategyDef]:
 
 def strategies_by_asset_class(asset_class: AssetClass) -> list[StrategyDef]:
     return [s for s in REGISTRY if s.asset_class == asset_class]
+
+
+def strategies_by_category(category: TradeCategory) -> list[StrategyDef]:
+    return [s for s in REGISTRY if s.category == category]
+
+
+def leaderboard(category: TradeCategory, top_n: int = 5) -> list[dict]:
+    """Rank every registered strategy in `category` by validated PFnet,
+    best first. Strategies with no metrics yet sort last (never crash,
+    never silently outrank a measured result with an unmeasured one).
+
+    Each row carries `viable` explicitly (PFnet >= PFNET_LIVE_FLOOR) so a
+    caller can never mistake "ranked #1 in this pool" for "profitable" -
+    see this module's own docstring. Returns fewer than `top_n` rows
+    when fewer than `top_n` strategies are registered for that category -
+    never pads with fabricated entries."""
+    pool = strategies_by_category(category)
+    ranked = sorted(
+        pool,
+        key=lambda s: s.metrics.pfnet if s.metrics is not None else float("-inf"),
+        reverse=True,
+    )
+    return [
+        {
+            "rank": i + 1,
+            "name": s.name,
+            "status": s.status.value,
+            "pfnet": s.metrics.pfnet if s.metrics else None,
+            "win_rate_pct": s.metrics.win_rate_pct if s.metrics else None,
+            "n_trades": s.metrics.n_trades if s.metrics else None,
+            "universe": s.metrics.universe if s.metrics else None,
+            "viable": s.is_viable(),
+        }
+        for i, s in enumerate(ranked[:top_n])
+    ]
 
 
 def scan_universe(symbols, as_of_data_fn, statuses=(StrategyStatus.LIVE,)):
