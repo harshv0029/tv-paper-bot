@@ -231,23 +231,31 @@ REGISTRY: list[StrategyDef] = [
         categories=(TradeCategory.SWING,),
         timeframe="1d",
         status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # minervini_vcp_entry_signal/minervini_vcp_exit_reason exist in main.py but are not wired into _run_swing_scan
         metrics=Metrics(
-            pfnet=0.90, pfgross=None, win_rate_pct=None, n_trades=325,
+            pfnet=0.908, pfgross=1.147, win_rate_pct=34.56, n_trades=327,
+            avg_net_inr=-73.83,
             universe="full_2680 (2362/2680 fetched)",
-            run_ref="swing-minervini-trend-template-vcp-research.yml (2026-09-28/29 full-universe run)",
+            run_ref="minervini-vcp-validation-replay.yml run 36566995254 (2026-09-29, calls the real main.py functions)",
         ),
-        source=".github/workflows/swing-minervini-trend-template-vcp-research.yml",
+        source="main.py (minervini_vcp_entry_signal/minervini_vcp_exit_reason)",
         evidence=(
-            "Full-universe run: PFnet 0.90, n=325, on 2362/2680 fetched symbols - same "
-            "pooled PFnet as the generic-breakout variant but on a much smaller, stricter "
-            "sample (a real VCP volatility-contraction pattern, not just Trend Template "
-            "clearance)."
+            "Real-function full-universe validation (2026-09-29, run 36566995254): PFnet "
+            "0.908, n=327, win_rate 34.56%, avg_net -Rs73.83/trade. Confirms the "
+            "implementation faithfully reproduces the original research script's number "
+            "(PFnet 0.90, n=325, swing-minervini-trend-template-vcp-research.yml, 2026-09-28/29 "
+            "- kept for the record, see docs/MINERVINI_VCP_RESEARCH_LOG.md) - no replay-"
+            "driver-drift bug found this time, unlike the RSI-band-reflection bug caught in "
+            "the TREND-down short mirror. Still below PFNET_LIVE_FLOOR."
         ),
         notes=(
             "Long-only. A short mirror is explicitly out of scope until the long side "
             "itself clears full validation, per the standing long/short thumb rule. "
-            "max_hold_timeout exits were 100% win rate in this run - flagged as a sign "
-            "the timeout may be cutting winners short, worth investigating before wiring live."
+            "trail_stop_hit is 89% of trades (n=292) and is itself a net loser (PFnet "
+            "0.757) - the dominant exit path is the weak point, not the entry trigger. "
+            "data_end_forced_close's high PFnet (3.455, n=30) is a backtest-window "
+            "artifact, not a real signal - see docs/MINERVINI_VCP_RESEARCH_LOG.md. Only "
+            "ever tested at the 1d candle size per the 2026-09-29 candle-size thumb rule."
         ),
     ),
 
