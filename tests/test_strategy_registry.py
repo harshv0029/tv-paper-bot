@@ -142,9 +142,9 @@ def test_leaderboard_ranks_by_pfnet_descending():
     assert len(board) == 5
     pfnets = [row["pfnet"] for row in board]
     assert pfnets == sorted(pfnets, reverse=True)
-    # power_play_short_fade (PFnet 0.479, added 2026-09-29) overtook
-    # range_short_target_cluster (0.26) as the best short-sell candidate.
-    assert board[0]["name"] == "power_play_short_fade"
+    # gap_and_go_short_fade (PFnet 0.557, added 2026-09-29) overtook
+    # power_play_short_fade (0.479) as the best short-sell candidate.
+    assert board[0]["name"] == "gap_and_go_short_fade"
 
 
 def test_leaderboard_marks_every_row_viable_or_not():
