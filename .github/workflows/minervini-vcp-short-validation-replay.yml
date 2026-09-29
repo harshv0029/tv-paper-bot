@@ -1,0 +1,286 @@
+name: Minervini VCP Short Mirror Validation Replay (calls the REAL main.py functions)
+
+# 2026-09-29, explicit user instruction ("Prep short mirror for others
+# too") per CLAUDE.md's 2026-09-28 standing thumb rule: every strategy
+# gets checked for both directions, long and short. Mirrors
+# minervini-vcp-validation-replay.yml's own pattern exactly, calling
+# m.minervini_vcp_entry_signal_short / m.minervini_vcp_exit_reason_short
+# directly for every entry/exit/stop/trail decision - only the position-
+# bookkeeping/cost-application loop and short P&L sign are written here.
+#
+# RS-percentile table construction is the SAME cross-sectional rank table
+# the long-side replay already builds (m._compute_minervini_rs_percentiles
+# is direction-agnostic - see its own docstring) - only the entry
+# function's own threshold comparison direction differs (bottom 30th
+# percentile for shorting weak names, not top 70th for buying strong
+# ones), so this workflow reuses the identical returns_df/rank(pct=True)
+# construction as the long-side replay, unmodified.
+#
+# Full NSE universe via m._load_nse_universe_from_file() (CLAUDE.md,
+# 2026-09-29 full-universe thumb rule) - not main.NSE_FULL_UNIVERSE, which
+# is silently restricted to the NIFTY-200 live-trading scope by the time
+# this script imports main.
+#
+# Read-only research: does not touch any live parameter, table, or
+# scheduler path, and minervini_vcp_entry_signal_short/
+# minervini_vcp_exit_reason_short are NOT wired into main.py's live scan/
+# scheduler/order path (see strategy_registry.py's "registering != trading"
+# principle) - this replay is the honest number to report before any
+# further go/no-go decision on that.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run Minervini VCP short-mirror backtest against the real main.py functions
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import pandas as pd
+          import yfinance as yf
+          import main as m
+
+          PERIOD = "2y"
+          INTERVAL = "1d"
+          CAPITAL_INR = 400000.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade_short(symbol, entry_price, initial_stop, qty, entry_label, exit_price,
+                                     exit_label, exit_reason, entry_cost, held_days, cost_model):
+              # Short: profit when price FALLS - gross_pnl sign flipped vs the long side.
+              gross_pnl = (entry_price - exit_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = initial_stop - entry_price
+              return {
+                  "symbol": symbol, "entry_ts": entry_label, "exit_ts": exit_label,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "held_days": held_days,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def replay_symbol(symbol, df, risk_pct, capital, cost_model, rs_pct_series):
+              """Calls the REAL m.minervini_vcp_entry_signal_short and
+              m.minervini_vcp_exit_reason_short for every entry/exit/stop/
+              trail decision - only the position-bookkeeping/cost-
+              application loop is written here."""
+              trades = []
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(m.MINERVINI_SMA_200, m.MINERVINI_FIFTY_TWO_WEEK_N) + m.MINERVINI_SMA200_RISING_LOOKBACK + 5
+              if n < min_lookback + 20:
+                  return trades
+
+              closes = df["Close"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              position = None
+
+              for i in range(min_lookback, n):
+                  sub_df = df.iloc[: i + 1]
+
+                  if position is not None:
+                      reason, position["running_min_close"] = m.minervini_vcp_exit_reason_short(
+                          sub_df, position["entry_label"], position["initial_stop"],
+                          position["atr_at_entry"], position["running_min_close"],
+                      )
+                      if reason:
+                          held_days = i - position["entry_idx"]
+                          trades.append(_finalize_trade_short(
+                              symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_label"], closes[i], dates[i], reason,
+                              position["entry_cost"], held_days, cost_model,
+                          ))
+                          position = None
+
+                  if position is None:
+                      rs_pct = rs_pct_series[i] if rs_pct_series is not None else None
+                      sig = m.minervini_vcp_entry_signal_short(sub_df, rs_percentile=rs_pct)
+                      if sig is not None:
+                          entry_price = sig["entry_price"]
+                          stop_loss = sig["stop_loss"]
+                          stop_dist = stop_loss - entry_price
+                          if stop_dist > 0:
+                              usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                              risk_amount_inr = usable_capital_inr * risk_pct / 100
+                              qty = min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)
+                              qty = int(np.floor(qty))
+                              if qty > 0 and qty * entry_price >= 100:
+                                  position = {
+                                      "entry_price": entry_price, "initial_stop": stop_loss,
+                                      "entry_idx": i, "entry_label": dates[i], "qty": qty,
+                                      "atr_at_entry": sig["atr_at_entry"], "running_min_close": entry_price,
+                                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                                  }
+
+              if position is not None:
+                  held_days = (n - 1) - position["entry_idx"]
+                  trades.append(_finalize_trade_short(
+                      symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_label"], closes[-1], dates[-1], "data_end_forced_close",
+                      position["entry_cost"], held_days, cost_model,
+                  ))
+              return trades
+
+
+          def _fetch_universe_batched(symbols, period, interval, chunk_size=250):
+              """Bulk OHLC fetch via yfinance's own native multi-ticker
+              batch/thread download (2026-09-29, "optimise for upcoming
+              runs" - see idea4-validation-replay.yml's own docstring for
+              the full rationale: a sequential one-symbol-at-a-time loop
+              spent 42m20s just fetching ~2,680 symbols in its first
+              dispatch). Bypasses main.fetch_ohlc's own cache/wrapper
+              entirely, reshaping each symbol's slice into the identical
+              Date/Open/High/Low/Close/Volume, oldest-first shape
+              main.fetch_ohlc returns."""
+              out = {}
+              for start in range(0, len(symbols), chunk_size):
+                  chunk = symbols[start:start + chunk_size]
+                  raw = yf.download(chunk, period=period, interval=interval, group_by="ticker",
+                                     threads=True, progress=False, auto_adjust=False)
+                  if raw.empty:
+                      continue
+                  if not isinstance(raw.columns, pd.MultiIndex):
+                      sub = raw.dropna(subset=["Open", "High", "Low", "Close"])
+                      if not sub.empty:
+                          sub = sub.reset_index()
+                          date_col = "Date" if "Date" in sub.columns else "Datetime"
+                          out[chunk[0]] = sub.rename(columns={date_col: "Date"}).reset_index(drop=True)
+                      continue
+                  top_level = set(raw.columns.get_level_values(0))
+                  for sym in chunk:
+                      if sym not in top_level:
+                          continue
+                      sub = raw[sym].dropna(subset=["Open", "High", "Low", "Close"])
+                      if sub.empty:
+                          continue
+                      sub = sub.reset_index()
+                      date_col = "Date" if "Date" in sub.columns else "Datetime"
+                      out[sym] = sub.rename(columns={date_col: "Date"}).reset_index(drop=True)
+              return out
+
+
+          SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}), batched+threaded ---")
+          raw_by_symbol = {
+              sym: df for sym, df in _fetch_universe_batched(SYMBOLS, PERIOD, INTERVAL).items()
+              if len(df) >= 100
+          }
+          print(f"  fetched {len(raw_by_symbol)}/{len(SYMBOLS)} symbols\n")
+
+          # Cross-sectional RS table - identical construction to the long-side
+          # replay (m._compute_minervini_rs_percentiles's own formula is
+          # direction-agnostic; only the entry function's threshold direction
+          # differs).
+          return_series = {}
+          for sym, raw in raw_by_symbol.items():
+              closes_s = raw["Close"].astype(float)
+              ret = closes_s.pct_change(m.MINERVINI_RS_RETURN_LOOKBACK)
+              ret.index = raw["Date"].astype(str)
+              return_series[sym] = ret
+          returns_df = pd.DataFrame(return_series)
+          rs_pct_df = returns_df.rank(axis=1, pct=True) * 100.0
+
+          all_trades = []
+          per_symbol_trade_count = {}
+          for sym, raw in raw_by_symbol.items():
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              dates_str = raw["Date"].astype(str)
+              rs_series = rs_pct_df[sym].reindex(dates_str).to_numpy() if sym in rs_pct_df.columns else None
+              try:
+                  trades = replay_symbol(sym, raw, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL, rs_series)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              if trades:
+                  per_symbol_trade_count[sym] = len(trades)
+              all_trades.extend(trades)
+          print(f"  {len(all_trades)} total trades\n")
+
+
+          def _metrics(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0, avg_held_days=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              avg_held_days = sum(t["held_days"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, avg_held_days=avg_held_days)
+
+
+          print("=== POOLED RESULT (real main.py functions, tt_vcp_short) ===")
+          row = _metrics(all_trades)
+          print(f"n_trades={row['n']} win_rate={row['win_rate']:.2f}% "
+                f"pf_net={row['pf_net']:.3f} pf_gross={row['pf_gross']:.3f} "
+                f"avg_net_inr={row['avg_net']:.2f} avg_held_days={row['avg_held_days']:.1f}")
+
+          print("\n=== By exit_reason ===")
+          by_reason = {}
+          for t in all_trades:
+              by_reason.setdefault(t["exit_reason"], []).append(t)
+          for reason, ts in sorted(by_reason.items(), key=lambda kv: -len(kv[1])):
+              m2 = _metrics(ts)
+              print(f"{reason}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_days={m2['avg_held_days']:.1f}")
+
+          print("\n=== Top 15 symbols by trade count ===")
+          for sym, cnt in sorted(per_symbol_trade_count.items(), key=lambda kv: -kv[1])[:15]:
+              print(f"{sym}: {cnt} trades")
+          PYEOF
