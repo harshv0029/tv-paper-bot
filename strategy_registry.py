@@ -526,6 +526,73 @@ REGISTRY: list[StrategyDef] = [
             "shorting than buying on this universe."
         ),
     ),
+    StrategyDef(
+        name="minervini_vcp_short_breakdown",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # main.py.minervini_vcp_entry_signal_short/minervini_vcp_exit_reason_short exist but are not wired into any scan
+        metrics=Metrics(
+            pfnet=0.014, pfgross=0.015, win_rate_pct=42.08, n_trades=701,
+            avg_net_inr=-49132.23,
+            universe="full_2680 (2362/2680 fetched)",
+            run_ref="minervini-vcp-short-validation-replay.yml run 36603511866 (2026-09-29, calls the real main.py functions)",
+        ),
+        source="main.py (minervini_vcp_entry_signal_short/minervini_vcp_exit_reason_short)",
+        evidence=(
+            "Full-universe run 36603511866: PFnet 0.014, PFgross 0.015, n=701, win_rate "
+            "42.08%, avg_net -Rs49,132.23/trade, avg held 18.2 days. By far the worst "
+            "PFnet AND worst avg_net_inr of any strategy tried this session, long or "
+            "short - trail_stop_hit trades (n=516, 74% of all trades) alone carry PFnet "
+            "0.008. Stage-4 VCP-down breakdown mirror does not work on this universe; "
+            "the long side's own Minervini VCP result (tt_vcp, see idea4_no_target's "
+            "sibling entries) was itself unremarkable, so a symmetric failure on the "
+            "short side is at least consistent, not a surprising anomaly."
+        ),
+        notes=(
+            "All Stage-4 trend-template SMA/lookback constants and the RS-percentile "
+            "cross-sectional table (MINERVINI_RS_PERCENTILE_MAX_SHORT=30, bottom "
+            "percentile) reused verbatim from the long side per CLAUDE.md's short-"
+            "mirror discipline - only comparison directions inverted. Never checked "
+            "across candle sizes (CLAUDE.md 2026-09-29 thumb rule) - 1d only so far; "
+            "given how badly it fails here, a candle-size sweep is unlikely to be a "
+            "priority ahead of higher-PFnet candidates."
+        ),
+    ),
+    StrategyDef(
+        name="power_play_short_fade",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # main.py.power_play_entry_signal_short/power_play_exit_reason_short exist but are not wired into any scan
+        metrics=Metrics(
+            pfnet=0.479, pfgross=0.580, win_rate_pct=36.00, n_trades=50,
+            avg_net_inr=-401.18,
+            universe="full_2680 (2366/2680 fetched)",
+            run_ref="power-play-short-validation-replay.yml run 36605194832 (2026-09-29, calls the real main.py functions)",
+        ),
+        source="main.py (power_play_entry_signal_short/power_play_exit_reason_short)",
+        evidence=(
+            "Full-universe run 36605194832: PFnet 0.479, PFgross 0.580, n=50, win_rate "
+            "36.00%, avg_net -Rs401.18/trade, avg held 24.0 days. Best PFnet of any "
+            "short-sell candidate tried this session by a wide margin (next best is "
+            "range_short_target_cluster at 0.26), but still well below "
+            "PFNET_LIVE_FLOOR and a fraction of the long side's own 5.023 PFnet on the "
+            "same setup. Confirms the crash-flag-breakdown structure does not mirror as "
+            "cleanly into the fade direction as the RANGE VWAP mean-reversion short did "
+            "relative to its own long side."
+        ),
+        notes=(
+            "'Power fade' - crash (>=50% halving, log-symmetric mirror of the long "
+            "side's +100% launch requirement per POWER_PLAY_CRASH_MIN_LOSS_PCT_SHORT) "
+            "+ tight flag + breakdown, chandelier-trail exit. n=50 is thin even by "
+            "Power Play's own rare-setup standard (long side n=109 on the identical "
+            "universe) - the long side's own thumb rule (rarest setup in the book) "
+            "applies doubly here. Never checked across candle sizes; 1d only so far."
+        ),
+    ),
 
     # ---- FUTURES / OPTIONS ------------------------------------------------
     # No entries: kotak_real_orders.py has NO futures or options order-
