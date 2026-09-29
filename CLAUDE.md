@@ -77,3 +77,19 @@ of trusting the transfer pack's prose.
   first application of this rule and why a full TREND-side short mirror
   was scoped out of that first pass (a separate, larger undertaking, not
   a rule exception).
+- **Thumb rule (2026-09-29, explicit user instruction): every backtest/
+  research pass from now on runs on the FULL NSE universe (~2,680 real
+  symbols, via `main._load_nse_universe_from_file()`), not a 52-symbol
+  or other narrow sample.** A small-sample pilot is fine as a first,
+  cheap correctness check, but the result that gets reported/trusted for
+  a go/no-go call must be the full-universe number — a 52-symbol sample
+  moved PFnet by as much as 0.35 in either direction versus the full
+  universe on the same exact strategy (Minervini VCP research,
+  2026-09-28/29: 52-symbol PFnet 0.65 vs full-universe PFnet 0.90 on
+  n=325 vs n=15 — the small sample wasn't wrong exactly, just too thin to
+  trust on its own). **Do not read `main.NSE_FULL_UNIVERSE` for this** -
+  by the time a script imports `main`, that name has been reassigned to
+  its NIFTY-200 intersection (a separate, live-trading-scope restriction,
+  2026-09-14 "trade only in NIFTY 200" instruction) and silently returns
+  only ~200 symbols. Call `_load_nse_universe_from_file()` directly for
+  research to get the true, unrestricted full universe.
