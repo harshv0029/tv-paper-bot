@@ -3200,6 +3200,213 @@ def _swing_atr(df: pd.DataFrame, n: int = SWING_ATR_N):
     return pd.Series(tr).rolling(n).mean().to_numpy()
 
 
+# Minervini "Trend Template" + "Volatility Contraction Pattern" (VCP) swing
+# strategy, sourced from docs/Trade Like a Stock Market Wizard (2013).pdf,
+# 2026-09-29 (explicit user instruction: "Implement Minervini VCP
+# strategy"). Every threshold below is copied verbatim from the validated
+# research workflow (.github/workflows/swing-minervini-trend-template-vcp-
+# research.yml, tt_vcp variant, PFnet 0.90 on n=325 full-universe trades) -
+# zero retuning between research and this implementation, per this repo's
+# standing real-money discipline against tuning blind on one result. NOT
+# wired into _run_swing_scan, the live scheduler, or real order placement -
+# registering/implementing a strategy does not by itself make it trade real
+# money (see strategy_registry.py's own "registering != trading" principle).
+MINERVINI_SMA_50 = 50
+MINERVINI_SMA_150 = 150
+MINERVINI_SMA_200 = 200
+MINERVINI_SMA200_RISING_LOOKBACK = 21
+MINERVINI_FIFTY_TWO_WEEK_N = 252
+MINERVINI_RS_RETURN_LOOKBACK = 126
+MINERVINI_RS_PERCENTILE_MIN = 70.0
+MINERVINI_VOL_LOOKBACK = 20
+MINERVINI_VOL_SURGE_MULT = 1.5
+MINERVINI_ATR_N = 14
+MINERVINI_ATR_STOP_MULT = 2.0
+MINERVINI_MAX_HOLD_DAYS = 60
+MINERVINI_PIVOT_FRACTAL_WIDTH = 5
+MINERVINI_VCP_BASE_MIN_DAYS = 15
+MINERVINI_VCP_BASE_MAX_DAYS = 130
+MINERVINI_VCP_FINAL_LEG_MAX_PCT = 15.0
+MINERVINI_VCP_TIGHTEN_RATIO_MIN = 2.0
+
+
+def _minervini_trend_template_ok(df: pd.DataFrame, rs_percentile: float | None = None) -> bool | None:
+    """Minervini's 8-criterion "Trend Template" trend-qualifier gate,
+    evaluated on the LAST row of `df` only - identical math to the
+    validated research workflow. Returns None (not False) when `df` does
+    not yet have enough history for every moving average/lookback to be
+    defined, True/False otherwise. `rs_percentile` is this symbol's
+    cross-sectional RS percentile for today (0-100, from
+    _compute_minervini_rs_percentiles); the RS>=70 criterion is only
+    applied when it's not None, matching the research workflow's own
+    no-index-reference fallback."""
+    closes = df["Close"].to_numpy(dtype=float)
+    n = len(closes)
+    if n < MINERVINI_SMA_200 + MINERVINI_SMA200_RISING_LOOKBACK:
+        return None
+    lows = df["Low"].to_numpy(dtype=float)
+    highs = df["High"].to_numpy(dtype=float)
+    sma50 = pd.Series(closes).rolling(MINERVINI_SMA_50).mean().to_numpy()
+    sma150 = pd.Series(closes).rolling(MINERVINI_SMA_150).mean().to_numpy()
+    sma200 = pd.Series(closes).rolling(MINERVINI_SMA_200).mean().to_numpy()
+    roll_low_252 = pd.Series(lows).rolling(MINERVINI_FIFTY_TWO_WEEK_N).min().to_numpy()
+    roll_high_252 = pd.Series(highs).rolling(MINERVINI_FIFTY_TWO_WEEK_N).max().to_numpy()
+    i = n - 1
+    if (
+        np.isnan(sma200[i]) or np.isnan(sma200[i - MINERVINI_SMA200_RISING_LOOKBACK])
+        or np.isnan(roll_low_252[i]) or np.isnan(roll_high_252[i])
+        or np.isnan(sma50[i]) or np.isnan(sma150[i])
+    ):
+        return None
+    ok = (
+        closes[i] > sma150[i] and closes[i] > sma200[i]
+        and sma150[i] > sma200[i]
+        and sma200[i] > sma200[i - MINERVINI_SMA200_RISING_LOOKBACK]
+        and sma50[i] > sma150[i] and sma50[i] > sma200[i]
+        and closes[i] > sma50[i]
+        and closes[i] >= 1.30 * roll_low_252[i]
+        and closes[i] >= 0.75 * roll_high_252[i]
+    )
+    if rs_percentile is not None and not np.isnan(rs_percentile):
+        ok = ok and rs_percentile >= MINERVINI_RS_PERCENTILE_MIN
+    return bool(ok)
+
+
+def _compute_minervini_rs_percentiles(closes_by_symbol: dict) -> dict:
+    """Cross-sectional RS proxy: batch percentile-rank of each symbol's
+    trailing MINERVINI_RS_RETURN_LOOKBACK-day return against the whole
+    watchlist, for one scan cycle. Must be called ONCE per cycle across the
+    full watchlist, not per-symbol - RS percentile is a rank against peers
+    on the same date, unlike every other building block in this file which
+    is a pure per-symbol computation. Symbols without enough history for
+    the lookback are omitted, never fabricated as 0."""
+    returns = {}
+    for sym, closes in closes_by_symbol.items():
+        closes = np.asarray(closes, dtype=float)
+        if len(closes) <= MINERVINI_RS_RETURN_LOOKBACK:
+            continue
+        base = closes[-(MINERVINI_RS_RETURN_LOOKBACK + 1)]
+        if base <= 0:
+            continue
+        returns[sym] = (closes[-1] - base) / base
+    if not returns:
+        return {}
+    return (pd.Series(returns).rank(pct=True) * 100.0).to_dict()
+
+
+def _find_minervini_vcp_pivot(df: pd.DataFrame) -> dict | None:
+    """Evaluated as of the LAST row of `df` (today, not itself included in
+    the swing-point search): looks back up to MINERVINI_VCP_BASE_MAX_DAYS
+    for a left-to-right tightening sequence of swing-high-to-swing-low
+    legs, using a simple fractal (bar j is a swing high/low if it's the
+    max/min High/Low within +/-MINERVINI_PIVOT_FRACTAL_WIDTH bars) -
+    identical to the validated research workflow's own _find_vcp_pivot.
+    Returns {"pivot_high", "final_leg_low"} if a valid tightening base
+    ending near today is found, else None. Does NOT check today's close
+    against the pivot - that's minervini_vcp_entry_signal's job."""
+    highs = df["High"].to_numpy(dtype=float)
+    lows = df["Low"].to_numpy(dtype=float)
+    i = len(df) - 1
+    lo = max(0, i - MINERVINI_VCP_BASE_MAX_DAYS)
+    hi = i - MINERVINI_PIVOT_FRACTAL_WIDTH
+    if hi - lo < MINERVINI_VCP_BASE_MIN_DAYS:
+        return None
+
+    swing_highs = []
+    swing_lows = []
+    for j in range(lo + MINERVINI_PIVOT_FRACTAL_WIDTH, hi):
+        window_hi = highs[j - MINERVINI_PIVOT_FRACTAL_WIDTH: j + MINERVINI_PIVOT_FRACTAL_WIDTH + 1]
+        window_lo = lows[j - MINERVINI_PIVOT_FRACTAL_WIDTH: j + MINERVINI_PIVOT_FRACTAL_WIDTH + 1]
+        if highs[j] == np.max(window_hi):
+            swing_highs.append((j, highs[j]))
+        if lows[j] == np.min(window_lo):
+            swing_lows.append((j, lows[j]))
+
+    legs = []
+    last_high = None
+    for j, v in sorted(swing_highs + swing_lows, key=lambda t: t[0]):
+        is_high = (j, v) in swing_highs
+        if is_high:
+            last_high = (j, v)
+        elif last_high is not None:
+            depth_pct = 100.0 * (last_high[1] - v) / last_high[1] if last_high[1] > 0 else 0.0
+            legs.append({"high": last_high[1], "low": v, "depth_pct": depth_pct})
+            last_high = None
+
+    if len(legs) < 2:
+        return None
+    legs = legs[-6:]
+    final_leg = legs[-1]
+    first_leg = legs[0]
+    if final_leg["depth_pct"] > MINERVINI_VCP_FINAL_LEG_MAX_PCT:
+        return None
+    if final_leg["depth_pct"] <= 0 or first_leg["depth_pct"] < MINERVINI_VCP_TIGHTEN_RATIO_MIN * final_leg["depth_pct"]:
+        return None
+    return {"pivot_high": final_leg["high"], "final_leg_low": final_leg["low"]}
+
+
+def minervini_vcp_entry_signal(df: pd.DataFrame, rs_percentile: float | None = None) -> dict | None:
+    """Evaluates ONLY the last row of `df` (today) for a Minervini VCP
+    entry: Trend Template gate + a valid tightening VCP base + today's
+    close breaking above the base's pivot high on a volume surge. Identical
+    rules/thresholds to the validated research workflow (tt_vcp variant,
+    PFnet 0.90 on n=325 full-universe trades). Returns None if no signal
+    fires, else {"entry_price", "stop_loss", "atr_at_entry"} for the caller
+    to size and open a position with. `rs_percentile` is this symbol's
+    cross-sectional RS percentile for today (see
+    _compute_minervini_rs_percentiles); passing None skips the RS gate,
+    matching the research workflow's own no-index-reference fallback."""
+    if _minervini_trend_template_ok(df, rs_percentile) is not True:
+        return None
+    pivot = _find_minervini_vcp_pivot(df)
+    if pivot is None:
+        return None
+    closes = df["Close"].to_numpy(dtype=float)
+    volumes = df["Volume"].to_numpy(dtype=float)
+    i = len(df) - 1
+    if closes[i] <= pivot["pivot_high"]:
+        return None
+    vol_avg = pd.Series(volumes).rolling(MINERVINI_VOL_LOOKBACK).mean().shift(1).to_numpy()
+    if np.isnan(vol_avg[i]) or vol_avg[i] <= 0 or volumes[i] < MINERVINI_VOL_SURGE_MULT * vol_avg[i]:
+        return None
+    atr = _swing_atr(df, n=MINERVINI_ATR_N)
+    if np.isnan(atr[i]) or atr[i] <= 0:
+        return None
+    stop_loss = pivot["final_leg_low"]
+    if stop_loss >= closes[i]:
+        return None
+    return {"entry_price": closes[i], "stop_loss": stop_loss, "atr_at_entry": float(atr[i])}
+
+
+def minervini_vcp_exit_reason(
+    df: pd.DataFrame, entry_day: str, initial_stop: float, atr_at_entry: float, running_max_close: float,
+) -> tuple:
+    """Evaluates ONLY the last row of `df` (today) for a Minervini VCP
+    exit, for a position already open: a chandelier trailing stop (running
+    peak close minus MINERVINI_ATR_STOP_MULT x the ATR frozen AT ENTRY TIME,
+    never recomputed daily) that only ever ratchets up, plus a
+    MINERVINI_MAX_HOLD_DAYS timeout. `running_max_close` is the running
+    peak close carried forward by the caller since entry (starts at
+    entry_price); `entry_day` is the IST date (YYYY-MM-DD) the position was
+    opened, day-counted the same way as gap_and_go_exit_reason. Returns
+    (exit_reason_or_None, updated_running_max_close) since the chandelier
+    state must travel explicitly between calls."""
+    if len(df) == 0:
+        return None, running_max_close
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].astype(str).to_numpy()
+    i = len(df) - 1
+    new_running_max = max(running_max_close, closes[i])
+    trail_stop = new_running_max - MINERVINI_ATR_STOP_MULT * atr_at_entry
+    current_stop = max(initial_stop, trail_stop)
+    if closes[i] <= current_stop:
+        return "trail_stop_hit", new_running_max
+    held_days = int(np.sum(dates > entry_day))
+    if held_days >= MINERVINI_MAX_HOLD_DAYS:
+        return "max_hold_timeout", new_running_max
+    return None, new_running_max
+
+
 def gap_and_go_entry_signal(df: pd.DataFrame) -> dict | None:
     """Evaluates ONLY the last row of `df` (today) for a Gap and Go entry -
     identical rules/thresholds to the validated research workflow
