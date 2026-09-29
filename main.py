@@ -14358,6 +14358,21 @@ def trade_history(days: int = 1):
     }
 
 
+@app.get("/strategy-leaderboard")
+def strategy_leaderboard():
+    """Read-only view onto strategy_registry.py's REGISTRY (2026-09-29,
+    explicit user instruction: "print these columns... at the end of
+    live and opened and closed trades... rank strategy pfnet and win %
+    all from your backtest") - one leaderboard row list per TradeCategory,
+    each already carrying `viable` (PFnet >= PFNET_LIVE_FLOOR) so a
+    strategy ranked #1 in a pool is never mistaken for "profitable" by a
+    page rendering this. No live trading behavior changes here - this is
+    the same "registering != trading" registry every other reader of
+    strategy_registry.py already treats as research/tracking-only."""
+    import strategy_registry as sr
+    return {cat.value: sr.leaderboard(cat, top_n=sr.TOP_N_PER_CATEGORY) for cat in sr.TradeCategory}
+
+
 @app.get("/daily-summary")
 def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
     """Aggregated view of today's auto-signal paper trading across all symbols:
