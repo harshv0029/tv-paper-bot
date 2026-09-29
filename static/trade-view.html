@@ -293,30 +293,6 @@
   </div>
 </div>
 
-<!-- 2026-09-29, explicit user instruction: "print these columns in the
-     render trade view at the end of live and opened and closed trades...
-     rank strategy pfnet and win % - all these from ur backtest". Backed
-     by /strategy-leaderboard (main.py), a read-only view onto
-     strategy_registry.py's REGISTRY - never fabricated here, and never a
-     live-trading signal: "viable" (green) means PFnet >= PFNET_LIVE_FLOOR
-     (real breakeven after costs), everything else is ranked-but-not-
-     tradeable research, per that registry's own "registering != trading"
-     principle. -->
-<div class="counts-panel">
-  <div class="counts-head">
-    <span class="title">Strategy leaderboard (backtest research, top 5 per category)</span>
-    <span class="day mono" id="leaderboard-updated"></span>
-  </div>
-  <div class="counts-scroll">
-    <table class="counts">
-      <thead><tr>
-        <th>Rank</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Win %</th><th>Status</th>
-      </tr></thead>
-      <tbody id="leaderboard-body"><tr><td colspan="5" class="scan-idle">Loading…</td></tr></tbody>
-    </table>
-  </div>
-</div>
-
 <div class="scanner">
   <div class="scan-col">
     <div class="scan-head"><span>Recently checked</span></div>
@@ -1265,7 +1241,7 @@ function optionLabel(pos) {
   return `${pos.underlying} ${(pos.right || "").toUpperCase()} ${fmt(pos.strike, 0)}`;
 }
 
-function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPositions) {
+function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPositions, leaderboard) {
   const body = document.getElementById("log-body");
   const openPositions = summary.open_positions || [];
   // Closed trades: UNION of /trade-history (docs/trade_outcomes_log.json,
@@ -1505,6 +1481,9 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   if (realRows.length) sections.push(sectionRow(`Real trades today (${realRows.length}) — Kotak, outside this app's own order placement`), ...realRows, realTotalRow);
   if (openRealRows.length || realRows.length) sections.push(combinedRealAndOpenTotalRow);
   if (!sections.length) sections.push(`<tr><td colspan="13" class="scan-idle">No live positions or real trades today</td></tr>`);
+  // Strategy leaderboard rows always append last, in this same table -
+  // see leaderboardRows()'s own comment for why (2026-09-29 instruction).
+  sections.push(...leaderboardRows(leaderboard));
   body.innerHTML = sections.join("");
 
   // Net P&L for the day = sum of realized P&L on the merged (durable file
@@ -1545,49 +1524,57 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
     ? `₹${fmt(summary.budget_remaining)}` : "—";
 }
 
-// 2026-09-29, explicit user instruction: "print these columns in the
-// render trade view at the end of live and opened and closed trades...
-// rank strategy pfnet and win % - all these from ur backtest". `data` is
-// /strategy-leaderboard's response - {category: [rows]}, straight from
-// strategy_registry.py's own leaderboard(), never computed/faked here.
-// A category with 0 registered strategies (futures/options today) prints
-// "no strategies registered yet", never a fabricated row.
-function renderLeaderboard(data) {
-  const body = document.getElementById("leaderboard-body");
-  if (!data) {
-    body.innerHTML = `<tr><td colspan="5" class="scan-idle">Leaderboard unavailable</td></tr>`;
-    return;
-  }
-  const categoryLabel = {
-    short_sell: "Short sell", buy: "Buy", swing: "Swing",
-    futures: "Futures", options: "Options",
-  };
-  const statusCell = (row) => row.viable === true
-    ? `<span style="color:#4ade80;">✓ viable</span>`
-    : row.viable === false
-      ? `<span style="color:#f87171;">below floor</span>`
-      : `<span class="scan-idle">—</span>`;
-  const rows = [];
-  for (const cat of Object.keys(categoryLabel)) {
-    const board = data[cat] || [];
-    rows.push(`<tr class="log-section-row"><td colspan="5">${categoryLabel[cat]}</td></tr>`);
-    if (!board.length) {
-      rows.push(`<tr><td colspan="5" class="scan-idle">No strategies registered yet</td></tr>`);
-      continue;
-    }
-    for (const row of board) {
-      rows.push(`<tr>
-        <td>${row.rank}</td>
-        <td class="sym">${row.name}</td>
-        <td class="num">${row.pfnet !== null && row.pfnet !== undefined ? fmt(row.pfnet, 3) : "—"}</td>
-        <td class="num">${row.win_rate_pct !== null && row.win_rate_pct !== undefined ? fmt(row.win_rate_pct, 2) + "%" : "—"}</td>
-        <td>${statusCell(row)}</td>
+// 2026-09-29, explicit user instruction: put the leaderboard "against
+// each trade entry row, in same table... append in last rows", with a
+// Category column (Buy/Sell/Swing/Future/Options/Others) "just before
+// rank column" - i.e. NOT a separate panel/table (that was the first cut,
+// corrected here): these are extra rows appended to the END of the same
+// #log-body/table.log the trade entries above already render into.
+// `data` is /strategy-leaderboard's response - {category: [rows]},
+// straight from strategy_registry.py's own leaderboard(), never computed
+// or faked here. Cells reuse the trade table's own 13 columns (Category
+// in the Status slot, Rank in the Asset slot, Strategy name in its own
+// column, PFnet/Win% in the Entry/Exit "num" slots so they stay separate,
+// right-aligned columns rather than one combined string) - Qty/Invested/
+// Realised/Unrealised/P&L% stay "—" so a backtest ratio is never
+// mistaken for a real rupee P&L figure in those columns.
+const LEADERBOARD_CATEGORY_LABEL = {
+  short_sell: "Sell", buy: "Buy", swing: "Swing", futures: "Future", options: "Options",
+};
+function leaderboardRows(data) {
+  if (!data) return [];
+  const rows = [`<tr class="log-section-row"><td colspan="13">Strategy leaderboard (backtest research, not live trades)</td></tr>`];
+  let any = false;
+  for (const cat of Object.keys(LEADERBOARD_CATEGORY_LABEL)) {
+    for (const row of (data[cat] || [])) {
+      any = true;
+      const category = LEADERBOARD_CATEGORY_LABEL[cat] || "Others";
+      const pfnet = row.pfnet !== null && row.pfnet !== undefined ? fmt(row.pfnet, 3) : "—";
+      const winPct = row.win_rate_pct !== null && row.win_rate_pct !== undefined ? `${fmt(row.win_rate_pct, 2)}%` : "—";
+      const status = row.viable === true
+        ? `<span style="color:#4ade80;">✓ viable</span>`
+        : row.viable === false
+          ? `<span style="color:#f87171;">below floor</span>`
+          : `<span class="scan-idle">—</span>`;
+      rows.push(`<tr class="log-total-row">
+        <td>${category}</td>
+        <td>#${row.rank}</td>
+        <td class="log-type">—</td>
+        <td class="log-type">${row.name}</td>
+        <td class="num">${pfnet}</td>
+        <td class="num">${winPct}</td>
+        <td class="num">—</td>
+        <td class="num">—</td>
+        <td class="num">—</td>
+        <td class="num">—</td>
+        <td class="num">—</td>
+        <td class="log-type">${status}</td>
+        <td class="meta">n=${row.n_trades ?? "—"}</td>
       </tr>`);
     }
   }
-  body.innerHTML = rows.join("");
-  document.getElementById("leaderboard-updated").textContent =
-    "from strategy_registry.py, refreshed " + new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
+  if (!any) rows.push(`<tr><td colspan="13" class="scan-idle">No strategies registered yet</td></tr>`);
+  return rows;
 }
 
 async function refresh() {
@@ -1621,7 +1608,6 @@ async function refresh() {
       fetchJSON(`${ORIGIN}/real-open-positions`).catch(() => ({ open_real_positions: [] })),
       fetchJSON(`${ORIGIN}/strategy-leaderboard`).catch(() => null),
     ]);
-    renderLeaderboard(leaderboard);
     // BUG found live 2026-09-08 (explicit user finding: "current balance
     // is 1596 as of now but wrong here" - showing -Rs942.61 instead):
     // this tile is labeled "real, Kotak Neo" but was fed summary.
@@ -1656,7 +1642,7 @@ async function refresh() {
             ? `<div class="empty">No open positions. Last closed: ${displayName(lastClosed.symbol)} — ${lastClosed.exit_reason}, P&amp;L ₹${fmt(lastClosed.pnl_inr)}. Waiting for next signal…</div>`
             : `<div class="empty">No open positions yet. Waiting for the strategy to fire…</div>`;
       }
-      renderTradeLog(summary, history, realTrades.trades, botRealTrades, openRealPositions.open_real_positions);
+      renderTradeLog(summary, history, realTrades.trades, botRealTrades, openRealPositions.open_real_positions, leaderboard);
       return;
     }
 
@@ -1671,7 +1657,7 @@ async function refresh() {
       renderStats(pos.symbol, pos, lastClose);
     }
 
-    renderTradeLog(summary, history, realTrades.trades, botRealTrades, openRealPositions.open_real_positions);
+    renderTradeLog(summary, history, realTrades.trades, botRealTrades, openRealPositions.open_real_positions, leaderboard);
   } catch (e) {
     document.getElementById("cards").innerHTML = `<div class="err">fetch failed: ${e.message}</div>`;
   }
