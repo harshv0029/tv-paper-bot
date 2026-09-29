@@ -702,6 +702,103 @@ def init_db():
             )
             """
         )
+        # Short-selling paper book (2026-09-29, explicit user instruction to
+        # implement short selling; RANGE-regime mean-reversion mirror only -
+        # see universal-score-range-short-research.yml, the only strategy
+        # with any backtest history on the short side - TREND-down stays
+        # out of scope per CLAUDE.md's standing scoping note). SEPARATE from
+        # signal_state (not a shared "side" column) for the same reason
+        # signal_state_swing is separate from signal_state: avoids
+        # overloading a schema whose downstream reconciliation code
+        # (_reconcile_real_positions_core and other flBuyQty-flSellQty call
+        # sites) assumes a positive qty means a LONG holding - see this
+        # table's real_positions_short sibling below for where that
+        # assumption would otherwise bite. No exit_legs_json/staged ladder -
+        # the RANGE short mirror uses a single fixed target, like RANGE long
+        # trades taken outside the universal_score staged-ladder path.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS signal_state_short (
+                symbol TEXT PRIMARY KEY,
+                day TEXT NOT NULL,
+                status TEXT NOT NULL,   -- 'short' (only value ever written)
+                entry_price REAL,       -- native currency
+                stop_loss REAL,         -- LIVE value; for a short this trails DOWN (toward entry)
+                                        -- as the position moves favorably - see
+                                        -- _trailing_stop_target_short
+                initial_stop_loss REAL, -- the stop AT ENTRY (ABOVE entry_price), frozen forever
+                target REAL,            -- BELOW entry_price
+                qty REAL,               -- always POSITIVE (share count), direction is implicit
+                                        -- from this table's own identity, never a signed quantity
+                entry_ts REAL,
+                fx_to_inr REAL NOT NULL DEFAULT 1.0,
+                interval TEXT NOT NULL DEFAULT '5m',
+                entry_regime TEXT,      -- always 'range' today - column kept for symmetry with
+                                        -- signal_state / a possible future trend-down mirror
+                peak_ltp REAL,          -- running MIN live LTP since entry for a short (mirrors
+                                        -- signal_state.peak_ltp's running MAX for a long)
+                strategy TEXT NOT NULL DEFAULT 'range_short'
+            )
+            """
+        )
+        # Short-selling real-order mirror - separate from real_positions for
+        # the same reconciliation-safety reason as signal_state_short above.
+        # No target_order_id/target_price resting-order columns yet (2026-
+        # 09-29 first cut): the short mirror starts with the same "poll and
+        # place/replace" pattern as the long path's stop-loss handling, kept
+        # deliberately minimal for the first real-money-short cut - extend
+        # if/when a resting profit-target order is added.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS real_positions_short (
+                symbol TEXT PRIMARY KEY,
+                kotak_trading_symbol TEXT NOT NULL,
+                qty INTEGER NOT NULL,   -- always POSITIVE - shares sold short, not a signed qty
+                entry_price REAL NOT NULL,
+                entry_order_id TEXT,
+                opened_at REAL NOT NULL,
+                day TEXT NOT NULL,
+                sl_order_id TEXT,
+                sl_trigger_price REAL,  -- for a short, the BUY-stop trigger ABOVE entry_price
+                protection_degraded_since REAL,
+                strategy TEXT
+            )
+            """
+        )
+        # Closed-short realized-P&L ledger (2026-09-29). Deliberately NOT
+        # fed through the shared `trades`/`positions` tables or
+        # apply_paper_trade - both are long-only "buy adds to cost basis,
+        # sell realizes P&L against it" bookkeeping (apply_paper_trade's own
+        # docstring: "long-only close-out on sell"; today_realized_pnl's
+        # book-replay loop has the same assumption baked in). Feeding a
+        # short's OPENING sell through that logic would silently compute a
+        # wrong (zero, since there's no existing long qty to sell against)
+        # P&L on open and misinterpret the CLOSING buy as adding to a long
+        # position instead of realizing the short's gain/loss - exactly the
+        # kind of silent corruption that would let the daily-loss-cap halt
+        # (today_realized_pnl's caller) miss real short losses. Instead,
+        # each closed short trade's pnl_inr is computed directly at close
+        # time (entry_price - exit_price, positive when price fell - see
+        # _close_short_position) and stored here already-computed, then
+        # summed by today_realized_pnl exactly the way it already sums the
+        # long side's own precomputed db_closed/durable-journal entries -
+        # additive to that existing merge, not a rewrite of it.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS short_trades_closed (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts REAL NOT NULL,
+                symbol TEXT NOT NULL,
+                qty REAL NOT NULL,
+                entry_price REAL NOT NULL,
+                exit_price REAL NOT NULL,
+                fx_to_inr REAL NOT NULL DEFAULT 1.0,
+                pnl_inr REAL NOT NULL,
+                exit_reason TEXT,
+                strategy TEXT
+            )
+            """
+        )
         # T1-holdings restriction blacklist (2026-09-08, explicit user
         # instruction: "if ever such asset is classified as T1 holding then
         # dont trade in that as they are risk"). Kotak's own RMS rule
@@ -2971,6 +3068,21 @@ def today_realized_pnl(conn, since_ts: float) -> float:
     merged = _merge_closed_trades(db_closed, durable)
     paper_total = sum(t.get("pnl_inr", 0.0) for t in merged)
 
+    # 2026-09-29: short_trades_closed already stores each closed short's own
+    # precomputed pnl_inr (see that table's own comment for why a short's
+    # P&L is never run back through the buy/sell book-replay loop above) -
+    # summed in exactly the same "already-computed, just add it up" shape
+    # as `merged` just above, not a parallel reimplementation of the cost-
+    # basis logic. Same _real_covered carve-out as the long side: once real
+    # short trading mirrors a symbol for real (task not yet built as of
+    # this comment - see kotak_real_orders.py), that symbol's PAPER short
+    # P&L must stop double-counting against get_real_pnl_today_inr's own
+    # figure, same reasoning as the long side.
+    short_closed = conn.execute(
+        "SELECT symbol, pnl_inr FROM short_trades_closed WHERE ts >= ?", (since_ts,)
+    ).fetchall()
+    paper_total += sum(r["pnl_inr"] for r in short_closed if not _real_covered(r["symbol"]))
+
     if not real_trading_active:
         return paper_total
     real_pnl = get_real_pnl_today_inr(since_ts=since_ts)
@@ -3011,7 +3123,16 @@ def deployed_notional(conn) -> float:
         "SELECT qty, entry_price, fx_to_inr FROM signal_state_swing"
     ).fetchall()
     swing_notional = sum(r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in swing_rows)
-    return equity_notional + option_notional + swing_notional
+    # 2026-09-29: an open short ties up capital the exact same way an open
+    # long does (this account has no separate margin pool - one shared Rs
+    # 2L capital figure covers every open position regardless of
+    # direction), so signal_state_short's own notional counts against the
+    # same cap, same reasoning as the swing engine's inclusion just above.
+    short_rows = conn.execute(
+        "SELECT qty, entry_price, fx_to_inr FROM signal_state_short WHERE status = 'short'"
+    ).fetchall()
+    short_notional = sum(r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in short_rows)
+    return equity_notional + option_notional + swing_notional + short_notional
 
 
 # ---------------------------------------------------------------------------
@@ -3404,6 +3525,12 @@ def _target_move_pct(target: float, last_close: float) -> float:
     return ((target - last_close) / last_close * 100) if last_close > 0 else 0.0
 
 
+def _target_move_pct_short(target: float, last_close: float) -> float:
+    """Short mirror of _target_move_pct (2026-09-29) - target sits BELOW
+    last_close by construction for a short, so the sign flips."""
+    return ((last_close - target) / last_close * 100) if last_close > 0 else 0.0
+
+
 def _trailing_stop_target(today_df: pd.DataFrame, entry_price: float,
                            initial_stop: float, entry_ts: float, tz_offset_min: int,
                            live_price: float | None = None,
@@ -3478,6 +3605,51 @@ def _trailing_stop_target(today_df: pd.DataFrame, entry_price: float,
     breakeven_stop = entry_price * (1 + TRAIL_BREAKEVEN_BUFFER_PCT / 100)
     fixed_gap_stop = peak - TRAIL_ACTIVATE_R * r
     return peak, max(breakeven_stop, fixed_gap_stop)
+
+
+def _trailing_stop_target_short(today_df: pd.DataFrame, entry_price: float,
+                                 initial_stop: float, entry_ts: float, tz_offset_min: int,
+                                 live_price: float | None = None,
+                                 known_trough: float | None = None) -> tuple[float | None, float | None]:
+    """Short mirror of _trailing_stop_target (2026-09-29). R = initial_stop
+    - entry_price (the short's own original risk, a positive distance
+    since initial_stop sits ABOVE entry_price for a short). Tracks the
+    running LOW-water mark since entry (a short profits as price falls,
+    so "peak" becomes "trough") instead of a running high, and the
+    trailing stop sits TRAIL_ACTIVATE_R*R ABOVE that trough (ratcheting
+    DOWN, never up) once activated, floored at breakeven from above (never
+    below breakeven, mirroring the long side's floor from below).
+
+    Returns (trough, candidate_stop): trough is the running low-water mark
+    (live LTP if available, else lowest close since entry) - the caller
+    persists this to signal_state_short.peak_ltp on every call (same
+    column as the long side's running max, repurposed as a running min for
+    a short row - the column's own name is a generic "extreme since
+    entry," not literally "the highest price"). candidate_stop is None if
+    not yet activated. The caller takes min(current_stop, candidate_stop)
+    when candidate_stop is not None - this function only ever proposes
+    moving the stop DOWN (tighter), mirroring the long side's "only ever
+    proposes moving the stop UP" invariant."""
+    r = initial_stop - entry_price
+    if r <= 0:
+        return None, None
+
+    if live_price is not None and live_price > 0:
+        current_price = live_price
+        trough = min(known_trough or entry_price, live_price)
+    else:
+        current_price = float(today_df["Close"].iloc[-1])
+        entry_local = dt.datetime.utcfromtimestamp(entry_ts) + dt.timedelta(minutes=tz_offset_min)
+        entry_mins = entry_local.hour * 60 + entry_local.minute
+        since_entry = today_df[today_df["mins"] >= entry_mins]
+        trough = float(since_entry["Close"].min()) if not since_entry.empty else current_price
+
+    if (entry_price - current_price) < TRAIL_ACTIVATE_R * r:
+        return trough, None
+
+    breakeven_stop = entry_price * (1 - TRAIL_BREAKEVEN_BUFFER_PCT / 100)
+    fixed_gap_stop = trough + TRAIL_ACTIVATE_R * r
+    return trough, min(breakeven_stop, fixed_gap_stop)
 
 
 LEADING_TARGET_MIN_CONFIDENCE = TREND_WEAKENED_MIN_CONFIDENCE  # explicit
@@ -4146,6 +4318,24 @@ def _vwap_mean_reversion_entry(today_df: pd.DataFrame, bb_std: float = 2.0) -> b
     return bool(z >= bb_std)
 
 
+def _vwap_mean_reversion_short_entry(today_df: pd.DataFrame, bb_std: float = 2.0) -> bool | None:
+    """Short mirror of _vwap_mean_reversion_entry (2026-09-29, explicit
+    user instruction to implement short selling) - fires once the close
+    is bb_std standard deviations ABOVE session VWAP. _vwap_deviation_z is
+    already SIGNED (positive below VWAP, negative above - see its own
+    docstring), so the mirror is simply the opposite-sign threshold, not a
+    new indicator: z <= -bb_std instead of z >= bb_std. Formula validated
+    in universal-score-range-short-research.yml before being ported here
+    verbatim - not reinvented for live code.
+
+    None (never a silent False) whenever _vwap_deviation_z itself can't be
+    computed yet - see its own docstring for exactly when."""
+    z = _vwap_deviation_z(today_df)
+    if z is None:
+        return None
+    return bool(z <= -bb_std)
+
+
 RANGE_CONFIDENCE_ENTRY_Z = 2.0  # must match _vwap_mean_reversion_entry's own
 # bb_std default - the z-score an entry always clears by construction, so
 # this is _range_regime_confidence's natural "just barely qualified" floor
@@ -4192,6 +4382,23 @@ def _range_regime_confidence(today_df: pd.DataFrame) -> float | None:
     if z is None:
         return None
     return _norm_cdf(z)
+
+
+def _range_regime_short_confidence(today_df: pd.DataFrame) -> float | None:
+    """Short mirror of _range_regime_confidence (2026-09-29). z is negative
+    for a short setup (price above VWAP - see _vwap_deviation_z), so this
+    reads the magnitude of the ABOVE-vwap extension via _norm_cdf(-z),
+    exactly as validated in universal-score-range-short-research.yml.
+    A short entry only fires at z <= -RANGE_CONFIDENCE_ENTRY_Z by
+    construction, so this never reads below _norm_cdf(RANGE_CONFIDENCE_ENTRY_Z)
+    at entry time, same floor as the long side.
+
+    None whenever _vwap_deviation_z can't be computed yet - never
+    fabricated."""
+    z = _vwap_deviation_z(today_df)
+    if z is None:
+        return None
+    return _norm_cdf(-z)
 
 
 CONFIDENCE_SIZE_FLOOR = 0.25  # explicit user choice 2026-09-21 (task #6): a
@@ -4539,6 +4746,24 @@ def _range_regime_stop_loss(last_close: float, df: pd.DataFrame, stop_loss_cap: 
     atr_val = _compute_atr_value(df)
     range_stop = last_close - RANGE_STOP_ATR_MULT * atr_val if atr_val and atr_val > 0 else stop_loss_cap
     return max(range_stop, stop_loss_cap)
+
+
+def _range_regime_short_stop_loss(last_close: float, df: pd.DataFrame, stop_loss_cap: float) -> float:
+    """Short mirror of _range_regime_stop_loss (2026-09-29). Same ATR-
+    anchored-distance rationale, mirrored: the stop sits ABOVE last_close
+    (a short loses money as price rises), so `min()` replaces `max()`
+    throughout - "whichever is tighter (closer to entry) wins" still
+    holds, tighter now means SMALLER for a short. stop_loss_cap is the
+    caller's stop_pct%-of-price ceiling computed as
+    `last_close * (1 + stop_pct / 100)` (note the sign flip from the long
+    side's `1 - stop_pct / 100`). Formula validated in
+    universal-score-range-short-research.yml before being ported here.
+
+    Falls back to stop_loss_cap alone if ATR can't be computed yet (not a
+    silent zero-distance stop), same as the long side."""
+    atr_val = _compute_atr_value(df)
+    range_stop = last_close + RANGE_STOP_ATR_MULT * atr_val if atr_val and atr_val > 0 else stop_loss_cap
+    return min(range_stop, stop_loss_cap)
 
 
 def _split_exit_legs(qty: float, r_multiples: dict) -> list[dict]:
@@ -6080,6 +6305,301 @@ def _auto_signal_core(
         return result
 
 
+RANGE_SHORT_STRATEGY_TAG = f"{ORB_STRATEGY_PREFIX}range-short"
+
+
+def _close_short_position(conn, symbol: str, row, exit_price: float, exit_reason: str):
+    """Realize P&L for a closed short and remove its open row - the ONLY
+    writer of short_trades_closed (see that table's own comment for why
+    this is never routed through apply_paper_trade/today_realized_pnl's
+    buy-sell book-replay). pnl is POSITIVE when exit_price < entry_price
+    (price fell after a short entry - the opposite sign convention from a
+    long, computed directly here rather than reusing a shared helper that
+    assumes the long direction)."""
+    qty = row["qty"]
+    fx = row["fx_to_inr"]
+    pnl_inr = (row["entry_price"] - exit_price) * qty * fx
+    conn.execute(
+        "INSERT INTO short_trades_closed (ts, symbol, qty, entry_price, exit_price, fx_to_inr, pnl_inr, exit_reason, strategy) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (time.time(), symbol, qty, row["entry_price"], exit_price, fx, pnl_inr, exit_reason, row["strategy"]),
+    )
+    conn.execute("DELETE FROM signal_state_short WHERE symbol = ?", (symbol,))
+    conn.commit()
+    return pnl_inr
+
+
+def _short_signal_core(
+    symbol: str,
+    capital: float = 400000,
+    daily_risk_pct: float = 2.0,
+    risk_per_trade_pct: float = 2.0,
+    stop_pct: float = 2.0,
+    rr: float = 3.0,
+    sma_fast: int = 9,
+    sma_slow: int = 21,
+    interval: str = "5m",
+    tz_offset_min: int = IST_OFFSET_MIN,
+    open_min: int = 9 * 60 + 15,
+    close_min: int = 15 * 60 + 30,
+    squareoff_min: int = 15 * 60 + 15,
+    trade_weekends: bool = False,
+    currency: str = "INR",
+    max_hold_minutes: float = 120.0,
+    ma_type: str = "ema",
+    require_real_tradability: bool = False,
+):
+    """RANGE-regime mean-reversion SHORT mirror of _auto_signal_core
+    (2026-09-29, explicit user instruction to implement short selling,
+    "build it properly first"). Deliberately scoped to ONLY the RANGE
+    mean-reversion mirror validated in
+    universal-score-range-short-research.yml - a TREND-down (8-factor
+    score) mirror stays out of scope, per CLAUDE.md's existing scoping
+    note on the long-side research this short mirrors.
+
+    A SEPARATE function from _auto_signal_core, not a direction parameter
+    threaded through it: that function's own long-only assumptions
+    (staged exit ladder, orb_breakout/bullish_engulfing entry paths,
+    trend_weakened's "went long assuming an uptrend" premise) don't apply
+    to this narrower short-only, RANGE-only surface, and touching the
+    live, currently-trading long path to thread a direction flag through
+    it risked a regression in code already trading real money - see this
+    function's own commit message / docs/minervini_book_notes.txt-
+    adjacent design notes for the tradeoff. Reuses every direction-
+    agnostic helper the long path already uses (liquidity gate, circuit
+    guard, sentiment gate, T1 check, capital/deployed_notional) rather
+    than reimplementing them - only the entry/stop/target math and the
+    table written to are new.
+
+    NOT gated on a separate kill switch (explicit user decision 2026-09-
+    29, given the tradeoff was raised): real short order mirroring (once
+    built, see kotak_real_orders.py) will gate on the SAME
+    REAL_TRADING_ENABLED switch as the long side, not its own variable -
+    turning on real long trading also arms real shorting once this ships.
+    """
+    strategy_tag = RANGE_SHORT_STRATEGY_TAG
+    now_ist = ist_now()
+    now_local = dt.datetime.utcnow() + dt.timedelta(minutes=tz_offset_min)
+    today_str = now_local.strftime("%Y-%m-%d")
+    mins_now = now_local.hour * 60 + now_local.minute
+
+    if not trade_weekends and now_local.weekday() >= 5:
+        return {"symbol": symbol, "status": "closed_weekend", "time_local": str(now_local)}
+    if mins_now < open_min:
+        return {"symbol": symbol, "status": "pre_open", "time_local": str(now_local)}
+
+    is_squareoff_time = mins_now >= squareoff_min
+    is_market_open = mins_now <= close_min
+    if not is_market_open:
+        return {"symbol": symbol, "status": "closed", "time_local": str(now_local)}
+
+    with closing(get_db()) as conn:
+        row = conn.execute("SELECT * FROM signal_state_short WHERE symbol = ?", (symbol,)).fetchone()
+        if row and row["day"] != today_str:
+            conn.execute("DELETE FROM signal_state_short WHERE symbol = ?", (symbol,))
+            conn.commit()
+            row = None
+
+        since_ts = ist_midnight_epoch(now_ist)
+        realized_today = today_realized_pnl(conn, since_ts)
+        daily_loss_cap = capital * daily_risk_pct / 100
+        loss_so_far = max(0.0, -realized_today)
+        halted = loss_so_far >= daily_loss_cap
+
+        try:
+            fx_to_inr = get_fx_to_inr(currency)
+        except HTTPException as e:
+            return {"symbol": symbol, "status": "fx_error", "detail": e.detail}
+
+        try:
+            df = fetch_ohlc(symbol, "5d", interval)
+            ts = pd.to_datetime(df["Date"])
+            ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+            ts_local = ts_utc + pd.Timedelta(minutes=tz_offset_min)
+            df = df.assign(ts_local=ts_local)
+            df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+            today_df = df[df["date_local"] == today_str].reset_index(drop=True)
+            today_df["mins"] = today_df["ts_local"].dt.hour * 60 + today_df["ts_local"].dt.minute
+        except Exception as e:
+            return {"symbol": symbol, "status": "data_error", "detail": str(e)}
+
+        if today_df.empty:
+            return {"symbol": symbol, "status": "no_intraday_data_yet", "time_local": str(now_local)}
+
+        closes = df["Close"].to_numpy(dtype=float)
+        last_close = float(closes[-1])
+
+        import kotak_live_feed
+        live_tick = kotak_live_feed.get_live_ticks().get(symbol)
+        live_price = live_tick.get("ltp") if live_tick else None
+
+        result = {"symbol": symbol, "status": "ok", "time_local": str(now_local), "market_regime": None}
+
+        if row:
+            trough, candidate_stop = _trailing_stop_target_short(
+                today_df, row["entry_price"], row["initial_stop_loss"], row["entry_ts"], tz_offset_min,
+                live_price=live_price, known_trough=row["peak_ltp"],
+            )
+            current_stop = row["stop_loss"]
+            if candidate_stop is not None and candidate_stop < current_stop:
+                current_stop = candidate_stop
+            conn.execute(
+                "UPDATE signal_state_short SET stop_loss = ?, peak_ltp = ? WHERE symbol = ?",
+                (current_stop, trough, symbol),
+            )
+            conn.commit()
+
+            exit_price = live_price if live_price else last_close
+            exit_reason = None
+            if halted:
+                exit_reason = "daily_loss_cap_hit"
+            elif exit_price <= row["target"]:
+                exit_reason = "target_hit"
+            elif exit_price >= current_stop:
+                exit_reason = "stop_hit"
+            elif (
+                (time.time() - row["entry_ts"]) >= max_hold_minutes * 60
+                and current_stop >= (row["initial_stop_loss"] or row["stop_loss"])
+            ):
+                # Mirrors the long side's stale_timeout: current_stop >=
+                # initial_stop_loss means the trailing stop has NEVER
+                # activated (no favorable move earned yet) - the short's
+                # equivalent of "not even 0.5R in, sitting sideways".
+                exit_reason = "stale_timeout"
+            elif is_squareoff_time:
+                exit_reason = "eod_squareoff"
+
+            if exit_reason:
+                pnl_inr = _close_short_position(conn, symbol, row, exit_price, exit_reason)
+                result.update(action_taken=f"exited_short_{exit_reason}", exit_price=exit_price, pnl_inr=round(pnl_inr, 2))
+                return result
+
+            result["action_taken"] = "holding_short"
+            return result
+
+        if is_squareoff_time or halted:
+            result["action_taken"] = "no_new_entry_squareoff_or_halted"
+            return result
+
+        market_regime = _classify_market_regime(df, sma_fast, sma_slow, ma_type)
+        result["market_regime"] = market_regime
+        if market_regime != "range":
+            result["action_taken"] = "no_signal_not_range"
+            return result
+
+        # A symbol already holding an OPEN LONG (signal_state) is skipped
+        # for a new short entry - no simultaneous long+short on the same
+        # symbol from this bot, avoids a same-symbol wash that nets to
+        # roughly zero exposure while doubling capital tied up and order
+        # traffic for no real position.
+        existing_long = conn.execute(
+            "SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)
+        ).fetchone()
+        if existing_long:
+            result["action_taken"] = "skipped_existing_long_same_symbol"
+            return result
+
+        liquidity_gate_ok, liquidity_gate_reasons = _liquidity_gate(df)
+        result["liquidity_gate_reasons"] = liquidity_gate_reasons
+        circuit_locked = _likely_lower_circuit_locked(df, today_str)
+        result["lower_circuit_guard_triggered"] = circuit_locked
+
+        short_entry = _vwap_mean_reversion_short_entry(today_df)
+        result["vwap_mean_reversion_short_entry"] = short_entry
+        entry_signal = bool(short_entry) and liquidity_gate_ok and not circuit_locked
+        if not entry_signal:
+            result["action_taken"] = "no_signal"
+            return result
+
+        sentiment_allowed, sentiment_reason = sentiment_signals.allows_entry(symbol, today_str)
+        result["sentiment_gate"] = {"allowed": sentiment_allowed, "reason": sentiment_reason}
+        if not sentiment_allowed:
+            result["action_taken"] = f"no_signal_but_{sentiment_reason}"
+            return result
+
+        stop_loss_cap = last_close * (1 + stop_pct / 100)
+        stop_loss = _range_regime_short_stop_loss(last_close, df, stop_loss_cap)
+        stop_dist = stop_loss - last_close
+        if stop_dist <= 0:
+            result["action_taken"] = "invalid_stop_skipped"
+            return result
+
+        target = last_close - rr * stop_dist
+        target_move_pct = _target_move_pct_short(target, last_close)
+        if target_move_pct <= ROUND_TRIP_COST_PCT:
+            result["action_taken"] = "cost_uneconomic_skipped"
+            result["target_move_pct"] = round(target_move_pct, 4)
+            return result
+
+        stop_dist_inr = stop_dist * fx_to_inr
+
+        confidence = _range_regime_short_confidence(today_df)
+        confidence_entry_min = _norm_cdf(RANGE_CONFIDENCE_ENTRY_Z)
+        confidence_full_at = _norm_cdf(RANGE_CONFIDENCE_FULL_Z)
+        size_multiplier = 1.0
+        if confidence is not None:
+            size_multiplier = _confidence_size_multiplier(confidence, confidence_entry_min, confidence_full_at)
+        result["confidence_sizing"] = {
+            "confidence": round(confidence, 4) if confidence is not None else None,
+            "size_multiplier": round(size_multiplier, 4),
+        }
+
+        available_capital_inr = max(0.0, capital - deployed_notional(conn))
+        max_single_trade_inr = capital / CAPITAL_TRANCHES
+        usable_capital_inr = min(available_capital_inr, max_single_trade_inr)
+        notional_per_unit_inr = last_close * fx_to_inr
+
+        risk_amount_inr = usable_capital_inr * risk_per_trade_pct / 100 * size_multiplier
+        qty = risk_amount_inr / stop_dist_inr if stop_dist_inr > 0 else 0.0
+        if notional_per_unit_inr > 0:
+            qty = min(qty, usable_capital_inr / notional_per_unit_inr)
+        # NSE cash equities, whole shares only - same reasoning as the long
+        # side (see _auto_signal_core's own comment on this exact floor).
+        # This function is scoped to NSE equity only (RANGE mean-reversion
+        # short mirror) - no BTC/gold/lot-size branch needed here.
+        qty = float(math.floor(qty))
+
+        MIN_TRADE_NOTIONAL_INR = 100.0
+        if qty <= 0 or qty * notional_per_unit_inr < MIN_TRADE_NOTIONAL_INR:
+            result["action_taken"] = (
+                "insufficient_capital" if available_capital_inr < notional_per_unit_inr
+                else "budget_too_small_for_1_unit"
+            )
+            result["available_capital_inr"] = round(available_capital_inr, 2)
+            return result
+
+        if require_real_tradability:
+            if _is_t1_restricted(conn, symbol):
+                result["action_taken"] = "skipped_t1_restricted"
+                return result
+            if not live_tick or not live_tick.get("ltp") or not live_tick.get("trading_symbol"):
+                result["action_taken"] = "skipped_no_live_tick"
+                return result
+
+        conn.execute(
+            "INSERT INTO signal_state_short "
+            "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval, entry_regime, peak_ltp, strategy) "
+            "VALUES (?, ?, 'short', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
+            "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
+            "initial_stop_loss=excluded.initial_stop_loss, target=excluded.target, qty=excluded.qty, "
+            "entry_ts=excluded.entry_ts, fx_to_inr=excluded.fx_to_inr, interval=excluded.interval, "
+            "entry_regime=excluded.entry_regime, peak_ltp=excluded.peak_ltp, strategy=excluded.strategy",
+            (symbol, today_str, last_close, stop_loss, stop_loss, target, qty, time.time(),
+             fx_to_inr, interval, market_regime, last_close, strategy_tag),
+        )
+        conn.commit()
+        result.update(action_taken="entered_short", entry={
+            "symbol": symbol, "action": "sell_to_open", "qty": qty, "price": last_close,
+            "currency": currency, "fx_to_inr": fx_to_inr, "strategy": strategy_tag,
+            "stop_loss": stop_loss, "target": target, "rr_target": rr,
+            "risk_amount_inr": round(risk_amount_inr, 2),
+            "notional_native": round(qty * last_close, 2), "notional_inr": round(qty * last_close * fx_to_inr, 2),
+            "confidence_sizing": result.get("confidence_sizing"),
+        })
+        return result
+
+
 @app.get("/auto-signal")
 def auto_signal(
     symbol: str,
@@ -6831,6 +7351,199 @@ def _describe_real_qty_sizing(paper_qty, max_by_cap, max_by_capital, qty):
     if max_by_capital <= qty:
         binding.append(f"real account capital (room for {max_by_capital})")
     return f"paper signal called for {paper_qty}, capped to {qty} by " + " and ".join(binding)
+
+
+def _maybe_place_real_short_entry(conn, symbol: str):
+    """Short mirror of _maybe_place_real_entry (2026-09-29, explicit user
+    instruction to implement short selling; NOT gated on a separate kill
+    switch - reuses is_real_trading_enabled, same as the long side, per
+    explicit user decision). Called right after _short_signal_core
+    returns action_taken == "entered_short".
+
+    FIRST-CUT SCOPE, deliberately narrower than _maybe_place_real_entry:
+    places the entry and one resting stop-loss (BUY-stop, buy-to-cover),
+    but does NOT yet replicate that function's staged-ladder qty-
+    recalculation (shorts have no ladder - single target), CAS-transition
+    market-exit escalation, or the full protection-degraded retry state
+    machine (_maybe_sync_real_stop_loss has no short-side mirror yet - a
+    failed SL placement here is logged and left for a future tick/manual
+    check, not auto-retried). This is a real, working gap, not a silent
+    one - flagged here and in the commit history rather than glossed
+    over; closing it is follow-up work, not blocking for a first real-
+    money-short cut given the RANGE-short strategy's own thin validation
+    evidence so far.
+
+    No short-sell-eligibility pre-check (explicit user decision 2026-09-
+    29) - see place_real_short_entry's own docstring."""
+    if not is_real_trading_enabled(conn):
+        return
+
+    asset_class, _, _ = _asset_class_and_source(symbol)
+    if asset_class != "nse_equity":
+        _log_real_attempt(conn, symbol, "S", "skipped_not_eligible_asset_class")
+        return
+
+    if conn.execute("SELECT 1 FROM real_positions_short WHERE symbol = ?", (symbol,)).fetchone():
+        _log_real_attempt(conn, symbol, "S", "skipped_already_open")
+        return
+    if conn.execute("SELECT 1 FROM real_positions WHERE symbol = ?", (symbol,)).fetchone():
+        # No simultaneous real long+short on the same symbol - mirrors
+        # _short_signal_core's own paper-side "skipped_existing_long_same_symbol" guard.
+        _log_real_attempt(conn, symbol, "S", "skipped_existing_real_long_same_symbol")
+        return
+
+    import kotak_live_feed
+    tick = kotak_live_feed.get_live_ticks().get(symbol)
+    if not tick or not tick.get("ltp") or not tick.get("trading_symbol"):
+        _log_real_attempt(conn, symbol, "S", "skipped_no_live_tick")
+        return
+    ltp = float(tick["ltp"])
+    kotak_symbol = tick["trading_symbol"]
+    if ltp <= 0:
+        _log_real_attempt(conn, symbol, "S", "skipped_no_live_tick", kotak_trading_symbol=kotak_symbol)
+        return
+
+    paper_row = conn.execute(
+        "SELECT qty, stop_loss, strategy FROM signal_state_short WHERE symbol = ? AND status = 'short'",
+        (symbol,),
+    ).fetchone()
+    paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
+    remaining_cap_inr = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
+    real_capital_for_sizing = get_scheduler_capital_inr()
+    max_by_cap = math.floor(remaining_cap_inr / ltp) if ltp > 0 else 0
+    max_by_capital = math.floor(real_capital_for_sizing / ltp) if ltp > 0 else 0
+    qty = int(min(paper_qty, max_by_cap, max_by_capital))
+    if qty <= 0:
+        _log_real_attempt(
+            conn, symbol, "S", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
+            price_est=ltp,
+            detail=f"paper qty {paper_qty}, 1 share = Rs{ltp:.2f} - capped to 0 by "
+                   f"remaining daily cap Rs{remaining_cap_inr:.2f} (max {max_by_cap}) "
+                   f"and/or real capital Rs{real_capital_for_sizing:.2f} (max {max_by_capital})",
+        )
+        return
+
+    loss_check = _real_loss_budget(conn)
+    if loss_check["real_pnl_today"] is None:
+        _log_real_attempt(
+            conn, symbol, "S", "skipped_real_pnl_unknown", kotak_trading_symbol=kotak_symbol,
+            price_est=ltp, detail=loss_check["detail"],
+        )
+        return
+    if not loss_check["ok"]:
+        _log_real_attempt(
+            conn, symbol, "S", "skipped_real_daily_loss_cap_hit", kotak_trading_symbol=kotak_symbol,
+            price_est=ltp, detail=loss_check["detail"],
+        )
+        return
+
+    import kotak_real_orders
+    result = kotak_real_orders.place_real_short_entry(kotak_symbol, qty, ltp)
+    if not result.get("ok"):
+        _log_real_attempt(
+            conn, symbol, "S", "failed", kotak_trading_symbol=kotak_symbol, price_est=ltp,
+            detail=result.get("detail"), raw_response=result.get("raw_response"),
+        )
+        print(f"[REAL SHORT] entry FAILED for {kotak_symbol}: {result.get('detail')}")
+        _flag_if_t1_restricted(conn, symbol, result.get("detail"))
+        return
+
+    now = time.time()
+    real_qty = int(result["qty"])
+    real_entry_price = result["fill_price"]
+    real_strategy = paper_row["strategy"] if paper_row else None
+    conn.execute(
+        "INSERT INTO real_positions_short (symbol, kotak_trading_symbol, qty, entry_price, "
+        "entry_order_id, opened_at, day, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (symbol, kotak_symbol, real_qty, real_entry_price, result["order_id"], now,
+         ist_now().strftime("%Y-%m-%d"), real_strategy),
+    )
+    conn.commit()
+    _log_real_attempt(
+        conn, symbol, "S", "confirmed", kotak_trading_symbol=kotak_symbol,
+        qty=real_qty, price_est=real_entry_price, notional_inr=real_qty * real_entry_price,
+        order_id=result["order_id"], raw_response=result.get("raw_response"),
+        strategy=real_strategy,
+    )
+    print(f"[REAL SHORT] SELL-TO-OPEN {real_qty} {kotak_symbol} (order {result['order_id']}) "
+          f"~Rs{real_entry_price:.2f} (fill_confirmed={result['fill_price_confirmed']})")
+    _log_real_order_event(
+        conn, symbol, "short_entry", "confirmed", kotak_trading_symbol=kotak_symbol,
+        order_id=result["order_id"], prev_state="no position",
+        new_state=f"short {real_qty} @ Rs{real_entry_price:.2f}",
+        detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
+    )
+
+    if paper_row and paper_row["stop_loss"]:
+        sl_result = kotak_real_orders.place_real_short_stop_loss(
+            kotak_symbol, real_qty, round(paper_row["stop_loss"], 2)
+        )
+        if sl_result.get("ok"):
+            conn.execute(
+                "UPDATE real_positions_short SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                (sl_result["order_id"], sl_result["trigger_price"], symbol),
+            )
+            conn.commit()
+            print(f"[REAL SHORT] SL (buy-to-cover) resting @ Rs{sl_result['trigger_price']:.2f} "
+                  f"for {kotak_symbol} (order {sl_result['order_id']})")
+            _log_real_order_event(
+                conn, symbol, "short_sl", "placed", kotak_trading_symbol=kotak_symbol,
+                order_id=sl_result["order_id"], prev_state="none",
+                new_state=f"resting BUY trigger Rs{sl_result['trigger_price']:.2f}",
+            )
+        else:
+            print(f"[REAL SHORT] SL placement FAILED for {kotak_symbol}: {sl_result.get('detail')} "
+                  f"- position open at Kotak with NO resting stop yet (no auto-retry for shorts "
+                  f"in this first cut - see this function's own docstring)")
+            _log_real_order_event(
+                conn, symbol, "short_sl", "failed", kotak_trading_symbol=kotak_symbol,
+                prev_state="none", new_state="none (placement failed)", detail=sl_result.get("detail"),
+            )
+            conn.execute(
+                "UPDATE real_positions_short SET protection_degraded_since = ? WHERE symbol = ?",
+                (now, symbol),
+            )
+            conn.commit()
+
+
+def _maybe_place_real_short_exit(conn, symbol: str):
+    """Short mirror of _maybe_place_real_exit - covers a real short
+    position when the paper short (_short_signal_core) has already
+    closed. Cancels any resting SL order first (mirrors the long side's
+    own cancel-before-market-exit sequencing), then market buy-to-covers
+    the exact real_positions_short qty. Never raises."""
+    real_row = conn.execute("SELECT * FROM real_positions_short WHERE symbol = ?", (symbol,)).fetchone()
+    if not real_row:
+        return
+
+    import kotak_real_orders
+    if real_row["sl_order_id"]:
+        kotak_real_orders.cancel_real_order(real_row["sl_order_id"])
+
+    result = kotak_real_orders.place_real_short_cover(real_row["kotak_trading_symbol"], real_row["qty"])
+    if not result.get("ok"):
+        print(f"[REAL SHORT] cover FAILED for {real_row['kotak_trading_symbol']}: {result.get('detail')} "
+              f"- position remains open at Kotak, will retry next tick")
+        _log_real_order_event(
+            conn, symbol, "short_cover", "failed", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+            prev_state=f"short {real_row['qty']}", new_state=f"short {real_row['qty']} (cover failed)",
+            detail=result.get("detail"),
+        )
+        return
+
+    conn.execute("DELETE FROM real_positions_short WHERE symbol = ?", (symbol,))
+    conn.commit()
+    _log_real_attempt(
+        conn, symbol, "B", "confirmed", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+        qty=real_row["qty"], price_est=result.get("fill_price"), order_id=result["order_id"],
+        raw_response=result.get("raw_response"), strategy=real_row["strategy"],
+    )
+    print(f"[REAL SHORT] BUY-TO-COVER {real_row['qty']} {real_row['kotak_trading_symbol']} "
+          f"(order {result['order_id']})")
+    _log_real_order_event(
+        conn, symbol, "short_cover", "confirmed", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+        order_id=result["order_id"], prev_state=f"short {real_row['qty']}", new_state="no position",
+    )
 
 
 def _maybe_place_real_entry(conn, symbol: str):
@@ -11689,6 +12402,37 @@ async def _scheduler_tick():
             except Exception as e:
                 print(f"[real_orders] unexpected error for {cfg['symbol']}: {e}")
 
+            # RANGE-regime short mirror (2026-09-29, explicit user
+            # instruction to implement short selling). Own try/except,
+            # same isolation principle as every other block here - a
+            # short-scan hiccup must never block the long path above or
+            # the next symbol's tick. Runs for every WATCHLIST symbol
+            # (paper), same as the long scan; real-order mirroring inside
+            # _maybe_place_real_short_entry itself narrows to NSE equity
+            # only (its own asset_class check), same narrowing the long
+            # side's _maybe_place_real_entry already does.
+            try:
+                short_result = _short_signal_core(
+                    symbol=cfg["symbol"], capital=scheduler_capital_inr,
+                    daily_risk_pct=live_daily_risk_pct, risk_per_trade_pct=cfg["risk_pct"],
+                    stop_pct=cfg["stop_pct"], rr=live_rr,
+                    sma_fast=cfg["sma_fast"], sma_slow=cfg["sma_slow"],
+                    interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
+                    close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
+                    trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
+                    max_hold_minutes=live_max_hold_minutes, ma_type=cfg.get("ma_type", "ema"),
+                    require_real_tradability=cfg["symbol"].endswith(".NS"),
+                )
+                short_action = short_result.get("action_taken", "")
+                if short_action == "entered_short":
+                    with closing(get_db()) as real_conn:
+                        _maybe_place_real_short_entry(real_conn, cfg["symbol"])
+                elif short_action.startswith("exited_short_"):
+                    with closing(get_db()) as real_conn:
+                        _maybe_place_real_short_exit(real_conn, cfg["symbol"])
+            except Exception as e:
+                print(f"[real_short_orders] unexpected error for {cfg['symbol']}: {e}")
+
             # Real F&O (2026-09-07, extended to MCX same day per
             # explicit user instruction "also mcx") - NIFTY/BANKNIFTY/
             # GC=F/SI=F/CL=F only (see _INDEX_TO_FO_UNDERLYING). Same
@@ -12957,6 +13701,14 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
     # Open = not fully squared off (flBuyQty != flSellQty) on the nse_cm
     # cash segment - the only segment/product this app's real trading
     # touches (stage 3 v1 scope, see kotak_real_orders.py).
+    #
+    # net_qty's SIGN is kept (2026-09-29, short-selling build) rather than
+    # abs()'d away immediately - flBuyQty > flSellQty (positive) is a LONG
+    # holding, flSellQty > flBuyQty (negative) is a SHORT position. The
+    # previous version discarded this sign here, which would have made a
+    # short indistinguishable from a same-size long throughout the rest of
+    # this function - qty_corrected/removed_ghosts/untracked below now
+    # branch on the sign explicitly instead.
     kotak_open_by_trdsym: dict[str, dict] = {}
     for row in rows:
         try:
@@ -12969,7 +13721,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 continue  # fully squared off - not an open position
             trd_sym = row.get("trdSym")
             if trd_sym:
-                kotak_open_by_trdsym[trd_sym] = {"qty": abs(net_qty), "raw": row}
+                kotak_open_by_trdsym[trd_sym] = {"qty": abs(net_qty), "is_short": net_qty < 0, "raw": row}
         except (TypeError, ValueError):
             continue
 
@@ -12980,7 +13732,13 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         for r in our_rows:
             our_trdsyms.add(r["kotak_trading_symbol"])
             kotak_match = kotak_open_by_trdsym.get(r["kotak_trading_symbol"])
-            if kotak_match is None:
+            # A LONG row only matches a kotak position that is ITSELF net
+            # long (is_short False) - a sign mismatch (this app thinks it
+            # holds a long, Kotak's net position for that trading symbol
+            # is actually short) is treated the same as no match at all
+            # (ghost cleanup) rather than silently corrected to a long qty
+            # that doesn't reflect what's actually held.
+            if kotak_match is None or kotak_match["is_short"]:
                 conn.execute("DELETE FROM real_positions WHERE symbol = ?", (r["symbol"],))
                 removed_ghosts.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
                                         "was_tracked_qty": r["qty"]})
@@ -12989,9 +13747,31 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                              (int(kotak_match["qty"]), r["symbol"]))
                 qty_corrected.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
                                        "old_qty": r["qty"], "new_qty": int(kotak_match["qty"])})
+
+        # Short mirror of the long reconciliation just above (2026-09-29) -
+        # SEPARATE table (real_positions_short), same "sign must match"
+        # discipline: a short row only matches a kotak position that is
+        # ITSELF net short.
+        short_corrected, short_removed_ghosts = [], []
+        our_short_rows = conn.execute("SELECT * FROM real_positions_short").fetchall()
+        our_short_trdsyms = set()
+        for r in our_short_rows:
+            our_short_trdsyms.add(r["kotak_trading_symbol"])
+            kotak_match = kotak_open_by_trdsym.get(r["kotak_trading_symbol"])
+            if kotak_match is None or not kotak_match["is_short"]:
+                conn.execute("DELETE FROM real_positions_short WHERE symbol = ?", (r["symbol"],))
+                short_removed_ghosts.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
+                                              "was_tracked_qty": r["qty"]})
+            elif int(kotak_match["qty"]) != r["qty"]:
+                conn.execute("UPDATE real_positions_short SET qty = ? WHERE symbol = ?",
+                             (int(kotak_match["qty"]), r["symbol"]))
+                short_corrected.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
+                                         "old_qty": r["qty"], "new_qty": int(kotak_match["qty"])})
+
         for trd_sym, info in kotak_open_by_trdsym.items():
-            if trd_sym not in our_trdsyms:
-                untracked.append({"kotak_trading_symbol": trd_sym, "qty": int(info["qty"])})
+            if trd_sym not in our_trdsyms and trd_sym not in our_short_trdsyms:
+                untracked.append({"kotak_trading_symbol": trd_sym, "qty": int(info["qty"]),
+                                   "is_short": info["is_short"]})
 
         adopted = []
         if adopt and untracked:
@@ -13007,6 +13787,15 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 TERMINAL_STATUSES = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
                 for u in to_adopt:
                     trd_sym = u["kotak_trading_symbol"]
+                    if kotak_open_by_trdsym[trd_sym]["is_short"]:
+                        # 2026-09-29: auto-adopt is LONG-only (buyAmt/flBuyQty
+                        # entry-price math below assumes a long) - a short
+                        # position adopted through this path would be
+                        # misclassified as a long with a wrong entry price.
+                        # Stays untracked/reported for a human to review
+                        # instead; short auto-adopt is a real, known gap,
+                        # not silently mishandled.
+                        continue
                     raw = kotak_open_by_trdsym[trd_sym]["raw"]
                     qty = int(kotak_open_by_trdsym[trd_sym]["qty"])
                     try:
