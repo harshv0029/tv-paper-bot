@@ -3473,6 +3473,173 @@ def minervini_vcp_exit_reason(
     return None, new_running_max
 
 
+# ---- Minervini VCP short mirror (2026-09-29) -------------------------------
+#
+# Explicit user instruction ("Prep short mirror for others too") per
+# CLAUDE.md's 2026-09-28 standing thumb rule: every strategy gets checked
+# for both directions. Mirrors minervini_trend_template_ok/
+# _find_minervini_vcp_pivot/minervini_vcp_entry_signal/
+# minervini_vcp_exit_reason DIRECTION ONLY - every weight, lookback, and
+# threshold constant is REUSED verbatim from the long side (same discipline
+# _compute_universal_entry_score_short already established for the
+# universal_score engine's own short mirror).
+#
+# Stage-4 decline is the long side's Stage-2 advance mirrored (see chapter
+# 5's own 4-stage cycle - "avoid buying here" for stage 1/3, "go long
+# stage 2, go short stage 4" per chapter 10's own explicit statement). The
+# VCP base itself mirrors to a "VDP" (volatility DILATION... no - kept as
+# VCP for naming consistency, see _find_minervini_vcp_pivot_short's own
+# docstring) - a tightening sequence of RELIEF RALLIES (low-to-high legs)
+# within a downtrend, shrinking leg over leg, ending in a breakDOWN below
+# the pattern's own low rather than a breakout above a base's high.
+#
+# RS percentile mirrors to the BOTTOM of the cross-sectional distribution
+# (weakest relative performers, not strongest) - _compute_minervini_rs_
+# percentiles itself is direction-agnostic (a plain rank-pct), so it is
+# reused unmodified; only the threshold comparison direction changes here.
+MINERVINI_RS_PERCENTILE_MAX_SHORT = 30.0  # bottom 30th percentile - mirror of RS_PERCENTILE_MIN=70 (top)
+
+
+def _minervini_trend_template_ok_short(df: pd.DataFrame, rs_percentile: float | None = None) -> bool | None:
+    """Stage-4 mirror of _minervini_trend_template_ok - every SMA/lookback
+    constant reused verbatim, comparisons and the 52-week-range check
+    inverted. Returns None (not False) when there isn't enough history yet,
+    identical convention to the long side."""
+    closes = df["Close"].to_numpy(dtype=float)
+    n = len(closes)
+    if n < MINERVINI_SMA_200 + MINERVINI_SMA200_RISING_LOOKBACK:
+        return None
+    lows = df["Low"].to_numpy(dtype=float)
+    highs = df["High"].to_numpy(dtype=float)
+    sma50 = pd.Series(closes).rolling(MINERVINI_SMA_50).mean().to_numpy()
+    sma150 = pd.Series(closes).rolling(MINERVINI_SMA_150).mean().to_numpy()
+    sma200 = pd.Series(closes).rolling(MINERVINI_SMA_200).mean().to_numpy()
+    roll_low_252 = pd.Series(lows).rolling(MINERVINI_FIFTY_TWO_WEEK_N).min().to_numpy()
+    roll_high_252 = pd.Series(highs).rolling(MINERVINI_FIFTY_TWO_WEEK_N).max().to_numpy()
+    i = n - 1
+    if (
+        np.isnan(sma200[i]) or np.isnan(sma200[i - MINERVINI_SMA200_RISING_LOOKBACK])
+        or np.isnan(roll_low_252[i]) or np.isnan(roll_high_252[i])
+        or np.isnan(sma50[i]) or np.isnan(sma150[i])
+    ):
+        return None
+    ok = (
+        closes[i] < sma150[i] and closes[i] < sma200[i]
+        and sma150[i] < sma200[i]
+        and sma200[i] < sma200[i - MINERVINI_SMA200_RISING_LOOKBACK]
+        and sma50[i] < sma150[i] and sma50[i] < sma200[i]
+        and closes[i] < sma50[i]
+        and closes[i] <= 0.70 * roll_high_252[i]
+        and closes[i] <= 1.25 * roll_low_252[i]
+    )
+    if rs_percentile is not None and not np.isnan(rs_percentile):
+        ok = ok and rs_percentile <= MINERVINI_RS_PERCENTILE_MAX_SHORT
+    return bool(ok)
+
+
+def _find_minervini_vcp_pivot_short(df: pd.DataFrame) -> dict | None:
+    """Short mirror of _find_minervini_vcp_pivot: same fractal swing-point
+    search, but legs are (swing_low -> subsequent swing_high) relief
+    rallies instead of (swing_high -> subsequent swing_low) pullbacks - a
+    tightening sequence of shrinking bounce attempts within a downtrend.
+    Returns {"pivot_low", "final_leg_high"} if a valid tightening base
+    ending near today is found, else None. Does NOT check today's close
+    against the pivot - that's minervini_vcp_entry_signal_short's job."""
+    highs = df["High"].to_numpy(dtype=float)
+    lows = df["Low"].to_numpy(dtype=float)
+    i = len(df) - 1
+    lo = max(0, i - MINERVINI_VCP_BASE_MAX_DAYS)
+    hi = i - MINERVINI_PIVOT_FRACTAL_WIDTH
+    if hi - lo < MINERVINI_VCP_BASE_MIN_DAYS:
+        return None
+
+    swing_highs = []
+    swing_lows = []
+    for j in range(lo + MINERVINI_PIVOT_FRACTAL_WIDTH, hi):
+        window_hi = highs[j - MINERVINI_PIVOT_FRACTAL_WIDTH: j + MINERVINI_PIVOT_FRACTAL_WIDTH + 1]
+        window_lo = lows[j - MINERVINI_PIVOT_FRACTAL_WIDTH: j + MINERVINI_PIVOT_FRACTAL_WIDTH + 1]
+        if highs[j] == np.max(window_hi):
+            swing_highs.append((j, highs[j]))
+        if lows[j] == np.min(window_lo):
+            swing_lows.append((j, lows[j]))
+
+    legs = []
+    last_low = None
+    for j, v in sorted(swing_highs + swing_lows, key=lambda t: t[0]):
+        is_low = (j, v) in swing_lows
+        if is_low:
+            last_low = (j, v)
+        elif last_low is not None:
+            bounce_pct = 100.0 * (v - last_low[1]) / last_low[1] if last_low[1] > 0 else 0.0
+            legs.append({"low": last_low[1], "high": v, "bounce_pct": bounce_pct})
+            last_low = None
+
+    if len(legs) < 2:
+        return None
+    legs = legs[-6:]
+    final_leg = legs[-1]
+    first_leg = legs[0]
+    if final_leg["bounce_pct"] > MINERVINI_VCP_FINAL_LEG_MAX_PCT:
+        return None
+    if final_leg["bounce_pct"] <= 0 or first_leg["bounce_pct"] < MINERVINI_VCP_TIGHTEN_RATIO_MIN * final_leg["bounce_pct"]:
+        return None
+    return {"pivot_low": final_leg["low"], "final_leg_high": final_leg["high"]}
+
+
+def minervini_vcp_entry_signal_short(df: pd.DataFrame, rs_percentile: float | None = None) -> dict | None:
+    """Evaluates ONLY the last row of `df` (today) for a Minervini VCP
+    short entry: Stage-4 Trend Template gate + a valid tightening
+    relief-rally base + today's close breaking below the base's pivot low
+    on a volume surge. Returns None if no signal fires, else
+    {"entry_price", "stop_loss", "atr_at_entry"} for the caller to size
+    and open a short position with."""
+    if _minervini_trend_template_ok_short(df, rs_percentile) is not True:
+        return None
+    pivot = _find_minervini_vcp_pivot_short(df)
+    if pivot is None:
+        return None
+    closes = df["Close"].to_numpy(dtype=float)
+    volumes = df["Volume"].to_numpy(dtype=float)
+    i = len(df) - 1
+    if closes[i] >= pivot["pivot_low"]:
+        return None
+    vol_avg = pd.Series(volumes).rolling(MINERVINI_VOL_LOOKBACK).mean().shift(1).to_numpy()
+    if np.isnan(vol_avg[i]) or vol_avg[i] <= 0 or volumes[i] < MINERVINI_VOL_SURGE_MULT * vol_avg[i]:
+        return None
+    atr = _swing_atr(df, n=MINERVINI_ATR_N)
+    if np.isnan(atr[i]) or atr[i] <= 0:
+        return None
+    stop_loss = pivot["final_leg_high"]
+    if stop_loss <= closes[i]:
+        return None
+    return {"entry_price": closes[i], "stop_loss": stop_loss, "atr_at_entry": float(atr[i])}
+
+
+def minervini_vcp_exit_reason_short(
+    df: pd.DataFrame, entry_day: str, initial_stop: float, atr_at_entry: float, running_min_close: float,
+) -> tuple:
+    """Short mirror of minervini_vcp_exit_reason: a chandelier trailing
+    stop (running TROUGH close plus MINERVINI_ATR_STOP_MULT x the ATR
+    frozen at entry) that only ever ratchets DOWN, plus the same
+    MINERVINI_MAX_HOLD_DAYS timeout. `running_min_close` is the running
+    trough close carried forward by the caller since entry (starts at
+    entry_price). Returns (exit_reason_or_None, updated_running_min_close)."""
+    if len(df) == 0:
+        return None, running_min_close
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].astype(str).to_numpy()
+    i = len(df) - 1
+    new_running_min = min(running_min_close, closes[i])
+    trail_stop = new_running_min + MINERVINI_ATR_STOP_MULT * atr_at_entry
+    current_stop = min(initial_stop, trail_stop)
+    if closes[i] >= current_stop:
+        return "trail_stop_hit", new_running_min
+    held_days = int(np.sum(dates > entry_day))
+    if held_days >= MINERVINI_MAX_HOLD_DAYS:
+        return "max_hold_timeout", new_running_min
+    return None, new_running_min
+
+
 # ---- Power Play / High Tight Flag (Minervini, chapter 10) -----------------
 #
 # 2026-09-29, explicit user instruction ("Build Power Play first") after a
