@@ -287,8 +287,9 @@
         <th>Status</th><th>Asset</th><th>Type</th><th>Strategy</th><th class="num">Entry</th><th class="num">Exit / Now</th>
         <th class="num">Qty</th><th class="num">Invested (₹)</th><th class="num">Realised P&amp;L (₹)</th><th class="num">Unrealised P&amp;L (₹)</th>
         <th class="num">P&amp;L %</th><th>Reason</th><th>Time</th>
+        <th>Category</th><th>Rank</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Win %</th>
       </tr></thead>
-      <tbody id="log-body"><tr><td colspan="13" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="log-body"><tr><td colspan="18" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -1270,6 +1271,48 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   // (e.g. "orb-15m-sma9-21", "orb-bullish-engulfing-trend20", "orb-option") -
   // strip the constant "orb-" prefix here since every tag has it.
   const strategyLabel = (s) => s ? s.replace(/^orb-/, "") : "—";
+
+  // 2026-09-29, explicit user instruction: "add those 4-5 columns to the
+  // end of EACH ROW... Category/Rank/Strategy name/Pfnet/Win%" - i.e. for
+  // every trade row already on this page, show ITS OWN strategy's
+  // strategy_registry.py leaderboard standing, not just a separate
+  // appended block. Maps a raw main.py strategy_tag to the
+  // strategy_registry.py name it corresponds to. Deliberately NOT a
+  // guess for every tag: "orb-range-short" alone doesn't say which of
+  // the 4 registered range_short_* variants is live right now (they
+  // differ by a bb_std parameter this tag doesn't carry), and per-symbol
+  // ORB tags like "orb-15m-sma9-21" predate the registry entirely and
+  // have no registry entry at all - those fall through to "—" rather
+  // than a fabricated match.
+  const STRATEGY_TAG_TO_REGISTRY_NAME = {
+    "orb-universal-score": "universal_score",
+    "orb-swing-gap-and-go": "gap_and_go_swing",
+    "orb-trend-short": "trend_down_momentum_short",
+  };
+  const LEADERBOARD_CATEGORY_LABEL_BY_KEY = {
+    short_sell: "Sell", buy: "Buy", swing: "Swing", futures: "Future", options: "Options",
+  };
+  // Flat {registryName: {category, ...row}} index built once per render,
+  // straight from /strategy-leaderboard's own top-N-per-category rows -
+  // never recomputed or fabricated. A strategy outside every category's
+  // current top N (see strategy_registry.py's TOP_N_PER_CATEGORY) simply
+  // isn't in this index, and a row for it renders "—" rather than a stale
+  // or invented rank.
+  const leaderboardByName = {};
+  for (const [catKey, catLabel] of Object.entries(LEADERBOARD_CATEGORY_LABEL_BY_KEY)) {
+    for (const row of ((leaderboard || {})[catKey] || [])) {
+      if (!(row.name in leaderboardByName)) leaderboardByName[row.name] = { ...row, category: catLabel };
+    }
+  }
+  const leaderboardCells = (strategyTag) => {
+    const registryName = STRATEGY_TAG_TO_REGISTRY_NAME[strategyTag];
+    const row = registryName ? leaderboardByName[registryName] : undefined;
+    if (!row) return `<td class="log-type">—</td><td>—</td><td class="log-type">—</td><td class="num">—</td><td class="num">—</td>`;
+    const pfnet = row.pfnet !== null && row.pfnet !== undefined ? fmt(row.pfnet, 3) : "—";
+    const winPct = row.win_rate_pct !== null && row.win_rate_pct !== undefined ? `${fmt(row.win_rate_pct, 2)}%` : "—";
+    return `<td class="log-type">${row.category}</td><td>#${row.rank}</td><td class="log-type">${row.name}</td>
+      <td class="num">${pfnet}</td><td class="num">${winPct}</td>`;
+  };
   let totalUnrealisedInr = 0;
 
   const liveRows = openPositions.map(pos => {
@@ -1311,6 +1354,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
            or real trading doesn't apply (e.g. an option leg). -->
       <td class="log-type"${pos.real_entry_reason ? ` title="${pos.real_entry_reason.replace(/"/g, "'")}"` : ""}>${pos.real_entry_reason || "open"}</td>
       <td class="meta">${timeAgo(pos.entry_ts)}</td>
+      ${leaderboardCells(pos.strategy)}
     </tr>`;
   });
 
@@ -1378,6 +1422,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${pnlPct === null || pnlPct === undefined ? "—" : `${pnlPct >= 0 ? "+" : ""}${fmt(pnlPct)}%`}</td>
       <td class="log-type">${pos.source === "kotak_untracked" ? "not bot-managed" : `target: ${targetCell(pos)}`}</td>
       <td class="meta">${pos.opened_at ? timeAgo(pos.opened_at) : "—"}</td>
+      ${leaderboardCells(pos.strategy)}
     </tr>`;
   });
 
@@ -1402,12 +1447,13 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${pctSpan(t.pnl_pct)}</td>
       <td class="log-type">Kotak (manual/external)</td>
       <td class="meta">${timeAgo(t.exit_time_utc)}</td>
+      ${leaderboardCells(t.strategy)}
     </tr>`);
   const realTotalInr = (realTrades || []).reduce((s, t) => s + (t.pnl_inr ?? 0), 0);
   const realTotalRow = realRows.length ? `<tr class="log-total-row">
       <td colspan="8">TOTAL (real, Kotak)</td>
       <td class="num">${pnlSpan(realTotalInr)}</td>
-      <td colspan="3"></td>
+      <td colspan="9"></td>
     </tr>` : "";
 
   // Bot-only real trades - explicit user request 2026-09-08: "add a bot-
@@ -1434,12 +1480,13 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${pctSpan(t.pnl_pct)}</td>
       <td class="log-type">Kotak (this bot's own order)</td>
       <td class="meta">${timeAgo(t.exit_time_utc)}</td>
+      ${leaderboardCells(t.strategy)}
     </tr>`);
   const botRealTotalInr = (botRealTrades?.closed_trades || []).reduce((s, t) => s + (t.pnl_inr ?? 0), 0);
   const botRealTotalRow = botRealRows.length ? `<tr class="log-total-row">
       <td colspan="8">TOTAL (real, this bot's own trades only)</td>
       <td class="num">${pnlSpan(botRealTotalInr)}</td>
-      <td colspan="3"></td>
+      <td colspan="9"></td>
     </tr>` : "";
 
   // Explicit user instruction 2026-09-08: "i dont want you to not to
@@ -1471,16 +1518,17 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${pnlSpan(realTotalInr)}</td>
       <td class="num">${pnlSpan(combinedUnrealisedInr)}</td>
       <td class="num" colspan="2">net ${pnlSpan(realTotalInr + combinedUnrealisedInr)}</td>
+      <td colspan="6"></td>
     </tr>` : "";
 
-  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="13">${label}</td></tr>`;
+  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="18">${label}</td></tr>`;
   const sections = [];
   if (liveRows.length) sections.push(sectionRow(`Live positions (${liveRows.length})`), ...liveRows);
   if (openRealRows.length) sections.push(sectionRow(`Live real positions (${openRealRows.length}) — Kotak, currently open`), ...openRealRows);
   if (botRealRows.length) sections.push(sectionRow(`Real trades today, this bot's own only (${botRealRows.length})`), ...botRealRows, botRealTotalRow);
   if (realRows.length) sections.push(sectionRow(`Real trades today (${realRows.length}) — Kotak, outside this app's own order placement`), ...realRows, realTotalRow);
   if (openRealRows.length || realRows.length) sections.push(combinedRealAndOpenTotalRow);
-  if (!sections.length) sections.push(`<tr><td colspan="13" class="scan-idle">No live positions or real trades today</td></tr>`);
+  if (!sections.length) sections.push(`<tr><td colspan="18" class="scan-idle">No live positions or real trades today</td></tr>`);
   // Strategy leaderboard rows always append last, in this same table -
   // see leaderboardRows()'s own comment for why (2026-09-29 instruction).
   sections.push(...leaderboardRows(leaderboard));
@@ -1526,24 +1574,24 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
 
 // 2026-09-29, explicit user instruction: put the leaderboard "against
 // each trade entry row, in same table... append in last rows", with a
-// Category column (Buy/Sell/Swing/Future/Options/Others) "just before
-// rank column" - i.e. NOT a separate panel/table (that was the first cut,
-// corrected here): these are extra rows appended to the END of the same
-// #log-body/table.log the trade entries above already render into.
-// `data` is /strategy-leaderboard's response - {category: [rows]},
+// Category column "just before rank column" - these are extra rows
+// appended to the END of the same #log-body/table.log the trade entries
+// above already render into, using the SAME 5 dedicated Category/Rank/
+// Strategy/PFnet/Win% columns every trade row above now also carries
+// (see leaderboardCells() in renderTradeLog) - not a separate panel, and
+// not reusing Entry/Exit/Realised slots the way the first cut of this
+// did. `data` is /strategy-leaderboard's response - {category: [rows]},
 // straight from strategy_registry.py's own leaderboard(), never computed
-// or faked here. Cells reuse the trade table's own 13 columns (Category
-// in the Status slot, Rank in the Asset slot, Strategy name in its own
-// column, PFnet/Win% in the Entry/Exit "num" slots so they stay separate,
-// right-aligned columns rather than one combined string) - Qty/Invested/
-// Realised/Unrealised/P&L% stay "—" so a backtest ratio is never
-// mistaken for a real rupee P&L figure in those columns.
+// or faked here. The first 13 (trade-shaped) columns stay "—" for these
+// synthetic rows - Reason instead carries the viable/below-floor status
+// and Time carries the sample size, so a backtest ratio never lands in a
+// column that otherwise holds real rupee P&L.
 const LEADERBOARD_CATEGORY_LABEL = {
   short_sell: "Sell", buy: "Buy", swing: "Swing", futures: "Future", options: "Options",
 };
 function leaderboardRows(data) {
   if (!data) return [];
-  const rows = [`<tr class="log-section-row"><td colspan="13">Strategy leaderboard (backtest research, not live trades)</td></tr>`];
+  const rows = [`<tr class="log-section-row"><td colspan="18">Strategy leaderboard (backtest research, not live trades)</td></tr>`];
   let any = false;
   for (const cat of Object.keys(LEADERBOARD_CATEGORY_LABEL)) {
     for (const row of (data[cat] || [])) {
@@ -1557,12 +1605,12 @@ function leaderboardRows(data) {
           ? `<span style="color:#f87171;">below floor</span>`
           : `<span class="scan-idle">—</span>`;
       rows.push(`<tr class="log-total-row">
-        <td>${category}</td>
-        <td>#${row.rank}</td>
+        <td>—</td>
+        <td class="sym">—</td>
         <td class="log-type">—</td>
-        <td class="log-type">${row.name}</td>
-        <td class="num">${pfnet}</td>
-        <td class="num">${winPct}</td>
+        <td class="log-type">—</td>
+        <td class="num">—</td>
+        <td class="num">—</td>
         <td class="num">—</td>
         <td class="num">—</td>
         <td class="num">—</td>
@@ -1570,10 +1618,15 @@ function leaderboardRows(data) {
         <td class="num">—</td>
         <td class="log-type">${status}</td>
         <td class="meta">n=${row.n_trades ?? "—"}</td>
+        <td class="log-type">${category}</td>
+        <td>#${row.rank}</td>
+        <td class="log-type">${row.name}</td>
+        <td class="num">${pfnet}</td>
+        <td class="num">${winPct}</td>
       </tr>`);
     }
   }
-  if (!any) rows.push(`<tr><td colspan="13" class="scan-idle">No strategies registered yet</td></tr>`);
+  if (!any) rows.push(`<tr><td colspan="18" class="scan-idle">No strategies registered yet</td></tr>`);
   return rows;
 }
 
