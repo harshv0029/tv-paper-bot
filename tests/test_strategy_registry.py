@@ -2,6 +2,8 @@
 2026-09-29 - see strategy_registry.py's own module docstring). This
 module is not wired into main.py's live path; these tests only cover
 the scaffold's own bookkeeping/ranking logic."""
+import dataclasses
+
 import strategy_registry as sr
 
 
@@ -157,3 +159,84 @@ def test_leaderboard_never_pads_with_fabricated_entries():
 def test_leaderboard_returns_fewer_than_top_n_when_pool_is_smaller():
     board = sr.leaderboard(sr.TradeCategory.BUY, top_n=5)
     assert 0 < len(board) < 5
+
+
+# ---- pool keeps growing, only top 5 per category get monitored (2026-09-29) --
+
+def test_top_strategies_for_monitoring_never_exceeds_the_25_check_bound():
+    top = sr.top_strategies_for_monitoring()
+    names = [s.name for s in top]
+    assert len(names) == len(set(names))  # never the same strategy twice
+    assert len(top) <= sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE
+
+
+def test_top_strategies_for_monitoring_matches_each_categorys_own_leaderboard():
+    top_names = {s.name for s in sr.top_strategies_for_monitoring()}
+    for category in sr.TradeCategory:
+        board_names = {row["name"] for row in sr.leaderboard(category, top_n=sr.TOP_N_PER_CATEGORY)}
+        assert board_names <= top_names
+
+
+def test_top_strategies_for_monitoring_deduplicates_a_multi_category_strategy():
+    # CLAUDE.md, 2026-09-29 thumb rule: a strategy ranked in more than one
+    # category's top 5 still only costs ONE entry_fn call per symbol per
+    # cycle, not one per category it occupies.
+    dual = sr.StrategyDef(
+        name="dual_category_fixture_only", asset_class=sr.AssetClass.EQUITY_INTRADAY,
+        categories=(sr.TradeCategory.BUY, sr.TradeCategory.SWING),
+        timeframe="5m", status=sr.StrategyStatus.RESEARCH,
+        metrics=sr.Metrics(pfnet=5.0, pfgross=1.0, win_rate_pct=40.0, n_trades=10),
+        evidence="fixture",
+    )
+    original = list(sr.REGISTRY)
+    sr.REGISTRY.append(dual)
+    try:
+        names = [s.name for s in sr.top_strategies_for_monitoring()]
+        assert names.count("dual_category_fixture_only") == 1
+    finally:
+        sr.REGISTRY[:] = original
+
+
+def test_scan_universe_never_calls_entry_fn_for_a_strategy_ranked_outside_top_5():
+    # rsi_overbought_fade_70 (PFnet 0.21) ties with range_short_staged_ladder
+    # but sorts 6th - just outside SHORT_SELL's top 5. The explicit
+    # instruction this test locks down: however big REGISTRY gets, a
+    # strategy that isn't currently ranked in some category's top 5 must
+    # never fire during monitoring, even if its entry_fn is wired and
+    # would otherwise always fire.
+    original = list(sr.REGISTRY)
+    idx = next(i for i, s in enumerate(sr.REGISTRY) if s.name == "rsi_overbought_fade_70")
+    assert idx is not None
+    sr.REGISTRY[idx] = dataclasses.replace(
+        sr.REGISTRY[idx], entry_fn=lambda data: {"reason": "always_fires"},
+    )
+    try:
+        assert "rsi_overbought_fade_70" not in [s.name for s in sr.top_strategies_for_monitoring()]
+        signals = sr.scan_universe(["FOO.NS"], lambda sym: {"symbol": sym})
+        assert all(s["strategy"] != "rsi_overbought_fade_70" for s in signals)
+    finally:
+        sr.REGISTRY[:] = original
+
+
+def test_scan_universe_calls_entry_fn_for_a_strategy_ranked_in_top_5():
+    original = list(sr.REGISTRY)
+    idx = next(i for i, s in enumerate(sr.REGISTRY) if s.name == "range_short_target_cluster")  # rank 1
+    sr.REGISTRY[idx] = dataclasses.replace(
+        sr.REGISTRY[idx], entry_fn=lambda data: {"reason": "always_fires"},
+    )
+    try:
+        signals = sr.scan_universe(["FOO.NS"], lambda sym: {"symbol": sym})
+        assert any(s["strategy"] == "range_short_target_cluster" for s in signals)
+    finally:
+        sr.REGISTRY[:] = original
+
+
+def test_scan_universe_statuses_filter_further_restricts_the_top_5_pool():
+    board_names = {row["name"] for row in sr.leaderboard(sr.TradeCategory.SHORT_SELL, top_n=5)}
+    assert board_names, "expected a non-empty short-sell top 5 for this test to mean anything"
+    signals = sr.scan_universe(
+        ["FOO.NS"], lambda sym: {"symbol": sym}, statuses=(sr.StrategyStatus.LIVE,),
+    )
+    # None of SHORT_SELL's top 5 are LIVE (all RESEARCH) - restricting to
+    # LIVE must never let a RESEARCH-status top-5 strategy's signal through.
+    assert all(s["strategy"] not in board_names for s in signals)
