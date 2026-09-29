@@ -235,6 +235,68 @@ glossed over):
     a fair entry-only comparison - not the book's own more nuanced sell
     rules (Chapter 13, not yet read/implemented).
 
+====================================================================
+FLAGGED FOR FUTURE RESEARCH (not started - ideas worth testing later
+for better entries/profit, logged as they come up per explicit user
+instruction 2026-09-29: keep flagging anything worth researching so it
+isn't lost)
+====================================================================
+
+  - BASE-COUNT-AWARE SIZING/FILTER: chapter 5 says base #1-#2 (right off
+    a market correction) are the highest-quality entries in a stage-2
+    uptrend, with quality degrading by base #4-#5. tt_vcp today treats
+    every qualifying base identically. Worth testing: count how many
+    prior VCP-qualifying bases each symbol has already had within its
+    current stage-2 run (sma200 rising, no stage-1/3/4 break in between)
+    and check whether PFnet/win% actually degrades by base number in
+    this data the way the book claims - if so, either filter out late
+    bases or scale size down for them.
+
+  - FULL VCP VOLUME SIGNATURE: the current tt_vcp implementation only
+    checks the breakout day's own volume (>1.5x 20-day avg). The book's
+    fuller description wants volume visibly drying up leg-by-leg
+    THROUGH the base, especially on the final/tightest contraction, not
+    just a one-day breakout confirmation. Worth testing as its own
+    variant (tt_vcp_volume_dryup or similar) once the current tt_vcp
+    result is validated enough to be worth refining further - would
+    isolate whether the base's volume shape adds anything beyond what's
+    already tested.
+
+  - BREAKEVEN-STOP TIGHTENING AFTER A GAIN (chapter 12): once a position
+    is showing an open profit, the book's discipline is to tighten the
+    stop toward breakeven rather than leave the original stop distance
+    in place. Today's chandelier trail (running peak - 2x ATR) already
+    does something in this spirit but isn't the same rule (it trails off
+    the peak close, not "move to breakeven as soon as there's ANY open
+    gain"). Worth testing a breakeven-ratchet variant against the
+    current chandelier trail, on whichever entry (tt_vcp or Gap and Go)
+    ends up validated - a cheap, well-scoped exit-only comparison using
+    the same fair-multi-variant pattern.
+
+  - RS-RANK PROXY LOOKBACK SENSITIVITY: the relative-strength percentile
+    proxy currently uses a fixed 126-trading-day (~6mo) trailing return.
+    The book's real IBD RS Rank blends multiple lookback periods
+    (weighted toward more recent performance). Worth a quick sensitivity
+    check (63d/126d/252d, or a blended score) once there's a large
+    enough validated sample to make the comparison meaningful - not
+    worth doing on today's thin n.
+
+  - CHAPTER 6 FUNDAMENTALS GAP: if a fundamentals data source for NSE
+    stocks (earnings/sales growth, ideally quarterly) ever becomes
+    available to this codebase, chapters 6-9's screens (market-leader
+    categorization, earnings acceleration, institutional sponsorship)
+    would become a real, testable overlay on top of the Trend Template -
+    flagged here so it isn't forgotten once/if that data gap closes, not
+    something to chase without the data.
+
+  - MULTI-BASE PYRAMIDING: mentioned in passing in chapter 5 (stock may
+    be "100%, 300%, or greater" above its 52-week low before the move
+    that matters) - implies scaling INTO a position across multiple
+    bases within the same stage-2 run rather than one all-at-once entry.
+    Chapter 13 (Risk Management Part 2, not yet read) likely has the
+    book's actual pyramiding rules - revisit this idea once that chapter
+    is read rather than guessing at a mechanism now.
+
 NEXT STEPS (pick up here):
   1. Read and log the full-universe run (36519115035) result.
   2. Read chapter 13 (Risk Management Part 2) for position-sizing/
