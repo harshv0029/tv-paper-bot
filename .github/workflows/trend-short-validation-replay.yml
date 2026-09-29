@@ -1,0 +1,453 @@
+name: TREND-Down Short-Selling Validation Replay (research)
+
+# Validation phase for the TREND-down short-selling strategy (2026-09-29,
+# explicit user instruction: "I need at least one strategy for the short
+# sell... this helps me downward trend of market... it's a must have").
+# Built after the RANGE VWAP-spike short mirror's three validation passes
+# (target-cluster fix, staged ladder, stricter entry filter) all left
+# PFnet pinned at 0.17-0.26 - not viable. TREND is the one long-side
+# engine in this codebase with genuinely positive validated evidence
+# (universal-score-entry-floor-research.yml), so this mirrors IT downward
+# rather than testing yet another RANGE variant.
+#
+# Per CLAUDE.md's standing discipline: calls the ACTUAL changed main.py
+# functions - not a reimplementation that could silently drift from
+# what's actually live. Imports and calls the REAL functions added this
+# session: m._classify_market_regime, m._compute_universal_entry_score_short,
+# m._compute_target_cluster_short, m._split_exit_legs, m._next_unfilled_leg,
+# m._trailing_stop_target_short. Only the entry TRIGGER and stop-loss
+# REFERENCE LEVEL differ from range-short-validation-replay.yml - the
+# staged-ladder/trailing-stop/cost-model scaffolding is identical, same
+# convention as universal-score-validation-replay.yml sharing that
+# machinery between its own TREND/RANGE branches.
+#
+# MATRIX-PARALLELIZED at SHARD_COUNT=40 from the start (this account's
+# observed concurrent-job ceiling - see range-short-validation-replay.yml's
+# own module comment for how that number was derived) - no need to
+# rediscover it here.
+#
+# Universe: per the 2026-09-29 standing thumb rule (CLAUDE.md), this runs
+# on the FULL NSE EQ-series universe (main._load_nse_universe_from_file(),
+# ~2,680 symbols) - not a narrow pilot.
+#
+# Read-only research - writes nothing to any repo file, touches no live
+# state, safe to run anytime. This replay result, whatever it shows, does
+# NOT by itself authorize merging the short-selling feature to main - that
+# still needs the user's own explicit go-ahead after seeing this report,
+# per CLAUDE.md's "never merge without explicit go-ahead" rule.
+on:
+  workflow_dispatch: {}
+
+env:
+  SHARD_COUNT: 40
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+                20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run TREND-down short-selling validation replay (this shard)
+        env:
+          SHARD_INDEX: ${{ matrix.shard }}
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import json
+          import os
+          from collections import Counter
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          SHARD_INDEX = int(os.environ["SHARD_INDEX"])
+          SHARD_COUNT = int(os.environ["SHARD_COUNT"])
+
+          OPEN_MIN = 555
+          CLOSE_MIN = 930
+          SQUAREOFF_MIN = 920
+          TZ_OFF = m.IST_OFFSET_MIN
+          MAX_HOLD_MINUTES = 120.0
+          DEFAULT_SMA_FAST, DEFAULT_SMA_SLOW, DEFAULT_MA_TYPE = 9, 21, "ema"
+          DEFAULT_RR = 3.0
+          LIVE_WINDOW_BARS = 375  # ~5 NSE trading days at 5-min bars - same
+          # bounded-window fidelity fix range-short-validation-replay.yml's
+          # own module comment explains (matches what live fetch_ohlc("5d",..)
+          # actually gives _short_signal_core).
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(ts_local=ts_local)
+              df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+              df["mins"] = df["ts_local"].dt.hour * 60 + df["ts_local"].dt.minute
+              return df
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _buy_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def replay_symbol_trend_short(symbol, raw_df, index_closes_full, risk_pct, stop_pct, capital, cost_model,
+                                         sma_fast=DEFAULT_SMA_FAST, sma_slow=DEFAULT_SMA_SLOW, ma_type=DEFAULT_MA_TYPE):
+              """Bar-by-bar replay calling main.py's REAL TREND-down short
+              functions for every piece of entry/stop/target/confidence
+              math - only the loop/position-bookkeeping/cost-application
+              scaffolding is written here. index_closes_full is sliced to
+              [:i+1] per bar (mirrors universal-score-validation-replay.yml's
+              own idx_slice pattern) so the relative_strength/index_trend
+              factors never see future index data a live bot couldn't have
+              known yet."""
+              df = _prep(raw_df)
+              n = len(df)
+
+              position = None
+              trades = []
+              skips = Counter()
+
+              for i in range(n):
+                  row = df.iloc[i]
+                  mins = int(row["mins"])
+                  if mins < OPEN_MIN or mins > CLOSE_MIN:
+                      continue
+                  day = row["date_local"]
+                  today_df = df[(df["date_local"] == day) & (df.index <= i)]
+                  df_so_far = df.iloc[max(0, i + 1 - LIVE_WINDOW_BARS): i + 1]
+                  last_close = float(row["Close"])
+                  last_ts = row["ts_local"].timestamp()
+
+                  if position is not None:
+                      trough, candidate_stop = m._trailing_stop_target_short(
+                          today_df, position["entry_price"], position["initial_stop"],
+                          position["entry_ts"], TZ_OFF,
+                      )
+                      if candidate_stop is not None and candidate_stop < position["stop"]:
+                          position["stop"] = candidate_stop
+
+                      # Staged profit-booking ladder (same mechanics as
+                      # range-short-validation-replay.yml - see main.py's
+                      # _execute_staged_leg_exit_short docstring).
+                      next_leg = m._next_unfilled_leg(json.dumps(position["exit_legs"]))
+                      if next_leg is not None and next_leg.get("target_price") and last_close <= next_leg["target_price"]:
+                          leg_qty = next_leg["qty"]
+                          for leg_entry in position["exit_legs"]:
+                              if leg_entry["leg"] == next_leg["leg"]:
+                                  leg_entry["status"] = "filled"
+                          remaining_after = position["qty"] - leg_qty
+                          is_final = remaining_after <= 1e-9
+                          gross_pnl = (position["entry_price"] - last_close) * leg_qty
+                          leg_open_cost = position["open_cost_per_share"] * leg_qty
+                          leg_close_cost = _buy_cost(leg_qty, last_close, cost_model)
+                          dp_once = (cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]) if is_final else 0.0
+                          total_cost = leg_open_cost + leg_close_cost + dp_once
+                          net_pnl = gross_pnl - total_cost
+                          r = position["initial_stop"] - position["entry_price"]
+                          trades.append({
+                              "symbol": symbol, "entry_price": position["entry_price"], "exit_price": last_close,
+                              "entry_ts": position["entry_ts"], "exit_ts": last_ts,
+                              "time_in_trade_min": (last_ts - position["entry_ts"]) / 60.0,
+                              "exit_reason": f"staged_leg_{next_leg['leg']}", "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                              "total_cost": total_cost, "net_r": net_pnl / (r * leg_qty) if r > 0 else None,
+                          })
+                          position["qty"] = remaining_after
+                          if is_final:
+                              position = None
+                          continue
+
+                      exit_reason = None
+                      if last_close <= position["target"]:
+                          exit_reason = "target_hit"
+                      elif last_close >= position["stop"]:
+                          exit_reason = "stop_hit"
+                      elif (
+                          (last_ts - position["entry_ts"]) >= MAX_HOLD_MINUTES * 60
+                          and position["stop"] >= position["initial_stop"]
+                      ):
+                          exit_reason = "stale_timeout"
+                      elif mins >= SQUAREOFF_MIN:
+                          exit_reason = "eod_squareoff"
+
+                      if exit_reason:
+                          open_cost = position["open_cost_per_share"] * position["qty"]
+                          close_cost = _buy_cost(position["qty"], last_close, cost_model)
+                          dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+                          gross_pnl = (position["entry_price"] - last_close) * position["qty"]
+                          total_cost = open_cost + close_cost + dp_once
+                          net_pnl = gross_pnl - total_cost
+                          r = position["initial_stop"] - position["entry_price"]
+                          trades.append({
+                              "symbol": symbol, "entry_price": position["entry_price"], "exit_price": last_close,
+                              "entry_ts": position["entry_ts"], "exit_ts": last_ts,
+                              "time_in_trade_min": (last_ts - position["entry_ts"]) / 60.0,
+                              "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                              "total_cost": total_cost, "net_r": net_pnl / (r * position["qty"]) if r > 0 else None,
+                          })
+                          position = None
+                      continue
+
+                  if mins >= SQUAREOFF_MIN:
+                      continue
+
+                  regime = m._classify_market_regime(df_so_far, sma_fast, sma_slow, ma_type)
+                  if regime != "trend":
+                      skips["not_trend_regime"] += 1
+                      continue
+
+                  closes_so_far = df_so_far["Close"].to_numpy(dtype=float)
+                  if len(closes_so_far) < sma_slow:
+                      skips["insufficient_history"] += 1
+                      continue
+                  sma_f = m._moving_average(closes_so_far, sma_fast, ma_type)
+                  sma_s = m._moving_average(closes_so_far, sma_slow, ma_type)
+                  volume_ok, vol_avg = m._volume_confirms(df_so_far["Volume"].to_numpy(dtype=float))
+                  current_volume = float(row["Volume"])
+                  vol_ratio = (current_volume / vol_avg) if (vol_avg and vol_avg > 0) else None
+                  idx_slice = index_closes_full[: i + 1] if index_closes_full is not None else None
+
+                  score_result = m._compute_universal_entry_score_short(
+                      df_so_far, today_df, volume_ok, sma_f, sma_s, idx_slice, sma_fast, sma_slow, ma_type,
+                      vol_ratio=vol_ratio,
+                  )
+                  if not score_result["entry_allowed"]:
+                      skips["score_not_allowed"] += 1
+                      continue
+
+                  stop_loss_cap = last_close * (1 + stop_pct / 100)
+                  # TREND-down mirror of the long side's `max(structural_low,
+                  # stop_loss_cap)` - see main.py's own comment at this exact
+                  # call site in _short_signal_core for the full derivation.
+                  structural_high = float(df_so_far["High"].iloc[-(m.UNIVERSAL_STRUCTURE_LOOKBACK + 1):].max())
+                  stop_loss = min(structural_high, stop_loss_cap)
+                  stop_dist = stop_loss - last_close
+                  if stop_dist <= 0:
+                      skips["stop_invalid"] += 1
+                      continue
+
+                  target_cluster = m._compute_target_cluster_short(last_close, stop_loss, df_so_far, DEFAULT_RR)
+                  target = target_cluster["primary_target"]
+                  target_move_pct = m._target_move_pct_short(target, last_close)
+                  if target_move_pct <= m.ROUND_TRIP_COST_PCT:
+                      skips["cost_gate_failed"] += 1
+                      continue
+
+                  confidence = score_result["score_pct"] / 100.0
+                  confidence_entry_min = m.UNIVERSAL_ENTRY_SCORE_MIN / 100.0
+                  confidence_full_at = 1.0
+                  size_mult = m._confidence_size_multiplier(confidence, confidence_entry_min, confidence_full_at)
+
+                  usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100 * size_mult
+                  qty = int(np.floor(min(risk_amount_inr / stop_dist, usable_capital_inr / last_close)))
+                  if qty <= 0:
+                      skips["qty_zero"] += 1
+                      continue
+                  if qty * last_close < 100:
+                      skips["notional_too_small"] += 1
+                      continue
+
+                  exit_legs = m._split_exit_legs(qty, target_cluster["r_multiples"])
+                  position = {
+                      "entry_price": last_close, "initial_stop": stop_loss, "stop": stop_loss,
+                      "target": target, "entry_ts": last_ts, "qty": qty,
+                      "open_cost_per_share": _sell_cost(qty, last_close, cost_model) / qty,
+                      "exit_legs": exit_legs,
+                  }
+
+              if position is not None:
+                  last_close = float(df["Close"].iloc[-1])
+                  last_ts = df["ts_local"].iloc[-1].timestamp()
+                  open_cost = position["open_cost_per_share"] * position["qty"]
+                  close_cost = _buy_cost(position["qty"], last_close, cost_model)
+                  dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+                  gross_pnl = (position["entry_price"] - last_close) * position["qty"]
+                  total_cost = open_cost + close_cost + dp_once
+                  net_pnl = gross_pnl - total_cost
+                  r = position["initial_stop"] - position["entry_price"]
+                  trades.append({
+                      "symbol": symbol, "entry_price": position["entry_price"], "exit_price": last_close,
+                      "entry_ts": position["entry_ts"], "exit_ts": last_ts,
+                      "time_in_trade_min": (last_ts - position["entry_ts"]) / 60.0,
+                      "exit_reason": "window_end_forced_close", "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                      "total_cost": total_cost, "net_r": net_pnl / (r * position["qty"]) if r > 0 else None,
+                  })
+
+              return trades, skips
+
+
+          ALL_SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          SYMBOLS = ALL_SYMBOLS[SHARD_INDEX::SHARD_COUNT]
+          CAPITAL_INR = 400000.0
+
+          # Reference-index fetch ONCE per shard (mirrors
+          # universal-score-validation-replay.yml's own index_closes_full
+          # pattern) - sliced per-bar inside replay_symbol_trend_short to
+          # avoid lookahead, not re-fetched per symbol.
+          try:
+              index_df = m.fetch_ohlc("^NSEI", "60d", "5m")
+              index_closes_full = index_df["Close"].to_numpy(dtype=float)
+          except Exception as e:
+              print(f"WARN: index fetch failed ({e}) - relative_strength/index_trend will score as not-scored")
+              index_closes_full = None
+
+          print(f"--- Shard {SHARD_INDEX}/{SHARD_COUNT}: fetching {len(SYMBOLS)} of {len(ALL_SYMBOLS)} symbols (5m, 60d) ---")
+          all_trades = []
+          all_skips = Counter()
+          fetched = 0
+          for sym in SYMBOLS:
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  raw = m.fetch_ohlc(sym, "60d", "5m")
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < 50:
+                  continue
+              fetched += 1
+              try:
+                  trades, skips = replay_symbol_trend_short(
+                      sym, raw, index_closes_full, cfg["risk_pct"], cfg["stop_pct"], CAPITAL_INR, DEFAULT_COST_MODEL,
+                      cfg["sma_fast"], cfg["sma_slow"],
+                  )
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              all_trades.extend(trades)
+              all_skips.update(skips)
+          print(f"  shard {SHARD_INDEX}: fetched {fetched}/{len(SYMBOLS)} symbols, {len(all_trades)} trend-short trades")
+          print(f"  shard {SHARD_INDEX} skips: {dict(all_skips)}")
+
+          with open("shard_result.json", "w") as f:
+              json.dump({"shard": SHARD_INDEX, "fetched": fetched, "universe_size": len(SYMBOLS),
+                         "trades": all_trades, "skips": dict(all_skips)}, f)
+          PYEOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.shard }}-result
+          path: shard_result.json
+          retention-days: 3
+
+  aggregate:
+    needs: replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*-result
+          path: shards
+          merge-multiple: false
+
+      - name: Aggregate all shards and report pooled metrics
+        run: |
+          python3 - <<'PYEOF'
+          import glob
+          import json
+
+          all_trades = []
+          all_skips = {}
+          total_fetched = 0
+          total_universe = 0
+          for path in sorted(glob.glob("shards/shard-*-result/shard_result.json")):
+              with open(path) as f:
+                  data = json.load(f)
+              all_trades.extend(data["trades"])
+              total_fetched += data["fetched"]
+              total_universe += data["universe_size"]
+              for k, v in data["skips"].items():
+                  all_skips[k] = all_skips.get(k, 0) + v
+              print(f"  loaded {path}: {data['fetched']}/{data['universe_size']} symbols, {len(data['trades'])} trades")
+
+          print(f"\n--- Pooled: fetched {total_fetched}/{total_universe} symbols, {len(all_trades)} trend-short trades total ---")
+          print(f"  skipped candidate entries (not silently dropped): {all_skips}\n")
+
+
+          def _metrics(trades, label):
+              if not trades:
+                  print(f"  {label:24s}   no trades")
+                  return
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              net_rs = [t["net_r"] for t in trades if t["net_r"] is not None]
+              avg_net_r = sum(net_rs) / len(net_rs) if net_rs else None
+              avg_time = sum(t["time_in_trade_min"] for t in trades) / n
+              cost_drag_pct = 100 * sum(t["total_cost"] for t in trades) / max(1, sum(abs(t["gross_pnl"]) for t in trades))
+              reasons = {}
+              for t in trades:
+                  reasons[t["exit_reason"]] = reasons.get(t["exit_reason"], 0) + 1
+              print(f"  {label:24s} n={n:<6d} win%={win_rate:6.1f}  PFnet={pf_net:6.2f}  PFgross={pf_gross:6.2f}  "
+                    f"avgNet={avg_net:9.2f}  avgR={avg_net_r if avg_net_r is None else round(avg_net_r,3)}  "
+                    f"avgMin={avg_time:6.1f}  costDrag%={cost_drag_pct:5.1f}  exits={reasons}")
+
+
+          print("=== TREND-DOWN SHORT - full-universe validation replay (calls main.py's real short-side functions) ===")
+          _metrics(all_trades, "ALL")
+
+          print("\n=== BY SYMBOL (n>=2, sorted by gross PF, top 30) ===")
+          per_symbol = {}
+          for t in all_trades:
+              per_symbol.setdefault(t["symbol"], []).append(t)
+          symbol_rows = []
+          for sym, trades in per_symbol.items():
+              if len(trades) < 2:
+                  continue
+              gwg = sum(t["gross_pnl"] for t in trades if t["gross_pnl"] > 0)
+              glg = -sum(t["gross_pnl"] for t in trades if t["gross_pnl"] <= 0)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              symbol_rows.append((sym, pf_gross, trades))
+          symbol_rows.sort(key=lambda x: x[1], reverse=True)
+          for sym, pf_gross, trades in symbol_rows[:30]:
+              _metrics(trades, sym)
+          PYEOF
