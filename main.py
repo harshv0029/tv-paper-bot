@@ -10414,6 +10414,82 @@ def _ensure_signal_state_for_real_position(conn, real_row) -> bool:
     return True
 
 
+def _kotak_symbol_still_open_short(kotak_trading_symbol: str) -> bool | None:
+    """Short mirror of _kotak_symbol_still_open (2026-09-30, "make it auto
+    heal" for shorts too) - that function's own `fl_buy > 0` check makes it
+    return False for EVERY genuine short (a pure short has flBuyQty == 0),
+    so it can never be reused here; a short position is genuinely open when
+    flSellQty > 0 and differs from flBuyQty. Same fail-OPEN precedent on a
+    fetch failure (None) as the long version."""
+    try:
+        import kotak_neo
+        positions = kotak_neo.positions()
+        rows = positions.get("data") or [] if isinstance(positions, dict) else []
+    except Exception:
+        return None
+    for row in rows:
+        if row.get("trdSym") != kotak_trading_symbol or row.get("exSeg") != "nse_cm":
+            continue
+        try:
+            fl_buy = float(row.get("flBuyQty", 0) or 0)
+            fl_sell = float(row.get("flSellQty", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if fl_sell > 0 and fl_sell != fl_buy:
+            return True
+    return False
+
+
+def _ensure_signal_state_for_real_position_short(conn, real_row) -> bool:
+    """Short mirror of _ensure_signal_state_for_real_position (2026-09-30,
+    explicit user instruction after the MFSL.NS incident: "For short
+    positions and all live positions make it auto heal") - backfills a
+    missing signal_state_short row for a symbol that already has an open
+    real_positions_short row, so _reconcile_real_positions_core's own
+    governance-backfill loop can then synchronously place a real
+    protective BUY-side stop for it, exactly mirroring what the long side
+    has done since 2026-09-08.
+
+    Sized off the same WATCHLIST stop_pct/live rr config as the long
+    version, mirrored: initial_stop_loss sits ABOVE entry_price (a short's
+    stop), target sits BELOW it. entry_ts is set to NOW (backfill time),
+    same "starts a little late, never early" reasoning as the long
+    version. Returns True if a row was created, False if one already
+    existed OR real_row turned out to be a ghost (Kotak shows no
+    genuinely open SHORT for it - see _kotak_symbol_still_open_short)."""
+    already = conn.execute(
+        "SELECT 1 FROM signal_state_short WHERE symbol = ? AND status = 'short'", (real_row["symbol"],)
+    ).fetchone()
+    if already:
+        return False
+    still_open = _kotak_symbol_still_open_short(real_row["kotak_trading_symbol"])
+    if still_open is False:
+        conn.execute("DELETE FROM real_positions_short WHERE symbol = ?", (real_row["symbol"],))
+        conn.commit()
+        print(f"[signal_state_backfill_short] {real_row['symbol']} is a ghost real_positions_short row "
+              f"(Kotak shows no open short) - removed instead of backfilling paper tracking for it")
+        return False
+    watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
+    cfg = watchlist_by_symbol.get(real_row["symbol"], {})
+    stop_pct = cfg.get("stop_pct", 2.0)
+    live_rr = get_runtime_setting(conn, "rr")
+    entry_price = real_row["entry_price"]
+    stop_loss = round(entry_price * (1 + stop_pct / 100), 2)
+    target = round(entry_price - live_rr * (stop_loss - entry_price), 2)
+    conn.execute(
+        "INSERT INTO signal_state_short (symbol, day, status, entry_price, stop_loss, "
+        "initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval, strategy) "
+        "VALUES (?, ?, 'short', ?, ?, ?, ?, ?, ?, 1.0, '5m', ?) "
+        "ON CONFLICT(symbol) DO NOTHING",
+        (real_row["symbol"], ist_now().strftime("%Y-%m-%d"), entry_price, stop_loss, stop_loss, target,
+         real_row["qty"], time.time(), real_row["strategy"] or "range_short"),
+    )
+    conn.commit()
+    print(f"[signal_state_backfill_short] restored missing paper tracking for {real_row['symbol']} "
+          f"(entry Rs{entry_price:.2f}, stop Rs{stop_loss:.2f}, target Rs{target:.2f})")
+    return True
+
+
 def _real_sl_order_is_live(order_id: str) -> bool | None:
     """True if `order_id`'s own status at Kotak (via order_report) is a
     genuinely still-resting/pending state; False if it's dead with no
@@ -15918,28 +15994,44 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 TERMINAL_STATUSES = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
                 for u in to_adopt:
                     trd_sym = u["kotak_trading_symbol"]
-                    if kotak_open_by_trdsym[trd_sym]["is_short"]:
-                        # 2026-09-29: auto-adopt is LONG-only (buyAmt/flBuyQty
-                        # entry-price math below assumes a long) - a short
-                        # position adopted through this path would be
-                        # misclassified as a long with a wrong entry price.
-                        # Stays untracked/reported for a human to review
-                        # instead; short auto-adopt is a real, known gap,
-                        # not silently mishandled.
-                        continue
+                    is_short = kotak_open_by_trdsym[trd_sym]["is_short"]
                     raw = kotak_open_by_trdsym[trd_sym]["raw"]
                     qty = int(kotak_open_by_trdsym[trd_sym]["qty"])
-                    try:
-                        buy_amt = float(raw.get("buyAmt", 0) or 0)
-                        fl_buy = float(raw.get("flBuyQty", 0) or 0)
-                        entry_price = round(buy_amt / fl_buy, 2) if fl_buy else None
-                    except (TypeError, ValueError):
-                        entry_price = None
+                    # 2026-09-30, explicit user instruction after the MFSL.NS
+                    # incident ("For short positions and all live positions
+                    # make it auto heal"): short auto-adopt was a real,
+                    # documented gap until now (a short adopted through the
+                    # long-only math below would have been misclassified
+                    # with a wrong entry price) - entry_price now branches on
+                    # side, using sellAmt/flSellQty for a short exactly the
+                    # same way get_real_open_positions' own untracked-short
+                    # display fix already does.
+                    if is_short:
+                        try:
+                            sell_amt = float(raw.get("sellAmt", 0) or 0)
+                            fl_sell = float(raw.get("flSellQty", 0) or 0)
+                            entry_price = round(sell_amt / fl_sell, 2) if fl_sell else None
+                        except (TypeError, ValueError):
+                            entry_price = None
+                    else:
+                        try:
+                            buy_amt = float(raw.get("buyAmt", 0) or 0)
+                            fl_buy = float(raw.get("flBuyQty", 0) or 0)
+                            entry_price = round(buy_amt / fl_buy, 2) if fl_buy else None
+                        except (TypeError, ValueError):
+                            entry_price = None
                     if entry_price is None:
                         continue  # can't adopt without a real entry price - skip, stays untracked
                     entry_order_id, sl_order_id, sl_trigger_price = None, None, None
                     target_order_id, target_price = None, None
                     fallback_entry_order_id = None
+                    # entry_side/sl_side (2026-09-30): a short's own ENTRY
+                    # leg is itself a SELL, and its protective stop is a BUY
+                    # - the exact opposite of a long's - mirroring the same
+                    # entry_side/sl_side convention _find_unprotected_open_
+                    # positions already uses.
+                    entry_side = "S" if is_short else "B"
+                    sl_side = "B" if is_short else "S"
                     for row in order_rows:
                         if row.get("trdSym") != trd_sym:
                             continue
@@ -15963,12 +16055,12 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                         # audit log when one exists.
                         is_bot_placed = (row.get("ordSrc") == "ADMINCPPAPI_NEOTRADEAPI"
                                           and row.get("algId") not in (None, "NA", ""))
-                        if row.get("trnsTp") == "B" and st == "complete":
+                        if row.get("trnsTp") == entry_side and st == "complete":
                             if is_bot_placed and not entry_order_id:
                                 entry_order_id = row.get("nOrdNo")
                             elif not fallback_entry_order_id:
                                 fallback_entry_order_id = row.get("nOrdNo")
-                        elif (row.get("trnsTp") == "S" and str(row.get("prcTp", "")).upper() in ("SL", "SL-M")
+                        elif (row.get("trnsTp") == sl_side and str(row.get("prcTp", "")).upper() in ("SL", "SL-M")
                               and st not in TERMINAL_STATUSES and is_bot_placed):
                             sl_order_id = row.get("nOrdNo")
                             try:
@@ -15977,13 +16069,17 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                                 sl_trigger_price = None
                         # Resting target/profit-booking leg (2026-09-08,
                         # alongside the SL leg above) - a bot-placed plain
-                        # LIMIT sell ("L", not SL/SL-M) still resting for
+                        # LIMIT order ("L", not SL/SL-M) still resting for
                         # this symbol. Same is_bot_placed gate as the SL
-                        # lookup: a manual limit sell the user placed
-                        # directly at Kotak never carries this app's own
-                        # algId/ordSrc tag, so it's never mistaken for
-                        # this app's own target order.
-                        elif (row.get("trnsTp") == "S" and str(row.get("prcTp", "")).upper() == "L"
+                        # lookup: a manual order the user placed directly at
+                        # Kotak never carries this app's own algId/ordSrc
+                        # tag, so it's never mistaken for this app's own
+                        # target order. LONG-ONLY (2026-09-30): a short's
+                        # real_positions_short table has no target_order_id/
+                        # target_price columns at all - short profit-booking
+                        # is a tick-managed staged ladder, not a resting
+                        # order (see that table's own CREATE comment).
+                        elif (not is_short and row.get("trnsTp") == sl_side and str(row.get("prcTp", "")).upper() == "L"
                               and st not in TERMINAL_STATUSES and is_bot_placed):
                             target_order_id = row.get("nOrdNo")
                             try:
@@ -15991,26 +16087,53 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                             except (TypeError, ValueError):
                                 target_price = None
                     if not entry_order_id:
-                        entry_order_id = fallback_entry_order_id  # a manual buy - still adopted (see above),
+                        entry_order_id = fallback_entry_order_id  # a manual entry - still adopted (see above),
                         # just no bot-placed order id to attribute it to; None is fine here, entry_price
-                        # (computed above from buyAmt/flBuyQty) is what governance actually needs.
+                        # (computed above from buyAmt/flBuyQty or sellAmt/flSellQty) is what governance
+                        # actually needs.
                     watchlist_symbol = trd_sym[:-3] + ".NS" if trd_sym.endswith("-EQ") else trd_sym
-                    conn.execute(
-                        "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
-                        "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
-                        "target_order_id, target_price) "
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
-                        "ON CONFLICT(symbol) DO NOTHING",
-                        (watchlist_symbol, trd_sym, qty, entry_price, entry_order_id, time.time(),
-                         ist_now().strftime("%Y-%m-%d"), sl_order_id, sl_trigger_price,
-                         target_order_id, target_price),
-                    )
-                    adopted.append({
-                        "symbol": watchlist_symbol, "kotak_trading_symbol": trd_sym, "qty": qty,
-                        "entry_price": entry_price, "entry_order_id": entry_order_id,
-                        "sl_order_id": sl_order_id, "sl_trigger_price": sl_trigger_price,
-                        "target_order_id": target_order_id, "target_price": target_price,
-                    })
+                    if is_short:
+                        # 2026-09-30: strategy recovered the same way the
+                        # dashboard's own untracked-position display already
+                        # does (_recover_strategy_for_untracked_position) -
+                        # None (honest "unknown") rather than a fabricated
+                        # fallback for a position that may not even be this
+                        # app's own (the entry match above, like the long
+                        # side's, accepts ANY completed sell, bot-placed or
+                        # manual).
+                        recovered_strategy = _recover_strategy_for_untracked_position(conn, trd_sym, "S")
+                        conn.execute(
+                            "INSERT INTO real_positions_short (symbol, kotak_trading_symbol, qty, entry_price, "
+                            "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, strategy) "
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                            "ON CONFLICT(symbol) DO NOTHING",
+                            (watchlist_symbol, trd_sym, qty, entry_price, entry_order_id, time.time(),
+                             ist_now().strftime("%Y-%m-%d"), sl_order_id, sl_trigger_price, recovered_strategy),
+                        )
+                        adopted.append({
+                            "symbol": watchlist_symbol, "kotak_trading_symbol": trd_sym, "qty": qty,
+                            "entry_price": entry_price, "entry_order_id": entry_order_id,
+                            "sl_order_id": sl_order_id, "sl_trigger_price": sl_trigger_price,
+                            "side": "short",
+                        })
+                    else:
+                        conn.execute(
+                            "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
+                            "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
+                            "target_order_id, target_price) "
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                            "ON CONFLICT(symbol) DO NOTHING",
+                            (watchlist_symbol, trd_sym, qty, entry_price, entry_order_id, time.time(),
+                             ist_now().strftime("%Y-%m-%d"), sl_order_id, sl_trigger_price,
+                             target_order_id, target_price),
+                        )
+                        adopted.append({
+                            "symbol": watchlist_symbol, "kotak_trading_symbol": trd_sym, "qty": qty,
+                            "entry_price": entry_price, "entry_order_id": entry_order_id,
+                            "sl_order_id": sl_order_id, "sl_trigger_price": sl_trigger_price,
+                            "target_order_id": target_order_id, "target_price": target_price,
+                            "side": "long",
+                        })
                 untracked = [u for u in untracked if u["kotak_trading_symbol"] not in
                              {a["kotak_trading_symbol"] for a in adopted}]
 
@@ -16153,6 +16276,69 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                     # this governance-backfill path, is genuinely
                     # unsellable same-day.
             governance_backfilled.append(backfill_entry)
+
+        # Short mirror of the governance-backfill loop just above
+        # (2026-09-30, explicit user instruction after the MFSL.NS
+        # incident: "For short positions and all live positions make it
+        # auto heal") - runs UNCONDITIONALLY over every row in
+        # real_positions_short, same as the long loop, so this heals a
+        # short that's ALREADY tracked but still missing its SL (not just
+        # freshly-adopted ones), every single reconcile run (now every 5
+        # min). Places the SL synchronously in THIS request for the exact
+        # same race-condition reason as the long version's own comment
+        # above (a wrapping git push/restart can otherwise wipe freshly-
+        # adopted tracking before a scheduler tick ever gets to it -
+        # _maybe_sync_real_stop_loss has no short-side mirror yet to catch
+        # it on the next tick the way the long side's does, which makes
+        # this synchronous placement the ONLY protective mechanism a
+        # freshly-adopted short currently has - not just a race-closer
+        # the way it is for longs).
+        governance_backfilled_short = []
+        for r in conn.execute("SELECT * FROM real_positions_short").fetchall():
+            if not _ensure_signal_state_for_real_position_short(conn, r):
+                continue  # already had a signal_state_short row - nothing to backfill
+            fresh = conn.execute(
+                "SELECT stop_loss, target FROM signal_state_short WHERE symbol = ? AND status = 'short'",
+                (r["symbol"],),
+            ).fetchone()
+            stop_loss, target = fresh["stop_loss"], fresh["target"]
+            backfill_entry = {
+                "symbol": r["symbol"], "entry_price": r["entry_price"],
+                "stop_loss": stop_loss, "target": target, "qty": r["qty"],
+            }
+            if not r["sl_order_id"]:
+                import kotak_real_orders
+                sl_result = kotak_real_orders.place_real_short_stop_loss(
+                    r["kotak_trading_symbol"], r["qty"], stop_loss
+                )
+                if sl_result.get("ok"):
+                    conn.execute(
+                        "UPDATE real_positions_short SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                        (sl_result["order_id"], sl_result["trigger_price"], r["symbol"]),
+                    )
+                    _log_real_order_event(
+                        conn, r["symbol"], "sl", "placed", kotak_trading_symbol=r["kotak_trading_symbol"],
+                        order_id=sl_result["order_id"], prev_state="none",
+                        new_state=f"resting BUY trigger Rs{sl_result['trigger_price']:.2f}",
+                        detail="placed synchronously during short governance backfill",
+                    )
+                    backfill_entry["sl_order_id"] = sl_result["order_id"]
+                    backfill_entry["sl_placed"] = True
+                else:
+                    _log_real_order_event(
+                        conn, r["symbol"], "sl", "failed", kotak_trading_symbol=r["kotak_trading_symbol"],
+                        prev_state="none", new_state="none (placement failed)", detail=sl_result.get("detail"),
+                    )
+                    backfill_entry["sl_placed"] = False
+                    backfill_entry["sl_failure_detail"] = sl_result.get("detail")
+                    _flag_if_t1_restricted(conn, r["symbol"], sl_result.get("detail"))
+            # No target leg here (2026-09-30) - real_positions_short has no
+            # target_order_id/target_price columns at all; a short's
+            # profit-booking is the tick-managed staged ladder
+            # (_execute_staged_leg_exit_short), not a resting order, so
+            # there is nothing to backfill/place for it the way the long
+            # loop's target leg does.
+            governance_backfilled_short.append(backfill_entry)
         conn.commit()
         _sync_real_positions_external(conn)
 
@@ -16170,6 +16356,22 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
     # whether this app's own real_positions/real_positions_short tables
     # know about it at all. Persisted so the dashboard can show a loud
     # banner off a cheap local read (see /real-protection-status).
+    #
+    # order_rows is re-fetched FRESH here (2026-09-30 fix), not reused from
+    # the copy taken at the top of this function - the adopt and
+    # governance-backfill blocks above this point can both place a real SL
+    # synchronously DURING this same call ("For short positions and all
+    # live positions make it auto heal"), and checking against the STALE
+    # pre-placement snapshot would wrongly flag a position this exact call
+    # just finished protecting as still unprotected - a false alarm on the
+    # one run that actually fixed it. Falls back to the original order_rows
+    # if this second fetch itself fails (fails toward the safer "trust the
+    # pre-action snapshot" rather than silently skipping the check).
+    try:
+        fresh_order_report = kotak_neo.order_report()
+        order_rows = fresh_order_report.get("data") or [] if isinstance(fresh_order_report, dict) else order_rows
+    except Exception as e:
+        print(f"[reconcile] order_report re-fetch failed before unprotected-check (using pre-action snapshot): {e}")
     unprotected = _find_unprotected_open_positions(kotak_open_by_trdsym, order_rows)
     with closing(get_db()) as protection_conn:
         protection_conn.execute(
@@ -16190,6 +16392,8 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         "untracked_open_positions_count": len(untracked), "untracked_open_positions": untracked,
         "adopted_count": len(adopted), "adopted": adopted,
         "governance_backfilled_count": len(governance_backfilled), "governance_backfilled": governance_backfilled,
+        "governance_backfilled_short_count": len(governance_backfilled_short),
+        "governance_backfilled_short": governance_backfilled_short,
         "unprotected_positions_count": len(unprotected), "unprotected_positions": unprotected,
     }
 

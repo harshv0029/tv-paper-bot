@@ -233,4 +233,43 @@ of trusting the transfer pack's prose.
   trading): before shipping it, confirm a position it opens is still
   covered by this SAME backcheck (matched by `kotak_open_by_trdsym`'s own
   long/short net-qty sign, not by strategy or asset-class-specific logic)
+  - detection alone is not enough (see the next paragraph on auto-heal).
+- **Thumb rule (2026-09-30, explicit user instruction, same MFSL.NS
+  incident: "For short positions and all live positions make it auto
+  heal"): detection (the backcheck above) is not sufficient on its own -
+  a real position with no live stop-loss, long or short, tracked or not,
+  must get a protective order placed AUTOMATICALLY, not just flagged for
+  a human to fix by hand.** Long positions already had this since
+  2026-09-08 (`_reconcile_real_positions_core`'s adopt block +
+  governance-backfill loop, which places a real SL synchronously in the
+  SAME request rather than waiting for a scheduler tick that a wrapping
+  git-push/restart could lose the race against). Shorts did NOT - short
+  auto-adopt and the short governance-backfill's synchronous SL placement
+  (mirroring the long path exactly: `_kotak_symbol_still_open_short`,
+  `_ensure_signal_state_for_real_position_short`,
+  `kotak_real_orders.place_real_short_stop_loss` called from
+  `_reconcile_real_positions_core`'s own short-specific backfill loop)
+  were built this same day to close that asymmetry - this is what "make
+  it auto heal" means concretely: not a louder alarm, an actual fix,
+  attempted every single reconcile run (every 5 min) for every open
+  position this app can safely act on. The one boundary this auto-heal
+  deliberately does NOT cross, matching the adopt block's own pre-existing
+  safety philosophy (own docstring: "auto-adopting a position this app
+  didn't open and doesn't know the intended stop/target... risks the kill
+  switch or scheduler later acting on it with no real context"): a
+  position's ENTRY gets adopted-and-governed either way (bot-placed or
+  manually placed at Kotak directly - explicit 2026-09-08 precedent,
+  unchanged), but this app only ever computes/places a stop off ITS OWN
+  WATCHLIST risk config applied to the real entry price, never a stop
+  level guessed for a position with no derivable risk config at all. A
+  case that still can't be auto-healed (no WATCHLIST entry, entry price
+  unrecoverable, or the placement itself fails - e.g. margin/T1) still
+  surfaces loudly through the backcheck above and must keep doing so -
+  auto-heal narrows how often the alarm fires, it does not replace the
+  alarm. `_maybe_sync_real_stop_loss` (the LONG side's 30-second-tick
+  trailing-stop/retry engine, on top of the 5-min governance backfill)
+  still has no short-side mirror as of this thumb rule being written -
+  a short's ONLY auto-heal mechanism today is this 5-min reconcile pass,
+  not a faster per-tick one. Building that full parity is real, further
+  work, not assumed done by this rule.
   rather than assuming it automatically is.
