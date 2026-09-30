@@ -434,3 +434,28 @@ of trusting the transfer pack's prose.
   resample. A strategy built bar-size-agnostically from the start (ATR/
   bar-count based constants, like Gap-Up Fade) can sweep candle size
   directly by just changing the replay's own INTERVAL/PERIOD.
+- **Thumb rule (2026-09-30, explicit user instruction: "Multiplying money
+  in shorter duration is always preferable... Make it part of thumb rule.
+  Always."): faster capital turnover is a standing, ALWAYS-ON preference
+  across every strategy decision in this codebase, not just the sweep
+  tie-break above.** The sweep-specific "prefer shorter hold over longer
+  when PFnet is comparable-or-better" rule immediately above is one
+  application of this; this rule generalizes it to every place a choice
+  gets made between strategies/variants of otherwise similar quality:
+  registering a strategy in `strategy_registry.py`, choosing which
+  viable strategy a symbol trades when more than one qualifies, ranking
+  within `viable_leaderboard()`/`leaderboard()`, and picking which
+  candidate to pursue further in research. The comparison is always
+  PFnet (or equivalent risk-adjusted edge) per unit of TIME held, not raw
+  PFnet alone - a strategy that turns capital over faster for the same or
+  better edge compounds more real money per calendar day and is always
+  preferable, all else equal.
+  This does NOT override PFNET_LIVE_FLOOR or any other viability gate -
+  a faster but non-viable (PFnet < 1) strategy is still non-viable and
+  still blocked from real money by `_is_strategy_viable_for_real_money`;
+  speed is a tie-breaker/ranking preference among strategies that already
+  clear the bar, never a reason to admit one that doesn't. It also does
+  NOT excuse skipping full-universe validation or the parameter/candle-
+  size sweep discipline above to chase a faster number quickly - "always
+  preferable" means always weighed honestly with real validated metrics,
+  never estimated or assumed to save time.
