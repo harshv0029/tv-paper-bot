@@ -11960,6 +11960,19 @@ def get_real_open_positions():
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
     with closing(get_db()) as conn:
         rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions").fetchall()]
+        # 2026-09-30, explicit user finding: an open real SHORT position
+        # showed up on the dashboard with a blank strategy cell ("no
+        # strategy tag recorded"). Root cause - this endpoint only ever
+        # SELECTed from `real_positions` (the long-side table); the short
+        # mirror `real_positions_short` (added later this session for real
+        # short order tracking) was never read here at all, so any bot-
+        # tracked open short fell through to the "kotak_untracked" fallback
+        # below, which has no strategy field by construction (it's built
+        # from Kotak's raw position feed for positions THIS APP never
+        # opened - a real short this app DID open and IS managing is a
+        # different case entirely and belongs in the bot_tracked loop, same
+        # as the long side).
+        short_rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions_short").fetchall()]
 
     result = []
     for r in rows:
@@ -12022,6 +12035,43 @@ def get_real_open_positions():
             "target_status": target_status,
             "target_status_detail": target_status_detail,
             "source": "bot_tracked",
+            "side": "long",
+        })
+
+    # Bot-tracked open SHORT positions (2026-09-30 fix - see the short_rows
+    # fetch above). real_positions_short has no target_order_id/target_price
+    # columns at all: unlike the long side, a short's profit-booking legs
+    # are executed via tick-based staged-ladder exits
+    # (_execute_staged_leg_exit_short), not a resting broker target order -
+    # so target_price/target_status stay None here (renders as "—" on the
+    # dashboard, an honest "nothing to show" rather than a fabricated
+    # status). P&L sign is the mirror of the long side's: a short profits
+    # when price FALLS, so it's (entry - current) x qty, not (current -
+    # entry) x qty; `qty` in this table is always stored positive (see the
+    # table's own column comment).
+    for r in short_rows:
+        current_price = None
+        try:
+            cfg = watchlist_by_symbol.get(r["symbol"], {})
+            current_price = float(fetch_ohlc(r["symbol"], "1d", cfg.get("interval", "5m"))["Close"].iloc[-1])
+        except Exception:
+            pass
+        invested_inr = round(r["entry_price"] * r["qty"], 2)
+        unrealized_pnl_inr = round((r["entry_price"] - current_price) * r["qty"], 2) if current_price is not None else None
+        unrealized_pnl_pct = (
+            round(100 * unrealized_pnl_inr / invested_inr, 3) if unrealized_pnl_inr is not None and invested_inr else None
+        )
+        result.append({
+            **r,
+            "current_price": current_price,
+            "invested_inr": invested_inr,
+            "unrealized_pnl_inr": unrealized_pnl_inr,
+            "unrealized_pnl_pct": unrealized_pnl_pct,
+            "target_price": None,
+            "target_status": None,
+            "target_status_detail": "short exits are a tick-managed staged ladder, not a resting broker target order",
+            "source": "bot_tracked",
+            "side": "short",
         })
 
     # Untracked Kotak positions (2026-09-09, explicit user finding: Kotak's
@@ -12041,7 +12091,7 @@ def get_real_open_positions():
         import kotak_neo
         positions_resp = kotak_neo.positions()
         kotak_rows = positions_resp.get("data") or [] if isinstance(positions_resp, dict) else []
-        our_trdsyms = {r["kotak_trading_symbol"] for r in rows}
+        our_trdsyms = {r["kotak_trading_symbol"] for r in rows} | {r["kotak_trading_symbol"] for r in short_rows}
         for kr in kotak_rows:
             try:
                 if kr.get("exSeg") != "nse_cm":
@@ -12054,21 +12104,35 @@ def get_real_open_positions():
                 trd_sym = kr.get("trdSym")
                 if not trd_sym or trd_sym in our_trdsyms:
                     continue
-                buy_amt = float(kr.get("buyAmt", 0) or 0)
-                avg_price = round(buy_amt / fl_buy, 2) if fl_buy else None
+                # is_short (2026-09-30 fix, same sign convention already
+                # used by kotak_neo_reconcile_real_positions above): net_qty
+                # < 0 means flSellQty > flBuyQty, a short this app never
+                # opened. avg_price and the P&L sign both need the opposite
+                # side's amount/formula from a long, or an untracked short
+                # would silently show a fabricated (and backwards) avg
+                # price/P&L instead of the real one.
+                is_short = net_qty < 0
+                qty_abs = abs(net_qty)
+                if is_short:
+                    sell_amt = float(kr.get("sellAmt", 0) or 0)
+                    avg_price = round(sell_amt / fl_sell, 2) if fl_sell else None
+                else:
+                    buy_amt = float(kr.get("buyAmt", 0) or 0)
+                    avg_price = round(buy_amt / fl_buy, 2) if fl_buy else None
                 bare_symbol = trd_sym[:-3] + ".NS" if trd_sym.endswith("-EQ") else f"{trd_sym}.NS"
                 current_price = None
                 try:
                     current_price = float(fetch_ohlc(bare_symbol, "1d", "5m")["Close"].iloc[-1])
                 except Exception:
                     pass
-                invested_inr = round(avg_price * net_qty, 2) if avg_price is not None else None
-                unrealized_pnl_inr = (
-                    round((current_price - avg_price) * net_qty, 2)
-                    if current_price is not None and avg_price is not None else None
-                )
+                invested_inr = round(avg_price * qty_abs, 2) if avg_price is not None else None
+                unrealized_pnl_inr = None
+                if current_price is not None and avg_price is not None:
+                    unrealized_pnl_inr = round(
+                        ((avg_price - current_price) if is_short else (current_price - avg_price)) * qty_abs, 2,
+                    )
                 result.append({
-                    "symbol": bare_symbol, "kotak_trading_symbol": trd_sym, "qty": int(net_qty),
+                    "symbol": bare_symbol, "kotak_trading_symbol": trd_sym, "qty": qty_abs,
                     "entry_price": avg_price, "entry_order_id": None, "opened_at": None,
                     "day": ist_now().strftime("%Y-%m-%d"), "sl_order_id": None, "sl_trigger_price": None,
                     "target_order_id": None, "target_price": None,
@@ -12080,6 +12144,7 @@ def get_real_open_positions():
                     ),
                     "target_status": "not_bot_managed", "target_status_detail": None,
                     "source": "kotak_untracked",
+                    "side": "short" if is_short else "long",
                 })
             except (TypeError, ValueError):
                 continue
