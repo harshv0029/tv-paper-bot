@@ -1547,5 +1547,61 @@
     "rr_target": null,
     "rr_achieved": null,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "MAXHEALTH.NS",
+    "exit_time_utc": 1790760505.5789447,
+    "entry_price_native": 911.4000244140625,
+    "exit_price_native": 926.9,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 15.5,
+    "pnl_pct_of_capital": 0.004,
+    "exit_reason": "target_hit",
+    "rr_target": 3.0,
+    "rr_achieved": 3.57,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "COROMANDEL.NS",
+    "exit_time_utc": 1790761258.2818396,
+    "entry_price_native": 1757.300048828125,
+    "exit_price_native": 1746.5,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": -10.8,
+    "pnl_pct_of_capital": -0.003,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": -1.24,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "YESBANK.NS",
+    "exit_time_utc": 1790761548.5991814,
+    "entry_price_native": 20.959999084472656,
+    "exit_price_native": 20.95,
+    "currency": "INR",
+    "qty": 159.0,
+    "pnl_inr": -1.59,
+    "pnl_pct_of_capital": -0.0,
+    "exit_reason": "eod_squareoff",
+    "rr_target": 3.0,
+    "rr_achieved": -0.11,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "YESBANK.NS",
+    "exit_time_utc": 1790762225.9079437,
+    "entry_price_native": 20.96,
+    "exit_price_native": 20.95,
+    "currency": "INR",
+    "qty": 94.0,
+    "pnl_inr": 1.88,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "trend_weakened",
+    "rr_target": 3.0,
+    "rr_achieved": -0.05,
+    "strategy": "orb-universal-score"
   }
 ]
