@@ -386,3 +386,76 @@ of trusting the transfer pack's prose.
   own 2026-09-30 fix for the "blank cell" bug earlier this session - see
   that function's own docstring for why "viable-only" there would
   regress it).
+- **Thumb rule (2026-09-30, explicit user instruction): a single full-
+  universe validation replay is a BASELINE, never the last word - every
+  strategy backtest from now on also sweeps (a) parameter values, plus/
+  minus around the baseline, and (b) candle size where the strategy's own
+  design is bar-size-agnostic, before its result is treated as final for
+  a viability/go-no-go call.** Prompted by failed_breakout_short's own
+  baseline (run 36712440006, PFnet 0.657): its exit-reason breakdown
+  showed trail_stop_hit (71% of trades) as a clear net loser (PFnet
+  0.138) while trades surviving to the max_hold_timeout were extremely
+  profitable (PFnet 47.3) - a specific, data-motivated lever
+  (FAILED_BREAKOUT_ATR_STOP_MULT) worth sweeping, not something to notice
+  and leave on the table. This is NOT the "never tune blind off one
+  result" rule's exception - it's what that rule always meant by the
+  sanctioned alternative to blind tuning: a STRUCTURED, HYPOTHESIS-
+  DRIVEN sweep across several values, each one independently full-
+  universe validated calling the real main.py function (never a
+  reimplementation), with every result reported honestly - not eyeballing
+  one bad number and nudging a constant. See
+  `failed-breakout-short-atr-mult-sweep-research.yml` for the pattern:
+  same replay_symbol loop as the baseline replay, the ONE constant being
+  swept overridden on the `main` module before the loop runs (so the real
+  exit function reads it fresh, unmodified otherwise), matrixed across
+  several candidate values in one workflow dispatch.
+  Explicit sub-rule on holding period, same instruction: if a sweep or a
+  baseline's own exit-reason breakdown shows a specific holding-period
+  behavior is what actually drives the good numbers (here: surviving to
+  the full 30-day max-hold), and a parameter change can make that
+  intrinsic to the strategy's own design (e.g., a wider trail multiplier
+  so trades naturally run longer instead of getting stopped early) -
+  adopt whichever swept variant genuinely clears PFNET_LIVE_FLOOR and
+  register it under strategy_registry.py's viable category for
+  implementation, not just as a research curiosity. But prefer a
+  SHORTER average holding period over a longer one whenever a swept
+  variant achieves comparable-or-better PFnet with less time-in-trade -
+  faster capital turnover for the same or better edge is strictly
+  preferable, never chase a long hold for its own sake once a shorter,
+  equally-or-more-profitable alternative is on the table from the same
+  sweep.
+  Candle-size sweep is NOT universal - a strategy whose lookback/hold
+  constants are expressed in whole trading DAYS via bar-index arithmetic
+  (failed_breakout_short's own resistance-lookback/exclude-window/max-
+  hold constants, for example) isn't bar-size-agnostic without first
+  re-deriving every one of those constants in bar-count terms for the
+  new granularity - flag that honestly as a separate, larger piece of
+  work rather than silently skipping the sweep or faking it with a
+  resample. A strategy built bar-size-agnostically from the start (ATR/
+  bar-count based constants, like Gap-Up Fade) can sweep candle size
+  directly by just changing the replay's own INTERVAL/PERIOD.
+- **Thumb rule (2026-09-30, explicit user instruction: "Multiplying money
+  in shorter duration is always preferable... Make it part of thumb rule.
+  Always."): faster capital turnover is a standing, ALWAYS-ON preference
+  across every strategy decision in this codebase, not just the sweep
+  tie-break above.** The sweep-specific "prefer shorter hold over longer
+  when PFnet is comparable-or-better" rule immediately above is one
+  application of this; this rule generalizes it to every place a choice
+  gets made between strategies/variants of otherwise similar quality:
+  registering a strategy in `strategy_registry.py`, choosing which
+  viable strategy a symbol trades when more than one qualifies, ranking
+  within `viable_leaderboard()`/`leaderboard()`, and picking which
+  candidate to pursue further in research. The comparison is always
+  PFnet (or equivalent risk-adjusted edge) per unit of TIME held, not raw
+  PFnet alone - a strategy that turns capital over faster for the same or
+  better edge compounds more real money per calendar day and is always
+  preferable, all else equal.
+  This does NOT override PFNET_LIVE_FLOOR or any other viability gate -
+  a faster but non-viable (PFnet < 1) strategy is still non-viable and
+  still blocked from real money by `_is_strategy_viable_for_real_money`;
+  speed is a tie-breaker/ranking preference among strategies that already
+  clear the bar, never a reason to admit one that doesn't. It also does
+  NOT excuse skipping full-universe validation or the parameter/candle-
+  size sweep discipline above to chase a faster number quickly - "always
+  preferable" means always weighed honestly with real validated metrics,
+  never estimated or assumed to save time.

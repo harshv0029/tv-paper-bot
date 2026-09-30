@@ -820,6 +820,51 @@ REGISTRY: list[StrategyDef] = [
             "mirror has never been checked across candle sizes, 1d only so far."
         ),
     ),
+    StrategyDef(
+        name="failed_breakout_short",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # main.py.failed_breakout_entry_signal_short/failed_breakout_exit_reason_short exist but are not wired into any scan
+        metrics=Metrics(
+            pfnet=0.657, pfgross=0.827, win_rate_pct=34.88, n_trades=20879,
+            avg_net_inr=-549.84,
+            universe="full_2680 (2366/2680 fetched)",
+            run_ref="failed-breakout-short-validation-replay.yml run 36712440006 (2026-09-30, calls the real main.py functions)",
+        ),
+        source="main.py (failed_breakout_entry_signal_short/failed_breakout_exit_reason_short)",
+        evidence=(
+            "Full-universe run 36712440006: PFnet 0.657, PFgross 0.827, n=20,879, win_rate "
+            "34.88%, avg_net -Rs549.84/trade, avg held 16.4 days. SECOND-best short-sell "
+            "PFnet of the entire session (after gap_and_go_short_fade's 0.557 - this "
+            "actually beats it), on by far the largest short-sell sample tried (20,879 vs "
+            "gap_and_go_short_fade's 4,576). By exit reason: trail_stop_hit (n=14,830, 71% "
+            "of trades) is a clear net loser - PFnet 0.138, 12.99% win rate - the same "
+            "'the exit is the weak point, not the entry' pattern already seen on "
+            "idea4_no_target, gap_and_go_short_fade, and Minervini VCP. The trades that "
+            "survive to max_hold_timeout (n=5,725, PFnet 47.3, 89.4% win rate) or "
+            "data_end_forced_close (n=324, PFnet 9.96) are extremely profitable - pooled "
+            "PFnet is dragged below breakeven entirely by the majority trail_stop_hit "
+            "bucket exiting early."
+        ),
+        notes=(
+            "Classic 'bull trap' - price breaks above an established resistance ceiling, "
+            "the breakout fails to hold within a few sessions, price reverses back below "
+            "it. Short entry fires on the failure/reversal confirmation, not the breakout "
+            "itself (see _find_failed_breakout_setup's own docstring for the exact "
+            "resistance-lookback/exclude-window/min-breakout-pct/max-days-since-breakout "
+            "parameters). Still below PFNET_LIVE_FLOOR and not wired anywhere live, but "
+            "the same recurring lead as gap_and_go_short_fade/idea4_no_target: the "
+            "chandelier-trail exit (FAILED_BREAKOUT_ATR_STOP_MULT=2.0) may be cutting "
+            "winners off before the move that actually pays out (max_hold_timeout trades "
+            "are ~340x more profitable per the PFnet spread) - worth a wider-trail or "
+            "later-activation exit variant in a future pass, never tuned blind off this "
+            "one result alone. 2026-09-30, explicit user instruction ('Read about it and "
+            "backtest'). Never checked across candle sizes - 1d only so far, its own "
+            "natural timeframe for a multi-day breakout/failure pattern."
+        ),
+    ),
 
     # ---- FUTURES / OPTIONS ------------------------------------------------
     # No entries: kotak_real_orders.py has NO futures or options order-
