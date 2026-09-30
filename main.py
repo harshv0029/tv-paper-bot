@@ -3473,6 +3473,175 @@ def minervini_vcp_exit_reason(
     return None, new_running_max
 
 
+# ---- Livermore two-pullback confirmation filter (2026-09-30) --------------
+#
+# Explicit user instruction: build an entry-timing FILTER on top of
+# minervini_vcp_entry_signal per docs/minervini_book_notes.txt's "THE
+# LIVERMORE SYSTEM" note (~line 395): don't buy the first breakout above a
+# downtrend line - wait for (a) the break, (b) a pullback (reaction low
+# #1), (c) a rally, (d) a second pullback (reaction low #2), then buy only
+# once price EXCEEDS THE HIGH OF THE SECOND RALLY. This is a strictly
+# later, stricter bar than "stayed above the pivot" - it requires a
+# genuine higher-high above a specific confirmed prior peak formed AFTER
+# the second pullback, not merely price holding up.
+#
+# DISCLOSED ALGORITHM CHOICES (no single canonical definition exists for
+# "reaction low"/"rally" off a bar-by-bar close/high/low series - matching
+# this session's established style of disclosing a proxy explicitly, e.g.
+# the Power Play short mirror's log-symmetric launch-threshold comment
+# above):
+#
+# 1. "Reaction low" / "rally high" = a fractal swing point: bar j's Low
+#    (High) is the min (max) within +/-LIVERMORE_VCP_FRACTAL_WIDTH bars -
+#    the exact same swing-point convention _find_minervini_vcp_pivot
+#    already uses for the base VCP's own contraction legs, just with its
+#    own (tighter) width. A tighter width than the base pivot's
+#    MINERVINI_PIVOT_FRACTAL_WIDTH=5 is used (3, not 5) because the
+#    post-breakout reaction swings this filter is timing are typically
+#    faster/shorter than the multi-week contraction legs that built the
+#    base itself - a disclosed choice, not a derived one.
+# 2. The "downtrend break" (step a) is reused exactly as instructed:
+#    minervini_vcp_entry_signal's OWN pivot breakout condition (Trend
+#    Template + a valid tightening base + a volume-surge close above the
+#    pivot high), reconstructed bar-by-bar over the trailing
+#    LIVERMORE_VCP_BREAKOUT_LOOKBACK_DAYS window by calling
+#    minervini_vcp_entry_signal on each successively larger historical
+#    window - i.e. "would the live scan have fired on that day" - not a
+#    separate reimplementation. The MOST RECENT qualifying day in that
+#    window is used as the anchor, so a stale, long-expired breakout many
+#    weeks back never gets treated as still "in play".
+#    One disclosed simplification: this historical reconstruction always
+#    passes rs_percentile=None (skipping the RS gate) because a per-day
+#    historical RS-percentile table isn't available inside a single-row-
+#    evaluated entry_fn - the exact same "None skips the RS gate" fallback
+#    minervini_vcp_entry_signal's own docstring already documents for the
+#    no-index-reference case. TODAY's own RS gate is still fully enforced
+#    below via _minervini_trend_template_ok(df, rs_percentile).
+# 3. Sequence required, in strict chronological order, after the breakout
+#    bar: swing LOW (reaction low #1) -> swing HIGH (rally #1) -> swing
+#    LOW (reaction low #2) -> swing HIGH (the "second rally" high). Entry
+#    fires the day price closes above that second rally's high. No rally
+#    is required to already exist between the breakout and reaction low
+#    #1 - the breakout itself is the move that gets pulled back from, per
+#    the book's own step ordering.
+# 4. FAILED RETEST INVALIDATES, IT DOES NOT JUST DELAY: if price closes
+#    below the ORIGINAL base pivot's own stop level (final_leg_low, the
+#    exact same level minervini_vcp_entry_signal itself would have used as
+#    a stop) at ANY point between the breakout and today, the setup is
+#    treated as a failed breakout, not a deeper-but-still-valid pullback -
+#    reusing the base signal's own risk level rather than inventing a new
+#    invalidation threshold for this filter. This deliberately does not
+#    reset and re-search for a fresh breakout within the same call; a
+#    fresh breakout day, if one occurs later, is picked up on its own by
+#    the backward scan on a later date.
+# 5. Stop-loss for a confirmed entry is reaction low #2 (the more recent,
+#    tighter support the price has actually held above through the second
+#    pullback) rather than the original base pivot's final_leg_low - a
+#    later entry naturally earns a nearer stop, which is the trade-off the
+#    book itself frames explicitly (worse average entry price, less
+#    whipsaw).
+LIVERMORE_VCP_FRACTAL_WIDTH = 3
+LIVERMORE_VCP_BREAKOUT_LOOKBACK_DAYS = 60
+
+
+def _find_fractal_swings(highs: np.ndarray, lows: np.ndarray, lo: int, hi: int, width: int) -> list:
+    """Returns swing points in [lo+width, hi-width] as a list of
+    (idx, kind, value) sorted by idx, where kind is "high" or "low" and a
+    bar qualifies if its High (Low) is the max (min) within +/-width bars
+    - the same fractal test _find_minervini_vcp_pivot uses, factored out
+    so this filter can parameterize its own width."""
+    swings = []
+    for j in range(lo + width, hi - width + 1):
+        window_hi = highs[j - width: j + width + 1]
+        window_lo = lows[j - width: j + width + 1]
+        if highs[j] == np.max(window_hi):
+            swings.append((j, "high", highs[j]))
+        if lows[j] == np.min(window_lo):
+            swings.append((j, "low", lows[j]))
+    return sorted(swings, key=lambda t: t[0])
+
+
+def _find_livermore_breakout(df: pd.DataFrame) -> tuple:
+    """Scans backward from yesterday over LIVERMORE_VCP_BREAKOUT_LOOKBACK_
+    DAYS bars for the MOST RECENT day on which minervini_vcp_entry_signal
+    (rs_percentile=None - see this section's header comment, point 2)
+    would have fired using only the data available up to that day. Returns
+    (breakout_idx, invalidate_level) for the first (most recent) match, or
+    (None, None) if none is found in the window."""
+    n = len(df)
+    i = n - 1
+    earliest = max(0, i - LIVERMORE_VCP_BREAKOUT_LOOKBACK_DAYS)
+    for b in range(i - 1, earliest - 1, -1):
+        sub = df.iloc[: b + 1]
+        if len(sub) < 50:
+            break
+        sig = minervini_vcp_entry_signal(sub, rs_percentile=None)
+        if sig is not None:
+            return b, sig["stop_loss"]
+    return None, None
+
+
+def minervini_vcp_entry_signal_livermore_confirmed(df: pd.DataFrame, rs_percentile: float | None = None) -> dict | None:
+    """Evaluates ONLY the last row of `df` (today) for a Livermore two-
+    pullback-confirmed Minervini VCP entry - see this section's header
+    comment for the full disclosed algorithm and every design choice.
+    Returns None if no confirmed entry fires today, else
+    {"entry_price", "stop_loss", "atr_at_entry"} in the exact same shape
+    minervini_vcp_entry_signal itself returns, for the caller to size and
+    open a position with. Because this waits for a full two-pullback
+    cycle to complete AFTER the base signal's own breakout day, it always
+    fires strictly later (if at all) than minervini_vcp_entry_signal would
+    have on the same breakout - the later, worse-but-safer entry price the
+    book itself trades off against reduced whipsaw."""
+    if _minervini_trend_template_ok(df, rs_percentile) is not True:
+        return None
+    n = len(df)
+    i = n - 1
+    breakout_idx, invalidate_level = _find_livermore_breakout(df)
+    if breakout_idx is None:
+        return None
+
+    closes = df["Close"].to_numpy(dtype=float)
+    highs = df["High"].to_numpy(dtype=float)
+    lows = df["Low"].to_numpy(dtype=float)
+
+    # Point 4: a failed retest invalidates the setup outright.
+    if np.min(closes[breakout_idx + 1: i + 1]) < invalidate_level:
+        return None
+
+    width = LIVERMORE_VCP_FRACTAL_WIDTH
+    swings = _find_fractal_swings(highs, lows, breakout_idx + 1, i, width)
+
+    reaction_low_1 = rally_high_1 = reaction_low_2 = rally_high_2 = None
+    stage = "seek_low_1"
+    for idx, kind, value in swings:
+        if stage == "seek_low_1" and kind == "low":
+            reaction_low_1 = (idx, value)
+            stage = "seek_high_1"
+        elif stage == "seek_high_1" and kind == "high":
+            rally_high_1 = (idx, value)
+            stage = "seek_low_2"
+        elif stage == "seek_low_2" and kind == "low":
+            reaction_low_2 = (idx, value)
+            stage = "seek_high_2"
+        elif stage == "seek_high_2" and kind == "high":
+            rally_high_2 = (idx, value)
+            break
+
+    if rally_high_2 is None:
+        return None
+    if closes[i] <= rally_high_2[1]:
+        return None
+
+    stop_loss = reaction_low_2[1]
+    if stop_loss >= closes[i]:
+        return None
+    atr = _swing_atr(df, n=MINERVINI_ATR_N)
+    if np.isnan(atr[i]) or atr[i] <= 0:
+        return None
+    return {"entry_price": closes[i], "stop_loss": stop_loss, "atr_at_entry": float(atr[i])}
+
+
 # ---- Minervini VCP short mirror (2026-09-29) -------------------------------
 #
 # Explicit user instruction ("Prep short mirror for others too") per
@@ -3638,6 +3807,246 @@ def minervini_vcp_exit_reason_short(
     if held_days >= MINERVINI_MAX_HOLD_DAYS:
         return "max_hold_timeout", new_running_min
     return None, new_running_min
+
+
+# 2R/3R move-to-breakeven exit variant (2026-09-29, explicit user
+# instruction: build a move-to-breakeven refinement to compare against the
+# existing minervini_vcp_exit_reason chandelier trail). Book-literal
+# version, per docs/minervini_book_notes.txt's chapter 13 notes
+# ("BREAKEVEN-STOP AT 2R/3R... once unrealized gain reaches 2x-3x the
+# position's OWN initial risk (entry minus initial stop), move the stop to
+# breakeven, full stop - not a trailing/chandelier mechanism. Simpler and
+# more literal than the chandelier trail... WORTH TESTING as an alternative
+# exit against the existing chandelier trail"): this is a straight
+# substitute exit, NOT a hybrid with the chandelier trail - before the
+# R-threshold is reached the stop is just the flat initial_stop (no ATR
+# trailing at all in this variant); once reached, the stop becomes
+# entry_price (breakeven) and stays there. One function, parameterized by
+# `breakeven_r_multiple` - intended call sites are MINERVINI_BREAKEVEN_R_2
+# (2R variant) and MINERVINI_BREAKEVEN_R_3 (3R variant), each exercised by
+# its own validation replay workflow
+# (minervini-vcp-breakeven-2r-validation-replay.yml,
+# minervini-vcp-breakeven-3r-validation-replay.yml) run head-to-head
+# against minervini_vcp_exit_reason's own chandelier-trail replay.
+MINERVINI_BREAKEVEN_R_2 = 2.0
+MINERVINI_BREAKEVEN_R_3 = 3.0
+
+
+def minervini_vcp_exit_reason_breakeven(
+    df: pd.DataFrame, entry_day: str, initial_stop: float, atr_at_entry: float,
+    running_max_close: float, entry_price: float, breakeven_r_multiple: float,
+) -> tuple:
+    """Book-literal 2R/3R breakeven-stop (chapter 13) - a straight
+    ALTERNATIVE to minervini_vcp_exit_reason's ATR chandelier trail, not a
+    hybrid of the two. Stop is flat at `initial_stop` until the running
+    peak close since entry has gained at least `breakeven_r_multiple` x the
+    trade's initial risk (entry_price - initial_stop) over entry_price;
+    once that happens the stop becomes `entry_price` (breakeven), full
+    stop, and never reverts (checked against `running_max_close`, which
+    only ever ratchets up, so once true it stays true for every later
+    call). `atr_at_entry` is accepted only to keep the same call signature
+    as minervini_vcp_exit_reason - this variant has no ATR/chandelier
+    component at all, per the book's own "simpler and more literal"
+    framing. Same MINERVINI_MAX_HOLD_DAYS timeout and
+    (exit_reason_or_None, updated_running_max_close) return convention as
+    minervini_vcp_exit_reason."""
+    if len(df) == 0:
+        return None, running_max_close
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].astype(str).to_numpy()
+    i = len(df) - 1
+    new_running_max = max(running_max_close, closes[i])
+    initial_risk = entry_price - initial_stop
+    breakeven_triggered = (
+        initial_risk > 0 and (new_running_max - entry_price) >= breakeven_r_multiple * initial_risk
+    )
+    current_stop = entry_price if breakeven_triggered else initial_stop
+    if closes[i] <= current_stop:
+        return "stop_hit", new_running_max
+    held_days = int(np.sum(dates > entry_day))
+    if held_days >= MINERVINI_MAX_HOLD_DAYS:
+        return "max_hold_timeout", new_running_max
+    return None, new_running_max
+
+
+# ---- Minervini VCP scale-in tranche sizing ---------------------------------
+#
+# 2026-09-29, explicit user task: a position-sizing REFINEMENT on top of
+# minervini_vcp_entry_signal/minervini_vcp_exit_reason (both stay completely
+# unmodified - this only changes how much of the intended full position is
+# actually deployed and at what average price, echoing Minervini's own
+# pyramiding idea: don't commit the whole size the instant the signal fires;
+# add to a working position only once it confirms.
+#
+# CORRECTED 2026-09-30 against the actual book source
+# (docs/minervini_book_notes.txt, CHAPTER 13 "RISK MANAGEMENT PART 2" reading
+# notes, item 2 "SCALE-IN POSITION CONSTRUCTION"), quoted directly: "split
+# entry into 2-3 tranches (e.g. 2%/2%/1% of capital) added ONLY as price
+# confirms with an open profit - 'never trust the first price unless the
+# position shows a profit' - stop set off the blended average cost, never
+# averaging DOWN into a loss." The first version of this function hardcoded
+# exactly 2 tranches and a 1.0x-ATR add-trigger that doesn't match the book's
+# much lower bar ("any open profit", not a full ATR move) - both fixed below.
+MINERVINI_SCALE_IN_TRANCHE_PCTS = (0.4, 0.4, 0.2)
+# ^ book's own worked example is 2%/2%/1% of capital - three unequal,
+# front-loaded tranches. Normalized to fractions of the intended full
+# position (2/5, 2/5, 1/5) since this function deals in fractions, not
+# absolute capital percentages; the caller applies these fractions to
+# whatever rupee/qty sizing it already computed. len() is 3 here but the
+# function itself makes no assumption about tranche count - any list of
+# positive fractions summing to 1.0 works (e.g. a 2-tranche (0.5, 0.5) call
+# is still supported, just no longer hardcoded as the only option).
+MINERVINI_SCALE_IN_ADD_ATR_MULT = 0.25
+# ^ THE ONE PLACE THIS FUNCTION HAD TO PICK A CONCRETE NUMBER FOR A FUZZY
+# BOOK PHRASE, disclosed explicitly (same documentation style as Power
+# Play's own mechanical-simplification comments above): the book says to add
+# only once the position "shows a profit" / has "an open profit" relative to
+# its current blended cost - it gives no numeric threshold. A literal
+# `close > avg_cost` (i.e. add_trigger_atr_mult=0) would let a single tick of
+# noise trigger an add with no real confirmation, which isn't in the spirit
+# of "confirms". 0.25x the entry-time ATR is picked as a small buffer that
+# filters out pure noise while staying well short of a real confirmation
+# move (contrast: the ORIGINAL, WRONG value here was 1.0x ATR, a full
+# confirmation-grade move the book never asked for) - not backtest-tuned,
+# a starting value to validate like every other undocumented constant in
+# this codebase (CLAUDE.md: never tune blind off one replay result).
+MINERVINI_SCALE_IN_ADD_WITHIN_BARS = 10   # add-window: every tranche after the first must trigger within 10 bars of entry, else it never fills
+
+
+def _scale_in_tranches(
+    entry_price: float,
+    atr_at_entry: float,
+    stop_loss: float,
+    closes_since_entry,
+    tranche_pcts=MINERVINI_SCALE_IN_TRANCHE_PCTS,
+    add_trigger_atr_mult: float = MINERVINI_SCALE_IN_ADD_ATR_MULT,
+    add_within_bars: int = MINERVINI_SCALE_IN_ADD_WITHIN_BARS,
+) -> dict:
+    """Pure, DB/I-O-free sizing helper: decides how much of an intended full
+    Minervini VCP position actually gets deployed, given that the position is
+    split into N tranches (N = len(tranche_pcts), book's own guidance: 2-3)
+    instead of committed in one shot at entry.
+
+    - `tranche_pcts` is an ordered sequence of fractions of the intended full
+      position, summing to 1.0 (e.g. the book's own 2%/2%/1% example
+      normalizes to (0.4, 0.4, 0.2) - see MINERVINI_SCALE_IN_TRANCHE_PCTS).
+      Any length >= 1 is accepted; the function makes no assumption of
+      exactly 2.
+    - Tranche 0 (`tranche_pcts[0]`) always fills immediately at `entry_price`
+      - this is the existing, validated minervini_vcp_entry_signal fill,
+      never skipped.
+    - Each subsequent tranche i (1, 2, ...) fills ONLY once the close price
+      first shows "an open profit" against the position's CURRENT BLENDED
+      AVERAGE COST (not the original entry_price - this matters once a
+      second tranche has already raised the average): i.e. once
+      `close >= running_avg_cost + add_trigger_atr_mult * atr_at_entry`,
+      within `add_within_bars` bars of entry (a single shared window for the
+      whole scale-in, not reset per tranche). If a tranche's trigger is never
+      reached before the window closes (or before the stop is hit), it and
+      every tranche after it simply never fill - the final position is
+      whatever prefix of tranches did fill (a smaller, right-sized position,
+      not a failed trade).
+
+    Because each tranche's trigger is `running_avg_cost + a positive buffer`,
+    and running_avg_cost only ever starts at entry_price and rises (it is a
+    weighted average that only mixes in strictly-higher fill prices), every
+    fill is structurally guaranteed to sit above both the current average AND
+    the original entry_price - i.e. this can never average DOWN into a loss,
+    matching the book's explicit rule. The actual live/backtested protective
+    stop for the open position must likewise be computed off this running
+    blended average cost once more than one tranche has filled, not off
+    tranche 0's entry_price alone - that recomputation is the CALLER's
+    responsibility (this function only reports the average cost), and the
+    validation-replay workflow that consumes this function does so.
+
+    `closes_since_entry` is the close-price path for the bars AFTER entry
+    (bar 1, 2, ... - it must NOT include the entry bar's own close, which is
+    `entry_price` by definition). Only the first `add_within_bars` elements
+    are considered; extra elements beyond the window are ignored.
+
+    Precedence when both the stop and an add-trigger could apply (documented
+    explicitly, since only close prices are available here - no intrabar
+    high/low): bars are walked in order, and on each bar the STOP CHECK IS
+    EVALUATED BEFORE THE TRIGGER CHECK. If a bar's close is at or below
+    `stop_loss`, every tranche not yet filled is permanently disqualified
+    from that bar onward (the position should already be getting exited by
+    minervini_vcp_exit_reason's own stop logic at that point) even if that
+    same bar's close would otherwise have also cleared the next tranche's
+    trigger. This is the conservative choice: it never lets a later tranche
+    get added into a position that has already (or simultaneously) hit its
+    stop.
+
+    Returns a dict:
+      - "tranche_pcts": the input `tranche_pcts`, echoed back as a tuple.
+      - "filled_fractions": list, same length as `tranche_pcts`, the fraction
+        actually filled for each tranche slot (equal to tranche_pcts[i] if
+        filled, else 0.0).
+      - "fill_prices": list, same length, the close price each tranche filled
+        at (tranche_pcts[0] is always `entry_price`), or None for a slot that
+        never filled.
+      - "fill_bars": list, same length, the 1-based bar index (into
+        `closes_since_entry`) each tranche filled on (0 for tranche 0, since
+        it fills at entry itself), or None for a slot that never filled.
+      - "n_tranches_filled": how many tranche slots actually filled (always
+        >= 1).
+      - "total_filled_pct": sum of `filled_fractions` (the fraction of the
+        intended full position actually deployed overall).
+      - "avg_entry_price": the size-weighted average entry price across
+        whichever tranche(s) actually filled (always well-defined since
+        tranche 0 always fills) - this IS the "blended average cost" the
+        book says the live stop must be set off of.
+
+    Callers combine this with the existing risk-based intended-quantity
+    calculation (risk_amount_inr / stop_dist, capped by usable_capital_inr) -
+    this function only decides what FRACTION of that intended quantity is
+    actually deployed, and at what blended price; it never computes rupee
+    amounts or share counts itself.
+    """
+    tranche_pcts = tuple(tranche_pcts)
+    if len(tranche_pcts) == 0:
+        raise ValueError("tranche_pcts must have at least one element")
+    if any(p <= 0.0 for p in tranche_pcts):
+        raise ValueError("tranche_pcts elements must all be positive")
+    if not np.isclose(sum(tranche_pcts), 1.0, atol=1e-6):
+        raise ValueError(f"tranche_pcts must sum to 1.0, got {sum(tranche_pcts)}")
+
+    n = len(tranche_pcts)
+    filled_fractions = [tranche_pcts[0]] + [0.0] * (n - 1)
+    fill_prices = [entry_price] + [None] * (n - 1)
+    fill_bars = [0] + [None] * (n - 1)
+    avg_cost = entry_price
+    filled_weight = tranche_pcts[0]
+
+    next_idx = 1
+    if next_idx < n:
+        path = np.asarray(closes_since_entry, dtype=float)[:add_within_bars]
+        for bar_idx, close in enumerate(path, start=1):
+            if next_idx >= n:
+                break
+            if close <= stop_loss:
+                # Stop already hit (or simultaneously hit) - every remaining
+                # tranche is disqualified from here on; the position is
+                # being exited.
+                break
+            trigger_price = avg_cost + add_trigger_atr_mult * atr_at_entry
+            if close >= trigger_price:
+                pct = tranche_pcts[next_idx]
+                filled_fractions[next_idx] = pct
+                fill_prices[next_idx] = float(close)
+                fill_bars[next_idx] = bar_idx
+                avg_cost = (avg_cost * filled_weight + float(close) * pct) / (filled_weight + pct)
+                filled_weight += pct
+                next_idx += 1
+
+    return {
+        "tranche_pcts": tranche_pcts,
+        "filled_fractions": filled_fractions,
+        "fill_prices": fill_prices,
+        "fill_bars": fill_bars,
+        "n_tranches_filled": sum(1 for f in filled_fractions if f > 0.0),
+        "total_filled_pct": sum(filled_fractions),
+        "avg_entry_price": avg_cost,
+    }
 
 
 # ---- Power Play / High Tight Flag (Minervini, chapter 10) -----------------
