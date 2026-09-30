@@ -15651,14 +15651,22 @@ def strategy_leaderboard():
     """Read-only view onto strategy_registry.py's REGISTRY (2026-09-29,
     explicit user instruction: "print these columns... at the end of
     live and opened and closed trades... rank strategy pfnet and win %
-    all from your backtest") - one leaderboard row list per TradeCategory,
-    each already carrying `viable` (PFnet >= PFNET_LIVE_FLOOR) so a
-    strategy ranked #1 in a pool is never mistaken for "profitable" by a
-    page rendering this. No live trading behavior changes here - this is
-    the same "registering != trading" registry every other reader of
-    strategy_registry.py already treats as research/tracking-only."""
+    all from your backtest") - one leaderboard row list per TradeCategory.
+
+    2026-09-30, explicit user instruction ("Keep only viable ones on
+    trade view... I do not want just top 5, but I want all that qualify
+    pfnet >= 1 in backtesting"): switched from sr.leaderboard() (top-N,
+    includes non-viable rows) to sr.viable_leaderboard() (every strategy
+    in the category clearing PFnet >= PFNET_LIVE_FLOOR, unbounded, no
+    top-N cap) - see that function's own docstring for why this is a
+    separate function rather than a change to TOP_N_PER_CATEGORY itself
+    (that constant bounds an unrelated live-monitoring-cost concern, not
+    this dashboard display). No live trading behavior changes here -
+    this is the same "registering != trading" registry every other
+    reader of strategy_registry.py already treats as research/
+    tracking-only."""
     import strategy_registry as sr
-    return {cat.value: sr.leaderboard(cat, top_n=sr.TOP_N_PER_CATEGORY) for cat in sr.TradeCategory}
+    return {cat.value: sr.viable_leaderboard(cat) for cat in sr.TradeCategory}
 
 
 @app.get("/strategy-info")
