@@ -63,6 +63,7 @@ def _run_entry(sl_ok: bool):
                                      "fill_price_confirmed": True}), \
                  patch("kotak_real_orders.place_real_stop_loss",
                        return_value={"ok": sl_ok, "order_id": "SL1", "trigger_price": 90.0, "detail": "rejected"}), \
+                 patch("main._is_strategy_viable_for_real_money", return_value=True), \
                  patch("kotak_real_orders.place_real_target") as mock_target:
                 mock_target.return_value = {"ok": True, "order_id": "T1", "target_price": 130.0}
                 main._maybe_place_real_entry(conn, "TESTSTOCK.NS")

@@ -287,3 +287,102 @@ of trusting the transfer pack's prose.
   historical record of the gap and the reasoning that motivated closing
   it, not because the gap is still open.
   rather than assuming it automatically is.
+- **Thumb rule (2026-09-30, explicit user instruction, second live
+  occurrence of the MFSL.NS pattern - TCS.NS and INDIANB.NS both sat with
+  NO live resting stop-loss at Kotak for a real stretch of market time,
+  found by the user directly on the Kotak app, not by this app's own
+  dashboard): the "unprotected position backcheck every 5 min during
+  market hours" rule above must never depend solely on an external
+  scheduler's own reliability.** Root cause of this second occurrence:
+  the entire guarantee lived in `kotak-reconcile.yml`'s GitHub Actions
+  cron (`*/5 3-10 * * 1-5`) - checking that workflow's own `event:
+  schedule` run history (not `workflow_dispatch`) showed real gaps of
+  5-8+ hours between fires on 2026-09-28/29/30, not the ~5 min the cron
+  string calls for. GitHub's own docs warn scheduled workflows "can be
+  delayed during periods of high load," and this repo dispatches an
+  unusually high volume of other workflow runs - empirically, GitHub was
+  not honoring this repo's `*/5` schedule at anywhere near that cadence.
+  Fix: `_scheduler_tick` (the in-process ~30s loop already proven
+  reliable all session - it's what runs `_maybe_sync_real_stop_loss`/
+  `_maybe_sync_real_stop_loss_short` every tick) now ALSO calls
+  `_reconcile_real_positions_core(adopt="*")` every
+  `_UNPROTECTED_BACKCHECK_EVERY_N_TICKS` ticks (~5 min), so the 5-min
+  guarantee is enforced by this process itself, not by any external
+  scheduler. `kotak-reconcile.yml`'s cron stays as a secondary check plus
+  the durable git-log audit trail (`docs/real_reconcile_log.json`), never
+  removed just because the in-process path now covers the primary
+  guarantee. Applies going forward: any future "must run periodically"
+  real-money safety rule in this file should default to an in-process
+  scheduler-tick mechanism first, and treat a GitHub Actions cron as a
+  secondary/audit layer only - not the other way around.
+- **Thumb rule (2026-09-30, explicit user instruction): every request
+  this app sends to Kotak to place, modify, or cancel a real order must
+  be based on freshly-fetched live account state, not a trusted local
+  cache.** The user's own words: "Before each request in order book, U
+  must fetch All live trades taken and All order requested parked at
+  trading account side. Based on that and ur logic, U request for next
+  order." Concretely: before deciding the next real-order action for a
+  symbol, fetch Kotak's own `positions()`/`order_report()` (or reuse a
+  same-request fetch no older than that decision) rather than trusting
+  this app's own DB columns (`sl_order_id`, `real_positions.qty`, etc.)
+  as ground truth for whether a resting order is actually still live.
+  This is already the pattern the 2026-09-30 short per-tick engine and
+  `_reconcile_real_positions_core` follow (`_real_sl_order_is_live`
+  checks the live order_report, not just whether `sl_order_id` is
+  non-NULL locally; `_reconcile_real_positions_core` re-fetches
+  `order_rows` fresh immediately before its own unprotected-check so a
+  position it just healed isn't flagged stale) - this rule makes that
+  discipline explicit and standing for every current AND future real-
+  order code path, not just the ones that happened to need it so far.
+  Never add a new real-order code path that decides its next action off
+  a locally-cached order/position field without a live Kotak fetch (or a
+  fetch fresh enough within the same request) to confirm it first.
+- **Thumb rule (2026-09-30, explicit user instruction, confirmed via
+  AskUserQuestion after being shown the actual consequence: "Yes -
+  disable non-viable live strategies now"): a NEW real position may only
+  ever be opened for a strategy whose strategy_registry.py metrics clear
+  PFnet >= PFNET_LIVE_FLOOR (1.0), across every category (buy, short_sell,
+  swing, futures, options).** This is `_is_strategy_viable_for_real_money`
+  (main.py), wired into the three NEW-entry functions
+  (`_maybe_place_real_entry`, `_maybe_place_real_short_entry`,
+  `_maybe_place_real_swing_entry`) via `_STRATEGY_TAG_TO_REGISTRY_NAME`'s
+  strategy-tag-to-registry-name mapping - fails CLOSED on anything
+  unrecognized or unmeasured, since real money should never go where
+  there's no evidence of clearing breakeven. It is a PERMANENT, registry-
+  driven gate, not a one-time manual disable: if a currently-blocked
+  strategy is later re-validated at PFnet >= 1 (or a new one clears it),
+  the gate opens automatically the next tick with no code change; a
+  currently-live strategy that later degrades below the floor is blocked
+  automatically too. Deliberately NOT a new env-var kill switch (this
+  file's own "ask before creating any new real-trading kill switch"
+  rule, and no new switch was asked for here) - it only ever governs
+  whether a brand NEW position opens; it is never referenced from an
+  exit/SL-sync/auto-heal function, so a position already open when its
+  strategy fails the floor is still fully protected/managed/closeable,
+  never orphaned by this gate.
+  As of 2026-09-30, this means REAL intraday trading is effectively
+  paused on both sides: `universal_score` (the only strategy tag every
+  WATCHLIST symbol uses for long intraday, PFnet 0.05) and both short
+  engines (`range_short_staged_ladder` 0.21, `trend_down_momentum_short`
+  0.09) are all blocked - nothing currently registered replaces them.
+  Real swing trading continues for `gap_and_go` (PFnet 1.65, viable) but
+  NOT for `minervini_vcp` (PFnet 0.908, just under the floor - confirmed
+  via that registry entry's own `source` field pointing at the exact live
+  `minervini_vcp_entry_signal`/`minervini_vcp_exit_reason` functions,
+  never guessed from the name). Futures/options have no real order-
+  placement path at all regardless of this gate. Paper trading (the
+  non-real engine) is completely unaffected - this gate only ever
+  touches whether a paper signal gets MIRRORED as a real order.
+  Companion change, same instruction: the trade-view dashboard's
+  `/strategy-leaderboard` now calls `strategy_registry.viable_leaderboard()`
+  instead of `leaderboard(top_n=5)` - every strategy per category that
+  clears the floor, unbounded, never just a top-5-by-rank view that could
+  include a non-viable strategy. Deliberately did NOT touch
+  `TOP_N_PER_CATEGORY`/`leaderboard()`/`top_strategies_for_monitoring()`
+  themselves (a separate, unrelated live-monitoring-cost-bounding
+  mechanism per the 2026-09-29 "25 checks per cycle" thumb rule) or
+  `all_strategies_info()`'s own per-trade-row Category/Rank lookup
+  (deliberately still shows a non-viable strategy's actual rank, per its
+  own 2026-09-30 fix for the "blank cell" bug earlier this session - see
+  that function's own docstring for why "viable-only" there would
+  regress it).

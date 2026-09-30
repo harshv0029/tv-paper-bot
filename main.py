@@ -8669,21 +8669,28 @@ def auto_signal(
 # a reasonable next step if this still isn't enough.
 NSE_STOCK_DEFAULT_PARAMS = {
     "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-    # squareoff_min=915 (3:15pm IST) - reverted 2026-09-22 (was briefly 912/
-    # 3:12pm earlier the same day). Live evidence the same afternoon
-    # (WAAREEENER.NS/NATIONALUM.NS) showed exits landing right in NSE's
-    # ~3:16-3:20pm Closing-Auction-Session (CAS) transition, where a normal
-    # LIMIT/SL-LIMIT sell - and even a plain MARKET sell - gets rejected
-    # ("OMS: Trading session is in Transition to CAS session") regardless
-    # of exact cutoff minute; both bot attempts and a manual mobile order
-    # were rejected the same way until the transition cleared. Explicit
-    # user instruction: keep exit at 3:15pm, stop NEW entries a minute
-    # earlier (3:14pm, see ENTRY_CUTOFF_BEFORE_SQUAREOFF_MINUTES below) so
-    # a fresh position never opens with almost no runway before squareoff,
-    # and add a same-rejection-reason retry at market price (see
-    # kotak_real_orders._is_cas_transition_rejection) rather than relying
-    # on the cutoff minute alone to dodge the CAS window.
-    "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
+    # squareoff_min=914 (3:14pm IST) - explicit user instruction 2026-09-30
+    # ("keep 3:14pm as exit time... all intraday exit at market rate"),
+    # superseding the 2026-09-22 decision that had reverted an earlier
+    # 912/3:12pm attempt back to 915/3:15pm. That 2026-09-22 finding is
+    # still true and worth restating: live evidence that day
+    # (WAAREEENER.NS/NATIONALUM.NS) showed exits landing in NSE's
+    # ~3:16-3:20pm Closing-Auction-Session (CAS) transition, where even a
+    # plain MARKET sell got rejected ("OMS: Trading session is in
+    # Transition to CAS session") regardless of the exact cutoff minute -
+    # so moving squareoff a minute earlier is not itself evidenced to
+    # dodge CAS. The user was shown this exact history and asked to
+    # proceed anyway. What this change does NOT need to add: the real
+    # exit order was ALREADY "market rate" before this change and stays
+    # that way - kotak_real_orders.place_real_exit/place_real_short_cover
+    # both use order_type="MKT" unconditionally for every exit_reason,
+    # eod_squareoff included; the existing CAS-transition-rejection
+    # retry-at-market (kotak_real_orders._is_cas_transition_rejection)
+    # is the real safety net here and is unchanged. Entry cutoff moves
+    # with it automatically via ENTRY_CUTOFF_BEFORE_SQUAREOFF_MINUTES
+    # below (914 - 1 = 913 = 3:13pm, matching the user's own stated last-
+    # entry time) - no separate change needed for that.
+    "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 914,
     "trade_weekends": False, "currency": "INR",
     "risk_pct": 1.0, "stop_pct": 1.0,  # unproven -> half ceiling until evidenced, same as before
 }
@@ -8946,14 +8953,17 @@ WATCHLIST = [
     # symbol where evidence supports it. NIFTY/BANKNIFTY/SENSEX run the
     # full evidence-backed ceiling (2%) - real 60-day backtest evidence
     # behind this exact strategy.
+    # squareoff_min=914 (3:14pm IST) - see NSE_STOCK_DEFAULT_PARAMS's own
+    # 2026-09-30 comment for the full history/reasoning; these three index
+    # configs share the same NSE intraday squareoff window.
     {"symbol": "^NSEI", "orb_minutes": 30, "sma_fast": 5, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 914,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^NSEBANK", "orb_minutes": 5, "sma_fast": 9, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 914,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 914,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
 ] + [
     {"symbol": sym, **NSE_STOCK_DEFAULT_PARAMS, **NSE_STOCK_PARAM_OVERRIDES.get(sym, {})}
@@ -9032,6 +9042,60 @@ WATCHLIST = [
 def is_trading_enabled(conn) -> bool:
     row = conn.execute("SELECT enabled FROM trading_control WHERE id = 1").fetchone()
     return bool(row["enabled"]) if row else True  # never explicitly set -> default ON
+
+
+# 2026-09-30, explicit user instruction ("The real money level
+# implementation is only on the pfnet >=1... for all category like
+# buy, short, swing, future, options"), confirmed via AskUserQuestion
+# after being shown the actual consequence (universal_score PFnet 0.05,
+# range_short_staged_ladder 0.21, trend_down_momentum_short 0.09 - none
+# clear the floor; only gap_and_go_swing at 1.65 does): a NEW real
+# position may only be opened for a strategy whose strategy_registry.py
+# metrics clear PFnet >= PFNET_LIVE_FLOOR. This is a permanent, registry-
+# driven gate, not a one-time manual disable - if a currently-blocked
+# strategy is later re-validated at PFnet >= 1 (or a new one clears it),
+# this gate opens automatically the next tick, no code change needed;
+# conversely a currently-live strategy that later degrades below the
+# floor is blocked automatically too. Deliberately NOT a new env-var kill
+# switch (CLAUDE.md's standing "ask before creating any new real-trading
+# kill switch" rule, and the user was never asked for one here) - this
+# gates NEW entries only, inside the existing entry functions themselves;
+# it never touches SL-sync/exit/auto-heal for a position already open,
+# so nothing already live gets orphaned by this change.
+_STRATEGY_TAG_TO_REGISTRY_NAME = {
+    "orb-universal-score": "universal_score",
+    "orb-swing-gap-and-go": "gap_and_go_swing",
+    "orb-trend-short": "trend_down_momentum_short",
+    "orb-range-short": "range_short_staged_ladder",
+    # Swing's own real-entry call sites pass a plain label (see
+    # _maybe_place_real_swing_entry's call sites), not an ORB-prefixed
+    # tag - "minervini_vcp" maps to minervini_trend_template_vcp per that
+    # registry entry's own source field ("main.py
+    # (minervini_vcp_entry_signal/minervini_vcp_exit_reason)"), confirmed
+    # by reading it directly rather than guessing from the name alone -
+    # PFnet 0.908, just under the floor, NOT gap_and_go_swing's 1.65.
+    "gap_and_go": "gap_and_go_swing",
+    "minervini_vcp": "minervini_trend_template_vcp",
+}
+
+
+def _is_strategy_viable_for_real_money(strategy_tag: str | None) -> bool:
+    """PFnet >= 1 gate for NEW real entries (see the module comment just
+    above). Fails CLOSED on every uncertain case - an unrecognized tag, a
+    tag with no strategy_registry.py entry, or a registered strategy with
+    no validated metrics yet - since the whole point is real money only
+    goes where there's actual evidence of clearing breakeven, never an
+    unmeasured strategy treated as innocent-until-proven-unprofitable."""
+    if not strategy_tag:
+        return False
+    registry_name = _STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy_tag)
+    if not registry_name:
+        return False
+    import strategy_registry as sr
+    strat = next((s for s in sr.REGISTRY if s.name == registry_name), None)
+    if strat is None:
+        return False
+    return strat.is_viable() is True
 
 
 # --- Stage 3: real order placement (2026-09-04) -----------------------------
@@ -9423,6 +9487,22 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         "SELECT qty, stop_loss, strategy FROM signal_state_short WHERE symbol = ? AND status = 'short'",
         (symbol,),
     ).fetchone()
+
+    # 2026-09-30 PFnet >= 1 real-money gate - see _is_strategy_viable_for_
+    # real_money's own module comment (long side's mirror, same reasoning).
+    # Both current short strategies (range_short_staged_ladder 0.21,
+    # trend_down_momentum_short 0.09) are below the floor, so this blocks
+    # new real short entries today - existing open real short positions
+    # are untouched.
+    strategy_tag = paper_row["strategy"] if paper_row else None
+    if not _is_strategy_viable_for_real_money(strategy_tag):
+        _log_real_attempt(
+            conn, symbol, "S", "skipped_strategy_not_viable",
+            detail=f"strategy {strategy_tag!r} does not clear the PFnet >= 1 real-money floor "
+                   "(or has no validated metrics) - see strategy_registry.py",
+        )
+        return
+
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
     remaining_cap_inr = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
     real_capital_for_sizing = get_scheduler_capital_inr()
@@ -9620,6 +9700,22 @@ def _maybe_place_real_entry(conn, symbol: str):
         "SELECT qty, stop_loss, target, exit_legs_json, strategy FROM signal_state WHERE symbol = ? AND status = 'long'",
         (symbol,),
     ).fetchone()
+
+    # 2026-09-30 PFnet >= 1 real-money gate (see _is_strategy_viable_for_
+    # real_money's own module comment) - checked here, right after the
+    # paper entry's own strategy tag is known, and before any order
+    # placement below. universal_score (the only tag every WATCHLIST
+    # symbol currently uses) is below the floor, so this blocks new real
+    # long entries today - existing open real positions are untouched.
+    strategy_tag = paper_row["strategy"] if paper_row else None
+    if not _is_strategy_viable_for_real_money(strategy_tag):
+        _log_real_attempt(
+            conn, symbol, "B", "skipped_strategy_not_viable",
+            detail=f"strategy {strategy_tag!r} does not clear the PFnet >= 1 real-money floor "
+                   "(or has no validated metrics) - see strategy_registry.py",
+        )
+        return
+
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
     remaining_cap_inr = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
     real_capital_for_sizing = get_scheduler_capital_inr()
@@ -13883,6 +13979,33 @@ _MEMORY_LOG_EVERY_N_TICKS = 20  # ~10 min at the 30s tick interval - explicit
 # so a periodic RSS line here is what lets a FUTURE memory-limit email be
 # correlated against an actual growth trend instead of guessed at after
 # the fact. See _process_rss_mb's own comment for the fuller context.
+
+_UNPROTECTED_BACKCHECK_EVERY_N_TICKS = 10  # ~5 min at the 30s tick interval
+# (2026-09-30, live finding: TCS.NS and INDIANB.NS both sat with NO live
+# resting stop-loss at Kotak for a real stretch of market time, discovered
+# by the user directly on the Kotak app, not by this app's own dashboard -
+# a second occurrence of the MFSL.NS pattern the 2026-09-30 CLAUDE.md rule
+# was written to prevent). Root cause: that rule's whole "every 5 min"
+# guarantee (_find_unprotected_open_positions, called from
+# _reconcile_real_positions_core) lived ENTIRELY in kotak-reconcile.yml's
+# external GitHub Actions cron (`*/5 3-10 * * 1-5`) - and GitHub's own
+# schedule trigger for this workflow was empirically firing only ~2x/day,
+# not the ~84x/day the cron string calls for (checked via actions_list
+# filtered to event=schedule: real gaps of 5-8+ hours between fires, on a
+# repo that is otherwise extremely active - GitHub's own docs warn
+# scheduled workflows "can be delayed during periods of high load," and
+# this repo dispatches an unusually high volume of OTHER workflow runs).
+# The external cron survives as a secondary check + durable git-log audit
+# trail, but the in-process 30s scheduler tick (proven reliable all session
+# - it's what runs _maybe_sync_real_stop_loss/_maybe_sync_real_stop_loss_short
+# every tick) is what ACTUALLY guarantees the 5-min cadence now, since it
+# doesn't depend on any external scheduler's own reliability at all. Runs
+# the SAME _reconcile_real_positions_core(adopt="*") the cron calls over
+# HTTP - qty-correction, ghost-cleanup, governance-backfill (synchronous
+# real SL placement for anything missing one), AND the unprotected-position
+# backcheck, all in the one call - so this isn't a narrower check than the
+# external cron's, it's the same one, just on a cadence this process
+# actually controls.
 # Latest _auto_signal_core result per symbol, from the real scheduler tick
 # (not a synthetic re-check) - exposed via /scheduler-attempts so there's
 # real visibility into what the engine actually decided and why, not just
@@ -14337,6 +14460,21 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
 
     if conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone():
         _log_real_attempt(conn, symbol, "B", "skipped_already_open", strategy=strategy)
+        return
+
+    # 2026-09-30 PFnet >= 1 real-money gate - see _is_strategy_viable_for_
+    # real_money's own module comment. gap_and_go_swing (the strategy
+    # every current swing entry carries) is at PFnet 1.65, well above the
+    # floor, so this is a no-op for swing today - wired here for the same
+    # reason every category was asked for: if a future swing candidate is
+    # added below the floor, this blocks it automatically without a
+    # separate change.
+    if not _is_strategy_viable_for_real_money(strategy):
+        _log_real_attempt(
+            conn, symbol, "B", "skipped_strategy_not_viable", strategy=strategy,
+            detail=f"strategy {strategy!r} does not clear the PFnet >= 1 real-money floor "
+                   "(or has no validated metrics) - see strategy_registry.py",
+        )
         return
 
     import kotak_live_feed
@@ -15143,6 +15281,19 @@ async def _scheduler_tick():
         print(f"[memory] tick {_scheduler_tick_count}: rss_mb={_process_rss_mb()}, "
               f"data_cache_entries={len(_DATA_CACHE)}, watchlist_size={len(WATCHLIST)}")
 
+    # 2026-09-30: see _UNPROTECTED_BACKCHECK_EVERY_N_TICKS's own module
+    # comment - this in-process call is what actually guarantees the
+    # standing "unprotected position backcheck every 5 min" rule now,
+    # since kotak-reconcile.yml's external GitHub Actions cron was found
+    # to be firing far less often than its own `*/5` schedule promises.
+    # Best-effort and isolated like every other block in this tick - a
+    # Kotak/network hiccup here must never block the rest of the scan.
+    if _scheduler_tick_count % _UNPROTECTED_BACKCHECK_EVERY_N_TICKS == 0:
+        try:
+            _reconcile_real_positions_core(adopt="*")
+        except Exception as e:
+            print(f"[unprotected_backcheck] in-process reconcile failed (non-fatal, external cron still covers this): {e}")
+
     _scheduler_last_tick_ts = time.time()
     await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
 
@@ -15601,14 +15752,22 @@ def strategy_leaderboard():
     """Read-only view onto strategy_registry.py's REGISTRY (2026-09-29,
     explicit user instruction: "print these columns... at the end of
     live and opened and closed trades... rank strategy pfnet and win %
-    all from your backtest") - one leaderboard row list per TradeCategory,
-    each already carrying `viable` (PFnet >= PFNET_LIVE_FLOOR) so a
-    strategy ranked #1 in a pool is never mistaken for "profitable" by a
-    page rendering this. No live trading behavior changes here - this is
-    the same "registering != trading" registry every other reader of
-    strategy_registry.py already treats as research/tracking-only."""
+    all from your backtest") - one leaderboard row list per TradeCategory.
+
+    2026-09-30, explicit user instruction ("Keep only viable ones on
+    trade view... I do not want just top 5, but I want all that qualify
+    pfnet >= 1 in backtesting"): switched from sr.leaderboard() (top-N,
+    includes non-viable rows) to sr.viable_leaderboard() (every strategy
+    in the category clearing PFnet >= PFNET_LIVE_FLOOR, unbounded, no
+    top-N cap) - see that function's own docstring for why this is a
+    separate function rather than a change to TOP_N_PER_CATEGORY itself
+    (that constant bounds an unrelated live-monitoring-cost concern, not
+    this dashboard display). No live trading behavior changes here -
+    this is the same "registering != trading" registry every other
+    reader of strategy_registry.py already treats as research/
+    tracking-only."""
     import strategy_registry as sr
-    return {cat.value: sr.leaderboard(cat, top_n=sr.TOP_N_PER_CATEGORY) for cat in sr.TradeCategory}
+    return {cat.value: sr.viable_leaderboard(cat) for cat in sr.TradeCategory}
 
 
 @app.get("/strategy-info")
