@@ -16,8 +16,13 @@ def test_live_strategies_match_known_live_engines():
     # 2026-09-28: fixed after discovering gap_and_go_swing is ALSO live
     # (both paper and real) on SWING_WATCHLIST - this registry's first
     # version incorrectly listed universal_score as the only live one.
+    # 2026-09-30: minervini_vcp_livermore_confirmed wired into
+    # _run_swing_scan ("Wire the viable ones" - PFnet 2.043, clears the
+    # floor). "status=live" here means "wired into the scan/scheduler",
+    # NOT "currently allowed to place a real order" - universal_score is
+    # LIVE but blocked by the separate PFnet>=1 real-money gate.
     live_names = {s.name for s in sr.strategies_by_status(sr.StrategyStatus.LIVE)}
-    assert live_names == {"universal_score", "gap_and_go_swing"}
+    assert live_names == {"universal_score", "gap_and_go_swing", "minervini_vcp_livermore_confirmed"}
 
 
 def test_every_strategy_has_evidence_pointer():
