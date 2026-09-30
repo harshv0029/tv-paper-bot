@@ -262,6 +262,119 @@ def test_untracked_kotak_short_position_uses_sell_side_avg_price_and_mirrored_pn
     assert pos["unrealized_pnl_inr"] == pytest.approx(50.0, abs=1e-9)
 
 
+def test_recover_strategy_helper_ignores_unconfirmed_and_wrong_side_rows():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        conn.executemany(
+            "INSERT INTO real_trades (ts, day, symbol, kotak_trading_symbol, side, qty, "
+            "price_est, notional_inr, status, order_id, detail, strategy) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (1.0, "2026-09-30", "X.NS", "X-EQ", "B", 1, 1.0, 1.0, "failed", "1", None, "wrong_status"),
+                (2.0, "2026-09-30", "X.NS", "X-EQ", "S", 1, 1.0, 1.0, "confirmed", "1", None, "wrong_side"),
+                (3.0, "2026-09-30", "X.NS", "X-EQ", "B", 1, 1.0, 1.0, "confirmed", "1", None, "right_one"),
+            ],
+        )
+        conn.commit()
+        result = main._recover_strategy_for_untracked_position(conn, "X-EQ", "B")
+    assert result == "right_one"
+
+
+def test_recover_strategy_helper_returns_none_when_nothing_matches():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        result = main._recover_strategy_for_untracked_position(conn, "NOPE-EQ", "B")
+    assert result is None
+
+
+def test_untracked_long_position_recovers_strategy_from_real_trades_log():
+    # 2026-09-30, explicit user correction: "All 'not bot-managed' are
+    # placed by you only" - a position missing from real_positions doesn't
+    # mean this app never placed it. real_trades (this app's own
+    # append-only order log, written at every entry ATTEMPT) still has the
+    # strategy even after the real_positions row itself is gone.
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_trades (ts, day, symbol, kotak_trading_symbol, side, qty, "
+            "price_est, notional_inr, status, order_id, detail, strategy) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (1788931000.0, "2026-09-30", "NEWGEN.NS", "NEWGEN-EQ", "B", 1, 515.70,
+             515.70, "confirmed", "1", None, "universal_score"),
+        )
+        conn.commit()
+    fake_kotak_neo = MagicMock()
+    fake_kotak_neo.positions.return_value = {
+        "data": [
+            {"exSeg": "nse_cm", "trdSym": "NEWGEN-EQ", "flBuyQty": "1", "flSellQty": "0", "buyAmt": "515.70"},
+        ],
+    }
+    fake_df = pd.DataFrame({"Close": [520.0]})
+    with patch.dict("sys.modules", {"kotak_neo": fake_kotak_neo}), patch("main.fetch_ohlc", return_value=fake_df):
+        result = main.get_real_open_positions()
+
+    assert result["count"] == 1
+    pos = result["open_real_positions"][0]
+    assert pos["strategy"] == "universal_score"
+    assert pos["source"] == "kotak_untracked"
+    assert pos["target_status"] == "untracked_but_own_order"
+    assert "tracking row was lost" in pos["target_status_detail"]
+
+
+def test_untracked_short_position_recovers_strategy_from_real_trades_log_side_s():
+    # Same recovery, but for a short (side='S') - must not cross-match a
+    # long ('B') attempt on the same symbol, and must use the sell-side
+    # avg price formula already fixed for untracked shorts.
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_trades (ts, day, symbol, kotak_trading_symbol, side, qty, "
+            "price_est, notional_inr, status, order_id, detail, strategy) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (1788931000.0, "2026-09-30", "SANDUMA.NS", "SANDUMA-EQ", "S", 5, 100.0,
+             500.0, "confirmed", "1", None, "range_short_staged_ladder"),
+        )
+        conn.commit()
+    fake_kotak_neo = MagicMock()
+    fake_kotak_neo.positions.return_value = {
+        "data": [
+            {"exSeg": "nse_cm", "trdSym": "SANDUMA-EQ", "flBuyQty": "0", "flSellQty": "5", "sellAmt": "500.0"},
+        ],
+    }
+    fake_df = pd.DataFrame({"Close": [90.0]})
+    with patch.dict("sys.modules", {"kotak_neo": fake_kotak_neo}), patch("main.fetch_ohlc", return_value=fake_df):
+        result = main.get_real_open_positions()
+
+    assert result["count"] == 1
+    pos = result["open_real_positions"][0]
+    assert pos["strategy"] == "range_short_staged_ladder"
+    assert pos["side"] == "short"
+    assert pos["target_status"] == "untracked_but_own_order"
+
+
+def test_untracked_position_with_no_matching_real_trades_row_stays_genuinely_unknown():
+    # A truly external Kotak position (this app never placed it at all, no
+    # matching real_trades row on either side) must still report
+    # "not_bot_managed" with no fabricated strategy - the recovery lookup
+    # is best-effort, not a guess.
+    _fresh_db()
+    fake_kotak_neo = MagicMock()
+    fake_kotak_neo.positions.return_value = {
+        "data": [
+            {"exSeg": "nse_cm", "trdSym": "NEWGEN-EQ", "flBuyQty": "1", "flSellQty": "0", "buyAmt": "515.70"},
+        ],
+    }
+    fake_df = pd.DataFrame({"Close": [520.0]})
+    with patch.dict("sys.modules", {"kotak_neo": fake_kotak_neo}), patch("main.fetch_ohlc", return_value=fake_df):
+        result = main.get_real_open_positions()
+
+    assert result["count"] == 1
+    pos = result["open_real_positions"][0]
+    assert pos["strategy"] is None
+    assert pos["target_status"] == "not_bot_managed"
+    assert pos["target_status_detail"] is None
+
+
 def test_current_price_none_when_fetch_ohlc_fails_not_a_crash():
     _fresh_db()
     with closing(main.get_db()) as conn:
