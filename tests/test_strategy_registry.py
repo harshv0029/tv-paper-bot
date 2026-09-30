@@ -252,3 +252,66 @@ def test_scan_universe_statuses_filter_further_restricts_the_top_5_pool():
     # None of SHORT_SELL's top 5 are LIVE (all RESEARCH) - restricting to
     # LIVE must never let a RESEARCH-status top-5 strategy's signal through.
     assert all(s["strategy"] not in board_names for s in signals)
+
+
+# ---- viable_leaderboard: 2026-09-30, "keep only viable ones on trade  ----
+# ---- view... I want all that qualify pfnet >= 1, not just top 5"     ----
+
+def test_viable_leaderboard_excludes_anything_below_the_floor():
+    for cat in sr.TradeCategory:
+        for row in sr.viable_leaderboard(cat):
+            assert row["pfnet"] >= sr.PFNET_LIVE_FLOOR
+            assert row["viable"] is True
+
+
+def test_viable_leaderboard_is_not_capped_at_top_n_per_category():
+    # Build a fake category-worth of strategies that all clear the floor,
+    # well beyond TOP_N_PER_CATEGORY, and confirm every one of them comes
+    # back - the whole point of this function versus leaderboard().
+    original = list(sr.REGISTRY)
+    extra = [
+        dataclasses.replace(
+            sr.REGISTRY[0],
+            name=f"fake_viable_{i}",
+            categories=(sr.TradeCategory.BUY,),
+            metrics=dataclasses.replace(sr.REGISTRY[0].metrics, pfnet=2.0 + i),
+        )
+        for i in range(sr.TOP_N_PER_CATEGORY + 5)
+    ]
+    sr.REGISTRY.extend(extra)
+    try:
+        board = sr.viable_leaderboard(sr.TradeCategory.BUY)
+        fake_names = {s.name for s in extra}
+        returned_fake_names = {row["name"] for row in board if row["name"] in fake_names}
+        assert returned_fake_names == fake_names
+        assert len(board) > sr.TOP_N_PER_CATEGORY
+    finally:
+        sr.REGISTRY[:] = original
+
+
+def test_viable_leaderboard_ranked_best_pfnet_first():
+    board = sr.viable_leaderboard(sr.TradeCategory.SWING)
+    pfnets = [row["pfnet"] for row in board]
+    assert pfnets == sorted(pfnets, reverse=True)
+    assert [row["rank"] for row in board] == list(range(1, len(board) + 1))
+
+
+def test_viable_leaderboard_excludes_a_strategy_with_no_metrics_yet():
+    original = list(sr.REGISTRY)
+    idx = next(i for i, s in enumerate(sr.REGISTRY) if s.name == "universal_score")
+    sr.REGISTRY[idx] = dataclasses.replace(sr.REGISTRY[idx], metrics=None)
+    try:
+        board = sr.viable_leaderboard(sr.TradeCategory.BUY)
+        assert all(row["name"] != "universal_score" for row in board)
+    finally:
+        sr.REGISTRY[:] = original
+
+
+def test_viable_leaderboard_respects_a_custom_floor():
+    # A stricter floor than PFNET_LIVE_FLOOR narrows the result further -
+    # swing's own gap_and_go_swing (1.65) clears 1.0 but not 2.0.
+    at_default = {row["name"] for row in sr.viable_leaderboard(sr.TradeCategory.SWING)}
+    at_stricter = {row["name"] for row in sr.viable_leaderboard(sr.TradeCategory.SWING, floor=2.0)}
+    assert "gap_and_go_swing" in at_default
+    assert "gap_and_go_swing" not in at_stricter
+    assert at_stricter <= at_default

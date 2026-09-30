@@ -52,6 +52,13 @@ def test_real_minervini_entry_mirror_gated_by_the_shared_swing_switch():
 
 
 def test_real_minervini_entry_mirror_proceeds_once_the_shared_switch_is_on():
+    # 2026-09-30: minervini_vcp's own registered PFnet (0.908) is below the
+    # real-money floor (see _is_strategy_viable_for_real_money), so it's
+    # patched True here to keep this test's actual subject - the shared
+    # swing kill switch - isolated from that separate, later-added gate.
+    # See tests/test_pfnet_real_money_gate.py for the gate's own coverage,
+    # including the regression case that minervini_vcp specifically is
+    # blocked when that patch isn't in place.
     _fresh_db()
     os.environ["REAL_SWING_TRADING_ENABLED"] = "YES"  # same switch gap_and_go already uses
     patches = [
@@ -64,6 +71,7 @@ def test_real_minervini_entry_mirror_proceeds_once_the_shared_switch_is_on():
               return_value={"ok": True, "qty": 10, "fill_price": 100.0, "order_id": "E1", "fill_price_confirmed": True}),
         patch("kotak_real_orders.place_real_stop_loss",
               return_value={"ok": True, "order_id": "SL1", "trigger_price": 90.0}),
+        patch("main._is_strategy_viable_for_real_money", return_value=True),
     ]
     started = [p.start() for p in patches]
     try:

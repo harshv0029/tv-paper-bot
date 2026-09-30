@@ -874,6 +874,40 @@ def leaderboard(category: TradeCategory, top_n: int = 5) -> list[dict]:
     ]
 
 
+def viable_leaderboard(category: TradeCategory, floor: float = PFNET_LIVE_FLOOR) -> list[dict]:
+    """Every strategy in `category` that actually clears real breakeven
+    (PFnet >= floor), ranked best-first, with NO top-N cap - 2026-09-30,
+    explicit user instruction: "There is change in strategy leaderboard.
+    Keep only viable ones on trade view... I do not want just top 5, but
+    I want all that qualify pfnet >= 1 in backtesting", across all 5
+    categories.
+
+    Deliberately a SEPARATE function from leaderboard(), not a change to
+    it or to TOP_N_PER_CATEGORY: that constant exists to bound live
+    per-stock monitoring cost (see top_strategies_for_monitoring()'s own
+    docstring and CLAUDE.md's 2026-09-29 "25 strategy-checks per cycle"
+    thumb rule) - an unrelated design goal this dashboard-display change
+    must not silently touch. A strategy with no metrics yet (is_viable()
+    returns None) is excluded, same as a strategy that fails the floor -
+    "qualify" means a validated PFnet >= floor, never an unmeasured one
+    treated as passing by default."""
+    ranked = _ranked_by_pfnet(strategies_by_category(category))
+    viable = [s for s in ranked if s.is_viable(floor) is True]
+    return [
+        {
+            "rank": i + 1,
+            "name": s.name,
+            "status": s.status.value,
+            "pfnet": s.metrics.pfnet if s.metrics else None,
+            "win_rate_pct": s.metrics.win_rate_pct if s.metrics else None,
+            "n_trades": s.metrics.n_trades if s.metrics else None,
+            "universe": s.metrics.universe if s.metrics else None,
+            "viable": True,
+        }
+        for i, s in enumerate(viable)
+    ]
+
+
 def all_strategies_info() -> dict:
     """Every registered strategy's own record, keyed by name - unlike
     leaderboard()'s top-N-per-category view, this includes EVERY strategy
