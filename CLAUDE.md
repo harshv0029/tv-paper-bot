@@ -266,10 +266,24 @@ of trusting the transfer pack's prose.
   unrecoverable, or the placement itself fails - e.g. margin/T1) still
   surfaces loudly through the backcheck above and must keep doing so -
   auto-heal narrows how often the alarm fires, it does not replace the
-  alarm. `_maybe_sync_real_stop_loss` (the LONG side's 30-second-tick
-  trailing-stop/retry engine, on top of the 5-min governance backfill)
-  still has no short-side mirror as of this thumb rule being written -
-  a short's ONLY auto-heal mechanism today is this 5-min reconcile pass,
-  not a faster per-tick one. Building that full parity is real, further
-  work, not assumed done by this rule.
+  alarm. **Update, same day:** `_maybe_sync_real_stop_loss_short` (the
+  30-second-tick trailing-stop/retry/degraded-protection engine, full
+  parity with the long side's `_maybe_sync_real_stop_loss`, wired into
+  the scheduler tick's own short-scan block) was built the same day this
+  rule was written, closing the gap described in the paragraph below -
+  a short position's stop now trails and self-heals on the SAME cadence
+  as a long's (every tick, not just every 5 min), using
+  `_real_held_qty_short`/`_reconcile_real_qty_short`,
+  `_place_real_stop_loss_with_retry_short`,
+  `_mark_protection_degraded_short`/`_clear_protection_degraded_short`,
+  and `kotak_real_orders.cancel_existing_resting_sl_short` alongside the
+  already-generic (order-id/symbol/capital-keyed, direction-agnostic)
+  `_real_sl_order_is_live`, `_is_t1_restricted`/`_flag_if_t1_restricted`,
+  `_protection_degraded_timeout_seconds`, and
+  `is_cas_transition_rejection`, which needed no short-specific copies at
+  all. Emergency escalation covers (`_maybe_place_real_short_exit`, a
+  buy-to-cover) rather than sells - never the long side's exit function
+  for a short position. The paragraph immediately below is kept for the
+  historical record of the gap and the reasoning that motivated closing
+  it, not because the gap is still open.
   rather than assuming it automatically is.

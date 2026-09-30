@@ -527,6 +527,45 @@ def cancel_existing_resting_sl(kotak_trading_symbol: str) -> dict:
     return {"cancelled": cancelled, "detail": None}
 
 
+def cancel_existing_resting_sl_short(kotak_trading_symbol: str) -> dict:
+    """Short mirror of cancel_existing_resting_sl (2026-09-30, explicit
+    user instruction to bring short positions' per-tick SL sync to full
+    parity with the long side) - a short's OWN protective stop is a
+    resting BUY (transaction_type "B"), the opposite side from a long's
+    resting SELL, so the long version's `trnsTp != "S"` filter would never
+    match a short's real SL order at all. Same restart-race this app's
+    real_positions_short tracking is equally exposed to (SQLite, wiped on
+    every restart) - queries Kotak's OWN order book for any non-terminal
+    BUY/SL order on this symbol and cancels every one found before a
+    fresh one is placed. Same fail-open contract as the long version: a
+    failure to even fetch the order book is treated as "nothing found to
+    cancel," never as a reason to skip placing the caller's own fresh
+    SL."""
+    try:
+        client = kotak_neo.login()
+        report = client.order_report()
+        rows = report.get("data") if isinstance(report, dict) else None
+    except Exception as e:
+        return {"cancelled": [], "detail": f"could not fetch order book: {e}"}
+
+    cancelled = []
+    for row in (rows or []):
+        if row.get("trdSym") != kotak_trading_symbol:
+            continue
+        if row.get("trnsTp") != "B":
+            continue
+        if str(row.get("prcTp", "")).upper() not in ("SL", "SL-M"):
+            continue
+        if str(row.get("ordSt", "")).lower() in _TERMINAL_ORDER_STATUSES:
+            continue
+        order_id = row.get("nOrdNo")
+        if not order_id:
+            continue
+        cancel_real_order(str(order_id))
+        cancelled.append(str(order_id))
+    return {"cancelled": cancelled, "detail": None}
+
+
 def cancel_existing_resting_target(kotak_trading_symbol: str) -> dict:
     """Target-side mirror of cancel_existing_resting_sl above - see this
     module's own top docstring ("Real resting target" section,
