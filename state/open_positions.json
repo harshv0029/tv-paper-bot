@@ -1,4 +1,24 @@
 {
-  "synced_at_utc": "2026-09-30T00:23:13Z",
-  "open_positions": []
+  "synced_at_utc": "2026-09-30T04:19:41Z",
+  "open_positions": [
+    {
+      "symbol": "VMM.NS",
+      "qty": 2.0,
+      "entry_price_native": 101.41999816894531,
+      "stop_loss_native": 100.4171393258231,
+      "initial_stop_loss_native": 100.4171393258231,
+      "target_native": 103.43,
+      "fx_to_inr": 1.0,
+      "notional_inr": 202.84,
+      "orb_high_native": null,
+      "orb_low_native": 100.51000213623047,
+      "entry_ts": 1790741796.014518,
+      "interval": "5m",
+      "strategy": "orb-universal-score",
+      "sma_fast": 9,
+      "sma_slow": 21,
+      "entry_regime": "range",
+      "real_entry_reason": null
+    }
+  ]
 }

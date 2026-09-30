@@ -1,3 +1,20 @@
 {
-  "open_real_positions": []
+  "open_real_positions": [
+    {
+      "symbol": "VMM.NS",
+      "kotak_trading_symbol": "VMM-EQ",
+      "qty": 2,
+      "entry_price": 101.42,
+      "entry_order_id": "260930000097827",
+      "opened_at": 1790741804.7840047,
+      "day": "2026-09-30",
+      "sl_order_id": "260930000098005",
+      "sl_trigger_price": 100.42,
+      "target_order_id": "260930000098264",
+      "target_price": 102.42,
+      "exit_legs_json": "[{\"leg\": \"T1\", \"qty\": 1, \"r_multiple\": \"1.0R\", \"target_price\": 102.4228606741769, \"status\": \"open\"}, {\"leg\": \"trail\", \"qty\": 1, \"r_multiple\": null, \"target_price\": null, \"status\": \"open\"}]",
+      "protection_degraded_since": null,
+      "strategy": "orb-universal-score"
+    }
+  ]
 }
