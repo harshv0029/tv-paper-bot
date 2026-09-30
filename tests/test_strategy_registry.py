@@ -130,11 +130,18 @@ def test_is_viable_false_for_every_short_sell_candidate():
 
 
 def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_registry():
-    # 2026-09-29: power_play_high_tight_flag (PFnet 5.023, real-function
-    # full-universe validation) is the second strategy in this registry to
-    # clear PFNET_LIVE_FLOOR - was previously gap_and_go_swing alone.
+    # 2026-09-30: the Minervini VCP book-refinement trio (Livermore-confirmed
+    # entry filter, 2R breakeven exit, 3R breakeven exit - all real-function
+    # full-universe validations) join the previously-viable pair, each
+    # clearing PFNET_LIVE_FLOOR where the base minervini_trend_template_vcp
+    # (chandelier trail, PFnet 0.908) did not. minervini_vcp_scale_in_sizing
+    # (PFnet 0.863) was also tried this session and stays non-viable.
     viable = [s.name for s in sr.REGISTRY if s.is_viable() is True]
-    assert set(viable) == {"gap_and_go_swing", "power_play_high_tight_flag"}
+    assert set(viable) == {
+        "gap_and_go_swing", "power_play_high_tight_flag",
+        "minervini_vcp_breakeven_2r", "minervini_vcp_breakeven_3r",
+        "minervini_vcp_livermore_confirmed",
+    }
 
 
 def test_leaderboard_ranks_by_pfnet_descending():
