@@ -287,3 +287,53 @@ of trusting the transfer pack's prose.
   historical record of the gap and the reasoning that motivated closing
   it, not because the gap is still open.
   rather than assuming it automatically is.
+- **Thumb rule (2026-09-30, explicit user instruction, second live
+  occurrence of the MFSL.NS pattern - TCS.NS and INDIANB.NS both sat with
+  NO live resting stop-loss at Kotak for a real stretch of market time,
+  found by the user directly on the Kotak app, not by this app's own
+  dashboard): the "unprotected position backcheck every 5 min during
+  market hours" rule above must never depend solely on an external
+  scheduler's own reliability.** Root cause of this second occurrence:
+  the entire guarantee lived in `kotak-reconcile.yml`'s GitHub Actions
+  cron (`*/5 3-10 * * 1-5`) - checking that workflow's own `event:
+  schedule` run history (not `workflow_dispatch`) showed real gaps of
+  5-8+ hours between fires on 2026-09-28/29/30, not the ~5 min the cron
+  string calls for. GitHub's own docs warn scheduled workflows "can be
+  delayed during periods of high load," and this repo dispatches an
+  unusually high volume of other workflow runs - empirically, GitHub was
+  not honoring this repo's `*/5` schedule at anywhere near that cadence.
+  Fix: `_scheduler_tick` (the in-process ~30s loop already proven
+  reliable all session - it's what runs `_maybe_sync_real_stop_loss`/
+  `_maybe_sync_real_stop_loss_short` every tick) now ALSO calls
+  `_reconcile_real_positions_core(adopt="*")` every
+  `_UNPROTECTED_BACKCHECK_EVERY_N_TICKS` ticks (~5 min), so the 5-min
+  guarantee is enforced by this process itself, not by any external
+  scheduler. `kotak-reconcile.yml`'s cron stays as a secondary check plus
+  the durable git-log audit trail (`docs/real_reconcile_log.json`), never
+  removed just because the in-process path now covers the primary
+  guarantee. Applies going forward: any future "must run periodically"
+  real-money safety rule in this file should default to an in-process
+  scheduler-tick mechanism first, and treat a GitHub Actions cron as a
+  secondary/audit layer only - not the other way around.
+- **Thumb rule (2026-09-30, explicit user instruction): every request
+  this app sends to Kotak to place, modify, or cancel a real order must
+  be based on freshly-fetched live account state, not a trusted local
+  cache.** The user's own words: "Before each request in order book, U
+  must fetch All live trades taken and All order requested parked at
+  trading account side. Based on that and ur logic, U request for next
+  order." Concretely: before deciding the next real-order action for a
+  symbol, fetch Kotak's own `positions()`/`order_report()` (or reuse a
+  same-request fetch no older than that decision) rather than trusting
+  this app's own DB columns (`sl_order_id`, `real_positions.qty`, etc.)
+  as ground truth for whether a resting order is actually still live.
+  This is already the pattern the 2026-09-30 short per-tick engine and
+  `_reconcile_real_positions_core` follow (`_real_sl_order_is_live`
+  checks the live order_report, not just whether `sl_order_id` is
+  non-NULL locally; `_reconcile_real_positions_core` re-fetches
+  `order_rows` fresh immediately before its own unprotected-check so a
+  position it just healed isn't flagged stale) - this rule makes that
+  discipline explicit and standing for every current AND future real-
+  order code path, not just the ones that happened to need it so far.
+  Never add a new real-order code path that decides its next action off
+  a locally-cached order/position field without a live Kotak fetch (or a
+  fetch fresh enough within the same request) to confirm it first.
