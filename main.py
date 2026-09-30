@@ -14842,6 +14842,26 @@ def strategy_leaderboard():
     return {cat.value: sr.leaderboard(cat, top_n=sr.TOP_N_PER_CATEGORY) for cat in sr.TradeCategory}
 
 
+@app.get("/strategy-info")
+def strategy_info():
+    """Every registered strategy's own record, keyed by name - NOT just
+    the top-N-per-category view /strategy-leaderboard gives. 2026-09-30,
+    explicit user instruction ("I want to get those dashed cells filled
+    too... which strategy and what are details of that strategy"): the
+    trade-view dashboard's per-trade-row strategy lookup needs "what does
+    THIS specific strategy's own record say", not "is it in some
+    category's current top 5" - a strategy can be a live trade's actual
+    entry/exit logic while sitting outside the top TOP_N_PER_CATEGORY
+    (e.g. range_short_staged_ladder is the real wired RANGE-regime short
+    exit mechanic but doesn't rank in short_sell's current top 5), and
+    /strategy-leaderboard alone would wrongly read that as "no data".
+    See strategy_registry.all_strategies_info()'s own docstring for the
+    exact shape. Same read-only, registering-!=-trading caveat as
+    /strategy-leaderboard."""
+    import strategy_registry as sr
+    return sr.all_strategies_info()
+
+
 @app.get("/daily-summary")
 def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
     """Aggregated view of today's auto-signal paper trading across all symbols:
