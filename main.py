@@ -196,6 +196,92 @@ def hydrate_real_positions_from_external() -> bool:
     return True
 
 
+# real_positions_short durability mirror (2026-09-30) - real_positions_short
+# was built 2026-09-29 (short-selling), AFTER the 2026-09-08 Upstash
+# durability fix above already existed for real_positions, and was never
+# added to it. Confirmed live the same day this was found: kotak-
+# reconcile.yml successfully adopted 4 real short positions (TCS/INDIANB/
+# YESBANK/INDUSTOWER) with their real order ids and already-resting stop-
+# losses recovered from Kotak's own order book - and by the very next
+# request seconds later, all 4 had reverted to "kotak_untracked" again.
+# Root cause: that SAME reconcile workflow's own git push (committing its
+# audit log right after the HTTP call returns) triggers a Render restart,
+# and Render's free tier has no persistent disk - real_positions_short was
+# being silently wiped on every single restart, with nothing to survive
+# it, exactly the AARTIIND-class race real_positions itself was fixed
+# against three weeks earlier. Same mechanism, same call-site granularity
+# (call after every commit that touches real_positions_short), separate
+# Redis key so the two tables' snapshots never collide or overwrite each
+# other.
+_REAL_POSITIONS_SHORT_REDIS_KEY = "tv_paper_bot:real_positions_short:v1"
+
+
+def _sync_real_positions_short_external(conn) -> None:
+    """Short mirror of _sync_real_positions_external - see the module
+    comment just above for why this exists. Best-effort and silent, same
+    contract as the long version: a failure here must never break real
+    trading, the write has already committed to SQLite."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return
+    try:
+        rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions_short").fetchall()]
+        payload = json.dumps({"synced_at": time.time(), "rows": rows})
+        requests.post(
+            f"{UPSTASH_REDIS_REST_URL}/set/{_REAL_POSITIONS_SHORT_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            data=payload.encode("utf-8"),
+            timeout=5,
+        )
+    except Exception as e:
+        print(f"[real_positions_short_external] sync failed (non-fatal): {e}")
+
+
+def hydrate_real_positions_short_from_external() -> bool:
+    """Short mirror of hydrate_real_positions_from_external - startup-time
+    restore for real_positions_short. Never places any order - only
+    restores this app's own tracking of a short position that already
+    exists at the broker. Returns True iff Upstash was actually reached
+    (an empty-but-successful read still suppresses the git-journal
+    fallback, same "empty is still authoritative" reasoning as the long
+    version, though real_positions_short currently has no journal-based
+    fallback of its own to suppress - this is its ONLY restore path)."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return False
+    try:
+        resp = requests.get(
+            f"{UPSTASH_REDIS_REST_URL}/get/{_REAL_POSITIONS_SHORT_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        raw = resp.json().get("result")
+    except Exception as e:
+        print(f"[real_positions_short_external] hydrate failed (non-fatal): {e}")
+        return False
+    rows = json.loads(raw).get("rows", []) if raw else []
+    if rows:
+        with closing(get_db()) as conn:
+            restored = 0
+            for pos in rows:
+                if conn.execute("SELECT 1 FROM real_positions_short WHERE symbol = ?", (pos["symbol"],)).fetchone():
+                    continue
+                conn.execute(
+                    "INSERT INTO real_positions_short (symbol, kotak_trading_symbol, qty, entry_price, "
+                    "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price, "
+                    "protection_degraded_since, strategy) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
+                     pos.get("entry_order_id"), pos["opened_at"], pos["day"],
+                     pos.get("sl_order_id"), pos.get("sl_trigger_price"),
+                     pos.get("protection_degraded_since"), pos.get("strategy")),
+                )
+                restored += 1
+            if restored:
+                conn.commit()
+                print(f"[real_positions_short_external] restored {restored} real short position(s) from Upstash")
+    return True
+
+
 # --- Scan-coverage external persistence (Upstash Redis) ----------------------
 # Same restart-race family as real_positions above, different symptom: the
 # round-robin scan cursor (_scheduler_rr_cursor, defined far below) is a
@@ -5225,6 +5311,7 @@ def _mark_protection_degraded_short(conn, symbol: str) -> None:
         (time.time(), symbol),
     )
     conn.commit()
+    _sync_real_positions_short_external(conn)
 
 
 def _clear_protection_degraded_short(conn, symbol: str) -> None:
@@ -5233,6 +5320,7 @@ def _clear_protection_degraded_short(conn, symbol: str) -> None:
         "UPDATE real_positions_short SET protection_degraded_since = NULL WHERE symbol = ?", (symbol,)
     )
     conn.commit()
+    _sync_real_positions_short_external(conn)
 
 
 def _open_positions_reserved_risk_inr(conn, exclude_symbol: str | None = None) -> float:
@@ -9356,6 +9444,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
          ist_now().strftime("%Y-%m-%d"), real_strategy),
     )
     conn.commit()
+    _sync_real_positions_short_external(conn)
     _log_real_attempt(
         conn, symbol, "S", "confirmed", kotak_trading_symbol=kotak_symbol,
         qty=real_qty, price_est=real_entry_price, notional_inr=real_qty * real_entry_price,
@@ -9381,6 +9470,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
                 (sl_result["order_id"], sl_result["trigger_price"], symbol),
             )
             conn.commit()
+            _sync_real_positions_short_external(conn)
             print(f"[REAL SHORT] SL (buy-to-cover) resting @ Rs{sl_result['trigger_price']:.2f} "
                   f"for {kotak_symbol} (order {sl_result['order_id']})")
             _log_real_order_event(
@@ -9401,6 +9491,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
                 (now, symbol),
             )
             conn.commit()
+            _sync_real_positions_short_external(conn)
 
 
 def _maybe_place_real_short_exit(conn, symbol: str):
@@ -9430,6 +9521,7 @@ def _maybe_place_real_short_exit(conn, symbol: str):
 
     conn.execute("DELETE FROM real_positions_short WHERE symbol = ?", (symbol,))
     conn.commit()
+    _sync_real_positions_short_external(conn)
     _log_real_attempt(
         conn, symbol, "B", "confirmed", kotak_trading_symbol=real_row["kotak_trading_symbol"],
         qty=real_row["qty"], price_est=result.get("fill_price"), order_id=result["order_id"],
@@ -9946,6 +10038,7 @@ def _reconcile_real_qty_short(conn, real_row):
     )
     conn.execute("UPDATE real_positions_short SET qty = ? WHERE symbol = ?", (held, real_row["symbol"]))
     conn.commit()
+    _sync_real_positions_short_external(conn)
     return conn.execute("SELECT * FROM real_positions_short WHERE symbol = ?", (real_row["symbol"],)).fetchone()
 
 
@@ -10582,6 +10675,7 @@ def _ensure_signal_state_for_real_position_short(conn, real_row) -> bool:
     if still_open is False:
         conn.execute("DELETE FROM real_positions_short WHERE symbol = ?", (real_row["symbol"],))
         conn.commit()
+        _sync_real_positions_short_external(conn)
         print(f"[signal_state_backfill_short] {real_row['symbol']} is a ghost real_positions_short row "
               f"(Kotak shows no open short) - removed instead of backfilling paper tracking for it")
         return False
@@ -11061,6 +11155,7 @@ def _maybe_sync_real_stop_loss_short(conn, symbol: str):
                 (symbol,),
             )
             conn.commit()
+            _sync_real_positions_short_external(conn)
             real_row = conn.execute("SELECT * FROM real_positions_short WHERE symbol = ?", (symbol,)).fetchone()
 
     if not real_row["sl_order_id"]:
@@ -15074,12 +15169,14 @@ async def _start_scheduler():
     try:
         (
             _restored_settings, _restored_t1, _real_positions_hydrated,
+            _real_positions_short_hydrated,
             _external_rr_cursor, _external_check_counts,
         ) = await asyncio.wait_for(
             asyncio.gather(
                 asyncio.to_thread(_hydrate_runtime_settings),
                 asyncio.to_thread(_hydrate_t1_restricted),
                 asyncio.to_thread(hydrate_real_positions_from_external),
+                asyncio.to_thread(hydrate_real_positions_short_from_external),
                 asyncio.to_thread(hydrate_rr_cursor_from_external),
                 asyncio.to_thread(hydrate_check_counts_from_external),
             ),
@@ -15090,6 +15187,7 @@ async def _start_scheduler():
               "(Upstash unreachable or network-hung) - falling back to journal-only restore, "
               "same as a clean Upstash-unset/unreachable result")
         _restored_settings, _restored_t1, _real_positions_hydrated = 0, 0, False
+        _real_positions_short_hydrated = False
         _external_rr_cursor, _external_check_counts = None, None
 
     # runtime_settings: Upstash-restore FIRST, before anything else reads
@@ -16762,6 +16860,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             governance_backfilled_short.append(backfill_entry)
         conn.commit()
         _sync_real_positions_external(conn)
+        _sync_real_positions_short_external(conn)
 
     net_balance = None
     try:
