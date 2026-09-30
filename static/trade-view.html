@@ -1437,7 +1437,15 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   // did - "Why not in sync still? I want them to be in sync with at max
   // 10 second delay") - a distinct badge/color so it's never confused
   // with a position this app actually opened and is managing (SL/target).
-  const realStatusBadge = (pos) => pos.source === "kotak_untracked"
+  // untracked_but_own_order (2026-09-30, explicit user correction: "All
+  // 'not bot-managed' are placed by you only") - a third, distinct badge
+  // for a position this app's own real_trades log shows it placed, but
+  // whose position-tracking row was lost after entry - never lumped in
+  // with a genuinely external Kotak position (source alone can no longer
+  // tell them apart, see get_real_open_positions' own recovery logic).
+  const realStatusBadge = (pos) => pos.target_status === "untracked_but_own_order"
+    ? `<span class="log-status" style="background:rgba(251,191,36,.18);color:#fbbf24;"><span class="dot"></span>REAL (tracking lost)</span>`
+    : pos.source === "kotak_untracked"
     ? `<span class="log-status" style="background:rgba(251,191,36,.18);color:#fbbf24;"><span class="dot"></span>REAL (untracked)</span>`
     : `<span class="log-status" style="background:rgba(168,85,247,.18);color:#c084fc;"><span class="dot"></span>REAL LIVE</span>`;
 
@@ -1456,7 +1464,11 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${dash}</td>
       <td class="num">${pnlInr === null || pnlInr === undefined ? dash : pnlSpan(pnlInr)}</td>
       <td class="num">${pnlPct === null || pnlPct === undefined ? "—" : `${pnlPct >= 0 ? "+" : ""}${fmt(pnlPct)}%`}</td>
-      <td class="log-type">${pos.source === "kotak_untracked" ? "not bot-managed" : `target: ${targetCell(pos)}`}</td>
+      <td class="log-type">${
+        pos.target_status === "untracked_but_own_order" ? "tracking lost (own order)"
+        : pos.source === "kotak_untracked" ? "not bot-managed"
+        : `target: ${targetCell(pos)}`
+      }</td>
       <td class="meta">${pos.opened_at ? timeAgo(pos.opened_at) : "—"}</td>
       ${leaderboardCells(pos.strategy)}
     </tr>`;
