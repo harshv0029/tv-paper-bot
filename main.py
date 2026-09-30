@@ -8669,21 +8669,28 @@ def auto_signal(
 # a reasonable next step if this still isn't enough.
 NSE_STOCK_DEFAULT_PARAMS = {
     "orb_minutes": 15, "sma_fast": 9, "sma_slow": 21,
-    # squareoff_min=915 (3:15pm IST) - reverted 2026-09-22 (was briefly 912/
-    # 3:12pm earlier the same day). Live evidence the same afternoon
-    # (WAAREEENER.NS/NATIONALUM.NS) showed exits landing right in NSE's
-    # ~3:16-3:20pm Closing-Auction-Session (CAS) transition, where a normal
-    # LIMIT/SL-LIMIT sell - and even a plain MARKET sell - gets rejected
-    # ("OMS: Trading session is in Transition to CAS session") regardless
-    # of exact cutoff minute; both bot attempts and a manual mobile order
-    # were rejected the same way until the transition cleared. Explicit
-    # user instruction: keep exit at 3:15pm, stop NEW entries a minute
-    # earlier (3:14pm, see ENTRY_CUTOFF_BEFORE_SQUAREOFF_MINUTES below) so
-    # a fresh position never opens with almost no runway before squareoff,
-    # and add a same-rejection-reason retry at market price (see
-    # kotak_real_orders._is_cas_transition_rejection) rather than relying
-    # on the cutoff minute alone to dodge the CAS window.
-    "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
+    # squareoff_min=914 (3:14pm IST) - explicit user instruction 2026-09-30
+    # ("keep 3:14pm as exit time... all intraday exit at market rate"),
+    # superseding the 2026-09-22 decision that had reverted an earlier
+    # 912/3:12pm attempt back to 915/3:15pm. That 2026-09-22 finding is
+    # still true and worth restating: live evidence that day
+    # (WAAREEENER.NS/NATIONALUM.NS) showed exits landing in NSE's
+    # ~3:16-3:20pm Closing-Auction-Session (CAS) transition, where even a
+    # plain MARKET sell got rejected ("OMS: Trading session is in
+    # Transition to CAS session") regardless of the exact cutoff minute -
+    # so moving squareoff a minute earlier is not itself evidenced to
+    # dodge CAS. The user was shown this exact history and asked to
+    # proceed anyway. What this change does NOT need to add: the real
+    # exit order was ALREADY "market rate" before this change and stays
+    # that way - kotak_real_orders.place_real_exit/place_real_short_cover
+    # both use order_type="MKT" unconditionally for every exit_reason,
+    # eod_squareoff included; the existing CAS-transition-rejection
+    # retry-at-market (kotak_real_orders._is_cas_transition_rejection)
+    # is the real safety net here and is unchanged. Entry cutoff moves
+    # with it automatically via ENTRY_CUTOFF_BEFORE_SQUAREOFF_MINUTES
+    # below (914 - 1 = 913 = 3:13pm, matching the user's own stated last-
+    # entry time) - no separate change needed for that.
+    "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 914,
     "trade_weekends": False, "currency": "INR",
     "risk_pct": 1.0, "stop_pct": 1.0,  # unproven -> half ceiling until evidenced, same as before
 }
@@ -8946,14 +8953,17 @@ WATCHLIST = [
     # symbol where evidence supports it. NIFTY/BANKNIFTY/SENSEX run the
     # full evidence-backed ceiling (2%) - real 60-day backtest evidence
     # behind this exact strategy.
+    # squareoff_min=914 (3:14pm IST) - see NSE_STOCK_DEFAULT_PARAMS's own
+    # 2026-09-30 comment for the full history/reasoning; these three index
+    # configs share the same NSE intraday squareoff window.
     {"symbol": "^NSEI", "orb_minutes": 30, "sma_fast": 5, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 914,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^NSEBANK", "orb_minutes": 5, "sma_fast": 9, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 914,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
     {"symbol": "^BSESN", "orb_minutes": 30, "sma_fast": 20, "sma_slow": 50,
-     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 915,
+     "tz_offset_min": IST_OFFSET_MIN, "open_min": 555, "close_min": 930, "squareoff_min": 914,
      "trade_weekends": False, "currency": "INR", "risk_pct": 2.0, "stop_pct": 2.0},
 ] + [
     {"symbol": sym, **NSE_STOCK_DEFAULT_PARAMS, **NSE_STOCK_PARAM_OVERRIDES.get(sym, {})}
