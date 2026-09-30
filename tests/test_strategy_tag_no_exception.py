@@ -147,7 +147,14 @@ def test_bot_tracked_short_with_null_strategy_recovers_from_real_trades():
     assert pos["strategy"] == "range_short_staged_ladder"
 
 
-def test_bot_tracked_short_with_null_strategy_and_no_trade_log_falls_back_to_watchlist():
+def test_bot_tracked_short_with_null_strategy_and_no_trade_log_falls_back_to_a_short_tag_not_universal_score():
+    # 2026-09-30 regression: this used to fall back to
+    # _watchlist_default_strategy_tag (the LONG-only default,
+    # "orb-universal-score") - live finding, INDIANB.NS, a genuine short
+    # position, showed "Buy" in the dashboard's Category column because
+    # universal_score is registered BUY-only in strategy_registry.py.
+    # Must fall back to a SHORT_SELL-category tag instead (see
+    # _watchlist_default_strategy_tag_short).
     _fresh_db()
     with closing(main.get_db()) as conn:
         conn.execute(
@@ -157,10 +164,48 @@ def test_bot_tracked_short_with_null_strategy_and_no_trade_log_falls_back_to_wat
             (main.time.time(), main.ist_now().strftime("%Y-%m-%d")),
         )
         conn.commit()
+    # fetch_ohlc raises both for the current_price lookup AND for the new
+    # regime-based short fallback's own OHLC fetch - proving the fallback
+    # degrades safely (never crashes the request) and picks the regime
+    # classifier's own safe default (RANGE) rather than a BUY-category tag.
     with patch("main.fetch_ohlc", side_effect=Exception("no network in test")):
         result = main.get_real_open_positions()
     pos = next(p for p in result["open_real_positions"] if p["symbol"] == "TCS.NS")
-    assert pos["strategy"] == "orb-universal-score"
+    assert pos["strategy"] == "orb-range-short"
+    assert pos["strategy"] != "orb-universal-score"
+
+
+def test_watchlist_default_strategy_tag_short_picks_range_when_regime_is_range():
+    fake_df = pd.DataFrame({"Close": [100.0] * 30, "Date": pd.date_range("2026-09-25", periods=30, freq="5min", tz="UTC")})
+    with patch("main.fetch_ohlc", return_value=fake_df), \
+         patch("main._classify_market_regime", return_value="range") as mock_classify:
+        tag = main._watchlist_default_strategy_tag_short("TCS.NS", {})
+    assert tag == "orb-range-short"
+    assert mock_classify.called
+
+
+def test_watchlist_default_strategy_tag_short_picks_trend_when_regime_is_trend():
+    fake_df = pd.DataFrame({"Close": [100.0] * 30, "Date": pd.date_range("2026-09-25", periods=30, freq="5min", tz="UTC")})
+    with patch("main.fetch_ohlc", return_value=fake_df), \
+         patch("main._classify_market_regime", return_value="trend"):
+        tag = main._watchlist_default_strategy_tag_short("TCS.NS", {})
+    assert tag == "orb-trend-short"
+
+
+def test_watchlist_default_strategy_tag_short_falls_back_to_range_on_fetch_failure():
+    with patch("main.fetch_ohlc", side_effect=Exception("no network")):
+        tag = main._watchlist_default_strategy_tag_short("TCS.NS", {})
+    assert tag == "orb-range-short"
+
+
+def test_watchlist_default_strategy_tag_short_is_registered_in_the_short_sell_category():
+    # Ties the fallback tag directly to what the dashboard actually
+    # displays - the bug's own symptom was the Category *label* shown
+    # next to it, not the raw tag string.
+    import strategy_registry
+    reg = next(s for s in strategy_registry.REGISTRY if s.name == "range_short_staged_ladder")
+    assert strategy_registry.TradeCategory.SHORT_SELL in reg.categories
+    assert strategy_registry.TradeCategory.BUY not in reg.categories
 
 
 # ---- /real-trades-today: the whole-account closed-trade view --------------
