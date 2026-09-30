@@ -3266,6 +3266,31 @@ def deployed_notional(conn) -> float:
 
 SWING_STRATEGY_TAG = f"{ORB_STRATEGY_PREFIX}swing-gap-and-go"
 
+
+def _watchlist_default_strategy_tag(cfg: dict) -> str:
+    """The strategy_tag a FRESH intraday entry on this WATCHLIST symbol
+    would carry right now - the exact same construction auto_signal's own
+    strategy_tag branch uses (main.py, strategy=="orb_breakout"/
+    "bullish_engulfing"/"universal_score"). 2026-09-30, explicit user
+    instruction ("I want strategy name for all entered trade... without
+    exception"): a fallback source of truth for /daily-summary's own
+    open-position strategy lookup, which otherwise depends on that
+    symbol ALREADY having a matching buy row in the `trades` table (see
+    that call site's own comment) - a real gap for a symbol whose entry
+    trade row hasn't landed yet, or was lost the same way real_positions'
+    own tracking rows have been lost elsewhere this session. Every
+    WATCHLIST symbol defaults to "universal_score" (2026-09-09
+    architecture revamp, see the scheduler's own
+    strategy=cfg.get("strategy", "universal_score") call site) unless
+    explicitly overridden - this is never a guess, it's what the
+    scheduler itself is CONFIGURED to use for that exact symbol."""
+    strategy = cfg.get("strategy", "universal_score")
+    if strategy == "orb_breakout":
+        return f"{ORB_STRATEGY_PREFIX}{cfg.get('orb_minutes', 15)}m-sma{cfg.get('sma_fast', 9)}-{cfg.get('sma_slow', 21)}"
+    if strategy == "bullish_engulfing":
+        return f"{ORB_STRATEGY_PREFIX}bullish-engulfing-trend{cfg.get('trend_sma', 0)}"
+    return f"{ORB_STRATEGY_PREFIX}universal-score"
+
 # Exactly the parameters validated in docs/STRATEGY_LOG.md's "Gap and Go,
 # 5-year window" finding (run 35062601024, PFnet 1.65, n=142) - zero
 # retuning between research and this live implementation, per this repo's
@@ -12119,22 +12144,39 @@ def get_real_trades_today():
     if trades_raw is None:
         return {"error": _real_trades_cache["error"], "trades": []}
     trades = []
-    for t in trades_raw:
-        # pnl_pct (2026-09-21, explicit user instruction: "I can't see pnL
-        # % in each row. Update it") - same convention as the open real
-        # positions' own unrealized_pnl_pct (100 * pnl / invested), not a
-        # raw price move, so both are directly comparable at a glance.
-        # strategy stays "real (Kotak)" here - this is the WHOLE-ACCOUNT
-        # Kotak aggregate (deliberately includes manually-placed trades
-        # too, per the 2026-09-07 finding), so there is genuinely no way
-        # to attribute a given row to a specific strategy the way
-        # /real-trades-today-bot-only (this app's own order IDs only) can.
-        invested_inr = (t.get("entry_price_native") or 0) * (t.get("qty") or 0)
-        pnl_pct = round(100 * t["pnl_inr"] / invested_inr, 3) if invested_inr else None
-        trades.append({
-            **t, "pnl_pct_of_capital": None, "pnl_pct": pnl_pct, "exit_reason": "kotak_real_trade",
-            "rr_target": None, "rr_achieved": None, "strategy": "real (Kotak)",
-        })
+    with closing(get_db()) as conn:
+        for t in trades_raw:
+            # pnl_pct (2026-09-21, explicit user instruction: "I can't see
+            # pnL % in each row. Update it") - same convention as the open
+            # real positions' own unrealized_pnl_pct (100 * pnl / invested),
+            # not a raw price move, so both are directly comparable at a
+            # glance.
+            #
+            # strategy (2026-09-30, explicit user instruction, asked
+            # repeatedly: "I want strategy name for all entered trade...
+            # without exception"): this endpoint is the WHOLE-ACCOUNT Kotak
+            # aggregate and deliberately includes manually-placed trades
+            # too (2026-09-07 finding) - a flat "real (Kotak)" for every
+            # row was true "we don't distinguish" laziness, not an honest
+            # "unknowable." t["symbol"] here is Kotak's OWN trading symbol
+            # (trdSym, e.g. "TCS-EQ" - see _refresh_real_trades_cache),
+            # already exactly what _recover_strategy_for_untracked_position
+            # needs: the SAME real_trades log lookup the open-positions
+            # endpoints use, which outlives any tracking row and doesn't
+            # care whether the position is still open or already closed.
+            # side="B" - every row here is a closed BUY-then-SELL round
+            # trip (see _refresh_real_trades_cache's own fl_buy==fl_sell
+            # filter), so the entry leg to recover is always a buy. Only a
+            # genuinely unrecoverable row (no matching confirmed entry in
+            # this app's own order log at all) still shows "real (Kotak)" -
+            # an honest "not ours," not a guess.
+            strategy = _recover_strategy_for_untracked_position(conn, t["symbol"], "B") or "real (Kotak)"
+            invested_inr = (t.get("entry_price_native") or 0) * (t.get("qty") or 0)
+            pnl_pct = round(100 * t["pnl_inr"] / invested_inr, 3) if invested_inr else None
+            trades.append({
+                **t, "pnl_pct_of_capital": None, "pnl_pct": pnl_pct, "exit_reason": "kotak_real_trade",
+                "rr_target": None, "rr_achieved": None, "strategy": strategy,
+            })
     trades.sort(key=lambda t: t["exit_time_utc"], reverse=True)
     return {"date_ist": ist_now().strftime("%Y-%m-%d"), "trades_count": len(trades), "trades": trades}
 
@@ -12405,8 +12447,25 @@ def get_real_open_positions():
                         target_status, target_status_detail = "failed", fail_row["detail"]
                     else:
                         target_status = "not_yet_attempted"
+        # strategy fallback (2026-09-30, explicit user instruction, asked
+        # repeatedly: "I want strategy name for all entered trade...
+        # without exception") - r["strategy"] is documented as legitimately
+        # NULL for a position adopted/backfilled without a known paper
+        # origin (see real_positions' own column comment). Two-step
+        # recovery before ever showing a blank cell: (1) the SAME
+        # real_trades log lookup the kotak_untracked branch already uses
+        # (this app's own confirmed order log outlives a lost tracking
+        # row), (2) the symbol's own currently-configured WATCHLIST
+        # strategy - not a guess, it's literally what the scheduler is set
+        # to use for this exact symbol right now.
+        strategy = r["strategy"]
+        if not strategy:
+            with closing(get_db()) as strategy_conn:
+                strategy = _recover_strategy_for_untracked_position(strategy_conn, r["kotak_trading_symbol"], "B")
+        strategy = strategy or _watchlist_default_strategy_tag(watchlist_by_symbol.get(r["symbol"], {}))
         result.append({
             **r,
+            "strategy": strategy,
             "current_price": current_price,
             "invested_inr": invested_inr,
             "unrealized_pnl_inr": unrealized_pnl_inr,
@@ -12440,8 +12499,20 @@ def get_real_open_positions():
         unrealized_pnl_pct = (
             round(100 * unrealized_pnl_inr / invested_inr, 3) if unrealized_pnl_inr is not None and invested_inr else None
         )
+        # Same strategy fallback as the long loop above (2026-09-30) -
+        # real_positions_short's own strategy column has the same
+        # "legitimately NULL for a lost/adopted-without-origin position"
+        # gap, DEFAULT 'range_short' notwithstanding (that default only
+        # applies to a fresh INSERT that omits the column; a row where
+        # NULL was explicitly stored still reads back as NULL).
+        strategy = r["strategy"]
+        if not strategy:
+            with closing(get_db()) as strategy_conn:
+                strategy = _recover_strategy_for_untracked_position(strategy_conn, r["kotak_trading_symbol"], "S")
+        strategy = strategy or _watchlist_default_strategy_tag(watchlist_by_symbol.get(r["symbol"], {}))
         result.append({
             **r,
+            "strategy": strategy,
             "current_price": current_price,
             "invested_inr": invested_inr,
             "unrealized_pnl_inr": unrealized_pnl_inr,
@@ -15559,7 +15630,14 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
             # book the closed_trades loop above just built from the
             # trades table's own buy rows, so this and a later close of
             # the same position always agree on which strategy opened it.
-            "strategy": book.get(r["symbol"], {}).get("last_strategy"),
+            # Falls back to _watchlist_default_strategy_tag (2026-09-30,
+            # "strategy name for all entered trade... without exception")
+            # when book has no matching buy row for this symbol yet -
+            # never leaves this blank just because the trades-table join
+            # missed, when the symbol's own configured strategy is right
+            # there in WATCHLIST.
+            "strategy": (book.get(r["symbol"], {}).get("last_strategy")
+                         or _watchlist_default_strategy_tag(watchlist_by_symbol.get(r["symbol"], {}))),
             "sma_fast": watchlist_by_symbol.get(r["symbol"], {}).get("sma_fast"),
             "sma_slow": watchlist_by_symbol.get(r["symbol"], {}).get("sma_slow"),
             # 2026-09-14 fix - carried through a redeploy so the
