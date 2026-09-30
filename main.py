@@ -9076,7 +9076,193 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # PFnet 0.908, just under the floor, NOT gap_and_go_swing's 1.65.
     "gap_and_go": "gap_and_go_swing",
     "minervini_vcp": "minervini_trend_template_vcp",
+    # 2026-09-30, "Wire the viable ones": minervini_vcp_livermore_confirmed
+    # (PFnet 2.043) clears the floor by a wide margin - see
+    # _run_swing_scan's own 2026-09-30 comment for how it's checked before
+    # the (still below-floor) plain minervini_vcp entry above.
+    "minervini_vcp_livermore": "minervini_vcp_livermore_confirmed",
+    # 2026-09-30, "Wire it now anyway" (explicit user override of this
+    # strategy's own thin-sample caution, n=109) - PFnet 5.023, the best
+    # full-universe number found this session.
+    "power_play": "power_play_high_tight_flag",
 }
+
+
+# 2026-09-30, explicit user instruction: for every real open position,
+# answer in one paragraph - "what was in your mind while entering into
+# the trade" - why it was taken, entry price, expected target, how long
+# it should stay open, when to expect closing it, what "signal going
+# weak" means for THIS specific strategy, and whether this app is
+# actually tracking/managing it. Every sentence below states a rule
+# already coded elsewhere in this file (the actual entry/exit functions)
+# - never invented commentary, so this can never drift from what the
+# position will actually do.
+_TRADE_THESIS_COMPONENTS = {
+    "orb-universal-score": {
+        "why": (
+            "This was entered because the universal-score engine's regime-based entry "
+            "score (a RANGE-regime VWAP mean-reversion read, or a TREND-regime 8-factor "
+            "momentum score, whichever regime was active for this symbol at the time) "
+            "crossed its entry threshold."
+        ),
+        "hold": "This is an INTRADAY-ONLY position - it is never meant to be carried overnight.",
+        "close_expectation": (
+            "It should close the same trading day, at the latest by the 3:14pm forced "
+            "squareoff, whether or not the stop or target has been hit by then."
+        ),
+        "weak_signal": (
+            "The signal is treated as weak/unfavourable, and this app exits, the moment "
+            "either the stop-loss is hit, or - for a TREND-regime entry specifically - the "
+            "trend_weakened check finds the original trend has lost statistical confidence "
+            "(a normal-CDF read on the trend's own strength dropping below its entry bar)."
+        ),
+    },
+    "orb-range-short": {
+        "why": (
+            "This was entered as a RANGE-regime VWAP mean-reversion SHORT - price had "
+            "moved far enough above the session's own VWAP to signal a reversion trade "
+            "back toward it."
+        ),
+        "hold": "This is an INTRADAY-ONLY short - never carried overnight.",
+        "close_expectation": "Same trading day, by the 3:14pm forced squareoff at the latest.",
+        "weak_signal": (
+            "Treated as unfavourable the moment the tick-managed staged-ladder stop "
+            "trails against the position and gets hit, or an early stop-loss trigger "
+            "closes it first."
+        ),
+    },
+    "orb-trend-short": {
+        "why": (
+            "This was entered as a TREND-regime momentum SHORT - the 8-factor bearish "
+            "score crossed its entry threshold, betting the existing downtrend continues."
+        ),
+        "hold": "This is an INTRADAY-ONLY short - never carried overnight.",
+        "close_expectation": "Same trading day, by the 3:14pm forced squareoff at the latest.",
+        "weak_signal": (
+            "Treated as unfavourable the moment the tick-managed staged-ladder stop "
+            "trails against the position and gets hit, or an early stop-loss trigger "
+            "closes it first."
+        ),
+    },
+    "gap_and_go": {
+        "why": (
+            "This was entered on a Gap and Go breakout - the symbol gapped up strongly "
+            "at the open, held the gap, closed the session strong (in the upper half of "
+            "its own daily range), and volume confirmed genuine interest behind the move."
+        ),
+        "hold": (
+            f"This is a SWING position, expected to be held up to {SWING_MAX_HOLD_DAYS} "
+            "trading days at the outside, though the validated backtest's own average "
+            "holding period was closer to a month."
+        ),
+        "close_expectation": (
+            "Whenever ONE of these happens first: price closes back below the stop-loss, "
+            "price closes back below the entry day's own intraday low (a 'gap fill', "
+            "meaning the breakout has failed), or the max-hold window above is reached."
+        ),
+        "weak_signal": "Same three conditions as above - there is no separate 'getting weak' warning stage short of one of them actually firing.",
+    },
+    "minervini_vcp_livermore": {
+        "why": (
+            "This was entered on a Minervini VCP (Volatility Contraction Pattern) "
+            "breakout that ALSO passed the stricter Livermore two-pullback confirmation "
+            "filter - not just the base breakout, but waiting for price to exceed the "
+            "high of a SECOND confirmed rally after two genuine pullbacks. A later, "
+            "worse-priced but historically more reliable entry than the plain breakout."
+        ),
+        "hold": f"Expected to be held up to {MINERVINI_MAX_HOLD_DAYS} trading days.",
+        "close_expectation": (
+            "Whenever price closes at or below the chandelier trailing stop described "
+            "below, or the max-hold window is reached - whichever comes first."
+        ),
+        "weak_signal": (
+            "Treated as weakening once the running peak close since entry starts pulling "
+            "the trailing stop up close behind price; treated as genuinely unfavourable "
+            "the moment price actually closes at or below that trailing stop (the running "
+            "peak close minus a fixed ATR multiple frozen at entry - it only ever ratchets "
+            "up, never down)."
+        ),
+    },
+    "minervini_vcp": {
+        "why": (
+            "This was entered on a plain Minervini VCP (Volatility Contraction Pattern) "
+            "breakout - a tightening base breaking out to a new high on a volume surge. "
+            "NOTE: this exact variant's own validated PFnet (0.908) sits just below this "
+            "app's real-money floor, so this specific entry is paper-tracked for ongoing "
+            "research only, never mirrored as a real order."
+        ),
+        "hold": f"Expected to be held up to {MINERVINI_MAX_HOLD_DAYS} trading days.",
+        "close_expectation": (
+            "Whenever price closes at or below the chandelier trailing stop described "
+            "below, or the max-hold window is reached - whichever comes first."
+        ),
+        "weak_signal": (
+            "Treated as unfavourable the moment price closes at or below the chandelier "
+            "trailing stop (running peak close since entry minus a fixed ATR multiple "
+            "frozen at entry, only ever ratcheting up)."
+        ),
+    },
+    "power_play": {
+        "why": (
+            "This was entered on a Power Play / High Tight Flag setup - an explosive "
+            "prior move of 100%+ within roughly two months, followed by a tight sideways "
+            "flag, breaking out again on a volume surge. This is the RAREST setup this "
+            "app trades, and the thinnest evidence base of any currently-live strategy "
+            "(109 historical trades) - a known, accepted caveat, not an oversight."
+        ),
+        "hold": (
+            f"Expected to be held up to {POWER_PLAY_MAX_HOLD_DAYS} trading days (about 6 "
+            "months) - though historically 100% of exits closed on the trailing stop "
+            "below, never the timeout itself."
+        ),
+        "close_expectation": (
+            "Whenever price closes at or below the chandelier trailing stop described "
+            "below, or the (rarely-reached) max-hold window is reached."
+        ),
+        "weak_signal": (
+            "Treated as unfavourable the moment price closes at or below the chandelier "
+            "trailing stop (running peak close since entry minus a fixed ATR multiple "
+            "frozen at entry, only ever ratcheting up)."
+        ),
+    },
+}
+_TRADE_THESIS_DEFAULT = {
+    "why": "This position's exact entry trigger could not be identified from its recorded strategy tag.",
+    "hold": "Its intended holding period isn't known from this tag alone.",
+    "close_expectation": "Its intended close condition isn't known from this tag alone.",
+    "weak_signal": "This app cannot say what 'weakening' looks like for this position without knowing which strategy actually opened it.",
+}
+
+
+def _build_trade_thesis(strategy_tag: str | None, entry_price: float, sl_trigger_price: float | None,
+                         target_price: float | None, tracked: bool) -> str:
+    """See _TRADE_THESIS_COMPONENTS' own module comment - one paragraph
+    per open real position, built entirely from each strategy's own
+    already-coded rules, never invented. `tracked` answers the position's
+    own "tracked or not" question: whether this app's own SL-sync/auto-
+    heal/exit logic is actually managing this position (source ==
+    "bot_tracked") or not (a Kotak position this app has no active
+    tracking row for)."""
+    c = _TRADE_THESIS_COMPONENTS.get(strategy_tag, _TRADE_THESIS_DEFAULT)
+    entry_sentence = f"Entry price was Rs{entry_price:.2f}"
+    entry_sentence += f", with an initial stop at Rs{sl_trigger_price:.2f}." if sl_trigger_price else "."
+    target_sentence = (
+        f"The target is Rs{target_price:.2f}." if target_price else
+        "There is no fixed profit target for this strategy - gains are locked in only "
+        "via the trailing/staged exit mechanism described below, letting a winner run "
+        "as far as the move allows rather than capping it at a preset level."
+    )
+    tracked_sentence = (
+        "This app is actively tracking and managing this position - its stop-loss sync, "
+        "auto-heal, and exit logic all apply to it." if tracked else
+        "This app is NOT actively tracking this position (no local tracking row) - its "
+        "stop-loss will not be synced or auto-healed and it will not be exited by this "
+        "app's own logic; it must be managed manually until reconciled."
+    )
+    return (
+        f"{c['why']} {entry_sentence} {target_sentence} {c['hold']} "
+        f"Expected close: {c['close_expectation']} {c['weak_signal']} {tracked_sentence}"
+    )
 
 
 def _is_strategy_viable_for_real_money(strategy_tag: str | None) -> bool:
@@ -12910,6 +13096,18 @@ def get_real_open_positions():
     except Exception:
         pass  # Kotak fetch failed - still return the bot-tracked rows above
 
+    # 2026-09-30, explicit user instruction: attach the "what was in your
+    # mind entering this trade" paragraph to every row here, real or
+    # untracked alike - see _build_trade_thesis's own module comment.
+    # entry_price/sl_trigger_price/target_price/side are all common field
+    # names across every branch above (long, short, swing, and the
+    # kotak_untracked fallback), so this single pass covers all of them.
+    for r in result:
+        r["entry_thesis"] = _build_trade_thesis(
+            r.get("strategy"), r["entry_price"], r.get("sl_trigger_price"),
+            r.get("target_price"), tracked=(r.get("source") == "bot_tracked"),
+        )
+
     return {"open_real_positions": result, "count": len(result)}
 
 
@@ -14771,11 +14969,21 @@ def _run_swing_scan(conn):
     validation before wiring any future strategy the same way.
 
     Only one swing strategy can hold a position per symbol at a time
-    (signal_state_swing.symbol is a PRIMARY KEY) - gap_and_go is checked
-    first (its own validated PFnet, 1.65, clears PFNET_LIVE_FLOOR;
-    Minervini VCP's, 0.908, does not), so on a symbol where both would
-    fire the same day, gap_and_go wins and Minervini VCP simply doesn't
-    get a look until that symbol is flat again."""
+    (signal_state_swing.symbol is a PRIMARY KEY) - checked in this order:
+    power_play (PFnet 5.023, 2026-09-30 "wire it now anyway" - the
+    RAREST setup of the four, checked first so it's never crowded out by
+    a same-day gap/VCP signal) -> gap_and_go (PFnet 1.65) ->
+    minervini_vcp_livermore (the Livermore two-pullback-confirmed entry
+    filter, PFnet 2.043 - 2026-09-30, "wire the viable ones") ->
+    minervini_vcp (the plain base entry, PFnet 0.908, kept paper-only for
+    ongoing research since it's below PFNET_LIVE_FLOOR). The Livermore
+    filter is checked before the base entry rather than after, even
+    though it's logically a strict subset of it (it only ever fires on a
+    day the base signal also would have), specifically so a symbol
+    qualifying for the better-performing variant is never instead
+    recorded under the worse one. Whichever fires first wins the entry
+    slot for that symbol that day; a symbol simply doesn't get a look
+    from the others until it's flat again."""
     today = ist_now().strftime("%Y-%m-%d")
     if conn.execute("SELECT 1 FROM swing_scan_log WHERE scan_date = ?", (today,)).fetchone():
         return
@@ -14814,8 +15022,31 @@ def _run_swing_scan(conn):
         ).fetchone()
 
         if pos:
-            if pos["strategy"] == "minervini_vcp":
+            # 2026-09-30: minervini_vcp_livermore uses the IDENTICAL
+            # chandelier-trail exit as the base minervini_vcp entry (see
+            # strategy_registry.py's own minervini_vcp_livermore_confirmed
+            # entry - "minervini_vcp_entry_signal_livermore_confirmed +
+            # minervini_vcp_exit_reason, the original chandelier trail") -
+            # only the entry-timing filter differs, so both strategy tags
+            # share this same exit branch.
+            if pos["strategy"] in ("minervini_vcp", "minervini_vcp_livermore"):
                 reason, new_running_max = minervini_vcp_exit_reason(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
+                )
+                if not reason:
+                    conn.execute(
+                        "UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                        (new_running_max, symbol),
+                    )
+                    conn.commit()
+            elif pos["strategy"] == "power_play":
+                # 2026-09-30, "Wire it now anyway" (explicit user override
+                # of this strategy's own thin-sample caution, n=109 - see
+                # power_play_high_tight_flag's registry entry). Identical
+                # chandelier-trail + max-hold mechanics to Minervini's own
+                # exit, just with Power-Play-specific ATR/hold constants
+                # (see power_play_exit_reason's own docstring).
+                reason, new_running_max = power_play_exit_reason(
                     df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
                 )
                 if not reason:
@@ -14850,6 +15081,48 @@ def _run_swing_scan(conn):
         risk_pct = cfg["risk_pct"]
         fx = 1.0  # SWING_WATCHLIST is NSE (.NS) equities only
 
+        # 2026-09-30, "Wire it now anyway" - power_play_high_tight_flag
+        # (PFnet 5.023, the single best full-universe number found this
+        # session) checked FIRST: its own evidence describes it as the
+        # RAREST setup among every swing strategy here (n=109 across 2,366
+        # symbols over 5 years, ~0.046 trades/symbol), so checking it
+        # ahead of the much more frequently-firing gap_and_go/Minervini
+        # signals means a genuine Power Play setup is never crowded out on
+        # a day it happens to coincide with one of those. Explicit user
+        # override of this strategy's own "worth a second look before
+        # trusted enough for live wiring" caution - see its registry
+        # entry's own notes for the full caveat, kept on record rather
+        # than removed.
+        power_play_signal = power_play_entry_signal(df)
+        if power_play_signal:
+            entry_price = power_play_signal["entry_price"]
+            stop_loss = power_play_signal["stop_loss"]
+            qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+            if qty <= 0:
+                continue
+            conn.execute(
+                "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+                "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (symbol, "power_play", today, entry_price, stop_loss, None, qty, time.time(), fx,
+                 power_play_signal["atr_at_entry"], entry_price),
+            )
+            apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+            conn.execute(
+                "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+                (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+                 json.dumps({"entry_reason": "power_play", "stop_loss": stop_loss,
+                             "atr_at_entry": power_play_signal["atr_at_entry"]})),
+            )
+            conn.commit()
+            print(f"[SWING] entry {symbol} (power_play) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+            try:
+                _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "power_play")
+            except Exception as e:
+                print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+            continue
+
         signal = gap_and_go_entry_signal(df)
         if signal:
             entry_price = signal["entry_price"]
@@ -14873,6 +15146,48 @@ def _run_swing_scan(conn):
             print(f"[SWING] entry {symbol} (gap_and_go) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
             try:
                 _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "gap_and_go")
+            except Exception as e:
+                print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+            continue
+
+        # 2026-09-30, explicit user instruction ("Wire the viable ones"):
+        # minervini_vcp_livermore_confirmed (PFnet 2.043, real-function
+        # full-universe validation, run 36670102480) clears
+        # PFNET_LIVE_FLOOR by a wide margin, unlike the plain base entry
+        # below (minervini_trend_template_vcp, PFnet 0.908) - checked
+        # FIRST since it's a strictly later/stricter subset of the base
+        # signal (only fires after a full Livermore two-pullback
+        # confirmation), so a symbol that qualifies for the better variant
+        # never also falls through to the worse one. Tagged
+        # "minervini_vcp_livermore" - a DIFFERENT strategy row from
+        # "minervini_vcp" below - so _is_strategy_viable_for_real_money
+        # (via _STRATEGY_TAG_TO_REGISTRY_NAME) gates each independently.
+        livermore_signal = minervini_vcp_entry_signal_livermore_confirmed(df, rs_percentile=rs_pct.get(symbol))
+        if livermore_signal:
+            entry_price = livermore_signal["entry_price"]
+            stop_loss = livermore_signal["stop_loss"]
+            qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+            if qty <= 0:
+                continue
+            conn.execute(
+                "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+                "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (symbol, "minervini_vcp_livermore", today, entry_price, stop_loss, None, qty, time.time(), fx,
+                 livermore_signal["atr_at_entry"], entry_price),
+            )
+            apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+            conn.execute(
+                "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+                (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+                 json.dumps({"entry_reason": "minervini_vcp_livermore", "stop_loss": stop_loss,
+                             "atr_at_entry": livermore_signal["atr_at_entry"]})),
+            )
+            conn.commit()
+            print(f"[SWING] entry {symbol} (minervini_vcp_livermore) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+            try:
+                _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "minervini_vcp_livermore")
             except Exception as e:
                 print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
             continue

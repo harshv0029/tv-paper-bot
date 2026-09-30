@@ -208,3 +208,157 @@ def test_run_swing_scan_exits_a_minervini_position_and_calls_real_exit_mirror(mo
         trade = conn.execute("SELECT * FROM trades WHERE symbol = 'EXIT.NS' AND action = 'sell'").fetchone()
         assert trade is not None
         assert exit_mirror_calls == ["EXIT.NS"]
+
+
+# ---- minervini_vcp_livermore: 2026-09-30, "Wire the viable ones" -----------
+# (PFnet 2.043, clears PFNET_LIVE_FLOOR by a wide margin - checked BEFORE
+# the plain base minervini_vcp entry, which stays below the floor at 0.908).
+
+def test_livermore_tag_maps_to_the_correct_registry_entry_and_is_viable():
+    assert main._STRATEGY_TAG_TO_REGISTRY_NAME["minervini_vcp_livermore"] == "minervini_vcp_livermore_confirmed"
+    assert main._is_strategy_viable_for_real_money("minervini_vcp_livermore") is True
+    # The plain base entry stays blocked - this wiring must not accidentally
+    # also flip that one viable.
+    assert main._is_strategy_viable_for_real_money("minervini_vcp") is False
+
+
+def test_run_swing_scan_opens_a_livermore_position_when_the_filter_fires(monkeypatch):
+    _fresh_db()
+    df = _minervini_breakout_df()  # content doesn't matter - livermore signal is monkeypatched directly
+    monkeypatch.setattr(main, "SWING_WATCHLIST", ["LIVERMORE.NS"])
+    monkeypatch.setattr(main, "fetch_ohlc", lambda symbol, period, interval: df)
+    monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 400000.0)
+    monkeypatch.setattr(
+        main, "minervini_vcp_entry_signal_livermore_confirmed",
+        lambda d, rs_percentile=None: {"entry_price": 100.0, "stop_loss": 90.0, "atr_at_entry": 2.0},
+    )
+    real_entry_calls = []
+    monkeypatch.setattr(
+        main, "_maybe_place_real_swing_entry",
+        lambda conn, symbol, qty, entry_price, stop_loss, strategy: real_entry_calls.append(strategy),
+    )
+
+    with closing(main.get_db()) as conn:
+        main._run_swing_scan(conn)
+        row = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = 'LIVERMORE.NS'").fetchone()
+        assert row is not None
+        assert row["strategy"] == "minervini_vcp_livermore"
+        assert row["atr_at_entry"] == 2.0
+        assert row["running_max_close"] == row["entry_price"]
+    assert real_entry_calls == ["minervini_vcp_livermore"]
+
+
+def test_run_swing_scan_falls_back_to_plain_minervini_when_livermore_does_not_fire(monkeypatch):
+    # The exact base-entry fixture from the pre-existing test above - the
+    # Livermore filter genuinely does not confirm on a single plain
+    # breakout with no two-pullback structure, so this must still land as
+    # "minervini_vcp", not silently stop firing at all.
+    _fresh_db()
+    df = _minervini_breakout_df()
+    monkeypatch.setattr(main, "SWING_WATCHLIST", ["PLAINVCP.NS"])
+    monkeypatch.setattr(main, "fetch_ohlc", lambda symbol, period, interval: df)
+    monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 400000.0)
+
+    with closing(main.get_db()) as conn:
+        main._run_swing_scan(conn)
+        row = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = 'PLAINVCP.NS'").fetchone()
+        assert row is not None
+        assert row["strategy"] == "minervini_vcp"
+
+
+def test_run_swing_scan_prefers_livermore_over_plain_minervini_on_the_same_symbol(monkeypatch):
+    _fresh_db()
+    df = _minervini_breakout_df()
+    monkeypatch.setattr(main, "SWING_WATCHLIST", ["BOTHVCP.NS"])
+    monkeypatch.setattr(main, "fetch_ohlc", lambda symbol, period, interval: df)
+    monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 400000.0)
+    monkeypatch.setattr(
+        main, "minervini_vcp_entry_signal_livermore_confirmed",
+        lambda d, rs_percentile=None: {"entry_price": 100.0, "stop_loss": 90.0, "atr_at_entry": 2.0},
+    )
+    monkeypatch.setattr(
+        main, "minervini_vcp_entry_signal",
+        lambda d, rs_percentile=None: {"entry_price": 100.0, "stop_loss": 90.0, "atr_at_entry": 2.0},
+    )
+
+    with closing(main.get_db()) as conn:
+        main._run_swing_scan(conn)
+        row = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = 'BOTHVCP.NS'").fetchone()
+        assert row is not None
+        assert row["strategy"] == "minervini_vcp_livermore"
+
+
+def test_run_swing_scan_exits_a_livermore_position_using_the_shared_chandelier_exit(monkeypatch):
+    _fresh_db()
+    df = _minervini_breakout_df()
+    monkeypatch.setattr(main, "SWING_WATCHLIST", ["EXITLIVERMORE.NS"])
+    monkeypatch.setattr(main, "fetch_ohlc", lambda symbol, period, interval: df)
+    exit_mirror_calls = []
+    monkeypatch.setattr(main, "_maybe_place_real_swing_exit", lambda conn, symbol: exit_mirror_calls.append(symbol))
+
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, "
+            "gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES ('EXITLIVERMORE.NS', 'minervini_vcp_livermore', '2020-01-01', 150.0, 130.0, NULL, 10, 0, 1.0, 2.0, 182.0)"
+        )
+        conn.commit()
+        monkeypatch.setattr(main, "minervini_vcp_exit_reason", lambda d, entry_day, stop, atr, running_max: ("trail_stop_hit", 182.0))
+
+        main._run_swing_scan(conn)
+        row = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = 'EXITLIVERMORE.NS'").fetchone()
+        assert row is None
+        trade = conn.execute("SELECT * FROM trades WHERE symbol = 'EXITLIVERMORE.NS' AND action = 'sell'").fetchone()
+        assert trade is not None
+        assert exit_mirror_calls == ["EXITLIVERMORE.NS"]
+
+
+def test_run_swing_scan_updates_livermore_running_max_close_without_exiting(monkeypatch):
+    _fresh_db()
+    df = _minervini_breakout_df()
+    monkeypatch.setattr(main, "SWING_WATCHLIST", ["HOLDLIVERMORE.NS"])
+    monkeypatch.setattr(main, "fetch_ohlc", lambda symbol, period, interval: df)
+
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, "
+            "gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES ('HOLDLIVERMORE.NS', 'minervini_vcp_livermore', '2020-01-01', 150.0, 130.0, NULL, 10, 0, 1.0, 2.0, 150.0)"
+        )
+        conn.commit()
+        monkeypatch.setattr(main, "minervini_vcp_exit_reason", lambda d, entry_day, stop, atr, running_max: (None, 182.0))
+
+        main._run_swing_scan(conn)
+        row = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = 'HOLDLIVERMORE.NS'").fetchone()
+        assert row is not None
+        assert row["running_max_close"] == 182.0
+
+
+def test_real_livermore_entry_mirror_proceeds_with_real_gate_and_switch_on():
+    # End-to-end: the shared swing switch AND the PFnet gate both actually
+    # allow this one through (unlike minervini_vcp/plain, see the blocked
+    # regression test in test_pfnet_real_money_gate.py).
+    _fresh_db()
+    os.environ["REAL_SWING_TRADING_ENABLED"] = "YES"
+    patches = [
+        patch("kotak_live_feed.get_live_ticks",
+              return_value={"TESTSTOCK.NS": {"ltp": 100.0, "trading_symbol": "TESTSTOCK-EQ"}}),
+        patch("main.get_scheduler_capital_inr", return_value=1_000_000.0),
+        patch("main._real_today_spent_inr", return_value=0.0),
+        patch("main._real_loss_budget", return_value={"real_pnl_today": 0.0, "ok": True, "detail": None}),
+        patch("kotak_real_orders.place_real_entry",
+              return_value={"ok": True, "qty": 10, "fill_price": 100.0, "order_id": "E1", "fill_price_confirmed": True}),
+        patch("kotak_real_orders.place_real_stop_loss",
+              return_value={"ok": True, "order_id": "SL1", "trigger_price": 90.0}),
+    ]
+    started = [p.start() for p in patches]
+    try:
+        with closing(main.get_db()) as conn:
+            main._maybe_place_real_swing_entry(conn, "TESTSTOCK.NS", 10, 100.0, 90.0, "minervini_vcp_livermore")
+            row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = 'TESTSTOCK.NS'").fetchone()
+            assert row is not None
+            assert row["strategy"] == "minervini_vcp_livermore"
+    finally:
+        os.environ.pop("REAL_SWING_TRADING_ENABLED", None)
+        for p in patches:
+            p.stop()
