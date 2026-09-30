@@ -1,0 +1,274 @@
+name: Failed Breakout Short - ATR Stop Multiplier Sweep (research)
+
+# 2026-09-30, explicit user instruction ("Tweak changes and check if any
+# set of permutation n combinations are getting better results... parameter
+# level plus minus"). Directly motivated by failed-breakout-short-
+# validation-replay.yml's own baseline result (run 36712440006, PFnet
+# 0.657, registered as failed_breakout_short): trail_stop_hit accounts for
+# 71% of trades (n=14,830) and is a clear net LOSER on its own (PFnet
+# 0.138, 12.99% win rate), while trades that survive to max_hold_timeout
+# are extremely profitable (n=5,725, PFnet 47.3, 89.4% win rate). A wider
+# trailing stop (FAILED_BREAKOUT_ATR_STOP_MULT, baseline 2.0) should let
+# more trades survive toward that profitable territory instead of getting
+# stopped out early - this sweep tests that hypothesis directly, not a
+# blind parameter nudge (CLAUDE.md's "never tune blind off one result"
+# rule is about NOT doing this - a structured, hypothesis-driven,
+# full-universe-validated sweep across several values, reporting every
+# result honestly, is exactly the sanctioned alternative).
+#
+# Calls the REAL main.py functions for entry (failed_breakout_entry_
+# signal_short, unmodified) and exit (failed_breakout_exit_reason_short,
+# unmodified) - only the module-level FAILED_BREAKOUT_ATR_STOP_MULT
+# constant is overridden per shard before the replay loop runs, since
+# that's the exact lever this sweep is testing and the function reads it
+# fresh from the module on every call (never baked into a closure).
+#
+# Full NSE universe via m._load_nse_universe_from_file() (CLAUDE.md,
+# 2026-09-29 full-universe thumb rule).
+#
+# Candle-size sweep for this strategy is explicitly OUT OF SCOPE here:
+# every lookback constant (FAILED_BREAKOUT_RESISTANCE_LOOKBACK_DAYS=60,
+# CONSOL_EXCLUDE_DAYS=10, MAX_DAYS_SINCE_BREAKOUT=7, MAX_HOLD_DAYS=30) is
+# expressed in whole TRADING DAYS via bar-index arithmetic that assumes
+# one bar = one day - testing this at 1h/4h would require re-deriving
+# every one of those constants in bar-count terms for that granularity,
+# a separate, larger engineering task, not a "just change INTERVAL" sweep
+# like a bar-size-agnostic strategy (e.g. Gap-Up Fade) supports. Flagged
+# honestly rather than silently skipped or faked with a resample.
+#
+# Read-only research: does not touch any live parameter, table, or
+# scheduler path - failed_breakout_entry_signal_short/_exit_reason_short
+# are NOT wired into main.py's live scan/scheduler/order path.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        atr_mult: ["1.0", "1.5", "2.0", "2.5", "3.0", "4.0", "5.0"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run Failed Breakout short sweep at ATR multiplier ${{ matrix.atr_mult }}
+        env:
+          ATR_MULT: ${{ matrix.atr_mult }}
+        run: |
+          python3 - <<'PYEOF'
+          import os
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import pandas as pd
+          import yfinance as yf
+          import main as m
+
+          ATR_MULT = float(os.environ["ATR_MULT"])
+          m.FAILED_BREAKOUT_ATR_STOP_MULT = ATR_MULT  # the ONE thing this sweep varies - the real
+          # failed_breakout_exit_reason_short function reads this module-level constant fresh on
+          # every call, so this override is picked up exactly the same way changing the constant
+          # in main.py itself would be, without touching any other logic.
+          print(f"=== Sweeping FAILED_BREAKOUT_ATR_STOP_MULT = {ATR_MULT} (baseline is 2.0) ===")
+
+          PERIOD = "5y"
+          INTERVAL = "1d"
+          CAPITAL_INR = 400000.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade_short(symbol, entry_price, initial_stop, qty, entry_label, exit_price,
+                                     exit_label, exit_reason, entry_cost, held_days, cost_model):
+              gross_pnl = (entry_price - exit_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = initial_stop - entry_price
+              return {
+                  "symbol": symbol, "entry_ts": entry_label, "exit_ts": exit_label,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "held_days": held_days,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def replay_symbol(symbol, df, risk_pct, capital, cost_model):
+              trades = []
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = m.FAILED_BREAKOUT_RESISTANCE_LOOKBACK_DAYS + m.FAILED_BREAKOUT_CONSOL_EXCLUDE_DAYS + 5
+              if n < min_lookback + 20:
+                  return trades
+
+              closes = df["Close"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              position = None
+
+              for i in range(min_lookback, n):
+                  sub_df = df.iloc[: i + 1]
+
+                  if position is not None:
+                      reason, position["running_min_close"] = m.failed_breakout_exit_reason_short(
+                          sub_df, position["entry_label"], position["initial_stop"],
+                          position["atr_at_entry"], position["running_min_close"],
+                      )
+                      if reason:
+                          held_days = i - position["entry_idx"]
+                          trades.append(_finalize_trade_short(
+                              symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_label"], closes[i], dates[i], reason,
+                              position["entry_cost"], held_days, cost_model,
+                          ))
+                          position = None
+
+                  if position is None:
+                      sig = m.failed_breakout_entry_signal_short(sub_df)
+                      if sig is not None:
+                          entry_price = sig["entry_price"]
+                          stop_loss = sig["stop_loss"]
+                          stop_dist = stop_loss - entry_price
+                          if stop_dist > 0:
+                              usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                              risk_amount_inr = usable_capital_inr * risk_pct / 100
+                              qty = min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)
+                              qty = int(np.floor(qty))
+                              if qty > 0 and qty * entry_price >= 100:
+                                  position = {
+                                      "entry_price": entry_price, "initial_stop": stop_loss,
+                                      "entry_idx": i, "entry_label": dates[i], "qty": qty,
+                                      "atr_at_entry": sig["atr_at_entry"], "running_min_close": entry_price,
+                                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                                  }
+
+              if position is not None:
+                  held_days = (n - 1) - position["entry_idx"]
+                  trades.append(_finalize_trade_short(
+                      symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_label"], closes[-1], dates[-1], "data_end_forced_close",
+                      position["entry_cost"], held_days, cost_model,
+                  ))
+              return trades
+
+
+          def _fetch_universe_batched(symbols, period, interval, chunk_size=250):
+              out = {}
+              for start in range(0, len(symbols), chunk_size):
+                  chunk = symbols[start:start + chunk_size]
+                  raw = yf.download(chunk, period=period, interval=interval, group_by="ticker",
+                                     threads=True, progress=False, auto_adjust=False)
+                  if raw.empty:
+                      continue
+                  if not isinstance(raw.columns, pd.MultiIndex):
+                      sub = raw.dropna(subset=["Open", "High", "Low", "Close"])
+                      if not sub.empty:
+                          sub = sub.reset_index()
+                          date_col = "Date" if "Date" in sub.columns else "Datetime"
+                          out[chunk[0]] = sub.rename(columns={date_col: "Date"}).reset_index(drop=True)
+                      continue
+                  top_level = set(raw.columns.get_level_values(0))
+                  for sym in chunk:
+                      if sym not in top_level:
+                          continue
+                      sub = raw[sym].dropna(subset=["Open", "High", "Low", "Close"])
+                      if sub.empty:
+                          continue
+                      sub = sub.reset_index()
+                      date_col = "Date" if "Date" in sub.columns else "Datetime"
+                      out[sym] = sub.rename(columns={date_col: "Date"}).reset_index(drop=True)
+              return out
+
+
+          SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}), batched+threaded ---")
+          raw_by_symbol = {
+              sym: df for sym, df in _fetch_universe_batched(SYMBOLS, PERIOD, INTERVAL).items()
+              if len(df) >= 100
+          }
+          print(f"  fetched {len(raw_by_symbol)}/{len(SYMBOLS)} symbols\n")
+
+          all_trades = []
+          for sym, raw in raw_by_symbol.items():
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  trades = replay_symbol(sym, raw, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              all_trades.extend(trades)
+          print(f"  {len(all_trades)} total trades\n")
+
+
+          def _metrics(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_held_days=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_held_days = sum(t["held_days"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_held_days=avg_held_days)
+
+
+          print(f"=== POOLED RESULT (ATR_STOP_MULT={ATR_MULT}) ===")
+          row = _metrics(all_trades)
+          print(f"atr_mult={ATR_MULT} n_trades={row['n']} win_rate={row['win_rate']:.2f}% "
+                f"pf_net={row['pf_net']:.3f} pf_gross={row['pf_gross']:.3f} "
+                f"avg_net_inr={row['avg_net']:.2f} avg_held_days={row['avg_held_days']:.1f}")
+
+          print("\n=== By exit_reason ===")
+          by_reason = {}
+          for t in all_trades:
+              by_reason.setdefault(t["exit_reason"], []).append(t)
+          for reason, ts in sorted(by_reason.items(), key=lambda kv: -len(kv[1])):
+              m2 = _metrics(ts)
+              print(f"{reason}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_days={m2['avg_held_days']:.1f}")
+          PYEOF

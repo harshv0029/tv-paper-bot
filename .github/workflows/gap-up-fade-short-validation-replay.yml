@@ -17,13 +17,25 @@ name: Gap-Up Fade Short Validation Replay (calls the REAL main.py functions)
 #
 # Intraday (5m, 60d - yfinance's own max window for that granularity),
 # full NSE universe via m._load_nse_universe_from_file() (CLAUDE.md,
-# 2026-09-29 full-universe thumb rule). Deliberately a single, unsharded
-# job (unlike range/trend-short-validation-replay.yml's 40-way matrix) -
-# this entry function has no regime classification or multi-factor
-# scoring, just gap-percentage arithmetic and a close-vs-open comparison,
-# so per-bar compute is far cheaper; sharding is a performance
-# optimization to revisit if this single job times out in practice, not a
-# correctness requirement.
+# 2026-09-29 full-universe thumb rule).
+#
+# 2026-09-30 performance fix (CLAUDE.md's own sweep/optimization thumb
+# rule): this was originally a single, unsharded job. The replay driver's
+# own bar-by-bar loop calls the real entry/exit functions on a GROWING
+# sub_df = df.iloc[:i+1] slice each bar (deliberately, so those functions
+# see exactly the history-to-date a live run would) - for a 60-day/5m
+# series (~4,500 bars/symbol) that's O(n^2) work per symbol, and across
+# ~2,680 symbols the single job ran well past 30+ minutes with no result.
+# Fixed by adopting the SAME 40-way shard/aggregate matrix pattern already
+# proven in trend-short-validation-replay.yml and
+# range-short-validation-replay.yml: symbols are round-robin split across
+# 40 parallel runners (ALL_SYMBOLS[SHARD_INDEX::SHARD_COUNT]), each shard
+# uploads its own trades as an artifact, and a final aggregate job pools
+# them for the real reported metrics. This changes ONLY how the work is
+# distributed - every entry/exit/stop/trail decision still calls the exact
+# same m.gap_up_fade_entry_signal_short / m.gap_up_fade_exit_reason_short
+# functions, unmodified, so the pooled result is identical in substance to
+# what the old single-job version would have produced, just parallelized.
 #
 # Read-only research: does not touch any live parameter, table, or
 # scheduler path, and gap_up_fade_entry_signal_short/
@@ -34,10 +46,17 @@ name: Gap-Up Fade Short Validation Replay (calls the REAL main.py functions)
 on:
   workflow_dispatch: {}
 
+env:
+  SHARD_COUNT: 40
+
 jobs:
   replay:
     runs-on: ubuntu-latest
-    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+                20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
     steps:
       - uses: actions/checkout@v4
 
@@ -48,15 +67,21 @@ jobs:
       - name: Install dependencies
         run: pip install -q -r requirements.txt
 
-      - name: Run Gap-Up Fade short backtest against the real main.py functions
+      - name: Run Gap-Up Fade short backtest against the real main.py functions (this shard)
+        env:
+          SHARD_INDEX: ${{ matrix.shard }}
         run: |
           python3 - <<'PYEOF'
           import sys
           sys.path.insert(0, ".")
+          import json
+          import os
           import numpy as np
           import pandas as pd
-          import yfinance as yf
           import main as m
+
+          SHARD_INDEX = int(os.environ["SHARD_INDEX"])
+          SHARD_COUNT = int(os.environ["SHARD_COUNT"])
 
           PERIOD = "60d"
           INTERVAL = "5m"
@@ -172,52 +197,23 @@ jobs:
               return trades
 
 
-          def _fetch_universe_batched(symbols, period, interval, chunk_size=100):
-              """Bulk OHLC fetch via yfinance's own native multi-ticker
-              batch/thread download - see power-play-validation-replay.yml's
-              own copy of this function for the full reasoning. Smaller
-              chunk_size than the 1d replays (100 vs 250) since intraday
-              batch downloads are more prone to partial/rate-limited
-              responses at very large batch sizes. Returns {symbol: DataFrame}."""
-              out = {}
-              for start in range(0, len(symbols), chunk_size):
-                  chunk = symbols[start:start + chunk_size]
-                  raw = yf.download(chunk, period=period, interval=interval, group_by="ticker",
-                                     threads=True, progress=False, auto_adjust=False)
-                  if raw.empty:
-                      continue
-                  if not isinstance(raw.columns, pd.MultiIndex):
-                      sub = raw.dropna(subset=["Open", "High", "Low", "Close"])
-                      if not sub.empty:
-                          sub = sub.reset_index()
-                          date_col = "Date" if "Date" in sub.columns else "Datetime"
-                          out[chunk[0]] = sub.rename(columns={date_col: "Date"}).reset_index(drop=True)
-                      continue
-                  top_level = set(raw.columns.get_level_values(0))
-                  for sym in chunk:
-                      if sym not in top_level:
-                          continue
-                      sub = raw[sym].dropna(subset=["Open", "High", "Low", "Close"])
-                      if sub.empty:
-                          continue
-                      sub = sub.reset_index()
-                      date_col = "Date" if "Date" in sub.columns else "Datetime"
-                      out[sym] = sub.rename(columns={date_col: "Date"}).reset_index(drop=True)
-              return out
-
-
-          SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
-          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}), batched+threaded ---")
-          raw_by_symbol = {
-              sym: df for sym, df in _fetch_universe_batched(SYMBOLS, PERIOD, INTERVAL).items()
-              if len(df) >= 100
-          }
-          print(f"  fetched {len(raw_by_symbol)}/{len(SYMBOLS)} symbols\n")
+          ALL_SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          SYMBOLS = ALL_SYMBOLS[SHARD_INDEX::SHARD_COUNT]
+          print(f"--- Shard {SHARD_INDEX}/{SHARD_COUNT}: fetching {len(SYMBOLS)} of {len(ALL_SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) ---")
 
           all_trades = []
           per_symbol_trade_count = {}
-          for sym, raw in raw_by_symbol.items():
+          fetched = 0
+          for sym in SYMBOLS:
               cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  raw = m.fetch_ohlc(sym, PERIOD, INTERVAL)
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < 100:
+                  continue
+              fetched += 1
               try:
                   trades = replay_symbol(sym, raw, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL)
               except Exception as e:
@@ -226,7 +222,49 @@ jobs:
               if trades:
                   per_symbol_trade_count[sym] = len(trades)
               all_trades.extend(trades)
-          print(f"  {len(all_trades)} total trades\n")
+          print(f"  shard {SHARD_INDEX}: fetched {fetched}/{len(SYMBOLS)} symbols, {len(all_trades)} trades")
+
+          with open("shard_result.json", "w") as f:
+              json.dump({"shard": SHARD_INDEX, "fetched": fetched, "universe_size": len(SYMBOLS),
+                         "trades": all_trades, "per_symbol_trade_count": per_symbol_trade_count}, f)
+          PYEOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.shard }}-result
+          path: shard_result.json
+          retention-days: 3
+
+  aggregate:
+    needs: replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*-result
+          path: shards
+          merge-multiple: false
+
+      - name: Aggregate all shards and report pooled metrics
+        run: |
+          python3 - <<'PYEOF'
+          import glob
+          import json
+
+          all_trades = []
+          per_symbol_trade_count = {}
+          total_fetched = 0
+          total_universe = 0
+          for path in sorted(glob.glob("shards/shard-*-result/shard_result.json")):
+              with open(path) as f:
+                  data = json.load(f)
+              all_trades.extend(data["trades"])
+              per_symbol_trade_count.update(data["per_symbol_trade_count"])
+              total_fetched += data["fetched"]
+              total_universe += data["universe_size"]
+              print(f"  loaded {path}: {data['fetched']}/{data['universe_size']} symbols, {len(data['trades'])} trades")
+
+          print(f"\n--- Pooled: fetched {total_fetched}/{total_universe} symbols, {len(all_trades)} total trades ---\n")
 
 
           def _metrics(trades):
