@@ -136,7 +136,12 @@ def test_real_entry_copies_the_paper_signals_strategy_onto_the_real_position():
                  patch("kotak_real_orders.place_real_stop_loss",
                        return_value={"ok": True, "order_id": "SL1", "trigger_price": 90.0}), \
                  patch("kotak_real_orders.place_real_target",
-                       return_value={"ok": True, "order_id": "T1", "target_price": 130.0}):
+                       return_value={"ok": True, "order_id": "T1", "target_price": 130.0}), \
+                 patch("main._is_strategy_viable_for_real_money", return_value=True):
+                # 2026-09-30: the PFnet >= 1 real-money gate is orthogonal
+                # to what this test checks (that the paper strategy tag
+                # is copied through onto the real row/trade) - patched
+                # True so this test stays focused on that copy behavior.
                 main._maybe_place_real_entry(conn, "TESTSTOCK.NS")
             position = dict(conn.execute(
                 "SELECT * FROM real_positions WHERE symbol = 'TESTSTOCK.NS'"

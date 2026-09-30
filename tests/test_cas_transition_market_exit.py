@@ -96,6 +96,7 @@ def test_entry_sl_rejected_with_cas_reason_escalates_to_market_exit():
                                      "fill_price_confirmed": True}), \
                  patch("kotak_real_orders.place_real_stop_loss",
                        return_value={"ok": False, "detail": _CAS_REJECTION_DETAIL}), \
+                 patch("main._is_strategy_viable_for_real_money", return_value=True), \
                  patch.object(main, "_maybe_place_real_exit") as mock_exit:
                 main._maybe_place_real_entry(conn, "TESTSTOCK.NS")
                 mock_exit.assert_called_once_with(conn, "TESTSTOCK.NS")
@@ -124,6 +125,7 @@ def test_entry_sl_rejected_with_t1_reason_does_not_escalate():
                                      "fill_price_confirmed": True}), \
                  patch("kotak_real_orders.place_real_stop_loss",
                        return_value={"ok": False, "detail": _T1_REJECTION_DETAIL}), \
+                 patch("main._is_strategy_viable_for_real_money", return_value=True), \
                  patch.object(main, "_maybe_place_real_exit") as mock_exit:
                 main._maybe_place_real_entry(conn, "TESTSTOCK.NS")
                 mock_exit.assert_not_called()

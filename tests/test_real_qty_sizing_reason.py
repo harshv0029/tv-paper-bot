@@ -8,6 +8,13 @@ confirmed real_trades row's own `detail` field (previously always None on
 a clean fill) so it reaches the Kotak Order Ledger via /kotak-neo/real-trades
 without any separate lookup.
 
+_insert_paper_signal below sets no `strategy` column, so it defaults to
+NULL - which fails the 2026-09-30 PFnet >= 1 real-money gate
+(_is_strategy_viable_for_real_money) added after this file. That gate is
+orthogonal to what these tests actually check (qty-sizing arithmetic), so
+each entry-flow test below patches it to True rather than fabricating an
+unrelated strategy tag in the fixture.
+
 Run: pytest tests/test_real_qty_sizing_reason.py -v
 """
 import os
@@ -91,6 +98,7 @@ def test_confirmed_entry_logs_full_paper_size_reason():
                  patch("main.get_scheduler_capital_inr", return_value=1000000.0), \
                  patch("main._real_today_spent_inr", return_value=0.0), \
                  patch("main._real_loss_budget", return_value={"real_pnl_today": 0.0, "ok": True, "detail": None}), \
+                 patch("main._is_strategy_viable_for_real_money", return_value=True), \
                  patch("kotak_real_orders.place_real_entry",
                        return_value={"ok": True, "qty": 2, "fill_price": 100.0, "order_id": "E1",
                                      "fill_price_confirmed": True}), \
@@ -124,6 +132,7 @@ def test_confirmed_entry_logs_daily_cap_capped_reason():
                  patch("main.get_scheduler_capital_inr", return_value=1000000.0), \
                  patch("main._real_today_spent_inr", return_value=999900.0), \
                  patch("main._real_loss_budget", return_value={"real_pnl_today": 0.0, "ok": True, "detail": None}), \
+                 patch("main._is_strategy_viable_for_real_money", return_value=True), \
                  patch("kotak_real_orders.place_real_entry",
                        return_value={"ok": True, "qty": 1, "fill_price": 100.0, "order_id": "E1",
                                      "fill_price_confirmed": True}), \
@@ -151,6 +160,7 @@ def test_unconfirmed_fill_appends_note_after_reason():
                  patch("main.get_scheduler_capital_inr", return_value=1000000.0), \
                  patch("main._real_today_spent_inr", return_value=0.0), \
                  patch("main._real_loss_budget", return_value={"real_pnl_today": 0.0, "ok": True, "detail": None}), \
+                 patch("main._is_strategy_viable_for_real_money", return_value=True), \
                  patch("kotak_real_orders.place_real_entry",
                        return_value={"ok": True, "qty": 1, "fill_price": 100.0, "order_id": "E1",
                                      "fill_price_confirmed": False}), \
