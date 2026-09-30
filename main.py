@@ -5121,6 +5121,24 @@ def _place_real_stop_loss_with_retry(kotak_trading_symbol: str, qty: float, trig
     return result
 
 
+def _place_real_stop_loss_with_retry_short(kotak_trading_symbol: str, qty: float, trigger_price: float,
+                                            attempts: int = _SL_RETRY_ATTEMPTS) -> dict:
+    """Short mirror of _place_real_stop_loss_with_retry (2026-09-30) -
+    same fail-closed, same-request retry wrapper, calling
+    kotak_real_orders.place_real_short_stop_loss (a resting BUY-stop)
+    instead of the long side's place_real_stop_loss (a resting SELL-stop).
+    Returns the LAST attempt's result dict either way."""
+    import kotak_real_orders
+    result = {"ok": False, "detail": "no attempt made"}
+    for attempt in range(1, attempts + 1):
+        result = kotak_real_orders.place_real_short_stop_loss(kotak_trading_symbol, qty, trigger_price)
+        if result.get("ok"):
+            return result
+        if attempt < attempts:
+            time.sleep(2)
+    return result
+
+
 def _protection_degraded_timeout_seconds(capital_inr: float) -> float:
     """How long a real position may run with NO live resting SL order at
     Kotak before this app escalates to a full exit - 2026-09-10, explicit
@@ -5168,6 +5186,26 @@ def _clear_protection_degraded(conn, symbol: str) -> None:
     resting SL order is confirmed placed again."""
     conn.execute(
         "UPDATE real_positions SET protection_degraded_since = NULL WHERE symbol = ?", (symbol,)
+    )
+    conn.commit()
+
+
+def _mark_protection_degraded_short(conn, symbol: str) -> None:
+    """Short mirror of _mark_protection_degraded (2026-09-30) - starts the
+    degraded-protection clock on real_positions_short instead of
+    real_positions. Same no-op-if-already-running contract."""
+    conn.execute(
+        "UPDATE real_positions_short SET protection_degraded_since = ? "
+        "WHERE symbol = ? AND protection_degraded_since IS NULL",
+        (time.time(), symbol),
+    )
+    conn.commit()
+
+
+def _clear_protection_degraded_short(conn, symbol: str) -> None:
+    """Short mirror of _clear_protection_degraded (2026-09-30)."""
+    conn.execute(
+        "UPDATE real_positions_short SET protection_degraded_since = NULL WHERE symbol = ?", (symbol,)
     )
     conn.commit()
 
@@ -9833,6 +9871,59 @@ def _reconcile_real_qty(conn, real_row):
     return conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (real_row["symbol"],)).fetchone()
 
 
+def _real_held_qty_short(kotak_trading_symbol: str) -> float | None:
+    """Short mirror of _real_held_qty (2026-09-30, "make short positions
+    equally mirrored as done in buy positions") - flSellQty - flBuyQty,
+    positive when genuinely short. _real_held_qty's own `fl_buy - fl_sell`
+    would be NEGATIVE for a pure short, and _reconcile_real_qty's own
+    `held <= 0` guard would then treat every genuine short as "unreadable
+    or closed" and skip reconciling it entirely - this is why that
+    function can't be reused as-is for shorts. Returns None on a fetch
+    failure (never 0 - a failed read must never be mistaken for a
+    genuinely flat/closed position, same contract as the long version)."""
+    try:
+        import kotak_neo
+        positions = kotak_neo.positions()
+        rows = positions.get("data") or [] if isinstance(positions, dict) else []
+    except Exception:
+        return None
+    for row in rows:
+        if row.get("trdSym") != kotak_trading_symbol or row.get("exSeg") != "nse_cm":
+            continue
+        try:
+            fl_buy = float(row.get("flBuyQty", 0) or 0)
+            fl_sell = float(row.get("flSellQty", 0) or 0)
+        except (TypeError, ValueError):
+            return None
+        return fl_sell - fl_buy
+    return 0.0
+
+
+def _reconcile_real_qty_short(conn, real_row):
+    """Short mirror of _reconcile_real_qty (2026-09-30) - corrects
+    real_positions_short.qty against what Kotak's own positions() actually
+    shows held short, using _real_held_qty_short (NOT _real_held_qty,
+    which is long-signed and would misread every genuine short as
+    unreadable/closed - see that function's own docstring). Same
+    best-effort, fail-quiet-on-unreadable contract as the long version:
+    returns real_row unchanged on a failed or non-positive read, letting
+    the normal exit/cleanup paths handle a genuinely closed position."""
+    held = _real_held_qty_short(real_row["kotak_trading_symbol"])
+    if held is None or held <= 0:
+        return real_row
+    if held == real_row["qty"]:
+        return real_row
+    print(f"[REAL SHORT] {real_row['kotak_trading_symbol']} qty mismatch - this app tracked "
+          f"{real_row['qty']}, Kotak actually holds {held:.0f} short - correcting local record")
+    _log_real_order_event(
+        conn, real_row["symbol"], "qty", "reconciled", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+        prev_state=f"tracked qty {real_row['qty']}", new_state=f"corrected to Kotak's actual {held:.0f}",
+    )
+    conn.execute("UPDATE real_positions_short SET qty = ? WHERE symbol = ?", (held, real_row["symbol"]))
+    conn.commit()
+    return conn.execute("SELECT * FROM real_positions_short WHERE symbol = ?", (real_row["symbol"],)).fetchone()
+
+
 def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     """Mirrors ONE staged profit-booking LEG (see _execute_staged_leg_exit)
     as a REAL partial sell - 2026-09-09 architecture revamp. Unlike
@@ -10885,6 +10976,163 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         # beyond retrying happens here; the next tick's stop_hit check is
         # the real backstop, same as it always was for target/trend/
         # stale-timeout/squareoff exits too.
+
+
+def _maybe_sync_real_stop_loss_short(conn, symbol: str):
+    """Short mirror of _maybe_sync_real_stop_loss (2026-09-30, explicit
+    user instruction: "make short positions equally mirrored as done in
+    buy positions") - the per-TICK (every ~30s, not just the 5-min
+    reconcile pass) trailing-stop/retry/degraded-protection engine for a
+    real short position, bringing it to full parity with the long side.
+    Before this, a short's ONLY auto-heal mechanism was the 5-min
+    reconcile's own governance-backfill loop (see that function's own
+    2026-09-30 additions) - this closes the remaining gap: the paper
+    trailing stop set by _short_signal_core now gets mirrored to Kotak
+    every tick, not just re-checked every 5 minutes, and a short that
+    loses its resting SL gets the SAME aggressive same-tick retry +
+    bounded degraded-protection timeout + emergency-exit escalation a
+    long position has had since 2026-09-08/09-10.
+
+    Every mechanic below is the long version's own, mirrored exactly,
+    with the direction and the table flipped:
+    - a short's stop only ever trails DOWN (toward entry) as price falls,
+      the opposite of a long's up-trail - so the "no favorable move since
+      last sync" skip is `new_stop >= current_sl_price`, not `<=`.
+    - the protective order is a resting BUY (cancel_existing_resting_sl_
+      short, place_real_short_stop_loss), not a resting SELL.
+    - emergency-exit escalation calls _maybe_place_real_short_exit (a
+      buy-to-cover), not _maybe_place_real_exit (a sell).
+    - qty reconciliation uses _real_held_qty_short (flSellQty - flBuyQty),
+      not _real_held_qty, which is long-signed and would misread a
+      genuine short as unreadable/closed.
+
+    _real_sl_order_is_live, _real_sl_rejection_detail, _is_t1_restricted,
+    _flag_if_t1_restricted, _protection_degraded_timeout_seconds, and
+    kotak_real_orders.is_cas_transition_rejection are all reused AS-IS -
+    none of them assume a direction (they operate on an order id, a
+    symbol-keyed restriction flag, or a capital figure)."""
+    real_row = conn.execute("SELECT * FROM real_positions_short WHERE symbol = ?", (symbol,)).fetchone()
+    if not real_row:
+        return
+
+    _ensure_signal_state_for_real_position_short(conn, real_row)
+    real_row = _reconcile_real_qty_short(conn, real_row)
+
+    if real_row["sl_order_id"]:
+        sl_is_live = _real_sl_order_is_live(real_row["sl_order_id"])
+        if sl_is_live is False:
+            rejection_detail = _real_sl_rejection_detail(real_row["sl_order_id"])
+            print(f"[REAL SHORT] resting SL {real_row['sl_order_id']} for "
+                  f"{real_row['kotak_trading_symbol']} found DEAD on reconcile "
+                  f"(no fill) - clearing it so the retry/escalation path below picks it up. "
+                  f"detail: {rejection_detail}")
+            _log_real_order_event(
+                conn, symbol, "sl", "found_dead_on_reconcile", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+                order_id=real_row["sl_order_id"], prev_state="assumed resting",
+                new_state="dead at Kotak (rejected/cancelled, no fill)", detail=rejection_detail,
+            )
+            conn.execute(
+                "UPDATE real_positions_short SET sl_order_id = NULL, sl_trigger_price = NULL WHERE symbol = ?",
+                (symbol,),
+            )
+            conn.commit()
+            real_row = conn.execute("SELECT * FROM real_positions_short WHERE symbol = ?", (symbol,)).fetchone()
+
+    if not real_row["sl_order_id"]:
+        if real_row["protection_degraded_since"] is None:
+            _mark_protection_degraded_short(conn, symbol)
+        else:
+            elapsed = time.time() - real_row["protection_degraded_since"]
+            timeout = _protection_degraded_timeout_seconds(get_scheduler_capital_inr())
+            if elapsed > timeout:
+                print(f"[REAL SHORT] {real_row['kotak_trading_symbol']} has had NO resting stop "
+                      f"for {elapsed:.0f}s (tolerance {timeout:.0f}s at current capital) - "
+                      f"forcing an emergency cover")
+                _log_real_order_event(
+                    conn, symbol, "sl", "emergency_exit_triggered", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+                    prev_state=f"unprotected for {elapsed:.0f}s", new_state="forcing full cover",
+                    detail=f"protection_degraded_since timeout ({timeout:.0f}s) exceeded",
+                )
+                _maybe_place_real_short_exit(conn, symbol)
+                return
+
+    paper_row = conn.execute(
+        "SELECT stop_loss FROM signal_state_short WHERE symbol = ? AND status = 'short'", (symbol,)
+    ).fetchone()
+    if not paper_row or not paper_row["stop_loss"]:
+        return
+    new_stop = round(paper_row["stop_loss"], 2)
+    current_sl_price = real_row["sl_trigger_price"]
+
+    # A short's stop only ever trails DOWN (toward entry) - the mirror of
+    # the long side's "only ever moves the resting stop UP" - so no
+    # favorable move means the new stop hasn't gotten any LOWER.
+    if current_sl_price is not None and new_stop >= current_sl_price:
+        return
+
+    if _is_t1_restricted(conn, symbol):
+        _mark_protection_degraded_short(conn, symbol)
+        print(f"[REAL SHORT] {real_row['kotak_trading_symbol']} is T1/T2T-restricted - "
+              f"not attempting another doomed SL placement, letting the degraded-protection "
+              f"clock run toward its own escalation instead of resetting on a fresh accept")
+        return
+
+    if _kotak_symbol_still_open_short(real_row["kotak_trading_symbol"]) is False:
+        print(f"[REAL SHORT] {real_row['kotak_trading_symbol']} shows no open short at Kotak - "
+              f"skipping SL placement (likely covering/already closed, stale real_positions_short "
+              f"row will be cleared by the exit path or next reconcile)")
+        return
+
+    import kotak_real_orders
+    if real_row["sl_order_id"]:
+        cancel_result = kotak_real_orders.cancel_real_order(real_row["sl_order_id"])
+        if not cancel_result.get("ok"):
+            print(f"[REAL SHORT] trailing-SL cancel failed for {real_row['kotak_trading_symbol']} "
+                  f"(order {real_row['sl_order_id']}): {cancel_result.get('detail')} - skipping this sync, will retry next tick")
+            return
+    else:
+        kotak_real_orders.cancel_existing_resting_sl_short(real_row["kotak_trading_symbol"])
+
+    sl_result = _place_real_stop_loss_with_retry_short(real_row["kotak_trading_symbol"], real_row["qty"], new_stop)
+    if sl_result.get("ok"):
+        conn.execute(
+            "UPDATE real_positions_short SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+            (sl_result["order_id"], sl_result["trigger_price"], symbol),
+        )
+        conn.commit()
+        _clear_protection_degraded_short(conn, symbol)
+        print(f"[REAL SHORT] trailing SL moved to Rs{new_stop:.2f} for {real_row['kotak_trading_symbol']} "
+              f"(order {sl_result['order_id']})")
+        _log_real_order_event(
+            conn, symbol, "sl", "moved", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+            order_id=sl_result["order_id"],
+            prev_state=f"Rs{current_sl_price:.2f}" if current_sl_price is not None else "none",
+            new_state=f"Rs{new_stop:.2f}",
+        )
+    else:
+        conn.execute("UPDATE real_positions_short SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
+        conn.commit()
+        _mark_protection_degraded_short(conn, symbol)
+        print(f"[REAL SHORT] trailing SL replacement FAILED for {real_row['kotak_trading_symbol']}: "
+              f"{sl_result.get('detail')}")
+        _log_real_order_event(
+            conn, symbol, "sl", "failed", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+            prev_state=f"Rs{current_sl_price:.2f}" if current_sl_price is not None else "none",
+            new_state="none (replacement failed)", detail=sl_result.get("detail"),
+        )
+        _flag_if_t1_restricted(conn, symbol, sl_result.get("detail"))
+
+        if kotak_real_orders.is_cas_transition_rejection(sl_result.get("detail")):
+            print(f"[REAL SHORT] {real_row['kotak_trading_symbol']} SL rejected mid-CAS-transition - "
+                  f"escalating straight to an emergency cover attempt instead of waiting")
+            _log_real_order_event(
+                conn, symbol, "sl", "cas_transition_market_exit_attempt",
+                kotak_trading_symbol=real_row["kotak_trading_symbol"],
+                prev_state="none (replacement failed, CAS transition)", new_state="attempting market cover",
+                detail=sl_result.get("detail"),
+            )
+            _maybe_place_real_short_exit(conn, symbol)
+            return
 
 
 # --- Real F&O trading (2026-09-07) -------------------------------------------
@@ -14548,6 +14796,16 @@ async def _scheduler_tick():
                 elif short_action.startswith("exited_short_"):
                     with closing(get_db()) as real_conn:
                         _maybe_place_real_short_exit(real_conn, cfg["symbol"])
+                else:
+                    # 2026-09-30, explicit user instruction ("make short
+                    # positions equally mirrored as done in buy
+                    # positions") - the long side's own else-branch above
+                    # syncs its trailing stop to Kotak every tick; this
+                    # was the missing short-side mirror (previously a
+                    # short's resting SL was only ever re-checked on the
+                    # 5-min reconcile pass, not this ~30s tick).
+                    with closing(get_db()) as real_conn:
+                        _maybe_sync_real_stop_loss_short(real_conn, cfg["symbol"])
             except Exception as e:
                 print(f"[real_short_orders] unexpected error for {cfg['symbol']}: {e}")
 
