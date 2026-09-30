@@ -1242,7 +1242,7 @@ function optionLabel(pos) {
   return `${pos.underlying} ${(pos.right || "").toUpperCase()} ${fmt(pos.strike, 0)}`;
 }
 
-function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPositions, leaderboard) {
+function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPositions, leaderboard, strategyInfo) {
   const body = document.getElementById("log-body");
   const openPositions = summary.open_positions || [];
   // Closed trades: UNION of /trade-history (docs/trade_outcomes_log.json,
@@ -1272,45 +1272,81 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   // strip the constant "orb-" prefix here since every tag has it.
   const strategyLabel = (s) => s ? s.replace(/^orb-/, "") : "—";
 
-  // 2026-09-29, explicit user instruction: "add those 4-5 columns to the
-  // end of EACH ROW... Category/Rank/Strategy name/Pfnet/Win%" - i.e. for
-  // every trade row already on this page, show ITS OWN strategy's
-  // strategy_registry.py leaderboard standing, not just a separate
-  // appended block. Maps a raw main.py strategy_tag to the
-  // strategy_registry.py name it corresponds to. Deliberately NOT a
-  // guess for every tag: "orb-range-short" alone doesn't say which of
-  // the 4 registered range_short_* variants is live right now (they
-  // differ by a bb_std parameter this tag doesn't carry), and per-symbol
-  // ORB tags like "orb-15m-sma9-21" predate the registry entirely and
-  // have no registry entry at all - those fall through to "—" rather
-  // than a fabricated match.
+  // 2026-09-29/30, explicit user instruction: "add those 4-5 columns to
+  // the end of EACH ROW... Category/Rank/Strategy name/Pfnet/Win%" then
+  // (2026-09-30, "no excuses") "get those dashed cells filled too... why
+  // it was not filled" - for every trade row on this page, show ITS OWN
+  // strategy's real strategy_registry.py record. Maps a raw main.py
+  // strategy_tag to the strategy_registry.py name it corresponds to.
+  // "orb-range-short" now maps to range_short_staged_ladder - confirmed
+  // by checking main.py itself: _execute_staged_leg_exit_short (the
+  // staged 25/25/25/trail ladder) is the function actually wired into
+  // the live RANGE-regime short exit path, and range_short_staged_ladder
+  // is the registry entry whose own evidence text explicitly validates
+  // "the O(n^2)-bug-fixed, fully-wired real short-side functions" - not
+  // a guess. Reads from /strategy-info (every registered strategy, not
+  // just a category's current top N - see strategy_registry.
+  // all_strategies_info()'s own docstring for why /strategy-leaderboard
+  // alone isn't enough: range_short_staged_ladder's own PFnet 0.21
+  // doesn't rank in short_sell's top 5, so it would never appear via the
+  // leaderboard endpoint even once correctly mapped).
   const STRATEGY_TAG_TO_REGISTRY_NAME = {
     "orb-universal-score": "universal_score",
     "orb-swing-gap-and-go": "gap_and_go_swing",
     "orb-trend-short": "trend_down_momentum_short",
+    "orb-range-short": "range_short_staged_ladder",
   };
   const LEADERBOARD_CATEGORY_LABEL_BY_KEY = {
     short_sell: "Sell", buy: "Buy", swing: "Swing", futures: "Future", options: "Options",
   };
-  // Flat {registryName: {category, ...row}} index built once per render,
-  // straight from /strategy-leaderboard's own top-N-per-category rows -
-  // never recomputed or fabricated. A strategy outside every category's
-  // current top N (see strategy_registry.py's TOP_N_PER_CATEGORY) simply
-  // isn't in this index, and a row for it renders "—" rather than a stale
-  // or invented rank.
-  const leaderboardByName = {};
-  for (const [catKey, catLabel] of Object.entries(LEADERBOARD_CATEGORY_LABEL_BY_KEY)) {
-    for (const row of ((leaderboard || {})[catKey] || [])) {
-      if (!(row.name in leaderboardByName)) leaderboardByName[row.name] = { ...row, category: catLabel };
+  // Tags with NO registry entry at all - not a lookup miss, a real
+  // structural reason, shown explicitly instead of a bare "—" so "why
+  // wasn't this filled" always has a visible, honest answer on the page:
+  //   - orb-option: kotak_real_orders.py has no F&O order-placement path
+  //     at all (see strategy_registry.py's own FUTURES/OPTIONS comment -
+  //     0 entries, by design, not an oversight).
+  //   - per-symbol "orb-<N>m-sma<F>-<S>" / "orb-bullish-engulfing-trend<N>":
+  //     the ORIGINAL live entry engine before the 2026-09-09
+  //     universal_score revamp (docs/STRATEGY_LOG.md's own "From-scratch
+  //     entry signal redesign" note) - replaced as the live trigger for
+  //     every WATCHLIST symbol that day, never itself registered with a
+  //     full-universe PFnet in strategy_registry.py, so a pre-revamp
+  //     closed trade genuinely has no registry record to show.
+  //   - "orb-unknown" / "orb-recovered": administrative fallback tags
+  //     main.py itself writes when a real strategy can't be determined
+  //     (a missing DB row, a journal-recovered position) - not a
+  //     strategy at all.
+  //   - anything not starting with "orb-": a real (Kotak) trade placed
+  //     outside this bot's own order path - this app has no control over
+  //     or record of what generated it.
+  const legacyOrbTag = /^orb-\d+m-sma\d+-\d+$/;
+  const legacyBullishTag = /^orb-bullish-engulfing-trend\d+$/;
+  const noDataReason = (strategyTag) => {
+    if (!strategyTag) return "no strategy tag recorded";
+    if (strategyTag === "orb-option") return "Options: no F&O execution path exists, never backtested";
+    if (legacyOrbTag.test(strategyTag) || legacyBullishTag.test(strategyTag)) {
+      return "Legacy engine, replaced 2026-09-09 by universal_score, never registered";
     }
-  }
+    if (strategyTag === "orb-unknown" || strategyTag === "orb-recovered") return "administrative fallback tag, not a real strategy";
+    if (!strategyTag.startsWith("orb-")) return "manual/external trade - not this bot's own strategy";
+    return "not yet registered in strategy_registry.py";
+  };
+  // {registryName: info} straight from /strategy-info - EVERY registered
+  // strategy, not just a category's current top N (unlike
+  // /strategy-leaderboard, used only for the appended top-5 block below).
+  const strategyInfoByName = strategyInfo || {};
   const leaderboardCells = (strategyTag) => {
     const registryName = STRATEGY_TAG_TO_REGISTRY_NAME[strategyTag];
-    const row = registryName ? leaderboardByName[registryName] : undefined;
-    if (!row) return `<td class="log-type">—</td><td>—</td><td class="log-type">—</td><td class="num">—</td><td class="num">—</td>`;
+    const row = registryName ? strategyInfoByName[registryName] : undefined;
+    if (!row) {
+      const reason = noDataReason(strategyTag);
+      return `<td class="log-type">—</td><td>—</td><td class="log-type" title="${reason}">${reason}</td><td class="num">—</td><td class="num">—</td>`;
+    }
+    const category = row.category ? (LEADERBOARD_CATEGORY_LABEL_BY_KEY[row.category] || row.category) : "unranked";
+    const rank = row.rank !== null && row.rank !== undefined ? `#${row.rank}` : "—";
     const pfnet = row.pfnet !== null && row.pfnet !== undefined ? fmt(row.pfnet, 3) : "—";
     const winPct = row.win_rate_pct !== null && row.win_rate_pct !== undefined ? `${fmt(row.win_rate_pct, 2)}%` : "—";
-    return `<td class="log-type">${row.category}</td><td>#${row.rank}</td><td class="log-type">${row.name}</td>
+    return `<td class="log-type">${category}</td><td>${rank}</td><td class="log-type">${registryName}</td>
       <td class="num">${pfnet}</td><td class="num">${winPct}</td>`;
   };
   let totalUnrealisedInr = 0;
@@ -1653,13 +1689,14 @@ async function refresh() {
         new Date(deployEpoch * 1000).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST ·"
       : "";
 
-    const [summary, history, realTrades, botRealTrades, openRealPositions, leaderboard] = await Promise.all([
+    const [summary, history, realTrades, botRealTrades, openRealPositions, leaderboard, strategyInfo] = await Promise.all([
       fetchJSON(`${ORIGIN}/daily-summary?capital=${realCapitalInr}&daily_risk_pct=2`),
       fetchJSON(`${ORIGIN}/trade-history?days=1`),
       fetchJSON(`${ORIGIN}/real-trades-today`).catch(() => ({ trades: [] })),
       fetchJSON(`${ORIGIN}/real-trades-today-bot-only`).catch(() => ({ closed_trades: [] })),
       fetchJSON(`${ORIGIN}/real-open-positions`).catch(() => ({ open_real_positions: [] })),
       fetchJSON(`${ORIGIN}/strategy-leaderboard`).catch(() => null),
+      fetchJSON(`${ORIGIN}/strategy-info`).catch(() => null),
     ]);
     // BUG found live 2026-09-08 (explicit user finding: "current balance
     // is 1596 as of now but wrong here" - showing -Rs942.61 instead):
@@ -1695,7 +1732,7 @@ async function refresh() {
             ? `<div class="empty">No open positions. Last closed: ${displayName(lastClosed.symbol)} — ${lastClosed.exit_reason}, P&amp;L ₹${fmt(lastClosed.pnl_inr)}. Waiting for next signal…</div>`
             : `<div class="empty">No open positions yet. Waiting for the strategy to fire…</div>`;
       }
-      renderTradeLog(summary, history, realTrades.trades, botRealTrades, openRealPositions.open_real_positions, leaderboard);
+      renderTradeLog(summary, history, realTrades.trades, botRealTrades, openRealPositions.open_real_positions, leaderboard, strategyInfo);
       return;
     }
 
@@ -1710,7 +1747,7 @@ async function refresh() {
       renderStats(pos.symbol, pos, lastClose);
     }
 
-    renderTradeLog(summary, history, realTrades.trades, botRealTrades, openRealPositions.open_real_positions, leaderboard);
+    renderTradeLog(summary, history, realTrades.trades, botRealTrades, openRealPositions.open_real_positions, leaderboard, strategyInfo);
   } catch (e) {
     document.getElementById("cards").innerHTML = `<div class="err">fetch failed: ${e.message}</div>`;
   }
