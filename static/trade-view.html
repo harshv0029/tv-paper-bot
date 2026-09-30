@@ -225,6 +225,20 @@
   <div class="ctrl-msg" id="ctrl-msg"></div>
 </div>
 
+<!-- 2026-09-30, explicit user instruction after the MFSL.NS incident (a
+     real position sat open with ZERO stop-loss anywhere, unseen until a
+     human happened to notice it): "Make sure that this does not
+     repeat... Put some caveat." This is that caveat - a loud, unmissable
+     banner fed by /real-protection-status (main.py's own backcheck
+     against Kotak's own order book, refreshed every 5 min during market
+     hours by kotak-reconcile.yml). Hidden entirely when there is nothing
+     to warn about AND the last check isn't stale; shown for either a
+     genuinely unprotected position OR a stale/unknown check, since an
+     old "all clear" is exactly the kind of silent gap that let MFSL go
+     unnoticed - never render "everything's fine" off data that might no
+     longer be true. -->
+<div id="unprotected-banner" style="display:none;"></div>
+
 <div class="log-panel">
   <div class="log-head">
     <div class="log-head-top">
@@ -1678,6 +1692,33 @@ function leaderboardRows(data) {
   return rows;
 }
 
+// The 2026-09-30 MFSL.NS-incident caveat banner - see this element's own
+// HTML comment for why a stale/unknown check is shown too, never treated
+// as an implicit all-clear. `status` is /real-protection-status's own
+// response shape, or null if that fetch itself failed (treated the same
+// as stale - a failed fetch is exactly as untrustworthy as an old one).
+function renderUnprotectedBanner(status) {
+  const el = document.getElementById("unprotected-banner");
+  const unprotected = status?.unprotected_positions || [];
+  const stale = status ? status.stale : true;
+  if (unprotected.length === 0 && !stale) {
+    el.style.display = "none";
+    el.innerHTML = "";
+    return;
+  }
+  el.style.display = "block";
+  el.style.cssText = "display:block;margin:8px 0;padding:10px 14px;border-radius:6px;font-weight:600;"
+    + (unprotected.length > 0
+      ? "background:rgba(248,113,113,.18);color:#f87171;border:1px solid rgba(248,113,113,.4);"
+      : "background:rgba(251,191,36,.18);color:#fbbf24;border:1px solid rgba(251,191,36,.4);");
+  if (unprotected.length > 0) {
+    const names = unprotected.map(u => `${u.kotak_trading_symbol} (qty ${u.qty}${u.is_short ? ", short" : ""})`).join(", ");
+    el.textContent = `⚠ NO STOP-LOSS: ${unprotected.length} open real position(s) have no live stop-loss order at Kotak right now — ${names}. Real money, no downside protection.`;
+  } else {
+    el.textContent = "⚠ Stop-loss protection status unknown — the last backcheck against Kotak's own order book is stale or hasn't run yet. Not a confirmed all-clear.";
+  }
+}
+
 async function refresh() {
   document.getElementById("last-update").textContent =
     "Last update: " + new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
@@ -1701,7 +1742,7 @@ async function refresh() {
         new Date(deployEpoch * 1000).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST ·"
       : "";
 
-    const [summary, history, realTrades, botRealTrades, openRealPositions, leaderboard, strategyInfo] = await Promise.all([
+    const [summary, history, realTrades, botRealTrades, openRealPositions, leaderboard, strategyInfo, protectionStatus] = await Promise.all([
       fetchJSON(`${ORIGIN}/daily-summary?capital=${realCapitalInr}&daily_risk_pct=2`),
       fetchJSON(`${ORIGIN}/trade-history?days=1`),
       fetchJSON(`${ORIGIN}/real-trades-today`).catch(() => ({ trades: [] })),
@@ -1709,7 +1750,9 @@ async function refresh() {
       fetchJSON(`${ORIGIN}/real-open-positions`).catch(() => ({ open_real_positions: [] })),
       fetchJSON(`${ORIGIN}/strategy-leaderboard`).catch(() => null),
       fetchJSON(`${ORIGIN}/strategy-info`).catch(() => null),
+      fetchJSON(`${ORIGIN}/real-protection-status`).catch(() => null),
     ]);
+    renderUnprotectedBanner(protectionStatus);
     // BUG found live 2026-09-08 (explicit user finding: "current balance
     // is 1596 as of now but wrong here" - showing -Rs942.61 instead):
     // this tile is labeled "real, Kotak Neo" but was fed summary.

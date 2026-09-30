@@ -777,6 +777,29 @@ def init_db():
             )
             """
         )
+        # real_protection_snapshot (2026-09-30, explicit user instruction
+        # after finding MFSL.NS open with ZERO stop-loss anywhere - "Make
+        # sure that this does not repeat... Do some back check during live
+        # market"): a single-row cache of the last reconcile pass's answer
+        # to "is EVERY currently-open Kotak position (tracked or not, long
+        # or short) actually covered by a live resting SL order at the
+        # broker" - see _find_unprotected_open_positions and
+        # _reconcile_real_positions_core's own call to it. Persisted (not
+        # just returned from the endpoint) so the dashboard can show a
+        # loud, always-visible banner off a cheap read on its normal 10s
+        # poll, without hitting Kotak's API on every page load - the
+        # actual check against Kotak's own order book runs on
+        # kotak-reconcile.yml's own cadence (tightened to every 5 min
+        # during market hours for exactly this reason).
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS real_protection_snapshot (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                checked_at REAL NOT NULL,
+                unprotected_json TEXT NOT NULL
+            )
+            """
+        )
         # Closed-short realized-P&L ledger (2026-09-29). Deliberately NOT
         # fed through the shared `trades`/`positions` tables or
         # apply_paper_trade - both are long-only "buy adds to cost basis,
@@ -12221,6 +12244,34 @@ def get_real_open_positions():
     return {"open_real_positions": result, "count": len(result)}
 
 
+@app.get("/real-protection-status")
+def real_protection_status():
+    """The 2026-09-30 MFSL.NS-incident backcheck, read cheaply (no Kotak
+    call here - see _find_unprotected_open_positions/
+    _reconcile_real_positions_core, which does the actual check against
+    Kotak's own order book on every kotak-reconcile.yml run, now every 5
+    min during market hours). No token, same reasoning as
+    /real-open-positions - read-only display data, not a control action.
+
+    `stale` is true when the last reconcile check is more than 15 minutes
+    old (2.5x the 5-min cadence - allows for one missed/slow run before
+    treating the data itself as untrustworthy) OR no check has ever run -
+    the dashboard should treat a stale answer as "unknown," never as
+    "everything's protected", since an old all-clear is exactly the kind
+    of silent gap that let MFSL go unnoticed in the first place."""
+    with closing(get_db()) as conn:
+        row = conn.execute(
+            "SELECT checked_at, unprotected_json FROM real_protection_snapshot WHERE id = 1"
+        ).fetchone()
+    if not row:
+        return {"checked_at": None, "unprotected_positions": [], "stale": True}
+    return {
+        "checked_at": row["checked_at"],
+        "unprotected_positions": json.loads(row["unprotected_json"]),
+        "stale": (time.time() - row["checked_at"]) > 900,
+    }
+
+
 @app.get("/kotak-neo/real-fo-control")
 def get_real_fo_control(request: Request):
     """Status for the SEPARATE F&O real-trading gate (2026-09-07) - see
@@ -15628,6 +15679,50 @@ def kotak_neo_limits(request: Request):
         return {"error": str(e)}
 
 
+def _find_unprotected_open_positions(kotak_open_by_trdsym: dict, order_rows: list) -> list:
+    """The direct backcheck the 2026-09-30 MFSL.NS incident asked for
+    ("Make sure that this does not repeat... Do some back check during
+    live market or live trades"): for EVERY currently-open Kotak position
+    (tracked in real_positions/real_positions_short or not, long or
+    short), verify a live resting stop-loss order actually exists at the
+    broker for it - Kotak's own order book, not this app's possibly-stale
+    local tables, so this catches the exact failure class that let MFSL
+    sit open with zero protection (its real_positions row was lost, so
+    every LOCAL check that only looks at tracked rows - this app's own
+    protection_degraded machinery included - never even saw it).
+
+    A long position's protective order is a resting SELL (trnsTp 'S')
+    SL/SL-M; a short's is a resting BUY (trnsTp 'B') SL/SL-M - mirrors the
+    exact convention cancel_existing_resting_sl (kotak_real_orders.py) and
+    the adopt block just above already use. Deliberately does NOT filter
+    by this app's own algId/ordSrc tag the way adopt's entry-matching
+    does - a genuinely external position (manually placed, no bot tag)
+    that ALSO has no SL is still real money with no protection, and still
+    belongs in this alert; the tag only matters for deciding whether this
+    app may safely PLACE orders for a position (adopt), never for whether
+    to WARN about one.
+
+    Returns a list of {"kotak_trading_symbol", "qty", "is_short"} for
+    every open position with no matching live SL found - empty when
+    everything open is covered."""
+    terminal = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
+    unprotected = []
+    for trd_sym, info in kotak_open_by_trdsym.items():
+        protective_side = "B" if info["is_short"] else "S"
+        has_live_sl = any(
+            row.get("trdSym") == trd_sym
+            and row.get("trnsTp") == protective_side
+            and str(row.get("prcTp", "")).upper() in ("SL", "SL-M")
+            and str(row.get("ordSt", row.get("stat", ""))).lower() not in terminal
+            for row in order_rows
+        )
+        if not has_live_sl:
+            unprotected.append({
+                "kotak_trading_symbol": trd_sym, "qty": int(info["qty"]), "is_short": info["is_short"],
+            })
+    return unprotected
+
+
 def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
     """Corrects this app's own real_positions tracking against Kotak's own
     live positions() data - a genuinely separate process from the 30s
@@ -15723,6 +15818,20 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
     except Exception as e:
         return {"error": f"Kotak fetch failed: {e}"}
 
+    # order_rows (2026-09-30, moved to run on EVERY reconcile call, not
+    # just when `adopt` is passed - see _find_unprotected_open_positions's
+    # own docstring for why: the MFSL.NS incident needs this checked on
+    # every 5-min tick, not only the rare call that also happens to adopt
+    # something). Fetched once here and reused both by the adopt block
+    # below and by the unprotected-position sweep - a single order_report()
+    # call per reconcile run, same as before for the adopt path.
+    order_rows = []
+    try:
+        order_report = kotak_neo.order_report()
+        order_rows = order_report.get("data") or [] if isinstance(order_report, dict) else []
+    except Exception as e:
+        print(f"[reconcile] order_report fetch failed (proceeding without order-id/SL/protection data): {e}")
+
     rows = positions_resp.get("data") or [] if isinstance(positions_resp, dict) else []
     # Open = not fully squared off (flBuyQty != flSellQty) on the nse_cm
     # cash segment - the only segment/product this app's real trading
@@ -15804,12 +15913,8 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             wanted = None if adopt == "*" else {s.strip() for s in adopt.split(",") if s.strip()}
             to_adopt = [u for u in untracked if wanted is None or u["kotak_trading_symbol"] in wanted]
             if to_adopt:
-                order_rows = []
-                try:
-                    order_report = kotak_neo.order_report()
-                    order_rows = order_report.get("data") or [] if isinstance(order_report, dict) else []
-                except Exception as e:
-                    print(f"[reconcile] order_report fetch failed during adopt (proceeding without order-id/SL data): {e}")
+                # order_rows fetched once, unconditionally, near the top of
+                # this function now (2026-09-30) - reused here as before.
                 TERMINAL_STATUSES = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
                 for u in to_adopt:
                     trd_sym = u["kotak_trading_symbol"]
@@ -16057,6 +16162,27 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
     except (TypeError, ValueError):
         pass
 
+    # Unprotected-position backcheck (2026-09-30, explicit user instruction
+    # after the MFSL.NS incident: "Make sure that this does not repeat...
+    # Do some back check during live market or live trades") - runs on
+    # EVERY reconcile call (not gated by `adopt`), against Kotak's own
+    # order book, so it catches a position missing its SL regardless of
+    # whether this app's own real_positions/real_positions_short tables
+    # know about it at all. Persisted so the dashboard can show a loud
+    # banner off a cheap local read (see /real-protection-status).
+    unprotected = _find_unprotected_open_positions(kotak_open_by_trdsym, order_rows)
+    with closing(get_db()) as protection_conn:
+        protection_conn.execute(
+            "INSERT INTO real_protection_snapshot (id, checked_at, unprotected_json) VALUES (1, ?, ?) "
+            "ON CONFLICT(id) DO UPDATE SET checked_at = excluded.checked_at, unprotected_json = excluded.unprotected_json",
+            (time.time(), json.dumps(unprotected)),
+        )
+        protection_conn.commit()
+    if unprotected:
+        print(f"[UNPROTECTED-ALERT] {len(unprotected)} open Kotak position(s) have NO live stop-loss "
+              f"order at the broker: {[u['kotak_trading_symbol'] for u in unprotected]} - real money, "
+              f"no downside protection, right now.")
+
     return {
         "reconciled_at_utc": time.time(), "real_balance_inr": net_balance,
         "qty_corrected_count": len(qty_corrected), "qty_corrected": qty_corrected,
@@ -16064,6 +16190,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         "untracked_open_positions_count": len(untracked), "untracked_open_positions": untracked,
         "adopted_count": len(adopted), "adopted": adopted,
         "governance_backfilled_count": len(governance_backfilled), "governance_backfilled": governance_backfilled,
+        "unprotected_positions_count": len(unprotected), "unprotected_positions": unprotected,
     }
 
 

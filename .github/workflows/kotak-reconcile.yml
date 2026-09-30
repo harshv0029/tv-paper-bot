@@ -11,12 +11,21 @@ name: Kotak Real Position Reconciliation
 # that endpoint's own docstring in main.py for the full reasoning - this
 # workflow is just the recurring trigger + durable audit trail for it.
 #
-# Runs every 15 min during NSE market hours (09:15-15:30 IST = 03:45-
-# 10:00 UTC, weekdays) - same time window live-signals.yml already polls,
-# just a coarser cadence since reconciliation doesn't need 5-min freshness
-# the way live signal-checking does. Also workflow_dispatch for manual runs
-# (e.g. right after placing a manual trade, to sync immediately rather
-# than waiting for the next scheduled tick).
+# Runs every 5 min during NSE market hours (09:15-15:30 IST = 03:45-
+# 10:00 UTC, weekdays) - tightened from 15 min (2026-09-30, explicit user
+# instruction after the MFSL.NS incident: a genuinely bot-placed real
+# position sat open with ZERO stop-loss anywhere - its real_positions row
+# had been lost, so nothing in this app's own per-tick logic ever saw it
+# to protect it - for however long it took a human to notice by chance.
+# "Make sure that this does not repeat... Do some back check during live
+# market or live trades." 5 min is this job's own floor: it does a real
+# Kotak order_report() fetch on every run now (see
+# _find_unprotected_open_positions), not just when adopting, so the
+# unprotected-position backcheck below runs this often too, not just the
+# qty/ghost/untracked bookkeeping that originally justified 15 min).
+# Also workflow_dispatch for manual runs (e.g. right after placing a
+# manual trade, to sync immediately rather than waiting for the next
+# scheduled tick).
 #
 # Scheduled (cron) runs always pass adopt="*" (2026-09-08, second live
 # occurrence of the same gap in one session - AGL then AARTIIND -
@@ -30,7 +39,7 @@ name: Kotak Real Position Reconciliation
 # (empty `adopt` input) unless explicitly requested.
 on:
   schedule:
-    - cron: "*/15 3-10 * * 1-5"
+    - cron: "*/5 3-10 * * 1-5"
   workflow_dispatch:
     inputs:
       adopt:
@@ -83,6 +92,22 @@ jobs:
           echo "qty corrected: $QTY_FIXED, ghosts removed: $GHOSTS, untracked open positions: $UNTRACKED, adopted: $ADOPTED"
           if [[ "$UNTRACKED" -gt 0 ]]; then
             echo "::warning::$UNTRACKED open Kotak position(s) have no record in this app's own tracking - see untracked_open_positions in the log below."
+          fi
+
+          # 2026-09-30, explicit user instruction after the MFSL.NS
+          # incident (a real position with ZERO stop-loss anywhere, unseen
+          # until a human happened to notice it on the dashboard): this is
+          # deliberately the loudest signal in this whole job - a failed
+          # (not just warned) run, checked against Kotak's own order book
+          # on every single 5-min tick regardless of whether anything was
+          # adopted. "Make sure that this does not repeat... Do some back
+          # check during live market or live trades."
+          UNPROTECTED=$(jq -r '.unprotected_positions_count // 0' /tmp/reconcile-result.json)
+          echo "unprotected open positions (no live SL at the broker): $UNPROTECTED"
+          if [[ "$UNPROTECTED" -gt 0 ]]; then
+            UNPROTECTED_SYMS=$(jq -r '[.unprotected_positions[].kotak_trading_symbol] | join(", ")' /tmp/reconcile-result.json)
+            echo "::error::$UNPROTECTED open real position(s) have NO live stop-loss order at Kotak right now: $UNPROTECTED_SYMS - real money, no downside protection. See unprotected_positions in the log above, and /real-protection-status on the live dashboard."
+            exit 1
           fi
 
       - name: Append to the durable reconciliation log
