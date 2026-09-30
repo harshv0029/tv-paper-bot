@@ -9076,6 +9076,11 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # PFnet 0.908, just under the floor, NOT gap_and_go_swing's 1.65.
     "gap_and_go": "gap_and_go_swing",
     "minervini_vcp": "minervini_trend_template_vcp",
+    # 2026-09-30, "Wire the viable ones": minervini_vcp_livermore_confirmed
+    # (PFnet 2.043) clears the floor by a wide margin - see
+    # _run_swing_scan's own 2026-09-30 comment for how it's checked before
+    # the (still below-floor) plain minervini_vcp entry above.
+    "minervini_vcp_livermore": "minervini_vcp_livermore_confirmed",
 }
 
 
@@ -14771,11 +14776,18 @@ def _run_swing_scan(conn):
     validation before wiring any future strategy the same way.
 
     Only one swing strategy can hold a position per symbol at a time
-    (signal_state_swing.symbol is a PRIMARY KEY) - gap_and_go is checked
-    first (its own validated PFnet, 1.65, clears PFNET_LIVE_FLOOR;
-    Minervini VCP's, 0.908, does not), so on a symbol where both would
-    fire the same day, gap_and_go wins and Minervini VCP simply doesn't
-    get a look until that symbol is flat again."""
+    (signal_state_swing.symbol is a PRIMARY KEY) - checked in this order:
+    gap_and_go (PFnet 1.65) -> minervini_vcp_livermore (the Livermore
+    two-pullback-confirmed entry filter, PFnet 2.043 - 2026-09-30, "wire
+    the viable ones") -> minervini_vcp (the plain base entry, PFnet 0.908,
+    kept paper-only for ongoing research since it's below
+    PFNET_LIVE_FLOOR). The Livermore filter is checked BEFORE the base
+    entry rather than after, even though it's logically a strict subset
+    of it (it only ever fires on a day the base signal also would have),
+    specifically so a symbol qualifying for the better-performing variant
+    is never instead recorded under the worse one. Whichever fires first
+    wins the entry slot for that symbol that day; simply doesn't get a
+    look until that symbol is flat again."""
     today = ist_now().strftime("%Y-%m-%d")
     if conn.execute("SELECT 1 FROM swing_scan_log WHERE scan_date = ?", (today,)).fetchone():
         return
@@ -14814,7 +14826,14 @@ def _run_swing_scan(conn):
         ).fetchone()
 
         if pos:
-            if pos["strategy"] == "minervini_vcp":
+            # 2026-09-30: minervini_vcp_livermore uses the IDENTICAL
+            # chandelier-trail exit as the base minervini_vcp entry (see
+            # strategy_registry.py's own minervini_vcp_livermore_confirmed
+            # entry - "minervini_vcp_entry_signal_livermore_confirmed +
+            # minervini_vcp_exit_reason, the original chandelier trail") -
+            # only the entry-timing filter differs, so both strategy tags
+            # share this same exit branch.
+            if pos["strategy"] in ("minervini_vcp", "minervini_vcp_livermore"):
                 reason, new_running_max = minervini_vcp_exit_reason(
                     df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
                 )
@@ -14873,6 +14892,48 @@ def _run_swing_scan(conn):
             print(f"[SWING] entry {symbol} (gap_and_go) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
             try:
                 _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "gap_and_go")
+            except Exception as e:
+                print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+            continue
+
+        # 2026-09-30, explicit user instruction ("Wire the viable ones"):
+        # minervini_vcp_livermore_confirmed (PFnet 2.043, real-function
+        # full-universe validation, run 36670102480) clears
+        # PFNET_LIVE_FLOOR by a wide margin, unlike the plain base entry
+        # below (minervini_trend_template_vcp, PFnet 0.908) - checked
+        # FIRST since it's a strictly later/stricter subset of the base
+        # signal (only fires after a full Livermore two-pullback
+        # confirmation), so a symbol that qualifies for the better variant
+        # never also falls through to the worse one. Tagged
+        # "minervini_vcp_livermore" - a DIFFERENT strategy row from
+        # "minervini_vcp" below - so _is_strategy_viable_for_real_money
+        # (via _STRATEGY_TAG_TO_REGISTRY_NAME) gates each independently.
+        livermore_signal = minervini_vcp_entry_signal_livermore_confirmed(df, rs_percentile=rs_pct.get(symbol))
+        if livermore_signal:
+            entry_price = livermore_signal["entry_price"]
+            stop_loss = livermore_signal["stop_loss"]
+            qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+            if qty <= 0:
+                continue
+            conn.execute(
+                "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+                "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (symbol, "minervini_vcp_livermore", today, entry_price, stop_loss, None, qty, time.time(), fx,
+                 livermore_signal["atr_at_entry"], entry_price),
+            )
+            apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+            conn.execute(
+                "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+                (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+                 json.dumps({"entry_reason": "minervini_vcp_livermore", "stop_loss": stop_loss,
+                             "atr_at_entry": livermore_signal["atr_at_entry"]})),
+            )
+            conn.commit()
+            print(f"[SWING] entry {symbol} (minervini_vcp_livermore) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+            try:
+                _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "minervini_vcp_livermore")
             except Exception as e:
                 print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
             continue

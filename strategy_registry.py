@@ -372,8 +372,12 @@ REGISTRY: list[StrategyDef] = [
         asset_class=AssetClass.EQUITY_SWING,
         categories=(TradeCategory.SWING,),
         timeframe="1d",
-        status=StrategyStatus.RESEARCH,
-        entry_fn=None,  # minervini_vcp_entry_signal_livermore_confirmed exists in main.py but is not wired into any scan
+        status=StrategyStatus.LIVE,  # 2026-09-30, "Wire the viable ones" - wired into
+        # _run_swing_scan, checked before the plain minervini_vcp entry (see that
+        # function's own comment); real-order mirror gated by _is_strategy_viable_for_
+        # real_money like every other real entry.
+        entry_fn=None,  # main.py's own minervini_vcp_entry_signal_livermore_confirmed IS the live entry_fn - this
+        # field only ever fed the design-only scan_universe() scaffold, never main.py's real scheduler
         metrics=Metrics(
             pfnet=2.043, pfgross=2.658, win_rate_pct=33.88, n_trades=121,
             avg_net_inr=713.52,
