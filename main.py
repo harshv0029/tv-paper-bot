@@ -3700,6 +3700,186 @@ def minervini_vcp_exit_reason_breakeven(
     return None, new_running_max
 
 
+# ---- Minervini VCP scale-in tranche sizing ---------------------------------
+#
+# 2026-09-29, explicit user task: a position-sizing REFINEMENT on top of
+# minervini_vcp_entry_signal/minervini_vcp_exit_reason (both stay completely
+# unmodified - this only changes how much of the intended full position is
+# actually deployed and at what average price, echoing Minervini's own
+# pyramiding idea: don't commit the whole size the instant the signal fires;
+# add to a working position only once it confirms.
+#
+# CORRECTED 2026-09-30 against the actual book source
+# (docs/minervini_book_notes.txt, CHAPTER 13 "RISK MANAGEMENT PART 2" reading
+# notes, item 2 "SCALE-IN POSITION CONSTRUCTION"), quoted directly: "split
+# entry into 2-3 tranches (e.g. 2%/2%/1% of capital) added ONLY as price
+# confirms with an open profit - 'never trust the first price unless the
+# position shows a profit' - stop set off the blended average cost, never
+# averaging DOWN into a loss." The first version of this function hardcoded
+# exactly 2 tranches and a 1.0x-ATR add-trigger that doesn't match the book's
+# much lower bar ("any open profit", not a full ATR move) - both fixed below.
+MINERVINI_SCALE_IN_TRANCHE_PCTS = (0.4, 0.4, 0.2)
+# ^ book's own worked example is 2%/2%/1% of capital - three unequal,
+# front-loaded tranches. Normalized to fractions of the intended full
+# position (2/5, 2/5, 1/5) since this function deals in fractions, not
+# absolute capital percentages; the caller applies these fractions to
+# whatever rupee/qty sizing it already computed. len() is 3 here but the
+# function itself makes no assumption about tranche count - any list of
+# positive fractions summing to 1.0 works (e.g. a 2-tranche (0.5, 0.5) call
+# is still supported, just no longer hardcoded as the only option).
+MINERVINI_SCALE_IN_ADD_ATR_MULT = 0.25
+# ^ THE ONE PLACE THIS FUNCTION HAD TO PICK A CONCRETE NUMBER FOR A FUZZY
+# BOOK PHRASE, disclosed explicitly (same documentation style as Power
+# Play's own mechanical-simplification comments above): the book says to add
+# only once the position "shows a profit" / has "an open profit" relative to
+# its current blended cost - it gives no numeric threshold. A literal
+# `close > avg_cost` (i.e. add_trigger_atr_mult=0) would let a single tick of
+# noise trigger an add with no real confirmation, which isn't in the spirit
+# of "confirms". 0.25x the entry-time ATR is picked as a small buffer that
+# filters out pure noise while staying well short of a real confirmation
+# move (contrast: the ORIGINAL, WRONG value here was 1.0x ATR, a full
+# confirmation-grade move the book never asked for) - not backtest-tuned,
+# a starting value to validate like every other undocumented constant in
+# this codebase (CLAUDE.md: never tune blind off one replay result).
+MINERVINI_SCALE_IN_ADD_WITHIN_BARS = 10   # add-window: every tranche after the first must trigger within 10 bars of entry, else it never fills
+
+
+def _scale_in_tranches(
+    entry_price: float,
+    atr_at_entry: float,
+    stop_loss: float,
+    closes_since_entry,
+    tranche_pcts=MINERVINI_SCALE_IN_TRANCHE_PCTS,
+    add_trigger_atr_mult: float = MINERVINI_SCALE_IN_ADD_ATR_MULT,
+    add_within_bars: int = MINERVINI_SCALE_IN_ADD_WITHIN_BARS,
+) -> dict:
+    """Pure, DB/I-O-free sizing helper: decides how much of an intended full
+    Minervini VCP position actually gets deployed, given that the position is
+    split into N tranches (N = len(tranche_pcts), book's own guidance: 2-3)
+    instead of committed in one shot at entry.
+
+    - `tranche_pcts` is an ordered sequence of fractions of the intended full
+      position, summing to 1.0 (e.g. the book's own 2%/2%/1% example
+      normalizes to (0.4, 0.4, 0.2) - see MINERVINI_SCALE_IN_TRANCHE_PCTS).
+      Any length >= 1 is accepted; the function makes no assumption of
+      exactly 2.
+    - Tranche 0 (`tranche_pcts[0]`) always fills immediately at `entry_price`
+      - this is the existing, validated minervini_vcp_entry_signal fill,
+      never skipped.
+    - Each subsequent tranche i (1, 2, ...) fills ONLY once the close price
+      first shows "an open profit" against the position's CURRENT BLENDED
+      AVERAGE COST (not the original entry_price - this matters once a
+      second tranche has already raised the average): i.e. once
+      `close >= running_avg_cost + add_trigger_atr_mult * atr_at_entry`,
+      within `add_within_bars` bars of entry (a single shared window for the
+      whole scale-in, not reset per tranche). If a tranche's trigger is never
+      reached before the window closes (or before the stop is hit), it and
+      every tranche after it simply never fill - the final position is
+      whatever prefix of tranches did fill (a smaller, right-sized position,
+      not a failed trade).
+
+    Because each tranche's trigger is `running_avg_cost + a positive buffer`,
+    and running_avg_cost only ever starts at entry_price and rises (it is a
+    weighted average that only mixes in strictly-higher fill prices), every
+    fill is structurally guaranteed to sit above both the current average AND
+    the original entry_price - i.e. this can never average DOWN into a loss,
+    matching the book's explicit rule. The actual live/backtested protective
+    stop for the open position must likewise be computed off this running
+    blended average cost once more than one tranche has filled, not off
+    tranche 0's entry_price alone - that recomputation is the CALLER's
+    responsibility (this function only reports the average cost), and the
+    validation-replay workflow that consumes this function does so.
+
+    `closes_since_entry` is the close-price path for the bars AFTER entry
+    (bar 1, 2, ... - it must NOT include the entry bar's own close, which is
+    `entry_price` by definition). Only the first `add_within_bars` elements
+    are considered; extra elements beyond the window are ignored.
+
+    Precedence when both the stop and an add-trigger could apply (documented
+    explicitly, since only close prices are available here - no intrabar
+    high/low): bars are walked in order, and on each bar the STOP CHECK IS
+    EVALUATED BEFORE THE TRIGGER CHECK. If a bar's close is at or below
+    `stop_loss`, every tranche not yet filled is permanently disqualified
+    from that bar onward (the position should already be getting exited by
+    minervini_vcp_exit_reason's own stop logic at that point) even if that
+    same bar's close would otherwise have also cleared the next tranche's
+    trigger. This is the conservative choice: it never lets a later tranche
+    get added into a position that has already (or simultaneously) hit its
+    stop.
+
+    Returns a dict:
+      - "tranche_pcts": the input `tranche_pcts`, echoed back as a tuple.
+      - "filled_fractions": list, same length as `tranche_pcts`, the fraction
+        actually filled for each tranche slot (equal to tranche_pcts[i] if
+        filled, else 0.0).
+      - "fill_prices": list, same length, the close price each tranche filled
+        at (tranche_pcts[0] is always `entry_price`), or None for a slot that
+        never filled.
+      - "fill_bars": list, same length, the 1-based bar index (into
+        `closes_since_entry`) each tranche filled on (0 for tranche 0, since
+        it fills at entry itself), or None for a slot that never filled.
+      - "n_tranches_filled": how many tranche slots actually filled (always
+        >= 1).
+      - "total_filled_pct": sum of `filled_fractions` (the fraction of the
+        intended full position actually deployed overall).
+      - "avg_entry_price": the size-weighted average entry price across
+        whichever tranche(s) actually filled (always well-defined since
+        tranche 0 always fills) - this IS the "blended average cost" the
+        book says the live stop must be set off of.
+
+    Callers combine this with the existing risk-based intended-quantity
+    calculation (risk_amount_inr / stop_dist, capped by usable_capital_inr) -
+    this function only decides what FRACTION of that intended quantity is
+    actually deployed, and at what blended price; it never computes rupee
+    amounts or share counts itself.
+    """
+    tranche_pcts = tuple(tranche_pcts)
+    if len(tranche_pcts) == 0:
+        raise ValueError("tranche_pcts must have at least one element")
+    if any(p <= 0.0 for p in tranche_pcts):
+        raise ValueError("tranche_pcts elements must all be positive")
+    if not np.isclose(sum(tranche_pcts), 1.0, atol=1e-6):
+        raise ValueError(f"tranche_pcts must sum to 1.0, got {sum(tranche_pcts)}")
+
+    n = len(tranche_pcts)
+    filled_fractions = [tranche_pcts[0]] + [0.0] * (n - 1)
+    fill_prices = [entry_price] + [None] * (n - 1)
+    fill_bars = [0] + [None] * (n - 1)
+    avg_cost = entry_price
+    filled_weight = tranche_pcts[0]
+
+    next_idx = 1
+    if next_idx < n:
+        path = np.asarray(closes_since_entry, dtype=float)[:add_within_bars]
+        for bar_idx, close in enumerate(path, start=1):
+            if next_idx >= n:
+                break
+            if close <= stop_loss:
+                # Stop already hit (or simultaneously hit) - every remaining
+                # tranche is disqualified from here on; the position is
+                # being exited.
+                break
+            trigger_price = avg_cost + add_trigger_atr_mult * atr_at_entry
+            if close >= trigger_price:
+                pct = tranche_pcts[next_idx]
+                filled_fractions[next_idx] = pct
+                fill_prices[next_idx] = float(close)
+                fill_bars[next_idx] = bar_idx
+                avg_cost = (avg_cost * filled_weight + float(close) * pct) / (filled_weight + pct)
+                filled_weight += pct
+                next_idx += 1
+
+    return {
+        "tranche_pcts": tranche_pcts,
+        "filled_fractions": filled_fractions,
+        "fill_prices": fill_prices,
+        "fill_bars": fill_bars,
+        "n_tranches_filled": sum(1 for f in filled_fractions if f > 0.0),
+        "total_filled_pct": sum(filled_fractions),
+        "avg_entry_price": avg_cost,
+    }
+
+
 # ---- Power Play / High Tight Flag (Minervini, chapter 10) -----------------
 #
 # 2026-09-29, explicit user instruction ("Build Power Play first") after a
