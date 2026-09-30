@@ -12394,6 +12394,17 @@ def get_real_open_positions():
         # different case entirely and belongs in the bot_tracked loop, same
         # as the long side).
         short_rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions_short").fetchall()]
+        # 2026-09-30, explicit user finding after an audit of swing/
+        # futures/options coverage ("Have you check auto heal for Swing,
+        # Future, Options... You are not understanding it"): real_positions_
+        # swing (the Gap and Go / Minervini VCP swing engine's own real-
+        # order table) had the EXACT same blind spot real_positions_short
+        # had before today - never read by this endpoint at all, so a real
+        # swing position fell through to the "kotak_untracked" fallback
+        # below with no strategy shown, even though this table already has
+        # one (the swing entry flow sets it explicitly - see
+        # _maybe_place_real_swing_entry's own call sites).
+        swing_rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions_swing").fetchall()]
 
     result = []
     for r in rows:
@@ -12524,6 +12535,41 @@ def get_real_open_positions():
             "side": "short",
         })
 
+    # Bot-tracked open SWING positions (2026-09-30 fix - see the swing_rows
+    # fetch above). Long-only (Gap and Go / Minervini VCP swing engine, no
+    # live short-swing wiring exists), so P&L is the standard long formula
+    # - but tagged side="swing" (not "long") so the dashboard can show
+    # "Equity (Swing)" distinctly from intraday, since conflating the two
+    # would be misleading (different holding period, different exit
+    # mechanics). No target_order_id/target_price columns on this table at
+    # all - like the short side, swing's own exit is decided by the paper
+    # engine's own daily scan (_maybe_place_real_swing_exit), not a resting
+    # broker target order.
+    for r in swing_rows:
+        current_price = None
+        try:
+            cfg = watchlist_by_symbol.get(r["symbol"], {})
+            current_price = float(fetch_ohlc(r["symbol"], "1d", cfg.get("interval", "5m"))["Close"].iloc[-1])
+        except Exception:
+            pass
+        invested_inr = round(r["entry_price"] * r["qty"], 2)
+        unrealized_pnl_inr = round((current_price - r["entry_price"]) * r["qty"], 2) if current_price is not None else None
+        unrealized_pnl_pct = (
+            round(100 * unrealized_pnl_inr / invested_inr, 3) if unrealized_pnl_inr is not None and invested_inr else None
+        )
+        result.append({
+            **r,
+            "current_price": current_price,
+            "invested_inr": invested_inr,
+            "unrealized_pnl_inr": unrealized_pnl_inr,
+            "unrealized_pnl_pct": unrealized_pnl_pct,
+            "target_price": None,
+            "target_status": None,
+            "target_status_detail": "swing exits are decided by the daily paper scan, not a resting broker target order",
+            "source": "bot_tracked",
+            "side": "swing",
+        })
+
     # Untracked Kotak positions (2026-09-09, explicit user finding: Kotak's
     # own Positions tab showed 4 open positions - MEDICAMEQ, SILVERCASE
     # (both bot-tracked, above) plus NEWGEN and SANDUMA (neither) - while
@@ -12541,7 +12587,8 @@ def get_real_open_positions():
         import kotak_neo
         positions_resp = kotak_neo.positions()
         kotak_rows = positions_resp.get("data") or [] if isinstance(positions_resp, dict) else []
-        our_trdsyms = {r["kotak_trading_symbol"] for r in rows} | {r["kotak_trading_symbol"] for r in short_rows}
+        our_trdsyms = ({r["kotak_trading_symbol"] for r in rows} | {r["kotak_trading_symbol"] for r in short_rows}
+                       | {r["kotak_trading_symbol"] for r in swing_rows})
         for kr in kotak_rows:
             try:
                 if kr.get("exSeg") != "nse_cm":
@@ -16315,8 +16362,46 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 short_corrected.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
                                          "old_qty": r["qty"], "new_qty": int(kotak_match["qty"])})
 
+        # Swing mirror (2026-09-30, explicit user finding after an audit of
+        # swing/futures/options coverage: "Have you check auto heal for
+        # Swing, Future, Options... You are not understanding it"). Real
+        # correctness bug this closes, not just a cosmetic gap: swing
+        # trades the SAME nse_cm segment as intraday equity, and this
+        # function's `our_trdsyms` set (built only from `real_positions`)
+        # never excluded swing's own trading symbols - so a genuinely-open
+        # swing position looked exactly like an untracked INTRADAY one to
+        # the `untracked`/adopt logic below. Since kotak-reconcile.yml's
+        # scheduled runs always pass adopt="*", an orphaned swing position
+        # (its own real_positions_swing row lost the same way other
+        # tracking rows have been lost this session) risked being
+        # auto-adopted into `real_positions` - the WRONG table, sized with
+        # the wrong stop/target math and governed by the intraday engine
+        # instead of the swing one. Qty correction/ghost cleanup mirrors
+        # the long/short pattern exactly; NOT touched: swing auto-adopt
+        # itself (computing a swing position's correct ATR-based stop from
+        # scratch, with no known paper origin, is a materially different
+        # and riskier problem than the long/short adopt math - deliberately
+        # scoped out of this pass, same as the swing-into-real_positions
+        # misadoption risk this at least stops from happening silently;
+        # a genuinely untracked swing position still surfaces via
+        # `untracked`/the unprotected-position backcheck below for a human
+        # to review, exactly like it would have before real short auto-
+        # adopt existed).
+        our_swing_trdsyms = {r["kotak_trading_symbol"] for r in conn.execute("SELECT kotak_trading_symbol FROM real_positions_swing").fetchall()}
+        for r in conn.execute("SELECT * FROM real_positions_swing").fetchall():
+            kotak_match = kotak_open_by_trdsym.get(r["kotak_trading_symbol"])
+            if kotak_match is None or kotak_match["is_short"]:
+                conn.execute("DELETE FROM real_positions_swing WHERE symbol = ?", (r["symbol"],))
+                removed_ghosts.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
+                                        "was_tracked_qty": r["qty"], "table": "real_positions_swing"})
+            elif int(kotak_match["qty"]) != r["qty"]:
+                conn.execute("UPDATE real_positions_swing SET qty = ? WHERE symbol = ?",
+                             (int(kotak_match["qty"]), r["symbol"]))
+                qty_corrected.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
+                                       "old_qty": r["qty"], "new_qty": int(kotak_match["qty"]), "table": "real_positions_swing"})
+
         for trd_sym, info in kotak_open_by_trdsym.items():
-            if trd_sym not in our_trdsyms and trd_sym not in our_short_trdsyms:
+            if trd_sym not in our_trdsyms and trd_sym not in our_short_trdsyms and trd_sym not in our_swing_trdsyms:
                 untracked.append({"kotak_trading_symbol": trd_sym, "qty": int(info["qty"]),
                                    "is_short": info["is_short"]})
 
