@@ -745,6 +745,49 @@ def leaderboard(category: TradeCategory, top_n: int = 5) -> list[dict]:
     ]
 
 
+def all_strategies_info() -> dict:
+    """Every registered strategy's own record, keyed by name - unlike
+    leaderboard()'s top-N-per-category view, this includes EVERY strategy
+    regardless of current rank. 2026-09-30, explicit user instruction
+    ("I want to get those dashed cells filled too... which strategy and
+    what are details of that strategy"): the trade-view dashboard's per-
+    row strategy lookup needs "what does THIS specific strategy's own
+    record say", not "is it currently in some category's top 5" - a
+    strategy can be a live trade's actual entry logic while sitting well
+    outside the top TOP_N_PER_CATEGORY (e.g. range_short_staged_ladder,
+    PFnet 0.21, is the real wired short_sell exit mechanic but ranks
+    outside short_sell's current top 5), and coming up empty there would
+    wrongly read as "no data" rather than "not top-ranked".
+
+    `category`/`rank` report the first category (in TradeCategory
+    declaration order) where this strategy places in that category's OWN
+    current top TOP_N_PER_CATEGORY leaderboard, or None/None if it
+    doesn't rank in any category it belongs to right now - `categories`
+    always lists every category it's registered under regardless of
+    rank, so a caller can still label it even when unranked."""
+    info = {}
+    for s in REGISTRY:
+        best_category, best_rank = None, None
+        for cat in TradeCategory:
+            if cat not in s.categories:
+                continue
+            match = next((r for r in leaderboard(cat, top_n=TOP_N_PER_CATEGORY) if r["name"] == s.name), None)
+            if match is not None:
+                best_category, best_rank = cat.value, match["rank"]
+                break
+        info[s.name] = {
+            "categories": [c.value for c in s.categories],
+            "category": best_category,
+            "rank": best_rank,
+            "status": s.status.value,
+            "pfnet": s.metrics.pfnet if s.metrics else None,
+            "win_rate_pct": s.metrics.win_rate_pct if s.metrics else None,
+            "n_trades": s.metrics.n_trades if s.metrics else None,
+            "viable": s.is_viable(),
+        }
+    return info
+
+
 def top_strategies_for_monitoring() -> list:
     """The strategies actually eligible to be checked during a monitoring
     cycle right now: the union of each TradeCategory's own current top-
