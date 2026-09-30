@@ -3640,6 +3640,66 @@ def minervini_vcp_exit_reason_short(
     return None, new_running_min
 
 
+# 2R/3R move-to-breakeven exit variant (2026-09-29, explicit user
+# instruction: build a move-to-breakeven refinement to compare against the
+# existing minervini_vcp_exit_reason chandelier trail). Book-literal
+# version, per docs/minervini_book_notes.txt's chapter 13 notes
+# ("BREAKEVEN-STOP AT 2R/3R... once unrealized gain reaches 2x-3x the
+# position's OWN initial risk (entry minus initial stop), move the stop to
+# breakeven, full stop - not a trailing/chandelier mechanism. Simpler and
+# more literal than the chandelier trail... WORTH TESTING as an alternative
+# exit against the existing chandelier trail"): this is a straight
+# substitute exit, NOT a hybrid with the chandelier trail - before the
+# R-threshold is reached the stop is just the flat initial_stop (no ATR
+# trailing at all in this variant); once reached, the stop becomes
+# entry_price (breakeven) and stays there. One function, parameterized by
+# `breakeven_r_multiple` - intended call sites are MINERVINI_BREAKEVEN_R_2
+# (2R variant) and MINERVINI_BREAKEVEN_R_3 (3R variant), each exercised by
+# its own validation replay workflow
+# (minervini-vcp-breakeven-2r-validation-replay.yml,
+# minervini-vcp-breakeven-3r-validation-replay.yml) run head-to-head
+# against minervini_vcp_exit_reason's own chandelier-trail replay.
+MINERVINI_BREAKEVEN_R_2 = 2.0
+MINERVINI_BREAKEVEN_R_3 = 3.0
+
+
+def minervini_vcp_exit_reason_breakeven(
+    df: pd.DataFrame, entry_day: str, initial_stop: float, atr_at_entry: float,
+    running_max_close: float, entry_price: float, breakeven_r_multiple: float,
+) -> tuple:
+    """Book-literal 2R/3R breakeven-stop (chapter 13) - a straight
+    ALTERNATIVE to minervini_vcp_exit_reason's ATR chandelier trail, not a
+    hybrid of the two. Stop is flat at `initial_stop` until the running
+    peak close since entry has gained at least `breakeven_r_multiple` x the
+    trade's initial risk (entry_price - initial_stop) over entry_price;
+    once that happens the stop becomes `entry_price` (breakeven), full
+    stop, and never reverts (checked against `running_max_close`, which
+    only ever ratchets up, so once true it stays true for every later
+    call). `atr_at_entry` is accepted only to keep the same call signature
+    as minervini_vcp_exit_reason - this variant has no ATR/chandelier
+    component at all, per the book's own "simpler and more literal"
+    framing. Same MINERVINI_MAX_HOLD_DAYS timeout and
+    (exit_reason_or_None, updated_running_max_close) return convention as
+    minervini_vcp_exit_reason."""
+    if len(df) == 0:
+        return None, running_max_close
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].astype(str).to_numpy()
+    i = len(df) - 1
+    new_running_max = max(running_max_close, closes[i])
+    initial_risk = entry_price - initial_stop
+    breakeven_triggered = (
+        initial_risk > 0 and (new_running_max - entry_price) >= breakeven_r_multiple * initial_risk
+    )
+    current_stop = entry_price if breakeven_triggered else initial_stop
+    if closes[i] <= current_stop:
+        return "stop_hit", new_running_max
+    held_days = int(np.sum(dates > entry_day))
+    if held_days >= MINERVINI_MAX_HOLD_DAYS:
+        return "max_hold_timeout", new_running_max
+    return None, new_running_max
+
+
 # ---- Power Play / High Tight Flag (Minervini, chapter 10) -----------------
 #
 # 2026-09-29, explicit user instruction ("Build Power Play first") after a
