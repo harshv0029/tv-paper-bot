@@ -13883,6 +13883,33 @@ _MEMORY_LOG_EVERY_N_TICKS = 20  # ~10 min at the 30s tick interval - explicit
 # so a periodic RSS line here is what lets a FUTURE memory-limit email be
 # correlated against an actual growth trend instead of guessed at after
 # the fact. See _process_rss_mb's own comment for the fuller context.
+
+_UNPROTECTED_BACKCHECK_EVERY_N_TICKS = 10  # ~5 min at the 30s tick interval
+# (2026-09-30, live finding: TCS.NS and INDIANB.NS both sat with NO live
+# resting stop-loss at Kotak for a real stretch of market time, discovered
+# by the user directly on the Kotak app, not by this app's own dashboard -
+# a second occurrence of the MFSL.NS pattern the 2026-09-30 CLAUDE.md rule
+# was written to prevent). Root cause: that rule's whole "every 5 min"
+# guarantee (_find_unprotected_open_positions, called from
+# _reconcile_real_positions_core) lived ENTIRELY in kotak-reconcile.yml's
+# external GitHub Actions cron (`*/5 3-10 * * 1-5`) - and GitHub's own
+# schedule trigger for this workflow was empirically firing only ~2x/day,
+# not the ~84x/day the cron string calls for (checked via actions_list
+# filtered to event=schedule: real gaps of 5-8+ hours between fires, on a
+# repo that is otherwise extremely active - GitHub's own docs warn
+# scheduled workflows "can be delayed during periods of high load," and
+# this repo dispatches an unusually high volume of OTHER workflow runs).
+# The external cron survives as a secondary check + durable git-log audit
+# trail, but the in-process 30s scheduler tick (proven reliable all session
+# - it's what runs _maybe_sync_real_stop_loss/_maybe_sync_real_stop_loss_short
+# every tick) is what ACTUALLY guarantees the 5-min cadence now, since it
+# doesn't depend on any external scheduler's own reliability at all. Runs
+# the SAME _reconcile_real_positions_core(adopt="*") the cron calls over
+# HTTP - qty-correction, ghost-cleanup, governance-backfill (synchronous
+# real SL placement for anything missing one), AND the unprotected-position
+# backcheck, all in the one call - so this isn't a narrower check than the
+# external cron's, it's the same one, just on a cadence this process
+# actually controls.
 # Latest _auto_signal_core result per symbol, from the real scheduler tick
 # (not a synthetic re-check) - exposed via /scheduler-attempts so there's
 # real visibility into what the engine actually decided and why, not just
@@ -15142,6 +15169,19 @@ async def _scheduler_tick():
     if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0:
         print(f"[memory] tick {_scheduler_tick_count}: rss_mb={_process_rss_mb()}, "
               f"data_cache_entries={len(_DATA_CACHE)}, watchlist_size={len(WATCHLIST)}")
+
+    # 2026-09-30: see _UNPROTECTED_BACKCHECK_EVERY_N_TICKS's own module
+    # comment - this in-process call is what actually guarantees the
+    # standing "unprotected position backcheck every 5 min" rule now,
+    # since kotak-reconcile.yml's external GitHub Actions cron was found
+    # to be firing far less often than its own `*/5` schedule promises.
+    # Best-effort and isolated like every other block in this tick - a
+    # Kotak/network hiccup here must never block the rest of the scan.
+    if _scheduler_tick_count % _UNPROTECTED_BACKCHECK_EVERY_N_TICKS == 0:
+        try:
+            _reconcile_real_positions_core(adopt="*")
+        except Exception as e:
+            print(f"[unprotected_backcheck] in-process reconcile failed (non-fatal, external cron still covers this): {e}")
 
     _scheduler_last_tick_ts = time.time()
     await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
