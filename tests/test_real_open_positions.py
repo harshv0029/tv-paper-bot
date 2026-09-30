@@ -184,6 +184,84 @@ def test_target_status_failed_when_a_non_t1_rejection_is_logged():
     assert pos["target_status_detail"] == "order rejected: some other reason"
 
 
+def test_bot_tracked_short_position_shows_its_own_strategy_and_mirrored_pnl():
+    # 2026-09-30, explicit user finding: an open real SHORT position showed
+    # "no strategy tag recorded" on the dashboard - get_real_open_positions
+    # never queried real_positions_short at all, so a bot-tracked short fell
+    # through to the untracked-Kotak fallback, which has no strategy field.
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_positions_short (symbol, kotak_trading_symbol, qty, entry_price, "
+            "entry_order_id, opened_at, day, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            ("ZEEL.NS", "ZEEL-EQ", 10, 150.0, "1", 1788931043.9, "2026-09-30", "range_short_staged_ladder"),
+        )
+        conn.commit()
+    fake_df = pd.DataFrame({"Close": [140.0]})
+    with patch("main.fetch_ohlc", return_value=fake_df):
+        result = main.get_real_open_positions()
+
+    assert result["count"] == 1
+    pos = result["open_real_positions"][0]
+    assert pos["symbol"] == "ZEEL.NS"
+    assert pos["strategy"] == "range_short_staged_ladder"
+    assert pos["side"] == "short"
+    assert pos["source"] == "bot_tracked"
+    # Short profits when price FALLS: (150 - 140) * 10 = 100, not -100.
+    assert pos["unrealized_pnl_inr"] == 100.0
+    assert pos["unrealized_pnl_pct"] > 0
+    assert pos["target_price"] is None
+    assert pos["target_status"] is None
+
+
+def test_bot_tracked_short_position_not_duplicated_as_kotak_untracked():
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_positions_short (symbol, kotak_trading_symbol, qty, entry_price, "
+            "entry_order_id, opened_at, day, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            ("ZEEL.NS", "ZEEL-EQ", 10, 150.0, "1", 1788931043.9, "2026-09-30", "range_short_staged_ladder"),
+        )
+        conn.commit()
+    fake_kotak_neo = MagicMock()
+    fake_kotak_neo.positions.return_value = {
+        "data": [
+            {"exSeg": "nse_cm", "trdSym": "ZEEL-EQ", "flBuyQty": "0", "flSellQty": "10", "sellAmt": "1500.0"},
+        ],
+    }
+    with patch.dict("sys.modules", {"kotak_neo": fake_kotak_neo}), patch("main.fetch_ohlc", side_effect=Exception("no network")):
+        result = main.get_real_open_positions()
+    assert result["count"] == 1
+    assert result["open_real_positions"][0]["source"] == "bot_tracked"
+
+
+def test_untracked_kotak_short_position_uses_sell_side_avg_price_and_mirrored_pnl():
+    # A genuinely untracked Kotak short (this app never opened it) must use
+    # sellAmt/flSellQty for its avg price, not buyAmt/flBuyQty (which is 0
+    # for a pure short and would previously have produced a None/garbage
+    # avg price and a backwards-signed P&L).
+    _fresh_db()
+    fake_kotak_neo = MagicMock()
+    fake_kotak_neo.positions.return_value = {
+        "data": [
+            {"exSeg": "nse_cm", "trdSym": "SANDUMA-EQ", "flBuyQty": "0", "flSellQty": "5", "sellAmt": "500.0"},
+        ],
+    }
+    fake_df = pd.DataFrame({"Close": [90.0]})
+    with patch.dict("sys.modules", {"kotak_neo": fake_kotak_neo}), patch("main.fetch_ohlc", return_value=fake_df):
+        result = main.get_real_open_positions()
+
+    assert result["count"] == 1
+    pos = result["open_real_positions"][0]
+    assert pos["symbol"] == "SANDUMA.NS"
+    assert pos["side"] == "short"
+    assert pos["qty"] == 5
+    assert pos["entry_price"] == 100.0  # 500 / 5
+    assert pos["source"] == "kotak_untracked"
+    # Short profits when price FALLS: (100 - 90) * 5 = 50.
+    assert pos["unrealized_pnl_inr"] == pytest.approx(50.0, abs=1e-9)
+
+
 def test_current_price_none_when_fetch_ohlc_fails_not_a_crash():
     _fresh_db()
     with closing(main.get_db()) as conn:

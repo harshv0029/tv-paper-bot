@@ -1447,8 +1447,8 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
     return `<tr class="real-trade-row"${pos.target_status_detail ? ` title="${pos.target_status_detail.replace(/"/g, "'")}"` : ""}>
       <td>${realStatusBadge(pos)}</td>
       <td class="sym">${displayName(pos.symbol)}</td>
-      <td class="log-type">Equity</td>
-      <td class="log-type">—</td>
+      <td class="log-type">${pos.side === "short" ? "Equity (Short)" : "Equity"}</td>
+      <td class="log-type">${strategyLabel(pos.strategy)}</td>
       <td class="num">${pos.entry_price !== null && pos.entry_price !== undefined ? fmt(pos.entry_price, 2) : "—"}</td>
       <td class="num">${pos.current_price !== null && pos.current_price !== undefined ? fmt(pos.current_price, 2) : "—"}</td>
       <td class="num">${fmt(pos.qty, 0)}</td>
