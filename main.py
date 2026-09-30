@@ -3377,6 +3377,37 @@ def _watchlist_default_strategy_tag(cfg: dict) -> str:
         return f"{ORB_STRATEGY_PREFIX}bullish-engulfing-trend{cfg.get('trend_sma', 0)}"
     return f"{ORB_STRATEGY_PREFIX}universal-score"
 
+
+def _watchlist_default_strategy_tag_short(symbol: str, cfg: dict) -> str:
+    """Short-side mirror of _watchlist_default_strategy_tag above (2026-
+    09-30, explicit user finding: INDIANB.NS, a genuine OPEN short
+    position, showed "Buy" in the dashboard's Category column - "India is
+    sell short type and trade view shows it to buy / Wrong"). Root cause:
+    get_real_open_positions()'s SHORT bot_tracked loop fell back to the
+    LONG-only _watchlist_default_strategy_tag whenever strategy recovery
+    failed - that function always returns "orb-universal-score", and
+    strategy_registry.py registers universal_score BUY-only, so the
+    dashboard's leaderboardCells() showed the BUY category label next to
+    an actual short position, regardless of the position's real
+    direction.
+
+    A short's real strategy tag is decided by market regime, not by the
+    symbol's WATCHLIST cfg (see _short_signal_core's own RANGE/TREND
+    router just below) - this reproduces that exact router, at the SAME
+    fixed "5m" interval the live short scan always uses (see its own call
+    site in the scheduler tick, which passes interval="5m" unconditionally
+    - NOT cfg["interval"], that key is the long side's configured
+    interval and can differ). Falls back to RANGE_SHORT_STRATEGY_TAG -
+    the same regime _classify_market_regime itself degrades to on short
+    or missing history - if OHLC can't be fetched at all, so this never
+    raises into the dashboard's own request path."""
+    try:
+        df = fetch_ohlc(symbol, "5d", "5m")
+        regime = _classify_market_regime(df, cfg.get("sma_fast", 9), cfg.get("sma_slow", 21), cfg.get("ma_type", "ema"))
+    except Exception:
+        return RANGE_SHORT_STRATEGY_TAG
+    return TREND_SHORT_STRATEGY_TAG if regime == "trend" else RANGE_SHORT_STRATEGY_TAG
+
 # Exactly the parameters validated in docs/STRATEGY_LOG.md's "Gap and Go,
 # 5-year window" finding (run 35062601024, PFnet 1.65, n=142) - zero
 # retuning between research and this live implementation, per this repo's
@@ -12615,7 +12646,12 @@ def get_real_open_positions():
         if not strategy:
             with closing(get_db()) as strategy_conn:
                 strategy = _recover_strategy_for_untracked_position(strategy_conn, r["kotak_trading_symbol"], "S")
-        strategy = strategy or _watchlist_default_strategy_tag(watchlist_by_symbol.get(r["symbol"], {}))
+        # 2026-09-30 fix: was _watchlist_default_strategy_tag (the LONG-
+        # only default, "orb-universal-score") - see
+        # _watchlist_default_strategy_tag_short's own docstring for why
+        # that mislabeled every unrecoverable short as a BUY-category
+        # strategy on the dashboard.
+        strategy = strategy or _watchlist_default_strategy_tag_short(r["symbol"], watchlist_by_symbol.get(r["symbol"], {}))
         result.append({
             **r,
             "strategy": strategy,
