@@ -1,0 +1,324 @@
+name: Minervini VCP Scale-In Sizing Validation Replay (calls the REAL main.py functions)
+
+# 2026-09-29/30, explicit user task: validate the scale-in tranche sizing
+# variant (main._scale_in_tranches) against the same full-universe replay
+# structure as minervini-vcp-validation-replay.yml (the single-shot-sizing
+# baseline), so the PFnet/PFgross comparison isolates SIZING as the only
+# variable - entries/exits/stops/costs/universe/period are all identical to
+# the baseline, calling the same real m.minervini_vcp_entry_signal /
+# m.minervini_vcp_exit_reason functions for every entry/exit/stop/trail
+# decision, exactly like the baseline does. The only thing that differs from
+# minervini-vcp-validation-replay.yml is the sizing step inside
+# replay_symbol(): instead of committing the whole intended quantity in one
+# shot at entry_price, it calls m._scale_in_tranches(...) to decide how much
+# of that same intended quantity actually gets deployed, and at what blended
+# average price, before opening the position.
+#
+# CORRECTED 2026-09-30 against the actual book source
+# (docs/minervini_book_notes.txt CHAPTER 13 "SCALE-IN POSITION CONSTRUCTION")
+# after main._scale_in_tranches itself was corrected: the book specifies 2-3
+# tranches (its own example: 2%/2%/1% of capital, front-loaded - normalized
+# to main.MINERVINI_SCALE_IN_TRANCHE_PCTS = (0.4, 0.4, 0.2)) added only on an
+# "open profit" against the position's blended cost (main.
+# MINERVINI_SCALE_IN_ADD_ATR_MULT = 0.25x ATR - a small, explicitly-disclosed
+# buffer, not the book's own number since it gives none - see that
+# constant's own comment in main.py), and the book's "stop set off the
+# blended average cost, never averaging down" rule: this workflow feeds
+# _finalize_trade the position's BLENDED avg_entry_price (from
+# m._scale_in_tranches's own "avg_entry_price" output), not tranche 0's raw
+# entry_price, for every downstream R-multiple/PnL calculation - see the
+# `entry_price=position["avg_entry_price"]` argument in _finalize_trade
+# below. _scale_in_tranches itself structurally guarantees no tranche ever
+# fills below the running average (see its own docstring), so this workflow
+# never needs to separately re-check "did this average down".
+#
+# Sizing-only documented approximations (everything else matches the
+# baseline exactly):
+#   - The intended FULL quantity is computed exactly like the baseline
+#     (risk_amount_inr / stop_dist, capped by usable_capital_inr /
+#     entry_price) - _scale_in_tranches only decides what FRACTION of that
+#     intended quantity is actually filled and at what blended price; it
+#     never invents its own rupee sizing.
+#   - The forward close path fed to _scale_in_tranches
+#     (closes[i+1 : i+1+MINERVINI_SCALE_IN_ADD_WITHIN_BARS]) is the ACTUAL
+#     historical price path following entry - legitimate for a backtest
+#     (unlike the entry/exit signal itself, this is a sizing/fill decision
+#     evaluated once at entry time using bars that are already fully formed
+#     historical data by the time the position's fate is settled, not a
+#     lookahead into the entry SIGNAL'S own decision).
+#   - All transaction costs (entry_cost via _entry_cost) are applied ONCE,
+#     on the blended avg_entry_price times the total filled quantity, as if
+#     the whole filled position were bought on the entry day. The baseline
+#     does the same single-lump-cost simplification (one entry, one exit) -
+#     splitting entry costs across each tranche's own fill day would be more
+#     realistic but is a separate, larger change; this keeps the comparison
+#     apples-to-apples on SIZING (how much / at what blended price) rather
+#     than also introducing a costing-model difference between the two
+#     workflows.
+#   - A position whose scale-in never fills beyond tranche 0 (the common
+#     case whenever price doesn't confirm) simply behaves like a smaller
+#     single-shot position - exactly the "not a failed trade, a right-sized
+#     one" case documented in main._scale_in_tranches's own docstring.
+#
+# Same full-NSE-universe, single-job, non-sharded structure as the baseline,
+# for the same reasons (RS percentile is cross-sectional; see that
+# workflow's own header comment) - m._load_nse_universe_from_file()
+# (CLAUDE.md 2026-09-29 full-universe thumb rule), never
+# main.NSE_FULL_UNIVERSE.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run Minervini VCP scale-in sizing backtest against the real main.py functions
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          PERIOD = "2y"
+          INTERVAL = "1d"
+          CAPITAL_INR = 400000.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(symbol, entry_price, initial_stop, qty, entry_label, exit_price,
+                               exit_label, exit_reason, entry_cost, held_days, cost_model):
+              # `entry_price` here is the BLENDED avg_entry_price across
+              # whichever tranches filled (see position["avg_entry_price"]
+              # below) - the book's "stop set off the blended average cost"
+              # rule means every downstream R-multiple/PnL calc must use it,
+              # not tranche 0's raw entry_price.
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - initial_stop
+              return {
+                  "symbol": symbol, "entry_ts": entry_label, "exit_ts": exit_label,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "held_days": held_days,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def replay_symbol(symbol, df, risk_pct, capital, cost_model, rs_pct_series):
+              """Calls the REAL m.minervini_vcp_entry_signal and
+              m.minervini_vcp_exit_reason for every entry/exit/stop/trail
+              decision, and the REAL m._scale_in_tranches for sizing - only
+              the position-bookkeeping/cost-application loop is written
+              here, identical to the baseline workflow's replay_symbol
+              except for the sizing step."""
+              trades = []
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(m.MINERVINI_SMA_200, m.MINERVINI_FIFTY_TWO_WEEK_N) + m.MINERVINI_SMA200_RISING_LOOKBACK + 5
+              if n < min_lookback + 20:
+                  return trades
+
+              closes = df["Close"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              position = None
+
+              for i in range(min_lookback, n):
+                  sub_df = df.iloc[: i + 1]
+
+                  if position is not None:
+                      reason, position["running_max_close"] = m.minervini_vcp_exit_reason(
+                          sub_df, position["entry_label"], position["initial_stop"],
+                          position["atr_at_entry"], position["running_max_close"],
+                      )
+                      if reason:
+                          held_days = i - position["entry_idx"]
+                          trades.append(_finalize_trade(
+                              symbol, position["avg_entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_label"], closes[i], dates[i], reason,
+                              position["entry_cost"], held_days, cost_model,
+                          ))
+                          position = None
+
+                  if position is None:
+                      rs_pct = rs_pct_series[i] if rs_pct_series is not None else None
+                      sig = m.minervini_vcp_entry_signal(sub_df, rs_percentile=rs_pct)
+                      if sig is not None:
+                          entry_price = sig["entry_price"]
+                          stop_loss = sig["stop_loss"]
+                          atr_at_entry = sig["atr_at_entry"]
+                          stop_dist = entry_price - stop_loss
+                          if stop_dist > 0:
+                              usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                              risk_amount_inr = usable_capital_inr * risk_pct / 100
+                              intended_qty = min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)
+                              intended_qty = int(np.floor(intended_qty))
+                              if intended_qty > 0 and intended_qty * entry_price >= 100:
+                                  # --- Sizing-only difference from the baseline: ---
+                                  # decide how much of intended_qty actually fills,
+                                  # and at what blended price, via the real
+                                  # m._scale_in_tranches, fed the ACTUAL forward
+                                  # close path (already-formed historical bars).
+                                  window = m.MINERVINI_SCALE_IN_ADD_WITHIN_BARS
+                                  closes_since_entry = closes[i + 1: i + 1 + window]
+                                  scale = m._scale_in_tranches(
+                                      entry_price, atr_at_entry, stop_loss, closes_since_entry,
+                                  )
+                                  filled_qty = int(np.floor(intended_qty * scale["total_filled_pct"]))
+                                  if filled_qty > 0:
+                                      avg_entry_price = scale["avg_entry_price"]
+                                      position = {
+                                          "avg_entry_price": avg_entry_price, "initial_stop": stop_loss,
+                                          "entry_idx": i, "entry_label": dates[i], "qty": filled_qty,
+                                          "atr_at_entry": atr_at_entry,
+                                          # Chandelier trail's running peak starts
+                                          # at the blended cost, not tranche 0's
+                                          # raw entry_price - consistent with
+                                          # "everything downstream references the
+                                          # blended average, not tranche 0 alone".
+                                          "running_max_close": avg_entry_price,
+                                          "entry_cost": _entry_cost(filled_qty, avg_entry_price, cost_model),
+                                          "n_tranches_filled": scale["n_tranches_filled"],
+                                      }
+
+              if position is not None:
+                  held_days = (n - 1) - position["entry_idx"]
+                  trades.append(_finalize_trade(
+                      symbol, position["avg_entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_label"], closes[-1], dates[-1], "data_end_forced_close",
+                      position["entry_cost"], held_days, cost_model,
+                  ))
+              return trades
+
+
+          SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) ---")
+          raw_by_symbol = {}
+          for sym in SYMBOLS:
+              try:
+                  raw = m.fetch_ohlc(sym, PERIOD, INTERVAL)
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < 100:
+                  continue
+              raw_by_symbol[sym] = raw.reset_index(drop=True)
+          print(f"  fetched {len(raw_by_symbol)}/{len(SYMBOLS)} symbols\n")
+
+          # Cross-sectional RS table - see the baseline workflow's own header
+          # comment on why this is a vectorized equivalent of
+          # m._compute_minervini_rs_percentiles's formula rather than a
+          # per-date call into it. Identical to the baseline (RS-percentile
+          # construction is not part of the sizing change under test).
+          return_series = {}
+          for sym, raw in raw_by_symbol.items():
+              closes_s = raw["Close"].astype(float)
+              ret = closes_s.pct_change(m.MINERVINI_RS_RETURN_LOOKBACK)
+              ret.index = raw["Date"].astype(str)
+              return_series[sym] = ret
+          returns_df = pd.DataFrame(return_series)
+          rs_pct_df = returns_df.rank(axis=1, pct=True) * 100.0
+
+          all_trades = []
+          per_symbol_trade_count = {}
+          for sym, raw in raw_by_symbol.items():
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              dates_str = raw["Date"].astype(str)
+              rs_series = rs_pct_df[sym].reindex(dates_str).to_numpy() if sym in rs_pct_df.columns else None
+              try:
+                  trades = replay_symbol(sym, raw, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL, rs_series)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              if trades:
+                  per_symbol_trade_count[sym] = len(trades)
+              all_trades.extend(trades)
+          print(f"  {len(all_trades)} total trades\n")
+
+
+          def _metrics(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0, avg_held_days=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              avg_held_days = sum(t["held_days"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, avg_held_days=avg_held_days)
+
+
+          print("=== POOLED RESULT (real main.py functions, tt_vcp entries/exits, scale-in sizing) ===")
+          row = _metrics(all_trades)
+          print(f"n_trades={row['n']} win_rate={row['win_rate']:.2f}% "
+                f"pf_net={row['pf_net']:.3f} pf_gross={row['pf_gross']:.3f} "
+                f"avg_net_inr={row['avg_net']:.2f} avg_held_days={row['avg_held_days']:.1f}")
+          print("\nFor comparison, the single-shot-sizing baseline "
+                "(minervini-vcp-validation-replay.yml, same entries/exits/"
+                "universe/period/cost-model - sizing is the only variable "
+                "between the two): see that workflow's own run output.")
+
+          print("\n=== By exit_reason ===")
+          by_reason = {}
+          for t in all_trades:
+              by_reason.setdefault(t["exit_reason"], []).append(t)
+          for reason, ts in sorted(by_reason.items(), key=lambda kv: -len(kv[1])):
+              m2 = _metrics(ts)
+              print(f"{reason}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_days={m2['avg_held_days']:.1f}")
+
+          print("\n=== Top 15 symbols by trade count ===")
+          for sym, cnt in sorted(per_symbol_trade_count.items(), key=lambda kv: -kv[1])[:15]:
+              print(f"{sym}: {cnt} trades")
+          PYEOF
