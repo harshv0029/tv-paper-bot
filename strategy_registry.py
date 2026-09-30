@@ -458,8 +458,10 @@ REGISTRY: list[StrategyDef] = [
         asset_class=AssetClass.EQUITY_SWING,
         categories=(TradeCategory.SWING, TradeCategory.BUY),
         timeframe="1d",
-        status=StrategyStatus.RESEARCH,
-        entry_fn=None,  # main.py.power_play_entry_signal/power_play_exit_reason exist but are not wired into _run_swing_scan
+        status=StrategyStatus.LIVE,  # 2026-09-30, "Wire it now anyway" - see this
+        # entry's own notes for the explicit override of its thin-sample caution.
+        entry_fn=None,  # main.py's own power_play_entry_signal IS the live entry_fn - this field
+        # only ever fed the design-only scan_universe() scaffold, never main.py's real scheduler
         metrics=Metrics(
             pfnet=5.023, pfgross=5.820, win_rate_pct=44.95, n_trades=109,
             avg_net_inr=1953.04,
@@ -497,7 +499,13 @@ REGISTRY: list[StrategyDef] = [
             "across 2,366 symbols over 5 years (~0.046 trades/symbol), so a 52-symbol sample "
             "would expect well under 3 trades even at the strategy's native timeframe; 0 is "
             "consistent with that base rate, not evidence the setup fails at other candle "
-            "sizes. A real answer needs the full universe at each timeframe, not yet run."
+            "sizes. A real answer needs the full universe at each timeframe, not yet run. "
+            "UPDATE 2026-09-30: wired into _run_swing_scan live per explicit user "
+            "instruction ('Wire the viable ones' -> shown this exact CAVEAT and the "
+            "robustness-check recommendation above via AskUserQuestion -> 'Wire it now "
+            "anyway') - the thin-sample caution above is NOT retracted or superseded, it "
+            "is kept verbatim as the honest record of the evidence this went live on, "
+            "narrower than every other currently-live strategy's own evidence base."
         ),
     ),
 

@@ -9081,6 +9081,10 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # _run_swing_scan's own 2026-09-30 comment for how it's checked before
     # the (still below-floor) plain minervini_vcp entry above.
     "minervini_vcp_livermore": "minervini_vcp_livermore_confirmed",
+    # 2026-09-30, "Wire it now anyway" (explicit user override of this
+    # strategy's own thin-sample caution, n=109) - PFnet 5.023, the best
+    # full-universe number found this session.
+    "power_play": "power_play_high_tight_flag",
 }
 
 
@@ -14777,17 +14781,20 @@ def _run_swing_scan(conn):
 
     Only one swing strategy can hold a position per symbol at a time
     (signal_state_swing.symbol is a PRIMARY KEY) - checked in this order:
-    gap_and_go (PFnet 1.65) -> minervini_vcp_livermore (the Livermore
-    two-pullback-confirmed entry filter, PFnet 2.043 - 2026-09-30, "wire
-    the viable ones") -> minervini_vcp (the plain base entry, PFnet 0.908,
-    kept paper-only for ongoing research since it's below
-    PFNET_LIVE_FLOOR). The Livermore filter is checked BEFORE the base
-    entry rather than after, even though it's logically a strict subset
-    of it (it only ever fires on a day the base signal also would have),
-    specifically so a symbol qualifying for the better-performing variant
-    is never instead recorded under the worse one. Whichever fires first
-    wins the entry slot for that symbol that day; simply doesn't get a
-    look until that symbol is flat again."""
+    power_play (PFnet 5.023, 2026-09-30 "wire it now anyway" - the
+    RAREST setup of the four, checked first so it's never crowded out by
+    a same-day gap/VCP signal) -> gap_and_go (PFnet 1.65) ->
+    minervini_vcp_livermore (the Livermore two-pullback-confirmed entry
+    filter, PFnet 2.043 - 2026-09-30, "wire the viable ones") ->
+    minervini_vcp (the plain base entry, PFnet 0.908, kept paper-only for
+    ongoing research since it's below PFNET_LIVE_FLOOR). The Livermore
+    filter is checked before the base entry rather than after, even
+    though it's logically a strict subset of it (it only ever fires on a
+    day the base signal also would have), specifically so a symbol
+    qualifying for the better-performing variant is never instead
+    recorded under the worse one. Whichever fires first wins the entry
+    slot for that symbol that day; a symbol simply doesn't get a look
+    from the others until it's flat again."""
     today = ist_now().strftime("%Y-%m-%d")
     if conn.execute("SELECT 1 FROM swing_scan_log WHERE scan_date = ?", (today,)).fetchone():
         return
@@ -14843,6 +14850,22 @@ def _run_swing_scan(conn):
                         (new_running_max, symbol),
                     )
                     conn.commit()
+            elif pos["strategy"] == "power_play":
+                # 2026-09-30, "Wire it now anyway" (explicit user override
+                # of this strategy's own thin-sample caution, n=109 - see
+                # power_play_high_tight_flag's registry entry). Identical
+                # chandelier-trail + max-hold mechanics to Minervini's own
+                # exit, just with Power-Play-specific ATR/hold constants
+                # (see power_play_exit_reason's own docstring).
+                reason, new_running_max = power_play_exit_reason(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
+                )
+                if not reason:
+                    conn.execute(
+                        "UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                        (new_running_max, symbol),
+                    )
+                    conn.commit()
             else:
                 reason = gap_and_go_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"], pos["gap_low"])
             if reason:
@@ -14868,6 +14891,48 @@ def _run_swing_scan(conn):
         cfg = NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
         risk_pct = cfg["risk_pct"]
         fx = 1.0  # SWING_WATCHLIST is NSE (.NS) equities only
+
+        # 2026-09-30, "Wire it now anyway" - power_play_high_tight_flag
+        # (PFnet 5.023, the single best full-universe number found this
+        # session) checked FIRST: its own evidence describes it as the
+        # RAREST setup among every swing strategy here (n=109 across 2,366
+        # symbols over 5 years, ~0.046 trades/symbol), so checking it
+        # ahead of the much more frequently-firing gap_and_go/Minervini
+        # signals means a genuine Power Play setup is never crowded out on
+        # a day it happens to coincide with one of those. Explicit user
+        # override of this strategy's own "worth a second look before
+        # trusted enough for live wiring" caution - see its registry
+        # entry's own notes for the full caveat, kept on record rather
+        # than removed.
+        power_play_signal = power_play_entry_signal(df)
+        if power_play_signal:
+            entry_price = power_play_signal["entry_price"]
+            stop_loss = power_play_signal["stop_loss"]
+            qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+            if qty <= 0:
+                continue
+            conn.execute(
+                "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+                "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (symbol, "power_play", today, entry_price, stop_loss, None, qty, time.time(), fx,
+                 power_play_signal["atr_at_entry"], entry_price),
+            )
+            apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+            conn.execute(
+                "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+                (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+                 json.dumps({"entry_reason": "power_play", "stop_loss": stop_loss,
+                             "atr_at_entry": power_play_signal["atr_at_entry"]})),
+            )
+            conn.commit()
+            print(f"[SWING] entry {symbol} (power_play) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+            try:
+                _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "power_play")
+            except Exception as e:
+                print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+            continue
 
         signal = gap_and_go_entry_signal(df)
         if signal:
