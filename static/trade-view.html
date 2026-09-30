@@ -1499,7 +1499,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td><span class="log-status" style="background:rgba(168,85,247,.18);color:#c084fc;">REAL</span></td>
       <td class="sym">${t.symbol}</td>
       <td class="log-type">Equity</td>
-      <td class="log-type">${t.strategy}</td>
+      <td class="log-type">${strategyLabel(t.strategy)}</td>
       <td class="num">${fmt(t.entry_price_native, 2)}</td>
       <td class="num">${fmt(t.exit_price_native, 2)}</td>
       <td class="num">${fmt(t.qty, 0)}</td>
@@ -1507,7 +1507,16 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${pnlSpan(t.pnl_inr ?? 0)}</td>
       <td class="num">${dash}</td>
       <td class="num">${pctSpan(t.pnl_pct)}</td>
-      <td class="log-type">Kotak (manual/external)</td>
+      <!-- 2026-09-30: /real-trades-today now recovers the real strategy
+           from this app's own order log (real_trades) before ever
+           falling back to "real (Kotak)" (main.py's own
+           _recover_strategy_for_untracked_position) - a row whose
+           strategy WAS recovered is this bot's own trade, not a manual
+           one, and must say so instead of a blanket "manual/external"
+           that would now directly contradict the strategy cell next to
+           it. Only a genuinely unrecoverable row (strategy still
+           literally "real (Kotak)") keeps the manual/external label. -->
+      <td class="log-type">${t.strategy !== "real (Kotak)" ? "Kotak (this bot)" : "Kotak (manual/external)"}</td>
       <td class="meta">${timeAgo(t.exit_time_utc)}</td>
       ${leaderboardCells(t.strategy)}
     </tr>`);
@@ -1532,7 +1541,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td><span class="log-status" style="background:rgba(168,85,247,.18);color:#c084fc;">REAL</span></td>
       <td class="sym">${displayName(t.symbol)}</td>
       <td class="log-type">Equity</td>
-      <td class="log-type">${t.strategy}</td>
+      <td class="log-type">${strategyLabel(t.strategy)}</td>
       <td class="num">${fmt(t.entry_price_native, 2)}</td>
       <td class="num">${fmt(t.exit_price_native, 2)}</td>
       <td class="num">${fmt(t.qty, 0)}</td>
