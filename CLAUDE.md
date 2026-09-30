@@ -337,3 +337,52 @@ of trusting the transfer pack's prose.
   Never add a new real-order code path that decides its next action off
   a locally-cached order/position field without a live Kotak fetch (or a
   fetch fresh enough within the same request) to confirm it first.
+- **Thumb rule (2026-09-30, explicit user instruction, confirmed via
+  AskUserQuestion after being shown the actual consequence: "Yes -
+  disable non-viable live strategies now"): a NEW real position may only
+  ever be opened for a strategy whose strategy_registry.py metrics clear
+  PFnet >= PFNET_LIVE_FLOOR (1.0), across every category (buy, short_sell,
+  swing, futures, options).** This is `_is_strategy_viable_for_real_money`
+  (main.py), wired into the three NEW-entry functions
+  (`_maybe_place_real_entry`, `_maybe_place_real_short_entry`,
+  `_maybe_place_real_swing_entry`) via `_STRATEGY_TAG_TO_REGISTRY_NAME`'s
+  strategy-tag-to-registry-name mapping - fails CLOSED on anything
+  unrecognized or unmeasured, since real money should never go where
+  there's no evidence of clearing breakeven. It is a PERMANENT, registry-
+  driven gate, not a one-time manual disable: if a currently-blocked
+  strategy is later re-validated at PFnet >= 1 (or a new one clears it),
+  the gate opens automatically the next tick with no code change; a
+  currently-live strategy that later degrades below the floor is blocked
+  automatically too. Deliberately NOT a new env-var kill switch (this
+  file's own "ask before creating any new real-trading kill switch"
+  rule, and no new switch was asked for here) - it only ever governs
+  whether a brand NEW position opens; it is never referenced from an
+  exit/SL-sync/auto-heal function, so a position already open when its
+  strategy fails the floor is still fully protected/managed/closeable,
+  never orphaned by this gate.
+  As of 2026-09-30, this means REAL intraday trading is effectively
+  paused on both sides: `universal_score` (the only strategy tag every
+  WATCHLIST symbol uses for long intraday, PFnet 0.05) and both short
+  engines (`range_short_staged_ladder` 0.21, `trend_down_momentum_short`
+  0.09) are all blocked - nothing currently registered replaces them.
+  Real swing trading continues for `gap_and_go` (PFnet 1.65, viable) but
+  NOT for `minervini_vcp` (PFnet 0.908, just under the floor - confirmed
+  via that registry entry's own `source` field pointing at the exact live
+  `minervini_vcp_entry_signal`/`minervini_vcp_exit_reason` functions,
+  never guessed from the name). Futures/options have no real order-
+  placement path at all regardless of this gate. Paper trading (the
+  non-real engine) is completely unaffected - this gate only ever
+  touches whether a paper signal gets MIRRORED as a real order.
+  Companion change, same instruction: the trade-view dashboard's
+  `/strategy-leaderboard` now calls `strategy_registry.viable_leaderboard()`
+  instead of `leaderboard(top_n=5)` - every strategy per category that
+  clears the floor, unbounded, never just a top-5-by-rank view that could
+  include a non-viable strategy. Deliberately did NOT touch
+  `TOP_N_PER_CATEGORY`/`leaderboard()`/`top_strategies_for_monitoring()`
+  themselves (a separate, unrelated live-monitoring-cost-bounding
+  mechanism per the 2026-09-29 "25 checks per cycle" thumb rule) or
+  `all_strategies_info()`'s own per-trade-row Category/Rank lookup
+  (deliberately still shows a non-viable strategy's actual rank, per its
+  own 2026-09-30 fix for the "blank cell" bug earlier this session - see
+  that function's own docstring for why "viable-only" there would
+  regress it).

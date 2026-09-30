@@ -80,7 +80,8 @@ def test_entry_flow_target_rejection_does_not_blacklist_while_sl_is_resting():
                  patch("kotak_real_orders.place_real_stop_loss",
                        return_value={"ok": True, "order_id": "SL1", "trigger_price": 90.0}), \
                  patch("kotak_real_orders.place_real_target",
-                       return_value={"ok": False, "detail": _T1_REJECTION_DETAIL}):
+                       return_value={"ok": False, "detail": _T1_REJECTION_DETAIL}), \
+                 patch("main._is_strategy_viable_for_real_money", return_value=True):
                 main._maybe_place_real_entry(conn, "TESTSTOCK.NS")
             row = conn.execute("SELECT * FROM real_positions WHERE symbol = 'TESTSTOCK.NS'").fetchone()
             assert row["sl_order_id"] == "SL1"  # the SL itself is fine, unaffected

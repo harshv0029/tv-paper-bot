@@ -9044,6 +9044,60 @@ def is_trading_enabled(conn) -> bool:
     return bool(row["enabled"]) if row else True  # never explicitly set -> default ON
 
 
+# 2026-09-30, explicit user instruction ("The real money level
+# implementation is only on the pfnet >=1... for all category like
+# buy, short, swing, future, options"), confirmed via AskUserQuestion
+# after being shown the actual consequence (universal_score PFnet 0.05,
+# range_short_staged_ladder 0.21, trend_down_momentum_short 0.09 - none
+# clear the floor; only gap_and_go_swing at 1.65 does): a NEW real
+# position may only be opened for a strategy whose strategy_registry.py
+# metrics clear PFnet >= PFNET_LIVE_FLOOR. This is a permanent, registry-
+# driven gate, not a one-time manual disable - if a currently-blocked
+# strategy is later re-validated at PFnet >= 1 (or a new one clears it),
+# this gate opens automatically the next tick, no code change needed;
+# conversely a currently-live strategy that later degrades below the
+# floor is blocked automatically too. Deliberately NOT a new env-var kill
+# switch (CLAUDE.md's standing "ask before creating any new real-trading
+# kill switch" rule, and the user was never asked for one here) - this
+# gates NEW entries only, inside the existing entry functions themselves;
+# it never touches SL-sync/exit/auto-heal for a position already open,
+# so nothing already live gets orphaned by this change.
+_STRATEGY_TAG_TO_REGISTRY_NAME = {
+    "orb-universal-score": "universal_score",
+    "orb-swing-gap-and-go": "gap_and_go_swing",
+    "orb-trend-short": "trend_down_momentum_short",
+    "orb-range-short": "range_short_staged_ladder",
+    # Swing's own real-entry call sites pass a plain label (see
+    # _maybe_place_real_swing_entry's call sites), not an ORB-prefixed
+    # tag - "minervini_vcp" maps to minervini_trend_template_vcp per that
+    # registry entry's own source field ("main.py
+    # (minervini_vcp_entry_signal/minervini_vcp_exit_reason)"), confirmed
+    # by reading it directly rather than guessing from the name alone -
+    # PFnet 0.908, just under the floor, NOT gap_and_go_swing's 1.65.
+    "gap_and_go": "gap_and_go_swing",
+    "minervini_vcp": "minervini_trend_template_vcp",
+}
+
+
+def _is_strategy_viable_for_real_money(strategy_tag: str | None) -> bool:
+    """PFnet >= 1 gate for NEW real entries (see the module comment just
+    above). Fails CLOSED on every uncertain case - an unrecognized tag, a
+    tag with no strategy_registry.py entry, or a registered strategy with
+    no validated metrics yet - since the whole point is real money only
+    goes where there's actual evidence of clearing breakeven, never an
+    unmeasured strategy treated as innocent-until-proven-unprofitable."""
+    if not strategy_tag:
+        return False
+    registry_name = _STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy_tag)
+    if not registry_name:
+        return False
+    import strategy_registry as sr
+    strat = next((s for s in sr.REGISTRY if s.name == registry_name), None)
+    if strat is None:
+        return False
+    return strat.is_viable() is True
+
+
 # --- Stage 3: real order placement (2026-09-04) -----------------------------
 REAL_TRADING_DAILY_CAP_INR = 2000.0  # explicit user instruction 2026-09-04 ("use 2000 as whole" -
 # confirmed via AskUserQuestion to mean "raise the daily cap to Rs 2000",
@@ -9433,6 +9487,22 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         "SELECT qty, stop_loss, strategy FROM signal_state_short WHERE symbol = ? AND status = 'short'",
         (symbol,),
     ).fetchone()
+
+    # 2026-09-30 PFnet >= 1 real-money gate - see _is_strategy_viable_for_
+    # real_money's own module comment (long side's mirror, same reasoning).
+    # Both current short strategies (range_short_staged_ladder 0.21,
+    # trend_down_momentum_short 0.09) are below the floor, so this blocks
+    # new real short entries today - existing open real short positions
+    # are untouched.
+    strategy_tag = paper_row["strategy"] if paper_row else None
+    if not _is_strategy_viable_for_real_money(strategy_tag):
+        _log_real_attempt(
+            conn, symbol, "S", "skipped_strategy_not_viable",
+            detail=f"strategy {strategy_tag!r} does not clear the PFnet >= 1 real-money floor "
+                   "(or has no validated metrics) - see strategy_registry.py",
+        )
+        return
+
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
     remaining_cap_inr = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
     real_capital_for_sizing = get_scheduler_capital_inr()
@@ -9630,6 +9700,22 @@ def _maybe_place_real_entry(conn, symbol: str):
         "SELECT qty, stop_loss, target, exit_legs_json, strategy FROM signal_state WHERE symbol = ? AND status = 'long'",
         (symbol,),
     ).fetchone()
+
+    # 2026-09-30 PFnet >= 1 real-money gate (see _is_strategy_viable_for_
+    # real_money's own module comment) - checked here, right after the
+    # paper entry's own strategy tag is known, and before any order
+    # placement below. universal_score (the only tag every WATCHLIST
+    # symbol currently uses) is below the floor, so this blocks new real
+    # long entries today - existing open real positions are untouched.
+    strategy_tag = paper_row["strategy"] if paper_row else None
+    if not _is_strategy_viable_for_real_money(strategy_tag):
+        _log_real_attempt(
+            conn, symbol, "B", "skipped_strategy_not_viable",
+            detail=f"strategy {strategy_tag!r} does not clear the PFnet >= 1 real-money floor "
+                   "(or has no validated metrics) - see strategy_registry.py",
+        )
+        return
+
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
     remaining_cap_inr = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
     real_capital_for_sizing = get_scheduler_capital_inr()
@@ -14374,6 +14460,21 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
 
     if conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone():
         _log_real_attempt(conn, symbol, "B", "skipped_already_open", strategy=strategy)
+        return
+
+    # 2026-09-30 PFnet >= 1 real-money gate - see _is_strategy_viable_for_
+    # real_money's own module comment. gap_and_go_swing (the strategy
+    # every current swing entry carries) is at PFnet 1.65, well above the
+    # floor, so this is a no-op for swing today - wired here for the same
+    # reason every category was asked for: if a future swing candidate is
+    # added below the floor, this blocks it automatically without a
+    # separate change.
+    if not _is_strategy_viable_for_real_money(strategy):
+        _log_real_attempt(
+            conn, symbol, "B", "skipped_strategy_not_viable", strategy=strategy,
+            detail=f"strategy {strategy!r} does not clear the PFnet >= 1 real-money floor "
+                   "(or has no validated metrics) - see strategy_registry.py",
+        )
         return
 
     import kotak_live_feed
