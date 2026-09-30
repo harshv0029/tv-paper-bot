@@ -4631,6 +4631,213 @@ def gap_and_go_exit_reason_short(df: pd.DataFrame, entry_day: str, stop_loss: fl
     return None
 
 
+# ---- Failed Breakout short ("bull trap") - 2026-09-30 ----------------------
+#
+# Explicit user instruction ("Read bout it and backtest") - a genuinely new
+# candidate, distinct from every other short_sell strategy already
+# registered (RESEARCH-STAGE ONLY here, same as this file's other
+# not-yet-validated additions until a replay confirms real numbers):
+#
+# Standard technical-analysis definition: price breaks out to a new high
+# above a well-established resistance/consolidation ceiling on the way up,
+# but the breakout FAILS to hold - within a few sessions, price reverses
+# back below that ceiling, trapping the breakout buyers who bought the new
+# high. This is the classic "bull trap." Short entry fires on the failure
+# (the day price closes back below the resistance it had broken above),
+# not on the breakout itself. Swing timeframe (1d) - a multi-day
+# breakout/failure pattern, matching how this file's other book-derived
+# swing strategies (Minervini VCP, Power Play) are shaped.
+FAILED_BREAKOUT_RESISTANCE_LOOKBACK_DAYS = 60  # window used to establish the resistance ceiling
+FAILED_BREAKOUT_CONSOL_EXCLUDE_DAYS = 10       # most recent N days excluded from that ceiling calc - this is where the breakout attempt itself happens
+FAILED_BREAKOUT_MIN_BREAKOUT_PCT = 1.0         # breakout must clear the ceiling by at least this % to count as a genuine attempt, not noise
+FAILED_BREAKOUT_MAX_DAYS_SINCE_BREAKOUT = 7    # the failure/reversal must be confirmed within this many days of the breakout bar
+FAILED_BREAKOUT_ATR_N = 14
+FAILED_BREAKOUT_ATR_STOP_MULT = 2.0            # matches MINERVINI_ATR_STOP_MULT/POWER_PLAY_ATR_STOP_MULT's own chandelier convention
+FAILED_BREAKOUT_MAX_HOLD_DAYS = 30
+
+
+def _find_failed_breakout_setup(df: pd.DataFrame) -> dict | None:
+    """Evaluates ONLY the last row of `df` (today) for a failed-breakout
+    setup: an established resistance ceiling (the highest High over
+    FAILED_BREAKOUT_RESISTANCE_LOOKBACK_DAYS, ending
+    FAILED_BREAKOUT_CONSOL_EXCLUDE_DAYS days ago), a genuine breakout bar
+    within the more recent exclude window that cleared that ceiling by
+    FAILED_BREAKOUT_MIN_BREAKOUT_PCT%, within FAILED_BREAKOUT_MAX_DAYS_
+    SINCE_BREAKOUT of today, and today's own Close now back BELOW the
+    ceiling (the failure/reversal confirmation). Returns None if no such
+    setup exists, else {"resistance", "breakout_high"} (the highest point
+    reached since the breakout bar, for stop placement)."""
+    n = len(df)
+    i = n - 1
+    resistance_start = i - FAILED_BREAKOUT_CONSOL_EXCLUDE_DAYS - FAILED_BREAKOUT_RESISTANCE_LOOKBACK_DAYS
+    resistance_end = i - FAILED_BREAKOUT_CONSOL_EXCLUDE_DAYS  # exclusive
+    if resistance_start < 0 or resistance_end <= resistance_start:
+        return None
+    highs = df["High"].to_numpy(dtype=float)
+    closes = df["Close"].to_numpy(dtype=float)
+    resistance = float(np.max(highs[resistance_start:resistance_end]))
+    if resistance <= 0:
+        return None
+    breakout_idx = None
+    for j in range(resistance_end, i):  # excludes today itself
+        if closes[j] >= resistance * (1 + FAILED_BREAKOUT_MIN_BREAKOUT_PCT / 100):
+            breakout_idx = j  # keep the MOST RECENT qualifying bar
+    if breakout_idx is None:
+        return None
+    if (i - breakout_idx) > FAILED_BREAKOUT_MAX_DAYS_SINCE_BREAKOUT:
+        return None
+    if closes[i] >= resistance:
+        return None  # hasn't failed yet
+    breakout_high = float(np.max(highs[breakout_idx:i]))
+    return {"resistance": resistance, "breakout_high": breakout_high}
+
+
+def failed_breakout_entry_signal_short(df: pd.DataFrame) -> dict | None:
+    """Evaluates ONLY the last row of `df` (today) for a Failed Breakout
+    short entry. Returns None if no signal fires, else {"entry_price",
+    "stop_loss", "atr_at_entry"} - same return shape as every other swing
+    entry signal in this file, for the caller to size and open a position
+    with. Stop sits above the HIGHEST point the failed breakout actually
+    reached (breakout_high), not just above the resistance level itself -
+    a tighter stop there would risk being clipped by the breakout's own
+    overshoot before the reversal that defines this setup even completes."""
+    setup = _find_failed_breakout_setup(df)
+    if setup is None:
+        return None
+    closes = df["Close"].to_numpy(dtype=float)
+    i = len(df) - 1
+    entry_price = closes[i]
+    stop_loss = setup["breakout_high"]
+    if stop_loss <= entry_price:
+        return None
+    atr = _swing_atr(df, n=FAILED_BREAKOUT_ATR_N)
+    if np.isnan(atr[i]) or atr[i] <= 0:
+        return None
+    return {"entry_price": entry_price, "stop_loss": stop_loss, "atr_at_entry": float(atr[i])}
+
+
+def failed_breakout_exit_reason_short(
+    df: pd.DataFrame, entry_day: str, initial_stop: float, atr_at_entry: float, running_min_close: float,
+) -> tuple:
+    """Short mirror of minervini_vcp_exit_reason/power_play_exit_reason's
+    own chandelier-trail shape: a trailing stop (running trough close
+    since entry PLUS a fixed ATR multiple frozen at entry) that only ever
+    ratchets DOWN, plus a FAILED_BREAKOUT_MAX_HOLD_DAYS timeout.
+    `running_min_close` is the running trough close carried forward by the
+    caller since entry (starts at entry_price - the short mirror of the
+    long-side functions' running_max_close). Returns (exit_reason_or_None,
+    updated_running_min_close)."""
+    if len(df) == 0:
+        return None, running_min_close
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].astype(str).to_numpy()
+    i = len(df) - 1
+    new_running_min = min(running_min_close, closes[i])
+    trail_stop = new_running_min + FAILED_BREAKOUT_ATR_STOP_MULT * atr_at_entry
+    current_stop = min(initial_stop, trail_stop)
+    if closes[i] >= current_stop:
+        return "trail_stop_hit", new_running_min
+    held_days = int(np.sum(dates > entry_day))
+    if held_days >= FAILED_BREAKOUT_MAX_HOLD_DAYS:
+        return "max_hold_timeout", new_running_min
+    return None, new_running_min
+
+
+# ---- Gap-Up Fade short - 2026-09-30 ----------------------------------------
+#
+# Explicit user instruction ("Read bout it and backtest") - a genuinely new
+# candidate, the MIRROR-OPPOSITE of gap_and_go_short_fade (which is a "gap
+# DOWN and continue" momentum trade, not a fade) and distinct from
+# gap_and_go itself (which requires the gap to HOLD, not fail).
+#
+# Standard technical-analysis definition: a stock gaps UP strongly at the
+# open (often on news/hype), but shows clear signs of failing to hold that
+# gap during the session - the classic sign is price falling back below
+# its own opening print, meaning the initial buying enthusiasm has already
+# reversed. Short entry fires on that reversal-below-open confirmation, not
+# on the gap itself. Intraday timeframe (5m) - a same-session fade/reversal
+# trade, matching this file's other intraday short mechanics
+# (_vwap_mean_reversion_short_entry) rather than the swing engine.
+GAP_UP_FADE_GAP_PCT_THRESHOLD = 3.0      # gap up >= this % from the prior day's close - matches SWING_GAP_PCT_THRESHOLD's own magnitude for a gap-based setup
+GAP_UP_FADE_MIN_BARS_INTO_SESSION = 3    # give the open a few 5m bars to establish before judging failure, avoids pure open-print noise
+GAP_UP_FADE_ATR_N = 14
+GAP_UP_FADE_ATR_STOP_MULT = 1.5
+GAP_UP_FADE_MAX_HOLD_MINUTES = 120.0     # same style/magnitude as universal_score's own max_hold_minutes - a same-day fade trade, not a multi-day hold
+
+
+def gap_up_fade_entry_signal_short(df: pd.DataFrame) -> dict | None:
+    """Evaluates ONLY the last row of `df` (today's most recent intraday
+    bar) for a Gap-Up Fade short entry: today's session Open gapped up
+    >=GAP_UP_FADE_GAP_PCT_THRESHOLD% above yesterday's Close, at least
+    GAP_UP_FADE_MIN_BARS_INTO_SESSION bars have printed today, and the
+    current Close has fallen back BELOW today's own Open (the gap has
+    failed to hold). Returns None if no signal fires, else {"entry_price",
+    "stop_loss", "atr_at_entry"}. `df` must be a multi-day intraday series
+    (oldest first) with a Date column parseable to a date; genuinely
+    bar-size-agnostic (the entry logic below never assumes 5m specifically
+    beyond GAP_UP_FADE_MIN_BARS_INTO_SESSION's own choice of magnitude)."""
+    if len(df) == 0:
+        return None
+    dates = pd.to_datetime(df["Date"]).dt.strftime("%Y-%m-%d").to_numpy()
+    today_str = dates[-1]
+    today_idx = np.where(dates == today_str)[0]
+    if len(today_idx) < GAP_UP_FADE_MIN_BARS_INTO_SESSION:
+        return None
+    session_start = int(today_idx[0])
+    if session_start == 0:
+        return None  # no prior day's bar at all to measure the gap against
+    closes = df["Close"].to_numpy(dtype=float)
+    opens = df["Open"].to_numpy(dtype=float)
+    highs = df["High"].to_numpy(dtype=float)
+    prev_close = closes[session_start - 1]
+    if prev_close <= 0:
+        return None
+    today_open = opens[session_start]
+    gap_pct = (today_open - prev_close) / prev_close * 100
+    if gap_pct < GAP_UP_FADE_GAP_PCT_THRESHOLD:
+        return None
+    i = len(df) - 1
+    if closes[i] >= today_open:
+        return None  # still holding at/above the open - gap hasn't failed yet
+    today_high_so_far = float(np.max(highs[session_start: i + 1]))
+    entry_price = closes[i]
+    stop_loss = today_high_so_far
+    if stop_loss <= entry_price:
+        return None
+    atr = _swing_atr(df, n=GAP_UP_FADE_ATR_N)
+    if np.isnan(atr[i]) or atr[i] <= 0:
+        return None
+    return {"entry_price": entry_price, "stop_loss": stop_loss, "atr_at_entry": float(atr[i])}
+
+
+def gap_up_fade_exit_reason_short(
+    df: pd.DataFrame, entry_ts: str, initial_stop: float, atr_at_entry: float, running_min_close: float,
+) -> tuple:
+    """Evaluates ONLY the last row of `df` for a Gap-Up Fade short exit:
+    the same chandelier-trail mechanics as this file's swing strategies
+    (running trough close since entry plus a fixed ATR multiple frozen at
+    entry, only ever ratcheting down), plus a GAP_UP_FADE_MAX_HOLD_MINUTES
+    intraday timeout - this is a same-session fade trade, not a multi-day
+    hold, so the timeout is minutes-based like universal_score's own
+    max_hold_minutes, not a day count. `entry_ts` is the entry bar's own
+    Date value (as a string parseable the same way `df["Date"]` is),
+    used to compute elapsed minutes since entry. Returns
+    (exit_reason_or_None, updated_running_min_close)."""
+    if len(df) == 0:
+        return None, running_min_close
+    closes = df["Close"].to_numpy(dtype=float)
+    i = len(df) - 1
+    new_running_min = min(running_min_close, closes[i])
+    trail_stop = new_running_min + GAP_UP_FADE_ATR_STOP_MULT * atr_at_entry
+    current_stop = min(initial_stop, trail_stop)
+    if closes[i] >= current_stop:
+        return "trail_stop_hit", new_running_min
+    held_minutes = (pd.Timestamp(df["Date"].iloc[i]) - pd.Timestamp(entry_ts)).total_seconds() / 60.0
+    if held_minutes >= GAP_UP_FADE_MAX_HOLD_MINUTES:
+        return "max_hold_timeout", new_running_min
+    return None, new_running_min
+
+
 # ---------------------------------------------------------------------------
 # Options overlay: buy real, currently-quoted calls/puts on symbols with a
 # live yfinance options chain (SPY/QQQ/AAPL - see OPTIONS_ELIGIBLE_SYMBOLS).
