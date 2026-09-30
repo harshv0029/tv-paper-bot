@@ -1,36 +1,3 @@
 {
-  "open_real_positions": [
-    {
-      "symbol": "COROMANDEL.NS",
-      "kotak_trading_symbol": "COROMANDEL-EQ",
-      "qty": 1,
-      "entry_price": 1757.9,
-      "entry_order_id": "260930000516607",
-      "opened_at": 1790759701.8402243,
-      "day": "2026-09-30",
-      "sl_order_id": "260930000535034",
-      "sl_trigger_price": 1748.6,
-      "target_order_id": null,
-      "target_price": 1774.68,
-      "exit_legs_json": "[{\"leg\": \"trail\", \"qty\": 1, \"r_multiple\": null, \"target_price\": null, \"status\": \"open\"}]",
-      "protection_degraded_since": null,
-      "strategy": "orb-universal-score"
-    },
-    {
-      "symbol": "MAXHEALTH.NS",
-      "kotak_trading_symbol": "MAXHEALTH-EQ",
-      "qty": 1,
-      "entry_price": 911.5,
-      "entry_order_id": "260930000521256",
-      "opened_at": 1790759832.6952376,
-      "day": "2026-09-30",
-      "sl_order_id": "260930000534111",
-      "sl_trigger_price": 907.1,
-      "target_order_id": null,
-      "target_price": 915.94,
-      "exit_legs_json": "[{\"leg\": \"T1\", \"qty\": 1, \"r_multiple\": \"1.0R\", \"target_price\": 915.9392678397043, \"status\": \"filled\"}, {\"leg\": \"T2\", \"qty\": 1, \"r_multiple\": \"1.5R\", \"target_price\": 918.1589017595563, \"status\": \"filled\"}, {\"leg\": \"trail\", \"qty\": 1, \"r_multiple\": null, \"target_price\": null, \"status\": \"open\"}]",
-      "protection_degraded_since": null,
-      "strategy": "orb-universal-score"
-    }
-  ]
+  "open_real_positions": []
 }
