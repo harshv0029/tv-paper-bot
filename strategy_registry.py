@@ -274,6 +274,135 @@ REGISTRY: list[StrategyDef] = [
     ),
 
     StrategyDef(
+        name="minervini_vcp_breakeven_2r",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # minervini_vcp_exit_reason_breakeven exists in main.py but is not wired into any scan
+        metrics=Metrics(
+            pfnet=1.145, pfgross=1.336, win_rate_pct=42.65, n_trades=279,
+            avg_net_inr=162.06,
+            universe="full_2680 (2362/2680 fetched)",
+            run_ref="minervini-vcp-breakeven-2r-validation-replay.yml run 36670096485 "
+                     "(2026-09-30, calls the real main.py minervini_vcp_exit_reason_breakeven)",
+        ),
+        source="main.py (minervini_vcp_entry_signal_livermore_confirmed's own base entry + minervini_vcp_exit_reason_breakeven, breakeven_r_multiple=MINERVINI_BREAKEVEN_R_2)",
+        evidence=(
+            "Real-function full-universe validation (2026-09-30, run 36670096485): PFnet "
+            "1.145, n=279, win_rate 42.65%, avg_net +Rs162.06/trade - CLEARS "
+            "PFNET_LIVE_FLOOR, unlike the same entries' original chandelier-trail exit "
+            "(minervini_trend_template_vcp, PFnet 0.908 on the closely comparable n=327 "
+            "run). Book-literal chapter-13 2R breakeven-stop (docs/minervini_book_notes.txt) "
+            "beats the chandelier trail head-to-head on the same entry signal."
+        ),
+        notes=(
+            "A straight ALTERNATIVE exit, not a hybrid - stop is flat at initial_stop until "
+            "the 2R threshold, then floors at entry_price (breakeven), never trails further. "
+            "3R (minervini_vcp_breakeven_3r) edges this out slightly (PFnet 1.153 vs 1.145) "
+            "on a near-identical n - see that entry's own notes. Only tested at 1d (the "
+            "strategy's own natural timeframe); not yet wired into any scan."
+        ),
+    ),
+    StrategyDef(
+        name="minervini_vcp_breakeven_3r",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # minervini_vcp_exit_reason_breakeven exists in main.py but is not wired into any scan
+        metrics=Metrics(
+            pfnet=1.153, pfgross=1.342, win_rate_pct=44.29, n_trades=280,
+            avg_net_inr=170.75,
+            universe="full_2680 (2362/2680 fetched)",
+            run_ref="minervini-vcp-breakeven-3r-validation-replay.yml run 36670098717 "
+                     "(2026-09-30, calls the real main.py minervini_vcp_exit_reason_breakeven)",
+        ),
+        source="main.py (minervini_vcp_entry_signal_livermore_confirmed's own base entry + minervini_vcp_exit_reason_breakeven, breakeven_r_multiple=MINERVINI_BREAKEVEN_R_3)",
+        evidence=(
+            "Real-function full-universe validation (2026-09-30, run 36670098717): PFnet "
+            "1.153, n=280, win_rate 44.29%, avg_net +Rs170.75/trade - the best of the two "
+            "breakeven variants tested, and both clear PFNET_LIVE_FLOOR where the original "
+            "chandelier trail (PFnet 0.908) did not."
+        ),
+        notes=(
+            "Book-literal chapter-13 3R breakeven-stop (docs/minervini_book_notes.txt). "
+            "Marginally beats the 2R variant (1.153 vs 1.145 PFnet) on a near-identical "
+            "n (280 vs 279) - the later breakeven threshold gives a few more trades room "
+            "to run before locking in, at negligible cost in trades that get stopped out "
+            "before reaching it. Only tested at 1d; not yet wired into any scan."
+        ),
+    ),
+    StrategyDef(
+        name="minervini_vcp_scale_in_sizing",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # _scale_in_tranches exists in main.py but is not wired into any scan
+        metrics=Metrics(
+            pfnet=0.863, pfgross=1.106, win_rate_pct=27.36, n_trades=329,
+            avg_net_inr=-85.20,
+            universe="full_2680 (2362/2680 fetched)",
+            run_ref="minervini-vcp-scale-in-sizing-validation-replay.yml run 36670100345 "
+                     "(2026-09-30, calls the real main.py _scale_in_tranches)",
+        ),
+        source="main.py (minervini_vcp entries/exits + _scale_in_tranches, MINERVINI_SCALE_IN_TRANCHE_PCTS=(0.4, 0.4, 0.2))",
+        evidence=(
+            "Real-function full-universe validation (2026-09-30, run 36670100345): PFnet "
+            "0.863, n=329, win_rate 27.36%, avg_net -Rs85.20/trade - WORSE than the "
+            "single-shot-sizing baseline (minervini_trend_template_vcp, PFnet 0.908) on "
+            "the same entries/exits/universe/period, sizing being the only variable "
+            "changed. A negative result, reported as-is per standing discipline (never "
+            "omit a strategy for looking bad)."
+        ),
+        notes=(
+            "Book chapter-13 scale-in tranche sizing (docs/minervini_book_notes.txt), added "
+            "ONLY as price confirms with an open profit, never averaging down. trail_stop_hit "
+            "dominates (n=294, PFnet 0.699) and drags the pooled number below the single-"
+            "shot baseline - splitting entry into tranches added at a rising average cost "
+            "left less room before the same chandelier trail stopped the position out, on "
+            "net. Not worth pursuing further as a standalone lever on this entry signal; "
+            "untested whether it would help the 2R/3R breakeven exits instead of the "
+            "chandelier trail it was tested against here."
+        ),
+    ),
+    StrategyDef(
+        name="minervini_vcp_livermore_confirmed",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # minervini_vcp_entry_signal_livermore_confirmed exists in main.py but is not wired into any scan
+        metrics=Metrics(
+            pfnet=2.043, pfgross=2.658, win_rate_pct=33.88, n_trades=121,
+            avg_net_inr=713.52,
+            universe="full_2680 (2362/2680 fetched)",
+            run_ref="minervini-vcp-livermore-confirmed-validation-replay.yml run 36670102480 "
+                     "(2026-09-30, calls the real main.py minervini_vcp_entry_signal_livermore_confirmed)",
+        ),
+        source="main.py (minervini_vcp_entry_signal_livermore_confirmed + minervini_vcp_exit_reason, the original chandelier trail)",
+        evidence=(
+            "Real-function full-universe validation (2026-09-30, run 36670102480): PFnet "
+            "2.043, n=121, win_rate 33.88%, avg_net +Rs713.52/trade - by far the strongest "
+            "result of the four book-refinement variants tested this session, more than "
+            "double the base entry's own PFnet (0.908, minervini_trend_template_vcp) on "
+            "the same chandelier-trail exit. Waiting for the SECOND rally high after two "
+            "confirmed pullbacks (docs/minervini_book_notes.txt's Livermore system, "
+            "ch.10) roughly a third of the base signal's own trade count (121 vs 327) but "
+            "each surviving trade is markedly higher quality."
+        ),
+        notes=(
+            "Entry-timing FILTER layered on the existing minervini_vcp_entry_signal pivot "
+            "breakout, not a new entry signal of its own - see "
+            "minervini_vcp_entry_signal_livermore_confirmed's own docstring for the "
+            "disclosed fractal-swing/backward-reconstruction algorithm choices. The "
+            "trade-off the book itself frames explicitly (worse average entry price, less "
+            "whipsaw) reads as a clear net win here. Only tested at 1d; not yet wired into "
+            "any scan or combined with the 2R/3R breakeven exits (untested combination)."
+        ),
+    ),
+    StrategyDef(
         name="idea4_no_target",
         asset_class=AssetClass.EQUITY_SWING,
         categories=(TradeCategory.SWING,),
