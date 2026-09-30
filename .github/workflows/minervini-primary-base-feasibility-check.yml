@@ -1,0 +1,138 @@
+name: Minervini "Primary Base" IPO-Recency Feasibility Check (read-only, no trades)
+
+# 2026-09-29/30, per docs/minervini_book_notes.txt's CHAPTER 11 section
+# ("PRIMARY BASE" - buy a recently-IPO'd stock as it emerges from its FIRST
+# buyable base, breaking out to a new ALL-TIME HIGH since IPO on a volume
+# increase) and this repo's own "WORTH TESTING" note there: this codebase
+# has no direct IPO-date field, so the candidate proxy for "recently
+# IPO'd" is simply how little price history a symbol has available (e.g.
+# via a period="max" fetch). Before building the actual Primary Base entry
+# function on top of that proxy, this workflow answers the book note's own
+# precondition: does a short *available* history on this data source
+# (Yahoo Finance, via main.fetch_ohlc) actually track real IPO recency, or
+# is it mostly a data-availability artifact (NSE has traded for decades;
+# Yahoo's own history for a given ticker can start well after the real
+# listing date for reasons that have nothing to do with the company being
+# young)?
+#
+# This is a MEASUREMENT run only - no entries/exits/positions, no
+# main._load_nse_universe_from_file() symbol is bought or sold here. Full
+# NSE universe via main._load_nse_universe_from_file() (CLAUDE.md,
+# 2026-09-29 full-universe thumb rule), not main.NSE_FULL_UNIVERSE (which
+# is silently restricted to the live-trading NIFTY-200 scope by the time a
+# script imports main).
+#
+# NOT dispatched by the session that authored this file - Yahoo Finance
+# (query2.finance.yahoo.com et al.) is blocked by this session's own
+# sandbox network policy (confirmed via the agent proxy's connect_rejected
+# log, 2026-09-30), so the numbers this workflow would print could not be
+# obtained locally and are NOT fabricated here. This file is a prepared,
+# ready-to-run measurement, awaiting a run on a GitHub Actions runner
+# (which has normal internet access) before anyone commits to building the
+# full Primary Base entry function on this proxy.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  feasibility-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Measure available history length across the full NSE universe
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import main as m
+
+          PERIOD = "max"
+          INTERVAL = "1d"
+          BARS_PER_YEAR = 252  # matches MINERVINI_FIFTY_TWO_WEEK_N's own convention
+
+          # Disclosed thresholds for "short" history (candidate IPO-recency
+          # cutoffs a real Primary Base build would gate on) - reported
+          # across several, not just one, so the choice of cutoff isn't
+          # picked after peeking at a single number.
+          THRESHOLDS_YEARS = [1, 2, 3, 5]
+
+          SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          print(f"--- Fetching {len(SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) - "
+                f"measurement only, no positions taken ---")
+
+          bar_counts = {}
+          first_dates = {}
+          failed = 0
+          for sym in SYMBOLS:
+              try:
+                  df = m.fetch_ohlc(sym, PERIOD, INTERVAL)
+              except Exception as e:
+                  failed += 1
+                  continue
+              if df is None or len(df) == 0:
+                  failed += 1
+                  continue
+              bar_counts[sym] = len(df)
+              try:
+                  first_dates[sym] = str(df["Date"].iloc[0])
+              except Exception:
+                  first_dates[sym] = "?"
+
+          n_fetched = len(bar_counts)
+          print(f"  fetched {n_fetched}/{len(SYMBOLS)} symbols ({failed} failed/empty)\n")
+
+          if n_fetched == 0:
+              print("No symbols fetched - cannot assess feasibility.")
+              sys.exit(0)
+
+          years = {sym: bc / BARS_PER_YEAR for sym, bc in bar_counts.items()}
+          years_arr = np.array(list(years.values()))
+
+          print("=== Distribution of available history (years) ===")
+          print(f"min={years_arr.min():.2f} p10={np.percentile(years_arr,10):.2f} "
+                f"median={np.median(years_arr):.2f} p90={np.percentile(years_arr,90):.2f} "
+                f"max={years_arr.max():.2f}")
+
+          print("\n=== Fraction of universe under each candidate 'short history' cutoff ===")
+          for th in THRESHOLDS_YEARS:
+              frac = float(np.mean(years_arr < th))
+              n_under = int(np.sum(years_arr < th))
+              print(f"< {th}y: {n_under}/{n_fetched} symbols ({100*frac:.1f}%)")
+
+          print("\n=== Sanity check: well-known DECADES-old large caps ===")
+          print("If Yahoo's own history for these starts recently, a short")
+          print("available history on this data source is a DATA-AVAILABILITY")
+          print("artifact, not a real IPO-recency signal, and the whole proxy")
+          print("this workflow is checking would not be viable as-is.")
+          KNOWN_OLD = ["RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS",
+                       "ITC.NS", "LT.NS", "SBIN.NS", "TATAMOTORS.NS"]
+          for sym in KNOWN_OLD:
+              if sym in bar_counts:
+                  print(f"{sym}: {bar_counts[sym]} bars (~{years[sym]:.1f}y), "
+                        f"first bar {first_dates.get(sym)}")
+              else:
+                  print(f"{sym}: not fetched (failed or not in universe)")
+
+          print("\n=== Shortest-history symbols (candidates for genuinely recent IPOs) ===")
+          for sym, bc in sorted(bar_counts.items(), key=lambda kv: kv[1])[:20]:
+              print(f"{sym}: {bc} bars (~{years[sym]:.2f}y), first bar {first_dates.get(sym)}")
+
+          print("\n=== Verdict inputs (read, don't assume) ===")
+          print("- If the known-old large caps above show only a handful of years")
+          print("  of history, 'short available history' mostly measures Yahoo's")
+          print("  own data-availability cutoff, not real IPO recency - the")
+          print("  Primary Base build should NOT proceed on this proxy as-is.")
+          print("- If the known-old large caps show multi-decade history while a")
+          print("  meaningful minority of the universe (the 'short history' bucket")
+          print("  above) sits well under it, the proxy plausibly discriminates")
+          print("  real younger listings and is worth the full build/test cycle.")
+          PYEOF
