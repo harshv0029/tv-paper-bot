@@ -9026,6 +9026,38 @@ def _is_t1_restricted(conn, symbol: str) -> bool:
     ).fetchone() is not None
 
 
+def _recover_strategy_for_untracked_position(conn, kotak_trading_symbol: str, side: str) -> str | None:
+    """Best-effort recovery of which strategy actually placed a Kotak
+    position this app no longer has a real_positions/real_positions_short
+    row for (see get_real_open_positions' own kotak_untracked branch).
+
+    2026-09-30, explicit user correction: "All 'not bot-managed' are
+    placed by you only" - a position missing from real_positions does NOT
+    mean this app never placed it; it means the bookkeeping ROW for it was
+    lost (e.g. the entry's local INSERT never ran because the process
+    crashed/restarted right after Kotak confirmed the fill but before the
+    INSERT, or an exit's DELETE ran optimistically before a broker-side
+    failure/partial-fill left the position still actually open). Showing
+    "not bot-managed" for a position THIS APP'S OWN order log shows it
+    placed is a misleading label, not an honest "unknown."
+
+    real_trades is the fix: it's an APPEND-ONLY log written at every real
+    entry ATTEMPT (see _log_real_attempt), confirmed or not, and is never
+    deleted when a position closes or its real_positions row is dropped -
+    so the strategy that placed a CONFIRMED entry is recoverable from here
+    even after the position-tracking row itself is gone. Returns None only
+    when no confirmed real_trades row for this exact kotak_trading_symbol/
+    side exists at all - which DOES mean this app genuinely never placed
+    it (a true kotak_untracked position, e.g. NEWGEN/SANDUMA from the
+    2026-09-09 finding), as opposed to placed-but-untracked."""
+    row = conn.execute(
+        "SELECT strategy FROM real_trades WHERE kotak_trading_symbol = ? AND side = ? "
+        "AND status = 'confirmed' AND strategy IS NOT NULL ORDER BY ts DESC LIMIT 1",
+        (kotak_trading_symbol, side),
+    ).fetchone()
+    return row["strategy"] if row else None
+
+
 def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,
                        price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None,
                        strategy=None):
@@ -12131,6 +12163,35 @@ def get_real_open_positions():
                     unrealized_pnl_inr = round(
                         ((avg_price - current_price) if is_short else (current_price - avg_price)) * qty_abs, 2,
                     )
+                # 2026-09-30, explicit user correction: recover the strategy
+                # from real_trades (this app's own append-only order log)
+                # before conceding "not bot-managed" - see
+                # _recover_strategy_for_untracked_position's own docstring.
+                # Diagnostic print (explicit user request, "yes" to adding
+                # one) so the NEXT time a position drops out of
+                # real_positions/real_positions_short, the logs show
+                # immediately whether it was this app's own order (strategy
+                # recovered) or a genuinely external one (no match at all),
+                # instead of that distinction being silently lost.
+                with closing(get_db()) as attempt_conn:
+                    recovered_strategy = _recover_strategy_for_untracked_position(
+                        attempt_conn, trd_sym, "S" if is_short else "B",
+                    )
+                if recovered_strategy is not None:
+                    print(
+                        f"[UNTRACKED-DIAG] {trd_sym}: open at Kotak with no "
+                        f"{'real_positions_short' if is_short else 'real_positions'} row, but "
+                        f"real_trades shows THIS APP placed it (strategy={recovered_strategy!r}) - "
+                        f"its own position-tracking row was lost after entry (see real_order_events "
+                        f"for {trd_sym}'s full history), not a truly external/untracked position."
+                    )
+                else:
+                    print(
+                        f"[UNTRACKED-DIAG] {trd_sym}: open at Kotak, no "
+                        f"{'real_positions_short' if is_short else 'real_positions'} row, AND no "
+                        f"confirmed real_trades attempt for side={'S' if is_short else 'B'} - "
+                        f"genuinely never placed by this app."
+                    )
                 result.append({
                     "symbol": bare_symbol, "kotak_trading_symbol": trd_sym, "qty": qty_abs,
                     "entry_price": avg_price, "entry_order_id": None, "opened_at": None,
@@ -12142,7 +12203,13 @@ def get_real_open_positions():
                         round(100 * unrealized_pnl_inr / invested_inr, 3)
                         if unrealized_pnl_inr is not None and invested_inr else None
                     ),
-                    "target_status": "not_bot_managed", "target_status_detail": None,
+                    "strategy": recovered_strategy,
+                    "target_status": "not_bot_managed" if recovered_strategy is None else "untracked_but_own_order",
+                    "target_status_detail": (
+                        None if recovered_strategy is None else
+                        "this app placed this order but its own position-tracking row was lost after "
+                        "entry - SL/target syncing has stopped for it until reconciled"
+                    ),
                     "source": "kotak_untracked",
                     "side": "short" if is_short else "long",
                 })
