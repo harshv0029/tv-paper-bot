@@ -3473,6 +3473,175 @@ def minervini_vcp_exit_reason(
     return None, new_running_max
 
 
+# ---- Livermore two-pullback confirmation filter (2026-09-30) --------------
+#
+# Explicit user instruction: build an entry-timing FILTER on top of
+# minervini_vcp_entry_signal per docs/minervini_book_notes.txt's "THE
+# LIVERMORE SYSTEM" note (~line 395): don't buy the first breakout above a
+# downtrend line - wait for (a) the break, (b) a pullback (reaction low
+# #1), (c) a rally, (d) a second pullback (reaction low #2), then buy only
+# once price EXCEEDS THE HIGH OF THE SECOND RALLY. This is a strictly
+# later, stricter bar than "stayed above the pivot" - it requires a
+# genuine higher-high above a specific confirmed prior peak formed AFTER
+# the second pullback, not merely price holding up.
+#
+# DISCLOSED ALGORITHM CHOICES (no single canonical definition exists for
+# "reaction low"/"rally" off a bar-by-bar close/high/low series - matching
+# this session's established style of disclosing a proxy explicitly, e.g.
+# the Power Play short mirror's log-symmetric launch-threshold comment
+# above):
+#
+# 1. "Reaction low" / "rally high" = a fractal swing point: bar j's Low
+#    (High) is the min (max) within +/-LIVERMORE_VCP_FRACTAL_WIDTH bars -
+#    the exact same swing-point convention _find_minervini_vcp_pivot
+#    already uses for the base VCP's own contraction legs, just with its
+#    own (tighter) width. A tighter width than the base pivot's
+#    MINERVINI_PIVOT_FRACTAL_WIDTH=5 is used (3, not 5) because the
+#    post-breakout reaction swings this filter is timing are typically
+#    faster/shorter than the multi-week contraction legs that built the
+#    base itself - a disclosed choice, not a derived one.
+# 2. The "downtrend break" (step a) is reused exactly as instructed:
+#    minervini_vcp_entry_signal's OWN pivot breakout condition (Trend
+#    Template + a valid tightening base + a volume-surge close above the
+#    pivot high), reconstructed bar-by-bar over the trailing
+#    LIVERMORE_VCP_BREAKOUT_LOOKBACK_DAYS window by calling
+#    minervini_vcp_entry_signal on each successively larger historical
+#    window - i.e. "would the live scan have fired on that day" - not a
+#    separate reimplementation. The MOST RECENT qualifying day in that
+#    window is used as the anchor, so a stale, long-expired breakout many
+#    weeks back never gets treated as still "in play".
+#    One disclosed simplification: this historical reconstruction always
+#    passes rs_percentile=None (skipping the RS gate) because a per-day
+#    historical RS-percentile table isn't available inside a single-row-
+#    evaluated entry_fn - the exact same "None skips the RS gate" fallback
+#    minervini_vcp_entry_signal's own docstring already documents for the
+#    no-index-reference case. TODAY's own RS gate is still fully enforced
+#    below via _minervini_trend_template_ok(df, rs_percentile).
+# 3. Sequence required, in strict chronological order, after the breakout
+#    bar: swing LOW (reaction low #1) -> swing HIGH (rally #1) -> swing
+#    LOW (reaction low #2) -> swing HIGH (the "second rally" high). Entry
+#    fires the day price closes above that second rally's high. No rally
+#    is required to already exist between the breakout and reaction low
+#    #1 - the breakout itself is the move that gets pulled back from, per
+#    the book's own step ordering.
+# 4. FAILED RETEST INVALIDATES, IT DOES NOT JUST DELAY: if price closes
+#    below the ORIGINAL base pivot's own stop level (final_leg_low, the
+#    exact same level minervini_vcp_entry_signal itself would have used as
+#    a stop) at ANY point between the breakout and today, the setup is
+#    treated as a failed breakout, not a deeper-but-still-valid pullback -
+#    reusing the base signal's own risk level rather than inventing a new
+#    invalidation threshold for this filter. This deliberately does not
+#    reset and re-search for a fresh breakout within the same call; a
+#    fresh breakout day, if one occurs later, is picked up on its own by
+#    the backward scan on a later date.
+# 5. Stop-loss for a confirmed entry is reaction low #2 (the more recent,
+#    tighter support the price has actually held above through the second
+#    pullback) rather than the original base pivot's final_leg_low - a
+#    later entry naturally earns a nearer stop, which is the trade-off the
+#    book itself frames explicitly (worse average entry price, less
+#    whipsaw).
+LIVERMORE_VCP_FRACTAL_WIDTH = 3
+LIVERMORE_VCP_BREAKOUT_LOOKBACK_DAYS = 60
+
+
+def _find_fractal_swings(highs: np.ndarray, lows: np.ndarray, lo: int, hi: int, width: int) -> list:
+    """Returns swing points in [lo+width, hi-width] as a list of
+    (idx, kind, value) sorted by idx, where kind is "high" or "low" and a
+    bar qualifies if its High (Low) is the max (min) within +/-width bars
+    - the same fractal test _find_minervini_vcp_pivot uses, factored out
+    so this filter can parameterize its own width."""
+    swings = []
+    for j in range(lo + width, hi - width + 1):
+        window_hi = highs[j - width: j + width + 1]
+        window_lo = lows[j - width: j + width + 1]
+        if highs[j] == np.max(window_hi):
+            swings.append((j, "high", highs[j]))
+        if lows[j] == np.min(window_lo):
+            swings.append((j, "low", lows[j]))
+    return sorted(swings, key=lambda t: t[0])
+
+
+def _find_livermore_breakout(df: pd.DataFrame) -> tuple:
+    """Scans backward from yesterday over LIVERMORE_VCP_BREAKOUT_LOOKBACK_
+    DAYS bars for the MOST RECENT day on which minervini_vcp_entry_signal
+    (rs_percentile=None - see this section's header comment, point 2)
+    would have fired using only the data available up to that day. Returns
+    (breakout_idx, invalidate_level) for the first (most recent) match, or
+    (None, None) if none is found in the window."""
+    n = len(df)
+    i = n - 1
+    earliest = max(0, i - LIVERMORE_VCP_BREAKOUT_LOOKBACK_DAYS)
+    for b in range(i - 1, earliest - 1, -1):
+        sub = df.iloc[: b + 1]
+        if len(sub) < 50:
+            break
+        sig = minervini_vcp_entry_signal(sub, rs_percentile=None)
+        if sig is not None:
+            return b, sig["stop_loss"]
+    return None, None
+
+
+def minervini_vcp_entry_signal_livermore_confirmed(df: pd.DataFrame, rs_percentile: float | None = None) -> dict | None:
+    """Evaluates ONLY the last row of `df` (today) for a Livermore two-
+    pullback-confirmed Minervini VCP entry - see this section's header
+    comment for the full disclosed algorithm and every design choice.
+    Returns None if no confirmed entry fires today, else
+    {"entry_price", "stop_loss", "atr_at_entry"} in the exact same shape
+    minervini_vcp_entry_signal itself returns, for the caller to size and
+    open a position with. Because this waits for a full two-pullback
+    cycle to complete AFTER the base signal's own breakout day, it always
+    fires strictly later (if at all) than minervini_vcp_entry_signal would
+    have on the same breakout - the later, worse-but-safer entry price the
+    book itself trades off against reduced whipsaw."""
+    if _minervini_trend_template_ok(df, rs_percentile) is not True:
+        return None
+    n = len(df)
+    i = n - 1
+    breakout_idx, invalidate_level = _find_livermore_breakout(df)
+    if breakout_idx is None:
+        return None
+
+    closes = df["Close"].to_numpy(dtype=float)
+    highs = df["High"].to_numpy(dtype=float)
+    lows = df["Low"].to_numpy(dtype=float)
+
+    # Point 4: a failed retest invalidates the setup outright.
+    if np.min(closes[breakout_idx + 1: i + 1]) < invalidate_level:
+        return None
+
+    width = LIVERMORE_VCP_FRACTAL_WIDTH
+    swings = _find_fractal_swings(highs, lows, breakout_idx + 1, i, width)
+
+    reaction_low_1 = rally_high_1 = reaction_low_2 = rally_high_2 = None
+    stage = "seek_low_1"
+    for idx, kind, value in swings:
+        if stage == "seek_low_1" and kind == "low":
+            reaction_low_1 = (idx, value)
+            stage = "seek_high_1"
+        elif stage == "seek_high_1" and kind == "high":
+            rally_high_1 = (idx, value)
+            stage = "seek_low_2"
+        elif stage == "seek_low_2" and kind == "low":
+            reaction_low_2 = (idx, value)
+            stage = "seek_high_2"
+        elif stage == "seek_high_2" and kind == "high":
+            rally_high_2 = (idx, value)
+            break
+
+    if rally_high_2 is None:
+        return None
+    if closes[i] <= rally_high_2[1]:
+        return None
+
+    stop_loss = reaction_low_2[1]
+    if stop_loss >= closes[i]:
+        return None
+    atr = _swing_atr(df, n=MINERVINI_ATR_N)
+    if np.isnan(atr[i]) or atr[i] <= 0:
+        return None
+    return {"entry_price": closes[i], "stop_loss": stop_loss, "atr_at_entry": float(atr[i])}
+
+
 # ---- Minervini VCP short mirror (2026-09-29) -------------------------------
 #
 # Explicit user instruction ("Prep short mirror for others too") per
