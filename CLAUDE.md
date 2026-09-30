@@ -196,3 +196,41 @@ of trusting the transfer pack's prose.
   response, hardcoding rows, or gating the fetch behind something that
   isn't "every poll"), that regresses this rule and must be fixed, not
   worked around with a manual re-sync step.
+- **Thumb rule (2026-09-30, explicit user instruction, MFSL.NS incident:
+  a genuinely bot-placed real position sat open with ZERO stop-loss
+  order anywhere at Kotak, unnoticed until a human happened to see it on
+  the dashboard - "Make sure that this does not repeat... Do some back
+  check during live market or live trades"): a periodic backcheck against
+  Kotak's own order book, verifying EVERY currently-open real position
+  (tracked or not in this app's own tables, long or short) actually has a
+  live resting stop-loss, must keep running at least every 5 minutes
+  during market hours, for as long as this bot places real orders - never
+  relaxed to a slower cadence, disabled, or narrowed to only
+  this-app-tracked positions without an explicit user ask.** This is
+  `main._find_unprotected_open_positions` (called from
+  `_reconcile_real_positions_core` on every run, deliberately NOT gated
+  by `adopt` and NOT filtered by this app's own order tag - an
+  unprotected position is unprotected real money whether or not this app
+  placed it), `.github/workflows/kotak-reconcile.yml`'s `*/5 3-10 * * 1-5`
+  cron (tightened from */15 for exactly this), the persisted
+  `real_protection_snapshot` table, the no-token `GET
+  /real-protection-status` endpoint, and `static/trade-view.html`'s red
+  banner fed by it (shown for a genuinely unprotected position AND for a
+  stale/missing check - an old "all clear" must never be read as a
+  current one, since that silence is exactly what let MFSL go unnoticed).
+  Root cause behind the incident itself: `real_positions`' own tracking
+  row for MFSL was lost after entry (a crash/restart between Kotak
+  confirming the fill and this app's local INSERT is the leading
+  hypothesis - never fully confirmed, since the position was adopted and
+  protected before a root-cause investigation could be completed), and
+  every OTHER piece of this app's own SL logic (`_maybe_sync_real_stop_loss`,
+  the governance-backfill block) only ever manages rows it still has a
+  local tracking row for - none of them would have caught this on their
+  own, which is exactly why this check deliberately goes straight to
+  Kotak's own ground truth instead of trusting any local table. Applies
+  going forward to every new real-order code path added to this bot (a
+  new asset class, a new order type, a new strategy wired into real
+  trading): before shipping it, confirm a position it opens is still
+  covered by this SAME backcheck (matched by `kotak_open_by_trdsym`'s own
+  long/short net-qty sign, not by strategy or asset-class-specific logic)
+  rather than assuming it automatically is.
