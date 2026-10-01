@@ -368,6 +368,59 @@ REGISTRY: list[StrategyDef] = [
         ),
     ),
     StrategyDef(
+        name="primary_base",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,  # clears PFNET_LIVE_FLOOR but NOT wired into
+        # _run_swing_scan yet - registering != trading, per this registry's own principle;
+        # needs an explicit "wire it" instruction before it can take real positions.
+        entry_fn=None,  # main.py's own primary_base_entry_signal exists but is not wired into any scan
+        metrics=Metrics(
+            pfnet=2.069, pfgross=2.551, win_rate_pct=44.31, n_trades=2591,
+            avg_net_inr=404.74,
+            universe="full_2680 (2401/2680 fetched)",
+            run_ref="primary-base-validation-replay.yml run 36820565494 "
+                     "(2026-10-01, calls the real main.py primary_base_entry_signal + minervini_vcp_exit_reason)",
+        ),
+        source="main.py (primary_base_entry_signal + minervini_vcp_exit_reason, the original chandelier trail)",
+        evidence=(
+            "Full-universe run 36820565494: PFnet 2.069, PFgross 2.551, n=2,591, win_rate "
+            "44.31%, avg_net +Rs404.74/trade, avg held 17.0 days - clears PFNET_LIVE_FLOOR "
+            "comfortably and is close to minervini_vcp_livermore_confirmed's own 2.043 PFnet, "
+            "on a far larger sample (2,591 vs 121 trades) and a SHORTER average hold (17.0d "
+            "vs Livermore-confirmed's own ~equivalent chandelier-trail hold). By exit reason: "
+            "trail_stop_hit (n=2,499, 96.5% of trades) is itself already solidly profitable "
+            "(PFnet 1.870) - unlike every short-sell strategy tested this session, this entry "
+            "does NOT show the 'exit cuts winners short' pattern; max_hold_timeout (n=82) is "
+            "extremely profitable (PFnet 86.2, 95.1% win rate) but a small minority of trades."
+        ),
+        notes=(
+            "docs/minervini_book_notes.txt CHAPTER 11 ('PRIMARY BASE') - a recently-listed "
+            "stock (proxy: short total available price history, see primary_base_entry_"
+            "signal's own header comment for the full disclosed algorithm) breaking out to a "
+            "NEW ALL-TIME HIGH from its first buyable base. Deliberately distinct from "
+            "minervini_vcp_entry_signal (needs 150+/200+ days of history to even evaluate the "
+            "Trend Template) - this targets a young stock's VERY FIRST base, not a stage-2 "
+            "continuation base. Its own feasibility precondition (does 'short available "
+            "history' on this data source track real IPO recency, or is it a Yahoo data-"
+            "availability artifact?) was checked FIRST and cleared: minervini-primary-base-"
+            "feasibility-check.yml run 36670094369 (2026-09-30) found known decades-old large "
+            "caps (RELIANCE/TCS/INFY/HDFCBANK/ITC/LT/SBIN) show genuine 23-30+ years of "
+            "history, while a meaningful minority of the full universe (17.4% under 1y) shows "
+            "genuinely short histories including literal brand-new listings within days of "
+            "that check. Reuses minervini_vcp_exit_reason UNCHANGED (the best-performing exit "
+            "tried on this book's entries so far, strictly better than the 2R/3R breakeven "
+            "variant per CLAUDE.md's own 2026-09-30 sweep-discipline note) - this is an "
+            "entry-only, one-axis test, not a new exit variant. Never checked across candle "
+            "sizes - 1d only so far (the book's own timeframe for a multi-week base pattern); "
+            "PERIOD='max' was required for the replay (not a shorter window) since the "
+            "'recently listed' proxy depends on each symbol's REAL total available history, "
+            "not a truncated fetch window - see the validation-replay workflow's own header "
+            "comment."
+        ),
+    ),
+    StrategyDef(
         name="minervini_vcp_livermore_confirmed",
         asset_class=AssetClass.EQUITY_SWING,
         categories=(TradeCategory.SWING,),
@@ -863,6 +916,50 @@ REGISTRY: list[StrategyDef] = [
             "one result alone. 2026-09-30, explicit user instruction ('Read about it and "
             "backtest'). Never checked across candle sizes - 1d only so far, its own "
             "natural timeframe for a multi-day breakout/failure pattern."
+        ),
+    ),
+
+    StrategyDef(
+        name="gap_up_fade_short",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # main.py's own gap_up_fade_entry_signal_short/gap_up_fade_exit_reason_short exist but are not wired into any scan
+        metrics=Metrics(
+            pfnet=0.386, pfgross=1.250, win_rate_pct=24.68, n_trades=19941,
+            avg_net_inr=-556.47,
+            universe="full_2680 (2636/2680 fetched)",
+            run_ref="gap-up-fade-short-validation-replay.yml run 36813637935 (2026-10-01, "
+                     "sharded 40-way, calls the real main.py gap_up_fade_entry_signal_short/"
+                     "gap_up_fade_exit_reason_short)",
+        ),
+        source="main.py (gap_up_fade_entry_signal_short/gap_up_fade_exit_reason_short)",
+        evidence=(
+            "Full-universe run 36813637935 (60d/5m, sharded after an earlier unsharded "
+            "attempt - run 36712451311 - hit its own 340-minute timeout with zero result): "
+            "PFnet 0.386, PFgross 1.250, n=19,941, win_rate 24.68%, avg_net -Rs556.47/trade, "
+            "avg held 363.3 min. By exit reason: trail_stop_hit (n=12,950, 65% of trades) is "
+            "a severe net loser - PFnet 0.075, 9.05% win rate - the SAME 'the exit is the "
+            "weak point, not the entry' pattern already seen on failed_breakout_short, "
+            "idea4_no_target, gap_and_go_short_fade, and Minervini VCP. Trades surviving to "
+            "max_hold_timeout (n=6,931, PFnet 3.014, 53.83% win rate) are solidly profitable "
+            "- pooled PFnet is dragged below breakeven by the majority trail_stop_hit bucket "
+            "exiting early."
+        ),
+        notes=(
+            "docs/minervini_book_notes.txt-adjacent, 2026-09-30 explicit user instruction "
+            "('Read about it and backtest') - mirror-opposite of gap_and_go (needs the gap to "
+            "HOLD) and distinct from gap_and_go_short_fade (a gap-DOWN continuation trade, not "
+            "a fade): a stock gaps UP strongly at the open then fails to hold that gap during "
+            "the session, reversing below its own opening print. Still below PFNET_LIVE_FLOOR "
+            "and not wired anywhere live. Same recurring lead as failed_breakout_short: the "
+            "chandelier-trail exit (GAP_UP_FADE_ATR_STOP_MULT=1.5) may be cutting winners off "
+            "before the move that actually pays out (max_hold_timeout trades are ~40x more "
+            "profitable per the PFnet spread) - a sweep of this multiplier is the same "
+            "structured, hypothesis-driven candidate CLAUDE.md's own 2026-09-30 sweep-"
+            "discipline thumb rule calls for, not yet executed. Never checked across candle "
+            "sizes beyond its own native 5m."
         ),
     ),
 
