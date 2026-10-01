@@ -1765,5 +1765,23 @@
     "governance_backfilled_short": [],
     "unprotected_positions_count": 0,
     "unprotected_positions": []
+  },
+  {
+    "reconciled_at_utc": 1790853870.934315,
+    "real_balance_inr": 6625.599999999999,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 0,
+    "governance_backfilled": [],
+    "governance_backfilled_short_count": 0,
+    "governance_backfilled_short": [],
+    "unprotected_positions_count": 0,
+    "unprotected_positions": []
   }
 ]
