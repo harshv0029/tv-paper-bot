@@ -1,0 +1,305 @@
+name: Z-Score Mean Reversion Short Research (research)
+
+# 2026-10-01, from the user's original 7-strategy short-sell list
+# ("Read bout it... z score mean reversion short sell strategies"). The
+# underlying MECHANIC (short N standard deviations above a reference
+# level, expect reversion) is already extensively tested at INTRADAY
+# granularity via m._vwap_deviation_z (range_short_bb2.0/2.5/3.0_filter,
+# PFnet 0.21-0.26, all below PFNET_LIVE_FLOOR) - that's a z-score of price
+# vs the SESSION VWAP. This is a genuinely distinct thesis, not a repeat:
+# a classic DAILY-SWING statistical mean-reversion short - price N
+# standard deviations above its own rolling N-DAY mean, a multi-day hold,
+# not a same-session fade.
+#
+# RESEARCH-STAGE, not a main.py mirror yet - matching rsi-overbought-
+# short-research.yml's own precedent. Unlike that workflow (which could
+# reuse the real INTRADAY short exit machinery - _trailing_stop_target_
+# short, _compute_target_cluster_short, _split_exit_legs - all built
+# around session concepts like SQUAREOFF_MIN), neither the z-score entry
+# NOR a fitting DAILY-SWING short exit exists in main.py yet, so both are
+# written fresh here as disclosed research code. The regime gate
+# (m._classify_market_regime) and ATR calc (m._swing_atr) ARE real,
+# already-validated main.py functions, reused unmodified - only the
+# z-score trigger and the chandelier-trail-short exit mechanics are new.
+#
+# DISCLOSED ALGORITHM CHOICES:
+#   - z_score = (today's Close - rolling LOOKBACK-day mean of Close) /
+#     rolling LOOKBACK-day std of Close. Short when z_score >= THRESHOLD.
+#   - Gated to RANGE regime only (m._classify_market_regime, sma_fast=20/
+#     sma_slow=50/ema - daily-appropriate periods, not the 9/21 used for
+#     5m intraday) - same "mean reversion only makes sense outside a
+#     genuine trend" discipline every other mean-reversion strategy in
+#     this repo already follows (a stock N std-devs above its mean in a
+#     real uptrend can stay there - "can remain overbought longer than
+#     you can remain solvent", same caution rsi-overbought-short-
+#     research.yml's own module comment states).
+#   - Exit: a chandelier trail short (running trough close since entry
+#     plus ZSCORE_SHORT_ATR_STOP_MULT x ATR frozen at entry, only ever
+#     ratchets down - the exact same mechanic minervini_vcp_exit_reason
+#     uses for longs, mirrored for a short) plus a ZSCORE_SHORT_MAX_HOLD_
+#     DAYS timeout - a genuinely new function, since no daily-swing short
+#     chandelier exit already exists in main.py to call.
+#   - Initial stop = entry_price + ZSCORE_SHORT_ATR_STOP_MULT x ATR at
+#     entry (symmetric with the trail's own multiple).
+#
+# Sweeps LOOKBACK in [20, 50] x THRESHOLD in [2.0, 2.5, 3.0] = 6 variants,
+# each its own job, full NSE universe (main._load_nse_universe_from_file,
+# 2026-09-29 standing thumb rule), 1d/5y - daily data is cheap enough per
+# symbol that NO symbol-sharding is needed (same precedent failed-
+# breakout-short-atr-mult-sweep-research.yml already set: each of its 7
+# full-universe single-job daily sweeps finished in 5-8 minutes).
+#
+# Read-only research: does not touch any live parameter, table, or
+# scheduler path.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        combo:
+          - { lookback: "20", threshold: "2.0" }
+          - { lookback: "20", threshold: "2.5" }
+          - { lookback: "20", threshold: "3.0" }
+          - { lookback: "50", threshold: "2.0" }
+          - { lookback: "50", threshold: "2.5" }
+          - { lookback: "50", threshold: "3.0" }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run z-score mean reversion short at lookback=${{ matrix.combo.lookback }} threshold=${{ matrix.combo.threshold }}
+        env:
+          LOOKBACK: ${{ matrix.combo.lookback }}
+          THRESHOLD: ${{ matrix.combo.threshold }}
+        run: |
+          python3 - <<'PYEOF'
+          import os
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          LOOKBACK = int(os.environ["LOOKBACK"])
+          THRESHOLD = float(os.environ["THRESHOLD"])
+          print(f"=== Z-Score Mean Reversion Short: lookback={LOOKBACK}d threshold={THRESHOLD} ===")
+
+          ZSCORE_SHORT_ATR_N = 14
+          ZSCORE_SHORT_ATR_STOP_MULT = 2.0
+          ZSCORE_SHORT_MAX_HOLD_DAYS = 20
+          SMA_FAST, SMA_SLOW, MA_TYPE = 20, 50, "ema"
+
+          CAPITAL_INR = 400000.0
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def zscore_short_entry_signal(df):
+              """NEW research code: today's close N standard deviations ABOVE
+              its own rolling LOOKBACK-day mean, gated to the real
+              m._classify_market_regime's RANGE read. Returns {"entry_price",
+              "stop_loss", "atr_at_entry"} or None."""
+              n = len(df)
+              if n < max(LOOKBACK, SMA_SLOW) + ZSCORE_SHORT_ATR_N + 5:
+                  return None
+              if m._classify_market_regime(df, SMA_FAST, SMA_SLOW, MA_TYPE) != "range":
+                  return None
+              closes = df["Close"].to_numpy(dtype=float)
+              window = closes[-LOOKBACK:]
+              mean, std = float(np.mean(window)), float(np.std(window, ddof=1))
+              if std <= 0:
+                  return None
+              z = (closes[-1] - mean) / std
+              if z < THRESHOLD:
+                  return None
+              atr = m._swing_atr(df, n=ZSCORE_SHORT_ATR_N)
+              if np.isnan(atr[-1]) or atr[-1] <= 0:
+                  return None
+              entry_price = closes[-1]
+              stop_loss = entry_price + ZSCORE_SHORT_ATR_STOP_MULT * atr[-1]
+              return {"entry_price": entry_price, "stop_loss": stop_loss, "atr_at_entry": float(atr[-1])}
+
+
+          def zscore_short_exit_reason(df, entry_day, initial_stop, atr_at_entry, running_min_close):
+              """NEW research code: chandelier trail short (mirrors
+              minervini_vcp_exit_reason's own long-side mechanic) + a max-
+              hold-days timeout."""
+              closes = df["Close"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              i = len(df) - 1
+              new_running_min = min(running_min_close, closes[i])
+              trail_stop = new_running_min + ZSCORE_SHORT_ATR_STOP_MULT * atr_at_entry
+              current_stop = min(initial_stop, trail_stop)
+              if closes[i] >= current_stop:
+                  return "trail_stop_hit", new_running_min
+              held_days = int(np.sum(dates > entry_day))
+              if held_days >= ZSCORE_SHORT_MAX_HOLD_DAYS:
+                  return "max_hold_timeout", new_running_min
+              return None, new_running_min
+
+
+          def _finalize_trade_short(symbol, entry_price, initial_stop, qty, entry_label, exit_price,
+                                     exit_label, exit_reason, entry_cost, held_days, cost_model):
+              gross_pnl = (entry_price - exit_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = initial_stop - entry_price
+              return {
+                  "symbol": symbol, "entry_ts": entry_label, "exit_ts": exit_label,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "held_days": held_days,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def replay_symbol(symbol, df, risk_pct, capital, cost_model):
+              trades = []
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(LOOKBACK, SMA_SLOW) + 20
+              if n < min_lookback + 20:
+                  return trades
+              closes = df["Close"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              position = None
+              for i in range(min_lookback, n):
+                  sub_df = df.iloc[: i + 1]
+                  if position is not None:
+                      reason, position["running_min_close"] = zscore_short_exit_reason(
+                          sub_df, position["entry_label"], position["initial_stop"],
+                          position["atr_at_entry"], position["running_min_close"],
+                      )
+                      if reason:
+                          held_days = i - position["entry_idx"]
+                          trades.append(_finalize_trade_short(
+                              symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_label"], closes[i], dates[i], reason,
+                              position["entry_cost"], held_days, cost_model,
+                          ))
+                          position = None
+                  if position is None:
+                      sig = zscore_short_entry_signal(sub_df)
+                      if sig is not None:
+                          entry_price = sig["entry_price"]
+                          stop_loss = sig["stop_loss"]
+                          stop_dist = stop_loss - entry_price
+                          if stop_dist > 0:
+                              usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                              risk_amount_inr = usable_capital_inr * risk_pct / 100
+                              qty = min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)
+                              qty = int(np.floor(qty))
+                              if qty > 0 and qty * entry_price >= 100:
+                                  position = {
+                                      "entry_price": entry_price, "initial_stop": stop_loss,
+                                      "entry_idx": i, "entry_label": dates[i], "qty": qty,
+                                      "atr_at_entry": sig["atr_at_entry"], "running_min_close": entry_price,
+                                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                                  }
+              if position is not None:
+                  held_days = (n - 1) - position["entry_idx"]
+                  trades.append(_finalize_trade_short(
+                      symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_label"], closes[-1], dates[-1], "data_end_forced_close",
+                      position["entry_cost"], held_days, cost_model,
+                  ))
+              return trades
+
+
+          SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          print(f"--- Fetching {len(SYMBOLS)} symbols (1d, 5y) ---")
+          all_trades = []
+          fetched = 0
+          for sym in SYMBOLS:
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  raw = m.fetch_ohlc(sym, "5y", "1d")
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < 100:
+                  continue
+              fetched += 1
+              try:
+                  trades = replay_symbol(sym, raw, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              all_trades.extend(trades)
+          print(f"  fetched {fetched}/{len(SYMBOLS)} symbols, {len(all_trades)} total trades\n")
+
+
+          def _metrics(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_held_days=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_held_days = sum(t["held_days"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_held_days=avg_held_days)
+
+
+          print(f"=== POOLED RESULT (lookback={LOOKBACK}d, threshold={THRESHOLD}) ===")
+          row = _metrics(all_trades)
+          print(f"n_trades={row['n']} win_rate={row['win_rate']:.2f}% "
+                f"pf_net={row['pf_net']:.3f} pf_gross={row['pf_gross']:.3f} "
+                f"avg_net_inr={row['avg_net']:.2f} avg_held_days={row['avg_held_days']:.1f}")
+
+          print("\n=== By exit_reason ===")
+          by_reason = {}
+          for t in all_trades:
+              by_reason.setdefault(t["exit_reason"], []).append(t)
+          for reason, ts in sorted(by_reason.items(), key=lambda kv: -len(kv[1])):
+              m2 = _metrics(ts)
+              print(f"{reason}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_days={m2['avg_held_days']:.1f}")
+          PYEOF
