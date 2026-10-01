@@ -19,14 +19,16 @@ def test_live_strategies_match_known_live_engines():
     # 2026-09-30: minervini_vcp_livermore_confirmed wired into
     # _run_swing_scan ("Wire the viable ones" - PFnet 2.043, clears the
     # floor), then power_play_high_tight_flag too ("Wire it now anyway" -
-    # explicit override of its own thin-sample caution). "status=live"
-    # here means "wired into the scan/scheduler", NOT "currently allowed
-    # to place a real order" - universal_score is LIVE but blocked by the
-    # separate PFnet>=1 real-money gate.
+    # explicit override of its own thin-sample caution). 2026-10-01:
+    # primary_base too ("wire to live real money only to viable ones" -
+    # PFnet 2.069). "status=live" here means "wired into the scan/
+    # scheduler", NOT "currently allowed to place a real order" -
+    # universal_score is LIVE but blocked by the separate PFnet>=1
+    # real-money gate.
     live_names = {s.name for s in sr.strategies_by_status(sr.StrategyStatus.LIVE)}
     assert live_names == {
         "universal_score", "gap_and_go_swing", "minervini_vcp_livermore_confirmed",
-        "power_play_high_tight_flag",
+        "power_play_high_tight_flag", "primary_base",
     }
 
 
@@ -146,11 +148,16 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
     # clearing PFNET_LIVE_FLOOR where the base minervini_trend_template_vcp
     # (chandelier trail, PFnet 0.908) did not. minervini_vcp_scale_in_sizing
     # (PFnet 0.863) was also tried this session and stays non-viable.
+    # 2026-10-01: primary_base (PFnet 2.069, docs/minervini_book_notes.txt
+    # CHAPTER 11) joins too - this is the "viable set keeps updating as
+    # better-validated strategies clear the floor" standing rule working as
+    # designed (strategy_registry.py's own 2026-09-29 "ever-growing pool"
+    # thumb rule), not a regression to chase back down.
     viable = [s.name for s in sr.REGISTRY if s.is_viable() is True]
     assert set(viable) == {
         "gap_and_go_swing", "power_play_high_tight_flag",
         "minervini_vcp_breakeven_2r", "minervini_vcp_breakeven_3r",
-        "minervini_vcp_livermore_confirmed",
+        "minervini_vcp_livermore_confirmed", "primary_base",
     }
 
 

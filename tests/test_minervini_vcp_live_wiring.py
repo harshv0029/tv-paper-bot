@@ -123,6 +123,12 @@ def test_run_swing_scan_opens_a_minervini_position_when_gap_and_go_does_not_fire
     monkeypatch.setattr(main, "SWING_WATCHLIST", ["VCPTEST.NS"])
     monkeypatch.setattr(main, "fetch_ohlc", lambda symbol, period, interval: df)
     monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 400000.0)
+    # 2026-10-01: primary_base is checked earlier in the priority chain and
+    # this fixture's genuine pullback-then-breakout shape can also satisfy
+    # it - neutralize so this test still isolates the minervini_vcp fallback
+    # it was written to check (see tests/test_primary_base_live_wiring.py
+    # for primary_base's own wiring coverage).
+    monkeypatch.setattr(main, "primary_base_entry_signal", lambda d: None)
 
     with closing(main.get_db()) as conn:
         main._run_swing_scan(conn)
@@ -153,6 +159,7 @@ def test_run_swing_scan_prefers_gap_and_go_over_minervini_on_the_same_symbol(mon
     monkeypatch.setattr(main, "SWING_WATCHLIST", ["BOTH.NS"])
     monkeypatch.setattr(main, "fetch_ohlc", lambda symbol, period, interval: df)
     monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 400000.0)
+    monkeypatch.setattr(main, "primary_base_entry_signal", lambda d: None)  # see VCPTEST.NS test above
     # Force both signals to fire on the same symbol/day - gap_and_go must win.
     monkeypatch.setattr(main, "gap_and_go_entry_signal", lambda d: {"entry_price": 100.0, "stop_loss": 90.0, "gap_low": 95.0})
     monkeypatch.setattr(main, "minervini_vcp_entry_signal", lambda d, rs_percentile=None: {"entry_price": 100.0, "stop_loss": 90.0, "atr_at_entry": 2.0})
@@ -228,6 +235,7 @@ def test_run_swing_scan_opens_a_livermore_position_when_the_filter_fires(monkeyp
     monkeypatch.setattr(main, "SWING_WATCHLIST", ["LIVERMORE.NS"])
     monkeypatch.setattr(main, "fetch_ohlc", lambda symbol, period, interval: df)
     monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 400000.0)
+    monkeypatch.setattr(main, "primary_base_entry_signal", lambda d: None)  # see VCPTEST.NS test above
     monkeypatch.setattr(
         main, "minervini_vcp_entry_signal_livermore_confirmed",
         lambda d, rs_percentile=None: {"entry_price": 100.0, "stop_loss": 90.0, "atr_at_entry": 2.0},
@@ -258,6 +266,7 @@ def test_run_swing_scan_falls_back_to_plain_minervini_when_livermore_does_not_fi
     monkeypatch.setattr(main, "SWING_WATCHLIST", ["PLAINVCP.NS"])
     monkeypatch.setattr(main, "fetch_ohlc", lambda symbol, period, interval: df)
     monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 400000.0)
+    monkeypatch.setattr(main, "primary_base_entry_signal", lambda d: None)  # see VCPTEST.NS test above
 
     with closing(main.get_db()) as conn:
         main._run_swing_scan(conn)
@@ -272,6 +281,7 @@ def test_run_swing_scan_prefers_livermore_over_plain_minervini_on_the_same_symbo
     monkeypatch.setattr(main, "SWING_WATCHLIST", ["BOTHVCP.NS"])
     monkeypatch.setattr(main, "fetch_ohlc", lambda symbol, period, interval: df)
     monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 400000.0)
+    monkeypatch.setattr(main, "primary_base_entry_signal", lambda d: None)  # see VCPTEST.NS test above
     monkeypatch.setattr(
         main, "minervini_vcp_entry_signal_livermore_confirmed",
         lambda d, rs_percentile=None: {"entry_price": 100.0, "stop_loss": 90.0, "atr_at_entry": 2.0},
