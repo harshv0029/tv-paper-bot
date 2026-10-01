@@ -2,6 +2,10 @@
 1. (2026-09-21) "Make sure that u do not trade between 9:15-9:30. As they
    are exceptional behaviour" - no NEW entries in the first
    NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES minutes after open_min.
+   2026-10-01 UPDATE: explicitly overridden ("you back tested for 9:15
+   till market closing... all starting 9:15am") - the constant is now 0,
+   so entries ARE allowed from market open. Kept as the same constant
+   (not deleted) for easy reversal; tests below updated to match.
 2. (2026-09-21) "All intraday trade should be closed by 3:15pm" -
    squareoff_min default moved from 15:20 to 15:15.
 3. (2026-09-22, same day, reverted) "Keep intra day cut off to be
@@ -86,13 +90,22 @@ def _run_at(now_ist: str, entry_bar_ist: str):
         )
 
 
-def test_no_entry_at_9_20_inside_the_opening_window():
+def test_entry_allowed_at_9_20_after_the_opening_window_override():
+    # 2026-10-01: NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES overridden to 0 -
+    # entries are now allowed starting at market open, no 9:15-9:30 block.
     result = _run_at(now_ist="09:20", entry_bar_ist="09:20")
-    assert result["action_taken"] == "no_new_entries_opening_volatility"
+    assert result["action_taken"] == "entered_long"
 
 
-def test_entry_allowed_at_9_30_exactly_the_window_boundary():
+def test_entry_allowed_at_9_30_exactly_the_old_window_boundary():
     result = _run_at(now_ist="09:30", entry_bar_ist="09:30")
+    assert result["action_taken"] == "entered_long"
+
+
+def test_entry_allowed_at_915_market_open_itself():
+    # The literal 2026-10-01 ask: entries allowed starting at 9:15 (market
+    # open), not just after some delay past it.
+    result = _run_at(now_ist="09:15", entry_bar_ist="09:15")
     assert result["action_taken"] == "entered_long"
 
 
