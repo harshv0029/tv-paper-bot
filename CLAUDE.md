@@ -459,3 +459,27 @@ of trusting the transfer pack's prose.
   size sweep discipline above to chase a faster number quickly - "always
   preferable" means always weighed honestly with real validated metrics,
   never estimated or assumed to save time.
+- **Override (2026-10-01, explicit user instruction, after being shown the
+  conflict and confirming anyway): the 2026-09-21 "no entries 9:15-9:30"
+  rule is lifted.** `NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES` (main.py) changed
+  15 -> 0 (constant kept, not deleted, for easy reversal). User's stated
+  reasoning: "Since you back tested for 9:15 till market closing You can
+  take trade for all category... All starting 9:15am." Two things were
+  surfaced before this was applied, both still true and worth remembering:
+  (1) this gate only ever existed in the long intraday engine
+  (`_auto_signal_core`) - short entries (`_short_signal_core`) and swing
+  (`_run_swing_scan`) already had no equivalent restriction, so they were
+  already effectively "starting at 9:15"; (2) no full-universe replay has
+  ever separately broken out the 9:15-9:30 trades' own PFnet from the
+  pooled number - the original 2026-09-21 rule was a microstructure
+  judgment call (opening-auction imbalance, indicators short on same-
+  session data), not something the backtests specifically validated one
+  way or the other for that window. The user was shown both points via
+  AskUserQuestion and explicitly chose to remove the gate anyway rather
+  than shrink it or measure the window's own numbers first - this is a
+  deliberate, informed override, not evidence the opening-volatility
+  concern was wrong. Futures/options were also named in the same
+  instruction but have NO real order-placement path at all (per the
+  PFnet-gate rule above) - nothing to change there; this override only
+  has any live effect on the long intraday engine, since short/swing
+  already behaved this way.

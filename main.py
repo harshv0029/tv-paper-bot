@@ -5081,7 +5081,21 @@ ROUND_TRIP_COST_PCT = 0.8
 # open position's exits/trailing-stop/target management are untouched,
 # same "only entries are gated" precedent as the aggregate-open-risk gate
 # just above this constant's call site.
-NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES = 15
+#
+# 2026-10-01 override, explicit user instruction ("Since you back tested
+# for 9:15 till market closing You can take trade for all category...
+# All starting 9:15am"): shown that this is the ONLY place in main.py this
+# restriction exists (short entries via _short_signal_core and swing
+# entries via _run_swing_scan already have no equivalent gate - they
+# already start at 9:15), and that this specific window's own trades were
+# never separately broken out from the pooled PFnet in any full-universe
+# replay (the 2026-09-21 rule was motivated by a microstructure concern,
+# not a backtest finding), the user explicitly chose to override it
+# anyway. Set to 0 (not deleted) so the gate's call site, comment history,
+# and tests documenting it stay intact and this is trivially reversible -
+# see tests/test_opening_window_and_squareoff_time.py's own 2026-10-01
+# update for the now-expected entered_long behavior at 9:20.
+NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES = 0
 
 # Closing-side mirror of the above (2026-09-22, explicit user instruction:
 # "max entry time for intra day trade is 3:14pm and exit max time is
