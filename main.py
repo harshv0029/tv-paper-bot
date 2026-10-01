@@ -9435,6 +9435,9 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # strategy's own thin-sample caution, n=109) - PFnet 5.023, the best
     # full-universe number found this session.
     "power_play": "power_play_high_tight_flag",
+    # 2026-10-01, explicit user instruction ("wire to live real money only
+    # to viable ones") - PFnet 2.069, full-universe run 36820565494.
+    "primary_base": "primary_base",
 }
 
 
@@ -9524,6 +9527,29 @@ _TRADE_THESIS_COMPONENTS = {
         "close_expectation": (
             "Whenever price closes at or below the chandelier trailing stop described "
             "below, or the max-hold window is reached - whichever comes first."
+        ),
+        "weak_signal": (
+            "Treated as weakening once the running peak close since entry starts pulling "
+            "the trailing stop up close behind price; treated as genuinely unfavourable "
+            "the moment price actually closes at or below that trailing stop (the running "
+            "peak close minus a fixed ATR multiple frozen at entry - it only ever ratchets "
+            "up, never down)."
+        ),
+    },
+    "primary_base": {
+        "why": (
+            "This was entered on a Minervini 'Primary Base' setup (docs/minervini_book_"
+            "notes.txt chapter 11) - a recently-listed stock (short total available price "
+            "history, since this app has no direct IPO-date field) breaking out to a NEW "
+            "ALL-TIME HIGH from its very first buyable base. No Trend Template/relative-"
+            "strength gate applies here - a stock this young can't pass a 200-day-SMA-based "
+            "filter by construction, same precedent as the Power Play setup."
+        ),
+        "hold": f"Expected to be held up to {MINERVINI_MAX_HOLD_DAYS} trading days.",
+        "close_expectation": (
+            "Whenever price closes at or below the chandelier trailing stop described "
+            "below, or the max-hold window is reached - whichever comes first (reuses the "
+            "same exit mechanic as the Minervini VCP/Livermore-confirmed entries, unchanged)."
         ),
         "weak_signal": (
             "Treated as weakening once the running peak close since entry starts pulling "
@@ -15379,7 +15405,11 @@ def _run_swing_scan(conn):
             # minervini_vcp_exit_reason, the original chandelier trail") -
             # only the entry-timing filter differs, so both strategy tags
             # share this same exit branch.
-            if pos["strategy"] in ("minervini_vcp", "minervini_vcp_livermore"):
+            if pos["strategy"] in ("minervini_vcp", "minervini_vcp_livermore", "primary_base"):
+                # primary_base (2026-10-01, "wire to live real money only to
+                # viable ones") reuses minervini_vcp_exit_reason UNCHANGED -
+                # see its own registry entry's source field - so it shares
+                # this exact branch, not a separate one.
                 reason, new_running_max = minervini_vcp_exit_reason(
                     df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
                 )
@@ -15469,6 +15499,47 @@ def _run_swing_scan(conn):
             print(f"[SWING] entry {symbol} (power_play) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
             try:
                 _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "power_play")
+            except Exception as e:
+                print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+            continue
+
+        # 2026-10-01, explicit user instruction ("wire to live real money
+        # only to viable ones", after the full-universe validation replay
+        # - run 36820565494, PFnet 2.069, n=2,591 - cleared PFNET_LIVE_FLOOR):
+        # primary_base checked SECOND, right after power_play (5.023) and
+        # before minervini_vcp_livermore (2.043) - PFnet-ranked like every
+        # other entry in this chain, per CLAUDE.md's "prefer faster/better"
+        # standing rule. A young stock (its own entry gate: short total
+        # available history) CAN also satisfy the Trend Template that
+        # livermore/vcp below require, so this ordering matters: a genuine
+        # Primary Base setup must not fall through to a worse-PFnet variant
+        # just because it also happens to qualify for one.
+        primary_base_signal = primary_base_entry_signal(df)
+        if primary_base_signal:
+            entry_price = primary_base_signal["entry_price"]
+            stop_loss = primary_base_signal["stop_loss"]
+            qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+            if qty <= 0:
+                continue
+            conn.execute(
+                "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+                "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (symbol, "primary_base", today, entry_price, stop_loss, None, qty, time.time(), fx,
+                 primary_base_signal["atr_at_entry"], entry_price),
+            )
+            apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+            conn.execute(
+                "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+                (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+                 json.dumps({"entry_reason": "primary_base", "stop_loss": stop_loss,
+                             "atr_at_entry": primary_base_signal["atr_at_entry"]})),
+            )
+            conn.commit()
+            print(f"[SWING] entry {symbol} (primary_base) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+            try:
+                _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "primary_base")
             except Exception as e:
                 print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
             continue

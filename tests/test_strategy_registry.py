@@ -19,14 +19,16 @@ def test_live_strategies_match_known_live_engines():
     # 2026-09-30: minervini_vcp_livermore_confirmed wired into
     # _run_swing_scan ("Wire the viable ones" - PFnet 2.043, clears the
     # floor), then power_play_high_tight_flag too ("Wire it now anyway" -
-    # explicit override of its own thin-sample caution). "status=live"
-    # here means "wired into the scan/scheduler", NOT "currently allowed
-    # to place a real order" - universal_score is LIVE but blocked by the
-    # separate PFnet>=1 real-money gate.
+    # explicit override of its own thin-sample caution). 2026-10-01:
+    # primary_base too ("wire to live real money only to viable ones" -
+    # PFnet 2.069). "status=live" here means "wired into the scan/
+    # scheduler", NOT "currently allowed to place a real order" -
+    # universal_score is LIVE but blocked by the separate PFnet>=1
+    # real-money gate.
     live_names = {s.name for s in sr.strategies_by_status(sr.StrategyStatus.LIVE)}
     assert live_names == {
         "universal_score", "gap_and_go_swing", "minervini_vcp_livermore_confirmed",
-        "power_play_high_tight_flag",
+        "power_play_high_tight_flag", "primary_base",
     }
 
 

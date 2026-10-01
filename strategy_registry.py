@@ -372,10 +372,12 @@ REGISTRY: list[StrategyDef] = [
         asset_class=AssetClass.EQUITY_SWING,
         categories=(TradeCategory.SWING,),
         timeframe="1d",
-        status=StrategyStatus.RESEARCH,  # clears PFNET_LIVE_FLOOR but NOT wired into
-        # _run_swing_scan yet - registering != trading, per this registry's own principle;
-        # needs an explicit "wire it" instruction before it can take real positions.
-        entry_fn=None,  # main.py's own primary_base_entry_signal exists but is not wired into any scan
+        status=StrategyStatus.LIVE,  # 2026-10-01, "wire to live real money only to
+        # viable ones" - wired into _run_swing_scan, checked right after power_play
+        # (both PFnet-ranked ahead of minervini_vcp_livermore); real-order mirror
+        # gated by _is_strategy_viable_for_real_money like every other real entry.
+        entry_fn=None,  # main.py's own primary_base_entry_signal IS the live entry_fn - this
+        # field only ever fed the design-only scan_universe() scaffold, never main.py's real scheduler
         metrics=Metrics(
             pfnet=2.069, pfgross=2.551, win_rate_pct=44.31, n_trades=2591,
             avg_net_inr=404.74,
