@@ -1,0 +1,306 @@
+name: Gap-Up Fade Short - ATR Stop Multiplier Sweep (research)
+
+# 2026-10-01, per CLAUDE.md's standing sweep-discipline thumb rule
+# (2026-09-30): a single full-universe baseline is never the last word.
+# Directly motivated by gap-up-fade-short-validation-replay.yml's own
+# baseline result (run 36813637935, PFnet 0.386, registered as
+# gap_up_fade_short): trail_stop_hit accounts for 65% of trades
+# (n=12,950) and is a severe net LOSER on its own (PFnet 0.075, 9.05% win
+# rate), while trades that survive to max_hold_timeout are solidly
+# profitable (n=6,931, PFnet 3.014, 53.83% win rate) - the SAME pattern
+# failed-breakout-short-atr-mult-sweep-research.yml already tests on
+# Failed Breakout short. A wider trailing stop (GAP_UP_FADE_ATR_STOP_MULT,
+# baseline 1.5) should let more trades survive toward that profitable
+# territory instead of getting stopped out early - this sweep tests that
+# hypothesis directly, not a blind parameter nudge.
+#
+# Calls the REAL main.py functions for entry (gap_up_fade_entry_signal_
+# short, unmodified) and exit (gap_up_fade_exit_reason_short, unmodified)
+# - only the module-level GAP_UP_FADE_ATR_STOP_MULT constant is overridden
+# per shard before the replay loop runs, since that's the exact lever this
+# sweep is testing and the function reads it fresh from the module on
+# every call (never baked into a closure).
+#
+# Full NSE universe via m._load_nse_universe_from_file() (CLAUDE.md,
+# 2026-09-29 full-universe thumb rule).
+#
+# UNLIKE failed-breakout-short-atr-mult-sweep-research.yml (1d/5y data,
+# one job per candidate value is enough), this strategy is 60d/5m intraday
+# - the SAME O(n^2)-per-symbol growing-window driver that made the
+# original unsharded gap-up-fade-short-validation-replay.yml hit its own
+# 340-minute timeout with zero result (2026-09-30/10-01). So this sweep is
+# a TWO-DIMENSIONAL matrix: {atr_mult} x {shard}, each (value, shard) pair
+# its own job handling 1/20th of the universe, same shard+aggregate
+# pattern gap-up-fade-short-validation-replay.yml now uses - but the
+# aggregate step here groups by atr_mult FIRST, then pools each value's
+# own 20 shards, so the final report compares all swept values side by
+# side in one place.
+#
+# Candle-size sweep for Gap-Up Fade itself is a SEPARATE, not-yet-built
+# piece of work (its own constants are bar-count/ATR based, genuinely
+# candle-size-agnostic, unlike Failed Breakout's day-based ones) - flagged
+# but intentionally out of scope for this ATR-multiplier-only sweep.
+#
+# Read-only research: does not touch any live parameter, table, or
+# scheduler path - gap_up_fade_entry_signal_short/_exit_reason_short are
+# NOT wired into main.py's live scan/scheduler/order path.
+on:
+  workflow_dispatch: {}
+
+env:
+  SHARD_COUNT: 20
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        atr_mult: ["0.5", "1.0", "1.5", "2.0", "2.5", "3.0", "4.0"]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run Gap-Up Fade short sweep at ATR multiplier ${{ matrix.atr_mult }} (shard ${{ matrix.shard }})
+        env:
+          ATR_MULT: ${{ matrix.atr_mult }}
+          SHARD_INDEX: ${{ matrix.shard }}
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import json
+          import os
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          ATR_MULT = float(os.environ["ATR_MULT"])
+          SHARD_INDEX = int(os.environ["SHARD_INDEX"])
+          SHARD_COUNT = int(os.environ["SHARD_COUNT"])
+          m.GAP_UP_FADE_ATR_STOP_MULT = ATR_MULT  # the ONE thing this sweep varies - the real
+          # gap_up_fade_exit_reason_short function reads this module-level constant fresh on
+          # every call, so this override is picked up exactly the same way changing the
+          # constant in main.py itself would be, without touching any other logic.
+          print(f"=== Sweeping GAP_UP_FADE_ATR_STOP_MULT = {ATR_MULT} (baseline is 1.5), shard {SHARD_INDEX}/{SHARD_COUNT} ===")
+
+          PERIOD = "60d"
+          INTERVAL = "5m"
+          CAPITAL_INR = 400000.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade_short(symbol, entry_price, initial_stop, qty, entry_label, exit_price,
+                                     exit_label, exit_reason, entry_cost, held_minutes, cost_model):
+              gross_pnl = (entry_price - exit_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = initial_stop - entry_price
+              return {
+                  "symbol": symbol, "entry_ts": entry_label, "exit_ts": exit_label,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "held_minutes": held_minutes,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def replay_symbol(symbol, df, risk_pct, capital, cost_model):
+              trades = []
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = max(m.GAP_UP_FADE_ATR_N, m.GAP_UP_FADE_MIN_BARS_INTO_SESSION) + 5
+              if n < min_lookback + 20:
+                  return trades
+
+              closes = df["Close"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              position = None
+
+              for i in range(min_lookback, n):
+                  sub_df = df.iloc[: i + 1]
+
+                  if position is not None:
+                      reason, position["running_min_close"] = m.gap_up_fade_exit_reason_short(
+                          sub_df, position["entry_label"], position["initial_stop"],
+                          position["atr_at_entry"], position["running_min_close"],
+                      )
+                      if reason:
+                          held_minutes = (pd.Timestamp(dates[i]) - pd.Timestamp(position["entry_label"])).total_seconds() / 60.0
+                          trades.append(_finalize_trade_short(
+                              symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_label"], closes[i], dates[i], reason,
+                              position["entry_cost"], held_minutes, cost_model,
+                          ))
+                          position = None
+
+                  if position is None:
+                      sig = m.gap_up_fade_entry_signal_short(sub_df)
+                      if sig is not None:
+                          entry_price = sig["entry_price"]
+                          stop_loss = sig["stop_loss"]
+                          stop_dist = stop_loss - entry_price
+                          if stop_dist > 0:
+                              usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                              risk_amount_inr = usable_capital_inr * risk_pct / 100
+                              qty = min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)
+                              qty = int(np.floor(qty))
+                              if qty > 0 and qty * entry_price >= 100:
+                                  position = {
+                                      "entry_price": entry_price, "initial_stop": stop_loss,
+                                      "entry_idx": i, "entry_label": dates[i], "qty": qty,
+                                      "atr_at_entry": sig["atr_at_entry"], "running_min_close": entry_price,
+                                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                                  }
+
+              if position is not None:
+                  held_minutes = (pd.Timestamp(dates[-1]) - pd.Timestamp(position["entry_label"])).total_seconds() / 60.0
+                  trades.append(_finalize_trade_short(
+                      symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_label"], closes[-1], dates[-1], "data_end_forced_close",
+                      position["entry_cost"], held_minutes, cost_model,
+                  ))
+              return trades
+
+
+          ALL_SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          SYMBOLS = ALL_SYMBOLS[SHARD_INDEX::SHARD_COUNT]
+          print(f"--- Fetching {len(SYMBOLS)} of {len(ALL_SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) ---")
+
+          all_trades = []
+          fetched = 0
+          for sym in SYMBOLS:
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  raw = m.fetch_ohlc(sym, PERIOD, INTERVAL)
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < 100:
+                  continue
+              fetched += 1
+              try:
+                  trades = replay_symbol(sym, raw, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              all_trades.extend(trades)
+          print(f"  shard {SHARD_INDEX}: fetched {fetched}/{len(SYMBOLS)} symbols, {len(all_trades)} trades")
+
+          with open("shard_result.json", "w") as f:
+              json.dump({"atr_mult": ATR_MULT, "shard": SHARD_INDEX, "fetched": fetched,
+                         "universe_size": len(SYMBOLS), "trades": all_trades}, f)
+          PYEOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sweep-${{ matrix.atr_mult }}-shard-${{ matrix.shard }}-result
+          path: shard_result.json
+          retention-days: 3
+
+  aggregate:
+    needs: sweep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: sweep-*-result
+          path: shards
+          merge-multiple: false
+
+      - name: Aggregate all shards per ATR multiplier and report side-by-side comparison
+        run: |
+          python3 - <<'PYEOF'
+          import glob
+          import json
+          from collections import defaultdict
+
+          by_atr_mult = defaultdict(list)
+          fetched_by_atr_mult = defaultdict(lambda: [0, 0])
+          for path in sorted(glob.glob("shards/sweep-*-result/shard_result.json")):
+              with open(path) as f:
+                  data = json.load(f)
+              by_atr_mult[data["atr_mult"]].extend(data["trades"])
+              fetched_by_atr_mult[data["atr_mult"]][0] += data["fetched"]
+              fetched_by_atr_mult[data["atr_mult"]][1] += data["universe_size"]
+
+
+          def _metrics(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_held_minutes=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_held_minutes = sum(t["held_minutes"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_held_minutes=avg_held_minutes)
+
+
+          print("=== SIDE-BY-SIDE COMPARISON (real main.py functions, all swept ATR multipliers) ===")
+          print("baseline GAP_UP_FADE_ATR_STOP_MULT = 1.5 (PFnet 0.386 per gap-up-fade-short-validation-replay.yml run 36813637935)\n")
+          for atr_mult in sorted(by_atr_mult.keys(), key=float):
+              trades = by_atr_mult[atr_mult]
+              fetched, universe = fetched_by_atr_mult[atr_mult]
+              row = _metrics(trades)
+              print(f"ATR_MULT={atr_mult:>4s}  fetched={fetched}/{universe}  n_trades={row['n']:<6d} "
+                    f"win_rate={row['win_rate']:6.2f}%  pf_net={row['pf_net']:6.3f}  pf_gross={row['pf_gross']:6.3f}  "
+                    f"avg_net_inr={row['avg_net']:9.2f}  avg_held_min={row['avg_held_minutes']:7.1f}")
+
+          print("\n=== By exit_reason, per ATR multiplier ===")
+          for atr_mult in sorted(by_atr_mult.keys(), key=float):
+              trades = by_atr_mult[atr_mult]
+              print(f"\n-- ATR_MULT={atr_mult} --")
+              by_reason = {}
+              for t in trades:
+                  by_reason.setdefault(t["exit_reason"], []).append(t)
+              for reason, ts in sorted(by_reason.items(), key=lambda kv: -len(kv[1])):
+                  m2 = _metrics(ts)
+                  print(f"  {reason}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_min={m2['avg_held_minutes']:.1f}")
+          PYEOF
