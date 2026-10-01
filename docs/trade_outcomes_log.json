@@ -1603,5 +1603,47 @@
     "rr_target": 3.0,
     "rr_achieved": -0.05,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "KOTAKBANK.NS",
+    "exit_time_utc": 1790843287.5404694,
+    "entry_price_native": 431.75,
+    "exit_price_native": 418.0,
+    "currency": "INR",
+    "qty": 2.0,
+    "pnl_inr": 0.0,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": -3.18,
+    "strategy": null
+  },
+  {
+    "symbol": "OIL.NS",
+    "exit_time_utc": 1790843325.7086666,
+    "entry_price_native": 440.20001220703125,
+    "exit_price_native": 435.79998779296875,
+    "currency": "INR",
+    "qty": 4.0,
+    "pnl_inr": -17.6,
+    "pnl_pct_of_capital": -0.004,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": -2.14,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "POWERGRID.NS",
+    "exit_time_utc": 1790843341.8122623,
+    "entry_price_native": 257.3500061035156,
+    "exit_price_native": 253.0500030517578,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": -4.3,
+    "pnl_pct_of_capital": -0.001,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": -3.8,
+    "strategy": "orb-universal-score"
   }
 ]
