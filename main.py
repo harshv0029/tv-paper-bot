@@ -12087,17 +12087,35 @@ def _fo_chain_monitoring_snapshot(conn):
     conn.commit()
 
 
-def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float):
+def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float, strategy_tag: str | None):
     """Mirrors a paper long (index OR MCX commodity, entered_long) as a
     REAL long call on the matching F&O underlying, sized at exactly 1 lot
     (smallest tradeable unit - same "qty=1" first-version precedent
-    kotak_real_orders.py set for equity). Never raises."""
+    kotak_real_orders.py set for equity). Never raises.
+
+    2026-10-01, closing a gap found during a routine backlog review: this
+    function (and _straddle_signal_core's own real entry below) had NO
+    PFnet real-money viability check at all, despite CLAUDE.md's own
+    2026-09-30 standing rule explicitly claiming the gate applies "across
+    every category (buy, short_sell, swing, futures, options)" - the gate
+    was only ever wired into the three EQUITY/SWING entry functions. Since
+    this mirrors whatever paper strategy fired on the underlying (almost
+    always universal_score, PFnet 0.05 - already correctly blocked from
+    opening a real EQUITY position for exactly this reason), the options
+    mirror was bypassing the identical protection the equity path already
+    enforces. `strategy_tag` is the underlying paper signal's own
+    strategy field (`result["strategy"]` from _auto_signal_core/
+    _short_signal_core), checked the same way every other real entry
+    checks it - fails closed on anything unrecognized, same as always."""
     if not is_real_fo_trading_enabled():
         return
     fo_underlying = _INDEX_TO_FO_UNDERLYING.get(symbol)
     if fo_underlying is None:
         return
     leg_key = f"{fo_underlying}:CALL"
+    if not _is_strategy_viable_for_real_money(strategy_tag):
+        _log_real_fo_attempt(conn, leg_key, "B", "skipped_strategy_not_viable", detail=f"strategy_tag={strategy_tag}")
+        return
     if conn.execute("SELECT 1 FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone():
         _log_real_fo_attempt(conn, leg_key, "B", "skipped_already_open")
         return
@@ -12359,6 +12377,21 @@ def _straddle_signal_core(conn, fo_underlying: str, vol_signal, halted: bool, is
           f"call Rs{call_c['premium']:.2f} put Rs{put_c['premium']:.2f}")
 
     if not is_real_fo_trading_enabled() or get_runtime_setting(conn, "real_straddle_enabled") < 0.5:
+        return
+    # 2026-10-01, same gap/fix as _maybe_place_real_fo_call_entry's own
+    # docstring explains: long_straddle has never been backtested or
+    # registered in strategy_registry.py at all (see this function's own
+    # "NOT YET BACKTESTED" docstring line) - _is_strategy_viable_for_
+    # real_money("long_straddle") fails closed on the unrecognized tag,
+    # correctly blocking every real straddle leg until this strategy is
+    # actually validated and registered, never "innocent until proven
+    # unprofitable" the way it silently was before this fix.
+    if not _is_strategy_viable_for_real_money("long_straddle"):
+        for right, c in (("CE", call_c), ("PE", put_c)):
+            _log_real_fo_attempt(
+                conn, f"{fo_underlying}:STRADDLE-{right}", "B", "skipped_strategy_not_viable",
+                kotak_trading_symbol=c["kotak_trading_symbol"], price_est=c["premium"], qty=qty,
+            )
         return
 
     import kotak_real_fo_orders
@@ -15943,7 +15976,7 @@ async def _scheduler_tick():
                     fo_underlying = _INDEX_TO_FO_UNDERLYING[cfg["symbol"]]
                     if action_taken == "entered_long":
                         with closing(get_db()) as fo_conn:
-                            _maybe_place_real_fo_call_entry(fo_conn, cfg["symbol"], result.get("last_close"))
+                            _maybe_place_real_fo_call_entry(fo_conn, cfg["symbol"], result.get("last_close"), result.get("strategy"))
                     elif action_taken.startswith("exited_"):
                         with closing(get_db()) as fo_conn:
                             _maybe_place_real_fo_call_exit(fo_conn, cfg["symbol"])
