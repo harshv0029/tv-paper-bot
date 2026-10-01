@@ -1,3 +1,20 @@
 {
-  "open_real_positions": []
+  "open_real_positions": [
+    {
+      "symbol": "KOTAKBANK.NS",
+      "kotak_trading_symbol": "KOTAKBANK-EQ",
+      "qty": 2,
+      "entry_price": 431.75,
+      "entry_order_id": "261001000166928",
+      "opened_at": 1790834780.7411702,
+      "day": "2026-10-01",
+      "sl_order_id": "261001000167137",
+      "sl_trigger_price": 410.9,
+      "target_order_id": null,
+      "target_price": 444.71,
+      "exit_legs_json": null,
+      "protection_degraded_since": null,
+      "strategy": null
+    }
+  ]
 }
