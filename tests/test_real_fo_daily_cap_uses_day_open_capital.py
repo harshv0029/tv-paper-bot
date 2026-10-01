@@ -40,10 +40,11 @@ def test_over_day_open_capital_is_skipped_not_a_fixed_threshold():
     # (Rs 2000) would also have rejected it - the point is this now
     # tracks a LIVE capital figure, not a configured constant.
     with patch("main.is_real_fo_trading_enabled", return_value=True), \
+         patch("main._is_strategy_viable_for_real_money", return_value=True), \
          patch("main._day_open_capital_inr", return_value=1000.0), \
          patch("nse_fo_chain.select_nse_option_contract", return_value=(_CONTRACT, None)):
         with closing(main.get_db()) as conn:
-            main._maybe_place_real_fo_call_entry(conn, "^NSEI", spot=25000.0)
+            main._maybe_place_real_fo_call_entry(conn, "^NSEI", spot=25000.0, strategy_tag="orb-universal-score")
             row = conn.execute(
                 "SELECT status, detail FROM real_fo_trades WHERE leg_key = 'NIFTY:CALL'"
             ).fetchone()
@@ -59,6 +60,7 @@ def test_higher_day_open_capital_clears_the_cap_gate():
     # Stopped at the NEXT gate (real loss budget) via a clean, distinct
     # outcome so this test isolates the cap check specifically.
     with patch("main.is_real_fo_trading_enabled", return_value=True), \
+         patch("main._is_strategy_viable_for_real_money", return_value=True), \
          patch("main._day_open_capital_inr", return_value=100000.0), \
          patch("nse_fo_chain.select_nse_option_contract", return_value=(_CONTRACT, None)), \
          patch("main._real_loss_budget", return_value={
@@ -66,7 +68,7 @@ def test_higher_day_open_capital_clears_the_cap_gate():
              "day_open_capital_inr": 100000.0,
          }):
         with closing(main.get_db()) as conn:
-            main._maybe_place_real_fo_call_entry(conn, "^NSEI", spot=25000.0)
+            main._maybe_place_real_fo_call_entry(conn, "^NSEI", spot=25000.0, strategy_tag="orb-universal-score")
             row = conn.execute(
                 "SELECT status FROM real_fo_trades WHERE leg_key = 'NIFTY:CALL'"
             ).fetchone()
