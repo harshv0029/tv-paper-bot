@@ -4214,6 +4214,135 @@ def _scale_in_tranches(
     }
 
 
+# ---- Primary Base (Minervini, chapter 11) ----------------------------------
+#
+# 2026-10-01, continuing docs/minervini_book_notes.txt's CHAPTER 11 backlog
+# item ("PRIMARY BASE") after its own IPO-recency feasibility precondition
+# cleared (minervini-primary-base-feasibility-check.yml run 36670094369,
+# 2026-09-30): known decades-old large caps (RELIANCE/TCS/INFY/HDFCBANK/ITC/
+# LT/SBIN) show genuine 23-30+ years of history on this data source while a
+# meaningful minority of the full NSE universe shows genuinely short
+# histories (17.4% under 1y, including literal brand-new listings within
+# days of that check) - short available history plausibly discriminates real
+# recent listings here, not a Yahoo data-availability artifact, clearing the
+# book note's own precondition for building this on that proxy.
+#
+# Buy a recently-listed stock (proxy: short available price history) as it
+# breaks out to a new ALL-TIME HIGH (since the first available bar) from its
+# FIRST buyable base - deliberately distinct from minervini_vcp_entry_signal,
+# which requires 150+/200+ days of history to even evaluate the Trend
+# Template and is built for STAGE-2-CONTINUATION bases, not a brand-new
+# stock's very first base. No Trend Template/RS gate here (mirrors Power
+# Play's own precedent - a young stock can't pass a 200-day-SMA-based gate
+# by construction).
+#
+# DISCLOSED ALGORITHM CHOICES (no single canonical "base" definition exists
+# off a bar close/high/low series, matching this session's established style
+# of disclosing a proxy explicitly):
+#   - "Recently listed" proxy = total available history (len(df) as of
+#     today) <= MINERVINI_PRIMARY_BASE_MAX_HISTORY_DAYS.
+#   - The "prior high" the base corrects FROM is the all-time high of the
+#     entire available series up to the base's own start - i.e. the highest
+#     point the stock has ever traded at, exactly matching "new ALL-TIME
+#     HIGH" being the breakout condition (there is no other high to correct
+#     from for a stock this young).
+#   - Base duration = trading days from that all-time high to today. Base
+#     depth = % drawdown from that all-time high to the base's own low
+#     (intrabar Low, same convention minervini_vcp's own pivot-leg search
+#     uses for its swing lows).
+#   - Two-tier depth cap, mirroring the book's own "25-35% for 3-5 week
+#     bases, up to ~50% for longer ones" guidance: short bases (<=
+#     MINERVINI_PRIMARY_BASE_SHORT_BASE_MAX_DAYS) must not exceed
+#     MINERVINI_PRIMARY_BASE_SHORT_MAX_DEPTH_PCT depth; longer bases (up to
+#     MINERVINI_PRIMARY_BASE_MAX_BASE_DAYS) may run up to
+#     MINERVINI_PRIMARY_BASE_LONG_MAX_DEPTH_PCT.
+#   - Entry: today's close breaks above that all-time high (pivot) on a
+#     volume increase - reuses the exact same MINERVINI_VOL_LOOKBACK/
+#     MINERVINI_VOL_SURGE_MULT convention minervini_vcp_entry_signal uses,
+#     for consistency across the book's strategies.
+#   - Exit: reuses minervini_vcp_exit_reason UNCHANGED (the same chandelier
+#     trail + max-hold already proven the best-performing exit tried on this
+#     book's entries so far - PFnet 2.043 on the Livermore-confirmed entry,
+#     strictly better than the 2R/3R breakeven variant, see CLAUDE.md's own
+#     2026-09-30 sweep-discipline note) - this keeps Primary Base an
+#     entry-only, one-axis test against an already-proven exit, not a new
+#     exit variant of its own.
+MINERVINI_PRIMARY_BASE_MAX_HISTORY_DAYS = 756  # ~3 trading years - the feasibility run's own <3y bucket covered 31.7% of the full universe, a large enough "recently listed" pool to test
+MINERVINI_PRIMARY_BASE_MIN_BASE_DAYS = 15  # 3 weeks, same floor as MINERVINI_VCP_BASE_MIN_DAYS
+MINERVINI_PRIMARY_BASE_MAX_BASE_DAYS = 252  # ~1 year, per the book's own stated ceiling for a deeper reset
+MINERVINI_PRIMARY_BASE_SHORT_BASE_MAX_DAYS = 25  # ~5 weeks, the book's own "short base" ceiling
+MINERVINI_PRIMARY_BASE_SHORT_MAX_DEPTH_PCT = 35.0
+MINERVINI_PRIMARY_BASE_LONG_MAX_DEPTH_PCT = 50.0
+
+
+def primary_base_entry_signal(df: pd.DataFrame) -> dict | None:
+    """Evaluates ONLY the last row of `df` (today) for a Minervini Primary
+    Base entry: a short overall available history (the IPO-recency proxy),
+    a valid-depth/duration correction since the stock's own all-time high,
+    and today's close breaking out to a NEW all-time high on a volume surge.
+    Returns None if no signal fires, else {"entry_price", "stop_loss",
+    "atr_at_entry"} - same shape as minervini_vcp_entry_signal, so callers
+    (including minervini_vcp_exit_reason, reused unchanged for exits) need
+    no special-casing."""
+    n = len(df)
+    if n < MINERVINI_PRIMARY_BASE_MIN_BASE_DAYS + 5 or n > MINERVINI_PRIMARY_BASE_MAX_HISTORY_DAYS:
+        return None
+
+    highs = df["High"].to_numpy(dtype=float)
+    lows = df["Low"].to_numpy(dtype=float)
+    closes = df["Close"].to_numpy(dtype=float)
+    volumes = df["Volume"].to_numpy(dtype=float)
+    i = n - 1
+
+    # Searches the WHOLE available history (not a MAX_BASE_DAYS-windowed
+    # slice) for the all-time high - a windowed search would silently miss a
+    # true ATH older than the window and substitute a local max from inside
+    # the base itself, which could then pass the base_days check even though
+    # the base is really older than MINERVINI_PRIMARY_BASE_MAX_BASE_DAYS.
+    # Bounded and cheap regardless, since len(df) is already capped by the
+    # MINERVINI_PRIMARY_BASE_MAX_HISTORY_DAYS guard above.
+    pre_base = highs[:i]
+    if len(pre_base) < MINERVINI_PRIMARY_BASE_MIN_BASE_DAYS:
+        return None
+    ath_idx = int(np.argmax(pre_base))
+    ath = pre_base[ath_idx]
+    if ath <= 0:
+        return None
+
+    base_days = i - ath_idx
+    if base_days < MINERVINI_PRIMARY_BASE_MIN_BASE_DAYS or base_days > MINERVINI_PRIMARY_BASE_MAX_BASE_DAYS:
+        return None
+
+    base_window_lows = lows[ath_idx + 1: i + 1]
+    if len(base_window_lows) == 0:
+        return None
+    base_low = float(np.min(base_window_lows))
+    depth_pct = 100.0 * (ath - base_low) / ath
+    max_depth = (
+        MINERVINI_PRIMARY_BASE_SHORT_MAX_DEPTH_PCT
+        if base_days <= MINERVINI_PRIMARY_BASE_SHORT_BASE_MAX_DAYS
+        else MINERVINI_PRIMARY_BASE_LONG_MAX_DEPTH_PCT
+    )
+    if depth_pct <= 0 or depth_pct > max_depth:
+        return None
+
+    if closes[i] <= ath:
+        return None  # not yet a genuine new-all-time-high breakout
+
+    vol_avg = pd.Series(volumes).rolling(MINERVINI_VOL_LOOKBACK).mean().shift(1).to_numpy()
+    if np.isnan(vol_avg[i]) or vol_avg[i] <= 0 or volumes[i] < MINERVINI_VOL_SURGE_MULT * vol_avg[i]:
+        return None
+
+    atr = _swing_atr(df, n=MINERVINI_ATR_N)
+    if np.isnan(atr[i]) or atr[i] <= 0:
+        return None
+
+    stop_loss = base_low
+    if stop_loss >= closes[i]:
+        return None
+    return {"entry_price": closes[i], "stop_loss": stop_loss, "atr_at_entry": float(atr[i])}
+
+
 # ---- Power Play / High Tight Flag (Minervini, chapter 10) -----------------
 #
 # 2026-09-29, explicit user instruction ("Build Power Play first") after a

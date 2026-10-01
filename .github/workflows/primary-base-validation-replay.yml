@@ -1,0 +1,306 @@
+name: Minervini Primary Base Validation Replay (calls the REAL main.py functions)
+
+# 2026-10-01, continuing docs/minervini_book_notes.txt's CHAPTER 11 backlog
+# item after its own IPO-recency feasibility precondition cleared
+# (minervini-primary-base-feasibility-check.yml run 36670094369,
+# 2026-09-30). Validates main.primary_base_entry_signal (a recently-listed
+# stock - proxy: short total available history - breaking out to a new
+# all-time high from its first buyable base) paired with the existing,
+# unmodified main.minervini_vcp_exit_reason (the chandelier trail already
+# proven the best-performing exit tried on this book's entries so far -
+# PFnet 2.043 on the Livermore-confirmed entry, strictly better than the
+# 2R/3R breakeven variant per CLAUDE.md's own 2026-09-30 sweep-discipline
+# note). No Trend Template/RS gate on this entry (same precedent as Power
+# Play - a young stock can't pass a 200-day-SMA-based gate by construction),
+# so unlike minervini-vcp-validation-replay.yml's own single-job design
+# (which needs the WHOLE universe's returns in one process for its
+# cross-sectional RS table), this replay has no such constraint and is
+# sharded from the start.
+#
+# PERIOD="max" (not a shorter 2y/5y window other Minervini replays use) is
+# DELIBERATE and load-bearing here, not an oversight: primary_base_entry_
+# signal's own "recently listed" proxy is simply len(df) <= MINERVINI_
+# PRIMARY_BASE_MAX_HISTORY_DAYS (~3 trading years) AT THE CURRENT BAR. A
+# shorter fetch window would truncate every old large-cap's own available
+# history down to that same short window too, making a 30-year-old stock
+# look exactly as "young" as a genuine new listing - corrupting the whole
+# proxy. With PERIOD="max", a decades-old stock's early bars (its own real
+# first ~3 years of trading, however long ago on the calendar) still make
+# it through the young-stock gate during THAT window, then permanently stop
+# qualifying once its growing sub_df exceeds the ceiling - this is exactly
+# the intended "first buyable base only, whenever in calendar history that
+# was" semantics, requiring no extra bookkeeping in this replay driver.
+#
+# 2026-10-01 performance note (CLAUDE.md's own sweep/optimization thumb
+# rule, after the gap-up-fade-short-validation-replay.yml single-job
+# version hit its own 340-minute timeout with zero result the same day):
+# PERIOD="max" means decades-old large caps can carry ~35 years / ~8,800+
+# daily bars each, feeding the SAME O(n^2)-per-symbol growing-window driver
+# every replay in this repo uses (the real entry/exit functions must see
+# exactly the history-to-date a live run would, by design) - a single job
+# over the full ~2,680-symbol universe at this bar count would very likely
+# repeat that exact timeout. Sharded 40-way from the outset here rather
+# than discovering the same problem a second time this session.
+on:
+  workflow_dispatch: {}
+
+env:
+  SHARD_COUNT: 40
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+                20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run Primary Base backtest against the real main.py functions (this shard)
+        env:
+          SHARD_INDEX: ${{ matrix.shard }}
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import json
+          import os
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          SHARD_INDEX = int(os.environ["SHARD_INDEX"])
+          SHARD_COUNT = int(os.environ["SHARD_COUNT"])
+
+          PERIOD = "max"
+          INTERVAL = "1d"
+          CAPITAL_INR = 400000.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(symbol, entry_price, initial_stop, qty, entry_label, exit_price,
+                               exit_label, exit_reason, entry_cost, held_days, cost_model):
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - initial_stop
+              return {
+                  "symbol": symbol, "entry_ts": entry_label, "exit_ts": exit_label,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "held_days": held_days,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def replay_symbol(symbol, df, risk_pct, capital, cost_model):
+              """Calls the REAL m.primary_base_entry_signal and
+              m.minervini_vcp_exit_reason for every entry/exit/stop/trail
+              decision - only the position-bookkeeping/cost-application
+              loop is written here."""
+              trades = []
+              df = df.reset_index(drop=True)
+              n = len(df)
+              min_lookback = m.MINERVINI_PRIMARY_BASE_MIN_BASE_DAYS + 5
+              if n < min_lookback + 5:
+                  return trades
+
+              closes = df["Close"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              position = None
+
+              for i in range(min_lookback, n):
+                  sub_df = df.iloc[: i + 1]
+
+                  if position is not None:
+                      reason, position["running_max_close"] = m.minervini_vcp_exit_reason(
+                          sub_df, position["entry_label"], position["initial_stop"],
+                          position["atr_at_entry"], position["running_max_close"],
+                      )
+                      if reason:
+                          held_days = i - position["entry_idx"]
+                          trades.append(_finalize_trade(
+                              symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_label"], closes[i], dates[i], reason,
+                              position["entry_cost"], held_days, cost_model,
+                          ))
+                          position = None
+
+                  if position is None:
+                      sig = m.primary_base_entry_signal(sub_df)
+                      if sig is not None:
+                          entry_price = sig["entry_price"]
+                          stop_loss = sig["stop_loss"]
+                          stop_dist = entry_price - stop_loss
+                          if stop_dist > 0:
+                              usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                              risk_amount_inr = usable_capital_inr * risk_pct / 100
+                              qty = min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)
+                              qty = int(np.floor(qty))
+                              if qty > 0 and qty * entry_price >= 100:
+                                  position = {
+                                      "entry_price": entry_price, "initial_stop": stop_loss,
+                                      "entry_idx": i, "entry_label": dates[i], "qty": qty,
+                                      "atr_at_entry": sig["atr_at_entry"], "running_max_close": entry_price,
+                                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                                  }
+
+              if position is not None:
+                  held_days = (n - 1) - position["entry_idx"]
+                  trades.append(_finalize_trade(
+                      symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_label"], closes[-1], dates[-1], "data_end_forced_close",
+                      position["entry_cost"], held_days, cost_model,
+                  ))
+              return trades
+
+
+          ALL_SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          SYMBOLS = ALL_SYMBOLS[SHARD_INDEX::SHARD_COUNT]
+          print(f"--- Shard {SHARD_INDEX}/{SHARD_COUNT}: fetching {len(SYMBOLS)} of {len(ALL_SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) ---")
+
+          all_trades = []
+          per_symbol_trade_count = {}
+          fetched = 0
+          for sym in SYMBOLS:
+              cfg = m.NSE_STOCK_PARAM_OVERRIDES.get(sym, m.NSE_STOCK_DEFAULT_PARAMS)
+              try:
+                  raw = m.fetch_ohlc(sym, PERIOD, INTERVAL)
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < 50:
+                  continue
+              fetched += 1
+              try:
+                  trades = replay_symbol(sym, raw, cfg["risk_pct"], CAPITAL_INR, DEFAULT_COST_MODEL)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              if trades:
+                  per_symbol_trade_count[sym] = len(trades)
+              all_trades.extend(trades)
+          print(f"  shard {SHARD_INDEX}: fetched {fetched}/{len(SYMBOLS)} symbols, {len(all_trades)} trades")
+
+          with open("shard_result.json", "w") as f:
+              json.dump({"shard": SHARD_INDEX, "fetched": fetched, "universe_size": len(SYMBOLS),
+                         "trades": all_trades, "per_symbol_trade_count": per_symbol_trade_count}, f)
+          PYEOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.shard }}-result
+          path: shard_result.json
+          retention-days: 3
+
+  aggregate:
+    needs: replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*-result
+          path: shards
+          merge-multiple: false
+
+      - name: Aggregate all shards and report pooled metrics
+        run: |
+          python3 - <<'PYEOF'
+          import glob
+          import json
+
+          all_trades = []
+          per_symbol_trade_count = {}
+          total_fetched = 0
+          total_universe = 0
+          for path in sorted(glob.glob("shards/shard-*-result/shard_result.json")):
+              with open(path) as f:
+                  data = json.load(f)
+              all_trades.extend(data["trades"])
+              per_symbol_trade_count.update(data["per_symbol_trade_count"])
+              total_fetched += data["fetched"]
+              total_universe += data["universe_size"]
+              print(f"  loaded {path}: {data['fetched']}/{data['universe_size']} symbols, {len(data['trades'])} trades")
+
+          print(f"\n--- Pooled: fetched {total_fetched}/{total_universe} symbols, {len(all_trades)} total trades ---\n")
+
+
+          def _metrics(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_gross=0.0, avg_held_days=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_gross = sum(t["gross_pnl"] for t in trades) / n
+              avg_held_days = sum(t["held_days"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_gross=avg_gross, avg_held_days=avg_held_days)
+
+
+          print("=== POOLED RESULT (real main.py functions, primary_base_entry_signal + minervini_vcp_exit_reason) ===")
+          row = _metrics(all_trades)
+          print(f"n_trades={row['n']} win_rate={row['win_rate']:.2f}% "
+                f"pf_net={row['pf_net']:.3f} pf_gross={row['pf_gross']:.3f} "
+                f"avg_net_inr={row['avg_net']:.2f} avg_held_days={row['avg_held_days']:.1f}")
+
+          print("\n=== By exit_reason ===")
+          by_reason = {}
+          for t in all_trades:
+              by_reason.setdefault(t["exit_reason"], []).append(t)
+          for reason, ts in sorted(by_reason.items(), key=lambda kv: -len(kv[1])):
+              m2 = _metrics(ts)
+              print(f"{reason}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_days={m2['avg_held_days']:.1f}")
+
+          print("\n=== Top 15 symbols by trade count ===")
+          for sym, cnt in sorted(per_symbol_trade_count.items(), key=lambda kv: -kv[1])[:15]:
+              print(f"{sym}: {cnt} trades")
+          PYEOF
