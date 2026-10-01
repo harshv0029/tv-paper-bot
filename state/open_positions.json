@@ -1,4 +1,43 @@
 {
-  "synced_at_utc": "2026-10-01T00:19:55Z",
-  "open_positions": []
+  "synced_at_utc": "2026-10-01T04:39:56Z",
+  "open_positions": [
+    {
+      "symbol": "OIL.NS",
+      "qty": 4.0,
+      "entry_price_native": 440.20001220703125,
+      "stop_loss_native": 438.1428680419922,
+      "initial_stop_loss_native": 438.1428680419922,
+      "target_native": 444.31,
+      "fx_to_inr": 1.0,
+      "notional_inr": 1760.8,
+      "orb_high_native": null,
+      "orb_low_native": 440.1000061035156,
+      "entry_ts": 1790829505.5917222,
+      "interval": "5m",
+      "strategy": "orb-universal-score",
+      "sma_fast": 9,
+      "sma_slow": 21,
+      "entry_regime": "range",
+      "real_entry_reason": "skipped_strategy_not_viable - strategy 'orb-universal-score' does not clear the PFnet >= 1 real-money floor (or has no validated metrics) - see strategy_registry.py"
+    },
+    {
+      "symbol": "POWERGRID.NS",
+      "qty": 1.0,
+      "entry_price_native": 257.3500061035156,
+      "stop_loss_native": 256.2196469988142,
+      "initial_stop_loss_native": 256.2196469988142,
+      "target_native": 259.61,
+      "fx_to_inr": 1.0,
+      "notional_inr": 257.35,
+      "orb_high_native": null,
+      "orb_low_native": 257.04998779296875,
+      "entry_ts": 1790829570.6850073,
+      "interval": "5m",
+      "strategy": "orb-universal-score",
+      "sma_fast": 9,
+      "sma_slow": 21,
+      "entry_regime": "range",
+      "real_entry_reason": "skipped_strategy_not_viable - strategy 'orb-universal-score' does not clear the PFnet >= 1 real-money floor (or has no validated metrics) - see strategy_registry.py"
+    }
+  ]
 }
