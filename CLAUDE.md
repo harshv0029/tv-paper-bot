@@ -507,3 +507,31 @@ of trusting the transfer pack's prose.
   leaderboard rows - never fold two differently-named things together
   without the user explicitly confirming they really are one thing wearing
   two names, and even then, say so plainly rather than merging silently.
+- **Thumb rule (2026-10-05, explicit user instruction): all strategy
+  research from now on follows the combinatorial Indicator Repository
+  methodology in `docs/INDICATOR_COMBINATORICS_METHODOLOGY.md` - read
+  that file in full before starting any new indicator/strategy research
+  pass.** Summary (full spec in that file): build a catalog of every
+  indicator this repo has (most already exist as atomic single-indicator
+  branches in `main.add_strategy_signal`, e.g. `rsi_reversal`,
+  `macd_cross`, `bollinger_mean_reversion`, plus standalone research-stage
+  functions like order-block delta and Volume Profile/POC). For each
+  indicator, sweep its FULL internal parameter grid (every variant, not a
+  handful of eyeballed values) and validate each variant standalone as its
+  own strategy. Then combine indicators pairwise (both role orderings -
+  which one triggers vs. which one filters - per the user's "5P4
+  permutation" framing, not just which variants are paired), then
+  triple-wise, across multiple timeframes. When a genuinely new indicator
+  is found later (a new book, a new web search), it gets tested standalone
+  and then combined with EVERY non-empty subset of the existing indicator
+  pool, not just a convenient few - the full power-set recursion, flagged
+  honestly as exponential, with any prioritization-for-tractability
+  surfaced plainly rather than silently narrowing the rule. Every other
+  standing rule above still applies unchanged to every cell of this grid:
+  real `main.py` functions over reimplementations, full-universe
+  validation, cost-aware sizing, both directions, candle-size sweep, never
+  tune blind, register every variant/combo tried with real metrics (pass
+  or fail), `PFNET_LIVE_FLOOR` gates real money, faster turnover as
+  tie-break, and never silently merge two differently-tagged
+  variants/combos (the rule immediately above, now explicitly extended to
+  this entire combinatorial search).
