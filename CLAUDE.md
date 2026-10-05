@@ -535,3 +535,39 @@ of trusting the transfer pack's prose.
   tie-break, and never silently merge two differently-tagged
   variants/combos (the rule immediately above, now explicitly extended to
   this entire combinatorial search).
+- **Incident (2026-10-05): a real swing position's strategy identity and
+  stop-loss were both lost to restart amnesia, and nothing closer than a
+  once-a-day retry existed to auto-heal it.** Live NYKAA.NS, found by the
+  user directly (dashboard showed its own strategy flip from `gap_and_go`
+  in the morning to `universal-score` later the same day; Kotak's app
+  showed no resting SL at either point). Root cause, confirmed from code:
+  `real_positions_swing` (built 2026-09-22) was never added to the Upstash
+  Redis durability mirror `real_positions` got 2026-09-08 and
+  `real_positions_short` got 2026-09-30 - Render's free tier has no
+  persistent disk, so a restart silently wiped NYKAA's own
+  `real_positions_swing` row. The next reconcile (`adopt="*"`) could no
+  longer tell this was a swing position - the 2026-09-30
+  `our_swing_trdsyms` exclusion check (`_reconcile_real_positions_core`)
+  only works while that row still exists - and re-adopted NYKAA into the
+  WRONG table (`real_positions`, intraday) with a NULL strategy (that
+  adopt path's own INSERT never sets one), losing the swing engine's own
+  governance in the process. Separately, even without the misadoption:
+  the swing engine's OWN SL retry (`_maybe_sync_real_swing_stop_loss`)
+  only ever ran once per IST day with no escalation (its own docstring:
+  "explicitly deferred, not silently dropped") - a real gap against the
+  standing "every open position, long or short, tracked or not, checked
+  and auto-healed every 5 minutes" rule above, which intraday long/short
+  already had and swing never received. Fixed same day:
+  `_sync_real_positions_swing_external`/
+  `hydrate_real_positions_swing_from_external` (mirroring the existing
+  long/short pattern exactly, wired into every mutation site and startup
+  hydration) plus a swing governance-backfill block in
+  `_reconcile_real_positions_core` that retries a missing swing SL on
+  EVERY reconcile call (now every 5 min), not just once a day. 12 new
+  tests (`tests/test_real_positions_swing_external.py`), full suite
+  green. Applies going forward: any future new real-position table
+  (a new asset class, a new engine) must get BOTH the Upstash durability
+  mirror AND a 5-minute governance-backfill entry from the moment it's
+  built, never added later as a follow-up once an incident forces it -
+  this is the second time that exact sequencing mistake has happened
+  (`real_positions_short` 2026-09-30, `real_positions_swing` 2026-10-05).
