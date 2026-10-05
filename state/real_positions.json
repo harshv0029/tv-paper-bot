@@ -1,3 +1,20 @@
 {
-  "open_real_positions": []
+  "open_real_positions": [
+    {
+      "symbol": "NYKAA.NS",
+      "kotak_trading_symbol": "NYKAA-EQ",
+      "qty": 1,
+      "entry_price": 340.1,
+      "entry_order_id": "261005000311571",
+      "opened_at": 1791225395.4625268,
+      "day": "2026-10-06",
+      "sl_order_id": null,
+      "sl_trigger_price": null,
+      "target_order_id": "261005000651045",
+      "target_price": 336.2,
+      "exit_legs_json": null,
+      "protection_degraded_since": 1791225426.3359761,
+      "strategy": null
+    }
+  ]
 }
