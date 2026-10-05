@@ -16746,6 +16746,43 @@ def strategy_scan_activity():
                 pass
         entries_today[tag] = entries_today.get(tag, 0) + 1
 
+    # win_rate_today_pct (explicit user request 2026-10-05: "win % today
+    # under this strategy"): replay every paper trade in ts order keeping a
+    # per-symbol average-cost book (same math as daily_summary), tagging each
+    # open position with the EFFECTIVE strategy of the buy that opened it
+    # (pooled SWING_STRATEGY_TAG -> raw_payload.entry_reason, as above). A
+    # sell dated today closes against that tag; pnl > 0 is a win. None (shown
+    # as "-") when no trade has closed today under the tag - never a fake 0%.
+    with closing(get_db()) as conn:
+        all_rows = conn.execute(
+            "SELECT symbol, action, qty, price, fx_to_inr, strategy, raw_payload, ts "
+            "FROM trades ORDER BY ts ASC, id ASC"
+        ).fetchall()
+    book: dict = {}
+    closed_today: dict = {}
+    for t in all_rows:
+        b = book.setdefault(t["symbol"], {"qty": 0.0, "avg": 0.0, "tag": None})
+        price_inr = t["price"] * t["fx_to_inr"]
+        if t["action"] == "buy":
+            new_qty = b["qty"] + t["qty"]
+            b["avg"] = ((b["qty"] * b["avg"]) + (t["qty"] * price_inr)) / new_qty if new_qty else 0.0
+            b["qty"] = new_qty
+            tag = t["strategy"]
+            if tag == SWING_STRATEGY_TAG:
+                try:
+                    tag = (json.loads(t["raw_payload"]) or {}).get("entry_reason") or tag
+                except (TypeError, ValueError):
+                    pass
+            b["tag"] = tag
+        else:
+            pnl = (price_inr - b["avg"]) * min(t["qty"], b["qty"])
+            b["qty"] -= t["qty"]
+            if t["ts"] >= since_ts and b["tag"]:
+                w = closed_today.setdefault(b["tag"], [0, 0])
+                w[1] += 1
+                if pnl > 0:
+                    w[0] += 1
+
     # Explicit user standing rule (CLAUDE.md, "different tag name implies
     # a real variation - never silently merge/dedupe distinct tags"): one
     # row per TAG in _STRATEGY_TAG_TO_REGISTRY_NAME, even when two tags
@@ -16769,6 +16806,11 @@ def strategy_scan_activity():
             "scans_today": _strategy_scan_counts.get(tag, 0),
             "scans_last_30s": _strategy_scans_in_last_seconds(tag),
             "successful_entries_today": entries_today.get(tag, 0),
+            "closed_today": closed_today.get(tag, [0, 0])[1],
+            "win_rate_today_pct": (
+                round(100 * closed_today[tag][0] / closed_today[tag][1], 1)
+                if tag in closed_today and closed_today[tag][1] else None
+            ),
         })
     rows.sort(key=lambda r: (r["pfnet"] is None, -(r["pfnet"] or 0)))
     return {"strategies": rows, "as_of_epoch": time.time()}
