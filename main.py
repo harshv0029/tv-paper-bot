@@ -1154,6 +1154,23 @@ def positions():
     return [dict(r) for r in rows]
 
 
+@app.get("/paper-swing-open-positions")
+def paper_swing_open_positions():
+    """Currently-open PAPER swing positions (signal_state_swing - one row
+    per symbol, present only while the position is open, no status column
+    needed). /positions only ever covers paper INTRADAY (the `positions`
+    table), so a symbol open only via the swing engine (gap_and_go,
+    minervini_vcp) was invisible to anything reading just /positions - see
+    static/live.html's syncPositionCards(), which merges this with
+    /positions and /real-open-positions to decide which symbols get a live
+    chart card."""
+    with closing(get_db()) as conn:
+        rows = conn.execute(
+            "SELECT symbol, qty, entry_price, strategy FROM signal_state_swing"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 @app.get("/trades")
 def trades(limit: int = 100):
     with closing(get_db()) as conn:
