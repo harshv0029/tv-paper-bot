@@ -304,9 +304,9 @@
         <th>Status</th><th>Asset</th><th>Type</th><th>Strategy</th><th class="num">Entry</th><th class="num">Exit / Now</th>
         <th class="num">Qty</th><th class="num">Invested (₹)</th><th class="num">Realised P&amp;L (₹)</th><th class="num">Unrealised P&amp;L (₹)</th>
         <th class="num">P&amp;L %</th><th>Reason</th><th>Time</th>
-        <th>Category</th><th>Rank</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Win %</th>
+        <th>Category</th><th>Rank</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num" title="Swing only: average trading days a trade was held in the backtest that produced this PFnet/Win % - i.e. how long it took to realise them.">Avg days held</th>
       </tr></thead>
-      <tbody id="log-body"><tr><td colspan="18" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="log-body"><tr><td colspan="19" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -346,7 +346,7 @@
         <th class="sortable" data-sort-key="last_checked">Last checked<span class="sort-ind"></span></th>
         <th class="sortable" data-sort-key="source">Source<span class="sort-ind"></span></th>
       </tr></thead>
-      <tbody id="counts-body"><tr><td colspan="6" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="counts-body"><tr><td colspan="8" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -358,14 +358,16 @@
   <div class="counts-scroll">
     <table class="counts">
       <thead><tr>
+        <th>Category</th>
         <th>Strategy</th>
         <th class="num">PFnet</th>
+        <th class="num" title="Average trading days held in the backtest behind this PFnet / Win % (swing strategies)">Avg days held</th>
         <th class="num">Scans today</th>
         <th class="num">Scans last 30s</th>
         <th class="num">Successful entries today</th>
         <th class="num">Win % today</th>
       </tr></thead>
-      <tbody id="strategy-scan-body"><tr><td colspan="6" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="strategy-scan-body"><tr><td colspan="7" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -893,12 +895,14 @@ function renderStrategyScanActivity(data) {
   if (!body) return;
   const rows = data?.strategies || [];
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="6" class="scan-idle">No viable strategies right now</td></tr>`;
+    body.innerHTML = `<tr><td colspan="8" class="scan-idle">No viable strategies right now</td></tr>`;
     return;
   }
   body.innerHTML = rows.map(r => `<tr>
+    <td>${(r.categories || []).map(c => String(c).replace("_", " ")).join(", ") || "—"}</td>
     <td class="sym">${r.strategy_tag}</td>
     <td class="num">${r.pfnet !== null && r.pfnet !== undefined ? fmt(r.pfnet, 3) : "—"}</td>
+    ${avgDaysHeldCell((r.categories || []).includes("swing"), r.avg_held_days)}
     <td class="num">${r.scans_today}</td>
     <td class="num"${r.scans_last_30s === 0 ? ' title="Swing strategies scan once/day - 0 here is normal between scans, not a stall."' : ""}>${r.scans_last_30s}</td>
     <td class="num">${r.successful_entries_today}</td>
@@ -1404,14 +1408,14 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
     const row = registryName ? strategyInfoByName[registryName] : undefined;
     if (!row) {
       const reason = noDataReason(strategyTag);
-      return `<td class="log-type">—</td><td>—</td><td class="log-type" title="${reason}">${reason}</td><td class="num">—</td><td class="num">—</td>`;
+      return `<td class="log-type">—</td><td>—</td><td class="log-type" title="${reason}">${reason}</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>`;
     }
     const category = row.category ? (LEADERBOARD_CATEGORY_LABEL_BY_KEY[row.category] || row.category) : "unranked";
     const rank = row.rank !== null && row.rank !== undefined ? `#${row.rank}` : "—";
     const pfnet = row.pfnet !== null && row.pfnet !== undefined ? fmt(row.pfnet, 3) : "—";
     const winPct = row.win_rate_pct !== null && row.win_rate_pct !== undefined ? `${fmt(row.win_rate_pct, 2)}%` : "—";
     return `<td class="log-type">${category}</td><td>${rank}</td><td class="log-type">${registryName}</td>
-      <td class="num">${pfnet}</td><td class="num">${winPct}</td>`;
+      <td class="num">${pfnet}</td><td class="num">${winPct}</td>${avgDaysHeldCell((row.categories || []).includes("swing"), row.avg_held_days)}`;
   };
   let totalUnrealisedInr = 0;
 
@@ -1542,7 +1546,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="meta">${pos.opened_at ? timeAgo(pos.opened_at) : "—"}</td>
       ${leaderboardCells(pos.strategy)}
     </tr>`;
-    const thesisRow = pos.entry_thesis ? `<tr class="thesis-row"><td colspan="18">
+    const thesisRow = pos.entry_thesis ? `<tr class="thesis-row"><td colspan="19">
       <div class="thesis-card"><b>${displayName(pos.symbol)} — trade thesis:</b> ${pos.entry_thesis}</div>
     </td></tr>` : "";
     return thesisRow ? [row, thesisRow] : [row];
@@ -1652,14 +1656,14 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td colspan="6"></td>
     </tr>` : "";
 
-  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="18">${label}</td></tr>`;
+  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="19">${label}</td></tr>`;
   const sections = [];
   if (liveRows.length) sections.push(sectionRow(`Live positions (${liveRows.length})`), ...liveRows);
   if (openRealRows.length) sections.push(sectionRow(`Live real positions (${openRealRows.length}) — Kotak, currently open`), ...openRealRows);
   if (botRealRows.length) sections.push(sectionRow(`Real trades today, this bot's own only (${botRealRows.length})`), ...botRealRows, botRealTotalRow);
   if (realRows.length) sections.push(sectionRow(`Real trades today (${realRows.length}) — Kotak, outside this app's own order placement`), ...realRows, realTotalRow);
   if (openRealRows.length || realRows.length) sections.push(combinedRealAndOpenTotalRow);
-  if (!sections.length) sections.push(`<tr><td colspan="18" class="scan-idle">No live positions or real trades today</td></tr>`);
+  if (!sections.length) sections.push(`<tr><td colspan="19" class="scan-idle">No live positions or real trades today</td></tr>`);
   // Strategy leaderboard rows always append last, in this same table -
   // see leaderboardRows()'s own comment for why (2026-09-29 instruction).
   sections.push(...leaderboardRows(leaderboard));
@@ -1717,12 +1721,22 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
 // synthetic rows - Reason instead carries the viable/below-floor status
 // and Time carries the sample size, so a backtest ratio never lands in a
 // column that otherwise holds real rupee P&L.
+// Swing-only "how many trading days did it take" cell (explicit user
+// request 2026-10-05): the average holding period of the SAME backtest run
+// behind the row's PFnet/Win %. Shown only where the strategy is in the
+// swing category; "—" with a reason when a swing strategy's run never
+// recorded it (never guessed), and "—" for non-swing rows.
+function avgDaysHeldCell(isSwing, days) {
+  if (!isSwing) return `<td class="num">—</td>`;
+  if (days === null || days === undefined) return `<td class="num" title="Swing strategy, but its backtest run did not record avg holding days yet.">—</td>`;
+  return `<td class="num" title="Average trading days held in the backtest that produced this PFnet / Win %">${fmt(days, 1)}d</td>`;
+}
 const LEADERBOARD_CATEGORY_LABEL = {
   short_sell: "Sell", buy: "Buy", swing: "Swing", futures: "Future", options: "Options",
 };
 function leaderboardRows(data) {
   if (!data) return [];
-  const rows = [`<tr class="log-section-row"><td colspan="18">Strategy leaderboard (backtest research, not live trades)</td></tr>`];
+  const rows = [`<tr class="log-section-row"><td colspan="19">Strategy leaderboard (backtest research, not live trades)</td></tr>`];
   let any = false;
   for (const cat of Object.keys(LEADERBOARD_CATEGORY_LABEL)) {
     for (const row of (data[cat] || [])) {
@@ -1754,10 +1768,11 @@ function leaderboardRows(data) {
         <td class="log-type">${row.name}</td>
         <td class="num">${pfnet}</td>
         <td class="num">${winPct}</td>
+        ${avgDaysHeldCell(cat === "swing", row.avg_held_days)}
       </tr>`);
     }
   }
-  if (!any) rows.push(`<tr><td colspan="18" class="scan-idle">No strategies registered yet</td></tr>`);
+  if (!any) rows.push(`<tr><td colspan="19" class="scan-idle">No strategies registered yet</td></tr>`);
   return rows;
 }
 
