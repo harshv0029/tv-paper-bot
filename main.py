@@ -17091,7 +17091,7 @@ def strategy_scan_activity():
             "registry_name": registry_name,
             "categories": [c.value for c in strat.categories] if strat else [],
             "pfnet": strat.metrics.pfnet if strat and strat.metrics else None,
-            "avg_held_days": strat.metrics.avg_held_days if strat and strat.metrics else None,
+            "avg_held_hrs": round(strat.metrics.avg_held_hrs, 1) if strat and strat.metrics and strat.metrics.avg_held_hrs is not None else None,
             "scans_today": _strategy_scan_counts.get(tag, 0),
             "scans_last_30s": _strategy_scans_in_last_seconds(tag),
             "successful_entries_today": entries_today.get(tag, 0),

@@ -304,7 +304,7 @@
         <th>Status</th><th>Asset</th><th>Type</th><th>Strategy</th><th class="num">Entry</th><th class="num">Exit / Now</th>
         <th class="num">Qty</th><th class="num">Invested (₹)</th><th class="num">Realised P&amp;L (₹)</th><th class="num">Unrealised P&amp;L (₹)</th>
         <th class="num">P&amp;L %</th><th>Reason</th><th>Time</th>
-        <th>Category</th><th>Rank</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num" title="Swing only: average trading days a trade was held in the backtest that produced this PFnet/Win % - i.e. how long it took to realise them.">Avg days held</th>
+        <th>Category</th><th>Rank</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num" title="Average market hours a trade was held in the backtest that produced this PFnet/Win % - how long it took to realise them. Same unit for every category.">Avg hrs held</th>
       </tr></thead>
       <tbody id="log-body"><tr><td colspan="19" class="scan-idle">Loading…</td></tr></tbody>
     </table>
@@ -361,7 +361,7 @@
         <th>Category</th>
         <th>Strategy</th>
         <th class="num">PFnet</th>
-        <th class="num" title="Average trading days held in the backtest behind this PFnet / Win % (swing strategies)">Avg days held</th>
+        <th class="num" title="Average market hours held in the backtest behind this PFnet / Win %">Avg hrs held</th>
         <th class="num">Scans today</th>
         <th class="num">Scans last 30s</th>
         <th class="num">Successful entries today</th>
@@ -902,7 +902,7 @@ function renderStrategyScanActivity(data) {
     <td>${(r.categories || []).map(c => String(c).replace("_", " ")).join(", ") || "—"}</td>
     <td class="sym">${r.strategy_tag}</td>
     <td class="num">${r.pfnet !== null && r.pfnet !== undefined ? fmt(r.pfnet, 3) : "—"}</td>
-    ${avgDaysHeldCell((r.categories || []).includes("swing"), r.avg_held_days)}
+    ${avgHrsHeldCell(r.avg_held_hrs)}
     <td class="num">${r.scans_today}</td>
     <td class="num"${r.scans_last_30s === 0 ? ' title="Swing strategies scan once/day - 0 here is normal between scans, not a stall."' : ""}>${r.scans_last_30s}</td>
     <td class="num">${r.successful_entries_today}</td>
@@ -1415,7 +1415,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
     const pfnet = row.pfnet !== null && row.pfnet !== undefined ? fmt(row.pfnet, 3) : "—";
     const winPct = row.win_rate_pct !== null && row.win_rate_pct !== undefined ? `${fmt(row.win_rate_pct, 2)}%` : "—";
     return `<td class="log-type">${category}</td><td>${rank}</td><td class="log-type">${registryName}</td>
-      <td class="num">${pfnet}</td><td class="num">${winPct}</td>${avgDaysHeldCell((row.categories || []).includes("swing"), row.avg_held_days)}`;
+      <td class="num">${pfnet}</td><td class="num">${winPct}</td>${avgHrsHeldCell(row.avg_held_hrs)}`;
   };
   let totalUnrealisedInr = 0;
 
@@ -1721,15 +1721,14 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
 // synthetic rows - Reason instead carries the viable/below-floor status
 // and Time carries the sample size, so a backtest ratio never lands in a
 // column that otherwise holds real rupee P&L.
-// Swing-only "how many trading days did it take" cell (explicit user
-// request 2026-10-05): the average holding period of the SAME backtest run
-// behind the row's PFnet/Win %. Shown only where the strategy is in the
-// swing category; "—" with a reason when a swing strategy's run never
-// recorded it (never guessed), and "—" for non-swing rows.
-function avgDaysHeldCell(isSwing, days) {
-  if (!isSwing) return `<td class="num">—</td>`;
-  if (days === null || days === undefined) return `<td class="num" title="Swing strategy, but its backtest run did not record avg holding days yet.">—</td>`;
-  return `<td class="num" title="Average trading days held in the backtest that produced this PFnet / Win %">${fmt(days, 1)}d</td>`;
+// "How long did it take" cell (explicit user requests 2026-10-05): the average
+// holding period, in MARKET (trading-session) hours, of the SAME backtest run
+// behind the row's PFnet/Win %. One unit for every category (buy, sell, swing,
+// bidirectional, futures, options). "—" with a reason when that run never
+// recorded it - never guessed.
+function avgHrsHeldCell(hrs) {
+  if (hrs === null || hrs === undefined) return `<td class="num" title="This strategy's backtest run did not record its average holding time yet.">—</td>`;
+  return `<td class="num" title="Average market (trading-session) hours held in the backtest that produced this PFnet / Win %. Daily-bar swing runs: avg trading days x 6.25 h.">${fmt(hrs, 1)} h</td>`;
 }
 const LEADERBOARD_CATEGORY_LABEL = {
   short_sell: "Sell", buy: "Buy", swing: "Swing", futures: "Future", options: "Options",
@@ -1768,7 +1767,7 @@ function leaderboardRows(data) {
         <td class="log-type">${row.name}</td>
         <td class="num">${pfnet}</td>
         <td class="num">${winPct}</td>
-        ${avgDaysHeldCell(cat === "swing", row.avg_held_days)}
+        ${avgHrsHeldCell(row.avg_held_hrs)}
       </tr>`);
     }
   }

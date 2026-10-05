@@ -133,15 +133,16 @@ def test_endpoint_rows_carry_registry_categories():
     assert rows["power_play"]["categories"] == ["swing", "buy"]
 
 
-def test_endpoint_rows_carry_avg_held_days_from_registry_metrics():
-    # Explicit user request (2026-10-05): swing rows show how many trading
-    # days a trade was held on average in the backtest behind the PFnet /
-    # Win %. Real recorded figures only; None where the run never recorded it.
+def test_endpoint_rows_carry_avg_held_hrs_from_registry_metrics():
+    # Explicit user request (2026-10-05): one unit (market hours) for every
+    # category. Daily-bar runs recorded avg held trading DAYS; stored as
+    # days * 6.25 market hours/day. None where the run never recorded it.
     _fresh_db()
     _reset()
     rows = {r["strategy_tag"]: r for r in main.strategy_scan_activity()["strategies"]}
-    assert rows["power_play"]["avg_held_days"] == 16.2
-    assert rows["primary_base"]["avg_held_days"] == 17.0
-    assert rows["order_block_delta"]["avg_held_days"] == 21.7
-    assert rows["volume_profile_poc"]["avg_held_days"] == 12.2
-    assert rows["gap_and_go"]["avg_held_days"] is None  # not recorded - never guessed
+    assert rows["power_play"]["avg_held_hrs"] == round(16.2 * 6.25, 1)
+    assert rows["primary_base"]["avg_held_hrs"] == round(17.0 * 6.25, 1)
+    assert rows["order_block_delta"]["avg_held_hrs"] == round(21.7 * 6.25, 1)
+    assert rows["volume_profile_poc"]["avg_held_hrs"] == round(12.2 * 6.25, 1)
+    assert rows["minervini_vcp_livermore"]["avg_held_hrs"] == round(14.8 * 6.25, 1)
+    assert rows["gap_and_go"]["avg_held_hrs"] is None  # run never recorded it - never guessed
