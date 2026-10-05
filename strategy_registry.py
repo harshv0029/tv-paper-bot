@@ -1299,6 +1299,34 @@ REGISTRY: list[StrategyDef] = [
         ),
     ),
 
+    StrategyDef(
+        name="pin_bar_reversal__baseline__long__5m__pr2d0_srl20_srt0d5__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BUY,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.024, pfgross=0.536, win_rate_pct=2.94, n_trades=311872, avg_held_hrs=31.2 / 60,
+            avg_net_inr=-1746.48,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="pin-bar-reversal-full-universe-validation.yml run 37358058707 (2026-10-05, 5m/60d, LONG, calls the REAL main.add_strategy_signal 'pin_bar_reversal')",
+        ),
+        source=".github/workflows/pin-bar-reversal-full-universe-validation.yml (real main.add_strategy_signal 'pin_bar_reversal')",
+        evidence=(
+            "Run 37358058707: PFnet 0.024, PFgross 0.536 (< 1 BEFORE costs), n=311,872, win 2.94%, "
+            "avg_net Rs-1,746.48, avg held 31.2 min. trail_stop_hit n=155,838 (50%) win 0.53%; "
+            "bearish_pin_exit n=137,283 PFnet 0.042; max_hold_timeout n=3,140 PFnet 0.409. NOT VIABLE."
+        ),
+        notes=(
+            "Baseline params only (pin_ratio=2.0, sr_lookback=20, sr_tolerance_pct=0.5). ~118 trades "
+            "per symbol in 60 days and top symbols are cash ETFs (LIQUIDBEES/LIQUIDCASE): the entry "
+            "appears to fire on nearly every pin bar with no volatility/liquidity filter - a hypothesis "
+            "from the numbers, not confirmed in code. No edge pre-cost, so cost drag is not the cause. "
+            "Not tuned from this one result; any sweep/short mirror/other candle size gets its own tag."
+        ),
+    ),
+
     # ---- FUTURES / OPTIONS ------------------------------------------------
     # No entries: kotak_real_orders.py has NO futures or options order-
     # placement path at all (equity CNC/MIS only). Every options idea in
