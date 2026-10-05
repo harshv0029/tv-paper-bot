@@ -571,3 +571,13 @@ of trusting the transfer pack's prose.
   built, never added later as a follow-up once an incident forces it -
   this is the second time that exact sequencing mistake has happened
   (`real_positions_short` 2026-09-30, `real_positions_swing` 2026-10-05).
+- **Thumb rule (2026-10-05, explicit user instruction): `docs/ACTIONABLES_BACKLOG.md`
+  is the single product backlog for every actionable, and nothing may live only
+  in chat or a transfer pack.** The instant any actionable surfaces (a pending
+  workflow result, an unmerged commit, a follow-up flagged in a workflow header,
+  a parked item, a user request not finished this turn), append it as a row there
+  with status/priority/notes. Every session starts by reading that table and picks
+  its next work from it; items are closed/updated in the same commit as the work
+  that moves them (status + date + evidence: run id, commit, URL). Never delete a
+  row — close it. Before writing any transfer pack, reconcile it against the table
+  so no item is dropped; the pack should reference the table, not replace it.
