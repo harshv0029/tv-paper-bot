@@ -1,0 +1,273 @@
+name: RSI Reversal - Standalone Variant Sweep (Indicator Repository Step 1)
+
+# First concrete application of docs/INDICATOR_COMBINATORICS_METHODOLOGY.md
+# (explicit user instruction, 2026-10-05) - read that file for the full
+# standing spec. This is "Step 1" for indicator A = rsi_reversal: sweep
+# its FULL internal parameter grid as independent standalone strategies,
+# each full-universe validated and each getting its OWN distinct tag
+# (2026-10-05 no-silent-merge rule) - never pooled into one "rsi_reversal"
+# number.
+#
+# rsi_reversal already exists in main.add_strategy_signal (RSI period +
+# oversold/overbought thresholds, holding until the mirror overbought
+# exit) - this calls that REAL function for entry/exit signal generation,
+# not a reimplementation, wrapped in this repo's standard cost-aware exit
+# management (ATR initial stop, chandelier trail, max-hold timeout) -
+# same shape as pin-bar-reversal-full-universe-validation.yml and the
+# other research workflows this session.
+#
+# Variant grid (9 variants, matrixed - one job per variant, no sharding):
+#   rsi_period in {9, 14, 21}
+#   (oversold, overbought) in {(20,80), (25,75), (30,70)}
+#
+# Timeframe: 1d/5y this pass (RSI's own constants are bar-count based but
+# NOT day-count/calendar based, so this is bar-size-agnostic in the sense
+# the candle-size thumb rule cares about - a single job per variant needs
+# no sharding, matching the daily-bar-bounded-lookback precedent, e.g.
+# minervini-vcp-validation-replay.yml). Intraday candle sizes (1m/5m/15m/
+# 1h/4h) are the explicit next step per the standing candle-size sweep
+# rule - NOT done in this pass, flagged honestly rather than silently
+# skipped.
+#
+# LONG side only this pass - the short mirror (RSI overbought fade,
+# already researched once at 5m only per
+# rsi-overbought-short-research.yml, never at other candle sizes) is a
+# separate, already-partially-started follow-up, not duplicated here.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - { period: 9,  oversold: 20, overbought: 80 }
+          - { period: 9,  oversold: 25, overbought: 75 }
+          - { period: 9,  oversold: 30, overbought: 70 }
+          - { period: 14, oversold: 20, overbought: 80 }
+          - { period: 14, oversold: 25, overbought: 75 }
+          - { period: 14, oversold: 30, overbought: 70 }
+          - { period: 21, oversold: 20, overbought: 80 }
+          - { period: 21, oversold: 25, overbought: 75 }
+          - { period: 21, oversold: 30, overbought: 70 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run RSI Reversal variant full-universe validation
+        env:
+          VARIANT_PERIOD: ${{ matrix.variant.period }}
+          VARIANT_OVERSOLD: ${{ matrix.variant.oversold }}
+          VARIANT_OVERBOUGHT: ${{ matrix.variant.overbought }}
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import os
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          RSI_PERIOD = int(os.environ["VARIANT_PERIOD"])
+          OVERSOLD = int(os.environ["VARIANT_OVERSOLD"])
+          OVERBOUGHT = int(os.environ["VARIANT_OVERBOUGHT"])
+          VARIANT_TAG = f"rsi_reversal__p{RSI_PERIOD}_os{OVERSOLD}_ob{OVERBOUGHT}"
+          RSI_PARAMS = {"rsi_period": RSI_PERIOD, "oversold": OVERSOLD, "overbought": OVERBOUGHT}
+
+          ENTRY_ATR_STOP_MULT = 1.5
+          ATR_TRAIL_MULT = 3.0
+          MAX_HOLD_DAYS = 30
+          MIN_LOOKBACK_DAYS = 60
+          CAPITAL_INR = 400000.0
+          RISK_PCT = 1.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(symbol, entry_price, initial_stop, qty, entry_idx, exit_price,
+                               exit_idx, exit_reason, entry_cost, cost_model):
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - initial_stop
+              return {
+                  "symbol": symbol, "held_days": exit_idx - entry_idx,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def replay_symbol(symbol, raw_df, capital, risk_pct, cost_model):
+              """Calls the REAL main.add_strategy_signal(df, 'rsi_reversal', params)
+              for entry (RSI < oversold) and the strategy's own mirror exit
+              (RSI > overbought, 'long' column flips False) - see this
+              workflow's own module comment. Only the position bookkeeping/
+              cost/stop/trail/timeout loop below is new, research-stage code."""
+              df = m.add_strategy_signal(raw_df.copy(), "rsi_reversal", RSI_PARAMS)
+              df = df.reset_index(drop=True)
+              n = len(df)
+              if n < MIN_LOOKBACK_DAYS:
+                  return []
+
+              long_col = df["long"].to_numpy()
+              closes = df["Close"].to_numpy(dtype=float)
+
+              position = None
+              trades = []
+              for i in range(n):
+                  last_close = float(closes[i])
+
+                  if position is not None:
+                      new_running_max = max(position["running_max_close"], last_close)
+                      position["running_max_close"] = new_running_max
+                      trail_stop = new_running_max - ATR_TRAIL_MULT * position["atr_at_entry"]
+                      position["stop"] = max(position["initial_stop"], trail_stop)
+
+                      exit_reason = None
+                      if not bool(long_col[i]):
+                          exit_reason = "rsi_overbought_exit"
+                      elif last_close <= position["stop"]:
+                          exit_reason = "trail_stop_hit"
+                      elif (i - position["entry_idx"]) >= MAX_HOLD_DAYS:
+                          exit_reason = "max_hold_timeout"
+
+                      if exit_reason:
+                          trades.append(_finalize_trade(
+                              symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_idx"], last_close, i, exit_reason,
+                              position["entry_cost"], cost_model,
+                          ))
+                          position = None
+                      continue
+
+                  fresh_entry = bool(long_col[i]) and (i == 0 or not bool(long_col[i - 1]))
+                  if not fresh_entry:
+                      continue
+
+                  entry_price = last_close
+                  atr_at_entry = m._compute_atr_value(df.iloc[:i + 1], 14)
+                  if atr_at_entry is None or atr_at_entry <= 0:
+                      continue
+                  stop_loss = entry_price - ENTRY_ATR_STOP_MULT * atr_at_entry
+                  stop_dist = entry_price - stop_loss
+                  if stop_dist <= 0:
+                      continue
+                  usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100
+                  qty = int(np.floor(min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)))
+                  if qty <= 0 or qty * entry_price < 100:
+                      continue
+                  position = {
+                      "entry_price": entry_price, "initial_stop": stop_loss, "stop": stop_loss,
+                      "entry_idx": i, "qty": qty, "atr_at_entry": atr_at_entry,
+                      "running_max_close": entry_price,
+                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                  }
+
+              if position is not None:
+                  last_close = float(closes[-1])
+                  trades.append(_finalize_trade(
+                      symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_idx"], last_close, n - 1, "window_end_forced_close",
+                      position["entry_cost"], cost_model,
+                  ))
+              return trades
+
+
+          ALL_SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          print(f"--- Variant {VARIANT_TAG}: fetching {len(ALL_SYMBOLS)} symbols (1d, 5y) ---")
+          all_trades = []
+          fetched = 0
+          for idx, sym in enumerate(ALL_SYMBOLS):
+              try:
+                  raw = m.fetch_ohlc(sym, "5y", "1d")
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < MIN_LOOKBACK_DAYS:
+                  continue
+              fetched += 1
+              try:
+                  trades = replay_symbol(sym, raw, CAPITAL_INR, RISK_PCT, DEFAULT_COST_MODEL)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              all_trades.extend(trades)
+              if (idx + 1) % 300 == 0:
+                  print(f"  ... {idx + 1}/{len(ALL_SYMBOLS)} processed, {len(all_trades)} trades so far")
+          print(f"\n--- Variant {VARIANT_TAG}: fetched {fetched}/{len(ALL_SYMBOLS)} symbols, {len(all_trades)} trades ---\n")
+
+
+          def _metrics(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_held_days=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_held_days = sum(t["held_days"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_held_days=avg_held_days)
+
+
+          print(f"=== VARIANT RESULT: {VARIANT_TAG} (REAL main.add_strategy_signal 'rsi_reversal', LONG, cost-net) ===")
+          row = _metrics(all_trades)
+          print(f"variant_tag={VARIANT_TAG} n_trades={row['n']} win_rate={row['win_rate']:.2f}% "
+                f"pf_net={row['pf_net']:.3f} pf_gross={row['pf_gross']:.3f} "
+                f"avg_net_inr={row['avg_net']:.2f} avg_held_days={row['avg_held_days']:.1f}")
+
+          print("\n=== By exit_reason ===")
+          by_reason = {}
+          for t in all_trades:
+              by_reason.setdefault(t["exit_reason"], []).append(t)
+          for reason, ts in sorted(by_reason.items(), key=lambda kv: -len(kv[1])):
+              m2 = _metrics(ts)
+              print(f"{reason}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_days={m2['avg_held_days']:.1f}")
+          PYEOF
