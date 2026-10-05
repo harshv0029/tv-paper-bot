@@ -119,3 +119,29 @@ def test_endpoint_excludes_yesterdays_entries():
     result = main.strategy_scan_activity()
     row = next(r for r in result["strategies"] if r["strategy_tag"] == "gap_and_go")
     assert row["successful_entries_today"] == 0
+
+
+def test_endpoint_rows_carry_registry_categories():
+    # Explicit user request (2026-10-05): the dashboard table gets a
+    # leftmost Category column. Each row carries the registry's own
+    # categories list (a strategy may sit on several - power_play is both
+    # swing and buy), never a hardcoded label.
+    _fresh_db()
+    _reset()
+    rows = {r["strategy_tag"]: r for r in main.strategy_scan_activity()["strategies"]}
+    assert rows["gap_and_go"]["categories"] == ["swing"]
+    assert rows["power_play"]["categories"] == ["swing", "buy"]
+
+
+def test_endpoint_rows_carry_avg_held_days_from_registry_metrics():
+    # Explicit user request (2026-10-05): swing rows show how many trading
+    # days a trade was held on average in the backtest behind the PFnet /
+    # Win %. Real recorded figures only; None where the run never recorded it.
+    _fresh_db()
+    _reset()
+    rows = {r["strategy_tag"]: r for r in main.strategy_scan_activity()["strategies"]}
+    assert rows["power_play"]["avg_held_days"] == 16.2
+    assert rows["primary_base"]["avg_held_days"] == 17.0
+    assert rows["order_block_delta"]["avg_held_days"] == 21.7
+    assert rows["volume_profile_poc"]["avg_held_days"] == 12.2
+    assert rows["gap_and_go"]["avg_held_days"] is None  # not recorded - never guessed

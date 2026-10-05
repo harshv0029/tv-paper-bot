@@ -116,6 +116,7 @@ class Metrics:
     n_trades: int
     avg_net_inr: Optional[float] = None
     cost_drag_pct: Optional[float] = None
+    avg_held_days: Optional[float] = None  # mean holding period (daily-bar backtests => trading days) of the SAME run as pfnet/win_rate_pct - how long, on average, a trade took to realize those numbers. None = not recorded for that run yet (never guessed).
     universe: str = ""          # "full_2680", "52_symbol_sample", etc. - never omit
     run_ref: str = ""           # workflow file + run id, or commit, that produced this
 
@@ -396,7 +397,7 @@ REGISTRY: list[StrategyDef] = [
         entry_fn=None,  # main.py's own primary_base_entry_signal IS the live entry_fn - this
         # field only ever fed the design-only scan_universe() scaffold, never main.py's real scheduler
         metrics=Metrics(
-            pfnet=2.069, pfgross=2.551, win_rate_pct=44.31, n_trades=2591,
+            pfnet=2.069, pfgross=2.551, win_rate_pct=44.31, n_trades=2591, avg_held_days=17.0,
             avg_net_inr=404.74,
             universe="full_2680 (2401/2680 fetched)",
             run_ref="primary-base-validation-replay.yml run 36820565494 "
@@ -551,7 +552,7 @@ REGISTRY: list[StrategyDef] = [
         entry_fn=None,  # main.py's own power_play_entry_signal IS the live entry_fn - this field
         # only ever fed the design-only scan_universe() scaffold, never main.py's real scheduler
         metrics=Metrics(
-            pfnet=5.023, pfgross=5.820, win_rate_pct=44.95, n_trades=109,
+            pfnet=5.023, pfgross=5.820, win_rate_pct=44.95, n_trades=109, avg_held_days=16.2,
             avg_net_inr=1953.04,
             universe="full_2680 (2366/2680 fetched)",
             run_ref="power-play-validation-replay.yml run 36599530532 (2026-09-29, calls the real main.py functions)",
@@ -1012,7 +1013,7 @@ REGISTRY: list[StrategyDef] = [
         status=StrategyStatus.RESEARCH,
         entry_fn=None,
         metrics=Metrics(
-            pfnet=1.062, pfgross=1.259, win_rate_pct=39.79, n_trades=33049,
+            pfnet=1.062, pfgross=1.259, win_rate_pct=39.79, n_trades=33049, avg_held_days=21.7,
             avg_net_inr=69.72,
             universe="full_2680 (2409/2688 fetched)",
             run_ref="order-block-delta-research.yml run 37358050173 (2026-10-05, daily/5y, LONG)",
@@ -1040,7 +1041,7 @@ REGISTRY: list[StrategyDef] = [
         status=StrategyStatus.RESEARCH,
         entry_fn=None,
         metrics=Metrics(
-            pfnet=1.025, pfgross=1.396, win_rate_pct=24.98, n_trades=49927,
+            pfnet=1.025, pfgross=1.396, win_rate_pct=24.98, n_trades=49927, avg_held_days=12.2,
             avg_net_inr=74.13,
             universe="full_2680 (2377/2688 fetched)",
             run_ref="volume-profile-poc-liquidity-research.yml run 37358062832 (2026-10-05, daily/5y, LONG)",
@@ -1065,7 +1066,7 @@ REGISTRY: list[StrategyDef] = [
         status=StrategyStatus.RESEARCH,
         entry_fn=None,
         metrics=Metrics(
-            pfnet=0.838, pfgross=1.052, win_rate_pct=37.81, n_trades=28525,
+            pfnet=0.838, pfgross=1.052, win_rate_pct=37.81, n_trades=28525, avg_held_days=15.1,
             avg_net_inr=-252.7,
             universe="full_2680",
             run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
@@ -1091,7 +1092,7 @@ REGISTRY: list[StrategyDef] = [
         status=StrategyStatus.RESEARCH,
         entry_fn=None,
         metrics=Metrics(
-            pfnet=0.882, pfgross=1.102, win_rate_pct=36.21, n_trades=19797,
+            pfnet=0.882, pfgross=1.102, win_rate_pct=36.21, n_trades=19797, avg_held_days=16.4,
             avg_net_inr=-185.85,
             universe="full_2680",
             run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
@@ -1117,7 +1118,7 @@ REGISTRY: list[StrategyDef] = [
         status=StrategyStatus.RESEARCH,
         entry_fn=None,
         metrics=Metrics(
-            pfnet=0.933, pfgross=1.159, win_rate_pct=35.65, n_trades=12287,
+            pfnet=0.933, pfgross=1.159, win_rate_pct=35.65, n_trades=12287, avg_held_days=17.3,
             avg_net_inr=-108.03,
             universe="full_2680",
             run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
@@ -1143,7 +1144,7 @@ REGISTRY: list[StrategyDef] = [
         status=StrategyStatus.RESEARCH,
         entry_fn=None,
         metrics=Metrics(
-            pfnet=0.838, pfgross=1.048, win_rate_pct=33.85, n_trades=14708,
+            pfnet=0.838, pfgross=1.048, win_rate_pct=33.85, n_trades=14708, avg_held_days=16.8,
             avg_net_inr=-265.46,
             universe="full_2680",
             run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
@@ -1169,7 +1170,7 @@ REGISTRY: list[StrategyDef] = [
         status=StrategyStatus.RESEARCH,
         entry_fn=None,
         metrics=Metrics(
-            pfnet=0.869, pfgross=1.081, win_rate_pct=33.89, n_trades=8422,
+            pfnet=0.869, pfgross=1.081, win_rate_pct=33.89, n_trades=8422, avg_held_days=17.1,
             avg_net_inr=-220.51,
             universe="full_2680",
             run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
@@ -1195,7 +1196,7 @@ REGISTRY: list[StrategyDef] = [
         status=StrategyStatus.RESEARCH,
         entry_fn=None,
         metrics=Metrics(
-            pfnet=0.946, pfgross=1.174, win_rate_pct=34.72, n_trades=4314,
+            pfnet=0.946, pfgross=1.174, win_rate_pct=34.72, n_trades=4314, avg_held_days=17.3,
             avg_net_inr=-92.08,
             universe="full_2680",
             run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
@@ -1221,7 +1222,7 @@ REGISTRY: list[StrategyDef] = [
         status=StrategyStatus.RESEARCH,
         entry_fn=None,
         metrics=Metrics(
-            pfnet=0.905, pfgross=1.177, win_rate_pct=49.45, n_trades=54823,
+            pfnet=0.905, pfgross=1.177, win_rate_pct=49.45, n_trades=54823, avg_held_days=11.6,
             avg_net_inr=-118.82,
             universe="full_2680",
             run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
@@ -1247,7 +1248,7 @@ REGISTRY: list[StrategyDef] = [
         status=StrategyStatus.RESEARCH,
         entry_fn=None,
         metrics=Metrics(
-            pfnet=0.928, pfgross=1.182, win_rate_pct=45.47, n_trades=41920,
+            pfnet=0.928, pfgross=1.182, win_rate_pct=45.47, n_trades=41920, avg_held_days=13.3,
             avg_net_inr=-96.4,
             universe="full_2680",
             run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
@@ -1273,7 +1274,7 @@ REGISTRY: list[StrategyDef] = [
         status=StrategyStatus.RESEARCH,
         entry_fn=None,
         metrics=Metrics(
-            pfnet=0.914, pfgross=1.152, win_rate_pct=41.38, n_trades=30325,
+            pfnet=0.914, pfgross=1.152, win_rate_pct=41.38, n_trades=30325, avg_held_days=15.0,
             avg_net_inr=-122.82,
             universe="full_2680",
             run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
@@ -1349,6 +1350,7 @@ def leaderboard(category: TradeCategory, top_n: int = 5) -> list[dict]:
             "status": s.status.value,
             "pfnet": s.metrics.pfnet if s.metrics else None,
             "win_rate_pct": s.metrics.win_rate_pct if s.metrics else None,
+            "avg_held_days": s.metrics.avg_held_days if s.metrics else None,
             "n_trades": s.metrics.n_trades if s.metrics else None,
             "universe": s.metrics.universe if s.metrics else None,
             "viable": s.is_viable(),
@@ -1383,6 +1385,7 @@ def viable_leaderboard(category: TradeCategory, floor: float = PFNET_LIVE_FLOOR)
             "status": s.status.value,
             "pfnet": s.metrics.pfnet if s.metrics else None,
             "win_rate_pct": s.metrics.win_rate_pct if s.metrics else None,
+            "avg_held_days": s.metrics.avg_held_days if s.metrics else None,
             "n_trades": s.metrics.n_trades if s.metrics else None,
             "universe": s.metrics.universe if s.metrics else None,
             "viable": True,
@@ -1428,6 +1431,7 @@ def all_strategies_info() -> dict:
             "status": s.status.value,
             "pfnet": s.metrics.pfnet if s.metrics else None,
             "win_rate_pct": s.metrics.win_rate_pct if s.metrics else None,
+            "avg_held_days": s.metrics.avg_held_days if s.metrics else None,
             "n_trades": s.metrics.n_trades if s.metrics else None,
             "viable": s.is_viable(),
         }
