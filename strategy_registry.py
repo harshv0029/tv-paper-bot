@@ -52,23 +52,40 @@ class AssetClass(str, Enum):
 
 
 class TradeCategory(str, Enum):
-    """The 5 pools the user asked to track a top-5 leaderboard for
-    (2026-09-29). Distinct from AssetClass: a category is "what kind of
-    trade is this" (direction/timeframe), not "what instrument". A
-    strategy is never confined to exactly one of these - see
-    StrategyDef.categories and CLAUDE.md's 2026-09-29 "a strategy is not
-    confined to one TradeCategory" thumb rule."""
+    """The pools the user asked to track a top-5 leaderboard for
+    (2026-09-29, BIDIRECTIONAL added 2026-10-05). Distinct from
+    AssetClass: a category is "what kind of trade is this" (direction/
+    timeframe), not "what instrument". A strategy is never confined to
+    exactly one of these - see StrategyDef.categories and CLAUDE.md's
+    2026-09-29 "a strategy is not confined to one TradeCategory" thumb
+    rule.
+
+    BIDIRECTIONAL (2026-10-05, explicit user instruction): for a strategy
+    whose entry/exit mechanic is NATIVELY two-sided - one combined signal
+    that trades both long and short depending on where price sits (e.g.
+    Box Theory's top-zone-sell/bottom-zone-buy state machine, Parabolic
+    SAR's always-in-market long/short reversal system) - registered and
+    validated as ONE strategy, ONE set of pooled metrics covering both
+    directions together, not decomposed into two separate BUY/SHORT_SELL
+    registry entries the way e.g. gap_and_go (BUY/SWING) and
+    gap_and_go_short_fade (SHORT_SELL) are two separate strategies. Holds
+    both viable and non-viable bidirectional strategies, same "pool never
+    shrinks, every strategy tried stays on the record" discipline as
+    every other category."""
     SHORT_SELL = "short_sell"
     BUY = "buy"
     SWING = "swing"
     FUTURES = "futures"
     OPTIONS = "options"
+    BIDIRECTIONAL = "bidirectional"
 
 
-# CLAUDE.md, 2026-09-29 thumb rule: 5 categories x this many leaderboard
-# slots each bounds live per-stock monitoring cost at a fixed number of
-# strategy-checks per round-robin cycle, regardless of how large the
-# overall registry grows.
+# CLAUDE.md, 2026-09-29 thumb rule (category count updated 2026-10-05 with
+# BIDIRECTIONAL's addition - the formula itself is unchanged, it just
+# scales automatically with len(TradeCategory)): categories x this many
+# leaderboard slots each bounds live per-stock monitoring cost at a fixed
+# number of strategy-checks per round-robin cycle, regardless of how large
+# the overall registry grows.
 TOP_N_PER_CATEGORY = 5
 MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE = len(TradeCategory) * TOP_N_PER_CATEGORY
 
@@ -978,6 +995,300 @@ REGISTRY: list[StrategyDef] = [
             "structured, hypothesis-driven candidate CLAUDE.md's own 2026-09-30 sweep-"
             "discipline thumb rule calls for, not yet executed. Never checked across candle "
             "sizes beyond its own native 5m."
+        ),
+    ),
+
+    # ---- 2026-10-05 Indicator Combinatorics Step-1 (daily, LONG, full universe) ----
+    # Registered per CLAUDE.md "register every variant tried with real metrics,
+    # pass or fail" + "never merge differently-named variants". All are daily
+    # bars with multi-week holds -> SWING category. None is wired to a live
+    # path (no _STRATEGY_TAG_TO_REGISTRY_NAME entry), so _is_strategy_viable_
+    # for_real_money fails closed for all of them regardless of PFnet.
+    StrategyDef(
+        name="order_block_delta_long",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=1.062, pfgross=1.259, win_rate_pct=39.79, n_trades=33049,
+            avg_net_inr=69.72,
+            universe="full_2680 (2409/2688 fetched)",
+            run_ref="order-block-delta-research.yml run 37358050173 (2026-10-05, daily/5y, LONG)",
+        ),
+        source=".github/workflows/order-block-delta-research.yml (research-embedded order_block_entry_signal, not a main.py function)",
+        evidence=(
+            "Run 37358050173: PFnet 1.062, PFgross 1.259, n=33,049, win 39.79%, avg_net "
+            "+Rs69.72, avg held 21.7d. trail_stop_hit n=18,060 PFnet 0.322; max_hold_timeout "
+            "n=14,292 PFnet 7.255 (68% win); data_end_forced_close n=697 PFnet 0.595."
+        ),
+        notes=(
+            "VIABLE by metrics but margin over the 1.0 floor is thin and rides entirely on "
+            "30-day max-hold survivors (trail stops lose, PFnet ~0.3) - same recurring exit-"
+            "is-the-weak-point pattern. Research-stage reimplementation, NOT a call into "
+            "main.py. Backlog B-26: param/candle-size sweep + short mirror before any live "
+            "wiring. Long only so far."
+        ),
+    ),
+
+    StrategyDef(
+        name="volume_profile_poc_bounce_long",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=1.025, pfgross=1.396, win_rate_pct=24.98, n_trades=49927,
+            avg_net_inr=74.13,
+            universe="full_2680 (2377/2688 fetched)",
+            run_ref="volume-profile-poc-liquidity-research.yml run 37358062832 (2026-10-05, daily/5y, LONG)",
+        ),
+        source=".github/workflows/volume-profile-poc-liquidity-research.yml (research-embedded; approved volume-profile proxy for a liquidity heatmap, not a literal CoinGlass port)",
+        evidence=(
+            "Run 37358062832: PFnet 1.025, PFgross 1.396, n=49,927, win 24.98%, avg_net "
+            "+Rs74.13, avg held 12.2d. trail_stop_hit n=40,052 PFnet 0.310 (9.9% win); "
+            "max_hold_timeout n=9,524 PFnet 96.0 (87.8% win); window_end_forced_close n=351 PFnet 3.85."
+        ),
+        notes=(
+            "VIABLE by metrics but only just (1.025); cost drag is large (gross 1.396 -> net "
+            "1.025). Faster turnover than order_block_delta_long (12.2d vs 21.7d) per the "
+            "capital-turnover thumb rule. Research-stage, not wired live; B-26 sweeps pending."
+        ),
+    ),
+    StrategyDef(
+        name="rsi_reversal__p14_os30_ob70",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.838, pfgross=1.052, win_rate_pct=37.81, n_trades=28525,
+            avg_net_inr=-252.7,
+            universe="full_2680",
+            run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
+        ),
+        source=".github/workflows/rsi-reversal-variant-sweep-research.yml (real main.add_strategy_signal 'rsi_reversal')",
+        evidence=(
+            "Run 37358065924 variant p14_os30_ob70: PFnet 0.838, PFgross 1.052, n=28,525, win 37.81%, "
+            "avg_net Rs-252.7, avg held 15.1d. NOT VIABLE (< PFNET_LIVE_FLOOR). "
+            "trail_stop_hit bucket PFnet < 0.23 while rsi_overbought_exit PFnet >> 1."
+        ),
+        notes=(
+            "Non-viable Step-1 variant, recorded per register-every-variant rule. Shared "
+            "pattern across all 9 variants: the ATR trail stop is the drag, the RSI-overbought "
+            "exit is the profit source - a stop-multiplier sweep is the hypothesis-driven next "
+            "lever (not blind tuning). Long only; short mirror + other candle sizes not yet run."
+        ),
+    ),
+    StrategyDef(
+        name="rsi_reversal__p14_os25_ob75",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.882, pfgross=1.102, win_rate_pct=36.21, n_trades=19797,
+            avg_net_inr=-185.85,
+            universe="full_2680",
+            run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
+        ),
+        source=".github/workflows/rsi-reversal-variant-sweep-research.yml (real main.add_strategy_signal 'rsi_reversal')",
+        evidence=(
+            "Run 37358065924 variant p14_os25_ob75: PFnet 0.882, PFgross 1.102, n=19,797, win 36.21%, "
+            "avg_net Rs-185.85, avg held 16.4d. NOT VIABLE (< PFNET_LIVE_FLOOR). "
+            "trail_stop_hit bucket PFnet < 0.23 while rsi_overbought_exit PFnet >> 1."
+        ),
+        notes=(
+            "Non-viable Step-1 variant, recorded per register-every-variant rule. Shared "
+            "pattern across all 9 variants: the ATR trail stop is the drag, the RSI-overbought "
+            "exit is the profit source - a stop-multiplier sweep is the hypothesis-driven next "
+            "lever (not blind tuning). Long only; short mirror + other candle sizes not yet run."
+        ),
+    ),
+    StrategyDef(
+        name="rsi_reversal__p14_os20_ob80",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.933, pfgross=1.159, win_rate_pct=35.65, n_trades=12287,
+            avg_net_inr=-108.03,
+            universe="full_2680",
+            run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
+        ),
+        source=".github/workflows/rsi-reversal-variant-sweep-research.yml (real main.add_strategy_signal 'rsi_reversal')",
+        evidence=(
+            "Run 37358065924 variant p14_os20_ob80: PFnet 0.933, PFgross 1.159, n=12,287, win 35.65%, "
+            "avg_net Rs-108.03, avg held 17.3d. NOT VIABLE (< PFNET_LIVE_FLOOR). "
+            "trail_stop_hit bucket PFnet < 0.23 while rsi_overbought_exit PFnet >> 1."
+        ),
+        notes=(
+            "Non-viable Step-1 variant, recorded per register-every-variant rule. Shared "
+            "pattern across all 9 variants: the ATR trail stop is the drag, the RSI-overbought "
+            "exit is the profit source - a stop-multiplier sweep is the hypothesis-driven next "
+            "lever (not blind tuning). Long only; short mirror + other candle sizes not yet run."
+        ),
+    ),
+    StrategyDef(
+        name="rsi_reversal__p21_os30_ob70",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.838, pfgross=1.048, win_rate_pct=33.85, n_trades=14708,
+            avg_net_inr=-265.46,
+            universe="full_2680",
+            run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
+        ),
+        source=".github/workflows/rsi-reversal-variant-sweep-research.yml (real main.add_strategy_signal 'rsi_reversal')",
+        evidence=(
+            "Run 37358065924 variant p21_os30_ob70: PFnet 0.838, PFgross 1.048, n=14,708, win 33.85%, "
+            "avg_net Rs-265.46, avg held 16.8d. NOT VIABLE (< PFNET_LIVE_FLOOR). "
+            "trail_stop_hit bucket PFnet < 0.23 while rsi_overbought_exit PFnet >> 1."
+        ),
+        notes=(
+            "Non-viable Step-1 variant, recorded per register-every-variant rule. Shared "
+            "pattern across all 9 variants: the ATR trail stop is the drag, the RSI-overbought "
+            "exit is the profit source - a stop-multiplier sweep is the hypothesis-driven next "
+            "lever (not blind tuning). Long only; short mirror + other candle sizes not yet run."
+        ),
+    ),
+    StrategyDef(
+        name="rsi_reversal__p21_os25_ob75",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.869, pfgross=1.081, win_rate_pct=33.89, n_trades=8422,
+            avg_net_inr=-220.51,
+            universe="full_2680",
+            run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
+        ),
+        source=".github/workflows/rsi-reversal-variant-sweep-research.yml (real main.add_strategy_signal 'rsi_reversal')",
+        evidence=(
+            "Run 37358065924 variant p21_os25_ob75: PFnet 0.869, PFgross 1.081, n=8,422, win 33.89%, "
+            "avg_net Rs-220.51, avg held 17.1d. NOT VIABLE (< PFNET_LIVE_FLOOR). "
+            "trail_stop_hit bucket PFnet < 0.23 while rsi_overbought_exit PFnet >> 1."
+        ),
+        notes=(
+            "Non-viable Step-1 variant, recorded per register-every-variant rule. Shared "
+            "pattern across all 9 variants: the ATR trail stop is the drag, the RSI-overbought "
+            "exit is the profit source - a stop-multiplier sweep is the hypothesis-driven next "
+            "lever (not blind tuning). Long only; short mirror + other candle sizes not yet run."
+        ),
+    ),
+    StrategyDef(
+        name="rsi_reversal__p21_os20_ob80",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.946, pfgross=1.174, win_rate_pct=34.72, n_trades=4314,
+            avg_net_inr=-92.08,
+            universe="full_2680",
+            run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
+        ),
+        source=".github/workflows/rsi-reversal-variant-sweep-research.yml (real main.add_strategy_signal 'rsi_reversal')",
+        evidence=(
+            "Run 37358065924 variant p21_os20_ob80: PFnet 0.946, PFgross 1.174, n=4,314, win 34.72%, "
+            "avg_net Rs-92.08, avg held 17.3d. NOT VIABLE (< PFNET_LIVE_FLOOR). "
+            "trail_stop_hit bucket PFnet < 0.23 while rsi_overbought_exit PFnet >> 1."
+        ),
+        notes=(
+            "Non-viable Step-1 variant, recorded per register-every-variant rule. Shared "
+            "pattern across all 9 variants: the ATR trail stop is the drag, the RSI-overbought "
+            "exit is the profit source - a stop-multiplier sweep is the hypothesis-driven next "
+            "lever (not blind tuning). Long only; short mirror + other candle sizes not yet run."
+        ),
+    ),
+    StrategyDef(
+        name="rsi_reversal__p9_os30_ob70",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.905, pfgross=1.177, win_rate_pct=49.45, n_trades=54823,
+            avg_net_inr=-118.82,
+            universe="full_2680",
+            run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
+        ),
+        source=".github/workflows/rsi-reversal-variant-sweep-research.yml (real main.add_strategy_signal 'rsi_reversal')",
+        evidence=(
+            "Run 37358065924 variant p9_os30_ob70: PFnet 0.905, PFgross 1.177, n=54,823, win 49.45%, "
+            "avg_net Rs-118.82, avg held 11.6d. NOT VIABLE (< PFNET_LIVE_FLOOR). "
+            "trail_stop_hit bucket PFnet < 0.23 while rsi_overbought_exit PFnet >> 1."
+        ),
+        notes=(
+            "Non-viable Step-1 variant, recorded per register-every-variant rule. Shared "
+            "pattern across all 9 variants: the ATR trail stop is the drag, the RSI-overbought "
+            "exit is the profit source - a stop-multiplier sweep is the hypothesis-driven next "
+            "lever (not blind tuning). Long only; short mirror + other candle sizes not yet run."
+        ),
+    ),
+    StrategyDef(
+        name="rsi_reversal__p9_os25_ob75",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.928, pfgross=1.182, win_rate_pct=45.47, n_trades=41920,
+            avg_net_inr=-96.4,
+            universe="full_2680",
+            run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
+        ),
+        source=".github/workflows/rsi-reversal-variant-sweep-research.yml (real main.add_strategy_signal 'rsi_reversal')",
+        evidence=(
+            "Run 37358065924 variant p9_os25_ob75: PFnet 0.928, PFgross 1.182, n=41,920, win 45.47%, "
+            "avg_net Rs-96.4, avg held 13.3d. NOT VIABLE (< PFNET_LIVE_FLOOR). "
+            "trail_stop_hit bucket PFnet < 0.23 while rsi_overbought_exit PFnet >> 1."
+        ),
+        notes=(
+            "Non-viable Step-1 variant, recorded per register-every-variant rule. Shared "
+            "pattern across all 9 variants: the ATR trail stop is the drag, the RSI-overbought "
+            "exit is the profit source - a stop-multiplier sweep is the hypothesis-driven next "
+            "lever (not blind tuning). Long only; short mirror + other candle sizes not yet run."
+        ),
+    ),
+    StrategyDef(
+        name="rsi_reversal__p9_os20_ob80",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.914, pfgross=1.152, win_rate_pct=41.38, n_trades=30325,
+            avg_net_inr=-122.82,
+            universe="full_2680",
+            run_ref="rsi-reversal-variant-sweep-research.yml run 37358065924 (2026-10-05, daily/5y, LONG, calls the REAL main.add_strategy_signal 'rsi_reversal')",
+        ),
+        source=".github/workflows/rsi-reversal-variant-sweep-research.yml (real main.add_strategy_signal 'rsi_reversal')",
+        evidence=(
+            "Run 37358065924 variant p9_os20_ob80: PFnet 0.914, PFgross 1.152, n=30,325, win 41.38%, "
+            "avg_net Rs-122.82, avg held 15.0d. NOT VIABLE (< PFNET_LIVE_FLOOR). "
+            "trail_stop_hit bucket PFnet < 0.23 while rsi_overbought_exit PFnet >> 1."
+        ),
+        notes=(
+            "Non-viable Step-1 variant, recorded per register-every-variant rule. Shared "
+            "pattern across all 9 variants: the ATR trail stop is the drag, the RSI-overbought "
+            "exit is the profit source - a stop-multiplier sweep is the hypothesis-driven next "
+            "lever (not blind tuning). Long only; short mirror + other candle sizes not yet run."
         ),
     ),
 
