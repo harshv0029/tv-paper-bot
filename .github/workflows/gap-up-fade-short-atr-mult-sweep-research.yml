@@ -233,7 +233,7 @@ jobs:
         with:
           name: sweep-${{ matrix.atr_mult }}-shard-${{ matrix.shard }}-result
           path: shard_result.json
-          retention-days: 3
+          retention-days: 90
 
   aggregate:
     needs: sweep
@@ -289,7 +289,7 @@ jobs:
               trades = by_atr_mult[atr_mult]
               fetched, universe = fetched_by_atr_mult[atr_mult]
               row = _metrics(trades)
-              print(f"ATR_MULT={atr_mult:>4s}  fetched={fetched}/{universe}  n_trades={row['n']:<6d} "
+              print(f"ATR_MULT={str(atr_mult):>4}  fetched={fetched}/{universe}  n_trades={row['n']:<6d} "
                     f"win_rate={row['win_rate']:6.2f}%  pf_net={row['pf_net']:6.3f}  pf_gross={row['pf_gross']:6.3f}  "
                     f"avg_net_inr={row['avg_net']:9.2f}  avg_held_min={row['avg_held_minutes']:7.1f}")
 

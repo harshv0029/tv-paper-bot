@@ -483,3 +483,91 @@ of trusting the transfer pack's prose.
   PFnet-gate rule above) - nothing to change there; this override only
   has any live effect on the long intraday engine, since short/swing
   already behaved this way.
+- **Thumb rule (2026-10-05, explicit user instruction): a different
+  strategy tag/name is never silently treated as the same strategy as
+  another, even when it currently maps to the same registry entry,
+  metrics, or outcome - keep every distinctly-named tag as its OWN
+  separate row/record. A different name is evidence of a real,
+  deliberate variation until shown otherwise; collapsing two names into
+  one on the assumption they're duplicates is the mistake this rule
+  forbids, not something to do first and ask about later.** Prompted by
+  `/strategy-scan-activity`'s first cut (same session): `gap_and_go` and
+  `orb-swing-gap-and-go` both resolve to the `gap_and_go_swing` registry
+  entry via `_STRATEGY_TAG_TO_REGISTRY_NAME`, so the endpoint deduped them
+  into a single row "to avoid showing the same strategy twice" - reverted
+  per this instruction into two separate rows, even though
+  `orb-swing-gap-and-go` has zero other reference anywhere in `main.py`
+  (confirmed by grep) and will read `scans_today=0` forever unless
+  something is actually wired to record scans under it. That zero is the
+  correct, honest thing to show - "this tag is registered but nothing
+  currently uses it" - not a defect to paper over by merging it into a
+  same-registry sibling. Applies everywhere in this codebase a tag/name
+  comparison could tempt a "these are basically the same thing" shortcut:
+  registry entries, dashboard rows, aggregation keys, scan/entry counters,
+  leaderboard rows - never fold two differently-named things together
+  without the user explicitly confirming they really are one thing wearing
+  two names, and even then, say so plainly rather than merging silently.
+- **Thumb rule (2026-10-05, explicit user instruction): all strategy
+  research from now on follows the combinatorial Indicator Repository
+  methodology in `docs/INDICATOR_COMBINATORICS_METHODOLOGY.md` - read
+  that file in full before starting any new indicator/strategy research
+  pass.** Summary (full spec in that file): build a catalog of every
+  indicator this repo has (most already exist as atomic single-indicator
+  branches in `main.add_strategy_signal`, e.g. `rsi_reversal`,
+  `macd_cross`, `bollinger_mean_reversion`, plus standalone research-stage
+  functions like order-block delta and Volume Profile/POC). For each
+  indicator, sweep its FULL internal parameter grid (every variant, not a
+  handful of eyeballed values) and validate each variant standalone as its
+  own strategy. Then combine indicators pairwise (both role orderings -
+  which one triggers vs. which one filters - per the user's "5P4
+  permutation" framing, not just which variants are paired), then
+  triple-wise, across multiple timeframes. When a genuinely new indicator
+  is found later (a new book, a new web search), it gets tested standalone
+  and then combined with EVERY non-empty subset of the existing indicator
+  pool, not just a convenient few - the full power-set recursion, flagged
+  honestly as exponential, with any prioritization-for-tractability
+  surfaced plainly rather than silently narrowing the rule. Every other
+  standing rule above still applies unchanged to every cell of this grid:
+  real `main.py` functions over reimplementations, full-universe
+  validation, cost-aware sizing, both directions, candle-size sweep, never
+  tune blind, register every variant/combo tried with real metrics (pass
+  or fail), `PFNET_LIVE_FLOOR` gates real money, faster turnover as
+  tie-break, and never silently merge two differently-tagged
+  variants/combos (the rule immediately above, now explicitly extended to
+  this entire combinatorial search).
+- **Incident (2026-10-05): a real swing position's strategy identity and
+  stop-loss were both lost to restart amnesia, and nothing closer than a
+  once-a-day retry existed to auto-heal it.** Live NYKAA.NS, found by the
+  user directly (dashboard showed its own strategy flip from `gap_and_go`
+  in the morning to `universal-score` later the same day; Kotak's app
+  showed no resting SL at either point). Root cause, confirmed from code:
+  `real_positions_swing` (built 2026-09-22) was never added to the Upstash
+  Redis durability mirror `real_positions` got 2026-09-08 and
+  `real_positions_short` got 2026-09-30 - Render's free tier has no
+  persistent disk, so a restart silently wiped NYKAA's own
+  `real_positions_swing` row. The next reconcile (`adopt="*"`) could no
+  longer tell this was a swing position - the 2026-09-30
+  `our_swing_trdsyms` exclusion check (`_reconcile_real_positions_core`)
+  only works while that row still exists - and re-adopted NYKAA into the
+  WRONG table (`real_positions`, intraday) with a NULL strategy (that
+  adopt path's own INSERT never sets one), losing the swing engine's own
+  governance in the process. Separately, even without the misadoption:
+  the swing engine's OWN SL retry (`_maybe_sync_real_swing_stop_loss`)
+  only ever ran once per IST day with no escalation (its own docstring:
+  "explicitly deferred, not silently dropped") - a real gap against the
+  standing "every open position, long or short, tracked or not, checked
+  and auto-healed every 5 minutes" rule above, which intraday long/short
+  already had and swing never received. Fixed same day:
+  `_sync_real_positions_swing_external`/
+  `hydrate_real_positions_swing_from_external` (mirroring the existing
+  long/short pattern exactly, wired into every mutation site and startup
+  hydration) plus a swing governance-backfill block in
+  `_reconcile_real_positions_core` that retries a missing swing SL on
+  EVERY reconcile call (now every 5 min), not just once a day. 12 new
+  tests (`tests/test_real_positions_swing_external.py`), full suite
+  green. Applies going forward: any future new real-position table
+  (a new asset class, a new engine) must get BOTH the Upstash durability
+  mirror AND a 5-minute governance-backfill entry from the moment it's
+  built, never added later as a follow-up once an incident forces it -
+  this is the second time that exact sequencing mistake has happened
+  (`real_positions_short` 2026-09-30, `real_positions_swing` 2026-10-05).
