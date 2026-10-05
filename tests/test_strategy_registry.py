@@ -112,13 +112,18 @@ def test_a_strategy_can_appear_in_more_than_one_categorys_leaderboard():
         sr.REGISTRY[:] = original
 
 
-def test_max_strategy_checks_per_symbol_per_cycle_is_25():
-    # CLAUDE.md, 2026-09-29 thumb rule: 5 categories x top-5 leaderboard
-    # slots each bounds live per-stock monitoring cost at 25 checks per
-    # round-robin cycle, regardless of registry size. Locks the number
-    # itself down so a future edit to the category count or top_n can't
-    # silently drift from what CLAUDE.md documents.
-    assert sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE == 25
+def test_max_strategy_checks_per_symbol_per_cycle_scales_with_category_count():
+    # CLAUDE.md, 2026-09-29 thumb rule (category count updated 2026-10-05
+    # with TradeCategory.BIDIRECTIONAL's addition): category-count x
+    # top-5 leaderboard slots each bounds live per-stock monitoring cost
+    # per round-robin cycle, regardless of registry size - the formula is
+    # meant to scale automatically with len(TradeCategory), not stay
+    # pinned at its original 5-category value of 25. Locks the FORMULA
+    # down (len(TradeCategory) * TOP_N_PER_CATEGORY), not a hardcoded
+    # number, so this test can't silently drift from what the constant
+    # itself is defined to do.
+    assert sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE == len(sr.TradeCategory) * sr.TOP_N_PER_CATEGORY
+    assert sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE == 30
 
 
 def test_is_viable_none_when_no_metrics():
