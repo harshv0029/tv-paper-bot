@@ -581,3 +581,21 @@ of trusting the transfer pack's prose.
   that moves them (status + date + evidence: run id, commit, URL). Never delete a
   row — close it. Before writing any transfer pack, reconcile it against the table
   so no item is dropped; the pack should reference the table, not replace it.
+- **Override (2026-10-05, explicit user instruction, confirmed via AskUserQuestion
+  after being shown the gap): `order_block_delta` and `volume_profile_poc` are
+  wired into the live swing scan with REAL-money mirroring ON from the first
+  deploy, before any replay has called the main.py ports.** User's words:
+  "make viable strategies in the live wiring" -> "Port and real money now". What
+  was disclosed and chosen anyway: (1) both existed only as research code embedded
+  in `order-block-delta-research.yml` / `volume-profile-poc-liquidity-research.yml`;
+  main.py's `order_block_entry_signal`/`volume_profile_poc_entry_signal` (+ exit
+  fns) are ports whose constants/arithmetic were copied verbatim but have NOT been
+  validated by a replay calling them - their registry PFnets (1.062 / 1.025) come
+  from the research implementations; (2) both margins over PFNET_LIVE_FLOOR are
+  thin and sit entirely on 30-day max-hold survivors (trail stops lose, PFnet
+  ~0.3). Owed, tracked as backlog B-30: a full-universe replay that imports and
+  calls the main.py functions, results compared to the registry numbers; if it
+  lands < 1.0 the registry entries must be corrected (the gate then closes the
+  strategies automatically). Checked LAST in `_run_swing_scan`'s entry chain so they
+  never crowd out a higher-PFnet setup. Shares `is_real_swing_trading_enabled`;
+  no new kill switch.
