@@ -141,32 +141,56 @@ not disqualify an indicator from Step 2):
   `trigger=B` mirror) — again, every distinct combo is its own row, never
   merged with a sibling ordering or variant pairing.
 
-## 4. Step 3 — triple (and higher) combination, multi-timeframe
+## 4. Step 3 through Step N — triple, quadruple, ... all the way to the full pool, multi-timeframe
 
-Same recursive principle, one level up: for three indicators `A, B, C`,
-combine all three (one as trigger, the other two as independent
-confirmation/filter layers — test each of the 3 trigger-role assignments),
-across the full variant cross-product, across the standing timeframe
-sweep. This is where "multi timeframe should be done" applies most
-concretely: a triple-combo strategy is a natural place to let each layer
-read its *own* timeframe (e.g. a 1d regime filter + a 1h trigger + a 5m
-entry-timing layer) in addition to sweeping all three at one shared
-timeframe — both are worth testing and are honestly different strategies,
-tagged separately.
+**Explicit clarification (2026-10-05, explicit user instruction): this
+progression is NOT capped at "triple."** For an indicator pool of size
+`N`, the methodology runs **Step `k` for every `k` from 1 to `N`** — every
+combination SIZE, not just 1 (standalone), 2 (pairwise), and 3 (triple).
+Step `k` tests every `k`-sized subset of the current `N`-indicator pool
+(`C(N,k)` subsets), each subset tested across its own role-assignment
+permutations (which member is the trigger, which members are
+confirmation/filter layers — `k` permutations per subset, one per choice
+of trigger), each permutation across the full variant cross-product of
+its `k` members, each across the standing timeframe sweep. Step `N`
+itself — all `N` indicators combined at once — is the final, largest cell
+of this grid, not a special case stopped short of.
+
+Concretely, with a 3-indicator pool (`A, B, C`): Step 1 is the 3
+standalone indicators (already covered above), Step 2 is the 3 pairs
+(`A+B`, `A+C`, `B+C`), and Step 3 — the full pool — is the single triple
+`A+B+C` (3 trigger-role permutations: A-triggers, B-triggers, or
+C-triggers, each with the other two as filters). With a 4-indicator pool
+(after adding `D`, see the growth rule below), Step 3 additionally covers
+every triple that includes `D` (`A+B+D`, `A+C+D`, `B+C+D`, alongside the
+original `A+B+C`), and a NEW Step 4 appears — the full 4-indicator
+combination `A+B+C+D`. Every time the pool grows by one indicator, the
+grid gains both new cells within existing steps AND one new top step
+(Step `N`) for the newly-larger full combination.
+
+This is where "multi timeframe should be done" applies most concretely at
+every step `k >= 2`: a multi-indicator combo is a natural place to let
+each layer read its *own* timeframe (e.g. a 1d regime filter + a 1h
+trigger + a 5m entry-timing layer) in addition to sweeping all `k`
+members at one shared timeframe — both are worth testing and are
+honestly different strategies, tagged separately.
 
 ## 5. Growth rule — adding a new indicator to an existing pool
 
 When a new indicator `D` is found (new book, new PDF, new research), it
 is **never** tested only against the strategies that happen to be
 convenient — it is run through the full recursive pipeline against the
-**entire existing pool**:
+**entire existing pool**, at every step size `k`, not stopped at triples:
 
 1. `D` standalone, all its own variants (Step 1).
 2. `D` paired with **every existing individual indicator**: `A+D`,
    `B+D`, `C+D` (Step 2, both role orderings each).
 3. `D` added to **every existing validated pair**, forming every triple
-   that includes `D`: `A+B+D`, `A+C+D`, `B+C+D` (Step 3).
-4. `D` added to the full existing pool: `A+B+C+D`.
+   that includes `D`: `A+B+D`, `A+C+D`, `B+C+D` (Step 3) — alongside the
+   pre-existing `A+B+C` triple, which was already Step N before `D`
+   arrived and now sits one step below the new top.
+4. `D` added to the full existing pool: `A+B+C+D` — this becomes the
+   new Step N (N=4) now that the pool has grown.
 
 Formalized for a pool of size `N` gaining an `(N+1)`th indicator: the new
 indicator must be tested standalone, then combined with **every non-empty
