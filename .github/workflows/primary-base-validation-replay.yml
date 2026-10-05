@@ -230,7 +230,7 @@ jobs:
         with:
           name: shard-${{ matrix.shard }}-result
           path: shard_result.json
-          retention-days: 3
+          retention-days: 90
 
   aggregate:
     needs: replay
