@@ -1,0 +1,390 @@
+name: Parabolic SAR - Standalone Variant Sweep (Book 2 extraction, Indicator Repository Step 1)
+
+# Book 2 extraction (docs/Technical_Analysis_of_the_Financial.pdf, John J.
+# Murphy "Technical Analysis of the Financial Markets", "Computers and
+# Trading Systems" chapter, confirmed from this repo's own TOC read-through
+# 2026-10-05) - item 1 of N, per the standing "extract and try EVERY
+# strategy a shared book describes" rule. Genuinely new ground in this
+# repo - grepped first (parabolic/sar/stop_and_reverse), zero hits.
+#
+# Wilder's Parabolic SAR, implemented as Wilder's own original COMPLETE
+# trading system (always in the market, long or short, reversing on every
+# SAR touch) - not just a trailing-stop overlay on another entry signal.
+# This makes it natively bidirectional (satisfies the standing both-
+# directions rule in one pass, same as Box Theory's own zone logic) AND
+# means the exit logic is NOT a separate unspecified parameter the way it
+# is for every other strategy built this session - the SAR level IS both
+# the trailing stop and the reversal trigger, by the indicator's own
+# design. Nothing to invent there.
+#
+# Algorithm (standard Wilder formulation, re-derived from the book's own
+# description, not copied from any third-party library):
+#   SAR_next = SAR + AF * (EP - SAR)
+#   where EP (extreme point) is the highest high since the current uptrend
+#   began (lowest low for a downtrend), AF (acceleration factor) starts at
+#   AF_INIT and increases by AF_INIT each time a NEW extreme point is made
+#   (capped at AF_MAX) - Wilder's own convention of step == init is used
+#   here to keep the swept parameter space one-dimensional per factor
+#   (AF_INIT, AF_MAX) rather than three, consistent with this session's
+#   other 9-variant grids.
+#   SAR is clamped to never move inside the price range of the prior two
+#   bars (for an uptrend, SAR <= min(low[i-1], low[i-2])) - Wilder's own
+#   stated rule, omitted by many simplified online descriptions but
+#   present in his original book and reproduced here.
+#   A reversal fires when price touches/crosses the current SAR: the new
+#   trend's SAR resets to the OLD trend's own extreme point, EP resets to
+#   the reversal bar's own extreme, AF resets to AF_INIT.
+#
+# Disclosed design choice: Wilder's system is normally a continuous,
+# never-reset trend-follower. This workflow re-initializes the trend/SAR/
+# EP/AF state at the START of each trading day (first 2 bars decide the
+# initial direction) and squares off at day end - the same intraday,
+# same-day-only shape every other research workflow in this repo uses,
+# for well-defined position sizing/risk under this repo's own cost model.
+# A genuine multi-day-hold SAR (no daily reset) is a separate, flagged
+# follow-up, not done here.
+#
+# 9 variants (3x3): AF_INIT in {0.01, 0.02, 0.03} (0.02 is Wilder's own
+# published default), AF_MAX in {0.10, 0.20, 0.30} (0.20 is Wilder's own
+# published default).
+#
+# Timeframe: 5m/60d this pass, matching this session's other Step-1
+# intraday passes. Other candle sizes are an explicit follow-up per the
+# standing candle-size sweep rule.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - { af_init: 0.01, af_max: 0.10 }
+          - { af_init: 0.01, af_max: 0.20 }
+          - { af_init: 0.01, af_max: 0.30 }
+          - { af_init: 0.02, af_max: 0.10 }
+          - { af_init: 0.02, af_max: 0.20 }
+          - { af_init: 0.02, af_max: 0.30 }
+          - { af_init: 0.03, af_max: 0.10 }
+          - { af_init: 0.03, af_max: 0.20 }
+          - { af_init: 0.03, af_max: 0.30 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run Parabolic SAR variant full-universe validation
+        env:
+          VARIANT_AF_INIT: ${{ matrix.variant.af_init }}
+          VARIANT_AF_MAX: ${{ matrix.variant.af_max }}
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import os
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          AF_INIT = float(os.environ["VARIANT_AF_INIT"])
+          AF_MAX = float(os.environ["VARIANT_AF_MAX"])
+          VARIANT_TAG = f"parabolic_sar__afinit{AF_INIT}_afmax{AF_MAX}"
+
+          OPEN_MIN = 555
+          CLOSE_MIN = 930
+          SQUAREOFF_MIN = 920
+          TZ_OFF = m.IST_OFFSET_MIN
+          MIN_LOOKBACK_DAYS = 60
+          CAPITAL_INR = 400000.0
+          RISK_PCT = 1.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(ts_local=ts_local)
+              df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+              df["mins"] = df["ts_local"].dt.hour * 60 + df["ts_local"].dt.minute
+              return df
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_long(symbol, entry_price, initial_stop, qty, entry_ts, exit_price,
+                              exit_ts, exit_reason, entry_cost, cost_model):
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - initial_stop
+              return {
+                  "symbol": symbol, "side": "long", "entry_ts": entry_ts, "exit_ts": exit_ts,
+                  "time_in_trade_min": (exit_ts - entry_ts) / 60.0,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def _finalize_short(symbol, entry_price, initial_stop, qty, entry_ts, exit_price,
+                               exit_ts, exit_reason, entry_cost, cost_model):
+              gross_pnl = (entry_price - exit_price) * qty
+              buy_cost = _entry_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + buy_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = initial_stop - entry_price
+              return {
+                  "symbol": symbol, "side": "short", "entry_ts": entry_ts, "exit_ts": exit_ts,
+                  "time_in_trade_min": (exit_ts - entry_ts) / 60.0,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def _compute_sar_series(highs, lows, start, end):
+              """Wilder's Parabolic SAR over bars [start, end) - returns
+              (sar_arr, trend_arr) where trend_arr[i] is True for uptrend.
+              Re-initialized fresh for each caller (one trading day's worth
+              of bars) - see this workflow's own module comment on the
+              disclosed daily-reset design choice."""
+              n = end - start
+              sar = np.zeros(n)
+              trend_up = np.zeros(n, dtype=bool)
+              if n < 2:
+                  return sar, trend_up
+
+              initial_up = highs[start + 1] >= highs[start]
+              trend = initial_up
+              ep = highs[start + 1] if trend else lows[start + 1]
+              af = AF_INIT
+              cur_sar = lows[start] if trend else highs[start]
+              sar[0] = cur_sar
+              trend_up[0] = trend
+              sar[1] = cur_sar
+              trend_up[1] = trend
+
+              for j in range(2, n):
+                  i = start + j
+                  prev_sar = cur_sar
+                  new_sar = prev_sar + af * (ep - prev_sar)
+                  if trend:
+                      new_sar = min(new_sar, lows[i - 1], lows[i - 2])
+                  else:
+                      new_sar = max(new_sar, highs[i - 1], highs[i - 2])
+
+                  reversed_now = (lows[i] <= new_sar) if trend else (highs[i] >= new_sar)
+                  if reversed_now:
+                      trend = not trend
+                      cur_sar = ep
+                      ep = lows[i] if trend else highs[i]
+                      af = AF_INIT
+                  else:
+                      cur_sar = new_sar
+                      if trend and highs[i] > ep:
+                          ep = highs[i]
+                          af = min(af + AF_INIT, AF_MAX)
+                      elif (not trend) and lows[i] < ep:
+                          ep = lows[i]
+                          af = min(af + AF_INIT, AF_MAX)
+                  sar[j] = cur_sar
+                  trend_up[j] = trend
+              return sar, trend_up
+
+
+          def replay_symbol(symbol, raw_df, capital, risk_pct, cost_model):
+              """Research-stage - no existing main.py function covers this
+              (confirmed by grep, see this workflow's own module comment).
+              Wilder's SAR re-initialized once per calendar day."""
+              df = _prep(raw_df.copy())
+              n = len(df)
+              if n < MIN_LOOKBACK_DAYS:
+                  return []
+
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              closes = df["Close"].to_numpy(dtype=float)
+              mins_arr = df["mins"].to_numpy()
+              dates = df["date_local"].to_numpy()
+
+              sar_full = np.full(n, np.nan)
+              trend_full = np.zeros(n, dtype=bool)
+              for d in sorted(set(dates)):
+                  idxs = np.where((dates == d) & (mins_arr >= OPEN_MIN) & (mins_arr <= CLOSE_MIN))[0]
+                  if len(idxs) < 3:
+                      continue
+                  start, end = idxs[0], idxs[-1] + 1
+                  sar_vals, trend_vals = _compute_sar_series(highs, lows, start, end)
+                  sar_full[start:end] = sar_vals
+                  trend_full[start:end] = trend_vals
+
+              position = None
+              trades = []
+              for i in range(n):
+                  mins = int(mins_arr[i])
+                  if mins < OPEN_MIN or mins > CLOSE_MIN or np.isnan(sar_full[i]):
+                      continue
+                  last_close = float(closes[i])
+                  last_ts = df["ts_local"].iloc[i].timestamp()
+                  cur_sar = float(sar_full[i])
+                  cur_trend_up = bool(trend_full[i])
+
+                  if position is not None:
+                      exit_reason = None
+                      if position["side"] == "long" and not cur_trend_up:
+                          exit_reason = "sar_reversal"
+                      elif position["side"] == "short" and cur_trend_up:
+                          exit_reason = "sar_reversal"
+                      elif mins >= SQUAREOFF_MIN:
+                          exit_reason = "eod_squareoff"
+
+                      if exit_reason:
+                          fin = _finalize_long if position["side"] == "long" else _finalize_short
+                          trades.append(fin(
+                              symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_ts"], last_close, last_ts, exit_reason,
+                              position["entry_cost"], cost_model,
+                          ))
+                          position = None
+                      else:
+                          continue
+
+                  if mins >= SQUAREOFF_MIN:
+                      continue
+
+                  prev_trend_up = bool(trend_full[i - 1]) if i > 0 and not np.isnan(sar_full[i - 1]) else cur_trend_up
+                  fresh_flip = (cur_trend_up != prev_trend_up)
+                  if not fresh_flip:
+                      continue
+
+                  side = "long" if cur_trend_up else "short"
+                  entry_price = last_close
+                  stop_loss = cur_sar
+                  stop_dist = abs(entry_price - stop_loss)
+                  if stop_dist <= 0:
+                      continue
+                  usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100
+                  qty = int(np.floor(min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)))
+                  if qty <= 0 or qty * entry_price < 100:
+                      continue
+                  position = {
+                      "side": side, "entry_price": entry_price, "initial_stop": stop_loss,
+                      "entry_ts": last_ts, "qty": qty,
+                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                  }
+
+              if position is not None:
+                  last_close = float(closes[-1])
+                  last_ts = df["ts_local"].iloc[-1].timestamp()
+                  fin = _finalize_long if position["side"] == "long" else _finalize_short
+                  trades.append(fin(
+                      symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_ts"], last_close, last_ts, "window_end_forced_close",
+                      position["entry_cost"], cost_model,
+                  ))
+              return trades
+
+
+          ALL_SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          print(f"--- Variant {VARIANT_TAG}: fetching {len(ALL_SYMBOLS)} symbols (5m, 60d) ---")
+          all_trades = []
+          fetched = 0
+          for idx, sym in enumerate(ALL_SYMBOLS):
+              try:
+                  raw = m.fetch_ohlc(sym, "60d", "5m")
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < MIN_LOOKBACK_DAYS:
+                  continue
+              fetched += 1
+              try:
+                  trades = replay_symbol(sym, raw, CAPITAL_INR, RISK_PCT, DEFAULT_COST_MODEL)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              all_trades.extend(trades)
+              if (idx + 1) % 300 == 0:
+                  print(f"  ... {idx + 1}/{len(ALL_SYMBOLS)} processed, {len(all_trades)} trades so far")
+          print(f"\n--- Variant {VARIANT_TAG}: fetched {fetched}/{len(ALL_SYMBOLS)} symbols, {len(all_trades)} trades ---\n")
+
+
+          def _metrics(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_held_min=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_held_min = sum(t["time_in_trade_min"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_held_min=avg_held_min)
+
+
+          print(f"=== VARIANT RESULT: {VARIANT_TAG} (research-stage, BOTH directions, cost-net) ===")
+          row = _metrics(all_trades)
+          print(f"variant_tag={VARIANT_TAG} n_trades={row['n']} win_rate={row['win_rate']:.2f}% "
+                f"pf_net={row['pf_net']:.3f} pf_gross={row['pf_gross']:.3f} "
+                f"avg_net_inr={row['avg_net']:.2f} avg_held_min={row['avg_held_min']:.1f}")
+
+          print("\n=== By side ===")
+          for side in ("long", "short"):
+              side_trades = [t for t in all_trades if t["side"] == side]
+              m2 = _metrics(side_trades)
+              print(f"{side}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_min={m2['avg_held_min']:.1f}")
+
+          print("\n=== By exit_reason ===")
+          by_reason = {}
+          for t in all_trades:
+              by_reason.setdefault(t["exit_reason"], []).append(t)
+          for reason, ts in sorted(by_reason.items(), key=lambda kv: -len(kv[1])):
+              m2 = _metrics(ts)
+              print(f"{reason}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_min={m2['avg_held_min']:.1f}")
+          PYEOF
