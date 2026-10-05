@@ -158,12 +158,18 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
     # better-validated strategies clear the floor" standing rule working as
     # designed (strategy_registry.py's own 2026-09-29 "ever-growing pool"
     # thumb rule), not a regression to chase back down.
+    # 2026-10-05: order_block_delta_long (PFnet 1.062) and
+    # volume_profile_poc_bounce_long (PFnet 1.025) join (full-universe daily
+    # research runs 37358050173 / 37358062832). Research-only, not wired to
+    # any live path, so the real-money gate still fails closed for both.
     viable = [s.name for s in sr.REGISTRY if s.is_viable() is True]
     assert set(viable) == {
         "gap_and_go_swing", "power_play_high_tight_flag",
         "minervini_vcp_breakeven_2r", "minervini_vcp_breakeven_3r",
         "minervini_vcp_livermore_confirmed", "primary_base",
+        "order_block_delta_long", "volume_profile_poc_bounce_long",
     }
+    assert not any(n.startswith("rsi_reversal__") for n in viable)
 
 
 def test_leaderboard_ranks_by_pfnet_descending():

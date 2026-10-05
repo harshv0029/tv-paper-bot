@@ -363,8 +363,9 @@
         <th class="num">Scans today</th>
         <th class="num">Scans last 30s</th>
         <th class="num">Successful entries today</th>
+        <th class="num">Win % today</th>
       </tr></thead>
-      <tbody id="strategy-scan-body"><tr><td colspan="5" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="strategy-scan-body"><tr><td colspan="6" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -892,7 +893,7 @@ function renderStrategyScanActivity(data) {
   if (!body) return;
   const rows = data?.strategies || [];
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="5" class="scan-idle">No viable strategies right now</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" class="scan-idle">No viable strategies right now</td></tr>`;
     return;
   }
   body.innerHTML = rows.map(r => `<tr>
@@ -901,6 +902,7 @@ function renderStrategyScanActivity(data) {
     <td class="num">${r.scans_today}</td>
     <td class="num"${r.scans_last_30s === 0 ? ' title="Swing strategies scan once/day - 0 here is normal between scans, not a stall."' : ""}>${r.scans_last_30s}</td>
     <td class="num">${r.successful_entries_today}</td>
+    <td class="num"${r.closed_today ? ` title="${r.closed_today} closed today"` : ""}>${r.win_rate_today_pct !== null && r.win_rate_today_pct !== undefined ? fmt(r.win_rate_today_pct, 1) + "%" : "—"}</td>
   </tr>`).join("");
 }
 
