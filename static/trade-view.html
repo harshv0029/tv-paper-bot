@@ -351,6 +351,24 @@
   </div>
 </div>
 
+<div class="counts-panel">
+  <div class="counts-head">
+    <span class="title">Viable strategies — scan &amp; entry activity</span>
+  </div>
+  <div class="counts-scroll">
+    <table class="counts">
+      <thead><tr>
+        <th>Strategy</th>
+        <th class="num">PFnet</th>
+        <th class="num">Scans today</th>
+        <th class="num">Scans last 30s</th>
+        <th class="num">Successful entries today</th>
+      </tr></thead>
+      <tbody id="strategy-scan-body"><tr><td colspan="5" class="scan-idle">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
 <div class="cards" id="cards"><div class="empty">Loading…</div></div>
 
 <footer>Polls <code>/daily-summary</code> + <code>/history</code> every 10s. Amber lines = opening-range high/low (the strategy's own support/resistance).</footer>
@@ -857,6 +875,33 @@ function renderCounts(p) {
       <td class="meta"${sourceTitle}>${sourceLabel}${r.mcx_proxy_for ? " *" : ""}</td>
     </tr>`;
   }).join("");
+}
+
+// Per-viable-strategy scan/entry activity panel (explicit user request:
+// "viable strategy wise count of scans done today and count of scans
+// done in last 30 second and count of success entry using that
+// algorithm today"). Straight from /strategy-scan-activity - "viable"
+// there means the same PFnet >= floor check used everywhere else on
+// this page, not just "currently wired into some scan loop". Every
+// strategy currently viable is a SWING strategy (scans once per IST
+// day), so "scans last 30s" reads 0 almost all the time by design -
+// only nonzero in the brief window while that day's scan is actually
+// running - flagged inline rather than left looking broken.
+function renderStrategyScanActivity(data) {
+  const body = document.getElementById("strategy-scan-body");
+  if (!body) return;
+  const rows = data?.strategies || [];
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="5" class="scan-idle">No viable strategies right now</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map(r => `<tr>
+    <td class="sym">${r.strategy_tag}</td>
+    <td class="num">${r.pfnet !== null && r.pfnet !== undefined ? fmt(r.pfnet, 3) : "—"}</td>
+    <td class="num">${r.scans_today}</td>
+    <td class="num"${r.scans_last_30s === 0 ? ' title="Swing strategies scan once/day - 0 here is normal between scans, not a stall."' : ""}>${r.scans_last_30s}</td>
+    <td class="num">${r.successful_entries_today}</td>
+  </tr>`).join("");
 }
 
 // Top-of-page "scanned today" banner (2026-09-08, explicit user request:
@@ -1764,7 +1809,7 @@ async function refresh() {
         new Date(deployEpoch * 1000).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " IST ·"
       : "";
 
-    const [summary, history, realTrades, botRealTrades, openRealPositions, leaderboard, strategyInfo, protectionStatus] = await Promise.all([
+    const [summary, history, realTrades, botRealTrades, openRealPositions, leaderboard, strategyInfo, protectionStatus, strategyScanActivity] = await Promise.all([
       fetchJSON(`${ORIGIN}/daily-summary?capital=${realCapitalInr}&daily_risk_pct=2`),
       fetchJSON(`${ORIGIN}/trade-history?days=1`),
       fetchJSON(`${ORIGIN}/real-trades-today`).catch(() => ({ trades: [] })),
@@ -1773,8 +1818,10 @@ async function refresh() {
       fetchJSON(`${ORIGIN}/strategy-leaderboard`).catch(() => null),
       fetchJSON(`${ORIGIN}/strategy-info`).catch(() => null),
       fetchJSON(`${ORIGIN}/real-protection-status`).catch(() => null),
+      fetchJSON(`${ORIGIN}/strategy-scan-activity`).catch(() => null),
     ]);
     renderUnprotectedBanner(protectionStatus);
+    renderStrategyScanActivity(strategyScanActivity);
     // BUG found live 2026-09-08 (explicit user finding: "current balance
     // is 1596 as of now but wrong here" - showing -Rs942.61 instead):
     // this tile is labeled "real, Kotak Neo" but was fed summary.
