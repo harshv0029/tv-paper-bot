@@ -16654,32 +16654,30 @@ def strategy_scan_activity():
                 pass
         entries_today[tag] = entries_today.get(tag, 0) + 1
 
-    # _STRATEGY_TAG_TO_REGISTRY_NAME has more than one runtime tag mapping
-    # to the same registry entry in places (e.g. "orb-swing-gap-and-go"
-    # and "gap_and_go" both -> gap_and_go_swing - the former is a historical/
-    # unused alias, never actually passed to _record_strategy_scan). Dedupe
-    # by registry_name, keeping whichever alias shows real activity, so
-    # the panel never shows the same strategy twice.
-    by_registry: dict = {}
+    # Explicit user standing rule (CLAUDE.md, "different tag name implies
+    # a real variation - never silently merge/dedupe distinct tags"): one
+    # row per TAG in _STRATEGY_TAG_TO_REGISTRY_NAME, even when two tags
+    # happen to point at the same registry_name right now (e.g.
+    # "orb-swing-gap-and-go" and "gap_and_go" both -> gap_and_go_swing -
+    # "orb-swing-gap-and-go" has zero other reference anywhere in this
+    # file, confirmed by grep, so it will show scans_today=0 forever
+    # unless something is actually wired to record scans under it - that
+    # zero is the honest, correct reading of "this tag is registered but
+    # nothing uses it", not a bug to paper over by collapsing it into its
+    # same-registry sibling.
+    rows = []
     for tag, registry_name in _STRATEGY_TAG_TO_REGISTRY_NAME.items():
         if not _is_strategy_viable_for_real_money(tag):
             continue
         strat = next((s for s in sr.REGISTRY if s.name == registry_name), None)
-        row = {
+        rows.append({
             "strategy_tag": tag,
             "registry_name": registry_name,
             "pfnet": strat.metrics.pfnet if strat and strat.metrics else None,
             "scans_today": _strategy_scan_counts.get(tag, 0),
             "scans_last_30s": _strategy_scans_in_last_seconds(tag),
             "successful_entries_today": entries_today.get(tag, 0),
-        }
-        existing = by_registry.get(registry_name)
-        row_activity = row["scans_today"] + row["successful_entries_today"]
-        existing_activity = (existing["scans_today"] + existing["successful_entries_today"]) if existing else -1
-        if existing is None or row_activity > existing_activity:
-            by_registry[registry_name] = row
-
-    rows = list(by_registry.values())
+        })
     rows.sort(key=lambda r: (r["pfnet"] is None, -(r["pfnet"] or 0)))
     return {"strategies": rows, "as_of_epoch": time.time()}
 
