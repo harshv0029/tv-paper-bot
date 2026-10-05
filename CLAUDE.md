@@ -571,3 +571,15 @@ of trusting the transfer pack's prose.
   built, never added later as a follow-up once an incident forces it -
   this is the second time that exact sequencing mistake has happened
   (`real_positions_short` 2026-09-30, `real_positions_swing` 2026-10-05).
+- **Thumb rule (2026-10-05, explicit user instruction): every variant of any strategy is its OWN strategy, named by the canonical convention below. Never pool, average, alias or reuse a name across variants.** No single worldwide standard for strategy naming exists; this composes established conventions (PEP 8 snake_case, SemVer-style versioning, exchange/TradingView timeframe codes) into one grammar.
+  - **Grammar:** `<family>__<variant>__<dir>__<tf>__<params>__v<N>`, fields separated by a double underscore, all lowercase `[a-z0-9_]` so it is safe in filenames, SQL, URLs and workflow matrices.
+    - `family`: indicator or pattern (`fvg3c`, `adx_di`, `order_block_delta`, `volume_profile_poc`).
+    - `variant`: the rule or state within the family (`valid_retest`, `breakaway`, `rejection`, `cross`).
+    - `dir`: `long` or `short`. A mirror is always a separate strategy, never a flag on the original.
+    - `tf`: `1m` `5m` `15m` `1h` `4h` `1d`.
+    - `params`: every swept parameter as `key` + value, keys in alphabetical order, joined by a single underscore; a decimal point is written `d` (`atr1d5` = ATR multiple 1.5; `p14`; `bt60`).
+    - `v<N>`: integer logic version. A parameter change makes a NEW tag at the same `v`. A change to the rule logic bumps `v`. An old version stays registered with its metrics.
+  - **Combinations** (INDICATOR_COMBINATORICS_METHODOLOGY.md): `<trigger_tag>__x__<filter_tag>`, trigger first. Both role orderings are separate strategies.
+  - **Immutability:** a name is never renamed, reused or deleted. A failed or retired variant stays in `strategy_registry.py` with its real metrics.
+  - **Legacy tags** (`gap_and_go`, `minervini_vcp`, `orb-universal-score`, ...) are grandfathered unchanged. The grammar applies to all new work.
+  - **Example:** `fvg3c__valid_retest__short__5m__bt60_cb3_bnd13__v1`.
