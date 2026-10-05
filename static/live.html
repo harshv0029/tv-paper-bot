@@ -44,19 +44,28 @@
 <footer>Polls <code>/history</code> every 60s while NSE is open (9:15–15:30 IST Mon–Fri), every 5min otherwise. IST market-hours check is time/weekday only — no holiday calendar.</footer>
 
 <script>
-const INSTRUMENTS = [
+const FIXED_INSTRUMENTS = [
   { key: "nifty",     ticker: "^NSEI",    label: "NIFTY 50" },
   { key: "banknifty", ticker: "^NSEBANK", label: "BANKNIFTY" },
   { key: "sensex",    ticker: "^BSESN",   label: "SENSEX" },
   { key: "vix",       ticker: "^INDIAVIX",label: "INDIA VIX", isVix: true },
 ];
+// Grows/shrinks each refresh cycle to match whatever symbols currently have
+// an open paper position (any stock/index the bot is actually holding, not
+// just the 4 fixed market-overview cards above) - see syncPositionCards().
+let ALL_INSTRUMENTS = [...FIXED_INSTRUMENTS];
+const builtKeys = new Set();
+const cardEls = {};
 
 const HISTORY_BASE = window.location.origin + "/history";
+const POSITIONS_URL = window.location.origin + "/positions";
+const SWING_POSITIONS_URL = window.location.origin + "/paper-swing-open-positions";
+const REAL_POSITIONS_URL = window.location.origin + "/real-open-positions";
 const charts = {};
 
-function buildCards() {
+function buildCards(instruments) {
   const grid = document.getElementById("grid");
-  INSTRUMENTS.forEach(inst => {
+  instruments.filter(inst => !builtKeys.has(inst.key)).forEach(inst => {
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
@@ -69,6 +78,8 @@ function buildCards() {
       <div class="chart" id="chart-${inst.key}"></div>
     `;
     grid.appendChild(card);
+    builtKeys.add(inst.key);
+    cardEls[inst.key] = card;
 
     if (!inst.isVix) {
       const chart = LightweightCharts.createChart(document.getElementById(`chart-${inst.key}`), {
@@ -153,21 +164,67 @@ async function updateInstrument(inst) {
   }
 }
 
+function removeCard(key) {
+  const chart = charts[key];
+  if (chart) { chart.chart.remove(); delete charts[key]; }
+  const card = cardEls[key];
+  if (card) { card.remove(); delete cardEls[key]; }
+  builtKeys.delete(key);
+}
+
+async function syncPositionCards() {
+  // Merges all open-position sources this app tracks across paper intraday,
+  // paper swing, and every real (Kotak) table - a symbol open ONLY via one
+  // of these (e.g. a paper swing-only name) was previously invisible to
+  // this page entirely, since it only ever polled the paper-intraday
+  // `positions` table.
+  let openSymbols = [];
+  try {
+    const [paperIntraday, paperSwing, real] = await Promise.all([
+      fetch(POSITIONS_URL).then(r => r.ok ? r.json() : []),
+      fetch(SWING_POSITIONS_URL).then(r => r.ok ? r.json() : []),
+      fetch(REAL_POSITIONS_URL).then(r => r.ok ? r.json() : { open_real_positions: [] }),
+    ]);
+    openSymbols = [
+      ...paperIntraday.map(p => p.symbol),
+      ...paperSwing.map(p => p.symbol),
+      ...(real.open_real_positions || []).map(p => p.symbol),
+    ];
+  } catch (e) {
+    // Leave whatever dynamic cards already exist in place on a fetch
+    // failure rather than tearing them down over a transient network blip.
+    return;
+  }
+
+  const fixedKeys = new Set(FIXED_INSTRUMENTS.map(i => i.key));
+  const openSymbolSet = new Set(openSymbols.filter(sym => !fixedKeys.has(sym)));
+  const dynamicInstruments = [...openSymbolSet].map(sym => ({ key: sym, ticker: sym, label: sym }));
+
+  // Drop cards for symbols no longer open (fixed instruments are never dropped).
+  for (const key of [...builtKeys]) {
+    if (!fixedKeys.has(key) && !openSymbolSet.has(key)) removeCard(key);
+  }
+
+  ALL_INSTRUMENTS = [...FIXED_INSTRUMENTS, ...dynamicInstruments];
+  buildCards(dynamicInstruments);
+}
+
 async function refreshAll() {
   const open = isMarketOpen();
   const statusEl = document.getElementById("mkt-status");
   statusEl.textContent = open ? "MARKET OPEN" : "CLOSED";
   statusEl.className = "status " + (open ? "open" : "closed");
   document.getElementById("last-update").textContent =
-    "Last update: " + new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
+    "Last update: " + new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " IST";
 
-  await Promise.all(INSTRUMENTS.map(updateInstrument));
+  await syncPositionCards();
+  await Promise.all(ALL_INSTRUMENTS.map(updateInstrument));
 
   const delay = open ? 60_000 : 300_000;
   setTimeout(refreshAll, delay);
 }
 
-buildCards();
+buildCards(FIXED_INSTRUMENTS);
 refreshAll();
 </script>
 </body>
