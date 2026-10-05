@@ -52,23 +52,40 @@ class AssetClass(str, Enum):
 
 
 class TradeCategory(str, Enum):
-    """The 5 pools the user asked to track a top-5 leaderboard for
-    (2026-09-29). Distinct from AssetClass: a category is "what kind of
-    trade is this" (direction/timeframe), not "what instrument". A
-    strategy is never confined to exactly one of these - see
-    StrategyDef.categories and CLAUDE.md's 2026-09-29 "a strategy is not
-    confined to one TradeCategory" thumb rule."""
+    """The pools the user asked to track a top-5 leaderboard for
+    (2026-09-29, BIDIRECTIONAL added 2026-10-05). Distinct from
+    AssetClass: a category is "what kind of trade is this" (direction/
+    timeframe), not "what instrument". A strategy is never confined to
+    exactly one of these - see StrategyDef.categories and CLAUDE.md's
+    2026-09-29 "a strategy is not confined to one TradeCategory" thumb
+    rule.
+
+    BIDIRECTIONAL (2026-10-05, explicit user instruction): for a strategy
+    whose entry/exit mechanic is NATIVELY two-sided - one combined signal
+    that trades both long and short depending on where price sits (e.g.
+    Box Theory's top-zone-sell/bottom-zone-buy state machine, Parabolic
+    SAR's always-in-market long/short reversal system) - registered and
+    validated as ONE strategy, ONE set of pooled metrics covering both
+    directions together, not decomposed into two separate BUY/SHORT_SELL
+    registry entries the way e.g. gap_and_go (BUY/SWING) and
+    gap_and_go_short_fade (SHORT_SELL) are two separate strategies. Holds
+    both viable and non-viable bidirectional strategies, same "pool never
+    shrinks, every strategy tried stays on the record" discipline as
+    every other category."""
     SHORT_SELL = "short_sell"
     BUY = "buy"
     SWING = "swing"
     FUTURES = "futures"
     OPTIONS = "options"
+    BIDIRECTIONAL = "bidirectional"
 
 
-# CLAUDE.md, 2026-09-29 thumb rule: 5 categories x this many leaderboard
-# slots each bounds live per-stock monitoring cost at a fixed number of
-# strategy-checks per round-robin cycle, regardless of how large the
-# overall registry grows.
+# CLAUDE.md, 2026-09-29 thumb rule (category count updated 2026-10-05 with
+# BIDIRECTIONAL's addition - the formula itself is unchanged, it just
+# scales automatically with len(TradeCategory)): categories x this many
+# leaderboard slots each bounds live per-stock monitoring cost at a fixed
+# number of strategy-checks per round-robin cycle, regardless of how large
+# the overall registry grows.
 TOP_N_PER_CATEGORY = 5
 MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE = len(TradeCategory) * TOP_N_PER_CATEGORY
 
