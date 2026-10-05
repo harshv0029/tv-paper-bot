@@ -4613,6 +4613,203 @@ def power_play_exit_reason(
     return None, new_running_max
 
 
+# ---- Order Block (delta-weighted) + Volume Profile / POC bounce (LONG, 1d) ----
+#
+# 2026-10-05, explicit user instruction ("make viable strategies in the live
+# wiring", then "Port and real money now" via AskUserQuestion, after being
+# shown that these exist only as research code inside
+# order-block-delta-research.yml / volume-profile-poc-liquidity-research.yml
+# and that their margins over PFNET_LIVE_FLOOR are thin: 1.062 / 1.025).
+# Faithful ports of those workflows' own signal/exit logic - constants and
+# arithmetic copied verbatim, never re-derived. DISCLOSED GAP, tracked as
+# backlog B-30: the PFnet numbers in strategy_registry.py come from the
+# research-embedded implementations, NOT from a replay calling these
+# main.py functions - a full-universe validation replay calling THESE
+# functions is still owed (CLAUDE.md "verify the replay driver calls the
+# changed main.py code"), and the user chose real money first knowingly.
+ORDER_BLOCK_IMPULSE_RETURN_PCT = 3.0
+ORDER_BLOCK_IMPULSE_VOL_MULT = 1.5
+ORDER_BLOCK_LOOKBACK_DAYS = 10
+ORDER_BLOCK_RETEST_MAX_DAYS = 20
+ORDER_BLOCK_ATR_STOP_MULT = 2.0
+ORDER_BLOCK_ATR_TRAIL_MULT = 3.0
+ORDER_BLOCK_MAX_HOLD_DAYS = 30
+ORDER_BLOCK_MIN_LOOKBACK_DAYS = 60
+
+VP_LOOKBACK_BARS = 60
+VP_NUM_BINS = 24
+VP_POC_TOLERANCE_PCT = 1.0
+VP_APPROACH_LOOKBACK_BARS = 5
+VP_ATR_TRAIL_MULT = 3.0
+VP_MAX_HOLD_DAYS = 30
+VP_MIN_LOOKBACK_DAYS = 90
+
+
+def _candle_delta(o: float, h: float, l: float, c: float, v: float) -> float:
+    if h <= l:
+        return 0.0
+    return v * (c - o) / (h - l)
+
+
+def order_block_entry_signal(df: pd.DataFrame) -> dict | None:
+    """Evaluates ONLY the last row of `df` (today) for a delta-confirmed
+    order-block retest long entry (port of order-block-delta-research.yml's
+    order_block_entry_signal + its entry sizing inputs). Returns None, else
+    {"entry_price", "stop_loss", "atr_at_entry"} - same shape as
+    power_play_entry_signal."""
+    n = len(df)
+    i = n - 1
+    if i < ORDER_BLOCK_MIN_LOOKBACK_DAYS + 20 - 1:
+        return None
+    opens = df["Open"].to_numpy(dtype=float)
+    highs = df["High"].to_numpy(dtype=float)
+    lows = df["Low"].to_numpy(dtype=float)
+    closes = df["Close"].to_numpy(dtype=float)
+    vols = df["Volume"].to_numpy(dtype=float)
+    for impulse_idx in range(i - 1, max(0, i - ORDER_BLOCK_RETEST_MAX_DAYS) - 1, -1):
+        if impulse_idx < 1:
+            break
+        day_return_pct = 100 * (closes[impulse_idx] - closes[impulse_idx - 1]) / closes[impulse_idx - 1]
+        if day_return_pct < ORDER_BLOCK_IMPULSE_RETURN_PCT:
+            continue
+        vol_window = vols[max(0, impulse_idx - 20):impulse_idx]
+        if len(vol_window) == 0:
+            continue
+        avg_vol20 = float(np.mean(vol_window))
+        if avg_vol20 <= 0 or vols[impulse_idx] < ORDER_BLOCK_IMPULSE_VOL_MULT * avg_vol20:
+            continue
+        ob_idx = None
+        for j in range(impulse_idx - 1, max(0, impulse_idx - ORDER_BLOCK_LOOKBACK_DAYS) - 1, -1):
+            if closes[j] < opens[j]:
+                ob_idx = j
+                break
+        if ob_idx is None:
+            continue
+        ob_delta = _candle_delta(opens[ob_idx], highs[ob_idx], lows[ob_idx], closes[ob_idx], vols[ob_idx])
+        if ob_delta >= 0:
+            continue
+        ob_low, ob_high = float(lows[ob_idx]), float(highs[ob_idx])
+        if ob_high <= ob_low:
+            continue
+        if np.any(closes[ob_idx + 1:i] < ob_low):
+            continue  # zone already invalidated before today
+        if not (lows[i] <= ob_high and closes[i] > ob_low):
+            continue  # today isn't a retest-and-hold
+        today_delta = _candle_delta(opens[i], highs[i], lows[i], closes[i], vols[i])
+        if today_delta <= 0:
+            continue  # no buy pressure confirmation on the retest day
+        entry_price = float(closes[i])
+        atr_at_entry = _compute_atr_value(df, 14)
+        if atr_at_entry is None or atr_at_entry <= 0:
+            return None
+        stop_loss = min(ob_low, entry_price - ORDER_BLOCK_ATR_STOP_MULT * atr_at_entry)
+        if entry_price - stop_loss <= 0:
+            return None
+        return {"entry_price": entry_price, "stop_loss": stop_loss, "atr_at_entry": float(atr_at_entry)}
+    return None
+
+
+def order_block_exit_reason(
+    df: pd.DataFrame, entry_day: str, initial_stop: float, atr_at_entry: float, running_max_close: float,
+) -> tuple:
+    """Chandelier trail (ORDER_BLOCK_ATR_TRAIL_MULT x ATR frozen at entry) +
+    ORDER_BLOCK_MAX_HOLD_DAYS timeout - port of the research workflow's
+    _chandelier_exit. Returns (exit_reason_or_None, updated_running_max_close)."""
+    if len(df) == 0:
+        return None, running_max_close
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].astype(str).to_numpy()
+    i = len(df) - 1
+    new_running_max = max(running_max_close, float(closes[i]))
+    trail_stop = new_running_max - ORDER_BLOCK_ATR_TRAIL_MULT * atr_at_entry
+    current_stop = max(initial_stop, trail_stop)
+    if closes[i] <= current_stop:
+        return "trail_stop_hit", new_running_max
+    held_days = int(np.sum(dates > entry_day))
+    if held_days >= ORDER_BLOCK_MAX_HOLD_DAYS:
+        return "max_hold_timeout", new_running_max
+    return None, new_running_max
+
+
+def _compute_poc(highs, lows, vols, lo: int, hi: int):
+    """Volume-weighted profile over bars [lo, hi) - port of the VP research
+    workflow's _compute_poc. Returns (poc_price, bin_width) or (None, None)."""
+    window_hi = float(np.max(highs[lo:hi]))
+    window_lo = float(np.min(lows[lo:hi]))
+    if window_hi <= window_lo:
+        return None, None
+    bin_width = (window_hi - window_lo) / VP_NUM_BINS
+    if bin_width <= 0:
+        return None, None
+    bin_vols = np.zeros(VP_NUM_BINS)
+    for j in range(lo, hi):
+        bar_hi, bar_lo, bar_vol = highs[j], lows[j], vols[j]
+        if bar_vol <= 0 or bar_hi <= bar_lo:
+            continue
+        start_bin = max(0, int((bar_lo - window_lo) / bin_width))
+        end_bin = min(VP_NUM_BINS - 1, int((bar_hi - window_lo) / bin_width))
+        n_bins = end_bin - start_bin + 1
+        if n_bins <= 0:
+            continue
+        bin_vols[start_bin:end_bin + 1] += bar_vol / n_bins
+    poc_bin = int(np.argmax(bin_vols))
+    return window_lo + (poc_bin + 0.5) * bin_width, bin_width
+
+
+def volume_profile_poc_entry_signal(df: pd.DataFrame) -> dict | None:
+    """Evaluates ONLY the last row of `df` for a Volume Profile / POC bounce
+    long (port of volume-profile-poc-liquidity-research.yml's entry rule)."""
+    n = len(df)
+    i = n - 1
+    if n < VP_MIN_LOOKBACK_DAYS or i < VP_LOOKBACK_BARS:
+        return None
+    highs = df["High"].to_numpy(dtype=float)
+    lows = df["Low"].to_numpy(dtype=float)
+    closes = df["Close"].to_numpy(dtype=float)
+    opens = df["Open"].to_numpy(dtype=float)
+    vols = df["Volume"].to_numpy(dtype=float)
+    last_close = float(closes[i])
+    poc_price, _bw = _compute_poc(highs, lows, vols, i - VP_LOOKBACK_BARS, i)
+    if poc_price is None:
+        return None
+    band_hi = poc_price * (1 + VP_POC_TOLERANCE_PCT / 100)
+    band_lo = poc_price * (1 - VP_POC_TOLERANCE_PCT / 100)
+    approach_lo = max(0, i - VP_APPROACH_LOOKBACK_BARS)
+    if not bool(np.any(closes[approach_lo:i] > band_hi)):
+        return None
+    if not (last_close > float(opens[i]) and float(lows[i]) <= band_hi and last_close > band_lo):
+        return None
+    entry_price = last_close
+    stop_loss = band_lo
+    if entry_price - stop_loss <= 0:
+        return None
+    atr_at_entry = _compute_atr_value(df, 14)
+    if atr_at_entry is None or atr_at_entry <= 0:
+        return None
+    return {"entry_price": entry_price, "stop_loss": stop_loss, "atr_at_entry": float(atr_at_entry)}
+
+
+def volume_profile_poc_exit_reason(
+    df: pd.DataFrame, entry_day: str, initial_stop: float, atr_at_entry: float, running_max_close: float,
+) -> tuple:
+    """Chandelier trail (VP_ATR_TRAIL_MULT x ATR at entry) + VP_MAX_HOLD_DAYS
+    timeout - port of the VP research workflow's exit loop."""
+    if len(df) == 0:
+        return None, running_max_close
+    closes = df["Close"].to_numpy(dtype=float)
+    dates = df["Date"].astype(str).to_numpy()
+    i = len(df) - 1
+    new_running_max = max(running_max_close, float(closes[i]))
+    trail_stop = new_running_max - VP_ATR_TRAIL_MULT * atr_at_entry
+    current_stop = max(initial_stop, trail_stop)
+    if closes[i] <= current_stop:
+        return "trail_stop_hit", new_running_max
+    held_days = int(np.sum(dates > entry_day))
+    if held_days >= VP_MAX_HOLD_DAYS:
+        return "max_hold_timeout", new_running_max
+    return None, new_running_max
+
+
 # ---- Power Play short mirror ("power fade") --------------------------------
 #
 # 2026-09-29, explicit user instruction ("Prep short mirror for others
@@ -9540,6 +9737,12 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # 2026-10-01, explicit user instruction ("wire to live real money only
     # to viable ones") - PFnet 2.069, full-universe run 36820565494.
     "primary_base": "primary_base",
+    # 2026-10-05, explicit user instruction ("make viable strategies in the
+    # live wiring" -> "Port and real money now") - PFnet 1.062 / 1.025 from
+    # the research-embedded runs 37358050173 / 37358062832; main.py ports
+    # not yet re-validated (backlog B-30), disclosed at their definitions.
+    "order_block_delta": "order_block_delta_long",
+    "volume_profile_poc": "volume_profile_poc_bounce_long",
 }
 
 
@@ -9659,6 +9862,43 @@ _TRADE_THESIS_COMPONENTS = {
             "the moment price actually closes at or below that trailing stop (the running "
             "peak close minus a fixed ATR multiple frozen at entry - it only ever ratchets "
             "up, never down)."
+        ),
+    },
+    "order_block_delta": {
+        "why": (
+            "This was entered on a delta-confirmed Order Block retest - a strong, high-"
+            "volume up-day (impulse) launched from a bearish-delta candle (the 'order "
+            "block'); price later pulled back into that block's range, held above its "
+            "low, and printed positive buying delta on the retest day."
+        ),
+        "hold": f"Expected to be held up to {ORDER_BLOCK_MAX_HOLD_DAYS} trading days.",
+        "close_expectation": (
+            "Whenever price closes at or below the chandelier trailing stop described "
+            "below, or the max-hold window is reached - whichever comes first."
+        ),
+        "weak_signal": (
+            "Treated as unfavourable the moment price closes at or below the trailing "
+            "stop (running peak close minus a fixed ATR multiple frozen at entry, only "
+            "ever ratcheting up). Historically most trades exit on this stop at a loss; "
+            "the edge comes from the minority that survive to the max-hold window."
+        ),
+    },
+    "volume_profile_poc": {
+        "why": (
+            "This was entered on a Volume Profile bounce - price pulled back to the "
+            "60-day volume point of control (the most-traded price level), closed back "
+            "above its lower band on a bullish bar after having traded above it recently."
+        ),
+        "hold": f"Expected to be held up to {VP_MAX_HOLD_DAYS} trading days.",
+        "close_expectation": (
+            "Whenever price closes at or below the chandelier trailing stop described "
+            "below, or the max-hold window is reached - whichever comes first."
+        ),
+        "weak_signal": (
+            "Treated as unfavourable the moment price closes at or below the trailing "
+            "stop (running peak close minus a fixed ATR multiple frozen at entry, only "
+            "ever ratcheting up). Historically most trades exit on this stop at a loss; "
+            "the edge comes from the minority that survive to the max-hold window."
         ),
     },
     "minervini_vcp": {
@@ -15617,6 +15857,17 @@ def _run_swing_scan(conn):
                         (new_running_max, symbol),
                     )
                     conn.commit()
+            elif pos["strategy"] in ("order_block_delta", "volume_profile_poc"):
+                _exit_fn = order_block_exit_reason if pos["strategy"] == "order_block_delta" else volume_profile_poc_exit_reason
+                reason, new_running_max = _exit_fn(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
+                )
+                if not reason:
+                    conn.execute(
+                        "UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                        (new_running_max, symbol),
+                    )
+                    conn.commit()
             else:
                 reason = gap_and_go_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"], pos["gap_low"])
             if reason:
@@ -15802,6 +16053,42 @@ def _run_swing_scan(conn):
         _record_strategy_scan("minervini_vcp")
         vcp_signal = minervini_vcp_entry_signal(df, rs_percentile=rs_pct.get(symbol))
         if not vcp_signal:
+            # Lowest-PFnet entries checked LAST (order_block_delta 1.062,
+            # volume_profile_poc 1.025) so they never crowd out a better
+            # setup the same day - same ranking convention as the chain above.
+            for _tag, _sig_fn in (("order_block_delta", order_block_entry_signal),
+                                  ("volume_profile_poc", volume_profile_poc_entry_signal)):
+                _record_strategy_scan(_tag)
+                _sig = _sig_fn(df)
+                if not _sig:
+                    continue
+                entry_price = _sig["entry_price"]
+                stop_loss = _sig["stop_loss"]
+                qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+                if qty <= 0:
+                    break
+                conn.execute(
+                    "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+                    "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (symbol, _tag, today, entry_price, stop_loss, None, qty, time.time(), fx,
+                     _sig["atr_at_entry"], entry_price),
+                )
+                apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+                conn.execute(
+                    "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                    "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+                    (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+                     json.dumps({"entry_reason": _tag, "stop_loss": stop_loss,
+                                 "atr_at_entry": _sig["atr_at_entry"]})),
+                )
+                conn.commit()
+                print(f"[SWING] entry {symbol} ({_tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+                try:
+                    _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, _tag)
+                except Exception as e:
+                    print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+                break
             continue
         entry_price = vcp_signal["entry_price"]
         stop_loss = vcp_signal["stop_loss"]
