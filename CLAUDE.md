@@ -483,3 +483,27 @@ of trusting the transfer pack's prose.
   PFnet-gate rule above) - nothing to change there; this override only
   has any live effect on the long intraday engine, since short/swing
   already behaved this way.
+- **Thumb rule (2026-10-05, explicit user instruction): a different
+  strategy tag/name is never silently treated as the same strategy as
+  another, even when it currently maps to the same registry entry,
+  metrics, or outcome - keep every distinctly-named tag as its OWN
+  separate row/record. A different name is evidence of a real,
+  deliberate variation until shown otherwise; collapsing two names into
+  one on the assumption they're duplicates is the mistake this rule
+  forbids, not something to do first and ask about later.** Prompted by
+  `/strategy-scan-activity`'s first cut (same session): `gap_and_go` and
+  `orb-swing-gap-and-go` both resolve to the `gap_and_go_swing` registry
+  entry via `_STRATEGY_TAG_TO_REGISTRY_NAME`, so the endpoint deduped them
+  into a single row "to avoid showing the same strategy twice" - reverted
+  per this instruction into two separate rows, even though
+  `orb-swing-gap-and-go` has zero other reference anywhere in `main.py`
+  (confirmed by grep) and will read `scans_today=0` forever unless
+  something is actually wired to record scans under it. That zero is the
+  correct, honest thing to show - "this tag is registered but nothing
+  currently uses it" - not a defect to paper over by merging it into a
+  same-registry sibling. Applies everywhere in this codebase a tag/name
+  comparison could tempt a "these are basically the same thing" shortcut:
+  registry entries, dashboard rows, aggregation keys, scan/entry counters,
+  leaderboard rows - never fold two differently-named things together
+  without the user explicitly confirming they really are one thing wearing
+  two names, and even then, say so plainly rather than merging silently.

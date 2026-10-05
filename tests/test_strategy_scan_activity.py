@@ -67,19 +67,23 @@ def test_endpoint_only_returns_currently_viable_strategies():
     assert "minervini_vcp" not in tags
 
 
-def test_endpoint_dedupes_multiple_tags_mapping_to_same_registry_entry():
-    # "orb-swing-gap-and-go" and "gap_and_go" both map to gap_and_go_swing
-    # in _STRATEGY_TAG_TO_REGISTRY_NAME - only the real, actively-scanned
-    # alias should ever show up, never both.
+def test_endpoint_keeps_distinct_tags_separate_even_when_same_registry_entry():
+    # Explicit user standing rule: a different tag name implies a real
+    # variation and must never be silently merged. "orb-swing-gap-and-go"
+    # and "gap_and_go" both map to gap_and_go_swing in
+    # _STRATEGY_TAG_TO_REGISTRY_NAME - both must show up as their OWN row,
+    # even though the former has zero other reference anywhere in main.py
+    # (confirmed by grep) and will read scans_today=0 forever unless
+    # something actually records scans under it.
     _fresh_db()
     _reset()
     main._record_strategy_scan("gap_and_go")
     result = main.strategy_scan_activity()
-    registry_names = [r["registry_name"] for r in result["strategies"]]
-    assert registry_names.count("gap_and_go_swing") == 1
-    matching = [r for r in result["strategies"] if r["registry_name"] == "gap_and_go_swing"]
-    assert matching[0]["strategy_tag"] == "gap_and_go"
-    assert matching[0]["scans_today"] == 1
+    tags_for_registry = {r["strategy_tag"]: r for r in result["strategies"]
+                          if r["registry_name"] == "gap_and_go_swing"}
+    assert set(tags_for_registry) == {"gap_and_go", "orb-swing-gap-and-go"}
+    assert tags_for_registry["gap_and_go"]["scans_today"] == 1
+    assert tags_for_registry["orb-swing-gap-and-go"]["scans_today"] == 0
 
 
 def test_endpoint_counts_successful_entries_from_swing_trades_raw_payload():
