@@ -86,3 +86,35 @@ Definitions:
 
 Same staged tractability rule as above. `breakaway` is tested as a continuation
 trade (enter on momentum in the gap direction), since its premise is "no retest".
+
+## B-37 Multi-timeframe liquidity sweep + 5m ICT order block (family `mtf_sweep_ob`)
+
+Queued after B-32/B-33 (user: "do this after that"). Source: user-supplied video
+summary. Variants `mtf_sweep_ob__long` / `__short`, each its own strategy.
+
+Logic: (1) 1h candle sweeps previous 1h low (high) and CLOSES back inside its range
+-> long (short) bias; target = previous 1h's untouched extreme. (2) 15m shows the
+same sweep-and-close-inside pattern in the same direction = confirmation.
+(3) Enter at a clean 5m ICT order block; TP = the 1h target; SL beyond the 5m OB.
+
+Source ambiguity to resolve before coding: step 2 says "previous 1-minute/15-minute
+candle" - assumed to mean the previous **15m** candle (the step is the 15m check).
+NSE session is 09:15-15:30 IST, so 1h bars are 09:15-10:15, ... - bar boundaries
+must be anchored to the session open, not the clock hour.
+
+Gaps (candidate sweep grid - NOT validated; ICT conventions, not a standard):
+| Axis | Candidate values |
+|---|---|
+| min sweep penetration beyond prior extreme | 0 (any), 0.05, 0.1, 0.25 x ATR(14) of that timeframe |
+| close-inside rule | close inside prior range; close inside AND body-in-range |
+| 15m confirmation | required; optional (tested both as separate rows) |
+| 5m order block | last opposing candle before an impulsive move; impulse body >= {1.0,1.5,2.0} x ATR14; require FVG after it (on/off); OB = body vs full-range |
+| entry | limit at OB proximal edge; limit at OB 50%; close-confirm |
+| stop | beyond OB distal edge + {0, 0.25, 0.5} x ATR(5m); or beyond the 15m sweep wick |
+| target | prior-1h untouched extreme (user rule); also tested: partial at 1R then rest at target |
+| min R:R filter | skip if (target - entry)/(entry - stop) < {1.0, 1.5, 2.0} |
+| max bars from 15m confirm to entry | 6, 12, 24 (5m bars) |
+
+The repo already has `main.order_block_delta`-style functions (B-30 replay pending):
+reuse them for the 5m OB definition where they match, and say plainly where the
+ICT definition differs. Same staged tractability and no-blind-picks rules as above.
