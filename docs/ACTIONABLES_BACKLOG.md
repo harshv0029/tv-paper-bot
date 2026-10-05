@@ -9,12 +9,12 @@ Never delete a row — close it with a date and evidence (run id, commit, URL).
 | ID | Item | Status | Priority | Notes / evidence / blocker | Added | Closed |
 |----|------|--------|----------|----------------------------|-------|--------|
 | B-01 | Merge Box Theory (`bdf7c13`) + BIDIRECTIONAL category/Parabolic SAR (`2713d4f`) to `main` via deploy-gate (`source_ref=claude/relaxed-sagan-fcrt6u`) | IN-PROGRESS | High | User approved 2026-10-05; gate re-dispatched, queued. Verify via `git log origin/main` | 2026-10-05 | |
-| B-02 | Pull + report Order Block Delta research results | TODO | High | Run id 37358050173 completed success, results unread | 2026-10-05 | |
-| B-03 | Pull + report Volume Profile/POC results | TODO | High | Was in_progress | 2026-10-05 | |
-| B-04 | Pull + report RSI Reversal variant sweep results | TODO | High | Was in_progress | 2026-10-05 | |
-| B-05 | Pull + report Pin Bar Reversal validation results | TODO | High | Was queued | 2026-10-05 | |
-| B-06 | Pull + report Fair Value Gap validation results | TODO | High | Was queued | 2026-10-05 | |
-| B-07 | Pull + report Gap-Up Fade Short ATR-mult sweep (re-run) results | TODO | High | 3 prior attempts cancelled/failed | 2026-10-05 | |
+| B-02 | Pull + report Order Block Delta research results | DONE | High | Run 37358050173: Order Block delta LONG, daily/5y, full 2688-sym universe: n=33049 win 39.79% PFnet 1.062 (gross 1.259) avg_net ₹69.72 held 21.7d. trail_stop_hit n=18060 PF 0.322; max_hold_timeout n=14292 PF 7.255 -> edge lives in 30d survivors. Thin margin over 1.0 floor; follow-ups B-25/B-26 | 2026-10-05 | 2026-10-05 |
+| B-03 | Pull + report Volume Profile/POC results | DONE | High | Run 37358062832: Volume Profile/POC bounce LONG, daily/5y: n=49927 win 24.98% PFnet 1.025 (gross 1.396) avg_net ₹74.13 held 12.2d. trail_stop PF 0.310 (n=40052); max_hold PF 96.0 (n=9524). Very thin margin; follow-ups B-25/B-26 | 2026-10-05 | 2026-10-05 |
+| B-04 | Pull + report RSI Reversal variant sweep results | DONE | High | Run 37358065924, 9 variants (period,OS/OB) PFnet/n/held: 14,30/70 0.838/28525/15.1d; 14,25/75 0.882/19797/16.4d; 14,20/80 0.933/12287/17.3d; 21,30/70 0.838/14708/16.8d; 21,25/75 0.869/8422/17.1d; 21,20/80 0.946/4314/17.3d; 9,30/70 0.905/54823/11.6d; 9,25/75 0.928/41920/13.3d; 9,20/80 0.914/30325/15.0d. NONE clears 1.0 floor (best 0.946). Pattern: trail_stop_hit PF<0.23 everywhere, rsi_overbought_exit PF huge -> stop is the drag. Register as non-viable (B-25) | 2026-10-05 | 2026-10-05 |
+| B-05 | Pull + report Pin Bar Reversal validation results | IN-PROGRESS | High | Run 37358058707 still queued (Actions concurrency backlog) as of 19:05 UTC | 2026-10-05 |  |
+| B-06 | Pull + report Fair Value Gap validation results | IN-PROGRESS | High | Run 37358055329 still queued (Actions concurrency backlog) as of 19:05 UTC | 2026-10-05 |  |
+| B-07 | Pull + report Gap-Up Fade Short ATR-mult sweep (re-run) results | IN-PROGRESS | High | Run 37358096424 still queued (Actions concurrency backlog) as of 19:05 UTC | 2026-10-05 |  |
 | B-08 | Dispatch Box Theory variant sweep + report | BLOCKED | High | Needs B-01 | 2026-10-05 | |
 | B-09 | Dispatch Parabolic SAR variant sweep + report | BLOCKED | High | Needs B-01 | 2026-10-05 | |
 | B-10 | Register every variant tried (pass or fail) in `strategy_registry.py` with real metrics; Box Theory/SAR under BIDIRECTIONAL only after real full-universe numbers | TODO | High | Never register placeholder metrics | 2026-10-05 | |
@@ -32,3 +32,7 @@ Never delete a row — close it with a date and evidence (run id, commit, URL).
 | B-22 | Repo is PUBLIC on GitHub — user decision on making private | TODO | Low | Flagged, user's call | 2026-10-05 | |
 | B-23 | GitHub App "Claude" permissions-update email — user review | TODO | Low | User's own call | 2026-10-05 | |
 | B-24 | Volume-Profile proxy disclosure: keep as proxy, don't "fix" to literal CoinGlass port without re-reading disclosure | DONE | Info | Standing note, no action | 2026-10-05 | 2026-10-05 |
+| B-25 | Register Order Block (1.062), Volume Profile/POC (1.025) and all 9 RSI Reversal variants (0.838-0.946, each its own row per no-merge rule) in `strategy_registry.py` with run-id evidence; then verify dashboard leaderboard picks them up | TODO | High | Real metrics from B-02..B-04; OB/VP are research-only, NOT wired to live so no real-money effect | 2026-10-05 | |
+| B-26 | Stress OB and VP before trusting >1.0: param sweep, candle-size sweep, short mirror; both PFnet margins (1.062/1.025) ride entirely on 30d max_hold survivors while trail stops lose (PF ~0.3) - test wider ATR trail like failed_breakout sweep | TODO | High | Per 2026-09-30 sweep thumb rule; also RSI trail-stop-is-the-drag hypothesis | 2026-10-05 | |
+| B-27 | Investigate repeated `Kotak Real Position Reconciliation` failures (runs 67, 70-76 on 2026-10-05, conclusion=failure, ~30-60s each) - 5-min unprotected-position backcheck audit layer may be failing; read-only log check only until NYKAA park lifts | TODO | High | Possibly Render cold-start / endpoint error; unconfirmed. Real-money safety layer, so don't leave | 2026-10-05 | |
+| B-28 | Clear Actions concurrency pile-up: queued Deploy Gates #318 (37358172603) and #319 (37360181865) are duplicates of same merge; cancel one once the other runs | TODO | Medium | Both queued at 19:05 UTC | 2026-10-05 | |
