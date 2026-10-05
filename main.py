@@ -282,6 +282,91 @@ def hydrate_real_positions_short_from_external() -> bool:
     return True
 
 
+# real_positions_swing durability mirror (2026-10-05) - real_positions_swing
+# was built 2026-09-22 (Gap and Go real-order mirroring), AFTER the
+# 2026-09-08 Upstash durability fix above already existed for real_positions,
+# and (like real_positions_short before its own 2026-09-30 fix) was never
+# added to it. Root cause confirmed live the same day this was found: a real
+# NYKAA.NS swing position's own real_positions_swing row went missing after a
+# restart (no persistent disk, same mechanism documented above), and the
+# INTRADAY reconcile's own untracked-position detection - despite its
+# 2026-09-30 `our_swing_trdsyms` exclusion check (see
+# _reconcile_real_positions_core's own "Swing mirror" comment) - saw NO
+# real_positions_swing row for NYKAA (because it was gone) and could no
+# longer tell this was a swing position at all. With adopt="*" always passed
+# by the scheduled reconcile, NYKAA got silently re-adopted into the WRONG
+# table (real_positions, the intraday one) with a NULL strategy (the adopt
+# INSERT there never sets one) - exactly reproducing the "shows universal-
+# score now, showed gap_and_go this morning" flip the user found live, and
+# losing the swing engine's own governance in the process. Same mechanism,
+# same call-site granularity as the short fix, separate Redis key.
+_REAL_POSITIONS_SWING_REDIS_KEY = "tv_paper_bot:real_positions_swing:v1"
+
+
+def _sync_real_positions_swing_external(conn) -> None:
+    """Swing mirror of _sync_real_positions_external - see the module
+    comment just above for why this exists. Best-effort and silent, same
+    contract as the long/short versions: a failure here must never break
+    real trading, the write has already committed to SQLite."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return
+    try:
+        rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions_swing").fetchall()]
+        payload = json.dumps({"synced_at": time.time(), "rows": rows})
+        requests.post(
+            f"{UPSTASH_REDIS_REST_URL}/set/{_REAL_POSITIONS_SWING_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            data=payload.encode("utf-8"),
+            timeout=5,
+        )
+    except Exception as e:
+        print(f"[real_positions_swing_external] sync failed (non-fatal): {e}")
+
+
+def hydrate_real_positions_swing_from_external() -> bool:
+    """Swing mirror of hydrate_real_positions_from_external - startup-time
+    restore for real_positions_swing. Never places any order - only
+    restores this app's own tracking of a swing position that already
+    exists at the broker. Returns True iff Upstash was actually reached
+    (an empty-but-successful read still counts, same "empty is still
+    authoritative" reasoning as the long/short versions) - real_positions_swing
+    currently has no journal-based fallback of its own, so this is its
+    ONLY restore path, same as real_positions_short before this fix."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return False
+    try:
+        resp = requests.get(
+            f"{UPSTASH_REDIS_REST_URL}/get/{_REAL_POSITIONS_SWING_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        raw = resp.json().get("result")
+    except Exception as e:
+        print(f"[real_positions_swing_external] hydrate failed (non-fatal): {e}")
+        return False
+    rows = json.loads(raw).get("rows", []) if raw else []
+    if rows:
+        with closing(get_db()) as conn:
+            restored = 0
+            for pos in rows:
+                if conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (pos["symbol"],)).fetchone():
+                    continue
+                conn.execute(
+                    "INSERT INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, "
+                    "entry_order_id, opened_at, day, stop_loss, sl_order_id, sl_trigger_price, strategy) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (pos["symbol"], pos["kotak_trading_symbol"], pos["qty"], pos["entry_price"],
+                     pos.get("entry_order_id"), pos["opened_at"], pos["day"], pos["stop_loss"],
+                     pos.get("sl_order_id"), pos.get("sl_trigger_price"), pos.get("strategy")),
+                )
+                restored += 1
+            if restored:
+                conn.commit()
+                print(f"[real_positions_swing_external] restored {restored} real swing position(s) from Upstash")
+    return True
+
+
 # --- Scan-coverage external persistence (Upstash Redis) ----------------------
 # Same restart-race family as real_positions above, different symptom: the
 # round-robin scan cursor (_scheduler_rr_cursor, defined far below) is a
@@ -15036,6 +15121,7 @@ def _maybe_place_real_swing_exit(conn, symbol):
     if still_open is False:
         conn.execute("DELETE FROM real_positions_swing WHERE symbol = ?", (symbol,))
         conn.commit()
+        _sync_real_positions_swing_external(conn)
         _log_real_attempt(
             conn, symbol, "S", "skipped_already_closed_at_kotak", kotak_trading_symbol=row["kotak_trading_symbol"],
             qty=row["qty"], strategy=row["strategy"],
@@ -15081,6 +15167,7 @@ def _maybe_place_real_swing_exit(conn, symbol):
             strategy=row["strategy"],
         )
         conn.commit()
+        _sync_real_positions_swing_external(conn)
         print(f"[REAL SWING] SELL {exit_qty} {row['kotak_trading_symbol']} (order {result['order_id']}) "
               f"(fill_confirmed={result['fill_price_confirmed']})")
         _log_real_order_event(
@@ -15260,6 +15347,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
             (sl_result["order_id"], sl_result["trigger_price"], symbol),
         )
         conn.commit()
+        _sync_real_positions_swing_external(conn)
         print(f"[REAL SWING] SL resting @ Rs{sl_result['trigger_price']:.2f} for {kotak_symbol} "
               f"(order {sl_result['order_id']})")
         _log_real_order_event(
@@ -15269,6 +15357,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         )
     else:
         conn.commit()
+        _sync_real_positions_swing_external(conn)
         print(f"[REAL SWING] SL placement FAILED for {kotak_symbol}: {sl_result.get('detail')} "
               f"- position open at Kotak with NO resting stop yet, will retry next day's scan")
         _log_real_order_event(
@@ -15305,6 +15394,7 @@ def _maybe_sync_real_swing_stop_loss(conn):
                 (sl_result["order_id"], sl_result["trigger_price"], row["symbol"]),
             )
             conn.commit()
+            _sync_real_positions_swing_external(conn)
             print(f"[REAL SWING] SL resting @ Rs{sl_result['trigger_price']:.2f} for "
                   f"{row['kotak_trading_symbol']} (order {sl_result['order_id']}, retried)")
             _log_real_order_event(
@@ -16189,7 +16279,7 @@ async def _start_scheduler():
     try:
         (
             _restored_settings, _restored_t1, _real_positions_hydrated,
-            _real_positions_short_hydrated,
+            _real_positions_short_hydrated, _real_positions_swing_hydrated,
             _external_rr_cursor, _external_check_counts,
         ) = await asyncio.wait_for(
             asyncio.gather(
@@ -16197,6 +16287,7 @@ async def _start_scheduler():
                 asyncio.to_thread(_hydrate_t1_restricted),
                 asyncio.to_thread(hydrate_real_positions_from_external),
                 asyncio.to_thread(hydrate_real_positions_short_from_external),
+                asyncio.to_thread(hydrate_real_positions_swing_from_external),
                 asyncio.to_thread(hydrate_rr_cursor_from_external),
                 asyncio.to_thread(hydrate_check_counts_from_external),
             ),
@@ -16208,6 +16299,7 @@ async def _start_scheduler():
               "same as a clean Upstash-unset/unreachable result")
         _restored_settings, _restored_t1, _real_positions_hydrated = 0, 0, False
         _real_positions_short_hydrated = False
+        _real_positions_swing_hydrated = False
         _external_rr_cursor, _external_check_counts = None, None
 
     # runtime_settings: Upstash-restore FIRST, before anything else reads
@@ -17965,9 +18057,61 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             # there is nothing to backfill/place for it the way the long
             # loop's target leg does.
             governance_backfilled_short.append(backfill_entry)
+
+        # Swing mirror of the governance-backfill loops above (2026-10-05,
+        # live NYKAA.NS finding: real_positions_swing had no equivalent of
+        # this at all - the swing engine's OWN retry,
+        # _maybe_sync_real_swing_stop_loss, only runs once per IST day (its
+        # own docstring: "no same-day tick cadence to escalate within...
+        # explicitly deferred, not silently dropped"), so a swing position
+        # missing its resting SL got nothing closer to real-time than a
+        # once-a-day retry - a real gap against the standing "every open
+        # position... checked every 5 minutes, auto-healed, not just
+        # detected" rule, which was already closed for long and short but
+        # missed for swing. real_positions_swing stores its own intended
+        # stop_loss directly on the row (no separate signal_state_swing
+        # lookup needed, unlike the long/short loops above - see that
+        # column's own CREATE TABLE comment), so this is simpler: just
+        # retry the placement for every row still missing sl_order_id,
+        # every single reconcile call (now every 5 min via the in-process
+        # scheduler tick, same cadence as long/short).
+        governance_backfilled_swing = []
+        for r in conn.execute("SELECT * FROM real_positions_swing WHERE sl_order_id IS NULL").fetchall():
+            import kotak_real_orders
+            sl_result = kotak_real_orders.place_real_stop_loss(
+                r["kotak_trading_symbol"], r["qty"], round(r["stop_loss"], 2)
+            )
+            backfill_entry = {
+                "symbol": r["symbol"], "entry_price": r["entry_price"],
+                "stop_loss": r["stop_loss"], "qty": r["qty"],
+            }
+            if sl_result.get("ok"):
+                conn.execute(
+                    "UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                    (sl_result["order_id"], sl_result["trigger_price"], r["symbol"]),
+                )
+                _log_real_order_event(
+                    conn, r["symbol"], "sl", "placed", kotak_trading_symbol=r["kotak_trading_symbol"],
+                    order_id=sl_result["order_id"], prev_state="none",
+                    new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f}",
+                    detail="placed synchronously during swing governance backfill",
+                )
+                backfill_entry["sl_order_id"] = sl_result["order_id"]
+                backfill_entry["sl_placed"] = True
+            else:
+                _log_real_order_event(
+                    conn, r["symbol"], "sl", "failed", kotak_trading_symbol=r["kotak_trading_symbol"],
+                    prev_state="none", new_state="none (placement failed)", detail=sl_result.get("detail"),
+                )
+                backfill_entry["sl_placed"] = False
+                backfill_entry["sl_failure_detail"] = sl_result.get("detail")
+                _flag_if_t1_restricted(conn, r["symbol"], sl_result.get("detail"))
+            governance_backfilled_swing.append(backfill_entry)
+
         conn.commit()
         _sync_real_positions_external(conn)
         _sync_real_positions_short_external(conn)
+        _sync_real_positions_swing_external(conn)
 
     net_balance = None
     try:
@@ -18021,6 +18165,8 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         "governance_backfilled_count": len(governance_backfilled), "governance_backfilled": governance_backfilled,
         "governance_backfilled_short_count": len(governance_backfilled_short),
         "governance_backfilled_short": governance_backfilled_short,
+        "governance_backfilled_swing_count": len(governance_backfilled_swing),
+        "governance_backfilled_swing": governance_backfilled_swing,
         "unprotected_positions_count": len(unprotected), "unprotected_positions": unprotected,
     }
 
