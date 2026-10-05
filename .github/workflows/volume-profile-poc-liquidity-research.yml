@@ -1,0 +1,327 @@
+name: Volume Profile / POC Liquidity-Node Research (full universe, daily)
+
+# Responds to the user's "read about liquidity heat map strategy on
+# websites like CoinGlass and backtest the variants" ask. Flagged to the
+# user before building, via AskUserQuestion, and the user chose this path
+# explicitly:
+#
+# CoinGlass's own liquidity heatmaps are built from CRYPTO PERPETUAL-
+# FUTURES data this repo has no access to and NSE/MCX has no equivalent
+# of: aggregated open interest, estimated leverage/liquidation-price
+# clusters, and funding-rate skew across exchanges. This repo's only data
+# sources are yfinance OHLCV (no order book, no OI, no leverage data) and
+# Kotak Neo (own-account positions/orders only, not market-wide OI). A
+# literal port is NOT feasible here - this is NOT the "a transfer pack is
+# a claim, verify it" discipline being violated, it's a disclosed,
+# deliberate substitution, same as this repo's own precedent for the MCX
+# gold/silver/crude international-contract proxy.
+#
+# Disclosed proxy: Volume Profile / Point of Control (POC) - a long-
+# established technical-analysis concept (Peter Steidlmayer's Market
+# Profile/TPO work, 1980s CBOT; widely covered by TradingView, Investopedia,
+# and most volume-profile literature) that uses TRADED volume concentrated
+# at a price level as the closest OHLCV-only substitute for "where a lot of
+# liquidity sits" - the same underlying intuition CoinGlass's heatmap
+# serves (price tends to gravitate toward / react at high-liquidity
+# levels), built from data this repo actually has. This is NOT a
+# reimplementation of anything existing in main.py - grepped for
+# volume_profile/point_of_control/poc/high_volume_node/value_area first,
+# confirmed zero hits, so this is genuinely new ground, not a duplicate.
+#
+# Methodology (research-stage, fresh code - no main.py helper covers this
+# yet):
+# 1. Rolling VP_LOOKBACK_BARS=60 PRIOR (no-lookahead) daily bars are binned
+#    into VP_NUM_BINS=24 price buckets, volume-weighted (each bar's volume
+#    split across the High-Low range it traded through, not just dumped at
+#    Close - the standard volume-profile construction, not a crude
+#    close-price histogram).
+# 2. POC = the bucket with the single highest accumulated volume - the
+#    "fairest value"/highest-liquidity price in that window.
+# 3. Entry (long only): price must be approaching POC FROM ABOVE (close
+#    was above the POC band at least VP_APPROACH_LOOKBACK_BARS=5 bars ago,
+#    confirming this is a pullback into support, not an already-broken-down
+#    name basing below it), the current bar's Low dips into the POC band
+#    (+/- VP_POC_TOLERANCE_PCT), and the bar closes back above the band
+#    with a bullish candle (Close > Open) - i.e. a bounce reaction at the
+#    high-liquidity node, mirroring "price reacts at a liquidity cluster"
+#    the way a real heatmap-based strategy would trade a liquidation
+#    cluster.
+# 4. Exit: initial stop just below the POC band's lower edge, ATR
+#    chandelier trail (VP_ATR_TRAIL_MULT=3.0), max hold
+#    VP_MAX_HOLD_DAYS=30 - same exit shape as this session's other
+#    research-stage workflows (order-block-delta-research.yml,
+#    minervini-vcp-validation-replay.yml).
+#
+# Universe: full NSE EQ-series (main._load_nse_universe_from_file(),
+# ~2,680 symbols), 5y/1d - single job, no sharding needed (daily-bar,
+# bounded-lookback replays don't need it per this repo's own established
+# precedent, e.g. minervini-vcp-validation-replay.yml).
+#
+# LONG side only this pass - a short mirror (price rejecting a
+# high-liquidity node from below) is a standing follow-up per the
+# "check both directions" thumb rule, not done here. Candle-size sweep
+# also outstanding per the standing thumb rule (this is a daily-bar
+# concept by its own design - a 5m/1h intraday version is a materially
+# different, separate follow-up, not a trivial resample, since the
+# lookback window's meaning changes with bar size).
+on:
+  workflow_dispatch: {}
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run Volume Profile / POC full-universe research replay
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          VP_LOOKBACK_BARS = 60
+          VP_NUM_BINS = 24
+          VP_POC_TOLERANCE_PCT = 1.0
+          VP_APPROACH_LOOKBACK_BARS = 5
+          VP_ATR_TRAIL_MULT = 3.0
+          VP_MAX_HOLD_DAYS = 30
+          VP_MIN_LOOKBACK_DAYS = 90
+          CAPITAL_INR = 400000.0
+          RISK_PCT = 1.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(symbol, entry_price, initial_stop, qty, entry_idx, exit_price,
+                               exit_idx, exit_reason, entry_cost, cost_model):
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - initial_stop
+              return {
+                  "symbol": symbol, "held_days": exit_idx - entry_idx,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def _compute_poc(highs, lows, vols, lo, hi):
+              """Volume-weighted profile over bars [lo, hi) - each bar's volume is
+              split evenly across VP_NUM_BINS global bins its High-Low range
+              overlaps, not just dumped at its Close. Returns (poc_price,
+              bin_width) or (None, None) if the window has no range."""
+              window_hi = float(np.max(highs[lo:hi]))
+              window_lo = float(np.min(lows[lo:hi]))
+              if window_hi <= window_lo:
+                  return None, None
+              bin_width = (window_hi - window_lo) / VP_NUM_BINS
+              if bin_width <= 0:
+                  return None, None
+              bin_vols = np.zeros(VP_NUM_BINS)
+              for j in range(lo, hi):
+                  bar_hi, bar_lo, bar_vol = highs[j], lows[j], vols[j]
+                  if bar_vol <= 0 or bar_hi <= bar_lo:
+                      continue
+                  start_bin = max(0, int((bar_lo - window_lo) / bin_width))
+                  end_bin = min(VP_NUM_BINS - 1, int((bar_hi - window_lo) / bin_width))
+                  n_bins = end_bin - start_bin + 1
+                  if n_bins <= 0:
+                      continue
+                  vol_per_bin = bar_vol / n_bins
+                  bin_vols[start_bin:end_bin + 1] += vol_per_bin
+              poc_bin = int(np.argmax(bin_vols))
+              poc_price = window_lo + (poc_bin + 0.5) * bin_width
+              return poc_price, bin_width
+
+
+          def replay_symbol(symbol, raw_df, capital, risk_pct, cost_model):
+              df = raw_df.reset_index(drop=True)
+              n = len(df)
+              if n < VP_MIN_LOOKBACK_DAYS:
+                  return []
+
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              closes = df["Close"].to_numpy(dtype=float)
+              opens = df["Open"].to_numpy(dtype=float)
+              vols = df["Volume"].to_numpy(dtype=float)
+
+              position = None
+              trades = []
+              for i in range(VP_LOOKBACK_BARS, n):
+                  last_close = float(closes[i])
+
+                  if position is not None:
+                      new_running_max = max(position["running_max_close"], last_close)
+                      position["running_max_close"] = new_running_max
+                      trail_stop = new_running_max - VP_ATR_TRAIL_MULT * position["atr_at_entry"]
+                      position["stop"] = max(position["initial_stop"], trail_stop)
+
+                      exit_reason = None
+                      if last_close <= position["stop"]:
+                          exit_reason = "trail_stop_hit"
+                      elif (i - position["entry_idx"]) >= VP_MAX_HOLD_DAYS:
+                          exit_reason = "max_hold_timeout"
+
+                      if exit_reason:
+                          trades.append(_finalize_trade(
+                              symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_idx"], last_close, i, exit_reason,
+                              position["entry_cost"], cost_model,
+                          ))
+                          position = None
+                      continue
+
+                  poc_price, bin_width = _compute_poc(highs, lows, vols, i - VP_LOOKBACK_BARS, i)
+                  if poc_price is None:
+                      continue
+                  band_hi = poc_price * (1 + VP_POC_TOLERANCE_PCT / 100)
+                  band_lo = poc_price * (1 - VP_POC_TOLERANCE_PCT / 100)
+
+                  approach_lo = max(0, i - VP_APPROACH_LOOKBACK_BARS)
+                  approached_from_above = bool(np.any(closes[approach_lo:i] > band_hi))
+                  if not approached_from_above:
+                      continue
+
+                  bullish_bar = last_close > float(opens[i])
+                  touched_band = float(lows[i]) <= band_hi
+                  closed_back_above = last_close > band_lo
+                  if not (bullish_bar and touched_band and closed_back_above):
+                      continue
+
+                  entry_price = last_close
+                  stop_loss = band_lo
+                  stop_dist = entry_price - stop_loss
+                  if stop_dist <= 0:
+                      continue
+                  atr_at_entry = m._compute_atr_value(df.iloc[:i + 1], 14)
+                  if atr_at_entry is None or atr_at_entry <= 0:
+                      continue
+                  usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100
+                  qty = int(np.floor(min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)))
+                  if qty <= 0 or qty * entry_price < 100:
+                      continue
+                  position = {
+                      "entry_price": entry_price, "initial_stop": stop_loss, "stop": stop_loss,
+                      "entry_idx": i, "qty": qty, "atr_at_entry": atr_at_entry,
+                      "running_max_close": entry_price,
+                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                  }
+
+              if position is not None:
+                  last_close = float(closes[-1])
+                  trades.append(_finalize_trade(
+                      symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_idx"], last_close, n - 1, "window_end_forced_close",
+                      position["entry_cost"], cost_model,
+                  ))
+              return trades
+
+
+          ALL_SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          print(f"--- Fetching {len(ALL_SYMBOLS)} symbols (5y, 1d) ---")
+          all_trades = []
+          fetched = 0
+          for idx, sym in enumerate(ALL_SYMBOLS):
+              try:
+                  raw = m.fetch_ohlc(sym, "5y", "1d")
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < VP_MIN_LOOKBACK_DAYS:
+                  continue
+              fetched += 1
+              try:
+                  trades = replay_symbol(sym, raw, CAPITAL_INR, RISK_PCT, DEFAULT_COST_MODEL)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              all_trades.extend(trades)
+              if (idx + 1) % 200 == 0:
+                  print(f"  ... {idx + 1}/{len(ALL_SYMBOLS)} symbols processed, {len(all_trades)} trades so far")
+          print(f"\n--- Fetched {fetched}/{len(ALL_SYMBOLS)} symbols, {len(all_trades)} total trades ---\n")
+
+
+          def _metrics(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_held_days=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_held_days = sum(t["held_days"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_held_days=avg_held_days)
+
+
+          print("=== POOLED RESULT (Volume Profile / POC bounce, LONG, cost-net) ===")
+          row = _metrics(all_trades)
+          print(f"n_trades={row['n']} win_rate={row['win_rate']:.2f}% "
+                f"pf_net={row['pf_net']:.3f} pf_gross={row['pf_gross']:.3f} "
+                f"avg_net_inr={row['avg_net']:.2f} avg_held_days={row['avg_held_days']:.1f}")
+
+          print("\n=== By exit_reason ===")
+          by_reason = {}
+          for t in all_trades:
+              by_reason.setdefault(t["exit_reason"], []).append(t)
+          for reason, ts in sorted(by_reason.items(), key=lambda kv: -len(kv[1])):
+              m2 = _metrics(ts)
+              print(f"{reason}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_days={m2['avg_held_days']:.1f}")
+
+          print("\n=== Top 15 symbols by trade count ===")
+          per_symbol = {}
+          for t in all_trades:
+              per_symbol[t["symbol"]] = per_symbol.get(t["symbol"], 0) + 1
+          for sym, cnt in sorted(per_symbol.items(), key=lambda kv: -kv[1])[:15]:
+              print(f"{sym}: {cnt} trades")
+          PYEOF
