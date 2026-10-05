@@ -14855,6 +14855,48 @@ def checks_in_last_seconds(seconds: float = _RECENT_CHECK_WINDOW_SECONDS) -> int
     return sum(1 for ts in _recent_check_timestamps if ts >= cutoff)
 
 
+# Per-viable-strategy scan activity (explicit user request: "viable
+# strategy wise count of scans done today and count of scans done in last
+# 30 second and count of success entry using that algorithm today").
+# Separate from _swing_check_counts (per-SYMBOL, pooled across every swing
+# strategy) - this is per-STRATEGY-TAG, one increment per call to that
+# specific strategy's own entry-signal check inside _run_swing_scan's
+# per-symbol loop, so it shares that loop's "once per IST day" cadence
+# (see swing_scan_log) rather than ticking continuously like the intraday
+# engine's own _recent_check_timestamps above. Records EVERY swing
+# strategy tag unconditionally (cheap - a dict increment, same reasoning
+# _record_scheduler_check already uses) - viability can change as the
+# registry grows, so filtering to "currently viable" happens on the READ
+# side (GET /strategy-scan-activity, via strategy_registry.viable_leaderboard()),
+# never here on the write side.
+_strategy_scan_counts: dict = {}
+_strategy_scan_counts_day: str = ""
+_strategy_scan_recent_timestamps: dict = {}  # tag -> list[float]
+
+
+def _record_strategy_scan(tag: str):
+    """Mirrors _record_scheduler_check/_record_swing_check's own
+    today-count + rolling-window pattern, split out per strategy tag."""
+    global _strategy_scan_counts_day
+    today_str = ist_now().strftime("%Y-%m-%d")
+    if today_str != _strategy_scan_counts_day:
+        _strategy_scan_counts.clear()
+        _strategy_scan_counts_day = today_str
+    _strategy_scan_counts[tag] = _strategy_scan_counts.get(tag, 0) + 1
+
+    now = time.time()
+    recent = _strategy_scan_recent_timestamps.setdefault(tag, [])
+    recent.append(now)
+    cutoff = now - _RECENT_CHECK_RETENTION_SECONDS
+    while recent and recent[0] < cutoff:
+        recent.pop(0)
+
+
+def _strategy_scans_in_last_seconds(tag: str, seconds: float = _RECENT_CHECK_WINDOW_SECONDS) -> int:
+    cutoff = time.time() - seconds
+    return sum(1 for ts in _strategy_scan_recent_timestamps.get(tag, []) if ts >= cutoff)
+
+
 def _scheduler_peek_next_batch(n: int = 5) -> list:
     """What the round-robin will scan on its NEXT turn through the flat
     (no open position) symbols, without mutating the real cursor - a pure
@@ -15523,6 +15565,7 @@ def _run_swing_scan(conn):
         # trusted enough for live wiring" caution - see its registry
         # entry's own notes for the full caveat, kept on record rather
         # than removed.
+        _record_strategy_scan("power_play")
         power_play_signal = power_play_entry_signal(df)
         if power_play_signal:
             entry_price = power_play_signal["entry_price"]
@@ -15564,6 +15607,7 @@ def _run_swing_scan(conn):
         # livermore/vcp below require, so this ordering matters: a genuine
         # Primary Base setup must not fall through to a worse-PFnet variant
         # just because it also happens to qualify for one.
+        _record_strategy_scan("primary_base")
         primary_base_signal = primary_base_entry_signal(df)
         if primary_base_signal:
             entry_price = primary_base_signal["entry_price"]
@@ -15594,6 +15638,7 @@ def _run_swing_scan(conn):
                 print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
             continue
 
+        _record_strategy_scan("gap_and_go")
         signal = gap_and_go_entry_signal(df)
         if signal:
             entry_price = signal["entry_price"]
@@ -15633,6 +15678,7 @@ def _run_swing_scan(conn):
         # "minervini_vcp_livermore" - a DIFFERENT strategy row from
         # "minervini_vcp" below - so _is_strategy_viable_for_real_money
         # (via _STRATEGY_TAG_TO_REGISTRY_NAME) gates each independently.
+        _record_strategy_scan("minervini_vcp_livermore")
         livermore_signal = minervini_vcp_entry_signal_livermore_confirmed(df, rs_percentile=rs_pct.get(symbol))
         if livermore_signal:
             entry_price = livermore_signal["entry_price"]
@@ -15663,6 +15709,7 @@ def _run_swing_scan(conn):
                 print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
             continue
 
+        _record_strategy_scan("minervini_vcp")
         vcp_signal = minervini_vcp_entry_signal(df, rs_percentile=rs_pct.get(symbol))
         if not vcp_signal:
             continue
@@ -16554,6 +16601,87 @@ def strategy_leaderboard():
     tracking-only."""
     import strategy_registry as sr
     return {cat.value: sr.viable_leaderboard(cat) for cat in sr.TradeCategory}
+
+
+@app.get("/strategy-scan-activity")
+def strategy_scan_activity():
+    """Per-viable-strategy scan/entry activity for /trade-view (explicit
+    user request: "viable strategy wise count of scans done today and
+    count of scans done in last 30 second and count of success entry
+    using that algorithm today"). "Viable" means the same thing it means
+    everywhere else in this file - _is_strategy_viable_for_real_money's
+    own PFnet >= PFNET_LIVE_FLOOR check, via _STRATEGY_TAG_TO_REGISTRY_NAME
+    - not just "currently wired into a scan loop". Every tag in that
+    mapping is scanned for, but only the ones clearing the floor RIGHT NOW
+    are returned, so this list tracks strategy_registry.py's own viable
+    set automatically as it grows/shrinks, no separate list to keep in
+    sync.
+
+    scans_today/scans_last_30s come from _record_strategy_scan's own
+    per-tag counters (see that function's module comment for why this is
+    a separate counter from the intraday engine's _recent_check_timestamps
+    - every currently-viable tag is a SWING strategy, which only scans
+    once per IST day via _run_swing_scan's swing_scan_log guard, so
+    scans_last_30s reads 0 almost all the time by design, only showing
+    nonzero briefly while that day's scan is actually running - not a
+    bug, see this endpoint's own frontend caller for how that's surfaced.
+
+    successful_entries_today counts today's paper 'buy' trades whose
+    EFFECTIVE strategy tag matches: every swing entry (power_play,
+    primary_base, gap_and_go, minervini_vcp_livermore, minervini_vcp) is
+    recorded in `trades` under the pooled SWING_STRATEGY_TAG, with the
+    actual tag only in raw_payload's entry_reason field (see
+    _run_swing_scan's own INSERT INTO trades call sites) - a non-swing
+    tag (none viable today, but kept general for whatever's added next)
+    is matched directly against trades.strategy instead."""
+    import strategy_registry as sr
+    now_ist = ist_now()
+    since_ts = ist_midnight_epoch(now_ist)
+
+    with closing(get_db()) as conn:
+        buy_rows = conn.execute(
+            "SELECT strategy, raw_payload FROM trades WHERE action = 'buy' AND ts >= ?",
+            (since_ts,),
+        ).fetchall()
+
+    entries_today: dict = {}
+    for r in buy_rows:
+        tag = r["strategy"]
+        if tag == SWING_STRATEGY_TAG:
+            try:
+                tag = (json.loads(r["raw_payload"]) or {}).get("entry_reason") or tag
+            except (TypeError, ValueError):
+                pass
+        entries_today[tag] = entries_today.get(tag, 0) + 1
+
+    # _STRATEGY_TAG_TO_REGISTRY_NAME has more than one runtime tag mapping
+    # to the same registry entry in places (e.g. "orb-swing-gap-and-go"
+    # and "gap_and_go" both -> gap_and_go_swing - the former is a historical/
+    # unused alias, never actually passed to _record_strategy_scan). Dedupe
+    # by registry_name, keeping whichever alias shows real activity, so
+    # the panel never shows the same strategy twice.
+    by_registry: dict = {}
+    for tag, registry_name in _STRATEGY_TAG_TO_REGISTRY_NAME.items():
+        if not _is_strategy_viable_for_real_money(tag):
+            continue
+        strat = next((s for s in sr.REGISTRY if s.name == registry_name), None)
+        row = {
+            "strategy_tag": tag,
+            "registry_name": registry_name,
+            "pfnet": strat.metrics.pfnet if strat and strat.metrics else None,
+            "scans_today": _strategy_scan_counts.get(tag, 0),
+            "scans_last_30s": _strategy_scans_in_last_seconds(tag),
+            "successful_entries_today": entries_today.get(tag, 0),
+        }
+        existing = by_registry.get(registry_name)
+        row_activity = row["scans_today"] + row["successful_entries_today"]
+        existing_activity = (existing["scans_today"] + existing["successful_entries_today"]) if existing else -1
+        if existing is None or row_activity > existing_activity:
+            by_registry[registry_name] = row
+
+    rows = list(by_registry.values())
+    rows.sort(key=lambda r: (r["pfnet"] is None, -(r["pfnet"] or 0)))
+    return {"strategies": rows, "as_of_epoch": time.time()}
 
 
 @app.get("/strategy-info")
