@@ -1,0 +1,376 @@
+name: Box Theory - Standalone Variant Sweep (Indicator Repository Step 1)
+
+# User-provided strategy spec (verbatim structure, 2026-10-05): daily box
+# from the PREVIOUS trading day's High/Low, a midline no-trade filter, and
+# a "John Wick" (wick-dominant reversal candle) trigger at either box
+# boundary - bullish wick at the bottom -> BUY, bearish wick at the top ->
+# SELL. Genuinely new ground in this repo - grepped first
+# (box_theory/darvas/john_wick/wick_candle/prev_day_high), only a passing
+# mention in docs/minervini_book_notes.txt, no existing implementation.
+# Natively bidirectional by the spec's own design (top=sell zone,
+# bottom=buy zone), so this single pass satisfies the standing both-
+# directions rule without a separate short-mirror workflow.
+#
+# The spec itself flags three parameters as genuinely unspecified and left
+# to the implementer - each one is swept here as its own variant grid, per
+# docs/INDICATOR_COMBINATORICS_METHODOLOGY.md Step 1 (every variant gets
+# full-universe validated standalone, own distinct tag, never pooled):
+#
+# 1. Zone tolerance (ZONE_TOLERANCE_PCT, swept: 15/20/25% of the box's own
+#    High-Low range) - defines "at the boundary": Close >= Box_High -
+#    tolerance*range counts as the sell zone, Close <= Box_Low +
+#    tolerance*range counts as the buy zone. This single threshold also
+#    IS the midline no-trade filter: anything between the two zones
+#    (always >= (100-2*tolerance)% of the range when tolerance < 50%) is
+#    the neutral zone the spec requires - no separate midline-distance
+#    parameter needed.
+# 2. "John Wick" candle definition (WICK_RATIO, swept: 1.5/2.0/2.5) - same
+#    wick-vs-body ratio test this repo's own pin_bar_reversal strategy
+#    already uses for its pin-bar trigger (main.py, 2026-09-08): bullish
+#    wick = lower_wick >= WICK_RATIO * body AND lower_wick > upper_wick
+#    (bearish wick is the exact mirror). Reused for consistency, not
+#    reimplemented differently for no reason.
+# 3. Exit logic - NOT swept this pass (one baseline design, exit-variant
+#    sweep is the natural follow-up per the standing "structured sweep
+#    after baseline" rule, same pattern as failed-breakout-short's own
+#    ATR-mult-sweep-after-baseline precedent): stop = the triggering wick
+#    candle's own extreme (its Low for a buy, its High for a sell) - the
+#    most literal reading of "a John Wick candle marks the real floor/
+#    ceiling" - target = the OPPOSITE box boundary (classic box-theory
+#    "buy the floor, sell at the ceiling"), same-day EOD squareoff as the
+#    safety net (this is an intraday strategy keyed off the PREVIOUS day's
+#    range, not a multi-day hold - "daily reset" in the spec's own words).
+#
+# 9 variants (3x3), one job each, no sharding per variant (see note on
+# timeframe below).
+#
+# Timeframe: 5m/60d this pass - the natural granularity for an intraday
+# "price reaches yesterday's range extreme today" strategy. 15m/1h/4h and
+# a literal 1d box-of-boxes (previous WEEK's high/low feeding a daily-bar
+# scan) are explicit follow-ups per the standing candle-size sweep rule,
+# not done here.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - { tolerance: 15, wick_ratio: 1.5 }
+          - { tolerance: 15, wick_ratio: 2.0 }
+          - { tolerance: 15, wick_ratio: 2.5 }
+          - { tolerance: 20, wick_ratio: 1.5 }
+          - { tolerance: 20, wick_ratio: 2.0 }
+          - { tolerance: 20, wick_ratio: 2.5 }
+          - { tolerance: 25, wick_ratio: 1.5 }
+          - { tolerance: 25, wick_ratio: 2.0 }
+          - { tolerance: 25, wick_ratio: 2.5 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run Box Theory variant full-universe validation
+        env:
+          VARIANT_TOLERANCE: ${{ matrix.variant.tolerance }}
+          VARIANT_WICK_RATIO: ${{ matrix.variant.wick_ratio }}
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import os
+          import numpy as np
+          import pandas as pd
+          import main as m
+
+          ZONE_TOLERANCE_PCT = float(os.environ["VARIANT_TOLERANCE"])
+          WICK_RATIO = float(os.environ["VARIANT_WICK_RATIO"])
+          VARIANT_TAG = f"box_theory__tol{int(ZONE_TOLERANCE_PCT)}_wick{WICK_RATIO}"
+
+          OPEN_MIN = 555
+          CLOSE_MIN = 930
+          SQUAREOFF_MIN = 920
+          TZ_OFF = m.IST_OFFSET_MIN
+          MIN_LOOKBACK_DAYS = 60
+          CAPITAL_INR = 400000.0
+          RISK_PCT = 1.0
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _prep(df):
+              df = df.copy()
+              ts = pd.to_datetime(df["Date"])
+              ts_utc = ts.dt.tz_convert("UTC") if ts.dt.tz is not None else ts.dt.tz_localize("UTC")
+              ts_local = ts_utc + pd.Timedelta(minutes=TZ_OFF)
+              df = df.assign(ts_local=ts_local)
+              df["date_local"] = df["ts_local"].dt.strftime("%Y-%m-%d")
+              df["mins"] = df["ts_local"].dt.hour * 60 + df["ts_local"].dt.minute
+              return df
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_long(symbol, entry_price, initial_stop, qty, entry_ts, exit_price,
+                              exit_ts, exit_reason, entry_cost, cost_model):
+              gross_pnl = (exit_price - entry_price) * qty
+              sell_cost = _sell_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + sell_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = entry_price - initial_stop
+              return {
+                  "symbol": symbol, "side": "long", "entry_ts": entry_ts, "exit_ts": exit_ts,
+                  "time_in_trade_min": (exit_ts - entry_ts) / 60.0,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def _finalize_short(symbol, entry_price, initial_stop, qty, entry_ts, exit_price,
+                               exit_ts, exit_reason, entry_cost, cost_model):
+              gross_pnl = (entry_price - exit_price) * qty
+              buy_cost = _entry_cost(qty, exit_price, cost_model)
+              dp_once = cost_model["dp_charge_flat"] + cost_model["dp_charge_flat"] * cost_model["gst_pct"]
+              total_cost = entry_cost + buy_cost + dp_once
+              net_pnl = gross_pnl - total_cost
+              r = initial_stop - entry_price
+              return {
+                  "symbol": symbol, "side": "short", "entry_ts": entry_ts, "exit_ts": exit_ts,
+                  "time_in_trade_min": (exit_ts - entry_ts) / 60.0,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def replay_symbol(symbol, raw_df, capital, risk_pct, cost_model):
+              """Research-stage - no existing main.py function covers this
+              (confirmed by grep, see this workflow's own module comment).
+              Box levels are derived from each calendar day's own prior-day
+              High/Low within the SAME fetched intraday series - no separate
+              daily-bar fetch needed."""
+              df = _prep(raw_df.copy())
+              n = len(df)
+              if n < MIN_LOOKBACK_DAYS:
+                  return []
+
+              opens = df["Open"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              closes = df["Close"].to_numpy(dtype=float)
+              mins_arr = df["mins"].to_numpy()
+              dates = df["date_local"].to_numpy()
+
+              unique_days = sorted(set(dates))
+              day_high = {}
+              day_low = {}
+              for d in unique_days:
+                  mask = (dates == d) & (mins_arr >= OPEN_MIN) & (mins_arr <= CLOSE_MIN)
+                  if not mask.any():
+                      continue
+                  day_high[d] = float(highs[mask].max())
+                  day_low[d] = float(lows[mask].min())
+
+              day_order = unique_days
+              prev_day_map = {}
+              for i in range(1, len(day_order)):
+                  prev_day_map[day_order[i]] = day_order[i - 1]
+
+              position = None
+              trades = []
+              for i in range(n):
+                  mins = int(mins_arr[i])
+                  if mins < OPEN_MIN or mins > CLOSE_MIN:
+                      continue
+                  today = dates[i]
+                  prev_day = prev_day_map.get(today)
+                  last_close = float(closes[i])
+                  last_ts = df["ts_local"].iloc[i].timestamp()
+
+                  if position is not None:
+                      exit_reason = None
+                      if position["side"] == "long":
+                          if last_close <= position["stop"]:
+                              exit_reason = "stop_hit"
+                          elif last_close >= position["target"]:
+                              exit_reason = "target_hit"
+                      else:
+                          if last_close >= position["stop"]:
+                              exit_reason = "stop_hit"
+                          elif last_close <= position["target"]:
+                              exit_reason = "target_hit"
+                      if mins >= SQUAREOFF_MIN and exit_reason is None:
+                          exit_reason = "eod_squareoff"
+
+                      if exit_reason:
+                          fin = _finalize_long if position["side"] == "long" else _finalize_short
+                          trades.append(fin(
+                              symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_ts"], last_close, last_ts, exit_reason,
+                              position["entry_cost"], cost_model,
+                          ))
+                          position = None
+                      continue
+
+                  if mins >= SQUAREOFF_MIN or prev_day is None:
+                      continue
+                  box_high = day_high.get(prev_day)
+                  box_low = day_low.get(prev_day)
+                  if box_high is None or box_low is None or box_high <= box_low:
+                      continue
+                  box_range = box_high - box_low
+                  top_zone_level = box_high - (ZONE_TOLERANCE_PCT / 100.0) * box_range
+                  bottom_zone_level = box_low + (ZONE_TOLERANCE_PCT / 100.0) * box_range
+
+                  o, h, l, c = float(opens[i]), float(highs[i]), float(lows[i]), float(closes[i])
+                  body = abs(c - o) or 1e-9
+                  lower_wick = min(o, c) - l
+                  upper_wick = h - max(o, c)
+
+                  bullish_wick = (lower_wick >= WICK_RATIO * body) and (lower_wick > upper_wick)
+                  bearish_wick = (upper_wick >= WICK_RATIO * body) and (upper_wick > lower_wick)
+
+                  in_bottom_zone = c <= bottom_zone_level
+                  in_top_zone = c >= top_zone_level
+
+                  side = None
+                  if in_bottom_zone and bullish_wick:
+                      side = "long"
+                  elif in_top_zone and bearish_wick:
+                      side = "short"
+                  if side is None:
+                      continue
+
+                  entry_price = c
+                  if side == "long":
+                      stop_loss = l
+                      target = box_high
+                      stop_dist = entry_price - stop_loss
+                  else:
+                      stop_loss = h
+                      target = box_low
+                      stop_dist = stop_loss - entry_price
+                  if stop_dist <= 0:
+                      continue
+                  usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                  risk_amount_inr = usable_capital_inr * risk_pct / 100
+                  qty = int(np.floor(min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)))
+                  if qty <= 0 or qty * entry_price < 100:
+                      continue
+                  position = {
+                      "side": side, "entry_price": entry_price, "initial_stop": stop_loss,
+                      "stop": stop_loss, "target": target, "entry_ts": last_ts, "qty": qty,
+                      "entry_cost": _entry_cost(qty, entry_price, cost_model),
+                  }
+
+              if position is not None:
+                  last_close = float(closes[-1])
+                  last_ts = df["ts_local"].iloc[-1].timestamp()
+                  fin = _finalize_long if position["side"] == "long" else _finalize_short
+                  trades.append(fin(
+                      symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_ts"], last_close, last_ts, "window_end_forced_close",
+                      position["entry_cost"], cost_model,
+                  ))
+              return trades
+
+
+          ALL_SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          print(f"--- Variant {VARIANT_TAG}: fetching {len(ALL_SYMBOLS)} symbols (5m, 60d) ---")
+          all_trades = []
+          fetched = 0
+          for idx, sym in enumerate(ALL_SYMBOLS):
+              try:
+                  raw = m.fetch_ohlc(sym, "60d", "5m")
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < MIN_LOOKBACK_DAYS:
+                  continue
+              fetched += 1
+              try:
+                  trades = replay_symbol(sym, raw, CAPITAL_INR, RISK_PCT, DEFAULT_COST_MODEL)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              all_trades.extend(trades)
+              if (idx + 1) % 300 == 0:
+                  print(f"  ... {idx + 1}/{len(ALL_SYMBOLS)} processed, {len(all_trades)} trades so far")
+          print(f"\n--- Variant {VARIANT_TAG}: fetched {fetched}/{len(ALL_SYMBOLS)} symbols, {len(all_trades)} trades ---\n")
+
+
+          def _metrics(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_held_min=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_held_min = sum(t["time_in_trade_min"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_held_min=avg_held_min)
+
+
+          print(f"=== VARIANT RESULT: {VARIANT_TAG} (research-stage, BOTH directions, cost-net) ===")
+          row = _metrics(all_trades)
+          print(f"variant_tag={VARIANT_TAG} n_trades={row['n']} win_rate={row['win_rate']:.2f}% "
+                f"pf_net={row['pf_net']:.3f} pf_gross={row['pf_gross']:.3f} "
+                f"avg_net_inr={row['avg_net']:.2f} avg_held_min={row['avg_held_min']:.1f}")
+
+          print("\n=== By side (long=buy zone, short=sell zone) ===")
+          for side in ("long", "short"):
+              side_trades = [t for t in all_trades if t["side"] == side]
+              m2 = _metrics(side_trades)
+              print(f"{side}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_min={m2['avg_held_min']:.1f}")
+
+          print("\n=== By exit_reason ===")
+          by_reason = {}
+          for t in all_trades:
+              by_reason.setdefault(t["exit_reason"], []).append(t)
+          for reason, ts in sorted(by_reason.items(), key=lambda kv: -len(kv[1])):
+              m2 = _metrics(ts)
+              print(f"{reason}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_min={m2['avg_held_min']:.1f}")
+          PYEOF
