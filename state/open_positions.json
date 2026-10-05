@@ -1,4 +1,24 @@
 {
-  "synced_at_utc": "2026-10-05T10:08:36Z",
-  "open_positions": []
+  "synced_at_utc": "2026-10-05T18:41:24Z",
+  "open_positions": [
+    {
+      "symbol": "NYKAA.NS",
+      "qty": 1.0,
+      "entry_price_native": 340.1,
+      "stop_loss_native": 336.7,
+      "initial_stop_loss_native": 336.7,
+      "target_native": 350.3,
+      "fx_to_inr": 1.0,
+      "notional_inr": 340.1,
+      "orb_high_native": null,
+      "orb_low_native": null,
+      "entry_ts": 1791214034.2423878,
+      "interval": "5m",
+      "strategy": "orb-universal-score",
+      "sma_fast": 9,
+      "sma_slow": 21,
+      "entry_regime": null,
+      "real_entry_reason": null
+    }
+  ]
 }
