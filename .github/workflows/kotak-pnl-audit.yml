@@ -88,7 +88,7 @@ jobs:
                       r = rows_of(v)
                       if r and isinstance(r[0], dict): return r
               return []
-          bad = ("acc", "client", "ucc", "pan", "name", "mob", "email")
+          bad = ("acc", "client", "ucc", "pan", "name", "mob", "email", "actid", "act_id")
           def load(n):
               try: return json.load(open(f"/tmp/{n}.json"))
               except Exception as e: print(n, "unreadable", type(e).__name__); return None

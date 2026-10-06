@@ -953,6 +953,33 @@ def init_db():
             )
             """
         )
+        # Durable union of Kotak positions() + holdings() (2026-10-06, explicit
+        # user instruction: keep the union for next-day tracking, memory every
+        # 10s, git every 5 min, both in sync). Mirrored to Upstash via
+        # _GENERIC_MIRROR_TABLES and to docs/tables/tracked_union.json via
+        # tracked-union-sync.yml. Remembers each symbol's OWNING engine so a
+        # lost engine row can be restored instead of misadopted.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tracked_union (
+                kotak_trading_symbol TEXT PRIMARY KEY,
+                symbol TEXT,
+                qty INTEGER NOT NULL,
+                is_short INTEGER NOT NULL DEFAULT 0,
+                owner TEXT NOT NULL,
+                source TEXT,
+                entry_price REAL,
+                stop_loss REAL,
+                sl_trigger_price REAL,
+                strategy TEXT,
+                entry_order_id TEXT,
+                opened_at REAL,
+                day TEXT,
+                first_seen_day TEXT,
+                updated_at REAL
+            )
+            """
+        )
         # Short-selling paper book (2026-09-29, explicit user instruction to
         # implement short selling; RANGE-regime mean-reversion mirror only -
         # see universal-score-range-short-research.yml, the only strategy
@@ -15254,7 +15281,7 @@ _GENERIC_MIRROR_TABLES = (
     "short_trades_closed", "real_trades", "real_order_events",
     "real_trading_control", "trading_control", "real_fo_positions",
     "real_fo_trades", "option_state", "nse_straddle_state",
-    "signal_state_fo_options", "swing_scan_log",
+    "signal_state_fo_options", "swing_scan_log", "tracked_union",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
@@ -15338,7 +15365,7 @@ def hydrate_generic_tables_from_external() -> int:
     return len(_generic_mirror_hydrated)
 
 
-def sync_generic_tables_external() -> int:
+def sync_generic_tables_external(only=None) -> int:
     """Mirrors every hydrated table whose content changed since its last push.
     Returns how many tables were pushed this call."""
     if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
@@ -15347,6 +15374,8 @@ def sync_generic_tables_external() -> int:
         hydrate_generic_tables_from_external()
     pushed = 0
     for table in _GENERIC_MIRROR_TABLES:
+        if only is not None and table not in only:
+            continue
         if table not in _generic_mirror_hydrated:
             continue  # never overwrite a remote copy we haven't restored from yet
         try:
@@ -17631,6 +17660,10 @@ async def _start_scheduler():
     reconcile_open_positions_from_journal()
     reconcile_trading_control_from_journal()
     reconcile_real_trading_control_from_journal()
+    try:
+        reconcile_tracked_union_from_journal()
+    except Exception as e:
+        print(f"[tracked_union] journal restore skipped (non-fatal): {e}")
     # Upstash first - real-time and authoritative once configured, so its
     # read (even an EMPTY one) wins outright over the git journal below,
     # which only runs as a fallback when Upstash was unset or unreachable.
@@ -17666,6 +17699,7 @@ async def _start_scheduler():
             print(f"[check_counts_external] restored {len(_ext_counts)} symbol check-count(s) from Upstash")
     reconcile_scheduler_check_counts_from_journal()
     asyncio.create_task(_scheduler_loop())
+    asyncio.create_task(_tracked_union_memory_loop())
     # Kotak Neo live tick feed (2026-09-04) - display data only, isolated
     # in its own task so a failure here (missing/misconfigured creds, a
     # broken kotakneoapi install) can never affect the scheduler above.
@@ -18948,6 +18982,150 @@ def _kotak_holdings_open_by_trdsym() -> dict | None:
     return out
 
 
+_TRACKED_UNION_JOURNAL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "tables", "tracked_union.json")
+_TRACKED_UNION_COLS = ("kotak_trading_symbol", "symbol", "qty", "is_short", "owner", "source", "entry_price",
+                       "stop_loss", "sl_trigger_price", "strategy", "entry_order_id", "opened_at", "day",
+                       "first_seen_day")
+
+
+def _tracked_union_local_rows(conn) -> dict:
+    """{trdsym: (owner, row)} from this app's own engine tables."""
+    out = {}
+    for owner, table in (("intraday", "real_positions"), ("short", "real_positions_short"),
+                         ("swing", "real_positions_swing")):
+        for r in conn.execute(f"SELECT * FROM {table}").fetchall():
+            out[r["kotak_trading_symbol"]] = (owner, r)
+    return out
+
+
+def _tracked_union_persist(conn, kotak_open: dict, holdings) -> list:
+    """Writes the union of Kotak positions() and holdings() into tracked_union
+    and restores a lost swing row from it. `holdings` None (fetch failed) means
+    nothing is pruned. Qty where a symbol is in both is the max, never a sum
+    (positions/holdings overlap is unconfirmed). Returns the restored swing
+    trading symbols."""
+    local = _tracked_union_local_rows(conn)
+    existing = {r["kotak_trading_symbol"]: r for r in conn.execute("SELECT * FROM tracked_union").fetchall()}
+    today = ist_now().strftime("%Y-%m-%d")
+    now = time.time()
+    current = {}
+    for trd, info in (kotak_open or {}).items():
+        current[trd] = {"qty": int(info["qty"]), "is_short": 1 if info["is_short"] else 0,
+                        "source": "position", "avg": None}
+    for trd, h in (holdings or {}).items():
+        if trd in current:
+            current[trd]["qty"] = max(current[trd]["qty"], int(h["qty"]))
+            current[trd]["source"] = "position+holding"
+        else:
+            current[trd] = {"qty": int(h["qty"]), "is_short": 0, "source": "holding", "avg": h.get("avg_price")}
+    restored = []
+    for trd, cur in current.items():
+        prior = existing.get(trd)
+        loc = local.get(trd)
+        owner = loc[0] if loc else (prior["owner"] if prior and prior["owner"] != "untracked" else "untracked")
+        lr = loc[1] if loc else None
+
+        def pick(key, fallback=None):
+            if lr is not None and key in lr.keys() and lr[key] is not None:
+                return lr[key]
+            if prior is not None and prior[key] is not None:
+                return prior[key]
+            return fallback
+        vals = {
+            "kotak_trading_symbol": trd, "symbol": pick("symbol"), "qty": cur["qty"], "is_short": cur["is_short"],
+            "owner": owner, "source": cur["source"], "entry_price": pick("entry_price", cur["avg"]),
+            "stop_loss": pick("stop_loss"), "sl_trigger_price": pick("sl_trigger_price"),
+            "strategy": pick("strategy"), "entry_order_id": pick("entry_order_id"),
+            "opened_at": pick("opened_at"), "day": pick("day"),
+            "first_seen_day": prior["first_seen_day"] if prior and prior["first_seen_day"] else today,
+        }
+        if prior is None or any(prior[k] != vals[k] for k in _TRACKED_UNION_COLS):
+            names = list(_TRACKED_UNION_COLS) + ["updated_at"]
+            conn.execute(f"INSERT OR REPLACE INTO tracked_union ({','.join(names)}) VALUES ({','.join('?' for _ in names)})",
+                         tuple(vals[k] for k in _TRACKED_UNION_COLS) + (now,))
+        # A swing symbol whose engine row was lost (restart amnesia, the
+        # NYKAA/B-64 pattern) gets its row back, never misadopted as intraday.
+        if owner == "swing" and loc is None and vals["symbol"] and vals["stop_loss"] and vals["entry_price"]:
+            conn.execute(
+                "INSERT OR IGNORE INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, "
+                "entry_order_id, opened_at, day, stop_loss, sl_order_id, sl_trigger_price, strategy) "
+                "VALUES (?,?,?,?,?,?,?,?,NULL,NULL,?)",
+                (vals["symbol"], trd, vals["qty"], vals["entry_price"], vals["entry_order_id"],
+                 vals["opened_at"] or now, vals["day"] or today, vals["stop_loss"], vals["strategy"]))
+            restored.append(trd)
+    if holdings is not None:
+        for trd in set(existing) - set(current):
+            conn.execute("DELETE FROM tracked_union WHERE kotak_trading_symbol = ?", (trd,))
+    conn.commit()
+    return restored
+
+
+def _tracked_union_refresh_local() -> int:
+    """10-second in-memory/Upstash refresh: no Kotak call. Re-reads the engine
+    tables into the existing union rows (qty/stop trail), then pushes only this
+    table to Upstash (hash-deduped, so unchanged = no write)."""
+    with closing(get_db()) as conn:
+        local = _tracked_union_local_rows(conn)
+        for r in conn.execute("SELECT * FROM tracked_union").fetchall():
+            loc = local.get(r["kotak_trading_symbol"])
+            if not loc:
+                continue
+            owner, lr = loc
+            new = {"owner": owner, "qty": lr["qty"]}
+            for k in ("entry_price", "stop_loss", "sl_trigger_price", "strategy"):
+                if k in lr.keys() and lr[k] is not None:
+                    new[k] = lr[k]
+            if any(r[k] != v for k, v in new.items()):
+                sets = ",".join(f"{k} = ?" for k in new)
+                conn.execute(f"UPDATE tracked_union SET {sets}, updated_at = ? WHERE kotak_trading_symbol = ?",
+                             tuple(new.values()) + (time.time(), r["kotak_trading_symbol"]))
+        conn.commit()
+    return sync_generic_tables_external(only=("tracked_union",))
+
+
+def reconcile_tracked_union_from_journal() -> int:
+    """Startup fallback after the Upstash restore: rows present in the git
+    file docs/tables/tracked_union.json but missing locally are re-added
+    (INSERT OR IGNORE - Upstash/local always win). Stale rows are pruned by
+    the next reconcile, which sees Kotak's real state."""
+    try:
+        with open(_TRACKED_UNION_JOURNAL) as f:
+            rows = (json.load(f) or {}).get("rows") or []
+    except Exception:
+        return 0
+    added = 0
+    with closing(get_db()) as conn:
+        for row in rows:
+            keep = {k: row.get(k) for k in _TRACKED_UNION_COLS + ("updated_at",) if k in row}
+            if not keep.get("kotak_trading_symbol") or keep.get("qty") is None or not keep.get("owner"):
+                continue
+            cur = conn.execute(f"INSERT OR IGNORE INTO tracked_union ({','.join(keep)}) VALUES ({','.join('?' for _ in keep)})",
+                               tuple(keep.values()))
+            added += cur.rowcount or 0
+        conn.commit()
+    if added:
+        print(f"[tracked_union] restored {added} row(s) from git journal")
+    return added
+
+
+async def _tracked_union_memory_loop():
+    while True:
+        try:
+            await asyncio.to_thread(_tracked_union_refresh_local)
+        except Exception as e:
+            print(f"[tracked_union] 10s refresh failed (non-fatal): {e}")
+        await asyncio.sleep(10)
+
+
+@app.get("/tracked-union")
+def tracked_union_endpoint():
+    """No token, same precedent as /real-open-positions: symbols, qty, stops
+    only. Read by tracked-union-sync.yml every 5 min into git."""
+    with closing(get_db()) as conn:
+        rows = [dict(r) for r in conn.execute("SELECT * FROM tracked_union ORDER BY kotak_trading_symbol").fetchall()]
+    return {"count": len(rows), "rows": rows}
+
+
 def _find_unprotected_open_positions(kotak_open_by_trdsym: dict, order_rows: list) -> list:
     """The direct backcheck the 2026-09-30 MFSL.NS incident asked for
     ("Make sure that this does not repeat... Do some back check during
@@ -19227,6 +19405,11 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 qty_corrected.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
                                        "old_qty": r["qty"], "new_qty": int(kotak_match["qty"]), "table": "real_positions_swing"})
 
+        try:
+            for _t in _tracked_union_persist(conn, kotak_open_by_trdsym, swing_holdings):
+                our_swing_trdsyms.add(_t)
+        except Exception as e:
+            print(f"[tracked_union] persist failed (non-fatal): {e}")
         for trd_sym, info in kotak_open_by_trdsym.items():
             if trd_sym not in our_trdsyms and trd_sym not in our_short_trdsyms and trd_sym not in our_swing_trdsyms:
                 untracked.append({"kotak_trading_symbol": trd_sym, "qty": int(info["qty"]),
