@@ -430,3 +430,14 @@ def test_fresh_sl_still_attempted_when_the_open_check_itself_is_unreadable():
                    return_value={"ok": True, "order_id": "SL-NEW", "trigger_price": 97.0}) as mock_place:
             main._maybe_sync_real_stop_loss(conn, "ASHOKLEY.NS")
             mock_place.assert_called_once()
+
+
+import pytest as _pytest_orphan
+
+
+@_pytest_orphan.fixture(autouse=True)
+def _no_orphan_reroute(monkeypatch):
+    # These fixtures insert strategy-less intraday rows; the orphan->swing reroute
+    # (B-68) has its own tests in test_orphan_reroute_to_swing.py.
+    import main as _m
+    monkeypatch.setattr(_m, "_reroute_orphan_intraday_to_swing", lambda conn, row: False)
