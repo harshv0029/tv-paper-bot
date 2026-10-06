@@ -1855,5 +1855,19 @@
     "rr_target": 3.0,
     "rr_achieved": -0.35,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "OIL.NS",
+    "exit_time_utc": 1791278792.6185172,
+    "entry_price_native": null,
+    "exit_price_native": 444.45001220703125,
+    "currency": "INR",
+    "qty": 3.0,
+    "pnl_inr": 0.0,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "trail_stop_hit",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": null
   }
 ]
