@@ -1857,5 +1857,44 @@
     "governance_backfilled_swing": [],
     "unprotected_positions_count": 0,
     "unprotected_positions": []
+  },
+  {
+    "reconciled_at_utc": 1791266764.8305156,
+    "real_balance_inr": 3572.0099999999998,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "removed_ghost_count": 3,
+    "removed_ghosts": [
+      {
+        "symbol": "INDHOTEL.NS",
+        "kotak_trading_symbol": "INDHOTEL-EQ",
+        "was_tracked_qty": 1,
+        "table": "real_positions_swing"
+      },
+      {
+        "symbol": "IRCTC.NS",
+        "kotak_trading_symbol": "IRCTC-EQ",
+        "was_tracked_qty": 1,
+        "table": "real_positions_swing"
+      },
+      {
+        "symbol": "UNIONBANK.NS",
+        "kotak_trading_symbol": "UNIONBANK-EQ",
+        "was_tracked_qty": 1,
+        "table": "real_positions_swing"
+      }
+    ],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 0,
+    "governance_backfilled": [],
+    "governance_backfilled_short_count": 0,
+    "governance_backfilled_short": [],
+    "governance_backfilled_swing_count": 0,
+    "governance_backfilled_swing": [],
+    "unprotected_positions_count": 0,
+    "unprotected_positions": []
   }
 ]
