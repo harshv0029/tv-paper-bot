@@ -97,3 +97,20 @@ def test_every_order_event_has_a_reason(tmp_path, monkeypatch):
     main._log_real_order_event(conn, "X.NS", "weird", "thing")
     for (d,) in conn.execute("SELECT detail FROM real_order_events").fetchall():
         assert d.startswith("reason: ") and len(d) > 12
+
+
+def test_stop_falls_back_to_latest_kotak_sl_order_when_no_app_event(tmp_path, monkeypatch):
+    import kotak_neo
+    rows = [
+        {"trdSym": "RVNL-EQ", "trnsTp": "S", "prcTp": "SL-M", "trgPrc": "190.00", "ordDtTm": "05-Oct-2026 10:00:00"},
+        {"trdSym": "RVNL-EQ", "trnsTp": "S", "prcTp": "SL-M", "trgPrc": "196.40", "ordDtTm": "06-Oct-2026 09:30:00"},
+        {"trdSym": "OTHER-EQ", "trnsTp": "S", "prcTp": "SL-M", "trgPrc": "5.00", "ordDtTm": "06-Oct-2026 11:00:00"},
+    ]
+    monkeypatch.setattr(kotak_neo, "order_report", lambda *a, **k: {"data": rows}, raising=False)
+    monkeypatch.setattr(main, "DB_PATH", str(tmp_path / "t.db"), raising=False)
+    main.init_db()
+    conn = main.get_db()
+    conn.execute("INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, opened_at, day) "
+                 "VALUES ('RVNL.NS','RVNL-EQ',2,199.23,1.0,'2026-10-05')")
+    conn.commit()
+    assert main._orphan_prev_day_stop(conn, "RVNL.NS", 199.23) == (196.40, "most recent SL order in Kotak's order book for this stock")
