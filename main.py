@@ -18363,17 +18363,29 @@ def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: 
            and str(r.get("prcTp", "")).upper() in ("SL", "SL-M")
            and str(r.get("ordSt", r.get("stat", ""))).lower() not in terminal for r in order_rows):
         return {"status": "already_protected - nothing placed"}
-    try:
-        import kotak_real_orders
-        symbol = f"{held['symbol']}.NS"
-        atr = _swing_atr(fetch_ohlc(symbol, "6mo", "1d"))
-        atr_last = float(atr[-1])
-    except Exception as e:
-        return {"error": f"ATR unavailable - nothing placed: {e}"}
-    if not atr_last > 0 or atr_last != atr_last:
-        return {"error": "ATR invalid - nothing placed"}
-    stop = round(held["avg_price"] - SWING_ATR_STOP_MULT * atr_last, 2)
-    if stop <= 0 or stop >= held["avg_price"]:
+    import kotak_real_orders
+    symbol = f"{held['symbol']}.NS"
+    # 2026-10-06 (explicit user instruction): exchange DAY orders lapse at the
+    # close, so at 09:15 the SL must come back at the SAME number it had the
+    # previous day (incl. any trail). The row's stored trigger is that number;
+    # ATR-from-average is only the fallback for a holding with no record at all.
+    with closing(get_db()) as conn:
+        prev = conn.execute("SELECT sl_trigger_price, stop_loss FROM real_positions_swing WHERE symbol = ?",
+                            (symbol,)).fetchone()
+    carried = max(float(prev["sl_trigger_price"] or 0), float(prev["stop_loss"] or 0)) if prev else 0.0
+    atr_last = None
+    if carried > 0:
+        stop = round(carried, 2)
+    else:
+        try:
+            atr = _swing_atr(fetch_ohlc(symbol, "6mo", "1d"))
+            atr_last = float(atr[-1])
+        except Exception as e:
+            return {"error": f"ATR unavailable - nothing placed: {e}"}
+        if not atr_last > 0 or atr_last != atr_last:
+            return {"error": "ATR invalid - nothing placed"}
+        stop = round(held["avg_price"] - SWING_ATR_STOP_MULT * atr_last, 2)
+    if stop <= 0:
         return {"error": f"invalid computed stop {stop} - nothing placed"}
     with closing(get_db()) as conn:
         row = conn.execute("SELECT strategy FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
@@ -18385,13 +18397,27 @@ def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: 
                  ist_now().strftime("%Y-%m-%d"), stop, strategy),
             )
         sl = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, held["qty"], stop)
+        if not sl.get("ok") and carried > 0:
+            # Carried stop rejected (typically a gap below it at the open):
+            # recompute from the latest close with the same ATR rule so the
+            # position is never left naked (user: "U recompute", 2026-10-06).
+            try:
+                df = fetch_ohlc(symbol, "6mo", "1d")
+                atr_l = float(_swing_atr(df)[-1])
+                alt = round(float(df["Close"].iloc[-1]) - SWING_ATR_STOP_MULT * atr_l, 2)
+                if atr_l > 0 and 0 < alt < stop:
+                    stop = alt
+                    sl = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, held["qty"], stop)
+                    conn.execute("UPDATE real_positions_swing SET stop_loss = ? WHERE symbol = ?", (stop, symbol))
+            except Exception as e:
+                print(f"[heal] recompute fallback failed for {kotak_trading_symbol}: {e}")
         if sl.get("ok"):
             conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                          (sl["order_id"], sl["trigger_price"], symbol))
         conn.commit()
         _sync_real_positions_swing_external(conn)
     return {"symbol": symbol, "qty": held["qty"], "avg_price": held["avg_price"],
-            "atr": round(atr_last, 2), "stop": stop, "sl_ok": bool(sl.get("ok")),
+            "atr": round(atr_last, 2) if atr_last else None, "stop": stop, "carried_over": bool(carried), "sl_ok": bool(sl.get("ok")),
             "sl_trigger_price": sl.get("trigger_price"), "sl_error": sl.get("error")}
 
 
