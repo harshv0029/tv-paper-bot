@@ -444,3 +444,14 @@ def test_partial_exit_restores_the_original_sl_when_the_sell_fails_after_sl_canc
         assert row["qty"] == 8  # unchanged - the sell failed
         assert row["sl_order_id"] == "SL-RESTORED"
         assert row["protection_degraded_since"] is None
+
+
+import pytest as _pytest_orphan
+
+
+@_pytest_orphan.fixture(autouse=True)
+def _no_orphan_reroute(monkeypatch):
+    # These fixtures insert strategy-less intraday rows; the orphan->swing reroute
+    # (B-68) has its own tests in test_orphan_reroute_to_swing.py.
+    import main as _m
+    monkeypatch.setattr(_m, "_reroute_orphan_intraday_to_swing", lambda conn, row: False)

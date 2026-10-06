@@ -135,3 +135,14 @@ def test_maybe_sync_real_stop_loss_self_heals_and_places_the_real_sl():
         real_row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", ("MEDICAMEQ.NS",)).fetchone()
         assert real_row["sl_order_id"] == "999"
         assert real_row["sl_trigger_price"] == 285.57
+
+
+import pytest as _pytest_orphan
+
+
+@_pytest_orphan.fixture(autouse=True)
+def _no_orphan_reroute(monkeypatch):
+    # These fixtures insert strategy-less intraday rows; the orphan->swing reroute
+    # (B-68) has its own tests in test_orphan_reroute_to_swing.py.
+    import main as _m
+    monkeypatch.setattr(_m, "_reroute_orphan_intraday_to_swing", lambda conn, row: False)

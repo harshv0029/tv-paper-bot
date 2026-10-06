@@ -11001,6 +11001,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         order_id=result["order_id"], prev_state="no position",
         new_state=f"short {real_qty} @ Rs{real_entry_price:.2f}",
         detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
+        reason=f"paper short entry signal from strategy {real_strategy or 'unknown'} passed the PFnet gate",
     )
 
     if paper_row and paper_row["stop_loss"]:
@@ -11276,6 +11277,7 @@ def _maybe_place_real_entry(conn, symbol: str):
             order_id=result["order_id"], prev_state="no position",
             new_state=f"long {real_qty} @ Rs{real_entry_price:.2f}",
             detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
+            reason=f"paper long entry signal from strategy {real_strategy or 'unknown'} passed the PFnet gate",
         )
         _sync_real_positions_external(conn)
 
@@ -11442,6 +11444,7 @@ def _maybe_place_real_entry(conn, symbol: str):
         _log_real_order_event(
             conn, symbol, "entry", "failed", kotak_trading_symbol=kotak_symbol,
             prev_state="no position", new_state="no position (buy failed)", detail=result.get("detail"),
+            reason="paper long entry signal; Kotak rejected or failed the buy",
         )
 
 
@@ -12357,6 +12360,54 @@ def _real_sl_rejection_detail(order_id: str) -> str | None:
     return detail or None
 
 
+ORPHAN_SWING_STRATEGY_TAG = "swing_rerouted_orphan"
+ORPHAN_SWING_STOP_PCT = 0.03  # stop = entry x (1 - this); no ATR/gap data exists for an orphan
+
+
+def _reroute_orphan_intraday_to_swing(conn, real_row) -> bool:
+    """2026-10-06 (DRREDDY/RVNL, user: option 1): a real_positions row with NO
+    strategy, NO resting SL and NO target is an adopted/orphaned holding, not
+    an intraday entry (the entry path always stamps a strategy). Left in the
+    intraday table it gets the intraday emergency market-sell, which breaks
+    the engine-ownership rule for swing buys. Move it to the swing engine:
+    paper signal_state_swing row + real_positions_swing row (swing backfill
+    then places its SL), drop the intraday row, log the reason. Returns True
+    if moved."""
+    if real_row["strategy"] or real_row["sl_order_id"] or real_row["target_order_id"]:
+        return False
+    symbol = real_row["symbol"]
+    entry = float(real_row["entry_price"])
+    stop = round(entry * (1 - ORPHAN_SWING_STOP_PCT), 2)
+    qty = int(real_row["qty"])
+    day = real_row["day"]
+    conn.execute(
+        "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, "
+        "gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1.0, NULL, NULL) ON CONFLICT(symbol) DO NOTHING",
+        (symbol, ORPHAN_SWING_STRATEGY_TAG, day, entry, stop, stop, qty, real_row["opened_at"]),
+    )
+    conn.execute(
+        "INSERT INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, entry_order_id, "
+        "opened_at, day, stop_loss, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(symbol) DO NOTHING",
+        (symbol, real_row["kotak_trading_symbol"], qty, entry, real_row["entry_order_id"],
+         real_row["opened_at"], day, stop, ORPHAN_SWING_STRATEGY_TAG),
+    )
+    conn.execute("DELETE FROM real_positions WHERE symbol = ?", (symbol,))
+    apply_paper_trade(conn, symbol, "buy", qty, entry)  # so the swing paper exit has a position to close
+    conn.commit()
+    _sync_real_positions_external(conn)
+    _sync_real_positions_swing_external(conn)
+    _sync_signal_state_swing_external(conn)
+    _log_real_order_event(
+        conn, symbol, "reroute", "moved_to_swing", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+        prev_state="intraday table (no strategy, no SL, no target)",
+        new_state=f"swing table, stop Rs{stop:.2f} ({ORPHAN_SWING_STOP_PCT:.0%} below entry)",
+        reason="orphan holding in the intraday table; swing engine owns it so no intraday emergency/EOD sell",
+    )
+    print(f"[REAL] rerouted orphan {symbol} intraday -> swing (stop Rs{stop:.2f})")
+    return True
+
+
 def _maybe_sync_real_stop_loss(conn, symbol: str):
     """Keeps a real position's RESTING stop-loss order at Kotak in step
     with the paper trailing stop _auto_signal_core just ratcheted (see
@@ -12388,6 +12439,8 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
     real_row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
     if not real_row:
         return
+    if _reroute_orphan_intraday_to_swing(conn, real_row):
+        return  # now owned by the swing engine (its own SL backfill takes over)
 
     # Self-heal a missing paper counterpart RIGHT HERE, every tick - see
     # _ensure_signal_state_for_real_position's own docstring for the
@@ -16300,6 +16353,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         order_id=result["order_id"], prev_state="no position",
         new_state=f"long {real_qty} @ Rs{real_entry_price:.2f}",
         detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
+        reason=f"swing entry signal from strategy {strategy} passed the PFnet gate",
     )
 
     # Real resting stop-loss - the paper stop_loss this same scan just
