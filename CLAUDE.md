@@ -611,3 +611,4 @@ of trusting the transfer pack's prose.
   strategies automatically). Checked LAST in `_run_swing_scan`'s entry chain so they
   never crowd out a higher-PFnet setup. Shares `is_real_swing_trading_enabled`;
   no new kill switch.
+- **Thumb rule (2026-10-06, explicit user instruction): Render must redeploy only after CI passes, never on a bare push to main.** Render's Auto-Deploy is to be set to "After CI checks pass" (dashboard setting, owner-applied; Claude cannot change it). Until the user confirms it is set, treat every commit to main (Deploy Gate merges included) as an immediate live-bot restart (~8-11 min) and batch merges accordingly. Also: only ONE GitHub Actions dispatch in flight at a time; confirm 0 queued and 0 in_progress and that the previous run finished before any dispatch.
