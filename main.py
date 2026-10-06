@@ -10780,6 +10780,8 @@ def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, o
     stored as a leading "reason: ..." in `detail` so it rides the existing
     Upstash mirror and docs/real_order_log.json (git) with no schema
     change. Every exit path passes it (see _REASON_UNSTATED)."""
+    if not reason:
+        reason = _default_order_reason(leg, event)
     if reason:
         detail = f"reason: {reason}" + (f" | {detail}" if detail else "")
     conn.execute(
@@ -10788,6 +10790,31 @@ def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, o
         (time.time(), symbol, kotak_trading_symbol, leg, event, order_id, prev_state, new_state, detail),
     )
     conn.commit()
+
+
+_DEFAULT_ORDER_REASONS = {
+    ("sl", "placed"): "resting stop-loss placed so the open position is protected",
+    ("sl", "failed"): "stop-loss placement was rejected or failed; position stays unprotected and is retried",
+    ("sl", "trailed"): "stop-loss ratcheted up to lock in profit as the trail rule moved",
+    ("sl", "moved"): "stop-loss moved to follow the trailing stop",
+    ("sl", "reconciled"): "stop-loss reconciled against Kotak's live order book",
+    ("sl", "found_dead_on_reconcile"): "resting stop-loss was no longer live at Kotak; re-protecting the position",
+    ("sl", "cas_transition_market_exit_attempt"): "Kotak rejected the stop modify (cancel-and-secure transition); exiting at market to stay safe",
+    ("short_sl", "placed"): "resting buy-stop placed so the open short is protected",
+    ("short_sl", "failed"): "short stop-loss placement failed; retried while unprotected",
+    ("target", "placed"): "resting profit target placed for the current ladder leg",
+    ("target", "failed"): "profit target placement failed",
+    ("target", "skipped_sl_not_confirmed"): "target skipped because the stop-loss was not confirmed live first",
+    ("entry", "confirmed"): "entry order fill confirmed at Kotak",
+    ("entry", "confirmed_inferred"): "entry fill inferred from Kotak positions after the order status was unclear",
+    ("entry", "failed"): "entry order failed or was rejected at Kotak",
+}
+
+
+def _default_order_reason(leg, event):
+    """Never leave an order event without a reason (user, 2026-10-06): used
+    only when a call site passed none."""
+    return _DEFAULT_ORDER_REASONS.get((leg, event)) or f"automatic {leg} {event} by the real-order engine"
 
 
 _REASON_UNSTATED = "UNSTATED - caller passed no exit reason (a bug to fix, never a normal state)"
@@ -12361,7 +12388,89 @@ def _real_sl_rejection_detail(order_id: str) -> str | None:
 
 
 ORPHAN_SWING_STRATEGY_TAG = "swing_rerouted_orphan"
-ORPHAN_SWING_STOP_PCT = 0.03  # stop = entry x (1 - this); no ATR/gap data exists for an orphan
+ORPHAN_SWING_GAP_R_MULT = 0.5   # gap-down through the carried stop: new stop = open - 0.5R
+ORPHAN_SWING_TRAIL_R_MULT = 1.0  # trail = peak close - 1R (R stored in atr_at_entry)
+ORPHAN_SWING_LAST_RESORT_STOP_PCT = 0.01  # only if no prior stop AND no prior-day low is obtainable
+
+
+def _orphan_prev_day_stop(conn, symbol, entry):
+    """Previous trading day's stop for an orphan holding (user, 2026-10-06:
+    "replicate the stop loss from previous trading day, store it, reuse it").
+    1) the latest resting-SL trigger this app logged for the symbol (below
+    entry); 2) else the prior session's low from daily bars; 3) else a 1%
+    last-resort so a position is never left unprotected. Returns (stop, source)."""
+    import re
+    for (ns,) in conn.execute(
+        "SELECT new_state FROM real_order_events WHERE symbol = ? AND leg = 'sl' "
+        "AND event IN ('placed','trailed','moved') ORDER BY ts DESC LIMIT 10", (symbol,)
+    ).fetchall():
+        m = re.search(r"Rs([0-9]+(?:\.[0-9]+)?)", ns or "")
+        if m and 0 < float(m.group(1)) < entry:
+            return round(float(m.group(1)), 2), "previous resting stop-loss logged for this symbol"
+    try:
+        df = fetch_ohlc(symbol, "10d", "1d")
+        today = ist_now().strftime("%Y-%m-%d")
+        prior = [i for i in range(len(df)) if str(df.index[i])[:10] < today]
+        if prior:
+            low = float(df["Low"].iloc[prior[-1]])
+            if 0 < low < entry:
+                return round(low, 2), "previous trading day's low"
+    except Exception as e:
+        print(f"[REAL] orphan prev-day stop lookup failed for {symbol}: {e}")
+    return round(entry * (1 - ORPHAN_SWING_LAST_RESORT_STOP_PCT), 2), "last-resort 1% (no prior stop or prior-day low available)"
+
+
+def _orphan_refresh_stop(conn, row):
+    """Called just before an orphan swing row's SL is placed. Rows created
+    before this logic (atr_at_entry NULL) get the carried previous-day stop
+    stored once and reused. Then, if today's OPEN gapped through that stop,
+    the stop becomes open - 0.5R (R = entry - carried stop). Trailing is the
+    ordinary daily ratchet (_swing_strategy_stop_level). Returns the stop to
+    place, or None if today's open isn't available yet."""
+    symbol = row["symbol"]
+    st = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
+    if not st:
+        return round(row["stop_loss"], 2)
+    entry = float(st["entry_price"])
+    stop, r = float(st["initial_stop_loss"]), st["atr_at_entry"]
+    if r is None:  # carried stop not stored yet
+        stop, src = _orphan_prev_day_stop(conn, symbol, entry)
+        r = round(entry - stop, 4)
+        conn.execute(
+            "UPDATE signal_state_swing SET initial_stop_loss = ?, gap_low = ?, atr_at_entry = ?, "
+            "running_max_close = COALESCE(running_max_close, ?) WHERE symbol = ?",
+            (stop, stop, r, entry, symbol))
+        conn.execute("UPDATE real_positions_swing SET stop_loss = ? WHERE symbol = ?", (stop, symbol))
+        conn.commit()
+        _log_real_order_event(
+            conn, symbol, "reroute", "stop_carried", kotak_trading_symbol=row["kotak_trading_symbol"],
+            prev_state=f"placeholder stop Rs{float(row['stop_loss']):.2f}",
+            new_state=f"stored stop Rs{stop:.2f}, R Rs{r:.2f}",
+            reason=f"orphan swing stop replicated from {src} and stored for reuse")
+    try:
+        df = fetch_ohlc(symbol, "5d", "1d")
+        if str(df.index[-1])[:10] != ist_now().strftime("%Y-%m-%d"):
+            return None
+        open_px = float(df["Open"].iloc[-1])
+    except Exception as e:
+        print(f"[REAL] orphan open lookup failed for {symbol}: {e}")
+        return None
+    if open_px <= stop:
+        new_stop = round(open_px - ORPHAN_SWING_GAP_R_MULT * float(r), 2)
+        conn.execute("UPDATE signal_state_swing SET initial_stop_loss = ?, gap_low = ? WHERE symbol = ?",
+                     (new_stop, new_stop, symbol))
+        conn.execute("UPDATE real_positions_swing SET stop_loss = ? WHERE symbol = ?", (new_stop, symbol))
+        conn.commit()
+        _log_real_order_event(
+            conn, symbol, "reroute", "stop_gap_reset", kotak_trading_symbol=row["kotak_trading_symbol"],
+            prev_state=f"carried stop Rs{stop:.2f}", new_state=f"stop Rs{new_stop:.2f}",
+            reason=f"opened Rs{open_px:.2f} at/below carried stop; stop reset to open - 0.5R (R Rs{float(r):.2f})")
+        _sync_real_positions_swing_external(conn)
+        _sync_signal_state_swing_external(conn)
+        return new_stop
+    _sync_real_positions_swing_external(conn)
+    _sync_signal_state_swing_external(conn)
+    return round(stop, 2)
 
 
 def _reroute_orphan_intraday_to_swing(conn, real_row) -> bool:
@@ -12377,14 +12486,15 @@ def _reroute_orphan_intraday_to_swing(conn, real_row) -> bool:
         return False
     symbol = real_row["symbol"]
     entry = float(real_row["entry_price"])
-    stop = round(entry * (1 - ORPHAN_SWING_STOP_PCT), 2)
+    stop, _src = _orphan_prev_day_stop(conn, real_row["symbol"], entry)
+    r = round(entry - stop, 4)
     qty = int(real_row["qty"])
     day = real_row["day"]
     conn.execute(
         "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, "
         "gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1.0, NULL, NULL) ON CONFLICT(symbol) DO NOTHING",
-        (symbol, ORPHAN_SWING_STRATEGY_TAG, day, entry, stop, stop, qty, real_row["opened_at"]),
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1.0, ?, ?) ON CONFLICT(symbol) DO NOTHING",
+        (symbol, ORPHAN_SWING_STRATEGY_TAG, day, entry, stop, stop, qty, real_row["opened_at"], r, entry),
     )
     conn.execute(
         "INSERT INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, entry_order_id, "
@@ -12401,7 +12511,7 @@ def _reroute_orphan_intraday_to_swing(conn, real_row) -> bool:
     _log_real_order_event(
         conn, symbol, "reroute", "moved_to_swing", kotak_trading_symbol=real_row["kotak_trading_symbol"],
         prev_state="intraday table (no strategy, no SL, no target)",
-        new_state=f"swing table, stop Rs{stop:.2f} ({ORPHAN_SWING_STOP_PCT:.0%} below entry)",
+        new_state=f"swing table, stop Rs{stop:.2f} (from {_src})",
         reason="orphan holding in the intraday table; swing engine owns it so no intraday emergency/EOD sell",
     )
     print(f"[REAL] rerouted orphan {symbol} intraday -> swing (stop Rs{stop:.2f})")
@@ -16409,8 +16519,14 @@ def _maybe_sync_real_swing_stop_loss(conn):
         "SELECT * FROM real_positions_swing WHERE sl_order_id IS NULL"
     ).fetchall()
     for row in rows:
+        stop_px = round(row["stop_loss"], 2)
+        if row["strategy"] == ORPHAN_SWING_STRATEGY_TAG:
+            refreshed = _orphan_refresh_stop(conn, row)
+            if refreshed is None:
+                continue  # today's open not available yet; retry next tick
+            stop_px = refreshed
         sl_result = kotak_real_orders.place_real_stop_loss(
-            row["kotak_trading_symbol"], row["qty"], round(row["stop_loss"], 2)
+            row["kotak_trading_symbol"], row["qty"], stop_px
         )
         if sl_result.get("ok"):
             conn.execute(
@@ -16425,6 +16541,7 @@ def _maybe_sync_real_swing_stop_loss(conn):
                 conn, row["symbol"], "sl", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
                 order_id=sl_result["order_id"], prev_state="none (retry)",
                 new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f}",
+                reason=f"swing position had no resting stop-loss; placed at its stored stop Rs{stop_px:.2f}",
             )
         else:
             print(f"[REAL SWING] SL retry FAILED for {row['kotak_trading_symbol']}: "
@@ -16433,6 +16550,7 @@ def _maybe_sync_real_swing_stop_loss(conn):
                 conn, row["symbol"], "sl", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
                 prev_state="none (retry)", new_state="none (placement failed again)",
                 detail=sl_result.get("detail"),
+                reason="swing stop-loss placement failed (e.g. market closed); retried every 5 minutes",
             )
 
 
@@ -16652,6 +16770,14 @@ def _run_swing_scan(conn):
                         (new_running_max, symbol),
                     )
                     conn.commit()
+            elif pos["strategy"] == ORPHAN_SWING_STRATEGY_TAG:
+                new_running_max = max(float(pos["running_max_close"] or pos["entry_price"]), float(df["Close"].iloc[-1]))
+                conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                             (new_running_max, symbol))
+                conn.commit()
+                trail_stop = _swing_strategy_stop_level(
+                    pos["strategy"], pos["initial_stop_loss"], pos["atr_at_entry"], new_running_max)
+                reason = gap_and_go_exit_reason(df, pos["entry_day"], trail_stop, trail_stop)
             else:
                 reason = gap_and_go_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"], pos["gap_low"])
             if reason:
@@ -16919,6 +17045,7 @@ def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max
         "power_play": POWER_PLAY_ATR_STOP_MULT,
         "order_block_delta": ORDER_BLOCK_ATR_TRAIL_MULT,
         "volume_profile_poc": VP_ATR_TRAIL_MULT,
+        ORPHAN_SWING_STRATEGY_TAG: ORPHAN_SWING_TRAIL_R_MULT,  # atr_at_entry holds R for this tag
     }.get(strategy)
     if mult is None or not atr_at_entry or running_max_close is None:
         return float(initial_stop)
@@ -16962,6 +17089,7 @@ def _sync_swing_resting_sl_to_strategy(conn):
             order_id=res["order_id"], prev_state=f"resting SELL trigger Rs{current:.2f}",
             new_state=f"resting SELL trigger Rs{res['trigger_price']:.2f}",
             detail=f"daily {st['strategy']} stop ratchet",
+            reason=f"{st['strategy']} trail rule raised the stop from Rs{current:.2f} to Rs{res['trigger_price']:.2f}",
         )
         actions.append({"symbol": r["symbol"], "ok": True, "from": current, "to": res["trigger_price"]})
     return actions
