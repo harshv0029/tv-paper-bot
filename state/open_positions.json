@@ -1,4 +1,43 @@
 {
-  "synced_at_utc": "2026-10-06T09:52:30Z",
-  "open_positions": []
+  "synced_at_utc": "2026-10-06T12:20:58Z",
+  "open_positions": [
+    {
+      "symbol": "DRREDDY.NS",
+      "qty": 1.0,
+      "entry_price_native": 1208.9,
+      "stop_loss_native": 1196.81,
+      "initial_stop_loss_native": 1196.81,
+      "target_native": 1245.17,
+      "fx_to_inr": 1.0,
+      "notional_inr": 1208.9,
+      "orb_high_native": null,
+      "orb_low_native": null,
+      "entry_ts": 1791281243.184718,
+      "interval": "5m",
+      "strategy": "orb-swing-gap-and-go",
+      "sma_fast": 9,
+      "sma_slow": 21,
+      "entry_regime": null,
+      "real_entry_reason": "no live price tick available at entry time"
+    },
+    {
+      "symbol": "RVNL.NS",
+      "qty": 2.0,
+      "entry_price_native": 199.23,
+      "stop_loss_native": 197.24,
+      "initial_stop_loss_native": 197.24,
+      "target_native": 205.2,
+      "fx_to_inr": 1.0,
+      "notional_inr": 398.46,
+      "orb_high_native": null,
+      "orb_low_native": null,
+      "entry_ts": 1791282294.2045007,
+      "interval": "5m",
+      "strategy": "orb-swing-gap-and-go",
+      "sma_fast": 9,
+      "sma_slow": 21,
+      "entry_regime": null,
+      "real_entry_reason": "no live price tick available at entry time"
+    }
+  ]
 }
