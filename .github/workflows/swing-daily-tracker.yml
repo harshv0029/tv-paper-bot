@@ -1,0 +1,57 @@
+name: Swing Daily Tracker
+
+# B-50 (2026-10-06, explicit user instruction after the NYKAA.NS SL heal:
+# "make a daily tracker after market ... until each swing trade is live").
+# Once per weekday after the close (and once pre-open, to catch a T+1
+# settlement rejection from the previous day), it calls the SAME reconcile
+# endpoint the 5-min cron uses, which re-fetches Kotak holdings/orders fresh,
+# retries any missing swing SL (governance backfill) and reports every
+# delivery holding with no live SL (`holdings_unprotected`). This job then
+# writes a per-day table to the run summary and FAILS if anything is still
+# unprotected, so a stuck swing position is loud every single day.
+#
+# Deliberately NO commit to main: every push to main redeploys Render (a
+# restart wipes its local DB), so the tracker's record is the run summary +
+# run history, not a log file. The in-process 5-min backcheck stays the
+# primary guarantee; this is a secondary daily audit (CLAUDE.md: Actions
+# cron is a secondary layer only). Places no order itself beyond what
+# reconcile's existing backfill already does. Never prints the full payload.
+on:
+  schedule:
+    - cron: "45 3 * * 1-5"   # 09:15 IST pre-open
+    - cron: "30 10 * * 1-5"  # 16:00 IST after close
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reconcile + summarise swing/holding protection
+        env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+        run: |
+          curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+          curl -sS --retry 3 --retry-delay 10 --retry-connrefused -m 90 -X POST \
+            "https://tv-paper-bot-gdan.onrender.com/kotak-neo/reconcile-real-positions?token=${KOTAK_NEO_API_TOKEN}&adopt=%2A" \
+            -o /tmp/r.json
+          ERR=$(jq -r '.error // empty' /tmp/r.json)
+          if [[ -n "$ERR" ]]; then echo "::error::reconcile error: $ERR"; exit 1; fi
+          {
+            echo "## Swing daily tracker - $(date -u +%F' '%H:%M) UTC"
+            echo "- holdings checked: $(jq -r '.holdings_checked // "n/a"' /tmp/r.json)"
+            echo "- unprotected (all open positions): $(jq -r '.unprotected_positions_count // 0' /tmp/r.json)"
+            echo "- unprotected delivery holdings: $(jq -r '(.holdings_unprotected // []) | length' /tmp/r.json)"
+            echo '```'
+            jq -r '(.holdings_unprotected // [])[] | tostring' /tmp/r.json
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          HU=$(jq -r '(.holdings_unprotected // []) | length' /tmp/r.json)
+          UP=$(jq -r '.unprotected_positions_count // 0' /tmp/r.json)
+          if [[ "$HU" -gt 0 || "$UP" -gt 0 ]]; then
+            echo "::error::$HU delivery holding(s) / $UP position(s) have NO live SL at Kotak"
+            exit 1
+          fi
