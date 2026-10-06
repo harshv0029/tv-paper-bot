@@ -64,11 +64,24 @@ def test_not_held_still_ghosted():
     assert n == 0 and res["removed_ghost_count"] == 1
 
 
-def test_heal_rejects_non_allowlisted_symbol():
-    from fastapi.testclient import TestClient
-    with patch.object(main, "_require_kotak_token", return_value=None):
-        r = TestClient(main.app).post("/kotak-neo/heal-swing-holding-sl?kotak_trading_symbol=TCS-EQ")
-    assert "not allowlisted" in r.json()["error"]
+def test_heal_core_places_atr_stop_for_any_holding():
+    import numpy as np
+    held = {"qty": 10, "avg_price": 100.0, "symbol": "TCS"}
+    with patch.object(main, "fetch_ohlc", return_value=object()), \
+         patch.object(main, "_swing_atr", return_value=np.array([4.0])), \
+         patch.object(main, "_sync_real_positions_swing_external"), \
+         patch("kotak_real_orders.place_real_stop_loss",
+               return_value={"ok": True, "order_id": "X1", "trigger_price": 90.0}) as place:
+        res = main._heal_swing_holding_core("TCS-EQ", held, [])
+    assert res["sl_ok"] and res["stop"] == 90.0 and place.call_count == 1
+    assert place.call_args[0][:3] == ("TCS-EQ", 10, 90.0)
+
+
+def test_heal_core_noop_when_sl_resting():
+    sl = {"trdSym": "TCS-EQ", "trnsTp": "S", "prcTp": "SL-M", "ordSt": "open"}
+    with patch("kotak_real_orders.place_real_stop_loss") as place:
+        res = main._heal_swing_holding_core("TCS-EQ", {"qty": 1, "avg_price": 50.0, "symbol": "TCS"}, [sl])
+    assert res["status"].startswith("already_protected") and not place.called
 
 
 def test_heal_places_nothing_when_already_protected():
