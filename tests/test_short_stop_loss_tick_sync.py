@@ -1,3 +1,4 @@
+import unittest.mock
 """Tests for _maybe_sync_real_stop_loss_short (2026-09-30, explicit user
 instruction: "make short positions equally mirrored as done in buy
 positions") - the per-TICK (every ~30s) trailing-stop/retry/degraded-
@@ -178,7 +179,7 @@ def test_degraded_timeout_exceeded_triggers_emergency_cover_not_a_sell():
              patch.object(main, "_maybe_place_real_short_exit") as mock_cover, \
              patch.object(main, "_maybe_place_real_exit") as mock_sell:
             main._maybe_sync_real_stop_loss_short(conn, "TCS.NS")
-        mock_cover.assert_called_once_with(conn, "TCS.NS")
+        mock_cover.assert_called_once_with(conn, "TCS.NS", reason=unittest.mock.ANY)
         mock_sell.assert_not_called()
 
 
@@ -203,7 +204,7 @@ def test_cas_transition_rejection_escalates_to_emergency_cover():
              patch.object(main.time, "sleep", return_value=None), \
              patch.object(main, "_maybe_place_real_short_exit") as mock_cover:
             main._maybe_sync_real_stop_loss_short(conn, "TCS.NS")
-        mock_cover.assert_called_once_with(conn, "TCS.NS")
+        mock_cover.assert_called_once_with(conn, "TCS.NS", reason=unittest.mock.ANY)
 
 
 def test_self_heals_a_missing_signal_state_short_row():
