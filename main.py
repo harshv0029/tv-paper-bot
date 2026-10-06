@@ -5294,6 +5294,134 @@ def dmi_entry_signal(df: pd.DataFrame, variant: str, direction: str, params: dic
             "target": float(r["target"][-1]), "atr_at_entry": float(r["atr"][-1])}
 
 
+# ---------------------------------------------------------------------------
+# Point & Figure (Murphy ch.11, 3-box-reversal / Chartcraft method) -- backlog B-12.
+# RESEARCH-STAGE ONLY: not wired into any scan loop or real-order path.
+# Chart construction follows the book's daily-update rule applied per bar: in an X
+# column look at the High first and extend while it fills a box; only when it can't,
+# look at the Low for a `reversal`-box reversal into an O column (mirror for O).
+# Box size is volatility-scaled (Tower-style) = box_atr x mean ATR(atr_period) over
+# the first `warmup` bars, grid anchored at 0; signals only after the warm-up, so no
+# bar's box size uses later data. Variants (each its own strategy tag):
+#   "double_top"   - B-1 simple buy: X column rises 1 box above the prior X column
+#   "triple_top"   - B-3 triple-top breakout: X column clears the two prior X-column
+#                    tops, which must be within tol_boxes of each other
+#   "pullback"     - tactic 6c: a `reversal`-box reversal back up while the last signal
+#                    is a buy (bullish until a sell signal), stop under the latest O column
+# Stop = bottom of the latest O column (book tactic 5); target = rr x risk (the book's
+# vertical/horizontal counts are NOT implemented -- owed, backlog B-12).
+# Long is native; short negates prices (box grid is re-anchored on the negated series,
+# so the short is a mirror, not a bit-exact reflection).
+# ---------------------------------------------------------------------------
+PNF_DEFAULT_PARAMS = {
+    "box_atr": 1.0,        # box size = box_atr x mean ATR over the warm-up
+    "reversal": 3,         # boxes needed to reverse (book: 3)
+    "tol_boxes": 0,        # triple_top: allowed spread between the two prior tops
+    "atr_period": 14,
+    "warmup": 30,
+    "rr": 2.0,
+    "max_hold_bars": 60,
+}
+PNF_VARIANTS = ("double_top", "triple_top", "pullback")
+
+
+def _pnf_scan_long(o, h, l, c, variant: str, p: dict):
+    n = len(c)
+    atr = _atr_array(h, l, c, int(p["atr_period"]))
+    sig = np.zeros(n, dtype=bool)
+    entry = np.full(n, np.nan)
+    stop = np.full(n, np.nan)
+    target = np.full(n, np.nan)
+    w = int(p["warmup"])
+    if n <= w + 2:
+        return sig, entry, stop, target, atr
+    seg = atr[int(p["atr_period"]):w]
+    seg = seg[np.isfinite(seg)]
+    if seg.size == 0:
+        return sig, entry, stop, target, atr
+    box = float(p["box_atr"]) * float(np.mean(seg))
+    if not (box > 0):
+        return sig, entry, stop, target, atr
+    rev = int(p["reversal"])
+    tol = int(p["tol_boxes"])
+    hi_i = np.floor(h / box).astype(np.int64)
+    lo_i = np.floor(l / box).astype(np.int64)
+    d = "x"
+    top = bot = int(np.floor(c[w] / box))
+    xcols: list = []   # completed X columns' tops
+    ocols: list = []   # completed O columns' bottoms
+    bullish = False
+    for i in range(w + 1, n):
+        fire = False
+        if d == "x":
+            if hi_i[i] > top:
+                prev_top = top
+                top = int(hi_i[i])
+                if xcols:
+                    ref = xcols[-1]
+                    if prev_top <= ref < top:  # first bar clearing the prior X top
+                        if variant == "double_top":
+                            fire = True
+                        elif variant == "triple_top" and len(xcols) >= 2 and abs(xcols[-1] - xcols[-2]) <= tol and top > max(xcols[-1], xcols[-2]):
+                            fire = True
+                        if variant != "triple_top" or fire:
+                            bullish = True
+            elif lo_i[i] <= top - rev:
+                xcols.append(top)
+                d, top, bot = "o", top - 1, int(lo_i[i])
+        else:
+            if lo_i[i] < bot:
+                prev_bot = bot
+                bot = int(lo_i[i])
+                if ocols and prev_bot >= ocols[-1] > bot:
+                    bullish = False  # sell signal: O column below the prior O column
+            elif hi_i[i] >= bot + rev:
+                ocols.append(bot)
+                if variant == "pullback" and bullish:
+                    fire = True
+                d, bot, top = "x", bot + 1, int(hi_i[i])
+        if not fire or not (atr[i] > 0):
+            continue
+        last_o = ocols[-1] if ocols else bot
+        sp = float(last_o) * box
+        e = float(c[i])
+        if not (e > sp):
+            continue
+        sig[i], entry[i], stop[i], target[i] = True, e, sp, e + p["rr"] * (e - sp)
+    return sig, entry, stop, target, atr
+
+
+def pnf_scan(df: pd.DataFrame, variant: str, direction: str, params: dict | None = None, sessions=None) -> dict:
+    """Vectorised Point & Figure scan over every bar. A signal on bar i means: enter at
+    bar i's close. `sessions` is accepted for harness symmetry."""
+    if variant not in PNF_VARIANTS:
+        raise ValueError(f"unknown pnf variant {variant!r}")
+    if direction not in ("long", "short"):
+        raise ValueError(f"unknown direction {direction!r}")
+    p = dict(PNF_DEFAULT_PARAMS)
+    p.update(params or {})
+    o = df["Open"].to_numpy(dtype=float)
+    h = df["High"].to_numpy(dtype=float)
+    l = df["Low"].to_numpy(dtype=float)
+    c = df["Close"].to_numpy(dtype=float)
+    if direction == "short":
+        sig, e, s_, t, atr = _pnf_scan_long(-o, -l, -h, -c, variant, p)
+        return {"signal": sig, "entry_price": -e, "stop_loss": -s_, "target": -t, "atr": atr}
+    sig, e, s_, t, atr = _pnf_scan_long(o, h, l, c, variant, p)
+    return {"signal": sig, "entry_price": e, "stop_loss": s_, "target": t, "atr": atr}
+
+
+def pnf_entry_signal(df: pd.DataFrame, variant: str, direction: str, params: dict | None = None) -> dict | None:
+    """Last-row evaluation, same return shape as dmi_entry_signal."""
+    if len(df) < int(PNF_DEFAULT_PARAMS["warmup"]) + 3:
+        return None
+    r = pnf_scan(df, variant, direction, params)
+    if not bool(r["signal"][-1]):
+        return None
+    return {"entry_price": float(r["entry_price"][-1]), "stop_loss": float(r["stop_loss"][-1]),
+            "target": float(r["target"][-1]), "atr_at_entry": float(r["atr"][-1])}
+
+
 def _compute_poc(highs, lows, vols, lo: int, hi: int):
     """Volume-weighted profile over bars [lo, hi) - port of the VP research
     workflow's _compute_poc. Returns (poc_price, bin_width) or (None, None)."""
