@@ -71,3 +71,38 @@ jobs:
                   if any(s in json.dumps(r) for s in SYMS):
                       print(k, json.dumps(r)[:600])
           PY
+      - name: Fetch positions and order book, print sanitised rows
+        env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+        run: |
+          B=https://tv-paper-bot-gdan.onrender.com
+          curl -sS -m 90 "$B/health" || true; echo
+          curl -sS --retry 3 --retry-delay 10 -m 90 "$B/kotak-neo/positions?token=${KOTAK_NEO_API_TOKEN}" -o /tmp/p.json || true
+          curl -sS --retry 3 --retry-delay 10 -m 90 "$B/kotak-neo/order-report?token=${KOTAK_NEO_API_TOKEN}" -o /tmp/o.json || true
+          python3 - <<'PY'
+          import json
+          def rows_of(d):
+              if isinstance(d, list): return d
+              if isinstance(d, dict):
+                  for v in d.values():
+                      r = rows_of(v)
+                      if r and isinstance(r[0], dict): return r
+              return []
+          bad = ("acc", "client", "ucc", "pan", "name", "mob", "email")
+          def load(n):
+              try: return json.load(open(f"/tmp/{n}.json"))
+              except Exception as e: print(n, "unreadable", type(e).__name__); return None
+          p = load("p")
+          if isinstance(p, dict) and p.get("error"): print("positions ERROR (truncated):", str(p["error"])[:80])
+          pr = rows_of(p)
+          print("position rows:", len(pr))
+          if pr: print("position row keys:", sorted(pr[0]))
+          for r in pr:
+              print("POS", {k: v for k, v in r.items() if not any(b in k.lower() for b in bad)})
+          o = load("o")
+          orows = rows_of(o)
+          print("order rows:", len(orows))
+          for r in orows:
+              if str(r.get("prcTp", "")).upper() in ("SL", "SL-M") and str(r.get("trnsTp", "")).upper() == "S":
+                  print("SLORD", {k: r.get(k) for k in ("trdSym", "trnsTp", "prcTp", "trgPrc", "ordSt", "ordDtTm")})
+          PY
