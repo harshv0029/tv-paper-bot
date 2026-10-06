@@ -14290,6 +14290,37 @@ def get_real_open_positions():
     except Exception:
         pass  # Kotak fetch failed - still return the bot-tracked rows above
 
+    # B-46b (2026-10-06): swing shares are delivery HOLDINGS, absent from
+    # positions() (probe-confirmed with NYKAA), so list any held symbol with
+    # no tracked row too. Display only; never adopted/ordered here.
+    try:
+        listed = {r["kotak_trading_symbol"] for r in result}
+        for trd_sym, h in (_kotak_holdings_open_by_trdsym() or {}).items():
+            if trd_sym in listed:
+                continue
+            bare_symbol = f"{h['symbol']}.NS"
+            current_price = None
+            try:
+                current_price = float(fetch_ohlc(bare_symbol, "1d", "5m")["Close"].iloc[-1])
+            except Exception:
+                pass
+            avg = h["avg_price"]
+            invested = round(avg * h["qty"], 2) if avg else None
+            pnl = round((current_price - avg) * h["qty"], 2) if (avg and current_price is not None) else None
+            result.append({
+                "symbol": bare_symbol, "kotak_trading_symbol": trd_sym, "qty": h["qty"],
+                "entry_price": avg, "entry_order_id": None, "opened_at": None,
+                "day": ist_now().strftime("%Y-%m-%d"), "sl_order_id": None, "sl_trigger_price": None,
+                "target_order_id": None, "target_price": None,
+                "current_price": current_price, "invested_inr": invested, "unrealized_pnl_inr": pnl,
+                "unrealized_pnl_pct": round(100 * pnl / invested, 3) if pnl is not None and invested else None,
+                "strategy": None, "target_status": "not_bot_managed",
+                "target_status_detail": "delivery holding at Kotak with no tracked row in this app",
+                "source": "kotak_holding", "side": "long",
+            })
+    except Exception:
+        pass
+
     # 2026-09-30, explicit user instruction: attach the "what was in your
     # mind entering this trade" paragraph to every row here, real or
     # untracked alike - see _build_trade_thesis's own module comment.
@@ -18165,6 +18196,69 @@ def kotak_neo_holdings(request: Request):
         return {"error": str(e)}
 
 
+_HEAL_SWING_HOLDING_ALLOWLIST = {"NYKAA-EQ"}  # user scope 2026-10-06: NYKAA only
+
+
+@app.post("/kotak-neo/heal-swing-holding-sl")
+def kotak_neo_heal_swing_holding_sl(request: Request, kotak_trading_symbol: str = "NYKAA-EQ"):
+    """One-shot heal for a swing delivery HOLDING with no tracking row and no
+    resting SL (NYKAA.NS, 2026-10-06, real money). Token-gated, allowlisted
+    to NYKAA-EQ only. Fresh Kotak state first: the symbol must be in
+    holdings() and have NO live resting SELL SL in order_report(). Stop =
+    holding avg price - SWING_ATR_STOP_MULT x daily ATR (the swing engine's
+    own rule). Recreates the real_positions_swing row (strategy gap_and_go,
+    per the incident record) then places the SL; if placement fails the row
+    stays so the 5-min governance backfill retries it."""
+    _require_kotak_token(request)
+    if kotak_trading_symbol not in _HEAL_SWING_HOLDING_ALLOWLIST:
+        return {"error": f"{kotak_trading_symbol} not allowlisted"}
+    holdings = _kotak_holdings_open_by_trdsym()
+    if holdings is None:
+        return {"error": "holdings fetch failed - nothing placed"}
+    held = holdings.get(kotak_trading_symbol)
+    if held is None or not held["avg_price"]:
+        return {"error": "not held (or no avg price) - nothing placed"}
+    try:
+        import kotak_neo
+        import kotak_real_orders
+        order_rows = (kotak_neo.order_report() or {}).get("data") or []
+    except Exception as e:
+        return {"error": f"order_report fetch failed - nothing placed: {e}"}
+    terminal = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
+    if any(r.get("trdSym") == kotak_trading_symbol and r.get("trnsTp") == "S"
+           and str(r.get("prcTp", "")).upper() in ("SL", "SL-M")
+           and str(r.get("ordSt", r.get("stat", ""))).lower() not in terminal for r in order_rows):
+        return {"status": "already_protected - nothing placed"}
+    symbol = f"{held['symbol']}.NS"
+    try:
+        atr = _swing_atr(fetch_ohlc(symbol, "6mo", "1d"))
+        atr_last = float(atr[-1])
+    except Exception as e:
+        return {"error": f"ATR unavailable - nothing placed: {e}"}
+    if not atr_last > 0 or atr_last != atr_last:
+        return {"error": "ATR invalid - nothing placed"}
+    stop = round(held["avg_price"] - SWING_ATR_STOP_MULT * atr_last, 2)
+    if stop <= 0 or stop >= held["avg_price"]:
+        return {"error": f"invalid computed stop {stop} - nothing placed"}
+    with closing(get_db()) as conn:
+        if not conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone():
+            conn.execute(
+                "INSERT INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, "
+                "entry_order_id, opened_at, day, stop_loss, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (symbol, kotak_trading_symbol, held["qty"], held["avg_price"], None, time.time(),
+                 ist_now().strftime("%Y-%m-%d"), stop, "gap_and_go"),
+            )
+        sl = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, held["qty"], stop)
+        if sl.get("ok"):
+            conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                         (sl["order_id"], sl["trigger_price"], symbol))
+        conn.commit()
+        _sync_real_positions_swing_external(conn)
+    return _kotak_json_safe({"symbol": symbol, "qty": held["qty"], "avg_price": held["avg_price"],
+                             "atr": round(atr_last, 2), "stop": stop, "sl_ok": bool(sl.get("ok")),
+                             "sl_trigger_price": sl.get("trigger_price"), "sl_error": sl.get("error")})
+
+
 @app.get("/kotak-neo/order-report")
 def kotak_neo_order_report(request: Request, order_id: str | None = None):
     """The real account's order book (or a single order, if order_id is
@@ -18207,6 +18301,39 @@ def kotak_neo_limits(request: Request):
         return _kotak_json_safe(kotak_neo.limits())
     except Exception as e:
         return {"error": str(e)}
+
+
+def _kotak_holdings_open_by_trdsym() -> dict | None:
+    """Fresh Kotak holdings() (delivery shares - swing positions live here,
+    NOT in positions(), confirmed by the B-46b probe 2026-10-06: NYKAA was
+    in holdings, absent from positions()). Returns {trading_symbol: {"qty",
+    "avg_price", "symbol"}} for nse_cm rows with quantity > 0, keyed like
+    positions()'s trdSym ("NYKAA-EQ" = symbol + "-" + series), or None on a
+    fetch failure/unexpected shape so callers can fail SAFE (never treat an
+    unknown as "not held")."""
+    try:
+        import kotak_neo
+        resp = kotak_neo.holdings()
+        rows = resp.get("data") if isinstance(resp, dict) else None
+        if not isinstance(rows, list):
+            return None
+    except Exception:
+        return None
+    out: dict = {}
+    for row in rows:
+        try:
+            if not isinstance(row, dict) or row.get("exchangeSegment") != "nse_cm":
+                continue
+            qty = float(row.get("quantity", 0) or 0)
+            sym = row.get("symbol")
+            if qty <= 0 or not sym:
+                continue
+            trd_sym = f"{sym}-{row.get('series') or 'EQ'}"
+            out[trd_sym] = {"qty": int(qty), "avg_price": float(row.get("averagePrice", 0) or 0) or None,
+                            "symbol": sym}
+        except (TypeError, ValueError):
+            continue
+    return out
 
 
 def _find_unprotected_open_positions(kotak_open_by_trdsym: dict, order_rows: list) -> list:
@@ -18390,6 +18517,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         except (TypeError, ValueError):
             continue
 
+    swing_holdings = _kotak_holdings_open_by_trdsym()
     qty_corrected, removed_ghosts, untracked = [], [], []
     with closing(get_db()) as conn:
         our_rows = conn.execute("SELECT * FROM real_positions").fetchall()
@@ -18461,6 +18589,22 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         our_swing_trdsyms = {r["kotak_trading_symbol"] for r in conn.execute("SELECT kotak_trading_symbol FROM real_positions_swing").fetchall()}
         for r in conn.execute("SELECT * FROM real_positions_swing").fetchall():
             kotak_match = kotak_open_by_trdsym.get(r["kotak_trading_symbol"])
+            if kotak_match is None:
+                # Swing shares are delivery holdings, which positions() does
+                # not list (B-46b probe, 2026-10-06) - count holdings() before
+                # calling the row a ghost; if holdings can't be fetched, keep
+                # the row (a wrongly deleted swing row loses its SL governance).
+                if swing_holdings is None:
+                    continue
+                held = swing_holdings.get(r["kotak_trading_symbol"])
+                if held is not None:
+                    if held["qty"] != r["qty"]:
+                        conn.execute("UPDATE real_positions_swing SET qty = ? WHERE symbol = ?",
+                                     (held["qty"], r["symbol"]))
+                        qty_corrected.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
+                                               "old_qty": r["qty"], "new_qty": held["qty"],
+                                               "table": "real_positions_swing", "source": "holdings"})
+                    continue
             if kotak_match is None or kotak_match["is_short"]:
                 conn.execute("DELETE FROM real_positions_swing WHERE symbol = ?", (r["symbol"],))
                 removed_ghosts.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
@@ -18933,6 +19077,10 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
     return {
         "reconciled_at_utc": time.time(), "real_balance_inr": net_balance,
         "qty_corrected_count": len(qty_corrected), "qty_corrected": qty_corrected,
+        "holdings_unprotected": _find_unprotected_open_positions(
+            {k: {"qty": v["qty"], "is_short": False} for k, v in (swing_holdings or {}).items()
+             if k not in kotak_open_by_trdsym}, order_rows),
+        "holdings_checked": None if swing_holdings is None else len(swing_holdings),
         "removed_ghost_count": len(removed_ghosts), "removed_ghosts": removed_ghosts,
         "untracked_open_positions_count": len(untracked), "untracked_open_positions": untracked,
         "adopted_count": len(adopted), "adopted": adopted,
