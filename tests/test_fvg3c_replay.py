@@ -77,3 +77,21 @@ def test_snd_zone_replay_harness_runs_and_names_tags():
                                 sessions, mins, ts, scanner=scanner, defaults=main.SND_DEFAULT_PARAMS)
         for t in trades:
             assert t["total_cost"] > 0
+
+
+def test_dmi_replay_harness_runs_and_names_tags():
+    spec = importlib.util.spec_from_file_location(
+        "dmi_replay", pathlib.Path(__file__).resolve().parents[1] / "scripts" / "dmi_replay.py")
+    dr = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(dr)
+    tags = {dr.cell_tag(v, d, "5m", {}) for v, d in dr.VARIANT_DIR}
+    assert len(tags) == 6 and all(t.startswith("dmi_adx__") and t.endswith("__v1") and re.fullmatch(r"[a-z0-9_]+", t) for t in tags)
+    assert dr.cell_tag("cross", "long", "5m", {"period": 20}) != dr.cell_tag("cross", "long", "5m", {})
+    df, sessions, mins, ts = fr.prep(_synthetic(days=8, seed=13))
+    n = 0
+    for v, d in dr.VARIANT_DIR:
+        scanner = lambda frame, prm, sess, _v=v, _d=d: main.dmi_scan(frame, _v, _d, prm, sessions=sess)  # noqa: E731
+        trades = fr.replay_cell("SYN.NS", df, v, d, {"period": 7}, sessions, mins, ts, scanner=scanner, defaults=main.DMI_DEFAULT_PARAMS)
+        n += len(trades)
+        assert all(t["total_cost"] > 0 for t in trades)
+    assert n > 0

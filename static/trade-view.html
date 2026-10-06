@@ -353,7 +353,7 @@
 
 <div class="counts-panel">
   <div class="counts-head">
-    <span class="title">Viable strategies — scan &amp; entry activity</span>
+    <span class="title">Viable strategies — scan &amp; entry activity <span id="strategy-scan-refreshed" class="scan-idle">(last refreshed: —)</span></span>
   </div>
   <div class="counts-scroll">
     <table class="counts">
@@ -890,7 +890,24 @@ function renderCounts(p) {
 // day), so "scans last 30s" reads 0 almost all the time by design -
 // only nonzero in the brief window while that day's scan is actually
 // running - flagged inline rather than left looking broken.
+// "(last refreshed: 06 Oct 2026, 08:47:12 IST)" next to the panel title (explicit
+// user request 2026-10-06). Uses the endpoint's own as_of_epoch (when the server
+// computed this response); falls back to the browser clock if absent.
+function formatIstTimestamp(epochSeconds) {
+  const d = new Date(epochSeconds * 1000);
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(d).reduce((a, p) => (a[p.type] = p.value, a), {});
+  return `${parts.day} ${parts.month} ${parts.year}, ${parts.hour}:${parts.minute}:${parts.second} IST`;
+}
+
 function renderStrategyScanActivity(data) {
+  const stamp = document.getElementById("strategy-scan-refreshed");
+  if (stamp) {
+    const epoch = data && typeof data.as_of_epoch === "number" ? data.as_of_epoch : (data ? Date.now() / 1000 : null);
+    stamp.textContent = epoch ? `(last refreshed: ${formatIstTimestamp(epoch)})` : "(last refreshed: — fetch failed)";
+  }
   const body = document.getElementById("strategy-scan-body");
   if (!body) return;
   const rows = data?.strategies || [];
@@ -1802,6 +1819,43 @@ function renderUnprotectedBanner(status) {
   }
 }
 
+// Real SWING positions (2026-10-06, explicit user finding: no chart for
+// LENSKART/SAIL). Charts used to be driven only by the PAPER engine's
+// summary.open_positions, so a real swing holding (daily-bar, held across
+// sessions, tracked in real_positions_swing) never got a card. Draws daily
+// candles at the swing timeframe plus Entry and live-SL lines straight off
+// the /real-open-positions row (entry_price / sl_trigger_price); no target
+// line, since a swing exit is decided by the daily scan, not a resting order.
+async function renderSwingCharts(openRealPositions, paperSymbols) {
+  const swing = (openRealPositions || []).filter(p => p.side === "swing" && !paperSymbols.has(p.symbol));
+  for (const pos of swing) {
+    try {
+      const entry = ensureCard(pos.symbol, displayName(pos.symbol));
+      const st = document.getElementById(`status-${pos.symbol}`);
+      if (st) st.textContent = "SWING";
+      const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(pos.symbol)}&period=6mo&interval=1d`);
+      const candles = (data.data || []).map(r => ({
+        time: toChartTime(r.date), open: r.open, high: r.high, low: r.low, close: r.close,
+      })).filter(c => Number.isFinite(c.close));
+      entry.series.setData(candles);
+      entry.smaFastSeries.setData([]);
+      entry.smaSlowSeries.setData([]);
+      setZones(entry, {}, candles);
+      setPriceLines(entry, { entry_price_native: pos.entry_price, stop_loss_native: pos.sl_trigger_price });
+      entry.chart.timeScale().fitContent();
+      const last = candles.length ? candles[candles.length - 1].close : pos.current_price;
+      updateLtp(pos.symbol, last);
+      const pnl = pos.unrealized_pnl_inr;
+      const pnlEl = document.getElementById(`pnl-${pos.symbol}`);
+      const pctEl = document.getElementById(`pnlpct-${pos.symbol}`);
+      if (pnlEl && pnl != null) { pnlEl.textContent = `₹${fmt(pnl)}`; pnlEl.className = "amt mono " + (pnl >= 0 ? "pos" : "neg"); }
+      if (pctEl && pos.unrealized_pnl_pct != null) pctEl.textContent = `${pos.unrealized_pnl_pct >= 0 ? "+" : ""}${fmt(pos.unrealized_pnl_pct)}%`;
+      const statsEl = document.getElementById(`stats-${pos.symbol}`);
+      if (statsEl) statsEl.innerHTML = `<div>Qty ${fmt(pos.qty, 0)} · Entry ₹${fmt(pos.entry_price, 2)} · SL ${pos.sl_trigger_price != null ? "₹" + fmt(pos.sl_trigger_price, 2) : "NONE"}</div>`;
+    } catch (e) { /* one symbol's chart failing must not blank the others */ }
+  }
+}
+
 async function refresh() {
   document.getElementById("last-update").textContent =
     "Last update: " + new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " IST";
@@ -1865,6 +1919,7 @@ async function refresh() {
       const mergedClosed = [...(summary.closed_trades || []), ...(history.trades || [])]
         .sort((a, b) => (b.exit_time_utc || 0) - (a.exit_time_utc || 0));
       const lastClosed = mergedClosed[0];
+      await renderSwingCharts(openRealPositions.open_real_positions, new Set());
       if (!Object.keys(charts).length) {
         document.getElementById("cards").innerHTML = openPositions.length
           ? `<div class="empty">No equity chart to show — see the live options row(s) in the trade log below.</div>`
@@ -1886,6 +1941,7 @@ async function refresh() {
       updateLadder(pos.symbol, pos, lastClose);
       renderStats(pos.symbol, pos, lastClose);
     }
+    await renderSwingCharts(openRealPositions.open_real_positions, new Set(equityPositions.map(p => p.symbol)));
 
     renderTradeLog(summary, history, realTrades.trades, botRealTrades, openRealPositions.open_real_positions, leaderboard, strategyInfo);
   } catch (e) {
