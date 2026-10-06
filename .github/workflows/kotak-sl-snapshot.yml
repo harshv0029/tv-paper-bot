@@ -1,0 +1,38 @@
+name: Kotak SL snapshot (daily, before EOD)
+
+# 2026-10-06, explicit user instruction: store each tracked-union symbol's most
+# recent SL / SL-M order from Kotak's own order book, daily before EOD - Kotak
+# cannot return a past day's data. READ-ONLY toward Kotak; places no order.
+# Writes docs/sl_snapshots/<IST date>.json. Cron (UTC): 10:00 = 15:30 IST,
+# 11:30 = 17:00 IST (backup; same-day re-run overwrites that day's file only).
+# GitHub cron can be late/skipped - run history is the check; backlog B-71.
+on:
+  schedule:
+    - cron: "0 10 * * 1-5"
+    - cron: "30 11 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wake Render and capture SL snapshot
+        env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+        run: |
+          B=https://tv-paper-bot-gdan.onrender.com
+          curl -sS -m 60 "$B/health" || true; echo
+          python3 scripts/kotak_sl_snapshot.py "$B" "$KOTAK_NEO_API_TOKEN"
+      - name: Commit snapshot
+        run: |
+          git config user.name "tv-paper-bot sl snapshot"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/sl_snapshots
+          if git diff --cached --quiet; then echo "nothing to commit"; else
+            git commit -m "SL snapshot $(TZ=Asia/Kolkata date +%Y-%m-%d)"
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push
+          fi
