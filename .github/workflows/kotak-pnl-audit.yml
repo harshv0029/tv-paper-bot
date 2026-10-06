@@ -1,0 +1,35 @@
+name: Kotak Real P&L Audit
+
+# B-59 (2026-10-06, user-approved): read the REAL Kotak trade book + order
+# book via the Render app's token-gated endpoints. Public repo: this prints
+# ONLY field names, row counts and status tallies - never raw rows, account
+# identifiers or holdings. Phase 1 discovers the real field names (never
+# guessed); phase 2 will add per-symbol realised P&L once they are known.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch trade book and order book, print schema only
+        env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+        run: |
+          B=https://tv-paper-bot-gdan.onrender.com
+          curl -sS -m 90 "$B/health" || true; echo
+          curl -sS --retry 3 --retry-delay 10 -m 90 "$B/kotak-neo/trade-report?token=${KOTAK_NEO_API_TOKEN}" -o /tmp/t.json || true
+          curl -sS --retry 3 --retry-delay 10 -m 90 "$B/kotak-neo/order-report?token=${KOTAK_NEO_API_TOKEN}" -o /tmp/o.json || true
+          python3 - <<'PY'
+          import json, collections
+          for n in ("t","o"):
+              try: d=json.load(open(f"/tmp/{n}.json"))
+              except Exception as e: print(n,"unreadable",type(e).__name__); continue
+              rows=d.get("data") if isinstance(d,dict) else d
+              print(n,"top_keys",sorted(d) if isinstance(d,dict) else "list","error" if isinstance(d,dict) and d.get("error") else "")
+              if not isinstance(rows,list) or not rows: print(n,"rows",0 if isinstance(rows,list) else "n/a"); continue
+              print(n,"rows",len(rows)); print(n,"row_keys",sorted(rows[0]))
+          PY

@@ -18630,6 +18630,19 @@ def kotak_neo_order_report(request: Request, order_id: str | None = None):
         return {"error": str(e)}
 
 
+@app.get("/kotak-neo/trade-report")
+def kotak_neo_trade_report(request: Request):
+    """The real account's trade book (executed fills). Read-only - places
+    no order. Requires ?token=<KOTAK_NEO_API_TOKEN> (or Bearer header).
+    Added 2026-10-06 for the B-59 real-P&L audit."""
+    _require_kotak_token(request)
+    try:
+        import kotak_neo
+        return _kotak_json_safe(kotak_neo.trade_report())
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/kotak-neo/positions")
 def kotak_neo_positions(request: Request):
     """Real open positions from the live Kotak Neo account. Read-only -
