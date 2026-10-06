@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   audit:
@@ -143,3 +143,15 @@ jobs:
           print("TOTAL realised gross (matched qty, INR): %.2f"%tot)
           print("symbols with >=2 round trips today (churn):", [s for s,a in by.items() if a["n"]>=4])
           PY
+      - name: SL snapshot of tracked-union symbols (today only; stored in git)
+        env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+        run: |
+          python3 scripts/kotak_sl_snapshot.py https://tv-paper-bot-gdan.onrender.com "$KOTAK_NEO_API_TOKEN"
+          git config user.name "tv-paper-bot sl snapshot"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/sl_snapshots
+          if git diff --cached --quiet; then echo "nothing to commit"; else
+            git commit -m "SL snapshot $(TZ=Asia/Kolkata date +%Y-%m-%d) (audit run)"
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push
+          fi
