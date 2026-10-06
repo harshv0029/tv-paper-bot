@@ -67,9 +67,14 @@ def _trade(sym, direction, entry, stop, qty, ets, xts, xpx, reason, entry_cost):
             "time_in_trade_min": (xts - ets) / 60.0, "net_r": net / (r * qty) if r > 0 else None}
 
 
-def replay_cell(sym, df, variant, direction, params, sessions, mins, ts_arr):
-    scan = m.fvg3c_scan(df, variant, direction, params, sessions=sessions)
-    p = dict(m.FVG3C_DEFAULT_PARAMS); p.update(params)
+def replay_cell(sym, df, variant, direction, params, sessions, mins, ts_arr, scanner=None, defaults=None):
+    """`scanner(df, params, sessions)` / `defaults` let sibling families (snd_zone)
+    reuse this exact bookkeeping; the fvg3c default calls the real main.fvg3c_scan."""
+    if scanner is None:
+        scan = m.fvg3c_scan(df, variant, direction, params, sessions=sessions)
+    else:
+        scan = scanner(df, params, sessions)
+    p = dict(defaults if defaults is not None else m.FVG3C_DEFAULT_PARAMS); p.update(params)
     sig, ent, stp, tgt = scan["signal"], scan["entry_price"], scan["stop_loss"], scan["target"]
     hi = df["High"].to_numpy(float); lo = df["Low"].to_numpy(float); cl = df["Close"].to_numpy(float)
     n = len(df); trades = []; pos = None
@@ -166,7 +171,7 @@ def run_aggregate():
         mt = _metrics(ts)
         rows.append((tag, mt, ts))
     rows.sort(key=lambda r: -(r[1]["pf_net"] if r[1] and r[1]["pf_net"] != float("inf") else -1))
-    print("\n=== POOLED PER STRATEGY TAG (REAL main.fvg3c_scan, cost-net; one row per tag, never pooled across tags) ===")
+    print("\n=== POOLED PER STRATEGY TAG (REAL main.py scan function, cost-net; one row per tag, never pooled across tags) ===")
     for tag, mt, ts in rows:
         if mt is None:
             print(f"{tag}: n=0"); continue
