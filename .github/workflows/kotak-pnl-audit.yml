@@ -33,3 +33,16 @@ jobs:
               if not isinstance(rows,list) or not rows: print(n,"rows",0 if isinstance(rows,list) else "n/a"); continue
               print(n,"rows",len(rows)); print(n,"row_keys",sorted(rows[0]))
           PY
+          python3 - <<'PY'
+          # Phase 2 (2026-10-06): Kotak's own order book rows for RVNL/SAIL only.
+          # Field names confirmed from the phase-1 run (never guessed). No account ids.
+          import json
+          try: rows=json.load(open("/tmp/o.json")).get("data") or []
+          except Exception as e: rows=[]; print("o unreadable",type(e).__name__)
+          sel=[r for r in rows if any(k in str(r.get("trdSym","")) for k in ("RVNL","SAIL"))]
+          sel.sort(key=lambda r: str(r.get("ordDtTm","")))
+          print("RVNL/SAIL order rows:",len(sel))
+          for r in sel:
+              print("|".join(str(r.get(k,"")) for k in ("ordDtTm","exCfmTm","trdSym","trnsTp","prod","prcTp","qty","fldQty","prc","trgPrc","avgPrc","ordSt","rejRsn","rmk","ordSrc","algCat","strategyCode")))
+          print("cols: ordDtTm|exCfmTm|trdSym|trnsTp|prod|prcTp|qty|fldQty|prc|trgPrc|avgPrc|ordSt|rejRsn|rmk|ordSrc|algCat|strategyCode")
+          PY
