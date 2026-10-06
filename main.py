@@ -16032,7 +16032,7 @@ def _nse_equity_market_open_now() -> bool:
 # loss/gap-filled/max-hold exit must complete regardless of price; gating
 # it on price would work against the point of having a stop).
 SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT = 2.0
-SWING_REAL_ENTRY_CUTOFF_MIN = 15 * 60  # 2026-10-06: no new real swing entry from 15:00 IST
+SWING_REAL_ENTRY_CUTOFF_MIN = 15 * 60 + 14  # 2026-10-06 (user): swing entries allowed through 15:13 IST; refused from 15:14
 
 
 def _maybe_place_real_swing_exit(conn, symbol):
@@ -16169,13 +16169,13 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         )
         return
 
-    # 2026-10-06: no new real swing entry from 15:00 IST - the closing auction
+    # 2026-10-06: no new real swing entry from 15:14 IST (user allows through 15:13) - the closing auction
     # (15:15+) cancels SLs and rejects orders, so such a position could not be
     # protected or exited (RVNL/SAIL/DRREDDY/VBL bought 15:10-15:11 IST).
     _n = ist_now()
     if _n.hour * 60 + _n.minute >= SWING_REAL_ENTRY_CUTOFF_MIN:
         _log_real_attempt(conn, symbol, "B", "skipped_after_entry_cutoff", strategy=strategy,
-                          detail="no new real swing entries from 15:00 IST (closing session)")
+                          detail="no new real swing entries from 15:14 IST (user: allowed through 15:13)")
         return
 
     import kotak_live_feed
