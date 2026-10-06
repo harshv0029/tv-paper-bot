@@ -18347,41 +18347,25 @@ def kotak_neo_holdings(request: Request):
         return {"error": str(e)}
 
 
-_HEAL_SWING_HOLDING_ALLOWLIST = {"NYKAA-EQ"}  # user scope 2026-10-06: NYKAA only
-
-
-@app.post("/kotak-neo/heal-swing-holding-sl")
-def kotak_neo_heal_swing_holding_sl(request: Request, kotak_trading_symbol: str = "NYKAA-EQ"):
-    """One-shot heal for a swing delivery HOLDING with no tracking row and no
-    resting SL (NYKAA.NS, 2026-10-06, real money). Token-gated, allowlisted
-    to NYKAA-EQ only. Fresh Kotak state first: the symbol must be in
-    holdings() and have NO live resting SELL SL in order_report(). Stop =
+def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: list,
+                             strategy: str = "holding_atr_stop") -> dict:
+    """Place a protective SL for ONE delivery holding that has no live resting
+    SELL SL (caller has already fetched holdings/order_report fresh). Stop =
     holding avg price - SWING_ATR_STOP_MULT x daily ATR (the swing engine's
-    own rule). Recreates the real_positions_swing row (strategy gap_and_go,
-    per the incident record) then places the SL; if placement fails the row
-    stays so the 5-min governance backfill retries it."""
-    _require_kotak_token(request)
-    if kotak_trading_symbol not in _HEAL_SWING_HOLDING_ALLOWLIST:
-        return {"error": f"{kotak_trading_symbol} not allowlisted"}
-    holdings = _kotak_holdings_open_by_trdsym()
-    if holdings is None:
-        return {"error": "holdings fetch failed - nothing placed"}
-    held = holdings.get(kotak_trading_symbol)
-    if held is None or not held["avg_price"]:
-        return {"error": "not held (or no avg price) - nothing placed"}
-    try:
-        import kotak_neo
-        import kotak_real_orders
-        order_rows = (kotak_neo.order_report() or {}).get("data") or []
-    except Exception as e:
-        return {"error": f"order_report fetch failed - nothing placed: {e}"}
+    own rule). Recreates the real_positions_swing row (Upstash-mirrored) then
+    places the SL; if placement fails the row stays so the 5-min governance
+    backfill retries it. Never raises; returns a dict with "error" when
+    nothing was placed."""
+    if not held or not held.get("avg_price"):
+        return {"error": "no avg price - nothing placed"}
     terminal = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
     if any(r.get("trdSym") == kotak_trading_symbol and r.get("trnsTp") == "S"
            and str(r.get("prcTp", "")).upper() in ("SL", "SL-M")
            and str(r.get("ordSt", r.get("stat", ""))).lower() not in terminal for r in order_rows):
         return {"status": "already_protected - nothing placed"}
-    symbol = f"{held['symbol']}.NS"
     try:
+        import kotak_real_orders
+        symbol = f"{held['symbol']}.NS"
         atr = _swing_atr(fetch_ohlc(symbol, "6mo", "1d"))
         atr_last = float(atr[-1])
     except Exception as e:
@@ -18392,12 +18376,13 @@ def kotak_neo_heal_swing_holding_sl(request: Request, kotak_trading_symbol: str 
     if stop <= 0 or stop >= held["avg_price"]:
         return {"error": f"invalid computed stop {stop} - nothing placed"}
     with closing(get_db()) as conn:
-        if not conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone():
+        row = conn.execute("SELECT strategy FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+        if not row:
             conn.execute(
                 "INSERT INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, "
                 "entry_order_id, opened_at, day, stop_loss, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (symbol, kotak_trading_symbol, held["qty"], held["avg_price"], None, time.time(),
-                 ist_now().strftime("%Y-%m-%d"), stop, "gap_and_go"),
+                 ist_now().strftime("%Y-%m-%d"), stop, strategy),
             )
         sl = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, held["qty"], stop)
         if sl.get("ok"):
@@ -18405,9 +18390,33 @@ def kotak_neo_heal_swing_holding_sl(request: Request, kotak_trading_symbol: str 
                          (sl["order_id"], sl["trigger_price"], symbol))
         conn.commit()
         _sync_real_positions_swing_external(conn)
-    return _kotak_json_safe({"symbol": symbol, "qty": held["qty"], "avg_price": held["avg_price"],
-                             "atr": round(atr_last, 2), "stop": stop, "sl_ok": bool(sl.get("ok")),
-                             "sl_trigger_price": sl.get("trigger_price"), "sl_error": sl.get("error")})
+    return {"symbol": symbol, "qty": held["qty"], "avg_price": held["avg_price"],
+            "atr": round(atr_last, 2), "stop": stop, "sl_ok": bool(sl.get("ok")),
+            "sl_trigger_price": sl.get("trigger_price"), "sl_error": sl.get("error")}
+
+
+@app.post("/kotak-neo/heal-swing-holding-sl")
+def kotak_neo_heal_swing_holding_sl(request: Request, kotak_trading_symbol: str = "NYKAA-EQ"):
+    """Manual one-shot heal for a delivery HOLDING with no resting SL
+    (NYKAA.NS, 2026-10-06, real money; strategy gap_and_go per the incident
+    record). Token-gated. Fresh Kotak holdings + order_report first. Since
+    B-47 (user chose option 1, 2026-10-06) the 5-min reconcile does this
+    automatically for every unprotected holding; this endpoint stays for
+    manual use."""
+    _require_kotak_token(request)
+    holdings = _kotak_holdings_open_by_trdsym()
+    if holdings is None:
+        return {"error": "holdings fetch failed - nothing placed"}
+    held = holdings.get(kotak_trading_symbol)
+    if held is None:
+        return {"error": "not held - nothing placed"}
+    try:
+        import kotak_neo
+        order_rows = (kotak_neo.order_report() or {}).get("data") or []
+    except Exception as e:
+        return {"error": f"order_report fetch failed - nothing placed: {e}"}
+    strategy = "gap_and_go" if kotak_trading_symbol == "NYKAA-EQ" else "holding_atr_stop"
+    return _kotak_json_safe(_heal_swing_holding_core(kotak_trading_symbol, held, order_rows, strategy))
 
 
 @app.get("/kotak-neo/order-report")
@@ -19212,6 +19221,26 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         order_rows = fresh_order_report.get("data") or [] if isinstance(fresh_order_report, dict) else order_rows
     except Exception as e:
         print(f"[reconcile] order_report re-fetch failed before unprotected-check (using pre-action snapshot): {e}")
+    # B-47 (user chose option 1, 2026-10-06): auto-SL every delivery holding
+    # with no live SL (ATR rule), tracked or not. Only when adopt is set (the
+    # same gate as the other auto-heal blocks), only off a fresh holdings
+    # fetch, then re-fetch the order book so the check below sees the result.
+    holdings_healed: list = []
+    if adopt and swing_holdings:
+        try:
+            pending_h = _find_unprotected_open_positions(
+                {k: {"qty": v["qty"], "is_short": False} for k, v in swing_holdings.items()
+                 if k not in kotak_open_by_trdsym}, order_rows)
+            for u in pending_h:
+                trd = u["kotak_trading_symbol"]
+                res = _heal_swing_holding_core(trd, swing_holdings[trd], order_rows)
+                holdings_healed.append({"kotak_trading_symbol": trd, "sl_ok": res.get("sl_ok"),
+                                        "stop": res.get("stop"), "error": res.get("error")})
+            if holdings_healed:
+                fresh = kotak_neo.order_report()
+                order_rows = (fresh.get("data") or []) if isinstance(fresh, dict) else order_rows
+        except Exception as e:
+            print(f"[reconcile] holdings auto-heal failed (non-fatal, alarm still fires): {e}")
     unprotected = _find_unprotected_open_positions(kotak_open_by_trdsym, order_rows)
     with closing(get_db()) as protection_conn:
         protection_conn.execute(
@@ -19231,6 +19260,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         "holdings_unprotected": _find_unprotected_open_positions(
             {k: {"qty": v["qty"], "is_short": False} for k, v in (swing_holdings or {}).items()
              if k not in kotak_open_by_trdsym}, order_rows),
+        "holdings_healed": holdings_healed,
         "holdings_checked": None if swing_holdings is None else len(swing_holdings),
         "removed_ghost_count": len(removed_ghosts), "removed_ghosts": removed_ghosts,
         "untracked_open_positions_count": len(untracked), "untracked_open_positions": untracked,
