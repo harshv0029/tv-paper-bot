@@ -146,7 +146,8 @@ def test_swing_ghost_position_is_removed_when_kotak_shows_it_closed():
         _insert_real_position_swing(conn)
     with patch("kotak_neo.positions", return_value={"data": []}), \
          patch("kotak_neo.limits", return_value={"Net": "1000"}), \
-         patch("kotak_neo.order_report", return_value={"data": []}):
+         patch("kotak_neo.order_report", return_value={"data": []}), \
+         patch("kotak_neo.holdings", return_value={"data": []}):
         result = main._reconcile_real_positions_core(adopt=None)
     assert result["removed_ghost_count"] == 1
     with closing(main.get_db()) as conn:
