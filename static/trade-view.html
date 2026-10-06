@@ -353,7 +353,7 @@
 
 <div class="counts-panel">
   <div class="counts-head">
-    <span class="title">Viable strategies — scan &amp; entry activity</span>
+    <span class="title">Viable strategies — scan &amp; entry activity <span id="strategy-scan-refreshed" class="scan-idle">(last refreshed: —)</span></span>
   </div>
   <div class="counts-scroll">
     <table class="counts">
@@ -890,7 +890,24 @@ function renderCounts(p) {
 // day), so "scans last 30s" reads 0 almost all the time by design -
 // only nonzero in the brief window while that day's scan is actually
 // running - flagged inline rather than left looking broken.
+// "(last refreshed: 06 Oct 2026, 08:47:12 IST)" next to the panel title (explicit
+// user request 2026-10-06). Uses the endpoint's own as_of_epoch (when the server
+// computed this response); falls back to the browser clock if absent.
+function formatIstTimestamp(epochSeconds) {
+  const d = new Date(epochSeconds * 1000);
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(d).reduce((a, p) => (a[p.type] = p.value, a), {});
+  return `${parts.day} ${parts.month} ${parts.year}, ${parts.hour}:${parts.minute}:${parts.second} IST`;
+}
+
 function renderStrategyScanActivity(data) {
+  const stamp = document.getElementById("strategy-scan-refreshed");
+  if (stamp) {
+    const epoch = data && typeof data.as_of_epoch === "number" ? data.as_of_epoch : (data ? Date.now() / 1000 : null);
+    stamp.textContent = epoch ? `(last refreshed: ${formatIstTimestamp(epoch)})` : "(last refreshed: — fetch failed)";
+  }
   const body = document.getElementById("strategy-scan-body");
   if (!body) return;
   const rows = data?.strategies || [];
