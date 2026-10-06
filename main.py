@@ -981,6 +981,24 @@ def init_db():
             )
             """
         )
+        # B-71 (2026-10-06, user instruction): Kotak's order book is today-only,
+        # so the latest SL/SL-M order per tracked-union symbol is captured here
+        # every few minutes (one row per IST day+symbol, overwritten in place),
+        # mirrored to Upstash, and rows older than 5 IST days are pruned. This
+        # table only; no other table is touched by the prune.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sl_order_snapshot (
+                day TEXT NOT NULL,
+                kotak_trading_symbol TEXT NOT NULL,
+                sl_order_count INTEGER,
+                latest_sl_json TEXT,
+                selection_basis TEXT,
+                captured_at REAL,
+                PRIMARY KEY (day, kotak_trading_symbol)
+            )
+            """
+        )
         # Short-selling paper book (2026-09-29, explicit user instruction to
         # implement short selling; RANGE-regime mean-reversion mirror only -
         # see universal-score-range-short-research.yml, the only strategy
@@ -15283,6 +15301,7 @@ _GENERIC_MIRROR_TABLES = (
     "real_trading_control", "trading_control", "real_fo_positions",
     "real_fo_trades", "option_state", "nse_straddle_state",
     "signal_state_fo_options", "swing_scan_log", "tracked_union",
+    "sl_order_snapshot",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
@@ -17701,6 +17720,7 @@ async def _start_scheduler():
     reconcile_scheduler_check_counts_from_journal()
     asyncio.create_task(_scheduler_loop())
     asyncio.create_task(_tracked_union_memory_loop())
+    asyncio.create_task(_sl_snapshot_loop())
     # Kotak Neo live tick feed (2026-09-04) - display data only, isolated
     # in its own task so a failure here (missing/misconfigured creds, a
     # broken kotakneoapi install) can never affect the scheduler above.
@@ -19186,6 +19206,109 @@ async def _tracked_union_memory_loop():
         except Exception as e:
             print(f"[tracked_union] git push failed (non-fatal): {e}")
         await asyncio.sleep(10)
+
+
+_SL_SNAPSHOT_KEEP_DAYS = 5
+_SL_SNAPSHOT_EVERY_SECONDS = 120
+_SL_SNAPSHOT_BAD_KEYS = ("acc", "client", "ucc", "pan", "name", "mob", "email", "actid", "act_id")
+_SL_SNAPSHOT_TS_FORMATS = ("%d-%b-%Y %H:%M:%S", "%d-%m-%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S", "%d/%m/%Y %H:%M:%S")
+
+
+def _sl_snapshot_rows_of(d):
+    if isinstance(d, list):
+        return d
+    if isinstance(d, dict):
+        for v in d.values():
+            r = _sl_snapshot_rows_of(v)
+            if r and isinstance(r[0], dict):
+                return r
+    return []
+
+
+def _sl_snapshot_parse_ts(r):
+    s = str(r.get("ordDtTm", "")).strip()
+    for f in _SL_SNAPSHOT_TS_FORMATS:
+        try:
+            return dt.datetime.strptime(s, f)
+        except ValueError:
+            pass
+    return None
+
+
+def _sl_snapshot_ist_day(now=None) -> str:
+    now = now or dt.datetime.now(dt.timezone.utc)
+    return (now + dt.timedelta(hours=5, minutes=30)).strftime("%Y-%m-%d")
+
+
+def _sl_snapshot_capture(order_rows: list, now=None) -> int:
+    """Stores the latest SL/SL-M order (max ordDtTm; first in Kotak's list if a
+    timestamp is unparseable) per tracked-union symbol for today's IST day, then
+    prunes rows older than _SL_SNAPSHOT_KEEP_DAYS IST days from THIS table only.
+    A cycle with no SL rows for a symbol never overwrites an earlier capture.
+    Returns the number of symbol rows written."""
+    now = now or dt.datetime.now(dt.timezone.utc)
+    day = _sl_snapshot_ist_day(now)
+    cutoff = (dt.datetime.strptime(day, "%Y-%m-%d") - dt.timedelta(days=_SL_SNAPSHOT_KEEP_DAYS - 1)).strftime("%Y-%m-%d")
+    written = 0
+    with closing(get_db()) as conn:
+        syms = [r[0] for r in conn.execute("SELECT kotak_trading_symbol FROM tracked_union").fetchall()]
+        for sym in syms:
+            sl = [r for r in order_rows
+                  if str(r.get("trdSym", "")) == sym and str(r.get("prcTp", "")).upper() in ("SL", "SL-M")]
+            if not sl:
+                continue
+            if all(_sl_snapshot_parse_ts(r) for r in sl):
+                best = max(sl, key=_sl_snapshot_parse_ts)
+                basis = "max ordDtTm"
+            else:
+                best = sl[0]
+                basis = "first in Kotak list (ordDtTm unparsed)"
+            clean = {k: v for k, v in best.items() if not any(b in k.lower() for b in _SL_SNAPSHOT_BAD_KEYS)}
+            conn.execute(
+                "INSERT OR REPLACE INTO sl_order_snapshot (day, kotak_trading_symbol, sl_order_count, latest_sl_json, selection_basis, captured_at) "
+                "VALUES (?,?,?,?,?,?)",
+                (day, sym, len(sl), json.dumps(clean, default=str), basis, time.time()))
+            written += 1
+        conn.execute("DELETE FROM sl_order_snapshot WHERE day < ?", (cutoff,))
+        conn.commit()
+    sync_generic_tables_external(only=("sl_order_snapshot",))
+    return written
+
+
+def _sl_snapshot_cycle() -> int:
+    import kotak_neo
+    rows = _sl_snapshot_rows_of(_kotak_json_safe(kotak_neo.order_report()))
+    if not rows:
+        return 0
+    return _sl_snapshot_capture(rows)
+
+
+async def _sl_snapshot_loop():
+    """Every 2 min on weekdays 09:00-16:30 IST. In-process (not Actions cron) so
+    a skipped GitHub cron cannot lose a day Kotak will not return later."""
+    while True:
+        try:
+            ist = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=5, minutes=30)
+            if ist.weekday() < 5 and dt.time(9, 0) <= ist.time() <= dt.time(16, 30):
+                await asyncio.to_thread(_sl_snapshot_cycle)
+        except Exception as e:
+            print(f"[sl_snapshot] cycle failed (non-fatal): {e}")
+        await asyncio.sleep(_SL_SNAPSHOT_EVERY_SECONDS)
+
+
+@app.get("/sl-snapshots")
+def sl_snapshots_endpoint():
+    """No token: symbols, SL trigger/qty/status only (account-style keys are
+    stripped at capture). Last 5 IST days, newest first."""
+    with closing(get_db()) as conn:
+        rows = [dict(r) for r in conn.execute(
+            "SELECT * FROM sl_order_snapshot ORDER BY day DESC, kotak_trading_symbol").fetchall()]
+    for r in rows:
+        try:
+            r["latest_sl"] = json.loads(r.pop("latest_sl_json") or "null")
+        except Exception:
+            r["latest_sl"] = None
+    return {"count": len(rows), "rows": rows}
 
 
 @app.get("/tracked-union")
