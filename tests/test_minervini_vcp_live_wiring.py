@@ -198,7 +198,7 @@ def test_run_swing_scan_exits_a_minervini_position_and_calls_real_exit_mirror(mo
     monkeypatch.setattr(main, "SWING_WATCHLIST", ["EXIT.NS"])
     monkeypatch.setattr(main, "fetch_ohlc", lambda symbol, period, interval: df)
     exit_mirror_calls = []
-    monkeypatch.setattr(main, "_maybe_place_real_swing_exit", lambda conn, symbol: exit_mirror_calls.append(symbol))
+    monkeypatch.setattr(main, "_maybe_place_real_swing_exit", lambda conn, symbol, reason=None: exit_mirror_calls.append(symbol))
 
     with closing(main.get_db()) as conn:
         conn.execute(
@@ -304,7 +304,7 @@ def test_run_swing_scan_exits_a_livermore_position_using_the_shared_chandelier_e
     monkeypatch.setattr(main, "SWING_WATCHLIST", ["EXITLIVERMORE.NS"])
     monkeypatch.setattr(main, "fetch_ohlc", lambda symbol, period, interval: df)
     exit_mirror_calls = []
-    monkeypatch.setattr(main, "_maybe_place_real_swing_exit", lambda conn, symbol: exit_mirror_calls.append(symbol))
+    monkeypatch.setattr(main, "_maybe_place_real_swing_exit", lambda conn, symbol, reason=None: exit_mirror_calls.append(symbol))
 
     with closing(main.get_db()) as conn:
         conn.execute(

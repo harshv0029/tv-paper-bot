@@ -1,3 +1,4 @@
+import unittest.mock
 """Tests for the swing real-order retry pass (2026-09-22, explicit user
 instruction after the once-per-IST-day scan was found to fire outside NSE
 trading hours - e.g. just after IST midnight, when a real order attempt
@@ -210,7 +211,7 @@ class TestRetryPendingRealSwingOrders:
                 with patch("main.dt.datetime", _fixed_clock("11:00")), \
                      patch("main._maybe_place_real_swing_exit") as mock_exit:
                     main._retry_pending_real_swing_orders(conn)
-                    mock_exit.assert_called_once_with(conn, "TESTSTOCK.NS")
+                    mock_exit.assert_called_once_with(conn, "TESTSTOCK.NS", reason=unittest.mock.ANY)
         finally:
             os.environ.pop("REAL_SWING_TRADING_ENABLED", None)
 

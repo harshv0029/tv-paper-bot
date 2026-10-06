@@ -18,6 +18,7 @@ Endpoints:
 import asyncio
 import datetime as dt
 import hashlib
+import functools
 import json
 import math
 import os
@@ -10762,7 +10763,7 @@ def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty
 
 
 def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, order_id=None,
-                           prev_state=None, new_state=None, detail=None):
+                           prev_state=None, new_state=None, detail=None, reason=None):
     """Appends one row to the order state-transition log (real_order_events -
     see its own CREATE TABLE comment) - explicit user instruction
     2026-09-08: "I want to see the log of what order you have placed and
@@ -10772,13 +10773,24 @@ def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, o
     table's only job is a complete, human-readable, forever-kept history
     of every entry/exit/sl/target order-state change this app makes.
     Never raises on its own account - a plain INSERT/commit, same
-    simplicity as _log_real_attempt above."""
+    simplicity as _log_real_attempt above.
+
+    2026-10-06, explicit user instruction ("Maintain each log with reason
+    that why u executed any order"): `reason` is the WHY of the order -
+    stored as a leading "reason: ..." in `detail` so it rides the existing
+    Upstash mirror and docs/real_order_log.json (git) with no schema
+    change. Every exit path passes it (see _REASON_UNSTATED)."""
+    if reason:
+        detail = f"reason: {reason}" + (f" | {detail}" if detail else "")
     conn.execute(
         "INSERT INTO real_order_events (ts, symbol, kotak_trading_symbol, leg, event, order_id, "
         "prev_state, new_state, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (time.time(), symbol, kotak_trading_symbol, leg, event, order_id, prev_state, new_state, detail),
     )
     conn.commit()
+
+
+_REASON_UNSTATED = "UNSTATED - caller passed no exit reason (a bug to fix, never a normal state)"
 
 
 def is_real_fo_trading_enabled() -> bool:
@@ -11025,25 +11037,33 @@ def _maybe_place_real_short_entry(conn, symbol: str):
             _sync_real_positions_short_external(conn)
 
 
-def _maybe_place_real_short_exit(conn, symbol: str):
+def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
     """Short mirror of _maybe_place_real_exit - covers a real short
     position when the paper short (_short_signal_core) has already
     closed. Cancels any resting SL order first (mirrors the long side's
     own cancel-before-market-exit sequencing), then market buy-to-covers
     the exact real_positions_short qty. Never raises."""
+    _why_log = functools.partial(_log_real_order_event, reason=reason or _REASON_UNSTATED)
     real_row = conn.execute("SELECT * FROM real_positions_short WHERE symbol = ?", (symbol,)).fetchone()
     if not real_row:
         return
 
     import kotak_real_orders
     if real_row["sl_order_id"]:
-        kotak_real_orders.cancel_real_order(real_row["sl_order_id"])
+        _cancel = kotak_real_orders.cancel_real_order(real_row["sl_order_id"])
+        _why_log(
+            conn, symbol, "sl", "cancelled" if _cancel.get("ok") else "cancel_failed",
+            kotak_trading_symbol=real_row["kotak_trading_symbol"], order_id=real_row["sl_order_id"],
+            prev_state=f"resting @ Rs{real_row['sl_trigger_price']}",
+            new_state="cancelled (position covering)" if _cancel.get("ok") else "cancel failed - may still be resting",
+            detail=None if _cancel.get("ok") else _cancel.get("detail"),
+        )
 
     result = kotak_real_orders.place_real_short_cover(real_row["kotak_trading_symbol"], real_row["qty"])
     if not result.get("ok"):
         print(f"[REAL SHORT] cover FAILED for {real_row['kotak_trading_symbol']}: {result.get('detail')} "
               f"- position remains open at Kotak, will retry next tick")
-        _log_real_order_event(
+        _why_log(
             conn, symbol, "short_cover", "failed", kotak_trading_symbol=real_row["kotak_trading_symbol"],
             prev_state=f"short {real_row['qty']}", new_state=f"short {real_row['qty']} (cover failed)",
             detail=result.get("detail"),
@@ -11060,7 +11080,7 @@ def _maybe_place_real_short_exit(conn, symbol: str):
     )
     print(f"[REAL SHORT] BUY-TO-COVER {real_row['qty']} {real_row['kotak_trading_symbol']} "
           f"(order {result['order_id']})")
-    _log_real_order_event(
+    _why_log(
         conn, symbol, "short_cover", "confirmed", kotak_trading_symbol=real_row["kotak_trading_symbol"],
         order_id=result["order_id"], prev_state=f"short {real_row['qty']}", new_state="no position",
     )
@@ -11318,7 +11338,7 @@ def _maybe_place_real_entry(conn, symbol: str):
                         prev_state="none (placement failed, CAS transition)", new_state="attempting market exit",
                         detail=sl_result.get("detail"),
                     )
-                    _maybe_place_real_exit(conn, symbol)
+                    _maybe_place_real_exit(conn, symbol, reason="SL rejected in CAS transition right after entry - cannot leave position unprotected, market exit")
                     return
                 # 2026-09-10: unprotected from the moment of entry - same
                 # degraded-protection clock/timeout as every other SL gap,
@@ -11951,12 +11971,13 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     _sync_real_positions_external(conn)
 
 
-def _maybe_place_real_exit(conn, symbol: str):
+def _maybe_place_real_exit(conn, symbol: str, reason: str = None):
     """Mirrors a paper exit (any exit_reason) as a REAL sell that closes
     the matching real_positions row, if one exists. Deliberately NOT
     gated by is_real_trading_enabled() - see kotak_real_orders.
     place_real_exit's docstring: closing an already-open real position
     must never be blocked by the same switch that gates new entries."""
+    _why_log = functools.partial(_log_real_order_event, reason=reason or _REASON_UNSTATED)
     row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
         return  # no real position was ever opened for this paper trade - nothing to close
@@ -11992,7 +12013,7 @@ def _maybe_place_real_exit(conn, symbol: str):
         )
         print(f"[REAL TRADE] SKIPPED duplicate exit for {row['kotak_trading_symbol']} - "
               f"Kotak already shows it closed, stale local row cleared instead of re-selling")
-        _log_real_order_event(
+        _why_log(
             conn, symbol, "exit", "skipped_duplicate", kotak_trading_symbol=row["kotak_trading_symbol"],
             prev_state=f"tracked open (stale), long {row['qty']} @ Rs{row['entry_price']:.2f}",
             new_state="cleared - Kotak already shows this closed",
@@ -12009,7 +12030,7 @@ def _maybe_place_real_exit(conn, symbol: str):
     if row["sl_order_id"]:
         cancel_result = kotak_real_orders.cancel_real_order(row["sl_order_id"])
         if cancel_result.get("ok"):
-            _log_real_order_event(
+            _why_log(
                 conn, symbol, "sl", "cancelled", kotak_trading_symbol=row["kotak_trading_symbol"],
                 order_id=row["sl_order_id"], prev_state=f"resting @ Rs{row['sl_trigger_price']}",
                 new_state="cancelled (position exiting)",
@@ -12017,7 +12038,7 @@ def _maybe_place_real_exit(conn, symbol: str):
         else:
             print(f"[REAL TRADE] SL cancel failed for {row['kotak_trading_symbol']} "
                   f"(order {row['sl_order_id']}): {cancel_result.get('detail')} - proceeding with exit anyway")
-            _log_real_order_event(
+            _why_log(
                 conn, symbol, "sl", "cancel_failed", kotak_trading_symbol=row["kotak_trading_symbol"],
                 order_id=row["sl_order_id"], prev_state=f"resting @ Rs{row['sl_trigger_price']}",
                 new_state="cancel failed - may still be resting", detail=cancel_result.get("detail"),
@@ -12029,7 +12050,7 @@ def _maybe_place_real_exit(conn, symbol: str):
     if row["target_order_id"]:
         cancel_result = kotak_real_orders.cancel_real_order(row["target_order_id"])
         if cancel_result.get("ok"):
-            _log_real_order_event(
+            _why_log(
                 conn, symbol, "target", "cancelled", kotak_trading_symbol=row["kotak_trading_symbol"],
                 order_id=row["target_order_id"], prev_state=f"resting @ Rs{row['target_price']}",
                 new_state="cancelled (position exiting)",
@@ -12037,7 +12058,7 @@ def _maybe_place_real_exit(conn, symbol: str):
         else:
             print(f"[REAL TRADE] target cancel failed for {row['kotak_trading_symbol']} "
                   f"(order {row['target_order_id']}): {cancel_result.get('detail')} - proceeding with exit anyway")
-            _log_real_order_event(
+            _why_log(
                 conn, symbol, "target", "cancel_failed", kotak_trading_symbol=row["kotak_trading_symbol"],
                 order_id=row["target_order_id"], prev_state=f"resting @ Rs{row['target_price']}",
                 new_state="cancel failed - may still be resting", detail=cancel_result.get("detail"),
@@ -12064,7 +12085,7 @@ def _maybe_place_real_exit(conn, symbol: str):
         _sync_real_positions_external(conn)
         print(f"[REAL TRADE] SELL {exit_qty} {row['kotak_trading_symbol']} (order {result['order_id']}) "
               f"(fill_confirmed={result['fill_price_confirmed']})")
-        _log_real_order_event(
+        _why_log(
             conn, symbol, "exit", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
             order_id=result["order_id"],
             prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
@@ -12081,7 +12102,7 @@ def _maybe_place_real_exit(conn, symbol: str):
             qty=row["qty"], detail=result.get("detail"), raw_response=result.get("raw_response"),
         )
         print(f"[REAL TRADE] SELL FAILED {row['kotak_trading_symbol']}: {result.get('detail')} - POSITION STILL OPEN, NEEDS ATTENTION")
-        _log_real_order_event(
+        _why_log(
             conn, symbol, "exit", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
             prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
             new_state="still open - exit attempt failed", detail=result.get("detail"),
@@ -12474,7 +12495,7 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
                     prev_state=f"unprotected for {elapsed:.0f}s", new_state="forcing full exit",
                     detail=f"protection_degraded_since timeout ({timeout:.0f}s) exceeded",
                 )
-                _maybe_place_real_exit(conn, symbol)
+                _maybe_place_real_exit(conn, symbol, reason=f"emergency: no resting stop for {elapsed:.0f}s (tolerance {timeout:.0f}s)")
                 return
             # Still inside the tolerance window - fall through and keep
             # retrying below, same as every other tick.
@@ -12627,7 +12648,7 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
                 prev_state="none (replacement failed, CAS transition)", new_state="attempting market exit",
                 detail=sl_result.get("detail"),
             )
-            _maybe_place_real_exit(conn, symbol)
+            _maybe_place_real_exit(conn, symbol, reason="SL replacement rejected in CAS transition - cannot leave position unprotected, market exit")
             return
 
         # 2026-09-10, explicit user instruction after review: the resting
@@ -12727,7 +12748,7 @@ def _maybe_sync_real_stop_loss_short(conn, symbol: str):
                     prev_state=f"unprotected for {elapsed:.0f}s", new_state="forcing full cover",
                     detail=f"protection_degraded_since timeout ({timeout:.0f}s) exceeded",
                 )
-                _maybe_place_real_short_exit(conn, symbol)
+                _maybe_place_real_short_exit(conn, symbol, reason=f"emergency: no resting stop for {elapsed:.0f}s (tolerance {timeout:.0f}s)")
                 return
 
     paper_row = conn.execute(
@@ -12805,7 +12826,7 @@ def _maybe_sync_real_stop_loss_short(conn, symbol: str):
                 prev_state="none (replacement failed, CAS transition)", new_state="attempting market cover",
                 detail=sl_result.get("detail"),
             )
-            _maybe_place_real_short_exit(conn, symbol)
+            _maybe_place_real_short_exit(conn, symbol, reason="SL replacement rejected in CAS transition - emergency cover")
             return
 
 
@@ -16035,7 +16056,7 @@ SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT = 2.0
 SWING_REAL_ENTRY_CUTOFF_MIN = 15 * 60 + 14  # 2026-10-06 (user): swing entries allowed through 15:13 IST; refused from 15:14
 
 
-def _maybe_place_real_swing_exit(conn, symbol):
+def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
     """Mirrors a paper swing exit (any exit_reason) as a REAL sell that
     closes the matching real_positions_swing row, if one exists. Same
     "never blocked by the entry gate" reasoning as _maybe_place_real_exit
@@ -16045,6 +16066,7 @@ def _maybe_place_real_swing_exit(conn, symbol):
     structure closely; the one real difference is there's no
     target_order_id/target_price leg to cancel (Gap and Go has no fixed
     target)."""
+    _why_log = functools.partial(_log_real_order_event, reason=reason or _REASON_UNSTATED)
     row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
         return  # no real position was ever opened for this paper swing trade - nothing to close
@@ -16069,7 +16091,7 @@ def _maybe_place_real_swing_exit(conn, symbol):
         )
         print(f"[REAL SWING] SKIPPED duplicate exit for {row['kotak_trading_symbol']} - "
               f"Kotak already shows it closed, stale local row cleared instead of re-selling")
-        _log_real_order_event(
+        _why_log(
             conn, symbol, "exit", "skipped_duplicate", kotak_trading_symbol=row["kotak_trading_symbol"],
             prev_state=f"tracked open (stale), long {row['qty']} @ Rs{row['entry_price']:.2f}",
             new_state="cleared - Kotak already shows this closed",
@@ -16079,7 +16101,7 @@ def _maybe_place_real_swing_exit(conn, symbol):
     if row["sl_order_id"]:
         cancel_result = kotak_real_orders.cancel_real_order(row["sl_order_id"])
         if cancel_result.get("ok"):
-            _log_real_order_event(
+            _why_log(
                 conn, symbol, "sl", "cancelled", kotak_trading_symbol=row["kotak_trading_symbol"],
                 order_id=row["sl_order_id"], prev_state=f"resting @ Rs{row['sl_trigger_price']}",
                 new_state="cancelled (position exiting)",
@@ -16087,7 +16109,7 @@ def _maybe_place_real_swing_exit(conn, symbol):
         else:
             print(f"[REAL SWING] SL cancel failed for {row['kotak_trading_symbol']} "
                   f"(order {row['sl_order_id']}): {cancel_result.get('detail')} - proceeding with exit anyway")
-            _log_real_order_event(
+            _why_log(
                 conn, symbol, "sl", "cancel_failed", kotak_trading_symbol=row["kotak_trading_symbol"],
                 order_id=row["sl_order_id"], prev_state=f"resting @ Rs{row['sl_trigger_price']}",
                 new_state="cancel failed - may still be resting", detail=cancel_result.get("detail"),
@@ -16109,7 +16131,7 @@ def _maybe_place_real_swing_exit(conn, symbol):
         _sync_real_positions_swing_external(conn)
         print(f"[REAL SWING] SELL {exit_qty} {row['kotak_trading_symbol']} (order {result['order_id']}) "
               f"(fill_confirmed={result['fill_price_confirmed']})")
-        _log_real_order_event(
+        _why_log(
             conn, symbol, "exit", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
             order_id=result["order_id"],
             prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
@@ -16124,7 +16146,7 @@ def _maybe_place_real_swing_exit(conn, symbol):
             qty=row["qty"], detail=result.get("detail"), raw_response=result.get("raw_response"),
             strategy=row["strategy"],
         )
-        _log_real_order_event(
+        _why_log(
             conn, symbol, "exit", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
             prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
             new_state="still open (exit attempt failed)", detail=result.get("detail"),
@@ -16419,7 +16441,7 @@ def _retry_pending_real_swing_orders(conn):
         if still_paper_open:
             continue
         try:
-            _maybe_place_real_swing_exit(conn, row["symbol"])
+            _maybe_place_real_swing_exit(conn, row["symbol"], reason="retry: real swing row open but paper signal_state_swing row is gone (original exit reason not on record)")
         except Exception as e:
             print(f"[REAL SWING] exit retry failed for {row['symbol']} (non-fatal): {e}")
 
@@ -16594,7 +16616,7 @@ def _run_swing_scan(conn):
                 _sync_signal_state_swing_external(conn)
                 print(f"[SWING] exit {symbol} ({pos['strategy']}, {reason}) qty={pos['qty']} @ {exit_price:.2f}")
                 try:
-                    _maybe_place_real_swing_exit(conn, symbol)
+                    _maybe_place_real_swing_exit(conn, symbol, reason=f"{pos['strategy']} paper swing exit: {reason}")
                 except Exception as e:
                     print(f"[REAL SWING] exit mirror failed for {symbol} (non-fatal, paper exit already recorded): {e}")
             continue  # never also check for a new entry the same day a position is/was open
@@ -17128,7 +17150,7 @@ async def _scheduler_tick():
                         _maybe_place_real_entry(real_conn, cfg["symbol"])
                 elif action_taken.startswith("exited_"):
                     with closing(get_db()) as real_conn:
-                        _maybe_place_real_exit(real_conn, cfg["symbol"])
+                        _maybe_place_real_exit(real_conn, cfg["symbol"], reason=f"intraday paper exit: {action_taken}")
                 elif action_taken.startswith("partial_booked_"):
                     # Staged profit-booking ladder (2026-09-09 architecture
                     # revamp) - the paper side already booked one leg (see
@@ -17174,7 +17196,7 @@ async def _scheduler_tick():
                         _maybe_place_real_short_entry(real_conn, cfg["symbol"])
                 elif short_action.startswith("exited_short_"):
                     with closing(get_db()) as real_conn:
-                        _maybe_place_real_short_exit(real_conn, cfg["symbol"])
+                        _maybe_place_real_short_exit(real_conn, cfg["symbol"], reason=f"short paper exit: {short_action}")
                 else:
                     # 2026-09-30, explicit user instruction ("make short
                     # positions equally mirrored as done in buy
