@@ -4731,6 +4731,186 @@ def order_block_exit_reason(
     return None, new_running_max
 
 
+# ---------------------------------------------------------------------------
+# FVG 3rd-candle classification (backlog B-32, family `fvg3c`; spec in
+# docs/STRATEGY_SPEC_SND_AND_FVG3C.md). RESEARCH-STAGE ONLY: not wired into any
+# scan loop or real-order path. Three separately-validated variants (each its
+# own strategy, per CLAUDE.md's per-variant naming rule):
+#   "breakaway"    - candle3's BODY closes outside candle2's range: enter in the
+#                    gap direction at candle3's close (no retest expected).
+#   "rejection"    - candle3 is a strong candle in the gap direction (the video's
+#                    "rejection gap": invalid for a retest, price runs): enter in
+#                    the gap direction at candle3's close.
+#   "valid_retest" - candle3's body closes INSIDE candle2's range, then
+#                    consolidation, then a retest tap of the gap and a
+#                    confirmation trigger: enter AGAINST the gap (fade).
+# Written in SHORT orientation (bearish FVG: candle3.high < candle1.low); the
+# LONG mirror negates all prices and reuses the identical core, so the two
+# directions can never drift apart.
+# ---------------------------------------------------------------------------
+FVG3C_DEFAULT_PARAMS = {
+    "min_gap_atr": 0.25,        # min gap size, x ATR
+    "strong_body_ratio": 0.7,   # candle3 body/range to count as "strong"
+    "cons_bars": 2,             # min consolidation bars before the retest
+    "cons_max_range_atr": 1.5,  # each consolidation bar's max range, x ATR
+    "max_wait_bars": 20,        # bars after candle3 to wait for the retest
+    "trigger": "wick",          # wick | engulf | mid_close
+    "entry_level": "proximal",  # proximal | mid  (gap level price must tap)
+    "stop_pad_atr": 0.25,       # stop beyond the gap's far edge, x ATR
+    "rr": 2.0,                  # fixed target in R
+    "max_hold_bars": 60,
+    "atr_period": 14,
+}
+FVG3C_VARIANTS = ("breakaway", "rejection", "valid_retest")
+
+
+def _atr_array(highs, lows, closes, period: int):
+    """Simple-moving-average ATR per bar (NaN until `period` bars exist)."""
+    n = len(closes)
+    tr = np.empty(n)
+    tr[0] = highs[0] - lows[0]
+    prev_close = closes[:-1]
+    tr[1:] = np.maximum.reduce([highs[1:] - lows[1:], np.abs(highs[1:] - prev_close), np.abs(lows[1:] - prev_close)])
+    out = np.full(n, np.nan)
+    if n >= period:
+        csum = np.cumsum(tr)
+        out[period - 1:] = (csum[period - 1:] - np.concatenate(([0.0], csum[:n - period]))) / period
+    return out
+
+
+def _fvg3c_scan_short(o, h, l, c, atr, variant: str, p: dict, sess=None):
+    n = len(c)
+    sig = np.zeros(n, dtype=bool)
+    entry = np.full(n, np.nan)
+    stop = np.full(n, np.nan)
+    target = np.full(n, np.nan)
+
+    def _emit(idx, entry_price, stop_price):
+        if sig[idx] or not (stop_price > entry_price):
+            return
+        sig[idx] = True
+        entry[idx] = entry_price
+        stop[idx] = stop_price
+        target[idx] = entry_price - p["rr"] * (stop_price - entry_price)
+
+    for k in range(2, n):
+        a = atr[k]
+        if not (a > 0):
+            continue
+        c1, c2 = k - 2, k - 1
+        if sess is not None and sess[c1] != sess[k]:
+            continue  # intraday: a gap spanning the overnight break is not an FVG
+        if not (h[k] < l[c1]):
+            continue  # not a bearish 3-candle FVG
+        gap_lo, gap_hi = h[k], l[c1]
+        if gap_hi - gap_lo < p["min_gap_atr"] * a:
+            continue
+        rng3 = h[k] - l[k]
+        body3 = abs(c[k] - o[k])
+        strong = c[k] < o[k] and rng3 > 0 and body3 / rng3 >= p["strong_body_ratio"]
+        inside = min(o[k], c[k]) >= l[c2] and max(o[k], c[k]) <= h[c2]
+        pad = p["stop_pad_atr"] * a
+        if variant == "breakaway":
+            if not inside:
+                _emit(k, c[k], gap_hi + pad)
+            continue
+        if variant == "rejection":
+            if strong:
+                _emit(k, c[k], gap_hi + pad)
+            continue
+        # valid_retest: body inside candle2's range and not a strong bearish candle3
+        if not inside or strong:
+            continue
+        level = gap_lo if p["entry_level"] == "proximal" else (gap_lo + gap_hi) / 2.0
+        mid = (gap_lo + gap_hi) / 2.0
+        for j in range(k + 1, min(n, k + 1 + int(p["max_wait_bars"]))):
+            if sess is not None and sess[j] != sess[k]:
+                break  # retest must happen in the same session
+            if c[j] > gap_hi:
+                break  # gap invalidated (closed through the top)
+            n_cons = j - k - 1
+            tapped = h[j] >= level
+            if n_cons < p["cons_bars"]:
+                # still building the required consolidation: bar must be quiet and untapped
+                if tapped or (h[j] - l[j]) > p["cons_max_range_atr"] * a:
+                    break
+                continue
+            if not tapped:
+                continue
+            body_j = abs(c[j] - o[j])
+            trig = p["trigger"]
+            if trig == "wick":
+                ok = c[j] < o[j] and (h[j] - max(o[j], c[j])) > body_j
+            elif trig == "engulf":
+                ok = c[j] < o[j] and c[j - 1] > o[j - 1] and o[j] >= c[j - 1] and c[j] <= o[j - 1]
+            else:  # mid_close
+                ok = c[j] < o[j] and c[j] < mid
+            if ok:
+                _emit(j, c[j], max(h[j], gap_hi) + pad)
+            break  # the tap is consumed whether or not it confirmed
+    return sig, entry, stop, target
+
+
+def fvg3c_scan(df: pd.DataFrame, variant: str, direction: str, params: dict | None = None, sessions=None) -> dict:
+    """Vectorised scan over every bar of `df`. Returns numpy arrays keyed
+    "signal"/"entry_price"/"stop_loss"/"target", aligned to df rows (a signal on
+    bar i means: enter at bar i's close). direction "short" is the native
+    orientation; "long" negates prices and reuses the same core. `sessions`
+    (optional array aligned to df rows, e.g. the trading-day id) confines every
+    FVG and its retest to one session - required for intraday frames so an
+    overnight gap is never read as an FVG."""
+    if variant not in FVG3C_VARIANTS:
+        raise ValueError(f"unknown fvg3c variant {variant!r}")
+    if direction not in ("long", "short"):
+        raise ValueError(f"unknown direction {direction!r}")
+    p = dict(FVG3C_DEFAULT_PARAMS)
+    p.update(params or {})
+    o = df["Open"].to_numpy(dtype=float)
+    h = df["High"].to_numpy(dtype=float)
+    l = df["Low"].to_numpy(dtype=float)
+    c = df["Close"].to_numpy(dtype=float)
+    atr = _atr_array(h, l, c, int(p["atr_period"]))
+    if direction == "long":
+        sig, entry, stop, target = _fvg3c_scan_short(-o, -l, -h, -c, atr, variant, p, sessions)
+        return {"signal": sig, "entry_price": -entry, "stop_loss": -stop, "target": -target, "atr": atr}
+    sig, entry, stop, target = _fvg3c_scan_short(o, h, l, c, atr, variant, p, sessions)
+    return {"signal": sig, "entry_price": entry, "stop_loss": stop, "target": target, "atr": atr}
+
+
+def fvg3c_entry_signal(df: pd.DataFrame, variant: str, direction: str, params: dict | None = None) -> dict | None:
+    """Last-row evaluation (live-callable shape, like order_block_entry_signal):
+    {"entry_price","stop_loss","target","atr_at_entry"} or None."""
+    if len(df) < 3:
+        return None
+    r = fvg3c_scan(df, variant, direction, params)
+    if not bool(r["signal"][-1]):
+        return None
+    return {
+        "entry_price": float(r["entry_price"][-1]), "stop_loss": float(r["stop_loss"][-1]),
+        "target": float(r["target"][-1]), "atr_at_entry": float(r["atr"][-1]),
+    }
+
+
+def fvg3c_exit_reason(high: float, low: float, close: float, direction: str, stop: float, target: float,
+                      bars_held: int, max_hold_bars: int) -> tuple:
+    """Per-bar exit for an open fvg3c position. Stop is checked before target
+    (conservative when both are touched in one bar). Returns
+    (reason_or_None, fill_price_or_None)."""
+    if direction == "short":
+        if high >= stop:
+            return "stop_hit", stop
+        if low <= target:
+            return "target_hit", target
+    else:
+        if low <= stop:
+            return "stop_hit", stop
+        if high >= target:
+            return "target_hit", target
+    if bars_held >= max_hold_bars:
+        return "max_hold_timeout", close
+    return None, None
+
+
 def _compute_poc(highs, lows, vols, lo: int, hi: int):
     """Volume-weighted profile over bars [lo, hi) - port of the VP research
     workflow's _compute_poc. Returns (poc_price, bin_width) or (None, None)."""
