@@ -25,7 +25,16 @@ def test_returns_one_key_per_trade_category():
 def test_each_category_matches_the_real_registry_viable_leaderboard():
     result = main.strategy_leaderboard()
     for cat in sr.TradeCategory:
+        if cat is sr.TradeCategory.BIDIRECTIONAL:
+            continue  # shown in full incl. non-viable (2026-10-06), see next test
         assert result[cat.value] == sr.viable_leaderboard(cat)
+
+
+def test_bidirectional_shows_every_registered_strategy_flagged_viable_or_not():
+    result = main.strategy_leaderboard()["bidirectional"]
+    pool = [x for x in sr.REGISTRY if sr.TradeCategory.BIDIRECTIONAL in x.categories]
+    assert len(result) == len(pool) and len(result) > 0
+    assert all("viable" in row for row in result)
 
 
 def test_empty_categories_are_empty_lists_not_fabricated_rows():
@@ -47,7 +56,9 @@ def test_short_sell_has_no_viable_strategy_today_and_shows_none():
 
 def test_every_row_returned_anywhere_is_actually_viable():
     result = main.strategy_leaderboard()
-    for cat_rows in result.values():
+    for cat, cat_rows in result.items():
+        if cat == "bidirectional":
+            continue  # intentionally lists non-viable rows too (2026-10-06)
         for row in cat_rows:
             assert row["viable"] is True
             assert row["pfnet"] is not None and row["pfnet"] >= sr.PFNET_LIVE_FLOOR
