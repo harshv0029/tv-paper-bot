@@ -17604,7 +17604,18 @@ def strategy_leaderboard():
     reader of strategy_registry.py already treats as research/
     tracking-only."""
     import strategy_registry as sr
-    return {cat.value: sr.viable_leaderboard(cat) for cat in sr.TradeCategory}
+    out = {cat.value: sr.viable_leaderboard(cat) for cat in sr.TradeCategory}
+    # 2026-10-06, explicit user instruction ("I can't see the algorithms by u which
+    # are bidirectional in nature"): none of the bidirectional strategies clears
+    # PFnet >= 1 yet, so the viable-only view above left that category blank. Show
+    # every registered bidirectional strategy, each row flagged viable True/False
+    # (the dashboard renders "below floor"), so the research pool is visible. This
+    # is display-only; the real-money PFnet gate is untouched.
+    out[sr.TradeCategory.BIDIRECTIONAL.value] = sr.leaderboard(
+        sr.TradeCategory.BIDIRECTIONAL,
+        top_n=len([s for s in sr.REGISTRY if sr.TradeCategory.BIDIRECTIONAL in s.categories]),
+    )
+    return out
 
 
 @app.get("/strategy-scan-activity")
