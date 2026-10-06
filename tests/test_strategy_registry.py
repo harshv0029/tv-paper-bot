@@ -65,6 +65,9 @@ def test_scan_universe_calls_entry_fn_for_wired_strategies():
         timeframe="5m",
         status=sr.StrategyStatus.LIVE,
         entry_fn=lambda data: {"reason": "always_fires"} if data["symbol"] == "FOO.NS" else None,
+        # PFnet well above any registered strategy so the fixture stays inside BUY's
+        # top-N however many research variants get registered later.
+        metrics=sr.Metrics(pfnet=99.0, pfgross=99.0, win_rate_pct=50.0, n_trades=1),
         evidence="unit test fixture only",
     )
     original = list(sr.REGISTRY)
@@ -200,8 +203,9 @@ def test_leaderboard_never_pads_with_fabricated_entries():
 
 
 def test_leaderboard_returns_fewer_than_top_n_when_pool_is_smaller():
-    board = sr.leaderboard(sr.TradeCategory.BUY, top_n=5)
-    assert 0 < len(board) < 5
+    pool = [x for x in sr.REGISTRY if sr.TradeCategory.BUY in x.categories and x.metrics is not None]
+    board = sr.leaderboard(sr.TradeCategory.BUY, top_n=len(pool) + 5)
+    assert 0 < len(board) < len(pool) + 5
 
 
 # ---- pool keeps growing, only top 5 per category get monitored (2026-09-29) --
