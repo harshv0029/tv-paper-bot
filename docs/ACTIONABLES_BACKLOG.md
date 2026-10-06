@@ -18,7 +18,7 @@ Never delete a row — close it with a date and evidence (run id, commit, URL).
 | B-08 | Dispatch Box Theory variant sweep + report | IN-PROGRESS | High | Unblocked by B-01 merge; dispatched box-theory-variant-sweep-research.yml on main ~21:30Z | 2026-10-05 |  |
 | B-09 | Dispatch Parabolic SAR variant sweep + report | IN-PROGRESS | High | Unblocked by B-01 merge; dispatched parabolic-sar-variant-sweep-research.yml on main ~21:30Z | 2026-10-05 |  |
 | B-10 | Register every variant tried (pass or fail) in `strategy_registry.py` with real metrics; Box Theory/SAR under BIDIRECTIONAL only after real full-universe numbers | TODO | High | Never register placeholder metrics | 2026-10-05 | |
-| B-11 | Book 2 (Murphy): Directional Movement/ADX — full implement→test→validate→report cycle | TODO | Medium | Rules extracted (ch.15 pp.384-388). Indicator build still TODO | 2026-10-05 |  |
+| B-11 | Book 2 (Murphy): Directional Movement/ADX — full implement→test→validate→report cycle | IN-PROGRESS | Medium | BUILD DONE 2026-10-06: main._dmi_arrays/dmi_scan/dmi_entry_signal (Wilder DMI verified vs independent reference; variants cross/adx_gate/adx_turn x long/short; short = price-negation mirror), 7+1 tests, scripts/dmi_replay.py + dmi-adx-full-universe-research.yml. NEXT: baseline replay (5m) + grid (period 7/10/14/20/28, adx floor 15-40) + candle sizes; register tags | 2026-10-05 |  |
 | B-12 | Book 2: Point & Figure | TODO | Medium | | 2026-10-05 | |
 | B-13 | Book 2: Elliott Wave (confirm chapter exists first) | TODO | Medium | | 2026-10-05 | |
 | B-14 | Book 2: classic chart patterns (H&S, triangles, flags/pennants, double/triple tops, wedges, rectangles) | TODO | Medium | One strategy at a time | 2026-10-05 | |

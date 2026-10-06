@@ -5046,6 +5046,134 @@ def snd_zone_entry_signal(df: pd.DataFrame, direction: str, params: dict | None 
             "target": float(r["target"][-1]), "atr_at_entry": float(r["atr"][-1])}
 
 
+# ---------------------------------------------------------------------------
+# Directional Movement / ADX (Wilder), backlog B-11, family `dmi_adx`. Source:
+# Murphy, Technical Analysis of the Financial Markets, ch.15 (pp.384-388):
+#   - buy when +DI crosses above -DI, sell(short) when it crosses below
+#   - trend systems work best while ADX is RISING; ADX turning down from >40 =
+#     trend weakening; a rise back above ~20 = a new trend starting
+# RESEARCH-STAGE ONLY: not wired into any scan loop or real-order path. Variants
+# (each its own strategy tag):
+#   "cross"    - plain +DI/-DI cross, no ADX filter
+#   "adx_gate" - cross AND ADX >= adx_min AND ADX rising
+#   "adx_turn" - ADX crosses up through adx_turn_level while +DI > -DI (new trend)
+# Long orientation is native; short negates prices (DMI is symmetric under
+# negation: +DI and -DI swap) and reuses the same core.
+# ---------------------------------------------------------------------------
+DMI_DEFAULT_PARAMS = {
+    "period": 14,            # Wilder DI/ADX period
+    "adx_min": 20.0,         # adx_gate: ADX floor
+    "adx_turn_level": 20.0,  # adx_turn: ADX must cross up through this
+    "stop_atr": 2.0,         # stop distance, x ATR(period)
+    "rr": 2.0,               # fixed target in R
+    "max_hold_bars": 60,
+}
+DMI_VARIANTS = ("cross", "adx_gate", "adx_turn")
+
+
+def _wilder_smooth(x, period: int):
+    """Wilder smoothing: first value = sum of the first `period` inputs, then
+    prev - prev/period + x. NaN before index period-1."""
+    n = len(x)
+    out = np.full(n, np.nan)
+    if n < period:
+        return out
+    out[period - 1] = float(np.sum(x[:period]))
+    for i in range(period, n):
+        out[i] = out[i - 1] - out[i - 1] / period + x[i]
+    return out
+
+
+def _dmi_arrays(h, l, c, period: int):
+    """Returns (plus_di, minus_di, adx) per bar (NaN until defined)."""
+    n = len(c)
+    up = np.zeros(n)
+    dn = np.zeros(n)
+    tr = np.zeros(n)
+    tr[0] = h[0] - l[0]
+    for i in range(1, n):
+        u, d = h[i] - h[i - 1], l[i - 1] - l[i]
+        up[i] = u if (u > d and u > 0) else 0.0
+        dn[i] = d if (d > u and d > 0) else 0.0
+        tr[i] = max(h[i] - l[i], abs(h[i] - c[i - 1]), abs(l[i] - c[i - 1]))
+    str_ = _wilder_smooth(tr, period)
+    spdm = _wilder_smooth(up, period)
+    smdm = _wilder_smooth(dn, period)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        pdi = 100.0 * spdm / str_
+        mdi = 100.0 * smdm / str_
+        dx = 100.0 * np.abs(pdi - mdi) / (pdi + mdi)
+    adx = np.full(n, np.nan)
+    first = 2 * period - 2  # first ADX = mean of the first `period` DX values
+    if n > first:
+        adx[first] = float(np.nanmean(dx[period - 1:first + 1]))
+        for i in range(first + 1, n):
+            adx[i] = (adx[i - 1] * (period - 1) + dx[i]) / period
+    return pdi, mdi, adx
+
+
+def _dmi_scan_long(o, h, l, c, variant: str, p: dict):
+    n = len(c)
+    per = int(p["period"])
+    pdi, mdi, adx = _dmi_arrays(h, l, c, per)
+    atr = _atr_array(h, l, c, per)
+    sig = np.zeros(n, dtype=bool)
+    entry = np.full(n, np.nan)
+    stop = np.full(n, np.nan)
+    target = np.full(n, np.nan)
+    for i in range(2 * per, n):
+        if not (np.isfinite(pdi[i]) and np.isfinite(mdi[i]) and np.isfinite(pdi[i - 1]) and np.isfinite(mdi[i - 1])):
+            continue
+        crossed_up = pdi[i - 1] <= mdi[i - 1] and pdi[i] > mdi[i]
+        if variant == "cross":
+            ok = crossed_up
+        elif variant == "adx_gate":
+            ok = bool(crossed_up and np.isfinite(adx[i]) and np.isfinite(adx[i - 1]) and adx[i] >= p["adx_min"] and adx[i] > adx[i - 1])
+        else:  # adx_turn
+            lvl = p["adx_turn_level"]
+            ok = bool(np.isfinite(adx[i]) and np.isfinite(adx[i - 1]) and adx[i - 1] <= lvl < adx[i] and pdi[i] > mdi[i])
+        if not ok or not (atr[i] > 0):
+            continue
+        e = float(c[i])
+        sp = e - p["stop_atr"] * float(atr[i])
+        if not (e > sp):
+            continue
+        sig[i], entry[i], stop[i], target[i] = True, e, sp, e + p["rr"] * (e - sp)
+    return sig, entry, stop, target, atr
+
+
+def dmi_scan(df: pd.DataFrame, variant: str, direction: str, params: dict | None = None, sessions=None) -> dict:
+    """Vectorised DMI/ADX scan over every bar. A signal on bar i means: enter at
+    bar i's close. `sessions` is accepted for harness symmetry (Wilder smoothing
+    legitimately runs across sessions); exits are session-aware in the replay."""
+    if variant not in DMI_VARIANTS:
+        raise ValueError(f"unknown dmi variant {variant!r}")
+    if direction not in ("long", "short"):
+        raise ValueError(f"unknown direction {direction!r}")
+    p = dict(DMI_DEFAULT_PARAMS)
+    p.update(params or {})
+    o = df["Open"].to_numpy(dtype=float)
+    h = df["High"].to_numpy(dtype=float)
+    l = df["Low"].to_numpy(dtype=float)
+    c = df["Close"].to_numpy(dtype=float)
+    if direction == "short":
+        sig, e, s_, t, atr = _dmi_scan_long(-o, -l, -h, -c, variant, p)
+        return {"signal": sig, "entry_price": -e, "stop_loss": -s_, "target": -t, "atr": atr}
+    sig, e, s_, t, atr = _dmi_scan_long(o, h, l, c, variant, p)
+    return {"signal": sig, "entry_price": e, "stop_loss": s_, "target": t, "atr": atr}
+
+
+def dmi_entry_signal(df: pd.DataFrame, variant: str, direction: str, params: dict | None = None) -> dict | None:
+    """Last-row evaluation, same return shape as fvg3c_entry_signal."""
+    if len(df) < 3:
+        return None
+    r = dmi_scan(df, variant, direction, params)
+    if not bool(r["signal"][-1]):
+        return None
+    return {"entry_price": float(r["entry_price"][-1]), "stop_loss": float(r["stop_loss"][-1]),
+            "target": float(r["target"][-1]), "atr_at_entry": float(r["atr"][-1])}
+
+
 def _compute_poc(highs, lows, vols, lo: int, hi: int):
     """Volume-weighted profile over bars [lo, hi) - port of the VP research
     workflow's _compute_poc. Returns (poc_price, bin_width) or (None, None)."""
