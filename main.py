@@ -19084,7 +19084,7 @@ def _tracked_union_refresh_local() -> int:
     return sync_generic_tables_external(only=("tracked_union",))
 
 
-def reconcile_tracked_union_from_journal() -> int:
+def reconcile_tracked_union_from_journal(use_remote: bool = False) -> int:
     """Startup fallback after the Upstash restore: rows present in the git
     file docs/tables/tracked_union.json but missing locally are re-added
     (INSERT OR IGNORE - Upstash/local always win). Stale rows are pruned by
@@ -19095,8 +19095,11 @@ def reconcile_tracked_union_from_journal() -> int:
             rows = (json.load(f) or {}).get("rows") or []
     except Exception:
         pass
-    # Fresher copy: the state-sync branch Render writes every 10s (public raw read).
+    # Fresher copy: the state-sync branch Render writes every 10s (public raw
+    # read). Network, so never on the startup path - the memory loop calls it.
     try:
+        if not use_remote:
+            raise RuntimeError("local only")
         repo = os.environ.get("GITHUB_SYNC_REPO", "harshv0029/tv-paper-bot")
         resp = requests.get(f"https://raw.githubusercontent.com/{repo}/{_TRACKED_UNION_GIT_BRANCH}/docs/tables/tracked_union.json", timeout=8)
         if resp.status_code == 200:
@@ -19169,6 +19172,10 @@ def _tracked_union_git_push() -> bool:
 
 
 async def _tracked_union_memory_loop():
+    try:
+        await asyncio.to_thread(reconcile_tracked_union_from_journal, True)
+    except Exception as e:
+        print(f"[tracked_union] remote restore skipped (non-fatal): {e}")
     while True:
         try:
             await asyncio.to_thread(_tracked_union_refresh_local)
