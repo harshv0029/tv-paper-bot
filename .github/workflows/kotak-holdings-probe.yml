@@ -1,0 +1,57 @@
+name: Kotak Holdings Probe
+
+# B-46b diagnostic (2026-10-06). READ-ONLY: calls GET /kotak-neo/holdings and
+# prints the payload's field names plus ONLY the rows for the symbols under
+# investigation (NYKAA and the three swing rows reconcile removed as
+# "ghosts": INDHOTEL, IRCTC, UNIONBANK). The repo is public so job logs are
+# public - the full holdings payload is deliberately never printed, and
+# account/client-id style keys are stripped from the printed rows.
+# Places no order and modifies nothing.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch holdings and print schema + watched rows only
+        env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+        run: |
+          curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+          curl -sS --retry 3 --retry-delay 10 --retry-connrefused -m 60 \
+            "https://tv-paper-bot-gdan.onrender.com/kotak-neo/holdings?token=${KOTAK_NEO_API_TOKEN}" \
+            -o /tmp/holdings.json
+          python3 - <<'EOF'
+          import json
+          d = json.load(open("/tmp/holdings.json"))
+          print("top-level type:", type(d).__name__)
+          if isinstance(d, dict):
+              print("top-level keys:", sorted(d.keys()))
+              if d.get("error"):
+                  print("ERROR:", d["error"]); raise SystemExit(1)
+          def find_rows(x):
+              if isinstance(x, list) and x and isinstance(x[0], dict):
+                  return x
+              if isinstance(x, dict):
+                  for v in x.values():
+                      r = find_rows(v)
+                      if r: return r
+              return []
+          rows = find_rows(d)
+          print("holding rows:", len(rows))
+          if rows:
+              print("row keys:", sorted(rows[0].keys()))
+          watch = ("NYKAA", "INDHOTEL", "IRCTC", "UNIONBANK")
+          bad = ("acc", "client", "ucc", "pan", "name")
+          for r in rows:
+              blob = json.dumps(r).upper()
+              hit = [w for w in watch if w in blob]
+              if hit:
+                  print(hit[0], {k: v for k, v in r.items() if not any(b in k.lower() for b in bad)})
+          print("watched found:", sorted({w for r in rows for w in watch if w in json.dumps(r).upper()}))
+          EOF
