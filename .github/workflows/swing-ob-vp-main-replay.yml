@@ -1,0 +1,147 @@
+name: Swing OB + VP main.py replay (B-30)
+
+# B-30 (2026-10-06): validates the REAL main.py ports order_block_entry_signal /
+# order_block_exit_reason and volume_profile_poc_entry_signal /
+# volume_profile_poc_exit_reason (live in the swing scan with real money ON, per
+# the 2026-10-05 CLAUDE.md override) on the FULL NSE universe, daily/5y, LONG.
+# Compare pooled PFnet to registry values 1.062 (OB) / 1.025 (VP); if lower,
+# correct strategy_registry.py (the PFnet gate then closes the strategy).
+# Each bar calls the live function on a trailing 150-row window (the functions
+# evaluate only the last row; ATR/lookbacks need < 150 rows).
+on:
+  workflow_dispatch: {}
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        strat: [ob, vp]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay via real main.py functions
+        env:
+          STRAT: ${{ matrix.strat }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          python3 - <<'PYEOF'
+          import os, sys, json
+          sys.path.insert(0, ".")
+          import numpy as np
+          import main as m
+
+          STRAT, SHARD, NSHARD = os.environ["STRAT"], int(os.environ["SHARD"]), 4
+          if STRAT == "ob":
+              entry_fn, exit_fn = m.order_block_entry_signal, m.order_block_exit_reason
+              min_bars = m.ORDER_BLOCK_MIN_LOOKBACK_DAYS
+              max_hold = m.ORDER_BLOCK_MAX_HOLD_DAYS
+          else:
+              entry_fn, exit_fn = m.volume_profile_poc_entry_signal, m.volume_profile_poc_exit_reason
+              min_bars = m.VP_MIN_LOOKBACK_DAYS
+              max_hold = m.VP_MAX_HOLD_DAYS
+          WIN = 150
+          CAP, RISK_PCT = 400000.0, 1.0
+          CM = {"brokerage_pct": 0.0020, "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+                "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+                "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93}
+
+          def cost(qty, px, buy):
+              n = qty * px
+              b = n * CM["brokerage_pct"]; e = n * CM["exchange_txn_pct"]; s = n * CM["sebi_fee_pct"]
+              tax = n * (CM["stt_buy_pct"] if buy else CM["stt_sell_pct"]) + (n * CM["stamp_duty_buy_pct"] if buy else 0)
+              return b + e + s + tax + (b + e + s) * CM["gst_pct"] + n * CM["slippage_pct"]
+
+          def replay(sym, df):
+              df = df.reset_index(drop=True)
+              n = len(df)
+              closes = df["Close"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              out, pos = [], None
+              for i in range(min_bars, n):
+                  win = df.iloc[max(0, i + 1 - WIN):i + 1]
+                  if pos is not None:
+                      reason, pos["rmc"] = exit_fn(win, pos["day"], pos["stop"], pos["atr"], pos["rmc"])
+                      if reason:
+                          out.append(fin(pos, float(closes[i]), i, reason)); pos = None
+                  if pos is None:
+                      sig = entry_fn(win)
+                      if sig:
+                          ep, sl = sig["entry_price"], sig["stop_loss"]
+                          dist = ep - sl
+                          if dist <= 0: continue
+                          cap = min(CAP, CAP / m.CAPITAL_TRANCHES)
+                          qty = int(np.floor(min(cap * RISK_PCT / 100 / dist, cap / ep)))
+                          if qty > 0 and qty * ep >= 100:
+                              pos = {"sym": sym, "ep": ep, "stop": sl, "atr": sig["atr_at_entry"], "qty": qty,
+                                     "day": dates[i], "idx": i, "rmc": ep, "ec": cost(qty, ep, True)}
+              if pos is not None:
+                  out.append(fin(pos, float(closes[-1]), n - 1, "data_end_forced_close"))
+              return out
+
+          def fin(p, xp, i, reason):
+              g = (xp - p["ep"]) * p["qty"]
+              tc = p["ec"] + cost(p["qty"], xp, False) + CM["dp_charge_flat"] * (1 + CM["gst_pct"])
+              return {"gross": g, "net": g - tc, "reason": reason, "held": i - p["idx"]}
+
+          syms = sorted(set(m._load_nse_universe_from_file()))
+          syms = [s for k, s in enumerate(syms) if k % NSHARD == SHARD]
+          trades, fetched = [], 0
+          for s in syms:
+              try:
+                  raw = m.fetch_ohlc(s, "5y", "1d")
+              except Exception:
+                  continue
+              if raw is None or len(raw) < min_bars + 20:
+                  continue
+              fetched += 1
+              try:
+                  trades.extend(replay(s, raw))
+              except Exception as e:
+                  print("ERROR", s, e)
+          print(f"{STRAT} shard {SHARD}: fetched {fetched}/{len(syms)}, trades {len(trades)}")
+          os.makedirs("out", exist_ok=True)
+          json.dump(trades, open(f"out/{STRAT}_{SHARD}.json", "w"))
+          PYEOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trades-${{ matrix.strat }}-${{ matrix.shard }}
+          path: out/
+
+  aggregate:
+    needs: replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          pattern: trades-*
+          merge-multiple: true
+      - name: Pooled metrics per strategy vs registry
+        run: |
+          python3 - <<'PYEOF'
+          import json, glob
+          reg = {"ob": 1.062, "vp": 1.025}
+          for st in ("ob", "vp"):
+              t = []
+              for f in glob.glob(f"out/{st}_*.json"):
+                  t += json.load(open(f))
+              if not t:
+                  print(st, "no trades"); continue
+              w = sum(x["net"] for x in t if x["net"] > 0)
+              l = -sum(x["net"] for x in t if x["net"] <= 0)
+              pf = w / l if l else float("inf")
+              print(f"{st}: n={len(t)} win%={100*sum(x['net']>0 for x in t)/len(t):.1f} "
+                    f"PFnet={pf:.3f} (registry {reg[st]}) avg_held={sum(x['held'] for x in t)/len(t):.1f}d "
+                    f"avg_net_inr={sum(x['net'] for x in t)/len(t):.1f}")
+              by = {}
+              for x in t: by.setdefault(x["reason"], []).append(x)
+              for r, xs in by.items():
+                  w = sum(x["net"] for x in xs if x["net"] > 0); l = -sum(x["net"] for x in xs if x["net"] <= 0)
+                  print(f"   {r}: n={len(xs)} PFnet={(w/l if l else float('inf')):.3f}")
+          PYEOF
