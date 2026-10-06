@@ -11001,6 +11001,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         order_id=result["order_id"], prev_state="no position",
         new_state=f"short {real_qty} @ Rs{real_entry_price:.2f}",
         detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
+        reason=f"paper short entry signal from strategy {real_strategy or 'unknown'} passed the PFnet gate",
     )
 
     if paper_row and paper_row["stop_loss"]:
@@ -11276,6 +11277,7 @@ def _maybe_place_real_entry(conn, symbol: str):
             order_id=result["order_id"], prev_state="no position",
             new_state=f"long {real_qty} @ Rs{real_entry_price:.2f}",
             detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
+            reason=f"paper long entry signal from strategy {real_strategy or 'unknown'} passed the PFnet gate",
         )
         _sync_real_positions_external(conn)
 
@@ -11442,6 +11444,7 @@ def _maybe_place_real_entry(conn, symbol: str):
         _log_real_order_event(
             conn, symbol, "entry", "failed", kotak_trading_symbol=kotak_symbol,
             prev_state="no position", new_state="no position (buy failed)", detail=result.get("detail"),
+            reason="paper long entry signal; Kotak rejected or failed the buy",
         )
 
 
@@ -16300,6 +16303,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         order_id=result["order_id"], prev_state="no position",
         new_state=f"long {real_qty} @ Rs{real_entry_price:.2f}",
         detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
+        reason=f"swing entry signal from strategy {strategy} passed the PFnet gate",
     )
 
     # Real resting stop-loss - the paper stop_loss this same scan just
