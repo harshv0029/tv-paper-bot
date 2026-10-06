@@ -124,6 +124,8 @@ def run_shard():
     grid = json.loads(os.environ.get("GRID", "[{}]"))
     cells = [(v, d, g) for g in grid for v in m.FVG3C_VARIANTS for d in ("long", "short")]
     symbols = sorted(set(m._load_nse_universe_from_file()))[idx::count]
+    stride = max(1, int(os.environ.get("SAMPLE_EVERY", "1")))  # >1 = cheap screening pilot (every Nth symbol); 1 = FULL universe
+    symbols = symbols[::stride]
     print(f"--- shard {idx}/{count}: {len(symbols)} symbols, {len(cells)} cells, {interval}/{period} ---")
     out = {tag: [] for tag in (cell_tag(v, d, interval, g) for v, d, g in cells)}
     fetched = 0

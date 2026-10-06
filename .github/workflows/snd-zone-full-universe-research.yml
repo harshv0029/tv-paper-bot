@@ -16,6 +16,9 @@ on:
       grid:
         description: "JSON list of param-override dicts"
         default: "[{}]"
+      sample_every:
+        description: "1 = FULL universe (the only trusted go/no-go number). N>1 = cheap screening pilot on every Nth symbol (CLAUDE.md allows pilots as a first check only)"
+        default: "1"
 
 env:
   SHARD_COUNT: 20
@@ -32,6 +35,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
       - name: Install dependencies
         run: pip install -q -r requirements.txt
       - name: Replay this shard
@@ -40,6 +44,7 @@ jobs:
           INTERVAL: ${{ inputs.interval }}
           PERIOD: ${{ inputs.period }}
           GRID: ${{ inputs.grid }}
+          SAMPLE_EVERY: ${{ inputs.sample_every }}
         run: python3 scripts/snd_zone_replay.py shard
       - uses: actions/upload-artifact@v4
         with:
