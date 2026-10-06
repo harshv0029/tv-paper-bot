@@ -1,3 +1,4 @@
+import unittest.mock
 """Regression tests for the 2026-09-10 review-found fixes to the
 universal-score architecture (see docs/TRADING_CONSTRAINTS.md and the
 review discussion in-session): the target_hit/staged-ladder exit-state
@@ -282,7 +283,7 @@ def test_maybe_sync_real_stop_loss_escalates_once_degraded_past_the_capital_scal
         with patch.object(main, "get_scheduler_capital_inr", return_value=400_000), \
              patch.object(main, "_maybe_place_real_exit") as mock_force_exit:
             main._maybe_sync_real_stop_loss(conn, "RELIANCE.NS")
-            mock_force_exit.assert_called_once_with(conn, "RELIANCE.NS")
+            mock_force_exit.assert_called_once_with(conn, "RELIANCE.NS", reason=unittest.mock.ANY)
 
 
 def test_maybe_sync_real_stop_loss_does_not_escalate_while_still_within_tolerance():

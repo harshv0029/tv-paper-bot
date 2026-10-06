@@ -214,7 +214,7 @@ def test_run_swing_scan_exits_a_power_play_position_using_its_own_exit_mechanics
     monkeypatch.setattr(main, "SWING_WATCHLIST", ["EXITPOWERPLAY.NS"])
     monkeypatch.setattr(main, "fetch_ohlc", lambda symbol, period, interval: df)
     exit_mirror_calls = []
-    monkeypatch.setattr(main, "_maybe_place_real_swing_exit", lambda conn, symbol: exit_mirror_calls.append(symbol))
+    monkeypatch.setattr(main, "_maybe_place_real_swing_exit", lambda conn, symbol, reason=None: exit_mirror_calls.append(symbol))
 
     with closing(main.get_db()) as conn:
         conn.execute(

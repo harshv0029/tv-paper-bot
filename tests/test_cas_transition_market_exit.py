@@ -99,7 +99,8 @@ def test_entry_sl_rejected_with_cas_reason_escalates_to_market_exit():
                  patch("main._is_strategy_viable_for_real_money", return_value=True), \
                  patch.object(main, "_maybe_place_real_exit") as mock_exit:
                 main._maybe_place_real_entry(conn, "TESTSTOCK.NS")
-                mock_exit.assert_called_once_with(conn, "TESTSTOCK.NS")
+                mock_exit.assert_called_once()
+                assert mock_exit.call_args.args == (conn, "TESTSTOCK.NS") and mock_exit.call_args.kwargs["reason"]
             row = conn.execute("SELECT protection_degraded_since FROM real_positions WHERE symbol='TESTSTOCK.NS'").fetchone()
             # Escalated immediately - never started the ordinary degraded clock.
             assert row["protection_degraded_since"] is None
@@ -164,7 +165,8 @@ def test_sync_sl_replacement_rejected_with_cas_reason_escalates_to_market_exit()
                    return_value={"ok": False, "detail": _CAS_REJECTION_DETAIL}), \
              patch.object(main, "_maybe_place_real_exit") as mock_exit:
             main._maybe_sync_real_stop_loss(conn, "TESTSTOCK.NS")
-            mock_exit.assert_called_once_with(conn, "TESTSTOCK.NS")
+            mock_exit.assert_called_once()
+            assert mock_exit.call_args.args == (conn, "TESTSTOCK.NS") and mock_exit.call_args.kwargs["reason"]
 
 
 def test_sync_sl_replacement_rejected_with_t1_reason_does_not_escalate():
