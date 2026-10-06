@@ -18196,6 +18196,69 @@ def kotak_neo_holdings(request: Request):
         return {"error": str(e)}
 
 
+_HEAL_SWING_HOLDING_ALLOWLIST = {"NYKAA-EQ"}  # user scope 2026-10-06: NYKAA only
+
+
+@app.post("/kotak-neo/heal-swing-holding-sl")
+def kotak_neo_heal_swing_holding_sl(request: Request, kotak_trading_symbol: str = "NYKAA-EQ"):
+    """One-shot heal for a swing delivery HOLDING with no tracking row and no
+    resting SL (NYKAA.NS, 2026-10-06, real money). Token-gated, allowlisted
+    to NYKAA-EQ only. Fresh Kotak state first: the symbol must be in
+    holdings() and have NO live resting SELL SL in order_report(). Stop =
+    holding avg price - SWING_ATR_STOP_MULT x daily ATR (the swing engine's
+    own rule). Recreates the real_positions_swing row (strategy gap_and_go,
+    per the incident record) then places the SL; if placement fails the row
+    stays so the 5-min governance backfill retries it."""
+    _require_kotak_token(request)
+    if kotak_trading_symbol not in _HEAL_SWING_HOLDING_ALLOWLIST:
+        return {"error": f"{kotak_trading_symbol} not allowlisted"}
+    holdings = _kotak_holdings_open_by_trdsym()
+    if holdings is None:
+        return {"error": "holdings fetch failed - nothing placed"}
+    held = holdings.get(kotak_trading_symbol)
+    if held is None or not held["avg_price"]:
+        return {"error": "not held (or no avg price) - nothing placed"}
+    try:
+        import kotak_neo
+        import kotak_real_orders
+        order_rows = (kotak_neo.order_report() or {}).get("data") or []
+    except Exception as e:
+        return {"error": f"order_report fetch failed - nothing placed: {e}"}
+    terminal = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
+    if any(r.get("trdSym") == kotak_trading_symbol and r.get("trnsTp") == "S"
+           and str(r.get("prcTp", "")).upper() in ("SL", "SL-M")
+           and str(r.get("ordSt", r.get("stat", ""))).lower() not in terminal for r in order_rows):
+        return {"status": "already_protected - nothing placed"}
+    symbol = f"{held['symbol']}.NS"
+    try:
+        atr = _swing_atr(fetch_ohlc(symbol, "6mo", "1d"))
+        atr_last = float(atr[-1])
+    except Exception as e:
+        return {"error": f"ATR unavailable - nothing placed: {e}"}
+    if not atr_last > 0 or atr_last != atr_last:
+        return {"error": "ATR invalid - nothing placed"}
+    stop = round(held["avg_price"] - SWING_ATR_STOP_MULT * atr_last, 2)
+    if stop <= 0 or stop >= held["avg_price"]:
+        return {"error": f"invalid computed stop {stop} - nothing placed"}
+    with closing(get_db()) as conn:
+        if not conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone():
+            conn.execute(
+                "INSERT INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, "
+                "entry_order_id, opened_at, day, stop_loss, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (symbol, kotak_trading_symbol, held["qty"], held["avg_price"], None, time.time(),
+                 ist_now().strftime("%Y-%m-%d"), stop, "gap_and_go"),
+            )
+        sl = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, held["qty"], stop)
+        if sl.get("ok"):
+            conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                         (sl["order_id"], sl["trigger_price"], symbol))
+        conn.commit()
+        _sync_real_positions_swing_external(conn)
+    return _kotak_json_safe({"symbol": symbol, "qty": held["qty"], "avg_price": held["avg_price"],
+                             "atr": round(atr_last, 2), "stop": stop, "sl_ok": bool(sl.get("ok")),
+                             "sl_trigger_price": sl.get("trigger_price"), "sl_error": sl.get("error")})
+
+
 @app.get("/kotak-neo/order-report")
 def kotak_neo_order_report(request: Request, order_id: str | None = None):
     """The real account's order book (or a single order, if order_id is
