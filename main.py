@@ -16,6 +16,7 @@ Endpoints:
 """
 
 import asyncio
+import base64
 import datetime as dt
 import hashlib
 import functools
@@ -19088,10 +19089,21 @@ def reconcile_tracked_union_from_journal() -> int:
     file docs/tables/tracked_union.json but missing locally are re-added
     (INSERT OR IGNORE - Upstash/local always win). Stale rows are pruned by
     the next reconcile, which sees Kotak's real state."""
+    rows = []
     try:
         with open(_TRACKED_UNION_JOURNAL) as f:
             rows = (json.load(f) or {}).get("rows") or []
     except Exception:
+        pass
+    # Fresher copy: the state-sync branch Render writes every 10s (public raw read).
+    try:
+        repo = os.environ.get("GITHUB_SYNC_REPO", "harshv0029/tv-paper-bot")
+        resp = requests.get(f"https://raw.githubusercontent.com/{repo}/{_TRACKED_UNION_GIT_BRANCH}/docs/tables/tracked_union.json", timeout=8)
+        if resp.status_code == 200:
+            rows = (resp.json() or {}).get("rows") or rows
+    except Exception:
+        pass
+    if not rows:
         return 0
     added = 0
     with closing(get_db()) as conn:
@@ -19108,12 +19120,64 @@ def reconcile_tracked_union_from_journal() -> int:
     return added
 
 
+_TRACKED_UNION_GIT_BRANCH = "state-sync"
+_tracked_union_git_last_hash = None
+
+
+def _tracked_union_git_push() -> bool:
+    """Writes docs/tables/tracked_union.json to the `state-sync` branch through
+    the GitHub contents API, from Render itself (GitHub Actions cron cannot go
+    below 5 min). Only when content changed, and never to main (a push to main
+    redeploys Render). Needs env GITHUB_SYNC_TOKEN (fine-grained, contents:write);
+    a no-op without it. Branch is created on first push."""
+    global _tracked_union_git_last_hash
+    token = os.environ.get("GITHUB_SYNC_TOKEN")
+    if not token:
+        return False
+    repo = os.environ.get("GITHUB_SYNC_REPO", "harshv0029/tv-paper-bot")
+    with closing(get_db()) as conn:
+        rows = [dict(r) for r in conn.execute("SELECT * FROM tracked_union ORDER BY kotak_trading_symbol").fetchall()]
+    for r in rows:
+        r.pop("updated_at", None)
+    body = json.dumps({"rows": rows}, indent=1, sort_keys=True)
+    digest = hashlib.sha256(body.encode()).hexdigest()
+    if digest == _tracked_union_git_last_hash:
+        return False
+    if not rows and _tracked_union_git_last_hash is None:
+        return False  # a freshly wiped Render must not blank the git copy
+    hdr = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+    api = f"https://api.github.com/repos/{repo}"
+    path = "docs/tables/tracked_union.json"
+    cur = requests.get(f"{api}/contents/{path}", params={"ref": _TRACKED_UNION_GIT_BRANCH}, headers=hdr, timeout=10)
+    if cur.status_code == 404:
+        base = requests.get(f"{api}/git/ref/heads/main", headers=hdr, timeout=10)
+        base.raise_for_status()
+        mk = requests.post(f"{api}/git/refs", headers=hdr, timeout=10, json={
+            "ref": f"refs/heads/{_TRACKED_UNION_GIT_BRANCH}", "sha": base.json()["object"]["sha"]})
+        if mk.status_code not in (201, 422):
+            mk.raise_for_status()
+        cur = requests.get(f"{api}/contents/{path}", params={"ref": _TRACKED_UNION_GIT_BRANCH}, headers=hdr, timeout=10)
+    sha = cur.json().get("sha") if cur.status_code == 200 else None
+    payload = {"message": f"tracked_union {len(rows)} row(s) {dt.datetime.now(dt.timezone.utc).strftime('%H:%M:%SZ')}",
+               "content": base64.b64encode(body.encode()).decode(), "branch": _TRACKED_UNION_GIT_BRANCH}
+    if sha:
+        payload["sha"] = sha
+    put = requests.put(f"{api}/contents/{path}", headers=hdr, json=payload, timeout=15)
+    put.raise_for_status()
+    _tracked_union_git_last_hash = digest
+    return True
+
+
 async def _tracked_union_memory_loop():
     while True:
         try:
             await asyncio.to_thread(_tracked_union_refresh_local)
         except Exception as e:
             print(f"[tracked_union] 10s refresh failed (non-fatal): {e}")
+        try:
+            await asyncio.to_thread(_tracked_union_git_push)
+        except Exception as e:
+            print(f"[tracked_union] git push failed (non-fatal): {e}")
         await asyncio.sleep(10)
 
 

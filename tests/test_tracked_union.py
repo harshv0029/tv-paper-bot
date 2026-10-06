@@ -54,3 +54,25 @@ def test_journal_fallback_restores_missing_rows(tmp_path):
 
 def test_in_mirror_list():
     assert "tracked_union" in main._GENERIC_MIRROR_TABLES
+
+
+def test_git_push_noop_without_token(monkeypatch):
+    monkeypatch.delenv("GITHUB_SYNC_TOKEN", raising=False)
+    assert main._tracked_union_git_push() is False
+
+
+def test_git_push_only_on_change(monkeypatch):
+    from unittest.mock import MagicMock
+    _db()
+    main._tracked_union_git_last_hash = None
+    monkeypatch.setenv("GITHUB_SYNC_TOKEN", "x")
+    with closing(main.get_db()) as c:
+        main._tracked_union_persist(c, {}, {"NYKAA-EQ": {"qty": 1, "avg_price": 340.11, "symbol": "NYKAA"}})
+    get = MagicMock(status_code=200); get.json.return_value = {"sha": "abc"}
+    put = MagicMock(); put.raise_for_status.return_value = None
+    monkeypatch.setattr(main.requests, "get", lambda *a, **k: get)
+    calls = []
+    monkeypatch.setattr(main.requests, "put", lambda *a, **k: calls.append(k) or put)
+    assert main._tracked_union_git_push() is True
+    assert main._tracked_union_git_push() is False  # unchanged -> no second commit
+    assert calls[0]["json"]["branch"] == "state-sync" and calls[0]["json"]["sha"] == "abc"
