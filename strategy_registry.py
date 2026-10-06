@@ -1338,6 +1338,810 @@ REGISTRY: list[StrategyDef] = [
     # larger infrastructure project, not a backtest/research task. See
     # docs/STRATEGY_LOG.md rows #10-12, #29 for the closest existing
     # (untested) candidates once that execution path exists.
+
+    StrategyDef(
+        name="fvg3c__breakaway__short__5m__ap14_cb2_cr1d5_elproximal_mh60_mw20_mg0d25_rr2d0_sp0d25_sb0d7_tgwick__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.089, pfgross=0.922, win_rate_pct=13.85, n_trades=265155, avg_held_hrs=123.9 / 60,
+            avg_net_inr=-1534.13,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="fvg3c-full-universe-research.yml run 37436244446 (2026-10-06, 5m/60d, SHORT, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/fvg3c-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436244446 baseline: PFnet 0.089, PFgross 0.922, n=265,155, win 13.85%, "
+            "avg_net Rs-1,534.13, avg held 123.9 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "FVG 3rd-candle breakaway, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="fvg3c__rejection__short__5m__ap14_cb2_cr1d5_elproximal_mh60_mw20_mg0d25_rr2d0_sp0d25_sb0d7_tgwick__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.084, pfgross=0.836, win_rate_pct=13.9, n_trades=134502, avg_held_hrs=124.0 / 60,
+            avg_net_inr=-1584.81,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="fvg3c-full-universe-research.yml run 37436244446 (2026-10-06, 5m/60d, SHORT, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/fvg3c-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436244446 baseline: PFnet 0.084, PFgross 0.836, n=134,502, win 13.9%, "
+            "avg_net Rs-1,584.81, avg held 124.0 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "FVG 3rd-candle rejection, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="fvg3c__rejection__long__5m__ap14_cb2_cr1d5_elproximal_mh60_mw20_mg0d25_rr2d0_sp0d25_sb0d7_tgwick__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BUY,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.083, pfgross=0.644, win_rate_pct=12.39, n_trades=114499, avg_held_hrs=118.9 / 60,
+            avg_net_inr=-1706.48,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="fvg3c-full-universe-research.yml run 37436244446 (2026-10-06, 5m/60d, LONG, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/fvg3c-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436244446 baseline: PFnet 0.083, PFgross 0.644, n=114,499, win 12.39%, "
+            "avg_net Rs-1,706.48, avg held 118.9 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "FVG 3rd-candle rejection, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="fvg3c__breakaway__long__5m__ap14_cb2_cr1d5_elproximal_mh60_mw20_mg0d25_rr2d0_sp0d25_sb0d7_tgwick__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BUY,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.071, pfgross=0.615, win_rate_pct=10.85, n_trades=261263, avg_held_hrs=111.3 / 60,
+            avg_net_inr=-1729.79,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="fvg3c-full-universe-research.yml run 37436244446 (2026-10-06, 5m/60d, LONG, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/fvg3c-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436244446 baseline: PFnet 0.071, PFgross 0.615, n=261,263, win 10.85%, "
+            "avg_net Rs-1,729.79, avg held 111.3 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "FVG 3rd-candle breakaway, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="fvg3c__valid_retest__short__5m__ap14_cb2_cr1d5_elproximal_mh60_mw20_mg0d25_rr2d0_sp0d25_sb0d7_tgwick__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.06, pfgross=0.963, win_rate_pct=11.55, n_trades=2225, avg_held_hrs=108.4 / 60,
+            avg_net_inr=-1557.29,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="fvg3c-full-universe-research.yml run 37436244446 (2026-10-06, 5m/60d, SHORT, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/fvg3c-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436244446 baseline: PFnet 0.06, PFgross 0.963, n=2,225, win 11.55%, "
+            "avg_net Rs-1,557.29, avg held 108.4 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "FVG 3rd-candle valid retest, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="fvg3c__valid_retest__long__5m__ap14_cb2_cr1d5_elproximal_mh60_mw20_mg0d25_rr2d0_sp0d25_sb0d7_tgwick__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BUY,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.059, pfgross=0.683, win_rate_pct=10.43, n_trades=1840, avg_held_hrs=125.0 / 60,
+            avg_net_inr=-1715.82,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="fvg3c-full-universe-research.yml run 37436244446 (2026-10-06, 5m/60d, LONG, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/fvg3c-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436244446 baseline: PFnet 0.059, PFgross 0.683, n=1,840, win 10.43%, "
+            "avg_net Rs-1,715.82, avg held 125.0 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "FVG 3rd-candle valid retest, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="snd_zone__supply_retest__short__5m__ap14_bb0d5_bc1_cf3_enlimit_proximal_ex1d5_mh60_rt1_za200_rr2d0_sp0d25__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.052, pfgross=1.684, win_rate_pct=8.69, n_trades=15110, avg_held_hrs=68.8 / 60,
+            avg_net_inr=-1365.72,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="snd-zone-full-universe-research.yml run 37436620518 (2026-10-06, 5m/60d, SHORT, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/snd-zone-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436620518 baseline: PFnet 0.052, PFgross 1.684, n=15,110, win 8.69%, "
+            "avg_net Rs-1,365.72, avg held 68.8 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "Supply & Demand supply retest, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="snd_zone__demand_retest__long__5m__ap14_bb0d5_bc1_cf3_enlimit_proximal_ex1d5_mh60_rt1_za200_rr2d0_sp0d25__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BUY,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.046, pfgross=1.197, win_rate_pct=7.66, n_trades=20278, avg_held_hrs=73.2 / 60,
+            avg_net_inr=-1505.39,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="snd-zone-full-universe-research.yml run 37436620518 (2026-10-06, 5m/60d, LONG, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/snd-zone-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436620518 baseline: PFnet 0.046, PFgross 1.197, n=20,278, win 7.66%, "
+            "avg_net Rs-1,505.39, avg held 73.2 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "Supply & Demand demand retest, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="dmi_adx__adx_gate__short__5m__am20d0_tl20d0_mh60_p14_rr2d0_sa2d0__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.148, pfgross=1.067, win_rate_pct=21.34, n_trades=8448, avg_held_hrs=139.1 / 60,
+            avg_net_inr=-1447.59,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="dmi-adx-full-universe-research.yml run 37436623456 (2026-10-06, 5m/60d, SHORT, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/dmi-adx-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436623456 baseline: PFnet 0.148, PFgross 1.067, n=8,448, win 21.34%, "
+            "avg_net Rs-1,447.59, avg held 139.1 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "DMI/ADX adx_gate, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="dmi_adx__adx_gate__long__5m__am20d0_tl20d0_mh60_p14_rr2d0_sa2d0__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BUY,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.136, pfgross=0.788, win_rate_pct=19.7, n_trades=14338, avg_held_hrs=110.8 / 60,
+            avg_net_inr=-1680.18,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="dmi-adx-full-universe-research.yml run 37436623456 (2026-10-06, 5m/60d, LONG, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/dmi-adx-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436623456 baseline: PFnet 0.136, PFgross 0.788, n=14,338, win 19.7%, "
+            "avg_net Rs-1,680.18, avg held 110.8 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "DMI/ADX adx_gate, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="dmi_adx__cross__short__5m__am20d0_tl20d0_mh60_p14_rr2d0_sa2d0__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.127, pfgross=0.959, win_rate_pct=18.54, n_trades=204289, avg_held_hrs=166.9 / 60,
+            avg_net_inr=-1470.68,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="dmi-adx-full-universe-research.yml run 37436623456 (2026-10-06, 5m/60d, SHORT, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/dmi-adx-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436623456 baseline: PFnet 0.127, PFgross 0.959, n=204,289, win 18.54%, "
+            "avg_net Rs-1,470.68, avg held 166.9 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "DMI/ADX cross, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="dmi_adx__adx_turn__long__5m__am20d0_tl20d0_mh60_p14_rr2d0_sa2d0__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BUY,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.111, pfgross=0.78, win_rate_pct=16.64, n_trades=55639, avg_held_hrs=127.6 / 60,
+            avg_net_inr=-1664.98,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="dmi-adx-full-universe-research.yml run 37436623456 (2026-10-06, 5m/60d, LONG, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/dmi-adx-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436623456 baseline: PFnet 0.111, PFgross 0.78, n=55,639, win 16.64%, "
+            "avg_net Rs-1,664.98, avg held 127.6 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "DMI/ADX adx_turn, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="dmi_adx__adx_turn__short__5m__am20d0_tl20d0_mh60_p14_rr2d0_sa2d0__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.103, pfgross=1.073, win_rate_pct=16.67, n_trades=67275, avg_held_hrs=137.2 / 60,
+            avg_net_inr=-1469.3,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="dmi-adx-full-universe-research.yml run 37436623456 (2026-10-06, 5m/60d, SHORT, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/dmi-adx-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436623456 baseline: PFnet 0.103, PFgross 1.073, n=67,275, win 16.67%, "
+            "avg_net Rs-1,469.3, avg held 137.2 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "DMI/ADX adx_turn, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="dmi_adx__cross__long__5m__am20d0_tl20d0_mh60_p14_rr2d0_sa2d0__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BUY,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.093, pfgross=0.651, win_rate_pct=14.57, n_trades=221736, avg_held_hrs=140.8 / 60,
+            avg_net_inr=-1729.74,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="dmi-adx-full-universe-research.yml run 37436623456 (2026-10-06, 5m/60d, LONG, calls the REAL main.py scan function)",
+        ),
+        source=".github/workflows/dmi-adx-full-universe-research.yml (real main.py scan/entry/exit functions)",
+        evidence=(
+            "Run 37436623456 baseline: PFnet 0.093, PFgross 0.651, n=221,736, win 14.57%, "
+            "avg_net Rs-1,729.74, avg held 140.8 min. NOT VIABLE (< PFNET_LIVE_FLOOR)."
+        ),
+        notes=(
+            "DMI/ADX cross, baseline params only, recorded per register-every-variant rule. "
+            "Candle-size sweep, parameter grid and opposite-direction comparison still owed (backlog B-16/B-17/B-40/B-33/B-11)."
+        ),
+    ),
+
+    StrategyDef(
+        name="box_theory__zone_touch__bidirectional__5m__tol15_wick2d0__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.134, pfgross=0.845, win_rate_pct=10.36, n_trades=219377, avg_held_hrs=129.1 / 60,
+            avg_net_inr=-1686.11,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="box-theory-variant-sweep-research.yml run 37408733557 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/box-theory-variant-sweep-research.yml (research-stage Box Theory implementation; workflow variant tag box_theory__tol15_wick2.0)",
+        evidence=(
+            "Run 37408733557 variant tol15_wick2.0: PFnet 0.134, PFgross 0.845, n=219,377, win 10.36%, "
+            "avg_net Rs-1,686.11, avg held 129.1 min. Per side: long PFnet 0.102, short PFnet 0.191. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Box Theory step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="box_theory__zone_touch__bidirectional__5m__tol20_wick2d0__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.133, pfgross=0.834, win_rate_pct=10.35, n_trades=238730, avg_held_hrs=126.5 / 60,
+            avg_net_inr=-1692.74,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="box-theory-variant-sweep-research.yml run 37408733557 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/box-theory-variant-sweep-research.yml (research-stage Box Theory implementation; workflow variant tag box_theory__tol20_wick2.0)",
+        evidence=(
+            "Run 37408733557 variant tol20_wick2.0: PFnet 0.133, PFgross 0.834, n=238,730, win 10.35%, "
+            "avg_net Rs-1,692.74, avg held 126.5 min. Per side: long PFnet 0.101, short PFnet 0.19. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Box Theory step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="box_theory__zone_touch__bidirectional__5m__tol25_wick2d5__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.129, pfgross=0.815, win_rate_pct=10.11, n_trades=242407, avg_held_hrs=122.8 / 60,
+            avg_net_inr=-1704.6,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="box-theory-variant-sweep-research.yml run 37408733557 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/box-theory-variant-sweep-research.yml (research-stage Box Theory implementation; workflow variant tag box_theory__tol25_wick2.5)",
+        evidence=(
+            "Run 37408733557 variant tol25_wick2.5: PFnet 0.129, PFgross 0.815, n=242,407, win 10.11%, "
+            "avg_net Rs-1,704.6, avg held 122.8 min. Per side: long PFnet 0.098, short PFnet 0.183. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Box Theory step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="box_theory__zone_touch__bidirectional__5m__tol15_wick2d5__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.132, pfgross=0.839, win_rate_pct=10.17, n_trades=205206, avg_held_hrs=128.0 / 60,
+            avg_net_inr=-1689.85,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="box-theory-variant-sweep-research.yml run 37408733557 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/box-theory-variant-sweep-research.yml (research-stage Box Theory implementation; workflow variant tag box_theory__tol15_wick2.5)",
+        evidence=(
+            "Run 37408733557 variant tol15_wick2.5: PFnet 0.132, PFgross 0.839, n=205,206, win 10.17%, "
+            "avg_net Rs-1,689.85, avg held 128.0 min. Per side: long PFnet 0.101, short PFnet 0.187. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Box Theory step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="box_theory__zone_touch__bidirectional__5m__tol25_wick2d0__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.132, pfgross=0.823, win_rate_pct=10.32, n_trades=258092, avg_held_hrs=123.9 / 60,
+            avg_net_inr=-1700.17,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="box-theory-variant-sweep-research.yml run 37408733557 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/box-theory-variant-sweep-research.yml (research-stage Box Theory implementation; workflow variant tag box_theory__tol25_wick2.0)",
+        evidence=(
+            "Run 37408733557 variant tol25_wick2.0: PFnet 0.132, PFgross 0.823, n=258,092, win 10.32%, "
+            "avg_net Rs-1,700.17, avg held 123.9 min. Per side: long PFnet 0.1, short PFnet 0.189. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Box Theory step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="box_theory__zone_touch__bidirectional__5m__tol20_wick2d5__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.13, pfgross=0.826, win_rate_pct=10.13, n_trades=223771, avg_held_hrs=125.2 / 60,
+            avg_net_inr=-1697.51,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="box-theory-variant-sweep-research.yml run 37408733557 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/box-theory-variant-sweep-research.yml (research-stage Box Theory implementation; workflow variant tag box_theory__tol20_wick2.5)",
+        evidence=(
+            "Run 37408733557 variant tol20_wick2.5: PFnet 0.13, PFgross 0.826, n=223,771, win 10.13%, "
+            "avg_net Rs-1,697.51, avg held 125.2 min. Per side: long PFnet 0.099, short PFnet 0.185. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Box Theory step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="box_theory__zone_touch__bidirectional__5m__tol15_wick1d5__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.138, pfgross=0.851, win_rate_pct=10.64, n_trades=233145, avg_held_hrs=130.6 / 60,
+            avg_net_inr=-1682.96,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="box-theory-variant-sweep-research.yml run 37408733557 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/box-theory-variant-sweep-research.yml (research-stage Box Theory implementation; workflow variant tag box_theory__tol15_wick1.5)",
+        evidence=(
+            "Run 37408733557 variant tol15_wick1.5: PFnet 0.138, PFgross 0.851, n=233,145, win 10.64%, "
+            "avg_net Rs-1,682.96, avg held 130.6 min. Per side: long PFnet 0.105, short PFnet 0.197. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Box Theory step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="box_theory__zone_touch__bidirectional__5m__tol25_wick1d5__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.135, pfgross=0.828, win_rate_pct=10.6, n_trades=273094, avg_held_hrs=125.4 / 60,
+            avg_net_inr=-1697.53,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="box-theory-variant-sweep-research.yml run 37408733557 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/box-theory-variant-sweep-research.yml (research-stage Box Theory implementation; workflow variant tag box_theory__tol25_wick1.5)",
+        evidence=(
+            "Run 37408733557 variant tol25_wick1.5: PFnet 0.135, PFgross 0.828, n=273,094, win 10.6%, "
+            "avg_net Rs-1,697.53, avg held 125.4 min. Per side: long PFnet 0.102, short PFnet 0.194. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Box Theory step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="box_theory__zone_touch__bidirectional__5m__tol20_wick1d5__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.137, pfgross=0.84, win_rate_pct=10.63, n_trades=253307, avg_held_hrs=127.8 / 60,
+            avg_net_inr=-1689.98,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="box-theory-variant-sweep-research.yml run 37408733557 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/box-theory-variant-sweep-research.yml (research-stage Box Theory implementation; workflow variant tag box_theory__tol20_wick1.5)",
+        evidence=(
+            "Run 37408733557 variant tol20_wick1.5: PFnet 0.137, PFgross 0.84, n=253,307, win 10.63%, "
+            "avg_net Rs-1,689.98, avg held 127.8 min. Per side: long PFnet 0.103, short PFnet 0.196. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Box Theory step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="parabolic_sar__reversal__bidirectional__5m__afinit0d01_afmax0d3__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.113, pfgross=0.852, win_rate_pct=11.97, n_trades=492386, avg_held_hrs=133.1 / 60,
+            avg_net_inr=-1493.17,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="parabolic-sar-variant-sweep-research.yml run 37408735190 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/parabolic-sar-variant-sweep-research.yml (research-stage Parabolic SAR implementation; workflow variant tag parabolic_sar__afinit0.01_afmax0.3)",
+        evidence=(
+            "Run 37408735190 variant afinit0.01_afmax0.3: PFnet 0.113, PFgross 0.852, n=492,386, win 11.97%, "
+            "avg_net Rs-1,493.17, avg held 133.1 min. Per side: long PFnet 0.11, short PFnet 0.116. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Parabolic SAR step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="parabolic_sar__reversal__bidirectional__5m__afinit0d03_afmax0d1__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.071, pfgross=0.738, win_rate_pct=8.08, n_trades=882374, avg_held_hrs=78.4 / 60,
+            avg_net_inr=-1615.44,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="parabolic-sar-variant-sweep-research.yml run 37408735190 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/parabolic-sar-variant-sweep-research.yml (research-stage Parabolic SAR implementation; workflow variant tag parabolic_sar__afinit0.03_afmax0.1)",
+        evidence=(
+            "Run 37408735190 variant afinit0.03_afmax0.1: PFnet 0.071, PFgross 0.738, n=882,374, win 8.08%, "
+            "avg_net Rs-1,615.44, avg held 78.4 min. Per side: long PFnet 0.073, short PFnet 0.069. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Parabolic SAR step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="parabolic_sar__reversal__bidirectional__5m__afinit0d03_afmax0d3__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.063, pfgross=0.741, win_rate_pct=7.6, n_trades=1009860, avg_held_hrs=68.9 / 60,
+            avg_net_inr=-1626.38,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="parabolic-sar-variant-sweep-research.yml run 37408735190 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/parabolic-sar-variant-sweep-research.yml (research-stage Parabolic SAR implementation; workflow variant tag parabolic_sar__afinit0.03_afmax0.3)",
+        evidence=(
+            "Run 37408735190 variant afinit0.03_afmax0.3: PFnet 0.063, PFgross 0.741, n=1,009,860, win 7.6%, "
+            "avg_net Rs-1,626.38, avg held 68.9 min. Per side: long PFnet 0.067, short PFnet 0.059. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Parabolic SAR step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="parabolic_sar__reversal__bidirectional__5m__afinit0d01_afmax0d1__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.114, pfgross=0.852, win_rate_pct=11.99, n_trades=488066, avg_held_hrs=134.2 / 60,
+            avg_net_inr=-1491.26,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="parabolic-sar-variant-sweep-research.yml run 37408735190 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/parabolic-sar-variant-sweep-research.yml (research-stage Parabolic SAR implementation; workflow variant tag parabolic_sar__afinit0.01_afmax0.1)",
+        evidence=(
+            "Run 37408735190 variant afinit0.01_afmax0.1: PFnet 0.114, PFgross 0.852, n=488,066, win 11.99%, "
+            "avg_net Rs-1,491.26, avg held 134.2 min. Per side: long PFnet 0.111, short PFnet 0.117. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Parabolic SAR step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="parabolic_sar__reversal__bidirectional__5m__afinit0d02_afmax0d3__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.078, pfgross=0.782, win_rate_pct=9.07, n_trades=774717, avg_held_hrs=88.1 / 60,
+            avg_net_inr=-1585.38,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="parabolic-sar-variant-sweep-research.yml run 37408735190 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/parabolic-sar-variant-sweep-research.yml (research-stage Parabolic SAR implementation; workflow variant tag parabolic_sar__afinit0.02_afmax0.3)",
+        evidence=(
+            "Run 37408735190 variant afinit0.02_afmax0.3: PFnet 0.078, PFgross 0.782, n=774,717, win 9.07%, "
+            "avg_net Rs-1,585.38, avg held 88.1 min. Per side: long PFnet 0.081, short PFnet 0.076. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Parabolic SAR step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="parabolic_sar__reversal__bidirectional__5m__afinit0d02_afmax0d2__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.078, pfgross=0.782, win_rate_pct=9.07, n_trades=774826, avg_held_hrs=88.2 / 60,
+            avg_net_inr=-1585.39,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="parabolic-sar-variant-sweep-research.yml run 37408735190 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/parabolic-sar-variant-sweep-research.yml (research-stage Parabolic SAR implementation; workflow variant tag parabolic_sar__afinit0.02_afmax0.2)",
+        evidence=(
+            "Run 37408735190 variant afinit0.02_afmax0.2: PFnet 0.078, PFgross 0.782, n=774,826, win 9.07%, "
+            "avg_net Rs-1,585.39, avg held 88.2 min. Per side: long PFnet 0.081, short PFnet 0.076. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Parabolic SAR step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="parabolic_sar__reversal__bidirectional__5m__afinit0d01_afmax0d2__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.113, pfgross=0.852, win_rate_pct=11.97, n_trades=492370, avg_held_hrs=133.1 / 60,
+            avg_net_inr=-1493.14,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="parabolic-sar-variant-sweep-research.yml run 37408735190 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/parabolic-sar-variant-sweep-research.yml (research-stage Parabolic SAR implementation; workflow variant tag parabolic_sar__afinit0.01_afmax0.2)",
+        evidence=(
+            "Run 37408735190 variant afinit0.01_afmax0.2: PFnet 0.113, PFgross 0.852, n=492,370, win 11.97%, "
+            "avg_net Rs-1,493.14, avg held 133.1 min. Per side: long PFnet 0.111, short PFnet 0.116. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Parabolic SAR step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="parabolic_sar__reversal__bidirectional__5m__afinit0d02_afmax0d1__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.083, pfgross=0.78, win_rate_pct=9.25, n_trades=731065, avg_held_hrs=93.2 / 60,
+            avg_net_inr=-1578.86,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="parabolic-sar-variant-sweep-research.yml run 37408735190 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/parabolic-sar-variant-sweep-research.yml (research-stage Parabolic SAR implementation; workflow variant tag parabolic_sar__afinit0.02_afmax0.1)",
+        evidence=(
+            "Run 37408735190 variant afinit0.02_afmax0.1: PFnet 0.083, PFgross 0.78, n=731,065, win 9.25%, "
+            "avg_net Rs-1,578.86, avg held 93.2 min. Per side: long PFnet 0.083, short PFnet 0.082. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Parabolic SAR step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
+
+    StrategyDef(
+        name="parabolic_sar__reversal__bidirectional__5m__afinit0d03_afmax0d2__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.BIDIRECTIONAL,),
+        timeframe="5m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.063, pfgross=0.74, win_rate_pct=7.6, n_trades=1000552, avg_held_hrs=69.5 / 60,
+            avg_net_inr=-1625.83,
+            universe="full_2680 (2642/2688 fetched)",
+            run_ref="parabolic-sar-variant-sweep-research.yml run 37408735190 (2026-10-06, 5m/60d, BOTH directions pooled, research-stage reimplementation)",
+        ),
+        source=".github/workflows/parabolic-sar-variant-sweep-research.yml (research-stage Parabolic SAR implementation; workflow variant tag parabolic_sar__afinit0.03_afmax0.2)",
+        evidence=(
+            "Run 37408735190 variant afinit0.03_afmax0.2: PFnet 0.063, PFgross 0.74, n=1,000,552, win 7.6%, "
+            "avg_net Rs-1,625.83, avg held 69.5 min. Per side: long PFnet 0.067, short PFnet 0.06. "
+            "NOT VIABLE (< PFNET_LIVE_FLOOR) in either direction."
+        ),
+        notes=(
+            "Parabolic SAR step-1 variant, recorded per register-every-variant rule; metrics are the pooled "
+            "both-direction run (per-side PFgross/avg_net not printed by the workflow, so per-side rows "
+            "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
+        ),
+    ),
 ]
 
 

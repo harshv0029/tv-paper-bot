@@ -36,9 +36,12 @@ def test_a_strategy_outside_its_categorys_top_n_still_has_real_metrics():
 
 def test_a_top_ranked_strategy_reports_its_category_and_rank():
     result = main.strategy_info()
-    row = result["universal_score"]
+    # The leaderboard is a growing pool (CLAUDE.md 2026-09-29), so read the live #1
+    # instead of hardcoding a name that later registrations can displace.
+    top = sr.leaderboard(sr.TradeCategory.BUY)[0]["name"]
+    row = result[top]
     assert row["category"] == "buy"
-    assert row["rank"] == 3
+    assert row["rank"] == 1
 
 
 def test_every_row_carries_viable_and_never_fabricates_metrics_for_unvalidated_strategies():
