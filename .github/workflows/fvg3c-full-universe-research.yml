@@ -1,0 +1,71 @@
+name: FVG 3rd-candle (fvg3c) Full-Universe Replay (research, calls the REAL main.py functions)
+# Backlog B-32. Spec: docs/STRATEGY_SPEC_SND_AND_FVG3C.md. Replays every
+# (variant x direction x param-set) cell through the real main.fvg3c_scan on the
+# FULL NSE universe (main._load_nse_universe_from_file()), 20-way sharded.
+# Dispatch inputs: interval/period (candle-size sweep) and grid (JSON list of
+# param-override dicts; default = baseline). Each cell is its own strategy tag.
+on:
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: "Candle size (5m, 15m, 1h)"
+        default: "5m"
+      period:
+        description: "yfinance period (5m/15m: 60d, 1h: 730d)"
+        default: "60d"
+      grid:
+        description: "JSON list of param-override dicts"
+        default: "[{}]"
+      sample_every:
+        description: "1 = FULL universe (the only trusted go/no-go number). N>1 = cheap screening pilot on every Nth symbol (CLAUDE.md allows pilots as a first check only)"
+        default: "1"
+
+env:
+  SHARD_COUNT: 20
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+      - name: Replay this shard
+        env:
+          SHARD_INDEX: ${{ matrix.shard }}
+          INTERVAL: ${{ inputs.interval }}
+          PERIOD: ${{ inputs.period }}
+          GRID: ${{ inputs.grid }}
+          SAMPLE_EVERY: ${{ inputs.sample_every }}
+        run: python3 scripts/fvg3c_replay.py shard
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.shard }}-result
+          path: shard_result.json
+          retention-days: 90
+
+  aggregate:
+    needs: replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*-result
+          path: shards
+          merge-multiple: false
+      - name: Aggregate (one row per strategy tag)
+        run: python3 scripts/fvg3c_replay.py aggregate
