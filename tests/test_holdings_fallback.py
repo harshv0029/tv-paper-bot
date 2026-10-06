@@ -62,3 +62,22 @@ def test_unknown_holdings_keeps_row():
 def test_not_held_still_ghosted():
     res, n = _run({})
     assert n == 0 and res["removed_ghost_count"] == 1
+
+
+def test_heal_rejects_non_allowlisted_symbol():
+    from fastapi.testclient import TestClient
+    with patch.object(main, "_require_kotak_token", return_value=None):
+        r = TestClient(main.app).post("/kotak-neo/heal-swing-holding-sl?kotak_trading_symbol=TCS-EQ")
+    assert "not allowlisted" in r.json()["error"]
+
+
+def test_heal_places_nothing_when_already_protected():
+    from fastapi.testclient import TestClient
+    sl = {"trdSym": "NYKAA-EQ", "trnsTp": "S", "prcTp": "SL", "ordSt": "open"}
+    with patch.object(main, "_require_kotak_token", return_value=None), \
+         patch.object(main, "_kotak_holdings_open_by_trdsym",
+                      return_value={"NYKAA-EQ": {"qty": 1, "avg_price": 340.11, "symbol": "NYKAA"}}), \
+         patch("kotak_neo.order_report", return_value={"data": [sl]}), \
+         patch("kotak_real_orders.place_real_stop_loss") as place:
+        r = TestClient(main.app).post("/kotak-neo/heal-swing-holding-sl?kotak_trading_symbol=NYKAA-EQ")
+    assert r.json()["status"].startswith("already_protected") and not place.called

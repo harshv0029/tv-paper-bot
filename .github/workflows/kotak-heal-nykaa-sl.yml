@@ -1,0 +1,26 @@
+name: Kotak Heal NYKAA SL
+
+# 2026-10-06, user priority: NYKAA.NS (real swing holding) has no SL.
+# Calls the token-gated, NYKAA-allowlisted /kotak-neo/heal-swing-holding-sl
+# ONCE per dispatch. Prints only the small result JSON (no account ids).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  heal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Heal NYKAA SL
+        env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+        run: |
+          curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+          curl -sS -m 90 -X POST \
+            "https://tv-paper-bot-gdan.onrender.com/kotak-neo/heal-swing-holding-sl?token=${KOTAK_NEO_API_TOKEN}&kotak_trading_symbol=NYKAA-EQ" \
+            -o /tmp/heal.json
+          cat /tmp/heal.json; echo
+          jq -e '.sl_ok == true or (.status // "" | startswith("already_protected"))' /tmp/heal.json
