@@ -297,3 +297,40 @@ def test_reconcile_excludes_swing_trading_symbols_from_untracked_detection():
         result = main._reconcile_real_positions_core(adopt=None)
 
     assert result["untracked_open_positions_count"] == 0
+
+
+def test_reconcile_adopts_swing_signal_symbol_into_swing_table_not_intraday():
+    # 2026-10-06 RVNL/SAIL/DRREDDY/VBL incident: swing buys with no real swing
+    # row were adopted into intraday real_positions and hit the 3:14pm squareoff.
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, qty, entry_ts) "
+            "VALUES ('RVNL.NS', 'gap_and_go', '2026-10-06', 199.0, 187.3, 2, 1.0)")
+        conn.commit()
+    fake_positions = {"data": [
+        {"exSeg": "nse_cm", "trdSym": "RVNL-EQ", "flBuyQty": "2", "flSellQty": "0", "buyAmt": "398.0"},
+    ]}
+    with patch("kotak_neo.positions", return_value=fake_positions), \
+         patch("kotak_neo.limits", return_value={"Net": "1000"}), \
+         patch("kotak_neo.order_report", return_value={"data": []}), \
+         patch.object(main, "_sync_real_positions_swing_external"):
+        main._reconcile_real_positions_core(adopt="*")
+    with closing(main.get_db()) as conn:
+        sw = conn.execute("SELECT strategy, stop_loss FROM real_positions_swing WHERE symbol='RVNL.NS'").fetchone()
+        intra = conn.execute("SELECT 1 FROM real_positions WHERE symbol='RVNL.NS'").fetchone()
+    assert sw is not None and sw["strategy"] == "gap_and_go" and sw["stop_loss"] == 187.3
+    assert intra is None
+
+
+def test_swing_real_entry_refused_after_cutoff(monkeypatch):
+    _fresh_db()
+    monkeypatch.setattr(main, "SWING_REAL_ENTRY_CUTOFF_MIN", 0)
+    monkeypatch.setattr(main, "is_real_swing_trading_enabled", lambda: True)
+    monkeypatch.setattr(main, "_is_strategy_viable_for_real_money", lambda s: True)
+    placed = []
+    import kotak_real_orders
+    monkeypatch.setattr(kotak_real_orders, "place_real_entry", lambda *a, **k: placed.append(a) or {"ok": False})
+    with closing(main.get_db()) as conn:
+        main._maybe_place_real_swing_entry(conn, "RVNL.NS", 2, 199.0, 187.0, "gap_and_go")
+    assert placed == []
