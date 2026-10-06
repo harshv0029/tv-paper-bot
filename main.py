@@ -12397,7 +12397,8 @@ def _orphan_prev_day_stop(conn, symbol, entry):
     """Previous trading day's stop for an orphan holding (user, 2026-10-06:
     "replicate the stop loss from previous trading day, store it, reuse it").
     1) the latest resting-SL trigger this app logged for the symbol (below
-    entry); 2) else the prior session's low from daily bars; 3) else a 1%
+    entry); 1b) else the most recent SL order for the stock in Kotak's order
+    book; 2) else the prior session's low from daily bars; 3) else a 1%
     last-resort so a position is never left unprotected. Returns (stop, source)."""
     import re
     for (ns,) in conn.execute(
@@ -12407,6 +12408,30 @@ def _orphan_prev_day_stop(conn, symbol, entry):
         m = re.search(r"Rs([0-9]+(?:\.[0-9]+)?)", ns or "")
         if m and 0 < float(m.group(1)) < entry:
             return round(float(m.group(1)), 2), "previous resting stop-loss logged for this symbol"
+    # 1b) not in the app log (user, 2026-10-06): the most recent SL order for
+    # this stock in Kotak's own order book, whatever its status.
+    try:
+        trd = None
+        for tbl in ("real_positions_swing", "real_positions"):
+            r0 = conn.execute(f"SELECT kotak_trading_symbol FROM {tbl} WHERE symbol = ?", (symbol,)).fetchone()
+            if r0 and r0[0]:
+                trd = r0[0]
+                break
+        if trd:
+            import kotak_neo
+            rows = (kotak_neo.order_report() or {}).get("data") or []
+            sls = [r for r in rows if r.get("trdSym") == trd and r.get("trnsTp") == "S"
+                   and str(r.get("prcTp", "")).upper() in ("SL", "SL-M")]
+            sls.sort(key=lambda r: str(r.get("ordDtTm", "")), reverse=True)
+            for r in sls:
+                try:
+                    trg = float(r.get("trgPrc"))
+                except (TypeError, ValueError):
+                    continue
+                if 0 < trg < entry:
+                    return round(trg, 2), "most recent SL order in Kotak's order book for this stock"
+    except Exception as e:
+        print(f"[REAL] orphan Kotak order-book SL lookup failed for {symbol}: {e}")
     try:
         df = fetch_ohlc(symbol, "10d", "1d")
         today = ist_now().strftime("%Y-%m-%d")
