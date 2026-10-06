@@ -4731,6 +4731,321 @@ def order_block_exit_reason(
     return None, new_running_max
 
 
+# ---------------------------------------------------------------------------
+# FVG 3rd-candle classification (backlog B-32, family `fvg3c`; spec in
+# docs/STRATEGY_SPEC_SND_AND_FVG3C.md). RESEARCH-STAGE ONLY: not wired into any
+# scan loop or real-order path. Three separately-validated variants (each its
+# own strategy, per CLAUDE.md's per-variant naming rule):
+#   "breakaway"    - candle3's BODY closes outside candle2's range: enter in the
+#                    gap direction at candle3's close (no retest expected).
+#   "rejection"    - candle3 is a strong candle in the gap direction (the video's
+#                    "rejection gap": invalid for a retest, price runs): enter in
+#                    the gap direction at candle3's close.
+#   "valid_retest" - candle3's body closes INSIDE candle2's range, then
+#                    consolidation, then a retest tap of the gap and a
+#                    confirmation trigger: enter AGAINST the gap (fade).
+# Written in SHORT orientation (bearish FVG: candle3.high < candle1.low); the
+# LONG mirror negates all prices and reuses the identical core, so the two
+# directions can never drift apart.
+# ---------------------------------------------------------------------------
+FVG3C_DEFAULT_PARAMS = {
+    "min_gap_atr": 0.25,        # min gap size, x ATR
+    "strong_body_ratio": 0.7,   # candle3 body/range to count as "strong"
+    "cons_bars": 2,             # min consolidation bars before the retest
+    "cons_max_range_atr": 1.5,  # each consolidation bar's max range, x ATR
+    "max_wait_bars": 20,        # bars after candle3 to wait for the retest
+    "trigger": "wick",          # wick | engulf | mid_close
+    "entry_level": "proximal",  # proximal | mid  (gap level price must tap)
+    "stop_pad_atr": 0.25,       # stop beyond the gap's far edge, x ATR
+    "rr": 2.0,                  # fixed target in R
+    "max_hold_bars": 60,
+    "atr_period": 14,
+}
+FVG3C_VARIANTS = ("breakaway", "rejection", "valid_retest")
+
+
+def _atr_array(highs, lows, closes, period: int):
+    """Simple-moving-average ATR per bar (NaN until `period` bars exist)."""
+    n = len(closes)
+    tr = np.empty(n)
+    tr[0] = highs[0] - lows[0]
+    prev_close = closes[:-1]
+    tr[1:] = np.maximum.reduce([highs[1:] - lows[1:], np.abs(highs[1:] - prev_close), np.abs(lows[1:] - prev_close)])
+    out = np.full(n, np.nan)
+    if n >= period:
+        csum = np.cumsum(tr)
+        out[period - 1:] = (csum[period - 1:] - np.concatenate(([0.0], csum[:n - period]))) / period
+    return out
+
+
+def _fvg3c_scan_short(o, h, l, c, atr, variant: str, p: dict, sess=None):
+    n = len(c)
+    sig = np.zeros(n, dtype=bool)
+    entry = np.full(n, np.nan)
+    stop = np.full(n, np.nan)
+    target = np.full(n, np.nan)
+
+    def _emit(idx, entry_price, stop_price):
+        if sig[idx] or not (stop_price > entry_price):
+            return
+        sig[idx] = True
+        entry[idx] = entry_price
+        stop[idx] = stop_price
+        target[idx] = entry_price - p["rr"] * (stop_price - entry_price)
+
+    for k in range(2, n):
+        a = atr[k]
+        if not (a > 0):
+            continue
+        c1, c2 = k - 2, k - 1
+        if sess is not None and sess[c1] != sess[k]:
+            continue  # intraday: a gap spanning the overnight break is not an FVG
+        if not (h[k] < l[c1]):
+            continue  # not a bearish 3-candle FVG
+        gap_lo, gap_hi = h[k], l[c1]
+        if gap_hi - gap_lo < p["min_gap_atr"] * a:
+            continue
+        rng3 = h[k] - l[k]
+        body3 = abs(c[k] - o[k])
+        strong = c[k] < o[k] and rng3 > 0 and body3 / rng3 >= p["strong_body_ratio"]
+        inside = min(o[k], c[k]) >= l[c2] and max(o[k], c[k]) <= h[c2]
+        pad = p["stop_pad_atr"] * a
+        if variant == "breakaway":
+            if not inside:
+                _emit(k, c[k], gap_hi + pad)
+            continue
+        if variant == "rejection":
+            if strong:
+                _emit(k, c[k], gap_hi + pad)
+            continue
+        # valid_retest: body inside candle2's range and not a strong bearish candle3
+        if not inside or strong:
+            continue
+        level = gap_lo if p["entry_level"] == "proximal" else (gap_lo + gap_hi) / 2.0
+        mid = (gap_lo + gap_hi) / 2.0
+        for j in range(k + 1, min(n, k + 1 + int(p["max_wait_bars"]))):
+            if sess is not None and sess[j] != sess[k]:
+                break  # retest must happen in the same session
+            if c[j] > gap_hi:
+                break  # gap invalidated (closed through the top)
+            n_cons = j - k - 1
+            tapped = h[j] >= level
+            if n_cons < p["cons_bars"]:
+                # still building the required consolidation: bar must be quiet and untapped
+                if tapped or (h[j] - l[j]) > p["cons_max_range_atr"] * a:
+                    break
+                continue
+            if not tapped:
+                continue
+            body_j = abs(c[j] - o[j])
+            trig = p["trigger"]
+            if trig == "wick":
+                ok = c[j] < o[j] and (h[j] - max(o[j], c[j])) > body_j
+            elif trig == "engulf":
+                ok = c[j] < o[j] and c[j - 1] > o[j - 1] and o[j] >= c[j - 1] and c[j] <= o[j - 1]
+            else:  # mid_close
+                ok = c[j] < o[j] and c[j] < mid
+            if ok:
+                _emit(j, c[j], max(h[j], gap_hi) + pad)
+            break  # the tap is consumed whether or not it confirmed
+    return sig, entry, stop, target
+
+
+def fvg3c_scan(df: pd.DataFrame, variant: str, direction: str, params: dict | None = None, sessions=None) -> dict:
+    """Vectorised scan over every bar of `df`. Returns numpy arrays keyed
+    "signal"/"entry_price"/"stop_loss"/"target", aligned to df rows (a signal on
+    bar i means: enter at bar i's close). direction "short" is the native
+    orientation; "long" negates prices and reuses the same core. `sessions`
+    (optional array aligned to df rows, e.g. the trading-day id) confines every
+    FVG and its retest to one session - required for intraday frames so an
+    overnight gap is never read as an FVG."""
+    if variant not in FVG3C_VARIANTS:
+        raise ValueError(f"unknown fvg3c variant {variant!r}")
+    if direction not in ("long", "short"):
+        raise ValueError(f"unknown direction {direction!r}")
+    p = dict(FVG3C_DEFAULT_PARAMS)
+    p.update(params or {})
+    o = df["Open"].to_numpy(dtype=float)
+    h = df["High"].to_numpy(dtype=float)
+    l = df["Low"].to_numpy(dtype=float)
+    c = df["Close"].to_numpy(dtype=float)
+    atr = _atr_array(h, l, c, int(p["atr_period"]))
+    if direction == "long":
+        sig, entry, stop, target = _fvg3c_scan_short(-o, -l, -h, -c, atr, variant, p, sessions)
+        return {"signal": sig, "entry_price": -entry, "stop_loss": -stop, "target": -target, "atr": atr}
+    sig, entry, stop, target = _fvg3c_scan_short(o, h, l, c, atr, variant, p, sessions)
+    return {"signal": sig, "entry_price": entry, "stop_loss": stop, "target": target, "atr": atr}
+
+
+def fvg3c_entry_signal(df: pd.DataFrame, variant: str, direction: str, params: dict | None = None) -> dict | None:
+    """Last-row evaluation (live-callable shape, like order_block_entry_signal):
+    {"entry_price","stop_loss","target","atr_at_entry"} or None."""
+    if len(df) < 3:
+        return None
+    r = fvg3c_scan(df, variant, direction, params)
+    if not bool(r["signal"][-1]):
+        return None
+    return {
+        "entry_price": float(r["entry_price"][-1]), "stop_loss": float(r["stop_loss"][-1]),
+        "target": float(r["target"][-1]), "atr_at_entry": float(r["atr"][-1]),
+    }
+
+
+def fvg3c_exit_reason(high: float, low: float, close: float, direction: str, stop: float, target: float,
+                      bars_held: int, max_hold_bars: int) -> tuple:
+    """Per-bar exit for an open fvg3c position. Stop is checked before target
+    (conservative when both are touched in one bar). Returns
+    (reason_or_None, fill_price_or_None)."""
+    if direction == "short":
+        if high >= stop:
+            return "stop_hit", stop
+        if low <= target:
+            return "target_hit", target
+    else:
+        if low <= stop:
+            return "stop_hit", stop
+        if high >= target:
+            return "target_hit", target
+    if bars_held >= max_hold_bars:
+        return "max_hold_timeout", close
+    return None, None
+
+
+# ---------------------------------------------------------------------------
+# Supply & Demand zones (backlog B-33, family `snd_zone`; spec in
+# docs/STRATEGY_SPEC_SND_AND_FVG3C.md). RESEARCH-STAGE ONLY: not wired into any
+# scan loop or real-order path. Two strategies per user text:
+#   "demand_retest" (LONG)  - base candle(s) below price (small body, wicks > body)
+#                             followed by an explosive UP candle; when price later
+#                             drops back into the zone, buy.
+#   "supply_retest" (SHORT) - the exact mirror; sell on the retest from below.
+# Written in LONG (demand) orientation; the short direction negates prices and
+# reuses the identical core so the two can never drift apart.
+# ---------------------------------------------------------------------------
+SND_DEFAULT_PARAMS = {
+    "base_candles": 1,          # N consecutive base candles (1..3)
+    "base_body_atr": 0.5,       # each base candle's body <= x ATR
+    "explosive_body_atr": 1.5,  # explosive candle body >= x ATR, in zone direction
+    "confirm_bars": 3,          # bars price must stay away before the zone is active
+    "max_retests": 1,           # zone expires after this many retests (1 = fresh only)
+    "max_zone_age_bars": 200,   # zone expires after this many bars
+    "entry": "limit_proximal",  # limit_proximal | close_confirm
+    "stop_pad_atr": 0.25,       # stop beyond the distal edge, x ATR
+    "rr": 2.0,                  # fixed target in R
+    "max_hold_bars": 60,
+    "atr_period": 14,
+}
+
+
+def _snd_scan_long(o, h, l, c, atr, p: dict, sess=None):
+    """Demand-zone scan. Returns (sig, entry, stop, target) aligned to bars; a
+    signal on bar i means the entry order fills on bar i (limit_proximal: at the
+    zone's proximal edge when bar i's low reaches it; close_confirm: at bar i's
+    close when it dips into the zone and closes back above the proximal edge)."""
+    n = len(c)
+    sig = np.zeros(n, dtype=bool)
+    entry = np.full(n, np.nan)
+    stop = np.full(n, np.nan)
+    target = np.full(n, np.nan)
+    nb = int(p["base_candles"])
+    zones = []  # active zones: dict(lo, hi, born, retests, a)
+    for i in range(nb + 1, n):
+        a = atr[i]
+        # --- 1. does an explosive candle at i just complete a base of nb candles right before it?
+        e = i
+        if a > 0 and c[e] > o[e] and (c[e] - o[e]) >= p["explosive_body_atr"] * a:
+            b0, b1 = e - nb, e - 1
+            if b0 >= 0 and (sess is None or sess[b0] == sess[e]):
+                ok = True
+                for b in range(b0, b1 + 1):
+                    body = abs(c[b] - o[b])
+                    wick = (h[b] - l[b]) - body
+                    if not (body <= p["base_body_atr"] * a and wick > body):
+                        ok = False
+                        break
+                if ok:
+                    zlo, zhi = float(np.min(l[b0:b1 + 1])), float(np.max(h[b0:b1 + 1]))
+                    if zhi > zlo:
+                        zones.append({"lo": zlo, "hi": zhi, "born": e, "retests": 0, "a": float(a), "away": 0, "active": False, "inside": False})
+        # --- 2. evaluate existing zones against bar i
+        keep = []
+        for z in zones:
+            if i == z["born"]:
+                keep.append(z)
+                continue
+            if sess is not None and sess[i] != sess[z["born"]]:
+                continue  # intraday: zones do not survive the session
+            if c[i] < z["lo"] or (i - z["born"]) > p["max_zone_age_bars"]:
+                continue  # invalidated (closed below distal edge) or expired
+            if not z["active"]:
+                if l[i] > z["hi"]:
+                    z["away"] += 1
+                    if z["away"] >= p["confirm_bars"]:
+                        z["active"] = True
+                else:
+                    z["away"] = 0  # re-entered before confirmation: restart the wait
+                keep.append(z)
+                continue
+            touched = l[i] <= z["hi"]
+            if touched and not z["inside"]:
+                z["inside"] = True
+                z["retests"] += 1
+                if z["retests"] <= p["max_retests"]:
+                    pad = p["stop_pad_atr"] * z["a"]
+                    if p["entry"] == "limit_proximal":
+                        ep = z["hi"] if o[i] > z["hi"] else o[i]  # opened inside the zone (gap-down): fills at the open
+                        sp = z["lo"] - pad
+                        ok_fill = c[i] >= z["lo"]
+                    else:
+                        ep = c[i]
+                        sp = z["lo"] - pad
+                        ok_fill = c[i] > z["hi"] and l[i] >= z["lo"]
+                    if ok_fill and ep > sp and not sig[i]:
+                        sig[i] = True
+                        entry[i] = ep
+                        stop[i] = sp
+                        target[i] = ep + p["rr"] * (ep - sp)
+            elif not touched:
+                z["inside"] = False
+            if z["retests"] <= p["max_retests"] or z["inside"]:
+                keep.append(z)
+        zones = keep
+    return sig, entry, stop, target
+
+
+def snd_zone_scan(df: pd.DataFrame, direction: str, params: dict | None = None, sessions=None) -> dict:
+    """Vectorised Supply & Demand scan. direction "long" = demand_retest (native);
+    "short" = supply_retest (price-mirror through the same core). Returns arrays
+    keyed signal/entry_price/stop_loss/target/atr aligned to df rows."""
+    if direction not in ("long", "short"):
+        raise ValueError(f"unknown direction {direction!r}")
+    p = dict(SND_DEFAULT_PARAMS)
+    p.update(params or {})
+    if p["entry"] not in ("limit_proximal", "close_confirm"):
+        raise ValueError(f"unknown entry mode {p['entry']!r}")
+    o = df["Open"].to_numpy(dtype=float)
+    h = df["High"].to_numpy(dtype=float)
+    l = df["Low"].to_numpy(dtype=float)
+    c = df["Close"].to_numpy(dtype=float)
+    atr = _atr_array(h, l, c, int(p["atr_period"]))
+    if direction == "short":
+        sig, e, s_, t = _snd_scan_long(-o, -l, -h, -c, atr, p, sessions)
+        return {"signal": sig, "entry_price": -e, "stop_loss": -s_, "target": -t, "atr": atr}
+    sig, e, s_, t = _snd_scan_long(o, h, l, c, atr, p, sessions)
+    return {"signal": sig, "entry_price": e, "stop_loss": s_, "target": t, "atr": atr}
+
+
+def snd_zone_entry_signal(df: pd.DataFrame, direction: str, params: dict | None = None) -> dict | None:
+    """Last-row evaluation, same return shape as fvg3c_entry_signal."""
+    if len(df) < 4:
+        return None
+    r = snd_zone_scan(df, direction, params)
+    if not bool(r["signal"][-1]):
+        return None
+    return {"entry_price": float(r["entry_price"][-1]), "stop_loss": float(r["stop_loss"][-1]),
+            "target": float(r["target"][-1]), "atr_at_entry": float(r["atr"][-1])}
+
+
 def _compute_poc(highs, lows, vols, lo: int, hi: int):
     """Volume-weighted profile over bars [lo, hi) - port of the VP research
     workflow's _compute_poc. Returns (poc_price, bin_width) or (None, None)."""
@@ -17089,7 +17404,9 @@ def strategy_scan_activity():
         rows.append({
             "strategy_tag": tag,
             "registry_name": registry_name,
+            "categories": [c.value for c in strat.categories] if strat else [],
             "pfnet": strat.metrics.pfnet if strat and strat.metrics else None,
+            "avg_held_hrs": round(strat.metrics.avg_held_hrs, 1) if strat and strat.metrics and strat.metrics.avg_held_hrs is not None else None,
             "scans_today": _strategy_scan_counts.get(tag, 0),
             "scans_last_30s": _strategy_scans_in_last_seconds(tag),
             "successful_entries_today": entries_today.get(tag, 0),
