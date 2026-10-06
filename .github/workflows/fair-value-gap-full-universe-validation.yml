@@ -52,6 +52,9 @@ on:
       sample_every:
         description: "1 = FULL universe (the only trusted go/no-go number). N>1 = cheap screening pilot on every Nth symbol (CLAUDE.md allows pilots as a first check only)"
         default: "1"
+      interval:
+        description: "Candle size: 1m (7d), 5m (60d), 15m (60d), 1h (730d). 4h is not served natively by yfinance (needs a 1h resample, not built). CLAUDE.md thumb rule: run every strategy across several candle sizes"
+        default: "5m"
 
 env:
   SHARD_COUNT: 20
@@ -78,6 +81,7 @@ jobs:
         env:
           SHARD_INDEX: ${{ matrix.shard }}
           SAMPLE_EVERY: ${{ inputs.sample_every }}
+          CANDLE_INTERVAL: ${{ inputs.interval }}
         run: |
           python3 - <<'PYEOF'
           import sys
@@ -253,15 +257,17 @@ jobs:
 
 
           ALL_SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          IV = os.environ.get("CANDLE_INTERVAL", "5m") or "5m"
+          PD = {"1m": "7d", "5m": "60d", "15m": "60d", "1h": "730d"}[IV]
           ALL_SYMBOLS = ALL_SYMBOLS[::max(1, int(os.environ.get("SAMPLE_EVERY", "1") or 1))]
           SYMBOLS = ALL_SYMBOLS[SHARD_INDEX::SHARD_COUNT]
 
-          print(f"--- Shard {SHARD_INDEX}/{SHARD_COUNT}: fetching {len(SYMBOLS)} of {len(ALL_SYMBOLS)} symbols (5m, 60d) ---")
+          print(f"--- Shard {SHARD_INDEX}/{SHARD_COUNT}: fetching {len(SYMBOLS)} of {len(ALL_SYMBOLS)} symbols ({IV}, {PD}) ---")
           all_trades = []
           fetched = 0
           for sym in SYMBOLS:
               try:
-                  raw = m.fetch_ohlc(sym, "60d", "5m")
+                  raw = m.fetch_ohlc(sym, PD, IV)
               except Exception as e:
                   print(f"SKIP {sym}: {e}")
                   continue
