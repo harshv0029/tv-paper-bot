@@ -11960,6 +11960,13 @@ def _maybe_place_real_exit(conn, symbol: str):
     row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
         return  # no real position was ever opened for this paper trade - nothing to close
+    # 2026-10-06 engine-ownership thumb rule (CLAUDE.md): a position is exited
+    # only by the engine that entered it. The intraday engine never closes a
+    # symbol the swing engine owns (RVNL/SAIL/DRREDDY/VBL incident).
+    if (conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+            or conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()):
+        print(f"[REAL] intraday exit REFUSED for {symbol}: owned by the swing engine")
+        return
 
     import kotak_real_orders
 

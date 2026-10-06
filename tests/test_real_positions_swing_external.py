@@ -334,3 +334,20 @@ def test_swing_real_entry_refused_after_cutoff(monkeypatch):
     with closing(main.get_db()) as conn:
         main._maybe_place_real_swing_entry(conn, "RVNL.NS", 2, 199.0, 187.0, "gap_and_go")
     assert placed == []
+
+
+def test_intraday_exit_refuses_swing_owned_symbol(monkeypatch):
+    _fresh_db()
+    import kotak_real_orders
+    called = []
+    monkeypatch.setattr(kotak_real_orders, "place_real_exit", lambda *a, **k: called.append(a) or {"ok": True})
+    with closing(main.get_db()) as conn:
+        conn.execute(
+            "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, opened_at, day) "
+            "VALUES ('RVNL.NS','RVNL-EQ',2,199.0,1.0,'2026-10-06')")
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, qty, entry_ts) "
+            "VALUES ('RVNL.NS','gap_and_go','2026-10-06',199.0,187.3,2,1.0)")
+        conn.commit()
+        main._maybe_place_real_exit(conn, "RVNL.NS")
+    assert called == []
