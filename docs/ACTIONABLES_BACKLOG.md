@@ -90,3 +90,9 @@ Never delete a row — close it with a date and evidence (run id, commit, URL).
 | B-78 | Indicator: P&F moving averages (10/20-column) | TODO | Low | | 2026-10-07 | Owed from B-12 |
 | B-79 | Indicator: P&F percent / log box sizing (vs ATR box) | TODO | Low | | 2026-10-07 | Owed from B-12 |
 | B-80 | Run P&F pnf__* full-universe pilot then full at 5m/15m/1h, register each tag, regenerate results log | TODO | High | | 2026-10-07 | Needs runners free; sample_every=10 first, full universe for go/no-go |
+| B-81 | Strategy: candle Doji family (long-legged, gravestone, dragonfly) reversal | TODO | Medium | | 2026-10-07 | Murphy ch.12 (Japanese candlesticks); build as candle_* family, both directions, 5m/15m/1h, full universe, trend via 10-period MA |
+| B-82 | Strategy: candle Spinning Top indecision (filter/exit use) | TODO | Medium | | 2026-10-07 | Murphy ch.12 (Japanese candlesticks); build as candle_* family, both directions, 5m/15m/1h, full universe, trend via 10-period MA |
+| B-83 | Strategy: candle Dark Cloud Cover (short) / Piercing Line (long) | TODO | Medium | | 2026-10-07 | Murphy ch.12 (Japanese candlesticks); build as candle_* family, both directions, 5m/15m/1h, full universe, trend via 10-period MA |
+| B-84 | Strategy: candle Evening Star (short) / Morning Star (long) | TODO | Medium | | 2026-10-07 | Murphy ch.12 (Japanese candlesticks); build as candle_* family, both directions, 5m/15m/1h, full universe, trend via 10-period MA |
+| B-85 | Strategy: candle Falling (short) / Rising (long) Three Methods continuation | TODO | Medium | | 2026-10-07 | Murphy ch.12 (Japanese candlesticks); build as candle_* family, both directions, 5m/15m/1h, full universe, trend via 10-period MA |
+| B-86 | Indicator: 10-period MA short-term trend filter for candle patterns | TODO | Medium | | 2026-10-07 | Murphy ch.12 (Japanese candlesticks); build as candle_* family, both directions, 5m/15m/1h, full universe, trend via 10-period MA |
