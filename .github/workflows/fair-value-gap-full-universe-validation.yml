@@ -47,7 +47,11 @@ name: Fair Value Gap Full-Universe Validation (calls the REAL main.py function)
 # in main.py yet - the standing "check both directions" thumb rule's own
 # follow-up, not done here.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      sample_every:
+        description: "1 = FULL universe (the only trusted go/no-go number). N>1 = cheap screening pilot on every Nth symbol (CLAUDE.md allows pilots as a first check only)"
+        default: "1"
 
 env:
   SHARD_COUNT: 20
@@ -65,6 +69,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
 
       - name: Install dependencies
         run: pip install -q -r requirements.txt
@@ -72,6 +77,7 @@ jobs:
       - name: Run Fair Value Gap full-universe validation (this shard)
         env:
           SHARD_INDEX: ${{ matrix.shard }}
+          SAMPLE_EVERY: ${{ inputs.sample_every }}
         run: |
           python3 - <<'PYEOF'
           import sys
@@ -247,6 +253,7 @@ jobs:
 
 
           ALL_SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          ALL_SYMBOLS = ALL_SYMBOLS[::max(1, int(os.environ.get("SAMPLE_EVERY", "1") or 1))]
           SYMBOLS = ALL_SYMBOLS[SHARD_INDEX::SHARD_COUNT]
 
           print(f"--- Shard {SHARD_INDEX}/{SHARD_COUNT}: fetching {len(SYMBOLS)} of {len(ALL_SYMBOLS)} symbols (5m, 60d) ---")
