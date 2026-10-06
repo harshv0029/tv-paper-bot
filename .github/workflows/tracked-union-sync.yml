@@ -1,0 +1,56 @@
+name: Tracked Union Sync
+
+# 2026-10-06, explicit user instruction: the union of Kotak positions and
+# holdings is kept in Render memory/Upstash every 10 s (main.py
+# _tracked_union_memory_loop) and written to git every 5 min here, so the
+# two stores stay in sync and a restart loses nothing. READ-ONLY toward
+# Kotak; places no order. main.py restores from this file at startup
+# (reconcile_tracked_union_from_journal) when Upstash lacks a row.
+on:
+  schedule:
+    - cron: "*/5 3-10 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tracked-union-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch union from the live server
+        run: |
+          curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+          curl -sS --retry 4 --retry-delay 5 --retry-connrefused -m 45 \
+            "https://tv-paper-bot-gdan.onrender.com/tracked-union" -o /tmp/union.json
+          jq -e '.rows' /tmp/union.json > /dev/null
+      - name: Write docs/tables/tracked_union.json
+        run: |
+          mkdir -p docs/tables
+          # Keep the previous file when the server answers empty AND the file
+          # already has rows (a freshly wiped Render must not blank the git copy).
+          if [ "$(jq '.rows|length' /tmp/union.json)" = "0" ] && [ -f docs/tables/tracked_union.json ] \
+             && [ "$(jq '.rows|length' docs/tables/tracked_union.json)" != "0" ]; then
+            echo "server union empty, keeping existing git copy"; exit 0
+          fi
+          jq '{rows: (.rows | map(del(.updated_at)))}' /tmp/union.json > /tmp/new.json
+          if [ -f docs/tables/tracked_union.json ] && \
+             [ "$(jq -S .rows /tmp/new.json)" = "$(jq -S .rows docs/tables/tracked_union.json)" ]; then
+            echo "no change"; exit 0
+          fi
+          jq --arg t "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '. + {synced_at_utc: $t}' /tmp/new.json > docs/tables/tracked_union.json
+      - name: Commit if changed
+        run: |
+          git config user.name "tv-paper-bot journal sync"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/tables/tracked_union.json
+          if git diff --cached --quiet; then echo "nothing to commit"; else
+            git commit -m "Sync tracked union table ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push
+          fi
