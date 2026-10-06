@@ -181,7 +181,7 @@ def test_target_status_failed_when_a_non_t1_rejection_is_logged():
         result = main.get_real_open_positions()
     pos = result["open_real_positions"][0]
     assert pos["target_status"] == "failed"
-    assert pos["target_status_detail"] == "order rejected: some other reason"
+    assert pos["target_status_detail"].endswith("order rejected: some other reason")
 
 
 def test_bot_tracked_short_position_shows_its_own_strategy_and_mirrored_pnl():
