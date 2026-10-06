@@ -46,3 +46,28 @@ jobs:
               print("|".join(str(r.get(k,"")) for k in ("ordDtTm","exCfmTm","trdSym","trnsTp","prod","prcTp","qty","fldQty","prc","trgPrc","avgPrc","ordSt","rejRsn","rmk","ordSrc","algCat","strategyCode")))
           print("cols: ordDtTm|exCfmTm|trdSym|trnsTp|prod|prcTp|qty|fldQty|prc|trgPrc|avgPrc|ordSt|rejRsn|rmk|ordSrc|algCat|strategyCode")
           PY
+          python3 - <<'PY'
+          # Phase 3 (2026-10-06): the app's own order-state log + bot-only trades for the
+          # symbols the user flagged (why were swing positions exited ~3:14pm IST?). Both
+          # endpoints are token-free and already public; filtered to those symbols only.
+          import json, subprocess, datetime
+          IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+          SYMS = ("RVNL", "SAIL", "DRREDDY", "VBL", "INDHOTEL")
+          B = "https://tv-paper-bot-gdan.onrender.com"
+          def get(path):
+              out = subprocess.run(["curl", "-sS", "--retry", "3", "--retry-delay", "10", "-m", "90", B + path], capture_output=True, text=True).stdout
+              try: return json.loads(out)
+              except Exception: return {}
+          ev = get("/real-order-log?days=1").get("events", [])
+          print("app order-log events", len(ev))
+          for e in sorted(ev, key=lambda e: e["ts"]):
+              if any(s in (e.get("symbol") or "") for s in SYMS):
+                  t = datetime.datetime.fromtimestamp(e["ts"], IST).strftime("%H:%M:%S IST")
+                  print("LOG", t, e["symbol"], e["leg"], e["event"], "|", (e.get("prev_state") or "")[:70], "->", (e.get("new_state") or "")[:70], "|", (e.get("detail") or "")[:200])
+          d = get("/real-trades-today-bot-only")
+          print("bot-only keys", sorted(d))
+          for k in ("open_positions", "closed_trades"):
+              for r in d.get(k, []):
+                  if any(s in json.dumps(r) for s in SYMS):
+                      print(k, json.dumps(r)[:600])
+          PY
