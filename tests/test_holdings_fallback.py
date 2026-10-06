@@ -94,3 +94,35 @@ def test_heal_places_nothing_when_already_protected():
          patch("kotak_real_orders.place_real_stop_loss") as place:
         r = TestClient(main.app).post("/kotak-neo/heal-swing-holding-sl?kotak_trading_symbol=NYKAA-EQ")
     assert r.json()["status"].startswith("already_protected") and not place.called
+
+
+def test_heal_core_restores_previous_day_trailed_stop():
+    """Day SL lapsed at close: 09:15 re-place must use the stored (trailed) trigger, not ATR from avg."""
+    _swing_db()  # row: NYKAA.NS stop 320.0
+    with closing(main.get_db()) as conn:
+        conn.execute("UPDATE real_positions_swing SET sl_trigger_price = 331.5, sl_order_id = 'OLD' WHERE symbol='NYKAA.NS'")
+        conn.commit()
+    with patch.object(main, "fetch_ohlc", side_effect=AssertionError("ATR must not be used")), \
+         patch.object(main, "_sync_real_positions_swing_external"), \
+         patch("kotak_real_orders.place_real_stop_loss",
+               return_value={"ok": True, "order_id": "N2", "trigger_price": 331.5}) as place:
+        res = main._heal_swing_holding_core("NYKAA-EQ", {"qty": 1, "avg_price": 340.0, "symbol": "NYKAA"},
+                                            [{"trdSym": "NYKAA-EQ", "trnsTp": "S", "prcTp": "SL", "ordSt": "cancelled"}])
+    assert res["sl_ok"] and res["stop"] == 331.5 and res["carried_over"]
+    assert place.call_args[0][:3] == ("NYKAA-EQ", 1, 331.5)
+
+
+def test_heal_core_recomputes_when_carried_stop_rejected():
+    import numpy as np, pandas as pd
+    _swing_db()
+    with closing(main.get_db()) as conn:
+        conn.execute("UPDATE real_positions_swing SET sl_trigger_price = 331.5 WHERE symbol='NYKAA.NS'")
+        conn.commit()
+    df = pd.DataFrame({"Close": [300.0, 310.0]})
+    results = [{"ok": False, "detail": "rejected"}, {"ok": True, "order_id": "N3", "trigger_price": 290.0}]
+    with patch.object(main, "fetch_ohlc", return_value=df), \
+         patch.object(main, "_swing_atr", return_value=np.array([8.0])), \
+         patch.object(main, "_sync_real_positions_swing_external"), \
+         patch("kotak_real_orders.place_real_stop_loss", side_effect=results) as place:
+        res = main._heal_swing_holding_core("NYKAA-EQ", {"qty": 1, "avg_price": 340.0, "symbol": "NYKAA"}, [])
+    assert place.call_count == 2 and res["sl_ok"] and res["stop"] == 290.0
