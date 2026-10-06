@@ -1,3 +1,4 @@
+import unittest.mock
 """Tests for active SL reconciliation against Kotak's own order book
 (2026-09-22, live finding: ASHOKLEY.NS). A resting SL-TRG order's
 placement response only ever proves Kotak ACCEPTED the conditional
@@ -319,7 +320,7 @@ def test_t1_restricted_symbol_escalates_to_forced_exit_once_timeout_exceeded():
         conn.commit()
         with patch.object(main, "_maybe_place_real_exit") as mock_force_exit:
             main._maybe_sync_real_stop_loss(conn, "ASHOKLEY.NS")
-            mock_force_exit.assert_called_once_with(conn, "ASHOKLEY.NS")
+            mock_force_exit.assert_called_once_with(conn, "ASHOKLEY.NS", reason=unittest.mock.ANY)
 
 
 def test_dead_sl_with_no_replacement_available_starts_the_degraded_clock_not_a_forced_exit():
