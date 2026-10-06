@@ -11960,6 +11960,13 @@ def _maybe_place_real_exit(conn, symbol: str):
     row = conn.execute("SELECT * FROM real_positions WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
         return  # no real position was ever opened for this paper trade - nothing to close
+    # 2026-10-06 engine-ownership thumb rule (CLAUDE.md): a position is exited
+    # only by the engine that entered it. The intraday engine never closes a
+    # symbol the swing engine owns (RVNL/SAIL/DRREDDY/VBL incident).
+    if (conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+            or conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()):
+        print(f"[REAL] intraday exit REFUSED for {symbol}: owned by the swing engine")
+        return
 
     import kotak_real_orders
 
@@ -16025,6 +16032,7 @@ def _nse_equity_market_open_now() -> bool:
 # loss/gap-filled/max-hold exit must complete regardless of price; gating
 # it on price would work against the point of having a stop).
 SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT = 2.0
+SWING_REAL_ENTRY_CUTOFF_MIN = 15 * 60  # 2026-10-06: no new real swing entry from 15:00 IST
 
 
 def _maybe_place_real_swing_exit(conn, symbol):
@@ -16159,6 +16167,15 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
             detail=f"strategy {strategy!r} does not clear the PFnet >= 1 real-money floor "
                    "(or has no validated metrics) - see strategy_registry.py",
         )
+        return
+
+    # 2026-10-06: no new real swing entry from 15:00 IST - the closing auction
+    # (15:15+) cancels SLs and rejects orders, so such a position could not be
+    # protected or exited (RVNL/SAIL/DRREDDY/VBL bought 15:10-15:11 IST).
+    _n = ist_now()
+    if _n.hour * 60 + _n.minute >= SWING_REAL_ENTRY_CUTOFF_MIN:
+        _log_real_attempt(conn, symbol, "B", "skipped_after_entry_cutoff", strategy=strategy,
+                          detail="no new real swing entries from 15:00 IST (closing session)")
         return
 
     import kotak_live_feed
@@ -19117,6 +19134,32 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                             "entry_price": entry_price, "entry_order_id": entry_order_id,
                             "sl_order_id": sl_order_id, "sl_trigger_price": sl_trigger_price,
                             "side": "short",
+                        })
+                    elif (swing_sig := conn.execute(
+                            "SELECT strategy, initial_stop_loss FROM signal_state_swing WHERE symbol = ?",
+                            (watchlist_symbol,)).fetchone()) is not None:
+                        # 2026-10-06 (RVNL/SAIL/DRREDDY/VBL incident): a symbol with an
+                        # open SWING paper signal is a swing position. Adopting it into
+                        # the intraday table gave it an intraday target and the 3:14pm
+                        # eod_squareoff (CNC bought that day -> T1 rejections, SLs
+                        # cancelled in the closing auction, nothing left protected).
+                        # Keep its identity: adopt into real_positions_swing; the swing
+                        # backfill below places its SL.
+                        swing_stop = float(swing_sig["initial_stop_loss"] or 0)
+                        if swing_stop <= 0:
+                            continue  # no intended stop to carry - stays untracked, backcheck flags it
+                        conn.execute(
+                            "INSERT INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, "
+                            "entry_order_id, opened_at, day, stop_loss, strategy) "
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(symbol) DO NOTHING",
+                            (watchlist_symbol, trd_sym, qty, entry_price, entry_order_id, time.time(),
+                             ist_now().strftime("%Y-%m-%d"), swing_stop, swing_sig["strategy"]),
+                        )
+                        _sync_real_positions_swing_external(conn)
+                        adopted.append({
+                            "symbol": watchlist_symbol, "kotak_trading_symbol": trd_sym, "qty": qty,
+                            "entry_price": entry_price, "entry_order_id": entry_order_id,
+                            "side": "long", "table": "real_positions_swing",
                         })
                     else:
                         conn.execute(
