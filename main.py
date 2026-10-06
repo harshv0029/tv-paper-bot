@@ -367,6 +367,78 @@ def hydrate_real_positions_swing_from_external() -> bool:
     return True
 
 
+# signal_state_swing durability mirror (2026-10-06, explicit user instruction:
+# "maintain the memory of which strategy being used for trade entry and the
+# exit conditions are decided based on that only"). real_positions_swing
+# already remembers a position's strategy (above), but the EXIT engine in
+# _run_swing_scan reads signal_state_swing (entry_day, frozen ATR, chandelier
+# peak, gap_low) - also SQLite, also wiped by a Render restart, and never
+# mirrored. After a restart a live swing position kept its strategy NAME but
+# lost every number its strategy's exit rule needs, so no paper/real exit or
+# trailing stop was ever evaluated for it again. Same call-site pattern as the
+# real_positions_* mirrors: best-effort, never raises, restore never places
+# an order.
+_SIGNAL_STATE_SWING_REDIS_KEY = "tv_paper_bot:signal_state_swing:v1"
+
+
+def _sync_signal_state_swing_external(conn) -> None:
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return
+    try:
+        rows = [dict(r) for r in conn.execute("SELECT * FROM signal_state_swing").fetchall()]
+        requests.post(
+            f"{UPSTASH_REDIS_REST_URL}/set/{_SIGNAL_STATE_SWING_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            data=json.dumps({"synced_at": time.time(), "rows": rows}).encode("utf-8"),
+            timeout=5,
+        )
+    except Exception as e:
+        print(f"[signal_state_swing_external] sync failed (non-fatal): {e}")
+
+
+def hydrate_signal_state_swing_from_external() -> bool:
+    """Startup restore of signal_state_swing (never places any order). Also
+    re-creates the paper `positions` row if missing so a later paper exit
+    does not drive the paper book negative. Returns True iff Upstash was
+    reached."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return False
+    try:
+        resp = requests.get(
+            f"{UPSTASH_REDIS_REST_URL}/get/{_SIGNAL_STATE_SWING_REDIS_KEY}",
+            headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        raw = resp.json().get("result")
+    except Exception as e:
+        print(f"[signal_state_swing_external] hydrate failed (non-fatal): {e}")
+        return False
+    rows = json.loads(raw).get("rows", []) if raw else []
+    if rows:
+        with closing(get_db()) as conn:
+            restored = 0
+            for pos in rows:
+                if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (pos["symbol"],)).fetchone():
+                    continue
+                conn.execute(
+                    "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, "
+                    "gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (pos["symbol"], pos["strategy"], pos["entry_day"], pos["entry_price"], pos["initial_stop_loss"],
+                     pos.get("gap_low"), pos["qty"], pos["entry_ts"], pos.get("fx_to_inr") or 1.0,
+                     pos.get("atr_at_entry"), pos.get("running_max_close")),
+                )
+                if not conn.execute("SELECT 1 FROM positions WHERE symbol = ?", (pos["symbol"],)).fetchone():
+                    conn.execute("INSERT INTO positions (symbol, qty, avg_price) VALUES (?, ?, ?)",
+                                 (pos["symbol"], pos["qty"], pos["entry_price"]))
+                restored += 1
+            if restored:
+                conn.commit()
+                print(f"[signal_state_swing_external] restored {restored} swing exit-state row(s) from Upstash")
+    return True
+
+
 # --- Scan-coverage external persistence (Upstash Redis) ----------------------
 # Same restart-race family as real_positions above, different symptom: the
 # round-robin scan cursor (_scheduler_rr_cursor, defined far below) is a
@@ -16357,6 +16429,7 @@ def _run_swing_scan(conn):
                 )
                 conn.execute("DELETE FROM signal_state_swing WHERE symbol = ?", (symbol,))
                 conn.commit()
+                _sync_signal_state_swing_external(conn)
                 print(f"[SWING] exit {symbol} ({pos['strategy']}, {reason}) qty={pos['qty']} @ {exit_price:.2f}")
                 try:
                     _maybe_place_real_swing_exit(conn, symbol)
@@ -16592,6 +16665,70 @@ def _run_swing_scan(conn):
             print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
 
 
+_swing_sl_trail_last_day = None
+
+
+def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max_close):
+    """The stop a swing position's OWN strategy exit rule is currently using:
+    chandelier strategies = max(initial stop, peak close - mult x frozen ATR)
+    (same arithmetic as minervini_vcp_exit_reason & co.); gap_and_go (and any
+    unknown tag) = its frozen initial stop. Pure; never guesses a multiplier
+    for an unrecognised strategy."""
+    mult = {
+        "minervini_vcp": MINERVINI_ATR_STOP_MULT,
+        "minervini_vcp_livermore": MINERVINI_ATR_STOP_MULT,
+        "primary_base": MINERVINI_ATR_STOP_MULT,
+        "power_play": POWER_PLAY_ATR_STOP_MULT,
+        "order_block_delta": ORDER_BLOCK_ATR_TRAIL_MULT,
+        "volume_profile_poc": VP_ATR_TRAIL_MULT,
+    }.get(strategy)
+    if mult is None or not atr_at_entry or running_max_close is None:
+        return float(initial_stop)
+    return max(float(initial_stop), float(running_max_close) - mult * float(atr_at_entry))
+
+
+def _sync_swing_resting_sl_to_strategy(conn):
+    """Daily (2026-10-06, explicit user instruction): move each open real
+    swing position's RESTING Kotak stop to the level its own strategy's exit
+    rule now implies, ratcheting UP only. Place-new-then-cancel-old so the
+    position is never unprotected; a rejected new order leaves the old SL in
+    place. Not gated by is_real_swing_trading_enabled (protection of an
+    already-open position is never switched off). Returns a list of actions."""
+    import kotak_real_orders
+    actions = []
+    for r in conn.execute("SELECT * FROM real_positions_swing WHERE sl_order_id IS NOT NULL").fetchall():
+        st = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = ?", (r["symbol"],)).fetchone()
+        if not st:
+            continue
+        target = round(_swing_strategy_stop_level(
+            st["strategy"], st["initial_stop_loss"], st["atr_at_entry"], st["running_max_close"]), 2)
+        current = float(r["sl_trigger_price"] or r["stop_loss"])
+        if target <= current + 0.05:
+            continue
+        res = kotak_real_orders.place_real_stop_loss(r["kotak_trading_symbol"], r["qty"], target)
+        if not res.get("ok"):
+            print(f"[REAL SWING] SL trail to {target} failed for {r['kotak_trading_symbol']} "
+                  f"({res.get('detail')}) - old SL @ {current} stays")
+            actions.append({"symbol": r["symbol"], "ok": False, "target": target})
+            continue
+        try:
+            kotak_real_orders.cancel_real_order(r["sl_order_id"])
+        except Exception as e:
+            print(f"[REAL SWING] old SL cancel failed for {r['symbol']} (non-fatal): {e}")
+        conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                     (res["order_id"], res["trigger_price"], r["symbol"]))
+        conn.commit()
+        _sync_real_positions_swing_external(conn)
+        _log_real_order_event(
+            conn, r["symbol"], "sl", "trailed", kotak_trading_symbol=r["kotak_trading_symbol"],
+            order_id=res["order_id"], prev_state=f"resting SELL trigger Rs{current:.2f}",
+            new_state=f"resting SELL trigger Rs{res['trigger_price']:.2f}",
+            detail=f"daily {st['strategy']} stop ratchet",
+        )
+        actions.append({"symbol": r["symbol"], "ok": True, "from": current, "to": res["trigger_price"]})
+    return actions
+
+
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
@@ -16601,6 +16738,15 @@ async def _scheduler_tick():
             _run_swing_scan(conn)
         except Exception as e:
             print(f"[SWING] scan failed (non-fatal, intraday tick continues): {e}")
+        global _swing_sl_trail_last_day
+        _today_ist = ist_now().strftime("%Y-%m-%d")
+        if _swing_sl_trail_last_day != _today_ist:
+            try:
+                _sync_swing_resting_sl_to_strategy(conn)
+                _sync_signal_state_swing_external(conn)
+                _swing_sl_trail_last_day = _today_ist
+            except Exception as e:
+                print(f"[REAL SWING] daily SL trail/mirror failed (non-fatal, retries next tick): {e}")
         try:
             _retry_pending_real_swing_orders(conn)
         except Exception as e:
@@ -17062,6 +17208,11 @@ async def _start_scheduler():
         _real_positions_short_hydrated = False
         _real_positions_swing_hydrated = False
         _external_rr_cursor, _external_check_counts = None, None
+    try:
+        await asyncio.wait_for(asyncio.to_thread(hydrate_signal_state_swing_from_external),
+                               timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
+    except Exception as e:
+        print(f"[signal_state_swing_external] startup hydrate skipped (non-fatal): {e}")
 
     # runtime_settings: Upstash-restore FIRST, before anything else reads
     # a live setting (the scheduler tick below, any endpoint) - see
