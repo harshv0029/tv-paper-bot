@@ -111,7 +111,7 @@ def test_strike_chain_picks_weekly_vs_monthly_expiry_correctly():
 
 
 def test_strike_chain_includes_put_side_when_requested():
-    put_row = _row("SENSEX", "SENSEX26SEP67000PE", "pe", 6700000.0, "24Sep2026", pSymbol=6)
+    put_row = _row("SENSEX", "SENSEX" + _NEAR_STR.upper() + "67000PE", "pe", 6700000.0, _NEAR_STR, pSymbol=6)
     with patch("nse_fo_chain.kotak_neo.search_scrip", return_value=_FIXTURE_ROWS + [put_row]):
         calls, _ = nse_fo_chain.list_nse_option_strike_chain("SENSEX", "call", "weekly")
         puts, _ = nse_fo_chain.list_nse_option_strike_chain("SENSEX", "put", "weekly")
