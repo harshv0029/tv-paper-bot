@@ -17,6 +17,7 @@ Endpoints:
 
 import asyncio
 import datetime as dt
+import hashlib
 import json
 import math
 import os
@@ -15008,6 +15009,150 @@ def hydrate_runtime_settings_from_external(conn) -> int:
     return restored
 
 
+# --- Generic Upstash mirror for every remaining state table (2026-10-06) ----
+# Explicit user instruction: "Everything on render must be attached to some
+# memory so that no data is lost while restart of render." Render's free tier
+# has no persistent disk, and until now only the real-money tables above (+
+# runtime settings, T1 set, swing exit state, cursors) were mirrored; paper
+# positions/trades, short/option/F&O state, real trade + order-event logs and
+# both kill-switch tables relied on the 15-min git journal (or nothing).
+# This mirrors each remaining table, whole-table, to Upstash whenever its
+# content changes (checked every scheduler tick, ~30s), chunked under the REST
+# body limit, and restores it at startup BEFORE the git-journal reconciles (so
+# those see the rows as already present and skip them).
+#   - Restore rule: a table is restored only if it is empty locally, except the
+#     two kill-switch tables, which always restore (belt-and-braces: a missing
+#     row already means "trading enabled", so a restart that lost the paused
+#     row would silently re-enable trading - the remote copy always wins).
+#   - Safety: a table is never mirrored until its restore has reached Upstash
+#     once, so a transient startup outage can't overwrite a good remote copy
+#     with a freshly-wiped empty one.
+#   - Deliberately skipped: fo_chain_snapshot / fo_option_candles (re-fetchable
+#     market-data caches) and real_protection_snapshot (must be recomputed
+#     fresh; a restored "all clear" would be exactly the stale silence the
+#     backcheck rule forbids).
+#   - Best-effort and silent like every other _external helper: never breaks
+#     trading; no-ops if the Upstash env vars are unset.
+_GENERIC_MIRROR_TABLES = (
+    "positions", "trades", "signal_state", "signal_state_short",
+    "short_trades_closed", "real_trades", "real_order_events",
+    "real_trading_control", "trading_control", "real_fo_positions",
+    "real_fo_trades", "option_state", "nse_straddle_state",
+    "signal_state_fo_options", "swing_scan_log",
+)
+_GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
+_GENERIC_MIRROR_CHUNK_CHARS = 600_000
+_generic_mirror_hydrated: set = set()
+_generic_mirror_last_hash: dict = {}
+
+
+def _generic_mirror_key(table: str, suffix: str) -> str:
+    return f"tv_paper_bot:tbl:{table}:v1:{suffix}"
+
+
+def _upstash_get(key: str):
+    resp = requests.get(
+        f"{UPSTASH_REDIS_REST_URL}/get/{key}",
+        headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"}, timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json().get("result")
+
+
+def _upstash_set(key: str, value: str) -> None:
+    resp = requests.post(
+        f"{UPSTASH_REDIS_REST_URL}/set/{key}",
+        headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
+        data=value.encode("utf-8"), timeout=10,
+    )
+    resp.raise_for_status()
+
+
+def _generic_mirror_table_columns(conn, table: str) -> list:
+    return [r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]
+
+
+def _generic_hydrate_table(conn, table: str) -> bool:
+    """Restores one table from Upstash. Returns True iff Upstash was reached
+    (an empty remote is still authoritative-and-reached)."""
+    meta_raw = _upstash_get(_generic_mirror_key(table, "meta"))
+    if not meta_raw:
+        return True
+    meta = json.loads(meta_raw)
+    local_n = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+    if local_n > 0 and table not in _GENERIC_MIRROR_ALWAYS_RESTORE:
+        return True
+    parts = []
+    for i in range(int(meta.get("chunks", 0))):
+        part = _upstash_get(_generic_mirror_key(table, f"c{i}"))
+        if part is None:
+            return False  # incomplete remote copy - don't half-restore
+        parts.append(part)
+    rows = json.loads("".join(parts)) if parts else []
+    cols = _generic_mirror_table_columns(conn, table)
+    restored = 0
+    for row in rows:
+        keep = {k: v for k, v in row.items() if k in cols}
+        if not keep:
+            continue
+        names = ",".join(keep)
+        marks = ",".join("?" for _ in keep)
+        conn.execute(f"INSERT OR REPLACE INTO {table} ({names}) VALUES ({marks})", tuple(keep.values()))
+        restored += 1
+    conn.commit()
+    if restored:
+        print(f"[table_mirror] restored {restored} row(s) into {table} from Upstash")
+    return True
+
+
+def hydrate_generic_tables_from_external() -> int:
+    """Startup (and retried per tick until it succeeds) restore for every table
+    in _GENERIC_MIRROR_TABLES. Returns how many tables are now hydrated."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return 0
+    for table in _GENERIC_MIRROR_TABLES:
+        if table in _generic_mirror_hydrated:
+            continue
+        try:
+            with closing(get_db()) as conn:
+                if _generic_hydrate_table(conn, table):
+                    _generic_mirror_hydrated.add(table)
+        except Exception as e:
+            print(f"[table_mirror] hydrate {table} failed (non-fatal, will retry): {e}")
+    return len(_generic_mirror_hydrated)
+
+
+def sync_generic_tables_external() -> int:
+    """Mirrors every hydrated table whose content changed since its last push.
+    Returns how many tables were pushed this call."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return 0
+    if len(_generic_mirror_hydrated) < len(_GENERIC_MIRROR_TABLES):
+        hydrate_generic_tables_from_external()
+    pushed = 0
+    for table in _GENERIC_MIRROR_TABLES:
+        if table not in _generic_mirror_hydrated:
+            continue  # never overwrite a remote copy we haven't restored from yet
+        try:
+            with closing(get_db()) as conn:
+                rows = [dict(r) for r in conn.execute(f"SELECT * FROM {table}").fetchall()]
+            payload = json.dumps(rows, default=str)
+            digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+            if _generic_mirror_last_hash.get(table) == digest:
+                continue
+            chunks = [payload[i:i + _GENERIC_MIRROR_CHUNK_CHARS]
+                      for i in range(0, len(payload), _GENERIC_MIRROR_CHUNK_CHARS)] if rows else []
+            for i, chunk in enumerate(chunks):
+                _upstash_set(_generic_mirror_key(table, f"c{i}"), chunk)
+            _upstash_set(_generic_mirror_key(table, "meta"),
+                         json.dumps({"chunks": len(chunks), "rows": len(rows), "synced_at": time.time()}))
+            _generic_mirror_last_hash[table] = digest
+            pushed += 1
+        except Exception as e:
+            print(f"[table_mirror] sync {table} failed (non-fatal): {e}")
+    return pushed
+
+
 def _live_entry_scan_batch_size_for_display() -> int:
     """Small convenience wrapper for read-only status endpoints that don't
     already have a conn open (e.g. /scheduler-pipeline) - opens one just
@@ -17107,6 +17252,10 @@ async def _scheduler_tick():
 
     global _scheduler_tick_count
     _scheduler_tick_count += 1
+    try:
+        await asyncio.to_thread(sync_generic_tables_external)
+    except Exception as e:
+        print(f"[table_mirror] tick sync failed (non-fatal): {e}")
     if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0:
         print(f"[memory] tick {_scheduler_tick_count}: rss_mb={_process_rss_mb()}, "
               f"data_cache_entries={len(_DATA_CACHE)}, watchlist_size={len(WATCHLIST)}")
@@ -17226,6 +17375,13 @@ async def _start_scheduler():
     # from_external's own docstring for the 2026-09-09 bug this closes.
     if _restored_t1:
         print(f"[t1_restricted_external] restored {_restored_t1} restriction(s) from Upstash")
+    # Generic table mirror restore FIRST (2026-10-06) so the journal reconciles
+    # below see these rows as already present - see hydrate_generic_tables_from_external.
+    try:
+        await asyncio.wait_for(asyncio.to_thread(hydrate_generic_tables_from_external),
+                               timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
+    except Exception as e:
+        print(f"[table_mirror] startup hydrate skipped (non-fatal, retried per tick): {e}")
     reconcile_open_positions_from_journal()
     reconcile_trading_control_from_journal()
     reconcile_real_trading_control_from_journal()
@@ -17604,7 +17760,18 @@ def strategy_leaderboard():
     reader of strategy_registry.py already treats as research/
     tracking-only."""
     import strategy_registry as sr
-    return {cat.value: sr.viable_leaderboard(cat) for cat in sr.TradeCategory}
+    out = {cat.value: sr.viable_leaderboard(cat) for cat in sr.TradeCategory}
+    # 2026-10-06, explicit user instruction ("I can't see the algorithms by u which
+    # are bidirectional in nature"): none of the bidirectional strategies clears
+    # PFnet >= 1 yet, so the viable-only view above left that category blank. Show
+    # every registered bidirectional strategy, each row flagged viable True/False
+    # (the dashboard renders "below floor"), so the research pool is visible. This
+    # is display-only; the real-money PFnet gate is untouched.
+    out[sr.TradeCategory.BIDIRECTIONAL.value] = sr.leaderboard(
+        sr.TradeCategory.BIDIRECTIONAL,
+        top_n=len([s for s in sr.REGISTRY if sr.TradeCategory.BIDIRECTIONAL in s.categories]),
+    )
+    return out
 
 
 @app.get("/strategy-scan-activity")

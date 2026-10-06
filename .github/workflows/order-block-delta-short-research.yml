@@ -1,0 +1,337 @@
+name: Order Block Delta SHORT mirror (order_block_delta__bearish_retest__short) Research
+
+# Explicit user instruction: "Order block is a concept where you calculate
+# the delta for each block or candle and decide the weight of each
+# candle's buyer and seller. Use that among all the factors for entering
+# into trade." RESEARCH-STAGE, not a main.py mirror: neither the order-
+# block detection nor the delta weighting exists anywhere in main.py yet -
+# this is genuinely new research. Only the exit mechanic (a chandelier
+# trail + max-hold timeout) reuses the exact shape already proven on this
+# book's own entries (minervini_vcp_exit_reason, PFnet 2.043 on its best
+# pairing) - written fresh here rather than calling that function directly
+# since it's generic enough to inline without a main.py dependency, same
+# as every other research-stage workflow in this repo.
+#
+# DISCLOSED ALGORITHM CHOICES (no single canonical definition exists for
+# "order block" or "delta" without real order-flow/tick data, which this
+# repo has no source for - yfinance gives daily OHLCV only):
+#   1. Delta proxy: candle_delta = volume * (close - open) / (high - low),
+#      a standard "bar pressure" proxy used when true buy/sell-initiated
+#      volume isn't available (this repo's only other precedent for this
+#      family of proxy is the MCX gold/silver/crude international-contract
+#      price-action substitute - same "disclosed proxy, not the real
+#      thing" discipline).
+#   2. "Impulse move" = a day with return >= ORDER_BLOCK_IMPULSE_RETURN_PCT
+#      AND volume >= ORDER_BLOCK_IMPULSE_VOL_MULT x its own trailing 20-day
+#      average volume - a volume-confirmed breakout day, the structural
+#      break an order block is anchored to.
+#   3. "Order block" = the most recent BEARISH (close < open) candle in the
+#      ORDER_BLOCK_LOOKBACK_DAYS before that impulse day, whose own delta
+#      is negative (net selling that the impulse then absorbed/reversed) -
+#      the classic SMC "last down candle before the up-move" definition.
+#      Zone = [that candle's Low, that candle's High].
+#   4. Entry trigger: within ORDER_BLOCK_RETEST_MAX_DAYS of formation, on a
+#      day whose Low dips into the zone (Low <= zone High) without the
+#      zone ever being invalidated since formation (no earlier Close below
+#      zone Low), AND today's Close holds above zone Low, AND today's OWN
+#      delta is positive (buyers stepping back in at the retest) - the
+#      delta-weighting the user asked for is this dual condition: the
+#      origin candle's delta confirms real selling got absorbed, today's
+#      delta confirms buyers are currently in control.
+# A finding here does NOT by itself authorize wiring this into main.py -
+# full implement -> unit test -> validate -> explicit go-ahead cycle
+# still applies, same as everywhere else in this repo.
+#
+# SHORT MIRROR (2026-10-06 thumb rule: every strategy is backtested in BOTH
+# directions, CLAUDE.md). Exact price-mirror of the LONG research in
+# order-block-delta-research.yml: impulse = return <= -3% on >=1.5x volume;
+# bearish order block = most recent BULLISH candle (close>open) with positive
+# delta in the 10 days before it; zone [low, high]; entry when today's High
+# reaches the zone (High >= zone low) and Close holds below zone high with
+# negative delta; zone invalid once any close is above zone high; stop =
+# max(zone high, entry + 2 ATR); chandelier trail = lowest close + 3 ATR; 30d
+# max hold. DISCLOSURE: a multi-day equity short is not executable in the NSE
+# cash segment (only via F&O/intraday), so this number is a signal-quality
+# measurement, not a tradable PFnet; costs use sell-at-entry/buy-at-exit with
+# no DP charge. Registered as order_block_delta__bearish_retest__short__1d__...
+#
+# Universe: full NSE EQ-series (main._load_nse_universe_from_file(),
+# ~2,680 symbols), daily/5y - no "recently listed" proxy here (unlike
+# Primary Base), so no reason to fetch PERIOD="max" or to shard; a plain
+# 5y/1d single job finishes fast per this repo's own established
+# sharding-discipline precedent (minervini-vcp-validation-replay.yml).
+on:
+  workflow_dispatch: {}
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+
+      - name: Run Order Block delta-weighted research replay
+        run: |
+          python3 - <<'PYEOF'
+          import sys
+          sys.path.insert(0, ".")
+          import json
+          import numpy as np
+          import main as m
+
+          PERIOD = "5y"
+          INTERVAL = "1d"
+          CAPITAL_INR = 400000.0
+          RISK_PCT = 1.0
+
+          ORDER_BLOCK_IMPULSE_RETURN_PCT = 3.0
+          ORDER_BLOCK_IMPULSE_VOL_MULT = 1.5
+          ORDER_BLOCK_LOOKBACK_DAYS = 10
+          ORDER_BLOCK_RETEST_MAX_DAYS = 20
+          ORDER_BLOCK_ATR_STOP_MULT = 2.0
+          ORDER_BLOCK_ATR_TRAIL_MULT = 3.0
+          ORDER_BLOCK_MAX_HOLD_DAYS = 30
+          ORDER_BLOCK_MIN_LOOKBACK_DAYS = 60
+
+          DEFAULT_COST_MODEL = {
+              "brokerage_pct": 0.0020, "brokerage_flat": 0.0,
+              "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+              "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+              "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93,
+          }
+
+
+          def _entry_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stamp = notional * cm["stamp_duty_buy_pct"]
+              stt = notional * cm["stt_buy_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stamp + stt + gst + slippage
+
+
+          def _sell_cost(qty, price, cm):
+              notional = qty * price
+              brokerage = cm["brokerage_flat"] if cm["brokerage_pct"] == 0 and cm["brokerage_flat"] else notional * cm["brokerage_pct"]
+              exch = notional * cm["exchange_txn_pct"]
+              sebi = notional * cm["sebi_fee_pct"]
+              stt = notional * cm["stt_sell_pct"]
+              gst = (brokerage + exch + sebi) * cm["gst_pct"]
+              slippage = notional * cm["slippage_pct"]
+              return brokerage + exch + sebi + stt + gst + slippage
+
+
+          def _finalize_trade(symbol, entry_price, initial_stop, qty, entry_label, exit_price,
+                               exit_label, exit_reason, entry_cost, held_days, cost_model):
+              gross_pnl = (entry_price - exit_price) * qty
+              buy_cost = _entry_cost(qty, exit_price, cost_model)
+              total_cost = entry_cost + buy_cost
+              net_pnl = gross_pnl - total_cost
+              r = initial_stop - entry_price
+              return {
+                  "symbol": symbol, "entry_ts": entry_label, "exit_ts": exit_label,
+                  "exit_reason": exit_reason, "gross_pnl": gross_pnl, "net_pnl": net_pnl,
+                  "total_cost": total_cost, "held_days": held_days,
+                  "net_r": net_pnl / (r * qty) if r > 0 else None,
+              }
+
+
+          def _candle_delta(o, h, l, c, v):
+              if h <= l:
+                  return 0.0
+              return v * (c - o) / (h - l)
+
+
+          def order_block_entry_signal(opens, highs, lows, closes, vols, i):
+              """Evaluates whether TODAY (index i) is a valid delta-confirmed
+              order-block retest entry. See this workflow's own module
+              comment for the disclosed algorithm."""
+              if i < ORDER_BLOCK_MIN_LOOKBACK_DAYS:
+                  return None
+              for impulse_idx in range(i - 1, max(0, i - ORDER_BLOCK_RETEST_MAX_DAYS) - 1, -1):
+                  if impulse_idx < 1:
+                      break
+                  day_return_pct = 100 * (closes[impulse_idx] - closes[impulse_idx - 1]) / closes[impulse_idx - 1]
+                  if day_return_pct > -ORDER_BLOCK_IMPULSE_RETURN_PCT:
+                      continue
+                  vol_window = vols[max(0, impulse_idx - 20):impulse_idx]
+                  if len(vol_window) == 0:
+                      continue
+                  avg_vol20 = float(np.mean(vol_window))
+                  if avg_vol20 <= 0 or vols[impulse_idx] < ORDER_BLOCK_IMPULSE_VOL_MULT * avg_vol20:
+                      continue
+
+                  ob_idx = None
+                  for j in range(impulse_idx - 1, max(0, impulse_idx - ORDER_BLOCK_LOOKBACK_DAYS) - 1, -1):
+                      if closes[j] > opens[j]:
+                          ob_idx = j
+                          break
+                  if ob_idx is None:
+                      continue
+                  ob_delta = _candle_delta(opens[ob_idx], highs[ob_idx], lows[ob_idx], closes[ob_idx], vols[ob_idx])
+                  if ob_delta <= 0:
+                      continue
+                  ob_low, ob_high = float(lows[ob_idx]), float(highs[ob_idx])
+                  if ob_high <= ob_low:
+                      continue
+                  if np.any(closes[ob_idx + 1:i] > ob_high):
+                      continue  # zone already invalidated before today
+
+                  if not (highs[i] >= ob_low and closes[i] < ob_high):
+                      continue  # today isn't a retest-and-hold
+                  today_delta = _candle_delta(opens[i], highs[i], lows[i], closes[i], vols[i])
+                  if today_delta >= 0:
+                      continue  # no sell pressure confirmation on the retest day
+
+                  return {"entry_price": float(closes[i]), "ob_low": ob_low, "ob_high": ob_high}
+              return None
+
+
+          def _chandelier_exit(closes, dates, i, entry_day, initial_stop, atr_at_entry, running_max_close):
+              # running_max_close holds the LOWEST close since entry for the short
+              new_running_max = min(running_max_close, float(closes[i]))
+              trail_stop = new_running_max + ORDER_BLOCK_ATR_TRAIL_MULT * atr_at_entry
+              current_stop = min(initial_stop, trail_stop)
+              if closes[i] >= current_stop:
+                  return "trail_stop_hit", new_running_max
+              held_days = int(np.sum(dates[:i + 1] > entry_day))
+              if held_days >= ORDER_BLOCK_MAX_HOLD_DAYS:
+                  return "max_hold_timeout", new_running_max
+              return None, new_running_max
+
+
+          def replay_symbol(symbol, df, capital, cost_model):
+              df = df.reset_index(drop=True)
+              n = len(df)
+              if n < ORDER_BLOCK_MIN_LOOKBACK_DAYS + 20:
+                  return []
+              opens = df["Open"].to_numpy(dtype=float)
+              highs = df["High"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              closes = df["Close"].to_numpy(dtype=float)
+              vols = df["Volume"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+
+              trades = []
+              position = None
+              for i in range(ORDER_BLOCK_MIN_LOOKBACK_DAYS, n):
+                  if position is not None:
+                      reason, position["running_max_close"] = _chandelier_exit(
+                          closes, dates, i, position["entry_label"], position["initial_stop"],
+                          position["atr_at_entry"], position["running_max_close"],
+                      )
+                      if reason:
+                          held_days = i - position["entry_idx"]
+                          trades.append(_finalize_trade(
+                              symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                              position["entry_label"], float(closes[i]), dates[i], reason,
+                              position["entry_cost"], held_days, cost_model,
+                          ))
+                          position = None
+
+                  if position is None:
+                      sig = order_block_entry_signal(opens, highs, lows, closes, vols, i)
+                      if sig is not None:
+                          entry_price = sig["entry_price"]
+                          atr_at_entry = m._compute_atr_value(df.iloc[:i + 1], 14)
+                          if atr_at_entry is None or atr_at_entry <= 0:
+                              continue
+                          stop_loss = max(sig["ob_high"], entry_price + ORDER_BLOCK_ATR_STOP_MULT * atr_at_entry)
+                          stop_dist = stop_loss - entry_price
+                          if stop_dist <= 0:
+                              continue
+                          usable_capital_inr = min(capital, capital / m.CAPITAL_TRANCHES)
+                          risk_amount_inr = usable_capital_inr * RISK_PCT / 100
+                          qty = int(np.floor(min(risk_amount_inr / stop_dist, usable_capital_inr / entry_price)))
+                          if qty > 0 and qty * entry_price >= 100:
+                              position = {
+                                  "entry_price": entry_price, "initial_stop": stop_loss,
+                                  "entry_idx": i, "entry_label": dates[i], "qty": qty,
+                                  "atr_at_entry": atr_at_entry, "running_max_close": entry_price,
+                                  "entry_cost": _sell_cost(qty, entry_price, cost_model),
+                              }
+
+              if position is not None:
+                  held_days = (n - 1) - position["entry_idx"]
+                  trades.append(_finalize_trade(
+                      symbol, position["entry_price"], position["initial_stop"], position["qty"],
+                      position["entry_label"], float(closes[-1]), dates[-1], "data_end_forced_close",
+                      position["entry_cost"], held_days, cost_model,
+                  ))
+              return trades
+
+
+          ALL_SYMBOLS = sorted(set(m._load_nse_universe_from_file()))
+          print(f"--- Fetching {len(ALL_SYMBOLS)} symbols ({INTERVAL}, {PERIOD}) ---")
+
+          all_trades = []
+          per_symbol_trade_count = {}
+          fetched = 0
+          for sym in ALL_SYMBOLS:
+              try:
+                  raw = m.fetch_ohlc(sym, PERIOD, INTERVAL)
+              except Exception as e:
+                  print(f"SKIP {sym}: {e}")
+                  continue
+              if raw is None or len(raw) < 50:
+                  continue
+              fetched += 1
+              try:
+                  trades = replay_symbol(sym, raw, CAPITAL_INR, DEFAULT_COST_MODEL)
+              except Exception as e:
+                  print(f"ERROR {sym}: {e}")
+                  continue
+              if trades:
+                  per_symbol_trade_count[sym] = len(trades)
+              all_trades.extend(trades)
+          print(f"Fetched {fetched}/{len(ALL_SYMBOLS)} symbols, {len(all_trades)} total trades\n")
+
+
+          def _metrics(trades):
+              if not trades:
+                  return dict(n=0, win_rate=0.0, pf_net=0.0, pf_gross=0.0, avg_net=0.0, avg_held_days=0.0)
+              n = len(trades)
+              wins = [t for t in trades if t["net_pnl"] > 0]
+              losses = [t for t in trades if t["net_pnl"] <= 0]
+              win_rate = 100 * len(wins) / n
+              gw = sum(t["net_pnl"] for t in wins)
+              gl = -sum(t["net_pnl"] for t in losses)
+              pf_net = (gw / gl) if gl > 0 else float("inf")
+              wins_g = [t for t in trades if t["gross_pnl"] > 0]
+              losses_g = [t for t in trades if t["gross_pnl"] <= 0]
+              gwg = sum(t["gross_pnl"] for t in wins_g)
+              glg = -sum(t["gross_pnl"] for t in losses_g)
+              pf_gross = (gwg / glg) if glg > 0 else float("inf")
+              avg_net = sum(t["net_pnl"] for t in trades) / n
+              avg_held_days = sum(t["held_days"] for t in trades) / n
+              return dict(n=n, win_rate=win_rate, pf_net=pf_net, pf_gross=pf_gross,
+                          avg_net=avg_net, avg_held_days=avg_held_days)
+
+
+          print("=== POOLED RESULT (order_block_delta__bearish_retest__short__1d, delta-weighted, SHORT mirror) ===")
+          row = _metrics(all_trades)
+          print(f"n_trades={row['n']} win_rate={row['win_rate']:.2f}% "
+                f"pf_net={row['pf_net']:.3f} pf_gross={row['pf_gross']:.3f} "
+                f"avg_net_inr={row['avg_net']:.2f} avg_held_days={row['avg_held_days']:.1f}")
+
+          print("\n=== By exit_reason ===")
+          by_reason = {}
+          for t in all_trades:
+              by_reason.setdefault(t["exit_reason"], []).append(t)
+          for reason, ts in sorted(by_reason.items(), key=lambda kv: -len(kv[1])):
+              m2 = _metrics(ts)
+              print(f"{reason}: n={m2['n']} win_rate={m2['win_rate']:.2f}% pf_net={m2['pf_net']:.3f} avg_held_days={m2['avg_held_days']:.1f}")
+
+          print("\n=== Top 15 symbols by trade count ===")
+          for sym, cnt in sorted(per_symbol_trade_count.items(), key=lambda kv: -kv[1])[:15]:
+              print(f"{sym}: {cnt} trades")
+          PYEOF
