@@ -20081,7 +20081,12 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
     # same gate as the other auto-heal blocks), only off a fresh holdings
     # fetch, then re-fetch the order book so the check below sees the result.
     holdings_healed: list = []
-    if adopt and swing_holdings:
+    # 2026-10-06 profit audit (B-59): outside NSE hours Kotak rejects every SL
+    # placement, so the 5-min reconcile produced dozens of rejected retries per
+    # holding (NYKAA/DRREDDY/RVNL) and buried the real order book. Skip the
+    # heal while the exchange is closed; the next in-hours reconcile (09:15)
+    # re-places it. Detection below still runs and still flags the position.
+    if adopt and swing_holdings and _nse_equity_market_open_now():
         try:
             pending_h = _find_unprotected_open_positions(
                 {k: {"qty": v["qty"], "is_short": False} for k, v in swing_holdings.items()
