@@ -155,6 +155,14 @@ def order_report(order_id: str | None = None):
     return login().order_report(order_id=order_id)
 
 
+def trade_report(order_id: str | None = None):
+    """The real account's trade book (executed fills) - the only source of
+    realised real-money P&L (B-59, 2026-10-06). Read-only - places no
+    order. Returns the SDK's own response shape unmodified; field names
+    are NOT assumed - inspect via the audit workflow's key listing first."""
+    return login().trade_report(order_id=order_id)
+
+
 # Live Render OOM/slowness incident (2026-09-16):
 # kotak_fo_candle_feed.resolve_fo_universe() calls search_scrip (via
 # nse_fo_chain._fo_rows, the shared choke point every contract-
