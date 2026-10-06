@@ -57,3 +57,23 @@ def test_short_gross_pnl_sign():
     assert t["gross_pnl"] == 10.0 and t["net_pnl"] < t["gross_pnl"]
     t2 = fr._trade("X", "long", 100.0, 99.0, 10, 0.0, 60.0, 101.0, "target_hit", 5.0)
     assert t2["gross_pnl"] == 10.0
+
+
+def test_snd_zone_replay_harness_runs_and_names_tags():
+    spec = importlib.util.spec_from_file_location(
+        "snd_zone_replay", pathlib.Path(__file__).resolve().parents[1] / "scripts" / "snd_zone_replay.py")
+    sz = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sz)
+    t_long = sz.cell_tag("demand_retest", "5m", {})
+    t_short = sz.cell_tag("supply_retest", "5m", {})
+    assert t_long.startswith("snd_zone__demand_retest__long__5m__") and t_long.endswith("__v1")
+    assert t_short.startswith("snd_zone__supply_retest__short__5m__")
+    assert re.fullmatch(r"[a-z0-9_]+", t_long) and t_long != t_short
+    assert t_long != sz.cell_tag("demand_retest", "5m", {"rr": 3.0})
+    df, sessions, mins, ts = fr.prep(_synthetic(days=6, seed=11))
+    for v, d in sz.VARIANT_DIR:
+        scanner = lambda frame, prm, sess, _d=d: main.snd_zone_scan(frame, _d, prm, sessions=sess)  # noqa: E731
+        trades = fr.replay_cell("SYN.NS", df, v, d, {"explosive_body_atr": 0.8, "confirm_bars": 1},
+                                sessions, mins, ts, scanner=scanner, defaults=main.SND_DEFAULT_PARAMS)
+        for t in trades:
+            assert t["total_cost"] > 0
