@@ -67,7 +67,8 @@ class TradeCategory(str, Enum):
     SAR's always-in-market long/short reversal system) - registered and
     validated as ONE strategy, ONE set of pooled metrics covering both
     directions together, not decomposed into two separate BUY/SHORT_SELL
-    registry entries the way e.g. gap_and_go (BUY/SWING) and
+    registry entries the way e.g. gap_and_go_swing (SWING only - never BUY;
+    its PFnet was measured on 1d multi-day holds) and
     gap_and_go_short_fade (SHORT_SELL) are two separate strategies. Holds
     both viable and non-viable bidirectional strategies, same "pool never
     shrinks, every strategy tried stays on the record" discipline as
