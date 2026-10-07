@@ -16733,7 +16733,7 @@ def _maybe_sync_real_swing_stop_loss(conn):
             if refreshed is None:
                 continue  # today's open not available yet; retry next tick
             stop_px = refreshed
-        sl_result = kotak_real_orders.place_real_stop_loss(
+        sl_result = kotak_real_orders.ensure_resting_sl(
             row["kotak_trading_symbol"], row["qty"], stop_px
         )
         if sl_result.get("ok"):
@@ -17260,6 +17260,49 @@ def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max
     return max(float(initial_stop), float(running_max_close) - mult * float(atr_at_entry))
 
 
+def _align_swing_sl_rows_to_kotak(conn, order_rows) -> list:
+    """Kotak-is-truth alignment (2026-10-07 thumb rule): wherever Kotak's own order
+    book and this app's real_positions_swing row disagree about the resting SL, the
+    ROW is rewritten to match Kotak, never the reverse. Live SELL SL on the symbol
+    -> row's sl_order_id/sl_trigger_price become that order's id/trigger (highest
+    trigger wins); no live SL but the row claims one -> sl_order_id cleared so the
+    backfill re-places it. An empty/unreadable order book changes nothing."""
+    if not order_rows:
+        return []
+    out = []
+    for r in conn.execute("SELECT * FROM real_positions_swing").fetchall():
+        live = []
+        for o in order_rows:
+            if o.get("trdSym") != r["kotak_trading_symbol"] or o.get("trnsTp") != "S":
+                continue
+            if str(o.get("prcTp", "")).upper() not in ("SL", "SL-M"):
+                continue
+            if str(o.get("ordSt", "")).strip().lower() in ("complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"):
+                continue
+            try:
+                live.append((float(o.get("trgPrc") or 0), str(o.get("nOrdNo"))))
+            except (TypeError, ValueError):
+                continue
+        if live:
+            trg, oid = max(live)
+            cur = r["sl_trigger_price"]
+            if r["sl_order_id"] != oid or cur is None or abs(float(cur) - trg) > 0.005:
+                conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                             (oid, trg, r["symbol"]))
+                out.append({"symbol": r["symbol"], "action": "aligned_to_kotak", "order_id": oid, "trigger": trg})
+        elif r["sl_order_id"]:
+            conn.execute("UPDATE real_positions_swing SET sl_order_id = NULL WHERE symbol = ?", (r["symbol"],))
+            out.append({"symbol": r["symbol"], "action": "cleared_no_live_sl_at_kotak"})
+    if out:
+        conn.commit()
+        _sync_real_positions_swing_external(conn)
+        for a in out:
+            _log_real_order_event(
+                conn, a["symbol"], "sl", a["action"], new_state=str(a.get("trigger", "none")),
+                reason="Kotak order book is ground truth; this app's swing SL record was rewritten to match it")
+    return out
+
+
 def _sync_swing_resting_sl_to_strategy(conn):
     """Daily (2026-10-06, explicit user instruction): move each open real
     swing position's RESTING Kotak stop to the level its own strategy's exit
@@ -17278,25 +17321,35 @@ def _sync_swing_resting_sl_to_strategy(conn):
         current = float(r["sl_trigger_price"] or r["stop_loss"])
         if target <= current + 0.05:
             continue
-        res = kotak_real_orders.place_real_stop_loss(r["kotak_trading_symbol"], r["qty"], target)
+        res = kotak_real_orders.ensure_resting_sl(r["kotak_trading_symbol"], r["qty"], target)
         if not res.get("ok"):
             print(f"[REAL SWING] SL trail to {target} failed for {r['kotak_trading_symbol']} "
-                  f"({res.get('detail')}) - old SL @ {current} stays")
+                  f"({res.get('detail')}) - action {res.get('action')}")
+            if res.get("restored_order_id"):
+                # old stop was cancelled for the replace and then re-placed: re-point the row at it
+                conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                             (res["restored_order_id"], res["restored_trigger"], r["symbol"]))
+                conn.commit()
+                _sync_real_positions_swing_external(conn)
+            _log_real_order_event(
+                conn, r["symbol"], "sl", "trail_failed", kotak_trading_symbol=r["kotak_trading_symbol"],
+                prev_state=f"resting SELL trigger Rs{current:.2f}",
+                new_state="old stop re-placed" if res.get("restored_order_id") else "unchanged/unknown",
+                detail=str(res.get("detail"))[:200],
+                reason=f"{st['strategy']} trail wanted Rs{target:.2f} but the replace failed",
+            )
             actions.append({"symbol": r["symbol"], "ok": False, "target": target})
             continue
-        try:
-            kotak_real_orders.cancel_real_order(r["sl_order_id"])
-        except Exception as e:
-            print(f"[REAL SWING] old SL cancel failed for {r['symbol']} (non-fatal): {e}")
         conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                      (res["order_id"], res["trigger_price"], r["symbol"]))
         conn.commit()
         _sync_real_positions_swing_external(conn)
         _log_real_order_event(
-            conn, r["symbol"], "sl", "trailed", kotak_trading_symbol=r["kotak_trading_symbol"],
+            conn, r["symbol"], "sl", "adopted" if res.get("action") == "adopted_existing" else "trailed",
+            kotak_trading_symbol=r["kotak_trading_symbol"],
             order_id=res["order_id"], prev_state=f"resting SELL trigger Rs{current:.2f}",
             new_state=f"resting SELL trigger Rs{res['trigger_price']:.2f}",
-            detail=f"daily {st['strategy']} stop ratchet",
+            detail=f"daily {st['strategy']} stop ratchet ({res.get('action')}; Kotak order book scanned first)",
             reason=f"{st['strategy']} trail rule raised the stop from Rs{current:.2f} to Rs{res['trigger_price']:.2f}",
         )
         actions.append({"symbol": r["symbol"], "ok": True, "from": current, "to": res["trigger_price"]})
@@ -18998,7 +19051,7 @@ def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: 
                 (symbol, kotak_trading_symbol, held["qty"], held["avg_price"], None, time.time(),
                  ist_now().strftime("%Y-%m-%d"), stop, strategy),
             )
-        sl = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, held["qty"], stop)
+        sl = kotak_real_orders.ensure_resting_sl(kotak_trading_symbol, held["qty"], stop)
         if not sl.get("ok") and carried > 0:
             # Carried stop rejected (typically a gap below it at the open):
             # recompute from the latest close with the same ATR rule so the
@@ -19009,7 +19062,7 @@ def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: 
                 alt = round(float(df["Close"].iloc[-1]) - SWING_ATR_STOP_MULT * atr_l, 2)
                 if atr_l > 0 and 0 < alt < stop:
                     stop = alt
-                    sl = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, held["qty"], stop)
+                    sl = kotak_real_orders.ensure_resting_sl(kotak_trading_symbol, held["qty"], stop)
                     conn.execute("UPDATE real_positions_swing SET stop_loss = ? WHERE symbol = ?", (stop, symbol))
             except Exception as e:
                 print(f"[heal] recompute fallback failed for {kotak_trading_symbol}: {e}")
@@ -20142,10 +20195,14 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         # retry the placement for every row still missing sl_order_id,
         # every single reconcile call (now every 5 min via the in-process
         # scheduler tick, same cadence as long/short).
+        try:
+            _align_swing_sl_rows_to_kotak(conn, order_rows)
+        except Exception as e:
+            print(f"[reconcile] swing SL align-to-Kotak failed (non-fatal): {e}")
         governance_backfilled_swing = []
         for r in conn.execute("SELECT * FROM real_positions_swing WHERE sl_order_id IS NULL").fetchall():
             import kotak_real_orders
-            sl_result = kotak_real_orders.place_real_stop_loss(
+            sl_result = kotak_real_orders.ensure_resting_sl(
                 r["kotak_trading_symbol"], r["qty"], round(r["stop_loss"], 2)
             )
             backfill_entry = {
