@@ -1686,6 +1686,23 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   if (liveRows.length) sections.push(sectionRow(`Live positions (${liveRows.length})`), ...liveRows);
   if (openRealRows.length) sections.push(sectionRow(`Live real positions (${openRealRows.length}) — Kotak, currently open`), ...openRealRows);
   if (botRealRows.length) sections.push(sectionRow(`Real trades today, this bot's own only (${botRealRows.length})`), ...botRealRows, botRealTotalRow);
+  // B-295 part 4: Kotak order-book SELL fills the positions-based list
+  // misses (swing exits). P&L is "—" unless a Kotak-aligned entry exists.
+  const exitFillRows = (window._kotakExitFills || []).map(t => `<tr class="real-trade-row">
+      <td><span class="log-status" style="background:rgba(168,85,247,.18);color:#c084fc;">REAL</span></td>
+      <td class="sym">${displayName(t.symbol)}</td>
+      <td class="log-type">Equity</td>
+      <td class="log-type">${t.exit_reason || "kotak_order_book_sell"}</td>
+      <td class="num">${t.entry_price_native != null ? fmt(t.entry_price_native, 2) : dash}</td>
+      <td class="num">${fmt(t.exit_price_native, 2)}</td>
+      <td class="num">${fmt(t.qty, 0)}</td>
+      <td class="num">${dash}</td>
+      <td class="num">${t.pnl_inr != null ? pnlSpan(t.pnl_inr) : dash}</td>
+      <td class="num">${dash}</td><td class="num">${dash}</td>
+      <td class="log-type">Kotak order book (exit fill)</td>
+      <td class="meta">${t.exit_time_ist || ""}</td><td class="num">—</td>
+    </tr>`);
+  if (exitFillRows.length) sections.push(sectionRow(`Kotak exit fills today (${exitFillRows.length}) — sold per Kotak order book, not in the closed-trades list`), ...exitFillRows);
   if (realRows.length) sections.push(sectionRow(`Real trades today (${realRows.length}) — Kotak, outside this app's own order placement`), ...realRows, realTotalRow);
   if (openRealRows.length || realRows.length) sections.push(combinedRealAndOpenTotalRow);
   if (!sections.length) sections.push(`<tr><td colspan="20" class="scan-idle">No live positions or real trades today</td></tr>`);
@@ -1943,6 +1960,7 @@ async function refresh() {
             ? `<div class="empty">No open positions. Last closed: ${displayName(lastClosed.symbol)} — ${lastClosed.exit_reason}, P&amp;L ₹${fmt(lastClosed.pnl_inr)}. Waiting for next signal…</div>`
             : `<div class="empty">No open positions yet. Waiting for the strategy to fire…</div>`;
       }
+      window._kotakExitFills = realTrades.exit_fills_not_in_closed_trades || [];
       renderTradeLog(summary, history, realTrades.trades, botRealTrades, openRealPositions.open_real_positions, leaderboard, strategyInfo);
       return;
     }
@@ -1959,6 +1977,7 @@ async function refresh() {
     }
     await renderSwingCharts(openRealPositions.open_real_positions, new Set(equityPositions.map(p => p.symbol)));
 
+    window._kotakExitFills = realTrades.exit_fills_not_in_closed_trades || [];
     renderTradeLog(summary, history, realTrades.trades, botRealTrades, openRealPositions.open_real_positions, leaderboard, strategyInfo);
   } catch (e) {
     document.getElementById("cards").innerHTML = `<div class="err">fetch failed: ${e.message}</div>`;
