@@ -267,13 +267,15 @@ def test_scan_universe_never_calls_entry_fn_for_a_strategy_ranked_outside_top_5(
 
 def test_scan_universe_calls_entry_fn_for_a_strategy_ranked_in_top_5():
     original = list(sr.REGISTRY)
-    idx = next(i for i, s in enumerate(sr.REGISTRY) if s.name == "range_short_target_cluster")  # rank 1
+    # Rank-1 is looked up live: new registrations legitimately displace it.
+    top = sr.leaderboard(sr.TradeCategory.SHORT_SELL, top_n=1)[0]["name"]
+    idx = next(i for i, s in enumerate(sr.REGISTRY) if s.name == top)
     sr.REGISTRY[idx] = dataclasses.replace(
         sr.REGISTRY[idx], entry_fn=lambda data: {"reason": "always_fires"},
     )
     try:
         signals = sr.scan_universe(["FOO.NS"], lambda sym: {"symbol": sym})
-        assert any(s["strategy"] == "range_short_target_cluster" for s in signals)
+        assert any(s["strategy"] == top for s in signals)
     finally:
         sr.REGISTRY[:] = original
 
