@@ -49,18 +49,18 @@ def test_stop_level_gap_and_go_and_unknown_frozen():
     assert f("some_new_tag", 100, 5, 130) == 100  # never guesses a multiplier
 
 
-def test_ratchet_places_new_then_cancels_old():
+def test_ratchet_scans_book_then_replaces_via_ensure_resting_sl():
     _fresh_db()
     with closing(main.get_db()) as conn:
         _state(conn); _real(conn)
         conn.commit()
-        with patch("kotak_real_orders.place_real_stop_loss",
-                   return_value={"ok": True, "order_id": "NEW1", "trigger_price": 120.0}) as place, \
+        with patch("kotak_real_orders.ensure_resting_sl",
+                   return_value={"ok": True, "order_id": "NEW1", "trigger_price": 120.0, "action": "replaced"}) as place, \
              patch("kotak_real_orders.cancel_real_order") as cancel:
             acts = main._sync_swing_resting_sl_to_strategy(conn)
         place.assert_called_once()
         assert place.call_args[0][2] == 130 - main.MINERVINI_ATR_STOP_MULT * 5
-        cancel.assert_called_once_with("OLD1")
+        cancel.assert_not_called()  # ensure_resting_sl cancels the old stop itself, after scanning the book
         row = conn.execute("SELECT * FROM real_positions_swing").fetchone()
         assert row["sl_order_id"] == "NEW1"
         assert acts[0]["ok"] is True
@@ -71,12 +71,12 @@ def test_ratchet_never_lowers_and_failure_keeps_old():
     with closing(main.get_db()) as conn:
         _state(conn, peak=105.0); _real(conn, sl=100.0)  # target 95 -> floor 100 == current: no-op
         conn.commit()
-        with patch("kotak_real_orders.place_real_stop_loss") as place:
+        with patch("kotak_real_orders.ensure_resting_sl") as place:
             assert main._sync_swing_resting_sl_to_strategy(conn) == []
             place.assert_not_called()
         conn.execute("UPDATE signal_state_swing SET running_max_close = 140")
         conn.commit()
-        with patch("kotak_real_orders.place_real_stop_loss", return_value={"ok": False, "detail": "rej"}), \
+        with patch("kotak_real_orders.ensure_resting_sl", return_value={"ok": False, "detail": "rej", "action": "replace_failed"}), \
              patch("kotak_real_orders.cancel_real_order") as cancel:
             acts = main._sync_swing_resting_sl_to_strategy(conn)
         cancel.assert_not_called()
