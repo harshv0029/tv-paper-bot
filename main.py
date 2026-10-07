@@ -17393,6 +17393,47 @@ def _log_unlogged_kotak_orders(conn, order_rows) -> int:
     return n
 
 
+def _align_entry_prices_to_kotak(conn, order_rows) -> list:
+    """B-295 audit part 2 (Kotak-is-truth): a real position's entry_price must be the
+    price Kotak actually filled its entry order at. The row can hold the pre-trade
+    LTP estimate when the fill was not yet reported at entry time. For every row
+    (intraday long, short, swing) whose entry_order_id is a COMPLETE order in Kotak's
+    order book with a positive avgPrc, entry_price is rewritten to that avgPrc.
+    Rows with no entry_order_id, or whose entry order is not complete/listed, are left
+    untouched (never guessed). An empty order book changes nothing."""
+    if not order_rows:
+        return []
+    by_id = {str(o.get("nOrdNo")): o for o in order_rows if o.get("nOrdNo") is not None}
+    out = []
+    for table in ("real_positions", "real_positions_short", "real_positions_swing"):
+        for r in conn.execute(f"SELECT symbol, entry_order_id, entry_price FROM {table} "
+                              "WHERE entry_order_id IS NOT NULL").fetchall():
+            o = by_id.get(str(r["entry_order_id"]))
+            if not o or str(o.get("ordSt", "")).strip().lower() != "complete":
+                continue
+            try:
+                avg = float(o.get("avgPrc"))
+            except (TypeError, ValueError):
+                continue
+            if avg <= 0:
+                continue
+            if r["entry_price"] is None or abs(float(r["entry_price"]) - avg) > 0.005:
+                conn.execute(f"UPDATE {table} SET entry_price = ? WHERE symbol = ?", (avg, r["symbol"]))
+                out.append({"symbol": r["symbol"], "table": table, "action": "entry_price_aligned_to_kotak",
+                            "was": r["entry_price"], "now": avg})
+    if out:
+        conn.commit()
+        _sync_real_positions_external(conn)
+        _sync_real_positions_short_external(conn)
+        _sync_real_positions_swing_external(conn)
+        for a in out:
+            _log_real_order_event(
+                conn, a["symbol"], "entry", a["action"], new_state=str(a["now"]),
+                prev_state=str(a["was"]),
+                reason="Kotak fill price (avgPrc of the entry order) is ground truth; app entry price rewritten to match")
+    return out
+
+
 def _align_intraday_sl_rows_to_kotak(conn, order_rows) -> list:
     """B-295 audit, Kotak-is-truth for the intraday LONG (real_positions) and SHORT
     (real_positions_short) tables, same rule as _align_swing_sl_rows_to_kotak: a live
@@ -20619,6 +20660,10 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             _align_intraday_sl_rows_to_kotak(conn, order_rows)
         except Exception as e:
             print(f"[reconcile] intraday SL align-to-Kotak failed (non-fatal): {e}")
+        try:
+            _align_entry_prices_to_kotak(conn, order_rows)
+        except Exception as e:
+            print(f"[reconcile] entry-price align-to-Kotak failed (non-fatal): {e}")
         try:
             _align_swing_sl_rows_to_kotak(conn, order_rows)
         except Exception as e:
