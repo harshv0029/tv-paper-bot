@@ -17469,6 +17469,20 @@ def _align_entry_prices_to_kotak(conn, order_rows) -> list:
                 conn.execute(f"UPDATE {table} SET entry_price = ? WHERE symbol = ?", (avg, r["symbol"]))
                 out.append({"symbol": r["symbol"], "table": table, "action": "entry_price_aligned_to_kotak",
                             "was": r["entry_price"], "now": avg})
+    # F&O legs (B-295 F&O rows): entry_price is the pre-trade premium estimate.
+    for r in conn.execute("SELECT leg_key, entry_order_id, entry_price FROM real_fo_positions "
+                          "WHERE entry_order_id IS NOT NULL").fetchall():
+        o = by_id.get(str(r["entry_order_id"]))
+        if not o or str(o.get("ordSt", "")).strip().lower() != "complete":
+            continue
+        try:
+            avg = float(o.get("avgPrc"))
+        except (TypeError, ValueError):
+            continue
+        if avg > 0 and (r["entry_price"] is None or abs(float(r["entry_price"]) - avg) > 0.005):
+            conn.execute("UPDATE real_fo_positions SET entry_price = ? WHERE leg_key = ?", (avg, r["leg_key"]))
+            out.append({"symbol": r["leg_key"], "table": "real_fo_positions",
+                        "action": "entry_price_aligned_to_kotak", "was": r["entry_price"], "now": avg})
     if out:
         conn.commit()
         _sync_real_positions_external(conn)
