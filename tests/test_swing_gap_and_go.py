@@ -160,13 +160,13 @@ class TestGapAndGoExitReason:
         assert reason is None
 
     def test_max_hold_timeout_after_60_trading_days(self):
-        df = self._base_df(n=main.SWING_MAX_HOLD_DAYS + 5)
+        df = self._base_df(n=main.SWING_GAP_AND_GO_MAX_HOLD_DAYS + 5)
         entry_day = str(df["Date"].iloc[0].date())
         reason = main.gap_and_go_exit_reason(df, entry_day, stop_loss=1.0, gap_low=1.0)
         assert reason == "max_hold_timeout"
 
     def test_no_max_hold_timeout_before_60_trading_days(self):
-        df = self._base_df(n=main.SWING_MAX_HOLD_DAYS - 5)
+        df = self._base_df(n=main.SWING_GAP_AND_GO_MAX_HOLD_DAYS - 5)
         entry_day = str(df["Date"].iloc[0].date())
         reason = main.gap_and_go_exit_reason(df, entry_day, stop_loss=1.0, gap_low=1.0)
         assert reason is None
