@@ -17393,6 +17393,58 @@ def _log_unlogged_kotak_orders(conn, order_rows) -> int:
     return n
 
 
+def _align_intraday_sl_rows_to_kotak(conn, order_rows) -> list:
+    """B-295 audit, Kotak-is-truth for the intraday LONG (real_positions) and SHORT
+    (real_positions_short) tables, same rule as _align_swing_sl_rows_to_kotak: a live
+    resting SL at Kotak (SELL for longs, BUY for shorts) is adopted into the row
+    (sl_order_id/sl_trigger_price); the tighter trigger wins (highest for longs,
+    lowest for shorts). Deliberately more conservative than the swing version on the
+    clear side: a stored sl_order_id is cleared only when Kotak lists THAT order in a
+    terminal state - an id merely absent from the book may be order-report lag right
+    after placement, and clearing it would trigger a duplicate SL. An empty order book
+    changes nothing."""
+    if not order_rows:
+        return []
+    terminal = ("complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired")
+    out = []
+    for table, side, pick in (("real_positions", "S", max), ("real_positions_short", "B", min)):
+        for r in conn.execute(f"SELECT * FROM {table}").fetchall():
+            live, stored_state = [], None
+            for o in order_rows:
+                if o.get("trdSym") != r["kotak_trading_symbol"]:
+                    continue
+                if str(o.get("nOrdNo")) == str(r["sl_order_id"]):
+                    stored_state = str(o.get("ordSt", "")).strip().lower()
+                if o.get("trnsTp") != side or str(o.get("prcTp", "")).upper() not in ("SL", "SL-M"):
+                    continue
+                if str(o.get("ordSt", "")).strip().lower() in terminal:
+                    continue
+                try:
+                    live.append((float(o.get("trgPrc") or 0), str(o.get("nOrdNo"))))
+                except (TypeError, ValueError):
+                    continue
+            if live:
+                trg, oid = pick(live)
+                cur = r["sl_trigger_price"]
+                if r["sl_order_id"] != oid or cur is None or abs(float(cur) - trg) > 0.005:
+                    conn.execute(f"UPDATE {table} SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                                 (oid, trg, r["symbol"]))
+                    out.append({"symbol": r["symbol"], "table": table, "action": "aligned_to_kotak",
+                                "order_id": oid, "trigger": trg})
+            elif r["sl_order_id"] and stored_state in terminal:
+                conn.execute(f"UPDATE {table} SET sl_order_id = NULL WHERE symbol = ?", (r["symbol"],))
+                out.append({"symbol": r["symbol"], "table": table, "action": "cleared_sl_terminal_at_kotak"})
+    if out:
+        conn.commit()
+        _sync_real_positions_external(conn)
+        _sync_real_positions_short_external(conn)
+        for a in out:
+            _log_real_order_event(
+                conn, a["symbol"], "sl", a["action"], new_state=str(a.get("trigger", "none")),
+                reason="Kotak order book is ground truth; this app's intraday SL record was rewritten to match it")
+    return out
+
+
 def _align_swing_sl_rows_to_kotak(conn, order_rows) -> list:
     """Kotak-is-truth alignment (2026-10-07 thumb rule): wherever Kotak's own order
     book and this app's real_positions_swing row disagree about the resting SL, the
@@ -20563,6 +20615,10 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         # retry the placement for every row still missing sl_order_id,
         # every single reconcile call (now every 5 min via the in-process
         # scheduler tick, same cadence as long/short).
+        try:
+            _align_intraday_sl_rows_to_kotak(conn, order_rows)
+        except Exception as e:
+            print(f"[reconcile] intraday SL align-to-Kotak failed (non-fatal): {e}")
         try:
             _align_swing_sl_rows_to_kotak(conn, order_rows)
         except Exception as e:
