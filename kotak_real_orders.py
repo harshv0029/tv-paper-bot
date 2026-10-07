@@ -785,6 +785,80 @@ def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: flo
             "trigger_price": trigger_price, "limit_price": limit_price}
 
 
+def ensure_resting_sl(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+    """Scan-then-act SL placement for LONG (swing) positions (2026-10-07, explicit
+    user instruction after live rejects: "before placing any new order request you
+    need to scan existing order list, then either place new, or cancel current plus
+    place new"). Kotak's RMS rejects a second SELL SL for shares already reserved by
+    a resting SL ("T1 holdings ... Used:2, Available:1" on a 1-share position), so a
+    blind place-new-then-cancel-old can never ratchet, and a blind retry duplicates.
+    Fresh Kotak order_report every call (never a cached local id):
+      * a live SELL SL covering `qty` at a trigger >= the requested one -> ADOPT it,
+        place nothing (a stop is never lowered here);
+      * a live SL below the requested trigger (ratchet up) or covering too few shares ->
+        cancel every live SL on the symbol, then place the new one; if that placement
+        fails, immediately re-place the old trigger so the position is not left naked;
+      * none live -> place fresh.
+    If the order book itself cannot be read, falls back to a plain place (the old
+    behaviour; a duplicate is rejected harmlessly by RMS). Returns place_real_stop_loss's
+    shape plus `action` in {adopted_existing, replaced, placed, placed_unchecked,
+    replace_failed}; on replace_failed `restored_order_id`/`restored_trigger` describe
+    the re-placed old stop when that worked."""
+    try:
+        client = kotak_neo.login()
+        report = client.order_report()
+        rows = report.get("data") if isinstance(report, dict) else None
+        if rows is None or not isinstance(rows, list):
+            raise ValueError("order_report returned no data list")
+    except Exception as e:
+        res = place_real_stop_loss(kotak_trading_symbol, qty, trigger_price)
+        res["action"] = "placed_unchecked"
+        res["scan_error"] = str(e)
+        return res
+
+    live = []
+    for row in rows:
+        if row.get("trdSym") != kotak_trading_symbol or row.get("trnsTp") != "S":
+            continue
+        if str(row.get("prcTp", "")).upper() not in ("SL", "SL-M"):
+            continue
+        if str(row.get("ordSt", "")).lower() in _TERMINAL_ORDER_STATUSES:
+            continue
+        oid = row.get("nOrdNo")
+        if not oid:
+            continue
+        try:
+            trg = float(row.get("trgPrc") or 0)
+            q = int(float(row.get("qty") or 0))
+        except (TypeError, ValueError):
+            continue
+        live.append({"order_id": str(oid), "trigger": trg, "qty": q})
+
+    desired = _round_to_tick(trigger_price, _tick_size_for(kotak_trading_symbol))
+    if live:
+        best = max(live, key=lambda o: o["trigger"])
+        if best["trigger"] >= desired - 0.005 and sum(o["qty"] for o in live) >= qty:
+            return {"ok": True, "order_id": best["order_id"], "trigger_price": best["trigger"],
+                    "action": "adopted_existing", "raw_response": None}
+        for o in live:
+            cancel_real_order(o["order_id"])
+        res = place_real_stop_loss(kotak_trading_symbol, qty, desired)
+        if res.get("ok"):
+            res["action"] = "replaced"
+            res["cancelled"] = [o["order_id"] for o in live]
+            return res
+        restore = place_real_stop_loss(kotak_trading_symbol, qty, best["trigger"])
+        res["action"] = "replace_failed"
+        if restore.get("ok"):
+            res["restored_order_id"] = restore["order_id"]
+            res["restored_trigger"] = restore["trigger_price"]
+        return res
+
+    res = place_real_stop_loss(kotak_trading_symbol, qty, trigger_price)
+    res["action"] = "placed"
+    return res
+
+
 def place_real_short_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
     """Short mirror of place_real_stop_loss (2026-09-29) - a resting
     BUY-stop (transaction_type="B") that triggers ABOVE the short's entry

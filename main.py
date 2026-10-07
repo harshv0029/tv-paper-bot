@@ -16733,7 +16733,7 @@ def _maybe_sync_real_swing_stop_loss(conn):
             if refreshed is None:
                 continue  # today's open not available yet; retry next tick
             stop_px = refreshed
-        sl_result = kotak_real_orders.place_real_stop_loss(
+        sl_result = kotak_real_orders.ensure_resting_sl(
             row["kotak_trading_symbol"], row["qty"], stop_px
         )
         if sl_result.get("ok"):
@@ -17278,25 +17278,35 @@ def _sync_swing_resting_sl_to_strategy(conn):
         current = float(r["sl_trigger_price"] or r["stop_loss"])
         if target <= current + 0.05:
             continue
-        res = kotak_real_orders.place_real_stop_loss(r["kotak_trading_symbol"], r["qty"], target)
+        res = kotak_real_orders.ensure_resting_sl(r["kotak_trading_symbol"], r["qty"], target)
         if not res.get("ok"):
             print(f"[REAL SWING] SL trail to {target} failed for {r['kotak_trading_symbol']} "
-                  f"({res.get('detail')}) - old SL @ {current} stays")
+                  f"({res.get('detail')}) - action {res.get('action')}")
+            if res.get("restored_order_id"):
+                # old stop was cancelled for the replace and then re-placed: re-point the row at it
+                conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                             (res["restored_order_id"], res["restored_trigger"], r["symbol"]))
+                conn.commit()
+                _sync_real_positions_swing_external(conn)
+            _log_real_order_event(
+                conn, r["symbol"], "sl", "trail_failed", kotak_trading_symbol=r["kotak_trading_symbol"],
+                prev_state=f"resting SELL trigger Rs{current:.2f}",
+                new_state="old stop re-placed" if res.get("restored_order_id") else "unchanged/unknown",
+                detail=str(res.get("detail"))[:200],
+                reason=f"{st['strategy']} trail wanted Rs{target:.2f} but the replace failed",
+            )
             actions.append({"symbol": r["symbol"], "ok": False, "target": target})
             continue
-        try:
-            kotak_real_orders.cancel_real_order(r["sl_order_id"])
-        except Exception as e:
-            print(f"[REAL SWING] old SL cancel failed for {r['symbol']} (non-fatal): {e}")
         conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                      (res["order_id"], res["trigger_price"], r["symbol"]))
         conn.commit()
         _sync_real_positions_swing_external(conn)
         _log_real_order_event(
-            conn, r["symbol"], "sl", "trailed", kotak_trading_symbol=r["kotak_trading_symbol"],
+            conn, r["symbol"], "sl", "adopted" if res.get("action") == "adopted_existing" else "trailed",
+            kotak_trading_symbol=r["kotak_trading_symbol"],
             order_id=res["order_id"], prev_state=f"resting SELL trigger Rs{current:.2f}",
             new_state=f"resting SELL trigger Rs{res['trigger_price']:.2f}",
-            detail=f"daily {st['strategy']} stop ratchet",
+            detail=f"daily {st['strategy']} stop ratchet ({res.get('action')}; Kotak order book scanned first)",
             reason=f"{st['strategy']} trail rule raised the stop from Rs{current:.2f} to Rs{res['trigger_price']:.2f}",
         )
         actions.append({"symbol": r["symbol"], "ok": True, "from": current, "to": res["trigger_price"]})
@@ -18998,7 +19008,7 @@ def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: 
                 (symbol, kotak_trading_symbol, held["qty"], held["avg_price"], None, time.time(),
                  ist_now().strftime("%Y-%m-%d"), stop, strategy),
             )
-        sl = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, held["qty"], stop)
+        sl = kotak_real_orders.ensure_resting_sl(kotak_trading_symbol, held["qty"], stop)
         if not sl.get("ok") and carried > 0:
             # Carried stop rejected (typically a gap below it at the open):
             # recompute from the latest close with the same ATR rule so the
@@ -19009,7 +19019,7 @@ def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: 
                 alt = round(float(df["Close"].iloc[-1]) - SWING_ATR_STOP_MULT * atr_l, 2)
                 if atr_l > 0 and 0 < alt < stop:
                     stop = alt
-                    sl = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, held["qty"], stop)
+                    sl = kotak_real_orders.ensure_resting_sl(kotak_trading_symbol, held["qty"], stop)
                     conn.execute("UPDATE real_positions_swing SET stop_loss = ? WHERE symbol = ?", (stop, symbol))
             except Exception as e:
                 print(f"[heal] recompute fallback failed for {kotak_trading_symbol}: {e}")
@@ -20145,7 +20155,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         governance_backfilled_swing = []
         for r in conn.execute("SELECT * FROM real_positions_swing WHERE sl_order_id IS NULL").fetchall():
             import kotak_real_orders
-            sl_result = kotak_real_orders.place_real_stop_loss(
+            sl_result = kotak_real_orders.ensure_resting_sl(
                 r["kotak_trading_symbol"], r["qty"], round(r["stop_loss"], 2)
             )
             backfill_entry = {
