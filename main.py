@@ -17486,6 +17486,52 @@ def _align_intraday_sl_rows_to_kotak(conn, order_rows) -> list:
     return out
 
 
+def _align_intraday_target_to_kotak(conn, order_rows) -> list:
+    """B-295 audit part 3 (Kotak-is-truth): the intraday LONG row's target_order_id /
+    target_price must match the live resting SELL LIMIT at Kotak. A live SELL limit
+    (prcTp L) on the symbol is adopted (id + price; the lowest price wins, i.e. the
+    nearest target). A stored target_order_id is cleared only when Kotak lists THAT
+    order in a terminal state (an id merely absent may be order-report lag). An empty
+    order book changes nothing."""
+    if not order_rows:
+        return []
+    terminal = ("complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired")
+    out = []
+    for r in conn.execute("SELECT * FROM real_positions").fetchall():
+        live, stored_state = [], None
+        for o in order_rows:
+            if o.get("trdSym") != r["kotak_trading_symbol"]:
+                continue
+            st = str(o.get("ordSt", "")).strip().lower()
+            if r["target_order_id"] and str(o.get("nOrdNo")) == str(r["target_order_id"]):
+                stored_state = st
+            if o.get("trnsTp") != "S" or str(o.get("prcTp", "")).upper() != "L" or st in terminal:
+                continue
+            try:
+                live.append((float(o.get("prc") or 0), str(o.get("nOrdNo"))))
+            except (TypeError, ValueError):
+                continue
+        live = [x for x in live if x[0] > 0]
+        if live:
+            prc, oid = min(live)
+            cur = r["target_price"]
+            if r["target_order_id"] != oid or cur is None or abs(float(cur) - prc) > 0.005:
+                conn.execute("UPDATE real_positions SET target_order_id = ?, target_price = ? WHERE symbol = ?",
+                             (oid, prc, r["symbol"]))
+                out.append({"symbol": r["symbol"], "action": "target_aligned_to_kotak", "order_id": oid, "price": prc})
+        elif r["target_order_id"] and stored_state in terminal:
+            conn.execute("UPDATE real_positions SET target_order_id = NULL WHERE symbol = ?", (r["symbol"],))
+            out.append({"symbol": r["symbol"], "action": "target_cleared_terminal_at_kotak"})
+    if out:
+        conn.commit()
+        _sync_real_positions_external(conn)
+        for a in out:
+            _log_real_order_event(
+                conn, a["symbol"], "target", a["action"], new_state=str(a.get("price", "none")),
+                reason="Kotak order book is ground truth; this app's intraday target record was rewritten to match it")
+    return out
+
+
 def _align_swing_sl_rows_to_kotak(conn, order_rows) -> list:
     """Kotak-is-truth alignment (2026-10-07 thumb rule): wherever Kotak's own order
     book and this app's real_positions_swing row disagree about the resting SL, the
@@ -20664,6 +20710,10 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             _align_entry_prices_to_kotak(conn, order_rows)
         except Exception as e:
             print(f"[reconcile] entry-price align-to-Kotak failed (non-fatal): {e}")
+        try:
+            _align_intraday_target_to_kotak(conn, order_rows)
+        except Exception as e:
+            print(f"[reconcile] intraday target align-to-Kotak failed (non-fatal): {e}")
         try:
             _align_swing_sl_rows_to_kotak(conn, order_rows)
         except Exception as e:
