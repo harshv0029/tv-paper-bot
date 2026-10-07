@@ -36,14 +36,18 @@ def test_captures_latest_sl_and_strips_account_keys():
 def test_prune_keeps_five_days_and_leaves_other_tables():
     _db()
     with closing(main.get_db()) as c:
-        c.execute("INSERT INTO tracked_union (kotak_trading_symbol,qty,owner,updated_at) VALUES ('A-EQ',1,'swing',?)", (time.time(),))
+        # A-EQ is no longer at Kotak (not in tracked_union); H-EQ is still held (swing, 30+ days).
+        c.execute("INSERT INTO tracked_union (kotak_trading_symbol,qty,owner,updated_at) VALUES ('H-EQ',1,'swing',?)", (time.time(),))
         for day in ("2026-09-30", "2026-10-01", "2026-10-02", "2026-10-05"):
             c.execute("INSERT INTO sl_order_snapshot (day,kotak_trading_symbol) VALUES (?, 'A-EQ')", (day,))
+            c.execute("INSERT INTO sl_order_snapshot (day,kotak_trading_symbol) VALUES (?, 'H-EQ')", (day,))
         c.commit()
     main._sl_snapshot_capture([], NOW)
     with closing(main.get_db()) as c:
-        days = [r[0] for r in c.execute("SELECT day FROM sl_order_snapshot ORDER BY day")]
-        assert days == ["2026-10-02", "2026-10-05"]  # keep 10-02..10-06 (5 days)
+        a = [r[0] for r in c.execute("SELECT day FROM sl_order_snapshot WHERE kotak_trading_symbol='A-EQ' ORDER BY day")]
+        h = [r[0] for r in c.execute("SELECT day FROM sl_order_snapshot WHERE kotak_trading_symbol='H-EQ' ORDER BY day")]
+        assert a == ["2026-10-02", "2026-10-05"]  # keep 10-02..10-06 (5 days) once Kotak no longer holds it
+        assert h == ["2026-09-30", "2026-10-01", "2026-10-02", "2026-10-05"]  # held at Kotak: never aged out
         assert c.execute("SELECT COUNT(*) FROM tracked_union").fetchone()[0] == 1
 
 
