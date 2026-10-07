@@ -51,14 +51,14 @@ jobs:
               for r in rr: print(lbl, {k: v for k, v in r.items() if not any(x in k.lower() for x in bad)})
           sel = [r for r in rows if any(s in str(r.get("trdSym", "")) for s in S)]
           sel.sort(key=lambda r: str(r.get("ordDtTm", "")))
-          print("ORDER BOOK (all sides, all statuses) rows for the 5 symbols:", len(sel))
+          print("TOTAL order-book rows fetched (whole day, no cap):", len(rows)); print("ORDER BOOK (all sides, all statuses) rows for the 5 symbols:", len(sel))
           for r in sel:
               print("ORD", "|".join(red(r.get(k, ""))[:90] for k in ("ordDtTm", "trdSym", "trnsTp", "prcTp", "qty", "trgPrc", "ordSt", "rejRsn")))
           print("cols: ordDtTm|trdSym|trnsTp|prcTp|qty|trgPrc|ordSt|rejRsn")
           try: ev = json.load(open("/tmp/l.json")).get("events", [])
           except Exception as e: ev = []; print("l unreadable", type(e).__name__)
           print("app order-log events (2d):", len(ev))
-          for e in sorted(ev, key=lambda e: e["ts"])[-40:]:
+          for e in sorted(ev, key=lambda e: e["ts"]):
               if any(s in (e.get("symbol") or "") for s in S):
                   t = datetime.datetime.fromtimestamp(e["ts"], IST).strftime("%m-%d %H:%M:%S IST")
                   print("LOG", t, e["symbol"], e.get("leg"), e.get("event"), "|", (e.get("new_state") or "")[:60], "|", red(e.get("detail") or "")[:240])
