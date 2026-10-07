@@ -19955,7 +19955,11 @@ def _sl_snapshot_capture(order_rows: list, now=None) -> int:
                 "VALUES (?,?,?,?,?,?)",
                 (day, sym, len(sl), json.dumps(clean, default=str), basis, time.time()))
             written += 1
-        conn.execute("DELETE FROM sl_order_snapshot WHERE day < ?", (cutoff,))
+        # Swing holdings can stay at Kotak 30+ days (user, 2026-10-07): never age
+        # out a snapshot while its symbol is still in tracked_union (the Kotak
+        # positions+holdings union); only symbols Kotak no longer shows are pruned.
+        conn.execute("DELETE FROM sl_order_snapshot WHERE day < ? AND kotak_trading_symbol NOT IN "
+                     "(SELECT kotak_trading_symbol FROM tracked_union)", (cutoff,))
         conn.commit()
     sync_generic_tables_external(only=("sl_order_snapshot",))
     return written
