@@ -8,8 +8,16 @@ name: Swing OB + VP main.py replay (B-30)
 # correct strategy_registry.py (the PFnet gate then closes the strategy).
 # Each bar calls the live function on a trailing 150-row window (the functions
 # evaluate only the last row; ATR/lookbacks need < 150 rows).
+# B-26 (2026-10-07): optional `trail_mult` input overrides ORDER_BLOCK_ATR_TRAIL_MULT /
+# VP_ATR_TRAIL_MULT on the imported main module (the real exit fns read it fresh) to
+# sweep a wider trail; blank = baseline (B-30 behaviour unchanged).
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      trail_mult:
+        description: "ATR trail multiple override (blank = baseline 3.0)"
+        required: false
+        default: ""
 
 jobs:
   replay:
@@ -29,6 +37,7 @@ jobs:
         env:
           STRAT: ${{ matrix.strat }}
           SHARD: ${{ matrix.shard }}
+          TRAIL: ${{ inputs.trail_mult }}
         run: |
           python3 - <<'PYEOF'
           import os, sys, json
@@ -45,6 +54,10 @@ jobs:
               entry_fn, exit_fn = m.volume_profile_poc_entry_signal, m.volume_profile_poc_exit_reason
               min_bars = m.VP_MIN_LOOKBACK_DAYS
               max_hold = m.VP_MAX_HOLD_DAYS
+          if os.environ.get("TRAIL"):
+              m.ORDER_BLOCK_ATR_TRAIL_MULT = float(os.environ["TRAIL"])
+              m.VP_ATR_TRAIL_MULT = float(os.environ["TRAIL"])
+              print("TRAIL override", os.environ["TRAIL"])
           WIN = 150
           CAP, RISK_PCT = 400000.0, 1.0
           CM = {"brokerage_pct": 0.0020, "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
