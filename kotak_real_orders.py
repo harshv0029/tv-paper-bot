@@ -777,12 +777,22 @@ def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: flo
         return {"ok": False, "detail": f"no order id in response: {resp}", "raw_response": resp}
 
     status = _confirm_order_status(order_id)
+    # B-302 (2026-10-07): Kotak's RMS can reject an acked SL a moment AFTER the
+    # first order_report (live: RVNL/DRREDDY at 4:30 AM IST were logged "sl placed"
+    # while Kotak showed them rejected). Re-read until the order is in a known
+    # resting/final state; an unknown/transient state is never treated as resting.
+    for _ in range(3):
+        if status["status"] in ("rejected", "trigger pending", "open", "complete"):
+            break
+        time.sleep(1.5)
+        status = _confirm_order_status(order_id)
     if status["status"] == "rejected":
         return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
                 "raw_response": resp, "status_check": status["row"]}
 
     return {"ok": True, "order_id": str(order_id), "raw_response": resp,
-            "trigger_price": trigger_price, "limit_price": limit_price}
+            "trigger_price": trigger_price, "limit_price": limit_price,
+            "status_confirmed": status["status"] in ("trigger pending", "open", "complete")}
 
 
 def ensure_resting_sl(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
