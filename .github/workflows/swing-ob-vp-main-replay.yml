@@ -151,7 +151,8 @@ jobs:
               pf = w / l if l else float("inf")
               print(f"{st}: n={len(t)} win%={100*sum(x['net']>0 for x in t)/len(t):.1f} "
                     f"PFnet={pf:.3f} (registry {reg[st]}) avg_held={sum(x['held'] for x in t)/len(t):.1f}d "
-                    f"avg_net_inr={sum(x['net'] for x in t)/len(t):.1f}")
+                    f"avg_net_inr={sum(x['net'] for x in t)/len(t):.1f} "
+                    f"PFgross={sum(x['gross'] for x in t if x['gross']>0)/max(1e-9,-sum(x['gross'] for x in t if x['gross']<=0)):.3f}")
               by = {}
               for x in t: by.setdefault(x["reason"], []).append(x)
               for r, xs in by.items():
