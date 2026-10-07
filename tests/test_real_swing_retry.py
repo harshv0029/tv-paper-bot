@@ -210,6 +210,14 @@ class TestRetryPendingRealSwingOrders:
                 conn.commit()
                 with patch("main.dt.datetime", _fixed_clock("11:00")), \
                      patch("main._maybe_place_real_swing_exit") as mock_exit:
+                    # 2026-10-07: no paper sell on record => a missing paper row is NOT an exit decision
+                    main._retry_pending_real_swing_orders(conn)
+                    mock_exit.assert_not_called()
+                    conn.execute(
+                        "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                        "VALUES (?, 'TESTSTOCK.NS', 'sell', 10, 95.0, 1.0, ?, '{\"exit_reason\": \"stop_hit\"}')",
+                        (main.time.time() + 5, main.SWING_STRATEGY_TAG))
+                    conn.commit()
                     main._retry_pending_real_swing_orders(conn)
                     mock_exit.assert_called_once_with(conn, "TESTSTOCK.NS", reason=unittest.mock.ANY)
         finally:

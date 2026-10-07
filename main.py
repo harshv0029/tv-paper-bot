@@ -10979,6 +10979,13 @@ def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, o
         (time.time(), symbol, kotak_trading_symbol, leg, event, order_id, prev_state, new_state, detail),
     )
     conn.commit()
+    # 2026-10-07 (user: sync within 5 min everywhere): push the order log to Upstash
+    # right now instead of waiting for the next tick, so a restart or overlapping
+    # deploy cannot lose the reason for an order that already reached Kotak.
+    try:
+        sync_generic_tables_external(only=("real_order_events",))
+    except Exception as e:
+        print(f"[order_log] immediate mirror failed (tick sync will retry): {e}")
 
 
 _DEFAULT_ORDER_REASONS = {
@@ -16514,6 +16521,9 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
                 new_state="cancel failed - may still be resting", detail=cancel_result.get("detail"),
             )
 
+    _why_log(
+        conn, symbol, "exit", "intent", kotak_trading_symbol=row["kotak_trading_symbol"],
+        prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}", new_state="market SELL about to be sent to Kotak")
     result = kotak_real_orders.place_real_exit(row["kotak_trading_symbol"], row["qty"])
     if result.get("ok"):
         conn.execute("DELETE FROM real_positions_swing WHERE symbol = ?", (symbol,))
@@ -16848,10 +16858,49 @@ def _retry_pending_real_swing_orders(conn):
         ).fetchone()
         if still_paper_open:
             continue
+        # 2026-10-07 incident (NYKAA sold 3:13 PM IST with nothing logged): a missing
+        # paper row is NOT evidence of an exit decision - a restart/heal can drop it
+        # while the real holding is healthy. Retry a real exit only when a paper swing
+        # SELL is on record after the real row opened; otherwise keep the position and
+        # its SL, and say why (once per day per symbol).
+        paper_exit = _swing_paper_exit_on_record(conn, row["symbol"])
+        if not paper_exit:
+            _log_swing_retry_exit_refused_once(conn, row["symbol"])
+            continue
         try:
-            _maybe_place_real_swing_exit(conn, row["symbol"], reason="retry: real swing row open but paper signal_state_swing row is gone (original exit reason not on record)")
+            _maybe_place_real_swing_exit(conn, row["symbol"], reason=f"retry of paper swing exit already recorded: {paper_exit}")
         except Exception as e:
             print(f"[REAL SWING] exit retry failed for {row['symbol']} (non-fatal): {e}")
+
+
+def _swing_paper_exit_on_record(conn, symbol):
+    """Exit reason of the latest paper swing SELL recorded for `symbol` after its
+    real_positions_swing row opened, else None."""
+    real = conn.execute("SELECT opened_at FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+    since = float((real["opened_at"] if real else 0) or 0)
+    t = conn.execute(
+        "SELECT raw_payload FROM trades WHERE symbol = ? AND action = 'sell' AND strategy = ? AND ts >= ? "
+        "ORDER BY ts DESC LIMIT 1", (symbol, SWING_STRATEGY_TAG, since)).fetchone()
+    if not t:
+        return None
+    try:
+        return json.loads(t["raw_payload"] or "{}").get("exit_reason") or "paper swing exit (reason field empty)"
+    except Exception:
+        return "paper swing exit (payload unreadable)"
+
+
+_swing_retry_refused_day: dict = {}
+
+
+def _log_swing_retry_exit_refused_once(conn, symbol):
+    today = ist_now().strftime("%Y-%m-%d")
+    if _swing_retry_refused_day.get(symbol) == today:
+        return
+    _swing_retry_refused_day[symbol] = today
+    _log_real_order_event(
+        conn, symbol, "exit", "retry_refused_no_paper_exit",
+        new_state="held - no sell placed",
+        reason="paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss")
 
 
 def _swing_position_size(conn, capital: float, risk_pct: float, entry_price: float, stop_loss: float) -> int:
