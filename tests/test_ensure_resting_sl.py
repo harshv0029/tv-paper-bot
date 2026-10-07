@@ -18,6 +18,7 @@ def _row(oid, trg, qty=1, st="trigger pending", sym="DRREDDY-EQ"):
 def _patch(monkeypatch, rows, place_results):
     placed, cancelled = [], []
     monkeypatch.setattr(kro.kotak_neo, "login", lambda: _Client(rows))
+    monkeypatch.setattr(kro, "_in_closing_session", lambda: False)
     monkeypatch.setattr(kro, "cancel_real_order", lambda oid: cancelled.append(oid) or {"ok": True})
     results = list(place_results)
 
