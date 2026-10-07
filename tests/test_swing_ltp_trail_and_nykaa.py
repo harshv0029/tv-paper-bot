@@ -125,3 +125,18 @@ def test_nykaa_state_restored_once_and_not_when_row_exists():
         st = conn.execute("SELECT * FROM signal_state_swing WHERE symbol='NYKAA.NS'").fetchone()
         assert st["strategy"] == "gap_and_go" and st["gap_low"] == 331.0
         assert conn.execute("SELECT strategy FROM real_positions_swing WHERE symbol='NYKAA.NS'").fetchone()[0] == "gap_and_go"
+
+
+def test_trail_covers_drreddy_even_when_relabelled_volume_profile_poc():
+    _db()
+    with closing(main.get_db()) as conn:
+        _seed(conn, sym="DRREDDY.NS", trd="DRREDDY-EQ", strategy="volume_profile_poc", sl=1172.6, r=40.0, stop=1160.0)
+        conn.execute("UPDATE signal_state_swing SET entry_price = 1200.0 WHERE symbol='DRREDDY.NS'")
+        conn.commit()
+        with patch.object(main, "_nse_equity_market_open_now", return_value=True), \
+             patch.object(main, "_kotak_holdings_open_by_trdsym", return_value={"DRREDDY-EQ": {"qty": 2}}), \
+             patch.object(main, "_swing_live_ltp_peak", return_value=(1255.0, 1260.0)), \
+             patch("kotak_real_orders.ensure_resting_sl", return_value={"ok": True, "order_id": "o9", "trigger_price": 1220.0, "action": "replaced"}) as ens:
+            a = main._sync_swing_ltp_trail(conn)
+        ens.assert_called_once_with("DRREDDY-EQ", 2, 1220.0)  # peak 1260 - 1R (1200-1160=40)
+        assert a[0]["ok"]
