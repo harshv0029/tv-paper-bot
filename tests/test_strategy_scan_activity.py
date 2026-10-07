@@ -142,7 +142,7 @@ def test_endpoint_rows_carry_avg_held_hrs_from_registry_metrics():
     rows = {r["strategy_tag"]: r for r in main.strategy_scan_activity()["strategies"]}
     assert rows["power_play"]["avg_held_hrs"] == round(16.2 * 6.25, 1)
     assert rows["primary_base"]["avg_held_hrs"] == round(17.0 * 6.25, 1)
-    assert rows["order_block_delta"]["avg_held_hrs"] == round(21.7 * 6.25, 1)
-    assert rows["volume_profile_poc"]["avg_held_hrs"] == round(12.2 * 6.25, 1)
+    assert rows["order_block_delta"]["avg_held_hrs"] == round(23.2 * 6.25, 1)
+    assert rows["volume_profile_poc"]["avg_held_hrs"] == round(13.2 * 6.25, 1)
     assert rows["minervini_vcp_livermore"]["avg_held_hrs"] == round(14.8 * 6.25, 1)
     assert rows["gap_and_go"]["avg_held_hrs"] is None  # run never recorded it - never guessed

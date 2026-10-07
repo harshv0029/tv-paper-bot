@@ -171,6 +171,11 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
         "minervini_vcp_breakeven_2r", "minervini_vcp_breakeven_3r",
         "minervini_vcp_livermore_confirmed", "primary_base",
         "order_block_delta_long", "volume_profile_poc_bounce_long",
+        # 2026-10-07: B-26 OB/VP trail sweep variants (runs 37660618012 / 37660625447)
+        "order_block_delta__retest__long__1d__trail4d5__v1",
+        "order_block_delta__retest__long__1d__trail6d0__v1",
+        "volume_profile_poc__bounce__long__1d__trail4d5__v1",
+        "volume_profile_poc__bounce__long__1d__trail6d0__v1",
         # 2026-10-07: gap_and_go max-hold variants (run 37572300915, full universe)
         "gap_and_go__swing__long__1d__hold30__v1",
         "gap_and_go__swing__long__1d__hold60__v1",
