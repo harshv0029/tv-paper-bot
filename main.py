@@ -11273,6 +11273,10 @@ def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
         return
 
     import kotak_real_orders
+    _why_log(
+        conn, symbol, "short_cover", "intent", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+        prev_state=f"short {real_row['qty']}",
+        new_state="cancel resting SL, then market BUY-to-cover to be sent to Kotak")
     if real_row["sl_order_id"]:
         _cancel = kotak_real_orders.cancel_real_order(real_row["sl_order_id"])
         _why_log(
@@ -12264,6 +12268,10 @@ def _maybe_place_real_exit(conn, symbol: str, reason: str = None):
             new_state="cleared - Kotak already shows this closed",
         )
         return
+    _why_log(
+        conn, symbol, "exit", "intent", kotak_trading_symbol=row["kotak_trading_symbol"],
+        prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
+        new_state="cancel resting SL/target, then market SELL to be sent to Kotak")
     # Cancel the resting real stop-loss FIRST (if one was ever placed) -
     # best-effort, never blocks the exit below even if the cancel fails
     # (e.g. the SL already fired, which is itself a valid reason
@@ -14840,6 +14848,18 @@ def get_real_open_positions():
     return {"open_real_positions": result, "count": len(result)}
 
 
+def _exchange_purge_window(now_ist=None) -> bool:
+    """True when resting orders are expected to be absent by exchange design:
+    the exchange cancels ALL standing orders at 15:15 IST daily (B-309), so
+    from 15:15 until the 09:15 IST open (and all weekend) a missing SL is the
+    expected state, not an app failure. Display-only; never gates an order."""
+    n = now_ist or dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
+    if n.weekday() >= 5:
+        return True
+    mins = n.hour * 60 + n.minute
+    return mins >= 15 * 60 + 15 or mins < 9 * 60 + 15
+
+
 @app.get("/real-protection-status")
 def real_protection_status():
     """The 2026-09-30 MFSL.NS-incident backcheck, read cheaply (no Kotak
@@ -14860,11 +14880,13 @@ def real_protection_status():
             "SELECT checked_at, unprotected_json FROM real_protection_snapshot WHERE id = 1"
         ).fetchone()
     if not row:
-        return {"checked_at": None, "unprotected_positions": [], "stale": True}
+        return {"checked_at": None, "unprotected_positions": [], "stale": True,
+                "exchange_purge_window": _exchange_purge_window()}
     return {
         "checked_at": row["checked_at"],
         "unprotected_positions": json.loads(row["unprotected_json"]),
         "stale": (time.time() - row["checked_at"]) > 900,
+        "exchange_purge_window": _exchange_purge_window(),
     }
 
 

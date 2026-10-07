@@ -124,6 +124,7 @@ def test_empty_open_positions_returns_empty_list():
 def test_status_endpoint_reports_stale_true_when_never_checked():
     _fresh_db()
     result = main.real_protection_status()
+    assert isinstance(result.pop("exchange_purge_window"), bool)
     assert result == {"checked_at": None, "unprotected_positions": [], "stale": True}
 
 

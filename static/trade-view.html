@@ -1809,7 +1809,8 @@ function renderUnprotectedBanner(status) {
   const el = document.getElementById("unprotected-banner");
   const unprotected = status?.unprotected_positions || [];
   const stale = status ? status.stale : true;
-  if (unprotected.length === 0 && !stale) {
+  const purge = !!status?.exchange_purge_window;
+  if (unprotected.length === 0 && (!stale || purge)) {
     el.style.display = "none";
     el.innerHTML = "";
     return;
@@ -1819,6 +1820,13 @@ function renderUnprotectedBanner(status) {
     + (unprotected.length > 0
       ? "background:rgba(248,113,113,.18);color:#f87171;border:1px solid rgba(248,113,113,.4);"
       : "background:rgba(251,191,36,.18);color:#fbbf24;border:1px solid rgba(251,191,36,.4);");
+  if (unprotected.length > 0 && purge) {
+    // B-309: exchange cancels all resting orders at 15:15 IST; expected, re-protected at the 9:15 open.
+    el.style.cssText = "display:block;margin:8px 0;padding:10px 14px;border-radius:6px;font-weight:600;background:rgba(251,191,36,.18);color:#fbbf24;border:1px solid rgba(251,191,36,.4);";
+    const pn = unprotected.map(u => `${u.kotak_trading_symbol} (qty ${u.qty}${u.is_short ? ", short" : ""})`).join(", ");
+    el.textContent = `ℹ No resting stop-loss overnight (expected): the exchange cancels all standing orders at 15:15 IST. SLs are re-placed at the 9:15 AM IST open — ${pn}.`;
+    return;
+  }
   if (unprotected.length > 0) {
     const names = unprotected.map(u => `${u.kotak_trading_symbol} (qty ${u.qty}${u.is_short ? ", short" : ""})`).join(", ");
     el.textContent = `⚠ NO STOP-LOSS: ${unprotected.length} open real position(s) have no live stop-loss order at Kotak right now — ${names}. Real money, no downside protection.`;
