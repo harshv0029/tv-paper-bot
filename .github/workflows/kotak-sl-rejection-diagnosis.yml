@@ -23,23 +23,43 @@ jobs:
           curl -sS -m 90 "$B/health" || true; echo
           curl -sS --retry 3 --retry-delay 10 -m 90 "$B/kotak-neo/order-report?token=${KOTAK_NEO_API_TOKEN}" -o /tmp/o.json || true
           curl -sS --retry 3 --retry-delay 10 -m 90 "$B/real-order-log?days=2" -o /tmp/l.json || true
+          curl -sS --retry 3 --retry-delay 10 -m 90 "$B/kotak-neo/holdings?token=${KOTAK_NEO_API_TOKEN}" -o /tmp/h.json || true
+          curl -sS --retry 3 --retry-delay 10 -m 90 "$B/kotak-neo/positions?token=${KOTAK_NEO_API_TOKEN}" -o /tmp/p.json || true
           python3 - <<'PY'
           import json, datetime
           IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
           S = ("NYKAA", "DRREDDY", "GMRAIRPORT", "INDHOTEL", "RVNL")
           try: rows = json.load(open("/tmp/o.json")).get("data") or []
           except Exception as e: rows = []; print("o unreadable", type(e).__name__)
-          sel = [r for r in rows if any(s in str(r.get("trdSym", "")) for s in S) and str(r.get("trnsTp", "")).upper().startswith("S")]
+          import re
+          def red(x): return re.sub(r"account-\S+", "account-X", str(x))
+          def rows_of(path):
+              try: d = json.load(open(path))
+              except Exception as e: print(path, "unreadable", type(e).__name__); return []
+              def f(x):
+                  if isinstance(x, list): return x
+                  if isinstance(x, dict):
+                      for v in x.values():
+                          r = f(v)
+                          if r: return r
+                  return []
+              return f(d)
+          bad = ("acc", "client", "ucc", "pan", "name", "actid", "entity")
+          for lbl, path in (("HOLDINGS", "/tmp/h.json"), ("POSITIONS", "/tmp/p.json")):
+              rr = [r for r in rows_of(path) if any(s in json.dumps(r).upper() for s in S)]
+              print(lbl, "rows for the 5 symbols:", len(rr))
+              for r in rr: print(lbl, {k: v for k, v in r.items() if not any(x in k.lower() for x in bad)})
+          sel = [r for r in rows if any(s in str(r.get("trdSym", "")) for s in S)]
           sel.sort(key=lambda r: str(r.get("ordDtTm", "")))
-          print("SELL-side order rows for the 5 symbols:", len(sel))
+          print("ORDER BOOK (all sides, all statuses) rows for the 5 symbols:", len(sel))
           for r in sel:
-              print("|".join(str(r.get(k, "")) for k in ("ordDtTm", "trdSym", "trnsTp", "prod", "prcTp", "qty", "prc", "trgPrc", "ordSt", "rejRsn", "rmk")))
-          print("cols: ordDtTm|trdSym|trnsTp|prod|prcTp|qty|prc|trgPrc|ordSt|rejRsn|rmk")
+              print("ORD", "|".join(red(r.get(k, ""))[:90] for k in ("ordDtTm", "trdSym", "trnsTp", "prcTp", "qty", "trgPrc", "ordSt", "rejRsn")))
+          print("cols: ordDtTm|trdSym|trnsTp|prcTp|qty|trgPrc|ordSt|rejRsn")
           try: ev = json.load(open("/tmp/l.json")).get("events", [])
           except Exception as e: ev = []; print("l unreadable", type(e).__name__)
           print("app order-log events (2d):", len(ev))
-          for e in sorted(ev, key=lambda e: e["ts"]):
+          for e in sorted(ev, key=lambda e: e["ts"])[-40:]:
               if any(s in (e.get("symbol") or "") for s in S):
                   t = datetime.datetime.fromtimestamp(e["ts"], IST).strftime("%m-%d %H:%M:%S IST")
-                  print("LOG", t, e["symbol"], e.get("leg"), e.get("event"), "|", (e.get("new_state") or "")[:60], "|", (e.get("detail") or "")[:240])
+                  print("LOG", t, e["symbol"], e.get("leg"), e.get("event"), "|", (e.get("new_state") or "")[:60], "|", red(e.get("detail") or "")[:240])
           PY
