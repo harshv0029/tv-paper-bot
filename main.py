@@ -14230,6 +14230,44 @@ def get_real_pnl_today():
     }
 
 
+def _kotak_exit_fills_today(order_rows, closed_symbols, conn) -> list:
+    """B-295 part 4: today's exit fills straight from Kotak's order book (fldQty/avgPrc
+    of COMPLETE orders, Kotak wins over app data), reason from the app's own order log.
+    positions() only reports a fully squared-off round trip, so a swing/CNC holding sold
+    today (buy leg is in holdings, not today's positions) never reached the dashboard.
+    Rows here cover every completed SELL today whose symbol is NOT already in the
+    positions-derived closed trades. pnl is only given when the app's swing row holds the
+    (Kotak-aligned) entry price; otherwise None, never guessed."""
+    out, today = [], ist_now().strftime("%d-%b-%Y").lower()
+    for o in order_rows or []:
+        try:
+            if str(o.get("ordSt", "")).strip().lower() != "complete" or str(o.get("trnsTp", "")).upper() != "S":
+                continue
+            if today not in str(o.get("ordDtTm", "")).lower():
+                continue
+            tsym = o.get("trdSym") or ""
+            if tsym in closed_symbols:
+                continue
+            qty, avg = float(o.get("fldQty") or 0), float(o.get("avgPrc") or 0)
+            if qty <= 0 or avg <= 0:
+                continue
+            ev = conn.execute("SELECT detail FROM real_order_events WHERE order_id=? ORDER BY id DESC LIMIT 1",
+                              (str(o.get("nOrdNo")),)).fetchone()
+            reason = None
+            if ev and ev[0] and str(ev[0]).startswith("reason:"):
+                reason = str(ev[0])[7:].split(";")[0].strip()[:160]
+            sw = conn.execute("SELECT entry_price FROM real_positions_swing WHERE kotak_trading_symbol=?",
+                              (tsym,)).fetchone() if tsym else None
+            entry = float(sw[0]) if sw and sw[0] else None
+            out.append({"symbol": tsym, "order_id": str(o.get("nOrdNo")), "qty": qty, "exit_price_native": avg,
+                        "exit_time_ist": o.get("ordDtTm"), "entry_price_native": entry,
+                        "pnl_inr": round((avg - entry) * qty, 2) if entry else None,
+                        "exit_reason": reason or "kotak_order_book_sell", "source": "kotak_order_report"})
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
 @app.get("/real-trades-today")
 def get_real_trades_today():
     """Every closed REAL trade today, Kotak's own ground truth - not just
@@ -14292,7 +14330,17 @@ def get_real_trades_today():
                 "rr_target": None, "rr_achieved": None, "strategy": strategy,
             })
     trades.sort(key=lambda t: t["exit_time_utc"], reverse=True)
-    return {"date_ist": ist_now().strftime("%Y-%m-%d"), "trades_count": len(trades), "trades": trades}
+    exit_fills = []
+    try:
+        import kotak_neo
+        rep = kotak_neo.order_report()
+        rows = (rep.get("data") or []) if isinstance(rep, dict) else []
+        with closing(get_db()) as conn:
+            exit_fills = _kotak_exit_fills_today(rows, {t["symbol"] for t in trades}, conn)
+    except Exception as e:
+        print(f"[real-trades-today] exit fills unavailable (non-fatal): {e}")
+    return {"date_ist": ist_now().strftime("%Y-%m-%d"), "trades_count": len(trades), "trades": trades,
+            "exit_fills_not_in_closed_trades": exit_fills}
 
 
 @app.get("/real-trades-today-bot-only")
