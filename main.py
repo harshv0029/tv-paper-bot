@@ -17260,6 +17260,49 @@ def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max
     return max(float(initial_stop), float(running_max_close) - mult * float(atr_at_entry))
 
 
+def _align_swing_sl_rows_to_kotak(conn, order_rows) -> list:
+    """Kotak-is-truth alignment (2026-10-07 thumb rule): wherever Kotak's own order
+    book and this app's real_positions_swing row disagree about the resting SL, the
+    ROW is rewritten to match Kotak, never the reverse. Live SELL SL on the symbol
+    -> row's sl_order_id/sl_trigger_price become that order's id/trigger (highest
+    trigger wins); no live SL but the row claims one -> sl_order_id cleared so the
+    backfill re-places it. An empty/unreadable order book changes nothing."""
+    if not order_rows:
+        return []
+    out = []
+    for r in conn.execute("SELECT * FROM real_positions_swing").fetchall():
+        live = []
+        for o in order_rows:
+            if o.get("trdSym") != r["kotak_trading_symbol"] or o.get("trnsTp") != "S":
+                continue
+            if str(o.get("prcTp", "")).upper() not in ("SL", "SL-M"):
+                continue
+            if str(o.get("ordSt", "")).strip().lower() in ("complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"):
+                continue
+            try:
+                live.append((float(o.get("trgPrc") or 0), str(o.get("nOrdNo"))))
+            except (TypeError, ValueError):
+                continue
+        if live:
+            trg, oid = max(live)
+            cur = r["sl_trigger_price"]
+            if r["sl_order_id"] != oid or cur is None or abs(float(cur) - trg) > 0.005:
+                conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                             (oid, trg, r["symbol"]))
+                out.append({"symbol": r["symbol"], "action": "aligned_to_kotak", "order_id": oid, "trigger": trg})
+        elif r["sl_order_id"]:
+            conn.execute("UPDATE real_positions_swing SET sl_order_id = NULL WHERE symbol = ?", (r["symbol"],))
+            out.append({"symbol": r["symbol"], "action": "cleared_no_live_sl_at_kotak"})
+    if out:
+        conn.commit()
+        _sync_real_positions_swing_external(conn)
+        for a in out:
+            _log_real_order_event(
+                conn, a["symbol"], "sl", a["action"], new_state=str(a.get("trigger", "none")),
+                reason="Kotak order book is ground truth; this app's swing SL record was rewritten to match it")
+    return out
+
+
 def _sync_swing_resting_sl_to_strategy(conn):
     """Daily (2026-10-06, explicit user instruction): move each open real
     swing position's RESTING Kotak stop to the level its own strategy's exit
@@ -20152,6 +20195,10 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         # retry the placement for every row still missing sl_order_id,
         # every single reconcile call (now every 5 min via the in-process
         # scheduler tick, same cadence as long/short).
+        try:
+            _align_swing_sl_rows_to_kotak(conn, order_rows)
+        except Exception as e:
+            print(f"[reconcile] swing SL align-to-Kotak failed (non-fatal): {e}")
         governance_backfilled_swing = []
         for r in conn.execute("SELECT * FROM real_positions_swing WHERE sl_order_id IS NULL").fetchall():
             import kotak_real_orders
