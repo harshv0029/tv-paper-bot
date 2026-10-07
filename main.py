@@ -4767,7 +4767,7 @@ ORDER_BLOCK_IMPULSE_VOL_MULT = 1.5
 ORDER_BLOCK_LOOKBACK_DAYS = 10
 ORDER_BLOCK_RETEST_MAX_DAYS = 20
 ORDER_BLOCK_ATR_STOP_MULT = 2.0
-ORDER_BLOCK_ATR_TRAIL_MULT = 3.0
+ORDER_BLOCK_ATR_TRAIL_MULT = 6.0  # B-26 2026-10-07: 6.0x sweep PFnet 1.105 vs 3.0x 1.081
 ORDER_BLOCK_MAX_HOLD_DAYS = 30
 ORDER_BLOCK_MIN_LOOKBACK_DAYS = 60
 
@@ -4775,7 +4775,7 @@ VP_LOOKBACK_BARS = 60
 VP_NUM_BINS = 24
 VP_POC_TOLERANCE_PCT = 1.0
 VP_APPROACH_LOOKBACK_BARS = 5
-VP_ATR_TRAIL_MULT = 3.0
+VP_ATR_TRAIL_MULT = 6.0  # B-26 2026-10-07: 6.0x sweep PFnet 1.076 vs 3.0x 1.049
 VP_MAX_HOLD_DAYS = 30
 VP_MIN_LOOKBACK_DAYS = 90
 
@@ -10447,8 +10447,8 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # live wiring" -> "Port and real money now") - PFnet 1.062 / 1.025 from
     # the research-embedded runs 37358050173 / 37358062832; main.py ports
     # not yet re-validated (backlog B-30), disclosed at their definitions.
-    "order_block_delta": "order_block_delta_long",
-    "volume_profile_poc": "volume_profile_poc_bounce_long",
+    "order_block_delta": "order_block_delta__retest__long__1d__trail6d0__v1",
+    "volume_profile_poc": "volume_profile_poc__bounce__long__1d__trail6d0__v1",
 }
 
 

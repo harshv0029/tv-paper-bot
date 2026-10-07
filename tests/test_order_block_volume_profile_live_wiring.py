@@ -117,7 +117,7 @@ def test_exits_trail_stop_and_hold_running_max():
         df = _exit_df(100.0)
         reason, rm = fn(df, "2099-01-01", 90.0, 2.0, 100.0)
         assert reason is None and rm == 100.0
-        reason, _ = fn(_exit_df(93.0), "2099-01-01", 90.0, 2.0, 100.0)   # 100 - 3*2 = 94 -> hit
+        reason, _ = fn(_exit_df(85.0), "2099-01-01", 90.0, 2.0, 100.0)   # 100 - 6*2 = 88 -> hit (B-26 6.0x trail)
         assert reason == "trail_stop_hit"
 
 
@@ -131,8 +131,8 @@ def test_exits_max_hold_timeout():
 
 
 def test_tags_map_to_viable_registry_entries_and_open_real_gate():
-    assert main._STRATEGY_TAG_TO_REGISTRY_NAME["order_block_delta"] == "order_block_delta_long"
-    assert main._STRATEGY_TAG_TO_REGISTRY_NAME["volume_profile_poc"] == "volume_profile_poc_bounce_long"
+    assert main._STRATEGY_TAG_TO_REGISTRY_NAME["order_block_delta"] == "order_block_delta__retest__long__1d__trail6d0__v1"
+    assert main._STRATEGY_TAG_TO_REGISTRY_NAME["volume_profile_poc"] == "volume_profile_poc__bounce__long__1d__trail6d0__v1"
     assert main._is_strategy_viable_for_real_money("order_block_delta") is True
     assert main._is_strategy_viable_for_real_money("volume_profile_poc") is True
 
