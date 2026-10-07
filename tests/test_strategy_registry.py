@@ -171,6 +171,9 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
         "minervini_vcp_breakeven_2r", "minervini_vcp_breakeven_3r",
         "minervini_vcp_livermore_confirmed", "primary_base",
         "order_block_delta_long", "volume_profile_poc_bounce_long",
+        # 2026-10-07: gap_and_go max-hold variants (run 37572300915, full universe)
+        "gap_and_go__swing__long__1d__hold30__v1",
+        "gap_and_go__swing__long__1d__hold60__v1",
     }
     assert not any(n.startswith("rsi_reversal__") for n in viable)
 
