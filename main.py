@@ -17337,6 +17337,40 @@ def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max
     return max(float(initial_stop), float(running_max_close) - mult * float(atr_at_entry))
 
 
+def _log_unlogged_kotak_orders(conn, order_rows) -> int:
+    """B-307: Kotak's order book is ground truth, so every order in it must have an
+    app log row (reason rule). Any Kotak order whose nOrdNo has no real_order_events
+    row (an order this app placed but failed to log, a cancel made on a path that
+    logs nothing, or a manual order) gets a `kotak_order_not_in_app_log` row built
+    from Kotak's own fields, so the log can never silently miss an order. Runs every
+    5-min reconcile; idempotent (the new row carries the order id)."""
+    n = 0
+    try:
+        known = {r[0] for r in conn.execute("SELECT order_id FROM real_order_events WHERE order_id IS NOT NULL").fetchall()}
+        for row in order_rows or []:
+            oid = str(row.get("nOrdNo") or "")
+            if not oid or oid in known:
+                continue
+            tsym = row.get("trdSym") or ""
+            detail = (f"reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or "
+                      f"manually); Kotak facts: {row.get('ordDtTm','')} {row.get('trnsTp','')} {row.get('prcTp','')} "
+                      f"qty {row.get('qty','')} trg {row.get('trgPrc','')} status {row.get('ordSt','')} "
+                      f"rejRsn {str(row.get('rejRsn') or '')[:120]}")
+            conn.execute(
+                "INSERT INTO real_order_events (ts, symbol, kotak_trading_symbol, leg, event, order_id, "
+                "prev_state, new_state, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (time.time(), tsym.rsplit("-", 1)[0] + ".NS" if tsym else None, tsym, "kotak",
+                 "kotak_order_not_in_app_log", oid, None, str(row.get("ordSt") or ""), detail))
+            known.add(oid)
+            n += 1
+        if n:
+            conn.commit()
+            sync_generic_tables_external(only=("real_order_events",))
+    except Exception as e:
+        print(f"[order_log] unlogged-kotak-orders check failed (non-fatal): {e}")
+    return n
+
+
 def _align_swing_sl_rows_to_kotak(conn, order_rows) -> list:
     """Kotak-is-truth alignment (2026-10-07 thumb rule): wherever Kotak's own order
     book and this app's real_positions_swing row disagree about the resting SL, the
@@ -19422,6 +19456,23 @@ def kotak_neo_limits(request: Request):
         return {"error": str(e)}
 
 
+def _kotak_holdings_gross_qty() -> dict:
+    """{trdSym: qty} straight from holdings(), NOT netted against today's sells
+    (B-306). Empty on any failure (then no netting happens: fail-safe)."""
+    out: dict = {}
+    try:
+        import kotak_neo
+        rows = (kotak_neo.holdings() or {}).get("data") or []
+        for r in rows:
+            if isinstance(r, dict) and r.get("exchangeSegment") == "nse_cm" and r.get("symbol"):
+                q = float(r.get("quantity", 0) or 0)
+                if q > 0:
+                    out[f"{r['symbol']}-{r.get('series') or 'EQ'}"] = q
+    except Exception:
+        return {}
+    return out
+
+
 def _kotak_holdings_open_by_trdsym() -> dict | None:
     """Fresh Kotak holdings() (delivery shares - swing positions live here,
     NOT in positions(), confirmed by the B-46b probe 2026-10-06: NYKAA was
@@ -19960,6 +20011,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
     # this function - qty_corrected/removed_ghosts/untracked below now
     # branch on the sign explicitly instead.
     kotak_open_by_trdsym: dict[str, dict] = {}
+    _gross_holdings = _kotak_holdings_gross_qty()
     for row in rows:
         try:
             if row.get("exSeg") != "nse_cm":
@@ -19967,6 +20019,13 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             fl_buy = float(row.get("flBuyQty", 0) or 0)
             fl_sell = float(row.get("flSellQty", 0) or 0)
             net_qty = fl_buy - fl_sell
+            if net_qty < 0 and row.get("trdSym") in _gross_holdings:
+                # B-306: selling a DELIVERY holding today shows as net-short in
+                # positions() (flSellQty > flBuyQty) while holdings() still lists
+                # it (T+1). That is a sold swing share, not a short: net it
+                # against the holding, never adopt a phantom short (NYKAA 3:33 PM
+                # IST BUY SL + BUY exit, both rejected).
+                net_qty += min(-net_qty, _gross_holdings[row.get("trdSym")])
             if net_qty == 0:
                 continue  # fully squared off - not an open position
             trd_sym = row.get("trdSym")
@@ -20486,6 +20545,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             _align_swing_sl_rows_to_kotak(conn, order_rows)
         except Exception as e:
             print(f"[reconcile] swing SL align-to-Kotak failed (non-fatal): {e}")
+        _log_unlogged_kotak_orders(conn, order_rows)
         governance_backfilled_swing = []
         # 2026-10-07: no SL placement while the exchange is closed (Kotak rejects them
         # and the retries buried the real order book); the next in-hours reconcile does it.
