@@ -244,8 +244,8 @@ def test_reconcile_backfills_missing_swing_sl_every_call_not_just_once_a_day():
         {"exSeg": "nse_cm", "trdSym": "NYKAA-EQ", "flBuyQty": "1", "flSellQty": "0", "buyAmt": "340.10"},
     ]}
     fake_kotak_real_orders = MagicMock()
-    fake_kotak_real_orders.place_real_stop_loss.return_value = {
-        "ok": True, "order_id": "SL1", "trigger_price": 333.30,
+    fake_kotak_real_orders.ensure_resting_sl.return_value = {
+        "ok": True, "order_id": "SL1", "trigger_price": 333.30, "action": "placed",
     }
     with patch("kotak_neo.positions", return_value=fake_positions), \
          patch("kotak_neo.limits", return_value={"Net": "1000"}), \
@@ -276,7 +276,7 @@ def test_reconcile_swing_backfill_skips_rows_that_already_have_a_resting_sl():
         result = main._reconcile_real_positions_core(adopt=None)
 
     assert result["governance_backfilled_swing_count"] == 0
-    fake_kotak_real_orders.place_real_stop_loss.assert_not_called()
+    fake_kotak_real_orders.ensure_resting_sl.assert_not_called()
 
 
 def test_reconcile_excludes_swing_trading_symbols_from_untracked_detection():
