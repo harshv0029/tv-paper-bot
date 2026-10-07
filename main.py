@@ -17386,6 +17386,7 @@ def _sync_swing_resting_sl_to_strategy(conn):
 
 # --- 2026-10-07 (B-294): LTP-peak trail for rerouted orphans + gap_and_go state for NYKAA ---
 SWING_LTP_TRAIL_EVERY_N_TICKS = 10  # ~5 min at the 30s tick, same cadence as the backcheck
+SWING_LTP_TRAIL_SYMBOLS = ("RVNL.NS", "DRREDDY.NS")  # user, 2026-10-07: these two trail 1R off the peak live price
 
 
 def _swing_live_ltp_peak(symbol: str) -> tuple[float | None, float | None]:
@@ -17423,11 +17424,19 @@ def _sync_swing_ltp_trail(conn) -> list:
     if held is None:
         return []  # unknown is not "not held" - skip this pass
     actions = []
-    for r in conn.execute("SELECT * FROM real_positions_swing WHERE strategy = ?", (ORPHAN_SWING_STRATEGY_TAG,)).fetchall():
+    # 2026-10-07: DRREDDY's row was relabelled volume_profile_poc after its reroute, so
+    # select by the user's named symbols as well as by the orphan tag.
+    _trail_rows = conn.execute(
+        "SELECT * FROM real_positions_swing WHERE strategy = ? OR symbol IN (%s)" % ",".join("?" * len(SWING_LTP_TRAIL_SYMBOLS)),
+        (ORPHAN_SWING_STRATEGY_TAG, *SWING_LTP_TRAIL_SYMBOLS)).fetchall()
+    for r in _trail_rows:
         if r["kotak_trading_symbol"] not in held and _kotak_symbol_still_open(r["kotak_trading_symbol"]) is not True:
             continue
         st = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = ?", (r["symbol"],)).fetchone()
-        if not st or not st["atr_at_entry"]:
+        if not st:
+            continue
+        r_unit = float(st["entry_price"]) - float(st["initial_stop_loss"])  # 1R = entry - initial stop
+        if r_unit <= 0:
             continue
         ltp, day_peak = _swing_live_ltp_peak(r["symbol"])
         if ltp is None:
@@ -17438,7 +17447,7 @@ def _sync_swing_ltp_trail(conn) -> list:
                      "ON CONFLICT(symbol) DO UPDATE SET peak_ltp = excluded.peak_ltp, updated_at = excluded.updated_at",
                      (r["symbol"], peak, time.time()))
         conn.commit()
-        target = _ltp_trail_stop(peak, st["atr_at_entry"], st["initial_stop_loss"])
+        target = _ltp_trail_stop(peak, r_unit, st["initial_stop_loss"])
         current = float(r["sl_trigger_price"] or r["stop_loss"])
         if target <= current + 0.05 or target >= ltp:
             continue  # ratchet up only; a stop at/above the live price would just fire
@@ -17465,7 +17474,7 @@ def _sync_swing_ltp_trail(conn) -> list:
             order_id=res["order_id"], prev_state=f"resting SELL trigger Rs{current:.2f}",
             new_state=f"resting SELL trigger Rs{res['trigger_price']:.2f}",
             detail=f"LTP trail ({res.get('action')}; Kotak holdings and order book read first)",
-            reason=f"peak live price Rs{peak:.2f} - 1R (Rs{float(st['atr_at_entry']):.2f}) raised the stop from Rs{current:.2f}")
+            reason=f"peak live price Rs{peak:.2f} - 1R (Rs{r_unit:.2f}) raised the stop from Rs{current:.2f}")
         actions.append({"symbol": r["symbol"], "ok": True, "from": current, "to": res["trigger_price"]})
     return actions
 
