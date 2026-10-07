@@ -196,6 +196,7 @@ def test_exit_clears_stale_row_without_reselling_when_already_closed_at_broker()
         )
         conn.commit()
         with patch("main._kotak_symbol_still_open", return_value=False), \
+             patch("main._kotak_holdings_open_by_trdsym", return_value={}), \
              patch("kotak_real_orders.place_real_exit") as mock_exit:
             main._maybe_place_real_swing_exit(conn, "TESTSTOCK.NS")
             mock_exit.assert_not_called()

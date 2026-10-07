@@ -988,6 +988,15 @@ def init_db():
         # table only; no other table is touched by the prune.
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS swing_ltp_peak (
+                symbol TEXT PRIMARY KEY,
+                peak_ltp REAL NOT NULL,   -- highest live price seen since entry (RVNL/DRREDDY 1R LTP trail, ratchet-up only)
+                updated_at REAL
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS sl_order_snapshot (
                 day TEXT NOT NULL,
                 kotak_trading_symbol TEXT NOT NULL,
@@ -11694,6 +11703,25 @@ def _kotak_symbol_still_open(kotak_trading_symbol: str) -> bool | None:
     return False
 
 
+def _kotak_swing_symbol_still_held(kotak_trading_symbol: str) -> bool | None:
+    """Swing positions are DELIVERY holdings: Kotak shows them in holdings(),
+    not positions() (B-46b probe, 2026-10-06). 2026-10-07 bug (NYKAA): the swing
+    exit used positions() alone, so a still-held holding read as "already closed
+    at Kotak" and its row was cleared (skipped_duplicate). Held = in positions()
+    as open OR in holdings(). False only when BOTH fetched fine and neither shows
+    it; None (fail open, as before) when either fetch failed and the other did
+    not show it."""
+    pos = _kotak_symbol_still_open(kotak_trading_symbol)
+    if pos is True:
+        return True
+    holdings = _kotak_holdings_open_by_trdsym()
+    if holdings is not None and kotak_trading_symbol in holdings:
+        return True
+    if pos is None or holdings is None:
+        return None
+    return False
+
+
 def _real_held_qty(kotak_trading_symbol: str) -> float | None:
     """Ground-truth CURRENT quantity actually held at Kotak for this exact
     trading symbol (flBuyQty - flSellQty), same query shape and fields as
@@ -15435,7 +15463,7 @@ _GENERIC_MIRROR_TABLES = (
     "real_trading_control", "trading_control", "real_fo_positions",
     "real_fo_trades", "option_state", "nse_straddle_state",
     "signal_state_fo_options", "swing_scan_log", "tracked_union",
-    "sl_order_snapshot",
+    "sl_order_snapshot", "swing_ltp_peak",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
@@ -16449,7 +16477,7 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
     # live-confirmed mechanism this guards against. _kotak_symbol_still_
     # open checks Kotak's own positions() by trading symbol, not by which
     # local table tracks it, so it's directly reusable here.
-    still_open = _kotak_symbol_still_open(row["kotak_trading_symbol"])
+    still_open = _kotak_swing_symbol_still_held(row["kotak_trading_symbol"])
     if still_open is False:
         conn.execute("DELETE FROM real_positions_swing WHERE symbol = ?", (symbol,))
         conn.commit()
@@ -17356,18 +17384,182 @@ def _sync_swing_resting_sl_to_strategy(conn):
     return actions
 
 
+# --- 2026-10-07 (B-294): LTP-peak trail for rerouted orphans + gap_and_go state for NYKAA ---
+SWING_LTP_TRAIL_EVERY_N_TICKS = 10  # ~5 min at the 30s tick, same cadence as the backcheck
+
+
+def _swing_live_ltp_peak(symbol: str) -> tuple[float | None, float | None]:
+    """(latest price, highest 1-minute close today) from the freshest 1m bars.
+    The peak is a max over 1m closes polled every ~5 min, so it can understate
+    a sub-minute spike - it never overstates the price actually traded."""
+    try:
+        df = fetch_ohlc(symbol, "1d", "1m")
+        if df is None or len(df) == 0:
+            return None, None
+        closes = df["Close"].astype(float)
+        return float(closes.iloc[-1]), float(closes.max())
+    except Exception as e:
+        print(f"[SWING LTP TRAIL] price fetch failed for {symbol}: {e}")
+        return None, None
+
+
+def _ltp_trail_stop(peak_ltp: float, r: float, initial_stop: float) -> float:
+    """Stop = peak live LTP - 1R (R = atr_at_entry for the orphan tag); never
+    below the carried initial stop. Pure; ratchet-up is enforced by the caller
+    (only raises, never lowers, the resting SL)."""
+    return round(max(float(initial_stop), float(peak_ltp) - ORPHAN_SWING_TRAIL_R_MULT * float(r)), 2)
+
+
+def _sync_swing_ltp_trail(conn) -> list:
+    """RVNL/DRREDDY (rerouted orphan swing rows): trail the REAL resting SL to
+    peak live LTP - 1R, ratchet up only (user, 2026-10-07). Follows the thumb
+    rule sequence: Kotak holdings+positions first, then the Kotak order book
+    (ensure_resting_sl scans it before placing/replacing), only then the DB.
+    Intraday cadence, market hours only, never lowers a stop, logs the reason."""
+    if not _nse_equity_market_open_now():
+        return []
+    import kotak_real_orders
+    held = _kotak_holdings_open_by_trdsym()
+    if held is None:
+        return []  # unknown is not "not held" - skip this pass
+    actions = []
+    for r in conn.execute("SELECT * FROM real_positions_swing WHERE strategy = ?", (ORPHAN_SWING_STRATEGY_TAG,)).fetchall():
+        if r["kotak_trading_symbol"] not in held and _kotak_symbol_still_open(r["kotak_trading_symbol"]) is not True:
+            continue
+        st = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = ?", (r["symbol"],)).fetchone()
+        if not st or not st["atr_at_entry"]:
+            continue
+        ltp, day_peak = _swing_live_ltp_peak(r["symbol"])
+        if ltp is None:
+            continue
+        prev = conn.execute("SELECT peak_ltp FROM swing_ltp_peak WHERE symbol = ?", (r["symbol"],)).fetchone()
+        peak = max(float(prev["peak_ltp"]) if prev else float(st["entry_price"]), day_peak, ltp)
+        conn.execute("INSERT INTO swing_ltp_peak (symbol, peak_ltp, updated_at) VALUES (?, ?, ?) "
+                     "ON CONFLICT(symbol) DO UPDATE SET peak_ltp = excluded.peak_ltp, updated_at = excluded.updated_at",
+                     (r["symbol"], peak, time.time()))
+        conn.commit()
+        target = _ltp_trail_stop(peak, st["atr_at_entry"], st["initial_stop_loss"])
+        current = float(r["sl_trigger_price"] or r["stop_loss"])
+        if target <= current + 0.05 or target >= ltp:
+            continue  # ratchet up only; a stop at/above the live price would just fire
+        res = kotak_real_orders.ensure_resting_sl(r["kotak_trading_symbol"], r["qty"], target)
+        if not res.get("ok"):
+            _log_real_order_event(
+                conn, r["symbol"], "sl", "trail_failed", kotak_trading_symbol=r["kotak_trading_symbol"],
+                prev_state=f"resting SELL trigger Rs{current:.2f}", new_state="unchanged/unknown",
+                detail=str(res.get("detail"))[:200],
+                reason=f"LTP trail wanted Rs{target:.2f} (peak Rs{peak:.2f} - 1R) but the replace failed")
+            if res.get("restored_order_id"):
+                conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                             (res["restored_order_id"], res["restored_trigger"], r["symbol"]))
+                conn.commit()
+                _sync_real_positions_swing_external(conn)
+            actions.append({"symbol": r["symbol"], "ok": False, "target": target})
+            continue
+        conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                     (res["order_id"], res["trigger_price"], r["symbol"]))
+        conn.commit()
+        _sync_real_positions_swing_external(conn)
+        _log_real_order_event(
+            conn, r["symbol"], "sl", "trailed", kotak_trading_symbol=r["kotak_trading_symbol"],
+            order_id=res["order_id"], prev_state=f"resting SELL trigger Rs{current:.2f}",
+            new_state=f"resting SELL trigger Rs{res['trigger_price']:.2f}",
+            detail=f"LTP trail ({res.get('action')}; Kotak holdings and order book read first)",
+            reason=f"peak live price Rs{peak:.2f} - 1R (Rs{float(st['atr_at_entry']):.2f}) raised the stop from Rs{current:.2f}")
+        actions.append({"symbol": r["symbol"], "ok": True, "from": current, "to": res["trigger_price"]})
+    return actions
+
+
+def _derive_gap_and_go_state(df, avg_price: float, lookback: int = 40):
+    """Find the daily bar on which gap_and_go_entry_signal fires with a close
+    within 3% of this holding's real average price, looking back `lookback`
+    bars. Returns {entry_day, entry_price, stop_loss, gap_low} or None. Uses the
+    real signal function; never invents a gap low."""
+    n = len(df)
+    for k in range(n - 1, max(n - 1 - lookback, 40), -1):
+        sig = gap_and_go_entry_signal(df.iloc[:k + 1].reset_index(drop=True))
+        if sig and abs(sig["entry_price"] - avg_price) / avg_price <= 0.03:
+            return {"entry_day": str(df["Date"].iloc[k])[:10], "entry_price": float(sig["entry_price"]),
+                    "stop_loss": float(sig["stop_loss"]), "gap_low": float(sig["gap_low"])}
+    return None
+
+
+GAP_AND_GO_ADOPTED_SYMBOLS = ("NYKAA.NS",)  # user, 2026-10-07: "NYKAA follows exit strategy of gap and go"
+_gap_and_go_state_last_day = None
+
+
+def _ensure_gap_and_go_state_for_held(conn) -> list:
+    """NYKAA is a held delivery position entered as gap_and_go, but a restart/heal
+    left it with a real_positions_swing row and NO signal_state_swing row, so no
+    gap_and_go exit rule ever ran for it (and the swing exit then misread it).
+    Re-create the paper state from the real signal function on its daily bars:
+    stop_hit (close <= entry - 2.5 ATR14), gap_filled (close < gap low),
+    max_hold_timeout (30 trading days), no trail. If the gap bar cannot be
+    derived honestly, nothing is invented: it is logged and the ATR-stop heal
+    keeps protecting the position."""
+    global _gap_and_go_state_last_day
+    today = ist_now().strftime("%Y-%m-%d")
+    if _gap_and_go_state_last_day == today:
+        return []
+    out = []
+    for sym in GAP_AND_GO_ADOPTED_SYMBOLS:
+        row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = ?", (sym,)).fetchone()
+        if not row or conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
+            continue
+        held = _kotak_holdings_open_by_trdsym()
+        if held is None or row["kotak_trading_symbol"] not in held:
+            continue
+        try:
+            df = fetch_ohlc(sym, "1y", "1d")
+            df = df.reset_index() if "Date" not in df.columns else df
+            d = _derive_gap_and_go_state(df, float(held[row["kotak_trading_symbol"]]["avg_price"] or row["entry_price"]))
+        except Exception as e:
+            print(f"[SWING] gap_and_go state derivation failed for {sym}: {e}")
+            continue
+        if not d:
+            _log_real_order_event(
+                conn, sym, "reroute", "gap_and_go_state_not_derivable", kotak_trading_symbol=row["kotak_trading_symbol"],
+                new_state="no gap_and_go signal bar near the average price",
+                reason="could not honestly derive the gap low; ATR-stop protection stays, no gap_and_go exits")
+            out.append({"symbol": sym, "derived": False})
+            continue
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, gap_low, "
+            "qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) VALUES (?, 'gap_and_go', ?, ?, ?, ?, ?, ?, 1.0, NULL, NULL) "
+            "ON CONFLICT(symbol) DO NOTHING",
+            (sym, d["entry_day"], d["entry_price"], d["stop_loss"], d["gap_low"], row["qty"], row["opened_at"] or time.time()))
+        conn.execute("UPDATE real_positions_swing SET strategy = 'gap_and_go' WHERE symbol = ?", (sym,))
+        if not conn.execute("SELECT 1 FROM positions WHERE symbol = ? AND qty > 0", (sym,)).fetchone():
+            apply_paper_trade(conn, sym, "buy", row["qty"], d["entry_price"])  # so the paper exit has a position to close
+        conn.commit()
+        _sync_signal_state_swing_external(conn)
+        _sync_real_positions_swing_external(conn)
+        _log_real_order_event(
+            conn, sym, "reroute", "gap_and_go_state_restored", kotak_trading_symbol=row["kotak_trading_symbol"],
+            new_state=f"entry {d['entry_day']} @ Rs{d['entry_price']:.2f}, stop Rs{d['stop_loss']:.2f}, gap low Rs{d['gap_low']:.2f}",
+            reason="user: NYKAA follows gap_and_go exit rules; paper state re-derived from the real signal on daily bars")
+        out.append({"symbol": sym, "derived": True, **d})
+    _gap_and_go_state_last_day = today
+    return out
+
+
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
 
     with closing(get_db()) as conn:
+        if _nse_equity_market_open_now():
+            try:
+                _ensure_gap_and_go_state_for_held(conn)
+            except Exception as e:
+                print(f"[SWING] gap_and_go state restore failed (non-fatal): {e}")
         try:
             _run_swing_scan(conn)
         except Exception as e:
             print(f"[SWING] scan failed (non-fatal, intraday tick continues): {e}")
         global _swing_sl_trail_last_day
         _today_ist = ist_now().strftime("%Y-%m-%d")
-        if _swing_sl_trail_last_day != _today_ist:
+        if _swing_sl_trail_last_day != _today_ist and _nse_equity_market_open_now():
             try:
                 _sync_swing_resting_sl_to_strategy(conn)
                 _sync_signal_state_swing_external(conn)
@@ -17749,6 +17941,12 @@ async def _scheduler_tick():
     # to be firing far less often than its own `*/5` schedule promises.
     # Best-effort and isolated like every other block in this tick - a
     # Kotak/network hiccup here must never block the rest of the scan.
+    if _scheduler_tick_count % SWING_LTP_TRAIL_EVERY_N_TICKS == 0:
+        try:
+            with closing(get_db()) as _trail_conn:
+                _sync_swing_ltp_trail(_trail_conn)
+        except Exception as e:
+            print(f"[SWING LTP TRAIL] pass failed (non-fatal): {e}")
     if _scheduler_tick_count % _UNPROTECTED_BACKCHECK_EVERY_N_TICKS == 0:
         try:
             _reconcile_real_positions_core(adopt="*")
@@ -19071,6 +19269,15 @@ def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: 
                          (sl["order_id"], sl["trigger_price"], symbol))
         conn.commit()
         _sync_real_positions_swing_external(conn)
+        # 2026-10-07: every real order carries a logged reason (GMRAIRPORT/INDHOTEL SLs
+        # were placed by this heal path with no event row at all).
+        _log_real_order_event(
+            conn, symbol, "sl", "placed" if sl.get("ok") else "failed", kotak_trading_symbol=kotak_trading_symbol,
+            order_id=sl.get("order_id"), prev_state="no live resting SL at Kotak (holdings + order book checked first)",
+            new_state=(f"resting SELL trigger Rs{sl['trigger_price']:.2f}" if sl.get("ok") else "none (placement failed)"),
+            detail=str(sl.get("detail") or sl.get("error") or "")[:200] or None,
+            reason=("delivery holding found with no live SL; "
+                    + ("previous day's stop carried over" if carried > 0 else "stop = avg price - 2.5 x daily ATR")))
     return {"symbol": symbol, "qty": held["qty"], "avg_price": held["avg_price"],
             "atr": round(atr_last, 2) if atr_last else None, "stop": stop, "carried_over": bool(carried), "sl_ok": bool(sl.get("ok")),
             "sl_trigger_price": sl.get("trigger_price"), "sl_error": sl.get("error")}
@@ -20200,7 +20407,11 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         except Exception as e:
             print(f"[reconcile] swing SL align-to-Kotak failed (non-fatal): {e}")
         governance_backfilled_swing = []
-        for r in conn.execute("SELECT * FROM real_positions_swing WHERE sl_order_id IS NULL").fetchall():
+        # 2026-10-07: no SL placement while the exchange is closed (Kotak rejects them
+        # and the retries buried the real order book); the next in-hours reconcile does it.
+        _swing_missing_sl = (conn.execute("SELECT * FROM real_positions_swing WHERE sl_order_id IS NULL").fetchall()
+                             if _nse_equity_market_open_now() else [])
+        for r in _swing_missing_sl:
             import kotak_real_orders
             sl_result = kotak_real_orders.ensure_resting_sl(
                 r["kotak_trading_symbol"], r["qty"], round(r["stop_loss"], 2)
