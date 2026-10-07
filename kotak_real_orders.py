@@ -795,6 +795,12 @@ def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: flo
             "status_confirmed": status["status"] in ("trigger pending", "open", "complete")}
 
 
+def _in_closing_session() -> bool:
+    import datetime as _dt
+    n = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=5, minutes=30)))
+    return n.hour * 60 + n.minute >= 15 * 60 + 15
+
+
 def ensure_resting_sl(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
     """Scan-then-act SL placement for LONG (swing) positions (2026-10-07, explicit
     user instruction after live rejects: "before placing any new order request you
@@ -850,6 +856,12 @@ def ensure_resting_sl(kotak_trading_symbol: str, qty: int, trigger_price: float)
         if best["trigger"] >= desired - 0.005 and sum(o["qty"] for o in live) >= qty:
             return {"ok": True, "order_id": best["order_id"], "trigger_price": best["trigger"],
                     "action": "adopted_existing", "raw_response": None}
+        if _in_closing_session():
+            # 15:15 IST+: Kotak/NSE reject new cash SLs, so cancelling the live one here
+            # would leave the position naked (B-308). Keep what rests; retry next session.
+            return {"ok": False, "order_id": best["order_id"], "trigger_price": best["trigger"],
+                    "action": "skipped_closing_session", "detail": "no SL replace after 15:15 IST",
+                    "raw_response": None}
         for o in live:
             cancel_real_order(o["order_id"])
         res = place_real_stop_loss(kotak_trading_symbol, qty, desired)
