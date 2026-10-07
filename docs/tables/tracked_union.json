@@ -1,22 +1,6 @@
 {
   "rows": [
     {
-      "kotak_trading_symbol": "DRREDDY-EQ",
-      "symbol": "DRREDDY.NS",
-      "qty": 1,
-      "is_short": 0,
-      "owner": "swing",
-      "source": "holding",
-      "entry_price": 1208.9,
-      "stop_loss": 1172.63,
-      "sl_trigger_price": 1193.3,
-      "strategy": "swing_rerouted_orphan",
-      "entry_order_id": "261006000629198",
-      "opened_at": 1791279806.1250653,
-      "day": "2026-10-06",
-      "first_seen_day": "2026-10-06"
-    },
-    {
       "kotak_trading_symbol": "GMRAIRPORT-EQ",
       "symbol": "GMRAIRPORT.NS",
       "qty": 5,
@@ -49,22 +33,6 @@
       "first_seen_day": "2026-10-06"
     },
     {
-      "kotak_trading_symbol": "NYKAA-EQ",
-      "symbol": "NYKAA.NS",
-      "qty": 1,
-      "is_short": 0,
-      "owner": "swing",
-      "source": "holding",
-      "entry_price": 340.11,
-      "stop_loss": 315.17,
-      "sl_trigger_price": 315.15,
-      "strategy": "holding_atr_stop",
-      "entry_order_id": null,
-      "opened_at": 1791281726.5718656,
-      "day": "2026-10-06",
-      "first_seen_day": "2026-10-06"
-    },
-    {
       "kotak_trading_symbol": "RVNL-EQ",
       "symbol": "RVNL.NS",
       "qty": 2,
@@ -81,5 +49,5 @@
       "first_seen_day": "2026-10-06"
     }
   ],
-  "synced_at_utc": "2026-10-07T09:30:22Z"
+  "synced_at_utc": "2026-10-07T16:49:24Z"
 }
