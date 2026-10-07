@@ -238,6 +238,46 @@ REGISTRY: list[StrategyDef] = [
         ),
     ),
     StrategyDef(
+        name="gap_and_go__swing__long__1d__hold30__v1",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.VALIDATED,
+        entry_fn=None,  # main.py.gap_and_go_entry_signal / gap_and_go_exit_reason
+        metrics=Metrics(
+            pfnet=1.31, pfgross=1.55, win_rate_pct=32.5, n_trades=11451,
+            avg_net_inr=284.79, cost_drag_pct=8.0, avg_held_hrs=110.0,
+            universe="full_2680 (fetched 2372/2688)",
+            run_ref="gap-and-go-hold-30-vs-60-full-universe-replay.yml run 37572300915 (2026-10-07 IST, real main.py entry/exit fns)",
+        ),
+        source="main.py (gap_and_go_entry_signal/gap_and_go_exit_reason)",
+        evidence=(
+            "Full-universe run 37572300915, max hold 30 trading days: n=11451, win 32.5%, "
+            "PFnet 1.31, PFgross 1.55, avg held 17.6 trading days. By exit: max_hold_timeout n=4591 win 80.2% PFnet 23.62; gap_filled n=5786 0% win; stop_hit n=987 0% win; data_end_forced_close n=87."
+        ),
+        notes='Wired live 2026-10-07 on explicit user instruction (SWING_GAP_AND_GO_MAX_HOLD_DAYS=30). Faster turnover than hold60. Variant of the legacy `gap_and_go` tag, which stays registered (gap_and_go_swing, 52-symbol PFnet 1.65). ATR-multiple/candle-size sweep for this variant still owed.',
+    ),
+    StrategyDef(
+        name="gap_and_go__swing__long__1d__hold60__v1",
+        asset_class=AssetClass.EQUITY_SWING,
+        categories=(TradeCategory.SWING,),
+        timeframe="1d",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,  # main.py.gap_and_go_entry_signal / gap_and_go_exit_reason
+        metrics=Metrics(
+            pfnet=1.47, pfgross=1.7, win_rate_pct=27.8, n_trades=10668,
+            avg_net_inr=493.67, cost_drag_pct=6.6, avg_held_hrs=175.6,
+            universe="full_2680 (fetched 2364/2688)",
+            run_ref="gap-and-go-hold-30-vs-60-full-universe-replay.yml run 37572300915 (2026-10-07 IST, real main.py entry/exit fns)",
+        ),
+        source="main.py (gap_and_go_entry_signal/gap_and_go_exit_reason)",
+        evidence=(
+            "Full-universe run 37572300915, max hold 60 trading days: n=10668, win 27.8%, "
+            "PFnet 1.47, PFgross 1.7, avg held 28.1 trading days. By exit: max_hold_timeout n=3227 win 88.5% PFnet 69.70; gap_filled n=6118 0% win; stop_hit n=1140 0% win; data_end_forced_close n=183."
+        ),
+        notes='Previous live setting (60). Higher PFnet and avg net per trade than hold30 but ~10 more trading days held and lower win %; superseded live by hold30 per user instruction 2026-10-07. Stays registered.',
+    ),
+    StrategyDef(
         name="minervini_trend_template_generic_breakout",
         asset_class=AssetClass.EQUITY_SWING,
         categories=(TradeCategory.SWING,),

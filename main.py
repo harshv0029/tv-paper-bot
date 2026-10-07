@@ -3638,7 +3638,13 @@ SWING_GAP_PCT_THRESHOLD = 2.0     # today's Open >= this % above yesterday's Clo
 SWING_VOL_MULT = 1.5              # today's Volume must exceed this x its trailing 20d average
 SWING_ATR_N = 14
 SWING_ATR_STOP_MULT = 2.5         # protective stop = entry - this x ATR(14), disclosed addition
-SWING_MAX_HOLD_DAYS = 60          # disclosed addition, matches the validated backtest
+SWING_MAX_HOLD_DAYS = 60          # disclosed addition, matches the validated backtest (short fade + legacy readers)
+# 2026-10-07, explicit user instruction ("proceed with 30 day hold on gap and go,
+# make it live"): the LONG gap_and_go exit uses 30 trading days. Full-universe replay
+# calling the real fns (run 37572300915): hold30 PFnet 1.31 win 32.5% n=11451, avg held
+# 17.6d; hold60 PFnet 1.47 win 27.8% n=10668, avg held 28.1d. Both clear the 1.0 floor;
+# 30 turns capital over faster. Short fade keeps SWING_MAX_HOLD_DAYS (separate backtest).
+SWING_GAP_AND_GO_MAX_HOLD_DAYS = 30
 SWING_VOL_AVG_LOOKBACK = 20
 
 
@@ -5685,7 +5691,7 @@ def gap_and_go_exit_reason(df: pd.DataFrame, entry_day: str, stop_loss: float, g
     if closes[i] < gap_low:
         return "gap_filled"
     held_days = int(np.sum(dates > entry_day))
-    if held_days >= SWING_MAX_HOLD_DAYS:
+    if held_days >= SWING_GAP_AND_GO_MAX_HOLD_DAYS:
         return "max_hold_timeout"
     return None
 
@@ -10500,9 +10506,9 @@ _TRADE_THESIS_COMPONENTS = {
             "its own daily range), and volume confirmed genuine interest behind the move."
         ),
         "hold": (
-            f"This is a SWING position, expected to be held up to {SWING_MAX_HOLD_DAYS} "
-            "trading days at the outside, though the validated backtest's own average "
-            "holding period was closer to a month."
+            f"This is a SWING position, expected to be held up to {SWING_GAP_AND_GO_MAX_HOLD_DAYS} "
+            "trading days at the outside; the 30-day full-universe replay's average "
+            "holding period was about 17.6 trading days."
         ),
         "close_expectation": (
             "Whenever ONE of these happens first: price closes back below the stop-loss, "
