@@ -19403,6 +19403,28 @@ def _kotak_holdings_open_by_trdsym() -> dict | None:
                             "symbol": sym}
         except (TypeError, ValueError):
             continue
+    # B-303 (2026-10-07): holdings() lags delivery settlement (T+1), so a share
+    # SOLD today (DRREDDY stop hit 1:54 PM IST) still sits in holdings while
+    # positions() already shows the sell. Net today's fills out so the app closes
+    # its row from Kotak's truth instead of re-protecting/re-selling a sold stock.
+    # Fetch failure -> unnetted (treated as held, the fail-safe direction).
+    try:
+        import kotak_neo
+        presp = kotak_neo.positions()
+        prows = presp.get("data") if isinstance(presp, dict) else None
+        for prow in (prows or []):
+            if not isinstance(prow, dict) or prow.get("exSeg") != "nse_cm":
+                continue
+            tsym = prow.get("trdSym")
+            if tsym not in out:
+                continue
+            sold = float(prow.get("flSellQty", 0) or 0) - float(prow.get("flBuyQty", 0) or 0)
+            if sold > 0:
+                out[tsym]["qty"] = int(out[tsym]["qty"] - sold)
+                if out[tsym]["qty"] <= 0:
+                    del out[tsym]
+    except Exception:
+        pass
     return out
 
 
