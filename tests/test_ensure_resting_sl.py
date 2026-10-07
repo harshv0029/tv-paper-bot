@@ -75,3 +75,27 @@ def test_unreadable_order_book_falls_back_to_plain_place(monkeypatch):
     monkeypatch.setattr(kro, "place_real_stop_loss", lambda s, q, t: {"ok": True, "order_id": "N", "trigger_price": t})
     r = kro.ensure_resting_sl("DRREDDY-EQ", 1, 1172.6)
     assert r["ok"] and r["action"] == "placed_unchecked"
+
+
+def test_align_swing_rows_to_kotak(tmp_path, monkeypatch):
+    import main
+    from contextlib import closing
+    monkeypatch.setattr(main, "DB_PATH", str(tmp_path / "t.db")) if hasattr(main, "DB_PATH") else None
+    main.init_db()
+    with closing(main.get_db()) as conn:
+        conn.execute("DELETE FROM real_positions_swing")
+        for sym, oid, trg in (("AAA.NS", "OLD", 100.0), ("BBB.NS", "GONE", 50.0), ("CCC.NS", None, None)):
+            conn.execute(
+                "INSERT INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, opened_at, day, stop_loss, strategy, sl_order_id, sl_trigger_price) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (sym, sym[:3] + "-EQ", 1, 100.0, 0.0, "2026-10-07", 90.0, "gap_and_go", oid, trg))
+        conn.commit()
+        rows = [_row("NEW", 105.5, sym="AAA-EQ"), _row("X", 1, st="rejected", sym="BBB-EQ"), _row("CK", 77.0, sym="CCC-EQ")]
+        monkeypatch.setattr(main, "_sync_real_positions_swing_external", lambda c: None)
+        out = main._align_swing_sl_rows_to_kotak(conn, rows)
+        got = {r["symbol"]: (r["sl_order_id"], r["sl_trigger_price"]) for r in conn.execute("SELECT * FROM real_positions_swing")}
+        assert got["AAA.NS"] == ("NEW", 105.5)
+        assert got["BBB.NS"][0] is None
+        assert got["CCC.NS"] == ("CK", 77.0)
+        assert {a["action"] for a in out} == {"aligned_to_kotak", "cleared_no_live_sl_at_kotak"}
+        assert main._align_swing_sl_rows_to_kotak(conn, []) == []  # unreadable book changes nothing
