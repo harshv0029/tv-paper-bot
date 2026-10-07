@@ -242,15 +242,19 @@ jobs:
           # every other real_* table here. Deduped by id (real_order_events'
           # own AUTOINCREMENT primary key), same pattern as real_trade_log.json
           # above, so a re-run never double-appends the same event.
+          # B-305 (2026-10-07): dedupe key is now (id, ts, symbol, event,
+          # order_id), not id alone - the AUTOINCREMENT id restarts after a
+          # Render wipe, so id-only dedupe silently dropped every new event
+          # whose id collided with an old one (log frozen at id 557, 5 Oct).
           mkdir -p docs
           test -f docs/real_order_log.json || echo '[]' > docs/real_order_log.json
           jq -s '
             (.[0] // []) as $existing |
             (.[1].events // []) as $new |
             ($existing + $new)
-            | group_by(.id)
+            | group_by([.id, .ts, .symbol, .event, .order_id] | tojson)
             | map(.[0])
-            | sort_by(.id)
+            | sort_by(.ts, .id)
           ' docs/real_order_log.json /tmp/real-order-log.json > /tmp/real_order_log_merged.json
           mv /tmp/real_order_log_merged.json docs/real_order_log.json
           echo "real_order_log.json now has $(jq 'length' docs/real_order_log.json) entries"
