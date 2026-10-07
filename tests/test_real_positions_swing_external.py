@@ -249,6 +249,7 @@ def test_reconcile_backfills_missing_swing_sl_every_call_not_just_once_a_day():
     }
     with patch("kotak_neo.positions", return_value=fake_positions), \
          patch("kotak_neo.limits", return_value={"Net": "1000"}), \
+         patch("main._nse_equity_market_open_now", return_value=True), \
          patch("kotak_neo.order_report", return_value={"data": []}), \
          patch.dict("sys.modules", {"kotak_real_orders": fake_kotak_real_orders}):
         result = main._reconcile_real_positions_core(adopt=None)
