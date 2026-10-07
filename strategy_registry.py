@@ -2142,6 +2142,181 @@ REGISTRY: list[StrategyDef] = [
             "are not split out - never guessed). Candle-size sweep and per-direction split owed (B-16/B-17)."
         ),
     ),
+
+    StrategyDef(
+        name="gap_up_fade__fade__short__15m__atr0d5__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="15m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.378, pfgross=1.301, win_rate_pct=24.27, n_trades=17937, avg_held_hrs=409.7 / 60,
+            avg_net_inr=-511.26,
+            universe="full_2680 (2628/2688 fetched)",
+            run_ref="gap-up-fade-short-atr-mult-sweep-research.yml run 37512478604 (2026-10-07 IST, 15m/60d, sample_every=1, real main.py gap_up_fade functions)",
+        ),
+        source="main.py (gap_up_fade_entry_signal_short/gap_up_fade_exit_reason_short) via .github/workflows/gap-up-fade-short-atr-mult-sweep-research.yml",
+        evidence=(
+            "Run 37512478604 at 15m, ATR stop multiple 0.5: PFnet 0.378, PFgross 1.301, n=17,937, win 24.27%, "
+            "avg_net Rs-511.26, avg held 409.7 min. NOT VIABLE (< PFNET_LIVE_FLOOR). Same shape as 5m: "
+            "max_hold_timeout exits profitable, trail_stop_hit exits lose."
+        ),
+        notes=(
+            "Gap-Up Fade short, 15m candle cell of the ATR sweep; bar-count constants mean 15m bars here. "
+            "Registered per register-every-variant rule (pass or fail). 1h/1d still owed, 4h resample not built."
+        ),
+    ),
+
+    StrategyDef(
+        name="gap_up_fade__fade__short__15m__atr1d0__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="15m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.435, pfgross=1.334, win_rate_pct=27.21, n_trades=14756, avg_held_hrs=499.7 / 60,
+            avg_net_inr=-477.99,
+            universe="full_2680 (2628/2688 fetched)",
+            run_ref="gap-up-fade-short-atr-mult-sweep-research.yml run 37512478604 (2026-10-07 IST, 15m/60d, sample_every=1, real main.py gap_up_fade functions)",
+        ),
+        source="main.py (gap_up_fade_entry_signal_short/gap_up_fade_exit_reason_short) via .github/workflows/gap-up-fade-short-atr-mult-sweep-research.yml",
+        evidence=(
+            "Run 37512478604 at 15m, ATR stop multiple 1.0: PFnet 0.435, PFgross 1.334, n=14,756, win 27.21%, "
+            "avg_net Rs-477.99, avg held 499.7 min. NOT VIABLE (< PFNET_LIVE_FLOOR). Same shape as 5m: "
+            "max_hold_timeout exits profitable, trail_stop_hit exits lose."
+        ),
+        notes=(
+            "Gap-Up Fade short, 15m candle cell of the ATR sweep; bar-count constants mean 15m bars here. "
+            "Registered per register-every-variant rule (pass or fail). 1h/1d still owed, 4h resample not built."
+        ),
+    ),
+
+    StrategyDef(
+        name="gap_up_fade__fade__short__15m__atr1d5__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="15m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.459, pfgross=1.333, win_rate_pct=28.98, n_trades=13098, avg_held_hrs=566.4 / 60,
+            avg_net_inr=-460.08,
+            universe="full_2680 (2628/2688 fetched)",
+            run_ref="gap-up-fade-short-atr-mult-sweep-research.yml run 37512478604 (2026-10-07 IST, 15m/60d, sample_every=1, real main.py gap_up_fade functions)",
+        ),
+        source="main.py (gap_up_fade_entry_signal_short/gap_up_fade_exit_reason_short) via .github/workflows/gap-up-fade-short-atr-mult-sweep-research.yml",
+        evidence=(
+            "Run 37512478604 at 15m, ATR stop multiple 1.5: PFnet 0.459, PFgross 1.333, n=13,098, win 28.98%, "
+            "avg_net Rs-460.08, avg held 566.4 min. NOT VIABLE (< PFNET_LIVE_FLOOR). Same shape as 5m: "
+            "max_hold_timeout exits profitable, trail_stop_hit exits lose."
+        ),
+        notes=(
+            "Gap-Up Fade short, 15m candle cell of the ATR sweep; bar-count constants mean 15m bars here. "
+            "Registered per register-every-variant rule (pass or fail). 1h/1d still owed, 4h resample not built."
+        ),
+    ),
+
+    StrategyDef(
+        name="gap_up_fade__fade__short__15m__atr2d0__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="15m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.468, pfgross=1.334, win_rate_pct=29.52, n_trades=12337, avg_held_hrs=603.2 / 60,
+            avg_net_inr=-448.22,
+            universe="full_2680 (2628/2688 fetched)",
+            run_ref="gap-up-fade-short-atr-mult-sweep-research.yml run 37512478604 (2026-10-07 IST, 15m/60d, sample_every=1, real main.py gap_up_fade functions)",
+        ),
+        source="main.py (gap_up_fade_entry_signal_short/gap_up_fade_exit_reason_short) via .github/workflows/gap-up-fade-short-atr-mult-sweep-research.yml",
+        evidence=(
+            "Run 37512478604 at 15m, ATR stop multiple 2.0: PFnet 0.468, PFgross 1.334, n=12,337, win 29.52%, "
+            "avg_net Rs-448.22, avg held 603.2 min. NOT VIABLE (< PFNET_LIVE_FLOOR). Same shape as 5m: "
+            "max_hold_timeout exits profitable, trail_stop_hit exits lose."
+        ),
+        notes=(
+            "Gap-Up Fade short, 15m candle cell of the ATR sweep; bar-count constants mean 15m bars here. "
+            "Registered per register-every-variant rule (pass or fail). 1h/1d still owed, 4h resample not built."
+        ),
+    ),
+
+    StrategyDef(
+        name="gap_up_fade__fade__short__15m__atr2d5__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="15m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.47, pfgross=1.325, win_rate_pct=29.49, n_trades=11880, avg_held_hrs=627.6 / 60,
+            avg_net_inr=-443.62,
+            universe="full_2680 (2628/2688 fetched)",
+            run_ref="gap-up-fade-short-atr-mult-sweep-research.yml run 37512478604 (2026-10-07 IST, 15m/60d, sample_every=1, real main.py gap_up_fade functions)",
+        ),
+        source="main.py (gap_up_fade_entry_signal_short/gap_up_fade_exit_reason_short) via .github/workflows/gap-up-fade-short-atr-mult-sweep-research.yml",
+        evidence=(
+            "Run 37512478604 at 15m, ATR stop multiple 2.5: PFnet 0.47, PFgross 1.325, n=11,880, win 29.49%, "
+            "avg_net Rs-443.62, avg held 627.6 min. NOT VIABLE (< PFNET_LIVE_FLOOR). Same shape as 5m: "
+            "max_hold_timeout exits profitable, trail_stop_hit exits lose."
+        ),
+        notes=(
+            "Gap-Up Fade short, 15m candle cell of the ATR sweep; bar-count constants mean 15m bars here. "
+            "Registered per register-every-variant rule (pass or fail). 1h/1d still owed, 4h resample not built."
+        ),
+    ),
+
+    StrategyDef(
+        name="gap_up_fade__fade__short__15m__atr3d0__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="15m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.463, pfgross=1.31, win_rate_pct=29.59, n_trades=11659, avg_held_hrs=640.7 / 60,
+            avg_net_inr=-446.79,
+            universe="full_2680 (2628/2688 fetched)",
+            run_ref="gap-up-fade-short-atr-mult-sweep-research.yml run 37512478604 (2026-10-07 IST, 15m/60d, sample_every=1, real main.py gap_up_fade functions)",
+        ),
+        source="main.py (gap_up_fade_entry_signal_short/gap_up_fade_exit_reason_short) via .github/workflows/gap-up-fade-short-atr-mult-sweep-research.yml",
+        evidence=(
+            "Run 37512478604 at 15m, ATR stop multiple 3.0: PFnet 0.463, PFgross 1.31, n=11,659, win 29.59%, "
+            "avg_net Rs-446.79, avg held 640.7 min. NOT VIABLE (< PFNET_LIVE_FLOOR). Same shape as 5m: "
+            "max_hold_timeout exits profitable, trail_stop_hit exits lose."
+        ),
+        notes=(
+            "Gap-Up Fade short, 15m candle cell of the ATR sweep; bar-count constants mean 15m bars here. "
+            "Registered per register-every-variant rule (pass or fail). 1h/1d still owed, 4h resample not built."
+        ),
+    ),
+
+    StrategyDef(
+        name="gap_up_fade__fade__short__15m__atr4d0__v1",
+        asset_class=AssetClass.EQUITY_INTRADAY,
+        categories=(TradeCategory.SHORT_SELL,),
+        timeframe="15m",
+        status=StrategyStatus.RESEARCH,
+        entry_fn=None,
+        metrics=Metrics(
+            pfnet=0.455, pfgross=1.293, win_rate_pct=29.66, n_trades=11477, avg_held_hrs=651.9 / 60,
+            avg_net_inr=-451.55,
+            universe="full_2680 (2628/2688 fetched)",
+            run_ref="gap-up-fade-short-atr-mult-sweep-research.yml run 37512478604 (2026-10-07 IST, 15m/60d, sample_every=1, real main.py gap_up_fade functions)",
+        ),
+        source="main.py (gap_up_fade_entry_signal_short/gap_up_fade_exit_reason_short) via .github/workflows/gap-up-fade-short-atr-mult-sweep-research.yml",
+        evidence=(
+            "Run 37512478604 at 15m, ATR stop multiple 4.0: PFnet 0.455, PFgross 1.293, n=11,477, win 29.66%, "
+            "avg_net Rs-451.55, avg held 651.9 min. NOT VIABLE (< PFNET_LIVE_FLOOR). Same shape as 5m: "
+            "max_hold_timeout exits profitable, trail_stop_hit exits lose."
+        ),
+        notes=(
+            "Gap-Up Fade short, 15m candle cell of the ATR sweep; bar-count constants mean 15m bars here. "
+            "Registered per register-every-variant rule (pass or fail). 1h/1d still owed, 4h resample not built."
+        ),
+    ),
 ]
 
 
