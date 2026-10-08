@@ -18262,7 +18262,13 @@ async def _scheduler_tick():
                 _sync_swing_ltp_trail(_trail_conn)
         except Exception as e:
             print(f"[SWING LTP TRAIL] pass failed (non-fatal): {e}")
-    if _scheduler_tick_count % _UNPROTECTED_BACKCHECK_EVERY_N_TICKS == 0:
+    # 2026-10-08 thumb rule (B-315): the exchange wipes every resting order
+    # at 15:15 IST, so holdings start each day naked. From 09:15 to 09:30 IST
+    # the protect pass runs on EVERY tick (~30s) instead of every ~5 min, so
+    # the first action of the day is covering open positions with an SL.
+    _t_ist = ist_now()
+    _open_window = (_t_ist.weekday() < 5 and (9, 15) <= (_t_ist.hour, _t_ist.minute) < (9, 30))
+    if _open_window or _scheduler_tick_count % _UNPROTECTED_BACKCHECK_EVERY_N_TICKS == 0:
         try:
             _reconcile_real_positions_core(adopt="*")
         except Exception as e:
