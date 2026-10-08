@@ -2093,5 +2093,33 @@
     "rr_target": 3.0,
     "rr_achieved": 1.96,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "RVNL.NS",
+    "exit_time_utc": 1791455048.006776,
+    "entry_price_native": null,
+    "exit_price_native": 187.1999969482422,
+    "currency": "INR",
+    "qty": 2.0,
+    "pnl_inr": -24.04,
+    "pnl_pct_of_capital": -0.006,
+    "exit_reason": "trail_stop_hit",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
+  },
+  {
+    "symbol": "SAIL.NS",
+    "exit_time_utc": 1791455049.2755198,
+    "entry_price_native": null,
+    "exit_price_native": 166.25,
+    "currency": "INR",
+    "qty": 2.0,
+    "pnl_inr": -23.88,
+    "pnl_pct_of_capital": -0.006,
+    "exit_reason": "trail_stop_hit",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
   }
 ]
