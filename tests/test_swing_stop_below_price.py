@@ -27,3 +27,17 @@ def test_cancel_converted_only_matches_stale_limit_sell(monkeypatch):
     monkeypatch.setattr(kro, "cancel_real_order", lambda oid: cancelled.append(oid) or {"ok": True})
     assert kro.cancel_converted_stop_orders("DABUR-EQ", 380.25) == ["1"]
     assert cancelled == ["1"]
+
+
+def test_same_day_cooldown_reads_kotak(monkeypatch):
+    import kotak_neo
+    today = main.ist_now().strftime("%d-%b-%Y")
+    rows = [{"trdSym": "DABUR-EQ", "trnsTp": "S", "ordSt": "complete", "ordDtTm": f"{today} 14:00:43"},
+            {"trdSym": "ABC-EQ", "trnsTp": "S", "ordSt": "open", "ordDtTm": f"{today} 14:00:43"},
+            {"trdSym": "OLD-EQ", "trnsTp": "S", "ordSt": "complete", "ordDtTm": "01-Jan-2020 10:00:00"}]
+    monkeypatch.setattr(kotak_neo, "order_report", lambda order_id=None: {"data": rows})
+    assert main._kotak_sold_today("DABUR-EQ") is True
+    assert main._kotak_sold_today("ABC-EQ") is False
+    assert main._kotak_sold_today("OLD-EQ") is False
+    monkeypatch.setattr(kotak_neo, "order_report", lambda order_id=None: (_ for _ in ()).throw(RuntimeError("x")))
+    assert main._kotak_sold_today("DABUR-EQ") is False
