@@ -177,6 +177,36 @@ def get_feed_status() -> dict:
     return dict(_feed_status)
 
 
+def _ist_today():
+    import datetime as _dt
+    return (_dt.datetime.utcnow() + _dt.timedelta(hours=5, minutes=30)).date()
+
+
+def universe_needs_expiry_roll(today=None, universe=None, resolved_at=None) -> bool:
+    """True when the cached universe must be re-resolved NOW because of
+    expiry rollover (2026-10-08, user: weekly expiry strikes are removed and
+    added as per their expiry date): it holds a leg whose expiry is already
+    past, or it was resolved on an earlier IST day (so a new weekly series
+    that opened since is picked up, and expired ones drop out) - instead of
+    waiting for the 4-hour timer."""
+    import datetime as _dt
+    today = today or _ist_today()
+    uni = _universe_cache["value"] if universe is None else universe
+    if not uni:
+        return False
+    ts = _universe_cache["resolved_at"] if resolved_at is None else resolved_at
+    resolved_day = (_dt.datetime.utcfromtimestamp(ts) + _dt.timedelta(hours=5, minutes=30)).date()
+    if resolved_day < today:
+        return True
+    for d in uni.values():
+        try:
+            if d.get("expiry") and _dt.date.fromisoformat(str(d["expiry"])[:10]) < today:
+                return True
+        except ValueError:
+            continue
+    return False
+
+
 def get_cached_fo_universe() -> dict:
     """{(exchange_segment, instrument_token): descriptor} as last resolved
     by run_fo_candle_feed's own resolve_fo_universe() call (see that
@@ -448,7 +478,7 @@ async def run_fo_candle_feed():
     while True:
         try:
             cache_age = time.time() - _universe_cache["resolved_at"]
-            if _universe_cache["value"] is None or cache_age > UNIVERSE_REFRESH_SECONDS:
+            if _universe_cache["value"] is None or cache_age > UNIVERSE_REFRESH_SECONDS or universe_needs_expiry_roll():
                 # asyncio.to_thread (2026-09-16, live Render restart-loop
                 # fix): resolve_fo_universe() does a blocking search_scrip
                 # call per underlying/expiry-class across all ~213

@@ -13812,6 +13812,8 @@ def _run_fo_strike_setup_scan(conn):
             return
         if d["kind"] != "option" or d["underlying"] not in ("NIFTY", "BANKNIFTY", "SENSEX"):
             continue
+        if d["expiry"] and str(d["expiry"])[:10] < t.strftime("%Y-%m-%d"):
+            continue  # expired series still in a stale cache: never trade it
         if d["kotak_trading_symbol"] in held or nse_fo_chain.must_force_close_before_expiry(d["underlying"], d["expiry"]):
             continue
         df = kotak_fo_candle_feed.read_fo_candles_as_df(token)
