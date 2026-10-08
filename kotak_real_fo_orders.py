@@ -64,6 +64,7 @@ enforce this (place_real_fo_entry/place_real_fo_exit are primitives, not
 a scheduler), so the requirement lives here, in writing, for whichever
 caller eventually manages these positions.
 """
+import time
 import kotak_neo
 
 
@@ -152,3 +153,123 @@ def place_real_fo_exit(kotak_trading_symbol: str, exchange_segment: str, qty: in
     if not order_id:
         return {"ok": False, "detail": f"no order id in response: {resp}", "raw_response": resp}
     return {"ok": True, "order_id": str(order_id), "raw_response": resp, "qty": qty}
+
+
+# ---------------------------------------------------------------------------
+# Real resting TRAILING stop-loss for long single-strike options (2026-10-08,
+# explicit user rule: every single-strike option, call or put, always uses a
+# trailing SL; weekly options live at most ~5 days). Mirrors the equity
+# scan-then-act discipline (kotak_real_orders.ensure_resting_sl): a fresh
+# Kotak order_report every call, never a cached local order id.
+# ---------------------------------------------------------------------------
+import kotak_real_orders as _kro
+
+OPTION_TICK = 0.05  # NSE/BSE option premiums tick in Rs0.05
+
+
+def _tick_round(price: float, down: bool = False) -> float:
+    import math
+    steps = price / OPTION_TICK
+    steps = math.floor(steps + 1e-9) if down else round(steps)
+    return round(max(steps, 1) * OPTION_TICK, 2)
+
+
+def place_real_fo_stop_loss(kotak_trading_symbol: str, exchange_segment: str, qty: int,
+                            trigger_price: float, product: str = "NRML") -> dict:
+    """Resting SELL SL (limit-behind-trigger) for a long option. Limit sits 5%
+    under the trigger (tick-aligned) so a fast premium drop still fills; the
+    trigger itself is tick-aligned. Rejections are confirmed, never assumed."""
+    try:
+        client = kotak_neo.login()
+    except Exception as e:
+        return {"ok": False, "detail": f"login failed: {e}"}
+    trigger = _tick_round(trigger_price)
+    limit_price = _tick_round(trigger * 0.95, down=True)
+    try:
+        resp = client.place_order(
+            exchange_segment=exchange_segment, product=product, price=str(limit_price), order_type="SL",
+            quantity=str(qty), validity="DAY", trading_symbol=kotak_trading_symbol,
+            transaction_type="S", trigger_price=str(trigger),
+        )
+    except Exception as e:
+        return {"ok": False, "detail": f"place_order raised: {e}"}
+    order_id = resp.get("nOrdNo") if isinstance(resp, dict) else None
+    if not order_id:
+        return {"ok": False, "detail": f"no order id in response: {resp}", "raw_response": resp}
+    status = _kro._confirm_order_status(order_id)
+    for _ in range(3):
+        if status["status"] in ("rejected", "trigger pending", "open", "complete"):
+            break
+        time.sleep(1.5)
+        status = _kro._confirm_order_status(order_id)
+    if status["status"] == "rejected":
+        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}", "raw_response": resp}
+    return {"ok": True, "order_id": str(order_id), "trigger_price": trigger, "limit_price": limit_price,
+            "raw_response": resp}
+
+
+def fetch_kotak_option_state(kotak_trading_symbol: str) -> dict:
+    """Governance steps 1-2 for one option: Kotak positions() net qty, then
+    order_report() live SELL SL orders. Returns {"ok", "net_qty", "live_sls":
+    [{order_id, trigger, qty}], "detail"}. ok=False means Kotak could not be
+    read - callers must then take NO destructive action."""
+    try:
+        client = kotak_neo.login()
+        pos = client.positions()
+        prow = pos.get("data") if isinstance(pos, dict) else None
+        if not isinstance(prow, list):
+            return {"ok": False, "detail": f"positions unreadable: {pos}"}
+        rep = client.order_report()
+        orows = rep.get("data") if isinstance(rep, dict) else None
+        if not isinstance(orows, list):
+            return {"ok": False, "detail": f"order_report unreadable: {rep}"}
+    except Exception as e:
+        return {"ok": False, "detail": f"kotak read raised: {e}"}
+    net = 0.0
+    for r in prow:
+        if r.get("trdSym") == kotak_trading_symbol:
+            net += _to_float(r.get("flBuyQty")) or 0.0
+            net -= _to_float(r.get("flSellQty")) or 0.0
+    live = []
+    for r in orows:
+        if r.get("trdSym") != kotak_trading_symbol or r.get("trnsTp") != "S":
+            continue
+        if str(r.get("prcTp", "")).upper() not in ("SL", "SL-M"):
+            continue
+        if str(r.get("ordSt", "")).lower() in _kro._TERMINAL_ORDER_STATUSES or not r.get("nOrdNo"):
+            continue
+        live.append({"order_id": str(r["nOrdNo"]), "trigger": _to_float(r.get("trgPrc")) or 0.0,
+                     "qty": int(_to_float(r.get("qty")) or 0)})
+    return {"ok": True, "net_qty": net, "live_sls": live}
+
+
+def ensure_option_trailing_sl(kotak_trading_symbol: str, exchange_segment: str, qty: int,
+                              desired_trigger: float, live_sls: list, allow_replace: bool = True) -> dict:
+    """Given the live SLs just read from Kotak: adopt one already at/above the
+    desired trigger and covering qty; otherwise cancel them and place the new
+    (higher) trigger, restoring the old one if the new placement fails so the
+    position is never left naked. A stop is never lowered here."""
+    desired = _tick_round(desired_trigger)
+    if live_sls:
+        best = max(live_sls, key=lambda o: o["trigger"])
+        if best["trigger"] >= desired - 0.005 and sum(o["qty"] for o in live_sls) >= qty:
+            return {"ok": True, "action": "adopted_existing", "order_id": best["order_id"],
+                    "trigger_price": best["trigger"]}
+        if not allow_replace:
+            return {"ok": False, "action": "skipped_no_replace", "order_id": best["order_id"],
+                    "trigger_price": best["trigger"], "detail": "replace not allowed now"}
+        for o in live_sls:
+            _kro.cancel_real_order(o["order_id"])
+        res = place_real_fo_stop_loss(kotak_trading_symbol, exchange_segment, qty, desired)
+        if res.get("ok"):
+            res["action"] = "replaced"
+            return res
+        restore = place_real_fo_stop_loss(kotak_trading_symbol, exchange_segment, qty, best["trigger"])
+        res["action"] = "replace_failed"
+        if restore.get("ok"):
+            res["restored_order_id"] = restore["order_id"]
+            res["restored_trigger"] = restore["trigger_price"]
+        return res
+    res = place_real_fo_stop_loss(kotak_trading_symbol, exchange_segment, qty, desired)
+    res["action"] = "placed"
+    return res
