@@ -801,6 +801,36 @@ def _in_closing_session() -> bool:
     return n.hour * 60 + n.minute >= 15 * 60 + 15
 
 
+def cancel_converted_stop_orders(kotak_trading_symbol: str, stale_trigger: float) -> list:
+    """DABUR 2026-10-08: an SL whose trigger sits at/above the market is converted by
+    Kotak into a plain resting LIMIT SELL (order book prcTp "L"), which then looks like
+    a target and, because it reserves the shares, makes RMS reject the real SL. Cancel
+    only live SELL orders on this symbol that are NOT SL/SL-M and are priced at the stale
+    stop level (+-0.05), so a manual order at any other price is never touched. Fresh
+    order_report each call; returns the cancelled order ids."""
+    done = []
+    try:
+        rows = kotak_neo.login().order_report().get("data") or []
+    except Exception:
+        return done
+    for row in rows:
+        if row.get("trdSym") != kotak_trading_symbol or row.get("trnsTp") != "S":
+            continue
+        if str(row.get("prcTp", "")).upper() in ("SL", "SL-M"):
+            continue
+        if str(row.get("ordSt", "")).lower() in _TERMINAL_ORDER_STATUSES:
+            continue
+        try:
+            if abs(float(row.get("prc") or 0) - float(stale_trigger)) > 0.05:
+                continue
+        except (TypeError, ValueError):
+            continue
+        oid = row.get("nOrdNo")
+        if oid and cancel_real_order(str(oid)).get("ok"):
+            done.append(str(oid))
+    return done
+
+
 def ensure_resting_sl(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
     """Scan-then-act SL placement for LONG (swing) positions (2026-10-07, explicit
     user instruction after live rejects: "before placing any new order request you
