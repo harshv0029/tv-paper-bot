@@ -1,4 +1,24 @@
 {
-  "synced_at_utc": "2026-10-07T17:23:21Z",
-  "open_positions": []
+  "synced_at_utc": "2026-10-08T03:55:08Z",
+  "open_positions": [
+    {
+      "symbol": "VAML.NS",
+      "qty": 3.0,
+      "entry_price_native": 390.20001220703125,
+      "stop_loss_native": 393.2098197937012,
+      "initial_stop_loss_native": 388.6196517944336,
+      "target_native": 393.36,
+      "fx_to_inr": 1.0,
+      "notional_inr": 1170.6,
+      "orb_high_native": null,
+      "orb_low_native": 390.0,
+      "entry_ts": 1791431487.163206,
+      "interval": "5m",
+      "strategy": "orb-universal-score",
+      "sma_fast": 9,
+      "sma_slow": 21,
+      "entry_regime": "range",
+      "real_entry_reason": "skipped_strategy_not_viable - strategy 'orb-universal-score' does not clear the PFnet >= 1 real-money floor (or has no validated metrics) - see strategy_registry.py"
+    }
+  ]
 }
