@@ -70,18 +70,18 @@ def test_sl_trails_up_with_peak_and_never_down():
         with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value=_state(sls=[{"order_id": "S1", "trigger": 70.0, "qty": 25}])), \
              patch("main._option_ltp", return_value=150.0), \
              patch("main.kotak_real_orders_closing_session", return_value=False), \
-             patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "replaced", "order_id": "S2", "trigger_price": 135.0}) as ens:
+             patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "replaced", "order_id": "S2", "trigger_price": 145.5}) as ens:
             assert main._sync_real_fo_option_sl(conn, "NIFTY:PUT") == "replaced"
-            assert abs(ens.call_args[0][3] - 135.0) < 1e-6  # 150 * 0.90 fallback trail
+            assert abs(ens.call_args[0][3] - 145.5) < 1e-6  # 150 * 0.97 (3% max-loss trail)
         row = conn.execute("SELECT * FROM real_fo_positions").fetchone()
-        assert row["peak_price"] == 150.0 and row["sl_trigger_price"] == 135.0
+        assert row["peak_price"] == 150.0 and row["sl_trigger_price"] == 145.5
         # premium falls back: peak stays, desired trigger does not drop
         with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value=_state(sls=[{"order_id": "S2", "trigger": 105.0, "qty": 25}])), \
              patch("main._option_ltp", return_value=120.0), \
              patch("main.kotak_real_orders_closing_session", return_value=False), \
              patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "adopted_existing", "order_id": "S2", "trigger_price": 105.0}) as ens:
             main._sync_real_fo_option_sl(conn, "NIFTY:PUT")
-            assert ens.call_args[0][3] >= 135.0 - 1e-6
+            assert ens.call_args[0][3] >= 145.5 - 1e-6
 
 
 def test_row_closed_when_kotak_shows_flat():
@@ -163,7 +163,8 @@ def test_strike_scan_buys_strike_whose_candles_match_viable_setup():
         assert buy.call_count == 1
         a = buy.call_args
         assert a[0][3]["kotak_trading_symbol"] == "NIFTY17OCT2625000CE" and a[0][5] == "strike_setup_order_block_delta"
-        assert 3.0 <= a[1]["trail_dist"] <= 30.0  # clamped 3-30% of entry
+        assert 2.0 <= a[1]["trail_dist"] <= 3.0  # clamped 2-3% of entry (max loss 3%)
+        assert a[1]["budget_inr"] >= 0  # sized from account money
 
 
 def test_strike_scan_skips_when_not_viable_stale_or_short_history():
@@ -200,3 +201,14 @@ def test_universe_expiry_roll():
     assert f.universe_needs_expiry_roll(day, {("nse_fo", "1"): {"expiry": "2026-10-07"}}, ts) is True   # expired leg
     assert f.universe_needs_expiry_roll(dt.date(2026, 10, 9), fresh, ts) is True                       # resolved yesterday
     assert f.universe_needs_expiry_roll(day, {}, ts) is False
+
+
+def test_strike_scan_one_call_and_one_put_only():
+    _db()
+    sig = {"entry_price": 100.0, "stop_loss": 95.0, "atr_at_entry": 2.0}
+    with closing(main.get_db()) as conn:
+        _insert(conn, trig=97.0, peak=100.0)
+        conn.execute("UPDATE real_fo_positions SET strategy_tag='strike_setup_order_block_delta', kotak_trading_symbol='NIFTY17OCT2624900CE'")
+        conn.commit()
+        # a call is already held -> another call strike must not be bought
+        assert _scan(conn, _universe(), _frame(), sig).call_count == 0

@@ -13466,7 +13466,7 @@ _REAL_OPTION_UNDERLYING = {**_INDEX_TO_FO_UNDERLYING, "^BSESN": "SENSEX"}
 # ALWAYS trail). Initial stop and trail distance are both this % below the
 # running premium peak. NOT backtested (no real premium history exists); logged
 # per trade so the value can be judged on real results.
-FO_OPTION_TRAIL_PCT = 10.0  # fallback only; strike-scan legs use their own ATR trail (trail_dist)
+FO_OPTION_TRAIL_PCT = 3.0  # user 2026-10-08: max loss 3% of premium; strike-scan legs use trail_dist (also capped at 3%)
 FO_OPTION_SL_FAIL_EXIT_SECONDS = 180
 
 
@@ -13524,12 +13524,17 @@ def _maybe_place_real_fo_option_entry(conn, symbol: str, spot: float, strategy_t
 
 
 def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict, strategy_tag, tag_col: str,
-                          reason: str, trail_dist: float | None = None):
+                          reason: str, trail_dist: float | None = None, budget_inr: float | None = None):
     """Shared real BUY of ONE resolved option contract (caps, loss budget,
     margin check, order, row insert, initial trailing SL). Used by the index
     mirror (ATM strike) and the per-strike setup scan (the strike whose own
     candles fired a viable setup)."""
     qty = contract["lot_size"]
+    if budget_inr and contract["premium"] > 0:
+        # user 2026-10-08: size from the money available in the account (lots that fit
+        # the budget, at least 1, capped at FO_MAX_LOTS_PER_ENTRY as an order-size guard)
+        lots = int(budget_inr // (contract["lot_size"] * contract["premium"]))
+        qty = contract["lot_size"] * min(max(lots, 1), FO_MAX_LOTS_PER_ENTRY)
     notional_inr = qty * contract["premium"]  # every F&O underlying wired here is INR-native, no fx conversion
     # 2026-09-17, explicit user instruction ("Daily F&O cap = Kotak
     # available capital. Not a fix number"): the daily F&O spend ceiling
@@ -13770,11 +13775,12 @@ def kotak_real_orders_closing_session() -> bool:
 # strategies were validated on daily stock bars, so their PFnet does not
 # measure this; candles only accumulate forward (no backfill), so signals need
 # enough history first; volume is the tick-count proxy.
-FO_STRIKE_SETUP_MAX_OPEN = 4
+FO_STRIKE_SETUP_MAX_OPEN = 2  # user 2026-10-08: at most 2 standalone strikes, 1 call + 1 put
 FO_STRIKE_SETUP_SCAN_SECONDS = 300
+FO_MAX_LOTS_PER_ENTRY = 20
 FO_STRIKE_TRAIL_ATR_MULT = 6.0  # same multiple the viable OB/VP swing setups trail with (B-26)
-FO_STRIKE_TRAIL_MIN_PCT = 3.0
-FO_STRIKE_TRAIL_MAX_PCT = 30.0
+FO_STRIKE_TRAIL_MIN_PCT = 2.0
+FO_STRIKE_TRAIL_MAX_PCT = 3.0   # user 2026-10-08: max loss 3% of premium
 _fo_strike_scan_last_ts = 0.0
 
 
@@ -13806,14 +13812,19 @@ def _run_fo_strike_setup_scan(conn):
     if not viable:
         return
     open_n = conn.execute("SELECT COUNT(*) FROM real_fo_positions WHERE strategy_tag LIKE 'strike_setup_%'").fetchone()[0]
+    # one standalone strike per side: a held call blocks further calls, a held put further puts
+    held_sides = {("call" if (r[0] or "").upper().endswith("CE") else "put") for r in conn.execute(
+        "SELECT kotak_trading_symbol FROM real_fo_positions WHERE strategy_tag LIKE 'strike_setup_%'").fetchall()}
     held = {r[0] for r in conn.execute("SELECT kotak_trading_symbol FROM real_fo_positions").fetchall()}
     for (segment, token), d in kotak_fo_candle_feed.get_cached_fo_universe().items():
         if open_n >= FO_STRIKE_SETUP_MAX_OPEN:
             return
-        if d["kind"] != "option" or d["underlying"] not in ("NIFTY", "BANKNIFTY", "SENSEX"):
+        if d["kind"] != "option" or d["underlying"] not in ("NIFTY", "BANKNIFTY", "SENSEX", "FINNIFTY", "MIDCPNIFTY"):
             continue
         if d["expiry"] and str(d["expiry"])[:10] < t.strftime("%Y-%m-%d"):
             continue  # expired series still in a stale cache: never trade it
+        if d["right"] in held_sides:
+            continue
         if d["kotak_trading_symbol"] in held or nse_fo_chain.must_force_close_before_expiry(d["underlying"], d["expiry"]):
             continue
         df = kotak_fo_candle_feed.read_fo_candles_as_df(token)
@@ -13838,15 +13849,18 @@ def _run_fo_strike_setup_scan(conn):
                         "exchange_segment": segment, "expiry": d["expiry"], "strike": d["strike"],
                         "lot_size": d["lot_size"], "premium": entry_px}
             leg_key = f"{d['kotak_trading_symbol']}:SETUP"
+            # each standalone side gets an equal share of the money still available today
+            budget = (_day_open_capital_inr(conn) - _real_fo_today_spent_inr(conn)) / max(1, FO_STRIKE_SETUP_MAX_OPEN - open_n)
             _real_fo_buy_contract(
                 conn, leg_key, d["underlying"], contract, tag, f"strike_setup_{tag}",
                 f"{d['right']} strike {d['strike']} {d['expiry']} own 5m candle matched viable setup {tag}; "
                 f"entry {entry_px:.2f}, trail {dist:.2f} ({FO_STRIKE_TRAIL_ATR_MULT}x ATR {atr:.2f}, "
                 f"clamped {FO_STRIKE_TRAIL_MIN_PCT}-{FO_STRIKE_TRAIL_MAX_PCT}%)",
-                trail_dist=dist,
+                trail_dist=dist, budget_inr=budget,
             )
             if conn.execute("SELECT 1 FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone():
                 open_n += 1
+                held_sides.add(d["right"])
                 held.add(d["kotak_trading_symbol"])
             break
 
