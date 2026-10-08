@@ -10177,6 +10177,65 @@ else:
     print("[nifty200_universe] WARNING: real NIFTY 200 list not yet available - "
           "trading is NOT restricted to NIFTY 200 yet, running the full NSE universe instead")
 
+# ETFs (2026-10-08, explicit user instruction: "Make them part of it for
+# monitoring and real money trade taking... Including gold n silver etf and
+# others too... tradeable today onward"). The NIFTY 200 filter above drops
+# every ETF, so liquid ETFs are appended AFTER it from docs/etf_universe.json
+# (3-month median turnover >= 5 cr, daily range 0.5-3.5%; screen run
+# 37736490468). They flow into WATCHLIST and SWING_WATCHLIST like any stock
+# and use the same PFnet viability gate and SL/reconcile machinery, no new
+# kill switch. ETF_SYMBOLS lets futures research exclude them (user: futures
+# backtests keep excluding ETFs, as before). Backlog B-317.
+def _load_etf_universe_from_file() -> list[str]:
+    import json
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "etf_universe.json")
+    try:
+        with open(path) as f:
+            return list(json.load(f).get("symbols") or [])
+    except Exception as e:
+        print(f"[etf_universe] {path} unusable ({e}) - no ETFs added")
+        return []
+
+
+ETF_SYMBOLS = frozenset(_load_etf_universe_from_file())
+_etf_extra = [s for s in sorted(ETF_SYMBOLS) if s not in set(NSE_FULL_UNIVERSE)]
+NSE_FULL_UNIVERSE = list(NSE_FULL_UNIVERSE) + _etf_extra
+print(f"[etf_universe] added {len(_etf_extra)} liquid ETFs to NSE_FULL_UNIVERSE")
+
+
+# Entry-time ETF range gate (user 2026-10-08: "always pick all the ETF set and
+# while entering the trade you can place this additional criteria for ETF to
+# keep between 0.5% to 3.5%"). All ETFs are watched; a NEW real entry in an ETF
+# is allowed only when its 3-month median daily (high-low)/close is in
+# [0.5%, 3.5%]. Fails CLOSED if data is unavailable. Cached per IST day.
+ETF_RANGE_MIN_PCT = 0.5
+_etf_range_cache: dict = {}
+
+
+def _etf_entry_range_ok(symbol: str) -> tuple[bool, str]:
+    if symbol not in ETF_SYMBOLS:
+        return True, "not_etf"
+    import time as _t
+    day = int((_t.time() + IST_OFFSET_MIN * 60) // 86400)
+    hit = _etf_range_cache.get(symbol)
+    if hit and hit[0] == day:
+        return hit[1], hit[2]
+    try:
+        df = yf.download(symbol, period="3mo", interval="1d", progress=False, auto_adjust=False)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        df = df.dropna()
+        if len(df) < 30:
+            ok, why = False, f"only {len(df)} daily bars"
+        else:
+            med = float(((df["High"] - df["Low"]) / df["Close"] * 100).median())
+            ok = med >= ETF_RANGE_MIN_PCT
+            why = f"median daily range {med:.2f}% (minimum {ETF_RANGE_MIN_PCT}%, no upper cap)"
+    except Exception as e:
+        ok, why = False, f"range data unavailable ({str(e)[:60]})"
+    _etf_range_cache[symbol] = (day, ok, why)
+    return ok, why
+
 # Per-symbol evidenced param overrides - explicit user instruction
 # 2026-09-07 ("the nse equity or index win rate is low... how r u
 # planning to improve it" -> "do whatever you can so that whole day
@@ -11118,6 +11177,12 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         _log_real_attempt(conn, symbol, "S", "skipped_not_eligible_asset_class")
         return
 
+    _etf_ok, _etf_why = _etf_entry_range_ok(symbol)
+    if not _etf_ok:
+        _log_real_attempt(conn, symbol, "S", "skipped_etf_range_gate", detail="ETF entry range gate: " + _etf_why)
+        return
+
+
     if conn.execute("SELECT 1 FROM real_positions_short WHERE symbol = ?", (symbol,)).fetchone():
         _log_real_attempt(conn, symbol, "S", "skipped_already_open")
         return
@@ -11328,6 +11393,11 @@ def _maybe_place_real_entry(conn, symbol: str):
     asset_class, _, _ = _asset_class_and_source(symbol)
     if asset_class != "nse_equity":
         _log_real_attempt(conn, symbol, "B", "skipped_not_eligible_asset_class")
+        return
+
+    _etf_ok, _etf_why = _etf_entry_range_ok(symbol)
+    if not _etf_ok:
+        _log_real_attempt(conn, symbol, "B", "skipped_etf_range_gate", detail="ETF entry range gate: " + _etf_why)
         return
 
     if conn.execute("SELECT 1 FROM real_positions WHERE symbol = ?", (symbol,)).fetchone():
@@ -16655,6 +16725,12 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         _log_real_attempt(conn, symbol, "B", "skipped_already_open", strategy=strategy)
         return
 
+    _etf_ok, _etf_why = _etf_entry_range_ok(symbol)
+    if not _etf_ok:
+        _log_real_attempt(conn, symbol, "B", "skipped_etf_range_gate", detail="ETF entry range gate: " + _etf_why, strategy=strategy)
+        return
+
+
     # 2026-09-30 PFnet >= 1 real-money gate - see _is_strategy_viable_for_
     # real_money's own module comment. gap_and_go_swing (the strategy
     # every current swing entry carries) is at PFnet 1.65, well above the
@@ -18262,7 +18338,13 @@ async def _scheduler_tick():
                 _sync_swing_ltp_trail(_trail_conn)
         except Exception as e:
             print(f"[SWING LTP TRAIL] pass failed (non-fatal): {e}")
-    if _scheduler_tick_count % _UNPROTECTED_BACKCHECK_EVERY_N_TICKS == 0:
+    # 2026-10-08 thumb rule (B-315): the exchange wipes every resting order
+    # at 15:15 IST, so holdings start each day naked. From 09:15 to 09:30 IST
+    # the protect pass runs on EVERY tick (~30s) instead of every ~5 min, so
+    # the first action of the day is covering open positions with an SL.
+    _t_ist = ist_now()
+    _open_window = (_t_ist.weekday() < 5 and (9, 15) <= (_t_ist.hour, _t_ist.minute) < (9, 30))
+    if _open_window or _scheduler_tick_count % _UNPROTECTED_BACKCHECK_EVERY_N_TICKS == 0:
         try:
             _reconcile_real_positions_core(adopt="*")
         except Exception as e:
