@@ -11427,6 +11427,10 @@ def _maybe_place_real_entry(conn, symbol: str):
     if ltp <= 0:
         _log_real_attempt(conn, symbol, "B", "skipped_no_live_tick", kotak_trading_symbol=kotak_symbol)
         return
+    if _kotak_sold_today(kotak_symbol):
+        _log_real_attempt(conn, symbol, "B", "skipped_same_day_cooldown", kotak_trading_symbol=kotak_symbol,
+                          price_est=ltp, detail="Kotak shows a completed SELL on this symbol today - no same-day re-entry")
+        return
 
     # Real qty - explicit user instruction 2026-09-08: "Qty should be same
     # as you pick in render. No hard coding needed." The paper engine
@@ -16982,6 +16986,39 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
         )
 
 
+def _kotak_sold_today(kotak_symbol):
+    """Same-day cooldown (user 2026-10-08, DABUR stopped out 14:00 then re-bought 14:30): True when
+    Kotak's own order book shows a COMPLETED SELL on this symbol today. Kotak is the source, so it
+    survives restarts. Fails open (False) when the order book cannot be read."""
+    try:
+        import kotak_neo
+        today = ist_now().strftime("%d-%b-%Y")
+        for r in (kotak_neo.order_report().get("data") or []):
+            if (r.get("trdSym") == kotak_symbol and r.get("trnsTp") == "S"
+                    and str(r.get("ordSt", "")).strip().lower() == "complete"
+                    and str(r.get("ordDtTm", "")).startswith(today)):
+                return True
+    except Exception as e:
+        print(f"[cooldown] order book unreadable for {kotak_symbol}: {e} - not blocking")
+    return False
+
+
+SWING_FALLBACK_STOP_PCT = 1.0  # DABUR 2026-10-08: stop used when the strategy stop is not below the market
+
+
+def _swing_stop_below_price(stop, price):
+    """A long's resting stop must sit BELOW the market. Kotak converts an SL whose trigger
+    is at/above the price into a plain limit SELL (looks like a target, protects nothing).
+    Returns the stop unchanged when valid, else price * (1 - SWING_FALLBACK_STOP_PCT%)."""
+    try:
+        stop, price = float(stop or 0), float(price or 0)
+    except (TypeError, ValueError):
+        return stop
+    if price > 0 and stop >= price * 0.999:
+        return round(price * (1 - SWING_FALLBACK_STOP_PCT / 100.0), 2)
+    return stop
+
+
 def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, paper_stop_loss, strategy):
     """Mirrors a paper swing "gap_and_go" entry as a REAL buy, ONLY when
     every gate holds. Called from _run_swing_scan right after the paper
@@ -17044,6 +17081,23 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     kotak_symbol = tick["trading_symbol"]
     if ltp <= 0:
         _log_real_attempt(conn, symbol, "B", "skipped_no_live_tick", kotak_trading_symbol=kotak_symbol, strategy=strategy)
+        return
+
+    if _kotak_sold_today(kotak_symbol):
+        _log_real_attempt(conn, symbol, "B", "skipped_same_day_cooldown", kotak_trading_symbol=kotak_symbol,
+                          price_est=ltp, strategy=strategy,
+                          detail="Kotak shows a completed SELL on this symbol today (stop-out or exit) - no same-day re-entry")
+        return
+
+    # DABUR 2026-10-08: re-bought at 379.05 under the signal's stop 380.25; the "SL" became a
+    # resting limit sell above the market and the position had NO stop. Never open a position
+    # whose strategy stop is not below the live price.
+    if paper_stop_loss and float(paper_stop_loss) >= ltp * 0.999:
+        _log_real_attempt(
+            conn, symbol, "B", "skipped_stop_not_below_price", kotak_trading_symbol=kotak_symbol,
+            price_est=ltp, strategy=strategy,
+            detail=f"strategy stop Rs{float(paper_stop_loss):.2f} is not below live price Rs{ltp:.2f} - a stop there cannot protect the position",
+        )
         return
 
     # Price-tolerance gate (2026-09-22, real-order retry build) - this
@@ -17114,6 +17168,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
 
     real_qty = int(result["qty"])
     real_entry_price = result["fill_price"]
+    paper_stop_loss = _swing_stop_below_price(paper_stop_loss, real_entry_price)  # fill slipped below the stop
     now = time.time()
     conn.execute(
         "INSERT INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, "
@@ -17197,6 +17252,24 @@ def _maybe_sync_real_swing_stop_loss(conn):
             if refreshed is None:
                 continue  # today's open not available yet; retry next tick
             stop_px = refreshed
+        try:
+            import kotak_live_feed
+            _t = kotak_live_feed.get_live_ticks().get(row["symbol"]) or {}
+            _ltp = float(_t.get("ltp") or 0)
+        except Exception:
+            _ltp = 0.0
+        _fixed = _swing_stop_below_price(stop_px, _ltp) if _ltp > 0 else stop_px
+        if _fixed != stop_px:
+            # stop is not below the market: free the shares from the converted limit sell, then re-stop
+            cancelled = kotak_real_orders.cancel_converted_stop_orders(row["kotak_trading_symbol"], stop_px)
+            _log_real_order_event(
+                conn, row["symbol"], "sl", "stop_reset_below_market", kotak_trading_symbol=row["kotak_trading_symbol"],
+                prev_state=f"stop Rs{stop_px:.2f} >= live Rs{_ltp:.2f}", new_state=f"stop Rs{_fixed:.2f}",
+                detail=f"cancelled converted limit sells: {cancelled}",
+                reason="stored stop was at/above the market so Kotak made it a limit sell, not a stop; reset 1% under the live price")
+            conn.execute("UPDATE real_positions_swing SET stop_loss = ? WHERE symbol = ?", (_fixed, row["symbol"]))
+            conn.commit()
+            stop_px = _fixed
         sl_result = kotak_real_orders.ensure_resting_sl(
             row["kotak_trading_symbol"], row["qty"], stop_px
         )
@@ -19426,6 +19499,8 @@ def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
     _REAL_ENTRY_SKIP_LABELS = {
         "skipped_not_eligible_asset_class": "not an equity symbol (real trading is NSE equity only)",
         "skipped_already_open": "a real position was already open for this symbol",
+        "skipped_same_day_cooldown": "Kotak shows a completed SELL on this symbol today; no same-day re-entry",
+        "skipped_stop_not_below_price": "the strategy stop was not below the live price",
         "skipped_t1_restricted": "permanently avoided - T1/T2T same-day-sell restricted",
         "skipped_no_live_tick": "no live price tick available at entry time",
         "skipped_insufficient_real_qty": "sized to 0 shares (daily loss cap / available capital too low)",

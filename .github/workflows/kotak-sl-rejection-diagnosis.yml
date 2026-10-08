@@ -7,6 +7,11 @@ name: Kotak SL rejection diagnosis (read-only)
 # account fields (no actId/PAN), only order status, reason text, qty and times.
 on:
   workflow_dispatch:
+    inputs:
+      symbols:
+        description: 'Comma-separated symbols to diagnose (default: the original 5)'
+        required: false
+        default: 'NYKAA,DRREDDY,GMRAIRPORT,INDHOTEL,RVNL'
 
 permissions:
   contents: read
@@ -18,6 +23,7 @@ jobs:
       - name: Fetch Kotak order book + app order log
         env:
           KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+          DIAG_SYMBOLS: ${{ inputs.symbols }}
         run: |
           B=https://tv-paper-bot-gdan.onrender.com
           curl -sS -m 90 "$B/health" || true; echo
@@ -28,7 +34,8 @@ jobs:
           python3 - <<'PY'
           import json, datetime
           IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
-          S = ("NYKAA", "DRREDDY", "GMRAIRPORT", "INDHOTEL", "RVNL")
+          import os
+          S = tuple(x.strip().upper() for x in (os.environ.get("DIAG_SYMBOLS") or "NYKAA,DRREDDY,GMRAIRPORT,INDHOTEL,RVNL").split(",") if x.strip())
           try: rows = json.load(open("/tmp/o.json")).get("data") or []
           except Exception as e: rows = []; print("o unreadable", type(e).__name__)
           import re
