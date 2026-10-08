@@ -64,7 +64,18 @@ FO_CANDLE_UNDERLYINGS = {
     "^NSEI": "NIFTY",
     "^NSEBANK": "BANKNIFTY",
     "^BSESN": "SENSEX",
+    # 2026-10-08, explicit user request: add FINNIFTY and MIDCPNIFTY. No
+    # WATCHLIST/yfinance index symbol, so the spot is read from the Kotak
+    # future's LTP (see _spot_price_for). Their weekly series no longer
+    # exists on NSE; an unresolved class is simply recorded and skipped.
+    "FINNIFTY_SPOT": "FINNIFTY",
+    "MIDCPNIFTY_SPOT": "MIDCPNIFTY",
 }
+# 2026-10-08, explicit user request: monitor and trade 10 strikes ITM + 10 OTM
+# (+ ATM) on both calls and puts, for every index underlying. 5 indices x 21
+# strikes x 2 rights x 2 expiry classes = 420 legs (was 372), still inside
+# the 3000-subscription cap (2,310 stock + 206 equity + 420 = 2,936).
+INDEX_ATM_STRIKE_BAND = 10
 INDEX_EXPIRY_CLASSES = ("weekly", "monthly")
 
 # Single-stock F&O (2026-09-16, explicit user request: "Update this to
@@ -222,6 +233,17 @@ def get_cached_fo_universe() -> dict:
 
 def _spot_price(cash_symbol: str):
     import main  # deferred - avoids a circular import at module load time
+    if cash_symbol.endswith("_SPOT"):  # index with no yfinance symbol: use the Kotak future's LTP
+        try:
+            fut, _err = nse_fo_chain.select_nse_future(cash_symbol[:-5])
+            if not fut:
+                return None
+            q = kotak_neo.quotes([{"instrument_token": str(fut["instrument_token"]),
+                                   "exchange_segment": fut["exchange_segment"]}], quote_type="ltp")
+            v = nse_fo_chain._extract_ltp(q)
+            return float(v) if v and v > 0 else None
+        except Exception:
+            return None
     try:
         df = main.fetch_ohlc(cash_symbol, "1d", "5m")
         return float(df["Close"].iloc[-1]) if df is not None and len(df) else None
@@ -330,7 +352,7 @@ def resolve_fo_universe(deadline: float | None = None, stock_offset: int = 0,
             unresolved.append(f"{kotak_name}:spot_unavailable")
             continue
         _resolve_underlying_legs(
-            kotak_name, spot, nse_fo_chain.DEFAULT_ATM_STRIKE_BAND, INDEX_EXPIRY_CLASSES,
+            kotak_name, spot, INDEX_ATM_STRIKE_BAND, INDEX_EXPIRY_CLASSES,
             universe, unresolved,
         )
 
