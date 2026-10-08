@@ -1260,7 +1260,10 @@ def init_db():
                 entry_price REAL NOT NULL,
                 entry_order_id TEXT,
                 opened_at REAL NOT NULL,
-                day TEXT NOT NULL
+                day TEXT NOT NULL,
+                sl_order_id TEXT,
+                sl_trigger_price REAL,
+                peak_price REAL
             )
             """
         )
@@ -13454,7 +13457,27 @@ def _fo_chain_monitoring_snapshot(conn):
     conn.commit()
 
 
+# Real single-strike option underlyings (2026-10-08, explicit user instruction:
+# "cover ALL indices" + real money): every index with a WATCHLIST signal source.
+# FINNIFTY/MIDCPNIFTY have no WATCHLIST symbol, so no signal drives them yet.
+_REAL_OPTION_UNDERLYING = {**_INDEX_TO_FO_UNDERLYING, "^BSESN": "SENSEX"}
+# Trailing SL on the option PREMIUM (user rule 2026-10-08: single-strike options
+# ALWAYS trail). Initial stop and trail distance are both this % below the
+# running premium peak. NOT backtested (no real premium history exists); logged
+# per trade so the value can be judged on real results.
+FO_OPTION_TRAIL_PCT = 30.0
+FO_OPTION_SL_FAIL_EXIT_SECONDS = 180
+
+
 def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float, strategy_tag: str | None):
+    return _maybe_place_real_fo_option_entry(conn, symbol, spot, strategy_tag, "call")
+
+
+def _maybe_place_real_fo_put_entry(conn, symbol: str, spot: float, strategy_tag: str | None):
+    return _maybe_place_real_fo_option_entry(conn, symbol, spot, strategy_tag, "put")
+
+
+def _maybe_place_real_fo_option_entry(conn, symbol: str, spot: float, strategy_tag: str | None, right: str = "call"):
     """Mirrors a paper long (index OR MCX commodity, entered_long) as a
     REAL long call on the matching F&O underlying, sized at exactly 1 lot
     (smallest tradeable unit - same "qty=1" first-version precedent
@@ -13476,10 +13499,10 @@ def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float, strategy_tag
     checks it - fails closed on anything unrecognized, same as always."""
     if not is_real_fo_trading_enabled():
         return
-    fo_underlying = _INDEX_TO_FO_UNDERLYING.get(symbol)
+    fo_underlying = _REAL_OPTION_UNDERLYING.get(symbol)
     if fo_underlying is None:
         return
-    leg_key = f"{fo_underlying}:CALL"
+    leg_key = f"{fo_underlying}:{right.upper()}"
     if not _is_strategy_viable_for_real_money(strategy_tag):
         _log_real_fo_attempt(conn, leg_key, "B", "skipped_strategy_not_viable", detail=f"strategy_tag={strategy_tag}")
         return
@@ -13488,7 +13511,7 @@ def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float, strategy_tag
         return
 
     import nse_fo_chain
-    contract, err = nse_fo_chain.select_nse_option_contract(fo_underlying, spot, "call")
+    contract, err = nse_fo_chain.select_nse_option_contract(fo_underlying, spot, right)
     if contract is None:
         _log_real_fo_attempt(conn, leg_key, "B", "skipped_no_contract", detail=err)
         return
@@ -13549,17 +13572,22 @@ def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float, strategy_tag
         conn.execute(
             "INSERT INTO real_fo_positions (leg_key, underlying, strategy_tag, kotak_trading_symbol, "
             "instrument_token, exchange_segment, expiry, strike, lot_size, qty, entry_price, entry_order_id, "
-            "opened_at, day) VALUES (?, ?, 'single_leg_call', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (leg_key, fo_underlying, contract["kotak_trading_symbol"], contract["instrument_token"],
+            "opened_at, day, peak_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (leg_key, fo_underlying, f"single_leg_{right}", contract["kotak_trading_symbol"], contract["instrument_token"],
              contract["exchange_segment"], contract["expiry"], contract["strike"], contract["lot_size"], qty,
-             contract["premium"], result["order_id"], time.time(), ist_now().strftime("%Y-%m-%d")),
+             contract["premium"], result["order_id"], time.time(), ist_now().strftime("%Y-%m-%d"), contract["premium"]),
         )
         _log_real_fo_attempt(
             conn, leg_key, "B", "confirmed", kotak_trading_symbol=contract["kotak_trading_symbol"],
             qty=qty, price_est=contract["premium"], notional_inr=notional_inr,
             order_id=result["order_id"], raw_response=result.get("raw_response"),
+            detail=f"reason: {right} bought on viable setup strategy_tag={strategy_tag} signal on {symbol}, spot {spot}; trailing SL {FO_OPTION_TRAIL_PCT}% follows",
         )
-        print(f"[REAL F&O] BUY CALL {qty} {contract['kotak_trading_symbol']} (order {result['order_id']}) "
+        try:
+            _sync_real_fo_option_sl(conn, leg_key, reason="initial protective SL right after entry")
+        except Exception as _e:
+            print(f"[REAL F&O] initial SL failed for {leg_key} (tick retry will heal): {_e}")
+        print(f"[REAL F&O] BUY {right.upper()} {qty} {contract['kotak_trading_symbol']} (order {result['order_id']}) "
               f"~Rs{contract['premium']:.2f}")
     else:
         _log_real_fo_attempt(
@@ -13569,35 +13597,161 @@ def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float, strategy_tag
         print(f"[REAL F&O] BUY CALL FAILED {contract['kotak_trading_symbol']}: {result.get('detail')}")
 
 
-def _maybe_place_real_fo_call_exit(conn, symbol: str):
-    """Closes the real call leg _maybe_place_real_fo_call_entry opened,
-    when the SAME underlying's paper index position exits (any reason).
-    No gate of its own - same reasoning as _maybe_place_real_exit:
-    closing an already-open position must never be blocked."""
-    fo_underlying = _INDEX_TO_FO_UNDERLYING.get(symbol)
+def _maybe_place_real_fo_call_exit(conn, symbol: str, reason: str = "UNSTATED"):
+    return _maybe_place_real_fo_option_exit(conn, symbol, "call", reason)
+
+
+def _maybe_place_real_fo_put_exit(conn, symbol: str, reason: str = "UNSTATED"):
+    return _maybe_place_real_fo_option_exit(conn, symbol, "put", reason)
+
+
+def _cancel_live_option_sls(kotak_trading_symbol: str, state: dict | None = None) -> list:
+    """Cancels every live resting SELL SL on `kotak_trading_symbol` (fresh
+    Kotak read when `state` isn't supplied). A resting SELL SL left behind a
+    closed long option could later SELL SHORT, so exits always clear them."""
+    import kotak_real_fo_orders
+    import kotak_real_orders
+    st = state if state is not None else kotak_real_fo_orders.fetch_kotak_option_state(kotak_trading_symbol)
+    cancelled = []
+    for o in (st.get("live_sls") or []):
+        r = kotak_real_orders.cancel_real_order(o["order_id"])
+        cancelled.append({"order_id": o["order_id"], "ok": r.get("ok")})
+    return cancelled
+
+
+def _maybe_place_real_fo_option_exit(conn, symbol: str, right: str, reason: str = "UNSTATED"):
+    """Closes the real single-strike option leg opened by
+    _maybe_place_real_fo_option_entry when the SAME underlying's paper index
+    position exits (any reason). No gate of its own - closing an open
+    position must never be blocked. Cancels the resting trailing SL first
+    (reason logged), then sells at market."""
+    fo_underlying = _REAL_OPTION_UNDERLYING.get(symbol)
     if fo_underlying is None:
         return
-    leg_key = f"{fo_underlying}:CALL"
+    leg_key = f"{fo_underlying}:{right.upper()}"
     row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone()
     if not row:
         return
+    return _close_real_fo_option_leg(conn, row, reason)
 
+
+def _close_real_fo_option_leg(conn, row, reason: str):
     import kotak_real_fo_orders
+    leg_key = row["leg_key"]
+    cancelled = _cancel_live_option_sls(row["kotak_trading_symbol"])
+    if cancelled:
+        _log_real_fo_attempt(conn, leg_key, "S", "sl_cancelled", kotak_trading_symbol=row["kotak_trading_symbol"],
+                             qty=row["qty"], detail=f"reason: {reason}; cancelled {cancelled}")
     result = kotak_real_fo_orders.place_real_fo_exit(row["kotak_trading_symbol"], row["exchange_segment"], row["qty"])
     if result.get("ok"):
         conn.execute("DELETE FROM real_fo_positions WHERE leg_key = ?", (leg_key,))
         _log_real_fo_attempt(
             conn, leg_key, "S", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
             qty=row["qty"], order_id=result["order_id"], raw_response=result.get("raw_response"),
+            detail=f"reason: {reason}",
         )
-        print(f"[REAL F&O] SELL CALL {row['qty']} {row['kotak_trading_symbol']} (order {result['order_id']})")
-    else:
-        _log_real_fo_attempt(
-            conn, leg_key, "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
-            qty=row["qty"], detail=result.get("detail"), raw_response=result.get("raw_response"),
-        )
-        print(f"[REAL F&O] SELL CALL FAILED {row['kotak_trading_symbol']}: {result.get('detail')} "
-              f"- POSITION STILL OPEN, NEEDS ATTENTION")
+        print(f"[REAL F&O] SELL {leg_key} {row['qty']} {row['kotak_trading_symbol']} (order {result['order_id']}) - {reason}")
+        return True
+    _log_real_fo_attempt(
+        conn, leg_key, "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+        qty=row["qty"], detail=f"reason: {reason}; {result.get('detail')}", raw_response=result.get("raw_response"),
+    )
+    print(f"[REAL F&O] SELL {leg_key} FAILED {row['kotak_trading_symbol']}: {result.get('detail')} "
+          f"- POSITION STILL OPEN, NEEDS ATTENTION")
+    return False
+
+
+_fo_sl_unprotected_since: dict = {}
+
+
+def _option_ltp(row) -> float | None:
+    import kotak_neo
+    import nse_fo_chain
+    try:
+        q = kotak_neo.quotes([{"instrument_token": str(row["instrument_token"]),
+                               "exchange_segment": row["exchange_segment"]}], quote_type="ltp")
+        return nse_fo_chain._extract_ltp(q)
+    except Exception:
+        return None
+
+
+def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -> str:
+    """One governance pass for ONE real single-strike option leg, in the
+    mandatory order: (1) Kotak positions, (2) Kotak order book, (3) compare
+    with the app row, (4) act with the options engine's own actions only.
+    Returns a short status string. The SL is a TRAILING stop on the premium:
+    trigger = max(previous trigger, running peak * (1 - FO_OPTION_TRAIL_PCT%)).
+    Kotak wins: the row is rewritten from Kotak's SL / flat state."""
+    import kotak_real_fo_orders
+    row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone()
+    if not row or not str(row["strategy_tag"]).startswith("single_leg_"):
+        return "not_option_leg"
+    sym = row["kotak_trading_symbol"]
+    st = kotak_real_fo_orders.fetch_kotak_option_state(sym)
+    if not st["ok"]:
+        return f"kotak_unreadable: {st['detail']}"
+    # Kotak shows no open qty: stopped out / closed elsewhere -> close our row.
+    if st["net_qty"] <= 0:
+        if time.time() - float(row["opened_at"]) < 120:
+            return "fresh_entry_awaiting_position"
+        if st["live_sls"]:
+            _cancel_live_option_sls(sym, st)
+        conn.execute("DELETE FROM real_fo_positions WHERE leg_key = ?", (leg_key,))
+        _log_real_fo_attempt(conn, leg_key, "S", "closed_per_kotak", kotak_trading_symbol=sym, qty=row["qty"],
+                             detail="reason: Kotak positions show no open qty (trailing SL hit or position closed at Kotak)")
+        _fo_sl_unprotected_since.pop(leg_key, None)
+        return "closed_per_kotak"
+    qty = int(st["net_qty"])
+    ltp = _option_ltp(row)
+    peak = float(row["peak_price"] or row["entry_price"])
+    if ltp is not None and ltp > peak:
+        peak = ltp
+    prev_trigger = float(row["sl_trigger_price"] or 0)
+    desired = max(prev_trigger, peak * (1 - FO_OPTION_TRAIL_PCT / 100.0))
+    if row["exchange_segment"] == "nse_fo" and kotak_real_orders_closing_session():
+        return "skipped_closing_session"
+    res = kotak_real_fo_orders.ensure_option_trailing_sl(sym, row["exchange_segment"], qty, desired, st["live_sls"])
+    if res.get("ok"):
+        conn.execute("UPDATE real_fo_positions SET peak_price = ?, sl_order_id = ?, sl_trigger_price = ? WHERE leg_key = ?",
+                     (peak, res["order_id"], res["trigger_price"], leg_key))
+        conn.commit()
+        _fo_sl_unprotected_since.pop(leg_key, None)
+        if res["action"] != "adopted_existing":
+            _log_real_fo_attempt(conn, leg_key, "S", f"sl_{res['action']}", kotak_trading_symbol=sym, qty=qty,
+                                 order_id=res["order_id"], price_est=res["trigger_price"],
+                                 detail=f"reason: {reason}; trailing SL trigger {res['trigger_price']} (peak {peak}, ltp {ltp})")
+        return res["action"]
+    if res.get("restored_order_id"):
+        conn.execute("UPDATE real_fo_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE leg_key = ?",
+                     (res["restored_order_id"], res["restored_trigger"], leg_key))
+        conn.commit()
+        return "replace_failed_old_restored"
+    # No SL rests and placement failed: cut the risk after a short grace.
+    since = _fo_sl_unprotected_since.setdefault(leg_key, time.time())
+    _log_real_fo_attempt(conn, leg_key, "S", "sl_failed", kotak_trading_symbol=sym, qty=qty,
+                         detail=f"reason: {reason}; SL placement failed: {res.get('detail')}")
+    print(f"[REAL F&O] ALARM {leg_key} has NO stop-loss: {res.get('detail')}")
+    if time.time() - since >= FO_OPTION_SL_FAIL_EXIT_SECONDS:
+        _close_real_fo_option_leg(conn, row, f"risk cut: no SL could be placed for {FO_OPTION_SL_FAIL_EXIT_SECONDS}s ({res.get('detail')})")
+        _fo_sl_unprotected_since.pop(leg_key, None)
+        return "risk_cut_exit"
+    return "sl_failed"
+
+
+def kotak_real_orders_closing_session() -> bool:
+    import kotak_real_orders
+    return kotak_real_orders._in_closing_session()
+
+
+def _maybe_sync_real_fo_option_stop_losses(conn):
+    """Scheduler-tick pass (every ~30s): trails/heals the SL of every open real
+    single-strike option leg. Covers the 5-minute-backcheck requirement
+    in-process; each call reads Kotak first."""
+    for r in conn.execute("SELECT leg_key FROM real_fo_positions WHERE strategy_tag LIKE 'single_leg_%'").fetchall():
+        try:
+            _sync_real_fo_option_sl(conn, r["leg_key"])
+        except Exception as e:
+            print(f"[REAL F&O] SL sync error {r['leg_key']}: {e}")
 
 
 STRADDLE_STOP_PCT = 40.0    # combined-premium stop, % below entry combined premium
@@ -18220,9 +18374,17 @@ async def _scheduler_tick():
                 if short_action == "entered_short":
                     with closing(get_db()) as real_conn:
                         _maybe_place_real_short_entry(real_conn, cfg["symbol"])
+                    # 2026-10-08: a short signal on an index buys a single-strike PUT.
+                    if cfg["symbol"] in _REAL_OPTION_UNDERLYING:
+                        _e = short_result.get("entry") or {}
+                        with closing(get_db()) as fo_conn:
+                            _maybe_place_real_fo_put_entry(fo_conn, cfg["symbol"], _e.get("price"), _e.get("strategy"))
                 elif short_action.startswith("exited_short_"):
                     with closing(get_db()) as real_conn:
                         _maybe_place_real_short_exit(real_conn, cfg["symbol"], reason=f"short paper exit: {short_action}")
+                    if cfg["symbol"] in _REAL_OPTION_UNDERLYING:
+                        with closing(get_db()) as fo_conn:
+                            _maybe_place_real_fo_put_exit(fo_conn, cfg["symbol"], reason=f"paper index short exit: {short_action}")
                 else:
                     # 2026-09-30, explicit user instruction ("make short
                     # positions equally mirrored as done in buy
@@ -18243,15 +18405,16 @@ async def _scheduler_tick():
             # own try/except, never able to break the equity mirror
             # above or the next symbol's tick.
             try:
-                if cfg["symbol"] in _INDEX_TO_FO_UNDERLYING:
-                    fo_underlying = _INDEX_TO_FO_UNDERLYING[cfg["symbol"]]
+                if cfg["symbol"] in _REAL_OPTION_UNDERLYING:
+                    fo_underlying = _REAL_OPTION_UNDERLYING[cfg["symbol"]]
                     if action_taken == "entered_long":
                         with closing(get_db()) as fo_conn:
                             _maybe_place_real_fo_call_entry(fo_conn, cfg["symbol"], result.get("last_close"), result.get("strategy"))
                     elif action_taken.startswith("exited_"):
                         with closing(get_db()) as fo_conn:
-                            _maybe_place_real_fo_call_exit(fo_conn, cfg["symbol"])
-                    with closing(get_db()) as fo_conn:
+                            _maybe_place_real_fo_call_exit(fo_conn, cfg["symbol"], reason=f"paper index long exit: {action_taken}")
+                    if cfg["symbol"] in _INDEX_TO_FO_UNDERLYING:
+                      with closing(get_db()) as fo_conn:
                         _straddle_signal_core(
                             fo_conn, fo_underlying, result.get("vol_contraction_signal"),
                             result.get("halted_for_day", False), result.get("is_squareoff_time", False),
@@ -18349,6 +18512,15 @@ async def _scheduler_tick():
             _reconcile_real_positions_core(adopt="*")
         except Exception as e:
             print(f"[unprotected_backcheck] in-process reconcile failed (non-fatal, external cron still covers this): {e}")
+
+    # 2026-10-08: trailing SL / heal for every open real single-strike option
+    # (Kotak read first inside). Runs every tick; reuses the F&O switch.
+    try:
+        if is_real_fo_trading_enabled():
+            with closing(get_db()) as _fo_sl_conn:
+                _maybe_sync_real_fo_option_stop_losses(_fo_sl_conn)
+    except Exception as e:
+        print(f"[REAL F&O] option SL tick failed (non-fatal): {e}")
 
     _scheduler_last_tick_ts = time.time()
     await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
