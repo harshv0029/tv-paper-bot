@@ -191,3 +191,14 @@ jobs:
           for k in ("open_positions", "closed_trades"):
               for r in b.get(k, []): print(k, json.dumps(r)[:500])
           PY
+  etfscreen:
+    # B-317: ETF liquidity screen (Yahoo is unreachable from the dev sandbox).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q yfinance pandas
+      - name: Screen NSE ETFs by 3-month turnover
+        run: python3 scripts/etf_liquidity_screen.py | cut -c1-4000 | grep -v '^ETF_SCREEN_JSON' | head -90
