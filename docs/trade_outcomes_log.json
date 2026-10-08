@@ -1869,5 +1869,19 @@
     "rr_target": null,
     "rr_achieved": null,
     "strategy": null
+  },
+  {
+    "symbol": "VAML.NS",
+    "exit_time_utc": 1791431637.492705,
+    "entry_price_native": 390.20001220703125,
+    "exit_price_native": 394.0,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 3.8,
+    "pnl_pct_of_capital": 0.001,
+    "exit_reason": "staged_leg_T1",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-universal-score"
   }
 ]
