@@ -188,3 +188,15 @@ def test_trail_uses_row_trail_dist():
              patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "placed", "order_id": "S", "trigger_price": 114.0}) as ens:
             main._sync_real_fo_option_sl(conn, "X:SETUP")
             assert abs(ens.call_args[0][3] - 114.0) < 1e-6  # peak 120 - 6.0
+
+
+def test_universe_expiry_roll():
+    import datetime as dt
+    import kotak_fo_candle_feed as f
+    day = dt.date(2026, 10, 8)
+    ts = dt.datetime(2026, 10, 8, 4, 0).timestamp() - 5.5 * 3600  # resolved 04:00 IST same day
+    fresh = {("nse_fo", "1"): {"expiry": "2026-10-13"}}
+    assert f.universe_needs_expiry_roll(day, fresh, ts) is False
+    assert f.universe_needs_expiry_roll(day, {("nse_fo", "1"): {"expiry": "2026-10-07"}}, ts) is True   # expired leg
+    assert f.universe_needs_expiry_roll(dt.date(2026, 10, 9), fresh, ts) is True                       # resolved yesterday
+    assert f.universe_needs_expiry_roll(day, {}, ts) is False
