@@ -10209,7 +10209,6 @@ print(f"[etf_universe] added {len(_etf_extra)} liquid ETFs to NSE_FULL_UNIVERSE"
 # is allowed only when its 3-month median daily (high-low)/close is in
 # [0.5%, 3.5%]. Fails CLOSED if data is unavailable. Cached per IST day.
 ETF_RANGE_MIN_PCT = 0.5
-ETF_RANGE_MAX_PCT = 3.5
 _etf_range_cache: dict = {}
 
 
@@ -10230,8 +10229,8 @@ def _etf_entry_range_ok(symbol: str) -> tuple[bool, str]:
             ok, why = False, f"only {len(df)} daily bars"
         else:
             med = float(((df["High"] - df["Low"]) / df["Close"] * 100).median())
-            ok = ETF_RANGE_MIN_PCT <= med <= ETF_RANGE_MAX_PCT
-            why = f"median daily range {med:.2f}% (allowed {ETF_RANGE_MIN_PCT}-{ETF_RANGE_MAX_PCT}%)"
+            ok = med >= ETF_RANGE_MIN_PCT
+            why = f"median daily range {med:.2f}% (minimum {ETF_RANGE_MIN_PCT}%, no upper cap)"
     except Exception as e:
         ok, why = False, f"range data unavailable ({str(e)[:60]})"
     _etf_range_cache[symbol] = (day, ok, why)
