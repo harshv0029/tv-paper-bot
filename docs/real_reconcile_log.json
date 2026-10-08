@@ -1919,5 +1919,37 @@
     "governance_backfilled_swing": [],
     "unprotected_positions_count": 0,
     "unprotected_positions": []
+  },
+  {
+    "reconciled_at_utc": 1791431291.047935,
+    "real_balance_inr": 4989.42,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "holdings_unprotected": [],
+    "holdings_healed": [],
+    "holdings_checked": 3,
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 0,
+    "governance_backfilled": [],
+    "governance_backfilled_short_count": 0,
+    "governance_backfilled_short": [],
+    "governance_backfilled_swing_count": 1,
+    "governance_backfilled_swing": [
+      {
+        "symbol": "GMRAIRPORT.NS",
+        "entry_price": 92.93,
+        "stop_loss": 87.95571790422711,
+        "qty": 5,
+        "sl_order_id": "261008000028961",
+        "sl_placed": true
+      }
+    ],
+    "unprotected_positions_count": 0,
+    "unprotected_positions": []
   }
 ]
