@@ -70,18 +70,18 @@ def test_sl_trails_up_with_peak_and_never_down():
         with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value=_state(sls=[{"order_id": "S1", "trigger": 70.0, "qty": 25}])), \
              patch("main._option_ltp", return_value=150.0), \
              patch("main.kotak_real_orders_closing_session", return_value=False), \
-             patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "replaced", "order_id": "S2", "trigger_price": 105.0}) as ens:
+             patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "replaced", "order_id": "S2", "trigger_price": 135.0}) as ens:
             assert main._sync_real_fo_option_sl(conn, "NIFTY:PUT") == "replaced"
-            assert abs(ens.call_args[0][3] - 105.0) < 1e-6  # 150 * 0.70
+            assert abs(ens.call_args[0][3] - 135.0) < 1e-6  # 150 * 0.90 fallback trail
         row = conn.execute("SELECT * FROM real_fo_positions").fetchone()
-        assert row["peak_price"] == 150.0 and row["sl_trigger_price"] == 105.0
+        assert row["peak_price"] == 150.0 and row["sl_trigger_price"] == 135.0
         # premium falls back: peak stays, desired trigger does not drop
         with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value=_state(sls=[{"order_id": "S2", "trigger": 105.0, "qty": 25}])), \
              patch("main._option_ltp", return_value=120.0), \
              patch("main.kotak_real_orders_closing_session", return_value=False), \
              patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "adopted_existing", "order_id": "S2", "trigger_price": 105.0}) as ens:
             main._sync_real_fo_option_sl(conn, "NIFTY:PUT")
-            assert ens.call_args[0][3] >= 105.0 - 1e-6
+            assert ens.call_args[0][3] >= 135.0 - 1e-6
 
 
 def test_row_closed_when_kotak_shows_flat():
@@ -124,3 +124,67 @@ def test_ensure_adopts_and_ratchets():
     with patch("kotak_real_orders.cancel_real_order", return_value={"ok": True}), \
          patch("kotak_real_fo_orders.place_real_fo_stop_loss", return_value={"ok": True, "order_id": "N", "trigger_price": 120.0}):
         assert k.ensure_option_trailing_sl("SYM", "nse_fo", 25, 120.0, live)["action"] == "replaced"
+
+
+def _universe(sym="NIFTY17OCT2625000CE"):
+    return {("nse_fo", "777"): {"kind": "option", "underlying": "NIFTY", "right": "call", "strike": 25000.0,
+                                "expiry": "2026-10-17", "expiry_class": "weekly",
+                                "kotak_trading_symbol": sym, "lot_size": 25}}
+
+
+def _frame(n=40, last_age_s=60):
+    import pandas as pd
+    now = pd.Timestamp.now(tz="UTC")
+    return pd.DataFrame({"Date": [now - pd.Timedelta(seconds=last_age_s + 300 * (n - 1 - i)) for i in range(n)],
+                         "Open": [100.0] * n, "High": [102.0] * n, "Low": [98.0] * n, "Close": [100.0] * n,
+                         "Volume": [10] * n})
+
+
+def _scan(conn, universe, df, sig, viable=True):
+    from datetime import datetime
+    main._fo_strike_scan_last_ts = 0.0
+    with patch("main.is_real_fo_trading_enabled", return_value=True), \
+         patch("main.ist_now", return_value=datetime(2026, 10, 8, 11, 0)), \
+         patch("main._is_strategy_viable_for_real_money", return_value=viable), \
+         patch("main._fo_strike_setup_signals", return_value=(("order_block_delta", lambda d: sig),)), \
+         patch("kotak_fo_candle_feed.get_cached_fo_universe", return_value=universe), \
+         patch("kotak_fo_candle_feed.read_fo_candles_as_df", return_value=df), \
+         patch("nse_fo_chain.must_force_close_before_expiry", return_value=False), \
+         patch("main._real_fo_buy_contract") as buy:
+        main._run_fo_strike_setup_scan(conn)
+        return buy
+
+
+def test_strike_scan_buys_strike_whose_candles_match_viable_setup():
+    _db()
+    sig = {"entry_price": 100.0, "stop_loss": 95.0, "atr_at_entry": 2.0}
+    with closing(main.get_db()) as conn:
+        buy = _scan(conn, _universe(), _frame(), sig)
+        assert buy.call_count == 1
+        a = buy.call_args
+        assert a[0][3]["kotak_trading_symbol"] == "NIFTY17OCT2625000CE" and a[0][5] == "strike_setup_order_block_delta"
+        assert 3.0 <= a[1]["trail_dist"] <= 30.0  # clamped 3-30% of entry
+
+
+def test_strike_scan_skips_when_not_viable_stale_or_short_history():
+    _db()
+    sig = {"entry_price": 100.0, "stop_loss": 95.0, "atr_at_entry": 2.0}
+    with closing(main.get_db()) as conn:
+        assert _scan(conn, _universe(), _frame(), sig, viable=False).call_count == 0
+        assert _scan(conn, _universe(), _frame(last_age_s=2000), sig).call_count == 0
+        assert _scan(conn, _universe(), _frame(n=10), sig).call_count == 0
+        assert _scan(conn, _universe(), _frame(), None).call_count == 0
+
+
+def test_trail_uses_row_trail_dist():
+    _db()
+    with closing(main.get_db()) as conn:
+        _insert(conn, key="X:SETUP", tag="strike_setup_order_block_delta", trig=None, peak=100.0)
+        conn.execute("UPDATE real_fo_positions SET trail_dist = 6.0"); conn.commit()
+        with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value=_state()), \
+             patch("main._option_ltp", return_value=120.0), \
+             patch("nse_fo_chain.must_force_close_before_expiry", return_value=False), \
+             patch("main.kotak_real_orders_closing_session", return_value=False), \
+             patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "placed", "order_id": "S", "trigger_price": 114.0}) as ens:
+            main._sync_real_fo_option_sl(conn, "X:SETUP")
+            assert abs(ens.call_args[0][3] - 114.0) < 1e-6  # peak 120 - 6.0

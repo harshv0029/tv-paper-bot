@@ -1263,7 +1263,8 @@ def init_db():
                 day TEXT NOT NULL,
                 sl_order_id TEXT,
                 sl_trigger_price REAL,
-                peak_price REAL
+                peak_price REAL,
+                trail_dist REAL
             )
             """
         )
@@ -13465,7 +13466,7 @@ _REAL_OPTION_UNDERLYING = {**_INDEX_TO_FO_UNDERLYING, "^BSESN": "SENSEX"}
 # ALWAYS trail). Initial stop and trail distance are both this % below the
 # running premium peak. NOT backtested (no real premium history exists); logged
 # per trade so the value can be judged on real results.
-FO_OPTION_TRAIL_PCT = 30.0
+FO_OPTION_TRAIL_PCT = 10.0  # fallback only; strike-scan legs use their own ATR trail (trail_dist)
 FO_OPTION_SL_FAIL_EXIT_SECONDS = 180
 
 
@@ -13516,6 +13517,18 @@ def _maybe_place_real_fo_option_entry(conn, symbol: str, spot: float, strategy_t
         _log_real_fo_attempt(conn, leg_key, "B", "skipped_no_contract", detail=err)
         return
 
+    return _real_fo_buy_contract(
+        conn, leg_key, fo_underlying, contract, strategy_tag, f"single_leg_{right}",
+        f"{right} bought on viable setup strategy_tag={strategy_tag} index signal on {symbol}, spot {spot}",
+    )
+
+
+def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict, strategy_tag, tag_col: str,
+                          reason: str, trail_dist: float | None = None):
+    """Shared real BUY of ONE resolved option contract (caps, loss budget,
+    margin check, order, row insert, initial trailing SL). Used by the index
+    mirror (ATM strike) and the per-strike setup scan (the strike whose own
+    candles fired a viable setup)."""
     qty = contract["lot_size"]
     notional_inr = qty * contract["premium"]  # every F&O underlying wired here is INR-native, no fx conversion
     # 2026-09-17, explicit user instruction ("Daily F&O cap = Kotak
@@ -13572,22 +13585,22 @@ def _maybe_place_real_fo_option_entry(conn, symbol: str, spot: float, strategy_t
         conn.execute(
             "INSERT INTO real_fo_positions (leg_key, underlying, strategy_tag, kotak_trading_symbol, "
             "instrument_token, exchange_segment, expiry, strike, lot_size, qty, entry_price, entry_order_id, "
-            "opened_at, day, peak_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (leg_key, fo_underlying, f"single_leg_{right}", contract["kotak_trading_symbol"], contract["instrument_token"],
+            "opened_at, day, peak_price, trail_dist) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (leg_key, fo_underlying, f"{tag_col}", contract["kotak_trading_symbol"], contract["instrument_token"],
              contract["exchange_segment"], contract["expiry"], contract["strike"], contract["lot_size"], qty,
-             contract["premium"], result["order_id"], time.time(), ist_now().strftime("%Y-%m-%d"), contract["premium"]),
+             contract["premium"], result["order_id"], time.time(), ist_now().strftime("%Y-%m-%d"), contract["premium"], trail_dist),
         )
         _log_real_fo_attempt(
             conn, leg_key, "B", "confirmed", kotak_trading_symbol=contract["kotak_trading_symbol"],
             qty=qty, price_est=contract["premium"], notional_inr=notional_inr,
             order_id=result["order_id"], raw_response=result.get("raw_response"),
-            detail=f"reason: {right} bought on viable setup strategy_tag={strategy_tag} signal on {symbol}, spot {spot}; trailing SL {FO_OPTION_TRAIL_PCT}% follows",
+            detail=f"reason: {reason}; trailing SL follows",
         )
         try:
             _sync_real_fo_option_sl(conn, leg_key, reason="initial protective SL right after entry")
         except Exception as _e:
             print(f"[REAL F&O] initial SL failed for {leg_key} (tick retry will heal): {_e}")
-        print(f"[REAL F&O] BUY {right.upper()} {qty} {contract['kotak_trading_symbol']} (order {result['order_id']}) "
+        print(f"[REAL F&O] BUY {leg_key} {qty} {contract['kotak_trading_symbol']} (order {result['order_id']}) "
               f"~Rs{contract['premium']:.2f}")
     else:
         _log_real_fo_attempt(
@@ -13684,7 +13697,7 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
     Kotak wins: the row is rewritten from Kotak's SL / flat state."""
     import kotak_real_fo_orders
     row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone()
-    if not row or not str(row["strategy_tag"]).startswith("single_leg_"):
+    if not row or not str(row["strategy_tag"]).startswith(("single_leg_", "strike_setup_")):
         return "not_option_leg"
     sym = row["kotak_trading_symbol"]
     st = kotak_real_fo_orders.fetch_kotak_option_state(sym)
@@ -13701,13 +13714,18 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
                              detail="reason: Kotak positions show no open qty (trailing SL hit or position closed at Kotak)")
         _fo_sl_unprotected_since.pop(leg_key, None)
         return "closed_per_kotak"
+    import nse_fo_chain as _nfc
+    if row["expiry"] and _nfc.must_force_close_before_expiry(row["underlying"], row["expiry"]):
+        _close_real_fo_option_leg(conn, row, "force close before expiry/physical-settlement window")
+        return "expiry_force_close"
     qty = int(st["net_qty"])
     ltp = _option_ltp(row)
     peak = float(row["peak_price"] or row["entry_price"])
     if ltp is not None and ltp > peak:
         peak = ltp
     prev_trigger = float(row["sl_trigger_price"] or 0)
-    desired = max(prev_trigger, peak * (1 - FO_OPTION_TRAIL_PCT / 100.0))
+    dist = float(row["trail_dist"]) if row["trail_dist"] else peak * FO_OPTION_TRAIL_PCT / 100.0
+    desired = max(prev_trigger, peak - dist)
     if row["exchange_segment"] == "nse_fo" and kotak_real_orders_closing_session():
         return "skipped_closing_session"
     res = kotak_real_fo_orders.ensure_option_trailing_sl(sym, row["exchange_segment"], qty, desired, st["live_sls"])
@@ -13743,11 +13761,99 @@ def kotak_real_orders_closing_session() -> bool:
     return kotak_real_orders._in_closing_session()
 
 
+# Per-strike setup scan (2026-10-08, explicit user instruction: "treat each
+# strike of all option chains in terms of candle; if that candle matches the
+# entry setup of any VIABLE buy or swing strategy, the relevant strike (call
+# or put, as that strike is) is bought and held until the trailing SL exits").
+# Runs the real main.py entry-signal functions on each strike's OWN 5-minute
+# premium candles from kotak_fo_candle_feed. Disclosed limits: those
+# strategies were validated on daily stock bars, so their PFnet does not
+# measure this; candles only accumulate forward (no backfill), so signals need
+# enough history first; volume is the tick-count proxy.
+FO_STRIKE_SETUP_MAX_OPEN = 4
+FO_STRIKE_SETUP_SCAN_SECONDS = 300
+FO_STRIKE_TRAIL_ATR_MULT = 6.0  # same multiple the viable OB/VP swing setups trail with (B-26)
+FO_STRIKE_TRAIL_MIN_PCT = 3.0
+FO_STRIKE_TRAIL_MAX_PCT = 30.0
+_fo_strike_scan_last_ts = 0.0
+
+
+def _fo_strike_setup_signals():
+    """(registry tag, entry fn) for the buy/swing setups that have an entry
+    function on a bare OHLCV frame. Viability is checked per tag at use."""
+    return (("order_block_delta", order_block_entry_signal),
+            ("volume_profile_poc", volume_profile_poc_entry_signal),
+            ("gap_and_go", gap_and_go_entry_signal))
+
+
+def _run_fo_strike_setup_scan(conn):
+    """Throttled scan (once per 5-min candle). For every index option strike
+    with its own candles: if a VIABLE setup fires on the last candle, buy that
+    contract for real and let the trailing SL manage it."""
+    global _fo_strike_scan_last_ts
+    if not is_real_fo_trading_enabled():
+        return
+    now = time.time()
+    if now - _fo_strike_scan_last_ts < FO_STRIKE_SETUP_SCAN_SECONDS:
+        return
+    _fo_strike_scan_last_ts = now
+    t = ist_now()
+    if t.weekday() >= 5 or not ((9, 20) <= (t.hour, t.minute) < (15, 0)):
+        return
+    import kotak_fo_candle_feed
+    import nse_fo_chain
+    viable = [(tag, fn) for tag, fn in _fo_strike_setup_signals() if _is_strategy_viable_for_real_money(tag)]
+    if not viable:
+        return
+    open_n = conn.execute("SELECT COUNT(*) FROM real_fo_positions WHERE strategy_tag LIKE 'strike_setup_%'").fetchone()[0]
+    held = {r[0] for r in conn.execute("SELECT kotak_trading_symbol FROM real_fo_positions").fetchall()}
+    for (segment, token), d in kotak_fo_candle_feed.get_cached_fo_universe().items():
+        if open_n >= FO_STRIKE_SETUP_MAX_OPEN:
+            return
+        if d["kind"] != "option" or d["underlying"] not in ("NIFTY", "BANKNIFTY", "SENSEX"):
+            continue
+        if d["kotak_trading_symbol"] in held or nse_fo_chain.must_force_close_before_expiry(d["underlying"], d["expiry"]):
+            continue
+        df = kotak_fo_candle_feed.read_fo_candles_as_df(token)
+        if df is None or len(df) < 30:
+            continue
+        if (pd.Timestamp.now(tz="UTC") - df["Date"].iloc[-1]).total_seconds() > 900:
+            continue  # strike has no fresh candle (dropped out of the band)
+        for tag, fn in viable:
+            try:
+                sig = fn(df)
+            except Exception:
+                sig = None
+            if not sig:
+                continue
+            atr = _compute_atr_value(df, 14)
+            entry_px = float(sig["entry_price"])
+            if not atr or atr <= 0 or entry_px <= 0:
+                continue
+            dist = min(max(FO_STRIKE_TRAIL_ATR_MULT * atr, entry_px * FO_STRIKE_TRAIL_MIN_PCT / 100),
+                       entry_px * FO_STRIKE_TRAIL_MAX_PCT / 100)
+            contract = {"kotak_trading_symbol": d["kotak_trading_symbol"], "instrument_token": token,
+                        "exchange_segment": segment, "expiry": d["expiry"], "strike": d["strike"],
+                        "lot_size": d["lot_size"], "premium": entry_px}
+            leg_key = f"{d['kotak_trading_symbol']}:SETUP"
+            _real_fo_buy_contract(
+                conn, leg_key, d["underlying"], contract, tag, f"strike_setup_{tag}",
+                f"{d['right']} strike {d['strike']} {d['expiry']} own 5m candle matched viable setup {tag}; "
+                f"entry {entry_px:.2f}, trail {dist:.2f} ({FO_STRIKE_TRAIL_ATR_MULT}x ATR {atr:.2f}, "
+                f"clamped {FO_STRIKE_TRAIL_MIN_PCT}-{FO_STRIKE_TRAIL_MAX_PCT}%)",
+                trail_dist=dist,
+            )
+            if conn.execute("SELECT 1 FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone():
+                open_n += 1
+                held.add(d["kotak_trading_symbol"])
+            break
+
+
 def _maybe_sync_real_fo_option_stop_losses(conn):
     """Scheduler-tick pass (every ~30s): trails/heals the SL of every open real
     single-strike option leg. Covers the 5-minute-backcheck requirement
     in-process; each call reads Kotak first."""
-    for r in conn.execute("SELECT leg_key FROM real_fo_positions WHERE strategy_tag LIKE 'single_leg_%'").fetchall():
+    for r in conn.execute("SELECT leg_key FROM real_fo_positions WHERE strategy_tag LIKE 'single_leg_%' OR strategy_tag LIKE 'strike_setup_%'").fetchall():
         try:
             _sync_real_fo_option_sl(conn, r["leg_key"])
         except Exception as e:
@@ -18519,6 +18625,7 @@ async def _scheduler_tick():
         if is_real_fo_trading_enabled():
             with closing(get_db()) as _fo_sl_conn:
                 _maybe_sync_real_fo_option_stop_losses(_fo_sl_conn)
+                _run_fo_strike_setup_scan(_fo_sl_conn)
     except Exception as e:
         print(f"[REAL F&O] option SL tick failed (non-fatal): {e}")
 
