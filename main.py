@@ -11206,6 +11206,10 @@ def _maybe_place_real_short_entry(conn, symbol: str):
     if ltp <= 0:
         _log_real_attempt(conn, symbol, "S", "skipped_no_live_tick", kotak_trading_symbol=kotak_symbol)
         return
+    if _kotak_bought_today(kotak_symbol):
+        _log_real_attempt(conn, symbol, "S", "skipped_same_day_cooldown", kotak_trading_symbol=kotak_symbol,
+                          price_est=ltp, detail="Kotak shows a completed BUY (cover/stop-out) on this symbol today - no same-day short re-entry")
+        return
 
     paper_row = conn.execute(
         "SELECT qty, stop_loss, strategy FROM signal_state_short WHERE symbol = ? AND status = 'short'",
@@ -13802,6 +13806,38 @@ def _fo_strike_setup_signals():
     return (("order_block_delta", order_block_entry_signal),
             ("volume_profile_poc", volume_profile_poc_entry_signal),
             ("gap_and_go", gap_and_go_entry_signal))
+
+
+_index_swing_option_scan_day = None
+_INDEX_SWING_OPTION_SYMBOLS = ("^NSEI", "^NSEBANK", "^BSESN")
+
+
+def _run_index_swing_option_scan(conn):
+    """User 2026-10-08: an index's own daily swing signal drives an option on THAT index - a
+    long signal buys the CALL, a short signal buys the PUT (single strike, trailing SL, 20-lot cap
+    sized from money available, one call + one put per index, all enforced inside
+    _maybe_place_real_fo_option_entry / _real_fo_buy_contract). Once per IST day; each side gated
+    by its own strategy's PFnet viability (the short mirror fails closed until it is viable)."""
+    global _index_swing_option_scan_day
+    if not is_real_fo_trading_enabled():
+        return
+    t = ist_now()
+    today = t.strftime("%Y-%m-%d")
+    if t.weekday() >= 5 or _index_swing_option_scan_day == today or not ((9, 20) <= (t.hour, t.minute) < (15, 0)):
+        return
+    _index_swing_option_scan_day = today
+    for sym in _INDEX_SWING_OPTION_SYMBOLS:
+        try:
+            df = fetch_ohlc(sym, "2y", "1d")
+            if df is None or len(df) < 50:
+                continue
+            spot = float(df["Close"].iloc[-1])
+            if gap_and_go_entry_signal(df):
+                _maybe_place_real_fo_call_entry(conn, sym, spot, "gap_and_go")
+            elif gap_and_go_entry_signal_short(df):
+                _maybe_place_real_fo_put_entry(conn, sym, spot, "gap_and_go_short")
+        except Exception as e:
+            print(f"[INDEX SWING OPT] {sym} failed (non-fatal): {e}")
 
 
 def _run_fo_strike_setup_scan(conn):
@@ -16986,7 +17022,13 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
         )
 
 
-def _kotak_sold_today(kotak_symbol):
+def _kotak_bought_today(kotak_symbol):
+    """Short-side same-day cooldown (user 2026-10-08): True when Kotak's order book shows a COMPLETED
+    BUY (a buy-to-cover or stop-out) on this symbol today. Fails open when unreadable."""
+    return _kotak_sold_today(kotak_symbol, side="B")
+
+
+def _kotak_sold_today(kotak_symbol, side="S"):
     """Same-day cooldown (user 2026-10-08, DABUR stopped out 14:00 then re-bought 14:30): True when
     Kotak's own order book shows a COMPLETED SELL on this symbol today. Kotak is the source, so it
     survives restarts. Fails open (False) when the order book cannot be read."""
@@ -16994,7 +17036,7 @@ def _kotak_sold_today(kotak_symbol):
         import kotak_neo
         today = ist_now().strftime("%d-%b-%Y")
         for r in (kotak_neo.order_report().get("data") or []):
-            if (r.get("trdSym") == kotak_symbol and r.get("trnsTp") == "S"
+            if (r.get("trdSym") == kotak_symbol and r.get("trnsTp") == side
                     and str(r.get("ordSt", "")).strip().lower() == "complete"
                     and str(r.get("ordDtTm", "")).startswith(today)):
                 return True
@@ -18719,6 +18761,7 @@ async def _scheduler_tick():
             with closing(get_db()) as _fo_sl_conn:
                 _maybe_sync_real_fo_option_stop_losses(_fo_sl_conn)
                 _run_fo_strike_setup_scan(_fo_sl_conn)
+                _run_index_swing_option_scan(_fo_sl_conn)
     except Exception as e:
         print(f"[REAL F&O] option SL tick failed (non-fatal): {e}")
 
