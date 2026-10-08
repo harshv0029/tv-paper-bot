@@ -1,0 +1,47 @@
+name: Kotak Real Entries Audit
+
+# B-316 (2026-10-08): user asked for stock | reason | category | strategy | entry time
+# for REAL money only. Prints filled order-book rows (symbol, side, product, qty,
+# avg price, time, source) and the app's reasoned log for entries. No account ids.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kotak filled orders + app entry log
+        env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+        run: |
+          B=https://tv-paper-bot-gdan.onrender.com
+          curl -sS -m 90 "$B/health" || true; echo
+          curl -sS --retry 3 --retry-delay 10 -m 90 "$B/kotak-neo/order-report?token=${KOTAK_NEO_API_TOKEN}" -o /tmp/o.json || true
+          curl -sS --retry 3 --retry-delay 10 -m 90 "$B/real-order-log?days=10" -o /tmp/l.json || true
+          curl -sS --retry 3 --retry-delay 10 -m 90 "$B/real-trades-today-bot-only" -o /tmp/b.json || true
+          python3 - <<'PY'
+          import json, datetime
+          IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+          try: d = json.load(open("/tmp/o.json"))
+          except Exception as e: d = {}; print("o unreadable", type(e).__name__)
+          rows = d.get("data") if isinstance(d, dict) else d
+          rows = [r for r in (rows or []) if float(r.get("fldQty") or 0) > 0]
+          rows.sort(key=lambda r: str(r.get("ordDtTm", "")))
+          print("FILLED order rows:", len(rows))
+          for r in rows:
+              print("|".join(str(r.get(k, "")) for k in ("ordDtTm", "trdSym", "trnsTp", "prod", "prcTp", "fldQty", "avgPrc", "ordSt", "ordSrc")))
+          print("cols: ordDtTm|trdSym|trnsTp|prod|prcTp|fldQty|avgPrc|ordSt|ordSrc")
+          try: l = json.load(open("/tmp/l.json")).get("events", [])
+          except Exception: l = []
+          for e in sorted(l, key=lambda e: e["ts"]):
+              if e.get("leg") in ("entry", "staged_T1", "reroute") or e.get("event") in ("placed",) and e.get("leg") != "sl":
+                  t = datetime.datetime.fromtimestamp(e["ts"], IST).strftime("%d-%b %H:%M IST")
+                  print("LOG", t, e["symbol"], e["leg"], e["event"], "|", (e.get("detail") or "")[:200])
+          try: b = json.load(open("/tmp/b.json"))
+          except Exception: b = {}
+          for k in ("open_positions", "closed_trades"):
+              for r in b.get(k, []): print(k, json.dumps(r)[:500])
+          PY
