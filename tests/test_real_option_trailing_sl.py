@@ -213,3 +213,17 @@ def test_strike_scan_one_call_and_one_put_only():
         conn.commit()
         # a call is already held -> another call strike must not be bought
         assert _scan(conn, _universe(), _frame(), sig).call_count == 0
+
+
+def test_strike_scan_limit_is_per_index():
+    _db()
+    sig = {"entry_price": 100.0, "stop_loss": 95.0, "atr_at_entry": 2.0}
+    with closing(main.get_db()) as conn:
+        _insert(conn, trig=97.0, peak=100.0)
+        conn.execute("UPDATE real_fo_positions SET strategy_tag='strike_setup_order_block_delta', kotak_trading_symbol='NIFTY17OCT2624900CE'")
+        conn.commit()
+        uni = _universe("BANKNIFTY27OCT2650000CE")
+        for v in uni.values():
+            v["underlying"] = "BANKNIFTY"
+        # NIFTY already holds its call; BANKNIFTY's own call is still allowed
+        assert _scan(conn, uni, _frame(), sig).call_count == 1

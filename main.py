@@ -13782,7 +13782,8 @@ def kotak_real_orders_closing_session() -> bool:
 # strategies were validated on daily stock bars, so their PFnet does not
 # measure this; candles only accumulate forward (no backfill), so signals need
 # enough history first; volume is the tick-count proxy.
-FO_STRIKE_SETUP_MAX_OPEN = 2  # user 2026-10-08: at most 2 standalone strikes, 1 call + 1 put
+FO_STRIKE_SETUP_MAX_OPEN = 2  # user 2026-10-08: per index, at most 1 call + 1 put
+_FO_STRIKE_SCAN_UNDERLYINGS = ("NIFTY", "BANKNIFTY", "SENSEX", "FINNIFTY", "MIDCPNIFTY")
 FO_STRIKE_SETUP_SCAN_SECONDS = 300
 FO_MAX_LOTS_PER_ENTRY = 20
 FO_STRIKE_TRAIL_ATR_MULT = 6.0  # same multiple the viable OB/VP swing setups trail with (B-26)
@@ -13818,19 +13819,16 @@ def _run_fo_strike_setup_scan(conn):
     viable = [(tag, fn) for tag, fn in _fo_strike_setup_signals() if _is_strategy_viable_for_real_money(tag)]
     if not viable:
         return
-    open_n = conn.execute("SELECT COUNT(*) FROM real_fo_positions WHERE strategy_tag LIKE 'strike_setup_%'").fetchone()[0]
-    # one standalone strike per side: a held call blocks further calls, a held put further puts
-    held_sides = {("call" if (r[0] or "").upper().endswith("CE") else "put") for r in conn.execute(
-        "SELECT kotak_trading_symbol FROM real_fo_positions WHERE strategy_tag LIKE 'strike_setup_%'").fetchall()}
+    # user 2026-10-08: per INDEX, at most one call + one put (NIFTY max 2, BANKNIFTY max 2, ...)
+    held_sides = {(r[1], "call" if (r[0] or "").upper().endswith("CE") else "put") for r in conn.execute(
+        "SELECT kotak_trading_symbol, underlying FROM real_fo_positions WHERE strategy_tag LIKE 'strike_setup_%'").fetchall()}
     held = {r[0] for r in conn.execute("SELECT kotak_trading_symbol FROM real_fo_positions").fetchall()}
     for (segment, token), d in kotak_fo_candle_feed.get_cached_fo_universe().items():
-        if open_n >= FO_STRIKE_SETUP_MAX_OPEN:
-            return
-        if d["kind"] != "option" or d["underlying"] not in ("NIFTY", "BANKNIFTY", "SENSEX", "FINNIFTY", "MIDCPNIFTY"):
+        if d["kind"] != "option" or d["underlying"] not in _FO_STRIKE_SCAN_UNDERLYINGS:
             continue
         if d["expiry"] and str(d["expiry"])[:10] < t.strftime("%Y-%m-%d"):
             continue  # expired series still in a stale cache: never trade it
-        if d["right"] in held_sides:
+        if (d["underlying"], d["right"]) in held_sides:
             continue
         if d["kotak_trading_symbol"] in held or nse_fo_chain.must_force_close_before_expiry(d["underlying"], d["expiry"]):
             continue
@@ -13857,7 +13855,7 @@ def _run_fo_strike_setup_scan(conn):
                         "lot_size": d["lot_size"], "premium": entry_px}
             leg_key = f"{d['kotak_trading_symbol']}:SETUP"
             # each standalone side gets an equal share of the money still available today
-            budget = (_day_open_capital_inr(conn) - _real_fo_today_spent_inr(conn)) / max(1, FO_STRIKE_SETUP_MAX_OPEN - open_n)
+            budget = (_day_open_capital_inr(conn) - _real_fo_today_spent_inr(conn)) / max(1, len(_FO_STRIKE_SCAN_UNDERLYINGS) * 2 - len(held_sides))
             _real_fo_buy_contract(
                 conn, leg_key, d["underlying"], contract, tag, f"strike_setup_{tag}",
                 f"{d['right']} strike {d['strike']} {d['expiry']} own 5m candle matched viable setup {tag}; "
@@ -13866,8 +13864,7 @@ def _run_fo_strike_setup_scan(conn):
                 trail_dist=dist, budget_inr=budget,
             )
             if conn.execute("SELECT 1 FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone():
-                open_n += 1
-                held_sides.add(d["right"])
+                held_sides.add((d["underlying"], d["right"]))
                 held.add(d["kotak_trading_symbol"])
             break
 
