@@ -13466,7 +13466,9 @@ _REAL_OPTION_UNDERLYING = {**_INDEX_TO_FO_UNDERLYING, "^BSESN": "SENSEX"}
 # ALWAYS trail). Initial stop and trail distance are both this % below the
 # running premium peak. NOT backtested (no real premium history exists); logged
 # per trade so the value can be judged on real results.
-FO_OPTION_TRAIL_PCT = 3.0  # user 2026-10-08: max loss 3% of premium; strike-scan legs use trail_dist (also capped at 3%)
+FO_OPTION_INITIAL_STOP_PCT = 3.0  # user 2026-10-08: initial SL 3% below entry premium
+FO_OPTION_TRAIL_ARM_PCT = 1.0     # trailing starts once premium is 1% above entry
+FO_OPTION_TRAIL_PCT = 1.0         # then SL = highest LTP since entry minus 1%
 FO_OPTION_SL_FAIL_EXIT_SECONDS = 180
 
 
@@ -13729,8 +13731,13 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
     if ltp is not None and ltp > peak:
         peak = ltp
     prev_trigger = float(row["sl_trigger_price"] or 0)
-    dist = float(row["trail_dist"]) if row["trail_dist"] else peak * FO_OPTION_TRAIL_PCT / 100.0
-    desired = max(prev_trigger, peak - dist)
+    # user 2026-10-08: 3% initial stop below entry; once the premium is 1% above entry,
+    # trail 1% below the highest LTP since entry; the trigger never lowers.
+    entry = float(row["entry_price"])
+    if peak >= entry * (1 + FO_OPTION_TRAIL_ARM_PCT / 100.0):
+        desired = max(prev_trigger, peak * (1 - FO_OPTION_TRAIL_PCT / 100.0))
+    else:
+        desired = max(prev_trigger, entry * (1 - FO_OPTION_INITIAL_STOP_PCT / 100.0))
     if row["exchange_segment"] == "nse_fo" and kotak_real_orders_closing_session():
         return "skipped_closing_session"
     res = kotak_real_fo_orders.ensure_option_trailing_sl(sym, row["exchange_segment"], qty, desired, st["live_sls"])

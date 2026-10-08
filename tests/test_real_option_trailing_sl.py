@@ -70,18 +70,18 @@ def test_sl_trails_up_with_peak_and_never_down():
         with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value=_state(sls=[{"order_id": "S1", "trigger": 70.0, "qty": 25}])), \
              patch("main._option_ltp", return_value=150.0), \
              patch("main.kotak_real_orders_closing_session", return_value=False), \
-             patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "replaced", "order_id": "S2", "trigger_price": 145.5}) as ens:
+             patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "replaced", "order_id": "S2", "trigger_price": 148.5}) as ens:
             assert main._sync_real_fo_option_sl(conn, "NIFTY:PUT") == "replaced"
-            assert abs(ens.call_args[0][3] - 145.5) < 1e-6  # 150 * 0.97 (3% max-loss trail)
+            assert abs(ens.call_args[0][3] - 148.5) < 1e-6  # 150 * 0.99 (1% trail from peak)
         row = conn.execute("SELECT * FROM real_fo_positions").fetchone()
-        assert row["peak_price"] == 150.0 and row["sl_trigger_price"] == 145.5
+        assert row["peak_price"] == 150.0 and row["sl_trigger_price"] == 148.5
         # premium falls back: peak stays, desired trigger does not drop
         with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value=_state(sls=[{"order_id": "S2", "trigger": 105.0, "qty": 25}])), \
              patch("main._option_ltp", return_value=120.0), \
              patch("main.kotak_real_orders_closing_session", return_value=False), \
              patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "adopted_existing", "order_id": "S2", "trigger_price": 105.0}) as ens:
             main._sync_real_fo_option_sl(conn, "NIFTY:PUT")
-            assert ens.call_args[0][3] >= 145.5 - 1e-6
+            assert ens.call_args[0][3] >= 148.5 - 1e-6
 
 
 def test_row_closed_when_kotak_shows_flat():
@@ -177,18 +177,19 @@ def test_strike_scan_skips_when_not_viable_stale_or_short_history():
         assert _scan(conn, _universe(), _frame(), None).call_count == 0
 
 
-def test_trail_uses_row_trail_dist():
+def test_initial_3pct_stop_then_1pct_trail_after_1pct_rise():
     _db()
-    with closing(main.get_db()) as conn:
-        _insert(conn, key="X:SETUP", tag="strike_setup_order_block_delta", trig=None, peak=100.0)
-        conn.execute("UPDATE real_fo_positions SET trail_dist = 6.0"); conn.commit()
-        with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value=_state()), \
-             patch("main._option_ltp", return_value=120.0), \
-             patch("nse_fo_chain.must_force_close_before_expiry", return_value=False), \
-             patch("main.kotak_real_orders_closing_session", return_value=False), \
-             patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "placed", "order_id": "S", "trigger_price": 114.0}) as ens:
-            main._sync_real_fo_option_sl(conn, "X:SETUP")
-            assert abs(ens.call_args[0][3] - 114.0) < 1e-6  # peak 120 - 6.0
+    for ltp, want in ((100.5, 97.0), (120.0, 118.8)):  # entry 100: not armed -> 97; armed -> peak*0.99
+        with closing(main.get_db()) as conn:
+            conn.execute("DELETE FROM real_fo_positions"); conn.commit()
+            _insert(conn, key="X:SETUP", tag="strike_setup_order_block_delta", trig=None, peak=100.0)
+            with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value=_state()), \
+                 patch("main._option_ltp", return_value=ltp), \
+                 patch("nse_fo_chain.must_force_close_before_expiry", return_value=False), \
+                 patch("main.kotak_real_orders_closing_session", return_value=False), \
+                 patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "placed", "order_id": "S", "trigger_price": want}) as ens:
+                main._sync_real_fo_option_sl(conn, "X:SETUP")
+                assert abs(ens.call_args[0][3] - want) < 1e-6
 
 
 def test_universe_expiry_roll():
