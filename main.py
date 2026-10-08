@@ -10177,6 +10177,31 @@ else:
     print("[nifty200_universe] WARNING: real NIFTY 200 list not yet available - "
           "trading is NOT restricted to NIFTY 200 yet, running the full NSE universe instead")
 
+# ETFs (2026-10-08, explicit user instruction: "Make them part of it for
+# monitoring and real money trade taking... Including gold n silver etf and
+# others too... tradeable today onward"). The NIFTY 200 filter above drops
+# every ETF, so liquid ETFs are appended AFTER it from docs/etf_universe.json
+# (3-month median turnover >= 5 cr, daily range 0.5-3.5%; screen run
+# 37736490468). They flow into WATCHLIST and SWING_WATCHLIST like any stock
+# and use the same PFnet viability gate and SL/reconcile machinery, no new
+# kill switch. ETF_SYMBOLS lets futures research exclude them (user: futures
+# backtests keep excluding ETFs, as before). Backlog B-317.
+def _load_etf_universe_from_file() -> list[str]:
+    import json
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "etf_universe.json")
+    try:
+        with open(path) as f:
+            return list(json.load(f).get("symbols") or [])
+    except Exception as e:
+        print(f"[etf_universe] {path} unusable ({e}) - no ETFs added")
+        return []
+
+
+ETF_SYMBOLS = frozenset(_load_etf_universe_from_file())
+_etf_extra = [s for s in sorted(ETF_SYMBOLS) if s not in set(NSE_FULL_UNIVERSE)]
+NSE_FULL_UNIVERSE = list(NSE_FULL_UNIVERSE) + _etf_extra
+print(f"[etf_universe] added {len(_etf_extra)} liquid ETFs to NSE_FULL_UNIVERSE")
+
 # Per-symbol evidenced param overrides - explicit user instruction
 # 2026-09-07 ("the nse equity or index win rate is low... how r u
 # planning to improve it" -> "do whatever you can so that whole day
