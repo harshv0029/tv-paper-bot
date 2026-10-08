@@ -64,7 +64,18 @@ FO_CANDLE_UNDERLYINGS = {
     "^NSEI": "NIFTY",
     "^NSEBANK": "BANKNIFTY",
     "^BSESN": "SENSEX",
+    # 2026-10-08, explicit user request: add FINNIFTY and MIDCPNIFTY. No
+    # WATCHLIST/yfinance index symbol, so the spot is read from the Kotak
+    # future's LTP (see _spot_price_for). Their weekly series no longer
+    # exists on NSE; an unresolved class is simply recorded and skipped.
+    "FINNIFTY_SPOT": "FINNIFTY",
+    "MIDCPNIFTY_SPOT": "MIDCPNIFTY",
 }
+# 2026-10-08, explicit user request: monitor and trade 10 strikes ITM + 10 OTM
+# (+ ATM) on both calls and puts, for every index underlying. 5 indices x 21
+# strikes x 2 rights x 2 expiry classes = 420 legs (was 372), still inside
+# the 3000-subscription cap (2,310 stock + 206 equity + 420 = 2,936).
+INDEX_ATM_STRIKE_BAND = 10
 INDEX_EXPIRY_CLASSES = ("weekly", "monthly")
 
 # Single-stock F&O (2026-09-16, explicit user request: "Update this to
@@ -177,6 +188,36 @@ def get_feed_status() -> dict:
     return dict(_feed_status)
 
 
+def _ist_today():
+    import datetime as _dt
+    return (_dt.datetime.utcnow() + _dt.timedelta(hours=5, minutes=30)).date()
+
+
+def universe_needs_expiry_roll(today=None, universe=None, resolved_at=None) -> bool:
+    """True when the cached universe must be re-resolved NOW because of
+    expiry rollover (2026-10-08, user: weekly expiry strikes are removed and
+    added as per their expiry date): it holds a leg whose expiry is already
+    past, or it was resolved on an earlier IST day (so a new weekly series
+    that opened since is picked up, and expired ones drop out) - instead of
+    waiting for the 4-hour timer."""
+    import datetime as _dt
+    today = today or _ist_today()
+    uni = _universe_cache["value"] if universe is None else universe
+    if not uni:
+        return False
+    ts = _universe_cache["resolved_at"] if resolved_at is None else resolved_at
+    resolved_day = (_dt.datetime.utcfromtimestamp(ts) + _dt.timedelta(hours=5, minutes=30)).date()
+    if resolved_day < today:
+        return True
+    for d in uni.values():
+        try:
+            if d.get("expiry") and _dt.date.fromisoformat(str(d["expiry"])[:10]) < today:
+                return True
+        except ValueError:
+            continue
+    return False
+
+
 def get_cached_fo_universe() -> dict:
     """{(exchange_segment, instrument_token): descriptor} as last resolved
     by run_fo_candle_feed's own resolve_fo_universe() call (see that
@@ -192,6 +233,17 @@ def get_cached_fo_universe() -> dict:
 
 def _spot_price(cash_symbol: str):
     import main  # deferred - avoids a circular import at module load time
+    if cash_symbol.endswith("_SPOT"):  # index with no yfinance symbol: use the Kotak future's LTP
+        try:
+            fut, _err = nse_fo_chain.select_nse_future(cash_symbol[:-5])
+            if not fut:
+                return None
+            q = kotak_neo.quotes([{"instrument_token": str(fut["instrument_token"]),
+                                   "exchange_segment": fut["exchange_segment"]}], quote_type="ltp")
+            v = nse_fo_chain._extract_ltp(q)
+            return float(v) if v and v > 0 else None
+        except Exception:
+            return None
     try:
         df = main.fetch_ohlc(cash_symbol, "1d", "5m")
         return float(df["Close"].iloc[-1]) if df is not None and len(df) else None
@@ -300,7 +352,7 @@ def resolve_fo_universe(deadline: float | None = None, stock_offset: int = 0,
             unresolved.append(f"{kotak_name}:spot_unavailable")
             continue
         _resolve_underlying_legs(
-            kotak_name, spot, nse_fo_chain.DEFAULT_ATM_STRIKE_BAND, INDEX_EXPIRY_CLASSES,
+            kotak_name, spot, INDEX_ATM_STRIKE_BAND, INDEX_EXPIRY_CLASSES,
             universe, unresolved,
         )
 
@@ -448,7 +500,7 @@ async def run_fo_candle_feed():
     while True:
         try:
             cache_age = time.time() - _universe_cache["resolved_at"]
-            if _universe_cache["value"] is None or cache_age > UNIVERSE_REFRESH_SECONDS:
+            if _universe_cache["value"] is None or cache_age > UNIVERSE_REFRESH_SECONDS or universe_needs_expiry_roll():
                 # asyncio.to_thread (2026-09-16, live Render restart-loop
                 # fix): resolve_fo_universe() does a blocking search_scrip
                 # call per underlying/expiry-class across all ~213

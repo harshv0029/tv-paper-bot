@@ -66,6 +66,7 @@ import kotak_neo
 # discipline as the NIFTY/NIFTYFPI and MCX GOLD/GOLDM cases above.
 _UNDERLYING_TO_SEGMENT = {
     "NIFTY": "nse_fo", "BANKNIFTY": "nse_fo",
+    "FINNIFTY": "nse_fo", "MIDCPNIFTY": "nse_fo",
     "SENSEX": "bse_fo",
     "GOLD": "mcx_fo", "GOLDM": "mcx_fo",
     "SILVER": "mcx_fo", "SILVERM": "mcx_fo",

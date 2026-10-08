@@ -447,7 +447,7 @@ def test_index_legs_still_use_the_wider_band_and_both_expiry_classes():
 
     nifty_calls = [c for c in calls if c[0] == "NIFTY"]
     assert {c[2] for c in nifty_calls} == {"weekly", "monthly"}
-    assert all(c[3] == nse_fo_chain.DEFAULT_ATM_STRIKE_BAND for c in nifty_calls)
+    assert all(c[3] == feed.INDEX_ATM_STRIKE_BAND for c in nifty_calls)
 
 
 def test_stock_spot_lookup_uses_the_ns_ticker_suffix():
