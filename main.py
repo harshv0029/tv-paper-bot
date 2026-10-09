@@ -13922,6 +13922,11 @@ def _run_fo_strike_setup_scan(conn):
                 fired = (tag, sig)
                 rec["last_signal"] = {"tag": tag, "ts": now}
         rec["last_eval_ts"] = now
+        # surface in the per-asset "checks today / last checked" table (one check per scan pass)
+        _record_scheduler_check(f"{sym}:STRIKE")
+        _scheduler_last_results[f"{sym}:STRIKE"] = {
+            "status": "checked", "checked_at_utc": now,
+            "action_taken": ("setup_" + fired[0]) if fired else "no_setup"}
         if not fired:
             rec["status"] = "monitored_no_setup"
             continue
@@ -19144,7 +19149,7 @@ def _asset_class_and_source(symbol: str):
         return "mcx_commodity_proxy", "yahoo_finance", _MCX_PROXY_FOR[symbol]
     if symbol.endswith(":OPT"):
         return "options", "yahoo_finance", None
-    if symbol.endswith(":RSI2FO"):
+    if symbol.endswith((":RSI2FO", ":STRIKE")):
         return "fo_option", "kotak_fo_candle_feed", None
     return "nse_equity", "yahoo_finance", None
 

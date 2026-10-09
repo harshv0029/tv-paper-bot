@@ -252,3 +252,6 @@ def test_strike_monitor_records_every_strike_even_when_real_switch_off():
     row = out["strikes"][0]
     assert row["scanned"] == {"order_block_delta": 1, "power_play": 1}
     assert row["status"] == "setup_fired_order_block_delta_not_traded_real_switch_off"
+    assert main._scheduler_last_results["NIFTY13OCT2621750CE:STRIKE"]["checked_at_utc"] > 0
+    assert main._scheduler_check_counts["NIFTY13OCT2621750CE:STRIKE"] >= 1
+    assert main._asset_class_and_source("X:STRIKE")[0] == "fo_option"
