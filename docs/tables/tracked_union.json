@@ -1,12 +1,76 @@
 {
   "rows": [
     {
+      "kotak_trading_symbol": "BANKINDIA-EQ",
+      "symbol": "BANKINDIA.NS",
+      "qty": 8,
+      "is_short": 0,
+      "owner": "swing",
+      "source": "position",
+      "entry_price": 134.39,
+      "stop_loss": 126.7300033569336,
+      "sl_trigger_price": 126.73,
+      "strategy": "order_block_delta",
+      "entry_order_id": "261009000196477",
+      "opened_at": 1791522706.9950182,
+      "day": "2026-10-09",
+      "first_seen_day": "2026-10-09"
+    },
+    {
+      "kotak_trading_symbol": "COALINDIA-EQ",
+      "symbol": "COALINDIA.NS",
+      "qty": 2,
+      "is_short": 0,
+      "owner": "swing",
+      "source": "position",
+      "entry_price": 409.5,
+      "stop_loss": 398.3285696847098,
+      "sl_trigger_price": 398.35,
+      "strategy": "order_block_delta",
+      "entry_order_id": "261009000196783",
+      "opened_at": 1791522728.415014,
+      "day": "2026-10-09",
+      "first_seen_day": "2026-10-09"
+    },
+    {
+      "kotak_trading_symbol": "DABUR-EQ",
+      "symbol": "DABUR.NS",
+      "qty": 2,
+      "is_short": 0,
+      "owner": "swing",
+      "source": "position",
+      "entry_price": 384.35,
+      "stop_loss": 380.2393969345093,
+      "sl_trigger_price": 380.25,
+      "strategy": "volume_profile_poc",
+      "entry_order_id": "261009000197086",
+      "opened_at": 1791522749.0893934,
+      "day": "2026-10-09",
+      "first_seen_day": "2026-10-09"
+    },
+    {
+      "kotak_trading_symbol": "ESILVER-EQ",
+      "symbol": "ESILVER.NS",
+      "qty": 2,
+      "is_short": 0,
+      "owner": "swing",
+      "source": "position",
+      "entry_price": 218.78,
+      "stop_loss": 216.2784949207306,
+      "sl_trigger_price": 216.28,
+      "strategy": "volume_profile_poc",
+      "entry_order_id": "261009000197389",
+      "opened_at": 1791522770.1029315,
+      "day": "2026-10-09",
+      "first_seen_day": "2026-10-09"
+    },
+    {
       "kotak_trading_symbol": "IVZINGOLD-EQ",
       "symbol": "IVZINGOLD.NS",
       "qty": 3,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 127.6,
       "stop_loss": 125.13909293174743,
       "sl_trigger_price": 125.15,
@@ -22,9 +86,9 @@
       "qty": 1,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 172.65,
-      "stop_loss": 162.8757084437779,
+      "stop_loss": 159.67,
       "sl_trigger_price": 162.88,
       "strategy": "order_block_delta",
       "entry_order_id": "261008000123602",
@@ -33,5 +97,5 @@
       "first_seen_day": "2026-10-08"
     }
   ],
-  "synced_at_utc": "2026-10-08T16:56:51Z"
+  "synced_at_utc": "2026-10-09T16:38:00Z"
 }
