@@ -13801,11 +13801,26 @@ _fo_strike_scan_last_ts = 0.0
 
 
 def _fo_strike_setup_signals():
-    """(registry tag, entry fn) for the buy/swing setups that have an entry
-    function on a bare OHLCV frame. Viability is checked per tag at use."""
-    return (("order_block_delta", order_block_entry_signal),
+    """(registry tag, entry fn) for every buy/swing setup that has an entry
+    function on a bare OHLCV frame. Viability is checked per tag at use.
+    2026-10-09 (user: strikes had no monitoring vs the flagged-viable
+    strategies): was only 3 of the 7 viable entry fns; now all of them."""
+    return (("power_play", power_play_entry_signal),
+            ("primary_base", primary_base_entry_signal),
+            ("minervini_vcp_livermore", minervini_vcp_entry_signal_livermore_confirmed),
+            ("minervini_vcp", minervini_vcp_entry_signal),
+            ("order_block_delta", order_block_entry_signal),
             ("volume_profile_poc", volume_profile_poc_entry_signal),
             ("gap_and_go", gap_and_go_entry_signal))
+
+
+# Per-strike monitoring ledger (2026-10-09): every option strike in the candle
+# feed, which viable setups were evaluated on its own candles, when, and why it
+# was skipped. Served by GET /fo-strike-monitoring. In-memory by design: it is
+# recomputed every 5-min scan (a pure derived view, not state read back later).
+_fo_strike_monitor: dict = {}
+_fo_strike_monitor_meta: dict = {"last_scan_ts": None, "viable_tags": [], "real_enabled": None,
+                                 "entry_window_open": None, "scans_today": 0, "day": ""}
 
 
 _index_swing_option_scan_day = None
@@ -13841,72 +13856,134 @@ def _run_index_swing_option_scan(conn):
 
 
 def _run_fo_strike_setup_scan(conn):
-    """Throttled scan (once per 5-min candle). For every index option strike
-    with its own candles: if a VIABLE setup fires on the last candle, buy that
-    contract for real and let the trailing SL manage it."""
+    """Throttled scan (once per 5-min candle). EVERY index option strike with
+    its own candles is evaluated against every VIABLE setup (monitoring runs
+    whether or not real F&O trading is on, 09:15-15:30 IST, and is recorded
+    per strike for /fo-strike-monitoring). Only when the real switch is on and
+    inside 09:20-15:00 IST does a fired setup buy that contract for real and
+    let the trailing SL manage it."""
     global _fo_strike_scan_last_ts
-    if not is_real_fo_trading_enabled():
-        return
     now = time.time()
     if now - _fo_strike_scan_last_ts < FO_STRIKE_SETUP_SCAN_SECONDS:
         return
-    _fo_strike_scan_last_ts = now
     t = ist_now()
-    if t.weekday() >= 5 or not ((9, 20) <= (t.hour, t.minute) < (15, 0)):
+    if t.weekday() >= 5 or not ((9, 15) <= (t.hour, t.minute) < (15, 30)):
         return
+    _fo_strike_scan_last_ts = now
+    real_ok = is_real_fo_trading_enabled()
+    entry_window = (9, 20) <= (t.hour, t.minute) < (15, 0)
     import kotak_fo_candle_feed
     import nse_fo_chain
     viable = [(tag, fn) for tag, fn in _fo_strike_setup_signals() if _is_strategy_viable_for_real_money(tag)]
+    today = t.strftime("%Y-%m-%d")
+    meta = _fo_strike_monitor_meta
+    if meta["day"] != today:
+        meta.update(day=today, scans_today=0)
+    meta.update(last_scan_ts=now, viable_tags=[tg for tg, _ in viable], real_enabled=real_ok,
+                entry_window_open=entry_window, scans_today=meta["scans_today"] + 1)
     if not viable:
         return
     # user 2026-10-08: per INDEX, at most one call + one put (NIFTY max 2, BANKNIFTY max 2, ...)
     held_sides = {(r[1], "call" if (r[0] or "").upper().endswith("CE") else "put") for r in conn.execute(
         "SELECT kotak_trading_symbol, underlying FROM real_fo_positions WHERE strategy_tag LIKE 'strike_setup_%'").fetchall()}
     held = {r[0] for r in conn.execute("SELECT kotak_trading_symbol FROM real_fo_positions").fetchall()}
+    seen = set()
     for (segment, token), d in kotak_fo_candle_feed.get_cached_fo_universe().items():
         if d["kind"] != "option" or d["underlying"] not in _FO_STRIKE_SCAN_UNDERLYINGS:
             continue
-        if d["expiry"] and str(d["expiry"])[:10] < t.strftime("%Y-%m-%d"):
-            continue  # expired series still in a stale cache: never trade it
-        if (d["underlying"], d["right"]) in held_sides:
-            continue
-        if d["kotak_trading_symbol"] in held or nse_fo_chain.must_force_close_before_expiry(d["underlying"], d["expiry"]):
+        sym = d["kotak_trading_symbol"]
+        seen.add(sym)
+        rec = _fo_strike_monitor.setdefault(sym, {"scanned": {}, "last_signal": None})
+        if rec.get("day") != today:
+            rec.update(day=today, scanned={}, last_signal=None)
+        rec.update(underlying=d["underlying"], right=d["right"], strike=d["strike"], expiry=d["expiry"],
+                   expiry_class=d.get("expiry_class"))
+        if d["expiry"] and str(d["expiry"])[:10] < today:
+            rec["status"] = "expired_series"  # stale cache: never trade it
             continue
         df = kotak_fo_candle_feed.read_fo_candles_as_df(token)
+        rec["candles"] = 0 if df is None else len(df)
         if df is None or len(df) < 30:
+            rec["status"] = "warming_up_need_30_candles"
             continue
-        if (pd.Timestamp.now(tz="UTC") - df["Date"].iloc[-1]).total_seconds() > 900:
-            continue  # strike has no fresh candle (dropped out of the band)
+        age = (pd.Timestamp.now(tz="UTC") - df["Date"].iloc[-1]).total_seconds()
+        rec["last_candle_age_s"] = round(age)
+        if age > 900:
+            rec["status"] = "no_fresh_candle"  # dropped out of the band
+            continue
+        fired = None
         for tag, fn in viable:
             try:
                 sig = fn(df)
             except Exception:
                 sig = None
-            if not sig:
-                continue
-            atr = _compute_atr_value(df, 14)
-            entry_px = float(sig["entry_price"])
-            if not atr or atr <= 0 or entry_px <= 0:
-                continue
-            dist = min(max(FO_STRIKE_TRAIL_ATR_MULT * atr, entry_px * FO_STRIKE_TRAIL_MIN_PCT / 100),
-                       entry_px * FO_STRIKE_TRAIL_MAX_PCT / 100)
-            contract = {"kotak_trading_symbol": d["kotak_trading_symbol"], "instrument_token": token,
-                        "exchange_segment": segment, "expiry": d["expiry"], "strike": d["strike"],
-                        "lot_size": d["lot_size"], "premium": entry_px}
-            leg_key = f"{d['kotak_trading_symbol']}:SETUP"
-            # each standalone side gets an equal share of the money still available today
-            budget = (_day_open_capital_inr(conn) - _real_fo_today_spent_inr(conn)) / max(1, len(_FO_STRIKE_SCAN_UNDERLYINGS) * 2 - len(held_sides))
-            _real_fo_buy_contract(
-                conn, leg_key, d["underlying"], contract, tag, f"strike_setup_{tag}",
-                f"{d['right']} strike {d['strike']} {d['expiry']} own 5m candle matched viable setup {tag}; "
-                f"entry {entry_px:.2f}, trail {dist:.2f} ({FO_STRIKE_TRAIL_ATR_MULT}x ATR {atr:.2f}, "
-                f"clamped {FO_STRIKE_TRAIL_MIN_PCT}-{FO_STRIKE_TRAIL_MAX_PCT}%)",
-                trail_dist=dist, budget_inr=budget,
-            )
-            if conn.execute("SELECT 1 FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone():
-                held_sides.add((d["underlying"], d["right"]))
-                held.add(d["kotak_trading_symbol"])
-            break
+            rec["scanned"][tag] = rec["scanned"].get(tag, 0) + 1
+            if sig and fired is None:
+                fired = (tag, sig)
+                rec["last_signal"] = {"tag": tag, "ts": now}
+        rec["last_eval_ts"] = now
+        if not fired:
+            rec["status"] = "monitored_no_setup"
+            continue
+        tag, sig = fired
+        if not real_ok or not entry_window:
+            rec["status"] = f"setup_fired_{tag}_not_traded_" + ("real_switch_off" if not real_ok else "outside_entry_window")
+            continue
+        if (d["underlying"], d["right"]) in held_sides:
+            rec["status"] = f"setup_fired_{tag}_side_already_held"
+            continue
+        if sym in held or nse_fo_chain.must_force_close_before_expiry(d["underlying"], d["expiry"]):
+            rec["status"] = f"setup_fired_{tag}_held_or_expiry_window"
+            continue
+        atr = _compute_atr_value(df, 14)
+        entry_px = float(sig["entry_price"])
+        if not atr or atr <= 0 or entry_px <= 0:
+            rec["status"] = f"setup_fired_{tag}_bad_atr_or_price"
+            continue
+        dist = min(max(FO_STRIKE_TRAIL_ATR_MULT * atr, entry_px * FO_STRIKE_TRAIL_MIN_PCT / 100),
+                   entry_px * FO_STRIKE_TRAIL_MAX_PCT / 100)
+        contract = {"kotak_trading_symbol": sym, "instrument_token": token,
+                    "exchange_segment": segment, "expiry": d["expiry"], "strike": d["strike"],
+                    "lot_size": d["lot_size"], "premium": entry_px}
+        leg_key = f"{sym}:SETUP"
+        # each standalone side gets an equal share of the money still available today
+        budget = (_day_open_capital_inr(conn) - _real_fo_today_spent_inr(conn)) / max(1, len(_FO_STRIKE_SCAN_UNDERLYINGS) * 2 - len(held_sides))
+        _real_fo_buy_contract(
+            conn, leg_key, d["underlying"], contract, tag, f"strike_setup_{tag}",
+            f"{d['right']} strike {d['strike']} {d['expiry']} own 5m candle matched viable setup {tag}; "
+            f"entry {entry_px:.2f}, trail {dist:.2f} ({FO_STRIKE_TRAIL_ATR_MULT}x ATR {atr:.2f}, "
+            f"clamped {FO_STRIKE_TRAIL_MIN_PCT}-{FO_STRIKE_TRAIL_MAX_PCT}%)",
+            trail_dist=dist, budget_inr=budget,
+        )
+        if conn.execute("SELECT 1 FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone():
+            held_sides.add((d["underlying"], d["right"]))
+            held.add(sym)
+            rec["status"] = f"bought_{tag}"
+        else:
+            rec["status"] = f"setup_fired_{tag}_buy_not_placed_see_real_order_log"
+    for sym in list(_fo_strike_monitor):
+        if sym not in seen:
+            _fo_strike_monitor.pop(sym, None)  # strike left the feed (rolled / out of band)
+
+
+@app.get("/fo-strike-monitoring")
+def fo_strike_monitoring(symbol: str | None = None):
+    """Per-strike view of the monitoring done by _run_fo_strike_setup_scan:
+    every option strike in the live candle feed, the viable setups evaluated
+    on its own candles today, its last fired setup and its current status
+    (no token needed: read-only, no account data). ?symbol= filters by
+    trading-symbol substring, case-insensitive (e.g. NIFTY2610...21750CE)."""
+    q = (symbol or "").strip().upper()
+    rows = []
+    for sym, r in sorted(_fo_strike_monitor.items()):
+        if q and q not in sym.upper():
+            continue
+        rows.append({"symbol": sym, **{k: v for k, v in r.items() if k != "day"}})
+    counts: dict = {}
+    for r in rows:
+        counts[r.get("status")] = counts.get(r.get("status"), 0) + 1
+    return {"meta": dict(_fo_strike_monitor_meta), "strikes_tracked": len(rows), "status_counts": counts,
+            "strikes": rows}
 
 
 def _maybe_sync_real_fo_option_stop_losses(conn):
@@ -18762,6 +18839,10 @@ async def _scheduler_tick():
                 _maybe_sync_real_fo_option_stop_losses(_fo_sl_conn)
                 _run_fo_strike_setup_scan(_fo_sl_conn)
                 _run_index_swing_option_scan(_fo_sl_conn)
+        else:
+            # monitoring only (no orders): the per-strike view stays live
+            with closing(get_db()) as _fo_sl_conn:
+                _run_fo_strike_setup_scan(_fo_sl_conn)
     except Exception as e:
         print(f"[REAL F&O] option SL tick failed (non-fatal): {e}")
 
