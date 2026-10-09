@@ -227,3 +227,28 @@ def test_strike_scan_limit_is_per_index():
             v["underlying"] = "BANKNIFTY"
         # NIFTY already holds its call; BANKNIFTY's own call is still allowed
         assert _scan(conn, uni, _frame(), sig).call_count == 1
+
+
+def test_strike_monitor_records_every_strike_even_when_real_switch_off():
+    _db()
+    sig = {"entry_price": 100.0, "stop_loss": 95.0, "atr_at_entry": 2.0}
+    from datetime import datetime
+    main._fo_strike_scan_last_ts = 0.0
+    uni = _universe("NIFTY13OCT2621750CE")
+    with closing(main.get_db()) as conn, \
+         patch("main.is_real_fo_trading_enabled", return_value=False), \
+         patch("main.ist_now", return_value=datetime(2026, 10, 9, 11, 0)), \
+         patch("main._is_strategy_viable_for_real_money", return_value=True), \
+         patch("main._fo_strike_setup_signals", return_value=(("order_block_delta", lambda d: sig),
+                                                              ("power_play", lambda d: None))), \
+         patch("kotak_fo_candle_feed.get_cached_fo_universe", return_value=uni), \
+         patch("kotak_fo_candle_feed.read_fo_candles_as_df", return_value=_frame()), \
+         patch("nse_fo_chain.must_force_close_before_expiry", return_value=False), \
+         patch("main._real_fo_buy_contract") as buy:
+        main._run_fo_strike_setup_scan(conn)
+        assert buy.call_count == 0  # monitoring only: no real order with the switch off
+    out = main.fo_strike_monitoring(symbol="21750ce")
+    assert out["strikes_tracked"] == 1
+    row = out["strikes"][0]
+    assert row["scanned"] == {"order_block_delta": 1, "power_play": 1}
+    assert row["status"] == "setup_fired_order_block_delta_not_traded_real_switch_off"
