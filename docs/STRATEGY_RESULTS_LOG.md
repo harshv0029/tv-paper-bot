@@ -109,7 +109,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | baseline__every_bar__long__1d__atr4_h3__v1 | baseline | every_bar | long | 1d | atr4_h3 | swing | 0.520 | 38.7 | 58072 | 18.75 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | baseline__every_bar__long__1d__atr4_h5__v1 | baseline | every_bar | long | 1d | atr4_h5 | swing | 0.639 | 42.2 | 38802 | 31.125000000000004 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | baseline__every_bar__long__1d__atr6_h10__v1 | baseline | every_bar | long | 1d | atr6_h10 | swing | 0.802 | 46.4 | 21147 | 62.18749999999999 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
-| baseline__every_bar__long__1d__atr6_h20__v1 | baseline | every_bar | long | 1d | atr6_h20 | swing | 1.038 | 49.1 | 11108 | 123.3125 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
+| baseline__every_bar__long__1d__atr6_h20__v1 | baseline | every_bar | long | 1d | atr6_h20 | swing | 0.868 | 49.1 | 11108 | 123.3125 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | baseline__every_bar__long__1d__atr6_h3__v1 | baseline | every_bar | long | 1d | atr6_h3 | swing | 0.529 | 39.0 | 57994 | 18.75 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | baseline__every_bar__long__1d__atr6_h5__v1 | baseline | every_bar | long | 1d | atr6_h5 | swing | 0.635 | 42.0 | 38649 | 31.25 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | baseline__every_bar__long__1d__atrnone_h10__v1 | baseline | every_bar | long | 1d | atrnone_h10 | swing | 0.787 | 46.2 | 21091 | 62.5 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
@@ -1171,7 +1171,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__breakout_pullback_x_harami__long__1d__atrnone_h10__v1 | combo | breakout_pullback_x_harami | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__breakout_pullback_x_harami__long__1d__atrnone_h20__v1 | combo | breakout_pullback_x_harami | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__breakout_pullback_x_kama_cross__long__1d__atr6_h10__v1 | combo | breakout_pullback_x_kama_cross | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__breakout_pullback_x_kama_cross__long__1d__atr6_h20__v1 | combo | breakout_pullback_x_kama_cross | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__breakout_pullback_x_kama_cross__long__1d__atr6_h20__v1 | combo | breakout_pullback_x_kama_cross | long | 1d | atr6_h20 | swing | 1.042 | 48.0 | 252 | 124.0 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__breakout_pullback_x_kama_cross__long__1d__atrnone_h10__v1 | combo | breakout_pullback_x_kama_cross | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__breakout_pullback_x_kama_cross__long__1d__atrnone_h20__v1 | combo | breakout_pullback_x_kama_cross | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__breakout_pullback_x_keltner_raschke_break__long__1d__atr6_h10__v1 | combo | breakout_pullback_x_keltner_raschke_break | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
@@ -1373,11 +1373,11 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__cci20_extreme_reversal_x_envelope_0d05_fade__short__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_envelope_0d05_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_envelope_0d05_fade__short__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_envelope_0d05_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_fib_382_bounce__long__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_fib_382_bounce | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__cci20_extreme_reversal_x_fib_382_bounce__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_fib_382_bounce | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__cci20_extreme_reversal_x_fib_382_bounce__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_fib_382_bounce | long | 1d | atr6_h20 | swing | 1.037 | 46.7 | 600 | 123.625 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__cci20_extreme_reversal_x_fib_382_bounce__long__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_fib_382_bounce | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_fib_382_bounce__long__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_fib_382_bounce | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_four_pct_reversal__long__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__cci20_extreme_reversal_x_four_pct_reversal__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__cci20_extreme_reversal_x_four_pct_reversal__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | long | 1d | atr6_h20 | swing | 1.034 | 46.0 | 3976 | 123.875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__cci20_extreme_reversal_x_four_pct_reversal__long__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_four_pct_reversal__long__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_four_pct_reversal__short__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -1385,7 +1385,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__cci20_extreme_reversal_x_four_pct_reversal__short__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_four_pct_reversal__short__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_four_pct_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_gap_exhaustion_fade__long__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__cci20_extreme_reversal_x_gap_exhaustion_fade__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__cci20_extreme_reversal_x_gap_exhaustion_fade__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | long | 1d | atr6_h20 | swing | 1.185 | 46.2 | 938 | 124.1875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__cci20_extreme_reversal_x_gap_exhaustion_fade__long__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_gap_exhaustion_fade__long__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_gap_exhaustion_fade__short__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -1393,7 +1393,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__cci20_extreme_reversal_x_gap_exhaustion_fade__short__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_gap_exhaustion_fade__short__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_gap_exhaustion_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_hammer_hanging__long__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_hammer_hanging | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__cci20_extreme_reversal_x_hammer_hanging__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_hammer_hanging | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__cci20_extreme_reversal_x_hammer_hanging__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_hammer_hanging | long | 1d | atr6_h20 | swing | 1.254 | 48.2 | 1474 | 122.0 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__cci20_extreme_reversal_x_hammer_hanging__long__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_hammer_hanging | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_hammer_hanging__long__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_hammer_hanging | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_hammer_hanging__short__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_hammer_hanging | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -1583,7 +1583,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__cci20_extreme_reversal_x_vp_value_area_reject__short__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_vp_value_area_reject | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_vp_value_area_reject__short__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_vp_value_area_reject | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_weekly_reversal__long__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_weekly_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__cci20_extreme_reversal_x_weekly_reversal__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_weekly_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__cci20_extreme_reversal_x_weekly_reversal__long__1d__atr6_h20__v1 | combo | cci20_extreme_reversal_x_weekly_reversal | long | 1d | atr6_h20 | swing | 0.895 | 44.6 | 819 | 123.50000000000001 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__cci20_extreme_reversal_x_weekly_reversal__long__1d__atrnone_h10__v1 | combo | cci20_extreme_reversal_x_weekly_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_weekly_reversal__long__1d__atrnone_h20__v1 | combo | cci20_extreme_reversal_x_weekly_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__cci20_extreme_reversal_x_weekly_reversal__short__1d__atr6_h10__v1 | combo | cci20_extreme_reversal_x_weekly_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -1615,7 +1615,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_2wk_break_x_breakout_pullback__short__1d__atrnone_h10__v1 | combo | donchian_2wk_break_x_breakout_pullback | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_break_x_breakout_pullback__short__1d__atrnone_h20__v1 | combo | donchian_2wk_break_x_breakout_pullback | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_break_x_cci20_extreme_reversal__long__1d__atr6_h10__v1 | combo | donchian_2wk_break_x_cci20_extreme_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__donchian_2wk_break_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | donchian_2wk_break_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__donchian_2wk_break_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | donchian_2wk_break_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing | 1.002 | 45.9 | 819 | 122.6875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__donchian_2wk_break_x_cci20_extreme_reversal__long__1d__atrnone_h10__v1 | combo | donchian_2wk_break_x_cci20_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_break_x_cci20_extreme_reversal__long__1d__atrnone_h20__v1 | combo | donchian_2wk_break_x_cci20_extreme_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_break_x_cci20_extreme_reversal__short__1d__atr6_h10__v1 | combo | donchian_2wk_break_x_cci20_extreme_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -1965,7 +1965,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_2wk_break_x_willr14_extreme_reversal__short__1d__atrnone_h10__v1 | combo | donchian_2wk_break_x_willr14_extreme_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_break_x_willr14_extreme_reversal__short__1d__atrnone_h20__v1 | combo | donchian_2wk_break_x_willr14_extreme_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_cci20_extreme_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__donchian_2wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__donchian_2wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing | 1.247 | 48.4 | 1321 | 122.37499999999999 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__donchian_2wk_fade_x_cci20_extreme_reversal__long__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_cci20_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_cci20_extreme_reversal__long__1d__atrnone_h20__v1 | combo | donchian_2wk_fade_x_cci20_extreme_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_cci20_extreme_reversal__short__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_cci20_extreme_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -2000,8 +2000,8 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_2wk_fade_x_engulfing_ma10__short__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_engulfing_ma10 | short | 1d | atr6_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_engulfing_ma10__short__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_engulfing_ma10 | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_engulfing_ma10__short__1d__atrnone_h20__v1 | combo | donchian_2wk_fade_x_engulfing_ma10 | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
-| combo__donchian_2wk_fade_x_envelope_0d03_break__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d03_break | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__donchian_2wk_fade_x_envelope_0d03_break__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d03_break | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__donchian_2wk_fade_x_envelope_0d03_break__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d03_break | long | 1d | atr6_h10 | swing | 1.137 | 48.8 | 2043 | 62.18749999999999 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
+| combo__donchian_2wk_fade_x_envelope_0d03_break__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d03_break | long | 1d | atr6_h20 | swing | 1.089 | 46.4 | 1979 | 123.06250000000001 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__donchian_2wk_fade_x_envelope_0d03_break__long__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d03_break | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_envelope_0d03_break__long__1d__atrnone_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d03_break | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_envelope_0d03_break__short__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d03_break | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -2016,8 +2016,8 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_2wk_fade_x_envelope_0d03_fade__short__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d03_fade | short | 1d | atr6_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_envelope_0d03_fade__short__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d03_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_envelope_0d03_fade__short__1d__atrnone_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d03_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
-| combo__donchian_2wk_fade_x_envelope_0d05_break__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d05_break | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__donchian_2wk_fade_x_envelope_0d05_break__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d05_break | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__donchian_2wk_fade_x_envelope_0d05_break__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d05_break | long | 1d | atr6_h10 | swing | 1.154 | 49.2 | 1015 | 62.31250000000001 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
+| combo__donchian_2wk_fade_x_envelope_0d05_break__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d05_break | long | 1d | atr6_h20 | swing | 0.986 | 44.2 | 996 | 122.81249999999999 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__donchian_2wk_fade_x_envelope_0d05_break__long__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d05_break | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_envelope_0d05_break__long__1d__atrnone_h20__v1 | combo | donchian_2wk_fade_x_envelope_0d05_break | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_envelope_0d05_fade__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_envelope_0d05_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
@@ -2109,7 +2109,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_2wk_fade_x_key_reversal__short__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_key_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_key_reversal__short__1d__atrnone_h20__v1 | combo | donchian_2wk_fade_x_key_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_kicking__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_kicking | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__donchian_2wk_fade_x_kicking__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_kicking | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__donchian_2wk_fade_x_kicking__long__1d__atr6_h20__v1 | combo | donchian_2wk_fade_x_kicking | long | 1d | atr6_h20 | swing | 1.199 | 49.2 | 443 | 123.6875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__donchian_2wk_fade_x_kicking__long__1d__atrnone_h10__v1 | combo | donchian_2wk_fade_x_kicking | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_kicking__long__1d__atrnone_h20__v1 | combo | donchian_2wk_fade_x_kicking | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_2wk_fade_x_liq_sweep_20__long__1d__atr6_h10__v1 | combo | donchian_2wk_fade_x_liq_sweep_20 | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
@@ -2605,7 +2605,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_4wk_break_x_willr14_extreme_reversal__long__1d__atrnone_h10__v1 | combo | donchian_4wk_break_x_willr14_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_break_x_willr14_extreme_reversal__long__1d__atrnone_h20__v1 | combo | donchian_4wk_break_x_willr14_extreme_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h10__v1 | combo | donchian_4wk_fade_x_cci20_extreme_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__donchian_4wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | donchian_4wk_fade_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__donchian_4wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | donchian_4wk_fade_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing | 1.308 | 49.1 | 1267 | 122.37499999999999 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__donchian_4wk_fade_x_cci20_extreme_reversal__long__1d__atrnone_h10__v1 | combo | donchian_4wk_fade_x_cci20_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_cci20_extreme_reversal__long__1d__atrnone_h20__v1 | combo | donchian_4wk_fade_x_cci20_extreme_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_cci20_extreme_reversal__short__1d__atr6_h10__v1 | combo | donchian_4wk_fade_x_cci20_extreme_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -2797,7 +2797,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_4wk_fade_x_soldiers_crows__short__1d__atrnone_h10__v1 | combo | donchian_4wk_fade_x_soldiers_crows | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_soldiers_crows__short__1d__atrnone_h20__v1 | combo | donchian_4wk_fade_x_soldiers_crows | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_starc_fade__long__1d__atr6_h10__v1 | combo | donchian_4wk_fade_x_starc_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__donchian_4wk_fade_x_starc_fade__long__1d__atr6_h20__v1 | combo | donchian_4wk_fade_x_starc_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__donchian_4wk_fade_x_starc_fade__long__1d__atr6_h20__v1 | combo | donchian_4wk_fade_x_starc_fade | long | 1d | atr6_h20 | swing | 1.543 | 53.2 | 1339 | 117.25000000000001 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__donchian_4wk_fade_x_starc_fade__long__1d__atrnone_h10__v1 | combo | donchian_4wk_fade_x_starc_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_starc_fade__long__1d__atrnone_h20__v1 | combo | donchian_4wk_fade_x_starc_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_4wk_fade_x_starc_fade__short__1d__atr6_h10__v1 | combo | donchian_4wk_fade_x_starc_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -3133,7 +3133,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_8wk_break_x_weekly_reversal__short__1d__atrnone_h10__v1 | combo | donchian_8wk_break_x_weekly_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_break_x_weekly_reversal__short__1d__atrnone_h20__v1 | combo | donchian_8wk_break_x_weekly_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h10__v1 | combo | donchian_8wk_fade_x_cci20_extreme_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__donchian_8wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__donchian_8wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing | 1.449 | 50.9 | 986 | 122.625 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__donchian_8wk_fade_x_cci20_extreme_reversal__long__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_cci20_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_cci20_extreme_reversal__long__1d__atrnone_h20__v1 | combo | donchian_8wk_fade_x_cci20_extreme_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_cci20_extreme_reversal__short__1d__atr6_h10__v1 | combo | donchian_8wk_fade_x_cci20_extreme_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -3173,7 +3173,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_8wk_fade_x_envelope_0d03_fade__short__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_envelope_0d03_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_envelope_0d03_fade__short__1d__atrnone_h20__v1 | combo | donchian_8wk_fade_x_envelope_0d03_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_envelope_0d05_fade__long__1d__atr6_h10__v1 | combo | donchian_8wk_fade_x_envelope_0d05_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__donchian_8wk_fade_x_envelope_0d05_fade__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_envelope_0d05_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__donchian_8wk_fade_x_envelope_0d05_fade__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_envelope_0d05_fade | long | 1d | atr6_h20 | swing | 1.241 | 49.7 | 5041 | 123.0 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__donchian_8wk_fade_x_envelope_0d05_fade__long__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_envelope_0d05_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_envelope_0d05_fade__long__1d__atrnone_h20__v1 | combo | donchian_8wk_fade_x_envelope_0d05_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_envelope_0d05_fade__short__1d__atr6_h10__v1 | combo | donchian_8wk_fade_x_envelope_0d05_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -3275,7 +3275,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_8wk_fade_x_soldiers_crows__short__1d__atr6_h10__v1 | combo | donchian_8wk_fade_x_soldiers_crows | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_soldiers_crows__short__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_soldiers_crows | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_starc_fade__long__1d__atr6_h10__v1 | combo | donchian_8wk_fade_x_starc_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__donchian_8wk_fade_x_starc_fade__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_starc_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__donchian_8wk_fade_x_starc_fade__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_starc_fade | long | 1d | atr6_h20 | swing | 1.541 | 54.4 | 1005 | 119.37500000000001 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__donchian_8wk_fade_x_starc_fade__long__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_starc_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_starc_fade__long__1d__atrnone_h20__v1 | combo | donchian_8wk_fade_x_starc_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_starc_fade__short__1d__atr6_h10__v1 | combo | donchian_8wk_fade_x_starc_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -3307,7 +3307,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__donchian_8wk_fade_x_vp_value_area_reject__short__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_vp_value_area_reject | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_vp_value_area_reject__short__1d__atrnone_h20__v1 | combo | donchian_8wk_fade_x_vp_value_area_reject | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_willr14_extreme_reversal__long__1d__atr6_h10__v1 | combo | donchian_8wk_fade_x_willr14_extreme_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__donchian_8wk_fade_x_willr14_extreme_reversal__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_willr14_extreme_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__donchian_8wk_fade_x_willr14_extreme_reversal__long__1d__atr6_h20__v1 | combo | donchian_8wk_fade_x_willr14_extreme_reversal | long | 1d | atr6_h20 | swing | 1.398 | 51.0 | 1563 | 122.75 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__donchian_8wk_fade_x_willr14_extreme_reversal__long__1d__atrnone_h10__v1 | combo | donchian_8wk_fade_x_willr14_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_willr14_extreme_reversal__long__1d__atrnone_h20__v1 | combo | donchian_8wk_fade_x_willr14_extreme_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__donchian_8wk_fade_x_willr14_extreme_reversal__short__1d__atr6_h10__v1 | combo | donchian_8wk_fade_x_willr14_extreme_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -3321,7 +3321,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__ema_9_21_cross_x_base_double_bottom_top__short__1d__atrnone_h10__v1 | combo | ema_9_21_cross_x_base_double_bottom_top | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_base_double_bottom_top__short__1d__atrnone_h20__v1 | combo | ema_9_21_cross_x_base_double_bottom_top | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_cci20_extreme_reversal__long__1d__atr6_h10__v1 | combo | ema_9_21_cross_x_cci20_extreme_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__ema_9_21_cross_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | ema_9_21_cross_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__ema_9_21_cross_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | ema_9_21_cross_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing | 1.031 | 44.3 | 655 | 123.125 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__ema_9_21_cross_x_cci20_extreme_reversal__long__1d__atrnone_h10__v1 | combo | ema_9_21_cross_x_cci20_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_cci20_extreme_reversal__long__1d__atrnone_h20__v1 | combo | ema_9_21_cross_x_cci20_extreme_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_donchian_2wk_break__long__1d__atr6_h10__v1 | combo | ema_9_21_cross_x_donchian_2wk_break | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
@@ -3447,7 +3447,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__ema_9_21_cross_x_kicking__short__1d__atrnone_h10__v1 | combo | ema_9_21_cross_x_kicking | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_kicking__short__1d__atrnone_h20__v1 | combo | ema_9_21_cross_x_kicking | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_lunar_full_new__long__1d__atr6_h10__v1 | combo | ema_9_21_cross_x_lunar_full_new | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__ema_9_21_cross_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | ema_9_21_cross_x_lunar_full_new | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__ema_9_21_cross_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | ema_9_21_cross_x_lunar_full_new | long | 1d | atr6_h20 | swing | 1.199 | 49.0 | 1418 | 123.625 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__ema_9_21_cross_x_lunar_full_new__long__1d__atrnone_h10__v1 | combo | ema_9_21_cross_x_lunar_full_new | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_lunar_full_new__long__1d__atrnone_h20__v1 | combo | ema_9_21_cross_x_lunar_full_new | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__ema_9_21_cross_x_lunar_full_new__short__1d__atr6_h10__v1 | combo | ema_9_21_cross_x_lunar_full_new | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -3857,7 +3857,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__engulfing_x_donchian_8wk_break__short__1d__atrnone_h10__v1 | combo | engulfing_x_donchian_8wk_break | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__engulfing_x_donchian_8wk_break__short__1d__atrnone_h20__v1 | combo | engulfing_x_donchian_8wk_break | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__engulfing_x_donchian_8wk_fade__long__1d__atr6_h10__v1 | combo | engulfing_x_donchian_8wk_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__engulfing_x_donchian_8wk_fade__long__1d__atr6_h20__v1 | combo | engulfing_x_donchian_8wk_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__engulfing_x_donchian_8wk_fade__long__1d__atr6_h20__v1 | combo | engulfing_x_donchian_8wk_fade | long | 1d | atr6_h20 | swing | 0.963 | 46.2 | 865 | 123.6875 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__engulfing_x_donchian_8wk_fade__long__1d__atrnone_h10__v1 | combo | engulfing_x_donchian_8wk_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__engulfing_x_donchian_8wk_fade__long__1d__atrnone_h20__v1 | combo | engulfing_x_donchian_8wk_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__engulfing_x_donchian_8wk_fade__short__1d__atr6_h10__v1 | combo | engulfing_x_donchian_8wk_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -4347,7 +4347,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d03_break_x_harami_ma10__long__1d__atrnone_h10__v1 | combo | envelope_0d03_break_x_harami_ma10 | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_harami_ma10__long__1d__atrnone_h20__v1 | combo | envelope_0d03_break_x_harami_ma10 | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_invhammer_shootstar__long__1d__atr6_h10__v1 | combo | envelope_0d03_break_x_invhammer_shootstar | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__envelope_0d03_break_x_invhammer_shootstar__long__1d__atr6_h20__v1 | combo | envelope_0d03_break_x_invhammer_shootstar | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__envelope_0d03_break_x_invhammer_shootstar__long__1d__atr6_h20__v1 | combo | envelope_0d03_break_x_invhammer_shootstar | long | 1d | atr6_h20 | swing | 0.923 | 42.2 | 1950 | 122.24999999999999 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__envelope_0d03_break_x_invhammer_shootstar__long__1d__atrnone_h10__v1 | combo | envelope_0d03_break_x_invhammer_shootstar | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_invhammer_shootstar__long__1d__atrnone_h20__v1 | combo | envelope_0d03_break_x_invhammer_shootstar | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_kama_cross__long__1d__atr6_h10__v1 | combo | envelope_0d03_break_x_kama_cross | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
@@ -4423,7 +4423,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d03_break_x_ma_4_9_18_align__short__1d__atrnone_h10__v1 | combo | envelope_0d03_break_x_ma_4_9_18_align | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_ma_4_9_18_align__short__1d__atrnone_h20__v1 | combo | envelope_0d03_break_x_ma_4_9_18_align | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_matching_low_high__long__1d__atr6_h10__v1 | combo | envelope_0d03_break_x_matching_low_high | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__envelope_0d03_break_x_matching_low_high__long__1d__atr6_h20__v1 | combo | envelope_0d03_break_x_matching_low_high | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__envelope_0d03_break_x_matching_low_high__long__1d__atr6_h20__v1 | combo | envelope_0d03_break_x_matching_low_high | long | 1d | atr6_h20 | swing | 0.921 | 42.6 | 1352 | 124.3125 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__envelope_0d03_break_x_matching_low_high__long__1d__atrnone_h10__v1 | combo | envelope_0d03_break_x_matching_low_high | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_matching_low_high__long__1d__atrnone_h20__v1 | combo | envelope_0d03_break_x_matching_low_high | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_break_x_obv_breakout__long__1d__atr6_h10__v1 | combo | envelope_0d03_break_x_obv_breakout | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
@@ -4634,8 +4634,8 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d03_fade_x_engulfing_ma10__short__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_engulfing_ma10 | short | 1d | atr6_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_engulfing_ma10__short__1d__atrnone_h10__v1 | combo | envelope_0d03_fade_x_engulfing_ma10 | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_engulfing_ma10__short__1d__atrnone_h20__v1 | combo | envelope_0d03_fade_x_engulfing_ma10 | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
-| combo__envelope_0d03_fade_x_envelope_0d03_break__long__1d__atr6_h10__v1 | combo | envelope_0d03_fade_x_envelope_0d03_break | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__envelope_0d03_fade_x_envelope_0d03_break__long__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_envelope_0d03_break | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__envelope_0d03_fade_x_envelope_0d03_break__long__1d__atr6_h10__v1 | combo | envelope_0d03_fade_x_envelope_0d03_break | long | 1d | atr6_h10 | swing | 1.203 | 50.1 | 1671 | 62.375 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
+| combo__envelope_0d03_fade_x_envelope_0d03_break__long__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_envelope_0d03_break | long | 1d | atr6_h20 | swing | 1.129 | 46.9 | 1599 | 124.25 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__envelope_0d03_fade_x_envelope_0d03_break__long__1d__atrnone_h10__v1 | combo | envelope_0d03_fade_x_envelope_0d03_break | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_envelope_0d03_break__long__1d__atrnone_h20__v1 | combo | envelope_0d03_fade_x_envelope_0d03_break | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_envelope_0d03_break__short__1d__atr6_h10__v1 | combo | envelope_0d03_fade_x_envelope_0d03_break | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -4795,7 +4795,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d03_fade_x_lwma21_cross__short__1d__atrnone_h10__v1 | combo | envelope_0d03_fade_x_lwma21_cross | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_lwma21_cross__short__1d__atrnone_h20__v1 | combo | envelope_0d03_fade_x_lwma21_cross | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_ma_4_9_18_align__long__1d__atr6_h10__v1 | combo | envelope_0d03_fade_x_ma_4_9_18_align | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__envelope_0d03_fade_x_ma_4_9_18_align__long__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_ma_4_9_18_align | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__envelope_0d03_fade_x_ma_4_9_18_align__long__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_ma_4_9_18_align | long | 1d | atr6_h20 | swing | 1.107 | 46.9 | 964 | 124.0 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__envelope_0d03_fade_x_ma_4_9_18_align__long__1d__atrnone_h10__v1 | combo | envelope_0d03_fade_x_ma_4_9_18_align | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_ma_4_9_18_align__long__1d__atrnone_h20__v1 | combo | envelope_0d03_fade_x_ma_4_9_18_align | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_ma_4_9_18_align__short__1d__atr6_h10__v1 | combo | envelope_0d03_fade_x_ma_4_9_18_align | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -4867,7 +4867,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d03_fade_x_star_doji__short__1d__atrnone_h10__v1 | combo | envelope_0d03_fade_x_star_doji | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_star_doji__short__1d__atrnone_h20__v1 | combo | envelope_0d03_fade_x_star_doji | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_starc_fade__long__1d__atr6_h10__v1 | combo | envelope_0d03_fade_x_starc_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__envelope_0d03_fade_x_starc_fade__long__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_starc_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__envelope_0d03_fade_x_starc_fade__long__1d__atr6_h20__v1 | combo | envelope_0d03_fade_x_starc_fade | long | 1d | atr6_h20 | swing | 1.485 | 53.2 | 1516 | 117.1875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__envelope_0d03_fade_x_starc_fade__long__1d__atrnone_h10__v1 | combo | envelope_0d03_fade_x_starc_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_starc_fade__long__1d__atrnone_h20__v1 | combo | envelope_0d03_fade_x_starc_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d03_fade_x_starc_fade__short__1d__atr6_h10__v1 | combo | envelope_0d03_fade_x_starc_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -5231,7 +5231,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d05_break_x_volume_confirmed_breakout__short__1d__atrnone_h10__v1 | combo | envelope_0d05_break_x_volume_confirmed_breakout | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_break_x_volume_confirmed_breakout__short__1d__atrnone_h20__v1 | combo | envelope_0d05_break_x_volume_confirmed_breakout | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_break_x_vp_ema_poc_pullback__long__1d__atr6_h10__v1 | combo | envelope_0d05_break_x_vp_ema_poc_pullback | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__envelope_0d05_break_x_vp_ema_poc_pullback__long__1d__atr6_h20__v1 | combo | envelope_0d05_break_x_vp_ema_poc_pullback | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__envelope_0d05_break_x_vp_ema_poc_pullback__long__1d__atr6_h20__v1 | combo | envelope_0d05_break_x_vp_ema_poc_pullback | long | 1d | atr6_h20 | swing | 0.968 | 43.3 | 1129 | 124.3125 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__envelope_0d05_break_x_vp_ema_poc_pullback__long__1d__atrnone_h10__v1 | combo | envelope_0d05_break_x_vp_ema_poc_pullback | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_break_x_vp_ema_poc_pullback__long__1d__atrnone_h20__v1 | combo | envelope_0d05_break_x_vp_ema_poc_pullback | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_break_x_vp_ema_poc_pullback__short__1d__atr6_h10__v1 | combo | envelope_0d05_break_x_vp_ema_poc_pullback | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -5299,7 +5299,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d05_fade_x_donchian_4wk_fade__short__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_donchian_4wk_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_donchian_4wk_fade__short__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_donchian_4wk_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_donchian_8wk_fade__long__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_donchian_8wk_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__envelope_0d05_fade_x_donchian_8wk_fade__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_donchian_8wk_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__envelope_0d05_fade_x_donchian_8wk_fade__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_donchian_8wk_fade | long | 1d | atr6_h20 | swing | 1.244 | 49.7 | 5208 | 123.06250000000001 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__envelope_0d05_fade_x_donchian_8wk_fade__long__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_donchian_8wk_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_donchian_8wk_fade__long__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_donchian_8wk_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_donchian_8wk_fade__short__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_donchian_8wk_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -5339,7 +5339,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d05_fade_x_fib_382_bounce__short__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_fib_382_bounce | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_fib_382_bounce__short__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_fib_382_bounce | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_four_pct_reversal__long__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_four_pct_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__envelope_0d05_fade_x_four_pct_reversal__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_four_pct_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__envelope_0d05_fade_x_four_pct_reversal__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_four_pct_reversal | long | 1d | atr6_h20 | swing | 1.070 | 47.3 | 3722 | 124.125 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__envelope_0d05_fade_x_four_pct_reversal__long__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_four_pct_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_four_pct_reversal__long__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_four_pct_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_four_pct_reversal__short__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_four_pct_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -5402,8 +5402,8 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d05_fade_x_kama_cross__short__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_kama_cross | short | 1d | atr6_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_kama_cross__short__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_kama_cross | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_kama_cross__short__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_kama_cross | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
-| combo__envelope_0d05_fade_x_keltner_raschke_pullback__long__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_keltner_raschke_pullback | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__envelope_0d05_fade_x_keltner_raschke_pullback__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_keltner_raschke_pullback | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__envelope_0d05_fade_x_keltner_raschke_pullback__long__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_keltner_raschke_pullback | long | 1d | atr6_h10 | swing | 0.891 | 45.8 | 1056 | 62.375 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
+| combo__envelope_0d05_fade_x_keltner_raschke_pullback__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_keltner_raschke_pullback | long | 1d | atr6_h20 | swing | 0.926 | 42.9 | 1021 | 124.50000000000001 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__envelope_0d05_fade_x_keltner_raschke_pullback__long__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_keltner_raschke_pullback | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_keltner_raschke_pullback__long__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_keltner_raschke_pullback | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_keltner_raschke_pullback__short__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_keltner_raschke_pullback | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -5459,7 +5459,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d05_fade_x_lunar_full_new__short__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_lunar_full_new | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_lunar_full_new__short__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_lunar_full_new | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_lwma21_cross__long__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_lwma21_cross | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__envelope_0d05_fade_x_lwma21_cross__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_lwma21_cross | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__envelope_0d05_fade_x_lwma21_cross__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_lwma21_cross | long | 1d | atr6_h20 | swing | 1.029 | 45.8 | 1171 | 124.3125 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__envelope_0d05_fade_x_lwma21_cross__long__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_lwma21_cross | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_lwma21_cross__long__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_lwma21_cross | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_lwma21_cross__short__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_lwma21_cross | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -5519,7 +5519,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__envelope_0d05_fade_x_star_doji__short__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_star_doji | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_star_doji__short__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_star_doji | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_starc_fade__long__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_starc_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__envelope_0d05_fade_x_starc_fade__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_starc_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__envelope_0d05_fade_x_starc_fade__long__1d__atr6_h20__v1 | combo | envelope_0d05_fade_x_starc_fade | long | 1d | atr6_h20 | swing | 1.530 | 53.5 | 1436 | 117.4375 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__envelope_0d05_fade_x_starc_fade__long__1d__atrnone_h10__v1 | combo | envelope_0d05_fade_x_starc_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_starc_fade__long__1d__atrnone_h20__v1 | combo | envelope_0d05_fade_x_starc_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__envelope_0d05_fade_x_starc_fade__short__1d__atr6_h10__v1 | combo | envelope_0d05_fade_x_starc_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -5603,7 +5603,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__fib_382_bounce_x_breakout_pullback__short__1d__atrnone_h10__v1 | combo | fib_382_bounce_x_breakout_pullback | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_breakout_pullback__short__1d__atrnone_h20__v1 | combo | fib_382_bounce_x_breakout_pullback | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_cci20_extreme_reversal__long__1d__atr6_h10__v1 | combo | fib_382_bounce_x_cci20_extreme_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__fib_382_bounce_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | fib_382_bounce_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__fib_382_bounce_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | fib_382_bounce_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing | 1.005 | 45.3 | 1099 | 123.75 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__fib_382_bounce_x_cci20_extreme_reversal__long__1d__atrnone_h10__v1 | combo | fib_382_bounce_x_cci20_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_cci20_extreme_reversal__long__1d__atrnone_h20__v1 | combo | fib_382_bounce_x_cci20_extreme_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_cci20_extreme_reversal__short__1d__atr6_h10__v1 | combo | fib_382_bounce_x_cci20_extreme_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -5693,7 +5693,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__fib_382_bounce_x_envelope_0d05_break__short__1d__atrnone_h10__v1 | combo | fib_382_bounce_x_envelope_0d05_break | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_envelope_0d05_break__short__1d__atrnone_h20__v1 | combo | fib_382_bounce_x_envelope_0d05_break | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_envelope_0d05_fade__long__1d__atr6_h10__v1 | combo | fib_382_bounce_x_envelope_0d05_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__fib_382_bounce_x_envelope_0d05_fade__long__1d__atr6_h20__v1 | combo | fib_382_bounce_x_envelope_0d05_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__fib_382_bounce_x_envelope_0d05_fade__long__1d__atr6_h20__v1 | combo | fib_382_bounce_x_envelope_0d05_fade | long | 1d | atr6_h20 | swing | 0.823 | 40.6 | 1506 | 123.875 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__fib_382_bounce_x_envelope_0d05_fade__long__1d__atrnone_h10__v1 | combo | fib_382_bounce_x_envelope_0d05_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_envelope_0d05_fade__long__1d__atrnone_h20__v1 | combo | fib_382_bounce_x_envelope_0d05_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__fib_382_bounce_x_envelope_0d05_fade__short__1d__atr6_h10__v1 | combo | fib_382_bounce_x_envelope_0d05_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -6471,7 +6471,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__four_pct_reversal_x_base_double_bottom_top__short__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_base_double_bottom_top | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_base_double_bottom_top__short__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_base_double_bottom_top | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_cci20_extreme_reversal__long__1d__atr6_h10__v1 | combo | four_pct_reversal_x_cci20_extreme_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__four_pct_reversal_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__four_pct_reversal_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing | 1.048 | 45.6 | 4858 | 123.5625 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__four_pct_reversal_x_cci20_extreme_reversal__long__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_cci20_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_cci20_extreme_reversal__long__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_cci20_extreme_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_cci20_extreme_reversal__short__1d__atr6_h10__v1 | combo | four_pct_reversal_x_cci20_extreme_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -6487,7 +6487,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__four_pct_reversal_x_donchian_2wk_break__short__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_donchian_2wk_break | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_2wk_break__short__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_donchian_2wk_break | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_2wk_fade__long__1d__atr6_h10__v1 | combo | four_pct_reversal_x_donchian_2wk_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__four_pct_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_donchian_2wk_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__four_pct_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_donchian_2wk_fade | long | 1d | atr6_h20 | swing | 1.149 | 47.1 | 5317 | 123.81249999999999 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__four_pct_reversal_x_donchian_2wk_fade__long__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_donchian_2wk_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_2wk_fade__long__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_donchian_2wk_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_2wk_fade__short__1d__atr6_h10__v1 | combo | four_pct_reversal_x_donchian_2wk_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -6519,7 +6519,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__four_pct_reversal_x_donchian_8wk_break__short__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_donchian_8wk_break | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_8wk_break__short__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_donchian_8wk_break | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_8wk_fade__long__1d__atr6_h10__v1 | combo | four_pct_reversal_x_donchian_8wk_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__four_pct_reversal_x_donchian_8wk_fade__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_donchian_8wk_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__four_pct_reversal_x_donchian_8wk_fade__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_donchian_8wk_fade | long | 1d | atr6_h20 | swing | 1.344 | 50.1 | 2832 | 124.06250000000001 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__four_pct_reversal_x_donchian_8wk_fade__long__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_donchian_8wk_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_8wk_fade__long__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_donchian_8wk_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_donchian_8wk_fade__short__1d__atr6_h10__v1 | combo | four_pct_reversal_x_donchian_8wk_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -6615,7 +6615,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__four_pct_reversal_x_fvg_valid_retest__short__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_fvg_valid_retest | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_fvg_valid_retest__short__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_fvg_valid_retest | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_hammer_hanging__long__1d__atr6_h10__v1 | combo | four_pct_reversal_x_hammer_hanging | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__four_pct_reversal_x_hammer_hanging__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_hammer_hanging | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__four_pct_reversal_x_hammer_hanging__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_hammer_hanging | long | 1d | atr6_h20 | swing | 1.327 | 48.9 | 1853 | 122.6875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__four_pct_reversal_x_hammer_hanging__long__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_hammer_hanging | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_hammer_hanging__long__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_hammer_hanging | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_hammer_hanging__short__1d__atr6_h10__v1 | combo | four_pct_reversal_x_hammer_hanging | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -6703,7 +6703,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__four_pct_reversal_x_liq_sweep_50__short__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_liq_sweep_50 | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_liq_sweep_50__short__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_liq_sweep_50 | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_longleg_trend__long__1d__atr6_h10__v1 | combo | four_pct_reversal_x_longleg_trend | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__four_pct_reversal_x_longleg_trend__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_longleg_trend | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__four_pct_reversal_x_longleg_trend__long__1d__atr6_h20__v1 | combo | four_pct_reversal_x_longleg_trend | long | 1d | atr6_h20 | swing | 0.893 | 43.0 | 1917 | 123.81249999999999 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__four_pct_reversal_x_longleg_trend__long__1d__atrnone_h10__v1 | combo | four_pct_reversal_x_longleg_trend | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_longleg_trend__long__1d__atrnone_h20__v1 | combo | four_pct_reversal_x_longleg_trend | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__four_pct_reversal_x_longleg_trend__short__1d__atr6_h10__v1 | combo | four_pct_reversal_x_longleg_trend | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -7251,7 +7251,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__fvg_valid_retest_x_three_methods__short__1d__atrnone_h10__v1 | combo | fvg_valid_retest_x_three_methods | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__fvg_valid_retest_x_three_methods__short__1d__atrnone_h20__v1 | combo | fvg_valid_retest_x_three_methods | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__fvg_valid_retest_x_three_outside__long__1d__atr6_h10__v1 | combo | fvg_valid_retest_x_three_outside | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__fvg_valid_retest_x_three_outside__long__1d__atr6_h20__v1 | combo | fvg_valid_retest_x_three_outside | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__fvg_valid_retest_x_three_outside__long__1d__atr6_h20__v1 | combo | fvg_valid_retest_x_three_outside | long | 1d | atr6_h20 | swing | 0.916 | 41.3 | 380 | 123.3125 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__fvg_valid_retest_x_three_outside__long__1d__atrnone_h10__v1 | combo | fvg_valid_retest_x_three_outside | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__fvg_valid_retest_x_three_outside__long__1d__atrnone_h20__v1 | combo | fvg_valid_retest_x_three_outside | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__fvg_valid_retest_x_three_outside__short__1d__atr6_h10__v1 | combo | fvg_valid_retest_x_three_outside | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -7403,7 +7403,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__gap_exhaustion_fade_x_willr14_extreme_reversal__short__1d__atrnone_h10__v1 | combo | gap_exhaustion_fade_x_willr14_extreme_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__gap_exhaustion_fade_x_willr14_extreme_reversal__short__1d__atrnone_h20__v1 | combo | gap_exhaustion_fade_x_willr14_extreme_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_cci20_extreme_reversal__long__1d__atr6_h10__v1 | combo | hammer_hanging_x_cci20_extreme_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__hammer_hanging_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | hammer_hanging_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__hammer_hanging_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | hammer_hanging_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing | 1.283 | 47.6 | 981 | 121.37500000000001 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__hammer_hanging_x_cci20_extreme_reversal__long__1d__atrnone_h10__v1 | combo | hammer_hanging_x_cci20_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_cci20_extreme_reversal__long__1d__atrnone_h20__v1 | combo | hammer_hanging_x_cci20_extreme_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_cci20_extreme_reversal__short__1d__atr6_h10__v1 | combo | hammer_hanging_x_cci20_extreme_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -7459,7 +7459,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__hammer_hanging_x_envelope_0d03_fade__short__1d__atrnone_h10__v1 | combo | hammer_hanging_x_envelope_0d03_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_envelope_0d03_fade__short__1d__atrnone_h20__v1 | combo | hammer_hanging_x_envelope_0d03_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_envelope_0d05_fade__long__1d__atr6_h10__v1 | combo | hammer_hanging_x_envelope_0d05_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__hammer_hanging_x_envelope_0d05_fade__long__1d__atr6_h20__v1 | combo | hammer_hanging_x_envelope_0d05_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__hammer_hanging_x_envelope_0d05_fade__long__1d__atr6_h20__v1 | combo | hammer_hanging_x_envelope_0d05_fade | long | 1d | atr6_h20 | swing | 1.113 | 48.9 | 2664 | 121.1875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__hammer_hanging_x_envelope_0d05_fade__long__1d__atrnone_h10__v1 | combo | hammer_hanging_x_envelope_0d05_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_envelope_0d05_fade__long__1d__atrnone_h20__v1 | combo | hammer_hanging_x_envelope_0d05_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__hammer_hanging_x_envelope_0d05_fade__short__1d__atr6_h10__v1 | combo | hammer_hanging_x_envelope_0d05_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -7791,7 +7791,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__harami_ma10_x_matching_low_high__long__1d__atrnone_h10__v1 | combo | harami_ma10_x_matching_low_high | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_matching_low_high__long__1d__atrnone_h20__v1 | combo | harami_ma10_x_matching_low_high | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_obv_breakout__long__1d__atr6_h10__v1 | combo | harami_ma10_x_obv_breakout | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__harami_ma10_x_obv_breakout__long__1d__atr6_h20__v1 | combo | harami_ma10_x_obv_breakout | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__harami_ma10_x_obv_breakout__long__1d__atr6_h20__v1 | combo | harami_ma10_x_obv_breakout | long | 1d | atr6_h20 | swing | 0.763 | 39.9 | 504 | 123.875 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__harami_ma10_x_obv_breakout__long__1d__atrnone_h10__v1 | combo | harami_ma10_x_obv_breakout | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_obv_breakout__long__1d__atrnone_h20__v1 | combo | harami_ma10_x_obv_breakout | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_retrace_40_60_trend__long__1d__atr6_h10__v1 | combo | harami_ma10_x_retrace_40_60_trend | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
@@ -7813,7 +7813,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__harami_ma10_x_separating_lines__long__1d__atrnone_h10__v1 | combo | harami_ma10_x_separating_lines | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_separating_lines__long__1d__atrnone_h20__v1 | combo | harami_ma10_x_separating_lines | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_starc_fade__long__1d__atr6_h10__v1 | combo | harami_ma10_x_starc_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__harami_ma10_x_starc_fade__long__1d__atr6_h20__v1 | combo | harami_ma10_x_starc_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__harami_ma10_x_starc_fade__long__1d__atr6_h20__v1 | combo | harami_ma10_x_starc_fade | long | 1d | atr6_h20 | swing | 1.279 | 51.7 | 420 | 123.1875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__harami_ma10_x_starc_fade__long__1d__atrnone_h10__v1 | combo | harami_ma10_x_starc_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_starc_fade__long__1d__atrnone_h20__v1 | combo | harami_ma10_x_starc_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_ma10_x_starc_fade__short__1d__atr6_h10__v1 | combo | harami_ma10_x_starc_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -7973,7 +7973,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__harami_x_fib_500_bounce__short__1d__atrnone_h10__v1 | combo | harami_x_fib_500_bounce | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__harami_x_fib_500_bounce__short__1d__atrnone_h20__v1 | combo | harami_x_fib_500_bounce | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__harami_x_four_pct_reversal__long__1d__atr6_h10__v1 | combo | harami_x_four_pct_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__harami_x_four_pct_reversal__long__1d__atr6_h20__v1 | combo | harami_x_four_pct_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__harami_x_four_pct_reversal__long__1d__atr6_h20__v1 | combo | harami_x_four_pct_reversal | long | 1d | atr6_h20 | swing | 1.015 | 45.7 | 2462 | 124.37499999999999 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__harami_x_four_pct_reversal__long__1d__atrnone_h10__v1 | combo | harami_x_four_pct_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_x_four_pct_reversal__long__1d__atrnone_h20__v1 | combo | harami_x_four_pct_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_x_four_pct_reversal__short__1d__atr6_h10__v1 | combo | harami_x_four_pct_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -8021,7 +8021,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__harami_x_kama_cross__short__1d__atrnone_h10__v1 | combo | harami_x_kama_cross | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__harami_x_kama_cross__short__1d__atrnone_h20__v1 | combo | harami_x_kama_cross | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__harami_x_keltner_raschke_break__long__1d__atr6_h10__v1 | combo | harami_x_keltner_raschke_break | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__harami_x_keltner_raschke_break__long__1d__atr6_h20__v1 | combo | harami_x_keltner_raschke_break | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__harami_x_keltner_raschke_break__long__1d__atr6_h20__v1 | combo | harami_x_keltner_raschke_break | long | 1d | atr6_h20 | swing | 1.105 | 47.7 | 1230 | 124.125 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__harami_x_keltner_raschke_break__long__1d__atrnone_h10__v1 | combo | harami_x_keltner_raschke_break | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_x_keltner_raschke_break__long__1d__atrnone_h20__v1 | combo | harami_x_keltner_raschke_break | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_x_keltner_raschke_break__short__1d__atr6_h10__v1 | combo | harami_x_keltner_raschke_break | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -8165,7 +8165,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__harami_x_soldiers_crows__short__1d__atrnone_h10__v1 | combo | harami_x_soldiers_crows | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__harami_x_soldiers_crows__short__1d__atrnone_h20__v1 | combo | harami_x_soldiers_crows | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__harami_x_starc_fade__long__1d__atr6_h10__v1 | combo | harami_x_starc_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__harami_x_starc_fade__long__1d__atr6_h20__v1 | combo | harami_x_starc_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__harami_x_starc_fade__long__1d__atr6_h20__v1 | combo | harami_x_starc_fade | long | 1d | atr6_h20 | swing | 1.279 | 51.7 | 420 | 123.1875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__harami_x_starc_fade__long__1d__atrnone_h10__v1 | combo | harami_x_starc_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_x_starc_fade__long__1d__atrnone_h20__v1 | combo | harami_x_starc_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__harami_x_starc_fade__short__1d__atr6_h10__v1 | combo | harami_x_starc_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -8537,7 +8537,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__kama_cross_x_envelope_0d03_fade__short__1d__atrnone_h10__v1 | combo | kama_cross_x_envelope_0d03_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__kama_cross_x_envelope_0d03_fade__short__1d__atrnone_h20__v1 | combo | kama_cross_x_envelope_0d03_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__kama_cross_x_envelope_0d05_break__long__1d__atr6_h10__v1 | combo | kama_cross_x_envelope_0d05_break | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__kama_cross_x_envelope_0d05_break__long__1d__atr6_h20__v1 | combo | kama_cross_x_envelope_0d05_break | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__kama_cross_x_envelope_0d05_break__long__1d__atr6_h20__v1 | combo | kama_cross_x_envelope_0d05_break | long | 1d | atr6_h20 | swing | 0.909 | 42.7 | 3308 | 124.06250000000001 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__kama_cross_x_envelope_0d05_break__long__1d__atrnone_h10__v1 | combo | kama_cross_x_envelope_0d05_break | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__kama_cross_x_envelope_0d05_break__long__1d__atrnone_h20__v1 | combo | kama_cross_x_envelope_0d05_break | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__kama_cross_x_envelope_0d05_break__short__1d__atr6_h10__v1 | combo | kama_cross_x_envelope_0d05_break | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -8969,7 +8969,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__keltner_raschke_break_x_fvg_valid_retest__short__1d__atrnone_h10__v1 | combo | keltner_raschke_break_x_fvg_valid_retest | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__keltner_raschke_break_x_fvg_valid_retest__short__1d__atrnone_h20__v1 | combo | keltner_raschke_break_x_fvg_valid_retest | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__keltner_raschke_break_x_harami__long__1d__atr6_h10__v1 | combo | keltner_raschke_break_x_harami | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__keltner_raschke_break_x_harami__long__1d__atr6_h20__v1 | combo | keltner_raschke_break_x_harami | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__keltner_raschke_break_x_harami__long__1d__atr6_h20__v1 | combo | keltner_raschke_break_x_harami | long | 1d | atr6_h20 | swing | 0.976 | 44.9 | 1130 | 123.6875 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__keltner_raschke_break_x_harami__long__1d__atrnone_h10__v1 | combo | keltner_raschke_break_x_harami | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__keltner_raschke_break_x_harami__long__1d__atrnone_h20__v1 | combo | keltner_raschke_break_x_harami | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__keltner_raschke_break_x_kama_cross__long__1d__atr6_h10__v1 | combo | keltner_raschke_break_x_kama_cross | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
@@ -10067,7 +10067,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__kicking_x_donchian_8wk_break__short__1d__atrnone_h10__v1 | combo | kicking_x_donchian_8wk_break | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__kicking_x_donchian_8wk_break__short__1d__atrnone_h20__v1 | combo | kicking_x_donchian_8wk_break | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__kicking_x_donchian_8wk_fade__long__1d__atr6_h10__v1 | combo | kicking_x_donchian_8wk_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__kicking_x_donchian_8wk_fade__long__1d__atr6_h20__v1 | combo | kicking_x_donchian_8wk_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__kicking_x_donchian_8wk_fade__long__1d__atr6_h20__v1 | combo | kicking_x_donchian_8wk_fade | long | 1d | atr6_h20 | swing | 1.701 | 53.7 | 561 | 124.0 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__kicking_x_donchian_8wk_fade__long__1d__atrnone_h10__v1 | combo | kicking_x_donchian_8wk_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__kicking_x_donchian_8wk_fade__long__1d__atrnone_h20__v1 | combo | kicking_x_donchian_8wk_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__kicking_x_ema_9_21_cross__long__1d__atr6_h10__v1 | combo | kicking_x_ema_9_21_cross | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
@@ -10995,7 +10995,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_breakout_pullback__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_breakout_pullback | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_breakout_pullback__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_breakout_pullback | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_cci20_extreme_reversal__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_cci20_extreme_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__lunar_full_new_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing | 1.328 | 49.0 | 2156 | 123.875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__lunar_full_new_x_cci20_extreme_reversal__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_cci20_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_cci20_extreme_reversal__long__1d__atrnone_h20__v1 | combo | lunar_full_new_x_cci20_extreme_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_cci20_extreme_reversal__short__1d__atr6_h10__v1 | combo | lunar_full_new_x_cci20_extreme_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -11051,7 +11051,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_donchian_8wk_fade__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_donchian_8wk_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_donchian_8wk_fade__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_donchian_8wk_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_ema_9_21_cross__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_ema_9_21_cross | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__lunar_full_new_x_ema_9_21_cross__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_ema_9_21_cross | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_ema_9_21_cross__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_ema_9_21_cross | long | 1d | atr6_h20 | swing | 1.109 | 46.0 | 1295 | 123.3125 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__lunar_full_new_x_ema_9_21_cross__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_ema_9_21_cross | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_ema_9_21_cross__long__1d__atrnone_h20__v1 | combo | lunar_full_new_x_ema_9_21_cross | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_ema_9_21_cross__short__1d__atr6_h10__v1 | combo | lunar_full_new_x_ema_9_21_cross | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -11131,7 +11131,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_fib_618_bounce__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_fib_618_bounce | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_fib_618_bounce__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_fib_618_bounce | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_four_pct_reversal__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_four_pct_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__lunar_full_new_x_four_pct_reversal__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_four_pct_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_four_pct_reversal__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_four_pct_reversal | long | 1d | atr6_h20 | swing | 1.365 | 48.8 | 3698 | 124.0 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__lunar_full_new_x_four_pct_reversal__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_four_pct_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_four_pct_reversal__long__1d__atrnone_h20__v1 | combo | lunar_full_new_x_four_pct_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_four_pct_reversal__short__1d__atr6_h10__v1 | combo | lunar_full_new_x_four_pct_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -11183,7 +11183,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_invhammer_shootstar__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_invhammer_shootstar | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_invhammer_shootstar__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_invhammer_shootstar | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_kama_cross__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_kama_cross | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__lunar_full_new_x_kama_cross__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_kama_cross | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_kama_cross__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_kama_cross | long | 1d | atr6_h20 | swing | 1.224 | 47.7 | 4042 | 123.6875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__lunar_full_new_x_kama_cross__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_kama_cross | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_kama_cross__long__1d__atrnone_h20__v1 | combo | lunar_full_new_x_kama_cross | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_kama_cross__short__1d__atr6_h10__v1 | combo | lunar_full_new_x_kama_cross | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -11215,7 +11215,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_key_reversal__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_key_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_key_reversal__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_key_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_kicking__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_kicking | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__lunar_full_new_x_kicking__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_kicking | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_kicking__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_kicking | long | 1d | atr6_h20 | swing | 1.421 | 51.1 | 1785 | 123.75 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__lunar_full_new_x_kicking__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_kicking | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_kicking__long__1d__atrnone_h20__v1 | combo | lunar_full_new_x_kicking | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_kicking__short__1d__atr6_h10__v1 | combo | lunar_full_new_x_kicking | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -11379,7 +11379,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_three_methods__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_three_methods | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_three_methods__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_three_methods | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_three_outside__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_three_outside | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__lunar_full_new_x_three_outside__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_three_outside | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_three_outside__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_three_outside | long | 1d | atr6_h20 | swing | 0.884 | 42.3 | 685 | 123.50000000000001 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__lunar_full_new_x_three_outside__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_three_outside | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_three_outside__long__1d__atrnone_h20__v1 | combo | lunar_full_new_x_three_outside | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_three_outside__short__1d__atr6_h10__v1 | combo | lunar_full_new_x_three_outside | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -11387,7 +11387,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lunar_full_new_x_three_outside__short__1d__atrnone_h10__v1 | combo | lunar_full_new_x_three_outside | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_three_outside__short__1d__atrnone_h20__v1 | combo | lunar_full_new_x_three_outside | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_volume_confirmed_breakout__long__1d__atr6_h10__v1 | combo | lunar_full_new_x_volume_confirmed_breakout | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__lunar_full_new_x_volume_confirmed_breakout__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_volume_confirmed_breakout | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__lunar_full_new_x_volume_confirmed_breakout__long__1d__atr6_h20__v1 | combo | lunar_full_new_x_volume_confirmed_breakout | long | 1d | atr6_h20 | swing | 1.024 | 44.3 | 1627 | 122.6875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__lunar_full_new_x_volume_confirmed_breakout__long__1d__atrnone_h10__v1 | combo | lunar_full_new_x_volume_confirmed_breakout | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_volume_confirmed_breakout__long__1d__atrnone_h20__v1 | combo | lunar_full_new_x_volume_confirmed_breakout | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__lunar_full_new_x_volume_confirmed_breakout__short__1d__atr6_h10__v1 | combo | lunar_full_new_x_volume_confirmed_breakout | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -11587,7 +11587,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__lwma21_cross_x_fvg_valid_retest__short__1d__atrnone_h10__v1 | combo | lwma21_cross_x_fvg_valid_retest | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lwma21_cross_x_fvg_valid_retest__short__1d__atrnone_h20__v1 | combo | lwma21_cross_x_fvg_valid_retest | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__lwma21_cross_x_hammer_hanging__long__1d__atr6_h10__v1 | combo | lwma21_cross_x_hammer_hanging | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__lwma21_cross_x_hammer_hanging__long__1d__atr6_h20__v1 | combo | lwma21_cross_x_hammer_hanging | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__lwma21_cross_x_hammer_hanging__long__1d__atr6_h20__v1 | combo | lwma21_cross_x_hammer_hanging | long | 1d | atr6_h20 | swing | 1.241 | 45.9 | 1846 | 122.0 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__lwma21_cross_x_hammer_hanging__long__1d__atrnone_h10__v1 | combo | lwma21_cross_x_hammer_hanging | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__lwma21_cross_x_hammer_hanging__long__1d__atrnone_h20__v1 | combo | lwma21_cross_x_hammer_hanging | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__lwma21_cross_x_hammer_hanging__short__1d__atr6_h10__v1 | combo | lwma21_cross_x_hammer_hanging | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -12013,7 +12013,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__ma_4_9_18_align_x_kicking__short__1d__atrnone_h10__v1 | combo | ma_4_9_18_align_x_kicking | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__ma_4_9_18_align_x_kicking__short__1d__atrnone_h20__v1 | combo | ma_4_9_18_align_x_kicking | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__ma_4_9_18_align_x_lunar_full_new__long__1d__atr6_h10__v1 | combo | ma_4_9_18_align_x_lunar_full_new | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__ma_4_9_18_align_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | ma_4_9_18_align_x_lunar_full_new | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__ma_4_9_18_align_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | ma_4_9_18_align_x_lunar_full_new | long | 1d | atr6_h20 | swing | 1.164 | 47.6 | 2597 | 123.25 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__ma_4_9_18_align_x_lunar_full_new__long__1d__atrnone_h10__v1 | combo | ma_4_9_18_align_x_lunar_full_new | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__ma_4_9_18_align_x_lunar_full_new__long__1d__atrnone_h20__v1 | combo | ma_4_9_18_align_x_lunar_full_new | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__ma_4_9_18_align_x_lunar_full_new__short__1d__atr6_h10__v1 | combo | ma_4_9_18_align_x_lunar_full_new | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -12913,7 +12913,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__pnf_box1pct_x_kicking__short__1d__atrnone_h10__v1 | combo | pnf_box1pct_x_kicking | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__pnf_box1pct_x_kicking__short__1d__atrnone_h20__v1 | combo | pnf_box1pct_x_kicking | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__pnf_box1pct_x_lunar_full_new__long__1d__atr6_h10__v1 | combo | pnf_box1pct_x_lunar_full_new | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__pnf_box1pct_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | pnf_box1pct_x_lunar_full_new | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__pnf_box1pct_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | pnf_box1pct_x_lunar_full_new | long | 1d | atr6_h20 | swing | 1.283 | 50.8 | 3199 | 123.3125 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__pnf_box1pct_x_lunar_full_new__long__1d__atrnone_h10__v1 | combo | pnf_box1pct_x_lunar_full_new | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__pnf_box1pct_x_lunar_full_new__long__1d__atrnone_h20__v1 | combo | pnf_box1pct_x_lunar_full_new | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__pnf_box1pct_x_lunar_full_new__short__1d__atr6_h10__v1 | combo | pnf_box1pct_x_lunar_full_new | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -13188,7 +13188,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__pnf_box2pct_x_fvg_valid_retest__short__1d__atrnone_h10__v1 | combo | pnf_box2pct_x_fvg_valid_retest | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_fvg_valid_retest__short__1d__atrnone_h20__v1 | combo | pnf_box2pct_x_fvg_valid_retest | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_harami__long__1d__atr6_h10__v1 | combo | pnf_box2pct_x_harami | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__pnf_box2pct_x_harami__long__1d__atr6_h20__v1 | combo | pnf_box2pct_x_harami | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__pnf_box2pct_x_harami__long__1d__atr6_h20__v1 | combo | pnf_box2pct_x_harami | long | 1d | atr6_h20 | swing | 0.999 | 45.6 | 1360 | 124.0 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__pnf_box2pct_x_harami__long__1d__atrnone_h10__v1 | combo | pnf_box2pct_x_harami | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_harami__long__1d__atrnone_h20__v1 | combo | pnf_box2pct_x_harami | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_kama_cross__long__1d__atr6_h10__v1 | combo | pnf_box2pct_x_kama_cross | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
@@ -13232,7 +13232,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__pnf_box2pct_x_kicking__short__1d__atrnone_h10__v1 | combo | pnf_box2pct_x_kicking | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_kicking__short__1d__atrnone_h20__v1 | combo | pnf_box2pct_x_kicking | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_lunar_full_new__long__1d__atr6_h10__v1 | combo | pnf_box2pct_x_lunar_full_new | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__pnf_box2pct_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | pnf_box2pct_x_lunar_full_new | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__pnf_box2pct_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | pnf_box2pct_x_lunar_full_new | long | 1d | atr6_h20 | swing | 1.273 | 50.5 | 2052 | 123.37499999999999 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__pnf_box2pct_x_lunar_full_new__long__1d__atrnone_h10__v1 | combo | pnf_box2pct_x_lunar_full_new | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_lunar_full_new__long__1d__atrnone_h20__v1 | combo | pnf_box2pct_x_lunar_full_new | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__pnf_box2pct_x_lunar_full_new__short__1d__atr6_h10__v1 | combo | pnf_box2pct_x_lunar_full_new | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -13500,7 +13500,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__psar_flip_di_x_kama_cross__short__1d__atrnone_h10__v1 | combo | psar_flip_di_x_kama_cross | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_kama_cross__short__1d__atrnone_h20__v1 | combo | psar_flip_di_x_kama_cross | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_keltner_raschke_break__long__1d__atr6_h10__v1 | combo | psar_flip_di_x_keltner_raschke_break | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__psar_flip_di_x_keltner_raschke_break__long__1d__atr6_h20__v1 | combo | psar_flip_di_x_keltner_raschke_break | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__psar_flip_di_x_keltner_raschke_break__long__1d__atr6_h20__v1 | combo | psar_flip_di_x_keltner_raschke_break | long | 1d | atr6_h20 | swing | 1.053 | 42.8 | 1249 | 122.0625 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__psar_flip_di_x_keltner_raschke_break__long__1d__atrnone_h10__v1 | combo | psar_flip_di_x_keltner_raschke_break | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_keltner_raschke_break__long__1d__atrnone_h20__v1 | combo | psar_flip_di_x_keltner_raschke_break | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_keltner_raschke_break__short__1d__atr6_h10__v1 | combo | psar_flip_di_x_keltner_raschke_break | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -13572,7 +13572,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__psar_flip_di_x_pnf_box1pct__short__1d__atrnone_h10__v1 | combo | psar_flip_di_x_pnf_box1pct | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_pnf_box1pct__short__1d__atrnone_h20__v1 | combo | psar_flip_di_x_pnf_box1pct | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_pnf_box2pct__long__1d__atr6_h10__v1 | combo | psar_flip_di_x_pnf_box2pct | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__psar_flip_di_x_pnf_box2pct__long__1d__atr6_h20__v1 | combo | psar_flip_di_x_pnf_box2pct | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__psar_flip_di_x_pnf_box2pct__long__1d__atr6_h20__v1 | combo | psar_flip_di_x_pnf_box2pct | long | 1d | atr6_h20 | swing | 1.003 | 44.7 | 1636 | 123.875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__psar_flip_di_x_pnf_box2pct__long__1d__atrnone_h10__v1 | combo | psar_flip_di_x_pnf_box2pct | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_pnf_box2pct__long__1d__atrnone_h20__v1 | combo | psar_flip_di_x_pnf_box2pct | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__psar_flip_di_x_pnf_box2pct__short__1d__atr6_h10__v1 | combo | psar_flip_di_x_pnf_box2pct | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -13906,7 +13906,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__psar_flip_x_kama_cross__short__1d__atrnone_h10__v1 | combo | psar_flip_x_kama_cross | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_kama_cross__short__1d__atrnone_h20__v1 | combo | psar_flip_x_kama_cross | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_keltner_raschke_break__long__1d__atr6_h10__v1 | combo | psar_flip_x_keltner_raschke_break | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__psar_flip_x_keltner_raschke_break__long__1d__atr6_h20__v1 | combo | psar_flip_x_keltner_raschke_break | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__psar_flip_x_keltner_raschke_break__long__1d__atr6_h20__v1 | combo | psar_flip_x_keltner_raschke_break | long | 1d | atr6_h20 | swing | 1.116 | 43.6 | 1309 | 121.5625 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__psar_flip_x_keltner_raschke_break__long__1d__atrnone_h10__v1 | combo | psar_flip_x_keltner_raschke_break | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_keltner_raschke_break__long__1d__atrnone_h20__v1 | combo | psar_flip_x_keltner_raschke_break | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_keltner_raschke_break__short__1d__atr6_h10__v1 | combo | psar_flip_x_keltner_raschke_break | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -14010,7 +14010,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__psar_flip_x_pnf_box1pct__short__1d__atrnone_h10__v1 | combo | psar_flip_x_pnf_box1pct | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_pnf_box1pct__short__1d__atrnone_h20__v1 | combo | psar_flip_x_pnf_box1pct | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_pnf_box2pct__long__1d__atr6_h10__v1 | combo | psar_flip_x_pnf_box2pct | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__psar_flip_x_pnf_box2pct__long__1d__atr6_h20__v1 | combo | psar_flip_x_pnf_box2pct | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__psar_flip_x_pnf_box2pct__long__1d__atr6_h20__v1 | combo | psar_flip_x_pnf_box2pct | long | 1d | atr6_h20 | swing | 1.037 | 45.0 | 1801 | 123.81249999999999 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__psar_flip_x_pnf_box2pct__long__1d__atrnone_h10__v1 | combo | psar_flip_x_pnf_box2pct | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_pnf_box2pct__long__1d__atrnone_h20__v1 | combo | psar_flip_x_pnf_box2pct | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__psar_flip_x_pnf_box2pct__short__1d__atr6_h10__v1 | combo | psar_flip_x_pnf_box2pct | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -14772,7 +14772,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__roc12_zero_cross_x_longleg_trend__short__1d__atrnone_h10__v1 | combo | roc12_zero_cross_x_longleg_trend | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__roc12_zero_cross_x_longleg_trend__short__1d__atrnone_h20__v1 | combo | roc12_zero_cross_x_longleg_trend | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__roc12_zero_cross_x_lunar_full_new__long__1d__atr6_h10__v1 | combo | roc12_zero_cross_x_lunar_full_new | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__roc12_zero_cross_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | roc12_zero_cross_x_lunar_full_new | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__roc12_zero_cross_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | roc12_zero_cross_x_lunar_full_new | long | 1d | atr6_h20 | swing | 1.199 | 47.8 | 3971 | 123.5625 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__roc12_zero_cross_x_lunar_full_new__long__1d__atrnone_h10__v1 | combo | roc12_zero_cross_x_lunar_full_new | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__roc12_zero_cross_x_lunar_full_new__long__1d__atrnone_h20__v1 | combo | roc12_zero_cross_x_lunar_full_new | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__roc12_zero_cross_x_lunar_full_new__short__1d__atr6_h10__v1 | combo | roc12_zero_cross_x_lunar_full_new | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -15594,7 +15594,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__soldiers_crows_x_longleg_trend__short__1d__atrnone_h10__v1 | combo | soldiers_crows_x_longleg_trend | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__soldiers_crows_x_longleg_trend__short__1d__atrnone_h20__v1 | combo | soldiers_crows_x_longleg_trend | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__soldiers_crows_x_lunar_full_new__long__1d__atr6_h10__v1 | combo | soldiers_crows_x_lunar_full_new | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__soldiers_crows_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | soldiers_crows_x_lunar_full_new | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__soldiers_crows_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | soldiers_crows_x_lunar_full_new | long | 1d | atr6_h20 | swing | 1.446 | 51.8 | 2326 | 123.75 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__soldiers_crows_x_lunar_full_new__long__1d__atrnone_h10__v1 | combo | soldiers_crows_x_lunar_full_new | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__soldiers_crows_x_lunar_full_new__long__1d__atrnone_h20__v1 | combo | soldiers_crows_x_lunar_full_new | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__soldiers_crows_x_lunar_full_new__short__1d__atr6_h10__v1 | combo | soldiers_crows_x_lunar_full_new | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -16106,7 +16106,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__starc_fade_x_donchian_4wk_fade__short__1d__atrnone_h10__v1 | combo | starc_fade_x_donchian_4wk_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_donchian_4wk_fade__short__1d__atrnone_h20__v1 | combo | starc_fade_x_donchian_4wk_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_donchian_8wk_fade__long__1d__atr6_h10__v1 | combo | starc_fade_x_donchian_8wk_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__starc_fade_x_donchian_8wk_fade__long__1d__atr6_h20__v1 | combo | starc_fade_x_donchian_8wk_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__starc_fade_x_donchian_8wk_fade__long__1d__atr6_h20__v1 | combo | starc_fade_x_donchian_8wk_fade | long | 1d | atr6_h20 | swing | 1.537 | 54.3 | 995 | 119.3125 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__starc_fade_x_donchian_8wk_fade__long__1d__atrnone_h10__v1 | combo | starc_fade_x_donchian_8wk_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_donchian_8wk_fade__long__1d__atrnone_h20__v1 | combo | starc_fade_x_donchian_8wk_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_donchian_8wk_fade__short__1d__atr6_h10__v1 | combo | starc_fade_x_donchian_8wk_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -16122,7 +16122,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__starc_fade_x_envelope_0d03_fade__short__1d__atrnone_h10__v1 | combo | starc_fade_x_envelope_0d03_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_envelope_0d03_fade__short__1d__atrnone_h20__v1 | combo | starc_fade_x_envelope_0d03_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_envelope_0d05_fade__long__1d__atr6_h10__v1 | combo | starc_fade_x_envelope_0d05_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__starc_fade_x_envelope_0d05_fade__long__1d__atr6_h20__v1 | combo | starc_fade_x_envelope_0d05_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__starc_fade_x_envelope_0d05_fade__long__1d__atr6_h20__v1 | combo | starc_fade_x_envelope_0d05_fade | long | 1d | atr6_h20 | swing | 1.494 | 53.3 | 1380 | 117.4375 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__starc_fade_x_envelope_0d05_fade__long__1d__atrnone_h10__v1 | combo | starc_fade_x_envelope_0d05_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_envelope_0d05_fade__long__1d__atrnone_h20__v1 | combo | starc_fade_x_envelope_0d05_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__starc_fade_x_envelope_0d05_fade__short__1d__atr6_h10__v1 | combo | starc_fade_x_envelope_0d05_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -16625,7 +16625,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__three_inside_x_longleg_trend__short__1d__atrnone_h10__v1 | combo | three_inside_x_longleg_trend | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__three_inside_x_longleg_trend__short__1d__atrnone_h20__v1 | combo | three_inside_x_longleg_trend | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__three_inside_x_lunar_full_new__long__1d__atr6_h10__v1 | combo | three_inside_x_lunar_full_new | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__three_inside_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | three_inside_x_lunar_full_new | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__three_inside_x_lunar_full_new__long__1d__atr6_h20__v1 | combo | three_inside_x_lunar_full_new | long | 1d | atr6_h20 | swing | 1.035 | 46.1 | 1427 | 123.5625 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__three_inside_x_lunar_full_new__long__1d__atrnone_h10__v1 | combo | three_inside_x_lunar_full_new | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__three_inside_x_lunar_full_new__long__1d__atrnone_h20__v1 | combo | three_inside_x_lunar_full_new | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__three_inside_x_lunar_full_new__short__1d__atr6_h10__v1 | combo | three_inside_x_lunar_full_new | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -18815,7 +18815,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__vp_value_area_reject_x_donchian_4wk_fade__short__1d__atrnone_h10__v1 | combo | vp_value_area_reject_x_donchian_4wk_fade | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_donchian_4wk_fade__short__1d__atrnone_h20__v1 | combo | vp_value_area_reject_x_donchian_4wk_fade | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_donchian_8wk_fade__long__1d__atr6_h10__v1 | combo | vp_value_area_reject_x_donchian_8wk_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__vp_value_area_reject_x_donchian_8wk_fade__long__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_donchian_8wk_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__vp_value_area_reject_x_donchian_8wk_fade__long__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_donchian_8wk_fade | long | 1d | atr6_h20 | swing | 1.133 | 46.2 | 1121 | 123.37499999999999 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__vp_value_area_reject_x_donchian_8wk_fade__long__1d__atrnone_h10__v1 | combo | vp_value_area_reject_x_donchian_8wk_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_donchian_8wk_fade__long__1d__atrnone_h20__v1 | combo | vp_value_area_reject_x_donchian_8wk_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_donchian_8wk_fade__short__1d__atr6_h10__v1 | combo | vp_value_area_reject_x_donchian_8wk_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -18943,7 +18943,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__vp_value_area_reject_x_key_reversal__short__1d__atrnone_h10__v1 | combo | vp_value_area_reject_x_key_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_key_reversal__short__1d__atrnone_h20__v1 | combo | vp_value_area_reject_x_key_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_kicking__long__1d__atr6_h10__v1 | combo | vp_value_area_reject_x_kicking | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__vp_value_area_reject_x_kicking__long__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_kicking | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__vp_value_area_reject_x_kicking__long__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_kicking | long | 1d | atr6_h20 | swing | 0.814 | 40.0 | 1167 | 123.75 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__vp_value_area_reject_x_kicking__long__1d__atrnone_h10__v1 | combo | vp_value_area_reject_x_kicking | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_kicking__long__1d__atrnone_h20__v1 | combo | vp_value_area_reject_x_kicking | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_kicking__short__1d__atr6_h10__v1 | combo | vp_value_area_reject_x_kicking | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -19055,7 +19055,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__vp_value_area_reject_x_soldiers_crows__short__1d__atrnone_h10__v1 | combo | vp_value_area_reject_x_soldiers_crows | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_soldiers_crows__short__1d__atrnone_h20__v1 | combo | vp_value_area_reject_x_soldiers_crows | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_star_doji__long__1d__atr6_h10__v1 | combo | vp_value_area_reject_x_star_doji | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__vp_value_area_reject_x_star_doji__long__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_star_doji | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__vp_value_area_reject_x_star_doji__long__1d__atr6_h20__v1 | combo | vp_value_area_reject_x_star_doji | long | 1d | atr6_h20 | swing | 0.759 | 38.5 | 889 | 123.875 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__vp_value_area_reject_x_star_doji__long__1d__atrnone_h10__v1 | combo | vp_value_area_reject_x_star_doji | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_star_doji__long__1d__atrnone_h20__v1 | combo | vp_value_area_reject_x_star_doji | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_star_doji__short__1d__atr6_h10__v1 | combo | vp_value_area_reject_x_star_doji | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -19111,7 +19111,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__vp_value_area_reject_x_willr14_extreme_reversal__short__1d__atrnone_h10__v1 | combo | vp_value_area_reject_x_willr14_extreme_reversal | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__vp_value_area_reject_x_willr14_extreme_reversal__short__1d__atrnone_h20__v1 | combo | vp_value_area_reject_x_willr14_extreme_reversal | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_cci20_extreme_reversal__long__1d__atr6_h10__v1 | combo | weekly_reversal_x_cci20_extreme_reversal | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__weekly_reversal_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | weekly_reversal_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__weekly_reversal_x_cci20_extreme_reversal__long__1d__atr6_h20__v1 | combo | weekly_reversal_x_cci20_extreme_reversal | long | 1d | atr6_h20 | swing | 0.897 | 44.1 | 2591 | 123.125 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__weekly_reversal_x_cci20_extreme_reversal__long__1d__atrnone_h10__v1 | combo | weekly_reversal_x_cci20_extreme_reversal | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_cci20_extreme_reversal__long__1d__atrnone_h20__v1 | combo | weekly_reversal_x_cci20_extreme_reversal | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_cci20_extreme_reversal__short__1d__atr6_h10__v1 | combo | weekly_reversal_x_cci20_extreme_reversal | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -19127,7 +19127,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__weekly_reversal_x_donchian_2wk_break__short__1d__atrnone_h10__v1 | combo | weekly_reversal_x_donchian_2wk_break | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_donchian_2wk_break__short__1d__atrnone_h20__v1 | combo | weekly_reversal_x_donchian_2wk_break | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atr6_h10__v1 | combo | weekly_reversal_x_donchian_2wk_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1 | combo | weekly_reversal_x_donchian_2wk_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1 | combo | weekly_reversal_x_donchian_2wk_fade | long | 1d | atr6_h20 | swing | 1.991 | 55.3 | 917 | 123.6875 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atrnone_h10__v1 | combo | weekly_reversal_x_donchian_2wk_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atrnone_h20__v1 | combo | weekly_reversal_x_donchian_2wk_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_donchian_2wk_fade__short__1d__atr6_h10__v1 | combo | weekly_reversal_x_donchian_2wk_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -19195,7 +19195,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | combo__weekly_reversal_x_envelope_0d05_break__short__1d__atrnone_h10__v1 | combo | weekly_reversal_x_envelope_0d05_break | short | 1d | atrnone_h10 | short_sell |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_envelope_0d05_break__short__1d__atrnone_h20__v1 | combo | weekly_reversal_x_envelope_0d05_break | short | 1d | atrnone_h20 | short_sell |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_envelope_0d05_fade__long__1d__atr6_h10__v1 | combo | weekly_reversal_x_envelope_0d05_fade | long | 1d | atr6_h10 | swing |  |  |  |  | n/a |  |  |
-| combo__weekly_reversal_x_envelope_0d05_fade__long__1d__atr6_h20__v1 | combo | weekly_reversal_x_envelope_0d05_fade | long | 1d | atr6_h20 | swing |  |  |  |  | n/a |  |  |
+| combo__weekly_reversal_x_envelope_0d05_fade__long__1d__atr6_h20__v1 | combo | weekly_reversal_x_envelope_0d05_fade | long | 1d | atr6_h20 | swing | 1.009 | 45.7 | 2737 | 123.625 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | combo__weekly_reversal_x_envelope_0d05_fade__long__1d__atrnone_h10__v1 | combo | weekly_reversal_x_envelope_0d05_fade | long | 1d | atrnone_h10 | swing |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_envelope_0d05_fade__long__1d__atrnone_h20__v1 | combo | weekly_reversal_x_envelope_0d05_fade | long | 1d | atrnone_h20 | swing |  |  |  |  | n/a |  |  |
 | combo__weekly_reversal_x_envelope_0d05_fade__short__1d__atr6_h10__v1 | combo | weekly_reversal_x_envelope_0d05_fade | short | 1d | atr6_h10 | short_sell |  |  |  |  | n/a |  |  |
@@ -20369,7 +20369,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | donchian__8wk_fade__long__1d__atr4_h3__v1 | donchian | 8wk_fade | long | 1d | atr4_h3 | swing | 0.637 | 41.4 | 4291 | 18.6875 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | donchian__8wk_fade__long__1d__atr4_h5__v1 | donchian | 8wk_fade | long | 1d | atr4_h5 | swing | 0.748 | 44.3 | 3774 | 31.0625 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | donchian__8wk_fade__long__1d__atr6_h10__v1 | donchian | 8wk_fade | long | 1d | atr6_h10 | swing | 1.002 | 50.4 | 3077 | 62.18749999999999 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
-| donchian__8wk_fade__long__1d__atr6_h20__v1 | donchian | 8wk_fade | long | 1d | atr6_h20 | swing | 1.338 | 53.1 | 2487 | 123.25 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
+| donchian__8wk_fade__long__1d__atr6_h20__v1 | donchian | 8wk_fade | long | 1d | atr6_h20 | swing | 1.075 | 53.1 | 2487 | 123.25 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | donchian__8wk_fade__long__1d__atr6_h3__v1 | donchian | 8wk_fade | long | 1d | atr6_h3 | swing | 0.638 | 41.4 | 4290 | 18.75 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | donchian__8wk_fade__long__1d__atr6_h5__v1 | donchian | 8wk_fade | long | 1d | atr6_h5 | swing | 0.756 | 44.4 | 3768 | 31.1875 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | donchian__8wk_fade__long__1d__atrnone_h10__v1 | donchian | 8wk_fade | long | 1d | atrnone_h10 | swing | 1.003 | 50.4 | 3068 | 62.5 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
@@ -21321,7 +21321,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | envelope__0d05_fade__long__1d__atr4_h3__v1 | envelope | 0d05_fade | long | 1d | atr4_h3 | swing | 0.661 | 43.4 | 9030 | 18.75 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | envelope__0d05_fade__long__1d__atr4_h5__v1 | envelope | 0d05_fade | long | 1d | atr4_h5 | swing | 0.794 | 46.7 | 6999 | 31.125000000000004 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | envelope__0d05_fade__long__1d__atr6_h10__v1 | envelope | 0d05_fade | long | 1d | atr6_h10 | swing | 1.058 | 51.1 | 4973 | 62.25000000000001 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
-| envelope__0d05_fade__long__1d__atr6_h20__v1 | envelope | 0d05_fade | long | 1d | atr6_h20 | swing | 1.198 | 51.3 | 3657 | 123.37499999999999 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
+| envelope__0d05_fade__long__1d__atr6_h20__v1 | envelope | 0d05_fade | long | 1d | atr6_h20 | swing | 0.971 | 51.3 | 3657 | 123.37499999999999 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | envelope__0d05_fade__long__1d__atr6_h3__v1 | envelope | 0d05_fade | long | 1d | atr6_h3 | swing | 0.660 | 43.3 | 9024 | 18.75 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | envelope__0d05_fade__long__1d__atr6_h5__v1 | envelope | 0d05_fade | long | 1d | atr6_h5 | swing | 0.797 | 46.7 | 6975 | 31.25 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | envelope__0d05_fade__long__1d__atrnone_h10__v1 | envelope | 0d05_fade | long | 1d | atrnone_h10 | swing | 1.068 | 51.0 | 4956 | 62.5 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
@@ -21952,7 +21952,7 @@ AUTO-GENERATED from `strategy_registry.REGISTRY` by `scripts/gen_strategy_result
 | gap__runaway__long__1d__atr4_h3__v1 | gap | runaway | long | 1d | atr4_h3 | swing | 0.624 | 47.2 | 1268 | 18.3125 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | gap__runaway__long__1d__atr4_h5__v1 | gap | runaway | long | 1d | atr4_h5 | swing | 0.897 | 51.4 | 1229 | 30.312499999999996 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | gap__runaway__long__1d__atr6_h10__v1 | gap | runaway | long | 1d | atr6_h10 | swing | 1.169 | 53.2 | 1187 | 61.375 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
-| gap__runaway__long__1d__atr6_h20__v1 | gap | runaway | long | 1d | atr6_h20 | swing | 1.722 | 57.9 | 1074 | 121.81249999999999 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
+| gap__runaway__long__1d__atr6_h20__v1 | gap | runaway | long | 1d | atr6_h20 | swing | 0.891 | 57.9 | 1074 | 121.81249999999999 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | gap__runaway__long__1d__atr6_h3__v1 | gap | runaway | long | 1d | atr6_h3 | swing | 0.627 | 47.2 | 1267 | 18.5625 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | gap__runaway__long__1d__atr6_h5__v1 | gap | runaway | long | 1d | atr6_h5 | swing | 0.922 | 51.8 | 1225 | 30.8125 | no | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |
 | gap__runaway__long__1d__atrnone_h10__v1 | gap | runaway | long | 1d | atrnone_h10 | swing | 1.332 | 53.5 | 1182 | 62.5 | yes | n200_swing_watchlist | pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8% |

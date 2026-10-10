@@ -35,9 +35,8 @@ def test_live_strategies_match_known_live_engines():
         "supertrend__si__long__1d__atrnone__v1",
         "sma_crossover__ng__short__1d__atrnone__v1",
         "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
-        "gap__runaway__long__1d__atr6_h20__v1", "starc__fade__long__1d__atr6_h20__v1",
-        "donchian__8wk_fade__long__1d__atr6_h20__v1",
-        "starc__fade_etf__long__1d__atr6_h20__v1", "envelope__0d05_fade_etf__long__1d__atr6_h20__v1",
+        "starc__fade__long__1d__atr6_h20__v1", "donchian__8wk_fade__long__1d__atr6_h20__v1",
+        "combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1", "starc__fade_etf__long__1d__atr6_h20__v1",
     }
 
 
