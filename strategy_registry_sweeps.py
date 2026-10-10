@@ -21,6 +21,13 @@ _MCX_LIVE_WIRED = {
 # sector cells wired into main._run_sector_rotation_entries
 _SECTOR_LIVE_WIRED = {"sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1"}
 
+# pattern-lab cells wired into main._run_pattern_cell_entries (n200 results)
+_PATTERN_LIVE_WIRED = {
+    "gap__runaway__long__1d__atr6_h20__v1",
+    "starc__fade__long__1d__atr6_h20__v1",
+    "donchian__8wk_fade__long__1d__atr6_h20__v1",
+}
+
 
 def _load(name):
     try:
@@ -55,6 +62,35 @@ def build():
             source="scripts/sector_rotation_backtest.py",
             evidence=f"PFnet {m['pfnet']}, win {m['win_pct']}%, n={m['n']}, avg net {m['avg_net_pct']}% per trade.",
             notes="Sector rotation (B-336), registered pass or fail; research only, no live path."))
+    # pattern lab (B-81..B-206 batch): each tag is its own strategy, registered pass or fail
+    for _tf, _fn in (("1d", "pattern_lab_results.json"), ("1h", "pattern_lab_results_1h.json"),
+                     ("15m", "pattern_lab_results_15m.json"), ("5m", "pattern_lab_results_5m.json"),
+                     ("1d", "pattern_lab_results_n200.json"), ("1d", "pattern_lab_results_etf.json"),
+                     ("1d", "minervini_lab_results.json"), ("1d", "minervini_lab_results_full.json")):
+        for tag, m in _load(_fn).get("results", {}).items():
+            # the n200 (live swing universe) file owns the plain tag; other universes get a variant suffix so no
+            # two universes ever share a name (immutability / never pool)
+            _suffix = "" if _fn in ("pattern_lab_results_n200.json", "minervini_lab_results.json") else (
+                "_etf" if _fn.endswith("etf.json") else "_full")
+            if _suffix:
+                _p = tag.split("__")
+                _p[1] = _p[1] + _suffix
+                tag = "__".join(_p)
+            short = "__short__" in tag
+            hrs = m["avg_held_bars"] * m["bar_hours"]
+            # conservative: registered PFnet is the one after dropping the best 1% of trades (outlier guard)
+            _pf = m["pfnet"] if m.get("pfnet_trim1") is None else (min(m["pfnet"], m["pfnet_trim1"]) if m["pfnet"] else m["pfnet"])
+            out.append(sr.StrategyDef(
+                name=tag, asset_class=sr.AssetClass.EQUITY_SWING,
+                categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,),
+                timeframe=_tf, status=(sr.StrategyStatus.LIVE if (tag in _PATTERN_LIVE_WIRED and _fn.endswith("n200.json")) else sr.StrategyStatus.VALIDATED if (_pf and _pf > 1 and m["n"] >= 300) else sr.StrategyStatus.RESEARCH),
+                entry_fn=None,
+                metrics=sr.Metrics(pfnet=_pf, pfgross=0.0, win_rate_pct=m["win_pct"], n_trades=m["n"], avg_held_hrs=hrs,
+                                   universe="etf_universe" if _fn.endswith("etf.json") else "n200_swing_watchlist" if (_fn.endswith("n200.json") or _fn == "minervini_lab_results.json") else "full_nse",
+                                   run_ref="pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8%"),
+                source="scripts/minervini_lab.py" if _fn.startswith("minervini") else "scripts/pattern_lab.py",
+                evidence=f"PFnet {_pf} (raw {m['pfnet']}), win {m['win_pct']}%, n={m['n']}, avg net {m['avg_net_pct']}% per trade.",
+                notes="Pattern lab rule, registered pass or fail; research only unless wired."))
     mcx = _load("mcx_sweep_results.json")
     mcx = mcx.get("results", mcx)
     for tag, m in mcx.items():
