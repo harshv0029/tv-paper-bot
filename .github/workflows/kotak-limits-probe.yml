@@ -32,4 +32,15 @@ jobs:
                   if abs(float(str(v).replace(",", "")) - t) < 0.01: print("MATCH:", k)
               except ValueError: pass
           print("Net field present:", "Net" in d)
+          nums = {}
+          for k, v in d.items():
+              try: nums[k] = float(str(v).replace(",", ""))
+              except ValueError: pass
+          ks = sorted(nums)
+          for i, a in enumerate(ks):
+              for b in ks:
+                  if a == b: continue
+                  if abs(nums[a] - nums[b] - t) < 0.01: print("MATCH_DIFF:", a, "-", b)
+                  if a < b and abs(nums[a] + nums[b] - t) < 0.01: print("MATCH_SUM:", a, "+", b)
+          print("Net equals target:", abs(nums.get("Net", 0) - t) < 0.01, "| numeric fields:", len(nums))
           PY
