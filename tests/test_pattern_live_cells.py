@@ -16,7 +16,7 @@ def _df(n=300, seed=1):
 
 def test_fresh_signals_returns_only_wired_rules():
     out = main.pattern_fresh_long_signals(_df())
-    assert set(out) <= {"gap_runaway", "starc_fade", "donchian_8wk_fade"} and len(out) == 3
+    assert set(out) == {"gap_runaway", "starc_fade", "donchian_8wk_fade", "envelope_0d05_fade"}
     assert all(isinstance(v, bool) for v in out.values())
 
 
@@ -37,5 +37,5 @@ def test_exit_reasons():
 
 
 def test_cells_tags_all_mapped_for_the_gate():
-    for tag, *_ in main._PATTERN_LIVE_CELLS:
+    for tag, *_ in main._PATTERN_LIVE_CELLS:  # incl. ETF cells
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[tag] == tag

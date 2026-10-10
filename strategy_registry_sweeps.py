@@ -26,6 +26,8 @@ _PATTERN_LIVE_WIRED = {
     "gap__runaway__long__1d__atr6_h20__v1",
     "starc__fade__long__1d__atr6_h20__v1",
     "donchian__8wk_fade__long__1d__atr6_h20__v1",
+    "starc__fade_etf__long__1d__atr6_h20__v1",
+    "envelope__0d05_fade_etf__long__1d__atr6_h20__v1",
 }
 
 
@@ -85,7 +87,7 @@ def build():
             out.append(sr.StrategyDef(
                 name=tag, asset_class=sr.AssetClass.EQUITY_SWING,
                 categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,),
-                timeframe=_tf, status=(sr.StrategyStatus.LIVE if (tag in _PATTERN_LIVE_WIRED and _fn.endswith("n200.json")) else sr.StrategyStatus.VALIDATED if (_pf and _pf > 1 and m["n"] >= 300) else sr.StrategyStatus.RESEARCH),
+                timeframe=_tf, status=(sr.StrategyStatus.LIVE if (tag in _PATTERN_LIVE_WIRED and (_fn.endswith("n200.json") or _fn.endswith("etf.json"))) else sr.StrategyStatus.VALIDATED if (_pf and _pf > 1 and m["n"] >= 300) else sr.StrategyStatus.RESEARCH),
                 entry_fn=None,
                 metrics=sr.Metrics(pfnet=_pf, pfgross=0.0, win_rate_pct=m["win_pct"], n_trades=m["n"], avg_held_hrs=hrs,
                                    universe="n200_swing_watchlist" if _fn.startswith("combo") else "nifty_index_breadth" if _fn.startswith("breadth") else "etf_universe" if _fn.endswith("etf.json") else "n200_swing_watchlist" if ("n200" in _fn or _fn == "minervini_lab_results.json") else "full_nse",
