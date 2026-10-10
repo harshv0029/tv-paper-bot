@@ -75,11 +75,12 @@ def build():
                      ("1d", "pattern_lab_results_n200.json"), ("1d", "pattern_lab_results_etf.json"),
                      ("1h", "pattern_lab_results_1h_n200.json"), ("15m", "pattern_lab_results_15m_n200.json"),
                      ("1d", "minervini_lab_results.json"), ("1d", "minervini_lab_results_full.json"),
-                     ("1d", "breadth_lab_results.json"), ("1d", "combo_lab_results.json")):
+                     ("1d", "breadth_lab_results.json"), ("1d", "combo_lab_results.json"),
+                     ("1d", "intermarket_lab_results.json")):
         for tag, m in _load(_fn).get("results", {}).items():
             # the n200 (live swing universe) file owns the plain tag; other universes get a variant suffix so no
             # two universes ever share a name (immutability / never pool)
-            _suffix = "" if ("n200" in _fn or _fn in ("minervini_lab_results.json", "breadth_lab_results.json", "combo_lab_results.json")) else (
+            _suffix = "" if ("n200" in _fn or _fn in ("minervini_lab_results.json", "breadth_lab_results.json", "combo_lab_results.json", "intermarket_lab_results.json")) else (
                 "_etf" if _fn.endswith("etf.json") else "_full")
             if _suffix:
                 _p = tag.split("__")
@@ -111,7 +112,7 @@ def build():
                 metrics=None if _pf is None else sr.Metrics(pfnet=_pf, pfgross=0.0, win_rate_pct=m["win_pct"], n_trades=m["n"], avg_held_hrs=hrs,
                                    universe="n200_swing_watchlist" if _fn.startswith("combo") else "nifty_index_breadth" if _fn.startswith("breadth") else "etf_universe" if _fn.endswith("etf.json") else "n200_swing_watchlist" if ("n200" in _fn or _fn == "minervini_lab_results.json") else "full_nse",
                                    run_ref="pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8%"),
-                source=("scripts/minervini_lab.py" if _fn.startswith("minervini") else "scripts/breadth_lab.py" if _fn.startswith("breadth") else "scripts/combo_lab.py" if _fn.startswith("combo") else "scripts/pattern_lab.py"),
+                source=("scripts/minervini_lab.py" if _fn.startswith("minervini") else "scripts/breadth_lab.py" if _fn.startswith("breadth") else "scripts/combo_lab.py" if _fn.startswith("combo") else "scripts/intermarket_lab.py" if _fn.startswith("intermarket") else "scripts/pattern_lab.py"),
                 evidence=(f"PFnet {_pf} (raw {m['pfnet']}), win {m['win_pct']}%, n={m['n']}, avg net {m['avg_net_pct']}% per trade." if _pf is not None
                           else f"In-sample only (multiple-testing inflated, NOT out-of-sample validated): raw PFnet {m['pfnet']}, trimmed {m.get('pfnet_trim1')}, win {m['win_pct']}%, n={m['n']}."),
                 notes="Pattern lab rule, registered pass or fail; research only unless wired."))
