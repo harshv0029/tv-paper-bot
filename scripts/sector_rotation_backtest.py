@@ -13,7 +13,7 @@ import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-MIN_SECTOR, BREADTH_HI, BREADTH_LO = 8, 0.6, 0.4
+MIN_SECTOR, BREADTH_HI, BREADTH_LO = 5, 0.6, 0.4
 LS, NS, HS, KS = (1, 3, 5), (1, 3, 5), (1, 5, 10, 20), (0, 1.5, 2.5)  # k=0: no stop
 OUT = os.path.join(ROOT, "docs", "sector_rotation_results.json")
 
