@@ -1,7 +1,7 @@
 {
-"generated_utc": "2026-10-10T16:04:18Z",
+"generated_utc": "2026-10-10T16:13:32Z",
 "universe_size": 2688,
-"mapped": 2267,
+"mapped": 2330,
 "unmapped": [
 "ABGSEC.NS",
 "ABSL10BANK.NS",
@@ -337,78 +337,15 @@
 "SILVERBND.NS",
 "SILVERCASE.NS",
 "SILVERIETF.NS",
-"SILVERTUC.NS",
-"SIMPLXREA.NS",
 "SINGERIND.NS",
-"SINTERCOM.NS",
-"SIRCA.NS",
-"SIS.NS",
-"SIYSIL.NS",
-"SJS.NS",
-"SJVN.NS",
-"SKFINDIA.NS",
-"SKFINDUS.NS",
-"SKIPPER.NS",
-"SKMEGGPROD.NS",
-"SKYGOLD.NS",
-"SKYWAYS.NS",
 "SMALL250.NS",
 "SMALLADD.NS",
 "SMALLCAP.NS",
 "SMALLGROWW.NS",
 "SMALLIETF.NS",
-"SMARTWORKS.NS",
-"SMCGLOBAL.NS",
 "SML100CASE.NS",
-"SMLMAH.NS",
-"SMLT.NS",
-"SMSPHARMA.NS",
-"SNOWMAN.NS",
 "SNXT30BEES.NS",
 "SNXT50BETA.NS",
-"SOBHA.NS",
-"SOFTTECH.NS",
-"SOLARA.NS",
-"SOLARINDS.NS",
-"SOLARWORLD.NS",
-"SOLEX.NS",
-"SOMANYCERA.NS",
-"SOMATEX.NS",
-"SOMICONVEY.NS",
-"SONACOMS.NS",
-"SONAL.NS",
-"SONATSOFTW.NS",
-"SOTL.NS",
-"SOUTHBANK.NS",
-"SOUTHWEST.NS",
-"SPAL.NS",
-"SPANDANA.NS",
-"SPARC.NS",
-"SPCENET.NS",
-"SPENCERS.NS",
-"SPIC.NS",
-"SPLIL.NS",
-"SPLPETRO.NS",
-"SPMLINFRA.NS",
-"SPORTKING.NS",
-"SRD.NS",
-"SRF.NS",
-"SRGHFL.NS",
-"SRHHYPOLTD.NS",
-"SRM.NS",
-"SRTL.NS",
-"SSDL.NS",
-"SSRETAIL.NS",
-"SSWL.NS",
-"STANLEY.NS",
-"STAR.NS",
-"STARCEMENT.NS",
-"STARHEALTH.NS",
-"STARPAPER.NS",
-"STARTECK.NS",
-"STCINDIA.NS",
-"STEAMHOUSE.NS",
-"STEELCAS.NS",
 "TATAGOLD.NS",
 "TATSILV.NS",
 "TCC.NS",
@@ -426,16 +363,16 @@
 "ZODIAC.NS"
 ],
 "sector_counts": {
-"Basic Materials": 375,
-"Financial Services": 244,
-"Healthcare": 167,
-"Industrials": 472,
-"Real Estate": 94,
-"Technology": 177,
-"Energy": 33,
-"Consumer Cyclical": 434,
-"Consumer Defensive": 164,
-"Utilities": 38,
+"Basic Materials": 385,
+"Financial Services": 252,
+"Healthcare": 171,
+"Industrials": 485,
+"Real Estate": 97,
+"Technology": 182,
+"Energy": 34,
+"Consumer Cyclical": 450,
+"Consumer Defensive": 165,
+"Utilities": 40,
 "Communication Services": 69
 },
 "map": {
@@ -9506,6 +9443,258 @@
 "ZYDUSWELL.NS": {
 "sector": "Consumer Defensive",
 "industry": "Packaged Foods"
+},
+"SILVERTUC.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"SIMPLXREA.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"SINTERCOM.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SIRCA.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"SIS.NS": {
+"sector": "Industrials",
+"industry": "Security & Protection Services"
+},
+"SIYSIL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SJS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SJVN.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Renewable"
+},
+"SKFINDIA.NS": {
+"sector": "Industrials",
+"industry": "Tools & Accessories"
+},
+"SKFINDUS.NS": {
+"sector": "Industrials",
+"industry": "Tools & Accessories"
+},
+"SKIPPER.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"SKMEGGPROD.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"SKYGOLD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"SKYWAYS.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"SMARTWORKS.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"SMCGLOBAL.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"SMLMAH.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Manufacturers"
+},
+"SMLT.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"SMSPHARMA.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - General"
+},
+"SNOWMAN.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"SOBHA.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"SOFTTECH.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"SOLARA.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"SOLARINDS.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"SOLARWORLD.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"SOLEX.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"SOMANYCERA.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"SOMATEX.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SOMICONVEY.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"SONACOMS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SONAL.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"SONATSOFTW.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"SOTL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"SOUTHBANK.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"SOUTHWEST.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Equipment & Services"
+},
+"SPAL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"SPANDANA.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"SPARC.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"SPCENET.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"SPENCERS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Department Stores"
+},
+"SPIC.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"SPLIL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"SPLPETRO.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"SPMLINFRA.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"SPORTKING.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SRD.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"SRF.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"SRGHFL.NS": {
+"sector": "Financial Services",
+"industry": "Mortgage Finance"
+},
+"SRHHYPOLTD.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"SRM.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"SRTL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SSDL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Retail"
+},
+"SSRETAIL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Specialty Retail"
+},
+"SSWL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"STANLEY.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"STAR.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"STARCEMENT.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"STARHEALTH.NS": {
+"sector": "Financial Services",
+"industry": "Insurance - Life"
+},
+"STARPAPER.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"STARTECK.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"STCINDIA.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"STEAMHOUSE.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Regulated Gas"
+},
+"STEELCAS.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
 }
 }
 }
