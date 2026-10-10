@@ -11,6 +11,12 @@ on:
       fade:
         description: "1 = breadth-reversal fade variant"
         default: "0"
+      ks:
+        description: "comma ATR multiples (wide-stop sweep), blank = default"
+        default: ""
+      uni:
+        description: "n200 = restrict to the live swing watchlist, blank = full mapped universe"
+        default: ""
       results:
         description: results file to commit
         default: docs/sector_rotation_results.json
@@ -28,7 +34,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt yfinance
-      - run: FADE=${{ inputs.fade || '0' }} TF=${{ inputs.tf || '1d' }} python ${{ inputs.script || 'scripts/sector_rotation_backtest.py' }}
+      - run: UNI='${{ inputs.uni }}' KS='${{ inputs.ks }}' FADE=${{ inputs.fade || '0' }} TF=${{ inputs.tf || '1d' }} python ${{ inputs.script || 'scripts/sector_rotation_backtest.py' }}
       - name: Commit results
         run: |
           git config user.name "github-actions"; git config user.email "actions@users.noreply.github.com"
