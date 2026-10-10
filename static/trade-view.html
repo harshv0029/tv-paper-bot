@@ -301,12 +301,12 @@
   <div class="log-scroll">
     <table class="log">
       <thead><tr>
-        <th>Status</th><th>Asset</th><th>Type</th><th>Strategy</th><th class="num">Entry</th><th class="num">Exit / Now</th>
+        <th class="num">#</th><th>Status</th><th>Asset</th><th>Type</th><th>Strategy</th><th class="num">Entry</th><th class="num">Exit / Now</th>
         <th class="num">Qty</th><th class="num">Invested (₹)</th><th class="num">Realised P&amp;L (₹)</th><th class="num">Unrealised P&amp;L (₹)</th>
         <th class="num">P&amp;L %</th><th>Reason</th><th>Time</th><th class="num" title="Calendar days since entry (IST dates). gap_and_go swing exits at 30 TRADING days (about 42 calendar days).">Days</th>
         <th>Category</th><th>Rank</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num" title="Average market hours a trade was held in the backtest that produced this PFnet/Win % - how long it took to realise them. Same unit for every category.">Avg hrs held</th>
       </tr></thead>
-      <tbody id="log-body"><tr><td colspan="20" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="log-body"><tr><td colspan="21" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -1712,6 +1712,15 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   // see leaderboardRows()'s own comment for why (2026-09-29 instruction).
   sections.push(...leaderboardRows(leaderboard));
   body.innerHTML = sections.join("");
+  // Serial number as the FIRST column of every row (user 2026-10-10: viable-strategy rows below the symbol list).
+  // Full-width section/empty rows just widen by one; real rows get a running 1..N number.
+  let _serial = 0;
+  for (const tr of Array.from(body.rows)) {
+    if (tr.cells.length === 1) { tr.cells[0].colSpan = (tr.cells[0].colSpan || 20) + 1; continue; }
+    const td = tr.insertCell(0);
+    td.className = "num";
+    td.textContent = String(++_serial);
+  }
 
   // Net P&L for the day = sum of realized P&L on the merged (durable file
   // UNION live-DB) closed-trade list above - stays correct across however
