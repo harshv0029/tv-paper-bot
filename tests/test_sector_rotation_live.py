@@ -22,7 +22,8 @@ def test_picks_top_stock_of_strongest_breadth_sector(monkeypatch):
     # make the 5-day lookback real: last close vs close 5 bars ago
     for k, df in dfs.items():
         assert len(df) == 31
-    assert main.sector_rotation_picks(dfs) == ["A4.NS"]
+    picks = main.sector_rotation_picks(dfs)
+    assert picks[0] == "A4.NS" and len(picks) == main.SECTOR_ROT_N and all(p.startswith("A") for p in picks)
 
 
 def test_no_pick_when_breadth_low(monkeypatch):

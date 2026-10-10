@@ -19,7 +19,7 @@ _MCX_LIVE_WIRED = {
 }
 
 # sector cells wired into main._run_sector_rotation_entries
-_SECTOR_LIVE_WIRED = {"sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1"}
+_SECTOR_LIVE_WIRED = {"sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1"}
 
 # pattern-lab cells wired into main._run_pattern_cell_entries (n200 results)
 _PATTERN_LIVE_WIRED = {
@@ -49,6 +49,12 @@ def build():
     for _tf in ("1d", "1h", "4h", "15m", "5m"):  # B-341 fade variant files
         sector.update(_load(f"sector_rotation_fade_results{'' if _tf == '1d' else '_' + _tf}.json").get("results", {}))
     for tag, m in sector.items():
+        if "_n200__" in tag:
+            # CLAUDE.md: the full-universe number governs go/no-go. An n200 cell was picked from ~200 in-sample
+            # cells, so its registered PFnet is the weaker of n200 and the identical full-universe cell.
+            _full = sector.get(tag.replace("momentum_n200", "momentum").replace("fade_n200", "fade"))
+            if _full and _full.get("pfnet") is not None and m.get("pfnet") is not None and _full["pfnet"] < m["pfnet"]:
+                m = dict(m, pfnet=_full["pfnet"], n200_pfnet=m["pfnet"])
         short = "__short__" in tag
         status = (sr.StrategyStatus.LIVE if tag in _SECTOR_LIVE_WIRED else
                   sr.StrategyStatus.VALIDATED if (m["pfnet"] and m["pfnet"] > 1 and m["n"] >= 300) else
@@ -86,6 +92,9 @@ def build():
             _oos = _load("combo_validate_results.json").get("results", {}).get(tag) if _combo else None
             # conservative: registered PFnet is the one after dropping the best 1% of trades (outlier guard)
             _pf = m["pfnet"] if m.get("pfnet_trim1") is None else (min(m["pfnet"], m["pfnet_trim1"]) if m["pfnet"] else m["pfnet"])
+            _pv = _load("pattern_validate_results.json").get("results", {}).get(tag) if not _combo else None
+            if _pv and _pv.get("pfnet") and _fn.endswith("n200.json"):  # selected from ~2,300 in-sample cells: gate on the weaker of in/out of sample
+                _pf = min(_pf, _pv["pfnet"], _pv["pfnet_trim1"] or _pv["pfnet"])
             if _combo:
                 # thousands of pairs were scanned in-sample, so the in-sample number is inflated by multiple testing:
                 # a combo carries metrics only from its OUT-OF-SAMPLE re-run (combo_validate.py); else metrics=None

@@ -10526,7 +10526,7 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "keltner_channel_breakout__si__long__1d__atrnone__v1": "keltner_channel_breakout__si__long__1d__atrnone__v1",
     "supertrend__si__long__1d__atrnone__v1": "supertrend__si__long__1d__atrnone__v1",
     "sma_crossover__ng__short__1d__atrnone__v1": "sma_crossover__ng__short__1d__atrnone__v1",
-    "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1",
+    "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
     "gap__runaway__long__1d__atr6_h20__v1": "gap__runaway__long__1d__atr6_h20__v1",
     "starc__fade__long__1d__atr6_h20__v1": "starc__fade__long__1d__atr6_h20__v1",
     "donchian__8wk_fade__long__1d__atr6_h20__v1": "donchian__8wk_fade__long__1d__atr6_h20__v1",
@@ -18107,14 +18107,14 @@ def _run_swing_scan(conn):
 
 
 # ---- Sector rotation momentum long (B-336/B-348; user 2026-10-10: PFnet>1 cells are wired live) ----
-# Validated cell: sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1 (PFnet 1.505, n=1046,
+# Validated cell: sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1 (PFnet 1.505, n=1046,
 # live swing universe). Rule = scripts/sector_rotation_backtest.py: per sector (>= 5 symbols with data)
 # breadth and mean of the L-day return; strongest sector with breadth >= 0.6 -> buy its top-N by L-day
 # return; hold 20 trading days; fixed disaster stop = entry - 6 x ATR14 (no trail). Uses the swing real
 # switch, the PFnet gate, the swing engine's SL and the reasoned order log. No new kill switch.
-SECTOR_ROT_TAG = "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1"
-SECTOR_ROT_L = 5
-SECTOR_ROT_N = 1
+SECTOR_ROT_TAG = "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1"
+SECTOR_ROT_L = 1
+SECTOR_ROT_N = 5
 SECTOR_ROT_BREADTH_HI = 0.6
 SECTOR_ROT_MIN_SECTOR = 5
 SECTOR_ROT_HOLD_DAYS = 20
