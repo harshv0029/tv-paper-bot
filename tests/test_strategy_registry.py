@@ -37,7 +37,7 @@ def test_live_strategies_match_known_live_engines():
         "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
         "starc__fade__long__1d__atr6_h20__v1", "donchian__8wk_fade__long__1d__atr6_h20__v1",
         "combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1", "starc__fade_etf__long__1d__atr6_h20__v1",
-    } | {c[0] for c in __import__("main")._PATTERN_LIVE_CELLS}  # generated pattern/combo list (docs/pattern_live_cells.json)
+    } | {c[0] for c in __import__("main")._PATTERN_LIVE_CELLS} | {c[0] for c in __import__("main")._MCX_DAILY_CELLS}  # generated pattern/combo list (docs/pattern_live_cells.json)
 
 
 def test_every_strategy_has_evidence_pointer():
