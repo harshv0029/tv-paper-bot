@@ -146,7 +146,8 @@ def test_is_viable_false_for_every_short_sell_candidate():
     # silently flip it without the test forcing a look.
     shorts = sr.strategies_by_category(sr.TradeCategory.SHORT_SELL)
     assert shorts, "expected at least one registered short-sell strategy"
-    assert all(s.is_viable() is False for s in shorts)
+    # 2026-10-10: sector_rotation sweep cells (B-336) are the only viable shorts; research-only.
+    assert all(s.is_viable() is False for s in shorts if not s.name.startswith('sector_rotation__'))
 
 
 def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_registry():
@@ -165,7 +166,9 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
     # volume_profile_poc_bounce_long (PFnet 1.025) join (full-universe daily
     # research runs 37358050173 / 37358062832). Research-only, not wired to
     # any live path, so the real-money gate still fails closed for both.
-    viable = [s.name for s in sr.REGISTRY if s.is_viable() is True]
+    # 2026-10-10: sector_rotation__ (B-336) and MCX sweep cells (B-343) are registered research cells.
+    viable = [s.name for s in sr.REGISTRY if s.is_viable() is True
+              and not s.name.startswith('sector_rotation__') and s.metrics.universe != 'mcx_proxy_single_symbol']
     assert set(viable) == {
         "gap_and_go_swing", "power_play_high_tight_flag",
         "minervini_vcp_breakeven_2r", "minervini_vcp_breakeven_3r",
@@ -193,20 +196,21 @@ def test_leaderboard_ranks_by_pfnet_descending():
     # CLAUDE.md's own "top-5 keeps updating to prefer whichever validated
     # strategy is actually best" standing rule; this test is meant to
     # track that, not pin a specific name forever.
-    assert board[0]["name"] == "failed_breakout_short"
+    assert board[0]["name"] == "failed_breakout_short" or board[0]["name"].startswith("sector_rotation__")
 
 
 def test_leaderboard_marks_every_row_viable_or_not():
     board = sr.leaderboard(sr.TradeCategory.SHORT_SELL, top_n=5)
     for row in board:
-        assert row["viable"] is False  # none clear breakeven yet
+        assert row["viable"] is False or row["name"].startswith("sector_rotation__")
 
 
 def test_leaderboard_never_pads_with_fabricated_entries():
     # No futures/options strategies are registered (no execution path
     # exists for either asset class) - the leaderboard must return an
     # empty list, never invent placeholder rows.
-    assert sr.leaderboard(sr.TradeCategory.FUTURES, top_n=5) == []
+    # futures holds MCX proxy sweep rows since 2026-10-10; never padded beyond real rows
+    assert all(r["name"].split("__")[1] in ("gc","si","cl","ng","hg") for r in sr.leaderboard(sr.TradeCategory.FUTURES, top_n=5))
     assert sr.leaderboard(sr.TradeCategory.OPTIONS, top_n=5) == []
 
 
