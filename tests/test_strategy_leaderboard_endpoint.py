@@ -41,8 +41,9 @@ def test_empty_categories_are_empty_lists_not_fabricated_rows():
     result = main.strategy_leaderboard()
     # futures/options have no registered strategies as of 2026-09-29 (no
     # F&O order-placement path exists) - never padded with fake entries.
-    assert result["futures"] == []
+    # futures gained MCX proxy sweep rows 2026-10-10 (B-343); options still empty.
     assert result["options"] == []
+    assert result["futures"] == sr.viable_leaderboard(sr.TradeCategory.FUTURES)
 
 
 def test_short_sell_has_no_viable_strategy_today_and_shows_none():
@@ -51,7 +52,7 @@ def test_short_sell_has_no_viable_strategy_today_and_shows_none():
     # viable-only leaderboard must show an empty list, never pad it with
     # non-viable rows just to have something to display.
     result = main.strategy_leaderboard()
-    assert result["short_sell"] == []
+    assert all(r["name"].startswith("sector_rotation__") for r in result["short_sell"])  # 2026-10-10 B-336
 
 
 def test_every_row_returned_anywhere_is_actually_viable():
