@@ -1,7 +1,7 @@
 {
-"generated_utc": "2026-10-10T15:37:24Z",
+"generated_utc": "2026-10-10T16:04:18Z",
 "universe_size": 2688,
-"mapped": 676,
+"mapped": 2267,
 "unmapped": [
 "ABGSEC.NS",
 "ABSL10BANK.NS",
@@ -85,91 +85,9 @@
 "FLEXIADD.NS",
 "FMCGADD.NS",
 "FMCGIETF.NS",
-"FMNL.NS",
-"FOSECOIND.NS",
-"FRONTSP.NS",
-"FSL.NS",
-"FUSION.NS",
-"GABRIEL.NS",
-"GAEL.NS",
-"GAIL.NS",
-"GAJA.NS",
-"GALAPREC.NS",
-"GALAXYSURF.NS",
-"GALLANTT.NS",
-"GANDHAR.NS",
-"GANDHITUBE.NS",
-"GANECOS.NS",
-"GANESHCP.NS",
-"GANESHHOU.NS",
-"GANGAFORGE.NS",
-"GANGESSECU.NS",
-"GARFIBRES.NS",
-"GARUDA.NS",
-"GATEWAY.NS",
-"GAUDIUMIVF.NS",
-"GAYAHWS.NS",
-"GAYAPROJ.NS",
-"GCSL.NS",
-"GEECEE.NS",
-"GEEKAYWIRE.NS",
-"GEMAROMA.NS",
-"GENCON.NS",
-"GENESYS.NS",
-"GENUSPAPER.NS",
-"GENUSPOWER.NS",
-"GEOJITFSL.NS",
-"GERMAN.NS",
-"GESHIP.NS",
-"GFLLIMITED.NS",
-"GHCL.NS",
-"GHCLTEXTIL.NS",
-"GICHSGFIN.NS",
-"GICRE.NS",
-"GILLANDERS.NS",
-"GILLETTE.NS",
 "GILT10BETA.NS",
 "GILT5BETA.NS",
 "GILT5YBEES.NS",
-"GIPCL.NS",
-"GKB.NS",
-"GKENERGY.NS",
-"GKSL.NS",
-"GKWLIMITED.NS",
-"GLAND.NS",
-"GLASSWALL.NS",
-"GLAXO.NS",
-"GLENMARK.NS",
-"GLFL.NS",
-"GLOBAL.NS",
-"GLOBALE.NS",
-"GLOBALVECT.NS",
-"GLOBE.NS",
-"GLOBECIVIL.NS",
-"GLOBUSSPR.NS",
-"GLOSTERLTD.NS",
-"GLOTTIS.NS",
-"GMBREW.NS",
-"GMDCLTD.NS",
-"GMMPFAUDLR.NS",
-"GMRAIRPORT.NS",
-"GMRP&UI.NS",
-"GNA.NS",
-"GNFC.NS",
-"GNRL.NS",
-"GOACARBON.NS",
-"GOCLCORP.NS",
-"GOCOLORS.NS",
-"GODAVARIB.NS",
-"GODFRYPHLP.NS",
-"GODIGIT.NS",
-"GODREJAGRO.NS",
-"GODREJCP.NS",
-"GODREJIND.NS",
-"GODREJPROP.NS",
-"GOKEX.NS",
-"GOKUL.NS",
-"GOKULAGRO.NS",
 "GOLD1.NS",
 "GOLD360.NS",
 "GOLDADD.NS",
@@ -179,32 +97,7 @@
 "GOLDBND.NS",
 "GOLDCASE.NS",
 "GOLDETF.NS",
-"GOLDIAM.NS",
 "GOLDIETF.NS",
-"GOODLUCK.NS",
-"GOODYEAR.NS",
-"GOPAL.NS",
-"GOYALALUM.NS",
-"GPIL.NS",
-"GPPL.NS",
-"GPTHEALTH.NS",
-"GPTINFRA.NS",
-"GRANDOAK.NS",
-"GRANULES.NS",
-"GRAPHITE.NS",
-"GRASIM.NS",
-"GRAUWEIL.NS",
-"GRAVITA.NS",
-"GREAVESCOT.NS",
-"GREENLAM.NS",
-"GREENPANEL.NS",
-"GREENPLY.NS",
-"GREENPOWER.NS",
-"GRINDWELL.NS",
-"GRINFRA.NS",
-"GRMOVER.NS",
-"GROBTEA.NS",
-"GROWW.NS",
 "GROWWCAPM.NS",
 "GROWWCHEM.NS",
 "GROWWDEFNC.NS",
@@ -227,65 +120,15 @@
 "GROWWRLTY.NS",
 "GROWWSC250.NS",
 "GROWWSLVR.NS",
-"GRPLTD.NS",
-"GRSE.NS",
-"GRWRHITECH.NS",
 "GSEC10ABSL.NS",
 "GSEC10ADD.NS",
 "GSEC10IETF.NS",
 "GSEC10YEAR.NS",
 "GSEC5IETF.NS",
-"GSFC.NS",
-"GSLSU.NS",
-"GSPCROP.NS",
-"GSS.NS",
-"GTECJAINX.NS",
-"GTL.NS",
-"GTLINFRA.NS",
-"GTPL.NS",
-"GUFICBIO.NS",
-"GUJALKALI.NS",
-"GUJAPOLLO.NS",
-"GUJENERGY.NS",
 "GUJRAFFIA.NS",
-"GUJTHEM.NS",
-"GULFOILLUB.NS",
-"GULPOLY.NS",
-"GVPIL.NS",
-"GVT&D.NS",
-"GYFTR.NS",
-"HAL.NS",
-"HALDER.NS",
-"HALDYNGL.NS",
-"HALEOSLABS.NS",
-"HAMPTON.NS",
-"HAPPSTMNDS.NS",
-"HAPPYFORGE.NS",
-"HARDWYN.NS",
-"HARIOMPIPE.NS",
-"HARRMALAYA.NS",
-"HARSHA.NS",
-"HATHWAY.NS",
-"HATSUN.NS",
-"HAVELLS.NS",
-"HAVISHA.NS",
-"HAWKINCOOK.NS",
-"HAZOOR.NS",
-"HBESD.NS",
-"HBLENGINE.NS",
-"HBPOR.NS",
-"HBSL.NS",
-"HCC.NS",
-"HCG.NS",
-"HCL-INSYS.NS",
-"HCLTECH.NS",
-"HDBFS.NS",
-"HDFCAMC.NS",
-"HDFCBANK.NS",
 "HDFCBSE500.NS",
 "HDFCGOLD.NS",
 "HDFCGROWTH.NS",
-"HDFCLIFE.NS",
 "HDFCLIQUID.NS",
 "HDFCLOWVOL.NS",
 "HDFCMID150.NS",
@@ -303,404 +146,40 @@
 "HDFCSILVER.NS",
 "HDFCSML250.NS",
 "HDFCVALUE.NS",
-"HEADSUP.NS",
 "HEALTHADD.NS",
 "HEALTHAXIS.NS",
 "HEALTHCARE.NS",
 "HEALTHIETF.NS",
-"HEALTHX.NS",
 "HEALTHY.NS",
-"HECPROJECT.NS",
-"HEGAM.NS",
-"HEIDELBERG.NS",
-"HEMIPROP.NS",
-"HERANBA.NS",
-"HERITGFOOD.NS",
-"HEROMOTOCO.NS",
-"HEROMOTORS.NS",
-"HESTERBIO.NS",
-"HEXATRADEX.NS",
-"HEXT.NS",
-"HGINFRA.NS",
-"HGM.NS",
-"HGS.NS",
-"HIKAL.NS",
-"HILINFRA.NS",
-"HILTON.NS",
-"HIMATSEIDE.NS",
-"HINDADH.NS",
-"HINDALCO.NS",
-"HINDALUMI.NS",
-"HINDCOMPOS.NS",
-"HINDCOPPER.NS",
-"HINDOILEXP.NS",
-"HINDPETRO.NS",
-"HINDUNILVR.NS",
-"HINDWAREAP.NS",
-"HINDZINC.NS",
-"HIRECT.NS",
-"HISARMETAL.NS",
-"HITECH.NS",
-"HLEGLAS.NS",
-"HLVLTD.NS",
-"HMAAGRO.NS",
-"HNDFDS.NS",
 "HNGSNGBEES.NS",
-"HOMEFIRST.NS",
-"HONASA.NS",
-"HONAUT.NS",
-"HONDAPOWER.NS",
-"HORIZONIND.NS",
-"HPAL.NS",
-"HPIL.NS",
-"HPL.NS",
-"HRYNSHP.NS",
 "HSBCGOLD.NS",
-"HSCL.NS",
-"HTEL.NS",
-"HTMEDIA.NS",
-"HUBTOWN.NS",
-"HUDCO.NS",
-"HUHTAMAKI.NS",
 "HYBRIDETF.NS",
-"HYBRIDFIN.NS",
-"HYUNDAI.NS",
-"IBULLSLTD.NS",
-"ICEMAKE.NS",
-"ICICIAMC.NS",
 "ICICIB22.NS",
-"ICICIBANK.NS",
-"ICICIGI.NS",
-"ICICIPRULI.NS",
-"ICIL.NS",
-"ICRA.NS",
-"IDBI.NS",
-"IDEA.NS",
-"IDEAFORGE.NS",
-"IDFCFIRSTB.NS",
 "IDFNIFTYET.NS",
-"IEX.NS",
-"IFBAGRO.NS",
-"IFBIND.NS",
-"IFCI.NS",
-"IFGLEXPOR.NS",
-"IGARASHI.NS",
-"IGCL.NS",
-"IGIL.NS",
-"IGL.NS",
-"IGPL.NS",
-"IIFL.NS",
-"IIFLCAPS.NS",
-"IITL.NS",
-"IKIO.NS",
-"IKS.NS",
-"IMAGICAA.NS",
-"IMFA.NS",
-"IMPAL.NS",
-"INA.NS",
-"INCREDIBLE.NS",
-"INDBANK.NS",
-"INDGN.NS",
-"INDHOTEL.NS",
-"INDIACEM.NS",
-"INDIAGLYCO.NS",
-"INDIAMART.NS",
-"INDIANB.NS",
-"INDIANCARD.NS",
-"INDIANHUME.NS",
-"INDIASHLTR.NS",
-"INDIGO.NS",
-"INDIGOPNTS.NS",
-"INDIQUBE.NS",
-"INDNIPPON.NS",
-"INDOAMIN.NS",
-"INDOBORAX.NS",
-"INDOCO.NS",
-"INDOFARM.NS",
-"INDOKEM.NS",
-"INDOMIM.NS",
-"INDORAMA.NS",
-"INDOSTAR.NS",
-"INDOTECH.NS",
-"INDOTHAI.NS",
-"INDOUS.NS",
-"INDOWIND.NS",
-"INDPRUD.NS",
-"INDRAMEDCO.NS",
-"INDSWFTLAB.NS",
-"INDTERRAIN.NS",
-"INDUSINDBK.NS",
-"INDUSTOWER.NS",
-"INFOBEAN.NS",
-"INFOMEDIA.NS",
 "INFRA.NS",
 "INFRABEES.NS",
 "INFRAIETF.NS",
-"INFY.NS",
-"INGERRAND.NS",
-"INNOVACAP.NS",
-"INNOVANA.NS",
-"INNOVISION.NS",
-"INOXGREEN.NS",
-"INOXINDIA.NS",
-"INOXWIND.NS",
-"INSECTICID.NS",
-"INSPIRISYS.NS",
 "INSUREIETF.NS",
-"INTELLECT.NS",
-"INTENTECH.NS",
-"INTERARCH.NS",
 "INTERNET.NS",
-"INTLCONV.NS",
-"INVENTURE.NS",
-"IOB.NS",
-"IOC.NS",
-"IOLCP.NS",
-"IONEXCHANG.NS",
-"IPCALAB.NS",
-"IPL.NS",
-"IPRINGLTD.NS",
-"IRB.NS",
-"IRCON.NS",
-"IRCTC.NS",
-"IREDA.NS",
-"IRFC.NS",
-"IRIS.NS",
-"IRISDOREME.NS",
-"IRMENERGY.NS",
-"ISGEC.NS",
-"ISHANCH.NS",
-"ISTLTD.NS",
 "IT.NS",
 "ITADD.NS",
 "ITAXIS.NS",
 "ITBEES.NS",
 "ITBETA.NS",
-"ITC.NS",
-"ITCHOTELS.NS",
-"ITDC.NS",
 "ITETF.NS",
-"ITI.NS",
 "ITIETF.NS",
-"ITL.NS",
-"IVALUE.NS",
-"IVC.NS",
 "IVZBANKNF.NS",
 "IVZINGOLD.NS",
 "IVZINNIFTY.NS",
 "IVZSENSEX.NS",
-"IWP.NS",
-"IXIGO.NS",
-"IZMO.NS",
-"J&KBANK.NS",
-"JAGRAN.NS",
-"JAGSNPHARM.NS",
-"JAIBALAJI.NS",
-"JAICORPLTD.NS",
-"JAINREC.NS",
-"JAIPURKURT.NS",
-"JAMNAAUTO.NS",
-"JARO.NS",
-"JASH.NS",
-"JAYAGROGN.NS",
-"JAYBARMARU.NS",
-"JAYKAY.NS",
-"JAYNECOIND.NS",
-"JAYSREETEA.NS",
-"JBMA.NS",
-"JENBURPH.NS",
-"JETFREIGHT.NS",
-"JGCHEM.NS",
-"JHS.NS",
-"JINDALPHOT.NS",
-"JINDALPOLY.NS",
-"JINDALSAW.NS",
-"JINDALSTEL.NS",
-"JINDRILL.NS",
-"JINDWORLD.NS",
-"JIOFIN.NS",
-"JISLDVREQS.NS",
-"JISLJALEQS.NS",
-"JITFINFRA.NS",
-"JKCEMENT.NS",
-"JKIL.NS",
-"JKIPL.NS",
-"JKLAKSHMI.NS",
-"JKPAPER.NS",
-"JKTYRE.NS",
-"JLHL.NS",
-"JMA.NS",
-"JMFINANCIL.NS",
-"JNKINDIA.NS",
-"JNPR.NS",
-"JOCIL.NS",
-"JPOLYINVST.NS",
-"JPPOWER.NS",
-"JSFB.NS",
-"JSL.NS",
-"JSLL.NS",
-"JSWCEMENT.NS",
-"JSWDULUX.NS",
-"JSWENERGY.NS",
-"JSWHL.NS",
-"JSWINFRA.NS",
-"JSWSTEEL.NS",
-"JTEKTINDIA.NS",
-"JTLIND.NS",
-"JUBLCPL.NS",
-"JUBLFOOD.NS",
-"JUBLINGREA.NS",
-"JUBLPHARMA.NS",
 "JUNIORBEES.NS",
-"JUNIPER.NS",
-"JUSTDIAL.NS",
-"JWL.NS",
-"JYOTHYLAB.NS",
-"JYOTICNC.NS",
-"JYOTIRES.NS",
-"JYOTISTRUC.NS",
-"KAJARIACER.NS",
-"KAKATCEM.NS",
-"KALAMANDIR.NS",
-"KALPATARU.NS",
-"KALYANKJIL.NS",
-"KAMAHOLD.NS",
-"KAMANWALA.NS",
-"KAMATHOTEL.NS",
-"KAMDHENU.NS",
-"KAMOPAINTS.NS",
-"KANANIIND.NS",
-"KANCHI.NS",
-"KANCOTEA.NS",
-"KANOHAR.NS",
-"KANPRPLA.NS",
-"KANSAINER.NS",
-"KAPSTON.NS",
-"KARAMTARA.NS",
-"KARMAENG.NS",
-"KARURVYSYA.NS",
-"KAYNES.NS",
-"KCP.NS",
-"KDDL.NS",
-"KDGREEN.NS",
-"KEC.NS",
-"KECL.NS",
-"KEEPLEARN.NS",
-"KEI.NS",
-"KELLTONTEC.NS",
-"KENNAMET.NS",
-"KERNEX.NS",
-"KESORAMIND.NS",
-"KEYFINSERV.NS",
-"KFINTECH.NS",
-"KHAICHEM.NS",
-"KHAITANLTD.NS",
-"KHANDSE.NS",
-"KICL.NS",
-"KILITCH.NS",
-"KIMS.NS",
-"KINGFA.NS",
-"KIOCL.NS",
-"KIRANVYPAR.NS",
-"KIRIINDUS.NS",
-"KIRLFER.NS",
-"KIRLOSBROS.NS",
-"KIRLOSENG.NS",
-"KIRLOSIND.NS",
-"KIRLPNU.NS",
-"KISSHT.NS",
-"KITEX.NS",
-"KJMCFIN.NS",
-"KKCL.NS",
-"KLBRENG-B.NS",
-"KMCSHIL.NS",
-"KMEW.NS",
-"KNACK.NS",
-"KNAGRI.NS",
-"KNRCON.NS",
-"KOHINOOR.NS",
-"KOKUYOCMLN.NS",
-"KOLTEPATIL.NS",
-"KOPRAN.NS",
-"KOTAKBANK.NS",
-"KOTHARIPET.NS",
-"KOTHARIPRO.NS",
-"KOTIC.NS",
-"KOTYARK.NS",
-"KOVAI.NS",
-"KPEL.NS",
-"KPIGREEN.NS",
-"KPIL.NS",
-"KPITTECH.NS",
-"KPL.NS",
-"KPRMILL.NS",
-"KRBL.NS",
-"KREBSBIO.NS",
-"KRIDHANINF.NS",
-"KRISHANA.NS",
-"KRISHIVAL.NS",
-"KRISHNADEF.NS",
-"KRITI.NS",
-"KRITIKA.NS",
-"KRITINUT.NS",
-"KRN.NS",
-"KROSS.NS",
-"KRSNAA.NS",
-"KRYSTAL.NS",
-"KSB.NS",
-"KSCL.NS",
-"KSE.NS",
-"KSHINTL.NS",
-"KSL.NS",
-"KSOLVES.NS",
-"KTKBANK.NS",
-"KUANTUM.NS",
-"KUSUMGAR.NS",
-"KWIL.NS",
-"LAGNAM.NS",
-"LAHOTIOV.NS",
-"LAKSHMIMIL.NS",
-"LAL.NS",
-"LALITHAA.NS",
-"LALPATHLAB.NS",
-"LAMBODHARA.NS",
-"LANCER.NS",
-"LANDMARK.NS",
-"LANDSMILL.NS",
-"LAOPALA.NS",
 "LARGEMID50.NS",
-"LASERPOWER.NS",
-"LATENTVIEW.NS",
-"LATTEYS.NS",
-"LAURUSLABS.NS",
-"LAXMICOT.NS",
-"LAXMIDENTL.NS",
-"LAXMIINDIA.NS",
-"LCCPROJECT.NS",
-"LCL.NS",
-"LEAPIND.NS",
-"LEMERITE.NS",
-"LEMONTREE.NS",
-"LENSKART.NS",
-"LEXUS.NS",
-"LFIC.NS",
-"LGBBROSLTD.NS",
-"LGEINDIA.NS",
-"LGHL.NS",
-"LIBAS.NS",
-"LIBERTSHOE.NS",
-"LICHSGFIN.NS",
-"LICI.NS",
 "LICMFGOLD.NS",
 "LICNETFGSC.NS",
 "LICNETFN50.NS",
 "LICNETFSEN.NS",
 "LICNFNHGP.NS",
 "LICNMID100.NS",
-"LIKHITHA.NS",
-"LINC.NS",
-"LINCOLN.NS",
-"LINDEINDIA.NS",
 "LIQGRWBEES.NS",
 "LIQUID.NS",
 "LIQUID1.NS",
@@ -714,129 +193,18 @@
 "LIQUIDPLUS.NS",
 "LIQUIDSBI.NS",
 "LIQUIDSHRI.NS",
-"LKPSEC.NS",
-"LLOYDSENGG.NS",
-"LLOYDSENT.NS",
-"LLOYDSME.NS",
-"LMW.NS",
-"LODHA.NS",
-"LOKESHMACH.NS",
-"LORDSCHLO.NS",
-"LOTUSCHO.NS",
-"LOTUSEYE.NS",
-"LOVABLE.NS",
 "LOWVOL.NS",
 "LOWVOL1.NS",
 "LOWVOLIETF.NS",
-"LOYALTEX.NS",
-"LPDC.NS",
-"LT.NS",
-"LTF.NS",
-"LTFOODS.NS",
 "LTGILTBEES.NS",
 "LTGILTCASE.NS",
-"LTM.NS",
-"LTTS.NS",
-"LUMAXIND.NS",
-"LUMAXTECH.NS",
-"LUMINO.NS",
-"LUPIN.NS",
-"LUXIND.NS",
-"LXCHEM.NS",
-"M&M.NS",
-"M&MFIN.NS",
-"MAANALU.NS",
-"MACPOWER.NS",
-"MADHAV.NS",
-"MADHAVIPL.NS",
-"MADHUCON.NS",
-"MADRASFERT.NS",
 "MAFANG.NS",
-"MAFATIND.NS",
-"MAGADSUGAR.NS",
-"MAGNUM.NS",
-"MAHABANK.NS",
-"MAHAPEXLTD.NS",
-"MAHEPC.NS",
-"MAHESHWARI.NS",
 "MAHKTECH.NS",
-"MAHLIFE.NS",
-"MAHLOG.NS",
-"MAHSCOOTER.NS",
-"MAHSEAMLES.NS",
-"MAITHANALL.NS",
 "MAKEINDIA.NS",
-"MAKERSL.NS",
-"MALLCOM.NS",
-"MALUPAPER.NS",
-"MAMATA.NS",
-"MANAKALUCO.NS",
-"MANAKCOAT.NS",
-"MANAKSIA.NS",
-"MANALIPETC.NS",
-"MANAPPURAM.NS",
-"MANBA.NS",
-"MANCREDIT.NS",
-"MANGALAM.NS",
-"MANGLMCEM.NS",
-"MANINDS.NS",
-"MANINFRA.NS",
-"MANIPALHOS.NS",
-"MANKIND.NS",
-"MANOMAY.NS",
-"MANORAMA.NS",
-"MANORG.NS",
 "MANUFGBEES.NS",
-"MANYAVAR.NS",
-"MAPMYINDIA.NS",
-"MARALOVER.NS",
-"MARATHON.NS",
-"MARICO.NS",
-"MARINE.NS",
-"MARKOLINES.NS",
-"MARKSANS.NS",
-"MARSONS.NS",
-"MARUTI.NS",
-"MASFIN.NS",
-"MASKINVEST.NS",
 "MASPTOP50.NS",
-"MASTEK.NS",
-"MASTERTR.NS",
-"MATRIMONY.NS",
-"MAWANASUG.NS",
-"MAXESTATES.NS",
-"MAXHEALTH.NS",
-"MAXIND.NS",
-"MAYURUNIQ.NS",
-"MAZDOCK.NS",
-"MBAPL.NS",
-"MBEL.NS",
-"MBLINFRA.NS",
-"MCCHRLS-B.NS",
-"MCL.NS",
-"MCLEODRUSS.NS",
-"MCLOUD.NS",
-"MCX.NS",
-"MEDANTA.NS",
-"MEDIASSIST.NS",
-"MEDICO.NS",
-"MEDPLUS.NS",
-"MEESHO.NS",
-"MEGASTAR.NS",
-"MEIL.NS",
-"MENONBE.NS",
-"MERCANTILE.NS",
-"MERCURYEV.NS",
 "METAL.NS",
 "METALIETF.NS",
-"METROBRAND.NS",
-"METROGLOBL.NS",
-"METROPOLIS.NS",
-"MFML.NS",
-"MFSL.NS",
-"MGEL.NS",
-"MGL.NS",
-"MHRIL.NS",
 "MID150.NS",
 "MID150BEES.NS",
 "MID150CASE.NS",
@@ -846,47 +214,20 @@
 "MIDCAPBETA.NS",
 "MIDCAPETF.NS",
 "MIDCAPIETF.NS",
-"MIDHANI.NS",
 "MIDQ50ADD.NS",
 "MIDSELIETF.NS",
 "MIDSMALL.NS",
-"MIDWESTLTD.NS",
-"MIIL.NS",
-"MINDACORP.NS",
-"MINDTECK.NS",
-"MIRZAINT.NS",
-"MITCON.NS",
-"MITTAL.NS",
-"MKEXIM.NS",
-"MKPL.NS",
-"MLKFOOD.NS",
-"MMFL.NS",
-"MMP.NS",
-"MMTC.NS",
-"MMWL.NS",
 "MNC.NS",
 "MOALPHA50.NS",
 "MOBANK10.NS",
-"MOBIKWIK.NS",
 "MOCAPITAL.NS",
 "MODEFENCE.NS",
-"MODINATUR.NS",
-"MODIRUBBER.NS",
-"MODIS.NS",
-"MODTHREAD.NS",
 "MOENERGY.NS",
 "MOGOLD.NS",
 "MOGSEC.NS",
 "MOHEALTH.NS",
-"MOHITE.NS",
-"MOHITIND.NS",
-"MOIL.NS",
 "MOINFRA.NS",
 "MOIPO.NS",
-"MOKSH.NS",
-"MOL.NS",
-"MOLBIO.NS",
-"MOLDTKPAC.NS",
 "MOLOWVOL.NS",
 "MOM100.NS",
 "MOM30IETF.NS",
@@ -900,118 +241,32 @@
 "MOMMIDCAP.NS",
 "MOMNC.NS",
 "MOMOMENTUM.NS",
-"MOMSBELIEF.NS",
 "MON100.NS",
 "MON50EQUAL.NS",
-"MONARCH.NS",
 "MONEXT50.NS",
-"MONEYVIEW.NS",
 "MONIFTY100.NS",
 "MONIFTY500.NS",
 "MONQ50.NS",
-"MONTECARLO.NS",
 "MOOILGAS.NS",
 "MOPSE.NS",
 "MOQUALITY.NS",
 "MOREALTY.NS",
-"MOREPENLAB.NS",
-"MOSCHIP.NS",
 "MOSERVICE.NS",
 "MOSILVER.NS",
 "MOSMALL250.NS",
-"MOTHERSON.NS",
-"MOTILALOFS.NS",
-"MOTISONS.NS",
-"MOTOGENFIN.NS",
 "MOTOUR.NS",
 "MOVALUE.NS",
-"MPHASIS.NS",
-"MPIMANIPAL.NS",
-"MPSLTD.NS",
-"MRF.NS",
-"MRPL.NS",
 "MSCI360.NS",
 "MSCIADD.NS",
 "MSCIINDIA.NS",
-"MSL.NS",
-"MSPL.NS",
-"MSTCLTD.NS",
-"MSUMI.NS",
-"MTNL.NS",
-"MUFIN.NS",
-"MUFTI.NS",
-"MUKANDLTD.NS",
-"MUKESHB.NS",
-"MUKTAARTS.NS",
 "MULTICAP.NS",
-"MUNJALAU.NS",
-"MUNJALSHOW.NS",
-"MURUDCERA.NS",
-"MUTHOOTCAP.NS",
-"MUTHOOTFIN.NS",
-"MUTHOOTMF.NS",
-"MVELECTRO.NS",
-"MVGJL.NS",
-"MWL.NS",
-"NACLIND.NS",
-"NAGREEKCAP.NS",
-"NAGREEKEXP.NS",
-"NAHARCAP.NS",
-"NAHARINDUS.NS",
-"NAHARPOLY.NS",
-"NAHARSPING.NS",
-"NAM-INDIA.NS",
-"NARMADA.NS",
-"NATCOPHARM.NS",
-"NATHBIOGEN.NS",
-"NATIONALUM.NS",
-"NATIONSTD.NS",
-"NAUKRI.NS",
-"NAVA.NS",
-"NAVINFLUOR.NS",
-"NAVKARCORP.NS",
-"NAVKARURB.NS",
-"NAVNETEDUL.NS",
-"NAZARA.NS",
-"NBCC.NS",
-"NBIFIN.NS",
-"NCC.NS",
-"NCLIND.NS",
-"NDGL.NS",
-"NDL.NS",
-"NDLVENTURE.NS",
-"NDRAUTO.NS",
-"NDTV.NS",
-"NEAGI.NS",
-"NECCLTD.NS",
-"NECLIFE.NS",
-"NELCAST.NS",
-"NELCO.NS",
-"NEOGEN.NS",
-"NEPHROPLUS.NS",
-"NESCO.NS",
-"NESTLEIND.NS",
 "NETF.NS",
-"NETWEB.NS",
-"NETWORK18.NS",
-"NEULANDLAB.NS",
-"NEWGEN.NS",
 "NEXT30ADD.NS",
 "NEXT50.NS",
 "NEXT50ADD.NS",
 "NEXT50BETA.NS",
 "NEXT50ETF.NS",
 "NEXT50IETF.NS",
-"NEXTMEDIA.NS",
-"NFL.NS",
-"NGIL.NS",
-"NGLFINE.NS",
-"NH.NS",
-"NHPC.NS",
-"NIACL.NS",
-"NIBE.NS",
-"NIBL.NS",
-"NICCOPAR.NS",
 "NIF100BEES.NS",
 "NIF100IETF.NS",
 "NIF500BETA.NS",
@@ -1027,522 +282,49 @@
 "NIFTYIETF.NS",
 "NIFTYJBLK.NS",
 "NIFTYQLITY.NS",
-"NIITLTD.NS",
-"NIITMTS.NS",
-"NILAINFRA.NS",
-"NILASPACES.NS",
-"NILE.NS",
-"NILKAMAL.NS",
-"NIMBSPROJ.NS",
-"NINSYS.NS",
-"NIPPOBATRY.NS",
-"NIRAJ.NS",
-"NIRLON.NS",
-"NITCO.NS",
-"NITINSPIN.NS",
-"NITIRAJ.NS",
-"NITTAGELA.NS",
-"NIVABUPA.NS",
-"NKIND.NS",
-"NLCINDIA.NS",
-"NMDC.NS",
-"NOCIL.NS",
-"NOIDATOLL.NS",
-"NORBTEAEXP.NS",
-"NORTHARC.NS",
-"NOVAAGRI.NS",
-"NOVARTIND.NS",
 "NPBET.NS",
-"NPST.NS",
-"NRAIL.NS",
-"NRBBEARING.NS",
-"NSIL.NS",
-"NSLNISP.NS",
-"NTCIND.NS",
-"NTPC.NS",
-"NTPCGREEN.NS",
-"NUCLEUS.NS",
-"NUVAMA.NS",
-"NUVOCO.NS",
 "NV20.NS",
 "NV20BEES.NS",
 "NV20IETF.NS",
-"NYKAA.NS",
-"OAL.NS",
-"OBCL.NS",
-"OBEROIRLTY.NS",
-"ODIGMA.NS",
-"ODYCORP.NS",
-"OFSS.NS",
-"OIL.NS",
 "OILIETF.NS",
-"OLAELEC.NS",
-"OLECTRA.NS",
-"OMAXAUTO.NS",
-"OMAXE.NS",
-"OMFREIGHT.NS",
-"OMINFRAL.NS",
-"OMNI.NS",
-"OMPOWER.NS",
-"ONEGLOBAL.NS",
-"ONEPOINT.NS",
-"ONESOURCE.NS",
-"ONGC.NS",
-"ONIDA.NS",
-"ONIXSOLAR.NS",
-"ONWARDTEC.NS",
-"OPTIEMUS.NS",
-"OPTIFIN.NS",
-"ORBTEXP.NS",
-"ORCHASP.NS",
-"ORCHPHARMA.NS",
-"ORICONENT.NS",
-"ORIENTALTL.NS",
-"ORIENTBELL.NS",
-"ORIENTCABL.NS",
-"ORIENTCEM.NS",
-"ORIENTCER.NS",
-"ORIENTELEC.NS",
-"ORIENTHOT.NS",
-"ORIENTPPR.NS",
-"ORIENTTECH.NS",
-"ORIRAIL.NS",
-"ORISSAMINE.NS",
-"ORKLAINDIA.NS",
-"ORTINGLOBE.NS",
-"OSWALAGRO.NS",
-"OSWALGREEN.NS",
-"OSWALPUMPS.NS",
-"OSWALSEEDS.NS",
-"PACEDIGITK.NS",
-"PACIFICI.NS",
-"PAGEIND.NS",
-"PAISALO.NS",
-"PAKKA.NS",
-"PALASHSECU.NS",
-"PALREDTEC.NS",
-"PANACEABIO.NS",
-"PANAMAPET.NS",
-"PANCHMAHQ.NS",
-"PANORAMA.NS",
-"PANSARI.NS",
-"PARACABLES.NS",
-"PARADEEP.NS",
-"PARAGMILK.NS",
-"PARAS.NS",
-"PARASPETRO.NS",
-"PARIN.NS",
-"PARKHOSPS.NS",
-"PARKHOTELS.NS",
-"PARNAXLAB.NS",
-"PASHUPATI.NS",
-"PASUPTAC.NS",
-"PATANJALI.NS",
-"PATELENG.NS",
-"PATELRMART.NS",
-"PATINTLOG.NS",
-"PAUSHAKLTD.NS",
-"PAVNAIND.NS",
-"PAYTM.NS",
-"PBMPOLY.NS",
-"PCBL.NS",
-"PCJEWELLER.NS",
-"PDMJEPAPER.NS",
-"PDSL.NS",
-"PEARLPOLY.NS",
-"PENIND.NS",
-"PENINLAND.NS",
-"PERMAGN.NS",
-"PERNIASPOP.NS",
-"PERSISTENT.NS",
-"PETRONET.NS",
-"PFC.NS",
-"PFIZER.NS",
-"PFOCUS.NS",
-"PFS.NS",
-"PGEL.NS",
-"PGHH.NS",
-"PGHL.NS",
-"PGIL.NS",
 "PHARMABEES.NS",
-"PHOENIXLTD.NS",
-"PHOENXINTL.NS",
-"PICCADIL.NS",
-"PIDILITIND.NS",
-"PIGL.NS",
-"PIIND.NS",
-"PILANIINVS.NS",
-"PILITA.NS",
-"PINELABS.NS",
-"PIONEEREMB.NS",
-"PIRAMALFIN.NS",
-"PITTIENG.NS",
-"PIXTRANS.NS",
-"PLASTIBLEN.NS",
-"PLATIND.NS",
-"PLAZACABLE.NS",
-"PML.NS",
-"PNB.NS",
-"PNBGILTS.NS",
-"PNBHOUSING.NS",
-"PNC.NS",
-"PNCINFRA.NS",
-"PNGJL.NS",
-"PNGSREVA.NS",
-"POCL.NS",
-"PODDARMENT.NS",
-"POEL.NS",
-"POKARNA.NS",
-"POLICYBZR.NS",
-"POLYCAB.NS",
-"POLYMED.NS",
-"POLYPLEX.NS",
-"POLYSPIN.NS",
-"PONNIERODE.NS",
-"POONAWALLA.NS",
-"POWERGRID.NS",
-"POWERICA.NS",
-"POWERINDIA.NS",
-"POWERMECH.NS",
-"PPL.NS",
-"PPLPHARMA.NS",
-"PRABHA.NS",
-"PRADPME.NS",
-"PRAENG.NS",
-"PRAJIND.NS",
-"PRAKASH.NS",
-"PRAKASHSTL.NS",
-"PRANAV.NS",
-"PRASOLCHEM.NS",
-"PRAVEG.NS",
-"PRAXIS.NS",
-"PRECAM.NS",
-"PRECOT.NS",
-"PRECWIRE.NS",
-"PREMCO.NS",
-"PREMEXPLN.NS",
-"PREMIERENE.NS",
-"PREMIERPOL.NS",
-"PRESTIGE.NS",
-"PRICOLLTD.NS",
-"PRIMESECU.NS",
-"PRIMO.NS",
-"PRINCEPIPE.NS",
-"PRIORITY.NS",
-"PRISMX.NS",
-"PRITI.NS",
-"PRITIKAUTO.NS",
-"PRIVISCL.NS",
-"PROSTARM.NS",
-"PROTEAN.NS",
-"PROZONER.NS",
-"PRSMJOHNSN.NS",
-"PRUDENT.NS",
-"PRUDMOULI.NS",
-"PSB.NS",
-"PSPPROJECT.NS",
 "PSUBANK.NS",
 "PSUBANKADD.NS",
 "PSUBNKBEES.NS",
 "PSUBNKIETF.NS",
-"PTC.NS",
-"PTCIL.NS",
-"PTL.NS",
-"PUNJABCHEM.NS",
-"PURVA.NS",
-"PVP.NS",
-"PVRINOX.NS",
-"PVSL.NS",
 "PVTBANIETF.NS",
 "PVTBANK.NS",
 "PVTBANKADD.NS",
 "PVTBKGROWW.NS",
-"PWL.NS",
-"PYRAMID.NS",
 "QGOLDHALF.NS",
 "QNIFTY.NS",
-"QPOWER.NS",
-"QUADFUTURE.NS",
 "QUAL30IETF.NS",
 "QUALITY30.NS",
-"QUESS.NS",
-"QUICKHEAL.NS",
-"QUINTEGRA.NS",
-"RACE.NS",
-"RACLGEAR.NS",
-"RADAAN.NS",
-"RADIANTCMS.NS",
-"RADICO.NS",
-"RADIOCITY.NS",
-"RAILTEL.NS",
-"RAIN.NS",
-"RAINBOW.NS",
-"RAJMET.NS",
-"RAJOOENG.NS",
-"RAJPALAYAM.NS",
-"RAJRATAN.NS",
-"RAJSREESUG.NS",
-"RALLIS.NS",
-"RAMANEWS.NS",
-"RAMAPHO.NS",
-"RAMBHAJO.NS",
-"RAMCOCEM.NS",
-"RAMCOIND.NS",
-"RAMCOSYS.NS",
-"RAMKY.NS",
-"RAMRAT.NS",
-"RANASUG.NS",
-"RANEHOLDIN.NS",
-"RATEGAIN.NS",
-"RATNAMANI.NS",
-"RATNAVEER.NS",
-"RAYMOND.NS",
-"RAYMONDLSL.NS",
-"RAYMONDREL.NS",
-"RBA.NS",
-"RBLBANK.NS",
-"RCF.NS",
-"RECLTD.NS",
-"REDINGTON.NS",
-"REDTAPE.NS",
-"REFEX.NS",
-"REGAAL.NS",
-"REGENCERAM.NS",
-"RELAXO.NS",
-"RELCHEMQ.NS",
-"RELIABLE.NS",
-"RELIANCE.NS",
-"RELIGARE.NS",
-"RELTD.NS",
-"REMSONSIND.NS",
-"RENTOMOJO.NS",
-"RENUKA.NS",
-"REPCOHOME.NS",
-"REPL.NS",
-"REPRO.NS",
-"RESPONIND.NS",
-"RGL.NS",
-"RHETAN.NS",
-"RHIM.NS",
-"RHL.NS",
-"RICOAUTO.NS",
-"RIIL.NS",
-"RIR.NS",
-"RISHABH.NS",
-"RITCO.NS",
-"RITES.NS",
-"RKDL.NS",
-"RKFORGE.NS",
-"RKSWAMY.NS",
-"RMC.NS",
-"RML.NS",
-"ROHLTD.NS",
-"ROLEXRINGS.NS",
-"ROML.NS",
-"ROSSARI.NS",
-"ROSSELLIND.NS",
-"ROSSTECH.NS",
-"ROTO.NS",
-"ROUTE.NS",
-"RPEL.NS",
-"RPGLIFE.NS",
-"RPOWER.NS",
-"RPPINFRA.NS",
-"RPSGVENT.NS",
-"RPTECH.NS",
-"RRECL.NS",
-"RRIL.NS",
-"RRKABEL.NS",
-"RSL.NS",
-"RSSOFTWARE.NS",
-"RSWM.NS",
-"RSYSTEMS.NS",
-"RTNINDIA.NS",
-"RTNPOWER.NS",
-"RUBFILA.NS",
-"RUBICON.NS",
-"RUBYMILLS.NS",
-"RUCHINFRA.NS",
-"RUCHIRA.NS",
-"RUDRA.NS",
-"RUNWALENTR.NS",
-"RUPA.NS",
-"RUSHIL.NS",
-"RUSTOMJEE.NS",
-"RVHL.NS",
-"RVNL.NS",
-"RVTH.NS",
-"S&SPOWER.NS",
-"SAATVIKGL.NS",
-"SAB.NS",
-"SADBHAV.NS",
-"SADBHIN.NS",
-"SAFARI.NS",
-"SAGARDEEP.NS",
-"SAGCEM.NS",
-"SAGILITY.NS",
-"SAHLIBHFI.NS",
-"SAHYADRI.NS",
-"SAICAPI.NS",
-"SAIL.NS",
-"SAILIFE.NS",
-"SAIPARENT.NS",
-"SAKAR.NS",
-"SAKHTISUG.NS",
-"SAKSOFT.NS",
-"SAKUMA.NS",
-"SALASAR.NS",
-"SALONA.NS",
-"SALSTEEL.NS",
-"SALZERELEC.NS",
-"SAMBANDAM.NS",
-"SAMBHAAV.NS",
-"SAMBHV.NS",
-"SAMHI.NS",
-"SAMMAANCAP.NS",
-"SAMPANN.NS",
-"SANATHAN.NS",
-"SANDESH.NS",
-"SANDHAR.NS",
-"SANDUMA.NS",
-"SANGAMIND.NS",
-"SANGHVIMOV.NS",
-"SANOFI.NS",
-"SANOFICONR.NS",
-"SANSERA.NS",
-"SANSTAR.NS",
-"SAPPHIRE.NS",
-"SAPPL.NS",
-"SARDAEN.NS",
-"SAREGAMA.NS",
-"SARLAPOLY.NS",
-"SARVESHWAR.NS",
-"SASKEN.NS",
-"SATIA.NS",
-"SATIN.NS",
-"SAURASHCEM.NS",
-"SAYAJIHOTL.NS",
-"SAYAJIIND.NS",
-"SBC.NS",
-"SBCL.NS",
-"SBFC.NS",
-"SBGLP.NS",
 "SBIBPB.NS",
-"SBICARD.NS",
 "SBIETFCON.NS",
 "SBIETFIT.NS",
 "SBIETFPB.NS",
 "SBIETFQLTY.NS",
-"SBIFUNDS.NS",
-"SBILIFE.NS",
 "SBILIQETF.NS",
 "SBIMIDMOM.NS",
-"SBIN.NS",
 "SBINEQWETF.NS",
 "SBINMID150.NS",
 "SBISILVER.NS",
 "SBISMLETF.NS",
 "SBIVALETF.NS",
-"SCHAEFFLER.NS",
-"SCHAND.NS",
-"SCHNEIDER.NS",
-"SCI.NS",
-"SCILAL.NS",
-"SCODATUBES.NS",
-"SDBL.NS",
-"SEAMECLTD.NS",
 "SECLEDBETA.NS",
-"SECMARK.NS",
-"SECURKLOUD.NS",
-"SEDEMAC.NS",
-"SEIL.NS",
-"SEJALLTD.NS",
-"SEKURITIND.NS",
 "SELECTIPO.NS",
-"SEMAC.NS",
-"SENCO.NS",
-"SENORES.NS",
 "SENSEXADD.NS",
 "SENSEXAXIS.NS",
 "SENSEXBETA.NS",
 "SENSEXETF.NS",
 "SENSEXIETF.NS",
-"SEPC.NS",
-"SERVOTECH.NS",
-"SESHAPAPER.NS",
 "SETF10GILT.NS",
 "SETFGOLD.NS",
 "SETFNIF50.NS",
 "SETFNIFBK.NS",
 "SETFNN50.NS",
-"SETL.NS",
-"SFL.NS",
-"SGFIN.NS",
-"SGIL.NS",
-"SGL.NS",
-"SGLRES.NS",
-"SGMART.NS",
-"SGRL.NS",
-"SHADOWFAX.NS",
-"SHAH.NS",
-"SHAILY.NS",
-"SHAKTIPUMP.NS",
-"SHALBY.NS",
-"SHANKARA.NS",
-"SHANKESH.NS",
-"SHANTI.NS",
-"SHANTIGEAR.NS",
-"SHANTIGOLD.NS",
-"SHARDACROP.NS",
-"SHARDAMOTR.NS",
-"SHAREINDIA.NS",
 "SHARIABEES.NS",
-"SHBAJRG.NS",
-"SHEMAROO.NS",
-"SHERVANI.NS",
-"SHILCTECH.NS",
-"SHILGRAVQ.NS",
-"SHILPAMED.NS",
-"SHINDL.NS",
-"SHIPROCKET.NS",
-"SHIVAAGRO.NS",
-"SHIVACEM.NS",
-"SHIVALIK.NS",
-"SHIVAMAUTO.NS",
-"SHIVAMILLS.NS",
-"SHIVATEX.NS",
-"SHIVAUM.NS",
-"SHK.NS",
-"SHOPERSTOP.NS",
-"SHRADDHA.NS",
-"SHRADHA.NS",
-"SHREDIGCEM.NS",
-"SHREECEM.NS",
-"SHREEJISPG.NS",
-"SHREEPUSHK.NS",
-"SHREERAMA.NS",
-"SHREYANIND.NS",
-"SHRIKRISH.NS",
-"SHRINGARMS.NS",
-"SHRIPISTON.NS",
-"SHRIRAMFIN.NS",
-"SHRIRAMPPS.NS",
-"SHRJAGP.NS",
-"SHUKRAPHAR.NS",
-"SHYAMCENT.NS",
-"SHYAMMETL.NS",
-"SHYAMTEL.NS",
-"SICAGEN.NS",
-"SIEL.NS",
-"SIEMENS.NS",
-"SIGACHI.NS",
-"SIGMA.NS",
-"SIGNATURE.NS",
-"SIGNPOST.NS",
-"SIKA.NS",
-"SIL.NS",
-"SILGO.NS",
-"SILINV.NS",
 "SILVER.NS",
 "SILVER001.NS",
 "SILVER1.NS",
@@ -1556,10 +338,7 @@
 "SILVERCASE.NS",
 "SILVERIETF.NS",
 "SILVERTUC.NS",
-"SIMPLEXINF.NS",
 "SIMPLXREA.NS",
-"SINCLAIR.NS",
-"SINDHUTRAD.NS",
 "SINGERIND.NS",
 "SINTERCOM.NS",
 "SIRCA.NS",
@@ -1630,404 +409,34 @@
 "STCINDIA.NS",
 "STEAMHOUSE.NS",
 "STEELCAS.NS",
-"STEELCITY.NS",
-"STEELXIND.NS",
-"STEL.NS",
-"STERTOOLS.NS",
-"STLNETWORK.NS",
-"STLSTRINF.NS",
-"STOVEKRAFT.NS",
-"STUDDS.NS",
-"STYL.NS",
-"STYLAMIND.NS",
-"STYLEBAAZA.NS",
-"STYRENIX.NS",
-"SUBEXLTD.NS",
-"SUBROS.NS",
-"SUDARCOLOR.NS",
-"SUDARSCHEM.NS",
-"SUDEEPPHRM.NS",
-"SUKHJITS.NS",
-"SULA.NS",
-"SUMEDHA.NS",
-"SUMEETINDS.NS",
-"SUMICHEM.NS",
-"SUMIT.NS",
-"SUMMITSEC.NS",
-"SUNCLAY.NS",
-"SUNDARAM.NS",
-"SUNDARMFIN.NS",
-"SUNDRMBRAK.NS",
-"SUNDRMFAST.NS",
-"SUNDROP.NS",
-"SUNFLAG.NS",
-"SUNLOC.NS",
-"SUNPHARMA.NS",
-"SUNRAKSHAK.NS",
-"SUNSHIEL.NS",
-"SUNSHINE.NS",
-"SUNTECK.NS",
-"SUNTV.NS",
-"SUPERHOUSE.NS",
-"SUPRAJIT.NS",
-"SUPREME.NS",
-"SUPREMEIND.NS",
-"SUPREMEINF.NS",
-"SUPRIYA.NS",
-"SURAJEST.NS",
-"SURAJLTD.NS",
-"SURAKSHA.NS",
-"SURANASOL.NS",
-"SURANAT&P.NS",
-"SURYALA.NS",
-"SURYALAXMI.NS",
-"SURYAROSNI.NS",
-"SURYODAY.NS",
-"SUTLEJTEX.NS",
-"SUVEN.NS",
-"SUVIDHAA.NS",
-"SUYOG.NS",
-"SUZLON.NS",
-"SVGLOBAL.NS",
-"SVLL.NS",
-"SVPGLOB.NS",
-"SWANCORP.NS",
-"SWARAJENG.NS",
-"SWARNSAR.NS",
-"SWELECTES.NS",
-"SWIGGY.NS",
-"SWSOLAR.NS",
-"SYMBIOTEC.NS",
-"SYMPHONY.NS",
-"SYNCOMF.NS",
-"SYNGENE.NS",
-"SYRMA.NS",
-"TAALTECH.NS",
-"TAINWALCHM.NS",
-"TAJGVK.NS",
-"TAKE.NS",
-"TALBROAUTO.NS",
-"TANAA.NS",
-"TANLA.NS",
-"TARACHAND.NS",
-"TARAPUR.NS",
-"TARC.NS",
-"TARIL.NS",
-"TARMAT.NS",
-"TARSONS.NS",
-"TASTYBITE.NS",
-"TATACAP.NS",
-"TATACHEM.NS",
-"TATACOMM.NS",
-"TATACONSUM.NS",
-"TATAELXSI.NS",
 "TATAGOLD.NS",
-"TATAINVEST.NS",
-"TATAPOWER.NS",
-"TATASTEEL.NS",
-"TATATECH.NS",
 "TATSILV.NS",
-"TATVA.NS",
-"TBOTEK.NS",
 "TCC.NS",
-"TCI.NS",
-"TCIEXP.NS",
-"TCIFINANCE.NS",
-"TCPLPACK.NS",
-"TCS.NS",
-"TDPOWERSYS.NS",
-"TEAMGTY.NS",
-"TEAMLEASE.NS",
 "TECH.NS",
-"TECHM.NS",
-"TECHNOCRAF.NS",
-"TECHNOE.NS",
-"TECHNVISN.NS",
-"TECILCHEM.NS",
-"TEGA.NS",
-"TEJASNET.NS",
-"TEMBO.NS",
-"TEMPSENS.NS",
-"TENNIND.NS",
-"TERAI.NS",
-"TERASOFT.NS",
-"TEXINFRA.NS",
-"TEXMOPIPES.NS",
-"TEXRAIL.NS",
-"TFCILTD.NS",
-"TFL.NS",
-"TGBHOTELS.NS",
-"TGVSL.NS",
-"THACKER.NS",
-"THAKDEV.NS",
-"THANGAMAYL.NS",
-"THEINVEST.NS",
-"THEJO.NS",
-"THELEELA.NS",
-"THEMISMED.NS",
-"THERMAX.NS",
-"THOMASCOOK.NS",
-"THOMASCOTT.NS",
-"THYROCARE.NS",
-"TI.NS",
-"TIGERLOGS.NS",
-"TIIL.NS",
-"TIINDIA.NS",
-"TIMETECHNO.NS",
-"TIMEX.NS",
-"TIMKEN.NS",
-"TINNARUBR.NS",
-"TIPSFILMS.NS",
-"TIPSMUSIC.NS",
-"TIRUMALCHM.NS",
-"TITAGARH.NS",
-"TITAN.NS",
-"TMB.NS",
-"TMCV.NS",
-"TMPV.NS",
 "TNIDETF.NS",
-"TNPETRO.NS",
-"TNPL.NS",
-"TOKYOPLAST.NS",
-"TOLINS.NS",
 "TOP100CASE.NS",
 "TOP10ADD.NS",
 "TOP15IETF.NS",
 "TOP20.NS",
-"TORNTPHARM.NS",
-"TORNTPOWER.NS",
-"TOUCHWOOD.NS",
-"TOYAMSL.NS",
-"TPLPLASTEH.NS",
-"TRACXN.NS",
-"TRANSCOR.NS",
-"TRANSRAILL.NS",
-"TRAVELFOOD.NS",
-"TREEHOUSE.NS",
-"TREJHARA.NS",
-"TREL.NS",
-"TRENT.NS",
-"TRF.NS",
-"TRIDENT.NS",
-"TRIGYN.NS",
-"TRITONV.NS",
-"TRITURBINE.NS",
-"TRIVENI.NS",
-"TRU.NS",
-"TRUALT.NS",
-"TSFINV.NS",
-"TTKHLTCARE.NS",
-"TTKPRESTIG.NS",
-"TTL.NS",
-"TTML.NS",
-"TURTLEMINT.NS",
-"TUTIALKA.NS",
-"TVSELECT.NS",
-"TVSHLTD.NS",
-"TVSMOTOR.NS",
-"TVSSCS.NS",
-"TVSSRICHAK.NS",
-"TVTODAY.NS",
 "TWCGOLDETF.NS",
-"UBL.NS",
-"UCOBANK.NS",
-"UDAYJEW.NS",
-"UDS.NS",
-"UEL.NS",
-"UFLEX.NS",
-"UFO.NS",
-"UGROCAP.NS",
-"UJJIVANSFB.NS",
-"ULTRACEMCO.NS",
-"ULTRAMAR.NS",
-"UMESLTD.NS",
-"UMIYA-MRO.NS",
-"UNICHEMLAB.NS",
-"UNIDT.NS",
-"UNIECOM.NS",
-"UNIENTER.NS",
-"UNIINFO.NS",
-"UNIMECH.NS",
-"UNIONBANK.NS",
 "UNIONGOLD.NS",
-"UNIPARTS.NS",
-"UNITDSPR.NS",
-"UNITECH.NS",
-"UNITEDPOLY.NS",
-"UNITEDTEA.NS",
-"UNIVCABLES.NS",
-"UNOMINDA.NS",
-"UPHOT.NS",
-"UPL.NS",
-"URBANCO.NS",
-"URJA.NS",
-"USHAMART.NS",
-"USK.NS",
-"UTIAMC.NS",
-"UTKARSHBNK.NS",
-"UTLSOLAR.NS",
-"UTTAMSUGAR.NS",
-"V2RETAIL.NS",
-"VADILALIND.NS",
-"VADILENT.NS",
-"VAIBHAVGBL.NS",
-"VAISHALI.NS",
-"VAKRANGEE.NS",
 "VAL30IETF.NS",
-"VALIANTORG.NS",
 "VALUE.NS",
 "VALUEAXIS.NS",
-"VAML.NS",
-"VARDHACRLC.NS",
-"VARDMNPOLY.NS",
-"VARMORA.NS",
-"VARROC.NS",
-"VASCONEQ.NS",
-"VASUPRADA.NS",
-"VASWANI.NS",
-"VBL.NS",
-"VEDAVAAG.NS",
-"VEDL.NS",
-"VEDPOWER.NS",
-"VEEDOL.NS",
-"VEEGALAND.NS",
-"VENKEYS.NS",
-"VENTIVE.NS",
-"VENUSPIPES.NS",
-"VERANDA.NS",
-"VERTOZ.NS",
-"VESUVIUS.NS",
-"VETO.NS",
-"VGCL.NS",
-"VGL.NS",
-"VGUARD.NS",
-"VHL.NS",
-"VIDHIING.NS",
-"VIDYAWIRES.NS",
-"VIJAYA.NS",
-"VIJSOLX.NS",
-"VIKASECO.NS",
-"VIKASLIFE.NS",
-"VIKRAMSOLR.NS",
-"VIKRAN.NS",
-"VIMTALABS.NS",
-"VINATIORGA.NS",
-"VINCOFE.NS",
-"VINDHYATEL.NS",
-"VINEETLAB.NS",
-"VINNY.NS",
-"VINYLINDIA.NS",
-"VIPCLOTHNG.NS",
-"VIPIND.NS",
-"VIRAT.NS",
-"VIRINCHI.NS",
-"VISACHROME.NS",
-"VISHAL.NS",
-"VISHNU.NS",
-"VISHWARAJ.NS",
-"VISL.NS",
-"VITAL.NS",
-"VIVIANA.NS",
-"VIVIDHA.NS",
-"VIVOBIOT.NS",
-"VIYASH.NS",
-"VLEGOV.NS",
-"VLSFINANCE.NS",
-"VMART.NS",
-"VMM.NS",
-"VMSTMT.NS",
-"VOEPL.NS",
-"VOGL.NS",
-"VOITHPAPR.NS",
-"VOLTAMP.NS",
-"VOLTAS.NS",
-"VPRPL.NS",
-"VRAJ.NS",
-"VRLLOG.NS",
-"VSSL.NS",
-"VSTIND.NS",
-"VSTL.NS",
-"VSTTILLERS.NS",
-"VTL.NS",
-"VTMLTD.NS",
-"WAAREEENER.NS",
-"WAAREEINDO.NS",
-"WAAREERTL.NS",
-"WABAG.NS",
-"WAKEFIT.NS",
-"WALCHANNAG.NS",
-"WANBURY.NS",
-"WATERBASE.NS",
-"WCIL.NS",
-"WEALTH.NS",
-"WEBELSOLAR.NS",
-"WEIZMANIND.NS",
-"WEL.NS",
-"WELCORP.NS",
-"WELENT.NS",
-"WELSPLSOL.NS",
-"WELSPUNLIV.NS",
-"WENDT.NS",
-"WESTLIFE.NS",
-"WEWIN.NS",
-"WEWORK.NS",
-"WHBRADY.NS",
-"WHEELS.NS",
-"WHIRLPOOL.NS",
-"WILLAMAGOR.NS",
-"WINDLAS.NS",
-"WINDMACHIN.NS",
-"WIPL.NS",
-"WIPRO.NS",
-"WOCKPHARMA.NS",
-"WONDERLA.NS",
-"WORTHPERI.NS",
-"WPIL.NS",
-"WSI.NS",
-"WSTCSTPAPR.NS",
-"XCHANGING.NS",
-"XELPMOC.NS",
-"XPROINDIA.NS",
-"XTGLOBAL.NS",
-"XTRANET.NS",
-"YASHO.NS",
-"YATHARTH.NS",
-"YATRA.NS",
-"YESBANK.NS",
-"YOGI.NS",
-"YUKEN.NS",
-"ZAGGLE.NS",
-"ZEEL.NS",
-"ZEELEARN.NS",
-"ZEEMEDIA.NS",
-"ZENITHEXPO.NS",
-"ZENITHSTL.NS",
-"ZENSARTECH.NS",
-"ZENTEC.NS",
-"ZFCVINDIA.NS",
-"ZFSTEERING.NS",
-"ZIMLAB.NS",
-"ZODIAC.NS",
-"ZODIACLOTH.NS",
-"ZOTA.NS",
-"ZSARACOM.NS",
-"ZUARI.NS",
-"ZUARIIND.NS",
-"ZYDUSLIFE.NS",
-"ZYDUSWELL.NS"
+"ZODIAC.NS"
 ],
 "sector_counts": {
-"Basic Materials": 100,
-"Financial Services": 79,
-"Healthcare": 48,
-"Industrials": 146,
-"Real Estate": 27,
-"Technology": 48,
-"Energy": 14,
-"Consumer Cyclical": 134,
-"Consumer Defensive": 52,
-"Utilities": 11,
-"Communication Services": 17
+"Basic Materials": 375,
+"Financial Services": 244,
+"Healthcare": 167,
+"Industrials": 472,
+"Real Estate": 94,
+"Technology": 177,
+"Energy": 33,
+"Consumer Cyclical": 434,
+"Consumer Defensive": 164,
+"Utilities": 38,
+"Communication Services": 69
 },
 "map": {
 "20MICRONS.NS": {
@@ -4733,6 +3142,6370 @@
 "FREDUN.NS": {
 "sector": "Healthcare",
 "industry": "Drug Manufacturers - Specialty & Generic"
+},
+"FMNL.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"FOSECOIND.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"FRONTSP.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"FSL.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"FUSION.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"GABRIEL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"GAEL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"GAIL.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Regulated Gas"
+},
+"GAJA.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"GALAPREC.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"GALAXYSURF.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"GALLANTT.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"GANDHAR.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Refining & Marketing"
+},
+"GANDHITUBE.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"GANECOS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"GANESHCP.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"GANESHHOU.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"GANGAFORGE.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"GANGESSECU.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"GARFIBRES.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"GARUDA.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"GATEWAY.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"GAUDIUMIVF.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"GAYAHWS.NS": {
+"sector": "Industrials",
+"industry": "Infrastructure Operations"
+},
+"GAYAPROJ.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"GCSL.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"GEECEE.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"GEEKAYWIRE.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"GEMAROMA.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"GENCON.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"GENESYS.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"GENUSPAPER.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"GENUSPOWER.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"GEOJITFSL.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"GERMAN.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"GESHIP.NS": {
+"sector": "Industrials",
+"industry": "Marine Shipping"
+},
+"GFLLIMITED.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"GHCL.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"GHCLTEXTIL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"GICHSGFIN.NS": {
+"sector": "Financial Services",
+"industry": "Mortgage Finance"
+},
+"GICRE.NS": {
+"sector": "Financial Services",
+"industry": "Insurance - Reinsurance"
+},
+"GILLANDERS.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"GILLETTE.NS": {
+"sector": "Consumer Defensive",
+"industry": "Household & Personal Products"
+},
+"GIPCL.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Regulated Electric"
+},
+"GKB.NS": {
+"sector": "Healthcare",
+"industry": "Medical Instruments & Supplies"
+},
+"GKENERGY.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Renewable"
+},
+"GKSL.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"GKWLIMITED.NS": {
+"sector": "Industrials",
+"industry": "Specialty Business Services"
+},
+"GLAND.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"GLASSWALL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"GLAXO.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - General"
+},
+"GLENMARK.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"GLFL.NS": {
+"sector": "Financial Services",
+"industry": "Shell Companies"
+},
+"GLOBAL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Education & Training Services"
+},
+"GLOBALE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"GLOBALVECT.NS": {
+"sector": "Industrials",
+"industry": "Airports & Air Services"
+},
+"GLOBE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"GLOBECIVIL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"GLOBUSSPR.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Wineries & Distilleries"
+},
+"GLOSTERLTD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"GLOTTIS.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"GMBREW.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Wineries & Distilleries"
+},
+"GMDCLTD.NS": {
+"sector": "Energy",
+"industry": "Thermal Coal"
+},
+"GMMPFAUDLR.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"GMRAIRPORT.NS": {
+"sector": "Industrials",
+"industry": "Airports & Air Services"
+},
+"GMRP&UI.NS": {
+"sector": "Energy",
+"industry": "Thermal Coal"
+},
+"GNA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"GNFC.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"GNRL.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas E&P"
+},
+"GOACARBON.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"GOCLCORP.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"GOCOLORS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Retail"
+},
+"GODAVARIB.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"GODFRYPHLP.NS": {
+"sector": "Consumer Defensive",
+"industry": "Tobacco"
+},
+"GODIGIT.NS": {
+"sector": "Financial Services",
+"industry": "Insurance - Property & Casualty"
+},
+"GODREJAGRO.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"GODREJCP.NS": {
+"sector": "Consumer Defensive",
+"industry": "Household & Personal Products"
+},
+"GODREJIND.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"GODREJPROP.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"GOKEX.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"GOKUL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"GOKULAGRO.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"GOLDIAM.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"GOODLUCK.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"GOODYEAR.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"GOPAL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"GOYALALUM.NS": {
+"sector": "Basic Materials",
+"industry": "Aluminum"
+},
+"GPIL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"GPPL.NS": {
+"sector": "Industrials",
+"industry": "Marine Shipping"
+},
+"GPTHEALTH.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"GPTINFRA.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"GRANDOAK.NS": {
+"sector": "Financial Services",
+"industry": "Mortgage Finance"
+},
+"GRANULES.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"GRAPHITE.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"GRASIM.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"GRAUWEIL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"GRAVITA.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"GREAVESCOT.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"GREENLAM.NS": {
+"sector": "Basic Materials",
+"industry": "Lumber & Wood Production"
+},
+"GREENPANEL.NS": {
+"sector": "Basic Materials",
+"industry": "Lumber & Wood Production"
+},
+"GREENPLY.NS": {
+"sector": "Basic Materials",
+"industry": "Lumber & Wood Production"
+},
+"GREENPOWER.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Independent Power Producers"
+},
+"GRINDWELL.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"GRINFRA.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"GRMOVER.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"GROBTEA.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"GROWW.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"GRPLTD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"GRSE.NS": {
+"sector": "Industrials",
+"industry": "Aerospace & Defense"
+},
+"GRWRHITECH.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"GSFC.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"GSLSU.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"GSPCROP.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"GSS.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"GTECJAINX.NS": {
+"sector": "Consumer Defensive",
+"industry": "Education & Training Services"
+},
+"GTL.NS": {
+"sector": "Communication Services",
+"industry": "Telecom Services"
+},
+"GTLINFRA.NS": {
+"sector": "Technology",
+"industry": "Communication Equipment"
+},
+"GTPL.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"GUFICBIO.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"GUJALKALI.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"GUJAPOLLO.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"GUJENERGY.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Regulated Gas"
+},
+"GUJTHEM.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"GULFOILLUB.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"GULPOLY.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"GVPIL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"GVT&D.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"GYFTR.NS": {
+"sector": "Industrials",
+"industry": "Specialty Business Services"
+},
+"HAL.NS": {
+"sector": "Industrials",
+"industry": "Aerospace & Defense"
+},
+"HALDER.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"HALDYNGL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"HALEOSLABS.NS": {
+"sector": "Healthcare",
+"industry": "Biotechnology"
+},
+"HAMPTON.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"HAPPSTMNDS.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"HAPPYFORGE.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"HARDWYN.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"HARIOMPIPE.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"HARRMALAYA.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"HARSHA.NS": {
+"sector": "Industrials",
+"industry": "Tools & Accessories"
+},
+"HATHWAY.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"HATSUN.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"HAVELLS.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"HAVISHA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"HAWKINCOOK.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"HAZOOR.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"HBESD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"HBLENGINE.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"HBPOR.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"HBSL.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"HCC.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"HCG.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"HCL-INSYS.NS": {
+"sector": "Technology",
+"industry": "Electronics & Computer Distribution"
+},
+"HCLTECH.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"HDBFS.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"HDFCAMC.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"HDFCBANK.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"HDFCLIFE.NS": {
+"sector": "Financial Services",
+"industry": "Insurance - Life"
+},
+"HEADSUP.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Retail"
+},
+"HEALTHX.NS": {
+"sector": "Healthcare",
+"industry": "Pharmaceutical Retailers"
+},
+"HECPROJECT.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"HEGAM.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"HEIDELBERG.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"HEMIPROP.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Diversified"
+},
+"HERANBA.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"HERITGFOOD.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"HEROMOTOCO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Manufacturers"
+},
+"HEROMOTORS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"HESTERBIO.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"HEXATRADEX.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"HEXT.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"HGINFRA.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"HGM.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"HGS.NS": {
+"sector": "Industrials",
+"industry": "Specialty Business Services"
+},
+"HIKAL.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"HILINFRA.NS": {
+"sector": "Industrials",
+"industry": "Infrastructure Operations"
+},
+"HILTON.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"HIMATSEIDE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"HINDADH.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"HINDALCO.NS": {
+"sector": "Basic Materials",
+"industry": "Aluminum"
+},
+"HINDALUMI.NS": {
+"sector": "Basic Materials",
+"industry": "Aluminum"
+},
+"HINDCOMPOS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"HINDCOPPER.NS": {
+"sector": "Basic Materials",
+"industry": "Copper"
+},
+"HINDOILEXP.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas E&P"
+},
+"HINDPETRO.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Refining & Marketing"
+},
+"HINDUNILVR.NS": {
+"sector": "Consumer Defensive",
+"industry": "Household & Personal Products"
+},
+"HINDWAREAP.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"HINDZINC.NS": {
+"sector": "Basic Materials",
+"industry": "Other Industrial Metals & Mining"
+},
+"HIRECT.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"HISARMETAL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"HITECH.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"HLEGLAS.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"HLVLTD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"HMAAGRO.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"HNDFDS.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"HOMEFIRST.NS": {
+"sector": "Financial Services",
+"industry": "Mortgage Finance"
+},
+"HONASA.NS": {
+"sector": "Consumer Defensive",
+"industry": "Household & Personal Products"
+},
+"HONAUT.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"HONDAPOWER.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"HORIZONIND.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"HPAL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"HPIL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"HPL.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"HRYNSHP.NS": {
+"sector": "Industrials",
+"industry": "Waste Management"
+},
+"HSCL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"HTEL.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"HTMEDIA.NS": {
+"sector": "Communication Services",
+"industry": "Publishing"
+},
+"HUBTOWN.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"HUDCO.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"HUHTAMAKI.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"HYBRIDFIN.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"HYUNDAI.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Manufacturers"
+},
+"IBULLSLTD.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"ICEMAKE.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"ICICIAMC.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"ICICIBANK.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"ICICIGI.NS": {
+"sector": "Financial Services",
+"industry": "Insurance - Diversified"
+},
+"ICICIPRULI.NS": {
+"sector": "Financial Services",
+"industry": "Insurance - Life"
+},
+"ICIL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"ICRA.NS": {
+"sector": "Financial Services",
+"industry": "Financial Data & Stock Exchanges"
+},
+"IDBI.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"IDEA.NS": {
+"sector": "Communication Services",
+"industry": "Telecom Services"
+},
+"IDEAFORGE.NS": {
+"sector": "Technology",
+"industry": "Computer Hardware"
+},
+"IDFCFIRSTB.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"IEX.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"IFBAGRO.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Wineries & Distilleries"
+},
+"IFBIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"IFCI.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"IFGLEXPOR.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"IGARASHI.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"IGCL.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"IGIL.NS": {
+"sector": "Basic Materials",
+"industry": "Other Precious Metals & Mining"
+},
+"IGL.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Regulated Gas"
+},
+"IGPL.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"IIFL.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"IIFLCAPS.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"IITL.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"IKIO.NS": {
+"sector": "Technology",
+"industry": "Electronic Components"
+},
+"IKS.NS": {
+"sector": "Healthcare",
+"industry": "Health Information Services"
+},
+"IMAGICAA.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"IMFA.NS": {
+"sector": "Basic Materials",
+"industry": "Other Industrial Metals & Mining"
+},
+"IMPAL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"INA.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"INCREDIBLE.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"INDBANK.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"INDGN.NS": {
+"sector": "Healthcare",
+"industry": "Health Information Services"
+},
+"INDHOTEL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"INDIACEM.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"INDIAGLYCO.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"INDIAMART.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Internet Retail"
+},
+"INDIANB.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"INDIANCARD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"INDIANHUME.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"INDIASHLTR.NS": {
+"sector": "Financial Services",
+"industry": "Mortgage Finance"
+},
+"INDIGO.NS": {
+"sector": "Industrials",
+"industry": "Airlines"
+},
+"INDIGOPNTS.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"INDIQUBE.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"INDNIPPON.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"INDOAMIN.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"INDOBORAX.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"INDOCO.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"INDOFARM.NS": {
+"sector": "Industrials",
+"industry": "Farm & Heavy Construction Machinery"
+},
+"INDOKEM.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"INDOMIM.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"INDORAMA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"INDOSTAR.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"INDOTECH.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"INDOTHAI.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"INDOUS.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"INDOWIND.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Renewable"
+},
+"INDPRUD.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"INDRAMEDCO.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"INDSWFTLAB.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"INDTERRAIN.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Retail"
+},
+"INDUSINDBK.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"INDUSTOWER.NS": {
+"sector": "Communication Services",
+"industry": "Telecom Services"
+},
+"INFOBEAN.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"INFOMEDIA.NS": {
+"sector": "Financial Services",
+"industry": "Shell Companies"
+},
+"INFY.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"INGERRAND.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"INNOVACAP.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"INNOVANA.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"INNOVISION.NS": {
+"sector": "Industrials",
+"industry": "Staffing & Employment Services"
+},
+"INOXGREEN.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Renewable"
+},
+"INOXINDIA.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"INOXWIND.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"INSECTICID.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"INSPIRISYS.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"INTELLECT.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"INTENTECH.NS": {
+"sector": "Technology",
+"industry": "Software - Infrastructure"
+},
+"INTERARCH.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"INTLCONV.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"INVENTURE.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"IOB.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"IOC.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Refining & Marketing"
+},
+"IOLCP.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"IONEXCHANG.NS": {
+"sector": "Industrials",
+"industry": "Pollution & Treatment Controls"
+},
+"IPCALAB.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"IPL.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"IPRINGLTD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"IRB.NS": {
+"sector": "Industrials",
+"industry": "Infrastructure Operations"
+},
+"IRCON.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"IRCTC.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Travel Services"
+},
+"IREDA.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"IRFC.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"IRIS.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"IRISDOREME.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"IRMENERGY.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Regulated Gas"
+},
+"ISGEC.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"ISHANCH.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"ISTLTD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"ITC.NS": {
+"sector": "Consumer Defensive",
+"industry": "Tobacco"
+},
+"ITCHOTELS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Resorts & Casinos"
+},
+"ITDC.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"ITI.NS": {
+"sector": "Technology",
+"industry": "Communication Equipment"
+},
+"ITL.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"IVALUE.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"IVC.NS": {
+"sector": "Financial Services",
+"industry": "Financial Conglomerates"
+},
+"IWP.NS": {
+"sector": "Basic Materials",
+"industry": "Lumber & Wood Production"
+},
+"IXIGO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Travel Services"
+},
+"IZMO.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"J&KBANK.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"JAGRAN.NS": {
+"sector": "Communication Services",
+"industry": "Publishing"
+},
+"JAGSNPHARM.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"JAIBALAJI.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"JAICORPLTD.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"JAINREC.NS": {
+"sector": "Basic Materials",
+"industry": "Other Industrial Metals & Mining"
+},
+"JAIPURKURT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"JAMNAAUTO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"JARO.NS": {
+"sector": "Consumer Defensive",
+"industry": "Education & Training Services"
+},
+"JASH.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"JAYAGROGN.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"JAYBARMARU.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"JAYKAY.NS": {
+"sector": "Industrials",
+"industry": "Specialty Business Services"
+},
+"JAYNECOIND.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"JAYSREETEA.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"JBMA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"JENBURPH.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"JETFREIGHT.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"JGCHEM.NS": {
+"sector": "Basic Materials",
+"industry": "Other Industrial Metals & Mining"
+},
+"JHS.NS": {
+"sector": "Consumer Defensive",
+"industry": "Household & Personal Products"
+},
+"JINDALPHOT.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"JINDALPOLY.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"JINDALSAW.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"JINDALSTEL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"JINDRILL.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Equipment & Services"
+},
+"JINDWORLD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"JIOFIN.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"JISLDVREQS.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"JISLJALEQS.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"JITFINFRA.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"JKCEMENT.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"JKIL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"JKIPL.NS": {
+"sector": "Industrials",
+"industry": "Industrial Distribution"
+},
+"JKLAKSHMI.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"JKPAPER.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"JKTYRE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"JLHL.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"JMA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"JMFINANCIL.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"JNKINDIA.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"JNPR.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Renewable"
+},
+"JOCIL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"JPOLYINVST.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"JPPOWER.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Independent Power Producers"
+},
+"JSFB.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"JSL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"JSLL.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"JSWCEMENT.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"JSWDULUX.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"JSWENERGY.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Independent Power Producers"
+},
+"JSWHL.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"JSWINFRA.NS": {
+"sector": "Industrials",
+"industry": "Marine Shipping"
+},
+"JSWSTEEL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"JTEKTINDIA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"JTLIND.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"JUBLCPL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"JUBLFOOD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Restaurants"
+},
+"JUBLINGREA.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"JUBLPHARMA.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"JUNIPER.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"JUSTDIAL.NS": {
+"sector": "Communication Services",
+"industry": "Internet Content & Information"
+},
+"JWL.NS": {
+"sector": "Industrials",
+"industry": "Railroads"
+},
+"JYOTHYLAB.NS": {
+"sector": "Consumer Defensive",
+"industry": "Household & Personal Products"
+},
+"JYOTICNC.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"JYOTIRES.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"JYOTISTRUC.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"KAJARIACER.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"KAKATCEM.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"KALAMANDIR.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Retail"
+},
+"KALPATARU.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"KALYANKJIL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"KAMAHOLD.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"KAMANWALA.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"KAMATHOTEL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"KAMDHENU.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"KAMOPAINTS.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"KANANIIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"KANCHI.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"KANCOTEA.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"KANOHAR.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"KANPRPLA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"KANSAINER.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"KAPSTON.NS": {
+"sector": "Industrials",
+"industry": "Specialty Business Services"
+},
+"KARAMTARA.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"KARMAENG.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Renewable"
+},
+"KARURVYSYA.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"KAYNES.NS": {
+"sector": "Technology",
+"industry": "Electronic Components"
+},
+"KCP.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"KDDL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"KDGREEN.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Footwear & Accessories"
+},
+"KEC.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"KECL.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"KEEPLEARN.NS": {
+"sector": "Consumer Defensive",
+"industry": "Education & Training Services"
+},
+"KEI.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"KELLTONTEC.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"KENNAMET.NS": {
+"sector": "Industrials",
+"industry": "Tools & Accessories"
+},
+"KERNEX.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"KESORAMIND.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"KEYFINSERV.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"KFINTECH.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"KHAICHEM.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"KHAITANLTD.NS": {
+"sector": "Industrials",
+"industry": "Industrial Distribution"
+},
+"KHANDSE.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"KICL.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"KILITCH.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"KIMS.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"KINGFA.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"KIOCL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"KIRANVYPAR.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"KIRIINDUS.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"KIRLFER.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"KIRLOSBROS.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"KIRLOSENG.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"KIRLOSIND.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"KIRLPNU.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"KISSHT.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"KITEX.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"KJMCFIN.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"KKCL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"KLBRENG-B.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"KMCSHIL.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"KMEW.NS": {
+"sector": "Industrials",
+"industry": "Marine Shipping"
+},
+"KNACK.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"KNAGRI.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"KNRCON.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"KOHINOOR.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"KOKUYOCMLN.NS": {
+"sector": "Industrials",
+"industry": "Business Equipment & Supplies"
+},
+"KOLTEPATIL.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"KOPRAN.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - General"
+},
+"KOTAKBANK.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"KOTHARIPET.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"KOTHARIPRO.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"KOTIC.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"KOTYARK.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"KOVAI.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"KPEL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"KPIGREEN.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Renewable"
+},
+"KPIL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"KPITTECH.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"KPL.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"KPRMILL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"KRBL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"KREBSBIO.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"KRIDHANINF.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"KRISHANA.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"KRISHIVAL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"KRISHNADEF.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"KRITI.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"KRITIKA.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"KRITINUT.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"KRN.NS": {
+"sector": "Technology",
+"industry": "Electronic Components"
+},
+"KROSS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"KRSNAA.NS": {
+"sector": "Healthcare",
+"industry": "Diagnostics & Research"
+},
+"KRYSTAL.NS": {
+"sector": "Industrials",
+"industry": "Specialty Business Services"
+},
+"KSB.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"KSCL.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"KSE.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"KSHINTL.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"KSL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"KSOLVES.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"KTKBANK.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"KUANTUM.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"KUSUMGAR.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"KWIL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"LAGNAM.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"LAHOTIOV.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"LAKSHMIMIL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"LAL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"LALITHAA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"LALPATHLAB.NS": {
+"sector": "Healthcare",
+"industry": "Diagnostics & Research"
+},
+"LAMBODHARA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"LANCER.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"LANDMARK.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto & Truck Dealerships"
+},
+"LANDSMILL.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"LAOPALA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"LASERPOWER.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"LATENTVIEW.NS": {
+"sector": "Industrials",
+"industry": "Consulting Services"
+},
+"LATTEYS.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"LAURUSLABS.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"LAXMICOT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"LAXMIDENTL.NS": {
+"sector": "Healthcare",
+"industry": "Medical Instruments & Supplies"
+},
+"LAXMIINDIA.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"LCCPROJECT.NS": {
+"sector": "Industrials",
+"industry": "Infrastructure Operations"
+},
+"LCL.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"LEAPIND.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"LEMERITE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"LEMONTREE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"LENSKART.NS": {
+"sector": "Healthcare",
+"industry": "Medical Instruments & Supplies"
+},
+"LEXUS.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"LFIC.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"LGBBROSLTD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"LGEINDIA.NS": {
+"sector": "Technology",
+"industry": "Consumer Electronics"
+},
+"LGHL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"LIBAS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"LIBERTSHOE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Footwear & Accessories"
+},
+"LICHSGFIN.NS": {
+"sector": "Financial Services",
+"industry": "Mortgage Finance"
+},
+"LICI.NS": {
+"sector": "Financial Services",
+"industry": "Insurance - Life"
+},
+"LIKHITHA.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Equipment & Services"
+},
+"LINC.NS": {
+"sector": "Industrials",
+"industry": "Business Equipment & Supplies"
+},
+"LINCOLN.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"LINDEINDIA.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"LKPSEC.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"LLOYDSENGG.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"LLOYDSENT.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"LLOYDSME.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"LMW.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"LODHA.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"LOKESHMACH.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"LORDSCHLO.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"LOTUSCHO.NS": {
+"sector": "Consumer Defensive",
+"industry": "Confectioners"
+},
+"LOTUSEYE.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"LOVABLE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"LOYALTEX.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"LPDC.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"LT.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"LTF.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"LTFOODS.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"LTM.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"LTTS.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"LUMAXIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"LUMAXTECH.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"LUMINO.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"LUPIN.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"LUXIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"LXCHEM.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"M&M.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Manufacturers"
+},
+"M&MFIN.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"MAANALU.NS": {
+"sector": "Basic Materials",
+"industry": "Aluminum"
+},
+"MACPOWER.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"MADHAV.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"MADHAVIPL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"MADHUCON.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"MADRASFERT.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"MAFATIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"MAGADSUGAR.NS": {
+"sector": "Consumer Defensive",
+"industry": "Confectioners"
+},
+"MAGNUM.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"MAHABANK.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"MAHAPEXLTD.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"MAHEPC.NS": {
+"sector": "Industrials",
+"industry": "Farm & Heavy Construction Machinery"
+},
+"MAHESHWARI.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"MAHLIFE.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"MAHLOG.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"MAHSCOOTER.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"MAHSEAMLES.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"MAITHANALL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"MAKERSL.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"MALLCOM.NS": {
+"sector": "Industrials",
+"industry": "Security & Protection Services"
+},
+"MALUPAPER.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"MAMATA.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"MANAKALUCO.NS": {
+"sector": "Basic Materials",
+"industry": "Aluminum"
+},
+"MANAKCOAT.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"MANAKSIA.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"MANALIPETC.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"MANAPPURAM.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"MANBA.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"MANCREDIT.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"MANGALAM.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"MANGLMCEM.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"MANINDS.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"MANINFRA.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"MANIPALHOS.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"MANKIND.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"MANOMAY.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"MANORAMA.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"MANORG.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"MANYAVAR.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"MAPMYINDIA.NS": {
+"sector": "Technology",
+"industry": "Software - Infrastructure"
+},
+"MARALOVER.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"MARATHON.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"MARICO.NS": {
+"sector": "Consumer Defensive",
+"industry": "Household & Personal Products"
+},
+"MARINE.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"MARKOLINES.NS": {
+"sector": "Industrials",
+"industry": "Infrastructure Operations"
+},
+"MARKSANS.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - General"
+},
+"MARSONS.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"MARUTI.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Manufacturers"
+},
+"MASFIN.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"MASKINVEST.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"MASTEK.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"MASTERTR.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"MATRIMONY.NS": {
+"sector": "Communication Services",
+"industry": "Internet Content & Information"
+},
+"MAWANASUG.NS": {
+"sector": "Consumer Defensive",
+"industry": "Confectioners"
+},
+"MAXESTATES.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"MAXHEALTH.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"MAXIND.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"MAYURUNIQ.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"MAZDOCK.NS": {
+"sector": "Industrials",
+"industry": "Aerospace & Defense"
+},
+"MBAPL.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"MBEL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"MBLINFRA.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"MCCHRLS-B.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"MCL.NS": {
+"sector": "Basic Materials",
+"industry": "Copper"
+},
+"MCLEODRUSS.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"MCLOUD.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"MCX.NS": {
+"sector": "Financial Services",
+"industry": "Financial Data & Stock Exchanges"
+},
+"MEDANTA.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"MEDIASSIST.NS": {
+"sector": "Healthcare",
+"industry": "Healthcare Plans"
+},
+"MEDICO.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"MEDPLUS.NS": {
+"sector": "Healthcare",
+"industry": "Pharmaceutical Retailers"
+},
+"MEESHO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Internet Retail"
+},
+"MEGASTAR.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"MEIL.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"MENONBE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"MERCANTILE.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"MERCURYEV.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Manufacturers"
+},
+"METROBRAND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Retail"
+},
+"METROGLOBL.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"METROPOLIS.NS": {
+"sector": "Healthcare",
+"industry": "Diagnostics & Research"
+},
+"MFML.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"MFSL.NS": {
+"sector": "Financial Services",
+"industry": "Insurance - Life"
+},
+"MGEL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"MGL.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Regulated Gas"
+},
+"MHRIL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Resorts & Casinos"
+},
+"MIDHANI.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"MIDWESTLTD.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"MIIL.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"MINDACORP.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"MINDTECK.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"MIRZAINT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Footwear & Accessories"
+},
+"MITCON.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"MITTAL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"MKEXIM.NS": {
+"sector": "Consumer Defensive",
+"industry": "Household & Personal Products"
+},
+"MKPL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"MLKFOOD.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"MMFL.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"MMP.NS": {
+"sector": "Basic Materials",
+"industry": "Aluminum"
+},
+"MMTC.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"MMWL.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"MOBIKWIK.NS": {
+"sector": "Technology",
+"industry": "Software - Infrastructure"
+},
+"MODINATUR.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"MODIRUBBER.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"MODIS.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"MODTHREAD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"MOHITE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"MOHITIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"MOIL.NS": {
+"sector": "Basic Materials",
+"industry": "Other Industrial Metals & Mining"
+},
+"MOKSH.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"MOL.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"MOLBIO.NS": {
+"sector": "Healthcare",
+"industry": "Medical Devices"
+},
+"MOLDTKPAC.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"MOMSBELIEF.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"MONARCH.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"MONEYVIEW.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"MONTECARLO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"MOREPENLAB.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"MOSCHIP.NS": {
+"sector": "Technology",
+"industry": "Semiconductor Equipment & Materials"
+},
+"MOTHERSON.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"MOTILALOFS.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"MOTISONS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"MOTOGENFIN.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"MPHASIS.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"MPIMANIPAL.NS": {
+"sector": "Technology",
+"industry": "Software - Infrastructure"
+},
+"MPSLTD.NS": {
+"sector": "Communication Services",
+"industry": "Publishing"
+},
+"MRF.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"MRPL.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Refining & Marketing"
+},
+"MSL.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"MSPL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"MSTCLTD.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"MSUMI.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"MTNL.NS": {
+"sector": "Communication Services",
+"industry": "Telecom Services"
+},
+"MUFIN.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"MUFTI.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Retail"
+},
+"MUKANDLTD.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"MUKESHB.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"MUKTAARTS.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"MUNJALAU.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"MUNJALSHOW.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"MURUDCERA.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"MUTHOOTCAP.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"MUTHOOTFIN.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"MUTHOOTMF.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"MVELECTRO.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"MVGJL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"MWL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"NACLIND.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"NAGREEKCAP.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"NAGREEKEXP.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"NAHARCAP.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"NAHARINDUS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"NAHARPOLY.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"NAHARSPING.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"NAM-INDIA.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"NARMADA.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"NATCOPHARM.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"NATHBIOGEN.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"NATIONALUM.NS": {
+"sector": "Basic Materials",
+"industry": "Aluminum"
+},
+"NATIONSTD.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"NAUKRI.NS": {
+"sector": "Communication Services",
+"industry": "Internet Content & Information"
+},
+"NAVA.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"NAVINFLUOR.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"NAVKARCORP.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"NAVKARURB.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"NAVNETEDUL.NS": {
+"sector": "Communication Services",
+"industry": "Publishing"
+},
+"NAZARA.NS": {
+"sector": "Communication Services",
+"industry": "Electronic Gaming & Multimedia"
+},
+"NBCC.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"NBIFIN.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"NCC.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"NCLIND.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"NDGL.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"NDL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"NDLVENTURE.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"NDRAUTO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"NDTV.NS": {
+"sector": "Communication Services",
+"industry": "Broadcasting"
+},
+"NEAGI.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"NECCLTD.NS": {
+"sector": "Industrials",
+"industry": "Trucking"
+},
+"NECLIFE.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"NELCAST.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"NELCO.NS": {
+"sector": "Technology",
+"industry": "Communication Equipment"
+},
+"NEOGEN.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"NEPHROPLUS.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"NESCO.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"NESTLEIND.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"NETWEB.NS": {
+"sector": "Technology",
+"industry": "Computer Hardware"
+},
+"NETWORK18.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"NEULANDLAB.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"NEWGEN.NS": {
+"sector": "Technology",
+"industry": "Software - Infrastructure"
+},
+"NEXTMEDIA.NS": {
+"sector": "Communication Services",
+"industry": "Broadcasting"
+},
+"NFL.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"NGIL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"NGLFINE.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - General"
+},
+"NH.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"NHPC.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Renewable"
+},
+"NIACL.NS": {
+"sector": "Financial Services",
+"industry": "Insurance - Diversified"
+},
+"NIBE.NS": {
+"sector": "Industrials",
+"industry": "Aerospace & Defense"
+},
+"NIBL.NS": {
+"sector": "Industrials",
+"industry": "Tools & Accessories"
+},
+"NICCOPAR.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Leisure"
+},
+"NIITLTD.NS": {
+"sector": "Consumer Defensive",
+"industry": "Education & Training Services"
+},
+"NIITMTS.NS": {
+"sector": "Consumer Defensive",
+"industry": "Education & Training Services"
+},
+"NILAINFRA.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"NILASPACES.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"NILE.NS": {
+"sector": "Basic Materials",
+"industry": "Other Industrial Metals & Mining"
+},
+"NILKAMAL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"NIMBSPROJ.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"NINSYS.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"NIPPOBATRY.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"NIRAJ.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"NIRLON.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"NITCO.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"NITINSPIN.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"NITIRAJ.NS": {
+"sector": "Technology",
+"industry": "Scientific & Technical Instruments"
+},
+"NITTAGELA.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"NIVABUPA.NS": {
+"sector": "Financial Services",
+"industry": "Insurance - Life"
+},
+"NKIND.NS": {
+"sector": "Consumer Defensive",
+"industry": "Household & Personal Products"
+},
+"NLCINDIA.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Regulated Electric"
+},
+"NMDC.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"NOCIL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"NOIDATOLL.NS": {
+"sector": "Industrials",
+"industry": "Infrastructure Operations"
+},
+"NORBTEAEXP.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"NORTHARC.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"NOVAAGRI.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"NOVARTIND.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"NPST.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"NRAIL.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"NRBBEARING.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"NSIL.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"NSLNISP.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"NTCIND.NS": {
+"sector": "Consumer Defensive",
+"industry": "Tobacco"
+},
+"NTPC.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Regulated Electric"
+},
+"NTPCGREEN.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Renewable"
+},
+"NUCLEUS.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"NUVAMA.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"NUVOCO.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"NYKAA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Internet Retail"
+},
+"OAL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"OBCL.NS": {
+"sector": "Industrials",
+"industry": "Trucking"
+},
+"OBEROIRLTY.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"ODIGMA.NS": {
+"sector": "Communication Services",
+"industry": "Advertising Agencies"
+},
+"ODYCORP.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"OFSS.NS": {
+"sector": "Technology",
+"industry": "Software - Infrastructure"
+},
+"OIL.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Integrated"
+},
+"OLAELEC.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Manufacturers"
+},
+"OLECTRA.NS": {
+"sector": "Industrials",
+"industry": "Farm & Heavy Construction Machinery"
+},
+"OMAXAUTO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"OMAXE.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"OMFREIGHT.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"OMINFRAL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"OMNI.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"OMPOWER.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"ONEGLOBAL.NS": {
+"sector": "Healthcare",
+"industry": "Pharmaceutical Retailers"
+},
+"ONEPOINT.NS": {
+"sector": "Industrials",
+"industry": "Specialty Business Services"
+},
+"ONESOURCE.NS": {
+"sector": "Healthcare",
+"industry": "Biotechnology"
+},
+"ONGC.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Integrated"
+},
+"ONIDA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"ONIXSOLAR.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"ONWARDTEC.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"OPTIEMUS.NS": {
+"sector": "Technology",
+"industry": "Electronics & Computer Distribution"
+},
+"OPTIFIN.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"ORBTEXP.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"ORCHASP.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"ORCHPHARMA.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"ORICONENT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"ORIENTALTL.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"ORIENTBELL.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"ORIENTCABL.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"ORIENTCEM.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"ORIENTCER.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"ORIENTELEC.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"ORIENTHOT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"ORIENTPPR.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"ORIENTTECH.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"ORIRAIL.NS": {
+"sector": "Industrials",
+"industry": "Railroads"
+},
+"ORISSAMINE.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"ORKLAINDIA.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"ORTINGLOBE.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"OSWALAGRO.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"OSWALGREEN.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"OSWALPUMPS.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"OSWALSEEDS.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"PACEDIGITK.NS": {
+"sector": "Technology",
+"industry": "Communication Equipment"
+},
+"PACIFICI.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"PAGEIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"PAISALO.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"PAKKA.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"PALASHSECU.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"PALREDTEC.NS": {
+"sector": "Technology",
+"industry": "Consumer Electronics"
+},
+"PANACEABIO.NS": {
+"sector": "Healthcare",
+"industry": "Biotechnology"
+},
+"PANAMAPET.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Refining & Marketing"
+},
+"PANCHMAHQ.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"PANORAMA.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"PANSARI.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"PARACABLES.NS": {
+"sector": "Technology",
+"industry": "Communication Equipment"
+},
+"PARADEEP.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"PARAGMILK.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"PARAS.NS": {
+"sector": "Industrials",
+"industry": "Aerospace & Defense"
+},
+"PARASPETRO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"PARIN.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"PARKHOSPS.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"PARKHOTELS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"PARNAXLAB.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"PASHUPATI.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"PASUPTAC.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"PATANJALI.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"PATELENG.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"PATELRMART.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Department Stores"
+},
+"PATINTLOG.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"PAUSHAKLTD.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"PAVNAIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"PAYTM.NS": {
+"sector": "Technology",
+"industry": "Software - Infrastructure"
+},
+"PBMPOLY.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"PCBL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"PCJEWELLER.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"PDMJEPAPER.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"PDSL.NS": {
+"sector": "Industrials",
+"industry": "Specialty Business Services"
+},
+"PEARLPOLY.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"PENIND.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"PENINLAND.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"PERMAGN.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"PERNIASPOP.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Retail"
+},
+"PERSISTENT.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"PETRONET.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Refining & Marketing"
+},
+"PFC.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"PFIZER.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - General"
+},
+"PFOCUS.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"PFS.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"PGEL.NS": {
+"sector": "Technology",
+"industry": "Electronic Components"
+},
+"PGHH.NS": {
+"sector": "Consumer Defensive",
+"industry": "Household & Personal Products"
+},
+"PGHL.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"PGIL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"PHOENIXLTD.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Diversified"
+},
+"PHOENXINTL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Footwear & Accessories"
+},
+"PICCADIL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Wineries & Distilleries"
+},
+"PIDILITIND.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"PIGL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"PIIND.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"PILANIINVS.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"PILITA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"PINELABS.NS": {
+"sector": "Technology",
+"industry": "Software - Infrastructure"
+},
+"PIONEEREMB.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"PIRAMALFIN.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"PITTIENG.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"PIXTRANS.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"PLASTIBLEN.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"PLATIND.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"PLAZACABLE.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"PML.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"PNB.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"PNBGILTS.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"PNBHOUSING.NS": {
+"sector": "Financial Services",
+"industry": "Mortgage Finance"
+},
+"PNC.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"PNCINFRA.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"PNGJL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"PNGSREVA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"POCL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"PODDARMENT.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"POEL.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"POKARNA.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"POLICYBZR.NS": {
+"sector": "Financial Services",
+"industry": "Insurance Brokers"
+},
+"POLYCAB.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"POLYMED.NS": {
+"sector": "Healthcare",
+"industry": "Medical Instruments & Supplies"
+},
+"POLYPLEX.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"POLYSPIN.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"PONNIERODE.NS": {
+"sector": "Consumer Defensive",
+"industry": "Confectioners"
+},
+"POONAWALLA.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"POWERGRID.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Regulated Electric"
+},
+"POWERICA.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"POWERINDIA.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"POWERMECH.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"PPL.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"PPLPHARMA.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"PRABHA.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas E&P"
+},
+"PRADPME.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"PRAENG.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"PRAJIND.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"PRAKASH.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"PRAKASHSTL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"PRANAV.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"PRASOLCHEM.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"PRAVEG.NS": {
+"sector": "Communication Services",
+"industry": "Advertising Agencies"
+},
+"PRAXIS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Specialty Retail"
+},
+"PRECAM.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"PRECOT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"PRECWIRE.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"PREMCO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"PREMEXPLN.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"PREMIERENE.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"PREMIERPOL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"PRESTIGE.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Diversified"
+},
+"PRICOLLTD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"PRIMESECU.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"PRIMO.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"PRINCEPIPE.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"PRIORITY.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"PRISMX.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"PRITI.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"PRITIKAUTO.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"PRIVISCL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"PROSTARM.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"PROTEAN.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"PROZONER.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Diversified"
+},
+"PRSMJOHNSN.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"PRUDENT.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"PRUDMOULI.NS": {
+"sector": "Consumer Defensive",
+"industry": "Confectioners"
+},
+"PSB.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"PSPPROJECT.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"PTC.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Independent Power Producers"
+},
+"PTCIL.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"PTL.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"PUNJABCHEM.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"PURVA.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"PVP.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"PVRINOX.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"PVSL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto & Truck Dealerships"
+},
+"PWL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Education & Training Services"
+},
+"PYRAMID.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"QPOWER.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"QUADFUTURE.NS": {
+"sector": "Industrials",
+"industry": "Railroads"
+},
+"QUESS.NS": {
+"sector": "Industrials",
+"industry": "Staffing & Employment Services"
+},
+"QUICKHEAL.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"QUINTEGRA.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"RACE.NS": {
+"sector": "Industrials",
+"industry": "Waste Management"
+},
+"RACLGEAR.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"RADAAN.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"RADIANTCMS.NS": {
+"sector": "Industrials",
+"industry": "Specialty Business Services"
+},
+"RADICO.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Wineries & Distilleries"
+},
+"RADIOCITY.NS": {
+"sector": "Communication Services",
+"industry": "Broadcasting"
+},
+"RAILTEL.NS": {
+"sector": "Communication Services",
+"industry": "Telecom Services"
+},
+"RAIN.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"RAINBOW.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"RAJMET.NS": {
+"sector": "Basic Materials",
+"industry": "Copper"
+},
+"RAJOOENG.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"RAJPALAYAM.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"RAJRATAN.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"RAJSREESUG.NS": {
+"sector": "Consumer Defensive",
+"industry": "Confectioners"
+},
+"RALLIS.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"RAMANEWS.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Non-Alcoholic"
+},
+"RAMAPHO.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"RAMBHAJO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"RAMCOCEM.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"RAMCOIND.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"RAMCOSYS.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"RAMKY.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"RAMRAT.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"RANASUG.NS": {
+"sector": "Consumer Defensive",
+"industry": "Confectioners"
+},
+"RANEHOLDIN.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"RATEGAIN.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"RATNAMANI.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"RATNAVEER.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"RAYMOND.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"RAYMONDLSL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"RAYMONDREL.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"RBA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Restaurants"
+},
+"RBLBANK.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"RCF.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"RECLTD.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"REDINGTON.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"REDTAPE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Footwear & Accessories"
+},
+"REFEX.NS": {
+"sector": "Energy",
+"industry": "Thermal Coal"
+},
+"REGAAL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"REGENCERAM.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"RELAXO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Footwear & Accessories"
+},
+"RELCHEMQ.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"RELIABLE.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"RELIANCE.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Refining & Marketing"
+},
+"RELIGARE.NS": {
+"sector": "Financial Services",
+"industry": "Insurance - Life"
+},
+"RELTD.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"REMSONSIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"RENTOMOJO.NS": {
+"sector": "Industrials",
+"industry": "Rental & Leasing Services"
+},
+"RENUKA.NS": {
+"sector": "Consumer Defensive",
+"industry": "Confectioners"
+},
+"REPCOHOME.NS": {
+"sector": "Financial Services",
+"industry": "Mortgage Finance"
+},
+"REPL.NS": {
+"sector": "Industrials",
+"industry": "Consulting Services"
+},
+"REPRO.NS": {
+"sector": "Industrials",
+"industry": "Specialty Business Services"
+},
+"RESPONIND.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"RGL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"RHETAN.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"RHIM.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"RHL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"RICOAUTO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"RIIL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"RIR.NS": {
+"sector": "Technology",
+"industry": "Semiconductors"
+},
+"RISHABH.NS": {
+"sector": "Technology",
+"industry": "Scientific & Technical Instruments"
+},
+"RITCO.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"RITES.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"RKDL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Wineries & Distilleries"
+},
+"RKFORGE.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"RKSWAMY.NS": {
+"sector": "Communication Services",
+"industry": "Advertising Agencies"
+},
+"RMC.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"RML.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"ROHLTD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"ROLEXRINGS.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"ROML.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"ROSSARI.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"ROSSELLIND.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"ROSSTECH.NS": {
+"sector": "Industrials",
+"industry": "Aerospace & Defense"
+},
+"ROTO.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"ROUTE.NS": {
+"sector": "Communication Services",
+"industry": "Telecom Services"
+},
+"RPEL.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"RPGLIFE.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"RPOWER.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Independent Power Producers"
+},
+"RPPINFRA.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"RPSGVENT.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"RPTECH.NS": {
+"sector": "Technology",
+"industry": "Electronics & Computer Distribution"
+},
+"RRECL.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"RRIL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"RRKABEL.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"RSL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"RSSOFTWARE.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"RSWM.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"RSYSTEMS.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"RTNINDIA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Internet Retail"
+},
+"RTNPOWER.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Independent Power Producers"
+},
+"RUBFILA.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"RUBICON.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - General"
+},
+"RUBYMILLS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"RUCHINFRA.NS": {
+"sector": "Industrials",
+"industry": "Specialty Business Services"
+},
+"RUCHIRA.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"RUDRA.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"RUNWALENTR.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"RUPA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"RUSHIL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"RUSTOMJEE.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"RVHL.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"RVNL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"RVTH.NS": {
+"sector": "Industrials",
+"industry": "Farm & Heavy Construction Machinery"
+},
+"S&SPOWER.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"SAATVIKGL.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"SAB.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"SADBHAV.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"SADBHIN.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"SAFARI.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Footwear & Accessories"
+},
+"SAGARDEEP.NS": {
+"sector": "Basic Materials",
+"industry": "Copper"
+},
+"SAGCEM.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"SAGILITY.NS": {
+"sector": "Healthcare",
+"industry": "Health Information Services"
+},
+"SAHLIBHFI.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"SAHYADRI.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"SAICAPI.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"SAIL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SAILIFE.NS": {
+"sector": "Healthcare",
+"industry": "Diagnostics & Research"
+},
+"SAIPARENT.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - General"
+},
+"SAKAR.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"SAKHTISUG.NS": {
+"sector": "Consumer Defensive",
+"industry": "Confectioners"
+},
+"SAKSOFT.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"SAKUMA.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"SALASAR.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SALONA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SALSTEEL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SALZERELEC.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"SAMBANDAM.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SAMBHAAV.NS": {
+"sector": "Communication Services",
+"industry": "Publishing"
+},
+"SAMBHV.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SAMHI.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"SAMMAANCAP.NS": {
+"sector": "Financial Services",
+"industry": "Mortgage Finance"
+},
+"SAMPANN.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"SANATHAN.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SANDESH.NS": {
+"sector": "Communication Services",
+"industry": "Publishing"
+},
+"SANDHAR.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SANDUMA.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SANGAMIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SANGHVIMOV.NS": {
+"sector": "Industrials",
+"industry": "Rental & Leasing Services"
+},
+"SANOFI.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - General"
+},
+"SANOFICONR.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - General"
+},
+"SANSERA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SANSTAR.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"SAPPHIRE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Restaurants"
+},
+"SAPPL.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"SARDAEN.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SAREGAMA.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"SARLAPOLY.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SARVESHWAR.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"SASKEN.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"SATIA.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"SATIN.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"SAURASHCEM.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"SAYAJIHOTL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"SAYAJIIND.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"SBC.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"SBCL.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"SBFC.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"SBGLP.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"SBICARD.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"SBIFUNDS.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"SBILIFE.NS": {
+"sector": "Financial Services",
+"industry": "Insurance - Life"
+},
+"SBIN.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"SCHAEFFLER.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SCHAND.NS": {
+"sector": "Communication Services",
+"industry": "Publishing"
+},
+"SCHNEIDER.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"SCI.NS": {
+"sector": "Industrials",
+"industry": "Marine Shipping"
+},
+"SCILAL.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"SCODATUBES.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SDBL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Brewers"
+},
+"SEAMECLTD.NS": {
+"sector": "Industrials",
+"industry": "Marine Shipping"
+},
+"SECMARK.NS": {
+"sector": "Industrials",
+"industry": "Consulting Services"
+},
+"SECURKLOUD.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"SEDEMAC.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SEIL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Education & Training Services"
+},
+"SEJALLTD.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"SEKURITIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SEMAC.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"SENCO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"SENORES.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - General"
+},
+"SEPC.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"SERVOTECH.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"SESHAPAPER.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"SETL.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"SFL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"SGFIN.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"SGIL.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"SGL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SGLRES.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"SGMART.NS": {
+"sector": "Industrials",
+"industry": "Industrial Distribution"
+},
+"SGRL.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"SHADOWFAX.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"SHAH.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SHAILY.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"SHAKTIPUMP.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"SHALBY.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"SHANKARA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Home Improvement Retail"
+},
+"SHANKESH.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"SHANTI.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"SHANTIGEAR.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"SHANTIGOLD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"SHARDACROP.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"SHARDAMOTR.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SHAREINDIA.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"SHBAJRG.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SHEMAROO.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"SHERVANI.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"SHILCTECH.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"SHILGRAVQ.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"SHILPAMED.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"SHINDL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"SHIPROCKET.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"SHIVAAGRO.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"SHIVACEM.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"SHIVALIK.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"SHIVAMAUTO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SHIVAMILLS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SHIVATEX.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SHIVAUM.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SHK.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"SHOPERSTOP.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Department Stores"
+},
+"SHRADDHA.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"SHRADHA.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"SHREDIGCEM.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"SHREECEM.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"SHREEJISPG.NS": {
+"sector": "Industrials",
+"industry": "Marine Shipping"
+},
+"SHREEPUSHK.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"SHREERAMA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"SHREYANIND.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"SHRIKRISH.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"SHRINGARMS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"SHRIPISTON.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SHRIRAMFIN.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"SHRIRAMPPS.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"SHRJAGP.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SHUKRAPHAR.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"SHYAMCENT.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SHYAMMETL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SHYAMTEL.NS": {
+"sector": "Technology",
+"industry": "Communication Equipment"
+},
+"SICAGEN.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SIEL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"SIEMENS.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"SIGACHI.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"SIGMA.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"SIGNATURE.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"SIGNPOST.NS": {
+"sector": "Communication Services",
+"industry": "Advertising Agencies"
+},
+"SIKA.NS": {
+"sector": "Industrials",
+"industry": "Aerospace & Defense"
+},
+"SIL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SILGO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"SILINV.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"SIMPLEXINF.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"SINCLAIR.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"SINDHUTRAD.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"STEELCITY.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"STEELXIND.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"STEL.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"STERTOOLS.NS": {
+"sector": "Industrials",
+"industry": "Tools & Accessories"
+},
+"STLNETWORK.NS": {
+"sector": "Communication Services",
+"industry": "Telecom Services"
+},
+"STLSTRINF.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"STOVEKRAFT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"STUDDS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"STYL.NS": {
+"sector": "Technology",
+"industry": "Software - Infrastructure"
+},
+"STYLAMIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"STYLEBAAZA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Retail"
+},
+"STYRENIX.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"SUBEXLTD.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"SUBROS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SUDARCOLOR.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"SUDARSCHEM.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"SUDEEPPHRM.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"SUKHJITS.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"SULA.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Wineries & Distilleries"
+},
+"SUMEDHA.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"SUMEETINDS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SUMICHEM.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"SUMIT.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"SUMMITSEC.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"SUNCLAY.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"SUNDARAM.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"SUNDARMFIN.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"SUNDRMBRAK.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SUNDRMFAST.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SUNDROP.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"SUNFLAG.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SUNLOC.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"SUNPHARMA.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"SUNRAKSHAK.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SUNSHIEL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"SUNSHINE.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"SUNTECK.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"SUNTV.NS": {
+"sector": "Communication Services",
+"industry": "Broadcasting"
+},
+"SUPERHOUSE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Footwear & Accessories"
+},
+"SUPRAJIT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"SUPREME.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"SUPREMEIND.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"SUPREMEINF.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"SUPRIYA.NS": {
+"sector": "Healthcare",
+"industry": "Biotechnology"
+},
+"SURAJEST.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"SURAJLTD.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SURAKSHA.NS": {
+"sector": "Healthcare",
+"industry": "Diagnostics & Research"
+},
+"SURANASOL.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"SURANAT&P.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Independent Power Producers"
+},
+"SURYALA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SURYALAXMI.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SURYAROSNI.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"SURYODAY.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"SUTLEJTEX.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SUVEN.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"SUVIDHAA.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"SUYOG.NS": {
+"sector": "Communication Services",
+"industry": "Telecom Services"
+},
+"SUZLON.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"SVGLOBAL.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"SVLL.NS": {
+"sector": "Industrials",
+"industry": "Trucking"
+},
+"SVPGLOB.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"SWANCORP.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"SWARAJENG.NS": {
+"sector": "Industrials",
+"industry": "Farm & Heavy Construction Machinery"
+},
+"SWARNSAR.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"SWELECTES.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"SWIGGY.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Internet Retail"
+},
+"SWSOLAR.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"SYMBIOTEC.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - General"
+},
+"SYMPHONY.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"SYNCOMF.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"SYNGENE.NS": {
+"sector": "Healthcare",
+"industry": "Diagnostics & Research"
+},
+"SYRMA.NS": {
+"sector": "Technology",
+"industry": "Electronic Components"
+},
+"TAALTECH.NS": {
+"sector": "Industrials",
+"industry": "Airports & Air Services"
+},
+"TAINWALCHM.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"TAJGVK.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"TAKE.NS": {
+"sector": "Healthcare",
+"industry": "Health Information Services"
+},
+"TALBROAUTO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"TANAA.NS": {
+"sector": "Industrials",
+"industry": "Aerospace & Defense"
+},
+"TANLA.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"TARACHAND.NS": {
+"sector": "Industrials",
+"industry": "Farm & Heavy Construction Machinery"
+},
+"TARAPUR.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"TARC.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"TARIL.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"TARMAT.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"TARSONS.NS": {
+"sector": "Healthcare",
+"industry": "Medical Instruments & Supplies"
+},
+"TASTYBITE.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"TATACAP.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"TATACHEM.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"TATACOMM.NS": {
+"sector": "Communication Services",
+"industry": "Telecom Services"
+},
+"TATACONSUM.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"TATAELXSI.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"TATAINVEST.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"TATAPOWER.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Independent Power Producers"
+},
+"TATASTEEL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"TATATECH.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"TATVA.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"TBOTEK.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Travel Services"
+},
+"TCI.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"TCIEXP.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"TCIFINANCE.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"TCPLPACK.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"TCS.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"TDPOWERSYS.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"TEAMGTY.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"TEAMLEASE.NS": {
+"sector": "Industrials",
+"industry": "Staffing & Employment Services"
+},
+"TECHM.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"TECHNOCRAF.NS": {
+"sector": "Industrials",
+"industry": "Infrastructure Operations"
+},
+"TECHNOE.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"TECHNVISN.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"TECILCHEM.NS": {
+"sector": "Financial Services",
+"industry": "Shell Companies"
+},
+"TEGA.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"TEJASNET.NS": {
+"sector": "Technology",
+"industry": "Communication Equipment"
+},
+"TEMBO.NS": {
+"sector": "Industrials",
+"industry": "Metal Fabrication"
+},
+"TEMPSENS.NS": {
+"sector": "Technology",
+"industry": "Scientific & Technical Instruments"
+},
+"TENNIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"TERAI.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"TERASOFT.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"TEXINFRA.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"TEXMOPIPES.NS": {
+"sector": "Industrials",
+"industry": "Building Products & Equipment"
+},
+"TEXRAIL.NS": {
+"sector": "Industrials",
+"industry": "Railroads"
+},
+"TFCILTD.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"TFL.NS": {
+"sector": "Financial Services",
+"industry": "Mortgage Finance"
+},
+"TGBHOTELS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"TGVSL.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"THACKER.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"THAKDEV.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"THANGAMAYL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"THEINVEST.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"THEJO.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"THELEELA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"THEMISMED.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"THERMAX.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"THOMASCOOK.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Travel Services"
+},
+"THOMASCOTT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"THYROCARE.NS": {
+"sector": "Healthcare",
+"industry": "Diagnostics & Research"
+},
+"TI.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Wineries & Distilleries"
+},
+"TIGERLOGS.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"TIIL.NS": {
+"sector": "Industrials",
+"industry": "Tools & Accessories"
+},
+"TIINDIA.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"TIMETECHNO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"TIMEX.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"TIMKEN.NS": {
+"sector": "Industrials",
+"industry": "Tools & Accessories"
+},
+"TINNARUBR.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"TIPSFILMS.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"TIPSMUSIC.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"TIRUMALCHM.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"TITAGARH.NS": {
+"sector": "Industrials",
+"industry": "Railroads"
+},
+"TITAN.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"TMB.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"TMCV.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Manufacturers"
+},
+"TMPV.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Manufacturers"
+},
+"TNPETRO.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"TNPL.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"TOKYOPLAST.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"TOLINS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"TORNTPHARM.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"TORNTPOWER.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Independent Power Producers"
+},
+"TOUCHWOOD.NS": {
+"sector": "Communication Services",
+"industry": "Advertising Agencies"
+},
+"TOYAMSL.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"TPLPLASTEH.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"TRACXN.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"TRANSCOR.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"TRANSRAILL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"TRAVELFOOD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Restaurants"
+},
+"TREEHOUSE.NS": {
+"sector": "Consumer Defensive",
+"industry": "Education & Training Services"
+},
+"TREJHARA.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"TREL.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"TRENT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Retail"
+},
+"TRF.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"TRIDENT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"TRIGYN.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"TRITONV.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"TRITURBINE.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"TRIVENI.NS": {
+"sector": "Consumer Defensive",
+"industry": "Confectioners"
+},
+"TRU.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"TRUALT.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Refining & Marketing"
+},
+"TSFINV.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"TTKHLTCARE.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - General"
+},
+"TTKPRESTIG.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"TTL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"TTML.NS": {
+"sector": "Communication Services",
+"industry": "Telecom Services"
+},
+"TURTLEMINT.NS": {
+"sector": "Financial Services",
+"industry": "Insurance Brokers"
+},
+"TUTIALKA.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"TVSELECT.NS": {
+"sector": "Technology",
+"industry": "Computer Hardware"
+},
+"TVSHLTD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"TVSMOTOR.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Manufacturers"
+},
+"TVSSCS.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"TVSSRICHAK.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"TVTODAY.NS": {
+"sector": "Communication Services",
+"industry": "Broadcasting"
+},
+"UBL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Brewers"
+},
+"UCOBANK.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"UDAYJEW.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"UDS.NS": {
+"sector": "Industrials",
+"industry": "Specialty Business Services"
+},
+"UEL.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"UFLEX.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"UFO.NS": {
+"sector": "Communication Services",
+"industry": "Entertainment"
+},
+"UGROCAP.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"UJJIVANSFB.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"ULTRACEMCO.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"ULTRAMAR.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"UMESLTD.NS": {
+"sector": "Consumer Defensive",
+"industry": "Education & Training Services"
+},
+"UMIYA-MRO.NS": {
+"sector": "Technology",
+"industry": "Communication Equipment"
+},
+"UNICHEMLAB.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"UNIDT.NS": {
+"sector": "Energy",
+"industry": "Oil & Gas Equipment & Services"
+},
+"UNIECOM.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"UNIENTER.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"UNIINFO.NS": {
+"sector": "Communication Services",
+"industry": "Telecom Services"
+},
+"UNIMECH.NS": {
+"sector": "Industrials",
+"industry": "Aerospace & Defense"
+},
+"UNIONBANK.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"UNIPARTS.NS": {
+"sector": "Industrials",
+"industry": "Farm & Heavy Construction Machinery"
+},
+"UNITDSPR.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Wineries & Distilleries"
+},
+"UNITECH.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Diversified"
+},
+"UNITEDPOLY.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"UNITEDTEA.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"UNIVCABLES.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"UNOMINDA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"UPHOT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"UPL.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"URBANCO.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"URJA.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"USHAMART.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"USK.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"UTIAMC.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"UTKARSHBNK.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"UTLSOLAR.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"UTTAMSUGAR.NS": {
+"sector": "Consumer Defensive",
+"industry": "Confectioners"
+},
+"V2RETAIL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Retail"
+},
+"VADILALIND.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"VADILENT.NS": {
+"sector": "Consumer Defensive",
+"industry": "Food Distribution"
+},
+"VAIBHAVGBL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Luxury Goods"
+},
+"VAISHALI.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"VAKRANGEE.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"VALIANTORG.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"VAML.NS": {
+"sector": "Basic Materials",
+"industry": "Aluminum"
+},
+"VARDHACRLC.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"VARDMNPOLY.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"VARMORA.NS": {
+"sector": "Basic Materials",
+"industry": "Building Materials"
+},
+"VARROC.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"VASCONEQ.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"VASUPRADA.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"VASWANI.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"VBL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Non-Alcoholic"
+},
+"VEDAVAAG.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"VEDL.NS": {
+"sector": "Basic Materials",
+"industry": "Other Industrial Metals & Mining"
+},
+"VEDPOWER.NS": {
+"sector": "Utilities",
+"industry": "Utilities - Independent Power Producers"
+},
+"VEEDOL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"VEEGALAND.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Diversified"
+},
+"VENKEYS.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"VENTIVE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Lodging"
+},
+"VENUSPIPES.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"VERANDA.NS": {
+"sector": "Consumer Defensive",
+"industry": "Education & Training Services"
+},
+"VERTOZ.NS": {
+"sector": "Technology",
+"industry": "Software - Infrastructure"
+},
+"VESUVIUS.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"VETO.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"VGCL.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"VGL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"VGUARD.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"VHL.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"VIDHIING.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"VIDYAWIRES.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"VIJAYA.NS": {
+"sector": "Healthcare",
+"industry": "Diagnostics & Research"
+},
+"VIJSOLX.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"VIKASECO.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"VIKASLIFE.NS": {
+"sector": "Consumer Defensive",
+"industry": "Farm Products"
+},
+"VIKRAMSOLR.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"VIKRAN.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"VIMTALABS.NS": {
+"sector": "Healthcare",
+"industry": "Diagnostics & Research"
+},
+"VINATIORGA.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"VINCOFE.NS": {
+"sector": "Consumer Defensive",
+"industry": "Beverages - Non-Alcoholic"
+},
+"VINDHYATEL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"VINEETLAB.NS": {
+"sector": "Basic Materials",
+"industry": "Chemicals"
+},
+"VINNY.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"VINYLINDIA.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"VIPCLOTHNG.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"VIPIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Footwear & Accessories"
+},
+"VIRAT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"VIRINCHI.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"VISACHROME.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"VISHAL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"VISHNU.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"VISHWARAJ.NS": {
+"sector": "Consumer Defensive",
+"industry": "Confectioners"
+},
+"VISL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"VITAL.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"VIVIANA.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"VIVIDHA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"VIVOBIOT.NS": {
+"sector": "Healthcare",
+"industry": "Biotechnology"
+},
+"VIYASH.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"VLEGOV.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"VLSFINANCE.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"VMART.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Department Stores"
+},
+"VMM.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Department Stores"
+},
+"VMSTMT.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"VOEPL.NS": {
+"sector": "Technology",
+"industry": "Consumer Electronics"
+},
+"VOGL.NS": {
+"sector": "Basic Materials",
+"industry": "Other Industrial Metals & Mining"
+},
+"VOITHPAPR.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"VOLTAMP.NS": {
+"sector": "Industrials",
+"industry": "Electrical Equipment & Parts"
+},
+"VOLTAS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"VPRPL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"VRAJ.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"VRLLOG.NS": {
+"sector": "Industrials",
+"industry": "Trucking"
+},
+"VSSL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"VSTIND.NS": {
+"sector": "Consumer Defensive",
+"industry": "Tobacco"
+},
+"VSTL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"VSTTILLERS.NS": {
+"sector": "Industrials",
+"industry": "Farm & Heavy Construction Machinery"
+},
+"VTL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"VTMLTD.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"WAAREEENER.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"WAAREEINDO.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"WAAREERTL.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"WABAG.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"WAKEFIT.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"WALCHANNAG.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"WANBURY.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"WATERBASE.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
+},
+"WCIL.NS": {
+"sector": "Industrials",
+"industry": "Integrated Freight & Logistics"
+},
+"WEALTH.NS": {
+"sector": "Financial Services",
+"industry": "Capital Markets"
+},
+"WEBELSOLAR.NS": {
+"sector": "Technology",
+"industry": "Solar"
+},
+"WEIZMANIND.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"WEL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"WELCORP.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"WELENT.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"WELSPLSOL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"WELSPUNLIV.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"WENDT.NS": {
+"sector": "Industrials",
+"industry": "Tools & Accessories"
+},
+"WESTLIFE.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Restaurants"
+},
+"WEWIN.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"WEWORK.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate Services"
+},
+"WHBRADY.NS": {
+"sector": "Industrials",
+"industry": "Industrial Distribution"
+},
+"WHEELS.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"WHIRLPOOL.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Furnishings, Fixtures & Appliances"
+},
+"WILLAMAGOR.NS": {
+"sector": "Financial Services",
+"industry": "Credit Services"
+},
+"WINDLAS.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"WINDMACHIN.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"WIPL.NS": {
+"sector": "Basic Materials",
+"industry": "Lumber & Wood Production"
+},
+"WIPRO.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"WOCKPHARMA.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"WONDERLA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Leisure"
+},
+"WORTHPERI.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Packaging & Containers"
+},
+"WPIL.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"WSI.NS": {
+"sector": "Industrials",
+"industry": "Engineering & Construction"
+},
+"WSTCSTPAPR.NS": {
+"sector": "Basic Materials",
+"industry": "Paper & Paper Products"
+},
+"XCHANGING.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"XELPMOC.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"XPROINDIA.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"XTGLOBAL.NS": {
+"sector": "Technology",
+"industry": "Software - Application"
+},
+"XTRANET.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"YASHO.NS": {
+"sector": "Basic Materials",
+"industry": "Specialty Chemicals"
+},
+"YATHARTH.NS": {
+"sector": "Healthcare",
+"industry": "Medical Care Facilities"
+},
+"YATRA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Travel Services"
+},
+"YESBANK.NS": {
+"sector": "Financial Services",
+"industry": "Banks - Regional"
+},
+"YOGI.NS": {
+"sector": "Real Estate",
+"industry": "Real Estate - Development"
+},
+"YUKEN.NS": {
+"sector": "Industrials",
+"industry": "Specialty Industrial Machinery"
+},
+"ZAGGLE.NS": {
+"sector": "Technology",
+"industry": "Software - Infrastructure"
+},
+"ZEEL.NS": {
+"sector": "Communication Services",
+"industry": "Broadcasting"
+},
+"ZEELEARN.NS": {
+"sector": "Consumer Defensive",
+"industry": "Education & Training Services"
+},
+"ZEEMEDIA.NS": {
+"sector": "Communication Services",
+"industry": "Broadcasting"
+},
+"ZENITHEXPO.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Textile Manufacturing"
+},
+"ZENITHSTL.NS": {
+"sector": "Basic Materials",
+"industry": "Steel"
+},
+"ZENSARTECH.NS": {
+"sector": "Technology",
+"industry": "Information Technology Services"
+},
+"ZENTEC.NS": {
+"sector": "Industrials",
+"industry": "Aerospace & Defense"
+},
+"ZFCVINDIA.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"ZFSTEERING.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Auto Parts"
+},
+"ZIMLAB.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"ZODIACLOTH.NS": {
+"sector": "Consumer Cyclical",
+"industry": "Apparel Manufacturing"
+},
+"ZOTA.NS": {
+"sector": "Healthcare",
+"industry": "Biotechnology"
+},
+"ZSARACOM.NS": {
+"sector": "Financial Services",
+"industry": "Asset Management"
+},
+"ZUARI.NS": {
+"sector": "Basic Materials",
+"industry": "Agricultural Inputs"
+},
+"ZUARIIND.NS": {
+"sector": "Industrials",
+"industry": "Conglomerates"
+},
+"ZYDUSLIFE.NS": {
+"sector": "Healthcare",
+"industry": "Drug Manufacturers - Specialty & Generic"
+},
+"ZYDUSWELL.NS": {
+"sector": "Consumer Defensive",
+"industry": "Packaged Foods"
 }
 }
 }
