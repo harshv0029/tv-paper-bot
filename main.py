@@ -13699,11 +13699,25 @@ def _maybe_place_real_fo_option_exit(conn, symbol: str, right: str, reason: str 
 def _close_real_fo_option_leg(conn, row, reason: str):
     import kotak_real_fo_orders
     leg_key = row["leg_key"]
+    # Governance sequence: Kotak positions + order book first. A readable Kotak that shows no open qty
+    # (SL already hit) means NO order: clear the row. An unreadable Kotak never blocks a close.
+    st = kotak_real_fo_orders.fetch_kotak_option_state(row["kotak_trading_symbol"])
+    exit_qty = row["qty"]
+    if st.get("ok"):
+        if st["net_qty"] <= 0 and time.time() - float(row["opened_at"]) >= 120:
+            if st["live_sls"]:
+                _cancel_live_option_sls(row["kotak_trading_symbol"], st)
+            conn.execute("DELETE FROM real_fo_positions WHERE leg_key = ?", (leg_key,))
+            _log_real_fo_attempt(conn, leg_key, "S", "closed_per_kotak", kotak_trading_symbol=row["kotak_trading_symbol"],
+                                 qty=row["qty"], detail=f"reason: {reason}; Kotak positions show no open qty, no exit order sent")
+            return True
+        if 0 < st["net_qty"] < exit_qty:
+            exit_qty = int(st["net_qty"])
     cancelled = _cancel_live_option_sls(row["kotak_trading_symbol"])
     if cancelled:
         _log_real_fo_attempt(conn, leg_key, "S", "sl_cancelled", kotak_trading_symbol=row["kotak_trading_symbol"],
                              qty=row["qty"], detail=f"reason: {reason}; cancelled {cancelled}")
-    result = kotak_real_fo_orders.place_real_fo_exit(row["kotak_trading_symbol"], row["exchange_segment"], row["qty"])
+    result = kotak_real_fo_orders.place_real_fo_exit(row["kotak_trading_symbol"], row["exchange_segment"], exit_qty)
     if result.get("ok"):
         conn.execute("DELETE FROM real_fo_positions WHERE leg_key = ?", (leg_key,))
         _log_real_fo_attempt(
