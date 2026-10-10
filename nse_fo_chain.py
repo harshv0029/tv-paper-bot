@@ -71,6 +71,7 @@ _UNDERLYING_TO_SEGMENT = {
     "GOLD": "mcx_fo", "GOLDM": "mcx_fo",
     "SILVER": "mcx_fo", "SILVERM": "mcx_fo",
     "CRUDEOIL": "mcx_fo", "CRUDEOILM": "mcx_fo",
+    "NATURALGAS": "mcx_fo", "NATGASMINI": "mcx_fo",  # probe 2026-10-10: lots 1250 / 250
 }
 
 # Single-stock F&O (2026-09-16, explicit user request: "Update this to
