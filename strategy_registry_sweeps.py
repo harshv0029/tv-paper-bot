@@ -18,6 +18,9 @@ _MCX_LIVE_WIRED = {
     "sma_crossover__ng__short__1d__atrnone__v1",
 }
 
+# sector cells wired into main._run_sector_rotation_entries
+_SECTOR_LIVE_WIRED = {"sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1"}
+
 
 def _load(name):
     try:
@@ -38,10 +41,13 @@ def build():
         sector.update(_load(f"sector_rotation_fade_results{'' if _tf == '1d' else '_' + _tf}.json").get("results", {}))
     for tag, m in sector.items():
         short = "__short__" in tag
+        status = (sr.StrategyStatus.LIVE if tag in _SECTOR_LIVE_WIRED else
+                  sr.StrategyStatus.VALIDATED if (m["pfnet"] and m["pfnet"] > 1 and m["n"] >= 300) else
+                  sr.StrategyStatus.RESEARCH)
         out.append(sr.StrategyDef(
             name=tag, asset_class=sr.AssetClass.EQUITY_SWING,
             categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,),
-            timeframe=tag.split("__")[3], status=sr.StrategyStatus.RESEARCH, entry_fn=None,
+            timeframe=tag.split("__")[3], status=status, entry_fn=None,
             metrics=sr.Metrics(
                 pfnet=m["pfnet"], pfgross=0.0, win_rate_pct=m["win_pct"], n_trades=m["n"],
                 avg_held_hrs=m["avg_held_days"] * sr.TRADING_HOURS_PER_DAY,
