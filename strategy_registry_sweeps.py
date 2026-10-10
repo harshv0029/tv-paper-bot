@@ -55,6 +55,24 @@ def build():
             source="scripts/sector_rotation_backtest.py",
             evidence=f"PFnet {m['pfnet']}, win {m['win_pct']}%, n={m['n']}, avg net {m['avg_net_pct']}% per trade.",
             notes="Sector rotation (B-336), registered pass or fail; research only, no live path."))
+    # pattern lab (B-81..B-206 batch): each tag is its own strategy, registered pass or fail
+    for _tf, _fn in (("1d", "pattern_lab_results.json"), ("1h", "pattern_lab_results_1h.json"),
+                     ("15m", "pattern_lab_results_15m.json"), ("5m", "pattern_lab_results_5m.json"),
+                     ("1d", "pattern_lab_results_n200.json")):
+        for tag, m in _load(_fn).get("results", {}).items():
+            short = "__short__" in tag
+            hrs = m["avg_held_bars"] * m["bar_hours"]
+            out.append(sr.StrategyDef(
+                name=tag, asset_class=sr.AssetClass.EQUITY_SWING,
+                categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,),
+                timeframe=_tf, status=(sr.StrategyStatus.VALIDATED if (m["pfnet"] and m["pfnet"] > 1 and m["n"] >= 300) else sr.StrategyStatus.RESEARCH),
+                entry_fn=None,
+                metrics=sr.Metrics(pfnet=m["pfnet"], pfgross=0.0, win_rate_pct=m["win_pct"], n_trades=m["n"], avg_held_hrs=hrs,
+                                   universe="n200_swing_watchlist" if _fn.endswith("n200.json") else "full_nse",
+                                   run_ref="pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8%"),
+                source="scripts/pattern_lab.py",
+                evidence=f"PFnet {m['pfnet']}, win {m['win_pct']}%, n={m['n']}, avg net {m['avg_net_pct']}% per trade.",
+                notes="Pattern lab rule, registered pass or fail; research only unless wired."))
     mcx = _load("mcx_sweep_results.json")
     mcx = mcx.get("results", mcx)
     for tag, m in mcx.items():
