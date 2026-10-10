@@ -33,6 +33,7 @@ def test_live_strategies_match_known_live_engines():
         "sma_crossover__gc__long__1d__atrnone__v1",
         "keltner_channel_breakout__si__long__1d__atrnone__v1",
         "supertrend__si__long__1d__atrnone__v1",
+        "sma_crossover__ng__short__1d__atrnone__v1",
     }
 
 
