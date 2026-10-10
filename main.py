@@ -11360,6 +11360,17 @@ def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
     if not real_row:
         return
 
+    # B-313 (Kotak-first): never send a buy-to-cover for a position Kotak does not show as short
+    # (a stale row outlived NYKAA/DRREDDY longs and fired ~20 overnight cover attempts). A confirmed
+    # "not short" clears the stale row; an unreadable fetch (None) falls through as before.
+    if _kotak_symbol_still_open_short(real_row["kotak_trading_symbol"]) is False:
+        conn.execute("DELETE FROM real_positions_short WHERE symbol = ?", (symbol,))
+        conn.commit()
+        _sync_real_positions_short_external(conn)
+        _why_log(conn, symbol, "short_cover", "stale_row_cleared", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+                 prev_state=f"short {real_row['qty']} (app row)", new_state="no short at Kotak; row removed, no order sent")
+        return
+
     import kotak_real_orders
     _why_log(
         conn, symbol, "short_cover", "intent", kotak_trading_symbol=real_row["kotak_trading_symbol"],
