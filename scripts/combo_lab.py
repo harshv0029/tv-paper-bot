@@ -105,7 +105,7 @@ def run_on_frames(frames, cost):
                                 x[1].extend(hd)
     res = {}
     for (a, b, dname, H, k), (r, hd) in acc.items():
-        if len(r) < 100:
+        if len(r) < 300:  # inconclusive below n=300; the result file stays a pass-or-fail record of every cell above it
             continue
         r = np.array(r)
         g, lo = r[r > 0].sum(), -r[r < 0].sum()
