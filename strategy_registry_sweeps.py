@@ -66,11 +66,12 @@ def build():
     for _tf, _fn in (("1d", "pattern_lab_results.json"), ("1h", "pattern_lab_results_1h.json"),
                      ("15m", "pattern_lab_results_15m.json"), ("5m", "pattern_lab_results_5m.json"),
                      ("1d", "pattern_lab_results_n200.json"), ("1d", "pattern_lab_results_etf.json"),
+                     ("1h", "pattern_lab_results_1h_n200.json"), ("15m", "pattern_lab_results_15m_n200.json"),
                      ("1d", "minervini_lab_results.json"), ("1d", "minervini_lab_results_full.json")):
         for tag, m in _load(_fn).get("results", {}).items():
             # the n200 (live swing universe) file owns the plain tag; other universes get a variant suffix so no
             # two universes ever share a name (immutability / never pool)
-            _suffix = "" if _fn in ("pattern_lab_results_n200.json", "minervini_lab_results.json") else (
+            _suffix = "" if ("n200" in _fn or _fn == "minervini_lab_results.json") else (
                 "_etf" if _fn.endswith("etf.json") else "_full")
             if _suffix:
                 _p = tag.split("__")
@@ -86,7 +87,7 @@ def build():
                 timeframe=_tf, status=(sr.StrategyStatus.LIVE if (tag in _PATTERN_LIVE_WIRED and _fn.endswith("n200.json")) else sr.StrategyStatus.VALIDATED if (_pf and _pf > 1 and m["n"] >= 300) else sr.StrategyStatus.RESEARCH),
                 entry_fn=None,
                 metrics=sr.Metrics(pfnet=_pf, pfgross=0.0, win_rate_pct=m["win_pct"], n_trades=m["n"], avg_held_hrs=hrs,
-                                   universe="etf_universe" if _fn.endswith("etf.json") else "n200_swing_watchlist" if (_fn.endswith("n200.json") or _fn == "minervini_lab_results.json") else "full_nse",
+                                   universe="etf_universe" if _fn.endswith("etf.json") else "n200_swing_watchlist" if ("n200" in _fn or _fn == "minervini_lab_results.json") else "full_nse",
                                    run_ref="pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8%"),
                 source="scripts/minervini_lab.py" if _fn.startswith("minervini") else "scripts/pattern_lab.py",
                 evidence=f"PFnet {_pf} (raw {m['pfnet']}), win {m['win_pct']}%, n={m['n']}, avg net {m['avg_net_pct']}% per trade.",
