@@ -26,7 +26,7 @@ def test_every_viable_strategy_is_wired_or_explained():
     missing = [s.name for s in reg
                if s.is_viable() and s.name not in mapped and s.name not in VARIANT_OF_WIRED
                and not s.name.startswith('sector_rotation__') and s.metrics.universe != 'mcx_proxy_single_symbol'
-               and getattr(s, 'source', '') not in ('scripts/pattern_lab.py', 'scripts/minervini_lab.py')]  # B-336/B-343 research cells: live engine owed
+               and getattr(s, 'source', '') not in ('scripts/pattern_lab.py', 'scripts/minervini_lab.py', 'scripts/breadth_lab.py')]  # B-336/B-343 research cells: live engine owed
     assert not missing, f"viable but not wired to a scan counter/engine: {missing}"
 
 
