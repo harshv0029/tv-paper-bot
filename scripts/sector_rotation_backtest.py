@@ -15,13 +15,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 MIN_SECTOR, BREADTH_HI, BREADTH_LO = 5, 0.6, 0.4
 LS, NS, HS, KS = (1, 3, 5), (1, 3, 5), (1, 5, 10, 20), (0, 1.5, 2.5)  # k=0: no stop
+FADE = os.environ.get("FADE", "0") == "1"  # breadth-reversal: short the strongest sector, long the weakest
+VARIANT = "fade" if FADE else "momentum"
 TF = os.environ.get("TF", "1d")  # 1d | 1h | 15m | 5m (4h owed: needs 1h resample)
 PERIOD = {"1d": "5y", "1h": "730d", "4h": "730d", "15m": "60d", "5m": "60d"}[TF]
 BAR_H = {"1d": 6.25, "1h": 1.0, "4h": 3.125, "15m": 0.25, "5m": 5 / 60}[TF]
 if TF != "1d":  # holds in BARS: ~1 session, ~3 sessions, ~5 sessions of the tf
     per_day = round(6.25 / BAR_H)
     HS = (per_day, 3 * per_day, 5 * per_day)
-OUT = os.path.join(ROOT, "docs", "sector_rotation_results.json" if TF == "1d" else f"sector_rotation_results_{TF}.json")
+OUT = os.path.join(ROOT, "docs", ("sector_rotation_results" if not FADE else "sector_rotation_fade_results") + ("" if TF == "1d" else f"_{TF}") + ".json")
 
 
 def resample_4h(d):
@@ -101,12 +103,14 @@ def main():
                     bs, best = m, x
                 if br <= BREADTH_LO and (ws is None or m < ws):
                     ws, worst = m, x
-            for x, d in ((best, "long"), (worst, "short")):
+            for x, d in ((best, "short" if FADE else "long"), (worst, "long" if FADE else "short")):
                 if x is None:
                     continue
                 mem = members[x]
                 r = ret[t, mem]
-                order = np.argsort(-r if d == "long" else r)
+                # momentum: strongest sector's top stocks / weakest sector's bottom stocks.
+                # fade: strongest sector's top stocks are SHORTED, weakest sector's bottom are BOUGHT.
+                order = np.argsort(-r if (d == "long") != FADE else r)
                 for N in NS:
                     for j in [mem[k] for k in order[:N] if not np.isnan(r[k])]:
                         picks.setdefault((L, N, d), []).append((t, j))
@@ -139,7 +143,7 @@ def main():
             pn = np.array(pn)
             gain, loss = pn[pn > 0].sum(), -pn[pn < 0].sum()
             ks = "none" if not k else str(k).replace(".", "d")
-            tag = f"sector_rotation__momentum__{d}__{TF}__atr{ks}_h{Hh}_l{L}_n{N}__v1"
+            tag = f"sector_rotation__{VARIANT}__{d}__{TF}__atr{ks}_h{Hh}_l{L}_n{N}__v1"
             res[tag] = {"pfnet": round(float(gain / loss), 3) if loss else None,
                         "win_pct": round(float((pn > 0).mean() * 100), 1), "n": int(len(pn)),
                         "avg_net_pct": round(float(pn.mean() * 100), 3),

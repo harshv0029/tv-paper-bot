@@ -29,6 +29,10 @@ def test_live_strategies_match_known_live_engines():
     assert live_names == {
         "universal_score", "gap_and_go_swing", "minervini_vcp_livermore_confirmed",
         "power_play_high_tight_flag", "primary_base",
+        # 2026-10-10 MCX daily engine cells (main._MCX_DAILY_CELLS)
+        "sma_crossover__gc__long__1d__atrnone__v1",
+        "keltner_channel_breakout__si__long__1d__atrnone__v1",
+        "supertrend__si__long__1d__atrnone__v1",
     }
 
 
