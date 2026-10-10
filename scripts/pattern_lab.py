@@ -520,9 +520,54 @@ def r_volume_profile(o, h, l, c, v):
             "vp_value_area_reject": (rej_l, rej_s), "vp_lvn_rr2": (lvn_l, z())}
 
 
+def r_bases(o, h, l, c, v):
+    """Minervini base entries (B-230..B-235) and liquidity sweeps (B-37), price/volume only, both directions."""
+    n = len(c)
+    z = lambda: np.zeros(n, bool)
+    flat_l, flat_s, cup_l, cheat_l, dbl_l, dbl_s, sw20_l, sw20_s, sw50_l, sw50_s = (z() for _ in range(10))
+    avg_v = sma(v, 20)
+    hi25, lo25 = shift(rolling_max(h, 25)), shift(rolling_min(l, 25))
+    rng25 = (hi25 - lo25) / np.maximum(lo25, 1e-9)
+    prior_rng = shift(rolling_max(h, 25)) / np.maximum(shift(rolling_min(l, 25)), 1e-9)
+    flat_l = (rng25 <= 0.12) & (c > hi25) & (v > 1.5 * avg_v)
+    flat_s = (rng25 <= 0.12) & (c < lo25) & (v > 1.5 * avg_v)
+    for i in range(70, n):
+        w = slice(i - 60, i)
+        left_hi = h[w][:20].max()
+        low = l[w].min()
+        low_i = int(np.argmin(l[w]))
+        depth = (left_hi - low) / left_hi
+        right_hi = h[i - 12:i].max()
+        handle_lo = l[i - 8:i].min()
+        if 0.15 <= depth <= 0.35 and 15 <= low_i <= 50 and right_hi >= left_hi * 0.95 and (right_hi - handle_lo) / right_hi <= 0.12:
+            cup_l[i] = c[i] > h[i - 8:i].max() and v[i] > 1.2 * avg_v[i]
+            # 3C cheat: pause after recouping 1/3-1/2 of the cup depth, 5-10% tight pause, break of the pause high
+            mid = low + 0.4 * (left_hi - low)
+            pause = h[i - 6:i]
+            cheat_l[i] = (mid * 0.97 <= pause.max() <= mid * 1.10) and ((pause.max() - l[i - 6:i].min()) / pause.max() <= 0.10) and c[i] > pause.max()
+        # double bottom / top
+        seg_l, seg_h = l[i - 40:i], h[i - 40:i]
+        b1 = int(np.argmin(seg_l[:20]))
+        b2 = 20 + int(np.argmin(seg_l[20:]))
+        if abs(seg_l[b1] - seg_l[b2]) / seg_l[b1] <= 0.03 and b2 - b1 >= 8:
+            peak = seg_h[b1:b2].max()
+            dbl_l[i] = c[i] > peak and c[i - 1] <= peak
+        t1 = int(np.argmax(seg_h[:20]))
+        t2 = 20 + int(np.argmax(seg_h[20:]))
+        if abs(seg_h[t1] - seg_h[t2]) / seg_h[t1] <= 0.03 and t2 - t1 >= 8:
+            trough = seg_l[t1:t2].min()
+            dbl_s[i] = c[i] < trough and c[i - 1] >= trough
+    for nb, lg, sh in ((20, sw20_l, sw20_s), (50, sw50_l, sw50_s)):
+        pl, ph = shift(rolling_min(l, nb)), shift(rolling_max(h, nb))
+        lg[:] = (l < pl) & (c > pl) & (c > o)   # swept the prior swing low, closed back above: bullish
+        sh[:] = (h > ph) & (c < ph) & (c < o)   # swept the prior swing high, closed back below: bearish
+    return {"base_flat_box": (flat_l, flat_s), "base_cup_handle": (cup_l, z()), "base_cup_cheat_3c": (cheat_l, z()),
+            "base_double_bottom_top": (dbl_l, dbl_s), "liq_sweep_20": (sw20_l, sw20_s), "liq_sweep_50": (sw50_l, sw50_s)}
+
+
 RULE_FUNCS = (r_baseline, r_doji_family, r_hammer_family, r_engulf_harami, r_piercing_cloud, r_stars, r_three_bar, r_misc_candles,
               r_key_reversal_gaps, r_psar, r_donchian_cycle, r_ma_systems, r_bands, r_oscillators, r_fib_retrace,
-              r_breakout_pullback, r_four_pct_reversal, r_volume, r_pnf)
+              r_breakout_pullback, r_four_pct_reversal, r_volume, r_pnf, r_bases)
 
 
 def all_signals(df):
