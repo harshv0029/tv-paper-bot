@@ -9,13 +9,18 @@ OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
 
 def _one(sym):
     import yfinance as yf
-    for _ in range(2):
+    for attempt in range(5):
         try:
             info = yf.Ticker(sym).info or {}
             if info.get("sector"):
                 return sym, {"sector": info.get("sector"), "industry": info.get("industry")}
+            if info.get("quoteType") == "ETF":
+                return sym, {"sector": "ETF", "industry": info.get("category") or "ETF"}
+            if info.get("quoteType") or info.get("longName"):
+                return sym, None  # reached Yahoo, genuinely no sector: do not guess
         except Exception:
-            time.sleep(1)
+            pass
+        time.sleep(2 * (attempt + 1))  # rate-limit backoff, then retry
     return sym, None
 
 
@@ -27,7 +32,7 @@ def main():
     if os.path.exists(OUT):
         prev = json.load(open(OUT)).get("map", {})
     todo = [s for s in syms if s not in prev]
-    with ThreadPoolExecutor(max_workers=16) as ex:
+    with ThreadPoolExecutor(max_workers=6) as ex:
         for sym, v in ex.map(_one, todo):
             if v:
                 prev[sym] = v
@@ -38,6 +43,8 @@ def main():
     json.dump({"generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                "universe_size": len(syms), "mapped": len(prev), "unmapped": unmapped,
                "sector_counts": sectors, "map": prev}, open(OUT, "w"), indent=0)
+    small = {k: v for k, v in sectors.items() if v < 5}
+    print(f"sectors with <5 symbols (excluded from rotation, never merged): {small}")
     print(f"mapped {len(prev)}/{len(syms)}; sectors={len(sectors)}")
 
 
