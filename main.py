@@ -17477,7 +17477,9 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     # (Gap and Go has none) - this is the only resting order this engine
     # ever places. Best-effort: a failed placement is logged but does not
     # undo the real entry.
-    sl_result = kotak_real_orders.place_real_stop_loss(kotak_symbol, real_qty, round(paper_stop_loss, 2))
+    # B-312 (Kotak-first): scan-then-act - read the live order book before placing, so a reconcile-placed SL
+    # is adopted instead of duplicated (GMRAIRPORT 2026-10-08).
+    sl_result = kotak_real_orders.ensure_resting_sl(kotak_symbol, real_qty, round(paper_stop_loss, 2))
     if sl_result.get("ok"):
         conn.execute(
             "UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
