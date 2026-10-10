@@ -10530,6 +10530,8 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "gap__runaway__long__1d__atr6_h20__v1": "gap__runaway__long__1d__atr6_h20__v1",
     "starc__fade__long__1d__atr6_h20__v1": "starc__fade__long__1d__atr6_h20__v1",
     "donchian__8wk_fade__long__1d__atr6_h20__v1": "donchian__8wk_fade__long__1d__atr6_h20__v1",
+    "envelope__0d05_fade_etf__long__1d__atr6_h20__v1": "envelope__0d05_fade_etf__long__1d__atr6_h20__v1",
+    "starc__fade_etf__long__1d__atr6_h20__v1": "starc__fade_etf__long__1d__atr6_h20__v1",
 }
 
 
@@ -18216,6 +18218,9 @@ _PATTERN_LIVE_CELLS = (
     ("gap__runaway__long__1d__atr6_h20__v1", "gap_runaway", 20, 6.0),
     ("starc__fade__long__1d__atr6_h20__v1", "starc_fade", 20, 6.0),
     ("donchian__8wk_fade__long__1d__atr6_h20__v1", "donchian_8wk_fade", 20, 6.0),
+    # ETF-universe cells (pattern_lab UNI=etf, B-318): trimmed PFnet starc 1.44 (n=300), envelope 5% fade 1.29 (n=680)
+    ("starc__fade_etf__long__1d__atr6_h20__v1", "starc_fade", 20, 6.0),
+    ("envelope__0d05_fade_etf__long__1d__atr6_h20__v1", "envelope_0d05_fade", 20, 6.0),
 )
 _PATTERN_LIVE_TAGS = {c[0]: c for c in _PATTERN_LIVE_CELLS}
 PATTERN_MAX_NEW_PER_DAY = 3
@@ -18264,15 +18269,16 @@ def _run_pattern_cell_entries(conn, dfs: dict, capital, today: str):
     for sym, df in dfs.items():
         if opened >= PATTERN_MAX_NEW_PER_DAY:
             break
-        if sym in ETF_SYMBOLS or conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
-            continue  # validated on stocks only; one swing position per symbol
+        if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
+            continue  # one swing position per symbol
+        is_etf = sym in ETF_SYMBOLS
         try:
             fresh = pattern_fresh_long_signals(df)
         except Exception as e:
             print(f"[PATTERN] signal eval failed for {sym}: {e}")
             continue
         for tag, rule, hold, k in _PATTERN_LIVE_CELLS:  # first matching cell wins (listed best-first)
-            if not fresh.get(rule):
+            if not fresh.get(rule) or ("_etf__" in tag) != is_etf:  # stock cells for stocks, ETF cells for ETFs only
                 continue
             entry_price = float(df["Close"].iloc[-1])
             atr_v = _compute_atr_value(df, 14)
