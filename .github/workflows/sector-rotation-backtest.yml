@@ -6,7 +6,7 @@ on:
         description: script to run
         default: scripts/sector_rotation_backtest.py
       tf:
-        description: candle size (1d, 1h, 15m, 5m)
+        description: candle size (1d, 1h, 4h, 15m, 5m)
         default: 1d
       results:
         description: results file to commit
