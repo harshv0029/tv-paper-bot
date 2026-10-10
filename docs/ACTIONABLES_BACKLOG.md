@@ -358,3 +358,4 @@ Never delete a row — close it with a date and evidence (run id, commit, URL).
 
 | B-346 | P1 | PENDING | MCX daily engine remaining cells: silver sma_crossover long (atr1d5 only viable), ATR-stop variants (needs per-leg ATR stop), NG short (needs NG Kotak underlying, B-344), CL/HG. One row per tag when wired. |
 | B-347 | P0 | DONE-PENDING-VERIFY | MCX daily engine strike used USD COMEX spot -> wrong INR strike. Fixed 2026-10-10: spot now from Kotak MCX future LTP (skips entry if unavailable); NG short cell (NATGASMINI put) wired. Verify at first Mon scan. |
+| B-348 | P1 | PENDING | Sector rotation needs a resting SL for real money; viable 1d long cell is stopless and 1.5/2.5 ATR variants fail. Wide disaster-stop sweep (ATR 4, 6; momentum + fade, 1d) via KS input; wire only cells PFnet>1 with that stop. |
