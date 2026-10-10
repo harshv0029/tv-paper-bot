@@ -19,7 +19,7 @@ _MCX_LIVE_WIRED = {
 }
 
 # sector cells wired into main._run_sector_rotation_entries
-_SECTOR_LIVE_WIRED = {"sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1"}
+_SECTOR_LIVE_WIRED = {"sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1"}
 
 # pattern-lab cells wired into main._run_pattern_cell_entries (n200 results)
 _PATTERN_LIVE_WIRED = {
@@ -49,6 +49,12 @@ def build():
     for _tf in ("1d", "1h", "4h", "15m", "5m"):  # B-341 fade variant files
         sector.update(_load(f"sector_rotation_fade_results{'' if _tf == '1d' else '_' + _tf}.json").get("results", {}))
     for tag, m in sector.items():
+        if "_n200__" in tag:
+            # CLAUDE.md: the full-universe number governs go/no-go. An n200 cell was picked from ~200 in-sample
+            # cells, so its registered PFnet is the weaker of n200 and the identical full-universe cell.
+            _full = sector.get(tag.replace("momentum_n200", "momentum").replace("fade_n200", "fade"))
+            if _full and _full.get("pfnet") is not None and m.get("pfnet") is not None and _full["pfnet"] < m["pfnet"]:
+                m = dict(m, pfnet=_full["pfnet"], n200_pfnet=m["pfnet"])
         short = "__short__" in tag
         status = (sr.StrategyStatus.LIVE if tag in _SECTOR_LIVE_WIRED else
                   sr.StrategyStatus.VALIDATED if (m["pfnet"] and m["pfnet"] > 1 and m["n"] >= 300) else
@@ -82,18 +88,33 @@ def build():
                 tag = "__".join(_p)
             short = "__short__" in tag
             hrs = m["avg_held_bars"] * m["bar_hours"]
+            _combo = _fn.startswith("combo")
+            _oos = _load("combo_validate_results.json").get("results", {}).get(tag) if _combo else None
             # conservative: registered PFnet is the one after dropping the best 1% of trades (outlier guard)
             _pf = m["pfnet"] if m.get("pfnet_trim1") is None else (min(m["pfnet"], m["pfnet_trim1"]) if m["pfnet"] else m["pfnet"])
+            _pv = _load("pattern_validate_results.json").get("results", {}).get(tag) if not _combo else None
+            if _pv and _pv.get("pfnet") and _fn.endswith("n200.json"):  # selected from ~2,300 in-sample cells: gate on the weaker of in/out of sample
+                _pf = min(_pf, _pv["pfnet"], _pv["pfnet_trim1"] or _pv["pfnet"])
+            if _combo:
+                # thousands of pairs were scanned in-sample, so the in-sample number is inflated by multiple testing:
+                # a combo carries metrics only from its OUT-OF-SAMPLE re-run (combo_validate.py); else metrics=None
+                if _oos and _oos.get("pfnet"):
+                    m = _oos
+                    _pf = min(_oos["pfnet"], _oos["pfnet_trim1"] or _oos["pfnet"])
+                    hrs = m["avg_held_bars"] * m["bar_hours"]
+                else:
+                    _pf = None
             out.append(sr.StrategyDef(
                 name=tag, asset_class=sr.AssetClass.EQUITY_SWING,
                 categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,),
                 timeframe=_tf, status=(sr.StrategyStatus.LIVE if (tag in _PATTERN_LIVE_WIRED and (_fn.endswith("n200.json") or _fn.endswith("etf.json"))) else sr.StrategyStatus.VALIDATED if (_pf and _pf > 1 and m["n"] >= 300) else sr.StrategyStatus.RESEARCH),
                 entry_fn=None,
-                metrics=sr.Metrics(pfnet=_pf, pfgross=0.0, win_rate_pct=m["win_pct"], n_trades=m["n"], avg_held_hrs=hrs,
+                metrics=None if _pf is None else sr.Metrics(pfnet=_pf, pfgross=0.0, win_rate_pct=m["win_pct"], n_trades=m["n"], avg_held_hrs=hrs,
                                    universe="n200_swing_watchlist" if _fn.startswith("combo") else "nifty_index_breadth" if _fn.startswith("breadth") else "etf_universe" if _fn.endswith("etf.json") else "n200_swing_watchlist" if ("n200" in _fn or _fn == "minervini_lab_results.json") else "full_nse",
                                    run_ref="pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8%"),
                 source=("scripts/minervini_lab.py" if _fn.startswith("minervini") else "scripts/breadth_lab.py" if _fn.startswith("breadth") else "scripts/combo_lab.py" if _fn.startswith("combo") else "scripts/pattern_lab.py"),
-                evidence=f"PFnet {_pf} (raw {m['pfnet']}), win {m['win_pct']}%, n={m['n']}, avg net {m['avg_net_pct']}% per trade.",
+                evidence=(f"PFnet {_pf} (raw {m['pfnet']}), win {m['win_pct']}%, n={m['n']}, avg net {m['avg_net_pct']}% per trade." if _pf is not None
+                          else f"In-sample only (multiple-testing inflated, NOT out-of-sample validated): raw PFnet {m['pfnet']}, trimmed {m.get('pfnet_trim1')}, win {m['win_pct']}%, n={m['n']}."),
                 notes="Pattern lab rule, registered pass or fail; research only unless wired."))
     mcx = _load("mcx_sweep_results.json")
     mcx = mcx.get("results", mcx)
