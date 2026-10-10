@@ -25,7 +25,7 @@ UNI = os.environ.get("UNI", "")
 PERIOD = {"1d": "5y", "1h": "730d", "15m": "60d", "5m": "60d"}[TF]
 PER_DAY = {"1d": 1, "1h": 6, "15m": 25, "5m": 75}[TF]
 HOLDS = (3, 5, 10, 20) if TF == "1d" else (PER_DAY, 3 * PER_DAY, 5 * PER_DAY)
-KS = (0, 2.5)
+KS = (0, 2.5, 4, 6)
 OUT = os.path.join(ROOT, "docs", "pattern_lab_results" + ("" if TF == "1d" else f"_{TF}") + ("_n200" if UNI == "n200" else "") + ".json")
 
 
@@ -458,7 +458,14 @@ def r_weekly_reversal(o, h, l, c, v, idx=None):
     return {"weekly_reversal": (lg, sh)}
 
 
-RULE_FUNCS = (r_doji_family, r_hammer_family, r_engulf_harami, r_piercing_cloud, r_stars, r_three_bar, r_misc_candles,
+def r_baseline(o, h, l, c, v):
+    """Every bar is a signal (non-overlapping trades): the market-beta yardstick. A rule only has an
+    edge to the extent it beats this cell at the same hold and stop."""
+    n = len(c)
+    return {"baseline_every_bar": (np.ones(n, bool), np.ones(n, bool))}
+
+
+RULE_FUNCS = (r_baseline, r_doji_family, r_hammer_family, r_engulf_harami, r_piercing_cloud, r_stars, r_three_bar, r_misc_candles,
               r_key_reversal_gaps, r_psar, r_donchian_cycle, r_ma_systems, r_bands, r_oscillators, r_fib_retrace,
               r_breakout_pullback, r_four_pct_reversal, r_volume, r_pnf)
 
