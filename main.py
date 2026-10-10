@@ -10526,6 +10526,7 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "keltner_channel_breakout__si__long__1d__atrnone__v1": "keltner_channel_breakout__si__long__1d__atrnone__v1",
     "supertrend__si__long__1d__atrnone__v1": "supertrend__si__long__1d__atrnone__v1",
     "sma_crossover__ng__short__1d__atrnone__v1": "sma_crossover__ng__short__1d__atrnone__v1",
+    "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1",
 }
 
 
@@ -17781,6 +17782,8 @@ def _run_swing_scan(conn):
                         (new_running_max, symbol),
                     )
                     conn.commit()
+            elif pos["strategy"] == SECTOR_ROT_TAG:
+                reason = sector_rotation_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"])
             elif pos["strategy"] == ORPHAN_SWING_STRATEGY_TAG:
                 new_running_max = max(float(pos["running_max_close"] or pos["entry_price"]), float(df["Close"].iloc[-1]))
                 conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
@@ -18038,6 +18041,112 @@ def _run_swing_scan(conn):
             _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "minervini_vcp")
         except Exception as e:
             print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+
+    try:  # sector rotation entries (after the per-symbol chain so a symbol never gets two entries)
+        _run_sector_rotation_entries(conn, dfs, capital, today)
+    except Exception as e:
+        print(f"[SECTOR ROT] entry pass failed (non-fatal): {e}")
+
+
+# ---- Sector rotation momentum long (B-336/B-348; user 2026-10-10: PFnet>1 cells are wired live) ----
+# Validated cell: sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1 (PFnet 1.505, n=1046,
+# live swing universe). Rule = scripts/sector_rotation_backtest.py: per sector (>= 5 symbols with data)
+# breadth and mean of the L-day return; strongest sector with breadth >= 0.6 -> buy its top-N by L-day
+# return; hold 20 trading days; fixed disaster stop = entry - 6 x ATR14 (no trail). Uses the swing real
+# switch, the PFnet gate, the swing engine's SL and the reasoned order log. No new kill switch.
+SECTOR_ROT_TAG = "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1"
+SECTOR_ROT_L = 5
+SECTOR_ROT_N = 1
+SECTOR_ROT_BREADTH_HI = 0.6
+SECTOR_ROT_MIN_SECTOR = 5
+SECTOR_ROT_HOLD_DAYS = 20
+SECTOR_ROT_ATR_MULT = 6.0
+_sector_map_cache = None
+
+
+def _sector_of_symbol() -> dict:
+    global _sector_map_cache
+    if _sector_map_cache is None:
+        try:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "sector_map.json")) as fh:
+                _sector_map_cache = {k: v.get("sector") for k, v in json.load(fh)["map"].items()}
+        except Exception as e:
+            print(f"[SECTOR ROT] sector_map load failed: {e}")
+            _sector_map_cache = {}
+    return _sector_map_cache
+
+
+def sector_rotation_picks(dfs: dict) -> list:
+    """Pure: symbols to BUY today (strongest-breadth sector's top-N by L-day return)."""
+    smap = _sector_of_symbol()
+    L = SECTOR_ROT_L
+    by_sec: dict = {}
+    for sym, df in dfs.items():
+        sec = smap.get(sym)
+        if not sec or df is None or len(df) < 20:
+            continue
+        c = df["Close"].to_numpy(dtype=float)
+        if not (c[-1] > 0 and c[-1 - L] > 0):
+            continue
+        by_sec.setdefault(sec, []).append((sym, c[-1] / c[-1 - L] - 1))
+    best, best_mean = None, None
+    for sec, rows in by_sec.items():
+        if len(rows) < SECTOR_ROT_MIN_SECTOR:
+            continue
+        rets = [r for _, r in rows]
+        breadth, mean = sum(1 for r in rets if r > 0) / len(rets), sum(rets) / len(rets)
+        if breadth >= SECTOR_ROT_BREADTH_HI and (best_mean is None or mean > best_mean):
+            best, best_mean = sec, mean
+    if best is None:
+        return []
+    return [s for s, _ in sorted(by_sec[best], key=lambda t: -t[1])[:SECTOR_ROT_N]]
+
+
+def sector_rotation_exit_reason(df, entry_day: str, initial_stop: float):
+    """Fixed disaster stop on close, or time exit after SECTOR_ROT_HOLD_DAYS trading days."""
+    if len(df) == 0:
+        return None
+    if float(df["Close"].iloc[-1]) <= float(initial_stop):
+        return "stop_hit"
+    if int(np.sum(df["Date"].astype(str).to_numpy() > entry_day)) >= SECTOR_ROT_HOLD_DAYS:
+        return "max_hold_timeout"
+    return None
+
+
+def _run_sector_rotation_entries(conn, dfs: dict, capital, today: str):
+    _record_strategy_scan(SECTOR_ROT_TAG)
+    risk_pct = NSE_STOCK_DEFAULT_PARAMS["risk_pct"]
+    for sym in sector_rotation_picks(dfs):
+        if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
+            continue
+        df = dfs[sym]
+        entry_price = float(df["Close"].iloc[-1])
+        atr_v = _compute_atr_value(df, 14)
+        if not atr_v or atr_v <= 0:
+            continue
+        stop_loss = entry_price - SECTOR_ROT_ATR_MULT * atr_v
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            continue
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (sym, SECTOR_ROT_TAG, today, entry_price, stop_loss, None, qty, time.time(), 1.0, float(atr_v), entry_price),
+        )
+        apply_paper_trade(conn, sym, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), sym, qty, entry_price, 1.0, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": SECTOR_ROT_TAG, "stop_loss": stop_loss, "atr_at_entry": float(atr_v)})),
+        )
+        conn.commit()
+        print(f"[SWING] entry {sym} (sector_rotation) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, sym, qty, entry_price, stop_loss, SECTOR_ROT_TAG)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {sym} (non-fatal, paper entry already recorded): {e}")
 
 
 _swing_sl_trail_last_day = None

@@ -34,6 +34,7 @@ def test_live_strategies_match_known_live_engines():
         "keltner_channel_breakout__si__long__1d__atrnone__v1",
         "supertrend__si__long__1d__atrnone__v1",
         "sma_crossover__ng__short__1d__atrnone__v1",
+        "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1",
     }
 
 
