@@ -1,0 +1,202 @@
+{
+ "GOLD": {
+  "matched": 2039,
+  "exact": {
+   "GOLD": {
+    "lot": 1,
+    "expiries": [
+     "26Feb2027",
+     "27Nov2026",
+     "28May2027"
+    ]
+   }
+  },
+  "error": null
+ },
+ "GOLDM": {
+  "matched": 353,
+  "exact": {
+   "GOLDM": {
+    "lot": 100,
+    "expiries": [
+     "27Nov2026",
+     "29Dec2026",
+     "29Oct2026"
+    ]
+   }
+  },
+  "error": null
+ },
+ "GOLDPETAL": {
+  "matched": null,
+  "exact": {},
+  "error": null
+ },
+ "GOLDGUINEA": {
+  "matched": null,
+  "exact": {},
+  "error": null
+ },
+ "SILVER": {
+  "matched": 3364,
+  "exact": {
+   "SILVER": {
+    "lot": 30,
+    "expiries": [
+     "25Jan2027",
+     "25Mar2027",
+     "26Feb2027"
+    ]
+   }
+  },
+  "error": null
+ },
+ "SILVERM": {
+  "matched": 1659,
+  "exact": {
+   "SILVERM": {
+    "lot": 5,
+    "expiries": [
+     "19Feb2027",
+     "23Apr2027",
+     "23Jun2027"
+    ]
+   }
+  },
+  "error": null
+ },
+ "SILVERMIC": {
+  "matched": null,
+  "exact": {},
+  "error": null
+ },
+ "CRUDEOIL": {
+  "matched": 1106,
+  "exact": {
+   "CRUDEOIL": {
+    "lot": 100,
+    "expiries": [
+     "15Oct2026",
+     "16Dec2026",
+     "17Nov2026"
+    ]
+   }
+  },
+  "error": null
+ },
+ "CRUDEOILM": {
+  "matched": 553,
+  "exact": {
+   "CRUDEOILM": {
+    "lot": 10,
+    "expiries": [
+     "15Oct2026",
+     "16Dec2026",
+     "17Nov2026"
+    ]
+   }
+  },
+  "error": null
+ },
+ "NATURALGAS": {
+  "matched": 263,
+  "exact": {
+   "NATURALGAS": {
+    "lot": 1250,
+    "expiries": [
+     "20Nov2026",
+     "23Dec2026",
+     "23Oct2026"
+    ]
+   }
+  },
+  "error": null
+ },
+ "NATGASMINI": {
+  "matched": 262,
+  "exact": {
+   "NATGASMINI": {
+    "lot": 250,
+    "expiries": [
+     "20Nov2026",
+     "23Dec2026",
+     "23Oct2026"
+    ]
+   }
+  },
+  "error": null
+ },
+ "COPPER": {
+  "matched": 151,
+  "exact": {
+   "COPPER": {
+    "lot": 2500,
+    "expiries": [
+     "21Jan2027",
+     "23Dec2026",
+     "23Nov2026"
+    ]
+   }
+  },
+  "error": null
+ },
+ "ZINC": {
+  "matched": 123,
+  "exact": {
+   "ZINC": {
+    "lot": 5,
+    "expiries": [
+     "21Jan2027",
+     "23Dec2026",
+     "23Nov2026"
+    ]
+   }
+  },
+  "error": null
+ },
+ "ZINCMINI": {
+  "matched": null,
+  "exact": {},
+  "error": null
+ },
+ "LEAD": {
+  "matched": null,
+  "exact": {},
+  "error": null
+ },
+ "LEADMINI": {
+  "matched": null,
+  "exact": {},
+  "error": null
+ },
+ "ALUMINIUM": {
+  "matched": null,
+  "exact": {},
+  "error": null
+ },
+ "ALUMINI": {
+  "matched": null,
+  "exact": {},
+  "error": null
+ },
+ "NICKEL": {
+  "matched": null,
+  "exact": {},
+  "error": null
+ },
+ "COTTON": {
+  "matched": null,
+  "exact": {},
+  "error": null
+ },
+ "MENTHAOIL": {
+  "matched": null,
+  "exact": {},
+  "error": null
+ },
+ "CPO": {
+  "matched": null,
+  "exact": {},
+  "error": null
+ }
+}
