@@ -175,7 +175,7 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
     # 2026-10-10: sector_rotation__ (B-336) and MCX sweep cells (B-343) are registered research cells.
     viable = [s.name for s in sr.REGISTRY if s.is_viable() is True
               and not s.name.startswith('sector_rotation__') and s.metrics.universe != 'mcx_proxy_single_symbol'
-               and getattr(s, 'source', '') != 'scripts/pattern_lab.py']
+               and getattr(s, 'source', '') not in ('scripts/pattern_lab.py', 'scripts/minervini_lab.py')]
     assert set(viable) == {
         "gap_and_go_swing", "power_play_high_tight_flag",
         "minervini_vcp_breakeven_2r", "minervini_vcp_breakeven_3r",
