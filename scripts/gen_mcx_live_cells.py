@@ -1,0 +1,17 @@
+"""Writes docs/mcx_live_cells.json: every exact-rule (no ATR stop) 1d MCX sweep cell with PFnet > 1 on a
+symbol that has a verified Kotak MCX mini mapping (GC/SI/CL/NG). main._MCX_DAILY_CELLS trades this list."""
+import json, os
+D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs")
+SYM = {"gc": "GC=F", "si": "SI=F", "cl": "CL=F", "ng": "NG=F"}
+PARAMS = {"sma_crossover": {"fast": 9, "slow": 21}, "rsi_reversal": {"rsi_period": 14, "oversold": 30, "overbought": 70}}
+r = json.load(open(os.path.join(D, "mcx_sweep_results.json")))
+r = r.get("results", r)
+cells = []
+for tag, m in r.items():
+    p = tag.split("__")
+    if not isinstance(m, dict) or p[3] != "1d" or p[4] != "atrnone" or p[1] not in SYM or not (m.get("pfnet") or 0) > 1:
+        continue
+    cells.append([tag, SYM[p[1]], p[0], PARAMS.get(p[0], {}), m["pfnet"]])
+cells.sort(key=lambda c: -c[4])
+json.dump({"cells": cells}, open(os.path.join(D, "mcx_live_cells.json"), "w"), indent=0)
+print(len(cells))

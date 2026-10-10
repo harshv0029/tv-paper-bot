@@ -30,7 +30,7 @@ def test_scan_counts_each_tag_and_enters_on_fresh_signal(monkeypatch):
                 def fetchone(self_): return None
             return R()
     main._run_mcx_daily_scan(C(), force=True)
-    assert {c[1] for c in calls} == {GOLD, SILVER, "supertrend__si__long__1d__atrnone__v1", "sma_crossover__ng__short__1d__atrnone__v1"}
+    assert {c[1] for c in calls} == {c[0] for c in main._MCX_DAILY_CELLS} >= {GOLD, SILVER, "supertrend__si__long__1d__atrnone__v1", "sma_crossover__ng__short__1d__atrnone__v1"}
     assert all(c[2] == ("put" if "__short__" in c[1] else "call") and c[3] == f"single_leg_mcx_{c[1]}" for c in calls)
     assert main._strategy_scan_counts.get(GOLD) == 1 and main._strategy_scan_counts.get(SILVER) == 1
 
