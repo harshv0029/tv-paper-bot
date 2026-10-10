@@ -586,6 +586,27 @@ def r_fvg(o, h, l, c, v):
     return {"fvg_valid_retest": (lg, sh)}
 
 
+def r_stoch_pivots(o, h, l, c, v, idx=None):
+    """B-147 Stochastic(14,3) oversold/overbought crosses; B-148 prior-day pivot-point (R1/S1) breakouts (intraday TF only)."""
+    out = {}
+    hh, ll = rolling_max(h, 14), rolling_min(l, 14)
+    k = 100 * (c - ll) / np.maximum(hh - ll, 1e-9)
+    d = sma(k, 3)
+    out["stoch14_cross"] = (cross_up(k, d) & (k < 25), cross_dn(k, d) & (k > 75))
+    if idx is not None and TF != "1d":
+        day = pd.DatetimeIndex(idx).tz_localize(None).normalize() if pd.DatetimeIndex(idx).tz is None else pd.DatetimeIndex(idx).tz_convert("Asia/Kolkata").tz_localize(None).normalize()
+        g = pd.DataFrame({"h": h, "l": l, "c": c, "day": day})
+        daily = g.groupby("day").agg(H=("h", "max"), L=("l", "min"), C=("c", "last"))
+        piv = (daily["H"] + daily["L"] + daily["C"]) / 3
+        r1, s1 = (2 * piv - daily["L"]).shift(1), (2 * piv - daily["H"]).shift(1)
+        r1b = r1.reindex(day).to_numpy()
+        s1b = s1.reindex(day).to_numpy()
+        up = (c > r1b) & (shift(c) <= r1b)
+        dn = (c < s1b) & (shift(c) >= s1b)
+        out["pivot_r1s1_break"] = (up, dn)
+    return out
+
+
 RULE_FUNCS = (r_baseline, r_doji_family, r_hammer_family, r_engulf_harami, r_piercing_cloud, r_stars, r_three_bar, r_misc_candles,
               r_key_reversal_gaps, r_psar, r_donchian_cycle, r_ma_systems, r_bands, r_oscillators, r_fib_retrace,
               r_breakout_pullback, r_four_pct_reversal, r_volume, r_pnf, r_bases, r_fvg)
@@ -602,6 +623,7 @@ def all_signals(df):
             print("rule fail", fn.__name__, e, flush=True)
     if UNI in ("n200", "etf"):  # volume-profile rules are O(n*60); live-universe only
         out.update(r_volume_profile(o, h, l, c, v))
+    out.update(r_stoch_pivots(o, h, l, c, v, idx=df.index))
     out.update(r_calendar(o, h, l, c, v, idx=df.index))
     out.update(r_lunar(o, h, l, c, v, idx=df.index))
     out.update(r_weekly_reversal(o, h, l, c, v, idx=df.index))
