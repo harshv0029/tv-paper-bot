@@ -10524,6 +10524,7 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # 2026-10-10 B-345 MCX daily engine: the tag IS the registry name.
     "sma_crossover__gc__long__1d__atrnone__v1": "sma_crossover__gc__long__1d__atrnone__v1",
     "keltner_channel_breakout__si__long__1d__atrnone__v1": "keltner_channel_breakout__si__long__1d__atrnone__v1",
+    "supertrend__si__long__1d__atrnone__v1": "supertrend__si__long__1d__atrnone__v1",
 }
 
 
@@ -13879,6 +13880,7 @@ _MCX_DAILY_CELLS = (
     # (registry tag, proxy symbol, add_strategy_signal name, params)
     ("sma_crossover__gc__long__1d__atrnone__v1", "GC=F", "sma_crossover", {"fast": 9, "slow": 21}),
     ("keltner_channel_breakout__si__long__1d__atrnone__v1", "SI=F", "keltner_channel_breakout", {}),
+    ("supertrend__si__long__1d__atrnone__v1", "SI=F", "supertrend", {}),
 )
 _mcx_daily_scan_day = None
 
@@ -13911,10 +13913,11 @@ def _run_mcx_daily_scan(conn, force: bool = False):
             spot = float(df["Close"].iloc[-1])
             fo_u = _REAL_OPTION_UNDERLYING.get(sym)
             row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (f"{fo_u}:CALL",)).fetchone() if fo_u else None
-            if row is not None and str(row["strategy_tag"]) == "single_leg_mcx_call" and not on:
+            own = f"single_leg_mcx_{tag}"  # each cell exits only the leg it opened
+            if row is not None and str(row["strategy_tag"]) == own and not on:
                 _close_real_fo_option_leg(conn, row, f"{tag}: daily signal dropped, exit")
             elif fresh and row is None:
-                _maybe_place_real_fo_option_entry(conn, sym, spot, tag, "call", tag_col="single_leg_mcx_call")
+                _maybe_place_real_fo_option_entry(conn, sym, spot, tag, "call", tag_col=own)
         except Exception as e:
             print(f"[MCX DAILY] {tag} failed (non-fatal): {e}")
 
