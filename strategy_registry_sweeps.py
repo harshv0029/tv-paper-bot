@@ -21,6 +21,13 @@ _MCX_LIVE_WIRED = {
 # sector cells wired into main._run_sector_rotation_entries
 _SECTOR_LIVE_WIRED = {"sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1"}
 
+# pattern-lab cells wired into main._run_pattern_cell_entries (n200 results)
+_PATTERN_LIVE_WIRED = {
+    "gap__runaway__long__1d__atr6_h20__v1",
+    "starc__fade__long__1d__atr6_h20__v1",
+    "donchian__8wk_fade__long__1d__atr6_h20__v1",
+}
+
 
 def _load(name):
     try:
@@ -61,6 +68,14 @@ def build():
                      ("1d", "pattern_lab_results_n200.json"), ("1d", "pattern_lab_results_etf.json"),
                      ("1d", "minervini_lab_results.json"), ("1d", "minervini_lab_results_full.json")):
         for tag, m in _load(_fn).get("results", {}).items():
+            # the n200 (live swing universe) file owns the plain tag; other universes get a variant suffix so no
+            # two universes ever share a name (immutability / never pool)
+            _suffix = "" if _fn in ("pattern_lab_results_n200.json", "minervini_lab_results.json") else (
+                "_etf" if _fn.endswith("etf.json") else "_full")
+            if _suffix:
+                _p = tag.split("__")
+                _p[1] = _p[1] + _suffix
+                tag = "__".join(_p)
             short = "__short__" in tag
             hrs = m["avg_held_bars"] * m["bar_hours"]
             # conservative: registered PFnet is the one after dropping the best 1% of trades (outlier guard)
@@ -68,7 +83,7 @@ def build():
             out.append(sr.StrategyDef(
                 name=tag, asset_class=sr.AssetClass.EQUITY_SWING,
                 categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,),
-                timeframe=_tf, status=(sr.StrategyStatus.VALIDATED if (_pf and _pf > 1 and m["n"] >= 300) else sr.StrategyStatus.RESEARCH),
+                timeframe=_tf, status=(sr.StrategyStatus.LIVE if (tag in _PATTERN_LIVE_WIRED and _fn.endswith("n200.json")) else sr.StrategyStatus.VALIDATED if (_pf and _pf > 1 and m["n"] >= 300) else sr.StrategyStatus.RESEARCH),
                 entry_fn=None,
                 metrics=sr.Metrics(pfnet=_pf, pfgross=0.0, win_rate_pct=m["win_pct"], n_trades=m["n"], avg_held_hrs=hrs,
                                    universe="etf_universe" if _fn.endswith("etf.json") else "n200_swing_watchlist" if (_fn.endswith("n200.json") or _fn == "minervini_lab_results.json") else "full_nse",

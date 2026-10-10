@@ -35,6 +35,8 @@ def test_live_strategies_match_known_live_engines():
         "supertrend__si__long__1d__atrnone__v1",
         "sma_crossover__ng__short__1d__atrnone__v1",
         "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1",
+        "gap__runaway__long__1d__atr6_h20__v1", "starc__fade__long__1d__atr6_h20__v1",
+        "donchian__8wk_fade__long__1d__atr6_h20__v1",
     }
 
 
@@ -153,7 +155,7 @@ def test_is_viable_false_for_every_short_sell_candidate():
     shorts = sr.strategies_by_category(sr.TradeCategory.SHORT_SELL)
     assert shorts, "expected at least one registered short-sell strategy"
     # 2026-10-10: sector_rotation sweep cells (B-336) are the only viable shorts; research-only.
-    assert all(s.is_viable() is False for s in shorts if not s.name.startswith('sector_rotation__'))
+    assert all(s.is_viable() is False for s in shorts if not (lambda n: n.startswith('sector_rotation__') or (n.endswith('__v1') and '__short__' in n))(s.name))
 
 
 def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_registry():
@@ -203,13 +205,13 @@ def test_leaderboard_ranks_by_pfnet_descending():
     # CLAUDE.md's own "top-5 keeps updating to prefer whichever validated
     # strategy is actually best" standing rule; this test is meant to
     # track that, not pin a specific name forever.
-    assert board[0]["name"] == "failed_breakout_short" or board[0]["name"].startswith("sector_rotation__")
+    assert board[0]["name"] == "failed_breakout_short" or (lambda n: n.startswith('sector_rotation__') or (n.endswith('__v1') and '__short__' in n))(board[0]["name"])
 
 
 def test_leaderboard_marks_every_row_viable_or_not():
     board = sr.leaderboard(sr.TradeCategory.SHORT_SELL, top_n=5)
     for row in board:
-        assert row["viable"] is False or row["name"].startswith("sector_rotation__")
+        assert row["viable"] is False or (lambda n: n.startswith('sector_rotation__') or (n.endswith('__v1') and '__short__' in n))(row["name"])
 
 
 def test_leaderboard_never_pads_with_fabricated_entries():

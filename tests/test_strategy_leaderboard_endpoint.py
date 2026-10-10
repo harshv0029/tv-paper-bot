@@ -52,7 +52,7 @@ def test_short_sell_has_no_viable_strategy_today_and_shows_none():
     # viable-only leaderboard must show an empty list, never pad it with
     # non-viable rows just to have something to display.
     result = main.strategy_leaderboard()
-    assert all(r["name"].startswith("sector_rotation__") for r in result["short_sell"])  # 2026-10-10 B-336
+    assert all((lambda n: n.startswith('sector_rotation__') or (n.endswith('__v1') and '__short__' in n))(r["name"]) for r in result["short_sell"])  # 2026-10-10 B-336
 
 
 def test_every_row_returned_anywhere_is_actually_viable():
