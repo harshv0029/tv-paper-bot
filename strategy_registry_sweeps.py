@@ -18,6 +18,12 @@ _MCX_LIVE_WIRED = {
     "sma_crossover__ng__short__1d__atrnone__v1",
 }
 
+try:  # generated MCX live list (scripts/gen_mcx_live_cells.py) - same file main.py trades from
+    with open(os.path.join(_DOCS, "mcx_live_cells.json")) as _mf:
+        _MCX_LIVE_WIRED |= {_r[0] for _r in json.load(_mf)["cells"]}
+except Exception:
+    pass
+
 # sector cells wired into main._run_sector_rotation_entries
 _SECTOR_LIVE_WIRED = {"sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1"}
 

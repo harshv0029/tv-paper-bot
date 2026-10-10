@@ -13861,6 +13861,13 @@ def _fo_strike_setup_signals():
             ("gap_and_go", gap_and_go_entry_signal))
 
 
+_FO_STRIKE_SHADOW_STRATEGIES = (
+    ("sma_crossover", {"fast": 9, "slow": 21}),
+    ("rsi_reversal", {"rsi_period": 14, "oversold": 30, "overbought": 70}),
+    ("bollinger_mean_reversion", {}), ("supertrend", {}),
+    ("keltner_channel_breakout", {}), ("donchian_breakout", {}),
+)
+
 # Per-strike monitoring ledger (2026-10-09): every option strike in the candle
 # feed, which viable setups were evaluated on its own candles, when, and why it
 # was skipped. Served by GET /fo-strike-monitoring. In-memory by design: it is
@@ -13907,7 +13914,7 @@ def _run_index_swing_option_scan(conn):
 # for long cells), exit when the signal drops. Uses the existing F&O switch, PFnet
 # gate, margin check (rejections are fine), trailing SL and reasoned order log.
 # Cells are the exact-rule variants (no ATR stop; the option trailing SL protects).
-_MCX_DAILY_CELLS = (
+_MCX_DAILY_CELLS_FALLBACK = (
     # (registry tag, proxy symbol, add_strategy_signal name, params)
     ("sma_crossover__gc__long__1d__atrnone__v1", "GC=F", "sma_crossover", {"fast": 9, "slow": 21}),
     ("keltner_channel_breakout__si__long__1d__atrnone__v1", "SI=F", "keltner_channel_breakout", {}),
@@ -13915,6 +13922,23 @@ _MCX_DAILY_CELLS = (
     # short cell: signal on the reciprocal series (as backtested), buys a PUT
     ("sma_crossover__ng__short__1d__atrnone__v1", "NG=F", "sma_crossover", {"fast": 9, "slow": 21}),
 )
+
+
+def _load_mcx_daily_cells():
+    """User 2026-10-11: wire every PFnet>1 exact-rule MCX cell (scripts/gen_mcx_live_cells.py)."""
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "mcx_live_cells.json")) as f:
+            cells = tuple((r[0], r[1], r[2], dict(r[3])) for r in json.load(f)["cells"])
+        if cells:
+            return cells
+    except Exception as e:
+        print(f"[MCX DAILY] live cell list unreadable, using fallback: {e}")
+    return _MCX_DAILY_CELLS_FALLBACK
+
+
+_MCX_DAILY_CELLS = _load_mcx_daily_cells()
+for _c in _MCX_DAILY_CELLS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_c[0], _c[0])
 
 
 def _mcx_inr_spot(fo_underlying):
@@ -14048,6 +14072,19 @@ def _run_fo_strike_setup_scan(conn):
             if sig and fired is None:
                 fired = (tag, sig)
                 rec["last_signal"] = {"tag": tag, "ts": now}
+        # user 2026-10-11: ALL applicable strategies on strikes. The atomic indicator strategies have no
+        # option-premium PFnet yet, so they fail the real-money gate (fail closed): evaluated and recorded
+        # here as SHADOW signals only (no order), building the evidence for a premium backtest.
+        shadow = rec.setdefault("shadow", {})
+        for _st, _pr in _FO_STRIKE_SHADOW_STRATEGIES:
+            try:
+                _fl = add_strategy_signal(df, _st, dict(_pr))["long"].fillna(False).astype(bool)
+                _hit = bool(len(_fl) > 1 and _fl.iloc[-1] and not _fl.iloc[-2])
+            except Exception:
+                _hit = False
+            _c = shadow.setdefault(_st, {"scans": 0, "signals": 0})
+            _c["scans"] += 1
+            _c["signals"] += int(_hit)
         rec["last_eval_ts"] = now
         # surface in the per-asset "checks today / last checked" table (one check per scan pass)
         _record_scheduler_check(f"{sym}:STRIKE")
