@@ -359,6 +359,7 @@
     <table class="counts">
       <thead><tr>
         <th class="num">#</th>
+        <th title="Wired = a live scan/entry path trades it; Not wired = viable in research only">Wired?</th>
         <th>Category</th>
         <th>Strategy</th>
         <th class="num">PFnet</th>
@@ -368,7 +369,7 @@
         <th class="num">Successful entries today</th>
         <th class="num">Win % today</th>
       </tr></thead>
-      <tbody id="strategy-scan-body"><tr><td colspan="9" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="strategy-scan-body"><tr><td colspan="10" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -921,11 +922,12 @@ function renderStrategyScanActivity(data) {
   if (!body) return;
   const rows = data?.strategies || [];
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="9" class="scan-idle">No viable strategies right now</td></tr>`;
+    body.innerHTML = `<tr><td colspan="10" class="scan-idle">No viable strategies right now</td></tr>`;
     return;
   }
   body.innerHTML = rows.map((r, i) => `<tr>
     <td class="num">${i + 1}</td>
+    <td>${r.scan_wired === false ? '<span style="color:#b45309">✘ Not wired</span>' : '<span style="color:#15803d">✔ Wired</span>'}</td>
     <td>${(r.categories || []).map(c => String(c).replace("_", " ")).join(", ") || "—"}</td>
     <td class="sym">${r.strategy_tag}</td>
     <td class="num">${r.pfnet !== null && r.pfnet !== undefined ? fmt(r.pfnet, 3) : "—"}</td>
