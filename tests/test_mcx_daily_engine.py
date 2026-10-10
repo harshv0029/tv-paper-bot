@@ -51,3 +51,16 @@ def test_exit_on_signal_drop_and_paper_exit_does_not_close_it(monkeypatch):
     closed.clear()
     main._maybe_place_real_fo_option_exit(C(), "GC=F", "call", "paper exit")
     assert closed == []
+
+
+def test_scan_activity_counts_mcx_entries():
+    import time
+    from contextlib import closing
+    with closing(main.get_db()) as c:
+        c.execute("DELETE FROM real_fo_trades")
+        main._log_real_fo_attempt(c, "GOLDM:CALL", "B", "confirmed",
+                                  detail=f"reason: call bought on viable setup strategy_tag={GOLD} index signal")
+    rows = main.strategy_scan_activity()
+    rows = rows.get("strategies", rows) if isinstance(rows, dict) else rows
+    r = next(x for x in rows if x["strategy_tag"] == GOLD)
+    assert r["successful_entries_today"] == 1

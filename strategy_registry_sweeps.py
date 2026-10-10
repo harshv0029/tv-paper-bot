@@ -21,13 +21,15 @@ def _load(name):
 
 def build():
     out = []
-    sector = _load("sector_rotation_results.json").get("results", {})
+    sector = dict(_load("sector_rotation_results.json").get("results", {}))
+    for _tf in ("1h", "4h", "15m", "5m"):  # B-341 intraday runs, present once their workflow has committed
+        sector.update(_load(f"sector_rotation_results_{_tf}.json").get("results", {}))
     for tag, m in sector.items():
         short = "__short__" in tag
         out.append(sr.StrategyDef(
             name=tag, asset_class=sr.AssetClass.EQUITY_SWING,
             categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,),
-            timeframe="1d", status=sr.StrategyStatus.RESEARCH, entry_fn=None,
+            timeframe=tag.split("__")[3], status=sr.StrategyStatus.RESEARCH, entry_fn=None,
             metrics=sr.Metrics(
                 pfnet=m["pfnet"], pfgross=0.0, win_rate_pct=m["win_pct"], n_trades=m["n"],
                 avg_held_hrs=m["avg_held_days"] * sr.TRADING_HOURS_PER_DAY,
