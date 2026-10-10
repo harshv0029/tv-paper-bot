@@ -17261,6 +17261,32 @@ def _swing_stop_below_price(stop, price):
     return stop
 
 
+SECTOR_EXPOSURE_CAP_PCT = 25.0
+
+
+def _sector_cap_blocks(conn, symbol, qty, price):
+    """Returns a reason string if adding qty*price in symbol's sector would push that sector's open real swing
+    notional above SECTOR_EXPOSURE_CAP_PCT of capital; None if fine or sector unknown. Never raises."""
+    try:
+        smap = _sector_of_symbol()
+        sec = smap.get(symbol)
+        if not sec:
+            return None
+        cap = float(get_scheduler_capital_inr() or 0) * SECTOR_EXPOSURE_CAP_PCT / 100.0
+        if cap <= 0:
+            return None
+        used = sum(float(r["qty"]) * float(r["entry_price"]) for r in
+                   conn.execute("SELECT symbol, qty, entry_price FROM real_positions_swing").fetchall()
+                   if smap.get(r["symbol"]) == sec)
+        add = float(qty) * float(price)
+        if used + add > cap:
+            return (f"sector {sec!r} would hold Rs{used + add:,.0f} > cap Rs{cap:,.0f} "
+                    f"({SECTOR_EXPOSURE_CAP_PCT:.0f}% of capital); entry skipped")
+    except Exception as e:
+        print(f"[SECTOR CAP] check failed (non-fatal, entry allowed): {e}")
+    return None
+
+
 def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, paper_stop_loss, strategy):
     """Mirrors a paper swing "gap_and_go" entry as a REAL buy, ONLY when
     every gate holds. Called from _run_swing_scan right after the paper
@@ -17303,6 +17329,14 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
             detail=f"strategy {strategy!r} does not clear the PFnet >= 1 real-money floor "
                    "(or has no validated metrics) - see strategy_registry.py",
         )
+        return
+
+    # B-131/B-132 (owner decision 2026-10-10): sector exposure cap - one sector may hold at most
+    # SECTOR_EXPOSURE_CAP_PCT of capital across open real swing positions (also the correlation guard:
+    # same-sector names move together). Blocks only; never touches an already-open position.
+    _cap_block = _sector_cap_blocks(conn, symbol, paper_qty, paper_entry_price)
+    if _cap_block:
+        _log_real_attempt(conn, symbol, "B", "skipped_sector_cap", strategy=strategy, detail=_cap_block)
         return
 
     # 2026-10-06: no new real swing entry from 15:14 IST (user allows through 15:13) - the closing auction
