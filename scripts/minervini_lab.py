@@ -17,7 +17,7 @@ import pandas as pd
 warnings.filterwarnings("ignore")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-UNI = os.environ.get("UNI", "n200")
+UNI = os.environ.get("UNI") or "n200"
 OUT = os.path.join(ROOT, "docs", "minervini_lab_results" + ("" if UNI == "n200" else "_full") + ".json")
 MAXH = 60
 
