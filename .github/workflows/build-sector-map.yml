@@ -1,0 +1,25 @@
+name: Build sector map (B-337)
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/confident-fermi-mlqbka
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: python scripts/build_sector_map.py
+      - name: Commit map
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/sector_map.json
+          git commit -m "Sector map for full NSE universe (B-337)" || echo "no change"
+          git push origin HEAD:claude/confident-fermi-mlqbka
