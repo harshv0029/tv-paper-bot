@@ -136,11 +136,20 @@ def main_run():
             if len(df) < 300:
                 continue
             sigs = collect_signals(df, app)
+            # yardstick: the same exits on an every-10th-bar entry (market beta over the same names and years)
+            base_sigs = [(i, float(df["Close"].iloc[i]), float(df["Close"].iloc[i]) * 0.9, 1.0) for i in range(210, len(df) - 2, 10)]
             if not sigs:
                 continue
             dates = df.index.tz_localize(None) if df.index.tz is not None else df.index
             r50 = reg50.reindex(dates, method="ffill").fillna(False).to_numpy(bool)
             r200 = reg200.reindex(dates, method="ffill").fillna(False).to_numpy(bool)
+            for sg in base_sigs:
+                for v in ("pct8_hard", "rr3", "ma200_break"):
+                    r = run_variant(v, df, sg, np.ones(len(df), bool), cost)
+                    if r:
+                        acc.setdefault("baseline_" + v, ([], []))
+                        acc["baseline_" + v][0].append(r[0])
+                        acc["baseline_" + v][1].append(r[1])
             for sg in sigs:
                 nsig += 1
                 for v in VARIANTS:
