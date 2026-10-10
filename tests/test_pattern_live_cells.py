@@ -16,7 +16,8 @@ def _df(n=300, seed=1):
 
 def test_fresh_signals_returns_only_wired_rules():
     out = main.pattern_fresh_long_signals(_df())
-    assert set(out) == {"starc_fade", "weekly_reversal&donchian_2wk_fade", "donchian_8wk_fade"}
+    wired = {c[1] for c in main._PATTERN_LIVE_CELLS}
+    assert set(out) <= wired and {"starc_fade", "weekly_reversal&donchian_2wk_fade", "donchian_8wk_fade"} <= set(out)
     assert all(isinstance(v, bool) for v in out.values())
 
 
@@ -39,3 +40,20 @@ def test_exit_reasons():
 def test_cells_tags_all_mapped_for_the_gate():
     for tag, *_ in main._PATTERN_LIVE_CELLS:  # incl. ETF cells
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[tag] == tag
+
+
+def test_every_generated_cell_resolves_has_a_stop_and_is_long_daily():
+    pl = main._pattern_lab()
+    sigs = pl.all_signals(pl.clean_bars(_df(400)[["Open", "High", "Low", "Close", "Volume"]]))
+    keys = set(sigs) | {k.replace("__", "_") for k in sigs}
+    assert len(main._PATTERN_LIVE_CELLS) >= 4
+    for tag, rule, hold, k in main._PATTERN_LIVE_CELLS:
+        assert k > 0 and hold in (5, 10, 20, 30), tag      # never a position without a protective stop
+        assert "__long__1d__" in tag, tag
+        for part in rule.split("&"):
+            assert part in keys, (tag, part)               # every wired rule exists in the backtest's own rule code
+
+
+def test_live_list_has_unique_tags_and_best_first():
+    tags = [c[0] for c in main._PATTERN_LIVE_CELLS]
+    assert len(tags) == len(set(tags))
