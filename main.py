@@ -19482,6 +19482,21 @@ def strategy_scan_activity():
             except (TypeError, ValueError):
                 pass
         entries_today[tag] = entries_today.get(tag, 0) + 1
+    # MCX daily engine (B-345) entries live in real_fo_trades, not trades; the
+    # confirmed-row reason carries "strategy_tag=<tag>".
+    try:
+        import re as _re
+        _mcx_tags = {c[0] for c in _MCX_DAILY_CELLS}
+        with closing(get_db()) as conn:
+            for r in conn.execute(
+                "SELECT detail FROM real_fo_trades WHERE status = 'confirmed' AND side = 'B' AND day = ?",
+                (now_ist.strftime("%Y-%m-%d"),),
+            ).fetchall():
+                m = _re.search(r"strategy_tag=(\S+)", r["detail"] or "")
+                if m and m.group(1) in _mcx_tags:
+                    entries_today[m.group(1)] = entries_today.get(m.group(1), 0) + 1
+    except Exception:
+        pass
 
     # win_rate_today_pct (explicit user request 2026-10-05: "win % today
     # under this strategy"): replay every paper trade in ts order keeping a

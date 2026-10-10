@@ -16,12 +16,28 @@ sys.path.insert(0, ROOT)
 MIN_SECTOR, BREADTH_HI, BREADTH_LO = 5, 0.6, 0.4
 LS, NS, HS, KS = (1, 3, 5), (1, 3, 5), (1, 5, 10, 20), (0, 1.5, 2.5)  # k=0: no stop
 TF = os.environ.get("TF", "1d")  # 1d | 1h | 15m | 5m (4h owed: needs 1h resample)
-PERIOD = {"1d": "5y", "1h": "730d", "15m": "60d", "5m": "60d"}[TF]
-BAR_H = {"1d": 6.25, "1h": 1.0, "15m": 0.25, "5m": 5 / 60}[TF]
+PERIOD = {"1d": "5y", "1h": "730d", "4h": "730d", "15m": "60d", "5m": "60d"}[TF]
+BAR_H = {"1d": 6.25, "1h": 1.0, "4h": 3.125, "15m": 0.25, "5m": 5 / 60}[TF]
 if TF != "1d":  # holds in BARS: ~1 session, ~3 sessions, ~5 sessions of the tf
     per_day = round(6.25 / BAR_H)
     HS = (per_day, 3 * per_day, 5 * per_day)
 OUT = os.path.join(ROOT, "docs", "sector_rotation_results.json" if TF == "1d" else f"sector_rotation_results_{TF}.json")
+
+
+def resample_4h(d):
+    """1h panel (columns: field x symbol) -> two bars per NSE session: 09:15-13:15
+    and 13:15-15:30 (the 4h candle yfinance does not serve; B-341)."""
+    import pandas as pd
+    ix = d.index
+    local = ix.tz_convert("Asia/Kolkata") if ix.tz is not None else ix
+    key = pd.Series(local.strftime("%Y-%m-%d") + np.where((local.hour * 60 + local.minute) < 13 * 60 + 15, "a", "b"), index=ix)
+    first = d.groupby(key.values).head(1).index
+    out = {}
+    for f, how in (("Open", "first"), ("High", "max"), ("Low", "min"), ("Close", "last")):
+        out[f] = d[f].groupby(key.values).agg(how)
+    res = pd.concat(out, axis=1)
+    res.index = [d.index[key.values == k][0] for k in res.index]
+    return res.sort_index()
 
 
 def load():
@@ -33,10 +49,12 @@ def load():
     got = []
     for i in range(0, len(syms), 100):
         b = syms[i:i + 100]
-        d = yf.download(b, period=PERIOD, interval=TF, group_by="column", auto_adjust=True,
+        d = yf.download(b, period=PERIOD, interval="1h" if TF == "4h" else TF, group_by="column", auto_adjust=True,
                         progress=False, threads=True)
         if d.empty:
             continue
+        if TF == "4h":
+            d = resample_4h(d)
         for s in b:
             try:
                 if d["Close"][s].notna().sum() < (300 if TF == "1d" else 200):
