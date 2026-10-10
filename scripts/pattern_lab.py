@@ -465,6 +465,61 @@ def r_baseline(o, h, l, c, v):
     return {"baseline_every_bar": (np.ones(n, bool), np.ones(n, bool))}
 
 
+def _vp(h, l, v, lo, hi, nb=24):
+    wh, wl = h[lo:hi].max(), l[lo:hi].min()
+    if wh <= wl:
+        return None
+    bw = (wh - wl) / nb
+    bv = np.zeros(nb)
+    for j in range(lo, hi):
+        if v[j] <= 0 or h[j] <= l[j]:
+            continue
+        a, b = max(0, int((l[j] - wl) / bw)), min(nb - 1, int((h[j] - wl) / bw))
+        bv[a:b + 1] += v[j] / (b - a + 1)
+    poc = int(np.argmax(bv))
+    # value area: expand around POC until 70% of volume
+    tot, acc, a, b = bv.sum(), bv[poc], poc, poc
+    while acc < 0.7 * tot and (a > 0 or b < nb - 1):
+        up = bv[b + 1] if b < nb - 1 else -1
+        dn = bv[a - 1] if a > 0 else -1
+        if up >= dn:
+            b += 1
+            acc += bv[b]
+        else:
+            a -= 1
+            acc += bv[a]
+    # LVN below/above: lowest-volume interior bin
+    lvn = int(np.argmin(bv[1:-1])) + 1
+    return wl + (poc + .5) * bw, wl + (b + 1) * bw, wl + a * bw, wl + (lvn + .5) * bw
+
+
+def r_volume_profile(o, h, l, c, v):
+    """B-326..B-331 published volume-profile ideas on daily bars (60-bar profile, 24 bins)."""
+    n = len(c)
+    z = lambda: np.zeros(n, bool)
+    rev_l, rev_s, ema_l, ema_s, brk_l, brk_s, rej_l, rej_s, lvn_l = (z() for _ in range(9))
+    e20, e50 = ema(c, 20), ema(c, 50)
+    for i in range(61, n):
+        vp = _vp(h, l, v, i - 60, i)
+        if vp is None:
+            continue
+        poc, vah, val, lvn = vp
+        pc = c[i - 1]
+        rev_l[i] = c[i] < poc * 0.97
+        rev_s[i] = c[i] > poc * 1.03
+        near = abs(c[i] - poc) / poc <= 0.01
+        ema_l[i] = near and e20[i] > e50[i] and c[i] > o[i]
+        ema_s[i] = near and e20[i] < e50[i] and c[i] < o[i]
+        brk_l[i] = c[i] > vah and pc <= vah
+        brk_s[i] = c[i] < val and pc >= val
+        rej_s[i] = h[i] > vah and c[i] < vah and c[i] < o[i]
+        rej_l[i] = l[i] < val and c[i] > val and c[i] > o[i]
+        if c[i] > lvn and poc > c[i]:  # LVN stop below, POC target above, RR >= 2
+            lvn_l[i] = (poc - c[i]) >= 2 * (c[i] - lvn) and (c[i] - lvn) > 0
+    return {"vp_poc_reversion": (rev_l, rev_s), "vp_ema_poc_pullback": (ema_l, ema_s), "vp_value_area_break": (brk_l, brk_s),
+            "vp_value_area_reject": (rej_l, rej_s), "vp_lvn_rr2": (lvn_l, z())}
+
+
 RULE_FUNCS = (r_baseline, r_doji_family, r_hammer_family, r_engulf_harami, r_piercing_cloud, r_stars, r_three_bar, r_misc_candles,
               r_key_reversal_gaps, r_psar, r_donchian_cycle, r_ma_systems, r_bands, r_oscillators, r_fib_retrace,
               r_breakout_pullback, r_four_pct_reversal, r_volume, r_pnf)
@@ -479,6 +534,8 @@ def all_signals(df):
             out.update(fn(o, h, l, c, v))
         except Exception as e:
             print("rule fail", fn.__name__, e, flush=True)
+    if UNI == "n200":  # volume-profile rules are O(n*60); live-universe only
+        out.update(r_volume_profile(o, h, l, c, v))
     out.update(r_calendar(o, h, l, c, v, idx=df.index))
     out.update(r_lunar(o, h, l, c, v, idx=df.index))
     out.update(r_weekly_reversal(o, h, l, c, v, idx=df.index))
