@@ -255,3 +255,36 @@ def test_strike_monitor_records_every_strike_even_when_real_switch_off():
     assert main._scheduler_last_results["NIFTY13OCT2621750CE:STRIKE"]["checked_at_utc"] > 0
     assert main._scheduler_check_counts["NIFTY13OCT2621750CE:STRIKE"] >= 1
     assert main._asset_class_and_source("X:STRIKE")[0] == "fo_option"
+
+
+def test_exit_sends_no_order_when_kotak_shows_flat():
+    _db()
+    with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value=_state(net=0)), \
+         patch("kotak_real_fo_orders.place_real_fo_exit") as ex, \
+         closing(main.get_db()) as conn:
+        _insert(conn)
+        row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key='NIFTY:PUT'").fetchone()
+        assert main._close_real_fo_option_leg(conn, row, "paper exit") is True
+        assert not ex.called
+        assert conn.execute("SELECT 1 FROM real_fo_positions").fetchone() is None
+
+
+def test_exit_uses_kotak_qty_when_smaller_and_proceeds_if_unreadable():
+    _db()
+    with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value=_state(net=10)), \
+         patch("main._cancel_live_option_sls", return_value=[]), \
+         patch("kotak_real_fo_orders.place_real_fo_exit", return_value={"ok": True, "order_id": "X1"}) as ex, \
+         closing(main.get_db()) as conn:
+        _insert(conn)
+        row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key='NIFTY:PUT'").fetchone()
+        main._close_real_fo_option_leg(conn, row, "paper exit")
+        assert ex.call_args[0][2] == 10
+    _db()
+    with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value={"ok": False, "detail": "down"}), \
+         patch("main._cancel_live_option_sls", return_value=[]), \
+         patch("kotak_real_fo_orders.place_real_fo_exit", return_value={"ok": True, "order_id": "X2"}) as ex, \
+         closing(main.get_db()) as conn:
+        _insert(conn)
+        row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key='NIFTY:PUT'").fetchone()
+        main._close_real_fo_option_leg(conn, row, "paper exit")
+        assert ex.call_args[0][2] == 25
