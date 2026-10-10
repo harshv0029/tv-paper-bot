@@ -10,6 +10,13 @@ _DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs")
 _SECTOR_REF = "sector-rotation-backtest.yml run 38068129079 (2026-10-10 IST, daily, ~1929 symbols, 11 sectors, cost 0.8%)"
 _MCX_REF = "sector-rotation-backtest.yml run 38068186964 (scripts/mcx_strategy_sweep.py, 2026-10-10 IST, yfinance GC/SI/CL/NG/HG proxies, cost 0.8%)"
 
+# cells wired into main._run_mcx_daily_scan (_MCX_DAILY_CELLS); keep in sync
+_MCX_LIVE_WIRED = {
+    "sma_crossover__gc__long__1d__atrnone__v1",
+    "keltner_channel_breakout__si__long__1d__atrnone__v1",
+    "supertrend__si__long__1d__atrnone__v1",
+}
+
 
 def _load(name):
     try:
@@ -24,6 +31,8 @@ def build():
     sector = dict(_load("sector_rotation_results.json").get("results", {}))
     for _tf in ("1h", "4h", "15m", "5m"):  # B-341 intraday runs, present once their workflow has committed
         sector.update(_load(f"sector_rotation_results_{_tf}.json").get("results", {}))
+    for _tf in ("1d", "1h", "4h", "15m", "5m"):  # B-341 fade variant files
+        sector.update(_load(f"sector_rotation_fade_results{'' if _tf == '1d' else '_' + _tf}.json").get("results", {}))
     for tag, m in sector.items():
         short = "__short__" in tag
         out.append(sr.StrategyDef(
@@ -43,9 +52,16 @@ def build():
         if not isinstance(m, dict) or "pfnet" not in m:
             continue
         tf = tag.split("__")[3]
+        # 2026-10-10 user: only PFnet>1 cells are backtested+viable and live wired.
+        if tag in _MCX_LIVE_WIRED:
+            status = sr.StrategyStatus.LIVE
+        elif m["pfnet"] and m["pfnet"] > 1 and m["n"] >= 30:
+            status = sr.StrategyStatus.VALIDATED
+        else:
+            status = sr.StrategyStatus.RESEARCH
         out.append(sr.StrategyDef(
             name=tag, asset_class=sr.AssetClass.FUTURES, categories=(sr.TradeCategory.FUTURES,),
-            timeframe=tf, status=sr.StrategyStatus.RESEARCH, entry_fn=None,
+            timeframe=tf, status=status, entry_fn=None,
             metrics=sr.Metrics(
                 pfnet=m["pfnet"], pfgross=0.0, win_rate_pct=m["win_pct"], n_trades=m["n"],
                 avg_held_hrs=m.get("avg_held_hrs"), universe="mcx_proxy_single_symbol", run_ref=_MCX_REF),
