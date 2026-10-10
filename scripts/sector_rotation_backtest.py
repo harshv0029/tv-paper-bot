@@ -76,6 +76,14 @@ def load():
                 fr[f].append(d[f][s])
         idx = d.index if idx is None else idx.union(d.index)
     arr = {f: np.column_stack([x.reindex(idx).values for x in v]) for f, v in fr.items()}
+    # drop vendor glitch bars (bad prints produced fake +900% trades in the pattern lab, 2026-10-10 IST)
+    O, H, L, C = arr["Open"], arr["High"], arr["Low"], arr["Close"]
+    with np.errstate(invalid="ignore", divide="ignore"):
+        bad = ~((O <= H * 1.001) & (O >= L * 0.999) & (C <= H * 1.001) & (C >= L * 0.999) & (L > 0) & (H / L < 1.6))
+        pcl = np.vstack([np.full((1, C.shape[1]), np.nan), C[:-1]])
+        bad |= np.abs(C / pcl - 1) > 0.35
+    for f in arr:
+        arr[f] = np.where(bad, np.nan, arr[f])
     return got, sm, idx, arr
 
 
