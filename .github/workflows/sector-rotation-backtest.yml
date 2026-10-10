@@ -1,0 +1,24 @@
+name: Sector rotation backtest (B-336, daily, both directions)
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/confident-fermi-mlqbka
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt yfinance
+      - run: python scripts/sector_rotation_backtest.py
+      - name: Commit results
+        run: |
+          git config user.name "github-actions"; git config user.email "actions@users.noreply.github.com"
+          git add docs/sector_rotation_results.json
+          git commit -m "Sector rotation backtest results (B-336)" || exit 0
+          git pull --rebase origin claude/confident-fermi-mlqbka && git push origin HEAD:claude/confident-fermi-mlqbka
