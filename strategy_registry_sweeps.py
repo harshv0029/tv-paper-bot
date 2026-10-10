@@ -26,6 +26,8 @@ _PATTERN_LIVE_WIRED = {
     "gap__runaway__long__1d__atr6_h20__v1",
     "starc__fade__long__1d__atr6_h20__v1",
     "donchian__8wk_fade__long__1d__atr6_h20__v1",
+    "starc__fade_etf__long__1d__atr6_h20__v1",
+    "envelope__0d05_fade_etf__long__1d__atr6_h20__v1",
 }
 
 
@@ -66,11 +68,13 @@ def build():
     for _tf, _fn in (("1d", "pattern_lab_results.json"), ("1h", "pattern_lab_results_1h.json"),
                      ("15m", "pattern_lab_results_15m.json"), ("5m", "pattern_lab_results_5m.json"),
                      ("1d", "pattern_lab_results_n200.json"), ("1d", "pattern_lab_results_etf.json"),
-                     ("1d", "minervini_lab_results.json"), ("1d", "minervini_lab_results_full.json")):
+                     ("1h", "pattern_lab_results_1h_n200.json"), ("15m", "pattern_lab_results_15m_n200.json"),
+                     ("1d", "minervini_lab_results.json"), ("1d", "minervini_lab_results_full.json"),
+                     ("1d", "breadth_lab_results.json"), ("1d", "combo_lab_results.json")):
         for tag, m in _load(_fn).get("results", {}).items():
             # the n200 (live swing universe) file owns the plain tag; other universes get a variant suffix so no
             # two universes ever share a name (immutability / never pool)
-            _suffix = "" if _fn in ("pattern_lab_results_n200.json", "minervini_lab_results.json") else (
+            _suffix = "" if ("n200" in _fn or _fn in ("minervini_lab_results.json", "breadth_lab_results.json", "combo_lab_results.json")) else (
                 "_etf" if _fn.endswith("etf.json") else "_full")
             if _suffix:
                 _p = tag.split("__")
@@ -83,12 +87,12 @@ def build():
             out.append(sr.StrategyDef(
                 name=tag, asset_class=sr.AssetClass.EQUITY_SWING,
                 categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,),
-                timeframe=_tf, status=(sr.StrategyStatus.LIVE if (tag in _PATTERN_LIVE_WIRED and _fn.endswith("n200.json")) else sr.StrategyStatus.VALIDATED if (_pf and _pf > 1 and m["n"] >= 300) else sr.StrategyStatus.RESEARCH),
+                timeframe=_tf, status=(sr.StrategyStatus.LIVE if (tag in _PATTERN_LIVE_WIRED and (_fn.endswith("n200.json") or _fn.endswith("etf.json"))) else sr.StrategyStatus.VALIDATED if (_pf and _pf > 1 and m["n"] >= 300) else sr.StrategyStatus.RESEARCH),
                 entry_fn=None,
                 metrics=sr.Metrics(pfnet=_pf, pfgross=0.0, win_rate_pct=m["win_pct"], n_trades=m["n"], avg_held_hrs=hrs,
-                                   universe="etf_universe" if _fn.endswith("etf.json") else "n200_swing_watchlist" if (_fn.endswith("n200.json") or _fn == "minervini_lab_results.json") else "full_nse",
+                                   universe="n200_swing_watchlist" if _fn.startswith("combo") else "nifty_index_breadth" if _fn.startswith("breadth") else "etf_universe" if _fn.endswith("etf.json") else "n200_swing_watchlist" if ("n200" in _fn or _fn == "minervini_lab_results.json") else "full_nse",
                                    run_ref="pattern-lab (scripts/pattern_lab.py via sector-rotation-backtest.yml), 2026-10-10 IST, cost 0.8%"),
-                source="scripts/minervini_lab.py" if _fn.startswith("minervini") else "scripts/pattern_lab.py",
+                source=("scripts/minervini_lab.py" if _fn.startswith("minervini") else "scripts/breadth_lab.py" if _fn.startswith("breadth") else "scripts/combo_lab.py" if _fn.startswith("combo") else "scripts/pattern_lab.py"),
                 evidence=f"PFnet {_pf} (raw {m['pfnet']}), win {m['win_pct']}%, n={m['n']}, avg net {m['avg_net_pct']}% per trade.",
                 notes="Pattern lab rule, registered pass or fail; research only unless wired."))
     mcx = _load("mcx_sweep_results.json")
