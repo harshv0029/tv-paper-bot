@@ -5,6 +5,9 @@ on:
       script:
         description: script to run
         default: scripts/sector_rotation_backtest.py
+      tf:
+        description: candle size (1d, 1h, 15m, 5m)
+        default: 1d
       results:
         description: results file to commit
         default: docs/sector_rotation_results.json
@@ -22,7 +25,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt yfinance
-      - run: python ${{ inputs.script || 'scripts/sector_rotation_backtest.py' }}
+      - run: TF=${{ inputs.tf || '1d' }} python ${{ inputs.script || 'scripts/sector_rotation_backtest.py' }}
       - name: Commit results
         run: |
           git config user.name "github-actions"; git config user.email "actions@users.noreply.github.com"
