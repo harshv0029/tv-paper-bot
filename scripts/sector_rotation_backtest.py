@@ -18,14 +18,15 @@ LS, NS, HS, KS = (1, 3, 5), (1, 3, 5), (1, 5, 10, 20), (0, 1.5, 2.5)  # k=0: no 
 if os.environ.get("KS"):  # wide disaster-stop sweep (B-348): KS="4,6"
     KS = tuple(float(x) for x in os.environ["KS"].split(","))
 FADE = os.environ.get("FADE", "0") == "1"  # breadth-reversal: short the strongest sector, long the weakest
-VARIANT = "fade" if FADE else "momentum"
+UNI = os.environ.get("UNI", "")  # "n200" = only the live swing watchlist (what the bot can actually trade)
+VARIANT = ("fade" if FADE else "momentum") + ("_n200" if UNI == "n200" else "")
 TF = os.environ.get("TF", "1d")  # 1d | 1h | 15m | 5m (4h owed: needs 1h resample)
 PERIOD = {"1d": "5y", "1h": "730d", "4h": "730d", "15m": "60d", "5m": "60d"}[TF]
 BAR_H = {"1d": 6.25, "1h": 1.0, "4h": 3.125, "15m": 0.25, "5m": 5 / 60}[TF]
 if TF != "1d":  # holds in BARS: ~1 session, ~3 sessions, ~5 sessions of the tf
     per_day = round(6.25 / BAR_H)
     HS = (per_day, 3 * per_day, 5 * per_day)
-OUT = os.path.join(ROOT, "docs", ("sector_rotation_results" if not FADE else "sector_rotation_fade_results") + ("" if TF == "1d" else f"_{TF}") + ("_wide" if os.environ.get("KS") else "") + ".json")
+OUT = os.path.join(ROOT, "docs", ("sector_rotation_results" if not FADE else "sector_rotation_fade_results") + ("" if TF == "1d" else f"_{TF}") + ("_wide" if os.environ.get("KS") else "") + ("_n200" if UNI == "n200" else "") + ".json")
 
 
 def resample_4h(d):
@@ -48,6 +49,11 @@ def load():
     import yfinance as yf
     sm = json.load(open(os.path.join(ROOT, "docs", "sector_map.json")))["map"]
     syms = sorted(sm)
+    if UNI == "n200":
+        import main as _m
+        _w = set(_m.SWING_WATCHLIST)
+        syms = [x for x in syms if x in _w]
+        sm = {k: v for k, v in sm.items() if k in _w}
     fr = {f: [] for f in ("Open", "High", "Low", "Close")}
     idx = None
     got = []
