@@ -15,7 +15,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 MIN_SECTOR, BREADTH_HI, BREADTH_LO = 5, 0.6, 0.4
 LS, NS, HS, KS = (1, 3, 5), (1, 3, 5), (1, 5, 10, 20), (0, 1.5, 2.5)  # k=0: no stop
-OUT = os.path.join(ROOT, "docs", "sector_rotation_results.json")
+TF = os.environ.get("TF", "1d")  # 1d | 1h | 15m | 5m (4h owed: needs 1h resample)
+PERIOD = {"1d": "5y", "1h": "730d", "15m": "60d", "5m": "60d"}[TF]
+BAR_H = {"1d": 6.25, "1h": 1.0, "15m": 0.25, "5m": 5 / 60}[TF]
+if TF != "1d":  # holds in BARS: ~1 session, ~3 sessions, ~5 sessions of the tf
+    per_day = round(6.25 / BAR_H)
+    HS = (per_day, 3 * per_day, 5 * per_day)
+OUT = os.path.join(ROOT, "docs", "sector_rotation_results.json" if TF == "1d" else f"sector_rotation_results_{TF}.json")
 
 
 def load():
@@ -27,13 +33,13 @@ def load():
     got = []
     for i in range(0, len(syms), 100):
         b = syms[i:i + 100]
-        d = yf.download(b, period="5y", interval="1d", group_by="column", auto_adjust=True,
+        d = yf.download(b, period=PERIOD, interval=TF, group_by="column", auto_adjust=True,
                         progress=False, threads=True)
         if d.empty:
             continue
         for s in b:
             try:
-                if d["Close"][s].notna().sum() < 300:
+                if d["Close"][s].notna().sum() < (300 if TF == "1d" else 200):
                     continue
             except KeyError:
                 continue
@@ -115,11 +121,11 @@ def main():
             pn = np.array(pn)
             gain, loss = pn[pn > 0].sum(), -pn[pn < 0].sum()
             ks = "none" if not k else str(k).replace(".", "d")
-            tag = f"sector_rotation__momentum__{d}__1d__atr{ks}_h{Hh}_l{L}_n{N}__v1"
+            tag = f"sector_rotation__momentum__{d}__{TF}__atr{ks}_h{Hh}_l{L}_n{N}__v1"
             res[tag] = {"pfnet": round(float(gain / loss), 3) if loss else None,
                         "win_pct": round(float((pn > 0).mean() * 100), 1), "n": int(len(pn)),
                         "avg_net_pct": round(float(pn.mean() * 100), 3),
-                        "avg_held_days": round(float(np.mean(held)), 2)}
+                        "avg_held_days": round(float(np.mean(held)) * BAR_H / 6.25, 2)}
     json.dump({"generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                "symbols": len(syms), "sectors": len(secs), "bars": T, "cost_pct": cost * 100,
                "results": res}, open(OUT, "w"), indent=0)
