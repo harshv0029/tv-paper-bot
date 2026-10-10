@@ -14699,6 +14699,11 @@ def get_real_pnl_today():
         "real_capital_day_open_inr": round(loss_check["day_open_capital_inr"], 2),
         "real_capital_available_inr": round(real_capital, 2),
         "real_capital_deployed_inr": real_capital_deployed,
+        # Kotak wins: show exactly what limits() returned and when, so a
+        # mismatch with the Kotak app is diagnosable from the field names.
+        "real_capital_fetched_at_epoch": _real_capital_cache["fetched_at"] or None,
+        "real_capital_fetch_error": _real_capital_cache["error"],
+        "real_capital_kotak_limits_raw": _real_capital_cache.get("raw"),
     }
 
 
@@ -16242,8 +16247,8 @@ def set_runtime_setting(request: Request, key: str, value: float):
 # time - hammering that on every tick risks Kotak's own 429 rate limit
 # (documented in its API) or looking like abuse on a real broker account.
 # Capital doesn't move fast enough to need fresher than this anyway.
-REAL_CAPITAL_CACHE_TTL_SECONDS = 600  # 10 min
-_real_capital_cache = {"value": None, "fetched_at": 0.0, "error": None}
+REAL_CAPITAL_CACHE_TTL_SECONDS = 60  # was 600: a 10-min-old figure showed Rs 4,403 vs Kotak's Rs 2,852.86 (2026-10-09)
+_real_capital_cache = {"value": None, "fetched_at": 0.0, "error": None, "raw": None}
 
 
 def _refresh_real_capital_cache():
@@ -16257,6 +16262,7 @@ def _refresh_real_capital_cache():
         limits = kotak_neo.limits()
         net = float(limits["Net"])
         _real_capital_cache["value"] = net
+        _real_capital_cache["raw"] = _kotak_json_safe(limits)
         _real_capital_cache["fetched_at"] = time.time()
         _real_capital_cache["error"] = None
     except Exception as e:
