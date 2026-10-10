@@ -565,9 +565,30 @@ def r_bases(o, h, l, c, v):
             "base_double_bottom_top": (dbl_l, dbl_s), "liq_sweep_20": (sw20_l, sw20_s), "liq_sweep_50": (sw50_l, sw50_s)}
 
 
+def r_fvg(o, h, l, c, v):
+    """B-06: 3-candle fair value gap, valid retest entry within 10 bars (both directions)."""
+    n = len(c)
+    lg, sh = np.zeros(n, bool), np.zeros(n, bool)
+    bull = bear = None  # (formed_at, bottom, top)
+    for t in range(3, n):
+        if l[t - 1] > h[t - 3]:
+            bull = (t - 1, h[t - 3], l[t - 1])
+        if h[t - 1] < l[t - 3]:
+            bear = (t - 1, h[t - 1], l[t - 3])
+        if bull and t - bull[0] <= 10 and t - 1 > bull[0]:
+            if l[t] <= bull[2] and c[t] > bull[1] and c[t] > o[t]:
+                lg[t] = True
+                bull = None
+        if bear and t - bear[0] <= 10 and t - 1 > bear[0]:
+            if h[t] >= bear[1] and c[t] < bear[2] and c[t] < o[t]:
+                sh[t] = True
+                bear = None
+    return {"fvg_valid_retest": (lg, sh)}
+
+
 RULE_FUNCS = (r_baseline, r_doji_family, r_hammer_family, r_engulf_harami, r_piercing_cloud, r_stars, r_three_bar, r_misc_candles,
               r_key_reversal_gaps, r_psar, r_donchian_cycle, r_ma_systems, r_bands, r_oscillators, r_fib_retrace,
-              r_breakout_pullback, r_four_pct_reversal, r_volume, r_pnf, r_bases)
+              r_breakout_pullback, r_four_pct_reversal, r_volume, r_pnf, r_bases, r_fvg)
 
 
 def all_signals(df):
