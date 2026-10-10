@@ -513,6 +513,15 @@ def simulate(sig, o, h, l, c, atr, hold, k, cost, side):
     return rets, held
 
 
+def clean_bars(df, max_move=0.35):
+    """Drop vendor glitch bars (open/close outside the bar's range, absurd ranges or >35% close-to-close
+    jumps) - a bad open print once produced +900% 'trades' and PFnet 6.2 (2026-10-10 IST)."""
+    o, h, l, c = df["Open"], df["High"], df["Low"], df["Close"]
+    ok = (o <= h * 1.001) & (o >= l * 0.999) & (c <= h * 1.001) & (c >= l * 0.999) & (l > 0) & ((h / l) < 1.6)
+    jump = (c / c.shift(1) - 1).abs() > max_move
+    return df[ok & ~jump.fillna(False)]
+
+
 def main_run():
     import yfinance as yf
     import main as app
@@ -536,7 +545,7 @@ def main_run():
         for s in batch:
             try:
                 df = d[s].dropna(subset=["Close"]) if len(batch) > 1 else d.dropna(subset=["Close"])
-                df = df[["Open", "High", "Low", "Close", "Volume"]].dropna()
+                df = clean_bars(df[["Open", "High", "Low", "Close", "Volume"]].dropna())
             except Exception:
                 continue
             if len(df) < 120:
@@ -567,7 +576,13 @@ def main_run():
         fam, _, var = rule.partition("_")
         ks = "none" if not k else str(k).replace(".", "d")
         tag = f"{rule.split('_')[0]}__{'_'.join(rule.split('_')[1:]) or 'base'}__{dname}__{TF}__atr{ks}_h{H}__v1"
-        res[tag] = {"pfnet": round(float(gain / loss), 3) if loss else None, "win_pct": round(float((r > 0).mean() * 100), 1),
+        rs = np.sort(r)
+        cut = max(1, int(len(rs) * 0.01))
+        tr = rs[:-cut]  # drop the best 1% of trades: the verdict must not hang on a few outliers
+        tl = -tr[tr < 0].sum()
+        res[tag] = {"pfnet_trim1": round(float(tr[tr > 0].sum() / tl), 3) if tl else None,
+                    "median_net_pct": round(float(np.median(r) * 100), 3),
+                    "pfnet": round(float(gain / loss), 3) if loss else None, "win_pct": round(float((r > 0).mean() * 100), 1),
                     "n": int(len(r)), "avg_net_pct": round(float(r.mean() * 100), 3), "avg_held_bars": round(float(np.mean(hd)), 2),
                     "bar_hours": {"1d": 6.25, "1h": 1.0, "15m": 0.25, "5m": 5 / 60}[TF]}
     json.dump({"results": res}, open(OUT, "w"), indent=0)

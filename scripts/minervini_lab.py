@@ -26,6 +26,13 @@ def sma(x, n):
     return pd.Series(x).rolling(n).mean().to_numpy()
 
 
+def clean_bars(df, max_move=0.35):
+    o, h, l, c = df["Open"], df["High"], df["Low"], df["Close"]
+    ok = (o <= h * 1.001) & (o >= l * 0.999) & (c <= h * 1.001) & (c >= l * 0.999) & (l > 0) & ((h / l) < 1.6)
+    jump = (c / c.shift(1) - 1).abs() > max_move
+    return df[ok & ~jump.fillna(False)]
+
+
 def collect_signals(df, app):
     out = []
     c = df["Close"].to_numpy(float)
@@ -123,7 +130,7 @@ def main_run():
         for s in batch:
             try:
                 df = d[s].dropna(subset=["Close"]) if len(batch) > 1 else d.dropna(subset=["Close"])
-                df = df[["Open", "High", "Low", "Close", "Volume"]].dropna()
+                df = clean_bars(df[["Open", "High", "Low", "Close", "Volume"]].dropna())
             except Exception:
                 continue
             if len(df) < 300:
