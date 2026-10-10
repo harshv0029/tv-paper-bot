@@ -10530,6 +10530,8 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "gap__runaway__long__1d__atr6_h20__v1": "gap__runaway__long__1d__atr6_h20__v1",
     "starc__fade__long__1d__atr6_h20__v1": "starc__fade__long__1d__atr6_h20__v1",
     "donchian__8wk_fade__long__1d__atr6_h20__v1": "donchian__8wk_fade__long__1d__atr6_h20__v1",
+    "envelope__0d05_fade_etf__long__1d__atr6_h20__v1": "envelope__0d05_fade_etf__long__1d__atr6_h20__v1",
+    "starc__fade_etf__long__1d__atr6_h20__v1": "starc__fade_etf__long__1d__atr6_h20__v1",
 }
 
 
@@ -17261,6 +17263,32 @@ def _swing_stop_below_price(stop, price):
     return stop
 
 
+SECTOR_EXPOSURE_CAP_PCT = 25.0
+
+
+def _sector_cap_blocks(conn, symbol, qty, price):
+    """Returns a reason string if adding qty*price in symbol's sector would push that sector's open real swing
+    notional above SECTOR_EXPOSURE_CAP_PCT of capital; None if fine or sector unknown. Never raises."""
+    try:
+        smap = _sector_of_symbol()
+        sec = smap.get(symbol)
+        if not sec:
+            return None
+        cap = float(get_scheduler_capital_inr() or 0) * SECTOR_EXPOSURE_CAP_PCT / 100.0
+        if cap <= 0:
+            return None
+        used = sum(float(r["qty"]) * float(r["entry_price"]) for r in
+                   conn.execute("SELECT symbol, qty, entry_price FROM real_positions_swing").fetchall()
+                   if smap.get(r["symbol"]) == sec)
+        add = float(qty) * float(price)
+        if used + add > cap:
+            return (f"sector {sec!r} would hold Rs{used + add:,.0f} > cap Rs{cap:,.0f} "
+                    f"({SECTOR_EXPOSURE_CAP_PCT:.0f}% of capital); entry skipped")
+    except Exception as e:
+        print(f"[SECTOR CAP] check failed (non-fatal, entry allowed): {e}")
+    return None
+
+
 def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, paper_stop_loss, strategy):
     """Mirrors a paper swing "gap_and_go" entry as a REAL buy, ONLY when
     every gate holds. Called from _run_swing_scan right after the paper
@@ -17303,6 +17331,14 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
             detail=f"strategy {strategy!r} does not clear the PFnet >= 1 real-money floor "
                    "(or has no validated metrics) - see strategy_registry.py",
         )
+        return
+
+    # B-131/B-132 (owner decision 2026-10-10): sector exposure cap - one sector may hold at most
+    # SECTOR_EXPOSURE_CAP_PCT of capital across open real swing positions (also the correlation guard:
+    # same-sector names move together). Blocks only; never touches an already-open position.
+    _cap_block = _sector_cap_blocks(conn, symbol, paper_qty, paper_entry_price)
+    if _cap_block:
+        _log_real_attempt(conn, symbol, "B", "skipped_sector_cap", strategy=strategy, detail=_cap_block)
         return
 
     # 2026-10-06: no new real swing entry from 15:14 IST (user allows through 15:13) - the closing auction
@@ -17443,7 +17479,9 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     # (Gap and Go has none) - this is the only resting order this engine
     # ever places. Best-effort: a failed placement is logged but does not
     # undo the real entry.
-    sl_result = kotak_real_orders.place_real_stop_loss(kotak_symbol, real_qty, round(paper_stop_loss, 2))
+    # B-312 (Kotak-first): scan-then-act - read the live order book before placing, so a reconcile-placed SL
+    # is adopted instead of duplicated (GMRAIRPORT 2026-10-08).
+    sl_result = kotak_real_orders.ensure_resting_sl(kotak_symbol, real_qty, round(paper_stop_loss, 2))
     if sl_result.get("ok"):
         conn.execute(
             "UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
@@ -18180,6 +18218,9 @@ _PATTERN_LIVE_CELLS = (
     ("gap__runaway__long__1d__atr6_h20__v1", "gap_runaway", 20, 6.0),
     ("starc__fade__long__1d__atr6_h20__v1", "starc_fade", 20, 6.0),
     ("donchian__8wk_fade__long__1d__atr6_h20__v1", "donchian_8wk_fade", 20, 6.0),
+    # ETF-universe cells (pattern_lab UNI=etf, B-318): trimmed PFnet starc 1.44 (n=300), envelope 5% fade 1.29 (n=680)
+    ("starc__fade_etf__long__1d__atr6_h20__v1", "starc_fade", 20, 6.0),
+    ("envelope__0d05_fade_etf__long__1d__atr6_h20__v1", "envelope_0d05_fade", 20, 6.0),
 )
 _PATTERN_LIVE_TAGS = {c[0]: c for c in _PATTERN_LIVE_CELLS}
 PATTERN_MAX_NEW_PER_DAY = 3
@@ -18228,15 +18269,16 @@ def _run_pattern_cell_entries(conn, dfs: dict, capital, today: str):
     for sym, df in dfs.items():
         if opened >= PATTERN_MAX_NEW_PER_DAY:
             break
-        if sym in ETF_SYMBOLS or conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
-            continue  # validated on stocks only; one swing position per symbol
+        if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
+            continue  # one swing position per symbol
+        is_etf = sym in ETF_SYMBOLS
         try:
             fresh = pattern_fresh_long_signals(df)
         except Exception as e:
             print(f"[PATTERN] signal eval failed for {sym}: {e}")
             continue
         for tag, rule, hold, k in _PATTERN_LIVE_CELLS:  # first matching cell wins (listed best-first)
-            if not fresh.get(rule):
+            if not fresh.get(rule) or ("_etf__" in tag) != is_etf:  # stock cells for stocks, ETF cells for ETFs only
                 continue
             entry_price = float(df["Close"].iloc[-1])
             atr_v = _compute_atr_value(df, 14)
