@@ -17698,7 +17698,36 @@ def _swing_position_size(conn, capital: float, risk_pct: float, entry_price: flo
     qty = risk_amount_inr / stop_dist
     if entry_price > 0:
         qty = min(qty, usable_capital_inr / entry_price)
+    if _swing_stopout_cluster(conn):
+        qty *= SWING_CLUSTER_SIZE_FACTOR  # B-259/B-252/B-253: scale down after a stop-out cluster
     return int(math.floor(qty))
+
+
+SWING_CLUSTER_SIZE_FACTOR = 0.5
+SWING_CLUSTER_LOOKBACK = 5
+SWING_CLUSTER_LOSERS = 3
+
+
+def _swing_stopout_cluster(conn) -> bool:
+    """True when >= 3 of the last 5 closed swing trades lost. Minervini lab (n=587 signals, run of 2026-10-10 IST):
+    entries taken after such a cluster returned PFnet 0.885 vs 2.409 otherwise, so size is halved (never zeroed:
+    a risk reducer, it only ever lowers exposure). Never raises."""
+    try:
+        rows = conn.execute(
+            "SELECT raw_payload FROM trades WHERE strategy = ? AND action = 'sell' ORDER BY ts DESC LIMIT ?",
+            (SWING_STRATEGY_TAG, SWING_CLUSTER_LOOKBACK)).fetchall()
+        if len(rows) < SWING_CLUSTER_LOOKBACK:
+            return False
+        losers = 0
+        for r in rows:
+            try:
+                if float(json.loads(r[0]).get("gross_pnl_native", 0) or 0) < 0:
+                    losers += 1
+            except Exception:
+                pass
+        return losers >= SWING_CLUSTER_LOSERS
+    except Exception:
+        return False
 
 
 def _run_swing_scan(conn):
