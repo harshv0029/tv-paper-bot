@@ -18255,18 +18255,34 @@ def _run_sector_rotation_entries(conn, dfs: dict, capital, today: str):
 # Entry = the SAME rule function the backtest used (scripts/pattern_lab.py) on the last completed daily bar;
 # fixed disaster stop = entry - 6 x ATR14; exit at the stop (close) or after 20 trading days. Swing real switch,
 # PFnet gate and swing SL machinery apply; no new kill switch.
-_PATTERN_LIVE_CELLS = (
+_PATTERN_LIVE_CELLS_FALLBACK = (
     # (registry tag, pattern_lab rule key ('a&b' = trigger a with filter b fired within 3 bars), hold days, ATR stop multiple)
-    # Out-of-sample re-run (500 unseen stocks, pattern_validate.py / combo_validate.py) decided the list on 2026-10-10 IST:
-    # starc_fade OOS 1.48 trimmed; weekly_reversal x donchian_2wk_fade OOS 1.99; donchian_8wk_fade OOS 1.075 (thin).
-    # gap_runaway (OOS 0.89 trimmed, = baseline) and the ETF envelope cell (stock OOS 0.97) were REMOVED.
     ("starc__fade__long__1d__atr6_h20__v1", "starc_fade", 20, 6.0),
     ("combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1", "weekly_reversal&donchian_2wk_fade", 20, 6.0),
     ("donchian__8wk_fade__long__1d__atr6_h20__v1", "donchian_8wk_fade", 20, 6.0),
-    # ETF-universe cell (pattern_lab UNI=etf, B-318): trimmed PFnet starc 1.44 (n=300); the same rule is the strongest OOS on stocks
     ("starc__fade_etf__long__1d__atr6_h20__v1", "starc_fade", 20, 6.0),
 )
+
+
+def _load_pattern_live_cells():
+    """User 2026-10-10 ("keep all the variants wired"): every viable pattern/combo variant is wired live. The list is
+    GENERATED (scripts/gen_pattern_live_cells.py -> docs/pattern_live_cells.json): long, 1d, real ATR stop, registry
+    VALIDATED/LIVE (PFnet > 1, n >= 300, combos OOS-gated), best PFnet first, so a git diff shows what goes live."""
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "pattern_live_cells.json")) as f:
+            rows = json.load(f)["cells"]
+        cells = tuple((r[0], r[1], int(r[2]), float(r[3])) for r in rows)
+        if cells:
+            return cells
+    except Exception as e:
+        print(f"[PATTERN] live cell list unreadable, using fallback: {e}")
+    return _PATTERN_LIVE_CELLS_FALLBACK
+
+
+_PATTERN_LIVE_CELLS = _load_pattern_live_cells()
 _PATTERN_LIVE_TAGS = {c[0]: c for c in _PATTERN_LIVE_CELLS}
+for _c in _PATTERN_LIVE_CELLS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_c[0], _c[0])  # PFnet gate resolves each variant to its own registry row
 PATTERN_MAX_NEW_PER_DAY = 3
 _pattern_lab_mod = None
 
@@ -18279,7 +18295,15 @@ def _pattern_lab():
         spec = importlib.util.spec_from_file_location(
             "pattern_lab_live", os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts", "pattern_lab.py"))
         mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
+        _prev_uni = os.environ.get("UNI")
+        os.environ["UNI"] = "n200"  # volume-profile rules exist only for the live universe; the backtests ran with UNI=n200
+        try:
+            spec.loader.exec_module(mod)
+        finally:
+            if _prev_uni is None:
+                os.environ.pop("UNI", None)
+            else:
+                os.environ["UNI"] = _prev_uni
         _pattern_lab_mod = mod
     return _pattern_lab_mod
 
@@ -18291,6 +18315,7 @@ def pattern_fresh_long_signals(df) -> dict:
     if len(d) < 120:
         return {}
     sigs = pl.all_signals(d)
+    sigs = {**sigs, **{k.replace("__", "_"): v for k, v in sigs.items()}}  # tags collapse '__' inside rule names
     out = {}
     for rule in {c[1] for c in _PATTERN_LIVE_CELLS}:
         if "&" in rule:  # trigger & filter-within-3-bars, exactly combo_lab's pairing
@@ -18318,17 +18343,29 @@ def _run_pattern_cell_entries(conn, dfs: dict, capital, today: str):
         _record_strategy_scan(c[0])
     risk_pct = NSE_STOCK_DEFAULT_PARAMS["risk_pct"]
     opened = 0
+    # Rank today's candidates by the quality (list position = PFnet order) of the best cell each symbol matches, so the
+    # per-day cap goes to the strongest signals, not to whichever symbols happen to be scanned first.
+    ranked = []
+    fresh_by_sym = {}
     for sym, df in dfs.items():
-        if opened >= PATTERN_MAX_NEW_PER_DAY:
-            break
         if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
             continue  # one swing position per symbol
-        is_etf = sym in ETF_SYMBOLS
         try:
-            fresh = pattern_fresh_long_signals(df)
+            fresh_by_sym[sym] = pattern_fresh_long_signals(df)
         except Exception as e:
             print(f"[PATTERN] signal eval failed for {sym}: {e}")
             continue
+        _etf_sym = sym in ETF_SYMBOLS
+        for _i, (_tag, _rule, _h, _k) in enumerate(_PATTERN_LIVE_CELLS):
+            if fresh_by_sym[sym].get(_rule) and ("_etf__" in _tag) == _etf_sym:
+                ranked.append((_i, sym))
+                break
+    for _rank, sym in sorted(ranked):
+        df = dfs[sym]
+        if opened >= PATTERN_MAX_NEW_PER_DAY:
+            break
+        is_etf = sym in ETF_SYMBOLS
+        fresh = fresh_by_sym[sym]
         for tag, rule, hold, k in _PATTERN_LIVE_CELLS:  # first matching cell wins (listed best-first)
             if not fresh.get(rule) or ("_etf__" in tag) != is_etf:  # stock cells for stocks, ETF cells for ETFs only
                 continue
