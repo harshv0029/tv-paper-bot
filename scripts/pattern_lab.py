@@ -387,9 +387,80 @@ def r_main_atomic(o, h, l, c, v, df=None):
     return out
 
 
+def r_pnf(o, h, l, c, v):
+    """Point & Figure on closes, 3-box reversal, percent boxes (B-74..B-79 basic signals):
+    buy = X column rises above the prior X column top (double-top breakout);
+    sell = O column falls below the prior O column bottom (double-bottom breakdown)."""
+    out = {}
+    n = len(c)
+    for pct, name in ((0.01, "box1pct"), (0.02, "box2pct")):
+        lg = np.zeros(n, bool)
+        sh = np.zeros(n, bool)
+        if n < 30:
+            out[f"pnf_{name}"] = (lg, sh)
+            continue
+        step = 1 + pct
+        col = 1  # 1 = X (up), -1 = O (down)
+        top = bot = c[0]
+        prev_top = prev_bot = None
+        for i in range(1, n):
+            if col == 1:
+                if c[i] >= top * step:
+                    top = c[i]
+                    if prev_top is not None and top > prev_top:
+                        lg[i] = True
+                elif c[i] <= top / step ** 3:
+                    prev_top, col, bot = top, -1, c[i]
+            else:
+                if c[i] <= bot / step:
+                    bot = c[i]
+                    if prev_bot is not None and bot < prev_bot:
+                        sh[i] = True
+                elif c[i] >= bot * step ** 3:
+                    prev_bot, col, top = bot, 1, c[i]
+        out[f"pnf_{name}"] = (lg, sh)
+    return out
+
+
+def r_lunar(o, h, l, c, v, idx=None):
+    """B-112: buy at full moon, sell (short) at new moon. Synodic month 29.530588 d from the
+    2000-01-06 new moon; signal on the first bar at/after each phase point."""
+    if idx is None:
+        return {}
+    days = (pd.DatetimeIndex(idx).tz_localize(None).normalize() - pd.Timestamp("2000-01-06")).days.to_numpy()
+    phase = (days % 29.530588) / 29.530588
+    full = (phase >= 0.5) & (np.roll(phase, 1) < 0.5)
+    new = (phase < np.roll(phase, 1))
+    full[0] = new[0] = False
+    return {"lunar_full_new": (full, new)}
+
+
+def r_weekly_reversal(o, h, l, c, v, idx=None):
+    """B-203: weekly reversal = week makes a new 2-week low and closes above prior week's close (and mirror);
+    signalled on the week's last bar. Daily data only."""
+    if idx is None or TF != "1d":
+        return {}
+    s = pd.DataFrame({"h": h, "l": l, "c": c}, index=pd.DatetimeIndex(idx).tz_localize(None))
+    wk = s.resample("W").agg({"h": "max", "l": "min", "c": "last"}).dropna()
+    up = (wk["l"] < wk["l"].shift()) & (wk["c"] > wk["c"].shift())
+    dn = (wk["h"] > wk["h"].shift()) & (wk["c"] < wk["c"].shift())
+    last_of_week = s.groupby(s.index.to_period("W")).tail(1).index
+    lg = np.zeros(len(c), bool)
+    sh = np.zeros(len(c), bool)
+    pos = {d: i for i, d in enumerate(s.index)}
+    for wend, u, d_ in zip(wk.index, up.to_numpy(), dn.to_numpy()):
+        cands = [d for d in last_of_week if d <= wend and (wend - d).days < 7]
+        if not cands:
+            continue
+        i = pos[cands[-1]]
+        lg[i] = bool(u)
+        sh[i] = bool(d_)
+    return {"weekly_reversal": (lg, sh)}
+
+
 RULE_FUNCS = (r_doji_family, r_hammer_family, r_engulf_harami, r_piercing_cloud, r_stars, r_three_bar, r_misc_candles,
               r_key_reversal_gaps, r_psar, r_donchian_cycle, r_ma_systems, r_bands, r_oscillators, r_fib_retrace,
-              r_breakout_pullback, r_four_pct_reversal, r_volume)
+              r_breakout_pullback, r_four_pct_reversal, r_volume, r_pnf)
 
 
 def all_signals(df):
@@ -402,6 +473,8 @@ def all_signals(df):
         except Exception as e:
             print("rule fail", fn.__name__, e, flush=True)
     out.update(r_calendar(o, h, l, c, v, idx=df.index))
+    out.update(r_lunar(o, h, l, c, v, idx=df.index))
+    out.update(r_weekly_reversal(o, h, l, c, v, idx=df.index))
     out.update(r_main_atomic(o, h, l, c, v, df=df))
     return out
 
