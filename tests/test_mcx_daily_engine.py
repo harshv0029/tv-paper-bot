@@ -18,8 +18,9 @@ def test_scan_counts_each_tag_and_enters_on_fresh_signal(monkeypatch):
     idx = pd.date_range("2025-01-01", periods=80, freq="D")
     df = pd.DataFrame({"Open": 1.0, "High": 1.0, "Low": 1.0, "Close": 1.0, "Volume": 1}, index=idx)
     monkeypatch.setattr(main, "fetch_ohlc", lambda *a, **k: df)
-    monkeypatch.setattr(main, "_mcx_daily_flags", lambda d, s, p: (True, True))
+    monkeypatch.setattr(main, "_mcx_daily_flags", lambda d, s, p, short=False: (True, True))
     calls = []
+    monkeypatch.setattr(main, "_mcx_inr_spot", lambda u: 100000.0)
     monkeypatch.setattr(main, "_maybe_place_real_fo_option_entry",
                         lambda conn, sym, spot, tag, right, tag_col=None: calls.append((sym, tag, right, tag_col)))
 
@@ -29,8 +30,8 @@ def test_scan_counts_each_tag_and_enters_on_fresh_signal(monkeypatch):
                 def fetchone(self_): return None
             return R()
     main._run_mcx_daily_scan(C(), force=True)
-    assert {c[1] for c in calls} == {GOLD, SILVER, "supertrend__si__long__1d__atrnone__v1"}
-    assert all(c[2] == "call" and c[3] == f"single_leg_mcx_{c[1]}" for c in calls)
+    assert {c[1] for c in calls} == {GOLD, SILVER, "supertrend__si__long__1d__atrnone__v1", "sma_crossover__ng__short__1d__atrnone__v1"}
+    assert all(c[2] == ("put" if "__short__" in c[1] else "call") and c[3] == f"single_leg_mcx_{c[1]}" for c in calls)
     assert main._strategy_scan_counts.get(GOLD) == 1 and main._strategy_scan_counts.get(SILVER) == 1
 
 
@@ -39,7 +40,7 @@ def test_exit_on_signal_drop_and_paper_exit_does_not_close_it(monkeypatch):
     monkeypatch.setattr(main, "_close_real_fo_option_leg", lambda conn, row, reason: closed.append(reason))
     monkeypatch.setattr(main, "fetch_ohlc", lambda *a, **k: pd.DataFrame(
         {"Close": [1.0] * 80}, index=pd.date_range("2025-01-01", periods=80)))
-    monkeypatch.setattr(main, "_mcx_daily_flags", lambda d, s, p: (False, False))
+    monkeypatch.setattr(main, "_mcx_daily_flags", lambda d, s, p, short=False: (False, False))
 
     class C:
         def execute(self, *a, **k):

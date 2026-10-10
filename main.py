@@ -10525,6 +10525,7 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "sma_crossover__gc__long__1d__atrnone__v1": "sma_crossover__gc__long__1d__atrnone__v1",
     "keltner_channel_breakout__si__long__1d__atrnone__v1": "keltner_channel_breakout__si__long__1d__atrnone__v1",
     "supertrend__si__long__1d__atrnone__v1": "supertrend__si__long__1d__atrnone__v1",
+    "sma_crossover__ng__short__1d__atrnone__v1": "sma_crossover__ng__short__1d__atrnone__v1",
 }
 
 
@@ -13482,7 +13483,7 @@ def _fo_chain_monitoring_snapshot(conn):
 # Real single-strike option underlyings (2026-10-08, explicit user instruction:
 # "cover ALL indices" + real money): every index with a WATCHLIST signal source.
 # FINNIFTY/MIDCPNIFTY have no WATCHLIST symbol, so no signal drives them yet.
-_REAL_OPTION_UNDERLYING = {**_INDEX_TO_FO_UNDERLYING, "^BSESN": "SENSEX"}
+_REAL_OPTION_UNDERLYING = {**_INDEX_TO_FO_UNDERLYING, "^BSESN": "SENSEX", "NG=F": "NATGASMINI"}
 # Trailing SL on the option PREMIUM (user rule 2026-10-08: single-strike options
 # ALWAYS trail). Initial stop and trail distance are both this % below the
 # running premium peak. NOT backtested (no real premium history exists); logged
@@ -13881,15 +13882,39 @@ _MCX_DAILY_CELLS = (
     ("sma_crossover__gc__long__1d__atrnone__v1", "GC=F", "sma_crossover", {"fast": 9, "slow": 21}),
     ("keltner_channel_breakout__si__long__1d__atrnone__v1", "SI=F", "keltner_channel_breakout", {}),
     ("supertrend__si__long__1d__atrnone__v1", "SI=F", "supertrend", {}),
+    # short cell: signal on the reciprocal series (as backtested), buys a PUT
+    ("sma_crossover__ng__short__1d__atrnone__v1", "NG=F", "sma_crossover", {"fast": 9, "slow": 21}),
 )
+
+
+def _mcx_inr_spot(fo_underlying):
+    """INR price of the matching MCX future from Kotak. The COMEX proxy is USD, so it
+    can never be used to pick an MCX strike. None => caller skips (fail closed)."""
+    try:
+        import nse_fo_chain, kotak_neo
+        fut, err = nse_fo_chain.select_nse_future(fo_underlying)
+        if fut is None:
+            return None
+        q = kotak_neo.quotes([{"instrument_token": fut["instrument_token"],
+                               "exchange_segment": fut["exchange_segment"]}], quote_type="ltp")
+        v = nse_fo_chain._extract_ltp(q)
+        return float(v) if v and v > 0 else None
+    except Exception as e:
+        print(f"[MCX DAILY] INR spot {fo_underlying} failed: {e}")
+        return None
 _mcx_daily_scan_day = None
 
 
-def _mcx_daily_flags(df, strategy, params):
+def _mcx_daily_flags(df, strategy, params, short=False):
     """(entry_fresh, flag_on) on the last COMPLETED daily bar."""
     t = ist_now().strftime("%Y-%m-%d")
     if len(df) and str(df.index[-1])[:10] == t:
         df = df.iloc[:-1]  # today's bar is still forming
+    if short:  # mirror = same signal on the reciprocal price series (matches mcx_strategy_sweep)
+        m = df.copy()
+        m["Open"], m["Close"] = 1 / df["Open"], 1 / df["Close"]
+        m["High"], m["Low"] = 1 / df["Low"], 1 / df["High"]
+        df = m
     flag = add_strategy_signal(df, strategy, dict(params))["long"].fillna(False).astype(bool)
     if len(flag) < 2:
         return False, False
@@ -13909,15 +13934,20 @@ def _run_mcx_daily_scan(conn, force: bool = False):
             df = fetch_ohlc(sym, "2y", "1d")
             if df is None or len(df) < 60:
                 continue
-            fresh, on = _mcx_daily_flags(df, strat, params)
-            spot = float(df["Close"].iloc[-1])
+            is_short = "__short__" in tag
+            fresh, on = _mcx_daily_flags(df, strat, params, short=is_short)
+            right = "put" if is_short else "call"
             fo_u = _REAL_OPTION_UNDERLYING.get(sym)
-            row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (f"{fo_u}:CALL",)).fetchone() if fo_u else None
+            row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (f"{fo_u}:{right.upper()}",)).fetchone() if fo_u else None
             own = f"single_leg_mcx_{tag}"  # each cell exits only the leg it opened
             if row is not None and str(row["strategy_tag"]) == own and not on:
                 _close_real_fo_option_leg(conn, row, f"{tag}: daily signal dropped, exit")
             elif fresh and row is None:
-                _maybe_place_real_fo_option_entry(conn, sym, spot, tag, "call", tag_col=own)
+                spot = _mcx_inr_spot(fo_u) if fo_u else None
+                if spot is None:
+                    _log_real_fo_attempt(conn, f"{fo_u}:{right.upper()}", "B", "skipped_no_inr_spot", detail=f"strategy_tag={tag}")
+                    continue
+                _maybe_place_real_fo_option_entry(conn, sym, spot, tag, right, tag_col=own)
         except Exception as e:
             print(f"[MCX DAILY] {tag} failed (non-fatal): {e}")
 
