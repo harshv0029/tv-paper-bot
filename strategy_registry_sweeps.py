@@ -28,6 +28,13 @@ _PATTERN_LIVE_WIRED = {
     "donchian__8wk_fade__long__1d__atr6_h20__v1",
     "starc__fade_etf__long__1d__atr6_h20__v1",
 }
+try:  # the generated list main.py trades from (scripts/gen_pattern_live_cells.py); same file, so registry and engine agree
+    import json as _json
+    import os as _os
+    with open(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "docs", "pattern_live_cells.json")) as _f:
+        _PATTERN_LIVE_WIRED |= {_r[0] for _r in _json.load(_f)["cells"]}
+except Exception:
+    pass
 
 
 def _load(name):
