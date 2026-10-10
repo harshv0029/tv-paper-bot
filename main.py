@@ -8789,6 +8789,12 @@ def _auto_signal_core(
             # entries is a separate, intentional design choice, not part of
             # this fix. Falls back to last_close, exactly as before, when
             # no live tick is available for this symbol.
+            # 2026-10-10: a live tick more than 2x/0.5x away from the last candle
+            # close is a unit/contract mismatch (SI=F: Kotak MCX tick of Rs
+            # 225,820/kg vs COMEX $61/oz booked a fake +Rs 65 crore paper
+            # win), never a real move. Fall back to the candle close.
+            if live_price is not None and last_close > 0 and not (0.5 < live_price / last_close < 2.0):
+                live_price = None
             exit_price = live_price if (live_price is not None and live_price > 0) else last_close
             peak, trail_candidate = _trailing_stop_target(
                 today_df, row["entry_price"], row["initial_stop_loss"] or row["stop_loss"],
@@ -9685,6 +9691,9 @@ def _short_signal_core(
         import kotak_live_feed
         live_tick = kotak_live_feed.get_live_ticks().get(symbol)
         live_price = live_tick.get("ltp") if live_tick else None
+        # 2026-10-10: same unit/contract-mismatch guard as the long path.
+        if live_price is not None and last_close > 0 and not (0.5 < float(live_price) / last_close < 2.0):
+            live_price = None
 
         result = {"symbol": symbol, "status": "ok", "time_local": str(now_local), "market_regime": None}
 
