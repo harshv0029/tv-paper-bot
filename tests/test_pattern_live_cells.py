@@ -16,7 +16,7 @@ def _df(n=300, seed=1):
 
 def test_fresh_signals_returns_only_wired_rules():
     out = main.pattern_fresh_long_signals(_df())
-    assert set(out) == {"gap_runaway", "starc_fade", "donchian_8wk_fade", "envelope_0d05_fade"}
+    assert set(out) == {"starc_fade", "weekly_reversal&donchian_2wk_fade", "donchian_8wk_fade"}
     assert all(isinstance(v, bool) for v in out.values())
 
 

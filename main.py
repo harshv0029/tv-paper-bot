@@ -10527,10 +10527,9 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "supertrend__si__long__1d__atrnone__v1": "supertrend__si__long__1d__atrnone__v1",
     "sma_crossover__ng__short__1d__atrnone__v1": "sma_crossover__ng__short__1d__atrnone__v1",
     "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
-    "gap__runaway__long__1d__atr6_h20__v1": "gap__runaway__long__1d__atr6_h20__v1",
     "starc__fade__long__1d__atr6_h20__v1": "starc__fade__long__1d__atr6_h20__v1",
+    "combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1": "combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1",
     "donchian__8wk_fade__long__1d__atr6_h20__v1": "donchian__8wk_fade__long__1d__atr6_h20__v1",
-    "envelope__0d05_fade_etf__long__1d__atr6_h20__v1": "envelope__0d05_fade_etf__long__1d__atr6_h20__v1",
     "starc__fade_etf__long__1d__atr6_h20__v1": "starc__fade_etf__long__1d__atr6_h20__v1",
 }
 
@@ -18214,13 +18213,15 @@ def _run_sector_rotation_entries(conn, dfs: dict, capital, today: str):
 # fixed disaster stop = entry - 6 x ATR14; exit at the stop (close) or after 20 trading days. Swing real switch,
 # PFnet gate and swing SL machinery apply; no new kill switch.
 _PATTERN_LIVE_CELLS = (
-    # (registry tag, pattern_lab rule key, hold days, ATR stop multiple)
-    ("gap__runaway__long__1d__atr6_h20__v1", "gap_runaway", 20, 6.0),
+    # (registry tag, pattern_lab rule key ('a&b' = trigger a with filter b fired within 3 bars), hold days, ATR stop multiple)
+    # Out-of-sample re-run (500 unseen stocks, pattern_validate.py / combo_validate.py) decided the list on 2026-10-10 IST:
+    # starc_fade OOS 1.48 trimmed; weekly_reversal x donchian_2wk_fade OOS 1.99; donchian_8wk_fade OOS 1.075 (thin).
+    # gap_runaway (OOS 0.89 trimmed, = baseline) and the ETF envelope cell (stock OOS 0.97) were REMOVED.
     ("starc__fade__long__1d__atr6_h20__v1", "starc_fade", 20, 6.0),
+    ("combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1", "weekly_reversal&donchian_2wk_fade", 20, 6.0),
     ("donchian__8wk_fade__long__1d__atr6_h20__v1", "donchian_8wk_fade", 20, 6.0),
-    # ETF-universe cells (pattern_lab UNI=etf, B-318): trimmed PFnet starc 1.44 (n=300), envelope 5% fade 1.29 (n=680)
+    # ETF-universe cell (pattern_lab UNI=etf, B-318): trimmed PFnet starc 1.44 (n=300); the same rule is the strongest OOS on stocks
     ("starc__fade_etf__long__1d__atr6_h20__v1", "starc_fade", 20, 6.0),
-    ("envelope__0d05_fade_etf__long__1d__atr6_h20__v1", "envelope_0d05_fade", 20, 6.0),
 )
 _PATTERN_LIVE_TAGS = {c[0]: c for c in _PATTERN_LIVE_CELLS}
 PATTERN_MAX_NEW_PER_DAY = 3
@@ -18247,8 +18248,16 @@ def pattern_fresh_long_signals(df) -> dict:
     if len(d) < 120:
         return {}
     sigs = pl.all_signals(d)
-    wanted = {c[1] for c in _PATTERN_LIVE_CELLS}
-    return {k: bool(np.asarray(v[0], bool)[-1]) for k, v in sigs.items() if k in wanted}
+    out = {}
+    for rule in {c[1] for c in _PATTERN_LIVE_CELLS}:
+        if "&" in rule:  # trigger & filter-within-3-bars, exactly combo_lab's pairing
+            a, b = rule.split("&")
+            if a in sigs and b in sigs:
+                out[rule] = bool((np.asarray(sigs[a][0], bool) & pl.near_helper(np.asarray(sigs[b][0], bool)))[-1]) if hasattr(pl, "near_helper") else bool(
+                    np.asarray(sigs[a][0], bool)[-1] and np.asarray(sigs[b][0], bool)[-3:].any())
+        elif rule in sigs:
+            out[rule] = bool(np.asarray(sigs[rule][0], bool)[-1])
+    return out
 
 
 def pattern_cell_exit_reason(df, entry_day: str, initial_stop: float, hold_days: int):
