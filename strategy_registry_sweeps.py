@@ -24,6 +24,8 @@ def build():
     sector = dict(_load("sector_rotation_results.json").get("results", {}))
     for _tf in ("1h", "4h", "15m", "5m"):  # B-341 intraday runs, present once their workflow has committed
         sector.update(_load(f"sector_rotation_results_{_tf}.json").get("results", {}))
+    for _tf in ("1d", "1h", "4h", "15m", "5m"):  # B-341 fade variant files
+        sector.update(_load(f"sector_rotation_fade_results{'' if _tf == '1d' else '_' + _tf}.json").get("results", {}))
     for tag, m in sector.items():
         short = "__short__" in tag
         out.append(sr.StrategyDef(
