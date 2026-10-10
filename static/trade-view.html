@@ -358,6 +358,7 @@
   <div class="counts-scroll">
     <table class="counts">
       <thead><tr>
+        <th class="num">#</th>
         <th>Category</th>
         <th>Strategy</th>
         <th class="num">PFnet</th>
@@ -367,7 +368,7 @@
         <th class="num">Successful entries today</th>
         <th class="num">Win % today</th>
       </tr></thead>
-      <tbody id="strategy-scan-body"><tr><td colspan="7" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="strategy-scan-body"><tr><td colspan="9" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -920,10 +921,11 @@ function renderStrategyScanActivity(data) {
   if (!body) return;
   const rows = data?.strategies || [];
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="8" class="scan-idle">No viable strategies right now</td></tr>`;
+    body.innerHTML = `<tr><td colspan="9" class="scan-idle">No viable strategies right now</td></tr>`;
     return;
   }
-  body.innerHTML = rows.map(r => `<tr>
+  body.innerHTML = rows.map((r, i) => `<tr>
+    <td class="num">${i + 1}</td>
     <td>${(r.categories || []).map(c => String(c).replace("_", " ")).join(", ") || "—"}</td>
     <td class="sym">${r.strategy_tag}</td>
     <td class="num">${r.pfnet !== null && r.pfnet !== undefined ? fmt(r.pfnet, 3) : "—"}</td>
