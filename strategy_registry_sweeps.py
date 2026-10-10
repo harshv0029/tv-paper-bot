@@ -76,7 +76,7 @@ def build():
                      ("1h", "pattern_lab_results_1h_n200.json"), ("15m", "pattern_lab_results_15m_n200.json"),
                      ("1d", "minervini_lab_results.json"), ("1d", "minervini_lab_results_full.json"),
                      ("1d", "breadth_lab_results.json"), ("1d", "combo_lab_results.json"),
-                     ("1d", "intermarket_lab_results.json"), ("15m", "pattern_lab_results_15m_n200.json")):
+                     ("1d", "intermarket_lab_results.json")):
         for tag, m in _load(_fn).get("results", {}).items():
             # the n200 (live swing universe) file owns the plain tag; other universes get a variant suffix so no
             # two universes ever share a name (immutability / never pool)
