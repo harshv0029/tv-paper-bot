@@ -1,0 +1,47 @@
+name: MCX underlyings probe (B-344)
+# READ-ONLY. Queries Kotak's scrip master via the live app for each candidate
+# MCX option underlying; commits names/lot sizes/expiry only (no account data).
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/confident-fermi-mlqbka
+      - env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request
+          tok = os.environ["KOTAK_NEO_API_TOKEN"]
+          cands = ["GOLD","GOLDM","GOLDPETAL","GOLDGUINEA","SILVER","SILVERM","SILVERMIC","CRUDEOIL","CRUDEOILM",
+                   "NATURALGAS","NATGASMINI","COPPER","ZINC","ZINCMINI","LEAD","LEADMINI","ALUMINIUM","ALUMINI","NICKEL","COTTON","MENTHAOIL","CPO"]
+          out = {}
+          for c in cands:
+              url = f"https://tv-paper-bot-gdan.onrender.com/kotak-neo/search-scrip?token={tok}&exchange_segment=mcx_fo&symbol={c.lower()}&option_type=CE&limit=500"
+              d = None
+              for _ in range(3):
+                  try:
+                      d = json.load(urllib.request.urlopen(url, timeout=90)); break
+                  except Exception as e:
+                      time.sleep(10)
+              rows = (d or {}).get("showing") or []
+              names = {}
+              for r in rows:
+                  n = str(r.get("pSymbolName") or r.get("pTrdSymbol") or "")
+                  if n != c:  # exact underlying only
+                      continue
+                  names.setdefault(n, {"lot": r.get("lLotSize"), "expiries": set()})["expiries"].add(str(r.get("pExpiryDate") or r.get("lExpiryDate")))
+              out[c] = {"matched": (d or {}).get("total_matched"),
+                        "exact": {k: {"lot": v["lot"], "expiries": sorted(v["expiries"])[:3]} for k, v in names.items()},
+                        "error": (d or {}).get("error")}
+              print(c, out[c]["matched"], bool(out[c]["exact"]), out[c]["error"])
+          json.dump(out, open("docs/mcx_underlyings.json", "w"), indent=1)
+          PY
+          git config user.name github-actions; git config user.email actions@users.noreply.github.com
+          git add docs/mcx_underlyings.json; git commit -m "MCX underlyings probe result (B-344)" || exit 0
+          git pull --rebase origin claude/confident-fermi-mlqbka && git push origin HEAD:claude/confident-fermi-mlqbka
