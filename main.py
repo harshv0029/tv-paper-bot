@@ -19483,6 +19483,30 @@ def strategy_scan_activity():
                 if tag in closed_today and closed_today[tag][1] else None
             ),
         })
+    # B-335 (user: "I can see the list in table is stale... keep update this
+    # after every research"): every registry strategy clearing the PFnet floor
+    # is listed, also ones with no live scan tag yet (research results), so a
+    # newly registered viable result shows up with no extra code step. Those
+    # rows carry scan_wired=False and null scan/entry counters - honest "not
+    # scanned live", never a fake 0.
+    covered = {r["registry_name"] for r in rows}
+    seen = set(covered)
+    for cat in sr.TradeCategory:
+        for e in sr.viable_leaderboard(cat):
+            if e["name"] in seen:
+                continue
+            seen.add(e["name"])
+            strat = next((x for x in sr.REGISTRY if x.name == e["name"]), None)
+            m = strat.metrics if strat else None
+            rows.append({
+                "strategy_tag": e["name"], "registry_name": e["name"],
+                "categories": [c.value for c in strat.categories] if strat else [cat.value],
+                "pfnet": m.pfnet if m else None,
+                "avg_held_hrs": round(m.avg_held_hrs, 1) if m and m.avg_held_hrs is not None else None,
+                "scans_today": None, "scans_last_30s": None,
+                "successful_entries_today": None, "closed_today": 0,
+                "win_rate_today_pct": None, "scan_wired": False,
+            })
     rows.sort(key=lambda r: (r["pfnet"] is None, -(r["pfnet"] or 0)))
     return {"strategies": rows, "as_of_epoch": time.time()}
 
