@@ -10521,6 +10521,9 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # not yet re-validated (backlog B-30), disclosed at their definitions.
     "order_block_delta": "order_block_delta__retest__long__1d__trail6d0__v1",
     "volume_profile_poc": "volume_profile_poc__bounce__long__1d__trail6d0__v1",
+    # 2026-10-10 B-345 MCX daily engine: the tag IS the registry name.
+    "sma_crossover__gc__long__1d__atrnone__v1": "sma_crossover__gc__long__1d__atrnone__v1",
+    "keltner_channel_breakout__si__long__1d__atrnone__v1": "keltner_channel_breakout__si__long__1d__atrnone__v1",
 }
 
 
@@ -13497,7 +13500,8 @@ def _maybe_place_real_fo_put_entry(conn, symbol: str, spot: float, strategy_tag:
     return _maybe_place_real_fo_option_entry(conn, symbol, spot, strategy_tag, "put")
 
 
-def _maybe_place_real_fo_option_entry(conn, symbol: str, spot: float, strategy_tag: str | None, right: str = "call"):
+def _maybe_place_real_fo_option_entry(conn, symbol: str, spot: float, strategy_tag: str | None, right: str = "call",
+                                      tag_col: str | None = None):
     """Mirrors a paper long (index OR MCX commodity, entered_long) as a
     REAL long call on the matching F&O underlying, sized at exactly 1 lot
     (smallest tradeable unit - same "qty=1" first-version precedent
@@ -13537,7 +13541,7 @@ def _maybe_place_real_fo_option_entry(conn, symbol: str, spot: float, strategy_t
         return
 
     return _real_fo_buy_contract(
-        conn, leg_key, fo_underlying, contract, strategy_tag, f"single_leg_{right}",
+        conn, leg_key, fo_underlying, contract, strategy_tag, tag_col or f"single_leg_{right}",
         f"{right} bought on viable setup strategy_tag={strategy_tag} index signal on {symbol}, spot {spot}",
     )
 
@@ -13669,6 +13673,8 @@ def _maybe_place_real_fo_option_exit(conn, symbol: str, right: str, reason: str 
     row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone()
     if not row:
         return
+    if str(row["strategy_tag"]).startswith("single_leg_mcx_"):
+        return  # engine ownership: MCX daily engine exits only its own legs
     return _close_real_fo_option_leg(conn, row, reason)
 
 
@@ -13862,6 +13868,55 @@ def _run_index_swing_option_scan(conn):
                 _maybe_place_real_fo_put_entry(conn, sym, spot, "gap_and_go_short")
         except Exception as e:
             print(f"[INDEX SWING OPT] {sym} failed (non-fatal): {e}")
+
+
+# B-345 (user 2026-10-10: "build the MCX daily engine for the best cells"): daily
+# candle scan on COMEX proxies; a fresh signal buys the matching MCX option (call
+# for long cells), exit when the signal drops. Uses the existing F&O switch, PFnet
+# gate, margin check (rejections are fine), trailing SL and reasoned order log.
+# Cells are the exact-rule variants (no ATR stop; the option trailing SL protects).
+_MCX_DAILY_CELLS = (
+    # (registry tag, proxy symbol, add_strategy_signal name, params)
+    ("sma_crossover__gc__long__1d__atrnone__v1", "GC=F", "sma_crossover", {"fast": 9, "slow": 21}),
+    ("keltner_channel_breakout__si__long__1d__atrnone__v1", "SI=F", "keltner_channel_breakout", {}),
+)
+_mcx_daily_scan_day = None
+
+
+def _mcx_daily_flags(df, strategy, params):
+    """(entry_fresh, flag_on) on the last COMPLETED daily bar."""
+    t = ist_now().strftime("%Y-%m-%d")
+    if len(df) and str(df.index[-1])[:10] == t:
+        df = df.iloc[:-1]  # today's bar is still forming
+    flag = add_strategy_signal(df, strategy, dict(params))["long"].fillna(False).astype(bool)
+    if len(flag) < 2:
+        return False, False
+    return bool(flag.iloc[-1] and not flag.iloc[-2]), bool(flag.iloc[-1])
+
+
+def _run_mcx_daily_scan(conn, force: bool = False):
+    global _mcx_daily_scan_day
+    t = ist_now()
+    today = t.strftime("%Y-%m-%d")
+    if not force and (t.weekday() >= 5 or _mcx_daily_scan_day == today or not ((9, 20) <= (t.hour, t.minute) < (23, 0))):
+        return
+    _mcx_daily_scan_day = today
+    for tag, sym, strat, params in _MCX_DAILY_CELLS:
+        try:
+            _record_strategy_scan(tag)
+            df = fetch_ohlc(sym, "2y", "1d")
+            if df is None or len(df) < 60:
+                continue
+            fresh, on = _mcx_daily_flags(df, strat, params)
+            spot = float(df["Close"].iloc[-1])
+            fo_u = _REAL_OPTION_UNDERLYING.get(sym)
+            row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (f"{fo_u}:CALL",)).fetchone() if fo_u else None
+            if row is not None and str(row["strategy_tag"]) == "single_leg_mcx_call" and not on:
+                _close_real_fo_option_leg(conn, row, f"{tag}: daily signal dropped, exit")
+            elif fresh and row is None:
+                _maybe_place_real_fo_option_entry(conn, sym, spot, tag, "call", tag_col="single_leg_mcx_call")
+        except Exception as e:
+            print(f"[MCX DAILY] {tag} failed (non-fatal): {e}")
 
 
 def _run_fo_strike_setup_scan(conn):
@@ -18859,6 +18914,7 @@ async def _scheduler_tick():
                 _maybe_sync_real_fo_option_stop_losses(_fo_sl_conn)
                 _run_fo_strike_setup_scan(_fo_sl_conn)
                 _run_index_swing_option_scan(_fo_sl_conn)
+                _run_mcx_daily_scan(_fo_sl_conn)
         else:
             # monitoring only (no orders): the per-strike view stays live
             with closing(get_db()) as _fo_sl_conn:
