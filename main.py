@@ -10527,6 +10527,9 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "supertrend__si__long__1d__atrnone__v1": "supertrend__si__long__1d__atrnone__v1",
     "sma_crossover__ng__short__1d__atrnone__v1": "sma_crossover__ng__short__1d__atrnone__v1",
     "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l5_n1__v1",
+    "gap__runaway__long__1d__atr6_h20__v1": "gap__runaway__long__1d__atr6_h20__v1",
+    "starc__fade__long__1d__atr6_h20__v1": "starc__fade__long__1d__atr6_h20__v1",
+    "donchian__8wk_fade__long__1d__atr6_h20__v1": "donchian__8wk_fade__long__1d__atr6_h20__v1",
 }
 
 
@@ -11358,6 +11361,17 @@ def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
     _why_log = functools.partial(_log_real_order_event, reason=reason or _REASON_UNSTATED)
     real_row = conn.execute("SELECT * FROM real_positions_short WHERE symbol = ?", (symbol,)).fetchone()
     if not real_row:
+        return
+
+    # B-313 (Kotak-first): never send a buy-to-cover for a position Kotak does not show as short
+    # (a stale row outlived NYKAA/DRREDDY longs and fired ~20 overnight cover attempts). A confirmed
+    # "not short" clears the stale row; an unreadable fetch (None) falls through as before.
+    if _kotak_symbol_still_open_short(real_row["kotak_trading_symbol"]) is False:
+        conn.execute("DELETE FROM real_positions_short WHERE symbol = ?", (symbol,))
+        conn.commit()
+        _sync_real_positions_short_external(conn)
+        _why_log(conn, symbol, "short_cover", "stale_row_cleared", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+                 prev_state=f"short {real_row['qty']} (app row)", new_state="no short at Kotak; row removed, no order sent")
         return
 
     import kotak_real_orders
@@ -17782,6 +17796,8 @@ def _run_swing_scan(conn):
                         (new_running_max, symbol),
                     )
                     conn.commit()
+            elif pos["strategy"] in _PATTERN_LIVE_TAGS:
+                reason = pattern_cell_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"], _PATTERN_LIVE_TAGS[pos["strategy"]][2])
             elif pos["strategy"] == SECTOR_ROT_TAG:
                 reason = sector_rotation_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"])
             elif pos["strategy"] == ORPHAN_SWING_STRATEGY_TAG:
@@ -18046,6 +18062,10 @@ def _run_swing_scan(conn):
         _run_sector_rotation_entries(conn, dfs, capital, today)
     except Exception as e:
         print(f"[SECTOR ROT] entry pass failed (non-fatal): {e}")
+    try:
+        _run_pattern_cell_entries(conn, dfs, capital, today)
+    except Exception as e:
+        print(f"[PATTERN] entry pass failed (non-fatal): {e}")
 
 
 # ---- Sector rotation momentum long (B-336/B-348; user 2026-10-10: PFnet>1 cells are wired live) ----
@@ -18147,6 +18167,106 @@ def _run_sector_rotation_entries(conn, dfs: dict, capital, today: str):
             _maybe_place_real_swing_entry(conn, sym, qty, entry_price, stop_loss, SECTOR_ROT_TAG)
         except Exception as e:
             print(f"[REAL SWING] entry mirror failed for {sym} (non-fatal, paper entry already recorded): {e}")
+
+
+# ---- Pattern-lab swing cells (user 2026-10-10: PFnet>1 cells are wired live) ----
+# Validated on the live swing universe (stocks of SWING_WATCHLIST, cleaned bars) by scripts/pattern_lab.py,
+# trimmed PFnet vs the every-bar baseline (1.16 at 20 bars): gap_runaway 1.72, starc_fade 1.37, donchian_8wk_fade 1.34.
+# Entry = the SAME rule function the backtest used (scripts/pattern_lab.py) on the last completed daily bar;
+# fixed disaster stop = entry - 6 x ATR14; exit at the stop (close) or after 20 trading days. Swing real switch,
+# PFnet gate and swing SL machinery apply; no new kill switch.
+_PATTERN_LIVE_CELLS = (
+    # (registry tag, pattern_lab rule key, hold days, ATR stop multiple)
+    ("gap__runaway__long__1d__atr6_h20__v1", "gap_runaway", 20, 6.0),
+    ("starc__fade__long__1d__atr6_h20__v1", "starc_fade", 20, 6.0),
+    ("donchian__8wk_fade__long__1d__atr6_h20__v1", "donchian_8wk_fade", 20, 6.0),
+)
+_PATTERN_LIVE_TAGS = {c[0]: c for c in _PATTERN_LIVE_CELLS}
+PATTERN_MAX_NEW_PER_DAY = 3
+_pattern_lab_mod = None
+
+
+def _pattern_lab():
+    """Loads scripts/pattern_lab.py (the backtest's own rule code) once, with its default 1d env."""
+    global _pattern_lab_mod
+    if _pattern_lab_mod is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "pattern_lab_live", os.path.join(os.path.dirname(os.path.abspath(__file__)), "scripts", "pattern_lab.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _pattern_lab_mod = mod
+    return _pattern_lab_mod
+
+
+def pattern_fresh_long_signals(df) -> dict:
+    """{rule_key: bool} - is the LONG signal true on the last bar of df (cleaned like the backtest)."""
+    pl = _pattern_lab()
+    d = pl.clean_bars(df[["Open", "High", "Low", "Close", "Volume"]].dropna())
+    if len(d) < 120:
+        return {}
+    sigs = pl.all_signals(d)
+    wanted = {c[1] for c in _PATTERN_LIVE_CELLS}
+    return {k: bool(np.asarray(v[0], bool)[-1]) for k, v in sigs.items() if k in wanted}
+
+
+def pattern_cell_exit_reason(df, entry_day: str, initial_stop: float, hold_days: int):
+    if len(df) == 0:
+        return None
+    if float(df["Close"].iloc[-1]) <= float(initial_stop):
+        return "stop_hit"
+    if int(np.sum(df["Date"].astype(str).to_numpy() > entry_day)) >= hold_days:
+        return "max_hold_timeout"
+    return None
+
+
+def _run_pattern_cell_entries(conn, dfs: dict, capital, today: str):
+    for c in _PATTERN_LIVE_CELLS:
+        _record_strategy_scan(c[0])
+    risk_pct = NSE_STOCK_DEFAULT_PARAMS["risk_pct"]
+    opened = 0
+    for sym, df in dfs.items():
+        if opened >= PATTERN_MAX_NEW_PER_DAY:
+            break
+        if sym in ETF_SYMBOLS or conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
+            continue  # validated on stocks only; one swing position per symbol
+        try:
+            fresh = pattern_fresh_long_signals(df)
+        except Exception as e:
+            print(f"[PATTERN] signal eval failed for {sym}: {e}")
+            continue
+        for tag, rule, hold, k in _PATTERN_LIVE_CELLS:  # first matching cell wins (listed best-first)
+            if not fresh.get(rule):
+                continue
+            entry_price = float(df["Close"].iloc[-1])
+            atr_v = _compute_atr_value(df, 14)
+            if not atr_v or atr_v <= 0:
+                break
+            stop_loss = entry_price - k * atr_v
+            qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+            if qty <= 0:
+                break
+            conn.execute(
+                "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+                "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (sym, tag, today, entry_price, stop_loss, None, qty, time.time(), 1.0, float(atr_v), entry_price),
+            )
+            apply_paper_trade(conn, sym, "buy", qty, entry_price)
+            conn.execute(
+                "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+                (time.time(), sym, qty, entry_price, 1.0, SWING_STRATEGY_TAG,
+                 json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": float(atr_v)})),
+            )
+            conn.commit()
+            opened += 1
+            print(f"[SWING] entry {sym} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+            try:
+                _maybe_place_real_swing_entry(conn, sym, qty, entry_price, stop_loss, tag)
+            except Exception as e:
+                print(f"[REAL SWING] entry mirror failed for {sym} (non-fatal, paper entry already recorded): {e}")
+            break
 
 
 _swing_sl_trail_last_day = None
