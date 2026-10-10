@@ -1,0 +1,35 @@
+name: Kotak Limits Probe
+# READ-ONLY (B-334). Repo is public so logs are public: balances are NEVER
+# printed. Prints only the field names of Kotak limits() and which fields
+# equal the target figure (input), so we learn which field the app shows.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Cash figure shown in the Kotak app (e.g. 2852.86)"
+        required: true
+        default: "2852.86"
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          curl -sS --retry 3 --retry-delay 10 --retry-connrefused -m 60 \
+            "https://tv-paper-bot-gdan.onrender.com/kotak-neo/limits?token=${KOTAK_NEO_API_TOKEN}" -o /tmp/l.json
+          python3 - <<'PY'
+          import json, os
+          d = json.load(open("/tmp/l.json"))
+          if d.get("error"): print("ERROR:", d["error"]); raise SystemExit(1)
+          t = float(os.environ["TARGET"])
+          print("fields:", sorted(d.keys()))
+          for k, v in d.items():
+              try:
+                  if abs(float(str(v).replace(",", "")) - t) < 0.01: print("MATCH:", k)
+              except ValueError: pass
+          print("Net field present:", "Net" in d)
+          PY
