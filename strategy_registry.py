@@ -2629,3 +2629,14 @@ def scan_universe(symbols, as_of_data_fn, statuses=None):
             if result:
                 signals.append({"symbol": symbol, "strategy": strat.name, "signal": result})
     return signals
+
+
+def _extend_with_sweeps():
+    try:
+        import strategy_registry_sweeps as _sw
+        REGISTRY.extend(_sw.build())
+    except Exception:
+        pass
+
+
+_extend_with_sweeps()
