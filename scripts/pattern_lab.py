@@ -26,7 +26,7 @@ PERIOD = {"1d": "5y", "1h": "730d", "15m": "60d", "5m": "60d"}[TF]
 PER_DAY = {"1d": 1, "1h": 6, "15m": 25, "5m": 75}[TF]
 HOLDS = (3, 5, 10, 20) if TF == "1d" else (PER_DAY, 3 * PER_DAY, 5 * PER_DAY)
 KS = (0, 2.5, 4, 6)
-OUT = os.path.join(ROOT, "docs", "pattern_lab_results" + ("" if TF == "1d" else f"_{TF}") + ("_n200" if UNI == "n200" else "") + ".json")
+OUT = os.path.join(ROOT, "docs", "pattern_lab_results" + ("" if TF == "1d" else f"_{TF}") + (f"_{UNI}" if UNI in ("n200", "etf") else "") + ".json")
 
 
 # ---------- helpers ----------
@@ -534,7 +534,7 @@ def all_signals(df):
             out.update(fn(o, h, l, c, v))
         except Exception as e:
             print("rule fail", fn.__name__, e, flush=True)
-    if UNI == "n200":  # volume-profile rules are O(n*60); live-universe only
+    if UNI in ("n200", "etf"):  # volume-profile rules are O(n*60); live-universe only
         out.update(r_volume_profile(o, h, l, c, v))
     out.update(r_calendar(o, h, l, c, v, idx=df.index))
     out.update(r_lunar(o, h, l, c, v, idx=df.index))
@@ -591,9 +591,11 @@ def main_run():
     import main as app
     cost = app.ROUND_TRIP_COST_PCT / 100.0
     syms = list(app._load_nse_universe_from_file())
-    if UNI == "n200":
-        w = set(app.SWING_WATCHLIST)
-        syms = [s for s in syms if s in w] or list(w)
+    if UNI == "n200":  # live swing watchlist, stocks only (ETFs are their own cut: UNI=etf)
+        w = set(app.SWING_WATCHLIST) - set(app.ETF_SYMBOLS)
+        syms = sorted(w)
+    elif UNI == "etf":
+        syms = sorted(app.ETF_SYMBOLS)
     cap = int(os.environ.get("MAXSYM", "0") or 0)
     if cap:
         syms = syms[:cap]
