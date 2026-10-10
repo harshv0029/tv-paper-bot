@@ -928,9 +928,9 @@ function renderStrategyScanActivity(data) {
     <td class="sym">${r.strategy_tag}</td>
     <td class="num">${r.pfnet !== null && r.pfnet !== undefined ? fmt(r.pfnet, 3) : "—"}</td>
     ${avgHrsHeldCell(r.avg_held_hrs)}
-    <td class="num">${r.scans_today}</td>
-    <td class="num"${r.scans_last_30s === 0 ? ' title="Swing strategies scan once/day - 0 here is normal between scans, not a stall."' : ""}>${r.scans_last_30s}</td>
-    <td class="num">${r.successful_entries_today}</td>
+    <td class="num">${r.scans_today ?? "—"}</td>
+    <td class="num"${r.scans_last_30s === 0 ? ' title="Swing strategies scan once/day - 0 here is normal between scans, not a stall."' : ""}>${r.scans_last_30s ?? "—"}</td>
+    <td class="num"${r.scan_wired === false ? ' title="Viable in research; no live scan wired yet"' : ""}>${r.successful_entries_today ?? "—"}</td>
     <td class="num"${r.closed_today ? ` title="${r.closed_today} closed today"` : ""}>${r.win_rate_today_pct !== null && r.win_rate_today_pct !== undefined ? fmt(r.win_rate_today_pct, 1) + "%" : "—"}</td>
   </tr>`).join("");
 }
