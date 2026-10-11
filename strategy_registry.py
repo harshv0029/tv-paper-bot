@@ -2783,6 +2783,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_oc.build())
         import strategy_registry_elderpat_minsweep as _em
         REGISTRY.extend(_em.build())
+        import strategy_registry_classa as _ca
+        REGISTRY.extend(_ca.build())
         REGISTRY.extend(_ef.build())
     except Exception:
         pass
