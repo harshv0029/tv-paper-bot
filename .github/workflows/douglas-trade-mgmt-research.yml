@@ -1,0 +1,73 @@
+name: Douglas / Elder trade-management research (B-501 B-531 to B-535 B-537 B-545 B-546 B-551 to B-554 B-561 B-572 B-574 B-605)
+
+# R-aware trade-management overlays on two identical base entry sets (EMA13 dip, 20-bar breakout):
+# breakeven ratchet, scale-out thirds, structure-trail buffer, min reward:risk, time stop, pyramid
+# add, MFE/MAE of losers (exits family); chase cap, cooldown, limit-entry fill model, weekly /
+# momentum / bar-pressure / ADX gates (entry family). 2 families x 4 shards = 8 jobs; dispatch only
+# when no Deploy Gate / safety run is queued. FULL universe via main._load_nse_universe_from_file(),
+# BOTH directions, ATR 1.5/2/3, stop on every trade, 0.8% round trip, daily bars by default.
+# B-529 / B-538 are covered by exit-family-research.yml and are not repeated. The merge prints
+# PFnet net and gross, win %, n, avg hold, MFE of losers, exit breakdown and universe size per tag.
+# Candle-size sweep: re-dispatch with interval=1h / 15m / 5m (4h owed). Research only.
+on:
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: "Candle size (1d, 1h, 15m, 5m)"
+        required: false
+        default: "1d"
+      period:
+        description: "yfinance period (1d: 5y; 1h: 730d; 15m/5m: 60d)"
+        required: false
+        default: "5y"
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [exits, entry]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run family shard
+        run: |
+          set -o pipefail
+          python3 scripts/douglas_trade_mgmt_research.py \
+            --family "${{ matrix.family }}" --shard ${{ matrix.shard }} --nshards 4 \
+            --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" --out out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dglas-${{ matrix.family }}-${{ matrix.shard }}
+          path: out/
+
+  merge:
+    needs: research
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: dglas-*
+          merge-multiple: true
+      - name: Merge shards and print per-tag table
+        run: |
+          set -o pipefail
+          python3 scripts/douglas_trade_mgmt_research.py --merge shards --json dglas_results.json | tee dglas_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: douglas-trade-mgmt-results
+          path: |
+            dglas_results.json
+            dglas_table.txt

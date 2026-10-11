@@ -1,0 +1,72 @@
+name: Elder patterns, bars and trendlines research (B-600 B-601 B-602 B-603 B-571 B-608 to B-622 B-624)
+
+# Elder, "Trading for a Living": chart-pattern, bar and trendline detectors. 4 families x 4 shards
+# (16 jobs; dispatch only when no Deploy Gate / safety run is queued). FULL universe via
+# main._load_nse_universe_from_file(), daily bars by default, BOTH directions (reciprocal-price
+# mirror), ATR stop sweep 1.5/2/3 with a stop on every trade, 0.8% round-trip cost. Every
+# (variant, direction, ATR) cell is its own tag per the naming grammar. The merge prints PFnet net
+# and gross, win %, n, avg hold, exit breakdown and the universe size for EVERY tag.
+# Candle-size sweep: re-dispatch with interval=1h (730d) / 15m / 5m (60d); bar-count constants change
+# meaning with the interval, 4h needs a 1h resample (owed, not skipped). Research only.
+on:
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: "Candle size (1d, 1h, 15m, 5m)"
+        required: false
+        default: "1d"
+      period:
+        description: "yfinance period (1d: 5y; 1h: 730d; 15m/5m: 60d)"
+        required: false
+        default: "5y"
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [reversal, consol, bars, trendline]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run family shard
+        run: |
+          set -o pipefail
+          python3 scripts/elder_patterns_research.py \
+            --family "${{ matrix.family }}" --shard ${{ matrix.shard }} --nshards 4 \
+            --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" --out out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elderpat-${{ matrix.family }}-${{ matrix.shard }}
+          path: out/
+
+  merge:
+    needs: research
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: elderpat-*
+          merge-multiple: true
+      - name: Merge shards and print per-tag table
+        run: |
+          set -o pipefail
+          python3 scripts/elder_patterns_research.py --merge shards --json elderpat_results.json | tee elderpat_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elder-patterns-results
+          path: |
+            elderpat_results.json
+            elderpat_table.txt

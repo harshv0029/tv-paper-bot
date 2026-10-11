@@ -1,0 +1,226 @@
+{
+ "B-467": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_hft__breakout. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-468": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_shakeout__plus3 (m 1,2 ATR). Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-469": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_baseonbase__breakout. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-470": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_hns__neckline (inverse H&S long; H&S top = native short mirror). Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-471": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_triple__neckline, oneil_flagprice__breakout, oneil_tightarea__breakout. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-472": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_trendline__break. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-474": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot x oneil_dryup__volume (role-swapped filter-as-trigger ordering OWED). Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-475": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot x oneil_tightness__range (3 thresholds; role swap owed). Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-476": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot x oneil_overhead__supply (volume-by-price proxy; role swap owed). Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-477": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot x oneil_priorup__advance (>=30% advance + RS improving; role swap owed). Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-478": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pullback__buy. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-479": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_abnormal__strength (x 2/3/5%). Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-480": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_leaders__firsthigh (needs ^NSEI). Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-484": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_rsline__newhigh (needs ^NSEI). Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-485": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot__exit xm rswarn70/rs50/rs30. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-486": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot x oneil_corrratio__leader (needs ^NSEI). Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-487": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_volpct__surge (x 4x/6x). Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-490": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot__exit xm sc (half -5%, rest -10%). Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-492": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot__exit xm belock15/belock20. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-494": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot__exit xm ma10w. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-495": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot__exit xm ma200trend/ma200ext70/ma200ext100. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-496": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot__exit xm climaxrun/climaxvol/exhaust. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-497": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot__exit xm gapup. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-498": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot__exit xm churn/lowclose/failrally/bigbreak. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-499": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot__exit xm ddpk12/ddpk15/giveback/nobounce. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-500": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/oneil_ext_research.py + .github/workflows/oneil-ext-research.yml (tests/test_oneil_ext_research.py); full-universe 1d+1w run owed (coordinator dispatches). Tags: oneil_pivot__exit xm dull65/six125/noearly40. Short = reciprocal-price mirror, stop on every trade, 0.8% cost."
+ },
+ "B-493": {
+  "status": "ALREADY COVERED by scripts/oneil_research.py",
+  "evidence": "trl1 swing-low trailing stop (ATR3 initial) in .github/workflows/oneil-research.yml; run pending with the oneil-research dispatch."
+ },
+ "B-481": {
+  "status": "BLOCKED: no IPO listing-date feed in the repo/universe file",
+  "evidence": "needs NSE listing dates (data fetch by coordinator); oneil_ext harness can take a listing-age filter once dates exist."
+ },
+ "B-482": {
+  "status": "BLOCKED: no NSE industry/group map in the repo",
+  "evidence": "needs a symbol->industry map (sector-index proxy); then a group-confirmation filter on oneil_pivot."
+ },
+ "B-431": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/chan_ext_research.py + .github/workflows/chan-ext-research.yml (tests/test_chan_ext_research.py); full-universe run owed (coordinator dispatches). Covers: chan_xsmom__decile252 (25-bar hold, liquidity filter, long top / short bottom decile)."
+ },
+ "B-439": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/chan_ext_research.py + .github/workflows/chan-ext-research.yml (tests/test_chan_ext_research.py); full-universe run owed (coordinator dispatches). Covers: chan_lateday__continuation (5m/15m 60d; index-futures path owed)."
+ },
+ "B-441": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/chan_ext_research.py + .github/workflows/chan-ext-research.yml (tests/test_chan_ext_research.py); full-universe run owed (coordinator dispatches). Covers: chan_kalman__band (1d,1h,15m,5m)."
+ },
+ "B-442": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/chan_ext_research.py + .github/workflows/chan-ext-research.yml (tests/test_chan_ext_research.py); full-universe run owed (coordinator dispatches). Covers: chan_vwma__band (1d,1h,15m,5m; EOD flat intraday)."
+ },
+ "B-447": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/chan_ext_research.py + .github/workflows/chan-ext-research.yml (tests/test_chan_ext_research.py); full-universe run owed (coordinator dispatches). Covers: chan_mrgate__fixed20 gate adf/hurst/vr/hl/all (1d,1h)."
+ },
+ "B-448": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/chan_ext_research.py + .github/workflows/chan-ext-research.yml (tests/test_chan_ext_research.py); full-universe run owed (coordinator dispatches). Covers: chan_mrgate__fixed20 gate adfbreak (rolling ADF break + forced exit)."
+ },
+ "B-449": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/chan_ext_research.py + .github/workflows/chan-ext-research.yml (tests/test_chan_ext_research.py); full-universe run owed (coordinator dispatches). Covers: corr_scan section (lb 5/20/60 x hold 1/5/25, non-overlapping) in merge output."
+ },
+ "B-450": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/chan_ext_research.py + .github/workflows/chan-ext-research.yml (tests/test_chan_ext_research.py); full-universe run owed (coordinator dispatches). Covers: every chan ts family x VIX gate le20/le25/le35/ge20 (1d, k=2.5)."
+ },
+ "B-451": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/chan_ext_research.py + .github/workflows/chan-ext-research.yml (tests/test_chan_ext_research.py); full-universe run owed (coordinator dispatches). Covers: chan_xsmom__decile252 crash gates cr05/cr10 (NIFTY 60d drawdown); other momentum tags owed the same gate."
+ },
+ "B-457": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/chan_ext_research.py + .github/workflows/chan-ext-research.yml (tests/test_chan_ext_research.py); full-universe run owed (coordinator dispatches). Covers: per-entry-year split (y<year>) of every chan ts cell at k=2.5; delisted-inclusive universe OWED (no data source)."
+ },
+ "B-458": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/chan_ext_research.py + .github/workflows/chan-ext-research.yml (tests/test_chan_ext_research.py); full-universe run owed (coordinator dispatches). Covers: hygiene job: bad_ohlc/jump/zero-volume/dup counts per universe plus the 40% jump guard; look-ahead audit of replay drivers still owed (manual)."
+ },
+ "B-453": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/kelly_significance_table.py (tests/test_kelly_significance_table.py); runnable now with no Actions: python3 scripts/kelly_significance_table.py. Per-tag Kelly f=m/s^2 and half-Kelly from registry pfnet/win%/n via a two-point payoff (screening only; real-return Kelly needs per-trade returns, owed). No sizing change made."
+ },
+ "B-454": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/kelly_significance_table.py (tests/test_kelly_significance_table.py); runnable now with no Actions: python3 scripts/kelly_significance_table.py. cppi_wind()/cppi_mc(): per-tag CPPI subaccount wind-down (reset only at new highs, retire when wiped); per-tag sizing, not a kill switch."
+ },
+ "B-455": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/kelly_significance_table.py (tests/test_kelly_significance_table.py); runnable now with no Actions: python3 scripts/kelly_significance_table.py. Gaussian t-stat, expected-decay haircut (t/2), thin-n flag for viable tags; Monte Carlo null on resampled prices and random-entry-date permutation test OWED (need price-level replays)."
+ },
+ "B-456": {
+  "status": "BLOCKED: needs the Kotak MIS-shortable symbol list (broker data, coordinator only)",
+  "evidence": "once the list is in docs/, add a shortable-set filter to the short replays and re-score the 57 short_sell viable tags."
+ },
+ "B-421": {
+  "status": "ALREADY COVERED by scripts/confidence_threshold_sweep.py (+ .github/workflows/confidence-threshold-sweep-research.yml)",
+  "evidence": "swing categories swept through the real main.py functions; intraday buy/short 5m driver owed (listed in its own output); wiring decision depends on the run."
+ },
+ "B-361": {
+  "status": "ALREADY COVERED by scripts/mcx_strategy_sweep.py",
+  "evidence": "docs/mcx_sweep_results.json already has ATR 1.5/2.5 stopped siblings of every cell (see row evidence); remaining: verified Kotak copper mapping (coordinator)."
+ },
+ "B-359": {
+  "status": "BLOCKED: needs accumulated option-strike candle/shadow history (B-356)",
+  "evidence": "no premium history exists to backtest; harness waits for the shadow store (see B-388)."
+ },
+ "B-366": {
+  "status": "BLOCKED: needs recorded live Kotak depth snapshots",
+  "evidence": "no historical L2 data; start shadow recording first (live-path change in main.py, not this agent)."
+ },
+ "B-388": {
+  "status": "BLOCKED: live data recorder is main.py/Upstash work, not a research harness",
+  "evidence": "out of scope for this agent (no main.py edits)."
+ },
+ "B-369": {
+  "status": "BLOCKED: not a research-harness item (main.py / live / Kotak-read work)",
+  "evidence": "out of scope for this research-harness agent (no main.py/registry edits, no Kotak access)."
+ },
+ "B-395": {
+  "status": "BLOCKED: not a research-harness item (main.py / live / Kotak-read work)",
+  "evidence": "out of scope for this research-harness agent (no main.py/registry edits, no Kotak access)."
+ },
+ "B-397": {
+  "status": "BLOCKED: not a research-harness item (main.py / live / Kotak-read work)",
+  "evidence": "out of scope for this research-harness agent (no main.py/registry edits, no Kotak access)."
+ },
+ "B-403": {
+  "status": "BLOCKED: not a research-harness item (main.py / live / Kotak-read work)",
+  "evidence": "out of scope for this research-harness agent (no main.py/registry edits, no Kotak access)."
+ },
+ "B-412": {
+  "status": "BLOCKED: not a research-harness item (main.py / live / Kotak-read work)",
+  "evidence": "out of scope for this research-harness agent (no main.py/registry edits, no Kotak access)."
+ },
+ "B-418": {
+  "status": "BLOCKED: not a research-harness item (main.py / live / Kotak-read work)",
+  "evidence": "out of scope for this research-harness agent (no main.py/registry edits, no Kotak access)."
+ },
+ "B-420": {
+  "status": "BLOCKED: not a research-harness item (main.py / live / Kotak-read work)",
+  "evidence": "out of scope for this research-harness agent (no main.py/registry edits, no Kotak access)."
+ }
+}

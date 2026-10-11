@@ -243,3 +243,8 @@ unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surp
 - Why it matters: 3-4 day holds at 1.1-1.25 give fast capital turnover, the preferred profile; but margins over the floor are thin and gaps are rule-exit dominated (few timeouts). Gross PFnet not printed; universe not labelled.
 - Next: full-universe confirmation with gross PFnet, then replay through main.py before any wiring; a stop is always attached (ATR stop), so the SL rule is satisfiable.
 - **Profit-booking / exit takeaway:** the gap-fade edge is in quick rule exits within ~4 days; do not hold these past the rule exit, and keep the ATR stop on every entry.
+
+## Elder batch 2 extension (run 38145685996, 582 tags: williams_r, ad_line, volume, force_index, rsi, stoch_slow, macdh, parabolic, profit_protect, channel)
+- Result: none at PFnet >= 1.1; best `rsi__levels__long__1d__atr3_band25_n14__v1` 1.026 (n=11138, 24d hold). Universe was NIFTY200 + 182 ETFs, NOT full NSE; pfnet_gross not printed (stored NA).
+- Lesson: classic oscillator signals (RSI levels/divergence, stochastic, force index) do not clear 1.1 on daily NSE; none worth wiring. Registered research-only with real metrics.
+- Profit-booking / exit takeaway: best cells win only via ~3 ATR trails with 20+ day holds; short-hold variants stay below 1.0, so no early-profit-booking edge here.
