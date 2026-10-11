@@ -10841,6 +10841,23 @@ REAL_TRADING_DAILY_CAP_INR = 2000.0  # explicit user instruction 2026-09-04 ("us
 # bound-check anchor.
 
 
+def _category_real_toggle(key: str, env_var: str) -> bool:
+    """B-404: per-category real-trading toggle from the Live constraints
+    panel (runtime_settings key). Value -1 / no row = not set from the panel,
+    so the Render env var still decides (unchanged behaviour); 0 = off,
+    1 = on. Never raises: any DB error falls back to the env var. The
+    master ALL TRADING switch is enforced separately and always wins."""
+    env_on = os.environ.get(env_var) == "YES"
+    try:
+        with closing(get_db()) as c:
+            row = c.execute("SELECT value FROM runtime_settings WHERE key = ?", (key,)).fetchone()
+        if row is None or float(row["value"]) < 0:
+            return env_on
+        return float(row["value"]) >= 0.5
+    except Exception:
+        return env_on
+
+
 def is_real_trading_enabled(conn) -> bool:
     """TWO independent gates, both required - explicit user instruction,
     2026-09-04: (1) the paper kill switch (trading_control.enabled) - real
@@ -10861,7 +10878,7 @@ def is_real_trading_enabled(conn) -> bool:
     entirely rather than leave an invisible switch armed. See
     docs/TRADING_CONSTRAINTS.md for the full history if this needs
     revisiting."""
-    return os.environ.get("REAL_TRADING_ENABLED") == "YES"
+    return _category_real_toggle("real_enabled_equity", "REAL_TRADING_ENABLED")
 
 
 def _real_today_spent_inr(conn) -> float:
@@ -11166,7 +11183,7 @@ def is_real_fo_trading_enabled() -> bool:
     var set manually there, independent of REAL_TRADING_ENABLED, so
     turning on equity real trading never silently turns on F&O too
     (much larger notional/margin per lot)."""
-    return os.environ.get("REAL_FO_TRADING_ENABLED") == "YES"
+    return _category_real_toggle("real_enabled_fo", "REAL_FO_TRADING_ENABLED")
 
 
 def is_real_swing_trading_enabled() -> bool:
@@ -11178,7 +11195,7 @@ def is_real_swing_trading_enabled() -> bool:
     trading never silently turns on multi-day real trading too (capital
     locked up for weeks at a time instead of minutes/hours - a materially
     different risk shape that deserves its own explicit switch)."""
-    return os.environ.get("REAL_SWING_TRADING_ENABLED") == "YES"
+    return _category_real_toggle("real_enabled_swing", "REAL_SWING_TRADING_ENABLED")
 
 
 def _real_fo_today_spent_inr(conn) -> float:
@@ -16120,6 +16137,9 @@ SCHEDULER_RR = 3.0  # DEFAULT (fallback) - 1:3 minimum reward:risk, live-editabl
 # risk knobs, not a per-symbol strategy editor. Flagged explicitly rather
 # than silently narrowed.
 RUNTIME_SETTINGS_META = {
+    "real_enabled_equity": (-1, -1, 1, True, "Real money ON for intraday buy + short. -1 = follow the Render env var (REAL_TRADING_ENABLED), 0 = off, 1 = on. The ALL TRADING master switch always wins. Needs the Kotak token."),
+    "real_enabled_swing": (-1, -1, 1, True, "Real money ON for swing. -1 = follow the Render env var (REAL_SWING_TRADING_ENABLED), 0 = off, 1 = on. The ALL TRADING master switch always wins. Needs the Kotak token."),
+    "real_enabled_fo": (-1, -1, 1, True, "Real money ON for options + MCX. -1 = follow the Render env var (REAL_FO_TRADING_ENABLED), 0 = off, 1 = on. The ALL TRADING master switch always wins. Needs the Kotak token."),
     # key: (default, min, max, requires_real_money_token, description)
     "daily_risk_pct": (
         SCHEDULER_DAILY_RISK_PCT, 0.1, 10.0, False,
@@ -16512,6 +16532,8 @@ def set_runtime_setting(request: Request, key: str, value: float):
         _require_kotak_token(request)
     if not (lo <= value <= hi):
         raise HTTPException(status_code=400, detail=f"{key} must be between {lo} and {hi} (got {value})")
+    if key.startswith("real_enabled_"):
+        print(f"[REAL TOGGLE] {key} set to {value} at {ist_now().strftime('%Y-%m-%d %H:%M:%S')} IST")
     with closing(get_db()) as conn:
         conn.execute(
             "INSERT INTO runtime_settings (key, value, updated_at, updated_by) VALUES (?, ?, ?, 'user') "
