@@ -1,0 +1,29 @@
+name: MCX live-path replay (B-345 follow-up)
+# Calls the REAL main._mcx_daily_flags (the function the live MCX scan uses) over 5y daily
+# proxy history for the registry's viable MCX cells and compares to registry PFnet/n.
+# Read-only research: no Kotak, no orders. Output is uploaded as an artifact and kept in full.
+on:
+  workflow_dispatch:
+    inputs:
+      cells:
+        description: "all | wired | unwired | comma-separated registry tags"
+        default: "unwired"
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/confident-fermi-mlqbka
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: python scripts/mcx_live_replay.py --cells "${{ github.event.inputs.cells }}" --out mcx_live_replay_results.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mcx-live-replay-results
+          path: mcx_live_replay_results.json
