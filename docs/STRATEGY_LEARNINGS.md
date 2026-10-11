@@ -357,3 +357,19 @@ Profit-booking / exit takeaway: no exit improvement here; the lesson is selectio
 ## Completing viable-table backtest cells (B-803, 2026-10-12 IST)
 Lesson: a dashboard cell shows a dash when a registered result lacks a field the run did not print (hold, gross PFnet, universe). Re-running the same workflow reproduced the 4 O'Neil weekly flatbase rows exactly (n=116/118, PFnet 5.165/3.934/3.447/3.422), so the gaps were filled without changing any stored number; 62 of 84 O'Neil rows did NOT reproduce (the harness samples ~1/3 of the universe per shard and the earlier run used a different sample), so those were left alone. Flatbase weekly hold is 11-22 weekly bars (~55-110 trading days, beyond the 30-day viability rule) so these cells are judged separately. Reuse: every research workflow must print n, PFnet net+gross, win %, avg hold and the universe size in its artifact so no cell is ever blank.
 Profit-booking / exit takeaway: the weekly flatbase cells with timeout h12 (hold 11 bars) and h26 (22 bars) show a shorter hold keeps most of the edge (3.45 vs 5.17 at lower hold); prefer the shorter hold per the turnover rule when the longer one exceeds 30 trading days.
+
+## Gross PFnet fill attempt (B-804, 2026-10-12 IST)
+Lesson: of 371 viable rows missing gross PFnet, none could be filled by exact reproduction; stored artifacts either do not exist, have an empty gross column, or came from a re-run whose n differs by 1-3 (data drift), so they are a different sample and must not be merged. Gross PFnet needs the run to print it; research workflows must emit pfgross going forward.
+Profit-booking / exit takeaway: none for exits; the lesson is data hygiene - keep every measured field at run time, because backfilling later is not possible once the sample drifts.
+
+## brk20_min_rr main.py port and replay harness (B-798, 2026-10-12 IST)
+Lesson: the research used a Wilder EWM ATR, while main._atr_series is a rolling mean, so the port carries its own ATR to keep numbers identical (parity-tested against the research simulator, long and short). Stop is always attached, satisfying no-trade-without-SL. Bar-count constants mean hours/quarter-hours on 1h/15m, so intraday cells are not comparable to 1d. No result yet; replay is slow per-bar, hence sharding.
+Profit-booking / exit takeaway: the breakeven-at-1R ratchet and EMA13 rule exit are swept as cells; prefer whichever keeps PFnet with the shorter hold once the replay lands.
+
+## Intraday flatten re-run harness (B-792, 2026-10-12 IST)
+Lesson: of 38 short-hold viable cells only 35 are truly intraday; 3 hold 16-23h by design so a 15:15 flatten would change the strategy (classed swing). Flatten re-runs are new tags (`_fl1515__v2`), old numbers untouched; entries on the last bar before the cut are dropped. Cost kept at 0.8% for comparability (real MIS is lower, conservative). atrnone cells cannot be wired live (no-SL rule).
+Profit-booking / exit takeaway: forcing the exit at 15:15 tests whether the edge survives without overnight carry; only variants that keep PFnet >= floor under the flatten may be wired as intraday.
+
+## Chan (Algorithmic Trading) cells, run 38183172728 (B-805, 2026-10-12 IST)
+Lesson: 258 cells (tsm, gapmom, ema_regime, zmr, alexander, shape, updays, kl, gap, xs_o2c) at 1d and 1h; 10 clear PFnet 1.1, led by time-series-momentum 1h (1.55) and short-on-gap 1d (1.27-1.30, n=1127). Hourly tsm shows n up to 300k from overlapping signals, so PFnet is not a portfolio number until re-run with non-overlap; most 1d cells sit below 1 (tsm 1d long 0.65, short 0.68). Short-on-gap is the cleanest candidate (small n, real stop, short mirror).
+Profit-booking / exit takeaway: hold25 at 1h beats shorter holds on tsm, i.e. the edge is in letting winners run to the max hold; test a breakeven ratchet and non-overlap before wiring.
