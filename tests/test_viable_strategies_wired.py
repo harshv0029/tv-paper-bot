@@ -9,8 +9,9 @@ import strategy_registry as sr
 # Registered research variants of a family whose live tag is already mapped.
 # They are viable on paper but the live engine runs the mapped sibling.
 VARIANT_OF_WIRED = {
-    "gap_and_go__swing__long__1d__hold30__v1": "gap_and_go_swing",
-    "gap_and_go__swing__long__1d__hold60__v1": "gap_and_go_swing",
+    # B-413: the live gap_and_go tags now map to hold30; the 52-symbol legacy row is its variant.
+    "gap_and_go_swing": "gap_and_go__swing__long__1d__hold30__v1",
+    "gap_and_go__swing__long__1d__hold60__v1": "gap_and_go__swing__long__1d__hold30__v1",
     "minervini_vcp_breakeven_2r": "minervini_vcp_livermore_confirmed",
     "minervini_vcp_breakeven_3r": "minervini_vcp_livermore_confirmed",
     "order_block_delta_long": "order_block_delta__retest__long__1d__trail6d0__v1",

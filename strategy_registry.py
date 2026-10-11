@@ -2641,7 +2641,7 @@ def describe_entry_conditions(s) -> str:
     return " | ".join(out)
 
 
-def all_strategies_info(conditions_for=None) -> dict:
+def all_strategies_info(conditions_for=None, only_names=None) -> dict:
     """Every registered strategy's own record, keyed by name - unlike
     leaderboard()'s top-N-per-category view, this includes EVERY strategy
     regardless of current rank. 2026-09-30, explicit user instruction
@@ -2665,6 +2665,8 @@ def all_strategies_info(conditions_for=None) -> dict:
     # computed ONCE per category (was recomputed per strategy: O(N x leaderboard), 93 s at 29k registered tags)
     boards = {cat: {r["name"]: r["rank"] for r in leaderboard(cat, top_n=TOP_N_PER_CATEGORY)} for cat in TradeCategory}
     for s in REGISTRY:
+        if only_names is not None and s.name not in only_names:
+            continue  # wired-only view: the page needs just the live tags, not 29k rows
         best_category, best_rank = None, None
         for cat in TradeCategory:
             if cat not in s.categories:
