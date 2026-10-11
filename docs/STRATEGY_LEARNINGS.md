@@ -102,3 +102,6 @@ unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surp
 ### Update 2026-10-11 IST (VWAP RTV 5m, EMT 15m)
 - Same result at every candle size: VWAP return-to-value 5m PFnet <= 0.04; EMT 15m best 0.29 on 36 trades. Candle size does not rescue a zero-gross-edge fade. Do not re-test VWAP/EMA-stretch fades on NSE equities.
 - Profit-booking / exit takeaway: unchanged: targets within ~1% of entry cannot clear the 0.8% cost.
+
+### Update 2026-10-11 IST (Morning Star + BOS 1h n200)
+- 1h n200 produced <30 trades (empty), like 1d n200. The pattern is too rare on 200 stocks at coarse candles; only the full universe (1d, n=51) gave a usable sample. 15m/5m n200 dispatched (run 38111708043 for 15m).
