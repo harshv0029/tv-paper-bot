@@ -2769,6 +2769,8 @@ def _extend_with_sweeps():
         pass
     try:
         import strategy_registry_exitfamily as _ef
+        import strategy_registry_chan as _ch
+        REGISTRY.extend(_ch.build())
         REGISTRY.extend(_ef.build())
     except Exception:
         pass
