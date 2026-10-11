@@ -20589,10 +20589,20 @@ def strategy_scan_activity(include_unwired: bool = False):
                 "pfnet": m.pfnet if m else None,
                 "avg_held_hrs": round(m.avg_held_hrs, 1) if m and m.avg_held_hrs is not None else None,
                 "entry_confidence_pct": sr.edge_confidence_pct(m) if m else None,
+                "instrument": _instrument(e["name"], [c.value for c in strat.categories] if strat else [cat.value]),
+                **{k: v for k, v in _sl_fields(e["name"], e["name"]).items()},
                 "scans_today": None, "scans_last_30s": None,
                 "successful_entries_today": None, "closed_today": 0,
                 "win_rate_today_pct": None, "scan_wired": False,
             })
+            if e["name"] == "gap_and_go_swing" and m and m.avg_held_hrs is None:
+                # legacy 52-symbol row has no hold/win recorded; display from its full-universe successor (B-413), registry entry untouched
+                _succ = next((x for x in sr.REGISTRY if x.name == "gap_and_go__swing__long__1d__hold30__v1"), None)
+                if _succ and _succ.metrics:
+                    rows[-1]["avg_held_hrs"] = round(_succ.metrics.avg_held_hrs, 1) if _succ.metrics.avg_held_hrs is not None else None
+                    rows[-1]["entry_confidence_pct"] = sr.edge_confidence_pct(_succ.metrics)
+            if not rows[-1].get("sl_rule"):
+                rows[-1]["sl_rule"] = "stop per backtest cell (see tag/registry)"
     rows.sort(key=lambda r: (r["pfnet"] is None, -(r["pfnet"] or 0)))
     return {"strategies": rows, "as_of_epoch": time.time()}
 
