@@ -22756,4 +22756,4 @@ def trade_view():
     currently open, with entry/stop/target/opening-range lines overlaid -
     pulls live from /daily-summary + /history client-side, same pattern
     as /live."""
-    return FileResponse("static/trade-view.html")
+    return FileResponse("static/trade-view.html", headers={"Cache-Control": "no-store, max-age=0"})  # stale cached copies hid the sort/filter fixes
