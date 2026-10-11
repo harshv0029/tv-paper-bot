@@ -146,10 +146,10 @@ jobs:
           json.dump(t, open("pooled_trades.json", "w"))
           print("pooled trades", len(t))
           PYEOF
-          python3 scripts/monthly_loss_cap_backtest.py pooled_trades.json --caps 0,4,6,8 --risks 1,2 --json overlay_results.json
+          for mo in 5 10 20; do echo "== max_open=$mo =="; python3 scripts/monthly_loss_cap_backtest.py pooled_trades.json --caps 0,4,6,8 --risks 1,2 --max-open $mo --json overlay_results_mo$mo.json; done
       - uses: actions/upload-artifact@v4
         with:
           name: loss-cap-overlay
           path: |
             pooled_trades.json
-            overlay_results.json
+            overlay_results_mo*.json

@@ -45,7 +45,7 @@ def _pf(pnls):
     return (w / l) if l > 0 else (float("inf") if w > 0 else 0.0)
 
 
-def simulate(trades, cap_pct, risk_pct, start_equity=1.0, max_pos_pct=25.0):
+def simulate(trades, cap_pct, risk_pct, start_equity=1.0, max_pos_pct=25.0, max_open=10):
     """cap_pct=0/None -> no cap. Returns dict of metrics."""
     ev = []
     for i, t in enumerate(trades):
@@ -67,6 +67,8 @@ def simulate(trades, cap_pct, risk_pct, start_equity=1.0, max_pos_pct=25.0):
             risk = risk_pct / 100.0
             if t["risk_frac"]:  # notional cap: risk / risk_frac <= max_pos_pct%
                 risk = min(risk, max_pos_pct / 100.0 * t["risk_frac"])
+            if len(open_pos) >= max_open:  # portfolio capacity: live bot cannot hold thousands at once
+                continue
             if halted:
                 skipped.append({"strategy": t["strategy"], "would": eq * risk * t["net_r"]})
                 continue
@@ -106,6 +108,7 @@ def main(argv=None):
     ap.add_argument("--caps", default="0,4,6,8")
     ap.add_argument("--risks", default="1,2")
     ap.add_argument("--json")
+    ap.add_argument("--max-open", type=int, default=10, help="max concurrent positions (portfolio capacity)")
     a = ap.parse_args(argv)
     trades = load_trades(a.trades)
     res = []
@@ -113,7 +116,7 @@ def main(argv=None):
     print("risk% cap% taken skip  PFnet  win%  totRet%  maxDD%  forgone  avoided (units of start equity)")
     for rk in [float(x) for x in a.risks.split(",")]:
         for cp in [float(x) for x in a.caps.split(",")]:
-            r = simulate(trades, cp, rk)
+            r = simulate(trades, cp, rk, max_open=a.max_open)
             res.append(r)
             print(f"{rk:5.1f} {cp:4.0f} {r['n_taken']:6d} {r['n_skipped']:4d} {r['pfnet']:6.3f} {r['win_pct']:5.1f} "
                   f"{r['total_return_pct']:8.1f} {r['max_dd_pct']:7.1f} {r['profit_forgone']:8.3f} {r['loss_avoided']:8.3f}")
