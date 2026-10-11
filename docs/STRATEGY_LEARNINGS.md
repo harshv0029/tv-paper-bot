@@ -264,3 +264,9 @@ Profit-booking / exit takeaway: do not tighten exits or trail early; the edge is
 - **Why it matters here:** a stale PENDING label hides that only a dispatch (interval=1d, period=5y) is missing, and a stale label can cause duplicate harness work.
 - **Result:** none yet; runs owed via elder-batch3-research.yml and elder-trend-context-research.yml (interval 1d, period 5y).
 - **Profit-booking / exit takeaway:** none new; keep the Elder exit-family comparison (Force Index flip, Stochastic 70, breakeven, 50% protect, Parabolic) on a fixed entry once runs return.
+## Max-positions (diversification) sweep, B-746, 2026-10-11 IST
+- Mechanism: Elder diversification rule tested as concurrency cap K (3/5/10/20/40) in the dated portfolio ledger of portfolio_overlay_research.py (EMA13 dip-buy and 20-bar breakout, both directions, 1% risk, 0.8% cost).
+- Fit: the "no dated ledger" blocker on B-743/B-746 was stale; the chronological simulator already existed. Correlation screen and worst-first liquidation remain unbuilt.
+- Result: not yet run (harness-built; dispatch portfolio-overlay-research.yml).
+- Reuse: check existing simulators before declaring a ledger missing.
+- Profit-booking / exit takeaway: none yet; judge by final_mult vs max_dd across maxpos cells once run.
