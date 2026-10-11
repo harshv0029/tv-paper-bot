@@ -1,0 +1,238 @@
+{
+ "B-18": {
+  "status": "ALREADY COVERED: backlog status CLOSED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** Step 2 (ordered trigger x filter pairs, both roles, both directions, 60 rules, 3,540 pairs, hold 10/20, ATR none/6): 18,974 cells n>=300 registered pass or fail (docs/combo_lab_results.json); top 80 re-run out of sample (500 unseen stocks): 61 clear PFnet 1.0 trimmed. Triples and multi-timeframe pairs remain; bounded by the disclosed top-60 rule limit. **Decision 2026-"
+ },
+ "B-74": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** P&F count targets refine an entry that shows no edge (pnf box1/2pct long 1.13-1.15, short <0.5); not built. Pattern lab n200 (live swing stocks, cleaned bars, trimmed PFnet, run 38075921939, 2026-10-10 IST); every-bar baseline long h20 = 1.04-1.16 (market beta), all shorts <0.62."
+ },
+ "B-75": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** 45-degree trendline filter on a no-edge P&F signal; not built. Pattern lab n200 (live swing stocks, cleaned bars, trimmed PFnet, run 38075921939, 2026-10-10 IST); every-bar baseline long h20 = 1.04-1.16 (market beta), all shorts <0.62."
+ },
+ "B-78": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** P&F moving averages: filter on a no-edge signal; not built. Pattern lab n200 (live swing stocks, cleaned bars, trimmed PFnet, run 38075921939, 2026-10-10 IST); every-bar baseline long h20 = 1.04-1.16 (market beta), all shorts <0.62."
+ },
+ "B-79": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** percent box sizing tested directly (box1pct/box2pct); ATR box exists in main.pnf_scan. Pattern lab n200 (live swing stocks, cleaned bars, trimmed PFnet, run 38075921939, 2026-10-10 IST); every-bar baseline long h20 = 1.04-1.16 (market beta), all shorts <0.62."
+ },
+ "B-86": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** 10-MA trend filter applied to engulfing/harami/longleg: no uplift over unfiltered (1.05/1.04 vs 1.05/1.11). Pattern lab n200 (live swing stocks, cleaned bars, trimmed PFnet, run 38075921939, 2026-10-10 IST); every-bar baseline long h20 = 1.04-1.16 (market beta), all shorts <0.62."
+ },
+ "B-87": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** oscillator-filtered candles: CCI and Williams %R tested standalone (1.15 / 0.98); combining is the combinatorics programme B-18. Standalone verdict: no edge. Pattern lab n200 (live swing stocks, cleaned bars, trimmed PFnet, run 38075921939, 2026-10-10 IST); every-bar baseline long h20 = 1.04-1.16 (market beta), all shorts <0.62."
+ },
+ "B-100": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** rule of alternation requires a wave count; see B-13."
+ },
+ "B-101": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** Elliott channeling requires a wave count; see B-13."
+ },
+ "B-102": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** wave-4 support requires a wave count; see B-13."
+ },
+ "B-103": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** Fibonacci retracement levels tested as bounce rules: 38.2 long 1.14, 50 1.03, 61.8 1.12 (beta); shorts <0.54. Pattern lab n200 (live swing stocks, cleaned bars, trimmed PFnet, run 38075921939, 2026-10-10 IST); every-bar baseline long h20 = 1.04-1.16 (market beta), all shorts <0.62."
+ },
+ "B-105": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** Fibonacci extension targets only change exits of a no-edge entry; the exit-variant lab (minervini_lab rr2/rr3) tests target exits where an entry has edge."
+ },
+ "B-106": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** Fibonacci time targets have no robust definition and are numerology-grade; not worth engineering cost. Price-based Fibonacci is tested."
+ },
+ "B-109": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** nominal harmonic cycle set is a framework not a signal; its testable output is B-108 trough-to-trough and the 4wk/8wk Donchian harmonics already in pattern lab."
+ },
+ "B-113": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** cycle translation requires a cycle finder (B-114); decision there."
+ },
+ "B-114": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** fixed-spacing cycle finder reduces to the 20-bar low rule tested in pattern lab (donchian_*_fade)."
+ },
+ "B-115": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** cycle-tuned oscillator length: the oscillator-length sweep in pattern lab/main covers the practical effect."
+ },
+ "B-117": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** MESA dominant cycle is research-heavy, noise-prone on 2% daily moves; not worth building before simpler rules show edge. Revisit if any cycle rule clears PFnet 1."
+ },
+ "B-126": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** side filter by system trend is the regime_nifty50/200 variants in minervini lab."
+ },
+ "B-127": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** trend-change screen is what the daily scans already do per strategy."
+ },
+ "B-149": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** futures-cash premium needs a history of index-futures vs spot prints; neither Kotak nor yfinance provides that history, so it cannot be backtested. A forward logger is not justified without a tested edge."
+ },
+ "B-155": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** ratio/RS line is the RS machinery already in _compute_minervini_rs_percentiles and sector rotation."
+ },
+ "B-160": {
+  "status": "ALREADY COVERED: backlog status CLOSED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** Rolling-correlation states (corr_neg/pos_and_up) in intermarket run: no edge; registered."
+ },
+ "B-163": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** advance-decline line computed from the n200 stocks; ad_line_trend (50d MA cross) tested both ways: no cell with n>=30 above baseline. Breadth lab (live swing stocks breadth -> NIFTY timing, 6y daily, run via sector-rotation-backtest.yml, 2026-10-10 IST); NIFTY every-bar baseline long 0.32-1.09, short 0.18-0.32; cost 0.8%."
+ },
+ "B-164": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** AD divergence vs index tested: ad_line_divergence long h10 PFnet 1.58 but n=28 (<30), short fails; sample too thin to trust, kept as RESEARCH. Breadth lab (live swing stocks breadth -> NIFTY timing, 6y daily, run via sector-rotation-backtest.yml, 2026-10-10 IST); NIFTY every-bar baseline long 0.32-1.09, short 0.18-0.32; cost 0.8%."
+ },
+ "B-165": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** A/D ratio variants (10d ratio extremes, with unchanged): long h20 1.40 at n=20 - too thin; others below 1. Breadth lab (live swing stocks breadth -> NIFTY timing, 6y daily, run via sector-rotation-backtest.yml, 2026-10-10 IST); NIFTY every-bar baseline long 0.32-1.09, short 0.18-0.32; cost 0.8%."
+ },
+ "B-167": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** McClellan Summation vs its 50d MA tested: no edge. Breadth lab (live swing stocks breadth -> NIFTY timing, 6y daily, run via sector-rotation-backtest.yml, 2026-10-10 IST); NIFTY every-bar baseline long 0.32-1.09, short 0.18-0.32; cost 0.8%."
+ },
+ "B-168": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** new highs/new lows 10d average zero-cross: no edge. Breadth lab (live swing stocks breadth -> NIFTY timing, 6y daily, run via sector-rotation-backtest.yml, 2026-10-10 IST); NIFTY every-bar baseline long 0.32-1.09, short 0.18-0.32; cost 0.8%."
+ },
+ "B-169": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** NH-NL divergence vs index: no cell clears PFnet 1.15 with n>=30. Breadth lab (live swing stocks breadth -> NIFTY timing, 6y daily, run via sector-rotation-backtest.yml, 2026-10-10 IST); NIFTY every-bar baseline long 0.32-1.09, short 0.18-0.32; cost 0.8%."
+ },
+ "B-170": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** up-volume/down-volume 10d (cross of 1.0 and contrarian extremes): no edge. Breadth lab (live swing stocks breadth -> NIFTY timing, 6y daily, run via sector-rotation-backtest.yml, 2026-10-10 IST); NIFTY every-bar baseline long 0.32-1.09, short 0.18-0.32; cost 0.8%."
+ },
+ "B-171": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** Arms Index TRIN contrarian: trin_10d_contrarian long h20 PFnet 1.50 but n=29 (<30); thin, not wired. Breadth lab (live swing stocks breadth -> NIFTY timing, 6y daily, run via sector-rotation-backtest.yml, 2026-10-10 IST); NIFTY every-bar baseline long 0.32-1.09, short 0.18-0.32; cost 0.8%."
+ },
+ "B-173": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** Open Arms contrarian: no cell clears the bar. Breadth lab (live swing stocks breadth -> NIFTY timing, 6y daily, run via sector-rotation-backtest.yml, 2026-10-10 IST); NIFTY every-bar baseline long 0.32-1.09, short 0.18-0.32; cost 0.8%."
+ },
+ "B-175": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** equivolume is a charting representation (bar width = volume), not a signal; its information is in the volume rules tested in pattern lab."
+ },
+ "B-177": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** midcap/NIFTY ratio trend: ratio_junior_trend long 1.18 n=29; no wiring. Breadth lab (live swing stocks breadth -> NIFTY timing, 6y daily, run via sector-rotation-backtest.yml, 2026-10-10 IST); NIFTY every-bar baseline long 0.32-1.09, short 0.18-0.32; cost 0.8%."
+ },
+ "B-179": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** closing tick needs net upticks/downticks (tick data), unavailable."
+ },
+ "B-181": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** needs a sentiment-survey data feed; none available."
+ },
+ "B-182": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** Sibbett's Demand Index formula is not publicly standardised and needs index volume (yfinance ^NSEI volume is zero); the testable form (up/down volume pressure) is B-170."
+ },
+ "B-184": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** Herrick Payoff needs open interest per bar; Kotak candles carry none. Revisit with an OI feed."
+ },
+ "B-188": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** Market Profile TPO needs 30-minute brackets over long history; yfinance gives only 60 days intraday. Volume Profile (POC/VAH) is already tested (B-326..B-331)."
+ },
+ "B-189": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** value area/POC already implemented in volume_profile_poc; see B-326 family."
+ },
+ "B-190": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** initial balance needs long intraday history; 60-day limit makes any PFnet untrustworthy."
+ },
+ "B-192": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** single prints depend on TPO; see B-188."
+ },
+ "B-193": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** TPO count; see B-188."
+ },
+ "B-195": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** responsive vs initiating activity needs TPO; see B-188."
+ },
+ "B-201": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** EMA 9/21, KAMA, LWMA crosses: long 1.07 shorts <0.53 - beta. Pattern lab n200 (live swing stocks, cleaned bars, trimmed PFnet, run 38075921939, 2026-10-10 IST); every-bar baseline long h20 = 1.04-1.16 (market beta), all shorts <0.62."
+ },
+ "B-205": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** MA envelopes: 5% fade long 1.22 (n=3603 h20, atrnone), 3% 1.13-1.14; marginal over beta, not wired. Pattern lab n200 (live swing stocks, cleaned bars, trimmed PFnet, run 38075921939, 2026-10-10 IST); every-bar baseline long h20 = 1.04-1.16 (market beta), all shorts <0.62."
+ },
+ "B-206": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** OBV breakout 1.13, ROC12 1.09, CCI20 1.15, Williams %R 0.98: beta-level or below. Pattern lab n200 (live swing stocks, cleaned bars, trimmed PFnet, run 38075921939, 2026-10-10 IST); every-bar baseline long h20 = 1.04-1.16 (market beta), all shorts <0.62."
+ },
+ "B-207": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** Bollinger mean-reversion 1.14, MACD 1.07, RSI 1.02, Supertrend 1.10 on 6 yr daily - beta-level; stochastic skipped (no standalone branch). Pattern lab n200 (live swing stocks, cleaned bars, trimmed PFnet, run 38075921939, 2026-10-10 IST); every-bar baseline long h20 = 1.04-1.16 (market beta), all shorts <0.62."
+ },
+ "B-208": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** put/call ratio needs NSE option OI history; not in the data stack."
+ },
+ "B-209": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** Commitments of Traders is a US CFTC series; no NSE equivalent."
+ },
+ "B-210": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** volume rules: climax reversal 0.93, volume-confirmed breakout 1.05 - no edge. Pattern lab n200 (live swing stocks, cleaned bars, trimmed PFnet, run 38075921939, 2026-10-10 IST); every-bar baseline long h20 = 1.04-1.16 (market beta), all shorts <0.62."
+ },
+ "B-266": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** base depth/duration measured: depth <=25% on 1.308 vs off 1.239. Minervini lab (real minervini_vcp_entry_signal on n200 stocks, 6y, cleaned bars, n=587 signals, run of 2026-10-10 IST). Key finding: the VCP entry shows NO edge over random entries: pct8_hard exit 1.281 (trimmed 1.137) vs the every-10th-bar baseline 1.432 (1.252); base chandelier exit 0.917."
+ },
+ "B-267": {
+  "status": "ALREADY COVERED: backlog status CLOSED-AS-EXPLAINED (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** contraction ratio across ALL legs: needs the pivot internals; the entry has no edge so refinement is moot. Minervini lab (real minervini_vcp_entry_signal on n200 stocks, 6y, cleaned bars, n=587 signals, run of 2026-10-10 IST). Key finding: the VCP entry shows NO edge over random entries: pct8_hard exit 1.281 (trimmed 1.137) vs the every-10th-bar baseline 1.432 (1.252);"
+ },
+ "B-268": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** distance from 52w high as score: near_52w_high10 on 1.318 vs off 0.934 (n=50) - positive sign but below baseline. Minervini lab (real minervini_vcp_entry_signal on n200 stocks, 6y, cleaned bars, n=587 signals, run of 2026-10-10 IST). Key finding: the VCP entry shows NO edge over random entries: pct8_hard exit 1.281 (trimmed 1.137) vs the every-10th-bar baseline 1.432 ("
+ },
+ "B-269": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** 200MA slope duration: rising 100d on 1.348 - same as baseline. Minervini lab (real minervini_vcp_entry_signal on n200 stocks, 6y, cleaned bars, n=587 signals, run of 2026-10-10 IST). Key finding: the VCP entry shows NO edge over random entries: pct8_hard exit 1.281 (trimmed 1.137) vs the every-10th-bar baseline 1.432 (1.252); base chandelier exit 0.917."
+ },
+ "B-270": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** up-week vs down-week volume: updown_vol_pos on 1.286 vs off 1.225. Minervini lab (real minervini_vcp_entry_signal on n200 stocks, 6y, cleaned bars, n=587 signals, run of 2026-10-10 IST). Key finding: the VCP entry shows NO edge over random entries: pct8_hard exit 1.281 (trimmed 1.137) vs the every-10th-bar baseline 1.432 (1.252); base chandelier exit 0.917."
+ },
+ "B-271": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** stock correction vs index correction: held_up_vs_index on 1.23 vs off 1.76 (n=57). Minervini lab (real minervini_vcp_entry_signal on n200 stocks, 6y, cleaned bars, n=587 signals, run of 2026-10-10 IST). Key finding: the VCP entry shows NO edge over random entries: pct8_hard exit 1.281 (trimmed 1.137) vs the every-10th-bar baseline 1.432 (1.252); base chandelier exit 0."
+ },
+ "B-272": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** extension above pivot: <=3% on 1.22 vs off 1.886 (n=63); <=5% on 1.258. Minervini lab (real minervini_vcp_entry_signal on n200 stocks, 6y, cleaned bars, n=587 signals, run of 2026-10-10 IST). Key finding: the VCP entry shows NO edge over random entries: pct8_hard exit 1.281 (trimmed 1.137) vs the every-10th-bar baseline 1.432 (1.252); base chandelier exit 0.917."
+ },
+ "B-273": {
+  "status": "ALREADY COVERED: backlog status DONE (no harness needed; closed with evidence in the row itself)",
+  "evidence": "**Decision 2026-10-10 IST:** IBD-style blended RS (40/20/20/20 of 3/6/9/12-month) percentile >=70: on 1.347 vs off 1.117; below baseline 1.432. Minervini lab (real minervini_vcp_entry_signal on n200 stocks, 6y, cleaned bars, n=587 signals, run of 2026-10-10 IST). Key finding: the VCP entry shows NO edge over random entries: pct8_hard exit 1.281 (trimmed 1.137) vs the every-10th-bar baseline 1.432 "
+ }
+}
