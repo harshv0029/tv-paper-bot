@@ -20216,6 +20216,13 @@ def strategy_info():
     return sr.all_strategies_info(conditions_for=set(_STRATEGY_TAG_TO_REGISTRY_NAME.values()))
 
 
+@app.get("/strategy-tag-map")
+def strategy_tag_map():
+    """B-415: live strategy tag -> registry name. The dashboard kept a stale
+    4-entry copy, so tags like order_block_delta read "no registry entry"."""
+    return dict(_STRATEGY_TAG_TO_REGISTRY_NAME)
+
+
 @app.get("/daily-summary")
 def daily_summary(capital: float = 400000, daily_risk_pct: float = 2.0):
     """Aggregated view of today's auto-signal paper trading across all symbols:
