@@ -1,0 +1,44 @@
+{
+"results": {
+"emt__vwap_ema9__short__5m__ext0d5_wk50__v1": {
+"pfnet": 0.041,
+"pfnet_trim1": 0.03,
+"win_pct": 11.3,
+"n": 586,
+"avg_net_pct": -0.7757,
+"median_net_pct": -1.0142,
+"avg_held_bars": 9.55,
+"bar_hours": 0.08333333333333333
+},
+"emt__vwap_ema9__long__5m__ext0d5_wk50__v1": {
+"pfnet": 0.054,
+"pfnet_trim1": 0.038,
+"win_pct": 13.9,
+"n": 361,
+"avg_net_pct": -0.7822,
+"median_net_pct": -1.0167,
+"avg_held_bars": 9.15,
+"bar_hours": 0.08333333333333333
+},
+"emt__vwap_ema9__long__5m__ext1_wk50__v1": {
+"pfnet": 0.221,
+"pfnet_trim1": 0.15,
+"win_pct": 34.4,
+"n": 32,
+"avg_net_pct": -0.6292,
+"median_net_pct": -1.0222,
+"avg_held_bars": 10.03,
+"bar_hours": 0.08333333333333333
+},
+"emt__vwap_ema9__short__5m__ext1_wk50__v1": {
+"pfnet": 0.131,
+"pfnet_trim1": 0.099,
+"win_pct": 25.0,
+"n": 44,
+"avg_net_pct": -0.8306,
+"median_net_pct": -1.1694,
+"avg_held_bars": 12.09,
+"bar_hours": 0.08333333333333333
+}
+}
+}
