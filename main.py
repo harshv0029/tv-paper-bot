@@ -10787,7 +10787,7 @@ def _build_trade_thesis(strategy_tag: str | None, entry_price: float, sl_trigger
     )
 
 
-def _is_strategy_viable_for_real_money(strategy_tag: str | None) -> bool:
+def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: bool = True) -> bool:
     """PFnet >= 1 gate for NEW real entries (see the module comment just
     above). Fails CLOSED on every uncertain case - an unrecognized tag, a
     tag with no strategy_registry.py entry, or a registered strategy with
@@ -10799,9 +10799,10 @@ def _is_strategy_viable_for_real_money(strategy_tag: str | None) -> bool:
     # 2026-10-11 user: the ALL TRADING toggle must stop NEW real trades in EVERY category immediately. Every
     # new-entry path (intraday, short, swing, options, MCX, strikes) calls this function, so the switch is enforced here.
     try:
-        with closing(get_db()) as _kc:
-            if not is_trading_enabled(_kc):
-                return False
+        if check_switch:
+            with closing(get_db()) as _kc:
+                if not is_trading_enabled(_kc):
+                    return False
     except Exception:
         pass
     registry_name = _STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy_tag)
@@ -14790,6 +14791,50 @@ def _force_close_all_positions(conn, reason: str) -> dict:
         "real_closed_count": len(real_closed), "real_closed": real_closed,
         "real_close_failed_count": len(real_close_failed), "real_close_failed": real_close_failed,
     }
+
+
+def _banner_extras() -> dict:
+    """B-396 (user 2026-10-11 "build these"): extra scan-banner facts. Every field is best-effort and never raises."""
+    out: dict = {}
+    try:
+        t = ist_now()
+        today = t.strftime("%Y-%m-%d")
+        done = _mcx_daily_scan_day == today
+        out["mcx_scan_done_today"] = done
+        if done:
+            out["mcx_next_scan"] = "tomorrow 09:20 IST" if t.weekday() < 4 else "Monday 09:20 IST"
+        elif t.weekday() >= 5:
+            out["mcx_next_scan"] = "Monday 09:20 IST"
+        elif (t.hour, t.minute) < (9, 20):
+            out["mcx_next_scan"] = "today 09:20 IST"
+        elif (t.hour, t.minute) < (23, 0):
+            out["mcx_next_scan"] = "due now"
+        else:
+            out["mcx_next_scan"] = "tomorrow 09:20 IST" if t.weekday() < 4 else "Monday 09:20 IST"
+        out["mcx_cells"] = len(_MCX_DAILY_CELLS)
+    except Exception:
+        pass
+    try:
+        with closing(get_db()) as c:
+            out["trading_enabled"] = bool(is_trading_enabled(c))
+            row = c.execute("SELECT checked_at FROM real_protection_snapshot WHERE id = 1").fetchone()
+        out["protection_check_age_s"] = None if not row else int(time.time() - row["checked_at"])
+    except Exception:
+        pass
+    try:
+        out["shadow_scans_total"] = sum(v["scans"] for r in _fo_strike_monitor.values() for v in r.get("shadow", {}).values())
+        out["shadow_signals_total"] = sum(v["signals"] for r in _fo_strike_monitor.values() for v in r.get("shadow", {}).values())
+    except Exception:
+        pass
+    try:
+        wired = [t for t in _STRATEGY_TAG_TO_REGISTRY_NAME]
+        open_n = sum(1 for t in wired if _is_strategy_viable_for_real_money(t, check_switch=False))
+        out["wired_strategies"] = len(wired)
+        out["wired_gate_open"] = open_n
+        out["wired_gate_closed"] = len(wired) - open_n
+    except Exception:
+        pass
+    return out
 
 
 @app.get("/trading-control")
@@ -19837,6 +19882,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "swing_total_checks_today": swing_total_checks_today,
         "swing_strategy_checks_today": swing_strategy_checks_today,
         "swing_scan_done_today": swing_scan_done_today,
+        **_banner_extras(),
         "swing_strategies_scanned_today": swing_strategies_scanned_today,
         "check_counts_today": check_counts_today,
         "check_counts_day": _scheduler_check_counts_day,
@@ -19925,7 +19971,7 @@ def strategy_leaderboard():
 
 
 @app.get("/strategy-scan-activity")
-def strategy_scan_activity():
+def strategy_scan_activity(include_unwired: bool = False):
     """Per-viable-strategy scan/entry activity for /trade-view (explicit
     user request: "viable strategy wise count of scans done today and
     count of scans done in last 30 second and count of success entry
@@ -20065,9 +20111,11 @@ def strategy_scan_activity():
     # newly registered viable result shows up with no extra code step. Those
     # rows carry scan_wired=False and null scan/entry counters - honest "not
     # scanned live", never a fake 0.
+    # 2026-10-11 user: "remove the unwired ones from the list - viable strategies table". Default is wired-only;
+    # ?include_unwired=true restores the research view (rows with scan_wired=False).
     covered = {r["registry_name"] for r in rows}
     seen = set(covered)
-    for cat in sr.TradeCategory:
+    for cat in (sr.TradeCategory if include_unwired else ()):
         for e in sr.viable_leaderboard(cat):
             if e["name"] in seen:
                 continue
@@ -20104,7 +20152,7 @@ def strategy_info():
     exact shape. Same read-only, registering-!=-trading caveat as
     /strategy-leaderboard."""
     import strategy_registry as sr
-    return sr.all_strategies_info()
+    return sr.all_strategies_info(conditions_for=set(_STRATEGY_TAG_TO_REGISTRY_NAME.values()))
 
 
 @app.get("/daily-summary")

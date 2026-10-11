@@ -17,7 +17,11 @@ def test_returns_one_entry_per_registered_strategy():
 
 
 def test_matches_the_real_registry_all_strategies_info():
-    assert main.strategy_info() == sr.all_strategies_info()
+    # same data plus the Remarks-column text, which main attaches only to wired tags (B-397)
+    wired = set(main._STRATEGY_TAG_TO_REGISTRY_NAME.values())
+    assert main.strategy_info() == sr.all_strategies_info(conditions_for=wired)
+    base = sr.all_strategies_info()
+    assert {k: {f: v for f, v in d.items() if f != "entry_conditions"} for k, d in main.strategy_info().items()} == base
 
 
 def test_a_strategy_outside_its_categorys_top_n_still_has_real_metrics():
