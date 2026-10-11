@@ -1,0 +1,39 @@
+name: Option quote probe (B-418)
+# READ-ONLY. Fetches one liquid stock option's raw Kotak quote (quote_type=all)
+# via the live app and prints ONLY key names plus market-data values
+# (bid/ask/OI/volume). No account data, no orders.
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request, urllib.parse
+          tok = os.environ["KOTAK_NEO_API_TOKEN"]
+          base = "https://tv-paper-bot-gdan.onrender.com/kotak-neo/"
+          def get(path, **q):
+              q["token"] = tok
+              url = base + path + "?" + urllib.parse.urlencode(q)
+              for _ in range(3):
+                  try:
+                      return json.load(urllib.request.urlopen(url, timeout=90))
+                  except Exception as e:
+                      err = str(e).replace(tok, "***"); time.sleep(10)
+              return {"error": err}
+          d = get("search-scrip", exchange_segment="nse_fo", symbol="tcs", option_type="CE", limit=400)
+          rows = d.get("showing") or []
+          print("rows", len(rows), "total", d.get("total_matched"), "err", d.get("error"))
+          if rows:
+              print("row keys", sorted(rows[0].keys()))
+              ex = sorted({str(r.get("pExpiryDate")) for r in rows})
+              first = [r for r in rows if str(r.get("pExpiryDate")) == ex[0]]
+              first.sort(key=lambda r: float(r.get("dStrikePrice") or 0))
+              r = first[len(first)//2]
+              print("picked", r.get("pTrdSymbol"), r.get("pSymbol"), r.get("lLotSize"))
+              q = get("quotes", exchange_segment="nse_fo", instrument_token=str(r.get("pSymbol")), quote_type="all")
+              print("quote raw:", json.dumps(q)[:1800])
+          PY
