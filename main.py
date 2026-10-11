@@ -16083,9 +16083,8 @@ RUNTIME_SETTINGS_META = {
     ),
     "daily_risk_pct": (
         SCHEDULER_DAILY_RISK_PCT, 0.1, 10.0, False,
-        "Account-wide daily loss cap, as % of capital. Once today's realized loss "
-        "reaches this, all new entries halt for the rest of the day (open positions "
-        "still get managed normally).",
+        "Account-wide daily loss cap (% of day-open capital), read from Kotak's real P&L: covers "
+        "every category (long, short, swing, options, MCX). At the cap, new real entries stop for the day.",
     ),
     "rr": (
         SCHEDULER_RR, 1.0, 10.0, False,
