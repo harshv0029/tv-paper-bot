@@ -1,0 +1,56 @@
+name: Exit Family Research (B-529 / B-538 / B-493 / B-740)
+
+# Research-only. Entries = the REAL main.py swing entry functions (order_block_entry_signal,
+# volume_profile_poc_entry_signal, gap_and_go_entry_signal + short mirror); the same entry set is
+# replayed under fixed-ATR / structural / chandelier / O'Neil swing-low / exhaustion / time /
+# signal-invalidation exits so only the exit differs. FULL NSE universe via
+# main._load_nse_universe_from_file(), daily bars, 4 shards + 1 merge job (5 jobs <= 8).
+# 1d only: candle-size sweep is owed (see scripts/exit_family_research.py header).
+# Writes nothing to the repo; results are in the merge job log + artifact exit-family-merged.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  shard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+      - name: Run shard
+        run: python scripts/exit_family_research.py run --shard ${{ matrix.shard }} --shards 4 --out out/shard${{ matrix.shard }}.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: exit-family-shard-${{ matrix.shard }}
+          path: out/shard${{ matrix.shard }}.json
+
+  merge:
+    needs: shard
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: exit-family-shard-*
+          path: shards
+          merge-multiple: true
+      - name: Merge and print per-tag results
+        run: python scripts/exit_family_research.py merge --dir shards --out out/exit_family_results.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: exit-family-merged
+          path: out/exit_family_results.json
