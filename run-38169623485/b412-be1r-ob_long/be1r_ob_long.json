@@ -1,0 +1,74 @@
+{
+ "strat": "ob_long",
+ "direction": "long",
+ "tag_be": "order_block_delta__retest__long__1d__be1d0r__v1",
+ "tag_baseline": "order_block_delta__retest__long__1d__benone__v1",
+ "baseline": {
+  "n": 30828,
+  "win_pct": 40.82,
+  "pfnet": 1.1023367326249198,
+  "pfgross": 1.2677374812618172,
+  "avg_net_pct": 0.5721,
+  "avg_gross_pct": 1.3721,
+  "avg_held_bars": 23.2,
+  "exit_reasons": {
+   "trail_stop_hit": {
+    "n": 12475,
+    "pfnet": 0.07075120524963696,
+    "win_pct": 3.05,
+    "avg_held_bars": 14.15
+   },
+   "max_hold_timeout": {
+    "n": 17675,
+    "pfnet": 6.383739172538224,
+    "win_pct": 68.02,
+    "avg_held_bars": 30.0
+   },
+   "data_end_forced_close": {
+    "n": 678,
+    "pfnet": 0.6018785144937864,
+    "win_pct": 26.7,
+    "avg_held_bars": 12.3
+   }
+  }
+ },
+ "be": {
+  "n": 31576,
+  "win_pct": 37.75,
+  "pfnet": 1.0935416905123614,
+  "pfgross": 1.2652812594763831,
+  "avg_net_pct": 0.5068,
+  "avg_gross_pct": 1.3068,
+  "avg_held_bars": 22.42,
+  "exit_reasons": {
+   "trail_stop_hit": {
+    "n": 14886,
+    "pfnet": 0.06820640614450761,
+    "win_pct": 2.53,
+    "avg_held_bars": 14.73
+   },
+   "max_hold_timeout": {
+    "n": 16026,
+    "pfnet": 7.159737016142902,
+    "win_pct": 70.9,
+    "avg_held_bars": 30.0
+   },
+   "data_end_forced_close": {
+    "n": 664,
+    "pfnet": 0.6062126745176045,
+    "win_pct": 27.26,
+    "avg_held_bars": 11.77
+   }
+  }
+ },
+ "be_r": 1.0,
+ "constants": {
+  "ORDER_BLOCK_ATR_TRAIL_MULT": 6.0,
+  "VP_ATR_TRAIL_MULT": 6.0,
+  "MINERVINI_ATR_STOP_MULT": 2.0,
+  "MINERVINI_MAX_HOLD_DAYS": 60
+ },
+ "cost_round_trip_pct": 0.8,
+ "n_symbols": 2202,
+ "synthetic": false
+}

@@ -1,0 +1,33 @@
+{
+ "variant": "pct8_hard_f_index_within5_of_high_on",
+ "tag_lab_v1": "minervini_vcp__pct8_hard_f_index_within5_of_high_on__long__1d__h60__v1",
+ "tag_replay_v2": "minervini_vcp__pct8_hard_f_index_within5_of_high_on__long__1d__h60__v2",
+ "metrics": {
+  "n": 2602,
+  "win_pct": 35.78,
+  "pfnet": 1.5591227774345964,
+  "pfgross": 1.7736959262681398,
+  "avg_net_pct": 3.1108,
+  "avg_gross_pct": 3.9108,
+  "avg_held_bars": 33.82,
+  "exit_reasons": {
+   "max_hold_timeout": {
+    "n": 1063,
+    "pfnet": 68.18368498831008,
+    "win_pct": 87.58,
+    "avg_held_bars": 60.0
+   },
+   "stop_hit": {
+    "n": 1539,
+    "pfnet": 0.0,
+    "win_pct": 0.0,
+    "avg_held_bars": 15.74
+   }
+  }
+ },
+ "cost_round_trip_pct": 0.8,
+ "n_symbols": 2202,
+ "exit_source": "ported from scripts/minervini_lab.py (not in main.py)",
+ "entry_source": "main.minervini_vcp_entry_signal (real)",
+ "synthetic": false
+}

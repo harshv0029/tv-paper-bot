@@ -1,0 +1,74 @@
+{
+ "strat": "minervini_long",
+ "direction": "long",
+ "tag_be": "minervini_vcp__swing__long__1d__be1d0r__v1",
+ "tag_baseline": "minervini_vcp__swing__long__1d__benone__v1",
+ "baseline": {
+  "n": 2356,
+  "win_pct": 41.6,
+  "pfnet": 1.4741946281140221,
+  "pfgross": 1.7535803096005114,
+  "avg_net_pct": 1.9427,
+  "avg_gross_pct": 2.7427,
+  "avg_held_bars": 17.18,
+  "exit_reasons": {
+   "trail_stop_hit": {
+    "n": 2273,
+    "pfnet": 1.3401292354796048,
+    "win_pct": 39.9,
+    "avg_held_bars": 15.91
+   },
+   "max_hold_timeout": {
+    "n": 68,
+    "pfnet": 188.19118150242102,
+    "win_pct": 97.06,
+    "avg_held_bars": 60.0
+   },
+   "data_end_forced_close": {
+    "n": 15,
+    "pfnet": 4.3532981639841815,
+    "win_pct": 46.67,
+    "avg_held_bars": 15.73
+   }
+  }
+ },
+ "be": {
+  "n": 2356,
+  "win_pct": 41.55,
+  "pfnet": 1.47531834935542,
+  "pfgross": 1.7551678681383542,
+  "avg_net_pct": 1.9458,
+  "avg_gross_pct": 2.7458,
+  "avg_held_bars": 17.17,
+  "exit_reasons": {
+   "trail_stop_hit": {
+    "n": 2274,
+    "pfnet": 1.3412070304996444,
+    "win_pct": 39.89,
+    "avg_held_bars": 15.92
+   },
+   "max_hold_timeout": {
+    "n": 67,
+    "pfnet": 188.10522110030035,
+    "win_pct": 97.01,
+    "avg_held_bars": 60.0
+   },
+   "data_end_forced_close": {
+    "n": 15,
+    "pfnet": 4.3532981639841815,
+    "win_pct": 46.67,
+    "avg_held_bars": 15.73
+   }
+  }
+ },
+ "be_r": 1.0,
+ "constants": {
+  "ORDER_BLOCK_ATR_TRAIL_MULT": 6.0,
+  "VP_ATR_TRAIL_MULT": 6.0,
+  "MINERVINI_ATR_STOP_MULT": 2.0,
+  "MINERVINI_MAX_HOLD_DAYS": 60
+ },
+ "cost_round_trip_pct": 0.8,
+ "n_symbols": 2202,
+ "synthetic": false
+}
