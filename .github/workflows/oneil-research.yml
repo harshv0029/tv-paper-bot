@@ -1,0 +1,71 @@
+name: O'Neil research batch (B-460 B-466 B-473 B-483 B-488 B-489 B-491 B-493 B-502)
+
+# Research-only, read-only. William O'Neil, How to Make Money in Stocks (backlog P1 rows).
+# FULL NSE universe (main._load_nse_universe_from_file()), BOTH directions, 0.8% round-trip cost,
+# a stop on every trade, ATR/percent stop sweep, two candle sizes (1d and 1w). Bar-count constants
+# (base 40d = 8w, 50-bar volume average, 200DMA = 40w, flat base 35d = 7w, RS lookback 252d = 52w) are
+# re-derived per candle size in scripts/oneil_research.py CFG; 4h/1h are not applicable (the pivot,
+# flat-base and RS rules are defined on daily/weekly bars).
+# Row mapping: B-460 oneil_pivot, B-466 oneil_flatbase, B-473/B-488 oneil_newhigh, B-483 oneil_rsscreen +
+# the rs80 filter on every entry, B-489 pct7/pct8 stops, B-491 tgt20, B-493 trl1 swing-low trailing stop,
+# B-502 avg1 = averaging-down NEGATIVE CONTROL (engine invariant stays never-average-down).
+# Jobs: 3 shards x 2 timeframes = 6, plus 1 merge per timeframe = 8. Each cell is its own tag per the
+# naming grammar (never pooled); the merge prints PFnet net, win %, n, avg hold and exit-reason breakdown
+# and uploads docs/oneil_research_results.json. Shards are interleaved, so RS rank is the percentile
+# within a shard's ~1/3 sample of the universe (stated, not the exact full-universe rank).
+# Dispatch order per CLAUDE.md: big matrix, so only when no gate/safety run is queued.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        tf: ["1d", "1w"]
+        shard: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Scan shard
+        env:
+          TF: ${{ matrix.tf }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "3"
+        run: python3 scripts/oneil_research.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oneil-${{ matrix.tf }}-s${{ matrix.shard }}
+          path: docs/oneil_research_${{ matrix.tf }}_s${{ matrix.shard }}.json
+
+  merge:
+    needs: scan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tf: ["1d", "1w"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: oneil-${{ matrix.tf }}-s*
+          path: shards
+          merge-multiple: true
+      - name: Merge shards and report
+        run: python3 scripts/oneil_research.py --merge shards/oneil_research_${{ matrix.tf }}_s*.json | tee merge_${{ matrix.tf }}.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oneil-results-${{ matrix.tf }}
+          path: |
+            docs/oneil_research_results.json
+            merge_${{ matrix.tf }}.txt
