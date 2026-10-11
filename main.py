@@ -10516,7 +10516,7 @@ def _switch_allows_entries(conn) -> bool:
 # so nothing already live gets orphaned by this change.
 _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "orb-universal-score": "universal_score",
-    "orb-swing-gap-and-go": "gap_and_go_swing",
+    "orb-swing-gap-and-go": "gap_and_go__swing__long__1d__hold30__v1",
     "orb-trend-short": "trend_down_momentum_short",
     "orb-range-short": "range_short_staged_ladder",
     # Swing's own real-entry call sites pass a plain label (see
@@ -10526,7 +10526,7 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # (minervini_vcp_entry_signal/minervini_vcp_exit_reason)"), confirmed
     # by reading it directly rather than guessing from the name alone -
     # PFnet 0.908, just under the floor, NOT gap_and_go_swing's 1.65.
-    "gap_and_go": "gap_and_go_swing",
+    "gap_and_go": "gap_and_go__swing__long__1d__hold30__v1",
     "minervini_vcp": "minervini_trend_template_vcp",
     # B-412 (2026-10-11, user go-ahead): same base VCP entry, book-literal 3R breakeven exit -
     # real-function full-universe PFnet 1.153 (run 36670098717) vs 0.908 for the chandelier.
@@ -14067,16 +14067,37 @@ def _mcx_daily_flags(df, strategy, params, short=False):
     return bool(flag.iloc[-1] and not flag.iloc[-2]), bool(flag.iloc[-1])
 
 
+_mcx_cell_cursor = 0
+_mcx_cell_entry_day: dict = {}  # tag -> IST day of its last entry attempt (one per cell per day)
+
+
 def _run_mcx_daily_scan(conn, force: bool = False):
-    global _mcx_daily_scan_day
+    """Round robin (user 2026-10-11: "make them run in round robin fashion"):
+    every scheduler tick scans ONE MCX cell in rotation, 09:20-23:00 IST
+    Mon-Fri, so every cell is re-checked every few minutes instead of once a
+    day. Signals use the last COMPLETED daily bar, so a re-scan never changes
+    an entry signal; it keeps the dashboard count live and catches a dropped
+    signal (exit) sooner. At most one entry per cell per IST day, so a stop-out
+    can't trigger a same-day re-entry on the same bar. force=True scans all."""
+    global _mcx_cell_cursor
     t = ist_now()
     today = t.strftime("%Y-%m-%d")
-    if not force and (t.weekday() >= 5 or _mcx_daily_scan_day == today or not ((9, 20) <= (t.hour, t.minute) < (23, 0))):
+    if not force and (t.weekday() >= 5 or not ((9, 20) <= (t.hour, t.minute) < (23, 0))):
         return
     if not _switch_allows_entries(conn):
-        return  # ALL TRADING OFF: no new MCX entries (scan not consumed)
-    _mcx_daily_scan_day = today
-    for tag, sym, strat, params in _MCX_DAILY_CELLS:
+        return  # ALL TRADING OFF: no new MCX entries
+    if not _MCX_DAILY_CELLS:
+        return
+    if force:
+        cells = list(_MCX_DAILY_CELLS)
+    else:
+        _mcx_cell_cursor %= len(_MCX_DAILY_CELLS)
+        cells = [_MCX_DAILY_CELLS[_mcx_cell_cursor]]
+        _mcx_cell_cursor += 1
+        if _mcx_cell_cursor >= len(_MCX_DAILY_CELLS):
+            global _mcx_daily_scan_day
+            _mcx_daily_scan_day = today  # one full rotation done (banner)
+    for tag, sym, strat, params in cells:
         try:
             _record_strategy_scan(tag)
             df = fetch_ohlc(sym, "2y", "1d")
@@ -14090,11 +14111,12 @@ def _run_mcx_daily_scan(conn, force: bool = False):
             own = f"single_leg_mcx_{tag}"  # each cell exits only the leg it opened
             if row is not None and str(row["strategy_tag"]) == own and not on:
                 _close_real_fo_option_leg(conn, row, f"{tag}: daily signal dropped, exit")
-            elif fresh and row is None:
+            elif fresh and row is None and _mcx_cell_entry_day.get(tag) != today:
                 spot = _mcx_inr_spot(fo_u) if fo_u else None
                 if spot is None:
                     _log_real_fo_attempt(conn, f"{fo_u}:{right.upper()}", "B", "skipped_no_inr_spot", detail=f"strategy_tag={tag}")
                     continue
+                _mcx_cell_entry_day[tag] = today
                 _maybe_place_real_fo_option_entry(conn, sym, spot, tag, right, tag_col=own)
         except Exception as e:
             print(f"[MCX DAILY] {tag} failed (non-fatal): {e}")
@@ -20175,6 +20197,31 @@ def strategy_scan_activity(include_unwired: bool = False):
     # zero is the honest, correct reading of "this tag is registered but
     # nothing uses it", not a bug to paper over by collapsing it into its
     # same-registry sibling.
+    # user 2026-10-11: "SL %" column per strategy. Real value = average stop
+    # distance of that tag's currently open swing positions (entry vs frozen
+    # initial stop); with none open, fall back to the stop RULE parsed from the
+    # registry name (atr6 -> 6.0xATR). Never a guessed percentage.
+    sl_acc: dict = {}
+    try:
+        with closing(get_db()) as _c:
+            for r in _c.execute("SELECT strategy, entry_price, initial_stop_loss FROM signal_state_swing").fetchall():
+                if r["entry_price"] and r["initial_stop_loss"]:
+                    a = sl_acc.setdefault(r["strategy"], [])
+                    a.append((r["initial_stop_loss"] - r["entry_price"]) / r["entry_price"] * 100.0)
+    except Exception:
+        pass
+
+    def _sl_fields(tag, registry_name):
+        pcts = sl_acc.get(tag) or []
+        import re as _re
+        m = _re.search(r"__atr(\d+(?:d\d+)?)", registry_name or "")
+        rule = None
+        if m and m.group(1) != "none":
+            rule = f"{m.group(1).replace('d', '.')}xATR stop"
+        elif "atrnone" in (registry_name or ""):
+            rule = "trailing premium SL"
+        return {"sl_pct": round(sum(pcts) / len(pcts), 2) if pcts else None, "sl_open_n": len(pcts), "sl_rule": rule}
+
     rows = []
     for tag, registry_name in _STRATEGY_TAG_TO_REGISTRY_NAME.items():
         if not _is_strategy_viable_for_real_money(tag):
@@ -20188,6 +20235,7 @@ def strategy_scan_activity(include_unwired: bool = False):
             "avg_held_hrs": round(strat.metrics.avg_held_hrs, 1) if strat and strat.metrics and strat.metrics.avg_held_hrs is not None else None,
             "entry_confidence_pct": sr.edge_confidence_pct(strat.metrics) if strat and strat.metrics else None,
             "scan_wired": True,
+            **_sl_fields(tag, registry_name),
             "scans_today": _strategy_scan_counts.get(tag, 0),
             "scans_last_30s": _strategy_scans_in_last_seconds(tag),
             "successful_entries_today": entries_today.get(tag, 0),
@@ -20229,7 +20277,7 @@ def strategy_scan_activity(include_unwired: bool = False):
 
 
 @app.get("/strategy-info")
-def strategy_info():
+def strategy_info(wired: int = 0):
     """Every registered strategy's own record, keyed by name - NOT just
     the top-N-per-category view /strategy-leaderboard gives. 2026-09-30,
     explicit user instruction ("I want to get those dashed cells filled
@@ -20245,7 +20293,11 @@ def strategy_info():
     exact shape. Same read-only, registering-!=-trading caveat as
     /strategy-leaderboard."""
     import strategy_registry as sr
-    return sr.all_strategies_info(conditions_for=set(_STRATEGY_TAG_TO_REGISTRY_NAME.values()))
+    live_names = set(_STRATEGY_TAG_TO_REGISTRY_NAME.values())
+    # wired=1: only the strategies the bot actually trades (a few hundred rows)
+    # instead of all ~29k registry rows (7.8 MB), which the dashboard was
+    # timing out on, leaving every trade row "no registry entry yet".
+    return sr.all_strategies_info(conditions_for=live_names, only_names=live_names if wired else None)
 
 
 @app.get("/strategy-tag-map")
