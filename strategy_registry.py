@@ -2785,6 +2785,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_em.build())
         import strategy_registry_classa as _ca
         REGISTRY.extend(_ca.build())
+        import strategy_registry_elderb3 as _b3
+        REGISTRY.extend(_b3.build())
         REGISTRY.extend(_ef.build())
     except Exception:
         pass

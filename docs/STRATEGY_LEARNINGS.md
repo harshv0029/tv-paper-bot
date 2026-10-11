@@ -329,3 +329,11 @@ Profit-booking / exit takeaway: do not tighten exits or trail early; the edge is
 - Surprise: max_hold_timeout trades carry the edge (PFnet 4.6 in climax_sell) while stop_hit loses 100%; climax_sell exit alone books 649 trades at 96% win, so exiting into strength beats waiting for timeout.
 - Reuse: always add a climax/gap-down exit to a wide-trail trend entry; the lab exits are not in main.py, so wiring needs a port + replay.
 - Profit-booking / exit takeaway: book into climax strength (climax_sell) and cut on gap-down; both raise PFnet and shorten hold versus pure timeout.
+
+## Elder batch 3: oscillator/structure/ORB/sizing (run 38169625565, 2026-10-12 IST)
+- Mechanism: 282 daily oscillator/structure cells (stoch/RSI/MACD-histogram reversals, divergence classes, ROC peak exits, SAR, minor stops, MTF) plus 5m opening-range breakout and position-sizing methods.
+- Fit here: ORB with ATR stops fails the 0.8% cost model outright; sizing cannot rescue negative-edge entries.
+- Result: 3/282 viable, all MACD-histogram divergence with Keltner class (PFnet 1.14-1.27, n~1290, 17-25 bars). 5m ORB PFnet 0.13-0.19 in all 24 cells; every sizing method lost money.
+- Surprise: raw divergence on RSI or on wide classes (ka/kb) sits at 0.92-0.99; only the strictest class (kc) with MACD-histogram lifts above 1.1; fewer trades (1.3k vs 25k) carried the edge.
+- Reuse: always gate divergence by a strict class; sizing studies need a positive-edge entry first; collector caps hid half the data once (raised to 900k chars).
+- Profit-booking / exit takeaway: atr3 beats atr1.5 on the one family that works (1.267 vs 1.14), consistent with letting divergence winners run to 25 bars; tight stops on 5m ORB book small losses repeatedly.
