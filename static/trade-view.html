@@ -365,12 +365,13 @@
         <th>Strategy</th>
         <th class="num">PFnet</th>
         <th class="num" title="Average market hours held in the backtest behind this PFnet / Win %. A daily bar counts as one 6.25-hour NSE session (09:15-15:30 IST); 1h = 1 hr.">Avg hrs held<br><span style="font-weight:normal;font-size:.8em">(1d = 6.25 hrs)</span></th>
+        <th class="num" title="Statistical confidence that this strategy's backtested edge is real, not luck: chance the true win rate beats its break-even win rate, given PFnet, win % and trade count. 50% = break-even; higher = more trades and a wider margin.">Confidence to enter</th>
         <th class="num">Scans today</th>
         <th class="num">Scans last 30s</th>
         <th class="num">Successful entries today</th>
         <th class="num">Win % today</th>
       </tr></thead>
-      <tbody id="strategy-scan-body"><tr><td colspan="10" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="strategy-scan-body"><tr><td colspan="11" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -923,7 +924,7 @@ function renderStrategyScanActivity(data) {
   if (!body) return;
   const rows = data?.strategies || [];
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="10" class="scan-idle">No viable strategies right now</td></tr>`;
+    body.innerHTML = `<tr><td colspan="11" class="scan-idle">No viable strategies right now</td></tr>`;
     return;
   }
   body.innerHTML = rows.map((r, i) => `<tr>
@@ -933,6 +934,7 @@ function renderStrategyScanActivity(data) {
     <td class="sym">${r.strategy_tag}</td>
     <td class="num">${r.pfnet !== null && r.pfnet !== undefined ? fmt(r.pfnet, 3) : "—"}</td>
     ${avgHrsHeldCell(r.avg_held_hrs)}
+    <td class="num">${r.entry_confidence_pct !== null && r.entry_confidence_pct !== undefined ? fmt(r.entry_confidence_pct, 1) + "%" : "—"}</td>
     <td class="num">${r.scans_today ?? "—"}</td>
     <td class="num"${r.scans_last_30s === 0 ? ' title="Swing strategies scan once/day - 0 here is normal between scans, not a stall."' : ""}>${r.scans_last_30s ?? "—"}</td>
     <td class="num"${r.scan_wired === false ? ' title="Viable in research; no live scan wired yet"' : ""}>${r.successful_entries_today ?? "—"}</td>
@@ -1146,7 +1148,6 @@ async function refreshControlStatus() {
 // time, never stored, same lightweight-friction pattern used elsewhere on
 // this page rather than a persistent unlock popup.
 const CONSTRAINT_LABELS = {
-  min_entry_confidence_pct: "Minimum trend confidence to enter (%)",
   daily_risk_pct: "Daily loss cap (% of capital)",
   rr: "Minimum reward:risk",
   max_hold_minutes: "Max hold time before stale-timeout exit (min)",
@@ -1468,7 +1469,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
     if (ok(stop) && ok(target) && Math.abs(e - Number(stop)) > 0) bits.push(`R:R ${fmt(Math.abs(Number(target) - e) / Math.abs(e - Number(stop)), 2)}`);
     return bits.length ? `<b>This trade:</b> ${bits.join(' · ')}<br>` : "";
   };
-  const leaderboardCells = (strategyTag, tradeRisk) => {
+  const leaderboardCells = (strategyTag, tradeRisk, thesis) => {
     const registryName = STRATEGY_TAG_TO_REGISTRY_NAME[strategyTag];
     const row = registryName ? strategyInfoByName[registryName] : undefined;
     if (!row) {
@@ -1481,7 +1482,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
     const winPct = row.win_rate_pct !== null && row.win_rate_pct !== undefined ? `${fmt(row.win_rate_pct, 2)}%` : "—";
     return `<td class="log-type">${category}</td><td>${rank}</td>
       <td class="num">${pfnet}</td><td class="num">${winPct}</td>${avgHrsHeldCell(row.avg_held_hrs)}
-      <td class="meta" style="min-width:320px;white-space:normal;" title="${(row.entry_conditions || '').replace(/"/g, '&quot;')}">${tradeRisk || ""}${registryName !== strategyTag ? `<i>${registryName}</i><br>` : ""}${row.entry_conditions || 'no entry-condition text recorded for this strategy yet'}</td>`;
+      <td class="meta" style="min-width:320px;white-space:normal;" title="${(row.entry_conditions || '').replace(/"/g, '&quot;')}">${tradeRisk || ""}${registryName !== strategyTag ? `<i>${registryName}</i><br>` : ""}${row.entry_conditions || 'no entry-condition text recorded for this strategy yet'}${thesis ? `<div class="thesis-card" style="margin-top:6px"><b>Trade thesis:</b> ${thesis}</div>` : ""}</td>`;
   };
   let totalUnrealisedInr = 0;
 
@@ -1610,12 +1611,9 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
         : `target: ${targetCell(pos)}`
       }</td>
       <td class="meta">${pos.opened_at ? timeAgo(pos.opened_at) : "—"}</td>${daysPassedCell(pos.opened_at)}
-      ${leaderboardCells(pos.strategy, riskLine(pos.entry_price, pos.sl_trigger_price, pos.target_price))}
+      ${leaderboardCells(pos.strategy, riskLine(pos.entry_price, pos.sl_trigger_price, pos.target_price), pos.entry_thesis)}
     </tr>`;
-    const thesisRow = pos.entry_thesis ? `<tr class="thesis-row"><td colspan="21">
-      <div class="thesis-card"><b>${displayName(pos.symbol)} — trade thesis:</b> ${pos.entry_thesis}</div>
-    </td></tr>` : "";
-    return thesisRow ? [row, thesisRow] : [row];
+    return [row];
   });
 
   // Real (Kotak) trades today - a SEPARATE section, never merged into the
