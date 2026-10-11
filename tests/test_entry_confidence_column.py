@@ -19,3 +19,14 @@ def test_missing_inputs_give_none():
 
 def test_trend_confidence_setting_removed():
     assert "min_entry_confidence_pct" not in main.RUNTIME_SETTINGS_META
+
+
+def test_user_strategy_tag_roundtrip_and_mirrored():
+    import main
+    assert "user_strategy_tags" in main._GENERIC_MIRROR_TABLES
+    import sqlite3
+    c = sqlite3.connect(":memory:"); c.row_factory = sqlite3.Row
+    c.execute("CREATE TABLE user_strategy_tags (symbol TEXT PRIMARY KEY, strategy TEXT NOT NULL, tagged_at REAL NOT NULL)")
+    c.execute("INSERT INTO user_strategy_tags VALUES ('NYKAA','mine',1)")
+    c.execute("CREATE TABLE real_trades (strategy TEXT, kotak_trading_symbol TEXT, side TEXT, status TEXT, ts REAL)")
+    assert main._recover_strategy_for_untracked_position(c, "NYKAA-EQ", "B") == "user: mine"

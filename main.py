@@ -661,6 +661,15 @@ def init_db():
         )
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS user_strategy_tags (
+                symbol TEXT PRIMARY KEY,   -- Kotak base symbol, upper-case, no -EQ suffix
+                strategy TEXT NOT NULL,    -- name the user gave this trade (B-402)
+                tagged_at REAL NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS signal_state_swing (
                 symbol TEXT PRIMARY KEY,
                 strategy TEXT NOT NULL,   -- 'gap_and_go' | 'minervini_vcp' - which swing signal opened this
@@ -11036,6 +11045,15 @@ def _recover_strategy_for_untracked_position(conn, kotak_trading_symbol: str, si
     side exists at all - which DOES mean this app genuinely never placed
     it (a true kotak_untracked position, e.g. NEWGEN/SANDUMA from the
     2026-09-09 finding), as opposed to placed-but-untracked."""
+    try:
+        ut = conn.execute(
+            "SELECT strategy FROM user_strategy_tags WHERE symbol = ?",
+            ((kotak_trading_symbol or "").split("-")[0].upper(),),
+        ).fetchone()
+        if ut:
+            return "user: " + ut["strategy"]
+    except Exception:
+        pass
     row = conn.execute(
         "SELECT strategy FROM real_trades WHERE kotak_trading_symbol = ? AND side = ? "
         "AND status = 'confirmed' AND strategy IS NOT NULL ORDER BY ts DESC LIMIT 1",
@@ -14852,6 +14870,25 @@ def _banner_extras() -> dict:
     return out
 
 
+@app.post("/strategy-tag")
+def set_user_strategy_tag(symbol: str, strategy: str):
+    """B-402: the user names the strategy of a position the app could not
+    recover. Display/attribution only: engine ownership and SL rules are
+    unchanged. Mirrored to Upstash via the generic mirror."""
+    base = symbol.split("-")[0].split(".")[0].strip().upper()
+    name = strategy.strip()[:80]
+    if not base or not name:
+        raise HTTPException(status_code=400, detail="symbol and strategy required")
+    with closing(get_db()) as conn:
+        conn.execute(
+            "INSERT INTO user_strategy_tags (symbol, strategy, tagged_at) VALUES (?,?,?) "
+            "ON CONFLICT(symbol) DO UPDATE SET strategy=excluded.strategy, tagged_at=excluded.tagged_at",
+            (base, name, time.time()),
+        )
+        conn.commit()
+    return {"ok": True, "symbol": base, "strategy": "user: " + name}
+
+
 @app.get("/trading-control")
 def get_trading_control():
     with closing(get_db()) as conn:
@@ -16276,7 +16313,7 @@ _GENERIC_MIRROR_TABLES = (
     "real_trading_control", "trading_control", "real_fo_positions",
     "real_fo_trades", "option_state", "nse_straddle_state",
     "signal_state_fo_options", "swing_scan_log", "tracked_union",
-    "sl_order_snapshot", "swing_ltp_peak",
+    "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
