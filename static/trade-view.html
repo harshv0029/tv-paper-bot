@@ -989,7 +989,7 @@ function renderScannedBanner(p) {
     (typeof allTotal === 'number' ? ` — All: ${allTotal} assets tracked` : '');
 }
 
-// Swing (Gap and Go) scan banner (2026-09-22, explicit user request: a
+// Swing (all strategies) scan banner (2026-09-22, explicit user request: a
 // counter + distinct-tracked-assets line for the swing engine, below the
 // intraday one above). Deliberately its own line/element, not folded into
 // renderScannedBanner - the swing engine scans once per IST day (see
@@ -1007,9 +1007,16 @@ function renderSwingScannedBanner(p) {
     el.textContent = '';
     return;
   }
-  el.textContent = `Swing (Gap and Go): ${totalChecks} total checks run today` +
-    (typeof distinct === 'number' && typeof total === 'number'
-      ? ` (${distinct} / ${total} distinct assets scanned at least once)`
+  const sChecks = p.swing_strategy_checks_today;
+  const sCount = p.swing_strategies_scanned_today;
+  // user 2026-10-11: banner covers ALL swing strategies. "N total checks" equals the distinct count for swing
+  // (one scan per day), so it is shown once; scan state and strategy-checks add the information.
+  const state = p.swing_scan_done_today === true ? ' \u2714 daily scan done' : (p.swing_scan_done_today === false ? ' \u23F3 daily scan pending' : '');
+  const assets = (typeof distinct === 'number' && typeof total === 'number')
+    ? `${distinct} / ${total} assets scanned` : `${totalChecks} checks`;
+  el.textContent = `Swing (all strategies):${state} \u2014 ${assets}` +
+    (typeof sChecks === 'number' && typeof sCount === 'number'
+      ? ` \u00B7 ${sChecks} strategy checks across ${sCount} swing strateg${sCount === 1 ? 'y' : 'ies'}`
       : '');
 }
 
