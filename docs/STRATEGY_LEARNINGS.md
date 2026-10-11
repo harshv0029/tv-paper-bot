@@ -283,3 +283,10 @@ Profit-booking / exit takeaway: do not tighten exits or trail early; the edge is
 - Result: none yet; run elder-patterns-research.yml (consol and trendline families) and compare against plain edge_bounce / tl_break tags.
 - Reuse: price-target and stop-tighten overlays belong in the shared simulate(); detectors only supply per-entry level arrays and the mirror un-flips them (1/x).
 - Profit-booking / exit takeaway: prior runs show timeout survivors carry the edge and tight stops lose; expect a target at ~1x measured move to cut hold time but also cap winners, so judge by PFnet per bar held.
+## 2026-10-11 SL governance audit (B-506, B-530, B-550)
+- Mechanism: audit of live stop handling against O'Neil execution rule and Douglas monotonic-stop rule.
+- Fit: exits are MKT; stops are trigger-gated SL (limit) because SL-M is blocked on this Kotak account; intraday long/short sync only ratchets in the trade's favour; swing sync only places missing SLs; the 5-min backcheck is category-agnostic (net-qty sign) so swing and option holdings are covered.
+- Result: no code defect found; locked by tests/test_sl_governance_audits.py. No backtest (not applicable).
+- Surprises: O'Neil "SL-M" advice cannot be followed literally here; SL limit with zero buffer is the accepted substitute.
+- Reuse: owed from the coordinator: loosen-event counter and per-position time-limit check (main.py).
+- Profit-booking / exit takeaway: exits at market preserve fills in falling stocks; a stop-limit can miss on gaps, which is what the 09:15 protect pass and emergency MKT escalation backstop.
