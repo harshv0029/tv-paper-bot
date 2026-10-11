@@ -1,7 +1,7 @@
 # Strategy learnings (durable, one entry per strategy or idea discussed)
 
 Rule (CLAUDE.md, 2026-10-11): every new strategy or idea we discuss gets an entry here in the same commit as its backlog row,
-with the important items: the mechanism, why it should or should not work in THIS system (NSE/MCX, Kotak, costs, FIFO, no
+with the important items (and a closing "Profit-booking / exit takeaway" line): the mechanism, why it should or should not work in THIS system (NSE/MCX, Kotak, costs, FIFO, no
 unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surprised us, and what to reuse next time.
 
 ## Overnight anomaly (night vs day), video 2026-10-11, B-363/B-364
@@ -24,3 +24,13 @@ unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surp
 
 ## Viable floor 1.1, 2026-10-11, B-360
 - Lesson: raising the floor from 1.0 to 1.1 closed 117 of 218 wired cells automatically; borderline cells (1.0 to 1.1) are noise-level after costs.
+
+## Standing principle (user, 2026-10-11)
+- The only aim of this bot is profit from every trade it takes. Use this file before every strategy, sizing, exit or profit-booking decision.
+
+## Profit-booking / exit takeaways so far
+- Overnight anomaly: a 1-bar hold has no room for 0.8% cost; prefer holds where average gross win per trade is several times the cost.
+- MCX: exits must be the stop the backtest assumed; no-stop edges did not survive a 1.5 to 2.5 ATR stop for 19 of 27 cells.
+- OB/VP history: edge sat on 30-day survivors while trail stops lost; wide stops plus long holds, not tight trails, carried those PFnets.
+- Faster turnover is preferred only among equal-edge variants; cost per trade decides whether fast is viable at all.
+
