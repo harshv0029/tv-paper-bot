@@ -290,3 +290,11 @@ Profit-booking / exit takeaway: do not tighten exits or trail early; the edge is
 - Surprises: O'Neil "SL-M" advice cannot be followed literally here; SL limit with zero buffer is the accepted substitute.
 - Reuse: owed from the coordinator: loosen-event counter and per-position time-limit check (main.py).
 - Profit-booking / exit takeaway: exits at market preserve fills in falling stocks; a stop-limit can miss on gaps, which is what the 09:15 protect pass and emergency MKT escalation backstop.
+
+## Elder pyramiding and Vince portfolio rules (B-742, B-743), 2026-10-11 (slice_05b)
+- Mechanism: pyramiding adds units to a winning trend position only when the position is at breakeven or better (stop at or beyond average cost) and total open risk stays within 2% of equity; Vince rules: never average down, exit rather than meet a margin call, liquidate the worst position first when lightening up.
+- Fit here: every existing simulator is single-unit per trade, so adds need a unit ledger, not a signal variant. The no-trade-without-SL rule maps naturally: each add carries a stop and locked-in profit is not counted as risk. NSE MIS squares off at 15:15 IST and the 0.8% cost model is charged per unit, so adds must be costed individually.
+- Built: scripts/portfolio_ledger_research.py (`pyramid_position`, `liquidate_worst_first`), long and short, 5 tests green. No backtest result yet; both rows are PARTIAL until the collect stage emits per-trade bar paths.
+- Surprise/reuse: the stop-moves-only-in-profit-direction clamp and the average-down rejection are what make an add safe; reuse them in any future live pyramiding path. Costs of extra units may erase the edge on thin strategies, so test adds vs no-add after costs.
+- Profit-booking / exit takeaway: adds raise exposure to the same trend, so the stop must move to breakeven first; exit the whole stack on the first stop hit and cut the worst mark-to-market position first when freeing margin.
+
