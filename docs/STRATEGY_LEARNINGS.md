@@ -170,3 +170,10 @@ unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surp
 - **Owner decision:** the threshold may be lowered until PFnet clears the live floor (currently 1.1, may change); choose by sweep, per category and direction.
 - **Reuse:** read the floor from `PFNET_LIVE_FLOOR`, never hard-code it.
 - **Profit-booking / exit takeaway:** none new; an entry filter only helps if the measured gated PFnet beats ungated, otherwise it just removes winners.
+
+## 2026-10-11 — Stock-option liquidity screen (B-418)
+- **Mechanism:** a swing share entry on an F&O stock also buys one ATM call (B-417). Stock options are often illiquid (wide spread, thin OI), so a screen rejects any contract failing named limits in `nse_fo_chain.py` (`STOCK_OPT_*`: min premium 2.0, max spread 5%, OI >= 100 lots, volume >= 20 lots, lot notional <= Rs 2,00,000), failing CLOSED on any missing field.
+- **Fit:** the 0.8% cost model plus a wide spread eats the edge before the trailing SL can work; the no-trade-without-SL rule also needs a stop that can actually fill, which thin books do not give. Screen is an additional skip only; SL and trailing SL untouched.
+- **Surprise:** `select_nse_option_contract` only returns LTP, lot size, strike, expiry and DTE (quotes called with quote_type="ltp"); bid/ask, OI and volume were NOT in chain data. They need a new quotes call whose response shape is unverified live, so until confirmed the screen will skip (fail closed) rather than trade blind.
+- **Reuse:** verify the live quotes response keys (`parse_option_liquidity` tries several), then tune limits from real skip logs (`skipped_illiquid_stock_option`), not blind.
+- **Profit-booking / exit takeaway:** a spread above the limit is a guaranteed round-trip cost at exit too, so skipping illiquid options protects profit at both entry and the trailing-SL exit.
