@@ -354,7 +354,7 @@ def merge_run(paths):
     print(f"cells={len(res)} viable(PFnet>=1.1,n>=300)={len(ok)}")
     for pf, n, t in ok[:40]:
         m = res[t]
-        print(f"{t} pfnet={pf} win={m['win_pct']} n={n} hold={m['avg_held_bars']} reasons={json.dumps(m["exit_reasons"], default=str)}")
+        print(f"{t} pfnet={pf} win={m['win_pct']} n={n} hold={m['avg_held_bars']} reasons={json.dumps(m['exit_reasons'], default=str)}")
     print("TOP10 any n>=100:")
     for m, t in sorted(((m["pfnet"] or 0, t) for t, m in res.items() if m["n"] >= 100), reverse=True)[:10]:
         print(t, m, res[t]["win_pct"], res[t]["n"])
