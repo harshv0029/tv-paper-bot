@@ -20566,5 +20566,77 @@
     "prev_state": null,
     "new_state": "rejected",
     "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 11-Oct-2026 13:28:15 S SL qty 1 trg 159.67 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+    "id": 1140,
+    "ts": 1791708861.9891002,
+    "symbol": "IVZINGOLD.NS",
+    "kotak_trading_symbol": "IVZINGOLD-EQ",
+    "leg": "kotak",
+    "event": "kotak_order_not_in_app_log",
+    "order_id": "261011000000956",
+    "prev_state": null,
+    "new_state": "rejected",
+    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 11-Oct-2026 14:19:10 S SL qty 3 trg 125.15 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+    "id": 1141,
+    "ts": 1791708861.9893842,
+    "symbol": "ESILVER.NS",
+    "kotak_trading_symbol": "ESILVER-EQ",
+    "leg": "kotak",
+    "event": "kotak_order_not_in_app_log",
+    "order_id": "261011000000959",
+    "prev_state": null,
+    "new_state": "rejected",
+    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 11-Oct-2026 14:19:46 S SL qty 2 trg 216.28 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+    "id": 1142,
+    "ts": 1791708861.9894097,
+    "symbol": "UNIONBANK.NS",
+    "kotak_trading_symbol": "UNIONBANK-EQ",
+    "leg": "kotak",
+    "event": "kotak_order_not_in_app_log",
+    "order_id": "261011000000955",
+    "prev_state": null,
+    "new_state": "rejected",
+    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 11-Oct-2026 14:18:51 S SL qty 1 trg 159.67 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+    "id": 1143,
+    "ts": 1791708861.989419,
+    "symbol": "BANKINDIA.NS",
+    "kotak_trading_symbol": "BANKINDIA-EQ",
+    "leg": "kotak",
+    "event": "kotak_order_not_in_app_log",
+    "order_id": "261011000000957",
+    "prev_state": null,
+    "new_state": "rejected",
+    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 11-Oct-2026 14:19:22 S SL qty 8 trg 126.73 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+    "id": 1144,
+    "ts": 1791708861.9894261,
+    "symbol": "COALINDIA.NS",
+    "kotak_trading_symbol": "COALINDIA-EQ",
+    "leg": "kotak",
+    "event": "kotak_order_not_in_app_log",
+    "order_id": "261011000000958",
+    "prev_state": null,
+    "new_state": "rejected",
+    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 11-Oct-2026 14:19:34 S SL qty 2 trg 398.35 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+    "id": 1145,
+    "ts": 1791708861.9894397,
+    "symbol": "DABUR.NS",
+    "kotak_trading_symbol": "DABUR-EQ",
+    "leg": "kotak",
+    "event": "kotak_order_not_in_app_log",
+    "order_id": "261011000000960",
+    "prev_state": null,
+    "new_state": "rejected",
+    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 11-Oct-2026 14:19:58 S SL qty 2 trg 380.25 status rejected rejRsn Adapter is Logged Off"
   }
 ]
