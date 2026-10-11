@@ -2076,7 +2076,7 @@ async function refresh() {
       fetchJSON(`${ORIGIN}/strategy-leaderboard`).catch(() => null),
       fetchJSON(`${ORIGIN}/strategy-info?wired=1`).then(d => { try { localStorage.setItem("sinfo_cache", JSON.stringify(d)); } catch (e) {} return d; }).catch(() => { try { return JSON.parse(localStorage.getItem("sinfo_cache")); } catch (e) { return null; } }),
       fetchJSON(`${ORIGIN}/real-protection-status`).catch(() => null),
-      fetchJSON(`${ORIGIN}/strategy-scan-activity`).catch(() => null),
+      fetchJSON(`${ORIGIN}/strategy-scan-activity?include_unwired=true`).catch(() => null),
       fetchJSON(`${ORIGIN}/strategy-tag-map`).then(m => { window._tagMap = m; try { localStorage.setItem("tagmap_cache", JSON.stringify(m)); } catch (e) {} }).catch(() => { try { window._tagMap = JSON.parse(localStorage.getItem("tagmap_cache")); } catch (e) {} }),
     ]);
     renderUnprotectedBanner(protectionStatus);
