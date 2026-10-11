@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Elder chart-pattern, bar and trendline research (backlog B-600, B-601, B-602, B-603, B-571,
 B-608, B-609, B-610, B-611, B-612, B-613, B-614, B-615, B-616, B-617, B-618, B-619, B-620,
-B-621, B-622, B-624). Research only: no live wiring, no main.py edits.
+B-621, B-622, B-624, B-607, B-623). Research only: no live wiring, no main.py edits.
 
 Reuses the simulator of scripts/elder_indicators_research.py (stop on EVERY trade, ATR multiple
 sweep 1.5/2/3, 0.8% round-trip cost, next-bar-open entry, 30-bar max hold). BOTH directions are
@@ -66,6 +66,23 @@ def both(det):
         le, lx = det(df)
         se, sx = det(flip(df))
         return er._pack(df, _b(le, n), _b(se, n), _b(lx, n), _b(sx, n))
+    return f
+
+
+def both_x(det):
+    """det(df) -> (entry, exit, extras), extras = {'tgt': arr, 'sr': arr} price arrays in the LONG
+    orientation; the short side runs on the reciprocal mirror and its price arrays are un-flipped (1/x)."""
+    def f(df):
+        n = len(df)
+        le, lx, lxt = det(df)
+        se, sx, sxt = det(flip(df))
+        sig = er._pack(df, _b(le, n), _b(se, n), _b(lx, n), _b(sx, n))
+        for k in ("tgt", "sr"):
+            if k in lxt:
+                sig["long_" + k] = np.asarray(lxt[k], float)
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    sig["short_" + k] = 1.0 / np.asarray(sxt[k], float)
+        return sig
     return f
 
 
@@ -336,6 +353,40 @@ def d_tl_break(df, retest=False, steep=0, w=4):
     return ent, _exit_ema(df).to_numpy()
 
 
+def d_tl_break_mm(df, w=4, mult=1.0):
+    """B-623 measured move: after a CLOSE above the descending trendline, target = line value at the
+    break bar + mult * (max vertical distance from the line to the lows since the 2nd pivot high).
+    Returns (entry, exit, {'tgt': per-entry target price})."""
+    c, h, l = (df[k].to_numpy(float) for k in ("Close", "High", "Low"))
+    n = len(df)
+    a = er.atr(df).to_numpy()
+    ent, tgt = np.zeros(n, bool), np.full(n, np.nan)
+    ph = pivots(h, w, True)
+    for k in range(1, len(ph)):
+        (i1, _), (i2, c2) = ph[k - 1], ph[k]
+        if h[i2] >= h[i1] or i2 - i1 < 3 or np.isnan(a[i2]):
+            continue
+        sl = (h[i2] - h[i1]) / (i2 - i1)
+        nxt = ph[k + 1][0] if k + 1 < len(ph) else n
+        for j in range(c2, min(n, nxt + 1, c2 + 40)):
+            line = h[i2] + sl * (j - i2)
+            if c[j] > line:
+                seg = np.arange(i2, j + 1)
+                dist = (h[i2] + sl * (seg - i2) - l[seg]).max()
+                if dist > 0:
+                    ent[j], tgt[j] = True, line + mult * dist
+                break
+    return ent, _exit_ema(df).to_numpy(), {"tgt": tgt}
+
+
+def d_edge_bounce_sr(df, look=30, band=0.01):
+    """B-607 support-bounce long whose S/R level for stop-tightening is the congestion TOP edge
+    (90th pct of prior closes). Returns (entry, exit, {'sr': level})."""
+    ent, ex = d_edge_bounce(df, look, band)
+    top = df["Close"].shift(1).rolling(look).quantile(0.9)
+    return ent.to_numpy(), ex.to_numpy(), {"sr": top.to_numpy()}
+
+
 def d_channel(df, look=30, zone=0.25):
     c = df["Close"]
     x = np.arange(look, dtype=float)
@@ -370,6 +421,9 @@ def variant_specs(family):
         for nb in (2, 3, 5):
             S.append(("brk_fade", {"nb": nb}, both(lambda d, nb=nb: d_brk_fade(d, nb)), {}))
         S.append(("edge_bounce", {"look": 30}, both(d_edge_bounce), {}))
+        for sra in (0.5, 1.0):      # B-607: tighten stop to a 1-ATR trail once within sra ATR of the top edge
+            S.append(("edge_bounce_srtight", {"look": 30, "sra": sra}, both_x(d_edge_bounce_sr),
+                      {"sr_atr": sra, "sr_trail_atr": 1.0}))
     elif family == "bars":
         for thr in (0.6, 0.8):
             for mode in ("follow", "contra"):
@@ -382,6 +436,8 @@ def variant_specs(family):
             for rt in (0, 1):
                 S.append(("tl_break", {"steep": steep, "retest": rt},
                           both(lambda d, s=steep, r=rt: d_tl_break(d, bool(r), s)), {}))
+        for mult in (1.0, 0.5):
+            S.append(("tl_break_mm", {"mult": mult}, both_x(lambda d, m=mult: d_tl_break_mm(d, 4, m)), {}))
         for z in (0.25, 0.5):
             S.append(("channel", {"zone": z}, both(lambda d, z=z: d_channel(d, 30, z)), {}))
     else:
