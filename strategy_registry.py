@@ -2767,6 +2767,11 @@ def _extend_with_sweeps():
         REGISTRY.extend(_sw.build())
     except Exception:
         pass
+    try:
+        import strategy_registry_exitfamily as _ef
+        REGISTRY.extend(_ef.build())
+    except Exception:
+        pass
 
 
 _extend_with_sweeps()
