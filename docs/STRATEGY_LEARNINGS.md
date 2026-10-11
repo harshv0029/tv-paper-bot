@@ -163,3 +163,10 @@ unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surp
 - **Fit to this system:** signals are backtested on completed daily bars, so repeat passes must not see the forming bar; the same-day guard stops an exit then re-entry flip on the same bar.
 - **Surprise:** legacy tags (power_play, gap_and_go, VCP) had no ATR multiple in their registry names, so SL % showed n/a; their stop rules now come from the live entry/exit functions (`_SWING_SL_RULES`).
 - **Profit-booking / exit takeaway:** power_play and VCP exit on a chandelier trail (2xATR below peak close) and OB/VP on 6xATR, so profit is booked by trail, not a target; gap_and_go has a frozen stop and a 30-day max hold.
+
+## 2026-10-11 — Trend-confidence entry gate (B-406 → B-421)
+- **Mechanism:** `_trend_confidence` is a one-tailed normal-CDF z-score of the fast/slow MA gap against price noise; only the intraday engines compute it today.
+- **Fit:** swing, MCX and option-strike cells were validated without any confidence filter. Adding a gate to them changes a validated PFnet blind, which breaks the never-tune-blind rule, so they stay exempt until measured.
+- **Owner decision:** the threshold may be lowered until PFnet clears the live floor (currently 1.1, may change); choose by sweep, per category and direction.
+- **Reuse:** read the floor from `PFNET_LIVE_FLOOR`, never hard-code it.
+- **Profit-booking / exit takeaway:** none new; an entry filter only helps if the measured gated PFnet beats ungated, otherwise it just removes winners.
