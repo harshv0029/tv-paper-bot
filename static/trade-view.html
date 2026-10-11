@@ -355,21 +355,22 @@
 <div class="counts-panel">
   <div class="counts-head">
     <span class="title">Viable strategies — scan &amp; entry activity <span id="strategy-scan-refreshed" class="scan-idle">(last refreshed: —)</span></span>
+    <input id="sa-filter" type="search" placeholder="Filter strategies / category…" style="margin-left:12px;padding:2px 6px;font-size:.85em;">
   </div>
   <div class="counts-scroll">
     <table class="counts">
       <thead><tr>
         <th class="num">#</th>
-        <th title="Wired = a live scan/entry path trades it; Not wired = viable in research only">Wired?</th>
-        <th>Category</th>
-        <th>Strategy</th>
-        <th class="num">PFnet</th>
-        <th class="num" title="Average market hours held in the backtest behind this PFnet / Win %. A daily bar counts as one 6.25-hour NSE session (09:15-15:30 IST); 1h = 1 hr.">Avg hrs held<br><span style="font-weight:normal;font-size:.8em">(1d = 6.25 hrs)</span></th>
-        <th class="num" title="Statistical confidence that this strategy's backtested edge is real, not luck: chance the true win rate beats its break-even win rate, given PFnet, win % and trade count. 50% = break-even; higher = more trades and a wider margin.">Confidence to enter</th>
-        <th class="num">Scans today</th>
-        <th class="num">Scans last 30s</th>
-        <th class="num">Successful entries today</th>
-        <th class="num">Win % today</th>
+        <th title="Wired = a live scan/entry path trades it; Not wired = viable in research only" data-sa-key="scan_wired" style="cursor:pointer;user-select:none">Wired?</th>
+        <th data-sa-key="categories" style="cursor:pointer;user-select:none">Category</th>
+        <th data-sa-key="strategy_tag" style="cursor:pointer;user-select:none">Strategy</th>
+        <th class="num" data-sa-key="pfnet" style="cursor:pointer;user-select:none">PFnet</th>
+        <th class="num" title="Average market hours held in the backtest behind this PFnet / Win %. A daily bar counts as one 6.25-hour NSE session (09:15-15:30 IST); 1h = 1 hr." data-sa-key="avg_held_hrs" style="cursor:pointer;user-select:none">Avg hrs held<br><span style="font-weight:normal;font-size:.8em">(1d = 6.25 hrs)</span></th>
+        <th class="num" title="Statistical confidence that this strategy's backtested edge is real, not luck: chance the true win rate beats its break-even win rate, given PFnet, win % and trade count. 50% = break-even; higher = more trades and a wider margin." data-sa-key="entry_confidence_pct" style="cursor:pointer;user-select:none">Confidence to enter</th>
+        <th class="num" data-sa-key="scans_today" style="cursor:pointer;user-select:none">Scans today</th>
+        <th class="num" data-sa-key="scans_last_30s" style="cursor:pointer;user-select:none">Scans last 30s</th>
+        <th class="num" data-sa-key="successful_entries_today" style="cursor:pointer;user-select:none">Successful entries today</th>
+        <th class="num" data-sa-key="win_rate_today_pct" style="cursor:pointer;user-select:none">Win % today</th>
       </tr></thead>
       <tbody id="strategy-scan-body"><tr><td colspan="11" class="scan-idle">Loading…</td></tr></tbody>
     </table>
@@ -916,15 +917,34 @@ function formatIstTimestamp(epochSeconds) {
 
 function renderStrategyScanActivity(data) {
   const stamp = document.getElementById("strategy-scan-refreshed");
-  if (stamp) {
+  if (stamp && (data || !window._saData)) {
     const epoch = data && typeof data.as_of_epoch === "number" ? data.as_of_epoch : (data ? Date.now() / 1000 : null);
     stamp.textContent = epoch ? `(last refreshed: ${formatIstTimestamp(epoch)})` : "(last refreshed: — fetch failed)";
   }
   const body = document.getElementById("strategy-scan-body");
   if (!body) return;
-  const rows = data?.strategies || [];
+  if (data) window._saData = data;
+  let rows = (window._saData?.strategies || []).slice();
+  const q = (document.getElementById("sa-filter")?.value || "").trim().toLowerCase();
+  if (q) rows = rows.filter(r => (String(r.strategy_tag) + " " + (r.categories || []).join(" ") + (r.scan_wired === false ? " not wired" : " wired")).toLowerCase().includes(q));
+  const sk = window._saSortKey;
+  if (sk) {
+    const val = r => { const v = r[sk]; return Array.isArray(v) ? v.join(",") : v; };
+    rows.sort((x, y) => {
+      const a = val(x), b = val(y);
+      if (a == null && b == null) return 0;
+      if (a == null) return 1;
+      if (b == null) return -1;
+      const c = typeof a === "number" && typeof b === "number" ? a - b : String(a).localeCompare(String(b));
+      return window._saSortDir * c;
+    });
+  }
+  document.querySelectorAll("th[data-sa-key]").forEach(th => {
+    const base = th.dataset.saBase || (th.dataset.saBase = th.innerHTML);
+    th.innerHTML = base + (th.dataset.saKey === sk ? (window._saSortDir > 0 ? " ▲" : " ▼") : "");
+  });
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="11" class="scan-idle">No viable strategies right now</td></tr>`;
+    body.innerHTML = `<tr><td colspan="11" class="scan-idle">No viable strategies match</td></tr>`;
     return;
   }
   body.innerHTML = rows.map((r, i) => `<tr>
@@ -941,6 +961,16 @@ function renderStrategyScanActivity(data) {
     <td class="num"${r.closed_today ? ` title="${r.closed_today} closed today"` : ""}>${r.win_rate_today_pct !== null && r.win_rate_today_pct !== undefined ? fmt(r.win_rate_today_pct, 1) + "%" : "—"}</td>
   </tr>`).join("");
 }
+
+window._saSortKey = null; window._saSortDir = 1;
+document.addEventListener("click", e => {
+  const th = e.target.closest && e.target.closest("th[data-sa-key]");
+  if (!th) return;
+  const k = th.dataset.saKey;
+  if (window._saSortKey === k) window._saSortDir *= -1; else { window._saSortKey = k; window._saSortDir = 1; }
+  renderStrategyScanActivity(null);
+});
+document.addEventListener("input", e => { if (e.target && e.target.id === "sa-filter") renderStrategyScanActivity(null); });
 
 // Top-of-page "scanned today" banner (2026-09-08, explicit user request:
 // "give me a total of how many stocks or asset you have scanned till now
