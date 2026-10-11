@@ -2791,6 +2791,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_dg.build())
         import strategy_registry_b412 as _b4
         REGISTRY.extend(_b4.build())
+        import strategy_registry_overlay as _ov
+        REGISTRY.extend(_ov.build())
         REGISTRY.extend(_ef.build())
     except Exception:
         pass
