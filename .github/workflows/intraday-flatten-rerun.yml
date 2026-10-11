@@ -1,0 +1,87 @@
+name: Intraday flatten rerun (B-792, forced exit before 15:15 IST)
+
+# Research-only, read-only. Re-runs the viable intraday-bar cells (derived from strategy_registry at read time:
+# PFnet >= PFNET_LIVE_FLOOR, non-1d, avg hold <= one session) with a FORCED exit at the last bar ending <= 15:15 IST
+# (exchange cancels resting orders at 15:15; intraday must be flat by 15:14). Harness: scripts/intraday_flatten_rerun.py
+# (reuses chan_ext_research.kalman_cells + chan_research.simulate, and pattern_lab r_calendar/r_lunar/clean_bars/atr_arr;
+# never reimplements main.py logic). FULL NSE universe (main._load_nse_universe_from_file()), BOTH directions, ATR stop
+# 1.5/2.5/4 (chan) or 2.5/4/6 plus the no-stop reference cell (pattern; no-stop cells may not be wired live),
+# 0.8% round-trip cost (same as the originals so numbers compare; real MIS cost is lower).
+# Families: chan_kalman (5m/15m viable cells; 1h also run as an extra reading), pattern_n200 (month_effect + lunar_full_new
+# on the live swing watchlist as in the original) and pattern_full (same rules on the full universe, since the originals
+# were n=202/404 calendar effects). Each re-run cell is a NEW tag `<old>_fl1515__v2`; merge prints raw pfnet/pfgross/win/n/
+# avg hold/exit breakdown and, per tag, the original registry numbers. 4h is owed (needs a 1h resample).
+# Dispatch order per CLAUDE.md: big matrix (up to 27 jobs): only when no gate/safety run is queued. Use `maxsym` for a pilot.
+on:
+  workflow_dispatch:
+    inputs:
+      families:
+        description: 'JSON list of families'
+        default: '["chan_kalman","pattern_n200","pattern_full"]'
+      intervals:
+        description: 'JSON list of candle sizes (5m, 15m, 1h)'
+        default: '["5m","15m","1h"]'
+      maxsym:
+        description: 'cap symbols for a pilot (0 = full universe)'
+        default: '0'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        family: ${{ fromJSON(inputs.families) }}
+        interval: ${{ fromJSON(inputs.intervals) }}
+        shard: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run shard
+        env:
+          FAMILY: ${{ startsWith(matrix.family, 'pattern') && 'pattern' || matrix.family }}
+          UNI: ${{ matrix.family == 'pattern_n200' && 'n200' || 'full' }}
+          INTERVAL: ${{ matrix.interval }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "3"
+          MAXSYM: ${{ inputs.maxsym }}
+          OUT_DIR: out
+        run: |
+          set -o pipefail
+          python3 scripts/intraday_flatten_rerun.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flat-${{ matrix.family }}-${{ matrix.interval }}-${{ matrix.shard }}
+          path: out/flat_*.json
+
+  merge:
+    needs: run
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: flat-*
+          path: shards
+          merge-multiple: true
+      - name: Merge and print
+        env:
+          OUT: flat_results.json
+        run: |
+          set -o pipefail
+          python3 scripts/intraday_flatten_rerun.py --merge shards/flat_*.json | tee merge.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flat-results
+          path: |
+            flat_results.json
+            merge.txt

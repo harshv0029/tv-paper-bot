@@ -4902,6 +4902,145 @@ def order_block_exit_reason(
 
 
 # ---------------------------------------------------------------------------
+# brk20_min_rr (backlog B-798): 20-bar close breakout + minimum reward:risk
+# room filter + ATR stop ALWAYS attached. Port of the Douglas/Elder trade-
+# management research simulator (scripts/douglas_trade_mgmt_research.py,
+# base "brk20", option min_rr; run 38174269343, registry family
+# trademgmt_exit__brk20_min_rr__<dir>__1d__atr*_rr*__v1). NOT wired into any
+# live scan and NOT in strategy_registry.py's live gate: these are pure
+# functions for the main.py-function replay (.github/workflows/
+# brk20-min-rr-main-replay.yml). Research conventions kept verbatim:
+#   * signal on bar s's CLOSE; fill at bar s+1's OPEN (`entry_price` arg);
+#   * ATR = Wilder EWM (alpha 1/14, adjust=False) at the signal bar - NOT
+#     main._atr_series' rolling mean, which would change the numbers;
+#   * stop = entry -/+ atr_mult x ATR(s); min_rr filter: room to the prior
+#     60-bar extreme (excluding bar s) must be >= min_rr x risk;
+#   * rule exit: close < EMA13 and EMA13 falling (short: same on the
+#     reciprocal price, the research's flip() mirror); max hold 30 bars;
+#   * stop is gap-aware (bar open beyond the stop fills at the open).
+# Only the last BRK20_CALC_WINDOW bars are used (EWM tails are < 1e-6 by then).
+# ---------------------------------------------------------------------------
+BRK20_LOOKBACK_BARS = 20
+BRK20_ROOM_LOOKBACK_BARS = 60
+BRK20_EMA_SPAN = 13
+BRK20_ATR_PERIOD = 14
+BRK20_MAX_HOLD_BARS = 30
+BRK20_CALC_WINDOW = 400
+BRK20_DEFAULT_ATR_MULT = 3.0
+BRK20_DEFAULT_MIN_RR = 4.0
+BRK20_BE_BUFFER_R = 0.05  # breakeven stop = entry +/- 0.05 R (research's be_ratchet offset)
+
+
+def _brk20_atr_series(highs, lows, closes, period: int = BRK20_ATR_PERIOD) -> np.ndarray:
+    """Wilder EWM ATR (alpha=1/period, adjust=False), the research's er.atr."""
+    prev = np.concatenate(([np.nan], closes[:-1]))
+    tr = np.fmax.reduce([highs - lows, np.abs(highs - prev), np.abs(lows - prev)])
+    return pd.Series(tr).ewm(alpha=1.0 / period, adjust=False).mean().to_numpy()
+
+
+def brk20_stop_price(entry_price: float, atr: float, atr_mult: float, direction: str = "long") -> float:
+    """The initial ATR stop, always attached (no trade without a stop)."""
+    d = 1.0 if direction == "long" else -1.0
+    return float(entry_price) - d * float(atr_mult) * float(atr)
+
+
+def brk20_min_rr_entry_signal(
+    df: pd.DataFrame, direction: str = "long", atr_mult: float = BRK20_DEFAULT_ATR_MULT,
+    min_rr: float = BRK20_DEFAULT_MIN_RR, entry_price: float | None = None,
+) -> dict | None:
+    """Evaluates ONLY the last row of `df` (the signal bar). direction 'long' = close above the prior
+    20-bar high; 'short' = close below the prior 20-bar low (the exact mirror of the long rule).
+    `entry_price` = the fill price (next bar's open in the replay); default = signal close.
+    Returns {entry_price, stop_loss, atr_at_entry, risk, room, room_target, rr, signal_close} or None."""
+    if direction not in ("long", "short") or atr_mult <= 0 or min_rr < 0:
+        return None
+    d = df.iloc[-BRK20_CALC_WINDOW:]
+    n = len(d)
+    if n < BRK20_ROOM_LOOKBACK_BARS + 2:
+        return None
+    h = d["High"].to_numpy(dtype=float)
+    l = d["Low"].to_numpy(dtype=float)
+    c = d["Close"].to_numpy(dtype=float)
+    i = n - 1
+    if direction == "long":
+        if not c[i] > np.max(h[i - BRK20_LOOKBACK_BARS:i]):
+            return None
+        extreme60 = float(np.max(h[i - BRK20_ROOM_LOOKBACK_BARS:i]))
+    else:
+        if not c[i] < np.min(l[i - BRK20_LOOKBACK_BARS:i]):
+            return None
+        extreme60 = float(np.min(l[i - BRK20_ROOM_LOOKBACK_BARS:i]))
+    atr = float(_brk20_atr_series(h, l, c)[i])
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+    px = float(c[i]) if entry_price is None else float(entry_price)
+    if not px > 0:
+        return None
+    sgn = 1.0 if direction == "long" else -1.0
+    stop = brk20_stop_price(px, atr, atr_mult, direction)
+    risk = sgn * (px - stop)
+    if not risk > 0 or (direction == "long" and not stop > 0):
+        return None
+    room = sgn * (extreme60 - px)
+    if room < min_rr * risk:
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": float(risk),
+            "room": float(room), "room_target": extreme60, "rr": float(room / risk),
+            "signal_close": float(c[i]), "direction": direction}
+
+
+def brk20_min_rr_exit_reason(
+    df: pd.DataFrame, entry_day: str, entry_price: float, initial_stop: float,
+    direction: str = "long", be_r: float | None = None, max_hold_bars: int = BRK20_MAX_HOLD_BARS,
+) -> tuple:
+    """Evaluates ONLY the last row of `df` as bar j, for a position whose FILL bar is the first row with
+    Date >= entry_day. Returns (reason, exit_price) or (None, None).
+    Order inside a bar (research order): stop (gap-aware) -> rule exit (close vs EMA13, never on the fill
+    bar) -> max-hold timeout. `be_r` (None = no ratchet): once the best excursion through the PREVIOUS
+    bars reached be_r x R the stop is raised to entry +/- 0.05R (reason then 'protected_stop')."""
+    if len(df) == 0:
+        return None, None
+    sgn = 1.0 if direction == "long" else -1.0
+    dates = df["Date"].astype(str).to_numpy()
+    starts = np.flatnonzero(dates >= str(entry_day))
+    if len(starts) == 0:
+        return None, None
+    start = int(starts[0])
+    j = len(df) - 1
+    if j < start:
+        return None, None
+    risk = abs(float(entry_price) - float(initial_stop))
+    if risk <= 0:
+        return None, None
+    o = float(df["Open"].iloc[j])
+    stop, protected = float(initial_stop), False
+    if be_r is not None and j > start:
+        seg = df.iloc[start:j]
+        ext = float(seg["High"].max()) if direction == "long" else float(seg["Low"].min())
+        if sgn * (ext - entry_price) / risk >= be_r:
+            be_stop = entry_price + sgn * BRK20_BE_BUFFER_R * risk
+            stop = max(stop, be_stop) if direction == "long" else min(stop, be_stop)
+            protected = True
+    hi, lo, cl = float(df["High"].iloc[j]), float(df["Low"].iloc[j]), float(df["Close"].iloc[j])
+    if (direction == "long" and lo <= stop) or (direction == "short" and hi >= stop):
+        if j > start:
+            fill = min(o, stop) if direction == "long" else max(o, stop)
+        else:
+            fill = stop
+        return ("protected_stop" if protected else "stop_loss"), float(fill)
+    if j > start:
+        w = df.iloc[-BRK20_CALC_WINDOW:]
+        cc = w["Close"].to_numpy(dtype=float)
+        s = cc if direction == "long" else 1.0 / cc
+        e = pd.Series(s).ewm(span=BRK20_EMA_SPAN, adjust=False).mean().to_numpy()
+        if len(e) >= 2 and s[-1] < e[-1] and e[-1] < e[-2]:
+            return "rule_exit", cl
+    if j == start + int(max_hold_bars):
+        return "max_hold_timeout", cl
+    return None, None
+
+
+# ---------------------------------------------------------------------------
 # FVG 3rd-candle classification (backlog B-32, family `fvg3c`; spec in
 # docs/STRATEGY_SPEC_SND_AND_FVG3C.md). RESEARCH-STAGE ONLY: not wired into any
 # scan loop or real-order path. Three separately-validated variants (each its
