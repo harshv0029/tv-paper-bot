@@ -661,6 +661,15 @@ def init_db():
         )
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS user_strategy_tags (
+                symbol TEXT PRIMARY KEY,   -- Kotak base symbol, upper-case, no -EQ suffix
+                strategy TEXT NOT NULL,    -- name the user gave this trade (B-402)
+                tagged_at REAL NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS signal_state_swing (
                 symbol TEXT PRIMARY KEY,
                 strategy TEXT NOT NULL,   -- 'gap_and_go' | 'minervini_vcp' - which swing signal opened this
@@ -11036,12 +11045,36 @@ def _recover_strategy_for_untracked_position(conn, kotak_trading_symbol: str, si
     side exists at all - which DOES mean this app genuinely never placed
     it (a true kotak_untracked position, e.g. NEWGEN/SANDUMA from the
     2026-09-09 finding), as opposed to placed-but-untracked."""
+    try:
+        ut = conn.execute(
+            "SELECT strategy FROM user_strategy_tags WHERE symbol = ?",
+            ((kotak_trading_symbol or "").split("-")[0].upper(),),
+        ).fetchone()
+        if ut:
+            return "user: " + ut["strategy"]
+    except Exception:
+        pass
     row = conn.execute(
         "SELECT strategy FROM real_trades WHERE kotak_trading_symbol = ? AND side = ? "
         "AND status = 'confirmed' AND strategy IS NOT NULL ORDER BY ts DESC LIMIT 1",
         (kotak_trading_symbol, side),
     ).fetchone()
-    return row["strategy"] if row else None
+    if row:
+        return row["strategy"]
+    # B-402: widen beyond real_trades - an open swing signal row names the
+    # strategy even when the Kotak-side bookkeeping row is gone.
+    try:
+        base = (kotak_trading_symbol or "").split("-")[0].upper()
+        if base and side == "B":
+            r2 = conn.execute(
+                "SELECT strategy FROM signal_state_swing WHERE UPPER(symbol) IN (?, ?) LIMIT 1",
+                (base + ".NS", base),
+            ).fetchone()
+            if r2 and r2["strategy"]:
+                return r2["strategy"]
+    except Exception:
+        pass
+    return None
 
 
 def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,
@@ -14837,6 +14870,25 @@ def _banner_extras() -> dict:
     return out
 
 
+@app.post("/strategy-tag")
+def set_user_strategy_tag(symbol: str, strategy: str):
+    """B-402: the user names the strategy of a position the app could not
+    recover. Display/attribution only: engine ownership and SL rules are
+    unchanged. Mirrored to Upstash via the generic mirror."""
+    base = symbol.split("-")[0].split(".")[0].strip().upper()
+    name = strategy.strip()[:80]
+    if not base or not name:
+        raise HTTPException(status_code=400, detail="symbol and strategy required")
+    with closing(get_db()) as conn:
+        conn.execute(
+            "INSERT INTO user_strategy_tags (symbol, strategy, tagged_at) VALUES (?,?,?) "
+            "ON CONFLICT(symbol) DO UPDATE SET strategy=excluded.strategy, tagged_at=excluded.tagged_at",
+            (base, name, time.time()),
+        )
+        conn.commit()
+    return {"ok": True, "symbol": base, "strategy": "user: " + name}
+
+
 @app.get("/trading-control")
 def get_trading_control():
     with closing(get_db()) as conn:
@@ -16069,23 +16121,10 @@ SCHEDULER_RR = 3.0  # DEFAULT (fallback) - 1:3 minimum reward:risk, live-editabl
 # than silently narrowed.
 RUNTIME_SETTINGS_META = {
     # key: (default, min, max, requires_real_money_token, description)
-    "min_entry_confidence_pct": (
-        TREND_WEAKENED_MIN_CONFIDENCE * 100, 50.0, 99.9, False,
-        "Minimum statistical confidence (one-tailed normal-CDF read on the "
-        "SMA(fast) vs SMA(slow) gap - see _trend_confidence) that the trend "
-        "is real, required for a NEW orb_breakout entry (in addition to the "
-        "breakout clearing ENTRY_BREAKOUT_MARGIN_PCT above the opening-range "
-        "high). Lower = more entries taken on weaker/less-certain trend "
-        "evidence; higher = fewer, more selective entries. Default 95% "
-        "matches the same bar the early-exit 'trend weakened' check already "
-        "trusts (TREND_WEAKENED_MIN_CONFIDENCE), but that exit-side constant "
-        "is NOT changed by this setting - this only gates new entries.",
-    ),
     "daily_risk_pct": (
         SCHEDULER_DAILY_RISK_PCT, 0.1, 10.0, False,
-        "Account-wide daily loss cap, as % of capital. Once today's realized loss "
-        "reaches this, all new entries halt for the rest of the day (open positions "
-        "still get managed normally).",
+        "Account-wide daily loss cap (% of day-open capital), read from Kotak's real P&L: covers "
+        "every category (long, short, swing, options, MCX). At the cap, new real entries stop for the day.",
     ),
     "rr": (
         SCHEDULER_RR, 1.0, 10.0, False,
@@ -16274,7 +16313,7 @@ _GENERIC_MIRROR_TABLES = (
     "real_trading_control", "trading_control", "real_fo_positions",
     "real_fo_trades", "option_state", "nse_straddle_state",
     "signal_state_fo_options", "swing_scan_log", "tracked_union",
-    "sl_order_snapshot", "swing_ltp_peak",
+    "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
@@ -19094,7 +19133,6 @@ async def _scheduler_tick():
         live_daily_risk_pct = get_runtime_setting(conn, "daily_risk_pct")
         live_rr = get_runtime_setting(conn, "rr")
         live_batch_size = int(get_runtime_setting(conn, "entry_scan_batch_size"))
-        live_min_entry_confidence_pct = get_runtime_setting(conn, "min_entry_confidence_pct")
         live_max_hold_minutes = get_runtime_setting(conn, "max_hold_minutes")
 
     # When paused, don't waste a Yahoo Finance call scanning flat
@@ -19215,7 +19253,6 @@ async def _scheduler_tick():
                 # deliberately pinning a symbol back to the old engine.
                 strategy=cfg.get("strategy", "universal_score"),
                 trend_sma=cfg.get("trend_sma", 0), volume_confirm=cfg.get("volume_confirm", False),
-                min_entry_confidence_pct=live_min_entry_confidence_pct,
                 max_hold_minutes=live_max_hold_minutes,
                 # 2026-09-09, explicit user instruction: "stop using SMA
                 # and replace it with EMA with immediate effect
@@ -20095,6 +20132,7 @@ def strategy_scan_activity(include_unwired: bool = False):
             "categories": [c.value for c in strat.categories] if strat else [],
             "pfnet": strat.metrics.pfnet if strat and strat.metrics else None,
             "avg_held_hrs": round(strat.metrics.avg_held_hrs, 1) if strat and strat.metrics and strat.metrics.avg_held_hrs is not None else None,
+            "entry_confidence_pct": sr.edge_confidence_pct(strat.metrics) if strat and strat.metrics else None,
             "scan_wired": True,
             "scans_today": _strategy_scan_counts.get(tag, 0),
             "scans_last_30s": _strategy_scans_in_last_seconds(tag),
@@ -20127,6 +20165,7 @@ def strategy_scan_activity(include_unwired: bool = False):
                 "categories": [c.value for c in strat.categories] if strat else [cat.value],
                 "pfnet": m.pfnet if m else None,
                 "avg_held_hrs": round(m.avg_held_hrs, 1) if m and m.avg_held_hrs is not None else None,
+                "entry_confidence_pct": sr.edge_confidence_pct(m) if m else None,
                 "scans_today": None, "scans_last_30s": None,
                 "successful_entries_today": None, "closed_today": 0,
                 "win_rate_today_pct": None, "scan_wired": False,
