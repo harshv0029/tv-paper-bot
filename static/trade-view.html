@@ -1470,11 +1470,19 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
     if (ok(stop) && ok(target) && Math.abs(e - Number(stop)) > 0) bits.push(`R:R ${fmt(Math.abs(Number(target) - e) / Math.abs(e - Number(stop)), 2)}`);
     return bits.length ? `<b>This trade:</b> ${bits.join(' · ')}<br>` : "";
   };
+  window.tagTrade = async () => {
+    const symbol = prompt("Symbol of the untagged trade (e.g. NYKAA)?");
+    const strategy = symbol && prompt("Strategy name for " + symbol + "?");
+    if (!symbol || !strategy) return;
+    const r = await fetch("/strategy-tag?symbol=" + encodeURIComponent(symbol) + "&strategy=" + encodeURIComponent(strategy), {method: "POST"});
+    alert(r.ok ? "Tagged. Shows on next refresh." : "Failed: " + r.status);
+  };
   const leaderboardCells = (strategyTag, tradeRisk, thesis) => {
     const registryName = STRATEGY_TAG_TO_REGISTRY_NAME[strategyTag];
     const row = registryName ? strategyInfoByName[registryName] : undefined;
     if (!row) {
-      const reason = noDataReason(strategyTag);
+      let reason = noDataReason(strategyTag);
+      if (strategyTag === "real (Kotak)" || strategyTag === "kotak_untracked") reason += ` <a href="#" onclick="tagTrade();return false;">tag it</a>`;
       return `<td class="log-type">—</td><td>—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="meta">${tradeRisk || ""}${reason}</td>`;
     }
     const category = row.category ? (LEADERBOARD_CATEGORY_LABEL_BY_KEY[row.category] || row.category) : "unranked";
@@ -1748,7 +1756,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   if (!sections.length) sections.push(`<tr><td colspan="21" class="scan-idle">No live positions or real trades today</td></tr>`);
   // Strategy leaderboard rows always append last, in this same table -
   // see leaderboardRows()'s own comment for why (2026-09-29 instruction).
-  sections.push(...leaderboardRows(leaderboard));
+  // B-409: appended leaderboard block removed (covered by the Viable strategies table).
   body.innerHTML = sections.join("");
   // Serial number as the FIRST column of every row (user 2026-10-10: viable-strategy rows below the symbol list).
   // Full-width section/empty rows just widen by one; real rows get a running 1..N number.
