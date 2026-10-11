@@ -2795,6 +2795,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_ov.build())
         import strategy_registry_oneilfill as _of
         _of.apply()
+        import strategy_registry_chan as _ch
+        REGISTRY.extend(_ch.build())
         import strategy_registry_grossfill as _gf
         _gf.apply()
         REGISTRY.extend(_ef.build())

@@ -369,3 +369,7 @@ Profit-booking / exit takeaway: the breakeven-at-1R ratchet and EMA13 rule exit 
 ## Intraday flatten re-run harness (B-792, 2026-10-12 IST)
 Lesson: of 38 short-hold viable cells only 35 are truly intraday; 3 hold 16-23h by design so a 15:15 flatten would change the strategy (classed swing). Flatten re-runs are new tags (`_fl1515__v2`), old numbers untouched; entries on the last bar before the cut are dropped. Cost kept at 0.8% for comparability (real MIS is lower, conservative). atrnone cells cannot be wired live (no-SL rule).
 Profit-booking / exit takeaway: forcing the exit at 15:15 tests whether the edge survives without overnight carry; only variants that keep PFnet >= floor under the flatten may be wired as intraday.
+
+## Chan (Algorithmic Trading) cells, run 38183172728 (B-805, 2026-10-12 IST)
+Lesson: 258 cells (tsm, gapmom, ema_regime, zmr, alexander, shape, updays, kl, gap, xs_o2c) at 1d and 1h; 10 clear PFnet 1.1, led by time-series-momentum 1h (1.55) and short-on-gap 1d (1.27-1.30, n=1127). Hourly tsm shows n up to 300k from overlapping signals, so PFnet is not a portfolio number until re-run with non-overlap; most 1d cells sit below 1 (tsm 1d long 0.65, short 0.68). Short-on-gap is the cleanest candidate (small n, real stop, short mirror).
+Profit-booking / exit takeaway: hold25 at 1h beats shorter holds on tsm, i.e. the edge is in letting winners run to the max hold; test a breakeven ratchet and non-overlap before wiring.
