@@ -1,0 +1,72 @@
+name: Elder trend, regime and MA-system research (B-567 B-570 B-580 B-581 B-586 B-587 B-593 B-598 B-599 B-628 to B-633)
+
+# Elder, "Trading for a Living": MA systems and whipsaw filters (ma), regime / ensemble / weekly
+# alignment / trade-less-often (regime), MACD-H triple divergence and record, ADX soft exit, RSI
+# trendline break, gap time-stop and opening-gap fade (osc). 3 families x 4 shards = 12 jobs;
+# dispatch only when no Deploy Gate / safety run is queued. FULL universe via
+# main._load_nse_universe_from_file(), daily bars by default, BOTH directions, ATR 1.5/2/3, stop on
+# every trade, 0.8% round trip. Each cell is its own tag per the naming grammar; the merge prints
+# PFnet net and gross, win %, n, avg hold, exit breakdown and universe size for EVERY tag.
+# Candle-size sweep: re-dispatch with interval=1h / 15m / 5m (4h owed, needs a 1h resample).
+on:
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: "Candle size (1d, 1h, 15m, 5m)"
+        required: false
+        default: "1d"
+      period:
+        description: "yfinance period (1d: 5y; 1h: 730d; 15m/5m: 60d)"
+        required: false
+        default: "5y"
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [ma, regime, osc]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run family shard
+        run: |
+          set -o pipefail
+          python3 scripts/elder_trend_context_research.py \
+            --family "${{ matrix.family }}" --shard ${{ matrix.shard }} --nshards 4 \
+            --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" --out out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eldertc-${{ matrix.family }}-${{ matrix.shard }}
+          path: out/
+
+  merge:
+    needs: research
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: eldertc-*
+          merge-multiple: true
+      - name: Merge shards and print per-tag table
+        run: |
+          set -o pipefail
+          python3 scripts/elder_trend_context_research.py --merge shards --json eldertc_results.json | tee eldertc_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elder-trend-context-results
+          path: |
+            eldertc_results.json
+            eldertc_table.txt
