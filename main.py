@@ -17427,6 +17427,13 @@ def _maybe_place_swing_option_leg(conn, symbol, strategy):
         if nse_fo_chain.must_force_close_before_expiry(fo_u, contract["expiry"]):
             _log_real_fo_attempt(conn, leg_key, "B", "skipped_too_close_to_expiry", detail=f"expiry {contract['expiry']}")
             return
+        # B-418: stock-option liquidity/lot/premium screen - extra skip condition only (fails closed)
+        _ok, _why = nse_fo_chain.stock_option_tradable(contract, nse_fo_chain.fetch_option_liquidity(contract))
+        if not _ok:
+            _log_real_fo_attempt(conn, leg_key, "B", "skipped_illiquid_stock_option",
+                                 kotak_trading_symbol=contract.get("kotak_trading_symbol"),
+                                 price_est=contract.get("premium"), detail=f"B-418 screen: {_why}")
+            return
         _real_fo_buy_contract(
             conn, leg_key, fo_u, contract, strategy, "single_leg_swing_call",
             f"call bought beside swing shares: strategy_tag={strategy} swing entry on {symbol}, spot {spot}",
