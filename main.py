@@ -11041,7 +11041,22 @@ def _recover_strategy_for_untracked_position(conn, kotak_trading_symbol: str, si
         "AND status = 'confirmed' AND strategy IS NOT NULL ORDER BY ts DESC LIMIT 1",
         (kotak_trading_symbol, side),
     ).fetchone()
-    return row["strategy"] if row else None
+    if row:
+        return row["strategy"]
+    # B-402: widen beyond real_trades - an open swing signal row names the
+    # strategy even when the Kotak-side bookkeeping row is gone.
+    try:
+        base = (kotak_trading_symbol or "").split("-")[0].upper()
+        if base and side == "B":
+            r2 = conn.execute(
+                "SELECT strategy FROM signal_state_swing WHERE UPPER(symbol) IN (?, ?) LIMIT 1",
+                (base + ".NS", base),
+            ).fetchone()
+            if r2 and r2["strategy"]:
+                return r2["strategy"]
+    except Exception:
+        pass
+    return None
 
 
 def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,

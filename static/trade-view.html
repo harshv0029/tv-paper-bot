@@ -1452,7 +1452,8 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       return "Legacy engine, replaced 2026-09-09 by universal_score, never registered";
     }
     if (strategyTag === "orb-unknown" || strategyTag === "orb-recovered") return "administrative fallback tag, not a real strategy";
-    if (!strategyTag.startsWith("orb-")) return "manual/external trade - not this bot's own strategy";
+    if (strategyTag === "real (Kotak)" || strategyTag === "kotak_untracked") return "untagged: strategy could not be recovered from this app's order records (restart or hand-placed at Kotak)";
+    if (!strategyTag.startsWith("orb-")) return "strategy '" + strategyTag + "' has no registry entry yet";
     return "not yet registered in strategy_registry.py";
   };
   // {registryName: info} straight from /strategy-info - EVERY registered
