@@ -151,3 +151,9 @@ unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surp
 - **Mechanism:** real option legs are single-strike longs with initial SL and trailing SL on premium.
 - **Fit to this system:** coverage is index underlyings, SENSEX, NATGASMINI and MCX cells; stock F&O (TCS etc.) and swing-signal feeds do not exist yet (B-417, B-418). Stock options have wide spreads, so a liquidity filter is needed before wiring.
 - **Profit-booking / exit takeaway:** a stock-measured PFnet does not capture premium decay; a trailing premium SL is the only exit, so judge these on real option fills.
+
+## 2026-10-11 — B-417: swing signals also buy a single-strike call (in addition to shares)
+- **Mechanism:** a viable swing entry on an F&O stock buys one ATM call beside the shares via `_real_fo_buy_contract` (initial SL plus trailing SL, margin check, 5-min backcheck); the swing exit closes it, and the existing force-close-before-expiry handles physical-settlement risk.
+- **Fit to this system:** stock options are monthly and wide-spread; the option doubles exposure per signal (user chose that knowingly). Only legs tagged `single_leg_swing_call` are closed by the swing engine (engine ownership).
+- **Surprise:** `nse_fo_chain` already covered 210 stock underlyings; B-418 is mostly liquidity/lot-size review, not new plumbing.
+- **Profit-booking / exit takeaway:** the swing exit signal OR the trailing premium SL closes the call, whichever fires first; judge real fills before sizing up.
