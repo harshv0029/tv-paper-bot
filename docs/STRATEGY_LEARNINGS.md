@@ -290,3 +290,70 @@ Profit-booking / exit takeaway: do not tighten exits or trail early; the edge is
 - Surprises: O'Neil "SL-M" advice cannot be followed literally here; SL limit with zero buffer is the accepted substitute.
 - Reuse: owed from the coordinator: loosen-event counter and per-position time-limit check (main.py).
 - Profit-booking / exit takeaway: exits at market preserve fills in falling stocks; a stop-limit can miss on gaps, which is what the 09:15 protect pass and emergency MKT escalation backstop.
+
+## Elder pyramiding and Vince portfolio rules (B-742, B-743), 2026-10-11 (slice_05b)
+- Mechanism: pyramiding adds units to a winning trend position only when the position is at breakeven or better (stop at or beyond average cost) and total open risk stays within 2% of equity; Vince rules: never average down, exit rather than meet a margin call, liquidate the worst position first when lightening up.
+- Fit here: every existing simulator is single-unit per trade, so adds need a unit ledger, not a signal variant. The no-trade-without-SL rule maps naturally: each add carries a stop and locked-in profit is not counted as risk. NSE MIS squares off at 15:15 IST and the 0.8% cost model is charged per unit, so adds must be costed individually.
+- Built: scripts/portfolio_ledger_research.py (`pyramid_position`, `liquidate_worst_first`), long and short, 5 tests green. No backtest result yet; both rows are PARTIAL until the collect stage emits per-trade bar paths.
+- Surprise/reuse: the stop-moves-only-in-profit-direction clamp and the average-down rejection are what make an add safe; reuse them in any future live pyramiding path. Costs of extra units may erase the edge on thin strategies, so test adds vs no-add after costs.
+- Profit-booking / exit takeaway: adds raise exposure to the same trend, so the stop must move to breakeven first; exit the whole stack on the first stop hit and cut the worst mark-to-market position first when freeing margin.
+
+
+## 2026-10-11 slice_03: Douglas B-556..B-563 and Elder B-564..B-631 status reconciliation
+- **Mechanism:** no new strategy. Douglas rows (edge-based sizing, walk-forward, execution audits) and Elder rows (EMA13, MACD, Directional System, gaps, patterns, trendlines, volume, MA systems) already had harnesses (portfolio_overlay_research.py, douglas_trade_mgmt_research.py, elder_trend_context_research.py, elder_patterns_research.py, elder_macd_dirgap_research.py, elder_indicators_research*.py) but many rows still read PENDING. 44 rows relabelled HARNESS_BUILT_RUN_PENDING (dispatch interval=1d period=5y first, then 1h/15m/5m), 19 relabelled PARTIAL (16 with a daily run already registered, plus B-568, B-606 and B-573 notes) (runs 38144283116 and 38145684388).
+- **Fit here:** every harness keeps an ATR stop on every trade, uses the 0.8% cost model and both directions, so the no-trade-without-SL rule holds. B-558/559/560/562 (signal shadow log, plan-vs-execution diff, pre-session plan, rule-version tag) need main.py/journal changes and stay OPEN_PARKED for the coordinator; B-563/575-578 stay BLOCKED (not mechanical); B-627 BLOCKED on a peer lead-lag simulator.
+- **Result (daily, already registered):** only gap fades clear 1.1: gaps__exhaust_fade__long__1d__atr3_nb5 1.246 (n=4404, ~3.7d hold) and common_fade 1.121; continuation 1.058, breakaway 0.997. MACD best 0.929 (hist_exhaust), Directional System best 0.798 (the ADX-rising and dull-market gates and overheat exit all LOWER PFnet vs the ungated cross: 0.711/0.635/0.651), ADX ring-the-bell 0.890, EMA13 dip 0.614, volume rules best 0.824, divergences 0.74-0.95. Every short mirror is below 1.0.
+- **Surprises / lesson:** Elder-style filters (ADX rising, dull gate, overheat exit) cut trades but did not raise net PFnet on daily NSE; the only cleared edge is a fast mean-reversion fade. Stale PENDING labels hid that daily runs existed, risking duplicate harness work.
+- **Reuse:** gross PFnet and universe label were not printed by those runs; before any wiring, re-run gap fades with gross PFnet and replay through main.py. B-606 stop-offset sweep still owed.
+- **Profit-booking / exit takeaway:** the profitable Elder cell is a 3-4 day rule-exit fade, so book it quickly at the rule exit with the ATR stop attached; trend-follow filters here give no early-booking edge.
+
+## 2026-10-11 Elder chart-pattern family, full merge table (run 38148955837, B-600..B-624, B-788/B-789)
+- Mechanism: 228 tags over island reversal, triangles (asc/desc/sym), H&S/hound, double top/bottom, Sperandeo 1-2-3, tails, trendline break/channel, rectangle, breakout fade and bar-shape/weekday filters, each long AND short (short is the 1/x mirror), ATR stop 1.5/2/3, 30-bar max hold, 1d bars, 0.8% cost.
+- Fit here: all ATR-stop daily swing cells, so SL-on-every-trade holds; none wired. Harness universe printed 10752 listed / 9400 with data, bigger than the NSE file universe quoted elsewhere, so treat n as including ETFs/duplicates until confirmed.
+- Result: only 16 of 228 tags >= 1.1 and just two families with n>=100: island long (PFnet 1.51-1.57, n~8.8k, win 33%, hold ~7.5d) and tri_desc long (1.12-1.27, n 313). Shorts are uniformly weak (best n>=100 short about 0.78). Bar-shape filters (weekday, close-location) sit at 0.55-1.0 with huge n: a pure bar filter is not an edge after 0.8% costs.
+- Surprise: the top PFnets (2.3, 1.7, 1.58) all have n 5-20 and are noise; the island short mirror (0.669) is far below its long (1.57), so the gap is direction-specific (up-trend drift), not a pattern symmetry.
+- Reuse: always read n before PFnet; gate candidates on n>=100; the 1/x mirror gives honest shorts for free and shows long-bias in 1d NSE data.
+- Profit-booking / exit takeaway: island cells win mostly through rule_exit (about 93% of exits) with few stops at atr3, while atr1d5 stops out 21% of trades and lowers PFnet 1.57->1.51; wider stop plus rule exit beats early booking.
+## 2026-10-11 Minervini ATR-trail sweep, long and short (run 38147956271, B-790/B-791)
+- Mechanism: real main.minervini_vcp_entry_signal and its short mirror, structural stop plus ATR trail swept 1.5/2/3/4, max hold 60 bars, 1d, 6y, 0.8% cost.
+- Fit here: swing-category, ATR trail is the stop so SL-on-every-trade holds; the live minervini_vcp tag (0.908) sits just under the floor.
+- Result: long PFnet 0.908/1.025/1.181/1.342 for atr 1.5/2/3/4 (n 3845, win 32/35/39/42%, hold 8/12/22/30 bars). Short mirror 0.60-0.65 for every ATR (n 3367): fails in every cell.
+- Surprise: PFnet climbs monotonically with trail width, i.e. the edge is the long hold of survivors (matches the earlier OB/VP and O'Neil finding that trail stops lose); the 30-bar-hold atr4 cell clears 1.1 only by tying capital up about 4x longer than atr1d5.
+- Reuse: sweep the trail multiplier on every trend-following entry, but compare PFnet per day held and require a main.py replay before widening a live trail.
+- Profit-booking / exit takeaway: tight trails book small wins early and lose to costs; wide trails raise PFnet but slow turnover, so prefer atr3 (1.181, 22d) over atr4 unless atr4 is replay-confirmed.
+
+## Class A: Minervini lab exit variants on the real entry fn (run 38149302930, 2026-10-11 IST)
+- Mechanism: real `minervini_vcp_entry_signal` entries, 25 exit/filter variants (breakeven_after_1r, climax_sell, gap_dn_exit, ma200_break, rr2/rr3, pct8_hard plus entry filters), 1d, 60-bar max hold.
+- Fit here: swing category, stop_hit exit keeps SL-on-every-trade; hold 28-45 bars means capital is tied up, but the 30-day rule treats it as viable.
+- Result: PFnet 1.39-1.76 on n 536-3394 (full NSE, 0.8% cost). Best: tight_closes5 filter 1.760 (n1552, 42.8% win), gap_dn_exit 1.678, climax_sell 1.669, breakeven_after_1r 1.643 vs base pct8_hard 1.475. Entry filters that cut n (dryup n536, ext_le3 n563) did not raise PFnet.
+- Surprise: max_hold_timeout trades carry the edge (PFnet 4.6 in climax_sell) while stop_hit loses 100%; climax_sell exit alone books 649 trades at 96% win, so exiting into strength beats waiting for timeout.
+- Reuse: always add a climax/gap-down exit to a wide-trail trend entry; the lab exits are not in main.py, so wiring needs a port + replay.
+- Profit-booking / exit takeaway: book into climax strength (climax_sell) and cut on gap-down; both raise PFnet and shorten hold versus pure timeout.
+
+## Elder batch 3: oscillator/structure/ORB/sizing (run 38169625565, 2026-10-12 IST)
+- Mechanism: 282 daily oscillator/structure cells (stoch/RSI/MACD-histogram reversals, divergence classes, ROC peak exits, SAR, minor stops, MTF) plus 5m opening-range breakout and position-sizing methods.
+- Fit here: ORB with ATR stops fails the 0.8% cost model outright; sizing cannot rescue negative-edge entries.
+- Result: 3/282 viable, all MACD-histogram divergence with Keltner class (PFnet 1.14-1.27, n~1290, 17-25 bars). 5m ORB PFnet 0.13-0.19 in all 24 cells; every sizing method lost money.
+- Surprise: raw divergence on RSI or on wide classes (ka/kb) sits at 0.92-0.99; only the strictest class (kc) with MACD-histogram lifts above 1.1; fewer trades (1.3k vs 25k) carried the edge.
+- Reuse: always gate divergence by a strict class; sizing studies need a positive-edge entry first; collector caps hid half the data once (raised to 900k chars).
+- Profit-booking / exit takeaway: atr3 beats atr1.5 on the one family that works (1.267 vs 1.14), consistent with letting divergence winners run to 25 bars; tight stops on 5m ORB book small losses repeatedly.
+
+## Douglas/Elder trade management: breakout with min reward:risk target (run 38174269343, 2026-10-12 IST)
+- Mechanism: 480 cells (228 entry variants, 252 exit variants); the winning family is a 20-bar breakout entry (brk20) with an ATR stop and a minimum reward:risk target (rr 2.5-4), mirrored short.
+- Fit here: fits the no-trade-without-SL rule natively (ATR stop is in the cell); 12-day hold sits well inside the 30-day rule; trades on the broadest universe so far (4699 symbols with data).
+- Result: 6 viable, short atr3_rr4 PFnet 2.468 (n275, win 43.6%), long atr3_rr4 1.762 (n422). No entry-side variation cleared 1.1; the edge is in the exit (a distant RR target on a wide ATR stop).
+- Surprise: the short mirror beats the long (2.47 vs 1.76), unusual here; MFE averages 2.25R but about half of losers reach 0.5R first, so partial profit-taking at 1R would cut give-backs.
+- Reuse: sweep rr target and ATR stop together on every breakout entry; always register the short mirror; treat n<300 as needing neighbours-in-parameter-space to confirm.
+- Profit-booking / exit takeaway: a 4R target with a 3-ATR stop lets winners run to ~12 days; 49.7% of losers touched +0.5R and 26% touched +1R, so test a breakeven-after-1R stop on this family before wiring.
+
+## Breakeven-at-1R on swing longs/shorts (B-412 / B-799, run 38169623485, 2026-10-12 IST)
+Mechanism: after price reaches +1R, move the stop to entry. Result on ~2200 symbols, 0.8% cost: gap_long 1.177->1.187, minervini_long 1.474->1.475, ob_long 1.102->1.094, vp_long 1.124->1.099; shorts unchanged below 1 (gap 0.40, minervini 0.77). Why neutral: edge sits in 30-day max-hold survivors; breakeven converts many would-be-recoveries into zero-gain stops (gap_long stop_hit 963->2136) and offsets any saved losses. Surprise: Minervini lab baseline_ma200_break reaches 1.701 (n3370). Reuse: do not add breakeven stops to these swing strategies; keep the wide trail/stop and let survivors run.
+Profit-booking / exit takeaway: early breakeven does not improve net profit on 30-day swing edges; it only trades recoveries for zero-gain exits.
+
+## Portfolio overlay slices of brk20 (B-800/B-801, run 38176399634, 2026-10-12 IST)
+Mechanism: one base entry (20-bar breakout, ATR stop) sliced by year, month, price bucket, turnover quartile, index regime gate, walk-forward halves, risk-per-trade and position cap. Base fails (0.82, CI95 0.79-0.85); 26 of 744 cells clear 1.1 but nearly all are post-hoc calendar slices (2021, March/April/Nov) so the pick is selection bias, not edge. Honest candidates: low-price bucket (<=20) 1.31-1.44, n~3.5k. Trades are autocorrelated (ac1 0.43), so a single-pass PFnet overstates independence; the CI95 is wide-ish only in small slices. Cost sensitivity is stored per cell (0.4/0.8/1.2%). Reuse: never wire a calendar-slice cell; require out-of-sample replay of any slice, and judge gates only through walk-forward train/test pairs.
+Profit-booking / exit takeaway: no exit improvement here; the lesson is selection discipline - slices found by looking at results are not exits or edges, and clustered losing runs (max losing run 134) argue for sizing caps over exit tweaks.
+
+## Completing viable-table backtest cells (B-803, 2026-10-12 IST)
+Lesson: a dashboard cell shows a dash when a registered result lacks a field the run did not print (hold, gross PFnet, universe). Re-running the same workflow reproduced the 4 O'Neil weekly flatbase rows exactly (n=116/118, PFnet 5.165/3.934/3.447/3.422), so the gaps were filled without changing any stored number; 62 of 84 O'Neil rows did NOT reproduce (the harness samples ~1/3 of the universe per shard and the earlier run used a different sample), so those were left alone. Flatbase weekly hold is 11-22 weekly bars (~55-110 trading days, beyond the 30-day viability rule) so these cells are judged separately. Reuse: every research workflow must print n, PFnet net+gross, win %, avg hold and the universe size in its artifact so no cell is ever blank.
+Profit-booking / exit takeaway: the weekly flatbase cells with timeout h12 (hold 11 bars) and h26 (22 bars) show a shorter hold keeps most of the edge (3.45 vs 5.17 at lower hold); prefer the shorter hold per the turnover rule when the longer one exceeds 30 trading days.

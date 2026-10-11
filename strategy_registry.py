@@ -2781,6 +2781,20 @@ def _extend_with_sweeps():
         REGISTRY.extend(_ee.build())
         import strategy_registry_oneilchan_ext as _oc
         REGISTRY.extend(_oc.build())
+        import strategy_registry_elderpat_minsweep as _em
+        REGISTRY.extend(_em.build())
+        import strategy_registry_classa as _ca
+        REGISTRY.extend(_ca.build())
+        import strategy_registry_elderb3 as _b3
+        REGISTRY.extend(_b3.build())
+        import strategy_registry_douglas as _dg
+        REGISTRY.extend(_dg.build())
+        import strategy_registry_b412 as _b4
+        REGISTRY.extend(_b4.build())
+        import strategy_registry_overlay as _ov
+        REGISTRY.extend(_ov.build())
+        import strategy_registry_oneilfill as _of
+        _of.apply()
         REGISTRY.extend(_ef.build())
     except Exception:
         pass
