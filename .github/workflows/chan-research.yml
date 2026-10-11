@@ -1,0 +1,60 @@
+name: Chan research (B-424..B-436, B-440, B-447, B-452)
+
+# 2026-10-11 IST. Ernest Chan, Algorithmic Trading: gap buy/short (B-424/425), gap momentum (B-426/427),
+# cross-sectional open-to-close reversion (B-428/429), close-to-close reversion (B-430), time-series
+# momentum (B-432), Alexander filter (B-433), momentum/MR shape filter (B-434), EMA regime (B-435),
+# up-days + Bollinger (B-436), half-life z-score MR (B-440, B-447 gate inside), MA trend filter on MR (B-452).
+# Both directions, ATR stop on every trade (1.5/2.5/4.0), 0.8% round-trip cost, full universe, 1d + 1h
+# (gap/cross-sectional rows are daily-only; 4h owed, needs a 1h resample). Sharded: 3 shards x 2 intervals
+# + 1 merge = 7 jobs. Research only; nothing wired. Not dispatchable until on the default branch.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        interval: ["1d", "1h"]
+        shard: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run shard
+        env:
+          SHARD: ${{ matrix.shard }}
+          NSHARD: "3"
+          INTERVAL: ${{ matrix.interval }}
+          OUT_DIR: out
+        run: python3 scripts/chan_research.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chan-${{ matrix.interval }}-${{ matrix.shard }}
+          path: out/chan_shard_*.json
+
+  merge:
+    needs: run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+      - name: Merge and print
+        env:
+          IN_DIR: shards
+          OUT: chan_research_results.json
+        run: python3 scripts/chan_research.py merge
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chan-research-results
+          path: chan_research_results.json
