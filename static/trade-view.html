@@ -213,6 +213,7 @@
 <div class="sub">Live scalp-style view — candles, entry/stop/target ladder, floating P&amp;L. <span id="last-deploy"></span> <span id="last-update"></span> · next refresh in <span id="countdown" class="mono">10</span>s</div>
 <div class="sub mono" id="scanned-banner" style="font-weight:600;"></div>
 <div class="sub mono" id="swing-scanned-banner" style="font-weight:600;"></div>
+<div class="sub mono" id="engine-status-banner" style="font-weight:600;"></div>
 
 <div class="control-bar" id="control-bar">
   <div class="ctrl-status" id="ctrl-status"><span class="ctrl-dot"></span><span id="ctrl-status-text">Loading…</span></div>
@@ -305,8 +306,8 @@
         <th class="num">Qty</th><th class="num">Invested (₹)</th><th class="num">Realised P&amp;L (₹)</th><th class="num">Unrealised P&amp;L (₹)</th>
         <th class="num">P&amp;L %</th><th>Reason</th><th>Time</th><th class="num" title="Calendar days since entry (IST dates). gap_and_go swing exits at 30 TRADING days (about 42 calendar days).">Days</th>
         <th>Category</th><th>Rank</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num" title="Average market hours a trade was held in the backtest that produced this PFnet/Win % - how long it took to realise them. Same unit for every category. A daily bar counts as one 6.25-hour NSE session (09:15-15:30 IST); 1h = 1 hr.">Avg hrs held<br><span style="font-weight:normal;font-size:.8em">(1d = 6.25 hrs)</span></th>
-      </tr></thead>
-      <tbody id="log-body"><tr><td colspan="21" class="scan-idle">Loading…</td></tr></tbody>
+      <th title="Every condition that has to be true for this strategy to enter (from the strategy registry). Positions opened by a strategy not yet registered show why instead.">Remarks (entry conditions)</th></tr></thead>
+      <tbody id="log-body"><tr><td colspan="22" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -1020,11 +1021,29 @@ function renderSwingScannedBanner(p) {
       : '');
 }
 
+// B-396 (user 2026-10-11): one extra line under the scan banners - engine on/off, MCX scan, SL backcheck age,
+// shadow strike signals, wired vs gate-closed strategies. All fields come from /scheduler-pipeline (_banner_extras).
+function renderEngineStatusBanner(p) {
+  const el = document.getElementById('engine-status-banner');
+  if (!el) return;
+  const bits = [];
+  if (typeof p.trading_enabled === 'boolean') bits.push(p.trading_enabled ? '\u{1F7E2} ALL TRADING ON' : '\u{1F534} ALL TRADING OFF');
+  if (typeof p.mcx_scan_done_today === 'boolean') bits.push(`MCX scan ${p.mcx_scan_done_today ? 'done' : 'pending'} (${p.mcx_cells} cells), next: ${p.mcx_next_scan}`);
+  if ('protection_check_age_s' in p) {
+    const a = p.protection_check_age_s;
+    bits.push(a === null ? 'SL backcheck: never run' : `SL backcheck ${a < 90 ? a + 's' : Math.round(a / 60) + ' min'} ago${a > 900 ? ' \u26A0 STALE' : ''}`);
+  }
+  if (typeof p.shadow_signals_total === 'number') bits.push(`strike shadow signals: ${p.shadow_signals_total} (from ${p.shadow_scans_total} evaluations)`);
+  if (typeof p.wired_strategies === 'number') bits.push(`wired strategies: ${p.wired_gate_open} gate-open / ${p.wired_gate_closed} gated closed (of ${p.wired_strategies})`);
+  el.textContent = bits.join(' \u00B7 ');
+}
+
 async function refreshScanner() {
   try {
     const p = await fetchJSON(`${ORIGIN}/scheduler-pipeline?recent=10&next_n=5`);
     renderScanner(p);
     renderCounts(p);
+    renderEngineStatusBanner(p);
     renderScannedBanner(p);
     renderSwingScannedBanner(p);
   } catch (e) {
@@ -1444,14 +1463,15 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
     const row = registryName ? strategyInfoByName[registryName] : undefined;
     if (!row) {
       const reason = noDataReason(strategyTag);
-      return `<td class="log-type">—</td><td>—</td><td class="log-type" title="${reason}">${reason}</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>`;
+      return `<td class="log-type">—</td><td>—</td><td class="log-type" title="${reason}">${reason}</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="meta">${reason}</td>`;
     }
     const category = row.category ? (LEADERBOARD_CATEGORY_LABEL_BY_KEY[row.category] || row.category) : "unranked";
     const rank = row.rank !== null && row.rank !== undefined ? `#${row.rank}` : "—";
     const pfnet = row.pfnet !== null && row.pfnet !== undefined ? fmt(row.pfnet, 3) : "—";
     const winPct = row.win_rate_pct !== null && row.win_rate_pct !== undefined ? `${fmt(row.win_rate_pct, 2)}%` : "—";
     return `<td class="log-type">${category}</td><td>${rank}</td><td class="log-type">${registryName}</td>
-      <td class="num">${pfnet}</td><td class="num">${winPct}</td>${avgHrsHeldCell(row.avg_held_hrs)}`;
+      <td class="num">${pfnet}</td><td class="num">${winPct}</td>${avgHrsHeldCell(row.avg_held_hrs)}
+      <td class="meta" style="min-width:320px;white-space:normal;" title="${(row.entry_conditions || '').replace(/"/g, '&quot;')}">${row.entry_conditions || 'no entry-condition text recorded for this strategy yet'}</td>`;
   };
   let totalUnrealisedInr = 0;
 
@@ -1582,7 +1602,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="meta">${pos.opened_at ? timeAgo(pos.opened_at) : "—"}</td>${daysPassedCell(pos.opened_at)}
       ${leaderboardCells(pos.strategy)}
     </tr>`;
-    const thesisRow = pos.entry_thesis ? `<tr class="thesis-row"><td colspan="20">
+    const thesisRow = pos.entry_thesis ? `<tr class="thesis-row"><td colspan="21">
       <div class="thesis-card"><b>${displayName(pos.symbol)} — trade thesis:</b> ${pos.entry_thesis}</div>
     </td></tr>` : "";
     return thesisRow ? [row, thesisRow] : [row];
@@ -1624,7 +1644,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   const realTotalRow = realRows.length ? `<tr class="log-total-row">
       <td colspan="8">TOTAL (real, Kotak)</td>
       <td class="num">${pnlSpan(realTotalInr)}</td>
-      <td colspan="9"></td>
+      <td colspan="10"></td>
     </tr>` : "";
 
   // Bot-only real trades - explicit user request 2026-09-08: "add a bot-
@@ -1657,7 +1677,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   const botRealTotalRow = botRealRows.length ? `<tr class="log-total-row">
       <td colspan="8">TOTAL (real, this bot's own trades only)</td>
       <td class="num">${pnlSpan(botRealTotalInr)}</td>
-      <td colspan="9"></td>
+      <td colspan="10"></td>
     </tr>` : "";
 
   // Explicit user instruction 2026-09-08: "i dont want you to not to
@@ -1689,10 +1709,10 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${pnlSpan(realTotalInr)}</td>
       <td class="num">${pnlSpan(combinedUnrealisedInr)}</td>
       <td class="num" colspan="2">net ${pnlSpan(realTotalInr + combinedUnrealisedInr)}</td>
-      <td colspan="6"></td>
+      <td colspan="7"></td>
     </tr>` : "";
 
-  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="20">${label}</td></tr>`;
+  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="21">${label}</td></tr>`;
   const sections = [];
   if (liveRows.length) sections.push(sectionRow(`Live positions (${liveRows.length})`), ...liveRows);
   if (openRealRows.length) sections.push(sectionRow(`Live real positions (${openRealRows.length}) — Kotak, currently open`), ...openRealRows);
@@ -1716,7 +1736,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   if (exitFillRows.length) sections.push(sectionRow(`Kotak exit fills today (${exitFillRows.length}) — sold per Kotak order book, not in the closed-trades list`), ...exitFillRows);
   if (realRows.length) sections.push(sectionRow(`Real trades today (${realRows.length}) — Kotak, outside this app's own order placement`), ...realRows, realTotalRow);
   if (openRealRows.length || realRows.length) sections.push(combinedRealAndOpenTotalRow);
-  if (!sections.length) sections.push(`<tr><td colspan="20" class="scan-idle">No live positions or real trades today</td></tr>`);
+  if (!sections.length) sections.push(`<tr><td colspan="21" class="scan-idle">No live positions or real trades today</td></tr>`);
   // Strategy leaderboard rows always append last, in this same table -
   // see leaderboardRows()'s own comment for why (2026-09-29 instruction).
   sections.push(...leaderboardRows(leaderboard));
@@ -1797,7 +1817,7 @@ const LEADERBOARD_CATEGORY_LABEL = {
 };
 function leaderboardRows(data) {
   if (!data) return [];
-  const rows = [`<tr class="log-section-row"><td colspan="20">Strategy leaderboard (backtest research, not live trades)</td></tr>`];
+  const rows = [`<tr class="log-section-row"><td colspan="21">Strategy leaderboard (backtest research, not live trades)</td></tr>`];
   let any = false;
   for (const cat of Object.keys(LEADERBOARD_CATEGORY_LABEL)) {
     for (const row of (data[cat] || [])) {
@@ -1833,7 +1853,7 @@ function leaderboardRows(data) {
       </tr>`);
     }
   }
-  if (!any) rows.push(`<tr><td colspan="20" class="scan-idle">No strategies registered yet</td></tr>`);
+  if (!any) rows.push(`<tr><td colspan="21" class="scan-idle">No strategies registered yet</td></tr>`);
   return rows;
 }
 
