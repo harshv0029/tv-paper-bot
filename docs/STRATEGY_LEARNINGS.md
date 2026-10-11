@@ -321,3 +321,11 @@ Profit-booking / exit takeaway: do not tighten exits or trail early; the edge is
 - Surprise: PFnet climbs monotonically with trail width, i.e. the edge is the long hold of survivors (matches the earlier OB/VP and O'Neil finding that trail stops lose); the 30-bar-hold atr4 cell clears 1.1 only by tying capital up about 4x longer than atr1d5.
 - Reuse: sweep the trail multiplier on every trend-following entry, but compare PFnet per day held and require a main.py replay before widening a live trail.
 - Profit-booking / exit takeaway: tight trails book small wins early and lose to costs; wide trails raise PFnet but slow turnover, so prefer atr3 (1.181, 22d) over atr4 unless atr4 is replay-confirmed.
+
+## Class A: Minervini lab exit variants on the real entry fn (run 38149302930, 2026-10-11 IST)
+- Mechanism: real `minervini_vcp_entry_signal` entries, 25 exit/filter variants (breakeven_after_1r, climax_sell, gap_dn_exit, ma200_break, rr2/rr3, pct8_hard plus entry filters), 1d, 60-bar max hold.
+- Fit here: swing category, stop_hit exit keeps SL-on-every-trade; hold 28-45 bars means capital is tied up, but the 30-day rule treats it as viable.
+- Result: PFnet 1.39-1.76 on n 536-3394 (full NSE, 0.8% cost). Best: tight_closes5 filter 1.760 (n1552, 42.8% win), gap_dn_exit 1.678, climax_sell 1.669, breakeven_after_1r 1.643 vs base pct8_hard 1.475. Entry filters that cut n (dryup n536, ext_le3 n563) did not raise PFnet.
+- Surprise: max_hold_timeout trades carry the edge (PFnet 4.6 in climax_sell) while stop_hit loses 100%; climax_sell exit alone books 649 trades at 96% win, so exiting into strength beats waiting for timeout.
+- Reuse: always add a climax/gap-down exit to a wide-trail trend entry; the lab exits are not in main.py, so wiring needs a port + replay.
+- Profit-booking / exit takeaway: book into climax strength (climax_sell) and cut on gap-down; both raise PFnet and shorten hold versus pure timeout.
