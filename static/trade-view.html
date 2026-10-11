@@ -305,9 +305,9 @@
         <th class="num">#</th><th>Status</th><th>Asset</th><th>Type</th><th>Strategy</th><th class="num">Entry</th><th class="num">Exit / Now</th>
         <th class="num">Qty</th><th class="num">Invested (₹)</th><th class="num">Realised P&amp;L (₹)</th><th class="num">Unrealised P&amp;L (₹)</th>
         <th class="num">P&amp;L %</th><th>Reason</th><th>Time</th><th class="num" title="Calendar days since entry (IST dates). gap_and_go swing exits at 30 TRADING days (about 42 calendar days).">Days</th>
-        <th>Category</th><th>Rank</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num" title="Average market hours a trade was held in the backtest that produced this PFnet/Win % - how long it took to realise them. Same unit for every category. A daily bar counts as one 6.25-hour NSE session (09:15-15:30 IST); 1h = 1 hr.">Avg hrs held<br><span style="font-weight:normal;font-size:.8em">(1d = 6.25 hrs)</span></th>
+        <th>Category</th><th>Rank</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num" title="Average market hours a trade was held in the backtest that produced this PFnet/Win % - how long it took to realise them. Same unit for every category. A daily bar counts as one 6.25-hour NSE session (09:15-15:30 IST); 1h = 1 hr.">Avg hrs held<br><span style="font-weight:normal;font-size:.8em">(1d = 6.25 hrs)</span></th>
       <th title="Every condition that has to be true for this strategy to enter (from the strategy registry). Positions opened by a strategy not yet registered show why instead.">Remarks (entry conditions)</th></tr></thead>
-      <tbody id="log-body"><tr><td colspan="22" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="log-body"><tr><td colspan="21" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -1458,20 +1458,30 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   // strategy, not just a category's current top N (unlike
   // /strategy-leaderboard, used only for the appended top-5 block below).
   const strategyInfoByName = strategyInfo || {};
-  const leaderboardCells = (strategyTag) => {
+  // user 2026-10-11: per-trade stop %, target % and reward:risk, shown first in Remarks. Percentages are relative to entry.
+  const riskLine = (entry, stop, target) => {
+    const ok = (v) => v !== null && v !== undefined && Number.isFinite(Number(v));
+    if (!ok(entry) || Number(entry) <= 0) return "";
+    const e = Number(entry), bits = [];
+    if (ok(stop)) bits.push(`SL ${fmt(stop, 2)} (${fmt((Number(stop) - e) / e * 100, 2)}%)`);
+    if (ok(target)) bits.push(`TP ${fmt(target, 2)} (+${fmt((Number(target) - e) / e * 100, 2)}%)`);
+    if (ok(stop) && ok(target) && Math.abs(e - Number(stop)) > 0) bits.push(`R:R ${fmt(Math.abs(Number(target) - e) / Math.abs(e - Number(stop)), 2)}`);
+    return bits.length ? `<b>This trade:</b> ${bits.join(' · ')}<br>` : "";
+  };
+  const leaderboardCells = (strategyTag, tradeRisk) => {
     const registryName = STRATEGY_TAG_TO_REGISTRY_NAME[strategyTag];
     const row = registryName ? strategyInfoByName[registryName] : undefined;
     if (!row) {
       const reason = noDataReason(strategyTag);
-      return `<td class="log-type">—</td><td>—</td><td class="log-type" title="${reason}">${reason}</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="meta">${reason}</td>`;
+      return `<td class="log-type">—</td><td>—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="meta">${tradeRisk || ""}${reason}</td>`;
     }
     const category = row.category ? (LEADERBOARD_CATEGORY_LABEL_BY_KEY[row.category] || row.category) : "unranked";
     const rank = row.rank !== null && row.rank !== undefined ? `#${row.rank}` : "—";
     const pfnet = row.pfnet !== null && row.pfnet !== undefined ? fmt(row.pfnet, 3) : "—";
     const winPct = row.win_rate_pct !== null && row.win_rate_pct !== undefined ? `${fmt(row.win_rate_pct, 2)}%` : "—";
-    return `<td class="log-type">${category}</td><td>${rank}</td><td class="log-type">${registryName}</td>
+    return `<td class="log-type">${category}</td><td>${rank}</td>
       <td class="num">${pfnet}</td><td class="num">${winPct}</td>${avgHrsHeldCell(row.avg_held_hrs)}
-      <td class="meta" style="min-width:320px;white-space:normal;" title="${(row.entry_conditions || '').replace(/"/g, '&quot;')}">${row.entry_conditions || 'no entry-condition text recorded for this strategy yet'}</td>`;
+      <td class="meta" style="min-width:320px;white-space:normal;" title="${(row.entry_conditions || '').replace(/"/g, '&quot;')}">${tradeRisk || ""}${registryName !== strategyTag ? `<i>${registryName}</i><br>` : ""}${row.entry_conditions || 'no entry-condition text recorded for this strategy yet'}</td>`;
   };
   let totalUnrealisedInr = 0;
 
@@ -1514,7 +1524,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
            or real trading doesn't apply (e.g. an option leg). -->
       <td class="log-type"${pos.real_entry_reason ? ` title="${pos.real_entry_reason.replace(/"/g, "'")}"` : ""}>${pos.real_entry_reason || "open"}</td>
       <td class="meta">${timeAgo(pos.entry_ts)}</td>${daysPassedCell(pos.entry_ts)}
-      ${leaderboardCells(pos.strategy)}
+      ${leaderboardCells(pos.strategy, riskLine(pos.entry_price_native, pos.stop_loss_native, pos.target_native))}
     </tr>`;
   });
 
@@ -1600,7 +1610,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
         : `target: ${targetCell(pos)}`
       }</td>
       <td class="meta">${pos.opened_at ? timeAgo(pos.opened_at) : "—"}</td>${daysPassedCell(pos.opened_at)}
-      ${leaderboardCells(pos.strategy)}
+      ${leaderboardCells(pos.strategy, riskLine(pos.entry_price, pos.sl_trigger_price, pos.target_price))}
     </tr>`;
     const thesisRow = pos.entry_thesis ? `<tr class="thesis-row"><td colspan="21">
       <div class="thesis-card"><b>${displayName(pos.symbol)} — trade thesis:</b> ${pos.entry_thesis}</div>
@@ -1638,13 +1648,13 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
            literally "real (Kotak)") keeps the manual/external label. -->
       <td class="log-type">${t.strategy !== "real (Kotak)" ? "Kotak (this bot)" : "Kotak (manual/external)"}</td>
       <td class="meta">${timeAgo(t.exit_time_utc)}</td><td class="num">—</td>
-      ${leaderboardCells(t.strategy)}
+      ${leaderboardCells(t.strategy, riskLine(t.entry_price_native, t.stop_loss_native, t.target_native))}
     </tr>`);
   const realTotalInr = (realTrades || []).reduce((s, t) => s + (t.pnl_inr ?? 0), 0);
   const realTotalRow = realRows.length ? `<tr class="log-total-row">
       <td colspan="8">TOTAL (real, Kotak)</td>
       <td class="num">${pnlSpan(realTotalInr)}</td>
-      <td colspan="10"></td>
+      <td colspan="9"></td>
     </tr>` : "";
 
   // Bot-only real trades - explicit user request 2026-09-08: "add a bot-
@@ -1671,13 +1681,13 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${pctSpan(t.pnl_pct)}</td>
       <td class="log-type">Kotak (this bot's own order)</td>
       <td class="meta">${timeAgo(t.exit_time_utc)}</td><td class="num">—</td>
-      ${leaderboardCells(t.strategy)}
+      ${leaderboardCells(t.strategy, riskLine(t.entry_price_native, t.stop_loss_native, t.target_native))}
     </tr>`);
   const botRealTotalInr = (botRealTrades?.closed_trades || []).reduce((s, t) => s + (t.pnl_inr ?? 0), 0);
   const botRealTotalRow = botRealRows.length ? `<tr class="log-total-row">
       <td colspan="8">TOTAL (real, this bot's own trades only)</td>
       <td class="num">${pnlSpan(botRealTotalInr)}</td>
-      <td colspan="10"></td>
+      <td colspan="9"></td>
     </tr>` : "";
 
   // Explicit user instruction 2026-09-08: "i dont want you to not to
@@ -1709,7 +1719,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${pnlSpan(realTotalInr)}</td>
       <td class="num">${pnlSpan(combinedUnrealisedInr)}</td>
       <td class="num" colspan="2">net ${pnlSpan(realTotalInr + combinedUnrealisedInr)}</td>
-      <td colspan="7"></td>
+      <td colspan="6"></td>
     </tr>` : "";
 
   const sectionRow = (label) => `<tr class="log-section-row"><td colspan="21">${label}</td></tr>`;
