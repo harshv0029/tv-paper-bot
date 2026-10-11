@@ -19753,6 +19753,18 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     swing_scanned_today_total = len(SWING_WATCHLIST)
     swing_scanned_today_count = sum(1 for v in _swing_check_counts.values() if v > 0)
     swing_total_checks_today = sum(_swing_check_counts.values())
+    # every swing strategy (gap_and_go, minervini, OB/VP, pattern cells, sector rotation...) records into
+    # _strategy_scan_counts; MCX daily cells are a separate engine and are excluded (user 2026-10-11: the banner
+    # must represent ALL swing inputs, not only Gap and Go)
+    _swing_strat_counts = {t: n for t, n in _strategy_scan_counts.items() if not t.startswith("single_leg_mcx_")}
+    swing_strategy_checks_today = sum(_swing_strat_counts.values())
+    try:
+        with closing(get_db()) as _sc:
+            swing_scan_done_today = bool(_sc.execute(
+                "SELECT 1 FROM swing_scan_log WHERE scan_date = ?", (ist_now().strftime("%Y-%m-%d"),)).fetchone())
+    except Exception:
+        swing_scan_done_today = None
+    swing_strategies_scanned_today = sum(1 for n in _swing_strat_counts.values() if n > 0)
 
     return {
         "last_checked": last_checked,
@@ -19770,6 +19782,9 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "swing_scanned_today_count": swing_scanned_today_count,
         "swing_scanned_today_total": swing_scanned_today_total,
         "swing_total_checks_today": swing_total_checks_today,
+        "swing_strategy_checks_today": swing_strategy_checks_today,
+        "swing_scan_done_today": swing_scan_done_today,
+        "swing_strategies_scanned_today": swing_strategies_scanned_today,
         "check_counts_today": check_counts_today,
         "check_counts_day": _scheduler_check_counts_day,
         "rr_cursor": _scheduler_rr_cursor,
