@@ -1,0 +1,24 @@
+{
+"results": {
+"ema_cross__e9_21__long__1h__sw10__v1": {
+"pfnet": 0.71,
+"pfnet_trim1": 0.555,
+"win_pct": 22.8,
+"n": 20080,
+"avg_net_pct": -0.4508,
+"median_net_pct": -1.4422,
+"avg_held_bars": 22.25,
+"bar_hours": 1.0
+},
+"ema_cross__e9_21__short__1h__sw10__v1": {
+"pfnet": 0.444,
+"pfnet_trim1": 0.35,
+"win_pct": 20.1,
+"n": 20200,
+"avg_net_pct": -0.8982,
+"median_net_pct": -1.4304,
+"avg_held_bars": 20.54,
+"bar_hours": 1.0
+}
+}
+}
