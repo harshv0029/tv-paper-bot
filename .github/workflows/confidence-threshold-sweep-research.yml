@@ -1,0 +1,73 @@
+name: Confidence Threshold Sweep (research, B-421)
+
+# B-421 / B-406 (2026-10-11 owner decision): sweep min_entry_confidence
+# (0 = ungated baseline, 50, 60, 70, 80, 90, 95) per category x direction on the
+# FULL NSE universe through the REAL main.py swing entry/exit functions, with a
+# direction-aware gate (long: fast>slow, short: fast<slow, both with
+# main._trend_confidence >= threshold) added in front of the entry only.
+# Pick the highest threshold whose PFnet stays >= PFNET_LIVE_FLOOR (read at
+# decision time, never hard-coded) and only wire the gate where gated beats ungated.
+#
+# Matrix: 8 strategy cells x 3 symbol shards = 24 jobs (+1 merge job). All 7
+# thresholds run inside each job (shared entry-signal cache), so 7x the cells
+# without 7x the jobs. Dispatch only when no Deploy Gate / safety run is queued
+# (CLAUDE.md dispatch-order rule).
+#
+# Exempt (mean reversion, a trend filter contradicts them): failed_breakout_short,
+# gap_up_fade_short, RANGE VWAP reversion. Owed and listed in the artifact:
+# idea4 (needs index series), intraday buy/short (5m driver), MCX/options,
+# other candle sizes (this pass is 1d bars; SMA windows are bar counts).
+#
+# Every cell's raw sums, PFnet gross/net, win %, avg hold, n and exit-reason
+# breakdown are emitted to the JSON artifact; viability is derived at read time.
+# Tags: <family>__confgate__<dir>__1d__cf<thr>_smaf9_smas21__v1
+# Read-only research: no live state touched.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        strategy: [minervini_vcp_long, minervini_vcp_short, power_play_long, power_play_short,
+                   gap_and_go_long, gap_and_go_short, order_block_long, volume_profile_poc_long]
+        shard: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+      - name: Run ${{ matrix.strategy }} shard ${{ matrix.shard }}/3
+        run: python3 scripts/confidence_threshold_sweep.py run --strategy ${{ matrix.strategy }} --shard ${{ matrix.shard }} --nshards 3 --out out/${{ matrix.strategy }}_${{ matrix.shard }}.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.strategy }}-${{ matrix.shard }}
+          path: out/*.json
+
+  merge:
+    needs: sweep
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*
+          path: shards
+          merge-multiple: true
+      - name: Merge shards
+        run: python3 scripts/confidence_threshold_sweep.py merge --inputs shards/*.json --out confidence_threshold_sweep_result.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: confidence-threshold-sweep-result
+          path: confidence_threshold_sweep_result.json
