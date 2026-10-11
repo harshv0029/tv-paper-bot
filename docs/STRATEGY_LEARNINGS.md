@@ -270,3 +270,10 @@ Profit-booking / exit takeaway: do not tighten exits or trail early; the edge is
 - Result: not yet run (harness-built; dispatch portfolio-overlay-research.yml).
 - Reuse: check existing simulators before declaring a ledger missing.
 - Profit-booking / exit takeaway: none yet; judge by final_mult vs max_dd across maxpos cells once run.
+## 2026-10-11 slice_01: Kelly / CPPI / significance table over the whole registry (B-453, B-454, B-455)
+- Mechanism: per registry tag, Kelly f=m/s^2 and half-Kelly from PFnet/win%/n, a CPPI sub-account wind-down Monte Carlo, and a Gaussian t-stat with a t/2 expected-decay haircut. Output docs/kelly_significance_table.json from scripts/kelly_significance_table.py (no network needed).
+- Fit: sizing and confidence only; it does not create entries, so SL-on-every-trade and the 0.8% cost model are untouched. Derived at read time from stored metrics, consistent with the keep-all-data rule.
+- Result: 14,607 scorable tags; 595 viable (PFnet>=1.1): 505 significant at p<.05, 416 after the haircut, 72 thin-n. About 30% of viable tags do not survive an honest decay haircut.
+- Surprise: the largest half-Kelly values sit on thin-n tags (n 17-20 MCX cells), so Kelly ranks must be read together with the thin_n flag.
+- Reuse: use sig_p05_after_haircut, not raw PFnet, as a tie-break among viable tags; never size from Kelly on thin_n tags.
+- Profit-booking / exit takeaway: unchanged by this; the highest t-stat tags are the O'Neil weekly timeout-driven cells, so profit comes from letting winners run, not early booking.
