@@ -1,0 +1,214 @@
+{
+ "B-213": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-214": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-215": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-216": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-217": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-218": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-219": {
+  "status": "BLOCKED: no reproducible price-only definition",
+  "evidence": "backlog decision 2026-10-10 IST; not testable with price-only stack"
+ },
+ "B-220": {
+  "status": "BLOCKED: different strategy family (gap runaway/sector momentum, B-349/B-350)",
+  "evidence": "backlog decision 2026-10-10 IST; not testable with price-only stack"
+ },
+ "B-221": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-222": {
+  "status": "BLOCKED: needs listing dates/float data",
+  "evidence": "backlog decision 2026-10-10 IST; not testable with price-only stack"
+ },
+ "B-223": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-224": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-225": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-226": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-227": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-228": {
+  "status": "BLOCKED: book gives no numeric definition",
+  "evidence": "backlog decision 2026-10-10 IST; not testable with price-only stack"
+ },
+ "B-229": {
+  "status": "BLOCKED: no numeric definition",
+  "evidence": "backlog decision 2026-10-10 IST; not testable with price-only stack"
+ },
+ "B-230": {
+  "status": "ALREADY COVERED by scripts/pattern_lab.py (docs/pattern_lab_results_n200.json; minervini_vcp_livermore_confirmed in registry for 236)",
+  "evidence": "long+short, n200; full-universe/ATR/candle sweep remains owed via pattern lab"
+ },
+ "B-231": {
+  "status": "ALREADY COVERED by scripts/pattern_lab.py (docs/pattern_lab_results_n200.json; minervini_vcp_livermore_confirmed in registry for 236)",
+  "evidence": "long+short, n200; full-universe/ATR/candle sweep remains owed via pattern lab"
+ },
+ "B-232": {
+  "status": "ALREADY COVERED by scripts/pattern_lab.py (docs/pattern_lab_results_n200.json; minervini_vcp_livermore_confirmed in registry for 236)",
+  "evidence": "long+short, n200; full-universe/ATR/candle sweep remains owed via pattern lab"
+ },
+ "B-233": {
+  "status": "ALREADY COVERED by scripts/pattern_lab.py (docs/pattern_lab_results_n200.json; minervini_vcp_livermore_confirmed in registry for 236)",
+  "evidence": "long+short, n200; full-universe/ATR/candle sweep remains owed via pattern lab"
+ },
+ "B-234": {
+  "status": "ALREADY COVERED by scripts/pattern_lab.py (docs/pattern_lab_results_n200.json; minervini_vcp_livermore_confirmed in registry for 236)",
+  "evidence": "long+short, n200; full-universe/ATR/candle sweep remains owed via pattern lab"
+ },
+ "B-235": {
+  "status": "ALREADY COVERED by scripts/pattern_lab.py (docs/pattern_lab_results_n200.json; minervini_vcp_livermore_confirmed in registry for 236)",
+  "evidence": "long+short, n200; full-universe/ATR/candle sweep remains owed via pattern lab"
+ },
+ "B-236": {
+  "status": "ALREADY COVERED by scripts/pattern_lab.py (docs/pattern_lab_results_n200.json; minervini_vcp_livermore_confirmed in registry for 236)",
+  "evidence": "long+short, n200; full-universe/ATR/candle sweep remains owed via pattern lab"
+ },
+ "B-237": {
+  "status": "BLOCKED: price-only form is gap_runaway, covered elsewhere",
+  "evidence": "backlog decision 2026-10-10 IST; not testable with price-only stack"
+ },
+ "B-238": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-239": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-240": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-241": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-242": {
+  "status": "BLOCKED: needs long-history intraday bars (yfinance 60d limit)",
+  "evidence": "backlog decision 2026-10-10 IST; not testable with price-only stack"
+ },
+ "B-243": {
+  "status": "BLOCKED: diagnostic description, not a rule",
+  "evidence": "backlog decision 2026-10-10 IST; not testable with price-only stack"
+ },
+ "B-244": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-245": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-246": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-247": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-248": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-249": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-250": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-251": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-252": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-253": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-254": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-255": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-256": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-257": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-258": {
+  "status": "BLOCKED: no numeric definition",
+  "evidence": "backlog decision 2026-10-10 IST; not testable with price-only stack"
+ },
+ "B-259": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-260": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-261": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-262": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-263": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-264": {
+  "status": "ALREADY COVERED by scripts/minervini_lab.py (n200, long, 1d, net PFnet); full-universe + short + ATR-sweep + gross PFnet gap: HARNESS BUILT, RUN PENDING (scripts/minervini_sweep_lab.py, .github/workflows/minervini-sweep-lab.yml)",
+  "evidence": "docs/minervini_lab_results.json; tests/test_minervini_sweep_lab.py"
+ },
+ "B-265": {
+  "status": "BLOCKED: no fundamentals data feed",
+  "evidence": "backlog decision 2026-10-10 IST; not testable with price-only stack"
+ }
+}

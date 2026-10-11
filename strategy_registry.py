@@ -2772,9 +2772,11 @@ def _extend_with_sweeps():
         import strategy_registry_chan as _ch
         import strategy_registry_elder as _el
         import strategy_registry_oneil as _on
+        import strategy_registry_macd as _mc
         REGISTRY.extend(_ch.build())
         REGISTRY.extend(_el.build())
         REGISTRY.extend(_on.build())
+        REGISTRY.extend(_mc.build())
         REGISTRY.extend(_ef.build())
     except Exception:
         pass
