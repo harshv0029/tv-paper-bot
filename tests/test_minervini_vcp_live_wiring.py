@@ -134,7 +134,7 @@ def test_run_swing_scan_opens_a_minervini_position_when_gap_and_go_does_not_fire
         main._run_swing_scan(conn)
         row = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = 'VCPTEST.NS'").fetchone()
         assert row is not None
-        assert row["strategy"] == "minervini_vcp"
+        assert row["strategy"] == "minervini_vcp_be3r"
         assert row["atr_at_entry"] is not None and row["atr_at_entry"] > 0
         assert row["running_max_close"] == row["entry_price"]
         assert row["gap_low"] is None
@@ -272,7 +272,7 @@ def test_run_swing_scan_falls_back_to_plain_minervini_when_livermore_does_not_fi
         main._run_swing_scan(conn)
         row = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = 'PLAINVCP.NS'").fetchone()
         assert row is not None
-        assert row["strategy"] == "minervini_vcp"
+        assert row["strategy"] == "minervini_vcp_be3r"
 
 
 def test_run_swing_scan_prefers_livermore_over_plain_minervini_on_the_same_symbol(monkeypatch):
