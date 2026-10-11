@@ -16557,8 +16557,17 @@ def get_runtime_settings():
     (see POST below) does require the token, same as every other real-
     money endpoint."""
     with closing(get_db()) as conn:
+        # B-395 (read-only addition): when/by-whom each setting was last
+        # changed, for the dashboard's "last changed" label. No row = never
+        # overridden (default in effect).
+        _meta_rows = {
+            r["key"]: (r["updated_at"], r["updated_by"])
+            for r in conn.execute("SELECT key, updated_at, updated_by FROM runtime_settings").fetchall()
+        }
         return {
             key: {
+                "updated_at": _meta_rows.get(key, (None, None))[0],
+                "updated_by": _meta_rows.get(key, (None, None))[1],
                 # real_daily_cap_inr's live-vs-override split (2026-09-22)
                 # isn't representable by plain get_runtime_setting - see
                 # _effective_real_daily_cap_inr's own docstring.

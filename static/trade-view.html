@@ -116,6 +116,10 @@
   .constraint-status{font-size:10.5px;min-height:13px;}
   .constraint-status.ok{color:var(--up);}
   .constraint-status.err{color:var(--down);}
+  .eng-chip{font-size:9.5px;border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--muted);white-space:nowrap;display:inline-block;margin:1px 0;}
+  .eng-chip.live{color:var(--up);border-color:var(--up);}
+  .eng-chip.gated{color:var(--down);border-color:var(--down);}
+  .eng-verdict{font-size:10.5px;}.eng-verdict.live{color:var(--up);}.eng-verdict.gated{color:var(--down);}
   .constraint-badge{font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--down);border:1px solid var(--down);border-radius:4px;padding:1px 5px;}
   .counts-scroll{max-height:460px;overflow-y:auto;}
   table.counts{width:100%;border-collapse:collapse;font-size:12px;}
@@ -779,7 +783,8 @@ function timeAgo(ts) {
   const s = Math.max(0, Math.round(Date.now() / 1000 - ts));
   if (s < 60) return `${s}s ago`;
   if (s < 3600) return `${Math.round(s / 60)}m ago`;
-  return `${Math.round(s / 3600)}h ago`;
+  if (s < 172800) return `${Math.round(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
 }
 
 function renderScanner(p) {
@@ -926,6 +931,7 @@ function renderStrategyScanActivity(data) {
   const body = document.getElementById("strategy-scan-body");
   if (!body) return;
   if (data) window._saData = data;
+  try { updateConstraintEligibility(); } catch (e) {}
   let rows = (window._saData?.strategies || []).slice();
   const q = (document.getElementById("sa-filter")?.value || "").trim().toLowerCase();
   if (q) rows = rows.filter(r => (String(r.strategy_tag) + " " + (r.categories || []).join(" ") + (r.scan_wired === false ? " not wired" : " wired")).toLowerCase().includes(q));
@@ -1187,6 +1193,10 @@ const CONSTRAINT_LABELS = {
   max_hold_minutes: "Max hold time before stale-timeout exit (min)",
   entry_scan_batch_size: "Entry-scan batch size (symbols/tick)",
   real_daily_cap_inr: "Real trading daily cap (₹)",
+  real_enabled_equity: "Real money switch: intraday buy + short",
+  real_enabled_swing: "Real money switch: swing",
+  real_enabled_fo: "Real money switch: options + MCX",
+  real_straddle_enabled: "Long straddle: allow real orders (0/1)",
   daily_loss_reset_epoch: "Paper loss-budget reset point (unix time) — use the Reset button above instead of editing this directly",
 };
 
@@ -1239,6 +1249,50 @@ async function refreshRealPnl() {
   }
 }
 
+
+// B-395: which engines (strategy_registry categories) each runtime setting
+// touches. "all" = every category (account-wide). Verified against the setting
+// descriptions in main.py RUNTIME_SETTINGS_META. Swing, MCX and option entries
+// do NOT read rr / max_hold_minutes / entry_scan_batch_size.
+const ENGINE_LABEL = { buy: "Intraday long", short_sell: "Intraday short", swing: "Swing", futures: "Futures/MCX", options: "Options", bidirectional: "Bidirectional" };
+const SETTING_ENGINES = {
+  real_enabled_equity: ["buy", "short_sell"],
+  real_enabled_swing: ["swing"],
+  real_enabled_fo: ["options", "futures"],
+  daily_risk_pct: "all",
+  rr: ["buy", "short_sell"],
+  max_hold_minutes: ["buy", "short_sell"],
+  entry_scan_batch_size: ["buy", "short_sell"],
+  real_straddle_enabled: ["options"],
+  daily_loss_reset_epoch: "all",
+};
+// An engine is live-eligible right now when the live scan-activity feed lists at
+// least one strategy in its category that is viable (feed is viable-only) and wired.
+function engineEligibility(cat) {
+  const rows = window._saData?.strategies;
+  if (!rows) return null;
+  const hit = rows.filter(r => (r.categories || []).includes(cat) && r.scan_wired !== false);
+  return hit.length;
+}
+function fmtIstEpoch(ep) { return ep ? formatIstTimestamp(ep) : null; }
+function updateConstraintEligibility() {
+  for (const [key, spec] of Object.entries(SETTING_ENGINES)) {
+    const el = document.getElementById(`cs-elig-${key}`);
+    if (!el) continue;
+    const cats = spec === "all" ? Object.keys(ENGINE_LABEL) : spec;
+    let anyLive = false, unknown = false;
+    const chips = cats.map(c => {
+      const n = engineEligibility(c);
+      if (n === null) { unknown = true; return `<span class="eng-chip">${ENGINE_LABEL[c]}: ?</span>`; }
+      if (n > 0) anyLive = true;
+      return `<span class="eng-chip ${n > 0 ? "live" : "gated"}" title="${n > 0 ? n + " viable wired strategies" : "no viable wired strategy: entries gated closed"}">${ENGINE_LABEL[c]}: ${n > 0 ? "live-eligible" : "gated"}</span>`;
+    }).join(" ");
+    const verdict = unknown ? "" : anyLive
+      ? `<b class="eng-verdict live">Affects real entries now</b>`
+      : `<b class="eng-verdict gated">No real-money effect today: every engine it controls is gated closed</b>`;
+    el.innerHTML = `<span class="constraint-desc">Affects:</span> ${spec === "all" ? "<i>all engines (account-wide)</i> " : ""}${chips}<br>${verdict}`;
+  }
+}
 async function refreshConstraints() {
   let settings;
   try {
@@ -1263,6 +1317,8 @@ async function refreshConstraints() {
     <div class="constraint-item">
       <span class="constraint-lbl">${CONSTRAINT_LABELS[key] || key}${s.requires_token ? ' <span class="constraint-badge">real money</span>' : ""}</span>
       <span class="constraint-desc">${s.description}</span>
+      <span class="constraint-elig" id="cs-elig-${key}">${SETTING_ENGINES[key] ? "" : '<span class="constraint-desc">Affects: not mapped</span>'}</span>
+      <span class="constraint-desc" id="cs-eff-${key}">Effective now: <b>${s.value}</b> ${Number(s.value) === Number(s.default) ? "(default)" : `(overridden, default ${s.default})`} · last changed: <span id="cs-chg-${key}">${s.updated_at ? formatIstTimestamp(s.updated_at) + (s.updated_by ? " by " + s.updated_by : "") : "never (default in effect)"}</span></span>
       <div class="constraint-row">
         <input type="number" id="cs-input-${key}" value="${s.value}" min="${s.min}" max="${s.max}" step="any" />
         <button onclick="saveConstraint('${key}')" id="cs-btn-${key}">Save</button>
@@ -1270,6 +1326,7 @@ async function refreshConstraints() {
       <span class="constraint-status" id="cs-status-${key}">Default ${s.default} · range ${s.min}–${s.max}</span>
     </div>
   `).join("");
+  updateConstraintEligibility();
 }
 
 async function saveConstraint(key) {
@@ -1296,6 +1353,10 @@ async function saveConstraint(key) {
       throw new Error(body.detail || `HTTP ${resp.status}`);
     }
     statusEl.textContent = "Saved — live on next scheduler tick"; statusEl.className = "constraint-status ok";
+    const chg = document.getElementById(`cs-chg-${key}`);
+    if (chg) chg.textContent = formatIstTimestamp(Date.now() / 1000) + " by user";
+    const eff = document.getElementById(`cs-eff-${key}`);
+    if (eff) { const b = eff.querySelector("b"); if (b) b.textContent = value; }
   } catch (e) {
     statusEl.textContent = `Failed: ${e.message || e}`; statusEl.className = "constraint-status err";
   } finally {
@@ -1500,7 +1561,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
     if (!ok(entry) || Number(entry) <= 0) return "";
     const e = Number(entry), bits = [];
     if (ok(stop)) bits.push(`SL ${fmt(stop, 2)} (${fmt((Number(stop) - e) / e * 100, 2)}%)`);
-    if (ok(target)) bits.push(`TP ${fmt(target, 2)} (+${fmt((Number(target) - e) / e * 100, 2)}%)`);
+    if (ok(target)) { const tp = (Number(target) - e) / e * 100; bits.push(`TP ${fmt(target, 2)} (${tp >= 0 ? '+' : ''}${fmt(tp, 2)}%)`); }
     if (ok(stop) && ok(target) && Math.abs(e - Number(stop)) > 0) bits.push(`R:R ${fmt(Math.abs(Number(target) - e) / Math.abs(e - Number(stop)), 2)}`);
     return bits.length ? `<b>This trade:</b> ${bits.join(' · ')}<br>` : "";
   };
@@ -1675,7 +1736,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${fmt(t.entry_price_native, 2)}</td>
       <td class="num">${fmt(t.exit_price_native, 2)}</td>
       <td class="num">${fmt(t.qty, 0)}</td>
-      <td class="num">${dash}</td>
+      <td class="num">${(t.entry_price_native != null && t.qty != null) ? "₹" + fmt(t.entry_price_native * t.qty) : dash}</td>
       <td class="num">${pnlSpan(t.pnl_inr ?? 0)}</td>
       <td class="num">${dash}</td>
       <td class="num">${pctSpan(t.pnl_pct)}</td>
@@ -1696,7 +1757,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   const realTotalRow = realRows.length ? `<tr class="log-total-row">
       <td colspan="8">TOTAL (real, Kotak)</td>
       <td class="num">${pnlSpan(realTotalInr)}</td>
-      <td colspan="9"></td>
+      <td colspan="11"></td>
     </tr>` : "";
 
   // Bot-only real trades - explicit user request 2026-09-08: "add a bot-
@@ -1717,7 +1778,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${fmt(t.entry_price_native, 2)}</td>
       <td class="num">${fmt(t.exit_price_native, 2)}</td>
       <td class="num">${fmt(t.qty, 0)}</td>
-      <td class="num">${dash}</td>
+      <td class="num">${(t.entry_price_native != null && t.qty != null) ? "₹" + fmt(t.entry_price_native * t.qty) : dash}</td>
       <td class="num">${pnlSpan(t.pnl_inr ?? 0)}</td>
       <td class="num">${dash}</td>
       <td class="num">${pctSpan(t.pnl_pct)}</td>
@@ -1729,7 +1790,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   const botRealTotalRow = botRealRows.length ? `<tr class="log-total-row">
       <td colspan="8">TOTAL (real, this bot's own trades only)</td>
       <td class="num">${pnlSpan(botRealTotalInr)}</td>
-      <td colspan="9"></td>
+      <td colspan="11"></td>
     </tr>` : "";
 
   // Explicit user instruction 2026-09-08: "i dont want you to not to
@@ -1761,10 +1822,10 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${pnlSpan(realTotalInr)}</td>
       <td class="num">${pnlSpan(combinedUnrealisedInr)}</td>
       <td class="num" colspan="2">net ${pnlSpan(realTotalInr + combinedUnrealisedInr)}</td>
-      <td colspan="6"></td>
+      <td colspan="8"></td>
     </tr>` : "";
 
-  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="21">${label}</td></tr>`;
+  const sectionRow = (label) => `<tr class="log-section-row"><td colspan="20">${label}</td></tr>`;
   const sections = [];
   if (liveRows.length) sections.push(sectionRow(`Live positions (${liveRows.length})`), ...liveRows);
   if (openRealRows.length) sections.push(sectionRow(`Live real positions (${openRealRows.length}) — Kotak, currently open`), ...openRealRows);
@@ -1784,11 +1845,12 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${dash}</td><td class="num">${dash}</td>
       <td class="log-type">Kotak order book (exit fill)</td>
       <td class="meta">${t.exit_time_ist || ""}</td><td class="num">—</td>
+      <td>—</td><td>—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="meta">exit fill from Kotak order book; entry conditions not linked</td>
     </tr>`);
   if (exitFillRows.length) sections.push(sectionRow(`Kotak exit fills today (${exitFillRows.length}) — sold per Kotak order book, not in the closed-trades list`), ...exitFillRows);
   if (realRows.length) sections.push(sectionRow(`Real trades today (${realRows.length}) — Kotak, outside this app's own order placement`), ...realRows, realTotalRow);
   if (openRealRows.length || realRows.length) sections.push(combinedRealAndOpenTotalRow);
-  if (!sections.length) sections.push(`<tr><td colspan="21" class="scan-idle">No live positions or real trades today</td></tr>`);
+  if (!sections.length) sections.push(`<tr><td colspan="20" class="scan-idle">No live positions or real trades today</td></tr>`);
   // Strategy leaderboard rows always append last, in this same table -
   // see leaderboardRows()'s own comment for why (2026-09-29 instruction).
   // B-409: appended leaderboard block removed (covered by the Viable strategies table).
@@ -1797,6 +1859,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
   // Full-width section/empty rows just widen by one; real rows get a running 1..N number.
   let _serial = 0;
   for (const tr of Array.from(body.rows)) {
+    if (tr.classList.contains('log-total-row')) { tr.cells[0].colSpan += 1; continue; }
     if (tr.cells.length === 1) { tr.cells[0].colSpan = (tr.cells[0].colSpan || 20) + 1; continue; }
     const td = tr.insertCell(0);
     td.className = "num";
@@ -1869,7 +1932,7 @@ const LEADERBOARD_CATEGORY_LABEL = {
 };
 function leaderboardRows(data) {
   if (!data) return [];
-  const rows = [`<tr class="log-section-row"><td colspan="21">Strategy leaderboard (backtest research, not live trades)</td></tr>`];
+  const rows = [`<tr class="log-section-row"><td colspan="20">Strategy leaderboard (backtest research, not live trades)</td></tr>`];
   let any = false;
   for (const cat of Object.keys(LEADERBOARD_CATEGORY_LABEL)) {
     for (const row of (data[cat] || [])) {
