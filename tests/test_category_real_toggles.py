@@ -36,3 +36,17 @@ def test_panel_overrides_env(monkeypatch, tmp_path):
 def test_meta_requires_token():
     for k in ("real_enabled_equity", "real_enabled_swing", "real_enabled_fo"):
         assert main.RUNTIME_SETTINGS_META[k][3] is True
+
+
+def test_master_switch_and_gate_wiring_present():
+    import inspect
+    # each category gate reads its own runtime key via the shared helper
+    assert "real_enabled_equity" in inspect.getsource(main.is_real_trading_enabled)
+    assert "real_enabled_swing" in inspect.getsource(main.is_real_swing_trading_enabled)
+    assert "real_enabled_fo" in inspect.getsource(main.is_real_fo_trading_enabled)
+
+
+def test_negative_value_means_follow_env(monkeypatch, tmp_path):
+    _set(monkeypatch, tmp_path, -1)
+    monkeypatch.setenv("REAL_SWING_TRADING_ENABLED", "YES")
+    assert main.is_real_swing_trading_enabled() is True
