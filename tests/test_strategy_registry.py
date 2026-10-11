@@ -31,9 +31,6 @@ def test_live_strategies_match_known_live_engines():
         "power_play_high_tight_flag", "primary_base",
         # 2026-10-10 MCX daily engine cells (main._MCX_DAILY_CELLS)
         "sma_crossover__gc__long__1d__atrnone__v1",
-        "keltner_channel_breakout__si__long__1d__atrnone__v1",
-        "supertrend__si__long__1d__atrnone__v1",
-        "sma_crossover__ng__short__1d__atrnone__v1",
         "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
         "starc__fade__long__1d__atr6_h20__v1", "donchian__8wk_fade__long__1d__atr6_h20__v1",
         "combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1", "starc__fade_etf__long__1d__atr6_h20__v1",

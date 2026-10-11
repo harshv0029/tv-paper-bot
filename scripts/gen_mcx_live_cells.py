@@ -1,4 +1,4 @@
-"""Writes docs/mcx_live_cells.json: every exact-rule (no ATR stop) 1d MCX sweep cell with PFnet > 1 on a
+"""Writes docs/mcx_live_cells.json: every exact-rule (no ATR stop) 1d MCX sweep cell with PFnet > 1, whose ATR-stopped variants also clear 1.1, on a
 symbol that has a verified Kotak MCX mini mapping (GC/SI/CL/NG). main._MCX_DAILY_CELLS trades this list."""
 import json, os
 D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs")
@@ -11,7 +11,11 @@ for tag, m in r.items():
     p = tag.split("__")
     if not isinstance(m, dict) or p[3] != "1d" or p[4] != "atrnone" or p[1] not in SYM or not (m.get("pfnet") or 0) > 1:
         continue
-    cells.append([tag, SYM[p[1]], p[0], PARAMS.get(p[0], {}), m["pfnet"]])
+    # 2026-10-11 user: no trade without a stop. Wire only if BOTH stopped variants (ATR 1.5 and 2.5) also clear 1.1.
+    st = [r.get("__".join(p[:4] + [a, p[5]]), {}).get("pfnet") for a in ("atr1d5", "atr2d5")]
+    if not all(x and x >= 1.1 for x in st):
+        continue
+    cells.append([tag, SYM[p[1]], p[0], PARAMS.get(p[0], {}), min(st)])
 cells.sort(key=lambda c: -c[4])
 json.dump({"cells": cells}, open(os.path.join(D, "mcx_live_cells.json"), "w"), indent=0)
 print(len(cells))
