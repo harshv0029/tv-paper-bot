@@ -21,13 +21,25 @@ VARIANT_OF_WIRED = {
 }
 
 
+# 2026-10-11 exit-family run 38140914889: viable alternative exits of the same entries. One live exit per
+# entry family (the best PFnet one); the rest are registered variants of that wired sibling.
+_EF_SIBLING = {
+    "gap_and_go": "gap_and_go__swing__long__1d__hold30__v1",
+    "volume_profile_poc": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+    "order_block_delta": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+}
+for _s in sr.REGISTRY:
+    if _s.source.startswith("scripts/exit_family_research.py"):
+        VARIANT_OF_WIRED.setdefault(_s.name, _EF_SIBLING[_s.name.split("__")[0] if not _s.name.startswith("gg__") else "gap_and_go"])
+
+
 def test_every_viable_strategy_is_wired_or_explained():
     mapped = set(main._STRATEGY_TAG_TO_REGISTRY_NAME.values())
     reg = sr.REGISTRY.values() if isinstance(sr.REGISTRY, dict) else sr.REGISTRY
     missing = [s.name for s in reg
                if s.is_viable() and s.name not in mapped and s.name not in VARIANT_OF_WIRED
                and not s.name.startswith('sector_rotation__') and s.metrics.universe != 'mcx_proxy_single_symbol'
-               and getattr(s, 'source', '') not in ('scripts/pattern_lab.py', 'scripts/minervini_lab.py', 'scripts/breadth_lab.py', 'scripts/combo_lab.py', 'scripts/intermarket_lab.py')]  # B-336/B-343 research cells: live engine owed
+               and getattr(s, 'source', '') not in ('scripts/pattern_lab.py', 'scripts/chan_research.py', 'scripts/elder_indicators_research.py', 'scripts/oneil_research.py', 'scripts/minervini_lab.py', 'scripts/breadth_lab.py', 'scripts/combo_lab.py', 'scripts/intermarket_lab.py')]  # B-336/B-343 research cells: live engine owed
     assert not missing, f"viable but not wired to a scan counter/engine: {missing}"
 
 
