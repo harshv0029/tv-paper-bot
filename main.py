@@ -10528,6 +10528,9 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # PFnet 0.908, just under the floor, NOT gap_and_go_swing's 1.65.
     "gap_and_go": "gap_and_go_swing",
     "minervini_vcp": "minervini_trend_template_vcp",
+    # B-412 (2026-10-11, user go-ahead): same base VCP entry, book-literal 3R breakeven exit -
+    # real-function full-universe PFnet 1.153 (run 36670098717) vs 0.908 for the chandelier.
+    "minervini_vcp_be3r": "minervini_vcp_breakeven_3r",
     # 2026-09-30, "Wire the viable ones": minervini_vcp_livermore_confirmed
     # (PFnet 2.043) clears the floor by a wide margin - see
     # _run_swing_scan's own 2026-09-30 comment for how it's checked before
@@ -10721,6 +10724,23 @@ _TRADE_THESIS_COMPONENTS = {
             "NOTE: this exact variant's own validated PFnet (0.908) sits just below this "
             "app's real-money floor, so this specific entry is paper-tracked for ongoing "
             "research only, never mirrored as a real order."
+        ),
+        "hold": f"Expected to be held up to {MINERVINI_MAX_HOLD_DAYS} trading days.",
+        "close_expectation": (
+            "Whenever price closes at or below the chandelier trailing stop described "
+            "below, or the max-hold window is reached - whichever comes first."
+        ),
+        "weak_signal": (
+            "Treated as unfavourable the moment price closes at or below the chandelier "
+            "trailing stop (running peak close since entry minus a fixed ATR multiple "
+            "frozen at entry, only ever ratcheting up)."
+        ),
+    },
+    "minervini_vcp_be3r": {
+        "why": (
+            "This was entered on a plain Minervini VCP (3R breakeven-stop exit) (Volatility Contraction Pattern) "
+            "breakout - a tightening base breaking out to a new high on a volume surge. "
+            "This variant (3R breakeven-stop exit) cleared the real-money floor in a full-universe replay (PFnet 1.153)."
         ),
         "hold": f"Expected to be held up to {MINERVINI_MAX_HOLD_DAYS} trading days.",
         "close_expectation": (
@@ -18042,6 +18062,17 @@ def _run_swing_scan(conn):
                         (new_running_max, symbol),
                     )
                     conn.commit()
+            elif pos["strategy"] == "minervini_vcp_be3r":
+                reason, new_running_max = minervini_vcp_exit_reason_breakeven(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"] or 0.0,
+                    pos["running_max_close"] or pos["entry_price"], pos["entry_price"], MINERVINI_BREAKEVEN_R_3,
+                )
+                if not reason:
+                    conn.execute(
+                        "UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                        (new_running_max, symbol),
+                    )
+                    conn.commit()
             elif pos["strategy"] == "power_play":
                 # 2026-09-30, "Wire it now anyway" (explicit user override
                 # of this strategy's own thin-sample caution, n=109 - see
@@ -18265,6 +18296,7 @@ def _run_swing_scan(conn):
             continue
 
         _record_strategy_scan("minervini_vcp")
+        _record_strategy_scan("minervini_vcp_be3r")
         vcp_signal = minervini_vcp_entry_signal(df, rs_percentile=rs_pct.get(symbol))
         if not vcp_signal:
             # Lowest-PFnet entries checked LAST (order_block_delta 1.062,
@@ -18313,7 +18345,7 @@ def _run_swing_scan(conn):
             "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
             "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (symbol, "minervini_vcp", today, entry_price, stop_loss, None, qty, time.time(), fx,
+            (symbol, "minervini_vcp_be3r", today, entry_price, stop_loss, None, qty, time.time(), fx,
              vcp_signal["atr_at_entry"], entry_price),
         )
         apply_paper_trade(conn, symbol, "buy", qty, entry_price)
@@ -18321,13 +18353,13 @@ def _run_swing_scan(conn):
             "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
             "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
             (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
-             json.dumps({"entry_reason": "minervini_vcp", "stop_loss": stop_loss,
+             json.dumps({"entry_reason": "minervini_vcp_be3r", "stop_loss": stop_loss,
                          "atr_at_entry": vcp_signal["atr_at_entry"]})),
         )
         conn.commit()
-        print(f"[SWING] entry {symbol} (minervini_vcp) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        print(f"[SWING] entry {symbol} (minervini_vcp_be3r) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
         try:
-            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "minervini_vcp")
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "minervini_vcp_be3r")
         except Exception as e:
             print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
 
