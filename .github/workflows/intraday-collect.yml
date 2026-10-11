@@ -1,0 +1,32 @@
+name: Intraday candle recorder (B-388)
+# Daily 16:00 IST after the close. Schedules only fire from the default branch, so this starts running after the next Deploy Gate merge;
+# until then it is dispatched by hand. History is idempotent and yfinance keeps ~60d of 5m, so a missed day is recovered by the next run.
+on:
+  schedule:
+    - cron: "30 10 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      period:
+        description: "yfinance period (5d daily, 60d to backfill)"
+        default: "5d"
+permissions:
+  contents: write
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/confident-fermi-mlqbka
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt yfinance
+      - run: PERIOD='${{ inputs.period || '5d' }}' python scripts/collect_intraday.py
+      - name: Commit data
+        run: |
+          git config user.name "github-actions"; git config user.email "actions@users.noreply.github.com"
+          git add docs/intraday
+          git commit -m "Intraday 5m candles recorded" || exit 0
+          git pull --rebase origin claude/confident-fermi-mlqbka && git push origin HEAD:claude/confident-fermi-mlqbka

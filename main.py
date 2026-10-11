@@ -1447,6 +1447,14 @@ def history(symbol: str, period: str = "6mo", interval: str = "1d"):
     """
     df = yf.download(symbol, period=period, interval=interval, progress=False)
 
+    if df.empty and interval.endswith(("m", "h")) and period in ("1d", "2d"):
+        # "fetch failed: 404" root cause (user 2026-10-11): period=1d intraday is EMPTY whenever there is no session
+        # yet today (weekends, holidays, pre-open) or Yahoo throttles; retry on 5d and keep the latest session only.
+        df = yf.download(symbol, period="5d", interval=interval, progress=False)
+        if not df.empty:
+            _last_day = df.index[-1].date()
+            df = df[[ts.date() == _last_day for ts in df.index]]
+
     if df.empty:
         raise HTTPException(
             status_code=404,
@@ -10471,6 +10479,14 @@ def is_trading_enabled(conn) -> bool:
     return bool(row["enabled"]) if row else True  # never explicitly set -> default ON
 
 
+def _switch_allows_entries(conn) -> bool:
+    """ALL TRADING toggle for scan loops; an unreadable switch never blocks (the real-order gate fails closed separately)."""
+    try:
+        return bool(is_trading_enabled(conn))
+    except Exception:
+        return True
+
+
 # 2026-09-30, explicit user instruction ("The real money level
 # implementation is only on the pfnet >=1... for all category like
 # buy, short, swing, future, options"), confirmed via AskUserQuestion
@@ -10780,6 +10796,14 @@ def _is_strategy_viable_for_real_money(strategy_tag: str | None) -> bool:
     unmeasured strategy treated as innocent-until-proven-unprofitable."""
     if not strategy_tag:
         return False
+    # 2026-10-11 user: the ALL TRADING toggle must stop NEW real trades in EVERY category immediately. Every
+    # new-entry path (intraday, short, swing, options, MCX, strikes) calls this function, so the switch is enforced here.
+    try:
+        with closing(get_db()) as _kc:
+            if not is_trading_enabled(_kc):
+                return False
+    except Exception:
+        pass
     registry_name = _STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy_tag)
     if not registry_name:
         return False
@@ -13978,6 +14002,8 @@ def _run_mcx_daily_scan(conn, force: bool = False):
     today = t.strftime("%Y-%m-%d")
     if not force and (t.weekday() >= 5 or _mcx_daily_scan_day == today or not ((9, 20) <= (t.hour, t.minute) < (23, 0))):
         return
+    if not _switch_allows_entries(conn):
+        return  # ALL TRADING OFF: no new MCX entries (scan not consumed)
     _mcx_daily_scan_day = today
     for tag, sym, strat, params in _MCX_DAILY_CELLS:
         try:
@@ -14733,6 +14759,31 @@ def _force_close_all_positions(conn, reason: str) -> dict:
             )
             _flag_if_t1_restricted(conn, row["symbol"], result.get("detail"))
 
+    # 2026-10-11 user: "when I toggle OFF it should stop new trades immediately and close the live trades, all the
+    # positions, holdings and anything live". The loop above only covered the intraday long table; close every OTHER
+    # real category through its own engine's exit path (short cover, swing/holdings sell, option/MCX legs), each
+    # cancelling its resting SL first and logging the reason. Failures are listed, never guessed closed.
+    why = f"kill_switch: {reason}"
+    for tbl, closer in (
+        ("real_positions_short", lambda r: _maybe_place_real_short_exit(conn, r["symbol"], reason=why)),
+        ("real_positions_swing", lambda r: _maybe_place_real_swing_exit(conn, r["symbol"], reason=why)),
+        ("real_fo_positions", lambda r: _close_real_fo_option_leg(conn, r, why)),
+    ):
+        try:
+            rows = conn.execute(f"SELECT * FROM {tbl}").fetchall()
+        except Exception as e:
+            print(f"[REAL TRADE] KILL SWITCH could not read {tbl}: {e}")
+            continue
+        for r in rows:
+            try:
+                closer(r)
+                conn.commit()
+            except Exception as e:
+                print(f"[REAL TRADE] KILL SWITCH close failed in {tbl} for {dict(r).get('symbol') or dict(r).get('leg_key')}: {e}")
+        for r in conn.execute(f"SELECT * FROM {tbl}").fetchall():
+            rd = dict(r)
+            real_close_failed.append({"symbol": rd.get("symbol") or rd.get("leg_key"), "table": tbl,
+                                      "qty": rd.get("qty"), "detail": "still open after kill-switch close attempt"})
     conn.commit()
     return {
         "closed_count": len(closed), "closed": closed, "total_pnl_inr": round(total_pnl_inr, 2),
@@ -17827,6 +17878,8 @@ def _run_swing_scan(conn):
     today = ist_now().strftime("%Y-%m-%d")
     if conn.execute("SELECT 1 FROM swing_scan_log WHERE scan_date = ?", (today,)).fetchone():
         return
+    if not _switch_allows_entries(conn):
+        return  # ALL TRADING OFF: no new swing entries; scan not consumed, runs after resume
     conn.execute("INSERT INTO swing_scan_log (scan_date) VALUES (?)", (today,))
     conn.commit()
 
@@ -19753,6 +19806,18 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     swing_scanned_today_total = len(SWING_WATCHLIST)
     swing_scanned_today_count = sum(1 for v in _swing_check_counts.values() if v > 0)
     swing_total_checks_today = sum(_swing_check_counts.values())
+    # every swing strategy (gap_and_go, minervini, OB/VP, pattern cells, sector rotation...) records into
+    # _strategy_scan_counts; MCX daily cells are a separate engine and are excluded (user 2026-10-11: the banner
+    # must represent ALL swing inputs, not only Gap and Go)
+    _swing_strat_counts = {t: n for t, n in _strategy_scan_counts.items() if not t.startswith("single_leg_mcx_")}
+    swing_strategy_checks_today = sum(_swing_strat_counts.values())
+    try:
+        with closing(get_db()) as _sc:
+            swing_scan_done_today = bool(_sc.execute(
+                "SELECT 1 FROM swing_scan_log WHERE scan_date = ?", (ist_now().strftime("%Y-%m-%d"),)).fetchone())
+    except Exception:
+        swing_scan_done_today = None
+    swing_strategies_scanned_today = sum(1 for n in _swing_strat_counts.values() if n > 0)
 
     return {
         "last_checked": last_checked,
@@ -19770,6 +19835,9 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "swing_scanned_today_count": swing_scanned_today_count,
         "swing_scanned_today_total": swing_scanned_today_total,
         "swing_total_checks_today": swing_total_checks_today,
+        "swing_strategy_checks_today": swing_strategy_checks_today,
+        "swing_scan_done_today": swing_scan_done_today,
+        "swing_strategies_scanned_today": swing_strategies_scanned_today,
         "check_counts_today": check_counts_today,
         "check_counts_day": _scheduler_check_counts_day,
         "rr_cursor": _scheduler_rr_cursor,
