@@ -157,3 +157,9 @@ unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surp
 - **Fit to this system:** stock options are monthly and wide-spread; the option doubles exposure per signal (user chose that knowingly). Only legs tagged `single_leg_swing_call` are closed by the swing engine (engine ownership).
 - **Surprise:** `nse_fo_chain` already covered 210 stock underlyings; B-418 is mostly liquidity/lot-size review, not new plumbing.
 - **Profit-booking / exit takeaway:** the swing exit signal OR the trailing premium SL closes the call, whichever fires first; judge real fills before sizing up.
+
+## 2026-10-11 — B-419: swing round robin and SL rule per legacy tag
+- **Mechanism:** the swing scan now repeats every 15 min while NSE is open on completed daily bars only (today's forming bar is dropped), skips symbols already entered or exited today (`swing_done_today`), and persists scan counts (`strategy_scan_counts`, Upstash-mirrored) so a restart no longer zeroes them.
+- **Fit to this system:** signals are backtested on completed daily bars, so repeat passes must not see the forming bar; the same-day guard stops an exit then re-entry flip on the same bar.
+- **Surprise:** legacy tags (power_play, gap_and_go, VCP) had no ATR multiple in their registry names, so SL % showed n/a; their stop rules now come from the live entry/exit functions (`_SWING_SL_RULES`).
+- **Profit-booking / exit takeaway:** power_play and VCP exit on a chandelier trail (2xATR below peak close) and OB/VP on 6xATR, so profit is booked by trail, not a target; gap_and_go has a frozen stop and a 30-day max hold.

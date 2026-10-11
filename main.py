@@ -691,6 +691,20 @@ def init_db():
         )
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS swing_done_today (
+                day TEXT NOT NULL, symbol TEXT NOT NULL, PRIMARY KEY (day, symbol)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS strategy_scan_counts (
+                day TEXT NOT NULL, tag TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (day, tag)
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS swing_scan_log (
                 scan_date TEXT PRIMARY KEY  -- IST date (YYYY-MM-DD) - marks that day's swing
                                              -- scan as already done, separate from `trades` so
@@ -16376,6 +16390,7 @@ _GENERIC_MIRROR_TABLES = (
     "real_fo_trades", "option_state", "nse_straddle_state",
     "signal_state_fo_options", "swing_scan_log", "tracked_union",
     "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags",
+    "swing_done_today", "strategy_scan_counts",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
@@ -18044,7 +18059,7 @@ def _swing_stopout_cluster(conn) -> bool:
         return False
 
 
-def _run_swing_scan(conn):
+def _run_swing_scan_pass(conn):
     """Once-per-day (IST) daily-bar scan for every symbol in SWING_WATCHLIST:
     checks exits for open swing positions first, then entries for flat ones.
     Always paper-trades unconditionally; additionally mirrors as a REAL
@@ -18091,12 +18106,7 @@ def _run_swing_scan(conn):
     slot for that symbol that day; a symbol simply doesn't get a look
     from the others until it's flat again."""
     today = ist_now().strftime("%Y-%m-%d")
-    if conn.execute("SELECT 1 FROM swing_scan_log WHERE scan_date = ?", (today,)).fetchone():
-        return
-    if not _switch_allows_entries(conn):
-        return  # ALL TRADING OFF: no new swing entries; scan not consumed, runs after resume
-    conn.execute("INSERT INTO swing_scan_log (scan_date) VALUES (?)", (today,))
-    conn.commit()
+    _done_syms = {r[0] for r in conn.execute("SELECT symbol FROM swing_done_today WHERE day = ?", (today,)).fetchall()}
 
     if is_real_swing_trading_enabled():
         try:
@@ -18116,6 +18126,15 @@ def _run_swing_scan(conn):
             continue
         if df is None or len(df) < 50:
             continue
+        # B-419: signals are defined on COMPLETED daily bars (as backtested). A pass run during the session
+        # must not see today's still-forming bar, so repeat passes give the same answer as the first one.
+        try:
+            if str(df.index[-1])[:10] == today and _nse_equity_market_open_now():
+                df = df.iloc[:-1]
+        except Exception:
+            pass
+        if len(df) < 50:
+            continue
         dfs[symbol] = df
 
     try:
@@ -18125,6 +18144,8 @@ def _run_swing_scan(conn):
         rs_pct = {}
 
     for symbol, df in dfs.items():
+        if symbol in _done_syms:
+            continue  # B-419: this symbol already entered/exited today; a repeat pass must not flip it again
         pos = conn.execute(
             "SELECT * FROM signal_state_swing WHERE symbol = ?", (symbol,)
         ).fetchone()
@@ -19188,6 +19209,62 @@ def _ensure_gap_and_go_state_for_held(conn) -> list:
     return out
 
 
+SWING_PASS_INTERVAL_SEC = 900  # B-419: repeat swing pass every 15 min during market hours
+_swing_last_pass_ts = 0.0
+
+
+def _restore_strategy_scan_counts(conn):
+    """B-419: scan counters are memory-only, so a restart zeroed them. Merge today's persisted counts back."""
+    global _strategy_scan_counts_day
+    today = ist_now().strftime("%Y-%m-%d")
+    if _strategy_scan_counts_day != today:
+        _strategy_scan_counts.clear()
+        _strategy_scan_counts_day = today
+    for r in conn.execute("SELECT tag, n FROM strategy_scan_counts WHERE day = ?", (today,)).fetchall():
+        if r["n"] > _strategy_scan_counts.get(r["tag"], 0):
+            _strategy_scan_counts[r["tag"]] = r["n"]
+
+
+def _persist_strategy_scan_counts(conn):
+    today = ist_now().strftime("%Y-%m-%d")
+    for tag, n in list(_strategy_scan_counts.items()):
+        conn.execute("INSERT OR REPLACE INTO strategy_scan_counts (day, tag, n) VALUES (?, ?, ?)", (today, tag, n))
+    conn.commit()
+
+
+def _run_swing_scan(conn):
+    """First pass of the IST day (logged in swing_scan_log, as before), then a repeat pass every
+    SWING_PASS_INTERVAL_SEC while NSE is open (B-419, user 2026-10-11: scan 'every few minutes in round
+    robin'). Repeat passes see only completed bars and skip symbols already entered/exited today."""
+    global _swing_last_pass_ts
+    today = ist_now().strftime("%Y-%m-%d")
+    try:
+        _restore_strategy_scan_counts(conn)
+    except Exception as e:
+        print(f"[SWING] scan-count restore failed (non-fatal): {e}")
+    first_pass = not conn.execute("SELECT 1 FROM swing_scan_log WHERE scan_date = ?", (today,)).fetchone()
+    if not first_pass and (not _nse_equity_market_open_now() or time.time() - _swing_last_pass_ts < SWING_PASS_INTERVAL_SEC):
+        return
+    if not _switch_allows_entries(conn):
+        return  # ALL TRADING OFF: no new swing entries; scan not consumed, runs after resume
+    if first_pass:
+        conn.execute("INSERT INTO swing_scan_log (scan_date) VALUES (?)", (today,))
+        conn.commit()
+    _swing_last_pass_ts = time.time()
+    before = {r[0] for r in conn.execute("SELECT symbol FROM signal_state_swing").fetchall()}
+    try:
+        return _run_swing_scan_pass(conn)
+    finally:
+        try:
+            after = {r[0] for r in conn.execute("SELECT symbol FROM signal_state_swing").fetchall()}
+            for sym in before ^ after:
+                conn.execute("INSERT OR IGNORE INTO swing_done_today (day, symbol) VALUES (?, ?)", (today, sym))
+            conn.commit()
+            _persist_strategy_scan_counts(conn)
+        except Exception as e:
+            print(f"[SWING] post-pass bookkeeping failed (non-fatal): {e}")
+
+
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
@@ -20150,6 +20227,21 @@ def strategy_leaderboard():
     return out
 
 
+# Stop rule per legacy swing tag (read from each strategy's own entry/exit function), shown in the viable
+# table's SL % column when no position is open to average a real % from (B-419 follow-up, user 2026-10-11).
+_SWING_SL_RULES = {
+    "gap_and_go": f"entry - {SWING_ATR_STOP_MULT:g}xATR, frozen (no trail)",
+    "orb-swing-gap-and-go": f"entry - {SWING_ATR_STOP_MULT:g}xATR, frozen (no trail)",
+    "power_play": f"consolidation low, then trails {POWER_PLAY_ATR_STOP_MULT:g}xATR below peak close",
+    "primary_base": f"base low, then trails {MINERVINI_ATR_STOP_MULT:g}xATR below peak close",
+    "minervini_vcp": f"final-leg low, then trails {MINERVINI_ATR_STOP_MULT:g}xATR below peak close",
+    "minervini_vcp_livermore": f"2nd reaction low, then trails {MINERVINI_ATR_STOP_MULT:g}xATR below peak close",
+    "minervini_vcp_be3r": f"final-leg low, flat; moves to entry at {MINERVINI_BREAKEVEN_R_3:g}R",
+    "order_block_delta": f"lower of OB low / entry - {ORDER_BLOCK_ATR_STOP_MULT:g}xATR, then trails {ORDER_BLOCK_ATR_TRAIL_MULT:g}xATR",
+    "volume_profile_poc": f"value-area band low, then trails {VP_ATR_TRAIL_MULT:g}xATR below peak close",
+}
+
+
 @app.get("/strategy-scan-activity")
 def strategy_scan_activity(include_unwired: bool = False):
     """Per-viable-strategy scan/entry activity for /trade-view (explicit
@@ -20287,6 +20379,8 @@ def strategy_scan_activity(include_unwired: bool = False):
             rule = f"{m.group(1).replace('d', '.')}xATR stop"
         elif "atrnone" in (registry_name or ""):
             rule = "trailing premium SL"
+        if rule is None:
+            rule = _SWING_SL_RULES.get(tag)
         return {"sl_pct": round(sum(pcts) / len(pcts), 2) if pcts else None, "sl_open_n": len(pcts), "sl_rule": rule}
 
     _mcx_tags = {c[0] for c in _MCX_DAILY_CELLS}
