@@ -1,0 +1,394 @@
+{
+ "B-625": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=volume; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-626": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=volume; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-635": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-636": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-637": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-638": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-642": {
+  "evidence": "Row states lagged-MA plotting is display-only and must NOT be implemented; no work needed.",
+  "status": "DONE"
+ },
+ "B-643": {
+  "evidence": "family=roc. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-647": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=williams_r; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-648": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=williams_r; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-649": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=williams_r; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-650": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=stoch_slow; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-651": {
+  "evidence": "family=triple_screen. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-652": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=stoch_slow; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-653": {
+  "evidence": "family=stoch_filter. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-654": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=stoch_slow; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-655": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=stoch_slow; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-658": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=rsi; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-659": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=rsi; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-660": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=rsi; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-663": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=volume; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-664": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=volume; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-665": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=volume; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-667": {
+  "evidence": "family=obv. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-668": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=ad_line; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-669": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=ad_line; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-671": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-672": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-674": {
+  "evidence": "family=triple_screen. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-675": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=macdh; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-677": {
+  "evidence": "diverge variants cover price-vs-oscillator class A only; class B/C definitions not coded. Open.",
+  "status": "PENDING"
+ },
+ "B-686": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-687": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-688": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-689": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-690": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-691": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-692": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-693": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-694": {
+  "evidence": "family=elder_ray. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-695": {
+  "evidence": "family=elder_ray. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-696": {
+  "evidence": "family=elder_ray. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-697": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=force_index; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-698": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=force_index; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-699": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=force_index; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-700": {
+  "evidence": "family=triple_screen. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-701": {
+  "evidence": "family=triple_screen. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-702": {
+  "evidence": "family=triple_screen. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-703": {
+  "evidence": "family=triple_screen. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-705": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=parabolic; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-708": {
+  "evidence": "family=ema_gate. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-709": {
+  "evidence": "Generic divergence implemented as diverge variants in elder_indicators_research_ext.py (williams_r, stoch_slow, rsi, macdh; lb 5/10/20) and obv diverge in batch 1; awaits runs.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-711": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-712": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-713": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-714": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-715": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-716": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=channel; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-717": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=channel; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-718": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=channel; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-719": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=channel; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-723": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=macdh; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-724": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=stoch_slow; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-725": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=williams_r; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-726": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=rsi; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-729": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=ad_line; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-730": {
+  "evidence": "Data not available in OHLCV/yfinance (sentiment, COT, insider, option or open-interest data); unblocks only with the B-749 data-feed chain (B-752..B-758).",
+  "status": "BLOCKED"
+ },
+ "B-737": {
+  "evidence": "Loss-cap backtest run 38130747915 (main c5793a4, swing OB/VP long, daily 5y full universe, max-open 5/10/20, caps 0/4/6/8%): no consistent benefit (backlog B-773). User decision B-774: stored only, no exception, no monthly-halt switch. Short/intraday replays parked. Invalid first run 38129170722 superseded by B-772 fix.",
+  "status": "DONE"
+ },
+ "B-738": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=profit_protect; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-739": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=profit_protect; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-740": {
+  "evidence": "Existing: exit-family run 38140914889 (exitinval). Unchanged.",
+  "status": "PARTIAL"
+ },
+ "B-745": {
+  "evidence": "Negative control for sizing tests; needs a sizing-sim harness, not built.",
+  "status": "PENDING"
+ },
+ "B-747": {
+  "evidence": "Policy/non-mechanical (profit withdrawal policy; Elliott/Gann counts are hindsight-only); parked, not a backtestable rule.",
+  "status": "BLOCKED"
+ },
+ "B-748": {
+  "evidence": "Policy/non-mechanical (profit withdrawal policy; Elliott/Gann counts are hindsight-only); parked, not a backtestable rule.",
+  "status": "BLOCKED"
+ },
+ "B-749": {
+  "evidence": "Needs NSE/Kotak data fetch from an Actions runner or live Kotak session (sandbox gets 403 from NSE; Kotak calls forbidden for subagents) and new Upstash-mirrored tables touching main.py; coordinator-only.",
+  "status": "BLOCKED"
+ },
+ "B-750": {
+  "evidence": "Page-image re-read done; results recorded as rows B-759..B-770 and learnings addendum (commit 61330ef).",
+  "status": "DONE"
+ },
+ "B-751": {
+  "evidence": "Loss-cap backtest run 38130747915 (main c5793a4, swing OB/VP long, daily 5y full universe, max-open 5/10/20, caps 0/4/6/8%): no consistent benefit (backlog B-773). User decision B-774: stored only, no exception, no monthly-halt switch. Short/intraday replays parked. Invalid first run 38129170722 superseded by B-772 fix.",
+  "status": "DONE"
+ },
+ "B-752": {
+  "evidence": "Needs NSE/Kotak data fetch from an Actions runner or live Kotak session (sandbox gets 403 from NSE; Kotak calls forbidden for subagents) and new Upstash-mirrored tables touching main.py; coordinator-only.",
+  "status": "BLOCKED"
+ },
+ "B-753": {
+  "evidence": "Needs NSE/Kotak data fetch from an Actions runner or live Kotak session (sandbox gets 403 from NSE; Kotak calls forbidden for subagents) and new Upstash-mirrored tables touching main.py; coordinator-only.",
+  "status": "BLOCKED"
+ },
+ "B-754": {
+  "evidence": "Needs NSE/Kotak data fetch from an Actions runner or live Kotak session (sandbox gets 403 from NSE; Kotak calls forbidden for subagents) and new Upstash-mirrored tables touching main.py; coordinator-only.",
+  "status": "BLOCKED"
+ },
+ "B-755": {
+  "evidence": "Needs NSE/Kotak data fetch from an Actions runner or live Kotak session (sandbox gets 403 from NSE; Kotak calls forbidden for subagents) and new Upstash-mirrored tables touching main.py; coordinator-only.",
+  "status": "BLOCKED"
+ },
+ "B-756": {
+  "evidence": "Needs NSE/Kotak data fetch from an Actions runner or live Kotak session (sandbox gets 403 from NSE; Kotak calls forbidden for subagents) and new Upstash-mirrored tables touching main.py; coordinator-only.",
+  "status": "BLOCKED"
+ },
+ "B-757": {
+  "evidence": "Needs NSE/Kotak data fetch from an Actions runner or live Kotak session (sandbox gets 403 from NSE; Kotak calls forbidden for subagents) and new Upstash-mirrored tables touching main.py; coordinator-only.",
+  "status": "BLOCKED"
+ },
+ "B-758": {
+  "evidence": "Needs NSE/Kotak data fetch from an Actions runner or live Kotak session (sandbox gets 403 from NSE; Kotak calls forbidden for subagents) and new Upstash-mirrored tables touching main.py; coordinator-only.",
+  "status": "BLOCKED"
+ },
+ "B-759": {
+  "evidence": "family=triple_screen. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-760": {
+  "evidence": "adx_bell family in scripts/elder_indicators_research.py (thr 3/4/5 points, Wilder 14 smoothing). Elder's 13-EMA smoothing correction is not applied: small param gap, so not closed.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-761": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=macdh; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-762": {
+  "evidence": "family=elder_ray. scripts/elder_indicators_research.py + .github/workflows/elder-indicators-research.yml (commit 64e2579, re-run in progress); full universe, both directions, ATR 1.5/2/3, tags per grammar. Closes only when a run id and registered tags exist.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-763": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=force_index; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-764": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=williams_r; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-765": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=stoch_slow; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-766": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=channel; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-768": {
+  "evidence": "Loss-cap backtest run 38130747915 (main c5793a4, swing OB/VP long, daily 5y full universe, max-open 5/10/20, caps 0/4/6/8%): no consistent benefit (backlog B-773). User decision B-774: stored only, no exception, no monthly-halt switch. Short/intraday replays parked. Invalid first run 38129170722 superseded by B-772 fix.",
+  "status": "DONE"
+ },
+ "B-769": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=macdh; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-770": {
+  "evidence": "scripts/elder_indicators_research_ext.py + tests/test_elder_indicators_research_ext.py + .github/workflows/elder-indicators-research-ext.yml (batch-2 commit, see report); family=profit_protect; tests pass. Needs Deploy Gate to land on main before dispatch; closes only with run id + registered tags.",
+  "status": "HARNESS-BUILT-AWAITING-RUN"
+ },
+ "B-771": {
+  "evidence": "Loss-cap backtest run 38130747915 (main c5793a4, swing OB/VP long, daily 5y full universe, max-open 5/10/20, caps 0/4/6/8%): no consistent benefit (backlog B-773). User decision B-774: stored only, no exception, no monthly-halt switch. Short/intraday replays parked. Invalid first run 38129170722 superseded by B-772 fix.",
+  "status": "DONE"
+ },
+ "B-772": {
+  "evidence": "Loss-cap backtest run 38130747915 (main c5793a4, swing OB/VP long, daily 5y full universe, max-open 5/10/20, caps 0/4/6/8%): no consistent benefit (backlog B-773). User decision B-774: stored only, no exception, no monthly-halt switch. Short/intraday replays parked. Invalid first run 38129170722 superseded by B-772 fix.",
+  "status": "DONE"
+ },
+ "B-775": {
+  "evidence": "Awaiting user pick (cap vs measure) per row text; registry stores only ATR multiple, not SL%. Not computed to avoid fabricating.",
+  "status": "BLOCKED"
+ }
+}
