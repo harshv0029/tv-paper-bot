@@ -345,3 +345,7 @@ Profit-booking / exit takeaway: do not tighten exits or trail early; the edge is
 - Surprise: the short mirror beats the long (2.47 vs 1.76), unusual here; MFE averages 2.25R but about half of losers reach 0.5R first, so partial profit-taking at 1R would cut give-backs.
 - Reuse: sweep rr target and ATR stop together on every breakout entry; always register the short mirror; treat n<300 as needing neighbours-in-parameter-space to confirm.
 - Profit-booking / exit takeaway: a 4R target with a 3-ATR stop lets winners run to ~12 days; 49.7% of losers touched +0.5R and 26% touched +1R, so test a breakeven-after-1R stop on this family before wiring.
+
+## Breakeven-at-1R on swing longs/shorts (B-412 / B-799, run 38169623485, 2026-10-12 IST)
+Mechanism: after price reaches +1R, move the stop to entry. Result on ~2200 symbols, 0.8% cost: gap_long 1.177->1.187, minervini_long 1.474->1.475, ob_long 1.102->1.094, vp_long 1.124->1.099; shorts unchanged below 1 (gap 0.40, minervini 0.77). Why neutral: edge sits in 30-day max-hold survivors; breakeven converts many would-be-recoveries into zero-gain stops (gap_long stop_hit 963->2136) and offsets any saved losses. Surprise: Minervini lab baseline_ma200_break reaches 1.701 (n3370). Reuse: do not add breakeven stops to these swing strategies; keep the wide trail/stop and let survivors run.
+Profit-booking / exit takeaway: early breakeven does not improve net profit on 30-day swing edges; it only trades recoveries for zero-gain exits.
