@@ -1,0 +1,84 @@
+{
+"results": {
+"overnight__night__long__1d__atrnone__v1": {
+"pfnet": 0.449,
+"pfnet_trim1": 0.363,
+"win_pct": 27.1,
+"n": 2409261,
+"avg_net_pct": -0.4128,
+"median_net_pct": -0.5666,
+"avg_held_bars": 1.0,
+"bar_hours": 17.5
+},
+"overnight__night__short__1d__atrnone__v1": {
+"pfnet": 0.11,
+"pfnet_trim1": 0.072,
+"win_pct": 11.5,
+"n": 2409261,
+"avg_net_pct": -1.1872,
+"median_net_pct": -1.0334,
+"avg_held_bars": 1.0,
+"bar_hours": 17.5
+},
+"overnight__day__long__1d__atrnone__v1": {
+"pfnet": 0.318,
+"pfnet_trim1": 0.253,
+"win_pct": 24.9,
+"n": 2411706,
+"avg_net_pct": -1.1057,
+"median_net_pct": -1.1139,
+"avg_held_bars": 1.0,
+"bar_hours": 6.25
+},
+"overnight__day__short__1d__atrnone__v1": {
+"pfnet": 0.582,
+"pfnet_trim1": 0.514,
+"win_pct": 39.9,
+"n": 2411706,
+"avg_net_pct": -0.4943,
+"median_net_pct": -0.4861,
+"avg_held_bars": 1.0,
+"bar_hours": 6.25
+},
+"overnight__day__long__1d__atr1d5__v1": {
+"pfnet": 0.314,
+"pfnet_trim1": 0.249,
+"win_pct": 24.9,
+"n": 2378834,
+"avg_net_pct": -1.1244,
+"median_net_pct": -1.1193,
+"avg_held_bars": 1.0,
+"bar_hours": 6.25
+},
+"overnight__day__short__1d__atr1d5__v1": {
+"pfnet": 0.564,
+"pfnet_trim1": 0.498,
+"win_pct": 39.7,
+"n": 2378835,
+"avg_net_pct": -0.5258,
+"median_net_pct": -0.4941,
+"avg_held_bars": 1.0,
+"bar_hours": 6.25
+},
+"overnight__day__long__1d__atr2d5__v1": {
+"pfnet": 0.318,
+"pfnet_trim1": 0.252,
+"win_pct": 24.9,
+"n": 2378834,
+"avg_net_pct": -1.1069,
+"median_net_pct": -1.1124,
+"avg_held_bars": 1.0,
+"bar_hours": 6.25
+},
+"overnight__day__short__1d__atr2d5__v1": {
+"pfnet": 0.572,
+"pfnet_trim1": 0.505,
+"win_pct": 39.8,
+"n": 2378835,
+"avg_net_pct": -0.511,
+"median_net_pct": -0.4897,
+"avg_held_bars": 1.0,
+"bar_hours": 6.25
+}
+}
+}
