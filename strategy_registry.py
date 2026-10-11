@@ -2550,7 +2550,77 @@ def viable_leaderboard(category: TradeCategory, floor: float = PFNET_LIVE_FLOOR)
     ]
 
 
-def all_strategies_info() -> dict:
+_FAMILY_CONDITIONS = {
+    "rsi_reversal": "RSI crosses back from oversold (long) / overbought (short)",
+    "sma_crossover": "fast SMA crosses above (long) / below (short) the slow SMA",
+    "supertrend": "price closes through the Supertrend line (flip to the trade direction)",
+    "keltner": "close breaks out of the Keltner channel in the trade direction",
+    "donchian": "close breaks the N-bar Donchian high (long) / low (short)",
+    "bollinger": "close back inside / through the Bollinger band (mean-reversion or breakout per variant)",
+    "bollinger_mean_reversion": "close outside the lower (long) / upper (short) Bollinger band then reverts inside",
+    "macd_cross": "MACD line crosses its signal line in the trade direction",
+    "adx_di": "ADX above threshold with +DI over -DI (long) or -DI over +DI (short)",
+    "morning_star_bos": "morning-star reversal at a swing low, break of structure above the last lower high, then a retest limit entry into the star; stop under the star low, target the supply origin (R:R >= 1.5)",
+    "evening_star_bos": "mirror of morning_star_bos for shorts",
+    "fib_golden": "retrace into the 0.618-0.79 zone of the last swing leg with a lower-wick rejection candle; stop at the swing low, target the swing high",
+    "sector_rotation": "sector breadth/momentum rank selects the leading sector; buy its strongest stocks",
+    "order_block_delta": "order-block retest with volume delta confirmation",
+    "volume_profile_poc": "price reclaims the Volume-Profile point of control with liquidity confirmation",
+    "overnight": "close-to-open (night) or open-to-close (day) leg held for one bar",
+    "rsi_pullback": "close above SMA200 and RSI(10) below the entry level; exit when RSI recovers",
+}
+_PARAM_TEXT = {"atrnone": "no ATR stop in backtest", "atr": "ATR-multiple stop ", "rr": "reward:risk ", "mh": "max hold bars ", "pv": "pivot width ",
+               "bf": "stop buffer (x ATR) ", "en": "entry RSI ", "ex": "exit RSI ", "sw": "swing-low lookback ", "hd": "time stop bars "}
+
+
+# Exact conditions of the legacy live swing entries, transcribed from the docstrings of the live functions in main.py
+# (gap_and_go_entry_signal, minervini_vcp_entry_signal, power_play_entry_signal, primary_base_entry_signal,
+# order_block_entry_signal, volume_profile_poc_entry_signal). Keyed by registry name.
+_LEGACY_CONDITIONS = {
+    "gap_and_go_swing": "today's Open gaps up >= 2.0% above yesterday's Close; today closes green and in the upper half of its Open-High range; Volume > 1.5x its 20-day average; protective stop = entry - 2.5 x ATR(14); swing time/trend exit per the daily scan",
+    "minervini_vcp": "Minervini Trend Template passes (RS percentile gate) AND a valid tightening VCP base AND today's close breaks above the base pivot high on a volume surge",
+    "minervini_vcp_livermore": "Minervini VCP entry with the Livermore pivot rule (breakout above the base pivot on a volume surge, Trend Template gate)",
+    "power_play": "valid high-tight-flag (Power Play) setup AND today's close breaks above the flag's high on a volume surge",
+    "primary_base": "short overall history (IPO-recency proxy), valid-depth correction since the all-time high, and today's close breaks to a NEW all-time high on a volume surge",
+    "order_block_delta": "delta-confirmed order-block retest (long): price retests an order block with positive volume-delta confirmation",
+    "volume_profile_poc": "Volume Profile / point-of-control bounce long: price rejects the POC of the lookback profile and closes back above it",
+}
+
+
+def describe_entry_conditions(s) -> str:
+    """Human-readable entry conditions for the trade-view 'Remarks' column (B-397). Built ONLY from facts held in the registry
+    (naming grammar, family table above, risk_profile, notes); never invented for a strategy it knows nothing about."""
+    parts = s.name.split("__")
+    out = []
+    legacy = _LEGACY_CONDITIONS.get(s.name)
+    if legacy:
+        out.append(legacy)
+    elif len(parts) >= 5:
+        fam, var, dr, tf, par = parts[0], parts[1], parts[2], parts[3], parts[4]
+        base = _FAMILY_CONDITIONS.get(fam) or _FAMILY_CONDITIONS.get(fam.split("_n200")[0])
+        out.append(f"{fam} / {var}: {base}" if base else f"{fam} / {var} pattern")
+        out.append(f"direction {dr}, {tf} candles")
+        dec = []
+        for tok in par.split("_"):
+            for k in sorted(_PARAM_TEXT, key=len, reverse=True):
+                if tok == k:
+                    dec.append(_PARAM_TEXT[k]); break
+                _rest = tok[len(k):].replace("d", ".")
+                if tok.startswith(k) and _rest.replace(".", "").isdigit():
+                    dec.append(_PARAM_TEXT[k] + _rest); break
+        if dec:
+            out.append("; ".join(dec))
+    else:
+        out.append(f"{s.name} ({s.timeframe})")
+    if s.risk_profile:
+        out.append("risk: " + ", ".join(f"{k}={v}" for k, v in list(s.risk_profile.items())[:4]))
+    if s.notes:
+        out.append(s.notes.strip().split("\n")[0][:220])
+    out.append(f"must clear PFnet >= {PFNET_LIVE_FLOOR} to place a real order; every real entry carries a stop-loss")
+    return " | ".join(out)
+
+
+def all_strategies_info(conditions_for=None) -> dict:
     """Every registered strategy's own record, keyed by name - unlike
     leaderboard()'s top-N-per-category view, this includes EVERY strategy
     regardless of current rank. 2026-09-30, explicit user instruction
@@ -2592,6 +2662,8 @@ def all_strategies_info() -> dict:
             "n_trades": s.metrics.n_trades if s.metrics else None,
             "viable": s.is_viable(),
         }
+        if conditions_for is not None and s.name in conditions_for:
+            info[s.name]["entry_conditions"] = describe_entry_conditions(s)
     return info
 
 
