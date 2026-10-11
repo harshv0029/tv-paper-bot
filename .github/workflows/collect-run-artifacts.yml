@@ -41,5 +41,5 @@ jobs:
                   txt = json.dumps(json.loads(txt), separators=(",", ":"))
               except Exception:
                   pass
-              print(txt[:20000])
+              print(txt[:900000])
           PYEOF
