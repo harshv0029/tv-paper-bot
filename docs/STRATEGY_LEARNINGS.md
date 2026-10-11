@@ -337,3 +337,11 @@ Profit-booking / exit takeaway: do not tighten exits or trail early; the edge is
 - Surprise: raw divergence on RSI or on wide classes (ka/kb) sits at 0.92-0.99; only the strictest class (kc) with MACD-histogram lifts above 1.1; fewer trades (1.3k vs 25k) carried the edge.
 - Reuse: always gate divergence by a strict class; sizing studies need a positive-edge entry first; collector caps hid half the data once (raised to 900k chars).
 - Profit-booking / exit takeaway: atr3 beats atr1.5 on the one family that works (1.267 vs 1.14), consistent with letting divergence winners run to 25 bars; tight stops on 5m ORB book small losses repeatedly.
+
+## Douglas/Elder trade management: breakout with min reward:risk target (run 38174269343, 2026-10-12 IST)
+- Mechanism: 480 cells (228 entry variants, 252 exit variants); the winning family is a 20-bar breakout entry (brk20) with an ATR stop and a minimum reward:risk target (rr 2.5-4), mirrored short.
+- Fit here: fits the no-trade-without-SL rule natively (ATR stop is in the cell); 12-day hold sits well inside the 30-day rule; trades on the broadest universe so far (4699 symbols with data).
+- Result: 6 viable, short atr3_rr4 PFnet 2.468 (n275, win 43.6%), long atr3_rr4 1.762 (n422). No entry-side variation cleared 1.1; the edge is in the exit (a distant RR target on a wide ATR stop).
+- Surprise: the short mirror beats the long (2.47 vs 1.76), unusual here; MFE averages 2.25R but about half of losers reach 0.5R first, so partial profit-taking at 1R would cut give-backs.
+- Reuse: sweep rr target and ATR stop together on every breakout entry; always register the short mirror; treat n<300 as needing neighbours-in-parameter-space to confirm.
+- Profit-booking / exit takeaway: a 4R target with a 3-ATR stop lets winners run to ~12 days; 49.7% of losers touched +0.5R and 26% touched +1R, so test a breakeven-after-1R stop on this family before wiring.
