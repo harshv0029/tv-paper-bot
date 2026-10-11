@@ -2587,6 +2587,27 @@ _LEGACY_CONDITIONS = {
 }
 
 
+def edge_confidence_pct(m):
+    """Confidence (%) that a strategy's backtested edge is real, not luck.
+    Break-even win rate p0 follows from PFnet and win rate (payoff ratio
+    b = PFnet*(1-w)/w, p0 = 1/(1+b)); the confidence is the one-tailed
+    normal-CDF probability that the true win rate beats p0 given n trades.
+    PFnet 1.0 reads 50%; more trades and a bigger margin read higher.
+    None when win rate / n / PFnet are missing."""
+    import math
+    try:
+        w = m.win_rate_pct / 100.0
+        n = m.n_trades
+        if not (0 < w < 1) or not n or n < 2 or m.pfnet is None or m.pfnet <= 0:
+            return None
+        b = m.pfnet * (1 - w) / w
+        p0 = 1.0 / (1.0 + b)
+        z = (w - p0) / math.sqrt(p0 * (1 - p0) / n)
+        return round(100.0 * 0.5 * (1.0 + math.erf(z / math.sqrt(2.0))), 1)
+    except (TypeError, ZeroDivisionError, AttributeError):
+        return None
+
+
 def describe_entry_conditions(s) -> str:
     """Human-readable entry conditions for the trade-view 'Remarks' column (B-397). Built ONLY from facts held in the registry
     (naming grammar, family table above, risk_profile, notes); never invented for a strategy it knows nothing about."""

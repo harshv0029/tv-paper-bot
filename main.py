@@ -16069,18 +16069,6 @@ SCHEDULER_RR = 3.0  # DEFAULT (fallback) - 1:3 minimum reward:risk, live-editabl
 # than silently narrowed.
 RUNTIME_SETTINGS_META = {
     # key: (default, min, max, requires_real_money_token, description)
-    "min_entry_confidence_pct": (
-        TREND_WEAKENED_MIN_CONFIDENCE * 100, 50.0, 99.9, False,
-        "Minimum statistical confidence (one-tailed normal-CDF read on the "
-        "SMA(fast) vs SMA(slow) gap - see _trend_confidence) that the trend "
-        "is real, required for a NEW orb_breakout entry (in addition to the "
-        "breakout clearing ENTRY_BREAKOUT_MARGIN_PCT above the opening-range "
-        "high). Lower = more entries taken on weaker/less-certain trend "
-        "evidence; higher = fewer, more selective entries. Default 95% "
-        "matches the same bar the early-exit 'trend weakened' check already "
-        "trusts (TREND_WEAKENED_MIN_CONFIDENCE), but that exit-side constant "
-        "is NOT changed by this setting - this only gates new entries.",
-    ),
     "daily_risk_pct": (
         SCHEDULER_DAILY_RISK_PCT, 0.1, 10.0, False,
         "Account-wide daily loss cap (% of day-open capital), read from Kotak's real P&L: covers "
@@ -19093,7 +19081,6 @@ async def _scheduler_tick():
         live_daily_risk_pct = get_runtime_setting(conn, "daily_risk_pct")
         live_rr = get_runtime_setting(conn, "rr")
         live_batch_size = int(get_runtime_setting(conn, "entry_scan_batch_size"))
-        live_min_entry_confidence_pct = get_runtime_setting(conn, "min_entry_confidence_pct")
         live_max_hold_minutes = get_runtime_setting(conn, "max_hold_minutes")
 
     # When paused, don't waste a Yahoo Finance call scanning flat
@@ -19214,7 +19201,6 @@ async def _scheduler_tick():
                 # deliberately pinning a symbol back to the old engine.
                 strategy=cfg.get("strategy", "universal_score"),
                 trend_sma=cfg.get("trend_sma", 0), volume_confirm=cfg.get("volume_confirm", False),
-                min_entry_confidence_pct=live_min_entry_confidence_pct,
                 max_hold_minutes=live_max_hold_minutes,
                 # 2026-09-09, explicit user instruction: "stop using SMA
                 # and replace it with EMA with immediate effect
@@ -20094,6 +20080,7 @@ def strategy_scan_activity(include_unwired: bool = False):
             "categories": [c.value for c in strat.categories] if strat else [],
             "pfnet": strat.metrics.pfnet if strat and strat.metrics else None,
             "avg_held_hrs": round(strat.metrics.avg_held_hrs, 1) if strat and strat.metrics and strat.metrics.avg_held_hrs is not None else None,
+            "entry_confidence_pct": sr.edge_confidence_pct(strat.metrics) if strat and strat.metrics else None,
             "scan_wired": True,
             "scans_today": _strategy_scan_counts.get(tag, 0),
             "scans_last_30s": _strategy_scans_in_last_seconds(tag),
@@ -20126,6 +20113,7 @@ def strategy_scan_activity(include_unwired: bool = False):
                 "categories": [c.value for c in strat.categories] if strat else [cat.value],
                 "pfnet": m.pfnet if m else None,
                 "avg_held_hrs": round(m.avg_held_hrs, 1) if m and m.avg_held_hrs is not None else None,
+                "entry_confidence_pct": sr.edge_confidence_pct(m) if m else None,
                 "scans_today": None, "scans_last_30s": None,
                 "successful_entries_today": None, "closed_today": 0,
                 "win_rate_today_pct": None, "scan_wired": False,
