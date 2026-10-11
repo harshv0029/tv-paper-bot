@@ -146,3 +146,8 @@ unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surp
 - **Surprise:** missing fields, not wrong ones, caused the dashboard dashes and the 'no registry entry' confusion.
 - **Reuse:** every research run must emit all measured fields; never drop or overwrite an old tag.
 - **Profit-booking / exit takeaway:** keep exit-reason breakdowns (trail vs max-hold) per tag, since they decide later which exit style books profit.
+
+## 2026-10-11 — Option coverage: indexes + MCX only; swing and stock F&O owed
+- **Mechanism:** real option legs are single-strike longs with initial SL and trailing SL on premium.
+- **Fit to this system:** coverage is index underlyings, SENSEX, NATGASMINI and MCX cells; stock F&O (TCS etc.) and swing-signal feeds do not exist yet (B-417, B-418). Stock options have wide spreads, so a liquidity filter is needed before wiring.
+- **Profit-booking / exit takeaway:** a stock-measured PFnet does not capture premium decay; a trailing premium SL is the only exit, so judge these on real option fills.
