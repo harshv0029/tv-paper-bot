@@ -304,7 +304,7 @@
         <th class="num">#</th><th>Status</th><th>Asset</th><th>Type</th><th>Strategy</th><th class="num">Entry</th><th class="num">Exit / Now</th>
         <th class="num">Qty</th><th class="num">Invested (₹)</th><th class="num">Realised P&amp;L (₹)</th><th class="num">Unrealised P&amp;L (₹)</th>
         <th class="num">P&amp;L %</th><th>Reason</th><th>Time</th><th class="num" title="Calendar days since entry (IST dates). gap_and_go swing exits at 30 TRADING days (about 42 calendar days).">Days</th>
-        <th>Category</th><th>Rank</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num" title="Average market hours a trade was held in the backtest that produced this PFnet/Win % - how long it took to realise them. Same unit for every category.">Avg hrs held</th>
+        <th>Category</th><th>Rank</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num" title="Average market hours a trade was held in the backtest that produced this PFnet/Win % - how long it took to realise them. Same unit for every category. A daily bar counts as one 6.25-hour NSE session (09:15-15:30 IST); 1h = 1 hr.">Avg hrs held<br><span style="font-weight:normal;font-size:.8em">(1d = 6.25 hrs)</span></th>
       </tr></thead>
       <tbody id="log-body"><tr><td colspan="21" class="scan-idle">Loading…</td></tr></tbody>
     </table>
@@ -363,7 +363,7 @@
         <th>Category</th>
         <th>Strategy</th>
         <th class="num">PFnet</th>
-        <th class="num" title="Average market hours held in the backtest behind this PFnet / Win %">Avg hrs held</th>
+        <th class="num" title="Average market hours held in the backtest behind this PFnet / Win %. A daily bar counts as one 6.25-hour NSE session (09:15-15:30 IST); 1h = 1 hr.">Avg hrs held<br><span style="font-weight:normal;font-size:.8em">(1d = 6.25 hrs)</span></th>
         <th class="num">Scans today</th>
         <th class="num">Scans last 30s</th>
         <th class="num">Successful entries today</th>
@@ -1292,8 +1292,8 @@ async function onMasterToggle(turningOn) {
     if (!confirmed) { setSwitch(false); return; }
   } else {
     const confirmed = confirm(
-      "ALL TRADING OFF: force-closes EVERY open position right now at the current market price - paper AND any " +
-      "open REAL Kotak position - and blocks all new trades until switched back on. This cannot be undone. Proceed?"
+      "ALL TRADING OFF: force-closes EVERY open position right now at the current market price - paper AND every " +
+      "open REAL Kotak position the bot tracks (intraday, short, swing/holdings, options, MCX), cancelling their stop-losses first - and blocks all new trades in every category until switched back on. Positions you opened by hand outside the bot are NOT sold. This cannot be undone. Proceed?"
     );
     if (!confirmed) { setSwitch(true); return; }
   }
@@ -1987,7 +1987,13 @@ async function refresh() {
 
     for (const pos of equityPositions) {
       const entry = ensureCard(pos.symbol, displayName(pos.symbol));
-      const lastClose = await updateCandles(pos.symbol, entry, pos);
+      let lastClose = null;
+      try { lastClose = await updateCandles(pos.symbol, entry, pos); }
+      catch (e) {  // one symbol with no candles (404 / throttled feed) must not blank every card
+        const st = document.getElementById(`status-${pos.symbol}`);
+        if (st) st.textContent = `no candles (${e.message})`;
+        continue;
+      }
       if (lastClose === null) continue;
       lastCloseBySymbol[pos.symbol] = lastClose;
       setPriceLines(entry, pos);
