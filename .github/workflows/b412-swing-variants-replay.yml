@@ -1,0 +1,84 @@
+name: B-412 swing variants replay (breakeven-at-1R + minervini lab variants)
+
+# B-412 remainders (2026-10-11). Matrix <= 40 jobs, derived at dispatch by scripts/b412_plan.py:
+#  - mode=lab : each of the viable minervini_vcp lab variants (pct8_hard etc., 30 at time of writing)
+#    replayed on the FULL universe (main._load_nse_universe_from_file()), entries from the REAL
+#    main.minervini_vcp_entry_signal, native stops ported from scripts/minervini_lab.py
+#    (pinned equal by tests/test_b412_helpers.py). Registered later as ...__h60__v2.
+#  - mode=be1r: breakeven-at-1R stop for minervini (long+short), order_block_delta, volume_profile_poc,
+#    gap_and_go (long+short); real main.py entry AND exit functions, ratcheted stop passed in.
+#    Baseline (no ratchet) replayed in the same job for a like-for-like comparison.
+# Each job writes out/<mode>_<name>.json with n, win %, pfnet, pfgross, avg net/gross %, avg held bars,
+# and the per-exit-reason breakdown (nothing trimmed). The aggregate job only concatenates.
+# Dispatch order per CLAUDE.md: big matrix, so only when no gate/safety run is queued.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - id: p
+        run: echo "matrix=$(python3 scripts/b412_plan.py)" >> "$GITHUB_OUTPUT"
+
+  replay:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay
+        env:
+          MODE: ${{ matrix.mode }}
+          STRAT: ${{ matrix.name }}
+          VARIANT: ${{ matrix.name }}
+        run: python3 scripts/b412_replay.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: b412-${{ matrix.mode }}-${{ matrix.name }}
+          path: out/
+
+  aggregate:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          pattern: b412-*
+          merge-multiple: true
+      - name: Combine
+        run: |
+          python3 - <<'PYEOF'
+          import glob, json
+          rows = [json.load(open(f)) for f in sorted(glob.glob("out/*.json"))]
+          json.dump(rows, open("out/b412_all.json", "w"), indent=1)
+          for r in rows:
+              if "variant" in r:
+                  m = r["metrics"]
+                  print(r["tag_replay_v2"], "n", m["n"], "pfnet", m["pfnet"], "win", m["win_pct"], "hold", m["avg_held_bars"])
+              else:
+                  for k in ("baseline", "be"):
+                      m = r[k]
+                      print(r["strat"], k, "n", m["n"], "pfnet", m["pfnet"], "pfgross", m["pfgross"], "win", m["win_pct"], "hold", m["avg_held_bars"])
+          PYEOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: b412-all
+          path: out/b412_all.json

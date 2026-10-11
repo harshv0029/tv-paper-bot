@@ -1,0 +1,155 @@
+name: Monthly loss cap research (B-751)
+
+# B-751 (2026-10-11 IST): Elder 6% monthly loss cap as a portfolio overlay.
+# No stored per-trade file carries entry/exit DATES (swing-ob-vp-main-replay emits
+# only gross/net/held; fvg3c/snd replays emit time_in_trade_min), so this workflow
+# re-runs the REAL main.py swing OB + VP replay (same code path as
+# swing-ob-vp-main-replay.yml, B-30) and additionally emits entry_date, exit_date,
+# net_r and risk_frac per trade, then runs scripts/monthly_loss_cap_backtest.py on
+# the pooled list (caps 0/4/6/8 x risk 1%/2%). Research only: no live wiring.
+# NOTE: a new workflow file cannot be dispatched until it is on main.
+on:
+  workflow_dispatch:
+    inputs:
+      trail_mult:
+        description: "ATR trail multiple override (blank = baseline)"
+        required: false
+        default: ""
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        strat: [ob, vp]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay via real main.py functions, emit dated trades
+        env:
+          STRAT: ${{ matrix.strat }}
+          SHARD: ${{ matrix.shard }}
+          TRAIL: ${{ inputs.trail_mult }}
+        run: |
+          python3 - <<'PYEOF'
+          import os, sys, json
+          sys.path.insert(0, ".")
+          import numpy as np
+          import main as m
+
+          STRAT, SHARD, NSHARD = os.environ["STRAT"], int(os.environ["SHARD"]), 4
+          if STRAT == "ob":
+              entry_fn, exit_fn = m.order_block_entry_signal, m.order_block_exit_reason
+              min_bars = m.ORDER_BLOCK_MIN_LOOKBACK_DAYS
+          else:
+              entry_fn, exit_fn = m.volume_profile_poc_entry_signal, m.volume_profile_poc_exit_reason
+              min_bars = m.VP_MIN_LOOKBACK_DAYS
+          if os.environ.get("TRAIL"):
+              m.ORDER_BLOCK_ATR_TRAIL_MULT = float(os.environ["TRAIL"])
+              m.VP_ATR_TRAIL_MULT = float(os.environ["TRAIL"])
+          WIN = 150
+          CAP, RISK_PCT = 400000.0, 1.0
+          CM = {"brokerage_pct": 0.0020, "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+                "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+                "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93}
+
+          def cost(qty, px, buy):
+              n = qty * px
+              b = n * CM["brokerage_pct"]; e = n * CM["exchange_txn_pct"]; s = n * CM["sebi_fee_pct"]
+              tax = n * (CM["stt_buy_pct"] if buy else CM["stt_sell_pct"]) + (n * CM["stamp_duty_buy_pct"] if buy else 0)
+              return b + e + s + tax + (b + e + s) * CM["gst_pct"] + n * CM["slippage_pct"]
+
+          def fin(p, xp, i, reason, dates):
+              g = (xp - p["ep"]) * p["qty"]
+              tc = p["ec"] + cost(p["qty"], xp, False) + CM["dp_charge_flat"] * (1 + CM["gst_pct"])
+              net = g - tc
+              return {"strategy": "swing_" + STRAT, "symbol": p["sym"], "entry_date": p["day"][:10],
+                      "exit_date": dates[i][:10], "net": net, "reason": reason,
+                      "net_r": net / (p["dist"] * p["qty"]), "risk_frac": p["dist"] / p["ep"]}
+
+          def replay(sym, df):
+              df = df.reset_index(drop=True)
+              n = len(df)
+              closes = df["Close"].to_numpy(dtype=float)
+              dates = df["Date"].astype(str).to_numpy()
+              out, pos = [], None
+              for i in range(min_bars, n):
+                  win = df.iloc[max(0, i + 1 - WIN):i + 1]
+                  if pos is not None:
+                      reason, pos["rmc"] = exit_fn(win, pos["day"], pos["stop"], pos["atr"], pos["rmc"])
+                      if reason:
+                          out.append(fin(pos, float(closes[i]), i, reason, dates)); pos = None
+                  if pos is None:
+                      sig = entry_fn(win)
+                      if sig:
+                          ep, sl = sig["entry_price"], sig["stop_loss"]
+                          dist = ep - sl
+                          if dist <= 0: continue
+                          cap = min(CAP, CAP / m.CAPITAL_TRANCHES)
+                          qty = int(np.floor(min(cap * RISK_PCT / 100 / dist, cap / ep)))
+                          if qty > 0 and qty * ep >= 100:
+                              pos = {"sym": sym, "ep": ep, "stop": sl, "atr": sig["atr_at_entry"], "qty": qty,
+                                     "day": dates[i], "idx": i, "rmc": ep, "dist": dist, "ec": cost(qty, ep, True)}
+              if pos is not None:
+                  out.append(fin(pos, float(closes[-1]), n - 1, "data_end_forced_close", dates))
+              return out
+
+          syms = sorted(set(m._load_nse_universe_from_file()))
+          syms = [s for k, s in enumerate(syms) if k % NSHARD == SHARD]
+          trades, fetched = [], 0
+          for s in syms:
+              try:
+                  raw = m.fetch_ohlc(s, "5y", "1d")
+              except Exception:
+                  continue
+              if raw is None or len(raw) < min_bars + 20:
+                  continue
+              fetched += 1
+              try:
+                  trades.extend(replay(s, raw))
+              except Exception as e:
+                  print("ERROR", s, e)
+          print(f"{STRAT} shard {SHARD}: fetched {fetched}/{len(syms)}, trades {len(trades)}")
+          os.makedirs("out", exist_ok=True)
+          json.dump(trades, open(f"out/{STRAT}_{SHARD}.json", "w"))
+          PYEOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dated-trades-${{ matrix.strat }}-${{ matrix.shard }}
+          path: out/
+
+  overlay:
+    needs: replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          pattern: dated-trades-*
+          merge-multiple: true
+      - name: Pool trades and run the loss-cap overlay
+        run: |
+          python3 - <<'PYEOF'
+          import glob, json
+          t = []
+          for f in glob.glob("out/*.json"):
+              t += json.load(open(f))
+          json.dump(t, open("pooled_trades.json", "w"))
+          print("pooled trades", len(t))
+          PYEOF
+          python3 scripts/monthly_loss_cap_backtest.py pooled_trades.json --caps 0,4,6,8 --risks 1,2 --json overlay_results.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: loss-cap-overlay
+          path: |
+            pooled_trades.json
+            overlay_results.json

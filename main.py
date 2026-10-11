@@ -17274,6 +17274,29 @@ def _record_strategy_scan(tag: str):
         recent.pop(0)
 
 
+def _record_intraday_strategy_scan(cfg: dict):
+    """B-423: count one long intraday scan under the symbol's engine tag.
+    Counter only; never raises, never touches order logic."""
+    try:
+        _record_strategy_scan(cfg.get("strategy", "universal_score"))
+    except Exception:
+        pass
+
+
+# The short scan (_short_signal_core) evaluates both short engines from one
+# call (RANGE ladder or TREND-down by regime), so each scan counts under both.
+_INTRADAY_SHORT_SCAN_TAGS = ("range_short_staged_ladder", "trend_down_momentum_short")
+
+
+def _record_short_strategy_scans():
+    """B-423: count one short scan under each short engine tag. Counter only."""
+    try:
+        for t in _INTRADAY_SHORT_SCAN_TAGS:
+            _record_strategy_scan(t)
+    except Exception:
+        pass
+
+
 def _strategy_scans_in_last_seconds(tag: str, seconds: float = _RECENT_CHECK_WINDOW_SECONDS) -> int:
     cutoff = time.time() - seconds
     return sum(1 for ts in _strategy_scan_recent_timestamps.get(tag, []) if ts >= cutoff)
@@ -19465,6 +19488,7 @@ async def _scheduler_tick():
             "symbol": symbol, "kind": "equity", "started_at_utc": time.time(),
         }
         _record_scheduler_check(symbol)
+        _record_intraday_strategy_scan(cfg)  # B-423: counter only, no order logic
         try:
             result = await asyncio.to_thread(
                 _auto_signal_core,
@@ -19549,6 +19573,7 @@ async def _scheduler_tick():
             # _maybe_place_real_short_entry itself narrows to NSE equity
             # only (its own asset_class check), same narrowing the long
             # side's _maybe_place_real_entry already does.
+            _record_short_strategy_scans()  # B-423: counter only
             try:
                 short_result = _short_signal_core(
                     symbol=cfg["symbol"], capital=scheduler_capital_inr,
