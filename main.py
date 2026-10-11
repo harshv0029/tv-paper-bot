@@ -13916,11 +13916,8 @@ def _run_index_swing_option_scan(conn):
 # Cells are the exact-rule variants (no ATR stop; the option trailing SL protects).
 _MCX_DAILY_CELLS_FALLBACK = (
     # (registry tag, proxy symbol, add_strategy_signal name, params)
+    # fallback = gold only: the one cell whose ATR-stopped variants also clear 1.1 and with n >= 30
     ("sma_crossover__gc__long__1d__atrnone__v1", "GC=F", "sma_crossover", {"fast": 9, "slow": 21}),
-    ("keltner_channel_breakout__si__long__1d__atrnone__v1", "SI=F", "keltner_channel_breakout", {}),
-    ("supertrend__si__long__1d__atrnone__v1", "SI=F", "supertrend", {}),
-    # short cell: signal on the reciprocal series (as backtested), buys a PUT
-    ("sma_crossover__ng__short__1d__atrnone__v1", "NG=F", "sma_crossover", {"fast": 9, "slow": 21}),
 )
 
 

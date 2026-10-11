@@ -1,40 +1,11 @@
 {
 "cells": [
 [
-"rsi_reversal__si__long__1d__atrnone__v1",
-"SI=F",
-"rsi_reversal",
-{
-"rsi_period": 14,
-"oversold": 30,
-"overbought": 70
-},
-4.098
-],
-[
-"bollinger_mean_reversion__si__long__1d__atrnone__v1",
-"SI=F",
-"bollinger_mean_reversion",
+"supertrend__gc__long__1d__atrnone__v1",
+"GC=F",
+"supertrend",
 {},
-3.659
-],
-[
-"donchian_breakout__ng__short__1d__atrnone__v1",
-"NG=F",
-"donchian_breakout",
-{},
-2.423
-],
-[
-"rsi_reversal__ng__short__1d__atrnone__v1",
-"NG=F",
-"rsi_reversal",
-{
-"rsi_period": 14,
-"oversold": 30,
-"overbought": 70
-},
-2.281
+1.882
 ],
 [
 "sma_crossover__gc__long__1d__atrnone__v1",
@@ -44,35 +15,35 @@
 "fast": 9,
 "slow": 21
 },
-2.139
+1.839
 ],
 [
-"supertrend__gc__long__1d__atrnone__v1",
-"GC=F",
-"supertrend",
-{},
-2.131
-],
-[
-"bollinger_mean_reversion__ng__long__1d__atrnone__v1",
+"keltner_channel_breakout__ng__short__1d__atrnone__v1",
 "NG=F",
+"keltner_channel_breakout",
+{},
+1.434
+],
+[
+"donchian_breakout__cl__long__1d__atrnone__v1",
+"CL=F",
+"donchian_breakout",
+{},
+1.38
+],
+[
+"bollinger_mean_reversion__si__long__1d__atrnone__v1",
+"SI=F",
 "bollinger_mean_reversion",
 {},
-2.034
+1.226
 ],
 [
 "supertrend__cl__long__1d__atrnone__v1",
 "CL=F",
 "supertrend",
 {},
-1.995
-],
-[
-"bollinger_mean_reversion__ng__short__1d__atrnone__v1",
-"NG=F",
-"bollinger_mean_reversion",
-{},
-1.844
+1.223
 ],
 [
 "rsi_reversal__ng__long__1d__atrnone__v1",
@@ -83,109 +54,14 @@
 "oversold": 30,
 "overbought": 70
 },
-1.691
+1.183
 ],
 [
-"keltner_channel_breakout__ng__short__1d__atrnone__v1",
+"bollinger_mean_reversion__ng__short__1d__atrnone__v1",
 "NG=F",
-"keltner_channel_breakout",
-{},
-1.453
-],
-[
-"supertrend__cl__short__1d__atrnone__v1",
-"CL=F",
-"supertrend",
-{},
-1.362
-],
-[
-"supertrend__ng__short__1d__atrnone__v1",
-"NG=F",
-"supertrend",
-{},
-1.328
-],
-[
-"rsi_reversal__cl__long__1d__atrnone__v1",
-"CL=F",
-"rsi_reversal",
-{
-"rsi_period": 14,
-"oversold": 30,
-"overbought": 70
-},
-1.313
-],
-[
-"keltner_channel_breakout__si__long__1d__atrnone__v1",
-"SI=F",
-"keltner_channel_breakout",
-{},
-1.262
-],
-[
-"donchian_breakout__gc__long__1d__atrnone__v1",
-"GC=F",
-"donchian_breakout",
-{},
-1.229
-],
-[
-"donchian_breakout__cl__long__1d__atrnone__v1",
-"CL=F",
-"donchian_breakout",
-{},
-1.157
-],
-[
-"supertrend__ng__long__1d__atrnone__v1",
-"NG=F",
-"supertrend",
-{},
-1.146
-],
-[
-"sma_crossover__ng__short__1d__atrnone__v1",
-"NG=F",
-"sma_crossover",
-{
-"fast": 9,
-"slow": 21
-},
-1.099
-],
-[
-"bollinger_mean_reversion__cl__long__1d__atrnone__v1",
-"CL=F",
 "bollinger_mean_reversion",
 {},
-1.088
-],
-[
-"rsi_reversal__gc__long__1d__atrnone__v1",
-"GC=F",
-"rsi_reversal",
-{
-"rsi_period": 14,
-"oversold": 30,
-"overbought": 70
-},
-1.078
-],
-[
-"bollinger_mean_reversion__cl__short__1d__atrnone__v1",
-"CL=F",
-"bollinger_mean_reversion",
-{},
-1.068
-],
-[
-"supertrend__si__long__1d__atrnone__v1",
-"SI=F",
-"supertrend",
-{},
-1.027
+1.166
 ]
 ]
 }

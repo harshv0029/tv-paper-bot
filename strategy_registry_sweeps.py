@@ -11,12 +11,7 @@ _SECTOR_REF = "sector-rotation-backtest.yml run 38068129079 (2026-10-10 IST, dai
 _MCX_REF = "sector-rotation-backtest.yml run 38068186964 (scripts/mcx_strategy_sweep.py, 2026-10-10 IST, yfinance GC/SI/CL/NG/HG proxies, cost 0.8%)"
 
 # cells wired into main._run_mcx_daily_scan (_MCX_DAILY_CELLS); keep in sync
-_MCX_LIVE_WIRED = {
-    "sma_crossover__gc__long__1d__atrnone__v1",
-    "keltner_channel_breakout__si__long__1d__atrnone__v1",
-    "supertrend__si__long__1d__atrnone__v1",
-    "sma_crossover__ng__short__1d__atrnone__v1",
-}
+_MCX_LIVE_WIRED = set()  # filled from docs/mcx_live_cells.json below (cells whose ATR-stopped variants also clear 1.1)
 
 try:  # generated MCX live list (scripts/gen_mcx_live_cells.py) - same file main.py trades from
     with open(os.path.join(_DOCS, "mcx_live_cells.json")) as _mf:
@@ -89,7 +84,8 @@ def build():
                      ("1h", "pattern_lab_results_1h_n200.json"), ("15m", "pattern_lab_results_15m_n200.json"),
                      ("1d", "minervini_lab_results.json"), ("1d", "minervini_lab_results_full.json"),
                      ("1d", "breadth_lab_results.json"), ("1d", "combo_lab_results.json"),
-                     ("1d", "intermarket_lab_results.json")):
+                     ("1d", "intermarket_lab_results.json"),
+                     ("1d", "overnight_anomaly_results.json"), ("1d", "overnight_anomaly_results_n200.json")):
         for tag, m in _load(_fn).get("results", {}).items():
             # the n200 (live swing universe) file owns the plain tag; other universes get a variant suffix so no
             # two universes ever share a name (immutability / never pool)
