@@ -363,6 +363,7 @@
         <th class="num">#</th>
         <th title="Wired = a live scan/entry path trades it; Not wired = viable in research only" data-sa-key="scan_wired" style="cursor:pointer;user-select:none">Wired?</th>
         <th data-sa-key="categories" style="cursor:pointer;user-select:none">Category</th>
+        <th title="What is actually traded: equity shares, an index/MCX single-strike option, or futures." data-sa-key="instrument" style="cursor:pointer;user-select:none">Instrument</th>
         <th data-sa-key="strategy_tag" style="cursor:pointer;user-select:none">Strategy</th>
         <th class="num" data-sa-key="pfnet" style="cursor:pointer;user-select:none">PFnet</th>
         <th class="num" title="Average market hours held in the backtest behind this PFnet / Win %. A daily bar counts as one 6.25-hour NSE session (09:15-15:30 IST); 1h = 1 hr." data-sa-key="avg_held_hrs" style="cursor:pointer;user-select:none">Avg hrs held<br><span style="font-weight:normal;font-size:.8em">(1d = 6.25 hrs)</span></th>
@@ -373,7 +374,7 @@
         <th class="num" data-sa-key="successful_entries_today" style="cursor:pointer;user-select:none">Successful entries today</th>
         <th class="num" data-sa-key="win_rate_today_pct" style="cursor:pointer;user-select:none">Win % today</th>
       </tr></thead>
-      <tbody id="strategy-scan-body"><tr><td colspan="12" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="strategy-scan-body"><tr><td colspan="13" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -945,13 +946,14 @@ function renderStrategyScanActivity(data) {
     th.innerHTML = base + (th.dataset.saKey === sk ? (window._saSortDir > 0 ? " ▲" : " ▼") : "");
   });
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="12" class="scan-idle">No viable strategies match</td></tr>`;
+    body.innerHTML = `<tr><td colspan="13" class="scan-idle">No viable strategies match</td></tr>`;
     return;
   }
   body.innerHTML = rows.map((r, i) => `<tr>
     <td class="num">${i + 1}</td>
     <td>${r.scan_wired === false ? '<span style="color:#b45309">✘ Not wired</span>' : '<span style="color:#15803d">✔ Wired</span>'}</td>
     <td>${(r.categories || []).map(c => String(c).replace("_", " ")).join(", ") || "—"}</td>
+    <td>${r.instrument || "—"}</td>
     <td class="sym">${r.strategy_tag}</td>
     <td class="num">${r.pfnet !== null && r.pfnet !== undefined ? fmt(r.pfnet, 3) : "—"}</td>
     ${avgHrsHeldCell(r.avg_held_hrs)}

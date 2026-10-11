@@ -20222,6 +20222,21 @@ def strategy_scan_activity(include_unwired: bool = False):
             rule = "trailing premium SL"
         return {"sl_pct": round(sum(pcts) / len(pcts), 2) if pcts else None, "sl_open_n": len(pcts), "sl_rule": rule}
 
+    _mcx_tags = {c[0] for c in _MCX_DAILY_CELLS}
+
+    def _instrument(tag, cats):
+        if tag in _mcx_tags:
+            return "MCX option (single strike)"
+        if "swing" in cats:
+            return "Equity (swing, delivery)"
+        if "short_sell" in cats:
+            return "Equity (intraday short)"
+        if "buy" in cats:
+            return "Equity (intraday) + index option"
+        if "futures" in cats:
+            return "Futures"
+        return "Equity"
+
     rows = []
     for tag, registry_name in _STRATEGY_TAG_TO_REGISTRY_NAME.items():
         if not _is_strategy_viable_for_real_money(tag):
@@ -20236,6 +20251,7 @@ def strategy_scan_activity(include_unwired: bool = False):
             "entry_confidence_pct": sr.edge_confidence_pct(strat.metrics) if strat and strat.metrics else None,
             "scan_wired": True,
             **_sl_fields(tag, registry_name),
+            "instrument": _instrument(tag, [c.value for c in strat.categories] if strat else []),
             "scans_today": _strategy_scan_counts.get(tag, 0),
             "scans_last_30s": _strategy_scans_in_last_seconds(tag),
             "successful_entries_today": entries_today.get(tag, 0),
