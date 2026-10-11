@@ -1,0 +1,197 @@
+{
+ "B-466": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "flat base: scripts/oneil_research.py (commit 97478ee, workflow .github/workflows/oneil-research.yml, tests/test_oneil_research.py); run dispatched, results pending. Tags oneil_*__*__long|short__1d|1w__...__v1; registry entry after merge."
+ },
+ "B-473": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "52w-high first buy: scripts/oneil_research.py (commit 97478ee, workflow .github/workflows/oneil-research.yml, tests/test_oneil_research.py); run dispatched, results pending. Tags oneil_*__*__long|short__1d|1w__...__v1; registry entry after merge."
+ },
+ "B-483": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "RS-rank screen: scripts/oneil_research.py (commit 97478ee, workflow .github/workflows/oneil-research.yml, tests/test_oneil_research.py); run dispatched, results pending. Tags oneil_*__*__long|short__1d|1w__...__v1; registry entry after merge."
+ },
+ "B-488": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "new-high/new-low screen: scripts/oneil_research.py (commit 97478ee, workflow .github/workflows/oneil-research.yml, tests/test_oneil_research.py); run dispatched, results pending. Tags oneil_*__*__long|short__1d|1w__...__v1; registry entry after merge."
+ },
+ "B-489": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "7-8% pct stop: scripts/oneil_research.py (commit 97478ee, workflow .github/workflows/oneil-research.yml, tests/test_oneil_research.py); run dispatched, results pending. Tags oneil_*__*__long|short__1d|1w__...__v1; registry entry after merge."
+ },
+ "B-491": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "+20% target: scripts/oneil_research.py (commit 97478ee, workflow .github/workflows/oneil-research.yml, tests/test_oneil_research.py); run dispatched, results pending. Tags oneil_*__*__long|short__1d|1w__...__v1; registry entry after merge."
+ },
+ "B-493": {
+  "status": "PARTIAL",
+  "evidence": "swing-low trail: scripts/oneil_research.py (commit 97478ee, workflow .github/workflows/oneil-research.yml, tests/test_oneil_research.py); run dispatched, results pending. Tags oneil_*__*__long|short__1d|1w__...__v1; registry entry after merge. Also exit-family run 38140914889 (88 tags, 26 at PFnet>=1.1, long only, strategy_registry_exitfamily.py); 1h/15m sweeps and OB/VP short mirrors still owed."
+ },
+ "B-502": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "never-average-down negative control (avg1 exit cells) in scripts/oneil_research.py (commit 97478ee, workflow .github/workflows/oneil-research.yml, tests/test_oneil_research.py); run dispatched, results pending"
+ },
+ "B-529": {
+  "status": "PARTIAL",
+  "evidence": "Run 38140914889 (daily, 5y, full universe, real main.py entry fns) via scripts/exit_family_research.py, tags in strategy_registry_exitfamily.py (commit 07bba1f). Candle-size (1h/15m) sweeps, short mirrors and main.py replay owed."
+ },
+ "B-538": {
+  "status": "PARTIAL",
+  "evidence": "Run 38140914889 (daily, 5y, full universe, real main.py entry fns) via scripts/exit_family_research.py, tags in strategy_registry_exitfamily.py (commit 07bba1f). Candle-size (1h/15m) sweeps, short mirrors and main.py replay owed."
+ },
+ "B-579": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "EMA13 trend-follow: family ema13 in scripts/elder_indicators_research.py (commit 64e2579, workflow elder-indicators-research.yml, tests/test_elder_indicators_research.py); re-run in progress. Intraday candle sweeps owed."
+ },
+ "B-590": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "directional ring-the-bell: family adx_bell in scripts/elder_indicators_research.py (commit 64e2579, workflow elder-indicators-research.yml, tests/test_elder_indicators_research.py); re-run in progress. Intraday candle sweeps owed."
+ },
+ "B-582": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "MACD cross (3 param sets): family macd in scripts/elder_macd_dirgap_research.py + .github/workflows/elder-macd-dirgap-research.yml + tests/test_elder_macd_dirgap_research.py (5 tests pass); reuses elder_indicators_research simulator (stop on every trade, ATR 1.5/2/3, 0.8% cost, both directions, full universe). Workflow not dispatchable until on main; no result yet. Daily only; 1h/15m/5m sweep owed (interval input exists)."
+ },
+ "B-583": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "histogram slope tick: family macd in scripts/elder_macd_dirgap_research.py + .github/workflows/elder-macd-dirgap-research.yml + tests/test_elder_macd_dirgap_research.py (5 tests pass); reuses elder_indicators_research simulator (stop on every trade, ATR 1.5/2/3, 0.8% cost, both directions, full universe). Workflow not dispatchable until on main; no result yet. Daily only; 1h/15m/5m sweep owed (interval input exists)."
+ },
+ "B-584": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "zero-line exhaustion tick: family macd in scripts/elder_macd_dirgap_research.py + .github/workflows/elder-macd-dirgap-research.yml + tests/test_elder_macd_dirgap_research.py (5 tests pass); reuses elder_indicators_research simulator (stop on every trade, ATR 1.5/2/3, 0.8% cost, both directions, full universe). Workflow not dispatchable until on main; no result yet. Daily only; 1h/15m/5m sweep owed (interval input exists)."
+ },
+ "B-585": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "histogram regular divergence, pivot w=3: family macd in scripts/elder_macd_dirgap_research.py + .github/workflows/elder-macd-dirgap-research.yml + tests/test_elder_macd_dirgap_research.py (5 tests pass); reuses elder_indicators_research simulator (stop on every trade, ATR 1.5/2/3, 0.8% cost, both directions, full universe). Workflow not dispatchable until on main; no result yet. Daily only; 1h/15m/5m sweep owed (interval input exists)."
+ },
+ "B-588": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "Directional system DI cross: family dirsys in scripts/elder_macd_dirgap_research.py + .github/workflows/elder-macd-dirgap-research.yml + tests/test_elder_macd_dirgap_research.py (5 tests pass); reuses elder_indicators_research simulator (stop on every trade, ATR 1.5/2/3, 0.8% cost, both directions, full universe). Workflow not dispatchable until on main; no result yet. Daily only; 1h/15m/5m sweep owed (interval input exists)."
+ },
+ "B-589": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "DI entry with ADX-rising on/off: family dirsys in scripts/elder_macd_dirgap_research.py + .github/workflows/elder-macd-dirgap-research.yml + tests/test_elder_macd_dirgap_research.py (5 tests pass); reuses elder_indicators_research simulator (stop on every trade, ATR 1.5/2/3, 0.8% cost, both directions, full universe). Workflow not dispatchable until on main; no result yet. Daily only; 1h/15m/5m sweep owed (interval input exists)."
+ },
+ "B-591": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "dull-market gate: family dirsys in scripts/elder_macd_dirgap_research.py + .github/workflows/elder-macd-dirgap-research.yml + tests/test_elder_macd_dirgap_research.py (5 tests pass); reuses elder_indicators_research simulator (stop on every trade, ATR 1.5/2/3, 0.8% cost, both directions, full universe). Workflow not dispatchable until on main; no result yet. Daily only; 1h/15m/5m sweep owed (interval input exists)."
+ },
+ "B-592": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "overheat exit: family dirsys in scripts/elder_macd_dirgap_research.py + .github/workflows/elder-macd-dirgap-research.yml + tests/test_elder_macd_dirgap_research.py (5 tests pass); reuses elder_indicators_research simulator (stop on every trade, ATR 1.5/2/3, 0.8% cost, both directions, full universe). Workflow not dispatchable until on main; no result yet. Daily only; 1h/15m/5m sweep owed (interval input exists)."
+ },
+ "B-594": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "breakaway gap vol 1.5/2/2.5: family gaps in scripts/elder_macd_dirgap_research.py + .github/workflows/elder-macd-dirgap-research.yml + tests/test_elder_macd_dirgap_research.py (5 tests pass); reuses elder_indicators_research simulator (stop on every trade, ATR 1.5/2/3, 0.8% cost, both directions, full universe). Workflow not dispatchable until on main; no result yet. Daily only; 1h/15m/5m sweep owed (interval input exists)."
+ },
+ "B-595": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "continuation gap: family gaps in scripts/elder_macd_dirgap_research.py + .github/workflows/elder-macd-dirgap-research.yml + tests/test_elder_macd_dirgap_research.py (5 tests pass); reuses elder_indicators_research simulator (stop on every trade, ATR 1.5/2/3, 0.8% cost, both directions, full universe). Workflow not dispatchable until on main; no result yet. Daily only; 1h/15m/5m sweep owed (interval input exists)."
+ },
+ "B-596": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "exhaustion-gap fade N=3/4/5: family gaps in scripts/elder_macd_dirgap_research.py + .github/workflows/elder-macd-dirgap-research.yml + tests/test_elder_macd_dirgap_research.py (5 tests pass); reuses elder_indicators_research simulator (stop on every trade, ATR 1.5/2/3, 0.8% cost, both directions, full universe). Workflow not dispatchable until on main; no result yet. Daily only; 1h/15m/5m sweep owed (interval input exists)."
+ },
+ "B-597": {
+  "status": "HARNESS_BUILT_RUN_PENDING",
+  "evidence": "common-gap fade: family gaps in scripts/elder_macd_dirgap_research.py + .github/workflows/elder-macd-dirgap-research.yml + tests/test_elder_macd_dirgap_research.py (5 tests pass); reuses elder_indicators_research simulator (stop on every trade, ATR 1.5/2/3, 0.8% cost, both directions, full universe). Workflow not dispatchable until on main; no result yet. Daily only; 1h/15m/5m sweep owed (interval input exists)."
+ },
+ "B-546": {
+  "status": "PARTIAL",
+  "evidence": "Live same-day cooldown after a completed SELL exists (main.py skipped_same_day_cooldown, user rule 2026-10-08). Backtest sweep of cooldown N bars 0/3/6/12 and stop-and-reverse not built."
+ },
+ "B-544": {
+  "status": "PARTIAL",
+  "evidence": "Live daily_loss_cap exists (main.py daily_loss_cap_hit/blocked_daily_loss_cap). Loss-cap overlay backtest B-751/B-773 found no consistent benefit (commit 98d6565). K-consecutive-stop-out sizing sweep not built."
+ },
+ "B-550": {
+  "status": "PARTIAL",
+  "evidence": "main._find_unprotected_open_positions (tests/test_unprotected_position_backcheck.py), 5-min backcheck and 09:15 protect pass (commit f2f0de8, B-315) exist. Explicit per-category (swing/options) audit test and time-limit check not yet added; needs a pass in main.py (coordinator-serialized)."
+ },
+ "B-569": {
+  "status": "PARTIAL",
+  "evidence": "0.8% round-trip cost applied in every harness; explicit PFnet sensitivity sweep at 0.4/0.8/1.2% not run."
+ },
+ "B-580": {
+  "status": "PARTIAL",
+  "evidence": "ema_gate family (B-708) in scripts/elder_indicators_research.py tests EMA slope gating; the 21-day no-new-EMA-extreme flat filter as an overlay is not built."
+ },
+ "B-531": {
+  "status": "PARTIAL",
+  "evidence": "Breakeven/profit-lock ratchet (be_atr, ema BE, trail_frac) is implemented in elder_indicators_research.simulate for triple_screen/ema13 only; the 0.5/1/1.5/2R sweep across pattern strategies is not built."
+ },
+ "B-539": {
+  "status": "OPEN_PARKED",
+  "evidence": "Needs main.py/journal/registry-schema changes (coordinator-serialized files); no external blocker. Parked, not dropped."
+ },
+ "B-540": {
+  "status": "OPEN_PARKED",
+  "evidence": "Needs main.py/journal/registry-schema changes (coordinator-serialized files); no external blocker. Parked, not dropped."
+ },
+ "B-541": {
+  "status": "OPEN_PARKED",
+  "evidence": "Needs main.py/journal/registry-schema changes (coordinator-serialized files); no external blocker. Parked, not dropped."
+ },
+ "B-547": {
+  "status": "OPEN_PARKED",
+  "evidence": "Needs main.py/journal/registry-schema changes (coordinator-serialized files); no external blocker. Parked, not dropped."
+ },
+ "B-558": {
+  "status": "OPEN_PARKED",
+  "evidence": "Needs main.py/journal/registry-schema changes (coordinator-serialized files); no external blocker. Parked, not dropped."
+ },
+ "B-559": {
+  "status": "OPEN_PARKED",
+  "evidence": "Needs main.py/journal/registry-schema changes (coordinator-serialized files); no external blocker. Parked, not dropped."
+ },
+ "B-560": {
+  "status": "OPEN_PARKED",
+  "evidence": "Needs main.py/journal/registry-schema changes (coordinator-serialized files); no external blocker. Parked, not dropped."
+ },
+ "B-562": {
+  "status": "OPEN_PARKED",
+  "evidence": "Needs main.py/journal/registry-schema changes (coordinator-serialized files); no external blocker. Parked, not dropped."
+ },
+ "B-522": {
+  "status": "BLOCKED",
+  "evidence": "Needs data not in OHLCV (fundamentals/ownership/sentiment/tape) or is a non-testable psychology/process rule; record as qualitative rule only."
+ },
+ "B-523": {
+  "status": "BLOCKED",
+  "evidence": "Needs data not in OHLCV (fundamentals/ownership/sentiment/tape) or is a non-testable psychology/process rule; record as qualitative rule only."
+ },
+ "B-524": {
+  "status": "BLOCKED",
+  "evidence": "Needs data not in OHLCV (fundamentals/ownership/sentiment/tape) or is a non-testable psychology/process rule; record as qualitative rule only."
+ },
+ "B-525": {
+  "status": "BLOCKED",
+  "evidence": "Needs data not in OHLCV (fundamentals/ownership/sentiment/tape) or is a non-testable psychology/process rule; record as qualitative rule only."
+ },
+ "B-526": {
+  "status": "BLOCKED",
+  "evidence": "Needs data not in OHLCV (fundamentals/ownership/sentiment/tape) or is a non-testable psychology/process rule; record as qualitative rule only."
+ },
+ "B-563": {
+  "status": "BLOCKED",
+  "evidence": "Needs data not in OHLCV (fundamentals/ownership/sentiment/tape) or is a non-testable psychology/process rule; record as qualitative rule only."
+ },
+ "B-575": {
+  "status": "BLOCKED",
+  "evidence": "Needs data not in OHLCV (fundamentals/ownership/sentiment/tape) or is a non-testable psychology/process rule; record as qualitative rule only."
+ },
+ "B-576": {
+  "status": "BLOCKED",
+  "evidence": "Needs data not in OHLCV (fundamentals/ownership/sentiment/tape) or is a non-testable psychology/process rule; record as qualitative rule only."
+ },
+ "B-577": {
+  "status": "BLOCKED",
+  "evidence": "Needs data not in OHLCV (fundamentals/ownership/sentiment/tape) or is a non-testable psychology/process rule; record as qualitative rule only."
+ },
+ "B-578": {
+  "status": "BLOCKED",
+  "evidence": "Needs data not in OHLCV (fundamentals/ownership/sentiment/tape) or is a non-testable psychology/process rule; record as qualitative rule only."
+ },
+ "_summary": {
+  "note": "No row closed DONE: no harness here has a finished full-universe run yet. HARNESS_BUILT_RUN_PENDING rows close only with run id + registered tags."
+ }
+}
