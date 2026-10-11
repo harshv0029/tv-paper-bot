@@ -255,3 +255,38 @@ unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surp
 - Surprises: Chan 5m/15m gross PFnet 2.6-4.7 vs net 1.2-1.7, so the 0.8% cost eats most of the edge; Chan 1d used a NIFTY200+ETF mixed universe (not full); many 1d tags are year/VIX slices, not comparable to pooled tags; O'Neil universes were 1953-2166 symbols, not 2680.
 - Reuse: avg_hold units are unlabelled by the harness (assumed days/bars, flagged in the registry); stops of 12-25% on O'Neil need a sizing check against the SL-on-every-trade rule; every viable cell still needs a main.py replay before wiring.
 - Profit-booking / exit takeaway: state-exit kalman exits win (avg +0.8 to +1.9%) while hard stops lose -4.7 to -6%; for O'Neil, timeouts carry the profit (+14 to +19%) and stops lose -6%, so wider trails/longer holds drive the edge, not early profit booking.
+
+### O'Neil replay (run 38149046190, 2026-10-11 IST)
+Mechanism: weekly flat-base/pivot/new-high breakouts, ATR3 stop, 26-week max hold, cost 0.8%. Replay (bar-by-bar port, 1955 syms) confirms 6/7 tags >=1.1 incl. ex-top-5: newhigh n=9114 PFnet 2.49, pivot n=10710 PFnet 2.18; flat-base long n~115 PFnet 3.4-5.1 (thin, trust ex-top5 2.1-3.6). Flat-base short mirror FAILS (n=10, ex-top5 0.0). 341 crosscheck diffs vs research code (mostly off-by-one n) must be reviewed before exact numbers are trusted. Fit: stops are wide (12-25%), so sizing must cap risk; swing engine only. Surprise: profit comes almost entirely from timeout exits (+26..+60 avg) while stops lose -20..-28, same pattern as OB/VP.
+Profit-booking / exit takeaway: do not tighten exits or trail early; the edge is in letting survivors run to max hold, trl1 variant converts to trail exits at +3.7 avg and gives PFnet 3.4 vs 3.9 untrailed.
+## 2026-10-11 Elder rows B-632..B-702 status reconciliation (slice 04)
+- **Mechanism:** no new strategy; harnesses already existed (elder_trend_context_research.py, elder_batch3_research.py and the earlier elder_* scripts). 24 rows whose patch said "HARNESS BUILT" still carried PENDING; flipped to HARNESS-BUILT-AWAITING-RUN so the queue shows what truly needs a dispatch. B-639/B-640 (hand-drawn preliminary trendline, protractor ranking) parked as BLOCKED with reasoning: no mechanical spec, algorithmic cover in tl_break (B-621). B-634 is covered by the batch3 breadth family (B-680..B-683).
+- **Why it matters here:** a stale PENDING label hides that only a dispatch (interval=1d, period=5y) is missing, and a stale label can cause duplicate harness work.
+- **Result:** none yet; runs owed via elder-batch3-research.yml and elder-trend-context-research.yml (interval 1d, period 5y).
+- **Profit-booking / exit takeaway:** none new; keep the Elder exit-family comparison (Force Index flip, Stochastic 70, breakeven, 50% protect, Parabolic) on a fixed entry once runs return.
+## Max-positions (diversification) sweep, B-746, 2026-10-11 IST
+- Mechanism: Elder diversification rule tested as concurrency cap K (3/5/10/20/40) in the dated portfolio ledger of portfolio_overlay_research.py (EMA13 dip-buy and 20-bar breakout, both directions, 1% risk, 0.8% cost).
+- Fit: the "no dated ledger" blocker on B-743/B-746 was stale; the chronological simulator already existed. Correlation screen and worst-first liquidation remain unbuilt.
+- Result: not yet run (harness-built; dispatch portfolio-overlay-research.yml).
+- Reuse: check existing simulators before declaring a ledger missing.
+- Profit-booking / exit takeaway: none yet; judge by final_mult vs max_dd across maxpos cells once run.
+## 2026-10-11 slice_01: Kelly / CPPI / significance table over the whole registry (B-453, B-454, B-455)
+- Mechanism: per registry tag, Kelly f=m/s^2 and half-Kelly from PFnet/win%/n, a CPPI sub-account wind-down Monte Carlo, and a Gaussian t-stat with a t/2 expected-decay haircut. Output docs/kelly_significance_table.json from scripts/kelly_significance_table.py (no network needed).
+- Fit: sizing and confidence only; it does not create entries, so SL-on-every-trade and the 0.8% cost model are untouched. Derived at read time from stored metrics, consistent with the keep-all-data rule.
+- Result: 14,607 scorable tags; 595 viable (PFnet>=1.1): 505 significant at p<.05, 416 after the haircut, 72 thin-n. About 30% of viable tags do not survive an honest decay haircut.
+- Surprise: the largest half-Kelly values sit on thin-n tags (n 17-20 MCX cells), so Kelly ranks must be read together with the thin_n flag.
+- Reuse: use sig_p05_after_haircut, not raw PFnet, as a tie-break among viable tags; never size from Kelly on thin_n tags.
+- Profit-booking / exit takeaway: unchanged by this; the highest t-stat tags are the O'Neil weekly timeout-driven cells, so profit comes from letting winners run, not early booking.
+## Elder S/R stop-tighten (B-607) and measured-move target (B-623), harness only, 2026-10-11 IST
+- Mechanism: B-607 tightens the protective stop to a 1-ATR trail off the extreme once price is within 0.5/1.0 ATR of the congestion top edge (support-bounce longs and mirrored shorts). B-623 exits at a measured-move target after a close-valid trendline break (line at break + 0.5/1.0 x max vertical distance from the line to the lows).
+- Fit here: both keep an ATR stop on every trade (no-trade-without-SL rule holds); both are bar-count/ATR based so candle-size sweep is meaningful. Simulator additions are additive (optional sig keys), so existing tags are unchanged.
+- Result: none yet; run elder-patterns-research.yml (consol and trendline families) and compare against plain edge_bounce / tl_break tags.
+- Reuse: price-target and stop-tighten overlays belong in the shared simulate(); detectors only supply per-entry level arrays and the mirror un-flips them (1/x).
+- Profit-booking / exit takeaway: prior runs show timeout survivors carry the edge and tight stops lose; expect a target at ~1x measured move to cut hold time but also cap winners, so judge by PFnet per bar held.
+## 2026-10-11 SL governance audit (B-506, B-530, B-550)
+- Mechanism: audit of live stop handling against O'Neil execution rule and Douglas monotonic-stop rule.
+- Fit: exits are MKT; stops are trigger-gated SL (limit) because SL-M is blocked on this Kotak account; intraday long/short sync only ratchets in the trade's favour; swing sync only places missing SLs; the 5-min backcheck is category-agnostic (net-qty sign) so swing and option holdings are covered.
+- Result: no code defect found; locked by tests/test_sl_governance_audits.py. No backtest (not applicable).
+- Surprises: O'Neil "SL-M" advice cannot be followed literally here; SL limit with zero buffer is the accepted substitute.
+- Reuse: owed from the coordinator: loosen-event counter and per-position time-limit check (main.py).
+- Profit-booking / exit takeaway: exits at market preserve fills in falling stocks; a stop-limit can miss on gaps, which is what the 09:15 protect pass and emergency MKT escalation backstop.

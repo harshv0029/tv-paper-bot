@@ -305,6 +305,8 @@ def simulate(df, sig, direction, atr_mult, mgmt=None, atr_n=14, max_hold=MAX_HOL
     entry = sig[direction]
     lvl = sig[direction + "_lvl"]
     exitf = sig["exit_" + direction]
+    tgt_arr = sig.get(direction + "_tgt")      # optional per-entry target price (B-623)
+    sr_arr = sig.get(direction + "_sr")        # optional per-entry S/R level (B-607)
     ema13 = ema(df["Close"], 13).to_numpy()
     n = len(df)
     trades, free = [], 0
@@ -328,6 +330,8 @@ def simulate(df, sig, direction, atr_mult, mgmt=None, atr_n=14, max_hold=MAX_HOL
         risk = atr_mult * a[s]
         stop = px - d * risk
         extreme, be_done = px, False
+        tgt = None if tgt_arr is None or np.isnan(tgt_arr[s]) or d * (tgt_arr[s] - px) <= 0 else tgt_arr[s]
+        sr = None if sr_arr is None or np.isnan(sr_arr[s]) else sr_arr[s]
         exit_px, reason, j = None, None, e
         for j in range(e, min(n, e + max_hold + 1)):
             if (d == 1 and l[j] <= stop) or (d == -1 and h[j] >= stop):
@@ -336,7 +340,17 @@ def simulate(df, sig, direction, atr_mult, mgmt=None, atr_n=14, max_hold=MAX_HOL
                 reason = "breakeven_stop" if be_done and abs(stop - px) < 1e-9 else (
                     "trail_stop" if be_done else "stop_loss")
                 break
+            if tgt is not None and ((d == 1 and h[j] >= tgt) or (d == -1 and l[j] <= tgt)):
+                gap = o[j] if j > e else None
+                exit_px = (max(gap, tgt) if d == 1 else min(gap, tgt)) if gap is not None else tgt
+                reason = "target_hit"
+                break
             extreme = max(extreme, h[j]) if d == 1 else min(extreme, l[j])
+            sr_atr = mgmt.get("sr_atr")
+            if sr is not None and sr_atr is not None and d * (extreme - (sr - d * sr_atr * a[s])) >= 0:
+                # price reached the S/R zone: tighten the protective stop to a trail off the extreme
+                tight = extreme - d * mgmt.get("sr_trail_atr", 1.0) * a[s]
+                stop = max(stop, tight) if d == 1 else min(stop, tight)
             be_atr = mgmt.get("be_atr")
             if be_atr is not None and d * (extreme - px) >= be_atr * a[s]:
                 be_done = True

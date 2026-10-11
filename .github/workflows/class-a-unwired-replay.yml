@@ -72,11 +72,11 @@ jobs:
           rows = {f: json.load(open(f)) for f in sorted(glob.glob("out/class_a_*.json"))}
           json.dump(rows, open("out/class_a_all.json", "w"), indent=1)
           for f, r in rows.items():
-              if r["mode"] == "sector_short":
+              if r.get("mode") == "sector_short":
                   for tag, c in r["cells"].items():
                       for fill, m in c["by_stop_fill"].items():
                           print(tag, fill, "n", m["n"], "pfnet", m["pfnet"], "win", m["win_pct"], "hold", m["avg_held_bars"], "universe", r["universe_size"])
-              elif "metrics" in r and r["mode"] == "minervini_be":
+              elif "metrics" in r and r.get("mode") == "minervini_be":
                   m = r["metrics"]; print("minervini_be", r["be_r"], "n", m["n"], "pfnet", m["pfnet"], "win", m["win_pct"], "hold", m["avg_held_bars"], "universe", r["universe_size"])
               else:
                   m = r["metrics"]; print(r["tag_replay_v2"], "n", m["n"], "pfnet", m["pfnet"], "win", m["win_pct"], "hold", m["avg_held_bars"])
