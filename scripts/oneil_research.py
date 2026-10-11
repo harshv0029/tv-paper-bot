@@ -342,19 +342,19 @@ def main_run():
         if i % 100 == 0:
             print("processed", i, "cells", len(cells), flush=True)
     out = os.path.join(ROOT, "docs", f"oneil_research_{tf}_s{shard}.json")
-    json.dump({"tf": tf, "shard": shard, "nshards": nsh, "symbols": len(data), "cells": cells}, open(out, "w"))
+    json.dump({"tf": tf, "shard": shard, "nshards": nsh, "symbols": len(data), "cells": cells}, open(out, "w"), default=lambda o: o.item() if hasattr(o, "item") else str(o))
     print("wrote", out, "cells", len(cells))
 
 
 def merge_run(paths):
     res = finalize(merge_cells([json.load(open(p))["cells"] for p in paths]))
     out = os.path.join(ROOT, "docs", "oneil_research_results.json")
-    json.dump({"results": res}, open(out, "w"), indent=0)
+    json.dump({"results": res}, open(out, "w"), indent=0, default=lambda o: o.item() if hasattr(o, "item") else str(o))
     ok = sorted([(m["pfnet"], m["n"], t) for t, m in res.items() if m["pfnet"] and m["pfnet"] >= 1.1 and m["n"] >= 300], reverse=True)
     print(f"cells={len(res)} viable(PFnet>=1.1,n>=300)={len(ok)}")
     for pf, n, t in ok[:40]:
         m = res[t]
-        print(f"{t} pfnet={pf} win={m['win_pct']} n={n} hold={m['avg_held_bars']} reasons={json.dumps(m['exit_reasons'])}")
+        print(f"{t} pfnet={pf} win={m['win_pct']} n={n} hold={m['avg_held_bars']} reasons={json.dumps(m["exit_reasons"], default=str)}")
     print("TOP10 any n>=100:")
     for m, t in sorted(((m["pfnet"] or 0, t) for t, m in res.items() if m["n"] >= 100), reverse=True)[:10]:
         print(t, m, res[t]["win_pct"], res[t]["n"])
