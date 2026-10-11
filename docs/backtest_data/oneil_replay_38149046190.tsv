@@ -1,0 +1,8 @@
+tag	n	win_pct	avg_hold_bars(1w)	pfnet	pfgross	pfnet_ex_top5	top5_share	syms_traded	exit_reasons
+oneil_flatbase__breakout__long__1w__atr3_avg1_chase10_h12_rsnone__v1	117	69.2	11.06	3.477	3.871	2.703	0.222	116	stop:5@-28.25;stop+avgdown:16@-14.685;timeout:64@18.825;timeout+avgdown:32@8.526
+oneil_flatbase__breakout__long__1w__atr3_avg1_chase10_h26_rsnone__v1	115	62.6	21.93	5.149	5.584	3.643	0.292	114	stop:6@-24.468;stop+avgdown:25@-14.881;timeout:52@43.352;timeout+avgdown:32@20.219
+oneil_flatbase__breakout__long__1w__atr3_chase10_h26_rsnone__v1	115	60.0	21.93	3.921	4.214	2.706	0.31	114	stop:31@-19.991;timeout:84@32.118
+oneil_flatbase__breakout__long__1w__atr3_chase10_h26_rsnone_trl1__v1	115	54.8	15.86	3.407	3.746	2.132	0.374	114	stop:15@-21.982;timeout:25@60.167;trail_stop:75@3.655
+oneil_flatbase__breakout__short__1w__atr3_chase10_h26_rsnone__v1	10	50.0	19.9	1.399	1.503	0.0	1.0	10	stop:3@-22.441;timeout:7@15.081
+oneil_newhigh__first__long__1w__atr3_h26_rsnone__v1	9114	51.8	21.56	2.489	2.643	2.389	0.04	1834	stop:2888@-24.2;timeout:6226@31.441
+oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v1	10710	51.1	22.08	2.18	2.323	2.131	0.023	1895	stop:3307@-23.959;timeout:7403@26.41
