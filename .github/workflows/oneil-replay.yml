@@ -1,0 +1,79 @@
+name: O'Neil replay harness (B-776)
+
+# Research-only, read-only. Independent walk-forward REPLAY of named O'Neil registry tags on the FULL NSE universe
+# (main._load_nse_universe_from_file(), never main.NSE_FULL_UNIVERSE), 0.8% round-trip cost, stop on every trade.
+# main.py has no O'Neil functions, so scripts/oneil_replay.py is a documented PORT of scripts/oneil_research.py rules,
+# re-written bar-by-bar (no look-ahead) to confirm or refute suspicious numbers such as
+# oneil_flatbase__breakout__long__1w__atr3_avg1_chase10_h26_rsnone__v1 (PFnet 5.165, n=116; avg1 is the
+# never-average-down NEGATIVE CONTROL, not a live rule).
+# Output: full table (n, win %, avg hold bars, PFnet net+gross, PFnet ex top-5 trades, exit reasons, universe size).
+# Dispatch order per CLAUDE.md: matrix, so only when no gate/safety run is queued. 4 shards + 1 merge.
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: "Comma list of registry tags to replay (blank = harness DEFAULT_TAGS)"
+        required: false
+        default: ""
+      slip_pct:
+        description: "Extra adverse stop-fill slippage in percent (0 = none)"
+        required: false
+        default: "0"
+      crosscheck:
+        description: "1 = also compare each trade list against scripts/oneil_research.py simulate()"
+        required: false
+        default: "1"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay shard
+        env:
+          TAGS: ${{ inputs.tags }}
+          SLIP_PCT: ${{ inputs.slip_pct }}
+          CROSSCHECK: ${{ inputs.crosscheck }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "4"
+        run: |
+          set -o pipefail
+          python3 scripts/oneil_replay.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oneil-replay-s${{ matrix.shard }}
+          path: docs/oneil_replay_s${{ matrix.shard }}.json
+
+  merge:
+    needs: scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: oneil-replay-s*
+          path: shards
+          merge-multiple: true
+      - name: Merge shards and print table
+        run: |
+          set -o pipefail
+          python3 scripts/oneil_replay.py --merge shards/oneil_replay_s*.json | tee replay_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oneil-replay-results
+          path: |
+            docs/oneil_replay_results.json
+            replay_table.txt

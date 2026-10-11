@@ -2779,6 +2779,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_mc.build())
         import strategy_registry_elderext as _ee
         REGISTRY.extend(_ee.build())
+        import strategy_registry_oneilchan_ext as _oc
+        REGISTRY.extend(_oc.build())
         REGISTRY.extend(_ef.build())
     except Exception:
         pass
