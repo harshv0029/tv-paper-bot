@@ -9,6 +9,8 @@ name: O'Neil research batch (B-460 B-466 B-473 B-483 B-488 B-489 B-491 B-493 B-5
 # Row mapping: B-460 oneil_pivot, B-466 oneil_flatbase, B-473/B-488 oneil_newhigh, B-483 oneil_rsscreen +
 # the rs80 filter on every entry, B-489 pct7/pct8 stops, B-491 tgt20, B-493 trl1 swing-low trailing stop,
 # B-502 avg1 = averaging-down NEGATIVE CONTROL (engine invariant stays never-average-down).
+# Pattern rows (scripts/oneil_patterns.py, same run): B-461 qual1 (1st/2nd base only) filter, B-462 oneil_cup_handle,
+# B-463 oneil_saucer, B-464 oneil_cup_nohandle, B-465 oneil_double_bottom; short = reciprocal-price mirror.
 # Jobs: 3 shards x 2 timeframes = 6, plus 1 merge per timeframe = 8. Each cell is its own tag per the
 # naming grammar (never pooled); the merge prints PFnet net, win %, n, avg hold and exit-reason breakdown
 # and uploads docs/oneil_research_results.json. Shards are interleaved, so RS rank is the percentile

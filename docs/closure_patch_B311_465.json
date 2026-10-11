@@ -1,0 +1,134 @@
+{
+ "B-424": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): chan_gap__buy_on_gap__long__1d (atr1d5/2d5/4d0 top10): best PFnet 1.451 atr4d0 n=1151 win 44.0%, 3/3 cells >=1.1 on n200 (small n, same-day close exit). Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-425": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): chan_gap__short_on_gap__short__1d: best PFnet 1.305 atr1d5 n=1133 win 53.0%, 3/3 cells >=1.1 on n200; MIS-legal (same-day exit). Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-426": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): chan_gapmom__open_vs_prev_extreme__long__1d: best PFnet 0.176 (12 cells, none viable). Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-427": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): chan_gapmom__open_vs_prev_extreme__short__1d: best PFnet 0.177 (12 cells, none viable). Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-428": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): chan_xs_o2c__decile_gap_reversion__long__1d: best PFnet 0.688 n=118381 (fails). Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-429": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): chan_xs_o2c__decile_gap_reversion__short__1d: best PFnet 1.044 n=118405 win 55.2% (below 1.1 floor). Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-430": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): chan_kl__cc_reversion long best 0.516, short best 0.439 (fails both). Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-431": {
+  "status": "PENDING: not covered by chan run 38142463808",
+  "evidence": "No chan_xs_momentum family in the run TSV (families: alexander, ema_regime, gap, gapmom, kl, shape, tsm, updays, xs_o2c, zmr); 252d-return decile needs a cross-sectional momentum mode in scripts/chan_research.py."
+ },
+ "B-432": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): chan_tsm__lookback_sign: LONG 1h atr2d5_hold25 lb300/150/50 PFnet 1.554/1.534/1.519 (n~220k, win ~31%, overlapping signals so n inflated; 4 cells >=1.1), SHORT best 0.725 (fails). Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-433": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): chan_alexander__zigzag long best 0.982 (x0d2 hold30 atr4d0), short best 0.619 (fails). Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-434": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): chan_shape__mom_mr long best 0.858, short best 0.716 (fails); standalone only, filter-on-cci20/bollinger combos not run. Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-435": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): chan_ema_regime__cross long best 0.824, short best 0.602 (fails). Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-436": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): chan_updays__bb_upper long best 0.845, short best 0.555 (fails). Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-440": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): chan_zmr fixed20 long 0.807/short 0.745, halflife long 0.709/short 0.754, trendma100 long 0.849/short 0.741 (all fail 1.1). Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-452": {
+  "status": "PARTIAL: harness built + n200 run done, full-universe re-run and registry entry owed",
+  "evidence": "Chan run 38142463808 (chan-research.yml, NIFTY200+ETFs universe ONLY; full-universe re-run owed; tags not yet registered in strategy_registry; TSV chan_run_38142463808.tsv in coordinator scratchpad): MA trend-filter combo = chan_zmr__trendma100 (long 0.849, short 0.741, long win 60.4%) vs unfiltered fixed20 0.807/0.745: filter adds ~0.04 long, nothing viable. Harness scripts/chan_research.py, tests/test_chan_research.py."
+ },
+ "B-447": {
+  "status": "PARTIAL: half-life lookback only",
+  "evidence": "chan_zmr__halflife cells in run 38142463808 use half-life as lookback (fail, best 0.754); full ADF/Hurst/variance-ratio gate NOT built."
+ },
+ "B-460": {
+  "status": "HARNESS BUILT, full-universe run owed (coordinator dispatches oneil-research.yml)",
+  "evidence": "scripts/oneil_research.py (pivot/flat/newhigh/RS; B-460) + NEW scripts/oneil_patterns.py: cup-with-handle (B-462), saucer (B-463), cup-no-handle (B-464), double-bottom (B-465), base-stage qual1 filter (B-461); short = reciprocal-price mirror; stop on every trade; tests/test_oneil_patterns.py (6 pass incl. no-lookahead). Earlier O'Neil run 38140916944 failed on a numpy int64 JSON bug (fixed commit a01bea3); no O'Neil metrics registered yet. Could not smoke on real data in this sandbox (yfinance returned no data)."
+ },
+ "B-461": {
+  "status": "HARNESS BUILT, full-universe run owed (coordinator dispatches oneil-research.yml)",
+  "evidence": "scripts/oneil_research.py (pivot/flat/newhigh/RS; B-460) + NEW scripts/oneil_patterns.py: cup-with-handle (B-462), saucer (B-463), cup-no-handle (B-464), double-bottom (B-465), base-stage qual1 filter (B-461); short = reciprocal-price mirror; stop on every trade; tests/test_oneil_patterns.py (6 pass incl. no-lookahead). Earlier O'Neil run 38140916944 failed on a numpy int64 JSON bug (fixed commit a01bea3); no O'Neil metrics registered yet. Could not smoke on real data in this sandbox (yfinance returned no data)."
+ },
+ "B-462": {
+  "status": "HARNESS BUILT, full-universe run owed (coordinator dispatches oneil-research.yml)",
+  "evidence": "scripts/oneil_research.py (pivot/flat/newhigh/RS; B-460) + NEW scripts/oneil_patterns.py: cup-with-handle (B-462), saucer (B-463), cup-no-handle (B-464), double-bottom (B-465), base-stage qual1 filter (B-461); short = reciprocal-price mirror; stop on every trade; tests/test_oneil_patterns.py (6 pass incl. no-lookahead). Earlier O'Neil run 38140916944 failed on a numpy int64 JSON bug (fixed commit a01bea3); no O'Neil metrics registered yet. Could not smoke on real data in this sandbox (yfinance returned no data)."
+ },
+ "B-463": {
+  "status": "HARNESS BUILT, full-universe run owed (coordinator dispatches oneil-research.yml)",
+  "evidence": "scripts/oneil_research.py (pivot/flat/newhigh/RS; B-460) + NEW scripts/oneil_patterns.py: cup-with-handle (B-462), saucer (B-463), cup-no-handle (B-464), double-bottom (B-465), base-stage qual1 filter (B-461); short = reciprocal-price mirror; stop on every trade; tests/test_oneil_patterns.py (6 pass incl. no-lookahead). Earlier O'Neil run 38140916944 failed on a numpy int64 JSON bug (fixed commit a01bea3); no O'Neil metrics registered yet. Could not smoke on real data in this sandbox (yfinance returned no data)."
+ },
+ "B-464": {
+  "status": "HARNESS BUILT, full-universe run owed (coordinator dispatches oneil-research.yml)",
+  "evidence": "scripts/oneil_research.py (pivot/flat/newhigh/RS; B-460) + NEW scripts/oneil_patterns.py: cup-with-handle (B-462), saucer (B-463), cup-no-handle (B-464), double-bottom (B-465), base-stage qual1 filter (B-461); short = reciprocal-price mirror; stop on every trade; tests/test_oneil_patterns.py (6 pass incl. no-lookahead). Earlier O'Neil run 38140916944 failed on a numpy int64 JSON bug (fixed commit a01bea3); no O'Neil metrics registered yet. Could not smoke on real data in this sandbox (yfinance returned no data)."
+ },
+ "B-465": {
+  "status": "HARNESS BUILT, full-universe run owed (coordinator dispatches oneil-research.yml)",
+  "evidence": "scripts/oneil_research.py (pivot/flat/newhigh/RS; B-460) + NEW scripts/oneil_patterns.py: cup-with-handle (B-462), saucer (B-463), cup-no-handle (B-464), double-bottom (B-465), base-stage qual1 filter (B-461); short = reciprocal-price mirror; stop on every trade; tests/test_oneil_patterns.py (6 pass incl. no-lookahead). Earlier O'Neil run 38140916944 failed on a numpy int64 JSON bug (fixed commit a01bea3); no O'Neil metrics registered yet. Could not smoke on real data in this sandbox (yfinance returned no data)."
+ },
+ "B-406": {
+  "status": "CLOSED-AS-DECIDED",
+  "evidence": "Row status itself reads 'DECIDED 2026-10-11 (superseded by B-421)'; the sweep work lives in B-421."
+ },
+ "B-437": {
+  "status": "BLOCKED: data",
+  "evidence": "needs an NSE results-date calendar (data source not in repo)"
+ },
+ "B-438": {
+  "status": "BLOCKED: data",
+  "evidence": "needs NIFTY/Sensex add/delete announcement date list (not in repo)"
+ },
+ "B-446": {
+  "status": "BLOCKED: data",
+  "evidence": "needs contract-level MCX futures data (only a continuous spot proxy is available)"
+ },
+ "B-443": {
+  "status": "PARKED-REASONED (row already states reason)",
+  "evidence": "Needs a two-leg/spread order path that conflicts with one-stop-per-trade; no such engine exists; reasoning is in the row text."
+ },
+ "B-444": {
+  "status": "PARKED-REASONED (row already states reason)",
+  "evidence": "Needs a two-leg/spread order path that conflicts with one-stop-per-trade; no such engine exists; reasoning is in the row text."
+ },
+ "B-445": {
+  "status": "PARKED-REASONED (row already states reason)",
+  "evidence": "Needs a two-leg/spread order path that conflicts with one-stop-per-trade; no such engine exists; reasoning is in the row text."
+ },
+ "B-459": {
+  "status": "PARKED-REASONED",
+  "evidence": "Row text lists reasons per item (fundamentals feed, 1y hold >30d, no sentiment feed); parked, not dropped."
+ },
+ "B-311": {
+  "status": "BLOCKED: owner",
+  "evidence": "Needs a GitHub secret + Render env key and a user decision on history scrub; row already marked PARK."
+ },
+ "B-357": {
+  "status": "BLOCKED: evidence",
+  "evidence": "Row: no equity/futures short cell clears PFnet>1; chan_tsm short best 0.725; chan_gap short_on_gap 1.305 is intraday equity MIS only (n200, small n)."
+ },
+ "B-358": {
+  "status": "BLOCKED: evidence",
+  "evidence": "No 1h/15m cell clears the floor on the full universe; only chan_tsm long 1h (1.55 on n200, overlap inflation suspected) is a candidate and needs a full-universe non-overlapping re-run first."
+ }
+}
