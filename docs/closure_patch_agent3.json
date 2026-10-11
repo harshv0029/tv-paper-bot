@@ -1,0 +1,174 @@
+{
+ "B-641": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family osc: variant reversal (stoch 20/80,30/70; rsi 30/70,20/80; %R 10/90,20/80 - levels assumed, book params absent); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-644": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family osc: roc_peak_exit overlay; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-645": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family osc: tl_break src=roc (pivot-line definition chosen: last two pivots, w=3/5); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-661": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family osc: tl_break src=rsi; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-646": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family osc: sroc el/rl sweep 13/21,8/21,21/21,13/13; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-728": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family osc: sroc + existing roc family in elder_indicators_research.py; Schutzman smoothing = EMA13 then RoC21; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-656": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family osc: stoch_shape narrowshallow vs deepwide (width<=3 bars, depth>=10 pts); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-657": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family osc: wk_stoch_lead (weekly stoch turn while weekly MACD-H still opposite); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-662": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family osc: rsi_pattern (class-A pivot divergence in RSI<40/>60 zone; refute test); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-666": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family osc: vol_trend f=1 filter vs f=0 control on EMA13 dip; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-677": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family osc: div_class k=a/b/c on RSI14 and MACD-H pivots; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-678": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family osc: calibrated_ob q=5/10 rolling 120-bar percentile lines refreshed every 63 bars, trend-only; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-676": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family struct: retrace r=0.5/0.618 plus time-retrace 0.5; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-679": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family struct: minor_stop lb=2/3/5 (structure stop capped by ATR multiple; lb=2 = lower of trade-day/prior-day low); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-741": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family struct: minor_stop lb=2/3/5 (structure stop capped by ATR multiple; lb=2 = lower of trade-day/prior-day low); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-704": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family struct: ts_exit m=weekly/fi2/stoch70 (short-side cover by symmetry, flagged); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-706": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family struct: sar reg=1 (2 whipsaw legs <=5 bars suspend; 2 good legs >=8 resume); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-707": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family struct: sar rev=1 vs rev=0 (stop-and-reverse vs flat after stop); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-710": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family struct: mtf gate vs against control; HTF map 1d->W, 1h->D, 15m/5m->1h (factor 5 only for 1d; 5m x5=25m not native, flagged); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-673": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family struct: mtf gate vs against control; HTF map 1d->W, 1h->D, 15m/5m->1h (factor 5 only for 1d; 5m x5=25m not native, flagged); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-685": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family struct: cycle_gate thr=0.3/0.4: FFT dominant-cycle power ratio (8-20 bar band) as MESA substitute regime filter; Ehlers MESA spec absent so definition is ours, flagged; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-735": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family struct: cycle_gate thr=0.3/0.4: FFT dominant-cycle power ratio (8-20 bar band) as MESA substitute regime filter; Ehlers MESA spec absent so definition is ours, flagged; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-720": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family chan: appel_pullback/appel_penetrate q=90/95; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-721": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family chan: sigma_squeeze m=1.5/2/2.5 x squeeze quantile 0.1/0.2 (m not in OCR, swept); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-722": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family chan: plummer k=1.618/2.618/4.236, base = range edge (assumed); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-733": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family chan: double_tb, head_shoulders, tri_rectangle/ascending/descending/symmetrical; flags, pennants, diamonds, widening not built (see scripts/pattern_lab.py for generic pattern rules); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-767": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family chan: head_shoulders f=1 failed-H&S reverse on break of head; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-734": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family chan: pivot_tl_break w=3/5 (2-touch line; 3-touch rating not built); tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-736": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family orb: opening_range 5/10/15/30 min, 5m bars, first breakout per day, day-end exit; workflow job orb; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-744": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family sizing: fixed2pct, optf_capped2pct, optf_uncapped, halff, martingale_control (negative control, never wire); proxy R from 2*median ATR%; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-745": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family sizing: fixed2pct, optf_capped2pct, optf_uncapped, halff, martingale_control (negative control, never wire); proxy R from 2*median ATR%; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-670": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family breadth: climax (OBV-sign NFT sum) and mas_diverge (top-15 volume A/D) traded on ^NSEI; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-684": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family breadth: climax (OBV-sign NFT sum) and mas_diverge (top-15 volume A/D) traded on ^NSEI; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-681": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family breadth: nhnl_trin_combo; tests/test_elder_batch3_research.py (10 pass); run pending (dispatch via coordinator)"
+ },
+ "B-680": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family breadth: full-universe re-run (nhnl_turn/nhnl_diverge, trin13_bull/bear, ad_confirm/ad_diverge). Earlier partial coverage in scripts/breadth_lab.py (swing watchlist universe only, not full); run pending"
+ },
+ "B-682": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family breadth: full-universe re-run (nhnl_turn/nhnl_diverge, trin13_bull/bear, ad_confirm/ad_diverge). Earlier partial coverage in scripts/breadth_lab.py (swing watchlist universe only, not full); run pending"
+ },
+ "B-683": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family breadth: full-universe re-run (nhnl_turn/nhnl_diverge, trin13_bull/bear, ad_confirm/ad_diverge). Earlier partial coverage in scripts/breadth_lab.py (swing watchlist universe only, not full); run pending"
+ },
+ "B-731": {
+  "status": "HARNESS BUILT, RUN PENDING",
+  "evidence": "scripts/elder_batch3_research.py + elder-batch3-research.yml, family breadth: full-universe re-run (nhnl_turn/nhnl_diverge, trin13_bull/bear, ad_confirm/ad_diverge). Earlier partial coverage in scripts/breadth_lab.py (swing watchlist universe only, not full); run pending"
+ },
+ "B-727": {
+  "status": "ALREADY COVERED by scripts/elder_macd_dirgap_research.py",
+  "evidence": "family dirsys (+DI/-DI 13, ADX rise on/off, dull gate, overheat exit); workflow elder-macd-dirgap-research.yml; Wilder DMI 14 candidate; run pending there"
+ },
+ "B-732": {
+  "status": "ALREADY COVERED by scripts/elder_macd_dirgap_research.py",
+  "evidence": "family gaps (breakaway, continuation, exhaustion/common fade); ex-dividend gap exclusion not implemented there"
+ },
+ "B-742": {
+  "status": "BLOCKED: needs multi-unit position simulator",
+  "evidence": "all Elder simulators are single-unit; pyramiding adds with 2% total-risk cap need a unit ledger (new simulator), not a signal variant. Parked as design item"
+ },
+ "B-743": {
+  "status": "BLOCKED: needs dated portfolio ledger",
+  "evidence": "per-symbol simulators emit undated trades; never-average-down is already structural (no adds); worst-position-first and margin-call exit need concurrent positions by date"
+ },
+ "B-746": {
+  "status": "BLOCKED: needs dated portfolio ledger",
+  "evidence": "max-positions sweep and correlation screen need dated concurrent trades across symbols; no such ledger exists in scripts/elder_*"
+ }
+}

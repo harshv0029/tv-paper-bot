@@ -1,0 +1,77 @@
+name: O'Neil extension research (B-467..B-480 B-484..B-487 B-490 B-492 B-494..B-500)
+
+# Research-only, read-only. William O'Neil, How to Make Money in Stocks: the rows oneil-research.yml does NOT cover.
+# Harness: scripts/oneil_ext_research.py (imports the shared helpers of scripts/oneil_research.py).
+# FULL NSE universe (main._load_nse_universe_from_file()), BOTH directions (short = reciprocal-price mirror), 0.8%
+# round-trip cost, a stop on EVERY trade (initial ATR stop, atr2/atr3 swept on entries), two candle sizes (1d, 1w).
+# Bar-count constants (pole, flag, swing window, base-on-base spacing, 10-week MA = 50d, 200DMA = 40w, time stops
+# 65/125 days = 13/26 weeks) are re-derived per candle size in scripts/oneil_ext_research.py EX; 4h/1h are not
+# applicable (the rules are defined on daily/weekly bars).
+# Row mapping: B-467 hft, B-468 shakeout, B-469 baseonbase, B-470 hns, B-471 triple/flagprice/tightarea,
+# B-472 trendline, B-478 pullback, B-479 abnormal, B-480 leaders, B-484 rsline, B-487 volpct (entries);
+# B-474..B-477 + B-486 dryup/tightness/priorup/overhead/corrratio (filters on the pivot trigger, tag
+# <trigger>__x__<filter>); B-485 rswarn/rs50/rs30, B-490 sc, B-492 belock, B-494 ma10w, B-495 ma200*, B-496 climax*,
+# B-497 gapup, B-498 churn/lowclose/failrally/bigbreak, B-499 ddpk/giveback/nobounce, B-500 dull/six/noearly (exits).
+# Not covered (data missing): B-481 IPO base, B-482 group stocks. Role-swapped filter ordering is OWED.
+# Jobs: 3 shards x 2 timeframes = 6, plus 1 merge per timeframe = 8. Each cell is its own tag; the merge prints
+# PFnet net/gross, win %, n, avg hold, exit-reason breakdown and the universe size.
+# Dispatch order per CLAUDE.md: big matrix, so only when no gate/safety run is queued.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        tf: ["1d", "1w"]
+        shard: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Scan shard
+        env:
+          TF: ${{ matrix.tf }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "3"
+        run: |
+          set -o pipefail
+          python3 scripts/oneil_ext_research.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oneil-ext-${{ matrix.tf }}-s${{ matrix.shard }}
+          path: docs/oneil_ext_research_${{ matrix.tf }}_s${{ matrix.shard }}.json
+
+  merge:
+    needs: scan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tf: ["1d", "1w"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: oneil-ext-${{ matrix.tf }}-s*
+          path: shards
+          merge-multiple: true
+      - name: Merge shards and report
+        run: |
+          set -o pipefail
+          python3 scripts/oneil_ext_research.py --merge shards/oneil_ext_research_${{ matrix.tf }}_s*.json | tee merge_${{ matrix.tf }}.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oneil-ext-results-${{ matrix.tf }}
+          path: |
+            docs/oneil_ext_research_results.json
+            merge_${{ matrix.tf }}.txt

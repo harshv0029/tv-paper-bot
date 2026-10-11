@@ -1,0 +1,583 @@
+tag	pfnet_net	pfnet_gross	win_pct	n	avg_hold_days	exits
+rsi__levels__long__1d__atr3_band25_n14__v1	1.026	NA	41.7	11138	24.1	{'data_end': 298, 'max_hold_timeout': 6168, 'rule_exit': 835, 'stop_loss': 3837}
+rsi__levels__long__1d__atr3_band30_n14__v1	0.972	NA	42.3	22146	23.0	{'data_end': 629, 'max_hold_timeout': 10403, 'rule_exit': 3490, 'stop_loss': 7624}
+rsi__levels__long__1d__atr2_band25_n14__v1	0.964	NA	35.1	12363	19.4	{'data_end': 237, 'max_hold_timeout': 4689, 'rule_exit': 807, 'stop_loss': 6630}
+stoch_slow__diverge__long__1d__atr3_lb20__v1	0.947	NA	52.6	46965	15.0	{'data_end': 1271, 'max_hold_timeout': 7703, 'rule_exit': 25535, 'stop_loss': 12456}
+rsi__diverge__long__1d__atr3_lb10_n14__v1	0.94	NA	42.7	47757	21.6	{'data_end': 1124, 'max_hold_timeout': 19581, 'rule_exit': 11477, 'stop_loss': 15575}
+rsi__diverge__long__1d__atr3_lb20_n14__v1	0.938	NA	41.1	33221	22.6	{'data_end': 942, 'max_hold_timeout': 14903, 'rule_exit': 6293, 'stop_loss': 11083}
+stoch_slow__diverge__long__1d__atr3_lb10__v1	0.926	NA	52.3	64460	15.1	{'data_end': 1471, 'max_hold_timeout': 10705, 'rule_exit': 35231, 'stop_loss': 17053}
+rsi__levels__long__1d__atr1d5_band25_n14__v1	0.922	NA	29.1	13024	16.1	{'data_end': 174, 'max_hold_timeout': 3692, 'rule_exit': 732, 'stop_loss': 8426}
+rsi__diverge__long__1d__atr3_lb5_n14__v1	0.918	NA	43.9	64779	20.1	{'data_end': 1326, 'max_hold_timeout': 23848, 'rule_exit': 19031, 'stop_loss': 20574}
+stoch_slow__diverge__long__1d__atr3_lb5__v1	0.918	NA	52.1	70856	15.1	{'data_end': 1522, 'max_hold_timeout': 11911, 'rule_exit': 38586, 'stop_loss': 18837}
+rsi__levels__long__1d__atr3_band25_n7__v1	0.912	NA	46.8	41382	19.5	{'data_end': 1015, 'max_hold_timeout': 11110, 'rule_exit': 15698, 'stop_loss': 13559}
+rsi__levels__long__1d__atr2_band30_n14__v1	0.907	NA	35.7	25830	18.5	{'data_end': 505, 'max_hold_timeout': 8006, 'rule_exit': 3486, 'stop_loss': 13833}
+ad_line__vacc_breakout__long__1d__atr3_lb40__v1	0.902	NA	27.9	23030	7.8	{'data_end': 74, 'max_hold_timeout': 571, 'rule_exit': 21688, 'stop_loss': 697}
+channel__env_breakout__long__1d__atr3_pct0d03__v1	0.891	NA	28.0	77218	9.4	{'data_end': 206, 'max_hold_timeout': 2133, 'rule_exit': 72312, 'stop_loss': 2567}
+ad_line__vacc_breakout__long__1d__atr2_lb40__v1	0.885	NA	27.4	23278	7.6	{'data_end': 72, 'max_hold_timeout': 562, 'rule_exit': 19822, 'stop_loss': 2822}
+ad_line__vacc_breakout__long__1d__atr3_lb20__v1	0.882	NA	27.0	33655	7.2	{'data_end': 104, 'max_hold_timeout': 756, 'rule_exit': 32095, 'stop_loss': 700}
+stoch_slow__diverge__long__1d__atr2_lb20__v1	0.878	NA	46.9	54549	12.2	{'data_end': 1149, 'max_hold_timeout': 5466, 'rule_exit': 24153, 'stop_loss': 23781}
+channel__env_breakout__long__1d__atr3_pct0d02__v1	0.873	NA	27.0	98993	8.7	{'data_end': 244, 'max_hold_timeout': 2441, 'rule_exit': 93704, 'stop_loss': 2604}
+force_index__fi13_zero_cross__long__1d__atr3_n13__v1	0.871	NA	24.8	100056	11.4	{'data_end': 566, 'max_hold_timeout': 13397, 'rule_exit': 80966, 'stop_loss': 5127}
+channel__env_breakout__long__1d__atr2_pct0d03__v1	0.87	NA	27.4	78943	9.2	{'data_end': 203, 'max_hold_timeout': 2108, 'rule_exit': 65601, 'stop_loss': 11031}
+rsi__diverge__long__1d__atr3_lb20_n7__v1	0.862	NA	50.3	34230	16.9	{'data_end': 819, 'max_hold_timeout': 5733, 'rule_exit': 17173, 'stop_loss': 10505}
+rsi__diverge__long__1d__atr2_lb20_n14__v1	0.862	NA	34.3	37529	18.1	{'data_end': 751, 'max_hold_timeout': 10674, 'rule_exit': 6045, 'stop_loss': 20059}
+ad_line__vacc_breakout__long__1d__atr2_lb20__v1	0.861	NA	26.7	33923	7.1	{'data_end': 101, 'max_hold_timeout': 742, 'rule_exit': 29975, 'stop_loss': 3105}
+channel__hilo_breakout__long__1d__atr3_pct0__v1	0.86	NA	26.2	107207	8.2	{'data_end': 236, 'max_hold_timeout': 2431, 'rule_exit': 101716, 'stop_loss': 2824}
+rsi__diverge__long__1d__atr2_lb10_n14__v1	0.859	NA	35.6	54208	17.2	{'data_end': 884, 'max_hold_timeout': 13850, 'rule_exit': 11053, 'stop_loss': 28421}
+stoch_slow__diverge__long__1d__atr2_lb10__v1	0.859	NA	46.7	75121	12.2	{'data_end': 1331, 'max_hold_timeout': 7648, 'rule_exit': 33382, 'stop_loss': 32760}
+channel__env_breakout__long__1d__atr3_pct0d015__v1	0.858	NA	26.1	113550	8.2	{'data_end': 263, 'max_hold_timeout': 2613, 'rule_exit': 107987, 'stop_loss': 2687}
+rsi__levels__long__1d__atr1d5_band30_n14__v1	0.858	NA	29.4	28190	15.2	{'data_end': 388, 'max_hold_timeout': 6267, 'rule_exit': 3247, 'stop_loss': 18288}
+rsi__levels__long__1d__atr2_band25_n7__v1	0.856	NA	39.5	49060	15.5	{'data_end': 873, 'max_hold_timeout': 7452, 'rule_exit': 15601, 'stop_loss': 25134}
+channel__env_breakout__long__1d__atr2_pct0d02__v1	0.855	NA	26.5	100755	8.5	{'data_end': 240, 'max_hold_timeout': 2418, 'rule_exit': 87235, 'stop_loss': 10862}
+ad_line__vacc_breakout__long__1d__atr1d5_lb40__v1	0.853	NA	26.4	23826	7.2	{'data_end': 67, 'max_hold_timeout': 534, 'rule_exit': 17247, 'stop_loss': 5978}
+parabolic__sar_flip__long__1d__af0d015_afmax0d15_atr3__v1	0.852	NA	32.4	83344	13.5	{'data_end': 620, 'max_hold_timeout': 3176, 'rule_exit': 72290, 'stop_loss': 7258}
+stoch_slow__diverge__long__1d__atr2_lb5__v1	0.852	NA	46.6	82696	12.2	{'data_end': 1383, 'max_hold_timeout': 8473, 'rule_exit': 36640, 'stop_loss': 36200}
+force_index__fi13_zero_cross__long__1d__atr2_n13__v1	0.848	NA	23.9	100135	10.7	{'data_end': 488, 'max_hold_timeout': 12100, 'rule_exit': 71898, 'stop_loss': 15649}
+rsi__levels__long__1d__atr3_band30_n7__v1	0.848	NA	52.0	55241	16.4	{'data_end': 1184, 'max_hold_timeout': 8447, 'rule_exit': 28629, 'stop_loss': 16981}
+channel__hilo_breakout__long__1d__atr2_pct0__v1	0.843	NA	25.8	108923	8.1	{'data_end': 234, 'max_hold_timeout': 2407, 'rule_exit': 95129, 'stop_loss': 11153}
+channel__env_breakout__long__1d__atr2_pct0d015__v1	0.842	NA	25.7	115321	8.1	{'data_end': 261, 'max_hold_timeout': 2591, 'rule_exit': 101604, 'stop_loss': 10865}
+ad_line__vacc_confirm__long__1d__atr3_lb40__v1	0.841	NA	30.4	21971	11.5	{'data_end': 94, 'max_hold_timeout': 923, 'rule_exit': 18859, 'stop_loss': 2095}
+channel__env_breakout__long__1d__atr1d5_pct0d03__v1	0.841	NA	26.1	82578	8.6	{'data_end': 191, 'max_hold_timeout': 2057, 'rule_exit': 55523, 'stop_loss': 24807}
+stoch_slow__turn__long__1d__atr3_band20__v1	0.84	NA	49.0	31201	13.9	{'data_end': 346, 'max_hold_timeout': 5165, 'rule_exit': 17366, 'stop_loss': 8324}
+rsi__diverge__long__1d__atr3_lb10_n7__v1	0.839	NA	51.8	51536	16.0	{'data_end': 972, 'max_hold_timeout': 7794, 'rule_exit': 27400, 'stop_loss': 15370}
+rsi__diverge__long__1d__atr2_lb5_n14__v1	0.838	NA	36.9	74397	16.1	{'data_end': 1039, 'max_hold_timeout': 16936, 'rule_exit': 18473, 'stop_loss': 37949}
+ad_line__ad_breakout__long__1d__atr3_lb40__v1	0.835	NA	27.2	24487	8.2	{'data_end': 97, 'max_hold_timeout': 574, 'rule_exit': 23177, 'stop_loss': 639}
+ad_line__ad_breakout__long__1d__atr3_lb20__v1	0.834	NA	26.3	32547	7.4	{'data_end': 108, 'max_hold_timeout': 683, 'rule_exit': 31121, 'stop_loss': 635}
+ad_line__vacc_breakout__long__1d__atr1d5_lb20__v1	0.832	NA	25.9	34526	6.8	{'data_end': 96, 'max_hold_timeout': 725, 'rule_exit': 26533, 'stop_loss': 7172}
+channel__env_breakout__long__1d__atr1d5_pct0d02__v1	0.828	NA	25.6	104635	8.1	{'data_end': 230, 'max_hold_timeout': 2380, 'rule_exit': 76315, 'stop_loss': 25710}
+ad_line__ad_breakout__long__1d__atr2_lb40__v1	0.825	NA	26.9	24630	8.0	{'data_end': 93, 'max_hold_timeout': 562, 'rule_exit': 21048, 'stop_loss': 2927}
+volume__ma5_confirm__long__1d__atr3_lb10__v1	0.824	NA	26.3	81171	9.1	{'data_end': 222, 'max_hold_timeout': 2242, 'rule_exit': 75988, 'stop_loss': 2719}
+volume__ma5_confirm__long__1d__atr3_lb20__v1	0.824	NA	26.3	81171	9.1	{'data_end': 222, 'max_hold_timeout': 2242, 'rule_exit': 75988, 'stop_loss': 2719}
+parabolic__sar_flip__long__1d__af0d02_afmax0d2_atr3__v1	0.822	NA	32.1	100565	11.5	{'data_end': 638, 'max_hold_timeout': 1539, 'rule_exit': 91800, 'stop_loss': 6588}
+ad_line__vacc_confirm__long__1d__atr3_lb20__v1	0.821	NA	29.2	36344	10.8	{'data_end': 132, 'max_hold_timeout': 1360, 'rule_exit': 32243, 'stop_loss': 2609}
+ad_line__ad_breakout__long__1d__atr2_lb20__v1	0.82	NA	26.0	32692	7.3	{'data_end': 106, 'max_hold_timeout': 670, 'rule_exit': 29006, 'stop_loss': 2910}
+ad_line__vacc_confirm__long__1d__atr2_lb40__v1	0.82	NA	28.8	22572	10.6	{'data_end': 84, 'max_hold_timeout': 868, 'rule_exit': 14855, 'stop_loss': 6765}
+channel__hilo_breakout__long__1d__atr1d5_pct0__v1	0.818	NA	25.0	112655	7.7	{'data_end': 225, 'max_hold_timeout': 2380, 'rule_exit': 83996, 'stop_loss': 26054}
+channel__env_breakout__long__1d__atr1d5_pct0d015__v1	0.816	NA	24.9	119319	7.8	{'data_end': 253, 'max_hold_timeout': 2561, 'rule_exit': 90387, 'stop_loss': 26118}
+force_index__fi13_zero_cross__long__1d__atr1d5_n13__v1	0.816	NA	22.6	100427	9.9	{'data_end': 402, 'max_hold_timeout': 10725, 'rule_exit': 60528, 'stop_loss': 28772}
+parabolic__sar_flip__long__1d__af0d015_afmax0d15_atr2__v1	0.816	NA	30.7	83824	12.5	{'data_end': 539, 'max_hold_timeout': 2585, 'rule_exit': 55276, 'stop_loss': 25424}
+ad_line__vacc_confirm__long__1d__atr3_lb10__v1	0.815	NA	27.6	60969	9.7	{'data_end': 192, 'max_hold_timeout': 1874, 'rule_exit': 56211, 'stop_loss': 2692}
+ad_line__vacc_breakout__long__1d__atr3_lb10__v1	0.815	NA	25.8	50718	6.4	{'data_end': 116, 'max_hold_timeout': 945, 'rule_exit': 48829, 'stop_loss': 828}
+rsi__levels__long__1d__atr1d5_band25_n7__v1	0.815	NA	32.9	54367	12.6	{'data_end': 681, 'max_hold_timeout': 5382, 'rule_exit': 14478, 'stop_loss': 33826}
+ad_line__ad_breakout__long__1d__atr1d5_lb40__v1	0.813	NA	26.0	24954	7.6	{'data_end': 85, 'max_hold_timeout': 538, 'rule_exit': 17857, 'stop_loss': 6474}
+parabolic__sar_flip__long__1d__af0d025_afmax0d25_atr3__v1	0.808	NA	31.9	115481	10.1	{'data_end': 660, 'max_hold_timeout': 868, 'rule_exit': 107780, 'stop_loss': 6173}
+rsi__diverge__long__1d__atr3_lb5_n7__v1	0.806	NA	53.1	74056	14.6	{'data_end': 1188, 'max_hold_timeout': 9571, 'rule_exit': 42142, 'stop_loss': 21155}
+volume__ma5_confirm__long__1d__atr2_lb10__v1	0.806	NA	25.8	81990	8.8	{'data_end': 212, 'max_hold_timeout': 2188, 'rule_exit': 68387, 'stop_loss': 11203}
+volume__ma5_confirm__long__1d__atr2_lb20__v1	0.806	NA	25.8	81990	8.8	{'data_end': 212, 'max_hold_timeout': 2188, 'rule_exit': 68387, 'stop_loss': 11203}
+ad_line__ad_breakout__long__1d__atr1d5_lb20__v1	0.804	NA	25.3	32988	7.1	{'data_end': 99, 'max_hold_timeout': 642, 'rule_exit': 25357, 'stop_loss': 6890}
+ad_line__vacc_confirm__long__1d__atr2_lb20__v1	0.802	NA	28.0	37129	10.2	{'data_end': 120, 'max_hold_timeout': 1300, 'rule_exit': 26191, 'stop_loss': 9518}
+ad_line__vacc_confirm__long__1d__atr2_lb10__v1	0.798	NA	26.9	61829	9.3	{'data_end': 182, 'max_hold_timeout': 1811, 'rule_exit': 49104, 'stop_loss': 10732}
+ad_line__vacc_breakout__long__1d__atr2_lb10__v1	0.797	NA	25.6	50987	6.3	{'data_end': 113, 'max_hold_timeout': 933, 'rule_exit': 46323, 'stop_loss': 3618}
+rsi__diverge__long__1d__atr2_lb20_n7__v1	0.796	NA	42.6	38491	13.3	{'data_end': 633, 'max_hold_timeout': 3171, 'rule_exit': 15818, 'stop_loss': 18869}
+ad_line__ad_breakout__long__1d__atr3_lb10__v1	0.794	NA	25.5	44253	6.5	{'data_end': 105, 'max_hold_timeout': 773, 'rule_exit': 42711, 'stop_loss': 664}
+parabolic__sar_flip__long__1d__af0d02_afmax0d2_atr2__v1	0.794	NA	30.9	101350	10.8	{'data_end': 572, 'max_hold_timeout': 1243, 'rule_exit': 74459, 'stop_loss': 25076}
+rsi__levels__long__1d__atr2_band30_n7__v1	0.793	NA	44.4	66985	12.9	{'data_end': 1043, 'max_hold_timeout': 4778, 'rule_exit': 28714, 'stop_loss': 32450}
+ad_line__vacc_confirm__long__1d__atr1d5_lb40__v1	0.792	NA	26.2	23631	9.4	{'data_end': 68, 'max_hold_timeout': 795, 'rule_exit': 11401, 'stop_loss': 11367}
+stoch_slow__diverge__long__1d__atr1d5_lb20__v1	0.79	NA	40.3	61313	10.0	{'data_end': 1003, 'max_hold_timeout': 4221, 'rule_exit': 22598, 'stop_loss': 33491}
+parabolic__sar_flip__long__1d__af0d015_afmax0d15_atr1d5__v1	0.785	NA	27.9	84094	11.0	{'data_end': 444, 'max_hold_timeout': 2029, 'rule_exit': 40786, 'stop_loss': 40835}
+parabolic__sar_flip__long__1d__af0d025_afmax0d25_atr2__v1	0.783	NA	31.0	116565	9.7	{'data_end': 600, 'max_hold_timeout': 713, 'rule_exit': 91151, 'stop_loss': 24101}
+stoch_slow__diverge__long__1d__atr1d5_lb10__v1	0.782	NA	40.1	84756	10.0	{'data_end': 1165, 'max_hold_timeout': 5878, 'rule_exit': 31332, 'stop_loss': 46381}
+ad_line__ad_breakout__long__1d__atr2_lb10__v1	0.781	NA	25.3	44396	6.4	{'data_end': 103, 'max_hold_timeout': 754, 'rule_exit': 40508, 'stop_loss': 3031}
+williams_r__failure_swing__long__1d__atr3_line10__v1	0.781	NA	23.9	118570	7.4	{'data_end': 211, 'max_hold_timeout': 2437, 'rule_exit': 113837, 'stop_loss': 2085}
+ad_line__ad_confirm__long__1d__atr3_lb10__v1	0.78	NA	26.7	69212	9.4	{'data_end': 201, 'max_hold_timeout': 1942, 'rule_exit': 64539, 'stop_loss': 2530}
+volume__ma5_confirm__long__1d__atr1d5_lb10__v1	0.78	NA	24.6	83924	8.3	{'data_end': 195, 'max_hold_timeout': 2101, 'rule_exit': 56779, 'stop_loss': 24849}
+volume__ma5_confirm__long__1d__atr1d5_lb20__v1	0.78	NA	24.6	83924	8.3	{'data_end': 195, 'max_hold_timeout': 2101, 'rule_exit': 56779, 'stop_loss': 24849}
+stoch_slow__diverge__long__1d__atr1d5_lb5__v1	0.777	NA	39.9	93505	10.1	{'data_end': 1215, 'max_hold_timeout': 6547, 'rule_exit': 34434, 'stop_loss': 51309}
+stoch_slow__diverge__short__1d__atr1d5_lb10__v1	0.776	NA	47.3	78976	7.1	{'data_end': 227, 'max_hold_timeout': 1024, 'rule_exit': 38125, 'stop_loss': 39600}
+ad_line__vacc_confirm__long__1d__atr1d5_lb10__v1	0.774	NA	25.4	63664	8.7	{'data_end': 170, 'max_hold_timeout': 1723, 'rule_exit': 39746, 'stop_loss': 22025}
+ad_line__vacc_confirm__long__1d__atr1d5_lb20__v1	0.774	NA	25.8	38662	9.1	{'data_end': 109, 'max_hold_timeout': 1209, 'rule_exit': 20119, 'stop_loss': 17225}
+ad_line__vacc_breakout__long__1d__atr1d5_lb10__v1	0.773	NA	25.0	51611	6.1	{'data_end': 112, 'max_hold_timeout': 918, 'rule_exit': 41928, 'stop_loss': 8653}
+macdh__diverge__short__1d__atr3_lb10__v1	0.773	NA	37.1	38804	6.3	{'data_end': 116, 'max_hold_timeout': 83, 'rule_exit': 36249, 'stop_loss': 2356}
+stoch_slow__diverge__short__1d__atr1d5_lb5__v1	0.773	NA	47.8	86898	7.1	{'data_end': 274, 'max_hold_timeout': 1120, 'rule_exit': 42490, 'stop_loss': 43014}
+macdh__slope_below__short__1d__atr3_lb0__v1	0.772	NA	38.5	165854	5.6	{'data_end': 637, 'max_hold_timeout': 49, 'rule_exit': 158734, 'stop_loss': 6434}
+stoch_slow__diverge__short__1d__atr2_lb10__v1	0.772	NA	53.0	72767	8.3	{'data_end': 254, 'max_hold_timeout': 1368, 'rule_exit': 40512, 'stop_loss': 30633}
+ad_line__ad_confirm__long__1d__atr3_lb40__v1	0.771	NA	29.2	28249	11.1	{'data_end': 113, 'max_hold_timeout': 1089, 'rule_exit': 24903, 'stop_loss': 2144}
+rsi__diverge__long__1d__atr2_lb10_n7__v1	0.771	NA	44.0	58174	12.6	{'data_end': 764, 'max_hold_timeout': 4216, 'rule_exit': 25392, 'stop_loss': 27802}
+macdh__diverge__short__1d__atr3_lb20__v1	0.77	NA	37.0	32794	6.5	{'data_end': 84, 'max_hold_timeout': 78, 'rule_exit': 30500, 'stop_loss': 2132}
+rsi__diverge__long__1d__atr1d5_lb10_n14__v1	0.77	NA	29.4	59850	14.0	{'data_end': 696, 'max_hold_timeout': 10479, 'rule_exit': 10350, 'stop_loss': 38325}
+stoch_slow__diverge__short__1d__atr2_lb5__v1	0.77	NA	53.5	80083	8.2	{'data_end': 305, 'max_hold_timeout': 1511, 'rule_exit': 45091, 'stop_loss': 33176}
+stoch_slow__direction__long__1d__atr3_band0__v1	0.769	NA	32.7	251001	4.8	{'data_end': 922, 'max_hold_timeout': 70, 'rule_exit': 245100, 'stop_loss': 4909}
+macdh__diverge__long__1d__atr3_lb20__v1	0.767	NA	30.5	36823	6.1	{'data_end': 170, 'max_hold_timeout': 65, 'rule_exit': 35711, 'stop_loss': 877}
+stoch_slow__diverge__short__1d__atr1d5_lb20__v1	0.767	NA	45.8	58340	7.1	{'data_end': 150, 'max_hold_timeout': 735, 'rule_exit': 27208, 'stop_loss': 30247}
+ad_line__ad_confirm__long__1d__atr2_lb10__v1	0.765	NA	26.2	69921	9.1	{'data_end': 192, 'max_hold_timeout': 1887, 'rule_exit': 57353, 'stop_loss': 10489}
+ad_line__ad_breakout__long__1d__atr1d5_lb10__v1	0.765	NA	24.8	44676	6.3	{'data_end': 102, 'max_hold_timeout': 725, 'rule_exit': 36616, 'stop_loss': 7233}
+stoch_slow__diverge__short__1d__atr2_lb20__v1	0.765	NA	51.7	53705	8.3	{'data_end': 164, 'max_hold_timeout': 995, 'rule_exit': 29035, 'stop_loss': 23511}
+williams_r__failure_swing__long__1d__atr2_line10__v1	0.765	NA	23.6	119817	7.3	{'data_end': 210, 'max_hold_timeout': 2409, 'rule_exit': 108020, 'stop_loss': 9178}
+macdh__slope_below__short__1d__atr2_lb0__v1	0.764	NA	38.1	166591	5.5	{'data_end': 632, 'max_hold_timeout': 49, 'rule_exit': 147256, 'stop_loss': 18654}
+ad_line__ad_confirm__long__1d__atr3_lb20__v1	0.763	NA	28.0	43520	10.4	{'data_end': 153, 'max_hold_timeout': 1465, 'rule_exit': 39418, 'stop_loss': 2484}
+parabolic__sar_flip__long__1d__af0d02_afmax0d2_atr1d5__v1	0.763	NA	28.6	101843	9.7	{'data_end': 472, 'max_hold_timeout': 972, 'rule_exit': 56481, 'stop_loss': 43918}
+rsi__diverge__long__1d__atr1d5_lb20_n14__v1	0.763	NA	28.2	41109	14.7	{'data_end': 580, 'max_hold_timeout': 8094, 'rule_exit': 5644, 'stop_loss': 26791}
+macdh__diverge__short__1d__atr2_lb10__v1	0.761	NA	36.4	39391	6.1	{'data_end': 115, 'max_hold_timeout': 83, 'rule_exit': 33254, 'stop_loss': 5939}
+stoch_slow__pop__long__1d__atr3_band80__v1	0.761	NA	33.1	77643	2.4	{'data_end': 28, 'max_hold_timeout': 53, 'rule_exit': 76521, 'stop_loss': 1041}
+stoch_slow__diverge__short__1d__atr3_lb10__v1	0.761	NA	58.6	65231	10.0	{'data_end': 278, 'max_hold_timeout': 2134, 'rule_exit': 43170, 'stop_loss': 19649}
+stoch_slow__diverge__short__1d__atr3_lb5__v1	0.759	NA	59.0	71818	9.9	{'data_end': 332, 'max_hold_timeout': 2329, 'rule_exit': 47986, 'stop_loss': 21171}
+rsi__levels__long__1d__atr1d5_band30_n7__v1	0.758	NA	37.4	76495	10.4	{'data_end': 813, 'max_hold_timeout': 3101, 'rule_exit': 27398, 'stop_loss': 45183}
+macdh__diverge__short__1d__atr2_lb20__v1	0.757	NA	36.3	33351	6.4	{'data_end': 83, 'max_hold_timeout': 77, 'rule_exit': 27809, 'stop_loss': 5382}
+parabolic__sar_flip__long__1d__af0d025_afmax0d25_atr1d5__v1	0.757	NA	29.1	117250	8.8	{'data_end': 503, 'max_hold_timeout': 561, 'rule_exit': 71299, 'stop_loss': 44887}
+ad_line__ad_confirm__long__1d__atr2_lb40__v1	0.756	NA	28.0	28847	10.4	{'data_end': 100, 'max_hold_timeout': 1037, 'rule_exit': 20095, 'stop_loss': 7615}
+stoch_slow__diverge__short__1d__atr3_lb20__v1	0.755	NA	57.7	48065	10.1	{'data_end': 176, 'max_hold_timeout': 1559, 'rule_exit': 31068, 'stop_loss': 15262}
+volume__expand__long__1d__atr3_lb10__v1	0.755	NA	23.9	84847	7.5	{'data_end': 170, 'max_hold_timeout': 1731, 'rule_exit': 81274, 'stop_loss': 1672}
+volume__expand__long__1d__atr3_lb20__v1	0.755	NA	23.9	84847	7.5	{'data_end': 170, 'max_hold_timeout': 1731, 'rule_exit': 81274, 'stop_loss': 1672}
+macdh__slope_below__short__1d__atr1d5_lb0__v1	0.754	NA	37.2	168094	5.3	{'data_end': 618, 'max_hold_timeout': 47, 'rule_exit': 133500, 'stop_loss': 33929}
+macdh__diverge__short__1d__atr3_lb5__v1	0.754	NA	36.9	50869	6.0	{'data_end': 168, 'max_hold_timeout': 94, 'rule_exit': 47780, 'stop_loss': 2827}
+macdh__slope_below__long__1d__atr3_lb0__v1	0.753	NA	29.5	177034	5.2	{'data_end': 434, 'max_hold_timeout': 35, 'rule_exit': 174001, 'stop_loss': 2564}
+rsi__diverge__long__1d__atr1d5_lb5_n14__v1	0.753	NA	30.5	83215	13.0	{'data_end': 810, 'max_hold_timeout': 12847, 'rule_exit': 17488, 'stop_loss': 52070}
+macdh__diverge__long__1d__atr3_lb10__v1	0.752	NA	29.6	44899	5.8	{'data_end': 179, 'max_hold_timeout': 72, 'rule_exit': 43671, 'stop_loss': 977}
+macdh__diverge__short__1d__atr1d5_lb10__v1	0.749	NA	35.3	40311	5.9	{'data_end': 111, 'max_hold_timeout': 80, 'rule_exit': 29975, 'stop_loss': 10145}
+macdh__diverge__long__1d__atr2_lb20__v1	0.749	NA	30.1	37249	6.0	{'data_end': 166, 'max_hold_timeout': 63, 'rule_exit': 33802, 'stop_loss': 3218}
+ad_line__ad_confirm__long__1d__atr2_lb20__v1	0.748	NA	27.1	44212	9.9	{'data_end': 140, 'max_hold_timeout': 1416, 'rule_exit': 32740, 'stop_loss': 9916}
+stoch_slow__pop__long__1d__atr2_band80__v1	0.748	NA	32.9	77675	2.4	{'data_end': 28, 'max_hold_timeout': 50, 'rule_exit': 73183, 'stop_loss': 4414}
+stoch_slow__direction__long__1d__atr2_band0__v1	0.748	NA	32.3	253075	4.7	{'data_end': 888, 'max_hold_timeout': 67, 'rule_exit': 231261, 'stop_loss': 20859}
+macdh__diverge__short__1d__atr1d5_lb20__v1	0.746	NA	35.1	34231	6.1	{'data_end': 81, 'max_hold_timeout': 75, 'rule_exit': 24848, 'stop_loss': 9227}
+ad_line__ad_confirm__long__1d__atr1d5_lb10__v1	0.743	NA	24.9	71710	8.5	{'data_end': 179, 'max_hold_timeout': 1811, 'rule_exit': 47054, 'stop_loss': 22666}
+macdh__diverge__short__1d__atr2_lb5__v1	0.743	NA	36.4	51540	5.9	{'data_end': 166, 'max_hold_timeout': 94, 'rule_exit': 44033, 'stop_loss': 7247}
+rsi__diverge__short__1d__atr2_lb5_n7__v1	0.742	NA	49.2	88830	11.1	{'data_end': 678, 'max_hold_timeout': 4727, 'rule_exit': 41973, 'stop_loss': 41452}
+volume__expand__long__1d__atr2_lb10__v1	0.742	NA	23.6	85373	7.4	{'data_end': 166, 'max_hold_timeout': 1697, 'rule_exit': 76140, 'stop_loss': 7370}
+volume__expand__long__1d__atr2_lb20__v1	0.742	NA	23.6	85373	7.4	{'data_end': 166, 'max_hold_timeout': 1697, 'rule_exit': 76140, 'stop_loss': 7370}
+williams_r__lines__long__1d__atr3_line10__v1	0.742	NA	21.6	20650	6.6	{'data_end': 28, 'max_hold_timeout': 418, 'rule_exit': 19761, 'stop_loss': 443}
+williams_r__failure_swing__long__1d__atr1d5_line10__v1	0.742	NA	23.0	122755	7.0	{'data_end': 205, 'max_hold_timeout': 2377, 'rule_exit': 98059, 'stop_loss': 22114}
+macdh__slope_below__long__1d__atr2_lb0__v1	0.74	NA	29.3	177533	5.1	{'data_end': 426, 'max_hold_timeout': 33, 'rule_exit': 166338, 'stop_loss': 10736}
+rsi__diverge__short__1d__atr1d5_lb5_n7__v1	0.74	NA	42.8	96843	9.3	{'data_end': 633, 'max_hold_timeout': 3286, 'rule_exit': 39941, 'stop_loss': 52983}
+rsi__diverge__long__1d__atr2_lb5_n7__v1	0.738	NA	45.4	84418	11.5	{'data_end': 924, 'max_hold_timeout': 5064, 'rule_exit': 39677, 'stop_loss': 38753}
+rsi__diverge__short__1d__atr1d5_lb10_n7__v1	0.737	NA	39.3	66353	10.2	{'data_end': 396, 'max_hold_timeout': 2775, 'rule_exit': 24116, 'stop_loss': 39066}
+rsi__diverge__short__1d__atr2_lb10_n7__v1	0.737	NA	45.7	61254	12.1	{'data_end': 424, 'max_hold_timeout': 3955, 'rule_exit': 25786, 'stop_loss': 31089}
+williams_r__diverge__short__1d__atr3_lb20__v1	0.737	NA	43.9	106926	2.8	{'data_end': 143, 'max_hold_timeout': 303, 'rule_exit': 103533, 'stop_loss': 2947}
+profit_protect__pp_baseline__long__1d__atr3_be0_tr0__v1	0.736	NA	22.3	175095	6.5	{'data_end': 300, 'max_hold_timeout': 2796, 'rule_exit': 169568, 'stop_loss': 2431}
+rsi__diverge__short__1d__atr3_lb5_n7__v1	0.735	NA	56.8	79486	13.6	{'data_end': 720, 'max_hold_timeout': 7721, 'rule_exit': 43813, 'stop_loss': 27232}
+williams_r__lines__long__1d__atr3_line20__v1	0.735	NA	21.9	52981	6.6	{'data_end': 81, 'max_hold_timeout': 984, 'rule_exit': 50958, 'stop_loss': 958}
+macdh__diverge__short__1d__atr1d5_lb5__v1	0.734	NA	35.4	52666	5.7	{'data_end': 160, 'max_hold_timeout': 92, 'rule_exit': 39903, 'stop_loss': 12511}
+macdh__diverge__long__1d__atr2_lb10__v1	0.734	NA	29.2	45358	5.7	{'data_end': 175, 'max_hold_timeout': 70, 'rule_exit': 41466, 'stop_loss': 3647}
+williams_r__lines__long__1d__atr3_line15__v1	0.734	NA	21.7	36197	6.5	{'data_end': 53, 'max_hold_timeout': 682, 'rule_exit': 34773, 'stop_loss': 689}
+stoch_slow__direction__short__1d__atr3_band0__v1	0.733	NA	41.9	252007	4.8	{'data_end': 756, 'max_hold_timeout': 77, 'rule_exit': 240295, 'stop_loss': 10879}
+ad_line__ad_confirm__long__1d__atr1d5_lb40__v1	0.731	NA	25.7	30189	9.3	{'data_end': 85, 'max_hold_timeout': 969, 'rule_exit': 15346, 'stop_loss': 13789}
+macdh__diverge__long__1d__atr3_lb5__v1	0.73	NA	28.8	57669	5.5	{'data_end': 199, 'max_hold_timeout': 73, 'rule_exit': 56278, 'stop_loss': 1119}
+rsi__diverge__short__1d__atr3_lb10_n7__v1	0.729	NA	53.5	54953	14.9	{'data_end': 452, 'max_hold_timeout': 6352, 'rule_exit': 27296, 'stop_loss': 20853}
+stoch_slow__pop__long__1d__atr1d5_band80__v1	0.729	NA	32.5	77735	2.4	{'data_end': 27, 'max_hold_timeout': 49, 'rule_exit': 67415, 'stop_loss': 10244}
+williams_r__diverge__short__1d__atr2_lb20__v1	0.729	NA	43.8	107497	2.8	{'data_end': 143, 'max_hold_timeout': 299, 'rule_exit': 98515, 'stop_loss': 8540}
+ad_line__vacc_diverge__long__1d__atr3_lb40__v1	0.728	NA	35.6	50464	2.5	{'data_end': 316, 'max_hold_timeout': 71, 'rule_exit': 49587, 'stop_loss': 490}
+williams_r__lines__long__1d__atr2_line10__v1	0.728	NA	21.3	20683	6.5	{'data_end': 28, 'max_hold_timeout': 402, 'rule_exit': 18783, 'stop_loss': 1470}
+macdh__diverge__long__1d__atr1d5_lb20__v1	0.727	NA	29.2	38109	5.8	{'data_end': 158, 'max_hold_timeout': 63, 'rule_exit': 30530, 'stop_loss': 7358}
+stoch_slow__turn__long__1d__atr2_band20__v1	0.727	NA	43.7	32526	10.8	{'data_end': 227, 'max_hold_timeout': 3166, 'rule_exit': 15193, 'stop_loss': 13940}
+volume__pullback__long__1d__atr3_lb10__v1	0.727	NA	22.9	86947	7.2	{'data_end': 168, 'max_hold_timeout': 1678, 'rule_exit': 84014, 'stop_loss': 1087}
+ad_line__ad_confirm__long__1d__atr1d5_lb20__v1	0.726	NA	25.2	45890	9.1	{'data_end': 128, 'max_hold_timeout': 1328, 'rule_exit': 25376, 'stop_loss': 19058}
+channel__env_fade__short__1d__atr2_pct0d03__v1	0.726	NA	58.5	60591	4.2	{'data_end': 248, 'max_hold_timeout': 215, 'rule_exit': 48365, 'stop_loss': 11763}
+stoch_slow__direction__long__1d__atr1d5_band0__v1	0.725	NA	31.6	256736	4.5	{'data_end': 823, 'max_hold_timeout': 65, 'rule_exit': 209330, 'stop_loss': 46518}
+williams_r__diverge__short__1d__atr1d5_lb20__v1	0.725	NA	43.4	108226	2.7	{'data_end': 138, 'max_hold_timeout': 299, 'rule_exit': 92312, 'stop_loss': 15477}
+profit_protect__pp_baseline__long__1d__atr2_be0_tr0__v1	0.724	NA	22.1	176607	6.4	{'data_end': 300, 'max_hold_timeout': 2762, 'rule_exit': 163226, 'stop_loss': 10319}
+stoch_slow__turn__short__1d__atr2_band20__v1	0.724	NA	56.2	12986	6.8	{'data_end': 76, 'max_hold_timeout': 210, 'rule_exit': 8699, 'stop_loss': 4001}
+volume__expand__long__1d__atr1d5_lb10__v1	0.724	NA	23.0	86609	7.1	{'data_end': 160, 'max_hold_timeout': 1639, 'rule_exit': 67353, 'stop_loss': 17457}
+volume__expand__long__1d__atr1d5_lb20__v1	0.724	NA	23.0	86609	7.1	{'data_end': 160, 'max_hold_timeout': 1639, 'rule_exit': 67353, 'stop_loss': 17457}
+channel__env_fade__short__1d__atr1d5_pct0d03__v1	0.723	NA	56.0	61815	3.8	{'data_end': 232, 'max_hold_timeout': 132, 'rule_exit': 45576, 'stop_loss': 15875}
+macdh__slope_below__long__1d__atr1d5_lb0__v1	0.723	NA	28.8	178757	5.0	{'data_end': 410, 'max_hold_timeout': 33, 'rule_exit': 151993, 'stop_loss': 26321}
+stoch_slow__direction__short__1d__atr2_band0__v1	0.723	NA	41.4	254635	4.7	{'data_end': 749, 'max_hold_timeout': 74, 'rule_exit': 223408, 'stop_loss': 30404}
+macdh__seasons__long__1d__atr3_lb0__v1	0.722	NA	29.0	125342	4.3	{'data_end': 177, 'max_hold_timeout': 66, 'rule_exit': 123360, 'stop_loss': 1739}
+williams_r__lines__long__1d__atr2_line20__v1	0.722	NA	21.8	53105	6.5	{'data_end': 81, 'max_hold_timeout': 950, 'rule_exit': 48483, 'stop_loss': 3591}
+macdh__seasons__short__1d__atr3_lb0__v1	0.72	NA	38.7	119532	4.6	{'data_end': 585, 'max_hold_timeout': 81, 'rule_exit': 115725, 'stop_loss': 3141}
+williams_r__lines__long__1d__atr2_line15__v1	0.72	NA	21.5	36257	6.5	{'data_end': 53, 'max_hold_timeout': 657, 'rule_exit': 33050, 'stop_loss': 2497}
+profit_protect__pp_be_trail__long__1d__atr3_be2_tr0d7__v1	0.719	NA	27.0	201026	4.5	{'data_end': 213, 'max_hold_timeout': 229, 'rule_exit': 149079, 'stop_loss': 2533, 'trail_stop': 48972}
+macdh__slope_any__long__1d__atr3_lb0__v1	0.718	NA	28.5	286050	4.4	{'data_end': 485, 'max_hold_timeout': 43, 'rule_exit': 281422, 'stop_loss': 4100}
+profit_protect__pp_be__long__1d__atr3_be2_tr0__v1	0.718	NA	20.7	178579	6.3	{'breakeven_stop': 11352, 'data_end': 293, 'max_hold_timeout': 2680, 'rule_exit': 162001, 'stop_loss': 2253}
+stoch_slow__turn__short__1d__atr3_band20__v1	0.718	NA	59.5	12841	8.2	{'data_end': 88, 'max_hold_timeout': 345, 'rule_exit': 9652, 'stop_loss': 2756}
+rsi__levels__short__1d__atr2_band30_n7__v1	0.717	NA	44.2	71674	12.6	{'data_end': 509, 'max_hold_timeout': 4866, 'rule_exit': 28598, 'stop_loss': 37701}
+volume__pullback__long__1d__atr3_lb20__v1	0.717	NA	22.5	87182	7.0	{'data_end': 155, 'max_hold_timeout': 1605, 'rule_exit': 84471, 'stop_loss': 951}
+ad_line__vacc_diverge__long__1d__atr2_lb40__v1	0.716	NA	35.5	50621	2.5	{'data_end': 317, 'max_hold_timeout': 70, 'rule_exit': 47848, 'stop_loss': 2386}
+macdh__diverge__long__1d__atr2_lb5__v1	0.715	NA	28.5	58185	5.5	{'data_end': 196, 'max_hold_timeout': 72, 'rule_exit': 53619, 'stop_loss': 4298}
+williams_r__lines__long__1d__atr1d5_line10__v1	0.714	NA	20.9	20727	6.3	{'data_end': 27, 'max_hold_timeout': 387, 'rule_exit': 17033, 'stop_loss': 3280}
+channel__env_fade__short__1d__atr3_pct0d03__v1	0.713	NA	60.2	59350	5.0	{'data_end': 262, 'max_hold_timeout': 418, 'rule_exit': 51189, 'stop_loss': 7481}
+macdh__diverge__long__1d__atr1d5_lb10__v1	0.712	NA	28.5	46270	5.5	{'data_end': 167, 'max_hold_timeout': 70, 'rule_exit': 37622, 'stop_loss': 8411}
+rsi__levels__short__1d__atr1d5_band30_n7__v1	0.712	NA	37.6	79616	10.5	{'data_end': 475, 'max_hold_timeout': 3439, 'rule_exit': 27232, 'stop_loss': 48470}
+rsi__levels__short__1d__atr1d5_band25_n14__v1	0.712	NA	28.4	20623	15.1	{'data_end': 200, 'max_hold_timeout': 5790, 'rule_exit': 435, 'stop_loss': 14198}
+volume__pullback__long__1d__atr2_lb10__v1	0.712	NA	22.8	87526	7.1	{'data_end': 168, 'max_hold_timeout': 1659, 'rule_exit': 80452, 'stop_loss': 5247}
+macdh__seasons__long__1d__atr2_lb0__v1	0.711	NA	28.8	125987	4.2	{'data_end': 174, 'max_hold_timeout': 65, 'rule_exit': 118403, 'stop_loss': 7345}
+profit_protect__pp_be_trail__long__1d__atr3_be2_tr0d6__v1	0.711	NA	27.0	200172	4.7	{'data_end': 220, 'max_hold_timeout': 623, 'rule_exit': 149316, 'stop_loss': 2521, 'trail_stop': 47492}
+rsi__diverge__short__1d__atr2_lb20_n7__v1	0.711	NA	42.4	42174	12.7	{'data_end': 288, 'max_hold_timeout': 3148, 'rule_exit': 15947, 'stop_loss': 22791}
+rsi__levels__short__1d__atr2_band25_n14__v1	0.711	NA	34.1	19748	18.0	{'data_end': 228, 'max_hold_timeout': 7048, 'rule_exit': 459, 'stop_loss': 12013}
+rsi__diverge__short__1d__atr2_lb5_n14__v1	0.711	NA	39.2	76522	16.3	{'data_end': 1027, 'max_hold_timeout': 19335, 'rule_exit': 14499, 'stop_loss': 41661}
+stoch_slow__direction__short__1d__atr1d5_band0__v1	0.711	NA	40.4	258105	4.5	{'data_end': 729, 'max_hold_timeout': 73, 'rule_exit': 203257, 'stop_loss': 54046}
+macdh__seasons__short__1d__atr2_lb0__v1	0.71	NA	38.4	120102	4.5	{'data_end': 580, 'max_hold_timeout': 79, 'rule_exit': 109727, 'stop_loss': 9716}
+rsi__levels__short__1d__atr3_band30_n7__v1	0.71	NA	52.3	60688	15.6	{'data_end': 520, 'max_hold_timeout': 7444, 'rule_exit': 28845, 'stop_loss': 23879}
+rsi__diverge__short__1d__atr1d5_lb20_n7__v1	0.71	NA	36.1	45492	10.7	{'data_end': 266, 'max_hold_timeout': 2245, 'rule_exit': 14732, 'stop_loss': 28249}
+stoch_slow__turn__short__1d__atr1d5_band20__v1	0.71	NA	51.8	13126	5.8	{'data_end': 70, 'max_hold_timeout': 144, 'rule_exit': 7948, 'stop_loss': 4964}
+williams_r__diverge__short__1d__atr3_lb10__v1	0.71	NA	42.2	155805	3.3	{'data_end': 362, 'max_hold_timeout': 687, 'rule_exit': 150667, 'stop_loss': 4089}
+stoch_slow__turn__long__1d__atr3_band30__v1	0.709	NA	48.0	65291	8.5	{'data_end': 463, 'max_hold_timeout': 2743, 'rule_exit': 49862, 'stop_loss': 12223}
+williams_r__lines__long__1d__atr1d5_line20__v1	0.709	NA	21.4	53316	6.3	{'data_end': 79, 'max_hold_timeout': 916, 'rule_exit': 44052, 'stop_loss': 8269}
+rsi__diverge__short__1d__atr1d5_lb5_n14__v1	0.708	NA	33.3	84248	13.8	{'data_end': 984, 'max_hold_timeout': 15917, 'rule_exit': 14175, 'stop_loss': 53172}
+rsi__diverge__short__1d__atr3_lb5_n14__v1	0.708	NA	46.2	67832	19.8	{'data_end': 1055, 'max_hold_timeout': 24706, 'rule_exit': 14701, 'stop_loss': 27370}
+williams_r__lines__long__1d__atr1d5_line15__v1	0.708	NA	21.1	36368	6.3	{'data_end': 51, 'max_hold_timeout': 635, 'rule_exit': 30005, 'stop_loss': 5677}
+macdh__slope_any__long__1d__atr2_lb0__v1	0.707	NA	28.3	286755	4.3	{'data_end': 477, 'max_hold_timeout': 41, 'rule_exit': 269600, 'stop_loss': 16637}
+profit_protect__pp_baseline__long__1d__atr1d5_be0_tr0__v1	0.707	NA	21.7	179969	6.2	{'data_end': 297, 'max_hold_timeout': 2728, 'rule_exit': 151098, 'stop_loss': 25846}
+profit_protect__pp_be__long__1d__atr2_be2_tr0__v1	0.707	NA	20.6	179990	6.2	{'breakeven_stop': 11232, 'data_end': 294, 'max_hold_timeout': 2662, 'rule_exit': 155874, 'stop_loss': 9928}
+rsi__levels__short__1d__atr2_band25_n7__v1	0.707	NA	38.5	55034	15.1	{'data_end': 487, 'max_hold_timeout': 8538, 'rule_exit': 14559, 'stop_loss': 31450}
+rsi__levels__short__1d__atr3_band25_n7__v1	0.707	NA	46.3	47837	18.7	{'data_end': 525, 'max_hold_timeout': 11766, 'rule_exit': 14957, 'stop_loss': 20589}
+macdh__slope_any__short__1d__atr3_lb0__v1	0.706	NA	37.5	286695	4.6	{'data_end': 1527, 'max_hold_timeout': 49, 'rule_exit': 276351, 'stop_loss': 8768}
+profit_protect__pp_be_trail__long__1d__atr3_be2_tr0d5__v1	0.706	NA	26.9	197650	5.1	{'data_end': 235, 'max_hold_timeout': 1193, 'rule_exit': 150171, 'stop_loss': 2499, 'trail_stop': 43552}
+profit_protect__pp_be_trail__long__1d__atr2_be2_tr0d7__v1	0.706	NA	26.8	202723	4.4	{'data_end': 212, 'max_hold_timeout': 223, 'rule_exit': 141884, 'stop_loss': 11550, 'trail_stop': 48854}
+profit_protect__pp_be__long__1d__atr3_be1d5_tr0__v1	0.704	NA	19.6	182654	6.1	{'breakeven_stop': 21512, 'data_end': 283, 'max_hold_timeout': 2593, 'rule_exit': 156063, 'stop_loss': 2203}
+rsi__diverge__long__1d__atr1d5_lb20_n7__v1	0.704	NA	35.5	41958	10.8	{'data_end': 479, 'max_hold_timeout': 2030, 'rule_exit': 14213, 'stop_loss': 25236}
+stoch_slow__pop__short__1d__atr3_band70__v1	0.704	NA	41.7	164968	2.6	{'data_end': 278, 'max_hold_timeout': 55, 'rule_exit': 161812, 'stop_loss': 2823}
+williams_r__diverge__short__1d__atr2_lb10__v1	0.704	NA	42.0	156596	3.3	{'data_end': 360, 'max_hold_timeout': 681, 'rule_exit': 143741, 'stop_loss': 11814}
+ad_line__vacc_diverge__long__1d__atr1d5_lb40__v1	0.703	NA	35.3	51130	2.5	{'data_end': 325, 'max_hold_timeout': 71, 'rule_exit': 44811, 'stop_loss': 5923}
+profit_protect__pp_be_trail__long__1d__atr3_be2_tr0d4__v1	0.703	NA	26.8	193559	5.5	{'data_end': 259, 'max_hold_timeout': 1774, 'rule_exit': 151758, 'stop_loss': 2445, 'trail_stop': 37323}
+rsi__diverge__short__1d__atr3_lb20_n7__v1	0.703	NA	50.4	37812	15.8	{'data_end': 309, 'max_hold_timeout': 4896, 'rule_exit': 17068, 'stop_loss': 15539}
+williams_r__diverge__short__1d__atr3_lb5__v1	0.703	NA	40.1	198851	3.8	{'data_end': 726, 'max_hold_timeout': 1288, 'rule_exit': 191651, 'stop_loss': 5186}
+volume__pullback__long__1d__atr2_lb20__v1	0.702	NA	22.3	87665	6.9	{'data_end': 155, 'max_hold_timeout': 1587, 'rule_exit': 81225, 'stop_loss': 4698}
+profit_protect__pp_be_trail__long__1d__atr3_be1d5_tr0d7__v1	0.701	NA	30.9	209962	4.0	{'data_end': 190, 'max_hold_timeout': 167, 'rule_exit': 142548, 'stop_loss': 2532, 'trail_stop': 64525}
+ad_line__ad_breakout__short__1d__atr3_lb40__v1	0.699	NA	35.1	79637	6.3	{'data_end': 631, 'max_hold_timeout': 1181, 'rule_exit': 75380, 'stop_loss': 2445}
+ad_line__vacc_diverge__short__1d__atr2_lb40__v1	0.699	NA	44.8	88551	2.4	{'data_end': 58, 'max_hold_timeout': 129, 'rule_exit': 80283, 'stop_loss': 8081}
+ad_line__vacc_diverge__short__1d__atr3_lb40__v1	0.699	NA	45.0	87750	2.4	{'data_end': 57, 'max_hold_timeout': 127, 'rule_exit': 84479, 'stop_loss': 3087}
+macdh__seasons__short__1d__atr1d5_lb0__v1	0.699	NA	37.8	121410	4.4	{'data_end': 571, 'max_hold_timeout': 78, 'rule_exit': 101807, 'stop_loss': 18954}
+rsi__levels__short__1d__atr3_band25_n14__v1	0.699	NA	41.0	18221	22.0	{'data_end': 247, 'max_hold_timeout': 8991, 'rule_exit': 474, 'stop_loss': 8509}
+williams_r__diverge__short__1d__atr1d5_lb10__v1	0.699	NA	41.6	157632	3.2	{'data_end': 350, 'max_hold_timeout': 673, 'rule_exit': 134945, 'stop_loss': 21664}
+macdh__slope_any__short__1d__atr2_lb0__v1	0.698	NA	37.2	287653	4.5	{'data_end': 1519, 'max_hold_timeout': 49, 'rule_exit': 260048, 'stop_loss': 26037}
+profit_protect__pp_be_trail__long__1d__atr2_be2_tr0d6__v1	0.698	NA	26.7	201853	4.7	{'data_end': 219, 'max_hold_timeout': 617, 'rule_exit': 142164, 'stop_loss': 11482, 'trail_stop': 47371}
+rsi__levels__short__1d__atr1d5_band25_n7__v1	0.698	NA	32.4	59489	12.6	{'data_end': 450, 'max_hold_timeout': 6570, 'rule_exit': 13518, 'stop_loss': 38951}
+ad_line__vacc_diverge__short__1d__atr1d5_lb40__v1	0.697	NA	44.4	89870	2.3	{'data_end': 58, 'max_hold_timeout': 130, 'rule_exit': 75415, 'stop_loss': 14267}
+macdh__seasons__long__1d__atr1d5_lb0__v1	0.697	NA	28.4	127524	4.1	{'data_end': 167, 'max_hold_timeout': 65, 'rule_exit': 108818, 'stop_loss': 18474}
+williams_r__diverge__short__1d__atr2_lb5__v1	0.696	NA	39.9	199830	3.8	{'data_end': 723, 'max_hold_timeout': 1278, 'rule_exit': 182764, 'stop_loss': 15065}
+macdh__diverge__long__1d__atr1d5_lb5__v1	0.695	NA	27.8	59233	5.3	{'data_end': 187, 'max_hold_timeout': 72, 'rule_exit': 48904, 'stop_loss': 10070}
+stoch_slow__pop__short__1d__atr2_band70__v1	0.695	NA	41.6	165042	2.6	{'data_end': 276, 'max_hold_timeout': 52, 'rule_exit': 155736, 'stop_loss': 8978}
+profit_protect__pp_be__long__1d__atr2_be1d5_tr0__v1	0.694	NA	19.4	184070	6.1	{'breakeven_stop': 21398, 'data_end': 285, 'max_hold_timeout': 2575, 'rule_exit': 149971, 'stop_loss': 9841}
+profit_protect__pp_be_trail__long__1d__atr2_be2_tr0d5__v1	0.694	NA	26.7	199293	5.0	{'data_end': 237, 'max_hold_timeout': 1188, 'rule_exit': 143145, 'stop_loss': 11301, 'trail_stop': 43422}
+rsi__diverge__long__1d__atr1d5_lb10_n7__v1	0.693	NA	36.7	63802	10.2	{'data_end': 579, 'max_hold_timeout': 2714, 'rule_exit': 23047, 'stop_loss': 37462}
+stoch_slow__turn__long__1d__atr1d5_band20__v1	0.693	NA	38.1	33719	8.7	{'data_end': 155, 'max_hold_timeout': 2213, 'rule_exit': 13645, 'stop_loss': 17706}
+volume__pullback__long__1d__atr1d5_lb10__v1	0.693	NA	22.3	89260	6.9	{'data_end': 166, 'max_hold_timeout': 1629, 'rule_exit': 73763, 'stop_loss': 13702}
+macdh__slope_any__long__1d__atr1d5_lb0__v1	0.692	NA	27.8	288491	4.2	{'data_end': 462, 'max_hold_timeout': 41, 'rule_exit': 247633, 'stop_loss': 40355}
+profit_protect__pp_be__long__1d__atr1d5_be2_tr0__v1	0.692	NA	20.2	183255	6.1	{'breakeven_stop': 11052, 'data_end': 291, 'max_hold_timeout': 2633, 'rule_exit': 143996, 'stop_loss': 25283}
+profit_protect__pp_be_trail__long__1d__atr3_be1d5_tr0d6__v1	0.691	NA	30.8	209273	4.2	{'data_end': 197, 'max_hold_timeout': 441, 'rule_exit': 142800, 'stop_loss': 2520, 'trail_stop': 63315}
+profit_protect__pp_be_trail__long__1d__atr2_be2_tr0d4__v1	0.691	NA	26.5	195146	5.4	{'data_end': 260, 'max_hold_timeout': 1765, 'rule_exit': 144936, 'stop_loss': 10999, 'trail_stop': 37186}
+williams_r__diverge__short__1d__atr1d5_lb5__v1	0.691	NA	39.6	201165	3.8	{'data_end': 710, 'max_hold_timeout': 1263, 'rule_exit': 171259, 'stop_loss': 27933}
+profit_protect__pp_be_trail__long__1d__atr2_be1d5_tr0d7__v1	0.69	NA	30.6	211728	4.0	{'data_end': 189, 'max_hold_timeout': 160, 'rule_exit': 135192, 'stop_loss': 11719, 'trail_stop': 64468}
+profit_protect__pp_be_trail__long__1d__atr1d5_be2_tr0d7__v1	0.69	NA	26.3	206565	4.3	{'data_end': 209, 'max_hold_timeout': 209, 'rule_exit': 128311, 'stop_loss': 29157, 'trail_stop': 48679}
+rsi__diverge__short__1d__atr2_lb10_n14__v1	0.69	NA	36.7	56627	17.2	{'data_end': 680, 'max_hold_timeout': 15752, 'rule_exit': 7840, 'stop_loss': 32355}
+ad_line__vacc_diverge__long__1d__atr3_lb10__v1	0.688	NA	32.6	95074	3.0	{'data_end': 327, 'max_hold_timeout': 294, 'rule_exit': 93624, 'stop_loss': 829}
+macdh__slope_any__short__1d__atr1d5_lb0__v1	0.688	NA	36.6	289628	4.4	{'data_end': 1494, 'max_hold_timeout': 47, 'rule_exit': 239581, 'stop_loss': 48506}
+rsi__diverge__short__1d__atr1d5_lb10_n14__v1	0.688	NA	31.0	61759	14.6	{'data_end': 649, 'max_hold_timeout': 12923, 'rule_exit': 7581, 'stop_loss': 40606}
+ad_line__vacc_diverge__long__1d__atr3_lb20__v1	0.685	NA	34.5	71038	2.6	{'data_end': 301, 'max_hold_timeout': 131, 'rule_exit': 69964, 'stop_loss': 642}
+profit_protect__pp_be_trail__long__1d__atr3_be1d5_tr0d5__v1	0.685	NA	30.7	207033	4.6	{'data_end': 210, 'max_hold_timeout': 915, 'rule_exit': 143693, 'stop_loss': 2504, 'trail_stop': 59711}
+stoch_slow__pop__short__1d__atr1d5_band70__v1	0.685	NA	41.3	165180	2.6	{'data_end': 268, 'max_hold_timeout': 52, 'rule_exit': 146871, 'stop_loss': 17989}
+rsi__diverge__short__1d__atr3_lb10_n14__v1	0.684	NA	43.7	50504	20.9	{'data_end': 704, 'max_hold_timeout': 20142, 'rule_exit': 7995, 'stop_loss': 21663}
+profit_protect__pp_be_trail__long__1d__atr3_be1d5_tr0d4__v1	0.682	NA	30.5	202873	5.0	{'data_end': 236, 'max_hold_timeout': 1440, 'rule_exit': 145321, 'stop_loss': 2457, 'trail_stop': 53419}
+profit_protect__pp_be_trail__long__1d__atr1d5_be2_tr0d6__v1	0.682	NA	26.2	205668	4.5	{'data_end': 216, 'max_hold_timeout': 605, 'rule_exit': 128657, 'stop_loss': 28994, 'trail_stop': 47196}
+stoch_slow__pop__long__1d__atr3_band70__v1	0.682	NA	31.9	121817	2.5	{'data_end': 84, 'max_hold_timeout': 54, 'rule_exit': 120322, 'stop_loss': 1357}
+volume__pullback__long__1d__atr1d5_lb20__v1	0.682	NA	21.9	89124	6.8	{'data_end': 152, 'max_hold_timeout': 1558, 'rule_exit': 74728, 'stop_loss': 12686}
+profit_protect__pp_be_trail__short__1d__atr3_be2_tr0d7__v1	0.681	NA	32.5	203785	5.3	{'data_end': 1377, 'max_hold_timeout': 311, 'rule_exit': 148529, 'stop_loss': 5115, 'trail_stop': 48453}
+profit_protect__pp_be_trail__long__1d__atr2_be1d5_tr0d6__v1	0.68	NA	30.6	211025	4.2	{'data_end': 196, 'max_hold_timeout': 433, 'rule_exit': 135483, 'stop_loss': 11656, 'trail_stop': 63257}
+profit_protect__pp_be__long__1d__atr1d5_be1d5_tr0__v1	0.679	NA	19.1	187330	6.0	{'breakeven_stop': 21157, 'data_end': 283, 'max_hold_timeout': 2553, 'rule_exit': 138161, 'stop_loss': 25176}
+ad_line__vacc_diverge__long__1d__atr2_lb10__v1	0.678	NA	32.6	95251	3.0	{'data_end': 326, 'max_hold_timeout': 291, 'rule_exit': 90807, 'stop_loss': 3827}
+profit_protect__pp_be_trail__long__1d__atr1d5_be2_tr0d5__v1	0.678	NA	26.2	203040	4.9	{'data_end': 233, 'max_hold_timeout': 1181, 'rule_exit': 129857, 'stop_loss': 28530, 'trail_stop': 43239}
+profit_protect__pp_be__long__1d__atr3_be1_tr0__v1	0.676	NA	17.6	192770	5.7	{'breakeven_stop': 42994, 'data_end': 266, 'max_hold_timeout': 2414, 'rule_exit': 144986, 'stop_loss': 2110}
+profit_protect__pp_be_trail__long__1d__atr1d5_be2_tr0d4__v1	0.676	NA	26.0	198780	5.3	{'data_end': 256, 'max_hold_timeout': 1754, 'rule_exit': 131961, 'stop_loss': 27809, 'trail_stop': 37000}
+ad_line__vacc_diverge__long__1d__atr2_lb20__v1	0.675	NA	34.4	71204	2.6	{'data_end': 301, 'max_hold_timeout': 129, 'rule_exit': 67771, 'stop_loss': 3003}
+volume__pullback__short__1d__atr3_lb20__v1	0.675	NA	30.1	90308	7.7	{'data_end': 1086, 'max_hold_timeout': 1793, 'rule_exit': 85206, 'stop_loss': 2223}
+profit_protect__pp_be_trail__long__1d__atr2_be1d5_tr0d5__v1	0.674	NA	30.5	208761	4.5	{'data_end': 212, 'max_hold_timeout': 909, 'rule_exit': 136488, 'stop_loss': 11512, 'trail_stop': 59640}
+rsi__levels__short__1d__atr2_band30_n14__v1	0.674	NA	34.3	34518	17.7	{'data_end': 410, 'max_hold_timeout': 10764, 'rule_exit': 2530, 'stop_loss': 20814}
+profit_protect__pp_be_trail__long__1d__atr1d5_be1d5_tr0d7__v1	0.673	NA	30.0	215742	3.9	{'data_end': 188, 'max_hold_timeout': 152, 'rule_exit': 121371, 'stop_loss': 29753, 'trail_stop': 64278}
+rsi__levels__short__1d__atr1d5_band30_n14__v1	0.673	NA	28.6	37022	14.8	{'data_end': 378, 'max_hold_timeout': 8854, 'rule_exit': 2426, 'stop_loss': 25364}
+ad_line__vacc_breakout__short__1d__atr3_lb40__v1	0.672	NA	35.5	118466	5.8	{'data_end': 834, 'max_hold_timeout': 1718, 'rule_exit': 111881, 'stop_loss': 4033}
+profit_protect__pp_be_trail__long__1d__atr2_be1d5_tr0d4__v1	0.672	NA	30.3	204544	5.0	{'data_end': 237, 'max_hold_timeout': 1429, 'rule_exit': 138305, 'stop_loss': 11237, 'trail_stop': 53336}
+profit_protect__pp_be_trail__short__1d__atr2_be2_tr0d7__v1	0.672	NA	32.2	205073	5.2	{'data_end': 1375, 'max_hold_timeout': 311, 'rule_exit': 139016, 'stop_loss': 15957, 'trail_stop': 48414}
+rsi__levels__short__1d__atr3_band30_n14__v1	0.672	NA	41.3	30354	21.8	{'data_end': 437, 'max_hold_timeout': 13550, 'rule_exit': 2527, 'stop_loss': 13840}
+stoch_slow__pop__short__1d__atr3_band80__v1	0.672	NA	41.7	127680	2.5	{'data_end': 208, 'max_hold_timeout': 53, 'rule_exit': 125326, 'stop_loss': 2093}
+stoch_slow__pop__long__1d__atr2_band70__v1	0.672	NA	31.8	121859	2.5	{'data_end': 84, 'max_hold_timeout': 51, 'rule_exit': 115627, 'stop_loss': 6097}
+rsi__diverge__short__1d__atr2_lb20_n14__v1	0.671	NA	35.1	41180	17.5	{'data_end': 459, 'max_hold_timeout': 12172, 'rule_exit': 4221, 'stop_loss': 24328}
+ad_line__vacc_diverge__short__1d__atr3_lb20__v1	0.67	NA	44.4	115424	2.5	{'data_end': 90, 'max_hold_timeout': 224, 'rule_exit': 111296, 'stop_loss': 3814}
+stoch_slow__turn__short__1d__atr2_band30__v1	0.67	NA	54.6	39286	4.3	{'data_end': 176, 'max_hold_timeout': 57, 'rule_exit': 30862, 'stop_loss': 8191}
+ad_line__vacc_diverge__short__1d__atr1d5_lb20__v1	0.669	NA	43.9	117715	2.4	{'data_end': 92, 'max_hold_timeout': 229, 'rule_exit': 99350, 'stop_loss': 18044}
+ad_line__vacc_diverge__short__1d__atr2_lb20__v1	0.669	NA	44.3	116283	2.5	{'data_end': 91, 'max_hold_timeout': 227, 'rule_exit': 105779, 'stop_loss': 10186}
+channel__env_fade__short__1d__atr2_pct0d02__v1	0.669	NA	55.1	120083	3.2	{'data_end': 348, 'max_hold_timeout': 89, 'rule_exit': 101714, 'stop_loss': 17932}
+profit_protect__pp_be_trail__short__1d__atr3_be1d5_tr0d7__v1	0.668	NA	36.2	218169	4.6	{'data_end': 1213, 'max_hold_timeout': 155, 'rule_exit': 140448, 'stop_loss': 5213, 'trail_stop': 71140}
+rsi__diverge__long__1d__atr1d5_lb5_n7__v1	0.668	NA	38.2	93428	9.2	{'data_end': 692, 'max_hold_timeout': 3195, 'rule_exit': 36532, 'stop_loss': 53009}
+ad_line__vacc_breakout__short__1d__atr3_lb20__v1	0.667	NA	35.2	142814	5.8	{'data_end': 985, 'max_hold_timeout': 1944, 'rule_exit': 135268, 'stop_loss': 4617}
+profit_protect__pp_be__long__1d__atr2_be1_tr0__v1	0.667	NA	17.5	194185	5.7	{'breakeven_stop': 42836, 'data_end': 266, 'max_hold_timeout': 2409, 'rule_exit': 139005, 'stop_loss': 9669}
+rsi__diverge__short__1d__atr1d5_lb20_n14__v1	0.667	NA	29.3	44636	14.8	{'data_end': 438, 'max_hold_timeout': 10013, 'rule_exit': 4032, 'stop_loss': 30153}
+channel__env_fade__short__1d__atr1d5_pct0d02__v1	0.666	NA	53.7	122054	2.9	{'data_end': 337, 'max_hold_timeout': 53, 'rule_exit': 96518, 'stop_loss': 25146}
+ad_line__ad_breakout__short__1d__atr3_lb20__v1	0.664	NA	34.6	101583	6.3	{'data_end': 775, 'max_hold_timeout': 1525, 'rule_exit': 96232, 'stop_loss': 3051}
+rsi__diverge__short__1d__atr3_lb20_n14__v1	0.664	NA	42.0	36748	21.4	{'data_end': 478, 'max_hold_timeout': 15392, 'rule_exit': 4306, 'stop_loss': 16572}
+ad_line__ad_breakout__short__1d__atr2_lb40__v1	0.663	NA	34.8	80002	6.2	{'data_end': 625, 'max_hold_timeout': 1170, 'rule_exit': 71371, 'stop_loss': 6836}
+profit_protect__pp_be_trail__long__1d__atr3_be1_tr0d7__v1	0.663	NA	36.9	224791	3.5	{'data_end': 171, 'max_hold_timeout': 132, 'rule_exit': 130778, 'stop_loss': 2473, 'trail_stop': 91237}
+profit_protect__pp_be_trail__long__1d__atr1d5_be1d5_tr0d6__v1	0.663	NA	30.0	215024	4.1	{'data_end': 195, 'max_hold_timeout': 424, 'rule_exit': 121718, 'stop_loss': 29621, 'trail_stop': 63066}
+profit_protect__pp_be_trail__short__1d__atr1d5_be2_tr0d7__v1	0.663	NA	31.9	207797	5.1	{'data_end': 1366, 'max_hold_timeout': 308, 'rule_exit': 126129, 'stop_loss': 31664, 'trail_stop': 48330}
+stoch_slow__pop__short__1d__atr2_band80__v1	0.663	NA	41.6	127715	2.4	{'data_end': 207, 'max_hold_timeout': 51, 'rule_exit': 120711, 'stop_loss': 6746}
+stoch_slow__turn__short__1d__atr1d5_band30__v1	0.663	NA	52.1	40014	3.8	{'data_end': 167, 'max_hold_timeout': 37, 'rule_exit': 29101, 'stop_loss': 10709}
+stoch_slow__turn__short__1d__atr3_band30__v1	0.663	NA	56.3	38575	5.0	{'data_end': 185, 'max_hold_timeout': 93, 'rule_exit': 33047, 'stop_loss': 5250}
+volume__pullback__short__1d__atr2_lb20__v1	0.663	NA	29.9	90632	7.7	{'data_end': 1080, 'max_hold_timeout': 1776, 'rule_exit': 80823, 'stop_loss': 6953}
+ad_line__vacc_diverge__long__1d__atr1d5_lb10__v1	0.662	NA	32.4	95806	2.9	{'data_end': 331, 'max_hold_timeout': 287, 'rule_exit': 85487, 'stop_loss': 9701}
+channel__env_fade__short__1d__atr3_pct0d02__v1	0.662	NA	56.0	118252	3.7	{'data_end': 366, 'max_hold_timeout': 183, 'rule_exit': 106926, 'stop_loss': 10777}
+ad_line__vacc_diverge__short__1d__atr1d5_lb10__v1	0.66	NA	42.4	154573	2.8	{'data_end': 204, 'max_hold_timeout': 521, 'rule_exit': 131388, 'stop_loss': 22460}
+ad_line__vacc_breakout__short__1d__atr3_lb10__v1	0.66	NA	35.1	173959	5.5	{'data_end': 1119, 'max_hold_timeout': 2137, 'rule_exit': 165426, 'stop_loss': 5277}
+profit_protect__pp_be_trail__short__1d__atr2_be1d5_tr0d7__v1	0.66	NA	36.0	219533	4.5	{'data_end': 1210, 'max_hold_timeout': 155, 'rule_exit': 130692, 'stop_loss': 16361, 'trail_stop': 71115}
+ad_line__vacc_diverge__short__1d__atr2_lb10__v1	0.659	NA	42.7	153085	2.9	{'data_end': 205, 'max_hold_timeout': 519, 'rule_exit': 139672, 'stop_loss': 12689}
+ad_line__vacc_diverge__short__1d__atr3_lb10__v1	0.659	NA	42.9	152234	2.9	{'data_end': 206, 'max_hold_timeout': 521, 'rule_exit': 146730, 'stop_loss': 4777}
+ad_line__vacc_diverge__long__1d__atr1d5_lb20__v1	0.659	NA	34.2	71710	2.6	{'data_end': 304, 'max_hold_timeout': 130, 'rule_exit': 63656, 'stop_loss': 7620}
+volume__pullback__short__1d__atr3_lb10__v1	0.659	NA	29.8	88795	7.7	{'data_end': 1081, 'max_hold_timeout': 1751, 'rule_exit': 83751, 'stop_loss': 2212}
+ad_line__ad_breakout__short__1d__atr3_lb10__v1	0.658	NA	34.1	128291	6.0	{'data_end': 886, 'max_hold_timeout': 1804, 'rule_exit': 121962, 'stop_loss': 3639}
+profit_protect__pp_be_trail__long__1d__atr1d5_be1d5_tr0d5__v1	0.658	NA	29.9	212705	4.4	{'data_end': 210, 'max_hold_timeout': 903, 'rule_exit': 122899, 'stop_loss': 29237, 'trail_stop': 59456}
+channel__env_fade__short__1d__atr2_pct0d015__v1	0.657	NA	52.6	169263	2.8	{'data_end': 425, 'max_hold_timeout': 54, 'rule_exit': 147455, 'stop_loss': 21329}
+stoch_slow__pop__long__1d__atr1d5_band70__v1	0.657	NA	31.4	121953	2.4	{'data_end': 82, 'max_hold_timeout': 50, 'rule_exit': 107193, 'stop_loss': 14628}
+profit_protect__pp_be_trail__long__1d__atr1d5_be1d5_tr0d4__v1	0.656	NA	29.7	208365	4.8	{'data_end': 235, 'max_hold_timeout': 1422, 'rule_exit': 125035, 'stop_loss': 28532, 'trail_stop': 53141}
+channel__env_fade__short__1d__atr1d5_pct0d015__v1	0.655	NA	51.6	171233	2.6	{'data_end': 409, 'max_hold_timeout': 37, 'rule_exit': 140067, 'stop_loss': 30720}
+profit_protect__pp_be_trail__long__1d__atr3_be1_tr0d6__v1	0.654	NA	36.8	224206	3.6	{'data_end': 178, 'max_hold_timeout': 324, 'rule_exit': 131029, 'stop_loss': 2462, 'trail_stop': 90213}
+profit_protect__pp_be_trail__long__1d__atr2_be1_tr0d7__v1	0.654	NA	36.6	226639	3.4	{'data_end': 171, 'max_hold_timeout': 128, 'rule_exit': 123421, 'stop_loss': 11694, 'trail_stop': 91225}
+profit_protect__pp_be_trail__short__1d__atr3_be2_tr0d6__v1	0.654	NA	32.4	202450	5.5	{'data_end': 1499, 'max_hold_timeout': 865, 'rule_exit': 148621, 'stop_loss': 5078, 'trail_stop': 46387}
+channel__env_fade__short__1d__atr3_pct0d015__v1	0.653	NA	53.2	167454	3.1	{'data_end': 443, 'max_hold_timeout': 105, 'rule_exit': 154560, 'stop_loss': 12346}
+profit_protect__pp_be__long__1d__atr1d5_be1_tr0__v1	0.653	NA	17.3	197466	5.6	{'breakeven_stop': 42526, 'data_end': 264, 'max_hold_timeout': 2394, 'rule_exit': 127265, 'stop_loss': 25017}
+stoch_slow__pop__short__1d__atr1d5_band80__v1	0.653	NA	41.3	127790	2.4	{'data_end': 204, 'max_hold_timeout': 51, 'rule_exit': 113736, 'stop_loss': 13799}
+profit_protect__pp_be_trail__short__1d__atr1d5_be1d5_tr0d7__v1	0.652	NA	35.5	222500	4.5	{'data_end': 1194, 'max_hold_timeout': 151, 'rule_exit': 117333, 'stop_loss': 32704, 'trail_stop': 71118}
+ad_line__ad_breakout__short__1d__atr1d5_lb40__v1	0.65	NA	34.2	80742	6.1	{'data_end': 617, 'max_hold_timeout': 1158, 'rule_exit': 66043, 'stop_loss': 12924}
+ad_line__vacc_breakout__short__1d__atr2_lb40__v1	0.649	NA	35.3	119160	5.8	{'data_end': 829, 'max_hold_timeout': 1708, 'rule_exit': 105710, 'stop_loss': 10913}
+volume__pullback__short__1d__atr1d5_lb20__v1	0.649	NA	29.5	91452	7.5	{'data_end': 1072, 'max_hold_timeout': 1751, 'rule_exit': 74383, 'stop_loss': 14246}
+profit_protect__pp_be_trail__long__1d__atr3_be1_tr0d5__v1	0.647	NA	36.6	222223	4.0	{'data_end': 188, 'max_hold_timeout': 659, 'rule_exit': 131919, 'stop_loss': 2439, 'trail_stop': 87018}
+volume__pullback__short__1d__atr2_lb10__v1	0.647	NA	29.6	89133	7.7	{'data_end': 1076, 'max_hold_timeout': 1735, 'rule_exit': 79426, 'stop_loss': 6896}
+ad_line__vacc_breakout__short__1d__atr2_lb20__v1	0.646	NA	35.0	143598	5.7	{'data_end': 979, 'max_hold_timeout': 1933, 'rule_exit': 127903, 'stop_loss': 12783}
+profit_protect__pp_be_trail__long__1d__atr3_be1_tr0d4__v1	0.645	NA	36.2	218242	4.3	{'data_end': 210, 'max_hold_timeout': 1122, 'rule_exit': 133608, 'stop_loss': 2390, 'trail_stop': 80912}
+profit_protect__pp_be_trail__short__1d__atr3_be1d5_tr0d6__v1	0.645	NA	36.1	217126	4.8	{'data_end': 1328, 'max_hold_timeout': 506, 'rule_exit': 140616, 'stop_loss': 5187, 'trail_stop': 69489}
+profit_protect__pp_be_trail__short__1d__atr2_be2_tr0d6__v1	0.645	NA	32.2	203724	5.5	{'data_end': 1497, 'max_hold_timeout': 863, 'rule_exit': 139195, 'stop_loss': 15825, 'trail_stop': 46344}
+profit_protect__pp_be_trail__long__1d__atr2_be1_tr0d6__v1	0.644	NA	36.5	226048	3.6	{'data_end': 178, 'max_hold_timeout': 318, 'rule_exit': 123700, 'stop_loss': 11648, 'trail_stop': 90204}
+ad_line__vacc_breakout__short__1d__atr2_lb10__v1	0.643	NA	34.9	174779	5.5	{'data_end': 1117, 'max_hold_timeout': 2125, 'rule_exit': 156802, 'stop_loss': 14735}
+ad_line__vacc_breakout__short__1d__atr1d5_lb40__v1	0.643	NA	34.9	120490	5.7	{'data_end': 829, 'max_hold_timeout': 1700, 'rule_exit': 98136, 'stop_loss': 19825}
+ad_line__vacc_breakout__short__1d__atr1d5_lb20__v1	0.641	NA	34.6	145039	5.6	{'data_end': 979, 'max_hold_timeout': 1923, 'rule_exit': 118854, 'stop_loss': 23283}
+ad_line__ad_diverge__short__1d__atr3_lb40__v1	0.639	NA	42.7	70725	2.4	{'data_end': 35, 'max_hold_timeout': 95, 'rule_exit': 68251, 'stop_loss': 2344}
+ad_line__vacc_breakout__short__1d__atr1d5_lb10__v1	0.638	NA	34.5	176301	5.4	{'data_end': 1113, 'max_hold_timeout': 2116, 'rule_exit': 146090, 'stop_loss': 26982}
+profit_protect__pp_be_trail__long__1d__atr2_be1_tr0d5__v1	0.637	NA	36.4	224036	3.9	{'data_end': 189, 'max_hold_timeout': 655, 'rule_exit': 124680, 'stop_loss': 11518, 'trail_stop': 86994}
+profit_protect__pp_be_trail__long__1d__atr1d5_be1_tr0d7__v1	0.637	NA	36.0	230854	3.3	{'data_end': 172, 'max_hold_timeout': 125, 'rule_exit': 109447, 'stop_loss': 30054, 'trail_stop': 91056}
+profit_protect__pp_be_trail__short__1d__atr2_be1d5_tr0d6__v1	0.637	NA	35.9	218477	4.8	{'data_end': 1327, 'max_hold_timeout': 508, 'rule_exit': 130925, 'stop_loss': 16264, 'trail_stop': 69453}
+profit_protect__pp_be_trail__short__1d__atr1d5_be2_tr0d6__v1	0.637	NA	31.8	206432	5.4	{'data_end': 1490, 'max_hold_timeout': 854, 'rule_exit': 126416, 'stop_loss': 31410, 'trail_stop': 46262}
+ad_line__ad_diverge__short__1d__atr2_lb40__v1	0.636	NA	42.5	71013	2.4	{'data_end': 36, 'max_hold_timeout': 95, 'rule_exit': 64639, 'stop_loss': 6243}
+ad_line__ad_breakout__short__1d__atr2_lb20__v1	0.636	NA	34.3	101974	6.2	{'data_end': 770, 'max_hold_timeout': 1513, 'rule_exit': 91062, 'stop_loss': 8629}
+ad_line__ad_breakout__short__1d__atr2_lb10__v1	0.635	NA	33.9	128668	6.0	{'data_end': 881, 'max_hold_timeout': 1792, 'rule_exit': 115666, 'stop_loss': 10329}
+profit_protect__pp_be_trail__long__1d__atr2_be1_tr0d4__v1	0.635	NA	35.9	220010	4.3	{'data_end': 208, 'max_hold_timeout': 1117, 'rule_exit': 126557, 'stop_loss': 11262, 'trail_stop': 80866}
+stoch_slow__turn__long__1d__atr2_band30__v1	0.634	NA	44.9	69207	6.7	{'data_end': 322, 'max_hold_timeout': 1479, 'rule_exit': 45974, 'stop_loss': 21432}
+williams_r__diverge__long__1d__atr3_lb20__v1	0.634	NA	33.7	111032	2.9	{'data_end': 209, 'max_hold_timeout': 373, 'rule_exit': 109457, 'stop_loss': 993}
+ad_line__ad_diverge__short__1d__atr1d5_lb40__v1	0.633	NA	42.0	71574	2.3	{'data_end': 36, 'max_hold_timeout': 95, 'rule_exit': 60335, 'stop_loss': 11108}
+volume__pullback__short__1d__atr1d5_lb10__v1	0.633	NA	29.2	89964	7.5	{'data_end': 1069, 'max_hold_timeout': 1714, 'rule_exit': 73135, 'stop_loss': 14046}
+williams_r__diverge__long__1d__atr3_lb10__v1	0.633	NA	31.1	166810	3.3	{'data_end': 259, 'max_hold_timeout': 829, 'rule_exit': 164259, 'stop_loss': 1463}
+profit_protect__pp_be_trail__short__1d__atr1d5_be1d5_tr0d6__v1	0.629	NA	35.5	221431	4.7	{'data_end': 1313, 'max_hold_timeout': 504, 'rule_exit': 117639, 'stop_loss': 32520, 'trail_stop': 69455}
+williams_r__diverge__long__1d__atr3_lb5__v1	0.629	NA	29.4	209105	3.6	{'data_end': 299, 'max_hold_timeout': 1294, 'rule_exit': 205563, 'stop_loss': 1949}
+profit_protect__pp_be_trail__long__1d__atr1d5_be1_tr0d6__v1	0.628	NA	35.9	230246	3.5	{'data_end': 179, 'max_hold_timeout': 312, 'rule_exit': 109773, 'stop_loss': 29944, 'trail_stop': 90038}
+profit_protect__pp_baseline__short__1d__atr3_be0_tr0__v1	0.627	NA	29.3	176392	7.0	{'data_end': 1793, 'max_hold_timeout': 3169, 'rule_exit': 166759, 'stop_loss': 4671}
+ad_line__ad_breakout__short__1d__atr1d5_lb10__v1	0.626	NA	33.5	129484	5.9	{'data_end': 869, 'max_hold_timeout': 1776, 'rule_exit': 107395, 'stop_loss': 19444}
+profit_protect__pp_be_trail__short__1d__atr3_be2_tr0d5__v1	0.626	NA	32.3	198755	5.9	{'data_end': 1619, 'max_hold_timeout': 1595, 'rule_exit': 149033, 'stop_loss': 4968, 'trail_stop': 41540}
+ad_line__ad_diverge__short__1d__atr3_lb10__v1	0.625	NA	41.0	125123	2.9	{'data_end': 147, 'max_hold_timeout': 433, 'rule_exit': 120900, 'stop_loss': 3643}
+ad_line__ad_diverge__long__1d__atr3_lb40__v1	0.625	NA	35.6	51424	2.5	{'data_end': 305, 'max_hold_timeout': 81, 'rule_exit': 50551, 'stop_loss': 487}
+ad_line__ad_breakout__short__1d__atr1d5_lb20__v1	0.625	NA	33.8	102794	6.1	{'data_end': 760, 'max_hold_timeout': 1502, 'rule_exit': 84262, 'stop_loss': 16270}
+ad_line__ad_diverge__short__1d__atr2_lb10__v1	0.624	NA	40.9	125355	2.9	{'data_end': 148, 'max_hold_timeout': 432, 'rule_exit': 114912, 'stop_loss': 9863}
+ad_line__ad_diverge__short__1d__atr3_lb20__v1	0.624	NA	42.4	93977	2.5	{'data_end': 61, 'max_hold_timeout': 180, 'rule_exit': 90839, 'stop_loss': 2897}
+ad_line__ad_diverge__short__1d__atr1d5_lb10__v1	0.623	NA	40.6	125856	2.9	{'data_end': 147, 'max_hold_timeout': 432, 'rule_exit': 107462, 'stop_loss': 17815}
+ad_line__ad_diverge__short__1d__atr2_lb20__v1	0.623	NA	42.2	94247	2.5	{'data_end': 63, 'max_hold_timeout': 180, 'rule_exit': 86198, 'stop_loss': 7806}
+channel__env_breakout__short__1d__atr3_pct0d02__v1	0.623	NA	31.1	101375	9.0	{'data_end': 1545, 'max_hold_timeout': 2742, 'rule_exit': 94002, 'stop_loss': 3086}
+williams_r__diverge__long__1d__atr2_lb20__v1	0.623	NA	33.6	111421	2.9	{'data_end': 207, 'max_hold_timeout': 359, 'rule_exit': 106055, 'stop_loss': 4800}
+williams_r__diverge__long__1d__atr2_lb10__v1	0.622	NA	31.1	167426	3.2	{'data_end': 257, 'max_hold_timeout': 804, 'rule_exit': 159314, 'stop_loss': 7051}
+williams_r__failure_swing__short__1d__atr3_line10__v1	0.622	NA	29.7	126023	7.7	{'data_end': 1590, 'max_hold_timeout': 2555, 'rule_exit': 118250, 'stop_loss': 3628}
+ad_line__ad_diverge__short__1d__atr1d5_lb20__v1	0.621	NA	41.9	94829	2.5	{'data_end': 63, 'max_hold_timeout': 180, 'rule_exit': 80553, 'stop_loss': 14033}
+profit_protect__pp_be_trail__long__1d__atr1d5_be1_tr0d5__v1	0.621	NA	35.7	228185	3.8	{'data_end': 190, 'max_hold_timeout': 646, 'rule_exit': 110901, 'stop_loss': 29614, 'trail_stop': 86834}
+channel__env_breakout__short__1d__atr3_pct0d015__v1	0.62	NA	30.9	116363	8.6	{'data_end': 1635, 'max_hold_timeout': 2942, 'rule_exit': 108357, 'stop_loss': 3429}
+profit_protect__pp_be_trail__long__1d__atr1d5_be1_tr0d4__v1	0.62	NA	35.3	224033	4.2	{'data_end': 208, 'max_hold_timeout': 1107, 'rule_exit': 113032, 'stop_loss': 28991, 'trail_stop': 80695}
+profit_protect__pp_baseline__short__1d__atr2_be0_tr0__v1	0.618	NA	29.1	177491	6.9	{'data_end': 1788, 'max_hold_timeout': 3152, 'rule_exit': 158265, 'stop_loss': 14286}
+profit_protect__pp_be_trail__short__1d__atr3_be1_tr0d7__v1	0.618	NA	42.7	243971	3.8	{'data_end': 967, 'max_hold_timeout': 91, 'rule_exit': 126085, 'stop_loss': 5232, 'trail_stop': 111596}
+profit_protect__pp_be_trail__short__1d__atr2_be2_tr0d5__v1	0.618	NA	32.1	199991	5.8	{'data_end': 1616, 'max_hold_timeout': 1592, 'rule_exit': 139843, 'stop_loss': 15443, 'trail_stop': 41497}
+williams_r__diverge__long__1d__atr2_lb5__v1	0.618	NA	29.3	209920	3.6	{'data_end': 296, 'max_hold_timeout': 1270, 'rule_exit': 199079, 'stop_loss': 9275}
+ad_line__ad_diverge__long__1d__atr3_lb10__v1	0.617	NA	32.2	85662	3.0	{'data_end': 268, 'max_hold_timeout': 223, 'rule_exit': 84509, 'stop_loss': 662}
+ad_line__ad_diverge__long__1d__atr2_lb40__v1	0.617	NA	35.5	51574	2.5	{'data_end': 305, 'max_hold_timeout': 79, 'rule_exit': 48787, 'stop_loss': 2403}
+profit_protect__pp_be_trail__short__1d__atr3_be1d5_tr0d5__v1	0.615	NA	36.0	213723	5.2	{'data_end': 1464, 'max_hold_timeout': 1111, 'rule_exit': 141043, 'stop_loss': 5081, 'trail_stop': 65024}
+channel__hilo_breakout__short__1d__atr3_pct0__v1	0.614	NA	30.1	113928	9.2	{'data_end': 1609, 'max_hold_timeout': 3782, 'rule_exit': 104301, 'stop_loss': 4236}
+profit_protect__pp_be__long__1d__atr3_be0d5_tr0__v1	0.612	NA	14.1	217191	4.9	{'breakeven_stop': 92893, 'data_end': 252, 'max_hold_timeout': 2059, 'rule_exit': 120036, 'stop_loss': 1951}
+williams_r__failure_swing__short__1d__atr2_line10__v1	0.612	NA	29.4	126931	7.6	{'data_end': 1586, 'max_hold_timeout': 2538, 'rule_exit': 111474, 'stop_loss': 11333}
+profit_protect__pp_be_trail__short__1d__atr2_be1_tr0d7__v1	0.611	NA	42.5	245431	3.7	{'data_end': 959, 'max_hold_timeout': 91, 'rule_exit': 116281, 'stop_loss': 16500, 'trail_stop': 111600}
+channel__env_breakout__short__1d__atr2_pct0d02__v1	0.61	NA	30.8	102302	8.9	{'data_end': 1538, 'max_hold_timeout': 2717, 'rule_exit': 87334, 'stop_loss': 10713}
+profit_protect__pp_baseline__short__1d__atr1d5_be0_tr0__v1	0.61	NA	28.7	179810	6.8	{'data_end': 1781, 'max_hold_timeout': 3126, 'rule_exit': 146729, 'stop_loss': 28174}
+profit_protect__pp_be_trail__short__1d__atr1d5_be2_tr0d5__v1	0.61	NA	31.7	202621	5.8	{'data_end': 1608, 'max_hold_timeout': 1583, 'rule_exit': 127339, 'stop_loss': 30694, 'trail_stop': 41397}
+ad_line__ad_diverge__long__1d__atr2_lb10__v1	0.609	NA	32.1	85742	3.0	{'data_end': 267, 'max_hold_timeout': 220, 'rule_exit': 81975, 'stop_loss': 3280}
+channel__env_breakout__short__1d__atr2_pct0d015__v1	0.609	NA	30.6	117353	8.6	{'data_end': 1630, 'max_hold_timeout': 2924, 'rule_exit': 101378, 'stop_loss': 11421}
+ad_line__ad_diverge__long__1d__atr1d5_lb40__v1	0.608	NA	35.4	52064	2.5	{'data_end': 309, 'max_hold_timeout': 79, 'rule_exit': 45760, 'stop_loss': 5916}
+profit_protect__pp_be_trail__short__1d__atr2_be1d5_tr0d5__v1	0.608	NA	35.7	215036	5.2	{'data_end': 1460, 'max_hold_timeout': 1108, 'rule_exit': 131560, 'stop_loss': 15916, 'trail_stop': 64992}
+profit_protect__pp_be_trail__short__1d__atr3_be2_tr0d4__v1	0.608	NA	32.2	193421	6.2	{'data_end': 1719, 'max_hold_timeout': 2222, 'rule_exit': 150284, 'stop_loss': 4817, 'trail_stop': 34379}
+williams_r__diverge__long__1d__atr1d5_lb20__v1	0.608	NA	33.4	112229	2.9	{'data_end': 209, 'max_hold_timeout': 352, 'rule_exit': 99654, 'stop_loss': 12014}
+parabolic__sar_flip__short__1d__af0d025_afmax0d25_atr3__v1	0.607	NA	37.3	117380	10.7	{'data_end': 1620, 'max_hold_timeout': 1239, 'rule_exit': 104608, 'stop_loss': 9913}
+profit_protect__pp_be__short__1d__atr3_be2_tr0__v1	0.607	NA	27.2	178842	6.9	{'breakeven_stop': 9495, 'data_end': 1791, 'max_hold_timeout': 3069, 'rule_exit': 160005, 'stop_loss': 4482}
+stoch_slow__turn__long__1d__atr1d5_band30__v1	0.607	NA	40.8	72982	5.5	{'data_end': 220, 'max_hold_timeout': 955, 'rule_exit': 42980, 'stop_loss': 28827}
+channel__hilo_fade__short__1d__atr2_pct0__v1	0.606	NA	51.2	98467	3.0	{'data_end': 264, 'max_hold_timeout': 7, 'rule_exit': 83278, 'stop_loss': 14918}
+williams_r__diverge__long__1d__atr1d5_lb10__v1	0.606	NA	30.9	168615	3.2	{'data_end': 257, 'max_hold_timeout': 792, 'rule_exit': 149844, 'stop_loss': 17722}
+ad_line__vacc_confirm__short__1d__atr3_lb10__v1	0.604	NA	30.1	83340	9.1	{'data_end': 1270, 'max_hold_timeout': 2211, 'rule_exit': 76970, 'stop_loss': 2889}
+profit_protect__pp_be__long__1d__atr2_be0d5_tr0__v1	0.604	NA	14.1	218583	4.8	{'breakeven_stop': 92658, 'data_end': 253, 'max_hold_timeout': 2054, 'rule_exit': 114392, 'stop_loss': 9226}
+channel__hilo_fade__short__1d__atr1d5_pct0__v1	0.603	NA	50.0	99721	2.7	{'data_end': 253, 'max_hold_timeout': 4, 'rule_exit': 78794, 'stop_loss': 20670}
+profit_protect__pp_be_trail__short__1d__atr1d5_be1_tr0d7__v1	0.603	NA	42.1	248770	3.7	{'data_end': 949, 'max_hold_timeout': 88, 'rule_exit': 102646, 'stop_loss': 33320, 'trail_stop': 111767}
+williams_r__diverge__long__1d__atr1d5_lb5__v1	0.602	NA	29.1	211529	3.5	{'data_end': 295, 'max_hold_timeout': 1246, 'rule_exit': 186693, 'stop_loss': 23295}
+williams_r__failure_swing__short__1d__atr1d5_line10__v1	0.602	NA	28.9	128905	7.5	{'data_end': 1581, 'max_hold_timeout': 2507, 'rule_exit': 102048, 'stop_loss': 22769}
+channel__hilo_breakout__short__1d__atr2_pct0__v1	0.601	NA	29.8	115051	9.1	{'data_end': 1602, 'max_hold_timeout': 3756, 'rule_exit': 97186, 'stop_loss': 12507}
+channel__env_fade__long__1d__atr3_pct0d03__v1	0.6	NA	43.0	44617	4.7	{'data_end': 212, 'max_hold_timeout': 179, 'rule_exit': 40002, 'stop_loss': 4224}
+profit_protect__pp_be_trail__short__1d__atr1d5_be1d5_tr0d5__v1	0.6	NA	35.3	217899	5.1	{'data_end': 1448, 'max_hold_timeout': 1099, 'rule_exit': 118517, 'stop_loss': 31873, 'trail_stop': 64962}
+profit_protect__pp_be_trail__short__1d__atr2_be2_tr0d4__v1	0.6	NA	32.0	194612	6.2	{'data_end': 1714, 'max_hold_timeout': 2218, 'rule_exit': 141356, 'stop_loss': 14994, 'trail_stop': 34330}
+ad_line__ad_diverge__long__1d__atr1d5_lb10__v1	0.599	NA	32.0	86039	3.0	{'data_end': 268, 'max_hold_timeout': 220, 'rule_exit': 77143, 'stop_loss': 8408}
+profit_protect__pp_be__short__1d__atr2_be2_tr0__v1	0.599	NA	27.0	179909	6.8	{'breakeven_stop': 9448, 'data_end': 1785, 'max_hold_timeout': 3058, 'rule_exit': 151809, 'stop_loss': 13809}
+channel__env_breakout__short__1d__atr1d5_pct0d02__v1	0.597	NA	30.1	104422	8.7	{'data_end': 1525, 'max_hold_timeout': 2677, 'rule_exit': 77936, 'stop_loss': 22284}
+channel__hilo_fade__short__1d__atr3_pct0__v1	0.597	NA	52.0	97194	3.4	{'data_end': 276, 'max_hold_timeout': 11, 'rule_exit': 87794, 'stop_loss': 9113}
+channel__env_breakout__short__1d__atr1d5_pct0d015__v1	0.596	NA	30.0	119624	8.3	{'data_end': 1620, 'max_hold_timeout': 2884, 'rule_exit': 91445, 'stop_loss': 23675}
+parabolic__sar_flip__short__1d__af0d025_afmax0d25_atr2__v1	0.596	NA	36.4	118400	10.3	{'data_end': 1577, 'max_hold_timeout': 1059, 'rule_exit': 87710, 'stop_loss': 28054}
+profit_protect__pp_be_trail__short__1d__atr3_be1_tr0d6__v1	0.596	NA	42.6	243237	4.0	{'data_end': 1074, 'max_hold_timeout': 256, 'rule_exit': 126311, 'stop_loss': 5208, 'trail_stop': 110388}
+ad_line__ad_diverge__long__1d__atr3_lb20__v1	0.595	NA	34.2	67997	2.6	{'data_end': 282, 'max_hold_timeout': 121, 'rule_exit': 67032, 'stop_loss': 562}
+ad_line__vacc_confirm__short__1d__atr3_lb20__v1	0.594	NA	31.6	51245	10.0	{'data_end': 1024, 'max_hold_timeout': 1564, 'rule_exit': 46459, 'stop_loss': 2198}
+ad_line__vacc_confirm__short__1d__atr2_lb10__v1	0.592	NA	29.7	83929	8.9	{'data_end': 1265, 'max_hold_timeout': 2186, 'rule_exit': 70875, 'stop_loss': 9603}
+profit_protect__pp_be_trail__short__1d__atr3_be1d5_tr0d4__v1	0.592	NA	35.7	207433	5.7	{'data_end': 1608, 'max_hold_timeout': 1774, 'rule_exit': 142118, 'stop_loss': 4912, 'trail_stop': 57021}
+profit_protect__pp_be__short__1d__atr1d5_be2_tr0__v1	0.592	NA	26.7	182171	6.7	{'breakeven_stop': 9378, 'data_end': 1778, 'max_hold_timeout': 3036, 'rule_exit': 140618, 'stop_loss': 27361}
+profit_protect__pp_be_trail__short__1d__atr1d5_be2_tr0d4__v1	0.592	NA	31.6	197137	6.1	{'data_end': 1708, 'max_hold_timeout': 2201, 'rule_exit': 129238, 'stop_loss': 29761, 'trail_stop': 34229}
+parabolic__sar_flip__short__1d__af0d02_afmax0d2_atr3__v1	0.591	NA	36.8	102492	12.1	{'data_end': 1592, 'max_hold_timeout': 2312, 'rule_exit': 88533, 'stop_loss': 10055}
+profit_protect__pp_be__long__1d__atr1d5_be0d5_tr0__v1	0.591	NA	13.9	221905	4.7	{'breakeven_stop': 92237, 'data_end': 250, 'max_hold_timeout': 2045, 'rule_exit': 103154, 'stop_loss': 24219}
+williams_r__lines__short__1d__atr3_line20__v1	0.591	NA	29.5	24454	7.2	{'data_end': 326, 'max_hold_timeout': 460, 'rule_exit': 23025, 'stop_loss': 643}
+profit_protect__pp_be_trail__short__1d__atr2_be1_tr0d6__v1	0.59	NA	42.4	244684	3.9	{'data_end': 1068, 'max_hold_timeout': 257, 'rule_exit': 116529, 'stop_loss': 16446, 'trail_stop': 110384}
+profit_protect__pp_be__short__1d__atr3_be1d5_tr0__v1	0.59	NA	25.3	182855	6.7	{'breakeven_stop': 20687, 'data_end': 1784, 'max_hold_timeout': 2980, 'rule_exit': 153043, 'stop_loss': 4361}
+channel__hilo_breakout__short__1d__atr1d5_pct0__v1	0.588	NA	29.1	117491	8.8	{'data_end': 1591, 'max_hold_timeout': 3690, 'rule_exit': 86931, 'stop_loss': 25279}
+ad_line__ad_diverge__long__1d__atr2_lb20__v1	0.587	NA	34.2	68095	2.6	{'data_end': 282, 'max_hold_timeout': 119, 'rule_exit': 64900, 'stop_loss': 2794}
+parabolic__sar_flip__short__1d__af0d015_afmax0d15_atr2__v1	0.587	NA	35.2	85498	13.3	{'data_end': 1500, 'max_hold_timeout': 4052, 'rule_exit': 52534, 'stop_loss': 27412}
+parabolic__sar_flip__short__1d__af0d015_afmax0d15_atr3__v1	0.586	NA	36.9	85056	14.2	{'data_end': 1564, 'max_hold_timeout': 4721, 'rule_exit': 68414, 'stop_loss': 10357}
+profit_protect__pp_be_trail__long__1d__atr3_be0d5_tr0d7__v1	0.585	NA	40.8	252662	2.8	{'data_end': 160, 'max_hold_timeout': 104, 'rule_exit': 103400, 'stop_loss': 2286, 'trail_stop': 146712}
+profit_protect__pp_be_trail__short__1d__atr2_be1d5_tr0d4__v1	0.585	NA	35.5	208678	5.6	{'data_end': 1606, 'max_hold_timeout': 1770, 'rule_exit': 132910, 'stop_loss': 15417, 'trail_stop': 56975}
+williams_r__lines__short__1d__atr2_line20__v1	0.585	NA	29.2	24476	7.1	{'data_end': 321, 'max_hold_timeout': 455, 'rule_exit': 21778, 'stop_loss': 1922}
+parabolic__sar_flip__short__1d__af0d025_afmax0d25_atr1d5__v1	0.583	NA	34.5	119002	9.6	{'data_end': 1457, 'max_hold_timeout': 854, 'rule_exit': 70577, 'stop_loss': 46114}
+profit_protect__pp_be__short__1d__atr2_be1d5_tr0__v1	0.583	NA	25.2	183890	6.7	{'breakeven_stop': 20616, 'data_end': 1778, 'max_hold_timeout': 2971, 'rule_exit': 145012, 'stop_loss': 13513}
+profit_protect__pp_be_trail__short__1d__atr1d5_be1_tr0d6__v1	0.582	NA	42.0	248008	3.9	{'data_end': 1058, 'max_hold_timeout': 252, 'rule_exit': 102952, 'stop_loss': 33199, 'trail_stop': 110547}
+williams_r__lines__short__1d__atr1d5_line20__v1	0.581	NA	28.9	24516	7.0	{'data_end': 316, 'max_hold_timeout': 448, 'rule_exit': 20049, 'stop_loss': 3703}
+ad_line__ad_diverge__long__1d__atr1d5_lb20__v1	0.58	NA	34.1	68482	2.6	{'data_end': 284, 'max_hold_timeout': 120, 'rule_exit': 61033, 'stop_loss': 7045}
+channel__env_fade__long__1d__atr2_pct0d03__v1	0.58	NA	41.9	45382	3.9	{'data_end': 146, 'max_hold_timeout': 65, 'rule_exit': 36769, 'stop_loss': 8402}
+parabolic__sar_flip__short__1d__af0d02_afmax0d2_atr2__v1	0.58	NA	35.6	103206	11.5	{'data_end': 1537, 'max_hold_timeout': 1983, 'rule_exit': 71562, 'stop_loss': 28124}
+ad_line__ad_confirm__short__1d__atr3_lb10__v1	0.579	NA	30.0	82839	9.0	{'data_end': 1287, 'max_hold_timeout': 2192, 'rule_exit': 76463, 'stop_loss': 2897}
+ad_line__vacc_confirm__short__1d__atr2_lb20__v1	0.578	NA	31.0	51796	9.8	{'data_end': 1017, 'max_hold_timeout': 1544, 'rule_exit': 41923, 'stop_loss': 7312}
+ad_line__vacc_confirm__short__1d__atr1d5_lb10__v1	0.577	NA	29.0	85297	8.7	{'data_end': 1245, 'max_hold_timeout': 2143, 'rule_exit': 62322, 'stop_loss': 19587}
+channel__env_breakout__short__1d__atr3_pct0d03__v1	0.577	NA	30.9	77656	9.6	{'data_end': 1263, 'max_hold_timeout': 2279, 'rule_exit': 71452, 'stop_loss': 2662}
+profit_protect__pp_be__short__1d__atr1d5_be1d5_tr0__v1	0.577	NA	24.9	186127	6.6	{'breakeven_stop': 20505, 'data_end': 1769, 'max_hold_timeout': 2955, 'rule_exit': 134025, 'stop_loss': 26873}
+profit_protect__pp_be_trail__short__1d__atr1d5_be1d5_tr0d4__v1	0.577	NA	35.0	211425	5.5	{'data_end': 1598, 'max_hold_timeout': 1754, 'rule_exit': 120295, 'stop_loss': 30852, 'trail_stop': 56926}
+force_index__fi13_zero_cross__short__1d__atr3_n13__v1	0.575	NA	29.3	99624	8.3	{'data_end': 1199, 'max_hold_timeout': 3804, 'rule_exit': 90694, 'stop_loss': 3927}
+profit_protect__pp_be_trail__long__1d__atr2_be0d5_tr0d7__v1	0.575	NA	40.5	254495	2.8	{'data_end': 160, 'max_hold_timeout': 98, 'rule_exit': 96524, 'stop_loss': 11055, 'trail_stop': 146658}
+profit_protect__pp_be_trail__long__1d__atr3_be0d5_tr0d6__v1	0.573	NA	40.4	252091	2.9	{'data_end': 165, 'max_hold_timeout': 230, 'rule_exit': 103674, 'stop_loss': 2279, 'trail_stop': 145743}
+parabolic__sar_flip__short__1d__af0d015_afmax0d15_atr1d5__v1	0.572	NA	32.4	85741	12.0	{'data_end': 1346, 'max_hold_timeout': 3295, 'rule_exit': 40492, 'stop_loss': 40608}
+profit_protect__pp_be_trail__short__1d__atr3_be1_tr0d5__v1	0.569	NA	42.4	240396	4.3	{'data_end': 1227, 'max_hold_timeout': 652, 'rule_exit': 126900, 'stop_loss': 5131, 'trail_stop': 106486}
+ad_line__ad_confirm__short__1d__atr2_lb10__v1	0.568	NA	29.7	83347	8.9	{'data_end': 1281, 'max_hold_timeout': 2163, 'rule_exit': 70441, 'stop_loss': 9462}
+force_index__fi13_zero_cross__short__1d__atr2_n13__v1	0.567	NA	28.9	99719	8.2	{'data_end': 1174, 'max_hold_timeout': 3667, 'rule_exit': 83181, 'stop_loss': 11697}
+ad_line__vacc_confirm__short__1d__atr3_lb40__v1	0.565	NA	31.3	31173	10.3	{'data_end': 776, 'max_hold_timeout': 1005, 'rule_exit': 27898, 'stop_loss': 1494}
+parabolic__sar_flip__short__1d__af0d02_afmax0d2_atr1d5__v1	0.565	NA	33.4	103640	10.6	{'data_end': 1406, 'max_hold_timeout': 1570, 'rule_exit': 56475, 'stop_loss': 44189}
+channel__env_breakout__short__1d__atr2_pct0d03__v1	0.564	NA	30.5	78445	9.4	{'data_end': 1261, 'max_hold_timeout': 2250, 'rule_exit': 65281, 'stop_loss': 9653}
+profit_protect__pp_be_trail__long__1d__atr3_be0d5_tr0d5__v1	0.564	NA	39.6	250338	3.2	{'data_end': 174, 'max_hold_timeout': 446, 'rule_exit': 104613, 'stop_loss': 2264, 'trail_stop': 142841}
+profit_protect__pp_be_trail__long__1d__atr2_be0d5_tr0d6__v1	0.564	NA	40.2	253914	2.9	{'data_end': 165, 'max_hold_timeout': 223, 'rule_exit': 96811, 'stop_loss': 11026, 'trail_stop': 145689}
+profit_protect__pp_be_trail__short__1d__atr2_be1_tr0d5__v1	0.563	NA	42.1	241828	4.3	{'data_end': 1220, 'max_hold_timeout': 647, 'rule_exit': 117265, 'stop_loss': 16203, 'trail_stop': 106493}
+ad_line__ad_confirm__short__1d__atr3_lb20__v1	0.562	NA	31.5	49869	10.0	{'data_end': 985, 'max_hold_timeout': 1499, 'rule_exit': 45211, 'stop_loss': 2174}
+ad_line__vacc_confirm__short__1d__atr1d5_lb20__v1	0.562	NA	29.9	52946	9.4	{'data_end': 994, 'max_hold_timeout': 1501, 'rule_exit': 35732, 'stop_loss': 14719}
+profit_protect__pp_be_trail__long__1d__atr3_be0d5_tr0d4__v1	0.561	NA	37.7	246633	3.5	{'data_end': 191, 'max_hold_timeout': 802, 'rule_exit': 106363, 'stop_loss': 2224, 'trail_stop': 137053}
+profit_protect__pp_be_trail__long__1d__atr1d5_be0d5_tr0d7__v1	0.561	NA	40.0	258750	2.7	{'data_end': 158, 'max_hold_timeout': 96, 'rule_exit': 83246, 'stop_loss': 28825, 'trail_stop': 146425}
+force_index__fi13_zero_cross__short__1d__atr1d5_n13__v1	0.559	NA	28.3	99951	7.9	{'data_end': 1147, 'max_hold_timeout': 3460, 'rule_exit': 73557, 'stop_loss': 21787}
+volume__expand__short__1d__atr3_lb10__v1	0.559	NA	30.0	69667	8.0	{'data_end': 1019, 'max_hold_timeout': 1533, 'rule_exit': 64874, 'stop_loss': 2241}
+volume__expand__short__1d__atr3_lb20__v1	0.559	NA	30.0	69667	8.0	{'data_end': 1019, 'max_hold_timeout': 1533, 'rule_exit': 64874, 'stop_loss': 2241}
+profit_protect__pp_be_trail__long__1d__atr2_be0d5_tr0d5__v1	0.556	NA	39.4	252128	3.1	{'data_end': 175, 'max_hold_timeout': 442, 'rule_exit': 97814, 'stop_loss': 10930, 'trail_stop': 142767}
+profit_protect__pp_be_trail__short__1d__atr1d5_be1_tr0d5__v1	0.556	NA	41.7	245080	4.2	{'data_end': 1210, 'max_hold_timeout': 640, 'rule_exit': 103865, 'stop_loss': 32725, 'trail_stop': 106640}
+ad_line__ad_confirm__short__1d__atr1d5_lb10__v1	0.555	NA	28.9	84623	8.6	{'data_end': 1266, 'max_hold_timeout': 2113, 'rule_exit': 61939, 'stop_loss': 19305}
+profit_protect__pp_be_trail__long__1d__atr2_be0d5_tr0d4__v1	0.553	NA	37.5	248385	3.4	{'data_end': 192, 'max_hold_timeout': 797, 'rule_exit': 99707, 'stop_loss': 10727, 'trail_stop': 136962}
+profit_protect__pp_be__short__1d__atr3_be1_tr0__v1	0.553	NA	21.9	195054	6.3	{'breakeven_stop': 46951, 'data_end': 1753, 'max_hold_timeout': 2785, 'rule_exit': 139363, 'stop_loss': 4202}
+volume__expand__short__1d__atr2_lb10__v1	0.551	NA	29.7	69998	7.9	{'data_end': 1016, 'max_hold_timeout': 1518, 'rule_exit': 60337, 'stop_loss': 7127}
+volume__expand__short__1d__atr2_lb20__v1	0.551	NA	29.7	69998	7.9	{'data_end': 1016, 'max_hold_timeout': 1518, 'rule_exit': 60337, 'stop_loss': 7127}
+channel__env_breakout__short__1d__atr1d5_pct0d03__v1	0.55	NA	29.6	80442	9.1	{'data_end': 1239, 'max_hold_timeout': 2203, 'rule_exit': 56855, 'stop_loss': 20145}
+ad_line__ad_confirm__short__1d__atr2_lb20__v1	0.549	NA	31.0	50333	9.8	{'data_end': 978, 'max_hold_timeout': 1471, 'rule_exit': 40762, 'stop_loss': 7122}
+profit_protect__pp_be_trail__long__1d__atr1d5_be0d5_tr0d6__v1	0.549	NA	39.6	258153	2.8	{'data_end': 163, 'max_hold_timeout': 219, 'rule_exit': 83566, 'stop_loss': 28747, 'trail_stop': 145458}
+profit_protect__pp_be__short__1d__atr2_be1_tr0__v1	0.549	NA	21.8	196061	6.2	{'breakeven_stop': 46838, 'data_end': 1749, 'max_hold_timeout': 2778, 'rule_exit': 131582, 'stop_loss': 13114}
+ad_line__vacc_confirm__short__1d__atr2_lb40__v1	0.548	NA	30.6	31564	10.0	{'data_end': 773, 'max_hold_timeout': 988, 'rule_exit': 24698, 'stop_loss': 5105}
+profit_protect__pp_be_trail__short__1d__atr3_be1_tr0d4__v1	0.547	NA	41.8	234076	4.7	{'data_end': 1396, 'max_hold_timeout': 1231, 'rule_exit': 128071, 'stop_loss': 4979, 'trail_stop': 98399}
+profit_protect__pp_be__short__1d__atr1d5_be1_tr0__v1	0.543	NA	21.6	198345	6.2	{'breakeven_stop': 46725, 'data_end': 1740, 'max_hold_timeout': 2766, 'rule_exit': 120898, 'stop_loss': 26216}
+volume__expand__short__1d__atr1d5_lb10__v1	0.543	NA	29.1	70674	7.7	{'data_end': 1008, 'max_hold_timeout': 1495, 'rule_exit': 54108, 'stop_loss': 14063}
+volume__expand__short__1d__atr1d5_lb20__v1	0.543	NA	29.1	70674	7.7	{'data_end': 1008, 'max_hold_timeout': 1495, 'rule_exit': 54108, 'stop_loss': 14063}
+profit_protect__pp_be_trail__long__1d__atr1d5_be0d5_tr0d5__v1	0.541	NA	38.8	256324	3.1	{'data_end': 174, 'max_hold_timeout': 437, 'rule_exit': 84654, 'stop_loss': 28518, 'trail_stop': 142541}
+profit_protect__pp_be_trail__short__1d__atr2_be1_tr0d4__v1	0.541	NA	41.6	235425	4.7	{'data_end': 1389, 'max_hold_timeout': 1227, 'rule_exit': 118702, 'stop_loss': 15734, 'trail_stop': 98373}
+profit_protect__pp_be_trail__long__1d__atr1d5_be0d5_tr0d4__v1	0.539	NA	37.0	252460	3.4	{'data_end': 191, 'max_hold_timeout': 796, 'rule_exit': 86754, 'stop_loss': 28011, 'trail_stop': 136708}
+ad_line__ad_confirm__short__1d__atr1d5_lb20__v1	0.535	NA	29.9	51419	9.4	{'data_end': 955, 'max_hold_timeout': 1438, 'rule_exit': 34699, 'stop_loss': 14327}
+profit_protect__pp_be__long__1d__atr3_be0d01_tr0__v1	0.534	NA	10.2	261850	3.7	{'breakeven_stop': 205155, 'data_end': 213, 'max_hold_timeout': 1657, 'rule_exit': 53459, 'stop_loss': 1366}
+ad_line__vacc_confirm__short__1d__atr1d5_lb40__v1	0.533	NA	29.3	32406	9.5	{'data_end': 751, 'max_hold_timeout': 947, 'rule_exit': 20584, 'stop_loss': 10124}
+profit_protect__pp_be_trail__short__1d__atr1d5_be1_tr0d4__v1	0.533	NA	41.2	238539	4.6	{'data_end': 1379, 'max_hold_timeout': 1216, 'rule_exit': 105681, 'stop_loss': 31791, 'trail_stop': 98472}
+channel__env_fade__long__1d__atr3_pct0d02__v1	0.531	NA	38.3	87798	3.6	{'data_end': 300, 'max_hold_timeout': 91, 'rule_exit': 81367, 'stop_loss': 6040}
+williams_r__lines__short__1d__atr3_line15__v1	0.53	NA	29.2	14665	7.2	{'data_end': 179, 'max_hold_timeout': 279, 'rule_exit': 13789, 'stop_loss': 418}
+profit_protect__pp_be__long__1d__atr2_be0d01_tr0__v1	0.529	NA	10.1	262951	3.7	{'breakeven_stop': 204241, 'data_end': 214, 'max_hold_timeout': 1658, 'rule_exit': 50539, 'stop_loss': 6299}
+volume__climax__short__1d__atr3_lb10__v1	0.526	NA	35.2	47648	2.7	{'data_end': 51, 'max_hold_timeout': 207, 'rule_exit': 45633, 'stop_loss': 1757}
+williams_r__lines__short__1d__atr2_line15__v1	0.525	NA	28.9	14675	7.1	{'data_end': 177, 'max_hold_timeout': 275, 'rule_exit': 13067, 'stop_loss': 1156}
+volume__climax__short__1d__atr2_lb10__v1	0.524	NA	35.1	47681	2.7	{'data_end': 51, 'max_hold_timeout': 205, 'rule_exit': 43625, 'stop_loss': 3800}
+williams_r__lines__short__1d__atr1d5_line15__v1	0.521	NA	28.6	14695	7.0	{'data_end': 176, 'max_hold_timeout': 272, 'rule_exit': 12043, 'stop_loss': 2204}
+profit_protect__pp_be__long__1d__atr1d5_be0d01_tr0__v1	0.519	NA	10.1	265449	3.6	{'breakeven_stop': 201892, 'data_end': 210, 'max_hold_timeout': 1656, 'rule_exit': 45215, 'stop_loss': 16476}
+volume__climax__long__1d__atr3_lb20__v1	0.518	NA	26.8	33277	2.9	{'data_end': 110, 'max_hold_timeout': 235, 'rule_exit': 31972, 'stop_loss': 960}
+channel__env_fade__long__1d__atr2_pct0d02__v1	0.517	NA	37.7	88863	3.1	{'data_end': 209, 'max_hold_timeout': 45, 'rule_exit': 76186, 'stop_loss': 12423}
+volume__climax__short__1d__atr1d5_lb10__v1	0.517	NA	34.8	47757	2.7	{'data_end': 51, 'max_hold_timeout': 203, 'rule_exit': 40886, 'stop_loss': 6617}
+volume__climax__short__1d__atr3_lb20__v1	0.516	NA	33.7	39452	2.8	{'data_end': 45, 'max_hold_timeout': 187, 'rule_exit': 37742, 'stop_loss': 1478}
+volume__ma5_confirm__short__1d__atr3_lb10__v1	0.515	NA	29.6	72156	9.3	{'data_end': 1104, 'max_hold_timeout': 1979, 'rule_exit': 66282, 'stop_loss': 2791}
+volume__ma5_confirm__short__1d__atr3_lb20__v1	0.515	NA	29.6	72156	9.3	{'data_end': 1104, 'max_hold_timeout': 1979, 'rule_exit': 66282, 'stop_loss': 2791}
+ad_line__ad_confirm__short__1d__atr3_lb40__v1	0.512	NA	30.9	29461	10.2	{'data_end': 738, 'max_hold_timeout': 912, 'rule_exit': 26373, 'stop_loss': 1438}
+channel__hilo_fade__long__1d__atr3_pct0__v1	0.512	NA	37.8	96903	4.0	{'data_end': 391, 'max_hold_timeout': 42, 'rule_exit': 87869, 'stop_loss': 8601}
+volume__climax__short__1d__atr2_lb20__v1	0.512	NA	33.6	39474	2.8	{'data_end': 45, 'max_hold_timeout': 185, 'rule_exit': 36098, 'stop_loss': 3146}
+channel__env_fade__long__1d__atr3_pct0d015__v1	0.51	NA	35.9	123869	3.1	{'data_end': 321, 'max_hold_timeout': 60, 'rule_exit': 116756, 'stop_loss': 6732}
+volume__climax__long__1d__atr2_lb20__v1	0.51	NA	26.7	33310	2.8	{'data_end': 109, 'max_hold_timeout': 230, 'rule_exit': 30899, 'stop_loss': 2072}
+volume__climax__short__1d__atr1d5_lb20__v1	0.506	NA	33.3	39519	2.7	{'data_end': 45, 'max_hold_timeout': 183, 'rule_exit': 33873, 'stop_loss': 5418}
+channel__env_fade__long__1d__atr1d5_pct0d03__v1	0.505	NA	40.1	46132	3.3	{'data_end': 96, 'max_hold_timeout': 38, 'rule_exit': 33410, 'stop_loss': 12588}
+force_index__fi2_pullback__long__1d__atr3_n13__v1	0.505	NA	34.4	70387	3.0	{'data_end': 57, 'max_hold_timeout': 2, 'rule_exit': 66279, 'stop_loss': 4049}
+force_index__fi2_pullback_be__long__1d__atr3_n13__v1	0.504	NA	35.4	70837	3.0	{'data_end': 55, 'max_hold_timeout': 1, 'rule_exit': 60340, 'stop_loss': 3813, 'trail_stop': 6628}
+volume__ma5_confirm__short__1d__atr2_lb10__v1	0.502	NA	29.2	72601	9.1	{'data_end': 1092, 'max_hold_timeout': 1942, 'rule_exit': 60016, 'stop_loss': 9551}
+volume__ma5_confirm__short__1d__atr2_lb20__v1	0.502	NA	29.2	72601	9.1	{'data_end': 1092, 'max_hold_timeout': 1942, 'rule_exit': 60016, 'stop_loss': 9551}
+volume__climax__long__1d__atr1d5_lb20__v1	0.501	NA	26.5	33395	2.8	{'data_end': 110, 'max_hold_timeout': 226, 'rule_exit': 29181, 'stop_loss': 3878}
+ad_line__ad_confirm__short__1d__atr2_lb40__v1	0.5	NA	30.3	29791	9.9	{'data_end': 729, 'max_hold_timeout': 893, 'rule_exit': 23308, 'stop_loss': 4861}
+channel__env_fade__long__1d__atr2_pct0d015__v1	0.5	NA	35.6	124891	2.8	{'data_end': 230, 'max_hold_timeout': 35, 'rule_exit': 110179, 'stop_loss': 14447}
+volume__climax__long__1d__atr3_lb10__v1	0.5	NA	27.0	40526	2.8	{'data_end': 128, 'max_hold_timeout': 255, 'rule_exit': 39071, 'stop_loss': 1072}
+channel__hilo_fade__long__1d__atr2_pct0__v1	0.497	NA	37.1	98743	3.4	{'data_end': 262, 'max_hold_timeout': 10, 'rule_exit': 81651, 'stop_loss': 16820}
+profit_protect__pp_be_trail__short__1d__atr3_be0d5_tr0d7__v1	0.495	NA	46.2	298685	2.8	{'data_end': 743, 'max_hold_timeout': 60, 'rule_exit': 92173, 'stop_loss': 4917, 'trail_stop': 200792}
+volume__climax__long__1d__atr2_lb10__v1	0.494	NA	26.9	40565	2.8	{'data_end': 128, 'max_hold_timeout': 249, 'rule_exit': 37743, 'stop_loss': 2445}
+profit_protect__pp_be_trail__long__1d__atr3_be0d01_tr0d7__v1	0.493	NA	31.2	299898	2.2	{'data_end': 128, 'max_hold_timeout': 85, 'rule_exit': 30225, 'stop_loss': 1572, 'trail_stop': 267888}
+volume__ma5_confirm__short__1d__atr1d5_lb10__v1	0.491	NA	28.3	73633	8.8	{'data_end': 1066, 'max_hold_timeout': 1886, 'rule_exit': 51574, 'stop_loss': 19107}
+volume__ma5_confirm__short__1d__atr1d5_lb20__v1	0.491	NA	28.3	73633	8.8	{'data_end': 1066, 'max_hold_timeout': 1886, 'rule_exit': 51574, 'stop_loss': 19107}
+profit_protect__pp_be_trail__short__1d__atr2_be0d5_tr0d7__v1	0.49	NA	46.0	300252	2.8	{'data_end': 736, 'max_hold_timeout': 60, 'rule_exit': 83037, 'stop_loss': 15706, 'trail_stop': 200713}
+ad_line__ad_confirm__short__1d__atr1d5_lb40__v1	0.488	NA	29.1	30550	9.4	{'data_end': 715, 'max_hold_timeout': 863, 'rule_exit': 19570, 'stop_loss': 9402}
+profit_protect__pp_be_trail__long__1d__atr2_be0d01_tr0d7__v1	0.487	NA	31.1	301297	2.2	{'data_end': 128, 'max_hold_timeout': 84, 'rule_exit': 26828, 'stop_loss': 7259, 'trail_stop': 266998}
+force_index__fi2_pullback__long__1d__atr2_n13__v1	0.486	NA	34.0	70757	2.8	{'data_end': 40, 'max_hold_timeout': 2, 'rule_exit': 60814, 'stop_loss': 9901}
+profit_protect__pp_be_trail__short__1d__atr1d5_be0d5_tr0d7__v1	0.486	NA	45.7	303832	2.7	{'data_end': 727, 'max_hold_timeout': 57, 'rule_exit': 70389, 'stop_loss': 31820, 'trail_stop': 200839}
+volume__climax__long__1d__atr1d5_lb10__v1	0.486	NA	26.8	40658	2.8	{'data_end': 130, 'max_hold_timeout': 245, 'rule_exit': 35589, 'stop_loss': 4694}
+force_index__fi2_pullback_be__long__1d__atr2_n13__v1	0.484	NA	35.0	71187	2.7	{'data_end': 39, 'max_hold_timeout': 1, 'rule_exit': 55136, 'stop_loss': 9487, 'trail_stop': 6524}
+profit_protect__pp_be_trail__long__1d__atr3_be0d01_tr0d6__v1	0.484	NA	30.3	299297	2.3	{'data_end': 132, 'max_hold_timeout': 185, 'rule_exit': 30553, 'stop_loss': 1567, 'trail_stop': 266860}
+profit_protect__pp_be_trail__long__1d__atr2_be0d01_tr0d6__v1	0.478	NA	30.2	300691	2.3	{'data_end': 132, 'max_hold_timeout': 183, 'rule_exit': 27169, 'stop_loss': 7238, 'trail_stop': 265969}
+profit_protect__pp_be_trail__long__1d__atr1d5_be0d01_tr0d7__v1	0.477	NA	30.9	304375	2.2	{'data_end': 124, 'max_hold_timeout': 83, 'rule_exit': 20753, 'stop_loss': 18985, 'trail_stop': 264430}
+profit_protect__pp_be_trail__long__1d__atr3_be0d01_tr0d5__v1	0.476	NA	28.9	297509	2.5	{'data_end': 139, 'max_hold_timeout': 345, 'rule_exit': 31730, 'stop_loss': 1554, 'trail_stop': 263741}
+profit_protect__pp_be_trail__long__1d__atr3_be0d01_tr0d4__v1	0.474	NA	26.7	293703	2.7	{'data_end': 154, 'max_hold_timeout': 604, 'rule_exit': 34023, 'stop_loss': 1535, 'trail_stop': 257387}
+profit_protect__pp_be_trail__short__1d__atr3_be0d5_tr0d6__v1	0.474	NA	45.9	297984	2.9	{'data_end': 810, 'max_hold_timeout': 146, 'rule_exit': 92403, 'stop_loss': 4892, 'trail_stop': 199733}
+channel__env_fade__long__1d__atr1d5_pct0d02__v1	0.471	NA	36.6	90024	2.8	{'data_end': 147, 'max_hold_timeout': 34, 'rule_exit': 70066, 'stop_loss': 19777}
+profit_protect__pp_be_trail__long__1d__atr2_be0d01_tr0d5__v1	0.471	NA	28.8	298886	2.5	{'data_end': 140, 'max_hold_timeout': 344, 'rule_exit': 28365, 'stop_loss': 7188, 'trail_stop': 262849}
+profit_protect__pp_be_trail__short__1d__atr2_be0d5_tr0d6__v1	0.47	NA	45.7	299542	2.9	{'data_end': 805, 'max_hold_timeout': 146, 'rule_exit': 83292, 'stop_loss': 15653, 'trail_stop': 199646}
+profit_protect__pp_be_trail__long__1d__atr2_be0d01_tr0d4__v1	0.469	NA	26.6	295056	2.7	{'data_end': 155, 'max_hold_timeout': 604, 'rule_exit': 30704, 'stop_loss': 7108, 'trail_stop': 256485}
+profit_protect__pp_be__short__1d__atr3_be0d5_tr0__v1	0.469	NA	16.1	233917	5.1	{'breakeven_stop': 116544, 'data_end': 1628, 'max_hold_timeout': 2290, 'rule_exit': 109565, 'stop_loss': 3890}
+profit_protect__pp_be_trail__long__1d__atr1d5_be0d01_tr0d6__v1	0.467	NA	30.0	303757	2.3	{'data_end': 128, 'max_hold_timeout': 181, 'rule_exit': 21105, 'stop_loss': 18941, 'trail_stop': 263402}
+profit_protect__pp_be__short__1d__atr2_be0d5_tr0__v1	0.466	NA	16.0	234930	5.1	{'breakeven_stop': 116269, 'data_end': 1625, 'max_hold_timeout': 2287, 'rule_exit': 102473, 'stop_loss': 12276}
+profit_protect__pp_be_trail__short__1d__atr1d5_be0d5_tr0d6__v1	0.465	NA	45.4	303109	2.8	{'data_end': 796, 'max_hold_timeout': 141, 'rule_exit': 70691, 'stop_loss': 31719, 'trail_stop': 199762}
+channel__env_fade__long__1d__atr1d5_pct0d015__v1	0.464	NA	34.8	126113	2.5	{'data_end': 160, 'max_hold_timeout': 31, 'rule_exit': 101975, 'stop_loss': 23947}
+profit_protect__pp_be__short__1d__atr1d5_be0d5_tr0__v1	0.463	NA	15.9	237190	5.0	{'breakeven_stop': 115886, 'data_end': 1618, 'max_hold_timeout': 2279, 'rule_exit': 92686, 'stop_loss': 24721}
+profit_protect__pp_be_trail__long__1d__atr1d5_be0d01_tr0d5__v1	0.46	NA	28.6	301912	2.4	{'data_end': 136, 'max_hold_timeout': 342, 'rule_exit': 22332, 'stop_loss': 18816, 'trail_stop': 260286}
+profit_protect__pp_be_trail__long__1d__atr1d5_be0d01_tr0d4__v1	0.459	NA	26.4	298017	2.6	{'data_end': 151, 'max_hold_timeout': 604, 'rule_exit': 24749, 'stop_loss': 18568, 'trail_stop': 253945}
+force_index__fi2_pullback__long__1d__atr1d5_n13__v1	0.455	NA	32.9	71545	2.5	{'data_end': 36, 'max_hold_timeout': 2, 'rule_exit': 54784, 'stop_loss': 16723}
+channel__hilo_fade__long__1d__atr1d5_pct0__v1	0.452	NA	35.9	100579	3.0	{'data_end': 180, 'max_hold_timeout': 4, 'rule_exit': 75136, 'stop_loss': 25259}
+force_index__fi2_pullback_be__long__1d__atr1d5_n13__v1	0.452	NA	33.9	71935	2.5	{'data_end': 36, 'max_hold_timeout': 1, 'rule_exit': 49395, 'stop_loss': 16183, 'trail_stop': 6320}
+profit_protect__pp_be_trail__short__1d__atr3_be0d5_tr0d5__v1	0.45	NA	45.0	295600	3.1	{'data_end': 930, 'max_hold_timeout': 349, 'rule_exit': 93031, 'stop_loss': 4832, 'trail_stop': 196458}
+profit_protect__pp_be_trail__short__1d__atr2_be0d5_tr0d5__v1	0.446	NA	44.9	297126	3.1	{'data_end': 925, 'max_hold_timeout': 347, 'rule_exit': 84012, 'stop_loss': 15485, 'trail_stop': 196357}
+force_index__fi2_pullback__short__1d__atr3_n13__v1	0.443	NA	41.4	93765	3.0	{'data_end': 171, 'max_hold_timeout': 2, 'rule_exit': 87523, 'stop_loss': 6069}
+profit_protect__pp_be_trail__short__1d__atr1d5_be0d5_tr0d5__v1	0.441	NA	44.5	300651	3.0	{'data_end': 914, 'max_hold_timeout': 342, 'rule_exit': 71505, 'stop_loss': 31429, 'trail_stop': 196461}
+force_index__fi2_pullback__short__1d__atr2_n13__v1	0.439	NA	41.1	94294	2.7	{'data_end': 163, 'max_hold_timeout': 2, 'rule_exit': 82229, 'stop_loss': 11900}
+force_index__fi2_pullback_be__short__1d__atr3_n13__v1	0.439	NA	41.5	94269	2.9	{'data_end': 160, 'max_hold_timeout': 2, 'rule_exit': 84154, 'stop_loss': 5778, 'trail_stop': 4175}
+force_index__fi2_pullback_be__short__1d__atr2_n13__v1	0.435	NA	41.2	94768	2.7	{'data_end': 152, 'max_hold_timeout': 2, 'rule_exit': 79032, 'stop_loss': 11471, 'trail_stop': 4111}
+williams_r__lines__short__1d__atr3_line10__v1	0.431	NA	28.5	7438	7.3	{'data_end': 95, 'max_hold_timeout': 149, 'rule_exit': 6957, 'stop_loss': 237}
+profit_protect__pp_be_trail__short__1d__atr3_be0d5_tr0d4__v1	0.429	NA	42.8	289710	3.4	{'data_end': 1090, 'max_hold_timeout': 727, 'rule_exit': 94506, 'stop_loss': 4727, 'trail_stop': 188660}
+williams_r__lines__short__1d__atr2_line10__v1	0.426	NA	28.2	7441	7.2	{'data_end': 94, 'max_hold_timeout': 145, 'rule_exit': 6570, 'stop_loss': 632}
+profit_protect__pp_be_trail__short__1d__atr2_be0d5_tr0d4__v1	0.425	NA	42.6	291176	3.4	{'data_end': 1085, 'max_hold_timeout': 726, 'rule_exit': 85666, 'stop_loss': 15172, 'trail_stop': 188527}
+williams_r__lines__short__1d__atr1d5_line10__v1	0.425	NA	27.9	7448	7.1	{'data_end': 93, 'max_hold_timeout': 144, 'rule_exit': 6058, 'stop_loss': 1153}
+force_index__fi2_pullback__short__1d__atr1d5_n13__v1	0.424	NA	40.4	95270	2.5	{'data_end': 156, 'max_hold_timeout': 1, 'rule_exit': 76659, 'stop_loss': 18454}
+profit_protect__pp_be_trail__short__1d__atr1d5_be0d5_tr0d4__v1	0.421	NA	42.3	294557	3.3	{'data_end': 1076, 'max_hold_timeout': 719, 'rule_exit': 73406, 'stop_loss': 30778, 'trail_stop': 188578}
+force_index__fi2_pullback_be__short__1d__atr1d5_n13__v1	0.42	NA	40.5	95706	2.5	{'data_end': 145, 'max_hold_timeout': 1, 'rule_exit': 73648, 'stop_loss': 17923, 'trail_stop': 3989}
+profit_protect__pp_be__short__1d__atr3_be0d01_tr0__v1	0.382	NA	11.7	294123	3.9	{'breakeven_stop': 239481, 'data_end': 1502, 'max_hold_timeout': 1883, 'rule_exit': 48896, 'stop_loss': 2361}
+profit_protect__pp_be__short__1d__atr1d5_be0d01_tr0__v1	0.381	NA	11.6	296366	3.8	{'breakeven_stop': 234304, 'data_end': 1490, 'max_hold_timeout': 1876, 'rule_exit': 43254, 'stop_loss': 15442}
+profit_protect__pp_be__short__1d__atr2_be0d01_tr0__v1	0.381	NA	11.7	294878	3.9	{'breakeven_stop': 237572, 'data_end': 1497, 'max_hold_timeout': 1881, 'rule_exit': 46308, 'stop_loss': 7620}
+profit_protect__pp_be_trail__short__1d__atr3_be0d01_tr0d7__v1	0.378	NA	35.2	372462	2.1	{'data_end': 694, 'max_hold_timeout': 55, 'rule_exit': 19142, 'stop_loss': 2927, 'trail_stop': 349644}
+profit_protect__pp_be_trail__short__1d__atr2_be0d01_tr0d7__v1	0.377	NA	35.1	373559	2.1	{'data_end': 688, 'max_hold_timeout': 55, 'rule_exit': 15881, 'stop_loss': 9556, 'trail_stop': 347379}
+profit_protect__pp_be_trail__short__1d__atr1d5_be0d01_tr0d7__v1	0.376	NA	35.0	375828	2.1	{'data_end': 674, 'max_hold_timeout': 53, 'rule_exit': 11905, 'stop_loss': 19436, 'trail_stop': 343760}
+profit_protect__pp_be_trail__short__1d__atr3_be0d01_tr0d6__v1	0.359	NA	34.4	371544	2.2	{'data_end': 753, 'max_hold_timeout': 116, 'rule_exit': 19501, 'stop_loss': 2914, 'trail_stop': 348260}
+profit_protect__pp_be_trail__short__1d__atr2_be0d01_tr0d6__v1	0.358	NA	34.3	372630	2.2	{'data_end': 747, 'max_hold_timeout': 116, 'rule_exit': 16248, 'stop_loss': 9525, 'trail_stop': 345994}
+profit_protect__pp_be_trail__short__1d__atr1d5_be0d01_tr0d6__v1	0.357	NA	34.2	374882	2.2	{'data_end': 733, 'max_hold_timeout': 113, 'rule_exit': 12282, 'stop_loss': 19383, 'trail_stop': 342371}
+profit_protect__pp_be_trail__short__1d__atr3_be0d01_tr0d5__v1	0.34	NA	32.9	368722	2.4	{'data_end': 847, 'max_hold_timeout': 276, 'rule_exit': 20536, 'stop_loss': 2886, 'trail_stop': 344177}
+profit_protect__pp_be_trail__short__1d__atr2_be0d01_tr0d5__v1	0.339	NA	32.8	369789	2.3	{'data_end': 840, 'max_hold_timeout': 275, 'rule_exit': 17302, 'stop_loss': 9447, 'trail_stop': 341925}
+profit_protect__pp_be_trail__short__1d__atr1d5_be0d01_tr0d5__v1	0.338	NA	32.7	372010	2.3	{'data_end': 826, 'max_hold_timeout': 273, 'rule_exit': 13366, 'stop_loss': 19233, 'trail_stop': 338312}
+profit_protect__pp_be_trail__short__1d__atr3_be0d01_tr0d4__v1	0.323	NA	30.1	361734	2.6	{'data_end': 973, 'max_hold_timeout': 557, 'rule_exit': 22988, 'stop_loss': 2832, 'trail_stop': 334384}
+profit_protect__pp_be_trail__short__1d__atr1d5_be0d01_tr0d4__v1	0.322	NA	30.0	364897	2.5	{'data_end': 951, 'max_hold_timeout': 552, 'rule_exit': 15952, 'stop_loss': 18863, 'trail_stop': 328579}
+profit_protect__pp_be_trail__short__1d__atr2_be0d01_tr0d4__v1	0.322	NA	30.1	362750	2.6	{'data_end': 966, 'max_hold_timeout': 555, 'rule_exit': 19807, 'stop_loss': 9264, 'trail_stop': 332158}
