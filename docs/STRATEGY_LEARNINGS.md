@@ -365,3 +365,7 @@ Profit-booking / exit takeaway: none for exits; the lesson is data hygiene - kee
 ## brk20_min_rr main.py port and replay harness (B-798, 2026-10-12 IST)
 Lesson: the research used a Wilder EWM ATR, while main._atr_series is a rolling mean, so the port carries its own ATR to keep numbers identical (parity-tested against the research simulator, long and short). Stop is always attached, satisfying no-trade-without-SL. Bar-count constants mean hours/quarter-hours on 1h/15m, so intraday cells are not comparable to 1d. No result yet; replay is slow per-bar, hence sharding.
 Profit-booking / exit takeaway: the breakeven-at-1R ratchet and EMA13 rule exit are swept as cells; prefer whichever keeps PFnet with the shorter hold once the replay lands.
+
+## Intraday flatten re-run harness (B-792, 2026-10-12 IST)
+Lesson: of 38 short-hold viable cells only 35 are truly intraday; 3 hold 16-23h by design so a 15:15 flatten would change the strategy (classed swing). Flatten re-runs are new tags (`_fl1515__v2`), old numbers untouched; entries on the last bar before the cut are dropped. Cost kept at 0.8% for comparability (real MIS is lower, conservative). atrnone cells cannot be wired live (no-SL rule).
+Profit-booking / exit takeaway: forcing the exit at 15:15 tests whether the edge survives without overnight carry; only variants that keep PFnet >= floor under the flatten may be wired as intraday.
