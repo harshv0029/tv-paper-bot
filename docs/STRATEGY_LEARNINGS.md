@@ -248,3 +248,10 @@ unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surp
 - Result: none at PFnet >= 1.1; best `rsi__levels__long__1d__atr3_band25_n14__v1` 1.026 (n=11138, 24d hold). Universe was NIFTY200 + 182 ETFs, NOT full NSE; pfnet_gross not printed (stored NA).
 - Lesson: classic oscillator signals (RSI levels/divergence, stochastic, force index) do not clear 1.1 on daily NSE; none worth wiring. Registered research-only with real metrics.
 - Profit-booking / exit takeaway: best cells win only via ~3 ATR trails with 20+ day holds; short-hold variants stay below 1.0, so no early-profit-booking edge here.
+
+## O'Neil extension (run 38147513010) and Chan extension (run 38147514850), 2026-10-11 IST
+- Mechanism: O'Neil pivot/tightness/leaders/flag/hft weekly+daily setups; Chan kalman-band, shape, tsm, xsmom across 5m/15m/1h/1d. Logs printed only top-N slices (Artifact download 403), so 419 tags registered, not every cell.
+- Result: 185 of 419 tags PFnet >= 1.1. O'Neil 1d best oneil_pivot x tightness pr1 2.92 (n=355); 1w oneil_leaders firsthigh 2.77 (n=2173). Chan kalman band long/short 5m 1.68/1.67 (n 6190/1030), 15m ~1.29, 1h best 1.099 (just under floor); 1d pooled kalman 1.36.
+- Surprises: Chan 5m/15m gross PFnet 2.6-4.7 vs net 1.2-1.7, so the 0.8% cost eats most of the edge; Chan 1d used a NIFTY200+ETF mixed universe (not full); many 1d tags are year/VIX slices, not comparable to pooled tags; O'Neil universes were 1953-2166 symbols, not 2680.
+- Reuse: avg_hold units are unlabelled by the harness (assumed days/bars, flagged in the registry); stops of 12-25% on O'Neil need a sizing check against the SL-on-every-trade rule; every viable cell still needs a main.py replay before wiring.
+- Profit-booking / exit takeaway: state-exit kalman exits win (avg +0.8 to +1.9%) while hard stops lose -4.7 to -6%; for O'Neil, timeouts carry the profit (+14 to +19%) and stops lose -6%, so wider trails/longer holds drive the edge, not early profit booking.
