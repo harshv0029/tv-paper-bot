@@ -1,0 +1,62 @@
+name: Portfolio sizing, index regime and statistical-gate research (B-504 B-507 to B-509 B-516 to B-519 B-527 B-528 B-539 B-540 B-541 B-543 B-544 B-548 B-549 B-555 B-556 B-557 B-564 B-565 B-604)
+
+# Stage 1 (collect, 8 shards): two base entry sets x both directions x ATR 1.5/2/3, every trade stored
+# (entry/exit time, net return, stop fraction, hold, price, traded value, exit reason). FULL universe
+# via main._load_nse_universe_from_file(), daily bars, stop on every trade, 0.8% round trip.
+# Stage 2 (merge, 1 job): chronological portfolio simulation (max 10 open positions, realized-equity
+# compounding) under each sizing / circuit-breaker / ladder / ramp / regime / monitor policy, plus
+# bootstrap CI and p95 drawdown, autocorrelation and runs test, walk-forward, month / price /
+# liquidity buckets, and ^NSEI regime gates (200DMA, follow-through/distribution days). Every row
+# prints PFnet net and gross, win %, n, avg hold, final multiple, max drawdown and the universe size.
+# Dispatch only when no Deploy Gate / safety run is queued. Research only, no live wiring.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Collect trade streams
+        run: |
+          set -o pipefail
+          python3 scripts/portfolio_overlay_research.py collect --shard ${{ matrix.shard }} --nshards 8 --out out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pfovl-collect-${{ matrix.shard }}
+          path: out/
+
+  merge:
+    needs: collect
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: pfovl-collect-*
+          merge-multiple: true
+      - name: Apply overlays and print per-tag table
+        run: |
+          set -o pipefail
+          python3 scripts/portfolio_overlay_research.py merge --dir shards --json pfovl_results.json | tee pfovl_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-overlay-results
+          path: |
+            pfovl_results.json
+            pfovl_table.txt
