@@ -367,12 +367,13 @@
         <th class="num" data-sa-key="pfnet" style="cursor:pointer;user-select:none">PFnet</th>
         <th class="num" title="Average market hours held in the backtest behind this PFnet / Win %. A daily bar counts as one 6.25-hour NSE session (09:15-15:30 IST); 1h = 1 hr." data-sa-key="avg_held_hrs" style="cursor:pointer;user-select:none">Avg hrs held<br><span style="font-weight:normal;font-size:.8em">(1d = 6.25 hrs)</span></th>
         <th class="num" title="Statistical confidence that this strategy's backtested edge is real, not luck: chance the true win rate beats its break-even win rate, given PFnet, win % and trade count. 50% = break-even; higher = more trades and a wider margin." data-sa-key="entry_confidence_pct" style="cursor:pointer;user-select:none">Confidence to enter</th>
+        <th class="num" title="Stop-loss distance from entry: average of this strategy's open positions (entry vs frozen stop); if none open, its stop rule." data-sa-key="sl_pct" style="cursor:pointer;user-select:none">SL %</th>
         <th class="num" data-sa-key="scans_today" style="cursor:pointer;user-select:none">Scans today</th>
         <th class="num" data-sa-key="scans_last_30s" style="cursor:pointer;user-select:none">Scans last 30s</th>
         <th class="num" data-sa-key="successful_entries_today" style="cursor:pointer;user-select:none">Successful entries today</th>
         <th class="num" data-sa-key="win_rate_today_pct" style="cursor:pointer;user-select:none">Win % today</th>
       </tr></thead>
-      <tbody id="strategy-scan-body"><tr><td colspan="11" class="scan-idle">Loading…</td></tr></tbody>
+      <tbody id="strategy-scan-body"><tr><td colspan="12" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -944,7 +945,7 @@ function renderStrategyScanActivity(data) {
     th.innerHTML = base + (th.dataset.saKey === sk ? (window._saSortDir > 0 ? " ▲" : " ▼") : "");
   });
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="11" class="scan-idle">No viable strategies match</td></tr>`;
+    body.innerHTML = `<tr><td colspan="12" class="scan-idle">No viable strategies match</td></tr>`;
     return;
   }
   body.innerHTML = rows.map((r, i) => `<tr>
@@ -955,10 +956,11 @@ function renderStrategyScanActivity(data) {
     <td class="num">${r.pfnet !== null && r.pfnet !== undefined ? fmt(r.pfnet, 3) : "—"}</td>
     ${avgHrsHeldCell(r.avg_held_hrs)}
     <td class="num">${r.entry_confidence_pct !== null && r.entry_confidence_pct !== undefined ? fmt(r.entry_confidence_pct, 1) + "%" : "—"}</td>
+    <td class="num">${r.sl_pct !== null && r.sl_pct !== undefined ? fmt(r.sl_pct, 2) + "%" + (r.sl_open_n ? ` <span class="meta">(avg of ${r.sl_open_n} open)</span>` : "") : (r.sl_rule ? `<span class="meta">${r.sl_rule}</span>` : "<span class=\"meta\">n/a</span>")}</td>
     <td class="num">${r.scans_today ?? "—"}</td>
     <td class="num"${r.scans_last_30s === 0 ? ' title="Swing strategies scan once/day - 0 here is normal between scans, not a stall."' : ""}>${r.scans_last_30s ?? "—"}</td>
     <td class="num"${r.scan_wired === false ? ' title="Viable in research; no live scan wired yet"' : ""}>${r.successful_entries_today ?? "—"}</td>
-    <td class="num"${r.closed_today ? ` title="${r.closed_today} closed today"` : ""}>${r.win_rate_today_pct !== null && r.win_rate_today_pct !== undefined ? fmt(r.win_rate_today_pct, 1) + "%" : "—"}</td>
+    <td class="num"${r.closed_today ? ` title="${r.closed_today} closed today"` : ""}>${r.win_rate_today_pct !== null && r.win_rate_today_pct !== undefined ? fmt(r.win_rate_today_pct, 1) + "%" : "<span class=\"meta\">none closed</span>"}</td>
   </tr>`).join("");
 }
 
@@ -1512,6 +1514,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
     const row = registryName ? strategyInfoByName[registryName] : undefined;
     if (!row) {
       let reason = noDataReason(strategyTag);
+      if (registryName) reason = "registry data for '" + registryName + "' did not load (server slow or restarting) - it refreshes every ~10s";
       if (strategyTag === "real (Kotak)" || strategyTag === "kotak_untracked") reason += ` <a href="#" onclick="tagTrade();return false;">tag it</a>`;
       return `<td class="log-type">—</td><td>—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="meta">${tradeRisk || ""}${reason}</td>`;
     }
@@ -2006,10 +2009,10 @@ async function refresh() {
       fetchJSON(`${ORIGIN}/real-trades-today-bot-only`).catch(() => ({ closed_trades: [] })),
       fetchJSON(`${ORIGIN}/real-open-positions`).catch(() => ({ open_real_positions: [] })),
       fetchJSON(`${ORIGIN}/strategy-leaderboard`).catch(() => null),
-      fetchJSON(`${ORIGIN}/strategy-info`).catch(() => null),
+      fetchJSON(`${ORIGIN}/strategy-info?wired=1`).then(d => { try { localStorage.setItem("sinfo_cache", JSON.stringify(d)); } catch (e) {} return d; }).catch(() => { try { return JSON.parse(localStorage.getItem("sinfo_cache")); } catch (e) { return null; } }),
       fetchJSON(`${ORIGIN}/real-protection-status`).catch(() => null),
       fetchJSON(`${ORIGIN}/strategy-scan-activity`).catch(() => null),
-      fetchJSON(`${ORIGIN}/strategy-tag-map`).then(m => { window._tagMap = m; }).catch(() => null),
+      fetchJSON(`${ORIGIN}/strategy-tag-map`).then(m => { window._tagMap = m; try { localStorage.setItem("tagmap_cache", JSON.stringify(m)); } catch (e) {} }).catch(() => { try { window._tagMap = JSON.parse(localStorage.getItem("tagmap_cache")); } catch (e) {} }),
     ]);
     renderUnprotectedBanner(protectionStatus);
     renderStrategyScanActivity(strategyScanActivity);

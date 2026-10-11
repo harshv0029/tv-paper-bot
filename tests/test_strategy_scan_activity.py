@@ -80,7 +80,7 @@ def test_endpoint_keeps_distinct_tags_separate_even_when_same_registry_entry():
     main._record_strategy_scan("gap_and_go")
     result = main.strategy_scan_activity()
     tags_for_registry = {r["strategy_tag"]: r for r in result["strategies"]
-                          if r["registry_name"] == "gap_and_go_swing"}
+                          if r["registry_name"] == "gap_and_go__swing__long__1d__hold30__v1"}
     assert set(tags_for_registry) == {"gap_and_go", "orb-swing-gap-and-go"}
     assert tags_for_registry["gap_and_go"]["scans_today"] == 1
     assert tags_for_registry["orb-swing-gap-and-go"]["scans_today"] == 0
@@ -145,4 +145,4 @@ def test_endpoint_rows_carry_avg_held_hrs_from_registry_metrics():
     assert rows["order_block_delta"]["avg_held_hrs"] == round(23.2 * 6.25, 1)
     assert "volume_profile_poc" not in rows  # PFnet 1.025 < the 1.1 floor (2026-10-11)
     assert rows["minervini_vcp_livermore"]["avg_held_hrs"] == round(14.8 * 6.25, 1)
-    assert rows["gap_and_go"]["avg_held_hrs"] is None  # run never recorded it - never guessed
+    assert rows["gap_and_go"]["avg_held_hrs"] == 110.0  # B-413: repointed to the full-universe hold30 run
