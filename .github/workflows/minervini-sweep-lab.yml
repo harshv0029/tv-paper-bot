@@ -1,0 +1,38 @@
+name: Minervini sweep lab (full universe, long+short, ATR x candle size)
+
+# B-213..B-265 follow-up: runs scripts/minervini_sweep_lab.py, which calls the REAL
+# main.minervini_vcp_entry_signal / _short on the full NSE universe and sweeps the ATR trail.
+# 1h/15m/5m cells: yfinance intraday limits apply; bar-count constants change meaning (see script docstring).
+on:
+  workflow_dispatch:
+    inputs:
+      uni:
+        description: "full or n200"
+        default: "full"
+      atr_mults:
+        default: "1.5,2,3,4"
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        interval: ["1d"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run sweep
+        env:
+          UNI: ${{ inputs.uni }}
+          ATR_MULTS: ${{ inputs.atr_mults }}
+          INTERVAL: ${{ matrix.interval }}
+        run: python3 scripts/minervini_sweep_lab.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: minervini-sweep-${{ matrix.interval }}
+          path: docs/minervini_sweep_results_*.json
