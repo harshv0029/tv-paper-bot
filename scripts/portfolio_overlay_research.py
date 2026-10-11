@@ -244,6 +244,8 @@ POLICIES = (
     + [("ddladder", {"risk": 0.01, "policy": {"ddladder": 1}}), ("eqfilter", {"risk": 0.01, "policy": {"eqfilter": 1}}),
        ("ramp20", {"risk": 0.01, "policy": {"ramp": 1}}), ("monitor20", {"risk": 0.01, "policy": {"monitor20": 1}}),
        ("idxregime_size", {"risk": 0.01, "policy": {"regime": 1}})]
+    # B-746 diversification: max concurrent positions sweep (1% risk); tag cells maxpos3/5/10/20/40
+    + [(f"maxpos{k}", {"risk": 0.01, "K": k}) for k in (3, 5, 20, 40)]
 )
 
 
@@ -338,11 +340,11 @@ def merge(path, json_out=None, idx_df=None):
         reg_fn = make_regime_fn(regimes["dma200"]) if "dma200" in regimes else None
         base_run = None
         for pname, spec in POLICIES:
-            res = simulate_portfolio(tr, K=10, risk=spec.get("risk", 0.01), cap=spec.get("cap", 0.10),
+            res = simulate_portfolio(tr, K=spec.get("K", 10), risk=spec.get("risk", 0.01), cap=spec.get("cap", 0.10),
                                      policy=spec.get("policy"), regime=reg_fn if spec.get("policy", {}).get("regime") else None)
             if pname == "rp1.0":
                 base_run = res
-            add(base, direction, am, pname, {"k": 10}, stats(res["taken"]),
+            add(base, direction, am, pname, {"k": spec.get("K", 10)}, stats(res["taken"]),
                 {"final_mult": res["final_mult"], "max_dd_pct": res["max_dd_pct"]})
         # B-556 bootstrap p95 drawdown per risk level, B-528 worst-run drawdown
         if base_run and len(base_run["taken"]) > 100:
