@@ -216,3 +216,11 @@ unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surp
 ## 2026-10-11 Elder page-image re-read (addendum to Book 5)
 - OCR missed nothing structural: the figures add no numeric rule beyond captions. Corrected facts: ADX smoothing 13 with NO fixed 20/25 level; Stochastic slow 5-3, zones 20/80 (30/70 inside Triple Screen); %R lines 10/90; RSI 7-9 with 30/70, judged too slow for Triple Screen; MACD 12/26/9. The "6% rule" is really a 6-8% monthly loss limit (p.260), not an open-risk rule. Rows B-759..B-770 correct or add.
 - **Profit-booking / exit takeaway:** break-even after one average daily range, then a 50% profit trail; short-term exit on Force Index sign flip or Stochastic at 70; long-term exit on weekly trend reversal.
+
+## Monthly loss cap (Elder 6% rule) backtest, 2026-10-11 IST
+- Mechanism: stop new entries for the rest of the month once realized month-to-date loss reaches 4/6/8% of month-start equity. Elder's real rule is a 6-8% monthly loss limit, not an open-risk rule.
+- Fit here: tested on swing order-block/volume-profile longs (run 38130747915), with a portfolio limit of 5/10/20 concurrent positions. The first run (38129170722) had no concurrency limit and was invalid (returns below -100%); always cap concurrent positions in any equity-curve overlay.
+- Result: no consistent PFnet or drawdown gain from any cap. The cap skips winners and losers about equally (loss avoided ~= profit forgone). At 20 positions and 2% risk every cap was worse than none.
+- Reuse: judge a cap by drawdown at fixed risk with a realistic position limit, not by pooled returns; sample is small (~500-1000 trades taken).
+- Profit-booking / exit takeaway: a monthly halt did not improve net profit on this strategy set; protect capital with per-trade SL and position sizing instead.
+
