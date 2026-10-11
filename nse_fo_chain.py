@@ -613,3 +613,89 @@ def _extract_ltp(quotes_response) -> float | None:
             if val is not None:
                 return val
     return None
+
+
+# ---------------------------------------------------------------------------
+# B-418: stock-option liquidity / lot-size / premium screen (fail CLOSED).
+# Conservative named constants; a stock option failing ANY check is never bought.
+# select_nse_option_contract() only exposes premium (LTP), lot_size, strike,
+# expiry and dte - bid/ask, open interest and volume come from
+# fetch_option_liquidity() (extra kotak_neo.quotes call, response shape NOT yet
+# confirmed live), and any value that cannot be read blocks the trade.
+# ---------------------------------------------------------------------------
+STOCK_OPT_MIN_PREMIUM_INR = 2.0          # below this the 0.05 tick is >2.5% of premium
+STOCK_OPT_MAX_SPREAD_PCT = 5.0           # (ask-bid)/mid, in percent
+STOCK_OPT_MIN_OPEN_INTEREST_LOTS = 100   # open interest, in lots
+STOCK_OPT_MIN_VOLUME_LOTS = 20           # traded volume today, in lots
+STOCK_OPT_MAX_LOT_NOTIONAL_INR = 200000.0  # premium x lot_size; one lot must stay a small bet
+
+
+def _first_float(d: dict, keys):
+    for k in keys:
+        if k in d:
+            v = _to_float(d[k])
+            if v is not None:
+                return v
+    return None
+
+
+def parse_option_liquidity(quotes_response) -> dict:
+    """Pure parser: best bid/ask, open interest and volume from a Kotak quotes
+    response (list of dicts). Any field not found is None (never guessed)."""
+    out = {"bid": None, "ask": None, "open_interest": None, "volume": None}
+    if not isinstance(quotes_response, list) or not quotes_response or not isinstance(quotes_response[0], dict):
+        return out
+    d = quotes_response[0]
+    out["bid"] = _first_float(d, ("bp", "best_bid", "bid", "bid_price"))
+    out["ask"] = _first_float(d, ("sp", "best_ask", "ask", "ask_price", "offer"))
+    depth = d.get("depth")
+    if isinstance(depth, dict):
+        for side, key in (("buy", "bid"), ("sell", "ask")):
+            lvl = depth.get(side)
+            if out[key] is None and isinstance(lvl, list) and lvl and isinstance(lvl[0], dict):
+                out[key] = _to_float(lvl[0].get("price"))
+    out["open_interest"] = _first_float(d, ("open_int", "oi", "open_interest", "openInterest"))
+    out["volume"] = _first_float(d, ("last_volume", "volume", "v", "total_traded_volume", "ttv"))
+    return out
+
+
+def fetch_option_liquidity(contract: dict) -> dict:
+    """Live liquidity snapshot for a resolved contract; all-None on any failure."""
+    try:
+        q = kotak_neo.quotes(
+            [{"instrument_token": str(contract["instrument_token"]), "exchange_segment": contract["exchange_segment"]}],
+            quote_type="all",
+        )
+        return parse_option_liquidity(q)
+    except Exception:
+        return {"bid": None, "ask": None, "open_interest": None, "volume": None}
+
+
+def stock_option_tradable(contract, liquidity=None):
+    """Pure screen. Returns (True, 'ok') or (False, reason). Fails CLOSED: a missing
+    or non-positive contract field or liquidity field is a rejection, never a pass."""
+    if not isinstance(contract, dict):
+        return False, "no_contract"
+    prem = _to_float(contract.get("premium"))
+    lot = _to_float(contract.get("lot_size"))
+    if prem is None or prem <= 0:
+        return False, "premium_missing"
+    if lot is None or lot <= 0:
+        return False, "lot_size_missing"
+    if prem < STOCK_OPT_MIN_PREMIUM_INR:
+        return False, f"premium_below_min:{prem}<{STOCK_OPT_MIN_PREMIUM_INR}"
+    if prem * lot > STOCK_OPT_MAX_LOT_NOTIONAL_INR:
+        return False, f"lot_notional_too_large:{prem * lot:.0f}>{STOCK_OPT_MAX_LOT_NOTIONAL_INR:.0f}"
+    liq = liquidity or {}
+    bid, ask = _to_float(liq.get("bid")), _to_float(liq.get("ask"))
+    oi, vol = _to_float(liq.get("open_interest")), _to_float(liq.get("volume"))
+    if bid is None or ask is None or bid <= 0 or ask <= 0 or ask < bid:
+        return False, "bid_ask_missing_or_crossed"
+    spread_pct = (ask - bid) / ((ask + bid) / 2.0) * 100.0
+    if spread_pct > STOCK_OPT_MAX_SPREAD_PCT:
+        return False, f"spread_too_wide:{spread_pct:.1f}%>{STOCK_OPT_MAX_SPREAD_PCT}%"
+    if oi is None or oi < STOCK_OPT_MIN_OPEN_INTEREST_LOTS * lot:
+        return False, f"open_interest_missing_or_low:{oi}"
+    if vol is None or vol < STOCK_OPT_MIN_VOLUME_LOTS * lot:
+        return False, f"volume_missing_or_low:{vol}"
+    return True, "ok"

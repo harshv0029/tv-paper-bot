@@ -16557,8 +16557,17 @@ def get_runtime_settings():
     (see POST below) does require the token, same as every other real-
     money endpoint."""
     with closing(get_db()) as conn:
+        # B-395 (read-only addition): when/by-whom each setting was last
+        # changed, for the dashboard's "last changed" label. No row = never
+        # overridden (default in effect).
+        _meta_rows = {
+            r["key"]: (r["updated_at"], r["updated_by"])
+            for r in conn.execute("SELECT key, updated_at, updated_by FROM runtime_settings").fetchall()
+        }
         return {
             key: {
+                "updated_at": _meta_rows.get(key, (None, None))[0],
+                "updated_by": _meta_rows.get(key, (None, None))[1],
                 # real_daily_cap_inr's live-vs-override split (2026-09-22)
                 # isn't representable by plain get_runtime_setting - see
                 # _effective_real_daily_cap_inr's own docstring.
@@ -17426,6 +17435,13 @@ def _maybe_place_swing_option_leg(conn, symbol, strategy):
             return
         if nse_fo_chain.must_force_close_before_expiry(fo_u, contract["expiry"]):
             _log_real_fo_attempt(conn, leg_key, "B", "skipped_too_close_to_expiry", detail=f"expiry {contract['expiry']}")
+            return
+        # B-418: stock-option liquidity/lot/premium screen - extra skip condition only (fails closed)
+        _ok, _why = nse_fo_chain.stock_option_tradable(contract, nse_fo_chain.fetch_option_liquidity(contract))
+        if not _ok:
+            _log_real_fo_attempt(conn, leg_key, "B", "skipped_illiquid_stock_option",
+                                 kotak_trading_symbol=contract.get("kotak_trading_symbol"),
+                                 price_est=contract.get("premium"), detail=f"B-418 screen: {_why}")
             return
         _real_fo_buy_contract(
             conn, leg_key, fo_u, contract, strategy, "single_leg_swing_call",
