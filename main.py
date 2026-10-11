@@ -17370,6 +17370,70 @@ SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT = 2.0
 SWING_REAL_ENTRY_CUTOFF_MIN = 15 * 60 + 14  # 2026-10-06 (user): swing entries allowed through 15:13 IST; refused from 15:14
 
 
+def _swing_option_underlying(symbol):
+    """F&O stock underlying (e.g. 'TCS') for an NSE equity symbol like 'TCS.NS', else None."""
+    import nse_fo_chain
+    base = str(symbol or "").upper().replace(".NS", "")
+    return base if nse_fo_chain.is_physically_settled(base) else None
+
+
+def _maybe_place_swing_option_leg(conn, symbol, strategy):
+    """B-417 (user 2026-10-11, 'in addition'): a viable swing entry on an F&O stock ALSO buys ONE
+    single-strike ATM call (single leg), beside the shares position. Always carries the initial SL and
+    the trailing SL (via _real_fo_buy_contract). Gated by the existing is_real_fo_trading_enabled and
+    the PFnet floor; no new kill switch. Never raises."""
+    try:
+        if not is_real_fo_trading_enabled() or not is_real_swing_trading_enabled():
+            return
+        fo_u = _swing_option_underlying(symbol)
+        if fo_u is None:
+            return
+        leg_key = f"{fo_u}:CALL"
+        if not _is_strategy_viable_for_real_money(strategy):
+            _log_real_fo_attempt(conn, leg_key, "B", "skipped_strategy_not_viable", detail=f"swing strategy_tag={strategy}")
+            return
+        if conn.execute("SELECT 1 FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone():
+            _log_real_fo_attempt(conn, leg_key, "B", "skipped_already_open")
+            return
+        _n = ist_now()
+        if _n.hour * 60 + _n.minute >= SWING_REAL_ENTRY_CUTOFF_MIN:
+            _log_real_fo_attempt(conn, leg_key, "B", "skipped_after_entry_cutoff")
+            return
+        import kotak_live_feed, nse_fo_chain
+        tick = kotak_live_feed.get_live_ticks().get(symbol)
+        spot = float(tick["ltp"]) if tick and tick.get("ltp") else 0.0
+        if spot <= 0:
+            _log_real_fo_attempt(conn, leg_key, "B", "skipped_no_live_tick")
+            return
+        contract, err = nse_fo_chain.select_nse_option_contract(fo_u, spot, "call")
+        if contract is None:
+            _log_real_fo_attempt(conn, leg_key, "B", "skipped_no_contract", detail=err)
+            return
+        if nse_fo_chain.must_force_close_before_expiry(fo_u, contract["expiry"]):
+            _log_real_fo_attempt(conn, leg_key, "B", "skipped_too_close_to_expiry", detail=f"expiry {contract['expiry']}")
+            return
+        _real_fo_buy_contract(
+            conn, leg_key, fo_u, contract, strategy, "single_leg_swing_call",
+            f"call bought beside swing shares: strategy_tag={strategy} swing entry on {symbol}, spot {spot}",
+        )
+    except Exception as e:
+        print(f"[SWING OPTION] entry skipped for {symbol}: {e}")
+
+
+def _close_swing_option_leg(conn, symbol, reason):
+    """Closes the swing-owned option leg for `symbol` when its swing position exits. Engine ownership:
+    only legs tagged single_leg_swing_call are touched. Never raises."""
+    try:
+        fo_u = _swing_option_underlying(symbol)
+        if fo_u is None:
+            return
+        row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (f"{fo_u}:CALL",)).fetchone()
+        if row and str(row["strategy_tag"]).startswith("single_leg_swing_"):
+            _close_real_fo_option_leg(conn, row, f"swing exit: {reason or _REASON_UNSTATED}")
+    except Exception as e:
+        print(f"[SWING OPTION] exit failed for {symbol}: {e}")
+
+
 def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
     """Mirrors a paper swing exit (any exit_reason) as a REAL sell that
     closes the matching real_positions_swing row, if one exists. Same
@@ -17380,6 +17444,7 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
     structure closely; the one real difference is there's no
     target_order_id/target_price leg to cancel (Gap and Go has no fixed
     target)."""
+    _close_swing_option_leg(conn, symbol, reason)
     _why_log = functools.partial(_log_real_order_event, reason=reason or _REASON_UNSTATED)
     row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
     if not row:
@@ -17553,6 +17618,8 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     other entry failure, just not pre-filtered here."""
     if not is_real_swing_trading_enabled():
         return  # expected default state - not logged, this isn't an "attempt"
+
+    _maybe_place_swing_option_leg(conn, symbol, strategy)  # B-417: single-strike call beside the shares
 
     if conn.execute("SELECT 1 FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone():
         _log_real_attempt(conn, symbol, "B", "skipped_already_open", strategy=strategy)
