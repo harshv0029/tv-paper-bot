@@ -1,0 +1,87 @@
+name: Class-A unwired strategies replay (sector_rotation fade short + minervini variants)
+
+# Backlog: viable-but-unwired class-A strategies (existing main.py functions with variant params).
+# Matrix derived at dispatch from strategy_registry (viable now AND not scan-wired), never a stored
+# flag; scripts/class_a_replay.py, cap 40 jobs. Full universe (main._load_nse_universe_from_file()),
+# 0.8% round-trip cost, stop on every trade (atrnone cells refused), every metric emitted.
+# Dispatch order per CLAUDE.md: big matrix, so only when no gate/safety run is queued or running.
+# Results are research evidence only: register as NEW tags (v2) per the immutability rule; wiring
+# is a separate step (docs/class_a_wiring_notes.md). No kill switch is touched here.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - id: p
+        env:
+          MODE: plan
+        run: |
+          python3 scripts/class_a_replay.py > plan.txt
+          echo "matrix=$(tail -n1 plan.txt)" >> "$GITHUB_OUTPUT"
+
+  replay:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay
+        env:
+          MODE: ${{ matrix.mode }}
+          NAME: ${{ matrix.name }}
+          CELLS: ${{ matrix.cells }}
+          BE_R: ${{ matrix.name }}
+          VARIANT: ${{ matrix.name }}
+        run: python3 scripts/class_a_replay.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: classa-${{ matrix.mode }}-${{ matrix.name }}
+          path: out/
+
+  aggregate:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          pattern: classa-*
+          merge-multiple: true
+      - name: Combine
+        run: |
+          python3 - <<'PYEOF'
+          import glob, json
+          rows = {f: json.load(open(f)) for f in sorted(glob.glob("out/class_a_*.json"))}
+          json.dump(rows, open("out/class_a_all.json", "w"), indent=1)
+          for f, r in rows.items():
+              if r["mode"] == "sector_short":
+                  for tag, c in r["cells"].items():
+                      for fill, m in c["by_stop_fill"].items():
+                          print(tag, fill, "n", m["n"], "pfnet", m["pfnet"], "win", m["win_pct"], "hold", m["avg_held_bars"], "universe", r["universe_size"])
+              elif "metrics" in r and r["mode"] == "minervini_be":
+                  m = r["metrics"]; print("minervini_be", r["be_r"], "n", m["n"], "pfnet", m["pfnet"], "win", m["win_pct"], "hold", m["avg_held_bars"], "universe", r["universe_size"])
+              else:
+                  m = r["metrics"]; print(r["tag_replay_v2"], "n", m["n"], "pfnet", m["pfnet"], "win", m["win_pct"], "hold", m["avg_held_bars"])
+          PYEOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: classa-all
+          path: out/class_a_all.json
