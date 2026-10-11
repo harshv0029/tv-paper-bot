@@ -1,0 +1,12 @@
+{
+ "B-288": {"status": "DONE", "evidence": "Verified 2026-10-11 IST: commit 974a458 is on origin/main; SWING_GAP_AND_GO_MAX_HOLD_DAYS present 3x in origin/main main.py; hold30 tag in docs/STRATEGY_RESULTS_LOG.md (PFnet 1.310, n=11451). No longer unmerged."},
+ "B-289": {"status": "DONE", "evidence": "Verified 2026-10-11 IST: Days column shipped in 974a458 (on origin/main); static/trade-view.html on origin/main contains it. Closed-trade rows still show a dash (optional follow-up)."},
+ "B-293": {"status": "DONE", "evidence": "Verified 2026-10-11 IST: commit d655ae1 (ensure_resting_sl scan-then-act) is on origin/main; kotak_real_orders.ensure_resting_sl + 8 main.py refs; 53 tests passed (ensure_resting_sl, exchange_purge_window, no_sl_replace_in_closing_session, swing_stopout_cluster, real_positions_swing_external, real_sl_reconcile)."},
+ "B-259": {"status": "DONE", "evidence": "Verified 2026-10-11 IST: _swing_stopout_cluster present on origin/main main.py; tests/test_swing_stopout_cluster.py passes."},
+ "B-287": {"status": "OPEN (research done, sweeps owed)", "evidence": "Run 37572300915 registered (hold30 PFnet 1.310 n=11451; hold60 1.47). Owed: ATR x candle-size sweep and short-mirror hold sweep; needs full-universe Actions runs (coordinator dispatch)."},
+ "B-295": {"status": "OPEN (audit part 1 done)", "evidence": "_align_intraday_sl_rows_to_kotak on origin/main; remaining audit of qty/entry price/fills/dashboard P&L vs Kotak still owed."},
+ "B-296": {"status": "OPEN (audit owed)", "evidence": "Merged; per-path audit of every reconcile/heal/exit path for the governance sequence not yet done."},
+ "B-309": {"status": "OPEN follow-up (b)", "evidence": "Follow-up (a) done: exchange_purge_window on origin/main, tests pass. (b) needs Kotak order book at a 09:15 IST open; BLOCKED on live verification."},
+ "B-310": {"status": "DONE in code, verify with next swing holding >5 days", "evidence": "BLOCKED on time/live data: needs a real swing holding older than 5 days."},
+ "B-285,B-290,B-292,B-294,B-297,B-298,B-299,B-300,B-301,B-302,B-303,B-304,B-305,B-306,B-307,B-308": {"status": "DONE-PENDING-VERIFY (unchanged)", "evidence": "BLOCKED: need live Kotak order book/trade book verification (subagents may not call Kotak). Code merged to main, related tests green; close from the next audit run."}
+}
