@@ -965,9 +965,9 @@ function renderStrategyScanActivity(data) {
     ${avgHrsHeldCell(r.avg_held_hrs)}
     <td class="num">${r.entry_confidence_pct !== null && r.entry_confidence_pct !== undefined ? fmt(r.entry_confidence_pct, 1) + "%" : "—"}</td>
     <td class="num">${r.sl_pct !== null && r.sl_pct !== undefined ? fmt(r.sl_pct, 2) + "%" + (r.sl_open_n ? ` <span class="meta">(avg of ${r.sl_open_n} open)</span>` : "") : (r.sl_rule ? `<span class="meta">${r.sl_rule}</span>` : "<span class=\"meta\">n/a</span>")}</td>
-    <td class="num">${r.scans_today ?? "—"}</td>
-    <td class="num"${r.scans_last_30s === 0 ? ' title="Swing strategies scan once/day - 0 here is normal between scans, not a stall."' : ""}>${r.scans_last_30s ?? "—"}</td>
-    <td class="num"${r.scan_wired === false ? ' title="Viable in research; no live scan wired yet"' : ""}>${r.successful_entries_today ?? "—"}</td>
+    <td class="num">${r.scans_today ?? (r.scan_wired === false ? "not wired" : "0")}</td>
+    <td class="num"${r.scans_last_30s === 0 ? ' title="Swing strategies scan once/day - 0 here is normal between scans, not a stall."' : ""}>${r.scans_last_30s ?? (r.scan_wired === false ? "not wired" : "0")}</td>
+    <td class="num"${r.scan_wired === false ? ' title="Viable in research; no live scan wired yet"' : ""}>${r.successful_entries_today ?? (r.scan_wired === false ? "not wired" : "0")}</td>
     <td class="num"${r.closed_today ? ` title="${r.closed_today} closed today"` : ""}>${r.win_rate_today_pct !== null && r.win_rate_today_pct !== undefined ? fmt(r.win_rate_today_pct, 1) + "%" : "<span class=\"meta\">none closed</span>"}</td>
   </tr>`).join("");
 }
