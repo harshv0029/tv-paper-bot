@@ -361,3 +361,7 @@ Profit-booking / exit takeaway: the weekly flatbase cells with timeout h12 (hold
 ## Gross PFnet fill attempt (B-804, 2026-10-12 IST)
 Lesson: of 371 viable rows missing gross PFnet, none could be filled by exact reproduction; stored artifacts either do not exist, have an empty gross column, or came from a re-run whose n differs by 1-3 (data drift), so they are a different sample and must not be merged. Gross PFnet needs the run to print it; research workflows must emit pfgross going forward.
 Profit-booking / exit takeaway: none for exits; the lesson is data hygiene - keep every measured field at run time, because backfilling later is not possible once the sample drifts.
+
+## brk20_min_rr main.py port and replay harness (B-798, 2026-10-12 IST)
+Lesson: the research used a Wilder EWM ATR, while main._atr_series is a rolling mean, so the port carries its own ATR to keep numbers identical (parity-tested against the research simulator, long and short). Stop is always attached, satisfying no-trade-without-SL. Bar-count constants mean hours/quarter-hours on 1h/15m, so intraday cells are not comparable to 1d. No result yet; replay is slow per-bar, hence sharding.
+Profit-booking / exit takeaway: the breakeven-at-1R ratchet and EMA13 rule exit are swept as cells; prefer whichever keeps PFnet with the shorter hold once the replay lands.
