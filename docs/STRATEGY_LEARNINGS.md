@@ -200,3 +200,9 @@ unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surp
 - Conflicts noted: pyramid adds vs SL-on-every-trade (test with combined-risk stop); book's long-dated options advice vs our <=5-day trailing-SL option rule (repo rule wins); 'do not day trade' vs our intraday engines.
 - Reuse next time: test all exit rules on the same entry set so differences are exits, not entries; gate tests are cheap (index data only).
 - Profit-booking / exit takeaway: book says cut at 7-8%, take +20%, but hold winners at least 8 weeks if +20% arrives in under 8 weeks; the contrast with our faster-turnover rule must be settled by data (PFnet per day held), not by the book.
+
+## 2026-10-11 Book 6: Mark Douglas, Trading in the Zone (extraction, no backtest yet)
+- **Mechanism:** almost pure psychology; no price-pattern strategy. The automatable core is process and risk rules: fixed-fractional sizing, predefined stop that only ratchets in the trade's favour, scale-out ladder, expectancy and sample-size gate (judge a strategy on 20+ trades, not one), last-20-trade live check, drawdown size ladder, no-discretion execution, audits.
+- **Fit:** these are overlays on strategies already viable, so they are cheap to test on stored trade lists (B-527..B-563). Any rule that pauses trading must go through the existing viability gate; no new kill switch. The streak-pause idea needs the user's yes before wiring.
+- **Reuse:** test each overlay as an A/B on PFnet and drawdown across the viable tags; register results as separate tags.
+- **Profit-booking / exit takeaway:** predefined stops and a monotonic ratchet plus a scale-out ladder decide how profit is booked; settle ladder fractions by data (sweep), not by the book's philosophy.
