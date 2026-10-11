@@ -85,7 +85,10 @@ def build():
                      ("1d", "minervini_lab_results.json"), ("1d", "minervini_lab_results_full.json"),
                      ("1d", "breadth_lab_results.json"), ("1d", "combo_lab_results.json"),
                      ("1d", "intermarket_lab_results.json"),
-                     ("1d", "overnight_anomaly_results.json"), ("1d", "overnight_anomaly_results_n200.json")):
+                     ("1d", "overnight_anomaly_results.json"), ("1d", "fib_golden_results.json"), ("1d", "fib_golden_results_n200.json"), ("1h", "fib_golden_results_1h_n200.json"), ("5m", "emt_results_5m_n200.json"), ("15m", "emt_results_15m_n200.json"), ("5m", "vwap_rtv_results_5m_n200.json"), ("15m", "vwap_rtv_results_15m_n200.json"), ("5m", "six_strat_results_5m_n200.json"), ("15m", "six_strat_results_15m_n200.json"), ("1h", "six_strat_results_1h_n200.json"), ("5m", "intraday_ob_scalp_results_n200.json"), ("15m", "intraday_ob_scalp_results_15m_n200.json"), ("1d", "rsi_pullback_sma200_results.json"), ("1d", "rsi_pullback_sma200_results_n200.json"), ("1d", "overnight_anomaly_results_n200.json"),
+                     ("1d", "morning_star_bos_results.json"), ("1d", "morning_star_bos_results_n200.json"),
+                     ("1h", "morning_star_bos_results_1h_n200.json"), ("15m", "morning_star_bos_results_15m_n200.json"),
+                     ("5m", "morning_star_bos_results_5m_n200.json")):
         for tag, m in _load(_fn).get("results", {}).items():
             # the n200 (live swing universe) file owns the plain tag; other universes get a variant suffix so no
             # two universes ever share a name (immutability / never pool)
