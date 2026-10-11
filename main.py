@@ -5551,6 +5551,103 @@ def volume_profile_poc_exit_reason(
     return None, new_running_max
 
 
+# ---- Swing "exitinval" exit family (OB / VP, wired 2026-10-11) -------------
+# Exit-family research run 38140914889 (scripts/exit_family_research.py, simulate() kind "inval"):
+# SAME entries as order_block_entry_signal / volume_profile_poc_entry_signal, but exit =
+# catastrophic stop entry - 6.0 x ATR14(at entry) (FIXED, never trails) + weekly EMA13 turn-down
+# invalidation (completed weeks only) + 30-trading-day max hold. Tags are the registry names.
+SWING_EXITINVAL_ATR_MULT = 6.0
+SWING_EXITINVAL_MAX_HOLD_DAYS = 30
+SWING_EXITINVAL_VP_TAG = "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1"
+SWING_EXITINVAL_OB_TAG = "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1"
+# new tag -> (legacy label, entry fn name); entry fns are looked up by name at call time
+SWING_EXITINVAL_TAGS = {
+    SWING_EXITINVAL_VP_TAG: ("volume_profile_poc", "volume_profile_poc_entry_signal"),
+    SWING_EXITINVAL_OB_TAG: ("order_block_delta", "order_block_entry_signal"),
+}
+
+
+def swing_exitinval_stop(entry_price: float, atr_at_entry: float) -> float:
+    """The frozen catastrophic stop for the exitinval tags (placed as the real resting SL)."""
+    return float(entry_price) - SWING_EXITINVAL_ATR_MULT * float(atr_at_entry)
+
+
+def weekly_ema13_down_flags(dates, closes) -> np.ndarray:
+    """Per-day booleans, faithful to exit_family_research._weekly_down_flags (long orientation):
+    True on day d when the weekly EMA13 (span 13, adjust=False, on Friday-anchored weekly last
+    closes) of the last COMPLETED week before d's own week is below the one before it. A day in
+    week w only sees week w-1 (no lookahead on the in-progress week). All False when fewer than
+    30 weeks of history exist."""
+    n = len(closes)
+    out = np.zeros(n, bool)
+    try:
+        per = pd.DatetimeIndex(pd.to_datetime(dates)).to_period("W-FRI")
+    except Exception:
+        return out
+    codes, _ = pd.factorize(per, sort=True)
+    nw = int(codes.max()) + 1
+    if nw < 30:
+        return out
+    wc = pd.Series(np.asarray(closes, float)).groupby(codes).last().to_numpy()
+    e13 = pd.Series(wc).ewm(span=13, adjust=False).mean().to_numpy()
+    w_e = np.zeros(nw, bool)
+    w_e[1:] = e13[1:] < e13[:-1]
+    prev = np.clip(codes - 1, 0, None)
+    return np.where(codes >= 1, w_e[prev], False)
+
+
+def swing_exitinval_exit_reason(
+    df: pd.DataFrame, entry_day: str, entry_price: float, atr_at_entry: float, running_max_close: float,
+) -> tuple:
+    """Exit for the exitinval tags, replaying every completed bar after entry_day in order (so a
+    skipped/missed scan day cannot hide an event), same per-bar order as the research simulate():
+    (1) open <= stop -> stop_hit; low <= stop -> stop_hit (intrabar; the live protection is the
+    resting Kotak SL, this is the paper/bookkeeping mirror); (2) weekly EMA13 turn-down onset
+    (flag[j] and not flag[j-1]) -> signal_invalidation; (3) held >= 30 trading days ->
+    max_hold_timeout. Returns (reason_or_None, updated_running_max_close)."""
+    if len(df) == 0:
+        return None, running_max_close
+    dates = (df["Date"] if "Date" in df.columns else pd.Series(df.index)).astype(str).str[:10].to_numpy()
+    closes = df["Close"].to_numpy(dtype=float)
+    opens = df["Open"].to_numpy(dtype=float)
+    lows = df["Low"].to_numpy(dtype=float)
+    new_running_max = max(float(running_max_close or entry_price), float(closes[-1]))
+    stop = swing_exitinval_stop(entry_price, atr_at_entry)
+    flags = weekly_ema13_down_flags(df["Date"] if "Date" in df.columns else df.index, closes)
+    held = 0
+    for j in range(len(df)):
+        if dates[j] <= str(entry_day)[:10]:
+            continue
+        held += 1
+        if opens[j] <= stop or lows[j] <= stop:
+            return "stop_hit", new_running_max
+        if j >= 1 and flags[j] and not flags[j - 1]:
+            return "signal_invalidation", new_running_max
+        if held >= SWING_EXITINVAL_MAX_HOLD_DAYS:
+            return "max_hold_timeout", new_running_max
+    return None, new_running_max
+
+
+def _swing_exitinval_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close):
+    """Same signature as order_block_exit_reason & co. The entry price is recovered from the frozen
+    stop (stop = entry - 6 x ATR, both stored at entry), so no extra column is needed."""
+    return swing_exitinval_exit_reason(
+        df, entry_day, float(initial_stop) + SWING_EXITINVAL_ATR_MULT * float(atr_at_entry),
+        atr_at_entry, running_max_close)
+
+
+def swing_obvp_exit_fn(strategy: str):
+    """Exit function for an OB/VP swing position: exitinval for the new tags, the legacy
+    chandelier exits for positions still carrying the old tags; None for any other tag."""
+    if strategy in SWING_EXITINVAL_TAGS:
+        return _swing_exitinval_adapter
+    if strategy == "order_block_delta":
+        return order_block_exit_reason
+    if strategy == "volume_profile_poc":
+        return volume_profile_poc_exit_reason
+    return None
+
+
 # ---- Power Play short mirror ("power fade") --------------------------------
 #
 # 2026-09-29, explicit user instruction ("Prep short mirror for others
@@ -10563,6 +10660,10 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # not yet re-validated (backlog B-30), disclosed at their definitions.
     "order_block_delta": "order_block_delta__retest__long__1d__trail6d0__v1",
     "volume_profile_poc": "volume_profile_poc__bounce__long__1d__trail6d0__v1",
+    # 2026-10-11: exit-family research run 38140914889 (exitinval: 6 ATR stop + weekly EMA13 turn + 30d hold).
+    # New OB/VP entries carry these tags; the legacy tags above stay for already-open positions.
+    "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+    "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
     # 2026-10-10 B-345 MCX daily engine: the tag IS the registry name.
     "sma_crossover__gc__long__1d__atrnone__v1": "sma_crossover__gc__long__1d__atrnone__v1",
     "keltner_channel_breakout__si__long__1d__atrnone__v1": "keltner_channel_breakout__si__long__1d__atrnone__v1",
@@ -18238,8 +18339,8 @@ def _run_swing_scan_pass(conn):
                         (new_running_max, symbol),
                     )
                     conn.commit()
-            elif pos["strategy"] in ("order_block_delta", "volume_profile_poc"):
-                _exit_fn = order_block_exit_reason if pos["strategy"] == "order_block_delta" else volume_profile_poc_exit_reason
+            elif swing_obvp_exit_fn(pos["strategy"]) is not None:
+                _exit_fn = swing_obvp_exit_fn(pos["strategy"])
                 reason, new_running_max = _exit_fn(
                     df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
                 )
@@ -18448,17 +18549,17 @@ def _run_swing_scan_pass(conn):
         _record_strategy_scan("minervini_vcp_be3r")
         vcp_signal = minervini_vcp_entry_signal(df, rs_percentile=rs_pct.get(symbol))
         if not vcp_signal:
-            # Lowest-PFnet entries checked LAST (order_block_delta 1.062,
-            # volume_profile_poc 1.025) so they never crowd out a better
-            # setup the same day - same ranking convention as the chain above.
-            for _tag, _sig_fn in (("order_block_delta", order_block_entry_signal),
-                                  ("volume_profile_poc", volume_profile_poc_entry_signal)):
+            # Lowest-PFnet entries checked LAST so they never crowd out a better setup the same day.
+            # 2026-10-11: NEW entries carry the exitinval tags (VP 1.2675 first, then OB 1.1658); same
+            # entry fns, but the stop is the frozen 6 x ATR catastrophic stop (what Kotak rests).
+            for _tag, _sig_fn in ((SWING_EXITINVAL_VP_TAG, volume_profile_poc_entry_signal),
+                                  (SWING_EXITINVAL_OB_TAG, order_block_entry_signal)):
                 _record_strategy_scan(_tag)
                 _sig = _sig_fn(df)
                 if not _sig:
                     continue
                 entry_price = _sig["entry_price"]
-                stop_loss = _sig["stop_loss"]
+                stop_loss = swing_exitinval_stop(entry_price, _sig["atr_at_entry"])  # NOT the entry fn's stop
                 qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
                 if qty <= 0:
                     break
@@ -20280,6 +20381,8 @@ _SWING_SL_RULES = {
     "minervini_vcp_be3r": f"final-leg low, flat; moves to entry at {MINERVINI_BREAKEVEN_R_3:g}R",
     "order_block_delta": f"lower of OB low / entry - {ORDER_BLOCK_ATR_STOP_MULT:g}xATR, then trails {ORDER_BLOCK_ATR_TRAIL_MULT:g}xATR",
     "volume_profile_poc": f"value-area band low, then trails {VP_ATR_TRAIL_MULT:g}xATR below peak close",
+    SWING_EXITINVAL_VP_TAG: f"entry - {SWING_EXITINVAL_ATR_MULT:g}xATR, frozen (exit also on weekly EMA13 turn-down)",
+    SWING_EXITINVAL_OB_TAG: f"entry - {SWING_EXITINVAL_ATR_MULT:g}xATR, frozen (exit also on weekly EMA13 turn-down)",
 }
 
 

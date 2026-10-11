@@ -31,13 +31,16 @@ import pandas as pd
 warnings.filterwarnings("ignore")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.join(ROOT, 'scripts'))
 
 # bar-count constants change meaning with candle size (stated in the workflow header)
 CFG = {
     "1d": dict(period="5y", base=40, vol=50, smalt=200, flat=35, adv_lb=60, rs_lb=252, yr=252, swing=3,
-               holds=(20, 40, 60), min_bars=300),
+               holds=(20, 40, 60), min_bars=300,
+               cupmin=35, cupmax=250, saucer_min=100, hmin=5, hmax=20, dbmin=20, dbmax=120),
     "1w": dict(period="10y", base=8, vol=10, smalt=40, flat=7, adv_lb=12, rs_lb=52, yr=52, swing=2,
-               holds=(8, 12, 26), min_bars=120),
+               holds=(8, 12, 26), min_bars=120,
+               cupmin=7, cupmax=65, saucer_min=20, hmin=1, hmax=4, dbmin=5, dbmax=30),
 }
 CHASES = (0.05, 0.10)
 RS_FILTERS = ("none", "80")
@@ -149,6 +152,9 @@ def entry_signals(o, h, l, c, v, rs, cfg):
             out[("oneil_newhigh", "first", "short", None, rsf)] = nh_short & ok_s[rsf]
         out[("oneil_rsscreen", "top", "long", None, "90")] = rs_long
         out[("oneil_rsscreen", "top", "short", None, "20")] = rs_short
+    if os.environ.get("PATTERNS", "1") != "0":  # B-461..B-465 cup/saucer/double-bottom (scripts/oneil_patterns.py)
+        import oneil_patterns
+        out.update(oneil_patterns.pattern_signals(o, h, l, c, v, rs, cfg, CHASES, RS_FILTERS))
     return {k: np.nan_to_num(np.asarray(m, float)).astype(bool) for k, m in out.items()}
 
 

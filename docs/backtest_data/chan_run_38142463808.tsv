@@ -1,0 +1,259 @@
+tag	pfnet_net	pfnet_gross	win_pct	n	avg_hold_days	exits
+chan_tsm__lookback_sign__long__1h__atr2d5_hold25_lb300__v1	1.554	2.183	31.0	218801	18.11	{'max_hold': 114740, 'stop': 104061}
+chan_tsm__lookback_sign__long__1h__atr2d5_hold25_lb150__v1	1.534	2.154	31.1	224552	18.22	{'stop': 106044, 'max_hold': 118508}
+chan_tsm__lookback_sign__long__1h__atr2d5_hold25_lb50__v1	1.519	2.129	30.8	226023	18.27	{'stop': 106730, 'max_hold': 119293}
+chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1	1.451	3.143	44.0	1151	1.0	{'stop': 1, 'close': 1150}
+chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1	1.416	3.015	44.0	1151	1.0	{'stop': 14, 'close': 1137}
+chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1	1.37	2.876	43.6	1151	1.0	{'stop': 56, 'close': 1095}
+chan_tsm__lookback_sign__long__1h__atr1d5_hold25_lb50__v1	1.32	2.007	23.6	299339	13.44	{'stop': 201034, 'max_hold': 98305}
+chan_gap__short_on_gap__short__1d__atr1d5_top10__v1	1.305	2.702	53.0	1133	1.0	{'stop': 77, 'close': 1056}
+chan_gap__short_on_gap__short__1d__atr4d0_top10__v1	1.29	2.638	53.5	1133	1.0	{'stop': 8, 'close': 1125}
+chan_gap__short_on_gap__short__1d__atr2d5_top10__v1	1.278	2.601	53.5	1133	1.0	{'stop': 31, 'close': 1102}
+chan_tsm__lookback_sign__long__1d__atr4d0_hold25_lb60__v1	1.098	1.286	44.0	49374	23.03	{'max_hold': 41600, 'stop': 7774}
+chan_tsm__lookback_sign__long__1d__atr4d0_hold25_lb120__v1	1.067	1.251	43.2	47823	22.86	{'max_hold': 39830, 'stop': 7993}
+chan_tsm__lookback_sign__long__1d__atr4d0_hold25_lb20__v1	1.066	1.241	43.2	49769	22.9	{'max_hold': 40946, 'stop': 8823}
+chan_xs_o2c__decile_gap_reversion__short__1d__atr4d0_dec10__v1	1.044	2.096	55.2	118405	1.0	{'stop': 470, 'close': 117935}
+chan_xs_o2c__decile_gap_reversion__short__1d__atr2d5_dec10__v1	1.033	2.067	55.1	118405	1.0	{'stop': 2333, 'close': 116072}
+chan_xs_o2c__decile_gap_reversion__short__1d__atr1d5_dec10__v1	1.028	2.063	54.8	118405	1.0	{'stop': 7423, 'close': 110982}
+chan_tsm__lookback_sign__long__1d__atr2d5_hold25_lb60__v1	1.01	1.188	39.7	57310	19.54	{'max_hold': 35399, 'stop': 21911}
+chan_tsm__lookback_sign__long__1d__atr2d5_hold25_lb120__v1	0.999	1.177	39.1	55693	19.44	{'max_hold': 33966, 'stop': 21727}
+chan_alexander__zigzag__long__1d__atr4d0_hold30_x0d2__v1	0.982	1.109	41.5	10715	25.41	{'state_exit': 1256, 'max_hold': 7221, 'stop': 2238}
+chan_tsm__lookback_sign__long__1d__atr2d5_hold25_lb20__v1	0.972	1.138	38.4	58707	19.25	{'max_hold': 34936, 'stop': 23771}
+chan_alexander__zigzag__long__1d__atr4d0_hold30_x0d1__v1	0.956	1.107	36.9	24327	18.44	{'state_exit': 15798, 'max_hold': 7074, 'stop': 1455}
+chan_alexander__zigzag__long__1d__atr2d5_hold30_x0d1__v1	0.947	1.102	35.1	23998	17.1	{'state_exit': 11033, 'max_hold': 6179, 'stop': 6786}
+chan_alexander__zigzag__long__1h__atr4d0_hold30_x0d1__v1	0.947	1.27	41.5	30066	25.96	{'max_hold': 21236, 'stop': 7320, 'state_exit': 1510}
+chan_alexander__zigzag__long__1h__atr2d5_hold30_x0d1__v1	0.945	1.295	37.6	31265	21.51	{'max_hold': 16161, 'stop': 14268, 'state_exit': 836}
+chan_alexander__zigzag__long__1h__atr1d5_hold30_x0d1__v1	0.942	1.37	29.3	32169	15.78	{'max_hold': 10879, 'stop': 20771, 'state_exit': 519}
+chan_alexander__zigzag__long__1d__atr1d5_hold30_x0d1__v1	0.918	1.095	28.5	26339	13.25	{'stop': 15275, 'state_exit': 6277, 'max_hold': 4787}
+chan_tsm__lookback_sign__long__1d__atr1d5_hold25_lb120__v1	0.911	1.103	29.9	73022	14.51	{'stop': 45034, 'max_hold': 27988}
+chan_tsm__lookback_sign__long__1d__atr1d5_hold25_lb60__v1	0.904	1.092	30.2	75242	14.51	{'max_hold': 29002, 'stop': 46240}
+chan_alexander__zigzag__long__1d__atr2d5_hold30_x0d2__v1	0.903	1.028	35.4	11594	20.2	{'state_exit': 596, 'max_hold': 5388, 'stop': 5610}
+chan_tsm__lookback_sign__long__1d__atr1d5_hold25_lb20__v1	0.898	1.082	29.3	76702	14.22	{'stop': 48206, 'max_hold': 28496}
+chan_alexander__zigzag__long__1h__atr4d0_hold30_x0d2__v1	0.87	1.139	39.2	10246	25.87	{'max_hold': 7377, 'stop': 2855, 'state_exit': 14}
+chan_alexander__zigzag__long__1d__atr1d5_hold30_x0d2__v1	0.866	1.013	25.6	12624	14.13	{'state_exit': 382, 'max_hold': 3523, 'stop': 8719}
+chan_alexander__zigzag__long__1h__atr2d5_hold30_x0d2__v1	0.865	1.161	34.8	10303	20.94	{'max_hold': 5187, 'stop': 5106, 'state_exit': 10}
+chan_shape__mom_mr__long__1d__atr4d0_hold10__v1	0.858	1.111	40.4	40246	9.8	{'max_hold': 38097, 'stop': 2149}
+chan_alexander__zigzag__long__1h__atr1d5_hold30_x0d2__v1	0.851	1.218	26.7	10327	15.19	{'max_hold': 3321, 'stop': 7002, 'state_exit': 4}
+chan_zmr__trendma100__long__1d__atr4d0_hold40__v1	0.849	1.147	60.4	28291	10.42	{'state_exit': 24397, 'max_hold': 517, 'stop': 3377}
+chan_updays__bb_upper__long__1d__atr4d0_hold10__v1	0.845	1.055	40.5	36905	9.7	{'max_hold': 33910, 'stop': 2995}
+chan_ema_regime__cross__long__1d__atr4d0_hold60_lb50__v1	0.824	1.094	17.3	44490	10.69	{'state_exit': 42268, 'max_hold': 1897, 'stop': 325}
+chan_ema_regime__cross__long__1d__atr2d5_hold60_lb50__v1	0.82	1.095	17.3	42785	10.62	{'state_exit': 39225, 'max_hold': 1811, 'stop': 1749}
+chan_ema_regime__cross__long__1d__atr1d5_hold60_lb100__v1	0.811	1.066	14.4	27818	11.65	{'state_exit': 20043, 'stop': 5630, 'max_hold': 2145}
+chan_ema_regime__cross__long__1d__atr1d5_hold60_lb50__v1	0.809	1.091	16.8	38678	10.21	{'state_exit': 30497, 'stop': 6622, 'max_hold': 1559}
+chan_ema_regime__cross__long__1d__atr4d0_hold60_lb200__v1	0.808	1.027	13.8	17619	13.69	{'state_exit': 15443, 'max_hold': 1971, 'stop': 205}
+chan_zmr__fixed20__long__1d__atr4d0_hold40__v1	0.807	1.061	58.8	80828	10.78	{'state_exit': 67541, 'stop': 11622, 'max_hold': 1665}
+chan_ema_regime__cross__long__1d__atr2d5_hold60_lb100__v1	0.806	1.047	14.9	30079	12.24	{'state_exit': 26147, 'max_hold': 2430, 'stop': 1502}
+chan_ema_regime__cross__long__1d__atr2d5_hold60_lb200__v1	0.806	1.028	13.7	16876	13.48	{'state_exit': 13959, 'stop': 1050, 'max_hold': 1867}
+chan_shape__mom_mr__long__1d__atr2d5_hold10__v1	0.802	1.034	39.2	41601	9.21	{'max_hold': 33457, 'stop': 8144}
+chan_ema_regime__cross__long__1d__atr4d0_hold60_lb100__v1	0.8	1.036	15.0	31434	12.39	{'state_exit': 28580, 'max_hold': 2556, 'stop': 298}
+chan_updays__bb_upper__long__1d__atr2d5_hold10__v1	0.799	0.997	38.7	37758	8.78	{'stop': 10348, 'max_hold': 27410}
+chan_ema_regime__cross__long__1d__atr1d5_hold60_lb200__v1	0.776	1.003	12.8	15885	12.44	{'stop': 3818, 'state_exit': 10458, 'max_hold': 1609}
+chan_zmr__trendma100__long__1d__atr2d5_hold40__v1	0.769	1.032	58.1	30147	8.51	{'state_exit': 22005, 'stop': 7850, 'max_hold': 292}
+chan_zmr__fixed20__long__1d__atr2d5_hold40__v1	0.764	0.993	56.2	96425	8.83	{'state_exit': 66609, 'stop': 28622, 'max_hold': 1194}
+chan_updays__bb_upper__long__1d__atr1d5_hold10__v1	0.762	0.971	32.8	39918	6.93	{'stop': 20899, 'max_hold': 19019}
+chan_zmr__halflife__short__1d__atr1d5_hold40__v1	0.754	1.06	52.9	99982	4.8	{'state_exit': 59702, 'stop': 39760, 'max_hold': 520}
+chan_shape__mom_mr__long__1d__atr1d5_hold10__v1	0.751	0.98	34.9	46626	7.74	{'max_hold': 26420, 'stop': 20206}
+chan_zmr__halflife__short__1d__atr2d5_hold40__v1	0.747	1.022	59.1	86185	6.04	{'state_exit': 62788, 'stop': 22584, 'max_hold': 813}
+chan_zmr__fixed20__short__1d__atr1d5_hold40__v1	0.745	0.978	47.8	128908	6.1	{'stop': 64831, 'state_exit': 63851, 'max_hold': 226}
+chan_zmr__trendma100__short__1d__atr1d5_hold40__v1	0.741	0.996	52.3	30582	5.62	{'stop': 13960, 'state_exit': 16590, 'max_hold': 32}
+chan_zmr__halflife__short__1d__atr4d0_hold40__v1	0.737	1.003	61.7	77609	7.13	{'state_exit': 64371, 'stop': 11942, 'max_hold': 1296}
+chan_zmr__fixed20__short__1d__atr2d5_hold40__v1	0.732	0.933	57.2	103630	7.9	{'state_exit': 65704, 'stop': 37656, 'max_hold': 270}
+chan_zmr__trendma100__short__1d__atr4d0_hold40__v1	0.729	0.948	64.6	25137	9.09	{'stop': 4881, 'state_exit': 20176, 'max_hold': 80}
+chan_zmr__trendma100__short__1d__atr2d5_hold40__v1	0.728	0.951	61.0	26869	7.35	{'stop': 8589, 'state_exit': 18233, 'max_hold': 47}
+chan_tsm__lookback_sign__short__1d__atr4d0_hold5_lb120__v1	0.725	1.051	48.7	154889	4.93	{'max_hold': 148752, 'stop': 6137}
+chan_tsm__lookback_sign__short__1d__atr4d0_hold5_lb60__v1	0.716	1.032	48.2	173259	4.93	{'max_hold': 166416, 'stop': 6843}
+chan_shape__mom_mr__short__1d__atr2d5_hold10__v1	0.716	0.94	48.1	41764	8.83	{'stop': 10441, 'max_hold': 31323}
+chan_shape__mom_mr__short__1d__atr4d0_hold10__v1	0.716	0.936	49.8	40586	9.54	{'max_hold': 35972, 'stop': 4614}
+chan_shape__mom_mr__short__1d__atr1d5_hold10__v1	0.715	0.96	43.0	45355	7.6	{'stop': 19596, 'max_hold': 25759}
+chan_zmr__trendma100__long__1d__atr1d5_hold40__v1	0.715	0.972	50.2	35068	6.26	{'state_exit': 19629, 'stop': 15271, 'max_hold': 168}
+chan_zmr__fixed20__short__1d__atr4d0_hold40__v1	0.714	0.903	61.8	87448	9.59	{'state_exit': 66569, 'stop': 20501, 'max_hold': 378}
+chan_zmr__halflife__long__1d__atr4d0_hold40__v1	0.709	1.024	52.1	81020	7.62	{'state_exit': 71921, 'stop': 7190, 'max_hold': 1909}
+chan_zmr__fixed20__long__1d__atr1d5_hold40__v1	0.709	0.935	47.0	124950	6.5	{'state_exit': 64124, 'stop': 59958, 'max_hold': 868}
+chan_tsm__lookback_sign__short__1d__atr2d5_hold5_lb120__v1	0.705	1.021	48.0	158405	4.79	{'max_hold': 139049, 'stop': 19356}
+chan_tsm__lookback_sign__short__1d__atr2d5_hold5_lb60__v1	0.699	1.008	47.5	177115	4.79	{'max_hold': 155494, 'stop': 21621}
+chan_shape__mom_mr__short__1d__atr4d0_hold5__v1	0.699	1.025	48.5	57583	4.93	{'max_hold': 54965, 'stop': 2618}
+chan_shape__mom_mr__short__1d__atr1d5_hold5__v1	0.698	1.035	46.1	60168	4.4	{'stop': 17102, 'max_hold': 43066}
+chan_shape__mom_mr__short__1d__atr2d5_hold5__v1	0.696	1.022	48.1	58117	4.78	{'stop': 7504, 'max_hold': 50613}
+chan_tsm__lookback_sign__short__1d__atr1d5_hold5_lb120__v1	0.693	1.011	45.8	169366	4.41	{'max_hold': 121516, 'stop': 47850}
+chan_tsm__lookback_sign__long__1d__atr4d0_hold5_lb20__v1	0.691	0.976	37.1	190583	4.97	{'max_hold': 187168, 'stop': 3415}
+chan_shape__mom_mr__long__1d__atr4d0_hold5__v1	0.691	0.999	37.2	59585	4.97	{'max_hold': 58610, 'stop': 975}
+chan_tsm__lookback_sign__short__1d__atr2d5_hold25_lb60__v1	0.689	0.823	42.4	52018	18.23	{'stop': 23386, 'max_hold': 28632}
+chan_updays__bb_upper__long__1d__atr4d0_hold5__v1	0.689	0.929	36.8	43202	4.95	{'max_hold': 41933, 'stop': 1269}
+chan_xs_o2c__decile_gap_reversion__long__1d__atr4d0_dec10__v1	0.688	1.596	38.5	118381	1.0	{'stop': 128, 'close': 118253}
+chan_tsm__lookback_sign__short__1d__atr4d0_hold5_lb20__v1	0.687	1.001	47.0	189465	4.94	{'max_hold': 182292, 'stop': 7173}
+chan_tsm__lookback_sign__short__1d__atr1d5_hold5_lb60__v1	0.687	0.999	45.3	189646	4.41	{'max_hold': 135619, 'stop': 54027}
+chan_xs_o2c__decile_gap_reversion__long__1d__atr2d5_dec10__v1	0.687	1.594	38.5	118381	1.0	{'stop': 617, 'close': 117764}
+chan_tsm__lookback_sign__long__1d__atr4d0_hold5_lb120__v1	0.684	0.978	37.5	188169	4.97	{'max_hold': 184722, 'stop': 3447}
+chan_xs_o2c__decile_gap_reversion__long__1d__atr1d5_dec10__v1	0.684	1.585	38.4	118381	1.0	{'stop': 3098, 'close': 115283}
+chan_tsm__lookback_sign__long__1d__atr2d5_hold5_lb20__v1	0.682	0.96	37.0	195140	4.87	{'max_hold': 177957, 'stop': 17183}
+chan_tsm__lookback_sign__long__1d__atr4d0_hold5_lb60__v1	0.682	0.974	37.1	192042	4.97	{'max_hold': 188829, 'stop': 3213}
+chan_tsm__lookback_sign__long__1d__atr2d5_hold5_lb120__v1	0.681	0.97	37.5	192176	4.86	{'max_hold': 175063, 'stop': 17113}
+chan_tsm__lookback_sign__short__1d__atr4d0_hold25_lb120__v1	0.681	0.804	47.5	40056	21.56	{'max_hold': 29335, 'stop': 10721}
+chan_tsm__lookback_sign__short__1d__atr2d5_hold5_lb20__v1	0.68	0.99	46.6	192722	4.8	{'max_hold': 170444, 'stop': 22278}
+chan_tsm__lookback_sign__short__1d__atr1d5_hold25_lb120__v1	0.678	0.836	32.9	59904	14.22	{'stop': 37589, 'max_hold': 22315}
+chan_tsm__lookback_sign__short__1d__atr2d5_hold25_lb120__v1	0.678	0.81	42.1	46995	18.29	{'max_hold': 25660, 'stop': 21335}
+chan_tsm__lookback_sign__short__1d__atr1d5_hold5_lb20__v1	0.677	0.99	45.0	206190	4.44	{'max_hold': 149056, 'stop': 57134}
+chan_tsm__lookback_sign__short__1d__atr1d5_hold25_lb60__v1	0.677	0.833	32.6	66851	14.11	{'stop': 42164, 'max_hold': 24687}
+chan_tsm__lookback_sign__short__1d__atr4d0_hold25_lb60__v1	0.676	0.799	47.6	44165	21.45	{'max_hold': 32348, 'stop': 11817}
+chan_tsm__lookback_sign__long__1d__atr2d5_hold5_lb60__v1	0.674	0.959	37.1	195892	4.87	{'max_hold': 179447, 'stop': 16445}
+chan_updays__bb_upper__long__1d__atr2d5_hold5__v1	0.674	0.908	36.4	43480	4.77	{'max_hold': 37431, 'stop': 6049}
+chan_zmr__halflife__long__1d__atr2d5_hold40__v1	0.673	0.956	51.0	89821	6.52	{'state_exit': 69767, 'stop': 18733, 'max_hold': 1321}
+chan_shape__mom_mr__long__1d__atr2d5_hold5__v1	0.671	0.966	37.0	60045	4.88	{'max_hold': 55047, 'stop': 4998}
+chan_updays__bb_upper__long__1h__atr4d0_hold10__v1	0.661	1.228	34.7	123891	9.7	{'max_hold': 113247, 'stop': 10644}
+chan_tsm__lookback_sign__long__1d__atr1d5_hold5_lb20__v1	0.654	0.922	35.5	209718	4.45	{'max_hold': 151015, 'stop': 58703}
+chan_tsm__lookback_sign__long__1d__atr1d5_hold5_lb120__v1	0.653	0.933	35.9	206685	4.45	{'max_hold': 149507, 'stop': 57178}
+chan_updays__bb_upper__long__1d__atr1d5_hold5__v1	0.651	0.888	33.7	44660	4.15	{'stop': 16780, 'max_hold': 27880}
+chan_shape__mom_mr__long__1d__atr1d5_hold5__v1	0.645	0.928	35.4	62620	4.48	{'max_hold': 45803, 'stop': 16817}
+chan_tsm__lookback_sign__long__1d__atr1d5_hold5_lb60__v1	0.644	0.916	35.5	210499	4.46	{'max_hold': 153060, 'stop': 57439}
+chan_tsm__lookback_sign__long__1h__atr4d0_hold25_lb150__v1	0.643	0.977	35.0	188512	21.93	{'max_hold': 139387, 'stop': 49125}
+chan_updays__bb_upper__long__1h__atr2d5_hold10__v1	0.641	1.197	33.6	126020	8.93	{'max_hold': 94644, 'stop': 31376}
+chan_tsm__lookback_sign__short__1d__atr1d5_hold25_lb20__v1	0.638	0.787	32.5	71693	14.32	{'stop': 44893, 'max_hold': 26800}
+chan_tsm__lookback_sign__long__1h__atr4d0_hold25_lb300__v1	0.636	0.971	35.1	183455	21.85	{'max_hold': 135227, 'stop': 48228}
+chan_tsm__lookback_sign__long__1h__atr4d0_hold25_lb50__v1	0.635	0.96	34.5	189821	22.02	{'stop': 48968, 'max_hold': 140853}
+chan_tsm__lookback_sign__short__1d__atr2d5_hold25_lb20__v1	0.632	0.758	41.4	55494	18.41	{'stop': 24825, 'max_hold': 30669}
+chan_zmr__halflife__long__1d__atr1d5_hold40__v1	0.63	0.9	46.3	107455	5.03	{'state_exit': 65460, 'stop': 41181, 'max_hold': 814}
+chan_tsm__lookback_sign__short__1d__atr4d0_hold25_lb20__v1	0.625	0.741	45.9	47726	21.56	{'stop': 12588, 'max_hold': 35138}
+chan_alexander__zigzag__short__1d__atr4d0_hold30_x0d2__v1	0.619	0.715	42.7	12365	23.55	{'state_exit': 2670, 'max_hold': 7292, 'stop': 2403}
+chan_alexander__zigzag__short__1d__atr2d5_hold30_x0d1__v1	0.616	0.742	36.6	28070	16.62	{'state_exit': 13857, 'max_hold': 7490, 'stop': 6723}
+chan_alexander__zigzag__short__1d__atr4d0_hold30_x0d1__v1	0.615	0.741	37.9	25015	17.64	{'state_exit': 16000, 'max_hold': 7501, 'stop': 1514}
+chan_tsm__lookback_sign__short__1h__atr4d0_hold25_lb300__v1	0.605	0.951	42.6	192664	21.33	{'stop': 54184, 'max_hold': 138480}
+chan_ema_regime__cross__short__1d__atr4d0_hold60_lb50__v1	0.602	0.869	21.0	46232	10.68	{'state_exit': 43517, 'max_hold': 2294, 'stop': 421}
+chan_ema_regime__cross__short__1d__atr2d5_hold60_lb50__v1	0.598	0.858	21.1	48381	10.67	{'state_exit': 43831, 'stop': 2103, 'max_hold': 2447}
+chan_updays__bb_upper__long__1h__atr1d5_hold10__v1	0.597	1.164	29.6	131553	7.29	{'max_hold': 67733, 'stop': 63820}
+chan_alexander__zigzag__short__1d__atr2d5_hold30_x0d2__v1	0.591	0.686	37.7	13139	19.93	{'state_exit': 1636, 'max_hold': 5894, 'stop': 5609}
+chan_tsm__lookback_sign__short__1h__atr4d0_hold25_lb150__v1	0.589	0.932	41.9	201779	21.38	{'stop': 56406, 'max_hold': 145373}
+chan_alexander__zigzag__short__1d__atr1d5_hold30_x0d1__v1	0.588	0.72	31.0	32680	13.46	{'stop': 16650, 'state_exit': 9822, 'max_hold': 6208}
+chan_ema_regime__cross__short__1d__atr1d5_hold60_lb50__v1	0.585	0.841	20.8	54006	10.42	{'state_exit': 42941, 'stop': 8404, 'max_hold': 2661}
+chan_tsm__lookback_sign__short__1h__atr2d5_hold25_lb300__v1	0.579	0.935	37.8	227406	17.96	{'stop': 105279, 'max_hold': 122127}
+chan_ema_regime__cross__short__1d__atr4d0_hold60_lb100__v1	0.575	0.803	17.6	30868	11.83	{'state_exit': 27883, 'max_hold': 2638, 'stop': 347}
+chan_ema_regime__cross__short__1d__atr2d5_hold60_lb100__v1	0.569	0.792	17.7	32567	11.81	{'state_exit': 28190, 'stop': 1594, 'max_hold': 2783}
+chan_ema_regime__cross__short__1d__atr1d5_hold60_lb100__v1	0.568	0.791	17.5	36114	11.57	{'state_exit': 26796, 'stop': 6289, 'max_hold': 3029}
+chan_ema_regime__cross__short__1d__atr4d0_hold60_lb200__v1	0.568	0.77	15.9	20710	12.75	{'state_exit': 18173, 'max_hold': 2267, 'stop': 270}
+chan_tsm__lookback_sign__short__1h__atr2d5_hold25_lb150__v1	0.566	0.919	37.3	237811	18.01	{'stop': 109838, 'max_hold': 127973}
+chan_ema_regime__cross__short__1d__atr2d5_hold60_lb200__v1	0.565	0.765	16.0	21687	12.7	{'state_exit': 18129, 'stop': 1193, 'max_hold': 2365}
+chan_ema_regime__cross__short__1d__atr1d5_hold60_lb200__v1	0.556	0.756	15.7	23583	12.3	{'state_exit': 16452, 'stop': 4631, 'max_hold': 2500}
+chan_updays__bb_upper__short__1d__atr4d0_hold10__v1	0.555	0.719	44.3	41061	9.54	{'max_hold': 36540, 'stop': 4521}
+chan_tsm__lookback_sign__short__1h__atr4d0_hold25_lb50__v1	0.554	0.884	40.7	210327	21.37	{'stop': 59545, 'max_hold': 150782}
+chan_alexander__zigzag__short__1h__atr4d0_hold30_x0d1__v1	0.551	0.783	39.0	31514	24.54	{'stop': 9303, 'max_hold': 20042, 'state_exit': 2169}
+chan_alexander__zigzag__short__1d__atr1d5_hold30_x0d2__v1	0.548	0.648	28.0	13456	14.55	{'state_exit': 892, 'stop': 8766, 'max_hold': 3798}
+chan_updays__bb_upper__short__1d__atr2d5_hold10__v1	0.546	0.709	42.6	41795	8.76	{'max_hold': 30683, 'stop': 11112}
+chan_tsm__lookback_sign__long__1h__atr1d5_hold25_lb150__v1	0.541	0.909	23.9	296471	13.51	{'stop': 198280, 'max_hold': 98191}
+chan_tsm__lookback_sign__short__1h__atr2d5_hold25_lb50__v1	0.539	0.883	36.3	248256	18.01	{'stop': 115818, 'max_hold': 132438}
+chan_updays__bb_upper__short__1d__atr4d0_hold5__v1	0.532	0.755	41.9	47211	4.94	{'max_hold': 45342, 'stop': 1869}
+chan_tsm__lookback_sign__long__1h__atr1d5_hold25_lb300__v1	0.532	0.897	23.7	289828	13.38	{'stop': 195064, 'max_hold': 94764}
+chan_alexander__zigzag__short__1h__atr2d5_hold30_x0d1__v1	0.53	0.767	34.0	32350	20.11	{'stop': 16241, 'max_hold': 14884, 'state_exit': 1225}
+chan_updays__bb_upper__short__1d__atr1d5_hold10__v1	0.527	0.696	37.0	43401	7.24	{'max_hold': 22206, 'stop': 21195}
+chan_tsm__lookback_sign__short__1h__atr1d5_hold25_lb300__v1	0.525	0.907	29.3	293444	13.74	{'stop': 188447, 'max_hold': 104997}
+chan_updays__bb_upper__short__1d__atr2d5_hold5__v1	0.523	0.744	41.5	47427	4.78	{'max_hold': 41023, 'stop': 6404}
+chan_kl__cc_reversion__long__1d__atr4d0_dec10__v1	0.516	1.054	34.8	118448	1.0	{'stop': 89, 'close': 118359}
+chan_updays__bb_upper__short__1d__atr1d5_hold5__v1	0.515	0.737	39.4	48193	4.3	{'max_hold': 32163, 'stop': 16030}
+chan_kl__cc_reversion__long__1d__atr2d5_dec10__v1	0.514	1.048	34.8	118448	1.0	{'stop': 560, 'close': 117888}
+chan_tsm__lookback_sign__short__1h__atr1d5_hold25_lb150__v1	0.513	0.891	29.0	306720	13.78	{'stop': 196971, 'max_hold': 109749}
+chan_kl__cc_reversion__long__1d__atr1d5_dec10__v1	0.511	1.04	34.7	118448	1.0	{'stop': 3370, 'close': 115078}
+chan_zmr__fixed20__long__1h__atr4d0_hold40__v1	0.509	1.048	46.1	367218	9.92	{'state_exit': 287719, 'stop': 77318, 'max_hold': 2181}
+chan_ema_regime__cross__long__1h__atr2d5_hold60_lb200__v1	0.497	0.907	11.6	88888	12.85	{'stop': 8256, 'state_exit': 71641, 'max_hold': 8991}
+chan_ema_regime__cross__long__1h__atr4d0_hold60_lb200__v1	0.496	0.899	11.8	90545	13.14	{'state_exit': 78968, 'stop': 2185, 'max_hold': 9392}
+chan_alexander__zigzag__short__1h__atr1d5_hold30_x0d1__v1	0.495	0.755	25.3	32875	14.61	{'stop': 22706, 'state_exit': 659, 'max_hold': 9510}
+chan_tsm__lookback_sign__short__1h__atr1d5_hold25_lb50__v1	0.492	0.863	28.2	321292	13.79	{'stop': 207777, 'max_hold': 113515}
+chan_zmr__fixed20__long__1h__atr2d5_hold40__v1	0.486	1.002	43.6	440569	8.06	{'state_exit': 282483, 'stop': 156658, 'max_hold': 1428}
+chan_ema_regime__cross__long__1h__atr1d5_hold60_lb200__v1	0.482	0.911	10.9	90907	11.82	{'state_exit': 58065, 'stop': 24493, 'max_hold': 8349}
+chan_ema_regime__cross__long__1h__atr2d5_hold60_lb100__v1	0.48	0.91	11.8	133824	11.51	{'state_exit': 113199, 'stop': 10702, 'max_hold': 9923}
+chan_ema_regime__cross__long__1h__atr4d0_hold60_lb100__v1	0.477	0.9	11.8	137388	11.63	{'state_exit': 124442, 'stop': 2719, 'max_hold': 10227}
+chan_ema_regime__cross__long__1h__atr1d5_hold60_lb100__v1	0.469	0.918	11.2	135275	10.73	{'state_exit': 92560, 'stop': 33437, 'max_hold': 9278}
+chan_updays__bb_upper__short__1h__atr4d0_hold10__v1	0.454	0.927	36.4	173315	9.55	{'max_hold': 152396, 'stop': 20919}
+chan_shape__mom_mr__short__1h__atr4d0_hold10__v1	0.453	0.972	37.7	171130	9.48	{'stop': 20916, 'max_hold': 150214}
+chan_zmr__fixed20__short__1h__atr4d0_hold40__v1	0.453	0.928	48.8	343411	9.31	{'stop': 78188, 'state_exit': 264405, 'max_hold': 818}
+chan_alexander__zigzag__short__1h__atr4d0_hold30_x0d2__v1	0.452	0.622	35.9	9682	24.13	{'stop': 3473, 'max_hold': 6169, 'state_exit': 40}
+chan_ema_regime__cross__long__1h__atr4d0_hold60_lb50__v1	0.448	0.893	12.4	200355	9.7	{'state_exit': 189844, 'stop': 3017, 'max_hold': 7494}
+chan_zmr__fixed20__short__1h__atr2d5_hold40__v1	0.447	0.929	45.9	403049	7.74	{'stop': 142691, 'state_exit': 259943, 'max_hold': 415}
+chan_ema_regime__cross__long__1h__atr2d5_hold60_lb50__v1	0.442	0.889	12.3	194659	9.6	{'state_exit': 174674, 'stop': 12749, 'max_hold': 7236}
+chan_alexander__zigzag__short__1h__atr2d5_hold30_x0d2__v1	0.441	0.622	30.5	9690	19.08	{'stop': 5522, 'max_hold': 4150, 'state_exit': 18}
+chan_shape__mom_mr__short__1h__atr2d5_hold10__v1	0.441	0.955	36.5	177703	8.74	{'stop': 46704, 'max_hold': 130999}
+chan_zmr__fixed20__long__1h__atr1d5_hold40__v1	0.441	0.962	37.1	559913	6.04	{'state_exit': 269087, 'stop': 289630, 'max_hold': 1196}
+chan_updays__bb_upper__long__1h__atr4d0_hold5__v1	0.44	1.092	26.4	147102	4.96	{'max_hold': 143172, 'stop': 3930}
+chan_updays__bb_upper__short__1h__atr2d5_hold10__v1	0.439	0.901	35.2	176174	8.74	{'stop': 50026, 'max_hold': 126148}
+chan_kl__cc_reversion__short__1d__atr4d0_dec10__v1	0.439	0.878	39.6	118489	1.0	{'stop': 621, 'close': 117868}
+chan_kl__cc_reversion__short__1d__atr2d5_dec10__v1	0.437	0.873	39.6	118489	1.0	{'stop': 2916, 'close': 115573}
+chan_ema_regime__cross__long__1h__atr1d5_hold60_lb50__v1	0.436	0.897	11.8	192597	9.14	{'state_exit': 142980, 'stop': 42715, 'max_hold': 6902}
+chan_shape__mom_mr__long__1h__atr4d0_hold10__v1	0.434	0.89	29.8	158444	9.68	{'max_hold': 144196, 'stop': 14248}
+chan_zmr__halflife__long__1h__atr4d0_hold40__v1	0.434	1.103	37.1	403716	7.03	{'stop': 53804, 'state_exit': 344803, 'max_hold': 5109}
+chan_kl__cc_reversion__short__1d__atr1d5_dec10__v1	0.434	0.869	39.4	118489	1.0	{'stop': 10476, 'close': 108013}
+chan_zmr__trendma100__long__1h__atr4d0_hold40__v1	0.432	0.92	44.2	110693	10.04	{'state_exit': 86595, 'stop': 23585, 'max_hold': 513}
+chan_updays__bb_upper__long__1h__atr2d5_hold5__v1	0.43	1.062	26.1	147755	4.81	{'max_hold': 131643, 'stop': 16112}
+chan_alexander__zigzag__short__1h__atr1d5_hold30_x0d2__v1	0.421	0.632	21.8	9695	13.63	{'stop': 7161, 'max_hold': 2525, 'state_exit': 9}
+chan_shape__mom_mr__long__1h__atr2d5_hold10__v1	0.42	0.864	29.0	165428	8.94	{'max_hold': 124204, 'stop': 41224}
+chan_zmr__fixed20__short__1h__atr1d5_hold40__v1	0.42	0.925	39.7	493394	6.05	{'stop': 244553, 'state_exit': 248556, 'max_hold': 285}
+chan_zmr__trendma100__long__1h__atr2d5_hold40__v1	0.416	0.892	42.0	121159	7.92	{'state_exit': 77540, 'stop': 43437, 'max_hold': 182}
+chan_zmr__halflife__long__1h__atr2d5_hold40__v1	0.415	1.05	36.0	451557	5.95	{'stop': 113780, 'state_exit': 334577, 'max_hold': 3200}
+chan_zmr__trendma100__short__1h__atr2d5_hold40__v1	0.408	0.955	47.5	131147	7.02	{'state_exit': 89476, 'stop': 41523, 'max_hold': 148}
+chan_updays__bb_upper__long__1h__atr1d5_hold5__v1	0.407	1.018	24.7	150363	4.31	{'max_hold': 103473, 'stop': 46890}
+chan_zmr__trendma100__short__1h__atr4d0_hold40__v1	0.405	0.93	49.5	121999	8.61	{'state_exit': 97151, 'stop': 24570, 'max_hold': 278}
+chan_shape__mom_mr__short__1h__atr1d5_hold10__v1	0.404	0.906	32.4	195540	7.43	{'stop': 90167, 'max_hold': 105373}
+chan_zmr__halflife__short__1h__atr4d0_hold40__v1	0.402	1.03	40.7	366853	6.55	{'state_exit': 307948, 'stop': 53940, 'max_hold': 4965}
+chan_updays__bb_upper__short__1h__atr1d5_hold10__v1	0.401	0.849	30.6	184063	7.21	{'stop': 94011, 'max_hold': 90052}
+chan_zmr__halflife__short__1h__atr2d5_hold40__v1	0.393	1.02	39.4	404301	5.63	{'state_exit': 299809, 'stop': 101264, 'max_hold': 3228}
+chan_shape__mom_mr__long__1h__atr1d5_hold10__v1	0.391	0.834	25.7	186202	7.43	{'max_hold': 96558, 'stop': 89644}
+chan_zmr__trendma100__long__1h__atr1d5_hold40__v1	0.388	0.877	36.1	142255	5.82	{'state_exit': 68481, 'stop': 73663, 'max_hold': 111}
+chan_zmr__trendma100__short__1h__atr1d5_hold40__v1	0.387	0.957	41.8	148736	5.44	{'stop': 67827, 'state_exit': 80804, 'max_hold': 105}
+chan_zmr__halflife__long__1h__atr1d5_hold40__v1	0.377	0.997	32.4	530430	4.68	{'stop': 216628, 'state_exit': 311795, 'max_hold': 2007}
+chan_tsm__lookback_sign__long__1h__atr4d0_hold5_lb150__v1	0.373	0.971	26.0	716518	4.95	{'max_hold': 693460, 'stop': 23058}
+chan_tsm__lookback_sign__long__1h__atr4d0_hold5_lb50__v1	0.372	0.962	25.6	722447	4.95	{'max_hold': 701465, 'stop': 20982}
+chan_zmr__halflife__short__1h__atr1d5_hold40__v1	0.368	1.007	36.0	462018	4.56	{'state_exit': 282107, 'stop': 177916, 'max_hold': 1995}
+chan_tsm__lookback_sign__long__1h__atr4d0_hold5_lb300__v1	0.367	0.958	26.0	696094	4.95	{'max_hold': 674266, 'stop': 21828}
+chan_ema_regime__cross__short__1h__atr2d5_hold60_lb200__v1	0.366	0.706	12.3	102206	13.28	{'state_exit': 79850, 'stop': 11532, 'max_hold': 10824}
+chan_ema_regime__cross__short__1h__atr4d0_hold60_lb200__v1	0.366	0.707	12.4	98710	13.43	{'state_exit': 84567, 'stop': 3554, 'max_hold': 10589}
+chan_ema_regime__cross__short__1h__atr1d5_hold60_lb200__v1	0.363	0.712	11.7	106281	12.48	{'stop': 31016, 'state_exit': 64760, 'max_hold': 10505}
+chan_ema_regime__cross__short__1h__atr4d0_hold60_lb100__v1	0.361	0.729	12.7	136770	12.75	{'state_exit': 120803, 'stop': 4591, 'max_hold': 11376}
+chan_ema_regime__cross__short__1h__atr2d5_hold60_lb100__v1	0.36	0.726	12.7	142619	12.6	{'state_exit': 115958, 'stop': 14898, 'max_hold': 11763}
+chan_tsm__lookback_sign__long__1h__atr2d5_hold5_lb50__v1	0.359	0.927	25.1	741515	4.81	{'max_hold': 661321, 'stop': 80194}
+chan_tsm__lookback_sign__long__1h__atr2d5_hold5_lb150__v1	0.358	0.935	25.5	735416	4.81	{'max_hold': 653162, 'stop': 82254}
+chan_tsm__lookback_sign__short__1h__atr4d0_hold5_lb150__v1	0.355	1.017	31.8	772426	4.92	{'max_hold': 734868, 'stop': 37558}
+chan_tsm__lookback_sign__short__1h__atr4d0_hold5_lb300__v1	0.355	1.018	31.9	734909	4.92	{'max_hold': 698825, 'stop': 36084}
+chan_tsm__lookback_sign__long__1h__atr2d5_hold5_lb300__v1	0.354	0.923	25.5	714364	4.8	{'max_hold': 633455, 'stop': 80909}
+chan_ema_regime__cross__short__1h__atr1d5_hold60_lb100__v1	0.354	0.723	12.2	149322	11.89	{'state_exit': 96412, 'stop': 41302, 'max_hold': 11608}
+chan_tsm__lookback_sign__short__1h__atr2d5_hold5_lb300__v1	0.349	1.004	31.6	756051	4.74	{'max_hold': 654060, 'stop': 101991}
+chan_tsm__lookback_sign__short__1h__atr2d5_hold5_lb150__v1	0.348	1.001	31.5	793830	4.75	{'max_hold': 687166, 'stop': 106664}
+chan_tsm__lookback_sign__short__1h__atr4d0_hold5_lb50__v1	0.346	0.998	31.2	805760	4.92	{'max_hold': 766530, 'stop': 39230}
+chan_ema_regime__cross__short__1h__atr2d5_hold60_lb50__v1	0.346	0.746	13.7	199406	10.92	{'state_exit': 172321, 'stop': 18243, 'max_hold': 8842}
+chan_ema_regime__cross__short__1h__atr4d0_hold60_lb50__v1	0.345	0.751	13.7	191310	10.97	{'state_exit': 177291, 'stop': 5557, 'max_hold': 8462}
+chan_updays__bb_upper__short__1h__atr4d0_hold5__v1	0.344	1.008	30.5	205830	4.93	{'max_hold': 197083, 'stop': 8747}
+chan_tsm__lookback_sign__short__1h__atr2d5_hold5_lb50__v1	0.339	0.98	30.9	828490	4.74	{'max_hold': 715822, 'stop': 112668}
+chan_ema_regime__cross__short__1h__atr1d5_hold60_lb50__v1	0.338	0.735	13.3	211631	10.4	{'state_exit': 149244, 'stop': 53424, 'max_hold': 8963}
+chan_shape__mom_mr__short__1h__atr4d0_hold5__v1	0.335	1.029	31.2	243541	4.91	{'max_hold': 230763, 'stop': 12778}
+chan_tsm__lookback_sign__long__1h__atr1d5_hold5_lb150__v1	0.334	0.892	24.0	794046	4.38	{'stop': 232484, 'max_hold': 561562}
+chan_tsm__lookback_sign__short__1h__atr1d5_hold5_lb150__v1	0.334	0.982	30.1	855365	4.33	{'max_hold': 603141, 'stop': 252224}
+chan_shape__mom_mr__long__1h__atr4d0_hold5__v1	0.334	0.93	25.1	233843	4.96	{'max_hold': 226815, 'stop': 7028}
+chan_updays__bb_upper__short__1h__atr2d5_hold5__v1	0.334	0.973	30.1	206750	4.76	{'stop': 27488, 'max_hold': 179262}
+chan_tsm__lookback_sign__short__1h__atr1d5_hold5_lb300__v1	0.333	0.984	30.2	814744	4.33	{'max_hold': 574802, 'stop': 239942}
+chan_tsm__lookback_sign__long__1h__atr1d5_hold5_lb50__v1	0.33	0.874	23.5	799423	4.37	{'max_hold': 565325, 'stop': 234098}
+chan_tsm__lookback_sign__long__1h__atr1d5_hold5_lb300__v1	0.33	0.883	24.0	772226	4.37	{'max_hold': 543644, 'stop': 228582}
+chan_shape__mom_mr__short__1h__atr2d5_hold5__v1	0.327	1.005	30.8	246436	4.75	{'max_hold': 212208, 'stop': 34228}
+chan_tsm__lookback_sign__short__1h__atr1d5_hold5_lb50__v1	0.324	0.96	29.6	895155	4.33	{'max_hold': 628049, 'stop': 267106}
+chan_shape__mom_mr__long__1h__atr2d5_hold5__v1	0.323	0.896	24.8	236343	4.82	{'max_hold': 209339, 'stop': 27004}
+chan_updays__bb_upper__short__1h__atr1d5_hold5__v1	0.31	0.905	28.4	210415	4.3	{'stop': 67530, 'max_hold': 142885}
+chan_shape__mom_mr__short__1h__atr1d5_hold5__v1	0.307	0.95	29.2	256158	4.37	{'stop': 77390, 'max_hold': 178768}
+chan_shape__mom_mr__long__1h__atr1d5_hold5__v1	0.301	0.843	23.5	246722	4.41	{'max_hold': 171153, 'stop': 75569}
+chan_gapmom__open_vs_prev_extreme__short__1d__atr4d0_z0d05__v1	0.177	0.402	20.4	147505	1.0	{'stop': 847, 'close': 146658}
+chan_gapmom__open_vs_prev_extreme__long__1d__atr2d5_z0d05__v1	0.176	0.354	17.3	240613	1.0	{'stop': 5036, 'close': 235577}
+chan_gapmom__open_vs_prev_extreme__long__1d__atr4d0_z0d05__v1	0.176	0.356	17.3	240613	1.0	{'stop': 1146, 'close': 239467}
+chan_gapmom__open_vs_prev_extreme__short__1d__atr2d5_z0d05__v1	0.176	0.4	20.4	147505	1.0	{'stop': 3124, 'close': 144381}
+chan_gapmom__open_vs_prev_extreme__short__1d__atr1d5_z0d05__v1	0.174	0.393	20.3	147505	1.0	{'stop': 13382, 'close': 134123}
+chan_gapmom__open_vs_prev_extreme__long__1d__atr1d5_z0d05__v1	0.172	0.344	17.1	240613	1.0	{'stop': 25531, 'close': 215082}
+chan_gapmom__open_vs_prev_extreme__long__1d__atr4d0_z0d1__v1	0.171	0.341	16.9	212794	1.0	{'stop': 1131, 'close': 211663}
+chan_gapmom__open_vs_prev_extreme__long__1d__atr2d5_z0d1__v1	0.17	0.338	16.8	212794	1.0	{'stop': 4931, 'close': 207863}
+chan_gapmom__open_vs_prev_extreme__long__1d__atr1d5_z0d1__v1	0.165	0.329	16.6	212794	1.0	{'stop': 24454, 'close': 188340}
+chan_gapmom__open_vs_prev_extreme__short__1d__atr2d5_z0d1__v1	0.165	0.37	19.4	131145	1.0	{'stop': 2973, 'close': 128172}
+chan_gapmom__open_vs_prev_extreme__short__1d__atr4d0_z0d1__v1	0.165	0.371	19.4	131145	1.0	{'stop': 815, 'close': 130330}
+chan_gapmom__open_vs_prev_extreme__short__1d__atr1d5_z0d1__v1	0.162	0.363	19.3	131145	1.0	{'stop': 12657, 'close': 118488}
+chan_gapmom__open_vs_prev_extreme__long__1d__atr4d0_z0d25__v1	0.155	0.301	15.6	152923	1.0	{'stop': 1089, 'close': 151834}
+chan_gapmom__open_vs_prev_extreme__long__1d__atr2d5_z0d25__v1	0.154	0.299	15.6	152923	1.0	{'stop': 4612, 'close': 148311}
+chan_gapmom__open_vs_prev_extreme__long__1d__atr1d5_z0d25__v1	0.149	0.289	15.4	152923	1.0	{'stop': 21703, 'close': 131220}
+chan_gapmom__open_vs_prev_extreme__short__1d__atr2d5_z0d25__v1	0.139	0.302	16.9	94539	1.0	{'stop': 2613, 'close': 91926}
+chan_gapmom__open_vs_prev_extreme__short__1d__atr4d0_z0d25__v1	0.139	0.304	16.9	94539	1.0	{'stop': 732, 'close': 93807}
+chan_gapmom__open_vs_prev_extreme__short__1d__atr1d5_z0d25__v1	0.137	0.297	16.8	94539	1.0	{'stop': 10854, 'close': 83685}
+chan_gapmom__open_vs_prev_extreme__long__1d__atr4d0_z0d5__v1	0.137	0.26	14.1	99528	1.0	{'stop': 1049, 'close': 98479}
+chan_gapmom__open_vs_prev_extreme__long__1d__atr2d5_z0d5__v1	0.136	0.258	14.1	99528	1.0	{'stop': 4226, 'close': 95302}
+chan_gapmom__open_vs_prev_extreme__long__1d__atr1d5_z0d5__v1	0.131	0.248	13.8	99528	1.0	{'stop': 18401, 'close': 81127}
+chan_gapmom__open_vs_prev_extreme__short__1d__atr2d5_z0d5__v1	0.108	0.226	13.9	58436	1.0	{'stop': 2236, 'close': 56200}
+chan_gapmom__open_vs_prev_extreme__short__1d__atr4d0_z0d5__v1	0.108	0.226	13.9	58436	1.0	{'stop': 655, 'close': 57781}
+chan_gapmom__open_vs_prev_extreme__short__1d__atr1d5_z0d5__v1	0.107	0.222	13.8	58436	1.0	{'stop': 8770, 'close': 49666}

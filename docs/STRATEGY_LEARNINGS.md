@@ -224,3 +224,16 @@ unstopped trades), what the backtest showed (tags, PFnet, n), what broke or surp
 - Reuse: judge a cap by drawdown at fixed risk with a realistic position limit, not by pooled returns; sample is small (~500-1000 trades taken).
 - Profit-booking / exit takeaway: a monthly halt did not improve net profit on this strategy set; protect capital with per-trade SL and position sizing instead.
 
+
+## Exit-family comparison (run 38140914889), 2026-10-11 IST
+- Mechanism: same real main.py entries (order block, volume profile POC, gap-and-go long and short), swapped across 22 exit cells in 7 families (fixed ATR, swing-low structure, chandelier, exhaustion, O'Neil swing-low trail, signal invalidation, time stop). Daily, 5y, full universe, 0.8% cost, equal notional, every cell has a stop.
+- Result: 26 of 88 tags at PFnet >= 1.1, all long. Best: exitinval VP 1.2675 (39.6% win, 20.9d hold), fixed ATR VP 1.2591, exhaust gap-and-go ROC 1.2429 (11.0d), time-stop gap-and-go hold5 1.1484 (4.8d, fastest). O'Neil trail 0 viable (best 1.045). Gap-and-go shorts 0.51-0.65. No gap-and-go variant beats the live exit (registry 1.65).
+- Surprised: the exit choice moved OB from 1.06 to 1.17 and VP from 1.03 to 1.27 with the same entries, so exit is worth more than entry tuning on these two.
+- Reuse: sim exits are not a main.py replay; fills at the stop price, equal notional vs risk-based live sizing. Replay owed before trusting live P&L.
+- Profit-booking / exit takeaway: a weekly-trend invalidation exit with a wide 6xATR safety stop beat tight stops and O'Neil trails; for fast turnover a 5-day time stop on gap-and-go still cleared 1.1 in under 5 days.
+
+## Elder indicators batch 1 (run 38144283116) and O'Neil patterns (run 38143823565), 2026-10-11 IST
+- **Elder (258 tags, daily, both directions):** 0 tags reach PFnet 1.1. Best is adx_bell ring_bell long 0.890 (win 31%, n~20.7k, ~18d hold); best short is elder_ray exit_div 0.675. Elder's indicators alone, on this cost model, do not clear the floor. Gross PFnet was not printed (artifact `elder_results.json` has it; fetch owed). Universe not labelled in the log.
+- **O'Neil (84 viable cells printed of 756):** 93/378 (1d) and 145/378 (1w) cells >= 1.1; best 1d rsscreen top h60 rs90 2.193, best 1w rsscreen top h26 rs90 3.639. Short-hold winners: 1d h20 rs90 1.775 (17d), 1w h8 rs90 2.523 (7.6d). Caveats: the top cells use "avgdown" (adding to losers; stop+avgdown trades average -11.6% at 1d, -21.6% at 1w), 1w PFnet comes mostly from timeouts, universe not confirmed (shards ran 1-1.5 min, so likely not the full ~2,680). Re-run on the confirmed full universe and replay through main.py before any wiring; avgdown cells need a per-position risk cap before they can satisfy the no-trade-without-SL rule.
+- **Reuse:** merge logs only print top cells; make research scripts emit the full tag table (with gross PFnet and universe size) so no result has to be recovered from artifacts.
+- **Profit-booking / exit takeaway:** timeout exits (patient 26-week holds) carry the O'Neil edge while stops lose; prefer the shorter-hold variants (h8/h12/h20) at similar PFnet for capital turnover, and do not book early on the winners.
