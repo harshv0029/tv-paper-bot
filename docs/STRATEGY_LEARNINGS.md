@@ -912,3 +912,11 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: IS beats OOS (1.79 vs 1.195) and the 2026 year drops to 0.63 (turn1cr 0.80), so the edge is fading even though OOS clears 1.1.
 - Reuse: always read the by-year column before trusting a pooled PFnet; a pass on the OOS half can still hide a decaying latest year. Short mirror tested and registered, fails.
 - Profit-booking / exit takeaway: most trades exit on the rule (avg 7-9 bars) not the 30-bar timeout, and the wider ATR 3 stop beats ATR 1.5 (fewer stop-outs: 208 vs 865 on gap05) so give the trade room and let the reversal rule book the profit.
+
+## Lunar full/new moon rule 1d, B-112 (2026-10-12)
+- Mechanism: buy at full moon, sell at new moon (and the short mirror, plus a quarter-moon placebo and pooled pair), deterministic Meeus phase dates, ATR stop on every trade, hold 1/3/5/10 days; run 38275906669, 1d, full NSE universe, cost 0.8%. 84 cells.
+- Fit here: swing engine would host it, but there is no economic mechanism; at a 0.8% round-trip cost any calendar rule needs a large raw edge.
+- Result: best cell lunar__full__long__1d__atr4d0_hd5__v1 PFnet 0.869; next 0.845 (full long atr2d5 hd5), 0.844 (new long atr4d0 hd10). Zero cells at or above 1.1. Long cells win about 25-36%; the 10-day long cells lose on stops (avg -6.6%) while max-hold trades make +3.6%, which is market beta, not a lunar effect. Shorts and pairs are lower.
+- Surprised: nothing; it confirms the 2026-10-10 'fails' note on the full universe. Only 1d is done; 1h/4h/15m/5m are owed (B-870).
+- Reuse: always judge calendar rules against the placebo and the every-bar beta; do not wire. Cheap to re-run at other candle sizes via the same harness.
+- Profit-booking / exit takeaway: longer holds (5-10 days) beat 1-day holds (0.31 PFnet) only through drift capture, and wider ATR stops helped slightly; no exit variant lifts a no-edge entry above cost.
