@@ -8658,6 +8658,7 @@ def _options_signal_core(
                 else "budget_too_small_for_1_contract"
             )
             result["available_capital_inr"] = round(available_capital_inr, 2)
+            result["need_inr"] = round(notional_per_contract_inr, 2)  # B-868: money needed for 1 contract
             result["contract_considered"] = contract
             return result
 
@@ -9752,6 +9753,7 @@ def _auto_signal_core(
                     else "budget_too_small_for_1_unit"
                 )
                 result["available_capital_inr"] = round(available_capital_inr, 2)
+                result["need_inr"] = round(notional_per_unit_inr, 2)  # B-868
                 return result
 
             # require_real_tradability (2026-09-22, see this function's own
@@ -10183,6 +10185,7 @@ def _short_signal_core(
                 else "budget_too_small_for_1_unit"
             )
             result["available_capital_inr"] = round(available_capital_inr, 2)
+            result["need_inr"] = round(notional_per_unit_inr, 2)  # B-868
             return result
 
         if require_real_tradability:
@@ -14456,6 +14459,10 @@ def _run_fo_strike_setup_scan(conn):
             continue
         age = (pd.Timestamp.now(tz="UTC") - df["Date"].iloc[-1]).total_seconds()
         rec["last_candle_age_s"] = round(age)
+        try:  # B-868: lets /signal-funds price 1 lot (lot_size x premium) for the "need" figure
+            rec["lot_size"], rec["last_close"] = d["lot_size"], float(df["Close"].iloc[-1])
+        except Exception:
+            pass
         if age > 900:
             rec["status"] = "no_fresh_candle"  # dropped out of the band
             continue
@@ -14659,6 +14666,69 @@ def fo_entry_diagnosis():
             "viable_strike_setup_tags": viable_tags, "setup_tags_checked": tags,
             "last_scan_ts": meta.get("last_scan_ts"), "scans_today": meta.get("scans_today"),
             "skipped_reasons_today": skipped, "candle_feed": feed, "underlyings": unders}
+
+
+# B-868 (2026-10-12): "available = X, need = Y" for every non-green signal. X is Kotak's
+# own Net available margin, fetched fresh (<= 30s old) via the existing limits() helper and
+# failing soft to unknown; Y is the money the trade needs (1 unit/contract/lot, from the
+# sizing code's own notional). Exposure: /fo-entry-diagnosis stays account-data free; the
+# figures are served by /signal-funds, which matches /scheduler-status (already public and
+# already publishing the same Net figure for the trade-view page).
+SIGNAL_FUNDS_MAX_AGE_SECONDS = 30
+_NON_GREEN_ACTION_MARKERS = ("blocked", "insufficient", "budget_too_small", "skipped", "no_funds",
+                             "warming", "not_ready", "no_qualifying", "no_fresh", "unavailable")
+
+
+def _available_money_now(max_age_seconds: float = SIGNAL_FUNDS_MAX_AGE_SECONDS):
+    """Kotak available cash right now, or None when it cannot be read."""
+    if time.time() - (_real_capital_cache["fetched_at"] or 0.0) > max_age_seconds:
+        _refresh_real_capital_cache()
+    return _real_capital_cache["value"]
+
+
+def _fmt_inr(v) -> str:
+    return f"Rs {v:,.0f}"
+
+
+def _funds_line(available, need) -> str:
+    a = _fmt_inr(available) if available is not None else "unknown"
+    n = _fmt_inr(need) if need is not None else "unknown"
+    return f"available = {a}, need = {n}"
+
+
+def _is_non_green_action(action) -> bool:
+    a = (action or "").lower()
+    return any(m in a for m in _NON_GREEN_ACTION_MARKERS)
+
+
+@app.get("/signal-funds")
+def signal_funds():
+    """available/need line for every non-green equity/options signal and every
+    non-clear F&O underlying. Same exposure as /scheduler-status (public, no token)."""
+    available = _available_money_now()
+    equity = {}
+    for k, v in list(_scheduler_last_results.items()):
+        act = v.get("action_taken") or v.get("status")
+        if k.endswith(":STRIKE") or not _is_non_green_action(act):
+            continue
+        need = v.get("need_inr")
+        equity[k] = {"display": _display_name(k), "action": act, "need_inr": need,
+                     "line": _funds_line(available, need)}
+    fo = {}
+    try:
+        diag = fo_entry_diagnosis()
+        for u, r in diag["underlyings"].items():
+            if r["primary_blocker"] == "none_detected":
+                continue
+            costs = [float(m["lot_size"]) * float(m["last_close"]) for m in _fo_strike_monitor.values()
+                     if m.get("underlying") == u and m.get("lot_size") and m.get("last_close")]
+            need = min(costs) if costs else None
+            fo[u] = {"primary_blocker": r["primary_blocker"], "need_inr": need,
+                     "line": _funds_line(available, need)}
+    except Exception as e:
+        fo = {"error": str(e)}
+    return {"as_of_ist": ist_now().strftime("%Y-%m-%d %H:%M:%S"), "available_inr": available,
+            "equity": equity, "fo": fo}
 
 
 def _maybe_sync_real_fo_option_stop_losses(conn):

@@ -710,3 +710,9 @@ Source of every figure below: the generated results log (cost model 0.8%, PFnet 
 - Surprise: the "fresh_entry_awaiting_position" state (fill not yet in Kotak positions) is a residual naked window that cannot be closed from the app side.
 - Reuse: any new entry path should treat "SL placement failed" as an exit trigger at the call site, and a restart-wipe test for its table.
 - Profit-booking / exit takeaway: the premium trail is the only exit, so SL placement success is what protects booked profit; losing it for even minutes on a decaying option risks the whole premium.
+## B-868 (2026-10-12): "available vs need" on every blocked signal
+- Mechanism: a blocked or not-ready signal now states the money gap (Kotak Net available vs 1 unit/contract/lot notional) next to its blocker, so "insufficient_capital" vs "budget_too_small" vs a real strategy block can be told apart at a glance.
+- Fit: Kotak limits() Net is the only truth for available cash (Kotak-wins rule); need comes from the same notional the sizing code uses, not a second formula. Option need is 1 lot x lot size x premium, the minimum order that could be placed.
+- Result: display feature, no backtest. Surprise: two of the three sizing sites reported only available, never need, so the gap could not be shown until `need_inr` was recorded at the source.
+- Reuse: record the number the decision used on the result dict at the decision site; keep account figures off diagnostic endpoints that are documented as account-free.
+- Profit-booking / exit takeaway: knowing the exact shortfall shows when cash, not the strategy, is blocking entries, and frees capital decisions (book profit sooner to fund a qualified setup) to be made on facts.
