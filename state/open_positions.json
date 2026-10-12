@@ -1,24 +1,4 @@
 {
-  "synced_at_utc": "2026-10-11T09:10:28Z",
-  "open_positions": [
-    {
-      "symbol": "CL=F",
-      "qty": 20.0,
-      "entry_price_native": 91.66000366210938,
-      "stop_loss_native": 91.02999877929688,
-      "initial_stop_loss_native": 91.02999877929688,
-      "target_native": 93.55001831054688,
-      "fx_to_inr": 96.77999877929688,
-      "notional_inr": 177417.1,
-      "orb_high_native": 91.41000366210938,
-      "orb_low_native": 91.02999877929688,
-      "entry_ts": 1791587401.5864315,
-      "interval": "5m",
-      "strategy": "orb-15m-sma9-21",
-      "sma_fast": 9,
-      "sma_slow": 21,
-      "entry_regime": null,
-      "real_entry_reason": "no real-entry attempt logged for this symbol today"
-    }
-  ]
+  "synced_at_utc": "2026-10-12T10:25:57Z",
+  "open_positions": []
 }
