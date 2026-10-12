@@ -525,7 +525,7 @@ Total rows: 855 | closed: 369 | not closed: 486
 | B-864 | P1 | ROOT-CAUSED | Root-cause why osc__div_class kb_oscrsi/kb_oscmacdh printed PFnet 0.958/0.954 in run 38169625565 but 2.433/... | owed, follow-up |
 | B-866 | P1 | IN | 2026-10-12 B-861 index option trigger research collected (run 38214076382, 4 intervals x 40 cells, ^NSEI/^N... | owed |
 | B-871 | P1 | OPENED | Short-swing engine path with BUY protective SL (1d shorts): brk20_min_rr 1d SHORT cells hold out-of-sample ... | needs, owner |
-| B-871 | P1 | OPEN | 2026-10-12 IST. Build a 1h->4h resample path for research workflows (yfinance has no native 4h; Elder run 3... |  |
+| B-873 | P1 | OPEN | 2026-10-12 IST. Build a 1h->4h resample path for research workflows (note: B-870 already built a 1h->4h hel... |  |
 | B-45 | P2 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (intraday Gap and Go at 5m and 15m) |  |
 | B-413 | P2 | PARTIAL | From B-403 audit | open:, needs |
 | B-422 | P2 | PARTIAL | 2026-10-11 IST, user liquidity question: none of the 286 viable (PFnet >= 1.1) strategies models liquidity ... | owed, needs |
@@ -553,4 +553,4 @@ Total rows: 855 | closed: 369 | not closed: 486
 | B-445 | P3 | PARKED-REASONED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | needs |
 | B-459 | P3 | PARKED-REASONED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | needs |
 | B-804 | P3 | PARTIAL | Gross PFnet for the 371 viable rows: strategy_registry_grossfill.apply() (wired 2026-10-12 IST) fills pfgro... | owed, remaining, verify, needs |
-| B-870 | P3 | OPEN | 2026-10-12 IST. Lunar rule (B-112) candle-size sweep owed: 1h, 4h, 15m, 5m (1d done, run 38275906669, best ... | owed, blocked |
+| B-872 | P3 | OPEN | 2026-10-12 IST. Lunar rule (B-112) candle-size sweep owed: 1h, 4h, 15m, 5m (1d done, run 38275906669, best ... | owed, blocked |
