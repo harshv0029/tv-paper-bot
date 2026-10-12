@@ -1,0 +1,150 @@
+FULL cell table: 84 cells -> out/lunar_cells.tsv
+=== BEGIN FULL CELL TSV lunar_sweep (out/lunar_cells.tsv) ===
+tag	family	variant	dir	tf	params	version	n	win_pct	pfnet	pfgross	avg_hold	avg_hold_unit	avg_net_pct	max_trade_net_pct	exit_reasons_json
+lunar__full__long__1d__atr1d5_hd10__v1	lunar	full	long	1d	atr1d5_hd10	v1	2045	35.6	0.81	1.06	7.83	trading days	-0.63	88.5	{"max_hold":{"avg_net_pct":3.614,"n":1193},"stop":{"avg_net_pct":-6.572,"n":852}}
+lunar__full__long__1d__atr1d5_hd1__v1	lunar	full	long	1d	atr1d5_hd1	v1	2045	24.9	0.314	0.745	1.0	trading days	-1.05	16.4	{"max_hold":{"avg_net_pct":-0.844,"n":1956},"stop":{"avg_net_pct":-5.592,"n":89}}
+lunar__full__long__1d__atr1d5_hd3__v1	lunar	full	long	1d	atr1d5_hd3	v1	2045	36.0	0.649	1.031	2.86	trading days	-0.748	50.1	{"max_hold":{"avg_net_pct":0.361,"n":1694},"stop":{"avg_net_pct":-6.102,"n":351}}
+lunar__full__long__1d__atr1d5_hd5__v1	lunar	full	long	1d	atr1d5_hd5	v1	2045	38.2	0.802	1.147	4.47	trading days	-0.499	45.8	{"max_hold":{"avg_net_pct":1.519,"n":1513},"stop":{"avg_net_pct":-6.24,"n":532}}
+lunar__full__long__1d__atr2d5_hd10__v1	lunar	full	long	1d	atr2d5_hd10	v1	2045	39.2	0.823	1.058	9.23	trading days	-0.623	88.5	{"max_hold":{"avg_net_pct":1.667,"n":1628},"stop":{"avg_net_pct":-9.562,"n":417}}
+lunar__full__long__1d__atr2d5_hd1__v1	lunar	full	long	1d	atr2d5_hd1	v1	2045	24.9	0.323	0.775	1.0	trading days	-1.013	16.4	{"max_hold":{"avg_net_pct":-0.979,"n":2034},"stop":{"avg_net_pct":-7.253,"n":11}}
+lunar__full__long__1d__atr2d5_hd3__v1	lunar	full	long	1d	atr2d5_hd3	v1	2045	37.1	0.693	1.11	2.98	trading days	-0.627	50.1	{"max_hold":{"avg_net_pct":-0.369,"n":1978},"stop":{"avg_net_pct":-8.235,"n":67}}
+lunar__full__long__1d__atr2d5_hd5__v1	lunar	full	long	1d	atr2d5_hd5	v1	2045	40.0	0.845	1.206	4.88	trading days	-0.384	45.8	{"max_hold":{"avg_net_pct":0.411,"n":1873},"stop":{"avg_net_pct":-9.038,"n":172}}
+lunar__full__long__1d__atr4d0_hd10__v1	lunar	full	long	1d	atr4d0_hd10	v1	2045	40.0	0.84	1.08	9.81	trading days	-0.558	88.5	{"max_hold":{"avg_net_pct":0.239,"n":1923},"stop":{"avg_net_pct":-13.122,"n":122}}
+lunar__full__long__1d__atr4d0_hd1__v1	lunar	full	long	1d	atr4d0_hd1	v1	2045	24.9	0.325	0.784	1.0	trading days	-1.003	16.4	{"max_hold":{"avg_net_pct":-1.003,"n":2044},"stop":{"avg_net_pct":-0.987,"n":1}}
+lunar__full__long__1d__atr4d0_hd3__v1	lunar	full	long	1d	atr4d0_hd3	v1	2045	37.3	0.704	1.131	3.0	trading days	-0.597	50.1	{"max_hold":{"avg_net_pct":-0.551,"n":2036},"stop":{"avg_net_pct":-11.021,"n":9}}
+lunar__full__long__1d__atr4d0_hd5__v1	lunar	full	long	1d	atr4d0_hd5	v1	2045	40.2	0.869	1.244	4.99	trading days	-0.319	45.8	{"max_hold":{"avg_net_pct":-0.149,"n":2015},"stop":{"avg_net_pct":-11.702,"n":30}}
+lunar__full__short__1d__atr1d5_hd10__v1	lunar	full	short	1d	atr1d5_hd10	v1	2045	40.6	0.667	0.89	7.51	trading days	-1.118	31.0	{"max_hold":{"avg_net_pct":3.513,"n":1132},"stop":{"avg_net_pct":-6.86,"n":913}}
+lunar__full__short__1d__atr1d5_hd1__v1	lunar	full	short	1d	atr1d5_hd1	v1	2045	36.6	0.481	1.236	1.0	trading days	-0.622	10.9	{"max_hold":{"avg_net_pct":-0.403,"n":1967},"stop":{"avg_net_pct":-6.136,"n":78}}
+lunar__full__short__1d__atr1d5_hd3__v1	lunar	full	short	1d	atr1d5_hd3	v1	2045	40.9	0.529	0.875	2.85	trading days	-1.016	24.3	{"max_hold":{"avg_net_pct":0.432,"n":1636},"stop":{"avg_net_pct":-6.808,"n":409}}
+lunar__full__short__1d__atr1d5_hd5__v1	lunar	full	short	1d	atr1d5_hd5	v1	2045	41.8	0.552	0.816	4.39	trading days	-1.22	29.9	{"max_hold":{"avg_net_pct":1.394,"n":1401},"stop":{"avg_net_pct":-6.906,"n":644}}
+lunar__full__short__1d__atr2d5_hd10__v1	lunar	full	short	1d	atr2d5_hd10	v1	2045	45.4	0.674	0.882	8.8	trading days	-1.177	31.0	{"max_hold":{"avg_net_pct":2.05,"n":1515},"stop":{"avg_net_pct":-10.402,"n":530}}
+lunar__full__short__1d__atr2d5_hd1__v1	lunar	full	short	1d	atr2d5_hd1	v1	2045	36.8	0.481	1.231	1.0	trading days	-0.624	10.9	{"max_hold":{"avg_net_pct":-0.533,"n":2022},"stop":{"avg_net_pct":-8.679,"n":23}}
+lunar__full__short__1d__atr2d5_hd3__v1	lunar	full	short	1d	atr2d5_hd3	v1	2045	41.6	0.532	0.873	2.95	trading days	-1.023	24.3	{"max_hold":{"avg_net_pct":-0.379,"n":1903},"stop":{"avg_net_pct":-9.658,"n":142}}
+lunar__full__short__1d__atr2d5_hd5__v1	lunar	full	short	1d	atr2d5_hd5	v1	2045	43.7	0.55	0.803	4.78	trading days	-1.276	29.9	{"max_hold":{"avg_net_pct":0.222,"n":1754},"stop":{"avg_net_pct":-10.299,"n":291}}
+lunar__full__short__1d__atr4d0_hd10__v1	lunar	full	short	1d	atr4d0_hd10	v1	2045	46.8	0.676	0.879	9.5	trading days	-1.199	31.0	{"max_hold":{"avg_net_pct":0.708,"n":1792},"stop":{"avg_net_pct":-14.699,"n":253}}
+lunar__full__short__1d__atr4d0_hd1__v1	lunar	full	short	1d	atr4d0_hd1	v1	2045	36.8	0.489	1.265	1.0	trading days	-0.604	10.9	{"max_hold":{"avg_net_pct":-0.587,"n":2041},"stop":{"avg_net_pct":-9.337,"n":4}}
+lunar__full__short__1d__atr4d0_hd3__v1	lunar	full	short	1d	atr4d0_hd3	v1	2045	41.7	0.528	0.866	2.99	trading days	-1.038	24.3	{"max_hold":{"avg_net_pct":-0.74,"n":1997},"stop":{"avg_net_pct":-13.438,"n":48}}
+lunar__full__short__1d__atr4d0_hd5__v1	lunar	full	short	1d	atr4d0_hd5	v1	2045	44.1	0.54	0.785	4.93	trading days	-1.333	29.9	{"max_hold":{"avg_net_pct":-0.616,"n":1941},"stop":{"avg_net_pct":-14.699,"n":104}}
+lunar__new__long__1d__atr1d5_hd10__v1	lunar	new	long	1d	atr1d5_hd10	v1	2040	33.0	0.656	0.86	7.6	trading days	-1.224	62.9	{"max_hold":{"avg_net_pct":3.189,"n":1129},"stop":{"avg_net_pct":-6.694,"n":911}}
+lunar__new__long__1d__atr1d5_hd1__v1	lunar	new	long	1d	atr1d5_hd1	v1	2040	23.8	0.268	0.622	1.0	trading days	-1.216	17.8	{"max_hold":{"avg_net_pct":-1.036,"n":1962},"stop":{"avg_net_pct":-5.74,"n":78}}
+lunar__new__long__1d__atr1d5_hd3__v1	lunar	new	long	1d	atr1d5_hd3	v1	2040	33.0	0.521	0.829	2.85	trading days	-1.11	32.7	{"max_hold":{"avg_net_pct":-0.008,"n":1675},"stop":{"avg_net_pct":-6.168,"n":365}}
+lunar__new__long__1d__atr1d5_hd5__v1	lunar	new	long	1d	atr1d5_hd5	v1	2040	34.8	0.585	0.834	4.42	trading days	-1.196	56.4	{"max_hold":{"avg_net_pct":1.171,"n":1412},"stop":{"avg_net_pct":-6.517,"n":628}}
+lunar__new__long__1d__atr2d5_hd10__v1	lunar	new	long	1d	atr2d5_hd10	v1	2040	38.7	0.747	0.967	9.12	trading days	-0.901	62.9	{"max_hold":{"avg_net_pct":1.471,"n":1605},"stop":{"avg_net_pct":-9.654,"n":435}}
+lunar__new__long__1d__atr2d5_hd1__v1	lunar	new	long	1d	atr2d5_hd1	v1	2040	23.9	0.271	0.632	1.0	trading days	-1.199	17.8	{"max_hold":{"avg_net_pct":-1.167,"n":2029},"stop":{"avg_net_pct":-7.208,"n":11}}
+lunar__new__long__1d__atr2d5_hd3__v1	lunar	new	long	1d	atr2d5_hd3	v1	2040	33.7	0.546	0.876	2.97	trading days	-1.016	32.7	{"max_hold":{"avg_net_pct":-0.706,"n":1955},"stop":{"avg_net_pct":-8.163,"n":85}}
+lunar__new__long__1d__atr2d5_hd5__v1	lunar	new	long	1d	atr2d5_hd5	v1	2040	37.0	0.625	0.891	4.85	trading days	-1.055	56.4	{"max_hold":{"avg_net_pct":-0.141,"n":1836},"stop":{"avg_net_pct":-9.274,"n":204}}
+lunar__new__long__1d__atr4d0_hd10__v1	lunar	new	long	1d	atr4d0_hd10	v1	2040	40.7	0.844	1.101	9.77	trading days	-0.513	62.9	{"max_hold":{"avg_net_pct":0.231,"n":1920},"stop":{"avg_net_pct":-12.417,"n":120}}
+lunar__new__long__1d__atr4d0_hd1__v1	lunar	new	long	1d	atr4d0_hd1	v1	2040	23.9	0.272	0.637	1.0	trading days	-1.19	17.8	{"max_hold":{"avg_net_pct":-1.19,"n":2039},"stop":{"avg_net_pct":-0.884,"n":1}}
+lunar__new__long__1d__atr4d0_hd3__v1	lunar	new	long	1d	atr4d0_hd3	v1	2040	33.8	0.554	0.891	2.99	trading days	-0.986	32.7	{"max_hold":{"avg_net_pct":-0.906,"n":2021},"stop":{"avg_net_pct":-9.49,"n":19}}
+lunar__new__long__1d__atr4d0_hd5__v1	lunar	new	long	1d	atr4d0_hd5	v1	2040	37.4	0.657	0.942	4.97	trading days	-0.929	56.4	{"max_hold":{"avg_net_pct":-0.646,"n":1988},"stop":{"avg_net_pct":-11.714,"n":52}}
+lunar__new__short__1d__atr1d5_hd10__v1	lunar	new	short	1d	atr1d5_hd10	v1	2040	40.0	0.677	0.915	7.77	trading days	-1.031	54.3	{"max_hold":{"avg_net_pct":3.172,"n":1164},"stop":{"avg_net_pct":-6.615,"n":876}}
+lunar__new__short__1d__atr1d5_hd1__v1	lunar	new	short	1d	atr1d5_hd1	v1	2040	40.5	0.613	1.524	1.0	trading days	-0.432	12.1	{"max_hold":{"avg_net_pct":-0.194,"n":1960},"stop":{"avg_net_pct":-6.262,"n":80}}
+lunar__new__short__1d__atr1d5_hd3__v1	lunar	new	short	1d	atr1d5_hd3	v1	2040	44.8	0.688	1.146	2.86	trading days	-0.585	27.0	{"max_hold":{"avg_net_pct":0.657,"n":1687},"stop":{"avg_net_pct":-6.525,"n":353}}
+lunar__new__short__1d__atr1d5_hd5__v1	lunar	new	short	1d	atr1d5_hd5	v1	2040	44.7	0.719	1.062	4.46	trading days	-0.676	35.6	{"max_hold":{"avg_net_pct":1.53,"n":1496},"stop":{"avg_net_pct":-6.742,"n":544}}
+lunar__new__short__1d__atr2d5_hd10__v1	lunar	new	short	1d	atr2d5_hd10	v1	2040	44.1	0.675	0.896	8.93	trading days	-1.111	54.3	{"max_hold":{"avg_net_pct":1.709,"n":1542},"stop":{"avg_net_pct":-9.842,"n":498}}
+lunar__new__short__1d__atr2d5_hd1__v1	lunar	new	short	1d	atr2d5_hd1	v1	2040	40.7	0.624	1.562	1.0	trading days	-0.413	12.1	{"max_hold":{"avg_net_pct":-0.343,"n":2023},"stop":{"avg_net_pct":-8.764,"n":17}}
+lunar__new__short__1d__atr2d5_hd3__v1	lunar	new	short	1d	atr2d5_hd3	v1	2040	45.5	0.683	1.127	2.96	trading days	-0.607	27.0	{"max_hold":{"avg_net_pct":-0.005,"n":1916},"stop":{"avg_net_pct":-9.905,"n":124}}
+lunar__new__short__1d__atr2d5_hd5__v1	lunar	new	short	1d	atr2d5_hd5	v1	2040	46.1	0.717	1.045	4.81	trading days	-0.706	35.6	{"max_hold":{"avg_net_pct":0.558,"n":1795},"stop":{"avg_net_pct":-9.961,"n":245}}
+lunar__new__short__1d__atr4d0_hd10__v1	lunar	new	short	1d	atr4d0_hd10	v1	2040	45.4	0.648	0.852	9.52	trading days	-1.273	54.3	{"max_hold":{"avg_net_pct":0.605,"n":1778},"stop":{"avg_net_pct":-14.02,"n":262}}
+lunar__new__short__1d__atr4d0_hd1__v1	lunar	new	short	1d	atr4d0_hd1	v1	2040	40.7	0.624	1.562	1.0	trading days	-0.413	12.1	{"max_hold":{"avg_net_pct":-0.387,"n":2036},"stop":{"avg_net_pct":-13.782,"n":4}}
+lunar__new__short__1d__atr4d0_hd3__v1	lunar	new	short	1d	atr4d0_hd3	v1	2040	45.5	0.679	1.117	2.99	trading days	-0.621	27.0	{"max_hold":{"avg_net_pct":-0.39,"n":2002},"stop":{"avg_net_pct":-12.77,"n":38}}
+lunar__new__short__1d__atr4d0_hd5__v1	lunar	new	short	1d	atr4d0_hd5	v1	2040	46.6	0.707	1.025	4.94	trading days	-0.747	35.6	{"max_hold":{"avg_net_pct":-0.082,"n":1943},"stop":{"avg_net_pct":-14.064,"n":97}}
+lunar__pair__bidirectional__1d__atr1d5_hd10__v1	lunar	pair	bidirectional	1d	atr1d5_hd10	v1	4085	37.8	0.745	0.989	7.8	trading days	-0.83	88.5	{"max_hold":{"avg_net_pct":3.396,"n":2357},"stop":{"avg_net_pct":-6.594,"n":1728}}
+lunar__pair__bidirectional__1d__atr1d5_hd1__v1	lunar	pair	bidirectional	1d	atr1d5_hd1	v1	4085	32.7	0.44	1.069	1.0	trading days	-0.742	16.4	{"max_hold":{"avg_net_pct":-0.519,"n":3916},"stop":{"avg_net_pct":-5.909,"n":169}}
+lunar__pair__bidirectional__1d__atr1d5_hd3__v1	lunar	pair	bidirectional	1d	atr1d5_hd3	v1	4085	40.4	0.667	1.085	2.86	trading days	-0.667	50.1	{"max_hold":{"avg_net_pct":0.509,"n":3381},"stop":{"avg_net_pct":-6.314,"n":704}}
+lunar__pair__bidirectional__1d__atr1d5_hd5__v1	lunar	pair	bidirectional	1d	atr1d5_hd5	v1	4085	41.4	0.761	1.105	4.47	trading days	-0.587	45.8	{"max_hold":{"avg_net_pct":1.525,"n":3009},"stop":{"avg_net_pct":-6.494,"n":1076}}
+lunar__pair__bidirectional__1d__atr2d5_hd10__v1	lunar	pair	bidirectional	1d	atr2d5_hd10	v1	4085	41.6	0.75	0.978	9.08	trading days	-0.867	88.5	{"max_hold":{"avg_net_pct":1.687,"n":3170},"stop":{"avg_net_pct":-9.714,"n":915}}
+lunar__pair__bidirectional__1d__atr2d5_hd1__v1	lunar	pair	bidirectional	1d	atr2d5_hd1	v1	4085	32.8	0.45	1.106	1.0	trading days	-0.714	16.4	{"max_hold":{"avg_net_pct":-0.662,"n":4057},"stop":{"avg_net_pct":-8.17,"n":28}}
+lunar__pair__bidirectional__1d__atr2d5_hd3__v1	lunar	pair	bidirectional	1d	atr2d5_hd3	v1	4085	41.3	0.688	1.118	2.97	trading days	-0.617	50.1	{"max_hold":{"avg_net_pct":-0.19,"n":3894},"stop":{"avg_net_pct":-9.319,"n":191}}
+lunar__pair__bidirectional__1d__atr2d5_hd5__v1	lunar	pair	bidirectional	1d	atr2d5_hd5	v1	4085	43.0	0.781	1.124	4.84	trading days	-0.544	45.8	{"max_hold":{"avg_net_pct":0.483,"n":3668},"stop":{"avg_net_pct":-9.58,"n":417}}
+lunar__pair__bidirectional__1d__atr4d0_hd10__v1	lunar	pair	bidirectional	1d	atr4d0_hd10	v1	4085	42.7	0.742	0.963	9.67	trading days	-0.915	88.5	{"max_hold":{"avg_net_pct":0.415,"n":3701},"stop":{"avg_net_pct":-13.735,"n":384}}
+lunar__pair__bidirectional__1d__atr4d0_hd1__v1	lunar	pair	bidirectional	1d	atr4d0_hd1	v1	4085	32.8	0.452	1.113	1.0	trading days	-0.708	16.4	{"max_hold":{"avg_net_pct":-0.695,"n":4080},"stop":{"avg_net_pct":-11.223,"n":5}}
+lunar__pair__bidirectional__1d__atr4d0_hd3__v1	lunar	pair	bidirectional	1d	atr4d0_hd3	v1	4085	41.4	0.692	1.124	2.99	trading days	-0.609	50.1	{"max_hold":{"avg_net_pct":-0.471,"n":4038},"stop":{"avg_net_pct":-12.435,"n":47}}
+lunar__pair__bidirectional__1d__atr4d0_hd5__v1	lunar	pair	bidirectional	1d	atr4d0_hd5	v1	4085	43.4	0.786	1.13	4.96	trading days	-0.532	45.8	{"max_hold":{"avg_net_pct":-0.116,"n":3958},"stop":{"avg_net_pct":-13.506,"n":127}}
+lunar__quarter__long__1d__atr1d5_hd10__v1	lunar	quarter	long	1d	atr1d5_hd10	v1	2795	36.1	0.794	1.028	7.62	trading days	-0.717	79.4	{"max_hold":{"avg_net_pct":4.098,"n":1553},"stop":{"avg_net_pct":-6.737,"n":1242}}
+lunar__quarter__long__1d__atr1d5_hd1__v1	lunar	quarter	long	1d	atr1d5_hd1	v1	4089	25.3	0.311	0.731	1.0	trading days	-1.07	16.7	{"max_hold":{"avg_net_pct":-0.907,"n":3964},"stop":{"avg_net_pct":-6.258,"n":125}}
+lunar__quarter__long__1d__atr1d5_hd3__v1	lunar	quarter	long	1d	atr1d5_hd3	v1	4089	33.2	0.51	0.82	2.88	trading days	-1.123	55.5	{"max_hold":{"avg_net_pct":-0.09,"n":3424},"stop":{"avg_net_pct":-6.438,"n":665}}
+lunar__quarter__long__1d__atr1d5_hd5__v1	lunar	quarter	long	1d	atr1d5_hd5	v1	4089	34.9	0.594	0.852	4.49	trading days	-1.144	51.5	{"max_hold":{"avg_net_pct":1.081,"n":2911},"stop":{"avg_net_pct":-6.642,"n":1178}}
+lunar__quarter__long__1d__atr2d5_hd10__v1	lunar	quarter	long	1d	atr2d5_hd10	v1	2474	40.5	0.82	1.051	9.07	trading days	-0.642	79.4	{"max_hold":{"avg_net_pct":1.966,"n":1930},"stop":{"avg_net_pct":-9.895,"n":544}}
+lunar__quarter__long__1d__atr2d5_hd1__v1	lunar	quarter	long	1d	atr2d5_hd1	v1	4089	25.4	0.314	0.744	1.0	trading days	-1.055	16.7	{"max_hold":{"avg_net_pct":-1.024,"n":4071},"stop":{"avg_net_pct":-7.899,"n":18}}
+lunar__quarter__long__1d__atr2d5_hd3__v1	lunar	quarter	long	1d	atr2d5_hd3	v1	4089	33.8	0.525	0.846	2.98	trading days	-1.07	55.5	{"max_hold":{"avg_net_pct":-0.785,"n":3957},"stop":{"avg_net_pct":-9.631,"n":132}}
+lunar__quarter__long__1d__atr2d5_hd5__v1	lunar	quarter	long	1d	atr2d5_hd5	v1	4089	36.5	0.618	0.882	4.89	trading days	-1.075	51.5	{"max_hold":{"avg_net_pct":-0.213,"n":3715},"stop":{"avg_net_pct":-9.631,"n":374}}
+lunar__quarter__long__1d__atr4d0_hd10__v1	lunar	quarter	long	1d	atr4d0_hd10	v1	2308	40.4	0.827	1.061	9.69	trading days	-0.612	79.4	{"max_hold":{"avg_net_pct":0.353,"n":2145},"stop":{"avg_net_pct":-13.303,"n":163}}
+lunar__quarter__long__1d__atr4d0_hd1__v1	lunar	quarter	long	1d	atr4d0_hd1	v1	4089	25.4	0.315	0.748	1.0	trading days	-1.049	16.7	{"max_hold":{"avg_net_pct":-1.044,"n":4085},"stop":{"avg_net_pct":-6.954,"n":4}}
+lunar__quarter__long__1d__atr4d0_hd3__v1	lunar	quarter	long	1d	atr4d0_hd3	v1	4089	33.9	0.53	0.855	3.0	trading days	-1.052	55.5	{"max_hold":{"avg_net_pct":-0.988,"n":4065},"stop":{"avg_net_pct":-11.907,"n":24}}
+lunar__quarter__long__1d__atr4d0_hd5__v1	lunar	quarter	long	1d	atr4d0_hd5	v1	4089	36.7	0.628	0.899	4.98	trading days	-1.032	51.5	{"max_hold":{"avg_net_pct":-0.805,"n":4010},"stop":{"avg_net_pct":-12.523,"n":79}}
+lunar__quarter__short__1d__atr1d5_hd10__v1	lunar	quarter	short	1d	atr1d5_hd10	v1	2836	42.1	0.745	0.995	7.59	trading days	-0.813	36.0	{"max_hold":{"avg_net_pct":3.666,"n":1610},"stop":{"avg_net_pct":-6.696,"n":1226}}
+lunar__quarter__short__1d__atr1d5_hd1__v1	lunar	quarter	short	1d	atr1d5_hd1	v1	4089	36.9	0.528	1.323	1.0	trading days	-0.56	16.0	{"max_hold":{"avg_net_pct":-0.313,"n":3911},"stop":{"avg_net_pct":-5.974,"n":178}}
+lunar__quarter__short__1d__atr1d5_hd3__v1	lunar	quarter	short	1d	atr1d5_hd3	v1	4089	43.5	0.673	1.105	2.84	trading days	-0.638	23.9	{"max_hold":{"avg_net_pct":0.708,"n":3319},"stop":{"avg_net_pct":-6.44,"n":770}}
+lunar__quarter__short__1d__atr1d5_hd5__v1	lunar	quarter	short	1d	atr1d5_hd5	v1	4089	44.5	0.727	1.066	4.41	trading days	-0.667	28.5	{"max_hold":{"avg_net_pct":1.725,"n":2909},"stop":{"avg_net_pct":-6.565,"n":1180}}
+lunar__quarter__short__1d__atr2d5_hd10__v1	lunar	quarter	short	1d	atr2d5_hd10	v1	2546	46.5	0.748	0.978	8.85	trading days	-0.868	36.0	{"max_hold":{"avg_net_pct":2.141,"n":1925},"stop":{"avg_net_pct":-10.194,"n":621}}
+lunar__quarter__short__1d__atr2d5_hd1__v1	lunar	quarter	short	1d	atr2d5_hd1	v1	4089	37.0	0.528	1.32	1.0	trading days	-0.561	16.0	{"max_hold":{"avg_net_pct":-0.485,"n":4052},"stop":{"avg_net_pct":-8.895,"n":37}}
+lunar__quarter__short__1d__atr2d5_hd3__v1	lunar	quarter	short	1d	atr2d5_hd3	v1	4089	44.2	0.68	1.114	2.96	trading days	-0.624	23.9	{"max_hold":{"avg_net_pct":-0.013,"n":3826},"stop":{"avg_net_pct":-9.512,"n":263}}
+lunar__quarter__short__1d__atr2d5_hd5__v1	lunar	quarter	short	1d	atr2d5_hd5	v1	4089	46.3	0.725	1.052	4.79	trading days	-0.691	28.5	{"max_hold":{"avg_net_pct":0.692,"n":3543},"stop":{"avg_net_pct":-9.662,"n":546}}
+lunar__quarter__short__1d__atr4d0_hd10__v1	lunar	quarter	short	1d	atr4d0_hd10	v1	2382	47.0	0.709	0.919	9.45	trading days	-1.064	36.0	{"max_hold":{"avg_net_pct":0.817,"n":2083},"stop":{"avg_net_pct":-14.167,"n":299}}
+lunar__quarter__short__1d__atr4d0_hd1__v1	lunar	quarter	short	1d	atr4d0_hd1	v1	4089	37.0	0.53	1.328	1.0	trading days	-0.556	16.0	{"max_hold":{"avg_net_pct":-0.534,"n":4078},"stop":{"avg_net_pct":-9.009,"n":11}}
+lunar__quarter__short__1d__atr4d0_hd3__v1	lunar	quarter	short	1d	atr4d0_hd3	v1	4089	44.5	0.698	1.148	2.99	trading days	-0.577	23.9	{"max_hold":{"avg_net_pct":-0.33,"n":4003},"stop":{"avg_net_pct":-12.099,"n":86}}
+lunar__quarter__short__1d__atr4d0_hd5__v1	lunar	quarter	short	1d	atr4d0_hd5	v1	4089	46.8	0.728	1.053	4.93	trading days	-0.688	28.5	{"max_hold":{"avg_net_pct":-0.052,"n":3882},"stop":{"avg_net_pct":-12.601,"n":207}}
+=== END FULL CELL TSV lunar_sweep ===
+GROUP {"interval": "1d", "period": "5y", "symbols": 39, "requested": 50, "distinct_phase_events": {"full": 62, "new": 62, "quarter": 124}}
+CAVEAT: all stocks share the same phase dates; read distinct_phase_events, not pooled n, as the sample size.
+lunar__full__long__1d__atr4d0_hd5__v1 pfnet 0.869 pfgross 1.244 win 40.2 n 2045 hold_bars 4.99 exits {"max_hold": {"n": 2015, "avg_net_pct": -0.149}, "stop": {"n": 30, "avg_net_pct": -11.702}}
+lunar__full__long__1d__atr2d5_hd5__v1 pfnet 0.845 pfgross 1.206 win 40.0 n 2045 hold_bars 4.88 exits {"max_hold": {"n": 1873, "avg_net_pct": 0.411}, "stop": {"n": 172, "avg_net_pct": -9.038}}
+lunar__new__long__1d__atr4d0_hd10__v1 pfnet 0.844 pfgross 1.101 win 40.7 n 2040 hold_bars 9.77 exits {"max_hold": {"n": 1920, "avg_net_pct": 0.231}, "stop": {"n": 120, "avg_net_pct": -12.417}}
+lunar__full__long__1d__atr4d0_hd10__v1 pfnet 0.84 pfgross 1.08 win 40.0 n 2045 hold_bars 9.81 exits {"max_hold": {"n": 1923, "avg_net_pct": 0.239}, "stop": {"n": 122, "avg_net_pct": -13.122}}
+lunar__quarter__long__1d__atr4d0_hd10__v1 pfnet 0.827 pfgross 1.061 win 40.4 n 2308 hold_bars 9.69 exits {"max_hold": {"n": 2145, "avg_net_pct": 0.353}, "stop": {"n": 163, "avg_net_pct": -13.303}}
+lunar__full__long__1d__atr2d5_hd10__v1 pfnet 0.823 pfgross 1.058 win 39.2 n 2045 hold_bars 9.23 exits {"max_hold": {"n": 1628, "avg_net_pct": 1.667}, "stop": {"n": 417, "avg_net_pct": -9.562}}
+lunar__quarter__long__1d__atr2d5_hd10__v1 pfnet 0.82 pfgross 1.051 win 40.5 n 2474 hold_bars 9.07 exits {"stop": {"n": 544, "avg_net_pct": -9.895}, "max_hold": {"n": 1930, "avg_net_pct": 1.966}}
+lunar__full__long__1d__atr1d5_hd10__v1 pfnet 0.81 pfgross 1.06 win 35.6 n 2045 hold_bars 7.83 exits {"max_hold": {"n": 1193, "avg_net_pct": 3.614}, "stop": {"n": 852, "avg_net_pct": -6.572}}
+lunar__full__long__1d__atr1d5_hd5__v1 pfnet 0.802 pfgross 1.147 win 38.2 n 2045 hold_bars 4.47 exits {"max_hold": {"n": 1513, "avg_net_pct": 1.519}, "stop": {"n": 532, "avg_net_pct": -6.24}}
+lunar__quarter__long__1d__atr1d5_hd10__v1 pfnet 0.794 pfgross 1.028 win 36.1 n 2795 hold_bars 7.62 exits {"stop": {"n": 1242, "avg_net_pct": -6.737}, "max_hold": {"n": 1553, "avg_net_pct": 4.098}}
+lunar__pair__bidirectional__1d__atr4d0_hd5__v1 pfnet 0.786 pfgross 1.13 win 43.4 n 4085 hold_bars 4.96 exits {"max_hold": {"n": 3958, "avg_net_pct": -0.116}, "stop": {"n": 127, "avg_net_pct": -13.506}}
+lunar__pair__bidirectional__1d__atr2d5_hd5__v1 pfnet 0.781 pfgross 1.124 win 43.0 n 4085 hold_bars 4.84 exits {"max_hold": {"n": 3668, "avg_net_pct": 0.483}, "stop": {"n": 417, "avg_net_pct": -9.58}}
+lunar__pair__bidirectional__1d__atr1d5_hd5__v1 pfnet 0.761 pfgross 1.105 win 41.4 n 4085 hold_bars 4.47 exits {"max_hold": {"n": 3009, "avg_net_pct": 1.525}, "stop": {"n": 1076, "avg_net_pct": -6.494}}
+lunar__pair__bidirectional__1d__atr2d5_hd10__v1 pfnet 0.75 pfgross 0.978 win 41.6 n 4085 hold_bars 9.08 exits {"max_hold": {"n": 3170, "avg_net_pct": 1.687}, "stop": {"n": 915, "avg_net_pct": -9.714}}
+lunar__quarter__short__1d__atr2d5_hd10__v1 pfnet 0.748 pfgross 0.978 win 46.5 n 2546 hold_bars 8.85 exits {"max_hold": {"n": 1925, "avg_net_pct": 2.141}, "stop": {"n": 621, "avg_net_pct": -10.194}}
+lunar__new__long__1d__atr2d5_hd10__v1 pfnet 0.747 pfgross 0.967 win 38.7 n 2040 hold_bars 9.12 exits {"max_hold": {"n": 1605, "avg_net_pct": 1.471}, "stop": {"n": 435, "avg_net_pct": -9.654}}
+lunar__quarter__short__1d__atr1d5_hd10__v1 pfnet 0.745 pfgross 0.995 win 42.1 n 2836 hold_bars 7.59 exits {"max_hold": {"n": 1610, "avg_net_pct": 3.666}, "stop": {"n": 1226, "avg_net_pct": -6.696}}
+lunar__pair__bidirectional__1d__atr1d5_hd10__v1 pfnet 0.745 pfgross 0.989 win 37.8 n 4085 hold_bars 7.8 exits {"max_hold": {"n": 2357, "avg_net_pct": 3.396}, "stop": {"n": 1728, "avg_net_pct": -6.594}}
+lunar__pair__bidirectional__1d__atr4d0_hd10__v1 pfnet 0.742 pfgross 0.963 win 42.7 n 4085 hold_bars 9.67 exits {"max_hold": {"n": 3701, "avg_net_pct": 0.415}, "stop": {"n": 384, "avg_net_pct": -13.735}}
+lunar__quarter__short__1d__atr4d0_hd5__v1 pfnet 0.728 pfgross 1.053 win 46.8 n 4089 hold_bars 4.93 exits {"max_hold": {"n": 3882, "avg_net_pct": -0.052}, "stop": {"n": 207, "avg_net_pct": -12.601}}
+lunar__quarter__short__1d__atr1d5_hd5__v1 pfnet 0.727 pfgross 1.066 win 44.5 n 4089 hold_bars 4.41 exits {"max_hold": {"n": 2909, "avg_net_pct": 1.725}, "stop": {"n": 1180, "avg_net_pct": -6.565}}
+lunar__quarter__short__1d__atr2d5_hd5__v1 pfnet 0.725 pfgross 1.052 win 46.3 n 4089 hold_bars 4.79 exits {"max_hold": {"n": 3543, "avg_net_pct": 0.692}, "stop": {"n": 546, "avg_net_pct": -9.662}}
+lunar__new__short__1d__atr1d5_hd5__v1 pfnet 0.719 pfgross 1.062 win 44.7 n 2040 hold_bars 4.46 exits {"stop": {"n": 544, "avg_net_pct": -6.742}, "max_hold": {"n": 1496, "avg_net_pct": 1.53}}
+lunar__new__short__1d__atr2d5_hd5__v1 pfnet 0.717 pfgross 1.045 win 46.1 n 2040 hold_bars 4.81 exits {"stop": {"n": 245, "avg_net_pct": -9.961}, "max_hold": {"n": 1795, "avg_net_pct": 0.558}}
+lunar__quarter__short__1d__atr4d0_hd10__v1 pfnet 0.709 pfgross 0.919 win 47.0 n 2382 hold_bars 9.45 exits {"max_hold": {"n": 2083, "avg_net_pct": 0.817}, "stop": {"n": 299, "avg_net_pct": -14.167}}
+lunar__new__short__1d__atr4d0_hd5__v1 pfnet 0.707 pfgross 1.025 win 46.6 n 2040 hold_bars 4.94 exits {"max_hold": {"n": 1943, "avg_net_pct": -0.082}, "stop": {"n": 97, "avg_net_pct": -14.064}}
+lunar__full__long__1d__atr4d0_hd3__v1 pfnet 0.704 pfgross 1.131 win 37.3 n 2045 hold_bars 3.0 exits {"max_hold": {"n": 2036, "avg_net_pct": -0.551}, "stop": {"n": 9, "avg_net_pct": -11.021}}
+lunar__quarter__short__1d__atr4d0_hd3__v1 pfnet 0.698 pfgross 1.148 win 44.5 n 4089 hold_bars 2.99 exits {"max_hold": {"n": 4003, "avg_net_pct": -0.33}, "stop": {"n": 86, "avg_net_pct": -12.099}}
+lunar__full__long__1d__atr2d5_hd3__v1 pfnet 0.693 pfgross 1.11 win 37.1 n 2045 hold_bars 2.98 exits {"max_hold": {"n": 1978, "avg_net_pct": -0.369}, "stop": {"n": 67, "avg_net_pct": -8.235}}
+lunar__pair__bidirectional__1d__atr4d0_hd3__v1 pfnet 0.692 pfgross 1.124 win 41.4 n 4085 hold_bars 2.99 exits {"max_hold": {"n": 4038, "avg_net_pct": -0.471}, "stop": {"n": 47, "avg_net_pct": -12.435}}
+lunar__pair__bidirectional__1d__atr2d5_hd3__v1 pfnet 0.688 pfgross 1.118 win 41.3 n 4085 hold_bars 2.97 exits {"max_hold": {"n": 3894, "avg_net_pct": -0.19}, "stop": {"n": 191, "avg_net_pct": -9.319}}
+lunar__new__short__1d__atr1d5_hd3__v1 pfnet 0.688 pfgross 1.146 win 44.8 n 2040 hold_bars 2.86 exits {"stop": {"n": 353, "avg_net_pct": -6.525}, "max_hold": {"n": 1687, "avg_net_pct": 0.657}}
+lunar__new__short__1d__atr2d5_hd3__v1 pfnet 0.683 pfgross 1.127 win 45.5 n 2040 hold_bars 2.96 exits {"stop": {"n": 124, "avg_net_pct": -9.905}, "max_hold": {"n": 1916, "avg_net_pct": -0.005}}
+lunar__quarter__short__1d__atr2d5_hd3__v1 pfnet 0.68 pfgross 1.114 win 44.2 n 4089 hold_bars 2.96 exits {"max_hold": {"n": 3826, "avg_net_pct": -0.013}, "stop": {"n": 263, "avg_net_pct": -9.512}}
+lunar__new__short__1d__atr4d0_hd3__v1 pfnet 0.679 pfgross 1.117 win 45.5 n 2040 hold_bars 2.99 exits {"max_hold": {"n": 2002, "avg_net_pct": -0.39}, "stop": {"n": 38, "avg_net_pct": -12.77}}
+lunar__new__short__1d__atr1d5_hd10__v1 pfnet 0.677 pfgross 0.915 win 40.0 n 2040 hold_bars 7.77 exits {"stop": {"n": 876, "avg_net_pct": -6.615}, "max_hold": {"n": 1164, "avg_net_pct": 3.172}}
+lunar__full__short__1d__atr4d0_hd10__v1 pfnet 0.676 pfgross 0.879 win 46.8 n 2045 hold_bars 9.5 exits {"max_hold": {"n": 1792, "avg_net_pct": 0.708}, "stop": {"n": 253, "avg_net_pct": -14.699}}
+lunar__new__short__1d__atr2d5_hd10__v1 pfnet 0.675 pfgross 0.896 win 44.1 n 2040 hold_bars 8.93 exits {"stop": {"n": 498, "avg_net_pct": -9.842}, "max_hold": {"n": 1542, "avg_net_pct": 1.709}}
+lunar__full__short__1d__atr2d5_hd10__v1 pfnet 0.674 pfgross 0.882 win 45.4 n 2045 hold_bars 8.8 exits {"max_hold": {"n": 1515, "avg_net_pct": 2.05}, "stop": {"n": 530, "avg_net_pct": -10.402}}
+lunar__quarter__short__1d__atr1d5_hd3__v1 pfnet 0.673 pfgross 1.105 win 43.5 n 4089 hold_bars 2.84 exits {"max_hold": {"n": 3319, "avg_net_pct": 0.708}, "stop": {"n": 770, "avg_net_pct": -6.44}}
+lunar__pair__bidirectional__1d__atr1d5_hd3__v1 pfnet 0.667 pfgross 1.085 win 40.4 n 4085 hold_bars 2.86 exits {"max_hold": {"n": 3381, "avg_net_pct": 0.509}, "stop": {"n": 704, "avg_net_pct": -6.314}}
+lunar__full__short__1d__atr1d5_hd10__v1 pfnet 0.667 pfgross 0.89 win 40.6 n 2045 hold_bars 7.51 exits {"stop": {"n": 913, "avg_net_pct": -6.86}, "max_hold": {"n": 1132, "avg_net_pct": 3.513}}
+lunar__new__long__1d__atr4d0_hd5__v1 pfnet 0.657 pfgross 0.942 win 37.4 n 2040 hold_bars 4.97 exits {"max_hold": {"n": 1988, "avg_net_pct": -0.646}, "stop": {"n": 52, "avg_net_pct": -11.714}}
+lunar__new__long__1d__atr1d5_hd10__v1 pfnet 0.656 pfgross 0.86 win 33.0 n 2040 hold_bars 7.6 exits {"max_hold": {"n": 1129, "avg_net_pct": 3.189}, "stop": {"n": 911, "avg_net_pct": -6.694}}
+lunar__full__long__1d__atr1d5_hd3__v1 pfnet 0.649 pfgross 1.031 win 36.0 n 2045 hold_bars 2.86 exits {"max_hold": {"n": 1694, "avg_net_pct": 0.361}, "stop": {"n": 351, "avg_net_pct": -6.102}}
+lunar__new__short__1d__atr4d0_hd10__v1 pfnet 0.648 pfgross 0.852 win 45.4 n 2040 hold_bars 9.52 exits {"max_hold": {"n": 1778, "avg_net_pct": 0.605}, "stop": {"n": 262, "avg_net_pct": -14.02}}
+lunar__quarter__long__1d__atr4d0_hd5__v1 pfnet 0.628 pfgross 0.899 win 36.7 n 4089 hold_bars 4.98 exits {"max_hold": {"n": 4010, "avg_net_pct": -0.805}, "stop": {"n": 79, "avg_net_pct": -12.523}}
+lunar__new__long__1d__atr2d5_hd5__v1 pfnet 0.625 pfgross 0.891 win 37.0 n 2040 hold_bars 4.85 exits {"max_hold": {"n": 1836, "avg_net_pct": -0.141}, "stop": {"n": 204, "avg_net_pct": -9.274}}
+lunar__new__short__1d__atr4d0_hd1__v1 pfnet 0.624 pfgross 1.562 win 40.7 n 2040 hold_bars 1.0 exits {"max_hold": {"n": 2036, "avg_net_pct": -0.387}, "stop": {"n": 4, "avg_net_pct": -13.782}}
+lunar__new__short__1d__atr2d5_hd1__v1 pfnet 0.624 pfgross 1.562 win 40.7 n 2040 hold_bars 1.0 exits {"max_hold": {"n": 2023, "avg_net_pct": -0.343}, "stop": {"n": 17, "avg_net_pct": -8.764}}
+lunar__quarter__long__1d__atr2d5_hd5__v1 pfnet 0.618 pfgross 0.882 win 36.5 n 4089 hold_bars 4.89 exits {"max_hold": {"n": 3715, "avg_net_pct": -0.213}, "stop": {"n": 374, "avg_net_pct": -9.631}}
+lunar__new__short__1d__atr1d5_hd1__v1 pfnet 0.613 pfgross 1.524 win 40.5 n 2040 hold_bars 1.0 exits {"max_hold": {"n": 1960, "avg_net_pct": -0.194}, "stop": {"n": 80, "avg_net_pct": -6.262}}
+lunar__quarter__long__1d__atr1d5_hd5__v1 pfnet 0.594 pfgross 0.852 win 34.9 n 4089 hold_bars 4.49 exits {"stop": {"n": 1178, "avg_net_pct": -6.642}, "max_hold": {"n": 2911, "avg_net_pct": 1.081}}
+lunar__new__long__1d__atr1d5_hd5__v1 pfnet 0.585 pfgross 0.834 win 34.8 n 2040 hold_bars 4.42 exits {"max_hold": {"n": 1412, "avg_net_pct": 1.171}, "stop": {"n": 628, "avg_net_pct": -6.517}}
+lunar__new__long__1d__atr4d0_hd3__v1 pfnet 0.554 pfgross 0.891 win 33.8 n 2040 hold_bars 2.99 exits {"max_hold": {"n": 2021, "avg_net_pct": -0.906}, "stop": {"n": 19, "avg_net_pct": -9.49}}
+lunar__full__short__1d__atr1d5_hd5__v1 pfnet 0.552 pfgross 0.816 win 41.8 n 2045 hold_bars 4.39 exits {"stop": {"n": 644, "avg_net_pct": -6.906}, "max_hold": {"n": 1401, "avg_net_pct": 1.394}}
+lunar__full__short__1d__atr2d5_hd5__v1 pfnet 0.55 pfgross 0.803 win 43.7 n 2045 hold_bars 4.78 exits {"max_hold": {"n": 1754, "avg_net_pct": 0.222}, "stop": {"n": 291, "avg_net_pct": -10.299}}
+lunar__new__long__1d__atr2d5_hd3__v1 pfnet 0.546 pfgross 0.876 win 33.7 n 2040 hold_bars 2.97 exits {"max_hold": {"n": 1955, "avg_net_pct": -0.706}, "stop": {"n": 85, "avg_net_pct": -8.163}}
+lunar__full__short__1d__atr4d0_hd5__v1 pfnet 0.54 pfgross 0.785 win 44.1 n 2045 hold_bars 4.93 exits {"max_hold": {"n": 1941, "avg_net_pct": -0.616}, "stop": {"n": 104, "avg_net_pct": -14.699}}
+lunar__full__short__1d__atr2d5_hd3__v1 pfnet 0.532 pfgross 0.873 win 41.6 n 2045 hold_bars 2.95 exits {"max_hold": {"n": 1903, "avg_net_pct": -0.379}, "stop": {"n": 142, "avg_net_pct": -9.658}}
