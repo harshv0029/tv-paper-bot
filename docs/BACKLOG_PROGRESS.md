@@ -17,7 +17,7 @@ Total rows: 840 | closed: 368 | not closed: 472
 | BLOCKED | 63 |
 | DONE-MERGED | 22 |
 | CLOSED | 19 |
-| OPEN | 18 |
+| OPEN | 16 |
 | PENDING | 12 |
 | BUILT-ON-BRANCH | 6 |
 | OPEN-PARKED | 6 |
@@ -27,7 +27,9 @@ Total rows: 840 | closed: 368 | not closed: 472
 | OWNER-ACTION | 1 |
 | BLOCKED-ON-RUN | 1 |
 | HARNESS-RUN-DONE | 1 |
+| ROOT-CAUSED | 1 |
 | IN-PROGRESS | 1 |
+| IN | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -508,8 +510,8 @@ Total rows: 840 | closed: 368 | not closed: 472
 | B-860 | P1 | OPEN | Trustworthy option-premium backtest path (design: STRATEGY_LEARNINGS 'Option premium backtest') | owed |
 | B-861 | P1 | OPEN | Index option trigger research (options category has no validated entry; option-premium history does not exist) | owed, needs |
 | B-863 | P1 | PARTIAL | Elder batch 3 RERUN run 38211452647 (2026-10-12 IST, 1d osc/struct/breadth/chan + 5m orb, cost 0.008): all ... | owed, follow-up |
-| B-864 | P1 | OPEN | Root-cause why osc__div_class kb_oscrsi/kb_oscmacdh printed PFnet 0.958/0.954 in run 38169625565 but 2.433/... |  |
-| B-866 | P1 | OPEN | 2026-10-12 B-861 index option trigger research collected (run 38214076382, 4 intervals x 40 cells, ^NSEI/^N... | owed |
+| B-864 | P1 | ROOT-CAUSED | Root-cause why osc__div_class kb_oscrsi/kb_oscmacdh printed PFnet 0.958/0.954 in run 38169625565 but 2.433/... | owed, follow-up |
+| B-866 | P1 | IN | 2026-10-12 B-861 index option trigger research collected (run 38214076382, 4 intervals x 40 cells, ^NSEI/^N... | owed |
 | B-413 | P2 | PARTIAL | From B-403 audit | open:, needs |
 | B-422 | P2 | PARTIAL | 2026-10-11 IST, user liquidity question: none of the 286 viable (PFnet >= 1.1) strategies models liquidity ... | owed, needs |
 | B-513 | P2 | PARTIAL | 2026-10-11 IST, source: William O'Neil, How to Make Money in Stocks (docs/ on main; 4 readers) |  |
