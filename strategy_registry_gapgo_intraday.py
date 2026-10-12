@@ -1,0 +1,46 @@
+"""Registers intraday-gap-and-go-research.yml run 38277225522 (5m, 60d, full NSE universe, cost 0.8%, B-45): 4 long ATR cells and
+4 short-mirror cells. Raw rows docs/backtest_data/intraday_gap_and_go_5m_run_38277225522.json (incl. trim1, exit reasons, day_stats).
+The 4 SHORT cells have n=0 because of a harness bug (long-only _target_move_pct used for shorts), NOT because the setup never occurs:
+they are kept registered with their zeros and a rerun is owed under a new tag (backlog B-876). Research-only, entry_fn=None; viability
+is derived at read time from PFnet vs PFNET_LIVE_FLOOR, nothing wired live."""
+import json
+import os
+
+import strategy_registry as sr
+
+_FN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data", "intraday_gap_and_go_5m_run_38277225522.json")
+_REF = "intraday-gap-and-go-research.yml run 38277225522 (5m, 60d, cost 0.8%, full NSE universe)"
+_MIN_PER_BAR = 5.0
+
+
+def build():
+    out, seen = [], {x.name for x in sr.REGISTRY}
+    try:
+        d = json.load(open(_FN))
+    except Exception:
+        return out
+    for r in d.get("rows", []):
+        try:
+            tag = r["tag"]
+            if tag in seen:
+                continue
+            seen.add(tag)
+            short = "__short__" in tag
+            cat = sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.BUY
+            pfn = r["pfnet"] if r["pfnet"] is not None else 0.0
+            pfg = r["pf_gross"] if r["pf_gross"] is not None else 0.0
+            note = ("n=0: harness bug (long-only _target_move_pct on shorts rejected every candidate), not evidence of no edge; rerun owed (B-876). "
+                    if short else "")
+            out.append(sr.StrategyDef(
+                name=tag, asset_class=sr.AssetClass.EQUITY_INTRADAY, categories=(cat,), timeframe="5m",
+                status=sr.StrategyStatus.RESEARCH, entry_fn=None,
+                metrics=sr.Metrics(pfnet=float(pfn), pfgross=float(pfg), win_rate_pct=float(r["win_pct"]),
+                                   n_trades=int(r["n"]), avg_held_hrs=float(r["avg_hold_bars"]) * _MIN_PER_BAR / 60.0,
+                                   universe="NSE full universe", run_ref=_REF),
+                source="scripts/intraday_gap_and_go_research.py",
+                evidence=f"{_REF}: PFnet {r['pfnet']}, gross {r['pf_gross']}, trim1 {r['pfnet_trim1']}, win {r['win_pct']}%, n={r['n']}, "
+                         f"avg_hold {r['avg_hold_bars']} bars (5m); top5 net ret % {r['top5_net_ret_pct']}; exits {json.dumps(r['exit_reasons'], separators=(',', ':'))}",
+                notes=note + "Same-day intraday gap-and-go (2% gap, hold above open, vol 1.5x, 30-min entry window), ATR stop on every trade, flat by 15:20 IST; 5m only, 15m owed; research-only, entry_fn=None, nothing wired (B-45)."))
+        except Exception:
+            continue
+    return out

@@ -2809,6 +2809,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_iso.build())
         import strategy_registry_lunar as _lu
         REGISTRY.extend(_lu.build())
+        import strategy_registry_gapgo_intraday as _gi
+        REGISTRY.extend(_gi.build())
         import strategy_registry_oneilcup as _oc
         REGISTRY.extend(_oc.build())
         import strategy_registry_douglasrerun as _dr

@@ -154,7 +154,9 @@ def _fake_gg_main():
     mm.IST_OFFSET_MIN = 330
     mm.ROUND_TRIP_COST_PCT = 0.8
     mm.CAPITAL_TRANCHES = 1
-    mm._target_move_pct = lambda t, e: abs(t - e) / e * 100
+    # real main.py signs: long-only helper is negative for a below-entry target (the B-45 short n=0 bug hid behind abs())
+    mm._target_move_pct = lambda t, e: (t - e) / e * 100
+    mm._target_move_pct_short = lambda t, e: (e - t) / e * 100
     mm.NSE_STOCK_PARAM_OVERRIDES = {}
     mm.NSE_STOCK_DEFAULT_PARAMS = {"risk_pct": 1.0}
     return mm
