@@ -511,7 +511,7 @@ Total rows: 857 | closed: 369 | not closed: 488
 | B-787 | P1 | OPEN | O'Neil replay RESULT (run 38149046190, 2026-10-11 IST, bar-by-bar port, 1955 syms 1w, cost 0.8%): 6/7 tags ... | owed |
 | B-789 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (island reversal at 1h/15m/5m, also covers B-815 nonovl + IS/OOS c... | owed |
 | B-806 | P1 | OPEN | Dispatch the 203 HARNESS-BUILT rows (13 workflows, all already on main, none broken) in the order in docs/P... | pending |
-| B-812 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (macddiv non-overlap, other candle sizes; also covers B-814 IS/OOS... | owed |
+| B-812 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (macddiv non-overlap, other candle sizes; also covers B-814 IS/OOS... | owed, remaining |
 | B-815 | P1 | PARTIAL-1D-REGISTERED | Island reversal (B-789, run 38192367677) long cells >=1.1 (filters none/px20/turn1cr/gap05 x ATR 1.5/2/3 = ... | owed |
 | B-818 | P1 | OPEN | O'Neil cup-and-handle family (run 38193479637, 1d+1w, 2352 new tags registered research-only) | owed |
 | B-831 | P1 | TODO | Overlapping-signal inflation guard for the O'Neil extension cells: every cell >=1.1 (80 new, n up to 50,615... | owed, todo |
