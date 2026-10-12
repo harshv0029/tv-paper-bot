@@ -1884,7 +1884,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${dash}</td><td class="num">${dash}</td>
       <td class="log-type">Kotak order book (exit fill)</td>
       <td class="meta">${t.exit_time_ist || ""}</td><td class="num">—</td>
-      <td>—</td><td>—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="meta">exit fill from Kotak order book; entry conditions not linked</td>
+      <td>—</td><td>—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="meta">${String(t.exit_remark || "exit fill from Kotak order book; no matching app log").replace(/&/g,"&amp;").replace(/</g,"&lt;")}</td>
     </tr>`);
   if (exitFillRows.length) sections.push(sectionRow(`Kotak exit fills today (${exitFillRows.length}) — sold per Kotak order book, not in the closed-trades list`), ...exitFillRows);
   if (realRows.length) sections.push(sectionRow(`Real trades today (${realRows.length}) — Kotak, outside this app's own order placement`), ...realRows, realTotalRow);

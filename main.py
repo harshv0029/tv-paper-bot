@@ -15344,14 +15344,106 @@ def get_real_pnl_today():
     }
 
 
+def _explain_kotak_exit_fill(o, order_rows, conn) -> dict:
+    """B-815: states WHY a Kotak order-book SELL fill happened, with numbers.
+    Kotak first: the order's own prcTp/trgPrc/avgPrc and today's completed BUY fill
+    (entry) come from the order book. The app's own data only adds the logged
+    'reason:' (real_order_events), and the engine's own SL/target levels (swing row,
+    then intraday-long row; engine-ownership: a symbol is explained from the table
+    that owns it). Returns {kind, reason, remark, entry, sl_level, target_level}."""
+    import re as _re
+    tsym, oid = o.get("trdSym") or "", str(o.get("nOrdNo"))
+    fill = float(o.get("avgPrc") or 0)
+    ptype = str(o.get("prcTp", "")).upper()
+    try:
+        trig = float(o.get("trgPrc") or 0)
+    except (TypeError, ValueError):
+        trig = 0.0
+    try:
+        lim = float(o.get("prc") or 0)
+    except (TypeError, ValueError):
+        lim = 0.0
+    entry = sl_level = target_level = None
+    engine = None
+    for tbl, cols in (("real_positions_swing", "entry_price, COALESCE(sl_trigger_price, stop_loss), NULL"),
+                      ("real_positions", "entry_price, sl_trigger_price, target_price")):
+        try:
+            r = conn.execute(f"SELECT {cols} FROM {tbl} WHERE kotak_trading_symbol=?", (tsym,)).fetchone() if tsym else None
+        except Exception:
+            r = None
+        if r:
+            engine = "swing" if tbl.endswith("swing") else "intraday"
+            entry = float(r[0]) if r[0] else None
+            sl_level = float(r[1]) if r[1] else None
+            target_level = float(r[2]) if r[2] else None
+            break
+    # Kotak wins for entry: today's completed BUY fill for this symbol.
+    for b in order_rows or []:
+        try:
+            if (b.get("trdSym") == tsym and str(b.get("trnsTp", "")).upper() == "B"
+                    and str(b.get("ordSt", "")).strip().lower() == "complete" and float(b.get("avgPrc") or 0) > 0):
+                entry = float(b["avgPrc"])
+        except (TypeError, ValueError):
+            continue
+    reason = None
+    ev = conn.execute("SELECT detail FROM real_order_events WHERE order_id=? ORDER BY id DESC LIMIT 1", (oid,)).fetchone()
+    if ev and ev[0] and str(ev[0]).startswith("reason:"):
+        reason = str(ev[0])[7:].split(";")[0].split(" | ")[0].strip()[:160]
+    if not sl_level and tsym:
+        for r in conn.execute("SELECT new_state FROM real_order_events WHERE kotak_trading_symbol=? AND leg='sl' "
+                              "ORDER BY id DESC LIMIT 5", (tsym,)).fetchall():
+            m = _re.search(r"[Rr]s\s?([0-9]+(?:\.[0-9]+)?)", str(r[0] or ""))
+            if m:
+                sl_level = float(m.group(1))
+                break
+
+    def f(x):
+        return f"{x:.2f}"
+    outcome = None
+    if entry:
+        pct = (fill - entry) / entry * 100
+        outcome = f"{'gain' if pct >= 0 else 'loss'} {abs(pct):.2f}%"
+    base = f"fill {f(fill)}" + (f", entry {f(entry)}" if entry else ", entry n/a") + (f", {outcome}" if outcome else "")
+    low = (reason or "").lower()
+    if ptype in ("SL", "SL-M") and (trig > 0 or sl_level):
+        t = trig or sl_level
+        trailed = bool(entry and t > entry)
+        kind = "trailing_stop_triggered_at_kotak" if trailed else "stop_loss_triggered_at_kotak"
+        head = ("Trailing stop-loss" if trailed else "Stop-loss") + f" triggered at Kotak (exchange, not an app exit): trigger {f(t)}, {base}"
+        if trailed:
+            head += " (stop had ratcheted above entry)"
+        if sl_level and abs(sl_level - t) > 0.005:
+            head += f"; app SL record {f(sl_level)}"
+    elif "square" in low or "3:14" in low or "15:14" in low:
+        kind, head = "square_off", f"Intraday square-off exit: {base}"
+    elif "target" in low or (ptype == "L" and target_level and abs(fill - target_level) / target_level < 0.005):
+        kind = "target_hit"
+        tl = target_level or lim
+        head = f"Target hit: {base}" + (f", target {f(tl)}" if tl else "")
+    elif reason:
+        kind, head = "app_exit", f"App exit ({engine or 'engine n/a'}): {base}"
+        if sl_level:
+            head += f", SL level {f(sl_level)}"
+        if target_level:
+            head += f", target {f(target_level)}"
+    else:
+        kind = "unmatched"
+        head = (f"Exit fill from Kotak order book, no app log for order {oid}: {base}"
+                + (f", SL level {f(sl_level)}" if sl_level else ", SL level n/a"))
+    remark = head + (f" | reason: {reason}" if reason else "")
+    return {"kind": kind, "reason": reason, "remark": remark, "entry": entry, "sl_level": sl_level,
+            "target_level": target_level, "engine": engine}
+
+
 def _kotak_exit_fills_today(order_rows, closed_symbols, conn) -> list:
     """B-295 part 4: today's exit fills straight from Kotak's order book (fldQty/avgPrc
     of COMPLETE orders, Kotak wins over app data), reason from the app's own order log.
     positions() only reports a fully squared-off round trip, so a swing/CNC holding sold
     today (buy leg is in holdings, not today's positions) never reached the dashboard.
     Rows here cover every completed SELL today whose symbol is NOT already in the
-    positions-derived closed trades. pnl is only given when the app's swing row holds the
-    (Kotak-aligned) entry price; otherwise None, never guessed."""
+    positions-derived closed trades. B-815: each row carries `exit_remark`, a
+    numbers-bearing explanation (see _explain_kotak_exit_fill). pnl is given when an
+    entry is known (Kotak's own BUY fill, else the app's row); otherwise None."""
     out, today = [], ist_now().strftime("%d-%b-%Y").lower()
     for o in order_rows or []:
         try:
@@ -15365,18 +15457,14 @@ def _kotak_exit_fills_today(order_rows, closed_symbols, conn) -> list:
             qty, avg = float(o.get("fldQty") or 0), float(o.get("avgPrc") or 0)
             if qty <= 0 or avg <= 0:
                 continue
-            ev = conn.execute("SELECT detail FROM real_order_events WHERE order_id=? ORDER BY id DESC LIMIT 1",
-                              (str(o.get("nOrdNo")),)).fetchone()
-            reason = None
-            if ev and ev[0] and str(ev[0]).startswith("reason:"):
-                reason = str(ev[0])[7:].split(";")[0].strip()[:160]
-            sw = conn.execute("SELECT entry_price FROM real_positions_swing WHERE kotak_trading_symbol=?",
-                              (tsym,)).fetchone() if tsym else None
-            entry = float(sw[0]) if sw and sw[0] else None
+            ex = _explain_kotak_exit_fill(o, order_rows, conn)
+            entry = ex["entry"]
+            exit_reason = ex["reason"] or (ex["kind"] if ex["kind"] != "unmatched" else "kotak_order_book_sell")
             out.append({"symbol": tsym, "order_id": str(o.get("nOrdNo")), "qty": qty, "exit_price_native": avg,
                         "exit_time_ist": o.get("ordDtTm"), "entry_price_native": entry,
                         "pnl_inr": round((avg - entry) * qty, 2) if entry else None,
-                        "exit_reason": reason or "kotak_order_book_sell", "source": "kotak_order_report"})
+                        "exit_reason": exit_reason, "exit_remark": ex["remark"], "exit_kind": ex["kind"],
+                        "source": "kotak_order_report"})
         except (TypeError, ValueError):
             continue
     return out
