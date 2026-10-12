@@ -11607,6 +11607,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
             detail=f"strategy {strategy_tag!r} does not clear the PFnet >= 1 real-money floor "
                    "(or has no validated metrics) - see strategy_registry.py",
         )
+        _log_signal_shadow(conn, strategy_tag if 0<2 else strategy, symbol, 'short', False, 'real entry: strategy below PFnet floor', hard_gate=True)
         return
 
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
@@ -11853,6 +11854,7 @@ def _maybe_place_real_entry(conn, symbol: str):
             detail=f"strategy {strategy_tag!r} does not clear the PFnet >= 1 real-money floor "
                    "(or has no validated metrics) - see strategy_registry.py",
         )
+        _log_signal_shadow(conn, strategy_tag if 1<2 else strategy, symbol, 'long', False, 'real entry: strategy below PFnet floor', hard_gate=True)
         return
 
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
@@ -13908,6 +13910,7 @@ def _maybe_place_real_fo_option_entry(conn, symbol: str, spot: float, strategy_t
     leg_key = f"{fo_underlying}:{right.upper()}"
     if not _is_strategy_viable_for_real_money(strategy_tag):
         _log_real_fo_attempt(conn, leg_key, "B", "skipped_strategy_not_viable", detail=f"strategy_tag={strategy_tag}")
+        _log_signal_shadow(conn, strategy_tag, symbol, 'long', False, 'option entry: strategy below PFnet floor', hard_gate=True)
         return
     if conn.execute("SELECT 1 FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone():
         _log_real_fo_attempt(conn, leg_key, "B", "skipped_already_open")
@@ -17951,6 +17954,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
             detail=f"strategy {strategy!r} does not clear the PFnet >= 1 real-money floor "
                    "(or has no validated metrics) - see strategy_registry.py",
         )
+        _log_signal_shadow(conn, strategy_tag if 2<2 else strategy, symbol, 'long', False, 'real entry: strategy below PFnet floor', hard_gate=True)
         return
 
     # B-131/B-132 (owner decision 2026-10-10): sector exposure cap - one sector may hold at most
