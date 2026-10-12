@@ -2,21 +2,34 @@
 4 short-mirror cells. Raw rows docs/backtest_data/intraday_gap_and_go_5m_run_38277225522.json (incl. trim1, exit reasons, day_stats).
 The 4 SHORT cells have n=0 because of a harness bug (long-only _target_move_pct used for shorts), NOT because the setup never occurs:
 they are kept registered with their zeros and a rerun is owed under a new tag (backlog B-876). Research-only, entry_fn=None; viability
-is derived at read time from PFnet vs PFNET_LIVE_FLOOR, nothing wired live."""
+is derived at read time from PFnet vs PFNET_LIVE_FLOOR, nothing wired live.
+
+B-876 (run 38280746427, same workflow after the `_target_move_pct_short` sign fix): 8 `__v2` tags (4 long, 4 short, now n>0 for shorts).
+Raw rows docs/backtest_data/intraday_gap_and_go_5m_v2_run_38280746427.json. The v1 entries above stay registered unchanged."""
 import json
 import os
 
 import strategy_registry as sr
 
-_FN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data", "intraday_gap_and_go_5m_run_38277225522.json")
-_REF = "intraday-gap-and-go-research.yml run 38277225522 (5m, 60d, cost 0.8%, full NSE universe)"
+_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data")
+_RUNS = (
+    ("intraday_gap_and_go_5m_run_38277225522.json", "intraday-gap-and-go-research.yml run 38277225522 (5m, 60d, cost 0.8%, full NSE universe)", True),
+    ("intraday_gap_and_go_5m_v2_run_38280746427.json", "intraday-gap-and-go-research.yml run 38280746427 (5m, 60d, cost 0.8%, full NSE universe, short sign fix, B-876)", False),
+)
 _MIN_PER_BAR = 5.0
 
 
 def build():
     out, seen = [], {x.name for x in sr.REGISTRY}
+    for fn, _REF, zero_short_bug in _RUNS:
+        out.extend(_build_one(fn, _REF, zero_short_bug, seen))
+    return out
+
+
+def _build_one(fn, _REF, zero_short_bug, seen):
+    out = []
     try:
-        d = json.load(open(_FN))
+        d = json.load(open(os.path.join(_DIR, fn)))
     except Exception:
         return out
     for r in d.get("rows", []):
@@ -30,7 +43,7 @@ def build():
             pfn = r["pfnet"] if r["pfnet"] is not None else 0.0
             pfg = r["pf_gross"] if r["pf_gross"] is not None else 0.0
             note = ("n=0: harness bug (long-only _target_move_pct on shorts rejected every candidate), not evidence of no edge; rerun owed (B-876). "
-                    if short else "")
+                    if (short and zero_short_bug) else "")
             out.append(sr.StrategyDef(
                 name=tag, asset_class=sr.AssetClass.EQUITY_INTRADAY, categories=(cat,), timeframe="5m",
                 status=sr.StrategyStatus.RESEARCH, entry_fn=None,
