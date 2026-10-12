@@ -12,6 +12,8 @@ import numpy as np
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+import cell_tsv  # noqa: E402
 KS = (1.5, 2.5, 4.0)          # ATR-stop multiples; no stopless cell (SL on every trade)
 LIQ_MIN_TURNOVER = 2e7        # INR, median 20-bar close*volume, xs modes only
 LOCAL_KEEP = 0.20             # shard-level prune fraction for decile modes
@@ -337,8 +339,10 @@ XS_TAGS = {"gapz_long": ("chan_gap", "buy_on_gap", "long", {"top": 10}),
 # ---------------------------------------------------------------- driver
 def download(batch, interval):
     import yfinance as yf
+    # 4h has no native yfinance interval (B-811): fetch 1h and resample per symbol in run() (cell_tsv.resample_4h).
+    # Bar-count constants (lookbacks, holds) mean BARS, not days: a 4h bar is ~2 per NSE session.
     period = "5y" if interval == "1d" else "730d"
-    return yf.download(batch, period=period, interval=interval, group_by="ticker", auto_adjust=True,
+    return yf.download(batch, period=period, interval=("1h" if interval == "4h" else interval), group_by="ticker", auto_adjust=True,
                        progress=False, threads=True)
 
 
@@ -372,6 +376,8 @@ def run():
             try:
                 df = d[s] if len(batch) > 1 else d
                 df = df[["Open", "High", "Low", "Close", "Volume"]].dropna()
+                if interval == "4h":
+                    df = cell_tsv.resample_4h(df)
             except Exception:
                 continue
             if len(df) < 160:

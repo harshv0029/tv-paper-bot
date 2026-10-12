@@ -60,7 +60,11 @@ TF = "1d"
 
 
 # ------------------------------------------------------------------ collect stage
-def collect_symbol(df, streams, sym=None, rets=None):
+def collect_symbol(df, streams, sym=None, rets=None, paths=None):
+    """paths (B-743, optional): when a dict, also store each trade's daily mark path as paths[key][j] =
+    [secs, closes] for bars i0..i1, index-aligned with streams[key][j], so simulate_marked_ledger can mark open
+    positions to market by date (see portfolio_ledger_research.ledger_trades_from_collect). Default None keeps
+    the row format and output unchanged."""
     if rets is not None and sym is not None:
         # B-746: per-symbol daily close-to-close returns for the correlation screen
         rr = df["Close"].pct_change().to_numpy()
@@ -84,6 +88,9 @@ def collect_symbol(df, streams, sym=None, rets=None):
                 for t in dm.sim_r(df, sig, direction, am, {}):
                     i0, i1 = t["i0"], t["i1"]
                     s = max(i0 - 1, 0)
+                    if paths is not None:
+                        paths.setdefault(key, []).append(
+                            [[int(x) for x in secs[i0:i1 + 1]], [round(float(x), 4) for x in cl[i0:i1 + 1]]])
                     streams.setdefault(key, []).append([
                         int(secs[i0]), int(secs[i1]), round(t["ret"], 5),
                         round(float(am * a[s] / cl[s]), 5) if cl[s] > 0 else 0.0, t["hold"],
@@ -97,19 +104,23 @@ def _collect_main(args):
     syms = sorted(set(m._load_nse_universe_from_file()))
     syms = [s for k, s in enumerate(syms) if k % args.nshards == args.shard]
     streams, fetched, rets = {}, 0, {}
+    paths = {} if getattr(args, "marks", False) else None
     for s in syms:
         try:
             raw = m.fetch_ohlc(s, args.period, args.interval)
             if raw is None or len(raw) < 120:
                 continue
             fetched += 1
-            collect_symbol(er.prep(raw), streams, s, rets)
+            collect_symbol(er.prep(raw), streams, s, rets, paths)
         except Exception as ex:
             print("ERROR", s, ex, file=sys.stderr)
     print(f"collect shard {args.shard}: fetched {fetched}/{len(syms)}, streams {len(streams)}, "
           f"trades {sum(len(v) for v in streams.values())}")
     os.makedirs(args.out, exist_ok=True)
-    json.dump({"fetched": fetched, "universe": len(syms), "streams": streams, "rets": rets},
+    out = {"fetched": fetched, "universe": len(syms), "streams": streams, "rets": rets}
+    if paths is not None:
+        out["paths"] = paths   # B-743: per-trade daily mark paths, aligned with streams[key]
+    json.dump(out,
               open(os.path.join(args.out, f"collect_{args.shard}.json"), "w"))
 
 
@@ -447,6 +458,7 @@ def main(argv=None):
     c.add_argument("--interval", default="1d")
     c.add_argument("--period", default="5y")
     c.add_argument("--out", default="out")
+    c.add_argument("--marks", action="store_true", help="B-743: also emit per-trade daily mark paths")
     m_ = sub.add_parser("merge")
     m_.add_argument("--dir", required=True)
     m_.add_argument("--json")

@@ -102,3 +102,20 @@ def test_gap_momentum_both_dirs():
 
 def test_script_parses():
     ast.parse(open(os.path.join(os.path.dirname(cr.__file__), "chan_research.py")).read())
+
+
+def test_4h_resample_path_wired_and_cells_run():
+    import pandas as pd
+    import cell_tsv
+    src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts", "chan_research.py")).read()
+    assert "resample_4h" in src and '"1h" if interval == "4h"' in src
+    idx = pd.DatetimeIndex([f"2026-01-0{d} {h}:15" for d in range(5, 9) for h in (9, 10, 11, 12, 13, 14, 15)])
+    rng = np.random.default_rng(5)
+    c = 100 * np.exp(np.cumsum(rng.normal(0, .004, len(idx))))
+    df = pd.DataFrame({"Open": c, "High": c * 1.002, "Low": c * .998, "Close": c, "Volume": 1000.0}, index=idx)
+    r = cell_tsv.resample_4h(df)
+    assert len(r) == 8 and (r["High"] >= r["Low"]).all()
+    o, h, l, cc = (r[x].to_numpy(float) for x in ("Open", "High", "Low", "Close"))
+    atr = cr.atr_arr(h, l, cc)
+    tags = {cr.tag(f, v, "long", "4h", {**p, "atr": "1d5"}) for f, v, p, *_ in cr.ts_cells(o, h, l, cc, atr, "4h")}
+    assert tags and all("__4h__" in t for t in tags)
