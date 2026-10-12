@@ -581,3 +581,10 @@ Source of every figure below: the generated results log (cost model 0.8%, PFnet 
 - Surprised: be1 vs no-ratchet was identical in 5 of 36 groups, so a ratchet claim is weak until OOS says otherwise; 1h cells carry overnight, so the 15:15 flatten lesson (B-792c) may erase them.
 - Reuse: any new pooled result gets an IS/OOS rerun through the same harness before wiring; entry-date bucketing keeps IS+OOS exactly equal to the pooled sums.
 - Profit-booking / exit takeaway: the edge sits in winners held ~12-14 bars to the 4R-ish target, so the breakeven ratchet is only worth keeping if OOS PFnet beats the no-ratchet twin; do not tighten exits on pooled numbers alone.
+
+## macddiv 1h long, strict-FIFO non-overlap (B-812, run 38192366174, 2026-10-12 IST)
+- Mechanism: MACD line/histogram divergence (pivot half-width 5), long, 1h, ATR stop, 0.8% cost, one position per symbol per cell, 2483 symbols.
+- Result: line_any atr3_w5 PFnet 1.462 (n 58015, win 34.6%, avg hold 23.7 bars); atr2_w5 1.416; atr1d5_w5 1.400; hist_any atr3_w5 1.138. Tags `macddiv__<variant>__long__1h__<atr>_w5__nonovl__v2`. All four clear 1.1 and survive the overlap removal (raw 69777 -> 58015 for line_any).
+- Surprise: PFnet barely fell versus the overlapping run, so the edge is not an overlap artefact. Wider stops (atr3) win more: max_hold_timeout exits (about 57%) carry the profit, stop_loss exits (41%) lose.
+- Reuse: no IS/OOS split yet and no live 1h entry path; do both before any wiring. Short mirror already registered separately.
+- Profit-booking / exit takeaway: let trades run to the max-hold bar with a wide ATR3 stop; tighter stops raise the stop-out share and lower PFnet.
