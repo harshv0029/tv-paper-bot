@@ -320,7 +320,7 @@ def place_real_entry(kotak_trading_symbol: str, qty: int, ltp: float) -> dict:
     }
 
 
-def place_real_short_entry(kotak_trading_symbol: str, qty: int, ltp: float) -> dict:
+def place_real_short_entry(kotak_trading_symbol: str, qty: int, ltp: float, product: str = "MIS") -> dict:
     """Places a REAL market SELL-TO-OPEN for `qty` shares via Kotak Neo -
     the short mirror of place_real_entry (2026-09-29, explicit user
     instruction to implement short selling). Same never-raises /
@@ -347,7 +347,7 @@ def place_real_short_entry(kotak_trading_symbol: str, qty: int, ltp: float) -> d
     try:
         resp = client.place_order(
             exchange_segment="nse_cm",
-            product="MIS",
+            product=product,
             price="0",
             order_type="MKT",
             quantity=str(qty),
@@ -377,7 +377,7 @@ def place_real_short_entry(kotak_trading_symbol: str, qty: int, ltp: float) -> d
     }
 
 
-def place_real_short_cover(kotak_trading_symbol: str, qty: int) -> dict:
+def place_real_short_cover(kotak_trading_symbol: str, qty: int, product: str = "MIS") -> dict:
     """Places a REAL market BUY-TO-COVER to close a real short position,
     MIS, on nse_cm - the short mirror of place_real_exit. Same never-
     raises / rejection-confirmed discipline, and deliberately has NO gate
@@ -393,7 +393,7 @@ def place_real_short_cover(kotak_trading_symbol: str, qty: int) -> dict:
     try:
         resp = client.place_order(
             exchange_segment="nse_cm",
-            product="MIS",
+            product=product,
             price="0",
             order_type="MKT",
             quantity=str(qty),
@@ -911,7 +911,7 @@ def ensure_resting_sl(kotak_trading_symbol: str, qty: int, trigger_price: float)
     return res
 
 
-def place_real_short_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+def place_real_short_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float, product: str = "MIS") -> dict:
     """Short mirror of place_real_stop_loss (2026-09-29) - a resting
     BUY-stop (transaction_type="B") that triggers ABOVE the short's entry
     price, to cover the position if it moves against it. Same order_type
@@ -930,7 +930,7 @@ def place_real_short_stop_loss(kotak_trading_symbol: str, qty: int, trigger_pric
     try:
         resp = client.place_order(
             exchange_segment="nse_cm",
-            product="MIS",
+            product=product,
             price=str(limit_price),
             order_type="SL",
             quantity=str(qty),
