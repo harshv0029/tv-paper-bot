@@ -35,7 +35,13 @@ jobs:
         env:
           REPLAY_GROUPS: ${{ inputs.groups }}
           NSHARDS: ${{ inputs.nshards }}
-        run: echo "matrix=$(python3 scripts/swing_short_main_replay.py plan 2>/dev/null | tail -n 1)" >> "$GITHUB_OUTPUT"
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          groups = [g.strip() for g in os.environ.get("REPLAY_GROUPS", "long,short").split(",") if g.strip()] or ["long", "short"]
+          ns = int(os.environ.get("NSHARDS") or 8)
+          print("matrix=" + json.dumps({"include": [{"group": g, "shard": s, "nshards": ns} for g in groups for s in range(ns)]}))
+          PY
 
   replay:
     needs: plan
