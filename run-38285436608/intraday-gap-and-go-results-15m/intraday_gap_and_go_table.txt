@@ -1,0 +1,10 @@
+fetched 2636 of universe slots 2688; days {'days_seen': 297890, 'days_gapped': 14558, 'days_entered': 1770}
+tag                                                                                       n   PFnet   trim1  PFgross   win%  hold  exits
+gap_and_go_intraday__gap_hold__long__15m__atr3d0_tr2d0_win30__v2                       1191   0.305   0.301    0.546   23.1  16.8  {'data_end_forced_close': 616, 'stop_hit': 274, 'gap_filled': 229, 'target_hit': 72}
+gap_and_go_intraday__gap_hold__long__15m__atr2d0_tr2d0_win30__v2                       1191   0.301   0.296    0.551   23.3  14.1  {'data_end_forced_close': 460, 'stop_hit': 483, 'target_hit': 133, 'gap_filled': 115}
+gap_and_go_intraday__gap_hold__long__15m__atr2d5_tr2d0_win30__v2                       1191   0.301   0.297    0.544   22.9  15.7  {'data_end_forced_close': 562, 'stop_hit': 367, 'target_hit': 90, 'gap_filled': 172}
+gap_and_go_intraday__gap_hold__long__15m__atr1d5_tr2d0_win30__v2                       1190    0.29   0.285     0.55   23.9  11.6  {'data_end_forced_close': 330, 'stop_hit': 610, 'target_hit': 187, 'gap_filled': 63}
+gap_and_go_intraday__gap_hold__short__15m__atr2d5_tr2d0_win30__v2                       580   0.189   0.183    0.451   21.7  17.0  {'gap_filled': 107, 'data_end_forced_close': 337, 'stop_hit': 125, 'target_hit': 11}
+gap_and_go_intraday__gap_hold__short__15m__atr2d0_tr2d0_win30__v2                       580   0.185   0.179    0.451   21.4  16.1  {'gap_filled': 78, 'data_end_forced_close': 313, 'stop_hit': 170, 'target_hit': 19}
+gap_and_go_intraday__gap_hold__short__15m__atr3d0_tr2d0_win30__v2                       580   0.183   0.177     0.44   21.9  17.7  {'gap_filled': 132, 'data_end_forced_close': 360, 'stop_hit': 82, 'target_hit': 6}
+gap_and_go_intraday__gap_hold__short__15m__atr1d5_tr2d0_win30__v2                       580   0.182   0.176    0.452   22.2  14.5  {'stop_hit': 239, 'data_end_forced_close': 257, 'gap_filled': 38, 'target_hit': 46}
