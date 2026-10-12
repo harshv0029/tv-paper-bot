@@ -1,0 +1,74 @@
+name: Island reversal main.py-function replay (B-881)
+
+# Backlog B-881. Replays EVERY tag in main.ISLAND_ALL_TAGS (long, 1d, ATR 1.5 stop attached) by IMPORTING and
+# CALLING the real main.island_swing_entry_signal + main.brk20_min_rr_exit_reason (the function the live
+# _island_swing_exit_adapter wraps) on the FULL universe (main._load_nse_universe_from_file(), not
+# main.NSE_FULL_UNIVERSE), cost = main.ROUND_TRIP_COST_PCT (0.8%). Result is compared to the registry numbers
+# (research-implementation PFnets); a gap means the registry entries must be corrected.
+# Matrix = tag chunk (gap05, v1, segis, segoos, nonovl) x shard (4) = 20 jobs. Short mirror is OWED (main has
+# no island short port). Validation only; wires nothing, no kill switch. Dispatch last (big matrix).
+# Output: island-main-replay-results artifact -> island_all.json (per tag: n, win %, PFnet gross/net,
+# avg hold bars + trading hours, exit-reason breakdown). Expected runtime ~1-2 h per job.
+on:
+  workflow_dispatch:
+    inputs:
+      split_frac:
+        description: "IS/OOS boundary fraction of each symbol's time span (segis/segoos)"
+        default: "0.6"
+      split_date:
+        description: "IS/OOS boundary date YYYY-MM-DD (blank = split_frac)"
+        default: ""
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        chunk: [gap05, v1, segis, segoos, nonovl]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - env:
+          CHUNK: ${{ matrix.chunk }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "4"
+          INTERVAL: "1d"
+          PERIOD: "5y"
+          SPLIT_FRAC: ${{ inputs.split_frac }}
+          SPLIT_DATE: ${{ inputs.split_date }}
+        run: python3 scripts/island_main_replay.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: island-main-replay-${{ matrix.chunk }}-s${{ matrix.shard }}
+          path: out/
+          retention-days: 7
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: island-main-replay-*
+          merge-multiple: true
+      - run: python3 scripts/island_main_replay.py merge shards island_all.json | tee island_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: island-main-replay-results
+          path: |
+            island_all.json
+            island_table.txt
