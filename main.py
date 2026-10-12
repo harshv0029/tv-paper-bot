@@ -696,6 +696,16 @@ def init_db():
             )
             """
         )
+        # B-547: shadow log of every signal taken or skipped, with the reason (Upstash-mirrored below)
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS signal_shadow_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL NOT NULL, day TEXT NOT NULL,
+                strategy_tag TEXT, symbol TEXT, direction TEXT, taken INTEGER NOT NULL,
+                reason TEXT, hard_gate INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS strategy_scan_counts (
@@ -13381,6 +13391,7 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
     current_sl_price = real_row["sl_trigger_price"]
 
     if current_sl_price is not None and new_stop <= current_sl_price:
+        _note_sl_loosen_attempt(symbol, False, new_stop, current_sl_price)
         return  # no upward move since the last sync - nothing to do
 
     # T1/T2T infinite-retry-loop fix (2026-09-23, live SUZLON.NS finding):
@@ -13635,6 +13646,7 @@ def _maybe_sync_real_stop_loss_short(conn, symbol: str):
     # the long side's "only ever moves the resting stop UP" - so no
     # favorable move means the new stop hasn't gotten any LOWER.
     if current_sl_price is not None and new_stop >= current_sl_price:
+        _note_sl_loosen_attempt(symbol, True, new_stop, current_sl_price)
         return
 
     if _is_t1_restricted(conn, symbol):
@@ -16630,7 +16642,7 @@ _GENERIC_MIRROR_TABLES = (
     "real_fo_trades", "option_state", "nse_straddle_state",
     "signal_state_fo_options", "swing_scan_log", "tracked_union",
     "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags",
-    "swing_done_today", "strategy_scan_counts",
+    "swing_done_today", "strategy_scan_counts", "signal_shadow_log",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
@@ -17678,6 +17690,7 @@ def _maybe_place_swing_option_leg(conn, symbol, strategy):
         leg_key = f"{fo_u}:CALL"
         if not _is_strategy_viable_for_real_money(strategy):
             _log_real_fo_attempt(conn, leg_key, "B", "skipped_strategy_not_viable", detail=f"swing strategy_tag={strategy}")
+            _log_signal_shadow(conn, strategy, symbol, "long", False, "option leg: strategy below PFnet floor", hard_gate=True)
             return
         if conn.execute("SELECT 1 FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone():
             _log_real_fo_attempt(conn, leg_key, "B", "skipped_already_open")
@@ -21933,6 +21946,76 @@ def tracked_union_endpoint():
     return {"count": len(rows), "rows": rows}
 
 
+_SL_LOOSEN_ATTEMPTS: dict = {}  # B-530 telemetry, in-memory by design: recomputed-fresh counter, not state read back for decisions
+
+
+def _sl_would_loosen(is_short: bool, new_stop, current_sl) -> bool:
+    """B-530 (Mark Douglas monotonic stop guard): True iff `new_stop` is STRICTLY worse than the live stop
+    (long: lower, short: higher). Equal is a no-op, not a loosen."""
+    if new_stop is None or current_sl is None:
+        return False
+    return new_stop > current_sl if is_short else new_stop < current_sl
+
+
+def _note_sl_loosen_attempt(symbol: str, is_short: bool, new_stop, current_sl) -> bool:
+    """Counts + logs a rejected loosening attempt (the sync paths already refuse to move the stop; this makes
+    the refusal visible). Returns True when it was a strict loosen."""
+    if not _sl_would_loosen(is_short, new_stop, current_sl):
+        return False
+    key = "short" if is_short else "long"
+    _SL_LOOSEN_ATTEMPTS[key] = _SL_LOOSEN_ATTEMPTS.get(key, 0) + 1
+    print(f"[SL-GUARD] {symbol}: refused to loosen {key} stop {current_sl} -> {new_stop} (monotonic stop guard)")
+    return True
+
+
+# Calendar-day ceiling per swing strategy before a still-open position is flagged overdue (B-550 time limit).
+# Max-hold constants are in TRADING days; x1.5 + 3 converts conservatively to calendar days.
+def _swing_time_limit_calendar_days(strategy) -> int:
+    s = str(strategy or "")
+    td = SWING_GAP_AND_GO_MAX_HOLD_DAYS if s == "gap_and_go" else (
+        MINERVINI_MAX_HOLD_DAYS if s == "minervini_vcp" else SWING_MAX_HOLD_DAYS)
+    return int(td * 1.5) + 3
+
+
+def _find_swing_positions_past_time_limit(rows, now_ts: float) -> list:
+    """B-550: real swing rows open longer than their strategy's time limit. Read-only detector; the swing
+    engine's own exit signal owns the exit (engine ownership), this only surfaces a stuck position."""
+    out = []
+    for r in rows or []:
+        try:
+            days = (now_ts - float(r["opened_at"])) / 86400.0
+            lim = _swing_time_limit_calendar_days(r["strategy"])
+            if days > lim:
+                out.append({"symbol": r["symbol"], "strategy": r["strategy"], "held_days": round(days, 1), "limit_days": lim})
+        except Exception:
+            continue
+    return out
+
+
+def _log_signal_shadow(conn, strategy_tag, symbol, direction, taken: bool, reason: str, hard_gate: bool = False):
+    """B-547: shadow-log a signal that was taken or skipped, with why. `hard_gate` marks skips that map to
+    a hard rule (viability floor, switch off, cutoff, no liquidity); discretionary skips must be False.
+    Never raises, never affects trading."""
+    try:
+        conn.execute(
+            "INSERT INTO signal_shadow_log (ts, day, strategy_tag, symbol, direction, taken, reason, hard_gate) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (time.time(), ist_now().strftime("%Y-%m-%d"), strategy_tag, symbol, direction,
+             1 if taken else 0, reason, 1 if hard_gate else 0))
+        conn.commit()
+    except Exception as e:
+        print(f"[SHADOW] log failed (non-fatal): {e}")
+
+
+def _swing_past_time_limit_safe() -> list:
+    try:
+        with closing(get_db()) as _c:
+            return _find_swing_positions_past_time_limit(
+                _c.execute("SELECT symbol, strategy, opened_at FROM real_positions_swing").fetchall(), time.time())
+    except Exception:
+        return []
+
+
 def _find_unprotected_open_positions(kotak_open_by_trdsym: dict, order_rows: list) -> list:
     """The direct backcheck the 2026-09-30 MFSL.NS incident asked for
     ("Make sure that this does not repeat... Do some back check during
@@ -22762,6 +22845,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         "holdings_unprotected": _find_unprotected_open_positions(
             {k: {"qty": v["qty"], "is_short": False} for k, v in (swing_holdings or {}).items()
              if k not in kotak_open_by_trdsym}, order_rows),
+        "swing_past_time_limit": _swing_past_time_limit_safe(),
         "holdings_healed": holdings_healed,
         "holdings_checked": None if swing_holdings is None else len(swing_holdings),
         "removed_ghost_count": len(removed_ghosts), "removed_ghosts": removed_ghosts,
