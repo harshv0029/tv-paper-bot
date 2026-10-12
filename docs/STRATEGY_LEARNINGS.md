@@ -368,6 +368,7 @@ Profit-booking / exit takeaway: the breakeven-at-1R ratchet and EMA13 rule exit 
 
 ## Intraday flatten re-run harness (B-792, 2026-10-12 IST)
 Lesson: of 38 short-hold viable cells only 35 are truly intraday; 3 hold 16-23h by design so a 15:15 flatten would change the strategy (classed swing). Flatten re-runs are new tags (`_fl1515__v2`), old numbers untouched; entries on the last bar before the cut are dropped. Cost kept at 0.8% for comparability (real MIS is lower, conservative). atrnone cells cannot be wired live (no-SL rule).
+Result (run 38185672296): 152 cells re-run, 42 stay PFnet >= 1.1 after the forced flatten (best chan_kalman band long 5m 1.78, short 5m 1.67), so the edge largely survives without overnight carry; the best survivors are 5m wide-ATR cells.
 Profit-booking / exit takeaway: forcing the exit at 15:15 tests whether the edge survives without overnight carry; only variants that keep PFnet >= floor under the flatten may be wired as intraday.
 
 ## Chan (Algorithmic Trading) cells, run 38183172728 (B-805, 2026-10-12 IST)

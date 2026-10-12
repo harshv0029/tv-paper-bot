@@ -152,7 +152,7 @@ def test_is_viable_false_for_every_short_sell_candidate():
     shorts = sr.strategies_by_category(sr.TradeCategory.SHORT_SELL)
     assert shorts, "expected at least one registered short-sell strategy"
     # 2026-10-10: sector_rotation sweep cells (B-336) are the only viable shorts; research-only.
-    assert all(s.is_viable() is False for s in shorts if not (lambda n: n.startswith('sector_rotation__') or (n.endswith('__v1') and '__short__' in n))(s.name))
+    assert all(s.is_viable() is False for s in shorts if not (lambda n: n.startswith('sector_rotation__') or ((n.endswith('__v1') or '_fl1515__v2' in n) and '__short__' in n))(s.name))
 
 
 def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_registry():
@@ -174,7 +174,7 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
     # 2026-10-10: sector_rotation__ (B-336) and MCX sweep cells (B-343) are registered research cells.
     viable = [s.name for s in sr.REGISTRY if s.is_viable() is True
               and not s.name.startswith('sector_rotation__') and s.metrics.universe != 'mcx_proxy_single_symbol'
-               and not getattr(s, 'source', '').startswith('scripts/exit_family_research.py') and getattr(s, 'source', '') not in ('scripts/portfolio_overlay_research.py', 'scripts/breakeven_research.py', 'scripts/douglas_trade_mgmt_research.py', 'scripts/elder_batch3_research.py', 'main.minervini_vcp_entry_signal (real) + exits ported from scripts/minervini_lab.py', 'scripts/pattern_lab.py', 'scripts/chan_research.py', 'scripts/elder_indicators_research.py', 'scripts/oneil_research.py', 'scripts/elder_macd_dirgap_research.py', 'scripts/elder_indicators_research_ext.py', 'scripts/oneil_ext_research.py', 'scripts/chan_ext_research.py', 'scripts/elder_patterns_research.py', 'scripts/minervini_sweep_lab.py', 'scripts/exit_family_research.py', 'scripts/minervini_lab.py', 'scripts/breadth_lab.py', 'scripts/combo_lab.py', 'scripts/intermarket_lab.py')]
+               and not getattr(s, 'source', '').startswith('scripts/exit_family_research.py') and getattr(s, 'source', '') not in ('scripts/portfolio_overlay_research.py', 'scripts/breakeven_research.py', 'scripts/douglas_trade_mgmt_research.py', 'scripts/elder_batch3_research.py', 'main.minervini_vcp_entry_signal (real) + exits ported from scripts/minervini_lab.py', 'scripts/pattern_lab.py', 'scripts/chan_research.py', 'scripts/intraday_flatten_rerun.py', 'scripts/elder_indicators_research.py', 'scripts/oneil_research.py', 'scripts/elder_macd_dirgap_research.py', 'scripts/elder_indicators_research_ext.py', 'scripts/oneil_ext_research.py', 'scripts/chan_ext_research.py', 'scripts/elder_patterns_research.py', 'scripts/minervini_sweep_lab.py', 'scripts/exit_family_research.py', 'scripts/minervini_lab.py', 'scripts/breadth_lab.py', 'scripts/combo_lab.py', 'scripts/intermarket_lab.py')]
     assert set(viable) == {
         "gap_and_go_swing", "power_play_high_tight_flag",
         "minervini_vcp_breakeven_2r", "minervini_vcp_breakeven_3r",
@@ -201,13 +201,13 @@ def test_leaderboard_ranks_by_pfnet_descending():
     # CLAUDE.md's own "top-5 keeps updating to prefer whichever validated
     # strategy is actually best" standing rule; this test is meant to
     # track that, not pin a specific name forever.
-    assert board[0]["name"] == "failed_breakout_short" or (lambda n: n.startswith('sector_rotation__') or (n.endswith('__v1') and '__short__' in n))(board[0]["name"])
+    assert board[0]["name"] == "failed_breakout_short" or (lambda n: n.startswith('sector_rotation__') or ((n.endswith('__v1') or '_fl1515__v2' in n) and '__short__' in n))(board[0]["name"])
 
 
 def test_leaderboard_marks_every_row_viable_or_not():
     board = sr.leaderboard(sr.TradeCategory.SHORT_SELL, top_n=5)
     for row in board:
-        assert row["viable"] is False or (lambda n: n.startswith('sector_rotation__') or (n.endswith('__v1') and '__short__' in n))(row["name"])
+        assert row["viable"] is False or (lambda n: n.startswith('sector_rotation__') or ((n.endswith('__v1') or '_fl1515__v2' in n) and '__short__' in n))(row["name"])
 
 
 def test_leaderboard_never_pads_with_fabricated_entries():
