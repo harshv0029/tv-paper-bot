@@ -506,3 +506,9 @@ Profit-booking / exit takeaway: when capacity or margin binds, close the worst l
 - Reuse: persist every run's artifacts to data/run-artifacts in the same session as the result, and classify crosscheck diffs then.
 - Profit-booking / exit takeaway: both code paths show the edge in max-hold timeouts and ~-20% stop losses, so test stop width and sizing, not earlier profit targets.
 
+## Elder patterns re-run: measured-move target and tight S/R bounce (B-623, B-607, run 38190581834, 2026-10-12 IST)
+- Mechanism: re-run of the Elder pattern harness (1d, 0.8% cost, 9399 symbols with data) added 24 tags: trendline break with measured-move target (trendline__tl_break_mm, mult 0.5 and 1) and congestion-edge bounce with tight S/R stop (consol__edge_bounce_srtight), long and short. The other 228 tags matched run 38148955837 and were skipped as duplicates.
+- Result: all 24 new tags fail (PFnet 0.51-0.74, n 56k-207k); 0 of 252 tags in the run are newly viable. Best new: tl_break_mm short atr3 mult1 0.74, win 43%.
+- Fit: n far exceeds days x symbols, so signals overlap and counts are inflated; a rule firing this often has a weak filter. Only 1d was run; 15m/1h/4h are owed, plus a non-overlap re-run.
+- Reuse: a measured-move target caps winners at a fixed distance; test the uncapped rule exit beside it before adding fixed targets to trend-break rules.
+- Profit-booking / exit takeaway: the measured-move cells (PFnet 0.60-0.74) scored below the same family with rule exits (e.g. tl_break long atr3 0.886), so capping profit early did not beat letting winners run to the rule exit.

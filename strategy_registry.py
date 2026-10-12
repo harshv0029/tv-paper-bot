@@ -2801,6 +2801,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_md.build())
         import strategy_registry_brk20 as _bk
         REGISTRY.extend(_bk.build())
+        import strategy_registry_elderpat as _ep
+        REGISTRY.extend(_ep.build())
         import strategy_registry_flatten as _fl
         REGISTRY.extend(_fl.build())
         import strategy_registry_grossfill as _gf
