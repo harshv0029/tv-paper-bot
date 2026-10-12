@@ -21042,6 +21042,9 @@ def strategy_scan_activity(include_unwired: bool = False):
             "avg_held_hrs": round(strat.metrics.avg_held_hrs, 1) if strat and strat.metrics and strat.metrics.avg_held_hrs is not None else None,
             "entry_confidence_pct": sr.edge_confidence_pct(strat.metrics) if strat and strat.metrics else None,
             "scan_wired": True,
+            "status": "live_wired",
+            "n_trades": strat.metrics.n_trades if strat and strat.metrics else None,
+            "win_rate_pct": strat.metrics.win_rate_pct if strat and strat.metrics else None,
             **_sl_fields(tag, registry_name),
             "instrument": _instrument(tag, [c.value for c in strat.categories] if strat else []),
             "scans_today": _strategy_scan_counts.get(tag, 0),
@@ -21081,6 +21084,9 @@ def strategy_scan_activity(include_unwired: bool = False):
                 "scans_today": None, "scans_last_30s": None,
                 "successful_entries_today": None, "closed_today": 0,
                 "win_rate_today_pct": None, "scan_wired": False,
+                "status": "research_only",
+                "n_trades": m.n_trades if m else None,
+                "win_rate_pct": m.win_rate_pct if m else None,
             })
             if e["name"] == "gap_and_go_swing" and m and m.avg_held_hrs is None:
                 # legacy 52-symbol row has no hold/win recorded; display from its full-universe successor (B-413), registry entry untouched
@@ -21091,7 +21097,10 @@ def strategy_scan_activity(include_unwired: bool = False):
             if not rows[-1].get("sl_rule"):
                 rows[-1]["sl_rule"] = "stop per backtest cell (see tag/registry)"
     rows.sort(key=lambda r: (r["pfnet"] is None, -(r["pfnet"] or 0)))
-    return {"strategies": rows, "as_of_epoch": time.time()}
+    _n_live = sum(1 for r in rows if r.get("status") == "live_wired")
+    counts = {"viable_total": len(rows), "live_wired": _n_live,
+              "research_only": len(rows) - _n_live}
+    return {"strategies": rows, "counts": counts, "as_of_epoch": time.time()}
 
 
 @app.get("/strategy-info")
