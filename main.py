@@ -11681,6 +11681,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
         reason=f"paper short entry signal from strategy {real_strategy or 'unknown'} passed the PFnet gate",
     )
+    _log_signal_shadow(conn, real_strategy, symbol, "short", True, "real short entry placed")
 
     if paper_row and paper_row["stop_loss"]:
         sl_result = kotak_real_orders.place_real_short_stop_loss(
@@ -11982,6 +11983,7 @@ def _maybe_place_real_entry(conn, symbol: str):
             detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
             reason=f"paper long entry signal from strategy {real_strategy or 'unknown'} passed the PFnet gate",
         )
+        _log_signal_shadow(conn, real_strategy, symbol, "long", True, "real long entry placed")
         _sync_real_positions_external(conn)
 
         # Real resting stop-loss (2026-09-07, explicit user instruction:
@@ -18405,6 +18407,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
         reason=f"swing entry signal from strategy {strategy} passed the PFnet gate",
     )
+    _log_signal_shadow(conn, strategy, symbol, "long", True, "real swing entry placed")
 
     # Real resting stop-loss - the paper stop_loss this same scan just
     # computed (paper_stop_loss, now also stored on this row for any later

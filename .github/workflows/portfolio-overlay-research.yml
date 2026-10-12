@@ -10,7 +10,14 @@ name: Portfolio sizing, index regime and statistical-gate research (B-504 B-507 
 # prints PFnet net and gross, win %, n, avg hold, final multiple, max drawdown and the universe size.
 # Dispatch only when no Deploy Gate / safety run is queued. Research only, no live wiring.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: "Candle size: 1d (default), 1h, 15m. Run each per the multi-candle rule; bar-count constants change meaning with interval."
+        default: "1d"
+      period:
+        description: "yfinance period: 5y for 1d, 2y for 1h (730d cap), 60d for 15m"
+        default: "5y"
 
 jobs:
   collect:
@@ -29,7 +36,7 @@ jobs:
       - name: Collect trade streams
         run: |
           set -o pipefail
-          python3 scripts/portfolio_overlay_research.py collect --shard ${{ matrix.shard }} --nshards 8 --marks --out out/
+          python3 scripts/portfolio_overlay_research.py collect --shard ${{ matrix.shard }} --nshards 8 --interval ${{ github.event.inputs.interval || '1d' }} --period ${{ github.event.inputs.period || '5y' }} --marks --out out/
       - uses: actions/upload-artifact@v4
         with:
           name: pfovl-collect-${{ matrix.shard }}
@@ -60,7 +67,7 @@ jobs:
           python3 scripts/marked_ledger_merge_research.py --dir shards --json pfovl_marked_ledger.json | tee pfovl_marked_ledger.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: portfolio-overlay-results
+          name: portfolio-overlay-results-${{ github.event.inputs.interval || '1d' }}
           path: |
             pfovl_results.json
             pfovl_table.txt
