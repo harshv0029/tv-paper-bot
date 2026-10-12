@@ -409,3 +409,10 @@ Profit-booking / exit takeaway: invalidation exits book profit earlier than a tr
 - Fit: with aggregates only, expectancy>0 is equivalent to PFnet>1; the CI uses a two-point win/loss model, so it measures sample-size noise, not tail shape. A tag with PFnet 1.15 at n=150 lands in 'hold' (CI spans the 1.1 floor).
 - Reuse: wire into gen_strategy_results_log columns once per-trade lists are emitted by runs.
 - Profit-booking / exit takeaway: none directly; it stops promoting or demoting strategies on noise, protecting real money from thin-sample decisions.
+
+## Chan time-series non-overlap re-run (B-807, run 38187474707, 2026-10-12 IST)
+- Mechanism: same Chan time-series cells as run 38183172728, but each symbol holds at most one position per cell (strict FIFO), so n is a real trade count (~50k-260k) instead of overlapping signals.
+- Result: 240 cells, best PFnet 1.084 (chan_tsm lookback_sign long 1d atr4d0 hold25 lb120), none >= 1.1. The overlapping run's four viable 1h long cells (best 1.549) were an artifact of counting the same move many times.
+- Surprise: overlap inflated PFnet by 0.3-0.5 on 1h; always demand a FIFO re-run before trusting a high PFnet on a signal-per-bar harness.
+- Reuse: harnesses that open a trade on every signal bar must ship a non-overlap mode from the start; registry n far above trading-days x symbols is the tell.
+- Profit-booking / exit takeaway: widest stop (atr4d0) with the longest hold (25 bars) was best, i.e. these trend cells only pay when winners are left to run; tight stops and short holds (atr1d5, hold5) sit at PFnet 0.66.
