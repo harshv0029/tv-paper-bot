@@ -987,6 +987,44 @@ def init_db():
             )
             """
         )
+        # B-871 (2026-10-12): SHORT-SWING engine tables. SEPARATE from signal_state_swing /
+        # real_positions_swing (long-only; every long-swing reader assumes a long) and from
+        # real_positions_short (intraday MIS, flattened at 15:15 by the intraday short engine), so
+        # engine ownership is structural: no other engine reads or exits these rows. Both are in
+        # _GENERIC_MIRROR_TABLES (Upstash durability from day one) and covered by the 5-minute
+        # reconcile governance backfill (_heal_real_swing_short_sl).
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS signal_state_swing_short (
+                symbol TEXT PRIMARY KEY,
+                strategy TEXT NOT NULL,
+                entry_day TEXT NOT NULL,
+                entry_price REAL NOT NULL,
+                initial_stop_loss REAL NOT NULL,  -- ABOVE entry (BUY-stop), frozen at entry
+                qty REAL NOT NULL,
+                entry_ts REAL NOT NULL,
+                fx_to_inr REAL NOT NULL DEFAULT 1.0,
+                atr_at_entry REAL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS real_positions_swing_short (
+                symbol TEXT PRIMARY KEY,
+                kotak_trading_symbol TEXT NOT NULL,
+                qty INTEGER NOT NULL,
+                entry_price REAL NOT NULL,
+                entry_order_id TEXT,
+                opened_at REAL NOT NULL,
+                day TEXT NOT NULL,
+                stop_loss REAL NOT NULL,   -- intended BUY-stop level (above entry)
+                sl_order_id TEXT,
+                sl_trigger_price REAL,
+                strategy TEXT
+            )
+            """
+        )
         # Durable union of Kotak positions() + holdings() (2026-10-06, explicit
         # user instruction: keep the union for next-day tracking, memory every
         # 10s, git every 5 min, both in sync). Mirrored to Upstash via
@@ -3589,7 +3627,13 @@ def deployed_notional(conn) -> float:
         "SELECT qty, entry_price, fx_to_inr FROM signal_state_short WHERE status = 'short'"
     ).fetchall()
     short_notional = sum(r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in short_rows)
-    return equity_notional + option_notional + swing_notional + short_notional
+    try:  # B-871: open short-swing positions tie up capital in the same shared pool
+        swing_short_notional = sum(
+            r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in conn.execute(
+                "SELECT qty, entry_price, fx_to_inr FROM signal_state_swing_short").fetchall())
+    except Exception:
+        swing_short_notional = 0.0
+    return equity_notional + option_notional + swing_notional + short_notional + swing_short_notional
 
 
 # ---------------------------------------------------------------------------
@@ -5111,22 +5155,48 @@ ISLAND_TURN1CR_TAG = "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl
 # px20, so the none tag is only opened for signals that fail both filters (illiquid / sub-Rs20): see backlog B-877.
 ISLAND_SWING_TAGS = (ISLAND_TURN1CR_TAG, ISLAND_PX20_TAG, ISLAND_NONE_TAG)
 _ISLAND_FILTER_OF_TAG = {ISLAND_NONE_TAG: "none", ISLAND_PX20_TAG: "px20", ISLAND_TURN1CR_TAG: "turn1cr"}
+# ---- WIRE-NEXT batch (port queue + B-877, docs/backtest_data/wiring_final_binary_1844.csv) ----
+# Same detector/stop/exit as above; extra tags are the registry's other evaluation cells of the SAME live rule
+# (v1 overlapping-fill cells, segis/segoos IS/OOS splits) plus the gap05 filter (both gaps >= 0.5 x ATR[Wilder],
+# research island_entries(min_gap_atr=0.5)). Each tag keeps its own registry name/metrics; they are NEVER merged.
+# A symbol holds one position, so for an identical live rule the first tag in ISLAND_ALL_TAGS order takes it; the
+# later same-rule tags are registered, mapped, exit-covered and scan-counted but cannot take a second position.
+_ISLAND_GAP05 = "reversal__island_gap05__long__1d__atr1d5_within8__"
+_ISLAND_V1_TAGS = tuple(f"reversal__{v}__long__1d__atr1d5_within8__v1"
+                        for v in ("island", "island_none", "island_px20", "island_turn1cr"))
+ISLAND_GAP05_TAGS = (_ISLAND_GAP05 + "nonovl__v2", _ISLAND_GAP05 + "segis__v2")
+_ISLAND_SEG_TAGS = tuple(f"reversal__island_{f}__long__1d__atr1d5_within8__{seg}__v2"
+                         for f in ("none", "px20", "turn1cr") for seg in ("segis", "segoos"))
+ISLAND_WIRENEXT_TAGS = _ISLAND_V1_TAGS + ISLAND_GAP05_TAGS + _ISLAND_SEG_TAGS
+ISLAND_ALL_TAGS = ISLAND_GAP05_TAGS + ISLAND_SWING_TAGS + _ISLAND_V1_TAGS + _ISLAND_SEG_TAGS
+for _t in _ISLAND_V1_TAGS + _ISLAND_SEG_TAGS:
+    _f = _t.split("__")[1].replace("island_", "")
+    _ISLAND_FILTER_OF_TAG[_t] = "none" if _f == "island" else _f
+for _t in ISLAND_GAP05_TAGS:
+    _ISLAND_FILTER_OF_TAG[_t] = "gap05"
+ISLAND_GAP05_MIN_ATR = 0.5
 
 
-def island_bottom_signal_on_last_bar(df: pd.DataFrame, within: int = ISLAND_WITHIN_BARS) -> bool:
-    """True iff the LAST row is an island-bottom completion bar (research island_entries()[-1])."""
+def island_bottom_signal_on_last_bar(df: pd.DataFrame, within: int = ISLAND_WITHIN_BARS,
+                                     min_gap_atr: float = 0.0) -> bool:
+    """True iff the LAST row is an island-bottom completion bar (research island_entries(min_gap_atr)[-1])."""
     d = df.iloc[-ISLAND_CALC_WINDOW:]
     n = len(d)
     if n < 20:
         return False
     h = d["High"].to_numpy(dtype=float)
     l = d["Low"].to_numpy(dtype=float)
+    a = (_brk20_atr_series(h, l, d["Close"].to_numpy(dtype=float)) if min_gap_atr else None)
     j = n - 1
     for i in range(max(1, j - within), j):
         if not h[i] < l[i - 1]:
             continue
+        if min_gap_atr and not (l[i - 1] - h[i] >= min_gap_atr * a[i - 1] > 0):
+            continue
         for jj in range(i + 1, min(n, i + within + 1)):
             if l[jj] > h[jj - 1] and l[jj] > h[i]:
+                if min_gap_atr and not (l[jj] - h[i] >= min_gap_atr * a[jj - 1] > 0):
+                    break  # research: a first reclaim failing the 0.5 ATR gap consumes this gap-down
                 if jj == j:
                     return True
                 break  # this gap-down's FIRST reclaim was an earlier bar
@@ -5150,7 +5220,7 @@ def island_swing_entry_signal(df: pd.DataFrame, tag: str, entry_price: float | N
         return None
     if not island_filters_passed(df).get(flt):
         return None
-    if not island_bottom_signal_on_last_bar(df):
+    if not island_bottom_signal_on_last_bar(df, min_gap_atr=(ISLAND_GAP05_MIN_ATR if flt == "gap05" else 0.0)):
         return None
     d = df.iloc[-ISLAND_CALC_WINDOW:]
     atr = float(_brk20_atr_series(d["High"].to_numpy(dtype=float), d["Low"].to_numpy(dtype=float),
@@ -5195,9 +5265,117 @@ def _island_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, runnin
 def _island_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
     """Opens at most one island position for `symbol` (first tag in ISLAND_SWING_TAGS that fires). The paper row,
     trades row and real mirror (swing engine: SL placed with entry, PFnet gate inside) follow the brk20 pattern."""
-    for tag in ISLAND_SWING_TAGS:
+    for tag in ISLAND_ALL_TAGS:
         _record_strategy_scan(tag)
         sig = island_swing_entry_signal(df, tag)
+        if not sig:
+            continue
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return False
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, today, entry_price, stop_loss, None, qty, time.time(), fx, sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"]})),
+        )
+        conn.commit()
+        print(f"[SWING] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return True
+    return False
+
+
+# ---- swingminrr minervini_vcp LONG 1d atr1d5 live swing wiring (WIRE-NEXT port queue; research:
+# scripts/swing_min_rr_research.py cells base/gate) -----------------------------------------------------------
+# Entry = the REAL minervini_vcp_entry_signal (trend template + VCP pivot breakout + volume surge) on the last bar,
+# but with the research stop: entry - 1.5 x ATR(Wilder 14), ALWAYS attached (the VCP final-leg-low stop is NOT used
+# for these tags). `gate` cells additionally require room to the prior 60-bar HIGH (excluding the signal bar) >=
+# rr x risk. No profit target, no EMA rule exit: research sim() exits = gap-aware stop, else 30-bar max hold.
+# The research fills at the next open; live fills at the signal close (same convention as brk20/island).
+SWINGMINRR_ATR_MULT = 1.5
+SWINGMINRR_ROOM_BARS = 60
+SWINGMINRR_MAX_HOLD_BARS = 30
+SWINGMINRR_GATE4_TAG = "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1"
+SWINGMINRR_GATE3_TAG = "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1"
+SWINGMINRR_GATE2_TAG = "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1"
+SWINGMINRR_BASE_TAG = "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1"
+# Check order: highest PFnet / most specific gate first, ungated base last (a gated hit never also takes base).
+SWINGMINRR_TAGS = (SWINGMINRR_GATE4_TAG, SWINGMINRR_GATE3_TAG, SWINGMINRR_GATE2_TAG, SWINGMINRR_BASE_TAG)
+_SWINGMINRR_GATE_RR = {SWINGMINRR_GATE4_TAG: 4.0, SWINGMINRR_GATE3_TAG: 3.0, SWINGMINRR_GATE2_TAG: 2.0,
+                       SWINGMINRR_BASE_TAG: 0.0}
+
+
+def swingminrr_vcp_entry_signal(df: pd.DataFrame, tag: str, rs_percentile: float | None = None) -> dict | None:
+    """Last-row evaluation. Stop always set: entry - SWINGMINRR_ATR_MULT x ATR. None if tag unknown/no signal."""
+    min_rr = _SWINGMINRR_GATE_RR.get(tag)
+    if min_rr is None or len(df) < SWINGMINRR_ROOM_BARS + 2:
+        return None
+    if not minervini_vcp_entry_signal(df, rs_percentile=rs_percentile):
+        return None
+    d = df.iloc[-ISLAND_CALC_WINDOW:]
+    h = d["High"].to_numpy(dtype=float)
+    atr = float(_brk20_atr_series(h, d["Low"].to_numpy(dtype=float), d["Close"].to_numpy(dtype=float))[-1])
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+    px = float(d["Close"].iloc[-1])
+    stop = brk20_stop_price(px, atr, SWINGMINRR_ATR_MULT, "long")
+    if not (0 < stop < px):
+        return None
+    risk = px - stop
+    room = float(np.max(h[-SWINGMINRR_ROOM_BARS - 1:-1])) - px
+    if min_rr and room < min_rr * risk:
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": risk, "room": room,
+            "direction": "long", "min_rr": min_rr}
+
+
+def _swingminrr_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close):
+    """Swing exit fn signature. Replays every completed bar after entry_day: gap-aware stop, else the
+    SWINGMINRR_MAX_HOLD_BARS-th bar after the fill bar closes out (research sim order: stop before timeout)."""
+    if len(df) == 0:
+        return None, running_max_close
+    d = df
+    if "Date" not in d.columns:
+        d = d.assign(Date=pd.Series(pd.DatetimeIndex(d.index).strftime("%Y-%m-%d"), index=d.index))
+    new_running_max = max(float(running_max_close or 0.0), float(d["Close"].iloc[-1]))
+    fill_day = (pd.Timestamp(str(entry_day)[:10]) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    dates = d["Date"].astype(str).str[:10].to_numpy()
+    starts = np.flatnonzero(dates >= fill_day)
+    if len(starts) == 0:
+        return None, new_running_max
+    start = int(starts[0])
+    lo = d["Low"].to_numpy(dtype=float)
+    for k in range(start, len(d)):
+        if lo[k] <= float(initial_stop):
+            return "swingminrr_stop_loss", new_running_max
+        if k == start + SWINGMINRR_MAX_HOLD_BARS:
+            return "swingminrr_max_hold_timeout", new_running_max
+    return None, new_running_max
+
+
+def _swingminrr_try_entry(conn, symbol, df, capital, risk_pct, today, fx, rs_percentile=None) -> bool:
+    """Opens at most one swingminrr position (first viable tag in SWINGMINRR_TAGS that fires). A tag whose registry
+    PFnet is below the floor is skipped (falls through to the existing VCP path). Paper row + trades row + real
+    mirror (SL placed with the entry; PFnet gate inside) follow the island/brk20 pattern."""
+    for tag in SWINGMINRR_TAGS:
+        if tag == SWINGMINRR_BASE_TAG and _is_strategy_viable_for_real_money("minervini_vcp_be3r", check_switch=False):
+            continue  # the existing, viable be3r path keeps ungated VCP signals; base only replaces it if be3r is closed
+        _record_strategy_scan(tag)
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            continue
+        sig = swingminrr_vcp_entry_signal(df, tag, rs_percentile=rs_percentile)
         if not sig:
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -11002,6 +11180,26 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "reversal__island_none__long__1d__atr1d5_within8__nonovl__v2": "reversal__island_none__long__1d__atr1d5_within8__nonovl__v2",
     "reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2": "reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2",
     "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2": "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2",
+    # 2026-10-12 WIRE-NEXT batch (19 tags): every tag IS its own registry name, never merged.
+    "reversal__island__long__1d__atr1d5_within8__v1": "reversal__island__long__1d__atr1d5_within8__v1",
+    "reversal__island_none__long__1d__atr1d5_within8__v1": "reversal__island_none__long__1d__atr1d5_within8__v1",
+    "reversal__island_px20__long__1d__atr1d5_within8__v1": "reversal__island_px20__long__1d__atr1d5_within8__v1",
+    "reversal__island_turn1cr__long__1d__atr1d5_within8__v1": "reversal__island_turn1cr__long__1d__atr1d5_within8__v1",
+    "reversal__island_gap05__long__1d__atr1d5_within8__nonovl__v2": "reversal__island_gap05__long__1d__atr1d5_within8__nonovl__v2",
+    "reversal__island_gap05__long__1d__atr1d5_within8__segis__v2": "reversal__island_gap05__long__1d__atr1d5_within8__segis__v2",
+    "reversal__island_none__long__1d__atr1d5_within8__nonovl__v2": "reversal__island_none__long__1d__atr1d5_within8__nonovl__v2",
+    "reversal__island_none__long__1d__atr1d5_within8__segis__v2": "reversal__island_none__long__1d__atr1d5_within8__segis__v2",
+    "reversal__island_none__long__1d__atr1d5_within8__segoos__v2": "reversal__island_none__long__1d__atr1d5_within8__segoos__v2",
+    "reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2": "reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2",
+    "reversal__island_px20__long__1d__atr1d5_within8__segis__v2": "reversal__island_px20__long__1d__atr1d5_within8__segis__v2",
+    "reversal__island_px20__long__1d__atr1d5_within8__segoos__v2": "reversal__island_px20__long__1d__atr1d5_within8__segoos__v2",
+    "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2": "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2",
+    "reversal__island_turn1cr__long__1d__atr1d5_within8__segis__v2": "reversal__island_turn1cr__long__1d__atr1d5_within8__segis__v2",
+    "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2": "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2",
+    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1",
+    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1",
+    "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1",
+    "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1": "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1",
     # 2026-10-10 B-345 MCX daily engine: the tag IS the registry name.
     "sma_crossover__gc__long__1d__atrnone__v1": "sma_crossover__gc__long__1d__atrnone__v1",
     "keltner_channel_breakout__si__long__1d__atrnone__v1": "keltner_channel_breakout__si__long__1d__atrnone__v1",
@@ -11756,6 +11954,10 @@ def _maybe_place_real_short_entry(conn, symbol: str):
 
     if conn.execute("SELECT 1 FROM real_positions_short WHERE symbol = ?", (symbol,)).fetchone():
         _log_real_attempt(conn, symbol, "S", "skipped_already_open")
+        return
+    if conn.execute("SELECT 1 FROM real_positions_swing_short WHERE symbol = ?", (symbol,)).fetchone():
+        # B-871 engine ownership: a symbol held by the short-SWING engine is never touched by the intraday short engine.
+        _log_real_attempt(conn, symbol, "S", "skipped_owned_by_swing_short_engine")
         return
     if conn.execute("SELECT 1 FROM real_positions WHERE symbol = ?", (symbol,)).fetchone():
         # No simultaneous real long+short on the same symbol - mirrors
@@ -17162,6 +17364,7 @@ _GENERIC_MIRROR_TABLES = (
     "signal_state_fo_options", "swing_scan_log", "tracked_union",
     "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags",
     "swing_done_today", "strategy_scan_counts", "signal_shadow_log",
+    "signal_state_swing_short", "real_positions_swing_short",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
@@ -19059,7 +19262,14 @@ def _run_swing_scan_pass(conn):
                     conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
                                  (new_running_max, symbol))
                     conn.commit()
-            elif pos["strategy"] in ISLAND_SWING_TAGS:
+            elif pos["strategy"] in SWINGMINRR_TAGS:
+                reason, new_running_max = _swingminrr_exit_adapter(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"])
+                if not reason:
+                    conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                                 (new_running_max, symbol))
+                    conn.commit()
+            elif pos["strategy"] in ISLAND_ALL_TAGS:
                 reason, new_running_max = _island_swing_exit_adapter(
                     df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"])
                 if not reason:
@@ -19341,6 +19551,13 @@ def _run_swing_scan_pass(conn):
                     except Exception as e:
                         print(f"[SWING] island entry eval failed for {symbol} (non-fatal): {e}")
             continue
+        # WIRE-NEXT: swingminrr VCP-based long tags (registry-viable ones only) take the VCP signal first; if none
+        # is viable/sized the existing minervini_vcp_be3r path below runs exactly as before.
+        try:
+            if _swingminrr_try_entry(conn, symbol, df, capital, risk_pct, today, fx, rs_percentile=rs_pct.get(symbol)):
+                continue
+        except Exception as e:
+            print(f"[SWING] swingminrr entry eval failed for {symbol} (non-fatal): {e}")
         entry_price = vcp_signal["entry_price"]
         stop_loss = vcp_signal["stop_loss"]
         qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
@@ -19376,6 +19593,430 @@ def _run_swing_scan_pass(conn):
         _run_pattern_cell_entries(conn, dfs, capital, today)
     except Exception as e:
         print(f"[PATTERN] entry pass failed (non-fatal): {e}")
+    try:  # B-871: short-swing engine (exits first, then entries; a long swing entry made this scan wins the symbol)
+        _run_short_swing_pass(conn, dfs, capital, today, _done_syms)
+    except Exception as e:
+        print(f"[SWING SHORT] pass failed (non-fatal): {e}")
+
+
+# ---------------------------------------------------------------------------
+# B-871 (2026-10-12): SHORT-SWING engine (1d, multi-day SHORT with a BUY protective stop).
+#
+# Wired family: ONLY brk20_min_rr 1d SHORT, plain (no breakeven ratchet) cells of the main_replay tags. It is the only
+# family among the csv's 254 "B1 short-swing path missing" tags with (a) a main.py port that supports direction='short'
+# (brk20_min_rr_entry_signal / brk20_min_rr_exit_reason), (b) the ATR stop multiple stored in the tag (atr3/atr4) and
+# (c) a held-out check (brk20-isoos run 38247769897: 1d shorts hold OOS in all 12 cells). The be1 (breakeven ratchet)
+# cells are NOT wired: the ratchet would have to be synced to Kotak and added nothing OOS. The `_is`/`_oos` slice tags
+# are research-only. Every other B-871 family (weekly base-breakout cells, sector_rotation fade, tasuki, chan_gap, consol, pfovl,
+# dirsys13, MCX commodity cells, swingminrr, trademgmt_exit) has NO main.py short port, so it is NOT wired here; each
+# stays registered and needs its own port first (recorded in the backlog row, never dropped).
+#
+# Engine ownership: own tables signal_state_swing_short / real_positions_swing_short (Upstash generic mirror + 5-min
+# reconcile heal). The intraday short engine never reads them; the swing LONG engine never reads them.
+#
+# OVERNIGHT-PRODUCT FEASIBILITY (honest blocker): an NSE cash-segment short cannot be carried overnight with MIS (Kotak
+# squares it off ~15:20) and CNC needs shares to deliver. SHORT_SWING_PRODUCT is the Kotak product the path would use
+# (NRML), but nobody has confirmed Kotak accepts an overnight NRML cash short on this account, so the REAL leg is held
+# behind SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED = False (a code constant, NOT a kill switch / env var). While False the
+# PAPER short-swing positions run and are logged, and every real attempt is recorded as
+# skipped_overnight_short_product_unconfirmed. Flip it only after a feasibility check at Kotak (a 1-share test), which
+# needs the user.
+# ---------------------------------------------------------------------------
+SHORT_SWING_PRODUCT = "NRML"
+SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED = False
+# (live tag, ATR multiple, min R:R) - order = strictest/highest-PFnet first; first cell that fires owns the symbol.
+BRK20_SHORT_SWING_CELLS = (
+    ("brk20_min_rr__main_replay__short__1d__atr4_rr4__v1", 4.0, 4.0),
+    ("brk20_min_rr__main_replay__short__1d__atr4_rr3d5__v1", 4.0, 3.5),
+    ("brk20_min_rr__main_replay__short__1d__atr4_rr3__v1", 4.0, 3.0),
+    ("brk20_min_rr__main_replay__short__1d__atr3_rr4__v1", 3.0, 4.0),
+    ("brk20_min_rr__main_replay__short__1d__atr3_rr3d5__v1", 3.0, 3.5),
+    ("brk20_min_rr__main_replay__short__1d__atr3_rr3__v1", 3.0, 3.0),
+)
+BRK20_SHORT_SWING_ATR_OF_TAG = {t: a for t, a, _r in BRK20_SHORT_SWING_CELLS}
+SHORT_SWING_TAGS = tuple(t for t, _a, _r in BRK20_SHORT_SWING_CELLS)
+for _t in SHORT_SWING_TAGS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
+
+
+def _short_swing_exit_reason(df, entry_day, initial_stop, atr_at_entry, tag):
+    """Replays every completed bar after the signal day through brk20_min_rr_exit_reason (short path: gap-aware stop ->
+    EMA13 rule exit -> 30-bar timeout), so a skipped scan day cannot hide a stop or the exact timeout. The entry price
+    is recovered from the frozen stop (stop = entry + atr_mult x ATR). Returns a reason string or None."""
+    mult = BRK20_SHORT_SWING_ATR_OF_TAG.get(tag)
+    if mult is None or len(df) == 0 or float(atr_at_entry or 0.0) <= 0:
+        return None
+    d = df
+    if "Date" not in d.columns:
+        d = d.assign(Date=pd.Series(pd.DatetimeIndex(d.index).strftime("%Y-%m-%d"), index=d.index))
+    entry_price = float(initial_stop) - mult * float(atr_at_entry)
+    fill_day = (pd.Timestamp(str(entry_day)[:10]) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    dates = d["Date"].astype(str).str[:10].to_numpy()
+    starts = np.flatnonzero(dates >= fill_day)
+    if len(starts) == 0:
+        return None
+    for k in range(int(starts[0]), len(d)):
+        reason, _px = brk20_min_rr_exit_reason(d.iloc[:k + 1], fill_day, entry_price, float(initial_stop), "short")
+        if reason:
+            return "short_swing_" + reason
+    return None
+
+
+def short_swing_entry_signal(df):
+    """First BRK20_SHORT_SWING_CELLS cell that fires on the last bar -> (tag, signal) or (None, None). The stop is
+    always set by the signal (entry + atr_mult x ATR) and must sit above the entry."""
+    for tag, atr_mult, min_rr in BRK20_SHORT_SWING_CELLS:
+        sig = brk20_min_rr_entry_signal(df, "short", atr_mult, min_rr)
+        if sig and sig["stop_loss"] > sig["entry_price"]:
+            return tag, sig
+    return None, None
+
+
+def _short_swing_size(conn, capital, risk_pct, entry_price, stop_loss):
+    """Sizing through the shared swing sizer on the mirrored stop distance (stop above entry by D == stop below by D)."""
+    dist = float(stop_loss) - float(entry_price)
+    if dist <= 0:
+        return 0
+    return _swing_position_size(conn, capital, risk_pct, entry_price, entry_price - dist)
+
+
+def _short_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
+    """Opens at most one short-swing PAPER position for `symbol` (first firing cell) and offers the real mirror.
+    No entry while the symbol holds ANY swing position (long or short)."""
+    if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone():
+        return False
+    if conn.execute("SELECT 1 FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone():
+        return False
+    for tag in SHORT_SWING_TAGS:
+        _record_strategy_scan(tag)
+    tag, sig = short_swing_entry_signal(df)
+    if not sig:
+        return False
+    entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+    qty = _short_swing_size(conn, capital, risk_pct, entry_price, stop_loss)
+    if qty <= 0:
+        return False
+    conn.execute(
+        "INSERT INTO signal_state_swing_short (symbol, strategy, entry_day, entry_price, initial_stop_loss, qty, "
+        "entry_ts, fx_to_inr, atr_at_entry) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (symbol, tag, today, entry_price, stop_loss, qty, time.time(), fx, sig["atr_at_entry"]),
+    )
+    conn.commit()
+    print(f"[SWING SHORT] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+    try:
+        _maybe_place_real_swing_short_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+    except Exception as e:
+        print(f"[REAL SWING SHORT] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+    return True
+
+
+def _short_swing_close_paper(conn, symbol, pos, exit_price, reason):
+    """Books the paper short exit (pnl = (entry - exit) x qty x fx) into short_trades_closed, removes the paper row,
+    blocks same-day re-entry, then offers the real buy-to-cover with the reason."""
+    pnl = (float(pos["entry_price"]) - float(exit_price)) * float(pos["qty"]) * float(pos["fx_to_inr"])
+    conn.execute(
+        "INSERT INTO short_trades_closed (ts, symbol, qty, entry_price, exit_price, fx_to_inr, pnl_inr, exit_reason, strategy) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (time.time(), symbol, pos["qty"], pos["entry_price"], exit_price, pos["fx_to_inr"], pnl, reason, pos["strategy"]),
+    )
+    conn.execute("DELETE FROM signal_state_swing_short WHERE symbol = ?", (symbol,))
+    conn.execute("INSERT OR IGNORE INTO swing_done_today (day, symbol) VALUES (?, ?)",
+                 (ist_now().strftime("%Y-%m-%d"), symbol))
+    conn.commit()
+    print(f"[SWING SHORT] exit {symbol} ({pos['strategy']}, {reason}) qty={pos['qty']} @ {exit_price:.2f} pnl=Rs{pnl:.2f}")
+    try:
+        _maybe_place_real_swing_short_exit(conn, symbol, reason=f"{pos['strategy']} paper short-swing exit: {reason}")
+    except Exception as e:
+        print(f"[REAL SWING SHORT] exit mirror failed for {symbol} (non-fatal, paper exit already recorded): {e}")
+
+
+def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
+    """Exits first, then entries, for the short-swing engine. Runs at the end of the daily swing scan, so a long
+    swing entry made earlier the same scan always wins the symbol. Never raises per symbol."""
+    for symbol, df in dfs.items():
+        try:
+            pos = conn.execute("SELECT * FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone()
+            if pos:
+                reason = _short_swing_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"],
+                                                  pos["atr_at_entry"], pos["strategy"])
+                if reason:
+                    _short_swing_close_paper(conn, symbol, pos, float(df["Close"].iloc[-1]), reason)
+                continue
+            if symbol in done_syms:
+                continue
+            cfg = NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
+            _short_swing_try_entry(conn, symbol, df, capital, cfg["risk_pct"], today, 1.0)
+        except Exception as e:
+            print(f"[SWING SHORT] scan failed for {symbol} (non-fatal): {e}")
+
+
+def _ensure_resting_short_sl(kotak_symbol, qty, trigger_price, product=None):
+    """Scan-then-act BUY-stop for a short-swing position (Kotak-first: fresh order book every call). A live BUY SL
+    covering `qty` at a trigger <= the requested one (a short's stop is never raised) is ADOPTED; otherwise a fresh
+    one is placed. Never after 15:15 IST (the exchange cancels resting orders then). Returns place_real_short_stop_loss's
+    shape plus `action`."""
+    import kotak_neo
+    import kotak_real_orders
+    product = product or SHORT_SWING_PRODUCT
+    if kotak_real_orders._in_closing_session():
+        return {"ok": False, "detail": "no short SL placement after 15:15 IST", "action": "skipped_closing_session"}
+    desired = kotak_real_orders._round_to_tick(trigger_price, kotak_real_orders._tick_size_for(kotak_symbol))
+    try:
+        rows = kotak_neo.order_report().get("data") or []
+    except Exception as e:
+        res = kotak_real_orders.place_real_short_stop_loss(kotak_symbol, qty, desired, product=product)
+        res["action"] = "placed_unchecked"
+        res["scan_error"] = str(e)
+        return res
+    live = []
+    for r in rows:
+        if r.get("trdSym") != kotak_symbol or r.get("trnsTp") != "B":
+            continue
+        if str(r.get("prcTp", "")).upper() not in ("SL", "SL-M"):
+            continue
+        if str(r.get("ordSt", "")).strip().lower() in kotak_real_orders._TERMINAL_ORDER_STATUSES:
+            continue
+        try:
+            live.append({"order_id": str(r.get("nOrdNo")), "trigger": float(r.get("trgPrc") or 0),
+                         "qty": int(float(r.get("qty") or 0))})
+        except (TypeError, ValueError):
+            continue
+    if live:
+        best = min(live, key=lambda o: o["trigger"] or 1e18)
+        if sum(o["qty"] for o in live) >= int(qty) and best["trigger"] <= desired + 0.005:
+            return {"ok": True, "order_id": best["order_id"], "trigger_price": best["trigger"],
+                    "action": "adopted_existing"}
+    res = kotak_real_orders.place_real_short_stop_loss(kotak_symbol, qty, desired, product=product)
+    res["action"] = "placed" if res.get("ok") else "place_failed"
+    return res
+
+
+def _maybe_place_real_swing_short_entry(conn, symbol, paper_qty, paper_entry_price, paper_stop_loss, strategy):
+    """Mirrors a paper short-swing entry as a REAL sell-to-open, ONLY when every gate holds. Shares
+    is_real_swing_trading_enabled (no new switch). NO TRADE WITHOUT A STOP: the BUY-stop is placed right after the
+    fill and, if that fails, the short is covered immediately (unwound). Never raises."""
+    if not is_real_swing_trading_enabled():
+        return
+    if not SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED:
+        _log_real_attempt(
+            conn, symbol, "S", "skipped_overnight_short_product_unconfirmed", strategy=strategy,
+            detail="NSE cash shorts cannot be carried overnight on MIS and an overnight NRML/CNC short is unconfirmed "
+                   "at Kotak (B-871); paper short-swing runs, real leg held until the user confirms feasibility")
+        return
+    for _tbl in ("real_positions_swing_short", "real_positions_swing", "real_positions_short", "real_positions"):
+        if conn.execute(f"SELECT 1 FROM {_tbl} WHERE symbol = ?", (symbol,)).fetchone():
+            _log_real_attempt(conn, symbol, "S", "skipped_already_open", strategy=strategy,
+                              detail=f"symbol already held in {_tbl}")
+            return
+    if not _is_strategy_viable_for_real_money(strategy):
+        _log_real_attempt(conn, symbol, "S", "skipped_strategy_not_viable", strategy=strategy,
+                          detail=f"strategy {strategy!r} does not clear the PFnet floor (or has no validated metrics)")
+        _log_signal_shadow(conn, strategy, symbol, "short", False, "real entry: strategy below PFnet floor", hard_gate=True)
+        return
+    _n = ist_now()
+    if _n.hour * 60 + _n.minute >= SWING_REAL_ENTRY_CUTOFF_MIN:
+        _log_real_attempt(conn, symbol, "S", "skipped_after_entry_cutoff", strategy=strategy,
+                          detail="no new real swing entries from 15:14 IST (SL cannot rest after 15:15)")
+        return
+    import kotak_live_feed
+    tick = kotak_live_feed.get_live_ticks().get(symbol)
+    if not tick or not tick.get("ltp") or not tick.get("trading_symbol"):
+        _log_real_attempt(conn, symbol, "S", "skipped_no_live_tick", strategy=strategy)
+        return
+    ltp = float(tick["ltp"])
+    kotak_symbol = tick["trading_symbol"]
+    if ltp <= 0:
+        _log_real_attempt(conn, symbol, "S", "skipped_no_live_tick", kotak_trading_symbol=kotak_symbol, strategy=strategy)
+        return
+    if _kotak_bought_today(kotak_symbol):
+        _log_real_attempt(conn, symbol, "S", "skipped_same_day_cooldown", kotak_trading_symbol=kotak_symbol,
+                          price_est=ltp, strategy=strategy, detail="Kotak shows a completed BUY today - no same-day short re-entry")
+        return
+    if not paper_stop_loss or float(paper_stop_loss) <= ltp * 1.001:
+        _log_real_attempt(conn, symbol, "S", "skipped_stop_not_above_price", kotak_trading_symbol=kotak_symbol,
+                          price_est=ltp, strategy=strategy,
+                          detail=f"strategy stop Rs{float(paper_stop_loss or 0):.2f} is not above live Rs{ltp:.2f} - cannot protect a short")
+        return
+    if paper_entry_price > 0:
+        dev = abs(ltp - paper_entry_price) / paper_entry_price * 100
+        if dev > SWING_REAL_ENTRY_PRICE_TOLERANCE_PCT:
+            _log_real_attempt(conn, symbol, "S", "skipped_price_out_of_tolerance", kotak_trading_symbol=kotak_symbol,
+                              price_est=ltp, strategy=strategy,
+                              detail=f"live Rs{ltp:.2f} is {dev:.1f}% from the signal entry Rs{paper_entry_price:.2f}")
+            return
+    remaining = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
+    qty = int(min(paper_qty, math.floor(remaining / ltp), math.floor(get_scheduler_capital_inr() / ltp)))
+    if qty <= 0:
+        _log_real_attempt(conn, symbol, "S", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
+                          price_est=ltp, strategy=strategy)
+        return
+    loss = _real_loss_budget(conn)
+    if loss["real_pnl_today"] is None or not loss["ok"]:
+        _log_real_attempt(conn, symbol, "S", "skipped_real_loss_budget", kotak_trading_symbol=kotak_symbol,
+                          price_est=ltp, detail=loss["detail"], strategy=strategy)
+        return
+
+    import kotak_real_orders
+    result = kotak_real_orders.place_real_short_entry(kotak_symbol, qty, ltp, product=SHORT_SWING_PRODUCT)
+    if not result.get("ok"):
+        _log_real_attempt(conn, symbol, "S", "failed", kotak_trading_symbol=kotak_symbol, price_est=ltp,
+                          detail=result.get("detail"), raw_response=result.get("raw_response"), strategy=strategy)
+        return
+    real_qty = int(result["qty"])
+    fill = result["fill_price"]
+    _log_real_attempt(conn, symbol, "S", "confirmed", kotak_trading_symbol=kotak_symbol, qty=real_qty, price_est=fill,
+                      notional_inr=real_qty * fill, order_id=result["order_id"], raw_response=result.get("raw_response"),
+                      strategy=strategy)
+    _log_real_order_event(conn, symbol, "entry", "confirmed", kotak_trading_symbol=kotak_symbol,
+                          order_id=result["order_id"], prev_state="no position",
+                          new_state=f"short {real_qty} @ Rs{fill:.2f}",
+                          reason=f"short-swing entry signal from {strategy} passed the PFnet gate")
+    stop = float(paper_stop_loss)
+    if stop <= fill * 1.001:  # filled through the stop: keep a valid stop above the fill rather than none
+        stop = round(fill * (1 + SWING_FALLBACK_STOP_PCT / 100.0), 2)
+    sl = _ensure_resting_short_sl(kotak_symbol, real_qty, round(stop, 2))
+    if not sl.get("ok"):
+        # NO TRADE WITHOUT A STOP: unwind the short now.
+        cover = kotak_real_orders.place_real_short_cover(kotak_symbol, real_qty, product=SHORT_SWING_PRODUCT)
+        _log_real_order_event(conn, symbol, "short_sl", "failed", kotak_trading_symbol=kotak_symbol,
+                              prev_state="none", new_state="none (placement failed)", detail=sl.get("detail"),
+                              reason="short-swing stop-loss could not be placed; unwinding the entry (no trade without SL)")
+        _log_real_order_event(conn, symbol, "short_cover", "confirmed" if cover.get("ok") else "failed",
+                              kotak_trading_symbol=kotak_symbol, order_id=cover.get("order_id"),
+                              prev_state=f"short {real_qty}", new_state="closed" if cover.get("ok") else "STILL SHORT",
+                              detail=cover.get("detail"),
+                              reason="unwind: stop-loss placement failed right after the short entry")
+        if not cover.get("ok"):  # keep a row so the 5-min heal keeps trying to protect it
+            conn.execute(
+                "INSERT OR REPLACE INTO real_positions_swing_short (symbol, kotak_trading_symbol, qty, entry_price, "
+                "entry_order_id, opened_at, day, stop_loss, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (symbol, kotak_symbol, real_qty, fill, result["order_id"], time.time(),
+                 ist_now().strftime("%Y-%m-%d"), stop, strategy))
+            conn.commit()
+        return
+    conn.execute(
+        "INSERT OR REPLACE INTO real_positions_swing_short (symbol, kotak_trading_symbol, qty, entry_price, entry_order_id, "
+        "opened_at, day, stop_loss, sl_order_id, sl_trigger_price, strategy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (symbol, kotak_symbol, real_qty, fill, result["order_id"], time.time(), ist_now().strftime("%Y-%m-%d"),
+         stop, sl["order_id"], sl["trigger_price"], strategy))
+    conn.commit()
+    try:
+        sync_generic_tables_external(only=("real_positions_swing_short",))
+    except Exception as e:
+        print(f"[REAL SWING SHORT] mirror push failed (tick sync will retry): {e}")
+    _log_real_order_event(conn, symbol, "short_sl", "placed", kotak_trading_symbol=kotak_symbol,
+                          order_id=sl["order_id"], prev_state="none",
+                          new_state=f"resting BUY trigger Rs{sl['trigger_price']:.2f}",
+                          reason="resting buy-stop placed with the short-swing entry (no trade without SL)")
+    _log_signal_shadow(conn, strategy, symbol, "short", True, "real short-swing entry placed")
+
+
+def _maybe_place_real_swing_short_exit(conn, symbol, reason: str = None):
+    """Buy-to-cover for a short-swing position, called ONLY by the short-swing engine. Cancels the resting BUY-stop
+    first, covers the exact row qty, logs the reason. Never gated by the entry switch (closing is always allowed).
+    Kotak-first: a row Kotak no longer shows as short is cleared without sending an order."""
+    _why = functools.partial(_log_real_order_event, reason=reason or _REASON_UNSTATED)
+    row = conn.execute("SELECT * FROM real_positions_swing_short WHERE symbol = ?", (symbol,)).fetchone()
+    if not row:
+        return
+    if _kotak_symbol_still_open_short(row["kotak_trading_symbol"]) is False:
+        conn.execute("DELETE FROM real_positions_swing_short WHERE symbol = ?", (symbol,))
+        conn.commit()
+        _why(conn, symbol, "short_cover", "stale_row_cleared", kotak_trading_symbol=row["kotak_trading_symbol"],
+             prev_state=f"short {row['qty']} (app row)", new_state="no short at Kotak; row removed, no order sent")
+        return
+    import kotak_real_orders
+    if row["sl_order_id"]:
+        c = kotak_real_orders.cancel_real_order(row["sl_order_id"])
+        _why(conn, symbol, "short_sl", "cancelled" if c.get("ok") else "cancel_failed",
+             kotak_trading_symbol=row["kotak_trading_symbol"], order_id=row["sl_order_id"],
+             prev_state=f"resting @ Rs{row['sl_trigger_price']}",
+             new_state="cancelled (short exiting)" if c.get("ok") else "may still rest", detail=c.get("detail"))
+    _why(conn, symbol, "short_cover", "intent", kotak_trading_symbol=row["kotak_trading_symbol"],
+         prev_state=f"short {row['qty']} @ Rs{row['entry_price']:.2f}", new_state="market BUY-to-cover about to be sent")
+    res = kotak_real_orders.place_real_short_cover(row["kotak_trading_symbol"], int(row["qty"]), product=SHORT_SWING_PRODUCT)
+    if res.get("ok"):
+        conn.execute("DELETE FROM real_positions_swing_short WHERE symbol = ?", (symbol,))
+        _log_real_attempt(conn, symbol, "B", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                          qty=int(res["qty"]), price_est=res.get("fill_price"), order_id=res["order_id"],
+                          raw_response=res.get("raw_response"), strategy=row["strategy"])
+        conn.commit()
+        _why(conn, symbol, "short_cover", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
+             order_id=res["order_id"], prev_state=f"short {row['qty']}", new_state="closed")
+    else:
+        _log_real_attempt(conn, symbol, "B", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                          qty=row["qty"], detail=res.get("detail"), raw_response=res.get("raw_response"),
+                          strategy=row["strategy"])
+        _why(conn, symbol, "short_cover", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+             prev_state=f"short {row['qty']}", new_state="still open (cover failed; stop re-placed by heal)",
+             detail=res.get("detail"))
+        # the stop was cancelled above: clear its id so the 5-min heal re-protects the position
+        conn.execute("UPDATE real_positions_swing_short SET sl_order_id = NULL, sl_trigger_price = NULL WHERE symbol = ?", (symbol,))
+        conn.commit()
+
+
+_SHORT_SWING_TERMINAL = {"complete", "rejected", "cancelled", "cancelled by user", "cancelledbyuser", "expired"}
+
+
+def _heal_real_swing_short_sl(conn, order_rows) -> list:
+    """5-minute governance (called from every _reconcile_real_positions_core run) in the mandated order: Kotak
+    positions/order book are already fetched by the caller (`order_rows`), THEN this compares the app rows:
+      * align-to-Kotak: a row whose sl_order_id is not a live BUY SL in the order book gets its id cleared;
+        a live BUY SL Kotak shows for the symbol is adopted into the row;
+      * heal: every row still missing a resting stop gets a BUY-stop placed (market hours only).
+    Returns backfill entries. Never raises per row."""
+    out = []
+    live_by_sym = {}
+    for r in order_rows or []:
+        if r.get("trnsTp") != "B" or str(r.get("prcTp", "")).upper() not in ("SL", "SL-M"):
+            continue
+        if str(r.get("ordSt", "")).strip().lower() in _SHORT_SWING_TERMINAL:
+            continue
+        try:
+            live_by_sym.setdefault(r.get("trdSym"), []).append((str(r.get("nOrdNo")), float(r.get("trgPrc") or 0)))
+        except (TypeError, ValueError):
+            continue
+    for row in conn.execute("SELECT * FROM real_positions_swing_short").fetchall():
+        live = live_by_sym.get(row["kotak_trading_symbol"], [])
+        ids = {i for i, _t in live}
+        if live and row["sl_order_id"] not in ids:
+            oid, trg = min(live, key=lambda x: x[1])
+            conn.execute("UPDATE real_positions_swing_short SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                         (oid, trg, row["symbol"]))
+        elif not live and row["sl_order_id"]:
+            conn.execute("UPDATE real_positions_swing_short SET sl_order_id = NULL, sl_trigger_price = NULL WHERE symbol = ?",
+                         (row["symbol"],))
+    conn.commit()
+    if not _nse_equity_market_open_now():
+        return out
+    for row in conn.execute("SELECT * FROM real_positions_swing_short WHERE sl_order_id IS NULL").fetchall():
+        entry = {"symbol": row["symbol"], "entry_price": row["entry_price"], "stop_loss": row["stop_loss"],
+                 "qty": row["qty"], "side": "short", "table": "real_positions_swing_short"}
+        try:
+            sl = _ensure_resting_short_sl(row["kotak_trading_symbol"], int(row["qty"]), round(float(row["stop_loss"]), 2))
+        except Exception as e:
+            sl = {"ok": False, "detail": str(e)}
+        if sl.get("ok"):
+            conn.execute("UPDATE real_positions_swing_short SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                         (sl["order_id"], sl["trigger_price"], row["symbol"]))
+            _log_real_order_event(conn, row["symbol"], "short_sl", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                                  order_id=sl["order_id"], prev_state="none",
+                                  new_state=f"resting BUY trigger Rs{sl['trigger_price']:.2f}",
+                                  reason="short-swing position had no resting stop-loss; placed at its stored stop (5-min governance heal)")
+            entry["sl_placed"] = True
+        else:
+            _log_real_order_event(conn, row["symbol"], "short_sl", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
+                                  prev_state="none", new_state="none (placement failed)", detail=sl.get("detail"),
+                                  reason="short-swing stop-loss heal failed; retried every 5 minutes")
+            entry["sl_placed"] = False
+            entry["sl_failure_detail"] = sl.get("detail")
+        out.append(entry)
+    conn.commit()
+    try:
+        sync_generic_tables_external(only=("real_positions_swing_short",))
+    except Exception as e:
+        print(f"[REAL SWING SHORT] mirror push failed (tick sync will retry): {e}")
+    return out
 
 
 # ---- Sector rotation momentum long (B-336/B-348; user 2026-10-10: PFnet>1 cells are wired live) ----
@@ -21157,7 +21798,9 @@ _SWING_SL_RULES = {
     SWING_EXITINVAL_OB_TAG: f"entry - {SWING_EXITINVAL_ATR_MULT:g}xATR, frozen (exit also on weekly EMA13 turn-down)",
     BRK20_SWING_TAG: f"entry - {BRK20_SWING_ATR_MULT:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)",
     **{_t: f"entry - {ISLAND_ATR_MULT:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
-       for _t in ISLAND_SWING_TAGS},
+       for _t in ISLAND_ALL_TAGS},
+    **{_t: f"entry - {SWINGMINRR_ATR_MULT:g}xATR(Wilder), frozen (exit also on {SWINGMINRR_MAX_HOLD_BARS}-bar max hold)"
+       for _t in SWINGMINRR_TAGS},
 }
 
 
@@ -22267,7 +22910,7 @@ def _tracked_union_local_rows(conn) -> dict:
     """{trdsym: (owner, row)} from this app's own engine tables."""
     out = {}
     for owner, table in (("intraday", "real_positions"), ("short", "real_positions_short"),
-                         ("swing", "real_positions_swing")):
+                         ("swing", "real_positions_swing"), ("swing_short", "real_positions_swing_short")):
         for r in conn.execute(f"SELECT * FROM {table}").fetchall():
             out[r["kotak_trading_symbol"]] = (owner, r)
     return out
@@ -22935,13 +23578,29 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 qty_corrected.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
                                        "old_qty": r["qty"], "new_qty": int(kotak_match["qty"]), "table": "real_positions_swing"})
 
+        # B-871: short-SWING mirror of the short ghost/qty reconcile above (own table, sign must be SHORT).
+        our_swing_short_trdsyms = set()
+        for r in conn.execute("SELECT * FROM real_positions_swing_short").fetchall():
+            our_swing_short_trdsyms.add(r["kotak_trading_symbol"])
+            kotak_match = kotak_open_by_trdsym.get(r["kotak_trading_symbol"])
+            if kotak_match is None or not kotak_match["is_short"]:
+                conn.execute("DELETE FROM real_positions_swing_short WHERE symbol = ?", (r["symbol"],))
+                removed_ghosts.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
+                                        "was_tracked_qty": r["qty"], "table": "real_positions_swing_short"})
+            elif int(kotak_match["qty"]) != r["qty"]:
+                conn.execute("UPDATE real_positions_swing_short SET qty = ? WHERE symbol = ?",
+                             (int(kotak_match["qty"]), r["symbol"]))
+                qty_corrected.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
+                                       "old_qty": r["qty"], "new_qty": int(kotak_match["qty"]),
+                                       "table": "real_positions_swing_short"})
         try:
             for _t in _tracked_union_persist(conn, kotak_open_by_trdsym, swing_holdings):
                 our_swing_trdsyms.add(_t)
         except Exception as e:
             print(f"[tracked_union] persist failed (non-fatal): {e}")
         for trd_sym, info in kotak_open_by_trdsym.items():
-            if trd_sym not in our_trdsyms and trd_sym not in our_short_trdsyms and trd_sym not in our_swing_trdsyms:
+            if (trd_sym not in our_trdsyms and trd_sym not in our_short_trdsyms and trd_sym not in our_swing_trdsyms
+                    and trd_sym not in our_swing_short_trdsyms):
                 untracked.append({"kotak_trading_symbol": trd_sym, "qty": int(info["qty"]),
                                    "is_short": info["is_short"]})
 
@@ -23062,6 +23721,29 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                         # app's own (the entry match above, like the long
                         # side's, accepts ANY completed sell, bot-placed or
                         # manual).
+                        _ss_sig = conn.execute(
+                            "SELECT strategy, initial_stop_loss FROM signal_state_swing_short WHERE symbol = ?",
+                            (watchlist_symbol,)).fetchone()
+                        if _ss_sig is not None:
+                            # B-871 engine ownership: a symbol with an open short-SWING paper signal is a swing
+                            # short; adopting it into the intraday short table would hand it to the 15:15 flatten.
+                            if float(_ss_sig["initial_stop_loss"] or 0) <= 0:
+                                continue  # no intended stop to carry - stays untracked, the backcheck flags it
+                            conn.execute(
+                                "INSERT INTO real_positions_swing_short (symbol, kotak_trading_symbol, qty, entry_price, "
+                                "entry_order_id, opened_at, day, stop_loss, sl_order_id, sl_trigger_price, strategy) "
+                                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(symbol) DO NOTHING",
+                                (watchlist_symbol, trd_sym, qty, entry_price, entry_order_id, time.time(),
+                                 ist_now().strftime("%Y-%m-%d"), float(_ss_sig["initial_stop_loss"]),
+                                 sl_order_id, sl_trigger_price, _ss_sig["strategy"]),
+                            )
+                            adopted.append({
+                                "symbol": watchlist_symbol, "kotak_trading_symbol": trd_sym, "qty": qty,
+                                "entry_price": entry_price, "entry_order_id": entry_order_id,
+                                "sl_order_id": sl_order_id, "sl_trigger_price": sl_trigger_price,
+                                "side": "short", "table": "real_positions_swing_short",
+                            })
+                            continue
                         recovered_strategy = _recover_strategy_for_untracked_position(conn, trd_sym, "S")
                         conn.execute(
                             "INSERT INTO real_positions_short (symbol, kotak_trading_symbol, qty, entry_price, "
@@ -23397,6 +24079,11 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 backfill_entry["sl_failure_detail"] = sl_result.get("detail")
                 _flag_if_t1_restricted(conn, r["symbol"], sl_result.get("detail"))
             governance_backfilled_swing.append(backfill_entry)
+
+        try:
+            governance_backfilled_swing.extend(_heal_real_swing_short_sl(conn, order_rows))
+        except Exception as e:
+            print(f"[reconcile] short-swing SL heal failed (non-fatal): {e}")
 
         conn.commit()
         _sync_real_positions_external(conn)
