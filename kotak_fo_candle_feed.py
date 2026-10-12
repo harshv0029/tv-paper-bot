@@ -103,6 +103,12 @@ _feed_status = {
     "subscribed_instruments": 0,
     "universe_resolved_at_utc": None,
     "unresolved_legs": [],
+    # B-865 diagnostics (read-only): is the socket actually delivering ticks?
+    "connect_count": 0,
+    "ticks_received": 0,
+    "last_tick_ts": None,
+    "last_disconnect_reason": None,
+    "refresh_reconnects": 0,
 }
 
 # {instrument_token: {"bucket_start_ts", "open", "high", "low", "close", "tick_count"}}
@@ -182,6 +188,40 @@ _universe_cache = {"value": None, "resolved_at": 0.0}
 # stocks got a real attempt last cycle, so the next cycle picks up where
 # the last one left off instead of restarting at "360ONE" every time.
 _stock_resolve_offset = {"value": 0}
+
+
+# B-865: while the websocket stays connected the top-of-loop refresh check in
+# run_fo_candle_feed never runs again (the loop only iterates on a disconnect),
+# so the 4h ATM refresh and the expiry roll were silently skipped for as long
+# as the socket lived. The message loop now asks this each tick.
+INDEX_UNDERLYING_NAMES = tuple(FO_CANDLE_UNDERLYINGS.values())
+# A universe missing an index underlying (spot lookup failed at resolve time)
+# is re-resolved after this much, not after the full 4h.
+INCOMPLETE_UNIVERSE_RETRY_SECONDS = 5 * 60
+
+
+def universe_missing_index_underlyings(universe) -> list:
+    have = {d.get("underlying") for d in (universe or {}).values()}
+    return [n for n in INDEX_UNDERLYING_NAMES if n not in have]
+
+
+def universe_refresh_due(now=None, universe=None, resolved_at=None) -> bool:
+    """True when the cached universe should be re-resolved now: older than
+    UNIVERSE_REFRESH_SECONDS, expiry-rolled, or (B-865) missing an index
+    underlying and older than INCOMPLETE_UNIVERSE_RETRY_SECONDS."""
+    now = time.time() if now is None else now
+    uni = _universe_cache["value"] if universe is None else universe
+    ts = _universe_cache["resolved_at"] if resolved_at is None else resolved_at
+    if uni is None:
+        return True
+    age = now - ts
+    if age > UNIVERSE_REFRESH_SECONDS:
+        return True
+    if universe_needs_expiry_roll(universe=uni, resolved_at=ts):
+        return True
+    if age > INCOMPLETE_UNIVERSE_RETRY_SECONDS and universe_missing_index_underlyings(uni):
+        return True
+    return False
 
 
 def get_feed_status() -> dict:
@@ -500,7 +540,7 @@ async def run_fo_candle_feed():
     while True:
         try:
             cache_age = time.time() - _universe_cache["resolved_at"]
-            if _universe_cache["value"] is None or cache_age > UNIVERSE_REFRESH_SECONDS or universe_needs_expiry_roll():
+            if _universe_cache["value"] is None or cache_age > UNIVERSE_REFRESH_SECONDS or universe_refresh_due():
                 # asyncio.to_thread (2026-09-16, live Render restart-loop
                 # fix): resolve_fo_universe() does a blocking search_scrip
                 # call per underlying/expiry-class across all ~213
@@ -600,9 +640,19 @@ async def run_fo_candle_feed():
                 _feed_status["connected"] = True
                 _feed_status["started_at_utc"] = time.time()
                 _feed_status["last_error"] = None
+                _feed_status["connect_count"] += 1
                 backoff = RESTART_BACKOFF_MIN_SECONDS
+                refresh_now = False
                 async for message in ws:
+                    if universe_refresh_due():
+                        # B-865: reconnect with a freshly resolved universe
+                        # (ATM drift / expiry roll) instead of streaming a
+                        # stale one for the socket's whole life.
+                        refresh_now = True
+                        break
                     if isinstance(message, SFeedScrip):
+                        _feed_status["ticks_received"] += 1
+                        _feed_status["last_tick_ts"] = time.time()
                         key = (message.exchange_segment, str(message.instrument_token))
                         descriptor = universe.get(key)
                         if descriptor is None:
@@ -612,9 +662,19 @@ async def run_fo_candle_feed():
                                 str(message.instrument_token), message.last_traded_price,
                                 time.time(), descriptor, conn=conn,
                             )
+                # B-865: the stream ended without raising (SDK gave up
+                # reconnecting, or we broke out for a refresh). The old code
+                # left connected=True here, a stale "healthy" reading.
+                _feed_status["connected"] = False
+                if refresh_now:
+                    _feed_status["refresh_reconnects"] += 1
+                    _feed_status["last_disconnect_reason"] = "universe_refresh_due"
+                    continue
+                _feed_status["last_disconnect_reason"] = "stream_ended_without_error"
         except Exception as e:
             _feed_status["connected"] = False
-            _feed_status["last_error"] = str(e)
+            _feed_status["last_error"] = str(e) or type(e).__name__
+            _feed_status["last_disconnect_reason"] = f"exception:{type(e).__name__}"
 
         await asyncio.sleep(backoff)
         backoff = min(backoff * 2, RESTART_BACKOFF_MAX_SECONDS)

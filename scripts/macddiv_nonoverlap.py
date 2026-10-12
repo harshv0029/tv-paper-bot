@@ -29,9 +29,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
 import macd_divergence_research as md  # noqa: E402
 
-INTERVAL = "1h"
+INTERVAL = "1h"  # default; --interval overrides (1d/1h/15m/5m)
+PERIODS = {"1d": "5y", "1h": "730d", "15m": "60d", "5m": "60d"}  # yfinance limits
 # (variant, pivot half-width w, atr multiple)
 CELLS = (("line_any", 5, 3.0), ("line_any", 5, 2.0), ("line_any", 5, 1.5), ("hist_any", 5, 3.0))
+# "sweep": full IS/OOS grid, variants x pivot width x ATR (every cell its own tag, both directions)
+SWEEP_CELLS = tuple((v, w, a) for v in ("line_any", "hist_any", "hist_zero") for w in (3, 5) for a in (1.5, 2.0, 3.0))
+CELL_SETS = {"orig": CELLS, "sweep": SWEEP_CELLS}
 
 
 def nonovl_tag(old):
@@ -100,21 +104,26 @@ def cell_trades(df, sig, direction, atr_mult):
     return fifo_filter(raw), len(raw)
 
 
-def run_symbol(df, aggs, raw_counts=None, split_date="", split_frac=0.6):
+def run_symbol(df, aggs, raw_counts=None, split_date="", split_frac=0.6, interval=None, cells=None,
+               directions=("long",)):
+    interval = interval or INTERVAL
+    cells = CELLS if cells is None else cells
     specs = {(v, p["w"]): f for v, p, f in md.variant_specs()}
-    for variant, w, am in CELLS:
+    ts = split_ts(df.index, split_date, split_frac)
+    for variant, w, am in cells:
         sig = specs[(variant, w)](df)
-        if not sig["long"].any():
-            continue
-        kept, nraw = cell_trades(df, sig, "long", am)
-        base_tag = er.make_tag(md.FAMILY, variant, "long", INTERVAL, {"w": w, "atr": am})
-        tag = nonovl_tag(base_tag)
-        er.add_trades(aggs.setdefault(tag, er.new_agg()), kept)
-        ins, oos = segment_trades(kept, df.index, split_ts(df.index, split_date, split_frac))
-        er.add_trades(aggs.setdefault(seg_tag(base_tag, "is"), er.new_agg()), ins)
-        er.add_trades(aggs.setdefault(seg_tag(base_tag, "oos"), er.new_agg()), oos)
-        if raw_counts is not None:
-            raw_counts[tag] = raw_counts.get(tag, 0) + nraw
+        for direction in directions:
+            if not sig[direction].any():
+                continue
+            kept, nraw = cell_trades(df, sig, direction, am)
+            base_tag = er.make_tag(md.FAMILY, variant, direction, interval, {"w": w, "atr": am})
+            tag = nonovl_tag(base_tag)
+            er.add_trades(aggs.setdefault(tag, er.new_agg()), kept)
+            ins, oos = segment_trades(kept, df.index, ts)
+            er.add_trades(aggs.setdefault(seg_tag(base_tag, "is"), er.new_agg()), ins)
+            er.add_trades(aggs.setdefault(seg_tag(base_tag, "oos"), er.new_agg()), oos)
+            if raw_counts is not None:
+                raw_counts[tag] = raw_counts.get(tag, 0) + nraw
 
 
 def _main_shard(args):
@@ -122,20 +131,23 @@ def _main_shard(args):
     import main as m
     syms = sorted(set(m._load_nse_universe_from_file()))
     syms = [s for k, s in enumerate(syms) if k % args.nshards == args.shard]
+    interval = args.interval
+    cells = CELL_SETS[args.cells]
+    directions = tuple(d for d in args.directions.split(",") if d)
     aggs, raw_counts, fetched = {}, {}, 0
     for s in syms:
         try:
-            raw = m.fetch_ohlc(s, args.period, INTERVAL)
+            raw = m.fetch_ohlc(s, args.period or PERIODS[interval], interval)
             if raw is None or len(raw) < 120:
                 continue
-            run_symbol(er.prep(raw), aggs, raw_counts, args.split_date, args.split_frac)
+            run_symbol(er.prep(raw), aggs, raw_counts, args.split_date, args.split_frac, interval, cells, directions)
             fetched += 1
         except Exception as ex:
             print("ERROR", s, ex, file=sys.stderr)
-    print(f"shard {args.shard} {INTERVAL}: fetched {fetched}/{len(syms)}, tags {len(aggs)}")
+    print(f"shard {args.shard} {interval}: fetched {fetched}/{len(syms)}, tags {len(aggs)}")
     os.makedirs(args.out, exist_ok=True)
-    with open(os.path.join(args.out, f"macddiv_nonovl_{args.shard}.json"), "w") as f:
-        json.dump({"interval": INTERVAL, "fetched": fetched, "universe": len(syms),
+    with open(os.path.join(args.out, f"macddiv_nonovl_{interval}_{args.shard}.json"), "w") as f:
+        json.dump({"interval": interval, "cells": args.cells, "directions": list(directions), "fetched": fetched, "universe": len(syms),
                    "raw_signal_trades": raw_counts, "split_date": args.split_date,
                    "split_frac": args.split_frac, "aggs": aggs}, f)
 
@@ -158,7 +170,10 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--nshards", type=int, default=8)
-    ap.add_argument("--period", default=md.PERIODS[INTERVAL])
+    ap.add_argument("--interval", default=INTERVAL, choices=sorted(PERIODS))
+    ap.add_argument("--cells", default="orig", choices=sorted(CELL_SETS))
+    ap.add_argument("--directions", default="long", help="comma list: long,short")
+    ap.add_argument("--period", default="", help="blank = yfinance max for the interval")
     ap.add_argument("--split_date", default="", help="IS/OOS boundary (entry date < it = IS); blank = split_frac")
     ap.add_argument("--split_frac", type=float, default=0.6)
     ap.add_argument("--out", default="out")
