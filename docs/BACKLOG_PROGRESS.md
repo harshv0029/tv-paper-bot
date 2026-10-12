@@ -532,7 +532,7 @@ Total rows: 844 | closed: 369 | not closed: 475
 | B-841 | P2 | OPEN | Reproducibility of huge-n Douglas/Elder entry cells: one extra fetched symbol moved short brk20_limit_entry... | needs |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | owed, needs, follow-up |
 | B-862 | P2 | PARTIAL | Elder trend/regime/MA-system/context run 38209280422 (2026-10-12 IST, 1d, cost 0.008, universe 8064, 7053 f... | owed, follow-up |
-| B-869 | P2 | DONE-REGISTERED | 2026-10-12 IST: index-option trigger run 38218867644 collected (360 cells, 5 candle sizes, raw JSON in docs... | owed, needs |
+| B-869 | P2 | DONE-REGISTERED | 2026-10-12 IST: index-option trigger run 38218867644 collected (360 cells, 5 candle sizes, raw JSON in docs... | needs |
 | B-443 | P3 | PARKED-REASONED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | needs |
 | B-444 | P3 | PARKED-REASONED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | needs |
 | B-445 | P3 | PARKED-REASONED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | needs |

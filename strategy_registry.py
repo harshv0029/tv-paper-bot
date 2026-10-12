@@ -2801,6 +2801,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_md.build())
         import strategy_registry_macddivnonovl as _mn
         REGISTRY.extend(_mn.build())
+        import strategy_registry_macddivoos as _mo
+        REGISTRY.extend(_mo.build())
         import strategy_registry_island as _is
         REGISTRY.extend(_is.build())
         import strategy_registry_oneilcup as _oc
