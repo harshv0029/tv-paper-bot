@@ -14540,6 +14540,78 @@ def fo_strike_monitoring(symbol: str | None = None):
             "strikes": rows}
 
 
+@app.get("/fo-entry-diagnosis")
+def fo_entry_diagnosis():
+    """Why is no index call/put being bought? Read-only, no token, NO account data
+    (no balances/capital/order ids). Per underlying: switch states, entry window,
+    viable setup tags, per-status strike counts from the in-memory monitor, held
+    sides, today's skipped_* reason counts from real_fo_trades, and one
+    'primary_blocker' picked by priority."""
+    t = ist_now()
+    today = t.strftime("%Y-%m-%d")
+    in_window = t.weekday() < 5 and (9, 20) <= (t.hour, t.minute) < (15, 0)
+    real_fo = bool(is_real_fo_trading_enabled())
+    master = True
+    skipped: dict = {}
+    held_by_u: dict = {}
+    try:
+        with closing(get_db()) as conn:
+            master = _switch_allows_entries(conn)
+            for r in conn.execute(
+                    "SELECT status, COUNT(*) AS c FROM real_fo_trades WHERE day = ? AND side = 'B' "
+                    "AND status LIKE 'skipped_%' GROUP BY status", (today,)).fetchall():
+                skipped[r["status"]] = int(r["c"])
+            for r in conn.execute("SELECT kotak_trading_symbol, underlying FROM real_fo_positions").fetchall():
+                side = "call" if (r["kotak_trading_symbol"] or "").upper().endswith("CE") else "put"
+                held_by_u.setdefault(r["underlying"], set()).add(side)
+    except Exception:
+        pass
+    tags = [tg for tg, _ in _fo_strike_setup_signals()]
+    viable_tags = [tg for tg in tags if _is_strategy_viable_for_real_money(tg, check_switch=False)]
+    monitor_u: dict = {}
+    for r in _fo_strike_monitor.values():
+        c = monitor_u.setdefault(r.get("underlying"), {})
+        st = r.get("status") or "unscanned"
+        key = ("setup_fired_" + st.split("_not_traded_")[-1] if "_not_traded_" in st else st)
+        if st.startswith("setup_fired_") and "_not_traded_" not in st:
+            key = "setup_fired_other"
+        if st.startswith("bought_"):
+            key = "bought"
+        c[key] = c.get(key, 0) + 1
+    meta = dict(_fo_strike_monitor_meta)
+    unders = {}
+    for u in _FO_STRIKE_SCAN_UNDERLYINGS:
+        counts = monitor_u.get(u, {})
+        total = sum(counts.values())
+        if not master:
+            blocker = "master_trading_switch_off"
+        elif not real_fo:
+            blocker = "real_fo_switch_off"
+        elif not in_window:
+            blocker = "outside_entry_window_0920_1500_ist"
+        elif not viable_tags:
+            blocker = "no_viable_strike_setup_tag"
+        elif total == 0:
+            blocker = "no_strikes_in_candle_feed"
+        elif counts.get("warming_up_need_30_candles", 0) + counts.get("no_fresh_candle", 0) + counts.get("expired_series", 0) >= total:
+            blocker = "all_strikes_warming_up_or_stale_candles"
+        elif len(held_by_u.get(u, ())) >= 2:
+            blocker = "call_and_put_already_held"
+        elif sum(v for k, v in counts.items() if k.startswith("setup_fired") or k == "bought") == 0:
+            blocker = "no_setup_fired_on_monitored_strikes"
+        elif skipped:
+            blocker = "setup_fired_but_buy_skipped_see_skipped_reasons"
+        else:
+            blocker = "none_detected"
+        unders[u] = {"strikes_by_status": counts, "held_sides": sorted(held_by_u.get(u, ())),
+                     "primary_blocker": blocker}
+    return {"as_of_ist": t.strftime("%Y-%m-%d %H:%M:%S"), "real_fo_switch_on": real_fo,
+            "master_trading_switch_on": master, "entry_window_open_ist_0920_1500": in_window,
+            "viable_strike_setup_tags": viable_tags, "setup_tags_checked": tags,
+            "last_scan_ts": meta.get("last_scan_ts"), "scans_today": meta.get("scans_today"),
+            "skipped_reasons_today": skipped, "underlyings": unders}
+
+
 def _maybe_sync_real_fo_option_stop_losses(conn):
     """Scheduler-tick pass (every ~30s): trails/heals the SL of every open real
     single-strike option leg. Covers the 5-minute-backcheck requirement
@@ -16720,10 +16792,13 @@ def hydrate_runtime_settings_from_external(conn) -> int:
 #   - Safety: a table is never mirrored until its restore has reached Upstash
 #     once, so a transient startup outage can't overwrite a good remote copy
 #     with a freshly-wiped empty one.
-#   - Deliberately skipped: fo_chain_snapshot / fo_option_candles (re-fetchable
-#     market-data caches) and real_protection_snapshot (must be recomputed
+#   - Deliberately skipped: fo_chain_snapshot (re-fetchable market-data cache)
+#     and real_protection_snapshot (must be recomputed
 #     fresh; a restored "all clear" would be exactly the stale silence the
 #     backcheck rule forbids).
+#   - fo_option_candles is NOT re-fetchable (Kotak serves no option history),
+#     so it has its own per-IST-day Upstash journal: fo_candle_journal.py
+#     (B-860), wired below via hydrate_/sync_fo_option_candles_external.
 #   - Best-effort and silent like every other _external helper: never breaks
 #     trading; no-ops if the Upstash env vars are unset.
 _GENERIC_MIRROR_TABLES = (
@@ -16848,6 +16923,35 @@ def sync_generic_tables_external(only=None) -> int:
         except Exception as e:
             print(f"[table_mirror] sync {table} failed (non-fatal): {e}")
     return pushed
+
+
+def hydrate_fo_option_candles_from_external() -> int:
+    """Restore recent days of fo_option_candles from Upstash (B-860)."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return 0
+    try:
+        import fo_candle_journal
+        with closing(get_db()) as conn:
+            n = fo_candle_journal.restore_from_remote(conn, _upstash_get)
+        if n:
+            print(f"[fo_candle_journal] restored {n} option candle(s) from Upstash")
+        return n
+    except Exception as e:
+        print(f"[fo_candle_journal] restore failed (non-fatal): {e}")
+        return 0
+
+
+def sync_fo_option_candles_external() -> int:
+    """Push changed days of fo_option_candles to Upstash (B-860)."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return 0
+    try:
+        import fo_candle_journal
+        with closing(get_db()) as conn:
+            return fo_candle_journal.sync_to_remote(conn, _upstash_get, _upstash_set)
+    except Exception as e:
+        print(f"[fo_candle_journal] sync failed (non-fatal): {e}")
+        return 0
 
 
 def _live_entry_scan_batch_size_for_display() -> int:
@@ -20045,6 +20149,10 @@ async def _scheduler_tick():
         await asyncio.to_thread(sync_generic_tables_external)
     except Exception as e:
         print(f"[table_mirror] tick sync failed (non-fatal): {e}")
+    try:
+        await asyncio.to_thread(sync_fo_option_candles_external)
+    except Exception as e:
+        print(f"[fo_candle_journal] tick sync failed (non-fatal): {e}")
     if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0:
         print(f"[memory] tick {_scheduler_tick_count}: rss_mb={_process_rss_mb()}, "
               f"data_cache_entries={len(_DATA_CACHE)}, watchlist_size={len(WATCHLIST)}")
@@ -20199,6 +20307,11 @@ async def _start_scheduler():
                                timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
     except Exception as e:
         print(f"[table_mirror] startup hydrate skipped (non-fatal, retried per tick): {e}")
+    try:
+        await asyncio.wait_for(asyncio.to_thread(hydrate_fo_option_candles_from_external),
+                               timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
+    except Exception as e:
+        print(f"[fo_candle_journal] startup restore skipped (non-fatal): {e}")
     reconcile_open_positions_from_journal()
     reconcile_trading_control_from_journal()
     reconcile_real_trading_control_from_journal()
