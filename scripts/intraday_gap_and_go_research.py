@@ -6,7 +6,7 @@ long AND short mirror (2026-10-06 bidirectional rule), full-universe sharding (2
 (B-841), bad-bar guard + trimmed PFnet + top-5 trades (B-864 lesson: one glitch trade must not decide a cell).
 Research only, nothing wired. Every cell is its OWN tag and never the swing tag (gap_and_go__swing__long__1d__*):
 
-    gap_and_go_intraday__gap_hold__<long|short>__<5m|15m>__atr<2d5>_tr2d0_win30__v1
+    gap_and_go_intraday__gap_hold__<long|short>__<5m|15m>__atr<2d5>_tr2d0_win30__v2
 
 Params: atr = stop ATR multiple, tr = target R multiple (2.0, a-priori), win = entry window in minutes (30).
 Bar-count constants (ATR 14, volume lookback 20 bars) change meaning with the interval; the entry window is held
@@ -77,7 +77,7 @@ def _fmt(x):
 
 def make_tag(direction, interval, atr_mult):
     return (f"gap_and_go_intraday__gap_hold__{direction}__{interval}__"
-            f"atr{_fmt(atr_mult)}_tr{_fmt(TARGET_R_MULT)}_win{ENTRY_WINDOW_MINUTES}__v1")
+            f"atr{_fmt(atr_mult)}_tr{_fmt(TARGET_R_MULT)}_win{ENTRY_WINDOW_MINUTES}__v2")
 
 
 def prep(df):

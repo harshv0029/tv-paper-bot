@@ -211,7 +211,7 @@ def test_intraday_gap_and_go_glitch_day_skipped_and_flat_by_close(monkeypatch):
 
 def test_intraday_gap_and_go_tags_follow_grammar_and_merge(tmp_path, monkeypatch):
     t = gg.make_tag("short", "15m", 2.5)
-    assert t == "gap_and_go_intraday__gap_hold__short__15m__atr2d5_tr2d0_win30__v1"
+    assert t == "gap_and_go_intraday__gap_hold__short__15m__atr2d5_tr2d0_win30__v2"
     assert re.fullmatch(r"[a-z0-9_]+", t) and not t.startswith("gap_and_go__swing")
     monkeypatch.setattr(gg, "m", _fake_gg_main())
     monkeypatch.setattr(gg.m, "_load_nse_universe_from_file", lambda: ["A.NS", "B.NS"], raising=False)
