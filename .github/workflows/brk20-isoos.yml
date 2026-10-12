@@ -1,0 +1,107 @@
+name: brk20_min_rr IS/OOS split (B-798)
+
+# Backlog B-798. In-sample / out-of-sample split of the SAME 72 brk20_min_rr cells as brk20-min-rr-main-replay.yml
+# (same planner scripts/brk20_plan.py, same real main.py functions, full universe, ATR stop on every trade).
+# Each trade is bucketed by ENTRY date against split_date (or split_frac of the window). Output
+# out/brk20_isoos_all.json: IS and OOS metrics per tag (n, win %, pfnet, pfgross, avg held BARS, exit reasons)
+# plus flags derived at read time vs PFNET_LIVE_FLOOR. A filter/overlay claim needs its OOS half to hold.
+# Bar-count constants are BARS of the interval. Not wired live. Big matrix: dispatch only when no gate or
+# safety run is queued (one running + one queued).
+on:
+  workflow_dispatch:
+    inputs:
+      intervals:
+        description: "Comma list of candle sizes (1d,1h,15m,5m)"
+        default: "1d,1h,15m"
+      directions:
+        description: "long,short (short = the mirror, registered as its own tag)"
+        default: "long,short"
+      atrs:
+        description: "ATR stop multiples (comma list)"
+        default: "3,4"
+      rrs:
+        description: "Minimum reward:risk values (comma list)"
+        default: "3,3.5,4"
+      bes:
+        description: "Breakeven-at-R values; 'none' = no ratchet (comma list, e.g. none,0.5,1,1.5,2)"
+        default: "none,1"
+      split_date:
+        description: "Entry-date cutoff YYYY-MM-DD (blank = derive from split_frac)"
+        default: ""
+      split_frac:
+        description: "In-sample fraction of the window when split_date is blank"
+        default: "0.6"
+      nshards:
+        description: "Universe shards per (interval, direction)"
+        default: "6"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - id: p
+        env:
+          INTERVALS: ${{ inputs.intervals }}
+          DIRECTIONS: ${{ inputs.directions }}
+          ATRS: ${{ inputs.atrs }}
+          RRS: ${{ inputs.rrs }}
+          BES: ${{ inputs.bes }}
+          NSHARDS: ${{ inputs.nshards }}
+        run: echo "matrix=$(python3 scripts/brk20_plan.py)" >> "$GITHUB_OUTPUT"
+
+  replay:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay (real main.py functions)
+        env:
+          INTERVAL: ${{ matrix.interval }}
+          DIRECTION: ${{ matrix.direction }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: ${{ matrix.nshards }}
+          CELLS: ${{ matrix.cells }}
+          SPLIT_DATE: ${{ inputs.split_date }}
+          SPLIT_FRAC: ${{ inputs.split_frac }}
+        run: python3 scripts/brk20_isoos.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brk20isoos-${{ matrix.interval }}-${{ matrix.direction }}-s${{ matrix.shard }}
+          path: out/
+
+  aggregate:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q numpy pandas
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          pattern: brk20isoos-*
+          merge-multiple: true
+      - name: Merge shards (exact, from raw sums)
+        run: python3 scripts/brk20_isoos.py merge out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brk20-isoos-all
+          path: out/brk20_isoos_all.json

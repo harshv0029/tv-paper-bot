@@ -481,3 +481,163 @@ Profit-booking / exit takeaway: when capacity or margin binds, close the worst l
 - Fit: main.py has no kalman band code, so wiring needs a verbatim port, a replay through real functions, an ATR stop on every entry and MIS costs; none started.
 - Reuse: confirm the live code exists before calling a cell wiring-ready.
 - Profit-booking / exit takeaway: the forced 15:15 flatten removed most cells, so overnight carry was part of the edge; a same-day exit rule must be in the backtest before the numbers are trusted.
+
+## Chan 4h cell and marked-ledger mark paths (B-811, B-743, 2026-10-12 IST)
+- Mechanism: B-811 fetches 1h and resamples to session 4h bars (09:15-13:15, 13:15-close) so every Chan family gets a 4h cell; B-743 makes the collect stage store each trade's daily close path so a dated ledger can mark open positions to market, apply Vince's margin-call exit and close the worst loser first.
+- Fit: bar-count constants (lookbacks, holds) mean 4h bars, about 2 per NSE session, so cells are not comparable to 1h by number alone; the ledger needs a stop per trade (refused otherwise), matching the no-trade-without-SL rule. Collect marks are bar closes and entry is the collect row's entry close, so results are approximate.
+- Result: harness and tests only, nothing run yet; no PFnet to report.
+- Reuse: before assuming a harness lacks a candle size, grep its sibling (chan_ext_research.py already had 4h); keep new output flags default-off so old artifacts stay byte-identical.
+- Profit-booking / exit takeaway: closing the worst mark-to-market loser first, and never topping up a margin call, frees capital from losers rather than winners; judge it by net profit per bar held once the run exists.
+## Subagent s08 status pass (B-791/B-775/B-804, 2026-10-12 IST)
+- Mechanism: B-791 artifact (run 38147956271) is not in data/run-artifacts, so the Minervini exit breakdown stays unread; B-775 has 154 viable tags with hold<=5d but SL<=2% is unmeasurable (0 stop-% values); B-804 gross is now present on 770 of 771 viable rows.
+- Fit: counts derived from strategy_registry at read time; nothing guessed or stored as a flag.
+- Reuse: re-count the registry before trusting a backlog figure; it had gone stale (371 vs 1).
+- Profit-booking / exit takeaway: no new exit lesson; the Minervini wider-trail question still needs its exit-reason shares before any trail change.
+## Wiring specs: flatten, research-only labelling, Kotak audit (B-792c/B-779/B-369, 2026-10-12 IST)
+- Mechanism: three spec docs (INTRADAY_FLATTEN_WIRING_SPEC, VIABLE_TABLE_RESEARCH_ONLY_SPEC, KOTAK_AUDIT_CHECKLIST_MON); no code changed.
+- Fit: a resting SL cannot cover the 15:15 IST exchange cancel, so an intraday cell must be flattened by the bot's own market exit before 15:15 with a stop from entry; wiring is blocked first by the missing main.py port and replay.
+- Reuse: the viable table already shows Wired/Not wired (B-780); label research-only rows as unable to trade so a high PFnet in the list is not read as a live edge.
+- Profit-booking / exit takeaway: flatten at 15:10-15:14 with a retry ladder, never leave an intraday position to the next 09:15 protect pass; compare each day's Kotak realised P&L with the tag's registry PFnet.
+## O'Neil crosscheck and universe audit (B-787/B-776, 2026-10-12 IST)
+- Mechanism: audit of the O'Neil replay (run 38149046190) against the research code: universe size and the 341 crosscheck diffs.
+- Result: universe confirmed. docs/nse_universe.json has 2688 symbols; replay loaded 1955 and the research rerun (38183170721) loaded 1954 with weekly history. The 341 diffs could NOT be classified: run 38149046190 artifacts were never stored on data/run-artifacts, so B-787 stays open. Independent research rerun agrees with the replay (newhigh h26 PFnet 3.54, pivot chase10 h26 3.13, stops about -20%, timeouts carry profit).
+- Fit: swing only; no wiring before the diffs are classified and the stop-size sweep is replayed.
+- Surprises: the artifact needed for verification was not persisted, so verification was blocked a day later.
+- Reuse: persist every run's artifacts to data/run-artifacts in the same session as the result, and classify crosscheck diffs then.
+- Profit-booking / exit takeaway: both code paths show the edge in max-hold timeouts and ~-20% stop losses, so test stop width and sizing, not earlier profit targets.
+
+## Elder patterns re-run: measured-move target and tight S/R bounce (B-623, B-607, run 38190581834, 2026-10-12 IST)
+- Mechanism: re-run of the Elder pattern harness (1d, 0.8% cost, 9399 symbols with data) added 24 tags: trendline break with measured-move target (trendline__tl_break_mm, mult 0.5 and 1) and congestion-edge bounce with tight S/R stop (consol__edge_bounce_srtight), long and short. The other 228 tags matched run 38148955837 and were skipped as duplicates.
+- Result: all 24 new tags fail (PFnet 0.51-0.74, n 56k-207k); 0 of 252 tags in the run are newly viable. Best new: tl_break_mm short atr3 mult1 0.74, win 43%.
+- Fit: n far exceeds days x symbols, so signals overlap and counts are inflated; a rule firing this often has a weak filter. Only 1d was run; 15m/1h/4h are owed, plus a non-overlap re-run.
+- Reuse: a measured-move target caps winners at a fixed distance; test the uncapped rule exit beside it before adding fixed targets to trend-break rules.
+- Profit-booking / exit takeaway: the measured-move cells (PFnet 0.60-0.74) scored below the same family with rule exits (e.g. tl_break long atr3 0.886), so capping profit early did not beat letting winners run to the rule exit.
+## 2026-10-12 backfill: families with registry results but no earlier entry (docs-only, numbers copied from docs/STRATEGY_RESULTS_LOG.md and backlog rows; nothing re-run)
+
+Source of every figure below: the generated results log (cost model 0.8%, PFnet net, viable = PFnet >= 1.1 derived at read time). Counts of viable cells are counts of registered tags, not independent strategies (neighbouring ATR/hold cells share trades).
+
+### lunar (full moon / new moon rule), pattern lab, 2026-10-10 IST
+- Mechanism: calendar rule, buy at full moon and sell at new moon (long), mirrored as a short, swept over ATR stop and hold. Registry: 176 tags, 20 viable, all in one slice.
+- Fit: needs no data feed beyond candles, so costs and SL-on-every-trade are simple (an ATR stop exists as `atr2d5/atr4/atr6` cells; `atrnone` cells could not be wired without a stop).
+- Result: best `lunar__full_new__short__15m__atrnone_h25__v1` PFnet 1.682, win 57.2%, n=404 (n200 swing watchlist); stopped `atr6` 1.582. Long best `lunar__full_new__long__1h__atrnone_h30__v1` 1.180, n=6731, win 50.6%. Flatten re-runs (`..._fl1515__v2`) on the FULL universe, n=4965: 15m short `atrnone` 1.411, `atr6` 1.325, `atr4` 1.254, `atr2d5` 1.164; 5m short h75 `atrnone` 1.488 (n=4972), `atr6` 1.285, `atr4` 1.179. The same cells on n200 (n=404) read lower, 1.175 to 1.247.
+- Surprise and honest conflict: backlog B-112 records the 2026-10-10 decision "long 0.89, short 0.53, fails", yet the registry holds short cells at 1.2 to 1.7. Not resolved here; the registry numbers are the stored raw data and B-112's text is the older, shorter read. Treat the family as unreconciled, not as validated. A lunar effect has no stated mechanism, so a 404-trade n200 result is a data-mining risk; the full-universe n=4965 flatten figures (1.16 to 1.41) are the number to trust, and even those need the B-112 conflict explained before real money.
+- Reuse: for any calendar rule, require the full-universe flatten run and an every-bar baseline (the same lab shows long h20 baseline 1.04 to 1.16 = market beta, so long cells barely above 1.1 are beta).
+- Profit-booking / exit takeaway: stops did not rescue it, every stopped cell scored below its no-stop twin (1.68 vs 1.58 vs 1.46 vs 1.31 as the stop tightened); a tighter stop gave up edge, so any live use would run the widest stop that still keeps PFnet >= 1.1 and exit on the calendar date.
+
+### MCX single-symbol indicator cells: supertrend, donchian_breakout, sma_crossover, rsi_reversal, bollinger_mean_reversion (run 38068186964, 2026-10-10 IST)
+- Mechanism: textbook indicator rules (Supertrend flip, Donchian channel break, SMA crossover, RSI reversal, Bollinger mean reversion) run through `scripts/mcx_strategy_sweep.py` on yfinance GC/SI/CL/NG/HG proxies (US futures proxies for MCX gold, silver, crude, natural gas, copper), long and short, 5m/15m/1h/1d, ATR stop or none. Each family 120 tags, category futures.
+- Fit: MCX/Kotak is the target venue, but the data is a proxy and each cell is ONE symbol, so n is tiny: viable cells have n=14 to 33. The 0.8% cost model is applied. Cells with `atrnone` have no stop, which the 2026-10-11 no-trade-without-SL rule forbids; they only fit where the live path attaches the option premium trailing SL.
+- Results (best per family, all 1d): `rsi_reversal__si__long__1d__atrnone__v1` 4.098, win 76.5%, n=17 (11 of 120 viable); `bollinger_mean_reversion__si__long__1d__atrnone__v1` 3.659, win 70.6%, n=17 (13 viable), stopped `atr2d5` 2.043; `supertrend__gc__long__1d__atr2d5__v1` 2.286, win 50.0%, n=18 (10 viable); `donchian_breakout__ng__short__1d__atrnone__v1` 2.423, win 50.0%, n=16 (6 viable); `sma_crossover__gc__long__1d__atrnone__v1` 2.139, win 39.4%, n=33 (4 viable). Worst cells in each family are about 0.0.
+- Surprise: the high PFnet is a small-sample artefact as much as an edge (n 14 to 33), and the B-361 re-run showed only 8 of 27 no-stop cells above 1.0 stayed at or above 1.1 once ATR-stopped (see the MCX daily cells entry above). Short-horizon cells (5m/15m/1h) were mostly not viable.
+- Reuse: treat n < 100 PFnet as a lead, never a pass; wire an MCX cell only if every stopped variant of it clears the floor.
+- Profit-booking / exit takeaway: the best cells hold about 80 to 256 hours (days), and the no-stop twin beat the stopped one every time (Bollinger SI 3.66 vs 2.04), so the stop costs edge; accept that cost, because no trade without SL is not negotiable, and book profit at the signal-reversal exit rather than a fixed target.
+
+### donchian 8-week fade, pattern lab (2026-10-10 IST)
+- Mechanism: fade a Donchian channel extreme (an 8-week-extreme reversal), long and short, h20 hold, ATR stop sweep; 768 tags, 7 viable.
+- Fit: daily bars on the n200 swing watchlist and an ETF universe; swing engine, shares need an SL (the `atr6` variants carry one).
+- Result: `donchian__8wk_fade_etf__long__1d__atrnone_h20__v1` 1.391, win 51.6%, n=884; `donchian__8wk_fade__long__1d__atrnone_h20__v1` 1.367, win 53.2%, n=2469, avg hold 125 hours. Worst cell 0.169.
+- Surprise: both viable winners are long and sit near the market-beta band (the lab's every-bar long h20 baseline is 1.04 to 1.16), so the margin over beta is small.
+- Reuse: always compare to the every-bar baseline in the same lab before calling a long daily fade an edge.
+- Profit-booking / exit takeaway: it holds the full 20 bars; with only about 0.2 PFnet above beta, shortening the hold is the lever to test next, not widening the stop.
+
+### Point and Figure box2pct, pattern lab (B-12, 2026-10-10 IST)
+- Mechanism: 3-box-reversal double-top/double-bottom signals at 1% and 2% boxes (Murphy ch.11). 256 tags, 4 viable.
+- Fit: daily bars on n200 swing; a signal-only test, so count targets, 45-degree lines and P&F averages were not built (they refine exits/filters of a signal without edge).
+- Result: best `pnf__box2pct__long__1d__atrnone_h20__v1` 1.154, win 51.2%, n=3589; `atr6` 1.136, n=3591. Per B-12, long 1.13 to 1.15 and short 0.43 to 0.46. Worst 0.131.
+- Surprise: the long result equals the beta baseline (1.04 to 1.16); short is clearly negative.
+- Reuse: signals that only reproduce the long baseline are market beta, skip their exit refinements.
+- Profit-booking / exit takeaway: no exit tested rescued the short side; do not spend effort on P&F targets until the entry beats the baseline.
+
+### Candlestick pattern lab: tasuki gap and the other candle families, pattern lab (2026-10-10 IST)
+- Mechanism: Nison-style patterns run as entry rules with short holds on 1d/1h/15m. `tasuki` 124 tags, 4 viable. Other candle families mostly peaked in the baseline band: engulfing best 1.049, hammer 1.068, harami 1.096, piercing 0.997, soldiers 1.088; `kicking` (best 1.14), `dragonfly` (1.269) and `belt` (1.167) had 2 to 3 viable cells each.
+- Result: `tasuki__gap_etf__short__1d__atr6_h3__v1` PFnet 2.079, win 58.0%, n=81, avg hold 18.75 h (ETF universe; `atrnone` identical 2.079).
+- Surprise: the one standout is a short, ETF-only, n=81, too small to wire; the large-n pattern cells (thousands of trades) land near beta, about 1.0 to 1.1.
+- Reuse: candle patterns alone carry no robust edge here; use them only as filters on a higher-PFnet trigger.
+- Profit-booking / exit takeaway: the h3 hold (under one day) is the strength, fast turnover; if a pattern ever gets wired, keep the 3-bar exit.
+
+### Parabolic SAR and Box Theory (bidirectional 5m, runs 37408733557 and 37408735190, 2026-10-06)
+- Mechanism: Parabolic SAR reversal (acceleration init 0.01 to 0.02, max 0.1 to 0.2) and Box Theory zone-touch (tolerance 15/20, wick), both pooled long+short, 5m over 60 days, FULL universe (2642 of 2688 fetched), research-stage reimplementation.
+- Result: both fail hard. `box_theory__zone_touch__bidirectional__5m__tol15_wick1d5__v1` 0.138, win 10.6%, n=233145; best SAR cell 0.114, win 12.0%, n=488066. Worst 0.129 and 0.063. Daily PSAR flip on swing is better but still below the floor: `psar__flip__long__1d__atrnone_h20__v1` 1.092, n=6812.
+- Surprise: win rates of 10 to 12% at about 2.2 hours held means constant trading, and the 0.8% round-trip cost destroys it; huge n makes this a decisive, not noisy, fail.
+- Reuse: any 5m always-in-market flip system is dead on arrival under 0.8% costs; check trade count against cost before running.
+- Profit-booking / exit takeaway: exits are not the issue, trade frequency is; fewer, longer trades (psar 1d h20 at 1.09) get close but not past the floor.
+
+### Chan (Algorithmic Trading) sub-families: chan_shape, chan_alexander, chan_updays, chan_ema_regime and neighbours
+- Mechanism: variants extracted from Ernest Chan's book (see the Book 3 entry) and run in the Chan cells and extension runs: shape/gap/updays/EMA-regime filters and the Alexander filter.
+- Result (registry, best per family): `chan_shape` 3.656 (53 tags, 3 viable); `chan_alexander` 1.774 (61 tags, 6 viable); `chan_ema_regime` 1.676 (80, 4 viable); `chan_updays` 1.436 (52, 2 viable); `chan_gap` 1.445 (6 of 6 viable); `chan_xsmom` 1.396 (6 of 9 viable); `chan_zmr` 1.172 (81, 2 viable); `chan_mrgate` 0.631, `chan_gapmom` 0.177, `chan_lateday` 0.126, `chan_kl` 0.516 all fail.
+- Surprise and caveat: the Chan overlap verdict (B-805/B-807, entries above) found overlapping holding windows inflate these counts; the non-overlap re-run is the number to read. Families that pass are small slices of a large grid, so multiple-testing inflation applies.
+- Reuse: read the Chan non-overlap entry before trusting any `chan_*` PFnet above.
+- Profit-booking / exit takeaway: the failing late-day and gap-momentum cells show holding into the close or chasing the gap loses, so exit at the first sign of the signal reverting.
+
+### Trade management cells: trademgmt_entry and trademgmt_exit (Douglas/Elder, 2026-10-12)
+- Mechanism: 480 tags (228 entry, 252 exit) on the entry/exit management family; see the Douglas/Elder trade management entry above for the harness.
+- Result: `trademgmt_exit` best PFnet 2.468 with 6 of 252 tags viable; `trademgmt_entry` best 1.001 with 0 viable of 228.
+- Surprise: all the gain is in exits, none in entries; entry management alone does not clear the floor.
+- Reuse: tune exits, not entries, when a family's entry is already fixed.
+- Profit-booking / exit takeaway: only 6 of 252 exit variants cleared 1.1, so most exit styles are neutral to harmful.
+## brk20_min_rr IS/OOS harness and wiring spec (B-798, 2026-10-12 IST)
+- Mechanism: 20-bar close breakout with ATR stop and a minimum reward:risk room check; 34 of 72 pooled cells clear 1.1 (1d long/short, 1h long), best 1d short atr4_be1_rr4 4.21 n=115, holds ~12-14 bars.
+- Fit: the pooled run cannot separate a real edge from a fitted cell or a favourable regime; `scripts/brk20_isoos.py` buckets each trade by entry date (same real main.py fns, same cells) so a filter/overlay claim (breakeven ratchet, 1h long) must hold OOS with n>=30 before any wiring. Swing engine for long, short engine for short, ATR stop is the resting SL on every trade.
+- Surprised: be1 vs no-ratchet was identical in 5 of 36 groups, so a ratchet claim is weak until OOS says otherwise; 1h cells carry overnight, so the 15:15 flatten lesson (B-792c) may erase them.
+- Reuse: any new pooled result gets an IS/OOS rerun through the same harness before wiring; entry-date bucketing keeps IS+OOS exactly equal to the pooled sums.
+- Profit-booking / exit takeaway: the edge sits in winners held ~12-14 bars to the 4R-ish target, so the breakeven ratchet is only worth keeping if OOS PFnet beats the no-ratchet twin; do not tighten exits on pooled numbers alone.
+
+## macddiv 1h long, strict-FIFO non-overlap (B-812, run 38192366174, 2026-10-12 IST)
+- Mechanism: MACD line/histogram divergence (pivot half-width 5), long, 1h, ATR stop, 0.8% cost, one position per symbol per cell, 2483 symbols.
+- Result: line_any atr3_w5 PFnet 1.462 (n 58015, win 34.6%, avg hold 23.7 bars); atr2_w5 1.416; atr1d5_w5 1.400; hist_any atr3_w5 1.138. Tags `macddiv__<variant>__long__1h__<atr>_w5__nonovl__v2`. All four clear 1.1 and survive the overlap removal (raw 69777 -> 58015 for line_any).
+- Surprise: PFnet barely fell versus the overlapping run, so the edge is not an overlap artefact. Wider stops (atr3) win more: max_hold_timeout exits (about 57%) carry the profit, stop_loss exits (41%) lose.
+- Reuse: no IS/OOS split yet and no live 1h entry path; do both before any wiring. Short mirror already registered separately.
+- Profit-booking / exit takeaway: let trades run to the max-hold bar with a wide ATR3 stop; tighter stops raise the stop-out share and lower PFnet.
+
+## Island reversal validation, 1d (B-789, run 38192367677, 2026-10-12 IST)
+- Mechanism: island reversal (gap-isolated cluster) entries, 1d, ATR stop (1.5/2/3) plus rule exit, 30 cells = 5 filters (none, gap05, px20, turn1cr, liq_gap) x long/short; full universe (2351 symbols with data), 0.8% cost.
+- Result: LONG cells are strong: none PFnet 1.50-1.56 (n~8.9k), gap05 1.93-1.98 (n~3.2k, ex-top5 1.77-1.82), px20 1.31-1.36, turn1cr 1.27, liq_gap 0.93-0.96 (below floor). SHORT mirrors all fail: 0.64-0.76. 15 long cells viable by PFnet. Hold ~7-8 bars.
+- Surprise/caveat: by-year PFnet decays, gap05 long 6.1 (2021) to 1.2 (2025) to 0.23 (2026, n=528), so the headline is dominated by older years; overlapping signals not yet removed. Wider ATR3 stop cuts stop-outs from 27% to 7% and lifts PFnet, with rule_exit carrying profit.
+- Reuse: do not wire on the headline: need non-overlap FIFO and an IS/OOS split with the 2026 decay explained (regime or crowding) first. Shorts of the same pattern do not work, so the bidirectional rule is satisfied with a registered fail.
+- Profit-booking / exit takeaway: rule_exit (gap-fill style) books most profit within ~7 bars; a wide ATR3 stop avoids premature stop-outs without hurting that exit.
+## IS/OOS + strict-FIFO harness for island long and macddiv 1h long (B-815/B-814, 2026-10-12 IST)
+- Mechanism: no new signal. The island (gap-down then gap-up inside 8 bars) long cells >=1.1 and the macddiv 1h long cells are re-run with independent per-signal trades, a strict FIFO one-position-per-symbol filter, then bucketed by ENTRY date into in-sample / out-of-sample (split_date, else 60% of each symbol's time span).
+- Fit: a pooled PFnet cannot tell a real edge from a fitted cell or one regime; both lines are viable only on pooled numbers so far and neither has a live SL-attached path. Every trade keeps the ATR stop and the 0.8% cost.
+- Result: pending dispatch. Tags `<old minus __v1>__nonovl__v2`, `__segis__v2`/`__segoos__v2` (island) and `<old minus __v1>_nonovl_segis__v2`/`_segoos__v2` (macddiv); IS+OOS sums must equal the nonovl pooled cell exactly.
+- Surprise to check: er.simulate already enforces one position per symbol, so non-overlap should barely move PFnet; the real test is whether OOS PFnet stays >=1.1. Per-symbol fractional splits are approximate, an explicit split_date is the clean version.
+- Reuse: any pooled winner gets this nonovl + IS/OOS pass through the shared helpers (macddiv_nonoverlap.split_ts/segment_trades) before wiring.
+- Profit-booking / exit takeaway: unchanged until OOS is known; if OOS holds, the edge sits in long holds to max-hold with wide stops, so do not tighten exits.
+
+## O'Neil cup-and-handle / base family, 1d and 1w (oneil-research.yml run 38193479637, 2026-10-12 IST)
+- Mechanism: O'Neil base patterns (cup-with-handle, cup-no-handle, saucer, double bottom, flat base, pivot, new-high, RS screen) bought on breakout with chase 5/10%, RS filters (none/qual1/rs80), ATR stop 2/3, optional average-down (avg1) and trailing (trl1), max-hold 12-26 weeks (1w) or 20-60 days (1d), both directions, 0.8% cost, full universe. 1218 cells per timeframe, tags in naming grammar; raw TSV/JSON kept in docs/backtest_data/oneil_{1d,1w}_run_38193479637.*.
+- Fit: swing long engine, SL on every trade (ATR stop). Longer max-hold with avg-down at atr3 gives the highest PFnet: on 1d cup_handle h60 avg1 rs80/rsnone ~2.3-2.55 (n 220-290 rs80, n>1000 rsnone); on 1w cup_handle h26 avg1 ~3.4-3.56 (n 600-930, win ~59%, avg hold ~112 trading days). Small-n flatbase 1w cells (PFnet 6-8.7, n~31) are noise-prone, do not rank on them.
+- Result: many cells >=1.1 (see STRATEGY_RESULTS_LOG); every registered research-only (entry_fn=None). Stops lose about -8..-10% per trade while timeouts win +5..+16%, so the profit is carried by survivors held to max-hold, as in OB/VP and Minervini. 1w cells hold ~100+ trading days, far above the 30-day hold the viability rule covers, so they are judged separately.
+- Surprise: 84 of the 1d and 1w tags were already registered from the earlier partial run (kept as is, not overwritten). Overlapping signals inflate n; PFnet may differ under one-position-per-symbol FIFO.
+- Reuse: run strict non-overlap FIFO and IS/OOS (macddiv_nonoverlap helpers) on the top 1d cells with n>=250 before any wiring; prefer the 1d h60 cells (hold ~40 days) over 1w only after checking the hold-limit rule.
+- Profit-booking / exit takeaway: do not tighten exits or trail early; stop-outs lose 8-10% and the edge is the long-hold timeout winners, so let winners run to max-hold with a wide atr3 stop (avg-down helps) and judge shorter-turnover variants only on equal PFnet.
+
+## Portfolio overlay harness, pfovl__ cells (portfolio-overlay-research.yml run 38193834873, 2026-10-12 IST)
+- Mechanism: brk20 and dip signals with portfolio-level overlays (index-regime gates, risk-per-trade and position caps, loss-streak and pass-trade throttles, drawdown ladders) plus calendar slices (year/month/price bucket/turnover quartile/bootstrap DD) over the full universe plus ETFs, 1d, 0.8% cost, 792 rows.
+- Fit: overlays are portfolio-sizing ideas, not entries. The harness uses overlapping signals, and calendar-slice cells (year/month/passtrade) are data-mined, so a high cell like brk20_passtrade4 (PFnet 2.95) or dip_month m4 (1.83, n 13.8k) is a selection artefact until proven on strict non-overlap FIFO plus IS/OOS.
+- Result: 26 of 792 rows >=1.1, all calendar-slice type; the base brk20 cell is 0.82. 744 tags were already registered from run 38176399634 (same tags, universe 2351 vs 2348 fetched, near-identical numbers); only the 48 new tags (corr30/k10 cells, all PFnet < 0.1) were added, raw file kept in full. Registered research-only so the real-money gate stays closed.
+- Surprise: the shorts mirror the longs on month slices (dip_month short m2 1.75), a sign of slicing noise rather than a directional edge.
+- Reuse: never wire a slice cell; re-test only the top few with non-overlap FIFO and an IS/OOS split on a date cut.
+- Profit-booking / exit takeaway: overlays that throttle entries do not change the exit edge; base brk20 rule exits lose, so no profit-booking change follows from this run.
+## O'Neil extension grid, full 1d + 1w cell sets (run 38207070547, 2026-10-12 IST)
+- Mechanism: 564 cells (282 per timeframe, 141 long + 141 short each) across the O'Neil families (pivot breakout/exit, tightness combos, leaders first-high, tight area, pullback, RS-line new high, head-and-shoulders, base-on-base, abnormal strength, volume percentile, trendline, triple, shakeout, flag, handle-from-top), swept over ATR 2/3 stop, hold 8-130 bars. Raw TSV/JSON kept under `docs/backtest_data/oneil_ext_{1d,1w}_*`; 437 new tags registered research-only (127 were already registered from the run 38147513010 log slice, skipped, never overwritten) by `strategy_registry_oneilext2.py`.
+- Fit: swing-style, SL-attached ATR stop on every trade, so the no-trade-without-SL rule is satisfiable; the 0.8% cost is small against multi-week holds. The problem is evidence quality, not cost: cells re-enter on every qualifying bar with no strict-FIFO non-overlap and no IS/OOS split (n up to 50,615), so serially correlated trades inflate both n and PFnet.
+- Result: long 1d 68/141 cells >=1.1 (60 with n>=250, best pivot-breakout x tightness-range 2.955 n=355; leaders first-high 2.03 n=1598); long 1w 137/141 >=1.1 (best 3.13 n=498, leaders 2.77 n=2175, tightarea 2.74 n=3889). Short: 1d 0/141 >=1.1 (max 0.908); 1w only 2 (shakeout plus3 pm2 h8, 1.26/1.24 n=883, hold ~7 weeks). Sub-250-n cells (flag, handle-from-top; 20 cells >=1.1) are anecdotes.
+- Surprise: 137 of 141 weekly long cells clearing 1.1 is a regime/overlap signature (a rising-market sample), not 137 independent edges; the opposite direction fails almost everywhere, which fits a long-biased sample. Weekly holds average 10-22 weeks, far above 30 trading days for most cells, so the 30-day viability rule does not cover them anyway.
+- Reuse: before wiring any cell, rerun with strict-FIFO non-overlap plus IS/OOS split (macddiv_nonoverlap helpers), check across a down-market window, and prefer the shortest-hold cell that clears the floor (1d pivot x tightness and leaders h40 hold 25-32 days).
+- Profit-booking / exit takeaway: the good cells are max-hold survivors with wide ATR3 stops (trail/stop exits average -9 to -13%), so profit comes from letting winners run to the time exit; do not tighten stops or book early on these, and prefer the h40 1d variants over h130 for turnover.
+
+## Douglas/Elder trade-management re-run, 1d (douglas-trade-mgmt-research.yml run 38207068830, 2026-10-12 IST)
+- Mechanism: same 480 cells as run 38174269343 (entry variants limit/wk-gate/adx/mom/cooldown/chase, exit variants min reward:risk, scale-out, breakeven ratchet, time stop; long+short; ATR 1.5/2/3), 1d, 0.8% cost, 5376 listed / 4700 fetched (one more symbol fetched than before). Raw: docs/backtest_data/douglas_trademgmt_run_38207068830.json + _table.txt.
+- Fit: swing engine, ATR stop in every cell, so SL-on-every-trade holds. Only 6 of 480 cells clear 1.1, all `brk20_min_rr` with a minimum reward:risk target (n>=250 for all): short atr3_rr4 2.468 (n 275, win 43.6%, hold 12.4d), long atr3_rr4 1.761 (n 422), short atr3_rr3 1.707 (n 587), long atr3_rr3 1.38 (n 912), short atr2_rr4 1.308 (n 867), short atr3_rr2d5 1.22 (n 1086). Every other family (scale-out, ratchet, time stop, entry gates) sits at 0.8-1.05.
+- Result: all 480 tags were already registered from run 38174269343, so nothing new was added (never overwritten). Reproduction: no cell crossed the 1.1 line either way; mean |dPFnet| 0.046, max 0.236 (short limit-entry atr3_nb5 0.648 -> 0.412 on n 46449 -> 46467). Large moves come from huge-n overlapping-signal cells where one extra symbol shifts a few big trades; high-PFnet small-n cells reproduced within 0.03.
+- Surprise: the min_rr cells that look best have small n relative to universe (275-1517 trades from ~4700 symbols) because the minimum reward:risk filter discards most breakouts, and their profit still comes from rule_exit/timeouts with ~14% stop-loss share. Signals overlap per symbol, so n and PFnet are inflated versus one-position-per-symbol FIFO.
+- Reuse: before wiring any min_rr cell run strict non-overlap FIFO plus IS/OOS on the 6 cells (B-840); the short mirror (atr3_rr4) beating the long is a bidirectional finding to carry into the swing short path; scale-out (dip/brk20 scale_atr/scale_struct, ~0.93 vs 0.875 baseline) helps a little but stays below 1.1, and breakeven ratchets are neutral to negative (0.835-0.872 vs 0.852-0.875), so neither is worth wiring on its own.
+- Profit-booking / exit takeaway: a fixed minimum reward:risk target of 3-4R with a wide atr3 stop is the only profit-booking rule here that lifted PFnet above 1.1; partial scale-out lifted brk20 only from 0.875 to ~0.93 and breakeven ratchets did not help (0.835-0.872), so book at a 3-4R target rather than in pieces or by locking breakeven.
+
+## Elder MACD / directional system / gaps re-run, 1d (elder-macd-dirgap-research.yml run 38208431466, 2026-10-12 IST)
+- Mechanism: 120 cells across Elder's MACD cross/histogram tick/exhaustion/divergence, Directional System (+DI/-DI/ADX with adx-rising, dull-gate, overheat variants) and gap families (breakaway, continuation, exhaustion fade, common fade), long and short each, ATR 1.5/2/3 stops, 1d, 0.8% round-trip cost, 7059 symbols fetched summed over families. Re-run of 38177547622 (7049).
+- Fit: swing engine with an ATR stop in every cell, so SL-on-every-trade is satisfiable. The gap fades hold only 3.4-3.7 days (fast turnover, preferred by the turnover rule); MACD cells hold 6-25 days. The danger is evidence quality: macd and dirsys cells print n of 70k-250k from overlapping per-symbol signals.
+- Result: all 120 tags already registered (from 38177547622), so nothing new added and nothing overwritten. 6 of 120 cells clear 1.1, all long: gaps exhaust_fade atr3_nb5 1.252 (n 4412, win 34.8%), atr2_nb5 1.234, atr1d5_nb5 1.223; macd hist_exhaust atr3_zf1 1.157 (n 96207); gaps common_fade atr3_nb5 1.122 and atr2_nb5 1.10 (n 5425). Every short cell is below 1.0 (best gaps common_fade short 0.96). Reproduction: mean |dPFnet| 0.017, max 0.228, no cell crossed the line.
+- Surprise: the best gap-fade longs win only ~35% yet clear 1.1 because ~95% exit by rule_exit with a small fraction stopped; the short mirror of the same logic fails, which fits a rising-market sample rather than a symmetric edge. macd hist_exhaust long degrades with tighter ATR stops (stop_loss share 20% at atr3, 34% at atr2).
+- Reuse: before wiring any of the 6 cells run strict non-overlap FIFO plus IS/OOS and a down-market window (B-850, B-852); run the intraday candle sweep for macd and dirsys (owed); the best cell in every family is an ATR3 one.
+- Profit-booking / exit takeaway: the winning gap-fade cells book profit through the strategy's own rule exit after ~3.7 days with a wide ATR3 stop rarely hit (176 of 4412), so let the rule exit book the gain rather than tightening the stop, which cut PFnet 1.252 -> 1.223 at atr1.5.

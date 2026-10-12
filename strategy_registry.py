@@ -210,7 +210,7 @@ REGISTRY: list[StrategyDef] = [
         status=StrategyStatus.LIVE,
         entry_fn=None,  # lives in main.py.gap_and_go_entry_signal/_run_swing_scan - not duplicated here
         metrics=Metrics(
-            pfnet=1.65, pfgross=None, win_rate_pct=None, n_trades=142,
+            pfnet=1.65, pfgross=2.06, win_rate_pct=37.3, n_trades=142, cost_drag_pct=9.8, avg_held_hrs=32.9 * TRADING_HOURS_PER_DAY,
             universe="_SWING_VALIDATED_52 (original validated set)",
             run_ref="swing-gap-and-go-5y-research.yml",
         ),
@@ -2799,8 +2799,22 @@ def _extend_with_sweeps():
         REGISTRY.extend(_ch.build())
         import strategy_registry_macddiv as _md
         REGISTRY.extend(_md.build())
+        import strategy_registry_macddivnonovl as _mn
+        REGISTRY.extend(_mn.build())
+        import strategy_registry_island as _is
+        REGISTRY.extend(_is.build())
+        import strategy_registry_oneilcup as _oc
+        REGISTRY.extend(_oc.build())
+        import strategy_registry_douglasrerun as _dr
+        REGISTRY.extend(_dr.build())
+        import strategy_registry_eldermacd2 as _e2
+        REGISTRY.extend(_e2.build())
+        import strategy_registry_pfovl as _pv
+        REGISTRY.extend(_pv.build())
         import strategy_registry_brk20 as _bk
         REGISTRY.extend(_bk.build())
+        import strategy_registry_elderpat as _ep
+        REGISTRY.extend(_ep.build())
         import strategy_registry_flatten as _fl
         REGISTRY.extend(_fl.build())
         import strategy_registry_grossfill as _gf
@@ -2808,6 +2822,59 @@ def _extend_with_sweeps():
         REGISTRY.extend(_ef.build())
     except Exception:
         pass
+    try:
+        import strategy_registry_oneilext2 as _o2
+        REGISTRY.extend(_o2.build())
+    except Exception:
+        pass
 
 
 _extend_with_sweeps()
+
+
+# ---- Viable-strategy bucketing (read-time derived; B-815) -------------------
+PFNET_BUCKET_BANDS = ((1.1, 1.3, "1.1-1.3"), (1.3, 1.6, "1.3-1.6"), (1.6, 2.0, "1.6-2.0"), (2.0, None, "2.0+"))
+HOLD_DAY_BANDS = ((0, 1, "<=1d"), (1, 3, "1-3d"), (3, 7, "3-7d"), (7, 15, "7-15d"), (15, 30, "15-30d"), (30, None, ">30d"))
+HOLD_UNRECORDED = "hold not recorded"
+
+
+def _pfnet_band(pfnet: float) -> str:
+    for lo, hi, label in PFNET_BUCKET_BANDS:
+        if pfnet >= lo and (hi is None or pfnet < hi):
+            return label
+    return PFNET_BUCKET_BANDS[0][2]  # floor was lowered below 1.1: lump with the lowest band
+
+
+def _hold_band(avg_held_hrs: Optional[float]) -> str:
+    if avg_held_hrs is None:
+        return HOLD_UNRECORDED
+    days = avg_held_hrs / TRADING_HOURS_PER_DAY
+    for lo, hi, label in HOLD_DAY_BANDS:
+        if hi is None or days <= hi:
+            return label
+    return HOLD_DAY_BANDS[-1][2]
+
+
+def bucket_viable_strategies(registry=None, floor: float = PFNET_LIVE_FLOOR) -> dict:
+    """{category: {pfnet_band: {hold_band: [row,...]}}} for every strategy with
+    StrategyDef.is_viable(floor) is True. A strategy listed under several
+    categories is repeated in each category's section. Derived on every call
+    from the stored metrics - nothing is persisted."""
+    reg = REGISTRY if registry is None else registry
+    out: dict = {}
+    for cat in TradeCategory:
+        bands = {label: {h[2]: [] for h in HOLD_DAY_BANDS} | {HOLD_UNRECORDED: []} for _, _, label in PFNET_BUCKET_BANDS}
+        n = 0
+        for s in sorted((x for x in reg if cat in x.categories and x.is_viable(floor) is True),
+                        key=lambda x: -x.metrics.pfnet):
+            m = s.metrics
+            bands[_pfnet_band(m.pfnet)][_hold_band(m.avg_held_hrs)].append({
+                "name": s.name, "pfnet": m.pfnet, "win_rate_pct": m.win_rate_pct, "n_trades": m.n_trades,
+                "avg_hold_days": None if m.avg_held_hrs is None else round(m.avg_held_hrs / TRADING_HOURS_PER_DAY, 2),
+            })
+            n += 1
+        out[cat.value] = {"count": n, "pfnet_buckets": [
+            {"band": label, "count": sum(len(v) for v in bands[label].values()),
+             "hold_buckets": [{"band": h, "count": len(rows), "strategies": rows} for h, rows in bands[label].items() if rows]}
+            for _, _, label in PFNET_BUCKET_BANDS]}
+    return out

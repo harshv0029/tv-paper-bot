@@ -43,8 +43,8 @@ name: RSI-Overbought Short Fade Research (research)
 # best chance rather than catching genuine continuation moves).
 #
 # Universe: full NSE EQ-series (main._load_nse_universe_from_file(),
-# ~2,680 symbols) per the 2026-09-29 standing thumb rule. 40-shard matrix
-# (this account's observed concurrent-job ceiling).
+# ~2,680 symbols) per the 2026-09-29 standing thumb rule. 38-shard matrix
+# (+1 aggregate = 39 jobs, under the ~40-job matrix cap; was 40 shards = 41 jobs).
 #
 # Read-only research - writes nothing, touches no live state. This result,
 # whatever it shows, does NOT by itself authorize any new code path in
@@ -54,7 +54,7 @@ on:
   workflow_dispatch: {}
 
 env:
-  SHARD_COUNT: 40
+  SHARD_COUNT: 38
 
 jobs:
   replay:
@@ -63,7 +63,7 @@ jobs:
       fail-fast: false
       matrix:
         shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-                20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
+                20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37]
     steps:
       - uses: actions/checkout@v4
 

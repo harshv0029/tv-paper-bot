@@ -1,0 +1,122 @@
+symbols fetched (sum over families): 7059
+tag                                                                                              n   PFnet   win%  hold  exits
+gaps__exhaust_fade__long__1d__atr3_nb5__v1                                                    4412   1.252   34.8   3.7  {'data_end': 3, 'max_hold_timeout': 36, 'rule_exit': 4197, 'stop_loss': 176}
+gaps__exhaust_fade__long__1d__atr2_nb5__v1                                                    4412   1.234   34.6   3.7  {'data_end': 3, 'max_hold_timeout': 36, 'rule_exit': 3991, 'stop_loss': 382}
+gaps__exhaust_fade__long__1d__atr1d5_nb5__v1                                                  4412   1.223   34.3   3.7  {'data_end': 3, 'max_hold_timeout': 36, 'rule_exit': 3746, 'stop_loss': 627}
+macd__hist_exhaust__long__1d__atr3_zf1__v1                                                   96207   1.157   46.6  12.0  {'data_end': 1421, 'max_hold_timeout': 2224, 'rule_exit': 73275, 'stop_loss': 19287}
+gaps__common_fade__long__1d__atr3_nb5__v1                                                     5425   1.122   37.0   3.4  {'data_end': 5, 'max_hold_timeout': 15, 'rule_exit': 5309, 'stop_loss': 96}
+gaps__common_fade__long__1d__atr2_nb5__v1                                                     5425     1.1   36.9   3.4  {'data_end': 5, 'max_hold_timeout': 15, 'rule_exit': 5111, 'stop_loss': 294}
+gaps__common_fade__long__1d__atr1d5_nb5__v1                                                   5425   1.091   36.6   3.4  {'data_end': 5, 'max_hold_timeout': 15, 'rule_exit': 4845, 'stop_loss': 560}
+gaps__common_fade__long__1d__atr3_nb3__v1                                                     6872   1.088   37.9   3.5  {'data_end': 2, 'max_hold_timeout': 15, 'rule_exit': 6697, 'stop_loss': 158}
+gaps__common_fade__long__1d__atr2_nb3__v1                                                     6872    1.07   37.6   3.4  {'data_end': 2, 'max_hold_timeout': 15, 'rule_exit': 6420, 'stop_loss': 435}
+gaps__continuation__long__1d__atr3_vm1d5__v1                                                 10843   1.054   34.0  19.4  {'data_end': 58, 'max_hold_timeout': 4084, 'rule_exit': 3922, 'stop_loss': 2779}
+macd__hist_exhaust__long__1d__atr2_zf1__v1                                                  113241   1.054   42.4   9.8  {'data_end': 1343, 'max_hold_timeout': 976, 'rule_exit': 72731, 'stop_loss': 38191}
+gaps__common_fade__long__1d__atr3_nb4__v1                                                     6004   1.043   36.7   3.4  {'data_end': 3, 'max_hold_timeout': 17, 'rule_exit': 5854, 'stop_loss': 130}
+gaps__common_fade__long__1d__atr1d5_nb3__v1                                                   6872   1.038   37.3   3.4  {'data_end': 2, 'max_hold_timeout': 15, 'rule_exit': 5960, 'stop_loss': 895}
+gaps__continuation__long__1d__atr2_vm1d5__v1                                                 11285   1.031   29.1  16.3  {'data_end': 43, 'max_hold_timeout': 3434, 'rule_exit': 2464, 'stop_loss': 5344}
+gaps__common_fade__long__1d__atr2_nb4__v1                                                     6004   1.024   36.5   3.4  {'data_end': 3, 'max_hold_timeout': 16, 'rule_exit': 5651, 'stop_loss': 334}
+gaps__continuation__long__1d__atr1d5_vm1d5__v1                                               11643   1.007   24.4  13.5  {'data_end': 36, 'max_hold_timeout': 2864, 'rule_exit': 1623, 'stop_loss': 7120}
+gaps__breakaway__long__1d__atr3_vm1d5__v1                                                    21901   0.996   32.9  10.7  {'data_end': 65, 'max_hold_timeout': 1263, 'rule_exit': 17765, 'stop_loss': 2808}
+gaps__common_fade__long__1d__atr1d5_nb4__v1                                                   6004   0.995   36.1   3.4  {'data_end': 3, 'max_hold_timeout': 16, 'rule_exit': 5323, 'stop_loss': 662}
+gaps__breakaway__long__1d__atr3_vm2__v1                                                      17862   0.979   32.0  10.5  {'data_end': 53, 'max_hold_timeout': 1017, 'rule_exit': 14385, 'stop_loss': 2407}
+gaps__exhaust_fade__long__1d__atr3_nb3__v1                                                    5621   0.978   30.9   3.6  {'max_hold_timeout': 41, 'rule_exit': 5269, 'stop_loss': 311}
+gaps__exhaust_fade__long__1d__atr2_nb3__v1                                                    5622   0.962   30.4   3.6  {'max_hold_timeout': 39, 'rule_exit': 4937, 'stop_loss': 646}
+gaps__common_fade__short__1d__atr3_nb4__v1                                                    4160    0.96   38.8   3.9  {'data_end': 3, 'max_hold_timeout': 24, 'rule_exit': 3970, 'stop_loss': 163}
+gaps__breakaway__long__1d__atr2_vm1d5__v1                                                    22271   0.959   30.8   9.7  {'data_end': 59, 'max_hold_timeout': 1095, 'rule_exit': 14556, 'stop_loss': 6561}
+gaps__common_fade__short__1d__atr2_nb4__v1                                                    4160   0.954   38.5   3.9  {'data_end': 3, 'max_hold_timeout': 24, 'rule_exit': 3795, 'stop_loss': 338}
+gaps__breakaway__long__1d__atr3_vm2d5__v1                                                    14993   0.951   31.4  10.3  {'data_end': 45, 'max_hold_timeout': 849, 'rule_exit': 12000, 'stop_loss': 2099}
+gaps__common_fade__short__1d__atr1d5_nb4__v1                                                  4160   0.945   38.1   3.8  {'data_end': 3, 'max_hold_timeout': 23, 'rule_exit': 3568, 'stop_loss': 566}
+gaps__breakaway__long__1d__atr2_vm2__v1                                                      18102   0.944   29.9   9.5  {'data_end': 46, 'max_hold_timeout': 886, 'rule_exit': 11682, 'stop_loss': 5488}
+gaps__breakaway__long__1d__atr1d5_vm1d5__v1                                                  22634   0.941   28.2   8.7  {'data_end': 51, 'max_hold_timeout': 969, 'rule_exit': 11658, 'stop_loss': 9956}
+gaps__exhaust_fade__long__1d__atr1d5_nb3__v1                                                  5622   0.941   30.1   3.5  {'max_hold_timeout': 39, 'rule_exit': 4588, 'stop_loss': 995}
+gaps__exhaust_fade__long__1d__atr3_nb4__v1                                                    4974    0.94   29.2   3.6  {'data_end': 2, 'max_hold_timeout': 40, 'rule_exit': 4700, 'stop_loss': 232}
+gaps__breakaway__long__1d__atr1d5_vm2__v1                                                    18357    0.93   27.4   8.5  {'data_end': 41, 'max_hold_timeout': 786, 'rule_exit': 9283, 'stop_loss': 8247}
+gaps__common_fade__short__1d__atr3_nb5__v1                                                    3687   0.925   38.5   3.9  {'data_end': 7, 'max_hold_timeout': 23, 'rule_exit': 3531, 'stop_loss': 126}
+gaps__common_fade__short__1d__atr2_nb5__v1                                                    3687   0.921   38.4   3.9  {'data_end': 7, 'max_hold_timeout': 23, 'rule_exit': 3345, 'stop_loss': 312}
+gaps__common_fade__short__1d__atr1d5_nb5__v1                                                  3687   0.919   38.0   3.9  {'data_end': 6, 'max_hold_timeout': 23, 'rule_exit': 3147, 'stop_loss': 511}
+gaps__exhaust_fade__long__1d__atr2_nb4__v1                                                    4975   0.916   28.8   3.6  {'data_end': 2, 'max_hold_timeout': 39, 'rule_exit': 4448, 'stop_loss': 486}
+gaps__breakaway__long__1d__atr2_vm2d5__v1                                                    15184   0.915   29.2   9.3  {'data_end': 41, 'max_hold_timeout': 734, 'rule_exit': 9707, 'stop_loss': 4702}
+macd__hist_div__long__1d__atr3_w3__v1                                                        24585   0.909   39.6  24.8  {'data_end': 745, 'max_hold_timeout': 15130, 'stop_loss': 8710}
+gaps__breakaway__long__1d__atr1d5_vm2d5__v1                                                  15361   0.902   26.7   8.3  {'data_end': 36, 'max_hold_timeout': 658, 'rule_exit': 7665, 'stop_loss': 7002}
+macd__cross__long__1d__atr3_f19_g9_s39__v1                                                   72779   0.889   29.9  14.8  {'data_end': 565, 'max_hold_timeout': 8360, 'rule_exit': 56426, 'stop_loss': 7428}
+gaps__exhaust_fade__long__1d__atr1d5_nb4__v1                                                  4975   0.884   28.4   3.5  {'data_end': 2, 'max_hold_timeout': 38, 'rule_exit': 4120, 'stop_loss': 815}
+macd__cross__long__1d__atr3_f12_g9_s26__v1                                                   92548   0.867   30.2  12.6  {'data_end': 653, 'max_hold_timeout': 4317, 'rule_exit': 80417, 'stop_loss': 7161}
+macd__cross__long__1d__atr2_f19_g9_s39__v1                                                   73489   0.852   27.9  13.6  {'data_end': 479, 'max_hold_timeout': 7051, 'rule_exit': 44453, 'stop_loss': 21506}
+macd__cross__long__1d__atr2_f12_g9_s26__v1                                                   93810   0.835   28.8  11.7  {'data_end': 590, 'max_hold_timeout': 3565, 'rule_exit': 67109, 'stop_loss': 22546}
+macd__hist_div__long__1d__atr2_w3__v1                                                        26907   0.833   32.8  19.9  {'data_end': 630, 'max_hold_timeout': 11475, 'stop_loss': 14802}
+macd__cross__long__1d__atr3_f8_g9_s17__v1                                                   116608   0.832   30.5  10.4  {'data_end': 833, 'max_hold_timeout': 1551, 'rule_exit': 107205, 'stop_loss': 7019}
+macd__cross__long__1d__atr1d5_f19_g9_s39__v1                                                 74095   0.826   25.5  12.1  {'data_end': 387, 'max_hold_timeout': 5860, 'rule_exit': 33476, 'stop_loss': 34372}
+macd__hist_exhaust__long__1d__atr1d5_zf1__v1                                                128572   0.812   38.2   8.2  {'data_end': 1203, 'max_hold_timeout': 563, 'rule_exit': 70702, 'stop_loss': 56104}
+macd__cross__long__1d__atr1d5_f12_g9_s26__v1                                                 94698    0.81   26.6  10.6  {'data_end': 495, 'max_hold_timeout': 2877, 'rule_exit': 52895, 'stop_loss': 38431}
+macd__cross__long__1d__atr2_f8_g9_s17__v1                                                   118500   0.804   29.4   9.8  {'data_end': 767, 'max_hold_timeout': 1189, 'rule_exit': 94000, 'stop_loss': 22544}
+dirsys__cross_noadx__long__1d__atr3_gate0_oh0__v1                                           101521   0.799   23.3  10.6  {'data_end': 556, 'max_hold_timeout': 11357, 'rule_exit': 85471, 'stop_loss': 4137}
+macd__hist_div__long__1d__atr1d5_w3__v1                                                      28531   0.786   26.9  16.4  {'data_end': 519, 'max_hold_timeout': 9023, 'stop_loss': 18989}
+macd__cross__long__1d__atr1d5_f8_g9_s17__v1                                                 119997   0.782   27.6   8.9  {'data_end': 660, 'max_hold_timeout': 949, 'rule_exit': 76919, 'stop_loss': 41469}
+macd__hist_tick__long__1d__atr3_zf0__v1                                                     246993   0.782   32.6   5.7  {'data_end': 1341, 'max_hold_timeout': 55, 'rule_exit': 233309, 'stop_loss': 12288}
+dirsys__cross_noadx__long__1d__atr2_gate0_oh0__v1                                           101543   0.779   22.8  10.2  {'data_end': 513, 'max_hold_timeout': 10761, 'rule_exit': 75351, 'stop_loss': 14918}
+gaps__exhaust_fade__short__1d__atr3_nb4__v1                                                   7912   0.762   38.4   3.5  {'data_end': 5, 'max_hold_timeout': 45, 'rule_exit': 7558, 'stop_loss': 304}
+dirsys__cross_noadx__long__1d__atr1d5_gate0_oh0__v1                                         101604    0.76   21.7   9.7  {'data_end': 456, 'max_hold_timeout': 9949, 'rule_exit': 61913, 'stop_loss': 29286}
+macd__hist_tick__long__1d__atr2_zf0__v1                                                     257077   0.754   31.7   5.3  {'data_end': 1281, 'max_hold_timeout': 51, 'rule_exit': 224086, 'stop_loss': 31659}
+gaps__exhaust_fade__short__1d__atr2_nb4__v1                                                   7912    0.75   38.2   3.5  {'data_end': 5, 'max_hold_timeout': 45, 'rule_exit': 7165, 'stop_loss': 697}
+macd__hist_exhaust__short__1d__atr2_zf1__v1                                                 115559   0.748   48.0   9.2  {'data_end': 641, 'max_hold_timeout': 901, 'rule_exit': 72782, 'stop_loss': 41235}
+gaps__exhaust_fade__short__1d__atr1d5_nb4__v1                                                 7912   0.747   37.9   3.4  {'data_end': 5, 'max_hold_timeout': 45, 'rule_exit': 6680, 'stop_loss': 1182}
+macd__hist_exhaust__short__1d__atr1d5_zf1__v1                                               127732   0.742   43.8   8.0  {'data_end': 609, 'max_hold_timeout': 641, 'rule_exit': 70582, 'stop_loss': 55900}
+macd__hist_exhaust__short__1d__atr3_zf1__v1                                                 101113   0.741   52.0  11.0  {'data_end': 660, 'max_hold_timeout': 1505, 'rule_exit': 73873, 'stop_loss': 25075}
+gaps__exhaust_fade__short__1d__atr3_nb3__v1                                                   8781   0.735   37.7   3.5  {'data_end': 5, 'max_hold_timeout': 45, 'rule_exit': 8363, 'stop_loss': 368}
+gaps__exhaust_fade__short__1d__atr2_nb3__v1                                                   8781   0.734   37.7   3.4  {'data_end': 5, 'max_hold_timeout': 45, 'rule_exit': 7923, 'stop_loss': 808}
+macd__hist_tick__long__1d__atr1d5_zf0__v1                                                   266462   0.731   30.5   4.9  {'data_end': 1188, 'max_hold_timeout': 52, 'rule_exit': 208888, 'stop_loss': 56334}
+gaps__exhaust_fade__short__1d__atr1d5_nb3__v1                                                 8781   0.728   37.4   3.4  {'data_end': 5, 'max_hold_timeout': 45, 'rule_exit': 7312, 'stop_loss': 1419}
+dirsys__cross_adxrise__long__1d__atr3_gate0_oh0__v1                                          12261   0.713   25.9  15.3  {'data_end': 130, 'max_hold_timeout': 2306, 'rule_exit': 8464, 'stop_loss': 1361}
+macd__hist_tick__short__1d__atr3_zf0__v1                                                    251243     0.7   41.3   5.7  {'data_end': 1173, 'max_hold_timeout': 60, 'rule_exit': 232157, 'stop_loss': 17853}
+macd__hist_tick__short__1d__atr2_zf0__v1                                                    259880   0.696   40.3   5.4  {'data_end': 1131, 'max_hold_timeout': 58, 'rule_exit': 220329, 'stop_loss': 38362}
+gaps__exhaust_fade__short__1d__atr3_nb5__v1                                                   7219    0.69   36.4   3.4  {'max_hold_timeout': 44, 'rule_exit': 6919, 'stop_loss': 256}
+macd__hist_tick__short__1d__atr1d5_zf0__v1                                                  267880   0.689   39.0   5.0  {'data_end': 1102, 'max_hold_timeout': 53, 'rule_exit': 205802, 'stop_loss': 60923}
+gaps__exhaust_fade__short__1d__atr2_nb5__v1                                                   7219   0.687   36.3   3.4  {'max_hold_timeout': 44, 'rule_exit': 6586, 'stop_loss': 589}
+dirsys__cross_adxrise__long__1d__atr2_gate0_oh0__v1                                          12261   0.684   24.2  13.8  {'data_end': 112, 'max_hold_timeout': 1991, 'rule_exit': 5871, 'stop_loss': 4287}
+gaps__exhaust_fade__short__1d__atr1d5_nb5__v1                                                 7220   0.683   36.0   3.4  {'max_hold_timeout': 44, 'rule_exit': 6138, 'stop_loss': 1038}
+dirsys__cross_adxrise__long__1d__atr1d5_gate0_oh0__v1                                        12263   0.654   21.4  12.0  {'data_end': 86, 'max_hold_timeout': 1647, 'rule_exit': 3763, 'stop_loss': 6767}
+dirsys__cross_overheat__long__1d__atr3_gate0_oh1__v1                                         12261   0.653   28.0  11.5  {'data_end': 90, 'max_hold_timeout': 376, 'rule_exit': 10715, 'stop_loss': 1080}
+dirsys__cross_dullgate__long__1d__atr3_gate1_oh0__v1                                          5002   0.641   25.6  16.7  {'data_end': 78, 'max_hold_timeout': 1067, 'rule_exit': 3142, 'stop_loss': 715}
+dirsys__cross_overheat__long__1d__atr2_gate0_oh1__v1                                         12261   0.635   26.7  10.5  {'data_end': 77, 'max_hold_timeout': 299, 'rule_exit': 8262, 'stop_loss': 3623}
+dirsys__cross_overheat__long__1d__atr1d5_gate0_oh1__v1                                       12263   0.615   24.4   9.3  {'data_end': 61, 'max_hold_timeout': 224, 'rule_exit': 6004, 'stop_loss': 5974}
+dirsys__cross_dullgate__long__1d__atr2_gate1_oh0__v1                                          5002   0.597   23.2  14.4  {'data_end': 69, 'max_hold_timeout': 871, 'rule_exit': 1950, 'stop_loss': 2112}
+macd__hist_div__short__1d__atr2_w3__v1                                                       22490   0.589   32.9  18.8  {'data_end': 333, 'max_hold_timeout': 8574, 'stop_loss': 13583}
+macd__hist_div__short__1d__atr1d5_w3__v1                                                     23567   0.586   27.4  15.9  {'data_end': 305, 'max_hold_timeout': 7012, 'stop_loss': 16250}
+macd__hist_div__short__1d__atr3_w3__v1                                                       20857   0.581   39.2  23.0  {'data_end': 367, 'max_hold_timeout': 11059, 'stop_loss': 9431}
+dirsys__cross_dullgate__long__1d__atr1d5_gate1_oh0__v1                                        5002   0.565   19.6  12.0  {'data_end': 47, 'max_hold_timeout': 681, 'rule_exit': 1168, 'stop_loss': 3106}
+gaps__common_fade__short__1d__atr2_nb3__v1                                                    4853   0.561   35.0   3.7  {'data_end': 4, 'max_hold_timeout': 26, 'rule_exit': 4416, 'stop_loss': 407}
+gaps__common_fade__short__1d__atr3_nb3__v1                                                    4852    0.56   35.3   3.7  {'data_end': 4, 'max_hold_timeout': 26, 'rule_exit': 4628, 'stop_loss': 194}
+gaps__common_fade__short__1d__atr1d5_nb3__v1                                                  4853   0.557   34.6   3.7  {'data_end': 4, 'max_hold_timeout': 26, 'rule_exit': 4134, 'stop_loss': 689}
+macd__cross__short__1d__atr3_f8_g9_s17__v1                                                  117120    0.52   35.3  10.8  {'data_end': 1454, 'max_hold_timeout': 1684, 'rule_exit': 102780, 'stop_loss': 11202}
+macd__cross__short__1d__atr3_f12_g9_s26__v1                                                  93043   0.519   34.4  13.1  {'data_end': 1396, 'max_hold_timeout': 5363, 'rule_exit': 75633, 'stop_loss': 10651}
+macd__cross__short__1d__atr2_f8_g9_s17__v1                                                  118986   0.511   34.1  10.2  {'data_end': 1410, 'max_hold_timeout': 1352, 'rule_exit': 89574, 'stop_loss': 26650}
+macd__cross__short__1d__atr2_f12_g9_s26__v1                                                  94273    0.51   32.8  12.2  {'data_end': 1351, 'max_hold_timeout': 4589, 'rule_exit': 63352, 'stop_loss': 24981}
+macd__cross__short__1d__atr1d5_f8_g9_s17__v1                                                120421   0.497   32.2   9.4  {'data_end': 1335, 'max_hold_timeout': 1060, 'rule_exit': 75884, 'stop_loss': 42142}
+macd__cross__short__1d__atr1d5_f12_g9_s26__v1                                                95158   0.495   30.6  11.2  {'data_end': 1256, 'max_hold_timeout': 3807, 'rule_exit': 51863, 'stop_loss': 38232}
+macd__cross__short__1d__atr2_f19_g9_s39__v1                                                  73957   0.493   32.5  14.3  {'data_end': 1258, 'max_hold_timeout': 9111, 'rule_exit': 40923, 'stop_loss': 22665}
+macd__cross__short__1d__atr3_f19_g9_s39__v1                                                  73195   0.492   34.4  15.4  {'data_end': 1314, 'max_hold_timeout': 10370, 'rule_exit': 51500, 'stop_loss': 10011}
+gaps__breakaway__short__1d__atr3_vm1d5__v1                                                   11051   0.479   35.0  11.4  {'data_end': 91, 'max_hold_timeout': 652, 'rule_exit': 8736, 'stop_loss': 1572}
+macd__cross__short__1d__atr1d5_f19_g9_s39__v1                                                74566   0.474   29.7  13.0  {'data_end': 1155, 'max_hold_timeout': 7745, 'rule_exit': 31954, 'stop_loss': 33712}
+gaps__breakaway__short__1d__atr2_vm1d5__v1                                                   11191   0.472   33.3  10.6  {'data_end': 88, 'max_hold_timeout': 581, 'rule_exit': 7484, 'stop_loss': 3038}
+gaps__breakaway__short__1d__atr3_vm2d5__v1                                                    6393   0.468   36.9  11.8  {'data_end': 44, 'max_hold_timeout': 457, 'rule_exit': 4872, 'stop_loss': 1020}
+gaps__breakaway__short__1d__atr3_vm2__v1                                                      8165   0.467   35.8  11.6  {'data_end': 67, 'max_hold_timeout': 530, 'rule_exit': 6336, 'stop_loss': 1232}
+dirsys__cross_noadx__short__1d__atr3_gate0_oh0__v1                                          101712   0.466   29.0   9.4  {'data_end': 1322, 'max_hold_timeout': 7676, 'rule_exit': 88451, 'stop_loss': 4263}
+gaps__breakaway__short__1d__atr2_vm2d5__v1                                                    6482   0.465   35.1  11.1  {'data_end': 42, 'max_hold_timeout': 408, 'rule_exit': 4212, 'stop_loss': 1820}
+gaps__breakaway__short__1d__atr2_vm2__v1                                                      8263   0.463   34.1  10.9  {'data_end': 66, 'max_hold_timeout': 474, 'rule_exit': 5437, 'stop_loss': 2286}
+gaps__breakaway__short__1d__atr1d5_vm1d5__v1                                                 11355   0.462   31.3   9.8  {'data_end': 79, 'max_hold_timeout': 513, 'rule_exit': 6316, 'stop_loss': 4447}
+dirsys__cross_noadx__short__1d__atr2_gate0_oh0__v1                                          101720   0.459   28.7   9.3  {'data_end': 1312, 'max_hold_timeout': 7550, 'rule_exit': 79757, 'stop_loss': 13101}
+gaps__breakaway__short__1d__atr1d5_vm2d5__v1                                                  6582   0.457   33.2  10.3  {'data_end': 35, 'max_hold_timeout': 364, 'rule_exit': 3640, 'stop_loss': 2543}
+gaps__breakaway__short__1d__atr1d5_vm2__v1                                                    8384   0.455   32.1  10.1  {'data_end': 57, 'max_hold_timeout': 421, 'rule_exit': 4641, 'stop_loss': 3265}
+dirsys__cross_noadx__short__1d__atr1d5_gate0_oh0__v1                                        101768   0.451   28.0   9.0  {'data_end': 1287, 'max_hold_timeout': 7326, 'rule_exit': 68178, 'stop_loss': 24977}
+dirsys__cross_adxrise__short__1d__atr3_gate0_oh0__v1                                          6724   0.439   29.7  13.0  {'data_end': 139, 'max_hold_timeout': 853, 'rule_exit': 5085, 'stop_loss': 647}
+dirsys__cross_adxrise__short__1d__atr2_gate0_oh0__v1                                          6724   0.434   28.8  12.5  {'data_end': 139, 'max_hold_timeout': 815, 'rule_exit': 4009, 'stop_loss': 1761}
+dirsys__cross_overheat__short__1d__atr3_gate0_oh1__v1                                         6724   0.434   32.7  10.8  {'data_end': 107, 'max_hold_timeout': 231, 'rule_exit': 5798, 'stop_loss': 588}
+dirsys__cross_adxrise__short__1d__atr1d5_gate0_oh0__v1                                        6724    0.43   27.3  11.8  {'data_end': 132, 'max_hold_timeout': 758, 'rule_exit': 2935, 'stop_loss': 2899}
+dirsys__cross_overheat__short__1d__atr2_gate0_oh1__v1                                         6724    0.43   31.9  10.4  {'data_end': 107, 'max_hold_timeout': 216, 'rule_exit': 4787, 'stop_loss': 1614}
+dirsys__cross_overheat__short__1d__atr1d5_gate0_oh1__v1                                       6724   0.429   30.5   9.7  {'data_end': 103, 'max_hold_timeout': 195, 'rule_exit': 3764, 'stop_loss': 2662}
+gaps__continuation__short__1d__atr3_vm1d5__v1                                                 5260   0.405   30.1  19.2  {'data_end': 74, 'max_hold_timeout': 1637, 'rule_exit': 2347, 'stop_loss': 1202}
+gaps__continuation__short__1d__atr2_vm1d5__v1                                                 5352   0.396   26.9  17.0  {'data_end': 67, 'max_hold_timeout': 1416, 'rule_exit': 1499, 'stop_loss': 2370}
+gaps__continuation__short__1d__atr1d5_vm1d5__v1                                               5448    0.39   23.4  14.8  {'data_end': 60, 'max_hold_timeout': 1220, 'rule_exit': 983, 'stop_loss': 3185}
+dirsys__cross_dullgate__short__1d__atr3_gate1_oh0__v1                                         2091    0.35   31.0  14.6  {'data_end': 53, 'max_hold_timeout': 344, 'rule_exit': 1453, 'stop_loss': 241}
+dirsys__cross_dullgate__short__1d__atr1d5_gate1_oh0__v1                                       2091   0.342   28.4  13.0  {'data_end': 48, 'max_hold_timeout': 304, 'rule_exit': 761, 'stop_loss': 978}
+dirsys__cross_dullgate__short__1d__atr2_gate1_oh0__v1                                         2091   0.342   29.8  14.0  {'data_end': 53, 'max_hold_timeout': 324, 'rule_exit': 1080, 'stop_loss': 634}

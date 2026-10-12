@@ -1,8 +1,8 @@
 name: Elder indicators research batch 2 (B-625 B-647 B-650 B-658 B-663 B-668 B-697 B-705 B-716 B-723)
 
 # Elder, "Trading for a Living": ten more indicator families (incl. profit_protect: B-738 B-739 B-770) (williams_r, stoch_slow,
-# rsi, volume, ad_line, force_index, macdh, channel, parabolic), one matrix job each x 4
-# shards (40 jobs; dispatch only when no Deploy Gate / safety run is queued and after the
+# rsi, volume, ad_line, force_index, macdh, channel, parabolic), one matrix job each x 3
+# shards (30 research jobs + 1 merge = 31, under the ~40 matrix cap; was 4 shards = 41; dispatch only when no Deploy Gate / safety run is queued and after the
 # batch-1 elder-indicators-research run has finished). FULL universe via
 # main._load_nse_universe_from_file(), daily bars by default, BOTH directions, ATR stop
 # sweep 1.5/2/3 with a stop on every trade, 0.8% round-trip cost. Every
@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         family: [williams_r, stoch_slow, rsi, volume, ad_line, force_index, macdh, channel, parabolic, profit_protect]
-        shard: [0, 1, 2, 3]
+        shard: [0, 1, 2]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -39,7 +39,7 @@ jobs:
       - name: Run family shard
         run: |
           python3 scripts/elder_indicators_research_ext.py \
-            --family "${{ matrix.family }}" --shard ${{ matrix.shard }} --nshards 4 \
+            --family "${{ matrix.family }}" --shard ${{ matrix.shard }} --nshards 3 \
             --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" --out out/
       - uses: actions/upload-artifact@v4
         with:

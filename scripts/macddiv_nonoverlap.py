@@ -6,7 +6,8 @@ Method: for every symbol and cell, evaluate the trade EACH signal bar would open
 unchanged macd_divergence_research signal + elder_indicators_research.simulate, 0.8% round trip, ATR stop on every
 trade), then apply a strict FIFO filter: keep a trade only if its entry bar is after the exit bar of the last kept
 trade (one position per symbol per cell). FULL universe via main._load_nse_universe_from_file().
-Tags: <old tag minus __v1>__nonovl__v2 (old tags untouched).
+Tags: <old tag minus __v1>__nonovl__v2 (old tags untouched); B-814 adds IS/OOS split tags
+<old minus __v1>_nonovl_segis__v2 / _segoos__v2 (split_date input, else split_frac of the time span; entry-bar based).
 Note: er.simulate itself already skips signals before its previous exit (free = j), so the original run may already
 have been non-overlapping; this harness checks that independently instead of assuming it (raw vs kept counts printed).
 Usage:
@@ -22,6 +23,7 @@ import os
 import sys
 
 import numpy as np
+import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
@@ -45,6 +47,31 @@ def fifo_filter(trades):
             kept.append(t)
             last_exit = t["exit_i"]
     return kept
+
+
+def split_ts(idx, split_date="", split_frac=0.6):
+    """IS/OOS boundary: explicit split_date if given, else the point split_frac of the way through the
+    symbol's own [first, last] time span. A trade is IN-sample if its ENTRY bar is before the boundary."""
+    if split_date:
+        ts = pd.Timestamp(split_date)
+        if getattr(idx, "tz", None) is not None and ts.tzinfo is None:
+            ts = ts.tz_localize(idx.tz)
+        return ts
+    return idx[0] + (idx[-1] - idx[0]) * float(split_frac)
+
+
+def segment_trades(trades, idx, ts):
+    """Split trades (with entry_i) into (in_sample, out_of_sample) by entry bar timestamp vs ts."""
+    ins, oos = [], []
+    for t in trades:
+        (ins if idx[min(t["entry_i"], len(idx) - 1)] < ts else oos).append(t)
+    return ins, oos
+
+
+def seg_tag(old, seg):
+    """<old minus __v1>_nonovl_segis__v2 / _segoos__v2 (macddiv B-814 spec)."""
+    base = old[:-4] if old.endswith("__v1") else old
+    return f"{base}_nonovl_seg{seg}__v2"
 
 
 def has_overlap(trades):
@@ -73,15 +100,19 @@ def cell_trades(df, sig, direction, atr_mult):
     return fifo_filter(raw), len(raw)
 
 
-def run_symbol(df, aggs, raw_counts=None):
+def run_symbol(df, aggs, raw_counts=None, split_date="", split_frac=0.6):
     specs = {(v, p["w"]): f for v, p, f in md.variant_specs()}
     for variant, w, am in CELLS:
         sig = specs[(variant, w)](df)
         if not sig["long"].any():
             continue
         kept, nraw = cell_trades(df, sig, "long", am)
-        tag = nonovl_tag(er.make_tag(md.FAMILY, variant, "long", INTERVAL, {"w": w, "atr": am}))
+        base_tag = er.make_tag(md.FAMILY, variant, "long", INTERVAL, {"w": w, "atr": am})
+        tag = nonovl_tag(base_tag)
         er.add_trades(aggs.setdefault(tag, er.new_agg()), kept)
+        ins, oos = segment_trades(kept, df.index, split_ts(df.index, split_date, split_frac))
+        er.add_trades(aggs.setdefault(seg_tag(base_tag, "is"), er.new_agg()), ins)
+        er.add_trades(aggs.setdefault(seg_tag(base_tag, "oos"), er.new_agg()), oos)
         if raw_counts is not None:
             raw_counts[tag] = raw_counts.get(tag, 0) + nraw
 
@@ -97,7 +128,7 @@ def _main_shard(args):
             raw = m.fetch_ohlc(s, args.period, INTERVAL)
             if raw is None or len(raw) < 120:
                 continue
-            run_symbol(er.prep(raw), aggs, raw_counts)
+            run_symbol(er.prep(raw), aggs, raw_counts, args.split_date, args.split_frac)
             fetched += 1
         except Exception as ex:
             print("ERROR", s, ex, file=sys.stderr)
@@ -105,7 +136,8 @@ def _main_shard(args):
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, f"macddiv_nonovl_{args.shard}.json"), "w") as f:
         json.dump({"interval": INTERVAL, "fetched": fetched, "universe": len(syms),
-                   "raw_signal_trades": raw_counts, "aggs": aggs}, f)
+                   "raw_signal_trades": raw_counts, "split_date": args.split_date,
+                   "split_frac": args.split_frac, "aggs": aggs}, f)
 
 
 def merge_dir(path):
@@ -127,6 +159,8 @@ def main(argv=None):
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--nshards", type=int, default=8)
     ap.add_argument("--period", default=md.PERIODS[INTERVAL])
+    ap.add_argument("--split_date", default="", help="IS/OOS boundary (entry date < it = IS); blank = split_frac")
+    ap.add_argument("--split_frac", type=float, default=0.6)
     ap.add_argument("--out", default="out")
     ap.add_argument("--merge")
     ap.add_argument("--json")
