@@ -6,7 +6,7 @@ separate tags, ATR stop on EVERY trade (k 1.5/2.5/4.0), 0.8% round-trip cost, na
 <family>__<variant>__<dir>__<tf>__<params>__v1, mergeable additive cells (orx.acc_add / merge_cells / finalize).
 Reuses chan_research.simulate/atr_arr/half_life (never a reimplementation of the trade loop).
 
-Families (per interval; INTERVAL in 1d|1h|15m|5m, yfinance period 5y|730d|60d|60d):
+Families (per interval; INTERVAL in 1d|4h|1h|15m|5m, yfinance period 5y|730d(1h resampled to 4h, B-785)|730d|60d|60d):
   chan_xsmom__decile252     B-431  252d-return decile, long top / short bottom, 25-bar hold, liquidity filter (1d)
                             B-451  momentum-crash gate: skip rebalances when NIFTY 60d drawdown < -5% / -10% (cr05, cr10)
   chan_kalman__band         B-441  Kalman adaptive mean on log price (delta 1e-4, Ve 1e-4|1e-3), band z 1|2, exit at mean
@@ -35,11 +35,12 @@ warnings.filterwarnings("ignore")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
-import chan_research as chn  # noqa: E402
+import chan_research as chn
+import cell_tsv  # noqa: E402
 import oneil_research as orx  # noqa: E402
 
 KS = chn.KS
-PERIOD = {"1d": "5y", "1h": "730d", "15m": "60d", "5m": "60d"}
+PERIOD = {"1d": "5y", "4h": "730d", "1h": "730d", "15m": "60d", "5m": "60d"}
 INTRADAY = ("5m", "15m")
 LIQ_MIN_TURNOVER = 2e7
 REB_HOLD = 25
@@ -260,7 +261,8 @@ def sim_to_rows(tr, side, cost):
 
 def download(batch, interval):
     import yfinance as yf
-    return yf.download(batch, period=PERIOD[interval], interval=interval, group_by="ticker", auto_adjust=True,
+    # 4h has no native yfinance interval: fetch 1h and resample per symbol in run() (cell_tsv.resample_4h)
+    return yf.download(batch, period=PERIOD[interval], interval=("1h" if interval == "4h" else interval), group_by="ticker", auto_adjust=True,
                        progress=False, threads=True)
 
 
@@ -317,6 +319,8 @@ def run():
             try:
                 df = d[s] if len(batch) > 1 else d
                 df = df[["Open", "High", "Low", "Close", "Volume"]].dropna()
+                if interval == "4h":
+                    df = cell_tsv.resample_4h(df)
             except Exception:
                 continue
             if len(df) < 160:
@@ -331,7 +335,7 @@ def run():
             atr = chn.atr_arr(h, l, c)
             last = day_flags(df) if interval in INTRADAY else None
             gens = [kalman_cells(c, interval), vwma_cells(c, v, interval)]
-            if interval in ("1d", "1h"):
+            if interval in ("1d", "4h", "1h"):
                 gens.append(mr_gate_cells(c, interval))
             for gen in gens:
                 for fam, var, params, sig, hold, xl, xsx in gen:
@@ -444,6 +448,8 @@ def merge(paths):
         for t, c in xs_cells(rows, cost).items():
             cells[t] = c
     res = orx.finalize(cells, min_n=30)
+    import cell_tsv  # B-783: keep-all-data, every cell (min_n=1), full table in the log
+    cell_tsv.emit_full(orx.finalize(cells, min_n=1), os.environ.get("TSV_OUT", os.path.join(ROOT, "docs", "chan_ext_cells.tsv")), "chan_ext_research")
     uni = sum(p.get("symbols", 0) for p in parts)
     req = sum(p.get("universe_requested", 0) for p in parts)
     corr = {}
