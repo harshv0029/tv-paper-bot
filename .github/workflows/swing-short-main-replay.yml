@@ -1,0 +1,86 @@
+name: swing + short-swing main.py-function replay (B-881)
+
+# Backlog B-881. Full-universe replay that IMPORTS and CALLS the real main.py functions for
+#  (a) main.SWINGMINRR_TAGS (VCP gate rr4/rr3/rr2 + base, long 1d): main.swingminrr_vcp_entry_signal + main._swingminrr_exit_adapter
+#  (b) main.SHORT_SWING_TAGS (6 brk20 1d short cells): main.brk20_min_rr_entry_signal (cell params from
+#      main.BRK20_SHORT_SWING_CELLS) + main._short_swing_exit_reason
+# Universe = main._load_nse_universe_from_file() (full, NOT main.NSE_FULL_UNIVERSE). Cost = main.ROUND_TRIP_COST_PCT.
+# Fill model input: signal_close (= live scan) or next_open (research). Each tag replayed independently.
+# Output artifact swingshort-all (swingshort_all.json): per tag n, win %, PFnet gross/net, avg hold (bars + hours),
+# exit-reason breakdown. Matrix = group x shard (default 2 x 8 = 16 jobs). Big matrix: dispatch only when no gate is queued.
+on:
+  workflow_dispatch:
+    inputs:
+      groups:
+        description: "long (swingminrr VCP), short (brk20 short-swing), or both"
+        default: "long,short"
+      fill:
+        description: "signal_close (live) or next_open (research)"
+        default: "signal_close"
+      nshards:
+        description: "Universe shards per group"
+        default: "8"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - id: p
+        env:
+          REPLAY_GROUPS: ${{ inputs.groups }}
+          NSHARDS: ${{ inputs.nshards }}
+        run: echo "matrix=$(python3 scripts/swing_short_main_replay.py plan)" >> "$GITHUB_OUTPUT"
+
+  replay:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay (real main.py functions)
+        env:
+          GROUP: ${{ matrix.group }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: ${{ matrix.nshards }}
+          FILL: ${{ inputs.fill }}
+        run: python3 scripts/swing_short_main_replay.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: swingshort-${{ matrix.group }}-s${{ matrix.shard }}
+          path: out/
+
+  aggregate:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q numpy pandas
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          pattern: swingshort-*
+          merge-multiple: true
+      - name: Merge shards (exact, from raw sums)
+        run: python3 scripts/swing_short_main_replay.py merge out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: swingshort-all
+          path: out/swingshort_all.json
