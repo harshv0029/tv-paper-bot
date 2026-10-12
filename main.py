@@ -14131,6 +14131,31 @@ def _option_ltp(row) -> float | None:
         return None
 
 
+def _option_feed_high_since(conn, row) -> float | None:
+    """Highest premium the option candle feed saw since this leg was opened:
+    max(high) over persisted fo_option_candles bars that START at/after
+    opened_at, plus the in-progress bar if it also starts at/after opened_at.
+    Bars starting before entry are excluded so a pre-entry spike can never
+    inflate the peak (never overstates; may understate by the entry bar).
+    The feed is tick-driven, so it catches spikes between the 30s LTP polls
+    that a last-tick-only peak misses. None when nothing usable (caller falls
+    back to the polled LTP, unchanged behaviour)."""
+    try:
+        token = str(row["instrument_token"])
+        opened = float(row["opened_at"])
+        r = conn.execute(
+            "SELECT MAX(high) AS h FROM fo_option_candles WHERE instrument_token = ? AND bucket_start_ts >= ?",
+            (token, opened)).fetchone()
+        best = float(r["h"]) if r and r["h"] is not None else None
+        import kotak_fo_candle_feed as _kfc
+        cur = _kfc._in_progress_candles.get(token)
+        if cur and float(cur["bucket_start_ts"]) >= opened:
+            best = max(best, float(cur["high"])) if best is not None else float(cur["high"])
+        return best if best and best > 0 else None
+    except Exception:
+        return None
+
+
 def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -> str:
     """One governance pass for ONE real single-strike option leg, in the
     mandatory order: (1) Kotak positions, (2) Kotak order book, (3) compare
@@ -14166,6 +14191,9 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
     peak = float(row["peak_price"] or row["entry_price"])
     if ltp is not None and ltp > peak:
         peak = ltp
+    feed_high = _option_feed_high_since(conn, row)
+    if feed_high is not None and feed_high > peak:
+        peak = feed_high  # tick-built candle high catches spikes between 30s polls
     prev_trigger = float(row["sl_trigger_price"] or 0)
     # user 2026-10-08: 3% initial stop below entry; once the premium is 1% above entry,
     # trail 1% below the highest LTP since entry; the trigger never lowers.
