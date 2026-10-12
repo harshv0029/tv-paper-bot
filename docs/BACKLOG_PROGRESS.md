@@ -22,13 +22,13 @@ Total rows: 841 | closed: 368 | not closed: 473
 | BUILT-ON-BRANCH | 6 |
 | OPEN-PARKED | 6 |
 | PARKED-REASONED | 4 |
-| TODO | 3 |
+| IN-PROGRESS | 3 |
 | PARKED | 2 |
 | OWNER-ACTION | 1 |
 | BLOCKED-ON-RUN | 1 |
 | HARNESS-RUN-DONE | 1 |
+| TODO | 1 |
 | ROOT-CAUSED | 1 |
-| IN-PROGRESS | 1 |
 | IN | 1 |
 | DONE-ON-BRANCH | 1 |
 
@@ -460,13 +460,13 @@ Total rows: 841 | closed: 368 | not closed: 473
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
 | B-865 | P0 | IN-PROGRESS | 2026-10-12 user report: /fo-entry-diagnosis says no F&O candles, so no option strike can ever fire | owed, needs |
-| B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed |
-| B-831 | P1 | TODO | Overlapping-signal inflation guard for the O'Neil extension cells: every cell >=1.1 (80 new, n up to 50,615... | todo |
+| B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, remaining, needs |
+| B-831 | P1 | IN-PROGRESS | Overlapping-signal inflation guard for the O'Neil extension cells: every cell >=1.1 (80 new, n up to 50,615... |  |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... |  |
 | B-868 | P1 | DONE-ON-BRANCH | 2026-10-12 | blocked, pending |
 | B-45 | P2 | PARTIAL | gap-and-go has no intraday validation; not inheriting 1.65 | todo |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
-| B-833 | P2 | TODO | Short mirror 1w oneil_shakeout plus3 pm2 h8 (1.26/1.24, n=883, ~7 week hold; the only short cells >=1.1): n... | todo |
+| B-833 | P2 | IN-PROGRESS | Short mirror 1w oneil_shakeout plus3 pm2 h8 (1.26/1.24, n=883, ~7 week hold; the only short cells >=1.1): n... |  |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
 | B-851 | P2 | OPEN | Reproducibility of Elder MACD/gap cells: re-run 38208431466 (7059 fetched) vs 38177547622 (7049): all 120 t... |  |
@@ -528,7 +528,7 @@ Total rows: 841 | closed: 368 | not closed: 473
 | B-623 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, blocked, needs |
 | B-791 | P2 | OPEN | Minervini sweep follow-ups: confirm universe size from artifact docs/minervini_sweep_results_full_1d.json, ... | follow-up |
 | B-819 | P2 | OPEN | Portfolio overlay pfovl (run 38193834873; 792 rows, 26 >=1.1, all calendar-slice cells) | owed |
-| B-841 | P2 | OPEN | Reproducibility of huge-n Douglas/Elder entry cells: one extra fetched symbol moved short brk20_limit_entry... |  |
+| B-841 | P2 | OPEN | Reproducibility of huge-n Douglas/Elder entry cells: one extra fetched symbol moved short brk20_limit_entry... | needs |
 | B-862 | P2 | PARTIAL | Elder trend/regime/MA-system/context run 38209280422 (2026-10-12 IST, 1d, cost 0.008, universe 8064, 7053 f... | owed, follow-up |
 | B-443 | P3 | PARKED-REASONED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | needs |
 | B-444 | P3 | PARKED-REASONED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | needs |
