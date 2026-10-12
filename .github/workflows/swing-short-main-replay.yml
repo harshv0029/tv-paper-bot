@@ -35,7 +35,7 @@ jobs:
         env:
           REPLAY_GROUPS: ${{ inputs.groups }}
           NSHARDS: ${{ inputs.nshards }}
-        run: echo "matrix=$(python3 scripts/swing_short_main_replay.py plan)" >> "$GITHUB_OUTPUT"
+        run: echo "matrix=$(python3 scripts/swing_short_main_replay.py plan 2>/dev/null | tail -n 1)" >> "$GITHUB_OUTPUT"
 
   replay:
     needs: plan
