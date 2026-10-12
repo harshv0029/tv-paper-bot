@@ -14579,6 +14579,34 @@ def fo_entry_diagnosis():
             key = "bought"
         c[key] = c.get(key, 0) + 1
     meta = dict(_fo_strike_monitor_meta)
+    # Candle-feed health (no account data): names WHY the strike monitor is empty.
+    feed = {"connected": None, "last_error": None, "subscribed_instruments": None,
+            "unresolved_legs_count": None, "started_at_utc": None, "universe_cached": None,
+            "db_candle_rows": None, "db_candle_tokens": None, "latest_candle_age_seconds": None}
+    try:
+        import kotak_fo_candle_feed
+        fs = kotak_fo_candle_feed.get_feed_status()
+        feed.update({"connected": fs.get("connected"), "last_error": fs.get("last_error"),
+                     "subscribed_instruments": fs.get("subscribed_instruments"),
+                     "unresolved_legs_count": len(fs.get("unresolved_legs") or []),
+                     "started_at_utc": fs.get("started_at_utc"),
+                     "universe_cached": len(kotak_fo_candle_feed.get_cached_fo_universe())})
+        with closing(get_db()) as conn:
+            r = conn.execute("SELECT COUNT(*) AS n, COUNT(DISTINCT instrument_token) AS t, "
+                             "MAX(bucket_start_ts) AS m FROM fo_option_candles").fetchone()
+            feed["db_candle_rows"], feed["db_candle_tokens"] = int(r["n"] or 0), int(r["t"] or 0)
+            if r["m"]:
+                feed["latest_candle_age_seconds"] = int(time.time() - float(r["m"]))
+    except Exception as e:
+        feed["last_error"] = feed["last_error"] or f"diagnosis_feed_read_failed: {e}"
+    if feed["connected"] is False:
+        feed_cause = "candle_feed_not_connected_see_candle_feed_last_error"
+    elif not feed["universe_cached"]:
+        feed_cause = "candle_feed_universe_not_resolved_yet"
+    elif not feed["db_candle_rows"]:
+        feed_cause = "candle_feed_connected_no_completed_5m_candle_yet"
+    else:
+        feed_cause = "no_strikes_in_candle_feed"
     unders = {}
     for u in _FO_STRIKE_SCAN_UNDERLYINGS:
         counts = monitor_u.get(u, {})
@@ -14592,7 +14620,7 @@ def fo_entry_diagnosis():
         elif not viable_tags:
             blocker = "no_viable_strike_setup_tag"
         elif total == 0:
-            blocker = "no_strikes_in_candle_feed"
+            blocker = feed_cause
         elif counts.get("warming_up_need_30_candles", 0) + counts.get("no_fresh_candle", 0) + counts.get("expired_series", 0) >= total:
             blocker = "all_strikes_warming_up_or_stale_candles"
         elif len(held_by_u.get(u, ())) >= 2:
@@ -14609,7 +14637,7 @@ def fo_entry_diagnosis():
             "master_trading_switch_on": master, "entry_window_open_ist_0920_1500": in_window,
             "viable_strike_setup_tags": viable_tags, "setup_tags_checked": tags,
             "last_scan_ts": meta.get("last_scan_ts"), "scans_today": meta.get("scans_today"),
-            "skipped_reasons_today": skipped, "underlyings": unders}
+            "skipped_reasons_today": skipped, "candle_feed": feed, "underlyings": unders}
 
 
 def _maybe_sync_real_fo_option_stop_losses(conn):
