@@ -702,3 +702,11 @@ Source of every figure below: the generated results log (cost model 0.8%, PFnet 
 - Surprise: the 4h refresh and expiry-roll logic existed and was tested but sat at the top of a loop a healthy socket never re-enters; "tested function" was not "reachable path".
 - Reuse: for any restart-sensitive data path, check (a) restore order vs the startup time budget, (b) whether periodic refresh logic is reachable while the connection is healthy, (c) whether a partial cached result can pin a degraded state for hours.
 - Profit-booking / exit takeaway: option exits depend on the same candle stream; a dead or stale feed also blinds the trailing-SL logic's signal side, so the Kotak-resting premium trail must stay the real exit and never rely on feed-derived candles.
+
+## B-320 single-strike option entry: SL-or-unwind (audit, 2026-10-12 IST)
+- Mechanism: real long CE/PE buy on a viable setup, trailing premium SL placed with the entry, ticked every 30s against Kotak positions and order book.
+- Fit: weekly options live at most about 5 days, so a trailing SL is the only sensible exit; the no-trade-without-SL rule means a failed SL placement must end in an exit, not a grace period.
+- Result: no backtest (entries reuse viable setups); code audit found the whole path present except an immediate unwind when the first SL placement fails (previously up to 180s naked). Fixed with tests.
+- Surprise: the "fresh_entry_awaiting_position" state (fill not yet in Kotak positions) is a residual naked window that cannot be closed from the app side.
+- Reuse: any new entry path should treat "SL placement failed" as an exit trigger at the call site, and a restart-wipe test for its table.
+- Profit-booking / exit takeaway: the premium trail is the only exit, so SL placement success is what protects booked profit; losing it for even minutes on a decaying option risks the whole premium.

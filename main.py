@@ -14006,10 +14006,22 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
             order_id=result["order_id"], raw_response=result.get("raw_response"),
             detail=f"reason: {reason}; trailing SL follows",
         )
+        # CLAUDE.md 2026-10-11 "no trade without SL or SLM ever": an entry whose stop cannot be
+        # placed is unwound at once, not left naked for the 180s tick grace. "fresh_entry_awaiting_position"
+        # (Kotak position not yet visible) cannot be unwound or protected yet; the 30s tick retries it
+        # and the 180s risk-cut remains the backstop for that single case.
+        _sl_status = None
         try:
-            _sync_real_fo_option_sl(conn, leg_key, reason="initial protective SL right after entry")
+            _sl_status = _sync_real_fo_option_sl(conn, leg_key, reason="initial protective SL right after entry")
         except Exception as _e:
-            print(f"[REAL F&O] initial SL failed for {leg_key} (tick retry will heal): {_e}")
+            _sl_status = "sl_exception"
+            print(f"[REAL F&O] initial SL raised for {leg_key}: {_e}")
+        if _sl_status in ("sl_failed", "sl_exception") or str(_sl_status).startswith("kotak_unreadable"):
+            _row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone()
+            if _row:
+                _close_real_fo_option_leg(
+                    conn, _row, f"entry unwound: protective trailing SL could not be placed ({_sl_status})")
+                conn.commit()
         print(f"[REAL F&O] BUY {leg_key} {qty} {contract['kotak_trading_symbol']} (order {result['order_id']}) "
               f"~Rs{contract['premium']:.2f}")
     else:
