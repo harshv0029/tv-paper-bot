@@ -80,3 +80,25 @@ def test_unchanged_day_not_repushed_and_noop_without_upstash(remote, monkeypatch
     monkeypatch.setattr(main, "UPSTASH_REDIS_REST_URL", "")
     assert main.sync_fo_option_candles_external() == 0
     assert main.hydrate_fo_option_candles_from_external() == 0
+
+
+def test_restore_is_newest_day_first_and_commits_per_day(remote, monkeypatch):
+    _fresh_db()
+    base = 1_760_000_000
+    with closing(main.get_db()) as c:
+        for d in range(3):
+            _bar(c, f"T{d}", base + d * 86400)
+    assert main.sync_fo_option_candles_external() == 3
+    _fresh_db()
+    order = []
+    orig = j._key
+
+    def spy(day, suffix):
+        if suffix == "meta":
+            order.append(day)
+        return orig(day, suffix)
+
+    monkeypatch.setattr(j, "_key", spy)
+    with closing(main.get_db()) as c:
+        j.restore_from_remote(c, main._upstash_get)
+    assert len(order) == 3 and order == sorted(order, reverse=True)

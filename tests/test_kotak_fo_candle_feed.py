@@ -541,3 +541,28 @@ def test_read_fo_candles_volume_is_tick_count():
     finally:
         main.DB_PATH = old_path
     assert df["Volume"].iloc[0] == 42
+
+
+# ---- B-865 regression tests ----
+
+def test_universe_refresh_due_while_connected_on_stale_cache():
+    uni = {("nse_fo", str(i)): {"underlying": n, "expiry": "2099-01-01"}
+           for i, n in enumerate(feed.INDEX_UNDERLYING_NAMES)}
+    now = time.time()
+    assert not feed.universe_refresh_due(now=now, universe=uni, resolved_at=now - 60)
+    assert feed.universe_refresh_due(now=now, universe=uni, resolved_at=now - feed.UNIVERSE_REFRESH_SECONDS - 1)
+
+
+def test_universe_missing_an_index_is_retried_in_minutes_not_hours():
+    uni = {("nse_fo", "1"): {"underlying": "NIFTY", "expiry": "2099-01-01"}}
+    now = time.time()
+    assert "BANKNIFTY" in feed.universe_missing_index_underlyings(uni)
+    assert not feed.universe_refresh_due(now=now, universe=uni, resolved_at=now - 60)
+    assert feed.universe_refresh_due(now=now, universe=uni,
+                                     resolved_at=now - feed.INCOMPLETE_UNIVERSE_RETRY_SECONDS - 1)
+
+
+def test_message_loop_checks_refresh_and_clears_connected_when_stream_ends():
+    src = inspect.getsource(feed.run_fo_candle_feed)
+    assert "universe_refresh_due()" in src.split("async for message in ws:")[1]
+    assert "stream_ended_without_error" in src

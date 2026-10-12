@@ -14590,7 +14590,12 @@ def fo_entry_diagnosis():
                      "subscribed_instruments": fs.get("subscribed_instruments"),
                      "unresolved_legs_count": len(fs.get("unresolved_legs") or []),
                      "started_at_utc": fs.get("started_at_utc"),
-                     "universe_cached": len(kotak_fo_candle_feed.get_cached_fo_universe())})
+                     "universe_cached": len(kotak_fo_candle_feed.get_cached_fo_universe()),
+                     "connect_count": fs.get("connect_count"), "ticks_received": fs.get("ticks_received"),
+                     "last_tick_ts": fs.get("last_tick_ts"),
+                     "last_disconnect_reason": fs.get("last_disconnect_reason"),
+                     "missing_index_underlyings": kotak_fo_candle_feed.universe_missing_index_underlyings(
+                         kotak_fo_candle_feed.get_cached_fo_universe())})
         with closing(get_db()) as conn:
             r = conn.execute("SELECT COUNT(*) AS n, COUNT(DISTINCT instrument_token) AS t, "
                              "MAX(bucket_start_ts) AS m FROM fo_option_candles").fetchone()
@@ -14603,6 +14608,10 @@ def fo_entry_diagnosis():
         feed_cause = "candle_feed_not_connected_see_candle_feed_last_error"
     elif not feed["universe_cached"]:
         feed_cause = "candle_feed_universe_not_resolved_yet"
+    elif feed.get("missing_index_underlyings"):
+        feed_cause = "candle_feed_universe_missing_index_underlyings_see_unresolved_spot"
+    elif feed.get("ticks_received") == 0:
+        feed_cause = "candle_feed_subscribed_but_zero_ticks_received"
     elif not feed["db_candle_rows"]:
         feed_cause = "candle_feed_connected_no_completed_5m_candle_yet"
     else:

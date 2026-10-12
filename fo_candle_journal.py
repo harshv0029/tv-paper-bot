@@ -93,9 +93,14 @@ def sync_to_remote(conn, get, set_, now: float | None = None) -> int:
 
 
 def restore_from_remote(conn, get, max_days: int = RESTORE_DAYS) -> int:
-    """Insert (OR IGNORE) every remote bar for the most recent days. Returns rows inserted."""
+    """Insert (OR IGNORE) every remote bar for the most recent days. Returns rows inserted.
+
+    B-865: NEWEST day first and committed per day. Startup gives this only a
+    few seconds (STARTUP_HYDRATION_TIMEOUT_SECONDS); the old oldest-first order
+    with one final commit spent that budget on 14 old days and restored
+    today's bars (the only ones the 30-candle scan needs) last or never."""
     inserted = 0
-    for day in _get_days(get)[-max_days:]:
+    for day in reversed(_get_days(get)[-max_days:]):
         meta_raw = get(_key(day, "meta"))
         if not meta_raw:
             continue
@@ -113,7 +118,7 @@ def restore_from_remote(conn, get, max_days: int = RESTORE_DAYS) -> int:
         for row in json.loads("".join(parts)):
             conn.execute(f"INSERT OR IGNORE INTO fo_option_candles ({','.join(COLUMNS)}) VALUES ({marks})", row)
         inserted += conn.total_changes - before
-    conn.commit()
+        conn.commit()
     return inserted
 
 
