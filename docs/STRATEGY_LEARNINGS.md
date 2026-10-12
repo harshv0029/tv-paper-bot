@@ -865,3 +865,11 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised/broke: nothing; caveat that the entry bar itself is excluded so the peak may understate slightly, never overstate.
 - Reuse: any trail fed by sparse polling should read the tick-built candle high, not the last tick.
 - Profit-booking / exit takeaway: trail from the true intrabar premium high so a spike-and-reverse locks in gains at the intended giveback instead of the lower polled peak; live verification after deploy.
+
+## Swing minimum reward:risk at 1h/730d (B-842, run 38249384880, 2026-10-12 IST)
+- Mechanism: brk20, order_block and volume_profile swing entries with ATR stop (1.5/2/3) and a minimum reward:risk as gate, target, both or neither, long and short, 1h bars, 30-bar max hold (about 4 days), 7464 symbols, 0.8% cost, pooled over 730 days.
+- Fit here: an ATR stop is on every trade (no-trade-without-SL holds) and the hold is short (about 23 hourly bars), which suits faster turnover; but no live 1h swing entry path and no live short-swing path exist, so nothing can be wired.
+- Result: 162 tags registered research-only. Three cells clear 1.1 on pooled and exTop5: brk20_gate short atr3_rr4 1.702 / 1.662 (n 2267, win 48.7%), brk20_gatetarget short 1.561 / 1.536 (n 2293), brk20_gate long 1.141 / 1.101 (n 2036, win 33%). order_block and volume_profile cells mostly fall under 1.1 on exTop5.
+- Surprised: the short mirror beats the long again (as at 1d) with huge n and a tiny top-5 effect, so it is not outlier-driven; but the long needs only 33% wins and sits barely over the line. Profit again comes from max-hold survivors (about 60% of short exits), while stops (about 40%) lose.
+- Reuse: no IS/OOS split was run, and macddiv 1h showed pooled 1.4 collapsing to OOS 0.5; run IS/OOS (and strict FIFO) on these three before any wiring. 4h, 15m, 5m still owed.
+- Profit-booking / exit takeaway: the RR gate with a wide ATR3 stop lets trades run to the 30-bar timeout where the profit is booked; adding a target (gatetarget) did not beat gate-only, so do not cut winners early with a target.
