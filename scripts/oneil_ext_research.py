@@ -462,7 +462,9 @@ def main_run():
     cfg, ex = orx.CFG[tf], EX[tf]
     shard, nsh = int(os.environ.get("SHARD", "0")), int(os.environ.get("NSHARDS", "1"))
     cost = app.ROUND_TRIP_COST_PCT / 100.0
-    syms = sorted(app._load_nse_universe_from_file())[shard::nsh]
+    import universe_pin as up  # B-841: PIN_FILE pins the exact symbol set for a rerun
+    pin_file, pin_tol = up.env_args()
+    syms = up.select_universe(app._load_nse_universe_from_file(), pin_file)[shard::nsh]
     cap = int(os.environ.get("MAXSYM", "0") or 0)
     if cap:
         syms = syms[:cap]
@@ -499,7 +501,8 @@ def main_run():
         if i % 100 == 0:
             print("processed", i, "cells", len(cells), flush=True)
     out = os.path.join(ROOT, "docs", f"oneil_ext_research_{tf}_s{shard}.json")
-    json.dump({"tf": tf, "shard": shard, "nshards": nsh, "symbols": len(data), "universe_requested": len(syms), "cells": cells},
+    json.dump({"tf": tf, "shard": shard, "nshards": nsh, "symbols": len(data), "universe_requested": len(syms), "cells": cells,
+               **up.shard_meta(syms, list(data), pin_file, pin_tol)},
               open(out, "w"), default=lambda o_: o_.item() if hasattr(o_, "item") else str(o_))
     print("wrote", out, "cells", len(cells))
 
@@ -512,7 +515,8 @@ def merge_run(paths):
     cell_tsv.emit_full(orx.finalize(merged, min_n=1), os.environ.get("TSV_OUT", os.path.join(ROOT, "docs", "oneil_ext_research_cells.tsv")), "oneil_ext_research")
     uni = sum(p.get("symbols", 0) for p in parts)
     out = os.path.join(ROOT, "docs", "oneil_ext_research_results.json")
-    json.dump({"universe_symbols": uni, "owed": ["role-swapped filter-as-trigger ordering", "B-481 IPO base (no listing dates)", "B-482 group stocks (no industry map)", "4h/1h not applicable (daily/weekly rules)"], "results": res},
+    import universe_pin as up
+    json.dump({"universe_symbols": uni, "fetched_symbols": up.merge_fetched(parts), "owed": ["role-swapped filter-as-trigger ordering", "B-481 IPO base (no listing dates)", "B-482 group stocks (no industry map)", "4h/1h not applicable (daily/weekly rules)"], "results": res},
               open(out, "w"), indent=0, default=lambda o_: o_.item() if hasattr(o_, "item") else str(o_))
     ok = sorted([(m["pfnet"], m["n"], t) for t, m in res.items() if m["pfnet"] and m["pfnet"] >= 1.1 and m["n"] >= 300], reverse=True)
     print(f"universe_symbols={uni} cells={len(res)} viable(PFnet>=1.1,n>=300)={len(ok)}")

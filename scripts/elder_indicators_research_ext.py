@@ -37,6 +37,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
+import universe_pin as up  # noqa: E402
 
 FAMILIES = ("williams_r", "stoch_slow", "rsi", "volume", "ad_line", "force_index",
             "macdh", "channel", "parabolic", "profit_protect")
@@ -364,9 +365,9 @@ def run_symbol(df, family, tf, aggs):
 def _main_shard(args):
     sys.path.insert(0, ".")
     import main as m
-    syms = sorted(set(m._load_nse_universe_from_file()))
+    syms = up.select_universe(m._load_nse_universe_from_file(), args.pin_file)
     syms = [s for k, s in enumerate(syms) if k % args.nshards == args.shard]
-    aggs, fetched = {}, 0
+    aggs, fetched, got = {}, 0, []
     for s in syms:
         try:
             raw = m.fetch_ohlc(s, args.period, args.interval)
@@ -374,13 +375,15 @@ def _main_shard(args):
                 continue
             df = er.prep(raw)
             fetched += 1
+            got.append(s)
             run_symbol(df, args.family, args.interval, aggs)
         except Exception as exc:
             print("ERROR", s, exc, file=sys.stderr)
     print(f"{args.family} shard {args.shard}: fetched {fetched}/{len(syms)}, variants {len(aggs)}")
     os.makedirs(args.out, exist_ok=True)
     json.dump({"family": args.family, "interval": args.interval, "fetched": fetched,
-               "universe": len(syms), "aggs": aggs},
+               "universe": len(syms), "aggs": aggs,
+               **up.shard_meta(syms, got, args.pin_file, args.pin_tolerance)},
               open(os.path.join(args.out, f"{args.family}_{args.shard}.json"), "w"))
 
 
@@ -394,6 +397,7 @@ def main(argv=None):
     ap.add_argument("--out", default="out")
     ap.add_argument("--merge")
     ap.add_argument("--json")
+    up.add_args(ap)
     args = ap.parse_args(argv)
     if args.merge:
         return er.main(["--merge", args.merge] + (["--json", args.json] if args.json else []))
