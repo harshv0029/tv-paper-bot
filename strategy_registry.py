@@ -2803,6 +2803,10 @@ def _extend_with_sweeps():
         REGISTRY.extend(_mn.build())
         import strategy_registry_island as _is
         REGISTRY.extend(_is.build())
+        import strategy_registry_oneilcup as _oc
+        REGISTRY.extend(_oc.build())
+        import strategy_registry_pfovl as _pv
+        REGISTRY.extend(_pv.build())
         import strategy_registry_brk20 as _bk
         REGISTRY.extend(_bk.build())
         import strategy_registry_elderpat as _ep
