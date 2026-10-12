@@ -1,0 +1,45 @@
+{
+ "chunk": "gap05",
+ "interval": "1d",
+ "period": "5y",
+ "shard": 2,
+ "nshards": 4,
+ "n_symbols": 669,
+ "cost_round_trip_pct": 0.8,
+ "atr_mult": 1.5,
+ "synthetic": false,
+ "direction": "long",
+ "short_mirror": "owed: main.py has no island short port",
+ "cells": {
+  "reversal__island_gap05__long__1d__atr1d5_within8__nonovl__v2": {
+   "mode": "fifo",
+   "raw": {
+    "n": 0,
+    "wins": 0,
+    "win_net": 0.0,
+    "loss_net": 0.0,
+    "win_gross": 0.0,
+    "loss_gross": 0.0,
+    "sum_net": 0.0,
+    "sum_gross": 0.0,
+    "hold_sum": 0,
+    "reasons": {}
+   }
+  },
+  "reversal__island_gap05__long__1d__atr1d5_within8__segis__v2": {
+   "mode": "is",
+   "raw": {
+    "n": 0,
+    "wins": 0,
+    "win_net": 0.0,
+    "loss_net": 0.0,
+    "win_gross": 0.0,
+    "loss_gross": 0.0,
+    "sum_net": 0.0,
+    "sum_gross": 0.0,
+    "hold_sum": 0,
+    "reasons": {}
+   }
+  }
+ }
+}
