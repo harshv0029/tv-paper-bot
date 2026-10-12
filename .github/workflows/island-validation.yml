@@ -1,0 +1,58 @@
+name: Island reversal validation (B-789)
+
+# B-789: re-tests reversal__island__long__1d__atr3_within8__v1 (PFnet 1.571) with gross-vs-net, ex-top-5,
+# per-year, liquidity/gap-size filters, both directions, ATR 1.5/2/3. FULL universe via
+# main._load_nse_universe_from_file(). Candle-size sweep: dispatch with interval=1d (5y), 1h (730d),
+# 15m / 5m (60d); 4h needs a 1h resample (owed). Research only; nothing wired. 4 shards + merge.
+on:
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: "Candle size (1d, 1h, 15m, 5m)"
+        default: "1d"
+      period:
+        description: "yfinance period (1d: 5y; 1h: 730d; 15m/5m: 60d)"
+        default: "5y"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - run: python3 scripts/island_validation.py run --shard ${{ matrix.shard }} --nshards 4 --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" --out out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: island-shard-${{ matrix.shard }}
+          path: out/
+          retention-days: 3
+
+  merge:
+    needs: run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: island-shard-*
+          merge-multiple: true
+      - run: python3 scripts/island_validation.py merge shards --json island_validation.json | tee island_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: island-validation-results-${{ inputs.interval }}
+          path: |
+            island_validation.json
+            island_table.txt

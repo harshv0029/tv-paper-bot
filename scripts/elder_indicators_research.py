@@ -370,7 +370,7 @@ def simulate(df, sig, direction, atr_mult, mgmt=None, atr_n=14, max_hold=MAX_HOL
         if exit_px is None:
             exit_px, reason, j = c[n - 1], "data_end", n - 1
         ret = d * (exit_px - px) / px - cost
-        trades.append({"ret": float(ret), "hold": int(j - e + 1), "reason": reason})
+        trades.append({"ret": float(ret), "hold": int(j - e + 1), "reason": reason, "s": int(s)})
         free = j
     return trades
 
