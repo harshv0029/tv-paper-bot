@@ -134,6 +134,23 @@ def simulate_marked_ledger(trades, dates, equity=1.0, max_open=10, margin_frac=0
             "max_dd_pct": round(100 * st["dd"], 4)}
 
 
+def ledger_trades_from_collect(streams, paths, key):
+    """B-743: turn portfolio_overlay_research.collect output (`collect --marks`) into simulate_marked_ledger trades.
+    key = "<base>|<long|short>|<atr_mult>". Row layout: [entry_sec, exit_sec, ret, stop_frac, hold, entry_px, tv,
+    reason(, sym)]; paths[key][j] = [secs, closes] aligned with streams[key][j]. Stop = entry -/+ stop_frac*entry
+    (a row with stop_frac <= 0 gets stop None and is refused by the ledger). Dates are epoch seconds. Approximation
+    (stated): entry price is the collect row's entry close, marks are bar closes."""
+    side = 1 if key.split("|")[1] == "long" else -1
+    out = []
+    for j, (row, pth) in enumerate(zip(streams.get(key, []), paths.get(key, []))):
+        entry, sf = float(row[5]), float(row[3])
+        stop = entry * (1 - side * sf) if sf > 0 and entry > 0 else None
+        out.append({"id": f"{key}#{j}" + (f"@{row[8]}" if len(row) > 8 else ""), "side": side,
+                    "entry_date": row[0], "exit_date": row[1], "entry": entry, "stop": stop,
+                    "marks": {int(d): float(px) for d, px in zip(pth[0], pth[1])}})
+    return out
+
+
 def correlation_screen(returns_by_sym, candidates, open_syms, max_corr=0.7, min_overlap=20):
     """B-746 Elder diversification: from `candidates` (preference order) keep those whose |corr| with EVERY already
     held symbol is <= max_corr (accepted candidates join the held set). returns_by_sym: {sym: [float|None]} date

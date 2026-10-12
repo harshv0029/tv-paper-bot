@@ -481,3 +481,10 @@ Profit-booking / exit takeaway: when capacity or margin binds, close the worst l
 - Fit: main.py has no kalman band code, so wiring needs a verbatim port, a replay through real functions, an ATR stop on every entry and MIS costs; none started.
 - Reuse: confirm the live code exists before calling a cell wiring-ready.
 - Profit-booking / exit takeaway: the forced 15:15 flatten removed most cells, so overnight carry was part of the edge; a same-day exit rule must be in the backtest before the numbers are trusted.
+
+## Chan 4h cell and marked-ledger mark paths (B-811, B-743, 2026-10-12 IST)
+- Mechanism: B-811 fetches 1h and resamples to session 4h bars (09:15-13:15, 13:15-close) so every Chan family gets a 4h cell; B-743 makes the collect stage store each trade's daily close path so a dated ledger can mark open positions to market, apply Vince's margin-call exit and close the worst loser first.
+- Fit: bar-count constants (lookbacks, holds) mean 4h bars, about 2 per NSE session, so cells are not comparable to 1h by number alone; the ledger needs a stop per trade (refused otherwise), matching the no-trade-without-SL rule. Collect marks are bar closes and entry is the collect row's entry close, so results are approximate.
+- Result: harness and tests only, nothing run yet; no PFnet to report.
+- Reuse: before assuming a harness lacks a candle size, grep its sibling (chan_ext_research.py already had 4h); keep new output flags default-off so old artifacts stay byte-identical.
+- Profit-booking / exit takeaway: closing the worst mark-to-market loser first, and never topping up a margin call, frees capital from losers rather than winners; judge it by net profit per bar held once the run exists.
