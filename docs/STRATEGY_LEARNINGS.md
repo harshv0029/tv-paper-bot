@@ -888,3 +888,27 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: the live scan records the entry on the signal day at the close while the replay fills at the next open; the exit adapter therefore defines the fill bar as the first bar after the entry day so the timeout and rule exit line up with the replay.
 - Reuse: when wiring a bar-indexed exit function that checks only the last row, replay every completed bar since the fill so a missed scan day cannot skip an equality test such as the 30-bar timeout; recover the entry price from the frozen stop and stored ATR instead of adding a column.
 - Profit-booking / exit takeaway: profit comes from letting winners run to the EMA13 rule exit or the 30-bar timeout, with a wide 4 ATR stop that is never tightened; the be1 ratchet added nothing out of sample, so do not add early profit-locks to this one.
+
+## Planned stop-% per tag, B-775 (2026-10-12)
+- Mechanism: planned stop distance per tag = ATR multiple x full-universe median ATR14/close for the tag's candle size (5m 0.301%, 15m 0.574%, 1h 1.269%, 1d 4.076%); run 38247767194, 24325 tags measured, atrnone tags excluded. It is a planned, not per-trade measured, distance.
+- Fit here: the no-trade-without-SL rule makes the stop a first-class property, and a 2% cap is only reachable on intraday candles (1d ATR 4% already exceeds it at 1 ATR).
+- Result: of viable (PFnet>=1.1, hold<=5 days) tags, 59 pass SL<=2%, 83 are over, 48 unmeasured; passers are chan_kalman 5m/15m (48), lunar (7), macddiv 1h (2), chan_tsm 1h (1), month 15m (1), none on 1d.
+- Surprised: the cheap measure answered the question without any re-run; the cap variant (slcap2 tags) is only needed if the user wants the 83 over-cap cells forced under 2%.
+- Reuse: keep the stop-% sidecar with every research output so cap questions are a lookup (`scripts/count_sl_cap.py --sidecar`); raw docs/backtest_data/stop_pct_run_38247767194_*.json.
+- Profit-booking / exit takeaway: a tight planned stop (<=2%) only coexists with a viable edge on the short-hold intraday mean-reversion cells; those books their profit on the rule exit within a session, so a stop cap costs nothing there but would choke the 1d trend/swing cells that need 3-4 ATR of room.
+
+## Elder gap/MACD >=1.1 cells at 1h, B-850/B-852 (2026-10-12)
+- Mechanism: re-run of the 1d gap fade (common/exhaust) and MACD histogram-exhaustion cells at 1h with trimmed-top-5, IS/OOS and bull/bear splits, floor 1.1, cost 0.8%; run 38272885846, 2488 symbols, 210 rows.
+- Fit here: the 1d edge came from overnight gap mean reversion; on 1h the bars are intraday and the 0.8% cost eats it.
+- Result: 0 of 210 confirmed; best all-sample PFnet 0.532 (gaps common_fade long atr3_nb5 segis), gaps long 0.481 n=49960, macd hist_exhaust long 0.449, shorts best 0.362. Both directions fail at 1h. 4h (run 38273734404) collect, 15m and 5m are owed.
+- Surprised: n of 50k to 460k per cell means massive overlap, yet PFnet still sits far below 1.1, so overlap inflation is not what is making it look weak.
+- Reuse: a 1d-only edge must not be assumed to carry across candle sizes; do not wire the 1d gap/MACD cells off the 1d number alone.
+- Profit-booking / exit takeaway: the 1d gap fade booked profit through the multi-day fade to the prior close, which a 1h bar-count exit cannot reproduce; at 1h every cell is net-negative after cost, so no exit tweak rescues it.
+
+## Island reversal non-overlap and IS/OOS, B-815 (2026-10-12)
+- Mechanism: island reversal (gap-isolated cluster closed by an opposite gap) long and short, 1d, ATR stop every trade, 30-bar cap; run 38221645245 with strict-FIFO one position per symbol and an entry-date IS/OOS split, filters none/px20/turn1cr/gap05/liq_gap.
+- Fit here: swing engine (1d), stop attached from entry, hold 7-9 days.
+- Result: non-overlap leaves the long cells intact (island_none atr3 1.573, n 8829, ex-top5 1.509). OOS long: none 1.19-1.21, px20 1.18-1.19, turn1cr 1.32-1.34 (n~1760, ex-top5 1.23-1.25), gap05 0.97-1.00 (fails). All shorts fail (best OOS 0.937). 72 tags registered research-only.
+- Surprised: IS beats OOS (1.79 vs 1.195) and the 2026 year drops to 0.63 (turn1cr 0.80), so the edge is fading even though OOS clears 1.1.
+- Reuse: always read the by-year column before trusting a pooled PFnet; a pass on the OOS half can still hide a decaying latest year. Short mirror tested and registered, fails.
+- Profit-booking / exit takeaway: most trades exit on the rule (avg 7-9 bars) not the 30-bar timeout, and the wider ATR 3 stop beats ATR 1.5 (fewer stop-outs: 208 vs 865 on gap05) so give the trade room and let the reversal rule book the profit.

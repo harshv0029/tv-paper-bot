@@ -10,14 +10,14 @@ Total rows: 853 | closed: 369 | not closed: 484
 |---|---|
 | DONE | 203 |
 | CLOSED-AS-EXPLAINED | 124 |
-| HARNESS-BUILT-RUN-PENDING | 102 |
+| HARNESS-BUILT-RUN-PENDING | 101 |
 | HARNESS-BUILT-AWAITING-RUN | 99 |
 | DONE-PENDING-VERIFY | 89 |
 | PARTIAL | 66 |
 | BLOCKED | 63 |
 | DONE-MERGED | 22 |
 | CLOSED | 19 |
-| OPEN | 19 |
+| OPEN | 16 |
 | PENDING | 12 |
 | BUILT-ON-BRANCH | 6 |
 | OPEN-PARKED | 6 |
@@ -26,10 +26,13 @@ Total rows: 853 | closed: 369 | not closed: 484
 | PARKED | 2 |
 | TODO | 2 |
 | IN-PROGRESS | 2 |
+| PARTIAL-1H-FAILED-TO-CONFIRM | 2 |
 | DONE-ON-BRANCH | 2 |
 | OWNER-ACTION | 1 |
+| DONE-MEASURED | 1 |
 | BLOCKED-ON-RUN | 1 |
 | HARNESS-RUN-DONE | 1 |
+| PARTIAL-1D-REGISTERED | 1 |
 | ROOT-CAUSED | 1 |
 | IN | 1 |
 | DONE-REGISTERED | 1 |
@@ -52,7 +55,7 @@ Total rows: 853 | closed: 369 | not closed: 484
 |---|---|---|---|---|
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (402)
+## waiting-on-workflow/deploy (401)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -246,7 +249,6 @@ Total rows: 853 | closed: 369 | not closed: 484
 | B-798 | P1 | DONE-PENDING-VERIFY | Wire/replay brk20_min_rr (20-bar breakout entry with ATR stop and minimum reward:risk target) long+short, a... | owed, pending, needs, owner |
 | B-812 | P1 | DONE-PENDING-VERIFY | Strict-FIFO (one position per symbol per cell) non-overlap re-run of the 4 macddiv 1h long cells >=1.1 (lin... | owed, pending, verify |
 | B-814 | P1 | HARNESS-BUILT-RUN-PENDING | macddiv line_any 1h long (non-overlap PFnet 1.46) needs an IS/OOS split and an SL-attached live 1h entry pa... | owed, pending, needs, follow-up |
-| B-815 | P1 | HARNESS-BUILT-RUN-PENDING | Island reversal (B-789, run 38192367677) long cells >=1.1 (filters none/px20/turn1cr/gap05 x ATR 1.5/2/3 = ... | owed, pending |
 | B-817 | P1 | DONE-PENDING-VERIFY | Trade-view Remarks for Kotak order-book exit fills (DABUR 2026-10-12 IST showed only "exit fill from Kotak ... | owed, pending, verify, follow-up |
 | B-830 | P1 | DONE-PENDING-VERIFY | O'Neil extension run 38207070547 (2026-10-12 IST, cost 0.8%, ~2166 symbols): 564 cells (1d 282, 1w 282; eac... | pending |
 | B-867 | P1 | BUILT-ON-BRANCH | 2026-10-12 | owed, pending |
@@ -474,7 +476,7 @@ Total rows: 853 | closed: 369 | not closed: 484
 | B-851 | P2 | OPEN | Reproducibility of Elder MACD/gap cells: re-run 38208431466 (7059 fetched) vs 38177547622 (7049): all 120 t... |  |
 | B-870 | P2 | DONE-ON-BRANCH | 2026-10-12 IST, 4h candle owed note (B-16/B-341/B-424..B-452): yfinance has no 4h, so 4h needs a 1h resample | owed, needs |
 
-## research-queue (71)
+## research-queue (72)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -504,18 +506,19 @@ Total rows: 853 | closed: 369 | not closed: 484
 | B-596 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, needs |
 | B-597 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, follow-up |
 | B-743 | P1 | PARTIAL | 2026-10-12 IST DISPATCH-READY 2026-10-12 (portfolio-overlay-research at other candle sizes) |  |
-| B-775 | P1 | OPEN | 2026-10-11 IST user question: count of tags with PFnet>=1.1, hold<=5 trading days and planned SL strictly <... | owed, pending, awaiting, waiting |
+| B-775 | P1 | DONE-MEASURED | 2026-10-11 IST user question: count of tags with PFnet>=1.1, hold<=5 trading days and planned SL strictly <... | owed, pending, awaiting, waiting |
 | B-779 | P1 | OPEN | Trade-view "Viable strategies" shows only the 94 viable tags that have a live scan path (scan_wired=True); ... | owed, open:, needs |
 | B-787 | P1 | OPEN | O'Neil replay RESULT (run 38149046190, 2026-10-11 IST, bar-by-bar port, 1955 syms 1w, cost 0.8%): 6/7 tags ... | owed |
 | B-789 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (island reversal at 1h/15m/5m, also covers B-815 nonovl + IS/OOS c... | owed |
 | B-806 | P1 | OPEN | Dispatch the 203 HARNESS-BUILT rows (13 workflows, all already on main, none broken) in the order in docs/P... | pending |
 | B-812 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (macddiv non-overlap, other candle sizes; also covers B-814 IS/OOS... | owed |
+| B-815 | P1 | PARTIAL-1D-REGISTERED | Island reversal (B-789, run 38192367677) long cells >=1.1 (filters none/px20/turn1cr/gap05 x ATR 1.5/2/3 = ... | owed |
 | B-818 | P1 | OPEN | O'Neil cup-and-handle family (run 38193479637, 1d+1w, 2352 new tags registered research-only) | owed |
 | B-831 | P1 | TODO | Overlapping-signal inflation guard for the O'Neil extension cells: every cell >=1.1 (80 new, n up to 50,615... | owed, todo |
 | B-832 | P1 | TODO | Regime check for the weekly long grid: 137/141 weekly long cells >=1.1 while shorts fail is a rising-market... | todo |
 | B-840 | P1 | OPEN | Douglas/Elder trade-management brk20_min_rr cells >=1.1 (run 38207068830, 1d, 0.8% cost; all n>=250): short... | owed, needs |
-| B-850 | P1 | OPEN | Elder gap/MACD cells >=1.1 (run 38208431466, 1d, 0.8% cost, n>=250): gaps exhaust_fade long atr3_nb5 1.252 ... | owed, needs |
-| B-852 | P1 | OPEN | Bidirectional gap finding: gaps exhaust_fade/common_fade long clear 1.1 at 3.4-3.7d hold but the short mirr... | owed |
+| B-850 | P1 | PARTIAL-1H-FAILED-TO-CONFIRM | Elder gap/MACD cells >=1.1 (run 38208431466, 1d, 0.8% cost, n>=250): gaps exhaust_fade long atr3_nb5 1.252 ... | owed, pending, needs |
+| B-852 | P1 | PARTIAL-1H-FAILED-TO-CONFIRM | Bidirectional gap finding: gaps exhaust_fade/common_fade long clear 1.1 at 3.4-3.7d hold but the short mirr... | owed |
 | B-860 | P1 | OPEN | Trustworthy option-premium backtest path (design: STRATEGY_LEARNINGS 'Option premium backtest') | owed |
 | B-861 | P1 | OPEN | Index option trigger research (options category has no validated entry; option-premium history does not exist) | owed, needs |
 | B-863 | P1 | PARTIAL | Elder batch 3 RERUN run 38211452647 (2026-10-12 IST, 1d osc/struct/breadth/chan + 5m orb, cost 0.008): all ... | owed, follow-up |
