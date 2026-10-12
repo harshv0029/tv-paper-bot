@@ -2801,6 +2801,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_md.build())
         import strategy_registry_macddivnonovl as _mn
         REGISTRY.extend(_mn.build())
+        import strategy_registry_macddivoos as _mo
+        REGISTRY.extend(_mo.build())
         import strategy_registry_island as _is
         REGISTRY.extend(_is.build())
         import strategy_registry_oneilcup as _oc
@@ -2821,10 +2823,16 @@ def _extend_with_sweeps():
         REGISTRY.extend(_pv.build())
         import strategy_registry_brk20 as _bk
         REGISTRY.extend(_bk.build())
+        import strategy_registry_brk20_isoos as _bki
+        REGISTRY.extend(_bki.build())
         import strategy_registry_elderpat as _ep
         REGISTRY.extend(_ep.build())
         import strategy_registry_dirsys_oneilnonovl as _dn
         REGISTRY.extend(_dn.build())
+        import strategy_registry_swingminrr as _sm
+        REGISTRY.extend(_sm.build())
+        import strategy_registry_swingminrr_1h as _sm1h
+        REGISTRY.extend(_sm1h.build())
         import strategy_registry_flatten as _fl
         REGISTRY.extend(_fl.build())
         import strategy_registry_grossfill as _gf

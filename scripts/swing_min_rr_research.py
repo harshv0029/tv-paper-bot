@@ -47,6 +47,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
+import research_interval as ri  # noqa: E402
 from elder_batch3_research import bad_bar_mask  # noqa: E402
 
 FAMILY = "swingminrr"
@@ -290,7 +291,7 @@ def _main_shard(args):
     aggs, fetched = {}, 0
     for s in syms:
         try:
-            raw = m.fetch_ohlc(s, args.period, args.interval)
+            raw = ri.fetch_interval(m, s, args.period, args.interval)
             if raw is None or len(raw) < 120:
                 continue
             df = er.prep(raw)
@@ -309,7 +310,7 @@ def main(argv=None):
     ap.add_argument("--entry", choices=ENTRIES)
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--nshards", type=int, default=4)
-    ap.add_argument("--interval", default="1d")
+    ap.add_argument("--interval", default="1d", choices=ri.INTERVALS)
     ap.add_argument("--period", default="5y")
     ap.add_argument("--max-symbols", type=int, default=0)
     ap.add_argument("--out", default="out")

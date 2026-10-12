@@ -28,6 +28,7 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
 import universe_pin as up  # noqa: E402
+import research_interval as ri  # noqa: E402
 import macd_divergence_research as md  # noqa: E402
 
 INTERVAL = "1h"  # default; --interval overrides (1d/1h/15m/5m)
@@ -138,7 +139,7 @@ def _main_shard(args):
     aggs, raw_counts, fetched, got = {}, {}, 0, []
     for s in syms:
         try:
-            raw = m.fetch_ohlc(s, args.period or PERIODS[interval], interval)
+            raw = ri.fetch_interval(m, s, args.period or PERIODS[interval], interval)
             if raw is None or len(raw) < 120:
                 continue
             run_symbol(er.prep(raw), aggs, raw_counts, args.split_date, args.split_frac, interval, cells, directions)

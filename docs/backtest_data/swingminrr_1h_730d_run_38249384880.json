@@ -1,0 +1,8195 @@
+{
+ "symbols_fetched": 7464,
+ "universe_size": 8064,
+ "cost_round_trip": 0.008,
+ "max_hold_bars": 30,
+ "rows": [
+  {
+   "tag": "swingminrr__brk20_gate__short__1h__atr3_rr4__v1",
+   "n": 2267,
+   "pfnet": 1.702,
+   "pf_gross": 2.463,
+   "pfnet_ex_top5": 1.662,
+   "win_pct": 48.74,
+   "avg_hold_bars": 23.39,
+   "avg_net_ret_pct": 1.268,
+   "win_sum": 69.7171,
+   "loss_sum": 40.9652,
+   "exit_reasons": {
+    "data_end": 2,
+    "max_hold_timeout": 1345,
+    "stop_loss": 920
+   },
+   "top5": [
+    [
+     0.46461,
+     "TECILCHEM.NS",
+     "2025-05-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.37017,
+     "EUROTEXIND.NS",
+     "2024-10-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.32978,
+     "TECILCHEM.NS",
+     "2024-06-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.25287,
+     "RADAAN.NS",
+     "2024-03-04",
+     "max_hold_timeout"
+    ],
+    [
+     0.2206,
+     "INFOMEDIA.NS",
+     "2025-06-16",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 8
+  },
+  {
+   "tag": "swingminrr__brk20_gatetarget__short__1h__atr3_rr4__v1",
+   "n": 2293,
+   "pfnet": 1.561,
+   "pf_gross": 2.292,
+   "pfnet_ex_top5": 1.536,
+   "win_pct": 49.85,
+   "avg_hold_bars": 21.61,
+   "avg_net_ret_pct": 0.996,
+   "win_sum": 63.5765,
+   "loss_sum": 40.7351,
+   "exit_reasons": {
+    "data_end": 2,
+    "max_hold_timeout": 971,
+    "stop_loss": 916,
+    "target": 404
+   },
+   "top5": [
+    [
+     0.23798,
+     "TECILCHEM.NS",
+     "2025-05-05",
+     "target"
+    ],
+    [
+     0.2049,
+     "ZENITHEXPO.NS",
+     "2025-02-18",
+     "target"
+    ],
+    [
+     0.20375,
+     "JITFINFRA.NS",
+     "2024-11-08",
+     "target"
+    ],
+    [
+     0.17968,
+     "CREATIVEYE.NS",
+     "2025-06-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.17848,
+     "HYBRIDFIN.NS",
+     "2025-06-16",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 8
+  },
+  {
+   "tag": "swingminrr__order_block_gate__short__1h__atr3_rr4__v1",
+   "n": 129,
+   "pfnet": 1.183,
+   "pf_gross": 1.518,
+   "pfnet_ex_top5": 0.95,
+   "win_pct": 49.61,
+   "avg_hold_bars": 23.45,
+   "avg_net_ret_pct": 0.545,
+   "win_sum": 4.5541,
+   "loss_sum": 3.851,
+   "exit_reasons": {
+    "max_hold_timeout": 80,
+    "stop_loss": 49
+   },
+   "top5": [
+    [
+     0.19981,
+     "HPIL.NS",
+     "2024-01-30",
+     "max_hold_timeout"
+    ],
+    [
+     0.18301,
+     "UNITECH.NS",
+     "2025-06-13",
+     "max_hold_timeout"
+    ],
+    [
+     0.17923,
+     "AAKASH.NS",
+     "2023-12-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.16942,
+     "UNITECH.NS",
+     "2024-02-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.16397,
+     "DNAMEDIA.NS",
+     "2024-06-21",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__order_block_gatetarget__short__1h__atr3_rr4__v1",
+   "n": 129,
+   "pfnet": 1.183,
+   "pf_gross": 1.518,
+   "pfnet_ex_top5": 0.95,
+   "win_pct": 49.61,
+   "avg_hold_bars": 23.45,
+   "avg_net_ret_pct": 0.545,
+   "win_sum": 4.5541,
+   "loss_sum": 3.851,
+   "exit_reasons": {
+    "max_hold_timeout": 80,
+    "stop_loss": 49
+   },
+   "top5": [
+    [
+     0.19981,
+     "HPIL.NS",
+     "2024-01-30",
+     "max_hold_timeout"
+    ],
+    [
+     0.18301,
+     "UNITECH.NS",
+     "2025-06-13",
+     "max_hold_timeout"
+    ],
+    [
+     0.17923,
+     "AAKASH.NS",
+     "2023-12-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.16942,
+     "UNITECH.NS",
+     "2024-02-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.16397,
+     "DNAMEDIA.NS",
+     "2024-06-21",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__brk20_gate__long__1h__atr3_rr4__v1",
+   "n": 2036,
+   "pfnet": 1.141,
+   "pf_gross": 1.698,
+   "pfnet_ex_top5": 1.101,
+   "win_pct": 33.3,
+   "avg_hold_bars": 23.17,
+   "avg_net_ret_pct": 0.291,
+   "win_sum": 48.1589,
+   "loss_sum": 42.2247,
+   "exit_reasons": {
+    "data_end": 9,
+    "max_hold_timeout": 1134,
+    "stop_loss": 893
+   },
+   "top5": [
+    [
+     0.46802,
+     "BLUECOAST.NS",
+     "2025-07-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.33112,
+     "MASKINVEST.NS",
+     "2024-04-22",
+     "max_hold_timeout"
+    ],
+    [
+     0.32586,
+     "SUMEETINDS.NS",
+     "2025-07-01",
+     "max_hold_timeout"
+    ],
+    [
+     0.27405,
+     "SHYAMTEL.NS",
+     "2024-04-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.26893,
+     "POKARNA.NS",
+     "2025-01-30",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 4
+  },
+  {
+   "tag": "swingminrr__order_block_gate__short__1h__atr3_rr3__v1",
+   "n": 617,
+   "pfnet": 1.082,
+   "pf_gross": 1.414,
+   "pfnet_ex_top5": 1.018,
+   "win_pct": 49.27,
+   "avg_hold_bars": 24.52,
+   "avg_net_ret_pct": 0.239,
+   "win_sum": 19.3814,
+   "loss_sum": 17.9057,
+   "exit_reasons": {
+    "data_end": 1,
+    "max_hold_timeout": 405,
+    "stop_loss": 211
+   },
+   "top5": [
+    [
+     0.27581,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.23772,
+     "SAKUMA.NS",
+     "2024-08-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.23745,
+     "INFOMEDIA.NS",
+     "2024-10-03",
+     "max_hold_timeout"
+    ],
+    [
+     0.20776,
+     "ARTNIRMAN.NS",
+     "2024-12-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.20185,
+     "WEWIN.NS",
+     "2025-10-15",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__brk20_gate__short__1h__atr3_rr3__v1",
+   "n": 6132,
+   "pfnet": 1.039,
+   "pf_gross": 1.526,
+   "pfnet_ex_top5": 1.026,
+   "win_pct": 43.57,
+   "avg_hold_bars": 23.02,
+   "avg_net_ret_pct": 0.082,
+   "win_sum": 134.2869,
+   "loss_sum": 129.2622,
+   "exit_reasons": {
+    "data_end": 7,
+    "max_hold_timeout": 3469,
+    "stop_loss": 2656
+   },
+   "top5": [
+    [
+     0.46461,
+     "TECILCHEM.NS",
+     "2025-05-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.37017,
+     "EUROTEXIND.NS",
+     "2024-10-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.32978,
+     "TECILCHEM.NS",
+     "2024-06-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.28535,
+     "EMAMIREAL.NS",
+     "2024-12-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.25392,
+     "EUROTEXIND.NS",
+     "2025-12-11",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 9
+  },
+  {
+   "tag": "swingminrr__order_block_gatetarget__short__1h__atr2_rr4__v1",
+   "n": 999,
+   "pfnet": 1.029,
+   "pf_gross": 1.392,
+   "pfnet_ex_top5": 0.981,
+   "win_pct": 44.34,
+   "avg_hold_bars": 20.9,
+   "avg_net_ret_pct": 0.076,
+   "win_sum": 27.4394,
+   "loss_sum": 26.6777,
+   "exit_reasons": {
+    "data_end": 3,
+    "max_hold_timeout": 491,
+    "stop_loss": 477,
+    "target": 28
+   },
+   "top5": [
+    [
+     0.28245,
+     "QUADFUTURE.NS",
+     "2025-02-06",
+     "target"
+    ],
+    [
+     0.25979,
+     "INFOMEDIA.NS",
+     "2024-10-14",
+     "target"
+    ],
+    [
+     0.24874,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "target"
+    ],
+    [
+     0.24836,
+     "ASMS.NS",
+     "2026-02-06",
+     "target"
+    ],
+    [
+     0.22642,
+     "ORTINGLOBE.NS",
+     "2025-12-09",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__order_block_gate__long__1h__atr3_rr3__v1",
+   "n": 799,
+   "pfnet": 1.022,
+   "pf_gross": 1.365,
+   "pfnet_ex_top5": 0.955,
+   "win_pct": 44.06,
+   "avg_hold_bars": 25.28,
+   "avg_net_ret_pct": 0.061,
+   "win_sum": 22.7729,
+   "loss_sum": 22.288,
+   "exit_reasons": {
+    "data_end": 3,
+    "max_hold_timeout": 532,
+    "stop_loss": 264
+   },
+   "top5": [
+    [
+     0.4169,
+     "INDOTHAI.NS",
+     "2024-08-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.26656,
+     "CAMLINFINE.NS",
+     "2025-04-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.26594,
+     "LATTEYS.NS",
+     "2025-03-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.26567,
+     "ORIENTALTL.NS",
+     "2024-10-17",
+     "max_hold_timeout"
+    ],
+    [
+     0.26499,
+     "WANBURY.NS",
+     "2025-03-04",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__order_block_gate__short__1h__atr2_rr4__v1",
+   "n": 999,
+   "pfnet": 1.016,
+   "pf_gross": 1.377,
+   "pfnet_ex_top5": 0.969,
+   "win_pct": 44.34,
+   "avg_hold_bars": 21.16,
+   "avg_net_ret_pct": 0.043,
+   "win_sum": 27.1063,
+   "loss_sum": 26.6777,
+   "exit_reasons": {
+    "data_end": 3,
+    "max_hold_timeout": 519,
+    "stop_loss": 477
+   },
+   "top5": [
+    [
+     0.28854,
+     "INFOMEDIA.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.27581,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.23772,
+     "SAKUMA.NS",
+     "2024-08-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.228,
+     "JYOTISTRUC.NS",
+     "2025-02-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.21587,
+     "PYRAMID.NS",
+     "2024-11-08",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__order_block_gatetarget__long__1h__atr3_rr4__v1",
+   "n": 232,
+   "pfnet": 0.96,
+   "pf_gross": 1.259,
+   "pfnet_ex_top5": 0.78,
+   "win_pct": 40.95,
+   "avg_hold_bars": 24.41,
+   "avg_net_ret_pct": -0.124,
+   "win_sum": 6.8498,
+   "loss_sum": 7.1374,
+   "exit_reasons": {
+    "data_end": 1,
+    "max_hold_timeout": 141,
+    "stop_loss": 82,
+    "target": 8
+   },
+   "top5": [
+    [
+     0.2973,
+     "CAMLINFINE.NS",
+     "2025-04-09",
+     "target"
+    ],
+    [
+     0.25627,
+     "PGIL.NS",
+     "2025-04-07",
+     "max_hold_timeout"
+    ],
+    [
+     0.25136,
+     "SAKUMA.NS",
+     "2024-06-13",
+     "target"
+    ],
+    [
+     0.24487,
+     "TCIFINANCE.NS",
+     "2025-06-27",
+     "target"
+    ],
+    [
+     0.23608,
+     "ORIENTALTL.NS",
+     "2024-10-17",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__order_block_gate__long__1h__atr3_rr4__v1",
+   "n": 232,
+   "pfnet": 0.933,
+   "pf_gross": 1.227,
+   "pfnet_ex_top5": 0.757,
+   "win_pct": 40.95,
+   "avg_hold_bars": 24.7,
+   "avg_net_ret_pct": -0.206,
+   "win_sum": 6.6605,
+   "loss_sum": 7.1374,
+   "exit_reasons": {
+    "data_end": 1,
+    "max_hold_timeout": 149,
+    "stop_loss": 82
+   },
+   "top5": [
+    [
+     0.26656,
+     "CAMLINFINE.NS",
+     "2025-04-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.26567,
+     "ORIENTALTL.NS",
+     "2024-10-17",
+     "max_hold_timeout"
+    ],
+    [
+     0.25627,
+     "PGIL.NS",
+     "2025-04-07",
+     "max_hold_timeout"
+    ],
+    [
+     0.23704,
+     "SAKUMA.NS",
+     "2024-06-13",
+     "max_hold_timeout"
+    ],
+    [
+     0.22918,
+     "LAL.NS",
+     "2025-03-04",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__brk20_gatetarget__long__1h__atr3_rr4__v1",
+   "n": 2049,
+   "pfnet": 0.928,
+   "pf_gross": 1.424,
+   "pfnet_ex_top5": 0.9,
+   "win_pct": 35.09,
+   "avg_hold_bars": 20.73,
+   "avg_net_ret_pct": -0.146,
+   "win_sum": 38.7992,
+   "loss_sum": 41.7894,
+   "exit_reasons": {
+    "data_end": 8,
+    "max_hold_timeout": 782,
+    "stop_loss": 878,
+    "target": 381
+   },
+   "top5": [
+    [
+     0.27724,
+     "MASKINVEST.NS",
+     "2024-04-22",
+     "target"
+    ],
+    [
+     0.24057,
+     "POKARNA.NS",
+     "2025-01-30",
+     "target"
+    ],
+    [
+     0.23167,
+     "BOHRAIND.NS",
+     "2023-12-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.2225,
+     "SHYAMTEL.NS",
+     "2024-04-08",
+     "target"
+    ],
+    [
+     0.21497,
+     "SINDHUTRAD.NS",
+     "2024-03-15",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 4
+  },
+  {
+   "tag": "swingminrr__order_block_gate__short__1h__atr3_rr2__v1",
+   "n": 2207,
+   "pfnet": 0.918,
+   "pf_gross": 1.217,
+   "pfnet_ex_top5": 0.9,
+   "win_pct": 49.98,
+   "avg_hold_bars": 24.93,
+   "avg_net_ret_pct": -0.242,
+   "win_sum": 59.8468,
+   "loss_sum": 65.1986,
+   "exit_reasons": {
+    "data_end": 11,
+    "max_hold_timeout": 1459,
+    "stop_loss": 737
+   },
+   "top5": [
+    [
+     0.27581,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.23772,
+     "SAKUMA.NS",
+     "2024-08-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.23745,
+     "INFOMEDIA.NS",
+     "2024-10-03",
+     "max_hold_timeout"
+    ],
+    [
+     0.21819,
+     "INFOMEDIA.NS",
+     "2025-02-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.21587,
+     "PYRAMID.NS",
+     "2024-11-08",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__order_block_gatetarget__long__1h__atr2_rr4__v1",
+   "n": 1294,
+   "pfnet": 0.914,
+   "pf_gross": 1.261,
+   "pfnet_ex_top5": 0.876,
+   "win_pct": 36.17,
+   "avg_hold_bars": 20.26,
+   "avg_net_ret_pct": -0.231,
+   "win_sum": 31.6454,
+   "loss_sum": 34.6298,
+   "exit_reasons": {
+    "data_end": 5,
+    "max_hold_timeout": 561,
+    "stop_loss": 648,
+    "target": 80
+   },
+   "top5": [
+    [
+     0.29858,
+     "WANBURY.NS",
+     "2025-03-04",
+     "target"
+    ],
+    [
+     0.28184,
+     "VERANDA.NS",
+     "2025-02-18",
+     "target"
+    ],
+    [
+     0.24775,
+     "BOHRAIND.NS",
+     "2024-09-09",
+     "target"
+    ],
+    [
+     0.23543,
+     "INDOTHAI.NS",
+     "2024-08-20",
+     "target"
+    ],
+    [
+     0.23348,
+     "GOLDIAM.NS",
+     "2025-01-28",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__brk20_gate__long__1h__atr3_rr3__v1",
+   "n": 4566,
+   "pfnet": 0.911,
+   "pf_gross": 1.348,
+   "pfnet_ex_top5": 0.892,
+   "win_pct": 34.21,
+   "avg_hold_bars": 23.65,
+   "avg_net_ret_pct": -0.199,
+   "win_sum": 92.6315,
+   "loss_sum": 101.7369,
+   "exit_reasons": {
+    "data_end": 19,
+    "max_hold_timeout": 2566,
+    "stop_loss": 1981
+   },
+   "top5": [
+    [
+     0.46802,
+     "BLUECOAST.NS",
+     "2025-07-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.39074,
+     "PRECAM.NS",
+     "2024-08-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.37766,
+     "SVPGLOB.NS",
+     "2024-12-03",
+     "max_hold_timeout"
+    ],
+    [
+     0.33112,
+     "MASKINVEST.NS",
+     "2024-04-22",
+     "max_hold_timeout"
+    ],
+    [
+     0.33059,
+     "RSSOFTWARE.NS",
+     "2026-04-06",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 5
+  },
+  {
+   "tag": "swingminrr__brk20_gate__short__1h__atr2_rr4__v1",
+   "n": 8763,
+   "pfnet": 0.907,
+   "pf_gross": 1.404,
+   "pfnet_ex_top5": 0.897,
+   "win_pct": 36.08,
+   "avg_hold_bars": 19.15,
+   "avg_net_ret_pct": -0.187,
+   "win_sum": 160.2012,
+   "loss_sum": 176.6218,
+   "exit_reasons": {
+    "data_end": 8,
+    "max_hold_timeout": 3695,
+    "stop_loss": 5060
+   },
+   "top5": [
+    [
+     0.46461,
+     "TECILCHEM.NS",
+     "2025-05-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.37017,
+     "EUROTEXIND.NS",
+     "2024-10-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.33379,
+     "TI.NS",
+     "2025-02-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.32978,
+     "TECILCHEM.NS",
+     "2024-06-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.30152,
+     "GLFL.NS",
+     "2026-02-24",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 10
+  },
+  {
+   "tag": "swingminrr__order_block_gate__long__1h__atr2_rr4__v1",
+   "n": 1294,
+   "pfnet": 0.902,
+   "pf_gross": 1.245,
+   "pfnet_ex_top5": 0.855,
+   "win_pct": 35.94,
+   "avg_hold_bars": 20.95,
+   "avg_net_ret_pct": -0.264,
+   "win_sum": 31.3128,
+   "loss_sum": 34.7256,
+   "exit_reasons": {
+    "data_end": 5,
+    "max_hold_timeout": 639,
+    "stop_loss": 650
+   },
+   "top5": [
+    [
+     0.4169,
+     "INDOTHAI.NS",
+     "2024-08-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.35038,
+     "SERVOTECH.NS",
+     "2026-01-30",
+     "max_hold_timeout"
+    ],
+    [
+     0.31589,
+     "LAXMIDENTL.NS",
+     "2025-03-03",
+     "max_hold_timeout"
+    ],
+    [
+     0.27177,
+     "DHANBANK.NS",
+     "2026-10-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.26656,
+     "CAMLINFINE.NS",
+     "2025-04-09",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__order_block_gate__long__1h__atr3_rr2__v1",
+   "n": 3124,
+   "pfnet": 0.899,
+   "pf_gross": 1.225,
+   "pfnet_ex_top5": 0.873,
+   "win_pct": 40.81,
+   "avg_hold_bars": 25.89,
+   "avg_net_ret_pct": -0.28,
+   "win_sum": 77.6592,
+   "loss_sum": 86.3974,
+   "exit_reasons": {
+    "data_end": 18,
+    "max_hold_timeout": 2112,
+    "stop_loss": 994
+   },
+   "top5": [
+    [
+     0.5016,
+     "MAHAPEXLTD.NS",
+     "2025-12-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.4572,
+     "ASIANHOTNR.NS",
+     "2024-12-19",
+     "max_hold_timeout"
+    ],
+    [
+     0.42926,
+     "ASTEC.NS",
+     "2025-11-18",
+     "max_hold_timeout"
+    ],
+    [
+     0.4169,
+     "INDOTHAI.NS",
+     "2024-08-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.40795,
+     "EUROTEXIND.NS",
+     "2026-09-23",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__order_block_gatetarget__short__1h__atr1d5_rr4__v1",
+   "n": 2494,
+   "pfnet": 0.887,
+   "pf_gross": 1.246,
+   "pfnet_ex_top5": 0.872,
+   "win_pct": 38.01,
+   "avg_hold_bars": 17.79,
+   "avg_net_ret_pct": -0.289,
+   "win_sum": 56.7849,
+   "loss_sum": 63.9859,
+   "exit_reasons": {
+    "data_end": 8,
+    "max_hold_timeout": 934,
+    "stop_loss": 1418,
+    "target": 134
+   },
+   "top5": [
+    [
+     0.20984,
+     "QUADFUTURE.NS",
+     "2025-02-06",
+     "target"
+    ],
+    [
+     0.20046,
+     "KOHINOOR.NS",
+     "2023-12-11",
+     "target"
+    ],
+    [
+     0.19851,
+     "MKPL.NS",
+     "2025-06-18",
+     "target"
+    ],
+    [
+     0.19808,
+     "CHEMBOND.NS",
+     "2026-09-10",
+     "target"
+    ],
+    [
+     0.1953,
+     "AAKASH.NS",
+     "2026-03-10",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__order_block_gate__short__1h__atr2_rr3__v1",
+   "n": 2328,
+   "pfnet": 0.886,
+   "pf_gross": 1.206,
+   "pfnet_ex_top5": 0.867,
+   "win_pct": 43.81,
+   "avg_hold_bars": 21.34,
+   "avg_net_ret_pct": -0.317,
+   "win_sum": 57.3331,
+   "loss_sum": 64.7197,
+   "exit_reasons": {
+    "data_end": 11,
+    "max_hold_timeout": 1210,
+    "stop_loss": 1107
+   },
+   "top5": [
+    [
+     0.28854,
+     "INFOMEDIA.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.27581,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.23772,
+     "SAKUMA.NS",
+     "2024-08-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.228,
+     "JYOTISTRUC.NS",
+     "2025-02-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.21819,
+     "INFOMEDIA.NS",
+     "2025-02-10",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__order_block_gate__short__1h__atr1d5_rr4__v1",
+   "n": 2493,
+   "pfnet": 0.863,
+   "pf_gross": 1.215,
+   "pfnet_ex_top5": 0.843,
+   "win_pct": 37.91,
+   "avg_hold_bars": 18.33,
+   "avg_net_ret_pct": -0.353,
+   "win_sum": 55.257,
+   "loss_sum": 64.0659,
+   "exit_reasons": {
+    "data_end": 8,
+    "max_hold_timeout": 1065,
+    "stop_loss": 1420
+   },
+   "top5": [
+    [
+     0.28854,
+     "INFOMEDIA.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.27581,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.23772,
+     "SAKUMA.NS",
+     "2024-08-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.228,
+     "JYOTISTRUC.NS",
+     "2025-02-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.21819,
+     "INFOMEDIA.NS",
+     "2025-02-10",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__brk20_gatetarget__short__1h__atr2_rr4__v1",
+   "n": 9000,
+   "pfnet": 0.845,
+   "pf_gross": 1.334,
+   "pfnet_ex_top5": 0.839,
+   "win_pct": 37.82,
+   "avg_hold_bars": 17.48,
+   "avg_net_ret_pct": -0.306,
+   "win_sum": 149.5092,
+   "loss_sum": 177.0198,
+   "exit_reasons": {
+    "data_end": 8,
+    "max_hold_timeout": 2702,
+    "stop_loss": 5071,
+    "target": 1219
+   },
+   "top5": [
+    [
+     0.19096,
+     "EUROTEXIND.NS",
+     "2025-12-11",
+     "target"
+    ],
+    [
+     0.18543,
+     "TECILCHEM.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.17968,
+     "CREATIVEYE.NS",
+     "2025-06-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.17793,
+     "CREATIVEYE.NS",
+     "2025-02-13",
+     "target"
+    ],
+    [
+     0.17548,
+     "GLFL.NS",
+     "2026-02-24",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 8
+  },
+  {
+   "tag": "swingminrr__brk20_gate__long__1h__atr2_rr4__v1",
+   "n": 6591,
+   "pfnet": 0.843,
+   "pf_gross": 1.317,
+   "pfnet_ex_top5": 0.828,
+   "win_pct": 29.56,
+   "avg_hold_bars": 19.74,
+   "avg_net_ret_pct": -0.322,
+   "win_sum": 114.1085,
+   "loss_sum": 135.3019,
+   "exit_reasons": {
+    "data_end": 17,
+    "max_hold_timeout": 2753,
+    "stop_loss": 3821
+   },
+   "top5": [
+    [
+     0.49731,
+     "EUROTEXIND.NS",
+     "2024-12-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.46802,
+     "BLUECOAST.NS",
+     "2025-07-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.39074,
+     "PRECAM.NS",
+     "2024-08-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.37766,
+     "SVPGLOB.NS",
+     "2024-12-03",
+     "max_hold_timeout"
+    ],
+    [
+     0.33608,
+     "COCHINSHIP.NS",
+     "2025-05-12",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 4
+  },
+  {
+   "tag": "swingminrr__order_block_gate__long__1h__atr2_rr3__v1",
+   "n": 3208,
+   "pfnet": 0.826,
+   "pf_gross": 1.154,
+   "pfnet_ex_top5": 0.8,
+   "win_pct": 34.88,
+   "avg_hold_bars": 21.54,
+   "avg_net_ret_pct": -0.465,
+   "win_sum": 70.81,
+   "loss_sum": 85.7335,
+   "exit_reasons": {
+    "data_end": 16,
+    "max_hold_timeout": 1609,
+    "stop_loss": 1583
+   },
+   "top5": [
+    [
+     0.5016,
+     "MAHAPEXLTD.NS",
+     "2025-12-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.4572,
+     "ASIANHOTNR.NS",
+     "2024-12-19",
+     "max_hold_timeout"
+    ],
+    [
+     0.42926,
+     "ASTEC.NS",
+     "2025-11-18",
+     "max_hold_timeout"
+    ],
+    [
+     0.4169,
+     "INDOTHAI.NS",
+     "2024-08-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.40795,
+     "EUROTEXIND.NS",
+     "2026-09-23",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__brk20_gate__short__1h__atr3_rr2__v1",
+   "n": 17577,
+   "pfnet": 0.811,
+   "pf_gross": 1.217,
+   "pfnet_ex_top5": 0.806,
+   "win_pct": 41.83,
+   "avg_hold_bars": 23.25,
+   "avg_net_ret_pct": -0.418,
+   "win_sum": 314.4969,
+   "loss_sum": 387.9602,
+   "exit_reasons": {
+    "data_end": 23,
+    "max_hold_timeout": 9997,
+    "stop_loss": 7557
+   },
+   "top5": [
+    [
+     0.46461,
+     "TECILCHEM.NS",
+     "2025-05-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.37017,
+     "EUROTEXIND.NS",
+     "2024-10-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.33379,
+     "TI.NS",
+     "2025-02-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.32978,
+     "TECILCHEM.NS",
+     "2024-06-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.30152,
+     "GLFL.NS",
+     "2026-02-24",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 15
+  },
+  {
+   "tag": "swingminrr__order_block_gate__short__1h__atr1d5_rr3__v1",
+   "n": 4488,
+   "pfnet": 0.785,
+   "pf_gross": 1.111,
+   "pfnet_ex_top5": 0.774,
+   "win_pct": 37.12,
+   "avg_hold_bars": 18.36,
+   "avg_net_ret_pct": -0.563,
+   "win_sum": 92.5562,
+   "loss_sum": 117.8315,
+   "exit_reasons": {
+    "data_end": 20,
+    "max_hold_timeout": 1884,
+    "stop_loss": 2584
+   },
+   "top5": [
+    [
+     0.31705,
+     "NDLVENTURE.NS",
+     "2025-03-25",
+     "max_hold_timeout"
+    ],
+    [
+     0.28854,
+     "INFOMEDIA.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.27581,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.24005,
+     "NIBE.NS",
+     "2025-08-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.23772,
+     "SAKUMA.NS",
+     "2024-08-21",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__order_block_gate__short__1h__atr2_rr2__v1",
+   "n": 5037,
+   "pfnet": 0.784,
+   "pf_gross": 1.079,
+   "pfnet_ex_top5": 0.774,
+   "win_pct": 42.47,
+   "avg_hold_bars": 21.31,
+   "avg_net_ret_pct": -0.612,
+   "win_sum": 111.8767,
+   "loss_sum": 142.6783,
+   "exit_reasons": {
+    "data_end": 27,
+    "max_hold_timeout": 2595,
+    "stop_loss": 2415
+   },
+   "top5": [
+    [
+     0.38735,
+     "SRGHFL.NS",
+     "2026-09-07",
+     "max_hold_timeout"
+    ],
+    [
+     0.31705,
+     "NDLVENTURE.NS",
+     "2025-03-25",
+     "max_hold_timeout"
+    ],
+    [
+     0.28854,
+     "INFOMEDIA.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.27581,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.24005,
+     "NIBE.NS",
+     "2025-08-08",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__short__1h__atr3_rr3__v1",
+   "n": 13147,
+   "pfnet": 0.778,
+   "pf_gross": 1.112,
+   "pfnet_ex_top5": 0.773,
+   "win_pct": 41.55,
+   "avg_hold_bars": 22.93,
+   "avg_net_ret_pct": -0.565,
+   "win_sum": 260.95,
+   "loss_sum": 335.205,
+   "exit_reasons": {
+    "data_end": 25,
+    "max_hold_timeout": 7409,
+    "stop_loss": 5713
+   },
+   "top5": [
+    [
+     0.54235,
+     "VAISHALI.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.36849,
+     "GLFL.NS",
+     "2025-04-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.31472,
+     "IFBIND.NS",
+     "2024-10-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.3095,
+     "EMAMIREAL.NS",
+     "2024-12-12",
+     "max_hold_timeout"
+    ],
+    [
+     0.29544,
+     "SANGHVIMOV.NS",
+     "2024-08-01",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 8
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__long__1h__atr3_rr4__v1",
+   "n": 2633,
+   "pfnet": 0.778,
+   "pf_gross": 1.118,
+   "pfnet_ex_top5": 0.746,
+   "win_pct": 35.55,
+   "avg_hold_bars": 23.44,
+   "avg_net_ret_pct": -0.56,
+   "win_sum": 51.8087,
+   "loss_sum": 66.5546,
+   "exit_reasons": {
+    "data_end": 16,
+    "max_hold_timeout": 1497,
+    "stop_loss": 1120
+   },
+   "top5": [
+    [
+     0.53626,
+     "UEL.NS",
+     "2026-01-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.46471,
+     "EUROTEXIND.NS",
+     "2024-12-02",
+     "max_hold_timeout"
+    ],
+    [
+     0.39342,
+     "ZEEMEDIA.NS",
+     "2026-08-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.36893,
+     "MINDTECK.NS",
+     "2024-11-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.36517,
+     "GLFL.NS",
+     "2025-06-04",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 2
+  },
+  {
+   "tag": "swingminrr__brk20_gate__long__1h__atr3_rr2__v1",
+   "n": 13972,
+   "pfnet": 0.776,
+   "pf_gross": 1.155,
+   "pfnet_ex_top5": 0.767,
+   "win_pct": 34.86,
+   "avg_hold_bars": 23.98,
+   "avg_net_ret_pct": -0.519,
+   "win_sum": 250.7208,
+   "loss_sum": 323.2367,
+   "exit_reasons": {
+    "data_end": 45,
+    "max_hold_timeout": 7957,
+    "stop_loss": 5970
+   },
+   "top5": [
+    [
+     0.86887,
+     "MASKINVEST.NS",
+     "2024-10-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.49731,
+     "EUROTEXIND.NS",
+     "2024-12-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.46802,
+     "BLUECOAST.NS",
+     "2025-07-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.40795,
+     "EUROTEXIND.NS",
+     "2026-09-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.40577,
+     "PRECOT.NS",
+     "2026-01-28",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 7
+  },
+  {
+   "tag": "swingminrr__brk20_base__long__1h__atr3__v1",
+   "n": 91888,
+   "pfnet": 0.775,
+   "pf_gross": 1.136,
+   "pfnet_ex_top5": 0.773,
+   "win_pct": 35.62,
+   "avg_hold_bars": 24.13,
+   "avg_net_ret_pct": -0.541,
+   "win_sum": 1709.9711,
+   "loss_sum": 2206.8752,
+   "exit_reasons": {
+    "data_end": 368,
+    "max_hold_timeout": 53295,
+    "stop_loss": 38225
+   },
+   "top5": [
+    [
+     0.86887,
+     "MASKINVEST.NS",
+     "2024-10-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.79128,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "max_hold_timeout"
+    ],
+    [
+     0.74166,
+     "BANKA.NS",
+     "2023-12-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.7319,
+     "SVPGLOB.NS",
+     "2025-11-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.72974,
+     "DCMFINSERV.NS",
+     "2026-03-10",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 14
+  },
+  {
+   "tag": "swingminrr__brk20_gate__short__1h__atr2_rr3__v1",
+   "n": 17922,
+   "pfnet": 0.775,
+   "pf_gross": 1.216,
+   "pfnet_ex_top5": 0.771,
+   "win_pct": 35.21,
+   "avg_hold_bars": 19.19,
+   "avg_net_ret_pct": -0.464,
+   "win_sum": 286.9072,
+   "loss_sum": 369.9784,
+   "exit_reasons": {
+    "data_end": 18,
+    "max_hold_timeout": 7514,
+    "stop_loss": 10390
+   },
+   "top5": [
+    [
+     0.46461,
+     "TECILCHEM.NS",
+     "2025-05-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.37017,
+     "EUROTEXIND.NS",
+     "2024-10-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.33379,
+     "TI.NS",
+     "2025-02-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.32978,
+     "TECILCHEM.NS",
+     "2024-06-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.30152,
+     "GLFL.NS",
+     "2026-02-24",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 15
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__long__1h__atr3_rr3__v1",
+   "n": 8106,
+   "pfnet": 0.775,
+   "pf_gross": 1.127,
+   "pfnet_ex_top5": 0.763,
+   "win_pct": 36.29,
+   "avg_hold_bars": 24.1,
+   "avg_net_ret_pct": -0.551,
+   "win_sum": 153.9464,
+   "loss_sum": 198.605,
+   "exit_reasons": {
+    "data_end": 39,
+    "max_hold_timeout": 4769,
+    "stop_loss": 3298
+   },
+   "top5": [
+    [
+     0.64316,
+     "ALOKINDS.NS",
+     "2024-01-01",
+     "max_hold_timeout"
+    ],
+    [
+     0.53626,
+     "UEL.NS",
+     "2026-01-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.46471,
+     "EUROTEXIND.NS",
+     "2024-12-02",
+     "max_hold_timeout"
+    ],
+    [
+     0.36893,
+     "MINDTECK.NS",
+     "2024-11-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.36517,
+     "GLFL.NS",
+     "2025-06-04",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 4
+  },
+  {
+   "tag": "swingminrr__order_block_gate__long__1h__atr1d5_rr4__v1",
+   "n": 3359,
+   "pfnet": 0.774,
+   "pf_gross": 1.114,
+   "pfnet_ex_top5": 0.748,
+   "win_pct": 30.01,
+   "avg_hold_bars": 18.2,
+   "avg_net_ret_pct": -0.573,
+   "win_sum": 65.827,
+   "loss_sum": 85.0725,
+   "exit_reasons": {
+    "data_end": 14,
+    "max_hold_timeout": 1309,
+    "stop_loss": 2036
+   },
+   "top5": [
+    [
+     0.5016,
+     "MAHAPEXLTD.NS",
+     "2025-12-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.4572,
+     "ASIANHOTNR.NS",
+     "2024-12-19",
+     "max_hold_timeout"
+    ],
+    [
+     0.42926,
+     "ASTEC.NS",
+     "2025-11-18",
+     "max_hold_timeout"
+    ],
+    [
+     0.4169,
+     "INDOTHAI.NS",
+     "2024-08-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.36152,
+     "INTENTECH.NS",
+     "2026-04-01",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__brk20_target__long__1h__atr3_rr4__v1",
+   "n": 92020,
+   "pfnet": 0.773,
+   "pf_gross": 1.135,
+   "pfnet_ex_top5": 0.772,
+   "win_pct": 35.8,
+   "avg_hold_bars": 23.61,
+   "avg_net_ret_pct": -0.543,
+   "win_sum": 1705.9318,
+   "loss_sum": 2206.0076,
+   "exit_reasons": {
+    "data_end": 364,
+    "max_hold_timeout": 49483,
+    "stop_loss": 38205,
+    "target": 3968
+   },
+   "top5": [
+    [
+     0.55364,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "target"
+    ],
+    [
+     0.54495,
+     "DCMFINSERV.NS",
+     "2026-03-10",
+     "target"
+    ],
+    [
+     0.49429,
+     "SECMARK.NS",
+     "2023-12-21",
+     "target"
+    ],
+    [
+     0.44519,
+     "KCP.NS",
+     "2024-06-05",
+     "target"
+    ],
+    [
+     0.42277,
+     "MAHAPEXLTD.NS",
+     "2025-12-11",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 14
+  },
+  {
+   "tag": "swingminrr__brk20_target__long__1h__atr3_rr3__v1",
+   "n": 92263,
+   "pfnet": 0.767,
+   "pf_gross": 1.128,
+   "pfnet_ex_top5": 0.766,
+   "win_pct": 36.13,
+   "avg_hold_bars": 22.99,
+   "avg_net_ret_pct": -0.556,
+   "win_sum": 1689.6197,
+   "loss_sum": 2202.7948,
+   "exit_reasons": {
+    "data_end": 356,
+    "max_hold_timeout": 45777,
+    "stop_loss": 38165,
+    "target": 7965
+   },
+   "top5": [
+    [
+     0.41697,
+     "ADL.NS",
+     "2025-04-11",
+     "target"
+    ],
+    [
+     0.41323,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "target"
+    ],
+    [
+     0.40671,
+     "DCMFINSERV.NS",
+     "2026-03-10",
+     "target"
+    ],
+    [
+     0.40404,
+     "ORCHASP.NS",
+     "2025-04-01",
+     "target"
+    ],
+    [
+     0.37618,
+     "RACE.NS",
+     "2026-04-01",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 14
+  },
+  {
+   "tag": "swingminrr__order_block_gatetarget__long__1h__atr1d5_rr4__v1",
+   "n": 3365,
+   "pfnet": 0.766,
+   "pf_gross": 1.105,
+   "pfnet_ex_top5": 0.752,
+   "win_pct": 30.4,
+   "avg_hold_bars": 16.93,
+   "avg_net_ret_pct": -0.592,
+   "win_sum": 65.0228,
+   "loss_sum": 84.9281,
+   "exit_reasons": {
+    "data_end": 14,
+    "max_hold_timeout": 1014,
+    "stop_loss": 2031,
+    "target": 306
+   },
+   "top5": [
+    [
+     0.262,
+     "SUMEETINDS.NS",
+     "2024-06-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.242,
+     "PRAENG.NS",
+     "2025-02-17",
+     "max_hold_timeout"
+    ],
+    [
+     0.2368,
+     "KIOCL.NS",
+     "2024-02-14",
+     "target"
+    ],
+    [
+     0.23017,
+     "QUINTEGRA.NS",
+     "2025-06-02",
+     "target"
+    ],
+    [
+     0.22473,
+     "TRU.NS",
+     "2024-03-15",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__volume_profile_gatetarget__long__1h__atr3_rr4__v1",
+   "n": 2633,
+   "pfnet": 0.765,
+   "pf_gross": 1.102,
+   "pfnet_ex_top5": 0.743,
+   "win_pct": 35.74,
+   "avg_hold_bars": 22.89,
+   "avg_net_ret_pct": -0.594,
+   "win_sum": 50.7972,
+   "loss_sum": 66.4304,
+   "exit_reasons": {
+    "data_end": 16,
+    "max_hold_timeout": 1380,
+    "stop_loss": 1118,
+    "target": 119
+   },
+   "top5": [
+    [
+     0.32866,
+     "GLFL.NS",
+     "2025-03-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.30418,
+     "ADANIPOWER.NS",
+     "2024-11-26",
+     "target"
+    ],
+    [
+     0.29222,
+     "VLEGOV.NS",
+     "2026-02-19",
+     "target"
+    ],
+    [
+     0.2686,
+     "DJML.NS",
+     "2025-02-19",
+     "max_hold_timeout"
+    ],
+    [
+     0.26649,
+     "MINDTECK.NS",
+     "2024-11-21",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 2
+  },
+  {
+   "tag": "swingminrr__brk20_gate__long__1h__atr2_rr3__v1",
+   "n": 14159,
+   "pfnet": 0.762,
+   "pf_gross": 1.19,
+   "pfnet_ex_top5": 0.753,
+   "win_pct": 29.79,
+   "avg_hold_bars": 19.62,
+   "avg_net_ret_pct": -0.503,
+   "win_sum": 227.5575,
+   "loss_sum": 298.7254,
+   "exit_reasons": {
+    "data_end": 33,
+    "max_hold_timeout": 5833,
+    "stop_loss": 8293
+   },
+   "top5": [
+    [
+     0.86887,
+     "MASKINVEST.NS",
+     "2024-10-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.49731,
+     "EUROTEXIND.NS",
+     "2024-12-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.46802,
+     "BLUECOAST.NS",
+     "2025-07-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.40795,
+     "EUROTEXIND.NS",
+     "2026-09-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.40034,
+     "JAICORPLTD.NS",
+     "2025-09-01",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 7
+  },
+  {
+   "tag": "swingminrr__brk20_gate__long__1h__atr1d5_rr4__v1",
+   "n": 14379,
+   "pfnet": 0.756,
+   "pf_gross": 1.244,
+   "pfnet_ex_top5": 0.746,
+   "win_pct": 25.84,
+   "avg_hold_bars": 16.6,
+   "avg_net_ret_pct": -0.471,
+   "win_sum": 209.3587,
+   "loss_sum": 277.1099,
+   "exit_reasons": {
+    "data_end": 22,
+    "max_hold_timeout": 4676,
+    "stop_loss": 9681
+   },
+   "top5": [
+    [
+     0.86887,
+     "MASKINVEST.NS",
+     "2024-10-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.49731,
+     "EUROTEXIND.NS",
+     "2024-12-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.46802,
+     "BLUECOAST.NS",
+     "2025-07-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.40034,
+     "JAICORPLTD.NS",
+     "2025-09-01",
+     "max_hold_timeout"
+    ],
+    [
+     0.3924,
+     "HECPROJECT.NS",
+     "2024-10-29",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 7
+  },
+  {
+   "tag": "swingminrr__volume_profile_gatetarget__short__1h__atr2_rr4__v1",
+   "n": 20318,
+   "pfnet": 0.755,
+   "pf_gross": 1.126,
+   "pfnet_ex_top5": 0.752,
+   "win_pct": 35.95,
+   "avg_hold_bars": 18.51,
+   "avg_net_ret_pct": -0.569,
+   "win_sum": 356.6242,
+   "loss_sum": 472.3149,
+   "exit_reasons": {
+    "data_end": 38,
+    "max_hold_timeout": 7738,
+    "stop_loss": 11597,
+    "target": 945
+   },
+   "top5": [
+    [
+     0.28245,
+     "QUADFUTURE.NS",
+     "2025-02-06",
+     "target"
+    ],
+    [
+     0.27991,
+     "NEXTMEDIA.NS",
+     "2026-08-31",
+     "max_hold_timeout"
+    ],
+    [
+     0.25552,
+     "HPIL.NS",
+     "2025-02-21",
+     "target"
+    ],
+    [
+     0.25187,
+     "PARASPETRO.NS",
+     "2026-02-02",
+     "max_hold_timeout"
+    ],
+    [
+     0.24392,
+     "GAYAPROJ.NS",
+     "2024-10-03",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 8
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__short__1h__atr3_rr2__v1",
+   "n": 38898,
+   "pfnet": 0.753,
+   "pf_gross": 1.087,
+   "pfnet_ex_top5": 0.751,
+   "win_pct": 42.92,
+   "avg_hold_bars": 23.29,
+   "avg_net_ret_pct": -0.619,
+   "win_sum": 735.5407,
+   "loss_sum": 976.3744,
+   "exit_reasons": {
+    "data_end": 110,
+    "max_hold_timeout": 22492,
+    "stop_loss": 16296
+   },
+   "top5": [
+    [
+     0.54235,
+     "VAISHALI.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.36849,
+     "GLFL.NS",
+     "2025-04-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.33687,
+     "CARRARO.NS",
+     "2025-02-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.31472,
+     "IFBIND.NS",
+     "2024-10-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.3112,
+     "HCC.NS",
+     "2025-12-02",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 14
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__short__1h__atr2_rr4__v1",
+   "n": 20309,
+   "pfnet": 0.75,
+   "pf_gross": 1.119,
+   "pfnet_ex_top5": 0.746,
+   "win_pct": 35.74,
+   "avg_hold_bars": 19.03,
+   "avg_net_ret_pct": -0.582,
+   "win_sum": 354.9933,
+   "loss_sum": 473.2087,
+   "exit_reasons": {
+    "data_end": 39,
+    "max_hold_timeout": 8649,
+    "stop_loss": 11621
+   },
+   "top5": [
+    [
+     0.54235,
+     "VAISHALI.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.39055,
+     "PAISALO.NS",
+     "2024-03-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.36849,
+     "GLFL.NS",
+     "2025-04-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.31502,
+     "JAINREC.NS",
+     "2026-05-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.31472,
+     "IFBIND.NS",
+     "2024-10-23",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 10
+  },
+  {
+   "tag": "swingminrr__brk20_gate__long__1h__atr2_rr2__v1",
+   "n": 29737,
+   "pfnet": 0.749,
+   "pf_gross": 1.165,
+   "pfnet_ex_top5": 0.744,
+   "win_pct": 30.09,
+   "avg_hold_bars": 19.52,
+   "avg_net_ret_pct": -0.537,
+   "win_sum": 475.3805,
+   "loss_sum": 635.0066,
+   "exit_reasons": {
+    "data_end": 77,
+    "max_hold_timeout": 12245,
+    "stop_loss": 17415
+   },
+   "top5": [
+    [
+     0.86887,
+     "MASKINVEST.NS",
+     "2024-10-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.66812,
+     "HYBRIDFIN.NS",
+     "2025-10-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.50528,
+     "NIITLTD.NS",
+     "2024-08-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.49731,
+     "EUROTEXIND.NS",
+     "2024-12-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.46972,
+     "POCL.NS",
+     "2024-01-04",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 9
+  },
+  {
+   "tag": "swingminrr__brk20_target__long__1h__atr3_rr2__v1",
+   "n": 93247,
+   "pfnet": 0.747,
+   "pf_gross": 1.109,
+   "pfnet_ex_top5": 0.746,
+   "win_pct": 37.61,
+   "avg_hold_bars": 21.29,
+   "avg_net_ret_pct": -0.595,
+   "win_sum": 1637.5135,
+   "loss_sum": 2192.7063,
+   "exit_reasons": {
+    "data_end": 340,
+    "max_hold_timeout": 37089,
+    "stop_loss": 38080,
+    "target": 17738
+   },
+   "top5": [
+    [
+     0.30014,
+     "HAVISHA.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.27532,
+     "ADL.NS",
+     "2025-04-11",
+     "target"
+    ],
+    [
+     0.27282,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "target"
+    ],
+    [
+     0.27033,
+     "STLSTRINF.NS",
+     "2026-09-11",
+     "target"
+    ],
+    [
+     0.26847,
+     "DCMFINSERV.NS",
+     "2026-03-10",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 14
+  },
+  {
+   "tag": "swingminrr__brk20_gate__short__1h__atr1d5_rr4__v1",
+   "n": 18386,
+   "pfnet": 0.745,
+   "pf_gross": 1.231,
+   "pfnet_ex_top5": 0.74,
+   "win_pct": 29.6,
+   "avg_hold_bars": 16.22,
+   "avg_net_ret_pct": -0.487,
+   "win_sum": 261.855,
+   "loss_sum": 351.3893,
+   "exit_reasons": {
+    "data_end": 14,
+    "max_hold_timeout": 6102,
+    "stop_loss": 12270
+   },
+   "top5": [
+    [
+     0.46461,
+     "TECILCHEM.NS",
+     "2025-05-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.37017,
+     "EUROTEXIND.NS",
+     "2024-10-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.33379,
+     "TI.NS",
+     "2025-02-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.32978,
+     "TECILCHEM.NS",
+     "2024-06-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.30152,
+     "GLFL.NS",
+     "2026-02-24",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 15
+  },
+  {
+   "tag": "swingminrr__brk20_base__long__1h__atr2__v1",
+   "n": 95541,
+   "pfnet": 0.744,
+   "pf_gross": 1.141,
+   "pfnet_ex_top5": 0.742,
+   "win_pct": 30.2,
+   "avg_hold_bars": 19.22,
+   "avg_net_ret_pct": -0.565,
+   "win_sum": 1571.9653,
+   "loss_sum": 2112.1913,
+   "exit_reasons": {
+    "data_end": 262,
+    "max_hold_timeout": 38959,
+    "stop_loss": 56320
+   },
+   "top5": [
+    [
+     0.86887,
+     "MASKINVEST.NS",
+     "2024-10-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.79128,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "max_hold_timeout"
+    ],
+    [
+     0.74166,
+     "BANKA.NS",
+     "2023-12-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.7319,
+     "SVPGLOB.NS",
+     "2025-11-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.72974,
+     "DCMFINSERV.NS",
+     "2026-03-10",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 14
+  },
+  {
+   "tag": "swingminrr__order_block_gate__long__1h__atr2_rr2__v1",
+   "n": 7887,
+   "pfnet": 0.742,
+   "pf_gross": 1.035,
+   "pfnet_ex_top5": 0.73,
+   "win_pct": 33.13,
+   "avg_hold_bars": 21.44,
+   "avg_net_ret_pct": -0.721,
+   "win_sum": 163.1428,
+   "loss_sum": 220.0171,
+   "exit_reasons": {
+    "data_end": 44,
+    "max_hold_timeout": 3888,
+    "stop_loss": 3955
+   },
+   "top5": [
+    [
+     0.64512,
+     "MANAKALUCO.NS",
+     "2026-01-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.53383,
+     "MASKINVEST.NS",
+     "2025-10-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.5016,
+     "MAHAPEXLTD.NS",
+     "2025-12-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.46966,
+     "TERAI.NS",
+     "2026-10-08",
+     "data_end"
+    ],
+    [
+     0.4572,
+     "ASIANHOTNR.NS",
+     "2024-12-19",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__short__1h__atr3_rr4__v1",
+   "n": 3820,
+   "pfnet": 0.737,
+   "pf_gross": 1.049,
+   "pfnet_ex_top5": 0.723,
+   "win_pct": 38.82,
+   "avg_hold_bars": 22.01,
+   "avg_net_ret_pct": -0.694,
+   "win_sum": 74.2396,
+   "loss_sum": 100.749,
+   "exit_reasons": {
+    "data_end": 1,
+    "max_hold_timeout": 2014,
+    "stop_loss": 1805
+   },
+   "top5": [
+    [
+     0.36849,
+     "GLFL.NS",
+     "2025-04-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.3095,
+     "EMAMIREAL.NS",
+     "2024-12-12",
+     "max_hold_timeout"
+    ],
+    [
+     0.25669,
+     "LOYALTEX.NS",
+     "2026-02-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.25281,
+     "GLFL.NS",
+     "2026-02-19",
+     "max_hold_timeout"
+    ],
+    [
+     0.2522,
+     "PANSARI.NS",
+     "2025-02-10",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 6
+  },
+  {
+   "tag": "swingminrr__brk20_gate__long__1h__atr1d5_rr3__v1",
+   "n": 25372,
+   "pfnet": 0.735,
+   "pf_gross": 1.209,
+   "pfnet_ex_top5": 0.729,
+   "win_pct": 25.61,
+   "avg_hold_bars": 16.37,
+   "avg_net_ret_pct": -0.515,
+   "win_sum": 363.1078,
+   "loss_sum": 493.7267,
+   "exit_reasons": {
+    "data_end": 45,
+    "max_hold_timeout": 8174,
+    "stop_loss": 17153
+   },
+   "top5": [
+    [
+     0.86887,
+     "MASKINVEST.NS",
+     "2024-10-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.66812,
+     "HYBRIDFIN.NS",
+     "2025-10-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.49731,
+     "EUROTEXIND.NS",
+     "2024-12-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.46802,
+     "BLUECOAST.NS",
+     "2025-07-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.45915,
+     "SEJALLTD.NS",
+     "2026-04-06",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 8
+  },
+  {
+   "tag": "swingminrr__brk20_target__long__1h__atr2_rr4__v1",
+   "n": 96059,
+   "pfnet": 0.733,
+   "pf_gross": 1.129,
+   "pfnet_ex_top5": 0.732,
+   "win_pct": 30.95,
+   "avg_hold_bars": 17.84,
+   "avg_net_ret_pct": -0.586,
+   "win_sum": 1543.0699,
+   "loss_sum": 2105.749,
+   "exit_reasons": {
+    "data_end": 248,
+    "max_hold_timeout": 30020,
+    "stop_loss": 56165,
+    "target": 9626
+   },
+   "top5": [
+    [
+     0.40285,
+     "HAVISHA.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.36975,
+     "ADL.NS",
+     "2025-04-11",
+     "target"
+    ],
+    [
+     0.36643,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "target"
+    ],
+    [
+     0.36063,
+     "DCMFINSERV.NS",
+     "2026-03-10",
+     "target"
+    ],
+    [
+     0.35826,
+     "ORCHASP.NS",
+     "2025-04-01",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 14
+  },
+  {
+   "tag": "swingminrr__brk20_gate__short__1h__atr2_rr2__v1",
+   "n": 35277,
+   "pfnet": 0.727,
+   "pf_gross": 1.152,
+   "pfnet_ex_top5": 0.724,
+   "win_pct": 35.36,
+   "avg_hold_bars": 19.39,
+   "avg_net_ret_pct": -0.563,
+   "win_sum": 528.0265,
+   "loss_sum": 726.6121,
+   "exit_reasons": {
+    "data_end": 49,
+    "max_hold_timeout": 15065,
+    "stop_loss": 20163
+   },
+   "top5": [
+    [
+     0.46461,
+     "TECILCHEM.NS",
+     "2025-05-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.40254,
+     "PSB.NS",
+     "2025-03-28",
+     "max_hold_timeout"
+    ],
+    [
+     0.37017,
+     "EUROTEXIND.NS",
+     "2024-10-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.33379,
+     "TI.NS",
+     "2025-02-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.32978,
+     "TECILCHEM.NS",
+     "2024-06-24",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 19
+  },
+  {
+   "tag": "swingminrr__volume_profile_gatetarget__short__1h__atr3_rr4__v1",
+   "n": 3821,
+   "pfnet": 0.727,
+   "pf_gross": 1.038,
+   "pfnet_ex_top5": 0.715,
+   "win_pct": 38.89,
+   "avg_hold_bars": 21.77,
+   "avg_net_ret_pct": -0.718,
+   "win_sum": 73.2132,
+   "loss_sum": 100.6476,
+   "exit_reasons": {
+    "data_end": 1,
+    "max_hold_timeout": 1938,
+    "stop_loss": 1803,
+    "target": 79
+   },
+   "top5": [
+    [
+     0.25736,
+     "EMAMIREAL.NS",
+     "2024-12-12",
+     "target"
+    ],
+    [
+     0.25669,
+     "LOYALTEX.NS",
+     "2026-02-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.25187,
+     "PARASPETRO.NS",
+     "2026-02-02",
+     "max_hold_timeout"
+    ],
+    [
+     0.24179,
+     "DVL.NS",
+     "2024-02-07",
+     "max_hold_timeout"
+    ],
+    [
+     0.22324,
+     "PANSARI.NS",
+     "2025-02-10",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 5
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__short__1h__atr2_rr3__v1",
+   "n": 41939,
+   "pfnet": 0.726,
+   "pf_gross": 1.092,
+   "pfnet_ex_top5": 0.724,
+   "win_pct": 36.34,
+   "avg_hold_bars": 19.3,
+   "avg_net_ret_pct": -0.633,
+   "win_sum": 703.5242,
+   "loss_sum": 968.871,
+   "exit_reasons": {
+    "data_end": 99,
+    "max_hold_timeout": 18217,
+    "stop_loss": 23623
+   },
+   "top5": [
+    [
+     0.54235,
+     "VAISHALI.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.36849,
+     "GLFL.NS",
+     "2025-04-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.33687,
+     "CARRARO.NS",
+     "2025-02-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.31502,
+     "JAINREC.NS",
+     "2026-05-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.31472,
+     "IFBIND.NS",
+     "2024-10-23",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 13
+  },
+  {
+   "tag": "swingminrr__brk20_gate__long__1h__atr1d5_rr2__v1",
+   "n": 43164,
+   "pfnet": 0.721,
+   "pf_gross": 1.18,
+   "pfnet_ex_top5": 0.717,
+   "win_pct": 25.79,
+   "avg_hold_bars": 16.22,
+   "avg_net_ret_pct": -0.55,
+   "win_sum": 613.2795,
+   "loss_sum": 850.5758,
+   "exit_reasons": {
+    "data_end": 81,
+    "max_hold_timeout": 13855,
+    "stop_loss": 29228
+   },
+   "top5": [
+    [
+     0.86887,
+     "MASKINVEST.NS",
+     "2024-10-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.66812,
+     "HYBRIDFIN.NS",
+     "2025-10-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.56655,
+     "TARMAT.NS",
+     "2024-02-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.51351,
+     "SHREERAMA.NS",
+     "2024-10-30",
+     "max_hold_timeout"
+    ],
+    [
+     0.50528,
+     "NIITLTD.NS",
+     "2024-08-21",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 10
+  },
+  {
+   "tag": "swingminrr__brk20_target__long__1h__atr3_rr1d5__v1",
+   "n": 95372,
+   "pfnet": 0.716,
+   "pf_gross": 1.083,
+   "pfnet_ex_top5": 0.716,
+   "win_pct": 40.24,
+   "avg_hold_bars": 19.44,
+   "avg_net_ret_pct": -0.648,
+   "win_sum": 1561.3025,
+   "loss_sum": 2179.4321,
+   "exit_reasons": {
+    "data_end": 330,
+    "max_hold_timeout": 29809,
+    "stop_loss": 38001,
+    "target": 27232
+   },
+   "top5": [
+    [
+     0.2231,
+     "HAVISHA.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.20449,
+     "ADL.NS",
+     "2025-04-11",
+     "target"
+    ],
+    [
+     0.20261,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "target"
+    ],
+    [
+     0.20075,
+     "STLSTRINF.NS",
+     "2026-09-11",
+     "target"
+    ],
+    [
+     0.19936,
+     "DCMFINSERV.NS",
+     "2026-03-10",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 14
+  },
+  {
+   "tag": "swingminrr__brk20_target__long__1h__atr2_rr3__v1",
+   "n": 96840,
+   "pfnet": 0.715,
+   "pf_gross": 1.112,
+   "pfnet_ex_top5": 0.715,
+   "win_pct": 32.08,
+   "avg_hold_bars": 16.65,
+   "avg_net_ret_pct": -0.617,
+   "win_sum": 1499.86,
+   "loss_sum": 2096.9715,
+   "exit_reasons": {
+    "data_end": 235,
+    "max_hold_timeout": 24147,
+    "stop_loss": 56005,
+    "target": 16453
+   },
+   "top5": [
+    [
+     0.30014,
+     "HAVISHA.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.27532,
+     "ADL.NS",
+     "2025-04-11",
+     "target"
+    ],
+    [
+     0.27282,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "target"
+    ],
+    [
+     0.27033,
+     "STLSTRINF.NS",
+     "2026-09-11",
+     "target"
+    ],
+    [
+     0.26847,
+     "DCMFINSERV.NS",
+     "2026-03-10",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 13
+  },
+  {
+   "tag": "swingminrr__order_block_gate__long__1h__atr1d5_rr3__v1",
+   "n": 6694,
+   "pfnet": 0.715,
+   "pf_gross": 1.025,
+   "pfnet_ex_top5": 0.7,
+   "win_pct": 28.16,
+   "avg_hold_bars": 17.84,
+   "avg_net_ret_pct": -0.748,
+   "win_sum": 125.5546,
+   "loss_sum": 175.6223,
+   "exit_reasons": {
+    "data_end": 31,
+    "max_hold_timeout": 2520,
+    "stop_loss": 4143
+   },
+   "top5": [
+    [
+     0.64512,
+     "MANAKALUCO.NS",
+     "2026-01-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.53383,
+     "MASKINVEST.NS",
+     "2025-10-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.5148,
+     "MODIRUBBER.NS",
+     "2025-12-18",
+     "max_hold_timeout"
+    ],
+    [
+     0.5016,
+     "MAHAPEXLTD.NS",
+     "2025-12-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.46966,
+     "TERAI.NS",
+     "2026-10-08",
+     "data_end"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__brk20_base__long__1h__atr1d5__v1",
+   "n": 99089,
+   "pfnet": 0.714,
+   "pf_gross": 1.154,
+   "pfnet_ex_top5": 0.712,
+   "win_pct": 25.46,
+   "avg_hold_bars": 15.81,
+   "avg_net_ret_pct": -0.579,
+   "win_sum": 1430.8412,
+   "loss_sum": 2004.3209,
+   "exit_reasons": {
+    "data_end": 209,
+    "max_hold_timeout": 31089,
+    "stop_loss": 67791
+   },
+   "top5": [
+    [
+     0.86887,
+     "MASKINVEST.NS",
+     "2024-10-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.79128,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "max_hold_timeout"
+    ],
+    [
+     0.74166,
+     "BANKA.NS",
+     "2023-12-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.7319,
+     "SVPGLOB.NS",
+     "2025-11-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.72974,
+     "DCMFINSERV.NS",
+     "2026-03-10",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 14
+  },
+  {
+   "tag": "swingminrr__brk20_gatetarget__long__1h__atr2_rr4__v1",
+   "n": 6700,
+   "pfnet": 0.714,
+   "pf_gross": 1.155,
+   "pfnet_ex_top5": 0.706,
+   "win_pct": 31.64,
+   "avg_hold_bars": 17.38,
+   "avg_net_ret_pct": -0.573,
+   "win_sum": 95.6844,
+   "loss_sum": 134.0432,
+   "exit_reasons": {
+    "data_end": 15,
+    "max_hold_timeout": 1836,
+    "stop_loss": 3777,
+    "target": 1072
+   },
+   "top5": [
+    [
+     0.2366,
+     "IFBIND.NS",
+     "2024-06-06",
+     "target"
+    ],
+    [
+     0.22653,
+     "CREATIVEYE.NS",
+     "2025-02-03",
+     "target"
+    ],
+    [
+     0.21497,
+     "SINDHUTRAD.NS",
+     "2024-03-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.19744,
+     "NAVKARURB.NS",
+     "2025-06-25",
+     "target"
+    ],
+    [
+     0.19064,
+     "SKIPPER.NS",
+     "2024-03-21",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 4
+  },
+  {
+   "tag": "swingminrr__order_block_gate__short__1h__atr1d5_rr2__v1",
+   "n": 7669,
+   "pfnet": 0.713,
+   "pf_gross": 1.015,
+   "pfnet_ex_top5": 0.705,
+   "win_pct": 36.48,
+   "avg_hold_bars": 18.44,
+   "avg_net_ret_pct": -0.768,
+   "win_sum": 146.0883,
+   "loss_sum": 204.9504,
+   "exit_reasons": {
+    "data_end": 33,
+    "max_hold_timeout": 3201,
+    "stop_loss": 4435
+   },
+   "top5": [
+    [
+     0.38735,
+     "SRGHFL.NS",
+     "2026-09-07",
+     "max_hold_timeout"
+    ],
+    [
+     0.31624,
+     "NDLVENTURE.NS",
+     "2025-03-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.31419,
+     "HBSL.NS",
+     "2024-11-07",
+     "max_hold_timeout"
+    ],
+    [
+     0.28854,
+     "INFOMEDIA.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.27581,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__brk20_gatetarget__short__1h__atr1d5_rr4__v1",
+   "n": 18884,
+   "pfnet": 0.712,
+   "pf_gross": 1.203,
+   "pfnet_ex_top5": 0.709,
+   "win_pct": 32.14,
+   "avg_hold_bars": 14.11,
+   "avg_net_ret_pct": -0.533,
+   "win_sum": 248.9551,
+   "loss_sum": 349.6943,
+   "exit_reasons": {
+    "data_end": 13,
+    "max_hold_timeout": 3592,
+    "stop_loss": 12202,
+    "target": 3077
+   },
+   "top5": [
+    [
+     0.20911,
+     "TERAI.NS",
+     "2026-09-16",
+     "target"
+    ],
+    [
+     0.19789,
+     "ORTINGLOBE.NS",
+     "2025-08-11",
+     "target"
+    ],
+    [
+     0.1902,
+     "INFOMEDIA.NS",
+     "2024-10-14",
+     "target"
+    ],
+    [
+     0.18687,
+     "MITTAL.NS",
+     "2026-03-27",
+     "target"
+    ],
+    [
+     0.18601,
+     "TECILCHEM.NS",
+     "2025-06-11",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 13
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__long__1h__atr2_rr4__v1",
+   "n": 12475,
+   "pfnet": 0.71,
+   "pf_gross": 1.082,
+   "pfnet_ex_top5": 0.701,
+   "win_pct": 30.36,
+   "avg_hold_bars": 19.75,
+   "avg_net_ret_pct": -0.658,
+   "win_sum": 201.32,
+   "loss_sum": 283.4129,
+   "exit_reasons": {
+    "data_end": 50,
+    "max_hold_timeout": 5300,
+    "stop_loss": 7125
+   },
+   "top5": [
+    [
+     0.83956,
+     "PARASPETRO.NS",
+     "2026-01-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.56144,
+     "VINNY.NS",
+     "2024-08-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.53626,
+     "UEL.NS",
+     "2026-01-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.46471,
+     "EUROTEXIND.NS",
+     "2024-12-02",
+     "max_hold_timeout"
+    ],
+    [
+     0.36893,
+     "MINDTECK.NS",
+     "2024-11-21",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 4
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__long__1h__atr3_rr2__v1",
+   "n": 25764,
+   "pfnet": 0.709,
+   "pf_gross": 1.038,
+   "pfnet_ex_top5": 0.704,
+   "win_pct": 35.41,
+   "avg_hold_bars": 24.12,
+   "avg_net_ret_pct": -0.724,
+   "win_sum": 453.1501,
+   "loss_sum": 639.5723,
+   "exit_reasons": {
+    "data_end": 154,
+    "max_hold_timeout": 15013,
+    "stop_loss": 10597
+   },
+   "top5": [
+    [
+     0.83956,
+     "PARASPETRO.NS",
+     "2026-01-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.56144,
+     "VINNY.NS",
+     "2024-08-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.53626,
+     "UEL.NS",
+     "2026-01-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.53253,
+     "ADL.NS",
+     "2025-04-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.51494,
+     "MAHAPEXLTD.NS",
+     "2025-12-09",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 4
+  },
+  {
+   "tag": "swingminrr__volume_profile_gatetarget__short__1h__atr1d5_rr4__v1",
+   "n": 45292,
+   "pfnet": 0.708,
+   "pf_gross": 1.114,
+   "pfnet_ex_top5": 0.707,
+   "win_pct": 31.42,
+   "avg_hold_bars": 15.33,
+   "avg_net_ret_pct": -0.62,
+   "win_sum": 680.2712,
+   "loss_sum": 960.8943,
+   "exit_reasons": {
+    "data_end": 89,
+    "max_hold_timeout": 11720,
+    "stop_loss": 29255,
+    "target": 4228
+   },
+   "top5": [
+    [
+     0.23846,
+     "SPANDANA.NS",
+     "2025-01-09",
+     "target"
+    ],
+    [
+     0.22807,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "target"
+    ],
+    [
+     0.21546,
+     "NEXTMEDIA.NS",
+     "2024-08-09",
+     "target"
+    ],
+    [
+     0.21132,
+     "NEXTMEDIA.NS",
+     "2026-08-31",
+     "target"
+    ],
+    [
+     0.20984,
+     "QUADFUTURE.NS",
+     "2025-02-06",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 7
+  },
+  {
+   "tag": "swingminrr__brk20_target__short__1h__atr3_rr2__v1",
+   "n": 106353,
+   "pfnet": 0.707,
+   "pf_gross": 1.092,
+   "pfnet_ex_top5": 0.707,
+   "win_pct": 42.29,
+   "avg_hold_bars": 22.01,
+   "avg_net_ret_pct": -0.639,
+   "win_sum": 1643.6858,
+   "loss_sum": 2323.4389,
+   "exit_reasons": {
+    "data_end": 681,
+    "max_hold_timeout": 47401,
+    "stop_loss": 42836,
+    "target": 15435
+   },
+   "top5": [
+    [
+     0.25159,
+     "SHREERAMA.NS",
+     "2024-09-16",
+     "target"
+    ],
+    [
+     0.24137,
+     "MONQ50.NS",
+     "2026-09-22",
+     "max_hold_timeout"
+    ],
+    [
+     0.23883,
+     "SILVER.NS",
+     "2026-01-30",
+     "target"
+    ],
+    [
+     0.23743,
+     "GLFL.NS",
+     "2025-11-17",
+     "target"
+    ],
+    [
+     0.22815,
+     "SILVERCASE.NS",
+     "2026-01-30",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 22
+  },
+  {
+   "tag": "swingminrr__brk20_target__short__1h__atr3_rr1d5__v1",
+   "n": 108778,
+   "pfnet": 0.705,
+   "pf_gross": 1.101,
+   "pfnet_ex_top5": 0.705,
+   "win_pct": 44.38,
+   "avg_hold_bars": 20.25,
+   "avg_net_ret_pct": -0.628,
+   "win_sum": 1636.3685,
+   "loss_sum": 2319.5096,
+   "exit_reasons": {
+    "data_end": 649,
+    "max_hold_timeout": 37830,
+    "stop_loss": 42815,
+    "target": 27484
+   },
+   "top5": [
+    [
+     0.28945,
+     "MONQ50.NS",
+     "2026-09-22",
+     "target"
+    ],
+    [
+     0.19801,
+     "SHYAMTEL.NS",
+     "2026-03-13",
+     "max_hold_timeout"
+    ],
+    [
+     0.19408,
+     "REGENCERAM.NS",
+     "2024-03-04",
+     "target"
+    ],
+    [
+     0.18669,
+     "SHREERAMA.NS",
+     "2024-09-16",
+     "target"
+    ],
+    [
+     0.18474,
+     "SILVER1.NS",
+     "2026-01-30",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 20
+  },
+  {
+   "tag": "swingminrr__volume_profile_gatetarget__long__1h__atr2_rr4__v1",
+   "n": 12485,
+   "pfnet": 0.704,
+   "pf_gross": 1.076,
+   "pfnet_ex_top5": 0.699,
+   "win_pct": 30.82,
+   "avg_hold_bars": 18.67,
+   "avg_net_ret_pct": -0.669,
+   "win_sum": 198.733,
+   "loss_sum": 282.2425,
+   "exit_reasons": {
+    "data_end": 49,
+    "max_hold_timeout": 4321,
+    "stop_loss": 7092,
+    "target": 1023
+   },
+   "top5": [
+    [
+     0.31275,
+     "VINNY.NS",
+     "2024-08-14",
+     "target"
+    ],
+    [
+     0.28184,
+     "VERANDA.NS",
+     "2025-02-18",
+     "target"
+    ],
+    [
+     0.27983,
+     "GLFL.NS",
+     "2025-03-20",
+     "target"
+    ],
+    [
+     0.26296,
+     "FINKURVE.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.2567,
+     "GAYAHWS.NS",
+     "2024-01-10",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 3
+  },
+  {
+   "tag": "swingminrr__brk20_target__short__1h__atr3_rr3__v1",
+   "n": 105291,
+   "pfnet": 0.698,
+   "pf_gross": 1.074,
+   "pfnet_ex_top5": 0.697,
+   "win_pct": 41.22,
+   "avg_hold_bars": 23.31,
+   "avg_net_ret_pct": -0.669,
+   "win_sum": 1624.948,
+   "loss_sum": 2329.1446,
+   "exit_reasons": {
+    "data_end": 686,
+    "max_hold_timeout": 56700,
+    "stop_loss": 42936,
+    "target": 4969
+   },
+   "top5": [
+    [
+     0.38138,
+     "SHREERAMA.NS",
+     "2024-09-16",
+     "target"
+    ],
+    [
+     0.30984,
+     "GLFL.NS",
+     "2025-04-29",
+     "target"
+    ],
+    [
+     0.30601,
+     "TECILCHEM.NS",
+     "2025-06-13",
+     "target"
+    ],
+    [
+     0.30464,
+     "DUCON.NS",
+     "2026-08-24",
+     "target"
+    ],
+    [
+     0.29841,
+     "ORTINGLOBE.NS",
+     "2025-02-12",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 23
+  },
+  {
+   "tag": "swingminrr__brk20_gate__short__1h__atr1d5_rr3__v1",
+   "n": 30869,
+   "pfnet": 0.695,
+   "pf_gross": 1.157,
+   "pfnet_ex_top5": 0.692,
+   "win_pct": 29.57,
+   "avg_hold_bars": 16.31,
+   "avg_net_ret_pct": -0.585,
+   "win_sum": 412.0487,
+   "loss_sum": 592.7074,
+   "exit_reasons": {
+    "data_end": 32,
+    "max_hold_timeout": 10314,
+    "stop_loss": 20523
+   },
+   "top5": [
+    [
+     0.46461,
+     "TECILCHEM.NS",
+     "2025-05-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.40254,
+     "PSB.NS",
+     "2025-03-28",
+     "max_hold_timeout"
+    ],
+    [
+     0.37017,
+     "EUROTEXIND.NS",
+     "2024-10-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.33379,
+     "TI.NS",
+     "2025-02-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.32978,
+     "TECILCHEM.NS",
+     "2024-06-24",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 18
+  },
+  {
+   "tag": "swingminrr__brk20_target__short__1h__atr3_rr4__v1",
+   "n": 105057,
+   "pfnet": 0.694,
+   "pf_gross": 1.069,
+   "pfnet_ex_top5": 0.694,
+   "win_pct": 41.04,
+   "avg_hold_bars": 23.63,
+   "avg_net_ret_pct": -0.678,
+   "win_sum": 1617.258,
+   "loss_sum": 2329.1735,
+   "exit_reasons": {
+    "data_end": 686,
+    "max_hold_timeout": 59662,
+    "stop_loss": 42935,
+    "target": 1774
+   },
+   "top5": [
+    [
+     0.51117,
+     "SHREERAMA.NS",
+     "2024-09-16",
+     "target"
+    ],
+    [
+     0.33313,
+     "MACPOWER.NS",
+     "2025-02-11",
+     "max_hold_timeout"
+    ],
+    [
+     0.32003,
+     "DUCON.NS",
+     "2026-08-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.31207,
+     "GLFL.NS",
+     "2025-04-29",
+     "max_hold_timeout"
+    ],
+    [
+     0.30352,
+     "HDFCSILVER.NS",
+     "2026-01-30",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 24
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__short__1h__atr1d5_rr4__v1",
+   "n": 45228,
+   "pfnet": 0.693,
+   "pf_gross": 1.091,
+   "pfnet_ex_top5": 0.691,
+   "win_pct": 30.81,
+   "avg_hold_bars": 16.46,
+   "avg_net_ret_pct": -0.656,
+   "win_sum": 669.3443,
+   "loss_sum": 966.0127,
+   "exit_reasons": {
+    "data_end": 96,
+    "max_hold_timeout": 15708,
+    "stop_loss": 29424
+   },
+   "top5": [
+    [
+     0.54235,
+     "VAISHALI.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.36849,
+     "GLFL.NS",
+     "2025-04-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.33687,
+     "CARRARO.NS",
+     "2025-02-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.31502,
+     "JAINREC.NS",
+     "2026-05-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.31472,
+     "IFBIND.NS",
+     "2024-10-23",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 12
+  },
+  {
+   "tag": "swingminrr__brk20_base__short__1h__atr3__v1",
+   "n": 104880,
+   "pfnet": 0.692,
+   "pf_gross": 1.065,
+   "pfnet_ex_top5": 0.691,
+   "win_pct": 40.94,
+   "avg_hold_bars": 23.78,
+   "avg_net_ret_pct": -0.685,
+   "win_sum": 1610.3477,
+   "loss_sum": 2328.66,
+   "exit_reasons": {
+    "data_end": 686,
+    "max_hold_timeout": 61272,
+    "stop_loss": 42922
+   },
+   "top5": [
+    [
+     0.48053,
+     "TRIVENI.NS",
+     "2026-07-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.46461,
+     "TECILCHEM.NS",
+     "2025-05-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.43695,
+     "CGCL.NS",
+     "2024-02-29",
+     "max_hold_timeout"
+    ],
+    [
+     0.40254,
+     "PSB.NS",
+     "2025-03-28",
+     "max_hold_timeout"
+    ],
+    [
+     0.37017,
+     "EUROTEXIND.NS",
+     "2024-10-09",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 24
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__short__1h__atr2_rr2__v1",
+   "n": 84429,
+   "pfnet": 0.69,
+   "pf_gross": 1.057,
+   "pfnet_ex_top5": 0.689,
+   "win_pct": 36.52,
+   "avg_hold_bars": 19.64,
+   "avg_net_ret_pct": -0.699,
+   "win_sum": 1314.0139,
+   "loss_sum": 1904.207,
+   "exit_reasons": {
+    "data_end": 319,
+    "max_hold_timeout": 37308,
+    "stop_loss": 46802
+   },
+   "top5": [
+    [
+     0.54235,
+     "VAISHALI.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.51554,
+     "NAZARA.NS",
+     "2025-09-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.50231,
+     "MCLOUD.NS",
+     "2025-11-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.47538,
+     "CHEMBOND.NS",
+     "2025-05-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.36849,
+     "GLFL.NS",
+     "2025-04-24",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 18
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__short__1h__atr3_rr1d5__v1",
+   "n": 174361,
+   "pfnet": 0.688,
+   "pf_gross": 1.043,
+   "pfnet_ex_top5": 0.688,
+   "win_pct": 44.1,
+   "avg_hold_bars": 21.14,
+   "avg_net_ret_pct": -0.719,
+   "win_sum": 2767.5977,
+   "loss_sum": 4021.6632,
+   "exit_reasons": {
+    "data_end": 1193,
+    "max_hold_timeout": 69882,
+    "stop_loss": 67409,
+    "target": 35877
+   },
+   "top5": [
+    [
+     0.22251,
+     "NIBL.NS",
+     "2025-03-24",
+     "target"
+    ],
+    [
+     0.19609,
+     "ASMS.NS",
+     "2026-02-09",
+     "target"
+    ],
+    [
+     0.19149,
+     "GAYAPROJ.NS",
+     "2025-02-25",
+     "target"
+    ],
+    [
+     0.18972,
+     "AKSHAR.NS",
+     "2023-12-20",
+     "target"
+    ],
+    [
+     0.18913,
+     "WEL.NS",
+     "2026-08-27",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 13
+  },
+  {
+   "tag": "swingminrr__order_block_target__long__1h__atr3_rr3__v1",
+   "n": 15469,
+   "pfnet": 0.685,
+   "pf_gross": 0.918,
+   "pfnet_ex_top5": 0.681,
+   "win_pct": 35.42,
+   "avg_hold_bars": 25.21,
+   "avg_net_ret_pct": -1.025,
+   "win_sum": 344.6669,
+   "loss_sum": 503.1823,
+   "exit_reasons": {
+    "data_end": 97,
+    "max_hold_timeout": 9608,
+    "stop_loss": 5141,
+    "target": 623
+   },
+   "top5": [
+    [
+     0.53751,
+     "MONQ50.NS",
+     "2026-09-10",
+     "target"
+    ],
+    [
+     0.45256,
+     "SECMARK.NS",
+     "2023-12-22",
+     "target"
+    ],
+    [
+     0.42307,
+     "HYBRIDFIN.NS",
+     "2025-06-03",
+     "max_hold_timeout"
+    ],
+    [
+     0.41391,
+     "SHYAMTEL.NS",
+     "2026-04-17",
+     "target"
+    ],
+    [
+     0.4058,
+     "NEXTMEDIA.NS",
+     "2024-11-18",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 2
+  },
+  {
+   "tag": "swingminrr__brk20_target__long__1h__atr1d5_rr4__v1",
+   "n": 100353,
+   "pfnet": 0.684,
+   "pf_gross": 1.123,
+   "pfnet_ex_top5": 0.683,
+   "win_pct": 27.23,
+   "avg_hold_bars": 13.49,
+   "avg_net_ret_pct": -0.627,
+   "win_sum": 1361.3376,
+   "loss_sum": 1990.1288,
+   "exit_reasons": {
+    "data_end": 188,
+    "max_hold_timeout": 17570,
+    "stop_loss": 67410,
+    "target": 15185
+   },
+   "top5": [
+    [
+     0.30014,
+     "HAVISHA.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.27532,
+     "ADL.NS",
+     "2025-04-11",
+     "target"
+    ],
+    [
+     0.27282,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "target"
+    ],
+    [
+     0.27033,
+     "STLSTRINF.NS",
+     "2026-09-11",
+     "target"
+    ],
+    [
+     0.26847,
+     "DCMFINSERV.NS",
+     "2026-03-10",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 13
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__short__1h__atr3_rr2__v1",
+   "n": 170707,
+   "pfnet": 0.684,
+   "pf_gross": 1.031,
+   "pfnet_ex_top5": 0.684,
+   "win_pct": 42.52,
+   "avg_hold_bars": 22.62,
+   "avg_net_ret_pct": -0.741,
+   "win_sum": 2741.5811,
+   "loss_sum": 4006.9024,
+   "exit_reasons": {
+    "data_end": 1253,
+    "max_hold_timeout": 83557,
+    "stop_loss": 67270,
+    "target": 18627
+   },
+   "top5": [
+    [
+     0.25483,
+     "WEL.NS",
+     "2026-08-27",
+     "target"
+    ],
+    [
+     0.24008,
+     "S&SPOWER.NS",
+     "2025-02-12",
+     "target"
+    ],
+    [
+     0.23846,
+     "SPANDANA.NS",
+     "2025-01-09",
+     "target"
+    ],
+    [
+     0.23701,
+     "GTECJAINX.NS",
+     "2025-04-29",
+     "target"
+    ],
+    [
+     0.23543,
+     "TURTLEMINT.NS",
+     "2026-09-25",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 16
+  },
+  {
+   "tag": "swingminrr__order_block_target__long__1h__atr3_rr4__v1",
+   "n": 15441,
+   "pfnet": 0.68,
+   "pf_gross": 0.912,
+   "pfnet_ex_top5": 0.674,
+   "win_pct": 35.27,
+   "avg_hold_bars": 25.52,
+   "avg_net_ret_pct": -1.043,
+   "win_sum": 341.8185,
+   "loss_sum": 502.8972,
+   "exit_reasons": {
+    "data_end": 97,
+    "max_hold_timeout": 9955,
+    "stop_loss": 5144,
+    "target": 245
+   },
+   "top5": [
+    [
+     0.61453,
+     "MONQ50.NS",
+     "2026-09-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.55454,
+     "SHYAMTEL.NS",
+     "2026-04-17",
+     "target"
+    ],
+    [
+     0.5263,
+     "NEXTMEDIA.NS",
+     "2024-11-18",
+     "max_hold_timeout"
+    ],
+    [
+     0.52223,
+     "MANAKALUCO.NS",
+     "2026-01-08",
+     "target"
+    ],
+    [
+     0.51932,
+     "ESSARSHPNG.NS",
+     "2024-06-05",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 2
+  },
+  {
+   "tag": "swingminrr__order_block_base__long__1h__atr3__v1",
+   "n": 15431,
+   "pfnet": 0.679,
+   "pf_gross": 0.911,
+   "pfnet_ex_top5": 0.672,
+   "win_pct": 35.26,
+   "avg_hold_bars": 25.67,
+   "avg_net_ret_pct": -1.045,
+   "win_sum": 341.2775,
+   "loss_sum": 502.6081,
+   "exit_reasons": {
+    "data_end": 97,
+    "max_hold_timeout": 10190,
+    "stop_loss": 5144
+   },
+   "top5": [
+    [
+     0.87967,
+     "URJA.NS",
+     "2024-01-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.69493,
+     "SHYAMTEL.NS",
+     "2026-04-17",
+     "max_hold_timeout"
+    ],
+    [
+     0.64512,
+     "MANAKALUCO.NS",
+     "2026-01-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.61453,
+     "MONQ50.NS",
+     "2026-09-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.60852,
+     "ESSARSHPNG.NS",
+     "2023-11-30",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 2
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__long__1h__atr2_rr3__v1",
+   "n": 27192,
+   "pfnet": 0.676,
+   "pf_gross": 1.033,
+   "pfnet_ex_top5": 0.671,
+   "win_pct": 30.02,
+   "avg_hold_bars": 19.65,
+   "avg_net_ret_pct": -0.743,
+   "win_sum": 421.4314,
+   "loss_sum": 623.4557,
+   "exit_reasons": {
+    "data_end": 126,
+    "max_hold_timeout": 11402,
+    "stop_loss": 15664
+   },
+   "top5": [
+    [
+     0.83956,
+     "PARASPETRO.NS",
+     "2026-01-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.56144,
+     "VINNY.NS",
+     "2024-08-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.53626,
+     "UEL.NS",
+     "2026-01-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.53253,
+     "ADL.NS",
+     "2025-04-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.51494,
+     "MAHAPEXLTD.NS",
+     "2025-12-09",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 4
+  },
+  {
+   "tag": "swingminrr__order_block_target__long__1h__atr3_rr2__v1",
+   "n": 15552,
+   "pfnet": 0.674,
+   "pf_gross": 0.906,
+   "pfnet_ex_top5": 0.671,
+   "win_pct": 35.86,
+   "avg_hold_bars": 24.25,
+   "avg_net_ret_pct": -1.06,
+   "win_sum": 340.1646,
+   "loss_sum": 504.9515,
+   "exit_reasons": {
+    "data_end": 95,
+    "max_hold_timeout": 8658,
+    "stop_loss": 5156,
+    "target": 1643
+   },
+   "top5": [
+    [
+     0.35568,
+     "MONQ50.NS",
+     "2026-09-10",
+     "target"
+    ],
+    [
+     0.32107,
+     "EUROTEXIND.NS",
+     "2025-10-23",
+     "target"
+    ],
+    [
+     0.30256,
+     "HYBRIDFIN.NS",
+     "2025-06-03",
+     "target"
+    ],
+    [
+     0.29904,
+     "SECMARK.NS",
+     "2023-12-22",
+     "target"
+    ],
+    [
+     0.29217,
+     "EUROTEXIND.NS",
+     "2025-05-28",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 2
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__short__1h__atr1d5_rr3__v1",
+   "n": 77056,
+   "pfnet": 0.67,
+   "pf_gross": 1.069,
+   "pfnet_ex_top5": 0.669,
+   "win_pct": 31.07,
+   "avg_hold_bars": 16.72,
+   "avg_net_ret_pct": -0.692,
+   "win_sum": 1085.0179,
+   "loss_sum": 1618.4717,
+   "exit_reasons": {
+    "data_end": 208,
+    "max_hold_timeout": 27161,
+    "stop_loss": 49687
+   },
+   "top5": [
+    [
+     0.54235,
+     "VAISHALI.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.50231,
+     "MCLOUD.NS",
+     "2025-11-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.47538,
+     "CHEMBOND.NS",
+     "2025-05-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.36849,
+     "GLFL.NS",
+     "2025-04-24",
+     "max_hold_timeout"
+    ],
+    [
+     0.32382,
+     "CONCORDBIO.NS",
+     "2025-02-10",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 13
+  },
+  {
+   "tag": "swingminrr__brk20_target__long__1h__atr2_rr2__v1",
+   "n": 100348,
+   "pfnet": 0.669,
+   "pf_gross": 1.074,
+   "pfnet_ex_top5": 0.669,
+   "win_pct": 36.1,
+   "avg_hold_bars": 14.22,
+   "avg_net_ret_pct": -0.684,
+   "win_sum": 1390.4461,
+   "loss_sum": 2076.9259,
+   "exit_reasons": {
+    "data_end": 221,
+    "max_hold_timeout": 15212,
+    "stop_loss": 55732,
+    "target": 29183
+   },
+   "top5": [
+    [
+     0.19742,
+     "HAVISHA.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.19594,
+     "DCI.NS",
+     "2024-09-18",
+     "max_hold_timeout"
+    ],
+    [
+     0.18088,
+     "ADL.NS",
+     "2025-04-11",
+     "target"
+    ],
+    [
+     0.17976,
+     "JAIPURKURT.NS",
+     "2024-03-21",
+     "target"
+    ],
+    [
+     0.17921,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 12
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__short__1h__atr3_rr3__v1",
+   "n": 169187,
+   "pfnet": 0.669,
+   "pf_gross": 1.009,
+   "pfnet_ex_top5": 0.668,
+   "win_pct": 41.84,
+   "avg_hold_bars": 23.6,
+   "avg_net_ret_pct": -0.782,
+   "win_sum": 2671.1177,
+   "loss_sum": 3994.4255,
+   "exit_reasons": {
+    "data_end": 1281,
+    "max_hold_timeout": 95651,
+    "stop_loss": 67202,
+    "target": 5053
+   },
+   "top5": [
+    [
+     0.38625,
+     "WEL.NS",
+     "2026-08-27",
+     "target"
+    ],
+    [
+     0.31876,
+     "QUADFUTURE.NS",
+     "2025-02-06",
+     "target"
+    ],
+    [
+     0.30547,
+     "MCLOUD.NS",
+     "2025-11-21",
+     "target"
+    ],
+    [
+     0.3012,
+     "GLFL.NS",
+     "2025-04-28",
+     "target"
+    ],
+    [
+     0.27991,
+     "NEXTMEDIA.NS",
+     "2026-08-31",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 20
+  },
+  {
+   "tag": "swingminrr__brk20_gatetarget__long__1h__atr1d5_rr4__v1",
+   "n": 14676,
+   "pfnet": 0.668,
+   "pf_gross": 1.14,
+   "pfnet_ex_top5": 0.665,
+   "win_pct": 28.58,
+   "avg_hold_bars": 13.84,
+   "avg_net_ret_pct": -0.618,
+   "win_sum": 182.3558,
+   "loss_sum": 272.994,
+   "exit_reasons": {
+    "data_end": 18,
+    "max_hold_timeout": 2480,
+    "stop_loss": 9561,
+    "target": 2617
+   },
+   "top5": [
+    [
+     0.19007,
+     "PRECOT.NS",
+     "2025-04-15",
+     "target"
+    ],
+    [
+     0.18673,
+     "SINDHUTRAD.NS",
+     "2024-03-15",
+     "target"
+    ],
+    [
+     0.17993,
+     "MONQ50.NS",
+     "2026-10-06",
+     "target"
+    ],
+    [
+     0.17545,
+     "IFBIND.NS",
+     "2024-06-06",
+     "target"
+    ],
+    [
+     0.17251,
+     "HECPROJECT.NS",
+     "2024-10-29",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 6
+  },
+  {
+   "tag": "swingminrr__order_block_target__short__1h__atr3_rr1d5__v1",
+   "n": 11493,
+   "pfnet": 0.665,
+   "pf_gross": 0.902,
+   "pfnet_ex_top5": 0.662,
+   "win_pct": 45.18,
+   "avg_hold_bars": 24.22,
+   "avg_net_ret_pct": -1.072,
+   "win_sum": 244.7229,
+   "loss_sum": 367.9119,
+   "exit_reasons": {
+    "data_end": 104,
+    "max_hold_timeout": 6600,
+    "stop_loss": 3614,
+    "target": 1175
+   },
+   "top5": [
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.23965,
+     "SINDHUTRAD.NS",
+     "2024-03-05",
+     "target"
+    ],
+    [
+     0.2069,
+     "DNAMEDIA.NS",
+     "2025-02-14",
+     "target"
+    ],
+    [
+     0.20467,
+     "TREEHOUSE.NS",
+     "2026-01-16",
+     "target"
+    ],
+    [
+     0.20118,
+     "GAYAHWS.NS",
+     "2025-02-19",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__order_block_target__short__1h__atr2_rr1d5__v1",
+   "n": 12845,
+   "pfnet": 0.664,
+   "pf_gross": 0.921,
+   "pfnet_ex_top5": 0.661,
+   "win_pct": 42.52,
+   "avg_hold_bars": 17.69,
+   "avg_net_ret_pct": -1.001,
+   "win_sum": 254.4442,
+   "loss_sum": 383.0233,
+   "exit_reasons": {
+    "data_end": 84,
+    "max_hold_timeout": 3742,
+    "stop_loss": 5930,
+    "target": 3089
+   },
+   "top5": [
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.20294,
+     "UNIINFO.NS",
+     "2026-03-24",
+     "target"
+    ],
+    [
+     0.19104,
+     "DCMFINSERV.NS",
+     "2026-01-16",
+     "target"
+    ],
+    [
+     0.17893,
+     "TREEHOUSE.NS",
+     "2026-02-26",
+     "target"
+    ],
+    [
+     0.16078,
+     "TECILCHEM.NS",
+     "2026-04-08",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__brk20_gate__short__1h__atr1d5_rr2__v1",
+   "n": 50339,
+   "pfnet": 0.661,
+   "pf_gross": 1.107,
+   "pfnet_ex_top5": 0.659,
+   "win_pct": 29.43,
+   "avg_hold_bars": 16.4,
+   "avg_net_ret_pct": -0.653,
+   "win_sum": 640.5966,
+   "loss_sum": 969.3237,
+   "exit_reasons": {
+    "data_end": 93,
+    "max_hold_timeout": 16881,
+    "stop_loss": 33365
+   },
+   "top5": [
+    [
+     0.46461,
+     "TECILCHEM.NS",
+     "2025-05-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.40254,
+     "PSB.NS",
+     "2025-03-28",
+     "max_hold_timeout"
+    ],
+    [
+     0.37017,
+     "EUROTEXIND.NS",
+     "2024-10-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.33379,
+     "TI.NS",
+     "2025-02-06",
+     "max_hold_timeout"
+    ],
+    [
+     0.32978,
+     "TECILCHEM.NS",
+     "2024-06-24",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 18
+  },
+  {
+   "tag": "swingminrr__order_block_target__long__1h__atr3_rr1d5__v1",
+   "n": 15674,
+   "pfnet": 0.66,
+   "pf_gross": 0.892,
+   "pfnet_ex_top5": 0.658,
+   "win_pct": 37.0,
+   "avg_hold_bars": 23.02,
+   "avg_net_ret_pct": -1.094,
+   "win_sum": 332.8586,
+   "loss_sum": 504.292,
+   "exit_reasons": {
+    "data_end": 91,
+    "max_hold_timeout": 7658,
+    "stop_loss": 5145,
+    "target": 2780
+   },
+   "top5": [
+    [
+     0.26476,
+     "MONQ50.NS",
+     "2026-09-10",
+     "target"
+    ],
+    [
+     0.26393,
+     "LAL.NS",
+     "2026-03-16",
+     "target"
+    ],
+    [
+     0.2501,
+     "VIVIDHA.NS",
+     "2023-12-11",
+     "target"
+    ],
+    [
+     0.242,
+     "ANTGRAPHIC.NS",
+     "2023-11-17",
+     "max_hold_timeout"
+    ],
+    [
+     0.23881,
+     "EUROTEXIND.NS",
+     "2025-10-23",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__short__1h__atr3_rr4__v1",
+   "n": 168884,
+   "pfnet": 0.659,
+   "pf_gross": 0.996,
+   "pfnet_ex_top5": 0.658,
+   "win_pct": 41.72,
+   "avg_hold_bars": 23.82,
+   "avg_net_ret_pct": -0.807,
+   "win_sum": 2628.3044,
+   "loss_sum": 3991.1545,
+   "exit_reasons": {
+    "data_end": 1283,
+    "max_hold_timeout": 99019,
+    "stop_loss": 67216,
+    "target": 1366
+   },
+   "top5": [
+    [
+     0.48425,
+     "WEL.NS",
+     "2026-08-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.40996,
+     "MCLOUD.NS",
+     "2025-11-21",
+     "target"
+    ],
+    [
+     0.36551,
+     "MANGALAM.NS",
+     "2025-11-21",
+     "target"
+    ],
+    [
+     0.32788,
+     "MACPOWER.NS",
+     "2025-02-12",
+     "target"
+    ],
+    [
+     0.30315,
+     "GSLSU.NS",
+     "2026-07-13",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 22
+  },
+  {
+   "tag": "swingminrr__volume_profile_base__long__1h__atr3__v1",
+   "n": 133284,
+   "pfnet": 0.656,
+   "pf_gross": 0.956,
+   "pfnet_ex_top5": 0.655,
+   "win_pct": 33.54,
+   "avg_hold_bars": 24.24,
+   "avg_net_ret_pct": -0.892,
+   "win_sum": 2270.4674,
+   "loss_sum": 3458.9742,
+   "exit_reasons": {
+    "data_end": 742,
+    "max_hold_timeout": 78013,
+    "stop_loss": 54529
+   },
+   "top5": [
+    [
+     0.92719,
+     "KRIDHANINF.NS",
+     "2024-12-04",
+     "max_hold_timeout"
+    ],
+    [
+     0.83956,
+     "PARASPETRO.NS",
+     "2026-01-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.82118,
+     "SOMATEX.NS",
+     "2025-07-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.74904,
+     "WINDMACHIN.NS",
+     "2024-06-12",
+     "max_hold_timeout"
+    ],
+    [
+     0.73376,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 16
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__long__1h__atr3_rr4__v1",
+   "n": 134275,
+   "pfnet": 0.656,
+   "pf_gross": 0.954,
+   "pfnet_ex_top5": 0.655,
+   "win_pct": 33.6,
+   "avg_hold_bars": 23.87,
+   "avg_net_ret_pct": -0.897,
+   "win_sum": 2293.4839,
+   "loss_sum": 3498.0514,
+   "exit_reasons": {
+    "data_end": 738,
+    "max_hold_timeout": 74510,
+    "stop_loss": 54902,
+    "target": 4125
+   },
+   "top5": [
+    [
+     0.57071,
+     "SECURKLOUD.NS",
+     "2025-11-18",
+     "target"
+    ],
+    [
+     0.54042,
+     "VIVIDHA.NS",
+     "2024-01-09",
+     "target"
+    ],
+    [
+     0.51843,
+     "HYBRIDFIN.NS",
+     "2025-06-04",
+     "target"
+    ],
+    [
+     0.51733,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "target"
+    ],
+    [
+     0.5139,
+     "NEXTMEDIA.NS",
+     "2024-11-18",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 16
+  },
+  {
+   "tag": "swingminrr__volume_profile_base__short__1h__atr3__v1",
+   "n": 168752,
+   "pfnet": 0.655,
+   "pf_gross": 0.992,
+   "pfnet_ex_top5": 0.654,
+   "win_pct": 41.69,
+   "avg_hold_bars": 23.9,
+   "avg_net_ret_pct": -0.816,
+   "win_sum": 2611.7623,
+   "loss_sum": 3988.22,
+   "exit_reasons": {
+    "data_end": 1285,
+    "max_hold_timeout": 100276,
+    "stop_loss": 67191
+   },
+   "top5": [
+    [
+     0.54235,
+     "VAISHALI.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.52248,
+     "INDOTHAI.NS",
+     "2026-07-31",
+     "max_hold_timeout"
+    ],
+    [
+     0.50231,
+     "MCLOUD.NS",
+     "2025-11-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.48425,
+     "WEL.NS",
+     "2026-08-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.47538,
+     "CHEMBOND.NS",
+     "2025-05-08",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 23
+  },
+  {
+   "tag": "swingminrr__brk20_target__long__1h__atr1d5_rr3__v1",
+   "n": 102250,
+   "pfnet": 0.653,
+   "pf_gross": 1.094,
+   "pfnet_ex_top5": 0.653,
+   "win_pct": 29.5,
+   "avg_hold_bars": 12.04,
+   "avg_net_ret_pct": -0.67,
+   "win_sum": 1291.6583,
+   "loss_sum": 1976.5649,
+   "exit_reasons": {
+    "data_end": 181,
+    "max_hold_timeout": 11980,
+    "stop_loss": 67109,
+    "target": 22980
+   },
+   "top5": [
+    [
+     0.2231,
+     "HAVISHA.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.20449,
+     "ADL.NS",
+     "2025-04-11",
+     "target"
+    ],
+    [
+     0.20261,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "target"
+    ],
+    [
+     0.20075,
+     "STLSTRINF.NS",
+     "2026-09-11",
+     "target"
+    ],
+    [
+     0.19936,
+     "DCMFINSERV.NS",
+     "2026-03-10",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 13
+  },
+  {
+   "tag": "swingminrr__order_block_gate__long__1h__atr1d5_rr2__v1",
+   "n": 11875,
+   "pfnet": 0.651,
+   "pf_gross": 0.93,
+   "pfnet_ex_top5": 0.64,
+   "win_pct": 27.0,
+   "avg_hold_bars": 17.65,
+   "avg_net_ret_pct": -0.95,
+   "win_sum": 210.1548,
+   "loss_sum": 323.0159,
+   "exit_reasons": {
+    "data_end": 56,
+    "max_hold_timeout": 4348,
+    "stop_loss": 7471
+   },
+   "top5": [
+    [
+     0.94422,
+     "MONQ50.NS",
+     "2026-09-11",
+     "max_hold_timeout"
+    ],
+    [
+     0.64512,
+     "MANAKALUCO.NS",
+     "2026-01-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.60852,
+     "ESSARSHPNG.NS",
+     "2023-11-30",
+     "max_hold_timeout"
+    ],
+    [
+     0.54598,
+     "ESSARSHPNG.NS",
+     "2024-06-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.53383,
+     "MASKINVEST.NS",
+     "2025-10-09",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__long__1h__atr3_rr3__v1",
+   "n": 135198,
+   "pfnet": 0.651,
+   "pf_gross": 0.948,
+   "pfnet_ex_top5": 0.651,
+   "win_pct": 33.77,
+   "avg_hold_bars": 23.41,
+   "avg_net_ret_pct": -0.909,
+   "win_sum": 2295.0971,
+   "loss_sum": 3523.7305,
+   "exit_reasons": {
+    "data_end": 741,
+    "max_hold_timeout": 70459,
+    "stop_loss": 55166,
+    "target": 8832
+   },
+   "top5": [
+    [
+     0.42603,
+     "SECURKLOUD.NS",
+     "2025-11-18",
+     "target"
+    ],
+    [
+     0.40331,
+     "VIVIDHA.NS",
+     "2024-01-09",
+     "target"
+    ],
+    [
+     0.39877,
+     "NEXTMEDIA.NS",
+     "2026-08-27",
+     "target"
+    ],
+    [
+     0.38682,
+     "HYBRIDFIN.NS",
+     "2025-06-04",
+     "target"
+    ],
+    [
+     0.386,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 15
+  },
+  {
+   "tag": "swingminrr__brk20_target__short__1h__atr2_rr3__v1",
+   "n": 111687,
+   "pfnet": 0.65,
+   "pf_gross": 1.046,
+   "pfnet_ex_top5": 0.65,
+   "win_pct": 35.34,
+   "avg_hold_bars": 17.75,
+   "avg_net_ret_pct": -0.728,
+   "win_sum": 1512.1487,
+   "loss_sum": 2325.2928,
+   "exit_reasons": {
+    "data_end": 522,
+    "max_hold_timeout": 33495,
+    "stop_loss": 63056,
+    "target": 14614
+   },
+   "top5": [
+    [
+     0.25159,
+     "SHREERAMA.NS",
+     "2024-09-16",
+     "target"
+    ],
+    [
+     0.24137,
+     "MONQ50.NS",
+     "2026-09-22",
+     "max_hold_timeout"
+    ],
+    [
+     0.23883,
+     "SILVER.NS",
+     "2026-01-30",
+     "target"
+    ],
+    [
+     0.23743,
+     "GLFL.NS",
+     "2025-11-17",
+     "target"
+    ],
+    [
+     0.22815,
+     "SILVERCASE.NS",
+     "2026-01-30",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 21
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__short__1h__atr2_rr2__v1",
+   "n": 198960,
+   "pfnet": 0.646,
+   "pf_gross": 1.024,
+   "pfnet_ex_top5": 0.646,
+   "win_pct": 38.68,
+   "avg_hold_bars": 16.53,
+   "avg_net_ret_pct": -0.759,
+   "win_sum": 2757.7388,
+   "loss_sum": 4268.4745,
+   "exit_reasons": {
+    "data_end": 1081,
+    "max_hold_timeout": 47366,
+    "stop_loss": 105755,
+    "target": 44758
+   },
+   "top5": [
+    [
+     0.22164,
+     "UNIINFO.NS",
+     "2026-03-05",
+     "target"
+    ],
+    [
+     0.1969,
+     "NIBL.NS",
+     "2025-03-24",
+     "target"
+    ],
+    [
+     0.19342,
+     "HAVISHA.NS",
+     "2026-03-12",
+     "target"
+    ],
+    [
+     0.17906,
+     "TREEHOUSE.NS",
+     "2026-02-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.17459,
+     "TOUCHWOOD.NS",
+     "2025-02-13",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 14
+  },
+  {
+   "tag": "swingminrr__brk20_target__short__1h__atr2_rr4__v1",
+   "n": 110831,
+   "pfnet": 0.645,
+   "pf_gross": 1.033,
+   "pfnet_ex_top5": 0.644,
+   "win_pct": 34.44,
+   "avg_hold_bars": 18.71,
+   "avg_net_ret_pct": -0.747,
+   "win_sum": 1502.5862,
+   "loss_sum": 2330.1532,
+   "exit_reasons": {
+    "data_end": 528,
+    "max_hold_timeout": 40272,
+    "stop_loss": 63200,
+    "target": 6831
+   },
+   "top5": [
+    [
+     0.33811,
+     "SHREERAMA.NS",
+     "2024-09-16",
+     "target"
+    ],
+    [
+     0.28241,
+     "GLFL.NS",
+     "2025-11-17",
+     "max_hold_timeout"
+    ],
+    [
+     0.27453,
+     "GLFL.NS",
+     "2025-04-29",
+     "target"
+    ],
+    [
+     0.27112,
+     "TECILCHEM.NS",
+     "2025-06-13",
+     "target"
+    ],
+    [
+     0.26991,
+     "DUCON.NS",
+     "2026-08-24",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 21
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__short__1h__atr2_rr3__v1",
+   "n": 192005,
+   "pfnet": 0.645,
+   "pf_gross": 1.01,
+   "pfnet_ex_top5": 0.645,
+   "win_pct": 36.14,
+   "avg_hold_bars": 18.61,
+   "avg_net_ret_pct": -0.783,
+   "win_sum": 2732.3872,
+   "loss_sum": 4236.4885,
+   "exit_reasons": {
+    "data_end": 1164,
+    "max_hold_timeout": 66990,
+    "stop_loss": 105129,
+    "target": 18722
+   },
+   "top5": [
+    [
+     0.25483,
+     "WEL.NS",
+     "2026-08-27",
+     "target"
+    ],
+    [
+     0.24008,
+     "S&SPOWER.NS",
+     "2025-02-12",
+     "target"
+    ],
+    [
+     0.23846,
+     "SPANDANA.NS",
+     "2025-01-09",
+     "target"
+    ],
+    [
+     0.23701,
+     "GTECJAINX.NS",
+     "2025-04-29",
+     "target"
+    ],
+    [
+     0.23543,
+     "TURTLEMINT.NS",
+     "2026-09-25",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 17
+  },
+  {
+   "tag": "swingminrr__order_block_target__short__1h__atr3_rr2__v1",
+   "n": 11426,
+   "pfnet": 0.644,
+   "pf_gross": 0.876,
+   "pfnet_ex_top5": 0.64,
+   "win_pct": 44.68,
+   "avg_hold_bars": 25.0,
+   "avg_net_ret_pct": -1.147,
+   "win_sum": 236.6369,
+   "loss_sum": 367.7255,
+   "exit_reasons": {
+    "data_end": 107,
+    "max_hold_timeout": 7250,
+    "stop_loss": 3619,
+    "target": 450
+   },
+   "top5": [
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.3222,
+     "SINDHUTRAD.NS",
+     "2024-03-05",
+     "target"
+    ],
+    [
+     0.24076,
+     "UNIINFO.NS",
+     "2026-03-11",
+     "target"
+    ],
+    [
+     0.24008,
+     "S&SPOWER.NS",
+     "2025-02-12",
+     "target"
+    ],
+    [
+     0.21166,
+     "KHANDSE.NS",
+     "2025-03-24",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__brk20_target__short__1h__atr2_rr2__v1",
+   "n": 115749,
+   "pfnet": 0.643,
+   "pf_gross": 1.056,
+   "pfnet_ex_top5": 0.642,
+   "win_pct": 38.73,
+   "avg_hold_bars": 15.34,
+   "avg_net_ret_pct": -0.715,
+   "win_sum": 1489.19,
+   "loss_sum": 2317.1223,
+   "exit_reasons": {
+    "data_end": 470,
+    "max_hold_timeout": 21327,
+    "stop_loss": 62902,
+    "target": 31050
+   },
+   "top5": [
+    [
+     0.2564,
+     "MONQ50.NS",
+     "2026-09-22",
+     "target"
+    ],
+    [
+     0.19801,
+     "SHYAMTEL.NS",
+     "2026-03-13",
+     "max_hold_timeout"
+    ],
+    [
+     0.17163,
+     "REGENCERAM.NS",
+     "2024-03-04",
+     "target"
+    ],
+    [
+     0.17002,
+     "INFOMEDIA.NS",
+     "2024-04-08",
+     "target"
+    ],
+    [
+     0.16506,
+     "SHREERAMA.NS",
+     "2024-09-16",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 20
+  },
+  {
+   "tag": "swingminrr__order_block_target__short__1h__atr2_rr2__v1",
+   "n": 12510,
+   "pfnet": 0.641,
+   "pf_gross": 0.885,
+   "pfnet_ex_top5": 0.638,
+   "win_pct": 40.21,
+   "avg_hold_bars": 19.62,
+   "avg_net_ret_pct": -1.1,
+   "win_sum": 245.3832,
+   "loss_sum": 382.972,
+   "exit_reasons": {
+    "data_end": 95,
+    "max_hold_timeout": 4857,
+    "stop_loss": 5948,
+    "target": 1610
+   },
+   "top5": [
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.21213,
+     "SINDHUTRAD.NS",
+     "2024-03-05",
+     "target"
+    ],
+    [
+     0.1953,
+     "AAKASH.NS",
+     "2026-03-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.18302,
+     "DNAMEDIA.NS",
+     "2025-02-14",
+     "target"
+    ],
+    [
+     0.18104,
+     "TREEHOUSE.NS",
+     "2026-01-16",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__long__1h__atr1d5_rr4__v1",
+   "n": 28892,
+   "pfnet": 0.641,
+   "pf_gross": 1.028,
+   "pfnet_ex_top5": 0.636,
+   "win_pct": 25.31,
+   "avg_hold_bars": 16.39,
+   "avg_net_ret_pct": -0.757,
+   "win_sum": 391.4168,
+   "loss_sum": 610.1827,
+   "exit_reasons": {
+    "data_end": 106,
+    "max_hold_timeout": 9330,
+    "stop_loss": 19456
+   },
+   "top5": [
+    [
+     0.95547,
+     "MASKINVEST.NS",
+     "2024-10-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.56144,
+     "VINNY.NS",
+     "2024-08-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.53626,
+     "UEL.NS",
+     "2026-01-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.51494,
+     "MAHAPEXLTD.NS",
+     "2025-12-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.49574,
+     "ELGIRUBCO.NS",
+     "2024-10-30",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 3
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__long__1h__atr2_rr2__v1",
+   "n": 60391,
+   "pfnet": 0.641,
+   "pf_gross": 0.981,
+   "pfnet_ex_top5": 0.639,
+   "win_pct": 29.21,
+   "avg_hold_bars": 19.66,
+   "avg_net_ret_pct": -0.834,
+   "win_sum": 900.7818,
+   "loss_sum": 1404.4424,
+   "exit_reasons": {
+    "data_end": 330,
+    "max_hold_timeout": 25138,
+    "stop_loss": 34923
+   },
+   "top5": [
+    [
+     0.83956,
+     "PARASPETRO.NS",
+     "2026-01-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.59143,
+     "BANKA.NS",
+     "2023-12-26",
+     "max_hold_timeout"
+    ],
+    [
+     0.56218,
+     "TFL.NS",
+     "2024-05-02",
+     "max_hold_timeout"
+    ],
+    [
+     0.56189,
+     "AAATECH.NS",
+     "2025-09-26",
+     "max_hold_timeout"
+    ],
+    [
+     0.56144,
+     "VINNY.NS",
+     "2024-08-14",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 5
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__short__1h__atr1d5_rr2__v1",
+   "n": 127188,
+   "pfnet": 0.639,
+   "pf_gross": 1.034,
+   "pfnet_ex_top5": 0.638,
+   "win_pct": 30.9,
+   "avg_hold_bars": 16.86,
+   "avg_net_ret_pct": -0.748,
+   "win_sum": 1682.0131,
+   "loss_sum": 2633.9348,
+   "exit_reasons": {
+    "data_end": 552,
+    "max_hold_timeout": 44955,
+    "stop_loss": 81681
+   },
+   "top5": [
+    [
+     0.54235,
+     "VAISHALI.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.50231,
+     "MCLOUD.NS",
+     "2025-11-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.49403,
+     "TRIVENI.NS",
+     "2026-07-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.48425,
+     "WEL.NS",
+     "2026-08-27",
+     "max_hold_timeout"
+    ],
+    [
+     0.47538,
+     "CHEMBOND.NS",
+     "2025-05-08",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 19
+  },
+  {
+   "tag": "swingminrr__brk20_base__short__1h__atr2__v1",
+   "n": 110248,
+   "pfnet": 0.636,
+   "pf_gross": 1.019,
+   "pfnet_ex_top5": 0.635,
+   "win_pct": 34.01,
+   "avg_hold_bars": 19.36,
+   "avg_net_ret_pct": -0.769,
+   "win_sum": 1481.7482,
+   "loss_sum": 2329.769,
+   "exit_reasons": {
+    "data_end": 528,
+    "max_hold_timeout": 46533,
+    "stop_loss": 63187
+   },
+   "top5": [
+    [
+     0.46461,
+     "TECILCHEM.NS",
+     "2025-05-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.40254,
+     "PSB.NS",
+     "2025-03-28",
+     "max_hold_timeout"
+    ],
+    [
+     0.37017,
+     "EUROTEXIND.NS",
+     "2024-10-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.33386,
+     "HARDWYN.NS",
+     "2026-07-13",
+     "max_hold_timeout"
+    ],
+    [
+     0.33379,
+     "TI.NS",
+     "2025-02-06",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 23
+  },
+  {
+   "tag": "swingminrr__order_block_target__short__1h__atr1d5_rr1d5__v1",
+   "n": 14842,
+   "pfnet": 0.635,
+   "pf_gross": 0.92,
+   "pfnet_ex_top5": 0.632,
+   "win_pct": 40.96,
+   "avg_hold_bars": 12.45,
+   "avg_net_ret_pct": -0.976,
+   "win_sum": 251.5392,
+   "loss_sum": 396.3921,
+   "exit_reasons": {
+    "data_end": 60,
+    "max_hold_timeout": 1914,
+    "stop_loss": 8010,
+    "target": 4858
+   },
+   "top5": [
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.1502,
+     "UNIINFO.NS",
+     "2026-03-24",
+     "target"
+    ],
+    [
+     0.14128,
+     "DCMFINSERV.NS",
+     "2026-01-16",
+     "target"
+    ],
+    [
+     0.13561,
+     "MONQ50.NS",
+     "2026-09-25",
+     "target"
+    ],
+    [
+     0.1322,
+     "TREEHOUSE.NS",
+     "2026-02-26",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__long__1h__atr3_rr2__v1",
+   "n": 137865,
+   "pfnet": 0.634,
+   "pf_gross": 0.928,
+   "pfnet_ex_top5": 0.633,
+   "win_pct": 34.79,
+   "avg_hold_bars": 22.09,
+   "avg_net_ret_pct": -0.95,
+   "win_sum": 2266.1558,
+   "loss_sum": 3576.5173,
+   "exit_reasons": {
+    "data_end": 728,
+    "max_hold_timeout": 60597,
+    "stop_loss": 55742,
+    "target": 20798
+   },
+   "top5": [
+    [
+     0.34916,
+     "VIVIDHA.NS",
+     "2023-12-11",
+     "target"
+    ],
+    [
+     0.30545,
+     "SECMARK.NS",
+     "2023-12-26",
+     "target"
+    ],
+    [
+     0.2973,
+     "PRECOT.NS",
+     "2025-04-08",
+     "target"
+    ],
+    [
+     0.29526,
+     "PTCIL.NS",
+     "2024-06-04",
+     "target"
+    ],
+    [
+     0.29017,
+     "DCMSIL.NS",
+     "2026-03-17",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 13
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__short__1h__atr2_rr4__v1",
+   "n": 190587,
+   "pfnet": 0.634,
+   "pf_gross": 0.994,
+   "pfnet_ex_top5": 0.634,
+   "win_pct": 35.59,
+   "avg_hold_bars": 19.34,
+   "avg_net_ret_pct": -0.811,
+   "win_sum": 2680.9613,
+   "loss_sum": 4226.6215,
+   "exit_reasons": {
+    "data_end": 1196,
+    "max_hold_timeout": 76605,
+    "stop_loss": 104990,
+    "target": 7796
+   },
+   "top5": [
+    [
+     0.34244,
+     "WEL.NS",
+     "2026-08-27",
+     "target"
+    ],
+    [
+     0.28245,
+     "QUADFUTURE.NS",
+     "2025-02-06",
+     "target"
+    ],
+    [
+     0.28135,
+     "WEWIN.NS",
+     "2025-02-13",
+     "target"
+    ],
+    [
+     0.27991,
+     "NEXTMEDIA.NS",
+     "2026-08-31",
+     "max_hold_timeout"
+    ],
+    [
+     0.27695,
+     "SILVERCASE.NS",
+     "2026-01-30",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 21
+  },
+  {
+   "tag": "swingminrr__order_block_target__long__1h__atr2_rr4__v1",
+   "n": 16399,
+   "pfnet": 0.633,
+   "pf_gross": 0.865,
+   "pfnet_ex_top5": 0.629,
+   "win_pct": 30.31,
+   "avg_hold_bars": 20.1,
+   "avg_net_ret_pct": -1.149,
+   "win_sum": 324.8691,
+   "loss_sum": 513.3293,
+   "exit_reasons": {
+    "data_end": 75,
+    "max_hold_timeout": 6795,
+    "stop_loss": 8723,
+    "target": 806
+   },
+   "top5": [
+    [
+     0.4769,
+     "MONQ50.NS",
+     "2026-09-10",
+     "target"
+    ],
+    [
+     0.41915,
+     "SHYAMTEL.NS",
+     "2026-04-20",
+     "target"
+    ],
+    [
+     0.40608,
+     "HYBRIDFIN.NS",
+     "2025-06-03",
+     "target"
+    ],
+    [
+     0.40139,
+     "SECMARK.NS",
+     "2023-12-22",
+     "target"
+    ],
+    [
+     0.35982,
+     "NEXTMEDIA.NS",
+     "2024-11-18",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 2
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__short__1h__atr2_rr1d5__v1",
+   "n": 210671,
+   "pfnet": 0.633,
+   "pf_gross": 1.031,
+   "pfnet_ex_top5": 0.632,
+   "win_pct": 42.53,
+   "avg_hold_bars": 14.38,
+   "avg_net_ret_pct": -0.75,
+   "win_sum": 2721.5688,
+   "loss_sum": 4302.2436,
+   "exit_reasons": {
+    "data_end": 993,
+    "max_hold_timeout": 32860,
+    "stop_loss": 106551,
+    "target": 70267
+   },
+   "top5": [
+    [
+     0.20294,
+     "UNIINFO.NS",
+     "2026-03-24",
+     "target"
+    ],
+    [
+     0.1717,
+     "TREEHOUSE.NS",
+     "2026-02-27",
+     "target"
+    ],
+    [
+     0.16642,
+     "AAKASH.NS",
+     "2026-03-11",
+     "target"
+    ],
+    [
+     0.16423,
+     "UNIINFO.NS",
+     "2026-03-05",
+     "target"
+    ],
+    [
+     0.15638,
+     "KEEPLEARN.NS",
+     "2025-12-12",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 13
+  },
+  {
+   "tag": "swingminrr__order_block_base__long__1h__atr2__v1",
+   "n": 16339,
+   "pfnet": 0.63,
+   "pf_gross": 0.861,
+   "pfnet_ex_top5": 0.622,
+   "win_pct": 30.09,
+   "avg_hold_bars": 20.71,
+   "avg_net_ret_pct": -1.161,
+   "win_sum": 322.2791,
+   "loss_sum": 511.9198,
+   "exit_reasons": {
+    "data_end": 76,
+    "max_hold_timeout": 7554,
+    "stop_loss": 8709
+   },
+   "top5": [
+    [
+     0.90402,
+     "SHYAMTEL.NS",
+     "2026-04-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.87967,
+     "URJA.NS",
+     "2024-01-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.64512,
+     "MANAKALUCO.NS",
+     "2026-01-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.61453,
+     "MONQ50.NS",
+     "2026-09-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.60852,
+     "ESSARSHPNG.NS",
+     "2023-11-30",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 2
+  },
+  {
+   "tag": "swingminrr__order_block_target__short__1h__atr3_rr3__v1",
+   "n": 11397,
+   "pfnet": 0.63,
+   "pf_gross": 0.86,
+   "pfnet_ex_top5": 0.626,
+   "win_pct": 44.49,
+   "avg_hold_bars": 25.36,
+   "avg_net_ret_pct": -1.19,
+   "win_sum": 231.2926,
+   "loss_sum": 366.9396,
+   "exit_reasons": {
+    "data_end": 106,
+    "max_hold_timeout": 7586,
+    "stop_loss": 3617,
+    "target": 88
+   },
+   "top5": [
+    [
+     0.4032,
+     "SINDHUTRAD.NS",
+     "2024-03-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.31876,
+     "QUADFUTURE.NS",
+     "2025-02-06",
+     "target"
+    ],
+    [
+     0.28041,
+     "ASMS.NS",
+     "2026-02-06",
+     "target"
+    ],
+    [
+     0.27581,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__volume_profile_gatetarget__long__1h__atr1d5_rr4__v1",
+   "n": 28976,
+   "pfnet": 0.626,
+   "pf_gross": 1.013,
+   "pfnet_ex_top5": 0.624,
+   "win_pct": 26.5,
+   "avg_hold_bars": 14.57,
+   "avg_net_ret_pct": -0.78,
+   "win_sum": 378.556,
+   "loss_sum": 604.6977,
+   "exit_reasons": {
+    "data_end": 100,
+    "max_hold_timeout": 5995,
+    "stop_loss": 19296,
+    "target": 3585
+   },
+   "top5": [
+    [
+     0.2973,
+     "PRECOT.NS",
+     "2025-04-08",
+     "target"
+    ],
+    [
+     0.25954,
+     "PRAENG.NS",
+     "2025-02-18",
+     "target"
+    ],
+    [
+     0.24437,
+     "FINKURVE.NS",
+     "2026-02-02",
+     "target"
+    ],
+    [
+     0.23574,
+     "VERANDA.NS",
+     "2025-02-18",
+     "target"
+    ],
+    [
+     0.23256,
+     "VINNY.NS",
+     "2024-08-14",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 2
+  },
+  {
+   "tag": "swingminrr__order_block_target__short__1h__atr3_rr4__v1",
+   "n": 11393,
+   "pfnet": 0.625,
+   "pf_gross": 0.854,
+   "pfnet_ex_top5": 0.62,
+   "win_pct": 44.45,
+   "avg_hold_bars": 25.42,
+   "avg_net_ret_pct": -1.209,
+   "win_sum": 229.2306,
+   "loss_sum": 366.9869,
+   "exit_reasons": {
+    "data_end": 106,
+    "max_hold_timeout": 7653,
+    "stop_loss": 3619,
+    "target": 15
+   },
+   "top5": [
+    [
+     0.4032,
+     "SINDHUTRAD.NS",
+     "2024-03-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.27581,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.26288,
+     "SPCENET.NS",
+     "2024-03-07",
+     "target"
+    ],
+    [
+     0.26267,
+     "NEWGEN.NS",
+     "2025-01-16",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__order_block_target__long__1h__atr2_rr3__v1",
+   "n": 16472,
+   "pfnet": 0.624,
+   "pf_gross": 0.855,
+   "pfnet_ex_top5": 0.621,
+   "win_pct": 30.66,
+   "avg_hold_bars": 19.42,
+   "avg_net_ret_pct": -1.174,
+   "win_sum": 320.7827,
+   "loss_sum": 514.1826,
+   "exit_reasons": {
+    "data_end": 73,
+    "max_hold_timeout": 6119,
+    "stop_loss": 8734,
+    "target": 1546
+   },
+   "top5": [
+    [
+     0.35568,
+     "MONQ50.NS",
+     "2026-09-10",
+     "target"
+    ],
+    [
+     0.32107,
+     "EUROTEXIND.NS",
+     "2025-10-23",
+     "target"
+    ],
+    [
+     0.31236,
+     "SHYAMTEL.NS",
+     "2026-04-20",
+     "target"
+    ],
+    [
+     0.30256,
+     "HYBRIDFIN.NS",
+     "2025-06-03",
+     "target"
+    ],
+    [
+     0.29904,
+     "SECMARK.NS",
+     "2023-12-22",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 2
+  },
+  {
+   "tag": "swingminrr__order_block_target__short__1h__atr1d5_rr2__v1",
+   "n": 14104,
+   "pfnet": 0.624,
+   "pf_gross": 0.886,
+   "pfnet_ex_top5": 0.621,
+   "win_pct": 36.73,
+   "avg_hold_bars": 14.72,
+   "avg_net_ret_pct": -1.066,
+   "win_sum": 249.0649,
+   "loss_sum": 399.426,
+   "exit_reasons": {
+    "data_end": 74,
+    "max_hold_timeout": 2914,
+    "stop_loss": 8066,
+    "target": 3050
+   },
+   "top5": [
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.20294,
+     "UNIINFO.NS",
+     "2026-03-24",
+     "target"
+    ],
+    [
+     0.19104,
+     "DCMFINSERV.NS",
+     "2026-01-16",
+     "target"
+    ],
+    [
+     0.17893,
+     "TREEHOUSE.NS",
+     "2026-02-26",
+     "target"
+    ],
+    [
+     0.16078,
+     "TECILCHEM.NS",
+     "2026-04-08",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__order_block_base__short__1h__atr3__v1",
+   "n": 11392,
+   "pfnet": 0.624,
+   "pf_gross": 0.853,
+   "pfnet_ex_top5": 0.62,
+   "win_pct": 44.44,
+   "avg_hold_bars": 25.44,
+   "avg_net_ret_pct": -1.211,
+   "win_sum": 229.0617,
+   "loss_sum": 366.9869,
+   "exit_reasons": {
+    "data_end": 106,
+    "max_hold_timeout": 7667,
+    "stop_loss": 3619
+   },
+   "top5": [
+    [
+     0.4032,
+     "SINDHUTRAD.NS",
+     "2024-03-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.36157,
+     "SRGHFL.NS",
+     "2026-09-04",
+     "max_hold_timeout"
+    ],
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.31287,
+     "BTML.NS",
+     "2024-05-29",
+     "max_hold_timeout"
+    ],
+    [
+     0.27581,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__brk20_target__long__1h__atr2_rr1d5__v1",
+   "n": 105637,
+   "pfnet": 0.623,
+   "pf_gross": 1.045,
+   "pfnet_ex_top5": 0.622,
+   "win_pct": 40.92,
+   "avg_hold_bars": 12.18,
+   "avg_net_ret_pct": -0.733,
+   "win_sum": 1278.0509,
+   "loss_sum": 2052.6859,
+   "exit_reasons": {
+    "data_end": 198,
+    "max_hold_timeout": 9940,
+    "stop_loss": 55446,
+    "target": 40053
+   },
+   "top5": [
+    [
+     0.19594,
+     "DCI.NS",
+     "2024-09-18",
+     "max_hold_timeout"
+    ],
+    [
+     0.14607,
+     "HAVISHA.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.13542,
+     "MITTAL.NS",
+     "2024-06-10",
+     "target"
+    ],
+    [
+     0.13366,
+     "ADL.NS",
+     "2025-04-11",
+     "target"
+    ],
+    [
+     0.13282,
+     "JAIPURKURT.NS",
+     "2024-03-21",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 11
+  },
+  {
+   "tag": "swingminrr__brk20_target__short__1h__atr2_rr1d5__v1",
+   "n": 122617,
+   "pfnet": 0.617,
+   "pf_gross": 1.054,
+   "pfnet_ex_top5": 0.616,
+   "win_pct": 43.27,
+   "avg_hold_bars": 13.06,
+   "avg_net_ret_pct": -0.722,
+   "win_sum": 1425.5585,
+   "loss_sum": 2311.3337,
+   "exit_reasons": {
+    "data_end": 402,
+    "max_hold_timeout": 13682,
+    "stop_loss": 62870,
+    "target": 45663
+   },
+   "top5": [
+    [
+     0.1903,
+     "MONQ50.NS",
+     "2026-09-22",
+     "target"
+    ],
+    [
+     0.17676,
+     "SHYAMTEL.NS",
+     "2026-03-13",
+     "target"
+    ],
+    [
+     0.17147,
+     "UNIINFO.NS",
+     "2026-03-11",
+     "target"
+    ],
+    [
+     0.15016,
+     "AUSOMENT.NS",
+     "2026-01-22",
+     "target"
+    ],
+    [
+     0.14494,
+     "TECILCHEM.NS",
+     "2025-07-07",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 18
+  },
+  {
+   "tag": "swingminrr__volume_profile_base__short__1h__atr2__v1",
+   "n": 189874,
+   "pfnet": 0.617,
+   "pf_gross": 0.97,
+   "pfnet_ex_top5": 0.616,
+   "win_pct": 35.36,
+   "avg_hold_bars": 19.77,
+   "avg_net_ret_pct": -0.851,
+   "win_sum": 2600.2699,
+   "loss_sum": 4216.7,
+   "exit_reasons": {
+    "data_end": 1198,
+    "max_hold_timeout": 83775,
+    "stop_loss": 104901
+   },
+   "top5": [
+    [
+     0.54235,
+     "VAISHALI.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.52248,
+     "INDOTHAI.NS",
+     "2026-07-31",
+     "max_hold_timeout"
+    ],
+    [
+     0.50231,
+     "MCLOUD.NS",
+     "2025-11-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.49403,
+     "TRIVENI.NS",
+     "2026-07-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.48425,
+     "WEL.NS",
+     "2026-08-27",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 23
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__long__1h__atr1d5_rr3__v1",
+   "n": 53016,
+   "pfnet": 0.616,
+   "pf_gross": 0.986,
+   "pfnet_ex_top5": 0.613,
+   "win_pct": 24.62,
+   "avg_hold_bars": 16.33,
+   "avg_net_ret_pct": -0.822,
+   "win_sum": 697.8468,
+   "loss_sum": 1133.3829,
+   "exit_reasons": {
+    "data_end": 235,
+    "max_hold_timeout": 16868,
+    "stop_loss": 35913
+   },
+   "top5": [
+    [
+     0.95547,
+     "MASKINVEST.NS",
+     "2024-10-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.59143,
+     "BANKA.NS",
+     "2023-12-26",
+     "max_hold_timeout"
+    ],
+    [
+     0.5786,
+     "WEWIN.NS",
+     "2024-04-01",
+     "max_hold_timeout"
+    ],
+    [
+     0.57348,
+     "ADL.NS",
+     "2025-04-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.56218,
+     "TFL.NS",
+     "2024-05-02",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 3
+  },
+  {
+   "tag": "swingminrr__volume_profile_base__long__1h__atr2__v1",
+   "n": 148618,
+   "pfnet": 0.614,
+   "pf_gross": 0.929,
+   "pfnet_ex_top5": 0.613,
+   "win_pct": 28.19,
+   "avg_hold_bars": 19.39,
+   "avg_net_ret_pct": -0.932,
+   "win_sum": 2204.144,
+   "loss_sum": 3589.3031,
+   "exit_reasons": {
+    "data_end": 649,
+    "max_hold_timeout": 60421,
+    "stop_loss": 87548
+   },
+   "top5": [
+    [
+     1.00166,
+     "UEL.NS",
+     "2026-07-30",
+     "max_hold_timeout"
+    ],
+    [
+     0.92719,
+     "KRIDHANINF.NS",
+     "2024-12-04",
+     "max_hold_timeout"
+    ],
+    [
+     0.86056,
+     "GUJRAFFIA.NS",
+     "2025-10-13",
+     "max_hold_timeout"
+    ],
+    [
+     0.83956,
+     "PARASPETRO.NS",
+     "2026-01-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.82118,
+     "SOMATEX.NS",
+     "2025-07-09",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 12
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__long__1h__atr3_rr1d5__v1",
+   "n": 141678,
+   "pfnet": 0.613,
+   "pf_gross": 0.91,
+   "pfnet_ex_top5": 0.613,
+   "win_pct": 36.81,
+   "avg_hold_bars": 20.56,
+   "avg_net_ret_pct": -0.987,
+   "win_sum": 2214.4947,
+   "loss_sum": 3612.448,
+   "exit_reasons": {
+    "data_end": 716,
+    "max_hold_timeout": 51382,
+    "stop_loss": 56311,
+    "target": 33269
+   },
+   "top5": [
+    [
+     0.25987,
+     "VIVIDHA.NS",
+     "2023-12-11",
+     "target"
+    ],
+    [
+     0.2299,
+     "RVHL.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.22277,
+     "GAYAHWS.NS",
+     "2024-11-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.22228,
+     "SECMARK.NS",
+     "2023-12-22",
+     "target"
+    ],
+    [
+     0.22122,
+     "TREEHOUSE.NS",
+     "2026-02-24",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 13
+  },
+  {
+   "tag": "swingminrr__order_block_target__long__1h__atr2_rr2__v1",
+   "n": 16678,
+   "pfnet": 0.607,
+   "pf_gross": 0.84,
+   "pfnet_ex_top5": 0.605,
+   "win_pct": 32.6,
+   "avg_hold_bars": 17.74,
+   "avg_net_ret_pct": -1.208,
+   "win_sum": 310.705,
+   "loss_sum": 512.093,
+   "exit_reasons": {
+    "data_end": 68,
+    "max_hold_timeout": 4761,
+    "stop_loss": 8685,
+    "target": 3164
+   },
+   "top5": [
+    [
+     0.23445,
+     "MONQ50.NS",
+     "2026-09-10",
+     "target"
+    ],
+    [
+     0.23371,
+     "LAL.NS",
+     "2026-03-16",
+     "target"
+    ],
+    [
+     0.22142,
+     "VIVIDHA.NS",
+     "2023-12-11",
+     "target"
+    ],
+    [
+     0.22035,
+     "ANTGRAPHIC.NS",
+     "2023-11-17",
+     "target"
+    ],
+    [
+     0.21138,
+     "EUROTEXIND.NS",
+     "2025-10-23",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__order_block_target__short__1h__atr2_rr3__v1",
+   "n": 12364,
+   "pfnet": 0.606,
+   "pf_gross": 0.84,
+   "pfnet_ex_top5": 0.602,
+   "win_pct": 39.12,
+   "avg_hold_bars": 20.92,
+   "avg_net_ret_pct": -1.221,
+   "win_sum": 231.6841,
+   "loss_sum": 382.593,
+   "exit_reasons": {
+    "data_end": 104,
+    "max_hold_timeout": 5862,
+    "stop_loss": 5958,
+    "target": 440
+   },
+   "top5": [
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.3222,
+     "SINDHUTRAD.NS",
+     "2024-03-05",
+     "target"
+    ],
+    [
+     0.24076,
+     "UNIINFO.NS",
+     "2026-03-11",
+     "target"
+    ],
+    [
+     0.24008,
+     "S&SPOWER.NS",
+     "2025-02-12",
+     "target"
+    ],
+    [
+     0.21166,
+     "KHANDSE.NS",
+     "2025-03-24",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__long__1h__atr2_rr4__v1",
+   "n": 151325,
+   "pfnet": 0.606,
+   "pf_gross": 0.918,
+   "pfnet_ex_top5": 0.606,
+   "win_pct": 28.56,
+   "avg_hold_bars": 18.36,
+   "avg_net_ret_pct": -0.954,
+   "win_sum": 2222.5816,
+   "loss_sum": 3665.684,
+   "exit_reasons": {
+    "data_end": 642,
+    "max_hold_timeout": 50435,
+    "stop_loss": 88846,
+    "target": 11402
+   },
+   "top5": [
+    [
+     0.46821,
+     "VIVIDHA.NS",
+     "2023-12-11",
+     "target"
+    ],
+    [
+     0.3778,
+     "SECURKLOUD.NS",
+     "2025-11-18",
+     "target"
+    ],
+    [
+     0.35761,
+     "VIVIDHA.NS",
+     "2024-01-09",
+     "target"
+    ],
+    [
+     0.35357,
+     "NEXTMEDIA.NS",
+     "2026-08-27",
+     "target"
+    ],
+    [
+     0.34295,
+     "HYBRIDFIN.NS",
+     "2025-06-04",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 11
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__short__1h__atr1d5_rr3__v1",
+   "n": 219537,
+   "pfnet": 0.602,
+   "pf_gross": 0.991,
+   "pfnet_ex_top5": 0.601,
+   "win_pct": 31.75,
+   "avg_hold_bars": 14.44,
+   "avg_net_ret_pct": -0.814,
+   "win_sum": 2698.9403,
+   "loss_sum": 4485.5581,
+   "exit_reasons": {
+    "data_end": 1056,
+    "max_hold_timeout": 43350,
+    "stop_loss": 139384,
+    "target": 35747
+   },
+   "top5": [
+    [
+     0.22251,
+     "NIBL.NS",
+     "2025-03-24",
+     "target"
+    ],
+    [
+     0.19609,
+     "ASMS.NS",
+     "2026-02-09",
+     "target"
+    ],
+    [
+     0.19149,
+     "GAYAPROJ.NS",
+     "2025-02-25",
+     "target"
+    ],
+    [
+     0.18972,
+     "AKSHAR.NS",
+     "2023-12-20",
+     "target"
+    ],
+    [
+     0.18913,
+     "WEL.NS",
+     "2026-08-27",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 13
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__short__1h__atr1d5_rr4__v1",
+   "n": 215247,
+   "pfnet": 0.599,
+   "pf_gross": 0.979,
+   "pfnet_ex_top5": 0.599,
+   "win_pct": 30.34,
+   "avg_hold_bars": 15.64,
+   "avg_net_ret_pct": -0.832,
+   "win_sum": 2673.6105,
+   "loss_sum": 4464.4641,
+   "exit_reasons": {
+    "data_end": 1120,
+    "max_hold_timeout": 56619,
+    "stop_loss": 138875,
+    "target": 18633
+   },
+   "top5": [
+    [
+     0.25483,
+     "WEL.NS",
+     "2026-08-27",
+     "target"
+    ],
+    [
+     0.24008,
+     "S&SPOWER.NS",
+     "2025-02-12",
+     "target"
+    ],
+    [
+     0.23846,
+     "SPANDANA.NS",
+     "2025-01-09",
+     "target"
+    ],
+    [
+     0.23543,
+     "TURTLEMINT.NS",
+     "2026-09-25",
+     "target"
+    ],
+    [
+     0.22807,
+     "NAGREEKEXP.NS",
+     "2024-03-20",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 16
+  },
+  {
+   "tag": "swingminrr__brk20_target__short__1h__atr1d5_rr4__v1",
+   "n": 117246,
+   "pfnet": 0.596,
+   "pf_gross": 1.005,
+   "pfnet_ex_top5": 0.595,
+   "win_pct": 29.27,
+   "avg_hold_bars": 14.64,
+   "avg_net_ret_pct": -0.793,
+   "win_sum": 1369.5378,
+   "loss_sum": 2298.8494,
+   "exit_reasons": {
+    "data_end": 413,
+    "max_hold_timeout": 25276,
+    "stop_loss": 77869,
+    "target": 13688
+   },
+   "top5": [
+    [
+     0.25159,
+     "SHREERAMA.NS",
+     "2024-09-16",
+     "target"
+    ],
+    [
+     0.24137,
+     "MONQ50.NS",
+     "2026-09-22",
+     "max_hold_timeout"
+    ],
+    [
+     0.23883,
+     "SILVER.NS",
+     "2026-01-30",
+     "target"
+    ],
+    [
+     0.23743,
+     "GLFL.NS",
+     "2025-11-17",
+     "target"
+    ],
+    [
+     0.22815,
+     "SILVERCASE.NS",
+     "2026-01-30",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 20
+  },
+  {
+   "tag": "swingminrr__brk20_target__short__1h__atr1d5_rr3__v1",
+   "n": 119416,
+   "pfnet": 0.595,
+   "pf_gross": 1.017,
+   "pfnet_ex_top5": 0.595,
+   "win_pct": 31.25,
+   "avg_hold_bars": 13.24,
+   "avg_net_ret_pct": -0.777,
+   "win_sum": 1362.9157,
+   "loss_sum": 2290.4452,
+   "exit_reasons": {
+    "data_end": 385,
+    "max_hold_timeout": 17548,
+    "stop_loss": 77598,
+    "target": 23885
+   },
+   "top5": [
+    [
+     0.28945,
+     "MONQ50.NS",
+     "2026-09-22",
+     "target"
+    ],
+    [
+     0.19801,
+     "SHYAMTEL.NS",
+     "2026-03-13",
+     "max_hold_timeout"
+    ],
+    [
+     0.19408,
+     "REGENCERAM.NS",
+     "2024-03-04",
+     "target"
+    ],
+    [
+     0.18669,
+     "SHREERAMA.NS",
+     "2024-09-16",
+     "target"
+    ],
+    [
+     0.18474,
+     "SILVER1.NS",
+     "2026-01-30",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 18
+  },
+  {
+   "tag": "swingminrr__order_block_target__short__1h__atr2_rr4__v1",
+   "n": 12338,
+   "pfnet": 0.593,
+   "pf_gross": 0.825,
+   "pfnet_ex_top5": 0.589,
+   "win_pct": 38.99,
+   "avg_hold_bars": 21.2,
+   "avg_net_ret_pct": -1.26,
+   "win_sum": 226.6433,
+   "loss_sum": 382.1031,
+   "exit_reasons": {
+    "data_end": 103,
+    "max_hold_timeout": 6145,
+    "stop_loss": 5952,
+    "target": 138
+   },
+   "top5": [
+    [
+     0.4032,
+     "SINDHUTRAD.NS",
+     "2024-03-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.28245,
+     "QUADFUTURE.NS",
+     "2025-02-06",
+     "target"
+    ],
+    [
+     0.27553,
+     "SHAH.NS",
+     "2026-08-25",
+     "target"
+    ],
+    [
+     0.25979,
+     "INFOMEDIA.NS",
+     "2024-10-14",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__long__1h__atr2_rr3__v1",
+   "n": 153581,
+   "pfnet": 0.593,
+   "pf_gross": 0.903,
+   "pfnet_ex_top5": 0.593,
+   "win_pct": 29.34,
+   "avg_hold_bars": 17.44,
+   "avg_net_ret_pct": -0.98,
+   "win_sum": 2195.5649,
+   "loss_sum": 3701.0067,
+   "exit_reasons": {
+    "data_end": 628,
+    "max_hold_timeout": 43052,
+    "stop_loss": 89563,
+    "target": 20338
+   },
+   "top5": [
+    [
+     0.34916,
+     "VIVIDHA.NS",
+     "2023-12-11",
+     "target"
+    ],
+    [
+     0.2973,
+     "PRECOT.NS",
+     "2025-04-08",
+     "target"
+    ],
+    [
+     0.29526,
+     "PTCIL.NS",
+     "2024-06-04",
+     "target"
+    ],
+    [
+     0.29017,
+     "DCMSIL.NS",
+     "2026-03-17",
+     "target"
+    ],
+    [
+     0.28822,
+     "LAL.NS",
+     "2026-03-17",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 11
+  },
+  {
+   "tag": "swingminrr__brk20_target__long__1h__atr1d5_rr2__v1",
+   "n": 108632,
+   "pfnet": 0.592,
+   "pf_gross": 1.054,
+   "pfnet_ex_top5": 0.592,
+   "win_pct": 35.47,
+   "avg_hold_bars": 9.63,
+   "avg_net_ret_pct": -0.731,
+   "win_sum": 1152.3761,
+   "loss_sum": 1946.6664,
+   "exit_reasons": {
+    "data_end": 159,
+    "max_hold_timeout": 5735,
+    "stop_loss": 66447,
+    "target": 36291
+   },
+   "top5": [
+    [
+     0.19594,
+     "DCI.NS",
+     "2024-09-18",
+     "max_hold_timeout"
+    ],
+    [
+     0.14607,
+     "HAVISHA.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.13542,
+     "MITTAL.NS",
+     "2024-06-10",
+     "target"
+    ],
+    [
+     0.13366,
+     "ADL.NS",
+     "2025-04-11",
+     "target"
+    ],
+    [
+     0.13282,
+     "JAIPURKURT.NS",
+     "2024-03-21",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 11
+  },
+  {
+   "tag": "swingminrr__volume_profile_gate__long__1h__atr1d5_rr2__v1",
+   "n": 95284,
+   "pfnet": 0.59,
+   "pf_gross": 0.944,
+   "pfnet_ex_top5": 0.588,
+   "win_pct": 24.21,
+   "avg_hold_bars": 16.3,
+   "avg_net_ret_pct": -0.888,
+   "win_sum": 1219.405,
+   "loss_sum": 2065.9603,
+   "exit_reasons": {
+    "data_end": 405,
+    "max_hold_timeout": 30076,
+    "stop_loss": 64803
+   },
+   "top5": [
+    [
+     0.95547,
+     "MASKINVEST.NS",
+     "2024-10-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.82118,
+     "SOMATEX.NS",
+     "2025-07-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.73064,
+     "IZMO.NS",
+     "2025-08-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.68702,
+     "IFCI.NS",
+     "2024-01-18",
+     "max_hold_timeout"
+    ],
+    [
+     0.61626,
+     "LAXMICOT.NS",
+     "2026-02-06",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 4
+  },
+  {
+   "tag": "swingminrr__order_block_target__short__1h__atr1d5_rr3__v1",
+   "n": 13683,
+   "pfnet": 0.589,
+   "pf_gross": 0.835,
+   "pfnet_ex_top5": 0.586,
+   "win_pct": 34.02,
+   "avg_hold_bars": 16.98,
+   "avg_net_ret_pct": -1.196,
+   "win_sum": 234.9008,
+   "loss_sum": 398.5631,
+   "exit_reasons": {
+    "data_end": 89,
+    "max_hold_timeout": 4367,
+    "stop_loss": 8078,
+    "target": 1149
+   },
+   "top5": [
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.23965,
+     "SINDHUTRAD.NS",
+     "2024-03-05",
+     "target"
+    ],
+    [
+     0.2069,
+     "DNAMEDIA.NS",
+     "2025-02-14",
+     "target"
+    ],
+    [
+     0.20467,
+     "TREEHOUSE.NS",
+     "2026-01-16",
+     "target"
+    ],
+    [
+     0.20118,
+     "GAYAHWS.NS",
+     "2025-02-19",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__order_block_target__long__1h__atr2_rr1d5__v1",
+   "n": 17016,
+   "pfnet": 0.588,
+   "pf_gross": 0.827,
+   "pfnet_ex_top5": 0.586,
+   "win_pct": 35.58,
+   "avg_hold_bars": 15.94,
+   "avg_net_ret_pct": -1.23,
+   "win_sum": 298.4274,
+   "loss_sum": 507.6841,
+   "exit_reasons": {
+    "data_end": 60,
+    "max_hold_timeout": 3644,
+    "stop_loss": 8620,
+    "target": 4692
+   },
+   "top5": [
+    [
+     0.17384,
+     "MONQ50.NS",
+     "2026-09-10",
+     "target"
+    ],
+    [
+     0.17329,
+     "LAL.NS",
+     "2026-03-16",
+     "target"
+    ],
+    [
+     0.16407,
+     "VIVIDHA.NS",
+     "2023-12-11",
+     "target"
+    ],
+    [
+     0.16326,
+     "ANTGRAPHIC.NS",
+     "2023-11-17",
+     "target"
+    ],
+    [
+     0.15654,
+     "EUROTEXIND.NS",
+     "2025-10-23",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__order_block_base__short__1h__atr2__v1",
+   "n": 12325,
+   "pfnet": 0.587,
+   "pf_gross": 0.817,
+   "pfnet_ex_top5": 0.582,
+   "win_pct": 38.94,
+   "avg_hold_bars": 21.32,
+   "avg_net_ret_pct": -1.28,
+   "win_sum": 223.8958,
+   "loss_sum": 381.6428,
+   "exit_reasons": {
+    "data_end": 103,
+    "max_hold_timeout": 6270,
+    "stop_loss": 5952
+   },
+   "top5": [
+    [
+     0.4032,
+     "SINDHUTRAD.NS",
+     "2024-03-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.35965,
+     "SRGHFL.NS",
+     "2026-09-07",
+     "max_hold_timeout"
+    ],
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.31287,
+     "BTML.NS",
+     "2024-05-29",
+     "max_hold_timeout"
+    ],
+    [
+     0.28854,
+     "INFOMEDIA.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__short__1h__atr1d5_rr2__v1",
+   "n": 235428,
+   "pfnet": 0.586,
+   "pf_gross": 1.001,
+   "pfnet_ex_top5": 0.586,
+   "win_pct": 36.41,
+   "avg_hold_bars": 11.89,
+   "avg_net_ret_pct": -0.799,
+   "win_sum": 2666.3917,
+   "loss_sum": 4547.5853,
+   "exit_reasons": {
+    "data_end": 942,
+    "max_hold_timeout": 24110,
+    "stop_loss": 141177,
+    "target": 69199
+   },
+   "top5": [
+    [
+     0.20294,
+     "UNIINFO.NS",
+     "2026-03-24",
+     "target"
+    ],
+    [
+     0.1717,
+     "TREEHOUSE.NS",
+     "2026-02-27",
+     "target"
+    ],
+    [
+     0.16642,
+     "AAKASH.NS",
+     "2026-03-11",
+     "target"
+    ],
+    [
+     0.16423,
+     "UNIINFO.NS",
+     "2026-03-05",
+     "target"
+    ],
+    [
+     0.15638,
+     "KEEPLEARN.NS",
+     "2025-12-12",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 12
+  },
+  {
+   "tag": "swingminrr__order_block_base__long__1h__atr1d5__v1",
+   "n": 17680,
+   "pfnet": 0.585,
+   "pf_gross": 0.821,
+   "pfnet_ex_top5": 0.578,
+   "win_pct": 25.13,
+   "avg_hold_bars": 16.85,
+   "avg_net_ret_pct": -1.219,
+   "win_sum": 303.3136,
+   "loss_sum": 518.8237,
+   "exit_reasons": {
+    "data_end": 66,
+    "max_hold_timeout": 6040,
+    "stop_loss": 11574
+   },
+   "top5": [
+    [
+     0.90402,
+     "SHYAMTEL.NS",
+     "2026-04-20",
+     "max_hold_timeout"
+    ],
+    [
+     0.87967,
+     "URJA.NS",
+     "2024-01-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.64512,
+     "MANAKALUCO.NS",
+     "2026-01-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.61453,
+     "MONQ50.NS",
+     "2026-09-10",
+     "max_hold_timeout"
+    ],
+    [
+     0.60852,
+     "ESSARSHPNG.NS",
+     "2023-11-30",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 2
+  },
+  {
+   "tag": "swingminrr__brk20_base__short__1h__atr1d5__v1",
+   "n": 115833,
+   "pfnet": 0.582,
+   "pf_gross": 0.978,
+   "pfnet_ex_top5": 0.581,
+   "win_pct": 27.95,
+   "avg_hold_bars": 16.09,
+   "avg_net_ret_pct": -0.831,
+   "win_sum": 1341.6896,
+   "loss_sum": 2304.5106,
+   "exit_reasons": {
+    "data_end": 420,
+    "max_hold_timeout": 37336,
+    "stop_loss": 78077
+   },
+   "top5": [
+    [
+     0.46461,
+     "TECILCHEM.NS",
+     "2025-05-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.40254,
+     "PSB.NS",
+     "2025-03-28",
+     "max_hold_timeout"
+    ],
+    [
+     0.37017,
+     "EUROTEXIND.NS",
+     "2024-10-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.36325,
+     "GRWRHITECH.NS",
+     "2025-04-01",
+     "max_hold_timeout"
+    ],
+    [
+     0.33386,
+     "HARDWYN.NS",
+     "2026-07-13",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 22
+  },
+  {
+   "tag": "swingminrr__order_block_target__long__1h__atr1d5_rr4__v1",
+   "n": 17818,
+   "pfnet": 0.582,
+   "pf_gross": 0.819,
+   "pfnet_ex_top5": 0.579,
+   "win_pct": 25.61,
+   "avg_hold_bars": 15.7,
+   "avg_net_ret_pct": -1.224,
+   "win_sum": 303.1581,
+   "loss_sum": 521.177,
+   "exit_reasons": {
+    "data_end": 64,
+    "max_hold_timeout": 4672,
+    "stop_loss": 11616,
+    "target": 1466
+   },
+   "top5": [
+    [
+     0.35568,
+     "MONQ50.NS",
+     "2026-09-10",
+     "target"
+    ],
+    [
+     0.32107,
+     "EUROTEXIND.NS",
+     "2025-10-23",
+     "target"
+    ],
+    [
+     0.31236,
+     "SHYAMTEL.NS",
+     "2026-04-20",
+     "target"
+    ],
+    [
+     0.30256,
+     "HYBRIDFIN.NS",
+     "2025-06-03",
+     "target"
+    ],
+    [
+     0.29217,
+     "EUROTEXIND.NS",
+     "2025-05-28",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 2
+  },
+  {
+   "tag": "swingminrr__volume_profile_base__long__1h__atr1d5__v1",
+   "n": 166159,
+   "pfnet": 0.572,
+   "pf_gross": 0.906,
+   "pfnet_ex_top5": 0.571,
+   "win_pct": 23.42,
+   "avg_hold_bars": 15.88,
+   "avg_net_ret_pct": -0.952,
+   "win_sum": 2117.7137,
+   "loss_sum": 3700.3343,
+   "exit_reasons": {
+    "data_end": 598,
+    "max_hold_timeout": 50558,
+    "stop_loss": 115003
+   },
+   "top5": [
+    [
+     0.95547,
+     "MASKINVEST.NS",
+     "2024-10-15",
+     "max_hold_timeout"
+    ],
+    [
+     0.92719,
+     "KRIDHANINF.NS",
+     "2024-12-04",
+     "max_hold_timeout"
+    ],
+    [
+     0.82118,
+     "SOMATEX.NS",
+     "2025-07-09",
+     "max_hold_timeout"
+    ],
+    [
+     0.74904,
+     "WINDMACHIN.NS",
+     "2024-06-12",
+     "max_hold_timeout"
+    ],
+    [
+     0.73376,
+     "GTECJAINX.NS",
+     "2026-06-01",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 11
+  },
+  {
+   "tag": "swingminrr__volume_profile_base__short__1h__atr1d5__v1",
+   "n": 212972,
+   "pfnet": 0.572,
+   "pf_gross": 0.939,
+   "pfnet_ex_top5": 0.571,
+   "win_pct": 29.59,
+   "avg_hold_bars": 16.68,
+   "avg_net_ret_pct": -0.894,
+   "win_sum": 2542.6418,
+   "loss_sum": 4445.7871,
+   "exit_reasons": {
+    "data_end": 1160,
+    "max_hold_timeout": 73241,
+    "stop_loss": 138571
+   },
+   "top5": [
+    [
+     0.54235,
+     "VAISHALI.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ],
+    [
+     0.52248,
+     "INDOTHAI.NS",
+     "2026-07-31",
+     "max_hold_timeout"
+    ],
+    [
+     0.50231,
+     "MCLOUD.NS",
+     "2025-11-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.49403,
+     "TRIVENI.NS",
+     "2026-07-21",
+     "max_hold_timeout"
+    ],
+    [
+     0.48425,
+     "WEL.NS",
+     "2026-08-27",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 22
+  },
+  {
+   "tag": "swingminrr__order_block_target__short__1h__atr1d5_rr4__v1",
+   "n": 13601,
+   "pfnet": 0.57,
+   "pf_gross": 0.809,
+   "pfnet_ex_top5": 0.566,
+   "win_pct": 33.52,
+   "avg_hold_bars": 17.66,
+   "avg_net_ret_pct": -1.259,
+   "win_sum": 226.6656,
+   "loss_sum": 397.9172,
+   "exit_reasons": {
+    "data_end": 94,
+    "max_hold_timeout": 4991,
+    "stop_loss": 8073,
+    "target": 443
+   },
+   "top5": [
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.3222,
+     "SINDHUTRAD.NS",
+     "2024-03-05",
+     "target"
+    ],
+    [
+     0.24076,
+     "UNIINFO.NS",
+     "2026-03-11",
+     "target"
+    ],
+    [
+     0.24008,
+     "S&SPOWER.NS",
+     "2025-02-12",
+     "target"
+    ],
+    [
+     0.21166,
+     "KHANDSE.NS",
+     "2025-03-24",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__order_block_target__long__1h__atr1d5_rr3__v1",
+   "n": 17949,
+   "pfnet": 0.568,
+   "pf_gross": 0.805,
+   "pfnet_ex_top5": 0.566,
+   "win_pct": 26.6,
+   "avg_hold_bars": 14.73,
+   "avg_net_ret_pct": -1.253,
+   "win_sum": 295.804,
+   "loss_sum": 520.7598,
+   "exit_reasons": {
+    "data_end": 60,
+    "max_hold_timeout": 3836,
+    "stop_loss": 11590,
+    "target": 2463
+   },
+   "top5": [
+    [
+     0.26476,
+     "MONQ50.NS",
+     "2026-09-10",
+     "target"
+    ],
+    [
+     0.26393,
+     "LAL.NS",
+     "2026-03-16",
+     "target"
+    ],
+    [
+     0.242,
+     "ANTGRAPHIC.NS",
+     "2023-11-17",
+     "max_hold_timeout"
+    ],
+    [
+     0.23881,
+     "EUROTEXIND.NS",
+     "2025-10-23",
+     "target"
+    ],
+    [
+     0.23227,
+     "SHYAMTEL.NS",
+     "2026-04-20",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__long__1h__atr2_rr2__v1",
+   "n": 160435,
+   "pfnet": 0.566,
+   "pf_gross": 0.881,
+   "pfnet_ex_top5": 0.565,
+   "win_pct": 32.51,
+   "avg_hold_bars": 15.39,
+   "avg_net_ret_pct": -1.017,
+   "win_sum": 2124.6436,
+   "loss_sum": 3755.7015,
+   "exit_reasons": {
+    "data_end": 605,
+    "max_hold_timeout": 30478,
+    "stop_loss": 90869,
+    "target": 38483
+   },
+   "top5": [
+    [
+     0.2301,
+     "VIVIDHA.NS",
+     "2023-12-11",
+     "target"
+    ],
+    [
+     0.22277,
+     "GAYAHWS.NS",
+     "2024-11-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.20347,
+     "RVHL.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.20097,
+     "SECMARK.NS",
+     "2023-12-26",
+     "target"
+    ],
+    [
+     0.19575,
+     "TREEHOUSE.NS",
+     "2026-02-24",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 11
+  },
+  {
+   "tag": "swingminrr__brk20_target__short__1h__atr1d5_rr2__v1",
+   "n": 127581,
+   "pfnet": 0.563,
+   "pf_gross": 1.014,
+   "pfnet_ex_top5": 0.562,
+   "win_pct": 36.8,
+   "avg_hold_bars": 10.55,
+   "avg_net_ret_pct": -0.782,
+   "win_sum": 1282.9066,
+   "loss_sum": 2280.5426,
+   "exit_reasons": {
+    "data_end": 305,
+    "max_hold_timeout": 8342,
+    "stop_loss": 77320,
+    "target": 41614
+   },
+   "top5": [
+    [
+     0.1903,
+     "MONQ50.NS",
+     "2026-09-22",
+     "target"
+    ],
+    [
+     0.17676,
+     "SHYAMTEL.NS",
+     "2026-03-13",
+     "target"
+    ],
+    [
+     0.17147,
+     "UNIINFO.NS",
+     "2026-03-11",
+     "target"
+    ],
+    [
+     0.15016,
+     "AUSOMENT.NS",
+     "2026-01-22",
+     "target"
+    ],
+    [
+     0.14494,
+     "TECILCHEM.NS",
+     "2025-07-07",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 16
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__short__1h__atr1d5_rr1d5__v1",
+   "n": 257179,
+   "pfnet": 0.556,
+   "pf_gross": 1.005,
+   "pfnet_ex_top5": 0.556,
+   "win_pct": 41.7,
+   "avg_hold_bars": 9.79,
+   "avg_net_ret_pct": -0.794,
+   "win_sum": 2558.9429,
+   "loss_sum": 4600.5882,
+   "exit_reasons": {
+    "data_end": 872,
+    "max_hold_timeout": 13689,
+    "stop_loss": 142971,
+    "target": 99647
+   },
+   "top5": [
+    [
+     0.15553,
+     "DCMFINSERV.NS",
+     "2026-01-14",
+     "target"
+    ],
+    [
+     0.1502,
+     "UNIINFO.NS",
+     "2026-03-24",
+     "target"
+    ],
+    [
+     0.1483,
+     "MONQ50.NS",
+     "2026-09-25",
+     "target"
+    ],
+    [
+     0.14542,
+     "TECILCHEM.NS",
+     "2026-01-14",
+     "target"
+    ],
+    [
+     0.14014,
+     "SHIVAUM.NS",
+     "2026-01-07",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 11
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__long__1h__atr1d5_rr4__v1",
+   "n": 171440,
+   "pfnet": 0.553,
+   "pf_gross": 0.882,
+   "pfnet_ex_top5": 0.553,
+   "win_pct": 24.46,
+   "avg_hold_bars": 14.13,
+   "avg_net_ret_pct": -0.992,
+   "win_sum": 2106.6092,
+   "loss_sum": 3807.6738,
+   "exit_reasons": {
+    "data_end": 574,
+    "max_hold_timeout": 33539,
+    "stop_loss": 117560,
+    "target": 19767
+   },
+   "top5": [
+    [
+     0.34916,
+     "VIVIDHA.NS",
+     "2023-12-11",
+     "target"
+    ],
+    [
+     0.2973,
+     "PRECOT.NS",
+     "2025-04-08",
+     "target"
+    ],
+    [
+     0.29526,
+     "PTCIL.NS",
+     "2024-06-04",
+     "target"
+    ],
+    [
+     0.29036,
+     "DCMFINSERV.NS",
+     "2024-08-12",
+     "max_hold_timeout"
+    ],
+    [
+     0.29017,
+     "DCMSIL.NS",
+     "2026-03-17",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 9
+  },
+  {
+   "tag": "swingminrr__order_block_base__short__1h__atr1d5__v1",
+   "n": 13559,
+   "pfnet": 0.551,
+   "pf_gross": 0.786,
+   "pfnet_ex_top5": 0.547,
+   "win_pct": 33.36,
+   "avg_hold_bars": 18.02,
+   "avg_net_ret_pct": -1.314,
+   "win_sum": 218.6982,
+   "loss_sum": 396.903,
+   "exit_reasons": {
+    "data_end": 93,
+    "max_hold_timeout": 5406,
+    "stop_loss": 8060
+   },
+   "top5": [
+    [
+     0.4032,
+     "SINDHUTRAD.NS",
+     "2024-03-05",
+     "max_hold_timeout"
+    ],
+    [
+     0.35965,
+     "SRGHFL.NS",
+     "2026-09-07",
+     "max_hold_timeout"
+    ],
+    [
+     0.3462,
+     "BESTAGRO.NS",
+     "2026-01-16",
+     "max_hold_timeout"
+    ],
+    [
+     0.31287,
+     "BTML.NS",
+     "2024-05-29",
+     "max_hold_timeout"
+    ],
+    [
+     0.28854,
+     "INFOMEDIA.NS",
+     "2024-10-14",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 1
+  },
+  {
+   "tag": "swingminrr__order_block_target__long__1h__atr1d5_rr2__v1",
+   "n": 18405,
+   "pfnet": 0.544,
+   "pf_gross": 0.788,
+   "pfnet_ex_top5": 0.543,
+   "win_pct": 30.14,
+   "avg_hold_bars": 12.65,
+   "avg_net_ret_pct": -1.277,
+   "win_sum": 280.9783,
+   "loss_sum": 516.1007,
+   "exit_reasons": {
+    "data_end": 50,
+    "max_hold_timeout": 2467,
+    "stop_loss": 11485,
+    "target": 4403
+   },
+   "top5": [
+    [
+     0.17384,
+     "MONQ50.NS",
+     "2026-09-10",
+     "target"
+    ],
+    [
+     0.17329,
+     "LAL.NS",
+     "2026-03-16",
+     "target"
+    ],
+    [
+     0.17091,
+     "GAYAHWS.NS",
+     "2024-11-08",
+     "target"
+    ],
+    [
+     0.16326,
+     "ANTGRAPHIC.NS",
+     "2023-11-17",
+     "target"
+    ],
+    [
+     0.15654,
+     "EUROTEXIND.NS",
+     "2025-10-23",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__long__1h__atr2_rr1d5__v1",
+   "n": 169964,
+   "pfnet": 0.535,
+   "pf_gross": 0.863,
+   "pfnet_ex_top5": 0.535,
+   "win_pct": 36.75,
+   "avg_hold_bars": 13.51,
+   "avg_net_ret_pct": -1.039,
+   "win_sum": 2031.4333,
+   "loss_sum": 3796.5344,
+   "exit_reasons": {
+    "data_end": 563,
+    "max_hold_timeout": 21989,
+    "stop_loss": 92302,
+    "target": 55110
+   },
+   "top5": [
+    [
+     0.18476,
+     "MASKINVEST.NS",
+     "2025-08-20",
+     "target"
+    ],
+    [
+     0.1769,
+     "GAYAHWS.NS",
+     "2024-11-08",
+     "target"
+    ],
+    [
+     0.17543,
+     "EUROTEXIND.NS",
+     "2025-04-11",
+     "target"
+    ],
+    [
+     0.17058,
+     "VIVIDHA.NS",
+     "2023-12-11",
+     "target"
+    ],
+    [
+     0.1506,
+     "RVHL.NS",
+     "2026-04-01",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 9
+  },
+  {
+   "tag": "swingminrr__brk20_target__long__1h__atr1d5_rr1d5__v1",
+   "n": 115602,
+   "pfnet": 0.534,
+   "pf_gross": 1.026,
+   "pfnet_ex_top5": 0.533,
+   "win_pct": 40.69,
+   "avg_hold_bars": 7.96,
+   "avg_net_ret_pct": -0.769,
+   "win_sum": 1016.5874,
+   "loss_sum": 1905.313,
+   "exit_reasons": {
+    "data_end": 141,
+    "max_hold_timeout": 2929,
+    "stop_loss": 65415,
+    "target": 47117
+   },
+   "top5": [
+    [
+     0.16806,
+     "DCI.NS",
+     "2024-09-18",
+     "target"
+    ],
+    [
+     0.1179,
+     "FOCUS.NS",
+     "2024-09-23",
+     "max_hold_timeout"
+    ],
+    [
+     0.10755,
+     "HAVISHA.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.10133,
+     "RVHL.NS",
+     "2026-04-02",
+     "target"
+    ],
+    [
+     0.10131,
+     "GAYAPROJ.NS",
+     "2025-01-06",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 8
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__long__1h__atr1d5_rr3__v1",
+   "n": 175955,
+   "pfnet": 0.534,
+   "pf_gross": 0.863,
+   "pfnet_ex_top5": 0.534,
+   "win_pct": 26.16,
+   "avg_hold_bars": 12.94,
+   "avg_net_ret_pct": -1.019,
+   "win_sum": 2054.6739,
+   "loss_sum": 3848.3294,
+   "exit_reasons": {
+    "data_end": 552,
+    "max_hold_timeout": 25302,
+    "stop_loss": 118749,
+    "target": 31352
+   },
+   "top5": [
+    [
+     0.25987,
+     "VIVIDHA.NS",
+     "2023-12-11",
+     "target"
+    ],
+    [
+     0.2299,
+     "RVHL.NS",
+     "2026-04-01",
+     "target"
+    ],
+    [
+     0.22709,
+     "SECMARK.NS",
+     "2023-12-26",
+     "target"
+    ],
+    [
+     0.22277,
+     "GAYAHWS.NS",
+     "2024-11-08",
+     "max_hold_timeout"
+    ],
+    [
+     0.22122,
+     "TREEHOUSE.NS",
+     "2026-02-24",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 9
+  },
+  {
+   "tag": "swingminrr__order_block_target__long__1h__atr1d5_rr1d5__v1",
+   "n": 19044,
+   "pfnet": 0.527,
+   "pf_gross": 0.786,
+   "pfnet_ex_top5": 0.526,
+   "win_pct": 34.99,
+   "avg_hold_bars": 10.78,
+   "avg_net_ret_pct": -1.258,
+   "win_sum": 266.8666,
+   "loss_sum": 506.4159,
+   "exit_reasons": {
+    "data_end": 44,
+    "max_hold_timeout": 1595,
+    "stop_loss": 11287,
+    "target": 6118
+   },
+   "top5": [
+    [
+     0.16835,
+     "SHYAMTEL.NS",
+     "2026-03-30",
+     "target"
+    ],
+    [
+     0.16528,
+     "SHAH.NS",
+     "2026-08-26",
+     "target"
+    ],
+    [
+     0.12838,
+     "MONQ50.NS",
+     "2026-09-10",
+     "target"
+    ],
+    [
+     0.12796,
+     "LAL.NS",
+     "2026-03-16",
+     "target"
+    ],
+    [
+     0.12714,
+     "GAYAHWS.NS",
+     "2024-10-23",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 0
+  },
+  {
+   "tag": "swingminrr__brk20_target__short__1h__atr1d5_rr1d5__v1",
+   "n": 136997,
+   "pfnet": 0.52,
+   "pf_gross": 1.011,
+   "pfnet_ex_top5": 0.519,
+   "win_pct": 42.19,
+   "avg_hold_bars": 8.59,
+   "avg_net_ret_pct": -0.787,
+   "win_sum": 1165.7105,
+   "loss_sum": 2243.4318,
+   "exit_reasons": {
+    "data_end": 249,
+    "max_hold_timeout": 4145,
+    "stop_loss": 76197,
+    "target": 56406
+   },
+   "top5": [
+    [
+     0.14073,
+     "MONQ50.NS",
+     "2026-09-22",
+     "target"
+    ],
+    [
+     0.13785,
+     "MONQ50.NS",
+     "2026-09-23",
+     "target"
+    ],
+    [
+     0.13057,
+     "SHYAMTEL.NS",
+     "2026-03-13",
+     "target"
+    ],
+    [
+     0.1266,
+     "UNIINFO.NS",
+     "2026-03-11",
+     "target"
+    ],
+    [
+     0.12416,
+     "ANTGRAPHIC.NS",
+     "2024-09-19",
+     "max_hold_timeout"
+    ]
+   ],
+   "glitch_dropped": 16
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__long__1h__atr1d5_rr2__v1",
+   "n": 188885,
+   "pfnet": 0.497,
+   "pf_gross": 0.842,
+   "pfnet_ex_top5": 0.497,
+   "win_pct": 31.18,
+   "avg_hold_bars": 10.74,
+   "avg_net_ret_pct": -1.041,
+   "win_sum": 1942.8362,
+   "loss_sum": 3909.9509,
+   "exit_reasons": {
+    "data_end": 513,
+    "max_hold_timeout": 14399,
+    "stop_loss": 121112,
+    "target": 52861
+   },
+   "top5": [
+    [
+     0.18476,
+     "MASKINVEST.NS",
+     "2025-08-20",
+     "target"
+    ],
+    [
+     0.1769,
+     "GAYAHWS.NS",
+     "2024-11-08",
+     "target"
+    ],
+    [
+     0.17543,
+     "EUROTEXIND.NS",
+     "2025-04-11",
+     "target"
+    ],
+    [
+     0.17058,
+     "VIVIDHA.NS",
+     "2023-12-11",
+     "target"
+    ],
+    [
+     0.15363,
+     "TECILCHEM.NS",
+     "2026-02-12",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 8
+  },
+  {
+   "tag": "swingminrr__volume_profile_target__long__1h__atr1d5_rr1d5__v1",
+   "n": 204009,
+   "pfnet": 0.462,
+   "pf_gross": 0.833,
+   "pfnet_ex_top5": 0.462,
+   "win_pct": 36.63,
+   "avg_hold_bars": 9.03,
+   "avg_net_ret_pct": -1.038,
+   "win_sum": 1817.0607,
+   "loss_sum": 3934.4911,
+   "exit_reasons": {
+    "data_end": 474,
+    "max_hold_timeout": 8670,
+    "stop_loss": 122351,
+    "target": 72514
+   },
+   "top5": [
+    [
+     0.16528,
+     "SHAH.NS",
+     "2026-08-26",
+     "target"
+    ],
+    [
+     0.13764,
+     "GTECJAINX.NS",
+     "2025-04-15",
+     "target"
+    ],
+    [
+     0.13657,
+     "MASKINVEST.NS",
+     "2025-08-20",
+     "target"
+    ],
+    [
+     0.13067,
+     "GAYAHWS.NS",
+     "2024-11-08",
+     "target"
+    ],
+    [
+     0.12957,
+     "EUROTEXIND.NS",
+     "2025-04-11",
+     "target"
+    ]
+   ],
+   "glitch_dropped": 8
+  }
+ ]
+}

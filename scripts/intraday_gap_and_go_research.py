@@ -36,6 +36,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import universe_pin as up  # noqa: E402
+import research_interval as ri  # noqa: E402
 
 m = None  # the real main module, loaded lazily (tests inject a fake)
 
@@ -269,7 +270,7 @@ def run_shard(args):
     aggs, got, stats = {}, [], {}
     for s in syms:
         try:
-            raw = m.fetch_ohlc(s, args.period, args.interval)
+            raw = ri.fetch_interval(m, s, args.period, args.interval)
             if raw is None or len(raw) < 50:
                 continue
             df = prep(raw)

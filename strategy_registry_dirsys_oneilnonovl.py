@@ -59,9 +59,10 @@ def _elder(seen):
     return out
 
 
-def _oneil(seen):
+def _oneil(seen, fn="oneil_nonoverlap_results_1d.json", tf="1d", bar_days=1, ref_id="B-831", ref=None):
+    ref = ref or _REF_O
     out = []
-    d = _load("oneil_nonoverlap_results_1d.json")
+    d = _load(fn)
     if not d:
         return out
     uni = f"full NSE universe file, {d.get('fetched')} symbols fetched with data, strict FIFO, cost 0.008 round trip"
@@ -71,18 +72,18 @@ def _oneil(seen):
                 continue
             seen.add(tag)
             seg = "IS segment" if "_segis" in tag else ("OOS segment" if "_segoos" in tag else "pooled")
-            ev = (f"{_REF_O}: [{seg}] n={r['n']} pfnet={r['pfnet']} pfgross={r['pfgross']} win={r['win_pct']}% avg_hold={r['avg_hold_bars']}bars "
+            ev = (f"{ref}: [{seg}] n={r['n']} pfnet={r['pfnet']} pfgross={r['pfgross']} win={r['win_pct']}% avg_hold={r['avg_hold_bars']}bars "
                   f"avg_net={r['avg_net_pct']}% pfnet_ex_top5={r.get('pfnet_ex_top5')} n_trades_gt100pct={r.get('n_trades_gt100pct')} "
                   f"raw_signals_before_fifo={r.get('raw_signal_trades_before_fifo')}; exits={json.dumps(r.get('exit_reasons'), separators=(',', ':'))}; "
                   f"top5={json.dumps(r.get('top5_trades'), separators=(',', ':'))}")
             out.append(sr.StrategyDef(
-                name=tag, asset_class=sr.AssetClass.EQUITY_SWING, categories=(sr.TradeCategory.SWING,), timeframe="1d",
+                name=tag, asset_class=sr.AssetClass.EQUITY_SWING, categories=(sr.TradeCategory.SWING,), timeframe=tf,
                 status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                 metrics=sr.Metrics(pfnet=float(r["pfnet"]), pfgross=float(r["pfgross"]), win_rate_pct=float(r["win_pct"]),
-                                   n_trades=int(r["n"]), avg_held_hrs=float(r["avg_hold_bars"]) * _D, universe=uni, run_ref=_REF_O),
-                source="scripts/oneil_nonoverlap_research (B-831)",
+                                   n_trades=int(r["n"]), avg_held_hrs=float(r["avg_hold_bars"]) * bar_days * _D, universe=uni, run_ref=ref),
+                source=f"scripts/oneil_nonoverlap_research ({ref_id})",
                 evidence=ev,
-                notes=(f"O'Neil non-overlap 1d tag ({seg}); each of pooled/_segis/_segoos is its own strategy, never pooled together. Compare the "
+                notes=(f"O'Neil non-overlap {tf} tag ({seg}); each of pooled/_segis/_segoos is its own strategy, never pooled together. Compare the "
                        "pooled tag with its _segoos sibling: IS-heavy edge that fades OOS is the overlap/fit risk this rerun was built to expose. "
                        "Viability derived vs PFNET_LIVE_FLOOR; nothing wired.")))
         except Exception:
@@ -92,4 +93,6 @@ def _oneil(seen):
 
 def build():
     seen = {x.name for x in sr.REGISTRY}
-    return _elder(seen) + _oneil(seen)
+    return _elder(seen) + _oneil(seen) + _oneil(
+        seen, "oneil_nonoverlap_results_1w.json", "1w", 5, "B-833",
+        "oneil non-overlap 1w (B-833; docs/backtest_data/oneil_nonoverlap_results_1w.json, strict FIFO, cost 0.008, run 38245037321; avg_hold in weekly bars)")

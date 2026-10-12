@@ -11,7 +11,7 @@ on:
         description: "Candle size (1d, 1h, 15m, 5m)"
         default: "1d"
       period:
-        description: "yfinance period (1d: 5y; 1h: 730d; 15m/5m: 60d)"
+        description: "yfinance period (1d: 5y; 1h: 730d; 15m/5m: 60d); an over-cap value is clamped to the interval default by scripts/research_interval.py"
         default: "5y"
       split_date:
         description: "IS/OOS boundary date YYYY-MM-DD (entry before = IS). Blank = use split_frac"
