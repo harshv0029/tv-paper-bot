@@ -784,3 +784,11 @@ Profit-booking / exit takeaway: a resting target only helps if the winners that 
 - Surprise: "not wired" read as a defect to the user; the honest label is "research-only, cannot place orders". The viable list is mostly (about 310 vs 94) backtest-only evidence.
 - Reuse: label evidence tier on any dashboard that mixes backtest and live-capable rows; read WIRING_PLAN exclusions (hold>30d, atrnone, n<300) before picking which research viable to wire.
 - Profit-booking / exit takeaway: a research-only viable has no live exit or profit-booking path at all; wiring one must bring an always-attached stop and its backtest exit rule, and the main.py replay PFnet, not the research PFnet, decides whether it earns money.
+
+## B-869 index-option trigger cells registered research-only (2026-10-12 IST)
+- Mechanism: index (^NSEI, ^NSEBANK, ^BSESN) triggers from the equity library, executed as long call (long signal) or long put (short signal) on an option-premium proxy, ATR trail stop, 30-bar max hold, 5 candle sizes, IS 70% / OOS 30% split, costs 0.8% and 0.1%. Run 38218867644; 79 of 360 cells have pooled n>=30 and OOS n>=30 and are registered as `strategy_registry_idxopt.py` tags (OPTIONS category, entry_fn=None).
+- Fit: NSE/Kotak option premiums carry the 0.8% cost model on a small base, and any live path needs a trailing premium SL on every single-strike option (2026-10-08) and an always-attached SL/SLM (2026-10-11); there is no real option order path today (B-320).
+- Result: headline Metrics are OOS at 0.8% cost; 0 of 79 clear the floor (best OOS PFnet 0.77, rsi__thrust__long__1d__atr2d0). At 0.1% cost 10 pass, all 5m/1h shorts whose all-sample 0.8% PFnet is 0.01-0.3, so cost-driven, not edge. IS often looked good (e.g. atr_range long 1d IS 1.38 vs OOS 0.31).
+- Surprise: IS-to-OOS collapse is the norm; judging on pooled all-sample would have flagged false positives. Many intraday cells had n=0 (no volume on index data for volume-gated triggers).
+- Reuse: register on OOS with IS and gross kept in evidence; check cost sensitivity before reading any thin-edge result; viability is derived at read time.
+- Profit-booking / exit takeaway: option-premium costs (0.8%) erase thin index edges; only fat 1d moves survive, so an option trade should book quickly on a trailing premium stop rather than carry toward the 30-bar timeout.
