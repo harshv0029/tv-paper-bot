@@ -6,6 +6,7 @@ import pathlib
 import sys
 
 sys.path.insert(0, ".")
+import strategy_edge_stats as es  # noqa: E402
 import strategy_registry as sr  # noqa: E402
 
 OUT = pathlib.Path("docs/STRATEGY_RESULTS_LOG.md")
@@ -14,6 +15,14 @@ OUT2 = pathlib.Path("docs/STRATEGY_PFNET_GT1.md")
 
 def _cell(x):
     return str(x).replace("|", "/").replace("\n", " ")
+
+
+def _expectancy(m):
+    """Net expectancy per unit of average loss, derived at read time (B-539); blank if not derivable."""
+    if m is None or m.pfnet is None or m.win_rate_pct is None:
+        return ""
+    e = es.expectancy_per_loss_unit(m.pfnet, m.win_rate_pct)
+    return "" if e is None else f"{e:.3f}"
 
 
 def _row(s):
@@ -27,13 +36,14 @@ def _row(s):
         ",".join(getattr(c, "value", str(c)) for c in s.categories),
         f"{m.pfnet:.3f}" if m and m.pfnet is not None else "",
         f"{m.win_rate_pct:.1f}" if m and m.win_rate_pct is not None else "",
+        _expectancy(m),
         m.n_trades if m else "", m.avg_held_hrs if m and m.avg_held_hrs is not None else "",
         "n/a" if v is None else ("yes" if v else "no"),
         m.universe if m else "", m.run_ref if m else "")) + " |"
 
 
 _COLS = ("| Strategy tag | Family | Variant | Dir | TF | Params | Categories | PFnet | Win % | "
-         "Trades | Avg held hrs | Viable | Universe | Run ref |\n|" + "---|" * 14 + "\n")
+         "Expectancy (per avg loss) | Trades | Avg held hrs | Viable | Universe | Run ref |\n|" + "---|" * 15 + "\n")
 
 
 def render_gt1():
@@ -60,24 +70,10 @@ def render():
             "and regenerate (a test fails if this file is stale). Every tag is its own row, "
             "never pooled. Naming grammar: `<family>__<variant>__<dir>__<tf>__<params>__v<N>`. "
             f"Viability floor PFnet >= {sr.PFNET_LIVE_FLOOR}. Blank metrics = not measured yet "
-            "(never guessed).\n\n"
-            "| Strategy tag | Family | Variant | Dir | TF | Params | Categories | PFnet | Win % | "
-            "Trades | Avg held hrs | Viable | Universe | Run ref |\n|" + "---|" * 14 + "\n")
-    rows = []
-    for s in sorted(sr.REGISTRY, key=lambda d: d.name):
-        p = s.name.split("__")
-        g = len(p) >= 6
-        m = s.metrics
-        v = s.is_viable()
-        rows.append("| " + " | ".join(_cell(x) for x in (
-            s.name, p[0] if g else "(legacy)", p[1] if g else "", p[2] if g else "",
-            p[3] if g else s.timeframe, p[4] if g else "",
-            ",".join(getattr(c, "value", str(c)) for c in s.categories),
-            f"{m.pfnet:.3f}" if m and m.pfnet is not None else "",
-            f"{m.win_rate_pct:.1f}" if m and m.win_rate_pct is not None else "",
-            m.n_trades if m else "", m.avg_held_hrs if m and m.avg_held_hrs is not None else "",
-            "n/a" if v is None else ("yes" if v else "no"),
-            m.universe if m else "", m.run_ref if m else "")) + " |")
+            "(never guessed). Expectancy = p*R-(1-p) in units of the average loss, derived at read "
+            "time from PFnet and win % via `strategy_edge_stats.py` (B-539); >0 iff PFnet>1.\n\n"
+            + _COLS)
+    rows = [_row(s) for s in sorted(sr.REGISTRY, key=lambda d: d.name)]
     return head + "\n".join(rows) + "\n"
 
 
