@@ -506,7 +506,10 @@ def main_run():
 
 def merge_run(paths):
     parts = [json.load(open(p)) for p in paths]
-    res = orx.finalize(orx.merge_cells([p["cells"] for p in parts]))
+    merged = orx.merge_cells([p["cells"] for p in parts])
+    res = orx.finalize(merged)
+    import cell_tsv  # B-783: keep-all-data, every cell (min_n=1), full table in the log
+    cell_tsv.emit_full(orx.finalize(merged, min_n=1), os.environ.get("TSV_OUT", os.path.join(ROOT, "docs", "oneil_ext_research_cells.tsv")), "oneil_ext_research")
     uni = sum(p.get("symbols", 0) for p in parts)
     out = os.path.join(ROOT, "docs", "oneil_ext_research_results.json")
     json.dump({"universe_symbols": uni, "owed": ["role-swapped filter-as-trigger ordering", "B-481 IPO base (no listing dates)", "B-482 group stocks (no industry map)", "4h/1h not applicable (daily/weekly rules)"], "results": res},
