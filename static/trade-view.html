@@ -360,8 +360,8 @@
   <div class="counts-head">
     <span class="title">Viable strategies — scan &amp; entry activity <span id="strategy-scan-refreshed" class="scan-idle">(last refreshed: —)</span></span>
     <input id="sa-filter" type="search" placeholder="Filter strategies / category…" style="margin-left:12px;padding:2px 6px;font-size:.85em;">
-    <select id="sa-status-filter" style="margin-left:6px;padding:2px 6px;font-size:.85em;" title="Live-wired = a live scan/entry path can trade it; Research-only = passes the PFnet floor in backtest only, cannot place orders.">
-      <option value="all">All</option><option value="live_wired">Live-wired</option><option value="research_only">Research-only</option>
+    <select id="sa-status-filter" style="margin-left:6px;padding:2px 6px;font-size:.85em;" title="Wired = a live entry path can trade it; Not wired = passes the PFnet floor in backtest, no live entry path yet.">
+      <option value="all">All</option><option value="live_wired">Wired</option><option value="research_only">Not wired</option>
     </select>
     <span id="sa-counts" style="margin-left:10px;font-size:.85em;color:#64748b"></span>
   </div>
@@ -369,7 +369,7 @@
     <table class="counts">
       <thead><tr>
         <th class="num">#</th>
-        <th title="Live-wired = a live scan/entry path can trade it; Research-only = passes the PFnet floor in backtest only, cannot place orders." data-sa-key="status" style="cursor:pointer;user-select:none">Status</th>
+        <th title="Wired = a live entry path can trade it; Not wired = passes the PFnet floor in backtest, no live entry path yet." data-sa-key="status" style="cursor:pointer;user-select:none">Status</th>
         <th data-sa-key="categories" style="cursor:pointer;user-select:none">Category</th>
         <th title="What is actually traded: equity shares, an index/MCX single-strike option, or futures." data-sa-key="instrument" style="cursor:pointer;user-select:none">Instrument</th>
         <th data-sa-key="strategy_tag" style="cursor:pointer;user-select:none">Strategy</th>
@@ -1004,7 +1004,7 @@ function renderStrategyScanActivity(data) {
   if (sf !== "all") rows = rows.filter(r => _st(r) === sf);
   const cEl = document.getElementById("sa-counts");
   const cn = window._saData?.counts;
-  if (cEl && cn) cEl.textContent = `Viable: ${cn.viable_total} total, ${cn.live_wired} live-wired, ${cn.research_only} research-only`;
+  if (cEl && cn) cEl.textContent = `Viable: ${cn.viable_total} total, ${cn.live_wired} wired, ${cn.research_only} not wired`;
   if (q) rows = rows.filter(r => (String(r.strategy_tag) + " " + (r.categories || []).join(" ") + (_st(r) === "research_only" ? " research-only not wired" : " live-wired wired")).toLowerCase().includes(q));
   const sk = window._saSortKey;
   if (sk) {
@@ -1028,7 +1028,7 @@ function renderStrategyScanActivity(data) {
   }
   body.innerHTML = rows.map((r, i) => `<tr>
     <td class="num">${i + 1}</td>
-    <td>${_st(r) === "research_only" ? '<span style="color:#64748b" title="Passes PFnet floor in backtest only; real orders are blocked until a live entry path exists and a main.py replay confirms the number (see docs/WIRING_PLAN_RESEARCH_VIABLES.md).">Research-only (no live path, cannot place orders)</span>' : '<span style="color:#15803d">✔ Live-wired</span>'}</td>
+    <td>${_st(r) === "research_only" ? '<span style="color:#64748b" title="Passes PFnet floor in backtest only; real orders are blocked until a live entry path exists and a main.py replay confirms the number (see docs/WIRING_PLAN_RESEARCH_VIABLES.md).">Not wired</span>' : '<span style="color:#15803d">✔ Wired</span>'}</td>
     <td>${(r.categories || []).map(c => String(c).replace("_", " ")).join(", ") || "—"}</td>
     <td>${r.instrument || "—"}</td>
     <td class="sym">${r.strategy_tag}</td>

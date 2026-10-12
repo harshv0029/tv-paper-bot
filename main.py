@@ -5086,6 +5086,147 @@ def _brk20_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running
     return None, new_running_max
 
 
+# ---- island reversal LONG 1d atr1d5 live swing wiring (B-877; research: scripts/island_validation.py) ----
+# Detector ported verbatim from scripts/island_validation.island_entries (min_gap_atr=0 for the three wired
+# filters): gap DOWN at bar i (High[i] < Low[i-1]), then within ISLAND_WITHIN_BARS bars the FIRST bar j with a
+# gap UP (Low[j] > High[j-1]) whose Low also clears the gap-down bar's High (Low[j] > High[i]). The signal is
+# bar j's close. Filters (liquidity_mask): px20 = Close >= 20; turn1cr = 20-bar rolling MEDIAN of Close*Volume
+# >= 1e7. Stop = entry - 1.5 x ATR(Wilder 14) of the signal bar, ALWAYS attached (no trade without SL). Exit =
+# the research simulate() order: gap-aware stop -> rule exit (Close < EMA13 and EMA13 falling, never on the
+# fill bar) -> 30-bar max hold, i.e. exactly brk20_min_rr_exit_reason's long path (reused, not re-invented).
+# The research fills at the NEXT bar's open with no no-chase level (long_lvl is NaN), so there is no entry-time
+# chase gate to port; the live fill is the signal close (same convention as the brk20 wiring).
+# One tag per variant, never merged. The live tag IS the strict-FIFO research/registry name (nonovl__v2, as brk20 does);
+# each variant's own OOS tag (segoos__v2: 1.194 / 1.182 / 1.319) also clears the floor and is the held-out check.
+ISLAND_WITHIN_BARS = 8
+ISLAND_ATR_MULT = 1.5
+ISLAND_MIN_PRICE = 20.0
+ISLAND_MIN_TURNOVER = 1e7
+ISLAND_TURNOVER_WINDOW = 20
+ISLAND_CALC_WINDOW = 400
+ISLAND_NONE_TAG = "reversal__island_none__long__1d__atr1d5_within8__nonovl__v2"
+ISLAND_PX20_TAG = "reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2"
+ISLAND_TURN1CR_TAG = "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2"
+# Entry check order: most specific filter first (turn1cr OOS 1.319, px20 1.182, none 1.194). none is a superset of
+# px20, so the none tag is only opened for signals that fail both filters (illiquid / sub-Rs20): see backlog B-877.
+ISLAND_SWING_TAGS = (ISLAND_TURN1CR_TAG, ISLAND_PX20_TAG, ISLAND_NONE_TAG)
+_ISLAND_FILTER_OF_TAG = {ISLAND_NONE_TAG: "none", ISLAND_PX20_TAG: "px20", ISLAND_TURN1CR_TAG: "turn1cr"}
+
+
+def island_bottom_signal_on_last_bar(df: pd.DataFrame, within: int = ISLAND_WITHIN_BARS) -> bool:
+    """True iff the LAST row is an island-bottom completion bar (research island_entries()[-1])."""
+    d = df.iloc[-ISLAND_CALC_WINDOW:]
+    n = len(d)
+    if n < 20:
+        return False
+    h = d["High"].to_numpy(dtype=float)
+    l = d["Low"].to_numpy(dtype=float)
+    j = n - 1
+    for i in range(max(1, j - within), j):
+        if not h[i] < l[i - 1]:
+            continue
+        for jj in range(i + 1, min(n, i + within + 1)):
+            if l[jj] > h[jj - 1] and l[jj] > h[i]:
+                if jj == j:
+                    return True
+                break  # this gap-down's FIRST reclaim was an earlier bar
+    return False
+
+
+def island_filters_passed(df: pd.DataFrame) -> dict:
+    """{'none': True, 'px20': bool, 'turn1cr': bool} evaluated on the last bar (research liquidity_mask)."""
+    d = df.iloc[-ISLAND_CALC_WINDOW:]
+    px = float(d["Close"].iloc[-1])
+    turn = (d["Close"] * d["Volume"]).rolling(ISLAND_TURNOVER_WINDOW).median().iloc[-1]
+    turn = 0.0 if not np.isfinite(turn) else float(turn)
+    return {"none": True, "px20": px >= ISLAND_MIN_PRICE, "turn1cr": turn >= ISLAND_MIN_TURNOVER}
+
+
+def island_swing_entry_signal(df: pd.DataFrame, tag: str, entry_price: float | None = None) -> dict | None:
+    """Evaluates ONLY the last row. Returns {entry_price, stop_loss, atr_at_entry, ...} or None.
+    The stop is always set: entry - ISLAND_ATR_MULT x ATR(Wilder). `tag` selects the filter variant."""
+    flt = _ISLAND_FILTER_OF_TAG.get(tag)
+    if flt is None or len(df) < 20:
+        return None
+    if not island_filters_passed(df).get(flt):
+        return None
+    if not island_bottom_signal_on_last_bar(df):
+        return None
+    d = df.iloc[-ISLAND_CALC_WINDOW:]
+    atr = float(_brk20_atr_series(d["High"].to_numpy(dtype=float), d["Low"].to_numpy(dtype=float),
+                                  d["Close"].to_numpy(dtype=float))[-1])
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+    px = float(d["Close"].iloc[-1]) if entry_price is None else float(entry_price)
+    if not px > 0:
+        return None
+    stop = brk20_stop_price(px, atr, ISLAND_ATR_MULT, "long")
+    if not (0 < stop < px):
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": px - stop,
+            "signal_close": float(d["Close"].iloc[-1]), "direction": "long", "filter": flt}
+
+
+def _island_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close):
+    """Swing exit fn signature. Replays every completed bar after entry_day through the research exit order
+    (brk20_min_rr_exit_reason, long: stop -> EMA13 rule exit -> 30-bar max hold), so a skipped scan day cannot hide
+    a stop or the exact timeout. Entry price recovered from the frozen stop: entry = stop + 1.5 x ATR."""
+    if len(df) == 0:
+        return None, running_max_close
+    d = df
+    if "Date" not in d.columns:
+        d = d.assign(Date=pd.Series(pd.DatetimeIndex(d.index).strftime("%Y-%m-%d"), index=d.index))
+    new_running_max = max(float(running_max_close or 0.0), float(d["Close"].iloc[-1]))
+    if float(atr_at_entry or 0.0) <= 0:
+        return None, new_running_max
+    entry_price = float(initial_stop) + ISLAND_ATR_MULT * float(atr_at_entry)
+    fill_day = (pd.Timestamp(str(entry_day)[:10]) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    dates = d["Date"].astype(str).str[:10].to_numpy()
+    starts = np.flatnonzero(dates >= fill_day)
+    if len(starts) == 0:
+        return None, new_running_max
+    for k in range(int(starts[0]), len(d)):
+        reason, _px = brk20_min_rr_exit_reason(d.iloc[:k + 1], fill_day, entry_price, float(initial_stop), "long")
+        if reason:
+            return "island_" + reason, new_running_max
+    return None, new_running_max
+
+
+def _island_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
+    """Opens at most one island position for `symbol` (first tag in ISLAND_SWING_TAGS that fires). The paper row,
+    trades row and real mirror (swing engine: SL placed with entry, PFnet gate inside) follow the brk20 pattern."""
+    for tag in ISLAND_SWING_TAGS:
+        _record_strategy_scan(tag)
+        sig = island_swing_entry_signal(df, tag)
+        if not sig:
+            continue
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return False
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, today, entry_price, stop_loss, None, qty, time.time(), fx, sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"]})),
+        )
+        conn.commit()
+        print(f"[SWING] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # FVG 3rd-candle classification (backlog B-32, family `fvg3c`; spec in
 # docs/STRATEGY_SPEC_SND_AND_FVG3C.md). RESEARCH-STAGE ONLY: not wired into any
@@ -10855,6 +10996,12 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # 2026-10-12 B-798 (user: "wire if it fulfils viable definition"): brk20_min_rr LONG 1d atr4_rr4, the tag IS
     # the pooled registry name (PFnet 2.659, n=218; IS 3.43 / OOS 1.72). Gated by PFnet >= floor like all others.
     "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1": "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1",
+    # 2026-10-12 B-877: island reversal LONG 1d atr1d5, one live tag per variant, the tag IS its own strict-FIFO
+    # registry name (pooled PFnet none 1.518 / px20 1.336 / turn1cr 1.276); OOS segoos__v2 of the same cells
+    # (1.194 / 1.182 / 1.319) also clears the floor. Never merged across variants.
+    "reversal__island_none__long__1d__atr1d5_within8__nonovl__v2": "reversal__island_none__long__1d__atr1d5_within8__nonovl__v2",
+    "reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2": "reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2",
+    "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2": "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2",
     # 2026-10-10 B-345 MCX daily engine: the tag IS the registry name.
     "sma_crossover__gc__long__1d__atrnone__v1": "sma_crossover__gc__long__1d__atrnone__v1",
     "keltner_channel_breakout__si__long__1d__atrnone__v1": "keltner_channel_breakout__si__long__1d__atrnone__v1",
@@ -18912,6 +19059,13 @@ def _run_swing_scan_pass(conn):
                     conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
                                  (new_running_max, symbol))
                     conn.commit()
+            elif pos["strategy"] in ISLAND_SWING_TAGS:
+                reason, new_running_max = _island_swing_exit_adapter(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"])
+                if not reason:
+                    conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                                 (new_running_max, symbol))
+                    conn.commit()
             elif pos["strategy"] in _PATTERN_LIVE_TAGS:
                 reason = pattern_cell_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"], _PATTERN_LIVE_TAGS[pos["strategy"]][2])
             elif pos["strategy"] == SECTOR_ROT_TAG:
@@ -19151,6 +19305,7 @@ def _run_swing_scan_pass(conn):
                 # B-798: brk20_min_rr LONG 1d atr4_rr4 checked LAST (after OB/VP), so it never crowds out a
                 # higher-PFnet setup. Reached only when no earlier setup fired / sized this symbol today.
                 _record_strategy_scan(BRK20_SWING_TAG)
+                _brk_entered = False
                 _bs = brk20_min_rr_entry_signal(df, "long", BRK20_SWING_ATR_MULT, BRK20_SWING_MIN_RR)
                 if _bs:
                     entry_price = _bs["entry_price"]
@@ -19173,11 +19328,18 @@ def _run_swing_scan_pass(conn):
                                          "atr_at_entry": _bs["atr_at_entry"]})),
                         )
                         conn.commit()
+                        _brk_entered = True
                         print(f"[SWING] entry {symbol} ({BRK20_SWING_TAG}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
                         try:
                             _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, BRK20_SWING_TAG)
                         except Exception as e:
                             print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+                if not _brk_entered:
+                    # B-877: island reversal LONG 1d atr1d5 (3 filter variants) checked after brk20, i.e. LAST of all.
+                    try:
+                        _island_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
+                    except Exception as e:
+                        print(f"[SWING] island entry eval failed for {symbol} (non-fatal): {e}")
             continue
         entry_price = vcp_signal["entry_price"]
         stop_loss = vcp_signal["stop_loss"]
@@ -20994,6 +21156,8 @@ _SWING_SL_RULES = {
     SWING_EXITINVAL_VP_TAG: f"entry - {SWING_EXITINVAL_ATR_MULT:g}xATR, frozen (exit also on weekly EMA13 turn-down)",
     SWING_EXITINVAL_OB_TAG: f"entry - {SWING_EXITINVAL_ATR_MULT:g}xATR, frozen (exit also on weekly EMA13 turn-down)",
     BRK20_SWING_TAG: f"entry - {BRK20_SWING_ATR_MULT:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)",
+    **{_t: f"entry - {ISLAND_ATR_MULT:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
+       for _t in ISLAND_SWING_TAGS},
 }
 
 
