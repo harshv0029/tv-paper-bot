@@ -310,7 +310,7 @@
         <th class="num">Qty</th><th class="num">Invested (₹)</th><th class="num">Realised P&amp;L (₹)</th><th class="num">Unrealised P&amp;L (₹)</th>
         <th class="num">P&amp;L %</th><th>Reason</th><th>Time</th><th class="num" title="Calendar days since entry (IST dates). gap_and_go swing exits at 30 TRADING days (about 42 calendar days).">Days</th>
         <th>Category</th><th>Rank</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num" title="Average market hours a trade was held in the backtest that produced this PFnet/Win % - how long it took to realise them. Same unit for every category. A daily bar counts as one 6.25-hour NSE session (09:15-15:30 IST); 1h = 1 hr.">Avg hrs held<br><span style="font-weight:normal;font-size:.8em">(1d = 6.25 hrs)</span></th>
-      <th title="Every condition that has to be true for this strategy to enter (from the strategy registry). Positions opened by a strategy not yet registered show why instead.">Remarks (entry conditions)</th></tr></thead>
+      <th title="Every condition that has to be true for this strategy to enter (from the strategy registry). Positions opened by a strategy not yet registered show why instead.">Remarks (entry conditions + exit reason)</th></tr></thead>
       <tbody id="log-body"><tr><td colspan="21" class="scan-idle">Loading…</td></tr></tbody>
     </table>
   </div>
@@ -1620,6 +1620,8 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
     if (ok(stop) && ok(target) && Math.abs(e - Number(stop)) > 0) bits.push(`R:R ${fmt(Math.abs(Number(target) - e) / Math.abs(e - Number(stop)), 2)}`);
     return bits.length ? `<b>This trade:</b> ${bits.join(' · ')}<br>` : "";
   };
+  // user 2026-10-12: show the exit reason in Remarks alongside the entry info (add only, nothing replaced).
+  const exitLine = (reason) => reason ? `<b>Exit reason:</b> ${String(reason).replace(/</g, '&lt;')}<br>` : "";
   window.tagTrade = async () => {
     const symbol = prompt("Symbol of the untagged trade (e.g. NYKAA)?");
     const strategy = symbol && prompt("Strategy name for " + symbol + "?");
@@ -1806,7 +1808,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
            literally "real (Kotak)") keeps the manual/external label. -->
       <td class="log-type">${t.strategy !== "real (Kotak)" ? "Kotak (this bot)" : "Kotak (manual/external)"}</td>
       <td class="meta">${timeAgo(t.exit_time_utc)}</td><td class="num">—</td>
-      ${leaderboardCells(t.strategy, riskLine(t.entry_price_native, t.stop_loss_native, t.target_native))}
+      ${leaderboardCells(t.strategy, riskLine(t.entry_price_native, t.stop_loss_native, t.target_native) + exitLine(t.exit_reason))}
     </tr>`);
   const realTotalInr = (realTrades || []).reduce((s, t) => s + (t.pnl_inr ?? 0), 0);
   const realTotalRow = realRows.length ? `<tr class="log-total-row">
@@ -1839,7 +1841,7 @@ function renderTradeLog(summary, history, realTrades, botRealTrades, openRealPos
       <td class="num">${pctSpan(t.pnl_pct)}</td>
       <td class="log-type">Kotak (this bot's own order)</td>
       <td class="meta">${timeAgo(t.exit_time_utc)}</td><td class="num">—</td>
-      ${leaderboardCells(t.strategy, riskLine(t.entry_price_native, t.stop_loss_native, t.target_native))}
+      ${leaderboardCells(t.strategy, riskLine(t.entry_price_native, t.stop_loss_native, t.target_native) + exitLine(t.exit_reason))}
     </tr>`);
   const botRealTotalInr = (botRealTrades?.closed_trades || []).reduce((s, t) => s + (t.pnl_inr ?? 0), 0);
   const botRealTotalRow = botRealRows.length ? `<tr class="log-total-row">
