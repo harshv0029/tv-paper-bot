@@ -2829,6 +2829,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_dn.build())
         import strategy_registry_swingminrr as _sm
         REGISTRY.extend(_sm.build())
+        import strategy_registry_swingminrr_1h as _sm1h
+        REGISTRY.extend(_sm1h.build())
         import strategy_registry_flatten as _fl
         REGISTRY.extend(_fl.build())
         import strategy_registry_grossfill as _gf
