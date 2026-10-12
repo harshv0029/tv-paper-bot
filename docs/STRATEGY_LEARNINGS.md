@@ -738,3 +738,20 @@ Source of every figure below: the generated results log (cost model 0.8%, PFnet 
 - Surprise: pinning the symbol set does not pin bar content (B-864: a corrupt print appeared in one fetch only), so pair it with trimmed PFnet and max single-trade checks.
 - Reuse: any new research script should call select_universe/shard_meta/merge_fetched and publish fetched_symbols in its merged JSON.
 - Profit-booking / exit takeaway: do not promote or demote a strategy on a PFnet gap between two runs unless the universe was pinned; otherwise a 0.2 swing may be noise that wrongly opens or closes real-money entry or a profit-booking rule.
+
+## B-841/B-851 research universe pinning (2026-10-12 IST)
+- Mechanism: yfinance fetch flakiness changes which symbols a full-universe run actually uses (7049 vs 7059); on huge-n cells one extra symbol moved PFnet 0.648 -> 0.412. scripts/universe_pin.py records every shard's fetched symbols, merges them into `fetched_symbols`, and a rerun with --pin-file / PIN_FILE iterates exactly that set, aborting if more than 0.2% of pinned symbols fail to fetch.
+- Fit: the viability line (PFnet 1.1) is narrow enough that universe drift alone can cross it; a comparison between runs is only evidence about logic when the universe is identical.
+- Result: tooling, no new strategy tag. Unit test with a simulated flaky fetch shows identical symbol set and sums on a pinned rerun. A real pinned rerun is still owed before closing the rows.
+- Surprise: pinning the symbol set does not pin bar content (B-864: a corrupt print appeared in one fetch only), so pair it with trimmed PFnet and max single-trade checks.
+- Reuse: any new research script should call select_universe/shard_meta/merge_fetched and publish fetched_symbols in its merged JSON.
+- Profit-booking / exit takeaway: do not promote or demote a strategy on a PFnet gap between two runs unless the universe was pinned; otherwise a 0.2 swing may be noise that wrongly opens or closes real-money entry or a profit-booking rule.
+
+## B-842 minimum reward:risk exit on the other swing entries (built 2026-10-12 IST, results pending)
+
+Mechanism: brk20_min_rr (gate: room to the prior 60-bar extreme >= rr x risk) was the best B-797 cell, short atr3_rr4 PFnet 2.468 (n275), long 1.762. B-842 asks whether the same overlay lifts gap_and_go, minervini_vcp, order_block, volume_profile, and whether a resting target (rr x risk) beside the stop works as well as the gate.
+Fit to this system: the live swing engine is long only and Kotak cash shorts are MIS (forced same-day square-off), so a multi-day swing short cannot be carried in cash equity; it needs stock futures (NRML) or SLB, neither with a real order path. The long side is easy: a resting SELL limit via `place_real_target` next to the SL, with cancel-on-fill. The 0.8% cost model punishes low-rr targets, so expect small-rr targets to lose to the gate.
+Method notes: real main.py functions confirm every signal behind a necessary-condition prefilter; order_block and volume_profile have no native short, so their short is a reciprocal-price mirror (say so when reporting); one ATR stop replaces each entry's native stop so only the exit overlay differs; strict non-overlap, the bad-bar guard (B-864) and PFnet ex-top5 are built in because earlier brk20 and kb_oscrsi lessons showed a few outliers can carry a cell.
+Result: pending dispatch (swing-min-rr-research.yml). Fill in tags/PFnet/n here when the run lands, failures included.
+Reuse next time: build the overlay as cells on a shared entry signal so only the exit differs; check live instrument feasibility (product type, overnight carry) BEFORE chasing a short-side number.
+Profit-booking / exit takeaway: a resting target only helps if the winners that reach rr x risk are not the trades that would otherwise run to the 30-bar timeout (B-797 showed timeout survivors carry the PFnet); compare target cells against base on ex-top5 PFnet and hold time before changing any live exit.
