@@ -4,14 +4,15 @@ name: Index option trigger research (B-853)
 # minervini_vcp_livermore, order_block_delta, gap_and_go) on INDEX underlying candles (^NSEI, ^NSEBANK, ^BSESN),
 # LONG (=> buy call) and reciprocal-price mirrored SHORT (=> buy put), ATR-trail sweep, strict non-overlap FIFO,
 # IS/OOS split, 0.8% / 0.1% cost views. Trigger-quality test on the underlying, NOT option premium P&L.
-# Candle sweep per CLAUDE.md: one matrix job per interval 5m/15m/1h/1d (4h needs a 1h resample: owed).
+# Candle sweep per CLAUDE.md: one matrix job per interval 5m/15m/1h/4h(1h resample)/1d.
+# B-866: adds 4 NON-volume triggers (atr_range_break, orb, ema_cross, rsi_thrust) because index bars have zero volume.
 # Not registered in strategy_registry.py until a real run exists (see backlog B-853).
-# Small matrix (4 jobs); dispatch only when no Deploy Gate / safety run is queued.
+# Small matrix (5 jobs); dispatch only when no Deploy Gate / safety run is queued.
 on:
   workflow_dispatch:
     inputs:
       interval:
-        description: "Candle size (5m, 15m, 1h, 1d) or 'all' for the full sweep"
+        description: "Candle size (5m, 15m, 1h, 4h, 1d) or 'all' for the full sweep"
         default: "all"
       atr_mults:
         description: "Comma-separated ATR trail multiples"
@@ -19,13 +20,13 @@ on:
 
 jobs:
   scan:
-    if: ${{ inputs.interval == 'all' || contains(fromJSON('["5m","15m","1h","1d"]'), inputs.interval) }}
+    if: ${{ inputs.interval == 'all' || contains(fromJSON('["5m","15m","1h","4h","1d"]'), inputs.interval) }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
-        tf: ["5m", "15m", "1h", "1d"]
+        tf: ["5m", "15m", "1h", "4h", "1d"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -31,10 +31,13 @@ def test_seg_tags_follow_spec():
     assert no.nonovl_tag(o) == "reversal__island_gap05__long__1d__atr3_within8__nonovl__v2"
 
 
-def test_island_nonovl_cells_sum_to_pooled_and_are_long_only():
+def test_island_nonovl_cells_sum_to_pooled_and_tags_valid():
     aggs = {}
     iv.run_symbol_nonovl(tiv._df(), "1d", aggs, "", 0.5)
-    assert aggs and all("__long__" in t and t.islower() and t.endswith("__v2") for t in aggs)
+    assert aggs and all(("__long__" in t or "__short__" in t) and t.islower() and t.endswith("__v2") for t in aggs)
+    longs = {}
+    iv.run_symbol_nonovl(tiv._df(), "1d", longs, "", 0.5, directions=("long",))
+    assert longs and all("__long__" in t for t in longs)
     for t, a in aggs.items():
         if t.endswith("__nonovl__v2"):
             base = t[:-len("__nonovl__v2")]
@@ -53,3 +56,26 @@ def test_workflows_expose_split_inputs_and_flags():
             assert f"{inp}:" in txt and f'"--{inp}"' in src and f"--{inp}" in txt
         shards = re.search(r"shard: \[(.*?)\]", txt).group(1).split(",")
         assert len(shards) + 1 <= 38
+
+
+def test_macddiv_cell_sets_and_both_directions_split_partition():
+    assert len(no.SWEEP_CELLS) == 18 and len(set(no.SWEEP_CELLS)) == 18 and set(no.CELLS) <= set(no.SWEEP_CELLS)
+    n = 400
+    rng = np.random.default_rng(7)
+    c = 100 + np.cumsum(rng.normal(0, 1.2, n))
+    df = pd.DataFrame({"Open": c, "High": c + 1.5, "Low": c - 1.5, "Close": c, "Volume": 1e5},
+                      index=pd.date_range("2026-01-01", periods=n, freq="h"))
+    aggs, raw = {}, {}
+    no.run_symbol(df, aggs, raw, "", 0.7, "15m", no.SWEEP_CELLS, ("long", "short"))
+    assert aggs and all(t.islower() and "__15m__" in t and t.endswith("__v2") for t in aggs)
+    assert any("__short__" in t for t in aggs) and any("__long__" in t for t in aggs)
+    for t, a in aggs.items():
+        if t.endswith("__nonovl__v2"):
+            base = t[:-len("__nonovl__v2")]
+            assert a["n"] == aggs[base + "_nonovl_segis__v2"]["n"] + aggs[base + "_nonovl_segoos__v2"]["n"]
+
+
+def test_macddiv_workflow_exposes_interval_cells_directions():
+    txt = open(os.path.join(HERE, "..", ".github", "workflows", "macddiv-nonoverlap.yml")).read()
+    for inp in ("interval", "cells", "directions"):
+        assert f"{inp}:" in txt and f"--{inp}" in txt
