@@ -22,7 +22,7 @@ DATA = pathlib.Path("docs/backtest_data")
 ATR_TABLE = DATA / "atr_pct_by_tf.json"
 SIDECAR = DATA / "stop_pct.json"
 BASIS = DATA / "stop_pct_basis.json"
-INTERVALS = {"5m": ("5m", "60d"), "15m": ("15m", "60d"), "1h": ("1h", "730d"), "1d": ("1d", "5y")}
+INTERVALS = {"5m": ("5m", "60d"), "15m": ("15m", "60d"), "1h": ("1h", "730d"), "1d": ("1d", "5y"), "1w": ("1wk", "10y")}
 
 _ATR_RE = re.compile(r"(?:^|_)atr(\d+(?:d\d+)?|none)(?:_|$)")
 
