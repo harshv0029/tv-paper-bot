@@ -52,6 +52,15 @@ CELL_SETS = {
 DEFAULT_CELLS = {"1d": "pivot_tight,leaders,exit_six", "1w": "shake1w"}
 
 
+def _jsonable(o):
+    """numpy scalars/arrays -> plain python (int64 broke run 38238067203)."""
+    if hasattr(o, "item"):
+        return o.item()
+    if hasattr(o, "tolist"):
+        return o.tolist()
+    raise TypeError(type(o).__name__)
+
+
 def independent_trades(sig, o, h, l, c, v, atr, hold, stopm, mode, val, exarr, side, cost, ex):
     """One independent trade per signal bar (simulate_x restricted to that single signal)."""
     out = []
@@ -245,7 +254,7 @@ def _shard(args):
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, f"oneil_nonovl_{tf}_{args.shard}.json"), "w") as f:
         json.dump({"tf": tf, "cells": cells_sel, "fetched": len(data), "universe": len(syms), "split_date": args.split_date,
-                   "split_frac": args.split_frac, "raw_signal_trades": raw_counts, "aggs": aggs}, f)
+                   "split_frac": args.split_frac, "raw_signal_trades": raw_counts, "aggs": aggs}, f, default=_jsonable)
     print(f"shard {args.shard} {tf}: fetched {len(data)}/{len(syms)} tags {len(aggs)}")
 
 
@@ -287,7 +296,7 @@ def main(argv=None):
     out = merge_dir(args.path)
     if args.json:
         with open(args.json, "w") as f:
-            json.dump(out, f, separators=(",", ":"))
+            json.dump(out, f, separators=(",", ":"), default=_jsonable)
     for t, s in sorted(out["results"].items()):
         print(t, {k: s.get(k) for k in ("pfnet", "pfgross", "win_pct", "n", "avg_hold_bars", "pfnet_ex_top5", "raw_signal_trades_before_fifo")})
     return 0
