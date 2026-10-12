@@ -19,6 +19,14 @@ on:
         description: "Extra adverse stop-fill slippage in percent (0 = none)"
         required: false
         default: "0"
+      interval:
+        description: "Candle size to replay the tags at (blank = as in each tag; 1w or 1d; each is its own tag, B-786)"
+        required: false
+        default: ""
+      period:
+        description: "yfinance period override (blank = 1w: 10y, 1d: 5y)"
+        required: false
+        default: ""
       crosscheck:
         description: "1 = also compare each trade list against scripts/oneil_research.py simulate()"
         required: false
@@ -42,6 +50,8 @@ jobs:
         env:
           TAGS: ${{ inputs.tags }}
           SLIP_PCT: ${{ inputs.slip_pct }}
+          INTERVAL: ${{ inputs.interval }}
+          PERIOD: ${{ inputs.period }}
           CROSSCHECK: ${{ inputs.crosscheck }}
           SHARD: ${{ matrix.shard }}
           NSHARDS: "4"
