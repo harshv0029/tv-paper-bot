@@ -416,3 +416,7 @@ Profit-booking / exit takeaway: invalidation exits book profit earlier than a tr
 - Surprise: overlap inflated PFnet by 0.3-0.5 on 1h; always demand a FIFO re-run before trusting a high PFnet on a signal-per-bar harness.
 - Reuse: harnesses that open a trade on every signal bar must ship a non-overlap mode from the start; registry n far above trading-days x symbols is the tell.
 - Profit-booking / exit takeaway: widest stop (atr4d0) with the longest hold (25 bars) was best, i.e. these trend cells only pay when winners are left to run; tight stops and short holds (atr1d5, hold5) sit at PFnet 0.66.
+
+## MACD divergence, 15m/1h/1d long+short (B-808/809/810, run 38188472624, 2026-10-12 IST)
+Mechanism: price/MACD (histogram or line) pivot divergence, ATR stop, max-hold. 108 cells registered as `macddiv__<variant>__<dir>__<tf>__...__v1`. Fit: sweep-wide, SL in every cell; cost 0.8%. Result: 1d long best 0.973, all shorts <=0.63, 15m all ~0.27 (cost-dominated). Only 1h long line_any cells (1.40-1.46) and hist_any atr3_w5 (1.125) clear 1.1, but trades are overlapping signals (n 58k-100k), the same inflation that sank Chan 1h (1.549 -> <1.1 under FIFO). Surprise: wider ATR stops (atr3) beat tight ones, and 15m is pure cost drag. Reuse: always run the non-overlap FIFO variant before believing an intraday cell; B-812 owes it.
+Profit-booking / exit takeaway: stop_loss dominates exits (~50-70%) while max_hold survivors carry the profit, so wider stops and letting winners run to the hold limit beat tight stops; do not wire until the FIFO result holds.
