@@ -402,3 +402,10 @@ Profit-booking / exit takeaway: with a trail at breakeven or better, an add only
 ## Elder signal-invalidation exit on generic entries, all candle sizes (B-740, harness built 2026-10-12 IST)
 Mechanism: note at entry which signals flagged the trade (EMA13 rising, MACD-H rising) and exit when they fail, or when the opposite Elder-ray signal appears, instead of waiting for the stop. The earlier test (run 38140914889) covered only order-block and volume-profile long entries on daily bars; this harness runs two generic entries in both directions on the trade's own candle, with a 6 ATR catastrophic stop arm so the invalidation exit is the real exit, against stoponly controls. A stop stays on every trade. No result yet. Reuse: a signal that flips every few bars on 15m exits almost immediately, so read avg hold and the share of signal_invalidated exits before judging PFnet; the 0.8% cost dominates quick exits.
 Profit-booking / exit takeaway: invalidation exits book profit earlier than a trail; they help only if the shorter hold keeps PFnet at or above the stop-only cell, since faster turnover is the tie-break.
+
+
+## Edge-stat derivation at read time (B-539/B-540, 2026-10-12 IST)
+- Mechanism: expectancy and a bootstrap CI on PFnet are derived from stored Metrics (strategy_edge_stats.py), never stored as flags.
+- Fit: with aggregates only, expectancy>0 is equivalent to PFnet>1; the CI uses a two-point win/loss model, so it measures sample-size noise, not tail shape. A tag with PFnet 1.15 at n=150 lands in 'hold' (CI spans the 1.1 floor).
+- Reuse: wire into gen_strategy_results_log columns once per-trade lists are emitted by runs.
+- Profit-booking / exit takeaway: none directly; it stops promoting or demoting strategies on noise, protecting real money from thin-sample decisions.
