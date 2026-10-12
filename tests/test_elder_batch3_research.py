@@ -101,3 +101,23 @@ def test_breadth_pipeline():
     assert {"ad_confirm", "nhnl_turn", "trin13_bull", "climax", "mas_diverge", "nhnl_trin_combo"} <= set(sigs)
     aggs = b.breadth_trade(idx, bd)
     assert all(t.startswith("breadth__") for t in aggs)
+
+
+def test_sim2_drops_glitch_bar_trades_b864():
+    """B-864: a single corrupt bar (Open ~0.001x prior close) must not create a ~+1000x trade."""
+    n = 60
+    base = np.full(n, 100.0)
+    df = pd.DataFrame({"Open": base.copy(), "High": base + 1, "Low": base - 1, "Close": base.copy(),
+                       "Volume": np.full(n, 1e6)}, index=pd.date_range("2024-01-01", periods=n))
+    entry = np.zeros(n, dtype=bool)
+    entry[30] = True
+    clean = b.sim2(df, entry, "long", 3.0, max_hold=5)
+    assert len(clean) == 1 and abs(clean[0]["ret"]) < 0.05
+    g = df.copy()
+    g.iloc[31, g.columns.get_loc("Open")] = 0.1
+    g.iloc[31, g.columns.get_loc("Low")] = 0.1
+    assert b.sim2(g, entry, "long", 3.0, max_hold=5) == []
+    g2 = df.copy()
+    g2.iloc[33, g2.columns.get_loc("Close")] = 100000.0
+    g2.iloc[33, g2.columns.get_loc("High")] = 100000.0
+    assert b.sim2(g2, entry, "long", 3.0, max_hold=5) == []

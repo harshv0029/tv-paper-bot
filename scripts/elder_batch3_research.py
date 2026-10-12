@@ -143,6 +143,23 @@ def div_classes(price_hi, price_lo, osc, w=3, maxgap=40, tol=0.005, otol=1.0):
     return {k: (v[0], v[1]) for k, v in out.items()}
 
 
+BAD_TICK_LO, BAD_TICK_HI = 0.5, 2.0   # B-864: a >2x / <0.5x one-bar move in Open or Close vs prior Close is a data glitch
+
+
+def bad_bar_mask(o, c):
+    """True where Open or Close jumps outside [0.5x, 2x] of the previous Close (corrupt/unadjusted yfinance
+    bar). B-864: one such bar flipped kb_oscrsi PFnet 0.958 -> 2.433 (a single ~+800x return trade)."""
+    bad = np.zeros(len(c), dtype=bool)
+    if len(c) < 2:
+        return bad
+    pc = c[:-1]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ro, rc = o[1:] / pc, c[1:] / pc
+    ok = (ro >= BAD_TICK_LO) & (ro <= BAD_TICK_HI) & (rc >= BAD_TICK_LO) & (rc <= BAD_TICK_HI)
+    bad[1:] = ~ok
+    return bad
+
+
 def sim2(df, entry, direction, am, stop_lvl=None, tgt_lvl=None, exit_bool=None, max_hold=MAX_HOLD, cost=COST):
     """Like er.simulate but with an optional structure stop (tighter of it and the ATR cap) and a
     per-signal limit target. A stop is ALWAYS present (ATR cap)."""
@@ -150,13 +167,14 @@ def sim2(df, entry, direction, am, stop_lvl=None, tgt_lvl=None, exit_bool=None, 
     o, h, l, c = (df[k].to_numpy(float) for k in ("Open", "High", "Low", "Close"))
     a = er.atr(df).to_numpy()
     n = len(df)
+    bad = bad_bar_mask(o, c)
     trades, free = [], 0
     for s in np.flatnonzero(entry):
         if s < free or s + 1 >= n or np.isnan(a[s]) or a[s] <= 0:
             continue
         e = s + 1
         px = o[e]
-        if px <= 0:
+        if px <= 0 or bad[e]:
             continue
         stop = px - d * am * a[s]
         if stop_lvl is not None and not np.isnan(stop_lvl[s]):
@@ -167,7 +185,11 @@ def sim2(df, entry, direction, am, stop_lvl=None, tgt_lvl=None, exit_bool=None, 
         if not np.isnan(tg) and ((d == 1 and tg <= px) or (d == -1 and tg >= px)):
             continue
         exit_px, reason, j = None, None, e
+        glitch = False
         for j in range(e, min(n, e + max_hold + 1)):
+            if bad[j]:
+                glitch = True
+                break
             if (d == 1 and l[j] <= stop) or (d == -1 and h[j] >= stop):
                 g = o[j] if j > e else None
                 exit_px = (min(g, stop) if d == 1 else max(g, stop)) if g is not None else stop
@@ -182,6 +204,9 @@ def sim2(df, entry, direction, am, stop_lvl=None, tgt_lvl=None, exit_bool=None, 
             if j == e + max_hold:
                 exit_px, reason = c[j], "max_hold_timeout"
                 break
+        if glitch:
+            free = j
+            continue
         if exit_px is None:
             exit_px, reason, j = c[n - 1], "data_end", n - 1
         trades.append({"ret": float(d * (exit_px - px) / px - cost), "hold": int(j - e + 1), "reason": reason})
