@@ -134,19 +134,21 @@ def nonovl_seg_tag(old, seg):
     return f"{base}__seg{seg}__v2"
 
 
-def run_symbol_nonovl(df, tf, aggs, split_date="", split_frac=0.6):
+def run_symbol_nonovl(df, tf, aggs, split_date="", split_frac=0.6, directions=("long", "short")):
+    """Both directions by default (bidirectional thumb rule); the short mirror is its own tag, never a flag."""
     ts = no.split_ts(df.index, split_date, split_frac)
     for flt in NONOVL_FILTERS:
         sig = build_signal(df, flt)
-        if not sig["long"].any():
-            continue
-        for am in er.ATR_MULTS:
-            base = er.make_tag("reversal", f"island_{flt}", "long", tf, {"atr": am, "within": WITHIN})
-            kept, _ = no.cell_trades(df, sig, "long", am)
-            ins, oos = no.segment_trades(kept, df.index, ts)
-            for tag, trs in ((no.nonovl_tag(base), kept), (nonovl_seg_tag(base, "is"), ins),
-                             (nonovl_seg_tag(base, "oos"), oos)):
-                add(aggs.setdefault(tag, new_agg()), trs, df.index)
+        for direction in directions:
+            if not sig[direction].any():
+                continue
+            for am in er.ATR_MULTS:
+                base = er.make_tag("reversal", f"island_{flt}", direction, tf, {"atr": am, "within": WITHIN})
+                kept, _ = no.cell_trades(df, sig, direction, am)
+                ins, oos = no.segment_trades(kept, df.index, ts)
+                for tag, trs in ((no.nonovl_tag(base), kept), (nonovl_seg_tag(base, "is"), ins),
+                                 (nonovl_seg_tag(base, "oos"), oos)):
+                    add(aggs.setdefault(tag, new_agg()), trs, df.index)
 
 
 def summarize(agg):
