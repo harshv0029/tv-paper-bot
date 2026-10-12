@@ -16720,10 +16720,13 @@ def hydrate_runtime_settings_from_external(conn) -> int:
 #   - Safety: a table is never mirrored until its restore has reached Upstash
 #     once, so a transient startup outage can't overwrite a good remote copy
 #     with a freshly-wiped empty one.
-#   - Deliberately skipped: fo_chain_snapshot / fo_option_candles (re-fetchable
-#     market-data caches) and real_protection_snapshot (must be recomputed
+#   - Deliberately skipped: fo_chain_snapshot (re-fetchable market-data cache)
+#     and real_protection_snapshot (must be recomputed
 #     fresh; a restored "all clear" would be exactly the stale silence the
 #     backcheck rule forbids).
+#   - fo_option_candles is NOT re-fetchable (Kotak serves no option history),
+#     so it has its own per-IST-day Upstash journal: fo_candle_journal.py
+#     (B-860), wired below via hydrate_/sync_fo_option_candles_external.
 #   - Best-effort and silent like every other _external helper: never breaks
 #     trading; no-ops if the Upstash env vars are unset.
 _GENERIC_MIRROR_TABLES = (
@@ -16848,6 +16851,35 @@ def sync_generic_tables_external(only=None) -> int:
         except Exception as e:
             print(f"[table_mirror] sync {table} failed (non-fatal): {e}")
     return pushed
+
+
+def hydrate_fo_option_candles_from_external() -> int:
+    """Restore recent days of fo_option_candles from Upstash (B-860)."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return 0
+    try:
+        import fo_candle_journal
+        with closing(get_db()) as conn:
+            n = fo_candle_journal.restore_from_remote(conn, _upstash_get)
+        if n:
+            print(f"[fo_candle_journal] restored {n} option candle(s) from Upstash")
+        return n
+    except Exception as e:
+        print(f"[fo_candle_journal] restore failed (non-fatal): {e}")
+        return 0
+
+
+def sync_fo_option_candles_external() -> int:
+    """Push changed days of fo_option_candles to Upstash (B-860)."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return 0
+    try:
+        import fo_candle_journal
+        with closing(get_db()) as conn:
+            return fo_candle_journal.sync_to_remote(conn, _upstash_get, _upstash_set)
+    except Exception as e:
+        print(f"[fo_candle_journal] sync failed (non-fatal): {e}")
+        return 0
 
 
 def _live_entry_scan_batch_size_for_display() -> int:
@@ -20045,6 +20077,10 @@ async def _scheduler_tick():
         await asyncio.to_thread(sync_generic_tables_external)
     except Exception as e:
         print(f"[table_mirror] tick sync failed (non-fatal): {e}")
+    try:
+        await asyncio.to_thread(sync_fo_option_candles_external)
+    except Exception as e:
+        print(f"[fo_candle_journal] tick sync failed (non-fatal): {e}")
     if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0:
         print(f"[memory] tick {_scheduler_tick_count}: rss_mb={_process_rss_mb()}, "
               f"data_cache_entries={len(_DATA_CACHE)}, watchlist_size={len(WATCHLIST)}")
@@ -20199,6 +20235,11 @@ async def _start_scheduler():
                                timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
     except Exception as e:
         print(f"[table_mirror] startup hydrate skipped (non-fatal, retried per tick): {e}")
+    try:
+        await asyncio.wait_for(asyncio.to_thread(hydrate_fo_option_candles_from_external),
+                               timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
+    except Exception as e:
+        print(f"[fo_candle_journal] startup restore skipped (non-fatal): {e}")
     reconcile_open_positions_from_journal()
     reconcile_trading_control_from_journal()
     reconcile_real_trading_control_from_journal()
