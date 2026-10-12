@@ -19647,6 +19647,27 @@ SHORT_SWING_TAGS = tuple(t for t, _a, _r in BRK20_SHORT_SWING_CELLS)
 # 2026-10-12 user: not wired / not viable until backtested by us through the real main.py path. Island, swing-min-RR gate
 # and short-swing ports were merged without a main.py-calling replay, so the real-money gate stays closed for them.
 REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWINGMINRR_TAGS) | frozenset(SHORT_SWING_TAGS)
+
+
+def _replay_verified_tags() -> frozenset:
+    """Tags whose main.py-calling full-universe replay (docs/backtest_data/*main_replay_run_*.json, rows[].metrics)
+    cleared PFNET_LIVE_FLOOR with at least 30 trades. Derived at read time; a missing/unreadable file verifies nothing."""
+    import glob as _g
+    import json as _j
+    import strategy_registry as _sr
+    ok = set()
+    for f in sorted(_g.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data", "*main_replay_run_*.json"))):
+        try:
+            for r in _j.load(open(f)).get("rows", []):
+                m = r.get("metrics") or {}
+                if (m.get("n") or 0) >= 30 and (m.get("pfnet") or 0) >= _sr.PFNET_LIVE_FLOOR:
+                    ok.add(r["tag"])
+        except Exception:
+            continue
+    return frozenset(ok)
+
+
+REPLAY_OWED_TAGS = REPLAY_OWED_TAGS - _replay_verified_tags()
 for _t in SHORT_SWING_TAGS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 
