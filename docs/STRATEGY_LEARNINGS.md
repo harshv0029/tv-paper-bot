@@ -967,3 +967,10 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised/broke: segis/segoos/v1/nonovl are evaluation cells of ONE live rule, so a symbol can only ever hold one of them; the first in order takes the position (kept as separate tags, not merged). VCP gate rr4 is n=49 only: thin.
 - Reuse: when wiring cells of one rule, wire the rule once and keep the cell tags mapped; replay the port before trusting thin-n cells. Run a main.py-calling replay (B-30/B-877 style) next.
 - Profit-booking / exit takeaway: these cells have no profit target; edge comes from stop-or-30-bar-hold survivors, so do not add early profit-taking without a swept variant.
+## Short-swing path for brk20 1d shorts (B-871, 2026-10-12)
+- Mechanism: 1d breakdown below the prior 20-bar low with 60-bar room >= rr x risk, BUY-stop at entry + 3/4 x ATR, exit on stop / EMA13 rule / 30-bar timeout (main.py `brk20_min_rr_*` short path), held overnight for days.
+- Fit here: a naked NSE cash short cannot be carried overnight on MIS (Kotak auto square-off) and CNC needs delivery shares, so the real leg is gated behind an unconfirmed-product constant; paper runs. The backtest ignores borrow/auction/overnight-product feasibility, a real gap between PFnet and tradable PFnet. SL-on-every-trade is met by placing the BUY-stop right after the fill and unwinding by cover if it fails.
+- Result: no new replay; wired cells reuse registry rows (1d short atr3/atr4 plain, PFnet 1.66-3.95, IS/OOS held in run 38247769897). Only brk20 among the 254 B1 tags had a main.py short port; weekly O'Neil, sector_rotation fade and the rest need ports first.
+- Surprised: most of the "short-swing missing" tags are not blocked by the engine alone but by missing short entry/exit ports.
+- Reuse: confirm instrument/product feasibility at the broker BEFORE queuing wiring for a new direction; build engines with their own tables from day one (ownership, Upstash mirror, 5-min heal).
+- Profit-booking / exit takeaway: shorts use the same EMA13 rule exit and 30-bar cap as the long; the wide ATR stop (4x) did best in the replay, so do not tighten stops to book sooner.
