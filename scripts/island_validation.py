@@ -13,6 +13,8 @@ scripts/elder_patterns_research.d_island, copied so filters can be added) with t
   * both directions via the reciprocal-price mirror (short = separate tag), ATR sweep 1.5/2/3
   * one position per symbol per cell (er.simulate's free-slot rule), i.e. non-overlapping
   * candle size via --interval/--period (bar-count constants change meaning; 4h owed: needs 1h resample)
+B-815 adds, for the long cells >= 1.1 (filters none/px20/turn1cr/gap05 x ATR 1.5/2/3): strict-FIFO tags
+<old minus __v1>__nonovl__v2 plus IS/OOS split tags <old minus __v1>__segis__v2 / __segoos__v2 (split by entry date).
 Tags: reversal__island_<filter>__<dir>__<tf>__atr<m>_within8__v1 (old unfiltered tag stays untouched).
 Full universe: main._load_nse_universe_from_file().
 
@@ -33,6 +35,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
+import macddiv_nonoverlap as no  # noqa: E402  (shared strict-FIFO + IS/OOS helpers)
 
 FILTERS = ("none", "px20", "turn1cr", "gap05", "liq_gap")
 WITHIN = 8
@@ -121,6 +124,31 @@ def run_symbol(df, tf, aggs):
                 add(aggs.setdefault(tag, new_agg()), er.simulate(df, sig, direction, am), df.index)
 
 
+# B-815: long cells that were PFnet >= 1.1 in run 38192367677 (filters x ATR 1.5/2/3), re-run with strict FIFO
+# (one position per symbol per cell, independent trades then filter) and an IS/OOS split on entry date.
+NONOVL_FILTERS = ("none", "px20", "turn1cr", "gap05")
+
+
+def nonovl_seg_tag(old, seg):
+    base = old[:-4] if old.endswith("__v1") else old
+    return f"{base}__seg{seg}__v2"
+
+
+def run_symbol_nonovl(df, tf, aggs, split_date="", split_frac=0.6):
+    ts = no.split_ts(df.index, split_date, split_frac)
+    for flt in NONOVL_FILTERS:
+        sig = build_signal(df, flt)
+        if not sig["long"].any():
+            continue
+        for am in er.ATR_MULTS:
+            base = er.make_tag("reversal", f"island_{flt}", "long", tf, {"atr": am, "within": WITHIN})
+            kept, _ = no.cell_trades(df, sig, "long", am)
+            ins, oos = no.segment_trades(kept, df.index, ts)
+            for tag, trs in ((no.nonovl_tag(base), kept), (nonovl_seg_tag(base, "is"), ins),
+                             (nonovl_seg_tag(base, "oos"), oos)):
+                add(aggs.setdefault(tag, new_agg()), trs, df.index)
+
+
 def summarize(agg):
     s = er.summarize(agg)
     top = agg["top"][:TOP_K]
@@ -145,10 +173,11 @@ def cmd_run(a):
             df = er.prep(raw)
             fetched += 1
             run_symbol(df, a.interval, aggs)
+            run_symbol_nonovl(df, a.interval, aggs, a.split_date, a.split_frac)
         except Exception as ex:
             print("ERROR", s, ex, file=sys.stderr)
     os.makedirs(a.out, exist_ok=True)
-    json.dump({"interval": a.interval, "fetched": fetched, "universe": len(syms), "aggs": aggs},
+    json.dump({"interval": a.interval, "split_date": a.split_date, "split_frac": a.split_frac, "fetched": fetched, "universe": len(syms), "aggs": aggs},
               open(os.path.join(a.out, f"island_{a.interval}_{a.shard}.json"), "w"))
     print(f"island shard {a.shard}: fetched {fetched}/{len(syms)} cells {len(aggs)}")
 
@@ -189,6 +218,8 @@ def main(argv=None):
     r.add_argument("--nshards", type=int, default=4)
     r.add_argument("--interval", default="1d")
     r.add_argument("--period", default="5y")
+    r.add_argument("--split_date", default="", help="IS/OOS boundary (entry date < it = IS); blank = split_frac")
+    r.add_argument("--split_frac", type=float, default=0.6)
     r.add_argument("--out", default="out")
     mg = sub.add_parser("merge")
     mg.add_argument("path")

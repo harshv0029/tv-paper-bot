@@ -2,9 +2,16 @@ name: macddiv non-overlap re-run (B-812)
 
 # 2026-10-12 IST. Strict-FIFO (one position per symbol per cell) re-run of the 4 macddiv 1h long cells >= 1.1 from
 # run 38188472624 (scripts/macddiv_nonoverlap.py), 0.8% cost, ATR stop, FULL universe. New tags <old>__nonovl__v2.
-# Research only; nothing wired. Mirrors chan-nonoverlap.yml.
+# B-814: also emits IS/OOS split tags (_nonovl_segis__v2 / _segoos__v2). Research only; nothing wired. Mirrors chan-nonoverlap.yml.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      split_date:
+        description: "IS/OOS boundary date YYYY-MM-DD (entry before = IS). Blank = use split_frac"
+        default: ""
+      split_frac:
+        description: "Fraction of each symbol's time span that is in-sample when split_date is blank"
+        default: "0.6"
 
 jobs:
   run:
@@ -21,7 +28,7 @@ jobs:
           python-version: "3.11"
       - run: pip install -q -r requirements.txt
       - name: Run shard
-        run: python3 scripts/macddiv_nonoverlap.py --shard ${{ matrix.shard }} --nshards 6 --out out
+        run: python3 scripts/macddiv_nonoverlap.py --shard ${{ matrix.shard }} --nshards 6 --split_date "${{ inputs.split_date }}" --split_frac "${{ inputs.split_frac }}" --out out
       - uses: actions/upload-artifact@v4
         with:
           name: macddiv-nonovl-${{ matrix.shard }}
