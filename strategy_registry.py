@@ -210,7 +210,7 @@ REGISTRY: list[StrategyDef] = [
         status=StrategyStatus.LIVE,
         entry_fn=None,  # lives in main.py.gap_and_go_entry_signal/_run_swing_scan - not duplicated here
         metrics=Metrics(
-            pfnet=1.65, pfgross=None, win_rate_pct=None, n_trades=142,
+            pfnet=1.65, pfgross=2.06, win_rate_pct=37.3, n_trades=142, cost_drag_pct=9.8, avg_held_hrs=32.9 * TRADING_HOURS_PER_DAY,
             universe="_SWING_VALIDATED_52 (original validated set)",
             run_ref="swing-gap-and-go-5y-research.yml",
         ),
