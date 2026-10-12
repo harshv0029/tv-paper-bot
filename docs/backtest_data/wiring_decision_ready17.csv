@@ -1,0 +1,18 @@
+tag,family,pfnet,n,decision,reason
+sma_crossover__gc__long__1d__atr1d5__v1,sma_crossover,1.992,33,OOS-RUN-OWED,no IS/OOS split on record; needs oneil/chan/gaps/osc nonoverlap OOS run
+chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1,chan_gap,1.364,1147,OOS-RUN-OWED,no IS/OOS split on record; needs oneil/chan/gaps/osc nonoverlap OOS run
+gaps__exhaust_fade__long__1d__atr1d5_nb5__v1,gaps,1.218,4404,OOS-RUN-OWED,no IS/OOS split on record; needs oneil/chan/gaps/osc nonoverlap OOS run
+reversal__island__long__1d__atr1d5_within8__v1,reversal,1.506,8888,WIRE-NEXT (port B-877),island_within8 base; OOS siblings pass at 1.18-1.34
+consol__tri_desc__long__1d__atr1d5_vol0__v1,consol,1.248,313,OOS-RUN-OWED,no IS/OOS split on record; needs oneil/chan/gaps/osc nonoverlap OOS run
+osc__div_class__long__1d__atr1d5_kc_oscmacdh__v1,osc,1.14,1300,OOS-RUN-OWED,no IS/OOS split on record; needs oneil/chan/gaps/osc nonoverlap OOS run
+pfovl__brk20_year__long__1d__atr1d5_y2021__v1,pfovl,1.762,1123,NOT-WIRED (overlay slice),year/month/price-bucket slice chosen in hindsight; not a causal entry rule
+pfovl__brk20_year__long__1d__atr1d5_y2023__v1,pfovl,1.113,9916,NOT-WIRED (overlay slice),year/month/price-bucket slice chosen in hindsight; not a causal entry rule
+pfovl__brk20_month__long__1d__atr1d5_m11__v1,pfovl,1.193,3270,NOT-WIRED (overlay slice),year/month/price-bucket slice chosen in hindsight; not a causal entry rule
+pfovl__brk20_pricebucket__long__1d__atr1d5_hi20_lo0__v1,pfovl,1.315,3786,NOT-WIRED (overlay slice),year/month/price-bucket slice chosen in hindsight; not a causal entry rule
+pfovl__dip_month__long__1d__atr1d5_m4__v1,pfovl,1.697,14062,NOT-WIRED (overlay slice),year/month/price-bucket slice chosen in hindsight; not a causal entry rule
+reversal__island_gap05__long__1d__atr1d5_within8__v1,reversal,1.931,3177,HOLD,OOS PFnet 1.0 < 1.1; fails out-of-sample
+reversal__island_none__long__1d__atr1d5_within8__v1,reversal,1.496,8892,WIRE-NEXT (port B-877),"OOS PFnet 1.18-1.34 on n>=1760 (island OOS 1d, B-815)"
+reversal__island_px20__long__1d__atr1d5_within8__v1,reversal,1.311,6959,WIRE-NEXT (port B-877),"OOS PFnet 1.18-1.34 on n>=1760 (island OOS 1d, B-815)"
+reversal__island_turn1cr__long__1d__atr1d5_within8__v1,reversal,1.267,3088,WIRE-NEXT (port B-877),"OOS PFnet 1.18-1.34 on n>=1760 (island OOS 1d, B-815)"
+gaps__exhaust_fade__long__1d__atr1d5_nb5_rr1__v1,gaps,1.223,4412,OOS-RUN-OWED,no IS/OOS split on record; needs oneil/chan/gaps/osc nonoverlap OOS run
+osc__div_class__long__1d__atr1d5_kc_oscmacdh_rn38211452647__v1,osc,1.183,1307,OOS-RUN-OWED,no IS/OOS split on record; needs oneil/chan/gaps/osc nonoverlap OOS run
