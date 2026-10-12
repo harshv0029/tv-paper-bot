@@ -1,0 +1,45 @@
+name: Index option trigger research (B-853)
+
+# Research-only, read-only. Runs the REAL main.py swing entry functions (power_play, primary_base,
+# minervini_vcp_livermore, order_block_delta, gap_and_go) on INDEX underlying candles (^NSEI, ^NSEBANK, ^BSESN),
+# LONG (=> buy call) and reciprocal-price mirrored SHORT (=> buy put), ATR-trail sweep, strict non-overlap FIFO,
+# IS/OOS split, 0.8% / 0.1% cost views. Trigger-quality test on the underlying, NOT option premium P&L.
+# Candle sweep per CLAUDE.md: one matrix job per interval 5m/15m/1h/1d (4h needs a 1h resample: owed).
+# Not registered in strategy_registry.py until a real run exists (see backlog B-853).
+# Small matrix (4 jobs); dispatch only when no Deploy Gate / safety run is queued.
+on:
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: "Candle size (5m, 15m, 1h, 1d) or 'all' for the full sweep"
+        default: "all"
+      atr_mults:
+        description: "Comma-separated ATR trail multiples"
+        default: "2,3,4.5,6"
+
+jobs:
+  scan:
+    if: ${{ inputs.interval == 'all' || contains(fromJSON('["5m","15m","1h","1d"]'), inputs.interval) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        tf: ["5m", "15m", "1h", "1d"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run index option trigger scan
+        if: ${{ inputs.interval == 'all' || inputs.interval == matrix.tf }}
+        env:
+          INTERVAL: ${{ matrix.tf }}
+          ATR_MULTS: ${{ inputs.atr_mults }}
+        run: python3 scripts/index_option_trigger_research.py
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.interval == 'all' || inputs.interval == matrix.tf }}
+        with:
+          name: index-option-trigger-${{ matrix.tf }}
+          path: docs/index_option_trigger_results_${{ matrix.tf }}.json
