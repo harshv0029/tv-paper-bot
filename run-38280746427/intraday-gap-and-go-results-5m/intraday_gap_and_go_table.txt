@@ -1,0 +1,10 @@
+fetched 2636 of universe slots 2688; days {'days_seen': 297894, 'days_gapped': 14561, 'days_entered': 2496}
+tag                                                                                       n   PFnet   trim1  PFgross   win%  hold  exits
+gap_and_go_intraday__gap_hold__long__5m__atr3d0_tr2d0_win30__v2                        1686   0.282   0.279      0.5   22.7  34.8  {'eod_squareoff': 622, 'stop_hit': 501, 'target_hit': 141, 'gap_filled': 361, 'data_end_forced_close': 61}
+gap_and_go_intraday__gap_hold__long__5m__atr2d0_tr2d0_win30__v2                        1686   0.281   0.278    0.506   22.8  24.9  {'eod_squareoff': 362, 'stop_hit': 853, 'target_hit': 247, 'gap_filled': 174, 'data_end_forced_close': 50}
+gap_and_go_intraday__gap_hold__long__5m__atr2d5_tr2d0_win30__v2                        1686   0.281   0.277    0.498   22.6  30.8  {'eod_squareoff': 506, 'stop_hit': 666, 'target_hit': 184, 'gap_filled': 274, 'data_end_forced_close': 56}
+gap_and_go_intraday__gap_hold__long__5m__atr1d5_tr2d0_win30__v2                        1670   0.268   0.264    0.507   23.1  18.8  {'eod_squareoff': 231, 'stop_hit': 1008, 'target_hit': 304, 'gap_filled': 87, 'data_end_forced_close': 40}
+gap_and_go_intraday__gap_hold__short__5m__atr3d0_tr2d0_win30__v2                        831   0.169   0.164    0.361   21.2  37.9  {'stop_hit': 176, 'eod_squareoff': 368, 'gap_filled': 212, 'target_hit': 24, 'data_end_forced_close': 51}
+gap_and_go_intraday__gap_hold__short__5m__atr2d0_tr2d0_win30__v2                        831   0.168   0.164    0.365   21.9  31.3  {'stop_hit': 363, 'target_hit': 68, 'eod_squareoff': 273, 'gap_filled': 90, 'data_end_forced_close': 37}
+gap_and_go_intraday__gap_hold__short__5m__atr2d5_tr2d0_win30__v2                        831   0.165    0.16    0.356   21.2  35.8  {'stop_hit': 254, 'eod_squareoff': 336, 'target_hit': 33, 'gap_filled': 158, 'data_end_forced_close': 50}
+gap_and_go_intraday__gap_hold__short__5m__atr1d5_tr2d0_win30__v2                        826   0.155   0.151    0.346   22.1  25.3  {'stop_hit': 453, 'target_hit': 108, 'eod_squareoff': 190, 'gap_filled': 51, 'data_end_forced_close': 24}
