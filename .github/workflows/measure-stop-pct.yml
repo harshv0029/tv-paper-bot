@@ -1,0 +1,28 @@
+name: Measure planned stop-% per tag (B-775)
+
+# Fetches ATR14/close medians over the FULL NSE universe at 5m/15m/1h/1d and derives each ATR-stop
+# tag's planned stop-% (ATR multiple x universe median ATR%) into docs/backtest_data/stop_pct.json
+# (read by scripts/count_sl_cap.py). Research only; single job; uploads artifacts, never pushes.
+# Dispatch only when no Deploy Gate / safety run is queued.
+on:
+  workflow_dispatch:
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - run: python3 scripts/measure_stop_pct.py --fetch
+      - run: python3 scripts/count_sl_cap.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stop-pct
+          path: |
+            docs/backtest_data/stop_pct.json
+            docs/backtest_data/stop_pct_basis.json
+            docs/backtest_data/atr_pct_by_tf.json
