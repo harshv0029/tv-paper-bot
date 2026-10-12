@@ -235,8 +235,13 @@ def simulate_portfolio(trades, K=10, risk=0.01, cap=0.10, policy=None, regime=No
         take = openp < K
         if take and policy.get("skip_rf") and rf > policy["skip_rf"]:
             take = False
-        if take and policy.get("monitor20") and len(paper) >= 20 and np.mean(paper[-20:]) < 0:
-            take = False
+        if take and policy.get("monitor20") and len(paper) >= 20:
+            _w = np.asarray(paper[-20:], float)
+            _gl = -_w[_w < 0].sum()
+            _pf = (_w[_w > 0].sum() / _gl) if _gl > 0 else float("inf")
+            # B-541: last-20 expectancy < 0 OR last-20 block PFnet < 1.0 pauses new entries
+            if _w.mean() < 0 or _pf < 1.0:
+                take = False
         tsym = t[8] if len(t) > 8 else None
         if take and corr is not None and tsym is not None and held_syms:
             hi = int(np.searchsorted(corr["cal"], t[0], side="left"))
