@@ -1,0 +1,82 @@
+name: Elder >=1.1 cells validation (B-850 / B-852)
+
+# Research only. Re-validates the Elder cells that cleared PFnet 1.1 in run 38208431466 (gaps exhaust_fade /
+# common_fade nb3/4/5, macd hist_exhaust zf1, BOTH directions, ATR 1.5/2/3) with strict-FIFO re-check, IS/OOS split,
+# bull/bear (SMA200) regime split, trim1/trim5 and a verdict (OOS n>=30, OOS and trim5 >= PFNET_LIVE_FLOOR).
+# scripts/elder_ge11_validate.py reuses the unchanged variant functions + er.simulate (stop on every trade, bad-bar guard).
+# FULL universe via main._load_nse_universe_from_file(). v3 tags. 8 shards + 1 merge = 9 jobs (<40).
+# Candle sweep: re-dispatch per interval 1d / 1h / 4h (1h fetch resampled to NSE-session 4h) / 15m / 5m.
+# Bar-count constants (nb, 30-bar max hold) change meaning with the interval.
+# A new workflow file cannot be dispatched until it is on main.
+on:
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: "Candle size (1d, 1h, 4h, 15m, 5m)"
+        required: false
+        default: "1d"
+      period:
+        description: "yfinance period (blank = default: 1d 5y; 1h/4h 730d; 15m/5m 60d)"
+        required: false
+        default: ""
+      pin_run_id:
+        description: "Run id of an earlier pin-aware run; reruns on EXACTLY its fetched symbol set (empty = unpinned)"
+        required: false
+        default: ""
+      pin_artifact:
+        description: "Merged-results artifact of pin_run_id"
+        required: false
+        default: "elder-ge11-results"
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: ./.github/actions/resolve-pin
+        with:
+          pin_run_id: ${{ inputs.pin_run_id }}
+          pin_artifact: ${{ inputs.pin_artifact }}
+          token: ${{ github.token }}
+      - name: Run shard
+        run: |
+          python3 scripts/elder_ge11_validate.py run --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" --shard ${{ matrix.shard }} --nshards 8 --out out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ge11-${{ matrix.shard }}
+          path: out/
+          retention-days: 3
+
+  merge:
+    needs: research
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: ge11-*
+          merge-multiple: true
+      - name: Merge, verdict, print
+        run: |
+          set -o pipefail
+          python3 scripts/elder_ge11_validate.py merge shards --json ge11_results.json | tee ge11_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elder-ge11-results
+          path: |
+            ge11_results.json
+            ge11_table.txt

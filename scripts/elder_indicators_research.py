@@ -461,8 +461,10 @@ def summarize(agg):
     top1 = max(top[0][0], 0.0) if top else 0.0
     ls = agg["loss_sum"]
     trimmed = ((agg["win_sum"] - top1) / ls) if ls > 0 else (float("inf") if n else 0.0)
+    trim5 = ((agg["win_sum"] - sum(max(t[0], 0.0) for t in top[:5])) / ls) if ls > 0 else (float("inf") if n else 0.0)
     return {"n": n, "pfnet": round(pf, 3) if pf != float("inf") else None,
             "pfnet_trim1": round(trimmed, 3) if trimmed != float("inf") else None,
+            "pfnet_trim5": round(trim5, 3) if trim5 != float("inf") else None,
             "max_trade_net_ret_pct": round(100.0 * top[0][0], 2) if top else None,
             "top5_trades": [{"net_ret_pct": round(100.0 * t[0], 2), "hold_bars": t[1], "reason": t[2], "sig_bar": t[3]}
                             for t in top],
