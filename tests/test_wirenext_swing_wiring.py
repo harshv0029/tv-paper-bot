@@ -28,7 +28,7 @@ def test_all_19_csv_tags_wired_mapped_viable_and_exit_covered():
     for t in tags:
         assert t in covered, t
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t  # own registry name, never merged
-        assert main._is_strategy_viable_for_real_money(t, check_switch=False) is True
+        assert main._is_strategy_viable_for_real_money(t, check_switch=False) is False  # replay owed (2026-10-12)
         assert t in main._SWING_SL_RULES
         assert next(s for s in sr.REGISTRY if s.name == t).metrics.pfnet >= sr.PFNET_LIVE_FLOOR
 
