@@ -42,7 +42,7 @@ def test_tags_registry_mapping_and_gate():
         assert strat.metrics.pfnet >= sr.PFNET_LIVE_FLOOR
         oos = next(s for s in sr.REGISTRY if s.name == t.replace("__nonovl__v2", "__segoos__v2"))
         assert oos.metrics.pfnet >= sr.PFNET_LIVE_FLOOR  # held-out check also clears
-        assert main._is_strategy_viable_for_real_money(t, check_switch=False) is False  # replay owed (2026-10-12): closed until a main.py replay is registered
+        assert main._is_strategy_viable_for_real_money(t, check_switch=False) is (t not in main.REPLAY_OWED_TAGS)  # replay-verified tags re-open (2026-10-12)
     assert len({main._STRATEGY_TAG_TO_REGISTRY_NAME[t] for t in TAGS}) == 3
 
 
