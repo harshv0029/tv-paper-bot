@@ -150,6 +150,19 @@ class StrategyDef:
         return self.metrics.pfnet >= floor
 
 
+# 2026-10-12 user: "quality, not quantity" - the viable TABLES list only strategies with PFnet >= floor, at least
+# QUALITY_MIN_TRADES trades and an average hold of at most QUALITY_MAX_HOLD_HRS (3 trading days of 25h bar time).
+# Derived at read time from stored metrics; is_viable() itself stays PFnet-only.
+QUALITY_MIN_TRADES = 30
+QUALITY_MAX_HOLD_HRS = 75.0
+
+
+def is_quality_viable(s: "StrategyDef", floor: float = PFNET_LIVE_FLOOR) -> bool:
+    m = s.metrics
+    return bool(m is not None and m.pfnet >= floor and (m.n_trades or 0) >= QUALITY_MIN_TRADES
+                and m.avg_held_hrs is not None and m.avg_held_hrs <= QUALITY_MAX_HOLD_HRS)
+
+
 REGISTRY: list[StrategyDef] = [
     # ---- BUY (long) ---------------------------------------------------
     StrategyDef(
@@ -2515,7 +2528,7 @@ def leaderboard(category: TradeCategory, top_n: int = 5) -> list[dict]:
     ]
 
 
-def viable_leaderboard(category: TradeCategory, floor: float = PFNET_LIVE_FLOOR) -> list[dict]:
+def viable_leaderboard(category: TradeCategory, floor: float = PFNET_LIVE_FLOOR, quality: bool = True) -> list[dict]:
     """Every strategy in `category` that actually clears real breakeven
     (PFnet >= floor), ranked best-first, with NO top-N cap - 2026-09-30,
     explicit user instruction: "There is change in strategy leaderboard.
@@ -2533,7 +2546,7 @@ def viable_leaderboard(category: TradeCategory, floor: float = PFNET_LIVE_FLOOR)
     "qualify" means a validated PFnet >= floor, never an unmeasured one
     treated as passing by default."""
     ranked = _ranked_by_pfnet(strategies_by_category(category))
-    viable = [s for s in ranked if s.is_viable(floor) is True]
+    viable = [s for s in ranked if (is_quality_viable(s, floor) if quality else s.is_viable(floor) is True)]
     return [
         {
             "rank": i + 1,

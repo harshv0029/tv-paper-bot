@@ -73,5 +73,5 @@ def test_swing_leaderboard_is_not_capped_at_five_when_more_qualify():
     # "unbounded" behavior; the real guarantee is test_each_category_
     # matches_the_real_registry_viable_leaderboard above.
     result = main.strategy_leaderboard()
-    all_swing_viable = [s for s in sr.strategies_by_category(sr.TradeCategory.SWING) if s.is_viable() is True]
+    all_swing_viable = [s for s in sr.strategies_by_category(sr.TradeCategory.SWING) if sr.is_quality_viable(s)]
     assert len(result["swing"]) == len(all_swing_viable)
