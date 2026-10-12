@@ -22,14 +22,14 @@ Total rows: 847 | closed: 369 | not closed: 478
 | BUILT-ON-BRANCH | 6 |
 | OPEN-PARKED | 6 |
 | PARKED-REASONED | 4 |
-| TODO | 3 |
 | PARKED | 2 |
+| TODO | 2 |
+| IN-PROGRESS | 2 |
 | DONE-ON-BRANCH | 2 |
 | OWNER-ACTION | 1 |
 | BLOCKED-ON-RUN | 1 |
 | HARNESS-RUN-DONE | 1 |
 | ROOT-CAUSED | 1 |
-| IN-PROGRESS | 1 |
 | IN | 1 |
 | DONE-REGISTERED | 1 |
 
@@ -457,7 +457,7 @@ Total rows: 847 | closed: 369 | not closed: 478
 | B-317 | P? | DONE-PENDING-VERIFY | ETFs added to the monitored + real-tradable universe (user 2026-10-08 IST: gold, silver and other ETFs, tra... | pending, verify |
 | B-320 | P? | DONE-PENDING-VERIFY | REAL-money long-option entries (user 2026-10-08: "I want real money trades") | owed, remaining, pending, verify, needs, awaiting, waiting |
 
-## ready-to-build (10)
+## ready-to-build (9)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -466,13 +466,12 @@ Total rows: 847 | closed: 369 | not closed: 478
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... |  |
 | B-868 | P1 | DONE-ON-BRANCH | 2026-10-12 | blocked, pending |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
-| B-833 | P2 | TODO | Short mirror 1w oneil_shakeout plus3 pm2 h8 (1.26/1.24, n=883, ~7 week hold; the only short cells >=1.1): n... | todo |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
 | B-851 | P2 | OPEN | Reproducibility of Elder MACD/gap cells: re-run 38208431466 (7059 fetched) vs 38177547622 (7049): all 120 t... |  |
 | B-870 | P2 | DONE-ON-BRANCH | 2026-10-12 IST, 4h candle owed note (B-16/B-341/B-424..B-452): yfinance has no 4h, so 4h needs a 1h resample | owed, needs |
 
-## research-queue (65)
+## research-queue (66)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -531,6 +530,7 @@ Total rows: 847 | closed: 369 | not closed: 478
 | B-623 | P2 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, blocked, needs |
 | B-791 | P2 | OPEN | Minervini sweep follow-ups: confirm universe size from artifact docs/minervini_sweep_results_full_1d.json, ... | follow-up |
 | B-819 | P2 | OPEN | Portfolio overlay pfovl (run 38193834873; 792 rows, 26 >=1.1, all calendar-slice cells) | owed |
+| B-833 | P2 | IN-PROGRESS | Short mirror 1w oneil_shakeout plus3 pm2 h8 (1.26/1.24, n=883, ~7 week hold; the only short cells >=1.1): n... | owed |
 | B-841 | P2 | OPEN | Reproducibility of huge-n Douglas/Elder entry cells: one extra fetched symbol moved short brk20_limit_entry... | needs |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | owed, needs, follow-up |
 | B-842 | P2 | OPEN | 2026-10-12 IST DISPATCH-READY 2026-10-12 (swing min-RR candle sweep, 1h/730d and 4h) |  |
