@@ -1,0 +1,58 @@
+name: Chan non-overlap re-run (B-806)
+
+# 2026-10-12 IST. Re-runs the Chan per-symbol cells (time-series + 1d gap momentum) with strict FIFO non-overlapping
+# trades (scripts/chan_nonoverlap.py), same 0.8% cost, ATR stops, full universe, 1d + 1h. New tags
+# <old>__nonovl__v2. Shards emit aggregates only; result artifact chan-nonoverlap-results is small.
+# Research only; nothing wired. Cross-sectional cells are one-bar trades and are not re-run.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        interval: ["1d", "1h"]
+        shard: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run shard
+        env:
+          SHARD: ${{ matrix.shard }}
+          NSHARD: "3"
+          INTERVAL: ${{ matrix.interval }}
+          OUT_DIR: out
+        run: python3 scripts/chan_nonoverlap.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chan-nonovl-${{ matrix.interval }}-${{ matrix.shard }}
+          path: out/chan_nonovl_shard_*.json
+          retention-days: 3
+
+  merge:
+    needs: run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+      - name: Merge and print
+        env:
+          IN_DIR: shards
+          OUT: chan_nonoverlap_results.json
+        run: python3 scripts/chan_nonoverlap.py merge
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chan-nonoverlap-results
+          path: chan_nonoverlap_results.json
