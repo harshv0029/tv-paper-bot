@@ -383,6 +383,11 @@
   </div>
 </div>
 
+<div class="counts-panel">
+  <div class="counts-head"><span class="title">Bucketing of viable strategies <span id="vb-meta" class="scan-idle"></span></span></div>
+  <div class="counts-scroll" id="vb-body"><div class="scan-idle">Loading…</div></div>
+</div>
+
 <div class="cards" id="cards"><div class="empty">Loading…</div></div>
 
 <footer>Polls <code>/daily-summary</code> + <code>/history</code> every 10s. Amber lines = opening-range high/low (the strategy's own support/resistance).</footer>
@@ -922,11 +927,45 @@ function formatIstTimestamp(epochSeconds) {
   return `${parts.day} ${parts.month} ${parts.year}, ${parts.hour}:${parts.minute}:${parts.second} IST`;
 }
 
+// Last-data-change tracking: hash of the table's value columns (not the live
+// scan counters), persisted in localStorage (per-viewer; try/catch everywhere).
+function _hashStr(str) { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return String(h); }
+function trackDataChange(key, sigSource) {
+  const sig = _hashStr(JSON.stringify(sigSource));
+  let rec = null;
+  try { rec = JSON.parse(localStorage.getItem(key)); } catch (e) {}
+  if (!rec || rec.sig !== sig) {
+    rec = { sig, epoch: Date.now() / 1000 };
+    try { localStorage.setItem(key, JSON.stringify(rec)); } catch (e) {}
+  }
+  return rec.epoch;
+}
+function renderViableBuckets(d) {
+  const body = document.getElementById("vb-body"), meta = document.getElementById("vb-meta");
+  if (!body) return;
+  if (!d || !d.categories) { body.innerHTML = '<div class="scan-idle">Bucketing unavailable (fetch failed)</div>'; return; }
+  const ep = trackDataChange("vb_change", d.categories);
+  if (meta) meta.textContent = `(floor PFnet ${d.floor}; last refreshed: ${formatIstTimestamp(d.as_of_epoch || Date.now() / 1000)}, last data change: ${formatIstTimestamp(ep)})`;
+  const esc = x => String(x).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  body.innerHTML = Object.entries(d.categories).map(([cat, c]) => `
+    <div style="margin:6px 0"><b>${esc(cat.replace("_", " "))}</b> — ${c.count} viable
+    <table class="counts"><thead><tr><th>PFnet band</th><th class="num">Count</th><th>Holding days &rarr; count: strategies (PFnet / win% / n)</th></tr></thead><tbody>
+    ${c.pfnet_buckets.map(b => `<tr><td>${esc(b.band)}</td><td class="num">${b.count}</td><td>${b.hold_buckets.length ? b.hold_buckets.map(h =>
+      `<div><b>${esc(h.band)}</b> (${h.count}): ` + h.strategies.map(s => `${esc(s.name)} <span class="meta">(${fmt(s.pfnet, 3)} / ${fmt(s.win_rate_pct, 1)}% / n=${s.n_trades})</span>`).join("; ") + `</div>`).join("") : '<span class="meta">none</span>'}</td></tr>`).join("")}
+    </tbody></table></div>`).join("");
+}
+
 function renderStrategyScanActivity(data) {
   const stamp = document.getElementById("strategy-scan-refreshed");
   if (stamp && (data || !window._saData)) {
     const epoch = data && typeof data.as_of_epoch === "number" ? data.as_of_epoch : (data ? Date.now() / 1000 : null);
-    stamp.textContent = epoch ? `(last refreshed: ${formatIstTimestamp(epoch)})` : "(last refreshed: — fetch failed)";
+    let chg = "";
+    if (data && Array.isArray(data.strategies)) {
+      // value columns only; live scan counters change every tick and would mask real changes
+      const sig = data.strategies.map(r => [r.strategy_tag, r.scan_wired, r.categories, r.instrument, r.pfnet, r.avg_held_hrs, r.entry_confidence_pct, r.sl_pct, r.sl_rule]);
+      chg = `, last data change: ${formatIstTimestamp(trackDataChange("sa_change", sig))}`;
+    }
+    stamp.textContent = epoch ? `(last refreshed: ${formatIstTimestamp(epoch)}${chg})` : "(last refreshed: — fetch failed)";
   }
   const body = document.getElementById("strategy-scan-body");
   if (!body) return;
@@ -2081,6 +2120,7 @@ async function refresh() {
     ]);
     renderUnprotectedBanner(protectionStatus);
     renderStrategyScanActivity(strategyScanActivity);
+    fetchJSON(`${ORIGIN}/strategy-viable-buckets`).then(renderViableBuckets).catch(() => renderViableBuckets(null));
     // BUG found live 2026-09-08 (explicit user finding: "current balance
     // is 1596 as of now but wrong here" - showing -Rs942.61 instead):
     // this tile is labeled "real, Kotak Neo" but was fed summary.
