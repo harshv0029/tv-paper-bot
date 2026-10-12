@@ -582,6 +582,13 @@ Source of every figure below: the generated results log (cost model 0.8%, PFnet 
 - Reuse: any new pooled result gets an IS/OOS rerun through the same harness before wiring; entry-date bucketing keeps IS+OOS exactly equal to the pooled sums.
 - Profit-booking / exit takeaway: the edge sits in winners held ~12-14 bars to the 4R-ish target, so the breakeven ratchet is only worth keeping if OOS PFnet beats the no-ratchet twin; do not tighten exits on pooled numbers alone.
 
+## brk20_min_rr IS/OOS result (B-798, run 38247769897, 2026-10-12 IST)
+- Mechanism: the 72 pooled brk20_min_rr cells (20-bar breakout, ATR stop, min reward:risk) re-run through the same real main.py functions, split by entry date at 2026-09-18 over 730d, 0.8% cost; 144 research-only tags (`main_replay_is` / `main_replay_oos`).
+- Fit here: 1d is the only timeframe with a real edge. SHORT 1d holds OOS in all 12 cells (OOS PFnet 1.71-10.26, n 39-216; atr3 cells 1.71-2.20 with n 94-216). LONG 1d holds for rr3d5/rr4 and atr4 cells (OOS 1.31-1.73, n 108-257) but atr3 rr3 fails (0.90).
+- Surprised: 1h long looked best pooled (IS 1.2-2.1) yet OOS is 0.55-0.80 in every cell, and 15m collapses likewise (IS 0.2-0.6, OOS 0.14-0.92); tiny-n 1h short atr4 cells show OOS 1.04-4.29 with IS 0.5, which is noise, not edge. The breakeven ratchet (be1) did not beat its no-ratchet twin OOS.
+- Reuse: always read the OOS half with n>=30 before wiring; only 1d short (all cells) and 1d long (rr3d5/rr4, atr4) survive. Wiring needs the user's go-ahead and a live short-swing path with BUY protective SL, which does not exist (short engine is intraday). Tags are new, old pooled tags untouched.
+- Profit-booking / exit takeaway: the profit is in winners held to the wide-stop target/timeout on 1d; the wider atr4 and larger rr cells keep or raise OOS PFnet, so do not tighten the target, and skip the breakeven ratchet.
+
 ## macddiv 1h long, strict-FIFO non-overlap (B-812, run 38192366174, 2026-10-12 IST)
 - Mechanism: MACD line/histogram divergence (pivot half-width 5), long, 1h, ATR stop, 0.8% cost, one position per symbol per cell, 2483 symbols.
 - Result: line_any atr3_w5 PFnet 1.462 (n 58015, win 34.6%, avg hold 23.7 bars); atr2_w5 1.416; atr1d5_w5 1.400; hist_any atr3_w5 1.138. Tags `macddiv__<variant>__long__1h__<atr>_w5__nonovl__v2`. All four clear 1.1 and survive the overlap removal (raw 69777 -> 58015 for line_any).
