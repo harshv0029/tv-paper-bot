@@ -5050,6 +5050,42 @@ def brk20_min_rr_exit_reason(
     return None, None
 
 
+# ---- brk20_min_rr LONG 1d atr4_rr4 live swing wiring (B-798, user 2026-10-12: "wire if it fulfils
+# viable definition") ----------------------------------------------------------------------------
+# Only the plain LONG 1d cell (atr_mult 4, min_rr 4, no breakeven ratchet) is wired. Pooled registry tag
+# below (PFnet 2.659, n=218, run 38185670883); IS 3.43 / OOS 1.72 (run 38247769897). Shorts are NOT wired:
+# the swing engine is long-only and has no BUY-protective-SL short path (backlog row for a short-swing
+# engine). Stop = entry - 4 x ATR(Wilder) ALWAYS attached as the real resting SL (no trade without SL);
+# exit = brk20_min_rr_exit_reason (EMA13 rule exit / stop / 30-bar max hold).
+BRK20_SWING_ATR_MULT = 4.0
+BRK20_SWING_MIN_RR = 4.0
+BRK20_SWING_TAG = "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1"
+
+
+def _brk20_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close):
+    """Same signature as the other swing exit fns. The research fills at the bar AFTER the signal bar,
+    so the fill bar is the first bar dated after entry_day (the live entry is recorded on the signal day).
+    Every completed bar since is replayed in order, so a skipped scan day cannot hide a stop / the exact
+    30-bar timeout. Entry price is recovered from the frozen stop (stop = entry - 4 x ATR, both stored)."""
+    if len(df) == 0:
+        return None, running_max_close
+    d = df
+    if "Date" not in d.columns:
+        d = d.assign(Date=pd.Series(pd.DatetimeIndex(d.index).strftime("%Y-%m-%d"), index=d.index))
+    new_running_max = max(float(running_max_close or 0.0), float(d["Close"].iloc[-1]))
+    entry_price = float(initial_stop) + BRK20_SWING_ATR_MULT * float(atr_at_entry or 0.0)
+    fill_day = (pd.Timestamp(str(entry_day)[:10]) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    dates = d["Date"].astype(str).str[:10].to_numpy()
+    starts = np.flatnonzero(dates >= fill_day)
+    if len(starts) == 0 or float(atr_at_entry or 0.0) <= 0:
+        return None, new_running_max
+    for k in range(int(starts[0]), len(d)):
+        reason, _px = brk20_min_rr_exit_reason(d.iloc[:k + 1], fill_day, entry_price, float(initial_stop), "long")
+        if reason:
+            return reason, new_running_max
+    return None, new_running_max
+
+
 # ---------------------------------------------------------------------------
 # FVG 3rd-candle classification (backlog B-32, family `fvg3c`; spec in
 # docs/STRATEGY_SPEC_SND_AND_FVG3C.md). RESEARCH-STAGE ONLY: not wired into any
@@ -10816,6 +10852,9 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # New OB/VP entries carry these tags; the legacy tags above stay for already-open positions.
     "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
     "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+    # 2026-10-12 B-798 (user: "wire if it fulfils viable definition"): brk20_min_rr LONG 1d atr4_rr4, the tag IS
+    # the pooled registry name (PFnet 2.659, n=218; IS 3.43 / OOS 1.72). Gated by PFnet >= floor like all others.
+    "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1": "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1",
     # 2026-10-10 B-345 MCX daily engine: the tag IS the registry name.
     "sma_crossover__gc__long__1d__atrnone__v1": "sma_crossover__gc__long__1d__atrnone__v1",
     "keltner_channel_breakout__si__long__1d__atrnone__v1": "keltner_channel_breakout__si__long__1d__atrnone__v1",
@@ -18866,6 +18905,13 @@ def _run_swing_scan_pass(conn):
                         (new_running_max, symbol),
                     )
                     conn.commit()
+            elif pos["strategy"] == BRK20_SWING_TAG:
+                reason, new_running_max = _brk20_swing_exit_adapter(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"])
+                if not reason:
+                    conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                                 (new_running_max, symbol))
+                    conn.commit()
             elif pos["strategy"] in _PATTERN_LIVE_TAGS:
                 reason = pattern_cell_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"], _PATTERN_LIVE_TAGS[pos["strategy"]][2])
             elif pos["strategy"] == SECTOR_ROT_TAG:
@@ -19101,6 +19147,37 @@ def _run_swing_scan_pass(conn):
                 except Exception as e:
                     print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
                 break
+            else:
+                # B-798: brk20_min_rr LONG 1d atr4_rr4 checked LAST (after OB/VP), so it never crowds out a
+                # higher-PFnet setup. Reached only when no earlier setup fired / sized this symbol today.
+                _record_strategy_scan(BRK20_SWING_TAG)
+                _bs = brk20_min_rr_entry_signal(df, "long", BRK20_SWING_ATR_MULT, BRK20_SWING_MIN_RR)
+                if _bs:
+                    entry_price = _bs["entry_price"]
+                    stop_loss = _bs["stop_loss"]  # entry - 4 x ATR: the real resting SL (no trade without SL)
+                    qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+                    if qty > 0:
+                        conn.execute(
+                            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+                            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            (symbol, BRK20_SWING_TAG, today, entry_price, stop_loss, None, qty, time.time(), fx,
+                             _bs["atr_at_entry"], entry_price),
+                        )
+                        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+                        conn.execute(
+                            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+                            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+                             json.dumps({"entry_reason": BRK20_SWING_TAG, "stop_loss": stop_loss,
+                                         "atr_at_entry": _bs["atr_at_entry"]})),
+                        )
+                        conn.commit()
+                        print(f"[SWING] entry {symbol} ({BRK20_SWING_TAG}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+                        try:
+                            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, BRK20_SWING_TAG)
+                        except Exception as e:
+                            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
             continue
         entry_price = vcp_signal["entry_price"]
         stop_loss = vcp_signal["stop_loss"]
@@ -20916,6 +20993,7 @@ _SWING_SL_RULES = {
     "volume_profile_poc": f"value-area band low, then trails {VP_ATR_TRAIL_MULT:g}xATR below peak close",
     SWING_EXITINVAL_VP_TAG: f"entry - {SWING_EXITINVAL_ATR_MULT:g}xATR, frozen (exit also on weekly EMA13 turn-down)",
     SWING_EXITINVAL_OB_TAG: f"entry - {SWING_EXITINVAL_ATR_MULT:g}xATR, frozen (exit also on weekly EMA13 turn-down)",
+    BRK20_SWING_TAG: f"entry - {BRK20_SWING_ATR_MULT:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)",
 }
 
 
