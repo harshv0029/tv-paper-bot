@@ -2818,6 +2818,11 @@ def _extend_with_sweeps():
         REGISTRY.extend(_ef.build())
     except Exception:
         pass
+    try:
+        import strategy_registry_oneilext2 as _o2
+        REGISTRY.extend(_o2.build())
+    except Exception:
+        pass
 
 
 _extend_with_sweeps()
