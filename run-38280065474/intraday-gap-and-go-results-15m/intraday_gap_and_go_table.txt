@@ -1,0 +1,10 @@
+fetched 2636 of universe slots 2688; days {'days_seen': 297886, 'days_gapped': 14555, 'days_entered': 1185}
+tag                                                                                       n   PFnet   trim1  PFgross   win%  hold  exits
+gap_and_go_intraday__gap_hold__long__15m__atr3d0_tr2d0_win30__v1                       1186   0.301   0.296    0.541   23.0  16.8  {'data_end_forced_close': 613, 'stop_hit': 273, 'gap_filled': 229, 'target_hit': 71}
+gap_and_go_intraday__gap_hold__long__15m__atr2d0_tr2d0_win30__v1                       1186   0.299   0.294    0.551   23.3  14.1  {'data_end_forced_close': 460, 'stop_hit': 480, 'target_hit': 131, 'gap_filled': 115}
+gap_and_go_intraday__gap_hold__long__15m__atr2d5_tr2d0_win30__v1                       1186   0.298   0.293     0.54   22.9  15.7  {'data_end_forced_close': 560, 'stop_hit': 367, 'target_hit': 88, 'gap_filled': 171}
+gap_and_go_intraday__gap_hold__long__15m__atr1d5_tr2d0_win30__v1                       1185   0.291   0.286    0.554   23.8  11.7  {'data_end_forced_close': 332, 'stop_hit': 606, 'target_hit': 184, 'gap_filled': 63}
+gap_and_go_intraday__gap_hold__short__15m__atr1d5_tr2d0_win30__v1                         0     0.0    None      0.0    0.0   0.0  {}
+gap_and_go_intraday__gap_hold__short__15m__atr2d0_tr2d0_win30__v1                         0     0.0    None      0.0    0.0   0.0  {}
+gap_and_go_intraday__gap_hold__short__15m__atr2d5_tr2d0_win30__v1                         0     0.0    None      0.0    0.0   0.0  {}
+gap_and_go_intraday__gap_hold__short__15m__atr3d0_tr2d0_win30__v1                         0     0.0    None      0.0    0.0   0.0  {}
