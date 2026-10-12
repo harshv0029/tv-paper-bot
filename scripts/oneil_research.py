@@ -348,19 +348,22 @@ def main_run():
         if i % 100 == 0:
             print("processed", i, "cells", len(cells), flush=True)
     out = os.path.join(ROOT, "docs", f"oneil_research_{tf}_s{shard}.json")
-    json.dump({"tf": tf, "shard": shard, "nshards": nsh, "symbols": len(data), "cells": cells}, open(out, "w"), default=lambda o: o.item() if hasattr(o, "item") else str(o))
+    json.dump({"tf": tf, "shard": shard, "nshards": nsh, "symbols": len(data), "universe_requested": len(syms), "cells": cells}, open(out, "w"), default=lambda o: o.item() if hasattr(o, "item") else str(o))
     print("wrote", out, "cells", len(cells))
 
 
 def merge_run(paths):
-    merged = merge_cells([json.load(open(p))["cells"] for p in paths])
+    parts = [json.load(open(p)) for p in paths]
+    merged = merge_cells([d["cells"] for d in parts])
+    uni = sum(d.get("symbols", 0) for d in parts)
+    req = sum(d.get("universe_requested", 0) for d in parts)
     res = finalize(merged)
     import cell_tsv  # B-783: keep-all-data, every cell (min_n=1), full table in the log
     cell_tsv.emit_full(finalize(merged, min_n=1), os.environ.get("TSV_OUT", os.path.join(ROOT, "docs", "oneil_research_cells.tsv")), "oneil_research")
     out = os.path.join(ROOT, "docs", "oneil_research_results.json")
-    json.dump({"results": res}, open(out, "w"), indent=0, default=lambda o: o.item() if hasattr(o, "item") else str(o))
+    json.dump({"universe_symbols": uni, "universe_requested": req, "results": res}, open(out, "w"), indent=0, default=lambda o: o.item() if hasattr(o, "item") else str(o))
     ok = sorted([(m["pfnet"], m["n"], t) for t, m in res.items() if m["pfnet"] and m["pfnet"] >= 1.1 and m["n"] >= 300], reverse=True)
-    print(f"cells={len(res)} viable(PFnet>=1.1,n>=300)={len(ok)}")
+    print(f"universe_symbols={uni}/{req} cells={len(res)} viable(PFnet>=1.1,n>=300)={len(ok)}")
     for pf, n, t in ok[:40]:
         m = res[t]
         print(f"{t} pfnet={pf} win={m['win_pct']} n={n} hold={m['avg_held_bars']} reasons={json.dumps(m['exit_reasons'], default=str)}")
