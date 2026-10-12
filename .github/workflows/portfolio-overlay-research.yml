@@ -29,7 +29,7 @@ jobs:
       - name: Collect trade streams
         run: |
           set -o pipefail
-          python3 scripts/portfolio_overlay_research.py collect --shard ${{ matrix.shard }} --nshards 8 --out out/
+          python3 scripts/portfolio_overlay_research.py collect --shard ${{ matrix.shard }} --nshards 8 --marks --out out/
       - uses: actions/upload-artifact@v4
         with:
           name: pfovl-collect-${{ matrix.shard }}
@@ -54,9 +54,15 @@ jobs:
         run: |
           set -o pipefail
           python3 scripts/portfolio_overlay_research.py merge --dir shards --json pfovl_results.json | tee pfovl_table.txt
+      - name: B-743 marked-to-market Vince ledger per stream
+        run: |
+          set -o pipefail
+          python3 scripts/marked_ledger_merge_research.py --dir shards --json pfovl_marked_ledger.json | tee pfovl_marked_ledger.txt
       - uses: actions/upload-artifact@v4
         with:
           name: portfolio-overlay-results
           path: |
             pfovl_results.json
             pfovl_table.txt
+            pfovl_marked_ledger.json
+            pfovl_marked_ledger.txt
