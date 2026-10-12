@@ -210,7 +210,7 @@
 </head>
 <body>
 
-<h1>Trade View <span id="hdr-status" class="status flat">—</span></h1>
+<h1>Trade View <span id="load-pct" style="font-weight:400;font-size:.6em;opacity:.7"></span> <span id="hdr-status" class="status flat">—</span></h1>
 <!-- 2026-09-28: "Not investment advice." replaced with the last successful
      deployment timestamp, explicit user ask - see APP_PROCESS_STARTED_AT_EPOCH
      in main.py / scheduler-status's last_deploy_completed_at_epoch field. -->
@@ -2249,6 +2249,30 @@ refresh();
 refreshScanner();
 refreshControlStatus();
 setInterval(tickCountdown, 1000);
+</script>
+<script>
+/* Page-load progress: real signals only (readyState + resources finished loading), shown as "Trade View (x% loaded)" in the heading and tab title until 100%. */
+(function(){
+  var el=document.getElementById('load-pct'),base='Trade View',last=0;
+  function pct(){
+    var rs=document.readyState,p=rs==='loading'?20:(rs==='interactive'?55:100);
+    if(rs!=='complete'&&window.performance&&performance.getEntriesByType){
+      var r=performance.getEntriesByType('resource'),done=r.filter(function(e){return e.responseEnd>0}).length;
+      if(r.length)p=Math.min(95,Math.max(p,55+Math.round(40*done/(done+ (rs==='interactive'?1:3)))));
+    }
+    return Math.max(last,p);
+  }
+  function show(){
+    last=pct();
+    if(last>=100){if(el)el.textContent='';document.title=base;return;}
+    if(el)el.textContent='('+last+'% loaded)';
+    document.title=base+' ('+last+'% loaded)';
+  }
+  show();
+  document.addEventListener('readystatechange',show);
+  window.addEventListener('load',show);
+  var t=setInterval(function(){show();if(last>=100)clearInterval(t);},150);
+})();
 </script>
 </body>
 </html>
