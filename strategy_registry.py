@@ -2809,6 +2809,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_dr.build())
         import strategy_registry_eldermacd2 as _e2
         REGISTRY.extend(_e2.build())
+        import strategy_registry_eldertc as _etc
+        REGISTRY.extend(_etc.build())
         import strategy_registry_pfovl as _pv
         REGISTRY.extend(_pv.build())
         import strategy_registry_brk20 as _bk
