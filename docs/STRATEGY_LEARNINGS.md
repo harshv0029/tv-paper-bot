@@ -488,3 +488,8 @@ Profit-booking / exit takeaway: when capacity or margin binds, close the worst l
 - Result: harness and tests only, nothing run yet; no PFnet to report.
 - Reuse: before assuming a harness lacks a candle size, grep its sibling (chan_ext_research.py already had 4h); keep new output flags default-off so old artifacts stay byte-identical.
 - Profit-booking / exit takeaway: closing the worst mark-to-market loser first, and never topping up a margin call, frees capital from losers rather than winners; judge it by net profit per bar held once the run exists.
+## Subagent s08 status pass (B-791/B-775/B-804, 2026-10-12 IST)
+- Mechanism: B-791 artifact (run 38147956271) is not in data/run-artifacts, so the Minervini exit breakdown stays unread; B-775 has 154 viable tags with hold<=5d but SL<=2% is unmeasurable (0 stop-% values); B-804 gross is now present on 770 of 771 viable rows.
+- Fit: counts derived from strategy_registry at read time; nothing guessed or stored as a flag.
+- Reuse: re-count the registry before trusting a backlog figure; it had gone stale (371 vs 1).
+- Profit-booking / exit takeaway: no new exit lesson; the Minervini wider-trail question still needs its exit-reason shares before any trail change.
