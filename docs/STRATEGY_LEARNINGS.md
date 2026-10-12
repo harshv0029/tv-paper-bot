@@ -792,3 +792,10 @@ Profit-booking / exit takeaway: a resting target only helps if the winners that 
 - Surprise: IS-to-OOS collapse is the norm; judging on pooled all-sample would have flagged false positives. Many intraday cells had n=0 (no volume on index data for volume-gated triggers).
 - Reuse: register on OOS with IS and gross kept in evidence; check cost sensitivity before reading any thin-edge result; viability is derived at read time.
 - Profit-booking / exit takeaway: option-premium costs (0.8%) erase thin index edges; only fat 1d moves survive, so an option trade should book quickly on a trailing premium stop rather than carry toward the 30-bar timeout.
+## Research-lab gross PFnet emission and 4h resample helper (built 2026-10-12 IST, B-804/B-870)
+- Mechanism: mcx_strategy_sweep and combo_lab now print `pfgross` (PFnet with the 0.8% round-trip cost added back per trade) and `median_stop_pct` (median planned ATR stop as % of entry), as pattern_lab does; `scripts/resample_4h.py` builds NSE session-anchored 4h bars from 1h (09:15-13:15 and 13:15-15:30, two per day, never across days). pattern_lab accepts TF=4h.
+- Fit here: gross vs net separates edge that is real before costs from edge that the 0.8% cost model erases; the stop-% shows whether the "no trade without SL" rule can be met at a sensible distance. Clock-hour resampling (pandas "4h") would mis-split the NSE session, so the helper anchors on the open.
+- Result: tooling only, no new PFnet. Tests cover bucket times, OHLCV aggregation, tz-naive input, pfgross>pfnet, stop recording. Full re-runs on Actions still owed.
+- Surprise/reuse: mcx_strategy_sweep ran its whole sweep at import time, so it could not be tested; wrap research scripts in main_run() so metrics code is unit-testable. 4h bar counts mean different hours (average 3.5 h), so state hours held.
+- Profit-booking / exit takeaway: gross-vs-net PFnet tells whether a thin edge is a cost problem (fix by holding longer or fewer, larger-move trades) rather than a signal problem; compare 4h and 1h cells by hours held before judging an exit.
+

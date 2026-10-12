@@ -38,6 +38,25 @@ def near(sig, k=2):
     return out
 
 
+def summarize(r, hd, cost, sp):
+    """Per-cell metrics. pfgross = PFnet with the round-trip cost added back (B-804); median_stop_pct = median planned stop-% (B-775)."""
+    r = np.array(r)
+    g, lo = r[r > 0].sum(), -r[r < 0].sum()
+    rs = np.sort(r)
+    tr = rs[:-max(1, int(len(rs) * 0.01))]
+    tl = -tr[tr < 0].sum()
+    rg = r + cost
+    gg, gl = rg[rg > 0].sum(), -rg[rg < 0].sum()
+    return {
+        "pfnet": round(float(g / lo), 3) if lo else None,
+        "pfgross": round(float(gg / gl), 3) if gl else None,
+        "median_stop_pct": round(float(np.median(sp)), 4) if sp else None,
+        "pfnet_trim1": round(float(tr[tr > 0].sum() / tl), 3) if tl else None,
+        "win_pct": round(float((r > 0).mean() * 100), 1), "n": int(len(r)),
+        "avg_net_pct": round(float(r.mean() * 100), 3), "median_net_pct": round(float(np.median(r) * 100), 3),
+        "avg_held_bars": round(float(np.mean(hd)), 2), "bar_hours": 6.25}
+
+
 def main_run():
     import yfinance as yf
     import main as app
@@ -98,28 +117,20 @@ def run_on_frames(frames, cost):
                         continue
                     for H in HOLDS:
                         for k in KS:
-                            r, hd = pl.simulate(comb, o, h, l, c, atr, H, k, cost, side)
+                            sp = []
+                            r, hd = pl.simulate(comb, o, h, l, c, atr, H, k, cost, side, stops=sp)
                             if r:
-                                x = acc.setdefault((a, b, dname, H, k), [[], []])
+                                x = acc.setdefault((a, b, dname, H, k), [[], [], []])
                                 x[0].extend(r)
                                 x[1].extend(hd)
+                                x[2].extend(sp)
     res = {}
-    for (a, b, dname, H, k), (r, hd) in acc.items():
+    for (a, b, dname, H, k), (r, hd, sp) in acc.items():
         if len(r) < 300:  # inconclusive below n=300; the result file stays a pass-or-fail record of every cell above it
             continue
-        r = np.array(r)
-        g, lo = r[r > 0].sum(), -r[r < 0].sum()
-        rs = np.sort(r)
-        tr = rs[:-max(1, int(len(rs) * 0.01))]
-        tl = -tr[tr < 0].sum()
         ks = "none" if not k else str(k)
         fa, fb = a.replace("__", "_"), b.replace("__", "_")
-        res[f"combo__{fa}_x_{fb}__{dname}__1d__atr{ks}_h{H}__v1"] = {
-            "pfnet": round(float(g / lo), 3) if lo else None,
-            "pfnet_trim1": round(float(tr[tr > 0].sum() / tl), 3) if tl else None,
-            "win_pct": round(float((r > 0).mean() * 100), 1), "n": int(len(r)),
-            "avg_net_pct": round(float(r.mean() * 100), 3), "median_net_pct": round(float(np.median(r) * 100), 3),
-            "avg_held_bars": round(float(np.mean(hd)), 2), "bar_hours": 6.25}
+        res[f"combo__{fa}_x_{fb}__{dname}__1d__atr{ks}_h{H}__v1"] = summarize(r, hd, cost, sp)
     json.dump({"results": res}, open(OUT, "w"), indent=0) if OUT else None
     print("cells", len(res))
     good = sorted([(min(m["pfnet"], m["pfnet_trim1"] or m["pfnet"]), m["n"], t) for t, m in res.items()
