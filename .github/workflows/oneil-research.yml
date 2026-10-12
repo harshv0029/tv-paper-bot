@@ -71,3 +71,4 @@ jobs:
           path: |
             docs/oneil_research_results.json
             merge_${{ matrix.tf }}.txt
+            docs/oneil_research_cells.tsv

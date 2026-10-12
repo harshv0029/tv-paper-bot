@@ -353,7 +353,10 @@ def main_run():
 
 
 def merge_run(paths):
-    res = finalize(merge_cells([json.load(open(p))["cells"] for p in paths]))
+    merged = merge_cells([json.load(open(p))["cells"] for p in paths])
+    res = finalize(merged)
+    import cell_tsv  # B-783: keep-all-data, every cell (min_n=1), full table in the log
+    cell_tsv.emit_full(finalize(merged, min_n=1), os.environ.get("TSV_OUT", os.path.join(ROOT, "docs", "oneil_research_cells.tsv")), "oneil_research")
     out = os.path.join(ROOT, "docs", "oneil_research_results.json")
     json.dump({"results": res}, open(out, "w"), indent=0, default=lambda o: o.item() if hasattr(o, "item") else str(o))
     ok = sorted([(m["pfnet"], m["n"], t) for t, m in res.items() if m["pfnet"] and m["pfnet"] >= 1.1 and m["n"] >= 300], reverse=True)
