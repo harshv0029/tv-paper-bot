@@ -1,0 +1,50 @@
+name: Universe pin reproducibility compare (B-841 / B-851)
+
+# Single small job (~2 min). Downloads the merged-results artifact of two runs of the SAME research workflow
+# (run A = first pin-aware run, run B = rerun dispatched with pin_run_id=A) and compares symbol sets, tag sets, n and
+# PFnet per tag with scripts/pin_compare.py. B-841 / B-851 close ONLY on VERDICT: IDENTICAL (same fetched symbol set,
+# same n, |dPFnet| <= tol). yfinance bar content can still differ between runs (only the symbol SET is pinned): a
+# DIFFERENT verdict with equal symbol sets is itself the finding (data drift, see B-864), reported, never hidden.
+# Research only; nothing wired. Dispatch only when no Deploy Gate / safety run is queued.
+on:
+  workflow_dispatch:
+    inputs:
+      run_a:
+        description: "Run id A (first pin-aware run of the research workflow)"
+        required: true
+      run_b:
+        description: "Run id B (rerun with pin_run_id = run A)"
+        required: true
+      artifact:
+        description: "Merged-results artifact name (same in both runs), e.g. douglas-trade-mgmt-results"
+        required: true
+      tol:
+        description: "Max |dPFnet| per tag for IDENTICAL"
+        required: false
+        default: "0.000001"
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Download both result artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "${{ inputs.run_a }}" --repo "$GITHUB_REPOSITORY" -n "${{ inputs.artifact }}" -D resA
+          gh run download "${{ inputs.run_b }}" --repo "$GITHUB_REPOSITORY" -n "${{ inputs.artifact }}" -D resB
+      - name: Compare
+        run: |
+          set -o pipefail
+          python3 scripts/pin_compare.py resA resB --tol "${{ inputs.tol }}" --json pin_compare.json | tee pin_compare.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: universe-pin-compare
+          path: |
+            pin_compare.json
+            pin_compare.txt

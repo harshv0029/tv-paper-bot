@@ -40,6 +40,7 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
 import b5_merge  # noqa: E402
+import universe_pin as up  # noqa: E402  (B-841: pin the fetched-symbol set for reruns)
 from elder_patterns_research import both, _exit_ema  # noqa: E402
 from elder_trend_context_research import weekly_up  # noqa: E402
 
@@ -288,39 +289,41 @@ def run_symbol(df, family, tf, aggs):
 
 def merge_dir(path):
     import glob
-    merged, fetched, universe = {}, 0, 0
+    merged, fetched, universe, parts = {}, 0, 0, []
     for f in sorted(glob.glob(os.path.join(path, "**", "*.json"), recursive=True)):
         d = json.load(open(f))
         if "aggs" not in d:
             continue
         fetched += d.get("fetched", 0)
         universe += d.get("universe", 0)
+        parts.append(d)
         for tag, ag in d["aggs"].items():
             merge_aggs(merged.setdefault(tag, new_agg()), ag)
     rows = [{"tag": t, **summarize(a)} for t, a in merged.items()]
     rows.sort(key=lambda r: (r["pfnet"] is None, -(r["pfnet"] or 0)))
-    return {"symbols_fetched": fetched, "universe_size": universe, "cost_round_trip": er.COST_ROUND_TRIP, "rows": rows}
+    return {"symbols_fetched": fetched, "fetched_symbols": up.merge_fetched(parts), "universe_size": universe, "cost_round_trip": er.COST_ROUND_TRIP, "rows": rows}
 
 
 def _main_shard(args):
     sys.path.insert(0, ".")
     import main as m
-    syms = sorted(set(m._load_nse_universe_from_file()))
+    syms = up.select_universe(m._load_nse_universe_from_file(), args.pin_file)
     syms = [s for k, s in enumerate(syms) if k % args.nshards == args.shard]
-    aggs, fetched = {}, 0
+    aggs, fetched, got = {}, 0, []
     for s in syms:
         try:
             raw = m.fetch_ohlc(s, args.period, args.interval)
             if raw is None or len(raw) < 120:
                 continue
             fetched += 1
+            got.append(s)
             run_symbol(er.prep(raw), args.family, args.interval, aggs)
         except Exception as ex:
             print("ERROR", s, ex, file=sys.stderr)
     print(f"{args.family} shard {args.shard}: fetched {fetched}/{len(syms)}, variants {len(aggs)}")
     os.makedirs(args.out, exist_ok=True)
     json.dump({"family": args.family, "interval": args.interval, "fetched": fetched, "universe": len(syms),
-               "aggs": aggs}, open(os.path.join(args.out, f"{args.family}_{args.shard}.json"), "w"))
+               "aggs": aggs, **up.shard_meta(syms, got, args.pin_file, args.pin_tolerance)}, open(os.path.join(args.out, f"{args.family}_{args.shard}.json"), "w"))
 
 
 def main(argv=None):
@@ -333,6 +336,7 @@ def main(argv=None):
     ap.add_argument("--out", default="out")
     ap.add_argument("--merge")
     ap.add_argument("--json")
+    up.add_args(ap)
     args = ap.parse_args(argv)
     if args.merge:
         res = merge_dir(args.merge)
