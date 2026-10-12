@@ -337,7 +337,7 @@ def test_viable_leaderboard_is_not_capped_at_top_n_per_category():
     ]
     sr.REGISTRY.extend(extra)
     try:
-        board = sr.viable_leaderboard(sr.TradeCategory.BUY)
+        board = sr.viable_leaderboard(sr.TradeCategory.BUY, quality=False)
         fake_names = {s.name for s in extra}
         returned_fake_names = {row["name"] for row in board if row["name"] in fake_names}
         assert returned_fake_names == fake_names
@@ -367,8 +367,16 @@ def test_viable_leaderboard_excludes_a_strategy_with_no_metrics_yet():
 def test_viable_leaderboard_respects_a_custom_floor():
     # A stricter floor than PFNET_LIVE_FLOOR narrows the result further -
     # swing's own gap_and_go_swing (1.65) clears 1.0 but not 2.0.
-    at_default = {row["name"] for row in sr.viable_leaderboard(sr.TradeCategory.SWING)}
-    at_stricter = {row["name"] for row in sr.viable_leaderboard(sr.TradeCategory.SWING, floor=2.0)}
+    at_default = {row["name"] for row in sr.viable_leaderboard(sr.TradeCategory.SWING, quality=False)}
+    at_stricter = {row["name"] for row in sr.viable_leaderboard(sr.TradeCategory.SWING, floor=2.0, quality=False)}
     assert "gap_and_go_swing" in at_default
     assert "gap_and_go_swing" not in at_stricter
     assert at_stricter <= at_default
+
+
+def test_quality_viable_table_needs_30_trades_and_hold_within_3_trading_days():
+    for cat in sr.TradeCategory:
+        for row in sr.viable_leaderboard(cat):
+            assert row["pfnet"] >= sr.PFNET_LIVE_FLOOR
+            assert row["n_trades"] >= sr.QUALITY_MIN_TRADES
+            assert row["avg_held_hrs"] <= sr.QUALITY_MAX_HOLD_HRS
