@@ -45,6 +45,7 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
 import elder_indicators_research_ext as ext  # noqa: E402
+import universe_pin as up  # noqa: E402  (B-841 pinning, B-864 rerun reproducibility)
 
 FAMILIES = ("osc", "struct", "chan", "orb", "sizing", "breadth")
 SIG_FAMILIES = ("osc", "struct", "chan", "orb")
@@ -199,7 +200,8 @@ def sim2(df, entry, direction, am, stop_lvl=None, tgt_lvl=None, exit_bool=None, 
             continue
         if exit_px is None:
             exit_px, reason, j = c[n - 1], "data_end", n - 1
-        trades.append({"ret": float(d * (exit_px - px) / px - cost), "hold": int(j - e + 1), "reason": reason})
+        trades.append({"ret": float(d * (exit_px - px) / px - cost), "hold": int(j - e + 1), "reason": reason,
+                       "entry_i": int(e)})
         free = j
     return trades
 
@@ -676,7 +678,36 @@ def variant_specs(family, tf="1d"):
     return S
 
 
-def run_symbol(df, family, tf, aggs):
+def split_ts(idx, split_date="", split_frac=0.0):
+    """B-864(d) IS/OOS boundary: explicit split_date, else split_frac of the symbol's time span; None = off."""
+    if split_date:
+        ts = pd.Timestamp(split_date)
+        if getattr(idx, "tz", None) is not None and ts.tzinfo is None:
+            ts = ts.tz_localize(idx.tz)
+        return ts
+    if split_frac and float(split_frac) > 0:
+        return idx[0] + (idx[-1] - idx[0]) * float(split_frac)
+    return None
+
+
+def seg_tag(tag, seg):
+    """<tag minus __v1>_seg<is|oos>__v1: IS/OOS cells are their own tags, pooled tag untouched."""
+    base = tag[:-4] if tag.endswith("__v1") else tag
+    return f"{base}_seg{seg}__v1"
+
+
+def add_trades_seg(aggs, tag, trades, idx, ts):
+    """Pooled add (unchanged) plus, when ts is set, IS / OOS adds by entry-bar timestamp."""
+    er.add_trades(aggs.setdefault(tag, er.new_agg()), trades)
+    if ts is None:
+        return
+    ins = [t for t in trades if idx[min(t["entry_i"], len(idx) - 1)] < ts]
+    oos = [t for t in trades if idx[min(t["entry_i"], len(idx) - 1)] >= ts]
+    er.add_trades(aggs.setdefault(seg_tag(tag, "is"), er.new_agg()), ins)
+    er.add_trades(aggs.setdefault(seg_tag(tag, "oos"), er.new_agg()), oos)
+
+
+def run_symbol(df, family, tf, aggs, ts=None):
     for variant, params, fn in variant_specs(family, tf):
         try:
             sig = fn(df)
@@ -688,9 +719,9 @@ def run_symbol(df, family, tf, aggs):
                 continue
             for am in er.ATR_MULTS:
                 tag = er.make_tag(family, variant, direction, tf, {**params, "atr": am})
-                er.add_trades(aggs.setdefault(tag, er.new_agg()), sim2(
+                add_trades_seg(aggs, tag, sim2(
                     df, sig[direction], direction, am, sig["stop_" + direction], sig["tgt_" + direction],
-                    sig["exit_" + direction]))
+                    sig["exit_" + direction]), df.index, ts)
 
 
 # ---------------------------------------------------------------- sizing family (B-744, B-745)
@@ -865,9 +896,9 @@ def breadth_trade(idx, bd, tf="1d"):
 def _main_shard(args):
     sys.path.insert(0, ".")
     import main as m
-    syms = sorted(set(m._load_nse_universe_from_file()))
+    syms = up.select_universe(m._load_nse_universe_from_file(), args.pin_file)
     syms = [s for k, s in enumerate(syms) if k % args.nshards == args.shard]
-    aggs, bstate, fetched = {}, {}, 0
+    aggs, bstate, fetched, got = {}, {}, 0, []
     for s in syms:
         try:
             raw = m.fetch_ohlc(s, args.period, args.interval)
@@ -875,27 +906,31 @@ def _main_shard(args):
                 continue
             df = er.prep(raw)
             fetched += 1
+            got.append(s)
             if args.family == "sizing":
                 run_sizing_symbol(df, args.interval, aggs)
             elif args.family == "breadth":
                 breadth_accumulate(df, bstate)
             else:
-                run_symbol(df, args.family, args.interval, aggs)
+                run_symbol(df, args.family, args.interval, aggs,
+                           split_ts(df.index, args.split_date, args.split_frac))
         except Exception as ex:
             print("ERROR", s, ex, file=sys.stderr)
     print(f"{args.family} shard {args.shard}: fetched {fetched}/{len(syms)}, variants {len(aggs)}")
     os.makedirs(args.out, exist_ok=True)
     json.dump({"family": args.family, "interval": args.interval, "fetched": fetched, "universe": len(syms),
-               "aggs": aggs, "breadth": bstate},
+               "aggs": aggs, "breadth": bstate,
+               **up.shard_meta(syms, got, args.pin_file, args.pin_tolerance)},
               open(os.path.join(args.out, f"b3_{args.family}_{args.shard}.json"), "w"))
 
 
 def merge_dir(path):
-    merged, sizing, bstates, fetched, uni = {}, {}, [], 0, 0
+    merged, sizing, bstates, fetched, uni, parts = {}, {}, [], 0, 0, []
     for f in sorted(glob.glob(os.path.join(path, "**", "b3_*.json"), recursive=True)):
         d = json.load(open(f))
         fetched += d.get("fetched", 0)
         uni += d.get("universe", 0)
+        parts.append(d)
         for tag, ag in d["aggs"].items():
             if tag.startswith("sizing::"):
                 t = sizing.setdefault(tag[8:], {k: 0 for k in ag})
@@ -925,7 +960,7 @@ def merge_dir(path):
                       "mean_max_drawdown_pct": round(100 * a["sum_dd"] / n, 2),
                       "pct_accounts_dd_over_50": round(100 * a["dd_gt50"] / n, 2),
                       "pct_accounts_ruined": round(100 * a["ruined"] / n, 2)})
-    return {"symbols_fetched": fetched, "universe": uni, "cost_round_trip": COST, "rows": rows, "sizing_rows": srows}
+    return {"symbols_fetched": fetched, "fetched_symbols": up.merge_fetched(parts), "universe": uni, "cost_round_trip": COST, "rows": rows, "sizing_rows": srows}
 
 
 def main(argv=None):
@@ -938,6 +973,9 @@ def main(argv=None):
     ap.add_argument("--out", default="out")
     ap.add_argument("--merge")
     ap.add_argument("--json")
+    ap.add_argument("--split_date", default="", help="IS/OOS boundary date (B-864 d); empty = no split")
+    ap.add_argument("--split_frac", type=float, default=0.0, help="IS share of each symbol's span when no split_date; 0 = off")
+    up.add_args(ap)
     args = ap.parse_args(argv)
     if args.merge:
         res = merge_dir(args.merge)

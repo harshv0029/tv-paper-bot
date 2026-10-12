@@ -20,10 +20,26 @@ on:
         description: "yfinance period (1d: 5y; 1h: 730d; 15m/5m: 60d)"
         required: false
         default: "5y"
+      pin_run_id:
+        description: "B-841: run id of an earlier pin-aware run; reruns on EXACTLY its fetched symbol set (empty = unpinned)"
+        required: false
+        default: ""
+      pin_artifact:
+        description: "Merged-results artifact of pin_run_id (required with pin_run_id)"
+        required: false
+        default: "elder-batch3-results"
       run_orb:
         description: "Also run the 5m opening-range job (true/false)"
         required: false
         default: "true"
+      families:
+        description: 'JSON list of families for the research matrix (B-864 rerun: ["osc","chan"] = 8 jobs)'
+        required: false
+        default: '["osc","struct","chan","sizing","breadth"]'
+      split_date:
+        description: "IS/OOS boundary date YYYY-MM-DD (B-864 d). Adds _segis__v1 / _segoos__v1 tags next to each pooled tag; empty = off"
+        required: false
+        default: ""
 
 jobs:
   research:
@@ -31,7 +47,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        family: [osc, struct, chan, sizing, breadth]
+        family: ${{ fromJSON(inputs.families) }}
         shard: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v4
@@ -39,12 +55,18 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -q -r requirements.txt
+      - uses: ./.github/actions/resolve-pin
+        with:
+          pin_run_id: ${{ inputs.pin_run_id }}
+          pin_artifact: ${{ inputs.pin_artifact }}
+          token: ${{ github.token }}
       - name: Run family shard
         run: |
           set -o pipefail
           python3 scripts/elder_batch3_research.py \
             --family "${{ matrix.family }}" --shard ${{ matrix.shard }} --nshards 4 \
-            --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" --out out/
+            --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" \
+            --split_date "${{ inputs.split_date }}" --out out/
       - uses: actions/upload-artifact@v4
         with:
           name: elderc-${{ matrix.family }}-${{ matrix.shard }}

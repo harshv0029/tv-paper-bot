@@ -20,6 +20,14 @@ on:
         description: "yfinance period (1d: 5y; 1h: 730d; 15m/5m: 60d)"
         required: false
         default: "5y"
+      pin_run_id:
+        description: "B-841: run id of an earlier pin-aware run; reruns on EXACTLY its fetched symbol set (empty = unpinned)"
+        required: false
+        default: ""
+      pin_artifact:
+        description: "Merged-results artifact of pin_run_id (required with pin_run_id)"
+        required: false
+        default: "douglas-trade-mgmt-results"
 
 jobs:
   research:
@@ -36,6 +44,11 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -q -r requirements.txt
+      - uses: ./.github/actions/resolve-pin
+        with:
+          pin_run_id: ${{ inputs.pin_run_id }}
+          pin_artifact: ${{ inputs.pin_artifact }}
+          token: ${{ github.token }}
       - name: Run family shard
         run: |
           set -o pipefail
