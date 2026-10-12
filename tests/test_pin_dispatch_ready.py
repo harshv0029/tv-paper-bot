@@ -86,12 +86,16 @@ def test_douglas_pinned_rerun_identical_despite_flaky_fetch(tmp_path, monkeypatc
         "n", aggs["t"]["n"] + int(df["Close"].iloc[-1])))
 
     def shards(tmp, fail, pin=""):
+        _orig = sys.modules.get("main")
         sys.modules["main"] = _fake_main(fail)
         try:
             for sh in (0, 1):
                 dg._main_shard(_args(tmp, "exits", pin, shard=sh))
         finally:
-            del sys.modules["main"]
+            if _orig is not None:
+                sys.modules["main"] = _orig
+            else:
+                del sys.modules["main"]
         return dg.merge_dir(str(tmp))
 
     a = shards(tmp_path / "a", {"S03.NS"})
@@ -130,12 +134,16 @@ def test_batch3_segments_add_is_oos_tags_and_leave_pooled_untouched():
 
 def test_batch3_shard_pin_and_merge_emit_fetched_symbols(tmp_path, monkeypatch):
     monkeypatch.setattr(b3, "run_symbol", lambda df, fam, iv, aggs, ts=None: aggs.setdefault("t", er.new_agg()).__setitem__("n", 1))
+    _orig = sys.modules.get("main")
     sys.modules["main"] = _fake_main({"S05.NS"})
     try:
         for sh in (0, 1):
             b3._main_shard(_args(tmp_path, "osc", shard=sh))
     finally:
-        del sys.modules["main"]
+        if _orig is not None:
+            sys.modules["main"] = _orig
+        else:
+            del sys.modules["main"]
     res = b3.merge_dir(str(tmp_path))
     assert len(res["fetched_symbols"]) == 19 and res["symbols_fetched"] == 19
 
