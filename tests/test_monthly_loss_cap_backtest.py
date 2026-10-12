@@ -43,3 +43,14 @@ def test_load_trades_return_pct(tmp_path):
     f.write_text("strategy,entry_date,exit_date,net_return_pct,risk_frac\nx,2026-01-02,2026-01-05,-4,0.04\n")
     t = mlc.load_trades(str(f))
     assert abs(t[0]["net_r"] + 1.0) < 1e-9
+
+
+def test_side_filter_long_short(tmp_path):
+    import json
+    rows = [{"strategy": "s", "entry_date": "2026-01-01", "exit_date": "2026-01-02", "net_r": 1, "side": "short"},
+            {"strategy": "s", "entry_date": "2026-01-01", "exit_date": "2026-01-02", "net_r": -1}]
+    f = tmp_path / "t.json"
+    f.write_text(json.dumps(rows))
+    tr = mlc.load_trades(str(f))
+    assert [t["side"] for t in tr] == ["short", "long"]
+    assert len(mlc.filter_side(tr, "short")) == 1 and len(mlc.filter_side(tr, "all")) == 2
