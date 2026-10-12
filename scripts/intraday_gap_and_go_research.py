@@ -194,7 +194,10 @@ def replay_symbol(symbol, df, direction, atr_mult, risk_pct, capital, cm, interv
             if dist <= 0:
                 continue
             target = entry + d * TARGET_R_MULT * dist
-            if m._target_move_pct(target, entry) <= m.ROUND_TRIP_COST_PCT:
+            # B-45 fix (run 38277225522 short cells n=0): main._target_move_pct is long-only ((target-entry)/entry), so for a
+            # short (target below entry) it is negative and rejected every candidate. Use the short mirror for shorts.
+            tmove = m._target_move_pct(target, entry) if d == 1 else m._target_move_pct_short(target, entry)
+            if tmove <= m.ROUND_TRIP_COST_PCT:
                 continue
             usable = min(capital, capital / m.CAPITAL_TRANCHES)
             qty = int(np.floor(min(usable * risk_pct / 100 / dist, usable / entry)))
