@@ -1,0 +1,32 @@
+universe listed 2688 with data 2351
+tag | n | pfnet | pf_gross | ex_top5 | win% | hold | exits
+reversal__island_gap05__long__1d__atr1d5_within8__v1 | 3177 | 1.931 | 2.661 | 1.766 | 30.78 | 6.95 | {'max_hold_timeout': 88, 'rule_exit': 2219, 'stop_loss': 870}
+reversal__island_gap05__long__1d__atr2_within8__v1 | 3159 | 1.967 | 2.682 | 1.805 | 31.97 | 7.29 | {'max_hold_timeout': 94, 'rule_exit': 2530, 'stop_loss': 535}
+reversal__island_gap05__long__1d__atr3_within8__v1 | 3151 | 1.983 | 2.687 | 1.822 | 32.75 | 7.53 | {'max_hold_timeout': 98, 'rule_exit': 2843, 'stop_loss': 210}
+reversal__island_gap05__short__1d__atr1d5_within8__v1 | 2997 | 0.655 | 0.968 | 0.621 | 26.99 | 5.76 | {'data_end': 9, 'max_hold_timeout': 40, 'rule_exit': 2142, 'stop_loss': 806}
+reversal__island_gap05__short__1d__atr2_within8__v1 | 2988 | 0.652 | 0.955 | 0.618 | 27.71 | 5.96 | {'data_end': 9, 'max_hold_timeout': 42, 'rule_exit': 2432, 'stop_loss': 505}
+reversal__island_gap05__short__1d__atr3_within8__v1 | 2975 | 0.674 | 0.984 | 0.639 | 28.3 | 6.12 | {'data_end': 9, 'max_hold_timeout': 44, 'rule_exit': 2733, 'stop_loss': 189}
+reversal__island_liq_gap__long__1d__atr1d5_within8__v1 | 357 | 0.956 | 1.22 | 0.634 | 31.09 | 7.62 | {'max_hold_timeout': 8, 'rule_exit': 255, 'stop_loss': 94}
+reversal__island_liq_gap__long__1d__atr2_within8__v1 | 357 | 0.931 | 1.181 | 0.618 | 31.65 | 7.95 | {'max_hold_timeout': 8, 'rule_exit': 304, 'stop_loss': 45}
+reversal__island_liq_gap__long__1d__atr3_within8__v1 | 357 | 0.926 | 1.171 | 0.619 | 31.93 | 8.15 | {'max_hold_timeout': 8, 'rule_exit': 336, 'stop_loss': 13}
+reversal__island_liq_gap__short__1d__atr1d5_within8__v1 | 255 | 0.738 | 0.96 | 0.497 | 28.63 | 6.62 | {'data_end': 7, 'max_hold_timeout': 6, 'rule_exit': 180, 'stop_loss': 62}
+reversal__island_liq_gap__short__1d__atr2_within8__v1 | 255 | 0.739 | 0.956 | 0.504 | 30.2 | 7.09 | {'data_end': 7, 'max_hold_timeout': 7, 'rule_exit': 206, 'stop_loss': 35}
+reversal__island_liq_gap__short__1d__atr3_within8__v1 | 255 | 0.75 | 0.971 | 0.512 | 30.59 | 7.16 | {'data_end': 7, 'max_hold_timeout': 7, 'rule_exit': 232, 'stop_loss': 9}
+reversal__island_none__long__1d__atr1d5_within8__v1 | 8892 | 1.496 | 2.046 | 1.437 | 32.25 | 7.22 | {'data_end': 3, 'max_hold_timeout': 209, 'rule_exit': 6775, 'stop_loss': 1905}
+reversal__island_none__long__1d__atr2_within8__v1 | 8858 | 1.539 | 2.088 | 1.475 | 33.22 | 7.53 | {'data_end': 4, 'max_hold_timeout': 220, 'rule_exit': 7557, 'stop_loss': 1077}
+reversal__island_none__long__1d__atr3_within8__v1 | 8842 | 1.559 | 2.104 | 1.498 | 33.77 | 7.72 | {'data_end': 4, 'max_hold_timeout': 228, 'rule_exit': 8205, 'stop_loss': 405}
+reversal__island_none__short__1d__atr1d5_within8__v1 | 8896 | 0.637 | 0.895 | 0.621 | 32.44 | 6.02 | {'data_end': 33, 'max_hold_timeout': 116, 'rule_exit': 7065, 'stop_loss': 1682}
+reversal__island_none__short__1d__atr2_within8__v1 | 8869 | 0.649 | 0.909 | 0.633 | 33.08 | 6.2 | {'data_end': 33, 'max_hold_timeout': 119, 'rule_exit': 7777, 'stop_loss': 940}
+reversal__island_none__short__1d__atr3_within8__v1 | 8851 | 0.669 | 0.938 | 0.652 | 33.45 | 6.3 | {'data_end': 33, 'max_hold_timeout': 123, 'rule_exit': 8380, 'stop_loss': 315}
+reversal__island_px20__long__1d__atr1d5_within8__v1 | 6959 | 1.311 | 1.808 | 1.253 | 31.69 | 7.36 | {'data_end': 2, 'max_hold_timeout': 159, 'rule_exit': 5326, 'stop_loss': 1472}
+reversal__island_px20__long__1d__atr2_within8__v1 | 6934 | 1.349 | 1.845 | 1.284 | 32.52 | 7.67 | {'data_end': 2, 'max_hold_timeout': 170, 'rule_exit': 5940, 'stop_loss': 822}
+reversal__island_px20__long__1d__atr3_within8__v1 | 6925 | 1.358 | 1.844 | 1.293 | 32.98 | 7.86 | {'data_end': 2, 'max_hold_timeout': 175, 'rule_exit': 6441, 'stop_loss': 307}
+reversal__island_px20__short__1d__atr1d5_within8__v1 | 6709 | 0.715 | 1.061 | 0.69 | 31.15 | 6.07 | {'data_end': 29, 'max_hold_timeout': 83, 'rule_exit': 5341, 'stop_loss': 1256}
+reversal__island_px20__short__1d__atr2_within8__v1 | 6688 | 0.732 | 1.086 | 0.707 | 31.79 | 6.25 | {'data_end': 29, 'max_hold_timeout': 85, 'rule_exit': 5894, 'stop_loss': 680}
+reversal__island_px20__short__1d__atr3_within8__v1 | 6676 | 0.756 | 1.125 | 0.73 | 32.13 | 6.35 | {'data_end': 29, 'max_hold_timeout': 88, 'rule_exit': 6334, 'stop_loss': 225}
+reversal__island_turn1cr__long__1d__atr1d5_within8__v1 | 3088 | 1.267 | 1.692 | 1.163 | 35.23 | 8.28 | {'data_end': 1, 'max_hold_timeout': 78, 'rule_exit': 2474, 'stop_loss': 535}
+reversal__island_turn1cr__long__1d__atr2_within8__v1 | 3082 | 1.275 | 1.691 | 1.172 | 35.92 | 8.58 | {'data_end': 2, 'max_hold_timeout': 81, 'rule_exit': 2734, 'stop_loss': 265}
+reversal__island_turn1cr__long__1d__atr3_within8__v1 | 3079 | 1.268 | 1.676 | 1.174 | 36.25 | 8.72 | {'data_end': 2, 'max_hold_timeout': 82, 'rule_exit': 2923, 'stop_loss': 72}
+reversal__island_turn1cr__short__1d__atr1d5_within8__v1 | 2325 | 0.659 | 0.894 | 0.616 | 31.87 | 6.93 | {'data_end': 22, 'max_hold_timeout': 32, 'rule_exit': 1825, 'stop_loss': 446}
+reversal__island_turn1cr__short__1d__atr2_within8__v1 | 2317 | 0.69 | 0.935 | 0.646 | 32.76 | 7.23 | {'data_end': 22, 'max_hold_timeout': 34, 'rule_exit': 2067, 'stop_loss': 194}
+reversal__island_turn1cr__short__1d__atr3_within8__v1 | 2316 | 0.706 | 0.959 | 0.661 | 32.99 | 7.31 | {'data_end': 22, 'max_hold_timeout': 34, 'rule_exit': 2217, 'stop_loss': 43}
