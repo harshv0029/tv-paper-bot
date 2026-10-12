@@ -512,3 +512,66 @@ Profit-booking / exit takeaway: when capacity or margin binds, close the worst l
 - Fit: n far exceeds days x symbols, so signals overlap and counts are inflated; a rule firing this often has a weak filter. Only 1d was run; 15m/1h/4h are owed, plus a non-overlap re-run.
 - Reuse: a measured-move target caps winners at a fixed distance; test the uncapped rule exit beside it before adding fixed targets to trend-break rules.
 - Profit-booking / exit takeaway: the measured-move cells (PFnet 0.60-0.74) scored below the same family with rule exits (e.g. tl_break long atr3 0.886), so capping profit early did not beat letting winners run to the rule exit.
+## 2026-10-12 backfill: families with registry results but no earlier entry (docs-only, numbers copied from docs/STRATEGY_RESULTS_LOG.md and backlog rows; nothing re-run)
+
+Source of every figure below: the generated results log (cost model 0.8%, PFnet net, viable = PFnet >= 1.1 derived at read time). Counts of viable cells are counts of registered tags, not independent strategies (neighbouring ATR/hold cells share trades).
+
+### lunar (full moon / new moon rule), pattern lab, 2026-10-10 IST
+- Mechanism: calendar rule, buy at full moon and sell at new moon (long), mirrored as a short, swept over ATR stop and hold. Registry: 176 tags, 20 viable, all in one slice.
+- Fit: needs no data feed beyond candles, so costs and SL-on-every-trade are simple (an ATR stop exists as `atr2d5/atr4/atr6` cells; `atrnone` cells could not be wired without a stop).
+- Result: best `lunar__full_new__short__15m__atrnone_h25__v1` PFnet 1.682, win 57.2%, n=404 (n200 swing watchlist); stopped `atr6` 1.582. Long best `lunar__full_new__long__1h__atrnone_h30__v1` 1.180, n=6731, win 50.6%. Flatten re-runs (`..._fl1515__v2`) on the FULL universe, n=4965: 15m short `atrnone` 1.411, `atr6` 1.325, `atr4` 1.254, `atr2d5` 1.164; 5m short h75 `atrnone` 1.488 (n=4972), `atr6` 1.285, `atr4` 1.179. The same cells on n200 (n=404) read lower, 1.175 to 1.247.
+- Surprise and honest conflict: backlog B-112 records the 2026-10-10 decision "long 0.89, short 0.53, fails", yet the registry holds short cells at 1.2 to 1.7. Not resolved here; the registry numbers are the stored raw data and B-112's text is the older, shorter read. Treat the family as unreconciled, not as validated. A lunar effect has no stated mechanism, so a 404-trade n200 result is a data-mining risk; the full-universe n=4965 flatten figures (1.16 to 1.41) are the number to trust, and even those need the B-112 conflict explained before real money.
+- Reuse: for any calendar rule, require the full-universe flatten run and an every-bar baseline (the same lab shows long h20 baseline 1.04 to 1.16 = market beta, so long cells barely above 1.1 are beta).
+- Profit-booking / exit takeaway: stops did not rescue it, every stopped cell scored below its no-stop twin (1.68 vs 1.58 vs 1.46 vs 1.31 as the stop tightened); a tighter stop gave up edge, so any live use would run the widest stop that still keeps PFnet >= 1.1 and exit on the calendar date.
+
+### MCX single-symbol indicator cells: supertrend, donchian_breakout, sma_crossover, rsi_reversal, bollinger_mean_reversion (run 38068186964, 2026-10-10 IST)
+- Mechanism: textbook indicator rules (Supertrend flip, Donchian channel break, SMA crossover, RSI reversal, Bollinger mean reversion) run through `scripts/mcx_strategy_sweep.py` on yfinance GC/SI/CL/NG/HG proxies (US futures proxies for MCX gold, silver, crude, natural gas, copper), long and short, 5m/15m/1h/1d, ATR stop or none. Each family 120 tags, category futures.
+- Fit: MCX/Kotak is the target venue, but the data is a proxy and each cell is ONE symbol, so n is tiny: viable cells have n=14 to 33. The 0.8% cost model is applied. Cells with `atrnone` have no stop, which the 2026-10-11 no-trade-without-SL rule forbids; they only fit where the live path attaches the option premium trailing SL.
+- Results (best per family, all 1d): `rsi_reversal__si__long__1d__atrnone__v1` 4.098, win 76.5%, n=17 (11 of 120 viable); `bollinger_mean_reversion__si__long__1d__atrnone__v1` 3.659, win 70.6%, n=17 (13 viable), stopped `atr2d5` 2.043; `supertrend__gc__long__1d__atr2d5__v1` 2.286, win 50.0%, n=18 (10 viable); `donchian_breakout__ng__short__1d__atrnone__v1` 2.423, win 50.0%, n=16 (6 viable); `sma_crossover__gc__long__1d__atrnone__v1` 2.139, win 39.4%, n=33 (4 viable). Worst cells in each family are about 0.0.
+- Surprise: the high PFnet is a small-sample artefact as much as an edge (n 14 to 33), and the B-361 re-run showed only 8 of 27 no-stop cells above 1.0 stayed at or above 1.1 once ATR-stopped (see the MCX daily cells entry above). Short-horizon cells (5m/15m/1h) were mostly not viable.
+- Reuse: treat n < 100 PFnet as a lead, never a pass; wire an MCX cell only if every stopped variant of it clears the floor.
+- Profit-booking / exit takeaway: the best cells hold about 80 to 256 hours (days), and the no-stop twin beat the stopped one every time (Bollinger SI 3.66 vs 2.04), so the stop costs edge; accept that cost, because no trade without SL is not negotiable, and book profit at the signal-reversal exit rather than a fixed target.
+
+### donchian 8-week fade, pattern lab (2026-10-10 IST)
+- Mechanism: fade a Donchian channel extreme (an 8-week-extreme reversal), long and short, h20 hold, ATR stop sweep; 768 tags, 7 viable.
+- Fit: daily bars on the n200 swing watchlist and an ETF universe; swing engine, shares need an SL (the `atr6` variants carry one).
+- Result: `donchian__8wk_fade_etf__long__1d__atrnone_h20__v1` 1.391, win 51.6%, n=884; `donchian__8wk_fade__long__1d__atrnone_h20__v1` 1.367, win 53.2%, n=2469, avg hold 125 hours. Worst cell 0.169.
+- Surprise: both viable winners are long and sit near the market-beta band (the lab's every-bar long h20 baseline is 1.04 to 1.16), so the margin over beta is small.
+- Reuse: always compare to the every-bar baseline in the same lab before calling a long daily fade an edge.
+- Profit-booking / exit takeaway: it holds the full 20 bars; with only about 0.2 PFnet above beta, shortening the hold is the lever to test next, not widening the stop.
+
+### Point and Figure box2pct, pattern lab (B-12, 2026-10-10 IST)
+- Mechanism: 3-box-reversal double-top/double-bottom signals at 1% and 2% boxes (Murphy ch.11). 256 tags, 4 viable.
+- Fit: daily bars on n200 swing; a signal-only test, so count targets, 45-degree lines and P&F averages were not built (they refine exits/filters of a signal without edge).
+- Result: best `pnf__box2pct__long__1d__atrnone_h20__v1` 1.154, win 51.2%, n=3589; `atr6` 1.136, n=3591. Per B-12, long 1.13 to 1.15 and short 0.43 to 0.46. Worst 0.131.
+- Surprise: the long result equals the beta baseline (1.04 to 1.16); short is clearly negative.
+- Reuse: signals that only reproduce the long baseline are market beta, skip their exit refinements.
+- Profit-booking / exit takeaway: no exit tested rescued the short side; do not spend effort on P&F targets until the entry beats the baseline.
+
+### Candlestick pattern lab: tasuki gap and the other candle families, pattern lab (2026-10-10 IST)
+- Mechanism: Nison-style patterns run as entry rules with short holds on 1d/1h/15m. `tasuki` 124 tags, 4 viable. Other candle families mostly peaked in the baseline band: engulfing best 1.049, hammer 1.068, harami 1.096, piercing 0.997, soldiers 1.088; `kicking` (best 1.14), `dragonfly` (1.269) and `belt` (1.167) had 2 to 3 viable cells each.
+- Result: `tasuki__gap_etf__short__1d__atr6_h3__v1` PFnet 2.079, win 58.0%, n=81, avg hold 18.75 h (ETF universe; `atrnone` identical 2.079).
+- Surprise: the one standout is a short, ETF-only, n=81, too small to wire; the large-n pattern cells (thousands of trades) land near beta, about 1.0 to 1.1.
+- Reuse: candle patterns alone carry no robust edge here; use them only as filters on a higher-PFnet trigger.
+- Profit-booking / exit takeaway: the h3 hold (under one day) is the strength, fast turnover; if a pattern ever gets wired, keep the 3-bar exit.
+
+### Parabolic SAR and Box Theory (bidirectional 5m, runs 37408733557 and 37408735190, 2026-10-06)
+- Mechanism: Parabolic SAR reversal (acceleration init 0.01 to 0.02, max 0.1 to 0.2) and Box Theory zone-touch (tolerance 15/20, wick), both pooled long+short, 5m over 60 days, FULL universe (2642 of 2688 fetched), research-stage reimplementation.
+- Result: both fail hard. `box_theory__zone_touch__bidirectional__5m__tol15_wick1d5__v1` 0.138, win 10.6%, n=233145; best SAR cell 0.114, win 12.0%, n=488066. Worst 0.129 and 0.063. Daily PSAR flip on swing is better but still below the floor: `psar__flip__long__1d__atrnone_h20__v1` 1.092, n=6812.
+- Surprise: win rates of 10 to 12% at about 2.2 hours held means constant trading, and the 0.8% round-trip cost destroys it; huge n makes this a decisive, not noisy, fail.
+- Reuse: any 5m always-in-market flip system is dead on arrival under 0.8% costs; check trade count against cost before running.
+- Profit-booking / exit takeaway: exits are not the issue, trade frequency is; fewer, longer trades (psar 1d h20 at 1.09) get close but not past the floor.
+
+### Chan (Algorithmic Trading) sub-families: chan_shape, chan_alexander, chan_updays, chan_ema_regime and neighbours
+- Mechanism: variants extracted from Ernest Chan's book (see the Book 3 entry) and run in the Chan cells and extension runs: shape/gap/updays/EMA-regime filters and the Alexander filter.
+- Result (registry, best per family): `chan_shape` 3.656 (53 tags, 3 viable); `chan_alexander` 1.774 (61 tags, 6 viable); `chan_ema_regime` 1.676 (80, 4 viable); `chan_updays` 1.436 (52, 2 viable); `chan_gap` 1.445 (6 of 6 viable); `chan_xsmom` 1.396 (6 of 9 viable); `chan_zmr` 1.172 (81, 2 viable); `chan_mrgate` 0.631, `chan_gapmom` 0.177, `chan_lateday` 0.126, `chan_kl` 0.516 all fail.
+- Surprise and caveat: the Chan overlap verdict (B-805/B-807, entries above) found overlapping holding windows inflate these counts; the non-overlap re-run is the number to read. Families that pass are small slices of a large grid, so multiple-testing inflation applies.
+- Reuse: read the Chan non-overlap entry before trusting any `chan_*` PFnet above.
+- Profit-booking / exit takeaway: the failing late-day and gap-momentum cells show holding into the close or chasing the gap loses, so exit at the first sign of the signal reverting.
+
+### Trade management cells: trademgmt_entry and trademgmt_exit (Douglas/Elder, 2026-10-12)
+- Mechanism: 480 tags (228 entry, 252 exit) on the entry/exit management family; see the Douglas/Elder trade management entry above for the harness.
+- Result: `trademgmt_exit` best PFnet 2.468 with 6 of 252 tags viable; `trademgmt_entry` best 1.001 with 0 viable of 228.
+- Surprise: all the gain is in exits, none in entries; entry management alone does not clear the floor.
+- Reuse: tune exits, not entries, when a family's entry is already fixed.
+- Profit-booking / exit takeaway: only 6 of 252 exit variants cleared 1.1, so most exit styles are neutral to harmful.
