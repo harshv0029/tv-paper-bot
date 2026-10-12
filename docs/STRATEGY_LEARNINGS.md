@@ -493,3 +493,8 @@ Profit-booking / exit takeaway: when capacity or margin binds, close the worst l
 - Fit: counts derived from strategy_registry at read time; nothing guessed or stored as a flag.
 - Reuse: re-count the registry before trusting a backlog figure; it had gone stale (371 vs 1).
 - Profit-booking / exit takeaway: no new exit lesson; the Minervini wider-trail question still needs its exit-reason shares before any trail change.
+## Wiring specs: flatten, research-only labelling, Kotak audit (B-792c/B-779/B-369, 2026-10-12 IST)
+- Mechanism: three spec docs (INTRADAY_FLATTEN_WIRING_SPEC, VIABLE_TABLE_RESEARCH_ONLY_SPEC, KOTAK_AUDIT_CHECKLIST_MON); no code changed.
+- Fit: a resting SL cannot cover the 15:15 IST exchange cancel, so an intraday cell must be flattened by the bot's own market exit before 15:15 with a stop from entry; wiring is blocked first by the missing main.py port and replay.
+- Reuse: the viable table already shows Wired/Not wired (B-780); label research-only rows as unable to trade so a high PFnet in the list is not read as a live edge.
+- Profit-booking / exit takeaway: flatten at 15:10-15:14 with a retry ladder, never leave an intraday position to the next 09:15 protect pass; compare each day's Kotak realised P&L with the tag's registry PFnet.
