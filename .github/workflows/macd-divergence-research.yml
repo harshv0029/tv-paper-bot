@@ -1,0 +1,57 @@
+name: MACD divergence research (B-808 B-809 B-810)
+
+# Full-universe re-run of the 3 registered macd__hist_div cells plus the SHORT mirror and variants,
+# swept over candle size (15m/1h/1d via matrix) x ATR stop 1.5/2/3 (inside the script). 3 intervals x 8
+# shards = 24 jobs: dispatch only when no Deploy Gate / safety run is queued (urgency order rule).
+# Port of elder_macd_dirgap_research.v_macd_div (no main.py equivalent). Stop on every trade, cost 0.8%.
+# Research only, no live wiring. 4h needs a 1h resample (owed). Results: one small merged artifact.
+on:
+  workflow_dispatch:
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        interval: ["1d", "1h", "15m"]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run shard
+        run: |
+          python3 scripts/macd_divergence_research.py --shard ${{ matrix.shard }} --nshards 8 \
+            --interval "${{ matrix.interval }}" --out out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macddiv-${{ matrix.interval }}-${{ matrix.shard }}
+          path: out/
+
+  merge:
+    needs: research
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: macddiv-*
+          merge-multiple: true
+      - name: Merge shards and print per-tag table
+        run: |
+          set -o pipefail
+          python3 scripts/macd_divergence_research.py --merge shards --json macddiv_results.json | tee macddiv_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macd-divergence-results
+          path: |
+            macddiv_results.json
+            macddiv_table.txt
