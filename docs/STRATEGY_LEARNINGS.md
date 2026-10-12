@@ -588,3 +588,10 @@ Source of every figure below: the generated results log (cost model 0.8%, PFnet 
 - Surprise: PFnet barely fell versus the overlapping run, so the edge is not an overlap artefact. Wider stops (atr3) win more: max_hold_timeout exits (about 57%) carry the profit, stop_loss exits (41%) lose.
 - Reuse: no IS/OOS split yet and no live 1h entry path; do both before any wiring. Short mirror already registered separately.
 - Profit-booking / exit takeaway: let trades run to the max-hold bar with a wide ATR3 stop; tighter stops raise the stop-out share and lower PFnet.
+
+## Island reversal validation, 1d (B-789, run 38192367677, 2026-10-12 IST)
+- Mechanism: island reversal (gap-isolated cluster) entries, 1d, ATR stop (1.5/2/3) plus rule exit, 30 cells = 5 filters (none, gap05, px20, turn1cr, liq_gap) x long/short; full universe (2351 symbols with data), 0.8% cost.
+- Result: LONG cells are strong: none PFnet 1.50-1.56 (n~8.9k), gap05 1.93-1.98 (n~3.2k, ex-top5 1.77-1.82), px20 1.31-1.36, turn1cr 1.27, liq_gap 0.93-0.96 (below floor). SHORT mirrors all fail: 0.64-0.76. 15 long cells viable by PFnet. Hold ~7-8 bars.
+- Surprise/caveat: by-year PFnet decays, gap05 long 6.1 (2021) to 1.2 (2025) to 0.23 (2026, n=528), so the headline is dominated by older years; overlapping signals not yet removed. Wider ATR3 stop cuts stop-outs from 27% to 7% and lifts PFnet, with rule_exit carrying profit.
+- Reuse: do not wire on the headline: need non-overlap FIFO and an IS/OOS split with the 2026 decay explained (regime or crowding) first. Shorts of the same pattern do not work, so the bidirectional rule is satisfied with a registered fail.
+- Profit-booking / exit takeaway: rule_exit (gap-fill style) books most profit within ~7 bars; a wide ATR3 stop avoids premature stop-outs without hurting that exit.
