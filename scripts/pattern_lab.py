@@ -631,7 +631,7 @@ def all_signals(df):
     return out
 
 
-def simulate(sig, o, h, l, c, atr, hold, k, cost, side):
+def simulate(sig, o, h, l, c, atr, hold, k, cost, side, stops=None):
     """non-overlapping trades; returns (rets list, held list)"""
     rets, held = [], []
     n = len(c)
@@ -661,6 +661,8 @@ def simulate(sig, o, h, l, c, atr, hold, k, cost, side):
         r = (exitp / ent - 1) * side - cost
         rets.append(r)
         held.append(j_exit - e + 1)
+        if stops is not None and k:
+            stops.append(100.0 * k * atr[t] / ent)  # B-775 planned stop-% of entry
         nxt = j_exit + 1
     return rets, held
 
@@ -714,15 +716,17 @@ def main_run():
                         continue
                     for H in HOLDS:
                         for k in KS:
-                            r, hd = simulate(sg, o, h, l, c, atr, H, k, cost, side)
+                            sp = []
+                            r, hd = simulate(sg, o, h, l, c, atr, H, k, cost, side, stops=sp)
                             if r:
-                                a = acc.setdefault((rule, dname, H, k), [[], []])
+                                a = acc.setdefault((rule, dname, H, k), [[], [], [], cost])
                                 a[0].extend(r)
                                 a[1].extend(hd)
+                                a[2].extend(sp)
             done += 1
         print("batch", b0, "symbols done", done, "cells", len(acc), flush=True)
     res = {}
-    for (rule, dname, H, k), (r, hd) in acc.items():
+    for (rule, dname, H, k), (r, hd, sp, cst) in acc.items():
         if len(r) < 30:
             continue
         r = np.array(r)
@@ -734,7 +738,11 @@ def main_run():
         cut = max(1, int(len(rs) * 0.01))
         tr = rs[:-cut]  # drop the best 1% of trades: the verdict must not hang on a few outliers
         tl = -tr[tr < 0].sum()
-        res[tag] = {"pfnet_trim1": round(float(tr[tr > 0].sum() / tl), 3) if tl else None,
+        rg = r + cst
+        gg, gl = rg[rg > 0].sum(), -rg[rg < 0].sum()  # B-804 gross PFnet (round-trip cost added back)
+        res[tag] = {"pfgross": round(float(gg / gl), 3) if gl else None,
+                    "median_stop_pct": round(float(np.median(sp)), 4) if sp else None,
+                    "pfnet_trim1": round(float(tr[tr > 0].sum() / tl), 3) if tl else None,
                     "median_net_pct": round(float(np.median(r) * 100), 3),
                     "pfnet": round(float(gain / loss), 3) if loss else None, "win_pct": round(float((r > 0).mean() * 100), 1),
                     "n": int(len(r)), "avg_net_pct": round(float(r.mean() * 100), 3), "avg_held_bars": round(float(np.mean(hd)), 2),
