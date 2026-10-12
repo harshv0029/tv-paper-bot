@@ -2817,3 +2817,51 @@ def _extend_with_sweeps():
 
 
 _extend_with_sweeps()
+
+
+# ---- Viable-strategy bucketing (read-time derived; B-815) -------------------
+PFNET_BUCKET_BANDS = ((1.1, 1.3, "1.1-1.3"), (1.3, 1.6, "1.3-1.6"), (1.6, 2.0, "1.6-2.0"), (2.0, None, "2.0+"))
+HOLD_DAY_BANDS = ((0, 1, "<=1d"), (1, 3, "1-3d"), (3, 7, "3-7d"), (7, 15, "7-15d"), (15, 30, "15-30d"), (30, None, ">30d"))
+HOLD_UNRECORDED = "hold not recorded"
+
+
+def _pfnet_band(pfnet: float) -> str:
+    for lo, hi, label in PFNET_BUCKET_BANDS:
+        if pfnet >= lo and (hi is None or pfnet < hi):
+            return label
+    return PFNET_BUCKET_BANDS[0][2]  # floor was lowered below 1.1: lump with the lowest band
+
+
+def _hold_band(avg_held_hrs: Optional[float]) -> str:
+    if avg_held_hrs is None:
+        return HOLD_UNRECORDED
+    days = avg_held_hrs / TRADING_HOURS_PER_DAY
+    for lo, hi, label in HOLD_DAY_BANDS:
+        if hi is None or days <= hi:
+            return label
+    return HOLD_DAY_BANDS[-1][2]
+
+
+def bucket_viable_strategies(registry=None, floor: float = PFNET_LIVE_FLOOR) -> dict:
+    """{category: {pfnet_band: {hold_band: [row,...]}}} for every strategy with
+    StrategyDef.is_viable(floor) is True. A strategy listed under several
+    categories is repeated in each category's section. Derived on every call
+    from the stored metrics - nothing is persisted."""
+    reg = REGISTRY if registry is None else registry
+    out: dict = {}
+    for cat in TradeCategory:
+        bands = {label: {h[2]: [] for h in HOLD_DAY_BANDS} | {HOLD_UNRECORDED: []} for _, _, label in PFNET_BUCKET_BANDS}
+        n = 0
+        for s in sorted((x for x in reg if cat in x.categories and x.is_viable(floor) is True),
+                        key=lambda x: -x.metrics.pfnet):
+            m = s.metrics
+            bands[_pfnet_band(m.pfnet)][_hold_band(m.avg_held_hrs)].append({
+                "name": s.name, "pfnet": m.pfnet, "win_rate_pct": m.win_rate_pct, "n_trades": m.n_trades,
+                "avg_hold_days": None if m.avg_held_hrs is None else round(m.avg_held_hrs / TRADING_HOURS_PER_DAY, 2),
+            })
+            n += 1
+        out[cat.value] = {"count": n, "pfnet_buckets": [
+            {"band": label, "count": sum(len(v) for v in bands[label].values()),
+             "hold_buckets": [{"band": h, "count": len(rows), "strategies": rows} for h, rows in bands[label].items() if rows]}
+            for _, _, label in PFNET_BUCKET_BANDS]}
+    return out

@@ -20525,6 +20525,14 @@ def strategy_leaderboard():
     return out
 
 
+@app.get("/strategy-viable-buckets")
+def strategy_viable_buckets():
+    """Read-only, derived at read time from strategy_registry (B-815): viable
+    strategies per category, bucketed by PFnet band then holding-days band."""
+    import strategy_registry as sr
+    return {"floor": sr.PFNET_LIVE_FLOOR, "categories": sr.bucket_viable_strategies(), "as_of_epoch": time.time()}
+
+
 # Stop rule per legacy swing tag (read from each strategy's own entry/exit function), shown in the viable
 # table's SL % column when no position is open to average a real % from (B-419 follow-up, user 2026-10-11).
 _SWING_SL_RULES = {
