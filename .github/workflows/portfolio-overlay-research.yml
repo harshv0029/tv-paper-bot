@@ -13,10 +13,10 @@ on:
   workflow_dispatch:
     inputs:
       interval:
-        description: "Candle size: 1d (default), 1h, 15m. Run each per the multi-candle rule; bar-count constants change meaning with interval."
+        description: "Candle size: 1d (default), 4h (1h resampled), 1h, 15m, 5m, 1m. Run each per the multi-candle rule; bar-count constants change meaning with interval."
         default: "1d"
       period:
-        description: "yfinance period: 5y for 1d, 2y for 1h (730d cap), 60d for 15m"
+        description: "yfinance period: 5y for 1d; over-cap values are clamped to the interval default (1h/4h 730d, 15m/5m 60d, 1m 7d) by scripts/research_interval.py"
         default: "5y"
 
 jobs:

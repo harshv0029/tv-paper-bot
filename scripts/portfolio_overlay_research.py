@@ -52,6 +52,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
+import research_interval as ri  # noqa: E402
 import douglas_trade_mgmt_research as dm  # noqa: E402
 from portfolio_ledger_research import correlation_screen  # noqa: E402
 
@@ -107,7 +108,7 @@ def _collect_main(args):
     paths = {} if getattr(args, "marks", False) else None
     for s in syms:
         try:
-            raw = m.fetch_ohlc(s, args.period, args.interval)
+            raw = ri.fetch_interval(m, s, args.period, args.interval)
             if raw is None or len(raw) < 120:
                 continue
             fetched += 1
@@ -455,7 +456,7 @@ def main(argv=None):
     c = sub.add_parser("collect")
     c.add_argument("--shard", type=int, default=0)
     c.add_argument("--nshards", type=int, default=8)
-    c.add_argument("--interval", default="1d")
+    c.add_argument("--interval", default="1d", choices=ri.INTERVALS)
     c.add_argument("--period", default="5y")
     c.add_argument("--out", default="out")
     c.add_argument("--marks", action="store_true", help="B-743: also emit per-trade daily mark paths")
