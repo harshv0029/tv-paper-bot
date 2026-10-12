@@ -53,13 +53,19 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
 import douglas_trade_mgmt_research as dm  # noqa: E402
+from portfolio_ledger_research import correlation_screen  # noqa: E402
 
 COST = er.COST_ROUND_TRIP
 TF = "1d"
 
 
 # ------------------------------------------------------------------ collect stage
-def collect_symbol(df, streams):
+def collect_symbol(df, streams, sym=None, rets=None):
+    if rets is not None and sym is not None:
+        # B-746: per-symbol daily close-to-close returns for the correlation screen
+        rr = df["Close"].pct_change().to_numpy()
+        ss = (df.index.asi8 // 10 ** 9).astype(np.int64)
+        rets[sym] = [[int(x) for x in ss[1:]], [round(float(x), 5) for x in rr[1:]]]
     tv = (df["Close"] * df["Volume"]).rolling(20).mean().to_numpy()
     a = er.atr(df).to_numpy()
     cl = df["Close"].to_numpy()
@@ -82,7 +88,7 @@ def collect_symbol(df, streams):
                         int(secs[i0]), int(secs[i1]), round(t["ret"], 5),
                         round(float(am * a[s] / cl[s]), 5) if cl[s] > 0 else 0.0, t["hold"],
                         round(float(cl[i0]), 2), round(float(tv[s]) if not np.isnan(tv[s]) else 0.0, 0),
-                        t["reason"]])
+                        t["reason"]] + ([sym] if sym is not None else []))
 
 
 def _collect_main(args):
@@ -90,20 +96,20 @@ def _collect_main(args):
     import main as m
     syms = sorted(set(m._load_nse_universe_from_file()))
     syms = [s for k, s in enumerate(syms) if k % args.nshards == args.shard]
-    streams, fetched = {}, 0
+    streams, fetched, rets = {}, 0, {}
     for s in syms:
         try:
             raw = m.fetch_ohlc(s, args.period, args.interval)
             if raw is None or len(raw) < 120:
                 continue
             fetched += 1
-            collect_symbol(er.prep(raw), streams)
+            collect_symbol(er.prep(raw), streams, s, rets)
         except Exception as ex:
             print("ERROR", s, ex, file=sys.stderr)
     print(f"collect shard {args.shard}: fetched {fetched}/{len(syms)}, streams {len(streams)}, "
           f"trades {sum(len(v) for v in streams.values())}")
     os.makedirs(args.out, exist_ok=True)
-    json.dump({"fetched": fetched, "universe": len(syms), "streams": streams},
+    json.dump({"fetched": fetched, "universe": len(syms), "streams": streams, "rets": rets},
               open(os.path.join(args.out, f"collect_{args.shard}.json"), "w"))
 
 
@@ -173,8 +179,26 @@ def independence(r, lags=(1, 2, 3)):
 
 
 # ------------------------------------------------------------------ portfolio sim
-def simulate_portfolio(trades, K=10, risk=0.01, cap=0.10, policy=None, regime=None):
-    """trades sorted by entry time. Returns dict(final_mult, max_dd_pct, taken(list of trades))."""
+def build_corr_inputs(rets_raw):
+    """{sym: [[secs], [rets]]} -> (aligned {sym: [float|None] on the union calendar}, sorted calendar array)."""
+    if not rets_raw:
+        return {}, np.array([], dtype=np.int64)
+    cal = np.array(sorted({x for v in rets_raw.values() for x in v[0]}), dtype=np.int64)
+    pos = {int(x): i for i, x in enumerate(cal)}
+    out = {}
+    for sym, (ss, rr) in rets_raw.items():
+        a = [None] * len(cal)
+        for x, y in zip(ss, rr):
+            if y == y:
+                a[pos[int(x)]] = y
+        out[sym] = a
+    return out, cal
+
+
+def simulate_portfolio(trades, K=10, risk=0.01, cap=0.10, policy=None, regime=None, corr=None):
+    """trades sorted by entry time. Returns dict(final_mult, max_dd_pct, taken(list of trades)).
+    corr (B-746): {"max": 0.7, "cal": sorted secs, "rets": {sym: aligned list}, "win": 120}; a trade is skipped when
+    |corr| with any currently-held symbol (trailing `win` daily bars before entry, no look-ahead) exceeds max."""
     policy = policy or {}
     eq, peak, maxdd = 1.0, 1.0, 0.0
     heap, openp, taken = [], 0, []
@@ -183,14 +207,17 @@ def simulate_portfolio(trades, K=10, risk=0.01, cap=0.10, policy=None, regime=No
     block_lvl, block_start_eq, block_n = 0, 1.0, 0
     ramp = (0.005, 0.01, 0.015, 0.02)
     seq = 0
+    held_syms = []
 
     def settle(tnow):
         nonlocal eq, peak, maxdd, openp, sw, sl, block_lvl, block_start_eq, block_n
         while heap and heap[0][0] <= tnow:
-            _, _, pnl, ret, was_taken = heapq.heappop(heap)
+            _, _, pnl, ret, was_taken, hsym = heapq.heappop(heap)
             paper.append(ret)
             if was_taken:
                 openp -= 1
+                if hsym in held_syms:
+                    held_syms.remove(hsym)
                 eq += pnl
                 eqhist.append(eq)
                 closed.append(ret)
@@ -210,6 +237,12 @@ def simulate_portfolio(trades, K=10, risk=0.01, cap=0.10, policy=None, regime=No
             take = False
         if take and policy.get("monitor20") and len(paper) >= 20 and np.mean(paper[-20:]) < 0:
             take = False
+        tsym = t[8] if len(t) > 8 else None
+        if take and corr is not None and tsym is not None and held_syms:
+            hi = int(np.searchsorted(corr["cal"], t[0], side="left"))
+            lo_i = max(hi - corr.get("win", 120), 0)
+            sl_ = {x: corr["rets"].get(x, [])[lo_i:hi] for x in set(held_syms) | {tsym}}
+            take = bool(correlation_screen(sl_, [tsym], list(set(held_syms)), max_corr=corr["max"]))
         mult = 1.0
         if policy.get("euphoria"):
             mult = 1.25 ** min(sw, 4)
@@ -227,9 +260,10 @@ def simulate_portfolio(trades, K=10, risk=0.01, cap=0.10, policy=None, regime=No
         size = min(r_use / rf, cap) * mult * eq
         pnl = size * t[2]
         seq += 1
-        heapq.heappush(heap, (t[1], seq, pnl if take else 0.0, t[2], take))
+        heapq.heappush(heap, (t[1], seq, pnl if take else 0.0, t[2], take, tsym))
         if take:
             openp += 1
+            held_syms.append(tsym)
             taken.append(t)
     settle(float("inf"))
     return {"final_mult": round(eq, 3), "max_dd_pct": round(100 * maxdd, 2), "taken": taken}
@@ -246,6 +280,8 @@ POLICIES = (
        ("idxregime_size", {"risk": 0.01, "policy": {"regime": 1}})]
     # B-746 diversification: max concurrent positions sweep (1% risk); tag cells maxpos3/5/10/20/40
     + [(f"maxpos{k}", {"risk": 0.01, "K": k}) for k in (3, 5, 20, 40)]
+    # B-746 correlation screen: skip entries correlated > threshold with a held symbol (needs per-symbol returns)
+    + [(f"corr{int(c * 100)}", {"risk": 0.01, "corr": c}) for c in (0.3, 0.5, 0.7, 0.85)]
 )
 
 
@@ -290,13 +326,15 @@ def make_regime_fn(series):
 
 # ------------------------------------------------------------------ merge stage
 def merge(path, json_out=None, idx_df=None):
-    streams, fetched, universe = {}, 0, 0
+    streams, fetched, universe, rets_raw = {}, 0, 0, {}
     for f in sorted(glob.glob(os.path.join(path, "**", "collect_*.json"), recursive=True)):
         d = json.load(open(f))
         fetched += d["fetched"]
         universe += d["universe"]
+        rets_raw.update(d.get("rets") or {})
         for k, v in d["streams"].items():
             streams.setdefault(k, []).extend(v)
+    corr_rets, corr_cal = build_corr_inputs(rets_raw)
     regimes = index_regimes(idx_df) if idx_df is not None and len(idx_df) > 300 else {}
     rows = []
 
@@ -340,8 +378,11 @@ def merge(path, json_out=None, idx_df=None):
         reg_fn = make_regime_fn(regimes["dma200"]) if "dma200" in regimes else None
         base_run = None
         for pname, spec in POLICIES:
+            if "corr" in spec and not (corr_rets and any(len(x) > 8 for x in tr[:1])):
+                continue  # no per-symbol returns/symbols in these shards
             res = simulate_portfolio(tr, K=spec.get("K", 10), risk=spec.get("risk", 0.01), cap=spec.get("cap", 0.10),
-                                     policy=spec.get("policy"), regime=reg_fn if spec.get("policy", {}).get("regime") else None)
+                                     policy=spec.get("policy"), regime=reg_fn if spec.get("policy", {}).get("regime") else None,
+                                     corr={"max": spec["corr"], "cal": corr_cal, "rets": corr_rets} if "corr" in spec else None)
             if pname == "rp1.0":
                 base_run = res
             add(base, direction, am, pname, {"k": spec.get("K", 10)}, stats(res["taken"]),

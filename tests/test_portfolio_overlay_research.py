@@ -42,3 +42,26 @@ def test_independence_and_ci():
     assert {"ac1", "ac2", "ac3", "runs_z", "max_losing_run"} <= set(p.independence(r))
     lo, hi = p.boot_ci(r)
     assert lo is not None and lo <= hi
+
+
+def test_corr_screen_blocks_correlated_concurrent_trade():
+    rng = np.random.default_rng(3)
+    cal = np.arange(1000, 1300, dtype=np.int64)
+    a = rng.normal(0, 0.01, len(cal))
+    raw = {"A": [cal.tolist(), a.tolist()], "B": [cal.tolist(), a.tolist()],
+           "C": [cal.tolist(), rng.normal(0, 0.01, len(cal)).tolist()]}
+    rets, c = p.build_corr_inputs(raw)
+    t = [[1250, 1290, 0.05, 0.02, 3, 100.0, 1e6, "x", "A"],
+         [1251, 1290, 0.05, 0.02, 3, 100.0, 1e6, "x", "B"],
+         [1252, 1290, 0.05, 0.02, 3, 100.0, 1e6, "x", "C"]]
+    free = p.simulate_portfolio(t, K=10)
+    scr = p.simulate_portfolio(t, K=10, corr={"max": 0.7, "cal": c, "rets": rets})
+    assert len(free["taken"]) == 3
+    assert [x[8] for x in scr["taken"]] == ["A", "C"]
+
+
+def test_collect_symbol_records_symbol_and_returns():
+    st, rets = {}, {}
+    p.collect_symbol(synth(900, 1), st, "ABC", rets)
+    assert "ABC" in rets and len(rets["ABC"][0]) == len(rets["ABC"][1])
+    assert all(len(t) == 9 and t[8] == "ABC" for v in st.values() for t in v)
