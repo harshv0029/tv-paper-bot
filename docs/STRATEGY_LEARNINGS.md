@@ -575,3 +575,9 @@ Source of every figure below: the generated results log (cost model 0.8%, PFnet 
 - Surprise: all the gain is in exits, none in entries; entry management alone does not clear the floor.
 - Reuse: tune exits, not entries, when a family's entry is already fixed.
 - Profit-booking / exit takeaway: only 6 of 252 exit variants cleared 1.1, so most exit styles are neutral to harmful.
+## brk20_min_rr IS/OOS harness and wiring spec (B-798, 2026-10-12 IST)
+- Mechanism: 20-bar close breakout with ATR stop and a minimum reward:risk room check; 34 of 72 pooled cells clear 1.1 (1d long/short, 1h long), best 1d short atr4_be1_rr4 4.21 n=115, holds ~12-14 bars.
+- Fit: the pooled run cannot separate a real edge from a fitted cell or a favourable regime; `scripts/brk20_isoos.py` buckets each trade by entry date (same real main.py fns, same cells) so a filter/overlay claim (breakeven ratchet, 1h long) must hold OOS with n>=30 before any wiring. Swing engine for long, short engine for short, ATR stop is the resting SL on every trade.
+- Surprised: be1 vs no-ratchet was identical in 5 of 36 groups, so a ratchet claim is weak until OOS says otherwise; 1h cells carry overnight, so the 15:15 flatten lesson (B-792c) may erase them.
+- Reuse: any new pooled result gets an IS/OOS rerun through the same harness before wiring; entry-date bucketing keeps IS+OOS exactly equal to the pooled sums.
+- Profit-booking / exit takeaway: the edge sits in winners held ~12-14 bars to the 4R-ish target, so the breakeven ratchet is only worth keeping if OOS PFnet beats the no-ratchet twin; do not tighten exits on pooled numbers alone.
