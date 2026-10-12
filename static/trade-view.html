@@ -388,6 +388,11 @@
   <div class="counts-scroll" id="vb-body"><div class="scan-idle">Loading…</div></div>
 </div>
 
+<div class="counts-panel">
+  <div class="counts-head"><span class="title">Options entry diagnosis <span id="fod-meta" class="scan-idle"></span></span></div>
+  <div class="counts-scroll" id="fod-body"><div class="scan-idle">Loading…</div></div>
+</div>
+
 <div class="cards" id="cards"><div class="empty">Loading…</div></div>
 
 <footer>Polls <code>/daily-summary</code> + <code>/history</code> every 10s. Amber lines = opening-range high/low (the strategy's own support/resistance).</footer>
@@ -953,6 +958,17 @@ function renderViableBuckets(d) {
     ${c.pfnet_buckets.map(b => `<tr><td>${esc(b.band)}</td><td class="num">${b.count}</td><td>${b.hold_buckets.length ? b.hold_buckets.map(h =>
       `<div><b>${esc(h.band)}</b> (${h.count}): ` + h.strategies.map(s => `${esc(s.name)} <span class="meta">(${fmt(s.pfnet, 3)} / ${fmt(s.win_rate_pct, 1)}% / n=${s.n_trades})</span>`).join("; ") + `</div>`).join("") : '<span class="meta">none</span>'}</td></tr>`).join("")}
     </tbody></table></div>`).join("");
+}
+
+function renderFoDiagnosis(d) {
+  const body = document.getElementById("fod-body"), meta = document.getElementById("fod-meta");
+  if (!body) return;
+  if (!d || !d.underlyings) { body.innerHTML = '<div class="scan-idle">Diagnosis unavailable</div>'; return; }
+  const esc = x => String(x).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  if (meta) meta.textContent = `(real F&O ${d.real_fo_switch_on ? "ON" : "OFF"}, master ${d.master_trading_switch_on ? "ON" : "OFF"}, window ${d.entry_window_open_ist_0920_1500 ? "open" : "closed"}, viable tags: ${d.viable_strike_setup_tags.length})`;
+  body.innerHTML = '<table class="counts"><thead><tr><th>Underlying</th><th>Primary blocker</th><th>Held</th><th>Strikes by status</th></tr></thead><tbody>' +
+    Object.entries(d.underlyings).map(([u, r]) => `<tr><td>${esc(u)}</td><td>${esc(r.primary_blocker)}</td><td>${esc(r.held_sides.join(",") || "-")}</td><td>${esc(JSON.stringify(r.strikes_by_status))}</td></tr>`).join("") +
+    '</tbody></table>' + `<div class="meta">Skipped today: ${esc(JSON.stringify(d.skipped_reasons_today))}</div>`;
 }
 
 function renderStrategyScanActivity(data) {
@@ -2120,6 +2136,7 @@ async function refresh() {
     ]);
     renderUnprotectedBanner(protectionStatus);
     renderStrategyScanActivity(strategyScanActivity);
+    fetchJSON(`${ORIGIN}/fo-entry-diagnosis`).then(renderFoDiagnosis).catch(() => renderFoDiagnosis(null));
     fetchJSON(`${ORIGIN}/strategy-viable-buckets`).then(renderViableBuckets).catch(() => renderViableBuckets(null));
     // BUG found live 2026-09-08 (explicit user finding: "current balance
     // is 1596 as of now but wrong here" - showing -Rs942.61 instead):
