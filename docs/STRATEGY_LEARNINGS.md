@@ -440,3 +440,44 @@ Profit-booking / exit takeaway: when capacity or margin binds, close the worst l
 - Fit: existing long/short SL sync already refused loosening (now counted); swing sync only places missing SL. Shadow log lets skipped-vs-taken PFnet be measured later. Rolling monitor is alert-only until user signs off auto-pause.
 - Result: no backtest yet (overlay replay B-541/B-530 owed).
 - Profit-booking / exit takeaway: a never-loosening stop protects booked gains; a pause on negative rolling expectancy limits drawdown from a decayed edge.
+## Island reversal validation harness (B-789, built 2026-10-12 IST, run pending)
+- Mechanism: gap down then gap up above the gap-down bar's high within 8 bars; long = island bottom, short = mirror on reciprocal prices. The Elder merge printed PFnet 1.571 on n 8837 (hold 7.7d) for the long.
+- Fit: a pattern that rare should not give ~1 trade per symbol; the likely cause is stale-print gaps in illiquid names, which cannot be traded at the printed prices. The harness adds px>=20, 20d median turnover >= 1 crore and gap >= 0.5 ATR filters, ex-top-5, per-year PFnet and gross next to net.
+- Reuse: any gap-based pattern needs a liquidity and gap-size filter before its PFnet is believed; compare n to the number of tradeable events, not just PFnet.
+- Profit-booking / exit takeaway: previous Elder cells earned in max-hold survivors while stops lost; check the exit mix of the island cells before any wiring, and prefer the filter variant that keeps PFnet with shorter hold.
+
+## O'Neil replay follow-up (B-787, reviewed 2026-10-12 IST)
+- Mechanism: pivot breakout and new-high entries on 1w bars with 12-25% stops, bar-by-bar port, 6 of 7 tags above 1.1 and ex-top-5 above 1.1.
+- Fit: swing category only; the 341 crosscheck diffs between the port and research code are still unclassified, so the numbers are good but not yet trusted for wiring; flatbase short (n=10) fails and stays registered.
+- Reuse: always fetch and classify crosscheck diffs in the same session as the result; a diff list left in an artifact is how a result stays unverified.
+- Profit-booking / exit takeaway: profit sits in max-hold exits and stop exits lose 20-28%, so the stop-size sweep (not an earlier target) is the lever to test in the wiring replay.
+
+## Minervini sweep reading aid (B-791, 2026-10-12 IST)
+- Mechanism: atr4_h60 PFnet 1.342 at 29.6d hold vs the live-style atr1d5 trail 0.908 at 8.3d; atr3 1.181 at 21.6d.
+- Fit: the lab already emits exit breakdown and universe size; the gap was only that the artifact was never read. `scripts/minervini_sweep_compare.py` prints them plus (PF-1) per held bar.
+- Reuse: when a TSV says "not fetched", fetch it the same day.
+- Profit-booking / exit takeaway: the wider trail wins only because winners are held to the max-hold limit; compare (PF-1)/bar and exit shares before widening the live trail, and do not widen on one sweep.
+
+## Gross-PF backfill limits (B-804, 2026-10-12 IST)
+- Mechanism: pfgross is filled only on exact artifact reproductions; 0 of 371 viable rows qualified.
+- Fit: viability is PFnet-based, so gross is diagnostic only; do not infer gross from net and an assumed cost.
+- Reuse: every research script must print gross next to net from the start.
+- Profit-booking / exit takeaway: none directly; gross vs net gap shows how much of an edge the 0.8% cost eats, which matters for short-hold cells.
+
+## Chan overlap verdict (B-805, reconciled 2026-10-12 IST)
+- Mechanism: overlapping-signal Chan cells showed four viable 1h long cells (best 1.549); the FIFO re-run (B-807) tops out at 1.084.
+- Fit: do not wire any chan_tsm cell; overlap counted the same move many times.
+- Reuse: n far above trading days x symbols is the tell.
+- Profit-booking / exit takeaway: only the widest stop with the longest hold stayed near 1.0, so trend-following cells need winners left to run.
+
+## Confidence gate on the intraday engines (B-421, 2026-10-12 IST)
+- Mechanism: min_entry_confidence_pct gates only the ORB path in `_auto_signal_core`; the universal_score engine does not read it.
+- Fit: a sweep of that knob on the live universal_score engine would measure nothing, so the intraday half needs its own bar-by-bar driver through the real signal cores; the swing half is in confidence_threshold_sweep.py.
+- Reuse: before sweeping a parameter, grep that the engine under test actually reads it.
+- Profit-booking / exit takeaway: a stricter entry gate cuts trade count, so judge it by PFnet and by net profit per bar held, not PFnet alone.
+
+## Intraday flatten wiring spec (B-792c, 2026-10-12 IST)
+- Mechanism: 42 cells survive a forced 15:15 flatten at PFnet >= 1.1 (best chan_kalman band long 5m 1.78 n=5722).
+- Fit: main.py has no kalman band code, so wiring needs a verbatim port, a replay through real functions, an ATR stop on every entry and MIS costs; none started.
+- Reuse: confirm the live code exists before calling a cell wiring-ready.
+- Profit-booking / exit takeaway: the forced 15:15 flatten removed most cells, so overnight carry was part of the edge; a same-day exit rule must be in the backtest before the numbers are trusted.
