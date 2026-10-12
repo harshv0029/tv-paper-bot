@@ -755,3 +755,12 @@ Method notes: real main.py functions confirm every signal behind a necessary-con
 Result: pending dispatch (swing-min-rr-research.yml). Fill in tags/PFnet/n here when the run lands, failures included.
 Reuse next time: build the overlay as cells on a shared entry signal so only the exit differs; check live instrument feasibility (product type, overnight carry) BEFORE chasing a short-side number.
 Profit-booking / exit takeaway: a resting target only helps if the winners that reach rr x risk are not the trades that would otherwise run to the 30-bar timeout (B-797 showed timeout survivors carry the PFnet); compare target cells against base on ex-top5 PFnet and hold time before changing any live exit.
+
+## B-45 gap-and-go is swing-only; guard and B-798 status (2026-10-12 IST)
+- Mechanism: gap_and_go PFnet 1.65 (52 symbols; 1.31-1.47 full universe) comes from 1d bars with up to 30-day holds, driven by max-hold survivors.
+- Fit to this system: an intraday BUY engine with a 15:15 flatten cannot reproduce that hold, so the number must not transfer. Registry already keeps gap_and_go in SWING only; tests/test_gap_and_go_not_buy_category.py now enforces it.
+- Result: no new backtest. The true-intraday 5m same-day variant (intraday-gap-and-go-research.yml) has no registered result; if run, it is a new tag judged on its own PFnet.
+- Surprise: the guard existed only as a docstring, so a registry edit could have silently broken it.
+- Reuse: when a metric was measured at one holding horizon, encode the category restriction as a test, not prose.
+- B-798 status: brk20_min_rr ports, replay and IS/OOS harness are in place; live wiring waits on the OOS run (n>=30) and the user's go-ahead, because the earlier overlay collapse (IS 1.9-5.0 to OOS 0.22-0.56) shows pooled cells can be fitted.
+- Profit-booking / exit takeaway: never book or size an intraday trade off a swing hold-time PFnet; the 30-day survivors, not the stops, earned gap_and_go's edge, so an intraday exit would cut exactly the profit source.
