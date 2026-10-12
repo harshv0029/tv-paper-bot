@@ -1,0 +1,62 @@
+name: Portfolio overlay out-of-sample time-split (B-801)
+
+# Stage 1 reuses portfolio_overlay_research.py collect (8 shards, FULL universe via
+# main._load_nse_universe_from_file(), 1d, stop on every trade, 0.8% round trip). Stage 2 splits the brk20
+# trade streams by entry date (first 60% in-sample, last 40% out-of-sample) and reports pricebucket hi20_lo0,
+# passtrade4_k10 and base for both directions and every ATR: PFnet net/gross, win %, n, avg hold per window.
+# Small results artifact (json + table). Research only, no live wiring. Dispatch last (big matrix).
+on:
+  workflow_dispatch:
+    inputs:
+      is_pct:
+        description: "In-sample percent of distinct entry dates"
+        default: "60"
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Collect trade streams
+        run: |
+          set -o pipefail
+          python3 scripts/portfolio_overlay_research.py collect --shard ${{ matrix.shard }} --nshards 8 --out out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pfoos-collect-${{ matrix.shard }}
+          path: out/
+
+  merge:
+    needs: collect
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: pfoos-collect-*
+          merge-multiple: true
+      - name: Time-split overlay table
+        run: |
+          set -o pipefail
+          python3 scripts/portfolio_overlay_oos.py merge --dir shards --json pfoos_results.json --is-pct "${{ inputs.is_pct }}" | tee pfoos_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-overlay-oos-results
+          path: |
+            pfoos_results.json
+            pfoos_table.txt
