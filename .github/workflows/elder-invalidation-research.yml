@@ -1,0 +1,68 @@
+name: Elder signal-invalidation exit research (B-740 candle sweep and shorts)
+
+# Exit when the signals that flagged the entry disappear (EMA13 turn, MACD-H turn, opposite
+# Elder-ray) vs stop-only, on two generic base entries (EMA13 dip, 20-bar breakout), BOTH
+# directions, on the trade's own candle. Stop on every trade (ATR 1.5/2/3 plus a 6 ATR
+# catastrophic arm). 8 shards + merge. FULL universe via main._load_nse_universe_from_file(),
+# 0.8% round trip. Candle sweep: re-dispatch with interval=1h / 15m / 5m (4h owed). Research only.
+on:
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: "Candle size (1d, 1h, 15m, 5m)"
+        required: false
+        default: "1d"
+      period:
+        description: "yfinance period (1d: 5y; 1h: 730d; 15m/5m: 60d)"
+        required: false
+        default: "5y"
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run shard
+        run: |
+          set -o pipefail
+          python3 scripts/elder_invalidation_research.py \
+            --family invalidation --shard ${{ matrix.shard }} --nshards 8 \
+            --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" --out out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inval-${{ matrix.shard }}
+          path: out/
+
+  merge:
+    needs: research
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: inval-*
+          merge-multiple: true
+      - name: Merge shards and print per-tag table
+        run: |
+          set -o pipefail
+          python3 scripts/elder_invalidation_research.py --merge shards --json inval_results.json | tee inval_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elder-invalidation-results
+          path: |
+            inval_results.json
+            inval_table.txt
