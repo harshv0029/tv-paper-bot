@@ -11467,6 +11467,11 @@ def _build_trade_thesis(strategy_tag: str | None, entry_price: float, sl_trigger
     )
 
 
+# Live ports whose entry/exit code has NOT yet been replayed through the real main.py functions (backlog: replay owed).
+# Remove a tag only when its main.py-calling full-universe replay is registered. Derived-at-read-time viability is untouched.
+REPLAY_OWED_TAGS: frozenset = frozenset()  # filled below once the tag tuples exist
+
+
 def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: bool = True) -> bool:
     """PFnet >= 1 gate for NEW real entries (see the module comment just
     above). Fails CLOSED on every uncertain case - an unrecognized tag, a
@@ -11491,6 +11496,10 @@ def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: b
     import strategy_registry as sr
     strat = next((s for s in sr.REGISTRY if s.name == registry_name), None)
     if strat is None:
+        return False
+    # 2026-10-12 user thumb rule: nothing is wired or declared viable until it is backtested by us. A live port not yet
+    # replayed through the real main.py functions stays closed.
+    if strat.metrics is None or strategy_tag in REPLAY_OWED_TAGS:
         return False
     return strat.is_viable() is True
 
@@ -19635,6 +19644,9 @@ BRK20_SHORT_SWING_CELLS = (
 )
 BRK20_SHORT_SWING_ATR_OF_TAG = {t: a for t, a, _r in BRK20_SHORT_SWING_CELLS}
 SHORT_SWING_TAGS = tuple(t for t, _a, _r in BRK20_SHORT_SWING_CELLS)
+# 2026-10-12 user: not wired / not viable until backtested by us through the real main.py path. Island, swing-min-RR gate
+# and short-swing ports were merged without a main.py-calling replay, so the real-money gate stays closed for them.
+REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWINGMINRR_TAGS) | frozenset(SHORT_SWING_TAGS)
 for _t in SHORT_SWING_TAGS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 
