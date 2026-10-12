@@ -5,7 +5,7 @@ Signal at the close of bar t -> entry next open -> exit after H bars at the clos
 a fixed ATR(14) stop on the bar's low/high (k=0: no stop). Per symbol a cell is
 non-overlapping. Net of main.ROUND_TRIP_COST_PCT. Each (rule, dir, tf, hold, atr) is
 its own tag: <family>__<variant>__<dir>__<tf>__atr<k>_h<H>__v1 (never pooled).
-Env: TF (1d|1h|15m|5m), UNI (n200 = live swing watchlist only), MAXSYM (debug cap).
+Env: TF (1d|4h|1h|15m|5m; 4h = session-anchored resample of 1h, scripts/resample_4h.py), UNI (n200 = live swing watchlist only), MAXSYM (debug cap).
 Output docs/pattern_lab_results[_tf][_n200].json: {tag: {pfnet, win_pct, n, avg_net_pct, avg_held_bars}}.
 """
 import json
@@ -21,9 +21,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 TF = os.environ.get("TF", "1d")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from resample_4h import resample_1h_to_4h  # noqa: E402
 UNI = os.environ.get("UNI", "")
-PERIOD = {"1d": "5y", "1h": "730d", "15m": "60d", "5m": "60d"}[TF]
-PER_DAY = {"1d": 1, "1h": 6, "15m": 25, "5m": 75}[TF]
+PERIOD = {"1d": "5y", "1h": "730d", "4h": "730d", "15m": "60d", "5m": "60d"}[TF]  # 4h = 1h download resampled (scripts/resample_4h.py)
+PER_DAY = {"1d": 1, "1h": 6, "4h": 2, "15m": 25, "5m": 75}[TF]
 HOLDS = (3, 5, 10, 20) if TF == "1d" else (PER_DAY, 3 * PER_DAY, 5 * PER_DAY)
 KS = (0, 2.5, 4, 6)
 OUT = os.path.join(ROOT, "docs", "pattern_lab_results" + ("" if TF == "1d" else f"_{TF}") + (f"_{UNI}" if UNI in ("n200", "etf") else "") + ".json")
@@ -694,14 +696,17 @@ def main_run():
     for b0 in range(0, len(syms), 100):
         batch = syms[b0:b0 + 100]
         try:
-            d = yf.download(batch, period=PERIOD, interval=TF, group_by="ticker", auto_adjust=True, progress=False, threads=True)
+            d = yf.download(batch, period=PERIOD, interval=("1h" if TF == "4h" else TF), group_by="ticker", auto_adjust=True, progress=False, threads=True)
         except Exception as e:
             print("batch fail", b0, e, flush=True)
             continue
         for s in batch:
             try:
                 df = d[s].dropna(subset=["Close"]) if len(batch) > 1 else d.dropna(subset=["Close"])
-                df = clean_bars(df[["Open", "High", "Low", "Close", "Volume"]].dropna())
+                df = df[["Open", "High", "Low", "Close", "Volume"]].dropna()
+                if TF == "4h":
+                    df = resample_1h_to_4h(df)
+                df = clean_bars(df)
             except Exception:
                 continue
             if len(df) < 120:
@@ -746,7 +751,7 @@ def main_run():
                     "median_net_pct": round(float(np.median(r) * 100), 3),
                     "pfnet": round(float(gain / loss), 3) if loss else None, "win_pct": round(float((r > 0).mean() * 100), 1),
                     "n": int(len(r)), "avg_net_pct": round(float(r.mean() * 100), 3), "avg_held_bars": round(float(np.mean(hd)), 2),
-                    "bar_hours": {"1d": 6.25, "1h": 1.0, "15m": 0.25, "5m": 5 / 60}[TF]}
+                    "bar_hours": {"1d": 6.25, "1h": 1.0, "4h": 3.5, "15m": 0.25, "5m": 5 / 60}[TF]}
     json.dump({"results": res}, open(OUT, "w"), indent=0)
     ok = sorted([(m["pfnet"], m["n"], t) for t, m in res.items() if m["pfnet"] and m["pfnet"] > 1 and m["n"] >= 300], reverse=True)
     print(f"cells={len(res)} viable(PFnet>1,n>=300)={len(ok)}")
