@@ -22,7 +22,7 @@ Families (one workflow job each) and the backlog rows they cover:
 Tags: <family>__<variant>__<dir>__<tf>__<params>__v1.
 
 Usage:
-  python3 scripts/elder_indicators_research_ext.py --family rsi --shard 0 --nshards 4 --out out/
+  python3 scripts/elder_indicators_research_ext.py --family rsi --shard 0 --nshards 3 --out out/
   python3 scripts/elder_indicators_research_ext.py --merge out/ --json merged.json
 """
 from __future__ import annotations
