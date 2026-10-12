@@ -2797,6 +2797,10 @@ def _extend_with_sweeps():
         _of.apply()
         import strategy_registry_chan as _ch
         REGISTRY.extend(_ch.build())
+        import strategy_registry_macddiv as _md
+        REGISTRY.extend(_md.build())
+        import strategy_registry_brk20 as _bk
+        REGISTRY.extend(_bk.build())
         import strategy_registry_flatten as _fl
         REGISTRY.extend(_fl.build())
         import strategy_registry_grossfill as _gf

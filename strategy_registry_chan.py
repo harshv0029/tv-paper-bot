@@ -8,15 +8,20 @@ import strategy_registry as sr
 
 _FN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data", "chan_research_run_38183172728.json")
 _REF = "chan-research.yml run 38183172728 (2026-10-12 IST, 1d/1h, cost 0.8%)"
+_FN2 = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data", "chan_nonoverlap_run_38187474707.json")
+_REF2 = "chan-nonoverlap.yml run 38187474707 (2026-10-12 IST, 1d/1h, cost 0.8%, strict FIFO one position per symbol per cell)"
 
 
 def build():
     out, seen = [], {x.name for x in sr.REGISTRY}
-    try:
-        rows = json.load(open(_FN))["results"]
-    except Exception:
-        return out
-    for tag, r in rows.items():
+    rows = {}
+    for fn, ref in ((_FN, _REF), (_FN2, _REF2)):
+        try:
+            for k, v in json.load(open(fn))["results"].items():
+                rows[k] = (v, ref)
+        except Exception:
+            continue
+    for tag, (r, REF) in rows.items():
         try:
             if tag in seen or r.get("pfnet") is None:
                 continue
@@ -31,9 +36,9 @@ def build():
                 metrics=sr.Metrics(
                     pfnet=float(r["pfnet"]), pfgross=float(r.get("pfgross") or 0.0), win_rate_pct=float(r["win_pct"]),
                     n_trades=int(r["n"]), avg_held_hrs=hrs,
-                    universe="NSE harness universe (full, chan-research shards)", run_ref=_REF),
+                    universe="NSE harness universe (full, chan-research shards)", run_ref=REF),
                 source="scripts/chan_research.py",
-                evidence=f"{_REF}: PFnet {r['pfnet']}, gross {r.get('pfgross')}, win {r['win_pct']}%, n={r['n']} (overlapping signals), avg_hold {r['avg_hold_bars']} bars, avg_net {r.get('avg_net_pct')}%; exits {json.dumps(r.get('exit_reasons'), separators=(',', ':'))}",
+                evidence=f"{REF}: PFnet {r['pfnet']}, gross {r.get('pfgross')}, win {r['win_pct']}%, n={r['n']} ({'non-overlapping FIFO' if 'nonovl' in tag else 'overlapping signals'}), avg_hold {r['avg_hold_bars']} bars, avg_net {r.get('avg_net_pct')}%; exits {json.dumps(r.get('exit_reasons'), separators=(',', ':'))}",
                 notes="Chan cell; ATR stop in every cell; overlapping signals so non-overlap re-run owed before wiring. Viability derived from PFnet vs PFNET_LIVE_FLOOR."))
         except Exception:
             continue

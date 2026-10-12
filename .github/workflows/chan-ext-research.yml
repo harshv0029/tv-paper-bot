@@ -10,7 +10,7 @@ name: Chan extension research (B-431 B-439 B-441 B-442 B-447 B-448 B-449 B-450 B
 # (B-431) with NIFTY-drawdown momentum-crash gates (B-451), India VIX gates on every chan ts family (B-450),
 # per-year split of every ts cell (B-457; delisted-inclusive universe owed), correlation scan (B-449). The hygiene job
 # (B-458) counts bad ticks / jumps / zero-volume bars across the universe. Bar-count constants mean BARS, not days,
-# at every interval (stated in the harness header). 4h needs a 1h resample (owed). Index-futures path for B-439 owed.
+# at every interval (stated in the harness header). 4h = 1h bars resampled per session (cell_tsv.resample_4h, B-785). Index-futures path for B-439 owed.
 # Jobs: 3 shards x 4 intervals = 12, + 3 hygiene shards, + 4 merges. Each cell is its own tag; the merge prints
 # PFnet net/gross, win %, n, avg hold bars, exit reasons and the universe size.
 # Dispatch order per CLAUDE.md: big matrix, so only when no gate/safety run is queued.
@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        interval: ["1d", "1h", "15m", "5m"]
+        interval: ["1d", "4h", "1h", "15m", "5m"]
         shard: [0, 1, 2]
     steps:
       - uses: actions/checkout@v4
@@ -80,7 +80,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        interval: ["1d", "1h", "15m", "5m"]
+        interval: ["1d", "4h", "1h", "15m", "5m"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -95,6 +95,7 @@ jobs:
       - name: Merge and print
         env:
           OUT: chan_ext_results_${{ matrix.interval }}.json
+          TSV_OUT: chan_ext_cells_${{ matrix.interval }}.tsv
         run: |
           set -o pipefail
           if [ "${{ matrix.interval }}" = "1d" ]; then
@@ -107,4 +108,5 @@ jobs:
           name: chanext-results-${{ matrix.interval }}
           path: |
             chan_ext_results_${{ matrix.interval }}.json
+            chan_ext_cells_${{ matrix.interval }}.tsv
             merge_${{ matrix.interval }}.txt

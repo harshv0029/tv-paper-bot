@@ -35,8 +35,17 @@ def load_trades(path):
                 continue
             nr = float(r["net_return_pct"]) / (100.0 * rf)
         out.append({"strategy": r.get("strategy") or "all", "entry": str(r["entry_date"])[:10],
-                    "exit": str(r["exit_date"])[:10], "net_r": nr, "risk_frac": rf})
+                    "exit": str(r["exit_date"])[:10], "net_r": nr, "risk_frac": rf,
+                    "side": str(r.get("side") or r.get("direction") or "long").lower()})
     return out
+
+
+def filter_side(trades, side):
+    """B-773: short/intraday coverage. side in (None, 'all', 'long', 'short'); input rows may carry a
+    side/direction column (default long). Pure."""
+    if side in (None, "", "all"):
+        return trades
+    return [t for t in trades if t.get("side", "long") == side]
 
 
 def _pf(pnls):
@@ -109,8 +118,9 @@ def main(argv=None):
     ap.add_argument("--risks", default="1,2")
     ap.add_argument("--json")
     ap.add_argument("--max-open", type=int, default=10, help="max concurrent positions (portfolio capacity)")
+    ap.add_argument("--side", default="all", choices=["all", "long", "short"])
     a = ap.parse_args(argv)
-    trades = load_trades(a.trades)
+    trades = filter_side(load_trades(a.trades), a.side)
     res = []
     print(f"{len(trades)} trades")
     print("risk% cap% taken skip  PFnet  win%  totRet%  maxDD%  forgone  avoided (units of start equity)")

@@ -1,0 +1,71 @@
+name: Elder pyramiding research (B-742, never-average-down part of B-743)
+
+# Adds to winners only when the position is at breakeven or better and total risk stays <= 2% of
+# equity (unit ledger of scripts/portfolio_ledger_research.py). Triggers: Bear/Bull Power tick,
+# Force Index 2 flip; add sizes 0.5 and 1.0 of the first unit; arm noadd is the control. Two base
+# entries (EMA13 dip, 20-bar breakout). 8 shards + merge. FULL universe via
+# main._load_nse_universe_from_file(), BOTH directions, ATR 1.5/2/3, stop on every unit, 0.8% cost.
+# Merge prints PFnet net+gross, win %, n, avg hold, exit breakdown, adds accepted and rejection
+# counts. Candle sweep: re-dispatch with interval=1h / 15m / 5m (4h owed). Research only.
+# OWED: Vince margin-call exit / worst-first liquidation across concurrent positions (B-743).
+on:
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: "Candle size (1d, 1h, 15m, 5m)"
+        required: false
+        default: "1d"
+      period:
+        description: "yfinance period (1d: 5y; 1h: 730d; 15m/5m: 60d)"
+        required: false
+        default: "5y"
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run shard
+        run: |
+          set -o pipefail
+          python3 scripts/elder_pyramid_research.py \
+            --family pyramid --shard ${{ matrix.shard }} --nshards 8 \
+            --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" --out out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pyr-${{ matrix.shard }}
+          path: out/
+
+  merge:
+    needs: research
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: pyr-*
+          merge-multiple: true
+      - name: Merge shards and print per-tag table
+        run: |
+          set -o pipefail
+          python3 scripts/elder_pyramid_research.py --merge shards --json pyramid_results.json | tee pyramid_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elder-pyramid-results
+          path: |
+            pyramid_results.json
+            pyramid_table.txt

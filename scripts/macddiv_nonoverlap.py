@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+"""macddiv 1h LONG cells re-run with strictly NON-OVERLAPPING trades (backlog B-812; same method as B-807 chan).
+
+Cells (all long, 1h, from run 38188472624, PFnet >= 1.1): line_any atr3_w5, atr2_w5, atr1d5_w5; hist_any atr3_w5.
+Method: for every symbol and cell, evaluate the trade EACH signal bar would open on its own (independent, via the
+unchanged macd_divergence_research signal + elder_indicators_research.simulate, 0.8% round trip, ATR stop on every
+trade), then apply a strict FIFO filter: keep a trade only if its entry bar is after the exit bar of the last kept
+trade (one position per symbol per cell). FULL universe via main._load_nse_universe_from_file().
+Tags: <old tag minus __v1>__nonovl__v2 (old tags untouched).
+Note: er.simulate itself already skips signals before its previous exit (free = j), so the original run may already
+have been non-overlapping; this harness checks that independently instead of assuming it (raw vs kept counts printed).
+Usage:
+  python3 scripts/macddiv_nonoverlap.py --shard 0 --nshards 8 --out out/
+  python3 scripts/macddiv_nonoverlap.py --merge out/ --json merged.json
+"""
+from __future__ import annotations
+
+import argparse
+import glob
+import json
+import os
+import sys
+
+import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import elder_indicators_research as er  # noqa: E402
+import macd_divergence_research as md  # noqa: E402
+
+INTERVAL = "1h"
+# (variant, pivot half-width w, atr multiple)
+CELLS = (("line_any", 5, 3.0), ("line_any", 5, 2.0), ("line_any", 5, 1.5), ("hist_any", 5, 3.0))
+
+
+def nonovl_tag(old):
+    base = old[:-4] if old.endswith("__v1") else old
+    return base + "__nonovl__v2"
+
+
+def fifo_filter(trades):
+    """trades: dicts with entry_i, exit_i. Strict FIFO: keep if entry_i > last kept exit_i."""
+    kept, last_exit = [], -1
+    for t in sorted(trades, key=lambda t: (t["entry_i"], t["exit_i"])):
+        if t["entry_i"] > last_exit:
+            kept.append(t)
+            last_exit = t["exit_i"]
+    return kept
+
+
+def has_overlap(trades):
+    ts = sorted(trades, key=lambda t: t["entry_i"])
+    return any(b["entry_i"] <= a["exit_i"] for a, b in zip(ts, ts[1:]))
+
+
+def independent_trades(df, sig, direction, atr_mult):
+    """One independent trade per signal bar (er.simulate restricted to that single signal)."""
+    out = []
+    for s in np.flatnonzero(sig[direction]):
+        one = dict(sig)
+        mask = np.zeros(len(df), bool)
+        mask[s] = True
+        one[direction] = mask
+        tr = er.simulate(df, one, direction, atr_mult, {})
+        if tr:
+            e = int(s) + 1
+            out.append({**tr[0], "entry_i": e, "exit_i": e + tr[0]["hold"] - 1})
+    return out
+
+
+def cell_trades(df, sig, direction, atr_mult):
+    """(kept non-overlapping trades, count of independent signal trades before the filter)."""
+    raw = independent_trades(df, sig, direction, atr_mult)
+    return fifo_filter(raw), len(raw)
+
+
+def run_symbol(df, aggs, raw_counts=None):
+    specs = {(v, p["w"]): f for v, p, f in md.variant_specs()}
+    for variant, w, am in CELLS:
+        sig = specs[(variant, w)](df)
+        if not sig["long"].any():
+            continue
+        kept, nraw = cell_trades(df, sig, "long", am)
+        tag = nonovl_tag(er.make_tag(md.FAMILY, variant, "long", INTERVAL, {"w": w, "atr": am}))
+        er.add_trades(aggs.setdefault(tag, er.new_agg()), kept)
+        if raw_counts is not None:
+            raw_counts[tag] = raw_counts.get(tag, 0) + nraw
+
+
+def _main_shard(args):
+    sys.path.insert(0, ".")
+    import main as m
+    syms = sorted(set(m._load_nse_universe_from_file()))
+    syms = [s for k, s in enumerate(syms) if k % args.nshards == args.shard]
+    aggs, raw_counts, fetched = {}, {}, 0
+    for s in syms:
+        try:
+            raw = m.fetch_ohlc(s, args.period, INTERVAL)
+            if raw is None or len(raw) < 120:
+                continue
+            run_symbol(er.prep(raw), aggs, raw_counts)
+            fetched += 1
+        except Exception as ex:
+            print("ERROR", s, ex, file=sys.stderr)
+    print(f"shard {args.shard} {INTERVAL}: fetched {fetched}/{len(syms)}, tags {len(aggs)}")
+    os.makedirs(args.out, exist_ok=True)
+    with open(os.path.join(args.out, f"macddiv_nonovl_{args.shard}.json"), "w") as f:
+        json.dump({"interval": INTERVAL, "fetched": fetched, "universe": len(syms),
+                   "raw_signal_trades": raw_counts, "aggs": aggs}, f)
+
+
+def merge_dir(path):
+    merged, raw, fetched = {}, {}, 0
+    for f in sorted(glob.glob(os.path.join(path, "**", "macddiv_nonovl_*.json"), recursive=True)):
+        with open(f) as fh:
+            d = json.load(fh)
+        fetched += d["fetched"]
+        for t, n in d.get("raw_signal_trades", {}).items():
+            raw[t] = raw.get(t, 0) + n
+        for t, a in d["aggs"].items():
+            er.merge_aggs(merged.setdefault(t, er.new_agg()), a)
+    res = {t: {**er.summarize(a), "raw_signal_trades_before_fifo": raw.get(t)} for t, a in merged.items()}
+    return {"method": "strict FIFO, one position per symbol per cell", "fetched": fetched, "results": res}
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--shard", type=int, default=0)
+    ap.add_argument("--nshards", type=int, default=8)
+    ap.add_argument("--period", default=md.PERIODS[INTERVAL])
+    ap.add_argument("--out", default="out")
+    ap.add_argument("--merge")
+    ap.add_argument("--json")
+    args = ap.parse_args(argv)
+    if args.merge:
+        out = merge_dir(args.merge)
+        if args.json:
+            with open(args.json, "w") as f:
+                json.dump(out, f, separators=(",", ":"))
+        for t, m in sorted(out["results"].items(), key=lambda x: -(x[1]["pfnet"] or 0)):
+            print(t, m["pfnet"], m["pf_gross"], m["win_pct"], m["n"], m["avg_hold_bars"],
+                  m["raw_signal_trades_before_fifo"], m["exit_reasons"])
+        return 0
+    _main_shard(args)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
