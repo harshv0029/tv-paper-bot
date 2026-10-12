@@ -857,3 +857,11 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised/broke: the pooled number cleared 1.1 and looked like the only short family that did, yet the later half of the sample fails; non-overlap changed n little (885 vs 883), so the fade is time-regime, not overlap. Top-5 trades add little (no trade above 100%). Missing: mirror=true reruns still owed; no per-year split.
 - Reuse: always read the _segoos tag beside the pooled one; a wider stop (atr3) cut stop exits from 189 to 103 but did not rescue OOS.
 - Profit-booking / exit takeaway: profit came from timeouts (79% of trades, +4.5 to +6.1% avg) while stops lost 17-24% each, so the stop is the damage, not the exit timing; booking earlier than the 8-bar timeout was not tested and the OOS decay says do not wire this short.
+
+## Option trailing-SL peak from feed candle highs (B-320, 2026-10-12)
+- Mechanism: the single-strike option trailing SL ratchets off the running premium peak. The peak used only one polled LTP per 30s tick, so a spike between polls never moved the stop. It now also uses the max high of tick-built fo_option_candles bars since entry (bars starting before entry excluded).
+- Fit: weekly options move fast (max ~5 day life); a missed intrabar peak leaves the stop lower than the 10% trail intends, giving back profit. Stop only ever ratchets up, SL on every leg unchanged, 0.8% cost model unaffected.
+- Result: behaviour fix, not a backtested strategy; no PFnet claimed (Kotak serves no option history, cannot replay). 3 unit tests.
+- Surprised/broke: nothing; caveat that the entry bar itself is excluded so the peak may understate slightly, never overstate.
+- Reuse: any trail fed by sparse polling should read the tick-built candle high, not the last tick.
+- Profit-booking / exit takeaway: trail from the true intrabar premium high so a spike-and-reverse locks in gains at the intended giveback instead of the lower polled peak; live verification after deploy.
