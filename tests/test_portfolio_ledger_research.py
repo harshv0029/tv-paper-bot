@@ -39,3 +39,17 @@ def test_worst_first_long_and_short():
            dict(id="c", side=-1, qty=1, entry=100, mark=95, margin=10)]
     assert L.liquidate_worst_first(pos, 15) == ["b", "c"]
     assert L.liquidate_worst_first(pos, 0) == []
+
+
+def test_margin_call_exits_worst_first_and_noop():
+    ps = [{"id": "a", "side": 1, "qty": 10, "entry": 100, "mark": 90, "margin": 500},
+          {"id": "b", "side": -1, "qty": 10, "entry": 100, "mark": 90, "margin": 500}]
+    assert L.margin_call_exit(ps, 10000, 1000, 900) == []
+    assert L.margin_call_exit(ps, 10000, 500, 900) == ["a"]
+
+
+def test_correlation_screen_blocks_correlated():
+    base = [float(i % 7) for i in range(40)]
+    r = {"A": base, "B": [x * 2 for x in base], "C": [float((i * 3) % 5) for i in range(40)]}
+    out = L.correlation_screen(r, ["B", "C", "Z"], ["A"], max_corr=0.9)
+    assert "B" not in out and "Z" in out

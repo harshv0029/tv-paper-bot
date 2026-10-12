@@ -59,3 +59,38 @@ def liquidate_worst_first(positions, need_release):
         out.append(p["id"])
         freed += p["margin"]
     return out
+
+
+def margin_call_exit(positions, equity, margin_available, margin_required):
+    """Vince: never meet a margin call. If required margin exceeds available, return ids to EXIT (worst
+    mark-to-market first) until the shortfall is released; empty list when no call. No top-up is ever assumed;
+    `equity` is accepted for logging symmetry only."""
+    shortfall = margin_required - margin_available
+    if shortfall <= 0:
+        return []
+    return liquidate_worst_first(positions, shortfall)
+
+
+def correlation_screen(returns_by_sym, candidates, open_syms, max_corr=0.7, min_overlap=20):
+    """B-746 Elder diversification: from `candidates` (preference order) keep those whose |corr| with EVERY already
+    held symbol is <= max_corr (accepted candidates join the held set). returns_by_sym: {sym: [float|None]} date
+    aligned. Series with too little overlap or zero variance pass (correlation cannot be shown). Pure, no network."""
+    import math
+
+    def corr(a, b):
+        pr = [(x, y) for x, y in zip(a, b) if x is not None and y is not None
+              and not math.isnan(x) and not math.isnan(y)]
+        if len(pr) < min_overlap:
+            return 0.0
+        mx = sum(p[0] for p in pr) / len(pr)
+        my = sum(p[1] for p in pr) / len(pr)
+        sx = sum((p[0] - mx) ** 2 for p in pr) ** 0.5
+        sy = sum((p[1] - my) ** 2 for p in pr) ** 0.5
+        return 0.0 if sx == 0 or sy == 0 else sum((p[0] - mx) * (p[1] - my) for p in pr) / (sx * sy)
+
+    held, out = list(open_syms), []
+    for c in candidates:
+        if all(abs(corr(returns_by_sym.get(c, []), returns_by_sym.get(o, []))) <= max_corr for o in held):
+            out.append(c)
+            held.append(c)
+    return out
