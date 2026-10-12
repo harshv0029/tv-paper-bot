@@ -36,6 +36,7 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
 import universe_pin as up  # noqa: E402
+import research_interval as ri  # noqa: E402
 import macddiv_nonoverlap as no  # noqa: E402  (shared strict-FIFO + IS/OOS helpers)
 
 FILTERS = ("none", "px20", "turn1cr", "gap05", "liq_gap")
@@ -170,7 +171,7 @@ def cmd_run(a):
     aggs, fetched, got = {}, 0, []
     for s in syms:
         try:
-            raw = m.fetch_ohlc(s, a.period, a.interval)
+            raw = ri.fetch_interval(m, s, a.period, a.interval)
             if raw is None or len(raw) < 120:
                 continue
             df = er.prep(raw)
@@ -222,7 +223,7 @@ def main(argv=None):
     r = sub.add_parser("run")
     r.add_argument("--shard", type=int, default=0)
     r.add_argument("--nshards", type=int, default=4)
-    r.add_argument("--interval", default="1d")
+    r.add_argument("--interval", default="1d", choices=("1d", "1h", "15m", "5m"))
     r.add_argument("--period", default="5y")
     r.add_argument("--split_date", default="", help="IS/OOS boundary (entry date < it = IS); blank = split_frac")
     r.add_argument("--split_frac", type=float, default=0.6)

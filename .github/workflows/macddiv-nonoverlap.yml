@@ -11,6 +11,9 @@ on:
       interval:
         description: "Candle size (1h, 15m, 5m, 1d)"
         default: "1h"
+      period:
+        description: "yfinance period; blank = interval default (1d 5y, 1h 730d, 15m/5m 60d); over-cap values are clamped by scripts/research_interval.py"
+        default: ""
       cells:
         description: "orig = the 4 registered long cells; sweep = 3 variants x w3/w5 x ATR 1.5/2/3"
         default: "orig"
@@ -39,7 +42,7 @@ jobs:
           python-version: "3.11"
       - run: pip install -q -r requirements.txt
       - name: Run shard
-        run: python3 scripts/macddiv_nonoverlap.py --shard ${{ matrix.shard }} --nshards 6 --interval "${{ inputs.interval }}" --cells "${{ inputs.cells }}" --directions "${{ inputs.directions }}" --split_date "${{ inputs.split_date }}" --split_frac "${{ inputs.split_frac }}" --out out
+        run: python3 scripts/macddiv_nonoverlap.py --shard ${{ matrix.shard }} --nshards 6 --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" --cells "${{ inputs.cells }}" --directions "${{ inputs.directions }}" --split_date "${{ inputs.split_date }}" --split_frac "${{ inputs.split_frac }}" --out out
       - uses: actions/upload-artifact@v4
         with:
           name: macddiv-nonovl-${{ inputs.interval }}-${{ matrix.shard }}
