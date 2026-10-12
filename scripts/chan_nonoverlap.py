@@ -1,4 +1,4 @@
-"""Chan research cells re-run with strictly NON-OVERLAPPING trades (backlog B-806).
+"""Chan research cells re-run with strictly NON-OVERLAPPING trades (backlog B-807).
 Method: for every (symbol, cell) generate the trade each signal bar WOULD open independently (overlapping, as the
 registry n of chan-research run 38183172728 implies), then apply a strict FIFO filter: a trade is accepted only if its
 entry bar is after the exit bar of the last accepted trade in that symbol+cell (one position per symbol per cell, long
