@@ -3,7 +3,7 @@ name: Island reversal validation (B-789)
 # B-789: re-tests reversal__island__long__1d__atr3_within8__v1 (PFnet 1.571) with gross-vs-net, ex-top-5,
 # per-year, liquidity/gap-size filters, both directions, ATR 1.5/2/3. FULL universe via
 # main._load_nse_universe_from_file(). Candle-size sweep: dispatch with interval=1d (5y), 1h (730d),
-# 15m / 5m (60d); 4h needs a 1h resample (owed). Research only; nothing wired. 4 shards + merge.
+# 15m / 5m (60d); B-815 also emits __nonovl__v2 / __segis__v2 / __segoos__v2 long cells (split_date or split_frac); 4h needs a 1h resample (owed). Research only; nothing wired. 4 shards + merge.
 on:
   workflow_dispatch:
     inputs:
@@ -13,6 +13,12 @@ on:
       period:
         description: "yfinance period (1d: 5y; 1h: 730d; 15m/5m: 60d)"
         default: "5y"
+      split_date:
+        description: "IS/OOS boundary date YYYY-MM-DD (entry before = IS). Blank = use split_frac"
+        default: ""
+      split_frac:
+        description: "Fraction of each symbol's time span that is in-sample when split_date is blank"
+        default: "0.6"
 
 jobs:
   run:
@@ -28,7 +34,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -q -r requirements.txt
-      - run: python3 scripts/island_validation.py run --shard ${{ matrix.shard }} --nshards 4 --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" --out out/
+      - run: python3 scripts/island_validation.py run --shard ${{ matrix.shard }} --nshards 4 --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" --split_date "${{ inputs.split_date }}" --split_frac "${{ inputs.split_frac }}" --out out/
       - uses: actions/upload-artifact@v4
         with:
           name: island-shard-${{ matrix.shard }}

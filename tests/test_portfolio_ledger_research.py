@@ -84,3 +84,16 @@ def test_correlation_screen_blocks_correlated():
     r = {"A": base, "B": [x * 2 for x in base], "C": [float((i * 3) % 5) for i in range(40)]}
     out = L.correlation_screen(r, ["B", "C", "Z"], ["A"], max_corr=0.9)
     assert "B" not in out and "Z" in out
+
+
+def test_ledger_trades_from_collect_feeds_marked_ledger():
+    streams = {"b|long|2": [[1, 3, 0.1, 0.05, 2, 100.0, 1e6, "x", "A"]],
+               "b|short|2": [[1, 3, 0.1, 0.05, 2, 100.0, 1e6, "x", "B"], [1, 3, 0.1, 0.0, 2, 100.0, 1e6, "x", "C"]]}
+    paths = {"b|long|2": [[[1, 2, 3], [100.0, 105.0, 110.0]]],
+             "b|short|2": [[[1, 2, 3], [100.0, 95.0, 90.0]], [[1, 2, 3], [100.0, 95.0, 90.0]]]}
+    lt = L.ledger_trades_from_collect(streams, paths, "b|long|2")
+    assert lt[0]["side"] == 1 and abs(lt[0]["stop"] - 95.0) < 1e-9 and lt[0]["marks"][2] == 105.0
+    st = L.ledger_trades_from_collect(streams, paths, "b|short|2")
+    assert st[0]["side"] == -1 and abs(st[0]["stop"] - 105.0) < 1e-9 and st[1]["stop"] is None
+    r = L.simulate_marked_ledger(lt + st, [1, 2, 3])
+    assert r["n_refused"] == 1 and r["n_closed"] == 2 and r["final_equity"] > 1.0

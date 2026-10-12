@@ -65,3 +65,14 @@ def test_collect_symbol_records_symbol_and_returns():
     p.collect_symbol(synth(900, 1), st, "ABC", rets)
     assert "ABC" in rets and len(rets["ABC"][0]) == len(rets["ABC"][1])
     assert all(len(t) == 9 and t[8] == "ABC" for v in st.values() for t in v)
+
+
+def test_collect_symbol_emits_aligned_mark_paths_only_when_asked():
+    st0, st1, paths = {}, {}, {}
+    p.collect_symbol(synth(900, 1), st0, "ABC")
+    p.collect_symbol(synth(900, 1), st1, "ABC", None, paths)
+    assert st0 == st1 and paths and set(paths) == set(st1)
+    for k, rows in st1.items():
+        assert len(paths[k]) == len(rows)
+        for row, (secs, closes) in zip(rows, paths[k]):
+            assert secs[0] == row[0] and secs[-1] == row[1] and len(secs) == len(closes)
