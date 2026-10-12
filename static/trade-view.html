@@ -797,6 +797,12 @@ function timeAgo(ts) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+// B-868: "available = X, need = Y" under every non-green signal (from /signal-funds).
+function fundsNote(symbol) {
+  const e = ((window._sigFunds || {}).equity || {})[symbol];
+  return e ? `<div class="meta">${String(e.line).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]))}</div>` : "";
+}
+
 function renderScanner(p) {
   const recent = p.last_checked || [];
   document.getElementById("scan-recent").innerHTML = recent.length
@@ -806,7 +812,7 @@ function renderScanner(p) {
         return `<div class="scan-item">
           <span class="sym">${r.display || r.symbol}</span>
           <span class="scan-tag ${tag.cls}">${label}</span>
-          <span class="meta">${timeAgo(r.checked_at_utc)}</span>
+          <span class="meta">${timeAgo(r.checked_at_utc)}</span>${fundsNote(r.symbol)}
         </div>`;
       }).join("")
     : `<div class="scan-idle">No checks yet</div>`;
@@ -903,7 +909,7 @@ function renderCounts(p) {
           <span class="count-val ${r.checks_today === 0 ? 'zero' : ''}">${r.checks_today}</span>
         </span>
       </td>
-      <td>${r.checks_today > 0 ? `<span class="scan-tag ${tag.cls}">${label}</span>` : `<span class="scan-idle">—</span>`}</td>
+      <td>${r.checks_today > 0 ? `<span class="scan-tag ${tag.cls}">${label}</span>${fundsNote(r.symbol)}` : `<span class="scan-idle">—</span>`}</td>
       <td class="meta">${r.last_checked_at_utc ? timeAgo(r.last_checked_at_utc) : "—"}</td>
       <td class="meta"${sourceTitle}>${sourceLabel}${r.mcx_proxy_for ? " *" : ""}</td>
     </tr>`;
@@ -967,7 +973,7 @@ function renderFoDiagnosis(d) {
   const esc = x => String(x).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   if (meta) meta.textContent = `(real F&O ${d.real_fo_switch_on ? "ON" : "OFF"}, master ${d.master_trading_switch_on ? "ON" : "OFF"}, window ${d.entry_window_open_ist_0920_1500 ? "open" : "closed"}, viable tags: ${d.viable_strike_setup_tags.length})`;
   body.innerHTML = '<table class="counts"><thead><tr><th>Underlying</th><th>Primary blocker</th><th>Held</th><th>Strikes by status</th></tr></thead><tbody>' +
-    Object.entries(d.underlyings).map(([u, r]) => `<tr><td>${esc(u)}</td><td>${esc(r.primary_blocker)}</td><td>${esc(r.held_sides.join(",") || "-")}</td><td>${esc(JSON.stringify(r.strikes_by_status))}</td></tr>`).join("") +
+    Object.entries(d.underlyings).map(([u, r]) => `<tr><td>${esc(u)}</td><td>${esc(r.primary_blocker)}${((window._sigFunds||{}).fo||{})[u] ? `<div class="meta">${esc(window._sigFunds.fo[u].line)}</div>` : ""}</td><td>${esc(r.held_sides.join(",") || "-")}</td><td>${esc(JSON.stringify(r.strikes_by_status))}</td></tr>`).join("") +
     '</tbody></table>' + `<div class="meta">Skipped today: ${esc(JSON.stringify(d.skipped_reasons_today))}</div>`;
 }
 
@@ -2138,7 +2144,8 @@ async function refresh() {
     ]);
     renderUnprotectedBanner(protectionStatus);
     renderStrategyScanActivity(strategyScanActivity);
-    fetchJSON(`${ORIGIN}/fo-entry-diagnosis`).then(renderFoDiagnosis).catch(() => renderFoDiagnosis(null));
+    fetchJSON(`${ORIGIN}/signal-funds`).then(f => { window._sigFunds = f; }).catch(() => { window._sigFunds = null; })
+      .then(() => fetchJSON(`${ORIGIN}/fo-entry-diagnosis`)).then(renderFoDiagnosis).catch(() => renderFoDiagnosis(null));
     fetchJSON(`${ORIGIN}/strategy-viable-buckets`).then(renderViableBuckets).catch(() => renderViableBuckets(null));
     // BUG found live 2026-09-08 (explicit user finding: "current balance
     // is 1596 as of now but wrong here" - showing -Rs942.61 instead):
