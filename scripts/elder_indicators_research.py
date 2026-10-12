@@ -34,6 +34,9 @@ import sys
 import numpy as np
 import pandas as pd
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import universe_pin as up  # noqa: E402  (B-841 pinning)
+
 COST_ROUND_TRIP = 0.008     # 0.8% of notional, round trip
 MAX_HOLD_BARS = 30
 ATR_MULTS = (1.5, 2.0, 3.0)
@@ -450,9 +453,9 @@ def prep(raw):
 def _main_shard(args):
     sys.path.insert(0, ".")
     import main as m
-    syms = sorted(set(m._load_nse_universe_from_file()))
+    syms = up.select_universe(m._load_nse_universe_from_file(), args.pin_file)
     syms = [s for k, s in enumerate(syms) if k % args.nshards == args.shard]
-    aggs, fetched = {}, 0
+    aggs, fetched, got = {}, 0, []
     for s in syms:
         try:
             raw = m.fetch_ohlc(s, args.period, args.interval)
@@ -460,28 +463,31 @@ def _main_shard(args):
                 continue
             df = prep(raw)
             fetched += 1
+            got.append(s)
             run_symbol(df, args.family, args.interval, aggs)
         except Exception as ex:
             print("ERROR", s, ex, file=sys.stderr)
     print(f"{args.family} shard {args.shard}: fetched {fetched}/{len(syms)}, variants {len(aggs)}")
     os.makedirs(args.out, exist_ok=True)
     json.dump({"family": args.family, "interval": args.interval, "fetched": fetched,
-               "universe": len(syms), "aggs": aggs},
+               "universe": len(syms), "aggs": aggs,
+               **up.shard_meta(syms, got, args.pin_file, args.pin_tolerance)},
               open(os.path.join(args.out, f"{args.family}_{args.shard}.json"), "w"))
 
 
 def merge_dir(path):
-    merged, fetched = {}, 0
+    merged, fetched, parts = {}, 0, []
     for f in sorted(glob.glob(os.path.join(path, "**", "*.json"), recursive=True)):
         d = json.load(open(f))
         if "aggs" not in d:
             continue
         fetched += d.get("fetched", 0)
+        parts.append(d)
         for tag, ag in d["aggs"].items():
             merge_aggs(merged.setdefault(tag, new_agg()), ag)
     rows = [{"tag": t, **summarize(a)} for t, a in merged.items()]
     rows.sort(key=lambda r: (r["pfnet"] is None, -(r["pfnet"] or 0)))
-    return {"symbols_fetched": fetched, "cost_round_trip": COST_ROUND_TRIP, "rows": rows}
+    return {"symbols_fetched": fetched, "fetched_symbols": up.merge_fetched(parts), "cost_round_trip": COST_ROUND_TRIP, "rows": rows}
 
 
 def main(argv=None):
@@ -494,6 +500,7 @@ def main(argv=None):
     ap.add_argument("--out", default="out")
     ap.add_argument("--merge")
     ap.add_argument("--json")
+    up.add_args(ap)
     args = ap.parse_args(argv)
     if args.merge:
         res = merge_dir(args.merge)
