@@ -298,13 +298,37 @@ def variant_specs(family):
 
 # ---------------------------------------------------------------- simulator
 
+BAD_TICK_LO, BAD_TICK_HI = 0.5, 2.0   # B-864: a >2x / <0.5x one-bar move in Open or Close vs prior Close is a data glitch
+TOP_KEEP = 5                          # B-864: per-tag best trades kept for outlier forensics
+
+
+def bad_bar_mask(o, c, h=None, l=None):
+    """True where a bar is a corrupt/unadjusted yfinance print: Open or Close outside
+    [BAD_TICK_LO, BAD_TICK_HI] x the previous Close, or (when h/l given) inconsistent OHLC
+    (High below Open/Close/Low, or Low above Open/Close/High). NaN bars are not flagged (old behaviour).
+    B-864: one such bar flipped kb_oscrsi PFnet 0.958 -> 2.433 (a single ~+800x return trade)."""
+    bad = np.zeros(len(c), dtype=bool)
+    if len(c) >= 2:
+        pc = c[:-1]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            ro, rc = o[1:] / pc, c[1:] / pc
+        ok = (ro >= BAD_TICK_LO) & (ro <= BAD_TICK_HI) & (rc >= BAD_TICK_LO) & (rc <= BAD_TICK_HI)
+        bad[1:] = ~ok & ~(np.isnan(ro) | np.isnan(rc))
+    if h is not None and l is not None:
+        with np.errstate(invalid="ignore"):
+            bad |= (h < np.maximum(np.maximum(o, c), l)) | (l > np.minimum(np.minimum(o, c), h))
+    return bad
+
+
 def simulate(df, sig, direction, atr_mult, mgmt=None, atr_n=14, max_hold=MAX_HOLD_BARS,
              cost=COST_ROUND_TRIP):
-    """Return list of trades dict(ret, hold, reason). Stop on every trade."""
+    """Return list of trades dict(ret, hold, reason). Stop on every trade.
+    B-864: trades whose entry bar or any bar in the hold window is a bad bar (bad_bar_mask) are dropped."""
     mgmt = mgmt or {}
     d = 1 if direction == "long" else -1
     o, h, l, c = (df[k].to_numpy(float) for k in ("Open", "High", "Low", "Close"))
     a = atr(df, atr_n).to_numpy()
+    bad = bad_bar_mask(o, c, h, l)
     entry = sig[direction]
     lvl = sig[direction + "_lvl"]
     exitf = sig["exit_" + direction]
@@ -328,7 +352,7 @@ def simulate(df, sig, direction, atr_mult, mgmt=None, atr_n=14, max_hold=MAX_HOL
             if l[e] > lv:
                 continue
             px = min(o[e], lv)
-        if px <= 0:
+        if px <= 0 or bad[e]:
             continue
         risk = atr_mult * a[s]
         stop = px - d * risk
@@ -336,7 +360,11 @@ def simulate(df, sig, direction, atr_mult, mgmt=None, atr_n=14, max_hold=MAX_HOL
         tgt = None if tgt_arr is None or np.isnan(tgt_arr[s]) or d * (tgt_arr[s] - px) <= 0 else tgt_arr[s]
         sr = None if sr_arr is None or np.isnan(sr_arr[s]) else sr_arr[s]
         exit_px, reason, j = None, None, e
+        glitch = False
         for j in range(e, min(n, e + max_hold + 1)):
+            if bad[j]:
+                glitch = True
+                break
             if (d == 1 and l[j] <= stop) or (d == -1 and h[j] >= stop):
                 gap = o[j] if j > e else None
                 exit_px = (min(gap, stop) if d == 1 else max(gap, stop)) if gap is not None else stop
@@ -370,6 +398,9 @@ def simulate(df, sig, direction, atr_mult, mgmt=None, atr_n=14, max_hold=MAX_HOL
             if j == e + max_hold:
                 exit_px, reason = c[j], "max_hold_timeout"
                 break
+        if glitch:
+            free = j
+            continue
         if exit_px is None:
             exit_px, reason, j = c[n - 1], "data_end", n - 1
         ret = d * (exit_px - px) / px - cost
@@ -382,7 +413,12 @@ def simulate(df, sig, direction, atr_mult, mgmt=None, atr_n=14, max_hold=MAX_HOL
 
 def new_agg():
     return {"n": 0, "wins": 0, "win_sum": 0.0, "loss_sum": 0.0, "gwin_sum": 0.0, "gloss_sum": 0.0,
-            "hold_sum": 0, "reasons": {}}
+            "hold_sum": 0, "reasons": {}, "best": []}
+
+
+def _merge_top(a, b):
+    """Keep the TOP_KEEP best trades (by net ret) of two [ret, hold, reason, s] lists."""
+    return sorted(list(a) + list(b), key=lambda t: -t[0])[:TOP_KEEP]
 
 
 def add_trades(agg, trades, cost=COST_ROUND_TRIP):
@@ -396,6 +432,11 @@ def add_trades(agg, trades, cost=COST_ROUND_TRIP):
             agg["win_sum"] += r
         else:
             agg["loss_sum"] += -r
+        top = agg.setdefault("best", [])
+        if len(top) < TOP_KEEP or r > top[-1][0]:
+            top.append([float(r), int(t["hold"]), t["reason"], t.get("s")])
+            top.sort(key=lambda x: -x[0])
+            del top[TOP_KEEP:]
         g = r + cost
         if g > 0:
             agg["gwin_sum"] += g
@@ -408,6 +449,7 @@ def merge_aggs(a, b):
         a[k] += b[k]
     for r, v in b["reasons"].items():
         a["reasons"][r] = a["reasons"].get(r, 0) + v
+    a["best"] = _merge_top(a.get("best", []), b.get("best", []))
     return a
 
 
@@ -415,7 +457,15 @@ def summarize(agg):
     n = agg["n"]
     pf = (agg["win_sum"] / agg["loss_sum"]) if agg["loss_sum"] > 0 else (float("inf") if n else 0.0)
     gpf = (agg["gwin_sum"] / agg["gloss_sum"]) if agg["gloss_sum"] > 0 else (float("inf") if n else 0.0)
+    top = sorted(agg.get("best", []), key=lambda t: -t[0])
+    top1 = max(top[0][0], 0.0) if top else 0.0
+    ls = agg["loss_sum"]
+    trimmed = ((agg["win_sum"] - top1) / ls) if ls > 0 else (float("inf") if n else 0.0)
     return {"n": n, "pfnet": round(pf, 3) if pf != float("inf") else None,
+            "pfnet_trim1": round(trimmed, 3) if trimmed != float("inf") else None,
+            "max_trade_net_ret_pct": round(100.0 * top[0][0], 2) if top else None,
+            "top5_trades": [{"net_ret_pct": round(100.0 * t[0], 2), "hold_bars": t[1], "reason": t[2], "sig_bar": t[3]}
+                            for t in top],
             "pf_gross": round(gpf, 3) if gpf != float("inf") else None,
             "win_pct": round(100.0 * agg["wins"] / n, 2) if n else 0.0,
             "avg_hold_bars": round(agg["hold_sum"] / n, 2) if n else 0.0,
