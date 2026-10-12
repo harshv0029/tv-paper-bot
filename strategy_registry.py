@@ -2811,6 +2811,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_e2.build())
         import strategy_registry_eldertc as _etc
         REGISTRY.extend(_etc.build())
+        import strategy_registry_elderb3r2 as _eb3r
+        REGISTRY.extend(_eb3r.build())
         import strategy_registry_pfovl as _pv
         REGISTRY.extend(_pv.build())
         import strategy_registry_brk20 as _bk
