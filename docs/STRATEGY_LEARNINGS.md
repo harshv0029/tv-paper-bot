@@ -730,3 +730,11 @@ Source of every figure below: the generated results log (cost model 0.8%, PFnet 
 - Surprise: a "tested" family can silently differ from the book's definition through a helper default (14 vs 13); and the shared simulator lacked the bad-bar guard the batch3 harness got after B-864, so older daily cells are unguarded.
 - Reuse: read the helper's default parameters before calling a run "the book's indicator"; log period and smoothing in the tag; emit OOS and dropped-bad-bar counts with every cell; expect the cross to be late on intraday bars, where 0.8% cost likely dominates.
 - Profit-booking / exit takeaway: DI crosses lag, so the opposite-cross exit gives back much of the move; the trailing-stop (BE at +1 ATR, lock 50%) cells test whether booking earlier beats waiting for the cross, and the ts0 vs ts1 PFnet gap per cell is the answer to read first.
+
+## B-841/B-851 research universe pinning (2026-10-12 IST)
+- Mechanism: yfinance fetch flakiness changes which symbols a full-universe run actually uses (7049 vs 7059); on huge-n cells one extra symbol moved PFnet 0.648 -> 0.412. scripts/universe_pin.py records every shard's fetched symbols, merges them into `fetched_symbols`, and a rerun with --pin-file / PIN_FILE iterates exactly that set, aborting if more than 0.2% of pinned symbols fail to fetch.
+- Fit: the viability line (PFnet 1.1) is narrow enough that universe drift alone can cross it; a comparison between runs is only evidence about logic when the universe is identical.
+- Result: tooling, no new strategy tag. Unit test with a simulated flaky fetch shows identical symbol set and sums on a pinned rerun. A real pinned rerun is still owed before closing the rows.
+- Surprise: pinning the symbol set does not pin bar content (B-864: a corrupt print appeared in one fetch only), so pair it with trimmed PFnet and max single-trade checks.
+- Reuse: any new research script should call select_universe/shard_meta/merge_fetched and publish fetched_symbols in its merged JSON.
+- Profit-booking / exit takeaway: do not promote or demote a strategy on a PFnet gap between two runs unless the universe was pinned; otherwise a 0.2 swing may be noise that wrongly opens or closes real-money entry or a profit-booking rule.
