@@ -1,0 +1,28 @@
+name: Resolve universe pin
+description: "B-841/B-851. If pin_run_id is set, download that run's merged-results artifact and export PIN_FILE (exact symbol set). Fails loudly if the source run has no fetched_symbols. No-op when pin_run_id is empty."
+inputs:
+  pin_run_id:
+    description: "Run id of an earlier pin-aware run (empty = unpinned)"
+    required: false
+    default: ""
+  pin_artifact:
+    description: "Merged-results artifact name in that run"
+    required: false
+    default: ""
+  token:
+    description: "GitHub token with actions:read"
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        RUN_ID: ${{ inputs.pin_run_id }}
+        ART: ${{ inputs.pin_artifact }}
+      run: |
+        if [ -z "$RUN_ID" ]; then echo "unpinned run"; exit 0; fi
+        if [ -z "$ART" ]; then echo "pin_artifact required with pin_run_id" >&2; exit 1; fi
+        gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" -n "$ART" -D "$RUNNER_TEMP/pin_src"
+        python3 scripts/resolve_pin.py "$RUNNER_TEMP/pin_src" "$RUNNER_TEMP/pin.json"
+        echo "PIN_FILE=$RUNNER_TEMP/pin.json" >> "$GITHUB_ENV"

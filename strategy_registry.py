@@ -2809,6 +2809,10 @@ def _extend_with_sweeps():
         REGISTRY.extend(_dr.build())
         import strategy_registry_eldermacd2 as _e2
         REGISTRY.extend(_e2.build())
+        import strategy_registry_elderge11 as _eg
+        REGISTRY.extend(_eg.build())
+        import strategy_registry_idxopt as _ix
+        REGISTRY.extend(_ix.build())
         import strategy_registry_eldertc as _etc
         REGISTRY.extend(_etc.build())
         import strategy_registry_elderb3r2 as _eb3r
@@ -2819,6 +2823,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_bk.build())
         import strategy_registry_elderpat as _ep
         REGISTRY.extend(_ep.build())
+        import strategy_registry_dirsys_oneilnonovl as _dn
+        REGISTRY.extend(_dn.build())
         import strategy_registry_flatten as _fl
         REGISTRY.extend(_fl.build())
         import strategy_registry_grossfill as _gf

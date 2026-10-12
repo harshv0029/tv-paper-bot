@@ -21,6 +21,10 @@ on:
       intervals:
         description: 'JSON list of candle sizes (5m, 15m, 1h)'
         default: '["5m","15m","1h"]'
+      period:
+        description: 'yfinance period override (blank = 60d for 5m/15m, 730d for 1h); use with ONE interval only (B-786)'
+        required: false
+        default: ''
       maxsym:
         description: 'cap symbols for a pilot (0 = full universe)'
         default: '0'
@@ -49,6 +53,7 @@ jobs:
           SHARD: ${{ matrix.shard }}
           NSHARDS: "3"
           MAXSYM: ${{ inputs.maxsym }}
+          PERIOD: ${{ inputs.period }}
           OUT_DIR: out
         run: |
           set -o pipefail

@@ -15,7 +15,7 @@ ve x z) and the pattern_lab month_effect / lunar_full_new 15m short cells. Each 
 `<old tag minus __v1>_fl1515__v2` (logic change = version bump). The whole (family x ve x z x ATR x dir) grid is emitted
 for each requested interval, including 1h (no source cell; labelled source_tag=null) so a 1h reading exists too.
 
-Env: FAMILY (chan_kalman | pattern), INTERVAL (5m|15m|1h), UNI (pattern only: n200 | full), SHARD, NSHARDS, MAXSYM,
+Env: FAMILY (chan_kalman | pattern), INTERVAL (5m|15m|1h), PERIOD (yfinance period override, B-786; blank = 60d/730d default), UNI (pattern only: n200 | full), SHARD, NSHARDS, MAXSYM,
 OUT_DIR, COST_PCT (default main.ROUND_TRIP_COST_PCT; same 0.8% as the originals so numbers stay comparable - real MIS
 costs are lower, so this is conservative). Output out/flat_<family>_<interval>[_<uni>]_s<shard>.json; `--merge files...`.
 Caveats stated in the merge output: 60d (5m/15m) / 730d (1h) windows, bar-count constants mean BARS, 4h owed (needs a 1h resample).
@@ -179,7 +179,7 @@ def _frames(syms, interval):
     for b0 in range(0, len(syms), 100):
         batch = syms[b0:b0 + 100]
         try:
-            d = yf.download(batch, period=PERIOD[interval], interval=interval, group_by="ticker", auto_adjust=True,
+            d = yf.download(batch, period=(os.environ.get("PERIOD") or PERIOD[interval]), interval=interval, group_by="ticker", auto_adjust=True,
                             progress=False, threads=True)
         except Exception as e:  # noqa: BLE001
             print("batch fail", b0, e, flush=True)

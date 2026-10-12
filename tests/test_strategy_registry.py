@@ -174,7 +174,7 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
     # 2026-10-10: sector_rotation__ (B-336) and MCX sweep cells (B-343) are registered research cells.
     viable = [s.name for s in sr.REGISTRY if s.is_viable() is True
               and not s.name.startswith('sector_rotation__') and s.metrics.universe != 'mcx_proxy_single_symbol'
-               and not getattr(s, 'source', '').startswith('scripts/exit_family_research.py') and getattr(s, 'source', '') not in ('scripts/portfolio_overlay_research.py', 'scripts/breakeven_research.py', 'scripts/douglas_trade_mgmt_research.py', 'scripts/elder_batch3_research.py', 'main.minervini_vcp_entry_signal (real) + exits ported from scripts/minervini_lab.py', 'scripts/pattern_lab.py', 'scripts/chan_research.py', 'scripts/island_validation.py', 'scripts/macd_divergence_research.py', 'scripts/brk20_replay.py', 'scripts/intraday_flatten_rerun.py', 'scripts/elder_indicators_research.py', 'scripts/oneil_research.py', 'scripts/elder_macd_dirgap_research.py', 'scripts/elder_trend_context_research.py', 'scripts/elder_indicators_research_ext.py', 'scripts/oneil_ext_research.py', 'scripts/chan_ext_research.py', 'scripts/elder_patterns_research.py', 'scripts/minervini_sweep_lab.py', 'scripts/exit_family_research.py', 'scripts/minervini_lab.py', 'scripts/breadth_lab.py', 'scripts/combo_lab.py', 'scripts/intermarket_lab.py')]
+               and not getattr(s, 'source', '').startswith('scripts/exit_family_research.py') and getattr(s, 'source', '') not in ('scripts/portfolio_overlay_research.py', 'scripts/breakeven_research.py', 'scripts/douglas_trade_mgmt_research.py', 'scripts/elder_batch3_research.py', 'main.minervini_vcp_entry_signal (real) + exits ported from scripts/minervini_lab.py', 'scripts/pattern_lab.py', 'scripts/chan_research.py', 'scripts/island_validation.py', 'scripts/macd_divergence_research.py', 'scripts/brk20_replay.py', 'scripts/intraday_flatten_rerun.py', 'scripts/elder_indicators_research.py', 'scripts/oneil_research.py', 'scripts/elder_macd_dirgap_research.py', 'scripts/elder_trend_context_research.py', 'scripts/elder_indicators_research_ext.py', 'scripts/oneil_ext_research.py', 'scripts/chan_ext_research.py', 'scripts/elder_patterns_research.py', 'scripts/minervini_sweep_lab.py', 'scripts/exit_family_research.py', 'scripts/minervini_lab.py', 'scripts/breadth_lab.py', 'scripts/combo_lab.py', 'scripts/intermarket_lab.py', 'scripts/elder_dirsys13_research (B-588)', 'scripts/oneil_nonoverlap_research (B-831)')]
     assert set(viable) == {
         "gap_and_go_swing", "power_play_high_tight_flag",
         "minervini_vcp_breakeven_2r", "minervini_vcp_breakeven_3r",
@@ -216,7 +216,10 @@ def test_leaderboard_never_pads_with_fabricated_entries():
     # empty list, never invent placeholder rows.
     # futures holds MCX proxy sweep rows since 2026-10-10; never padded beyond real rows
     assert all(r["name"].split("__")[1] in ("gc","si","cl","ng","hg") for r in sr.leaderboard(sr.TradeCategory.FUTURES, top_n=5))
-    assert sr.leaderboard(sr.TradeCategory.OPTIONS, top_n=5) == []
+    # options holds B-869 index-option research rows since 2026-10-12 (real metrics, entry_fn=None, none viable); never padded
+    opt = sr.leaderboard(sr.TradeCategory.OPTIONS, top_n=5)
+    assert all(r['name'] and r['viable'] is False for r in opt)
+    assert sr.viable_leaderboard(sr.TradeCategory.OPTIONS) == []
 
 
 def test_leaderboard_returns_fewer_than_top_n_when_pool_is_smaller():

@@ -29,7 +29,8 @@ oneil_research.simulate on the same signals and prints any trade-count / PFnet d
 Usage:
   TAGS="tag1,tag2" SHARD=0 NSHARDS=4 python3 scripts/oneil_replay.py            # writes docs/oneil_replay_s<shard>.json
   python3 scripts/oneil_replay.py --merge docs/oneil_replay_s*.json             # pools shards, prints the full table
-Env: TAGS (comma list, default DEFAULT_TAGS), SHARD, NSHARDS, MAXSYM (debug), SLIP_PCT, CROSSCHECK.
+Env: TAGS (comma list, default DEFAULT_TAGS), SHARD, NSHARDS, MAXSYM (debug), SLIP_PCT, CROSSCHECK,
+INTERVAL (1d|1w: re-tag every spec to that candle size, B-786), PERIOD (yfinance period override, B-786).
 RS rank (rs80 filters) is the 12-month return percentile across the symbols loaded in the shard (as in the research).
 """
 import json
@@ -98,6 +99,17 @@ def parse_tag(tag):
         raise ValueError(f"no atr multiple in {tag}")
     return dict(tag=tag, family=fam, variant=var, dir=d, tf=tf, hold=int(p["h"]), mode=mode, val=float(val),
                 chase=(p["chase"] / 100.0 if "chase" in p else None), rs=p.get("rs", "none"))
+
+
+def retag_tf(tag, tf):
+    """B-786: the same rule at another candle size is a NEW tag (naming grammar): swap the tf field only."""
+    parts = tag.split("__")
+    if len(parts) != 6:
+        raise ValueError(f"not a grammar tag: {tag}")
+    if tf not in CFG:
+        raise ValueError(f"O'Neil replay supports only {sorted(CFG)} (bar-count constants are weeks/days), got {tf}")
+    parts[3] = tf
+    return "__".join(parts)
 
 
 # ---------- walk-forward detector ----------
@@ -372,7 +384,11 @@ def _crosscheck(sp, sym, df, rs_series, cost, trades):
 def main_run():
     import main as app
     tags = [t.strip() for t in os.environ.get("TAGS", "").split(",") if t.strip()] or list(DEFAULT_TAGS)
+    interval = (os.environ.get("INTERVAL") or "").strip()
+    if interval:   # B-786: replay the same rules at another candle size, each its own tag; bar counts mean BARS
+        tags = [retag_tf(t, interval) for t in tags]
     specs = [parse_tag(t) for t in tags]
+    period_override = (os.environ.get("PERIOD") or "").strip()
     shard, nsh = int(os.environ.get("SHARD", "0")), int(os.environ.get("NSHARDS", "1"))
     cost = app.ROUND_TRIP_COST_PCT / 100.0
     slip = float(os.environ.get("SLIP_PCT", "0") or 0) / 100.0
@@ -383,7 +399,7 @@ def main_run():
         syms = syms[:cap]
     cells_all, notes_all, loaded = {}, [], {}
     for tf in sorted({s["tf"] for s in specs}):
-        data = load_data(syms, tf, CFG[tf])
+        data = load_data(syms, tf, dict(CFG[tf], period=period_override) if period_override else CFG[tf])
         loaded[tf] = len(data)
         cells, notes = run_specs([s for s in specs if s["tf"] == tf], data, cost, slip, os.environ.get("CROSSCHECK") == "1")
         cells_all.update(cells)
