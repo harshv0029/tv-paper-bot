@@ -20,5 +20,5 @@ def test_status_and_counts_b779():
     ro = [r for r in rows if r["status"] == "research_only"]
     assert ro
     for r in ro:
-        assert r["strategy_tag"] not in main._STRATEGY_TAG_TO_REGISTRY_NAME
+        assert r["strategy_tag"] not in main._STRATEGY_TAG_TO_REGISTRY_NAME or r["strategy_tag"] in main.REPLAY_OWED_TAGS
         assert main._is_strategy_viable_for_real_money(r["strategy_tag"]) is False

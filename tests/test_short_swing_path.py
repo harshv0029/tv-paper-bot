@@ -63,7 +63,7 @@ def test_every_wired_cell_is_registered_short_and_viable():
     for tag in main.SHORT_SWING_TAGS:
         strat = next(s for s in sr.REGISTRY if s.name == tag)
         assert strat.metrics.pfnet >= sr.PFNET_LIVE_FLOOR >= 1.1
-        assert main._is_strategy_viable_for_real_money(tag, check_switch=False) is True
+        assert main._is_strategy_viable_for_real_money(tag, check_switch=False) is False  # replay owed (2026-10-12)
 
 
 def test_gate_closes_below_floor():
