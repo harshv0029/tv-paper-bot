@@ -1,0 +1,48 @@
+name: macddiv non-overlap re-run (B-812)
+
+# 2026-10-12 IST. Strict-FIFO (one position per symbol per cell) re-run of the 4 macddiv 1h long cells >= 1.1 from
+# run 38188472624 (scripts/macddiv_nonoverlap.py), 0.8% cost, ATR stop, FULL universe. New tags <old>__nonovl__v2.
+# Research only; nothing wired. Mirrors chan-nonoverlap.yml.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run shard
+        run: python3 scripts/macddiv_nonoverlap.py --shard ${{ matrix.shard }} --nshards 6 --out out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macddiv-nonovl-${{ matrix.shard }}
+          path: out/macddiv_nonovl_*.json
+          retention-days: 3
+
+  merge:
+    needs: run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+      - name: Merge and print
+        run: python3 scripts/macddiv_nonoverlap.py --merge shards --json macddiv_nonoverlap_results.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macddiv-nonoverlap-results
+          path: macddiv_nonoverlap_results.json
