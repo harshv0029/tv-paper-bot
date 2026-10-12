@@ -143,21 +143,11 @@ def div_classes(price_hi, price_lo, osc, w=3, maxgap=40, tol=0.005, otol=1.0):
     return {k: (v[0], v[1]) for k, v in out.items()}
 
 
-BAD_TICK_LO, BAD_TICK_HI = 0.5, 2.0   # B-864: a >2x / <0.5x one-bar move in Open or Close vs prior Close is a data glitch
+BAD_TICK_LO, BAD_TICK_HI = er.BAD_TICK_LO, er.BAD_TICK_HI   # B-864 (shared guard lives in elder_indicators_research)
 
 
-def bad_bar_mask(o, c):
-    """True where Open or Close jumps outside [0.5x, 2x] of the previous Close (corrupt/unadjusted yfinance
-    bar). B-864: one such bar flipped kb_oscrsi PFnet 0.958 -> 2.433 (a single ~+800x return trade)."""
-    bad = np.zeros(len(c), dtype=bool)
-    if len(c) < 2:
-        return bad
-    pc = c[:-1]
-    with np.errstate(divide="ignore", invalid="ignore"):
-        ro, rc = o[1:] / pc, c[1:] / pc
-    ok = (ro >= BAD_TICK_LO) & (ro <= BAD_TICK_HI) & (rc >= BAD_TICK_LO) & (rc <= BAD_TICK_HI)
-    bad[1:] = ~ok
-    return bad
+def bad_bar_mask(o, c, h=None, l=None):
+    return er.bad_bar_mask(o, c, h, l)
 
 
 def sim2(df, entry, direction, am, stop_lvl=None, tgt_lvl=None, exit_bool=None, max_hold=MAX_HOLD, cost=COST):
@@ -167,7 +157,7 @@ def sim2(df, entry, direction, am, stop_lvl=None, tgt_lvl=None, exit_bool=None, 
     o, h, l, c = (df[k].to_numpy(float) for k in ("Open", "High", "Low", "Close"))
     a = er.atr(df).to_numpy()
     n = len(df)
-    bad = bad_bar_mask(o, c)
+    bad = bad_bar_mask(o, c, h, l)
     trades, free = [], 0
     for s in np.flatnonzero(entry):
         if s < free or s + 1 >= n or np.isnan(a[s]) or a[s] <= 0:

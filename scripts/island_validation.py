@@ -35,6 +35,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
+import universe_pin as up  # noqa: E402
 import macddiv_nonoverlap as no  # noqa: E402  (shared strict-FIFO + IS/OOS helpers)
 
 FILTERS = ("none", "px20", "turn1cr", "gap05", "liq_gap")
@@ -164,9 +165,9 @@ def summarize(agg):
 def cmd_run(a):
     sys.path.insert(0, ".")
     import main as m
-    syms = sorted(set(m._load_nse_universe_from_file()))
+    syms = up.select_universe(m._load_nse_universe_from_file(), a.pin_file)
     syms = [s for k, s in enumerate(syms) if k % a.nshards == a.shard]
-    aggs, fetched = {}, 0
+    aggs, fetched, got = {}, 0, []
     for s in syms:
         try:
             raw = m.fetch_ohlc(s, a.period, a.interval)
@@ -174,21 +175,24 @@ def cmd_run(a):
                 continue
             df = er.prep(raw)
             fetched += 1
+            got.append(s)
             run_symbol(df, a.interval, aggs)
             run_symbol_nonovl(df, a.interval, aggs, a.split_date, a.split_frac)
         except Exception as ex:
             print("ERROR", s, ex, file=sys.stderr)
     os.makedirs(a.out, exist_ok=True)
-    json.dump({"interval": a.interval, "split_date": a.split_date, "split_frac": a.split_frac, "fetched": fetched, "universe": len(syms), "aggs": aggs},
+    json.dump({"interval": a.interval, "split_date": a.split_date, "split_frac": a.split_frac, "fetched": fetched, "universe": len(syms), "aggs": aggs,
+               **up.shard_meta(syms, got, a.pin_file, a.pin_tolerance)},
               open(os.path.join(a.out, f"island_{a.interval}_{a.shard}.json"), "w"))
     print(f"island shard {a.shard}: fetched {fetched}/{len(syms)} cells {len(aggs)}")
 
 
 def merge_dir(path):
-    tot, fetched, universe = {}, 0, 0
+    tot, fetched, universe, parts = {}, 0, 0, []
     for f in sorted(glob.glob(os.path.join(path, "island_*.json"))):
         d = json.load(open(f))
         fetched += d["fetched"]
+        parts.append(d)
         universe += d["universe"]
         for tag, ag in d["aggs"].items():
             t = tot.setdefault(tag, new_agg())
@@ -198,7 +202,7 @@ def merge_dir(path):
                 cur = t["year"].setdefault(y, [0.0, 0.0, 0])
                 t["year"][y] = [cur[0] + w, cur[1] + l, cur[2] + n]
     out = {tag: summarize(ag) for tag, ag in sorted(tot.items())}
-    return {"universe_listed": universe, "universe_with_data": fetched, "cells": out}
+    return {"universe_listed": universe, "universe_with_data": fetched, "fetched_symbols": up.merge_fetched(parts), "cells": out}
 
 
 def cmd_merge(a):
@@ -223,6 +227,7 @@ def main(argv=None):
     r.add_argument("--split_date", default="", help="IS/OOS boundary (entry date < it = IS); blank = split_frac")
     r.add_argument("--split_frac", type=float, default=0.6)
     r.add_argument("--out", default="out")
+    up.add_args(r)
     mg = sub.add_parser("merge")
     mg.add_argument("path")
     mg.add_argument("--json")

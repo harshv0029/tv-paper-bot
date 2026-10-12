@@ -27,6 +27,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import elder_indicators_research as er  # noqa: E402
+import universe_pin as up  # noqa: E402
 import macd_divergence_research as md  # noqa: E402
 
 INTERVAL = "1h"  # default; --interval overrides (1d/1h/15m/5m)
@@ -129,12 +130,12 @@ def run_symbol(df, aggs, raw_counts=None, split_date="", split_frac=0.6, interva
 def _main_shard(args):
     sys.path.insert(0, ".")
     import main as m
-    syms = sorted(set(m._load_nse_universe_from_file()))
+    syms = up.select_universe(m._load_nse_universe_from_file(), args.pin_file)
     syms = [s for k, s in enumerate(syms) if k % args.nshards == args.shard]
     interval = args.interval
     cells = CELL_SETS[args.cells]
     directions = tuple(d for d in args.directions.split(",") if d)
-    aggs, raw_counts, fetched = {}, {}, 0
+    aggs, raw_counts, fetched, got = {}, {}, 0, []
     for s in syms:
         try:
             raw = m.fetch_ohlc(s, args.period or PERIODS[interval], interval)
@@ -142,28 +143,31 @@ def _main_shard(args):
                 continue
             run_symbol(er.prep(raw), aggs, raw_counts, args.split_date, args.split_frac, interval, cells, directions)
             fetched += 1
+            got.append(s)
         except Exception as ex:
             print("ERROR", s, ex, file=sys.stderr)
     print(f"shard {args.shard} {interval}: fetched {fetched}/{len(syms)}, tags {len(aggs)}")
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, f"macddiv_nonovl_{interval}_{args.shard}.json"), "w") as f:
         json.dump({"interval": interval, "cells": args.cells, "directions": list(directions), "fetched": fetched, "universe": len(syms),
+                   **up.shard_meta(syms, got, args.pin_file, args.pin_tolerance),
                    "raw_signal_trades": raw_counts, "split_date": args.split_date,
                    "split_frac": args.split_frac, "aggs": aggs}, f)
 
 
 def merge_dir(path):
-    merged, raw, fetched = {}, {}, 0
+    merged, raw, fetched, parts = {}, {}, 0, []
     for f in sorted(glob.glob(os.path.join(path, "**", "macddiv_nonovl_*.json"), recursive=True)):
         with open(f) as fh:
             d = json.load(fh)
         fetched += d["fetched"]
+        parts.append(d)
         for t, n in d.get("raw_signal_trades", {}).items():
             raw[t] = raw.get(t, 0) + n
         for t, a in d["aggs"].items():
             er.merge_aggs(merged.setdefault(t, er.new_agg()), a)
     res = {t: {**er.summarize(a), "raw_signal_trades_before_fifo": raw.get(t)} for t, a in merged.items()}
-    return {"method": "strict FIFO, one position per symbol per cell", "fetched": fetched, "results": res}
+    return {"method": "strict FIFO, one position per symbol per cell", "fetched": fetched, "fetched_symbols": up.merge_fetched(parts), "results": res}
 
 
 def main(argv=None):
@@ -179,6 +183,7 @@ def main(argv=None):
     ap.add_argument("--out", default="out")
     ap.add_argument("--merge")
     ap.add_argument("--json")
+    up.add_args(ap)
     args = ap.parse_args(argv)
     if args.merge:
         out = merge_dir(args.merge)

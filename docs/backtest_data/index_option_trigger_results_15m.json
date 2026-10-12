@@ -1,0 +1,5988 @@
+{
+ "interval": "15m",
+ "max_hold_bars": 30,
+ "window": 500,
+ "cost_pcts": [
+  0.8,
+  0.1
+ ],
+ "is_frac": 0.7,
+ "synthetic": false,
+ "volume_info": {
+  "^NSEI": {
+   "bars": 1491,
+   "bars_with_volume": 0
+  },
+  "^NSEBANK": {
+   "bars": 1491,
+   "bars_with_volume": 0
+  },
+  "^BSESN": {
+   "bars": 1490,
+   "bars_with_volume": 0
+  }
+ },
+ "cells": {
+  "power_play__long__15m__atr2d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "power_play",
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "power_play__long__15m__atr3d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "power_play",
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "power_play__long__15m__atr4d5": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "power_play",
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "power_play__long__15m__atr6d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "power_play",
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "power_play__short__15m__atr2d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "power_play",
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "power_play__short__15m__atr3d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "power_play",
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "power_play__short__15m__atr4d5": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "power_play",
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "power_play__short__15m__atr6d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "power_play",
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "primary_base__long__15m__atr2d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "primary_base",
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "primary_base__long__15m__atr3d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "primary_base",
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "primary_base__long__15m__atr4d5": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "primary_base",
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "primary_base__long__15m__atr6d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "primary_base",
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "primary_base__short__15m__atr2d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "primary_base",
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "primary_base__short__15m__atr3d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "primary_base",
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "primary_base__short__15m__atr4d5": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "primary_base",
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "primary_base__short__15m__atr6d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "primary_base",
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "minervini_vcp_livermore__long__15m__atr2d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "minervini_vcp_livermore",
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "minervini_vcp_livermore__long__15m__atr3d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "minervini_vcp_livermore",
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "minervini_vcp_livermore__long__15m__atr4d5": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "minervini_vcp_livermore",
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "minervini_vcp_livermore__long__15m__atr6d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "minervini_vcp_livermore",
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "minervini_vcp_livermore__short__15m__atr2d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "minervini_vcp_livermore",
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "minervini_vcp_livermore__short__15m__atr3d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "minervini_vcp_livermore",
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "minervini_vcp_livermore__short__15m__atr4d5": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "minervini_vcp_livermore",
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "minervini_vcp_livermore__short__15m__atr6d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "minervini_vcp_livermore",
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "order_block_delta__long__15m__atr2d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "order_block_delta",
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "order_block_delta__long__15m__atr3d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "order_block_delta",
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "order_block_delta__long__15m__atr4d5": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "order_block_delta",
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "order_block_delta__long__15m__atr6d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "order_block_delta",
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "order_block_delta__short__15m__atr2d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "order_block_delta",
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "order_block_delta__short__15m__atr3d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "order_block_delta",
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "order_block_delta__short__15m__atr4d5": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "order_block_delta",
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "order_block_delta__short__15m__atr6d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "order_block_delta",
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "gap_and_go__long__15m__atr2d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "gap_and_go",
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "gap_and_go__long__15m__atr3d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "gap_and_go",
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "gap_and_go__long__15m__atr4d5": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "gap_and_go",
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "gap_and_go__long__15m__atr6d0": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "gap_and_go",
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "gap_and_go__short__15m__atr2d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "gap_and_go",
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "gap_and_go__short__15m__atr3d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "gap_and_go",
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "gap_and_go__short__15m__atr4d5": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "gap_and_go",
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "gap_and_go__short__15m__atr6d0": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "gap_and_go",
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 0
+    },
+    "is": {
+     "n": 0
+    },
+    "oos": {
+     "n": 0
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 0
+    },
+    "^NSEBANK": {
+     "n": 0
+    },
+    "^BSESN": {
+     "n": 0
+    }
+   }
+  },
+  "atr_range__expansion_break__long__15m__atr2d0_n20_k1d2__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "atr_range_break",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 60,
+     "win_pct_gross": 30.0,
+     "pfnet_gross": 0.4169614868891684,
+     "avg_hold_bars": 15.1,
+     "avg_ret_pct_gross": -0.17881400653451265,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.010577501185870317,
+       "win_pct": 5.0,
+       "avg_ret_pct": -0.9788140065345128
+      },
+      "0.1": {
+       "pfnet": 0.2611175849526749,
+       "win_pct": 26.666666666666668,
+       "avg_ret_pct": -0.2788140065345127
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 14,
+      "trail_stop_hit": 46
+     }
+    },
+    "is": {
+     "n": 42,
+     "win_pct_gross": 30.952380952380953,
+     "pfnet_gross": 0.5163048741926604,
+     "avg_hold_bars": 14.428571428571429,
+     "avg_ret_pct_gross": -0.13910554719508336,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.015668606249566248,
+       "win_pct": 7.142857142857142,
+       "avg_ret_pct": -0.9391055471950835
+      },
+      "0.1": {
+       "pfnet": 0.33065898735333726,
+       "win_pct": 28.57142857142857,
+       "avg_ret_pct": -0.2391055471950834
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 11,
+      "trail_stop_hit": 31
+     }
+    },
+    "oos": {
+     "n": 18,
+     "win_pct_gross": 27.77777777777778,
+     "pfnet_gross": 0.22718241753378954,
+     "avg_hold_bars": 16.666666666666668,
+     "avg_ret_pct_gross": -0.27146707832651434,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0714670783265146
+      },
+      "0.1": {
+       "pfnet": 0.12450310791156383,
+       "win_pct": 22.22222222222222,
+       "avg_ret_pct": -0.3714670783265144
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 15,
+      "max_hold_timeout": 3
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 17,
+     "win_pct_gross": 41.17647058823529,
+     "pfnet_gross": 0.6930828507387891,
+     "avg_hold_bars": 14.941176470588236,
+     "avg_ret_pct_gross": -0.07109616150169885,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.011822799297968593,
+       "win_pct": 5.88235294117647,
+       "avg_ret_pct": -0.8710961615016989
+      },
+      "0.1": {
+       "pfnet": 0.4109671286026962,
+       "win_pct": 41.17647058823529,
+       "avg_ret_pct": -0.1710961615016989
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 5,
+      "trail_stop_hit": 12
+     }
+    },
+    "^NSEBANK": {
+     "n": 23,
+     "win_pct_gross": 21.73913043478261,
+     "pfnet_gross": 0.3000364646051813,
+     "avg_hold_bars": 17.652173913043477,
+     "avg_ret_pct_gross": -0.2646188519042892,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.012196174247606441,
+       "win_pct": 4.3478260869565215,
+       "avg_ret_pct": -1.0646188519042894
+      },
+      "0.1": {
+       "pfnet": 0.20203280632200168,
+       "win_pct": 17.391304347826086,
+       "avg_ret_pct": -0.3646188519042893
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 4,
+      "trail_stop_hit": 19
+     }
+    },
+    "^BSESN": {
+     "n": 20,
+     "win_pct_gross": 30.0,
+     "pfnet_gross": 0.4047071055968952,
+     "avg_hold_bars": 12.3,
+     "avg_ret_pct_gross": -0.1716986026371614,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0075754881666189496,
+       "win_pct": 5.0,
+       "avg_ret_pct": -0.9716986026371616
+      },
+      "0.1": {
+       "pfnet": 0.244573844356107,
+       "win_pct": 25.0,
+       "avg_ret_pct": -0.2716986026371615
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 5,
+      "trail_stop_hit": 15
+     }
+    }
+   }
+  },
+  "atr_range__expansion_break__long__15m__atr3d0_n20_k1d2__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "atr_range_break",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 56,
+     "win_pct_gross": 35.714285714285715,
+     "pfnet_gross": 0.41734082405305295,
+     "avg_hold_bars": 19.678571428571427,
+     "avg_ret_pct_gross": -0.17817187623737132,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0054888499992215055,
+       "win_pct": 1.7857142857142856,
+       "avg_ret_pct": -0.9781718762373712
+      },
+      "0.1": {
+       "pfnet": 0.250518715855928,
+       "win_pct": 33.92857142857143,
+       "avg_ret_pct": -0.2781718762373714
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 22,
+      "trail_stop_hit": 34
+     }
+    },
+    "is": {
+     "n": 39,
+     "win_pct_gross": 38.46153846153847,
+     "pfnet_gross": 0.48124619729289797,
+     "avg_hold_bars": 19.128205128205128,
+     "avg_ret_pct_gross": -0.15044028939130422,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.00809017012302704,
+       "win_pct": 2.564102564102564,
+       "avg_ret_pct": -0.9504402893913043
+      },
+      "0.1": {
+       "pfnet": 0.2907114590880155,
+       "win_pct": 35.8974358974359,
+       "avg_ret_pct": -0.25044028939130425
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 15,
+      "trail_stop_hit": 24
+     }
+    },
+    "oos": {
+     "n": 17,
+     "win_pct_gross": 29.411764705882355,
+     "pfnet_gross": 0.2930275272321207,
+     "avg_hold_bars": 20.941176470588236,
+     "avg_ret_pct_gross": -0.2417913990018783,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0417913990018783
+      },
+      "0.1": {
+       "pfnet": 0.17161133953050794,
+       "win_pct": 29.411764705882355,
+       "avg_ret_pct": -0.3417913990018783
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 7,
+      "trail_stop_hit": 10
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 16,
+     "win_pct_gross": 50.0,
+     "pfnet_gross": 0.6471926674951415,
+     "avg_hold_bars": 20.4375,
+     "avg_ret_pct_gross": -0.07747570702120038,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -0.8774757070212004
+      },
+      "0.1": {
+       "pfnet": 0.3417018977117453,
+       "win_pct": 50.0,
+       "avg_ret_pct": -0.17747570702120039
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 6,
+      "trail_stop_hit": 10
+     }
+    },
+    "^NSEBANK": {
+     "n": 21,
+     "win_pct_gross": 28.57142857142857,
+     "pfnet_gross": 0.38201660093281475,
+     "avg_hold_bars": 19.952380952380953,
+     "avg_ret_pct_gross": -0.24168035215620173,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.013632016545581892,
+       "win_pct": 4.761904761904762,
+       "avg_ret_pct": -1.041680352156202
+      },
+      "0.1": {
+       "pfnet": 0.26124382291849957,
+       "win_pct": 28.57142857142857,
+       "avg_ret_pct": -0.3416803521562018
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 9,
+      "trail_stop_hit": 12
+     }
+    },
+    "^BSESN": {
+     "n": 19,
+     "win_pct_gross": 31.57894736842105,
+     "pfnet_gross": 0.3214743767126254,
+     "avg_hold_bars": 18.736842105263158,
+     "avg_ret_pct_gross": -0.19277507166701852,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -0.9927750716670186
+      },
+      "0.1": {
+       "pfnet": 0.17690663013032118,
+       "win_pct": 26.31578947368421,
+       "avg_ret_pct": -0.29277507166701855
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 7,
+      "trail_stop_hit": 12
+     }
+    }
+   }
+  },
+  "atr_range__expansion_break__long__15m__atr4d5_n20_k1d2__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "atr_range_break",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 55,
+     "win_pct_gross": 34.54545454545455,
+     "pfnet_gross": 0.4253019939823024,
+     "avg_hold_bars": 25.054545454545455,
+     "avg_ret_pct_gross": -0.17124314950810138,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.005627729977721845,
+       "win_pct": 1.8181818181818181,
+       "avg_ret_pct": -0.9712431495081015
+      },
+      "0.1": {
+       "pfnet": 0.25730827559727126,
+       "win_pct": 30.909090909090907,
+       "avg_ret_pct": -0.27124314950810147
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 37,
+      "trail_stop_hit": 18
+     }
+    },
+    "is": {
+     "n": 38,
+     "win_pct_gross": 39.473684210526315,
+     "pfnet_gross": 0.48162884626466745,
+     "avg_hold_bars": 24.736842105263158,
+     "avg_ret_pct_gross": -0.14315129199203128,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.008364920657455002,
+       "win_pct": 2.631578947368421,
+       "avg_ret_pct": -0.9431512919920315
+      },
+      "0.1": {
+       "pfnet": 0.28332030029926886,
+       "win_pct": 34.21052631578947,
+       "avg_ret_pct": -0.24315129199203128
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 25,
+      "trail_stop_hit": 13
+     }
+    },
+    "oos": {
+     "n": 17,
+     "win_pct_gross": 23.52941176470588,
+     "pfnet_gross": 0.32502310333695245,
+     "avg_hold_bars": 25.764705882352942,
+     "avg_ret_pct_gross": -0.23403671336755216,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.034036713367552
+      },
+      "0.1": {
+       "pfnet": 0.21069484705374195,
+       "win_pct": 23.52941176470588,
+       "avg_ret_pct": -0.33403671336755225
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 12,
+      "trail_stop_hit": 5
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 16,
+     "win_pct_gross": 50.0,
+     "pfnet_gross": 0.6440829830719635,
+     "avg_hold_bars": 26.0,
+     "avg_ret_pct_gross": -0.07528112929218317,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -0.8752811292921832
+      },
+      "0.1": {
+       "pfnet": 0.33581588340346696,
+       "win_pct": 43.75,
+       "avg_ret_pct": -0.1752811292921832
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 11,
+      "trail_stop_hit": 5
+     }
+    },
+    "^NSEBANK": {
+     "n": 21,
+     "win_pct_gross": 23.809523809523807,
+     "pfnet_gross": 0.3916166310388905,
+     "avg_hold_bars": 24.857142857142858,
+     "avg_ret_pct_gross": -0.23599982840375192,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.013705738239852635,
+       "win_pct": 4.761904761904762,
+       "avg_ret_pct": -1.0359998284037522
+      },
+      "0.1": {
+       "pfnet": 0.276023919174602,
+       "win_pct": 23.809523809523807,
+       "avg_ret_pct": -0.335999828403752
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 15,
+      "trail_stop_hit": 6
+     }
+    },
+    "^BSESN": {
+     "n": 18,
+     "win_pct_gross": 33.33333333333333,
+     "pfnet_gross": 0.3293790218607584,
+     "avg_hold_bars": 24.444444444444443,
+     "avg_ret_pct_gross": -0.1809932643217697,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -0.9809932643217698
+      },
+      "0.1": {
+       "pfnet": 0.17331340142153054,
+       "win_pct": 27.77777777777778,
+       "avg_ret_pct": -0.28099326432176974
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 11,
+      "trail_stop_hit": 7
+     }
+    }
+   }
+  },
+  "atr_range__expansion_break__long__15m__atr6d0_n20_k1d2__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "atr_range_break",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 54,
+     "win_pct_gross": 35.18518518518518,
+     "pfnet_gross": 0.4001983741945816,
+     "avg_hold_bars": 27.37037037037037,
+     "avg_ret_pct_gross": -0.1949028199519891,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.00559581600684849,
+       "win_pct": 1.8518518518518516,
+       "avg_ret_pct": -0.9949028199519893
+      },
+      "0.1": {
+       "pfnet": 0.246898776741264,
+       "win_pct": 31.48148148148148,
+       "avg_ret_pct": -0.2949028199519892
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 41,
+      "trail_stop_hit": 13
+     }
+    },
+    "is": {
+     "n": 38,
+     "win_pct_gross": 36.84210526315789,
+     "pfnet_gross": 0.3991487596786137,
+     "avg_hold_bars": 27.157894736842106,
+     "avg_ret_pct_gross": -0.18889006526168003,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.007981108906499895,
+       "win_pct": 2.631578947368421,
+       "avg_ret_pct": -0.9888900652616802
+      },
+      "0.1": {
+       "pfnet": 0.24000512922997005,
+       "win_pct": 31.57894736842105,
+       "avg_ret_pct": -0.28889006526168004
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 28,
+      "trail_stop_hit": 10
+     }
+    },
+    "oos": {
+     "n": 16,
+     "win_pct_gross": 31.25,
+     "pfnet_gross": 0.40243705736153873,
+     "avg_hold_bars": 27.875,
+     "avg_ret_pct_gross": -0.20918311234147322,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0091831123414732
+      },
+      "0.1": {
+       "pfnet": 0.2617587214411719,
+       "win_pct": 31.25,
+       "avg_ret_pct": -0.3091831123414733
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 13,
+      "trail_stop_hit": 3
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 16,
+     "win_pct_gross": 50.0,
+     "pfnet_gross": 0.5657269506546694,
+     "avg_hold_bars": 26.9375,
+     "avg_ret_pct_gross": -0.1024660190100217,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -0.9024660190100218
+      },
+      "0.1": {
+       "pfnet": 0.29782109783782507,
+       "win_pct": 43.75,
+       "avg_ret_pct": -0.2024660190100217
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 12,
+      "trail_stop_hit": 4
+     }
+    },
+    "^NSEBANK": {
+     "n": 21,
+     "win_pct_gross": 23.809523809523807,
+     "pfnet_gross": 0.35499186498602886,
+     "avg_hold_bars": 27.19047619047619,
+     "avg_ret_pct_gross": -0.276021093433419,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.013202700680944045,
+       "win_pct": 4.761904761904762,
+       "avg_ret_pct": -1.0760210934334193
+      },
+      "0.1": {
+       "pfnet": 0.2541110370270479,
+       "win_pct": 23.809523809523807,
+       "avg_ret_pct": -0.3760210934334191
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 17,
+      "trail_stop_hit": 4
+     }
+    },
+    "^BSESN": {
+     "n": 17,
+     "win_pct_gross": 35.294117647058826,
+     "pfnet_gross": 0.3545069404260322,
+     "avg_hold_bars": 28.0,
+     "avg_ret_pct_gross": -0.18169723594972148,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -0.9816972359497215
+      },
+      "0.1": {
+       "pfnet": 0.1945432826497322,
+       "win_pct": 29.411764705882355,
+       "avg_ret_pct": -0.28169723594972146
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 12,
+      "trail_stop_hit": 5
+     }
+    }
+   }
+  },
+  "atr_range__expansion_break__short__15m__atr2d0_n20_k1d2__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "atr_range_break",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 76,
+     "win_pct_gross": 47.368421052631575,
+     "pfnet_gross": 1.4459236130397615,
+     "avg_hold_bars": 17.723684210526315,
+     "avg_ret_pct_gross": 0.07796976451788477,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.061977547810331664,
+       "win_pct": 14.473684210526317,
+       "avg_ret_pct": -0.7220302354821154
+      },
+      "0.1": {
+       "pfnet": 0.9058513605389001,
+       "win_pct": 38.15789473684211,
+       "avg_ret_pct": -0.022030235482115253
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 57,
+      "max_hold_timeout": 19
+     }
+    },
+    "is": {
+     "n": 52,
+     "win_pct_gross": 38.46153846153847,
+     "pfnet_gross": 0.8739755499306545,
+     "avg_hold_bars": 18.28846153846154,
+     "avg_ret_pct_gross": -0.023098080227622227,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.006006507947647767,
+       "win_pct": 5.769230769230769,
+       "avg_ret_pct": -0.8230980802276223
+      },
+      "0.1": {
+       "pfnet": 0.5037984984631776,
+       "win_pct": 34.61538461538461,
+       "avg_ret_pct": -0.12309808022762223
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 41,
+      "max_hold_timeout": 11
+     }
+    },
+    "oos": {
+     "n": 24,
+     "win_pct_gross": 66.66666666666666,
+     "pfnet_gross": 2.8964793346243605,
+     "avg_hold_bars": 16.5,
+     "avg_ret_pct_gross": 0.2969500947998166,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.21806952849722339,
+       "win_pct": 33.33333333333333,
+       "avg_ret_pct": -0.5030499052001834
+      },
+      "0.1": {
+       "pfnet": 1.9679413694768608,
+       "win_pct": 45.83333333333333,
+       "avg_ret_pct": 0.19695009479981657
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 16,
+      "max_hold_timeout": 8
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 26,
+     "win_pct_gross": 50.0,
+     "pfnet_gross": 2.3823233163969193,
+     "avg_hold_bars": 19.076923076923077,
+     "avg_ret_pct_gross": 0.1728433461102839,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.10179127383638176,
+       "win_pct": 19.230769230769234,
+       "avg_ret_pct": -0.6271566538897161
+      },
+      "0.1": {
+       "pfnet": 1.394057911203697,
+       "win_pct": 38.46153846153847,
+       "avg_ret_pct": 0.07284334611028387
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 20,
+      "max_hold_timeout": 6
+     }
+    },
+    "^NSEBANK": {
+     "n": 25,
+     "win_pct_gross": 44.0,
+     "pfnet_gross": 1.0133529863367385,
+     "avg_hold_bars": 16.72,
+     "avg_ret_pct_gross": 0.00265586551359398,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.04774591846354533,
+       "win_pct": 8.0,
+       "avg_ret_pct": -0.7973441344864061
+      },
+      "0.1": {
+       "pfnet": 0.627325137138125,
+       "win_pct": 36.0,
+       "avg_ret_pct": -0.09734413448640603
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 7,
+      "trail_stop_hit": 18
+     }
+    },
+    "^BSESN": {
+     "n": 25,
+     "win_pct_gross": 48.0,
+     "pfnet_gross": 1.269561190111233,
+     "avg_hold_bars": 17.32,
+     "avg_ret_pct_gross": 0.054615138666080476,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.040091799296395496,
+       "win_pct": 16.0,
+       "avg_ret_pct": -0.7453848613339196
+      },
+      "0.1": {
+       "pfnet": 0.8240145507028498,
+       "win_pct": 40.0,
+       "avg_ret_pct": -0.04538486133391956
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 6,
+      "trail_stop_hit": 19
+     }
+    }
+   }
+  },
+  "atr_range__expansion_break__short__15m__atr3d0_n20_k1d2__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "atr_range_break",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 68,
+     "win_pct_gross": 51.470588235294116,
+     "pfnet_gross": 1.7551413912357787,
+     "avg_hold_bars": 22.764705882352942,
+     "avg_ret_pct_gross": 0.12798371005105716,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.052694736685816666,
+       "win_pct": 14.705882352941178,
+       "avg_ret_pct": -0.6720162899489429
+      },
+      "0.1": {
+       "pfnet": 1.1264274458244967,
+       "win_pct": 47.05882352941176,
+       "avg_ret_pct": 0.0279837100510571
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 33,
+      "trail_stop_hit": 35
+     }
+    },
+    "is": {
+     "n": 45,
+     "win_pct_gross": 51.11111111111111,
+     "pfnet_gross": 1.4620211073366305,
+     "avg_hold_bars": 24.066666666666666,
+     "avg_ret_pct_gross": 0.07373056351955028,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.007291011868951088,
+       "win_pct": 6.666666666666667,
+       "avg_ret_pct": -0.7262694364804498
+      },
+      "0.1": {
+       "pfnet": 0.8748755605749929,
+       "win_pct": 48.888888888888886,
+       "avg_ret_pct": -0.026269436480449743
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 24,
+      "trail_stop_hit": 21
+     }
+    },
+    "oos": {
+     "n": 23,
+     "win_pct_gross": 52.17391304347826,
+     "pfnet_gross": 2.2397500777653017,
+     "avg_hold_bars": 20.217391304347824,
+     "avg_ret_pct_gross": 0.23413117065617925,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.15028560431308052,
+       "win_pct": 30.434782608695656,
+       "avg_ret_pct": -0.565868829343821
+      },
+      "0.1": {
+       "pfnet": 1.550535328105593,
+       "win_pct": 43.47826086956522,
+       "avg_ret_pct": 0.13413117065617922
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 14,
+      "max_hold_timeout": 9
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 25,
+     "win_pct_gross": 52.0,
+     "pfnet_gross": 2.128632254207055,
+     "avg_hold_bars": 21.76,
+     "avg_ret_pct_gross": 0.14261633826240994,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.05160671803286138,
+       "win_pct": 20.0,
+       "avg_ret_pct": -0.6573836617375901
+      },
+      "0.1": {
+       "pfnet": 1.2357573585312553,
+       "win_pct": 44.0,
+       "avg_ret_pct": 0.042616338262409945
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 11,
+      "trail_stop_hit": 14
+     }
+    },
+    "^NSEBANK": {
+     "n": 21,
+     "win_pct_gross": 52.38095238095239,
+     "pfnet_gross": 1.1742669597306785,
+     "avg_hold_bars": 21.80952380952381,
+     "avg_ret_pct_gross": 0.047816291439919285,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.05950874170169612,
+       "win_pct": 9.523809523809524,
+       "avg_ret_pct": -0.752183708560081
+      },
+      "0.1": {
+       "pfnet": 0.8395161683175185,
+       "win_pct": 47.61904761904761,
+       "avg_ret_pct": -0.052183708560080755
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 10,
+      "trail_stop_hit": 11
+     }
+    },
+    "^BSESN": {
+     "n": 22,
+     "win_pct_gross": 50.0,
+     "pfnet_gross": 2.5874829984870353,
+     "avg_hold_bars": 24.818181818181817,
+     "avg_ret_pct_gross": 0.1878791684851515,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.04592248500349728,
+       "win_pct": 13.636363636363635,
+       "avg_ret_pct": -0.6121208315148488
+      },
+      "0.1": {
+       "pfnet": 1.5220016975714183,
+       "win_pct": 50.0,
+       "avg_ret_pct": 0.08787916848515143
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 12,
+      "trail_stop_hit": 10
+     }
+    }
+   }
+  },
+  "atr_range__expansion_break__short__15m__atr4d5_n20_k1d2__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "atr_range_break",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 66,
+     "win_pct_gross": 57.57575757575758,
+     "pfnet_gross": 1.6183607648262361,
+     "avg_hold_bars": 26.12121212121212,
+     "avg_ret_pct_gross": 0.11895401608084985,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.04938768595831225,
+       "win_pct": 15.151515151515152,
+       "avg_ret_pct": -0.6810459839191502
+      },
+      "0.1": {
+       "pfnet": 1.0796163031484267,
+       "win_pct": 53.03030303030303,
+       "avg_ret_pct": 0.018954016080849824
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 43,
+      "trail_stop_hit": 23
+     }
+    },
+    "is": {
+     "n": 43,
+     "win_pct_gross": 60.46511627906976,
+     "pfnet_gross": 1.8045016001618157,
+     "avg_hold_bars": 26.86046511627907,
+     "avg_ret_pct_gross": 0.11591078936787902,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0080940416669172,
+       "win_pct": 6.976744186046512,
+       "avg_ret_pct": -0.6840892106321211
+      },
+      "0.1": {
+       "pfnet": 1.0857192699992506,
+       "win_pct": 58.139534883720934,
+       "avg_ret_pct": 0.015910789367879007
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 30,
+      "trail_stop_hit": 13
+     }
+    },
+    "oos": {
+     "n": 23,
+     "win_pct_gross": 52.17391304347826,
+     "pfnet_gross": 1.4409736297914266,
+     "avg_hold_bars": 24.73913043478261,
+     "avg_ret_pct_gross": 0.1246435268920562,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.11885498234786504,
+       "win_pct": 30.434782608695656,
+       "avg_ret_pct": -0.675356473107944
+      },
+      "0.1": {
+       "pfnet": 1.073315607949549,
+       "win_pct": 43.47826086956522,
+       "avg_ret_pct": 0.024643526892056136
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 13,
+      "trail_stop_hit": 10
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 23,
+     "win_pct_gross": 69.56521739130434,
+     "pfnet_gross": 3.365275051990095,
+     "avg_hold_bars": 25.956521739130434,
+     "avg_ret_pct_gross": 0.2201936867980763,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.04903352077852739,
+       "win_pct": 21.73913043478261,
+       "avg_ret_pct": -0.5798063132019239
+      },
+      "0.1": {
+       "pfnet": 1.9042506442721114,
+       "win_pct": 56.52173913043478,
+       "avg_ret_pct": 0.12019368679807628
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 15,
+      "trail_stop_hit": 8
+     }
+    },
+    "^NSEBANK": {
+     "n": 21,
+     "win_pct_gross": 52.38095238095239,
+     "pfnet_gross": 0.950796617177526,
+     "avg_hold_bars": 24.428571428571427,
+     "avg_ret_pct_gross": -0.016943166900894643,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.055051148506011095,
+       "win_pct": 9.523809523809524,
+       "avg_ret_pct": -0.8169431669008949
+      },
+      "0.1": {
+       "pfnet": 0.7016517589895597,
+       "win_pct": 52.38095238095239,
+       "avg_ret_pct": -0.11694316690089468
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 11,
+      "trail_stop_hit": 10
+     }
+    },
+    "^BSESN": {
+     "n": 22,
+     "win_pct_gross": 50.0,
+     "pfnet_gross": 1.9453694479947412,
+     "avg_hold_bars": 27.90909090909091,
+     "avg_ret_pct_gross": 0.14283258044996014,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.04290972761114057,
+       "win_pct": 13.636363636363635,
+       "avg_ret_pct": -0.6571674195500401
+      },
+      "0.1": {
+       "pfnet": 1.2130057268445769,
+       "win_pct": 50.0,
+       "avg_ret_pct": 0.0428325804499601
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 17,
+      "trail_stop_hit": 5
+     }
+    }
+   }
+  },
+  "atr_range__expansion_break__short__15m__atr6d0_n20_k1d2__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "atr_range_break",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 66,
+     "win_pct_gross": 54.54545454545454,
+     "pfnet_gross": 1.7116929111761747,
+     "avg_hold_bars": 28.196969696969695,
+     "avg_ret_pct_gross": 0.12154360833286763,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.04812513335338732,
+       "win_pct": 13.636363636363635,
+       "avg_ret_pct": -0.6784563916671325
+      },
+      "0.1": {
+       "pfnet": 1.0987316134180456,
+       "win_pct": 51.515151515151516,
+       "avg_ret_pct": 0.021543608332867597
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 54,
+      "trail_stop_hit": 12
+     }
+    },
+    "is": {
+     "n": 43,
+     "win_pct_gross": 58.139534883720934,
+     "pfnet_gross": 1.7958583105639276,
+     "avg_hold_bars": 27.767441860465116,
+     "avg_ret_pct_gross": 0.11355669297586628,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.008066507777945237,
+       "win_pct": 6.976744186046512,
+       "avg_ret_pct": -0.6864433070241338
+      },
+      "0.1": {
+       "pfnet": 1.0734600835601265,
+       "win_pct": 58.139534883720934,
+       "avg_ret_pct": 0.013556692975866255
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 33,
+      "trail_stop_hit": 10
+     }
+    },
+    "oos": {
+     "n": 23,
+     "win_pct_gross": 47.82608695652174,
+     "pfnet_gross": 1.6111515263767706,
+     "avg_hold_bars": 29.0,
+     "avg_ret_pct_gross": 0.13647566747856582,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.1170885956998147,
+       "win_pct": 26.08695652173913,
+       "avg_ret_pct": -0.6635243325214344
+      },
+      "0.1": {
+       "pfnet": 1.1297461904550308,
+       "win_pct": 39.130434782608695,
+       "avg_ret_pct": 0.03647566747856577
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 21,
+      "trail_stop_hit": 2
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 23,
+     "win_pct_gross": 65.21739130434783,
+     "pfnet_gross": 2.907767797659417,
+     "avg_hold_bars": 27.782608695652176,
+     "avg_ret_pct_gross": 0.18738685384508788,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.041903409550452526,
+       "win_pct": 17.391304347826086,
+       "avg_ret_pct": -0.6126131461549124
+      },
+      "0.1": {
+       "pfnet": 1.630252729732944,
+       "win_pct": 56.52173913043478,
+       "avg_ret_pct": 0.08738685384508786
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 18,
+      "trail_stop_hit": 5
+     }
+    },
+    "^NSEBANK": {
+     "n": 21,
+     "win_pct_gross": 52.38095238095239,
+     "pfnet_gross": 1.2177403517009606,
+     "avg_hold_bars": 28.285714285714285,
+     "avg_ret_pct_gross": 0.058542528666346204,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.06031769410314785,
+       "win_pct": 9.523809523809524,
+       "avg_ret_pct": -0.741457471333654
+      },
+      "0.1": {
+       "pfnet": 0.86900568729073,
+       "win_pct": 52.38095238095239,
+       "avg_ret_pct": -0.04145747133365383
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 18,
+      "trail_stop_hit": 3
+     }
+    },
+    "^BSESN": {
+     "n": 22,
+     "win_pct_gross": 45.45454545454545,
+     "pfnet_gross": 1.7374890051050396,
+     "avg_hold_bars": 28.545454545454547,
+     "avg_ret_pct_gross": 0.11284488225177146,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0411141217000536,
+       "win_pct": 13.636363636363635,
+       "avg_ret_pct": -0.6871551177482288
+      },
+      "0.1": {
+       "pfnet": 1.0618858246825453,
+       "win_pct": 45.45454545454545,
+       "avg_ret_pct": 0.012844882251771439
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 18,
+      "trail_stop_hit": 4
+     }
+    }
+   }
+  },
+  "opening_range__break__long__15m__atr2d0_or3__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "orb",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 73,
+     "win_pct_gross": 24.65753424657534,
+     "pfnet_gross": 0.38948295836159036,
+     "avg_hold_bars": 16.465753424657535,
+     "avg_ret_pct_gross": -0.18178373158007435,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.005157576778399248,
+       "win_pct": 4.10958904109589,
+       "avg_ret_pct": -0.9817837315800745
+      },
+      "0.1": {
+       "pfnet": 0.2459822287722245,
+       "win_pct": 23.28767123287671,
+       "avg_ret_pct": -0.2817837315800744
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 60,
+      "max_hold_timeout": 13
+     }
+    },
+    "is": {
+     "n": 46,
+     "win_pct_gross": 32.608695652173914,
+     "pfnet_gross": 0.8046693555929841,
+     "avg_hold_bars": 17.26086956521739,
+     "avg_ret_pct_gross": -0.039605613474072314,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.009528812428427322,
+       "win_pct": 6.521739130434782,
+       "avg_ret_pct": -0.8396056134740725
+      },
+      "0.1": {
+       "pfnet": 0.4832354053789046,
+       "win_pct": 32.608695652173914,
+       "avg_ret_pct": -0.13960561347407235
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 35,
+      "max_hold_timeout": 11
+     }
+    },
+    "oos": {
+     "n": 27,
+     "win_pct_gross": 11.11111111111111,
+     "pfnet_gross": 0.07741341202994068,
+     "avg_hold_bars": 15.11111111111111,
+     "avg_ret_pct_gross": -0.42401311798289265,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.2240131179828928
+      },
+      "0.1": {
+       "pfnet": 0.047489936244600656,
+       "win_pct": 7.4074074074074066,
+       "avg_ret_pct": -0.5240131179828927
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 25,
+      "max_hold_timeout": 2
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 23,
+     "win_pct_gross": 30.434782608695656,
+     "pfnet_gross": 0.5560290432454873,
+     "avg_hold_bars": 17.73913043478261,
+     "avg_ret_pct_gross": -0.10769981092794773,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0024580172733105108,
+       "win_pct": 4.3478260869565215,
+       "avg_ret_pct": -0.9076998109279479
+      },
+      "0.1": {
+       "pfnet": 0.33461159515525596,
+       "win_pct": 30.434782608695656,
+       "avg_ret_pct": -0.20769981092794773
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 17,
+      "max_hold_timeout": 6
+     }
+    },
+    "^NSEBANK": {
+     "n": 25,
+     "win_pct_gross": 24.0,
+     "pfnet_gross": 0.40635822708300606,
+     "avg_hold_bars": 16.32,
+     "avg_ret_pct_gross": -0.20536962549359394,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.011885471665073673,
+       "win_pct": 4.0,
+       "avg_ret_pct": -1.005369625493594
+      },
+      "0.1": {
+       "pfnet": 0.2793468113159118,
+       "win_pct": 20.0,
+       "avg_ret_pct": -0.305369625493594
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 21,
+      "max_hold_timeout": 4
+     }
+    },
+    "^BSESN": {
+     "n": 25,
+     "win_pct_gross": 20.0,
+     "pfnet_gross": 0.24627661377130358,
+     "avg_hold_bars": 15.44,
+     "avg_ret_pct_gross": -0.22635504466651124,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.00069295132097677,
+       "win_pct": 4.0,
+       "avg_ret_pct": -1.0263550446665113
+      },
+      "0.1": {
+       "pfnet": 0.14188408342475606,
+       "win_pct": 20.0,
+       "avg_ret_pct": -0.3263550446665112
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 22,
+      "max_hold_timeout": 3
+     }
+    }
+   }
+  },
+  "opening_range__break__long__15m__atr3d0_or3__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "orb",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 71,
+     "win_pct_gross": 29.577464788732392,
+     "pfnet_gross": 0.31926452136676026,
+     "avg_hold_bars": 20.253521126760564,
+     "avg_ret_pct_gross": -0.24215713024379973,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.004307686221129905,
+       "win_pct": 2.8169014084507045,
+       "avg_ret_pct": -1.0421571302437997
+      },
+      "0.1": {
+       "pfnet": 0.19896563130941328,
+       "win_pct": 23.943661971830984,
+       "avg_ret_pct": -0.34215713024379985
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 50,
+      "max_hold_timeout": 21
+     }
+    },
+    "is": {
+     "n": 45,
+     "win_pct_gross": 37.77777777777778,
+     "pfnet_gross": 0.5632940859275014,
+     "avg_hold_bars": 21.177777777777777,
+     "avg_ret_pct_gross": -0.11792792689481044,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0076901825765561364,
+       "win_pct": 4.444444444444445,
+       "avg_ret_pct": -0.9179279268948105
+      },
+      "0.1": {
+       "pfnet": 0.3465352790692474,
+       "win_pct": 31.11111111111111,
+       "avg_ret_pct": -0.21792792689481044
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 30,
+      "max_hold_timeout": 15
+     }
+    },
+    "oos": {
+     "n": 26,
+     "win_pct_gross": 15.384615384615385,
+     "pfnet_gross": 0.09298399810748317,
+     "avg_hold_bars": 18.653846153846153,
+     "avg_ret_pct_gross": -0.45716921296320434,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.2571692129632044
+      },
+      "0.1": {
+       "pfnet": 0.054406977231550635,
+       "win_pct": 11.538461538461538,
+       "avg_ret_pct": -0.5571692129632044
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 6,
+      "trail_stop_hit": 20
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 23,
+     "win_pct_gross": 34.78260869565217,
+     "pfnet_gross": 0.39396788516858877,
+     "avg_hold_bars": 21.347826086956523,
+     "avg_ret_pct_gross": -0.16461441729685083,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -0.9646144172968509
+      },
+      "0.1": {
+       "pfnet": 0.21819973930297726,
+       "win_pct": 26.08695652173913,
+       "avg_ret_pct": -0.26461441729685087
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 16,
+      "max_hold_timeout": 7
+     }
+    },
+    "^NSEBANK": {
+     "n": 25,
+     "win_pct_gross": 24.0,
+     "pfnet_gross": 0.28832633610526665,
+     "avg_hold_bars": 18.6,
+     "avg_ret_pct_gross": -0.31908453581147267,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.010690650097608627,
+       "win_pct": 4.0,
+       "avg_ret_pct": -1.1190845358114727
+      },
+      "0.1": {
+       "pfnet": 0.20167730441721315,
+       "win_pct": 20.0,
+       "avg_ret_pct": -0.41908453581147276
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 6,
+      "trail_stop_hit": 19
+     }
+    },
+    "^BSESN": {
+     "n": 23,
+     "win_pct_gross": 30.434782608695656,
+     "pfnet_gross": 0.3038911508826944,
+     "avg_hold_bars": 20.956521739130434,
+     "avg_ret_pct_gross": -0.2360830980084955,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.000746096211607794,
+       "win_pct": 4.3478260869565215,
+       "avg_ret_pct": -1.0360830980084956
+      },
+      "0.1": {
+       "pfnet": 0.1792895067199149,
+       "win_pct": 26.08695652173913,
+       "avg_ret_pct": -0.33608309800849556
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 15,
+      "max_hold_timeout": 8
+     }
+    }
+   }
+  },
+  "opening_range__break__long__15m__atr4d5_or3__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "orb",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 68,
+     "win_pct_gross": 30.88235294117647,
+     "pfnet_gross": 0.27104192413714157,
+     "avg_hold_bars": 23.61764705882353,
+     "avg_ret_pct_gross": -0.3032149124068519,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0042490530282935845,
+       "win_pct": 2.941176470588235,
+       "avg_ret_pct": -1.103214912406852
+      },
+      "0.1": {
+       "pfnet": 0.1713309758677537,
+       "win_pct": 25.0,
+       "avg_ret_pct": -0.403214912406852
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 32,
+      "max_hold_timeout": 36
+     }
+    },
+    "is": {
+     "n": 45,
+     "win_pct_gross": 33.33333333333333,
+     "pfnet_gross": 0.3886744595624259,
+     "avg_hold_bars": 24.355555555555554,
+     "avg_ret_pct_gross": -0.2185087559111467,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.006936021135630687,
+       "win_pct": 4.444444444444445,
+       "avg_ret_pct": -1.018508755911147
+      },
+      "0.1": {
+       "pfnet": 0.2504461734705997,
+       "win_pct": 28.888888888888886,
+       "avg_ret_pct": -0.31850875591114675
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 21,
+      "max_hold_timeout": 24
+     }
+    },
+    "oos": {
+     "n": 23,
+     "win_pct_gross": 26.08695652173913,
+     "pfnet_gross": 0.11596092336171959,
+     "avg_hold_bars": 22.17391304347826,
+     "avg_ret_pct_gross": -0.4689443490288837,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.2689443490288839
+      },
+      "0.1": {
+       "pfnet": 0.06300555839887785,
+       "win_pct": 17.391304347826086,
+       "avg_ret_pct": -0.5689443490288838
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 12,
+      "trail_stop_hit": 11
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 22,
+     "win_pct_gross": 36.36363636363637,
+     "pfnet_gross": 0.3012853344305967,
+     "avg_hold_bars": 24.5,
+     "avg_ret_pct_gross": -0.23352971682887555,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0335297168288757
+      },
+      "0.1": {
+       "pfnet": 0.16999873336496482,
+       "win_pct": 22.727272727272727,
+       "avg_ret_pct": -0.3335297168288756
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 11,
+      "max_hold_timeout": 11
+     }
+    },
+    "^NSEBANK": {
+     "n": 23,
+     "win_pct_gross": 30.434782608695656,
+     "pfnet_gross": 0.31143220914103387,
+     "avg_hold_bars": 23.130434782608695,
+     "avg_ret_pct_gross": -0.31700021121156385,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.01163089076859347,
+       "win_pct": 4.3478260869565215,
+       "avg_ret_pct": -1.117000211211564
+      },
+      "0.1": {
+       "pfnet": 0.2140847116709464,
+       "win_pct": 26.08695652173913,
+       "avg_ret_pct": -0.41700021121156394
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 13,
+      "trail_stop_hit": 10
+     }
+    },
+    "^BSESN": {
+     "n": 23,
+     "win_pct_gross": 26.08695652173913,
+     "pfnet_gross": 0.20819417627135675,
+     "avg_hold_bars": 23.26086956521739,
+     "avg_ret_pct_gross": -0.35608501806803033,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0006687030220319268,
+       "win_pct": 4.3478260869565215,
+       "avg_ret_pct": -1.1560850180680304
+      },
+      "0.1": {
+       "pfnet": 0.12898639490334848,
+       "win_pct": 26.08695652173913,
+       "avg_ret_pct": -0.4560850180680304
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 11,
+      "max_hold_timeout": 12
+     }
+    }
+   }
+  },
+  "opening_range__break__long__15m__atr6d0_or3__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "orb",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 65,
+     "win_pct_gross": 30.76923076923077,
+     "pfnet_gross": 0.2868972837129858,
+     "avg_hold_bars": 26.923076923076923,
+     "avg_ret_pct_gross": -0.29397984106596275,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.004481640922211391,
+       "win_pct": 3.076923076923077,
+       "avg_ret_pct": -1.093979841065963
+      },
+      "0.1": {
+       "pfnet": 0.18375798775813906,
+       "win_pct": 26.153846153846157,
+       "avg_ret_pct": -0.3939798410659629
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 19,
+      "max_hold_timeout": 46
+     }
+    },
+    "is": {
+     "n": 44,
+     "win_pct_gross": 29.545454545454547,
+     "pfnet_gross": 0.35822279410683494,
+     "avg_hold_bars": 27.954545454545453,
+     "avg_ret_pct_gross": -0.24165172738916738,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.006936053899152009,
+       "win_pct": 4.545454545454546,
+       "avg_ret_pct": -1.0416517273891674
+      },
+      "0.1": {
+       "pfnet": 0.23613543979613033,
+       "win_pct": 27.27272727272727,
+       "avg_ret_pct": -0.34165172738916744
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 13,
+      "max_hold_timeout": 31
+     }
+    },
+    "oos": {
+     "n": 21,
+     "win_pct_gross": 33.33333333333333,
+     "pfnet_gross": 0.1713738258963903,
+     "avg_hold_bars": 24.761904761904763,
+     "avg_ret_pct_gross": -0.4036196982935341,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.2036196982935343
+      },
+      "0.1": {
+       "pfnet": 0.09561322714490811,
+       "win_pct": 23.809523809523807,
+       "avg_ret_pct": -0.5036196982935343
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 15,
+      "trail_stop_hit": 6
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 22,
+     "win_pct_gross": 31.818181818181817,
+     "pfnet_gross": 0.2596940009402609,
+     "avg_hold_bars": 26.454545454545453,
+     "avg_ret_pct_gross": -0.27735767026284,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0773576702628402
+      },
+      "0.1": {
+       "pfnet": 0.15328077985230967,
+       "win_pct": 22.727272727272727,
+       "avg_ret_pct": -0.37735767026284006
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 7,
+      "max_hold_timeout": 15
+     }
+    },
+    "^NSEBANK": {
+     "n": 22,
+     "win_pct_gross": 31.818181818181817,
+     "pfnet_gross": 0.32924160308430733,
+     "avg_hold_bars": 26.954545454545453,
+     "avg_ret_pct_gross": -0.3053746202164213,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.012279391626936437,
+       "win_pct": 4.545454545454546,
+       "avg_ret_pct": -1.1053746202164216
+      },
+      "0.1": {
+       "pfnet": 0.2265754074812269,
+       "win_pct": 27.27272727272727,
+       "avg_ret_pct": -0.4053746202164214
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 16,
+      "trail_stop_hit": 6
+     }
+    },
+    "^BSESN": {
+     "n": 21,
+     "win_pct_gross": 28.57142857142857,
+     "pfnet_gross": 0.2634855010479447,
+     "avg_hold_bars": 27.38095238095238,
+     "avg_ret_pct_gross": -0.29945615613065873,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0007700335471349077,
+       "win_pct": 4.761904761904762,
+       "avg_ret_pct": -1.099456156130659
+      },
+      "0.1": {
+       "pfnet": 0.1643423609000589,
+       "win_pct": 28.57142857142857,
+       "avg_ret_pct": -0.39945615613065877
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 6,
+      "max_hold_timeout": 15
+     }
+    }
+   }
+  },
+  "opening_range__break__short__15m__atr2d0_or3__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "orb",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 83,
+     "win_pct_gross": 54.21686746987952,
+     "pfnet_gross": 2.2891858015428834,
+     "avg_hold_bars": 18.83132530120482,
+     "avg_ret_pct_gross": 0.17544302071999388,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.060855848858917726,
+       "win_pct": 9.63855421686747,
+       "avg_ret_pct": -0.6245569792800061
+      },
+      "0.1": {
+       "pfnet": 1.4034214995210021,
+       "win_pct": 45.78313253012048,
+       "avg_ret_pct": 0.07544302071999387
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 58,
+      "max_hold_timeout": 25
+     }
+    },
+    "is": {
+     "n": 60,
+     "win_pct_gross": 50.0,
+     "pfnet_gross": 1.985154497021772,
+     "avg_hold_bars": 18.933333333333334,
+     "avg_ret_pct_gross": 0.13434503440009626,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.03026549841038326,
+       "win_pct": 5.0,
+       "avg_ret_pct": -0.6656549655999039
+      },
+      "0.1": {
+       "pfnet": 1.181148018616358,
+       "win_pct": 43.333333333333336,
+       "avg_ret_pct": 0.03434503440009626
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 42,
+      "max_hold_timeout": 18
+     }
+    },
+    "oos": {
+     "n": 23,
+     "win_pct_gross": 65.21739130434783,
+     "pfnet_gross": 3.088258621575042,
+     "avg_hold_bars": 18.565217391304348,
+     "avg_ret_pct_gross": 0.2826551589458138,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.15077399743825898,
+       "win_pct": 21.73913043478261,
+       "avg_ret_pct": -0.5173448410541864
+      },
+      "0.1": {
+       "pfnet": 2.013314845059006,
+       "win_pct": 52.17391304347826,
+       "avg_ret_pct": 0.18265515894581374
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 16,
+      "max_hold_timeout": 7
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 27,
+     "win_pct_gross": 55.55555555555556,
+     "pfnet_gross": 3.9338988605160092,
+     "avg_hold_bars": 19.48148148148148,
+     "avg_ret_pct_gross": 0.2661211623694716,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.08079928658567742,
+       "win_pct": 7.4074074074074066,
+       "avg_ret_pct": -0.5338788376305286
+      },
+      "0.1": {
+       "pfnet": 2.1962675488484233,
+       "win_pct": 48.148148148148145,
+       "avg_ret_pct": 0.1661211623694716
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 19,
+      "max_hold_timeout": 8
+     }
+    },
+    "^NSEBANK": {
+     "n": 29,
+     "win_pct_gross": 44.827586206896555,
+     "pfnet_gross": 1.0902885661504187,
+     "avg_hold_bars": 16.655172413793103,
+     "avg_ret_pct_gross": 0.017198379820953878,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.04189843189971394,
+       "win_pct": 6.896551724137931,
+       "avg_ret_pct": -0.7828016201790463
+      },
+      "0.1": {
+       "pfnet": 0.6684404166916811,
+       "win_pct": 37.93103448275862,
+       "avg_ret_pct": -0.08280162017904613
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 7,
+      "trail_stop_hit": 22
+     }
+    },
+    "^BSESN": {
+     "n": 27,
+     "win_pct_gross": 62.96296296296296,
+     "pfnet_gross": 3.0701869565947573,
+     "avg_hold_bars": 20.51851851851852,
+     "avg_ret_pct_gross": 0.25473134522133695,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.06947876995982732,
+       "win_pct": 14.814814814814813,
+       "avg_ret_pct": -0.5452686547786632
+      },
+      "0.1": {
+       "pfnet": 1.9222415691730126,
+       "win_pct": 51.85185185185185,
+       "avg_ret_pct": 0.15473134522133689
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 10,
+      "trail_stop_hit": 17
+     }
+    }
+   }
+  },
+  "opening_range__break__short__15m__atr3d0_or3__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "orb",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 81,
+     "win_pct_gross": 56.79012345679012,
+     "pfnet_gross": 1.739671415096847,
+     "avg_hold_bars": 23.333333333333332,
+     "avg_ret_pct_gross": 0.13323789954614448,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.052885288449534176,
+       "win_pct": 8.641975308641975,
+       "avg_ret_pct": -0.6667621004538556
+      },
+      "0.1": {
+       "pfnet": 1.1476908192375264,
+       "win_pct": 51.85185185185185,
+       "avg_ret_pct": 0.033237899546144443
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 39,
+      "trail_stop_hit": 42
+     }
+    },
+    "is": {
+     "n": 58,
+     "win_pct_gross": 58.620689655172406,
+     "pfnet_gross": 1.8324155054208353,
+     "avg_hold_bars": 23.724137931034484,
+     "avg_ret_pct_gross": 0.12962309974291372,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.031063035920971288,
+       "win_pct": 5.172413793103448,
+       "avg_ret_pct": -0.6703769002570862
+      },
+      "0.1": {
+       "pfnet": 1.148497209925226,
+       "win_pct": 51.724137931034484,
+       "avg_ret_pct": 0.029623099742913692
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 30,
+      "trail_stop_hit": 28
+     }
+    },
+    "oos": {
+     "n": 23,
+     "win_pct_gross": 52.17391304347826,
+     "pfnet_gross": 1.5889875735784011,
+     "avg_hold_bars": 22.347826086956523,
+     "avg_ret_pct_gross": 0.14235348165863942,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.1047164939424891,
+       "win_pct": 17.391304347826086,
+       "avg_ret_pct": -0.6576465183413608
+      },
+      "0.1": {
+       "pfnet": 1.1462896763383013,
+       "win_pct": 52.17391304347826,
+       "avg_ret_pct": 0.042353481658639405
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 14,
+      "max_hold_timeout": 9
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 27,
+     "win_pct_gross": 55.55555555555556,
+     "pfnet_gross": 2.747424132722087,
+     "avg_hold_bars": 23.22222222222222,
+     "avg_ret_pct_gross": 0.2128921760049953,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.06420219638026732,
+       "win_pct": 7.4074074074074066,
+       "avg_ret_pct": -0.5871078239950048
+      },
+      "0.1": {
+       "pfnet": 1.6786974381403086,
+       "win_pct": 51.85185185185185,
+       "avg_ret_pct": 0.11289217600499526
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 11,
+      "trail_stop_hit": 16
+     }
+    },
+    "^NSEBANK": {
+     "n": 27,
+     "win_pct_gross": 51.85185185185185,
+     "pfnet_gross": 0.8731792128942947,
+     "avg_hold_bars": 22.59259259259259,
+     "avg_ret_pct_gross": -0.035163164380671,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.04003430352462165,
+       "win_pct": 7.4074074074074066,
+       "avg_ret_pct": -0.8351631643806711
+      },
+      "0.1": {
+       "pfnet": 0.5886830406795966,
+       "win_pct": 44.44444444444444,
+       "avg_ret_pct": -0.135163164380671
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 13,
+      "trail_stop_hit": 14
+     }
+    },
+    "^BSESN": {
+     "n": 27,
+     "win_pct_gross": 62.96296296296296,
+     "pfnet_gross": 2.571072126762629,
+     "avg_hold_bars": 24.185185185185187,
+     "avg_ret_pct_gross": 0.22198468701410917,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.059524054243495245,
+       "win_pct": 11.11111111111111,
+       "avg_ret_pct": -0.5780153129858909
+      },
+      "0.1": {
+       "pfnet": 1.6769240790904425,
+       "win_pct": 59.25925925925925,
+       "avg_ret_pct": 0.12198468701410917
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 15,
+      "trail_stop_hit": 12
+     }
+    }
+   }
+  },
+  "opening_range__break__short__15m__atr4d5_or3__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "orb",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 79,
+     "win_pct_gross": 59.49367088607595,
+     "pfnet_gross": 1.6556982456960943,
+     "avg_hold_bars": 26.759493670886076,
+     "avg_ret_pct_gross": 0.12813051564062766,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.050262729182732196,
+       "win_pct": 8.860759493670885,
+       "avg_ret_pct": -0.6718694843593725
+      },
+      "0.1": {
+       "pfnet": 1.1188705886581671,
+       "win_pct": 58.22784810126582,
+       "avg_ret_pct": 0.028130515640627626
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 58,
+      "trail_stop_hit": 21
+     }
+    },
+    "is": {
+     "n": 56,
+     "win_pct_gross": 62.5,
+     "pfnet_gross": 2.019216677191436,
+     "avg_hold_bars": 27.285714285714285,
+     "avg_ret_pct_gross": 0.15429050640759442,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.033323556526032694,
+       "win_pct": 5.357142857142857,
+       "avg_ret_pct": -0.6457094935924055
+      },
+      "0.1": {
+       "pfnet": 1.285870626306952,
+       "win_pct": 60.71428571428571,
+       "avg_ret_pct": 0.05429050640759438
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 41,
+      "trail_stop_hit": 15
+     }
+    },
+    "oos": {
+     "n": 23,
+     "win_pct_gross": 52.17391304347826,
+     "pfnet_gross": 1.212934333277416,
+     "avg_hold_bars": 25.47826086956522,
+     "avg_ret_pct_gross": 0.06443662507757818,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0845492417812392,
+       "win_pct": 17.391304347826086,
+       "avg_ret_pct": -0.7355633749224221
+      },
+      "0.1": {
+       "pfnet": 0.8985175720620265,
+       "win_pct": 52.17391304347826,
+       "avg_ret_pct": -0.03556337492242188
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 6,
+      "max_hold_timeout": 17
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 25,
+     "win_pct_gross": 68.0,
+     "pfnet_gross": 3.8792473060246158,
+     "avg_hold_bars": 28.28,
+     "avg_ret_pct_gross": 0.2800287287944938,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.06346246353115396,
+       "win_pct": 8.0,
+       "avg_ret_pct": -0.5199712712055062
+      },
+      "0.1": {
+       "pfnet": 2.392790107047897,
+       "win_pct": 68.0,
+       "avg_ret_pct": 0.18002872879449378
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 20,
+      "trail_stop_hit": 5
+     }
+    },
+    "^NSEBANK": {
+     "n": 27,
+     "win_pct_gross": 51.85185185185185,
+     "pfnet_gross": 0.7789204516430165,
+     "avg_hold_bars": 25.296296296296298,
+     "avg_ret_pct_gross": -0.07211282740303858,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.038403269340573476,
+       "win_pct": 7.4074074074074066,
+       "avg_ret_pct": -0.8721128274030386
+      },
+      "0.1": {
+       "pfnet": 0.5428274009619066,
+       "win_pct": 48.148148148148145,
+       "avg_ret_pct": -0.1721128274030386
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 17,
+      "trail_stop_hit": 10
+     }
+    },
+    "^BSESN": {
+     "n": 27,
+     "win_pct_gross": 59.25925925925925,
+     "pfnet_gross": 2.2071009936200103,
+     "avg_hold_bars": 26.814814814814813,
+     "avg_ret_pct_gross": 0.18772736502330672,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.05638139306956301,
+       "win_pct": 11.11111111111111,
+       "avg_ret_pct": -0.6122726349766934
+      },
+      "0.1": {
+       "pfnet": 1.446995808476202,
+       "win_pct": 59.25925925925925,
+       "avg_ret_pct": 0.08772736502330672
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 21,
+      "trail_stop_hit": 6
+     }
+    }
+   }
+  },
+  "opening_range__break__short__15m__atr6d0_or3__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "orb",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 75,
+     "win_pct_gross": 65.33333333333333,
+     "pfnet_gross": 2.021270170178161,
+     "avg_hold_bars": 28.04,
+     "avg_ret_pct_gross": 0.16529708067809912,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.05438298734079122,
+       "win_pct": 8.0,
+       "avg_ret_pct": -0.634702919321901
+      },
+      "0.1": {
+       "pfnet": 1.3291144146773965,
+       "win_pct": 60.0,
+       "avg_ret_pct": 0.0652970806780991
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 65,
+      "trail_stop_hit": 10
+     }
+    },
+    "is": {
+     "n": 53,
+     "win_pct_gross": 71.69811320754717,
+     "pfnet_gross": 2.723336311088475,
+     "avg_hold_bars": 28.358490566037737,
+     "avg_ret_pct_gross": 0.20520800232977635,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.038037550535307996,
+       "win_pct": 5.660377358490567,
+       "avg_ret_pct": -0.5947919976702237
+      },
+      "0.1": {
+       "pfnet": 1.7011992164522567,
+       "win_pct": 64.15094339622641,
+       "avg_ret_pct": 0.1052080023297763
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 45,
+      "trail_stop_hit": 8
+     }
+    },
+    "oos": {
+     "n": 22,
+     "win_pct_gross": 50.0,
+     "pfnet_gross": 1.261023202439812,
+     "avg_hold_bars": 27.272727272727273,
+     "avg_ret_pct_gross": 0.06914804215360403,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.08486967553708002,
+       "win_pct": 13.636363636363635,
+       "avg_ret_pct": -0.7308519578463962
+      },
+      "0.1": {
+       "pfnet": 0.9020297446244757,
+       "win_pct": 50.0,
+       "avg_ret_pct": -0.030851957846396025
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 20,
+      "trail_stop_hit": 2
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 24,
+     "win_pct_gross": 75.0,
+     "pfnet_gross": 4.361300600761186,
+     "avg_hold_bars": 28.875,
+     "avg_ret_pct_gross": 0.28434124973348435,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.061394813517128215,
+       "win_pct": 4.166666666666666,
+       "avg_ret_pct": -0.5156587502665156
+      },
+      "0.1": {
+       "pfnet": 2.647578384194296,
+       "win_pct": 70.83333333333334,
+       "avg_ret_pct": 0.1843412497334843
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 21,
+      "trail_stop_hit": 3
+     }
+    },
+    "^NSEBANK": {
+     "n": 25,
+     "win_pct_gross": 60.0,
+     "pfnet_gross": 1.1265800864759534,
+     "avg_hold_bars": 27.64,
+     "avg_ret_pct_gross": 0.031169836319965505,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.04664405669067228,
+       "win_pct": 8.0,
+       "avg_ret_pct": -0.7688301636800345
+      },
+      "0.1": {
+       "pfnet": 0.7622762270966621,
+       "win_pct": 52.0,
+       "avg_ret_pct": -0.06883016368003453
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 22,
+      "trail_stop_hit": 3
+     }
+    },
+    "^BSESN": {
+     "n": 26,
+     "win_pct_gross": 61.53846153846154,
+     "pfnet_gross": 2.2128001019986554,
+     "avg_hold_bars": 27.653846153846153,
+     "avg_ret_pct_gross": 0.18437865958671815,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.058123891880190244,
+       "win_pct": 11.538461538461538,
+       "avg_ret_pct": -0.6156213404132819
+      },
+      "0.1": {
+       "pfnet": 1.4426243460051182,
+       "win_pct": 57.692307692307686,
+       "avg_ret_pct": 0.08437865958671811
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 22,
+      "trail_stop_hit": 4
+     }
+    }
+   }
+  },
+  "ema__cross__long__15m__atr2d0_f9_s21__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "ema_cross",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 80,
+     "win_pct_gross": 25.0,
+     "pfnet_gross": 0.43764586951577167,
+     "avg_hold_bars": 16.2,
+     "avg_ret_pct_gross": -0.1609669976499077,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.00925880407211781,
+       "win_pct": 5.0,
+       "avg_ret_pct": -0.9609669976499079
+      },
+      "0.1": {
+       "pfnet": 0.2813048178014546,
+       "win_pct": 21.25,
+       "avg_ret_pct": -0.26096699764990783
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 67,
+      "max_hold_timeout": 13
+     }
+    },
+    "is": {
+     "n": 52,
+     "win_pct_gross": 28.846153846153843,
+     "pfnet_gross": 0.6423911049155019,
+     "avg_hold_bars": 15.903846153846153,
+     "avg_ret_pct_gross": -0.07179698990284819,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.014692662994589031,
+       "win_pct": 3.8461538461538463,
+       "avg_ret_pct": -0.8717969899028483
+      },
+      "0.1": {
+       "pfnet": 0.3748453264243354,
+       "win_pct": 23.076923076923077,
+       "avg_ret_pct": -0.17179698990284822
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 43,
+      "max_hold_timeout": 9
+     }
+    },
+    "oos": {
+     "n": 28,
+     "win_pct_gross": 17.857142857142858,
+     "pfnet_gross": 0.26607966226236335,
+     "avg_hold_bars": 16.75,
+     "avg_ret_pct_gross": -0.3265684406087325,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0013437155203644441,
+       "win_pct": 7.142857142857142,
+       "avg_ret_pct": -1.1265684406087326
+      },
+      "0.1": {
+       "pfnet": 0.19073696081148125,
+       "win_pct": 17.857142857142858,
+       "avg_ret_pct": -0.42656844060873267
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 24,
+      "max_hold_timeout": 4
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 25,
+     "win_pct_gross": 20.0,
+     "pfnet_gross": 0.3478288773953419,
+     "avg_hold_bars": 15.08,
+     "avg_ret_pct_gross": -0.18201424206964667,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -0.9820142420696467
+      },
+      "0.1": {
+       "pfnet": 0.21464123549772893,
+       "win_pct": 20.0,
+       "avg_ret_pct": -0.28201424206964665
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 21,
+      "max_hold_timeout": 4
+     }
+    },
+    "^NSEBANK": {
+     "n": 27,
+     "win_pct_gross": 37.03703703703704,
+     "pfnet_gross": 0.5936159538333645,
+     "avg_hold_bars": 18.555555555555557,
+     "avg_ret_pct_gross": -0.12265032346514301,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.022516815400856083,
+       "win_pct": 7.4074074074074066,
+       "avg_ret_pct": -0.9226503234651431
+      },
+      "0.1": {
+       "pfnet": 0.39877168018912207,
+       "win_pct": 25.925925925925924,
+       "avg_ret_pct": -0.22265032346514305
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 5,
+      "trail_stop_hit": 22
+     }
+    },
+    "^BSESN": {
+     "n": 28,
+     "win_pct_gross": 17.857142857142858,
+     "pfnet_gross": 0.35475568456491513,
+     "avg_hold_bars": 14.928571428571429,
+     "avg_ret_pct_gross": -0.17912303666759247,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.005246512800307283,
+       "win_pct": 7.142857142857142,
+       "avg_ret_pct": -0.9791230366675926
+      },
+      "0.1": {
+       "pfnet": 0.2241147654489297,
+       "win_pct": 17.857142857142858,
+       "avg_ret_pct": -0.2791230366675924
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 24,
+      "max_hold_timeout": 4
+     }
+    }
+   }
+  },
+  "ema__cross__long__15m__atr3d0_f9_s21__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "ema_cross",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 73,
+     "win_pct_gross": 27.397260273972602,
+     "pfnet_gross": 0.387543663561523,
+     "avg_hold_bars": 20.506849315068493,
+     "avg_ret_pct_gross": -0.21002869620768677,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.010008599324368367,
+       "win_pct": 4.10958904109589,
+       "avg_ret_pct": -1.010028696207687
+      },
+      "0.1": {
+       "pfnet": 0.2571227099979398,
+       "win_pct": 24.65753424657534,
+       "avg_ret_pct": -0.31002869620768686
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 24,
+      "trail_stop_hit": 49
+     }
+    },
+    "is": {
+     "n": 49,
+     "win_pct_gross": 28.57142857142857,
+     "pfnet_gross": 0.5202973284133166,
+     "avg_hold_bars": 19.877551020408163,
+     "avg_ret_pct_gross": -0.13402166081339428,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.01602614199765793,
+       "win_pct": 6.122448979591836,
+       "avg_ret_pct": -0.9340216608133944
+      },
+      "0.1": {
+       "pfnet": 0.3379882267862218,
+       "win_pct": 24.489795918367346,
+       "avg_ret_pct": -0.23402166081339434
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 17,
+      "trail_stop_hit": 32
+     }
+    },
+    "oos": {
+     "n": 24,
+     "win_pct_gross": 25.0,
+     "pfnet_gross": 0.2273363391257874,
+     "avg_hold_bars": 21.791666666666668,
+     "avg_ret_pct_gross": -0.36520972680436725,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.1652097268043673
+      },
+      "0.1": {
+       "pfnet": 0.1505551702767584,
+       "win_pct": 25.0,
+       "avg_ret_pct": -0.4652097268043674
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 7,
+      "trail_stop_hit": 17
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 24,
+     "win_pct_gross": 25.0,
+     "pfnet_gross": 0.30763920941649636,
+     "avg_hold_bars": 19.625,
+     "avg_ret_pct_gross": -0.22483848057954642,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0248384805795465
+      },
+      "0.1": {
+       "pfnet": 0.18737922600859033,
+       "win_pct": 25.0,
+       "avg_ret_pct": -0.32483848057954645
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 8,
+      "trail_stop_hit": 16
+     }
+    },
+    "^NSEBANK": {
+     "n": 23,
+     "win_pct_gross": 39.130434782608695,
+     "pfnet_gross": 0.6480283109103646,
+     "avg_hold_bars": 23.304347826086957,
+     "avg_ret_pct_gross": -0.12024383802278747,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.027890555019076464,
+       "win_pct": 8.695652173913043,
+       "avg_ret_pct": -0.9202438380227878
+      },
+      "0.1": {
+       "pfnet": 0.4604829199662456,
+       "win_pct": 30.434782608695656,
+       "avg_ret_pct": -0.2202438380227875
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 11,
+      "trail_stop_hit": 12
+     }
+    },
+    "^BSESN": {
+     "n": 26,
+     "win_pct_gross": 19.230769230769234,
+     "pfnet_gross": 0.23577262703889135,
+     "avg_hold_bars": 18.846153846153847,
+     "avg_ret_pct_gross": -0.2757831928741504,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.004915173352554577,
+       "win_pct": 3.8461538461538463,
+       "avg_ret_pct": -1.0757831928741504
+      },
+      "0.1": {
+       "pfnet": 0.149108350777461,
+       "win_pct": 19.230769230769234,
+       "avg_ret_pct": -0.37578319287415046
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 21,
+      "max_hold_timeout": 5
+     }
+    }
+   }
+  },
+  "ema__cross__long__15m__atr4d5_f9_s21__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "ema_cross",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 67,
+     "win_pct_gross": 31.343283582089555,
+     "pfnet_gross": 0.40571691792625025,
+     "avg_hold_bars": 24.074626865671643,
+     "avg_ret_pct_gross": -0.22228865038300946,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.015289153718424927,
+       "win_pct": 5.970149253731343,
+       "avg_ret_pct": -1.0222886503830095
+      },
+      "0.1": {
+       "pfnet": 0.27519452065725375,
+       "win_pct": 26.865671641791046,
+       "avg_ret_pct": -0.3222886503830095
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 36,
+      "trail_stop_hit": 31
+     }
+    },
+    "is": {
+     "n": 44,
+     "win_pct_gross": 31.818181818181817,
+     "pfnet_gross": 0.4994751228815994,
+     "avg_hold_bars": 24.022727272727273,
+     "avg_ret_pct_gross": -0.15470205945429755,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.017435680710001775,
+       "win_pct": 6.8181818181818175,
+       "avg_ret_pct": -0.9547020594542975
+      },
+      "0.1": {
+       "pfnet": 0.3301479210071027,
+       "win_pct": 25.0,
+       "avg_ret_pct": -0.2547020594542976
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 23,
+      "trail_stop_hit": 21
+     }
+    },
+    "oos": {
+     "n": 23,
+     "win_pct_gross": 30.434782608695656,
+     "pfnet_gross": 0.294469380909168,
+     "avg_hold_bars": 24.17391304347826,
+     "avg_ret_pct_gross": -0.3515847373770671,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.011865512696942325,
+       "win_pct": 4.3478260869565215,
+       "avg_ret_pct": -1.1515847373770673
+      },
+      "0.1": {
+       "pfnet": 0.20480511815683125,
+       "win_pct": 30.434782608695656,
+       "avg_ret_pct": -0.45158473737706717
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 13,
+      "trail_stop_hit": 10
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 21,
+     "win_pct_gross": 28.57142857142857,
+     "pfnet_gross": 0.2930480291062589,
+     "avg_hold_bars": 22.952380952380953,
+     "avg_ret_pct_gross": -0.24855456656478958,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0485545665647897
+      },
+      "0.1": {
+       "pfnet": 0.17955638616070385,
+       "win_pct": 23.809523809523807,
+       "avg_ret_pct": -0.34855456656478956
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 10,
+      "trail_stop_hit": 11
+     }
+    },
+    "^NSEBANK": {
+     "n": 21,
+     "win_pct_gross": 42.857142857142854,
+     "pfnet_gross": 0.8030546983326992,
+     "avg_hold_bars": 26.047619047619047,
+     "avg_ret_pct_gross": -0.0655224082390641,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.04844212342668703,
+       "win_pct": 14.285714285714285,
+       "avg_ret_pct": -0.8655224082390642
+      },
+      "0.1": {
+       "pfnet": 0.5801558522085491,
+       "win_pct": 33.33333333333333,
+       "avg_ret_pct": -0.16552240823906414
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 15,
+      "trail_stop_hit": 6
+     }
+    },
+    "^BSESN": {
+     "n": 25,
+     "win_pct_gross": 24.0,
+     "pfnet_gross": 0.2238696582483432,
+     "avg_hold_bars": 23.36,
+     "avg_ret_pct_gross": -0.3319089241912283,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.004858588801122005,
+       "win_pct": 4.0,
+       "avg_ret_pct": -1.1319089241912283
+      },
+      "0.1": {
+       "pfnet": 0.1424352662909763,
+       "win_pct": 24.0,
+       "avg_ret_pct": -0.43190892419122834
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 14,
+      "max_hold_timeout": 11
+     }
+    }
+   }
+  },
+  "ema__cross__long__15m__atr6d0_f9_s21__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "ema_cross",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 64,
+     "win_pct_gross": 31.25,
+     "pfnet_gross": 0.3806464772636725,
+     "avg_hold_bars": 26.640625,
+     "avg_ret_pct_gross": -0.252348490769819,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.01554460018985545,
+       "win_pct": 6.25,
+       "avg_ret_pct": -1.052348490769819
+      },
+      "0.1": {
+       "pfnet": 0.2632294902358861,
+       "win_pct": 26.5625,
+       "avg_ret_pct": -0.3523484907698191
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 43,
+      "trail_stop_hit": 21
+     }
+    },
+    "is": {
+     "n": 41,
+     "win_pct_gross": 31.70731707317073,
+     "pfnet_gross": 0.4873122867198789,
+     "avg_hold_bars": 27.341463414634145,
+     "avg_ret_pct_gross": -0.16809285656163886,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.018433896066934657,
+       "win_pct": 7.317073170731707,
+       "avg_ret_pct": -0.968092856561639
+      },
+      "0.1": {
+       "pfnet": 0.3286788428986607,
+       "win_pct": 24.390243902439025,
+       "avg_ret_pct": -0.2680928565616389
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 28,
+      "trail_stop_hit": 13
+     }
+    },
+    "oos": {
+     "n": 23,
+     "win_pct_gross": 30.434782608695656,
+     "pfnet_gross": 0.2671507138288429,
+     "avg_hold_bars": 25.391304347826086,
+     "avg_ret_pct_gross": -0.40254331696700973,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.011368419782780628,
+       "win_pct": 4.3478260869565215,
+       "avg_ret_pct": -1.20254331696701
+      },
+      "0.1": {
+       "pfnet": 0.18794066034192916,
+       "win_pct": 30.434782608695656,
+       "avg_ret_pct": -0.5025433169670098
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 15,
+      "trail_stop_hit": 8
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 21,
+     "win_pct_gross": 28.57142857142857,
+     "pfnet_gross": 0.22486327133735606,
+     "avg_hold_bars": 24.952380952380953,
+     "avg_ret_pct_gross": -0.3551652222713676,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.1551652222713678
+      },
+      "0.1": {
+       "pfnet": 0.14353659330874385,
+       "win_pct": 23.809523809523807,
+       "avg_ret_pct": -0.4551652222713677
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 12,
+      "trail_stop_hit": 9
+     }
+    },
+    "^NSEBANK": {
+     "n": 21,
+     "win_pct_gross": 42.857142857142854,
+     "pfnet_gross": 0.8022037518623003,
+     "avg_hold_bars": 27.142857142857142,
+     "avg_ret_pct_gross": -0.06587531646299592,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.048423335737161066,
+       "win_pct": 14.285714285714285,
+       "avg_ret_pct": -0.8658753164629961
+      },
+      "0.1": {
+       "pfnet": 0.5796369934148646,
+       "win_pct": 33.33333333333333,
+       "avg_ret_pct": -0.16587531646299594
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 17,
+      "trail_stop_hit": 4
+     }
+    },
+    "^BSESN": {
+     "n": 22,
+     "win_pct_gross": 22.727272727272727,
+     "pfnet_gross": 0.22743298309088947,
+     "avg_hold_bars": 27.772727272727273,
+     "avg_ret_pct_gross": -0.33220236799303565,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.005516045995428499,
+       "win_pct": 4.545454545454546,
+       "avg_ret_pct": -1.132202367993036
+      },
+      "0.1": {
+       "pfnet": 0.14798501265179562,
+       "win_pct": 22.727272727272727,
+       "avg_ret_pct": -0.43220236799303574
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 8,
+      "max_hold_timeout": 14
+     }
+    }
+   }
+  },
+  "ema__cross__short__15m__atr2d0_f9_s21__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "ema_cross",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 82,
+     "win_pct_gross": 52.4390243902439,
+     "pfnet_gross": 1.8806774142737794,
+     "avg_hold_bars": 17.76829268292683,
+     "avg_ret_pct_gross": 0.14692523475688132,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.09261333820092667,
+       "win_pct": 15.853658536585366,
+       "avg_ret_pct": -0.6530747652431188
+      },
+      "0.1": {
+       "pfnet": 1.2130412280011376,
+       "win_pct": 42.68292682926829,
+       "avg_ret_pct": 0.046925234756881304
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 28,
+      "trail_stop_hit": 54
+     }
+    },
+    "is": {
+     "n": 53,
+     "win_pct_gross": 49.056603773584904,
+     "pfnet_gross": 1.5824625195935722,
+     "avg_hold_bars": 18.471698113207548,
+     "avg_ret_pct_gross": 0.08730530294259072,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.028840596576564296,
+       "win_pct": 7.547169811320755,
+       "avg_ret_pct": -0.7126946970574094
+      },
+      "0.1": {
+       "pfnet": 0.9387550532036874,
+       "win_pct": 39.62264150943396,
+       "avg_ret_pct": -0.012694697057409315
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 17,
+      "trail_stop_hit": 36
+     }
+    },
+    "oos": {
+     "n": 29,
+     "win_pct_gross": 58.620689655172406,
+     "pfnet_gross": 2.293690825823738,
+     "avg_hold_bars": 16.482758620689655,
+     "avg_ret_pct_gross": 0.25588579979679177,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.2158733295420793,
+       "win_pct": 31.03448275862069,
+       "avg_ret_pct": -0.5441142002032084
+      },
+      "0.1": {
+       "pfnet": 1.63888413385193,
+       "win_pct": 48.275862068965516,
+       "avg_ret_pct": 0.15588579979679174
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 18,
+      "max_hold_timeout": 11
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 27,
+     "win_pct_gross": 51.85185185185185,
+     "pfnet_gross": 2.0494588704904886,
+     "avg_hold_bars": 17.11111111111111,
+     "avg_ret_pct_gross": 0.17888070184448848,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.11752485568121787,
+       "win_pct": 18.51851851851852,
+       "avg_ret_pct": -0.6211192981555116
+      },
+      "0.1": {
+       "pfnet": 1.3493954825025745,
+       "win_pct": 40.74074074074074,
+       "avg_ret_pct": 0.07888070184448845
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 8,
+      "trail_stop_hit": 19
+     }
+    },
+    "^NSEBANK": {
+     "n": 28,
+     "win_pct_gross": 50.0,
+     "pfnet_gross": 1.253719655354626,
+     "avg_hold_bars": 17.642857142857142,
+     "avg_ret_pct_gross": 0.04929636280165406,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.06454640247957417,
+       "win_pct": 7.142857142857142,
+       "avg_ret_pct": -0.7507036371983461
+      },
+      "0.1": {
+       "pfnet": 0.7964865358773177,
+       "win_pct": 42.857142857142854,
+       "avg_ret_pct": -0.050703637198345954
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 9,
+      "trail_stop_hit": 19
+     }
+    },
+    "^BSESN": {
+     "n": 27,
+     "win_pct_gross": 55.55555555555556,
+     "pfnet_gross": 2.6047505140479883,
+     "avg_hold_bars": 18.555555555555557,
+     "avg_ret_pct_gross": 0.21621452377099137,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.10157675342055754,
+       "win_pct": 22.22222222222222,
+       "avg_ret_pct": -0.5837854762290088
+      },
+      "0.1": {
+       "pfnet": 1.6288101906867645,
+       "win_pct": 44.44444444444444,
+       "avg_ret_pct": 0.11621452377099133
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 11,
+      "trail_stop_hit": 16
+     }
+    }
+   }
+  },
+  "ema__cross__short__15m__atr3d0_f9_s21__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "ema_cross",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 74,
+     "win_pct_gross": 54.054054054054056,
+     "pfnet_gross": 1.6318122583564807,
+     "avg_hold_bars": 22.054054054054053,
+     "avg_ret_pct_gross": 0.12763537763531083,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.06813494031801368,
+       "win_pct": 14.864864864864865,
+       "avg_ret_pct": -0.6723646223646893
+      },
+      "0.1": {
+       "pfnet": 1.1095396502965706,
+       "win_pct": 48.64864864864865,
+       "avg_ret_pct": 0.027635377635310786
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 38,
+      "trail_stop_hit": 36
+     }
+    },
+    "is": {
+     "n": 49,
+     "win_pct_gross": 51.02040816326531,
+     "pfnet_gross": 1.3554215746025293,
+     "avg_hold_bars": 22.20408163265306,
+     "avg_ret_pct_gross": 0.06890210624483419,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.030362051205415214,
+       "win_pct": 8.16326530612245,
+       "avg_ret_pct": -0.7310978937551659
+      },
+      "0.1": {
+       "pfnet": 0.8744304020282366,
+       "win_pct": 44.89795918367347,
+       "avg_ret_pct": -0.031097893755165848
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 24,
+      "trail_stop_hit": 25
+     }
+    },
+    "oos": {
+     "n": 25,
+     "win_pct_gross": 60.0,
+     "pfnet_gross": 2.1135565716723845,
+     "avg_hold_bars": 21.76,
+     "avg_ret_pct_gross": 0.24275258956064505,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.1529837736024471,
+       "win_pct": 28.000000000000004,
+       "avg_ret_pct": -0.557247410439355
+      },
+      "0.1": {
+       "pfnet": 1.5461809409757075,
+       "win_pct": 56.00000000000001,
+       "avg_ret_pct": 0.14275258956064502
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 11,
+      "max_hold_timeout": 14
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 24,
+     "win_pct_gross": 54.166666666666664,
+     "pfnet_gross": 2.138298311203043,
+     "avg_hold_bars": 21.0,
+     "avg_ret_pct_gross": 0.17444614624033916,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.06062787097775835,
+       "win_pct": 16.666666666666664,
+       "avg_ret_pct": -0.6255538537596609
+      },
+      "0.1": {
+       "pfnet": 1.3612285400667035,
+       "win_pct": 45.83333333333333,
+       "avg_ret_pct": 0.07444614624033913
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 11,
+      "trail_stop_hit": 13
+     }
+    },
+    "^NSEBANK": {
+     "n": 25,
+     "win_pct_gross": 48.0,
+     "pfnet_gross": 0.8914657396576885,
+     "avg_hold_bars": 21.32,
+     "avg_ret_pct_gross": -0.03333305599178393,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0650862531624885,
+       "win_pct": 8.0,
+       "avg_ret_pct": -0.833333055991784
+      },
+      "0.1": {
+       "pfnet": 0.6314475608058558,
+       "win_pct": 44.0,
+       "avg_ret_pct": -0.133333055991784
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 12,
+      "trail_stop_hit": 13
+     }
+    },
+    "^BSESN": {
+     "n": 25,
+     "win_pct_gross": 60.0,
+     "pfnet_gross": 2.6953965151099832,
+     "avg_hold_bars": 23.8,
+     "avg_ret_pct_gross": 0.24366547340157838,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.08055753123449032,
+       "win_pct": 20.0,
+       "avg_ret_pct": -0.5563345265984216
+      },
+      "0.1": {
+       "pfnet": 1.7676683266814182,
+       "win_pct": 56.00000000000001,
+       "avg_ret_pct": 0.1436654734015784
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 15,
+      "trail_stop_hit": 10
+     }
+    }
+   }
+  },
+  "ema__cross__short__15m__atr4d5_f9_s21__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "ema_cross",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 72,
+     "win_pct_gross": 55.55555555555556,
+     "pfnet_gross": 1.3697172726549687,
+     "avg_hold_bars": 24.61111111111111,
+     "avg_ret_pct_gross": 0.08999570655615444,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.06289904262961139,
+       "win_pct": 15.277777777777779,
+       "avg_ret_pct": -0.7100042934438456
+      },
+      "0.1": {
+       "pfnet": 0.9655282324725818,
+       "win_pct": 52.77777777777778,
+       "avg_ret_pct": -0.010004293443845614
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 47,
+      "trail_stop_hit": 25
+     }
+    },
+    "is": {
+     "n": 47,
+     "win_pct_gross": 55.319148936170215,
+     "pfnet_gross": 1.2481190918802547,
+     "avg_hold_bars": 24.97872340425532,
+     "avg_ret_pct_gross": 0.054536197265865886,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.03102288747949143,
+       "win_pct": 8.51063829787234,
+       "avg_ret_pct": -0.7454638027341343
+      },
+      "0.1": {
+       "pfnet": 0.830413916553275,
+       "win_pct": 51.06382978723404,
+       "avg_ret_pct": -0.04546380273413418
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 32,
+      "trail_stop_hit": 15
+     }
+    },
+    "oos": {
+     "n": 25,
+     "win_pct_gross": 56.00000000000001,
+     "pfnet_gross": 1.54429389688789,
+     "avg_hold_bars": 23.92,
+     "avg_ret_pct_gross": 0.15665958402189695,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.12556390136998677,
+       "win_pct": 28.000000000000004,
+       "avg_ret_pct": -0.6433404159781031
+      },
+      "0.1": {
+       "pfnet": 1.170753110397458,
+       "win_pct": 56.00000000000001,
+       "avg_ret_pct": 0.05665958402189691
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 10,
+      "max_hold_timeout": 15
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 23,
+     "win_pct_gross": 60.86956521739131,
+     "pfnet_gross": 2.012058195672241,
+     "avg_hold_bars": 25.043478260869566,
+     "avg_ret_pct_gross": 0.17936352029000385,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.05069442924119045,
+       "win_pct": 17.391304347826086,
+       "avg_ret_pct": -0.6206364797099964
+      },
+      "0.1": {
+       "pfnet": 1.3607305438876767,
+       "win_pct": 56.52173913043478,
+       "avg_ret_pct": 0.07936352029000379
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 16,
+      "trail_stop_hit": 7
+     }
+    },
+    "^NSEBANK": {
+     "n": 25,
+     "win_pct_gross": 48.0,
+     "pfnet_gross": 0.7580662887796137,
+     "avg_hold_bars": 23.64,
+     "avg_ret_pct_gross": -0.0887733456562434,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.06127504999125237,
+       "win_pct": 8.0,
+       "avg_ret_pct": -0.8887733456562433
+      },
+      "0.1": {
+       "pfnet": 0.5493943823862623,
+       "win_pct": 48.0,
+       "avg_ret_pct": -0.18877334565624349
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 15,
+      "trail_stop_hit": 10
+     }
+    },
+    "^BSESN": {
+     "n": 24,
+     "win_pct_gross": 58.333333333333336,
+     "pfnet_gross": 2.0694755491161603,
+     "avg_hold_bars": 25.208333333333332,
+     "avg_ret_pct_gross": 0.19056931444912983,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.07690726780429363,
+       "win_pct": 20.833333333333336,
+       "avg_ret_pct": -0.6094306855508702
+      },
+      "0.1": {
+       "pfnet": 1.4053728872005993,
+       "win_pct": 54.166666666666664,
+       "avg_ret_pct": 0.09056931444912983
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 16,
+      "trail_stop_hit": 8
+     }
+    }
+   }
+  },
+  "ema__cross__short__15m__atr6d0_f9_s21__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "ema_cross",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 68,
+     "win_pct_gross": 57.35294117647059,
+     "pfnet_gross": 1.5158788594662362,
+     "avg_hold_bars": 27.323529411764707,
+     "avg_ret_pct_gross": 0.11150805245568264,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.06696015272993348,
+       "win_pct": 14.705882352941178,
+       "avg_ret_pct": -0.6884919475443174
+      },
+      "0.1": {
+       "pfnet": 1.0440428582915364,
+       "win_pct": 54.41176470588235,
+       "avg_ret_pct": 0.011508052455682597
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 59,
+      "trail_stop_hit": 9
+     }
+    },
+    "is": {
+     "n": 44,
+     "win_pct_gross": 61.36363636363637,
+     "pfnet_gross": 1.6446485465497078,
+     "avg_hold_bars": 27.65909090909091,
+     "avg_ret_pct_gross": 0.11604729139522985,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.035935242002361825,
+       "win_pct": 9.090909090909092,
+       "avg_ret_pct": -0.6839527086047703
+      },
+      "0.1": {
+       "pfnet": 1.0721206312613774,
+       "win_pct": 56.81818181818182,
+       "avg_ret_pct": 0.016047291395229802
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 38,
+      "trail_stop_hit": 6
+     }
+    },
+    "oos": {
+     "n": 24,
+     "win_pct_gross": 50.0,
+     "pfnet_gross": 1.3653904605945424,
+     "avg_hold_bars": 26.708333333333332,
+     "avg_ret_pct_gross": 0.1031861143998461,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.11803492437414606,
+       "win_pct": 25.0,
+       "avg_ret_pct": -0.6968138856001539
+      },
+      "0.1": {
+       "pfnet": 1.0095851936781584,
+       "win_pct": 50.0,
+       "avg_ret_pct": 0.003186114399846065
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 21,
+      "trail_stop_hit": 3
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 22,
+     "win_pct_gross": 68.18181818181817,
+     "pfnet_gross": 2.148963737388268,
+     "avg_hold_bars": 27.727272727272727,
+     "avg_ret_pct_gross": 0.18998630766353006,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.048963140241821856,
+       "win_pct": 13.636363636363635,
+       "avg_ret_pct": -0.6100136923364702
+      },
+      "0.1": {
+       "pfnet": 1.4477165613480656,
+       "win_pct": 63.63636363636363,
+       "avg_ret_pct": 0.08998630766353002
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 19,
+      "trail_stop_hit": 3
+     }
+    },
+    "^NSEBANK": {
+     "n": 22,
+     "win_pct_gross": 50.0,
+     "pfnet_gross": 0.9281689910938491,
+     "avg_hold_bars": 26.454545454545453,
+     "avg_ret_pct_gross": -0.021675015506986896,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.07427387797915982,
+       "win_pct": 9.090909090909092,
+       "avg_ret_pct": -0.8216750155069871
+      },
+      "0.1": {
+       "pfnet": 0.654086782547323,
+       "win_pct": 50.0,
+       "avg_ret_pct": -0.12167501550698695
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 19,
+      "trail_stop_hit": 3
+     }
+    },
+    "^BSESN": {
+     "n": 24,
+     "win_pct_gross": 54.166666666666664,
+     "pfnet_gross": 1.8773611998431026,
+     "avg_hold_bars": 27.75,
+     "avg_ret_pct_gross": 0.16165413081426955,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.07368027350600374,
+       "win_pct": 20.833333333333336,
+       "avg_ret_pct": -0.6383458691857304
+      },
+      "0.1": {
+       "pfnet": 1.2638741327115661,
+       "win_pct": 50.0,
+       "avg_ret_pct": 0.061654130814269535
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 21,
+      "trail_stop_hit": 3
+     }
+    }
+   }
+  },
+  "rsi__thrust__long__15m__atr2d0_hi60_lo45_p14__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "rsi_thrust",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 56,
+     "win_pct_gross": 21.428571428571427,
+     "pfnet_gross": 0.209725949268378,
+     "avg_hold_bars": 16.160714285714285,
+     "avg_ret_pct_gross": -0.24291614377439613,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0429161437743961
+      },
+      "0.1": {
+       "pfnet": 0.11598867734685127,
+       "win_pct": 16.071428571428573,
+       "avg_ret_pct": -0.34291614377439616
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 8,
+      "trail_stop_hit": 48
+     }
+    },
+    "is": {
+     "n": 39,
+     "win_pct_gross": 20.51282051282051,
+     "pfnet_gross": 0.26431287088311306,
+     "avg_hold_bars": 15.974358974358974,
+     "avg_ret_pct_gross": -0.1838621190263556,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -0.9838621190263557
+      },
+      "0.1": {
+       "pfnet": 0.13997441020821993,
+       "win_pct": 17.94871794871795,
+       "avg_ret_pct": -0.2838621190263556
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 7,
+      "trail_stop_hit": 32
+     }
+    },
+    "oos": {
+     "n": 17,
+     "win_pct_gross": 23.52941176470588,
+     "pfnet_gross": 0.13846829260840163,
+     "avg_hold_bars": 16.58823529411765,
+     "avg_ret_pct_gross": -0.3783930240787244,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.1783930240787244
+      },
+      "0.1": {
+       "pfnet": 0.0811030350199587,
+       "win_pct": 11.76470588235294,
+       "avg_ret_pct": -0.47839302407872447
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 16,
+      "max_hold_timeout": 1
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 18,
+     "win_pct_gross": 22.22222222222222,
+     "pfnet_gross": 0.19540094408378883,
+     "avg_hold_bars": 13.333333333333334,
+     "avg_ret_pct_gross": -0.23248438589050482,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.032484385890505
+      },
+      "0.1": {
+       "pfnet": 0.10280715380974781,
+       "win_pct": 16.666666666666664,
+       "avg_ret_pct": -0.33248438589050483
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 2,
+      "trail_stop_hit": 16
+     }
+    },
+    "^NSEBANK": {
+     "n": 22,
+     "win_pct_gross": 22.727272727272727,
+     "pfnet_gross": 0.20057546028276932,
+     "avg_hold_bars": 19.136363636363637,
+     "avg_ret_pct_gross": -0.2864084881735719,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.086408488173572
+      },
+      "0.1": {
+       "pfnet": 0.11649826943172949,
+       "win_pct": 13.636363636363635,
+       "avg_ret_pct": -0.386408488173572
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 4,
+      "trail_stop_hit": 18
+     }
+    },
+    "^BSESN": {
+     "n": 16,
+     "win_pct_gross": 18.75,
+     "pfnet_gross": 0.24522471472395696,
+     "avg_hold_bars": 15.25,
+     "avg_ret_pct_gross": -0.19484989784490717,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -0.9948498978449072
+      },
+      "0.1": {
+       "pfnet": 0.13127714587965195,
+       "win_pct": 18.75,
+       "avg_ret_pct": -0.29484989784490717
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 2,
+      "trail_stop_hit": 14
+     }
+    }
+   }
+  },
+  "rsi__thrust__long__15m__atr3d0_hi60_lo45_p14__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "rsi_thrust",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 54,
+     "win_pct_gross": 25.925925925925924,
+     "pfnet_gross": 0.21723892558312385,
+     "avg_hold_bars": 20.37037037037037,
+     "avg_ret_pct_gross": -0.28293488061316585,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0829348806131662
+      },
+      "0.1": {
+       "pfnet": 0.1246318941491897,
+       "win_pct": 22.22222222222222,
+       "avg_ret_pct": -0.3829348806131659
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 19,
+      "trail_stop_hit": 35
+     }
+    },
+    "is": {
+     "n": 37,
+     "win_pct_gross": 24.324324324324326,
+     "pfnet_gross": 0.2178927714733725,
+     "avg_hold_bars": 19.216216216216218,
+     "avg_ret_pct_gross": -0.2567643574260101,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0567643574260104
+      },
+      "0.1": {
+       "pfnet": 0.12082599942032675,
+       "win_pct": 21.62162162162162,
+       "avg_ret_pct": -0.35676435742601015
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 12,
+      "trail_stop_hit": 25
+     }
+    },
+    "oos": {
+     "n": 17,
+     "win_pct_gross": 29.411764705882355,
+     "pfnet_gross": 0.21616151956993668,
+     "avg_hold_bars": 22.88235294117647,
+     "avg_ret_pct_gross": -0.33989425460874007,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.13989425460874
+      },
+      "0.1": {
+       "pfnet": 0.1312701297508637,
+       "win_pct": 23.52941176470588,
+       "avg_ret_pct": -0.43989425460874015
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 7,
+      "trail_stop_hit": 10
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 18,
+     "win_pct_gross": 27.77777777777778,
+     "pfnet_gross": 0.22824123453861575,
+     "avg_hold_bars": 17.88888888888889,
+     "avg_ret_pct_gross": -0.24406221823742488,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0440622182374248
+      },
+      "0.1": {
+       "pfnet": 0.11890323146133024,
+       "win_pct": 22.22222222222222,
+       "avg_ret_pct": -0.3440622182374249
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 5,
+      "trail_stop_hit": 13
+     }
+    },
+    "^NSEBANK": {
+     "n": 21,
+     "win_pct_gross": 23.809523809523807,
+     "pfnet_gross": 0.15887365433976677,
+     "avg_hold_bars": 21.047619047619047,
+     "avg_ret_pct_gross": -0.3827352507076517,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.1827352507076518
+      },
+      "0.1": {
+       "pfnet": 0.0967222657133189,
+       "win_pct": 19.047619047619047,
+       "avg_ret_pct": -0.4827352507076517
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 9,
+      "trail_stop_hit": 12
+     }
+    },
+    "^BSESN": {
+     "n": 15,
+     "win_pct_gross": 26.666666666666668,
+     "pfnet_gross": 0.3331623087858464,
+     "avg_hold_bars": 22.4,
+     "avg_ret_pct_gross": -0.18986155733177487,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -0.9898615573317752
+      },
+      "0.1": {
+       "pfnet": 0.19044985462315137,
+       "win_pct": 26.666666666666668,
+       "avg_ret_pct": -0.2898615573317749
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 5,
+      "trail_stop_hit": 10
+     }
+    }
+   }
+  },
+  "rsi__thrust__long__15m__atr4d5_hi60_lo45_p14__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "rsi_thrust",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 49,
+     "win_pct_gross": 28.57142857142857,
+     "pfnet_gross": 0.301949194755141,
+     "avg_hold_bars": 24.367346938775512,
+     "avg_ret_pct_gross": -0.24241492065311324,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0424149206531133
+      },
+      "0.1": {
+       "pfnet": 0.18426889904942853,
+       "win_pct": 24.489795918367346,
+       "avg_ret_pct": -0.3424149206531132
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 28,
+      "trail_stop_hit": 21
+     }
+    },
+    "is": {
+     "n": 33,
+     "win_pct_gross": 27.27272727272727,
+     "pfnet_gross": 0.2638347433234474,
+     "avg_hold_bars": 23.0,
+     "avg_ret_pct_gross": -0.2487789786022131,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0487789786022133
+      },
+      "0.1": {
+       "pfnet": 0.15167026853950738,
+       "win_pct": 24.242424242424242,
+       "avg_ret_pct": -0.34877897860221313
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 17,
+      "trail_stop_hit": 16
+     }
+    },
+    "oos": {
+     "n": 16,
+     "win_pct_gross": 31.25,
+     "pfnet_gross": 0.3744287408023447,
+     "avg_hold_bars": 27.1875,
+     "avg_ret_pct_gross": -0.22928905113309486,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.029289051133095
+      },
+      "0.1": {
+       "pfnet": 0.24744326372772832,
+       "win_pct": 25.0,
+       "avg_ret_pct": -0.3292890511330949
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 11,
+      "trail_stop_hit": 5
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 17,
+     "win_pct_gross": 29.411764705882355,
+     "pfnet_gross": 0.17767971783891298,
+     "avg_hold_bars": 22.294117647058822,
+     "avg_ret_pct_gross": -0.2961908535302701,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.09619085353027
+      },
+      "0.1": {
+       "pfnet": 0.086777000036603,
+       "win_pct": 17.647058823529413,
+       "avg_ret_pct": -0.39619085353027006
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 8,
+      "trail_stop_hit": 9
+     }
+    },
+    "^NSEBANK": {
+     "n": 18,
+     "win_pct_gross": 27.77777777777778,
+     "pfnet_gross": 0.41945188082832363,
+     "avg_hold_bars": 26.11111111111111,
+     "avg_ret_pct_gross": -0.2124134149789033,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0124134149789032
+      },
+      "0.1": {
+       "pfnet": 0.2869007134844872,
+       "win_pct": 27.77777777777778,
+       "avg_ret_pct": -0.3124134149789034
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 13,
+      "trail_stop_hit": 5
+     }
+    },
+    "^BSESN": {
+     "n": 14,
+     "win_pct_gross": 28.57142857142857,
+     "pfnet_gross": 0.29894636702199096,
+     "avg_hold_bars": 24.642857142857142,
+     "avg_ret_pct_gross": -0.2156889380262642,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0156889380262646
+      },
+      "0.1": {
+       "pfnet": 0.16725097302198255,
+       "win_pct": 28.57142857142857,
+       "avg_ret_pct": -0.31568893802626424
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 7,
+      "trail_stop_hit": 7
+     }
+    }
+   }
+  },
+  "rsi__thrust__long__15m__atr6d0_hi60_lo45_p14__v1": {
+   "direction": "long",
+   "option_leg": "buy_call",
+   "strategy": "rsi_thrust",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 49,
+     "win_pct_gross": 26.53061224489796,
+     "pfnet_gross": 0.2540328637281622,
+     "avg_hold_bars": 26.653061224489797,
+     "avg_ret_pct_gross": -0.29342092862217056,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0934209286221708
+      },
+      "0.1": {
+       "pfnet": 0.1591309692740719,
+       "win_pct": 22.448979591836736,
+       "avg_ret_pct": -0.3934209286221706
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 33,
+      "trail_stop_hit": 16
+     }
+    },
+    "is": {
+     "n": 33,
+     "win_pct_gross": 24.242424242424242,
+     "pfnet_gross": 0.20054826839903825,
+     "avg_hold_bars": 25.96969696969697,
+     "avg_ret_pct_gross": -0.3261984628162719,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.126198462816272
+      },
+      "0.1": {
+       "pfnet": 0.11988850603623868,
+       "win_pct": 21.21212121212121,
+       "avg_ret_pct": -0.42619846281627205
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 20,
+      "trail_stop_hit": 13
+     }
+    },
+    "oos": {
+     "n": 16,
+     "win_pct_gross": 31.25,
+     "pfnet_gross": 0.37800928454178384,
+     "avg_hold_bars": 28.0625,
+     "avg_ret_pct_gross": -0.22581726434683647,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0258172643468364
+      },
+      "0.1": {
+       "pfnet": 0.24942228405341965,
+       "win_pct": 25.0,
+       "avg_ret_pct": -0.32581726434683655
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 13,
+      "trail_stop_hit": 3
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 17,
+     "win_pct_gross": 29.411764705882355,
+     "pfnet_gross": 0.14844672377387325,
+     "avg_hold_bars": 24.058823529411764,
+     "avg_ret_pct_gross": -0.3671214027170326,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.1671214027170327
+      },
+      "0.1": {
+       "pfnet": 0.07458301509690625,
+       "win_pct": 17.647058823529413,
+       "avg_ret_pct": -0.4671214027170327
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 9,
+      "trail_stop_hit": 8
+     }
+    },
+    "^NSEBANK": {
+     "n": 18,
+     "win_pct_gross": 27.77777777777778,
+     "pfnet_gross": 0.3826080088978294,
+     "avg_hold_bars": 28.5,
+     "avg_ret_pct_gross": -0.24764684514647578,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.047646845146476
+      },
+      "0.1": {
+       "pfnet": 0.2655450320046869,
+       "win_pct": 27.77777777777778,
+       "avg_ret_pct": -0.34764684514647587
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 15,
+      "trail_stop_hit": 3
+     }
+    },
+    "^BSESN": {
+     "n": 14,
+     "win_pct_gross": 21.428571428571427,
+     "pfnet_gross": 0.22133559218838203,
+     "avg_hold_bars": 27.428571428571427,
+     "avg_ret_pct_gross": -0.26277988883287423,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0,
+       "win_pct": 0.0,
+       "avg_ret_pct": -1.0627798888328746
+      },
+      "0.1": {
+       "pfnet": 0.12803059467309336,
+       "win_pct": 21.428571428571427,
+       "avg_ret_pct": -0.3627798888328743
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 9,
+      "trail_stop_hit": 5
+     }
+    }
+   }
+  },
+  "rsi__thrust__short__15m__atr2d0_hi60_lo45_p14__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "rsi_thrust",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 2.0,
+   "pooled": {
+    "all": {
+     "n": 55,
+     "win_pct_gross": 54.54545454545454,
+     "pfnet_gross": 2.9502494373039787,
+     "avg_hold_bars": 19.563636363636363,
+     "avg_ret_pct_gross": 0.23288594477549568,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.11908828759575142,
+       "win_pct": 18.181818181818183,
+       "avg_ret_pct": -0.5671140552245044
+      },
+      "0.1": {
+       "pfnet": 1.7874915244443377,
+       "win_pct": 47.27272727272727,
+       "avg_ret_pct": 0.13288594477549565
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 23,
+      "trail_stop_hit": 32
+     }
+    },
+    "is": {
+     "n": 35,
+     "win_pct_gross": 45.714285714285715,
+     "pfnet_gross": 1.8308707886175177,
+     "avg_hold_bars": 19.571428571428573,
+     "avg_ret_pct_gross": 0.0937818859126909,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0021314469069856606,
+       "win_pct": 2.857142857142857,
+       "avg_ret_pct": -0.7062181140873092
+      },
+      "0.1": {
+       "pfnet": 0.9631413236096492,
+       "win_pct": 40.0,
+       "avg_ret_pct": -0.006218114087309093
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 12,
+      "trail_stop_hit": 23
+     }
+    },
+    "oos": {
+     "n": 20,
+     "win_pct_gross": 70.0,
+     "pfnet_gross": 4.63987136669742,
+     "avg_hold_bars": 19.55,
+     "avg_ret_pct_gross": 0.476318047785404,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.3914330690788856,
+       "win_pct": 45.0,
+       "avg_ret_pct": -0.3236819522145961
+      },
+      "0.1": {
+       "pfnet": 3.229061713124713,
+       "win_pct": 60.0,
+       "avg_ret_pct": 0.3763180477854039
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 9,
+      "max_hold_timeout": 11
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 19,
+     "win_pct_gross": 68.42105263157895,
+     "pfnet_gross": 9.272432048829316,
+     "avg_hold_bars": 21.263157894736842,
+     "avg_ret_pct_gross": 0.41392605041875696,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.20122540340103587,
+       "win_pct": 26.31578947368421,
+       "avg_ret_pct": -0.38607394958124314
+      },
+      "0.1": {
+       "pfnet": 4.538889168355881,
+       "win_pct": 57.89473684210527,
+       "avg_ret_pct": 0.31392605041875704
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 8,
+      "trail_stop_hit": 11
+     }
+    },
+    "^NSEBANK": {
+     "n": 18,
+     "win_pct_gross": 50.0,
+     "pfnet_gross": 1.2880840456544624,
+     "avg_hold_bars": 18.0,
+     "avg_ret_pct_gross": 0.051074442786381354,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0647687130118255,
+       "win_pct": 5.555555555555555,
+       "avg_ret_pct": -0.7489255572136188
+      },
+      "0.1": {
+       "pfnet": 0.7878823905129092,
+       "win_pct": 44.44444444444444,
+       "avg_ret_pct": -0.04892555721361866
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 11,
+      "max_hold_timeout": 7
+     }
+    },
+    "^BSESN": {
+     "n": 18,
+     "win_pct_gross": 44.44444444444444,
+     "pfnet_gross": 2.6591489666764496,
+     "avg_hold_bars": 19.333333333333332,
+     "avg_ret_pct_gross": 0.22359955747450078,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.12151703593582136,
+       "win_pct": 22.22222222222222,
+       "avg_ret_pct": -0.5764004425254993
+      },
+      "0.1": {
+       "pfnet": 1.6460232086613076,
+       "win_pct": 38.88888888888889,
+       "avg_ret_pct": 0.12359955747450074
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 8,
+      "trail_stop_hit": 10
+     }
+    }
+   }
+  },
+  "rsi__thrust__short__15m__atr3d0_hi60_lo45_p14__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "rsi_thrust",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 3.0,
+   "pooled": {
+    "all": {
+     "n": 55,
+     "win_pct_gross": 50.90909090909091,
+     "pfnet_gross": 1.8529521181242117,
+     "avg_hold_bars": 22.4,
+     "avg_ret_pct_gross": 0.1621047300645929,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0990847809387548,
+       "win_pct": 18.181818181818183,
+       "avg_ret_pct": -0.6378952699354072
+      },
+      "0.1": {
+       "pfnet": 1.2583939080951425,
+       "win_pct": 49.09090909090909,
+       "avg_ret_pct": 0.06210473006459287
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 28,
+      "trail_stop_hit": 27
+     }
+    },
+    "is": {
+     "n": 35,
+     "win_pct_gross": 45.714285714285715,
+     "pfnet_gross": 1.1840351502029054,
+     "avg_hold_bars": 22.942857142857143,
+     "avg_ret_pct_gross": 0.03385621717718675,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.001965058573120967,
+       "win_pct": 2.857142857142857,
+       "avg_ret_pct": -0.7661437828228133
+      },
+      "0.1": {
+       "pfnet": 0.7245708474248338,
+       "win_pct": 42.857142857142854,
+       "avg_ret_pct": -0.06614378282281326
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 17,
+      "trail_stop_hit": 18
+     }
+    },
+    "oos": {
+     "n": 20,
+     "win_pct_gross": 60.0,
+     "pfnet_gross": 2.9259501822019938,
+     "avg_hold_bars": 21.45,
+     "avg_ret_pct_gross": 0.38653962761755367,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.31518279950200073,
+       "win_pct": 45.0,
+       "avg_ret_pct": -0.41346037238244643
+      },
+      "0.1": {
+       "pfnet": 2.190439327666134,
+       "win_pct": 60.0,
+       "avg_ret_pct": 0.2865396276175536
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 9,
+      "max_hold_timeout": 11
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 19,
+     "win_pct_gross": 57.89473684210527,
+     "pfnet_gross": 6.022657610196757,
+     "avg_hold_bars": 23.63157894736842,
+     "avg_ret_pct_gross": 0.364643331599451,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.16784323301974008,
+       "win_pct": 26.31578947368421,
+       "avg_ret_pct": -0.43535666840054915
+      },
+      "0.1": {
+       "pfnet": 3.307165898787622,
+       "win_pct": 57.89473684210527,
+       "avg_ret_pct": 0.26464333159945097
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 10,
+      "trail_stop_hit": 9
+     }
+    },
+    "^NSEBANK": {
+     "n": 18,
+     "win_pct_gross": 44.44444444444444,
+     "pfnet_gross": 0.737404231586184,
+     "avg_hold_bars": 21.055555555555557,
+     "avg_ret_pct_gross": -0.0850155121114323,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.05536051280843579,
+       "win_pct": 5.555555555555555,
+       "avg_ret_pct": -0.8850155121114324
+      },
+      "0.1": {
+       "pfnet": 0.5169224151254244,
+       "win_pct": 38.88888888888889,
+       "avg_ret_pct": -0.1850155121114323
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 10,
+      "max_hold_timeout": 8
+     }
+    },
+    "^BSESN": {
+     "n": 18,
+     "win_pct_gross": 50.0,
+     "pfnet_gross": 2.0837644426551654,
+     "avg_hold_bars": 22.444444444444443,
+     "avg_ret_pct_gross": 0.19543422617604567,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.1035242463199391,
+       "win_pct": 22.22222222222222,
+       "avg_ret_pct": -0.6045657738239545
+      },
+      "0.1": {
+       "pfnet": 1.4143386207556126,
+       "win_pct": 50.0,
+       "avg_ret_pct": 0.09543422617604562
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 10,
+      "trail_stop_hit": 8
+     }
+    }
+   }
+  },
+  "rsi__thrust__short__15m__atr4d5_hi60_lo45_p14__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "rsi_thrust",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 4.5,
+   "pooled": {
+    "all": {
+     "n": 52,
+     "win_pct_gross": 57.692307692307686,
+     "pfnet_gross": 1.6885485832314184,
+     "avg_hold_bars": 25.576923076923077,
+     "avg_ret_pct_gross": 0.14967028704589885,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.09531428736860802,
+       "win_pct": 17.307692307692307,
+       "avg_ret_pct": -0.6503297129541012
+      },
+      "0.1": {
+       "pfnet": 1.1912761656311854,
+       "win_pct": 57.692307692307686,
+       "avg_ret_pct": 0.0496702870458988
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 37,
+      "trail_stop_hit": 15
+     }
+    },
+    "is": {
+     "n": 32,
+     "win_pct_gross": 56.25,
+     "pfnet_gross": 1.2183254607729062,
+     "avg_hold_bars": 26.65625,
+     "avg_ret_pct_gross": 0.043299181304331386,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0021756448234629255,
+       "win_pct": 3.125,
+       "avg_ret_pct": -0.7567008186956686
+      },
+      "0.1": {
+       "pfnet": 0.7657707317487031,
+       "win_pct": 56.25,
+       "avg_ret_pct": -0.05670081869566864
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 24,
+      "trail_stop_hit": 8
+     }
+    },
+    "oos": {
+     "n": 20,
+     "win_pct_gross": 60.0,
+     "pfnet_gross": 2.2905789558136753,
+     "avg_hold_bars": 23.85,
+     "avg_ret_pct_gross": 0.31986405623240677,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.26768185919895976,
+       "win_pct": 40.0,
+       "avg_ret_pct": -0.48013594376759333
+      },
+      "0.1": {
+       "pfnet": 1.7638268911140353,
+       "win_pct": 60.0,
+       "avg_ret_pct": 0.21986405623240665
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 7,
+      "max_hold_timeout": 13
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 17,
+     "win_pct_gross": 76.47058823529412,
+     "pfnet_gross": 6.701305788658483,
+     "avg_hold_bars": 28.176470588235293,
+     "avg_ret_pct_gross": 0.424991175613576,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.18651704752467474,
+       "win_pct": 29.411764705882355,
+       "avg_ret_pct": -0.375008824386424
+      },
+      "0.1": {
+       "pfnet": 4.313795420768859,
+       "win_pct": 76.47058823529412,
+       "avg_ret_pct": 0.324991175613576
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 14,
+      "trail_stop_hit": 3
+     }
+    },
+    "^NSEBANK": {
+     "n": 18,
+     "win_pct_gross": 44.44444444444444,
+     "pfnet_gross": 0.654596530419433,
+     "avg_hold_bars": 23.166666666666668,
+     "avg_ret_pct_gross": -0.1291746966811576,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.05286859328294275,
+       "win_pct": 5.555555555555555,
+       "avg_ret_pct": -0.9291746966811577
+      },
+      "0.1": {
+       "pfnet": 0.46646185296925496,
+       "win_pct": 44.44444444444444,
+       "avg_ret_pct": -0.22917469668115764
+      }
+     },
+     "exit_reasons": {
+      "trail_stop_hit": 7,
+      "max_hold_timeout": 11
+     }
+    },
+    "^BSESN": {
+     "n": 17,
+     "win_pct_gross": 52.94117647058824,
+     "pfnet_gross": 1.8725256237539933,
+     "avg_hold_bars": 25.529411764705884,
+     "avg_ret_pct_gross": 0.16959702830686968,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.098242017983629,
+       "win_pct": 17.647058823529413,
+       "avg_ret_pct": -0.6304029716931303
+      },
+      "0.1": {
+       "pfnet": 1.2882656351959798,
+       "win_pct": 52.94117647058824,
+       "avg_ret_pct": 0.06959702830686962
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 12,
+      "trail_stop_hit": 5
+     }
+    }
+   }
+  },
+  "rsi__thrust__short__15m__atr6d0_hi60_lo45_p14__v1": {
+   "direction": "short",
+   "option_leg": "buy_put",
+   "strategy": "rsi_thrust",
+   "volume_gated": false,
+   "interval": "15m",
+   "atr_mult": 6.0,
+   "pooled": {
+    "all": {
+     "n": 52,
+     "win_pct_gross": 57.692307692307686,
+     "pfnet_gross": 1.849869055468943,
+     "avg_hold_bars": 27.51923076923077,
+     "avg_ret_pct_gross": 0.15869090686599724,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0947755321432203,
+       "win_pct": 15.384615384615385,
+       "avg_ret_pct": -0.6413090931340029
+      },
+      "0.1": {
+       "pfnet": 1.2562567613848026,
+       "win_pct": 57.692307692307686,
+       "avg_ret_pct": 0.058690906865997226
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 46,
+      "trail_stop_hit": 6
+     }
+    },
+    "is": {
+     "n": 32,
+     "win_pct_gross": 56.25,
+     "pfnet_gross": 1.2581620063849113,
+     "avg_hold_bars": 27.96875,
+     "avg_ret_pct_gross": 0.049578613929290166,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.002193810408700333,
+       "win_pct": 3.125,
+       "avg_ret_pct": -0.7504213860707099
+      },
+      "0.1": {
+       "pfnet": 0.7861639304758754,
+       "win_pct": 56.25,
+       "avg_ret_pct": -0.05042138607070986
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 28,
+      "trail_stop_hit": 4
+     }
+    },
+    "oos": {
+     "n": 20,
+     "win_pct_gross": 60.0,
+     "pfnet_gross": 2.870090415683996,
+     "avg_hold_bars": 26.8,
+     "avg_ret_pct_gross": 0.3332705755647286,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.2692097906476749,
+       "win_pct": 35.0,
+       "avg_ret_pct": -0.4667294244352716
+      },
+      "0.1": {
+       "pfnet": 2.069014105698071,
+       "win_pct": 60.0,
+       "avg_ret_pct": 0.23327057556472852
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 18,
+      "trail_stop_hit": 2
+     }
+    }
+   },
+   "per_index": {
+    "^NSEI": {
+     "n": 17,
+     "win_pct_gross": 76.47058823529412,
+     "pfnet_gross": 10.531620984445754,
+     "avg_hold_bars": 28.764705882352942,
+     "avg_ret_pct_gross": 0.42312352770667094,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.17831279001286088,
+       "win_pct": 23.52941176470588,
+       "avg_ret_pct": -0.37687647229332916
+      },
+      "0.1": {
+       "pfnet": 5.757345454205344,
+       "win_pct": 76.47058823529412,
+       "avg_ret_pct": 0.32312352770667085
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 16,
+      "trail_stop_hit": 1
+     }
+    },
+    "^NSEBANK": {
+     "n": 18,
+     "win_pct_gross": 44.44444444444444,
+     "pfnet_gross": 0.802962565255787,
+     "avg_hold_bars": 26.88888888888889,
+     "avg_ret_pct_gross": -0.06007280345297258,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.0568746941884909,
+       "win_pct": 5.555555555555555,
+       "avg_ret_pct": -0.8600728034529727
+      },
+      "0.1": {
+       "pfnet": 0.5558908310154526,
+       "win_pct": 44.44444444444444,
+       "avg_ret_pct": -0.16007280345297262
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 16,
+      "trail_stop_hit": 2
+     }
+    },
+    "^BSESN": {
+     "n": 17,
+     "win_pct_gross": 52.94117647058824,
+     "pfnet_gross": 1.6172620335970442,
+     "avg_hold_bars": 26.941176470588236,
+     "avg_ret_pct_gross": 0.12589044989246811,
+     "net_by_cost_pct": {
+      "0.8": {
+       "pfnet": 0.09246134052385056,
+       "win_pct": 17.647058823529413,
+       "avg_ret_pct": -0.6741095501075319
+      },
+      "0.1": {
+       "pfnet": 1.103145671269417,
+       "win_pct": 52.94117647058824,
+       "avg_ret_pct": 0.025890449892468054
+      }
+     },
+     "exit_reasons": {
+      "max_hold_timeout": 14,
+      "trail_stop_hit": 3
+     }
+    }
+   }
+  }
+ },
+ "note": "underlying-move trigger test, not option premium P&L; zero-volume indexes cannot fire volume-gated entries"
+}

@@ -318,7 +318,9 @@ def main_run():
     cfg = CFG[tf]
     shard, nsh = int(os.environ.get("SHARD", "0")), int(os.environ.get("NSHARDS", "1"))
     cost = app.ROUND_TRIP_COST_PCT / 100.0
-    syms = sorted(app._load_nse_universe_from_file())[shard::nsh]
+    import universe_pin as up  # B-841: PIN_FILE pins the exact symbol set for a rerun
+    pin_file, pin_tol = up.env_args()
+    syms = up.select_universe(app._load_nse_universe_from_file(), pin_file)[shard::nsh]
     cap = int(os.environ.get("MAXSYM", "0") or 0)
     if cap:
         syms = syms[:cap]
@@ -348,7 +350,8 @@ def main_run():
         if i % 100 == 0:
             print("processed", i, "cells", len(cells), flush=True)
     out = os.path.join(ROOT, "docs", f"oneil_research_{tf}_s{shard}.json")
-    json.dump({"tf": tf, "shard": shard, "nshards": nsh, "symbols": len(data), "universe_requested": len(syms), "cells": cells}, open(out, "w"), default=lambda o: o.item() if hasattr(o, "item") else str(o))
+    json.dump({"tf": tf, "shard": shard, "nshards": nsh, "symbols": len(data), "universe_requested": len(syms), "cells": cells,
+               **up.shard_meta(syms, list(data), pin_file, pin_tol)}, open(out, "w"), default=lambda o: o.item() if hasattr(o, "item") else str(o))
     print("wrote", out, "cells", len(cells))
 
 
@@ -361,7 +364,8 @@ def merge_run(paths):
     import cell_tsv  # B-783: keep-all-data, every cell (min_n=1), full table in the log
     cell_tsv.emit_full(finalize(merged, min_n=1), os.environ.get("TSV_OUT", os.path.join(ROOT, "docs", "oneil_research_cells.tsv")), "oneil_research")
     out = os.path.join(ROOT, "docs", "oneil_research_results.json")
-    json.dump({"universe_symbols": uni, "universe_requested": req, "results": res}, open(out, "w"), indent=0, default=lambda o: o.item() if hasattr(o, "item") else str(o))
+    import universe_pin as up
+    json.dump({"universe_symbols": uni, "universe_requested": req, "fetched_symbols": up.merge_fetched(parts), "results": res}, open(out, "w"), indent=0, default=lambda o: o.item() if hasattr(o, "item") else str(o))
     ok = sorted([(m["pfnet"], m["n"], t) for t, m in res.items() if m["pfnet"] and m["pfnet"] >= 1.1 and m["n"] >= 300], reverse=True)
     print(f"universe_symbols={uni}/{req} cells={len(res)} viable(PFnet>=1.1,n>=300)={len(ok)}")
     for pf, n, t in ok[:40]:

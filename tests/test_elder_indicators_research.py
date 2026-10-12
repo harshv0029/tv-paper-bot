@@ -63,10 +63,10 @@ def test_stop_loss_on_every_trade_and_gap_fill():
     n = len(df)
     sig = er._pack(df, np.r_[True, np.zeros(n - 1, bool)], np.zeros(n, bool),
                    np.zeros(n, bool), np.zeros(n, bool))
-    # force a gap-down on bar 3 below any 1.5 ATR stop
+    # force a gap-down on bar 3 below any 1.5 ATR stop (0.6x: a >50% one-bar move is dropped by the B-864 bad-bar guard)
     df = df.copy()
-    df.iloc[3, df.columns.get_loc("Open")] = df["Close"].iloc[0] * 0.5
-    df.iloc[3, df.columns.get_loc("Low")] = df["Close"].iloc[0] * 0.5
+    df.iloc[3, df.columns.get_loc("Open")] = df["Close"].iloc[0] * 0.6
+    df.iloc[3, df.columns.get_loc("Low")] = df["Close"].iloc[0] * 0.6
     tr = er.simulate(df, sig, "long", 1.5)
     assert tr and tr[0]["reason"] == "stop_loss"
     assert tr[0]["ret"] < -0.3          # filled at the gap open, not at the stop

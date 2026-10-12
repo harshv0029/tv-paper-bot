@@ -1,0 +1,70 @@
+name: Swing minimum reward:risk exit research (B-842)
+
+# The brk20_min_rr gate/target mechanism replayed on gap_and_go, minervini_vcp, brk20, order_block,
+# volume_profile; both directions, ATR 1.5/2/3, full NSE universe via _load_nse_universe_from_file(),
+# strict non-overlap, bad-bar guard, top-5 trades + PFnet ex-top5. 5 entries x 4 shards = 20 jobs:
+# dispatch only when no Deploy Gate / safety run is queued. Candle sweep: re-dispatch with
+# interval=1h (period 730d); gap_and_go / minervini_vcp skip off 1d (daily constructs). Research only.
+on:
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: "Candle size (1d, 1h; 15m/5m with period 60d)"
+        required: false
+        default: "1d"
+      period:
+        description: "yfinance period (1d: 5y; 1h: 730d; 15m/5m: 60d)"
+        required: false
+        default: "5y"
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        entry: [gap_and_go, minervini_vcp, brk20, order_block, volume_profile]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run entry shard
+        run: |
+          set -o pipefail
+          python3 scripts/swing_min_rr_research.py \
+            --entry "${{ matrix.entry }}" --shard ${{ matrix.shard }} --nshards 4 \
+            --interval "${{ inputs.interval }}" --period "${{ inputs.period }}" --out out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: swmrr-${{ matrix.entry }}-${{ matrix.shard }}
+          path: out/
+          if-no-files-found: ignore
+
+  merge:
+    needs: research
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: swmrr-*
+          merge-multiple: true
+      - name: Merge shards and print per-tag table
+        run: |
+          set -o pipefail
+          python3 scripts/swing_min_rr_research.py --merge shards --json swmrr_results.json | tee swmrr_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: swing-min-rr-results
+          path: |
+            swmrr_results.json
+            swmrr_table.txt
