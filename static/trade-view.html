@@ -356,6 +356,50 @@
   </div>
 </div>
 
+<div class="counts-panel" id="sx-panel">
+  <div class="counts-head">
+    <span class="title">Strategy explorer — backtested strategies by your filters</span>
+    <span id="sx-counts" style="margin-left:10px;font-size:.85em;color:#64748b"></span>
+  </div>
+  <div style="padding:6px 10px;font-size:.85em;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+    <details id="sx-cat-dd"><summary style="cursor:pointer">Category (<span id="sx-cat-n">all</span>)</summary>
+      <div id="sx-cats" style="position:absolute;background:#fff;border:1px solid #cbd5e1;padding:6px;z-index:5"></div></details>
+    <label>PFnet min <input id="sx-pfmin" type="number" step="0.1" value="1.1" style="width:60px"></label>
+    <label>max <input id="sx-pfmax" type="number" step="0.1" placeholder="any" style="width:60px"></label>
+    <label>Min sample <input id="sx-minn" type="number" step="1" value="30" style="width:70px"></label>
+    <label>Max hold (hrs) <input id="sx-hold" type="number" step="0.25" placeholder="any" style="width:70px"></label>
+    <button id="sx-go">Show</button>
+  </div>
+  <div class="counts-scroll"><table class="counts">
+    <thead><tr><th class="num">#</th><th>Strategy</th><th>Category</th><th>TF</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num">Trades</th><th class="num">Avg hold (h)</th></tr></thead>
+    <tbody id="sx-body"><tr><td colspan="8" class="scan-idle">Press Show.</td></tr></tbody>
+  </table></div>
+</div>
+<script>
+(function(){
+  var CATS=["buy","short_sell","swing","futures","options","bidirectional"];
+  var box=document.getElementById("sx-cats");
+  box.innerHTML=CATS.map(function(c){return '<label style="display:block"><input type="checkbox" class="sx-c" value="'+c+'"> '+c+'</label>';}).join("");
+  function esc(t){return String(t).replace(/[&<>]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[m];});}
+  function go(){
+    var sel=[].slice.call(document.querySelectorAll(".sx-c:checked")).map(function(e){return e.value;});
+    document.getElementById("sx-cat-n").textContent=sel.length?sel.join(", "):"all";
+    var q=new URLSearchParams();
+    if(sel.length)q.set("categories",sel.join(","));
+    [["sx-pfmin","pf_min"],["sx-pfmax","pf_max"],["sx-minn","min_n"],["sx-hold","max_hold_hrs"]].forEach(function(x){
+      var v=document.getElementById(x[0]).value; if(v!=="")q.set(x[1],v);});
+    fetch("/strategy-explorer?"+q.toString()).then(function(r){return r.json();}).then(function(d){
+      document.getElementById("sx-counts").textContent=d.total+" strategies"+(d.total>d.rows.length?" (showing top "+d.rows.length+")":"");
+      document.getElementById("sx-body").innerHTML=d.rows.length?d.rows.map(function(r,i){
+        var f=function(v,n){return v==null?"—":Number(v).toFixed(n);};
+        return "<tr><td class='num'>"+(i+1)+"</td><td>"+esc(r.name)+"</td><td>"+esc(r.categories.join(", "))+"</td><td>"+esc(r.timeframe)+"</td><td class='num'>"+f(r.pfnet,2)+"</td><td class='num'>"+f(r.win_rate_pct,1)+"</td><td class='num'>"+(r.n_trades==null?"—":r.n_trades)+"</td><td class='num'>"+f(r.avg_held_hrs,1)+"</td></tr>";
+      }).join(""):"<tr><td colspan='8' class='scan-idle'>No strategy matches.</td></tr>";
+    }).catch(function(){document.getElementById("sx-body").innerHTML="<tr><td colspan='8' class='scan-idle'>Load failed.</td></tr>";});
+  }
+  document.getElementById("sx-go").addEventListener("click",go);
+})();
+</script>
+
 <div class="counts-panel">
   <div class="counts-head">
     <span class="title">Viable strategies — scan &amp; entry activity <span id="strategy-scan-refreshed" class="scan-idle">(last refreshed: —)</span></span>

@@ -21809,6 +21809,39 @@ def strategy_leaderboard():
     return out
 
 
+@app.get("/strategy-explorer")
+def strategy_explorer(categories: str = "", pf_min: float = None, pf_max: float = None,
+                      min_n: int = 0, max_hold_hrs: float = None, limit: int = 500):
+    """Read-only user-driven filter over every backtested strategy (user 2026-10-13).
+    categories: comma list of TradeCategory values (empty = all); PFnet range;
+    min sample size; max avg hold in market hours. Derived at read time from the
+    registry; display only, the real-money gate is untouched."""
+    import strategy_registry as sr
+    cats = {c.strip() for c in categories.split(",") if c.strip()}
+    rows = []
+    for d in sr.REGISTRY:
+        m = d.metrics
+        if m is None or m.pfnet is None:
+            continue
+        dcats = [c.value for c in d.categories]
+        if cats and not (cats & set(dcats)):
+            continue
+        if pf_min is not None and m.pfnet < pf_min:
+            continue
+        if pf_max is not None and m.pfnet > pf_max:
+            continue
+        if (m.n_trades or 0) < min_n:
+            continue
+        if max_hold_hrs is not None and (m.avg_held_hrs is None or m.avg_held_hrs > max_hold_hrs):
+            continue
+        rows.append({"name": d.name, "categories": dcats, "timeframe": d.timeframe,
+                     "pfnet": m.pfnet, "win_rate_pct": m.win_rate_pct, "n_trades": m.n_trades,
+                     "avg_held_hrs": m.avg_held_hrs, "universe": m.universe})
+    rows.sort(key=lambda r: -r["pfnet"])
+    return {"total": len(rows), "rows": rows[:max(1, min(limit, 5000))],
+            "categories_available": [c.value for c in sr.TradeCategory]}
+
+
 @app.get("/strategy-viable-buckets")
 def strategy_viable_buckets():
     """Read-only, derived at read time from strategy_registry (B-815): viable
