@@ -1027,3 +1027,11 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: low-win (40-49%) cells still clear 1.3+ because state exits are short and cheap; the z2 ve10 cells have only n~440, thin.
 - Reuse: cascade highest PFnet first; re-read the viable stack right before the real order so a stack change flips the next entry.
 - Profit-booking / exit takeaway: sub-hour holds recycle capital fast; the unwind-on-SL-failure rule matters more than the target since no target rests.
+
+## sector_rotation fade SHORT 1d (B-963, 2026-10-13)
+- Mechanism: fade the strongest-breadth sector (>=60% up, >=5 symbols); short its top-1 by 5-day return; fixed stop entry + k x ATR14; exit at stop (gap-aware) or the close of bar H (5 or 10).
+- Fit: all cells hold >=5 days, so on NSE cash they are overnight shorts: MIS squares off at 15:20 and CNC needs shares, so the real leg depends on the unconfirmed NRML check (B-912). Paper runs now; the real leg fails closed. The BUY stop is placed with the entry and the entry is unwound if it cannot rest.
+- Result (class-A replay on real main.sector_rotation_fade_short_* fns, 0.8% cost, n~678): registry gap_aware PFnet 1.20-1.34, stop-fill 1.29-1.49, win 50-61%, avg hold 4-10 bars. Wider stops (atr6) win more often (60%) with lower PFnet than atr1d5 (50%).
+- Surprised: stop_hit trades are 0 PFnet and timeout trades carry the profit (85% win on atr1d5_h10), the usual fade shape; the stop-fill assumption moves PFnet by ~0.15, so gap_aware is the honest number.
+- Reuse: cross-sectional picks must be computed once per scan from the whole universe; live sector breadth on a smaller universe than the replay is a fidelity gap to measure.
+- Profit-booking / exit takeaway: the time exit makes the money; tightening the stop only converts winners into 0-PF stop-outs.
