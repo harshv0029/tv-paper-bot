@@ -20280,6 +20280,8 @@ def _run_swing_scan_pass(conn):
         ).fetchone()
 
         if pos:
+            if pos["strategy"] in MACDDIV_LONG_LIVE_CELLS:
+                continue  # B-984: 1h cell, managed by _run_long_swing_1h_pass on hourly bars
             # 2026-09-30: minervini_vcp_livermore uses the IDENTICAL
             # chandelier-trail exit as the base minervini_vcp entry (see
             # strategy_registry.py's own minervini_vcp_livermore_confirmed
@@ -20708,6 +20710,10 @@ def _run_swing_scan_pass(conn):
         _run_short_swing_1h_pass(conn, list(dfs), capital, today, _done_syms)
     except Exception as e:
         print(f"[SWING SHORT 1h] pass failed (non-fatal): {e}")
+    try:  # B-984: 1h LONG leg (macddiv line cells); same long swing table, hourly bars
+        _run_long_swing_1h_pass(conn, list(dfs), capital, today, _done_syms)
+    except Exception as e:
+        print(f"[SWING LONG 1h] pass failed (non-fatal): {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -21344,6 +21350,111 @@ def _run_short_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=Non
             _swingminrr_gate_short_try_entry(conn, symbol, df, capital, cfg["risk_pct"], today, 1.0)
         except Exception as e:
             print(f"[SWING SHORT 1h] scan failed for {symbol} (non-fatal): {e}")
+
+
+# ---- B-984: macddiv LONG 1h in the SWING engine (it holds up to 30 hourly bars = overnight CNC long) -------------------
+# Wired cells = the full-period non-overlap line cells that were measured (run 38192366174): atr3 1.462, atr2 1.416,
+# atr1d5 1.40. The hist cell (1.138) and the IS/OOS slice tags (e.g. segis 2.2) are NOT wired. Order = PFnet, first tag
+# that fires owns the symbol. Gate stays closed via REPLAY_OWED_TAGS until a main.py-calling replay is on file.
+MACDDIV_LONG_LIVE_CELLS = tuple(t for t in (
+    "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
+    "macddiv__line_any__long__1h__atr2_w5__nonovl__v2",
+    "macddiv__line_any__long__1h__atr1d5_w5__nonovl__v2",
+) if t in MACDDIV_LONG_CELLS)
+
+
+def _macddiv_long_1h_exit(df, pos):
+    """(reason, exit_px) via the real macddiv_long_exit_reason; fill bar = first bar after the entry bar."""
+    if len(df) == 0:
+        return None
+    starts = np.flatnonzero(df["Date"].astype(str).to_numpy() > str(pos["entry_day"]))
+    if len(starts) == 0:
+        return None
+    reason, px = macddiv_long_exit_reason(df, int(starts[0]), float(pos["initial_stop_loss"]))
+    return (reason, float(px)) if reason else None
+
+
+def _macddiv_long_1h_close_paper(conn, symbol, pos, exit_price, reason):
+    fx = pos["fx_to_inr"]
+    gross_pnl_native = (exit_price - pos["entry_price"]) * pos["qty"]
+    apply_paper_trade(conn, symbol, "sell", pos["qty"], exit_price)
+    conn.execute(
+        "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+        "VALUES (?, ?, 'sell', ?, ?, ?, ?, ?)",
+        (time.time(), symbol, pos["qty"], exit_price, fx, SWING_STRATEGY_TAG,
+         json.dumps({"exit_reason": reason, "gross_pnl_native": gross_pnl_native, "strategy": pos["strategy"]})),
+    )
+    conn.execute("DELETE FROM signal_state_swing WHERE symbol = ?", (symbol,))
+    conn.commit()
+    _sync_signal_state_swing_external(conn)
+    print(f"[SWING LONG 1h] exit {symbol} ({pos['strategy']}, {reason}) qty={pos['qty']} @ {exit_price:.2f}")
+    try:
+        _maybe_place_real_swing_exit(conn, symbol, reason=f"{pos['strategy']} paper swing exit: {reason}")
+    except Exception as e:
+        print(f"[REAL SWING] exit mirror failed for {symbol} (non-fatal, paper exit already recorded): {e}")
+
+
+def _macddiv_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) -> str | None:
+    """Opens at most one macddiv long position (first VIABLE cell that fires). ATR stop is on every signal; the real
+    mirror re-checks the gate (B-962), places the resting SL and unwinds if that fails (B-966)."""
+    for tag in MACDDIV_LONG_LIVE_CELLS:
+        _record_strategy_scan(tag)
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            continue
+        sig = macddiv_long_cell_signal(df1h, tag)
+        if not sig:
+            continue
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return None
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, str(df1h["Date"].iloc[-1]), entry_price, stop_loss, None, qty, time.time(), fx,
+             sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"]})),
+        )
+        conn.commit()
+        print(f"[SWING LONG 1h] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return tag
+    return None
+
+
+def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None):
+    """1h leg of the LONG swing engine: exits for open macddiv cells first, then entries. Hourly bars with the
+    still-forming bar dropped. Never raises per symbol."""
+    fetch = fetch or fetch_ohlc
+    for symbol in symbols:
+        try:
+            pos = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
+            if pos is not None and pos["strategy"] not in MACDDIV_LONG_LIVE_CELLS:
+                continue
+            if pos is None and symbol in done_syms:
+                continue
+            df = _hourly_with_str_date(fetch(symbol, "60d", "1h"))
+            if df is None or len(df) < 60:
+                continue
+            if pos is not None:
+                ex = _macddiv_long_1h_exit(df, pos)
+                if ex:
+                    _macddiv_long_1h_close_paper(conn, symbol, pos, ex[1], ex[0])
+                continue
+            cfg = NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
+            _macddiv_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"])
+        except Exception as e:
+            print(f"[SWING LONG 1h] scan failed for {symbol} (non-fatal): {e}")
 
 
 _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(SWINGMINRR_GATE_SHORT_1H_TAG, SWINGMINRR_GATE_SHORT_1H_TAG)
