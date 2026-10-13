@@ -1,0 +1,233 @@
+{
+ "shard": 0,
+ "nshards": 8,
+ "n_symbols": 295,
+ "fill_model": "signal_close",
+ "cost_round_trip_pct": 0.8,
+ "period": "5y",
+ "interval": "1d",
+ "synthetic": false,
+ "note": "tags replayed independently; bar constants are 1d bars; vcp rs_percentile=None",
+ "cells": {
+  "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1": {
+   "spec": {
+    "dir": "long",
+    "gate_rr": 4.0
+   },
+   "raw": {
+    "n": 6,
+    "wins": 4,
+    "win_net": 0.3285457133646571,
+    "loss_net": 0.08695835219044235,
+    "win_gross": 0.3605457133646571,
+    "loss_gross": 0.07095835219044233,
+    "sum_net": 0.2415873611742148,
+    "sum_gross": 0.28958736117421474,
+    "hold_sum": 109,
+    "reasons": {
+     "swingminrr_max_hold_timeout": {
+      "n": 3,
+      "wins": 3,
+      "win_net": 0.32692045577028717,
+      "loss_net": 0.0,
+      "win_gross": 0.3509204557702872,
+      "loss_gross": 0.0,
+      "sum_net": 0.32692045577028717,
+      "sum_gross": 0.3509204557702872,
+      "hold_sum": 93,
+      "reasons": null
+     },
+     "swingminrr_stop_loss": {
+      "n": 2,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 0.08695835219044235,
+      "win_gross": 0.0,
+      "loss_gross": 0.07095835219044233,
+      "sum_net": -0.08695835219044235,
+      "sum_gross": -0.07095835219044233,
+      "hold_sum": 6,
+      "reasons": null
+     },
+     "data_end_forced_close": {
+      "n": 1,
+      "wins": 1,
+      "win_net": 0.0016252575943699488,
+      "loss_net": 0.0,
+      "win_gross": 0.009625257594369949,
+      "loss_gross": 0.0,
+      "sum_net": 0.0016252575943699488,
+      "sum_gross": 0.009625257594369949,
+      "hold_sum": 10,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1": {
+   "spec": {
+    "dir": "long",
+    "gate_rr": 3.0
+   },
+   "raw": {
+    "n": 11,
+    "wins": 4,
+    "win_net": 0.3285457133646571,
+    "loss_net": 0.38279372650849314,
+    "win_gross": 0.3605457133646571,
+    "loss_gross": 0.3267937265084931,
+    "sum_net": -0.054248013143835955,
+    "sum_gross": 0.03375198685616402,
+    "hold_sum": 140,
+    "reasons": {
+     "swingminrr_max_hold_timeout": {
+      "n": 3,
+      "wins": 3,
+      "win_net": 0.32692045577028717,
+      "loss_net": 0.0,
+      "win_gross": 0.3509204557702872,
+      "loss_gross": 0.0,
+      "sum_net": 0.32692045577028717,
+      "sum_gross": 0.3509204557702872,
+      "hold_sum": 93,
+      "reasons": null
+     },
+     "swingminrr_stop_loss": {
+      "n": 7,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 0.38279372650849314,
+      "win_gross": 0.0,
+      "loss_gross": 0.3267937265084931,
+      "sum_net": -0.38279372650849314,
+      "sum_gross": -0.3267937265084931,
+      "hold_sum": 37,
+      "reasons": null
+     },
+     "data_end_forced_close": {
+      "n": 1,
+      "wins": 1,
+      "win_net": 0.0016252575943699488,
+      "loss_net": 0.0,
+      "win_gross": 0.009625257594369949,
+      "loss_gross": 0.0,
+      "sum_net": 0.0016252575943699488,
+      "sum_gross": 0.009625257594369949,
+      "hold_sum": 10,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1": {
+   "spec": {
+    "dir": "long",
+    "gate_rr": 2.0
+   },
+   "raw": {
+    "n": 43,
+    "wins": 12,
+    "win_net": 2.875983538102124,
+    "loss_net": 1.9014219896652589,
+    "win_gross": 2.971983538102124,
+    "loss_gross": 1.6534219896652587,
+    "sum_net": 0.9745615484368656,
+    "sum_gross": 1.3185615484368658,
+    "hold_sum": 594,
+    "reasons": {
+     "swingminrr_stop_loss": {
+      "n": 29,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 1.8559360742757895,
+      "win_gross": 0.0,
+      "loss_gross": 1.6239360742757893,
+      "sum_net": -1.8559360742757895,
+      "sum_gross": -1.6239360742757893,
+      "hold_sum": 193,
+      "reasons": null
+     },
+     "swingminrr_max_hold_timeout": {
+      "n": 12,
+      "wins": 10,
+      "win_net": 2.6780268470995634,
+      "loss_net": 0.045485915389469146,
+      "win_gross": 2.7580268470995635,
+      "loss_gross": 0.029485915389469146,
+      "sum_net": 2.6325409317100945,
+      "sum_gross": 2.7285409317100946,
+      "hold_sum": 372,
+      "reasons": null
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "wins": 2,
+      "win_net": 0.19795669100256044,
+      "loss_net": 0.0,
+      "win_gross": 0.21395669100256043,
+      "loss_gross": 0.0,
+      "sum_net": 0.19795669100256044,
+      "sum_gross": 0.21395669100256043,
+      "hold_sum": 29,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1": {
+   "spec": {
+    "dir": "long",
+    "gate_rr": 0.0
+   },
+   "raw": {
+    "n": 315,
+    "wins": 102,
+    "win_net": 17.372204880051267,
+    "loss_net": 13.499394030130292,
+    "win_gross": 18.188204880051256,
+    "loss_gross": 11.795394030130307,
+    "sum_net": 3.8728108499209632,
+    "sum_gross": 6.39281084992096,
+    "hold_sum": 5107,
+    "reasons": {
+     "swingminrr_stop_loss": {
+      "n": 202,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 13.089644815147317,
+      "win_gross": 0.0,
+      "loss_gross": 11.473644815147333,
+      "sum_net": -13.089644815147317,
+      "sum_gross": -11.473644815147333,
+      "hold_sum": 1649,
+      "reasons": null
+     },
+     "swingminrr_max_hold_timeout": {
+      "n": 110,
+      "wins": 99,
+      "win_net": 17.02665973859194,
+      "loss_net": 0.4097492149829767,
+      "win_gross": 17.818659738591926,
+      "loss_gross": 0.3217492149829767,
+      "sum_net": 16.61691052360896,
+      "sum_gross": 17.49691052360895,
+      "hold_sum": 3410,
+      "reasons": null
+     },
+     "data_end_forced_close": {
+      "n": 3,
+      "wins": 3,
+      "win_net": 0.3455451414593272,
+      "loss_net": 0.0,
+      "win_gross": 0.3695451414593272,
+      "loss_gross": 0.0,
+      "sum_net": 0.3455451414593272,
+      "sum_gross": 0.3695451414593272,
+      "hold_sum": 48,
+      "reasons": null
+     }
+    }
+   }
+  }
+ }
+}

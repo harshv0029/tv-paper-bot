@@ -1,0 +1,313 @@
+{
+ "shard": 4,
+ "nshards": 8,
+ "n_symbols": 301,
+ "fill_model": "signal_close",
+ "cost_round_trip_pct": 0.8,
+ "period": "5y",
+ "interval": "1d",
+ "synthetic": false,
+ "note": "tags replayed independently; bar constants are 1d bars; vcp rs_percentile=None",
+ "cells": {
+  "brk20_min_rr__main_replay__short__1d__atr4_rr4__v1": {
+   "spec": {
+    "dir": "short",
+    "atr": 4.0,
+    "rr": 4.0
+   },
+   "raw": {
+    "n": 11,
+    "wins": 8,
+    "win_net": 1.4321760430604704,
+    "loss_net": 0.04847192520016073,
+    "win_gross": 1.4961760430604705,
+    "loss_gross": 0.024471925200160727,
+    "sum_net": 1.3837041178603098,
+    "sum_gross": 1.4717041178603099,
+    "hold_sum": 228,
+    "reasons": {
+     "short_swing_max_hold_timeout": {
+      "n": 4,
+      "wins": 3,
+      "win_net": 0.7362698266981111,
+      "loss_net": 0.008,
+      "win_gross": 0.7602698266981112,
+      "loss_gross": 0.0,
+      "sum_net": 0.7282698266981111,
+      "sum_gross": 0.7602698266981112,
+      "hold_sum": 124,
+      "reasons": null
+     },
+     "short_swing_rule_exit": {
+      "n": 7,
+      "wins": 5,
+      "win_net": 0.6959062163623593,
+      "loss_net": 0.04047192520016073,
+      "win_gross": 0.7359062163623593,
+      "loss_gross": 0.024471925200160727,
+      "sum_net": 0.6554342911621985,
+      "sum_gross": 0.7114342911621986,
+      "hold_sum": 104,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "brk20_min_rr__main_replay__short__1d__atr4_rr3d5__v1": {
+   "spec": {
+    "dir": "short",
+    "atr": 4.0,
+    "rr": 3.5
+   },
+   "raw": {
+    "n": 14,
+    "wins": 8,
+    "win_net": 1.4321760430604704,
+    "loss_net": 0.19386396483243784,
+    "win_gross": 1.4961760430604705,
+    "loss_gross": 0.14586396483243785,
+    "sum_net": 1.2383120782280326,
+    "sum_gross": 1.3503120782280327,
+    "hold_sum": 240,
+    "reasons": {
+     "short_swing_max_hold_timeout": {
+      "n": 4,
+      "wins": 3,
+      "win_net": 0.7362698266981111,
+      "loss_net": 0.008,
+      "win_gross": 0.7602698266981112,
+      "loss_gross": 0.0,
+      "sum_net": 0.7282698266981111,
+      "sum_gross": 0.7602698266981112,
+      "hold_sum": 124,
+      "reasons": null
+     },
+     "short_swing_rule_exit": {
+      "n": 10,
+      "wins": 5,
+      "win_net": 0.6959062163623593,
+      "loss_net": 0.1858639648324379,
+      "win_gross": 0.7359062163623593,
+      "loss_gross": 0.14586396483243785,
+      "sum_net": 0.5100422515299213,
+      "sum_gross": 0.5900422515299214,
+      "hold_sum": 116,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "brk20_min_rr__main_replay__short__1d__atr4_rr3__v1": {
+   "spec": {
+    "dir": "short",
+    "atr": 4.0,
+    "rr": 3.0
+   },
+   "raw": {
+    "n": 17,
+    "wins": 9,
+    "win_net": 1.436665828893592,
+    "loss_net": 0.28996714183399463,
+    "win_gross": 1.5086658288935921,
+    "loss_gross": 0.2259671418339946,
+    "sum_net": 1.1466986870595974,
+    "sum_gross": 1.2826986870595976,
+    "hold_sum": 262,
+    "reasons": {
+     "short_swing_rule_exit": {
+      "n": 13,
+      "wins": 6,
+      "win_net": 0.7003960021954808,
+      "loss_net": 0.28196714183399463,
+      "win_gross": 0.7483960021954809,
+      "loss_gross": 0.2259671418339946,
+      "sum_net": 0.4184288603614861,
+      "sum_gross": 0.5224288603614862,
+      "hold_sum": 138,
+      "reasons": null
+     },
+     "short_swing_max_hold_timeout": {
+      "n": 4,
+      "wins": 3,
+      "win_net": 0.7362698266981111,
+      "loss_net": 0.008,
+      "win_gross": 0.7602698266981112,
+      "loss_gross": 0.0,
+      "sum_net": 0.7282698266981111,
+      "sum_gross": 0.7602698266981112,
+      "hold_sum": 124,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "brk20_min_rr__main_replay__short__1d__atr3_rr4__v1": {
+   "spec": {
+    "dir": "short",
+    "atr": 3.0,
+    "rr": 4.0
+   },
+   "raw": {
+    "n": 17,
+    "wins": 8,
+    "win_net": 1.428979594276047,
+    "loss_net": 0.4280467422185934,
+    "win_gross": 1.492979594276047,
+    "loss_gross": 0.3560467422185934,
+    "sum_net": 1.0009328520574534,
+    "sum_gross": 1.1369328520574535,
+    "hold_sum": 247,
+    "reasons": {
+     "short_swing_stop_loss": {
+      "n": 4,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 0.2528050800723228,
+      "win_gross": 0.0,
+      "loss_gross": 0.2208050800723228,
+      "sum_net": -0.2528050800723228,
+      "sum_gross": -0.2208050800723228,
+      "hold_sum": 18,
+      "reasons": null
+     },
+     "short_swing_max_hold_timeout": {
+      "n": 4,
+      "wins": 3,
+      "win_net": 0.7362698266981111,
+      "loss_net": 0.008,
+      "win_gross": 0.7602698266981112,
+      "loss_gross": 0.0,
+      "sum_net": 0.7282698266981111,
+      "sum_gross": 0.7602698266981112,
+      "hold_sum": 124,
+      "reasons": null
+     },
+     "short_swing_rule_exit": {
+      "n": 9,
+      "wins": 5,
+      "win_net": 0.6927097675779359,
+      "loss_net": 0.16724166214627062,
+      "win_gross": 0.7327097675779359,
+      "loss_gross": 0.13524166214627062,
+      "sum_net": 0.5254681054316652,
+      "sum_gross": 0.5974681054316653,
+      "hold_sum": 105,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "brk20_min_rr__main_replay__short__1d__atr3_rr3d5__v1": {
+   "spec": {
+    "dir": "short",
+    "atr": 3.0,
+    "rr": 3.5
+   },
+   "raw": {
+    "n": 26,
+    "wins": 11,
+    "win_net": 1.71719033669428,
+    "loss_net": 0.794331843056273,
+    "win_gross": 1.80519033669428,
+    "loss_gross": 0.674331843056273,
+    "sum_net": 0.9228584936380069,
+    "sum_gross": 1.130858493638007,
+    "hold_sum": 319,
+    "reasons": {
+     "short_swing_rule_exit": {
+      "n": 17,
+      "wins": 8,
+      "win_net": 0.9809205099961688,
+      "loss_net": 0.48377607422288726,
+      "win_gross": 1.044920509996169,
+      "loss_gross": 0.4117760742228873,
+      "sum_net": 0.4971444357732815,
+      "sum_gross": 0.6331444357732816,
+      "hold_sum": 176,
+      "reasons": null
+     },
+     "short_swing_stop_loss": {
+      "n": 5,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 0.30255576883338575,
+      "win_gross": 0.0,
+      "loss_gross": 0.2625557688333857,
+      "sum_net": -0.30255576883338575,
+      "sum_gross": -0.2625557688333857,
+      "hold_sum": 19,
+      "reasons": null
+     },
+     "short_swing_max_hold_timeout": {
+      "n": 4,
+      "wins": 3,
+      "win_net": 0.7362698266981111,
+      "loss_net": 0.008,
+      "win_gross": 0.7602698266981112,
+      "loss_gross": 0.0,
+      "sum_net": 0.7282698266981111,
+      "sum_gross": 0.7602698266981112,
+      "hold_sum": 124,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "brk20_min_rr__main_replay__short__1d__atr3_rr3__v1": {
+   "spec": {
+    "dir": "short",
+    "atr": 3.0,
+    "rr": 3.0
+   },
+   "raw": {
+    "n": 48,
+    "wins": 21,
+    "win_net": 2.6123045988766638,
+    "loss_net": 1.3115889909424916,
+    "win_gross": 2.780304598876664,
+    "loss_gross": 1.0955889909424916,
+    "sum_net": 1.300715607934172,
+    "sum_gross": 1.684715607934172,
+    "hold_sum": 535,
+    "reasons": {
+     "short_swing_rule_exit": {
+      "n": 39,
+      "wins": 18,
+      "win_net": 1.8760347721785526,
+      "loss_net": 1.0010332221091058,
+      "win_gross": 2.0200347721785525,
+      "loss_gross": 0.8330332221091058,
+      "sum_net": 0.8750015500694467,
+      "sum_gross": 1.1870015500694462,
+      "hold_sum": 392,
+      "reasons": null
+     },
+     "short_swing_stop_loss": {
+      "n": 5,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 0.30255576883338575,
+      "win_gross": 0.0,
+      "loss_gross": 0.2625557688333857,
+      "sum_net": -0.30255576883338575,
+      "sum_gross": -0.2625557688333857,
+      "hold_sum": 19,
+      "reasons": null
+     },
+     "short_swing_max_hold_timeout": {
+      "n": 4,
+      "wins": 3,
+      "win_net": 0.7362698266981111,
+      "loss_net": 0.008,
+      "win_gross": 0.7602698266981112,
+      "loss_gross": 0.0,
+      "sum_net": 0.7282698266981111,
+      "sum_gross": 0.7602698266981112,
+      "hold_sum": 124,
+      "reasons": null
+     }
+    }
+   }
+  }
+ }
+}

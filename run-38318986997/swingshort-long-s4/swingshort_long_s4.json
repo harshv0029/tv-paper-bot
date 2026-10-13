@@ -1,0 +1,233 @@
+{
+ "shard": 4,
+ "nshards": 8,
+ "n_symbols": 301,
+ "fill_model": "signal_close",
+ "cost_round_trip_pct": 0.8,
+ "period": "5y",
+ "interval": "1d",
+ "synthetic": false,
+ "note": "tags replayed independently; bar constants are 1d bars; vcp rs_percentile=None",
+ "cells": {
+  "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1": {
+   "spec": {
+    "dir": "long",
+    "gate_rr": 4.0
+   },
+   "raw": {
+    "n": 11,
+    "wins": 4,
+    "win_net": 1.4846249167435315,
+    "loss_net": 0.34066185131487403,
+    "win_gross": 1.5166249167435313,
+    "loss_gross": 0.28466185131487404,
+    "sum_net": 1.1439630654286574,
+    "sum_gross": 1.2319630654286573,
+    "hold_sum": 183,
+    "reasons": {
+     "swingminrr_stop_loss": {
+      "n": 6,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 0.32497296773232304,
+      "win_gross": 0.0,
+      "loss_gross": 0.27697296773232305,
+      "sum_net": -0.32497296773232304,
+      "sum_gross": -0.27697296773232305,
+      "hold_sum": 53,
+      "reasons": null
+     },
+     "swingminrr_max_hold_timeout": {
+      "n": 4,
+      "wins": 3,
+      "win_net": 1.4446703252764914,
+      "loss_net": 0.015688883582551015,
+      "win_gross": 1.4686703252764912,
+      "loss_gross": 0.007688883582551013,
+      "sum_net": 1.4289814416939404,
+      "sum_gross": 1.4609814416939402,
+      "hold_sum": 124,
+      "reasons": null
+     },
+     "data_end_forced_close": {
+      "n": 1,
+      "wins": 1,
+      "win_net": 0.039954591467040376,
+      "loss_net": 0.0,
+      "win_gross": 0.047954591467040376,
+      "loss_gross": 0.0,
+      "sum_net": 0.039954591467040376,
+      "sum_gross": 0.047954591467040376,
+      "hold_sum": 6,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1": {
+   "spec": {
+    "dir": "long",
+    "gate_rr": 3.0
+   },
+   "raw": {
+    "n": 12,
+    "wins": 5,
+    "win_net": 1.7386569712149584,
+    "loss_net": 0.35763976793002905,
+    "win_gross": 1.7786569712149582,
+    "loss_gross": 0.30163976793002906,
+    "sum_net": 1.3810172032849293,
+    "sum_gross": 1.4770172032849291,
+    "hold_sum": 203,
+    "reasons": {
+     "swingminrr_stop_loss": {
+      "n": 6,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 0.341950884347478,
+      "win_gross": 0.0,
+      "loss_gross": 0.293950884347478,
+      "sum_net": -0.341950884347478,
+      "sum_gross": -0.293950884347478,
+      "hold_sum": 42,
+      "reasons": null
+     },
+     "swingminrr_max_hold_timeout": {
+      "n": 5,
+      "wins": 4,
+      "win_net": 1.698702379747918,
+      "loss_net": 0.015688883582551015,
+      "win_gross": 1.7307023797479177,
+      "loss_gross": 0.007688883582551013,
+      "sum_net": 1.6830134961653669,
+      "sum_gross": 1.7230134961653667,
+      "hold_sum": 155,
+      "reasons": null
+     },
+     "data_end_forced_close": {
+      "n": 1,
+      "wins": 1,
+      "win_net": 0.039954591467040376,
+      "loss_net": 0.0,
+      "win_gross": 0.047954591467040376,
+      "loss_gross": 0.0,
+      "sum_net": 0.039954591467040376,
+      "sum_gross": 0.047954591467040376,
+      "hold_sum": 6,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1": {
+   "spec": {
+    "dir": "long",
+    "gate_rr": 2.0
+   },
+   "raw": {
+    "n": 35,
+    "wins": 13,
+    "win_net": 3.817919741149001,
+    "loss_net": 1.1694854218158155,
+    "win_gross": 3.9239315537992416,
+    "loss_gross": 0.9954972344660558,
+    "sum_net": 2.648434319333185,
+    "sum_gross": 2.9284343193331854,
+    "hold_sum": 631,
+    "reasons": {
+     "swingminrr_stop_loss": {
+      "n": 19,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 1.1376047818108759,
+      "win_gross": 0.0,
+      "loss_gross": 0.9856047818108759,
+      "sum_net": -1.1376047818108759,
+      "sum_gross": -0.9856047818108759,
+      "hold_sum": 165,
+      "reasons": null
+     },
+     "swingminrr_max_hold_timeout": {
+      "n": 14,
+      "wins": 12,
+      "win_net": 3.7779651496819606,
+      "loss_net": 0.025892452655179917,
+      "win_gross": 3.8739651496819607,
+      "loss_gross": 0.009892452655179913,
+      "sum_net": 3.752072697026781,
+      "sum_gross": 3.864072697026781,
+      "hold_sum": 434,
+      "reasons": null
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "wins": 1,
+      "win_net": 0.039954591467040376,
+      "loss_net": 0.005988187349759616,
+      "win_gross": 0.04996640411728076,
+      "loss_gross": 0.0,
+      "sum_net": 0.03396640411728076,
+      "sum_gross": 0.04996640411728076,
+      "hold_sum": 32,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1": {
+   "spec": {
+    "dir": "long",
+    "gate_rr": 0.0
+   },
+   "raw": {
+    "n": 289,
+    "wins": 91,
+    "win_net": 17.25727345988425,
+    "loss_net": 11.62706399414305,
+    "win_gross": 17.988662349410202,
+    "loss_gross": 10.046452883669007,
+    "sum_net": 5.630209465741202,
+    "sum_gross": 7.9422094657412,
+    "hold_sum": 4585,
+    "reasons": {
+     "swingminrr_max_hold_timeout": {
+      "n": 97,
+      "wins": 88,
+      "win_net": 16.595886189982917,
+      "loss_net": 0.15096574171191424,
+      "win_gross": 17.301263266858626,
+      "loss_gross": 0.08034281858762442,
+      "sum_net": 16.444920448271002,
+      "sum_gross": 17.220920448271006,
+      "hold_sum": 3007,
+      "reasons": null
+     },
+     "swingminrr_stop_loss": {
+      "n": 187,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 11.459805358969469,
+      "win_gross": 0.0,
+      "loss_gross": 9.963805358969474,
+      "sum_net": -11.459805358969469,
+      "sum_gross": -9.963805358969474,
+      "hold_sum": 1489,
+      "reasons": null
+     },
+     "data_end_forced_close": {
+      "n": 5,
+      "wins": 3,
+      "win_net": 0.6613872699013348,
+      "loss_net": 0.016292893461666125,
+      "win_gross": 0.6873990825515751,
+      "loss_gross": 0.0023047061119065063,
+      "sum_net": 0.6450943764396686,
+      "sum_gross": 0.6850943764396686,
+      "hold_sum": 89,
+      "reasons": null
+     }
+    }
+   }
+  }
+ }
+}
