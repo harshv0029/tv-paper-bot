@@ -20637,6 +20637,166 @@ for _t in SECTOR_FADE_SHORT_CELLS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 
 
+# ---- B-965 (2026-10-13): MONTH-EFFECT SHORT cells (pattern-lab month_effect, weak month = September) ----
+# Rule (scripts/pattern_lab.py r_calendar short leg): the FIRST bar of a calendar month that is September -> SHORT; entry =
+# next bar's open; stop = entry + k x ATR14[signal bar] (SMA ATR); exit at the stop (gap-aware) or the close of the H-th bar.
+# Registry cells wired (their own rows, 15m, ATR stop in the tag): atr2d5/atr4/atr6 x h25 and atr6 x h125. The atrnone cells
+# are NOT wired (the backtest had no stop; no trade without SL). HONEST CAVEAT: those registry numbers (n=202) are ONE
+# September-1 event across ~200 symbols (60d of 15m data), not a repeated edge; the forced-15:15-flatten full-universe re-run
+# (run 38185672296) printed PFnet 0.43-0.73. Gate stays closed (REPLAY_OWED_TAGS) until a main.py-calling replay is on file.
+# Live path = the short-swing engine (own tables, NRML overnight hold -> real leg rides the fail-closed
+# SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED check inside _maybe_place_real_swing_short_entry). Paper runs only on the first
+# trading day of September; exits ride the daily scan (hold H bars of 25/day -> H//25 trading days, exit at that day's open).
+MONTH_EFFECT_SHORT_MONTH = 9
+_MONTH_EFFECT_SHORT_SPECS = ((6.0, 25), (4.0, 25), (2.5, 25), (6.0, 125))  # (atr_mult, hold_bars_15m); best PFnet first
+
+
+def _month_effect_short_cell_tag(atr_mult, hold_bars):
+    return f"month__effect__short__15m__atr{f'{atr_mult:g}'.replace('.', 'd')}_h{int(hold_bars)}__v1"
+
+
+MONTH_EFFECT_SHORT_CELLS = {_month_effect_short_cell_tag(a, h): (a, h) for a, h in _MONTH_EFFECT_SHORT_SPECS}
+MONTH_EFFECT_SHORT_TAGS = tuple(MONTH_EFFECT_SHORT_CELLS)
+for _t in MONTH_EFFECT_SHORT_CELLS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
+REPLAY_OWED_TAGS = REPLAY_OWED_TAGS | (frozenset(MONTH_EFFECT_SHORT_TAGS) - _replay_verified_tags())
+
+
+def month_effect_short_entry_signal(df, atr_mult: float, month: int = MONTH_EFFECT_SHORT_MONTH):
+    """True-signal check on the LAST bar of df (any intraday frame with a DatetimeIndex): it is the first bar of a new
+    calendar `month` (pattern_lab r_calendar: first = month changed vs the previous bar). Returns
+    {signal_pos, atr, atr_mult, close} or None. The stop is derived by month_effect_short_stop; ATR must be valid."""
+    n = len(df)
+    if n < 16 or not atr_mult or atr_mult <= 0:
+        return None
+    idx = pd.DatetimeIndex(df.index)
+    if idx[-1].month != month or idx[-2].month == idx[-1].month:
+        return None
+    atr = chan_atr14(df["High"].to_numpy(float), df["Low"].to_numpy(float), df["Close"].to_numpy(float))
+    if np.isnan(atr[-1]) or atr[-1] <= 0:
+        return None
+    return {"signal_pos": n - 1, "atr": float(atr[-1]), "atr_mult": float(atr_mult), "close": float(df["Close"].iloc[-1])}
+
+
+def month_effect_short_stop(entry_price, atr, atr_mult):
+    """entry + k x ATR; None when unusable (no trade without a stop)."""
+    try:
+        if not (entry_price > 0 and atr > 0 and atr_mult > 0):
+            return None
+    except TypeError:
+        return None
+    return float(entry_price) + float(atr_mult) * float(atr)
+
+
+def month_effect_short_exit_reason(df, entry_pos: int, stop: float, hold: int):
+    """Exit check on the LAST bar j of df for a short whose fill bar is entry_pos (same order as pattern_lab simulate):
+    gap-aware stop (high >= stop -> max(stop, open) after the fill bar) -> close of the `hold`-th bar. (reason, px) or None."""
+    j = len(df) - 1
+    if j < entry_pos:
+        return None
+    o, h, c = float(df["Open"].iloc[j]), float(df["High"].iloc[j]), float(df["Close"].iloc[j])
+    if h >= stop:
+        return "stop", (max(stop, o) if j > entry_pos else stop)
+    if j >= entry_pos + hold - 1:
+        return "max_hold", c
+    return None
+
+
+def _month_effect_short_exit_daily(df, pos):
+    """Live exit on the DAILY frame: bars after entry_day; stop (gap-aware, daily high) or the open of the hold-th trading
+    day (H 15m bars at 25/day). Deviation from the 15m replay, stated: exits ride the daily scan. -> (reason, px) | None."""
+    cell = MONTH_EFFECT_SHORT_CELLS.get(pos["strategy"])
+    if cell is None or len(df) == 0:
+        return None
+    d = df
+    if "Date" not in d.columns:
+        d = d.assign(Date=pd.Series(pd.DatetimeIndex(d.index).strftime("%Y-%m-%d"), index=d.index))
+    bars = d[d["Date"].astype(str).str[:10] > str(pos["entry_day"])[:10]]
+    stop, hold_days = float(pos["initial_stop_loss"]), max(1, int(cell[1]) // 25)
+    for k in range(len(bars)):
+        o, h = float(bars["Open"].iloc[k]), float(bars["High"].iloc[k])
+        if h >= stop:
+            return "short_swing_stop_hit", max(stop, o)
+        if k + 1 >= hold_days:
+            return "short_swing_max_hold_timeout", o
+    return None
+
+
+def _month_effect_short_try_entry(conn, symbol, df15, capital, risk_pct, today, fx) -> str | None:
+    """Opens at most one paper month-effect short for `symbol` from its 15m frame (`df15` holds the first bar of
+    September, optionally followed by the next bar whose open is the fill). Real mirror via the short-swing real entry
+    (fail-closed overnight product, PFnet gate + B-962 re-check, SL-or-unwind, reason logs)."""
+    for _tbl in ("signal_state_swing", "signal_state_swing_short", "real_positions_swing",
+                 "real_positions_swing_short", "real_positions_short", "real_positions"):
+        if conn.execute(f"SELECT 1 FROM {_tbl} WHERE symbol = ?", (symbol,)).fetchone():
+            return None
+    if conn.execute("SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)).fetchone():
+        return None
+    idx = pd.DatetimeIndex(df15.index)
+    firsts = [i for i in range(1, len(idx)) if idx[i].month == MONTH_EFFECT_SHORT_MONTH and idx[i - 1].month != idx[i].month]
+    if not firsts:
+        return None
+    k0 = firsts[-1]
+    sig_df = df15.iloc[:k0 + 1]
+    entry_price = float(df15["Open"].iloc[k0 + 1]) if k0 + 1 < len(df15) else float(df15["Close"].iloc[k0])
+    for tag, (atr_mult, _hold) in MONTH_EFFECT_SHORT_CELLS.items():
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            continue
+        sig = month_effect_short_entry_signal(sig_df, atr_mult)
+        if not sig:
+            continue
+        stop_loss = month_effect_short_stop(entry_price, sig["atr"], atr_mult)
+        if stop_loss is None or stop_loss <= entry_price:
+            continue  # no valid stop -> no entry (no trade without SL)
+        qty = _short_swing_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            continue
+        conn.execute(
+            "INSERT INTO signal_state_swing_short (symbol, strategy, entry_day, entry_price, initial_stop_loss, qty, "
+            "entry_ts, fx_to_inr, atr_at_entry) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, today, entry_price, stop_loss, qty, time.time(), fx, sig["atr"]),
+        )
+        conn.commit()
+        print(f"[SWING SHORT] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_short_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING SHORT] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return tag
+    return None
+
+
+def _run_month_effect_short_pass(conn, dfs, capital, today, done_syms=(), fetch15=None):
+    """Exits for open month-effect shorts (daily frames) then entries on the first trading day of September only (15m
+    frames fetched just for symbols whose daily frame shows the month change today). Never raises per symbol."""
+    for _t in MONTH_EFFECT_SHORT_CELLS:
+        _record_strategy_scan(_t)
+    fetch15 = fetch15 or (lambda s: fetch_ohlc(s, "5d", "15m"))
+    for symbol, df in dfs.items():
+        try:
+            pos = conn.execute("SELECT * FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone()
+            if pos:
+                if pos["strategy"] in MONTH_EFFECT_SHORT_CELLS:
+                    ex = _month_effect_short_exit_daily(df, pos)
+                    if ex:
+                        _short_swing_close_paper(conn, symbol, pos, ex[1], ex[0])
+                continue
+            if symbol in done_syms or len(df) < 2:
+                continue
+            dates = df["Date"].astype(str).str[:10].to_numpy() if "Date" in df.columns else \
+                np.asarray(pd.DatetimeIndex(df.index).strftime("%Y-%m-%d"))
+            if dates[-1] != str(today)[:10] or int(str(dates[-1])[5:7]) != MONTH_EFFECT_SHORT_MONTH \
+                    or int(str(dates[-2])[5:7]) == MONTH_EFFECT_SHORT_MONTH:
+                continue
+            df15 = fetch15(symbol)
+            if df15 is None or len(df15) < 40:
+                continue
+            cfg = NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
+            _month_effect_short_try_entry(conn, symbol, df15, capital, cfg["risk_pct"], today, 1.0)
+        except Exception as e:
+            print(f"[SWING SHORT] month-effect scan failed for {symbol} (non-fatal): {e}")
+
+
 def _sector_fade_short_exit(df, pos):
     """(reason, exit_price) for an open sector-fade short, or None. Replays the bars AFTER the signal day through the
     real sector_rotation_fade_short_exit_reason (row 0 = fill bar), so a skipped scan day cannot hide a stop."""
@@ -21047,6 +21207,8 @@ def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
                     if ex:
                         _short_swing_close_paper(conn, symbol, pos, ex[1], ex[0])
                     continue
+                if pos["strategy"] in MONTH_EFFECT_SHORT_CELLS:
+                    continue  # exits handled by _run_month_effect_short_pass (B-965)
                 if pos["strategy"] in SECTOR_FADE_SHORT_CELLS:
                     ex = _sector_fade_short_exit(df, pos)
                     if ex:
@@ -21067,6 +21229,10 @@ def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
             _tasuki_short_try_entry(conn, symbol, df, capital, cfg["risk_pct"], today, 1.0)
         except Exception as e:
             print(f"[SWING SHORT] scan failed for {symbol} (non-fatal): {e}")
+    try:
+        _run_month_effect_short_pass(conn, dfs, capital, today, done_syms)
+    except Exception as e:
+        print(f"[SWING SHORT] month-effect pass failed (non-fatal): {e}")
 
 
 def _ensure_resting_short_sl(kotak_symbol, qty, trigger_price, product=None):

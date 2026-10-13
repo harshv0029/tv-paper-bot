@@ -1,0 +1,83 @@
+name: month-effect short main.py-function replay (B-965)
+
+# Backlog B-965. Full-universe replay that IMPORTS and CALLS the real main.py functions
+# main.month_effect_short_entry_signal / month_effect_short_stop / month_effect_short_exit_reason for the cells in
+# main.MONTH_EFFECT_SHORT_CELLS. Two readings: 15m (60d yfinance limit; ONE September-1 event, the registry's own sample)
+# and 1d (5y; five September events per symbol, own 1d tags). Universe = main._load_nse_universe_from_file() (full).
+# Cost = main.ROUND_TRIP_COST_PCT. Output artifact month-effect-all (month_effect_main_replay_all.json): per tag n, win %,
+# PFnet gross/net, avg hold, exit reasons. Commit the merged file as docs/backtest_data/month_effect_main_replay_run_<id>.json
+# to let main._replay_verified_tags() clear the 15m tags. Big matrix: dispatch only when no gate is queued.
+on:
+  workflow_dispatch:
+    inputs:
+      intervals:
+        description: "candle sizes to replay (1d, 15m)"
+        default: "1d,15m"
+      nshards:
+        description: "Universe shards per group"
+        default: "8"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q numpy pandas
+      - id: p
+        env:
+          INTERVALS: ${{ inputs.intervals }}
+          NSHARDS: ${{ inputs.nshards }}
+        run: |
+          echo "matrix=$(python3 scripts/month_effect_main_replay.py plan)" >> "$GITHUB_OUTPUT"
+
+  replay:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay (real main.py functions)
+        env:
+          INTERVAL: ${{ matrix.interval }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: ${{ matrix.nshards }}
+        run: python3 scripts/month_effect_main_replay.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: month-effect-${{ matrix.interval }}-s${{ matrix.shard }}
+          path: out/
+
+  aggregate:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q numpy pandas
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          pattern: month-effect-*
+          merge-multiple: true
+      - name: Merge shards (exact, from raw sums)
+        run: python3 scripts/month_effect_main_replay.py merge out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: month-effect-all
+          path: out/month_effect_main_replay_all.json
