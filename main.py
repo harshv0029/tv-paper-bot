@@ -21029,7 +21029,7 @@ REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | {SWINGMINRR_GATE_SHORT_1H_TAG}) - _replay
 def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
     """Exits first, then entries, for the short-swing engine. Runs at the end of the daily swing scan, so a long
     swing entry made earlier the same scan always wins the symbol. Never raises per symbol."""
-    for _t in SECTOR_FADE_SHORT_CELLS:
+    for _t in list(SECTOR_FADE_SHORT_CELLS) + list(TASUKI_SHORT_CELLS):
         _record_strategy_scan(_t)
     try:  # sector-fade picks are cross-sectional: computed once per pass from the whole scan universe
         sector_picks = set(sector_rotation_fade_short_picks(dfs, SECTOR_FADE_SHORT_L, SECTOR_FADE_SHORT_N))
@@ -21062,8 +21062,9 @@ def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
             cfg = NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
             if _short_swing_try_entry(conn, symbol, df, capital, cfg["risk_pct"], today, 1.0):
                 continue
-            if symbol in sector_picks:
-                _sector_fade_short_try_entry(conn, symbol, df, capital, cfg["risk_pct"], today, 1.0)
+            if symbol in sector_picks and _sector_fade_short_try_entry(conn, symbol, df, capital, cfg["risk_pct"], today, 1.0):
+                continue
+            _tasuki_short_try_entry(conn, symbol, df, capital, cfg["risk_pct"], today, 1.0)
         except Exception as e:
             print(f"[SWING SHORT] scan failed for {symbol} (non-fatal): {e}")
 
