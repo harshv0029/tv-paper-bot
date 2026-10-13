@@ -1011,3 +1011,11 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprise: the two guard tests only allow viable research entries with an allowlisted `source`; new registrations must reuse it.
 - Reuse: exits that are stop/state/time based need their own branch ahead of the staged-ladder code; keep the target unreachable instead of editing the shared exit chain.
 - Profit-booking / exit takeaway: same-day capital turnover (0.7h hold) is the edge, so a failed flatten is the main risk; it retries every tick until 15:15.
+
+## Lunar full/new moon short, stop-bearing re-test (2026-10-13, B-917)
+- Mechanism: Murphy ch.14 lunar rule, Meeus moon phases, shorts around full/new moon; quarter moon is a placebo.
+- Fit: only stop-bearing cells can go live (no trade without SL). Earlier registry PFnet 1.2-1.7 came from `atrnone` cells, so they cannot be wired.
+- Result (run 38417623298, full universe, 15m/5m): best full short 15m atr4d0_hd10 PFnet 0.773 win 32.7 n 7504; new best 0.555; placebo quarter best 0.657 n 12200. Full beats placebo by 0.12 only; every cell below the stack floor (1.04).
+- Surprise: placebo nearly matches the real signal, so the edge is mostly generic short/hold drift, not the moon.
+- Reuse: always run a placebo and a stop-bearing cell before trusting an atrnone number.
+- Profit-booking / exit takeaway: stops lose about -3% avg while max_hold exits earn about +1 to +3.8%, so the longer-hold cells look best but fail on net after stops.
