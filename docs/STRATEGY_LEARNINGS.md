@@ -1133,3 +1133,10 @@ Profit-booking / exit takeaway: the apparent edge came from stacked max-hold win
 - Surprised: summarising a family from memory of the best cells hid viable low-ve cells; read the stored JSON.
 - Reuse: when two backlog rows disagree, resolve from docs/backtest_data, never from prose. chan_gap BUY row has no main.py replay stored (B-1041): do not inherit the swing PFnet.
 - Profit-booking / exit takeaway: ve1d0e4 cells are high-turnover, low-win, gross 3.7 vs net 1.4, so cost-sensitive; prefer ve10d0e4 z2d0 (1.45-1.65) when both qualify.
+## swingminrr gatetarget SHORT candle-size x ATR sweep, 4h/15m/5m (B-1010, 2026-10-13, harness built, run owed)
+- Mechanism: close below the prior 20-bar low with room to the prior 60-bar low >= rr x risk; stop = entry + k x ATR; resting BUY target at entry - rr x risk; else close of bar 30. Live cell is 1h atr3 rr4 (registry 1.561).
+- Fit: holds of 30 bars are overnight at 4h (15 sessions), about a session at 15m and under half a session at 5m, so the intraday cells would belong to the MIS short engine, the 4h cells to the swing-short route (B-912/B-967 still gate overnight shorts). Stop on every trade, atrnone refused.
+- Result: none yet; 12 cells (3 tfs x ATR 2/3/4/6) to register pass or fail after dispatch.
+- Design lessons: ATR must be swept via brk20_min_rr_entry_signal directly (the gate wrapper fixes ATR 3.0); a numpy pre-filter (close < prior 20-bar low) skips ~95% of real-fn calls and is exact because it is the fn's own first condition; 5m 60d gives under a session of 60-bar room, so expect that cell to be structurally different, not just noisier.
+- Reuse: when sweeping a wrapped cell, call the underlying real fn with the swept parameter and cross-check at the wrapper's own parameter; state that bar constants change wall-clock meaning per candle.
+- Profit-booking / exit takeaway: the 1h cell's edge is the resting target plus stop; check at each tf whether target_hit or max_hold_timeout carries the profit before judging a tf.
