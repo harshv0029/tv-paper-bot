@@ -84,10 +84,15 @@ def test_macddiv_exit_and_cells():
     assert main.macddiv_long_cell_signal(df, "nope") is None
 
 
-def test_wiring_sources_present_and_macddiv_not_scanned():
+def test_wiring_sources_present_and_macddiv_in_swing_1h_pass():
     scan = inspect.getsource(main._run_swing_scan_pass)
     assert "_chan_shape_try_entry" in scan and "CHAN_SHAPE_CELLS" in scan
-    assert "macddiv" not in scan.lower()  # engine-ownership: BUY-category rule, not in the swing engine
+    # B-984: macddiv holds overnight (CNC long) so the swing engine owns it, via the 1h pass (daily pass only skips it)
+    assert "_run_long_swing_1h_pass" in scan and "MACDDIV_LONG_LIVE_CELLS" in scan
+    one_h = inspect.getsource(main._macddiv_long_1h_try_entry)
+    assert "_is_strategy_viable_for_real_money" in one_h and "_maybe_place_real_swing_entry" in one_h
+    assert "stop_loss" in one_h and "macddiv_long_cell_signal" in one_h
+    assert "_hourly_with_str_date" in inspect.getsource(main._run_long_swing_1h_pass)
     src = inspect.getsource(main._chan_shape_try_entry)
     assert "_is_strategy_viable_for_real_money" in src and "_maybe_place_real_swing_entry" in src
     real = inspect.getsource(main._maybe_place_real_swing_entry)
@@ -116,3 +121,22 @@ def test_replay_driver_synthetic_smoke(monkeypatch, tmp_path):
             assert b["entry_i"] > a["exit_i"]
     res = rp.replay_symbol(main, df, "macddiv", list(main.MACDDIV_LONG_CELLS), cost)
     assert set(res) == set(main.MACDDIV_LONG_CELLS)
+
+
+def test_macddiv_live_cells_are_nonovl_line_only_and_gate_closed():
+    assert set(main.MACDDIV_LONG_LIVE_CELLS) <= set(main.MACDDIV_LONG_CELLS)
+    assert len(main.MACDDIV_LONG_LIVE_CELLS) == 3
+    assert all("line_any" in t and "nonovl" in t and "segis" not in t for t in main.MACDDIV_LONG_LIVE_CELLS)
+    assert all(t in main.REPLAY_OWED_TAGS or t in main._replay_verified_tags() for t in main.MACDDIV_LONG_LIVE_CELLS)
+    assert all(main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t for t in main.MACDDIV_LONG_LIVE_CELLS)
+
+
+def test_macddiv_1h_exit_uses_fill_bar_after_entry():
+    import numpy as np
+    n = 40
+    df = pd.DataFrame({"Date": [f"2026-01-01 {9 + i % 7:02d}:15" if False else f"2026-01-{1 + i // 7:02d} {9 + i % 7:02d}:15" for i in range(n)],
+                       "Open": 100.0, "High": 101.0, "Low": 99.0, "Close": 100.0})
+    pos = {"entry_day": df["Date"].iloc[5], "initial_stop_loss": 90.0}
+    assert main._macddiv_long_1h_exit(df.iloc[:20], pos) is None
+    r = main._macddiv_long_1h_exit(df, pos)
+    assert r == ("macddiv_max_hold_timeout", 100.0)

@@ -1,0 +1,58 @@
+name: pl1d LONG 1d (starc fade full + gap runaway) main.py-function replay (B-983)
+
+# Backlog B-983. Replays EVERY tag of main.PL1D_CELLS (2 cells) by IMPORTING and CALLING the real main.py functions
+# (main.pl1d_long_entry_signal, main.pl1d_exit_reason) on the FULL universe (main._load_nse_universe_from_file(), not
+# main.NSE_FULL_UNIVERSE), cost = main.ROUND_TRIP_COST_PCT (0.8%), strict FIFO per symbol per tag. The merged row schema is
+# what main._replay_verified_tags() reads: commit the merged JSON as docs/backtest_data/pl1d_main_replay_run_<run id>.json.
+# Until a file clearing the floor (n >= 30) is on file the tags stay in REPLAY_OWED_TAGS (real-money gate closed).
+# Long only (short mirror is its own registered tag family). Validation only; wires nothing, no kill switch.
+on:
+  workflow_dispatch:
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - env:
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "8"
+        run: python3 scripts/pl1d_main_replay.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pl1d-main-replay-s${{ matrix.shard }}
+          path: out/
+          retention-days: 7
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: pl1d-main-replay-s*
+          merge-multiple: true
+      - run: python3 scripts/pl1d_main_replay.py merge shards pl1d_all.json | tee pl1d_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pl1d-main-replay-results
+          path: |
+            pl1d_all.json
+            pl1d_table.txt

@@ -3,7 +3,7 @@ name: tasuki + swingminrr short main.py-function replay (B-965)
 # Backlog B-965. Full replay that IMPORTS and CALLS the real main.py functions for
 #  (a) main.TASUKI_SHORT_CELLS (tasuki gap short 1d atr6/atr4/atr2d5 h3): main.tasuki_short_signal + main.tasuki_short_stop
 #      + main.tasuki_short_exit_reason, universe = main.ETF_SYMBOLS (the universe the registry rows were measured on)
-#  (b) main.SWINGMINRR_GATE_SHORT_1H_TAG (brk20_gate short 1h atr3_rr4): main.swingminrr_gate_short_entry_signal +
+#  (b) main.SWINGMINRR_SHORT_1H_CELLS (brk20_gate + brk20_gatetarget short 1h atr3_rr4, B-985): main.swingminrr_gate_short_entry_signal +
 #      main.swingminrr_gate_short_exit_reason, universe = main._load_nse_universe_from_file() (full, NOT NSE_FULL_UNIVERSE)
 # Cost = main.ROUND_TRIP_COST_PCT. Fill: signal_close (= live scan) or next_open (research). Each tag replayed independently.
 # Output artifact tsm-all (tsm_all.json): per tag n, win %, PFnet gross/net, avg hold (bars + hours), exit reasons, in the
