@@ -102,3 +102,9 @@ def test_b962_fresh_stack_read_precedes_every_real_entry_order():
         for m in re.finditer(re.escape("kotak_real_orders." + call), src):
             window = src[max(0, m.start() - 1500):m.start()]
             assert "_load_viable_overrides()" in window, call
+
+
+def test_swing_long_unwinds_when_entry_sl_fails():
+    src = open("main.py").read()
+    i = src.index("unwinding at market (no trade without SL)")
+    assert 'reason="entry_sl_failed_unwind"' in src[i:i + 900]
