@@ -5218,7 +5218,9 @@ def island_swing_entry_signal(df: pd.DataFrame, tag: str, entry_price: float | N
     flt = _ISLAND_FILTER_OF_TAG.get(tag)
     if flt is None or len(df) < 20:
         return None
-    if not island_filters_passed(df).get(flt):
+    # gap05 is the unfiltered ("none") liquidity variant plus the 0.5 ATR gap rule; island_filters_passed has no 'gap05' key,
+    # so a plain .get(flt) was always None and the gap05 tags could never fire (replay run 38309068649 n=0, B-887).
+    if not island_filters_passed(df).get("none" if flt == "gap05" else flt):
         return None
     if not island_bottom_signal_on_last_bar(df, min_gap_atr=(ISLAND_GAP05_MIN_ATR if flt == "gap05" else 0.0)):
         return None
