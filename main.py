@@ -82,7 +82,7 @@ app.add_middleware(
 
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)  # swing scan runs on its own thread concurrently with the tick
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -20970,6 +20970,17 @@ def _run_swing_scan_own_conn():
         return _run_swing_scan(c)
 
 
+_swing_scan_task = None
+
+
+def _log_swing_scan_done(t):
+    if t.cancelled():
+        return
+    exc = t.exception()
+    if exc is not None:
+        print(f"[SWING] scan failed (non-fatal, intraday tick continues): {exc}")
+
+
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
@@ -20983,7 +20994,13 @@ async def _scheduler_tick():
         try:
             # Off the event loop (2026-10-13): the 1d swing pass fetches ~380 symbols x 2y of bars
             # synchronously, which froze the whole HTTP server (Render 502) for the length of every pass.
-            await asyncio.to_thread(_run_swing_scan_own_conn)
+            # Also NOT awaited: awaiting it starved the intraday per-asset checks for minutes per tick
+            # ("Last checked / Last result" blank, user 2026-10-13). One pass at a time; the next tick
+            # starts a new one only when the previous finished.
+            global _swing_scan_task
+            if _swing_scan_task is None or _swing_scan_task.done():
+                _swing_scan_task = asyncio.create_task(asyncio.to_thread(_run_swing_scan_own_conn))
+                _swing_scan_task.add_done_callback(_log_swing_scan_done)
         except Exception as e:
             print(f"[SWING] scan failed (non-fatal, intraday tick continues): {e}")
         global _swing_sl_trail_last_day
