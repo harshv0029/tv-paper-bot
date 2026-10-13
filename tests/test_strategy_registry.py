@@ -187,10 +187,6 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
         # 2026-10-07: gap_and_go max-hold variants (run 37572300915, full universe)
         "gap_and_go__swing__long__1d__hold30__v1",
         "gap_and_go__swing__long__1d__hold60__v1",
-        # 2026-10-13: floor is now 1.05 (user), so these three (1.062 / 1.073 / 1.076) are viable again.
-        "order_block_delta_long",
-        "volume_profile_poc__bounce__long__1d__trail4d5__v1",
-        "volume_profile_poc__bounce__long__1d__trail6d0__v1",
     }
     assert not any(n.startswith("rsi_reversal__") for n in viable)
 
