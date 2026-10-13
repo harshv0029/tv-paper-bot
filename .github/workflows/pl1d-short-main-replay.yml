@@ -1,0 +1,56 @@
+name: pl1d SHORT mirror 1d (starc fade full + gap runaway) main.py-function replay (B-1001)
+
+# Backlog B-1001. SHORT mirror of the pl1d 1d cells: replays EVERY tag of main.PL1D_SHORT_CELLS (2 cells) by calling the real
+# main.pl1d_short_entry_signal / main.pl1d_short_exit_reason on the FULL universe (main._load_nse_universe_from_file()), cost
+# main.ROUND_TRIP_COST_PCT (0.8%), ATR stop on every trade, strict FIFO. Research only: wires nothing, no kill switch.
+# After the run, register the merged rows in strategy_registry.py with real metrics (pass or fail).
+on:
+  workflow_dispatch:
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - env:
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "8"
+        run: python3 scripts/pl1d_short_main_replay.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pl1d-short-main-replay-s${{ matrix.shard }}
+          path: out/
+          retention-days: 7
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: pl1d-short-main-replay-s*
+          merge-multiple: true
+      - run: python3 scripts/pl1d_short_main_replay.py merge shards pl1d_short_all.json | tee pl1d_short_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pl1d-short-main-replay-results
+          path: |
+            pl1d_short_all.json
+            pl1d_short_table.txt
