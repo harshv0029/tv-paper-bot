@@ -974,3 +974,10 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: most of the "short-swing missing" tags are not blocked by the engine alone but by missing short entry/exit ports.
 - Reuse: confirm instrument/product feasibility at the broker BEFORE queuing wiring for a new direction; build engines with their own tables from day one (ownership, Upstash mirror, 5-min heal).
 - Profit-booking / exit takeaway: shorts use the same EMA13 rule exit and 30-bar cap as the long; the wide ATR stop (4x) did best in the replay, so do not tighten stops to book sooner.
+## Island reversal short mirror (B-891, 2026-10-13)
+- Mechanism: island top = gap up, up to 8 bars of isolation, then gap down below the island low; short at the reclaim close with BUY-stop at entry + 1.5 x ATR, rule exit, 30-bar cap (mirror of the long island bottom).
+- Fit here: 1d cash short has the same MIS/CNC overnight problem as brk20 shorts, and research PFnet is 0.636-0.713, below the 1.1 floor, so no live wiring is justified.
+- Result: port + 10 tests only (exact reciprocal mirror of the long detector); no main.py replay yet.
+- Surprised: the long island edge did not mirror; shorts on NSE lag longs for rare gap patterns.
+- Reuse: port the mirror anyway so the replay is cheap; do not wire until a main.py replay clears the floor.
+- Profit-booking / exit takeaway: unchanged from the long island, wide stop plus rule exit; no early profit target.
