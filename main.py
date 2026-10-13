@@ -21983,17 +21983,25 @@ def strategy_explorer(categories: str = "", pf_min: float = None, pf_max: float 
 VIABLE_STACK_SIZE = 10
 
 
-def _viable_stack_rows(c) -> list:
-    return [{"id": r[0], "created_at": r[1], "label": r[2], "count": len(json.loads(r[3]))}
-            for r in c.execute("SELECT id, created_at, label, names FROM strategy_viable_stack ORDER BY id DESC").fetchall()]
+def _viable_stack_rows(c, full: bool = False) -> list:
+    rows = []
+    for r in c.execute("SELECT id, created_at, label, names FROM strategy_viable_stack ORDER BY id DESC").fetchall():
+        names = json.loads(r[3])
+        e = {"id": r[0], "created_at": r[1], "label": r[2], "count": len(names)}
+        if full:
+            e["created_at_ist"] = dt.datetime.fromtimestamp(r[1], tz=dt.timezone(dt.timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S IST")
+            e["names"] = names
+        rows.append(e)
+    return rows
 
 
 @app.get("/strategy-viable-stack")
-def strategy_viable_stack_get():
-    """Viable-definition stack (user 2026-10-13), newest first; index 0 is the active definition."""
+def strategy_viable_stack_get(full: int = 0):
+    """Viable-definition stack (user 2026-10-13), newest first; index 0 is the active definition.
+    full=1 adds the strategy names + IST timestamp (used by the 5-min git sync, docs/viable_stack.json)."""
     _load_viable_overrides()
     with closing(get_db()) as c:
-        return {"size": VIABLE_STACK_SIZE, "stack": _viable_stack_rows(c)}
+        return {"size": VIABLE_STACK_SIZE, "stack": _viable_stack_rows(c, bool(full))}
 
 
 @app.post("/strategy-viable-override")
@@ -22016,18 +22024,18 @@ async def strategy_viable_override(request: Request):
             if not names:
                 raise HTTPException(status_code=400, detail="no backtested registry names supplied")
             c.execute("INSERT INTO strategy_viable_stack (created_at, label, names) VALUES (?,?,?)",
-                      (time.time(), "explorer set", json.dumps(names)))
+                      (time.time(), (str(body.get("label") or "explorer set"))[:120], json.dumps(names)))
         elif action == "undo":
             top = c.execute("SELECT id FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
             if top is None:
                 raise HTTPException(status_code=400, detail="stack is empty")
             c.execute("DELETE FROM strategy_viable_stack WHERE id = ?", (top[0],))
         else:
-            row = c.execute("SELECT names FROM strategy_viable_stack WHERE id = ?", (body.get("id"),)).fetchone()
+            row = c.execute("SELECT names, label FROM strategy_viable_stack WHERE id = ?", (body.get("id"),)).fetchone()
             if row is None:
                 raise HTTPException(status_code=400, detail="unknown stack id")
             c.execute("INSERT INTO strategy_viable_stack (created_at, label, names) VALUES (?,?,?)",
-                      (time.time(), f"restored #{body.get('id')}", row[0]))
+                      (time.time(), row[1] or f"restored #{body.get('id')}", row[0]))
         c.execute("DELETE FROM strategy_viable_stack WHERE id NOT IN "
                   "(SELECT id FROM strategy_viable_stack ORDER BY id DESC LIMIT ?)", (VIABLE_STACK_SIZE,))
         c.commit()
