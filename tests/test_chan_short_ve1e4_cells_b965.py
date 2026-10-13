@@ -11,7 +11,7 @@ NEW = [
 
 def test_new_cells_wired_mapped_viable_not_owed():
     names = {d.name: d for d in sr.REGISTRY}
-    assert len(main.CHAN_SHORT_CELLS) == 9
+    assert len(main.CHAN_SHORT_CELLS) == 12
     for t in NEW:
         assert t in main.CHAN_SHORT_CELLS and main.CHAN_SHORT_CELLS[t][1] == 1e-4
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t
