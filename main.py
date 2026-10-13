@@ -22038,8 +22038,8 @@ async def strategy_viable_override(request: Request):
     import strategy_registry as sr
     body = await request.json()
     action = body.get("action", "set")
-    if action not in ("set", "undo", "restore"):
-        raise HTTPException(status_code=400, detail="action must be set, undo or restore")
+    if action not in ("set", "undo", "restore", "relabel"):
+        raise HTTPException(status_code=400, detail="action must be set, undo, restore or relabel")
     with closing(get_db()) as c:
         if action == "set":
             known = {d.name for d in sr.REGISTRY if d.metrics is not None}
@@ -22048,6 +22048,14 @@ async def strategy_viable_override(request: Request):
                 raise HTTPException(status_code=400, detail="no backtested registry names supplied")
             c.execute("INSERT INTO strategy_viable_stack (created_at, label, names) VALUES (?,?,?)",
                       (time.time(), (str(body.get("label") or "explorer set"))[:120], json.dumps(names)))
+        elif action == "relabel":
+            # B-897: name a legacy entry (saved before filters were stored) in place; names/created_at untouched.
+            label = str(body.get("label") or "").strip()[:120]
+            if not label:
+                raise HTTPException(status_code=400, detail="label required")
+            cur = c.execute("UPDATE strategy_viable_stack SET label = ? WHERE id = ?", (label, body.get("id")))
+            if cur.rowcount == 0:
+                raise HTTPException(status_code=400, detail="unknown stack id")
         elif action == "undo":
             top = c.execute("SELECT id FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
             if top is None:
