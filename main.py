@@ -26,6 +26,7 @@ import os
 import re
 import resource
 import sqlite3
+import threading
 import time
 from contextlib import closing
 from itertools import product
@@ -10186,10 +10187,11 @@ def _auto_signal_core(
             if live_price is not None and last_close > 0 and not (0.5 < live_price / last_close < 2.0):
                 live_price = None
             exit_price = live_price if (live_price is not None and live_price > 0) else last_close
-            if row["strategy"] in CHAN_LONG_CELLS:
+            if row["strategy"] in CHAN_LONG_CELLS or row["strategy"] in CHAN_GAP_LONG_CELLS:
                 # B-960: chan_kalman long is managed by its own tag-keyed rules (fixed stop, state exit, max hold,
                 # 15:10 flatten); it never touches the trailing/target/staged-ladder machinery below.
-                _why = _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted)
+                _why = (_chan_gap_manage(row, df, mins_now, exit_price, halted) if row["strategy"] in CHAN_GAP_LONG_CELLS
+                        else _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted))
                 if _why:
                     _qty, _fx = row["qty"], row["fx_to_inr"]
                     _pnl_inr = (exit_price - row["entry_price"]) * _qty * _fx
@@ -10486,6 +10488,13 @@ def _auto_signal_core(
                                            require_real_tradability=require_real_tradability)
             if _chan_l is not None:
                 return _chan_l
+        # B-982: chan_gap buy-on-gap (09:20-10:15 IST, top-10 ranked at the first completed bar); paper always, real gated.
+        if interval == "5m":
+            _gap_l = _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
+                                              risk_per_trade_pct, fx_to_inr, currency, result,
+                                              require_real_tradability=require_real_tradability, mins_now=mins_now)
+            if _gap_l is not None:
+                return _gap_l
 
         if strategy == "orb_breakout":
             # Stronger entries, explicit user instruction 2026-09-04: too
@@ -11179,6 +11188,185 @@ def _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interv
     conn.commit()
     result.update(action_taken="entered_long", entry=payload)
     return result
+
+
+# ---- B-982: chan_gap BUY-ON-GAP long (Chan Ex4.1), intraday BUY engine. Signal/selection/exit are the real
+# chan_gap_entry_signal / chan_gap_select_top / chan_gap_exit_reason above. At the first COMPLETED 09:15 bar the day's
+# candidates are ranked once (top 10 most negative gaps) in a background thread, then each selected symbol enters when the
+# scheduler visits it (until CHAN_GAP_ENTRY_CUTOFF_MIN; the research enters AT the open, a late visit enters at the live
+# close of the latest completed bar, stop anchored to the open as in the research). Exit = ATR stop or the 15:10 flatten
+# (research: close). Every entry carries its stop; the real mirror unwinds if the SL cannot rest. Gate closed by
+# REPLAY_OWED_TAGS until scripts/chan_gap_main_replay.py is on file. Buy engine only.
+CHAN_GAP_LONG_CELLS = {  # tag -> ATR stop multiple, PFnet descending (first VIABLE cell opens, else the first for paper)
+    "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1": 4.0,
+    "chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1": 2.5,
+    "chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1": 1.5,
+}
+CHAN_GAP_ENTRY_CUTOFF_MIN = 10 * 60 + 15
+CHAN_GAP_FIRST_BAR_DONE_MIN = 9 * 60 + 20
+_CHAN_GAP_STATE = {"day": None, "ready": False, "building": False, "selected": {}}
+_CHAN_GAP_LOCK = threading.Lock()
+
+
+def _chan_gap_build_selection(symbols, today_str, daily_fn=None, open_fn=None, top_n: int = CHAN_GAP_TOP_N) -> dict:
+    """{symbol: signal dict} for today's top_n buy-on-gap candidates. daily_fn(sym) -> completed daily bars (today
+    excluded); open_fn(sym) -> today's opening print. Defaults fetch via fetch_ohlc (5m first bar = the open)."""
+    def _daily(sym):
+        d = fetch_ohlc(sym, "1y", "1d")
+        if d is None or len(d) == 0:
+            return None
+        d = d.reset_index(drop=True)
+        if "Date" in d.columns:
+            d = d[d["Date"].astype(str).str[:10] < today_str]
+        return d
+
+    def _open(sym):
+        f = fetch_ohlc(sym, "5d", "5m")
+        if f is None or len(f) == 0:
+            return None
+        ts = pd.to_datetime(f["Date"] if "Date" in f.columns else f.index)
+        loc = ts.dt.tz_convert("Asia/Kolkata") if ts.dt.tz is not None else ts
+        rows = f[(loc.dt.strftime("%Y-%m-%d") == today_str).to_numpy()]
+        return float(rows["Open"].iloc[0]) if len(rows) else None
+
+    daily_fn, open_fn = daily_fn or _daily, open_fn or _open
+    cands = {}
+    for sym in symbols:
+        try:
+            op, dd = open_fn(sym), daily_fn(sym)
+            if op and dd is not None:
+                sig = chan_gap_entry_signal(dd, op, "long")
+                if sig:
+                    cands[sym] = sig
+        except Exception:
+            continue
+    return {s: cands[s] for s in chan_gap_select_top(cands, "long", top_n)}
+
+
+def _chan_gap_ensure_selection(today_str, symbols, builder=None) -> bool:
+    """True once today's selection is ready. Starts ONE background build per IST day; never blocks the scan."""
+    with _CHAN_GAP_LOCK:
+        if _CHAN_GAP_STATE["day"] != today_str:
+            _CHAN_GAP_STATE.update(day=today_str, ready=False, building=False, selected={})
+        if _CHAN_GAP_STATE["ready"]:
+            return True
+        if _CHAN_GAP_STATE["building"]:
+            return False
+        _CHAN_GAP_STATE["building"] = True
+
+    def _run():
+        try:
+            sel = (builder or _chan_gap_build_selection)(list(symbols), today_str)
+        except Exception as e:
+            print(f"[CHAN_GAP] selection build failed (non-fatal): {e}")
+            sel = {}
+        with _CHAN_GAP_LOCK:
+            if _CHAN_GAP_STATE["day"] == today_str:
+                _CHAN_GAP_STATE.update(selected=sel, ready=True, building=False)
+
+    threading.Thread(target=_run, daemon=True, name="chan-gap-select").start()
+    return False
+
+
+def _chan_gap_manage(row, df, mins_now, exit_price, halted):
+    """Exit reason for an open chan_gap long, or None. Stop decision is the real chan_gap_exit_reason on today's bar."""
+    if halted:
+        return "daily_loss_cap_hit"
+    try:
+        today = df["date_local"].iloc[-1]
+        t = df[df["date_local"] == today]
+        bar = {"High": max(float(t["High"].max()), exit_price), "Low": min(float(t["Low"].min()), exit_price),
+               "Close": exit_price}
+        if chan_gap_exit_reason(bar, float(row["entry_price"]), float(row["stop_loss"]), "long")[0] == "stop":
+            return "stop_hit"
+    except Exception:
+        if exit_price <= row["stop_loss"]:
+            return "stop_hit"
+    if mins_now >= CHAN_LONG_FLATTEN_START_MIN:
+        return "flatten_1515"
+    return None
+
+
+def _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
+                             risk_per_trade_pct, fx_to_inr, currency, result, require_real_tradability=False,
+                             mins_now=None, universe=None):
+    """Paper chan_gap buy-on-gap entry (buy engine). Returns result when it entered/skipped, else None (fall through)."""
+    if interval != "5m" or not symbol.endswith(".NS"):
+        return None
+    if mins_now is None:
+        _n = ist_now()
+        mins_now = _n.hour * 60 + _n.minute
+    if mins_now < CHAN_GAP_FIRST_BAR_DONE_MIN or mins_now >= CHAN_GAP_ENTRY_CUTOFF_MIN:
+        return None
+    if universe is None:
+        universe = [c["symbol"] for c in WATCHLIST if str(c["symbol"]).endswith(".NS")]
+    if not _chan_gap_ensure_selection(today_str, universe):
+        return None
+    sig = _CHAN_GAP_STATE["selected"].get(symbol)
+    if not sig:
+        return None
+    tag = next((t for t in CHAN_GAP_LONG_CELLS if _is_strategy_viable_for_real_money(t)), next(iter(CHAN_GAP_LONG_CELLS)))
+    if conn.execute("SELECT 1 FROM signal_state_short WHERE symbol = ? AND status = 'short'", (symbol,)).fetchone():
+        return None
+    _qs = ",".join("?" * len(CHAN_GAP_LONG_CELLS))
+    if conn.execute(f"SELECT 1 FROM trades WHERE symbol = ? AND action = 'buy' AND ts >= ? AND strategy IN ({_qs})",
+                    (symbol, ist_midnight_epoch(ist_now()), *CHAN_GAP_LONG_CELLS)).fetchone():
+        return None
+    liq_ok, _ = _liquidity_gate(df)
+    if not liq_ok or _likely_lower_circuit_locked(df, today_str):
+        return None
+    stop_loss = sig["entry_price"] - CHAN_GAP_LONG_CELLS[tag] * sig["atr_at_entry"]
+    stop_dist = last_close - stop_loss
+    if stop_loss <= 0 or stop_dist <= 0:
+        return None
+    available = max(0.0, capital - deployed_notional(conn))
+    usable = min(available, capital / CAPITAL_TRANCHES)
+    unit_inr = last_close * fx_to_inr
+    if unit_inr <= 0:
+        return None
+    qty = float(math.floor(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr)))
+    if qty <= 0 or qty * unit_inr < 100.0:
+        return None
+    if require_real_tradability:
+        if _is_t1_restricted(conn, symbol):
+            result["action_taken"] = "skipped_t1_restricted"
+            return result
+        import kotak_live_feed
+        tick = kotak_live_feed.get_live_ticks().get(symbol)
+        if not tick or not tick.get("ltp") or not tick.get("trading_symbol"):
+            result["action_taken"] = "skipped_no_live_tick"
+            return result
+    target = round(last_close * 10, 4)  # unreachable on purpose: exits are stop / flatten
+    payload = {
+        "symbol": symbol, "action": "buy", "qty": qty, "price": last_close, "currency": currency,
+        "fx_to_inr": fx_to_inr, "strategy": tag, "entry_reason": "chan_gap_buy_on_gap_long", "gap": sig["gap"],
+        "stop_loss": stop_loss, "target": target, "notional_native": round(qty * last_close, 2),
+        "notional_inr": round(qty * last_close * fx_to_inr, 2),
+    }
+    apply_paper_trade(conn, symbol, "buy", qty, last_close)
+    conn.execute(
+        "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+        "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+        (time.time(), symbol, qty, last_close, fx_to_inr, tag, json.dumps(payload)),
+    )
+    conn.execute(
+        "INSERT INTO signal_state "
+        "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, exit_legs_json, entry_regime, strategy) "
+        "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, NULL, 'chan_gap', ?) "
+        "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
+        "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, initial_stop_loss=excluded.initial_stop_loss, "
+        "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, orb_high=excluded.orb_high, "
+        "orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, interval=excluded.interval, "
+        "exit_legs_json=excluded.exit_legs_json, entry_regime=excluded.entry_regime, strategy=excluded.strategy",
+        (symbol, today_str, last_close, stop_loss, stop_loss, target, qty, time.time(), stop_loss,
+         fx_to_inr, interval, tag),
+    )
+    conn.commit()
+    result.update(action_taken="entered_long", entry=payload)
+    return result
+
+
+CHAN_INTRADAY_LONG_TAGS = frozenset(CHAN_LONG_CELLS) | frozenset(CHAN_GAP_LONG_CELLS)  # buy-engine flatten/unwind set
 
 
 def _chan_short_frame(df, ts_utc):
@@ -12258,6 +12446,7 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "orb-range-short": "range_short_staged_ladder",
     **{_t: _t for _t in CHAN_SHORT_CELLS},
     **{_t: _t for _t in CHAN_LONG_CELLS},
+    **{_t: _t for _t in CHAN_GAP_LONG_CELLS},
     # Swing's own real-entry call sites pass a plain label (see
     # _maybe_place_real_swing_entry's call sites), not an ORB-prefixed
     # tag - "minervini_vcp" maps to minervini_trend_template_vcp per that
@@ -13460,6 +13649,13 @@ def _maybe_place_real_entry(conn, symbol: str):
         _log_signal_shadow(conn, strategy_tag if 1<2 else strategy, symbol, 'long', False, 'real entry: strategy below PFnet floor', hard_gate=True)
         return
 
+    if strategy_tag in CHAN_GAP_LONG_CELLS:
+        _n = ist_now()
+        if _n.hour * 60 + _n.minute >= CHAN_GAP_ENTRY_CUTOFF_MIN + 15:
+            _log_real_attempt(conn, symbol, "B", "skipped_after_entry_cutoff",
+                              detail="chan_gap buy-on-gap: no new real entries after 10:30 IST (research enters at the open)")
+            return
+
     if strategy_tag in CHAN_LONG_CELLS:
         _n = ist_now()
         if _n.hour * 60 + _n.minute >= CHAN_LONG_ENTRY_CUTOFF_MIN:
@@ -13660,7 +13856,7 @@ def _maybe_place_real_entry(conn, symbol: str):
                     )
                     _maybe_place_real_exit(conn, symbol, reason="SL rejected in CAS transition right after entry - cannot leave position unprotected, market exit")
                     return
-                if real_strategy in CHAN_LONG_CELLS:
+                if real_strategy in CHAN_INTRADAY_LONG_TAGS:
                     # No trade without SL: a chan long whose stop cannot be placed is unwound at market now.
                     _maybe_place_real_exit(conn, symbol, reason="entry_sl_failed_unwind")
                     return
@@ -13693,7 +13889,7 @@ def _maybe_place_real_entry(conn, symbol: str):
         first_leg = next((l for l in (real_exit_legs or []) if l["leg"] != "trail"), None)
         target_leg_qty = first_leg["qty"] if first_leg else real_qty
         target_leg_price = first_leg["target_price"] if first_leg else (paper_row["target"] if paper_row else None)
-        if real_strategy in CHAN_LONG_CELLS:
+        if real_strategy in CHAN_INTRADAY_LONG_TAGS:
             target_leg_price = None  # chan long exits are stop / state / hold / flatten; no resting target
         if not sl_confirmed and target_leg_qty and target_leg_price:
             _log_real_order_event(
@@ -20933,7 +21129,7 @@ SHORT_SWING_TAGS = tuple(t for t, _a, _r in BRK20_SHORT_SWING_CELLS)
 # 2026-10-12 user: not wired / not viable until backtested by us through the real main.py path. Island, swing-min-RR gate
 # and short-swing ports were merged without a main.py-calling replay, so the real-money gate stays closed for them.
 REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWINGMINRR_TAGS) | frozenset(SHORT_SWING_TAGS) | frozenset(GAPFADE_TAGS) \
-    | frozenset(CHAN_SHAPE_CELLS) | frozenset(MACDDIV_LONG_CELLS) | frozenset(PL1D_CELLS)
+    | frozenset(CHAN_SHAPE_CELLS) | frozenset(MACDDIV_LONG_CELLS) | frozenset(PL1D_CELLS) | frozenset(CHAN_GAP_LONG_CELLS)
 
 
 def _replay_verified_tags() -> frozenset:
@@ -22976,9 +23172,9 @@ def _chan_long_flatten_due(symbol: str) -> bool:
     if not (CHAN_LONG_FLATTEN_START_MIN <= m < CHAN_LONG_FLATTEN_END_MIN):
         return False
     with closing(get_db()) as c:
-        _qs = ",".join("?" * len(CHAN_LONG_CELLS))
+        _qs = ",".join("?" * len(CHAN_INTRADAY_LONG_TAGS))
         return bool(c.execute(f"SELECT 1 FROM real_positions WHERE symbol = ? AND strategy IN ({_qs})",
-                              (symbol, *CHAN_LONG_CELLS)).fetchone())
+                              (symbol, *CHAN_INTRADAY_LONG_TAGS)).fetchone())
 
 
 async def _scheduler_tick():

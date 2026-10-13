@@ -1102,3 +1102,10 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: the daily top-10 ranking needs the whole universe, so the replay cannot shard by symbol; shards emit per-day candidates and the merge ranks them. The live scope (NIFTY 200) is a much thinner cross-section than the research (~2,680), so expect fewer or weaker top-10 days live.
 - Reuse: tag grammar fields (tf) should drive the scan interval, not a hard-coded string; for cross-sectional strategies replay in two stages (candidates, then rank).
 - Profit-booking / exit takeaway: chan_gap profit is the close-out of a same-day mean reversion (stop rarely the winner); never add a target, keep the 15:10 flatten.
+## chan_gap BUY-ON-GAP LONG 1d, intraday buy engine wiring (B-982, 2026-10-13)
+- Mechanism: Chan Ex4.1. Open below prev low x (1 - 90d return std) but above MA20, liquid; rank the day's candidates by gap (most negative first), keep 10; ATR14 stop below the open; exit at the stop or the close.
+- Fit: same-day trade (avg hold 6.25h), so it belongs to the MIS buy engine, not swing (registry labels it SWING). The cross-sectional rank needs every symbol's open, which the per-symbol round-robin scan cannot supply, so selection is built once per day in a background thread at the first completed 09:15 bar and the scan only consults it.
+- Result: registry PFnet 1.364-1.445 (n 1147, 0.8% cost, research harness). Not a main.py-calling replay yet, so REPLAY_OWED_TAGS keeps real money closed; paper runs.
+- Surprised: the research enters AT the open; a round-robin scan visits late and enters at a later close. Entry window is capped at 10:15 IST, and the replay models the open entry, so the live paper P&L is the check on that slippage.
+- Reuse: for any rank-then-trade-top-N strategy, build the ranking out-of-band and let the scan look it up; ship the replay as shard-emit-candidates plus per-date merge, since top-N is not shardable by symbol.
+- Profit-booking / exit takeaway: stop-or-close only; the wide 4 ATR stop wins on registry PFnet (1.445 vs 1.364 at 1.5 ATR), so profit comes from letting the day run to the close, not from tight stops or targets.
