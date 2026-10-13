@@ -140,3 +140,24 @@ def test_scan_wiring_checked_last_sl_attached_reasoned_exit_no_new_switch():
     assert "_maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)" in entry
     assert 'sig["stop_loss"]' in entry
     assert not any("island" in n.lower() for n in dir(main) if n.startswith("is_real_") or n.endswith("_TRADING_ENABLED"))
+
+
+def test_gap05_tags_can_fire_b887():
+    """B-887: island_filters_passed has no 'gap05' key; gap05 must use the 'none' liquidity gate so it can ever fire."""
+    import inspect
+    src = inspect.getsource(main.island_swing_entry_signal)
+    assert '"none" if flt == "gap05"' in src
+    import numpy as np
+    import pandas as pd
+    n = 80
+    c = np.full(n, 100.0); h = c + 1.0; l = c - 1.0
+    # gap-down at i=40 (high < prior low by > 0.5 ATR), reclaim at j=41 (low > prior high and > h[i])
+    h[40], l[40], c[40] = 90.0, 88.0, 89.0
+    h[41], l[41], c[41] = 101.0, 99.5, 100.5
+    h[39], l[39] = 101.0, 99.0
+    df = pd.DataFrame({"Open": c, "High": h, "Low": l, "Close": c, "Volume": np.full(n, 1e7)})
+    df.index = pd.date_range("2024-01-01", periods=n, freq="B")
+    sub = df.iloc[:42]
+    tag = main.ISLAND_GAP05_TAGS[0]
+    assert main.island_bottom_signal_on_last_bar(sub, min_gap_atr=main.ISLAND_GAP05_MIN_ATR)
+    assert main.island_swing_entry_signal(sub, tag) is not None
