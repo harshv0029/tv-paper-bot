@@ -20,6 +20,14 @@ later from these raw fields, never stored as a flag).
                     produced), 'gap_aware' (fills at max(stop, open) on a gap through it) and 'close'
                     (stop evaluated on the close, the way main's live exit fn would). Env CELLS =
                     "atr1d5_h20_l5_n1,atr2d5_h10_l3_n1" (naming-grammar params), TF=1d only (4h/intraday owed).
+  MODE=sector_sweep B-1002: sector_rotation L x N x ATR x hold sweep (L in 1,3,5; N in 1,3,5), BOTH directions
+                    (fade SHORT via the real main.sector_rotation_fade_short_* fns; momentum LONG via the real
+                    main.sector_rotation_picks, long stop/exit simulated here because main's long exit is a
+                    different fixed-6ATR close-based cell), candle size TF = 1d or 4h (4h = 1h x 730d fetch
+                    resampled with scripts/resample_4h.py; bar-count constants change meaning: h2/h6/h10 4h bars
+                    = ~1/3/5 sessions, l = lookback in 4h bars). Env TF, LS ("1,3,5"), NS, ATRS ("1d5,2d5,4d0,6d0"),
+                    HOLDS (default per TF), DIRS ("short,long"). atrnone refused (SL on every trade). One job per
+                    (TF, L) so the matrix stays small: name = f"{TF}_l{L}".
   MODE=minervini_be REAL main.minervini_vcp_entry_signal + REAL main.minervini_vcp_exit_reason_breakeven
                     with breakeven_r_multiple = env BE_R (2 or 3). RS gate skipped (None), as b412 does.
   MODE=minervini_lab one of the viable minervini_vcp lab variants (env VARIANT), delegated to
@@ -167,22 +175,39 @@ def build_plan(registry, wired_names):
 
 
 # ------------------------------------------------------------------ data
-def load_frames(m, limit=None):
+def load_frames(m, limit=None, tf="1d"):
     if os.environ.get("SYNTHETIC") == "1":
-        return {f"SYN{k}": synthetic_frame(k) for k in range(limit or 8)}
+        return {f"SYN{k}": synthetic_frame(k, 700 if tf == "1d" else 1100) for k in range(limit or 8)}
     syms = sorted(set(m._load_nse_universe_from_file()))
     if limit:
         syms = syms[:limit]
     out = {}
     for s in syms:
         try:
-            raw = m.fetch_ohlc(s, "5y", "1d")
+            raw = fetch_tf(m, s, tf)
         except Exception:
             continue
-        if raw is None or len(raw) < 260:
+        if raw is None or len(raw) < (260 if tf == "1d" else 400):
             continue
         out[s] = raw.reset_index(drop=True)
     return out
+
+
+def fetch_tf(m, sym, tf):
+    """1d: 5y daily. 4h: 1h x 730d resampled to NSE-session 4h bars (scripts/resample_4h.py), 'Date' kept as a column."""
+    if tf == "1d":
+        return m.fetch_ohlc(sym, "5y", "1d")
+    if tf != "4h":
+        raise ValueError(f"tf {tf!r} not supported by the sector sweep (1d, 4h)")
+    import resample_4h as r4
+    raw = m.fetch_ohlc(sym, "730d", "1h")
+    if raw is None or len(raw) == 0:
+        return None
+    ix = raw.set_index(pd.DatetimeIndex(raw["Date"]))
+    out = r4.resample_1h_to_4h(ix[["Open", "High", "Low", "Close"] + (["Volume"] if "Volume" in ix.columns else [])])
+    out = out.copy()
+    out.insert(0, "Date", out.index)
+    return out.reset_index(drop=True)
 
 
 # ------------------------------------------------------------------ sector short
@@ -250,6 +275,105 @@ def run_sector_short(m, frames, cells):
             "exit_source": "main.sector_rotation_fade_short_exit_reason + sector_rotation_fade_short_stop (real)"}
 
 
+# ------------------------------------------------------------------ sector sweep (B-1002)
+SWEEP_DEFAULT_HOLDS = {"1d": (5, 10, 20), "4h": (2, 6, 10)}  # bars; 4h: ~1 / 3 / 5 sessions (2 bars per session)
+SWEEP_DIR_TAG = {"short": "sector_rotation__fade__short__", "long": "sector_rotation__momentum__long__"}
+
+
+def sweep_tag(direction, tf, atr_tok, hold, L, N):
+    """Naming grammar, own tag per (direction, tf, atr, hold, L, N); full universe -> 'momentum' (not _n200)."""
+    return f"{SWEEP_DIR_TAG[direction]}{tf}__atr{atr_tok}_h{hold}_l{L}_n{N}__v1"
+
+
+def sweep_cells(tf, Ls, Ns, atrs, holds=None, dirs=("short", "long")):
+    """Grid of cell dicts. atrnone is refused (no trade without SL)."""
+    holds = holds or SWEEP_DEFAULT_HOLDS[tf]
+    cells = []
+    for d in dirs:
+        for L in Ls:
+            for N in Ns:
+                for a in atrs:
+                    if parse_atr(a) is None:
+                        raise ValueError("atrnone refused: no trade without SL")
+                    for h in holds:
+                        cells.append({"dir": d, "tf": tf, "L": int(L), "N": int(N), "atr": parse_atr(a), "atr_tok": a,
+                                      "hold": int(h), "tag": sweep_tag(d, tf, a, h, L, N)})
+    return cells
+
+
+def long_trade(O, H_, L_, C, e, ent, stop, hold, fill):
+    """LONG mirror of short_trade: fixed stop BELOW entry, low-based ('stop' fills at the stop, 'gap_aware'
+    at min(stop, open), 'close' tests the close), else the close of bar e+hold-1."""
+    if e + hold > len(C):
+        return None
+    for q in range(hold):
+        t = e + q
+        if fill == "close":
+            if C[t] <= stop:
+                return C[t], q + 1, "stop_hit"
+        elif L_[t] <= stop:
+            return (stop if fill == "stop" else min(stop, O[t])), q + 1, "stop_hit"
+    px = C[e + hold - 1]
+    return (px, hold, "max_hold_timeout") if not np.isnan(px) else None
+
+
+def run_sector_sweep(m, frames, cells, tf):
+    """Picks = REAL main fns, computed once per (t, L) at N = max N then sliced (top-N is a prefix of the sorted
+    list, so N=1/3/5 are exact prefixes of the real N=5 answer). Short exit/stop = REAL main fns."""
+    sector_map = m._sector_of_symbol()
+    frames = {s: f for s, f in frames.items() if sector_map.get(s)}
+    syms, dates, P = build_panel(m, frames)
+    O, H_, L_, C, ATR = P["O"], P["H"], P["L"], P["C"], P["ATR"]
+    T = len(dates)
+    cost = m.ROUND_TRIP_COST_PCT / 100.0
+    Ls = sorted({c["L"] for c in cells})
+    Nmax = max(c["N"] for c in cells)
+    sigs = {(L, N): [] for L in Ls for N in {c["N"] for c in cells}}
+    col = {s: j for j, s in enumerate(syms)}
+    for t in range(min(Ls) + 15, T - 2):
+        dfs = {s: _View(C[:t + 1, j]) for j, s in enumerate(syms)}
+        for L in Ls:
+            if t < L + 15:
+                continue
+            real = m.sector_rotation_fade_short_picks(dfs, L, Nmax)  # REAL; same ranking as the long picks
+            for N in {c["N"] for c in cells}:
+                for s in real[:N]:
+                    sigs[(L, N)].append((t, col[s]))
+    results = {}
+    for c in cells:
+        per_fill = {f: [] for f in STOP_FILLS}
+        for t, j in sigs[(c["L"], c["N"])]:
+            e = t + 1
+            ent, a = O[e, j], ATR[t, j]
+            if np.isnan(ent) or np.isnan(a) or ent <= 0 or e + c["hold"] > T:
+                continue
+            if c["dir"] == "short":
+                stop = m.sector_rotation_fade_short_stop(ent, a, c["atr"])  # REAL main stop
+            else:
+                stop = ent - c["atr"] * a if a > 0 else None
+            if stop is None or stop <= 0:
+                continue  # SL on every trade
+            hold = c["hold"]
+            for f in STOP_FILLS:
+                if c["dir"] == "short":
+                    win = {"Open": O[e:e + hold, j], "High": H_[e:e + hold, j], "Close": C[e:e + hold, j]}
+                    r = m.sector_rotation_fade_short_exit_reason(win, stop, hold, f)  # REAL main exit
+                    r = (r[1], r[2], r[0]) if r else None
+                else:
+                    r = long_trade(O[:, j], H_[:, j], L_[:, j], C[:, j], e, ent, stop, hold, f)
+                if r:
+                    per_fill[f].append(trade_record(ent, r[0], r[1], r[2], cost, c["dir"]))
+        results[c["tag"]] = {"dir": c["dir"], "tf": tf, "cell": f"atr{c['atr_tok']}_h{c['hold']}_l{c['L']}_n{c['N']}",
+                             "n_signals": len(sigs[(c["L"], c["N"])]),
+                             "by_stop_fill": {f: H.metrics(per_fill[f]) for f in STOP_FILLS}}
+    return {"mode": "sector_sweep", "cells": results, "cost_round_trip_pct": m.ROUND_TRIP_COST_PCT,
+            "universe_size": len(frames), "universe_requested": "main._load_nse_universe_from_file()",
+            "bars": T, "tf": tf, "bar_count_note": "holds and lookback L are in BARS of this tf (4h: 2 bars/session)",
+            "picks_source": "main.sector_rotation_fade_short_picks (real, N sliced as prefix of N=max)",
+            "atr_source": "main._atr_series (real, 14 bars of this tf)",
+            "exit_source": "short: main.sector_rotation_fade_short_exit_reason + _stop (real); long: harness long_trade (stop below entry)"}
+
+
 # ------------------------------------------------------------------ minervini breakeven (real fns)
 def replay_minervini_be(m, df, be_r, cost):
     df = df.reset_index(drop=True)
@@ -303,11 +427,18 @@ def main_run():
         return
     import main as m
     lim = int(os.environ["SYMBOL_LIMIT"]) if os.environ.get("SYMBOL_LIMIT") else None
-    frames = load_frames(m, lim)
+    tf = os.environ.get("TF", "1d")
+    frames = load_frames(m, lim, tf if mode == "sector_sweep" else "1d")
     print(f"{mode}: {len(frames)} symbols (requested universe = main._load_nse_universe_from_file())")
     if mode == "sector_short":
         res = run_sector_short(m, frames, parse_cells(os.environ["CELLS"]))
         name = os.environ.get("NAME", "sector")
+    elif mode == "sector_sweep":
+        csv = lambda k, d: [x.strip() for x in os.environ.get(k, d).split(",") if x.strip()]
+        cells = sweep_cells(tf, [int(x) for x in csv("LS", "1,3,5")], [int(x) for x in csv("NS", "1,3,5")],
+                            csv("ATRS", "1d5,2d5,4d0,6d0"), [int(x) for x in csv("HOLDS", "")] or None, csv("DIRS", "short,long"))
+        res = run_sector_sweep(m, frames, cells, tf)
+        name = os.environ.get("NAME", f"{tf}_sweep")
     elif mode == "minervini_be":
         res = run_minervini_be(m, frames, float(os.environ["BE_R"]))
         name = f"be{os.environ['BE_R']}"
