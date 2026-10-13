@@ -1051,3 +1051,9 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: the exit differs from the 1d brk20_min_rr short cells (those use an EMA13 rule exit); reusing _short_swing_exit_reason would have replayed a different strategy than the one measured.
 - Reuse: confirm which exit a registry row was measured with before reusing a sibling family's exit function; 1h bar constants are bars, not days.
 - Profit-booking / exit takeaway: profit comes from the 30-bar survivors (~60% of exits) and stops lose, so do not tighten the stop or add a target (gatetarget did not beat gate-only).
+## Month effect SHORT (September first bar), 15m (2026-10-13, B-968)
+- Mechanism: short the first bar of September, hold 25 or 125 15m bars, ATR stop. Fits the short-swing engine only (overnight hold, NRML unconfirmed).
+- Result: registry 15m PFnet 1.70-3.62 (n=202) comes from a single Sept-1 event (60d of 15m data); flatten re-run on the full universe 0.43-0.73. Not an edge until a multi-year 1d replay says so.
+- Surprised: n=202 looked like a sample but was one market day across symbols.
+- Reuse: check how many DISTINCT dates a calendar-rule backtest covers before reading PFnet.
+- Profit-booking / exit takeaway: time exit after ~1 session is the whole strategy; no stop-less (atrnone) cell may go live.
