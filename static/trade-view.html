@@ -377,29 +377,44 @@
     <span id="sx-msg" style="color:#64748b"></span>
   </div>
   <div class="counts-scroll"><table class="counts">
-    <thead><tr><th class="num">#</th><th>Strategy</th><th>Category</th><th>TF</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num">Trades</th><th class="num">Avg hold (h)</th><th>Override</th></tr></thead>
+    <thead><tr id="sx-head"><th class="num">#</th><th data-k="name" data-t="Strategy" style="cursor:pointer">Strategy</th><th data-k="categories" data-t="Category" style="cursor:pointer">Category</th><th data-k="timeframe" data-t="TF" style="cursor:pointer">TF</th><th class="num" data-k="pfnet" data-t="PFnet" style="cursor:pointer">PFnet ▼</th><th class="num" data-k="win_rate_pct" data-t="Win %" style="cursor:pointer">Win %</th><th class="num" data-k="n_trades" data-t="Trades" style="cursor:pointer">Trades</th><th class="num" data-k="avg_held_hrs" data-t="Avg hold (h)" style="cursor:pointer">Avg hold (h)</th><th>Override</th></tr></thead>
     <tbody id="sx-body"><tr><td colspan="9" class="scan-idle">Press Show.</td></tr></tbody>
   </table></div>
 </div>
 <script>
 (function(){
   var CATS=["buy","short_sell","swing","futures","options","bidirectional"];
+  // Standard category names (user 2026-10-13). Display labels only; internal keys unchanged.
+  var CATLAB={short_sell:"Short sell",buy:"Intraday buy",swing:"Swing",futures:"Futures",options:"Options",bidirectional:"Others"};
+  var CATORDER=["short_sell","buy","swing","futures","options","bidirectional"];
   var box=document.getElementById("sx-cats");
-  box.innerHTML=CATS.map(function(c){return '<label style="display:block"><input type="checkbox" class="sx-c" value="'+c+'"> '+c+'</label>';}).join("");
+  box.innerHTML=CATORDER.map(function(c){return '<label style="display:block"><input type="checkbox" class="sx-c" value="'+c+'"> '+CATLAB[c]+'</label>';}).join("");
   function esc(t){return String(t).replace(/[&<>]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[m];});}
+  var sxRows=[], sxSort={key:"pfnet",dir:-1};
+  function sxRender(){
+    var f=function(v,n){return v==null?"\u2014":Number(v).toFixed(n);};
+    var k=sxSort.key, dir=sxSort.dir;
+    var val=function(r){return k==="categories"?(r.categories||[]).map(function(c){return CATLAB[c]||c;}).join(", "):r[k];};
+    var rows=sxRows.slice().sort(function(a,b){var x=val(a),y=val(b);
+      if(x==null&&y==null)return 0; if(x==null)return 1; if(y==null)return -1;
+      return (typeof x==="string"?x.localeCompare(y):x-y)*dir;});
+    document.getElementById("sx-body").innerHTML=rows.length?rows.map(function(r,i){
+      return "<tr><td class='num'>"+(i+1)+"</td><td>"+esc(r.name)+"</td><td>"+esc(r.categories.map(function(c){return CATLAB[c]||c;}).join(", "))+"</td><td>"+esc(r.timeframe)+"</td><td class='num'>"+f(r.pfnet,2)+"</td><td class='num'>"+f(r.win_rate_pct,1)+"</td><td class='num'>"+(r.n_trades==null?"\u2014":r.n_trades)+"</td><td class='num'>"+f(r.avg_held_hrs,1)+"</td><td>"+(r.override?"viable (set by you)":"")+"</td></tr>";
+    }).join(""):"<tr><td colspan='9' class='scan-idle'>No strategy matches.</td></tr>";
+    [].slice.call(document.querySelectorAll("#sx-head th[data-k]")).forEach(function(th){
+      th.textContent=th.getAttribute("data-t")+(th.getAttribute("data-k")===k?(dir<0?" \u25BC":" \u25B2"):"");});
+  }
   function go(){
     var sel=[].slice.call(document.querySelectorAll(".sx-c:checked")).map(function(e){return e.value;});
-    document.getElementById("sx-cat-n").textContent=sel.length?sel.join(", "):"all";
+    document.getElementById("sx-cat-n").textContent=sel.length?sel.map(function(c){return CATLAB[c]||c;}).join(", "):"all";
     var q=new URLSearchParams();
     if(sel.length)q.set("categories",sel.join(","));
     [["sx-pfmin","pf_min"],["sx-pfmax","pf_max"],["sx-minn","min_n"],["sx-hold","max_hold_hrs"]].forEach(function(x){
       var v=document.getElementById(x[0]).value; if(v!=="")q.set(x[1],v);});
+    q.set("limit","5000");
     fetch("/strategy-explorer?"+q.toString()).then(function(r){return r.json();}).then(function(d){
       document.getElementById("sx-counts").textContent=d.total+" strategies"+(d.total>d.rows.length?" (showing top "+d.rows.length+")":"");
-      document.getElementById("sx-body").innerHTML=d.rows.length?d.rows.map(function(r,i){
-        var f=function(v,n){return v==null?"—":Number(v).toFixed(n);};
-        return "<tr><td class='num'>"+(i+1)+"</td><td>"+esc(r.name)+"</td><td>"+esc(r.categories.join(", "))+"</td><td>"+esc(r.timeframe)+"</td><td class='num'>"+f(r.pfnet,2)+"</td><td class='num'>"+f(r.win_rate_pct,1)+"</td><td class='num'>"+(r.n_trades==null?"—":r.n_trades)+"</td><td class='num'>"+f(r.avg_held_hrs,1)+"</td><td>"+(r.override?"viable (set by you)":"")+"</td></tr>";
-      }).join(""):"<tr><td colspan='9' class='scan-idle'>No strategy matches.</td></tr>";
+      sxRows=d.rows; sxRender();
     }).catch(function(){document.getElementById("sx-body").innerHTML="<tr><td colspan='8' class='scan-idle'>Load failed.</td></tr>";});
   }
   function stackUi(st){
@@ -429,6 +444,10 @@
     var lbl=window.prompt("Label for the selected entry (must start with pfnet( to display):",def);
     if(lbl)post({action:"relabel",id:Number(document.getElementById("sx-stack").value),label:lbl});
   });
+  document.getElementById("sx-head").addEventListener("click",function(e){
+    var k=e.target.getAttribute&&e.target.getAttribute("data-k"); if(!k)return;
+    sxSort=(sxSort.key===k)?{key:k,dir:-sxSort.dir}:{key:k,dir:(k==="name"||k==="categories"||k==="timeframe")?1:-1};
+    sxRender();});
   document.getElementById("sx-go").addEventListener("click",go);
 })();
 </script>
@@ -465,7 +484,12 @@
 </div>
 
 <div class="counts-panel">
-  <div class="counts-head"><span class="title">Bucketing of viable strategies <span id="vb-meta" class="scan-idle"></span></span></div>
+  <div class="counts-head"><span class="title">Entry funnel today: why entries are (not) happening <span id="ef-meta" class="scan-idle"></span></span></div>
+  <div class="counts-scroll" id="ef-body"><div class="scan-idle">Loading…</div></div>
+</div>
+
+<div class="counts-panel">
+  <div class="counts-head"><span class="title">Bucketing of viable strategies<span id="vb-meta" class="scan-idle"></span></span></div>
   <div class="counts-scroll" id="vb-body"><div class="scan-idle">Loading…</div></div>
 </div>
 
@@ -850,8 +874,10 @@ function renderStats(symbol, pos, lastClose) {
 const TICKER_LABELS = { "^NSEI": "NIFTY 50", "^NSEBANK": "BANK NIFTY", "^BSESN": "SENSEX", "GC=F": "GOLD" };
 function displayName(symbol) { return TICKER_LABELS[symbol] || symbol; }
 
-function scanTagFor(actionTaken) {
+function scanTagFor(actionTaken, checksToday) {
   const a = actionTaken || "";
+  // User 2026-10-13: "No signal" -> "No signal (x signals checked)", x = signal checks done today for this row.
+  if (a === "no_signal" && checksToday != null) return { cls: "none", label: `No signal (${checksToday} signals checked)` };
   if (a.startsWith("entered")) return { cls: "entered", label: a.replace("entered_", "") };
   if (a.startsWith("exited")) return { cls: "exited", label: a.replace("exited_", "") };
   if (a.includes("blocked") || a.includes("insufficient") || a.includes("budget_too_small") || a.includes("no_qualifying")) {
@@ -923,7 +949,7 @@ function countsSortValue(r, key) {
     case "symbol": return (r.display || r.symbol || "").toLowerCase();
     case "checks_today": return r.checks_today ?? 0;
     case "last_result": {
-      const tag = scanTagFor(r.last_action);
+      const tag = scanTagFor(r.last_action, r.checks_today);
       return (tag.label !== "—" ? tag.label : (r.last_action || "")).toLowerCase();
     }
     case "last_checked": return r.last_checked_at_utc ?? -Infinity;
@@ -971,7 +997,7 @@ function renderCounts(p) {
   }
   const maxCount = Math.max(1, ...rows.map(r => r.checks_today));
   body.innerHTML = rows.map((r, i) => {
-    const tag = scanTagFor(r.last_action);
+    const tag = scanTagFor(r.last_action, r.checks_today);
     const label = tag.label !== "—" ? tag.label : (r.last_action || "—");
     const barPct = Math.round((r.checks_today / maxCount) * 100);
     // data_source: today every asset is "yahoo_finance" - Kotak Neo is
@@ -1031,6 +1057,20 @@ function trackDataChange(key, sigSource) {
     try { localStorage.setItem(key, JSON.stringify(rec)); } catch (e) {}
   }
   return rec.epoch;
+}
+function renderEntryFunnel(d) {
+  const body = document.getElementById("ef-body"), meta = document.getElementById("ef-meta");
+  if (!body) return;
+  if (!d || !d.categories) { body.innerHTML = '<div class="scan-idle">Funnel unavailable (fetch failed)</div>'; return; }
+  if (meta) meta.textContent = `(last refreshed: ${formatIstTimestamp(d.as_of_epoch || Date.now() / 1000)})`;
+  const esc = x => String(x).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  body.innerHTML = Object.entries(d.categories).map(([cat, c]) => {
+    const rows = c.attempts.map(r => `<tr><td>${esc(r.status)}</td><td class="num">${r.attempts}</td><td class="num">${r.symbols}</td></tr>`).join("")
+      || '<tr><td colspan="3" class="scan-idle">No real-entry attempts today</td></tr>';
+    return `<div style="margin:8px 0"><b>${esc(({short_sell:"Short sell",buy:"Intraday buy",swing:"Swing",futures:"Futures",options:"Options",bidirectional:"Others"})[cat] || cat)}</b> — ${esc(c.verdict)}<br>
+      ${c.viable_strategies} viable · ${c.scans_today} scans · ${c.paper_entries_today} paper entries · ${c.placed} real placed · ${c.blocked} real blocked
+      <table class="counts"><thead><tr><th>Outcome / skip reason</th><th class="num">Attempts</th><th class="num">Symbols</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }).join("");
 }
 function renderViableBuckets(d) {
   const body = document.getElementById("vb-body"), meta = document.getElementById("vb-meta");
@@ -2234,6 +2274,7 @@ async function refresh() {
     renderStrategyScanActivity(strategyScanActivity);
     fetchJSON(`${ORIGIN}/signal-funds`).then(f => { window._sigFunds = f; }).catch(() => { window._sigFunds = null; })
       .then(() => fetchJSON(`${ORIGIN}/fo-entry-diagnosis`)).then(renderFoDiagnosis).catch(() => renderFoDiagnosis(null));
+    fetchJSON(`${ORIGIN}/entry-funnel`).then(renderEntryFunnel).catch(() => renderEntryFunnel(null));
     fetchJSON(`${ORIGIN}/strategy-viable-buckets`).then(renderViableBuckets).catch(() => renderViableBuckets(null));
     // BUG found live 2026-09-08 (explicit user finding: "current balance
     // is 1596 as of now but wrong here" - showing -Rs942.61 instead):

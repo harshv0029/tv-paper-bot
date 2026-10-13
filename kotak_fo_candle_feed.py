@@ -97,6 +97,10 @@ STOCK_ATM_STRIKE_BAND = 2
 STOCK_EXPIRY_CLASSES = ("monthly",)
 
 _feed_status = {
+    # B-902: where the feed currently is (waiting_lock / resolving_universe / logging_in /
+    # subscribing / streaming), so a feed stuck at connected=false shows WHERE.
+    "phase": "starting",
+    "phase_since_utc": None,
     "connected": False,
     "last_error": None,
     "started_at_utc": None,
@@ -528,6 +532,11 @@ def read_fo_candles_as_df(instrument_token: str) -> pd.DataFrame | None:
     return df[["Date", "Open", "High", "Low", "Close", "Volume"]].reset_index(drop=True)
 
 
+def _set_phase(phase: str) -> None:
+    _feed_status["phase"] = phase
+    _feed_status["phase_since_utc"] = time.time()
+
+
 async def run_fo_candle_feed():
     """The background task main.py's startup event launches alongside
     (never instead of) kotak_live_feed.run_feed. Runs forever until the
@@ -597,7 +606,9 @@ async def run_fo_candle_feed():
                 # stock that isn't this cycle's turn keeps its
                 # last-known-good legs instead of dropping to unresolved.
                 stock_offset = _stock_resolve_offset["value"]
+                _set_phase("waiting_lock")
                 async with main._heavy_startup_resolve_lock:
+                    _set_phase("resolving_universe")
                     resolve_deadline = time.time() + FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS
                     universe = await asyncio.wait_for(
                         asyncio.to_thread(
@@ -633,10 +644,13 @@ async def run_fo_candle_feed():
             from neo_api_client.websocket.feed import WsToken, SFeedScrip
 
             ws_tokens = [WsToken(seg, tok) for (seg, tok) in universe]
+            _set_phase("logging_in")
             client = kotak_neo.login()
+            _set_phase("subscribing")
 
             async with client.create_websocket() as ws:
                 await ws.subscribe_scrips(ws_tokens)
+                _set_phase("streaming")
                 _feed_status["connected"] = True
                 _feed_status["started_at_utc"] = time.time()
                 _feed_status["last_error"] = None
