@@ -110,6 +110,11 @@ PFNET_LIVE_FLOOR = 1.1  # 2026-10-11 user: viable now means PFnet >= 1.1 (was 1.
 TRADING_HOURS_PER_DAY = 6.25
 
 
+# Registry names the user has explicitly marked viable + live-wired from trade-view (2026-10-13). Filled from the
+# strategy_viable_override table by main._load_viable_overrides(); empty by default, so derived viability is unchanged.
+VIABLE_OVERRIDES: set = set()
+
+
 @dataclass(frozen=True)
 class Metrics:
     """Pointer to one specific validation run's pooled numbers - never a
@@ -147,6 +152,8 @@ class StrategyDef:
         strategy's own validated PFnet clears real breakeven."""
         if self.metrics is None:
             return None
+        if self.name in VIABLE_OVERRIDES:  # 2026-10-13 user: set from trade-view's explorer, see main.py
+            return True
         return self.metrics.pfnet >= floor
 
 

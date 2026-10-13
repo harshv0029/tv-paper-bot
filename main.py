@@ -661,6 +661,16 @@ def init_db():
         )
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS strategy_viable_stack (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,   -- highest id = active definition (top of stack)
+                created_at REAL NOT NULL,
+                label TEXT,
+                names TEXT NOT NULL                     -- JSON list of registry names
+            )
+            """
+        )
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS user_strategy_tags (
                 symbol TEXT PRIMARY KEY,   -- Kotak base symbol, upper-case, no -EQ suffix
                 strategy TEXT NOT NULL,    -- name the user gave this trade (B-402)
@@ -11501,9 +11511,31 @@ def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: b
         return False
     # 2026-10-12 user thumb rule: nothing is wired or declared viable until it is backtested by us. A live port not yet
     # replayed through the real main.py functions stays closed.
-    if strat.metrics is None or strategy_tag in REPLAY_OWED_TAGS:
+    if strat.metrics is None:
+        return False
+    _load_viable_overrides()
+    if registry_name in sr.VIABLE_OVERRIDES:
+        # 2026-10-13 user: "make this set viable category and live wiring ... without any restriction" (trade-view
+        # explorer button). Bypasses the PFnet floor and replay-owed hold; the ALL TRADING switch above, the SL on
+        # every entry and the Kotak backcheck still apply.
+        return True
+    if strategy_tag in REPLAY_OWED_TAGS:
         return False
     return strat.is_viable() is True
+
+
+def _load_viable_overrides() -> set:
+    """Refresh strategy_registry.VIABLE_OVERRIDES from the (Upstash-mirrored) table; never raises."""
+    import strategy_registry as sr
+    try:
+        with closing(get_db()) as c:
+            row = c.execute("SELECT names FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
+        names = set(json.loads(row[0])) if row else set()
+        sr.VIABLE_OVERRIDES.clear()
+        sr.VIABLE_OVERRIDES.update(names)
+    except Exception:
+        pass
+    return sr.VIABLE_OVERRIDES
 
 
 # --- Stage 3: real order placement (2026-09-04) -----------------------------
@@ -17376,6 +17408,7 @@ _GENERIC_MIRROR_TABLES = (
     "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags",
     "swing_done_today", "strategy_scan_counts", "signal_shadow_log",
     "signal_state_swing_short", "real_positions_swing_short",
+    "strategy_viable_stack",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
@@ -21817,6 +21850,7 @@ def strategy_explorer(categories: str = "", pf_min: float = None, pf_max: float 
     min sample size; max avg hold in market hours. Derived at read time from the
     registry; display only, the real-money gate is untouched."""
     import strategy_registry as sr
+    ov = set(_load_viable_overrides())
     cats = {c.strip() for c in categories.split(",") if c.strip()}
     rows = []
     for d in sr.REGISTRY:
@@ -21836,10 +21870,72 @@ def strategy_explorer(categories: str = "", pf_min: float = None, pf_max: float 
             continue
         rows.append({"name": d.name, "categories": dcats, "timeframe": d.timeframe,
                      "pfnet": m.pfnet, "win_rate_pct": m.win_rate_pct, "n_trades": m.n_trades,
-                     "avg_held_hrs": m.avg_held_hrs, "universe": m.universe})
+                     "avg_held_hrs": m.avg_held_hrs, "universe": m.universe,
+                     "override": d.name in ov})
     rows.sort(key=lambda r: -r["pfnet"])
     return {"total": len(rows), "rows": rows[:max(1, min(limit, 5000))],
             "categories_available": [c.value for c in sr.TradeCategory]}
+
+
+VIABLE_STACK_SIZE = 10
+
+
+def _viable_stack_rows(c) -> list:
+    return [{"id": r[0], "created_at": r[1], "label": r[2], "count": len(json.loads(r[3]))}
+            for r in c.execute("SELECT id, created_at, label, names FROM strategy_viable_stack ORDER BY id DESC").fetchall()]
+
+
+@app.get("/strategy-viable-stack")
+def strategy_viable_stack_get():
+    """Viable-definition stack (user 2026-10-13), newest first; index 0 is the active definition."""
+    _load_viable_overrides()
+    with closing(get_db()) as c:
+        return {"size": VIABLE_STACK_SIZE, "stack": _viable_stack_rows(c)}
+
+
+@app.post("/strategy-viable-override")
+async def strategy_viable_override(request: Request):
+    """User 2026-10-13: trade-view explorer button "make this set viable category and live wiring" (no token, per the
+    user). Body {"action": "set", "names": [...]} pushes a NEW viable definition on a stack of VIABLE_STACK_SIZE (10);
+    the newest is active and earlier ones shift down. {"action": "undo"} pops the top so the previous definition
+    becomes active. {"action": "restore", "id": N} re-pushes stack entry N on top. Only registry names with backtest
+    metrics are accepted. The active definition marks those strategies viable everywhere and opens the real-money
+    entry gate for them (where a live entry path exists); ALL TRADING switch and SL-on-every-entry still apply."""
+    import strategy_registry as sr
+    body = await request.json()
+    action = body.get("action", "set")
+    if action not in ("set", "undo", "restore"):
+        raise HTTPException(status_code=400, detail="action must be set, undo or restore")
+    with closing(get_db()) as c:
+        if action == "set":
+            known = {d.name for d in sr.REGISTRY if d.metrics is not None}
+            names = sorted({n for n in (body.get("names") or []) if n in known})
+            if not names:
+                raise HTTPException(status_code=400, detail="no backtested registry names supplied")
+            c.execute("INSERT INTO strategy_viable_stack (created_at, label, names) VALUES (?,?,?)",
+                      (time.time(), "explorer set", json.dumps(names)))
+        elif action == "undo":
+            top = c.execute("SELECT id FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
+            if top is None:
+                raise HTTPException(status_code=400, detail="stack is empty")
+            c.execute("DELETE FROM strategy_viable_stack WHERE id = ?", (top[0],))
+        else:
+            row = c.execute("SELECT names FROM strategy_viable_stack WHERE id = ?", (body.get("id"),)).fetchone()
+            if row is None:
+                raise HTTPException(status_code=400, detail="unknown stack id")
+            c.execute("INSERT INTO strategy_viable_stack (created_at, label, names) VALUES (?,?,?)",
+                      (time.time(), f"restored #{body.get('id')}", row[0]))
+        c.execute("DELETE FROM strategy_viable_stack WHERE id NOT IN "
+                  "(SELECT id FROM strategy_viable_stack ORDER BY id DESC LIMIT ?)", (VIABLE_STACK_SIZE,))
+        c.commit()
+    print(f"[VIABLE STACK] {action} at {ist_now().strftime('%Y-%m-%d %H:%M:%S')} IST")
+    try:
+        sync_generic_tables_external(only=("strategy_viable_stack",))
+    except Exception as e:
+        print(f"[viable_stack] mirror failed (non-fatal): {e}")
+    active = _load_viable_overrides()
+    with closing(get_db()) as c:
+        return {"action": action, "active_count": len(active), "stack": _viable_stack_rows(c)}
 
 
 @app.get("/strategy-viable-buckets")
@@ -21847,6 +21943,7 @@ def strategy_viable_buckets():
     """Read-only, derived at read time from strategy_registry (B-815): viable
     strategies per category, bucketed by PFnet band then holding-days band."""
     import strategy_registry as sr
+    _load_viable_overrides()
     return {"floor": sr.PFNET_LIVE_FLOOR, "categories": sr.bucket_viable_strategies(), "as_of_epoch": time.time()}
 
 
