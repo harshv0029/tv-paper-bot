@@ -1,0 +1,84 @@
+name: tasuki + swingminrr short main.py-function replay (B-965)
+
+# Backlog B-965. Full replay that IMPORTS and CALLS the real main.py functions for
+#  (a) main.TASUKI_SHORT_CELLS (tasuki gap short 1d atr6/atr4/atr2d5 h3): main.tasuki_short_signal + main.tasuki_short_stop
+#      + main.tasuki_short_exit_reason, universe = main.ETF_SYMBOLS (the universe the registry rows were measured on)
+#  (b) main.SWINGMINRR_GATE_SHORT_1H_TAG (brk20_gate short 1h atr3_rr4): main.swingminrr_gate_short_entry_signal +
+#      main.swingminrr_gate_short_exit_reason, universe = main._load_nse_universe_from_file() (full, NOT NSE_FULL_UNIVERSE)
+# Cost = main.ROUND_TRIP_COST_PCT. Fill: signal_close (= live scan) or next_open (research). Each tag replayed independently.
+# Output artifact tsm-all (tsm_all.json): per tag n, win %, PFnet gross/net, avg hold (bars + hours), exit reasons, in the
+# rows[].metrics shape main._replay_verified_tags reads. Copy it to docs/backtest_data/tasuki_swingminrr_main_replay_run_<id>.json
+# to lift the REPLAY_OWED gate. Big matrix (1 + nshards jobs): dispatch only when no Deploy Gate is queued.
+on:
+  workflow_dispatch:
+    inputs:
+      fill:
+        description: "signal_close (live) or next_open (research)"
+        default: "signal_close"
+      nshards:
+        description: "Universe shards for the 1h group"
+        default: "16"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - id: p
+        env:
+          NSHARDS: ${{ inputs.nshards }}
+        run: |
+          echo "matrix=$(python3 scripts/tasuki_swingminrr_short_main_replay.py plan)" >> "$GITHUB_OUTPUT"
+
+  replay:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay (real main.py functions)
+        env:
+          GROUP: ${{ matrix.group }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: ${{ matrix.nshards }}
+          FILL: ${{ inputs.fill }}
+        run: python3 scripts/tasuki_swingminrr_short_main_replay.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tsm-${{ matrix.group }}-s${{ matrix.shard }}
+          path: out/
+
+  aggregate:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q numpy pandas
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          pattern: tsm-*
+          merge-multiple: true
+      - name: Merge shards (exact, from raw sums)
+        run: python3 scripts/tasuki_swingminrr_short_main_replay.py merge out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tsm-all
+          path: out/tsm_all.json
