@@ -1,0 +1,271 @@
+{
+ "chunk": "v1",
+ "interval": "1d",
+ "period": "5y",
+ "shard": 3,
+ "nshards": 4,
+ "n_symbols": 668,
+ "cost_round_trip_pct": 0.8,
+ "atr_mult": 1.5,
+ "synthetic": false,
+ "direction": "long",
+ "short_mirror": "owed: main.py has no island short port",
+ "cells": {
+  "reversal__island__long__1d__atr1d5_within8__v1": {
+   "mode": "overlap",
+   "raw": {
+    "n": 3270,
+    "wins": 1237,
+    "win_net": 150.2961713872828,
+    "loss_net": 63.58036774881334,
+    "win_gross": 161.25828560213907,
+    "loss_gross": 48.38248196366967,
+    "sum_net": 86.71580363846921,
+    "sum_gross": 112.87580363846934,
+    "hold_sum": 25652,
+    "reasons": {
+     "island_rule_exit": {
+      "n": 2488,
+      "wins": 1135,
+      "win_net": 97.38389948339827,
+      "loss_net": 31.23880467707008,
+      "win_gross": 107.50239795682903,
+      "loss_gross": 21.453303150500872,
+      "sum_net": 66.14509480632796,
+      "sum_gross": 86.04909480632831,
+      "hold_sum": 20303,
+      "reasons": null
+     },
+     "island_stop_loss": {
+      "n": 671,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 32.28700932164338,
+      "win_gross": 0.0,
+      "loss_gross": 26.919009321643376,
+      "sum_net": -32.28700932164338,
+      "sum_gross": -26.919009321643376,
+      "hold_sum": 2026,
+      "reasons": null
+     },
+     "island_max_hold_timeout": {
+      "n": 107,
+      "wins": 100,
+      "win_net": 52.828903145120606,
+      "loss_net": 0.03373940430299381,
+      "win_gross": 53.65116374081758,
+      "loss_gross": 0.0,
+      "sum_net": 52.79516374081761,
+      "sum_gross": 53.65116374081758,
+      "hold_sum": 3317,
+      "reasons": null
+     },
+     "data_end_forced_close": {
+      "n": 4,
+      "wins": 2,
+      "win_net": 0.0833687587638767,
+      "loss_net": 0.0208143457968208,
+      "win_gross": 0.10472390449247963,
+      "loss_gross": 0.010169491525423728,
+      "sum_net": 0.0625544129670559,
+      "sum_gross": 0.09455441296705591,
+      "hold_sum": 6,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "reversal__island_none__long__1d__atr1d5_within8__v1": {
+   "mode": "overlap",
+   "raw": {
+    "n": 3270,
+    "wins": 1237,
+    "win_net": 150.2961713872828,
+    "loss_net": 63.58036774881334,
+    "win_gross": 161.25828560213907,
+    "loss_gross": 48.38248196366967,
+    "sum_net": 86.71580363846921,
+    "sum_gross": 112.87580363846934,
+    "hold_sum": 25652,
+    "reasons": {
+     "island_rule_exit": {
+      "n": 2488,
+      "wins": 1135,
+      "win_net": 97.38389948339827,
+      "loss_net": 31.23880467707008,
+      "win_gross": 107.50239795682903,
+      "loss_gross": 21.453303150500872,
+      "sum_net": 66.14509480632796,
+      "sum_gross": 86.04909480632831,
+      "hold_sum": 20303,
+      "reasons": null
+     },
+     "island_stop_loss": {
+      "n": 671,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 32.28700932164338,
+      "win_gross": 0.0,
+      "loss_gross": 26.919009321643376,
+      "sum_net": -32.28700932164338,
+      "sum_gross": -26.919009321643376,
+      "hold_sum": 2026,
+      "reasons": null
+     },
+     "island_max_hold_timeout": {
+      "n": 107,
+      "wins": 100,
+      "win_net": 52.828903145120606,
+      "loss_net": 0.03373940430299381,
+      "win_gross": 53.65116374081758,
+      "loss_gross": 0.0,
+      "sum_net": 52.79516374081761,
+      "sum_gross": 53.65116374081758,
+      "hold_sum": 3317,
+      "reasons": null
+     },
+     "data_end_forced_close": {
+      "n": 4,
+      "wins": 2,
+      "win_net": 0.0833687587638767,
+      "loss_net": 0.0208143457968208,
+      "win_gross": 0.10472390449247963,
+      "loss_gross": 0.010169491525423728,
+      "sum_net": 0.0625544129670559,
+      "sum_gross": 0.09455441296705591,
+      "hold_sum": 6,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "reversal__island_px20__long__1d__atr1d5_within8__v1": {
+   "mode": "overlap",
+   "raw": {
+    "n": 2531,
+    "wins": 925,
+    "win_net": 102.88551242235239,
+    "loss_net": 50.664181121330515,
+    "win_gross": 111.18833746817603,
+    "loss_gross": 38.7190061671542,
+    "sum_net": 52.22133130102186,
+    "sum_gross": 72.46933130102198,
+    "hold_sum": 19910,
+    "reasons": {
+     "island_rule_exit": {
+      "n": 1910,
+      "wins": 852,
+      "win_net": 67.2776157450673,
+      "loss_net": 24.192095522402685,
+      "win_gross": 74.9688250494655,
+      "loss_gross": 16.603304826800816,
+      "sum_net": 43.085520222664634,
+      "sum_gross": 58.365520222664664,
+      "hold_sum": 15789,
+      "reasons": null
+     },
+     "island_stop_loss": {
+      "n": 539,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 26.417531848827974,
+      "win_gross": 0.0,
+      "loss_gross": 22.105531848827972,
+      "sum_net": -26.417531848827974,
+      "sum_gross": -22.105531848827972,
+      "hold_sum": 1667,
+      "reasons": null
+     },
+     "island_max_hold_timeout": {
+      "n": 79,
+      "wins": 72,
+      "win_net": 35.566056228365106,
+      "loss_net": 0.03373940430299381,
+      "win_gross": 36.16431682406211,
+      "loss_gross": 0.0,
+      "sum_net": 35.532316824062114,
+      "sum_gross": 36.16431682406211,
+      "hold_sum": 2449,
+      "reasons": null
+     },
+     "data_end_forced_close": {
+      "n": 3,
+      "wins": 1,
+      "win_net": 0.04184044891989616,
+      "loss_net": 0.0208143457968208,
+      "win_gross": 0.05519559464849909,
+      "loss_gross": 0.010169491525423728,
+      "sum_net": 0.021026103123075363,
+      "sum_gross": 0.04502610312307536,
+      "hold_sum": 5,
+      "reasons": null
+     }
+    }
+   }
+  },
+  "reversal__island_turn1cr__long__1d__atr1d5_within8__v1": {
+   "mode": "overlap",
+   "raw": {
+    "n": 915,
+    "wins": 358,
+    "win_net": 38.035989304857104,
+    "loss_net": 21.130287412522705,
+    "win_gross": 41.19376270162446,
+    "loss_gross": 16.96806080929009,
+    "sum_net": 16.905701892334402,
+    "sum_gross": 24.22570189233441,
+    "hold_sum": 7446,
+    "reasons": {
+     "island_rule_exit": {
+      "n": 744,
+      "wins": 334,
+      "win_net": 27.267346935505785,
+      "loss_net": 10.960002617377945,
+      "win_gross": 30.233120332273145,
+      "loss_gross": 7.973776014145281,
+      "sum_net": 16.30734431812785,
+      "sum_gross": 22.259344318127877,
+      "hold_sum": 6186,
+      "reasons": null
+     },
+     "island_stop_loss": {
+      "n": 146,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 10.152115303619368,
+      "win_gross": 0.0,
+      "loss_gross": 8.984115303619365,
+      "sum_net": -10.152115303619368,
+      "sum_gross": -8.984115303619365,
+      "hold_sum": 513,
+      "reasons": null
+     },
+     "island_max_hold_timeout": {
+      "n": 24,
+      "wins": 24,
+      "win_net": 10.768642369351324,
+      "loss_net": 0.0,
+      "win_gross": 10.96064236935132,
+      "loss_gross": 0.0,
+      "sum_net": 10.768642369351324,
+      "sum_gross": 10.96064236935132,
+      "hold_sum": 744,
+      "reasons": null
+     },
+     "data_end_forced_close": {
+      "n": 1,
+      "wins": 0,
+      "win_net": 0.0,
+      "loss_net": 0.018169491525423728,
+      "win_gross": 0.0,
+      "loss_gross": 0.010169491525423728,
+      "sum_net": -0.018169491525423728,
+      "sum_gross": -0.010169491525423728,
+      "hold_sum": 3,
+      "reasons": null
+     }
+    }
+   }
+  }
+ }
+}
