@@ -403,7 +403,7 @@
   }
   function stackUi(st){
     var sel=document.getElementById("sx-stack");
-    sel.innerHTML=st.map(function(e,i){return '<option value="'+e.id+'">'+(i===0?"ACTIVE - ":"#"+(i+1)+" - ")+e.count+" strategies, "+new Date(e.created_at*1000).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+" IST</option>";}).join("")||"<option>stack empty</option>";
+    sel.innerHTML=st.map(function(e,i){var lbl=(e.label&&e.label.indexOf("pfnet(")===0)?e.label:e.count+" strategies";return '<option value="'+e.id+'">'+(i===0?"ACTIVE - ":"#"+(i+1)+" - ")+lbl+", "+new Date(e.created_at*1000).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+" IST</option>";}).join("")||"<option>stack empty</option>";
   }
   function post(body){
     var msg=document.getElementById("sx-msg"); msg.textContent="Saving…";
@@ -416,7 +416,9 @@
   document.getElementById("sx-wire").addEventListener("click",function(){
     var names=[].slice.call(document.querySelectorAll("#sx-body tr")).map(function(tr){return tr.children[1]&&tr.children[1].textContent;}).filter(Boolean);
     if(!names.length){document.getElementById("sx-msg").textContent="Press Show first.";return;}
-    post({action:"set",names:names});
+    var gv=function(id,d){var v=document.getElementById(id).value;return v===""?d:v;};
+    var label="pfnet("+gv("sx-pfmin","0")+"-"+gv("sx-pfmax","100")+"), min("+gv("sx-minn","0")+"), maxhold("+gv("sx-hold","any")+")";
+    post({action:"set",names:names,label:label});
   });
   document.getElementById("sx-unwire").addEventListener("click",function(){post({action:"undo"});});
   document.getElementById("sx-restore").addEventListener("click",function(){post({action:"restore",id:Number(document.getElementById("sx-stack").value)});});
