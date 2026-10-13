@@ -22091,7 +22091,7 @@ def entry_funnel():
     day = ist_now().strftime("%Y-%m-%d")
     cats = ["buy", "short_sell", "swing", "bidirectional", "futures", "options"]
     out = {c: {"viable_strategies": 0, "scans_today": 0, "paper_entries_today": 0,
-               "attempts": {}, "placed": 0, "blocked": 0} for c in cats}
+               "attempts": {}, "placed": 0, "blocked": 0, "_fired": set()} for c in cats}
     tag_cats = {}
     try:
         for st in strategy_scan_activity(include_unwired=True).get("strategies", []):
@@ -22102,6 +22102,8 @@ def entry_funnel():
                     out[c]["viable_strategies"] += 1
                     out[c]["scans_today"] += int(st.get("scans_today") or 0)
                     out[c]["paper_entries_today"] += int(st.get("successful_entries_today") or 0)
+                    if int(st.get("successful_entries_today") or 0) > 0:
+                        out[c]["_fired"].add(st.get("strategy_tag"))
     except Exception:
         pass
     conn = get_db()
@@ -22115,6 +22117,7 @@ def entry_funnel():
         cs = tag_cats.get(strat) or [("short_sell" if str(side).upper().startswith("S") else "buy")]
         for c in cs:
             o = out[c]
+            o["_fired"].add(strat)  # any real-entry attempt means that strategy's setup fired
             d = o["attempts"].setdefault(str(status), {"attempts": 0, "symbols": 0})
             d["attempts"] += n
             d["symbols"] += syms
@@ -22123,6 +22126,7 @@ def entry_funnel():
             if key:
                 o[key] += n
     for c, o in out.items():
+        o["strategies_fired"] = len(o.pop("_fired"))
         if not o["viable_strategies"]:
             o["verdict"] = "no viable strategy in this category (nothing may open a real entry)"
         elif o["blocked"] and not o["placed"]:
