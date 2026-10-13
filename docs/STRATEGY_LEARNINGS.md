@@ -1035,3 +1035,19 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: stop_hit trades are 0 PFnet and timeout trades carry the profit (85% win on atr1d5_h10), the usual fade shape; the stop-fill assumption moves PFnet by ~0.15, so gap_aware is the honest number.
 - Reuse: cross-sectional picks must be computed once per scan from the whole universe; live sector breadth on a smaller universe than the replay is a fidelity gap to measure.
 - Profit-booking / exit takeaway: the time exit makes the money; tightening the stop only converts winners into 0-PF stop-outs.
+
+## tasuki gap SHORT 1d, ETF universe (B-968, 2026-10-13)
+- Mechanism: bearish downside tasuki gap (down bar, gap-down down bar, then an up bar that opens inside bar t-1's body and closes up but stays below bar t-2's low) -> short; stop entry + k x ATR14; exit at stop (gap-aware) or the close of the 3rd bar after the signal.
+- Fit: holds 3 days = overnight short, so the real leg waits on the NRML overnight check (B-912/B-967); paper runs now. BUY stop attached with entry, unwound if it cannot be placed. Validated on ETFs only (n=81, PFnet 2.079 atr6, 1.651 atr4/atr2d5); the same rule on the NIFTY-200 equities is 0.69, so it is restricted to ETF_SYMBOLS.
+- Result: registry numbers from the pattern lab (not yet a main.py-calling replay); real-money gate closed via REPLAY_OWED_TAGS until one is on file.
+- Surprised: atr4 and atr2d5 give identical stats (the stop is rarely the binding exit at h3), and the best cell is the widest stop; the edge is a 3-day time exit, not the stop.
+- Reuse: a pattern that works on one asset class can fail on another (ETF vs stock); wire only on the validated universe. Small n (81) is a flag, not a verdict.
+- Profit-booking / exit takeaway: the 3-bar time exit books the profit; a wider stop avoids converting those winners into stop-outs.
+
+## swingminrr brk20_gate SHORT 1h atr3_rr4 (B-969, 2026-10-13)
+- Mechanism: close below the prior 20-bar low on 1h bars, taken only if the room to the prior 60-bar low is >= 4x the risk (3 x ATR stop, always attached); exit at the stop (gap-aware) or the close 30 bars later. No rule exit.
+- Fit: ~30 hourly bars is 4-5 sessions, so it is an overnight short: real leg stays behind the unconfirmed NRML check (B-912/B-967), paper runs now. First 1h consumer of the swing scan, so it needed its own hourly pass, forming-bar drop and a timestamped entry_day (the 1d engine only stores a date).
+- Result: registry PFnet 1.702 (n 2267, win 48.7%, exTop5 1.662, full-universe 730d research, not yet a main.py-calling replay); atr3_rr3 1.039 not wired. Real gate closed by REPLAY_OWED_TAGS until the replay is on file.
+- Surprised: the exit differs from the 1d brk20_min_rr short cells (those use an EMA13 rule exit); reusing _short_swing_exit_reason would have replayed a different strategy than the one measured.
+- Reuse: confirm which exit a registry row was measured with before reusing a sibling family's exit function; 1h bar constants are bars, not days.
+- Profit-booking / exit takeaway: profit comes from the 30-bar survivors (~60% of exits) and stops lose, so do not tighten the stop or add a target (gatetarget did not beat gate-only).

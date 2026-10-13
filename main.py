@@ -20543,6 +20543,10 @@ def _run_swing_scan_pass(conn):
         _run_short_swing_pass(conn, dfs, capital, today, _done_syms)
     except Exception as e:
         print(f"[SWING SHORT] pass failed (non-fatal): {e}")
+    try:  # B-965: 1h leg (swingminrr brk20_gate short 1h); same engine tables, hourly bars
+        _run_short_swing_1h_pass(conn, list(dfs), capital, today, _done_syms)
+    except Exception as e:
+        print(f"[SWING SHORT 1h] pass failed (non-fatal): {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -20777,6 +20781,251 @@ def _short_swing_close_paper(conn, symbol, pos, exit_price, reason):
         print(f"[REAL SWING SHORT] exit mirror failed for {symbol} (non-fatal, paper exit already recorded): {e}")
 
 
+# ---- B-965 (2026-10-13): tasuki-gap SHORT 1d (ETF universe) in the short-swing engine ----
+# Rule = scripts/pattern_lab.py r_misc_candles tasuki_dn (bearish downside tasuki gap): bar t-2 down, bar t-1 gaps below
+# bar t-2's low and closes down, bar t opens inside bar t-1's body, closes up but stays BELOW bar t-2's low (gap stays
+# open) -> SHORT. Fixed stop = entry + k x ATR14 (TR rolling mean, same as _atr_series); exit at the stop (high-based,
+# gap-aware) or the close of the 3rd bar after the signal. Validated ONLY on the ETF universe (tasuki__gap_etf__*,
+# PFnet 2.079 atr6 / 1.651 atr4, atr2d5, n=81); the NIFTY-200 equity cut is 0.69, so entries are restricted to ETF_SYMBOLS.
+# atrnone cells are NOT wired (no trade without SL). Every cell holds 3 trading days = OVERNIGHT, so the REAL leg rides
+# _maybe_place_real_swing_short_entry's fail-closed SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED check (B-912); SL always
+# attached there, unwound on SL failure, B-962 viability re-check inside. Paper runs now. Replay owed (REPLAY_OWED_TAGS)
+# until a main.py-calling replay (tasuki-swingminrr-short-main-replay.yml) is on file. Deviation: paper enters at the
+# signal close, research at the next open.
+TASUKI_SHORT_HOLD_BARS = 3
+TASUKI_SHORT_CELLS = {
+    "tasuki__gap_etf__short__1d__atr6_h3__v1": 6.0,
+    "tasuki__gap_etf__short__1d__atr4_h3__v1": 4.0,
+    "tasuki__gap_etf__short__1d__atr2d5_h3__v1": 2.5,
+}
+
+
+def tasuki_short_signal(df) -> bool:
+    """True when the LAST bar completes a bearish downside tasuki gap (exact pattern_lab tasuki_dn)."""
+    if df is None or len(df) < 3:
+        return False
+    d = df.iloc[-3:]
+    o = d["Open"].to_numpy(dtype=float)
+    l = d["Low"].to_numpy(dtype=float)
+    c = d["Close"].to_numpy(dtype=float)
+    if not (np.all(np.isfinite(o)) and np.all(np.isfinite(c)) and np.all(np.isfinite(l))):
+        return False
+    o2, c2, l2 = o[0], c[0], l[0]
+    po, pc_ = o[1], c[1]
+    return bool(c2 < o2 and po < l2 and pc_ < po and c[2] > o[2] and o[2] > pc_ and o[2] < po
+                and c[2] > po and c[2] < l2)
+
+
+def tasuki_short_stop(entry_price: float, atr_value, atr_mult: float):
+    """BUY-stop above the entry; None (= no entry, no trade without SL) when ATR or the multiple is unusable."""
+    if not atr_value or not (float(atr_value) > 0) or not (float(atr_mult) > 0) or not (float(entry_price) > 0):
+        return None
+    return float(entry_price) + float(atr_mult) * float(atr_value)
+
+
+def tasuki_short_exit_reason(bars, stop: float, hold_bars: int = TASUKI_SHORT_HOLD_BARS):
+    """`bars` = completed bars AFTER the signal bar (row 0 = first bar after it). Stop is checked before the timeout in
+    each bar (high >= stop, filled at max(open, stop)); the timeout exits at the close of bar index hold_bars-1.
+    Returns (reason, price) or None while still open."""
+    n = len(bars)
+    if n == 0:
+        return None
+    o = bars["Open"].to_numpy(dtype=float)
+    h = bars["High"].to_numpy(dtype=float)
+    c = bars["Close"].to_numpy(dtype=float)
+    for j in range(min(n, int(hold_bars))):
+        if h[j] >= stop:
+            return "stop_hit", float(max(o[j], stop))
+        if j == int(hold_bars) - 1:
+            return "max_hold_timeout", float(c[j])
+    return None
+
+
+def _tasuki_short_exit(df, pos):
+    if len(df) == 0:
+        return None
+    d = df
+    if "Date" not in d.columns:
+        d = d.assign(Date=pd.Series(pd.DatetimeIndex(d.index).strftime("%Y-%m-%d"), index=d.index))
+    bars = d[d["Date"].astype(str).str[:10] > str(pos["entry_day"])[:10]]
+    res = tasuki_short_exit_reason(bars, float(pos["initial_stop_loss"]))
+    if not res:
+        return None
+    return "short_swing_" + res[0], float(res[1])
+
+
+def _swing_short_symbol_blocked(conn, symbol) -> bool:
+    """True while the symbol holds ANY swing/short/real position or an open intraday long (engine ownership)."""
+    for _tbl in ("signal_state_swing", "signal_state_swing_short", "real_positions_swing",
+                 "real_positions_swing_short", "real_positions_short", "real_positions"):
+        if conn.execute(f"SELECT 1 FROM {_tbl} WHERE symbol = ?", (symbol,)).fetchone():
+            return True
+    return bool(conn.execute("SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)).fetchone())
+
+
+def _tasuki_short_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> str | None:
+    """Opens at most one PAPER tasuki short (ETFs only) and offers the real mirror. First VIABLE cell wins; when none is
+    viable (replay owed) the first cell still paper-trades for evidence and the real leg refuses it at its own gate."""
+    if symbol not in ETF_SYMBOLS or _swing_short_symbol_blocked(conn, symbol):
+        return None
+    if not tasuki_short_signal(df):
+        return None
+    atr_v = _compute_atr_value(df, 14)
+    entry_price = float(df["Close"].iloc[-1])
+    cells = list(TASUKI_SHORT_CELLS.items())
+    viable = [c for c in cells if _is_strategy_viable_for_real_money(c[0], check_switch=False)]
+    for tag, atr_mult in (viable or cells[:1]):
+        stop_loss = tasuki_short_stop(entry_price, atr_v, atr_mult)
+        if stop_loss is None or stop_loss <= entry_price:
+            continue
+        qty = _short_swing_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            continue
+        conn.execute(
+            "INSERT INTO signal_state_swing_short (symbol, strategy, entry_day, entry_price, initial_stop_loss, qty, "
+            "entry_ts, fx_to_inr, atr_at_entry) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, today, entry_price, stop_loss, qty, time.time(), fx, float(atr_v)),
+        )
+        conn.commit()
+        print(f"[SWING SHORT] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_short_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING SHORT] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return tag
+    return None
+
+
+for _t in TASUKI_SHORT_CELLS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
+# No main.py-calling replay on file yet: real-money gate closed until tasuki-swingminrr-short-main-replay.yml output
+# (docs/backtest_data/*main_replay_run_*.json rows[].metrics) clears the floor with n >= 30.
+REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | frozenset(TASUKI_SHORT_CELLS)) - _replay_verified_tags()
+
+
+# ---- B-965 (2026-10-13): swingminrr brk20_gate SHORT 1h atr3_rr4 in the short-swing engine ----
+# Rule = scripts/swing_min_rr_research.py brk20 + gate: main.brk20_min_rr_entry_signal(1h bars, 'short', atr 3, min_rr 4)
+# (close below the prior 20-bar low AND room to the prior 60-bar low >= 4 x risk), stop = entry + 3 x ATR (Wilder, from
+# brk20), exit = stop (high-based, gap-aware) or the close of the 31st bar after the signal bar (research: j == e+30);
+# NO EMA13 rule exit (that is brk20_min_rr, a different family). Registry swingminrr__brk20_gate__short__1h__atr3_rr4__v1
+# PFnet 1.702 / n 2267 (run 38249384880, pooled 730d, no IS/OOS yet). Only this cell: atr3_rr3 is 1.039 (below floor).
+# Holds up to 30 hourly bars (~4-5 sessions) = OVERNIGHT, so the REAL leg is behind the same fail-closed B-912 flag
+# (SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED stays False); SL attached + unwind + B-962 re-check live in
+# _maybe_place_real_swing_short_entry. 1h bars come from fetch_ohlc(symbol, "60d", "1h") on the swing watchlist; the
+# still-forming bar is dropped so signals are on COMPLETED bars; entry_day stores the signal bar's "YYYY-MM-DD HH:MM" so
+# the exit replays only later bars. Replay owed (REPLAY_OWED_TAGS) until a main.py-calling replay is on file.
+SWINGMINRR_GATE_SHORT_1H_TAG = "swingminrr__brk20_gate__short__1h__atr3_rr4__v1"
+SWINGMINRR_GATE_SHORT_1H_ATR = 3.0
+SWINGMINRR_GATE_SHORT_1H_RR = 4.0
+SWINGMINRR_GATE_SHORT_1H_MAX_HOLD = 30
+
+
+def swingminrr_gate_short_entry_signal(df):
+    """brk20 short gate signal on the last (1h) bar, or None. Stop must sit above the entry."""
+    sig = brk20_min_rr_entry_signal(df, "short", SWINGMINRR_GATE_SHORT_1H_ATR, SWINGMINRR_GATE_SHORT_1H_RR)
+    if sig and sig["stop_loss"] > sig["entry_price"]:
+        return sig
+    return None
+
+
+def swingminrr_gate_short_exit_reason(bars, stop: float, max_hold: int = SWINGMINRR_GATE_SHORT_1H_MAX_HOLD):
+    """`bars` = completed bars AFTER the signal bar. Stop first (gap-aware), else the close of bar index max_hold."""
+    n = len(bars)
+    if n == 0:
+        return None
+    o = bars["Open"].to_numpy(dtype=float)
+    h = bars["High"].to_numpy(dtype=float)
+    c = bars["Close"].to_numpy(dtype=float)
+    for j in range(min(n, int(max_hold) + 1)):
+        if h[j] >= stop:
+            return "stop_hit", float(max(o[j], stop))
+        if j == int(max_hold):
+            return "max_hold_timeout", float(c[j])
+    return None
+
+
+def _hourly_with_str_date(df, now_naive=None):
+    """Adds Date = 'YYYY-MM-DD HH:MM' (exchange-local bar start) and drops a bar that has not finished yet."""
+    if df is None or len(df) == 0:
+        return None
+    d = df.copy()
+    if "Date" not in d.columns:
+        d["Date"] = d.index
+    ts = pd.to_datetime(d["Date"])
+    if getattr(ts.dt, "tz", None) is not None:
+        ts = ts.dt.tz_convert("Asia/Kolkata").dt.tz_localize(None)
+    d["Date"] = ts.dt.strftime("%Y-%m-%d %H:%M")
+    now_naive = now_naive if now_naive is not None else ist_now().replace(tzinfo=None)
+    if len(d) and ts.iloc[-1] + pd.Timedelta(hours=1) > pd.Timestamp(now_naive):
+        d = d.iloc[:-1]
+    return d.reset_index(drop=True)
+
+
+def _swingminrr_gate_short_exit(df, pos):
+    if len(df) == 0:
+        return None
+    bars = df[df["Date"].astype(str) > str(pos["entry_day"])]
+    res = swingminrr_gate_short_exit_reason(bars, float(pos["initial_stop_loss"]))
+    if not res:
+        return None
+    return "short_swing_" + res[0], float(res[1])
+
+
+def _swingminrr_gate_short_try_entry(conn, symbol, df1h, capital, risk_pct, today, fx) -> str | None:
+    """Paper entry (always, evidence) + real mirror offer; the real leg is gated by viability/replay-owed/B-912."""
+    if _swing_short_symbol_blocked(conn, symbol):
+        return None
+    sig = swingminrr_gate_short_entry_signal(df1h)
+    if not sig:
+        return None
+    entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+    qty = _short_swing_size(conn, capital, risk_pct, entry_price, stop_loss)
+    if qty <= 0:
+        return None
+    tag = SWINGMINRR_GATE_SHORT_1H_TAG
+    conn.execute(
+        "INSERT INTO signal_state_swing_short (symbol, strategy, entry_day, entry_price, initial_stop_loss, qty, "
+        "entry_ts, fx_to_inr, atr_at_entry) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (symbol, tag, str(df1h["Date"].iloc[-1]), entry_price, stop_loss, qty, time.time(), fx, sig["atr_at_entry"]),
+    )
+    conn.commit()
+    print(f"[SWING SHORT] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+    try:
+        _maybe_place_real_swing_short_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+    except Exception as e:
+        print(f"[REAL SWING SHORT] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+    return tag
+
+
+def _run_short_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None):
+    """1h leg of the short-swing engine: exits for open 1h cells first, then entries. Never raises per symbol."""
+    fetch = fetch or fetch_ohlc
+    _record_strategy_scan(SWINGMINRR_GATE_SHORT_1H_TAG)
+    for symbol in symbols:
+        try:
+            pos = conn.execute("SELECT * FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone()
+            if pos is not None and pos["strategy"] != SWINGMINRR_GATE_SHORT_1H_TAG:
+                continue
+            if pos is None and symbol in done_syms:
+                continue
+            df = _hourly_with_str_date(fetch(symbol, "60d", "1h"))
+            if df is None or len(df) < BRK20_ROOM_LOOKBACK_BARS + 2:
+                continue
+            if pos is not None:
+                ex = _swingminrr_gate_short_exit(df, pos)
+                if ex:
+                    _short_swing_close_paper(conn, symbol, pos, ex[1], ex[0])
+                continue
+            cfg = NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
+            _swingminrr_gate_short_try_entry(conn, symbol, df, capital, cfg["risk_pct"], today, 1.0)
+        except Exception as e:
+            print(f"[SWING SHORT 1h] scan failed for {symbol} (non-fatal): {e}")
+
+
+_STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(SWINGMINRR_GATE_SHORT_1H_TAG, SWINGMINRR_GATE_SHORT_1H_TAG)
+REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | {SWINGMINRR_GATE_SHORT_1H_TAG}) - _replay_verified_tags()
+
+
 def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
     """Exits first, then entries, for the short-swing engine. Runs at the end of the daily swing scan, so a long
     swing entry made earlier the same scan always wins the symbol. Never raises per symbol."""
@@ -20791,6 +21040,13 @@ def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone()
             if pos:
+                if pos["strategy"] == SWINGMINRR_GATE_SHORT_1H_TAG:
+                    continue  # 1h cell: managed by _run_short_swing_1h_pass on hourly bars
+                if pos["strategy"] in TASUKI_SHORT_CELLS:
+                    ex = _tasuki_short_exit(df, pos)
+                    if ex:
+                        _short_swing_close_paper(conn, symbol, pos, ex[1], ex[0])
+                    continue
                 if pos["strategy"] in SECTOR_FADE_SHORT_CELLS:
                     ex = _sector_fade_short_exit(df, pos)
                     if ex:
