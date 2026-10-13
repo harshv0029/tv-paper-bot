@@ -1073,3 +1073,11 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Reuse: when ranking build candidates by PFnet, exclude `_is`/`_oos` slice tags (or require the full-period tag to clear the floor) first.
 - Profit-booking / exit takeaway: here the 56% win rate with PFnet 0.5 means winners are small and stop-outs large; the edge was never in the exit, it was a quiet-regime slice.
 
+
+## macddiv LONG 1h in the swing engine (B-984, 2026-10-13)
+- Mechanism: close-pivot MACD-line bullish divergence on 1h (price lower low, MACD higher low), ATR stop always attached, exit at gap-aware stop or the close 30 bars after the fill bar.
+- Fit: 30 hourly bars is an overnight CNC long, so the swing engine owns it (category follows the hold, not the registry label BUY). Reused the short 1h pass pattern: hourly fetch, forming-bar drop, timestamped entry_day, fill bar = first bar after entry.
+- Result: wired nonovl line cells atr3 1.462, atr2 1.416, atr1d5 1.40 (n 58k-65k); hist 1.138 and slice tags (segis 2.2) not wired. Real gate closed by REPLAY_OWED_TAGS until a main.py-calling replay is on file.
+- Surprised: the daily swing pass would have applied the gap_and_go exit to a 1h position by default, so it must explicitly skip 1h cells.
+- Reuse: any new swing-table tag needs an explicit skip in the daily pass and its own exit adapter, or it falls into the default exit branch.
+- Profit-booking / exit takeaway: money is made by the 30-bar survivors (win 25-35%, stops lose), so keep the stop wide and let the time exit book it.
