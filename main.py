@@ -19803,11 +19803,13 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         conn.commit()
         _sync_real_positions_swing_external(conn)
         print(f"[REAL SWING] SL placement FAILED for {kotak_symbol}: {sl_result.get('detail')} "
-              f"- position open at Kotak with NO resting stop yet, will retry next day's scan")
+              f"- position open at Kotak with NO resting stop - unwinding at market (no trade without SL)")
         _log_real_order_event(
             conn, symbol, "sl", "failed", kotak_trading_symbol=kotak_symbol,
             prev_state="none", new_state="none (placement failed)", detail=sl_result.get("detail"),
         )
+        # No trade without SL (user 2026-10-11): an entry whose stop cannot be placed is unwound at market now.
+        _maybe_place_real_swing_exit(conn, symbol, reason="entry_sl_failed_unwind")
 
 
 def _maybe_sync_real_swing_stop_loss(conn):
