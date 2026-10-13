@@ -1057,3 +1057,11 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: n=202 looked like a sample but was one market day across symbols.
 - Reuse: check how many DISTINCT dates a calendar-rule backtest covers before reading PFnet.
 - Profit-booking / exit takeaway: time exit after ~1 session is the whole strategy; no stop-less (atrnone) cell may go live.
+### chan_shape LONG 1d and macddiv LONG 1h live wiring (B-970 / B-971, 2026-10-13)
+
+- Mechanism: chan_shape = Chan hybrid long when close < close[30] and close > close[40], ATR14 stop, 5/10-bar time exit. macddiv = close-pivot MACD (line/hist) bullish divergence on 1h, ATR stop, 30-bar max hold.
+- Fit: the registry headline tags that looked wireable (chan_shape _y2021 PFnet 2.32/3.66) are calendar-year slices of the same rule; the pooled non-overlap cells (n 42k-70k) are PFnet 0.64-0.86, so the honest wired tags are the pooled ones and they are gate-closed. macddiv is registered BUY but holds overnight, which the flat-by-15:10 BUY engine cannot carry, and swing would break category ownership.
+- Result: no live trade is enabled by this work; both ports are built with ATR stop on every signal, replay workflows call the real main.py functions on the full universe.
+- Surprised: a high-PFnet registry tag can name a time slice, not a tradeable rule. Check the tag suffix (_yNNNN, _vixge, _segis/_segoos) before porting.
+- Reuse: port the pooled rule first, replay it, and only then read slices as regime hints. Check the product/hold horizon against the engine's flatten time before choosing an engine.
+- Profit-booking / exit takeaway: both rules' profit sits in the time exit (max hold) not the stop; a wider ATR stop and the hold bar count are the levers, and 1h holds up to 30 bars cannot be booked intraday.
