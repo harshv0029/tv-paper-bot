@@ -21,7 +21,10 @@ def _csv_tags():
         return [r["tag"] for r in csv.DictReader(f) if r["basis"].startswith("WIRE-NEXT")]
 
 
-def test_all_19_csv_tags_wired_mapped_viable_and_exit_covered():
+def test_all_19_csv_tags_wired_mapped_viable_and_exit_covered(tmp_path, monkeypatch):
+    # No explorer stack in this DB: the gate then follows the PFnet floor (an earlier test's stack must not leak in).
+    monkeypatch.setattr(main, "DB_PATH", str(tmp_path / "t.db"))
+    main.init_db()
     tags = _csv_tags()
     assert len(tags) == 19 and len(set(tags)) == 19
     covered = set(main.ISLAND_ALL_TAGS) | set(main.SWINGMINRR_TAGS)
