@@ -1,0 +1,97 @@
+{
+ "run_id": "38424173222",
+ "cost_round_trip_pct": 0.8,
+ "note": "chan_kalman band LONG 5m via main.py port; pfgross not recorded in the hand-off",
+ "rows": [
+  {
+   "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
+   "metrics": {
+    "pfnet": 1.827,
+    "pfgross": null,
+    "win_pct": 47.2,
+    "n": 6149,
+    "avg_held_hours": 0.491
+   }
+  },
+  {
+   "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+   "metrics": {
+    "pfnet": 1.674,
+    "pfgross": null,
+    "win_pct": 46.5,
+    "n": 6218,
+    "avg_held_hours": 0.461
+   }
+  },
+  {
+   "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
+   "metrics": {
+    "pfnet": 1.599,
+    "pfgross": null,
+    "win_pct": 49.5,
+    "n": 434,
+    "avg_held_hours": 0.737
+   }
+  },
+  {
+   "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+   "metrics": {
+    "pfnet": 1.561,
+    "pfgross": null,
+    "win_pct": 44.6,
+    "n": 6323,
+    "avg_held_hours": 0.422
+   }
+  },
+  {
+   "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
+   "metrics": {
+    "pfnet": 1.53,
+    "pfgross": null,
+    "win_pct": 48.2,
+    "n": 444,
+    "avg_held_hours": 0.707
+   }
+  },
+  {
+   "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
+   "metrics": {
+    "pfnet": 1.478,
+    "pfgross": null,
+    "win_pct": 41.0,
+    "n": 10150,
+    "avg_held_hours": 0.26
+   }
+  },
+  {
+   "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
+   "metrics": {
+    "pfnet": 1.388,
+    "pfgross": null,
+    "win_pct": 40.6,
+    "n": 10169,
+    "avg_held_hours": 0.251
+   }
+  },
+  {
+   "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
+   "metrics": {
+    "pfnet": 1.388,
+    "pfgross": null,
+    "win_pct": 43.7,
+    "n": 451,
+    "avg_held_hours": 0.611
+   }
+  },
+  {
+   "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
+   "metrics": {
+    "pfnet": 1.314,
+    "pfgross": null,
+    "win_pct": 39.7,
+    "n": 10184,
+    "avg_held_hours": 0.237
+   }
+  }
+ ]
+}

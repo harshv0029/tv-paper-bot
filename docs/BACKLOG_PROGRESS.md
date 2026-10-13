@@ -16,7 +16,7 @@ Total rows: 942 | closed: 396 | not closed: 546
 | PARTIAL | 70 |
 | BLOCKED | 63 |
 | P2 | 42 |
-| OPEN | 28 |
+| OPEN | 27 |
 | DONE-MERGED | 22 |
 | CLOSED | 20 |
 | PENDING | 12 |
@@ -28,6 +28,7 @@ Total rows: 942 | closed: 396 | not closed: 546
 | TODO | 2 |
 | IN-PROGRESS | 2 |
 | PARTIAL-1H-FAILED-TO-CONFIRM | 2 |
+| IN | 2 |
 | DONE-ON-BRANCH | 2 |
 | READY-TO-BUILD | 2 |
 | OWNER-ACTION | 1 |
@@ -36,7 +37,6 @@ Total rows: 942 | closed: 396 | not closed: 546
 | HARNESS-RUN-DONE | 1 |
 | PARTIAL-1D-REGISTERED | 1 |
 | ROOT-CAUSED | 1 |
-| IN | 1 |
 | DONE-REGISTERED | 1 |
 | OPENED | 1 |
 | WAITING-ON-WORKFLOW | 1 |
@@ -589,7 +589,7 @@ Total rows: 942 | closed: 396 | not closed: 546
 | B-880 | P1 | PARTIAL | 2026-10-12 IST WIRE-NEXT batch (15 port-queue + 4 B-877 = 19 tags of docs/backtest_data/wiring_final_binary... | owed |
 | B-891 | P1 | OPEN | 2026-10-13 IST Island reversal SHORT mirror (both-directions rule): main.py port DONE (island_top_signal_on... | owed |
 | B-913 | P1 | OPEN | Port the high-count stack short families to main.py, each with a real-main.py full-universe replay before w... |  |
-| B-960 | P1 | OPEN | chan_kalman long (5m, main.py port) flatten-rerun result 2026-10-13 21:24 IST, run 38424173222 (2614 syms, ... | owed, needs |
+| B-960 | P1 | IN | chan_kalman long (5m, main.py port) flatten-rerun result 2026-10-13 21:24 IST, run 38424173222 (2614 syms, ... | owed, needs, awaiting, waiting |
 | B-961 | P1 | OPEN | THUMB RULE (user 2026-10-13, recorded here not CLAUDE.md): WIRING SET = every strategy with a main.py-calli... |  |
 | B-962 | P1 | OPEN | THUMB RULE (user 2026-10-13): ENTRY-TIME DOUBLE CHECK. Just before every real entry the bot must pass BOTH ... |  |
 | B-413 | P2 | PARTIAL | From B-403 audit | open:, needs |
