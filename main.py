@@ -22080,6 +22080,61 @@ async def strategy_viable_override(request: Request):
         return {"action": action, "active_count": len(active), "stack": _viable_stack_rows(c)}
 
 
+@app.get("/entry-funnel")
+def entry_funnel():
+    """Why entries are (not) happening today, SEPARATELY for each category
+    (buy, short_sell, swing, bidirectional, futures, options), balance-free
+    (no qty/price/detail text, which can carry capital figures). Per category:
+    viable strategies, scans, paper entries, today's real-entry attempt
+    statuses (every skipped_* reason _log_real_attempt records) and a verdict
+    ('no viable strategy' vs 'no setup fired' vs 'setups blocked by ...')."""
+    day = ist_now().strftime("%Y-%m-%d")
+    cats = ["buy", "short_sell", "swing", "bidirectional", "futures", "options"]
+    out = {c: {"viable_strategies": 0, "scans_today": 0, "paper_entries_today": 0,
+               "attempts": {}, "placed": 0, "blocked": 0} for c in cats}
+    tag_cats = {}
+    try:
+        for st in strategy_scan_activity(include_unwired=True).get("strategies", []):
+            cs = [str(x) for x in (st.get("categories") or []) if str(x) in out]
+            tag_cats[st.get("strategy_tag")] = cs
+            if st.get("status") == "live_wired" or st.get("scan_wired"):
+                for c in cs:
+                    out[c]["viable_strategies"] += 1
+                    out[c]["scans_today"] += int(st.get("scans_today") or 0)
+                    out[c]["paper_entries_today"] += int(st.get("successful_entries_today") or 0)
+    except Exception:
+        pass
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT strategy, side, status, COUNT(*), COUNT(DISTINCT symbol) FROM real_trades "
+            "WHERE day = ? GROUP BY strategy, side, status", (day,)).fetchall()
+    finally:
+        conn.close()
+    for strat, side, status, n, syms in rows:
+        cs = tag_cats.get(strat) or [("short_sell" if str(side).upper().startswith("S") else "buy")]
+        for c in cs:
+            o = out[c]
+            d = o["attempts"].setdefault(str(status), {"attempts": 0, "symbols": 0})
+            d["attempts"] += n
+            d["symbols"] += syms
+            key = "placed" if str(status).startswith(("placed", "filled", "ok")) else (
+                "blocked" if str(status).startswith("skipped") else None)
+            if key:
+                o[key] += n
+    for c, o in out.items():
+        if not o["viable_strategies"]:
+            o["verdict"] = "no viable strategy in this category (nothing may open a real entry)"
+        elif o["blocked"] and not o["placed"]:
+            o["verdict"] = "setups fired but every real entry was blocked - see reasons"
+        elif not o["paper_entries_today"] and not o["placed"]:
+            o["verdict"] = "no setup fired today" if o["scans_today"] else "no scans recorded yet"
+        else:
+            o["verdict"] = "entries flowing"
+        o["attempts"] = [{"status": k, **v} for k, v in sorted(o["attempts"].items(), key=lambda kv: -kv[1]["attempts"])]
+    return {"day": day, "categories": out, "as_of_epoch": time.time()}
+
+
 @app.get("/strategy-viable-buckets")
 def strategy_viable_buckets():
     """Read-only, derived at read time from strategy_registry (B-815): viable
