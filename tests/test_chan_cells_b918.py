@@ -8,7 +8,7 @@ import strategy_registry as sr
 
 def test_cells_registered_mapped_and_distinct():
     names = {d.name for d in sr.REGISTRY}
-    assert len(main.CHAN_SHORT_CELLS) == 6
+    assert len(main.CHAN_SHORT_CELLS) == 9  # B-965: +3 ve1e-4 z2 cells
     for t in main.CHAN_SHORT_CELLS:
         assert t in names, t
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t
