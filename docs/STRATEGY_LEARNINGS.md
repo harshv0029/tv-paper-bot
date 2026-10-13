@@ -1126,3 +1126,10 @@ Profit-booking / exit takeaway: the apparent edge came from stacked max-hold win
 - Design lessons: top-N is a prefix of the sorted pick list, so one real call at N=max serves N=1/3/5 exactly (3x cheaper, tested); 4h bar-count constants change meaning (L and H are 4h bars, 2 per session); the 4h resample must be NSE session-anchored (scripts/resample_4h.py), not a clock resample; yfinance serves 1h only 730d, so 4h has ~2 years vs 5y at 1d (fewer signals, state n).
 - Reuse: for any cross-sectional rotation, share the pick computation across direction and N; keep long/short mirrors as separate tags; report the three stop-fill models side by side, because gap-through-stop moves PFnet ~0.15.
 - Profit-booking / exit takeaway: earlier sector-rotation evidence says the time exit carries the profit and tight stops only convert winners into 0-PF stop-outs; the sweep tests whether that holds at 4h where holds are 1-5 sessions.
+
+## Correction: chan_kalman ve1e-4 cells (B-1040, 2026-10-13)
+- Mechanism/fit: tag token ve1d0e4 = process noise 1.0e-4 (grammar drops the minus); ve10d0e4 = 1.0e-3.
+- Result (run 38390561217 stored JSON, 0.8%): the earlier line 've1e-4 cells all below 1.04' is wrong for 5m z2.0: ve1d0e4 z2d0 atr4d0/2d5/1d5 = PFnet 1.408/1.378/1.346, n ~13k, win 46-49%, hold ~0.25h. Only z1.0 (0.74-0.78) and 15m (0.62-1.01) ve1d0e4 cells fail.
+- Surprised: summarising a family from memory of the best cells hid viable low-ve cells; read the stored JSON.
+- Reuse: when two backlog rows disagree, resolve from docs/backtest_data, never from prose. chan_gap BUY row has no main.py replay stored (B-1041): do not inherit the swing PFnet.
+- Profit-booking / exit takeaway: ve1d0e4 cells are high-turnover, low-win, gross 3.7 vs net 1.4, so cost-sensitive; prefer ve10d0e4 z2d0 (1.45-1.65) when both qualify.
