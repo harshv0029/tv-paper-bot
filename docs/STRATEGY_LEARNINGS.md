@@ -1109,3 +1109,7 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: the research enters AT the open; a round-robin scan visits late and enters at a later close. Entry window is capped at 10:15 IST, and the replay models the open entry, so the live paper P&L is the check on that slippage.
 - Reuse: for any rank-then-trade-top-N strategy, build the ranking out-of-band and let the scan look it up; ship the replay as shard-emit-candidates plus per-date merge, since top-N is not shardable by symbol.
 - Profit-booking / exit takeaway: stop-or-close only; the wide 4 ATR stop wins on registry PFnet (1.445 vs 1.364 at 1.5 ATR), so profit comes from letting the day run to the close, not from tight stops or targets.
+
+## Chan time-series momentum under FIFO, result (B-807 / B-991, 2026-10-13 IST)
+Lesson: with strict one-position-per-symbol FIFO (run 38187474707, 240 cells, 0.8% cost) the best chan_tsm cell is long 1d atr4d0 hold25 lb120 at PFnet 1.084 (n 50077); none reach 1.1. The 1h long cells that printed 1.55 on ~220k overlapping signals do not survive. Reuse: any cell whose n is in the hundreds of thousands is a stacked-signal count, so run the FIFO check before reading its PFnet; all 240 cells stay registered with full metrics. 4h still owed (B-991).
+Profit-booking / exit takeaway: the apparent edge came from stacked max-hold winners; a hold25 exit only pays if trades are independent, so judge exits on non-overlapping portfolios.
