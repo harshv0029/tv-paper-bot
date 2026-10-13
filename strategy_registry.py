@@ -113,6 +113,9 @@ TRADING_HOURS_PER_DAY = 6.25
 # Registry names the user has explicitly marked viable + live-wired from trade-view (2026-10-13). Filled from the
 # strategy_viable_override table by main._load_viable_overrides(); empty by default, so derived viability is unchanged.
 VIABLE_OVERRIDES: set = set()
+# True once the explorer viable stack has a newest entry: that entry IS the viability definition (user 2026-10-13: "fetch
+# latest stack from explorer table"); the PFNET_LIVE_FLOOR derivation is only the fallback when no stack exists.
+VIABLE_STACK_ACTIVE: bool = False
 
 
 @dataclass(frozen=True)
@@ -152,8 +155,8 @@ class StrategyDef:
         strategy's own validated PFnet clears real breakeven."""
         if self.metrics is None:
             return None
-        if self.name in VIABLE_OVERRIDES:  # 2026-10-13 user: set from trade-view's explorer, see main.py
-            return True
+        if VIABLE_STACK_ACTIVE:  # newest explorer stack is the definition (see main._load_viable_overrides)
+            return self.name in VIABLE_OVERRIDES
         return self.metrics.pfnet >= floor
 
 
@@ -166,6 +169,8 @@ QUALITY_MAX_HOLD_HRS = 75.0
 
 def is_quality_viable(s: "StrategyDef", floor: float = PFNET_LIVE_FLOOR) -> bool:
     m = s.metrics
+    if VIABLE_STACK_ACTIVE:
+        return bool(m is not None and s.name in VIABLE_OVERRIDES)
     return bool(m is not None and m.pfnet >= floor and (m.n_trades or 0) >= QUALITY_MIN_TRADES
                 and m.avg_held_hrs is not None and m.avg_held_hrs <= QUALITY_MAX_HOLD_HRS)
 
