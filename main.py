@@ -5665,6 +5665,41 @@ def macd_divergence_long_entry_signal(df: pd.DataFrame, source: str = "line", at
     return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": px - stop, "direction": "long"}
 
 
+# macddiv LONG 1h: pooled (non-overlap, FIFO) registry cells only; the IS/OOS slice tags are evaluation segments of the
+# same rule, not separate live rules. Exit = research simulate(): gap-aware ATR stop on the low, else close of the
+# MACDDIV_MAX_HOLD_BARS-th bar after the fill bar. NOT scanned live: registry category is BUY (intraday engine, flat by
+# 15:10 IST) but the rule holds ~16-24 market hours / up to 30 hourly bars (overnight), so wiring it into the intraday
+# engine would trade a different, un-validated (flattened) rule. Replay-only until a flatten re-run exists (B-965).
+MACDDIV_MAX_HOLD_BARS = 30
+MACDDIV_LONG_CELLS = {
+    "macddiv__line_any__long__1h__atr3_w5__nonovl__v2": ("line", 3.0),
+    "macddiv__line_any__long__1h__atr2_w5__nonovl__v2": ("line", 2.0),
+    "macddiv__line_any__long__1h__atr1d5_w5__nonovl__v2": ("line", 1.5),
+    "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2": ("hist", 3.0),
+}
+
+
+def macddiv_long_cell_signal(df: pd.DataFrame, tag: str) -> dict | None:
+    cfg = MACDDIV_LONG_CELLS.get(tag)
+    if cfg is None:
+        return None
+    return macd_divergence_long_entry_signal(df, cfg[0], cfg[1])
+
+
+def macddiv_long_exit_reason(df: pd.DataFrame, fill_i: int, stop: float):
+    """(reason, exit_px) for the first exit event in bars fill_i..end of `df`, else (None, None). Pure; stop gap-aware
+    (fill bar exits at the stop itself, as the research does), max hold = close of bar fill_i + MACDDIV_MAX_HOLD_BARS."""
+    o = df["Open"].to_numpy(dtype=float)
+    lo = df["Low"].to_numpy(dtype=float)
+    c = df["Close"].to_numpy(dtype=float)
+    for j in range(int(fill_i), len(df)):
+        if lo[j] <= stop:
+            return "macddiv_stop_loss", (float(stop) if j == fill_i else float(min(stop, o[j])))
+        if j - fill_i >= MACDDIV_MAX_HOLD_BARS:
+            return "macddiv_max_hold_timeout", float(c[j])
+    return None, None
+
+
 # ---- chan_shape LONG 1d (Chan hybrid momentum/mean-reversion shape): swing engine --------------------------------------
 # Rule (scripts/chan_research.py sig_shape): long when close < close[30 bars ago] AND close > close[40 bars ago]; stop =
 # entry - k x ATR14 (simple-mean true range, chan_atr14) attached on every entry; exit at the gap-aware stop (low) or the
@@ -20714,7 +20749,7 @@ SHORT_SWING_TAGS = tuple(t for t, _a, _r in BRK20_SHORT_SWING_CELLS)
 # 2026-10-12 user: not wired / not viable until backtested by us through the real main.py path. Island, swing-min-RR gate
 # and short-swing ports were merged without a main.py-calling replay, so the real-money gate stays closed for them.
 REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWINGMINRR_TAGS) | frozenset(SHORT_SWING_TAGS) | frozenset(GAPFADE_TAGS) \
-    | frozenset(CHAN_SHAPE_CELLS)
+    | frozenset(CHAN_SHAPE_CELLS) | frozenset(MACDDIV_LONG_CELLS)
 
 
 def _replay_verified_tags() -> frozenset:
@@ -20738,7 +20773,7 @@ def _replay_verified_tags() -> frozenset:
 REPLAY_OWED_TAGS = REPLAY_OWED_TAGS - _replay_verified_tags()
 for _t in SHORT_SWING_TAGS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
-for _t in tuple(CHAN_SHAPE_CELLS):
+for _t in tuple(CHAN_SHAPE_CELLS) + tuple(MACDDIV_LONG_CELLS):
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 
 
