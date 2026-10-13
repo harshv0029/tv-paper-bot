@@ -5665,6 +5665,120 @@ def macd_divergence_long_entry_signal(df: pd.DataFrame, source: str = "line", at
     return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": px - stop, "direction": "long"}
 
 
+# ---- chan_shape LONG 1d (Chan hybrid momentum/mean-reversion shape): swing engine --------------------------------------
+# Rule (scripts/chan_research.py sig_shape): long when close < close[30 bars ago] AND close > close[40 bars ago]; stop =
+# entry - k x ATR14 (simple-mean true range, chan_atr14) attached on every entry; exit at the gap-aware stop (low) or the
+# close of the hold-th bar after entry. Live tags are the POOLED non-overlap registry cells (one tag per ATR x hold, each
+# its own registry row). The registry's chan_shape *_y2021 / *_y2023 tags (PFnet 1.2-3.7) are CALENDAR-YEAR SLICES of the
+# same rule (entries only in that year): a year filter cannot be traded forward, so those tags are NOT mapped and the live
+# rule is judged on its pooled cells (PFnet 0.64-0.86, below the floor): the gate stays closed until a main.py-calling
+# replay (scripts/chan_shape_macddiv_main_replay.py) proves otherwise. Deviation from the research: entry at the signal
+# close (as every swing port), not the next open.
+CHAN_SHAPE_LOOKBACK_NEAR = 30
+CHAN_SHAPE_LOOKBACK_FAR = 40
+
+
+def _chan_shape_cell_tag(atr_mult: float, hold: int) -> str:
+    return f"chan_shape__mom_mr__long__1d__atr{f'{atr_mult:.1f}'.replace('.', 'd')}_hold{int(hold)}__nonovl__v2"
+
+
+# highest registry PFnet first (hold10 atr4d0 0.855 ... hold5 atr1d5 0.642): first tag that fires owns the symbol
+_CHAN_SHAPE_SPECS = ((4.0, 10), (2.5, 10), (1.5, 10), (4.0, 5), (2.5, 5), (1.5, 5))
+CHAN_SHAPE_CELLS = {_chan_shape_cell_tag(a, h): (a, h) for a, h in _CHAN_SHAPE_SPECS}
+
+
+def chan_shape_long_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
+    """Last-bar evaluation; None when no signal / unknown tag. Stop is always set (no trade without SL)."""
+    cfg = CHAN_SHAPE_CELLS.get(tag)
+    if cfg is None:
+        return None
+    d = df.iloc[-BRK20_CALC_WINDOW:]
+    if len(d) < CHAN_SHAPE_LOOKBACK_FAR + 2:
+        return None
+    c = d["Close"].to_numpy(dtype=float)
+    last = len(c) - 1
+    if not (c[last] < c[last - CHAN_SHAPE_LOOKBACK_NEAR] and c[last] > c[last - CHAN_SHAPE_LOOKBACK_FAR]):
+        return None
+    atr = float(chan_atr14(d["High"].to_numpy(dtype=float), d["Low"].to_numpy(dtype=float), c)[last])
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+    px = float(c[last])
+    stop = px - cfg[0] * atr
+    if not (0 < stop < px):
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": px - stop, "direction": "long"}
+
+
+def chan_shape_exit_reason(df: pd.DataFrame, entry_day: str, stop: float, hold: int):
+    """(reason, exit_px) for the first exit event in the bars after `entry_day`, else (None, None). Research order:
+    stop on the low (fill bar exits at the stop, later bars at min(stop, open)), then the hold-th bar's close."""
+    if len(df) == 0:
+        return None, None
+    dates = df["Date"].astype(str).str[:10].to_numpy()
+    starts = np.flatnonzero(dates > str(entry_day)[:10])
+    if len(starts) == 0:
+        return None, None
+    start = int(starts[0])
+    o = df["Open"].to_numpy(dtype=float)
+    lo = df["Low"].to_numpy(dtype=float)
+    c = df["Close"].to_numpy(dtype=float)
+    for j in range(start, len(df)):
+        if lo[j] <= stop:
+            return "chan_shape_stop_loss", (float(stop) if j == start else float(min(stop, o[j])))
+        if j - start + 1 >= hold:
+            return "chan_shape_max_hold_timeout", float(c[j])
+    return None, None
+
+
+def _chan_shape_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close, tag):
+    """Swing exit fn signature (reason, new_running_max)."""
+    if len(df) == 0:
+        return None, running_max_close
+    hold = CHAN_SHAPE_CELLS[tag][1]
+    new_running_max = max(float(running_max_close or 0.0), float(df["Close"].iloc[-1]))
+    reason, _px = chan_shape_exit_reason(df, entry_day, float(initial_stop), hold)
+    return reason, new_running_max
+
+
+def _chan_shape_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
+    """Opens at most one chan_shape position (first VIABLE tag that fires). Scans only tags that clear the real-money gate
+    (registry PFnet vs the newest stack AND not replay-owed): a failing/owed cell would only spam the paper book. The real
+    mirror (_maybe_place_real_swing_entry) re-checks the gate against the freshest stack (B-962), places the resting SL
+    and unwinds at market if that SL fails (B-966)."""
+    for tag in CHAN_SHAPE_CELLS:
+        _record_strategy_scan(tag)
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            continue
+        sig = chan_shape_long_entry_signal(df, tag)
+        if not sig:
+            continue
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return False
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, today, entry_price, stop_loss, None, qty, time.time(), fx, sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"]})),
+        )
+        conn.commit()
+        print(f"[SWING] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # FVG 3rd-candle classification (backlog B-32, family `fvg3c`; spec in
 # docs/STRATEGY_SPEC_SND_AND_FVG3C.md). RESEARCH-STAGE ONLY: not wired into any
@@ -20211,6 +20325,14 @@ def _run_swing_scan_pass(conn):
                     conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
                                  (new_running_max, symbol))
                     conn.commit()
+            elif pos["strategy"] in CHAN_SHAPE_CELLS:
+                reason, new_running_max = _chan_shape_exit_adapter(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
+                    pos["strategy"])
+                if not reason:
+                    conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                                 (new_running_max, symbol))
+                    conn.commit()
             elif pos["strategy"] in ISLAND_ALL_TAGS:
                 reason, new_running_max = _island_swing_exit_adapter(
                     df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"])
@@ -20492,6 +20614,10 @@ def _run_swing_scan_pass(conn):
                         _island_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
                     except Exception as e:
                         print(f"[SWING] island entry eval failed for {symbol} (non-fatal): {e}")
+                    try:  # chan_shape LONG 1d (6 pooled cells), viable-only scan, checked after island
+                        _chan_shape_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
+                    except Exception as e:
+                        print(f"[SWING] chan_shape entry eval failed for {symbol} (non-fatal): {e}")
                     try:  # gaps fade LONG 1d (exhaust / common), checked after island, i.e. LAST of all
                         _gapfade_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
                     except Exception as e:
@@ -20587,7 +20713,8 @@ BRK20_SHORT_SWING_ATR_OF_TAG = {t: a for t, a, _r in BRK20_SHORT_SWING_CELLS}
 SHORT_SWING_TAGS = tuple(t for t, _a, _r in BRK20_SHORT_SWING_CELLS)
 # 2026-10-12 user: not wired / not viable until backtested by us through the real main.py path. Island, swing-min-RR gate
 # and short-swing ports were merged without a main.py-calling replay, so the real-money gate stays closed for them.
-REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWINGMINRR_TAGS) | frozenset(SHORT_SWING_TAGS) | frozenset(GAPFADE_TAGS)
+REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWINGMINRR_TAGS) | frozenset(SHORT_SWING_TAGS) | frozenset(GAPFADE_TAGS) \
+    | frozenset(CHAN_SHAPE_CELLS)
 
 
 def _replay_verified_tags() -> frozenset:
@@ -20610,6 +20737,8 @@ def _replay_verified_tags() -> frozenset:
 
 REPLAY_OWED_TAGS = REPLAY_OWED_TAGS - _replay_verified_tags()
 for _t in SHORT_SWING_TAGS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
+for _t in tuple(CHAN_SHAPE_CELLS):
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 
 
@@ -23596,6 +23725,8 @@ _SWING_SL_RULES = {
        for _t in SWINGMINRR_TAGS},
     **{_t: f"entry - {GAPFADE_ATR_MULT:g}xATR(Wilder), frozen (exit also on High<prior High, {GAPFADE_MAX_HOLD_BARS}-bar max hold)"
        for _t in GAPFADE_TAGS},
+    **{_t: f"entry - {a:g}xATR14(simple mean), frozen (exit also on the close of bar {h} after entry)"
+       for _t, (a, h) in CHAN_SHAPE_CELLS.items()},
 }
 
 
