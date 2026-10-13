@@ -8,11 +8,11 @@ import strategy_registry as sr
 
 def test_cells_registered_mapped_and_distinct():
     names = {d.name for d in sr.REGISTRY}
-    assert len(main.CHAN_SHORT_CELLS) == 9  # B-965: +3 ve1e-4 z2 cells
+    assert len(main.CHAN_SHORT_CELLS) == 12  # B-965: +3 ve1e-4 z2 cells; B-980: +3 15m cells
     for t in main.CHAN_SHORT_CELLS:
         assert t in names, t
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t
-        assert "__short__5m__" in t and t.endswith("_fl1515__v2")
+        assert ("__short__5m__" in t or "__short__15m__" in t) and t.endswith("_fl1515__v2")
     assert next(iter(main.CHAN_SHORT_CELLS)) == main.CHAN_SHORT_TAG  # live cell stays first in the cascade
 
 

@@ -215,6 +215,11 @@ def test_short_signal_core_enters_a_short_on_a_range_spike(monkeypatch):
     monkeypatch.setattr(main, "_liquidity_gate", lambda df: (True, []))
     monkeypatch.setattr(main, "_likely_lower_circuit_locked", lambda df, today_str: False)
 
+    # B-990: the chan_kalman short cascade (B-914/B-980) runs BEFORE the regime
+    # router and returns early with market_regime=None. This test targets the
+    # RANGE engine, so take the chan cascade out of the picture.
+    monkeypatch.setattr(main, "_chan_short_try_entry", lambda *a, **k: None)
+
     result = main._short_signal_core(
         symbol="TESTSHORT.NS", capital=400000, daily_risk_pct=2.0, risk_per_trade_pct=2.0,
         stop_pct=2.0, rr=3.0, sma_fast=9, sma_slow=21, interval="5m",
