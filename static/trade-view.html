@@ -874,10 +874,10 @@ function renderStats(symbol, pos, lastClose) {
 const TICKER_LABELS = { "^NSEI": "NIFTY 50", "^NSEBANK": "BANK NIFTY", "^BSESN": "SENSEX", "GC=F": "GOLD" };
 function displayName(symbol) { return TICKER_LABELS[symbol] || symbol; }
 
-function scanTagFor(actionTaken, checksToday) {
+function scanTagFor(actionTaken, strategiesTested) {
   const a = actionTaken || "";
   // User 2026-10-13: "No signal" -> "No signal (x signals checked)", x = signal checks done today for this row.
-  if (a === "no_signal" && checksToday != null) return { cls: "none", label: `No signal (${checksToday} signals checked)` };
+  if (a === "no_signal" && strategiesTested != null) return { cls: "none", label: `No signal (${strategiesTested} strategies tested)` };
   if (a.startsWith("entered")) return { cls: "entered", label: a.replace("entered_", "") };
   if (a.startsWith("exited")) return { cls: "exited", label: a.replace("exited_", "") };
   if (a.includes("blocked") || a.includes("insufficient") || a.includes("budget_too_small") || a.includes("no_qualifying")) {
@@ -949,7 +949,7 @@ function countsSortValue(r, key) {
     case "symbol": return (r.display || r.symbol || "").toLowerCase();
     case "checks_today": return r.checks_today ?? 0;
     case "last_result": {
-      const tag = scanTagFor(r.last_action, r.checks_today);
+      const tag = scanTagFor(r.last_action, r.last_strategies_tested);
       return (tag.label !== "—" ? tag.label : (r.last_action || "")).toLowerCase();
     }
     case "last_checked": return r.last_checked_at_utc ?? -Infinity;
@@ -997,7 +997,7 @@ function renderCounts(p) {
   }
   const maxCount = Math.max(1, ...rows.map(r => r.checks_today));
   body.innerHTML = rows.map((r, i) => {
-    const tag = scanTagFor(r.last_action, r.checks_today);
+    const tag = scanTagFor(r.last_action, r.last_strategies_tested);
     const label = tag.label !== "—" ? tag.label : (r.last_action || "—");
     const barPct = Math.round((r.checks_today / maxCount) * 100);
     // data_source: today every asset is "yahoo_finance" - Kotak Neo is
@@ -1016,7 +1016,7 @@ function renderCounts(p) {
           <span class="count-val ${r.checks_today === 0 ? 'zero' : ''}">${r.checks_today}</span>
         </span>
       </td>
-      <td>${r.checks_today > 0 ? `<span class="scan-tag ${tag.cls}">${label}</span>${fundsNote(r.symbol)}` : `<span class="scan-idle">—</span>`}</td>
+      <td>${r.checks_today > 0 ? `<span class="scan-tag ${tag.cls}">${label}</span> <span class="meta">${r.last_checked_at_utc ? "· " + timeAgo(r.last_checked_at_utc) : ""}</span>${fundsNote(r.symbol)}` : `<span class="scan-idle">—</span>`}</td>
       <td class="meta">${r.last_checked_at_utc ? timeAgo(r.last_checked_at_utc) : "—"}</td>
       <td class="meta"${sourceTitle}>${sourceLabel}${r.mcx_proxy_for ? " *" : ""}</td>
     </tr>`;

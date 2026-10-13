@@ -18278,6 +18278,8 @@ _scheduler_currently_checking: dict | None = None
 # in the process's own memory.
 _scheduler_check_counts: dict = {}
 _scheduler_check_counts_day: str = ""
+# Strategies/algos tested during each asset's LAST round-robin visit (user 2026-10-13); reset at the start of a visit.
+_scheduler_last_visit_strategies: dict = {}
 
 # Swing (Gap and Go) scan counters - 2026-09-22, explicit user request for
 # a counter/distinct-assets line on /trade-view for the swing engine,
@@ -18408,6 +18410,7 @@ def _record_scheduler_check(key: str):
         _scheduler_check_counts.clear()
         _scheduler_check_counts_day = today_str
     _scheduler_check_counts[key] = _scheduler_check_counts.get(key, 0) + 1
+    _scheduler_last_visit_strategies[key] = 0  # new visit: strategies are added as each engine is tested
 
     now = time.time()
     _recent_check_timestamps.append(now)
@@ -21237,6 +21240,7 @@ async def _scheduler_tick():
         }
         _record_scheduler_check(symbol)
         _record_intraday_strategy_scan(cfg)  # B-423: counter only, no order logic
+        _scheduler_last_visit_strategies[symbol] = _scheduler_last_visit_strategies.get(symbol, 0) + 1
         try:
             result = await asyncio.to_thread(
                 _auto_signal_core,
@@ -21322,6 +21326,8 @@ async def _scheduler_tick():
             # only (its own asset_class check), same narrowing the long
             # side's _maybe_place_real_entry already does.
             _record_short_strategy_scans()  # B-423: counter only
+            _scheduler_last_visit_strategies[cfg["symbol"]] = (
+                _scheduler_last_visit_strategies.get(cfg["symbol"], 0) + len(_INTRADAY_SHORT_SCAN_TAGS))
             try:
                 short_result = _short_signal_core(
                     symbol=cfg["symbol"], capital=scheduler_capital_inr,
@@ -21841,6 +21847,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
                 or _scheduler_last_results.get(k, {}).get("status")
             ),
             "last_checked_at_utc": _scheduler_last_results.get(k, {}).get("checked_at_utc"),
+            "last_strategies_tested": _scheduler_last_visit_strategies.get(k),
             "asset_class": asset_class,
             "data_source": data_source,
             "mcx_proxy_for": mcx_proxy_for,
