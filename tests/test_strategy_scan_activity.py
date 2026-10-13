@@ -143,6 +143,6 @@ def test_endpoint_rows_carry_avg_held_hrs_from_registry_metrics():
     assert rows["power_play"]["avg_held_hrs"] == round(16.2 * 6.25, 1)
     assert rows["primary_base"]["avg_held_hrs"] == round(17.0 * 6.25, 1)
     assert rows["order_block_delta"]["avg_held_hrs"] == round(23.2 * 6.25, 1)
-    assert "volume_profile_poc" in rows  # trail variant PFnet 1.073 >= the 1.05 floor (2026-10-13)
+    assert "volume_profile_poc" not in rows  # PFnet 1.025 < the 1.1 floor (2026-10-11)
     assert rows["minervini_vcp_livermore"]["avg_held_hrs"] == round(14.8 * 6.25, 1)
     assert rows["gap_and_go"]["avg_held_hrs"] == 110.0  # B-413: repointed to the full-universe hold30 run
