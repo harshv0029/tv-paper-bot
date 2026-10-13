@@ -5814,6 +5814,130 @@ def _chan_shape_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> boo
     return False
 
 
+# ---- B-983 pattern-lab 1d LONG cells in the swing engine: STARC band fade (full universe) + gap runaway -------------------
+# Rules are scripts/pattern_lab.py's own (r_bands starc_fade long: close < SMA6 - 2 x ATR15; r_key_reversal_gaps runaway
+# long: open > prior high x 1.01 AND close > SMA50 AND close > open). Stop = entry - k x ATR14 (simple mean, chan_atr14),
+# ATTACHED on every entry (no trade without SL); exit = gap-aware stop on the low, else the close of the hold-th bar after
+# entry (pattern_lab.simulate). Deviation from the research: entry at the signal close (as every swing port), not the next
+# open. Each tag is its OWN registry row (1:1). Wired only cells with registry PFnet >= floor AND a real stop: the starc
+# atr6 n200 tags already live in _PATTERN_LIVE_CELLS (different tag, different stop) are untouched; atrnone cells are NOT
+# wired. Real gate is closed (REPLAY_OWED_TAGS) until a main.py-calling replay clears the floor.
+STARC_FULL_TAG = "starc__fade_full__long__1d__atr2d5_h20__v1"
+GAP_RUNAWAY_TAG = "gap__runaway__long__1d__atr4_h20__v1"
+# tag -> (rule key, ATR14 stop multiple, hold bars)
+PL1D_CELLS = {
+    STARC_FULL_TAG: ("starc_fade", 2.5, 20),
+    GAP_RUNAWAY_TAG: ("gap_runaway", 4.0, 20),
+}
+PL1D_MIN_BARS = 60
+
+
+def pl1d_rule_fires(df: pd.DataFrame, rule: str) -> bool:
+    """Last-bar evaluation of a pattern_lab long rule on the tail window of df (needs Open/High/Low/Close)."""
+    d = df.iloc[-BRK20_CALC_WINDOW:]
+    if len(d) < PL1D_MIN_BARS:
+        return False
+    o, h, l, c = (d[k].to_numpy(dtype=float) for k in ("Open", "High", "Low", "Close"))
+    last = len(c) - 1
+    if rule == "starc_fade":
+        s6 = float(np.mean(c[last - 5:last + 1]))
+        a15 = float(chan_atr14(h, l, c, 15)[last])
+        return bool(np.isfinite(a15) and a15 > 0 and c[last] < s6 - 2.0 * a15)
+    if rule == "gap_runaway":
+        ma50 = float(np.mean(c[last - 49:last + 1]))
+        return bool(o[last] > h[last - 1] * 1.01 and c[last] > ma50 and c[last] > o[last])
+    return False
+
+
+def pl1d_long_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
+    """None when no signal / unknown tag. Stop is always set (no trade without SL)."""
+    cfg = PL1D_CELLS.get(tag)
+    if cfg is None or len(df) < PL1D_MIN_BARS:
+        return None
+    rule, k, _hold = cfg
+    if not pl1d_rule_fires(df, rule):
+        return None
+    d = df.iloc[-BRK20_CALC_WINDOW:]
+    c = d["Close"].to_numpy(dtype=float)
+    atr = float(chan_atr14(d["High"].to_numpy(dtype=float), d["Low"].to_numpy(dtype=float), c)[-1])
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+    px = float(c[-1])
+    stop = px - k * atr
+    if not (0 < stop < px):
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": px - stop, "direction": "long"}
+
+
+def pl1d_exit_reason(df: pd.DataFrame, entry_day: str, stop: float, hold: int):
+    """(reason, exit_px) for the first exit event in the bars after `entry_day`: gap-aware stop on the low (fill bar exits
+    at the stop, later bars at min(stop, open)), else the close of the hold-th bar; (None, None) while still open."""
+    if len(df) == 0:
+        return None, None
+    dates = df["Date"].astype(str).str[:10].to_numpy()
+    starts = np.flatnonzero(dates > str(entry_day)[:10])
+    if len(starts) == 0:
+        return None, None
+    start = int(starts[0])
+    o = df["Open"].to_numpy(dtype=float)
+    lo = df["Low"].to_numpy(dtype=float)
+    c = df["Close"].to_numpy(dtype=float)
+    for j in range(start, len(df)):
+        if lo[j] <= stop:
+            return "pl1d_stop_loss", (float(stop) if j == start else float(min(stop, o[j])))
+        if j - start + 1 >= hold:
+            return "pl1d_max_hold_timeout", float(c[j])
+    return None, None
+
+
+def _pl1d_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close, tag):
+    """Swing exit fn signature (reason, new_running_max)."""
+    if len(df) == 0:
+        return None, running_max_close
+    hold = PL1D_CELLS[tag][2]
+    new_running_max = max(float(running_max_close or 0.0), float(df["Close"].iloc[-1]))
+    reason, _px = pl1d_exit_reason(df, entry_day, float(initial_stop), hold)
+    return reason, new_running_max
+
+
+def _pl1d_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
+    """Opens at most one pl1d position (first VIABLE tag that fires; viable-only scan so a gate-closed cell never spams
+    the paper book). The real mirror (_maybe_place_real_swing_entry) re-checks the gate on the freshest stack (B-962),
+    places the resting SL and unwinds at market if that SL fails (B-966)."""
+    for tag in PL1D_CELLS:
+        _record_strategy_scan(tag)
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            continue
+        sig = pl1d_long_entry_signal(df, tag)
+        if not sig:
+            continue
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return False
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, today, entry_price, stop_loss, None, qty, time.time(), fx, sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"]})),
+        )
+        conn.commit()
+        print(f"[SWING] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # FVG 3rd-candle classification (backlog B-32, family `fvg3c`; spec in
 # docs/STRATEGY_SPEC_SND_AND_FVG3C.md). RESEARCH-STAGE ONLY: not wired into any
@@ -20362,6 +20486,14 @@ def _run_swing_scan_pass(conn):
                     conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
                                  (new_running_max, symbol))
                     conn.commit()
+            elif pos["strategy"] in PL1D_CELLS:
+                reason, new_running_max = _pl1d_exit_adapter(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
+                    pos["strategy"])
+                if not reason:
+                    conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                                 (new_running_max, symbol))
+                    conn.commit()
             elif pos["strategy"] in CHAN_SHAPE_CELLS:
                 reason, new_running_max = _chan_shape_exit_adapter(
                     df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
@@ -20655,6 +20787,10 @@ def _run_swing_scan_pass(conn):
                         _chan_shape_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
                     except Exception as e:
                         print(f"[SWING] chan_shape entry eval failed for {symbol} (non-fatal): {e}")
+                    try:  # B-983 pl1d LONG 1d (starc fade full-universe, gap runaway), appended last of this chain
+                        _pl1d_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
+                    except Exception as e:
+                        print(f"[SWING] pl1d entry eval failed for {symbol} (non-fatal): {e}")
                     try:  # gaps fade LONG 1d (exhaust / common), checked after island, i.e. LAST of all
                         _gapfade_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
                     except Exception as e:
@@ -20755,7 +20891,7 @@ SHORT_SWING_TAGS = tuple(t for t, _a, _r in BRK20_SHORT_SWING_CELLS)
 # 2026-10-12 user: not wired / not viable until backtested by us through the real main.py path. Island, swing-min-RR gate
 # and short-swing ports were merged without a main.py-calling replay, so the real-money gate stays closed for them.
 REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWINGMINRR_TAGS) | frozenset(SHORT_SWING_TAGS) | frozenset(GAPFADE_TAGS) \
-    | frozenset(CHAN_SHAPE_CELLS) | frozenset(MACDDIV_LONG_CELLS)
+    | frozenset(CHAN_SHAPE_CELLS) | frozenset(MACDDIV_LONG_CELLS) | frozenset(PL1D_CELLS)
 
 
 def _replay_verified_tags() -> frozenset:
@@ -20779,7 +20915,7 @@ def _replay_verified_tags() -> frozenset:
 REPLAY_OWED_TAGS = REPLAY_OWED_TAGS - _replay_verified_tags()
 for _t in SHORT_SWING_TAGS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
-for _t in tuple(CHAN_SHAPE_CELLS) + tuple(MACDDIV_LONG_CELLS):
+for _t in tuple(CHAN_SHAPE_CELLS) + tuple(MACDDIV_LONG_CELLS) + tuple(PL1D_CELLS):
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 
 
@@ -23873,6 +24009,8 @@ _SWING_SL_RULES = {
        for _t in GAPFADE_TAGS},
     **{_t: f"entry - {a:g}xATR14(simple mean), frozen (exit also on the close of bar {h} after entry)"
        for _t, (a, h) in CHAN_SHAPE_CELLS.items()},
+    **{_t: f"entry - {k:g}xATR14(simple mean), frozen (exit also on the close of bar {h} after entry)"
+       for _t, (_r, k, h) in PL1D_CELLS.items()},
 }
 
 
