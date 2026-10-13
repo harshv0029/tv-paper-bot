@@ -1081,3 +1081,10 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: the daily swing pass would have applied the gap_and_go exit to a 1h position by default, so it must explicitly skip 1h cells.
 - Reuse: any new swing-table tag needs an explicit skip in the daily pass and its own exit adapter, or it falls into the default exit branch.
 - Profit-booking / exit takeaway: money is made by the 30-bar survivors (win 25-35%, stops lose), so keep the stop wide and let the time exit book it.
+## pl1d LONG 1d: STARC band fade (full universe) and gap runaway (B-983, 2026-10-13)
+- Mechanism: STARC fade = buy when close < SMA6 - 2 x ATR15 (mean reversion to the short band); gap runaway = buy a >1% gap above the prior high that closes above SMA50 and above its open (continuation). Stop entry - k x ATR14 (2.5 / 4.0), exit at the gap-aware stop or the close 20 bars later.
+- Fit: both are 1d swing cells with a real stop, so they fit the swing engine and the no-trade-without-SL rule; atrnone variants (higher PFnet, e.g. gap runaway 1.936) are NOT wired because they have no stop. The starc atr6 n200 tags were already live under their own tags; the atr2d5 full-universe tag is a different strategy (tighter stop, 9221 trades) and stays its own row.
+- Result: registry only (pattern-lab, 0.8% cost): starc fade_full atr2d5_h20 PFnet 1.191 n 9221 win 44.1%; gap runaway atr4_h20 1.464 n 1087 win 55.7% (n200 only). Neither is replayed through main.py yet, so the real gate is closed by REPLAY_OWED_TAGS.
+- Surprised: the margin of starc over the 1.1 floor is thin on 9221 trades while hold 10 (1.096) and 5 (1.042) miss it; the edge sits in 20-bar survivors, stops lose.
+- Reuse: port the exact lab rule on the tail window, check which universe a registry row was measured on (full_nse vs n200_swing_watchlist) before reading n, and wire only stop-carrying cells.
+- Profit-booking / exit takeaway: profit is the 20-bar time exit; do not tighten the stop or add a target (not yet swept for this port).
