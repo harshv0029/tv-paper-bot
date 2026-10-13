@@ -1035,3 +1035,41 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: stop_hit trades are 0 PFnet and timeout trades carry the profit (85% win on atr1d5_h10), the usual fade shape; the stop-fill assumption moves PFnet by ~0.15, so gap_aware is the honest number.
 - Reuse: cross-sectional picks must be computed once per scan from the whole universe; live sector breadth on a smaller universe than the replay is a fidelity gap to measure.
 - Profit-booking / exit takeaway: the time exit makes the money; tightening the stop only converts winners into 0-PF stop-outs.
+
+## tasuki gap SHORT 1d, ETF universe (B-968, 2026-10-13)
+- Mechanism: bearish downside tasuki gap (down bar, gap-down down bar, then an up bar that opens inside bar t-1's body and closes up but stays below bar t-2's low) -> short; stop entry + k x ATR14; exit at stop (gap-aware) or the close of the 3rd bar after the signal.
+- Fit: holds 3 days = overnight short, so the real leg waits on the NRML overnight check (B-912/B-967); paper runs now. BUY stop attached with entry, unwound if it cannot be placed. Validated on ETFs only (n=81, PFnet 2.079 atr6, 1.651 atr4/atr2d5); the same rule on the NIFTY-200 equities is 0.69, so it is restricted to ETF_SYMBOLS.
+- Result: registry numbers from the pattern lab (not yet a main.py-calling replay); real-money gate closed via REPLAY_OWED_TAGS until one is on file.
+- Surprised: atr4 and atr2d5 give identical stats (the stop is rarely the binding exit at h3), and the best cell is the widest stop; the edge is a 3-day time exit, not the stop.
+- Reuse: a pattern that works on one asset class can fail on another (ETF vs stock); wire only on the validated universe. Small n (81) is a flag, not a verdict.
+- Profit-booking / exit takeaway: the 3-bar time exit books the profit; a wider stop avoids converting those winners into stop-outs.
+
+## swingminrr brk20_gate SHORT 1h atr3_rr4 (B-969, 2026-10-13)
+- Mechanism: close below the prior 20-bar low on 1h bars, taken only if the room to the prior 60-bar low is >= 4x the risk (3 x ATR stop, always attached); exit at the stop (gap-aware) or the close 30 bars later. No rule exit.
+- Fit: ~30 hourly bars is 4-5 sessions, so it is an overnight short: real leg stays behind the unconfirmed NRML check (B-912/B-967), paper runs now. First 1h consumer of the swing scan, so it needed its own hourly pass, forming-bar drop and a timestamped entry_day (the 1d engine only stores a date).
+- Result: registry PFnet 1.702 (n 2267, win 48.7%, exTop5 1.662, full-universe 730d research, not yet a main.py-calling replay); atr3_rr3 1.039 not wired. Real gate closed by REPLAY_OWED_TAGS until the replay is on file.
+- Surprised: the exit differs from the 1d brk20_min_rr short cells (those use an EMA13 rule exit); reusing _short_swing_exit_reason would have replayed a different strategy than the one measured.
+- Reuse: confirm which exit a registry row was measured with before reusing a sibling family's exit function; 1h bar constants are bars, not days.
+- Profit-booking / exit takeaway: profit comes from the 30-bar survivors (~60% of exits) and stops lose, so do not tighten the stop or add a target (gatetarget did not beat gate-only).
+## Month effect SHORT (September first bar), 15m (2026-10-13, B-968)
+- Mechanism: short the first bar of September, hold 25 or 125 15m bars, ATR stop. Fits the short-swing engine only (overnight hold, NRML unconfirmed).
+- Result: registry 15m PFnet 1.70-3.62 (n=202) comes from a single Sept-1 event (60d of 15m data); flatten re-run on the full universe 0.43-0.73. Not an edge until a multi-year 1d replay says so.
+- Surprised: n=202 looked like a sample but was one market day across symbols.
+- Reuse: check how many DISTINCT dates a calendar-rule backtest covers before reading PFnet.
+- Profit-booking / exit takeaway: time exit after ~1 session is the whole strategy; no stop-less (atrnone) cell may go live.
+### chan_shape LONG 1d and macddiv LONG 1h live wiring (B-970 / B-971, 2026-10-13)
+
+- Mechanism: chan_shape = Chan hybrid long when close < close[30] and close > close[40], ATR14 stop, 5/10-bar time exit. macddiv = close-pivot MACD (line/hist) bullish divergence on 1h, ATR stop, 30-bar max hold.
+- Fit: the registry headline tags that looked wireable (chan_shape _y2021 PFnet 2.32/3.66) are calendar-year slices of the same rule; the pooled non-overlap cells (n 42k-70k) are PFnet 0.64-0.86, so the honest wired tags are the pooled ones and they are gate-closed. macddiv is registered BUY but holds overnight, which the flat-by-15:10 BUY engine cannot carry, and swing would break category ownership.
+- Result: no live trade is enabled by this work; both ports are built with ATR stop on every signal, replay workflows call the real main.py functions on the full universe.
+- Surprised: a high-PFnet registry tag can name a time slice, not a tradeable rule. Check the tag suffix (_yNNNN, _vixge, _segis/_segoos) before porting.
+- Reuse: port the pooled rule first, replay it, and only then read slices as regime hints. Check the product/hold horizon against the engine's flatten time before choosing an engine.
+- Profit-booking / exit takeaway: both rules' profit sits in the time exit (max hold) not the stop; a wider ATR stop and the hold bar count are the levers, and 1h holds up to 30 bars cannot be booked intraday.
+## brk20_min_rr 1h SHORT (B-968, 2026-10-13): the headline PFnet was an OOS slice, not the strategy
+- Mechanism: 20-bar close breakdown + min reward:risk room to the 60-bar low + ATR stop always attached; exit = gap-aware stop, EMA13 rule exit, 30-bar timeout.
+- Fit here: 1h bars x 30-bar hold is about 5 sessions, so every trade is overnight; the real leg is blocked by the fail-closed overnight NRML short flag (B-967) and there is no 1h swing scan driver.
+- Result: registry shows 4.29 only for the `_oos` slice tag (n=108). Full period atr4_rr4 is PFnet 0.527 (n=1014, win 56%), in-sample 0.492 (n=923). All 12 full-period 1h short cells are 0.53-0.59, below the 1.1 floor. Not wired.
+- Surprised: the best-PFnet-by-tag ranking mixes full-period, IS and OOS slice tags; a high number on a slice with small n and a flat full-period number is a regime artifact. Always compare the slice tag against its full-period sibling before building.
+- Reuse: when ranking build candidates by PFnet, exclude `_is`/`_oos` slice tags (or require the full-period tag to clear the floor) first.
+- Profit-booking / exit takeaway: here the 56% win rate with PFnet 0.5 means winners are small and stop-outs large; the edge was never in the exit, it was a quiet-regime slice.
+
