@@ -12912,6 +12912,13 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         )
         return
 
+    # B-962: re-read the newest viable stack immediately before the order.
+    _load_viable_overrides()
+    if not _is_strategy_viable_for_real_money(strategy_tag):
+        _log_real_attempt(conn, symbol, "S", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
+                          detail=f"strategy {strategy_tag!r} no longer viable on the fresh stack re-check just before the order")
+        return
+
     import kotak_real_orders
     result = kotak_real_orders.place_real_short_entry(kotak_symbol, qty, ltp)
     if not result.get("ok"):
@@ -19720,6 +19727,13 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
             conn, symbol, "B", "skipped_real_daily_loss_cap_hit", kotak_trading_symbol=kotak_symbol,
             price_est=ltp, detail=loss_check["detail"], strategy=strategy,
         )
+        return
+
+    # B-962: re-read the newest viable stack immediately before the order.
+    _load_viable_overrides()
+    if not _is_strategy_viable_for_real_money(strategy):
+        _log_real_attempt(conn, symbol, "B", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
+                          strategy=strategy, detail=f"strategy {strategy!r} no longer viable on the fresh stack re-check just before the order")
         return
 
     import kotak_real_orders
