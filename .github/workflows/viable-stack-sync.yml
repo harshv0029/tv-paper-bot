@@ -1,0 +1,36 @@
+name: Viable Stack Sync (git copy of the live viable-definition stack)
+
+# User 2026-10-13: keep the Render viable-definition stack (live + previous 9)
+# mirrored in git every 5 min so it can be discussed from docs/viable_stack.json.
+# Read-only against the app; commits only when the stack changed. Secondary
+# audit layer - the stack's durable store is Upstash (generic mirror).
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: viable-stack-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch stack and commit if changed
+        run: |
+          curl -sSL -m 60 --retry 2 "https://tv-paper-bot-gdan.onrender.com/strategy-viable-stack?full=1" -o /tmp/stack.json || exit 0
+          jq -e '.stack' /tmp/stack.json > /dev/null || { echo "bad response, skipping"; exit 0; }
+          jq '{size, stack}' /tmp/stack.json > /tmp/stack_norm.json
+          mkdir -p docs
+          if [ -f docs/viable_stack.json ] && cmp -s /tmp/stack_norm.json docs/viable_stack.json; then echo "unchanged"; exit 0; fi
+          cp /tmp/stack_norm.json docs/viable_stack.json
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/viable_stack.json
+          git commit -m "Sync viable stack ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+          for i in 1 2 3; do git pull --rebase origin "${GITHUB_REF_NAME}" && git push && break || sleep 3; done
