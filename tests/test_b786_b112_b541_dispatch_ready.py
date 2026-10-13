@@ -157,11 +157,13 @@ def test_kalman_replay_workflow_has_interval_and_period_inputs():
     assert 'os.environ.get("PERIOD")' in (R / "scripts" / "intraday_flatten_rerun.py").read_text()
 
 
-def test_main_has_no_oneil_or_kalman_function_yet():
-    """Evidence guard for B-786: the replay is a documented PORT because main.py has no such functions. When a port
-    lands in main.py this test must be flipped (and the replay switched to import it), never silently ignored."""
+def test_main_has_no_oneil_function_yet_and_kalman_short_port_landed():
+    """Evidence guard for B-786, flipped for kalman by B-913 (2026-10-13): main.py now carries the verbatim
+    chan_kalman short PORT (tests/test_chan_kalman_short_port.py proves parity); the replay must be switched to import it
+    before anything is wired. The oneil guard stands until that port lands."""
     src = (R / "main.py").read_text().lower()
-    assert "oneil" not in src and "kalman" not in src
+    assert "oneil" not in src
+    assert "def chan_kalman_band_short_entry_signal" in src
 
 
 # ---------------------------------------------------------------- B-541

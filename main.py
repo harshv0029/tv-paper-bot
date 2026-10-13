@@ -5560,6 +5560,112 @@ def _atr_array(highs, lows, closes, period: int):
     return out
 
 
+# ---------------------------------------------------------------------------
+# B-913 / B-792c step 1 (2026-10-13): verbatim PORT of the chan_kalman band SHORT (intraday, forced flat 15:15 IST).
+# Source of truth: scripts/chan_ext_research.py (kalman_band, kalman_cells), scripts/chan_research.py (atr_arr, simulate),
+# scripts/intraday_flatten_rerun.py (flatten_masks). NOT wired to any scan or order path; a real-main.py replay and the
+# governance steps in docs/INTRADAY_FLATTEN_WIRING_SPEC.md come before the registry gate may open it.
+CHAN_KALMAN_DELTA = 1e-4
+CHAN_FLATTEN_CUTOFF_MIN = 15 * 60 + 15
+_CHAN_BAR_MIN = {"5m": 5, "15m": 15, "1h": 60}
+
+
+def chan_atr14(h, l, c, n: int = 14):
+    """Research atr_arr: SMA ATR, NaN through index n-1 (first valid at index n)."""
+    h, l, c = (np.asarray(x, float) for x in (h, l, c))
+    pc = np.r_[c[0], c[:-1]]
+    tr = np.maximum(h - l, np.maximum(np.abs(h - pc), np.abs(l - pc)))
+    out = np.full(len(c), np.nan)
+    if len(c) > n:
+        cs = np.cumsum(np.r_[0, tr])
+        out[n:] = (cs[n + 1:] - cs[1:len(c) - n + 1]) / n
+    return out
+
+
+def chan_kalman_series(close, ve: float = 1e-3, delta: float = CHAN_KALMAN_DELTA):
+    """1-D Kalman filter on log price (state = adaptive mean). Returns (err, sqrtQ) per bar."""
+    y = np.log(np.asarray(close, float))
+    n = len(y)
+    vw = delta / (1 - delta)
+    beta, P = y[0], 1.0
+    err, sq = np.full(n, np.nan), np.full(n, np.nan)
+    for t in range(n):
+        R = P + vw
+        Q = R + ve
+        e = y[t] - beta
+        err[t], sq[t] = e, math.sqrt(Q)
+        K = R / Q
+        beta += K * e
+        P = R - K * R
+    return err, sq
+
+
+def chan_flatten_masks(index, interval: str, cutoff_min: int = CHAN_FLATTEN_CUTOFF_MIN):
+    """(cut, noentry, day_cut_idx): cut = last bar of each IST day whose END <= cutoff; noentry = signals to drop."""
+    idx = pd.DatetimeIndex(index)
+    loc = idx.tz_convert("Asia/Kolkata") if idx.tz is not None else idx
+    n = len(loc)
+    end_min = (loc.hour * 60 + loc.minute + _CHAN_BAR_MIN[interval]).to_numpy()
+    days = np.asarray(loc.date)
+    cut = np.zeros(n, bool)
+    noentry = np.ones(n, bool)
+    dci = np.full(n, -1, dtype=int)
+    start = 0
+    while start < n:
+        stop = start
+        while stop + 1 < n and days[stop + 1] == days[start]:
+            stop += 1
+        ok = [i for i in range(start, stop + 1) if end_min[i] <= cutoff_min]
+        if ok:
+            ci = ok[-1]
+            cut[ci] = True
+            dci[start:stop + 1] = ci
+            noentry[start:min(ci - 1, stop + 1)] = False
+        start = stop + 1
+    return cut, noentry, dci
+
+
+def chan_kalman_band_short_entry_signal(df, interval: str, z: float = 2.0, ve: float = 1e-3, atr_mult: float = 4.0,
+                                        ks=None, masks=None):
+    """Evaluated on the LAST completed bar of df. Short when err > z*sqrtQ and the flatten rule allows an entry.
+    Entry fills at the next bar open; stop = entry + atr_mult * ATR14[signal bar]. ks/masks may be precomputed over the
+    full frame (the filter is causal, so slicing a precomputed series equals recomputing)."""
+    n = len(df)
+    if n < 20:
+        return None
+    if ks is None:
+        ks = chan_kalman_series(df["Close"].to_numpy(float), ve)
+    cut, noentry, _dci = masks if masks is not None else chan_flatten_masks(df.index, interval)
+    i = n - 1
+    err, sq = ks
+    if noentry[i] or not (err[i] > z * sq[i]):
+        return None
+    atr = chan_atr14(df["High"].to_numpy(float), df["Low"].to_numpy(float), df["Close"].to_numpy(float))
+    if np.isnan(atr[i]) or atr[i] <= 0:
+        return None
+    return {"signal_pos": i, "atr": float(atr[i]), "atr_mult": float(atr_mult), "close": float(df["Close"].iloc[i])}
+
+
+def chan_kalman_band_short_exit_reason(df, interval: str, entry_pos: int, entry_price: float, stop: float, hold: int = 40,
+                                       ve: float = 1e-3, ks=None, masks=None):
+    """Exit check on the LAST bar j of df for a short entered at bar entry_pos. Same order as research simulate:
+    stop (gap-aware) -> state exit (err <= 0, or the 15:15 cut bar -> flatten_1515) -> max_hold. Returns (reason, px) or None."""
+    j = len(df) - 1
+    if j < entry_pos:
+        return None
+    if ks is None:
+        ks = chan_kalman_series(df["Close"].to_numpy(float), ve)
+    cut, _ne, _dci = masks if masks is not None else chan_flatten_masks(df.index, interval)
+    o, h, c = float(df["Open"].iloc[j]), float(df["High"].iloc[j]), float(df["Close"].iloc[j])
+    if h >= stop:
+        return "stop", (max(stop, o) if j > entry_pos else stop)
+    if ks[0][j] <= 0 or cut[j]:
+        return ("state_exit" if ks[0][j] <= 0 else "flatten_1515"), c
+    if j >= entry_pos + hold - 1:
+        return "max_hold", c
+    return None
+
+
 def _fvg3c_scan_short(o, h, l, c, atr, variant: str, p: dict, sess=None):
     n = len(c)
     sig = np.zeros(n, dtype=bool)
