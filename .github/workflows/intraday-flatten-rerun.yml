@@ -28,6 +28,10 @@ on:
       maxsym:
         description: 'cap symbols for a pilot (0 = full universe)'
         default: '0'
+      cost_pct:
+        description: 'round-trip cost percent (blank = main.ROUND_TRIP_COST_PCT 0.8). MIS model B-914: ~0.12 statutory+brokerage, 0.3 incl. slippage stress'
+        required: false
+        default: ''
 
 jobs:
   run:
@@ -54,6 +58,7 @@ jobs:
           NSHARDS: "3"
           MAXSYM: ${{ inputs.maxsym }}
           PERIOD: ${{ inputs.period }}
+          COST_PCT: ${{ inputs.cost_pct }}
           OUT_DIR: out
         run: |
           set -o pipefail
