@@ -12,7 +12,9 @@ import pandas as pd
 import main
 import strategy_registry as sr
 
-WANT = ["atr1d5_h10_l5_n1", "atr1d5_h5_l5_n1", "atr4d0_h5_l5_n1", "atr6d0_h5_l5_n1", "atr6d0_h10_l5_n1", "atr2d5_h5_l5_n1"]
+WANT = ["atr1d5_h10_l5_n1", "atr1d5_h5_l5_n1", "atr4d0_h5_l5_n1", "atr6d0_h5_l5_n1", "atr6d0_h10_l5_n1", "atr2d5_h5_l5_n1",
+        "atr1d5_h20_l5_n1", "atr2d5_h10_l5_n1", "atr4d0_h10_l5_n1", "atr2d5_h20_l5_n1", "atr4d0_h20_l5_n1", "atr6d0_h20_l5_n1",
+        "atr6d0_h1_l5_n1", "atr4d0_h1_l5_n1", "atr2d5_h1_l5_n1", "atr1d5_h1_l5_n1"]
 
 
 def _fresh_db():
@@ -40,7 +42,7 @@ def test_cells_tags_and_gate_mapping():
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[tag] == tag
         assert tag in names                      # registered with real metrics
         assert tag not in main.REPLAY_OWED_TAGS
-        assert hold >= 5                         # every cell is an overnight hold
+        assert hold >= 1                         # every cell is an overnight hold (entry at the close)
         assert main.sector_rotation_fade_short_stop(100.0, 2.0, atr) == 100.0 + atr * 2.0
 
 
