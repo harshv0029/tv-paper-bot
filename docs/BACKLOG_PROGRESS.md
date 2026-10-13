@@ -28,12 +28,12 @@ Total rows: 966 | closed: 399 | not closed: 567
 | PARKED | 3 |
 | TODO | 3 |
 | DISPATCH-READY | 3 |
-| READY-TO-BUILD | 3 |
 | WIRED-PENDING-DEPLOY | 3 |
 | IN-PROGRESS | 2 |
 | PARTIAL-1H-FAILED-TO-CONFIRM | 2 |
 | IN | 2 |
 | DONE-ON-BRANCH | 2 |
+| READY-TO-BUILD | 2 |
 | WIRED-GATE-CLOSED | 2 |
 | WIRED | 2 |
 | BUILT-DISPATCH-OWED | 2 |
@@ -544,7 +544,7 @@ Total rows: 966 | closed: 399 | not closed: 567
 | B-957 | P2 | P2 | ready-to-build |  |
 | B-958 | P2 | P2 | ready-to-build |  |
 | B-959 | P2 | P2 | ready-to-build |  |
-| B-991 | P2 | READY-TO-BUILD | Owed 4h non-overlap run for Chan time-series cells (from B-432/B-807): add a 1h->4h resample to scripts/cha... | owed |
+| B-991 | P2 | BUILT-DISPATCH-OWED | Owed 4h non-overlap run for Chan time-series cells (from B-432/B-807): add a 1h->4h resample to scripts/cha... | owed |
 | B-1001 | P2 | OPEN | SHORT mirror of the pl1d 1d cells (starc fade full + gap runaway), both-directions thumb rule | owed |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 

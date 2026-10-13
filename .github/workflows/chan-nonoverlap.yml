@@ -5,7 +5,11 @@ name: Chan non-overlap re-run (B-806)
 # <old>__nonovl__v2. Shards emit aggregates only; result artifact chan-nonoverlap-results is small.
 # Research only; nothing wired. Cross-sectional cells are one-bar trades and are not re-run.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      intervals:
+        description: 'JSON list of candle sizes (1d, 1h, 4h); 4h = 1h resampled to NSE sessions (B-991)'
+        default: '["1d","1h"]'
 
 jobs:
   run:
@@ -14,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        interval: ["1d", "1h"]
+        interval: ${{ fromJSON(github.event.inputs.intervals || '["1d","1h"]') }}
         shard: [0, 1, 2]
     steps:
       - uses: actions/checkout@v4
