@@ -66,3 +66,20 @@ def test_strict_fifo_allows_at_least_as_many_trades_as_simulate():
     strict, _ = no.cell_trades(o, h, l, c, atr, sig, 1.5, 5, None, None)
     ref = cr.simulate(o, h, l, c, atr, sig, 1.5, 5)
     assert len(strict) >= len(ref) and not no.has_overlap(strict)
+
+
+def test_4h_uses_session_resample_helper_b991():
+    import inspect
+    import pandas as pd
+    assert no.resample_1h_to_4h.__module__ == "resample_4h"
+    assert "resample_1h_to_4h(df)" in inspect.getsource(no.run)
+    idx = pd.DatetimeIndex(["2026-10-12 09:15", "2026-10-12 10:15", "2026-10-12 11:15", "2026-10-12 12:15",
+                            "2026-10-12 13:15", "2026-10-12 14:15", "2026-10-12 15:15"])
+    df = pd.DataFrame({"Open": range(7), "High": range(1, 8), "Low": range(7), "Close": range(7), "Volume": 1}, index=idx)
+    out = no.resample_1h_to_4h(df)
+    assert len(out) == 2 and out["Volume"].tolist() == [4, 3]
+
+
+def test_workflow_accepts_4h_b991():
+    y = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows", "chan-nonoverlap.yml")).read()
+    assert "intervals" in y and "fromJSON" in y
