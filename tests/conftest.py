@@ -7,3 +7,24 @@ def _swing_entry_cutoff_off_by_default(monkeypatch):
     # exercise it set it explicitly. Everything else must not depend on when it runs.
     import main
     monkeypatch.setattr(main, "SWING_REAL_ENTRY_CUTOFF_MIN", 24 * 60 + 1)
+
+
+import pytest as _pytest_viab
+
+
+@_pytest_viab.fixture(autouse=True)
+def _reset_viable_stack_state():
+    """The explorer viable stack is process-global state (strategy_registry.VIABLE_OVERRIDES/VIABLE_STACK_ACTIVE,
+    reloaded from the DB by main._load_viable_overrides); never let one test's stack leak into another."""
+    import sys as _sys
+    _m = _sys.modules.get("main")
+    _db_path = getattr(_m, "DB_PATH", None)
+    try:
+        import strategy_registry as _sr
+        _sr.VIABLE_OVERRIDES.clear()
+        _sr.VIABLE_STACK_ACTIVE = False
+    except Exception:
+        pass
+    yield
+    if _m is not None and _db_path is not None:
+        _m.DB_PATH = _db_path  # a test that swaps in a temp DB (stack rows) must not leak it

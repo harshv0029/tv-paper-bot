@@ -11628,6 +11628,7 @@ def _load_viable_overrides() -> set:
         names = set(json.loads(row[0])) if row else set()
         sr.VIABLE_OVERRIDES.clear()
         sr.VIABLE_OVERRIDES.update(names)
+        sr.VIABLE_STACK_ACTIVE = row is not None
     except Exception:
         pass
     return sr.VIABLE_OVERRIDES
@@ -21962,6 +21963,7 @@ def strategy_leaderboard():
     this is the same "registering != trading" registry every other
     reader of strategy_registry.py already treats as research/
     tracking-only."""
+    _load_viable_overrides()  # newest explorer stack is the viability definition (user 2026-10-13)
     import strategy_registry as sr
     out = {cat.value: sr.viable_leaderboard(cat) for cat in sr.TradeCategory}
     # 2026-10-06, explicit user instruction ("I can't see the algorithms by u which
@@ -22154,7 +22156,8 @@ def strategy_viable_buckets():
     strategies per category, bucketed by PFnet band then holding-days band."""
     import strategy_registry as sr
     _load_viable_overrides()
-    return {"floor": sr.PFNET_LIVE_FLOOR, "categories": sr.bucket_viable_strategies(), "as_of_epoch": time.time()}
+    return {"floor": sr.PFNET_LIVE_FLOOR, "definition": "explorer_stack" if sr.VIABLE_STACK_ACTIVE else "pfnet_floor_fallback",
+            "stack_size_names": len(sr.VIABLE_OVERRIDES), "categories": sr.bucket_viable_strategies(), "as_of_epoch": time.time()}
 
 
 # Stop rule per legacy swing tag (read from each strategy's own entry/exit function), shown in the viable
