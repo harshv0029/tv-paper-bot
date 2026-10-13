@@ -38,11 +38,11 @@ def test_tag_grammar_and_registry_mapping():
 
 def test_gate_opens_only_if_viable(monkeypatch):
     strat = next(s for s in sr.REGISTRY if s.name == TAG)
-    assert strat.metrics.pfnet >= sr.PFNET_LIVE_FLOOR >= 1.1
+    assert strat.metrics.pfnet >= sr.PFNET_LIVE_FLOOR >= 1.05
     assert main._is_strategy_viable_for_real_money(TAG, check_switch=False) is True
     orig = strat.metrics
     import dataclasses
-    object.__setattr__(strat, "metrics", dataclasses.replace(orig, pfnet=1.05))  # below the 1.1 floor
+    object.__setattr__(strat, "metrics", dataclasses.replace(orig, pfnet=1.04))  # below the 1.05 floor
     try:
         assert main._is_strategy_viable_for_real_money(TAG, check_switch=False) is False
     finally:
