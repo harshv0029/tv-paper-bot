@@ -20987,6 +20987,24 @@ def _log_swing_scan_done(t):
         print(f"[SWING] scan failed (non-fatal, intraday tick continues): {exc}")
 
 
+def _fo_tick_steps():
+    """F&O steps of the scheduler tick, run OFF the event loop (they do blocking Kotak and yfinance
+    fetches; run inline they stalled the loop and the later steps, e.g. the MCX scan, rarely ran).
+    Each step is isolated so one failure/slow step cannot skip the others."""
+    real_on = is_real_fo_trading_enabled()
+    steps = [_maybe_sync_real_fo_option_stop_losses] if real_on else []
+    steps.append(_run_fo_strike_setup_scan)
+    if real_on:
+        steps += [_run_index_swing_option_scan]
+    steps.append(_run_mcx_daily_scan)  # monitoring scan runs regardless; its entries are gated inside
+    for fn in steps:
+        try:
+            with closing(get_db()) as c:
+                fn(c)
+        except Exception as e:
+            print(f"[REAL F&O] {fn.__name__} failed (non-fatal): {e}")
+
+
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
@@ -21427,18 +21445,9 @@ async def _scheduler_tick():
     # 2026-10-08: trailing SL / heal for every open real single-strike option
     # (Kotak read first inside). Runs every tick; reuses the F&O switch.
     try:
-        if is_real_fo_trading_enabled():
-            with closing(get_db()) as _fo_sl_conn:
-                _maybe_sync_real_fo_option_stop_losses(_fo_sl_conn)
-                _run_fo_strike_setup_scan(_fo_sl_conn)
-                _run_index_swing_option_scan(_fo_sl_conn)
-                _run_mcx_daily_scan(_fo_sl_conn)
-        else:
-            # monitoring only (no orders): the per-strike view stays live
-            with closing(get_db()) as _fo_sl_conn:
-                _run_fo_strike_setup_scan(_fo_sl_conn)
+        await asyncio.wait_for(asyncio.to_thread(_fo_tick_steps), timeout=120)
     except Exception as e:
-        print(f"[REAL F&O] option SL tick failed (non-fatal): {e}")
+        print(f"[REAL F&O] option SL tick failed or timed out (non-fatal): {e}")
 
     _scheduler_last_tick_ts = time.time()
     await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
