@@ -369,10 +369,15 @@
     <label>Min sample <input id="sx-minn" type="number" step="1" value="30" style="width:70px"></label>
     <label>Max hold (hrs) <input id="sx-hold" type="number" step="0.25" placeholder="any" style="width:70px"></label>
     <button id="sx-go">Show</button>
+    <button id="sx-wire" title="Pushes this table as the new viable definition (stack of 10, newest on top) and opens the real-money entry gate for it.">Make this set viable category and live wiring</button>
+    <button id="sx-unwire" title="Pops the top definition so the previous one becomes active.">Undo (previous definition)</button>
+    <select id="sx-stack" title="Viable-definition stack, newest first"></select>
+    <button id="sx-restore">Restore selected</button>
+    <span id="sx-msg" style="color:#64748b"></span>
   </div>
   <div class="counts-scroll"><table class="counts">
-    <thead><tr><th class="num">#</th><th>Strategy</th><th>Category</th><th>TF</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num">Trades</th><th class="num">Avg hold (h)</th></tr></thead>
-    <tbody id="sx-body"><tr><td colspan="8" class="scan-idle">Press Show.</td></tr></tbody>
+    <thead><tr><th class="num">#</th><th>Strategy</th><th>Category</th><th>TF</th><th class="num">PFnet</th><th class="num">Win %</th><th class="num">Trades</th><th class="num">Avg hold (h)</th><th>Override</th></tr></thead>
+    <tbody id="sx-body"><tr><td colspan="9" class="scan-idle">Press Show.</td></tr></tbody>
   </table></div>
 </div>
 <script>
@@ -392,10 +397,29 @@
       document.getElementById("sx-counts").textContent=d.total+" strategies"+(d.total>d.rows.length?" (showing top "+d.rows.length+")":"");
       document.getElementById("sx-body").innerHTML=d.rows.length?d.rows.map(function(r,i){
         var f=function(v,n){return v==null?"—":Number(v).toFixed(n);};
-        return "<tr><td class='num'>"+(i+1)+"</td><td>"+esc(r.name)+"</td><td>"+esc(r.categories.join(", "))+"</td><td>"+esc(r.timeframe)+"</td><td class='num'>"+f(r.pfnet,2)+"</td><td class='num'>"+f(r.win_rate_pct,1)+"</td><td class='num'>"+(r.n_trades==null?"—":r.n_trades)+"</td><td class='num'>"+f(r.avg_held_hrs,1)+"</td></tr>";
-      }).join(""):"<tr><td colspan='8' class='scan-idle'>No strategy matches.</td></tr>";
+        return "<tr><td class='num'>"+(i+1)+"</td><td>"+esc(r.name)+"</td><td>"+esc(r.categories.join(", "))+"</td><td>"+esc(r.timeframe)+"</td><td class='num'>"+f(r.pfnet,2)+"</td><td class='num'>"+f(r.win_rate_pct,1)+"</td><td class='num'>"+(r.n_trades==null?"—":r.n_trades)+"</td><td class='num'>"+f(r.avg_held_hrs,1)+"</td><td>"+(r.override?"viable (set by you)":"")+"</td></tr>";
+      }).join(""):"<tr><td colspan='9' class='scan-idle'>No strategy matches.</td></tr>";
     }).catch(function(){document.getElementById("sx-body").innerHTML="<tr><td colspan='8' class='scan-idle'>Load failed.</td></tr>";});
   }
+  function stackUi(st){
+    var sel=document.getElementById("sx-stack");
+    sel.innerHTML=st.map(function(e,i){return '<option value="'+e.id+'">'+(i===0?"ACTIVE - ":"#"+(i+1)+" - ")+e.count+" strategies, "+new Date(e.created_at*1000).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+" IST</option>";}).join("")||"<option>stack empty</option>";
+  }
+  function post(body){
+    var msg=document.getElementById("sx-msg"); msg.textContent="Saving…";
+    fetch("/strategy-viable-override",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+      .then(function(r){return r.json().then(function(b){if(!r.ok)throw new Error(b.detail||r.status);return b;});})
+      .then(function(b){msg.textContent=b.action+" done; "+b.active_count+" strategies active.";stackUi(b.stack);go();})
+      .catch(function(e){msg.textContent="Failed: "+e.message;});
+  }
+  fetch("/strategy-viable-stack").then(function(r){return r.json();}).then(function(d){stackUi(d.stack);}).catch(function(){});
+  document.getElementById("sx-wire").addEventListener("click",function(){
+    var names=[].slice.call(document.querySelectorAll("#sx-body tr")).map(function(tr){return tr.children[1]&&tr.children[1].textContent;}).filter(Boolean);
+    if(!names.length){document.getElementById("sx-msg").textContent="Press Show first.";return;}
+    post({action:"set",names:names});
+  });
+  document.getElementById("sx-unwire").addEventListener("click",function(){post({action:"undo"});});
+  document.getElementById("sx-restore").addEventListener("click",function(){post({action:"restore",id:Number(document.getElementById("sx-stack").value)});});
   document.getElementById("sx-go").addEventListener("click",go);
 })();
 </script>
