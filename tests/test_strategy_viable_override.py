@@ -58,4 +58,5 @@ def test_stack_relabel_renames_in_place(monkeypatch):
     sid = out["stack"][0]["id"]
     out = _post({"action": "relabel", "id": sid, "label": "pfnet(1.1-100), min(30), maxhold(18.75)"})
     assert out["stack"][0]["label"].startswith("pfnet(") and out["stack"][0]["id"] == sid
-    assert out["stack"][0]["count"] == 1
+    # a parseable label IS the 3-factor definition (2026-10-13), so the count is re-derived from stored metrics
+    assert out["stack"][0]["count"] == len(main._names_meeting_criteria(main._stack_criteria(out["stack"][0]["label"])))
