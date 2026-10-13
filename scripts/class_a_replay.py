@@ -220,7 +220,7 @@ def run_sector_short(m, frames, cells):
             sigs = []
             for t in range(L + 15, T - 2):
                 dfs = {s: _View(C[:t + 1, j]) for j, s in enumerate(syms)}
-                for s in m.sector_rotation_picks(dfs):
+                for s in m.sector_rotation_fade_short_picks(dfs, L, N):
                     sigs.append((t, syms.index(s)))
             for c in group:
                 per_fill = {f: [] for f in STOP_FILLS}
@@ -229,9 +229,14 @@ def run_sector_short(m, frames, cells):
                     ent, a = O[e, j], ATR[t, j]
                     if np.isnan(ent) or np.isnan(a) or ent <= 0:
                         continue
-                    stop = ent + c["atr"] * a  # SL on every trade
+                    stop = m.sector_rotation_fade_short_stop(ent, a, c["atr"])  # REAL main stop; None = no entry (SL on every trade)
+                    if stop is None or e + c["hold"] > T:
+                        continue
+                    win = pd.DataFrame({"Open": O[e:e + c["hold"], j], "High": H_[e:e + c["hold"], j],
+                                        "Close": C[e:e + c["hold"], j]})
                     for f in STOP_FILLS:
-                        r = short_trade(O[:, j], H_[:, j], L_[:, j], C[:, j], e, ent, stop, c["hold"], f)
+                        r = m.sector_rotation_fade_short_exit_reason(win, stop, c["hold"], f)  # REAL main exit
+                        r = (r[1], r[2], r[0]) if r else None
                         if r:
                             per_fill[f].append(trade_record(ent, r[0], r[1], r[2], cost))
                 results[c["tag"]] = {"cell": cell_token(c), "n_signals": len(sigs),
@@ -240,9 +245,9 @@ def run_sector_short(m, frames, cells):
         m.SECTOR_ROT_L, m.SECTOR_ROT_N = saved
     return {"mode": "sector_short", "cells": results, "cost_round_trip_pct": m.ROUND_TRIP_COST_PCT,
             "universe_size": len(frames), "universe_requested": "main._load_nse_universe_from_file()",
-            "bars": T, "tf": "1d", "picks_source": "main.sector_rotation_picks (real)",
+            "bars": T, "tf": "1d", "picks_source": "main.sector_rotation_fade_short_picks (real)",
             "atr_source": "main._atr_series (real)",
-            "exit_source": "harness short mirror (main.sector_rotation_exit_reason is long-only)"}
+            "exit_source": "main.sector_rotation_fade_short_exit_reason + sector_rotation_fade_short_stop (real)"}
 
 
 # ------------------------------------------------------------------ minervini breakeven (real fns)

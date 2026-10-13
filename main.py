@@ -20484,10 +20484,12 @@ def _sector_of_symbol() -> dict:
     return _sector_map_cache
 
 
-def sector_rotation_picks(dfs: dict) -> list:
-    """Pure: symbols to BUY today (strongest-breadth sector's top-N by L-day return)."""
+def sector_rotation_picks(dfs: dict, L: int = None, N: int = None) -> list:
+    """Pure: symbols to BUY today (strongest-breadth sector's top-N by L-day return).
+    L/N default to the module constants (live momentum cell); the fade-short family passes its own."""
     smap = _sector_of_symbol()
-    L = SECTOR_ROT_L
+    L = SECTOR_ROT_L if L is None else int(L)
+    N = SECTOR_ROT_N if N is None else int(N)
     by_sec: dict = {}
     for sym, df in dfs.items():
         sec = smap.get(sym)
@@ -20507,7 +20509,52 @@ def sector_rotation_picks(dfs: dict) -> list:
             best, best_mean = sec, mean
     if best is None:
         return []
-    return [s for s, _ in sorted(by_sec[best], key=lambda t: -t[1])[:SECTOR_ROT_N]]
+    return [s for s, _ in sorted(by_sec[best], key=lambda t: -t[1])[:N]]
+
+
+# ---- Sector rotation FADE SHORT family (port; NOT wired into any scan or real path yet) ----
+# Tags sector_rotation__fade__short__<1d|4h>__atr<k>_h<H>_l<L>_n<N>__v1. Rule (scripts/sector_rotation_backtest.py FADE=1):
+# signal at close of bar t: strongest-breadth sector (breadth >= 0.6, >= 5 symbols) -> SHORT its top-N by L-bar
+# return (same pick function as the long cell, params passed in). Entry = next bar open; fixed stop = entry + k x
+# ATR14(t) (k mandatory: atrnone cells are refused, no trade without SL); exit at the stop or the close of the
+# H-th bar. H=1 on 1d is open->close of one session (intraday-flat, needs the 15:10 flatten); H>=5 on 1d and every
+# 4h cell are overnight holds and need an NRML short product (SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED).
+SECTOR_FADE_SHORT_TAG_PREFIX = "sector_rotation__fade__short__"
+SECTOR_FADE_SHORT_FILLS = ("stop", "gap_aware", "close")
+
+
+def sector_rotation_fade_short_picks(dfs: dict, L: int, N: int) -> list:
+    """Symbols to SHORT at the next open: the strongest-breadth sector's top-N by L-bar return."""
+    return sector_rotation_picks(dfs, L=L, N=N)
+
+
+def sector_rotation_fade_short_stop(entry_price: float, atr_value: float, atr_mult: float):
+    """Fixed stop ABOVE entry. None when no valid stop exists (caller must then NOT enter)."""
+    if not atr_mult or atr_mult <= 0 or not atr_value or atr_value <= 0 or not entry_price or entry_price <= 0:
+        return None
+    return float(entry_price) + float(atr_mult) * float(atr_value)
+
+
+def sector_rotation_fade_short_exit_reason(bars, stop: float, hold_bars: int, fill: str = "gap_aware"):
+    """bars = OHLC frame from the ENTRY bar onward (row 0 = entry bar). Returns (reason, exit_price, bars_held)
+    or None while open. High-based stop ('stop' fills at the stop = how the registry numbers were produced,
+    'gap_aware' fills at max(stop, open) on a gap through it, 'close' tests the close), else the close of bar
+    hold_bars."""
+    if fill not in SECTOR_FADE_SHORT_FILLS:
+        raise ValueError(f"fill must be one of {SECTOR_FADE_SHORT_FILLS}")
+    o = np.asarray(bars["Open"], dtype=float)
+    h = np.asarray(bars["High"], dtype=float)
+    c = np.asarray(bars["Close"], dtype=float)
+    hb = int(hold_bars)
+    for q in range(min(len(c), hb)):
+        if fill == "close":
+            if c[q] >= stop:
+                return "stop_hit", float(c[q]), q + 1
+        elif h[q] >= stop:
+            return "stop_hit", float(stop if fill == "stop" else max(stop, o[q])), q + 1
+    if len(c) >= hb and not np.isnan(c[hb - 1]):
+        return "max_hold_timeout", float(c[hb - 1]), hb
+    return None
 
 
 def sector_rotation_exit_reason(df, entry_day: str, initial_stop: float):
