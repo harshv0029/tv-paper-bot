@@ -22156,7 +22156,8 @@ def strategy_viable_buckets():
     strategies per category, bucketed by PFnet band then holding-days band."""
     import strategy_registry as sr
     _load_viable_overrides()
-    return {"floor": sr.PFNET_LIVE_FLOOR, "categories": sr.bucket_viable_strategies(), "as_of_epoch": time.time()}
+    return {"floor": sr.PFNET_LIVE_FLOOR, "definition": "explorer_stack" if sr.VIABLE_STACK_ACTIVE else "pfnet_floor_fallback",
+            "stack_size_names": len(sr.VIABLE_OVERRIDES), "categories": sr.bucket_viable_strategies(), "as_of_epoch": time.time()}
 
 
 # Stop rule per legacy swing tag (read from each strategy's own entry/exit function), shown in the viable
