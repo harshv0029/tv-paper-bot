@@ -37,3 +37,32 @@ def test_exit_reasons():
     assert main.sector_rotation_exit_reason(df, "2025-01-01", 101.0) == "stop_hit"
     assert main.sector_rotation_exit_reason(df, "2025-01-01", 50.0) == "max_hold_timeout"
     assert main.sector_rotation_exit_reason(df, "2025-01-20", 50.0) is None
+
+
+# ---- fade-short family port ----
+def _bars(o, h, c):
+    return pd.DataFrame({"Open": o, "High": h, "Low": o, "Close": c})
+
+
+def test_fade_short_picks_param_override_matches_default(monkeypatch):
+    smap = {f"A{i}.NS": "Tech" for i in range(6)}
+    monkeypatch.setattr(main, "_sector_of_symbol", lambda: smap)
+    dfs = {f"A{i}.NS": _df([100.0] * 30 + [100 + i + 1]) for i in range(6)}
+    assert main.sector_rotation_fade_short_picks(dfs, main.SECTOR_ROT_L, 2) == ["A5.NS", "A4.NS"]
+    assert main.sector_rotation_picks(dfs) == main.sector_rotation_picks(dfs, L=main.SECTOR_ROT_L, N=main.SECTOR_ROT_N)
+
+
+def test_fade_short_stop_requires_valid_atr():
+    assert main.sector_rotation_fade_short_stop(100, 2, 1.5) == 103.0
+    assert main.sector_rotation_fade_short_stop(100, 2, None) is None   # atrnone refused
+    assert main.sector_rotation_fade_short_stop(100, 0, 1.5) is None
+
+
+def test_fade_short_exit_fills_and_time_exit():
+    b = _bars([100, 108], [101, 112], [100, 110])
+    assert main.sector_rotation_fade_short_exit_reason(b, 105.0, 3, "stop") == ("stop_hit", 105.0, 2)
+    assert main.sector_rotation_fade_short_exit_reason(b, 105.0, 3, "gap_aware") == ("stop_hit", 108.0, 2)
+    assert main.sector_rotation_fade_short_exit_reason(b, 111.0, 3, "close") is None
+    flat = _bars([100] * 3, [101] * 3, [99, 98, 97])
+    assert main.sector_rotation_fade_short_exit_reason(flat, 110.0, 3) == ("max_hold_timeout", 97.0, 3)
+    assert main.sector_rotation_fade_short_exit_reason(flat, 110.0, 1) == ("max_hold_timeout", 99.0, 1)

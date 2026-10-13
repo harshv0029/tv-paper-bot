@@ -240,7 +240,10 @@ def run():
                             rows.append((t[3] - cost, t[3], t[2] - t[1] + 1, why))
                         if rows:
                             orx.acc_add(cells, flat_tag(chn.tag(fam, var, nm, interval, {**params, "atr": chn.kfmt(k)})), rows)
-        elif family == "chan_kalman_main":
+        elif family in ("chan_kalman_main", "chan_kalman_main_long"):
+            lg = family.endswith("_long")  # B-918: long mirror through app.chan_kalman_band_long_* (not wired live yet)
+            ent_fn = app.chan_kalman_band_long_entry_signal if lg else app.chan_kalman_band_short_entry_signal
+            ext_fn = app.chan_kalman_band_long_exit_reason if lg else app.chan_kalman_band_short_exit_reason
             # B-914: SHORT side driven through the real main.py port (entry/exit functions called bar by bar on a growing
             # slice; ks/masks are causal so slicing the full-frame series equals recomputing). Same tags as the research
             # run, kept apart by family (own artifact + "|full" key in merge); compare against the chan_kalman family.
@@ -249,24 +252,24 @@ def run():
                 ks_full = app.chan_kalman_series(c, ve)
                 cut_f, noentry_f, dci_f = app.chan_flatten_masks(df.index, interval)
                 for zth in (1.0, 2.0):
-                    cand = np.where((ks_full[0] > zth * ks_full[1]) & ~noentry_f)[0]
+                    cand = np.where(((ks_full[0] < -zth * ks_full[1]) if lg else (ks_full[0] > zth * ks_full[1])) & ~noentry_f)[0]
                     params = {"hold": 40, "ve": cx.kf(ve * 1e4) + "e4", "z": cx.kf(zth)}
                     for k in chn.KS:
                         rows, p = [], 0
                         for i in cand:
                             if i < p or i + 1 >= n:
                                 continue
-                            sig = app.chan_kalman_band_short_entry_signal(
+                            sig = ent_fn(
                                 df.iloc[:i + 1], interval, zth, ve, k, (ks_full[0][:i + 1], ks_full[1][:i + 1]),
                                 (cut_f[:i + 1], noentry_f[:i + 1], dci_f))
                             if not sig:
                                 continue
                             e = i + 1
                             ent = o[e]
-                            stop = ent + k * sig["atr"]
+                            stop = ent - k * sig["atr"] if lg else ent + k * sig["atr"]
                             hit = None
                             for j in range(e, n):
-                                hit = app.chan_kalman_band_short_exit_reason(
+                                hit = ext_fn(
                                     df.iloc[:j + 1], interval, e, ent, stop, 40, ve,
                                     (ks_full[0][:j + 1], ks_full[1][:j + 1]), (cut_f[:j + 1], noentry_f[:j + 1], dci_f))
                                 if hit:
@@ -274,11 +277,11 @@ def run():
                             if not hit:
                                 break  # still open at end of data: dropped, as in research simulate
                             why, px = hit
-                            g = (ent - px) / ent
+                            g = (px - ent) / ent if lg else (ent - px) / ent
                             rows.append((g - cost, g, j - e + 1, why))
                             p = j + 1
                         if rows:
-                            orx.acc_add(cells, flat_tag(chn.tag("chan_kalman", "band", "short", interval, {**params, "atr": chn.kfmt(k)})), rows)
+                            orx.acc_add(cells, flat_tag(chn.tag("chan_kalman", "band", "long" if lg else "short", interval, {**params, "atr": chn.kfmt(k)})), rows)
         elif family == "pattern":
             atr_p = pl.atr_arr(h, l, c)
             d_ = pl.clean_bars(df)
