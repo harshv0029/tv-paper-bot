@@ -981,3 +981,10 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: the long island edge did not mirror; shorts on NSE lag longs for rare gap patterns.
 - Reuse: port the mirror anyway so the replay is cheap; do not wire until a main.py replay clears the floor.
 - Profit-booking / exit takeaway: unchanged from the long island, wide stop plus rule exit; no early profit target.
+## Swing scan blocked the event loop (B-892, 2026-10-13)
+- Mechanism: the daily swing pass is synchronous and heavy (many strategies x 380 symbols x 2y of 1d bars); called straight from the async scheduler tick it froze the web server, so Render showed 502 and the dashboard died.
+- Fit here: more swing strategies wired means a longer pass; anything heavy added to the scan lengthens the outage unless it runs off the loop.
+- Result: pass moved to a worker thread with its own DB connection; local server answers in 6s instead of never.
+- Surprised: tests passed (they never run the live loop); only a real server start exposes it.
+- Reuse: after wiring more strategies into the scan, start the app and hit an endpoint during a pass.
+- Profit-booking / exit takeaway: a frozen server also freezes SL sync and exits, so keeping the loop free protects open positions.

@@ -20964,6 +20964,12 @@ def _run_swing_scan(conn):
             print(f"[SWING] post-pass bookkeeping failed (non-fatal): {e}")
 
 
+def _run_swing_scan_own_conn():
+    """Thread-safe wrapper: sqlite connections are per-thread, so the swing pass opens its own."""
+    with closing(get_db()) as c:
+        return _run_swing_scan(c)
+
+
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
@@ -20975,7 +20981,9 @@ async def _scheduler_tick():
             except Exception as e:
                 print(f"[SWING] gap_and_go state restore failed (non-fatal): {e}")
         try:
-            _run_swing_scan(conn)
+            # Off the event loop (2026-10-13): the 1d swing pass fetches ~380 symbols x 2y of bars
+            # synchronously, which froze the whole HTTP server (Render 502) for the length of every pass.
+            await asyncio.to_thread(_run_swing_scan_own_conn)
         except Exception as e:
             print(f"[SWING] scan failed (non-fatal, intraday tick continues): {e}")
         global _swing_sl_trail_last_day
