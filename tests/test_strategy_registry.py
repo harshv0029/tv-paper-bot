@@ -131,7 +131,7 @@ def test_max_strategy_checks_per_symbol_per_cycle_scales_with_category_count():
     # number, so this test can't silently drift from what the constant
     # itself is defined to do.
     assert sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE == len(sr.TradeCategory) * sr.TOP_N_PER_CATEGORY
-    assert sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE == 30
+    assert sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE == 35
 
 
 def test_is_viable_none_when_no_metrics():
@@ -380,3 +380,10 @@ def test_quality_viable_table_needs_30_trades_and_hold_within_3_trading_days():
             assert row["pfnet"] >= sr.PFNET_LIVE_FLOOR
             assert row["n_trades"] >= sr.QUALITY_MIN_TRADES
             assert row["avg_held_hrs"] <= sr.QUALITY_MAX_HOLD_HRS
+
+
+def test_options_multi_enum_b905():
+    assert sr.TradeCategory.OPTIONS_MULTI.value == "options_multi"
+    assert sr.TradeCategory.OPTIONS.value == "options"  # single-strike key never renamed
+    assert len(sr.TradeCategory) == 7
+    assert sr.leaderboard(sr.TradeCategory.OPTIONS_MULTI) == []
