@@ -48,3 +48,14 @@ def test_stack_set_undo_restore_and_cap(monkeypatch):
 
 def test_stack_table_is_mirrored():
     assert "strategy_viable_stack" in main._GENERIC_MIRROR_TABLES
+
+
+def test_stack_relabel_renames_in_place(monkeypatch):
+    _fresh_db()
+    monkeypatch.setattr(main, "sync_generic_tables_external", lambda only=None: 0)
+    a = [d for d in sr.REGISTRY if d.metrics][0]
+    out = _post({"action": "set", "names": [a.name], "label": "explorer set"})
+    sid = out["stack"][0]["id"]
+    out = _post({"action": "relabel", "id": sid, "label": "pfnet(1.1-100), min(30), maxhold(18.75)"})
+    assert out["stack"][0]["label"].startswith("pfnet(") and out["stack"][0]["id"] == sid
+    assert out["stack"][0]["count"] == 1

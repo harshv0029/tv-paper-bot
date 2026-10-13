@@ -373,6 +373,7 @@
     <button id="sx-unwire" title="Pops the top definition so the previous one becomes active.">Undo (previous definition)</button>
     <select id="sx-stack" title="Viable-definition stack, newest first"></select>
     <button id="sx-restore">Restore selected</button>
+    <button id="sx-rename" title="Name the selected stack entry (e.g. legacy one showing N strategies)">Rename selected</button>
     <span id="sx-msg" style="color:#64748b"></span>
   </div>
   <div class="counts-scroll"><table class="counts">
@@ -422,6 +423,12 @@
   });
   document.getElementById("sx-unwire").addEventListener("click",function(){post({action:"undo"});});
   document.getElementById("sx-restore").addEventListener("click",function(){post({action:"restore",id:Number(document.getElementById("sx-stack").value)});});
+  document.getElementById("sx-rename").addEventListener("click",function(){
+    var gv=function(id,d){var v=document.getElementById(id).value;return v===""?d:v;};
+    var def="pfnet("+gv("sx-pfmin","0")+"-"+gv("sx-pfmax","100")+"), min("+gv("sx-minn","0")+"), maxhold("+gv("sx-hold","any")+")";
+    var lbl=window.prompt("Label for the selected entry (must start with pfnet( to display):",def);
+    if(lbl)post({action:"relabel",id:Number(document.getElementById("sx-stack").value),label:lbl});
+  });
   document.getElementById("sx-go").addEventListener("click",go);
 })();
 </script>
