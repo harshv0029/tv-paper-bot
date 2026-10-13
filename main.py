@@ -10403,6 +10403,44 @@ def _auto_signal_core(
 
 RANGE_SHORT_STRATEGY_TAG = f"{ORB_STRATEGY_PREFIX}range-short"
 TREND_SHORT_STRATEGY_TAG = f"{ORB_STRATEGY_PREFIX}trend-short"
+# B-914: chan_kalman band short, 5m, ve 1e-3, z 2.0, ATR x4 stop, forced flat before the 15:15 IST exchange cancel.
+# Replayed through the chan_kalman_band_short_* functions below (run 38390561217). Real entry/exit still go through the
+# normal short engine and the PFnet gate; the only extras are the 15:00 entry cutoff and the 15:10 flatten.
+CHAN_SHORT_TAG = "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2"
+CHAN_SHORT_Z = 2.0
+CHAN_SHORT_VE = 1e-3
+CHAN_SHORT_ATR_MULT = 4.0
+CHAN_SHORT_HOLD_BARS = 40
+CHAN_SHORT_ENTRY_CUTOFF_MIN = 15 * 60       # no new entries from 15:00 IST
+CHAN_SHORT_FLATTEN_START_MIN = 15 * 60 + 10  # flatten pass 15:10-15:14 IST
+CHAN_SHORT_FLATTEN_END_MIN = 15 * 60 + 15
+
+
+def _chan_short_frame(df, ts_utc):
+    """df re-indexed by its UTC timestamps, as the chan_* functions expect."""
+    out = df.copy()
+    out.index = pd.DatetimeIndex(ts_utc)
+    return out
+
+
+def _chan_short_manage(conn, symbol, row, df, ts_utc, interval, mins_now, exit_price, halted):
+    """Exit reason for an open chan short, or None. Order: halt, stop, flatten (15:10+), state/max-hold."""
+    if halted:
+        return "daily_loss_cap_hit"
+    if exit_price >= row["stop_loss"]:
+        return "stop_hit"
+    if mins_now >= CHAN_SHORT_FLATTEN_START_MIN:
+        return "flatten_1515"
+    try:
+        dfc = _chan_short_frame(df, ts_utc)
+        entry_pos = int(np.searchsorted(dfc.index.view("int64") // 10**9, int(row["entry_ts"]), side="left"))
+        entry_pos = min(entry_pos, len(dfc) - 1)
+        res = chan_kalman_band_short_exit_reason(
+            dfc, interval, entry_pos, float(row["entry_price"]), float(row["stop_loss"]),
+            hold=CHAN_SHORT_HOLD_BARS, ve=CHAN_SHORT_VE)
+    except Exception:
+        return None
+    return res[0] if res else None
 
 
 def _close_short_position(conn, symbol: str, row, exit_price: float, exit_reason: str):
@@ -10424,6 +10462,57 @@ def _close_short_position(conn, symbol: str, row, exit_price: float, exit_reason
     conn.execute("DELETE FROM signal_state_short WHERE symbol = ?", (symbol,))
     conn.commit()
     return pnl_inr
+
+
+def _chan_short_try_entry(conn, symbol, df, ts_utc, today_df, last_close, today_str, interval, capital,
+                          risk_per_trade_pct, fx_to_inr, currency, result):
+    """Paper chan_kalman short entry. Returns the result dict when it entered, else None (caller falls through)."""
+    try:
+        sig = chan_kalman_band_short_entry_signal(
+            _chan_short_frame(df, ts_utc), interval, z=CHAN_SHORT_Z, ve=CHAN_SHORT_VE, atr_mult=CHAN_SHORT_ATR_MULT)
+    except Exception:
+        return None
+    if not sig:
+        return None
+    if conn.execute("SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)).fetchone():
+        return None
+    liq_ok, _ = _liquidity_gate(df)
+    if not liq_ok or _likely_lower_circuit_locked(df, today_str):
+        return None
+    stop_loss = last_close + sig["atr_mult"] * sig["atr"]
+    stop_dist = stop_loss - last_close
+    if stop_dist <= 0:
+        return None
+    available = max(0.0, capital - deployed_notional(conn))
+    usable = min(available, capital / CAPITAL_TRANCHES)
+    unit_inr = last_close * fx_to_inr
+    if unit_inr <= 0:
+        return None
+    qty = float(math.floor(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr)))
+    if qty <= 0 or qty * unit_inr < 100.0:
+        return None
+    target = round(last_close * 0.01, 4)  # unreachable on purpose: exits are stop / state / hold / flatten
+    conn.execute(
+        "INSERT INTO signal_state_short "
+        "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval, entry_regime, peak_ltp, strategy, exit_legs_json) "
+        "VALUES (?, ?, 'short', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL) "
+        "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
+        "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, "
+        "initial_stop_loss=excluded.initial_stop_loss, target=excluded.target, qty=excluded.qty, "
+        "entry_ts=excluded.entry_ts, fx_to_inr=excluded.fx_to_inr, interval=excluded.interval, "
+        "entry_regime=excluded.entry_regime, peak_ltp=excluded.peak_ltp, strategy=excluded.strategy, "
+        "exit_legs_json=excluded.exit_legs_json",
+        (symbol, today_str, last_close, stop_loss, stop_loss, target, qty, time.time(),
+         fx_to_inr, interval, "chan_kalman", last_close, CHAN_SHORT_TAG),
+    )
+    conn.commit()
+    result.update(action_taken="entered_short", entry={
+        "symbol": symbol, "action": "sell_to_open", "qty": qty, "price": last_close,
+        "currency": currency, "fx_to_inr": fx_to_inr, "strategy": CHAN_SHORT_TAG,
+        "stop_loss": stop_loss, "target": target,
+        "notional_native": round(qty * last_close, 2), "notional_inr": round(qty * last_close * fx_to_inr, 2),
+    })
+    return result
 
 
 def _short_signal_core(
@@ -10545,6 +10634,16 @@ def _short_signal_core(
 
         result = {"symbol": symbol, "status": "ok", "time_local": str(now_local), "market_regime": None}
 
+        if row and row["strategy"] == CHAN_SHORT_TAG:
+            exit_price = live_price if live_price else last_close
+            _why = _chan_short_manage(conn, symbol, row, df, ts_utc, interval, mins_now, exit_price, halted)
+            if _why:
+                pnl_inr = _close_short_position(conn, symbol, row, exit_price, _why)
+                result.update(action_taken=f"exited_short_{_why}", exit_price=exit_price, pnl_inr=round(pnl_inr, 2))
+                return result
+            result["action_taken"] = "holding_short"
+            return result
+
         if row:
             trough, candidate_stop = _trailing_stop_target_short(
                 today_df, row["entry_price"], row["initial_stop_loss"], row["entry_ts"], tz_offset_min,
@@ -10611,6 +10710,14 @@ def _short_signal_core(
         if is_squareoff_time or halted:
             result["action_taken"] = "no_new_entry_squareoff_or_halted"
             return result
+
+        # B-914: chan_kalman band short (only when its registry entry is viable; otherwise paper stays on the old engines).
+        if (interval == "5m" and mins_now < CHAN_SHORT_ENTRY_CUTOFF_MIN
+                and _is_strategy_viable_for_real_money(CHAN_SHORT_TAG)):
+            _chan = _chan_short_try_entry(conn, symbol, df, ts_utc, today_df, last_close, today_str, interval, capital,
+                                          risk_per_trade_pct, fx_to_inr, currency, result)
+            if _chan is not None:
+                return _chan
 
         market_regime = _classify_market_regime(df, sma_fast, sma_slow, ma_type)
         result["market_regime"] = market_regime
@@ -11351,6 +11458,7 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "orb-swing-gap-and-go": "gap_and_go__swing__long__1d__hold30__v1",
     "orb-trend-short": "trend_down_momentum_short",
     "orb-range-short": "range_short_staged_ladder",
+    CHAN_SHORT_TAG: CHAN_SHORT_TAG,
     # Swing's own real-entry call sites pass a plain label (see
     # _maybe_place_real_swing_entry's call sites), not an ORB-prefixed
     # tag - "minervini_vcp" maps to minervini_trend_template_vcp per that
@@ -12284,6 +12392,13 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         _log_signal_shadow(conn, strategy_tag if 0<2 else strategy, symbol, 'short', False, 'real entry: strategy below PFnet floor', hard_gate=True)
         return
 
+    if strategy_tag == CHAN_SHORT_TAG:
+        _n = ist_now()
+        if _n.hour * 60 + _n.minute >= CHAN_SHORT_ENTRY_CUTOFF_MIN:
+            _log_real_attempt(conn, symbol, "S", "skipped_after_entry_cutoff",
+                              detail="chan_kalman short: no new real entries from 15:00 IST (flatten at 15:10)")
+            return
+
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
     remaining_cap_inr = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
     real_capital_for_sizing = get_scheduler_capital_inr()
@@ -12386,6 +12501,11 @@ def _maybe_place_real_short_entry(conn, symbol: str):
             )
             conn.commit()
             _sync_real_positions_short_external(conn)
+            if real_strategy == CHAN_SHORT_TAG:
+                # No trade without SL: a chan short whose stop cannot be placed is unwound at market now.
+                _maybe_place_real_short_exit(conn, symbol, reason="entry_sl_failed_unwind")
+    elif real_strategy == CHAN_SHORT_TAG:
+        _maybe_place_real_short_exit(conn, symbol, reason="entry_sl_failed_unwind")
 
 
 def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
@@ -21153,6 +21273,17 @@ def _fo_tick_steps():
             print(f"[REAL F&O] {fn.__name__} failed (non-fatal): {e}")
 
 
+def _chan_short_flatten_due(symbol: str) -> bool:
+    """True from 15:10 to 15:14 IST while a real chan_kalman short is still open for symbol (retried every tick)."""
+    n = ist_now()
+    m = n.hour * 60 + n.minute
+    if not (CHAN_SHORT_FLATTEN_START_MIN <= m < CHAN_SHORT_FLATTEN_END_MIN):
+        return False
+    with closing(get_db()) as c:
+        return bool(c.execute("SELECT 1 FROM real_positions_short WHERE symbol = ? AND strategy = ?",
+                              (symbol, CHAN_SHORT_TAG)).fetchone())
+
+
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
@@ -21461,6 +21592,10 @@ async def _scheduler_tick():
                     if cfg["symbol"] in _REAL_OPTION_UNDERLYING:
                         with closing(get_db()) as fo_conn:
                             _maybe_place_real_fo_put_exit(fo_conn, cfg["symbol"], reason=f"paper index short exit: {short_action}")
+                elif _chan_short_flatten_due(cfg["symbol"]):
+                    # B-914: exchange cancels resting orders at 15:15 IST, so flat by our own market cover first.
+                    with closing(get_db()) as real_conn:
+                        _maybe_place_real_short_exit(real_conn, cfg["symbol"], reason="flatten_1515")
                 else:
                     # 2026-09-30, explicit user instruction ("make short
                     # positions equally mirrored as done in buy

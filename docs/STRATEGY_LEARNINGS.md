@@ -1003,3 +1003,11 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: cost swings PFnet by ~0.6 on high-turnover cells; only cells viable at BOTH costs are robust.
 - Reuse: run every intraday cell at 0.8% and 0.3%; wire only cells viable at both.
 - Profit-booking / exit takeaway: lower realised cost directly lifts net P&L, so prefer limit-style exits at state_exit where possible; do not rely on cost cuts to admit weak cells.
+
+## chan_kalman band short wiring (B-915, 2026-10-13)
+- Mechanism: Kalman error above z*sqrtQ on log price at 5m, short at next open, ATR x4 stop, forced flat before the exchange's 15:15 IST order cancel.
+- Fit: the paper short engine already mirrors to real via the PFnet gate, so the wiring is a new entry/exit branch plus a 15:00 entry cutoff and a 15:10 flatten; the exchange cancels resting SLs at 15:15 so the bot must cover itself. Every real entry carries its SL in the same request or is unwound (`entry_sl_failed_unwind`).
+- Result: replay through the real main.py functions, PFnet 1.645 at 0.8% round trip (n 1019, win 59.6%, hold 0.71h), all 24 cells 1.39-2.55 at 0.3%.
+- Surprise: the two guard tests only allow viable research entries with an allowlisted `source`; new registrations must reuse it.
+- Reuse: exits that are stop/state/time based need their own branch ahead of the staged-ladder code; keep the target unreachable instead of editing the shared exit chain.
+- Profit-booking / exit takeaway: same-day capital turnover (0.7h hold) is the edge, so a failed flatten is the main risk; it retries every tick until 15:15.
