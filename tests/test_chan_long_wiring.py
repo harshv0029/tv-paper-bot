@@ -93,3 +93,18 @@ def test_real_entry_rechecks_stack_before_order():
     import inspect
     src = inspect.getsource(main._maybe_place_real_entry)
     assert src.index("_load_viable_overrides()") < src.index("place_real_entry(kotak_symbol")
+
+
+def test_b962_fresh_stack_read_precedes_every_real_entry_order():
+    import re
+    src = open("main.py").read()
+    for call in ("place_real_short_entry(kotak_symbol, qty, ltp)", "place_real_entry(kotak_symbol, qty, ltp)"):
+        for m in re.finditer(re.escape("kotak_real_orders." + call), src):
+            window = src[max(0, m.start() - 1500):m.start()]
+            assert "_load_viable_overrides()" in window, call
+
+
+def test_swing_long_unwinds_when_entry_sl_fails():
+    src = open("main.py").read()
+    i = src.index("unwinding at market (no trade without SL)")
+    assert 'reason="entry_sl_failed_unwind"' in src[i:i + 900]

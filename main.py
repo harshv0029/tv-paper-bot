@@ -12912,6 +12912,13 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         )
         return
 
+    # B-962: re-read the newest viable stack immediately before the order.
+    _load_viable_overrides()
+    if not _is_strategy_viable_for_real_money(strategy_tag):
+        _log_real_attempt(conn, symbol, "S", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
+                          detail=f"strategy {strategy_tag!r} no longer viable on the fresh stack re-check just before the order")
+        return
+
     import kotak_real_orders
     result = kotak_real_orders.place_real_short_entry(kotak_symbol, qty, ltp)
     if not result.get("ok"):
@@ -19722,6 +19729,13 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         )
         return
 
+    # B-962: re-read the newest viable stack immediately before the order.
+    _load_viable_overrides()
+    if not _is_strategy_viable_for_real_money(strategy):
+        _log_real_attempt(conn, symbol, "B", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
+                          strategy=strategy, detail=f"strategy {strategy!r} no longer viable on the fresh stack re-check just before the order")
+        return
+
     import kotak_real_orders
     result = kotak_real_orders.place_real_entry(kotak_symbol, qty, ltp)
     if not result.get("ok"):
@@ -19789,11 +19803,13 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         conn.commit()
         _sync_real_positions_swing_external(conn)
         print(f"[REAL SWING] SL placement FAILED for {kotak_symbol}: {sl_result.get('detail')} "
-              f"- position open at Kotak with NO resting stop yet, will retry next day's scan")
+              f"- position open at Kotak with NO resting stop - unwinding at market (no trade without SL)")
         _log_real_order_event(
             conn, symbol, "sl", "failed", kotak_trading_symbol=kotak_symbol,
             prev_state="none", new_state="none (placement failed)", detail=sl_result.get("detail"),
         )
+        # No trade without SL (user 2026-10-11): an entry whose stop cannot be placed is unwound at market now.
+        _maybe_place_real_swing_exit(conn, symbol, reason="entry_sl_failed_unwind")
 
 
 def _maybe_sync_real_swing_stop_loss(conn):
@@ -20590,6 +20606,83 @@ for _t in SHORT_SWING_TAGS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 
 
+# ---- B-9xx (2026-10-13): sector_rotation FADE SHORT 1d cells in the short-swing engine ----
+# Replayed (class-A run, real main.sector_rotation_fade_short_* fns; fills stop/gap_aware/close; PFnet 1.2-1.5, n~677).
+# Rule: at the daily close, the strongest-breadth sector (>=60% up, >=5 symbols) -> SHORT its top-N by L-day return;
+# fixed stop = entry + k x ATR14 (sector_rotation_fade_short_stop; None = no entry, no trade without SL); exit at the
+# stop (high-based, gap-aware) or the close of the H-th bar after entry (sector_rotation_fade_short_exit_reason).
+# Every cell holds >= 5 trading days = OVERNIGHT, so the REAL leg rides _maybe_place_real_swing_short_entry's existing
+# fail-closed SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED check (B-912); there is no h1 cell, so nothing needs the 15:10
+# flatten. Paper runs now. Deviation from the replay (entry = next open): paper enters at the signal close, like brk20.
+SECTOR_FADE_SHORT_L = 5
+SECTOR_FADE_SHORT_N = 1
+# (atr_mult, hold_days); order = task order, first VIABLE cell whose pick fires owns the symbol (one row per symbol).
+_SECTOR_FADE_SHORT_SPECS = ((1.5, 10), (1.5, 5), (4.0, 5), (6.0, 5), (6.0, 10), (2.5, 5))
+
+
+def _sector_fade_short_cell_tag(atr_mult, hold):
+    return (f"sector_rotation__fade__short__1d__atr{f'{atr_mult:.1f}'.replace('.', 'd')}_h{int(hold)}"
+            f"_l{SECTOR_FADE_SHORT_L}_n{SECTOR_FADE_SHORT_N}__v1")
+
+
+SECTOR_FADE_SHORT_CELLS = {_sector_fade_short_cell_tag(a, h): (a, h) for a, h in _SECTOR_FADE_SHORT_SPECS}
+for _t in SECTOR_FADE_SHORT_CELLS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
+
+
+def _sector_fade_short_exit(df, pos):
+    """(reason, exit_price) for an open sector-fade short, or None. Replays the bars AFTER the signal day through the
+    real sector_rotation_fade_short_exit_reason (row 0 = fill bar), so a skipped scan day cannot hide a stop."""
+    cell = SECTOR_FADE_SHORT_CELLS.get(pos["strategy"])
+    if cell is None or len(df) == 0:
+        return None
+    d = df
+    if "Date" not in d.columns:
+        d = d.assign(Date=pd.Series(pd.DatetimeIndex(d.index).strftime("%Y-%m-%d"), index=d.index))
+    bars = d[d["Date"].astype(str).str[:10] > str(pos["entry_day"])[:10]]
+    if len(bars) == 0:
+        return None
+    res = sector_rotation_fade_short_exit_reason(bars, float(pos["initial_stop_loss"]), cell[1], "gap_aware")
+    if not res:
+        return None
+    return "short_swing_" + res[0], float(res[1])
+
+
+def _sector_fade_short_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> str | None:
+    """Opens at most one paper sector-fade short for `symbol` (a pick of the strongest sector) and offers the real
+    mirror. No entry while the symbol holds ANY swing position, an open intraday long, or a real position."""
+    for _tbl in ("signal_state_swing", "signal_state_swing_short", "real_positions_swing",
+                 "real_positions_swing_short", "real_positions_short", "real_positions"):
+        if conn.execute(f"SELECT 1 FROM {_tbl} WHERE symbol = ?", (symbol,)).fetchone():
+            return None
+    if conn.execute("SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)).fetchone():
+        return None
+    atr_v = _compute_atr_value(df, 14)
+    entry_price = float(df["Close"].iloc[-1])
+    for tag, (atr_mult, _hold) in SECTOR_FADE_SHORT_CELLS.items():
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            continue
+        stop_loss = sector_rotation_fade_short_stop(entry_price, atr_v, atr_mult)
+        if stop_loss is None or stop_loss <= entry_price:
+            continue  # no valid stop -> no entry (no trade without SL)
+        qty = _short_swing_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            continue
+        conn.execute(
+            "INSERT INTO signal_state_swing_short (symbol, strategy, entry_day, entry_price, initial_stop_loss, qty, "
+            "entry_ts, fx_to_inr, atr_at_entry) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, today, entry_price, stop_loss, qty, time.time(), fx, float(atr_v)),
+        )
+        conn.commit()
+        print(f"[SWING SHORT] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_short_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING SHORT] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return tag
+    return None
+
+
 def _short_swing_exit_reason(df, entry_day, initial_stop, atr_at_entry, tag):
     """Replays every completed bar after the signal day through brk20_min_rr_exit_reason (short path: gap-aware stop ->
     EMA13 rule exit -> 30-bar timeout), so a skipped scan day cannot hide a stop or the exact timeout. The entry price
@@ -20684,10 +20777,22 @@ def _short_swing_close_paper(conn, symbol, pos, exit_price, reason):
 def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
     """Exits first, then entries, for the short-swing engine. Runs at the end of the daily swing scan, so a long
     swing entry made earlier the same scan always wins the symbol. Never raises per symbol."""
+    for _t in SECTOR_FADE_SHORT_CELLS:
+        _record_strategy_scan(_t)
+    try:  # sector-fade picks are cross-sectional: computed once per pass from the whole scan universe
+        sector_picks = set(sector_rotation_fade_short_picks(dfs, SECTOR_FADE_SHORT_L, SECTOR_FADE_SHORT_N))
+    except Exception as e:
+        print(f"[SWING SHORT] sector fade picks failed (non-fatal): {e}")
+        sector_picks = set()
     for symbol, df in dfs.items():
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone()
             if pos:
+                if pos["strategy"] in SECTOR_FADE_SHORT_CELLS:
+                    ex = _sector_fade_short_exit(df, pos)
+                    if ex:
+                        _short_swing_close_paper(conn, symbol, pos, ex[1], ex[0])
+                    continue
                 reason = _short_swing_exit_reason(df, pos["entry_day"], pos["initial_stop_loss"],
                                                   pos["atr_at_entry"], pos["strategy"])
                 if reason:
@@ -20696,7 +20801,10 @@ def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
             if symbol in done_syms:
                 continue
             cfg = NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
-            _short_swing_try_entry(conn, symbol, df, capital, cfg["risk_pct"], today, 1.0)
+            if _short_swing_try_entry(conn, symbol, df, capital, cfg["risk_pct"], today, 1.0):
+                continue
+            if symbol in sector_picks:
+                _sector_fade_short_try_entry(conn, symbol, df, capital, cfg["risk_pct"], today, 1.0)
         except Exception as e:
             print(f"[SWING SHORT] scan failed for {symbol} (non-fatal): {e}")
 
@@ -20807,6 +20915,11 @@ def _maybe_place_real_swing_short_entry(conn, symbol, paper_qty, paper_entry_pri
                           price_est=ltp, detail=loss["detail"], strategy=strategy)
         return
 
+    _load_viable_overrides()  # B-962: fresh newest-stack read + viability re-check right before the order
+    if not _is_strategy_viable_for_real_money(strategy):
+        _log_real_attempt(conn, symbol, "S", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
+                          price_est=ltp, strategy=strategy, detail="entry-time viability re-check failed (B-962)")
+        return
     import kotak_real_orders
     result = kotak_real_orders.place_real_short_entry(kotak_symbol, qty, ltp, product=SHORT_SWING_PRODUCT)
     if not result.get("ok"):
