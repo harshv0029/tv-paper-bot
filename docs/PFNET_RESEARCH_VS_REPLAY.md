@@ -6,30 +6,30 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 
 | Replay tag | Research tag | Research PFnet | Research n | Replay PFnet | Replay n | Delta | Flag |
 |---|---|---|---|---|---|---|---|
-| reversal__island_gap05_mr__long__1d__atr1d5_within8__segis__v2 | reversal__island_gap05__long__1d__atr1d5_within8__segis__v2 | 2.27 | 2418 | 0.00 | 0 | -2.27 | replay lower |
-| reversal__island_gap05_mr__long__1d__atr1d5_within8__nonovl__v2 | reversal__island_gap05__long__1d__atr1d5_within8__nonovl__v2 | 1.94 | 3169 | 0.00 | 0 | -1.94 | replay lower |
 | swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr4__v1 | swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1 | 2.70 | 49 | 2.85 | 51 | 0.15 | close |
 | swingminrr__minervini_vcp_base_mr__long__1d__atr1d5__v1 | swingminrr__minervini_vcp_base__long__1d__atr1d5__v1 | 1.16 | 2606 | 1.35 | 2404 | 0.20 | close |
 | swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr3__v1 | swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1 | 2.06 | 111 | 2.30 | 110 | 0.23 | close |
 | swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr2__v1 | swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1 | 1.26 | 341 | 1.59 | 327 | 0.33 | replay higher |
-| reversal__island_turn1cr_mr__long__1d__atr1d5_within8__segoos__v2 | reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2 | 1.32 | 1766 | 1.66 | 1775 | 0.34 | replay higher |
-| reversal__island_px20_mr__long__1d__atr1d5_within8__segoos__v2 | reversal__island_px20__long__1d__atr1d5_within8__segoos__v2 | 1.18 | 2944 | 1.58 | 2987 | 0.40 | replay higher |
-| reversal__island_turn1cr_mr__long__1d__atr1d5_within8__nonovl__v2 | reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 | 1.28 | 3082 | 1.68 | 3090 | 0.41 | replay higher |
-| reversal__island_turn1cr_mr__long__1d__atr1d5_within8__segis__v2 | reversal__island_turn1cr__long__1d__atr1d5_within8__segis__v2 | 1.24 | 1316 | 1.69 | 1312 | 0.45 | replay higher |
-| reversal__island_turn1cr_mr__long__1d__atr1d5_within8__v1 | reversal__island_turn1cr__long__1d__atr1d5_within8__v1 | 1.27 | 3088 | 1.74 | 3348 | 0.47 | replay higher |
-| reversal__island_none_mr__long__1d__atr1d5_within8__segoos__v2 | reversal__island_none__long__1d__atr1d5_within8__segoos__v2 | 1.19 | 3358 | 1.67 | 3442 | 0.48 | replay higher |
-| reversal__island_px20_mr__long__1d__atr1d5_within8__nonovl__v2 | reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2 | 1.34 | 6950 | 1.87 | 6816 | 0.53 | replay higher |
+| reversal__island_turn1cr_mr__long__1d__atr1d5_within8__segoos__v2 | reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2 | 1.32 | 1766 | 1.66 | 1772 | 0.34 | replay higher |
+| reversal__island_turn1cr_mr__long__1d__atr1d5_within8__nonovl__v2 | reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2 | 1.28 | 3082 | 1.67 | 3087 | 0.39 | replay higher |
+| reversal__island_px20_mr__long__1d__atr1d5_within8__segoos__v2 | reversal__island_px20__long__1d__atr1d5_within8__segoos__v2 | 1.18 | 2944 | 1.59 | 2981 | 0.41 | replay higher |
+| reversal__island_turn1cr_mr__long__1d__atr1d5_within8__segis__v2 | reversal__island_turn1cr__long__1d__atr1d5_within8__segis__v2 | 1.24 | 1316 | 1.70 | 1310 | 0.47 | replay higher |
+| reversal__island_turn1cr_mr__long__1d__atr1d5_within8__v1 | reversal__island_turn1cr__long__1d__atr1d5_within8__v1 | 1.27 | 3088 | 1.74 | 3353 | 0.48 | replay higher |
+| reversal__island_none_mr__long__1d__atr1d5_within8__segoos__v2 | reversal__island_none__long__1d__atr1d5_within8__segoos__v2 | 1.19 | 3358 | 1.68 | 3436 | 0.49 | replay higher |
+| reversal__island_px20_mr__long__1d__atr1d5_within8__nonovl__v2 | reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2 | 1.34 | 6950 | 1.86 | 6805 | 0.53 | replay higher |
 | brk20_min_rr__main_replay_mr__short__1d__atr4_rr3__v1 | brk20_min_rr__main_replay__short__1d__atr4_rr3__v1 | 2.58 | 273 | 3.15 | 280 | 0.57 | replay higher |
 | brk20_min_rr__main_replay_mr__short__1d__atr3_rr4__v1 | brk20_min_rr__main_replay__short__1d__atr3_rr4__v1 | 2.47 | 275 | 3.04 | 281 | 0.57 | replay higher |
 | brk20_min_rr__main_replay_mr__short__1d__atr3_rr3__v1 | brk20_min_rr__main_replay__short__1d__atr3_rr3__v1 | 1.66 | 582 | 2.27 | 584 | 0.61 | replay higher |
-| reversal__island_px20_mr__long__1d__atr1d5_within8__segis__v2 | reversal__island_px20__long__1d__atr1d5_within8__segis__v2 | 1.44 | 4006 | 2.06 | 3816 | 0.62 | replay higher |
-| reversal__island_px20_mr__long__1d__atr1d5_within8__v1 | reversal__island_px20__long__1d__atr1d5_within8__v1 | 1.31 | 6959 | 1.94 | 8777 | 0.63 | replay higher |
+| reversal__island_px20_mr__long__1d__atr1d5_within8__segis__v2 | reversal__island_px20__long__1d__atr1d5_within8__segis__v2 | 1.44 | 4006 | 2.06 | 3818 | 0.63 | replay higher |
 | brk20_min_rr__main_replay_mr__short__1d__atr3_rr3d5__v1 | brk20_min_rr__main_replay__short__1d__atr3_rr3d5__v1 | 2.07 | 382 | 2.70 | 388 | 0.63 | replay higher |
-| reversal__island_none_mr__long__1d__atr1d5_within8__nonovl__v2 | reversal__island_none__long__1d__atr1d5_within8__nonovl__v2 | 1.52 | 8879 | 2.21 | 8684 | 0.69 | replay higher |
-| reversal__island_mr__long__1d__atr1d5_within8__v1 | reversal__island__long__1d__atr1d5_within8__v1 | 1.51 | 8888 | 2.31 | 11403 | 0.80 | replay higher |
-| reversal__island_none_mr__long__1d__atr1d5_within8__v1 | reversal__island_none__long__1d__atr1d5_within8__v1 | 1.50 | 8892 | 2.31 | 11403 | 0.81 | replay higher |
-| reversal__island_none_mr__long__1d__atr1d5_within8__segis__v2 | reversal__island_none__long__1d__atr1d5_within8__segis__v2 | 1.70 | 5521 | 2.53 | 5233 | 0.83 | replay higher |
+| reversal__island_px20_mr__long__1d__atr1d5_within8__v1 | reversal__island_px20__long__1d__atr1d5_within8__v1 | 1.31 | 6959 | 1.95 | 8756 | 0.64 | replay higher |
+| reversal__island_none_mr__long__1d__atr1d5_within8__nonovl__v2 | reversal__island_none__long__1d__atr1d5_within8__nonovl__v2 | 1.52 | 8879 | 2.20 | 8676 | 0.69 | replay higher |
+| reversal__island_mr__long__1d__atr1d5_within8__v1 | reversal__island__long__1d__atr1d5_within8__v1 | 1.51 | 8888 | 2.31 | 11385 | 0.81 | replay higher |
+| reversal__island_none_mr__long__1d__atr1d5_within8__v1 | reversal__island_none__long__1d__atr1d5_within8__v1 | 1.50 | 8892 | 2.31 | 11385 | 0.82 | replay higher |
+| reversal__island_none_mr__long__1d__atr1d5_within8__segis__v2 | reversal__island_none__long__1d__atr1d5_within8__segis__v2 | 1.70 | 5521 | 2.53 | 5228 | 0.82 | replay higher |
+| reversal__island_gap05_mr__long__1d__atr1d5_within8__nonovl__v2 | reversal__island_gap05__long__1d__atr1d5_within8__nonovl__v2 | 1.94 | 3169 | 2.95 | 2990 | 1.01 | replay higher |
 | brk20_min_rr__main_replay_mr__short__1d__atr4_rr3d5__v1 | brk20_min_rr__main_replay__short__1d__atr4_rr3d5__v1 | 2.97 | 185 | 3.99 | 189 | 1.02 | replay higher |
+| reversal__island_gap05_mr__long__1d__atr1d5_within8__segis__v2 | reversal__island_gap05__long__1d__atr1d5_within8__segis__v2 | 2.27 | 2418 | 3.44 | 2214 | 1.16 | replay higher |
 | brk20_min_rr__main_replay_mr__short__1d__atr4_rr4__v1 | brk20_min_rr__main_replay__short__1d__atr4_rr4__v1 | 3.95 | 115 | 5.39 | 122 | 1.44 | replay higher |
 | chan_shape__mom_mr__long__1d__atr1d5_hold5__v1 |  |  |  | 0.65 | 62614 |  | no research twin |
 | chan_shape__mom_mr__short__1d__atr1d5_hold5__v1 |  |  |  | 0.70 | 60159 |  | no research twin |

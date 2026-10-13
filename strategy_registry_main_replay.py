@@ -10,6 +10,7 @@ import strategy_registry as sr
 
 _DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data")
 _RUNS = (
+    ("island_main_replay_run_38336515135.json", "island-main-replay.yml run 38336515135 (1d, 5y, cost 0.8%, main.py functions, gap05 fix B-887)", "scripts/island_main_replay.py"),
     ("island_main_replay_run_38309068649.json", "island-main-replay.yml run 38309068649 (1d, 5y, cost 0.8%, main.py functions)", "scripts/island_main_replay.py"),
     ("swing_short_main_replay_run_38318986997.json", "swing-short-main-replay.yml run 38318986997 (1d, 5y, cost 0.8%, main.py functions, fill at signal close)", "scripts/swing_short_main_replay.py"),
 )
