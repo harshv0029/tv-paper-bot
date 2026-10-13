@@ -5891,6 +5891,71 @@ def pl1d_exit_reason(df: pd.DataFrame, entry_day: str, stop: float, hold: int):
     return None, None
 
 
+# ---- B-1001 pattern-lab 1d SHORT mirrors of the pl1d cells (RESEARCH-ONLY: not in PL1D_CELLS, no scan/real path) -------
+# Mirrors (pattern_lab r_bands starc_fade short / r_key_reversal_gaps runaway short): close > SMA6 + 2 x ATR15;
+# open < prior low x 0.99 AND close < SMA50 AND close < open. Stop = entry + k x ATR14 (always attached), exit = gap-aware
+# stop on the high, else the close of the hold-th bar. Each is its OWN tag (dir short), never a flag on the long cell.
+PL1D_SHORT_CELLS = {
+    "starc__fade_full__short__1d__atr2d5_h20__v1": ("starc_fade", 2.5, 20),
+    "gap__runaway__short__1d__atr4_h20__v1": ("gap_runaway", 4.0, 20),
+}
+
+
+def pl1d_short_rule_fires(df: pd.DataFrame, rule: str) -> bool:
+    d = df.iloc[-BRK20_CALC_WINDOW:]
+    if len(d) < PL1D_MIN_BARS:
+        return False
+    o, h, l, c = (d[k].to_numpy(dtype=float) for k in ("Open", "High", "Low", "Close"))
+    last = len(c) - 1
+    if rule == "starc_fade":
+        s6 = float(np.mean(c[last - 5:last + 1]))
+        a15 = float(chan_atr14(h, l, c, 15)[last])
+        return bool(np.isfinite(a15) and a15 > 0 and c[last] > s6 + 2.0 * a15)
+    if rule == "gap_runaway":
+        ma50 = float(np.mean(c[last - 49:last + 1]))
+        return bool(o[last] < l[last - 1] * 0.99 and c[last] < ma50 and c[last] < o[last])
+    return False
+
+
+def pl1d_short_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
+    cfg = PL1D_SHORT_CELLS.get(tag)
+    if cfg is None or len(df) < PL1D_MIN_BARS:
+        return None
+    rule, k, _hold = cfg
+    if not pl1d_short_rule_fires(df, rule):
+        return None
+    d = df.iloc[-BRK20_CALC_WINDOW:]
+    c = d["Close"].to_numpy(dtype=float)
+    atr = float(chan_atr14(d["High"].to_numpy(dtype=float), d["Low"].to_numpy(dtype=float), c)[-1])
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+    px = float(c[-1])
+    stop = px + k * atr
+    if not (stop > px > 0):
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": stop - px, "direction": "short"}
+
+
+def pl1d_short_exit_reason(df: pd.DataFrame, entry_day: str, stop: float, hold: int):
+    """Short mirror of pl1d_exit_reason: (reason, cover_px); stop on the HIGH, gap-aware (later bars cover at max(stop, open))."""
+    if len(df) == 0:
+        return None, None
+    dates = df["Date"].astype(str).str[:10].to_numpy()
+    starts = np.flatnonzero(dates > str(entry_day)[:10])
+    if len(starts) == 0:
+        return None, None
+    start = int(starts[0])
+    o = df["Open"].to_numpy(dtype=float)
+    hi = df["High"].to_numpy(dtype=float)
+    c = df["Close"].to_numpy(dtype=float)
+    for j in range(start, len(df)):
+        if hi[j] >= stop:
+            return "pl1d_short_stop_loss", (float(stop) if j == start else float(max(stop, o[j])))
+        if j - start + 1 >= hold:
+            return "pl1d_short_max_hold_timeout", float(c[j])
+    return None, None
+
+
 def _pl1d_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close, tag):
     """Swing exit fn signature (reason, new_running_max)."""
     if len(df) == 0:

@@ -1113,3 +1113,9 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 ## Chan time-series momentum under FIFO, result (B-807 / B-991, 2026-10-13 IST)
 Lesson: with strict one-position-per-symbol FIFO (run 38187474707, 240 cells, 0.8% cost) the best chan_tsm cell is long 1d atr4d0 hold25 lb120 at PFnet 1.084 (n 50077); none reach 1.1. The 1h long cells that printed 1.55 on ~220k overlapping signals do not survive. Reuse: any cell whose n is in the hundreds of thousands is a stacked-signal count, so run the FIFO check before reading its PFnet; all 240 cells stay registered with full metrics. 4h still owed (B-991).
 Profit-booking / exit takeaway: the apparent edge came from stacked max-hold winners; a hold25 exit only pays if trades are independent, so judge exits on non-overlapping portfolios.
+## pl1d SHORT mirrors 1d: STARC band fade up-side and gap runaway down (B-1001, 2026-10-13)
+- Mechanism: short when close > SMA6 + 2 x ATR15 (fade the overextended spike) and short a >1% gap below the prior low that closes below SMA50 and below its open (downside continuation). Stop entry + k x ATR14 (2.5 / 4.0), cover at the gap-aware stop on the high or the close 20 bars later.
+- Fit: 1d swing-length shorts; a 20-day hold cannot be intraday-MIS, so a live path would need a delivery-short-capable route (Kotak equity shorts are intraday only). Research-only until a replay clears the floor; the stop is attached on every trade so the no-trade-without-SL rule holds in the backtest.
+- Result: pending (workflow pl1d-short-main-replay.yml not yet dispatched). Registered with real metrics whatever the outcome.
+- Reuse: short mirror is its own tag (dir short), built by reflecting the long rule and exit, with the high/low swapped and gap fills at max(stop, open).
+- Profit-booking / exit takeaway: unknown until run; the long cells earned on 20-bar survivors, so check whether the short side repeats that (stops lose, timeout wins) before judging.
