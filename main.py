@@ -15268,8 +15268,14 @@ def signal_funds():
         if k.endswith(":STRIKE") or not _is_non_green_action(act):
             continue
         need = v.get("need_inr")
+        # Show the free-pool figure the sizing decision actually used (Kotak cash minus
+        # capital already deployed in open positions), not gross Kotak cash, so the line
+        # agrees with the "insufficient capital" label it sits under.
+        used = v.get("available_capital_inr")
+        shown = used if used is not None else available
         equity[k] = {"display": _display_name(k), "action": act, "need_inr": need,
-                     "line": _funds_line(available, need)}
+                     "available_inr": shown, "kotak_cash_inr": available,
+                     "line": _funds_line(shown, need)}
     fo = {}
     try:
         diag = fo_entry_diagnosis()
