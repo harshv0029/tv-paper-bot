@@ -1068,7 +1068,7 @@ function renderEntryFunnel(d) {
     const rows = c.attempts.map(r => `<tr><td>${esc(r.status)}</td><td class="num">${r.attempts}</td><td class="num">${r.symbols}</td></tr>`).join("")
       || '<tr><td colspan="3" class="scan-idle">No real-entry attempts today</td></tr>';
     return `<div style="margin:8px 0"><b>${esc(({short_sell:"Short sell",buy:"Intraday buy",swing:"Swing",futures:"Futures",options:"Options",bidirectional:"Others"})[cat] || cat)}</b> — ${esc(c.verdict)}<br>
-      ${c.viable_strategies} viable · ${c.scans_today} scans · ${c.paper_entries_today} paper entries · ${c.placed} real placed · ${c.blocked} real blocked
+      ${c.viable_strategies} viable · ${c.strategies_fired || 0} fired · ${c.scans_today} scans · ${c.paper_entries_today} paper entries · ${c.placed} real placed · ${c.blocked} real blocked
       <table class="counts"><thead><tr><th>Outcome / skip reason</th><th class="num">Attempts</th><th class="num">Symbols</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }).join("");
 }

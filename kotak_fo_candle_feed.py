@@ -101,6 +101,7 @@ _feed_status = {
     # subscribing / streaming), so a feed stuck at connected=false shows WHERE.
     "phase": "starting",
     "phase_since_utc": None,
+    "resolve_progress": None,
     "connected": False,
     "last_error": None,
     "started_at_utc": None,
@@ -391,6 +392,7 @@ def resolve_fo_universe(deadline: float | None = None, stock_offset: int = 0,
         if deadline is not None and time.time() >= deadline:
             unresolved.append(f"{kotak_name}:deadline_exceeded")
             continue
+        _feed_status["resolve_progress"] = {"done": 0, "of": 0, "last": kotak_name, "at": time.time()}
         spot = _spot_price(cash_symbol)
         if spot is None or spot <= 0:
             unresolved.append(f"{kotak_name}:spot_unavailable")
@@ -410,6 +412,7 @@ def resolve_fo_universe(deadline: float | None = None, stock_offset: int = 0,
             unresolved.append(f"{kotak_name}:deadline_exceeded")
             deadline_exceeded_stocks.add(kotak_name)
             continue
+        _feed_status["resolve_progress"] = {"done": i, "of": n_stocks, "last": kotak_name, "at": time.time()}
         spot = _spot_price(f"{kotak_name}.NS")
         if spot is None or spot <= 0:
             unresolved.append(f"{kotak_name}:spot_unavailable")
