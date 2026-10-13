@@ -1065,3 +1065,11 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: a high-PFnet registry tag can name a time slice, not a tradeable rule. Check the tag suffix (_yNNNN, _vixge, _segis/_segoos) before porting.
 - Reuse: port the pooled rule first, replay it, and only then read slices as regime hints. Check the product/hold horizon against the engine's flatten time before choosing an engine.
 - Profit-booking / exit takeaway: both rules' profit sits in the time exit (max hold) not the stop; a wider ATR stop and the hold bar count are the levers, and 1h holds up to 30 bars cannot be booked intraday.
+## brk20_min_rr 1h SHORT (B-968, 2026-10-13): the headline PFnet was an OOS slice, not the strategy
+- Mechanism: 20-bar close breakdown + min reward:risk room to the 60-bar low + ATR stop always attached; exit = gap-aware stop, EMA13 rule exit, 30-bar timeout.
+- Fit here: 1h bars x 30-bar hold is about 5 sessions, so every trade is overnight; the real leg is blocked by the fail-closed overnight NRML short flag (B-967) and there is no 1h swing scan driver.
+- Result: registry shows 4.29 only for the `_oos` slice tag (n=108). Full period atr4_rr4 is PFnet 0.527 (n=1014, win 56%), in-sample 0.492 (n=923). All 12 full-period 1h short cells are 0.53-0.59, below the 1.1 floor. Not wired.
+- Surprised: the best-PFnet-by-tag ranking mixes full-period, IS and OOS slice tags; a high number on a slice with small n and a flat full-period number is a regime artifact. Always compare the slice tag against its full-period sibling before building.
+- Reuse: when ranking build candidates by PFnet, exclude `_is`/`_oos` slice tags (or require the full-period tag to clear the floor) first.
+- Profit-booking / exit takeaway: here the 56% win rate with PFnet 0.5 means winners are small and stop-outs large; the edge was never in the exit, it was a quiet-regime slice.
+
