@@ -383,10 +383,10 @@
 </div>
 <script>
 (function(){
-  var CATS=["buy","short_sell","swing","futures","options","bidirectional"];
+  var CATS=["buy","short_sell","swing","futures","options","options_multi","bidirectional"];
   // Standard category names (user 2026-10-13). Display labels only; internal keys unchanged.
-  var CATLAB={short_sell:"Short sell",buy:"Intraday buy",swing:"Swing",futures:"Futures",options:"Options",bidirectional:"Others"};
-  var CATORDER=["short_sell","buy","swing","futures","options","bidirectional"];
+  var CATLAB={short_sell:"Short sell",buy:"Intraday buy",swing:"Swing",futures:"Futures",options:"Option - single strike",options_multi:"Option - one plus strike",bidirectional:"Others"};
+  var CATORDER=["short_sell","buy","swing","futures","options","options_multi","bidirectional"];
   var box=document.getElementById("sx-cats");
   box.innerHTML=CATORDER.map(function(c){return '<label style="display:block"><input type="checkbox" class="sx-c" value="'+c+'"> '+CATLAB[c]+'</label>';}).join("");
   function esc(t){return String(t).replace(/[&<>]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[m];});}
@@ -1067,7 +1067,7 @@ function renderEntryFunnel(d) {
   body.innerHTML = Object.entries(d.categories).map(([cat, c]) => {
     const rows = c.attempts.map(r => `<tr><td>${esc(r.status)}</td><td class="num">${r.attempts}</td><td class="num">${r.symbols}</td></tr>`).join("")
       || '<tr><td colspan="3" class="scan-idle">No real-entry attempts today</td></tr>';
-    return `<div style="margin:8px 0"><b>${esc(({short_sell:"Short sell",buy:"Intraday buy",swing:"Swing",futures:"Futures",options:"Options",bidirectional:"Others"})[cat] || cat)}</b> — ${esc(c.verdict)}<br>
+    return `<div style="margin:8px 0"><b>${esc(({short_sell:"Short sell",buy:"Intraday buy",swing:"Swing",futures:"Futures",options:"Option - single strike",options_multi:"Option - one plus strike",bidirectional:"Others"})[cat] || cat)}</b> — ${esc(c.verdict)}<br>
       ${c.viable_strategies} viable · ${c.strategies_fired || 0} fired · ${c.scans_today} scans · ${c.paper_entries_today} paper entries · ${c.placed} real placed · ${c.blocked} real blocked
       <table class="counts"><thead><tr><th>Outcome / skip reason</th><th class="num">Attempts</th><th class="num">Symbols</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }).join("");
