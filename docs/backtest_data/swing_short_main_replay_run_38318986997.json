@@ -1,0 +1,362 @@
+{
+ "fill_model": "signal_close",
+ "cost_round_trip_pct": 0.8,
+ "period": "5y",
+ "interval": "1d",
+ "synthetic": false,
+ "note": "tags replayed independently; bar constants are 1d bars; vcp rs_percentile=None",
+ "rows": [
+  {
+   "tag": "brk20_min_rr__main_replay__short__1d__atr3_rr3__v1",
+   "group": null,
+   "metrics": {
+    "n": 584,
+    "win_pct": 43.84,
+    "pfnet": 2.2703856470954706,
+    "pfgross": 2.942732791110046,
+    "avg_net_pct": 3.1257,
+    "avg_gross_pct": 3.9257,
+    "avg_held_bars": 11.86,
+    "exit_reasons": {
+     "short_swing_rule_exit": {
+      "n": 494,
+      "pfnet": 2.0194925052253376,
+      "win_pct": 44.33,
+      "avg_held_bars": 11.08
+     },
+     "short_swing_stop_loss": {
+      "n": 50,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 5.12
+     },
+     "short_swing_max_hold_timeout": {
+      "n": 37,
+      "pfnet": 437.6172328702156,
+      "win_pct": 91.89,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 3,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 17.0
+     }
+    },
+    "avg_held_hours": 284.6
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay__short__1d__atr3_rr3d5__v1",
+   "group": null,
+   "metrics": {
+    "n": 388,
+    "win_pct": 46.13,
+    "pfnet": 2.700291531398231,
+    "pfgross": 3.4929170543847525,
+    "avg_net_pct": 3.9567,
+    "avg_gross_pct": 4.7567,
+    "avg_held_bars": 12.2,
+    "exit_reasons": {
+     "short_swing_rule_exit": {
+      "n": 312,
+      "pfnet": 2.6767949022429867,
+      "win_pct": 48.4,
+      "avg_held_bars": 11.43
+     },
+     "short_swing_stop_loss": {
+      "n": 45,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 5.13
+     },
+     "short_swing_max_hold_timeout": {
+      "n": 29,
+      "pfnet": 348.04057830129193,
+      "win_pct": 89.66,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 19.5
+     }
+    },
+    "avg_held_hours": 292.8
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay__short__1d__atr3_rr4__v1",
+   "group": null,
+   "metrics": {
+    "n": 281,
+    "win_pct": 48.04,
+    "pfnet": 3.0423836682361114,
+    "pfgross": 3.916422425633004,
+    "avg_net_pct": 4.633,
+    "avg_gross_pct": 5.433,
+    "avg_held_bars": 12.64,
+    "exit_reasons": {
+     "short_swing_stop_loss": {
+      "n": 32,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 5.69
+     },
+     "short_swing_rule_exit": {
+      "n": 223,
+      "pfnet": 2.887851124125421,
+      "win_pct": 50.22,
+      "avg_held_bars": 11.5
+     },
+     "short_swing_max_hold_timeout": {
+      "n": 26,
+      "pfnet": 315.7591965580729,
+      "win_pct": 88.46,
+      "avg_held_bars": 31.0
+     }
+    },
+    "avg_held_hours": 303.4
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay__short__1d__atr4_rr3__v1",
+   "group": null,
+   "metrics": {
+    "n": 280,
+    "win_pct": 48.57,
+    "pfnet": 3.145538792968994,
+    "pfgross": 4.067515628090262,
+    "avg_net_pct": 4.726,
+    "avg_gross_pct": 5.526,
+    "avg_held_bars": 12.79,
+    "exit_reasons": {
+     "short_swing_rule_exit": {
+      "n": 239,
+      "pfnet": 2.3432020028897322,
+      "win_pct": 47.28,
+      "avg_held_bars": 11.1
+     },
+     "short_swing_max_hold_timeout": {
+      "n": 26,
+      "pfnet": 315.7591965580729,
+      "win_pct": 88.46,
+      "avg_held_bars": 31.0
+     },
+     "short_swing_stop_loss": {
+      "n": 15,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 8.13
+     }
+    },
+    "avg_held_hours": 307.0
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay__short__1d__atr4_rr3d5__v1",
+   "group": null,
+   "metrics": {
+    "n": 189,
+    "win_pct": 50.26,
+    "pfnet": 3.9933359403885857,
+    "pfgross": 5.185655647683068,
+    "avg_net_pct": 6.1241,
+    "avg_gross_pct": 6.9241,
+    "avg_held_bars": 13.59,
+    "exit_reasons": {
+     "short_swing_rule_exit": {
+      "n": 160,
+      "pfnet": 2.7047807745434542,
+      "win_pct": 48.12,
+      "avg_held_bars": 11.54
+     },
+     "short_swing_max_hold_timeout": {
+      "n": 21,
+      "pfnet": 281.59799746269584,
+      "win_pct": 85.71,
+      "avg_held_bars": 31.0
+     },
+     "short_swing_stop_loss": {
+      "n": 8,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 9.0
+     }
+    },
+    "avg_held_hours": 326.2
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay__short__1d__atr4_rr4__v1",
+   "group": null,
+   "metrics": {
+    "n": 122,
+    "win_pct": 59.02,
+    "pfnet": 5.3916722959211585,
+    "pfgross": 6.867050675922735,
+    "avg_net_pct": 8.0621,
+    "avg_gross_pct": 8.8621,
+    "avg_held_bars": 15.01,
+    "exit_reasons": {
+     "short_swing_rule_exit": {
+      "n": 99,
+      "pfnet": 4.412872323313843,
+      "win_pct": 58.59,
+      "avg_held_bars": 13.06
+     },
+     "short_swing_max_hold_timeout": {
+      "n": 16,
+      "pfnet": 310.10406993065345,
+      "win_pct": 87.5,
+      "avg_held_bars": 31.0
+     },
+     "short_swing_stop_loss": {
+      "n": 7,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 6.0
+     }
+    },
+    "avg_held_hours": 360.2
+   }
+  },
+  {
+   "tag": "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1",
+   "group": null,
+   "metrics": {
+    "n": 2404,
+    "win_pct": 31.91,
+    "pfnet": 1.350649671512829,
+    "pfgross": 1.6154459695223449,
+    "avg_net_pct": 1.5013,
+    "avg_gross_pct": 2.3013,
+    "avg_held_bars": 16.15,
+    "exit_reasons": {
+     "swingminrr_stop_loss": {
+      "n": 1551,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 8.2
+     },
+     "swingminrr_max_hold_timeout": {
+      "n": 830,
+      "pfnet": 70.6054761845202,
+      "win_pct": 90.6,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 23,
+      "pfnet": 12.816010135398852,
+      "win_pct": 65.22,
+      "avg_held_bars": 15.83
+     }
+    },
+    "avg_held_hours": 387.6
+   }
+  },
+  {
+   "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1",
+   "group": null,
+   "metrics": {
+    "n": 327,
+    "win_pct": 31.19,
+    "pfnet": 1.5885783722212785,
+    "pfgross": 1.905022368239507,
+    "avg_net_pct": 2.404,
+    "avg_gross_pct": 3.204,
+    "avg_held_bars": 15.88,
+    "exit_reasons": {
+     "swingminrr_stop_loss": {
+      "n": 211,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 7.87
+     },
+     "swingminrr_max_hold_timeout": {
+      "n": 112,
+      "pfnet": 83.42406555169775,
+      "win_pct": 88.39,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 4,
+      "pfnet": 39.730100040899906,
+      "win_pct": 75.0,
+      "avg_held_bars": 15.25
+     }
+    },
+    "avg_held_hours": 381.1
+   }
+  },
+  {
+   "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1",
+   "group": null,
+   "metrics": {
+    "n": 110,
+    "win_pct": 34.55,
+    "pfnet": 2.2950119387848793,
+    "pfgross": 2.7473656279084255,
+    "avg_net_pct": 4.8577,
+    "avg_gross_pct": 5.6577,
+    "avg_held_bars": 15.82,
+    "exit_reasons": {
+     "swingminrr_max_hold_timeout": {
+      "n": 41,
+      "pfnet": 85.88935191683196,
+      "win_pct": 87.8,
+      "avg_held_bars": 31.0
+     },
+     "swingminrr_stop_loss": {
+      "n": 67,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 6.76
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 8.0
+     }
+    },
+    "avg_held_hours": 379.7
+   }
+  },
+  {
+   "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1",
+   "group": null,
+   "metrics": {
+    "n": 51,
+    "win_pct": 33.33,
+    "pfnet": 2.8451187634487867,
+    "pfgross": 3.4499173304506203,
+    "avg_net_pct": 6.2592,
+    "avg_gross_pct": 7.0592,
+    "avg_held_bars": 14.76,
+    "exit_reasons": {
+     "swingminrr_max_hold_timeout": {
+      "n": 18,
+      "pfnet": 241.08437577989233,
+      "win_pct": 83.33,
+      "avg_held_bars": 31.0
+     },
+     "swingminrr_stop_loss": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 5.77
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 8.0
+     }
+    },
+    "avg_held_hours": 354.2
+   }
+  }
+ ]
+}
