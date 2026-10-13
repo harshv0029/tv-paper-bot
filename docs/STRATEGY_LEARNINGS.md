@@ -988,3 +988,11 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: tests passed (they never run the live loop); only a real server start exposes it.
 - Reuse: after wiring more strategies into the scan, start the app and hit an endpoint during a pass.
 - Profit-booking / exit takeaway: a frozen server also freezes SL sync and exits, so keeping the loop free protects open positions.
+
+## chan_kalman__band__short (real main.py replay, 2026-10-13, B-914)
+- Mechanism: Kalman filter on log price; short when error exceeds z*sqrtQ; stop entry+k*ATR14; exit on state revert, 40-bar hold, or forced flat at 15:15 IST.
+- Fit here: intraday short, MIS-flat before 15:15 so no overnight short problem; SL attached at entry (no-trade-without-SL).
+- Result: run 38390561217, full universe ~2610 symbols, cost 0.8%. ve1e-3 z2.0 cells viable (5m atr4 PFnet 1.645 win 59.6 n 1019; 5m atr2.5 1.594; 15m atr4 1.288). ve1e-4 cells all below 1.04 and z1.0 is high-n noise. Replay on real main.py matched research PFnet within ~0.05.
+- Surprised: process noise ve is the lever, not the ATR stop; stops are the big loser (avg -4 to -6%) while state_exit earns +2%.
+- Reuse: always drive the real main.py functions in replay; check ve before ATR.
+- Profit-booking / exit takeaway: state_exit books the profit; wide stops lose most, so prefer the tighter-hold 5m cells; MIS cost model still owed (0.8% assumed).

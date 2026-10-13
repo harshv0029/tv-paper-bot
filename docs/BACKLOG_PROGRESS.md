@@ -490,7 +490,7 @@ Total rows: 894 | closed: 395 | not closed: 499
 | B-883 | P0 | PARTIAL | 2026-10-12 IST B-881 island replay RUN (island-main-replay.yml run 38309068649, main.py functions, 1d 5y, c... | owed |
 | B-886 | P0 | PARTIAL | 2026-10-13 IST B-881 swing-min-RR + short-swing main.py replay DONE (swing-short-main-replay.yml run 383189... | owed, owner |
 | B-912 | P0 | OPEN | Wire the stack's brk20_min_rr 1h SHORT cells (brk20_min_rr__main_replay_oos__short__1h__atr4_rr3d5 PFnet 1.... | owed, needs, owner |
-| B-914 | P0 | OPEN | chan_kalman short wiring, next steps after the B-913 step-1 port (main.py chan_kalman_series / chan_atr14 /... |  |
+| B-914 | P0 | OPEN | chan_kalman short wiring, next steps after the B-913 step-1 port (main.py chan_kalman_series / chan_atr14 /... | remaining |
 | B-395 | P1 | PARTIAL | User 2026-10-11 "Live constraints" panel review | remaining, blocked, needs |
 | B-397 | P1 | PARTIAL | User 2026-10-11: analyse every column of the trades table (#, Status, Asset, Type, Strategy, Entry, Exit/No... | remaining, open:, blocked, needs |
 | B-403 | P1 | PARTIAL | User 2026-10-11 IST: "only 93 wired and viable strategies?" Evidence: 287 registered tags clear PFnet >= 1.... | blocked, verify |
