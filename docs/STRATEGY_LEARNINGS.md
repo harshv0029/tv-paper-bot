@@ -996,3 +996,10 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: process noise ve is the lever, not the ATR stop; stops are the big loser (avg -4 to -6%) while state_exit earns +2%.
 - Reuse: always drive the real main.py functions in replay; check ve before ATR.
 - Profit-booking / exit takeaway: state_exit books the profit; wide stops lose most, so prefer the tighter-hold 5m cells; MIS cost model still owed (0.8% assumed).
+
+## chan_kalman short cost sensitivity (2026-10-13, B-914)
+- Mechanism/fit: same cells re-run on real main.py at 0.3% round trip instead of 0.8% (run 38394789725).
+- Result: every cell clears 1.39; best wiring cell 5m ve1e-3 z2.0 atr4 goes 1.645 -> 2.234 (win 63.3, n 1021). Low-edge ve1e-4 cells turn viable only because cost fell, so they are not trusted.
+- Surprised: cost swings PFnet by ~0.6 on high-turnover cells; only cells viable at BOTH costs are robust.
+- Reuse: run every intraday cell at 0.8% and 0.3%; wire only cells viable at both.
+- Profit-booking / exit takeaway: lower realised cost directly lifts net P&L, so prefer limit-style exits at state_exit where possible; do not rely on cost cuts to admit weak cells.
