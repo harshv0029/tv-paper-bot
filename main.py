@@ -20930,7 +20930,12 @@ for _t in tuple(CHAN_SHAPE_CELLS) + tuple(MACDDIV_LONG_CELLS) + tuple(PL1D_CELLS
 SECTOR_FADE_SHORT_L = 5
 SECTOR_FADE_SHORT_N = 1
 # (atr_mult, hold_days); order = task order, first VIABLE cell whose pick fires owns the symbol (one row per symbol).
-_SECTOR_FADE_SHORT_SPECS = ((1.5, 10), (1.5, 5), (4.0, 5), (6.0, 5), (6.0, 10), (2.5, 5))
+_SECTOR_FADE_SHORT_SPECS = ((1.5, 10), (1.5, 5), (4.0, 5), (6.0, 5), (6.0, 10), (2.5, 5),
+                            # B-985 (2026-10-13): the remaining l5_n1 1d cells with a stop whose main.py-calling class-A replay
+                            # (docs/backtest_data/class_a_replay_run_38149302930.json, gap_aware fills) cleared 1.1; appended AFTER
+                            # the original six, so they only own a symbol if an earlier cell's gate closes (fallbacks, paper first).
+                            (1.5, 20), (2.5, 10), (4.0, 10), (2.5, 20), (4.0, 20), (6.0, 20),
+                            (6.0, 1), (4.0, 1), (2.5, 1), (1.5, 1))
 
 
 def _sector_fade_short_cell_tag(atr_mult, hold):
@@ -21384,6 +21389,11 @@ SWINGMINRR_GATE_SHORT_1H_TAG = "swingminrr__brk20_gate__short__1h__atr3_rr4__v1"
 SWINGMINRR_GATE_SHORT_1H_ATR = 3.0
 SWINGMINRR_GATE_SHORT_1H_RR = 4.0
 SWINGMINRR_GATE_SHORT_1H_MAX_HOLD = 30
+# B-985: gatetarget sibling = same gate (rr4) AND a resting BUY target at entry - 4 x risk (research opt target=4.0: stop is
+# tested before the target inside a bar, target fills at the target price). Registry 1.561 / n 2293 (run 38249384880).
+SWINGMINRR_GATETARGET_SHORT_1H_TAG = "swingminrr__brk20_gatetarget__short__1h__atr3_rr4__v1"
+SWINGMINRR_GATETARGET_SHORT_1H_RR = 4.0
+SWINGMINRR_SHORT_1H_CELLS = {SWINGMINRR_GATE_SHORT_1H_TAG: None, SWINGMINRR_GATETARGET_SHORT_1H_TAG: SWINGMINRR_GATETARGET_SHORT_1H_RR}
 
 
 def swingminrr_gate_short_entry_signal(df):
@@ -21394,17 +21404,22 @@ def swingminrr_gate_short_entry_signal(df):
     return None
 
 
-def swingminrr_gate_short_exit_reason(bars, stop: float, max_hold: int = SWINGMINRR_GATE_SHORT_1H_MAX_HOLD):
-    """`bars` = completed bars AFTER the signal bar. Stop first (gap-aware), else the close of bar index max_hold."""
+def swingminrr_gate_short_exit_reason(bars, stop: float, max_hold: int = SWINGMINRR_GATE_SHORT_1H_MAX_HOLD,
+                                      target: float | None = None):
+    """`bars` = completed bars AFTER the signal bar. Stop first (gap-aware), then the optional BUY target (Low <= target,
+    fills at the target; B-985 gatetarget cell), else the close of bar index max_hold."""
     n = len(bars)
     if n == 0:
         return None
     o = bars["Open"].to_numpy(dtype=float)
     h = bars["High"].to_numpy(dtype=float)
     c = bars["Close"].to_numpy(dtype=float)
+    lo = bars["Low"].to_numpy(dtype=float) if target is not None else None
     for j in range(min(n, int(max_hold) + 1)):
         if h[j] >= stop:
             return "stop_hit", float(max(o[j], stop))
+        if target is not None and lo[j] <= target:
+            return "target_hit", float(target)
         if j == int(max_hold):
             return "max_hold_timeout", float(c[j])
     return None
@@ -21431,7 +21446,11 @@ def _swingminrr_gate_short_exit(df, pos):
     if len(df) == 0:
         return None
     bars = df[df["Date"].astype(str) > str(pos["entry_day"])]
-    res = swingminrr_gate_short_exit_reason(bars, float(pos["initial_stop_loss"]))
+    rr = SWINGMINRR_SHORT_1H_CELLS.get(pos["strategy"])
+    target = None
+    if rr is not None:  # entry price recovered from the frozen row (risk = stop - entry)
+        target = float(pos["entry_price"]) - rr * (float(pos["initial_stop_loss"]) - float(pos["entry_price"]))
+    res = swingminrr_gate_short_exit_reason(bars, float(pos["initial_stop_loss"]), target=target)
     if not res:
         return None
     return "short_swing_" + res[0], float(res[1])
@@ -21448,7 +21467,9 @@ def _swingminrr_gate_short_try_entry(conn, symbol, df1h, capital, risk_pct, toda
     qty = _short_swing_size(conn, capital, risk_pct, entry_price, stop_loss)
     if qty <= 0:
         return None
-    tag = SWINGMINRR_GATE_SHORT_1H_TAG
+    # first VIABLE cell owns the symbol (one row per symbol); none viable (replay owed) -> the gate cell, as before B-985
+    tag = next((t for t in SWINGMINRR_SHORT_1H_CELLS if _is_strategy_viable_for_real_money(t, check_switch=False)),
+               SWINGMINRR_GATE_SHORT_1H_TAG)
     conn.execute(
         "INSERT INTO signal_state_swing_short (symbol, strategy, entry_day, entry_price, initial_stop_loss, qty, "
         "entry_ts, fx_to_inr, atr_at_entry) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -21466,11 +21487,12 @@ def _swingminrr_gate_short_try_entry(conn, symbol, df1h, capital, risk_pct, toda
 def _run_short_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None):
     """1h leg of the short-swing engine: exits for open 1h cells first, then entries. Never raises per symbol."""
     fetch = fetch or fetch_ohlc
-    _record_strategy_scan(SWINGMINRR_GATE_SHORT_1H_TAG)
+    for _t in SWINGMINRR_SHORT_1H_CELLS:
+        _record_strategy_scan(_t)
     for symbol in symbols:
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone()
-            if pos is not None and pos["strategy"] != SWINGMINRR_GATE_SHORT_1H_TAG:
+            if pos is not None and pos["strategy"] not in SWINGMINRR_SHORT_1H_CELLS:
                 continue
             if pos is None and symbol in done_syms:
                 continue
@@ -21593,8 +21615,9 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
             print(f"[SWING LONG 1h] scan failed for {symbol} (non-fatal): {e}")
 
 
-_STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(SWINGMINRR_GATE_SHORT_1H_TAG, SWINGMINRR_GATE_SHORT_1H_TAG)
-REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | {SWINGMINRR_GATE_SHORT_1H_TAG}) - _replay_verified_tags()
+for _t in SWINGMINRR_SHORT_1H_CELLS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)
+REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | frozenset(SWINGMINRR_SHORT_1H_CELLS)) - _replay_verified_tags()
 
 
 def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
@@ -21611,7 +21634,7 @@ def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone()
             if pos:
-                if pos["strategy"] == SWINGMINRR_GATE_SHORT_1H_TAG:
+                if pos["strategy"] in SWINGMINRR_SHORT_1H_CELLS:
                     continue  # 1h cell: managed by _run_short_swing_1h_pass on hourly bars
                 if pos["strategy"] in TASUKI_SHORT_CELLS:
                     ex = _tasuki_short_exit(df, pos)

@@ -1088,3 +1088,10 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprised: the margin of starc over the 1.1 floor is thin on 9221 trades while hold 10 (1.096) and 5 (1.042) miss it; the edge sits in 20-bar survivors, stops lose.
 - Reuse: port the exact lab rule on the tail window, check which universe a registry row was measured on (full_nse vs n200_swing_watchlist) before reading n, and wire only stop-carrying cells.
 - Profit-booking / exit takeaway: profit is the 20-bar time exit; do not tighten the stop or add a target (not yet swept for this port).
+## swingminrr gatetarget short 1h and sector-fade extra cells (B-985, 2026-10-13): extra cells are fallbacks, not extra trades
+- Mechanism: gatetarget = the brk20 gate (room to the 60-bar low >= 4 x risk) plus a resting BUY target at entry - 4 x risk; sector fade = short the top-1 5-day-return name of the strongest-breadth sector with an ATR stop and a fixed hold.
+- Fit here: one row per symbol in signal_state_swing_short and first-viable-cell-wins means a sibling cell on the same signal never trades while an earlier cell is open; it only adds evidence/coverage if it owns the symbol when earlier gates close. Real leg stays behind the overnight-product flag.
+- Result: gatetarget 1h short registry 1.561 (n 2293) vs gate-only 1.702, so the target did not add edge; sector cells wired from the class-A main.py replay (gap_aware) at 1.15 to 1.38, below their registry research numbers (h20 1.537 vs 1.384).
+- Surprised: 40+ registry sector fade rows clear 1.1 but only the l5_n1 1d-with-stop family has a live driver; l3/n3/4h/atrnone variants need new pick parameters, a 4h driver, or a stop.
+- Reuse: before wiring a registry row check the replay file for the live-fill (gap_aware) number, and check the family driver supports its params; wire siblings as ordered fallbacks, not parallel entries.
+- Profit-booking / exit takeaway: profit sits in the timeout survivors; the target cell caps winners at 4R, which is why it ranks under gate-only, so keep gate-only first.

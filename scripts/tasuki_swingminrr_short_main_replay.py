@@ -34,7 +34,8 @@ GROUPS = {"tasuki": {"period": "5y", "interval": "1d", "bar_hours": 24.0},
 
 def tag_specs(m):
     specs = {t: {"group": "tasuki", "atr": a} for t, a in m.TASUKI_SHORT_CELLS.items()}
-    specs[m.SWINGMINRR_GATE_SHORT_1H_TAG] = {"group": "swm1h"}
+    for t, rr in m.SWINGMINRR_SHORT_1H_CELLS.items():  # B-985: gate cell + gatetarget cell (rr = BUY target multiple or None)
+        specs[t] = {"group": "swm1h", "rr": rr}
     return specs
 
 
@@ -52,7 +53,9 @@ def replay_symbol(m, df, tag, spec, cost, fill="signal_close"):
             if spec["group"] == "tasuki":
                 res = m.tasuki_short_exit_reason(bars, pos["stop0"])
             else:
-                res = m.swingminrr_gate_short_exit_reason(bars, pos["stop0"])
+                rr = spec.get("rr")  # same target arithmetic as main._swingminrr_gate_short_exit
+                tgt = None if rr is None else pos["ep"] - rr * (pos["stop0"] - pos["ep"])
+                res = m.swingminrr_gate_short_exit_reason(bars, pos["stop0"], target=tgt)
             if res:
                 g = -(res[1] - pos["ep"]) / pos["ep"]
                 out.append({"gross": g, "net": g - cost, "held": k - pos["sig"], "reason": res[0]})
