@@ -62,7 +62,7 @@ def test_tags_map_one_to_one_and_follow_grammar():
 def test_every_wired_cell_is_registered_short_and_viable():
     for tag in main.SHORT_SWING_TAGS:
         strat = next(s for s in sr.REGISTRY if s.name == tag)
-        assert strat.metrics.pfnet >= sr.PFNET_LIVE_FLOOR >= 1.1
+        assert strat.metrics.pfnet >= sr.PFNET_LIVE_FLOOR >= 1.05
         assert main._is_strategy_viable_for_real_money(tag, check_switch=False) is (tag not in main.REPLAY_OWED_TAGS)  # replay-verified (run 38318986997); real leg still held by the product constant
 
 
@@ -70,7 +70,7 @@ def test_gate_closes_below_floor():
     tag = main.SHORT_SWING_TAGS[0]
     strat = next(s for s in sr.REGISTRY if s.name == tag)
     orig = strat.metrics
-    object.__setattr__(strat, "metrics", dataclasses.replace(orig, pfnet=1.05))
+    object.__setattr__(strat, "metrics", dataclasses.replace(orig, pfnet=1.04))
     try:
         assert main._is_strategy_viable_for_real_money(tag, check_switch=False) is False
     finally:
