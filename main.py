@@ -23,6 +23,7 @@ import functools
 import json
 import math
 import os
+import re
 import resource
 import sqlite3
 import time
@@ -11619,13 +11620,50 @@ def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: b
     return strat.is_viable() is True
 
 
+_STACK_LABEL_RE = re.compile(r"^pfnet\(\s*([0-9.]+)\s*-\s*([0-9.]+)\s*\)\s*,\s*min\(\s*([0-9]+)\s*\)\s*,\s*maxhold\(\s*([0-9.]+|any)\s*\)")
+
+
+def _stack_criteria(label) -> dict | None:
+    """The 3-factor viability definition (user 2026-10-13): PFnet range, minimum backtested sample count, maximum
+    average hold hours. Stored as the stack entry's label "pfnet(lo-hi), min(n), maxhold(h|any)"; None for a legacy
+    entry with no parseable definition (its saved name list is then the definition)."""
+    m = _STACK_LABEL_RE.match(str(label or ""))
+    if not m:
+        return None
+    return {"pf_min": float(m.group(1)), "pf_max": float(m.group(2)), "min_trades": int(m.group(3)),
+            "max_hold_hrs": None if m.group(4) == "any" else float(m.group(4))}
+
+
+def _names_meeting_criteria(crit: dict) -> set:
+    """Registry names whose STORED metrics satisfy the 3 factors, derived at read time so a newly registered result
+    qualifies (or a changed metric disqualifies) with no re-save. Missing hold hours fails a max-hold limit."""
+    import strategy_registry as sr
+    out = set()
+    for d in sr.REGISTRY:
+        m = d.metrics
+        if m is None or m.pfnet is None:
+            continue
+        if not (crit["pf_min"] <= m.pfnet <= crit["pf_max"]):
+            continue
+        if (m.n_trades or 0) < crit["min_trades"]:
+            continue
+        mh = crit["max_hold_hrs"]
+        if mh is not None and (m.avg_held_hrs is None or m.avg_held_hrs > mh):
+            continue
+        out.add(d.name)
+    return out
+
+
 def _load_viable_overrides() -> set:
-    """Refresh strategy_registry.VIABLE_OVERRIDES from the (Upstash-mirrored) table; never raises."""
+    """Refresh strategy_registry.VIABLE_OVERRIDES from the (Upstash-mirrored) newest stack entry; never raises.
+    The entry's 3-factor criteria (PFnet range, min sample, max hold) are re-derived against the registry's stored
+    metrics on every load; only a legacy entry with no criteria uses its saved name list."""
     import strategy_registry as sr
     try:
         with closing(get_db()) as c:
-            row = c.execute("SELECT names FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
-        names = set(json.loads(row[0])) if row else set()
+            row = c.execute("SELECT names, label FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
+        crit = _stack_criteria(row[1]) if row else None
+        names = _names_meeting_criteria(crit) if crit else (set(json.loads(row[0])) if row else set())
         sr.VIABLE_OVERRIDES.clear()
         sr.VIABLE_OVERRIDES.update(names)
         sr.VIABLE_STACK_ACTIVE = row is not None
@@ -22021,7 +22059,9 @@ def _viable_stack_rows(c, full: bool = False) -> list:
     rows = []
     for r in c.execute("SELECT id, created_at, label, names FROM strategy_viable_stack ORDER BY id DESC").fetchall():
         names = json.loads(r[3])
-        e = {"id": r[0], "created_at": r[1], "label": r[2], "count": len(names)}
+        crit = _stack_criteria(r[2])
+        e = {"id": r[0], "created_at": r[1], "label": r[2], "criteria": crit,
+             "count": len(_names_meeting_criteria(crit)) if crit else len(names)}
         if full:
             e["created_at_ist"] = dt.datetime.fromtimestamp(r[1], tz=dt.timezone(dt.timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %H:%M:%S IST")
             e["names"] = names
