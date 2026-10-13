@@ -22152,6 +22152,16 @@ def entry_funnel():
                "attempts": {}, "placed": 0, "blocked": 0, "_fired": set()} for c in cats}
     tag_cats = {}
     try:
+        # "viable_strategies" below counts only strategies WIRED into a live scan;
+        # "viable_in_stack" is the explorer-stack count the buckets endpoint shows (B-910).
+        import strategy_registry as sr
+        _load_viable_overrides()
+        for c, v in sr.bucket_viable_strategies().items():
+            if c in out:
+                out[c]["viable_in_stack"] = int(v.get("count", 0))
+    except Exception:
+        pass
+    try:
         for st in strategy_scan_activity(include_unwired=True).get("strategies", []):
             cs = [str(x) for x in (st.get("categories") or []) if str(x) in out]
             tag_cats[st.get("strategy_tag")] = cs
