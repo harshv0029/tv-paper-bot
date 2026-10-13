@@ -78,6 +78,10 @@ class TradeCategory(str, Enum):
     SWING = "swing"
     FUTURES = "futures"
     OPTIONS = "options"
+    # B-905 (2026-10-13): standard name "Option - one plus strike" (straddle/strangle/spreads). "options" stays the
+    # single-strike key (never renamed). Empty until the first multi-strike strategy is registered; the per-cycle
+    # check bound rises 30 -> 35 as a ceiling only (an empty category adds no actual checks).
+    OPTIONS_MULTI = "options_multi"
     BIDIRECTIONAL = "bidirectional"
 
 
