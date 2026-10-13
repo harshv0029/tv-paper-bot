@@ -5274,6 +5274,101 @@ def _island_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, runnin
     return None, new_running_max
 
 
+# ---- island reversal SHORT mirror (1d atr1d5): PORT ONLY, NOT WIRED into any scan or entry chain ----
+# Exact mirror of the long detector (research: island_entries on the reciprocal-price flip, so the short side's
+# gap logic is the geometric inverse): gap UP at bar i (Low[i] > High[i-1]), then within ISLAND_WITHIN_BARS bars the
+# FIRST bar j with a gap DOWN (High[j] < Low[j-1]) whose High also stays below the gap-up bar's Low
+# (High[j] < Low[i]). Signal = bar j's close. Stop = entry + 1.5 x ATR(Wilder 14), price-space, ALWAYS attached.
+# Exit = brk20_min_rr_exit_reason(direction="short"): gap-aware stop above -> rule exit (reciprocal-close EMA13
+# falling, i.e. Close > EMA13-equivalent) -> 30-bar max hold. Registry (research-only, all FAIL the floor):
+# reversal__island_{none,px20,turn1cr,gap05}__short__1d__atr1d5_within8__nonovl__v2 (PFnet 0.636-0.713).
+ISLAND_SHORT_NONE_TAG = "reversal__island_none__short__1d__atr1d5_within8__nonovl__v2"
+ISLAND_SHORT_PX20_TAG = "reversal__island_px20__short__1d__atr1d5_within8__nonovl__v2"
+ISLAND_SHORT_TURN1CR_TAG = "reversal__island_turn1cr__short__1d__atr1d5_within8__nonovl__v2"
+ISLAND_SHORT_GAP05_TAG = "reversal__island_gap05__short__1d__atr1d5_within8__nonovl__v2"
+ISLAND_SHORT_TAGS = (ISLAND_SHORT_TURN1CR_TAG, ISLAND_SHORT_PX20_TAG, ISLAND_SHORT_NONE_TAG, ISLAND_SHORT_GAP05_TAG)
+_ISLAND_SHORT_FILTER_OF_TAG = {ISLAND_SHORT_NONE_TAG: "none", ISLAND_SHORT_PX20_TAG: "px20",
+                               ISLAND_SHORT_TURN1CR_TAG: "turn1cr", ISLAND_SHORT_GAP05_TAG: "gap05"}
+
+
+def island_top_signal_on_last_bar(df: pd.DataFrame, within: int = ISLAND_WITHIN_BARS,
+                                  min_gap_atr: float = 0.0) -> bool:
+    """True iff the LAST row is an island-top completion bar (research island_entries on the flipped frame)."""
+    d = df.iloc[-ISLAND_CALC_WINDOW:]
+    n = len(d)
+    if n < 20:
+        return False
+    h = d["High"].to_numpy(dtype=float)
+    l = d["Low"].to_numpy(dtype=float)
+    # research computes the gap-size ATR on the reciprocal-price frame (High'=1/Low, Low'=1/High)
+    a = (_brk20_atr_series(1.0 / l, 1.0 / h, 1.0 / d["Close"].to_numpy(dtype=float)) if min_gap_atr else None)
+    hf, lf = 1.0 / l, 1.0 / h  # flipped highs / lows, so gap thresholds match research exactly
+    j = n - 1
+    for i in range(max(1, j - within), j):
+        if not l[i] > h[i - 1]:
+            continue
+        if min_gap_atr and not (lf[i - 1] - hf[i] >= min_gap_atr * a[i - 1] > 0):
+            continue
+        for jj in range(i + 1, min(n, i + within + 1)):
+            if h[jj] < l[jj - 1] and h[jj] < l[i]:
+                if min_gap_atr and not (lf[jj] - hf[i] >= min_gap_atr * a[jj - 1] > 0):
+                    break
+                if jj == j:
+                    return True
+                break
+    return False
+
+
+def island_short_entry_signal(df: pd.DataFrame, tag: str, entry_price: float | None = None) -> dict | None:
+    """Short mirror of island_swing_entry_signal. Evaluates ONLY the last row. Stop = entry + 1.5 x ATR, always set."""
+    flt = _ISLAND_SHORT_FILTER_OF_TAG.get(tag)
+    if flt is None or len(df) < 20:
+        return None
+    if not island_filters_passed(df).get("none" if flt == "gap05" else flt):
+        return None
+    if not island_top_signal_on_last_bar(df, min_gap_atr=(ISLAND_GAP05_MIN_ATR if flt == "gap05" else 0.0)):
+        return None
+    d = df.iloc[-ISLAND_CALC_WINDOW:]
+    atr = float(_brk20_atr_series(d["High"].to_numpy(dtype=float), d["Low"].to_numpy(dtype=float),
+                                  d["Close"].to_numpy(dtype=float))[-1])
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+    px = float(d["Close"].iloc[-1]) if entry_price is None else float(entry_price)
+    if not px > 0:
+        return None
+    stop = brk20_stop_price(px, atr, ISLAND_ATR_MULT, "short")
+    if not stop > px:
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": stop - px,
+            "signal_close": float(d["Close"].iloc[-1]), "direction": "short", "filter": flt}
+
+
+def _island_short_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_min_close):
+    """Short mirror of _island_swing_exit_adapter (same signature; the 5th arg is the running MIN close).
+    Replays every completed bar after entry_day through brk20_min_rr_exit_reason(direction='short').
+    Entry price recovered from the frozen stop: entry = stop - 1.5 x ATR."""
+    if len(df) == 0:
+        return None, running_min_close
+    d = df
+    if "Date" not in d.columns:
+        d = d.assign(Date=pd.Series(pd.DatetimeIndex(d.index).strftime("%Y-%m-%d"), index=d.index))
+    last = float(d["Close"].iloc[-1])
+    new_running_min = last if not float(running_min_close or 0.0) else min(float(running_min_close), last)
+    if float(atr_at_entry or 0.0) <= 0:
+        return None, new_running_min
+    entry_price = float(initial_stop) - ISLAND_ATR_MULT * float(atr_at_entry)
+    fill_day = (pd.Timestamp(str(entry_day)[:10]) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    dates = d["Date"].astype(str).str[:10].to_numpy()
+    starts = np.flatnonzero(dates >= fill_day)
+    if len(starts) == 0:
+        return None, new_running_min
+    for k in range(int(starts[0]), len(d)):
+        reason, _px = brk20_min_rr_exit_reason(d.iloc[:k + 1], fill_day, entry_price, float(initial_stop), "short")
+        if reason:
+            return "island_short_" + reason, new_running_min
+    return None, new_running_min
+
+
 def _island_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
     """Opens at most one island position for `symbol` (first tag in ISLAND_SWING_TAGS that fires). The paper row,
     trades row and real mirror (swing engine: SL placed with entry, PFnet gate inside) follow the brk20 pattern."""
