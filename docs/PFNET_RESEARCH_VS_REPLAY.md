@@ -6,6 +6,30 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 
 | Replay tag | Research tag | Research PFnet | Research n | Replay PFnet | Replay n | Delta | Flag |
 |---|---|---|---|---|---|---|---|
+| chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.67 | 988 | 1.65 | 1019 | -0.03 | close |
+| chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.62 | 1014 | 1.59 | 1046 | -0.02 | close |
+| chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.25 | 1187 | 1.23 | 1234 | -0.02 | close |
+| chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.47 | 1038 | 1.45 | 1069 | -0.01 | close |
+| chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.20 | 1220 | 1.19 | 1266 | -0.01 | close |
+| chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.28 | 1158 | 1.29 | 1204 | 0.01 | close |
+| chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | 0.98 | 8845 | 1.00 | 9169 | 0.02 | close |
+| chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.05 | 8176 | 1.07 | 8496 | 0.02 | close |
+| chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.01 | 8477 | 1.03 | 8799 | 0.02 | close |
+| chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.35 | 8634 | 1.39 | 9049 | 0.04 | close |
+| chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.28 | 8953 | 1.32 | 9368 | 0.04 | close |
+| chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.42 | 8365 | 1.46 | 8770 | 0.05 | close |
+| chan_kalman__band_mr__short__15m__atr1d5_hold40_ve1d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr1d5_hold40_ve1d0e4_z1d0_fl1515__v2 | 0.57 | 44359 | 0.61 | 50476 | 0.05 | close |
+| chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr2d5_hold40_ve1d0e4_z1d0_fl1515__v2 | 0.58 | 43465 | 0.64 | 49779 | 0.05 | close |
+| chan_kalman__band_mr__short__15m__atr4d0_hold40_ve1d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr4d0_hold40_ve1d0e4_z1d0_fl1515__v2 | 0.60 | 42789 | 0.65 | 49187 | 0.05 | close |
+| chan_kalman__band_mr__short__15m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2 | 0.93 | 10378 | 0.99 | 11249 | 0.06 | close |
+| chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2 | 0.93 | 10267 | 1.00 | 11157 | 0.07 | close |
+| chan_kalman__band_mr__short__15m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2 | 0.94 | 10168 | 1.01 | 11077 | 0.07 | close |
+| chan_kalman__band_mr__short__5m__atr1d5_hold40_ve1d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr1d5_hold40_ve1d0e4_z1d0_fl1515__v2 | 0.67 | 54738 | 0.74 | 65371 | 0.07 | close |
+| chan_kalman__band_mr__short__5m__atr2d5_hold40_ve1d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr2d5_hold40_ve1d0e4_z1d0_fl1515__v2 | 0.69 | 53768 | 0.77 | 64718 | 0.08 | close |
+| chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr4d0_hold40_ve1d0e4_z1d0_fl1515__v2 | 0.70 | 53126 | 0.78 | 64190 | 0.08 | close |
+| chan_kalman__band_mr__short__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2 | 1.23 | 11577 | 1.35 | 13153 | 0.12 | close |
+| chan_kalman__band_mr__short__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2 | 1.25 | 11478 | 1.38 | 13087 | 0.13 | close |
+| chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2 | 1.28 | 11382 | 1.41 | 13009 | 0.13 | close |
 | swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr4__v1 | swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1 | 2.70 | 49 | 2.85 | 51 | 0.15 | close |
 | swingminrr__minervini_vcp_base_mr__long__1d__atr1d5__v1 | swingminrr__minervini_vcp_base__long__1d__atr1d5__v1 | 1.16 | 2606 | 1.35 | 2404 | 0.20 | close |
 | swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr3__v1 | swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1 | 2.06 | 111 | 2.30 | 110 | 0.23 | close |
@@ -84,3 +108,27 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | chan_shape__mom_mr__long__1d__atr2d5_hold10_y2023__v1 |  |  |  | 1.22 | 7763 |  | no research twin |
 | chan_shape__mom_mr__short__1d__atr2d5_hold10_y2026__v1 |  |  |  | 0.95 | 8392 |  | no research twin |
 | chan_shape__mom_mr__long__1d__atr2d5_hold10_vixge20__v1 |  |  |  | 0.89 | 7227 |  | no research twin |
+| chan_kalman__band_mr__short__5m__atr4d0_cst0d3_hold40_ve1d0e4_z2d0_fl1515__v2 |  |  |  | 2.55 | 13012 |  | no research twin |
+| chan_kalman__band_mr__short__5m__atr2d5_cst0d3_hold40_ve1d0e4_z2d0_fl1515__v2 |  |  |  | 2.50 | 13090 |  | no research twin |
+| chan_kalman__band_mr__short__5m__atr1d5_cst0d3_hold40_ve1d0e4_z2d0_fl1515__v2 |  |  |  | 2.49 | 13156 |  | no research twin |
+| chan_kalman__band_mr__short__5m__atr4d0_cst0d3_hold40_ve10d0e4_z1d0_fl1515__v2 |  |  |  | 2.27 | 8765 |  | no research twin |
+| chan_kalman__band_mr__short__5m__atr4d0_cst0d3_hold40_ve10d0e4_z2d0_fl1515__v2 |  |  |  | 2.23 | 1021 |  | no research twin |
+| chan_kalman__band_mr__short__5m__atr2d5_cst0d3_hold40_ve10d0e4_z2d0_fl1515__v2 |  |  |  | 2.19 | 1048 |  | no research twin |
+| chan_kalman__band_mr__short__5m__atr2d5_cst0d3_hold40_ve10d0e4_z1d0_fl1515__v2 |  |  |  | 2.19 | 9046 |  | no research twin |
+| chan_kalman__band_mr__short__5m__atr1d5_cst0d3_hold40_ve10d0e4_z1d0_fl1515__v2 |  |  |  | 2.14 | 9367 |  | no research twin |
+| chan_kalman__band_mr__short__5m__atr1d5_cst0d3_hold40_ve10d0e4_z2d0_fl1515__v2 |  |  |  | 2.07 | 1071 |  | no research twin |
+| chan_kalman__band_mr__short__5m__atr4d0_cst0d3_hold40_ve1d0e4_z1d0_fl1515__v2 |  |  |  | 1.86 | 64191 |  | no research twin |
+| chan_kalman__band_mr__short__5m__atr2d5_cst0d3_hold40_ve1d0e4_z1d0_fl1515__v2 |  |  |  | 1.81 | 64723 |  | no research twin |
+| chan_kalman__band_mr__short__5m__atr1d5_cst0d3_hold40_ve1d0e4_z1d0_fl1515__v2 |  |  |  | 1.77 | 65378 |  | no research twin |
+| chan_kalman__band_mr__short__15m__atr4d0_cst0d3_hold40_ve1d0e4_z2d0_fl1515__v2 |  |  |  | 1.76 | 11094 |  | no research twin |
+| chan_kalman__band_mr__short__15m__atr1d5_cst0d3_hold40_ve1d0e4_z2d0_fl1515__v2 |  |  |  | 1.76 | 11265 |  | no research twin |
+| chan_kalman__band_mr__short__15m__atr4d0_cst0d3_hold40_ve10d0e4_z2d0_fl1515__v2 |  |  |  | 1.76 | 1204 |  | no research twin |
+| chan_kalman__band_mr__short__15m__atr2d5_cst0d3_hold40_ve1d0e4_z2d0_fl1515__v2 |  |  |  | 1.75 | 11174 |  | no research twin |
+| chan_kalman__band_mr__short__15m__atr1d5_cst0d3_hold40_ve10d0e4_z2d0_fl1515__v2 |  |  |  | 1.69 | 1266 |  | no research twin |
+| chan_kalman__band_mr__short__15m__atr2d5_cst0d3_hold40_ve10d0e4_z2d0_fl1515__v2 |  |  |  | 1.69 | 1234 |  | no research twin |
+| chan_kalman__band_mr__short__15m__atr4d0_cst0d3_hold40_ve10d0e4_z1d0_fl1515__v2 |  |  |  | 1.66 | 8504 |  | no research twin |
+| chan_kalman__band_mr__short__15m__atr2d5_cst0d3_hold40_ve10d0e4_z1d0_fl1515__v2 |  |  |  | 1.61 | 8808 |  | no research twin |
+| chan_kalman__band_mr__short__15m__atr1d5_cst0d3_hold40_ve10d0e4_z1d0_fl1515__v2 |  |  |  | 1.61 | 9177 |  | no research twin |
+| chan_kalman__band_mr__short__15m__atr4d0_cst0d3_hold40_ve1d0e4_z1d0_fl1515__v2 |  |  |  | 1.47 | 49211 |  | no research twin |
+| chan_kalman__band_mr__short__15m__atr2d5_cst0d3_hold40_ve1d0e4_z1d0_fl1515__v2 |  |  |  | 1.43 | 49804 |  | no research twin |
+| chan_kalman__band_mr__short__15m__atr1d5_cst0d3_hold40_ve1d0e4_z1d0_fl1515__v2 |  |  |  | 1.40 | 50501 |  | no research twin |
