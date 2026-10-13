@@ -11,6 +11,7 @@ name: Intraday flatten rerun (B-792, forced exit before 15:15 IST)
 # on the live swing watchlist as in the original) and pattern_full (same rules on the full universe, since the originals
 # were n=202/404 calendar effects). Each re-run cell is a NEW tag `<old>_fl1515__v2`; merge prints raw pfnet/pfgross/win/n/
 # avg hold/exit breakdown and, per tag, the original registry numbers. 4h is owed (needs a 1h resample).
+# B-918: families may also be ["chan_kalman_main_long"] (long mirror via main.chan_kalman_band_long_*; short is chan_kalman_main).
 # Dispatch order per CLAUDE.md: big matrix (up to 27 jobs): only when no gate/safety run is queued. Use `maxsym` for a pilot.
 on:
   workflow_dispatch:
