@@ -9913,6 +9913,29 @@ def _auto_signal_core(
             if live_price is not None and last_close > 0 and not (0.5 < live_price / last_close < 2.0):
                 live_price = None
             exit_price = live_price if (live_price is not None and live_price > 0) else last_close
+            if row["strategy"] in CHAN_LONG_CELLS:
+                # B-960: chan_kalman long is managed by its own tag-keyed rules (fixed stop, state exit, max hold,
+                # 15:10 flatten); it never touches the trailing/target/staged-ladder machinery below.
+                _why = _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted)
+                if _why:
+                    _qty, _fx = row["qty"], row["fx_to_inr"]
+                    _pnl_inr = (exit_price - row["entry_price"]) * _qty * _fx
+                    apply_paper_trade(conn, symbol, "sell", _qty, exit_price)
+                    conn.execute(
+                        "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+                        "VALUES (?, ?, 'sell', ?, ?, ?, ?, ?)",
+                        (time.time(), symbol, _qty, exit_price, _fx, row["strategy"],
+                         json.dumps({"symbol": symbol, "action": "sell", "qty": _qty, "price": exit_price,
+                                     "strategy": row["strategy"], "exit_reason": _why,
+                                     "entry_price": row["entry_price"], "stop_loss": row["stop_loss"],
+                                     "pnl_inr": round(_pnl_inr, 2)})),
+                    )
+                    conn.execute("DELETE FROM signal_state WHERE symbol = ?", (symbol,))
+                    conn.commit()
+                    result.update(action_taken=f"exited_{_why}", exit_pnl_inr=round(_pnl_inr, 2))
+                    return result
+                result["open_position"] = dict(row)
+                return result
             peak, trail_candidate = _trailing_stop_target(
                 today_df, row["entry_price"], row["initial_stop_loss"] or row["stop_loss"],
                 row["entry_ts"], tz_offset_min,
@@ -10181,6 +10204,15 @@ def _auto_signal_core(
         if mins_now < open_min + NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES:
             result["action_taken"] = "no_new_entries_opening_volatility"
             return result
+
+        # B-960: chan_kalman band long (buy engine, 5m only, no new entries from 15:00 IST). Gated by the registry/PFnet
+        # check inside; falls through to the regular strategy when no cell fires.
+        if interval == "5m" and mins_now < CHAN_LONG_ENTRY_CUTOFF_MIN:
+            _chan_l = _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
+                                           risk_per_trade_pct, fx_to_inr, currency, result,
+                                           require_real_tradability=require_real_tradability)
+            if _chan_l is not None:
+                return _chan_l
 
         if strategy == "orb_breakout":
             # Stronger entries, explicit user instruction 2026-09-04: too
@@ -10724,6 +10756,132 @@ def _chan_live_masks(index, interval: str):
         t = t + step
     full = idx.append(pd.DatetimeIndex(extra)) if extra else idx
     return tuple(m[:n] if k < 2 else m for k, m in enumerate(chan_flatten_masks(full, interval)))
+
+
+# B-960: chan_kalman band LONG, 5m, buy engine (replay run 38424173222 via the main.py port, 0.8% cost, viable under stack
+# id 5). Cascade order = highest PFnet first; the first VIABLE cell whose signal fires opens (one long row per symbol, and
+# at most one chan long entry per symbol per day). ve1d0e4+z1d0 cells FAILED the replay and are deliberately not wired.
+_CHAN_LONG_CELL_SPECS = (  # (atr_mult, ve, z), PFnet descending
+    (4.0, 1e-3, 1.0), (2.5, 1e-3, 1.0), (4.0, 1e-3, 2.0), (1.5, 1e-3, 1.0), (2.5, 1e-3, 2.0),
+    (4.0, 1e-4, 2.0), (2.5, 1e-4, 2.0), (1.5, 1e-3, 2.0), (1.5, 1e-4, 2.0),
+)
+
+
+def _chan_long_cell_tag(atr_mult, ve, z):
+    f = lambda x: f"{x:.1f}".replace(".", "d")  # noqa: E731
+    return f"chan_kalman__band__long__5m__atr{f(atr_mult)}_hold40_ve{f(ve * 1e4)}e4_z{f(z)}_fl1515__v2"
+
+
+CHAN_LONG_CELLS = {_chan_long_cell_tag(a, v, z): (a, v, z) for a, v, z in _CHAN_LONG_CELL_SPECS}
+CHAN_LONG_HOLD_BARS = 40
+CHAN_LONG_ENTRY_CUTOFF_MIN = CHAN_SHORT_ENTRY_CUTOFF_MIN
+CHAN_LONG_FLATTEN_START_MIN = CHAN_SHORT_FLATTEN_START_MIN
+CHAN_LONG_FLATTEN_END_MIN = CHAN_SHORT_FLATTEN_END_MIN
+
+
+def _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted):
+    """Exit reason for an open chan long, or None. Order: halt, stop, flatten (15:10+), state/max-hold/bar-stop."""
+    if halted:
+        return "daily_loss_cap_hit"
+    if exit_price <= row["stop_loss"]:
+        return "stop_hit"
+    if mins_now >= CHAN_LONG_FLATTEN_START_MIN:
+        return "flatten_1515"
+    try:
+        ve = CHAN_LONG_CELLS[row["strategy"]][1]
+        dfc = _chan_short_frame(df, ts_utc)
+        entry_pos = int(np.searchsorted(dfc.index.view("int64") // 10**9, int(row["entry_ts"]), side="left"))
+        entry_pos = min(entry_pos, len(dfc) - 1)
+        res = chan_kalman_band_long_exit_reason(
+            dfc, interval, entry_pos, float(row["entry_price"]), float(row["stop_loss"]),
+            hold=CHAN_LONG_HOLD_BARS, ve=ve)
+    except Exception:
+        return None
+    return res[0] if res else None
+
+
+def _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
+                         risk_per_trade_pct, fx_to_inr, currency, result, require_real_tradability=False):
+    """Paper chan_kalman long entry (buy engine). Returns the result dict when it entered, else None (caller falls through).
+    Every entry carries its protective stop (stop = close - atr_mult*ATR); the real mirror unwinds if the SL cannot rest."""
+    sig, tag = None, None
+    try:
+        dfc = _chan_short_frame(df, ts_utc)
+        ks_by_ve, masks = {}, _chan_live_masks(dfc.index, interval)
+        for _t, (_a, _ve, _z) in CHAN_LONG_CELLS.items():
+            if not _is_strategy_viable_for_real_money(_t):
+                continue
+            if _ve not in ks_by_ve:
+                ks_by_ve[_ve] = chan_kalman_series(dfc["Close"].to_numpy(float), _ve)
+            sig = chan_kalman_band_long_entry_signal(dfc, interval, z=_z, ve=_ve, atr_mult=_a,
+                                                     ks=ks_by_ve[_ve], masks=masks)
+            if sig:
+                tag = _t
+                break
+    except Exception:
+        return None
+    if not sig:
+        return None
+    # engine ownership: no simultaneous short on the symbol; one chan long per symbol per IST day.
+    if conn.execute("SELECT 1 FROM signal_state_short WHERE symbol = ? AND status = 'short'", (symbol,)).fetchone():
+        return None
+    _qs = ",".join("?" * len(CHAN_LONG_CELLS))
+    if conn.execute(f"SELECT 1 FROM trades WHERE symbol = ? AND action = 'buy' AND ts >= ? AND strategy IN ({_qs})",
+                    (symbol, ist_midnight_epoch(ist_now()), *CHAN_LONG_CELLS)).fetchone():
+        return None
+    liq_ok, _ = _liquidity_gate(df)
+    if not liq_ok or _likely_lower_circuit_locked(df, today_str):
+        return None
+    stop_loss = last_close - sig["atr_mult"] * sig["atr"]
+    stop_dist = last_close - stop_loss
+    if stop_loss <= 0 or stop_dist <= 0:
+        return None
+    available = max(0.0, capital - deployed_notional(conn))
+    usable = min(available, capital / CAPITAL_TRANCHES)
+    unit_inr = last_close * fx_to_inr
+    if unit_inr <= 0:
+        return None
+    qty = float(math.floor(min(usable * risk_per_trade_pct / 100 / (stop_dist * fx_to_inr), usable / unit_inr)))
+    if qty <= 0 or qty * unit_inr < 100.0:
+        return None
+    if require_real_tradability:
+        if _is_t1_restricted(conn, symbol):
+            result["action_taken"] = "skipped_t1_restricted"
+            return result
+        import kotak_live_feed
+        tick = kotak_live_feed.get_live_ticks().get(symbol)
+        if not tick or not tick.get("ltp") or not tick.get("trading_symbol"):
+            result["action_taken"] = "skipped_no_live_tick"
+            return result
+    target = round(last_close * 10, 4)  # unreachable on purpose: exits are stop / state / hold / flatten
+    notional_inr = qty * last_close * fx_to_inr
+    payload = {
+        "symbol": symbol, "action": "buy", "qty": qty, "price": last_close, "currency": currency,
+        "fx_to_inr": fx_to_inr, "strategy": tag, "entry_reason": "chan_kalman_band_long",
+        "stop_loss": stop_loss, "target": target, "notional_native": round(qty * last_close, 2),
+        "notional_inr": round(notional_inr, 2),
+    }
+    apply_paper_trade(conn, symbol, "buy", qty, last_close)
+    conn.execute(
+        "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+        "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+        (time.time(), symbol, qty, last_close, fx_to_inr, tag, json.dumps(payload)),
+    )
+    conn.execute(
+        "INSERT INTO signal_state "
+        "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, orb_high, orb_low, fx_to_inr, interval, exit_legs_json, entry_regime, strategy) "
+        "VALUES (?, ?, 'long', ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, NULL, 'chan_kalman', ?) "
+        "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, "
+        "entry_price=excluded.entry_price, stop_loss=excluded.stop_loss, initial_stop_loss=excluded.initial_stop_loss, "
+        "target=excluded.target, qty=excluded.qty, entry_ts=excluded.entry_ts, orb_high=excluded.orb_high, "
+        "orb_low=excluded.orb_low, fx_to_inr=excluded.fx_to_inr, interval=excluded.interval, "
+        "exit_legs_json=excluded.exit_legs_json, entry_regime=excluded.entry_regime, strategy=excluded.strategy",
+        (symbol, today_str, last_close, stop_loss, stop_loss, target, qty, time.time(), stop_loss,
+         fx_to_inr, interval, tag),
+    )
+    conn.commit()
+    result.update(action_taken="entered_long", entry=payload)
+    return result
 
 
 def _chan_short_frame(df, ts_utc):
@@ -11781,6 +11939,7 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "orb-trend-short": "trend_down_momentum_short",
     "orb-range-short": "range_short_staged_ladder",
     **{_t: _t for _t in CHAN_SHORT_CELLS},
+    **{_t: _t for _t in CHAN_LONG_CELLS},
     # Swing's own real-entry call sites pass a plain label (see
     # _maybe_place_real_swing_entry's call sites), not an ORB-prefixed
     # tag - "minervini_vcp" maps to minervini_trend_template_vcp per that
@@ -12976,6 +13135,13 @@ def _maybe_place_real_entry(conn, symbol: str):
         _log_signal_shadow(conn, strategy_tag if 1<2 else strategy, symbol, 'long', False, 'real entry: strategy below PFnet floor', hard_gate=True)
         return
 
+    if strategy_tag in CHAN_LONG_CELLS:
+        _n = ist_now()
+        if _n.hour * 60 + _n.minute >= CHAN_LONG_ENTRY_CUTOFF_MIN:
+            _log_real_attempt(conn, symbol, "B", "skipped_after_entry_cutoff",
+                              detail="chan_kalman long: no new real entries from 15:00 IST (flatten at 15:10)")
+            return
+
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
     remaining_cap_inr = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
     real_capital_for_sizing = get_scheduler_capital_inr()
@@ -13013,6 +13179,13 @@ def _maybe_place_real_entry(conn, symbol: str):
             conn, symbol, "B", "skipped_real_daily_loss_cap_hit", kotak_trading_symbol=kotak_symbol,
             price_est=ltp, detail=loss_check["detail"],
         )
+        return
+
+    # B-960: re-read the viable stack fresh immediately before the order (it may have changed since the checks above).
+    _load_viable_overrides()
+    if not _is_strategy_viable_for_real_money(strategy_tag):
+        _log_real_attempt(conn, symbol, "B", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
+                          detail=f"strategy {strategy_tag!r} no longer viable on the fresh stack re-check just before the order")
         return
 
     import kotak_real_orders
@@ -13162,6 +13335,10 @@ def _maybe_place_real_entry(conn, symbol: str):
                     )
                     _maybe_place_real_exit(conn, symbol, reason="SL rejected in CAS transition right after entry - cannot leave position unprotected, market exit")
                     return
+                if real_strategy in CHAN_LONG_CELLS:
+                    # No trade without SL: a chan long whose stop cannot be placed is unwound at market now.
+                    _maybe_place_real_exit(conn, symbol, reason="entry_sl_failed_unwind")
+                    return
                 # 2026-09-10: unprotected from the moment of entry - same
                 # degraded-protection clock/timeout as every other SL gap,
                 # not a special case. _maybe_sync_real_stop_loss's own
@@ -13191,6 +13368,8 @@ def _maybe_place_real_entry(conn, symbol: str):
         first_leg = next((l for l in (real_exit_legs or []) if l["leg"] != "trail"), None)
         target_leg_qty = first_leg["qty"] if first_leg else real_qty
         target_leg_price = first_leg["target_price"] if first_leg else (paper_row["target"] if paper_row else None)
+        if real_strategy in CHAN_LONG_CELLS:
+            target_leg_price = None  # chan long exits are stop / state / hold / flatten; no resting target
         if not sl_confirmed and target_leg_qty and target_leg_price:
             _log_real_order_event(
                 conn, symbol, "target", "skipped_sl_not_confirmed", kotak_trading_symbol=kotak_symbol,
@@ -21667,6 +21846,18 @@ def _chan_short_flatten_due(symbol: str) -> bool:
                               (symbol, *CHAN_SHORT_CELLS)).fetchone())
 
 
+def _chan_long_flatten_due(symbol: str) -> bool:
+    """True from 15:10 to 15:14 IST while a real chan_kalman long is still open for symbol (retried every tick)."""
+    n = ist_now()
+    m = n.hour * 60 + n.minute
+    if not (CHAN_LONG_FLATTEN_START_MIN <= m < CHAN_LONG_FLATTEN_END_MIN):
+        return False
+    with closing(get_db()) as c:
+        _qs = ",".join("?" * len(CHAN_LONG_CELLS))
+        return bool(c.execute(f"SELECT 1 FROM real_positions WHERE symbol = ? AND strategy IN ({_qs})",
+                              (symbol, *CHAN_LONG_CELLS)).fetchone())
+
+
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
@@ -21926,6 +22117,10 @@ async def _scheduler_tick():
                     # every other real-order mirror in this block.
                     with closing(get_db()) as real_conn:
                         _maybe_place_real_partial_exit(real_conn, cfg["symbol"], result.get("staged_exit") or {})
+                elif _chan_long_flatten_due(cfg["symbol"]):
+                    # B-960: exchange cancels resting orders at 15:15 IST, so flat by our own market sell first.
+                    with closing(get_db()) as real_conn:
+                        _maybe_place_real_exit(real_conn, cfg["symbol"], reason="flatten_1515")
                 else:
                     # Position still open (or never was one) - sync any
                     # real resting stop-loss to the paper trail's latest

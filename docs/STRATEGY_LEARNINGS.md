@@ -1019,3 +1019,11 @@ Mechanism: both result files were kept raw in git but not in the registry, so th
 - Surprise: placebo nearly matches the real signal, so the edge is mostly generic short/hold drift, not the moon.
 - Reuse: always run a placebo and a stop-bearing cell before trusting an atrnone number.
 - Profit-booking / exit takeaway: stops lose about -3% avg while max_hold exits earn about +1 to +3.8%, so the longer-hold cells look best but fail on net after stops.
+
+## chan_kalman band long wiring (B-960, 2026-10-13)
+- Mechanism: mirror of the band short: Kalman error below -z*sqrtQ on log price at 5m, long at the close, stop = close - k*ATR14, exit on state revert (err >= 0), 40-bar hold, or 15:10 IST flatten.
+- Fit: buy engine, intraday; exchange cancels resting SLs at 15:15 so the bot flattens itself at 15:10; no new entries from 15:00; one chan long per symbol per IST day; an entry whose real SL cannot rest is unwound (`entry_sl_failed_unwind`); no resting target (exits are stop/state/hold/flatten).
+- Result (run 38424173222, 0.8% cost, main.py port): 9 of 12 cells viable, best atr4d0 ve10d0e4 z1d0 PFnet 1.827 win 47.2 n 6149 hold 0.49h; ve1d0e4+z1d0 cells fail (0.74-0.82) and are not wired. pfgross was not in the hand-off so it is stored as NaN.
+- Surprised: low-win (40-49%) cells still clear 1.3+ because state exits are short and cheap; the z2 ve10 cells have only n~440, thin.
+- Reuse: cascade highest PFnet first; re-read the viable stack right before the real order so a stack change flips the next entry.
+- Profit-booking / exit takeaway: sub-hour holds recycle capital fast; the unwind-on-SL-failure rule matters more than the target since no target rests.

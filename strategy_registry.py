@@ -2842,6 +2842,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_mr.build())
         import strategy_registry_chan_main as _cm
         REGISTRY.extend(_cm.build())
+        import strategy_registry_chan_long_main as _cl
+        REGISTRY.extend(_cl.build())
         import strategy_registry_oneilcup as _oc
         REGISTRY.extend(_oc.build())
         import strategy_registry_douglasrerun as _dr
