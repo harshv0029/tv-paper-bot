@@ -10721,6 +10721,9 @@ CHAN_SHORT_HOLD_BARS = 40
 _CHAN_SHORT_CELL_SPECS = (  # (atr_mult, ve, z)
     (4.0, 1e-3, 2.0), (1.5, 1e-3, 2.0), (2.5, 1e-3, 2.0),
     (1.5, 1e-3, 1.0), (2.5, 1e-3, 1.0), (4.0, 1e-3, 1.0),
+    # B-965: the three ve 1e-4 z2.0 5m cells, appended LAST (lowest PFnet 1.35-1.41, n~13k, real-main.py replay 38390561217,
+    # 0.8% cost, clear the floor). ve1e-4 z1.0 cells FAIL (0.74-0.78) and stay unwired; 15m cells wait for a 15m short scan.
+    (4.0, 1e-4, 2.0), (2.5, 1e-4, 2.0), (1.5, 1e-4, 2.0),
 )
 
 
