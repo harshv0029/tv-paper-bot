@@ -11000,13 +11000,34 @@ _CHAN_SHORT_CELL_SPECS = (  # (atr_mult, ve, z)
 )
 
 
-def _chan_short_cell_tag(atr_mult, ve, z):
+def _chan_short_cell_tag(atr_mult, ve, z, interval="5m"):
     f = lambda x: f"{x:.1f}".replace(".", "d")  # noqa: E731
-    return (f"chan_kalman__band_mr__short__5m__atr{f(atr_mult)}_hold40_ve{f(ve * 1e4)}e4_z{f(z)}_fl1515__v2")
+    return (f"chan_kalman__band_mr__short__{interval}__atr{f(atr_mult)}_hold40_ve{f(ve * 1e4)}e4_z{f(z)}_fl1515__v2")
 
+
+# B-980: the three viable 15m ve 1e-3 z2.0 cells (real-main.py replay 38390561217, 0.8% cost: PFnet 1.288 n1204 / 1.226 / 1.194),
+# appended AFTER every 5m cell so the 5m cascade is unchanged. The 15m ve1d0e4 / z1.0 cells fail the replay and are NOT wired.
+_CHAN_SHORT_15M_SPECS = ((4.0, 1e-3, 2.0), (2.5, 1e-3, 2.0), (1.5, 1e-3, 2.0))
 
 # tag -> (atr_mult, ve, z); ve 1e-3 is "ve10d0e4"
 CHAN_SHORT_CELLS = {_chan_short_cell_tag(a, v, z): (a, v, z) for a, v, z in _CHAN_SHORT_CELL_SPECS}
+CHAN_SHORT_CELLS.update({_chan_short_cell_tag(a, v, z, "15m"): (a, v, z) for a, v, z in _CHAN_SHORT_15M_SPECS})
+CHAN_SHORT_CELL_INTERVAL = {_t: ("15m" if "__short__15m__" in _t else "5m") for _t in CHAN_SHORT_CELLS}
+# B-981: chan_gap short_on_gap (same-day open-to-close, intraday short engine, flat by 15:10). Not a kalman cell, but it shares the
+# chan short real-order discipline (SL in the entry request, unwind on SL failure, 15:10 market cover), so those call sites test
+# CHAN_INTRADAY_SHORT_TAGS. Registry row: PFnet 1.297, n 1127 (research harness, chan-research.yml run 38183172728); REPLAY_OWED.
+CHAN_GAP_SHORT_TAG = "chan_gap__short_on_gap__short__1d__atr1d5_top10__v1"
+CHAN_INTRADAY_SHORT_TAGS = frozenset(CHAN_SHORT_CELLS) | {CHAN_GAP_SHORT_TAG}
+
+
+def _chan_short_df_for(symbol, iv):
+    """(df, ts_utc) at bar size iv for a chan short cell whose interval differs from the scan's own (B-980: 15m cells are
+    scanned from the 5m short scan). Raises on a fetch failure; callers treat that as 'no signal / no exit evidence'."""
+    d = fetch_ohlc(symbol, "5d", iv)
+    t = pd.to_datetime(d["Date"])
+    return d, (t.dt.tz_convert("UTC") if t.dt.tz is not None else t.dt.tz_localize("UTC"))
+
+
 assert CHAN_SHORT_TAG in CHAN_SHORT_CELLS
 CHAN_SHORT_ENTRY_CUTOFF_MIN = 15 * 60       # no new entries from 15:00 IST
 CHAN_SHORT_FLATTEN_START_MIN = 15 * 60 + 10  # flatten pass 15:10-15:14 IST
@@ -11176,8 +11197,17 @@ def _chan_short_manage(conn, symbol, row, df, ts_utc, interval, mins_now, exit_p
     if mins_now >= CHAN_SHORT_FLATTEN_START_MIN:
         return "flatten_1515"
     try:
+        if row["strategy"] == CHAN_GAP_SHORT_TAG:
+            return None  # B-981: stop / flatten only (same-day open-to-close), no kalman state exit
+    except Exception:
+        pass
+    try:
         _tag = row["strategy"] if "strategy" in (row.keys() if hasattr(row, "keys") else row) else CHAN_SHORT_TAG
         ve = CHAN_SHORT_CELLS.get(_tag, CHAN_SHORT_CELLS[CHAN_SHORT_TAG])[1]
+        _iv = CHAN_SHORT_CELL_INTERVAL.get(_tag, interval)
+        if _iv != interval:  # B-980: a 15m cell is managed on 15m bars even though the scan runs on 5m
+            df, ts_utc = _chan_short_df_for(symbol, _iv)
+            interval = _iv
         dfc = _chan_short_frame(df, ts_utc)
         entry_pos = int(np.searchsorted(dfc.index.view("int64") // 10**9, int(row["entry_ts"]), side="left"))
         entry_pos = min(entry_pos, len(dfc) - 1)
@@ -11218,6 +11248,8 @@ def _chan_short_try_entry(conn, symbol, df, ts_utc, today_df, last_close, today_
         dfc = _chan_short_frame(df, ts_utc)
         ks_by_ve, masks = {}, _chan_live_masks(dfc.index, interval)
         for _t, (_a, _ve, _z) in CHAN_SHORT_CELLS.items():
+            if CHAN_SHORT_CELL_INTERVAL[_t] != interval:
+                continue
             if not _is_strategy_viable_for_real_money(_t):
                 continue
             if _ve not in ks_by_ve:
@@ -11391,7 +11423,7 @@ def _short_signal_core(
 
         result = {"symbol": symbol, "status": "ok", "time_local": str(now_local), "market_regime": None}
 
-        if row and row["strategy"] in CHAN_SHORT_CELLS:
+        if row and row["strategy"] in CHAN_INTRADAY_SHORT_TAGS:
             exit_price = live_price if live_price else last_close
             _why = _chan_short_manage(conn, symbol, row, df, ts_utc, interval, mins_now, exit_price, halted)
             if _why:
@@ -11474,6 +11506,16 @@ def _short_signal_core(
                                           risk_per_trade_pct, fx_to_inr, currency, result)
             if _chan is not None:
                 return _chan
+            # B-980: 15m cells, scanned on the 15m frame from the same 5m tick (cascade: 5m cells first).
+            try:
+                _df15, _ts15 = _chan_short_df_for(symbol, "15m")
+            except Exception:
+                _df15 = None
+            if _df15 is not None and len(_df15):
+                _chan = _chan_short_try_entry(conn, symbol, _df15, _ts15, today_df, last_close, today_str, "15m", capital,
+                                              risk_per_trade_pct, fx_to_inr, currency, result)
+                if _chan is not None:
+                    return _chan
 
         market_regime = _classify_market_regime(df, sma_fast, sma_slow, ma_type)
         result["market_regime"] = market_regime
@@ -13267,10 +13309,10 @@ def _maybe_place_real_short_entry(conn, symbol: str):
             )
             conn.commit()
             _sync_real_positions_short_external(conn)
-            if real_strategy in CHAN_SHORT_CELLS:
+            if real_strategy in CHAN_INTRADAY_SHORT_TAGS:
                 # No trade without SL: a chan short whose stop cannot be placed is unwound at market now.
                 _maybe_place_real_short_exit(conn, symbol, reason="entry_sl_failed_unwind")
-    elif real_strategy in CHAN_SHORT_CELLS:
+    elif real_strategy in CHAN_INTRADAY_SHORT_TAGS:
         _maybe_place_real_short_exit(conn, symbol, reason="entry_sl_failed_unwind")
 
 
@@ -21619,6 +21661,114 @@ for _t in SWINGMINRR_SHORT_1H_CELLS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)
 REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | frozenset(SWINGMINRR_SHORT_1H_CELLS)) - _replay_verified_tags()
 
+# ---- B-981: chan_gap short_on_gap live scan (intraday short engine) ----
+# At the open print (first 5m bar of the day) rank every NIFTY-200 live-scope candidate with chan_gap_entry_signal(short), keep the
+# top CHAN_GAP_TOP_N by gap (chan_gap_select_top), open each as a paper short in signal_state_short (stop = open + 1.5*ATR14, the
+# SL is placed in the SAME real request by _maybe_place_real_short_entry and unwound on failure). Exits: stop, or market cover at
+# 15:10 IST (_chan_short_manage / _chan_short_flatten_due). DEVIATION from the research: the cross-section is the live scope
+# (NSE_FULL_UNIVERSE = NIFTY 200), not the ~2,680-symbol research universe, so the top-10 differs. Gate closed (REPLAY_OWED) until
+# scripts/chan_gap_main_replay.py output is on file. No new kill switch.
+_STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(CHAN_GAP_SHORT_TAG, CHAN_GAP_SHORT_TAG)
+REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | {CHAN_GAP_SHORT_TAG}) - _replay_verified_tags()
+CHAN_GAP_SCAN_START_MIN = 9 * 60 + 16
+CHAN_GAP_SCAN_END_MIN = 10 * 60 + 30
+_chan_gap_short_scan_day = None
+_chan_gap_short_task = None
+
+
+def _chan_gap_short_candidates(symbols, today_str):
+    """({symbol: (signal, today_5m_df)}, seen): symbols whose open print gaps up per chan_gap_entry_signal(short)."""
+    out, seen = {}, 0
+    for sym in symbols:
+        try:
+            d1 = fetch_ohlc(sym, "1y", "1d")
+            d5 = fetch_ohlc(sym, "5d", "5m")
+            dd = pd.to_datetime(d1["Date"]).dt.strftime("%Y-%m-%d")
+            d1 = d1[(dd < today_str).to_numpy()]  # completed daily bars only
+            t5 = pd.to_datetime(d5["Date"])
+            t5 = t5.dt.tz_convert("Asia/Kolkata") if t5.dt.tz is not None else t5.dt.tz_localize("UTC").dt.tz_convert("Asia/Kolkata")
+            d5 = d5[(t5.dt.strftime("%Y-%m-%d") == today_str).to_numpy()]
+            if d5.empty:
+                continue
+            seen += 1
+            sig = chan_gap_entry_signal(d1, float(d5["Open"].iloc[0]), "short")
+            if sig:
+                out[sym] = (sig, d5)
+        except Exception:
+            continue
+    return out, seen
+
+
+def _run_chan_gap_short_scan(conn=None):
+    """One pass per IST day inside 09:16-10:30. Returns a status string (for logs/tests)."""
+    global _chan_gap_short_scan_day
+    now = ist_now()
+    today_str = now.strftime("%Y-%m-%d")
+    mins = now.hour * 60 + now.minute
+    if now.weekday() >= 5 or not (CHAN_GAP_SCAN_START_MIN <= mins < CHAN_GAP_SCAN_END_MIN):
+        return "outside_window"
+    if _chan_gap_short_scan_day == today_str:
+        return "already_done"
+    if not _is_strategy_viable_for_real_money(CHAN_GAP_SHORT_TAG):
+        return "not_viable"  # gate closed (REPLAY_OWED or below the floor): paper stays off too, like the chan cells
+    own = conn is None
+    conn = get_db() if own else conn
+    try:
+        if conn.execute("SELECT 1 FROM short_trades_closed WHERE strategy = ? AND ts >= ? LIMIT 1",
+                        (CHAN_GAP_SHORT_TAG, ist_midnight_epoch(now))).fetchone() or \
+                conn.execute("SELECT 1 FROM signal_state_short WHERE strategy = ? AND day = ? LIMIT 1",
+                             (CHAN_GAP_SHORT_TAG, today_str)).fetchone():
+            _chan_gap_short_scan_day = today_str  # restart-safe: today's batch already opened
+            return "already_done"
+        syms = sorted(s for s in NSE_FULL_UNIVERSE if s.endswith(".NS"))
+        cands, seen = _chan_gap_short_candidates(syms, today_str)
+        if seen == 0:
+            return "no_open_print_yet"  # retry next tick
+        _chan_gap_short_scan_day = today_str
+        picks = chan_gap_select_top({s: c[0] for s, c in cands.items()}, "short")
+        cfg_by_sym = {c["symbol"]: c for c in WATCHLIST}
+        capital = get_scheduler_capital_inr()
+        entered = []
+        for sym in picks:
+            sig, d5 = cands[sym]
+            if conn.execute("SELECT 1 FROM signal_state_short WHERE symbol = ?", (sym,)).fetchone() or \
+                    conn.execute("SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", (sym,)).fetchone():
+                continue
+            if _likely_lower_circuit_locked(d5, today_str):
+                continue
+            px, stop = sig["entry_price"], sig["stop_loss"]
+            stop_dist = stop - px
+            if stop_dist <= 0:
+                continue
+            risk_pct = float((cfg_by_sym.get(sym) or {}).get("risk_pct", 1.0))
+            usable = min(max(0.0, capital - deployed_notional(conn)), capital / CAPITAL_TRANCHES)
+            qty = float(math.floor(min(usable * risk_pct / 100 / stop_dist, usable / px)))
+            if qty <= 0 or qty * px < 100.0:
+                continue
+            conn.execute(
+                "INSERT INTO signal_state_short "
+                "(symbol, day, status, entry_price, stop_loss, initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval, "
+                "entry_regime, peak_ltp, strategy, exit_legs_json) VALUES (?, ?, 'short', ?, ?, ?, ?, ?, ?, 1.0, '5m', ?, ?, ?, NULL) "
+                "ON CONFLICT(symbol) DO UPDATE SET day=excluded.day, status=excluded.status, entry_price=excluded.entry_price, "
+                "stop_loss=excluded.stop_loss, initial_stop_loss=excluded.initial_stop_loss, target=excluded.target, "
+                "qty=excluded.qty, entry_ts=excluded.entry_ts, fx_to_inr=excluded.fx_to_inr, interval=excluded.interval, "
+                "entry_regime=excluded.entry_regime, peak_ltp=excluded.peak_ltp, strategy=excluded.strategy, "
+                "exit_legs_json=excluded.exit_legs_json",
+                (sym, today_str, px, stop, stop, round(px * 0.01, 4), qty, time.time(), "chan_gap", px, CHAN_GAP_SHORT_TAG))
+            conn.commit()
+            entered.append(sym)
+            try:
+                with closing(get_db()) as real_conn:  # SL attached in the same request; B-962 re-check inside
+                    _maybe_place_real_short_entry(real_conn, sym)
+            except Exception as e:
+                print(f"[CHAN_GAP] real short mirror failed for {sym} (paper kept, backcheck/auto-heal covers): {e}")
+        print(f"[CHAN_GAP] short scan {today_str}: {seen} with open print, {len(cands)} signals, entered {entered}")
+        return f"entered:{len(entered)}"
+    finally:
+        if own:
+            conn.close()
+
+
 
 def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
     """Exits first, then entries, for the short-swing engine. Runs at the end of the daily swing scan, so a long
@@ -22814,9 +22964,9 @@ def _chan_short_flatten_due(symbol: str) -> bool:
     if not (CHAN_SHORT_FLATTEN_START_MIN <= m < CHAN_SHORT_FLATTEN_END_MIN):
         return False
     with closing(get_db()) as c:
-        _qs = ",".join("?" * len(CHAN_SHORT_CELLS))
+        _qs = ",".join("?" * len(CHAN_INTRADAY_SHORT_TAGS))
         return bool(c.execute(f"SELECT 1 FROM real_positions_short WHERE symbol = ? AND strategy IN ({_qs})",
-                              (symbol, *CHAN_SHORT_CELLS)).fetchone())
+                              (symbol, *CHAN_INTRADAY_SHORT_TAGS)).fetchone())
 
 
 def _chan_long_flatten_due(symbol: str) -> bool:
@@ -22853,6 +23003,12 @@ async def _scheduler_tick():
                 _swing_scan_task.add_done_callback(_log_swing_scan_done)
         except Exception as e:
             print(f"[SWING] scan failed (non-fatal, intraday tick continues): {e}")
+        try:  # B-981: chan_gap short open-print scan, off the event loop, one pass at a time
+            global _chan_gap_short_task
+            if _chan_gap_short_task is None or _chan_gap_short_task.done():
+                _chan_gap_short_task = asyncio.create_task(asyncio.to_thread(_run_chan_gap_short_scan))
+        except Exception as e:
+            print(f"[CHAN_GAP] scan launch failed (non-fatal): {e}")
         global _swing_sl_trail_last_day
         _today_ist = ist_now().strftime("%Y-%m-%d")
         if _swing_sl_trail_last_day != _today_ist and _nse_equity_market_open_now():
