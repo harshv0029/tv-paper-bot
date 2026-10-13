@@ -226,7 +226,7 @@ class TestSwingScannerWiring:
     def test_scheduler_tick_calls_run_swing_scan(self):
         import inspect
         src = inspect.getsource(main._scheduler_tick)
-        assert "_run_swing_scan(conn)" in src
+        assert "_run_swing_scan_own_conn" in src  # off-loop wrapper around _run_swing_scan
 
     def test_swing_trades_are_tagged_for_shared_loss_cap_visibility(self):
         # SWING_STRATEGY_TAG must start with ORB_STRATEGY_PREFIX so
