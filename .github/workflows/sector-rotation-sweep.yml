@@ -10,7 +10,14 @@ name: Sector rotation L x N x ATR sweep (B-1002, 1d + 4h, both directions, real 
 # Deploy Gate / safety run is queued or running. Results are research evidence only: register as new tags;
 # wiring is a separate step. No kill switch is touched.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      entry:
+        description: entry fill model (B-1110); signal_close = the live paper fill, own _ec1 tags
+        required: false
+        default: next_open
+        type: choice
+        options: [next_open, signal_close]
 
 jobs:
   sweep:
@@ -36,9 +43,10 @@ jobs:
           NS: "1,3,5"
           ATRS: "1d5,2d5,4d0,6d0"
           DIRS: "short,long"
-          NAME: ${{ matrix.tf }}_l${{ matrix.L }}
+          ENTRY: ${{ inputs.entry }}
+          NAME: ${{ matrix.tf }}_l${{ matrix.L }}_${{ inputs.entry }}
         run: python3 scripts/class_a_replay.py
       - uses: actions/upload-artifact@v4
         with:
-          name: sectorsweep-${{ matrix.tf }}-l${{ matrix.L }}
+          name: sectorsweep-${{ matrix.tf }}-l${{ matrix.L }}-${{ inputs.entry }}
           path: out/

@@ -1142,3 +1142,57 @@ Profit-booking / exit takeaway: the apparent edge came from stacked max-hold win
 - Profit-booking / exit takeaway: the 1h cell's edge is the resting target plus stop; check at each tf whether target_hit or max_hold_timeout carries the profit before judging a tf.
 - B-905 (2026-10-13): registry TradeCategory now has OPTIONS_MULTI ("options_multi", 7 members); key options stays single strike. Adding a category lifts the per-cycle check CEILING (30 -> 35) but an empty category adds no real checks; tests pinning the bound must follow len(TradeCategory). Profit-booking / exit takeaway: none yet, no multi-strike strategy registered.
 - B-991 update (2026-10-13): chan_nonoverlap.py now supports INTERVAL=4h (1h fetched, NSE session-resampled, 2 bars/session, ~730d history so fewer signals than 1d; lookback/hold constants are 4h bars). Dispatch chan-nonoverlap.yml with intervals=["4h"], then register `...__4h__...__nonovl__v2`. Expect no wireable cell (1d/1h best 1.084); result still must be registered.
+## chan_gap candle-size sweep, short + long, 5m/15m/1h (B-1020, 2026-10-14, harness built, run owed)
+- Mechanism: same Chan gap signal (open beyond prev extreme by 90d std, still on the MA20 side), top-10 by gap per day, ATR stop; the sweep changes only the exit resolution: the day is walked in 5m/15m/1h bars, stop checked every bar, flat at the last bar ending by 15:15 IST.
+- Fit: signal inputs are daily, so candle size cannot change selection, only whether intraday stop touches and the flatten bar differ from the daily-bar baseline; expect small PFnet deltas, mostly from the flatten price vs the 15:30 close. SL is on every trade by construction.
+- Result: none yet (dispatch owed, B-1020). Register all 18 tags pass or fail.
+- Design lessons: yfinance limits (5m/15m 60d, 1h 730d) mean n is a few percent of the 5y baseline, so judge on n and never compare PFnet to the 1d number directly; 1m (7d) and 4h are owed; nested f-string quotes are a SyntaxError on Python 3.11 CI.
+- Reuse: cross-sectional daily-signal strategies replay as shard-emit-candidates then per-date merge; the same two-frame (daily signal + intraday walk) pattern fits any open-gap strategy.
+- Profit-booking / exit takeaway: baseline profit is the close-out, not the stop; if finer bars show stops firing earlier turn winners into losers, that confirms keep wide stops and flatten at the close.
+## Holding-period unit hygiene: bars vs hours (B-1030, 2026-10-13)
+- Mechanism: a run stored avg hold as bars x 24.0 (calendar hours per 1d bar) while the registry's `avg_held_hrs` means MARKET hours (1d bar = 6.25h, 1h = 1h, 15m = 0.25h). The 10 swing-short main-replay tags showed 284.6h instead of 74.1h, which also distorts the 75h quality hold cap and any PFnet-per-time ranking.
+- Reuse: always store the raw bar count (`Metrics.avg_held_bars`) next to the derived hours and compare hours only in market hours; never overwrite the raw field. Quote the run's raw unit in evidence.
+- Profit-booking / exit takeaway: hold-time comparisons (faster turnover tie-break) are only valid in one unit; the swing-short cells hold ~12 sessions, not ~47 days-equivalent, so their turnover ranking improves.
+## Replay fidelity: glitch-bar cleaning + entry-fill model for sector_rotation and pl1d (B-1110, 2026-10-14)
+- Mechanism: not a new strategy; two gaps between research replays and live. The pl1d and sector replays read raw yfinance frames (a bad open print once made +900% trades, PFnet 6.2), and the sector replay filled at the next open while the live paper path fills at the signal close.
+- Fit: shared scripts/bar_hygiene.py now cleans frames and records bars_dropped_glitch; sector sweep can run ENTRY=signal_close as separate `_ec1` tags. Gap-through-stop fill models were already reported side by side.
+- Result: harness only; effect size unknown until the re-runs (owed in B-1110). Old registered tags keep their uncleaned numbers.
+- Surprised: three research labs already had their own copy-pasted clean_bars while these two did not; the copies are identical, so a shared helper is the low-risk fix.
+- Reuse: any new replay driver loads frames through bar_hygiene.clean_frames and reports the drop count; when live fills differ from the replay (close vs next open), add the live model as its own tag instead of editing the old one.
+- Profit-booking / exit takeaway: cleaning removes fake outsized winners, so expect PFnet to fall slightly, never rise; judge the cleaned number, and size nothing off an uncleaned one.
+## pl1d 1h/4h sweep + brk20 4h (B-1150 / B-1151, 2026-10-14, harnesses built, runs owed)
+- Mechanism: pl1d = fade a STARC-band spike (close beyond SMA6 +/- 2 ATR15) or ride a >1% gap runaway above SMA50; brk20 = 20-bar breakout with minimum reward:risk. Both are bar-count rules, so a coarser candle changes what a window means (4h hold 10 = ~5 sessions, not 10 days).
+- Fit: 4h/1h holds are 1-10 sessions (swing-length at 4h, intraday-to-swing at 1h); every cell keeps an ATR stop. Short legs at multi-session holds still hit the overnight-product question (B-912); research only until a cell clears the floor.
+- Result: none yet; register all cells pass or fail.
+- Surprised/design lessons: main's date-based exit functions (find first bar with DATE > entry_day) silently skip the rest of the entry day at intraday sizes, so a harness must hand them the post-entry frame and an older entry_day instead of reusing the 1d call; yfinance has no 4h, only the session-anchored 1h resample gives bars that do not span the overnight gap; 730d of 1h gives ~2 years, far fewer signals than the 5y 1d baseline (read n).
+- Reuse: for any 1d-built strategy being swept intraday, grep its exit fn for date comparisons first; sweep ATR and hold in the driver off the real signal's atr_at_entry rather than adding tags to main.
+- Profit-booking / exit takeaway: 1d evidence says pl1d profit sits in hold-bar closes (stops lose); if 4h stops fire earlier and lose, widen ATR before shortening hold.
+## Island reversal short+long and pl1d long+short: candle-size x ATR sweeps (B-1090 / B-1091, 2026-10-14, harnesses built, runs owed)
+- Mechanism: island = gap in one direction, then within 8 bars a gap back that stays beyond the first gap; enter at the completion close, ATR stop, EMA13 rule exit or 30-bar hold. pl1d = STARC band fade (close beyond SMA6 +/- 2 x ATR15) and gap runaway (open beyond prior extreme by 1%, with SMA50 and candle direction), ATR14 stop, 20-bar hold. Each is run long AND short at 4h/1h/15m/5m (island also 1d).
+- Fit: 4h cells are multi-session swings (overnight; short side still gated by B-912/B-967), 15m/5m cells are intraday and would belong to the MIS engines. Stop on every trade, atrnone refused. Prior evidence: island long 1d is 1.27-1.98 but decays in 2026 and the 1d short mirror is 0.64-0.76, so a short winner would be a surprise, not an expectation.
+- Result: none yet; every cell must be registered pass or fail after dispatch.
+- Design lessons: (1) where a main.py fn is bound to a registered cell (pl1d), sweep a parameter by registering swept tags in the research process only, never by re-implementing; (2) day-granular exit fns (pl1d str[:10] date compare) silently break on intraday bars, so feed them bar-ordinal dates; (3) island signals do not depend on the ATR multiple, so compute detection once and derive stops with the real brk20_stop_price per k (3x cheaper, exact); (4) a numpy necessary-condition pre-filter keeps a per-bar real-fn call affordable at 5m and is safe because main still decides every signal; (5) 60-day intraday history gives few islands, so read intraday n before PFnet.
+- Reuse: tools/tf_sweep_common.py style (string Date column, shard raw sums, exact merge) for any further candle sweep; cross-check a new-tf harness by reproducing an existing 1d registry tag name and number.
+- Profit-booking / exit takeaway: unknown until run; island long earned on time exits, so check at each tf whether rule_exit or max_hold_timeout carries profit before tightening stops.
+
+## Envelope 5% fade 1h ported into main.py, unwired (B-1130, 2026-10-14)
+- Mechanism: close more than 5% below SMA21 (long) or above (short mirror), mean-reversion fade held 18-30 hourly bars with an ATR14 stop.
+- Fit: 30 hourly bars span about 4-5 sessions, so overnight CNC swing engine, never MIS. Only stop-bearing cells are ported; the atrnone cells (best raw PFnet 1.225) can never be wired because every trade needs a stop.
+- Result: none from main.py yet; research registry (n200) shows PFnet rising with wider stop and longer hold (atr6_h30 1.145, atr2d5_h30 0.943), i.e. the stop mostly hurts. Short mirror was never registered.
+- Surprised: of the B-916..B-959 rows several families (pl1d starc/gap runaway, gap fade nb5, chan_shape, macddiv) were already ported; check main.py before scoping a port.
+- Reuse: port the last-bar rule with a bar-by-bar parity test against the research rule function, return the stop always, own tag per direction/ATR/hold.
+- Profit-booking / exit takeaway: this edge sits in the long hold (timeout survivors); tight stops convert fades into stop-outs, so judge the replay by the exit-reason split.
+## Envelope fade 1h main.py replay harness (B-1160, 2026-10-14)
+- Mechanism: replay of the B-1130 port on the full universe, both directions, 12 ATR x hold cells, tags carry all raw metrics.
+- Fit: yfinance caps 1h at 730 days, so the full-universe sample is about 2 years; a 5-year 1h claim is impossible, state it instead of resampling.
+- Result: none yet (dispatch owed).
+- Surprised: a cheap exact prefilter (rule's first test as a numpy mask) cuts real-function calls by an order of magnitude without changing a single trade; keep a brute-force equality test for any prefilter.
+- Reuse: copy the pl1d replay skeleton, swap the loader family for the 1h loader, route glitch cleaning through bar_hygiene, sign the PnL by direction in the trade helper.
+- Profit-booking / exit takeaway: report the timeout vs stop split per cell; the research edge lived in long holds.
+## O'Neil setups ported into main.py for a genuine main-calling replay (B-1070, 2026-10-14)
+- Mechanism: flat-base / pivot / new-high breakout on >=1.5x volume, signal at the close, entry at the next open, ATR (or pct) stop on every trade, long and short as separate tags; main.py now holds oneil_signal_at, oneil_stop_price, oneil_trail_stop, oneil_exit_bar (additive, unwired).
+- Fit: weekly/daily swing-length holds (8-26 bars) fall to the swing engine; the 0.8% cost matters less at these holds. Nothing is live: the port exists only so the replay exercises real main.py code.
+- Result: none yet; v2 replay dispatch owed (1w then 1d). v1 independent-implementation results stay as the cross-check.
+- Surprised: a port can be proven equal to the older independent replay by parity tests on synthetic series (long, trailing, pct, target, short mirror) before spending a full-universe run.
+- Reuse: port the walk-forward array-level function first (signal_at style) and keep df wrappers thin; keep the negative-control (avg-down) out of main.py; a new main-calling run is a new tag version (v2), never an overwrite of v1.
+- Profit-booking / exit takeaway: earlier O'Neil evidence says the timeout survivors carry the profit and trail stops lose; check the v2 exit-reason breakdown before judging a cell.

@@ -7,7 +7,7 @@ on the exit bar itself (research: `s >= free`), forced close at data end. Cost =
 Universe = main._load_nse_universe_from_file() (full, NOT main.NSE_FULL_UNIVERSE).
 
 Modes (argv[1]):
-  run    env: INTERVAL (1d|1h|15m), DIRECTION (long|short), CELLS (json list of {"atr","rr","be"}; be null =
+  run    env: INTERVAL (1d|4h|1h|15m), DIRECTION (long|short), CELLS (json list of {"atr","rr","be"}; be null =
          no breakeven ratchet), SHARD, NSHARDS, SYMBOL_LIMIT (smoke), SYNTHETIC=1 (offline smoke, NOT a result)
          -> out/brk20_<interval>_<direction>_s<shard>.json holding per-cell RAW SUMS (mergeable exactly).
   merge  python3 scripts/brk20_replay.py merge out/  -> out/brk20_all.json with every metric per tag:
@@ -28,7 +28,7 @@ warnings.filterwarnings("ignore")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-PERIOD_BY_INTERVAL = {"1d": "5y", "1h": "730d", "15m": "60d", "5m": "60d"}
+PERIOD_BY_INTERVAL = {"1d": "5y", "4h": "730d", "1h": "730d", "15m": "60d", "5m": "60d"}  # 4h = 1h x 730d resampled (B-1151)
 MIN_BARS = 62  # brk20_min_rr_entry_signal needs 62 bars (60-bar room window + signal bar + 1)
 
 
@@ -148,6 +148,21 @@ def synthetic_frame(seed, n=700):
     return pd.DataFrame({"Date": d.strftime("%Y-%m-%d"), "Open": o, "High": hi, "Low": lo, "Close": c, "Volume": v})
 
 
+def fetch_interval(m, sym, interval):
+    """yfinance has no 4h: build NSE-session 4h bars from 1h (scripts/resample_4h.py, ~2 bars/day, avg 3.5h). Others fetch directly."""
+    if interval != "4h":
+        return m.fetch_ohlc(sym, PERIOD_BY_INTERVAL[interval], interval)
+    raw = m.fetch_ohlc(sym, "730d", "1h")
+    if raw is None or len(raw) == 0:
+        return raw
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import resample_4h as r4
+    ix = raw.set_index(pd.DatetimeIndex(raw["Date"]))
+    out = r4.resample_1h_to_4h(ix[["Open", "High", "Low", "Close"] + (["Volume"] if "Volume" in ix.columns else [])]).copy()
+    out.insert(0, "Date", out.index)
+    return out.reset_index(drop=True)
+
+
 def load_frames(m, interval, shard, nshards, limit=None):
     if os.environ.get("SYNTHETIC") == "1":
         return {f"SYN{k}": synthetic_frame(k) for k in range(limit or 5)}
@@ -159,7 +174,7 @@ def load_frames(m, interval, shard, nshards, limit=None):
     out = {}
     for s in syms:
         try:
-            raw = m.fetch_ohlc(s, period, interval)
+            raw = fetch_interval(m, s, interval)
         except Exception:
             continue
         if raw is None or len(raw) < MIN_BARS + 3:
