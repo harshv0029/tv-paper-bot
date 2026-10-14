@@ -10,7 +10,7 @@ Total rows: 970 | closed: 400 | not closed: 570
 |---|---|
 | DONE | 230 |
 | CLOSED-AS-EXPLAINED | 124 |
-| HARNESS-BUILT-RUN-PENDING | 101 |
+| HARNESS-BUILT-RUN-PENDING | 103 |
 | HARNESS-BUILT-AWAITING-RUN | 99 |
 | DONE-PENDING-VERIFY | 89 |
 | PARTIAL | 70 |
@@ -22,13 +22,13 @@ Total rows: 970 | closed: 400 | not closed: 570
 | PENDING | 12 |
 | BUILT-ON-BRANCH | 6 |
 | OPEN-PARKED | 6 |
-| BUILT-DISPATCH-OWED | 5 |
 | PARKED-REASONED | 4 |
 | WIRED-PENDING-REPLAY | 4 |
 | PARKED | 3 |
 | TODO | 3 |
 | DISPATCH-READY | 3 |
 | WIRED-PENDING-DEPLOY | 3 |
+| BUILT-DISPATCH-OWED | 3 |
 | IN-PROGRESS | 2 |
 | PARTIAL-1H-FAILED-TO-CONFIRM | 2 |
 | IN | 2 |
@@ -58,8 +58,8 @@ Total rows: 970 | closed: 400 | not closed: 570
 | Priority | All | Not closed |
 |---|---|---|
 | P0 | 63 | 40 |
-| P1 | 372 | 239 |
-| P2 | 416 | 225 |
+| P1 | 371 | 238 |
+| P2 | 417 | 226 |
 | P3 | 110 | 59 |
 | Info | 1 | 0 |
 | P? | 8 | 7 |
@@ -70,7 +70,7 @@ Total rows: 970 | closed: 400 | not closed: 570
 |---|---|---|---|---|
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (401)
+## waiting-on-workflow/deploy (403)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -417,6 +417,8 @@ Total rows: 970 | closed: 400 | not closed: 570
 | B-811 | P2 | HARNESS-BUILT-RUN-PENDING | Chan 4h cell: every Chan family (B-424..B-436, B-440, B-447, B-452) was run at 1d+1h only (run 38183172728)... | pending, needs |
 | B-813 | P2 | DONE-PENDING-VERIFY | Matrix-cap fix (2026-10-12 IST, s00 subagent): GitHub caps a matrix at ~40 jobs; three research workflows w... | pending |
 | B-816 | P2 | DONE-PENDING-VERIFY | Trade-view: viable-strategies panel now shows "last data change" (hash of value columns, client localStorag... | pending |
+| B-1130 | P2 | HARNESS-BUILT-RUN-PENDING | 2026-10-14 IST, main.py port step for B-936 (viable family envelope/0d05_fade/long/1h, swing) | owed, pending |
+| B-1160 | P2 | HARNESS-BUILT-RUN-PENDING | 2026-10-14 IST, replay for B-1130/B-936. scripts/envelope_main_replay.py + .github/workflows/envelope-main-... | owed, pending, needs |
 | B-435 | P3 | DONE-PENDING-VERIFY | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | owed, pending, verify |
 | B-436 | P3 | DONE-PENDING-VERIFY | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | owed, pending, verify |
 | B-438 | P3 | BLOCKED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | blocked, needs |
@@ -476,7 +478,7 @@ Total rows: 970 | closed: 400 | not closed: 570
 | B-317 | P? | DONE-PENDING-VERIFY | ETFs added to the monitored + real-tradable universe (user 2026-10-08 IST: gold, silver and other ETFs, tra... | pending, verify |
 | B-320 | P? | DONE-PENDING-VERIFY | REAL-money long-option entries (user 2026-10-08: "I want real money trades") | owed, remaining, pending, verify, needs, awaiting, waiting |
 
-## ready-to-build (65)
+## ready-to-build (64)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -543,10 +545,9 @@ Total rows: 970 | closed: 400 | not closed: 570
 | B-959 | P2 | P2 | ready-to-build |  |
 | B-991 | P2 | BUILT-DISPATCH-OWED | Owed 4h non-overlap run for Chan time-series cells (from B-432/B-807): add a 1h->4h resample to scripts/cha... | owed |
 | B-1001 | P2 | OPEN | SHORT mirror of the pl1d 1d cells (starc fade full + gap runaway), both-directions thumb rule | owed |
-| B-1091 | P2 | BUILT-DISPATCH-OWED | pl1d (STARC fade + gap runaway) LONG + SHORT: candle-size (4h, 1h, 15m, 5m) x ATR {2.5, 4, 6}, real main.py... | owed |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 
-## research-queue (103)
+## research-queue (102)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -622,7 +623,6 @@ Total rows: 970 | closed: 400 | not closed: 570
 | B-983 | P1 | BUILT-GATE-CLOSED | BUILD pattern-lab 1d LONG cells in the swing engine (PKG3): starc__fade_full__long__1d__atr2d5_h20__v1 (reg... | owed |
 | B-984 | P1 | BUILT | BUILD macddiv LONG 1h in the SWING engine (B-973 follow-up, engine-ownership decision: the rule holds up to... | owed, owner, follow-up |
 | B-985 | P1 | WIRED-PENDING-REPLAY | PKG5 short-swing engine (paper-only, WIRED-PENDING-REPLAY for (a), 2026-10-13 IST): (a) ADDED swingminrr__b... | owed, remaining, pending |
-| B-1090 | P1 | BUILT-DISPATCH-OWED | Island reversal SHORT + LONG mirror: candle-size (1d, 4h, 1h, 15m, 5m) x ATR {1.5, 2.5, 4} x 4 filters, rea... | owed |
 | B-413 | P2 | PARTIAL | From B-403 audit | open:, needs |
 | B-422 | P2 | PARTIAL | 2026-10-11 IST, user liquidity question: none of the 286 viable (PFnet >= 1.1) strategies models liquidity ... | owed, needs |
 | B-513 | P2 | PARTIAL | 2026-10-11 IST, source: William O'Neil, How to Make Money in Stocks (docs/ on main; 4 readers) |  |
