@@ -11800,13 +11800,15 @@ def _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, in
         universe = [c["symbol"] for c in WATCHLIST if str(c["symbol"]).endswith(".NS")]
     if not _chan_gap_ensure_selection(today_str, universe):
         return None
-    for _t in CHAN_GAP_LONG_CELLS:  # B-1244: every viable gap cell counts as scanned once the day's selection exists
-        if _is_strategy_viable_for_real_money(_t):
-            _record_strategy_scan(_t)
+    for _t in CHAN_GAP_LONG_CELLS:  # B-1244/B-1250: every gap cell counts as scanned once the day's selection exists
+        _record_strategy_scan(_t)
     sig = _CHAN_GAP_STATE["selected"].get(symbol)
     if not sig:
         return None
     tag = next((t for t in CHAN_GAP_LONG_CELLS if _is_strategy_viable_for_real_money(t)), next(iter(CHAN_GAP_LONG_CELLS)))
+    if not _is_strategy_viable_for_real_money(tag):
+        _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
+        return None
     if conn.execute("SELECT 1 FROM signal_state_short WHERE symbol = ? AND status = 'short'", (symbol,)).fetchone():
         return None
     _qs = ",".join("?" * len(CHAN_GAP_LONG_CELLS))
@@ -21822,10 +21824,12 @@ def _month_effect_short_try_entry(conn, symbol, df15, capital, risk_pct, today, 
     sig_df = df15.iloc[:k0 + 1]
     entry_price = float(df15["Open"].iloc[k0 + 1]) if k0 + 1 < len(df15) else float(df15["Close"].iloc[k0])
     for tag, (atr_mult, _hold) in MONTH_EFFECT_SHORT_CELLS.items():
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
-            continue
+        _record_strategy_scan(tag)
         sig = month_effect_short_entry_signal(sig_df, atr_mult)
         if not sig:
+            continue
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         stop_loss = month_effect_short_stop(entry_price, sig["atr"], atr_mult)
         if stop_loss is None or stop_loss <= entry_price:
@@ -21909,7 +21913,9 @@ def _sector_fade_short_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
     atr_v = _compute_atr_value(df, 14)
     entry_price = float(df["Close"].iloc[-1])
     for tag, (atr_mult, _hold) in SECTOR_FADE_SHORT_CELLS.items():
+        _record_strategy_scan(tag)
         if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            _record_blocked_trigger(tag)  # picked (trigger), gate closed now: no position opened
             continue
         stop_loss = sector_rotation_fade_short_stop(entry_price, atr_v, atr_mult)
         if stop_loss is None or stop_loss <= entry_price:
@@ -22439,8 +22445,6 @@ def _run_chan_gap_short_scan(conn=None):
         return "outside_window"
     if _chan_gap_short_scan_day == today_str:
         return "already_done"
-    if not _is_strategy_viable_for_real_money(CHAN_GAP_SHORT_TAG):
-        return "not_viable"  # gate closed (REPLAY_OWED or below the floor): paper stays off too, like the chan cells
     own = conn is None
     conn = get_db() if own else conn
     try:
@@ -22457,6 +22461,10 @@ def _run_chan_gap_short_scan(conn=None):
         _record_strategy_scan(CHAN_GAP_SHORT_TAG)  # B-1244: the daily batch ran (feeds scans_today)
         _chan_gap_short_scan_day = today_str
         picks = chan_gap_select_top({s: c[0] for s, c in cands.items()}, "short")
+        if not _is_strategy_viable_for_real_money(CHAN_GAP_SHORT_TAG):
+            for _ in picks:
+                _record_blocked_trigger(CHAN_GAP_SHORT_TAG)  # fired, gate closed now: no position opened
+            return "not_viable"
         cfg_by_sym = {c["symbol"]: c for c in WATCHLIST}
         capital = get_scheduler_capital_inr()
         entered = []
