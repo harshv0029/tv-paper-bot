@@ -113,3 +113,11 @@ def test_replay_script_smoke_synthetic(tmp_path):
     assert all("metrics" in x and "n" in x["metrics"] for x in rows)
     import shutil
     shutil.rmtree(os.path.join(root, "out"), ignore_errors=True)
+
+
+def test_chan_gap_short_gate_open_and_has_mr_row():
+    """B-1221: run 38502123279 (main.py replay, PFnet 1.31, n 1157) on file -> short atr1d5 gate derives open, own _mr row."""
+    t = main.CHAN_GAP_SHORT_TAG
+    assert t not in main.REPLAY_OWED_TAGS
+    assert main._is_strategy_viable_for_real_money(t, check_switch=False)
+    assert t.replace("short_on_gap__short", "short_on_gap_mr__short") in {d.name for d in sr.REGISTRY}

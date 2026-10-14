@@ -21,6 +21,8 @@ VARIANT_OF_WIRED = {
     # B-1220: main.py-replay-measured _mr rows of the wired chan_gap BUY cells (same live entry path, own measured metrics).
     **{f"chan_gap__buy_on_gap_mr__long__1d__{c}_top10__v1": f"chan_gap__buy_on_gap__long__1d__{c}_top10__v1"
        for c in ("atr4d0", "atr2d5", "atr1d5")},
+    # B-1221: main.py-replay-measured _mr row of the wired chan_gap SHORT atr1d5 cell (run 38502123279).
+    "chan_gap__short_on_gap_mr__short__1d__atr1d5_top10__v1": "chan_gap__short_on_gap__short__1d__atr1d5_top10__v1",
 }
 
 

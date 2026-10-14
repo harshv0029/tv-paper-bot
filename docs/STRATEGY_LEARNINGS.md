@@ -1210,3 +1210,6 @@ Profit-booking / exit takeaway: the apparent edge came from stacked max-hold win
 - Design lessons: (1) keep hold units as printed (hold_h vs hold_bars) rather than converting, since bar length differs by candle size; (2) a parser for result logs must refuse a near-miss line loudly, not skip it, otherwise a format drift silently loses rows; (3) saved result files have many shapes (rows, cells, results, tag-keyed dicts), so a grammar-regex walk finds tags without per-file code; (4) the registry is ~41k names loaded from many extension modules, so always diff against the live import, not a grep.
 - Reuse: run scripts/missing_registry_tags.py after every result commit; pipe merge logs through scripts/replay_table_to_json.py instead of copying tables.
 - Profit-booking / exit takeaway: none directly; unregistered results are invisible to the viable leaderboard, so any viable cell hiding in them is profit not yet considered (check the 416 for PFnet >= 1.1 first).
+
+## chan_gap short_on_gap main.py replay (2026-10-14)
+Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; close exits PFnet 2.45, stop exits 0 (83 of 1157). Only atr1d5 cell emitted. Profit-booking / exit takeaway: same-day open-to-close hold (1 bar) keeps turnover maximal; the ATR stop loses every time, edge is entirely in close exits.

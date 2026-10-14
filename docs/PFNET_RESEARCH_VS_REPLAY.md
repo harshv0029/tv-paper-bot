@@ -17,6 +17,7 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.20 | 1220 | 1.19 | 1266 | -0.01 | close |
 | chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.28 | 1158 | 1.29 | 1204 | 0.01 | close |
 | gap__runaway_mr__short__1d__atr4_h20__v1 | gap__runaway__short__1d__atr4_h20__v1 | 0.51 | 978 | 0.53 | 9861 | 0.01 | close |
+| chan_gap__short_on_gap_mr__short__1d__atr1d5_top10__v1 | chan_gap__short_on_gap__short__1d__atr1d5_top10__v1 | 1.30 | 1127 | 1.31 | 1157 | 0.02 | close |
 | chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | 0.98 | 8845 | 1.00 | 9169 | 0.02 | close |
 | chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.05 | 8176 | 1.07 | 8496 | 0.02 | close |
 | chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.01 | 8477 | 1.03 | 8799 | 0.02 | close |
