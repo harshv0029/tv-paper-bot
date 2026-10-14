@@ -24,8 +24,10 @@ def test_tags_mapping_registry_and_owed():
     for t in TAGS:
         assert t in names
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t
-        assert t in main.REPLAY_OWED_TAGS  # no main.py-calling replay file yet -> real gate closed
-        assert not main._is_strategy_viable_for_real_money(t, check_switch=False)
+        # B-1220: run 38501321543 (main.py-calling replay, PFnet 1.32-1.39, n 1211) is on file -> owed flag cleared, gate derives viability
+        assert t not in main.REPLAY_OWED_TAGS
+        assert main._is_strategy_viable_for_real_money(t, check_switch=False)
+        assert t.replace("buy_on_gap__long", "buy_on_gap_mr__long") in names  # its own BUY-category _mr row
     assert set(TAGS) <= main.CHAN_INTRADAY_LONG_TAGS and set(main.CHAN_LONG_CELLS) <= main.CHAN_INTRADAY_LONG_TAGS
 
 
