@@ -493,7 +493,7 @@ Total rows: 1015 | closed: 431 | not closed: 584
 | B-1181 | P1 | BUILT-DISPATCH-OWED | tasuki gap SHORT + LONG mirror: candle-size (1d, 4h, 1h, 15m, 5m) x ATR {2.5, 4, 6} x universe {etf, full},... | owed |
 | B-1241 | P1 | OPEN | chan-nonoverlap 4h re-run (B-806) results, run 38510016719 (2026-10-14 09:44 IST, artifact chan-nonoverlap-... |  |
 | B-1249 | P1 | NEEDS-OWNER | O'Neil 1w long cells (flatbase 3.921 / newhigh 2.484 / pivot 2.177, deployed 14 Oct 2026 via Deploy Gate ru... | owed, verify, needs, owner |
-| B-1252 | P1 | OPEN | User 14 Oct 2026 14:51 IST: every long-engine row shows "BLOCKED AGGREGATE OPEN RISK ... available = X, nee... | blocked, needs |
+| B-1252 | P1 | OPEN | User 14 Oct 2026 14:51 IST: every long-engine row shows "BLOCKED AGGREGATE OPEN RISK ... available = X, nee... | remaining, blocked, needs |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
