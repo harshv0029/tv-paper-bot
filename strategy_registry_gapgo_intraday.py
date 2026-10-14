@@ -55,7 +55,7 @@ def _build_one(fn, _REF, zero_short_bug, seen):
                 name=tag, asset_class=sr.AssetClass.EQUITY_INTRADAY, categories=(cat,), timeframe=tf,
                 status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                 metrics=sr.Metrics(pfnet=float(pfn), pfgross=float(pfg), win_rate_pct=float(r["win_pct"]),
-                                   n_trades=int(r["n"]), avg_held_hrs=float(r["avg_hold_bars"]) * min_per_bar / 60.0,
+                                   n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * min_per_bar / 60.0,
                                    universe="NSE full universe", run_ref=_REF),
                 source="scripts/intraday_gap_and_go_research.py",
                 evidence=f"{_REF}: PFnet {r['pfnet']}, gross {r['pf_gross']}, trim1 {r['pfnet_trim1']}, win {r['win_pct']}%, n={r['n']}, "

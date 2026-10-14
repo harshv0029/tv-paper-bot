@@ -114,6 +114,19 @@ PFNET_LIVE_FLOOR = 1.1  # 2026-10-11 user: viable now means PFnet >= 1.1 (was 1.
 TRADING_HOURS_PER_DAY = 6.25
 
 
+def market_hours_per_bar(tf: str) -> float:
+    """B-1030/B-1120: market (session) hours one bar of timeframe `tf` spans; bar counts x this = Metrics.avg_held_hrs.
+    1d = TRADING_HOURS_PER_DAY, 1w = 5 sessions, 4h = 4, 1h = 1, 15m = 0.25, 5m = 1/12, 1m = 1/60. Unknown tf raises (never guessed)."""
+    t = {"1m": 1 / 60, "5m": 5 / 60, "15m": 0.25, "1h": 1.0, "4h": 4.0}
+    if tf in t:
+        return t[tf]
+    if tf == "1d":
+        return TRADING_HOURS_PER_DAY
+    if tf == "1w":
+        return 5 * TRADING_HOURS_PER_DAY
+    raise ValueError(f"unknown timeframe {tf!r}")
+
+
 # Registry names the user has explicitly marked viable + live-wired from trade-view (2026-10-13). Filled from the
 # strategy_viable_override table by main._load_viable_overrides(); empty by default, so derived viability is unchanged.
 VIABLE_OVERRIDES: set = set()

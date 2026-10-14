@@ -48,7 +48,7 @@ def _elder(seen):
                 status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                 metrics=sr.Metrics(pfnet=float(r["oos_pfnet"]), pfgross=float(r.get("pf_gross") or 0.0),
                                    win_rate_pct=float(r["oos_win_pct"]), n_trades=int(r["oos_n"]),
-                                   avg_held_hrs=float(r["avg_hold_bars"]) * _D, universe=uni, run_ref=_REF_E),
+                                   avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * _D, universe=uni, run_ref=_REF_E),
                 source="scripts/elder_dirsys13_research (B-588)",
                 evidence=ev,
                 notes=("Elder Directional System DI13 research cell. Headline pfnet/win/n are OOS; pfgross and avg hold are POOLED (OOS gross not "
@@ -80,7 +80,7 @@ def _oneil(seen, fn="oneil_nonoverlap_results_1d.json", tf="1d", bar_days=1, ref
                 name=tag, asset_class=sr.AssetClass.EQUITY_SWING, categories=(sr.TradeCategory.SWING,), timeframe=tf,
                 status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                 metrics=sr.Metrics(pfnet=float(r["pfnet"]), pfgross=float(r["pfgross"]), win_rate_pct=float(r["win_pct"]),
-                                   n_trades=int(r["n"]), avg_held_hrs=float(r["avg_hold_bars"]) * bar_days * _D, universe=uni, run_ref=ref),
+                                   n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * bar_days * _D, universe=uni, run_ref=ref),
                 source=f"scripts/oneil_nonoverlap_research ({ref_id})",
                 evidence=ev,
                 notes=(f"O'Neil non-overlap {tf} tag ({seg}); each of pooled/_segis/_segoos is its own strategy, never pooled together. Compare the "

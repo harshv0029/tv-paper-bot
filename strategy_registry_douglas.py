@@ -29,7 +29,7 @@ def build():
                 status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                 metrics=sr.Metrics(
                     pfnet=float(r["pfnet"]), pfgross=float(r.get("pf_gross") or 0.0), win_rate_pct=float(r["win_pct"]),
-                    n_trades=int(r["n"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.TRADING_HOURS_PER_DAY,
+                    n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.TRADING_HOURS_PER_DAY,
                     universe="5376 listed / 4699 fetched (broad NSE+ETF harness universe)", run_ref=_REF),
                 source="scripts/douglas_trade_mgmt_research.py",
                 evidence=f"{_REF}: PFnet {r['pfnet']} (gross {r.get('pf_gross')}), win {r['win_pct']}%, n={r['n']}, avg_hold {r['avg_hold_bars']} bars, avg_net {r.get('avg_net_ret_pct')}%, MFE {r.get('avg_mfe_r')}R MAE {r.get('avg_mae_r')}R, losers reaching 0.5R {r.get('losers_reached_half_r_pct')}% / 1R {r.get('losers_reached_1r_pct')}%; exits {json.dumps(r.get('exit_reasons'), separators=(',', ':'))}",

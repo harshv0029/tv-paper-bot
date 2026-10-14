@@ -1196,3 +1196,10 @@ Profit-booking / exit takeaway: the apparent edge came from stacked max-hold win
 - Surprised: a port can be proven equal to the older independent replay by parity tests on synthetic series (long, trailing, pct, target, short mirror) before spending a full-universe run.
 - Reuse: port the walk-forward array-level function first (signal_at style) and keep df wrappers thin; keep the negative-control (avg-down) out of main.py; a new main-calling run is a new tag version (v2), never an overwrite of v1.
 - Profit-booking / exit takeaway: earlier O'Neil evidence says the timeout survivors carry the profit and trail stops lose; check the v2 exit-reason breakdown before judging a cell.
+
+## Flatten failures at MIS cost, and the 15m bars-as-hours bug (B-1120 / B-1121, 2026-10-14 IST)
+- Mechanism: the forced 15:15 flatten re-run priced every cell at the 0.8% flat round trip; real MIS costs are far lower (about 0.12% statutory+brokerage, 0.3% with a slippage stress), so a failed intraday cell may be a cost artifact. The re-test is a new tag per cost (`cst0d12`, `cst0d3`), never an overwrite.
+- Fit here: intraday cells with an ATR stop attach to the buy/short engines; month/lunar `atrnone` cells have no stop and can never be wired (no-trade-without-SL).
+- Surprise: while filling raw bar counts, 108 15m tags turned out to store bars as hours (4x too long). Holds drive the faster-turnover tie-break and the 75h quality cap, so a unit slip silently reorders rankings. Reuse: store the raw bar count next to derived hours and assert hours == bars x market_hours_per_bar(tf) in a test.
+- Result: none yet (matrix built, dispatch owed). A cost-only pass is a candidate, not evidence; it still needs the real-main.py replay.
+- Profit-booking / exit takeaway: cost is part of the exit decision at 5m/15m, where trades earn little per round trip; judge any intraday exit tweak at MIS cost, not the 0.8% figure.
