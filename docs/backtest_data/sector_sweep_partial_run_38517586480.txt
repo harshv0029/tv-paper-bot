@@ -1,0 +1,51 @@
+# Run 38517586480 sector_rotation sweep. PARTIAL: job stdout prints only json.dumps(res)[:6000]; ~4 of 24 cells per 1d job, ~6 per 4h job are visible.
+# Full JSON is only in artifacts (sectorsweep-{tf}-l{L}-next_open); blob download is Forbidden by the proxy.
+# cols: tag | fill | n | pfnet | pfgross | win% | avg_held_bars | exit_reasons(n,pfnet,win%,hold)   (cost 0.8% round trip implied: gross-net avg = 0.8)
+# --- 1d L1 (2214 syms) job 115699757321 ---
+sector_rotation__fade__short__1d__atr1d5_h5_l1_n1__v1 (sig607) | stop | 597 | 0.8761 | 1.0964 | 46.73 | 3.87 | max_hold_timeout(353,9.775,79.04,5.0) stop_hit(244,0,0,2.23)
+  | gap_aware | 597 | 0.8342 | 1.0379 | 46.73 | 3.87 | same
+  | close | 597 | 1.0102 | 1.2520 | 54.61 | 4.40 | max_hold_timeout(456,4.752,71.49,5.0) stop_hit(141,0,0,2.48)
+sector_rotation__fade__short__1d__atr1d5_h10_l1_n1__v1 (sig607) | stop | 596 | 0.9489 | 1.1457 | 43.79 | 6.64 | mht(301,23.98,86.71,10.0) stop_hit(295,0,0,3.22)
+  | gap_aware | 596 | 0.9079 | 1.0909 | 43.79 | 6.64 | same
+  | close | 596 | 1.0916 | 1.2955 | 53.52 | 8.04 | mht(403,9.689,79.16,10.0) stop_hit(193,0,0,3.95)
+sector_rotation__fade__short__1d__atr1d5_h20_l1_n1__v1 (sig607) | stop | 591 | 0.8604 | 1.0149 | 36.04 | 11.14 | mht(235,44.69,90.64,20.0) stop_hit(356,0,0,5.28)
+  | gap_aware | 591 | 0.8271 | 0.9715 | 36.04 | 11.14 | same
+  | close | 591 | 0.9779 | 1.1271 | 47.21 | 14.16 | mht(330,17.66,84.55,20.0) stop_hit(261,0,0,6.77)
+sector_rotation__fade__short__1d__atr2d5_h5_l1_n1__v1 (sig607) | stop | 597 | 0.9303 | 1.1454 | 53.94 | 4.48 | mht(468,3.672,68.8,5.0) stop_hit(129,0,0,2.57)
+  | gap_aware | 597 | 0.9086 | 1.1160 | 53.94 | (truncated)
+# --- 1d L3 (2214 syms) job 115699757236 ---
+sector_rotation__fade__short__1d__atr1d5_h5_l3_n1__v1 (sig660) | stop | 655 | 1.1597 | 1.4454 | 50.99 | 4.11 | stop_hit(238,0,0,2.55) mht(417,11.46,80.1,5.0)
+  | gap_aware | 655 | 1.0640 | 1.3123 | 50.99 | 4.11 | same
+  | close | 655 | 1.2387 | 1.5225 | 56.03 | 4.48 | mht(502,6.319,73.11,5.0) stop_hit(153,0,0,2.78)
+sector_rotation__fade__short__1d__atr1d5_h10_l3_n1__v1 (sig660) | stop | 654 | 1.1837 | 1.4252 | 46.48 | 7.10 | stop_hit(297,0,0,3.61) mht(357,22.05,85.15,10.0)
+  | gap_aware | 654 | 1.0875 | 1.2971 | 46.48 | 7.10 | same
+  | close | 654 | 1.2125 | 1.4287 | 53.52 | 8.10 | mht(434,12.69,80.65,10.0) stop_hit(220,0,0,4.36)
+sector_rotation__fade__short__1d__atr1d5_h20_l3_n1__v1 (sig660) | stop | 650 | 1.2017 | 1.4074 | 40.15 | 12.04 | stop_hit(362,0,0,5.7) mht(288,59.66,90.62,20.0)
+  | gap_aware | 650 | 1.1117 | 1.2914 | 40.15 | 12.04 | same
+  | close | 650 | 1.2052 | 1.3800 | 47.69 | 14.16 | stop_hit(292,0,0,7.01) mht(358,31.71,86.59,20.0)
+sector_rotation__fade__short__1d__atr2d5_h5_l3_n1__v1 (sig660) | stop | 655 | 1.1990 | 1.4651 | 56.49 | 4.61 | mht(520,4.637,71.15,5.0) stop_hit(135,0,0,3.12)
+  | gap_aware | 655 | 1.1464 | 1.3945 | 56.49 | (truncated)
+# --- 1d L5 (2213 syms) job 115699757189 ---
+sector_rotation__fade__short__1d__atr1d5_h5_l5_n1__v1 (sig684) | stop | 676 | 1.4167 | 1.7629 | 54.29 | 4.20 | stop_hit(216,0,0,2.5) mht(460,11.63,79.78,5.0)
+  | gap_aware | 676 | 1.2575 | 1.5423 | 54.29 | 4.20 | same
+  | close | 676 | 1.4253 | 1.7410 | 58.88 | 4.49 | stop_hit(149,0,0,2.7) mht(527,7.721,75.52,5.0)
+sector_rotation__fade__short__1d__atr1d5_h10_l5_n1__v1 (sig684) | stop | 676 | 1.5110 | 1.8098 | 50.59 | 7.42 | stop_hit(276,0,0,3.68) mht(400,20.87,85.5,10.0)
+  | gap_aware | 676 | 1.3546 | 1.6033 | 50.59 | 7.42 | same
+  | close | 676 | 1.4664 | 1.7202 | 55.33 | 8.22 | stop_hit(206,0,0,4.16) mht(470,11.98,79.57,10.0)
+sector_rotation__fade__short__1d__atr1d5_h20_l5_n1__v1 (sig684) | stop | 671 | 1.5565 | 1.8200 | 46.65 | 12.86 | stop_hit(339,0,0,5.87) mht(332,86.57,94.28,20.0)
+  | gap_aware | 671 | 1.4013 | 1.6211 | 46.65 | 12.86 | same
+  | close | 671 | 1.4579 | 1.6674 | 52.91 | 14.63 | stop_hit(276,0,0,6.93) mht(395,38.31,89.87,20.0)
+sector_rotation__fade__short__1d__atr2d5_h5_l5_n1__v1 (sig684) | stop | 676 | 1.2967 | 1.5756 | 58.28 | 4.61 | stop_hit(136,0,0,3.04) mht(540,5.294,72.96,5.0)
+  | gap_aware | 676 | 1.2046 | 1.4534 | 58.28 | (truncated)
+# --- 4h (1h-resample fetch; many 'last 730 days' download failures) ---
+# 4h L1 (2067 syms) job 115699757081: n_signals 33, ALL fills n=0 (pfnet null) for h2/h6/h10 x atr1d5/atr2d5 and atr4d0_h2 (atr4d0_h6 truncated)
+# 4h L5 (2070 syms) job 115699757201: n_signals 317
+sector_rotation__fade__short__4h__atr1d5_h2_l5_n1__v1 | stop 1 pf0 pfg0 win0 h1.0 (avg_net -7.68) | gap 1 same | close 0
+sector_rotation__fade__short__4h__atr1d5_h6_l5_n1__v1 | stop 3 pf0 pfg0 win0 h3.67 | gap 3 pf0 | close 2 pf0 win0 h5.0
+sector_rotation__fade__short__4h__atr1d5_h10_l5_n1__v1 | stop 6 pf0.1695 pfg0.2429 win16.67 h6.5 | gap 6 pf0.1638 pfg0.2331 | close 5 pf0.4025 pfg0.6090 win40 h8.4
+sector_rotation__fade__short__4h__atr2d5_h2_l5_n1__v1 | all fills n=0
+sector_rotation__fade__short__4h__atr2d5_h6_l5_n1__v1 | stop 1 pf0 win0 h6.0 | gap 1 | close 1 pf0 (avg_net -0.8)
+# 4h L3 (2067 syms) job 115699756953: n_signals 394
+atr1d5_h2_l3, atr1d5_h6_l3, atr2d5_h2_l3, atr2d5_h6_l3: all fills n=0
+sector_rotation__fade__short__4h__atr1d5_h10_l3_n1__v1 | stop 2 pf0.4900 pfg0.6477 win50 h10.0 | gap 2 pf0.3772 pfg0.4867 | close 2 pf0.3772
+sector_rotation__fade__short__4h__atr2d5_h10_l3_n1__v1 | stop 2 pf0.3772 pfg0.4867 win50 h10.0 | gap 2 same | close 2 same
