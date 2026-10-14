@@ -1,0 +1,105 @@
+{
+ "run_id": 38553281449,
+ "source": "cup-cheat-main-replay.yml (B-1265), real main.cup_cheat_3c_entry_signal/exit_reason, full NSE universe, 1h, 730d, cost ROUND_TRIP_COST_PCT; artifact cup-cheat-main-replay-results id 11887503638. Values transcribed from the run's merge-job table (coordinator hand-off), not the artifact JSON.",
+ "rows": [
+  {
+   "tag": "base__cup_cheat_3c__long__1h__atr2d5_h6__v1",
+   "direction": "long",
+   "atr": 2.5,
+   "hold_bars": 6,
+   "n": 3462,
+   "pfnet": 0.4885,
+   "pfgross": 0.9553,
+   "win_pct": 32.55,
+   "avg_held_bars": 5.74
+  },
+  {
+   "tag": "base__cup_cheat_3c__long__1h__atr2d5_h18__v1",
+   "direction": "long",
+   "atr": 2.5,
+   "hold_bars": 18,
+   "n": 3162,
+   "pfnet": 0.8951,
+   "pfgross": 1.2785,
+   "win_pct": 42.76,
+   "avg_held_bars": 14.86
+  },
+  {
+   "tag": "base__cup_cheat_3c__long__1h__atr2d5_h30__v1",
+   "direction": "long",
+   "atr": 2.5,
+   "hold_bars": 30,
+   "n": 3121,
+   "pfnet": 1.0071,
+   "pfgross": 1.3426,
+   "win_pct": 41.04,
+   "avg_held_bars": 22.14
+  },
+  {
+   "tag": "base__cup_cheat_3c__long__1h__atr4_h6__v1",
+   "direction": "long",
+   "atr": 4,
+   "hold_bars": 6,
+   "n": 3457,
+   "pfnet": 0.504,
+   "pfgross": 0.9973,
+   "win_pct": 32.8,
+   "avg_held_bars": 5.94
+  },
+  {
+   "tag": "base__cup_cheat_3c__long__1h__atr4_h18__v1",
+   "direction": "long",
+   "atr": 4,
+   "hold_bars": 18,
+   "n": 3124,
+   "pfnet": 0.8812,
+   "pfgross": 1.2385,
+   "win_pct": 44.75,
+   "avg_held_bars": 16.82
+  },
+  {
+   "tag": "base__cup_cheat_3c__long__1h__atr4_h30__v1",
+   "direction": "long",
+   "atr": 4,
+   "hold_bars": 30,
+   "n": 3073,
+   "pfnet": 0.9943,
+   "pfgross": 1.2908,
+   "win_pct": 45.27,
+   "avg_held_bars": 26.28
+  },
+  {
+   "tag": "base__cup_cheat_3c__long__1h__atr6_h6__v1",
+   "direction": "long",
+   "atr": 6,
+   "hold_bars": 6,
+   "n": 3456,
+   "pfnet": 0.5103,
+   "pfgross": 1.0136,
+   "win_pct": 32.93,
+   "avg_held_bars": 5.98
+  },
+  {
+   "tag": "base__cup_cheat_3c__long__1h__atr6_h18__v1",
+   "direction": "long",
+   "atr": 6,
+   "hold_bars": 18,
+   "n": 3116,
+   "pfnet": 0.8933,
+   "pfgross": 1.2544,
+   "win_pct": 45.28,
+   "avg_held_bars": 17.59
+  },
+  {
+   "tag": "base__cup_cheat_3c__long__1h__atr6_h30__v1",
+   "direction": "long",
+   "atr": 6,
+   "hold_bars": 30,
+   "n": 3061,
+   "pfnet": 1.0011,
+   "pfgross": 1.2939,
+   "win_pct": 46.16,
+   "avg_held_bars": 28.55
+  }
+ ]
+}
