@@ -15,6 +15,12 @@ T15 = [
     "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
     "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
     "chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
+    # B-1268: main.py replay PFnet >= 1.0 cells, wired behind the first three
+    "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
+    "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+    "chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+    "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
+    "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
 ]
 
 
@@ -25,8 +31,8 @@ def test_15m_cells_wired_mapped_verified():
         assert t in names and main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t
         assert t not in main.REPLAY_OWED_TAGS  # replay 38390561217 on file
         assert t in main._replay_verified_tags()
-    assert len([t for t in main.CHAN_SHORT_CELLS if "__15m__" in t]) == 3
-    assert not any("z1d0" in t or "ve1d0e4" in t for t in main.CHAN_SHORT_CELLS if "__15m__" in t)
+    assert len([t for t in main.CHAN_SHORT_CELLS if "__15m__" in t]) == len(T15)
+    assert not any("cst0d3" in t or "atr1d5_hold40_ve1d0e4" in t for t in main.CHAN_SHORT_CELLS if "__15m__" in t)
     assert main.CHAN_SHORT_CELL_INTERVAL[main.CHAN_SHORT_TAG] == "5m"
 
 

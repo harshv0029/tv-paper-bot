@@ -190,6 +190,10 @@ def _parse_iso_date(iso_date: str) -> dt.date:
 
 
 OPTIONS_MIN_DTE = 1
+# Contract ROLL (B-1269, 2026-10-14): an MCX future within this many calendar days of expiry
+# is skipped for NEW scans/entries and the next expiry is used (CRUDEOIL/CRUDEOILM expire
+# 15 Oct 2026). A constant, not an env switch. An OPEN position keeps its own stored contract.
+MCX_ROLL_DAYS = 2
 OPTIONS_MAX_DTE = 10  # same near-week window options_pricing.py already uses for US chains
 
 
@@ -304,7 +308,9 @@ def select_nse_future(underlying: str):
             with_dte.append((dte, exp, r))
     if not with_dte:
         return None, "no_upcoming_future"
-    dte, exp, row = min(with_dte, key=lambda t: t[0])
+    # Roll only MCX commodity futures (FUTCOM); NSE futures keep nearest-expiry behaviour.
+    rolled = [t for t in with_dte if not (t[2].get("pInstType") == "FUTCOM" and t[0] <= MCX_ROLL_DAYS)]
+    dte, exp, row = min(rolled or with_dte, key=lambda t: t[0])
     return {
         "underlying": underlying, "kotak_trading_symbol": row["pTrdSymbol"],
         "instrument_token": str(row["pSymbol"]), "exchange_segment": _UNDERLYING_TO_SEGMENT[underlying.upper()],

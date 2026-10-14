@@ -6,10 +6,18 @@ SYM = {"gc": "GC=F", "si": "SI=F", "cl": "CL=F", "ng": "NG=F"}
 PARAMS = {"sma_crossover": {"fast": 9, "slow": 21}, "rsi_reversal": {"rsi_period": 14, "oversold": 30, "overbought": 70}}
 r = json.load(open(os.path.join(D, "mcx_sweep_results.json")))
 r = r.get("results", r)
+# B-1270: a cell whose main-calling replay (docs/backtest_data/mcx_live_replay_run_*.json) is below PFnet 1.0 is not wired (one condition: replay PFnet >= 1).
+import glob
+REPLAY = {}
+for fn in sorted(glob.glob(os.path.join(D, "backtest_data", "mcx_live_replay_run_*.json"))):
+    for rr in json.load(open(fn)).get("rows", []):
+        REPLAY[rr["tag"]] = rr["pfnet"]
 cells = []
 for tag, m in r.items():
     p = tag.split("__")
     if not isinstance(m, dict) or p[3] != "1d" or p[4] != "atrnone" or p[1] not in SYM or not (m.get("pfnet") or 0) > 1:
+        continue
+    if tag in REPLAY and REPLAY[tag] < 1.0:
         continue
     # 2026-10-11 user: no trade without a stop. Wire only if BOTH stopped variants (ATR 1.5 and 2.5) also clear 1.1.
     st = [r.get("__".join(p[:4] + [a, p[5]]), {}).get("pfnet") for a in ("atr1d5", "atr2d5")]
