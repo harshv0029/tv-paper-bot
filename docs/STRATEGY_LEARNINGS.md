@@ -1153,3 +1153,10 @@ Profit-booking / exit takeaway: the apparent edge came from stacked max-hold win
 - Mechanism: a run stored avg hold as bars x 24.0 (calendar hours per 1d bar) while the registry's `avg_held_hrs` means MARKET hours (1d bar = 6.25h, 1h = 1h, 15m = 0.25h). The 10 swing-short main-replay tags showed 284.6h instead of 74.1h, which also distorts the 75h quality hold cap and any PFnet-per-time ranking.
 - Reuse: always store the raw bar count (`Metrics.avg_held_bars`) next to the derived hours and compare hours only in market hours; never overwrite the raw field. Quote the run's raw unit in evidence.
 - Profit-booking / exit takeaway: hold-time comparisons (faster turnover tie-break) are only valid in one unit; the swing-short cells hold ~12 sessions, not ~47 days-equivalent, so their turnover ranking improves.
+## Replay fidelity: glitch-bar cleaning + entry-fill model for sector_rotation and pl1d (B-1110, 2026-10-14)
+- Mechanism: not a new strategy; two gaps between research replays and live. The pl1d and sector replays read raw yfinance frames (a bad open print once made +900% trades, PFnet 6.2), and the sector replay filled at the next open while the live paper path fills at the signal close.
+- Fit: shared scripts/bar_hygiene.py now cleans frames and records bars_dropped_glitch; sector sweep can run ENTRY=signal_close as separate `_ec1` tags. Gap-through-stop fill models were already reported side by side.
+- Result: harness only; effect size unknown until the re-runs (owed in B-1110). Old registered tags keep their uncleaned numbers.
+- Surprised: three research labs already had their own copy-pasted clean_bars while these two did not; the copies are identical, so a shared helper is the low-risk fix.
+- Reuse: any new replay driver loads frames through bar_hygiene.clean_frames and reports the drop count; when live fills differ from the replay (close vs next open), add the live model as its own tag instead of editing the old one.
+- Profit-booking / exit takeaway: cleaning removes fake outsized winners, so expect PFnet to fall slightly, never rise; judge the cleaned number, and size nothing off an uncleaned one.
