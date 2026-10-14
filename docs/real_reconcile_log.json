@@ -2145,5 +2145,50 @@
     "governance_backfilled_swing": [],
     "unprotected_positions_count": 0,
     "unprotected_positions": []
+  },
+  {
+    "reconciled_at_utc": 1791985908.6692991,
+    "real_balance_inr": 3939.7,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "holdings_unprotected": [
+      {
+        "kotak_trading_symbol": "BANKINDIA-EQ",
+        "qty": 8,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "UNIONBANK-EQ",
+        "qty": 1,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "COALINDIA-EQ",
+        "qty": 2,
+        "is_short": false
+      },
+      {
+        "kotak_trading_symbol": "IVZINGOLD-EQ",
+        "qty": 3,
+        "is_short": false
+      }
+    ],
+    "swing_past_time_limit": [],
+    "holdings_healed": [],
+    "holdings_checked": 4,
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 0,
+    "adopted": [],
+    "governance_backfilled_count": 0,
+    "governance_backfilled": [],
+    "governance_backfilled_short_count": 0,
+    "governance_backfilled_short": [],
+    "governance_backfilled_swing_count": 0,
+    "governance_backfilled_swing": [],
+    "unprotected_positions_count": 0,
+    "unprotected_positions": []
   }
 ]
