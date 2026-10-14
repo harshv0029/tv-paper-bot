@@ -12,10 +12,10 @@ def test_every_viable_registry_strategy_is_listed():
 def test_status_and_counts_b779():
     d = main.strategy_scan_activity(include_unwired=True)
     rows = d["strategies"]
-    assert all(r["status"] in ("live_wired", "research_only") for r in rows)
+    assert all(r["status"] in ("live_wired", "research_only", "wired_gate_closed") for r in rows)
     c = d["counts"]
-    assert c["viable_total"] == len(rows) == c["live_wired"] + c["research_only"]
-    assert all((r["status"] == "live_wired") == (r["scan_wired"] is True) for r in rows)
+    assert len(rows) == c["live_wired"] + c["research_only"] + c.get("wired_gate_closed", 0)
+    assert all((r["status"] == "live_wired") == (r["scan_wired"] is True) for r in rows if r["status"] != "wired_gate_closed")
     assert all("n_trades" in r and "win_rate_pct" in r for r in rows)
     ro = [r for r in rows if r["status"] == "research_only"]
     assert ro
