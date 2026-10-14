@@ -6563,6 +6563,143 @@ def oneil_exit_reason(df, tf: str, direction: str, entry_pos: int, stop: float, 
     return oneil_exit_bar(direction, o[j], h[j], l[j], c[j], j, entry_pos + hold - 1, stop, init, target)
 
 
+# ---- O'Neil 1w LONG cells wired into the live SWING scan (2026-10-14, user "go"; main.py replay run 38517583883) ----
+# The scan holds completed DAILY bars; weekly bars are resampled from them (W-FRI, same as scripts/oneil_replay.py's 1w
+# feed). Signal = last COMPLETED week, evaluated in the first 1-2 sessions of the next week (entry ~ that week's open).
+# Stop = entry - 3 x weekly ATR14 (oneil_stop_price), frozen; it is the real resting SL (no trade without SL). Exit =
+# stop (daily low/open <= stop) or the close of the 26th weekly bar (entry week = bar 1). Wired: the three non-avg-down,
+# non-trailing cells, ordered by registry PFnet (highest first; one position per symbol). NOT wired: the avg-down cells
+# (engine invariant: never average down), the trl1 cell (same signal as the plain flatbase cell, lower PFnet, would never
+# be picked) and the flatbase SHORT cell (n=10, ex-top5 PFnet 0; the short-swing engine is a separate path, parked).
+ONEIL_SWING_HOLD_WEEKS = 26
+ONEIL_SWING_ATR_MULT = 3.0
+ONEIL_SWING_CHASE = 0.10
+ONEIL_FLATBASE_TAG = "oneil_flatbase__breakout__long__1w__atr3_chase10_h26_rsnone__v2"
+ONEIL_NEWHIGH_TAG = "oneil_newhigh__first__long__1w__atr3_h26_rsnone__v2"
+ONEIL_PIVOT_TAG = "oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2"
+# tag -> (family, chase or None); order = priority (PFnet 3.921 > 2.484 > 2.177)
+ONEIL_SWING_CELLS = {
+    ONEIL_FLATBASE_TAG: ("oneil_flatbase", ONEIL_SWING_CHASE),
+    ONEIL_NEWHIGH_TAG: ("oneil_newhigh", None),
+    ONEIL_PIVOT_TAG: ("oneil_pivot", ONEIL_SWING_CHASE),
+}
+
+
+def oneil_weekly_from_daily(df: pd.DataFrame) -> pd.DataFrame:
+    """Resample completed daily bars to Friday-anchored weekly OHLCV plus 'nbars' (daily bars in that week)."""
+    d = df
+    dates = pd.DatetimeIndex(pd.to_datetime(d["Date"] if "Date" in d.columns else d.index))
+    per = dates.to_period("W-FRI")
+    g = pd.DataFrame({"Open": d["Open"].to_numpy(float), "High": d["High"].to_numpy(float),
+                      "Low": d["Low"].to_numpy(float), "Close": d["Close"].to_numpy(float),
+                      "Volume": d["Volume"].to_numpy(float), "per": per}).groupby("per", sort=True)
+    return g.agg(Open=("Open", "first"), High=("High", "max"), Low=("Low", "min"), Close=("Close", "last"),
+                 Volume=("Volume", "sum"), nbars=("Close", "size"))
+
+
+def oneil_swing_entry_signal(df: pd.DataFrame, tag: str) -> dict | None:
+    """Live entry check for one wired cell on the daily df (see block comment). Returns the swing-engine signal dict
+    (entry_price/stop_loss/atr_at_entry) or None. Fires only while the latest daily bar is among the first two sessions
+    of a week, using the previous completed week as the signal bar t; the next-open no-chase test uses the live daily
+    close as the entry reference."""
+    cell = ONEIL_SWING_CELLS.get(tag)
+    if cell is None or df is None or len(df) < 60:
+        return None
+    family, chase = cell
+    w = oneil_weekly_from_daily(df)
+    if len(w) < 3 or int(w["nbars"].iloc[-1]) > 2:
+        return None  # the newest week is already 3+ sessions old: the signal week's entry window has passed
+    wc = w.iloc[:-1]  # completed weeks only; its last row is the signal bar t
+    px = float(df["Close"].iloc[-1])
+    if not px > 0:
+        return None
+    o, h, l, c, v = (wc[x].to_numpy(float) for x in ("Open", "High", "Low", "Close", "Volume"))
+    t = len(c) - 1
+    o2, h2, l2, c2, v2 = (np.append(a, px) for a in (o, h, l, c, v))
+    if not oneil_signal_at(family, "long", "1w", t, o2, h2, l2, c2, v2, None, chase, None):
+        return None
+    atr = oneil_atr14(h, l, c)
+    if not np.isfinite(atr[t]) or atr[t] <= 0:
+        return None
+    stop = oneil_stop_price(px, float(atr[t]), "long", "atr", ONEIL_SWING_ATR_MULT)
+    if not (0 < stop < px):
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": float(atr[t]),
+            "risk": px - float(stop), "direction": "long"}
+
+
+def oneil_swing_exit_reason(df: pd.DataFrame, entry_day: str, initial_stop: float, running_max_close,
+                            hold_weeks: int = ONEIL_SWING_HOLD_WEEKS):
+    """Swing exit core: replays every completed daily bar after entry_day against the frozen stop (open or low at/below
+    it -> 'oneil_stop_hit'), then the weekly max-hold (entry week = bar 1; exit once the close of bar `hold_weeks` is in,
+    i.e. on the Friday of week entry+hold-1 or any later session). Returns (reason_or_None, new_running_max)."""
+    if len(df) == 0:
+        return None, running_max_close
+    d = df
+    dates = pd.DatetimeIndex(pd.to_datetime(d["Date"] if "Date" in d.columns else d.index))
+    new_running_max = max(float(running_max_close or 0.0), float(d["Close"].iloc[-1]))
+    ed = pd.Timestamp(str(entry_day)[:10])
+    o = d["Open"].to_numpy(float)
+    lo = d["Low"].to_numpy(float)
+    for k in range(len(d)):
+        if dates[k] <= ed:
+            continue
+        if o[k] <= float(initial_stop) or lo[k] <= float(initial_stop):
+            return "oneil_stop_hit", new_running_max
+    last = dates[-1]
+    weeks_in = int(last.to_period("W-FRI").ordinal - ed.to_period("W-FRI").ordinal)  # entry week -> 0
+    if weeks_in >= hold_weeks or (weeks_in >= hold_weeks - 1 and last.weekday() == 4):
+        return "oneil_max_hold_timeout", new_running_max
+    return None, new_running_max
+
+
+def _oneil_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close):
+    """Same signature as the other swing exit adapters."""
+    return oneil_swing_exit_reason(df, entry_day, initial_stop, running_max_close)
+
+
+def _oneil_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
+    """Opens at most one O'Neil position (first viable cell that fires, PFnet order). Same paper row / trades row / real
+    mirror pattern as _gapfade_try_entry; the PFnet gate is inside _is_strategy_viable_for_real_money."""
+    for tag in ONEIL_SWING_CELLS:
+        _record_strategy_scan(tag)
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            continue
+        sig = oneil_swing_entry_signal(df, tag)
+        if not sig:
+            continue
+        # a stop-out inside the 2-session window must not re-enter the same week's signal
+        wk_start = (pd.Timestamp(today) - pd.Timedelta(days=pd.Timestamp(today).weekday())).timestamp()
+        if conn.execute("SELECT 1 FROM trades WHERE symbol = ? AND action = 'buy' AND ts >= ? AND raw_payload LIKE ?",
+                        (symbol, wk_start, f'%"entry_reason": "{tag}"%')).fetchone():
+            return False
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return False
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, today, entry_price, stop_loss, None, qty, time.time(), fx, sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"]})),
+        )
+        conn.commit()
+        print(f"[SWING] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return True
+    return False
+
+
 def _fvg3c_scan_short(o, h, l, c, atr, variant: str, p: dict, sess=None):
     n = len(c)
     sig = np.zeros(n, dtype=bool)
@@ -11470,6 +11607,7 @@ def _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interv
         for _t, (_a, _ve, _z) in CHAN_LONG_CELLS.items():
             if not _is_strategy_viable_for_real_money(_t):
                 continue
+            _record_strategy_scan(_t)  # B-1244: this cell is evaluated on this symbol/bar (feeds scans_today)
             if _ve not in ks_by_ve:
                 ks_by_ve[_ve] = chan_kalman_series(dfc["Close"].to_numpy(float), _ve)
             sig = chan_kalman_band_long_entry_signal(dfc, interval, z=_z, ve=_ve, atr_mult=_a,
@@ -11655,6 +11793,9 @@ def _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, in
         universe = [c["symbol"] for c in WATCHLIST if str(c["symbol"]).endswith(".NS")]
     if not _chan_gap_ensure_selection(today_str, universe):
         return None
+    for _t in CHAN_GAP_LONG_CELLS:  # B-1244: every viable gap cell counts as scanned once the day's selection exists
+        if _is_strategy_viable_for_real_money(_t):
+            _record_strategy_scan(_t)
     sig = _CHAN_GAP_STATE["selected"].get(symbol)
     if not sig:
         return None
@@ -11793,6 +11934,7 @@ def _chan_short_try_entry(conn, symbol, df, ts_utc, today_df, last_close, today_
                 continue
             if not _is_strategy_viable_for_real_money(_t):
                 continue
+            _record_strategy_scan(_t)  # B-1244
             if _ve not in ks_by_ve:
                 ks_by_ve[_ve] = chan_kalman_series(dfc["Close"].to_numpy(float), _ve)
             sig = chan_kalman_band_short_entry_signal(dfc, interval, z=_z, ve=_ve, atr_mult=_a,
@@ -21070,6 +21212,13 @@ def _run_swing_scan_pass(conn):
                     conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
                                  (new_running_max, symbol))
                     conn.commit()
+            elif pos["strategy"] in ONEIL_SWING_CELLS:
+                reason, new_running_max = _oneil_swing_exit_adapter(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"])
+                if not reason:
+                    conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                                 (new_running_max, symbol))
+                    conn.commit()
             elif pos["strategy"] in GAPFADE_TAGS:
                 reason, new_running_max = _gapfade_exit_adapter(
                     df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"])
@@ -21386,6 +21535,11 @@ def _run_swing_scan_pass(conn):
                         _gapfade_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
                     except Exception as e:
                         print(f"[SWING] gapfade entry eval failed for {symbol} (non-fatal): {e}")
+                    try:  # O'Neil 1w LONG cells (resampled from the daily bars), checked after gapfade, i.e. LAST of all
+                        if not conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone():
+                            _oneil_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
+                    except Exception as e:
+                        print(f"[SWING] oneil entry eval failed for {symbol} (non-fatal): {e}")
             continue
         # WIRE-NEXT: swingminrr VCP-based long tags (registry-viable ones only) take the VCP signal first; if none
         # is viable/sized the existing minervini_vcp_be3r path below runs exactly as before.
@@ -21504,6 +21658,8 @@ def _replay_verified_tags() -> frozenset:
 
 
 REPLAY_OWED_TAGS = REPLAY_OWED_TAGS - _replay_verified_tags()
+for _t in ONEIL_SWING_CELLS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row; main.py replay run 38517583883
 for _t in SHORT_SWING_TAGS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 for _t in tuple(CHAN_SHAPE_CELLS) + tuple(MACDDIV_LONG_CELLS) + tuple(PL1D_CELLS):
@@ -22273,6 +22429,7 @@ def _run_chan_gap_short_scan(conn=None):
         cands, seen = _chan_gap_short_candidates(syms, today_str)
         if seen == 0:
             return "no_open_print_yet"  # retry next tick
+        _record_strategy_scan(CHAN_GAP_SHORT_TAG)  # B-1244: the daily batch ran (feeds scans_today)
         _chan_gap_short_scan_day = today_str
         picks = chan_gap_select_top({s: c[0] for s, c in cands.items()}, "short")
         cfg_by_sym = {c["symbol"]: c for c in WATCHLIST}
@@ -24749,6 +24906,8 @@ _SWING_SL_RULES = {
     "volume_profile_poc": f"value-area band low, then trails {VP_ATR_TRAIL_MULT:g}xATR below peak close",
     SWING_EXITINVAL_VP_TAG: f"entry - {SWING_EXITINVAL_ATR_MULT:g}xATR, frozen (exit also on weekly EMA13 turn-down)",
     SWING_EXITINVAL_OB_TAG: f"entry - {SWING_EXITINVAL_ATR_MULT:g}xATR, frozen (exit also on weekly EMA13 turn-down)",
+    **{_t: f"entry - {ONEIL_SWING_ATR_MULT:g}x weekly ATR14, frozen (exit at the close of weekly bar {ONEIL_SWING_HOLD_WEEKS})"
+       for _t in ONEIL_SWING_CELLS},
     BRK20_SWING_TAG: f"entry - {BRK20_SWING_ATR_MULT:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)",
     **{_t: f"entry - {ISLAND_ATR_MULT:g}xATR(Wilder), frozen (exit also on close<EMA13 falling, 30-bar max hold)"
        for _t in ISLAND_ALL_TAGS},

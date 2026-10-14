@@ -26,6 +26,12 @@ VARIANT_OF_WIRED = {
     # B-1233: main.py-replay-measured _mr rows of the wired pl1d LONG swing cells (run 38506928246).
     "starc__fade_full_mr__long__1d__atr2d5_h20__v1": "starc__fade_full__long__1d__atr2d5_h20__v1",
     "gap__runaway_mr__long__1d__atr4_h20__v1": "gap__runaway__long__1d__atr4_h20__v1",
+    # B-1244 (run 38517583883): live O'Neil cells are flatbase plain / newhigh / pivot. Avg-down controls (engine invariant: never average
+    # down) and trl1 (same signal, lower PFnet than plain) are variants of the wired plain flatbase; the flatbase SHORT cell
+    # (n=10, ex-top5 PFnet 0.0) is PARKED, B-1245 (short-swing engine), allowlisted here only so the gap stays visible and explained.
+    **{f"oneil_flatbase__breakout__long__1w__{p}__v2": "oneil_flatbase__breakout__long__1w__atr3_chase10_h26_rsnone__v2"
+       for p in ("atr3_avg1_chase10_h12_rsnone", "atr3_avg1_chase10_h26_rsnone", "atr3_chase10_h26_rsnone_trl1")},
+    "oneil_flatbase__breakout__short__1w__atr3_chase10_h26_rsnone__v2": "oneil_flatbase__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
 }
 
 
