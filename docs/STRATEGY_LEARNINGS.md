@@ -1160,3 +1160,10 @@ Profit-booking / exit takeaway: the apparent edge came from stacked max-hold win
 - Surprised: three research labs already had their own copy-pasted clean_bars while these two did not; the copies are identical, so a shared helper is the low-risk fix.
 - Reuse: any new replay driver loads frames through bar_hygiene.clean_frames and reports the drop count; when live fills differ from the replay (close vs next open), add the live model as its own tag instead of editing the old one.
 - Profit-booking / exit takeaway: cleaning removes fake outsized winners, so expect PFnet to fall slightly, never rise; judge the cleaned number, and size nothing off an uncleaned one.
+## pl1d 1h/4h sweep + brk20 4h (B-1150 / B-1151, 2026-10-14, harnesses built, runs owed)
+- Mechanism: pl1d = fade a STARC-band spike (close beyond SMA6 +/- 2 ATR15) or ride a >1% gap runaway above SMA50; brk20 = 20-bar breakout with minimum reward:risk. Both are bar-count rules, so a coarser candle changes what a window means (4h hold 10 = ~5 sessions, not 10 days).
+- Fit: 4h/1h holds are 1-10 sessions (swing-length at 4h, intraday-to-swing at 1h); every cell keeps an ATR stop. Short legs at multi-session holds still hit the overnight-product question (B-912); research only until a cell clears the floor.
+- Result: none yet; register all cells pass or fail.
+- Surprised/design lessons: main's date-based exit functions (find first bar with DATE > entry_day) silently skip the rest of the entry day at intraday sizes, so a harness must hand them the post-entry frame and an older entry_day instead of reusing the 1d call; yfinance has no 4h, only the session-anchored 1h resample gives bars that do not span the overnight gap; 730d of 1h gives ~2 years, far fewer signals than the 5y 1d baseline (read n).
+- Reuse: for any 1d-built strategy being swept intraday, grep its exit fn for date comparisons first; sweep ATR and hold in the driver off the real signal's atr_at_entry rather than adding tags to main.
+- Profit-booking / exit takeaway: 1d evidence says pl1d profit sits in hold-bar closes (stops lose); if 4h stops fire earlier and lose, widen ATR before shortening hold.

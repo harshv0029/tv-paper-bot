@@ -22,7 +22,7 @@ def build(env=None):
         if d not in ("long", "short"):
             raise SystemExit(f"bad direction {d}")
     for i in intervals:
-        if i not in ("1d", "1h", "15m", "5m"):
+        if i not in ("1d", "4h", "1h", "15m", "5m"):
             raise SystemExit(f"bad interval {i}")
     cells = [{"atr": float(a), "rr": float(r), "be": None if b == "none" else float(b)}
              for a, r, b in itertools.product(atrs, rrs, bes)]

@@ -13,13 +13,13 @@ name: brk20_min_rr main.py-function replay (B-798)
 # Output: out/brk20_all.json (every metric per tag: n, win %, pfnet, pfgross, avg net/gross %, avg held BARS,
 # exit-reason breakdown, nothing trimmed) + per-shard raw sums, uploaded as artifacts.
 # Bar-count constants are BARS of the chosen interval (1h/15m: hours/quarter-hours, not days); yfinance caps
-# 1h at 730d and 15m at 60d, so intraday cells have far fewer bars than 1d. 4h needs a 1h resample (owed).
+# 1h at 730d and 15m at 60d, so intraday cells have far fewer bars than 1d. 4h = 1h x 730d resampled to NSE session bars (~2 bars/day; B-1151).
 # Dispatch order per CLAUDE.md: big matrix, only when no gate/safety run is queued.
 on:
   workflow_dispatch:
     inputs:
       intervals:
-        description: "Comma list of candle sizes (1d,1h,15m,5m)"
+        description: "Comma list of candle sizes (1d,4h,1h,15m,5m)"
         default: "1d,1h,15m"
       directions:
         description: "long,short (short = the mirror, registered as its own tag)"
