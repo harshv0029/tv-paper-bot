@@ -1,0 +1,68 @@
+{
+ "source": "/tmp/claude-0/-home-user-tv-paper-bot/ead64cac-ecd8-54bc-96cd-ddd3c566f8d3/scratchpad/pl1d.log",
+ "run_id": "38506928246",
+ "cost_round_trip_pct": 0.8,
+ "note": "parsed from a merge-job log by scripts/replay_table_to_json.py (2 rows, 0 non-table lines ignored)",
+ "rows": [
+  {
+   "tag": "gap__runaway__long__1d__atr4_h20__v1",
+   "metrics": {
+    "n": 12898,
+    "pfnet": 1.2025275029188358,
+    "pfgross": 1.379445779690527,
+    "win_pct": 46.19,
+    "avg_held_hours": 116.5,
+    "exit_reasons": {
+     "pl1d_max_hold_timeout": {
+      "n": 10919,
+      "pfnet": 2.287406631858672,
+      "win_pct": 54.23,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_stop_loss": {
+      "n": 1879,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 11.24
+     },
+     "data_end_forced_close": {
+      "n": 100,
+      "pfnet": 0.7545945341949347,
+      "win_pct": 36.0,
+      "avg_held_bars": 9.36
+     }
+    }
+   }
+  },
+  {
+   "tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+   "metrics": {
+    "n": 9093,
+    "pfnet": 1.2215359969431239,
+    "pfgross": 1.451801452282003,
+    "win_pct": 43.19,
+    "avg_held_hours": 90.4,
+    "exit_reasons": {
+     "pl1d_max_hold_timeout": {
+      "n": 5249,
+      "pfnet": 8.160416925825128,
+      "win_pct": 74.11,
+      "avg_held_bars": 20.0
+     },
+     "pl1d_stop_loss": {
+      "n": 3768,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 6.84
+     },
+     "data_end_forced_close": {
+      "n": 76,
+      "pfnet": 1.1205326826934414,
+      "win_pct": 48.68,
+      "avg_held_bars": 10.84
+     }
+    }
+   }
+  }
+ ]
+}
