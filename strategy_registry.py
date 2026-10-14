@@ -2892,6 +2892,11 @@ def _extend_with_sweeps():
         REGISTRY.extend(_o2.build())
     except Exception:
         pass
+    try:
+        import strategy_registry_chan_gap_mr as _cg
+        REGISTRY.extend(_cg.build())
+    except Exception:
+        pass
 
 
 _extend_with_sweeps()
