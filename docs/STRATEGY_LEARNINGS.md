@@ -1303,3 +1303,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Result:** wired ve10d0e4_z1d0 atr4/2.5/1.5 (1.070/1.032/1.003) and ve1d0e4_z2d0 atr4/2.5 (1.012/1.000), run 38390561217; cst0d3 (0.3% cost) rows are not comparable to the live 0.8% model so stay unwired.
 - **Surprise / reuse:** a floor change silently leaves previously-rejected cells unwired; re-run this audit after every floor change. Research-only PFnet (month_effect, lunar, chan_tsm, pfovl, tasuki, cup 1d) is never enough: each needs its own main.py replay first.
 - **Profit-booking / exit takeaway:** these 15m cells hold ~1-2h and flatten by 15:10, so no overnight risk; fallbacks only own a symbol if an earlier cell's gate closes.
+
+## MCX contract roll (B-1269, 2026-10-14)
+- **Mechanism:** choosing the earliest non-expired MCX future keeps the bot on a contract on its last day (CRUDEOIL/CRUDEOILM expire 15 Oct 2026); thin expiry-day liquidity and settlement make scan prices and entries unreliable. Now a contract within `MCX_ROLL_DAYS` (2 calendar days, IST) of expiry is skipped and the next is used, in both the live-feed token resolver and `select_nse_future` (MCX FUTCOM only; NSE futures unchanged).
+- **Fit / rules:** a constant, not a kill switch. Open positions keep their stored trading symbol for exit and SL, never re-resolved; if no later contract exists the expiring one is still used (fail towards having a price).
+- **Surprise / reuse:** two independent resolvers (feed and option-chain module) both had "nearest expiry" logic; any new contract picker must share the roll constant. The replay script wrote only a JSON artifact the sandbox could not download, so results must also go to stdout.
+- **Profit-booking / exit takeaway:** never carry or open a position into expiry week of a commodity future; roll earlier so exits happen at normal liquidity, not on expiry day.
