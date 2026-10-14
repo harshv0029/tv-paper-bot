@@ -1120,10 +1120,10 @@ function renderStrategyScanActivity(data) {
   const q = (document.getElementById("sa-filter")?.value || "").trim().toLowerCase();
   const _st = r => r.status || (r.scan_wired === false ? "research_only" : "live_wired");
   const sf = document.getElementById("sa-status-filter")?.value || "all";
-  if (sf !== "all") rows = rows.filter(r => _st(r) === sf);
+  if (sf !== "all") rows = rows.filter(r => (sf === "live_wired" ? _st(r) !== "research_only" : _st(r) === sf));
   const cEl = document.getElementById("sa-counts");
   const cn = window._saData?.counts;
-  if (cEl && cn) cEl.textContent = `Viable: ${cn.viable_total} total, ${cn.live_wired} wired, ${cn.research_only} not wired`;
+  if (cEl && cn) cEl.textContent = `Viable: ${cn.viable_total} total, ${cn.live_wired} wired, ${cn.wired_gate_closed || 0} scanning with gate closed, ${cn.research_only} not wired`;
   if (q) rows = rows.filter(r => (String(r.strategy_tag) + " " + (r.categories || []).join(" ") + (_st(r) === "research_only" ? " research-only not wired" : " live-wired wired")).toLowerCase().includes(q));
   const sk = window._saSortKey;
   if (sk) {
