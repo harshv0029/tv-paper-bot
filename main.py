@@ -6237,6 +6237,69 @@ def chan_kalman_band_short_exit_reason(df, interval: str, entry_pos: int, entry_
     return None
 
 
+# ---- B-1130 envelope 5% fade, 1h, SWING-length hold (RESEARCH-ONLY port: no scan, no real path, no kill switch) -------
+# Rule = scripts/pattern_lab.py r_bands envelope_0d05_fade: long when close < SMA21 x 0.95, short mirror when close >
+# SMA21 x 1.05. Stop = entry -/+ k x ATR14 (simple mean, chan_atr14), ALWAYS returned (atrnone cells are NOT ported: no
+# trade without SL). Exit = gap-aware stop, else the close of the hold-th bar. Deviation from the research: entry at the
+# signal close, not the next open (as every swing port). Each (direction, ATR, hold) is its OWN tag (naming grammar);
+# registry PFnet (n200 swing watchlist, pattern-lab) is NOT yet confirmed by a main.py-calling replay, so none of these
+# may be wired until one clears PFNET_LIVE_FLOOR (long atr6_h30 1.145 is the only stop-bearing cell above the floor).
+ENVELOPE_PCT = 0.05
+ENVELOPE_SMA = 21
+ENVELOPE_1H_CELLS = {
+    f"envelope__0d05_fade__{d}__1h__atr{fa}_h{h}__v1": (d, k, h)
+    for d in ("long", "short")
+    for fa, k in (("2d5", 2.5), ("4", 4.0), ("6", 6.0))
+    for h in (18, 30)
+}
+
+
+def envelope_fade_fires(df, direction: str) -> bool:
+    """Last-bar rule: close below SMA21 x (1 - 5%) for long, above SMA21 x (1 + 5%) for short."""
+    c = df["Close"].to_numpy(dtype=float)
+    if len(c) < ENVELOPE_SMA + 15:
+        return False
+    s = float(np.mean(c[-ENVELOPE_SMA:]))
+    return bool(c[-1] < s * (1 - ENVELOPE_PCT)) if direction == "long" else bool(c[-1] > s * (1 + ENVELOPE_PCT))
+
+
+def envelope_fade_entry_signal(df, tag: str):
+    """None when no signal / unknown tag. The stop is always set. NOT wired into any scan."""
+    cfg = ENVELOPE_1H_CELLS.get(tag)
+    if cfg is None:
+        return None
+    direction, k, _hold = cfg
+    if not envelope_fade_fires(df, direction):
+        return None
+    h, l, c = (df[x].to_numpy(dtype=float) for x in ("High", "Low", "Close"))
+    atr = float(chan_atr14(h, l, c)[-1])
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+    px = float(c[-1])
+    stop = px - k * atr if direction == "long" else px + k * atr
+    if direction == "long" and not (0 < stop < px):
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": abs(px - stop), "direction": direction}
+
+
+def envelope_fade_exit_reason(df, direction: str, entry_pos: int, stop: float, hold: int):
+    """Exit check on the LAST bar j of df for a position entered at the CLOSE of bar entry_pos (bars after it count):
+    gap-aware stop (fill bar at the stop, later bars at min/max(stop, open)), else the close of the hold-th bar after
+    entry. Returns (reason, px) or None while open."""
+    j = len(df) - 1
+    if j <= entry_pos:
+        return None
+    o, h, l, c = (float(df[x].iloc[j]) for x in ("Open", "High", "Low", "Close"))
+    first = j == entry_pos + 1
+    if direction == "long" and l <= stop:
+        return "envelope_stop_loss", (float(stop) if first else min(float(stop), o))
+    if direction == "short" and h >= stop:
+        return "envelope_stop_loss", (float(stop) if first else max(float(stop), o))
+    if j - entry_pos >= hold:
+        return "envelope_max_hold_timeout", c
+    return None
+
+
 def chan_kalman_band_long_entry_signal(df, interval: str, z: float = 2.0, ve: float = 1e-3, atr_mult: float = 4.0,
                                        ks=None, masks=None):
     """Long mirror of chan_kalman_band_short_entry_signal (err < -z*sqrtQ). NOT wired: no live buy-engine hook yet."""
