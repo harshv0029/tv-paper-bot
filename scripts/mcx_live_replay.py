@@ -131,6 +131,15 @@ def replay_cell(tag, df=None):
     return stats(*simulate(df, fresh, on, k, short))
 
 
+def format_table(out):
+    """Compact stdout table: cell tag, n, PFnet replay vs registry PFnet (for job logs)."""
+    f = lambda v: "-" if v is None else f"{v:.3f}"
+    rows = [f"{'cell tag':<62} {'n':>4} {'replay':>8} {'registry':>8}"]
+    for tag, r in out.items():
+        rows.append(f"{tag:<62} {r.get('n', 0):>4} {f(r.get('pfnet')):>8} {f(r.get('registry_pfnet')):>8}")
+    return "\n".join(rows)
+
+
 def main_cli(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--cells", default="unwired")
@@ -157,6 +166,7 @@ def main_cli(argv=None):
         print(s.name, res["pfnet"], res["n"], "reg", s.metrics.pfnet, s.metrics.n_trades, flush=True)
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     json.dump(out, open(a.out, "w"), indent=1)
+    print(format_table(out), flush=True)
     return out
 
 

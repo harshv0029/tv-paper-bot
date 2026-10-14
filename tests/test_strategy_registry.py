@@ -223,7 +223,7 @@ def test_leaderboard_never_pads_with_fabricated_entries():
     # exists for either asset class) - the leaderboard must return an
     # empty list, never invent placeholder rows.
     # futures holds MCX proxy sweep rows since 2026-10-10; never padded beyond real rows
-    assert all(r["name"].split("__")[1] in ("gc","si","cl","ng","hg") for r in sr.leaderboard(sr.TradeCategory.FUTURES, top_n=5))
+    assert all(r["name"].split("__")[1].replace("_mr", "") in ("gc","si","cl","ng","hg") for r in sr.leaderboard(sr.TradeCategory.FUTURES, top_n=5))
     # options holds B-869 index-option research rows since 2026-10-12 (real metrics, entry_fn=None, none viable); never padded
     opt = sr.leaderboard(sr.TradeCategory.OPTIONS, top_n=5)
     # B-1232 (2026-10-14): thin-OOS cells registered with their ALL-sample headline can clear the PFnet floor on paper, so "none viable" is

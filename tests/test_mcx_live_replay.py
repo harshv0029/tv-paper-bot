@@ -54,3 +54,9 @@ def test_replay_cell_runs_all_directions_and_stop_labels():
     for r in (r0, r1, r2):
         assert {"pfnet", "win_pct", "n", "avg_held_days", "exits"} <= set(r)
     assert "atr_stop" not in r0["exits"]
+
+
+def test_format_table_prints_tag_n_and_both_pfnets():
+    t = h.format_table({"a__gc__long__1d__atrnone__v1": {"n": 12, "pfnet": 1.234, "registry_pfnet": 1.5},
+                        "b": {"n": 0, "pfnet": None, "registry_pfnet": 1.1}})
+    assert "a__gc__long__1d__atrnone__v1" in t and "1.234" in t and "1.500" in t and "-" in t

@@ -165,8 +165,13 @@ def _resolve_mcx_tokens(client, watchlist_symbols: list) -> dict:
     if not isinstance(all_mcx, list):
         return {}
 
+    import datetime as _dt
+    from nse_fo_chain import MCX_ROLL_DAYS
+    _ist = _dt.timezone(_dt.timedelta(hours=5, minutes=30))
     now_ts = time.time()
+    today_ist = _dt.datetime.fromtimestamp(now_ts, _ist).date()
     nearest_by_kotak_name = {}
+    fallback_by_kotak_name = {}  # nearest non-expired, used only if nothing is left after rolling
     for row in all_mcx:
         name = row.get("pSymbolName")
         if name not in wanted.values():
@@ -185,13 +190,19 @@ def _resolve_mcx_tokens(client, watchlist_symbols: list) -> dict:
         exp = row.get("lExpiryDate")
         if not isinstance(exp, (int, float)) or exp <= now_ts:
             continue  # skip malformed rows and already-expired contracts
+        fb = fallback_by_kotak_name.get(name)
+        if fb is None or exp < fb["lExpiryDate"]:
+            fallback_by_kotak_name[name] = row
+        # ROLL (B-1269): skip a contract within MCX_ROLL_DAYS of expiry, take the next one.
+        if (_dt.datetime.fromtimestamp(exp, _ist).date() - today_ist).days <= MCX_ROLL_DAYS:
+            continue
         current_best = nearest_by_kotak_name.get(name)
         if current_best is None or exp < current_best["lExpiryDate"]:
             nearest_by_kotak_name[name] = row
 
     resolved = {}
     for watchlist_sym, kotak_name in wanted.items():
-        row = nearest_by_kotak_name.get(kotak_name)
+        row = nearest_by_kotak_name.get(kotak_name) or fallback_by_kotak_name.get(kotak_name)
         if row and row.get("pSymbol") is not None:
             resolved[watchlist_sym] = ("mcx_fo", str(row["pSymbol"]))
     return resolved

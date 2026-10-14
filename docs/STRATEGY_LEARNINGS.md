@@ -1297,3 +1297,21 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Mechanism:** viability is derived from stored metrics, so lowering `PFNET_LIVE_FLOOR` re-decides every strategy instantly; cells in [1.0, 1.1) (OB/VP trail variants, cup atr2d5/atr6, envelope atr2d5_h30/atr6_h18) are viable again.
 - **Surprise / reuse:** 14 tests hardcoded 1.1 or the old viable set; write floor-dependent tests relative to `sr.PFNET_LIVE_FLOOR` and use clearly-below cells (0.95) as the closed example, not a value just above the old floor.
 - **Profit-booking / exit takeaway:** thin-margin cells (1.0-1.1) sit on max-hold survivors; do not tighten their exits.
+
+## Wiring audit: main.py-replay cells (B-1268, 2026-10-14)
+- **Mechanism:** compare every PFnet>=1.0 (n>=30) row in docs/backtest_data/*main_replay*.json to `_STRATEGY_TAG_TO_REGISTRY_NAME`; 117 of 122 were already wired, the gap was 5 chan_kalman 15m short cells (z1.0 and ve1e-4) that were skipped when the floor was 1.1.
+- **Result:** wired ve10d0e4_z1d0 atr4/2.5/1.5 (1.070/1.032/1.003) and ve1d0e4_z2d0 atr4/2.5 (1.012/1.000), run 38390561217; cst0d3 (0.3% cost) rows are not comparable to the live 0.8% model so stay unwired.
+- **Surprise / reuse:** a floor change silently leaves previously-rejected cells unwired; re-run this audit after every floor change. Research-only PFnet (month_effect, lunar, chan_tsm, pfovl, tasuki, cup 1d) is never enough: each needs its own main.py replay first.
+- **Profit-booking / exit takeaway:** these 15m cells hold ~1-2h and flatten by 15:10, so no overnight risk; fallbacks only own a symbol if an earlier cell's gate closes.
+
+## MCX contract roll (B-1269, 2026-10-14)
+- **Mechanism:** choosing the earliest non-expired MCX future keeps the bot on a contract on its last day (CRUDEOIL/CRUDEOILM expire 15 Oct 2026); thin expiry-day liquidity and settlement make scan prices and entries unreliable. Now a contract within `MCX_ROLL_DAYS` (2 calendar days, IST) of expiry is skipped and the next is used, in both the live-feed token resolver and `select_nse_future` (MCX FUTCOM only; NSE futures unchanged).
+- **Fit / rules:** a constant, not a kill switch. Open positions keep their stored trading symbol for exit and SL, never re-resolved; if no later contract exists the expiring one is still used (fail towards having a price).
+- **Surprise / reuse:** two independent resolvers (feed and option-chain module) both had "nearest expiry" logic; any new contract picker must share the roll constant. The replay script wrote only a JSON artifact the sandbox could not download, so results must also go to stdout.
+- **Profit-booking / exit takeaway:** never carry or open a position into expiry week of a commodity future; roll earlier so exits happen at normal liquidity, not on expiry day.
+
+## MCX replay through real main (B-1270, 2026-10-14)
+- **Mechanism:** the 8 live MCX daily cells were re-run through the real `main._mcx_daily_flags` (run 38582151119) and registered as `_mr` rows; the real-money gate and dashboard now read the replay PFnet, not the research sweep.
+- **Result:** replay PFnet / n: sma_crossover gc 2.287/31, supertrend gc 2.346/17, bollinger si 2.496/17, supertrend cl 1.432/11, rsi ng 1.525/13, bollinger ng short 1.881/19, keltner ng short 1.500/22, donchian cl 0.820/16 (research 1.157, below floor so unwired). Samples are 11-31 trades on one proxy symbol each: thin.
+- **Surprise / reuse:** a research PFnet just above the floor (1.157) did not survive the real-code replay; always replay through main before wiring. Atrnone cells are safe only because the option premium trailing SL is attached at entry; Kotak's position can lag the fill, so entry now retries the SL a few seconds instead of waiting for the 30s tick.
+- **Profit-booking / exit takeaway:** these cells exit on signal drop (daily), the premium trailing SL is the only intraday protection; do not remove it.
