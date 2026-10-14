@@ -1,0 +1,26 @@
+{
+ "source": "actions run 38501324353 (pl1d-short-main-replay.yml); only the last 2 of the merge-table lines were read from the job log, remaining cells owed from artifact pl1d-short-main-replay-results (id 11865767574)",
+ "cost_pct": 0.8,
+ "rows": [
+  {
+   "tag": "gap__runaway__short__1d__atr4_h20__v1",
+   "metrics": {
+    "n": 9861,
+    "pfnet": 0.5253753264751841,
+    "pfgross": 0.6226534388697726,
+    "win_pct": 42.89,
+    "avg_held_hours": 112.6
+   }
+  },
+  {
+   "tag": "starc__fade_full__short__1d__atr2d5_h20__v1",
+   "metrics": {
+    "n": 24082,
+    "pfnet": 0.5922494490521271,
+    "pfgross": 0.7001961377933623,
+    "win_pct": 35.14,
+    "avg_held_hours": 75.3
+   }
+  }
+ ]
+}
