@@ -1242,3 +1242,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Reuse: tf_sweep_common.inverted_frame for exact mirrors of gap/close-comparison rules; month-effect was skipped (one September event per year, 60d intraday cannot test it) and macddiv short needs a real main.py port.
 - Profit-booking / exit takeaway: unknown until run; tasuki's edge so far came from a 3-bar time exit with a wide stop, so check at each candle size whether max_hold_timeout still carries the profit before tightening stops.
 - B-1100 (2026-10-14): a test that drives a live engine core must stub every registry- or live-feed-dependent early return (chan cascade, live ticks) and restore module globals like DB_PATH, else its outcome depends on registry data or suite order. Fake-clock sweeps (time-machine) showed no time-of-day dependence. Profit-booking / exit takeaway: none; test hygiene only.
+## Pre-dispatch QA of research workflows (B-1200, 2026-10-14)
+- Mechanism: not a strategy; a gate before spending runner hours. Static check of every workflow plus a SYNTHETIC one-shard run and merge of each driver.
+- Fit: the free tier allows one matrix running plus one queued, so a dispatch that dies on a typo or missing main.py symbol wastes a queue slot and hours.
+- Result: 9 of 9 workflows pass static QA; 8 of 9 drivers smoke clean; envelope-main-replay would crash (main.ENVELOPE_1H_CELLS absent from the branch).
+- Surprised: a research commit can ship a driver that imports main.py symbols from a commit that is not in the same patch; main.py needs cwd=repo root (static mount), so smoke tests symlink static/docs into a scratch dir.
+- Reuse: run scripts/workflow_qa.py and tests/test_workflow_smoke_b1200.py before every matrix dispatch; extend SMOKES when a new driver lands. Job counts and runner-hour estimates live in docs/DISPATCH_ORDER_QA.md and should be replaced by measured run times.
+- Profit-booking / exit takeaway: none directly; QA protects the research queue that finds profitable cells.
