@@ -10,3 +10,6 @@ Stated by the user three times in a row on 14 Oct 2026 and made a standing thumb
 5. No new kill switch; no trade without SL; Kotak-first state; all other rules unchanged.
 
 Code: `_oneil_swing_try_entry` follows this order (scan, signal, gate). Other cell families still gate before scanning; migration tracked in backlog B-1250.
+
+## 2026-10-14: the PFnet floor is 1.0 (user)
+`PFNET_LIVE_FLOOR` was changed from 1.1 to 1.0 by the user on 2026-10-14, superseding the 2026-10-11 1.1 rule. A wired cell opens the real-money gate when PFnet >= 1.0 and stays closed below 1.0 (e.g. envelope atr4_h18 0.9963, cup atr4_h30 0.9943). Viability is still derived at read time from stored metrics, so cells in [1.0, 1.1) are viable again with no re-run.

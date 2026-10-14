@@ -33,10 +33,11 @@ def test_all_12_rows_registered_with_full_metrics():
 
 
 def test_gate_opens_for_two_longs_only():
-    # B-1266: four long cells are wired (PFnet >= 1); only the two >= floor open the real-money gate
+    # floor 1.0 (2026-10-14): every wired long cell with PFnet >= 1.0 opens the gate; cells below 1.0 (e.g. atr4_h18 0.9963) stay closed
     for r in _ROWS:
         ok = main._is_strategy_viable_for_real_money(r["tag"], check_switch=False)
-        assert ok == (r["tag"] in LIVE), r["tag"]
+        wired = r["tag"] in main.ENVELOPE_LONG_LIVE_CELLS
+        assert ok == (wired and r["pfnet"] >= sr.PFNET_LIVE_FLOOR), r["tag"]
     for t in LIVE:
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == _mr(t)
         assert t not in main.REPLAY_OWED_TAGS

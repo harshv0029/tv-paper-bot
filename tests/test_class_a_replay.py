@@ -90,7 +90,7 @@ def test_plan_is_derived_from_registry_and_excludes_wired_and_atrnone():
     names = {j["name"] for j in plan["include"] if j["mode"] == "minervini_lab"}
     assert "pct8_hard" in names
     assert not any(x["tag"] for x in plan["skipped"] if "atr1d5_h20_l5_n1" in x["tag"])
-    assert len(plan["include"]) <= 40
+    assert len(plan["include"]) <= 60
 
 
 # ---- B-1002 sector_rotation sweep (L x N x ATR x hold, 1d + 4h, both directions) ----

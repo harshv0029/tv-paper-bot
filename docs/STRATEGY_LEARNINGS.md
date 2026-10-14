@@ -1292,3 +1292,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Result (main.py replay, run 38553281449, full universe):** atr2d5_h30 PFnet 1.0071 (n 3121, win 41.04%, hold 22.1 bars), atr6_h30 1.0011 (n 3061, win 46.16%, hold 28.6), atr4_h30 0.9943; all h6/h18 cells 0.49-0.90. None reach 1.1.
 - **Surprise / reuse:** same pattern as the envelope fade: PFnet rises with hold, timeouts are the only profitable exits. Under the 14 Oct wiring rule the cells with PFnet >= 1 are scanned and counted even while the 1.1 gate blocks the money trade, so the trigger rate is measured live.
 - **Profit-booking / exit takeaway:** short holds (h6) lose after costs; the edge sits in letting the trade run to the timeout, so do not tighten the exit on this family.
+
+## Floor change 1.1 -> 1.0 (2026-10-14)
+- **Mechanism:** viability is derived from stored metrics, so lowering `PFNET_LIVE_FLOOR` re-decides every strategy instantly; cells in [1.0, 1.1) (OB/VP trail variants, cup atr2d5/atr6, envelope atr2d5_h30/atr6_h18) are viable again.
+- **Surprise / reuse:** 14 tests hardcoded 1.1 or the old viable set; write floor-dependent tests relative to `sr.PFNET_LIVE_FLOOR` and use clearly-below cells (0.95) as the closed example, not a value just above the old floor.
+- **Profit-booking / exit takeaway:** thin-margin cells (1.0-1.1) sit on max-hold survivors; do not tighten their exits.
