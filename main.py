@@ -11524,7 +11524,12 @@ def _chan_short_cell_tag(atr_mult, ve, z, interval="5m"):
 
 # B-980: the three viable 15m ve 1e-3 z2.0 cells (real-main.py replay 38390561217, 0.8% cost: PFnet 1.288 n1204 / 1.226 / 1.194),
 # appended AFTER every 5m cell so the 5m cascade is unchanged. The 15m ve1d0e4 / z1.0 cells fail the replay and are NOT wired.
-_CHAN_SHORT_15M_SPECS = ((4.0, 1e-3, 2.0), (2.5, 1e-3, 2.0), (1.5, 1e-3, 2.0))
+_CHAN_SHORT_15M_SPECS = ((4.0, 1e-3, 2.0), (2.5, 1e-3, 2.0), (1.5, 1e-3, 2.0),
+                         # B-1268 (2026-10-14, floor now 1.0): the other 15m 0.8%-cost cells whose own main.py replay (run 38390561217)
+                         # prints PFnet >= 1.0, appended LAST (fallbacks behind every earlier cell): ve1e-3 z1.0 atr4/2.5/1.5
+                         # (1.070/1.032/1.003, n 8.5-9.2k) and ve1e-4 z2.0 atr4/2.5 (1.012/1.000, n 11k). The 0.3%-cost (cst0d3)
+                         # rows are NOT wired: a different cost model than the live 0.8% one.
+                         (4.0, 1e-3, 1.0), (2.5, 1e-3, 1.0), (1.5, 1e-3, 1.0), (4.0, 1e-4, 2.0), (2.5, 1e-4, 2.0))
 
 # tag -> (atr_mult, ve, z); ve 1e-3 is "ve10d0e4"
 CHAN_SHORT_CELLS = {_chan_short_cell_tag(a, v, z): (a, v, z) for a, v, z in _CHAN_SHORT_CELL_SPECS}
