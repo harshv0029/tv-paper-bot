@@ -18,6 +18,8 @@ _RUNS = (
      "scripts/pl1d_short_main_replay.py", sr.AssetClass.EQUITY_SWING, sr.TradeCategory.SHORT_SELL),
     ("chan_gap_short_main_replay_run_38502123279.json", "chan-gap-short-main-replay.yml run 38502123279 (1d, cost 0.8%, main.py functions; only the atr1d5 cell was emitted)",
      "scripts/chan_gap_main_replay.py", sr.AssetClass.EQUITY_INTRADAY, sr.TradeCategory.SHORT_SELL),
+    ("pl1d_long_main_replay_run_38506928246.json", "pl1d-main-replay.yml run 38506928246 (1d, cost 0.8%, main.py functions pl1d_long_entry_signal/pl1d_exit_reason, ATR stop attached)",
+     "scripts/pl1d_main_replay.py", sr.AssetClass.EQUITY_SWING, sr.TradeCategory.SWING),
 )
 
 
@@ -51,6 +53,7 @@ def build():
                     evidence=f"{ref}: raw docs/backtest_data/{fn}: PFnet {m['pfnet']}, gross {m['pfgross']}, win {m['win_pct']}%, n={m['n']}, hold {hrs}h, exits {json.dumps(m.get('exit_reasons'), separators=(',', ':'))}",
                     notes=f"main.py-function replay of {r['tag']} in the {cat.name} category; the research tag stays registered unchanged. "
                           + ("Live entry path exists (CHAN_GAP_LONG_CELLS / _chan_gap_long_try_entry, ATR stop always attached, B-982)." if cat == sr.TradeCategory.BUY
+                             else "Live entry path exists (PL1D_CELLS / _pl1d_try_entry swing engine, pl1d_stop_loss ATR stop always attached, resting SL placed and entry unwound on SL failure, B-983)." if cat == sr.TradeCategory.SWING
                              else ("Live short path: CHAN_GAP_SHORT_TAG, intraday short engine, flat by 15:10, ATR stop attached (B-981)." if "short_on_gap" in r["tag"]
                                    else "Below PFNET_LIVE_FLOOR in both cells; remaining cells owed from the artifact."))))
             except Exception:
