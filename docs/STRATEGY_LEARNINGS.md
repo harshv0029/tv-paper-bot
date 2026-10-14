@@ -1271,3 +1271,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Surprised: the winners are the narrowest picks (N1) on the longest lookback (L5); wider N dilutes the edge. Win rate and PFnet do not move together (46% win at 1.40, 61% at 1.30).
 - Reuse: all 108 previously unregistered cells are now rows (headline gap_aware, other fills in evidence). Before wiring, build an ATR-stop attach path for sector picks; prefer atr6d0_h5_l5_n1 on turnover.
 - Profit-booking / exit takeaway: shorter holds (5 bars) kept PFnet above 1.3 with 61% wins, so book early for this fade; the 20-bar hold adds only 0.1 PFnet at 2.5x the time.
+## chan_kalman band SHORT, main.py replay coverage (B-1262, 2026-10-14)
+- Mechanism: 1-D Kalman filter on log price; short when the residual exceeds z x sqrtQ, ATR stop, hold 40 bars, forced flat 15:15 IST (main.chan_kalman_band_short_*).
+- Fit: intraday MIS short, stop always attached, so it fits the no-trade-without-SL rule; main.py port already replayed full universe at 0.8% and 0.3% for 5m/15m (24 cells each).
+- Result: audit shows only the 1h cells (12, research PFnet 0.38-0.81 under flatten) lack a main.py replay; 1m/4h were never tested. Research vs main-replay PFnet differ by under 0.03 on every 5m/15m cell, so the port is faithful.
+- Surprised: the replay already existed; the only manual step was converting the merge output to the docs JSON, now scripted, and the registry reads run files by glob so new runs register without code edits.
+- Reuse: before building a replay, grep the workflow families and docs/backtest_data run files; check coverage by mapping research `band` tags to `band_mr` main tags.
+- Profit-booking / exit takeaway: 5m z2 cells win via the 15:15 flatten (hold under 1h), so book same-session; 1h cells fail, no reason to hold longer.
