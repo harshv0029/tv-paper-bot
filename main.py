@@ -24646,8 +24646,13 @@ def entry_funnel():
     day = ist_now().strftime("%Y-%m-%d")
     cats = ["buy", "short_sell", "swing", "bidirectional", "futures", "options"]
     out = {c: {"viable_strategies": 0, "scans_today": 0, "paper_entries_today": 0,
-               "attempts": {}, "placed": 0, "blocked": 0, "_fired": set()} for c in cats}
+               "attempts": {}, "placed": 0, "blocked": 0, "_fired": set(), "_strats": {}} for c in cats}
     tag_cats = {}
+
+    def _srow(c, tag):
+        return out[c]["_strats"].setdefault(str(tag), {
+            "strategy": str(tag), "scans": 0, "fired": 0, "placed": 0, "blocked": 0,
+            "attempts": 0, "symbols_fired": 0, "skip_reasons": {}})
     try:
         # "viable_strategies" below counts only strategies WIRED into a live scan;
         # "viable_in_stack" is the explorer-stack count the buckets endpoint shows (B-910).
@@ -24667,6 +24672,9 @@ def entry_funnel():
                     out[c]["viable_strategies"] += 1
                     out[c]["scans_today"] += int(st.get("scans_today") or 0)
                     out[c]["paper_entries_today"] += int(st.get("successful_entries_today") or 0)
+                    _r = _srow(c, st.get("strategy_tag"))
+                    _r["scans"] += int(st.get("scans_today") or 0)
+                    _r["fired"] += int(st.get("successful_entries_today") or 0)
                     if int(st.get("successful_entries_today") or 0) > 0:
                         out[c]["_fired"].add(st.get("strategy_tag"))
     except Exception:
@@ -24686,12 +24694,25 @@ def entry_funnel():
             d = o["attempts"].setdefault(str(status), {"attempts": 0, "symbols": 0})
             d["attempts"] += n
             d["symbols"] += syms
+            _r = _srow(c, strat)
+            _r["attempts"] += n
+            _r["symbols_fired"] += syms
+            if str(status).startswith("skipped"):
+                _r["skip_reasons"][str(status)] = _r["skip_reasons"].get(str(status), 0) + n
+            if str(status).startswith(("placed", "filled", "ok")):
+                _r["placed"] += n
+            elif str(status).startswith("skipped"):
+                _r["blocked"] += n
             key = "placed" if str(status).startswith(("placed", "filled", "ok")) else (
                 "blocked" if str(status).startswith("skipped") else None)
             if key:
                 o[key] += n
     for c, o in out.items():
         o["strategies_fired"] = len(o.pop("_fired"))
+        _all = sorted(o.pop("_strats").values(), key=lambda r: r["strategy"])
+        o["strategies"] = [r for r in _all if r["fired"] or r["attempts"]]
+        o["no_signal_strategies"] = [{"strategy": r["strategy"], "scans": r["scans"]}
+                                     for r in _all if not (r["fired"] or r["attempts"])]
         if not o["viable_strategies"]:
             o["verdict"] = "no viable strategy in this category (nothing may open a real entry)"
         elif o["blocked"] and not o["placed"]:
