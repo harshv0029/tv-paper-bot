@@ -1219,6 +1219,7 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Surprise: two loaders for the same family can use different headline bases (index-option OOS vs ALL-sample when OOS n<30); the basis is written in the universe field so rows are never compared across bases.
 - Reuse: after any new result file, run `scripts/missing_registry_tags.py` and expect zero unexplained; extend `EXPLAINED_PREFIX` only with a stated reason.
 - Profit-booking / exit takeaway: none of the 366 is a validated edge (many are thin n or in-sample windows); the pfoos oos60 and 1h gap-fade segoos tags are the ones that say whether an exit or overlay survives out of sample.
+
 ## Cup 3C cheat 1h LONG ported into main.py, unwired (B-1190, 2026-10-14)
 - Mechanism: Minervini cup (depth 15-35%, low in bars 15-50 of a 60-bar window, right side back to 95% of the left rim, handle range <=12%) then a tight pause at 1/3-1/2 recovery that breaks upward; ATR14 stop, 18-30 hourly bar hold.
 - Fit: 30 hourly bars are overnight, so swing engine; only n about 130 on the n200 sample, so the 1.15-1.24 PFnet is thin evidence until a full-universe replay. No short mirror exists in pattern_lab, which breaks the bidirectional rule until one is built.

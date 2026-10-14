@@ -6237,6 +6237,82 @@ def chan_kalman_band_short_exit_reason(df, interval: str, entry_pos: int, entry_
     return None
 
 
+# ---- B-1190 Minervini cup "3C cheat" LONG, 1h, SWING-length hold (RESEARCH-ONLY port: no scan, no real path, no kill switch)
+# Rule = scripts/pattern_lab.py r_bases base_cup_cheat_3c at the LAST bar i of df (cup precondition + cheat pause, verbatim):
+#   window w = bars [i-60, i); left_hi = max high of the first 20; low/low_i = min low and its index within w;
+#   depth = (left_hi-low)/left_hi in [0.15, 0.35]; 15 <= low_i <= 50; right_hi = max high of [i-12, i) >= 0.95 x left_hi;
+#   (right_hi - min low of [i-8, i))/right_hi <= 0.12 (handle); cheat: mid = low + 0.4 x (left_hi-low); pause = highs of
+#   [i-6, i); mid x 0.97 <= pause.max <= mid x 1.10, pause range (pause.max - min low [i-6,i))/pause.max <= 0.10, and
+#   close[i] > pause.max. Stop = entry - k x ATR14 (simple mean, chan_atr14), ALWAYS returned; atrnone cells are NOT ported
+#   (no trade without SL). Exit = gap-aware stop, else the close of the hold-th bar. Deviation: entry at the signal close, not
+#   the next open (as every swing port). No short mirror exists in pattern_lab (inverted cup): owed as its own tag family.
+#   Each (ATR, hold) is its OWN tag. Registry evidence is n200 pattern-lab only (n ~130, thin); NOT confirmed by a main.py replay.
+CUP_CHEAT_1H_MIN_BARS = 71
+CUP_CHEAT_1H_CELLS = {
+    f"base__cup_cheat_3c__long__1h__atr{fa}_h{h}__v1": (k, h)
+    for fa, k in (("2d5", 2.5), ("4", 4.0), ("6", 6.0))
+    for h in (6, 18, 30)
+}
+
+
+def cup_cheat_3c_fires(df) -> bool:
+    """Last-bar evaluation of pattern_lab's base_cup_cheat_3c long rule (needs High/Low/Close)."""
+    n = len(df)
+    if n < CUP_CHEAT_1H_MIN_BARS:
+        return False
+    h = df["High"].to_numpy(dtype=float)[-61:]
+    l = df["Low"].to_numpy(dtype=float)[-61:]
+    c = float(df["Close"].iloc[-1])
+    # window of 60 bars before the last bar, plus the last bar itself at index 60
+    hw, lw = h[:60], l[:60]
+    left_hi = float(hw[:20].max())
+    low = float(lw.min())
+    low_i = int(np.argmin(lw))
+    if not left_hi > 0:
+        return False
+    depth = (left_hi - low) / left_hi
+    right_hi = float(h[48:60].max())
+    handle_lo = float(l[52:60].min())
+    if not (0.15 <= depth <= 0.35 and 15 <= low_i <= 50 and right_hi >= left_hi * 0.95
+            and (right_hi - handle_lo) / right_hi <= 0.12):
+        return False
+    mid = low + 0.4 * (left_hi - low)
+    pause_hi = float(h[54:60].max())
+    pause_lo = float(l[54:60].min())
+    return bool((mid * 0.97 <= pause_hi <= mid * 1.10) and ((pause_hi - pause_lo) / pause_hi <= 0.10) and c > pause_hi)
+
+
+def cup_cheat_3c_entry_signal(df, tag: str):
+    """None when no signal / unknown tag. The stop is always set. NOT wired into any scan."""
+    cfg = CUP_CHEAT_1H_CELLS.get(tag)
+    if cfg is None or not cup_cheat_3c_fires(df):
+        return None
+    k, _hold = cfg
+    h, l, c = (df[x].to_numpy(dtype=float) for x in ("High", "Low", "Close"))
+    atr = float(chan_atr14(h, l, c)[-1])
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+    px = float(c[-1])
+    stop = px - k * atr
+    if not (0 < stop < px):
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": px - stop, "direction": "long"}
+
+
+def cup_cheat_3c_exit_reason(df, entry_pos: int, stop: float, hold: int):
+    """Exit check on the LAST bar j of df for a long entered at the CLOSE of bar entry_pos: gap-aware stop (fill bar at the
+    stop, later bars at min(stop, open)), else the close of the hold-th bar after entry. (reason, px) or None while open."""
+    j = len(df) - 1
+    if j <= entry_pos:
+        return None
+    o, l, c = (float(df[x].iloc[j]) for x in ("Open", "Low", "Close"))
+    if l <= stop:
+        return "cup_cheat_stop_loss", (float(stop) if j == entry_pos + 1 else min(float(stop), o))
+    if j - entry_pos >= hold:
+        return "cup_cheat_max_hold_timeout", c
+    return None
+
+
 # ---- B-1130 envelope 5% fade, 1h, SWING-length hold (RESEARCH-ONLY port: no scan, no real path, no kill switch) -------
 # Rule = scripts/pattern_lab.py r_bands envelope_0d05_fade: long when close < SMA21 x 0.95, short mirror when close >
 # SMA21 x 1.05. Stop = entry -/+ k x ATR14 (simple mean, chan_atr14), ALWAYS returned (atrnone cells are NOT ported: no
