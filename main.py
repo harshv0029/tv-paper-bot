@@ -16215,6 +16215,8 @@ FO_OPTION_INITIAL_STOP_PCT = 3.0  # user 2026-10-08: initial SL 3% below entry p
 FO_OPTION_TRAIL_ARM_PCT = 1.0     # trailing starts once premium is 1% above entry
 FO_OPTION_TRAIL_PCT = 1.0         # then SL = highest LTP since entry minus 1%
 FO_OPTION_SL_FAIL_EXIT_SECONDS = 180
+FO_ENTRY_SL_RETRIES = 4  # B-1270: SL retries right after an entry fill while Kotak's position is not yet visible
+FO_ENTRY_SL_RETRY_SLEEP_S = 2.0
 
 
 def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float, strategy_tag: str | None):
@@ -16360,6 +16362,22 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
         except Exception as _e:
             _sl_status = "sl_exception"
             print(f"[REAL F&O] initial SL raised for {leg_key}: {_e}")
+        # B-1270: Kotak's position can lag the fill by a few seconds; retry the SL briefly here so the window without a stop is
+        # seconds, not the next 30s tick. If the position is still invisible it cannot be unwound (a sell would be naked), so the
+        # tick retry + 180s risk cut + 5-min backcheck remain the backstop and the alarm below is logged.
+        for _i in range(FO_ENTRY_SL_RETRIES):
+            if _sl_status != "fresh_entry_awaiting_position":
+                break
+            time.sleep(FO_ENTRY_SL_RETRY_SLEEP_S)
+            try:
+                _sl_status = _sync_real_fo_option_sl(conn, leg_key, reason="initial protective SL retry (position not yet visible at Kotak)")
+            except Exception as _e:
+                _sl_status = "sl_exception"
+                print(f"[REAL F&O] SL retry raised for {leg_key}: {_e}")
+        if _sl_status == "fresh_entry_awaiting_position":
+            _log_real_fo_attempt(conn, leg_key, "B", "sl_pending_position_not_visible", kotak_trading_symbol=contract["kotak_trading_symbol"],
+                                 qty=qty, detail="reason: no SL yet, Kotak position not visible after retries; 30s tick retries, 180s risk cut backstop")
+            print(f"[REAL F&O] ALARM {leg_key} entry has NO stop-loss yet (position not visible at Kotak)")
         if _sl_status in ("sl_failed", "sl_exception") or str(_sl_status).startswith("kotak_unreadable"):
             _row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone()
             if _row:
@@ -16681,9 +16699,28 @@ def _load_mcx_daily_cells():
     return _MCX_DAILY_CELLS_FALLBACK
 
 
-_MCX_DAILY_CELLS = _load_mcx_daily_cells()
-for _c in _MCX_DAILY_CELLS:
-    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_c[0], _c[0])
+def _mcx_replay_row_name(tag):
+    """B-1270: registry row of the main.py-calling replay (run 38582151119) for an MCX cell: the research tag with `_mr` on the variant."""
+    return tag.replace("__long__", "_mr__long__", 1).replace("__short__", "_mr__short__", 1)
+
+
+def _mcx_replay_clears_floor(tag):
+    """True unless the cell's `_mr` replay row exists AND is below PFNET_LIVE_FLOOR (wiring has ONE condition: replay PFnet >= floor).
+    A cell with no replay row stays (the real-money gate still fails closed on it). Derived at read time, never stored."""
+    try:
+        import strategy_registry as _sr
+        r = next((x for x in _sr.REGISTRY if x.name == _mcx_replay_row_name(tag)), None)
+        return r is None or r.metrics is None or r.metrics.pfnet >= _sr.PFNET_LIVE_FLOOR
+    except Exception:
+        return True
+
+
+# B-1270: unwire (scan + entry) every MCX cell whose real-main replay row is below the floor; its research and replay registry rows stay.
+_MCX_DAILY_CELLS = tuple(c for c in _load_mcx_daily_cells() if _mcx_replay_clears_floor(c[0]))
+for _c in _load_mcx_daily_cells():
+    # the gate/dashboard use the replay PFnet (the `_mr` row) when it exists, else the research row (unchanged)
+    _STRATEGY_TAG_TO_REGISTRY_NAME[_c[0]] = _mcx_replay_row_name(_c[0]) if any(
+        x.name == _mcx_replay_row_name(_c[0]) for x in __import__("strategy_registry").REGISTRY) else _c[0]
 
 
 def _mcx_inr_spot(fo_underlying):
