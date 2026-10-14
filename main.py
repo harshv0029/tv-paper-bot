@@ -5482,10 +5482,11 @@ def _swingminrr_try_entry(conn, symbol, df, capital, risk_pct, today, fx, rs_per
         if tag == SWINGMINRR_BASE_TAG and _is_strategy_viable_for_real_money("minervini_vcp_be3r", check_switch=False):
             continue  # the existing, viable be3r path keeps ungated VCP signals; base only replaces it if be3r is closed
         _record_strategy_scan(tag)
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
-            continue
         sig = swingminrr_vcp_entry_signal(df, tag, rs_percentile=rs_percentile)
         if not sig:
+            continue
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
         qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
@@ -5595,10 +5596,11 @@ def _gapfade_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
     pattern as _swingminrr_try_entry; the PFnet gate (and REPLAY_OWED) is inside _is_strategy_viable_for_real_money."""
     for tag in GAPFADE_TAGS:
         _record_strategy_scan(tag)
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
-            continue
         sig = gapfade_long_entry_signal(df, tag)
         if not sig:
+            continue
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
         qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
@@ -5783,10 +5785,11 @@ def _chan_shape_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> boo
     and unwinds at market if that SL fails (B-966)."""
     for tag in CHAN_SHAPE_CELLS:
         _record_strategy_scan(tag)
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
-            continue
         sig = chan_shape_long_entry_signal(df, tag)
         if not sig:
+            continue
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
         qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
@@ -5972,10 +5975,11 @@ def _pl1d_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
     places the resting SL and unwinds at market if that SL fails (B-966)."""
     for tag in PL1D_CELLS:
         _record_strategy_scan(tag)
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
-            continue
         sig = pl1d_long_entry_signal(df, tag)
         if not sig:
+            continue
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
         qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
@@ -11606,13 +11610,15 @@ def _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interv
         dfc = _chan_short_frame(df, ts_utc)
         ks_by_ve, masks = {}, _chan_live_masks(dfc.index, interval)
         for _t, (_a, _ve, _z) in CHAN_LONG_CELLS.items():
-            if not _is_strategy_viable_for_real_money(_t):
-                continue
             _record_strategy_scan(_t)  # B-1244: this cell is evaluated on this symbol/bar (feeds scans_today)
             if _ve not in ks_by_ve:
                 ks_by_ve[_ve] = chan_kalman_series(dfc["Close"].to_numpy(float), _ve)
             sig = chan_kalman_band_long_entry_signal(dfc, interval, z=_z, ve=_ve, atr_mult=_a,
                                                      ks=ks_by_ve[_ve], masks=masks)
+            if sig and not _is_strategy_viable_for_real_money(_t):
+                _record_blocked_trigger(_t)  # fired, gate closed now: no position opened
+                sig = None
+                continue
             if sig:
                 tag = _t
                 break
@@ -11933,13 +11939,15 @@ def _chan_short_try_entry(conn, symbol, df, ts_utc, today_df, last_close, today_
         for _t, (_a, _ve, _z) in CHAN_SHORT_CELLS.items():
             if CHAN_SHORT_CELL_INTERVAL[_t] != interval:
                 continue
-            if not _is_strategy_viable_for_real_money(_t):
-                continue
             _record_strategy_scan(_t)  # B-1244
             if _ve not in ks_by_ve:
                 ks_by_ve[_ve] = chan_kalman_series(dfc["Close"].to_numpy(float), _ve)
             sig = chan_kalman_band_short_entry_signal(dfc, interval, z=_z, ve=_ve, atr_mult=_a,
                                                       ks=ks_by_ve[_ve], masks=masks)
+            if sig and not _is_strategy_viable_for_real_money(_t):
+                _record_blocked_trigger(_t)  # fired, gate closed now: no position opened
+                sig = None
+                continue
             if sig:
                 tag = _t
                 break
@@ -22320,10 +22328,11 @@ def _macddiv_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) ->
     mirror re-checks the gate (B-962), places the resting SL and unwinds if that fails (B-966)."""
     for tag in MACDDIV_LONG_LIVE_CELLS:
         _record_strategy_scan(tag)
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
-            continue
         sig = macddiv_long_cell_signal(df1h, tag)
         if not sig:
+            continue
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
         qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
@@ -24846,6 +24855,9 @@ def entry_funnel():
                     out[c]["scans_today"] += int(st.get("scans_today") or 0)
                     out[c]["paper_entries_today"] += int(st.get("successful_entries_today") or 0)
                     _r = _srow(c, st.get("strategy_tag"))
+                    _bt = int(_strategy_blocked_triggers.get(str(st.get("strategy_tag")), 0))
+                    _r["blocked_triggers"] = _r.get("blocked_triggers", 0) + _bt
+                    out[c]["blocked_triggers"] = out[c].get("blocked_triggers", 0) + _bt
                     _r["scans"] += int(st.get("scans_today") or 0)
                     _r["fired"] += int(st.get("successful_entries_today") or 0)
                     if int(st.get("successful_entries_today") or 0) > 0:
@@ -24883,9 +24895,9 @@ def entry_funnel():
     for c, o in out.items():
         o["strategies_fired"] = len(o.pop("_fired"))
         _all = sorted(o.pop("_strats").values(), key=lambda r: r["strategy"])
-        o["strategies"] = [r for r in _all if r["fired"] or r["attempts"]]
+        o["strategies"] = [r for r in _all if r["fired"] or r["attempts"] or r.get("blocked_triggers")]
         o["no_signal_strategies"] = [{"strategy": r["strategy"], "scans": r["scans"]}
-                                     for r in _all if not (r["fired"] or r["attempts"])]
+                                     for r in _all if not (r["fired"] or r["attempts"] or r.get("blocked_triggers"))]
         if not o["viable_strategies"]:
             o["verdict"] = "no viable strategy in this category (nothing may open a real entry)"
         elif o["blocked"] and not o["placed"]:

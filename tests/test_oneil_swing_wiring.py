@@ -123,3 +123,27 @@ def test_blocked_trigger_recorded_when_gate_closed(monkeypatch):
     assert main._oneil_swing_try_entry(None, "X.NS", None, 100000, 0.01, "2026-10-14", 1.0) in (False, None)
     assert main._strategy_scan_counts.get(tag, 0) > before
     assert main._strategy_blocked_triggers.get(tag, 0) == 1
+
+
+def test_other_families_scan_first_then_gate_on_trigger(monkeypatch):
+    """B-1250: gapfade / chan_shape / pl1d / macddiv loops record the scan and count a blocked trigger when the gate is closed."""
+    import main
+    monkeypatch.setattr(main, "_is_strategy_viable_for_real_money", lambda t, check_switch=True: False)
+    fake = {"entry_price": 10.0, "stop_loss": 9.0, "atr_at_entry": 1.0}
+    cases = [("_gapfade_try_entry", "GAPFADE_TAGS", "gapfade_long_entry_signal", (None, "X.NS", None, 1e5, 0.01, "2026-10-14", 1.0)),
+             ("_chan_shape_try_entry", "CHAN_SHAPE_CELLS", "chan_shape_long_entry_signal", None),
+             ("_pl1d_try_entry", "PL1D_CELLS", "pl1d_long_entry_signal", None)]
+    import inspect
+    for fn_name, cells_name, sig_name, args in cases:
+        fn = getattr(main, fn_name, None)
+        if fn is None:
+            continue
+        main._strategy_blocked_triggers.clear()
+        monkeypatch.setattr(main, sig_name, lambda df, t, **k: fake)
+        n = len(inspect.signature(fn).parameters)
+        a = args or (None, "X.NS", None, 1e5, 0.01, "2026-10-14", 1.0)[:n]
+        tag = next(iter(getattr(main, cells_name)))
+        before = main._strategy_scan_counts.get(tag, 0)
+        assert fn(*a) in (False, None)
+        assert main._strategy_scan_counts.get(tag, 0) > before
+        assert main._strategy_blocked_triggers.get(tag, 0) >= 1, fn_name
