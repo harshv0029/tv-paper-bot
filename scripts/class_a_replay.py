@@ -52,6 +52,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import b412_helpers as H  # noqa: E402
+import bar_hygiene as bh  # noqa: E402
 
 SECTOR_TAG_RE = re.compile(r"^sector_rotation__fade__short__(?P<tf>[a-z0-9]+)__atr(?P<atr>[a-z0-9]+)_h(?P<h>\d+)_l(?P<l>\d+)_n(?P<n>\d+)__v1$")
 STOP_FILLS = ("stop", "gap_aware", "close")
@@ -280,13 +281,21 @@ SWEEP_DEFAULT_HOLDS = {"1d": (5, 10, 20), "4h": (2, 6, 10)}  # bars; 4h: ~1 / 3 
 SWEEP_DIR_TAG = {"short": "sector_rotation__fade__short__", "long": "sector_rotation__momentum__long__"}
 
 
-def sweep_tag(direction, tf, atr_tok, hold, L, N):
-    """Naming grammar, own tag per (direction, tf, atr, hold, L, N); full universe -> 'momentum' (not _n200)."""
-    return f"{SWEEP_DIR_TAG[direction]}{tf}__atr{atr_tok}_h{hold}_l{L}_n{N}__v1"
+ENTRY_MODELS = ("next_open", "signal_close")
 
 
-def sweep_cells(tf, Ls, Ns, atrs, holds=None, dirs=("short", "long")):
+def sweep_tag(direction, tf, atr_tok, hold, L, N, entry="next_open"):
+    """Naming grammar, own tag per (direction, tf, atr, hold, L, N[, entry model]); full universe -> 'momentum' (not _n200).
+    The live paper path fills at the SIGNAL close, the original replay at the NEXT open: that is a different result, so the
+    signal_close variant carries its own `_ec1` param and never pools with the next_open tags (B-1110)."""
+    ec = "_ec1" if entry == "signal_close" else ""
+    return f"{SWEEP_DIR_TAG[direction]}{tf}__atr{atr_tok}_h{hold}_l{L}_n{N}{ec}__v1"
+
+
+def sweep_cells(tf, Ls, Ns, atrs, holds=None, dirs=("short", "long"), entry="next_open"):
     """Grid of cell dicts. atrnone is refused (no trade without SL)."""
+    if entry not in ENTRY_MODELS:
+        raise ValueError(f"entry must be one of {ENTRY_MODELS}")
     holds = holds or SWEEP_DEFAULT_HOLDS[tf]
     cells = []
     for d in dirs:
@@ -297,7 +306,7 @@ def sweep_cells(tf, Ls, Ns, atrs, holds=None, dirs=("short", "long")):
                         raise ValueError("atrnone refused: no trade without SL")
                     for h in holds:
                         cells.append({"dir": d, "tf": tf, "L": int(L), "N": int(N), "atr": parse_atr(a), "atr_tok": a,
-                                      "hold": int(h), "tag": sweep_tag(d, tf, a, h, L, N)})
+                                      "hold": int(h), "entry": entry, "tag": sweep_tag(d, tf, a, h, L, N, entry)})
     return cells
 
 
@@ -344,7 +353,7 @@ def run_sector_sweep(m, frames, cells, tf):
         per_fill = {f: [] for f in STOP_FILLS}
         for t, j in sigs[(c["L"], c["N"])]:
             e = t + 1
-            ent, a = O[e, j], ATR[t, j]
+            ent, a = (C[t, j] if c.get("entry") == "signal_close" else O[e, j]), ATR[t, j]
             if np.isnan(ent) or np.isnan(a) or ent <= 0 or e + c["hold"] > T:
                 continue
             if c["dir"] == "short":
@@ -368,7 +377,8 @@ def run_sector_sweep(m, frames, cells, tf):
                              "by_stop_fill": {f: H.metrics(per_fill[f]) for f in STOP_FILLS}}
     return {"mode": "sector_sweep", "cells": results, "cost_round_trip_pct": m.ROUND_TRIP_COST_PCT,
             "universe_size": len(frames), "universe_requested": "main._load_nse_universe_from_file()",
-            "bars": T, "tf": tf, "bar_count_note": "holds and lookback L are in BARS of this tf (4h: 2 bars/session)",
+            "bars": T, "tf": tf, "entry_model": cells[0].get("entry", "next_open") if cells else None,
+            "bar_count_note": "holds and lookback L are in BARS of this tf (4h: 2 bars/session)",
             "picks_source": "main.sector_rotation_fade_short_picks (real, N sliced as prefix of N=max)",
             "atr_source": "main._atr_series (real, 14 bars of this tf)",
             "exit_source": "short: main.sector_rotation_fade_short_exit_reason + _stop (real); long: harness long_trade (stop below entry)"}
@@ -429,6 +439,9 @@ def main_run():
     lim = int(os.environ["SYMBOL_LIMIT"]) if os.environ.get("SYMBOL_LIMIT") else None
     tf = os.environ.get("TF", "1d")
     frames = load_frames(m, lim, tf if mode == "sector_sweep" else "1d")
+    dropped = 0
+    if mode in ("sector_short", "sector_sweep"):  # B-1110: vendor glitch bars out before picks/ATR/stops (NaN rows are skipped by the panel)
+        frames, dropped = bh.clean_frames(frames)
     print(f"{mode}: {len(frames)} symbols (requested universe = main._load_nse_universe_from_file())")
     if mode == "sector_short":
         res = run_sector_short(m, frames, parse_cells(os.environ["CELLS"]))
@@ -436,7 +449,8 @@ def main_run():
     elif mode == "sector_sweep":
         csv = lambda k, d: [x.strip() for x in os.environ.get(k, d).split(",") if x.strip()]
         cells = sweep_cells(tf, [int(x) for x in csv("LS", "1,3,5")], [int(x) for x in csv("NS", "1,3,5")],
-                            csv("ATRS", "1d5,2d5,4d0,6d0"), [int(x) for x in csv("HOLDS", "")] or None, csv("DIRS", "short,long"))
+                            csv("ATRS", "1d5,2d5,4d0,6d0"), [int(x) for x in csv("HOLDS", "")] or None, csv("DIRS", "short,long"),
+                            os.environ.get("ENTRY", "next_open"))
         res = run_sector_sweep(m, frames, cells, tf)
         name = os.environ.get("NAME", f"{tf}_sweep")
     elif mode == "minervini_be":
@@ -448,6 +462,7 @@ def main_run():
     else:
         raise SystemExit(f"unknown MODE {mode}")
     res["synthetic"] = os.environ.get("SYNTHETIC") == "1"
+    res["bars_dropped_glitch"] = dropped
     os.makedirs("out", exist_ok=True)
     json.dump(res, open(f"out/class_a_{mode}_{name}.json", "w"), indent=1, default=str)
     print(json.dumps(res, indent=1, default=str)[:6000])
