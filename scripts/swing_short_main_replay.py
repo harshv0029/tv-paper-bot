@@ -170,7 +170,7 @@ def merge(d):
     rows = []
     for t, e in sorted(tags.items()):
         mt = B.agg_metrics(e["agg"])
-        mt["avg_held_hours"] = round(mt["avg_held_bars"] * 24.0, 1)  # 1d bars: calendar-hour equivalent
+        mt["avg_held_hours"] = round(mt["avg_held_bars"] * 6.25, 1)  # B-1030: 1d bar = 6.25 market hours (was 24.0 calendar hours); avg_held_bars stays the raw field
         rows.append({"tag": t, "spec": e["spec"], "n_symbols": e["n_symbols"], "shards": e["shards"], "metrics": mt})
     out = {**meta, "rows": rows}
     json.dump(out, open(os.path.join(d, "swingshort_all.json"), "w"), indent=1)
