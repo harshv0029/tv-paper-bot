@@ -1,6 +1,6 @@
 {
  "GOLD": {
-  "matched": 2039,
+  "matched": 2044,
   "exact": {
    "GOLD": {
     "lot": 1,
@@ -14,7 +14,7 @@
   "error": null
  },
  "GOLDM": {
-  "matched": 353,
+  "matched": 358,
   "exact": {
    "GOLDM": {
     "lot": 100,
@@ -38,7 +38,7 @@
   "error": null
  },
  "SILVER": {
-  "matched": 3364,
+  "matched": 3379,
   "exact": {
    "SILVER": {
     "lot": 30,
@@ -52,7 +52,7 @@
   "error": null
  },
  "SILVERM": {
-  "matched": 1659,
+  "matched": 1668,
   "exact": {
    "SILVERM": {
     "lot": 5,
@@ -71,7 +71,7 @@
   "error": null
  },
  "CRUDEOIL": {
-  "matched": 1106,
+  "matched": 1110,
   "exact": {
    "CRUDEOIL": {
     "lot": 100,
@@ -85,7 +85,7 @@
   "error": null
  },
  "CRUDEOILM": {
-  "matched": 553,
+  "matched": 555,
   "exact": {
    "CRUDEOILM": {
     "lot": 10,
@@ -99,7 +99,7 @@
   "error": null
  },
  "NATURALGAS": {
-  "matched": 263,
+  "matched": 265,
   "exact": {
    "NATURALGAS": {
     "lot": 1250,
@@ -113,7 +113,7 @@
   "error": null
  },
  "NATGASMINI": {
-  "matched": 262,
+  "matched": 264,
   "exact": {
    "NATGASMINI": {
     "lot": 250,
@@ -141,7 +141,7 @@
   "error": null
  },
  "ZINC": {
-  "matched": 123,
+  "matched": 125,
   "exact": {
    "ZINC": {
     "lot": 5,
