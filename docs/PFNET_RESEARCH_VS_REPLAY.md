@@ -6,6 +6,7 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 
 | Replay tag | Research tag | Research PFnet | Research n | Replay PFnet | Replay n | Delta | Flag |
 |---|---|---|---|---|---|---|---|
+| gap__runaway_mr__long__1d__atr4_h20__v1 | gap__runaway__long__1d__atr4_h20__v1 | 1.46 | 1087 | 1.20 | 12898 | -0.26 | close |
 | starc__fade_full_mr__short__1d__atr2d5_h20__v1 | starc__fade_full__short__1d__atr2d5_h20__v1 | 0.70 | 23916 | 0.59 | 24082 | -0.11 | close |
 | chan_gap__buy_on_gap_mr__long__1d__atr4d0_top10__v1 | chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1 | 1.45 | 1147 | 1.39 | 1211 | -0.05 | close |
 | chan_gap__buy_on_gap_mr__long__1d__atr2d5_top10__v1 | chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1 | 1.41 | 1147 | 1.36 | 1211 | -0.05 | close |
@@ -21,6 +22,7 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | 0.98 | 8845 | 1.00 | 9169 | 0.02 | close |
 | chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.05 | 8176 | 1.07 | 8496 | 0.02 | close |
 | chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.01 | 8477 | 1.03 | 8799 | 0.02 | close |
+| starc__fade_full_mr__long__1d__atr2d5_h20__v1 | starc__fade_full__long__1d__atr2d5_h20__v1 | 1.19 | 9221 | 1.22 | 9093 | 0.03 | close |
 | chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.35 | 8634 | 1.39 | 9049 | 0.04 | close |
 | chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.28 | 8953 | 1.32 | 9368 | 0.04 | close |
 | chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.42 | 8365 | 1.46 | 8770 | 0.05 | close |

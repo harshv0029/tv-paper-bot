@@ -1,0 +1,196 @@
+{
+ "source": "oneil-replay.yml (scripts/oneil_replay.py, main.py fns) run 38517583883, merge job 115700257606",
+ "run_id": "38517583883",
+ "cost_round_trip_pct": 0.8,
+ "note": "1w bars; hold 12-26 weeks (>30 trading days, outside the 30-day viability rule); 339 research-vs-replay n crosscheck diffs unresolved; universe = currently listed (survivorship); trail variant trl1",
+ "rows": [
+  {
+   "tag": "oneil_flatbase__breakout__long__1w__atr3_avg1_chase10_h12_rsnone__v2",
+   "metrics": {
+    "n": 117,
+    "pfnet": 3.477,
+    "pfgross": 3.871,
+    "win_pct": 69.2,
+    "avg_held_bars": 11.06,
+    "pfnet_ex_top5": 2.703,
+    "top5_share": 0.222,
+    "syms_traded": 116,
+    "universe": "2703 listed; loaded {'1w': 1962}; cost 0.8%; slip 0%",
+    "exit_reasons": {
+     "stop": {
+      "n": 5,
+      "avg_pct": -28.25
+     },
+     "stop+avgdown": {
+      "n": 16,
+      "avg_pct": -14.685
+     },
+     "timeout": {
+      "n": 64,
+      "avg_pct": 18.825
+     },
+     "timeout+avgdown": {
+      "n": 32,
+      "avg_pct": 8.526
+     }
+    }
+   }
+  },
+  {
+   "tag": "oneil_flatbase__breakout__long__1w__atr3_avg1_chase10_h26_rsnone__v2",
+   "metrics": {
+    "n": 115,
+    "pfnet": 5.149,
+    "pfgross": 5.584,
+    "win_pct": 62.6,
+    "avg_held_bars": 21.93,
+    "pfnet_ex_top5": 3.643,
+    "top5_share": 0.292,
+    "syms_traded": 114,
+    "universe": "2703 listed; loaded {'1w': 1962}; cost 0.8%; slip 0%",
+    "exit_reasons": {
+     "stop": {
+      "n": 6,
+      "avg_pct": -24.468
+     },
+     "stop+avgdown": {
+      "n": 25,
+      "avg_pct": -14.881
+     },
+     "timeout": {
+      "n": 52,
+      "avg_pct": 43.352
+     },
+     "timeout+avgdown": {
+      "n": 32,
+      "avg_pct": 20.219
+     }
+    }
+   }
+  },
+  {
+   "tag": "oneil_flatbase__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
+   "metrics": {
+    "n": 115,
+    "pfnet": 3.921,
+    "pfgross": 4.214,
+    "win_pct": 60.0,
+    "avg_held_bars": 21.93,
+    "pfnet_ex_top5": 2.706,
+    "top5_share": 0.31,
+    "syms_traded": 114,
+    "universe": "2703 listed; loaded {'1w': 1962}; cost 0.8%; slip 0%",
+    "exit_reasons": {
+     "stop": {
+      "n": 31,
+      "avg_pct": -19.991
+     },
+     "timeout": {
+      "n": 84,
+      "avg_pct": 32.118
+     }
+    }
+   }
+  },
+  {
+   "tag": "oneil_flatbase__breakout__long__1w__atr3_chase10_h26_rsnone_trl1__v2",
+   "metrics": {
+    "n": 115,
+    "pfnet": 3.407,
+    "pfgross": 3.746,
+    "win_pct": 54.8,
+    "avg_held_bars": 15.85,
+    "pfnet_ex_top5": 2.132,
+    "top5_share": 0.374,
+    "syms_traded": 114,
+    "universe": "2703 listed; loaded {'1w': 1962}; cost 0.8%; slip 0%",
+    "exit_reasons": {
+     "stop": {
+      "n": 15,
+      "avg_pct": -21.982
+     },
+     "timeout": {
+      "n": 25,
+      "avg_pct": 60.167
+     },
+     "trail_stop": {
+      "n": 75,
+      "avg_pct": 3.655
+     }
+    }
+   }
+  },
+  {
+   "tag": "oneil_flatbase__breakout__short__1w__atr3_chase10_h26_rsnone__v2",
+   "metrics": {
+    "n": 10,
+    "pfnet": 1.399,
+    "pfgross": 1.503,
+    "win_pct": 50.0,
+    "avg_held_bars": 19.9,
+    "pfnet_ex_top5": 0.0,
+    "top5_share": 1.0,
+    "syms_traded": 10,
+    "universe": "2703 listed; loaded {'1w': 1962}; cost 0.8%; slip 0%",
+    "exit_reasons": {
+     "stop": {
+      "n": 3,
+      "avg_pct": -22.441
+     },
+     "timeout": {
+      "n": 7,
+      "avg_pct": 15.081
+     }
+    }
+   }
+  },
+  {
+   "tag": "oneil_newhigh__first__long__1w__atr3_h26_rsnone__v2",
+   "metrics": {
+    "n": 9164,
+    "pfnet": 2.484,
+    "pfgross": 2.638,
+    "win_pct": 51.8,
+    "avg_held_bars": 21.56,
+    "pfnet_ex_top5": 2.385,
+    "top5_share": 0.04,
+    "syms_traded": 1840,
+    "universe": "2703 listed; loaded {'1w': 1962}; cost 0.8%; slip 0%",
+    "exit_reasons": {
+     "stop": {
+      "n": 2897,
+      "avg_pct": -24.197
+     },
+     "timeout": {
+      "n": 6267,
+      "avg_pct": 31.316
+     }
+    }
+   }
+  },
+  {
+   "tag": "oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
+   "metrics": {
+    "n": 10789,
+    "pfnet": 2.177,
+    "pfgross": 2.32,
+    "win_pct": 51.0,
+    "avg_held_bars": 22.08,
+    "pfnet_ex_top5": 2.129,
+    "top5_share": 0.022,
+    "syms_traded": 1902,
+    "universe": "2703 listed; loaded {'1w': 1962}; cost 0.8%; slip 0%",
+    "exit_reasons": {
+     "stop": {
+      "n": 3327,
+      "avg_pct": -23.971
+     },
+     "timeout": {
+      "n": 7462,
+      "avg_pct": 26.37
+     }
+    }
+   }
+  }
+ ]
+}

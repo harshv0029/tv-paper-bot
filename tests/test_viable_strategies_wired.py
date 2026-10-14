@@ -23,6 +23,9 @@ VARIANT_OF_WIRED = {
        for c in ("atr4d0", "atr2d5", "atr1d5")},
     # B-1221: main.py-replay-measured _mr row of the wired chan_gap SHORT atr1d5 cell (run 38502123279).
     "chan_gap__short_on_gap_mr__short__1d__atr1d5_top10__v1": "chan_gap__short_on_gap__short__1d__atr1d5_top10__v1",
+    # B-1233: main.py-replay-measured _mr rows of the wired pl1d LONG swing cells (run 38506928246).
+    "starc__fade_full_mr__long__1d__atr2d5_h20__v1": "starc__fade_full__long__1d__atr2d5_h20__v1",
+    "gap__runaway_mr__long__1d__atr4_h20__v1": "gap__runaway__long__1d__atr4_h20__v1",
 }
 
 
