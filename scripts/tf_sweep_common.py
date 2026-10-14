@@ -69,11 +69,11 @@ def prep_frame(raw, tf):
     return df
 
 
-def load_frames(m, tf, shard, nshards, min_bars, limit=None, synthetic=None):
+def load_frames(m, tf, shard, nshards, min_bars, limit=None, synthetic=None, pool=None):
     if os.environ.get("SYNTHETIC") == "1":
         return {f"SYN{k}": (synthetic or B.synthetic_frame)(k) for k in range(limit or 3)}
     t = TFS[tf]
-    syms = sorted(set(m._load_nse_universe_from_file()))[shard::nshards]
+    syms = sorted(set(pool if pool is not None else m._load_nse_universe_from_file()))[shard::nshards]
     if limit:
         syms = syms[:limit]
     out = {}
@@ -132,3 +132,16 @@ def write_shard(prefix, tf, shard, nshards, n_symbols, cost_pct, specs, aggs, no
         mt = B.agg_metrics(a)
         print(t, "n", mt["n"], "pfnet", mt["pfnet"], "win", mt["win_pct"], "hold", mt["avg_held_bars"])
     print("wrote", path)
+
+
+def inverted_frame(df):
+    """Reciprocal-price frame (O,H,L,C -> 1/O, 1/L, 1/H, 1/C), Date/Volume kept. A rule written for one direction, run by
+    the REAL main.py function on this frame, detects the exact mirror-image pattern on the original prices (reciprocal is
+    order-reversing, so gaps, closes-vs-closes and stop touches flip exactly); stops/fills map back as 1/x. ATR must still be
+    taken from the ORIGINAL frame."""
+    out = df.copy()
+    out["Open"] = 1.0 / df["Open"]
+    out["High"] = 1.0 / df["Low"]
+    out["Low"] = 1.0 / df["High"]
+    out["Close"] = 1.0 / df["Close"]
+    return out
