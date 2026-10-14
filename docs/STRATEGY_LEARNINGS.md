@@ -1219,3 +1219,18 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Surprise: two loaders for the same family can use different headline bases (index-option OOS vs ALL-sample when OOS n<30); the basis is written in the universe field so rows are never compared across bases.
 - Reuse: after any new result file, run `scripts/missing_registry_tags.py` and expect zero unexplained; extend `EXPLAINED_PREFIX` only with a stated reason.
 - Profit-booking / exit takeaway: none of the 366 is a validated edge (many are thin n or in-sample windows); the pfoos oos60 and 1h gap-fade segoos tags are the ones that say whether an exit or overlay survives out of sample.
+## Cup 3C cheat 1h LONG ported into main.py, unwired (B-1190, 2026-10-14)
+- Mechanism: Minervini cup (depth 15-35%, low in bars 15-50 of a 60-bar window, right side back to 95% of the left rim, handle range <=12%) then a tight pause at 1/3-1/2 recovery that breaks upward; ATR14 stop, 18-30 hourly bar hold.
+- Fit: 30 hourly bars are overnight, so swing engine; only n about 130 on the n200 sample, so the 1.15-1.24 PFnet is thin evidence until a full-universe replay. No short mirror exists in pattern_lab, which breaks the bidirectional rule until one is built.
+- Result: none from main.py yet. Registry: PFnet rises with hold (h6 0.29, h18 0.9-0.95, h30 1.15-1.24), the same long-hold pattern as the envelope fade.
+- Surprised: the cheat check is nested inside the cup precondition in the research code, so a port must reproduce the nesting, not just the pause test; a parity test needs a hand-built cup because random walks never fire it (assert the synthetic fires, or the test is vacuous).
+- Reuse: build a synthetic that triggers the rule, assert fires > 0, then compare every prefix to the research rule function.
+- Profit-booking / exit takeaway: edge is in the hold-to-30 survivors; judge by timeout vs stop split.
+
+## Cup 3C cheat 1h replay harness and inverted-cup short design (B-1210, 2026-10-14)
+- Mechanism: replay of the B-1190 port on the full universe (long, 9 cells); the short mirror is the same rule on reciprocal prices (a dome with a tight pause below, close under the pause low), stop above entry.
+- Fit: swing-length holds; 1h history is capped at 730 days so the sample is about 2 years. A mirror built on reciprocal prices keeps every percentage threshold symmetric, a sign flip would not.
+- Result: none yet (dispatch owed); short rule has no PFnet.
+- Surprised: the tag-independent rule can be evaluated once per candidate bar and the per-tag entry only where it fires, which cuts calls by the number of tags; an exact necessary-condition mask (close above the prior 6-bar high) is enough.
+- Reuse: for any long-only research rule, the mirror is the same function on 1/price, tested by asserting short(recip(x)) equals long(x) bar by bar.
+- Profit-booking / exit takeaway: the long cells earned only at hold 30; check the timeout vs stop split before judging the mirror.
