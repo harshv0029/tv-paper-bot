@@ -1278,3 +1278,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Surprised: the replay already existed; the only manual step was converting the merge output to the docs JSON, now scripted, and the registry reads run files by glob so new runs register without code edits.
 - Reuse: before building a replay, grep the workflow families and docs/backtest_data run files; check coverage by mapping research `band` tags to `band_mr` main tags.
 - Profit-booking / exit takeaway: 5m z2 cells win via the 15:15 flatten (hold under 1h), so book same-session; 1h cells fail, no reason to hold longer.
+## envelope 5% fade 1h, main.py replay and live wiring (B-1264, 2026-10-14)
+- Mechanism: mean-reversion fade of a 5% stretch from SMA21 on 1h bars (long when close < SMA21 x 0.95, short mirror above 1.05), ATR14 stop, hold up to 18 or 30 bars, exit at the stop or the hold-th close.
+- Fit: stop is part of the backtest and always returned (no-trade-without-SL ok); 30-bar hold is overnight CNC, so it rides the swing engine's 1h leg and its real SL path.
+- Result (run 38550666361, main.py-calling, full universe, 1h 730d, cost 0.8%): long atr6_h30 PFnet 1.178 (n 42102, win 49.5%, hold 28.2 bars), long atr4_h30 1.127 (n 45800, win 47.6%, 26.0 bars); other long cells 0.91-1.04; all six short mirror cells fail (PFnet 0.59-0.64, gross below 1, so not a cost problem).
+- Surprised: the short mirror fails outright; wider stops and the longer hold both help the long side, so only the timeout exits profit and the stop exits lose. Edge exists only if trades are allowed to run to the hold limit.
+- Reuse: every cell registered with full metrics (6 SWING, 6 SHORT_SELL); wired by reusing the macddiv 1h pass (one hourly fetch per symbol shared by all 1h cells) instead of adding a new fetch loop; the replay file is flat-row JSON, separate from the `rows[].metrics` shape other loaders read.
+- Profit-booking / exit takeaway: stop exits lose and timeouts win, so do not tighten the stop or book early on this fade; prefer the wider-stop 30-bar variant (atr6) and accept the ~28-bar hold, since the 18-bar hold drops PFnet to ~1.03.
