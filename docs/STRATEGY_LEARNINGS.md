@@ -1285,3 +1285,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Surprised: the short mirror fails outright; wider stops and the longer hold both help the long side, so only the timeout exits profit and the stop exits lose. Edge exists only if trades are allowed to run to the hold limit.
 - Reuse: every cell registered with full metrics (6 SWING, 6 SHORT_SELL); wired by reusing the macddiv 1h pass (one hourly fetch per symbol shared by all 1h cells) instead of adding a new fetch loop; the replay file is flat-row JSON, separate from the `rows[].metrics` shape other loaders read.
 - Profit-booking / exit takeaway: stop exits lose and timeouts win, so do not tighten the stop or book early on this fade; prefer the wider-stop 30-bar variant (atr6) and accept the ~28-bar hold, since the 18-bar hold drops PFnet to ~1.03.
+
+## 2026-10-14 Cup 3C cheat 1h long and the wire-at-PFnet>=1 rule (B-1266)
+- **Mechanism:** Minervini-style cup with a cheat pause (depth 15-35%, handle, pause near 40% retrace, close above the pause high), 1h bars, ATR14 stop, hold 6/18/30 bars.
+- **Fit:** swing engine 1h leg, SL always attached, no new kill switch. Short mirror still owed as its own tag family.
+- **Result (main.py replay, run 38553281449, full universe):** atr2d5_h30 PFnet 1.0071 (n 3121, win 41.04%, hold 22.1 bars), atr6_h30 1.0011 (n 3061, win 46.16%, hold 28.6), atr4_h30 0.9943; all h6/h18 cells 0.49-0.90. None reach 1.1.
+- **Surprise / reuse:** same pattern as the envelope fade: PFnet rises with hold, timeouts are the only profitable exits. Under the 14 Oct wiring rule the cells with PFnet >= 1 are scanned and counted even while the 1.1 gate blocks the money trade, so the trigger rate is measured live.
+- **Profit-booking / exit takeaway:** short holds (h6) lose after costs; the edge sits in letting the trade run to the timeout, so do not tighten the exit on this family.

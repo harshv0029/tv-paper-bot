@@ -33,13 +33,14 @@ def test_all_12_rows_registered_with_full_metrics():
 
 
 def test_gate_opens_for_two_longs_only():
+    # B-1266: four long cells are wired (PFnet >= 1); only the two >= floor open the real-money gate
     for r in _ROWS:
         ok = main._is_strategy_viable_for_real_money(r["tag"], check_switch=False)
         assert ok == (r["tag"] in LIVE), r["tag"]
     for t in LIVE:
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == _mr(t)
         assert t not in main.REPLAY_OWED_TAGS
-    assert set(main.ENVELOPE_LONG_LIVE_CELLS) == set(LIVE)
+    assert set(LIVE) <= set(main.ENVELOPE_LONG_LIVE_CELLS) and len(main.ENVELOPE_LONG_LIVE_CELLS) == 4
 
 
 def _df(n=80, drop=True):

@@ -2916,6 +2916,11 @@ def _extend_with_sweeps():
     except Exception:
         pass
     try:
+        import strategy_registry_cup_cheat_mr as _cupmr
+        REGISTRY.extend(_cupmr.build())
+    except Exception:
+        pass
+    try:
         import strategy_registry_b1232 as _b1232
         REGISTRY.extend(_b1232.build())
     except Exception:
