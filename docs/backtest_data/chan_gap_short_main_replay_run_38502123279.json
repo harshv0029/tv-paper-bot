@@ -1,0 +1,32 @@
+{
+ "source": "/tmp/cgs2.log",
+ "run_id": "38502123279",
+ "cost_round_trip_pct": 0.8,
+ "note": "parsed from a merge-job log by scripts/replay_table_to_json.py (1 rows, 0 non-table lines ignored)",
+ "rows": [
+  {
+   "tag": "chan_gap__short_on_gap__short__1d__atr1d5_top10__v1",
+   "metrics": {
+    "n": 1157,
+    "pfnet": 1.3142877125723698,
+    "pfgross": 2.7143918037369774,
+    "win_pct": 52.55,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "close": {
+      "n": 1074,
+      "pfnet": 2.4504268289799893,
+      "win_pct": 56.61,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 83,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    }
+   }
+  }
+ ]
+}

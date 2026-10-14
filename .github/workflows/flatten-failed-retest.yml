@@ -1,0 +1,96 @@
+name: Flatten failed-cell re-test at MIS cost (B-1120, research only)
+
+# Research-only, read-only. The forced-15:15 flatten re-run (intraday-flatten-rerun.yml, 0.8% cost) left most cells below
+# PFNET_LIVE_FLOOR. This re-runs exactly the (family, interval) groups that hold failed cells (derived at read time from
+# strategy_registry by scripts/flatten_failed_retest.py) at the real MIS costs (0.12% statutory+brokerage, 0.3% with slippage
+# stress) through scripts/intraday_flatten_rerun.py. Each result is a NEW tag with a `cstXdY` param (never overwrites the 0.8%
+# tag); a pass is a candidate only: it still needs the real-main.py replay before any wiring (no new kill switch, SL on every
+# trade, atrnone cells may never be wired). 4h is owed (needs a 1h->4h resample). FULL NSE universe, both directions.
+# Dispatch order per CLAUDE.md: big matrix; only when no gate/safety run is queued. Use maxsym for a pilot.
+on:
+  workflow_dispatch:
+    inputs:
+      maxsym:
+        description: 'cap symbols for a pilot (0 = full universe)'
+        default: '0'
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - id: m
+        run: |
+          python3 scripts/flatten_failed_retest.py | tee plan.json
+          echo "matrix=$(python3 scripts/flatten_failed_retest.py --matrix)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: retest-plan
+          path: plan.json
+
+  run:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        cell: ${{ fromJSON(needs.plan.outputs.matrix).include }}
+        shard: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run shard
+        env:
+          FAMILY: ${{ startsWith(matrix.cell.family, 'pattern') && 'pattern' || matrix.cell.family }}
+          UNI: ${{ matrix.cell.family == 'pattern_n200' && 'n200' || 'full' }}
+          INTERVAL: ${{ matrix.cell.interval }}
+          COST_PCT: ${{ matrix.cell.cost }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "3"
+          MAXSYM: ${{ inputs.maxsym }}
+          OUT_DIR: out
+        run: |
+          set -o pipefail
+          python3 scripts/intraday_flatten_rerun.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flat-${{ matrix.cell.family }}-${{ matrix.cell.interval }}-${{ matrix.cell.cost }}-${{ matrix.shard }}
+          path: out/flat_*.json
+
+  merge:
+    needs: run
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: flat-*
+          path: shards
+          merge-multiple: true
+      - name: Merge and print
+        env:
+          OUT: flat_retest_results.json
+        run: |
+          set -o pipefail
+          python3 scripts/intraday_flatten_rerun.py --merge shards/flat_*.json | tee merge.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flat-retest-results
+          path: |
+            flat_retest_results.json
+            merge.txt

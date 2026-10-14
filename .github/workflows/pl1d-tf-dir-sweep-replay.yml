@@ -1,0 +1,96 @@
+name: pl1d starc-fade + gap-runaway long+short candle-size x ATR sweep, main.py fns (B-1091)
+
+# Backlog B-1091 (candle/ATR half of B-1001, long half of B-983). Research only (NOT wired). 2 rules x long/short x ATR
+# {2.5,4,6} x hold 20 per candle size (4h, 1h, 15m, 5m), calling the REAL main.pl1d_rule_fires / pl1d_short_rule_fires /
+# pl1d_long_entry_signal / pl1d_short_entry_signal / pl1d_exit_reason / pl1d_short_exit_reason. Full universe
+# (main._load_nse_universe_from_file()), 0.8% cost, stop on every trade. Sharded matrix (default 8+8+16+24 = 56 jobs):
+# research matrix, dispatch ONLY when no Deploy Gate / safety run is queued. Output artifact pl1d-all (pl1d_all.json).
+on:
+  workflow_dispatch:
+    inputs:
+      atrs:
+        description: "ATR multiples, comma separated"
+        default: "2.5,4,6"
+      hold:
+        description: "hold in bars of the candle in use"
+        default: "20"
+      nshards_4h:
+        description: "Shards for 4h"
+        default: "8"
+      nshards_1h:
+        description: "Shards for 1h"
+        default: "8"
+      nshards_15m:
+        description: "Shards for 15m"
+        default: "16"
+      nshards_5m:
+        description: "Shards for 5m"
+        default: "24"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - id: p
+        env:
+          NSHARDS_4H: ${{ inputs.nshards_4h }}
+          NSHARDS_1H: ${{ inputs.nshards_1h }}
+          NSHARDS_15M: ${{ inputs.nshards_15m }}
+          NSHARDS_5M: ${{ inputs.nshards_5m }}
+        run: |
+          echo "matrix=$(python3 scripts/pl1d_tf_dir_sweep_replay.py plan)" >> "$GITHUB_OUTPUT"
+
+  replay:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay (real main.py functions)
+        env:
+          TF: ${{ matrix.tf }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: ${{ matrix.nshards }}
+          ATRS: ${{ inputs.atrs }}
+          HOLD: ${{ inputs.hold }}
+        run: python3 scripts/pl1d_tf_dir_sweep_replay.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pl1d-${{ matrix.tf }}-s${{ matrix.shard }}
+          path: out/
+
+  aggregate:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q numpy pandas
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          pattern: pl1d-*
+          merge-multiple: true
+      - name: Merge shards (exact, from raw sums)
+        run: python3 scripts/pl1d_tf_dir_sweep_replay.py merge out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pl1d-all
+          path: out/pl1d_all.json

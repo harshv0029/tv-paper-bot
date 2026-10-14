@@ -39,7 +39,7 @@ def build():
                 categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,), timeframe="1h",
                 status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                 metrics=sr.Metrics(pfnet=float(r["pfnet"]), pfgross=float(r["pf_gross"]), win_rate_pct=float(r["win_pct"]),
-                                   n_trades=int(r["n"]), avg_held_hrs=float(r["avg_hold_bars"]) * _H, universe=uni, run_ref=_REF),
+                                   n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * _H, universe=uni, run_ref=_REF),
                 source="scripts/swing_min_rr_research (B-842)",
                 evidence=ev,
                 notes=("Swing entry with ATR stop and minimum reward:risk target/gate (variants gate, gatetarget, target, base), 1h, 730d. Pooled only: NO IS/OOS split yet, so OOS decay is unknown and live wiring needs it first. Check "

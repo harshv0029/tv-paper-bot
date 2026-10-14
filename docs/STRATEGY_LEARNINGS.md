@@ -1126,3 +1126,127 @@ Profit-booking / exit takeaway: the apparent edge came from stacked max-hold win
 - Design lessons: top-N is a prefix of the sorted pick list, so one real call at N=max serves N=1/3/5 exactly (3x cheaper, tested); 4h bar-count constants change meaning (L and H are 4h bars, 2 per session); the 4h resample must be NSE session-anchored (scripts/resample_4h.py), not a clock resample; yfinance serves 1h only 730d, so 4h has ~2 years vs 5y at 1d (fewer signals, state n).
 - Reuse: for any cross-sectional rotation, share the pick computation across direction and N; keep long/short mirrors as separate tags; report the three stop-fill models side by side, because gap-through-stop moves PFnet ~0.15.
 - Profit-booking / exit takeaway: earlier sector-rotation evidence says the time exit carries the profit and tight stops only convert winners into 0-PF stop-outs; the sweep tests whether that holds at 4h where holds are 1-5 sessions.
+
+## Correction: chan_kalman ve1e-4 cells (B-1040, 2026-10-13)
+- Mechanism/fit: tag token ve1d0e4 = process noise 1.0e-4 (grammar drops the minus); ve10d0e4 = 1.0e-3.
+- Result (run 38390561217 stored JSON, 0.8%): the earlier line 've1e-4 cells all below 1.04' is wrong for 5m z2.0: ve1d0e4 z2d0 atr4d0/2d5/1d5 = PFnet 1.408/1.378/1.346, n ~13k, win 46-49%, hold ~0.25h. Only z1.0 (0.74-0.78) and 15m (0.62-1.01) ve1d0e4 cells fail.
+- Surprised: summarising a family from memory of the best cells hid viable low-ve cells; read the stored JSON.
+- Reuse: when two backlog rows disagree, resolve from docs/backtest_data, never from prose. chan_gap BUY row has no main.py replay stored (B-1041): do not inherit the swing PFnet.
+- Profit-booking / exit takeaway: ve1d0e4 cells are high-turnover, low-win, gross 3.7 vs net 1.4, so cost-sensitive; prefer ve10d0e4 z2d0 (1.45-1.65) when both qualify.
+## swingminrr gatetarget SHORT candle-size x ATR sweep, 4h/15m/5m (B-1010, 2026-10-13, harness built, run owed)
+- Mechanism: close below the prior 20-bar low with room to the prior 60-bar low >= rr x risk; stop = entry + k x ATR; resting BUY target at entry - rr x risk; else close of bar 30. Live cell is 1h atr3 rr4 (registry 1.561).
+- Fit: holds of 30 bars are overnight at 4h (15 sessions), about a session at 15m and under half a session at 5m, so the intraday cells would belong to the MIS short engine, the 4h cells to the swing-short route (B-912/B-967 still gate overnight shorts). Stop on every trade, atrnone refused.
+- Result: none yet; 12 cells (3 tfs x ATR 2/3/4/6) to register pass or fail after dispatch.
+- Design lessons: ATR must be swept via brk20_min_rr_entry_signal directly (the gate wrapper fixes ATR 3.0); a numpy pre-filter (close < prior 20-bar low) skips ~95% of real-fn calls and is exact because it is the fn's own first condition; 5m 60d gives under a session of 60-bar room, so expect that cell to be structurally different, not just noisier.
+- Reuse: when sweeping a wrapped cell, call the underlying real fn with the swept parameter and cross-check at the wrapper's own parameter; state that bar constants change wall-clock meaning per candle.
+- Profit-booking / exit takeaway: the 1h cell's edge is the resting target plus stop; check at each tf whether target_hit or max_hold_timeout carries the profit before judging a tf.
+- B-905 (2026-10-13): registry TradeCategory now has OPTIONS_MULTI ("options_multi", 7 members); key options stays single strike. Adding a category lifts the per-cycle check CEILING (30 -> 35) but an empty category adds no real checks; tests pinning the bound must follow len(TradeCategory). Profit-booking / exit takeaway: none yet, no multi-strike strategy registered.
+- B-991 update (2026-10-13): chan_nonoverlap.py now supports INTERVAL=4h (1h fetched, NSE session-resampled, 2 bars/session, ~730d history so fewer signals than 1d; lookback/hold constants are 4h bars). Dispatch chan-nonoverlap.yml with intervals=["4h"], then register `...__4h__...__nonovl__v2`. Expect no wireable cell (1d/1h best 1.084); result still must be registered.
+## chan_gap candle-size sweep, short + long, 5m/15m/1h (B-1020, 2026-10-14, harness built, run owed)
+- Mechanism: same Chan gap signal (open beyond prev extreme by 90d std, still on the MA20 side), top-10 by gap per day, ATR stop; the sweep changes only the exit resolution: the day is walked in 5m/15m/1h bars, stop checked every bar, flat at the last bar ending by 15:15 IST.
+- Fit: signal inputs are daily, so candle size cannot change selection, only whether intraday stop touches and the flatten bar differ from the daily-bar baseline; expect small PFnet deltas, mostly from the flatten price vs the 15:30 close. SL is on every trade by construction.
+- Result: none yet (dispatch owed, B-1020). Register all 18 tags pass or fail.
+- Design lessons: yfinance limits (5m/15m 60d, 1h 730d) mean n is a few percent of the 5y baseline, so judge on n and never compare PFnet to the 1d number directly; 1m (7d) and 4h are owed; nested f-string quotes are a SyntaxError on Python 3.11 CI.
+- Reuse: cross-sectional daily-signal strategies replay as shard-emit-candidates then per-date merge; the same two-frame (daily signal + intraday walk) pattern fits any open-gap strategy.
+- Profit-booking / exit takeaway: baseline profit is the close-out, not the stop; if finer bars show stops firing earlier turn winners into losers, that confirms keep wide stops and flatten at the close.
+## Holding-period unit hygiene: bars vs hours (B-1030, 2026-10-13)
+- Mechanism: a run stored avg hold as bars x 24.0 (calendar hours per 1d bar) while the registry's `avg_held_hrs` means MARKET hours (1d bar = 6.25h, 1h = 1h, 15m = 0.25h). The 10 swing-short main-replay tags showed 284.6h instead of 74.1h, which also distorts the 75h quality hold cap and any PFnet-per-time ranking.
+- Reuse: always store the raw bar count (`Metrics.avg_held_bars`) next to the derived hours and compare hours only in market hours; never overwrite the raw field. Quote the run's raw unit in evidence.
+- Profit-booking / exit takeaway: hold-time comparisons (faster turnover tie-break) are only valid in one unit; the swing-short cells hold ~12 sessions, not ~47 days-equivalent, so their turnover ranking improves.
+## Replay fidelity: glitch-bar cleaning + entry-fill model for sector_rotation and pl1d (B-1110, 2026-10-14)
+- Mechanism: not a new strategy; two gaps between research replays and live. The pl1d and sector replays read raw yfinance frames (a bad open print once made +900% trades, PFnet 6.2), and the sector replay filled at the next open while the live paper path fills at the signal close.
+- Fit: shared scripts/bar_hygiene.py now cleans frames and records bars_dropped_glitch; sector sweep can run ENTRY=signal_close as separate `_ec1` tags. Gap-through-stop fill models were already reported side by side.
+- Result: harness only; effect size unknown until the re-runs (owed in B-1110). Old registered tags keep their uncleaned numbers.
+- Surprised: three research labs already had their own copy-pasted clean_bars while these two did not; the copies are identical, so a shared helper is the low-risk fix.
+- Reuse: any new replay driver loads frames through bar_hygiene.clean_frames and reports the drop count; when live fills differ from the replay (close vs next open), add the live model as its own tag instead of editing the old one.
+- Profit-booking / exit takeaway: cleaning removes fake outsized winners, so expect PFnet to fall slightly, never rise; judge the cleaned number, and size nothing off an uncleaned one.
+## pl1d 1h/4h sweep + brk20 4h (B-1150 / B-1151, 2026-10-14, harnesses built, runs owed)
+- Mechanism: pl1d = fade a STARC-band spike (close beyond SMA6 +/- 2 ATR15) or ride a >1% gap runaway above SMA50; brk20 = 20-bar breakout with minimum reward:risk. Both are bar-count rules, so a coarser candle changes what a window means (4h hold 10 = ~5 sessions, not 10 days).
+- Fit: 4h/1h holds are 1-10 sessions (swing-length at 4h, intraday-to-swing at 1h); every cell keeps an ATR stop. Short legs at multi-session holds still hit the overnight-product question (B-912); research only until a cell clears the floor.
+- Result: none yet; register all cells pass or fail.
+- Surprised/design lessons: main's date-based exit functions (find first bar with DATE > entry_day) silently skip the rest of the entry day at intraday sizes, so a harness must hand them the post-entry frame and an older entry_day instead of reusing the 1d call; yfinance has no 4h, only the session-anchored 1h resample gives bars that do not span the overnight gap; 730d of 1h gives ~2 years, far fewer signals than the 5y 1d baseline (read n).
+- Reuse: for any 1d-built strategy being swept intraday, grep its exit fn for date comparisons first; sweep ATR and hold in the driver off the real signal's atr_at_entry rather than adding tags to main.
+- Profit-booking / exit takeaway: 1d evidence says pl1d profit sits in hold-bar closes (stops lose); if 4h stops fire earlier and lose, widen ATR before shortening hold.
+## Island reversal short+long and pl1d long+short: candle-size x ATR sweeps (B-1090 / B-1091, 2026-10-14, harnesses built, runs owed)
+- Mechanism: island = gap in one direction, then within 8 bars a gap back that stays beyond the first gap; enter at the completion close, ATR stop, EMA13 rule exit or 30-bar hold. pl1d = STARC band fade (close beyond SMA6 +/- 2 x ATR15) and gap runaway (open beyond prior extreme by 1%, with SMA50 and candle direction), ATR14 stop, 20-bar hold. Each is run long AND short at 4h/1h/15m/5m (island also 1d).
+- Fit: 4h cells are multi-session swings (overnight; short side still gated by B-912/B-967), 15m/5m cells are intraday and would belong to the MIS engines. Stop on every trade, atrnone refused. Prior evidence: island long 1d is 1.27-1.98 but decays in 2026 and the 1d short mirror is 0.64-0.76, so a short winner would be a surprise, not an expectation.
+- Result: none yet; every cell must be registered pass or fail after dispatch.
+- Design lessons: (1) where a main.py fn is bound to a registered cell (pl1d), sweep a parameter by registering swept tags in the research process only, never by re-implementing; (2) day-granular exit fns (pl1d str[:10] date compare) silently break on intraday bars, so feed them bar-ordinal dates; (3) island signals do not depend on the ATR multiple, so compute detection once and derive stops with the real brk20_stop_price per k (3x cheaper, exact); (4) a numpy necessary-condition pre-filter keeps a per-bar real-fn call affordable at 5m and is safe because main still decides every signal; (5) 60-day intraday history gives few islands, so read intraday n before PFnet.
+- Reuse: tools/tf_sweep_common.py style (string Date column, shard raw sums, exact merge) for any further candle sweep; cross-check a new-tf harness by reproducing an existing 1d registry tag name and number.
+- Profit-booking / exit takeaway: unknown until run; island long earned on time exits, so check at each tf whether rule_exit or max_hold_timeout carries profit before tightening stops.
+
+## Envelope 5% fade 1h ported into main.py, unwired (B-1130, 2026-10-14)
+- Mechanism: close more than 5% below SMA21 (long) or above (short mirror), mean-reversion fade held 18-30 hourly bars with an ATR14 stop.
+- Fit: 30 hourly bars span about 4-5 sessions, so overnight CNC swing engine, never MIS. Only stop-bearing cells are ported; the atrnone cells (best raw PFnet 1.225) can never be wired because every trade needs a stop.
+- Result: none from main.py yet; research registry (n200) shows PFnet rising with wider stop and longer hold (atr6_h30 1.145, atr2d5_h30 0.943), i.e. the stop mostly hurts. Short mirror was never registered.
+- Surprised: of the B-916..B-959 rows several families (pl1d starc/gap runaway, gap fade nb5, chan_shape, macddiv) were already ported; check main.py before scoping a port.
+- Reuse: port the last-bar rule with a bar-by-bar parity test against the research rule function, return the stop always, own tag per direction/ATR/hold.
+- Profit-booking / exit takeaway: this edge sits in the long hold (timeout survivors); tight stops convert fades into stop-outs, so judge the replay by the exit-reason split.
+## Envelope fade 1h main.py replay harness (B-1160, 2026-10-14)
+- Mechanism: replay of the B-1130 port on the full universe, both directions, 12 ATR x hold cells, tags carry all raw metrics.
+- Fit: yfinance caps 1h at 730 days, so the full-universe sample is about 2 years; a 5-year 1h claim is impossible, state it instead of resampling.
+- Result: none yet (dispatch owed).
+- Surprised: a cheap exact prefilter (rule's first test as a numpy mask) cuts real-function calls by an order of magnitude without changing a single trade; keep a brute-force equality test for any prefilter.
+- Reuse: copy the pl1d replay skeleton, swap the loader family for the 1h loader, route glitch cleaning through bar_hygiene, sign the PnL by direction in the trade helper.
+- Profit-booking / exit takeaway: report the timeout vs stop split per cell; the research edge lived in long holds.
+## O'Neil setups ported into main.py for a genuine main-calling replay (B-1070, 2026-10-14)
+- Mechanism: flat-base / pivot / new-high breakout on >=1.5x volume, signal at the close, entry at the next open, ATR (or pct) stop on every trade, long and short as separate tags; main.py now holds oneil_signal_at, oneil_stop_price, oneil_trail_stop, oneil_exit_bar (additive, unwired).
+- Fit: weekly/daily swing-length holds (8-26 bars) fall to the swing engine; the 0.8% cost matters less at these holds. Nothing is live: the port exists only so the replay exercises real main.py code.
+- Result: none yet; v2 replay dispatch owed (1w then 1d). v1 independent-implementation results stay as the cross-check.
+- Surprised: a port can be proven equal to the older independent replay by parity tests on synthetic series (long, trailing, pct, target, short mirror) before spending a full-universe run.
+- Reuse: port the walk-forward array-level function first (signal_at style) and keep df wrappers thin; keep the negative-control (avg-down) out of main.py; a new main-calling run is a new tag version (v2), never an overwrite of v1.
+- Profit-booking / exit takeaway: earlier O'Neil evidence says the timeout survivors carry the profit and trail stops lose; check the v2 exit-reason breakdown before judging a cell.
+
+## Flatten failures at MIS cost, and the 15m bars-as-hours bug (B-1120 / B-1121, 2026-10-14 IST)
+- Mechanism: the forced 15:15 flatten re-run priced every cell at the 0.8% flat round trip; real MIS costs are far lower (about 0.12% statutory+brokerage, 0.3% with a slippage stress), so a failed intraday cell may be a cost artifact. The re-test is a new tag per cost (`cst0d12`, `cst0d3`), never an overwrite.
+- Fit here: intraday cells with an ATR stop attach to the buy/short engines; month/lunar `atrnone` cells have no stop and can never be wired (no-trade-without-SL).
+- Surprise: while filling raw bar counts, 108 15m tags turned out to store bars as hours (4x too long). Holds drive the faster-turnover tie-break and the 75h quality cap, so a unit slip silently reorders rankings. Reuse: store the raw bar count next to derived hours and assert hours == bars x market_hours_per_bar(tf) in a test.
+- Result: none yet (matrix built, dispatch owed). A cost-only pass is a candidate, not evidence; it still needs the real-main.py replay.
+- Profit-booking / exit takeaway: cost is part of the exit decision at 5m/15m, where trades earn little per round trip; judge any intraday exit tweak at MIS cost, not the 0.8% figure.
+## Replay-result hygiene tools: log-to-JSON converter and unregistered-tag report (B-1230 / B-1231, 2026-10-14)
+- Mechanism: not a strategy. Two read/convert tools that keep backtest data complete: merge-job console tables become docs/backtest_data rows[].metrics with every field, and a diff of saved result tags against the registry shows what was measured but never registered.
+- Fit: the thumb rule that every result is kept in full and viability is derived later needs the data to land in git un-trimmed. Hand-copying a console table is where fields (pfgross, exit breakdown, hold units) get dropped.
+- Result: first run of the report found 416 unique tags in 9 saved files that are not in REGISTRY (B-1232), including two whole runs (elder_ge11 1h 210, pfoos 54).
+- Design lessons: (1) keep hold units as printed (hold_h vs hold_bars) rather than converting, since bar length differs by candle size; (2) a parser for result logs must refuse a near-miss line loudly, not skip it, otherwise a format drift silently loses rows; (3) saved result files have many shapes (rows, cells, results, tag-keyed dicts), so a grammar-regex walk finds tags without per-file code; (4) the registry is ~41k names loaded from many extension modules, so always diff against the live import, not a grep.
+- Reuse: run scripts/missing_registry_tags.py after every result commit; pipe merge logs through scripts/replay_table_to_json.py instead of copying tables.
+- Profit-booking / exit takeaway: none directly; unregistered results are invisible to the viable leaderboard, so any viable cell hiding in them is profit not yet considered (check the 416 for PFnet >= 1.1 first).
+
+## chan_gap short_on_gap main.py replay (2026-10-14)
+Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; close exits PFnet 2.45, stop exits 0 (83 of 1157). Only atr1d5 cell emitted. Profit-booking / exit takeaway: same-day open-to-close hold (1 bar) keeps turnover maximal; the ATR stop loses every time, edge is entirely in close exits.
+## Registering the unregistered replay results (B-1232, 2026-10-14 IST)
+- Mechanism: a read-only diff of saved result JSONs against the registry found 416 tags "missing"; most were not lost data. 49 were naming variants the diff did not understand (`|full`/`|n200` universe suffix, `_rn<run>` rerun suffix), 10 were sizing simulations without trade metrics, and 366 were real gaps (210 elder gap-fade 1h, 54 portfolio-overlay OOS windows, 81 index-option cells, 12 thin swing min-RR cells, 9 undefined-PFnet cells).
+- Why it fits: every result is kept in full so viability can be re-derived when the definition changes; a loader that skips n<30 or PFnet-undefined rows silently drops evidence. Skips belong in the viable-table filter (n>=30, hold cap), not in registration.
+- Surprise: two loaders for the same family can use different headline bases (index-option OOS vs ALL-sample when OOS n<30); the basis is written in the universe field so rows are never compared across bases.
+- Reuse: after any new result file, run `scripts/missing_registry_tags.py` and expect zero unexplained; extend `EXPLAINED_PREFIX` only with a stated reason.
+- Profit-booking / exit takeaway: none of the 366 is a validated edge (many are thin n or in-sample windows); the pfoos oos60 and 1h gap-fade segoos tags are the ones that say whether an exit or overlay survives out of sample.
+
+## Cup 3C cheat 1h LONG ported into main.py, unwired (B-1190, 2026-10-14)
+- Mechanism: Minervini cup (depth 15-35%, low in bars 15-50 of a 60-bar window, right side back to 95% of the left rim, handle range <=12%) then a tight pause at 1/3-1/2 recovery that breaks upward; ATR14 stop, 18-30 hourly bar hold.
+- Fit: 30 hourly bars are overnight, so swing engine; only n about 130 on the n200 sample, so the 1.15-1.24 PFnet is thin evidence until a full-universe replay. No short mirror exists in pattern_lab, which breaks the bidirectional rule until one is built.
+- Result: none from main.py yet. Registry: PFnet rises with hold (h6 0.29, h18 0.9-0.95, h30 1.15-1.24), the same long-hold pattern as the envelope fade.
+- Surprised: the cheat check is nested inside the cup precondition in the research code, so a port must reproduce the nesting, not just the pause test; a parity test needs a hand-built cup because random walks never fire it (assert the synthetic fires, or the test is vacuous).
+- Reuse: build a synthetic that triggers the rule, assert fires > 0, then compare every prefix to the research rule function.
+- Profit-booking / exit takeaway: edge is in the hold-to-30 survivors; judge by timeout vs stop split.
+
+## Cup 3C cheat 1h replay harness and inverted-cup short design (B-1210, 2026-10-14)
+- Mechanism: replay of the B-1190 port on the full universe (long, 9 cells); the short mirror is the same rule on reciprocal prices (a dome with a tight pause below, close under the pause low), stop above entry.
+- Fit: swing-length holds; 1h history is capped at 730 days so the sample is about 2 years. A mirror built on reciprocal prices keeps every percentage threshold symmetric, a sign flip would not.
+- Result: none yet (dispatch owed); short rule has no PFnet.
+- Surprised: the tag-independent rule can be evaluated once per candidate bar and the per-tag entry only where it fires, which cuts calls by the number of tags; an exact necessary-condition mask (close above the prior 6-bar high) is enough.
+- Reuse: for any long-only research rule, the mirror is the same function on 1/price, tested by asserting short(recip(x)) equals long(x) bar by bar.
+- Profit-booking / exit takeaway: the long cells earned only at hold 30; check the timeout vs stop split before judging the mirror.
+## chan_shape and tasuki gap, both directions x candle size x ATR (B-1180 / B-1181, 2026-10-14, harnesses built, runs owed)
+- Mechanism: chan_shape = close below its close 30 bars ago but above 40 bars ago (long), mirror short; ATR stop, hold 5/10 bars. Tasuki = three-bar gap continuation failure (downside tasuki gap -> short, upside -> long), ATR stop, 3-bar hold.
+- Fit: both rules are bar-count patterns, so each candle size is a different market behaviour; holds of 3-10 bars are intraday at 5m/15m (MIS engines) and multi-session at 4h/1d (swing, overnight short gated by B-912/B-967). Stop on every trade, atrnone refused. Prior evidence: chan_shape 1d long pooled 0.64-0.86 (below floor), tasuki short 2.08 on ETFs but 0.69 on NIFTY-200 equities, so the full-universe cell is the decisive one.
+- Result: none yet; every cell registered pass or fail after dispatch.
+- Design lessons: (1) a direction main.py does not have can be run through the SAME real functions on a reciprocal-price frame (O,H,L,C -> 1/O,1/L,1/H,1/C): reciprocal is order-reversing, so gap tests, close comparisons, stop touches and gap-aware fills mirror exactly; take ATR from the original frame, map stops/fills back as 1/x. It does NOT work for indicators with smoothing (MACD, EMA-based rules), so macddiv short stays a main.py port job; (2) a swept stop multiple can reuse the signal when the signal does not depend on k; (3) keep tag spelling equal to main's own (atr4d0 for chan_shape) so a 1d cell cross-checks against the registry; (4) the same universe caveat applies to any ETF-validated rule: run etf and full as separate tags.
+- Reuse: tf_sweep_common.inverted_frame for exact mirrors of gap/close-comparison rules; month-effect was skipped (one September event per year, 60d intraday cannot test it) and macddiv short needs a real main.py port.
+- Profit-booking / exit takeaway: unknown until run; tasuki's edge so far came from a 3-bar time exit with a wide stop, so check at each candle size whether max_hold_timeout still carries the profit before tightening stops.
+- B-1100 (2026-10-14): a test that drives a live engine core must stub every registry- or live-feed-dependent early return (chan cascade, live ticks) and restore module globals like DB_PATH, else its outcome depends on registry data or suite order. Fake-clock sweeps (time-machine) showed no time-of-day dependence. Profit-booking / exit takeaway: none; test hygiene only.
+## Pre-dispatch QA of research workflows (B-1200, 2026-10-14)
+- Mechanism: not a strategy; a gate before spending runner hours. Static check of every workflow plus a SYNTHETIC one-shard run and merge of each driver.
+- Fit: the free tier allows one matrix running plus one queued, so a dispatch that dies on a typo or missing main.py symbol wastes a queue slot and hours.
+- Result: 9 of 9 workflows pass static QA; 8 of 9 drivers smoke clean; envelope-main-replay would crash (main.ENVELOPE_1H_CELLS absent from the branch).
+- Surprised: a research commit can ship a driver that imports main.py symbols from a commit that is not in the same patch; main.py needs cwd=repo root (static mount), so smoke tests symlink static/docs into a scratch dir.
+- Reuse: run scripts/workflow_qa.py and tests/test_workflow_smoke_b1200.py before every matrix dispatch; extend SMOKES when a new driver lands. Job counts and runner-hour estimates live in docs/DISPATCH_ORDER_QA.md and should be replaced by measured run times.
+- Profit-booking / exit takeaway: none directly; QA protects the research queue that finds profitable cells.

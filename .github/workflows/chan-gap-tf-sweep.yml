@@ -1,0 +1,68 @@
+name: chan_gap candle-size sweep, short + long (B-1020)
+
+# Backlog B-1020. Research only, wires nothing, no kill switch. Replays chan_gap short_on_gap AND buy_on_gap at ONE candle size per
+# dispatch (interval input: 5m, 15m, 1h) with the REAL main.py functions (chan_gap_entry_signal, chan_gap_select_top,
+# chan_gap_exit_reason on every intraday bar) on the FULL universe (main._load_nse_universe_from_file()), cost main.ROUND_TRIP_COST_PCT
+# (0.8%), ATR stop on every trade (1.5/2.5/4.0). Dispatch order (one running + one queued, research matrix LAST): interval=15m, then 1h,
+# then 5m. 1m (yfinance 7d) and 4h (needs a 1h resample) are owed, not run. Commit each merged JSON as
+# docs/backtest_data/chan_gap_tf_sweep_<interval>_run_<run id>.json, then register every tag with real metrics.
+on:
+  workflow_dispatch:
+    inputs:
+      interval:
+        description: candle size
+        required: true
+        default: "15m"
+        type: choice
+        options: ["15m", "1h", "5m"]
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        direction: [short, long]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - env:
+          DIRECTION: ${{ matrix.direction }}
+          INTERVAL: ${{ inputs.interval }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "12"
+        run: python3 scripts/chan_gap_tf_sweep.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chan-gap-tf-${{ matrix.direction }}-s${{ matrix.shard }}
+          path: out/
+          retention-days: 7
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: chan-gap-tf-*
+          merge-multiple: true
+      - run: python3 scripts/chan_gap_tf_sweep.py merge shards chan_gap_tf_all_${{ inputs.interval }}.json | tee chan_gap_tf_table_${{ inputs.interval }}.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chan-gap-tf-results-${{ inputs.interval }}
+          path: |
+            chan_gap_tf_all_${{ inputs.interval }}.json
+            chan_gap_tf_table_${{ inputs.interval }}.txt

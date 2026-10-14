@@ -18,6 +18,11 @@ VARIANT_OF_WIRED = {
     "order_block_delta__retest__long__1d__trail4d5__v1": "order_block_delta__retest__long__1d__trail6d0__v1",
     "volume_profile_poc_bounce_long": "volume_profile_poc__bounce__long__1d__trail6d0__v1",
     "volume_profile_poc__bounce__long__1d__trail4d5__v1": "volume_profile_poc__bounce__long__1d__trail6d0__v1",
+    # B-1220: main.py-replay-measured _mr rows of the wired chan_gap BUY cells (same live entry path, own measured metrics).
+    **{f"chan_gap__buy_on_gap_mr__long__1d__{c}_top10__v1": f"chan_gap__buy_on_gap__long__1d__{c}_top10__v1"
+       for c in ("atr4d0", "atr2d5", "atr1d5")},
+    # B-1221: main.py-replay-measured _mr row of the wired chan_gap SHORT atr1d5 cell (run 38502123279).
+    "chan_gap__short_on_gap_mr__short__1d__atr1d5_top10__v1": "chan_gap__short_on_gap__short__1d__atr1d5_top10__v1",
 }
 
 
@@ -39,7 +44,7 @@ def test_every_viable_strategy_is_wired_or_explained():
     missing = [s.name for s in reg
                if s.is_viable() and s.name not in mapped and s.name not in VARIANT_OF_WIRED
                and not s.name.startswith('sector_rotation__') and s.metrics.universe != 'mcx_proxy_single_symbol'
-               and getattr(s, 'source', '') not in ('scripts/portfolio_overlay_research.py', 'scripts/breakeven_research.py', 'scripts/douglas_trade_mgmt_research.py', 'scripts/elder_batch3_research.py', 'main.minervini_vcp_entry_signal (real) + exits ported from scripts/minervini_lab.py', 'scripts/pattern_lab.py', 'scripts/chan_research.py', 'scripts/island_validation.py', 'scripts/lunar_sweep.py', 'scripts/intraday_gap_and_go_research.py', 'scripts/macd_divergence_research.py', 'scripts/brk20_replay.py', 'scripts/intraday_flatten_rerun.py', 'scripts/elder_indicators_research.py', 'scripts/oneil_research.py', 'scripts/elder_macd_dirgap_research.py', 'scripts/elder_trend_context_research.py', 'scripts/elder_indicators_research_ext.py', 'scripts/oneil_ext_research.py', 'scripts/chan_ext_research.py', 'scripts/elder_patterns_research.py', 'scripts/minervini_sweep_lab.py', 'scripts/minervini_lab.py', 'scripts/breadth_lab.py', 'scripts/combo_lab.py', 'scripts/intermarket_lab.py', 'scripts/elder_dirsys13_research (B-588)', 'scripts/oneil_nonoverlap_research (B-831)', 'scripts/oneil_nonoverlap_research (B-833)', 'scripts/swing_min_rr_research (B-842)', 'scripts/island_main_replay.py', 'scripts/swing_short_main_replay.py')]  # B-336/B-343 research cells: live engine owed
+               and getattr(s, 'source', '') not in ('scripts/portfolio_overlay_research.py', 'scripts/portfolio_overlay_oos.py', 'scripts/index_option_trigger_research (run 38218867644)', 'scripts/breakeven_research.py', 'scripts/douglas_trade_mgmt_research.py', 'scripts/elder_batch3_research.py', 'main.minervini_vcp_entry_signal (real) + exits ported from scripts/minervini_lab.py', 'scripts/pattern_lab.py', 'scripts/chan_research.py', 'scripts/island_validation.py', 'scripts/lunar_sweep.py', 'scripts/intraday_gap_and_go_research.py', 'scripts/macd_divergence_research.py', 'scripts/brk20_replay.py', 'scripts/intraday_flatten_rerun.py', 'scripts/elder_indicators_research.py', 'scripts/oneil_research.py', 'scripts/elder_macd_dirgap_research.py', 'scripts/elder_trend_context_research.py', 'scripts/elder_indicators_research_ext.py', 'scripts/oneil_ext_research.py', 'scripts/chan_ext_research.py', 'scripts/elder_patterns_research.py', 'scripts/minervini_sweep_lab.py', 'scripts/minervini_lab.py', 'scripts/breadth_lab.py', 'scripts/combo_lab.py', 'scripts/intermarket_lab.py', 'scripts/elder_dirsys13_research (B-588)', 'scripts/oneil_nonoverlap_research (B-831)', 'scripts/oneil_nonoverlap_research (B-833)', 'scripts/swing_min_rr_research (B-842)', 'scripts/island_main_replay.py', 'scripts/swing_short_main_replay.py')]  # B-336/B-343 research cells: live engine owed
     assert not missing, f"viable but not wired to a scan counter/engine: {missing}"
 
 

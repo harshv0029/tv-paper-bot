@@ -33,7 +33,7 @@ def build():
                 categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,), timeframe="1d",
                 status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                 metrics=sr.Metrics(pfnet=float(r["pfnet"]), pfgross=float(r["pf_gross"]), win_rate_pct=float(r["win_pct"]),
-                                   n_trades=int(r["n"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.TRADING_HOURS_PER_DAY,
+                                   n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.TRADING_HOURS_PER_DAY,
                                    universe=uni, run_ref=_REF),
                 source="scripts/island_validation.py",
                 evidence=f"{_REF}, {part}: PFnet {r['pfnet']} (ex-top5 {r.get('pfnet_ex_top5')}), gross {r['pf_gross']}, win {r['win_pct']}%, n={r['n']}, avg_hold {r['avg_hold_bars']} bars, avg_net {r.get('avg_net_ret_pct')}%; by-year PFnet {yrs}; exits {json.dumps(r['exit_reasons'], separators=(',', ':'))}",

@@ -39,13 +39,13 @@ def test_entry_loop_filters_by_interval_and_manage_uses_cell_interval():
         assert main._chan_short_manage(None, "X", row, None, None, "5m", 15 * 60 + 10, 99.0, False) == "flatten_1515"
 
 
-def test_chan_gap_short_gate_closed_until_replay():
+def test_chan_gap_short_gate_follows_replay_evidence():
     t = main.CHAN_GAP_SHORT_TAG
     assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t
     assert t in main.CHAN_INTRADAY_SHORT_TAGS and t not in main.CHAN_SHORT_CELLS
-    assert t in main.REPLAY_OWED_TAGS  # no main.py-calling replay file yet
-    assert not main._is_strategy_viable_for_real_money(t)
-    assert main._run_chan_gap_short_scan(None) in ("outside_window", "not_viable")
+    # B-1221: run 38502123279 (main.py replay, PFnet 1.31) is on file -> owed flag cleared, gate derives open
+    assert t not in main.REPLAY_OWED_TAGS
+    assert main._is_strategy_viable_for_real_money(t, check_switch=False)
 
 
 def test_chan_gap_manage_stop_flatten_only():
