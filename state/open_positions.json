@@ -1,4 +1,24 @@
 {
-  "synced_at_utc": "2026-10-13T17:44:07Z",
-  "open_positions": []
+  "synced_at_utc": "2026-10-14T04:17:52Z",
+  "open_positions": [
+    {
+      "symbol": "MAHABANK.NS",
+      "qty": 9.0,
+      "entry_price_native": 82.33000183105469,
+      "stop_loss_native": 82.64714663369315,
+      "initial_stop_loss_native": 81.88428960527692,
+      "target_native": 83.22,
+      "fx_to_inr": 1.0,
+      "notional_inr": 740.97,
+      "orb_high_native": null,
+      "orb_low_native": 82.1500015258789,
+      "entry_ts": 1791949912.9281476,
+      "interval": "5m",
+      "strategy": "orb-universal-score",
+      "sma_fast": 9,
+      "sma_slow": 21,
+      "entry_regime": "range",
+      "real_entry_reason": "skipped_strategy_not_viable - strategy 'orb-universal-score' does not clear the PFnet >= 1 real-money floor (or has no validated metrics) - see strategy_registry.py"
+    }
+  ]
 }

@@ -2177,5 +2177,19 @@
     "rr_target": 3.0,
     "rr_achieved": -2.07,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "MAHABANK.NS",
+    "exit_time_utc": 1791951219.5114806,
+    "entry_price_native": 82.33000183105469,
+    "exit_price_native": 82.79000091552734,
+    "currency": "INR",
+    "qty": 3.0,
+    "pnl_inr": 1.38,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "staged_leg_T1",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-universal-score"
   }
 ]
