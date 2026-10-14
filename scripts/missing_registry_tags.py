@@ -19,6 +19,13 @@ sys.path.insert(0, ROOT)
 
 TAG = re.compile(r"^[a-z0-9]+(?:_[a-z0-9]+)*(?:__[a-z0-9]+(?:_[a-z0-9]+)*){2,}__v\d+$")
 NAME_KEYS = ("tag", "name", "strategy")
+# Deliberately outside the registry (B-1232): prefix -> reason. Reported separately, never counted as missing.
+EXPLAINED_PREFIX = {"sizing__": "account-level position-sizing simulation (geo-mean equity / drawdown / ruin), no PFnet, win % or trade metrics"}
+
+
+def norm(tag):
+    """Spelling variants of one raw tag in the registry: a `|full`/`|n200` universe suffix (pattern cells) and an `_rn<run>` rerun suffix."""
+    return re.sub(r"_rn\d+(?=__v\d+$)", "", tag.split("|", 1)[0])
 
 
 def collect_tags(obj, out=None):
@@ -38,13 +45,16 @@ def collect_tags(obj, out=None):
 
 def scan(data_dir, registry_names):
     per_file, skipped = {}, []
+    reg_norm = {norm(n) for n in registry_names}
     for f in sorted(glob.glob(os.path.join(data_dir, "*.json"))):
         try:
             tags = collect_tags(json.load(open(f)))
         except (ValueError, OSError) as ex:
             skipped.append({"file": os.path.basename(f), "reason": str(ex)[:120]})
             continue
-        per_file[os.path.basename(f)] = {"tags": len(tags), "missing": sorted(t for t in tags if t not in registry_names)}
+        miss = sorted(t for t in tags if t not in registry_names and norm(t) not in reg_norm)
+        explained = [t for t in miss if any(t.startswith(p) for p in EXPLAINED_PREFIX)]
+        per_file[os.path.basename(f)] = {"tags": len(tags), "missing": [t for t in miss if t not in explained], "explained": explained}
     return per_file, skipped
 
 
@@ -64,6 +74,8 @@ def main(argv=None):
         if v["missing"]:
             print(f"{f}: {len(v['missing'])} of {v['tags']} tags missing, e.g. {', '.join(v['missing'][:a.top])}")
     print(f"unique missing tags across files: {len(uniq)}")
+    exp = sorted({t for v in per_file.values() for t in v.get("explained", [])})
+    print(f"explained, deliberately outside the registry: {len(exp)} (prefixes: {', '.join(EXPLAINED_PREFIX)})")
     if a.json:
         json.dump({"registry_tags": len(names), "per_file": per_file, "skipped": skipped, "unique_missing": uniq},
                   open(a.json, "w"), indent=1)
