@@ -21,6 +21,19 @@ import pytest
 import main
 
 
+@pytest.fixture(autouse=True)
+def _isolate_ambient_state(monkeypatch):
+    """B-1100 hygiene: pin ambient state _short_signal_core reads that other tests/live code can leak.
+    (1) main.DB_PATH was reassigned by _fresh_db() and never restored; (2) kotak_live_feed's module-level live
+    ticks (a stray TESTSHORT.NS tick would change live_price); (3) the chan_kalman short cascade (registry-viability
+    dependent, B-990) runs before the regime router and returns early with market_regime=None."""
+    import kotak_live_feed
+    monkeypatch.setattr(main, "DB_PATH", main.DB_PATH)
+    monkeypatch.setattr(kotak_live_feed, "get_live_ticks", lambda: {})
+    monkeypatch.setattr(main, "_chan_short_try_entry", lambda *a, **k: None)
+    yield
+
+
 def _fresh_db():
     fd, path = tempfile.mkstemp(suffix=".db")
     os.close(fd)
