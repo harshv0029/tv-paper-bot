@@ -2205,5 +2205,19 @@
     "rr_target": 3.0,
     "rr_achieved": 0.47,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "HINDPETRO.NS",
+    "exit_time_utc": 1791971724.414809,
+    "entry_price_native": 332.25,
+    "exit_price_native": 330.55,
+    "currency": "INR",
+    "qty": 600.0,
+    "pnl_inr": -1020.0,
+    "pnl_pct_of_capital": -0.255,
+    "exit_reason": "eod_squareoff",
+    "rr_target": 3.0,
+    "rr_achieved": -0.51,
+    "strategy": "orb-15m-sma9-21"
   }
 ]
