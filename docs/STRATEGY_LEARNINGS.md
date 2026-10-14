@@ -1213,3 +1213,9 @@ Profit-booking / exit takeaway: the apparent edge came from stacked max-hold win
 
 ## chan_gap short_on_gap main.py replay (2026-10-14)
 Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; close exits PFnet 2.45, stop exits 0 (83 of 1157). Only atr1d5 cell emitted. Profit-booking / exit takeaway: same-day open-to-close hold (1 bar) keeps turnover maximal; the ATR stop loses every time, edge is entirely in close exits.
+## Registering the unregistered replay results (B-1232, 2026-10-14 IST)
+- Mechanism: a read-only diff of saved result JSONs against the registry found 416 tags "missing"; most were not lost data. 49 were naming variants the diff did not understand (`|full`/`|n200` universe suffix, `_rn<run>` rerun suffix), 10 were sizing simulations without trade metrics, and 366 were real gaps (210 elder gap-fade 1h, 54 portfolio-overlay OOS windows, 81 index-option cells, 12 thin swing min-RR cells, 9 undefined-PFnet cells).
+- Why it fits: every result is kept in full so viability can be re-derived when the definition changes; a loader that skips n<30 or PFnet-undefined rows silently drops evidence. Skips belong in the viable-table filter (n>=30, hold cap), not in registration.
+- Surprise: two loaders for the same family can use different headline bases (index-option OOS vs ALL-sample when OOS n<30); the basis is written in the universe field so rows are never compared across bases.
+- Reuse: after any new result file, run `scripts/missing_registry_tags.py` and expect zero unexplained; extend `EXPLAINED_PREFIX` only with a stated reason.
+- Profit-booking / exit takeaway: none of the 366 is a validated edge (many are thin n or in-sample windows); the pfoos oos60 and 1h gap-fade segoos tags are the ones that say whether an exit or overlay survives out of sample.
