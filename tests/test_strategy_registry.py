@@ -187,6 +187,9 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
         # 2026-10-07: gap_and_go max-hold variants (run 37572300915, full universe)
         "gap_and_go__swing__long__1d__hold30__v1",
         "gap_and_go__swing__long__1d__hold60__v1",
+        # 2026-10-14 B-1264: envelope 5% fade long 1h main.py replay (run 38550666361), wired in the swing 1h leg
+        "envelope__0d05_fade_mr__long__1h__atr6_h30__v1",
+        "envelope__0d05_fade_mr__long__1h__atr4_h30__v1",
     }
     assert not any(n.startswith("rsi_reversal__") for n in viable)
 
