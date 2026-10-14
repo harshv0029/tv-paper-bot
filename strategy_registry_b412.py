@@ -13,7 +13,7 @@ _REF = "b412-breakeven-research.yml run 38169623485 (2026-10-12 IST, 1d, cost 0.
 
 def _m(r, uni):
     return sr.Metrics(pfnet=float(r["pfnet"]), pfgross=float(r.get("pfgross") or r.get("pf_gross") or 0.0), win_rate_pct=float(r["win_pct"]),
-                      n_trades=int(r["n"]), avg_held_hrs=float(r["avg_held_bars"]) * sr.TRADING_HOURS_PER_DAY, universe=uni, run_ref=_REF)
+                      n_trades=int(r["n"]), avg_held_bars=float(r["avg_held_bars"]), avg_held_hrs=float(r["avg_held_bars"]) * sr.TRADING_HOURS_PER_DAY, universe=uni, run_ref=_REF)
 
 
 def build():

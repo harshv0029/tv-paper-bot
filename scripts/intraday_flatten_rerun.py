@@ -44,17 +44,41 @@ PATTERN_RULES = ("month_effect", "lunar_full_new")
 
 
 # ------------------------------------------------------------------ flatten helper
-def flat_tag(old_tag):
-    """New immutable tag for a flattened re-run: `<old minus __v1>_fl1515__v2`."""
+DEFAULT_COST_PCT = 0.8
+
+
+def cost_param(cost_pct):
+    """Tag param for a non-default round-trip cost, e.g. 0.3 -> 'cst0d3' (B-1120); '' for the 0.8% default."""
+    if cost_pct is None or abs(float(cost_pct) - DEFAULT_COST_PCT) < 1e-9:
+        return ""
+    return "cst" + ("%g" % float(cost_pct)).replace(".", "d")
+
+
+def flat_tag(old_tag, cost_pct=None):
+    """New immutable tag for a flattened re-run: `<old minus __v1>_fl1515__v2`. A non-default cost adds the `cstXdY` param
+    in alphabetical key position (like the chan_kalman_main 0.3% tags), so a re-test never collides with the 0.8% tag."""
     if not old_tag.endswith("__v1"):
         raise ValueError(f"expected a __v1 tag, got {old_tag}")
-    return old_tag[:-4] + FLAT_TAG_SUFFIX + "__v2"
+    base = old_tag[:-4]
+    cp = cost_param(cost_pct)
+    if cp:
+        parts = base.split("__")
+        if len(parts) != 5:
+            raise ValueError(f"cannot place cost param in non-grammar tag {old_tag}")
+        toks = [t for t in parts[4].split("_") if t]
+        key = lambda t: "".join(ch for ch in t if ch.isalpha())  # noqa: E731
+        i = next((j for j, t in enumerate(toks) if key(t) > "cst"), len(toks))
+        toks.insert(i, cp)
+        parts[4] = "_".join(toks)
+        base = "__".join(parts)
+    return base + FLAT_TAG_SUFFIX + "__v2"
 
 
 def source_tag(new_tag):
     if not (new_tag.endswith("__v2") and FLAT_TAG_SUFFIX in new_tag):
         return None
-    return new_tag[:-4].replace(FLAT_TAG_SUFFIX, "", 1) + "__v1"
+    import re
+    return re.sub(r"_cst\d+(?:d\d+)?(?=_|__)", "", new_tag[:-4].replace(FLAT_TAG_SUFFIX, "", 1)) + "__v1"
 
 
 def _local(index):
@@ -201,6 +225,7 @@ def run():
     interval = os.environ["INTERVAL"]
     uni = os.environ.get("UNI", "full")
     cost = float(os.environ.get("COST_PCT") or app.ROUND_TRIP_COST_PCT) / 100.0
+    COST_PCT_USED = cost * 100.0  # B-1120: non-default cost -> cstXdY tag param
     shard, nsh = int(os.environ.get("SHARD", 0)), int(os.environ.get("NSHARDS", 1))
     syms = sorted(app._load_nse_universe_from_file())
     if family == "pattern" and uni == "n200":  # same universe the original pattern_lab month/lunar cells used
@@ -239,7 +264,7 @@ def run():
                                 why = "flatten_1515"
                             rows.append((t[3] - cost, t[3], t[2] - t[1] + 1, why))
                         if rows:
-                            orx.acc_add(cells, flat_tag(chn.tag(fam, var, nm, interval, {**params, "atr": chn.kfmt(k)})), rows)
+                            orx.acc_add(cells, flat_tag(chn.tag(fam, var, nm, interval, {**params, "atr": chn.kfmt(k)}), COST_PCT_USED), rows)
         elif family in ("chan_kalman_main", "chan_kalman_main_long"):
             lg = family.endswith("_long")  # B-918: long mirror through app.chan_kalman_band_long_* (not wired live yet)
             ent_fn = app.chan_kalman_band_long_entry_signal if lg else app.chan_kalman_band_short_entry_signal
@@ -281,7 +306,7 @@ def run():
                             rows.append((g - cost, g, j - e + 1, why))
                             p = j + 1
                         if rows:
-                            orx.acc_add(cells, flat_tag(chn.tag("chan_kalman", "band", "long" if lg else "short", interval, {**params, "atr": chn.kfmt(k)})), rows)
+                            orx.acc_add(cells, flat_tag(chn.tag("chan_kalman", "band", "long" if lg else "short", interval, {**params, "atr": chn.kfmt(k)}), COST_PCT_USED), rows)
         elif family == "pattern":
             atr_p = pl.atr_arr(h, l, c)
             d_ = pl.clean_bars(df)
@@ -305,12 +330,12 @@ def run():
                         if nets:
                             ks = "none" if not k else str(k).replace(".", "d")
                             old = f"{rule.split('_')[0]}__{'_'.join(rule.split('_')[1:]) or 'base'}__{dname}__{interval}__atr{ks}_h{H}__v1"
-                            orx.acc_add(cells, flat_tag(old), list(zip(nets, gross, held, why)))
+                            orx.acc_add(cells, flat_tag(old, COST_PCT_USED), list(zip(nets, gross, held, why)))
         if kept % 100 == 0:
             print("symbols", kept, "cells", len(cells), flush=True)
     out_dir = os.environ.get("OUT_DIR", os.path.join(ROOT, "out"))
     os.makedirs(out_dir, exist_ok=True)
-    path = os.path.join(out_dir, f"flat_{family}_{interval}{'_' + uni if family == 'pattern' else ''}_s{shard}.json")
+    path = os.path.join(out_dir, f"flat_{family}_{interval}{'_' + uni if family == 'pattern' else ''}{'_' + cost_param(COST_PCT_USED) if cost_param(COST_PCT_USED) else ''}_s{shard}.json")
     with open(path, "w") as f:
         json.dump({"family": family, "interval": interval, "uni": uni, "shard": shard, "universe_requested": len(syms),
                    "symbols": kept, "cost_round_trip": cost, "cells": cells}, f,

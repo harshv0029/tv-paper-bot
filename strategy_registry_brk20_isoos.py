@@ -32,13 +32,13 @@ def build():
                 if tag in seen or tag == base:
                     continue
                 seen.add(tag)
-                hrs = float(m["avg_held_bars"]) * (sr.TRADING_HOURS_PER_DAY if tf == "1d" else 1.0)
+                hrs = float(m["avg_held_bars"]) * sr.market_hours_per_bar(tf)
                 out.append(sr.StrategyDef(
                     name=tag, asset_class=sr.AssetClass.EQUITY_SWING if tf == "1d" else sr.AssetClass.EQUITY_INTRADAY,
                     categories=(cat,), timeframe=tf, status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                     metrics=sr.Metrics(
                         pfnet=float(m["pfnet"]), pfgross=float(m.get("pfgross") or 0.0), win_rate_pct=float(m["win_pct"]),
-                        n_trades=int(m["n"]), avg_held_hrs=hrs,
+                        n_trades=int(m["n"]), avg_held_bars=float(m["avg_held_bars"]), avg_held_hrs=hrs,
                         universe="NSE harness universe (full, brk20 shards)", run_ref=_REF),
                     source="scripts/brk20_replay.py",
                     evidence=f"{_REF}, {side.upper()} split: PFnet {m['pfnet']}, gross {m.get('pfgross')}, win {m['win_pct']}%, n={m['n']}, avg_hold {m['avg_held_bars']} bars, avg_net {m.get('avg_net_pct')}%, avg_gross {m.get('avg_gross_pct')}%; exits {json.dumps(m.get('exit_reasons'), separators=(',', ':'))}; derived {json.dumps(r.get('derived'), separators=(',', ':'))}",

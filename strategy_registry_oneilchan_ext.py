@@ -1,7 +1,7 @@
 """Registers the cells of oneil-ext-research.yml run 38147513010 and chan-ext-research.yml run 38147514850
 (2026-10-11 IST, cost 0.8%) printed in their CI logs, from committed raw TSVs (partial: logs print only top-N slices;
 Artifact download was blocked).  Each tag is its own row (pass or fail).  Viability is derived at read time from pfnet.
-avg_hold unit is not labelled by the harness: taken as days for 1d, weeks-as-bars*5d for 1w, bars*tf for intraday (UNCONFIRMED)."""
+avg_hold unit (B-1031, verified from source): oneil_ext_research.py prints hold=m["avg_held_bars"] and chan_ext_research.py prints avg_hold_bars, i.e. BARS of the cell timeframe; hours = bars x (tf minutes/60 intraday, 6.25 per 1d bar, 5 x 6.25 per 1w bar). Raw bars kept in Metrics.avg_held_bars.."""
 import csv
 import os
 
@@ -49,7 +49,7 @@ def build():
                     metrics=sr.Metrics(
                         pfnet=float(r["pfnet"]), pfgross=(0.0 if g in ("", "NA") else float(g)),
                         win_rate_pct=float(r["win_pct"]), n_trades=int(r["n"]),
-                        avg_held_hrs=_hrs(tf, float(r["avg_hold"])), universe=r.get("universe") or "unconfirmed",
+                        avg_held_bars=float(r["avg_hold"]), avg_held_hrs=_hrs(tf, float(r["avg_hold"])), universe=r.get("universe") or "unconfirmed",
                         run_ref=f"{ref} (2026-10-11 IST, cost 0.8%, log-printed slice)"),
                     source=src,
                     evidence=f"{ref}: PFnet {r['pfnet']}, win {r['win_pct']}%, n={r['n']}, avg_hold(raw) {r['avg_hold']}; exits {r.get('notes', '')}",
