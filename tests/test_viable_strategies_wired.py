@@ -18,6 +18,9 @@ VARIANT_OF_WIRED = {
     "order_block_delta__retest__long__1d__trail4d5__v1": "order_block_delta__retest__long__1d__trail6d0__v1",
     "volume_profile_poc_bounce_long": "volume_profile_poc__bounce__long__1d__trail6d0__v1",
     "volume_profile_poc__bounce__long__1d__trail4d5__v1": "volume_profile_poc__bounce__long__1d__trail6d0__v1",
+    # B-1220: main.py-replay-measured _mr rows of the wired chan_gap BUY cells (same live entry path, own measured metrics).
+    **{f"chan_gap__buy_on_gap_mr__long__1d__{c}_top10__v1": f"chan_gap__buy_on_gap__long__1d__{c}_top10__v1"
+       for c in ("atr4d0", "atr2d5", "atr1d5")},
 }
 
 
