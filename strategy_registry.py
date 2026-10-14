@@ -138,6 +138,10 @@ class Metrics:
     avg_held_hrs: Optional[float] = None  # mean holding period in MARKET (trading-session) HOURS of the SAME run as pfnet/win_rate_pct - how long, on average, a trade took to realize those numbers; one unit for every category (explicit user instruction 2026-10-05). Daily-bar runs record avg held trading DAYS, converted as days * TRADING_HOURS_PER_DAY; intraday runs record minutes, / 60. None = not recorded for that run yet (never guessed).
     universe: str = ""          # "full_2680", "52_symbol_sample", etc. - never omit
     run_ref: str = ""           # workflow file + run id, or commit, that produced this
+    # B-1030 (unit hygiene): the RAW hold as the run measured it, never overwritten. avg_held_hrs above is always the normalized
+    # market-hours value derived from it (bars * market hours per bar: 1d = TRADING_HOURS_PER_DAY, 1h = 1, 15m = 0.25).
+    avg_held_bars: Optional[float] = None
+    avg_held_raw_unit: str = ""  # unit of the raw run field the hours were derived from, e.g. "1d bars"
 
 
 @dataclass(frozen=True)

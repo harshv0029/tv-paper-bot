@@ -1,0 +1,64 @@
+name: pl1d candle-size x ATR x hold sweep, 1h + 4h, long + short (B-1150)
+
+# Backlog B-1150. Research only, wires nothing, no kill switch. STARC fade + gap runaway at 1h and 4h (4h = 1h x 730d resampled to NSE
+# session bars), both directions, ATR {2.5,4.0} x hold per tf, REAL main.pl1d_*_entry_signal / pl1d_*_exit_reason on the FULL universe
+# (main._load_nse_universe_from_file()), 0.8% cost, stop on every trade. One dispatch per tf (input): dispatch 4h then 1h, research matrix
+# last (one running + one queued). Commit merged JSON as docs/backtest_data/pl1d_tf_sweep_<tf>_run_<run id>.json, then register every tag.
+on:
+  workflow_dispatch:
+    inputs:
+      tf:
+        description: candle size
+        required: true
+        default: "4h"
+        type: choice
+        options: ["4h", "1h"]
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - env:
+          TF: ${{ inputs.tf }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "16"
+        run: python3 scripts/pl1d_tf_sweep.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pl1d-tf-${{ inputs.tf }}-s${{ matrix.shard }}
+          path: out/
+          retention-days: 7
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: pl1d-tf-${{ inputs.tf }}-s*
+          merge-multiple: true
+      - run: python3 scripts/pl1d_tf_sweep.py merge shards pl1d_tf_all_${{ inputs.tf }}.json | tee pl1d_tf_table_${{ inputs.tf }}.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pl1d-tf-results-${{ inputs.tf }}
+          path: |
+            pl1d_tf_all_${{ inputs.tf }}.json
+            pl1d_tf_table_${{ inputs.tf }}.txt

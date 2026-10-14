@@ -1,0 +1,57 @@
+name: envelope 5% fade 1h LONG+SHORT main.py-function replay (B-1160)
+
+# Backlog B-1160. Replays all 12 tags of main.ENVELOPE_1H_CELLS (long AND short) by IMPORTING and CALLING the real main.py
+# functions (envelope_fade_entry_signal, envelope_fade_exit_reason) on the FULL universe (_load_nse_universe_from_file),
+# cost = main.ROUND_TRIP_COST_PCT, 1h bars, yfinance 730d cap, glitch bars cleaned. Commit the merged JSON as
+# docs/backtest_data/envelope_main_replay_run_<run id>.json and register every tag pass or fail. 8-shard matrix: dispatch
+# only when no gate/safety run is queued. Validation only; wires nothing, no kill switch.
+on:
+  workflow_dispatch:
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - env:
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "8"
+        run: python3 scripts/envelope_main_replay.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: envelope-main-replay-s${{ matrix.shard }}
+          path: out/
+          retention-days: 7
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: envelope-main-replay-s*
+          merge-multiple: true
+      - run: python3 scripts/envelope_main_replay.py merge shards envelope_all.json | tee envelope_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: envelope-main-replay-results
+          path: |
+            envelope_all.json
+            envelope_table.txt

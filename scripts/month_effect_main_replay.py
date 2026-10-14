@@ -142,7 +142,7 @@ def merge(d):
     rows = []
     for t, e in sorted(tags.items()):
         mt = B.agg_metrics(e["agg"])
-        bar_h = 0.25 if e["interval"] == "15m" else 24.0
+        bar_h = 0.25 if e["interval"] == "15m" else 6.25  # B-1030: 1d bar = 6.25 market hours (was 24.0)
         mt["avg_held_hours"] = round(mt["avg_held_bars"] * bar_h, 1)
         rows.append({"tag": t, "spec": e["spec"], "interval": e["interval"], "n_symbols": e["n_symbols"],
                      "shards": e["shards"], "metrics": mt})
