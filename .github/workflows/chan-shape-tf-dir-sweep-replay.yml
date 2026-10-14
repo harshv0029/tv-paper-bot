@@ -1,0 +1,100 @@
+name: chan_shape long+short candle-size x ATR x hold sweep, main.py fns (B-1180)
+
+# Backlog B-1180. Research only (NOT wired). chan_shape short/long x ATR {1.5,2.5,4} x hold {5,10} per candle size
+# (1d, 4h, 1h, 15m, 5m), calling the REAL main.chan_shape_long_entry_signal / chan_atr14 / chan_shape_exit_reason (short = same
+# real fns on the reciprocal-price frame, exact mirror). Full universe (main._load_nse_universe_from_file()), 0.8% cost, stop on every trade.
+# Sharded matrix (default 4+8+8+16+24 = 60 jobs): research matrix, dispatch ONLY when no Deploy Gate / safety run is
+# queued. Output artifact cshape-all (cshape_all.json, rows[].metrics shape of tsm_all.json).
+on:
+  workflow_dispatch:
+    inputs:
+      atrs:
+        description: "ATR multiples, comma separated"
+        default: "1.5,2.5,4"
+      holds:
+        description: "holds in bars of the candle in use, comma separated"
+        default: "5,10"
+      nshards_1d:
+        description: "Shards for 1d"
+        default: "4"
+      nshards_4h:
+        description: "Shards for 4h"
+        default: "8"
+      nshards_1h:
+        description: "Shards for 1h"
+        default: "8"
+      nshards_15m:
+        description: "Shards for 15m"
+        default: "16"
+      nshards_5m:
+        description: "Shards for 5m"
+        default: "24"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - id: p
+        env:
+          NSHARDS_1D: ${{ inputs.nshards_1d }}
+          NSHARDS_4H: ${{ inputs.nshards_4h }}
+          NSHARDS_1H: ${{ inputs.nshards_1h }}
+          NSHARDS_15M: ${{ inputs.nshards_15m }}
+          NSHARDS_5M: ${{ inputs.nshards_5m }}
+        run: |
+          echo "matrix=$(python3 scripts/chan_shape_tf_dir_sweep_replay.py plan)" >> "$GITHUB_OUTPUT"
+
+  replay:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay (real main.py functions)
+        env:
+          TF: ${{ matrix.tf }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: ${{ matrix.nshards }}
+          ATRS: ${{ inputs.atrs }}
+          HOLDS: ${{ inputs.holds }}
+        run: python3 scripts/chan_shape_tf_dir_sweep_replay.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cshape-${{ matrix.tf }}-s${{ matrix.shard }}
+          path: out/
+
+  aggregate:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q numpy pandas
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          pattern: cshape-*
+          merge-multiple: true
+      - name: Merge shards (exact, from raw sums)
+        run: python3 scripts/chan_shape_tf_dir_sweep_replay.py merge out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cshape-all
+          path: out/cshape_all.json
