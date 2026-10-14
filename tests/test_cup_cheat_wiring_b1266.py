@@ -40,9 +40,20 @@ def test_wired_set_is_exactly_pfnet_ge_1():
         assert t not in main.REPLAY_OWED_TAGS
 
 
-def test_cup_gate_closed_below_floor_but_scanned():
+def test_cup_gate_follows_floor_and_is_scanned():
+    # floor 1.0 (2026-10-14): wired cells with PFnet >= 1.0 open the gate; a cell below 1.0 (cup atr4_h30 0.9943) stays closed
+    import dataclasses
+    import strategy_registry as sr
+    reg = {d.name: d for d in sr.REGISTRY}
     for t in main.CUP_CHEAT_LONG_LIVE_CELLS:
-        assert not main._is_strategy_viable_for_real_money(t, check_switch=False)
+        d = reg[main._STRATEGY_TAG_TO_REGISTRY_NAME[t]]
+        assert main._is_strategy_viable_for_real_money(t, check_switch=False) == (d.metrics.pfnet >= sr.PFNET_LIVE_FLOOR)
+        orig = d.metrics
+        object.__setattr__(d, "metrics", dataclasses.replace(orig, pfnet=0.9943))
+        try:
+            assert main._is_strategy_viable_for_real_money(t, check_switch=False) is False
+        finally:
+            object.__setattr__(d, "metrics", orig)
     src = inspect.getsource(main._cup_cheat_long_1h_try_entry)
     assert src.index("_record_strategy_scan") < src.index("cup_cheat_3c_entry_signal") < src.index("_is_strategy_viable_for_real_money")
     assert "_record_blocked_trigger" in src and "_maybe_place_real_swing_entry" in src and "initial_stop_loss" in src
