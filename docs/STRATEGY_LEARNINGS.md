@@ -1174,3 +1174,18 @@ Profit-booking / exit takeaway: the apparent edge came from stacked max-hold win
 - Design lessons: (1) where a main.py fn is bound to a registered cell (pl1d), sweep a parameter by registering swept tags in the research process only, never by re-implementing; (2) day-granular exit fns (pl1d str[:10] date compare) silently break on intraday bars, so feed them bar-ordinal dates; (3) island signals do not depend on the ATR multiple, so compute detection once and derive stops with the real brk20_stop_price per k (3x cheaper, exact); (4) a numpy necessary-condition pre-filter keeps a per-bar real-fn call affordable at 5m and is safe because main still decides every signal; (5) 60-day intraday history gives few islands, so read intraday n before PFnet.
 - Reuse: tools/tf_sweep_common.py style (string Date column, shard raw sums, exact merge) for any further candle sweep; cross-check a new-tf harness by reproducing an existing 1d registry tag name and number.
 - Profit-booking / exit takeaway: unknown until run; island long earned on time exits, so check at each tf whether rule_exit or max_hold_timeout carries profit before tightening stops.
+
+## Envelope 5% fade 1h ported into main.py, unwired (B-1130, 2026-10-14)
+- Mechanism: close more than 5% below SMA21 (long) or above (short mirror), mean-reversion fade held 18-30 hourly bars with an ATR14 stop.
+- Fit: 30 hourly bars span about 4-5 sessions, so overnight CNC swing engine, never MIS. Only stop-bearing cells are ported; the atrnone cells (best raw PFnet 1.225) can never be wired because every trade needs a stop.
+- Result: none from main.py yet; research registry (n200) shows PFnet rising with wider stop and longer hold (atr6_h30 1.145, atr2d5_h30 0.943), i.e. the stop mostly hurts. Short mirror was never registered.
+- Surprised: of the B-916..B-959 rows several families (pl1d starc/gap runaway, gap fade nb5, chan_shape, macddiv) were already ported; check main.py before scoping a port.
+- Reuse: port the last-bar rule with a bar-by-bar parity test against the research rule function, return the stop always, own tag per direction/ATR/hold.
+- Profit-booking / exit takeaway: this edge sits in the long hold (timeout survivors); tight stops convert fades into stop-outs, so judge the replay by the exit-reason split.
+## Envelope fade 1h main.py replay harness (B-1160, 2026-10-14)
+- Mechanism: replay of the B-1130 port on the full universe, both directions, 12 ATR x hold cells, tags carry all raw metrics.
+- Fit: yfinance caps 1h at 730 days, so the full-universe sample is about 2 years; a 5-year 1h claim is impossible, state it instead of resampling.
+- Result: none yet (dispatch owed).
+- Surprised: a cheap exact prefilter (rule's first test as a numpy mask) cuts real-function calls by an order of magnitude without changing a single trade; keep a brute-force equality test for any prefilter.
+- Reuse: copy the pl1d replay skeleton, swap the loader family for the 1h loader, route glitch cleaning through bar_hygiene, sign the PnL by direction in the trade helper.
+- Profit-booking / exit takeaway: report the timeout vs stop split per cell; the research edge lived in long holds.
