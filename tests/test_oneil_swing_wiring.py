@@ -56,7 +56,7 @@ def test_gate_opens_only_if_viable():
     assert main._is_strategy_viable_for_real_money(t, check_switch=False) is True
     strat = next(s for s in sr.REGISTRY if s.name == t)
     orig = strat.metrics
-    object.__setattr__(strat, "metrics", dataclasses.replace(orig, pfnet=1.05))
+    object.__setattr__(strat, "metrics", dataclasses.replace(orig, pfnet=0.95))
     try:
         assert main._is_strategy_viable_for_real_money(t, check_switch=False) is False
     finally:

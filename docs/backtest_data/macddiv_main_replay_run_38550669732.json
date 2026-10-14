@@ -1,0 +1,38 @@
+{
+ "run_id": 38550669732,
+ "source": "macddiv-main-replay.yml (B-965) real main functions, full NSE, 1h; artifact id 11887825689",
+ "rows": [
+  {
+   "tag": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
+   "n": 92829,
+   "pfnet": 0.6813,
+   "pfgross": 1.0105,
+   "win_pct": 33.86,
+   "avg_held_hours": 23.5
+  },
+  {
+   "tag": "macddiv__line_any__long__1h__atr1d5_w5__nonovl__v2",
+   "n": 64482,
+   "pfnet": 0.6439,
+   "pfgross": 1.0439,
+   "win_pct": 24.83,
+   "avg_held_hours": 16.0
+  },
+  {
+   "tag": "macddiv__line_any__long__1h__atr2_w5__nonovl__v2",
+   "n": 61797,
+   "pfnet": 0.6867,
+   "pfgross": 1.0616,
+   "win_pct": 29.48,
+   "avg_held_hours": 19.3
+  },
+  {
+   "tag": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
+   "n": 57802,
+   "pfnet": 0.7338,
+   "pfgross": 1.0893,
+   "win_pct": 34.84,
+   "avg_held_hours": 23.7
+  }
+ ]
+}

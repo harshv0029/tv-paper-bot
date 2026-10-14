@@ -15,7 +15,7 @@ def test_buckets(tmp_path):
     side = tmp_path / "s.json"
     side.write_text(json.dumps({"a": 1.5, "b": 3.0}))
     reg = [_fake("a", 1.2, 6.25), _fake("b", 1.2, 6.25), _fake("c", 1.2, 6.25),
-           _fake("d", 1.0, 6.25), _fake("e", 1.5, 6.25 * 9), _fake("f", 1.5, None)]
+           _fake("d", 0.95, 6.25), _fake("e", 1.5, 6.25 * 9), _fake("f", 1.5, None)]
     r = c.count(5, 2.0, side, reg)
     assert r["pass"] == ["a"] and r["over_cap"] == ["b"] and r["unknown_stop"] == ["c"]
     assert r["hold_unknown"] == ["f"]

@@ -64,4 +64,7 @@ def test_not_wired_and_parses():
     ast.parse(src)
     a = src.index("# ---- B-1130 envelope 5% fade")
     b = src.index("def chan_kalman_band_long_entry_signal(")
-    assert not re.search(r"\benvelope_fade_\w+\(|\bENVELOPE_1H_CELLS\b", src[:a] + src[b:])
+    # B-1264 (2026-10-14): the two long cells that cleared the floor in the main.py replay ARE now wired, in their own block only.
+    c = src.index("# ---- B-1264: envelope 5% fade LONG 1h")
+    d = src.index("def _run_long_swing_1h_pass(")
+    assert not re.search(r"\benvelope_fade_\w+\(|\bENVELOPE_1H_CELLS\b", (src[:a] + src[b:c] + src[d:]))

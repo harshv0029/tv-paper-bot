@@ -2,13 +2,14 @@
 replays that call the real main.py chan_kalman_band_short_* functions bar by bar with the 15:15 IST flatten. Each cell is its own tag
 (`band_mr`; the 0.3% runs carry `cst0d3`). Research entries (entry_fn=None); the live gate reads these via main._replay_verified_tags().
 Exit breakdowns stay in the run's merge.txt artifact."""
+import glob
 import json
 import os
 
 import strategy_registry as sr
 
 _DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data")
-_RUNS = ("chan_kalman_main_replay_run_38390561217.json", "chan_kalman_main_replay_run_38394789725.json")
+_RUNS = tuple(sorted(os.path.basename(f) for f in glob.glob(os.path.join(_DIR, "chan_kalman_main_replay_run_*.json"))))  # B-1262: new runs (e.g. 1h) auto-register
 
 
 def build():

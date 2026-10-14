@@ -1271,3 +1271,29 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Surprised: the winners are the narrowest picks (N1) on the longest lookback (L5); wider N dilutes the edge. Win rate and PFnet do not move together (46% win at 1.40, 61% at 1.30).
 - Reuse: all 108 previously unregistered cells are now rows (headline gap_aware, other fills in evidence). Before wiring, build an ATR-stop attach path for sector picks; prefer atr6d0_h5_l5_n1 on turnover.
 - Profit-booking / exit takeaway: shorter holds (5 bars) kept PFnet above 1.3 with 61% wins, so book early for this fade; the 20-bar hold adds only 0.1 PFnet at 2.5x the time.
+## chan_kalman band SHORT, main.py replay coverage (B-1262, 2026-10-14)
+- Mechanism: 1-D Kalman filter on log price; short when the residual exceeds z x sqrtQ, ATR stop, hold 40 bars, forced flat 15:15 IST (main.chan_kalman_band_short_*).
+- Fit: intraday MIS short, stop always attached, so it fits the no-trade-without-SL rule; main.py port already replayed full universe at 0.8% and 0.3% for 5m/15m (24 cells each).
+- Result: audit shows only the 1h cells (12, research PFnet 0.38-0.81 under flatten) lack a main.py replay; 1m/4h were never tested. Research vs main-replay PFnet differ by under 0.03 on every 5m/15m cell, so the port is faithful.
+- Surprised: the replay already existed; the only manual step was converting the merge output to the docs JSON, now scripted, and the registry reads run files by glob so new runs register without code edits.
+- Reuse: before building a replay, grep the workflow families and docs/backtest_data run files; check coverage by mapping research `band` tags to `band_mr` main tags.
+- Profit-booking / exit takeaway: 5m z2 cells win via the 15:15 flatten (hold under 1h), so book same-session; 1h cells fail, no reason to hold longer.
+## envelope 5% fade 1h, main.py replay and live wiring (B-1264, 2026-10-14)
+- Mechanism: mean-reversion fade of a 5% stretch from SMA21 on 1h bars (long when close < SMA21 x 0.95, short mirror above 1.05), ATR14 stop, hold up to 18 or 30 bars, exit at the stop or the hold-th close.
+- Fit: stop is part of the backtest and always returned (no-trade-without-SL ok); 30-bar hold is overnight CNC, so it rides the swing engine's 1h leg and its real SL path.
+- Result (run 38550666361, main.py-calling, full universe, 1h 730d, cost 0.8%): long atr6_h30 PFnet 1.178 (n 42102, win 49.5%, hold 28.2 bars), long atr4_h30 1.127 (n 45800, win 47.6%, 26.0 bars); other long cells 0.91-1.04; all six short mirror cells fail (PFnet 0.59-0.64, gross below 1, so not a cost problem).
+- Surprised: the short mirror fails outright; wider stops and the longer hold both help the long side, so only the timeout exits profit and the stop exits lose. Edge exists only if trades are allowed to run to the hold limit.
+- Reuse: every cell registered with full metrics (6 SWING, 6 SHORT_SELL); wired by reusing the macddiv 1h pass (one hourly fetch per symbol shared by all 1h cells) instead of adding a new fetch loop; the replay file is flat-row JSON, separate from the `rows[].metrics` shape other loaders read.
+- Profit-booking / exit takeaway: stop exits lose and timeouts win, so do not tighten the stop or book early on this fade; prefer the wider-stop 30-bar variant (atr6) and accept the ~28-bar hold, since the 18-bar hold drops PFnet to ~1.03.
+
+## 2026-10-14 Cup 3C cheat 1h long and the wire-at-PFnet>=1 rule (B-1266)
+- **Mechanism:** Minervini-style cup with a cheat pause (depth 15-35%, handle, pause near 40% retrace, close above the pause high), 1h bars, ATR14 stop, hold 6/18/30 bars.
+- **Fit:** swing engine 1h leg, SL always attached, no new kill switch. Short mirror still owed as its own tag family.
+- **Result (main.py replay, run 38553281449, full universe):** atr2d5_h30 PFnet 1.0071 (n 3121, win 41.04%, hold 22.1 bars), atr6_h30 1.0011 (n 3061, win 46.16%, hold 28.6), atr4_h30 0.9943; all h6/h18 cells 0.49-0.90. None reach 1.1.
+- **Surprise / reuse:** same pattern as the envelope fade: PFnet rises with hold, timeouts are the only profitable exits. Under the 14 Oct wiring rule the cells with PFnet >= 1 are scanned and counted even while the 1.1 gate blocks the money trade, so the trigger rate is measured live.
+- **Profit-booking / exit takeaway:** short holds (h6) lose after costs; the edge sits in letting the trade run to the timeout, so do not tighten the exit on this family.
+
+## Floor change 1.1 -> 1.0 (2026-10-14)
+- **Mechanism:** viability is derived from stored metrics, so lowering `PFNET_LIVE_FLOOR` re-decides every strategy instantly; cells in [1.0, 1.1) (OB/VP trail variants, cup atr2d5/atr6, envelope atr2d5_h30/atr6_h18) are viable again.
+- **Surprise / reuse:** 14 tests hardcoded 1.1 or the old viable set; write floor-dependent tests relative to `sr.PFNET_LIVE_FLOOR` and use clearly-below cells (0.95) as the closed example, not a value just above the old floor.
+- **Profit-booking / exit takeaway:** thin-margin cells (1.0-1.1) sit on max-hold survivors; do not tighten their exits.

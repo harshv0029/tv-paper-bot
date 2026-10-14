@@ -187,6 +187,14 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
         # 2026-10-07: gap_and_go max-hold variants (run 37572300915, full universe)
         "gap_and_go__swing__long__1d__hold30__v1",
         "gap_and_go__swing__long__1d__hold60__v1",
+        # 2026-10-14 B-1264: envelope 5% fade long 1h main.py replay (run 38550666361), wired in the swing 1h leg
+        "envelope__0d05_fade_mr__long__1h__atr6_h30__v1",
+        "envelope__0d05_fade_mr__long__1h__atr4_h30__v1",
+        # 2026-10-14: floor is now 1.0 again (user: viability has ONE condition, PFnet >= 1), so cells in [1.0, 1.1) are viable again
+        "base__cup_cheat_3c_mr__long__1h__atr2d5_h30__v1", "base__cup_cheat_3c_mr__long__1h__atr6_h30__v1",
+        "envelope__0d05_fade_mr__long__1h__atr2d5_h30__v1", "envelope__0d05_fade_mr__long__1h__atr6_h18__v1",
+        "order_block_delta_long", "volume_profile_poc_bounce_long",
+        "volume_profile_poc__bounce__long__1d__trail4d5__v1", "volume_profile_poc__bounce__long__1d__trail6d0__v1",
     }
     assert not any(n.startswith("rsi_reversal__") for n in viable)
 

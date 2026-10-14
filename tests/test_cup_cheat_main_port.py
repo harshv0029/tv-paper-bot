@@ -83,9 +83,14 @@ def test_exit_stop_gap_and_timeout():
     assert app.cup_cheat_3c_exit_reason(df.iloc[:e + 4], e, 1.0, 3)[0] == "cup_cheat_max_hold_timeout"
 
 
-def test_not_wired_and_parses():
+def test_parses_and_only_b1266_wiring_references_port():
     src = (R / "main.py").read_text()
     ast.parse(src)
     a = src.index("# ---- B-1190 Minervini cup")
     b = src.index("# ---- B-1130 envelope 5% fade")
-    assert not re.search(r"\bcup_cheat_3c_\w+\(|\bCUP_CHEAT_1H_CELLS\b", src[:a] + src[b:])
+    # B-1266 intentionally wires two PFnet>=1 cells (tests/test_cup_cheat_wiring_b1266.py); the references must stay in the
+    # B-1266 block, never in the research-port-free parts of the swing scan elsewhere
+    outside = src[:a] + src[b:]
+    c = outside.index("# ---- B-1266")
+    d = outside.index("def _run_long_swing_1h_pass(")
+    assert not re.search(r"\bcup_cheat_3c_\w+\(|\bCUP_CHEAT_1H_CELLS\b", outside[:c] + outside[d:])

@@ -16,7 +16,7 @@ def _find(res, cat, name):
 
 def test_bucketing_bands_and_multicategory():
     reg = [_s("a", (C.SWING, C.BUY), 1.2, 0.5), _s("b", (C.SWING,), 1.7, 10), _s("c", (C.SWING,), 2.5, 31),
-           _s("d", (C.SWING,), 1.0, 5), _s("e", (C.SWING,), 1.35, None), _s("f", (C.SWING,), 1.1, 3)]
+           _s("d", (C.SWING,), 0.95, 5), _s("e", (C.SWING,), 1.35, None), _s("f", (C.SWING,), 1.1, 3)]
     r = sr.bucket_viable_strategies(reg)
     assert _find(r, "swing", "a") == [("1.1-1.3", "<=1d")]
     assert _find(r, "buy", "a") == [("1.1-1.3", "<=1d")]  # repeated per category
