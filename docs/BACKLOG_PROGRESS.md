@@ -28,13 +28,13 @@ Total rows: 1014 | closed: 431 | not closed: 583
 | PARKED | 3 |
 | TODO | 3 |
 | DISPATCH-READY | 3 |
-| READY-TO-BUILD | 3 |
 | WIRED-PENDING-DEPLOY | 3 |
 | SUPERSEDED | 2 |
 | IN-PROGRESS | 2 |
 | PARTIAL-1H-FAILED-TO-CONFIRM | 2 |
 | IN | 2 |
 | DONE-ON-BRANCH | 2 |
+| READY-TO-BUILD | 2 |
 | WIRED-GATE-CLOSED | 2 |
 | BUILT | 2 |
 | WIRED | 2 |
@@ -54,17 +54,18 @@ Total rows: 1014 | closed: 431 | not closed: 583
 | RULE | 1 |
 | OWED | 1 |
 | NEEDS-OWNER | 1 |
+| UNKNOWN | 1 |
 
 ## Counts by priority (all rows / not closed)
 
 | Priority | All | Not closed |
 |---|---|---|
 | P0 | 65 | 42 |
-| P1 | 390 | 242 |
+| P1 | 389 | 241 |
 | P2 | 437 | 232 |
 | P3 | 113 | 60 |
 | Info | 1 | 0 |
-| P? | 8 | 7 |
+| P? | 9 | 8 |
 
 ## needs-owner (1)
 
@@ -492,7 +493,6 @@ Total rows: 1014 | closed: 431 | not closed: 583
 | B-1181 | P1 | BUILT-DISPATCH-OWED | tasuki gap SHORT + LONG mirror: candle-size (1d, 4h, 1h, 15m, 5m) x ATR {2.5, 4, 6} x universe {etf, full},... | owed |
 | B-1241 | P1 | OPEN | chan-nonoverlap 4h re-run (B-806) results, run 38510016719 (2026-10-14 09:44 IST, artifact chan-nonoverlap-... |  |
 | B-1249 | P1 | NEEDS-OWNER | O'Neil 1w long cells (flatbase 3.921 / newhigh 2.484 / pivot 2.177, deployed 14 Oct 2026 via Deploy Gate ru... | owed, verify, needs, owner |
-| B-1250 | P1 | READY-TO-BUILD | User rule 14 Oct 2026: wiring/scanning is separate from the money trade; hold/viability is checked only whe... | open:, blocked |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
@@ -547,6 +547,7 @@ Total rows: 1014 | closed: 431 | not closed: 583
 | B-1120 | P2 | BUILT-DISPATCH-OWED | Flatten FAILED-cell re-test at real MIS cost (owed from B-792: "MIS costs, 4h"): 122 of 200 _fl1515__v2 reg... | owed, needs |
 | B-1232 | P2 | OPEN | Register the tags the B-1231 report finds in saved results but not in the registry (416 unique at first run) |  |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
+| B-1250 | P? | UNKNOWN |  |  |
 
 ## research-queue (116)
 
