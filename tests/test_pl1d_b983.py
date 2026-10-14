@@ -42,8 +42,9 @@ def test_cells_map_one_to_one_owed_and_gate_closed():
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t
         assert t in _REG and _REG[t].metrics is not None and "__long__" in t
         assert "atrnone" not in t
-        assert t in main.REPLAY_OWED_TAGS
-        assert main._is_strategy_viable_for_real_money(t, check_switch=False) is False
+        # B-1233: run 38506928246 (main.py-calling replay, PFnet 1.20/1.22, n > 9000) is on file -> owed flag cleared, gate derives open
+        assert t not in main.REPLAY_OWED_TAGS
+        assert main._is_strategy_viable_for_real_money(t, check_switch=False) is True
     assert _REG[main.STARC_FULL_TAG].metrics.pfnet >= sr.PFNET_LIVE_FLOOR
     assert _REG[main.GAP_RUNAWAY_TAG].metrics.pfnet >= sr.PFNET_LIVE_FLOOR
 
