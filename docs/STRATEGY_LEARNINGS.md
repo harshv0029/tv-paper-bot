@@ -1309,3 +1309,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Fit / rules:** a constant, not a kill switch. Open positions keep their stored trading symbol for exit and SL, never re-resolved; if no later contract exists the expiring one is still used (fail towards having a price).
 - **Surprise / reuse:** two independent resolvers (feed and option-chain module) both had "nearest expiry" logic; any new contract picker must share the roll constant. The replay script wrote only a JSON artifact the sandbox could not download, so results must also go to stdout.
 - **Profit-booking / exit takeaway:** never carry or open a position into expiry week of a commodity future; roll earlier so exits happen at normal liquidity, not on expiry day.
+
+## MCX replay through real main (B-1270, 2026-10-14)
+- **Mechanism:** the 8 live MCX daily cells were re-run through the real `main._mcx_daily_flags` (run 38582151119) and registered as `_mr` rows; the real-money gate and dashboard now read the replay PFnet, not the research sweep.
+- **Result:** replay PFnet / n: sma_crossover gc 2.287/31, supertrend gc 2.346/17, bollinger si 2.496/17, supertrend cl 1.432/11, rsi ng 1.525/13, bollinger ng short 1.881/19, keltner ng short 1.500/22, donchian cl 0.820/16 (research 1.157, below floor so unwired). Samples are 11-31 trades on one proxy symbol each: thin.
+- **Surprise / reuse:** a research PFnet just above the floor (1.157) did not survive the real-code replay; always replay through main before wiring. Atrnone cells are safe only because the option premium trailing SL is attached at entry; Kotak's position can lag the fill, so entry now retries the SL a few seconds instead of waiting for the 30s tick.
+- **Profit-booking / exit takeaway:** these cells exit on signal drop (daily), the premium trailing SL is the only intraday protection; do not remove it.
