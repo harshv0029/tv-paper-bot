@@ -465,7 +465,7 @@ def main_run():
     res["bars_dropped_glitch"] = dropped
     os.makedirs("out", exist_ok=True)
     json.dump(res, open(f"out/class_a_{mode}_{name}.json", "w"), indent=1, default=str)
-    print(json.dumps(res, indent=1, default=str)[:6000])
+    print(json.dumps(res, default=str, separators=(",", ":")))  # B-1245: full result (was truncated at 6000 chars)
 
 
 if __name__ == "__main__":
