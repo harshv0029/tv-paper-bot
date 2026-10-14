@@ -21176,7 +21176,7 @@ def _run_swing_scan_pass(conn):
         ).fetchone()
 
         if pos:
-            if pos["strategy"] in MACDDIV_LONG_LIVE_CELLS or pos["strategy"] in ENVELOPE_LONG_LIVE_CELLS:
+            if pos["strategy"] in MACDDIV_LONG_LIVE_CELLS or pos["strategy"] in ENVELOPE_LONG_LIVE_CELLS or pos["strategy"] in CUP_CHEAT_LONG_LIVE_CELLS:
                 continue  # B-984/B-1264: 1h cell, managed by _run_long_swing_1h_pass on hourly bars
             # 2026-09-30: minervini_vcp_livermore uses the IDENTICAL
             # chandelier-trail exit as the base minervini_vcp entry (see
@@ -22382,8 +22382,8 @@ def _macddiv_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) ->
 
 
 # ---- B-1264: envelope 5% fade LONG 1h in the SWING engine (main.py-calling full-universe replay, run 38550666361) ----------
-# Wired = the two long cells that cleared PFNET_LIVE_FLOOR in that replay: atr6_h30 (1.178, n 42102) and atr4_h30 (1.127,
-# n 45800). Order = PFnet; first VIABLE cell that fires owns the symbol. The six SHORT cells and the other long cells
+# Wired = every long cell with replay PFnet >= 1 (WIRING_THUMB_RULES): atr6_h30 (1.178, n 42102), atr4_h30 (1.127, n 45800),
+# atr2d5_h30 (1.035), atr6_h18 (1.0335); the real-money floor is checked only when a trigger fires. Order = PFnet; first VIABLE cell that fires owns the symbol. The six SHORT cells and the other long cells
 # (PFnet < floor) are NOT scanned. Stop (entry - k x ATR14) is always attached by envelope_fade_entry_signal (no trade
 # without SL); the real mirror re-checks the gate (B-962), places the resting SL and unwinds on SL failure (B-966).
 # Each tag maps 1:1 to its own `_mr` registry row (strategy_registry_envelope_mr.py), never pooled. Shares
@@ -22391,6 +22391,8 @@ def _macddiv_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) ->
 ENVELOPE_LONG_LIVE_CELLS = tuple(t for t in (
     "envelope__0d05_fade__long__1h__atr6_h30__v1",
     "envelope__0d05_fade__long__1h__atr4_h30__v1",
+    "envelope__0d05_fade__long__1h__atr2d5_h30__v1",  # PFnet 1.035 (wiring rule: scan every replay PFnet >= 1; gate decides at trigger)
+    "envelope__0d05_fade__long__1h__atr6_h18__v1",    # PFnet 1.0335
 ) if t in ENVELOPE_1H_CELLS)
 for _t in ENVELOPE_LONG_LIVE_CELLS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t.replace("__long__", "_mr__long__", 1))  # 1:1 to the replay row
@@ -22458,6 +22460,79 @@ def _envelope_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) -
     return None
 
 
+# ---- B-1266: cup 3C cheat LONG 1h in the SWING engine's 1h leg (main.py-calling full-universe replay, run 38553281449) ------
+# Wired = every cup cell with replay PFnet >= 1 (WIRING_THUMB_RULES): atr2d5_h30 (1.0071, n 3121), atr6_h30 (1.0011, n 3061).
+# Scanned every pass; _is_strategy_viable_for_real_money (floor 1.1) is checked only when a trigger fires, so both currently
+# count blocked triggers and open no real position. Stop (entry - k x ATR14) always attached; no new kill switch.
+CUP_CHEAT_LONG_LIVE_CELLS = tuple(t for t in (
+    "base__cup_cheat_3c__long__1h__atr2d5_h30__v1",
+    "base__cup_cheat_3c__long__1h__atr6_h30__v1",
+) if t in CUP_CHEAT_1H_CELLS)
+for _t in CUP_CHEAT_LONG_LIVE_CELLS:
+    _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t.replace("__long__", "_mr__long__", 1))  # 1:1 to the replay row
+
+
+def _cup_cheat_stop_desc(tag):
+    k, h = CUP_CHEAT_1H_CELLS[tag]
+    return f"entry - {k:g}xATR14(simple mean), frozen (exit also on the close of 1h bar {h} after entry)"
+
+
+def _cup_cheat_long_1h_exit(df, pos):
+    """(reason, exit_px) via the real cup_cheat_3c_exit_reason replayed bar by bar after the entry bar; None while open."""
+    cfg = CUP_CHEAT_1H_CELLS.get(pos["strategy"])
+    if cfg is None or len(df) == 0:
+        return None
+    _k, hold = cfg
+    dates = df["Date"].astype(str).to_numpy()
+    idx = np.flatnonzero(dates <= str(pos["entry_day"]))
+    if len(idx) == 0:
+        return None
+    entry_pos = int(idx[-1])
+    for j in range(entry_pos + 1, len(df)):
+        r = cup_cheat_3c_exit_reason(df.iloc[:j + 1], entry_pos, float(pos["initial_stop_loss"]), hold)
+        if r:
+            return r
+    return None
+
+
+def _cup_cheat_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) -> str | None:
+    """Opens at most one cup-cheat long position (first cell that fires and whose gate is open)."""
+    for tag in CUP_CHEAT_LONG_LIVE_CELLS:
+        _record_strategy_scan(tag)
+        sig = cup_cheat_3c_entry_signal(df1h, tag)
+        if not sig:
+            continue
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
+            continue
+        entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
+        qty = _swing_position_size(conn, capital, risk_pct, entry_price, stop_loss)
+        if qty <= 0:
+            return None
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
+            "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (symbol, tag, str(df1h["Date"].iloc[-1]), entry_price, stop_loss, None, qty, time.time(), fx,
+             sig["atr_at_entry"], entry_price),
+        )
+        apply_paper_trade(conn, symbol, "buy", qty, entry_price)
+        conn.execute(
+            "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
+            "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
+            (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
+             json.dumps({"entry_reason": tag, "stop_loss": stop_loss, "atr_at_entry": sig["atr_at_entry"]})),
+        )
+        conn.commit()
+        print(f"[SWING LONG 1h] entry {symbol} ({tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+        try:
+            _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)
+        except Exception as e:
+            print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
+        return tag
+    return None
+
+
 def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None):
     """1h leg of the LONG swing engine: exits for open macddiv cells first, then entries. Hourly bars with the
     still-forming bar dropped. Never raises per symbol."""
@@ -22465,7 +22540,7 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
     for symbol in symbols:
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
-            if pos is not None and pos["strategy"] not in MACDDIV_LONG_LIVE_CELLS and pos["strategy"] not in ENVELOPE_LONG_LIVE_CELLS:
+            if pos is not None and pos["strategy"] not in MACDDIV_LONG_LIVE_CELLS and pos["strategy"] not in ENVELOPE_LONG_LIVE_CELLS and pos["strategy"] not in CUP_CHEAT_LONG_LIVE_CELLS:
                 continue
             if pos is None and symbol in done_syms:
                 continue
@@ -22475,6 +22550,8 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
             if pos is not None:
                 if pos["strategy"] in ENVELOPE_LONG_LIVE_CELLS:
                     ex = _envelope_long_1h_exit(df, pos)
+                elif pos["strategy"] in CUP_CHEAT_LONG_LIVE_CELLS:
+                    ex = _cup_cheat_long_1h_exit(df, pos)
                 else:
                     ex = _macddiv_long_1h_exit(df, pos)
                 if ex:
@@ -22482,7 +22559,8 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
                 continue
             cfg = NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
             if _macddiv_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:
-                _envelope_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"])  # B-1264: appended LAST of the 1h chain
+                if _envelope_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:  # B-1264
+                    _cup_cheat_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"])  # B-1266: appended LAST of the 1h chain
         except Exception as e:
             print(f"[SWING LONG 1h] scan failed for {symbol} (non-fatal): {e}")
 
@@ -25050,6 +25128,7 @@ _SWING_SL_RULES = {
     **{_t: f"entry - {k:g}xATR14(simple mean), frozen (exit also on the close of bar {h} after entry)"
        for _t, (_r, k, h) in PL1D_CELLS.items()},
     **{_t: _envelope_stop_desc(_t) for _t in ENVELOPE_LONG_LIVE_CELLS},
+    **{_t: _cup_cheat_stop_desc(_t) for _t in CUP_CHEAT_LONG_LIVE_CELLS},
 }
 
 

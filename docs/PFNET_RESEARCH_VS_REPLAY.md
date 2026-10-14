@@ -7,17 +7,23 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | Replay tag | Research tag | Research PFnet | Research n | Replay PFnet | Replay n | Delta | Flag |
 |---|---|---|---|---|---|---|---|
 | gap__runaway_mr__long__1d__atr4_h20__v1 | gap__runaway__long__1d__atr4_h20__v1 | 1.46 | 1087 | 1.20 | 12898 | -0.26 | close |
+| base__cup_cheat_3c_mr__long__1h__atr4_h30__v1 | base__cup_cheat_3c__long__1h__atr4_h30__v1 | 1.24 | 130 | 0.99 | 3073 | -0.25 | close |
+| base__cup_cheat_3c_mr__long__1h__atr6_h30__v1 | base__cup_cheat_3c__long__1h__atr6_h30__v1 | 1.18 | 130 | 1.00 | 3061 | -0.18 | close |
+| base__cup_cheat_3c_mr__long__1h__atr2d5_h30__v1 | base__cup_cheat_3c__long__1h__atr2d5_h30__v1 | 1.15 | 133 | 1.01 | 3121 | -0.14 | close |
 | starc__fade_full_mr__short__1d__atr2d5_h20__v1 | starc__fade_full__short__1d__atr2d5_h20__v1 | 0.70 | 23916 | 0.59 | 24082 | -0.11 | close |
+| base__cup_cheat_3c_mr__long__1h__atr2d5_h18__v1 | base__cup_cheat_3c__long__1h__atr2d5_h18__v1 | 0.95 | 136 | 0.90 | 3162 | -0.06 | close |
 | chan_gap__buy_on_gap_mr__long__1d__atr4d0_top10__v1 | chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1 | 1.45 | 1147 | 1.39 | 1211 | -0.05 | close |
 | chan_gap__buy_on_gap_mr__long__1d__atr2d5_top10__v1 | chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1 | 1.41 | 1147 | 1.36 | 1211 | -0.05 | close |
 | chan_gap__buy_on_gap_mr__long__1d__atr1d5_top10__v1 | chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1 | 1.36 | 1147 | 1.32 | 1211 | -0.05 | close |
 | envelope__0d05_fade_mr__long__1h__atr6_h18__v1 | envelope__0d05_fade__long__1h__atr6_h18__v1 | 1.07 | 2114 | 1.03 | 45111 | -0.03 | close |
 | chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.67 | 988 | 1.65 | 1019 | -0.03 | close |
 | chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.62 | 1014 | 1.59 | 1046 | -0.02 | close |
+| base__cup_cheat_3c_mr__long__1h__atr4_h18__v1 | base__cup_cheat_3c__long__1h__atr4_h18__v1 | 0.90 | 133 | 0.88 | 3124 | -0.02 | close |
 | chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.25 | 1187 | 1.23 | 1234 | -0.02 | close |
 | chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.47 | 1038 | 1.45 | 1069 | -0.01 | close |
 | chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.20 | 1220 | 1.19 | 1266 | -0.01 | close |
 | chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.28 | 1158 | 1.29 | 1204 | 0.01 | close |
+| base__cup_cheat_3c_mr__long__1h__atr6_h18__v1 | base__cup_cheat_3c__long__1h__atr6_h18__v1 | 0.89 | 133 | 0.89 | 3116 | 0.01 | close |
 | gap__runaway_mr__short__1d__atr4_h20__v1 | gap__runaway__short__1d__atr4_h20__v1 | 0.51 | 978 | 0.53 | 9861 | 0.01 | close |
 | chan_gap__short_on_gap_mr__short__1d__atr1d5_top10__v1 | chan_gap__short_on_gap__short__1d__atr1d5_top10__v1 | 1.30 | 1127 | 1.31 | 1157 | 0.02 | close |
 | chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | 0.98 | 8845 | 1.00 | 9169 | 0.02 | close |
@@ -51,7 +57,10 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | envelope__0d05_fade_mr__short__1h__atr2d5_h30__v1 | envelope__0d05_fade__short__1h__atr2d5_h30__v1 | 0.47 | 3840 | 0.63 | 81565 | 0.15 | close |
 | envelope__0d05_fade_mr__short__1h__atr4_h30__v1 | envelope__0d05_fade__short__1h__atr4_h30__v1 | 0.48 | 3319 | 0.64 | 68797 | 0.17 | close |
 | envelope__0d05_fade_mr__short__1h__atr6_h30__v1 | envelope__0d05_fade__short__1h__atr6_h30__v1 | 0.46 | 3025 | 0.64 | 60941 | 0.18 | close |
+| base__cup_cheat_3c_mr__long__1h__atr2d5_h6__v1 | base__cup_cheat_3c__long__1h__atr2d5_h6__v1 | 0.30 | 153 | 0.49 | 3462 | 0.19 | close |
 | swingminrr__minervini_vcp_base_mr__long__1d__atr1d5__v1 | swingminrr__minervini_vcp_base__long__1d__atr1d5__v1 | 1.16 | 2606 | 1.35 | 2404 | 0.20 | close |
+| base__cup_cheat_3c_mr__long__1h__atr4_h6__v1 | base__cup_cheat_3c__long__1h__atr4_h6__v1 | 0.29 | 153 | 0.50 | 3457 | 0.21 | close |
+| base__cup_cheat_3c_mr__long__1h__atr6_h6__v1 | base__cup_cheat_3c__long__1h__atr6_h6__v1 | 0.28 | 153 | 0.51 | 3456 | 0.23 | close |
 | swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr3__v1 | swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1 | 2.06 | 111 | 2.30 | 110 | 0.23 | close |
 | swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr2__v1 | swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1 | 1.26 | 341 | 1.59 | 327 | 0.33 | replay higher |
 | reversal__island_turn1cr_mr__long__1d__atr1d5_within8__segoos__v2 | reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2 | 1.32 | 1766 | 1.66 | 1772 | 0.34 | replay higher |
