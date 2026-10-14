@@ -1149,3 +1149,7 @@ Profit-booking / exit takeaway: the apparent edge came from stacked max-hold win
 - Design lessons: yfinance limits (5m/15m 60d, 1h 730d) mean n is a few percent of the 5y baseline, so judge on n and never compare PFnet to the 1d number directly; 1m (7d) and 4h are owed; nested f-string quotes are a SyntaxError on Python 3.11 CI.
 - Reuse: cross-sectional daily-signal strategies replay as shard-emit-candidates then per-date merge; the same two-frame (daily signal + intraday walk) pattern fits any open-gap strategy.
 - Profit-booking / exit takeaway: baseline profit is the close-out, not the stop; if finer bars show stops firing earlier turn winners into losers, that confirms keep wide stops and flatten at the close.
+## Holding-period unit hygiene: bars vs hours (B-1030, 2026-10-13)
+- Mechanism: a run stored avg hold as bars x 24.0 (calendar hours per 1d bar) while the registry's `avg_held_hrs` means MARKET hours (1d bar = 6.25h, 1h = 1h, 15m = 0.25h). The 10 swing-short main-replay tags showed 284.6h instead of 74.1h, which also distorts the 75h quality hold cap and any PFnet-per-time ranking.
+- Reuse: always store the raw bar count (`Metrics.avg_held_bars`) next to the derived hours and compare hours only in market hours; never overwrite the raw field. Quote the run's raw unit in evidence.
+- Profit-booking / exit takeaway: hold-time comparisons (faster turnover tie-break) are only valid in one unit; the swing-short cells hold ~12 sessions, not ~47 days-equivalent, so their turnover ranking improves.
