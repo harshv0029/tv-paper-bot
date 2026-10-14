@@ -2915,6 +2915,16 @@ def _extend_with_sweeps():
         REGISTRY.extend(_b1232.build())
     except Exception:
         pass
+    try:
+        import strategy_registry_oneil_main_replay as _omr
+        REGISTRY.extend(_omr.build())
+    except Exception:
+        pass
+    try:
+        import strategy_registry_b1248 as _b1248
+        REGISTRY.extend(_b1248.build())
+    except Exception:
+        pass
 
 
 _extend_with_sweeps()
