@@ -1189,3 +1189,10 @@ Profit-booking / exit takeaway: the apparent edge came from stacked max-hold win
 - Surprised: a cheap exact prefilter (rule's first test as a numpy mask) cuts real-function calls by an order of magnitude without changing a single trade; keep a brute-force equality test for any prefilter.
 - Reuse: copy the pl1d replay skeleton, swap the loader family for the 1h loader, route glitch cleaning through bar_hygiene, sign the PnL by direction in the trade helper.
 - Profit-booking / exit takeaway: report the timeout vs stop split per cell; the research edge lived in long holds.
+## O'Neil setups ported into main.py for a genuine main-calling replay (B-1070, 2026-10-14)
+- Mechanism: flat-base / pivot / new-high breakout on >=1.5x volume, signal at the close, entry at the next open, ATR (or pct) stop on every trade, long and short as separate tags; main.py now holds oneil_signal_at, oneil_stop_price, oneil_trail_stop, oneil_exit_bar (additive, unwired).
+- Fit: weekly/daily swing-length holds (8-26 bars) fall to the swing engine; the 0.8% cost matters less at these holds. Nothing is live: the port exists only so the replay exercises real main.py code.
+- Result: none yet; v2 replay dispatch owed (1w then 1d). v1 independent-implementation results stay as the cross-check.
+- Surprised: a port can be proven equal to the older independent replay by parity tests on synthetic series (long, trailing, pct, target, short mirror) before spending a full-universe run.
+- Reuse: port the walk-forward array-level function first (signal_at style) and keep df wrappers thin; keep the negative-control (avg-down) out of main.py; a new main-calling run is a new tag version (v2), never an overwrite of v1.
+- Profit-booking / exit takeaway: earlier O'Neil evidence says the timeout survivors carry the profit and trail stops lose; check the v2 exit-reason breakdown before judging a cell.

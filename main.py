@@ -6275,6 +6275,155 @@ def chan_kalman_band_long_exit_reason(df, interval: str, entry_pos: int, entry_p
     return None
 
 
+# ---------------------------------------------------------------------------
+# O'Neil pivot / flat-base / new-high setups (B-1070). ADDITIVE PORT of the walk-forward rules in
+# scripts/oneil_replay.py (constants verbatim from scripts/oneil_research.CFG). NOT wired into any live scan,
+# no real-order path, no kill switch: it exists so a replay genuinely calls main.py. Signal at the CLOSE of bar t,
+# entry at the OPEN of t+1, a stop on EVERY trade (oneil_stop_price always returns a level). Long and short are
+# separate tags. avg-down is deliberately NOT ported (engine invariant: never average down).
+# ---------------------------------------------------------------------------
+ONEIL_CFG = {
+    "1d": dict(base=40, vol=50, smalt=200, flat=35, adv_lb=60, yr=252, swing=3),
+    "1w": dict(base=8, vol=10, smalt=40, flat=7, adv_lb=12, yr=52, swing=2),
+}
+ONEIL_VOL_MULT = 1.5
+ONEIL_FLAT_RANGE = 0.12
+ONEIL_ADV_MIN = 0.30
+ONEIL_DEPTH_MAX = 0.35
+ONEIL_FAMILIES = ("oneil_flatbase", "oneil_pivot", "oneil_newhigh")
+
+
+def oneil_atr14(h, l, c):
+    """ATR(14), simple mean of true range using only bars <= t (NaN until 14 TRs exist)."""
+    n = len(c)
+    tr = np.full(n, np.nan)
+    for t in range(1, n):
+        tr[t] = max(h[t] - l[t], abs(h[t] - c[t - 1]), abs(l[t] - c[t - 1]))
+    out = np.full(n, np.nan)
+    for t in range(14, n):
+        out[t] = tr[t - 13:t + 1].mean()
+    return out
+
+
+def oneil_signal_at(family: str, direction: str, tf: str, t: int, o, h, l, c, v, rs=None,
+                    chase=None, rs_thr=None) -> bool:
+    """True if the setup fires at the CLOSE of bar t (bars <= t only; o[t+1] only for the no-chase test, i.e. the
+    'is the next open still near the pivot' check made at the next open). rs_thr: None/'none' = no RS filter."""
+    cfg = ONEIL_CFG[tf]
+    side = 1 if direction == "long" else -1
+    vol_n = cfg["vol"]
+    if t < vol_n + 1 or t + 1 >= len(c):
+        return False
+    vavg = float(np.mean(v[t - vol_n:t]))
+    if not vavg > 0 or not v[t] >= ONEIL_VOL_MULT * vavg:
+        return False
+    nxt = o[t + 1]
+    if rs_thr not in (None, "none", ""):
+        if rs is None or np.isnan(rs[t]) or (rs[t] < float(rs_thr) if side == 1 else rs[t] > 30.0):
+            return False
+    if family == "oneil_flatbase":
+        fb, adv_lb = cfg["flat"], cfg["adv_lb"]
+        if t < fb + adv_lb + 1:
+            return False
+        hh, ll = float(np.max(h[t - fb:t])), float(np.min(l[t - fb:t]))
+        if (hh - ll) / hh > ONEIL_FLAT_RANGE:
+            return False
+        adv = c[t - fb] / c[t - fb - adv_lb]
+        if side == 1:
+            return bool(adv >= 1 + ONEIL_ADV_MIN and c[t] > hh and (chase is None or nxt / hh - 1 <= chase))
+        return bool(adv <= 1 - ONEIL_ADV_MIN and c[t] < ll and (chase is None or 1 - nxt / ll <= chase))
+    if family == "oneil_pivot":
+        base, smalt = cfg["base"], cfg["smalt"]
+        if t < max(base, smalt) + 1:
+            return False
+        hh, ll = float(np.max(h[t - base:t])), float(np.min(l[t - base:t]))
+        ma = float(np.mean(c[t - smalt + 1:t + 1]))
+        if (hh - ll) / hh > ONEIL_DEPTH_MAX:
+            return False
+        if side == 1:
+            return bool(c[t] > hh and c[t] > ma and (chase is None or nxt / hh - 1 <= chase))
+        return bool(c[t] < ll and c[t] < ma and (chase is None or 1 - nxt / ll <= chase))
+    if family == "oneil_newhigh":
+        yr = cfg["yr"]
+        if t < yr + 1:
+            return False
+        return bool(c[t] > np.max(c[t - yr:t]) if side == 1 else c[t] < np.min(c[t - yr:t]))
+    raise ValueError(f"unsupported O'Neil family {family}")
+
+
+def oneil_stop_price(entry: float, atr: float, direction: str, mode: str = "atr", val: float = 3.0) -> float:
+    """Initial stop (always defined). atr/trl: val*ATR14; pct: val percent; tgt: fixed 8%."""
+    side = 1 if direction == "long" else -1
+    if mode == "pct":
+        return entry * (1 - side * val / 100.0)
+    if mode == "tgt":
+        return entry * (1 - side * 0.08)
+    return entry - side * val * atr
+
+
+def oneil_trail_stop(direction: str, h, l, entry_pos: int, j: int, swing: int, stop: float) -> float:
+    """Ratchet the stop under the latest CONFIRMED swing low (short: over the swing high) as of bar j."""
+    k = j - 1 - swing
+    if k - swing >= entry_pos:
+        if direction == "long" and l[k] == np.min(l[k - swing:k + swing + 1]):
+            return max(stop, l[k])
+        if direction == "short" and h[k] == np.max(h[k - swing:k + swing + 1]):
+            return min(stop, h[k])
+    return stop
+
+
+def oneil_exit_bar(direction: str, o_j: float, h_j: float, l_j: float, c_j: float, j: int, last: int,
+                   stop: float, init_stop: float, target=None):
+    """Exit check for bar j: gap-aware stop -> target -> max-hold bar `last` (close). Returns (reason, px) or None."""
+    if direction == "long":
+        if l_j <= stop:
+            return ("trail_stop" if stop > init_stop else "stop"), min(stop, o_j)
+        if target is not None and h_j >= target:
+            return "target", max(target, o_j)
+    else:
+        if h_j >= stop:
+            return ("trail_stop" if stop < init_stop else "stop"), max(stop, o_j)
+        if target is not None and l_j <= target:
+            return "target", min(target, o_j)
+    if j >= last:
+        return "timeout", c_j
+    return None
+
+
+def oneil_entry_signal(df, tf: str, family: str, direction: str, rs_thr=None, rs=None, atr_mult: float = 3.0):
+    """Live-style entry check on the LAST bar of df (signal at its close; entry would be the next open). The no-chase
+    test needs the next open, so it is left to the caller at that open. NOT wired into any scan."""
+    if tf not in ONEIL_CFG or family not in ONEIL_FAMILIES:
+        return None
+    o, h, l, c, v = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close", "Volume"))
+    t = len(c) - 1
+    # signal_at wants a bar t+1 to exist (placeholder open = close, chase disabled); only bars <= t are used otherwise
+    o2, h2, l2, c2, v2 = (np.append(a, a[-1]) for a in (o, h, l, c, v))
+    rs2 = None if rs is None else np.append(np.asarray(rs, float), np.nan)
+    if not oneil_signal_at(family, direction, tf, t, o2, h2, l2, c2, v2, rs2, None, rs_thr):
+        return None
+    atr = oneil_atr14(h, l, c)
+    if np.isnan(atr[t]) or atr[t] <= 0:
+        return None
+    return {"signal_pos": t, "atr": float(atr[t]), "atr_mult": float(atr_mult), "close": float(c[t]),
+            "stop_hint": float(oneil_stop_price(float(c[t]), float(atr[t]), direction, "atr", atr_mult))}
+
+
+def oneil_exit_reason(df, tf: str, direction: str, entry_pos: int, stop: float, hold: int,
+                      init_stop=None, target=None, mode: str = "atr"):
+    """Exit check on the LAST bar j of df for a position entered at bar entry_pos. Returns (reason, px) or None.
+    mode 'trl' ratchets `stop` under the confirmed swing first (the caller persists the ratchet via
+    oneil_trail_stop). NOT wired."""
+    j = len(df) - 1
+    if j < entry_pos:
+        return None
+    o, h, l, c = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close"))
+    init = stop if init_stop is None else init_stop
+    if mode == "trl":
+        stop = oneil_trail_stop(direction, h, l, entry_pos, j, ONEIL_CFG[tf]["swing"], stop)
+    return oneil_exit_bar(direction, o[j], h[j], l[j], c[j], j, entry_pos + hold - 1, stop, init, target)
+
+
 def _fvg3c_scan_short(o, h, l, c, atr, variant: str, p: dict, sess=None):
     n = len(c)
     sig = np.zeros(n, dtype=bool)
