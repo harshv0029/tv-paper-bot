@@ -1250,3 +1250,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Surprised: a research commit can ship a driver that imports main.py symbols from a commit that is not in the same patch; main.py needs cwd=repo root (static mount), so smoke tests symlink static/docs into a scratch dir.
 - Reuse: run scripts/workflow_qa.py and tests/test_workflow_smoke_b1200.py before every matrix dispatch; extend SMOKES when a new driver lands. Job counts and runner-hour estimates live in docs/DISPATCH_ORDER_QA.md and should be replaced by measured run times.
 - Profit-booking / exit takeaway: none directly; QA protects the research queue that finds profitable cells.
+## pl1d LONG cells, main.py replay (B-1233, 2026-10-14)
+- Mechanism: gap runaway long (open > prior high x 1.01, close > SMA50, green bar; ATR14 x4 stop, 20-bar hold) and STARC band fade long (close < SMA6 - 2 x ATR15; ATR14 x2.5 stop, 20-bar hold), 1d, swing engine.
+- Fit: the stop is always attached (pl1d_stop_loss), so the no-trade-without-SL rule holds; holds up to 20 trading days sit inside the 30-day viable window; entry at the signal close, as every swing port.
+- Result (run 38506928246, full universe, main.py functions, cost 0.8%): gap runaway n 12898, PFnet 1.2025 (gross 1.379), win 46.19%, hold 116.5h; starc fade n 9093, PFnet 1.2215 (gross 1.452), win 43.19%, hold 90.4h. Registered as own `_mr` tags; research tags (1.464 / 1.191) kept.
+- Surprised: the main.py replay moved gap runaway down 0.26 versus the research run, starc up 0.03; both clear the 1.1 floor only thinly. All profit sits in max_hold_timeout exits (PFnet 2.29 and 8.16); every pl1d_stop_loss exit is a pure loss (PFnet 0.0, 15% and 41% of trades).
+- Reuse: always compare the main.py replay to the research number before trusting the margin; for these cells test a wider stop or a stop-free-then-trail variant per the ATR and candle sweep rule.
+- Profit-booking / exit takeaway: the edge is the full 20-bar hold, not early exits; do not tighten stops or book early, and the starc stop (41% of trades stopped out at a loss) is the lever to sweep first.
