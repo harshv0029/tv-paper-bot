@@ -10956,10 +10956,13 @@ def _auto_signal_core(
         # force any existing position closed - only new entries are
         # gated here.
         open_reserved_risk_inr = _open_positions_reserved_risk_inr(conn, exclude_symbol=symbol)
-        if loss_so_far + open_reserved_risk_inr >= daily_loss_cap:
-            result["action_taken"] = "blocked_aggregate_open_risk"
+        # B-1252 (2026-10-14, user: scan first, the money check sits AFTER the trigger):
+        # the gate no longer returns before the signal is evaluated. The flag is acted
+        # on once a trigger fires (blocked trigger counted, no order), so every symbol
+        # is still scanned and the funds text no longer hides all signals.
+        agg_blocked = loss_so_far + open_reserved_risk_inr >= daily_loss_cap
+        if agg_blocked:
             result["open_reserved_risk_inr"] = round(open_reserved_risk_inr, 2)
-            return result
 
         if not is_trading_enabled(conn):
             result["action_taken"] = "trading_paused"
@@ -10977,14 +10980,14 @@ def _auto_signal_core(
 
         # B-960: chan_kalman band long (buy engine, 5m only, no new entries from 15:00 IST). Gated by the registry/PFnet
         # check inside; falls through to the regular strategy when no cell fires.
-        if interval == "5m" and mins_now < CHAN_LONG_ENTRY_CUTOFF_MIN:
+        if interval == "5m" and mins_now < CHAN_LONG_ENTRY_CUTOFF_MIN and not agg_blocked:
             _chan_l = _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
                                            risk_per_trade_pct, fx_to_inr, currency, result,
                                            require_real_tradability=require_real_tradability)
             if _chan_l is not None:
                 return _chan_l
         # B-982: chan_gap buy-on-gap (09:20-10:15 IST, top-10 ranked at the first completed bar); paper always, real gated.
-        if interval == "5m":
+        if interval == "5m" and not agg_blocked:
             _gap_l = _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
                                               risk_per_trade_pct, fx_to_inr, currency, result,
                                               require_real_tradability=require_real_tradability, mins_now=mins_now)
@@ -11156,6 +11159,16 @@ def _auto_signal_core(
                 entry_signal = False
                 entry_reason = f"{entry_reason}_but_{sentiment_reason}"
         result["sentiment_gate"] = {"allowed": sentiment_allowed, "reason": sentiment_reason}
+
+        if entry_signal and agg_blocked:
+            # B-1252: trigger fired but the aggregate open-risk cap leaves no room: no order,
+            # counted as a blocked trigger (shows in /entry-funnel), cap itself unchanged.
+            try:
+                _record_blocked_trigger(str(strategy))
+            except Exception:
+                pass
+            result["action_taken"] = "blocked_aggregate_open_risk"
+            return result
 
         if entry_signal:
             # Stop is the strategy's own technical level (opening-range low
