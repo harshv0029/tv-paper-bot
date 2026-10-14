@@ -105,7 +105,7 @@ class StrategyStatus(str, Enum):
 # Real breakeven after transaction costs. A strategy below this loses
 # money on average, however it ranks against its peers - see this
 # module's own docstring for why that distinction is load-bearing.
-PFNET_LIVE_FLOOR = 1.1  # 2026-10-11 user: viable now means PFnet >= 1.1 (was 1.0)
+PFNET_LIVE_FLOOR = 1.0  # 2026-10-14 user: wiring and viability have ONE condition, PFnet >= 1 (supersedes the 2026-10-11 1.1)
 
 
 # NSE cash session 09:15-15:30 IST = 6.25 market hours per trading day. Used only to
