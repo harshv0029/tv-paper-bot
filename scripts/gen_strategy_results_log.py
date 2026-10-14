@@ -37,13 +37,13 @@ def _row(s):
         f"{m.pfnet:.3f}" if m and m.pfnet is not None else "",
         f"{m.win_rate_pct:.1f}" if m and m.win_rate_pct is not None else "",
         _expectancy(m),
-        m.n_trades if m else "", m.avg_held_hrs if m and m.avg_held_hrs is not None else "",
+        m.n_trades if m else "", m.avg_held_hrs if m and m.avg_held_hrs is not None else "", m.avg_held_bars if m and getattr(m, "avg_held_bars", None) is not None else "",
         "n/a" if v is None else ("yes" if v else "no"),
         m.universe if m else "", m.run_ref if m else "")) + " |"
 
 
 _COLS = ("| Strategy tag | Family | Variant | Dir | TF | Params | Categories | PFnet | Win % | "
-         "Expectancy (per avg loss) | Trades | Avg held hrs | Viable | Universe | Run ref |\n|" + "---|" * 15 + "\n")
+         "Expectancy (per avg loss) | Trades | Avg held hrs | Avg held bars (raw) | Viable | Universe | Run ref |\n|" + "---|" * 16 + "\n")
 
 
 def render_gt1():

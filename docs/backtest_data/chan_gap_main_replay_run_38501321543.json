@@ -1,0 +1,75 @@
+{
+ "source": "actions run 38501321543 (chan-gap-main-replay.yml, collected from merge job log)",
+ "cost_pct": 0.8,
+ "rows": [
+  {
+   "tag": "chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1",
+   "metrics": {
+    "n": 1211,
+    "pfnet": 1.3186204178848624,
+    "pfgross": 2.8202862717053265,
+    "win_pct": 42.2,
+    "avg_held_bars": 1.0,
+    "avg_held_hours": 6.25,
+    "exit_reasons": {
+     "close": {
+      "n": 1154,
+      "pfnet": 1.855901163115594,
+      "win_pct": 44.28
+     },
+     "stop": {
+      "n": 57,
+      "pfnet": 0.0,
+      "win_pct": 0.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1",
+   "metrics": {
+    "n": 1211,
+    "pfnet": 1.3574298620867447,
+    "pfgross": 2.9388894789723023,
+    "win_pct": 42.61,
+    "avg_held_bars": 1.0,
+    "avg_held_hours": 6.25,
+    "exit_reasons": {
+     "close": {
+      "n": 1196,
+      "pfnet": 1.5091759399652287,
+      "win_pct": 43.14
+     },
+     "stop": {
+      "n": 15,
+      "pfnet": 0.0,
+      "win_pct": 0.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1",
+   "metrics": {
+    "n": 1211,
+    "pfnet": 1.3905889195251155,
+    "pfgross": 3.063129256031828,
+    "win_pct": 42.61,
+    "avg_held_bars": 1.0,
+    "avg_held_hours": 6.25,
+    "exit_reasons": {
+     "close": {
+      "n": 1210,
+      "pfnet": 1.3916554930059288,
+      "win_pct": 42.64
+     },
+     "stop": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0
+     }
+    }
+   }
+  }
+ ]
+}

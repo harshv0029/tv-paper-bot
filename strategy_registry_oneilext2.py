@@ -51,7 +51,7 @@ def build():
                     metrics=sr.Metrics(
                         pfnet=float(r["pfnet"]), pfgross=(0.0 if g in ("", "NA") else float(g)),
                         win_rate_pct=float(r["win_pct"]), n_trades=int(r["n"]),
-                        avg_held_hrs=_hrs(tf, float(r["avg_hold"])), universe="NSE ~2166 symbols",
+                        avg_held_bars=float(r["avg_hold"]), avg_held_hrs=_hrs(tf, float(r["avg_hold"])), universe="NSE ~2166 symbols",
                         run_ref=_REF),
                     source=_SRC,
                     evidence=(f"{_REF}: PFnet {r['pfnet']}, gross {g}, win {r['win_pct']}%, n={r['n']}, "

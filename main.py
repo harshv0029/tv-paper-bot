@@ -6237,6 +6237,145 @@ def chan_kalman_band_short_exit_reason(df, interval: str, entry_pos: int, entry_
     return None
 
 
+# ---- B-1190 Minervini cup "3C cheat" LONG, 1h, SWING-length hold (RESEARCH-ONLY port: no scan, no real path, no kill switch)
+# Rule = scripts/pattern_lab.py r_bases base_cup_cheat_3c at the LAST bar i of df (cup precondition + cheat pause, verbatim):
+#   window w = bars [i-60, i); left_hi = max high of the first 20; low/low_i = min low and its index within w;
+#   depth = (left_hi-low)/left_hi in [0.15, 0.35]; 15 <= low_i <= 50; right_hi = max high of [i-12, i) >= 0.95 x left_hi;
+#   (right_hi - min low of [i-8, i))/right_hi <= 0.12 (handle); cheat: mid = low + 0.4 x (left_hi-low); pause = highs of
+#   [i-6, i); mid x 0.97 <= pause.max <= mid x 1.10, pause range (pause.max - min low [i-6,i))/pause.max <= 0.10, and
+#   close[i] > pause.max. Stop = entry - k x ATR14 (simple mean, chan_atr14), ALWAYS returned; atrnone cells are NOT ported
+#   (no trade without SL). Exit = gap-aware stop, else the close of the hold-th bar. Deviation: entry at the signal close, not
+#   the next open (as every swing port). No short mirror exists in pattern_lab (inverted cup): owed as its own tag family.
+#   Each (ATR, hold) is its OWN tag. Registry evidence is n200 pattern-lab only (n ~130, thin); NOT confirmed by a main.py replay.
+CUP_CHEAT_1H_MIN_BARS = 71
+CUP_CHEAT_1H_CELLS = {
+    f"base__cup_cheat_3c__long__1h__atr{fa}_h{h}__v1": (k, h)
+    for fa, k in (("2d5", 2.5), ("4", 4.0), ("6", 6.0))
+    for h in (6, 18, 30)
+}
+
+
+def cup_cheat_3c_fires(df) -> bool:
+    """Last-bar evaluation of pattern_lab's base_cup_cheat_3c long rule (needs High/Low/Close)."""
+    n = len(df)
+    if n < CUP_CHEAT_1H_MIN_BARS:
+        return False
+    h = df["High"].to_numpy(dtype=float)[-61:]
+    l = df["Low"].to_numpy(dtype=float)[-61:]
+    c = float(df["Close"].iloc[-1])
+    # window of 60 bars before the last bar, plus the last bar itself at index 60
+    hw, lw = h[:60], l[:60]
+    left_hi = float(hw[:20].max())
+    low = float(lw.min())
+    low_i = int(np.argmin(lw))
+    if not left_hi > 0:
+        return False
+    depth = (left_hi - low) / left_hi
+    right_hi = float(h[48:60].max())
+    handle_lo = float(l[52:60].min())
+    if not (0.15 <= depth <= 0.35 and 15 <= low_i <= 50 and right_hi >= left_hi * 0.95
+            and (right_hi - handle_lo) / right_hi <= 0.12):
+        return False
+    mid = low + 0.4 * (left_hi - low)
+    pause_hi = float(h[54:60].max())
+    pause_lo = float(l[54:60].min())
+    return bool((mid * 0.97 <= pause_hi <= mid * 1.10) and ((pause_hi - pause_lo) / pause_hi <= 0.10) and c > pause_hi)
+
+
+def cup_cheat_3c_entry_signal(df, tag: str):
+    """None when no signal / unknown tag. The stop is always set. NOT wired into any scan."""
+    cfg = CUP_CHEAT_1H_CELLS.get(tag)
+    if cfg is None or not cup_cheat_3c_fires(df):
+        return None
+    k, _hold = cfg
+    h, l, c = (df[x].to_numpy(dtype=float) for x in ("High", "Low", "Close"))
+    atr = float(chan_atr14(h, l, c)[-1])
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+    px = float(c[-1])
+    stop = px - k * atr
+    if not (0 < stop < px):
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": px - stop, "direction": "long"}
+
+
+def cup_cheat_3c_exit_reason(df, entry_pos: int, stop: float, hold: int):
+    """Exit check on the LAST bar j of df for a long entered at the CLOSE of bar entry_pos: gap-aware stop (fill bar at the
+    stop, later bars at min(stop, open)), else the close of the hold-th bar after entry. (reason, px) or None while open."""
+    j = len(df) - 1
+    if j <= entry_pos:
+        return None
+    o, l, c = (float(df[x].iloc[j]) for x in ("Open", "Low", "Close"))
+    if l <= stop:
+        return "cup_cheat_stop_loss", (float(stop) if j == entry_pos + 1 else min(float(stop), o))
+    if j - entry_pos >= hold:
+        return "cup_cheat_max_hold_timeout", c
+    return None
+
+
+# ---- B-1130 envelope 5% fade, 1h, SWING-length hold (RESEARCH-ONLY port: no scan, no real path, no kill switch) -------
+# Rule = scripts/pattern_lab.py r_bands envelope_0d05_fade: long when close < SMA21 x 0.95, short mirror when close >
+# SMA21 x 1.05. Stop = entry -/+ k x ATR14 (simple mean, chan_atr14), ALWAYS returned (atrnone cells are NOT ported: no
+# trade without SL). Exit = gap-aware stop, else the close of the hold-th bar. Deviation from the research: entry at the
+# signal close, not the next open (as every swing port). Each (direction, ATR, hold) is its OWN tag (naming grammar);
+# registry PFnet (n200 swing watchlist, pattern-lab) is NOT yet confirmed by a main.py-calling replay, so none of these
+# may be wired until one clears PFNET_LIVE_FLOOR (long atr6_h30 1.145 is the only stop-bearing cell above the floor).
+ENVELOPE_PCT = 0.05
+ENVELOPE_SMA = 21
+ENVELOPE_1H_CELLS = {
+    f"envelope__0d05_fade__{d}__1h__atr{fa}_h{h}__v1": (d, k, h)
+    for d in ("long", "short")
+    for fa, k in (("2d5", 2.5), ("4", 4.0), ("6", 6.0))
+    for h in (18, 30)
+}
+
+
+def envelope_fade_fires(df, direction: str) -> bool:
+    """Last-bar rule: close below SMA21 x (1 - 5%) for long, above SMA21 x (1 + 5%) for short."""
+    c = df["Close"].to_numpy(dtype=float)
+    if len(c) < ENVELOPE_SMA + 15:
+        return False
+    s = float(np.mean(c[-ENVELOPE_SMA:]))
+    return bool(c[-1] < s * (1 - ENVELOPE_PCT)) if direction == "long" else bool(c[-1] > s * (1 + ENVELOPE_PCT))
+
+
+def envelope_fade_entry_signal(df, tag: str):
+    """None when no signal / unknown tag. The stop is always set. NOT wired into any scan."""
+    cfg = ENVELOPE_1H_CELLS.get(tag)
+    if cfg is None:
+        return None
+    direction, k, _hold = cfg
+    if not envelope_fade_fires(df, direction):
+        return None
+    h, l, c = (df[x].to_numpy(dtype=float) for x in ("High", "Low", "Close"))
+    atr = float(chan_atr14(h, l, c)[-1])
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+    px = float(c[-1])
+    stop = px - k * atr if direction == "long" else px + k * atr
+    if direction == "long" and not (0 < stop < px):
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": atr, "risk": abs(px - stop), "direction": direction}
+
+
+def envelope_fade_exit_reason(df, direction: str, entry_pos: int, stop: float, hold: int):
+    """Exit check on the LAST bar j of df for a position entered at the CLOSE of bar entry_pos (bars after it count):
+    gap-aware stop (fill bar at the stop, later bars at min/max(stop, open)), else the close of the hold-th bar after
+    entry. Returns (reason, px) or None while open."""
+    j = len(df) - 1
+    if j <= entry_pos:
+        return None
+    o, h, l, c = (float(df[x].iloc[j]) for x in ("Open", "High", "Low", "Close"))
+    first = j == entry_pos + 1
+    if direction == "long" and l <= stop:
+        return "envelope_stop_loss", (float(stop) if first else min(float(stop), o))
+    if direction == "short" and h >= stop:
+        return "envelope_stop_loss", (float(stop) if first else max(float(stop), o))
+    if j - entry_pos >= hold:
+        return "envelope_max_hold_timeout", c
+    return None
+
+
 def chan_kalman_band_long_entry_signal(df, interval: str, z: float = 2.0, ve: float = 1e-3, atr_mult: float = 4.0,
                                        ks=None, masks=None):
     """Long mirror of chan_kalman_band_short_entry_signal (err < -z*sqrtQ). NOT wired: no live buy-engine hook yet."""
@@ -6273,6 +6412,155 @@ def chan_kalman_band_long_exit_reason(df, interval: str, entry_pos: int, entry_p
     if j >= entry_pos + hold - 1:
         return "max_hold", c
     return None
+
+
+# ---------------------------------------------------------------------------
+# O'Neil pivot / flat-base / new-high setups (B-1070). ADDITIVE PORT of the walk-forward rules in
+# scripts/oneil_replay.py (constants verbatim from scripts/oneil_research.CFG). NOT wired into any live scan,
+# no real-order path, no kill switch: it exists so a replay genuinely calls main.py. Signal at the CLOSE of bar t,
+# entry at the OPEN of t+1, a stop on EVERY trade (oneil_stop_price always returns a level). Long and short are
+# separate tags. avg-down is deliberately NOT ported (engine invariant: never average down).
+# ---------------------------------------------------------------------------
+ONEIL_CFG = {
+    "1d": dict(base=40, vol=50, smalt=200, flat=35, adv_lb=60, yr=252, swing=3),
+    "1w": dict(base=8, vol=10, smalt=40, flat=7, adv_lb=12, yr=52, swing=2),
+}
+ONEIL_VOL_MULT = 1.5
+ONEIL_FLAT_RANGE = 0.12
+ONEIL_ADV_MIN = 0.30
+ONEIL_DEPTH_MAX = 0.35
+ONEIL_FAMILIES = ("oneil_flatbase", "oneil_pivot", "oneil_newhigh")
+
+
+def oneil_atr14(h, l, c):
+    """ATR(14), simple mean of true range using only bars <= t (NaN until 14 TRs exist)."""
+    n = len(c)
+    tr = np.full(n, np.nan)
+    for t in range(1, n):
+        tr[t] = max(h[t] - l[t], abs(h[t] - c[t - 1]), abs(l[t] - c[t - 1]))
+    out = np.full(n, np.nan)
+    for t in range(14, n):
+        out[t] = tr[t - 13:t + 1].mean()
+    return out
+
+
+def oneil_signal_at(family: str, direction: str, tf: str, t: int, o, h, l, c, v, rs=None,
+                    chase=None, rs_thr=None) -> bool:
+    """True if the setup fires at the CLOSE of bar t (bars <= t only; o[t+1] only for the no-chase test, i.e. the
+    'is the next open still near the pivot' check made at the next open). rs_thr: None/'none' = no RS filter."""
+    cfg = ONEIL_CFG[tf]
+    side = 1 if direction == "long" else -1
+    vol_n = cfg["vol"]
+    if t < vol_n + 1 or t + 1 >= len(c):
+        return False
+    vavg = float(np.mean(v[t - vol_n:t]))
+    if not vavg > 0 or not v[t] >= ONEIL_VOL_MULT * vavg:
+        return False
+    nxt = o[t + 1]
+    if rs_thr not in (None, "none", ""):
+        if rs is None or np.isnan(rs[t]) or (rs[t] < float(rs_thr) if side == 1 else rs[t] > 30.0):
+            return False
+    if family == "oneil_flatbase":
+        fb, adv_lb = cfg["flat"], cfg["adv_lb"]
+        if t < fb + adv_lb + 1:
+            return False
+        hh, ll = float(np.max(h[t - fb:t])), float(np.min(l[t - fb:t]))
+        if (hh - ll) / hh > ONEIL_FLAT_RANGE:
+            return False
+        adv = c[t - fb] / c[t - fb - adv_lb]
+        if side == 1:
+            return bool(adv >= 1 + ONEIL_ADV_MIN and c[t] > hh and (chase is None or nxt / hh - 1 <= chase))
+        return bool(adv <= 1 - ONEIL_ADV_MIN and c[t] < ll and (chase is None or 1 - nxt / ll <= chase))
+    if family == "oneil_pivot":
+        base, smalt = cfg["base"], cfg["smalt"]
+        if t < max(base, smalt) + 1:
+            return False
+        hh, ll = float(np.max(h[t - base:t])), float(np.min(l[t - base:t]))
+        ma = float(np.mean(c[t - smalt + 1:t + 1]))
+        if (hh - ll) / hh > ONEIL_DEPTH_MAX:
+            return False
+        if side == 1:
+            return bool(c[t] > hh and c[t] > ma and (chase is None or nxt / hh - 1 <= chase))
+        return bool(c[t] < ll and c[t] < ma and (chase is None or 1 - nxt / ll <= chase))
+    if family == "oneil_newhigh":
+        yr = cfg["yr"]
+        if t < yr + 1:
+            return False
+        return bool(c[t] > np.max(c[t - yr:t]) if side == 1 else c[t] < np.min(c[t - yr:t]))
+    raise ValueError(f"unsupported O'Neil family {family}")
+
+
+def oneil_stop_price(entry: float, atr: float, direction: str, mode: str = "atr", val: float = 3.0) -> float:
+    """Initial stop (always defined). atr/trl: val*ATR14; pct: val percent; tgt: fixed 8%."""
+    side = 1 if direction == "long" else -1
+    if mode == "pct":
+        return entry * (1 - side * val / 100.0)
+    if mode == "tgt":
+        return entry * (1 - side * 0.08)
+    return entry - side * val * atr
+
+
+def oneil_trail_stop(direction: str, h, l, entry_pos: int, j: int, swing: int, stop: float) -> float:
+    """Ratchet the stop under the latest CONFIRMED swing low (short: over the swing high) as of bar j."""
+    k = j - 1 - swing
+    if k - swing >= entry_pos:
+        if direction == "long" and l[k] == np.min(l[k - swing:k + swing + 1]):
+            return max(stop, l[k])
+        if direction == "short" and h[k] == np.max(h[k - swing:k + swing + 1]):
+            return min(stop, h[k])
+    return stop
+
+
+def oneil_exit_bar(direction: str, o_j: float, h_j: float, l_j: float, c_j: float, j: int, last: int,
+                   stop: float, init_stop: float, target=None):
+    """Exit check for bar j: gap-aware stop -> target -> max-hold bar `last` (close). Returns (reason, px) or None."""
+    if direction == "long":
+        if l_j <= stop:
+            return ("trail_stop" if stop > init_stop else "stop"), min(stop, o_j)
+        if target is not None and h_j >= target:
+            return "target", max(target, o_j)
+    else:
+        if h_j >= stop:
+            return ("trail_stop" if stop < init_stop else "stop"), max(stop, o_j)
+        if target is not None and l_j <= target:
+            return "target", min(target, o_j)
+    if j >= last:
+        return "timeout", c_j
+    return None
+
+
+def oneil_entry_signal(df, tf: str, family: str, direction: str, rs_thr=None, rs=None, atr_mult: float = 3.0):
+    """Live-style entry check on the LAST bar of df (signal at its close; entry would be the next open). The no-chase
+    test needs the next open, so it is left to the caller at that open. NOT wired into any scan."""
+    if tf not in ONEIL_CFG or family not in ONEIL_FAMILIES:
+        return None
+    o, h, l, c, v = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close", "Volume"))
+    t = len(c) - 1
+    # signal_at wants a bar t+1 to exist (placeholder open = close, chase disabled); only bars <= t are used otherwise
+    o2, h2, l2, c2, v2 = (np.append(a, a[-1]) for a in (o, h, l, c, v))
+    rs2 = None if rs is None else np.append(np.asarray(rs, float), np.nan)
+    if not oneil_signal_at(family, direction, tf, t, o2, h2, l2, c2, v2, rs2, None, rs_thr):
+        return None
+    atr = oneil_atr14(h, l, c)
+    if np.isnan(atr[t]) or atr[t] <= 0:
+        return None
+    return {"signal_pos": t, "atr": float(atr[t]), "atr_mult": float(atr_mult), "close": float(c[t]),
+            "stop_hint": float(oneil_stop_price(float(c[t]), float(atr[t]), direction, "atr", atr_mult))}
+
+
+def oneil_exit_reason(df, tf: str, direction: str, entry_pos: int, stop: float, hold: int,
+                      init_stop=None, target=None, mode: str = "atr"):
+    """Exit check on the LAST bar j of df for a position entered at bar entry_pos. Returns (reason, px) or None.
+    mode 'trl' ratchets `stop` under the confirmed swing first (the caller persists the ratchet via
+    oneil_trail_stop). NOT wired."""
+    j = len(df) - 1
+    if j < entry_pos:
+        return None
+    o, h, l, c = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close"))
+    init = stop if init_stop is None else init_stop
+    if mode == "trl":
+        stop = oneil_trail_stop(direction, h, l, entry_pos, j, ONEIL_CFG[tf]["swing"], stop)
+    return oneil_exit_bar(direction, o[j], h[j], l[j], c[j], j, entry_pos + hold - 1, stop, init, target)
 
 
 def _fvg3c_scan_short(o, h, l, c, atr, variant: str, p: dict, sess=None):

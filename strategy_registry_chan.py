@@ -29,13 +29,13 @@ def build():
             tf = tag.split("__")[3]
             short = "__short__" in tag
             cat = sr.TradeCategory.SHORT_SELL if short else (sr.TradeCategory.SWING if tf == "1d" else sr.TradeCategory.BUY)
-            hrs = float(r["avg_hold_bars"]) * (sr.TRADING_HOURS_PER_DAY if tf == "1d" else 1.0)
+            hrs = float(r["avg_hold_bars"]) * sr.market_hours_per_bar(tf)
             out.append(sr.StrategyDef(
                 name=tag, asset_class=sr.AssetClass.EQUITY_SWING if tf == "1d" else sr.AssetClass.EQUITY_INTRADAY,
                 categories=(cat,), timeframe=tf, status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                 metrics=sr.Metrics(
                     pfnet=float(r["pfnet"]), pfgross=float(r.get("pfgross") or 0.0), win_rate_pct=float(r["win_pct"]),
-                    n_trades=int(r["n"]), avg_held_hrs=hrs,
+                    n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=hrs,
                     universe="NSE harness universe (full, chan-research shards)", run_ref=REF),
                 source="scripts/chan_research.py",
                 evidence=f"{REF}: PFnet {r['pfnet']}, gross {r.get('pfgross')}, win {r['win_pct']}%, n={r['n']} ({'non-overlapping FIFO' if 'nonovl' in tag else 'overlapping signals'}), avg_hold {r['avg_hold_bars']} bars, avg_net {r.get('avg_net_pct')}%; exits {json.dumps(r.get('exit_reasons'), separators=(',', ':'))}",

@@ -23,7 +23,7 @@ def build():
             name=tag, asset_class=sr.AssetClass.EQUITY_INTRADAY, categories=(sr.TradeCategory.BUY,), timeframe="1h",
             status=sr.StrategyStatus.RESEARCH, entry_fn=None,
             metrics=sr.Metrics(pfnet=float(r["pfnet"]), pfgross=float(r["pf_gross"]), win_rate_pct=float(r["win_pct"]),
-                               n_trades=int(r["n"]), avg_held_hrs=float(r["avg_hold_bars"]),
+                               n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]),
                                universe="NSE full universe (2483 fetched)", run_ref=_REF),
             source="scripts/macd_divergence_research.py",
             evidence=f"{_REF}: PFnet {r['pfnet']}, gross {r['pf_gross']}, win {r['win_pct']}%, n={r['n']} (non-overlapping FIFO, {r['raw_signal_trades_before_fifo']} raw signals), avg_hold {r['avg_hold_bars']} bars, avg_net {r['avg_net_ret_pct']}%; exits {json.dumps(r['exit_reasons'], separators=(',', ':'))}",

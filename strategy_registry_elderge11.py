@@ -50,7 +50,7 @@ def build():
                 status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                 metrics=sr.Metrics(
                     pfnet=float(r["pfnet"]), pfgross=float(r.get("pf_gross") or 0.0), win_rate_pct=float(r["win_pct"]),
-                    n_trades=int(r["n"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.TRADING_HOURS_PER_DAY,
+                    n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.TRADING_HOURS_PER_DAY,
                     universe="7059 fetched summed over families (broad NSE+ETF harness universe)", run_ref=_REF),
                 source="scripts/elder_macd_dirgap_research.py",
                 evidence=f"{_REF}: PFnet {r['pfnet']} (gross {r.get('pf_gross')}), win {r['win_pct']}%, n={r['n']}, "

@@ -47,7 +47,7 @@ def build():
                 metrics=sr.Metrics(
                     pfnet=float(r["pfnet"]), pfgross=(0.0 if g in ("", "None") else float(g)),
                     win_rate_pct=float(r["win_pct"]), n_trades=int(r["n"]),
-                    avg_held_hrs=float(r["avg_hold_bars"]) * sr.TRADING_HOURS_PER_DAY,
+                    avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.TRADING_HOURS_PER_DAY,
                     universe="NIFTY200-restricted + ETF slots (harness printed the restriction line; ~14.4k of 16.1k symbol-slots fetched), not full NSE", run_ref=_REF),
                 source="scripts/elder_batch3_research.py",
                 evidence=f"{_REF}: PFnet {r['pfnet']} (gross {g}), win {r['win_pct']}%, n={r['n']}, avg_hold {r['avg_hold_bars']} bars; exits {r['exits']}",

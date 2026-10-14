@@ -131,7 +131,7 @@ def test_max_strategy_checks_per_symbol_per_cycle_scales_with_category_count():
     # number, so this test can't silently drift from what the constant
     # itself is defined to do.
     assert sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE == len(sr.TradeCategory) * sr.TOP_N_PER_CATEGORY
-    assert sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE == 30
+    assert sr.MAX_STRATEGY_CHECKS_PER_SYMBOL_PER_CYCLE == 35
 
 
 def test_is_viable_none_when_no_metrics():
@@ -174,7 +174,7 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
     # 2026-10-10: sector_rotation__ (B-336) and MCX sweep cells (B-343) are registered research cells.
     viable = [s.name for s in sr.REGISTRY if s.is_viable() is True
               and not s.name.startswith('sector_rotation__') and s.metrics.universe != 'mcx_proxy_single_symbol'
-               and not getattr(s, 'source', '').startswith('scripts/exit_family_research.py') and getattr(s, 'source', '') not in ('scripts/portfolio_overlay_research.py', 'scripts/breakeven_research.py', 'scripts/douglas_trade_mgmt_research.py', 'scripts/elder_batch3_research.py', 'main.minervini_vcp_entry_signal (real) + exits ported from scripts/minervini_lab.py', 'scripts/pattern_lab.py', 'scripts/chan_research.py', 'scripts/island_validation.py', 'scripts/lunar_sweep.py', 'scripts/intraday_gap_and_go_research.py', 'scripts/macd_divergence_research.py', 'scripts/brk20_replay.py', 'scripts/intraday_flatten_rerun.py', 'scripts/elder_indicators_research.py', 'scripts/oneil_research.py', 'scripts/elder_macd_dirgap_research.py', 'scripts/elder_trend_context_research.py', 'scripts/elder_indicators_research_ext.py', 'scripts/oneil_ext_research.py', 'scripts/chan_ext_research.py', 'scripts/elder_patterns_research.py', 'scripts/minervini_sweep_lab.py', 'scripts/exit_family_research.py', 'scripts/minervini_lab.py', 'scripts/breadth_lab.py', 'scripts/combo_lab.py', 'scripts/intermarket_lab.py', 'scripts/elder_dirsys13_research (B-588)', 'scripts/oneil_nonoverlap_research (B-831)', 'scripts/oneil_nonoverlap_research (B-833)', 'scripts/swing_min_rr_research (B-842)', 'scripts/island_main_replay.py', 'scripts/swing_short_main_replay.py')]
+               and not getattr(s, 'source', '').startswith('scripts/exit_family_research.py') and getattr(s, 'source', '') not in ('scripts/portfolio_overlay_research.py', 'scripts/portfolio_overlay_oos.py', 'scripts/index_option_trigger_research (run 38218867644)', 'scripts/breakeven_research.py', 'scripts/douglas_trade_mgmt_research.py', 'scripts/elder_batch3_research.py', 'main.minervini_vcp_entry_signal (real) + exits ported from scripts/minervini_lab.py', 'scripts/pattern_lab.py', 'scripts/chan_research.py', 'scripts/island_validation.py', 'scripts/lunar_sweep.py', 'scripts/intraday_gap_and_go_research.py', 'scripts/macd_divergence_research.py', 'scripts/brk20_replay.py', 'scripts/intraday_flatten_rerun.py', 'scripts/elder_indicators_research.py', 'scripts/oneil_research.py', 'scripts/elder_macd_dirgap_research.py', 'scripts/elder_trend_context_research.py', 'scripts/elder_indicators_research_ext.py', 'scripts/oneil_ext_research.py', 'scripts/chan_ext_research.py', 'scripts/elder_patterns_research.py', 'scripts/minervini_sweep_lab.py', 'scripts/exit_family_research.py', 'scripts/minervini_lab.py', 'scripts/breadth_lab.py', 'scripts/combo_lab.py', 'scripts/intermarket_lab.py', 'scripts/elder_dirsys13_research (B-588)', 'scripts/oneil_nonoverlap_research (B-831)', 'scripts/oneil_nonoverlap_research (B-833)', 'scripts/swing_min_rr_research (B-842)', 'scripts/island_main_replay.py', 'scripts/swing_short_main_replay.py', 'scripts/chan_gap_main_replay.py', 'scripts/pl1d_short_main_replay.py')]
     assert set(viable) == {
         "gap_and_go_swing", "power_play_high_tight_flag",
         "minervini_vcp_breakeven_2r", "minervini_vcp_breakeven_3r",
@@ -218,8 +218,11 @@ def test_leaderboard_never_pads_with_fabricated_entries():
     assert all(r["name"].split("__")[1] in ("gc","si","cl","ng","hg") for r in sr.leaderboard(sr.TradeCategory.FUTURES, top_n=5))
     # options holds B-869 index-option research rows since 2026-10-12 (real metrics, entry_fn=None, none viable); never padded
     opt = sr.leaderboard(sr.TradeCategory.OPTIONS, top_n=5)
-    assert all(r['name'] and r['viable'] is False for r in opt)
-    assert sr.viable_leaderboard(sr.TradeCategory.OPTIONS) == []
+    # B-1232 (2026-10-14): thin-OOS cells registered with their ALL-sample headline can clear the PFnet floor on paper, so "none viable" is
+    # no longer an invariant. What must hold: every options row is research-only (no entry_fn, so no real path) and its flag is the derived one.
+    by = {s.name: s for s in sr.REGISTRY}
+    assert all(r['name'] and r['viable'] == by[r['name']].is_viable() and by[r['name']].entry_fn is None for r in opt)
+    assert all(by[r['name']].entry_fn is None for r in sr.viable_leaderboard(sr.TradeCategory.OPTIONS))
 
 
 def test_leaderboard_returns_fewer_than_top_n_when_pool_is_smaller():
@@ -380,3 +383,10 @@ def test_quality_viable_table_needs_30_trades_and_hold_within_3_trading_days():
             assert row["pfnet"] >= sr.PFNET_LIVE_FLOOR
             assert row["n_trades"] >= sr.QUALITY_MIN_TRADES
             assert row["avg_held_hrs"] <= sr.QUALITY_MAX_HOLD_HRS
+
+
+def test_options_multi_enum_b905():
+    assert sr.TradeCategory.OPTIONS_MULTI.value == "options_multi"
+    assert sr.TradeCategory.OPTIONS.value == "options"  # single-strike key never renamed
+    assert len(sr.TradeCategory) == 7
+    assert sr.leaderboard(sr.TradeCategory.OPTIONS_MULTI) == []

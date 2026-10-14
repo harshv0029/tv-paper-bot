@@ -6,6 +6,7 @@ and short share the slot). Reuses chan_research's signal builders / ATR / cost m
 Tags: <old tag minus __v1>__nonovl__v2 (old tags untouched). Covers the per-symbol time-series cells and the 1d gap-
 momentum cells; the cross-sectional cells (chan_gap, chan_xs_o2c, chan_kl) pick per day across symbols and are one-bar
 trades, so they cannot overlap in a symbol, and are listed as not applicable rather than re-run.
+Interval 4h: yfinance has no 4h, so 1h is fetched and resampled (scripts/resample_4h.py, B-991); only ~730d of history.
 Modes: run (env SHARD, NSHARD, INTERVAL, OUT_DIR, MAXSYM) -> small aggregate json; merge (IN_DIR, OUT) -> results json.
 Shards emit mergeable aggregates only (sums, counts), not trade lists, so the artifact stays small."""
 import glob
@@ -17,6 +18,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import chan_research as cr  # noqa: E402
+from resample_4h import resample_1h_to_4h  # noqa: E402
 
 ROOT = cr.ROOT
 
@@ -144,6 +146,10 @@ def run():
             try:
                 df = d[s] if len(batch) > 1 else d
                 df = df[["Open", "High", "Low", "Close", "Volume"]].dropna()
+                if interval == "4h":
+                    # cr.download fetched 1h for 4h; NSE session-anchored resample (2 bars/session, 3.5h average).
+                    # Bar-count constants (lookbacks, holds) are 4h BARS: a hold of 25 bars is ~12 sessions.
+                    df = resample_1h_to_4h(df)
             except Exception:
                 continue
             if len(df) < 160:

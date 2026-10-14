@@ -28,7 +28,7 @@ def build():
             categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.BUY,), timeframe="15m",
             status=sr.StrategyStatus.RESEARCH, entry_fn=None,
             metrics=sr.Metrics(pfnet=float(r["pfnet"]), pfgross=float(r["pf_gross"]), win_rate_pct=float(r["win_pct"]),
-                               n_trades=int(r["n"]), avg_held_hrs=float(r["avg_hold_bars"]) * 0.25,
+                               n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * 0.25,
                                universe=f"NSE full universe ({d.get('fetched')} fetched)", run_ref=_REF),
             source="scripts/macd_divergence_research.py",
             evidence=(f"{_REF}: [{seg}] PFnet {r['pfnet']} (trim1 {r.get('pfnet_trim1')}, trim5 {r.get('pfnet_trim5')}), gross {r['pf_gross']}, "

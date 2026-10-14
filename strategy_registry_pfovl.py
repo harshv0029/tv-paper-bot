@@ -29,7 +29,7 @@ def build():
             categories=(sr.TradeCategory.SHORT_SELL if short else sr.TradeCategory.SWING,), timeframe="1d",
             status=sr.StrategyStatus.RESEARCH, entry_fn=None,
             metrics=sr.Metrics(pfnet=float(r["pfnet"]), pfgross=float(r["pf_gross"]), win_rate_pct=float(r["win_pct"]),
-                               n_trades=int(r["n"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.TRADING_HOURS_PER_DAY,
+                               n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.TRADING_HOURS_PER_DAY,
                                universe="NSE full universe + ETFs (2348 with data of 2688)", run_ref=_RUN),
             source="scripts/portfolio_overlay_research.py",
             evidence=f"{_RUN}: PFnet {r['pfnet']}, gross {r['pf_gross']}, win {r['win_pct']}%, n={r['n']}, avg_hold {r['avg_hold_bars']} bars, {json.dumps(extra, separators=(',', ':'))}; exits {json.dumps(r['exit_reasons'], separators=(',', ':'))}",

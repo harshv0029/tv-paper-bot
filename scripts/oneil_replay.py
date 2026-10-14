@@ -4,8 +4,10 @@ Purpose: independently re-derive and replay named O'Neil registry tags (flat-bas
 universe so a suspicious research number (e.g. oneil_flatbase__breakout__long__1w__atr3_avg1_chase10_h26_rsnone__v1,
 PFnet 5.165 n=116) can be confirmed or refuted by a second implementation.
 
-PORT NOTICE: main.py has NO O'Neil entry/exit function (grep "oneil" main.py is empty), so there is nothing real to
-import. This file is a faithful PORT of the detector rules of scripts/oneil_research.py (entry_signals + simulate), but
+B-1070 UPDATE: main.py now has additive, unwired oneil_* functions (oneil_signal_at, oneil_atr14, oneil_stop_price,
+oneil_trail_stop, oneil_exit_bar). The default run (USE_MAIN=1) calls them and writes NEW v2 tags; USE_MAIN=0 keeps the
+original independent v1 implementation below (v1 results untouched). Parity of the two is unit-tested.
+ORIGINAL PORT NOTICE (v1): main.py had NO O'Neil function, so this file was a faithful PORT of the detector rules of scripts/oneil_research.py (entry_signals + simulate), but
 written independently as a bar-by-bar WALK-FORWARD (every decision at bar t uses only bars <= t; no vectorised shifts),
 so a look-ahead or off-by-one bug in the vectorised research code cannot be reproduced here by copy. Shared with main:
 the universe (main._load_nse_universe_from_file(), never main.NSE_FULL_UNIVERSE) and the cost
@@ -173,19 +175,32 @@ def signal_at(spec, t, o, h, l, c, v, rs, cfg):
 
 
 # ---------- walk-forward trade simulation (stop on every trade) ----------
-def replay_symbol(df, rs_series, spec, cost, slip=0.0):
-    """Returns list of dict(net, gross, held, reason, entry_bar). Non-overlapping, hold fully available only."""
+def _main_app():
+    import main as app   # B-1070: real main.py functions (oneil_signal_at / oneil_stop_price / oneil_exit_bar ...)
+    return app
+
+
+def replay_symbol(df, rs_series, spec, cost, slip=0.0, use_main=False):
+    """use_main=True (B-1070) routes detector, ATR, stop, trailing ratchet and exit through main.py's oneil_* functions
+    (avg-down add stays here: negative control, never live). Returns list of dict(net, gross, held, reason, entry_bar). Non-overlapping, hold fully available only."""
     cfg = CFG[spec["tf"]]
     o, h, l, c = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close"))
     v = df["Volume"].to_numpy(float)
     rs = (rs_series.reindex(df.index).to_numpy(float) if rs_series is not None else np.full(len(c), np.nan))
-    atr = atr14(h, l, c)
+    app = _main_app() if use_main else None
+    atr = app.oneil_atr14(h, l, c) if use_main else atr14(h, l, c)
     side = 1 if spec["dir"] == "long" else -1
     hold, mode, val = spec["hold"], spec["mode"], spec["val"]
     sw = cfg["swing"]
+    rs_thr = None if spec["rs"] in ("none", "") else spec["rs"]
     out, t, n = [], 0, len(c)
     while t < n - 1:
-        if np.isnan(atr[t]) or atr[t] <= 0 or not signal_at(spec, t, o, h, l, c, v, rs, cfg):
+        if np.isnan(atr[t]) or atr[t] <= 0:
+            t += 1
+            continue
+        fired = (app.oneil_signal_at(spec["family"], spec["dir"], spec["tf"], t, o, h, l, c, v, rs, spec["chase"], rs_thr)
+                 if use_main else signal_at(spec, t, o, h, l, c, v, rs, cfg))
+        if not fired:
             t += 1
             continue
         e = t + 1
@@ -194,7 +209,9 @@ def replay_symbol(df, rs_series, spec, cost, slip=0.0):
         if not ent or np.isnan(ent) or last - e + 1 < hold:
             t += 1
             continue
-        if mode == "pct":
+        if use_main:
+            stop = app.oneil_stop_price(ent, atr[t], spec["dir"], "atr" if mode in ("trl", "avg") else mode, val)
+        elif mode == "pct":
             stop = ent * (1 - side * val / 100.0)
         elif mode == "tgt":
             stop = ent * (1 - side * 0.08)
@@ -206,6 +223,20 @@ def replay_symbol(df, rs_series, spec, cost, slip=0.0):
         add_done = False
         exitp, jx, reason = c[last], last, "timeout"
         for j in range(e, last + 1):
+            if use_main:
+                if mode == "trl":
+                    stop = app.oneil_trail_stop(spec["dir"], h, l, e, j, sw, stop)
+                hit = app.oneil_exit_bar(spec["dir"], o[j], h[j], l[j], c[j], j, last, stop, init_stop, target)
+                if hit is not None and hit[0] != "timeout":
+                    exitp, reason = hit[1], hit[0]
+                    exitp = exitp * (1 - slip) if side == 1 and reason.endswith("stop") else (
+                        exitp * (1 + slip) if side == -1 and reason.endswith("stop") else exitp)
+                    jx = j
+                    break
+                if add_px is not None and not add_done and j > e:
+                    if (side == 1 and l[j] <= add_px) or (side == -1 and h[j] >= add_px):
+                        add_done = True
+                continue
             if mode == "trl":
                 k = j - 1 - sw
                 if k - sw >= e:
@@ -342,7 +373,7 @@ def load_data(syms, tf, cfg):
     return data
 
 
-def run_specs(specs, data, cost, slip=0.0, crosscheck=False):
+def run_specs(specs, data, cost, slip=0.0, crosscheck=False, use_main=False):
     """Replay every spec on every symbol of one timeframe. Returns (cells, crosscheck_notes)."""
     cells = {s["tag"]: new_cell() for s in specs}
     notes = []
@@ -353,7 +384,7 @@ def run_specs(specs, data, cost, slip=0.0, crosscheck=False):
     rs_all = orx.rs_rank_matrix(closes, CFG[tf]["rs_lb"])
     for i, (sym, df) in enumerate(data.items()):
         for sp in specs:
-            trades = replay_symbol(df, rs_all[sym], sp, cost, slip)
+            trades = replay_symbol(df, rs_all[sym], sp, cost, slip, use_main)
             add_trades(cells[sp["tag"]], trades)
             if crosscheck and trades:
                 notes.extend(_crosscheck(sp, sym, df, rs_all[sym], cost, trades))
@@ -387,6 +418,9 @@ def main_run():
     interval = (os.environ.get("INTERVAL") or "").strip()
     if interval:   # B-786: replay the same rules at another candle size, each its own tag; bar counts mean BARS
         tags = [retag_tf(t, interval) for t in tags]
+    use_main = os.environ.get("USE_MAIN", "1") != "0"
+    if use_main:   # B-1070: the main.py-calling run is a NEW tag set (v1 -> v2); v1 results stay untouched
+        tags = [re.sub(r"__v1$", "__v2", t) for t in tags]
     specs = [parse_tag(t) for t in tags]
     period_override = (os.environ.get("PERIOD") or "").strip()
     shard, nsh = int(os.environ.get("SHARD", "0")), int(os.environ.get("NSHARDS", "1"))
@@ -401,7 +435,7 @@ def main_run():
     for tf in sorted({s["tf"] for s in specs}):
         data = load_data(syms, tf, dict(CFG[tf], period=period_override) if period_override else CFG[tf])
         loaded[tf] = len(data)
-        cells, notes = run_specs([s for s in specs if s["tf"] == tf], data, cost, slip, os.environ.get("CROSSCHECK") == "1")
+        cells, notes = run_specs([s for s in specs if s["tf"] == tf], data, cost, slip, os.environ.get("CROSSCHECK") == "1", use_main)
         cells_all.update(cells)
         notes_all += notes
     out = os.path.join(ROOT, "docs", f"oneil_replay_s{shard}.json")

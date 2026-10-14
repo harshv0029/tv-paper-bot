@@ -29,7 +29,7 @@ def build():
                 status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                 metrics=sr.Metrics(
                     pfnet=float(r["pfnet"]), pfgross=float(r.get("pf_gross") or 0.0), win_rate_pct=float(r["win_pct"]),
-                    n_trades=int(r["n"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.TRADING_HOURS_PER_DAY,
+                    n_trades=int(r["n"]), avg_held_bars=float(r["avg_hold_bars"]), avg_held_hrs=float(r["avg_hold_bars"]) * sr.TRADING_HOURS_PER_DAY,
                     universe="2351 fetched of 2688 listed (NSE harness universe)", run_ref=_REF),
                 source="scripts/portfolio_overlay_research.py",
                 evidence=f"{_REF}: PFnet {r['pfnet']} (CI95 {r.get('pfnet_ci95_lo')}-{r.get('pfnet_ci95_hi')}), gross {r.get('pf_gross')}, win {r['win_pct']}%, n={r['n']}, avg_hold {r['avg_hold_bars']} bars, expectancy {r.get('expectancy_pct')}%, W/L {r.get('win_loss_ratio')}, ac1 {r.get('ac1')}, PFnet at cost 0.4/0.8/1.2%: {r.get('pfnet_at_cost_0.4pct')}/{r.get('pfnet_at_cost_0.8pct')}/{r.get('pfnet_at_cost_1.2pct')}; exits {json.dumps(r.get('exit_reasons'), separators=(',', ':'))}",

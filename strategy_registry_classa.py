@@ -18,7 +18,7 @@ def _mk(tag, cat, m, uni, src, ev, notes):
         status=sr.StrategyStatus.RESEARCH, entry_fn=None,
         metrics=sr.Metrics(
             pfnet=float(m["pfnet"]), pfgross=float(m.get("pfgross") or 0.0), win_rate_pct=float(m["win_pct"]),
-            n_trades=int(m["n"]), avg_held_hrs=float(m["avg_held_bars"]) * sr.TRADING_HOURS_PER_DAY,
+            n_trades=int(m["n"]), avg_held_bars=float(m["avg_held_bars"]), avg_held_hrs=float(m["avg_held_bars"]) * sr.TRADING_HOURS_PER_DAY,
             universe=uni, run_ref=_REF),
         source=src, evidence=ev, notes=notes)
 

@@ -78,6 +78,10 @@ class TradeCategory(str, Enum):
     SWING = "swing"
     FUTURES = "futures"
     OPTIONS = "options"
+    # B-905 (2026-10-13): standard name "Option - one plus strike" (straddle/strangle/spreads). "options" stays the
+    # single-strike key (never renamed). Empty until the first multi-strike strategy is registered; the per-cycle
+    # check bound rises 30 -> 35 as a ceiling only (an empty category adds no actual checks).
+    OPTIONS_MULTI = "options_multi"
     BIDIRECTIONAL = "bidirectional"
 
 
@@ -110,6 +114,19 @@ PFNET_LIVE_FLOOR = 1.1  # 2026-10-11 user: viable now means PFnet >= 1.1 (was 1.
 TRADING_HOURS_PER_DAY = 6.25
 
 
+def market_hours_per_bar(tf: str) -> float:
+    """B-1030/B-1120: market (session) hours one bar of timeframe `tf` spans; bar counts x this = Metrics.avg_held_hrs.
+    1d = TRADING_HOURS_PER_DAY, 1w = 5 sessions, 4h = 4, 1h = 1, 15m = 0.25, 5m = 1/12, 1m = 1/60. Unknown tf raises (never guessed)."""
+    t = {"1m": 1 / 60, "5m": 5 / 60, "15m": 0.25, "1h": 1.0, "4h": 4.0}
+    if tf in t:
+        return t[tf]
+    if tf == "1d":
+        return TRADING_HOURS_PER_DAY
+    if tf == "1w":
+        return 5 * TRADING_HOURS_PER_DAY
+    raise ValueError(f"unknown timeframe {tf!r}")
+
+
 # Registry names the user has explicitly marked viable + live-wired from trade-view (2026-10-13). Filled from the
 # strategy_viable_override table by main._load_viable_overrides(); empty by default, so derived viability is unchanged.
 VIABLE_OVERRIDES: set = set()
@@ -134,6 +151,10 @@ class Metrics:
     avg_held_hrs: Optional[float] = None  # mean holding period in MARKET (trading-session) HOURS of the SAME run as pfnet/win_rate_pct - how long, on average, a trade took to realize those numbers; one unit for every category (explicit user instruction 2026-10-05). Daily-bar runs record avg held trading DAYS, converted as days * TRADING_HOURS_PER_DAY; intraday runs record minutes, / 60. None = not recorded for that run yet (never guessed).
     universe: str = ""          # "full_2680", "52_symbol_sample", etc. - never omit
     run_ref: str = ""           # workflow file + run id, or commit, that produced this
+    # B-1030 (unit hygiene): the RAW hold as the run measured it, never overwritten. avg_held_hrs above is always the normalized
+    # market-hours value derived from it (bars * market hours per bar: 1d = TRADING_HOURS_PER_DAY, 1h = 1, 15m = 0.25).
+    avg_held_bars: Optional[float] = None
+    avg_held_raw_unit: str = ""  # unit of the raw run field the hours were derived from, e.g. "1d bars"
 
 
 @dataclass(frozen=True)
@@ -2882,6 +2903,16 @@ def _extend_with_sweeps():
     try:
         import strategy_registry_oneilext2 as _o2
         REGISTRY.extend(_o2.build())
+    except Exception:
+        pass
+    try:
+        import strategy_registry_chan_gap_mr as _cg
+        REGISTRY.extend(_cg.build())
+    except Exception:
+        pass
+    try:
+        import strategy_registry_b1232 as _b1232
+        REGISTRY.extend(_b1232.build())
     except Exception:
         pass
 
