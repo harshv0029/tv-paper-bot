@@ -6663,10 +6663,11 @@ def _oneil_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bo
     mirror pattern as _gapfade_try_entry; the PFnet gate is inside _is_strategy_viable_for_real_money."""
     for tag in ONEIL_SWING_CELLS:
         _record_strategy_scan(tag)
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
-            continue
         sig = oneil_swing_entry_signal(df, tag)
         if not sig:
+            continue
+        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+            _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         # a stop-out inside the 2-session window must not re-enter the same week's signal
         wk_start = (pd.Timestamp(today) - pd.Timedelta(days=pd.Timestamp(today).weekday())).timestamp()
@@ -20191,6 +20192,21 @@ _strategy_scan_counts_day: str = ""
 _strategy_scan_recent_timestamps: dict = {}  # tag -> list[float]
 
 
+_strategy_blocked_triggers: dict = {}
+
+
+def _record_blocked_trigger(tag: str):
+    """A wired cell's signal fired but the real-money viability gate was closed for it at that moment (user 2026-10-14:
+    wiring/scanning is separate from the money trade; viability is checked only when the trigger fires). Same
+    per-IST-day reset as _record_strategy_scan; surfaced as blocked_triggers_today."""
+    day = ist_now().strftime("%Y-%m-%d")
+    d = _strategy_blocked_triggers.setdefault("_day", day)
+    if d != day:
+        _strategy_blocked_triggers.clear()
+        _strategy_blocked_triggers["_day"] = day
+    _strategy_blocked_triggers[tag] = _strategy_blocked_triggers.get(tag, 0) + 1
+
+
 def _record_strategy_scan(tag: str):
     """Mirrors _record_scheduler_check/_record_swing_check's own
     today-count + rolling-window pattern, split out per strategy tag."""
@@ -25145,10 +25161,31 @@ def strategy_scan_activity(include_unwired: bool = False):
                     rows[-1]["entry_confidence_pct"] = sr.edge_confidence_pct(_succ.metrics)
             if not rows[-1].get("sl_rule"):
                 rows[-1]["sl_rule"] = "stop per backtest cell (see tag/registry)"
+    # wired + scanning today but the viability gate is closed right now: still shown, so scanning is visible
+    for tag, registry_name in _STRATEGY_TAG_TO_REGISTRY_NAME.items():
+        if _strategy_scan_counts.get(tag, 0) <= 0 or _is_strategy_viable_for_real_money(tag):
+            continue
+        strat = next((s for s in sr.REGISTRY if s.name == registry_name), None)
+        cats = [c.value for c in strat.categories] if strat else []
+        rows.append({
+            "strategy_tag": tag, "registry_name": registry_name, "categories": cats,
+            "pfnet": strat.metrics.pfnet if strat and strat.metrics else None,
+            "avg_held_hrs": round(strat.metrics.avg_held_hrs, 1) if strat and strat.metrics and strat.metrics.avg_held_hrs is not None else None,
+            "entry_confidence_pct": sr.edge_confidence_pct(strat.metrics) if strat and strat.metrics else None,
+            "scan_wired": True, "status": "wired_gate_closed",
+            "n_trades": strat.metrics.n_trades if strat and strat.metrics else None,
+            "win_rate_pct": strat.metrics.win_rate_pct if strat and strat.metrics else None,
+            **_sl_fields(tag, registry_name), "instrument": _instrument(tag, cats),
+            "scans_today": _strategy_scan_counts.get(tag, 0),
+            "scans_last_30s": _strategy_scans_in_last_seconds(tag),
+            "blocked_triggers_today": _strategy_blocked_triggers.get(tag, 0) if _strategy_blocked_triggers.get("_day") == now_ist.strftime("%Y-%m-%d") else 0,
+            "successful_entries_today": 0, "closed_today": 0, "win_rate_today_pct": None,
+        })
     rows.sort(key=lambda r: (r["pfnet"] is None, -(r["pfnet"] or 0)))
     _n_live = sum(1 for r in rows if r.get("status") == "live_wired")
-    counts = {"viable_total": len(rows), "live_wired": _n_live,
-              "research_only": len(rows) - _n_live}
+    _n_closed = sum(1 for r in rows if r.get("status") == "wired_gate_closed")
+    counts = {"viable_total": len(rows) - _n_closed, "live_wired": _n_live, "wired_gate_closed": _n_closed,
+              "research_only": len(rows) - _n_live - _n_closed}
     return {"strategies": rows, "counts": counts, "as_of_epoch": time.time()}
 
 

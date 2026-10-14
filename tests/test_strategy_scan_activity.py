@@ -62,9 +62,12 @@ def test_endpoint_only_returns_currently_viable_strategies():
     main._record_strategy_scan("gap_and_go")       # viable (gap_and_go_swing, PFnet 1.65)
     main._record_strategy_scan("minervini_vcp")    # NOT viable (PFnet 0.908, below floor)
     result = main.strategy_scan_activity()
-    tags = {r["strategy_tag"] for r in result["strategies"]}
-    assert "gap_and_go" in tags
-    assert "minervini_vcp" not in tags
+    by = {r["strategy_tag"]: r for r in result["strategies"]}
+    assert by["gap_and_go"]["status"] == "live_wired"
+    # user 2026-10-14: scanned-but-gate-closed cells are shown, flagged, and not counted as viable
+    assert by["minervini_vcp"]["status"] == "wired_gate_closed"
+    assert result["counts"]["wired_gate_closed"] >= 1
+    assert result["counts"]["viable_total"] == sum(1 for r in result["strategies"] if r["status"] != "wired_gate_closed")
 
 
 def test_endpoint_keeps_distinct_tags_separate_even_when_same_registry_entry():
