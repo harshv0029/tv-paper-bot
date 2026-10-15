@@ -166,3 +166,13 @@ def test_intraday_scan_only_records_chan_cells():
         main._scan_only_intraday_cells("AAA.NS", "short")
     got = main._symbol_strategy_scans["AAA.NS"]
     assert set(main.CHAN_LONG_CELLS) | set(main.CHAN_GAP_LONG_CELLS) | set(main.CHAN_SHORT_CELLS) <= got
+
+
+def test_scan_activity_result_is_cached_30s(monkeypatch):
+    import main
+    calls = []
+    monkeypatch.setattr(main, "_strategy_scan_activity_compute", lambda inc=False: calls.append(1) or {"strategies": []})
+    main._SCAN_ACTIVITY_CACHE.clear()
+    main.strategy_scan_activity()
+    main.strategy_scan_activity()
+    assert len(calls) == 1
