@@ -489,6 +489,11 @@
 </div>
 
 <div class="counts-panel">
+  <div class="counts-head"><span class="title">Viable strategies by category (PFnet &ge; floor): scans, triggers, orders, win rate <span id="cat-meta" class="scan-idle"></span></span></div>
+  <div class="counts-scroll" id="cat-body"><div class="scan-idle">Loading…</div></div>
+</div>
+
+<div class="counts-panel">
   <div class="counts-head"><span class="title">Bucketing of viable strategies<span id="vb-meta" class="scan-idle"></span></span></div>
   <div class="counts-scroll" id="vb-body"><div class="scan-idle">Loading…</div></div>
 </div>
@@ -1058,7 +1063,36 @@ function trackDataChange(key, sigSource) {
   }
   return rec.epoch;
 }
+function renderCategoryScanTable() {
+  const body = document.getElementById("cat-body"), meta = document.getElementById("cat-meta");
+  if (!body) return;
+  const sa = window._saData;
+  if (!sa || !Array.isArray(sa.strategies)) { body.innerHTML = '<div class="scan-idle">Unavailable (fetch failed)</div>'; return; }
+  const esc = x => String(x).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  if (meta) meta.textContent = `(last refreshed: ${formatIstTimestamp(sa.as_of_epoch || Date.now() / 1000)}; fired/placed from the entry funnel; win rate = trades closed today)`;
+  const fun = {};
+  Object.values((window._efData && window._efData.categories) || {}).forEach(c =>
+    (c.strategies || []).concat(c.no_signal_strategies || []).forEach(r => { fun[r.strategy] = r; }));
+  const names = {short_sell:"Short sell",buy:"Intraday buy",swing:"Swing",futures:"Futures",options:"Option - single strike",options_multi:"Option - one plus strike",bidirectional:"Bidirectional"};
+  const by = {};
+  sa.strategies.filter(r => r.pfnet != null && r.pfnet >= (sa.floor || 1) && r.scan_wired !== false)
+    .forEach(r => (r.categories && r.categories.length ? r.categories : ["other"]).forEach(c => (by[c] = by[c] || []).push(r)));
+  const cats = Object.keys(by).sort();
+  if (!cats.length) { body.innerHTML = '<div class="scan-idle">No wired viable strategies</div>'; return; }
+  const n = v => (v === null || v === undefined) ? "—" : v;
+  body.innerHTML = '<table class="counts"><thead><tr><th class="num">Sr no</th><th>Category</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Category total scans today</th><th class="num">Scans last 30s</th><th class="num">Triggers fired</th><th class="num">Orders placed</th><th class="num">Win rate today</th></tr></thead><tbody>' +
+    cats.map((c, i) => {
+      const rows = by[c], total = rows.reduce((t, r) => t + (r.scans_today || 0), 0);
+      return rows.map((r, j) => {
+        const f = fun[r.strategy_tag] || {};
+        const wr = r.win_rate_today_pct != null ? fmt(r.win_rate_today_pct, 1) + "%" : '<span class="meta">none closed</span>';
+        return `<tr>${j === 0 ? `<td class="num" rowspan="${rows.length}">${i + 1}</td><td rowspan="${rows.length}"><b>${esc(names[c] || c)}</b><br><span class="meta">${rows.length} strategies</span></td>` : ""}<td class="sym">${esc(r.strategy_tag)}</td><td class="num">${fmt(r.pfnet, 3)}</td>${j === 0 ? `<td class="num" rowspan="${rows.length}">${total}</td>` : ""}<td class="num">${n(r.scans_last_30s)}</td><td class="num">${n(f.fired)}</td><td class="num">${n(f.placed)}</td><td class="num">${wr}</td></tr>`;
+      }).join("");
+    }).join("") + '</tbody></table>';
+}
 function renderEntryFunnel(d) {
+  window._efData = d;
+  try { renderCategoryScanTable(); } catch (e) {}
   const body = document.getElementById("ef-body"), meta = document.getElementById("ef-meta");
   if (!body) return;
   if (!d || !d.categories) { body.innerHTML = '<div class="scan-idle">Funnel unavailable (fetch failed)</div>'; return; }
@@ -1115,6 +1149,7 @@ function renderStrategyScanActivity(data) {
   const body = document.getElementById("strategy-scan-body");
   if (!body) return;
   if (data) window._saData = data;
+  try { renderCategoryScanTable(); } catch (e) {}
   try { updateConstraintEligibility(); } catch (e) {}
   let rows = (window._saData?.strategies || []).slice();
   const q = (document.getElementById("sa-filter")?.value || "").trim().toLowerCase();
