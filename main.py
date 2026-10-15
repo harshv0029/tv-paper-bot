@@ -21451,11 +21451,35 @@ def _run_swing_scan_pass(conn):
 
     capital = get_scheduler_capital_inr()
 
+    # B-1280: the sequential 2y daily fetch of the whole watchlist delayed every scan record until
+    # the last fetch finished (AUBANK unrecorded ~30 min after a restart). Prefetch in parallel;
+    # the loop below then consumes the results in the same order with the same visit markers.
+    _prefetched = {}
+    try:
+        from concurrent.futures import ThreadPoolExecutor
+
+        def _pf(sym):
+            try:
+                return sym, fetch_ohlc(sym, "2y", "1d"), None
+            except Exception as e:  # noqa: BLE001
+                return sym, None, e
+        with ThreadPoolExecutor(max_workers=8) as _ex:
+            for sym, d, err in _ex.map(_pf, list(SWING_WATCHLIST)):
+                _prefetched[sym] = (d, err)
+    except Exception as e:
+        print(f"[SWING] parallel prefetch failed (falling back to sequential): {e}")
+        _prefetched = {}
+
     dfs = {}
     for symbol in _scan_visit(SWING_WATCHLIST):
         _record_swing_check(symbol)
         try:
-            df = fetch_ohlc(symbol, "2y", "1d")
+            if symbol in _prefetched:
+                df, _perr = _prefetched[symbol]
+                if _perr is not None:
+                    raise _perr
+            else:
+                df = fetch_ohlc(symbol, "2y", "1d")
         except Exception as e:
             print(f"[SWING] fetch_ohlc failed for {symbol}: {e}")
             continue
