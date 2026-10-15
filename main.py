@@ -25425,8 +25425,22 @@ def symbol_strategy_coverage(symbol: str):
     }
 
 
+_SCAN_ACTIVITY_CACHE: dict = {}
+
+
 @app.get("/strategy-scan-activity")
 def strategy_scan_activity(include_unwired: bool = False):
+    """B-1276: result cached ~30s so dashboard polls do not recompute."""
+    import time as _t
+    hit = _SCAN_ACTIVITY_CACHE.get(include_unwired)
+    if hit and _t.time() - hit[0] < 30:
+        return hit[1]
+    out = _strategy_scan_activity_compute(include_unwired)
+    _SCAN_ACTIVITY_CACHE[include_unwired] = (_t.time(), out)
+    return out
+
+
+def _strategy_scan_activity_compute(include_unwired: bool = False):
     """Per-viable-strategy scan/entry activity for /trade-view (explicit
     user request: "viable strategy wise count of scans done today and
     count of scans done in last 30 second and count of success entry
@@ -25498,11 +25512,20 @@ def strategy_scan_activity(include_unwired: bool = False):
     # (pooled SWING_STRATEGY_TAG -> raw_payload.entry_reason, as above). A
     # sell dated today closes against that tag; pnl > 0 is a win. None (shown
     # as "-") when no trade has closed today under the tag - never a fake 0%.
+    # B-1276: replay only symbols that SOLD today (win rate counts today's
+    # closes only), not every row of `trades` on each call.
     with closing(get_db()) as conn:
-        all_rows = conn.execute(
-            "SELECT symbol, action, qty, price, fx_to_inr, strategy, raw_payload, ts "
-            "FROM trades ORDER BY ts ASC, id ASC"
-        ).fetchall()
+        _sold_syms = [r[0] for r in conn.execute(
+            "SELECT DISTINCT symbol FROM trades WHERE action != 'buy' AND ts >= ?", (since_ts,)
+        ).fetchall()]
+        all_rows = []
+        for _i in range(0, len(_sold_syms), 500):
+            _chunk = _sold_syms[_i:_i + 500]
+            all_rows.extend(conn.execute(
+                "SELECT symbol, action, qty, price, fx_to_inr, strategy, raw_payload, ts FROM trades "
+                "WHERE symbol IN (%s)" % ",".join("?" * len(_chunk)), _chunk
+            ).fetchall())
+        all_rows.sort(key=lambda t: t["ts"])
     book: dict = {}
     closed_today: dict = {}
     for t in all_rows:
