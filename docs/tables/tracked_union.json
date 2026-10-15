@@ -33,22 +33,6 @@
       "first_seen_day": "2026-10-09"
     },
     {
-      "kotak_trading_symbol": "IVZINGOLD-EQ",
-      "symbol": "IVZINGOLD.NS",
-      "qty": 3,
-      "is_short": 0,
-      "owner": "swing",
-      "source": "holding",
-      "entry_price": 127.6,
-      "stop_loss": 125.13909293174743,
-      "sl_trigger_price": 125.15,
-      "strategy": "volume_profile_poc",
-      "entry_order_id": "261008000766897",
-      "opened_at": 1791452017.5753043,
-      "day": "2026-10-08",
-      "first_seen_day": "2026-10-08"
-    },
-    {
       "kotak_trading_symbol": "UNIONBANK-EQ",
       "symbol": "UNIONBANK.NS",
       "qty": 1,
@@ -65,5 +49,5 @@
       "first_seen_day": "2026-10-08"
     }
   ],
-  "synced_at_utc": "2026-10-12T19:36:42Z"
+  "synced_at_utc": "2026-10-15T12:53:14Z"
 }
