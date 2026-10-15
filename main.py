@@ -21722,7 +21722,7 @@ REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWINGMINRR_TAGS) | fro
 
 def _replay_verified_tags() -> frozenset:
     """Tags whose main.py-calling full-universe replay (docs/backtest_data/*main_replay_run_*.json, rows[].metrics)
-    cleared PFNET_LIVE_FLOOR with at least 30 trades. Derived at read time; a missing/unreadable file verifies nothing."""
+    cleared PFNET_LIVE_FLOOR with at least one trade (user 2026-10-15: n>=30 is not a wiring constraint, PFnet floor only). Derived at read time; a missing/unreadable file verifies nothing."""
     import glob as _g
     import json as _j
     import strategy_registry as _sr
@@ -21731,7 +21731,7 @@ def _replay_verified_tags() -> frozenset:
         try:
             for r in _j.load(open(f)).get("rows", []):
                 m = r.get("metrics") or {}
-                if (m.get("n") or 0) >= 30 and (m.get("pfnet") or 0) >= _sr.PFNET_LIVE_FLOOR:
+                if (m.get("n") or 0) >= 1 and (m.get("pfnet") or 0) >= _sr.PFNET_LIVE_FLOOR:
                     ok.add(r["tag"])
         except Exception:
             continue
@@ -22202,7 +22202,7 @@ def _tasuki_short_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> s
 for _t in TASUKI_SHORT_CELLS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 # No main.py-calling replay on file yet: real-money gate closed until tasuki-swingminrr-short-main-replay.yml output
-# (docs/backtest_data/*main_replay_run_*.json rows[].metrics) clears the floor with n >= 30.
+# (docs/backtest_data/*main_replay_run_*.json rows[].metrics) clears the floor (any n; PFnet floor is the only constraint).
 REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | frozenset(TASUKI_SHORT_CELLS)) - _replay_verified_tags()
 
 
