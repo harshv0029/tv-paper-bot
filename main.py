@@ -17,6 +17,7 @@ Endpoints:
 
 import asyncio
 import base64
+import contextvars
 import datetime as dt
 import hashlib
 import functools
@@ -20272,6 +20273,69 @@ def _record_blocked_trigger(tag: str):
     _strategy_blocked_triggers[tag] = _strategy_blocked_triggers.get(tag, 0) + 1
 
 
+# B-1274 stage 1: per-symbol record of every distinct strategy tag evaluated today (IST day), fed by
+# _record_strategy_scan via a contextvar naming the symbol currently being visited. Counter only.
+_symbol_strategy_scans: dict = {}
+_symbol_strategy_scans_day: str = ""
+_current_scan_symbol: contextvars.ContextVar = contextvars.ContextVar("current_scan_symbol", default=None)
+
+
+def _scan_visit(symbols):
+    """Iterate symbols, marking each as the current visit symbol (for per-symbol strategy-scan attribution) while its
+    loop body runs; marker is cleared afterwards. Pure pass-through otherwise (no filtering, no reordering)."""
+    try:
+        for _s in symbols:
+            try:
+                _current_scan_symbol.set(_s)
+            except Exception:
+                pass
+            yield _s
+    finally:
+        try:
+            _current_scan_symbol.set(None)
+        except Exception:
+            pass
+
+
+def _scan_visit_items(items):
+    """Like _scan_visit for (symbol, payload) pairs, e.g. dfs.items()."""
+    try:
+        for _s, _v in items:
+            try:
+                _current_scan_symbol.set(_s)
+            except Exception:
+                pass
+            yield _s, _v
+    finally:
+        try:
+            _current_scan_symbol.set(None)
+        except Exception:
+            pass
+
+
+def _symbol_strategies_tested_today(symbol: str) -> int:
+    """Distinct strategy tags evaluated for this symbol today (0 if none / day rolled)."""
+    if _symbol_strategy_scans_day != ist_now().strftime("%Y-%m-%d"):
+        return 0
+    return len(_symbol_strategy_scans.get(symbol, ()))
+
+
+def _record_symbol_strategy_scan(tag: str):
+    """Adds tag to the current visit symbol's set, if a marker is set. Never raises."""
+    global _symbol_strategy_scans_day
+    try:
+        sym = _current_scan_symbol.get()
+        if not sym:
+            return
+        today_str = ist_now().strftime("%Y-%m-%d")
+        if today_str != _symbol_strategy_scans_day:
+            _symbol_strategy_scans.clear()
+            _symbol_strategy_scans_day = today_str
+        _symbol_strategy_scans.setdefault(sym, set()).add(tag)
+    except Exception:
+        pass
+
+
 def _record_strategy_scan(tag: str):
     """Mirrors _record_scheduler_check/_record_swing_check's own
     today-count + rolling-window pattern, split out per strategy tag."""
@@ -20281,6 +20345,7 @@ def _record_strategy_scan(tag: str):
         _strategy_scan_counts.clear()
         _strategy_scan_counts_day = today_str
     _strategy_scan_counts[tag] = _strategy_scan_counts.get(tag, 0) + 1
+    _record_symbol_strategy_scan(tag)
 
     now = time.time()
     recent = _strategy_scan_recent_timestamps.setdefault(tag, [])
@@ -21184,7 +21249,7 @@ def _run_swing_scan_pass(conn):
     capital = get_scheduler_capital_inr()
 
     dfs = {}
-    for symbol in SWING_WATCHLIST:
+    for symbol in _scan_visit(SWING_WATCHLIST):
         _record_swing_check(symbol)
         try:
             df = fetch_ohlc(symbol, "2y", "1d")
@@ -21210,7 +21275,7 @@ def _run_swing_scan_pass(conn):
         print(f"[SWING] minervini RS percentile computation failed (non-fatal, entries skip the RS gate this cycle): {e}")
         rs_pct = {}
 
-    for symbol, df in dfs.items():
+    for symbol, df in _scan_visit_items(dfs.items()):
         if symbol in _done_syms:
             continue  # B-419: this symbol already entered/exited today; a repeat pass must not flip it again
         pos = conn.execute(
@@ -21913,7 +21978,7 @@ def _run_month_effect_short_pass(conn, dfs, capital, today, done_syms=(), fetch1
     for _t in MONTH_EFFECT_SHORT_CELLS:
         _record_strategy_scan(_t)
     fetch15 = fetch15 or (lambda s: fetch_ohlc(s, "5d", "15m"))
-    for symbol, df in dfs.items():
+    for symbol, df in _scan_visit_items(dfs.items()):
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone()
             if pos:
@@ -22321,7 +22386,7 @@ def _run_short_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=Non
     fetch = fetch or fetch_ohlc
     for _t in SWINGMINRR_SHORT_1H_CELLS:
         _record_strategy_scan(_t)
-    for symbol in symbols:
+    for symbol in _scan_visit(symbols):
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone()
             if pos is not None and pos["strategy"] not in SWINGMINRR_SHORT_1H_CELLS:
@@ -22580,7 +22645,7 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
     """1h leg of the LONG swing engine: exits for open macddiv cells first, then entries. Hourly bars with the
     still-forming bar dropped. Never raises per symbol."""
     fetch = fetch or fetch_ohlc
-    for symbol in symbols:
+    for symbol in _scan_visit(symbols):
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
             if pos is not None and pos["strategy"] not in MACDDIV_LONG_LIVE_CELLS and pos["strategy"] not in ENVELOPE_LONG_LIVE_CELLS and pos["strategy"] not in CUP_CHEAT_LONG_LIVE_CELLS:
@@ -22734,7 +22799,7 @@ def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
     except Exception as e:
         print(f"[SWING SHORT] sector fade picks failed (non-fatal): {e}")
         sector_picks = set()
-    for symbol, df in dfs.items():
+    for symbol, df in _scan_visit_items(dfs.items()):
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone()
             if pos:
@@ -23293,7 +23358,7 @@ def _run_pattern_cell_entries(conn, dfs: dict, capital, today: str):
     # per-day cap goes to the strongest signals, not to whichever symbols happen to be scanned first.
     ranked = []
     fresh_by_sym = {}
-    for sym, df in dfs.items():
+    for sym, df in _scan_visit_items(dfs.items()):
         if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
             continue  # one swing position per symbol
         try:
@@ -24109,7 +24174,7 @@ async def _scheduler_tick():
     # freshness once per symbol in the loop below for no benefit.
     scheduler_capital_inr = get_scheduler_capital_inr()
 
-    for symbol in symbols_this_tick:
+    for symbol in _scan_visit(symbols_this_tick):
         cfg = watchlist_by_symbol.get(symbol)
         if not cfg:
             # A symbol can be IN symbols_this_tick (open_equity_symbols/
@@ -24749,7 +24814,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
                 or _scheduler_last_results.get(k, {}).get("status")
             ),
             "last_checked_at_utc": _scheduler_last_results.get(k, {}).get("checked_at_utc"),
-            "last_strategies_tested": _scheduler_last_visit_strategies.get(k),
+            "last_strategies_tested": (_symbol_strategies_tested_today(k) or _scheduler_last_visit_strategies.get(k)),
             "asset_class": asset_class,
             "data_source": data_source,
             "mcx_proxy_for": mcx_proxy_for,
@@ -25173,6 +25238,23 @@ _SWING_SL_RULES = {
     **{_t: _envelope_stop_desc(_t) for _t in ENVELOPE_LONG_LIVE_CELLS},
     **{_t: _cup_cheat_stop_desc(_t) for _t in CUP_CHEAT_LONG_LIVE_CELLS},
 }
+
+
+@app.get("/symbol-strategy-coverage")
+def symbol_strategy_coverage(symbol: str):
+    """B-1274 stage 1 (read-only, cheap): for one symbol, wired viable (PFnet >= floor) strategy tags vs. the distinct
+    tags actually evaluated for it today. 'applicable' is the wired viable tag set (no per-symbol eligibility filter yet)."""
+    wired = sorted(t for t in _STRATEGY_TAG_TO_REGISTRY_NAME if _is_strategy_viable_for_real_money(t))
+    day_ok = _symbol_strategy_scans_day == ist_now().strftime("%Y-%m-%d")
+    tested = sorted(_symbol_strategy_scans.get(symbol, ())) if day_ok else []
+    tested_set = set(tested)
+    return {
+        "symbol": symbol,
+        "applicable_wired_viable": len(wired),
+        "tested_today": len(tested),
+        "tested_tags": tested,
+        "viable_not_tested_today": [t for t in wired if t not in tested_set],
+    }
 
 
 @app.get("/strategy-scan-activity")
