@@ -22350,6 +22350,7 @@ MACDDIV_LONG_LIVE_CELLS = tuple(t for t in (
     "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
     "macddiv__line_any__long__1h__atr2_w5__nonovl__v2",
     "macddiv__line_any__long__1h__atr1d5_w5__nonovl__v2",
+    "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",  # 1.138: scanned live; real-order gate stays closed until a main.py replay is on file
 ) if t in MACDDIV_LONG_CELLS)
 
 
