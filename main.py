@@ -17,6 +17,7 @@ Endpoints:
 
 import asyncio
 import base64
+import contextvars
 import datetime as dt
 import hashlib
 import functools
@@ -6660,6 +6661,11 @@ def oneil_swing_exit_reason(df: pd.DataFrame, entry_day: str, initial_stop: floa
 def _oneil_swing_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close):
     """Same signature as the other swing exit adapters."""
     return oneil_swing_exit_reason(df, entry_day, initial_stop, running_max_close)
+
+
+def _oneil_scan_signal(df, tag):
+    """Scan-only trigger evaluation (B-1274 stage 2); never an order."""
+    return oneil_swing_entry_signal(df, tag)
 
 
 def _oneil_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
@@ -20272,6 +20278,69 @@ def _record_blocked_trigger(tag: str):
     _strategy_blocked_triggers[tag] = _strategy_blocked_triggers.get(tag, 0) + 1
 
 
+# B-1274 stage 1: per-symbol record of every distinct strategy tag evaluated today (IST day), fed by
+# _record_strategy_scan via a contextvar naming the symbol currently being visited. Counter only.
+_symbol_strategy_scans: dict = {}
+_symbol_strategy_scans_day: str = ""
+_current_scan_symbol: contextvars.ContextVar = contextvars.ContextVar("current_scan_symbol", default=None)
+
+
+def _scan_visit(symbols):
+    """Iterate symbols, marking each as the current visit symbol (for per-symbol strategy-scan attribution) while its
+    loop body runs; marker is cleared afterwards. Pure pass-through otherwise (no filtering, no reordering)."""
+    try:
+        for _s in symbols:
+            try:
+                _current_scan_symbol.set(_s)
+            except Exception:
+                pass
+            yield _s
+    finally:
+        try:
+            _current_scan_symbol.set(None)
+        except Exception:
+            pass
+
+
+def _scan_visit_items(items):
+    """Like _scan_visit for (symbol, payload) pairs, e.g. dfs.items()."""
+    try:
+        for _s, _v in items:
+            try:
+                _current_scan_symbol.set(_s)
+            except Exception:
+                pass
+            yield _s, _v
+    finally:
+        try:
+            _current_scan_symbol.set(None)
+        except Exception:
+            pass
+
+
+def _symbol_strategies_tested_today(symbol: str) -> int:
+    """Distinct strategy tags evaluated for this symbol today (0 if none / day rolled)."""
+    if _symbol_strategy_scans_day != ist_now().strftime("%Y-%m-%d"):
+        return 0
+    return len(_symbol_strategy_scans.get(symbol, ()))
+
+
+def _record_symbol_strategy_scan(tag: str):
+    """Adds tag to the current visit symbol's set, if a marker is set. Never raises."""
+    global _symbol_strategy_scans_day
+    try:
+        sym = _current_scan_symbol.get()
+        if not sym:
+            return
+        today_str = ist_now().strftime("%Y-%m-%d")
+        if today_str != _symbol_strategy_scans_day:
+            _symbol_strategy_scans.clear()
+            _symbol_strategy_scans_day = today_str
+        _symbol_strategy_scans.setdefault(sym, set()).add(tag)
+    except Exception:
+        pass
+
+
 def _record_strategy_scan(tag: str):
     """Mirrors _record_scheduler_check/_record_swing_check's own
     today-count + rolling-window pattern, split out per strategy tag."""
@@ -20281,6 +20350,7 @@ def _record_strategy_scan(tag: str):
         _strategy_scan_counts.clear()
         _strategy_scan_counts_day = today_str
     _strategy_scan_counts[tag] = _strategy_scan_counts.get(tag, 0) + 1
+    _record_symbol_strategy_scan(tag)
 
     now = time.time()
     recent = _strategy_scan_recent_timestamps.setdefault(tag, [])
@@ -20316,6 +20386,121 @@ def _record_short_strategy_scans():
 def _strategy_scans_in_last_seconds(tag: str, seconds: float = _RECENT_CHECK_WINDOW_SECONDS) -> int:
     cutoff = time.time() - seconds
     return sum(1 for ts in _strategy_scan_recent_timestamps.get(tag, []) if ts >= cutoff)
+
+
+# ---------------------------------------------------------------------------
+# B-1274 stage 2 / B-1275: SCAN-ONLY evaluation. Entry scanning is decoupled from position management: a symbol that
+# already holds a position (or was entered/exited today) is still scanned for every applicable cell (scan counted, trigger
+# evaluated), but NO order and NO row is ever produced here - a second entry stays blocked by the one-position-per-symbol
+# key (signal_state_swing.symbol PRIMARY KEY) and by every engine's own ownership checks, which are untouched. Exits,
+# trailing SLs and the engines' own entry chains (first-signal-wins order) are unchanged.
+# ---------------------------------------------------------------------------
+_strategy_entry_blocked_by_position: dict = {}  # tag -> triggers that fired on a symbol where a new entry is blocked
+
+
+def _scan_cell(tag: str, sig_fn=None, count: bool = True, blocked: bool = False):
+    """Records one cell as scanned for the current visit symbol (count=True also bumps the scans counter; False marks
+    the per-symbol set only, for cells whose counter is already bumped elsewhere) and, when sig_fn is given, evaluates
+    its trigger (pure signal function, never an order). Returns the signal or None. Never raises."""
+    try:
+        if count:
+            _record_strategy_scan(tag)
+        else:
+            _record_symbol_strategy_scan(tag)
+    except Exception:
+        pass
+    if sig_fn is None:
+        return None
+    try:
+        sig = sig_fn()
+    except Exception:
+        return None
+    if sig and blocked:
+        try:
+            day = ist_now().strftime("%Y-%m-%d")
+            if _strategy_entry_blocked_by_position.get("_day") != day:
+                _strategy_entry_blocked_by_position.clear()
+                _strategy_entry_blocked_by_position["_day"] = day
+            _strategy_entry_blocked_by_position[tag] = _strategy_entry_blocked_by_position.get(tag, 0) + 1
+        except Exception:
+            pass
+    return sig
+
+
+def _scan_only_swing_long_cells(df, rs_percentile=None, count: bool = True, evaluate: bool = True):
+    """Every cell of the daily long-swing entry chain (power_play .. oneil). evaluate=False only marks the per-symbol set
+    (flat symbols: the real chain evaluates and counts them itself; marking covers cells it never reaches once an earlier
+    cell wins the symbol)."""
+    rs = rs_percentile
+    cells = [
+        ("power_play", lambda: power_play_entry_signal(df)),
+        ("primary_base", lambda: primary_base_entry_signal(df)),
+        ("gap_and_go", lambda: gap_and_go_entry_signal(df)),
+        ("minervini_vcp_livermore", lambda: minervini_vcp_entry_signal_livermore_confirmed(df, rs_percentile=rs)),
+        ("minervini_vcp", lambda: minervini_vcp_entry_signal(df, rs_percentile=rs)),
+        ("minervini_vcp_be3r", lambda: minervini_vcp_entry_signal(df, rs_percentile=rs)),
+        (SWING_EXITINVAL_VP_TAG, lambda: volume_profile_poc_entry_signal(df)),
+        (SWING_EXITINVAL_OB_TAG, lambda: order_block_entry_signal(df)),
+        (BRK20_SWING_TAG, lambda: brk20_min_rr_entry_signal(df, "long", BRK20_SWING_ATR_MULT, BRK20_SWING_MIN_RR)),
+    ]
+    cells += [(t, lambda t=t: island_swing_entry_signal(df, t)) for t in ISLAND_ALL_TAGS]
+    cells += [(t, lambda t=t: swingminrr_vcp_entry_signal(df, t, rs_percentile=rs)) for t in SWINGMINRR_TAGS]
+    cells += [(t, lambda t=t: chan_shape_long_entry_signal(df, t)) for t in CHAN_SHAPE_CELLS]
+    cells += [(t, lambda t=t: pl1d_long_entry_signal(df, t)) for t in PL1D_CELLS]
+    cells += [(t, lambda t=t: gapfade_long_entry_signal(df, t)) for t in GAPFADE_TAGS]
+    cells += [(t, lambda t=t: _oneil_scan_signal(df, t)) for t in ONEIL_SWING_CELLS]
+    for tag, fn in cells:
+        _scan_cell(tag, fn if evaluate else None, count=count, blocked=evaluate)
+
+
+def _scan_only_short_swing_cells(df, symbol, blocked: bool):
+    """Daily short-swing cells for one symbol. Sector-fade / tasuki / (month-effect) tags are counted once per pass
+    elsewhere, so they are only marked here; the brk20 short cells are counted inside _short_swing_try_entry, which
+    returns before recording for a blocked symbol, so a blocked symbol is counted + evaluated here instead."""
+    for t in SECTOR_FADE_SHORT_CELLS:
+        _scan_cell(t, None, count=False)
+    if symbol in ETF_SYMBOLS:
+        for t in TASUKI_SHORT_CELLS:
+            _scan_cell(t, None, count=False)
+    for t in SHORT_SWING_TAGS:
+        _scan_cell(t, None, count=blocked)
+    if blocked:
+        try:
+            _tag, _sig = short_swing_entry_signal(df)
+        except Exception:
+            _tag, _sig = None, None
+        if _sig:
+            _scan_cell(_tag, lambda: _sig, count=False, blocked=True)
+
+
+def _scan_only_1h_short_cells(df1h, evaluate: bool):
+    """The 1h swingminrr gate short cells (counter already bumped once per pass; per-symbol set + trigger only)."""
+    sig = None
+    if evaluate and df1h is not None:
+        try:
+            sig = swingminrr_gate_short_entry_signal(df1h)
+        except Exception:
+            sig = None
+    for t in SWINGMINRR_SHORT_1H_CELLS:
+        _scan_cell(t, (lambda: sig) if sig else None, count=False, blocked=bool(sig))
+
+
+def _scan_only_intraday_cells(symbol: str, side: str):
+    """Intraday chan cells for a symbol whose position is open / just closed (the engines' entry chains return before
+    reaching them). Records only: set + counter, no signal evaluation, no order."""
+    try:
+        if side == "long":
+            for t in CHAN_LONG_CELLS:
+                _scan_cell(t, None, count=True)
+            if symbol.endswith(".NS"):
+                for t in CHAN_GAP_LONG_CELLS:
+                    _scan_cell(t, None, count=True)
+        else:
+            for t in CHAN_SHORT_CELLS:
+                if CHAN_SHORT_CELL_INTERVAL.get(t) in ("5m", "15m"):
+                    _scan_cell(t, None, count=True)
+    except Exception:
+        pass
 
 
 def _scheduler_peek_next_batch(n: int = 5) -> list:
@@ -21184,7 +21369,7 @@ def _run_swing_scan_pass(conn):
     capital = get_scheduler_capital_inr()
 
     dfs = {}
-    for symbol in SWING_WATCHLIST:
+    for symbol in _scan_visit(SWING_WATCHLIST):
         _record_swing_check(symbol)
         try:
             df = fetch_ohlc(symbol, "2y", "1d")
@@ -21210,7 +21395,13 @@ def _run_swing_scan_pass(conn):
         print(f"[SWING] minervini RS percentile computation failed (non-fatal, entries skip the RS gate this cycle): {e}")
         rs_pct = {}
 
-    for symbol, df in dfs.items():
+    for symbol, df in _scan_visit_items(dfs.items()):
+        try:  # B-1274 stage 2 / B-1275: scan-only evaluation of every cell for a held / done-today symbol (no order, no row)
+            _blocked_pre = symbol in _done_syms or conn.execute(
+                "SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone() is not None
+            _scan_only_swing_long_cells(df, rs_pct.get(symbol), count=_blocked_pre, evaluate=_blocked_pre)
+        except Exception:
+            pass
         if symbol in _done_syms:
             continue  # B-419: this symbol already entered/exited today; a repeat pass must not flip it again
         pos = conn.execute(
@@ -21722,7 +21913,7 @@ REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWINGMINRR_TAGS) | fro
 
 def _replay_verified_tags() -> frozenset:
     """Tags whose main.py-calling full-universe replay (docs/backtest_data/*main_replay_run_*.json, rows[].metrics)
-    cleared PFNET_LIVE_FLOOR with at least 30 trades. Derived at read time; a missing/unreadable file verifies nothing."""
+    cleared PFNET_LIVE_FLOOR with at least one trade (user 2026-10-15: n>=30 is not a wiring constraint, PFnet floor only). Derived at read time; a missing/unreadable file verifies nothing."""
     import glob as _g
     import json as _j
     import strategy_registry as _sr
@@ -21731,7 +21922,7 @@ def _replay_verified_tags() -> frozenset:
         try:
             for r in _j.load(open(f)).get("rows", []):
                 m = r.get("metrics") or {}
-                if (m.get("n") or 0) >= 30 and (m.get("pfnet") or 0) >= _sr.PFNET_LIVE_FLOOR:
+                if (m.get("n") or 0) >= 1 and (m.get("pfnet") or 0) >= _sr.PFNET_LIVE_FLOOR:
                     ok.add(r["tag"])
         except Exception:
             continue
@@ -21913,7 +22104,9 @@ def _run_month_effect_short_pass(conn, dfs, capital, today, done_syms=(), fetch1
     for _t in MONTH_EFFECT_SHORT_CELLS:
         _record_strategy_scan(_t)
     fetch15 = fetch15 or (lambda s: fetch_ohlc(s, "5d", "15m"))
-    for symbol, df in dfs.items():
+    for symbol, df in _scan_visit_items(dfs.items()):
+        for _t in MONTH_EFFECT_SHORT_CELLS:  # B-1274 stage 2: per-symbol marks (counter bumped once per pass above)
+            _record_symbol_strategy_scan(_t)
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone()
             if pos:
@@ -22202,7 +22395,7 @@ def _tasuki_short_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> s
 for _t in TASUKI_SHORT_CELLS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row (never merged)
 # No main.py-calling replay on file yet: real-money gate closed until tasuki-swingminrr-short-main-replay.yml output
-# (docs/backtest_data/*main_replay_run_*.json rows[].metrics) clears the floor with n >= 30.
+# (docs/backtest_data/*main_replay_run_*.json rows[].metrics) clears the floor (any n; PFnet floor is the only constraint).
 REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | frozenset(TASUKI_SHORT_CELLS)) - _replay_verified_tags()
 
 
@@ -22321,12 +22514,15 @@ def _run_short_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=Non
     fetch = fetch or fetch_ohlc
     for _t in SWINGMINRR_SHORT_1H_CELLS:
         _record_strategy_scan(_t)
-    for symbol in symbols:
+    for symbol in _scan_visit(symbols):
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone()
-            if pos is not None and pos["strategy"] not in SWINGMINRR_SHORT_1H_CELLS:
-                continue
-            if pos is None and symbol in done_syms:
+            _scan_only_1h_short_cells(None, False)  # B-1274 stage 2: per-symbol marks first (counter bumped once per pass above)
+            if (pos is not None and pos["strategy"] not in SWINGMINRR_SHORT_1H_CELLS) or (pos is None and symbol in done_syms):
+                try:  # B-1275: another engine owns the symbol / done today: triggers still evaluated, never an order
+                    _scan_only_1h_short_cells(_hourly_with_str_date(fetch(symbol, "60d", "1h")), True)
+                except Exception:
+                    pass
                 continue
             df = _hourly_with_str_date(fetch(symbol, "60d", "1h"))
             if df is None or len(df) < BRK20_ROOM_LOOKBACK_BARS + 2:
@@ -22335,6 +22531,7 @@ def _run_short_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=Non
                 ex = _swingminrr_gate_short_exit(df, pos)
                 if ex:
                     _short_swing_close_paper(conn, symbol, pos, ex[1], ex[0])
+                _scan_only_1h_short_cells(df, True)
                 continue
             cfg = NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
             _swingminrr_gate_short_try_entry(conn, symbol, df, capital, cfg["risk_pct"], today, 1.0)
@@ -22576,20 +22773,37 @@ def _cup_cheat_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) 
     return None
 
 
+def _scan_only_1h_long_cells(df1h, count: bool, evaluate: bool):
+    """The 1h long-swing cells (macddiv, envelope, cup-cheat) on an already-fetched hourly frame."""
+    for t in MACDDIV_LONG_LIVE_CELLS:
+        _scan_cell(t, (lambda t=t: macddiv_long_cell_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
+    for t in ENVELOPE_LONG_LIVE_CELLS:
+        _scan_cell(t, (lambda t=t: envelope_fade_entry_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
+    for t in CUP_CHEAT_LONG_LIVE_CELLS:
+        _scan_cell(t, (lambda t=t: cup_cheat_3c_entry_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
+
+
 def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None):
     """1h leg of the LONG swing engine: exits for open macddiv cells first, then entries. Hourly bars with the
     still-forming bar dropped. Never raises per symbol."""
     fetch = fetch or fetch_ohlc
-    for symbol in symbols:
+    for symbol in _scan_visit(symbols):
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
-            if pos is not None and pos["strategy"] not in MACDDIV_LONG_LIVE_CELLS and pos["strategy"] not in ENVELOPE_LONG_LIVE_CELLS and pos["strategy"] not in CUP_CHEAT_LONG_LIVE_CELLS:
-                continue
-            if pos is None and symbol in done_syms:
+            if (pos is not None and pos["strategy"] not in MACDDIV_LONG_LIVE_CELLS and pos["strategy"] not in ENVELOPE_LONG_LIVE_CELLS and pos["strategy"] not in CUP_CHEAT_LONG_LIVE_CELLS) \
+                    or (pos is None and symbol in done_syms):
+                try:  # B-1275: another engine's position / done today: every 1h cell still scanned + trigger evaluated, no order
+                    _df_scan = _hourly_with_str_date(fetch(symbol, "60d", "1h"))
+                    if _df_scan is not None and len(_df_scan) >= 60:
+                        _scan_only_1h_long_cells(_df_scan, count=True, evaluate=True)
+                except Exception:
+                    pass
                 continue
             df = _hourly_with_str_date(fetch(symbol, "60d", "1h"))  # one 1h fetch per symbol per pass, shared by every 1h cell
             if df is None or len(df) < 60:
                 continue
+            if pos is None:
+                _scan_only_1h_long_cells(df, count=False, evaluate=False)  # marks cells the first-fire chain below may not reach
             if pos is not None:
                 if pos["strategy"] in ENVELOPE_LONG_LIVE_CELLS:
                     ex = _envelope_long_1h_exit(df, pos)
@@ -22599,6 +22813,7 @@ def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None
                     ex = _macddiv_long_1h_exit(df, pos)
                 if ex:
                     _macddiv_long_1h_close_paper(conn, symbol, pos, ex[1], ex[0])
+                _scan_only_1h_long_cells(df, count=True, evaluate=True)  # B-1275: managed symbol still scanned (no entry)
                 continue
             cfg = NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
             if _macddiv_long_1h_try_entry(conn, symbol, df, capital, cfg["risk_pct"]) is None:
@@ -22734,9 +22949,14 @@ def _run_short_swing_pass(conn, dfs, capital, today, done_syms):
     except Exception as e:
         print(f"[SWING SHORT] sector fade picks failed (non-fatal): {e}")
         sector_picks = set()
-    for symbol, df in dfs.items():
+    for symbol, df in _scan_visit_items(dfs.items()):
         try:
             pos = conn.execute("SELECT * FROM signal_state_swing_short WHERE symbol = ?", (symbol,)).fetchone()
+            try:  # B-1274 stage 2 / B-1275: scan-only cells for a blocked symbol (held short / long swing / done today)
+                _scan_only_short_swing_cells(df, symbol, bool(pos) or symbol in done_syms or conn.execute(
+                    "SELECT 1 FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone() is not None)
+            except Exception:
+                pass
             if pos:
                 if pos["strategy"] in SWINGMINRR_SHORT_1H_CELLS:
                     continue  # 1h cell: managed by _run_short_swing_1h_pass on hourly bars
@@ -23161,6 +23381,8 @@ def sector_rotation_exit_reason(df, entry_day: str, initial_stop: float):
 
 def _run_sector_rotation_entries(conn, dfs: dict, capital, today: str):
     _record_strategy_scan(SECTOR_ROT_TAG)
+    for _s in _scan_visit(list(dfs)):  # B-1274 stage 2: the cross-sectional cell is evaluated for every scanned symbol
+        _record_symbol_strategy_scan(SECTOR_ROT_TAG)
     risk_pct = NSE_STOCK_DEFAULT_PARAMS["risk_pct"]
     for sym in sector_rotation_picks(dfs):
         if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
@@ -23293,8 +23515,15 @@ def _run_pattern_cell_entries(conn, dfs: dict, capital, today: str):
     # per-day cap goes to the strongest signals, not to whichever symbols happen to be scanned first.
     ranked = []
     fresh_by_sym = {}
-    for sym, df in dfs.items():
+    for sym, df in _scan_visit_items(dfs.items()):
+        for _c in _PATTERN_LIVE_CELLS:  # B-1274 stage 2: per-symbol marks (counter bumped once per pass above)
+            if ("_etf__" in _c[0]) == (sym in ETF_SYMBOLS):
+                _record_symbol_strategy_scan(_c[0])
         if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
+            try:  # B-1275: held symbol still gets its triggers evaluated (scan-only); a second entry stays blocked
+                pattern_fresh_long_signals(df)
+            except Exception:
+                pass
             continue  # one swing position per symbol
         try:
             fresh_by_sym[sym] = pattern_fresh_long_signals(df)
@@ -24109,7 +24338,7 @@ async def _scheduler_tick():
     # freshness once per symbol in the loop below for no benefit.
     scheduler_capital_inr = get_scheduler_capital_inr()
 
-    for symbol in symbols_this_tick:
+    for symbol in _scan_visit(symbols_this_tick):
         cfg = watchlist_by_symbol.get(symbol)
         if not cfg:
             # A symbol can be IN symbols_this_tick (open_equity_symbols/
@@ -24176,6 +24405,8 @@ async def _scheduler_tick():
                 require_real_tradability=cfg["symbol"].endswith(".NS"),
             )
             _scheduler_last_results[cfg["symbol"]] = {"checked_at_utc": time.time(), **result}
+            if result.get("open_position") or str(result.get("action_taken", "")).startswith("exited_"):
+                _scan_only_intraday_cells(cfg["symbol"], "long")  # B-1274 stage 2: entry chain was skipped for a held symbol
 
             # Stage 3: mirror this SAME decision as a real order, only
             # for the equity path (options/MCX are out of stage 3 v1 -
@@ -24239,6 +24470,8 @@ async def _scheduler_tick():
                     require_real_tradability=cfg["symbol"].endswith(".NS"),
                 )
                 short_action = short_result.get("action_taken", "")
+                if short_action == "holding_short" or short_action.startswith("exited_short_"):
+                    _scan_only_intraday_cells(cfg["symbol"], "short")  # B-1274 stage 2: entry chain was skipped for a held symbol
                 if short_action == "entered_short":
                     with closing(get_db()) as real_conn:
                         _maybe_place_real_short_entry(real_conn, cfg["symbol"])
@@ -24749,7 +24982,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
                 or _scheduler_last_results.get(k, {}).get("status")
             ),
             "last_checked_at_utc": _scheduler_last_results.get(k, {}).get("checked_at_utc"),
-            "last_strategies_tested": _scheduler_last_visit_strategies.get(k),
+            "last_strategies_tested": (_symbol_strategies_tested_today(k) or _scheduler_last_visit_strategies.get(k)),
             "asset_class": asset_class,
             "data_source": data_source,
             "mcx_proxy_for": mcx_proxy_for,
@@ -25175,8 +25408,39 @@ _SWING_SL_RULES = {
 }
 
 
+@app.get("/symbol-strategy-coverage")
+def symbol_strategy_coverage(symbol: str):
+    """B-1274 stage 1 (read-only, cheap): for one symbol, wired viable (PFnet >= floor) strategy tags vs. the distinct
+    tags actually evaluated for it today. 'applicable' is the wired viable tag set (no per-symbol eligibility filter yet)."""
+    wired = sorted(t for t in _STRATEGY_TAG_TO_REGISTRY_NAME if _is_strategy_viable_for_real_money(t))
+    day_ok = _symbol_strategy_scans_day == ist_now().strftime("%Y-%m-%d")
+    tested = sorted(_symbol_strategy_scans.get(symbol, ())) if day_ok else []
+    tested_set = set(tested)
+    return {
+        "symbol": symbol,
+        "applicable_wired_viable": len(wired),
+        "tested_today": len(tested),
+        "tested_tags": tested,
+        "viable_not_tested_today": [t for t in wired if t not in tested_set],
+    }
+
+
+_SCAN_ACTIVITY_CACHE: dict = {}
+
+
 @app.get("/strategy-scan-activity")
 def strategy_scan_activity(include_unwired: bool = False):
+    """B-1276: result cached ~30s so dashboard polls do not recompute."""
+    import time as _t
+    hit = _SCAN_ACTIVITY_CACHE.get(include_unwired)
+    if hit and _t.time() - hit[0] < 30:
+        return hit[1]
+    out = _strategy_scan_activity_compute(include_unwired)
+    _SCAN_ACTIVITY_CACHE[include_unwired] = (_t.time(), out)
+    return out
+
+
+def _strategy_scan_activity_compute(include_unwired: bool = False):
     """Per-viable-strategy scan/entry activity for /trade-view (explicit
     user request: "viable strategy wise count of scans done today and
     count of scans done in last 30 second and count of success entry
@@ -25248,11 +25512,20 @@ def strategy_scan_activity(include_unwired: bool = False):
     # (pooled SWING_STRATEGY_TAG -> raw_payload.entry_reason, as above). A
     # sell dated today closes against that tag; pnl > 0 is a win. None (shown
     # as "-") when no trade has closed today under the tag - never a fake 0%.
+    # B-1276: replay only symbols that SOLD today (win rate counts today's
+    # closes only), not every row of `trades` on each call.
     with closing(get_db()) as conn:
-        all_rows = conn.execute(
-            "SELECT symbol, action, qty, price, fx_to_inr, strategy, raw_payload, ts "
-            "FROM trades ORDER BY ts ASC, id ASC"
-        ).fetchall()
+        _sold_syms = [r[0] for r in conn.execute(
+            "SELECT DISTINCT symbol FROM trades WHERE action != 'buy' AND ts >= ?", (since_ts,)
+        ).fetchall()]
+        all_rows = []
+        for _i in range(0, len(_sold_syms), 500):
+            _chunk = _sold_syms[_i:_i + 500]
+            all_rows.extend(conn.execute(
+                "SELECT symbol, action, qty, price, fx_to_inr, strategy, raw_payload, ts FROM trades "
+                "WHERE symbol IN (%s)" % ",".join("?" * len(_chunk)), _chunk
+            ).fetchall())
+        all_rows.sort(key=lambda t: t["ts"])
     book: dict = {}
     closed_today: dict = {}
     for t in all_rows:
