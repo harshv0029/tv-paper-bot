@@ -2219,5 +2219,47 @@
     "rr_target": 3.0,
     "rr_achieved": -0.51,
     "strategy": "orb-15m-sma9-21"
+  },
+  {
+    "symbol": "PNB.NS",
+    "exit_time_utc": 1792039682.7351248,
+    "entry_price_native": 115.33000183105469,
+    "exit_price_native": 117.36000061035156,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 2.03,
+    "pnl_pct_of_capital": 0.001,
+    "exit_reason": "staged_leg_T1",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "PNB.NS",
+    "exit_time_utc": 1792041347.743042,
+    "entry_price_native": 115.33000183105469,
+    "exit_price_native": 117.0,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 1.67,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "staged_leg_T2",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "PNB.NS",
+    "exit_time_utc": 1792041663.3861506,
+    "entry_price_native": 115.33000183105469,
+    "exit_price_native": 117.22,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 1.89,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "target_hit",
+    "rr_target": 3.0,
+    "rr_achieved": 2.3,
+    "strategy": "orb-universal-score"
   }
 ]
