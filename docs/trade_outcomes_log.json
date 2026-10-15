@@ -2261,5 +2261,61 @@
     "rr_target": 3.0,
     "rr_achieved": 2.3,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "HINDPETRO.NS",
+    "exit_time_utc": 1792054951.1830711,
+    "entry_price_native": 346.95001220703125,
+    "exit_price_native": 346.8999938964844,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": -0.05,
+    "pnl_pct_of_capital": -0.0,
+    "exit_reason": "trend_weakened",
+    "rr_target": 3.0,
+    "rr_achieved": -0.01,
+    "strategy": "orb-15m-sma9-21"
+  },
+  {
+    "symbol": "RELIANCE.NS",
+    "exit_time_utc": 1792055930.0092034,
+    "entry_price_native": 1215.0,
+    "exit_price_native": 1210.1,
+    "currency": "INR",
+    "qty": 160.0,
+    "pnl_inr": -784.0,
+    "pnl_pct_of_capital": -0.196,
+    "exit_reason": "trend_weakened",
+    "rr_target": 3.0,
+    "rr_achieved": -0.4,
+    "strategy": "orb-15m-sma9-21"
+  },
+  {
+    "symbol": "SBIN.NS",
+    "exit_time_utc": 1792056935.1657703,
+    "entry_price_native": 961.7999877929688,
+    "exit_price_native": 959.2000122070312,
+    "currency": "INR",
+    "qty": 2.0,
+    "pnl_inr": -5.2,
+    "pnl_pct_of_capital": -0.001,
+    "exit_reason": "trend_weakened",
+    "rr_target": 3.0,
+    "rr_achieved": -0.27,
+    "strategy": "orb-15m-sma9-21"
+  },
+  {
+    "symbol": "ICICIBANK.NS",
+    "exit_time_utc": 1792057468.7688713,
+    "entry_price_native": 1386.0,
+    "exit_price_native": 1382.7,
+    "currency": "INR",
+    "qty": 144.0,
+    "pnl_inr": -475.2,
+    "pnl_pct_of_capital": -0.119,
+    "exit_reason": "eod_squareoff",
+    "rr_target": 3.0,
+    "rr_achieved": -0.24,
+    "strategy": "orb-15m-sma9-21"
   }
 ]
