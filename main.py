@@ -19739,7 +19739,15 @@ def _day_open_capital_inr(conn) -> float:
     it in the first place. Only captures fresh (and only then persists to
     Upstash) when neither cache has today's value yet."""
     today = ist_now().strftime("%Y-%m-%d")
-    if _day_open_capital_cache["day"] == today and _day_open_capital_cache["value"] is not None:
+    if _day_open_capital_cache["day"] == today and _day_open_capital_cache["value"]:
+        # 2026-10-15 (user: budget "not getting updated as per the capital
+        # available on trading account"): ratchet UP only. Funds added or
+        # profit booked raise the base; deployment (live balance falling)
+        # never lowers it, which keeps the 2026-09-08 fixed-basis intent.
+        live = get_scheduler_capital_inr()
+        if live and live > _day_open_capital_cache["value"]:
+            _day_open_capital_cache["value"] = live
+            _persist_day_open_capital(today, live)
         return _day_open_capital_cache["value"]
 
     if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
@@ -19753,16 +19761,26 @@ def _day_open_capital_inr(conn) -> float:
             raw = resp.json().get("result")
             if raw:
                 saved = json.loads(raw)
-                if saved.get("day") == today and saved.get("value") is not None:
+                if saved.get("day") == today and saved.get("value"):
                     _day_open_capital_cache["day"] = today
                     _day_open_capital_cache["value"] = float(saved["value"])
-                    return _day_open_capital_cache["value"]
+                    return _day_open_capital_cache["value"]  # ratchets up on the next call
         except Exception as e:
             print(f"[day_open_capital] hydrate failed (non-fatal): {e}")
 
     value = get_scheduler_capital_inr()
+    if not value:
+        # Failed/zero fetch: never freeze 0 as the day's basis (that pinned
+        # the budget at Rs0 all day). Not cached; retried on next call.
+        return 0.0
     _day_open_capital_cache["day"] = today
     _day_open_capital_cache["value"] = value
+    _persist_day_open_capital(today, value)
+    print(f"[day_open_capital] captured Rs{value:.2f} for {today}")
+    return value
+
+
+def _persist_day_open_capital(today: str, value: float) -> None:
     if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
         try:
             requests.post(
@@ -19773,8 +19791,6 @@ def _day_open_capital_inr(conn) -> float:
             )
         except Exception as e:
             print(f"[day_open_capital] sync failed (non-fatal): {e}")
-    print(f"[day_open_capital] captured Rs{value:.2f} for {today}")
-    return value
 
 
 def _real_loss_budget(conn) -> dict:

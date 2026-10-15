@@ -31,12 +31,22 @@ def test_day_open_capital_captures_once_and_caches_in_memory():
     main.UPSTASH_REDIS_REST_URL = None
     main.UPSTASH_REDIS_REST_TOKEN = None
     with closing(main.get_db()) as conn:
-        with patch("main.get_scheduler_capital_inr", side_effect=[100000.0, 999999.0]) as mock_cap:
-            first = main._day_open_capital_inr(conn)
-            second = main._day_open_capital_inr(conn)
-            assert first == 100000.0
-            assert second == 100000.0, "must NOT re-capture a fresh (different) value on the same day"
-            assert mock_cap.call_count == 1
+        # 2026-10-15: ratchets UP with added funds, never DOWN with deployment
+        with patch("main.get_scheduler_capital_inr", side_effect=[100000.0, 40000.0, 150000.0]):
+            assert main._day_open_capital_inr(conn) == 100000.0
+            assert main._day_open_capital_inr(conn) == 100000.0, "deployment must not lower the base"
+            assert main._day_open_capital_inr(conn) == 150000.0, "added funds must raise the base"
+
+
+def test_day_open_capital_never_freezes_zero():
+    _fresh_db()
+    _reset_day_open_cache()
+    main.UPSTASH_REDIS_REST_URL = None
+    main.UPSTASH_REDIS_REST_TOKEN = None
+    with closing(main.get_db()) as conn:
+        with patch("main.get_scheduler_capital_inr", side_effect=[0.0, 80000.0]):
+            assert main._day_open_capital_inr(conn) == 0.0
+            assert main._day_open_capital_inr(conn) == 80000.0
 
 
 def test_day_open_capital_prefers_upstash_over_a_fresh_capture():
