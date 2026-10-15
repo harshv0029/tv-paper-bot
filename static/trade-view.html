@@ -1080,13 +1080,13 @@ function renderCategoryScanTable() {
   const cats = Object.keys(by).sort();
   if (!cats.length) { body.innerHTML = '<div class="scan-idle">No wired viable strategies</div>'; return; }
   const n = v => (v === null || v === undefined) ? "—" : v;
-  body.innerHTML = '<table class="counts"><thead><tr><th class="num">Sr no</th><th>Category</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Category total scans today</th><th class="num">Scans last 30s</th><th class="num">Triggers fired</th><th class="num">Orders placed</th><th class="num">Win rate today</th></tr></thead><tbody>' +
+  body.innerHTML = '<table class="counts"><thead><tr><th class="num">Sr no</th><th>Category</th><th>Strategy</th><th class="num">PFnet</th><th class="num">Strategy total scans today</th><th class="num">Scans last 30s</th><th class="num">Triggers fired</th><th class="num">Orders placed</th><th class="num">Win rate today</th></tr></thead><tbody>' +
     cats.map((c, i) => {
-      const rows = by[c], total = rows.reduce((t, r) => t + (r.scans_today || 0), 0);
+      const rows = by[c];
       return rows.map((r, j) => {
         const f = fun[r.strategy_tag] || {};
         const wr = r.win_rate_today_pct != null ? fmt(r.win_rate_today_pct, 1) + "%" : '<span class="meta">none closed</span>';
-        return `<tr>${j === 0 ? `<td class="num" rowspan="${rows.length}">${i + 1}</td><td rowspan="${rows.length}"><b>${esc(names[c] || c)}</b><br><span class="meta">${rows.length} strategies</span></td>` : ""}<td class="sym">${esc(r.strategy_tag)}</td><td class="num">${fmt(r.pfnet, 3)}</td>${j === 0 ? `<td class="num" rowspan="${rows.length}">${total}</td>` : ""}<td class="num">${n(r.scans_last_30s)}</td><td class="num">${n(f.fired)}</td><td class="num">${n(f.placed)}</td><td class="num">${wr}</td></tr>`;
+        return `<tr>${j === 0 ? `<td class="num" rowspan="${rows.length}">${i + 1}</td><td rowspan="${rows.length}"><b>${esc(names[c] || c)}</b><br><span class="meta">${rows.length} strategies</span></td>` : ""}<td class="sym">${esc(r.strategy_tag)}</td><td class="num">${fmt(r.pfnet, 3)}</td><td class="num">${n(r.scans_today)}</td><td class="num">${n(r.scans_last_30s)}</td><td class="num">${n(f.fired)}</td><td class="num">${n(f.placed)}</td><td class="num">${wr}</td></tr>`;
       }).join("");
     }).join("") + '</tbody></table>';
 }
