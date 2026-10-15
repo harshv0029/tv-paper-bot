@@ -20353,6 +20353,73 @@ def _record_symbol_strategy_scan(tag: str):
             _symbol_strategy_scans.clear()
             _symbol_strategy_scans_day = today_str
         _symbol_strategy_scans.setdefault(sym, set()).add(tag)
+        _symbol_scans_kick_sync()
+    except Exception:
+        pass
+
+
+# B-1278 (2026-10-15): the per-symbol tested set was memory-only, so every Render restart reset "tested today" to 0
+# (2026-10-06 no-state-on-ephemeral-disk rule). Mirror it to Upstash as one JSON blob {day, scans:{sym:[tags]}}:
+# hydrated (union-merged, same IST day only) once per process, pushed at most every _SYMBOL_SCANS_SYNC_SEC from a
+# daemon thread so scan loops never wait on the network.
+_SYMBOL_SCANS_REDIS_KEY = "tv_paper_bot:symbol_strategy_scans:v1"
+_SYMBOL_SCANS_SYNC_SEC = 60
+_symbol_scans_hydrated = False
+_symbol_scans_last_sync = 0.0
+_symbol_scans_sync_lock = threading.Lock()
+
+
+def _symbol_scans_hydrate_now() -> bool:
+    """Merge today's persisted scan sets into memory. True iff Upstash was reached."""
+    global _symbol_strategy_scans_day
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return False
+    raw = _upstash_get(_SYMBOL_SCANS_REDIS_KEY)
+    today_str = ist_now().strftime("%Y-%m-%d")
+    if raw:
+        saved = json.loads(raw)
+        if saved.get("day") == today_str:
+            if _symbol_strategy_scans_day != today_str:
+                _symbol_strategy_scans.clear()
+                _symbol_strategy_scans_day = today_str
+            for sym, tags in (saved.get("scans") or {}).items():
+                _symbol_strategy_scans.setdefault(sym, set()).update(tags)
+    return True
+
+
+def _symbol_scans_push_now() -> None:
+    today_str = ist_now().strftime("%Y-%m-%d")
+    snap = {s: sorted(t) for s, t in list(_symbol_strategy_scans.items())}
+    _upstash_set(_SYMBOL_SCANS_REDIS_KEY, json.dumps({"day": today_str, "scans": snap}))
+
+
+def _symbol_scans_sync_worker() -> None:
+    global _symbol_scans_hydrated
+    try:
+        if not _symbol_scans_hydrated:
+            if _symbol_scans_hydrate_now():
+                _symbol_scans_hydrated = True
+        if _symbol_scans_hydrated:  # never overwrite the remote copy before restoring from it
+            _symbol_scans_push_now()
+    except Exception as e:
+        print(f"[symbol_scans] sync failed (non-fatal): {e}")
+    finally:
+        _symbol_scans_sync_lock.release()
+
+
+def _symbol_scans_kick_sync(force: bool = False) -> None:
+    """Throttled, non-blocking background hydrate+push. Never raises."""
+    global _symbol_scans_last_sync
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            return
+        now = time.time()
+        if not force and now - _symbol_scans_last_sync < _SYMBOL_SCANS_SYNC_SEC:
+            return
+        if not _symbol_scans_sync_lock.acquire(blocking=False):
+            return
+        _symbol_scans_last_sync = now
+        threading.Thread(target=_symbol_scans_sync_worker, daemon=True).start()
     except Exception:
         pass
 
@@ -24987,6 +25054,10 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         cfg["symbol"] for cfg in WATCHLIST
     } | {f"{u}:OPT" for u in OPTIONS_ELIGIBLE_SYMBOLS}
     check_counts_today_rows = []
+    try:  # B-1278: denominator for "x of N strategies tested" (wired viable tags; no per-symbol filter yet)
+        _wired_viable_n = sum(1 for t in _STRATEGY_TAG_TO_REGISTRY_NAME if _is_strategy_viable_for_real_money(t))
+    except Exception:
+        _wired_viable_n = None
     for k in all_keys:
         asset_class, data_source, mcx_proxy_for = _asset_class_and_source(k)
         check_counts_today_rows.append({
@@ -24999,6 +25070,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
             ),
             "last_checked_at_utc": _scheduler_last_results.get(k, {}).get("checked_at_utc"),
             "last_strategies_tested": (_symbol_strategies_tested_today(k) or _scheduler_last_visit_strategies.get(k)),
+            "strategies_applicable": _wired_viable_n,
             "asset_class": asset_class,
             "data_source": data_source,
             "mcx_proxy_for": mcx_proxy_for,
