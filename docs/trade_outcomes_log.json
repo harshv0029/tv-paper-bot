@@ -2317,5 +2317,61 @@
     "rr_target": 3.0,
     "rr_achieved": -0.24,
     "strategy": "orb-15m-sma9-21"
+  },
+  {
+    "symbol": "VBL.NS",
+    "exit_time_utc": 1792127030.9374373,
+    "entry_price_native": null,
+    "exit_price_native": 427.6000061035156,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": -12.95,
+    "pnl_pct_of_capital": -0.003,
+    "exit_reason": "trail_stop_hit",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
+  },
+  {
+    "symbol": "ADANIENSOL.NS",
+    "exit_time_utc": 1792127118.2131872,
+    "entry_price_native": 1358.5999755859375,
+    "exit_price_native": 1377.5999755859375,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 19.0,
+    "pnl_pct_of_capital": 0.005,
+    "exit_reason": "staged_leg_T1",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "ADANIENSOL.NS",
+    "exit_time_utc": 1792127522.7002215,
+    "entry_price_native": 1358.5999755859375,
+    "exit_price_native": 1370.8,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 12.2,
+    "pnl_pct_of_capital": 0.003,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": 1.44,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "NESTLEIND.NS",
+    "exit_time_utc": 1792134685.0960076,
+    "entry_price_native": 1253.0999755859375,
+    "exit_price_native": 1264.5999755859375,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 11.5,
+    "pnl_pct_of_capital": 0.003,
+    "exit_reason": "partial_exit_reallocated",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-universal-score"
   }
 ]
