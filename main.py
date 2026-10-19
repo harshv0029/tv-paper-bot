@@ -26667,6 +26667,62 @@ def kotak_neo_heal_swing_holding_sl(request: Request, kotak_trading_symbol: str 
     return _kotak_json_safe(_heal_swing_holding_core(kotak_trading_symbol, held, order_rows, strategy))
 
 
+B967_TEST_MAX_LTP = 200.0   # B-967: 1-share test only, cheap stocks
+B967_TEST_SL_PCT = 0.05     # resting BUY-SL this far above the short fill
+
+
+def _b967_log(symbol: str, leg: str, event: str, trdsym: str, order_id, detail: str, reason: str):
+    try:
+        with closing(get_db()) as conn:
+            _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=trdsym, order_id=order_id,
+                                  new_state="B-967 overnight NRML short test", detail=(detail or "")[:200] or None, reason=reason)
+            conn.commit()
+    except Exception:
+        pass
+
+
+@app.post("/kotak-neo/b967-short-test")
+def kotak_neo_b967_short_test(request: Request, action: str, kotak_trading_symbol: str, ltp: float = 0.0,
+                              product: str = "NRML"):
+    """B-967 (user go 2026-10-19): ONE-share overnight equity short test, to learn
+    whether Kotak lets an NRML equity short survive past 15:15 IST. Token-gated;
+    qty is fixed at 1, ltp must be <= B967_TEST_MAX_LTP, symbol must be NSE -EQ.
+    action=enter: SELL 1 at market, then a resting BUY-SL 5% above the fill; if the
+    SL cannot be placed the short is covered at once (no trade without SL).
+    action=cover: cancel the resting SL, then BUY 1 to cover. Never touches the
+    SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED flag; that flips only on evidence."""
+    _require_kotak_token(request)
+    import kotak_real_orders as kro
+    if action not in ("enter", "cover") or not kotak_trading_symbol.endswith("-EQ"):
+        return {"error": "action must be enter|cover and symbol an NSE -EQ trading symbol - nothing placed"}
+    if product not in ("NRML", "MIS", "CNC"):
+        return {"error": "bad product - nothing placed"}
+    sym = kotak_trading_symbol[:-3] + ".NS"
+    if action == "cover":
+        c = kro.cancel_existing_resting_sl_short(kotak_trading_symbol)
+        r = kro.place_real_short_cover(kotak_trading_symbol, 1, product=product)
+        _b967_log(sym, "exit", "placed" if r.get("ok") else "failed", kotak_trading_symbol, r.get("order_id"),
+                  str(r.get("detail") or ""), "B-967 test: covering the 1-share overnight short after the next-morning check")
+        return _kotak_json_safe({"action": "cover", "sl_cancel": c, "cover": r})
+    if not (0 < ltp <= B967_TEST_MAX_LTP):
+        return {"error": f"ltp must be in (0, {B967_TEST_MAX_LTP}] - nothing placed"}
+    e = kro.place_real_short_entry(kotak_trading_symbol, 1, ltp, product=product)
+    _b967_log(sym, "entry", "placed" if e.get("ok") else "failed", kotak_trading_symbol, e.get("order_id"),
+              str(e.get("detail") or ""), f"B-967 test: 1-share {product} equity short to see if it survives past 15:15 IST")
+    if not e.get("ok"):
+        return _kotak_json_safe({"action": "enter", "entry": e, "sl": None, "note": "entry rejected; nothing open"})
+    fill = float(e.get("fill_price") or ltp)
+    sl = kro.place_real_short_stop_loss(kotak_trading_symbol, 1, round(fill * (1 + B967_TEST_SL_PCT), 2), product=product)
+    _b967_log(sym, "sl", "placed" if sl.get("ok") else "failed", kotak_trading_symbol, sl.get("order_id"),
+              str(sl.get("detail") or ""), f"B-967 test: resting BUY-SL {B967_TEST_SL_PCT:.0%} above the fill (no trade without SL)")
+    cover = None
+    if not sl.get("ok"):
+        cover = kro.place_real_short_cover(kotak_trading_symbol, 1, product=product)
+        _b967_log(sym, "exit", "placed" if cover.get("ok") else "failed", kotak_trading_symbol, cover.get("order_id"),
+                  str(cover.get("detail") or ""), "B-967 test: SL could not be placed, so the short is unwound at once")
+    return _kotak_json_safe({"action": "enter", "entry": e, "sl": sl, "unwound": cover})
+
+
 @app.get("/kotak-neo/order-report")
 def kotak_neo_order_report(request: Request, order_id: str | None = None):
     """The real account's order book (or a single order, if order_id is
