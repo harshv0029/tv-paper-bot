@@ -1529,7 +1529,12 @@ def history(symbol: str, period: str = "6mo", interval: str = "1d"):
     interval - "1d","1h","30m","15m","5m" (intraday intervals only return
                 recent history - Yahoo limits how far back intraday data goes)
     """
-    df = yf.download(symbol, period=period, interval=interval, progress=False)
+    _resample_4h = interval == "4h"  # B-1281: yfinance has no 4h; build it from 1h bars
+    df = yf.download(symbol, period=period, interval="1h" if _resample_4h else interval, progress=False)
+    if _resample_4h and not df.empty:
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        df = df.resample("4h").agg({"Open": "first", "High": "max", "Low": "min", "Close": "last", "Volume": "sum"}).dropna(subset=["Close"])
 
     if df.empty and interval.endswith(("m", "h")) and period in ("1d", "2d"):
         # "fetch failed: 404" root cause (user 2026-10-11): period=1d intraday is EMPTY whenever there is no session
@@ -5480,13 +5485,13 @@ def _swingminrr_try_entry(conn, symbol, df, capital, risk_pct, today, fx, rs_per
     PFnet is below the floor is skipped (falls through to the existing VCP path). Paper row + trades row + real
     mirror (SL placed with the entry; PFnet gate inside) follow the island/brk20 pattern."""
     for tag in SWINGMINRR_TAGS:
-        if tag == SWINGMINRR_BASE_TAG and _is_strategy_viable_for_real_money("minervini_vcp_be3r", check_switch=False):
+        if tag == SWINGMINRR_BASE_TAG and _is_strategy_wired("minervini_vcp_be3r"):
             continue  # the existing, viable be3r path keeps ungated VCP signals; base only replaces it if be3r is closed
         _record_strategy_scan(tag)
         sig = swingminrr_vcp_entry_signal(df, tag, rs_percentile=rs_percentile)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -5600,7 +5605,7 @@ def _gapfade_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
         sig = gapfade_long_entry_signal(df, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -5789,7 +5794,7 @@ def _chan_shape_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> boo
         sig = chan_shape_long_entry_signal(df, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -5979,7 +5984,7 @@ def _pl1d_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
         sig = pl1d_long_entry_signal(df, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -6676,7 +6681,7 @@ def _oneil_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bo
         sig = oneil_swing_entry_signal(df, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         # a stop-out inside the 2-session window must not re-enter the same week's signal
@@ -11416,7 +11421,7 @@ def _auto_signal_core(
             MIN_TRADE_NOTIONAL_INR = 100.0
             if qty <= 0 or qty * notional_per_unit_inr < MIN_TRADE_NOTIONAL_INR:
                 result["action_taken"] = (
-                    "insufficient_capital" if available_capital_inr < notional_per_unit_inr
+                    "insufficient_capital" if usable_capital_inr_for_msg(available_capital_inr, notional_per_unit_inr, MIN_TRADE_NOTIONAL_INR)
                     else "budget_too_small_for_1_unit"
                 )
                 result["available_capital_inr"] = round(available_capital_inr, 2)
@@ -11509,7 +11514,7 @@ CHAN_SHORT_Z = 2.0
 CHAN_SHORT_VE = 1e-3
 CHAN_SHORT_ATR_MULT = 4.0
 CHAN_SHORT_HOLD_BARS = 40
-# B-918: the other viable 5m band_mr short v2 cells (real-main.py replay 38390561217, 0.8% cost; PFnet >= 1.1) are the SAME
+# B-918: the other viable 5m band_mr short v2 cells (real-main.py replay 38390561217, 0.8% cost; PFnet >= the floor then (1.1; now 1.0, see PFNET_LIVE_FLOOR)) are the SAME
 # live code with different (atr, ve, z) config. Cascade order: the already-live cell first, then the rest by PFnet per
 # hold-hour; the first VIABLE cell whose signal fires opens (one short row per symbol), so a cell that shares its signal
 # with an earlier one is a fallback for when that one's registry gate closes. ve 1e-4 cells are NOT wired (the backlog
@@ -12373,7 +12378,7 @@ def _short_signal_core(
         MIN_TRADE_NOTIONAL_INR = 100.0
         if qty <= 0 or qty * notional_per_unit_inr < MIN_TRADE_NOTIONAL_INR:
             result["action_taken"] = (
-                "insufficient_capital" if available_capital_inr < notional_per_unit_inr
+                "insufficient_capital" if usable_capital_inr_for_msg(available_capital_inr, notional_per_unit_inr, MIN_TRADE_NOTIONAL_INR)
                 else "budget_too_small_for_1_unit"
             )
             result["available_capital_inr"] = round(available_capital_inr, 2)
@@ -13354,6 +13359,20 @@ def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: b
     return strat.is_viable() is True
 
 
+def _is_strategy_wired(strategy_tag: str | None) -> bool:
+    """B-1284: scan-side wiring (paper signals, scan counts, 'Wired' labels). Wired = registry PFnet >= floor and hold
+    <= 30 trading days, OR already in the explorer stack. Real entry still needs _is_strategy_viable_for_real_money
+    (explorer stack + switch). Replay-owed tags stay closed."""
+    if _is_strategy_viable_for_real_money(strategy_tag, check_switch=False):
+        return True
+    registry_name = _STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy_tag or "")
+    if not registry_name or strategy_tag in REPLAY_OWED_TAGS:
+        return False
+    import strategy_registry as sr
+    strat = next((x for x in sr.REGISTRY if x.name == registry_name), None)
+    return bool(strat is not None and strat.is_wired())
+
+
 _STACK_LABEL_RE = re.compile(r"^pfnet\(\s*([0-9.]+)\s*-\s*([0-9.]+)\s*\)\s*,\s*min\(\s*([0-9]+)\s*\)\s*,\s*maxhold\(\s*([0-9.]+|any)\s*\)")
 
 
@@ -13620,6 +13639,15 @@ def _is_t1_restricted(conn, symbol: str) -> bool:
     ).fetchone() is not None
 
 
+def _holding_strategy(trd_sym):
+    """B-1282: recovered strategy for a Kotak delivery holding with no tracked row; never blank."""
+    try:
+        with closing(get_db()) as _c:
+            return _recover_strategy_for_untracked_position(_c, trd_sym, "B") or "kotak_untracked"
+    except Exception:
+        return "kotak_untracked"
+
+
 def _recover_strategy_for_untracked_position(conn, kotak_trading_symbol: str, side: str) -> str | None:
     """Best-effort recovery of which strategy actually placed a Kotak
     position this app no longer has a real_positions/real_positions_short
@@ -13671,6 +13699,12 @@ def _recover_strategy_for_untracked_position(conn, kotak_trading_symbol: str, si
             ).fetchone()
             if r2 and r2["strategy"]:
                 return r2["strategy"]
+            r3 = conn.execute(
+                "SELECT strategy FROM real_positions_swing WHERE UPPER(symbol) IN (?, ?) AND strategy IS NOT NULL LIMIT 1",
+                (base + ".NS", base),
+            ).fetchone()
+            if r3 and r3["strategy"]:
+                return r3["strategy"]
     except Exception:
         pass
     return None
@@ -13905,8 +13939,8 @@ def _maybe_place_real_short_entry(conn, symbol: str):
     strategy_tag = paper_row["strategy"] if paper_row else None
     if not _is_strategy_viable_for_real_money(strategy_tag):
         _log_real_attempt(
-            conn, symbol, "S", "skipped_strategy_not_viable",
-            detail=f"strategy {strategy_tag!r} does not clear the PFnet >= 1 real-money floor "
+            conn, symbol, "S", "skipped_strategy_not_viable", strategy=strategy_tag,
+            detail=f"strategy {strategy_tag!r} not viable per the current explorer definition (or ALL TRADING switch off, or no validated metrics) "
                    "(or has no validated metrics) - see strategy_registry.py",
         )
         _log_signal_shadow(conn, strategy_tag if 0<2 else strategy, symbol, 'short', False, 'real entry: strategy below PFnet floor', hard_gate=True)
@@ -14170,8 +14204,9 @@ def _maybe_place_real_entry(conn, symbol: str):
     # symbol currently uses) is below the floor, so this blocks new real
     # long entries today - existing open real positions are untouched.
     strategy_tag = paper_row["strategy"] if paper_row else None
+    _lra_tag = functools.partial(_log_real_attempt, strategy=strategy_tag)  # B-1285: tag skipped attempts with the strategy
     if not _is_strategy_viable_for_real_money(strategy_tag):
-        _log_real_attempt(
+        _lra_tag(
             conn, symbol, "B", "skipped_strategy_not_viable",
             detail=f"strategy {strategy_tag!r} does not clear the PFnet >= 1 real-money floor "
                    "(or has no validated metrics) - see strategy_registry.py",
@@ -14182,14 +14217,14 @@ def _maybe_place_real_entry(conn, symbol: str):
     if strategy_tag in CHAN_GAP_LONG_CELLS:
         _n = ist_now()
         if _n.hour * 60 + _n.minute >= CHAN_GAP_ENTRY_CUTOFF_MIN + 15:
-            _log_real_attempt(conn, symbol, "B", "skipped_after_entry_cutoff",
+            _lra_tag(conn, symbol, "B", "skipped_after_entry_cutoff",
                               detail="chan_gap buy-on-gap: no new real entries after 10:30 IST (research enters at the open)")
             return
 
     if strategy_tag in CHAN_LONG_CELLS:
         _n = ist_now()
         if _n.hour * 60 + _n.minute >= CHAN_LONG_ENTRY_CUTOFF_MIN:
-            _log_real_attempt(conn, symbol, "B", "skipped_after_entry_cutoff",
+            _lra_tag(conn, symbol, "B", "skipped_after_entry_cutoff",
                               detail="chan_kalman long: no new real entries from 15:00 IST (flatten at 15:10)")
             return
 
@@ -14200,7 +14235,7 @@ def _maybe_place_real_entry(conn, symbol: str):
     max_by_capital = math.floor(real_capital_for_sizing / ltp) if ltp > 0 else 0
     qty = int(min(paper_qty, max_by_cap, max_by_capital))
     if qty <= 0:
-        _log_real_attempt(
+        _lra_tag(
             conn, symbol, "B", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
             price_est=ltp,
             detail=f"paper qty {paper_qty}, 1 share = Rs{ltp:.2f} - capped to 0 by "
@@ -14220,13 +14255,13 @@ def _maybe_place_real_entry(conn, symbol: str):
     # than trading blind.
     loss_check = _real_loss_budget(conn)
     if loss_check["real_pnl_today"] is None:
-        _log_real_attempt(
+        _lra_tag(
             conn, symbol, "B", "skipped_real_pnl_unknown", kotak_trading_symbol=kotak_symbol,
             price_est=ltp, detail=loss_check["detail"],
         )
         return
     if not loss_check["ok"]:
-        _log_real_attempt(
+        _lra_tag(
             conn, symbol, "B", "skipped_real_daily_loss_cap_hit", kotak_trading_symbol=kotak_symbol,
             price_est=ltp, detail=loss_check["detail"],
         )
@@ -14235,7 +14270,7 @@ def _maybe_place_real_entry(conn, symbol: str):
     # B-960: re-read the viable stack fresh immediately before the order (it may have changed since the checks above).
     _load_viable_overrides()
     if not _is_strategy_viable_for_real_money(strategy_tag):
-        _log_real_attempt(conn, symbol, "B", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
+        _lra_tag(conn, symbol, "B", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
                           detail=f"strategy {strategy_tag!r} no longer viable on the fresh stack re-check just before the order")
         return
 
@@ -16780,8 +16815,7 @@ def _run_mcx_daily_scan(conn, force: bool = False):
     today = t.strftime("%Y-%m-%d")
     if not force and (t.weekday() >= 5 or not ((9, 20) <= (t.hour, t.minute) < (23, 0))):
         return
-    if not _switch_allows_entries(conn):
-        return  # ALL TRADING OFF: no new MCX entries
+    _entries_ok = _switch_allows_entries(conn)  # B-1282: scanning is counted even when trading is OFF; only entries are gated
     if not _MCX_DAILY_CELLS:
         return
     if force:
@@ -16807,7 +16841,7 @@ def _run_mcx_daily_scan(conn, force: bool = False):
             own = f"single_leg_mcx_{tag}"  # each cell exits only the leg it opened
             if row is not None and str(row["strategy_tag"]) == own and not on:
                 _close_real_fo_option_leg(conn, row, f"{tag}: daily signal dropped, exit")
-            elif fresh and row is None and _mcx_cell_entry_day.get(tag) != today:
+            elif fresh and row is None and _entries_ok and _mcx_cell_entry_day.get(tag) != today:
                 spot = _mcx_inr_spot(fo_u) if fo_u else None
                 if spot is None:
                     _log_real_fo_attempt(conn, f"{fo_u}:{right.upper()}", "B", "skipped_no_inr_spot", detail=f"strategy_tag={tag}")
@@ -16816,6 +16850,10 @@ def _run_mcx_daily_scan(conn, force: bool = False):
                 _maybe_place_real_fo_option_entry(conn, sym, spot, tag, right, tag_col=own)
         except Exception as e:
             print(f"[MCX DAILY] {tag} failed (non-fatal): {e}")
+    try:
+        _persist_strategy_scan_counts(conn)  # B-1282: MCX counts survive a restart
+    except Exception:
+        pass
 
 
 def _run_fo_strike_setup_scan(conn):
@@ -17798,7 +17836,7 @@ def _banner_extras() -> dict:
         pass
     try:
         wired = [t for t in _STRATEGY_TAG_TO_REGISTRY_NAME]
-        open_n = sum(1 for t in wired if _is_strategy_viable_for_real_money(t, check_switch=False))
+        open_n = sum(1 for t in wired if _is_strategy_wired(t))
         out["wired_strategies"] = len(wired)
         out["wired_gate_open"] = open_n
         out["wired_gate_closed"] = len(wired) - open_n
@@ -18553,8 +18591,16 @@ def get_real_open_positions():
         unrealized_pnl_pct = (
             round(100 * unrealized_pnl_inr / invested_inr, 3) if unrealized_pnl_inr is not None and invested_inr else None
         )
+        _sw_strategy = r.get("strategy")
+        if not _sw_strategy:  # B-1282: NULL tag after restart/adopt must never render blank
+            try:
+                with closing(get_db()) as _sc:
+                    _sw_strategy = _recover_strategy_for_untracked_position(_sc, r["kotak_trading_symbol"], "B")
+            except Exception:
+                _sw_strategy = None
         result.append({
             **r,
+            "strategy": _sw_strategy or "swing (tag not recovered)",
             "current_price": current_price,
             "invested_inr": invested_inr,
             "unrealized_pnl_inr": unrealized_pnl_inr,
@@ -18703,7 +18749,7 @@ def get_real_open_positions():
                 "target_order_id": None, "target_price": None,
                 "current_price": current_price, "invested_inr": invested, "unrealized_pnl_inr": pnl,
                 "unrealized_pnl_pct": round(100 * pnl / invested, 3) if pnl is not None and invested else None,
-                "strategy": None, "target_status": "not_bot_managed",
+                "strategy": _holding_strategy(trd_sym), "target_status": "not_bot_managed",
                 "target_status_detail": "delivery holding at Kotak with no tracked row in this app",
                 "source": "kotak_holding", "side": "long",
             })
@@ -20332,6 +20378,12 @@ def _scan_visit_items(items):
             _current_scan_symbol.set(None)
         except Exception:
             pass
+
+
+def usable_capital_inr_for_msg(available, unit_notional, min_notional):
+    """B-1282: True when the free capital pool cannot cover even the Rs-100 dust floor (or one unit); the old
+    check only compared against one unit's price, so Rs 33 free vs Rs 11 unit printed 'budget too small for 1 unit'."""
+    return available < max(unit_notional, min_notional)
 
 
 def _symbol_strategies_tested_today(symbol: str) -> int:
@@ -22181,7 +22233,7 @@ def _month_effect_short_try_entry(conn, symbol, df15, capital, risk_pct, today, 
         sig = month_effect_short_entry_signal(sig_df, atr_mult)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         stop_loss = month_effect_short_stop(entry_price, sig["atr"], atr_mult)
@@ -22269,7 +22321,7 @@ def _sector_fade_short_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
     entry_price = float(df["Close"].iloc[-1])
     for tag, (atr_mult, _hold) in SECTOR_FADE_SHORT_CELLS.items():
         _record_strategy_scan(tag)
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # picked (trigger), gate closed now: no position opened
             continue
         stop_loss = sector_rotation_fade_short_stop(entry_price, atr_v, atr_mult)
@@ -22476,7 +22528,7 @@ def _tasuki_short_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> s
     atr_v = _compute_atr_value(df, 14)
     entry_price = float(df["Close"].iloc[-1])
     cells = list(TASUKI_SHORT_CELLS.items())
-    viable = [c for c in cells if _is_strategy_viable_for_real_money(c[0], check_switch=False)]
+    viable = [c for c in cells if _is_strategy_wired(c[0])]
     for tag, atr_mult in (viable or cells[:1]):
         stop_loss = tasuki_short_stop(entry_price, atr_v, atr_mult)
         if stop_loss is None or stop_loss <= entry_price:
@@ -22600,7 +22652,7 @@ def _swingminrr_gate_short_try_entry(conn, symbol, df1h, capital, risk_pct, toda
     if qty <= 0:
         return None
     # first VIABLE cell owns the symbol (one row per symbol); none viable (replay owed) -> the gate cell, as before B-985
-    tag = next((t for t in SWINGMINRR_SHORT_1H_CELLS if _is_strategy_viable_for_real_money(t, check_switch=False)),
+    tag = next((t for t in SWINGMINRR_SHORT_1H_CELLS if _is_strategy_wired(t)),
                SWINGMINRR_GATE_SHORT_1H_TAG)
     conn.execute(
         "INSERT INTO signal_state_swing_short (symbol, strategy, entry_day, entry_price, initial_stop_loss, qty, "
@@ -22697,7 +22749,7 @@ def _macddiv_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) ->
         sig = macddiv_long_cell_signal(df1h, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -22776,7 +22828,7 @@ def _envelope_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) -
         sig = envelope_fade_entry_signal(df1h, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -22809,7 +22861,7 @@ def _envelope_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) -
 
 # ---- B-1266: cup 3C cheat LONG 1h in the SWING engine's 1h leg (main.py-calling full-universe replay, run 38553281449) ------
 # Wired = every cup cell with replay PFnet >= 1 (WIRING_THUMB_RULES): atr2d5_h30 (1.0071, n 3121), atr6_h30 (1.0011, n 3061).
-# Scanned every pass; _is_strategy_viable_for_real_money (floor 1.1) is checked only when a trigger fires, so both currently
+# Scanned every pass; _is_strategy_viable_for_real_money (floor PFNET_LIVE_FLOOR) is checked only when a trigger fires, so both currently
 # count blocked triggers and open no real position. Stop (entry - k x ATR14) always attached; no new kill switch.
 CUP_CHEAT_LONG_LIVE_CELLS = tuple(t for t in (
     "base__cup_cheat_3c__long__1h__atr2d5_h30__v1",
@@ -22849,7 +22901,7 @@ def _cup_cheat_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) 
         sig = cup_cheat_3c_entry_signal(df1h, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -24235,10 +24287,10 @@ def _fo_tick_steps():
     Each step is isolated so one failure/slow step cannot skip the others."""
     real_on = is_real_fo_trading_enabled()
     steps = [_maybe_sync_real_fo_option_stop_losses] if real_on else []
+    steps.append(_run_mcx_daily_scan)  # B-1282: first, so the slow strike scan can never starve it (futures counted 1 scan/day); entries gated inside
     steps.append(_run_fo_strike_setup_scan)
     if real_on:
         steps += [_run_index_swing_option_scan]
-    steps.append(_run_mcx_daily_scan)  # monitoring scan runs regardless; its entries are gated inside
     for fn in steps:
         try:
             with closing(get_db()) as c:
@@ -25079,9 +25131,11 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     } | {f"{u}:OPT" for u in OPTIONS_ELIGIBLE_SYMBOLS}
     check_counts_today_rows = []
     try:  # B-1278: denominator for "x of N strategies tested" (wired viable tags; no per-symbol filter yet)
-        _wired_viable_n = sum(1 for t in _STRATEGY_TAG_TO_REGISTRY_NAME if _is_strategy_viable_for_real_money(t))
+        _viable_tags = {t for t in _STRATEGY_TAG_TO_REGISTRY_NAME if _is_strategy_viable_for_real_money(t)}
+        _wired_viable_n = len(_viable_tags)
     except Exception:
-        _wired_viable_n = None
+        _viable_tags, _wired_viable_n = set(), None
+    _today_ist = ist_now().strftime("%Y-%m-%d")
     for k in all_keys:
         asset_class, data_source, mcx_proxy_for = _asset_class_and_source(k)
         check_counts_today_rows.append({
@@ -25093,7 +25147,10 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
                 or _scheduler_last_results.get(k, {}).get("status")
             ),
             "last_checked_at_utc": _scheduler_last_results.get(k, {}).get("checked_at_utc"),
-            "last_strategies_tested": (_symbol_strategies_tested_today(k) or _scheduler_last_visit_strategies.get(k)),
+            "last_strategies_tested": (
+                (len(_symbol_strategy_scans.get(k, set()) & _viable_tags) if _viable_tags else None)
+                or (min(_scheduler_last_visit_strategies.get(k) or 0, _wired_viable_n or 0) or None)
+            ),  # B-1282: x counts only tags inside the same N set, so x <= N always
             "strategies_applicable": _wired_viable_n,
             "asset_class": asset_class,
             "data_source": data_source,
@@ -25323,10 +25380,24 @@ def _viable_stack_rows(c, full: bool = False) -> list:
     return rows
 
 
+def _ensure_viable_stack_hydrated():
+    """B-1282: after a Render restart the stack table can be empty until the Upstash restore lands; when it is, try the
+    restore now (idempotent: the generic hydrate skips tables that already hold rows) so the explorer / entry gate never
+    silently fall back to the PFnet floor."""
+    try:
+        with closing(get_db()) as _c:
+            _n = _c.execute("SELECT COUNT(*) FROM strategy_viable_stack").fetchone()[0]
+        if _n == 0:
+            hydrate_generic_tables_from_external()
+    except Exception as e:  # noqa: BLE001
+        print(f"[VIABLE-STACK] hydrate retry failed: {e}")
+
+
 @app.get("/strategy-viable-stack")
 def strategy_viable_stack_get(full: int = 0):
     """Viable-definition stack (user 2026-10-13), newest first; index 0 is the active definition.
     full=1 adds the strategy names + IST timestamp (used by the 5-min git sync, docs/viable_stack.json)."""
+    _ensure_viable_stack_hydrated()
     _load_viable_overrides()
     with closing(get_db()) as c:
         return {"size": VIABLE_STACK_SIZE, "stack": _viable_stack_rows(c, bool(full))}
@@ -25402,7 +25473,7 @@ def entry_funnel():
     def _srow(c, tag):
         return out[c]["_strats"].setdefault(str(tag), {
             "strategy": str(tag), "scans": 0, "fired": 0, "placed": 0, "blocked": 0,
-            "attempts": 0, "symbols_fired": 0, "skip_reasons": {}})
+            "attempts": 0, "failed": 0, "symbols_fired": 0, "skip_reasons": {}})
     try:
         # "viable_strategies" below counts only strategies WIRED into a live scan;
         # "viable_in_stack" is the explorer-stack count the buckets endpoint shows (B-910).
@@ -25452,15 +25523,21 @@ def entry_funnel():
             _r["symbols_fired"] += syms
             if str(status).startswith("skipped"):
                 _r["skip_reasons"][str(status)] = _r["skip_reasons"].get(str(status), 0) + n
-            if str(status).startswith(("placed", "filled", "ok")):
+            _is_placed = str(status) in ("confirmed", "placed", "filled", "ok") or str(status).startswith(("placed", "filled", "ok"))
+            if _is_placed and not (c == "short_sell" and side == "B"):  # B-1282: a real order logs 'confirmed'; a short's cover (side B) is not an entry
                 _r["placed"] += n
             elif str(status).startswith("skipped"):
                 _r["blocked"] += n
-            key = "placed" if str(status).startswith(("placed", "filled", "ok")) else (
+            key = "placed" if (_is_placed and not (c == "short_sell" and side == "B")) else (
                 "blocked" if str(status).startswith("skipped") else None)
             if key:
                 o[key] += n
+            elif not _is_placed:  # B-1285: rejected/errored attempts were counted nowhere
+                _r["failed"] += n
+                o["failed"] = o.get("failed", 0) + n
     for c, o in out.items():
+        o.setdefault("failed", 0)
+        o["attempts_total"] = o["placed"] + o["blocked"] + o["failed"]
         o["strategies_fired"] = len(o.pop("_fired"))
         _all = sorted(o.pop("_strats").values(), key=lambda r: r["strategy"])
         o["strategies"] = [r for r in _all if r["fired"] or r["attempts"] or r.get("blocked_triggers")]
@@ -25524,13 +25601,24 @@ _SWING_SL_RULES = {
 def symbol_strategy_coverage(symbol: str):
     """B-1274 stage 1 (read-only, cheap): for one symbol, wired viable (PFnet >= floor) strategy tags vs. the distinct
     tags actually evaluated for it today. 'applicable' is the wired viable tag set (no per-symbol eligibility filter yet)."""
-    wired = sorted(t for t in _STRATEGY_TAG_TO_REGISTRY_NAME if _is_strategy_viable_for_real_money(t))
+    import strategy_registry as sr
+    is_mcx = symbol.endswith("=F") or symbol.upper().startswith("MCX")
+    allowed = ({sr.TradeCategory.FUTURES, sr.TradeCategory.OPTIONS} if is_mcx else
+               {sr.TradeCategory.BUY, sr.TradeCategory.SHORT_SELL, sr.TradeCategory.SWING, sr.TradeCategory.BIDIRECTIONAL})
+    _reg = {d.name: d for d in sr.REGISTRY}
+
+    def _fits(t):
+        d = _reg.get(_STRATEGY_TAG_TO_REGISTRY_NAME[t])
+        return d is None or bool(set(d.categories) & allowed)
+
+    wired = sorted(t for t in _STRATEGY_TAG_TO_REGISTRY_NAME if _is_strategy_viable_for_real_money(t) and _fits(t))
     day_ok = _symbol_strategy_scans_day == ist_now().strftime("%Y-%m-%d")
     tested = sorted(_symbol_strategy_scans.get(symbol, ())) if day_ok else []
     tested_set = set(tested)
     return {
         "symbol": symbol,
         "applicable_wired_viable": len(wired),
+        "categories_considered": sorted(c.value for c in allowed),
         "tested_today": len(tested),
         "tested_tags": tested,
         "viable_not_tested_today": [t for t in wired if t not in tested_set],
@@ -25617,6 +25705,32 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
     except Exception:
         pass
 
+    # B-1282: count REAL (Kotak-confirmed) entries and closes per tag, not only paper trades. First confirmed leg of a
+    # (symbol, tag) today is the entry; an opposite-side confirmed leg closes it (win if pnl > 0).
+    real_closed_wins: dict = {}
+    try:
+        with closing(get_db()) as _c:
+            _rt = _c.execute(
+                "SELECT symbol, side, strategy, qty, price_est FROM real_trades "
+                "WHERE day = ? AND status = 'confirmed' AND strategy IS NOT NULL ORDER BY ts",
+                (now_ist.strftime("%Y-%m-%d"),)).fetchall()
+        _open_legs: dict = {}
+        for _r_ in _rt:
+            _tag, _px, _q = _r_["strategy"], _r_["price_est"], _r_["qty"] or 0
+            _k = (_r_["symbol"], _tag)
+            if _k not in _open_legs:
+                _open_legs[_k] = (_r_["side"], _px, _q)
+                entries_today[_tag] = entries_today.get(_tag, 0) + 1
+            elif _r_["side"] != _open_legs[_k][0] and _px and _open_legs[_k][1]:
+                _s0, _p0, _q0 = _open_legs.pop(_k)
+                _pnl = (_px - _p0) * _q0 if _s0 == "B" else (_p0 - _px) * _q0
+                _w = real_closed_wins.setdefault(_tag, [0, 0])
+                _w[1] += 1
+                if _pnl > 0:
+                    _w[0] += 1
+    except Exception:
+        pass
+
     # win_rate_today_pct (explicit user request 2026-10-05: "win % today
     # under this strategy"): replay every paper trade in ts order keeping a
     # per-symbol average-cost book (same math as daily_summary), tagging each
@@ -25662,6 +25776,11 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
                 w[1] += 1
                 if pnl > 0:
                     w[0] += 1
+
+    for _t, (_wn, _cn) in real_closed_wins.items():
+        _w2 = closed_today.setdefault(_t, [0, 0])
+        _w2[0] += _wn
+        _w2[1] += _cn
 
     # Explicit user standing rule (CLAUDE.md, "different tag name implies
     # a real variation - never silently merge/dedupe distinct tags"): one

@@ -180,6 +180,14 @@ class StrategyDef:
             return self.name in VIABLE_OVERRIDES
         return self.metrics.pfnet >= floor
 
+    def is_wired(self, floor: float = PFNET_LIVE_FLOOR) -> Optional[bool]:
+        """B-1284 (user 2026-10-19): wiring for scanning = PFnet >= floor AND avg hold <= 30 trading days
+        (None hold fails). Independent of the explorer stack, which governs real ENTRY only."""
+        if self.metrics is None:
+            return None
+        m = self.metrics
+        return bool(m.pfnet >= floor and m.avg_held_hrs is not None and m.avg_held_hrs <= 30 * TRADING_HOURS_PER_DAY)
+
 
 # 2026-10-12 user: "quality, not quantity" - the viable TABLES list only strategies with PFnet >= floor, at least
 # QUALITY_MIN_TRADES trades and an average hold of at most QUALITY_MAX_HOLD_HRS (3 trading days of 25h bar time).

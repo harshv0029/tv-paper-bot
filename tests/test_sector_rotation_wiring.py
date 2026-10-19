@@ -100,6 +100,7 @@ def test_entry_writes_row_with_stop_and_blocks_other_open_positions(monkeypatch)
 def test_entry_skipped_when_no_cell_viable(monkeypatch):
     _fresh_db()
     monkeypatch.setattr(main, "_is_strategy_viable_for_real_money", lambda *a, **k: False)
+    monkeypatch.setattr(main, "_is_strategy_wired", lambda *a, **k: False)
     df = _frame(100 + np.arange(60) * 0.1)
     with closing(main.get_db()) as conn:
         assert main._sector_fade_short_try_entry(conn, "ABC.NS", df, 100000.0, 1.0, "2024-03-01", 1.0) is None

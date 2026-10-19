@@ -206,6 +206,7 @@
   .master-toggle input:checked ~ .kt-state{color:var(--up);}
   .master-toggle input:not(:checked) ~ .kt-state{color:var(--down);}
   .log-type{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
+.tf-select{margin-left:8px;background:#121920;color:#9fb0c3;border:1px solid #232d3a;border-radius:4px;font:12px "IBM Plex Mono",monospace;padding:2px 4px}
 </style>
 </head>
 <body>
@@ -364,7 +365,7 @@
   <div style="padding:6px 10px;font-size:.85em;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
     <details id="sx-cat-dd"><summary style="cursor:pointer">Category (<span id="sx-cat-n">all</span>)</summary>
       <div id="sx-cats" style="position:absolute;background:#fff;border:1px solid #cbd5e1;padding:6px;z-index:5"></div></details>
-    <label>PFnet min <input id="sx-pfmin" type="number" step="0.1" value="1.1" style="width:60px"></label>
+    <label>PFnet min <input id="sx-pfmin" type="number" step="0.1" value="1.0" style="width:60px"></label>
     <label>max <input id="sx-pfmax" type="number" step="0.1" placeholder="any" style="width:60px"></label>
     <label>Min sample <input id="sx-minn" type="number" step="1" value="30" style="width:70px"></label>
     <label>Max hold (hrs) <input id="sx-hold" type="number" step="0.25" placeholder="any" style="width:70px"></label>
@@ -415,7 +416,7 @@
     fetch("/strategy-explorer?"+q.toString()).then(function(r){return r.json();}).then(function(d){
       document.getElementById("sx-counts").textContent=d.total+" strategies"+(d.total>d.rows.length?" (showing top "+d.rows.length+")":"");
       sxRows=d.rows; sxRender();
-    }).catch(function(){document.getElementById("sx-body").innerHTML="<tr><td colspan='8' class='scan-idle'>Load failed.</td></tr>";});
+    }).catch(function(){document.getElementById("sx-body").innerHTML="<tr><td colspan='9' class='scan-idle'>Load failed.</td></tr>";});
   }
   function stackUi(st){
     var sel=document.getElementById("sx-stack");
@@ -428,7 +429,7 @@
       .then(function(b){msg.textContent=b.action+" done; "+b.active_count+" strategies active.";stackUi(b.stack);go();})
       .catch(function(e){msg.textContent="Failed: "+e.message;});
   }
-  fetch("/strategy-viable-stack").then(function(r){return r.json();}).then(function(d){stackUi(d.stack);}).catch(function(){});
+  (function loadStack(n){fetch("/strategy-viable-stack").then(function(r){return r.json();}).then(function(d){if(!(d.stack||[]).length&&n<3){return setTimeout(function(){loadStack(n+1);},4000);}stackUi(d.stack);}).catch(function(){});})(0);  // B-1282: retry while Upstash restore is still landing after a restart
   document.getElementById("sx-wire").addEventListener("click",function(){
     var names=[].slice.call(document.querySelectorAll("#sx-body tr")).map(function(tr){return tr.children[1]&&tr.children[1].textContent;}).filter(Boolean);
     if(!names.length){document.getElementById("sx-msg").textContent="Press Show first.";return;}
@@ -449,6 +450,7 @@
     sxSort=(sxSort.key===k)?{key:k,dir:-sxSort.dir}:{key:k,dir:(k==="name"||k==="categories"||k==="timeframe")?1:-1};
     sxRender();});
   document.getElementById("sx-go").addEventListener("click",go);
+  go();  // B-1282: auto-load the explorer table on page load (it used to stay blank until Show was pressed)
 })();
 </script>
 
@@ -531,6 +533,15 @@ function toChartTime(iso) { return Math.floor(new Date(iso).getTime() / 1000); }
 const istTickFormatter = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
 const istFormatter = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
+// B-1281 (user 2026-10-16): every chart gets a candle-size dropdown like TradingView. Choice is per symbol, kept across polls.
+const chartTf = {};
+const TF_PERIOD = { "1m": "1d", "5m": "1d", "15m": "5d", "1h": "1mo", "4h": "3mo", "1d": "6mo" };
+function setChartTf(symbol, tf) { if (tf) chartTf[symbol] = tf; else delete chartTf[symbol]; try { refresh(); } catch (e) {} }
+function tfQuery(symbol, defInterval, defPeriod) {
+  const tf = chartTf[symbol];
+  if (!tf) return `period=${defPeriod}&interval=${encodeURIComponent(defInterval)}`;
+  return `period=${TF_PERIOD[tf]}&interval=${tf}`;
+}
 function ensureCard(symbol, label) {
   if (charts[symbol]) return charts[symbol];
   const container = document.getElementById("cards");
@@ -545,6 +556,10 @@ function ensureCard(symbol, label) {
       <div>
         <div class="sym">${label || symbol}</div>
         <span class="status long" id="status-${symbol}">LONG</span>
+        <select class="tf-select" id="tf-${symbol}" title="Candle size" onchange="setChartTf('${symbol}', this.value)">
+          <option value=""${chartTf[symbol] ? "" : " selected"}>auto</option>
+          ${["1m","5m","15m","1h","4h","1d"].map(t => `<option value="${t}"${t === (chartTf[symbol] || "") ? " selected" : ""}>${t}</option>`).join("")}
+        </select>
       </div>
       <div class="ltp-row">
         <div class="ltp mono" id="ltp-${symbol}">—</div>
@@ -740,7 +755,7 @@ async function updateCandles(symbol, entry, pos) {
   // Today's session only, at the SAME candle size the trade was actually
   // taken on - a multi-day fetch squeezes hundreds of bars onto one chart,
   // which makes each 5-min candle look coarser than it is.
-  const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(symbol)}&period=1d&interval=${encodeURIComponent(pos.interval || "5m")}`);
+  const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(symbol)}&${tfQuery(symbol, pos.interval || "5m", "1d")}`);
   const rows = data.data || [];
   const candles = rows.map(r => ({
     time: toChartTime(r.date), open: r.open, high: r.high, low: r.low, close: r.close,
@@ -2243,13 +2258,13 @@ function renderUnprotectedBanner(status) {
 // the /real-open-positions row (entry_price / sl_trigger_price); no target
 // line, since a swing exit is decided by the daily scan, not a resting order.
 async function renderSwingCharts(openRealPositions, paperSymbols) {
-  const swing = (openRealPositions || []).filter(p => p.side === "swing" && !paperSymbols.has(p.symbol));
+  const swing = (openRealPositions || []).filter(p => (p.side === "swing" || p.target_status === "not_bot_managed") && !paperSymbols.has(p.symbol));  // B-1282: ETF / delivery holdings get a chart too
   for (const pos of swing) {
     try {
       const entry = ensureCard(pos.symbol, displayName(pos.symbol));
       const st = document.getElementById(`status-${pos.symbol}`);
-      if (st) st.textContent = "SWING";
-      const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(pos.symbol)}&period=6mo&interval=1d`);
+      if (st) st.textContent = pos.side === "swing" ? "SWING" : "HOLDING";
+      const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(pos.symbol)}&${tfQuery(pos.symbol, "1d", "6mo")}`);
       const candles = (data.data || []).map(r => ({
         time: toChartTime(r.date), open: r.open, high: r.high, low: r.low, close: r.close,
       })).filter(c => Number.isFinite(c.close));
