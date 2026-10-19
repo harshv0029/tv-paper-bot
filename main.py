@@ -20276,6 +20276,12 @@ def reconcile_scheduler_check_counts_from_journal():
         print(f"[reconcile] restored {len(counts)} symbol check-count(s) from journal")
 
 
+def _is_real_ticker_check_key(key: str) -> bool:
+    """B-1271: True for a plain ticker/index key (e.g. 'RELIANCE.NS'); False
+    for derivative-leg keys such as 'X:RSI2FO', 'X:STRIKE', 'X:OPT'."""
+    return ":" not in (key or "")
+
+
 def _record_scheduler_check(key: str):
     """Bumps key's today-count, resetting everyone's count first if the
     IST calendar day has rolled over since the last check. Also records
@@ -20384,6 +20390,25 @@ def usable_capital_inr_for_msg(available, unit_notional, min_notional):
     """B-1282: True when the free capital pool cannot cover even the Rs-100 dust floor (or one unit); the old
     check only compared against one unit's price, so Rs 33 free vs Rs 11 unit printed 'budget too small for 1 unit'."""
     return available < max(unit_notional, min_notional)
+
+
+def _row_strategies_tested(symbol: str, viable_tags, wired_viable_n):
+    """B-1272: (x, N) for the per-asset "No signal (x of N strategies tested)" label.
+    x = distinct strategy tags actually evaluated on this symbol today (viable or not: the old viable-only
+    intersection was empty for intraday-only symbols and fell back to the 3-tag visit counter, printing
+    "3 strategies tested" against ~300 wired cells). N = viable wired tags plus any evaluated non-viable tags,
+    so x <= N always. The visit counter is only a fallback when there is no per-symbol record at all.
+    Display only; no entry/exit/sizing effect."""
+    viable_tags = viable_tags or set()
+    tested = set()
+    if _symbol_strategy_scans_day == ist_now().strftime("%Y-%m-%d"):
+        tested = set(_symbol_strategy_scans.get(symbol, ()))
+    if tested:
+        return len(tested), len(viable_tags | tested)
+    x = _scheduler_last_visit_strategies.get(symbol) or 0
+    if wired_viable_n is not None:
+        x = min(x, wired_viable_n)
+    return (x or None), wired_viable_n
 
 
 def _symbol_strategies_tested_today(symbol: str) -> int:
@@ -24764,6 +24789,10 @@ async def _scheduler_tick():
             pass
         print(f"[memory] tick {_scheduler_tick_count}: rss_mb={_process_rss_mb()}, "
               f"data_cache_entries={len(_DATA_CACHE)}, watchlist_size={len(WATCHLIST)}")
+        _hr = _rss_headroom()
+        if _hr["rss_pct"] is not None and _hr["rss_pct"] > RSS_ALARM_PCT:
+            print(f"[memory] ALARM: rss_mb={_hr['rss_mb']} is {_hr['rss_pct']}% of "
+                  f"{RSS_LIMIT_MB} MB limit (> {RSS_ALARM_PCT}%) - restart/OOM risk")
 
     # 2026-09-30: see _UNPROTECTED_BACKCHECK_EVERY_N_TICKS's own module
     # comment - this in-process call is what actually guarantees the
@@ -25156,11 +25185,8 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
                 or _scheduler_last_results.get(k, {}).get("status")
             ),
             "last_checked_at_utc": _scheduler_last_results.get(k, {}).get("checked_at_utc"),
-            "last_strategies_tested": (
-                (len(_symbol_strategy_scans.get(k, set()) & _viable_tags) if _viable_tags else None)
-                or (min(_scheduler_last_visit_strategies.get(k) or 0, _wired_viable_n or 0) or None)
-            ),  # B-1282: x counts only tags inside the same N set, so x <= N always
-            "strategies_applicable": _wired_viable_n,
+            "last_strategies_tested": _row_strategies_tested(k, _viable_tags, _wired_viable_n)[0],
+            "strategies_applicable": _row_strategies_tested(k, _viable_tags, _wired_viable_n)[1],
             "asset_class": asset_class,
             "data_source": data_source,
             "mcx_proxy_for": mcx_proxy_for,
@@ -25191,7 +25217,13 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     #     answers "how much scanning has happened today."
     scanned_today_count = sum(1 for r in check_counts_today_rows if r["checks_today"] > 0)
     scanned_today_total = len(check_counts_today_rows)
-    total_checks_today = sum(r["checks_today"] for r in check_counts_today_rows)
+    # B-1271: headline counts only REAL ticker visits (equity/index keys, no
+    # ":" suffix). Derivative legs (":RSI2FO" per option contract, ":STRIKE",
+    # ":OPT") are visits to ~1.5k synthetic keys that dominated the sum, so
+    # they are reported separately and stay in the per-asset rows/Upstash mirror.
+    total_checks_today = sum(
+        r["checks_today"] for r in check_counts_today_rows if _is_real_ticker_check_key(r["symbol"]))
+    total_checks_incl_derivative_legs = sum(r["checks_today"] for r in check_counts_today_rows)
 
     # F&O per-strike feed (kotak_fo_candle_feed.py, system #2 - see that
     # module's own docstring) is a genuinely separate scanning universe
@@ -25239,6 +25271,8 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "scanned_today_count": scanned_today_count,
         "scanned_today_total": scanned_today_total,
         "total_checks_today": total_checks_today,
+        "total_checks_incl_derivative_legs": total_checks_incl_derivative_legs,
+        "derivative_leg_checks_today": total_checks_incl_derivative_legs - total_checks_today,
         "checks_last_30s": checks_in_last_seconds(30),
         "fo_subscribed_instruments": fo_subscribed_instruments,
         "fo_connected": fo_status["connected"],
@@ -25549,6 +25583,8 @@ def entry_funnel():
         o["attempts_total"] = o["placed"] + o["blocked"] + o["failed"]
         o["strategies_fired"] = len(o.pop("_fired"))
         _all = sorted(o.pop("_strats").values(), key=lambda r: r["strategy"])
+        for _r in _all:  # B-1285: per-tag attempts_total = placed + blocked + failed
+            _r["attempts_total"] = _r["placed"] + _r["blocked"] + _r["failed"]
         o["strategies"] = [r for r in _all if r["fired"] or r["attempts"] or r.get("blocked_triggers")]
         o["no_signal_strategies"] = [{"strategy": r["strategy"], "scans": r["scans"]}
                                      for r in _all if not (r["fired"] or r["attempts"] or r.get("blocked_triggers"))]
@@ -26441,9 +26477,21 @@ def _process_rss_mb() -> float | None:
         return None
 
 
+RSS_LIMIT_MB = 2048  # B-1288: Render plan memory limit
+RSS_ALARM_PCT = 85.0
+
+
+def _rss_headroom(rss_mb=None) -> dict:
+    """B-1288: rss vs Render's 2048 MB limit. rss_pct is None if rss unknown."""
+    if rss_mb is None:
+        rss_mb = _process_rss_mb()
+    pct = round(rss_mb / RSS_LIMIT_MB * 100, 1) if rss_mb is not None else None
+    return {"rss_mb": rss_mb, "rss_limit_mb": RSS_LIMIT_MB, "rss_pct": pct}
+
+
 @app.get("/health")
 def health():
-    return {"status": "alive", "time": time.time(), "rss_mb": _process_rss_mb()}
+    return {"status": "alive", "time": time.time(), **_rss_headroom()}
 
 
 @app.get("/watchlist")

@@ -42,7 +42,7 @@ def test_tags_unique_lowercase_both_directions_all_intervals():
                     t = md.er.make_tag(md.FAMILY, variant, d, tf, {**params, "atr": am})
                     assert t == t.lower() and t not in seen and not t.startswith("macd__")
                     seen.add(t)
-    assert len(seen) == 3 * 6 * 2 * 3
+    assert len(seen) == len(md.PERIODS) * 6 * 2 * 3
 
 
 def test_run_symbol_produces_long_and_short():

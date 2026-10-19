@@ -61,7 +61,7 @@ def test_capped_periods_for_these_intervals():
 
 def test_elder_ge11_resamples_4h():
     s = _read("scripts", "elder_ge11_validate.py")
-    assert 'interval == "4h"' in s and "resample_1h_to_4h" in s
+    assert "fetch_interval" in s  # B-873: delegates 4h (1h->4h resample) to research_interval
 
 
 def test_backlog_rows_have_dispatch_commands():
