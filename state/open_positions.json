@@ -1,5 +1,5 @@
 {
-  "synced_at_utc": "2026-10-19T08:37:10Z",
+  "synced_at_utc": "2026-10-19T15:52:59Z",
   "open_positions": [
     {
       "symbol": "GILT10BETA.NS",
@@ -18,7 +18,7 @@
       "sma_fast": 9,
       "sma_slow": 21,
       "entry_regime": null,
-      "real_entry_reason": null
+      "real_entry_reason": "no real-entry attempt logged for this symbol today"
     }
   ]
 }
