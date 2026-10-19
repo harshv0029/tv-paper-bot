@@ -24770,6 +24770,10 @@ async def _scheduler_tick():
             pass
         print(f"[memory] tick {_scheduler_tick_count}: rss_mb={_process_rss_mb()}, "
               f"data_cache_entries={len(_DATA_CACHE)}, watchlist_size={len(WATCHLIST)}")
+        _hr = _rss_headroom()
+        if _hr["rss_pct"] is not None and _hr["rss_pct"] > RSS_ALARM_PCT:
+            print(f"[memory] ALARM: rss_mb={_hr['rss_mb']} is {_hr['rss_pct']}% of "
+                  f"{RSS_LIMIT_MB} MB limit (> {RSS_ALARM_PCT}%) - restart/OOM risk")
 
     # 2026-09-30: see _UNPROTECTED_BACKCHECK_EVERY_N_TICKS's own module
     # comment - this in-process call is what actually guarantees the
@@ -26457,9 +26461,21 @@ def _process_rss_mb() -> float | None:
         return None
 
 
+RSS_LIMIT_MB = 2048  # B-1288: Render plan memory limit
+RSS_ALARM_PCT = 85.0
+
+
+def _rss_headroom(rss_mb=None) -> dict:
+    """B-1288: rss vs Render's 2048 MB limit. rss_pct is None if rss unknown."""
+    if rss_mb is None:
+        rss_mb = _process_rss_mb()
+    pct = round(rss_mb / RSS_LIMIT_MB * 100, 1) if rss_mb is not None else None
+    return {"rss_mb": rss_mb, "rss_limit_mb": RSS_LIMIT_MB, "rss_pct": pct}
+
+
 @app.get("/health")
 def health():
-    return {"status": "alive", "time": time.time(), "rss_mb": _process_rss_mb()}
+    return {"status": "alive", "time": time.time(), **_rss_headroom()}
 
 
 @app.get("/watchlist")
