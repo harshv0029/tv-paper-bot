@@ -13,3 +13,8 @@ Rules:
 - Used by: the real-money entry gate, `is_viable`, `is_quality_viable`, `viable_leaderboard`, `/strategy-leaderboard`, `/strategy-viable-buckets`, `/strategy-scan-activity`, `/entry-funnel`.
 - A legacy entry whose label has no parseable definition falls back to its saved name list. With no stack at all, the PFnet floor in `strategy_registry.py` is only a fallback.
 - Pushing a new definition from the explorer ("Make this set viable") saves the three factors in the label; the categories filter is display-only.
+
+## Wiring vs real-money entry (user rule 2026-10-16, B-1283)
+- WIRING (a strategy cell is scanned live end to end): PFnet >= `PFNET_LIVE_FLOOR` AND average hold <= 30 trading days. Nothing else (no n floor) gates wiring.
+- REAL-MONEY ENTRY: the three explorer factors above (the newest stack entry), recomputed from stored metrics at every check, so editing the explorer changes the entry gate immediately with no code change.
+- A position whose strategy backtested up to a 30-day hold is exited on or before day 30 (time exit), always with a stop-loss resting.

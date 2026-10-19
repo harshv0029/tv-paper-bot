@@ -206,6 +206,7 @@
   .master-toggle input:checked ~ .kt-state{color:var(--up);}
   .master-toggle input:not(:checked) ~ .kt-state{color:var(--down);}
   .log-type{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
+.tf-select{margin-left:8px;background:#121920;color:#9fb0c3;border:1px solid #232d3a;border-radius:4px;font:12px "IBM Plex Mono",monospace;padding:2px 4px}
 </style>
 </head>
 <body>
@@ -531,6 +532,15 @@ function toChartTime(iso) { return Math.floor(new Date(iso).getTime() / 1000); }
 const istTickFormatter = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
 const istFormatter = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
+// B-1281 (user 2026-10-16): every chart gets a candle-size dropdown like TradingView. Choice is per symbol, kept across polls.
+const chartTf = {};
+const TF_PERIOD = { "1m": "1d", "5m": "1d", "15m": "5d", "1h": "1mo", "4h": "3mo", "1d": "6mo" };
+function setChartTf(symbol, tf) { if (tf) chartTf[symbol] = tf; else delete chartTf[symbol]; try { refresh(); } catch (e) {} }
+function tfQuery(symbol, defInterval, defPeriod) {
+  const tf = chartTf[symbol];
+  if (!tf) return `period=${defPeriod}&interval=${encodeURIComponent(defInterval)}`;
+  return `period=${TF_PERIOD[tf]}&interval=${tf}`;
+}
 function ensureCard(symbol, label) {
   if (charts[symbol]) return charts[symbol];
   const container = document.getElementById("cards");
@@ -545,6 +555,10 @@ function ensureCard(symbol, label) {
       <div>
         <div class="sym">${label || symbol}</div>
         <span class="status long" id="status-${symbol}">LONG</span>
+        <select class="tf-select" id="tf-${symbol}" title="Candle size" onchange="setChartTf('${symbol}', this.value)">
+          <option value=""${chartTf[symbol] ? "" : " selected"}>auto</option>
+          ${["1m","5m","15m","1h","4h","1d"].map(t => `<option value="${t}"${t === (chartTf[symbol] || "") ? " selected" : ""}>${t}</option>`).join("")}
+        </select>
       </div>
       <div class="ltp-row">
         <div class="ltp mono" id="ltp-${symbol}">—</div>
@@ -740,7 +754,7 @@ async function updateCandles(symbol, entry, pos) {
   // Today's session only, at the SAME candle size the trade was actually
   // taken on - a multi-day fetch squeezes hundreds of bars onto one chart,
   // which makes each 5-min candle look coarser than it is.
-  const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(symbol)}&period=1d&interval=${encodeURIComponent(pos.interval || "5m")}`);
+  const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(symbol)}&${tfQuery(symbol, pos.interval || "5m", "1d")}`);
   const rows = data.data || [];
   const candles = rows.map(r => ({
     time: toChartTime(r.date), open: r.open, high: r.high, low: r.low, close: r.close,
@@ -2249,7 +2263,7 @@ async function renderSwingCharts(openRealPositions, paperSymbols) {
       const entry = ensureCard(pos.symbol, displayName(pos.symbol));
       const st = document.getElementById(`status-${pos.symbol}`);
       if (st) st.textContent = "SWING";
-      const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(pos.symbol)}&period=6mo&interval=1d`);
+      const data = await fetchJSON(`${ORIGIN}/history?symbol=${encodeURIComponent(pos.symbol)}&${tfQuery(pos.symbol, "1d", "6mo")}`);
       const candles = (data.data || []).map(r => ({
         time: toChartTime(r.date), open: r.open, high: r.high, low: r.low, close: r.close,
       })).filter(c => Number.isFinite(c.close));

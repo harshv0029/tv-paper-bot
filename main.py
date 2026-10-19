@@ -1529,7 +1529,12 @@ def history(symbol: str, period: str = "6mo", interval: str = "1d"):
     interval - "1d","1h","30m","15m","5m" (intraday intervals only return
                 recent history - Yahoo limits how far back intraday data goes)
     """
-    df = yf.download(symbol, period=period, interval=interval, progress=False)
+    _resample_4h = interval == "4h"  # B-1281: yfinance has no 4h; build it from 1h bars
+    df = yf.download(symbol, period=period, interval="1h" if _resample_4h else interval, progress=False)
+    if _resample_4h and not df.empty:
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        df = df.resample("4h").agg({"Open": "first", "High": "max", "Low": "min", "Close": "last", "Volume": "sum"}).dropna(subset=["Close"])
 
     if df.empty and interval.endswith(("m", "h")) and period in ("1d", "2d"):
         # "fetch failed: 404" root cause (user 2026-10-11): period=1d intraday is EMPTY whenever there is no session
