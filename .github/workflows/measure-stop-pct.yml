@@ -1,11 +1,22 @@
-name: Measure planned stop-% per tag (B-775)
+name: Measure planned stop-% per tag (B-775, B-875)
 
-# Fetches ATR14/close medians over the FULL NSE universe at 5m/15m/1h/1d and derives each ATR-stop
-# tag's planned stop-% (ATR multiple x universe median ATR%) into docs/backtest_data/stop_pct.json
-# (read by scripts/count_sl_cap.py). Research only; single job; uploads artifacts, never pushes.
-# Dispatch only when no Deploy Gate / safety run is queued.
+# Fetches ATR14/close medians over the FULL NSE universe and derives each tag's planned stop-%
+# (ATR multiple x universe median ATR%; explicit `pct<N>` / fixed-8% `tgt` stops parsed exactly) into
+# docs/backtest_data/stop_pct.json (read by scripts/count_sl_cap.py). Research only; single job;
+# uploads artifacts, never pushes. Dispatch only when no Deploy Gate / safety run is queued.
+# B-875 dispatch: tfs=4h (fetches 1h, resamples to 4h; other tfs reused from the stored ATR table).
+# Leave max_symbols empty for the real run (full universe); use e.g. 40 only as a smoke test.
 on:
   workflow_dispatch:
+    inputs:
+      tfs:
+        description: "Comma list of candle sizes to (re)fetch, e.g. 4h. Empty = all (5m,15m,1h,1d,1w,4h)"
+        required: false
+        default: "4h"
+      max_symbols:
+        description: "Cap symbols for a smoke test (empty = FULL universe)"
+        required: false
+        default: ""
 
 jobs:
   measure:
@@ -17,7 +28,15 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -q -r requirements.txt
-      - run: python3 scripts/measure_stop_pct.py --fetch
+      - name: Measure
+        env:
+          TFS: ${{ inputs.tfs }}
+          MAXSYM: ${{ inputs.max_symbols }}
+        run: |
+          ARGS="--fetch"
+          [ -n "$TFS" ] && ARGS="$ARGS --tfs $TFS"
+          [ -n "$MAXSYM" ] && ARGS="$ARGS --max-symbols $MAXSYM"
+          python3 scripts/measure_stop_pct.py $ARGS
       - run: python3 scripts/count_sl_cap.py
       - uses: actions/upload-artifact@v4
         with:
