@@ -1262,7 +1262,9 @@ function renderScannedBanner(p) {
   const foCount = p.fo_subscribed_instruments;
   const foConnected = p.fo_connected;
   const allTotal = p.all_assets_tracked_total;
-  el.textContent = `${totalChecks} total checks run today` +
+  el.textContent = `${totalChecks} ticker checks run today` +
+    (typeof p.derivative_leg_checks_today === 'number' && p.derivative_leg_checks_today > 0
+      ? ` (+${p.derivative_leg_checks_today} option/F&O leg visits)` : '') +
     (typeof distinct === 'number' && typeof total === 'number'
       ? ` (${distinct} / ${total} distinct stocks/assets scanned at least once)`
       : '') +
