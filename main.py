@@ -14204,8 +14204,9 @@ def _maybe_place_real_entry(conn, symbol: str):
     # symbol currently uses) is below the floor, so this blocks new real
     # long entries today - existing open real positions are untouched.
     strategy_tag = paper_row["strategy"] if paper_row else None
+    _lra_tag = functools.partial(_log_real_attempt, strategy=strategy_tag)  # B-1285: tag skipped attempts with the strategy
     if not _is_strategy_viable_for_real_money(strategy_tag):
-        _log_real_attempt(
+        _lra_tag(
             conn, symbol, "B", "skipped_strategy_not_viable",
             detail=f"strategy {strategy_tag!r} does not clear the PFnet >= 1 real-money floor "
                    "(or has no validated metrics) - see strategy_registry.py",
@@ -14216,14 +14217,14 @@ def _maybe_place_real_entry(conn, symbol: str):
     if strategy_tag in CHAN_GAP_LONG_CELLS:
         _n = ist_now()
         if _n.hour * 60 + _n.minute >= CHAN_GAP_ENTRY_CUTOFF_MIN + 15:
-            _log_real_attempt(conn, symbol, "B", "skipped_after_entry_cutoff",
+            _lra_tag(conn, symbol, "B", "skipped_after_entry_cutoff",
                               detail="chan_gap buy-on-gap: no new real entries after 10:30 IST (research enters at the open)")
             return
 
     if strategy_tag in CHAN_LONG_CELLS:
         _n = ist_now()
         if _n.hour * 60 + _n.minute >= CHAN_LONG_ENTRY_CUTOFF_MIN:
-            _log_real_attempt(conn, symbol, "B", "skipped_after_entry_cutoff",
+            _lra_tag(conn, symbol, "B", "skipped_after_entry_cutoff",
                               detail="chan_kalman long: no new real entries from 15:00 IST (flatten at 15:10)")
             return
 
@@ -14234,7 +14235,7 @@ def _maybe_place_real_entry(conn, symbol: str):
     max_by_capital = math.floor(real_capital_for_sizing / ltp) if ltp > 0 else 0
     qty = int(min(paper_qty, max_by_cap, max_by_capital))
     if qty <= 0:
-        _log_real_attempt(
+        _lra_tag(
             conn, symbol, "B", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
             price_est=ltp,
             detail=f"paper qty {paper_qty}, 1 share = Rs{ltp:.2f} - capped to 0 by "
@@ -14254,13 +14255,13 @@ def _maybe_place_real_entry(conn, symbol: str):
     # than trading blind.
     loss_check = _real_loss_budget(conn)
     if loss_check["real_pnl_today"] is None:
-        _log_real_attempt(
+        _lra_tag(
             conn, symbol, "B", "skipped_real_pnl_unknown", kotak_trading_symbol=kotak_symbol,
             price_est=ltp, detail=loss_check["detail"],
         )
         return
     if not loss_check["ok"]:
-        _log_real_attempt(
+        _lra_tag(
             conn, symbol, "B", "skipped_real_daily_loss_cap_hit", kotak_trading_symbol=kotak_symbol,
             price_est=ltp, detail=loss_check["detail"],
         )
@@ -14269,7 +14270,7 @@ def _maybe_place_real_entry(conn, symbol: str):
     # B-960: re-read the viable stack fresh immediately before the order (it may have changed since the checks above).
     _load_viable_overrides()
     if not _is_strategy_viable_for_real_money(strategy_tag):
-        _log_real_attempt(conn, symbol, "B", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
+        _lra_tag(conn, symbol, "B", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
                           detail=f"strategy {strategy_tag!r} no longer viable on the fresh stack re-check just before the order")
         return
 
