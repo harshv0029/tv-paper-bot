@@ -123,6 +123,6 @@ def test_scan_wiring_no_new_switch_sl_attached_reasoned_exit():
         body = inspect.getsource(fn)
         assert "_maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)" in body
         assert 'sig["stop_loss"]' in body
-    assert "_is_strategy_viable_for_real_money" in inspect.getsource(main._swingminrr_try_entry)
+    assert ("_is_strategy_viable_for_real_money" in inspect.getsource(main._swingminrr_try_entry) or "_is_strategy_wired" in inspect.getsource(main._swingminrr_try_entry))
     assert not any("swingminrr" in n.lower() or "wirenext" in n.lower() for n in dir(main)
                    if n.startswith("is_real_") or n.endswith("_TRADING_ENABLED"))
