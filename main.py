@@ -25472,7 +25472,7 @@ def entry_funnel():
     def _srow(c, tag):
         return out[c]["_strats"].setdefault(str(tag), {
             "strategy": str(tag), "scans": 0, "fired": 0, "placed": 0, "blocked": 0,
-            "attempts": 0, "symbols_fired": 0, "skip_reasons": {}})
+            "attempts": 0, "failed": 0, "symbols_fired": 0, "skip_reasons": {}})
     try:
         # "viable_strategies" below counts only strategies WIRED into a live scan;
         # "viable_in_stack" is the explorer-stack count the buckets endpoint shows (B-910).
@@ -25531,7 +25531,12 @@ def entry_funnel():
                 "blocked" if str(status).startswith("skipped") else None)
             if key:
                 o[key] += n
+            elif not _is_placed:  # B-1285: rejected/errored attempts were counted nowhere
+                _r["failed"] += n
+                o["failed"] = o.get("failed", 0) + n
     for c, o in out.items():
+        o.setdefault("failed", 0)
+        o["attempts_total"] = o["placed"] + o["blocked"] + o["failed"]
         o["strategies_fired"] = len(o.pop("_fired"))
         _all = sorted(o.pop("_strats").values(), key=lambda r: r["strategy"])
         o["strategies"] = [r for r in _all if r["fired"] or r["attempts"] or r.get("blocked_triggers")]
