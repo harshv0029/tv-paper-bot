@@ -25595,13 +25595,24 @@ _SWING_SL_RULES = {
 def symbol_strategy_coverage(symbol: str):
     """B-1274 stage 1 (read-only, cheap): for one symbol, wired viable (PFnet >= floor) strategy tags vs. the distinct
     tags actually evaluated for it today. 'applicable' is the wired viable tag set (no per-symbol eligibility filter yet)."""
-    wired = sorted(t for t in _STRATEGY_TAG_TO_REGISTRY_NAME if _is_strategy_viable_for_real_money(t))
+    import strategy_registry as sr
+    is_mcx = symbol.endswith("=F") or symbol.upper().startswith("MCX")
+    allowed = ({sr.TradeCategory.FUTURES, sr.TradeCategory.OPTIONS} if is_mcx else
+               {sr.TradeCategory.BUY, sr.TradeCategory.SHORT_SELL, sr.TradeCategory.SWING, sr.TradeCategory.BIDIRECTIONAL})
+    _reg = {d.name: d for d in sr.REGISTRY}
+
+    def _fits(t):
+        d = _reg.get(_STRATEGY_TAG_TO_REGISTRY_NAME[t])
+        return d is None or bool(set(d.categories) & allowed)
+
+    wired = sorted(t for t in _STRATEGY_TAG_TO_REGISTRY_NAME if _is_strategy_viable_for_real_money(t) and _fits(t))
     day_ok = _symbol_strategy_scans_day == ist_now().strftime("%Y-%m-%d")
     tested = sorted(_symbol_strategy_scans.get(symbol, ())) if day_ok else []
     tested_set = set(tested)
     return {
         "symbol": symbol,
         "applicable_wired_viable": len(wired),
+        "categories_considered": sorted(c.value for c in allowed),
         "tested_today": len(tested),
         "tested_tags": tested,
         "viable_not_tested_today": [t for t in wired if t not in tested_set],
