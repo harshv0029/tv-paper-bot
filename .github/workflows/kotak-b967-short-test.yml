@@ -1,0 +1,39 @@
+name: Kotak B-967 1-share short test
+
+# B-967 (user go 2026-10-19). Calls the token-gated /kotak-neo/b967-short-test:
+# action=enter sells 1 share (NRML) with a resting BUY-SL; action=cover cancels
+# the SL and buys it back. Prints only the small result JSON.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: enter or cover
+        required: true
+        default: enter
+      symbol:
+        description: Kotak trading symbol, e.g. IDEA-EQ
+        required: true
+      ltp:
+        description: approx last price (enter only, must be <= 200)
+        required: false
+        default: "0"
+      product:
+        description: NRML, MIS or CNC
+        required: false
+        default: NRML
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Place
+        env:
+          KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+        run: |
+          curl -sS -m 120 -X POST \
+            "https://tv-paper-bot-gdan.onrender.com/kotak-neo/b967-short-test?token=${KOTAK_NEO_API_TOKEN}&action=${{ inputs.action }}&kotak_trading_symbol=${{ inputs.symbol }}&ltp=${{ inputs.ltp }}&product=${{ inputs.product }}" \
+            -o /tmp/b967.json
+          cat /tmp/b967.json; echo
