@@ -25563,6 +25563,8 @@ def entry_funnel():
         o["attempts_total"] = o["placed"] + o["blocked"] + o["failed"]
         o["strategies_fired"] = len(o.pop("_fired"))
         _all = sorted(o.pop("_strats").values(), key=lambda r: r["strategy"])
+        for _r in _all:  # B-1285: per-tag attempts_total = placed + blocked + failed
+            _r["attempts_total"] = _r["placed"] + _r["blocked"] + _r["failed"]
         o["strategies"] = [r for r in _all if r["fired"] or r["attempts"] or r.get("blocked_triggers")]
         o["no_signal_strategies"] = [{"strategy": r["strategy"], "scans": r["scans"]}
                                      for r in _all if not (r["fired"] or r["attempts"] or r.get("blocked_triggers"))]
