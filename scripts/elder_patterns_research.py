@@ -37,6 +37,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import research_interval as ri  # noqa: E402  (B-873: interval=4h = 1h resampled per NSE session)
 import elder_indicators_research as er  # noqa: E402
 import b5_merge  # noqa: E402
 
@@ -468,7 +469,7 @@ def _main_shard(args):
     aggs, fetched = {}, 0
     for s in syms:
         try:
-            raw = m.fetch_ohlc(s, args.period, args.interval)
+            raw = ri.fetch_interval(m, s, args.period, args.interval)
             if raw is None or len(raw) < 120:
                 continue
             fetched += 1

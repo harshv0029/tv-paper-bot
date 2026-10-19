@@ -107,11 +107,8 @@ def run_symbol(df, tf, aggs):
 
 
 def _load(m, sym, period, interval):
-    if interval == "4h":
-        import resample_4h as r4
-        raw = m.fetch_ohlc(sym, period, "1h")
-        return None if raw is None else r4.resample_1h_to_4h(raw)
-    return m.fetch_ohlc(sym, period, interval)
+    import research_interval as ri  # B-873: shared 4h = 1h resample path
+    return ri.fetch_interval(m, sym, period, interval)
 
 
 def shard(a):
