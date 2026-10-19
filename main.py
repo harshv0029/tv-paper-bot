@@ -16,6 +16,25 @@ Endpoints:
 """
 
 import asyncio
+
+
+def _cap_malloc_arenas() -> None:
+    """B-1290: glibc gives every thread its own malloc arena (up to 8x cores); this app runs many pandas/HTTP
+    threads, and freed memory stays pinned in per-thread arenas, so RSS ratchets up. Capping to 2 arenas is the
+    standard fix for threaded Python on glibc and typically cuts RSS 20-40%. Must run before worker threads start.
+    MALLOC_ARENA_MAX in the environment wins; non-glibc / failure is silently ignored."""
+    try:
+        if os.environ.get("MALLOC_ARENA_MAX"):
+            return
+        import ctypes
+        ctypes.CDLL("libc.so.6").mallopt(-8, 2)  # M_ARENA_MAX = -8
+    except Exception:
+        pass
+
+
+import os  # noqa: E402
+
+_cap_malloc_arenas()
 import base64
 import contextvars
 import datetime as dt
@@ -26486,7 +26505,18 @@ def _rss_headroom(rss_mb=None) -> dict:
     if rss_mb is None:
         rss_mb = _process_rss_mb()
     pct = round(rss_mb / RSS_LIMIT_MB * 100, 1) if rss_mb is not None else None
-    return {"rss_mb": rss_mb, "rss_limit_mb": RSS_LIMIT_MB, "rss_pct": pct}
+    return {"rss_mb": rss_mb, "rss_limit_mb": RSS_LIMIT_MB, "rss_pct": pct, "rss_now_mb": _current_rss_mb()}
+
+
+def _current_rss_mb() -> float | None:
+    """B-1290: CURRENT resident set (from /proc/self/statm), unlike ru_maxrss which is a peak that never falls.
+    This is the figure to compare against the ~1024 MB target after the arena cap / trim changes."""
+    try:
+        with open("/proc/self/statm") as f:
+            pages = int(f.read().split()[1])
+        return round(pages * os.sysconf("SC_PAGE_SIZE") / 1048576, 1)
+    except Exception:
+        return None
 
 
 @app.get("/health")
