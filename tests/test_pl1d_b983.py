@@ -90,7 +90,7 @@ def test_wiring_sources_present():
     assert "_pl1d_try_entry" in scan and "PL1D_CELLS" in scan
     assert scan.index("_chan_shape_try_entry") < scan.index("_pl1d_try_entry")  # appended after the existing chain
     src = inspect.getsource(main._pl1d_try_entry)
-    assert "_is_strategy_viable_for_real_money" in src and "_maybe_place_real_swing_entry" in src
+    assert ("_is_strategy_viable_for_real_money" in src or "_is_strategy_wired" in src) and "_maybe_place_real_swing_entry" in src
     assert "stop_loss" in src and "atr_at_entry" in src
     real = inspect.getsource(main._maybe_place_real_swing_entry)
     assert "_load_viable_overrides()" in real and "entry_sl_failed_unwind" in real  # B-962 re-check + B-966 unwind

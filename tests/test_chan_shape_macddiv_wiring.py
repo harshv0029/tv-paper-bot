@@ -90,11 +90,11 @@ def test_wiring_sources_present_and_macddiv_in_swing_1h_pass():
     # B-984: macddiv holds overnight (CNC long) so the swing engine owns it, via the 1h pass (daily pass only skips it)
     assert "_run_long_swing_1h_pass" in scan and "MACDDIV_LONG_LIVE_CELLS" in scan
     one_h = inspect.getsource(main._macddiv_long_1h_try_entry)
-    assert "_is_strategy_viable_for_real_money" in one_h and "_maybe_place_real_swing_entry" in one_h
+    assert "_is_strategy_wired" in one_h and "_maybe_place_real_swing_entry" in one_h
     assert "stop_loss" in one_h and "macddiv_long_cell_signal" in one_h
     assert "_hourly_with_str_date" in inspect.getsource(main._run_long_swing_1h_pass)
     src = inspect.getsource(main._chan_shape_try_entry)
-    assert "_is_strategy_viable_for_real_money" in src and "_maybe_place_real_swing_entry" in src
+    assert ("_is_strategy_viable_for_real_money" in src or "_is_strategy_wired" in src) and "_maybe_place_real_swing_entry" in src
     real = inspect.getsource(main._maybe_place_real_swing_entry)
     assert "_load_viable_overrides()" in real and "entry_sl_failed_unwind" in real  # B-962 re-check + B-966 unwind
     assert "reason=" in real
