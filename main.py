@@ -11514,7 +11514,7 @@ CHAN_SHORT_Z = 2.0
 CHAN_SHORT_VE = 1e-3
 CHAN_SHORT_ATR_MULT = 4.0
 CHAN_SHORT_HOLD_BARS = 40
-# B-918: the other viable 5m band_mr short v2 cells (real-main.py replay 38390561217, 0.8% cost; PFnet >= 1.1) are the SAME
+# B-918: the other viable 5m band_mr short v2 cells (real-main.py replay 38390561217, 0.8% cost; PFnet >= the floor then (1.1; now 1.0, see PFNET_LIVE_FLOOR)) are the SAME
 # live code with different (atr, ve, z) config. Cascade order: the already-live cell first, then the rest by PFnet per
 # hold-hour; the first VIABLE cell whose signal fires opens (one short row per symbol), so a cell that shares its signal
 # with an earlier one is a fallback for when that one's registry gate closes. ve 1e-4 cells are NOT wired (the backlog
@@ -22861,7 +22861,7 @@ def _envelope_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) -
 
 # ---- B-1266: cup 3C cheat LONG 1h in the SWING engine's 1h leg (main.py-calling full-universe replay, run 38553281449) ------
 # Wired = every cup cell with replay PFnet >= 1 (WIRING_THUMB_RULES): atr2d5_h30 (1.0071, n 3121), atr6_h30 (1.0011, n 3061).
-# Scanned every pass; _is_strategy_viable_for_real_money (floor 1.1) is checked only when a trigger fires, so both currently
+# Scanned every pass; _is_strategy_viable_for_real_money (floor PFNET_LIVE_FLOOR) is checked only when a trigger fires, so both currently
 # count blocked triggers and open no real position. Stop (entry - k x ATR14) always attached; no new kill switch.
 CUP_CHEAT_LONG_LIVE_CELLS = tuple(t for t in (
     "base__cup_cheat_3c__long__1h__atr2d5_h30__v1",
