@@ -21527,7 +21527,8 @@ def _run_swing_scan_pass(conn):
         _record_swing_check(symbol)
         try:
             if symbol in _prefetched:
-                df, _perr = _prefetched[symbol]
+                # B-1288a: pop so the prefetch dict does not pin every 2y frame alongside dfs
+                df, _perr = _prefetched.pop(symbol)
                 if _perr is not None:
                     raise _perr
             else:
@@ -24753,6 +24754,14 @@ async def _scheduler_tick():
     except Exception as e:
         print(f"[fo_candle_journal] tick sync failed (non-fatal): {e}")
     if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0:
+        # B-1288a: return freed pages to the OS (glibc fragmentation after big pandas scans)
+        try:
+            import gc
+            import ctypes
+            gc.collect()
+            ctypes.CDLL("libc.so.6").malloc_trim(0)
+        except Exception:  # noqa: BLE001
+            pass
         print(f"[memory] tick {_scheduler_tick_count}: rss_mb={_process_rss_mb()}, "
               f"data_cache_entries={len(_DATA_CACHE)}, watchlist_size={len(WATCHLIST)}")
 
