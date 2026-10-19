@@ -33,50 +33,18 @@
       "first_seen_day": "2026-10-09"
     },
     {
-      "kotak_trading_symbol": "EBBETF0433-EQ",
-      "symbol": "EBBETF0433.NS",
-      "qty": 1,
-      "is_short": 0,
-      "owner": "swing",
-      "source": "position",
-      "entry_price": 1297.73,
-      "stop_loss": 1289.9906325229806,
-      "sl_trigger_price": 1289.99,
-      "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
-      "entry_order_id": "261016000412370",
-      "opened_at": 1792136957.439411,
-      "day": "2026-10-16",
-      "first_seen_day": "2026-10-16"
-    },
-    {
       "kotak_trading_symbol": "GSEC5IETF-EQ",
       "symbol": "GSEC5IETF.NS",
       "qty": 2,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 65.5,
       "stop_loss": 64.69873895977292,
       "sl_trigger_price": 64.7,
       "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
       "entry_order_id": "261016000301591",
       "opened_at": 1792130369.5525527,
-      "day": "2026-10-16",
-      "first_seen_day": "2026-10-16"
-    },
-    {
-      "kotak_trading_symbol": "IDEA-EQ",
-      "symbol": "IDEA.NS",
-      "qty": 1,
-      "is_short": 0,
-      "owner": "swing",
-      "source": "position",
-      "entry_price": 12.58,
-      "stop_loss": 12.262107326736666,
-      "sl_trigger_price": 12.26,
-      "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
-      "entry_order_id": "261016000521375",
-      "opened_at": 1792143253.0016675,
       "day": "2026-10-16",
       "first_seen_day": "2026-10-16"
     },
@@ -97,5 +65,5 @@
       "first_seen_day": "2026-10-08"
     }
   ],
-  "synced_at_utc": "2026-10-16T12:43:14Z"
+  "synced_at_utc": "2026-10-19T15:38:23Z"
 }
