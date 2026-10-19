@@ -20392,6 +20392,25 @@ def usable_capital_inr_for_msg(available, unit_notional, min_notional):
     return available < max(unit_notional, min_notional)
 
 
+def _row_strategies_tested(symbol: str, viable_tags, wired_viable_n):
+    """B-1272: (x, N) for the per-asset "No signal (x of N strategies tested)" label.
+    x = distinct strategy tags actually evaluated on this symbol today (viable or not: the old viable-only
+    intersection was empty for intraday-only symbols and fell back to the 3-tag visit counter, printing
+    "3 strategies tested" against ~300 wired cells). N = viable wired tags plus any evaluated non-viable tags,
+    so x <= N always. The visit counter is only a fallback when there is no per-symbol record at all.
+    Display only; no entry/exit/sizing effect."""
+    viable_tags = viable_tags or set()
+    tested = set()
+    if _symbol_strategy_scans_day == ist_now().strftime("%Y-%m-%d"):
+        tested = set(_symbol_strategy_scans.get(symbol, ()))
+    if tested:
+        return len(tested), len(viable_tags | tested)
+    x = _scheduler_last_visit_strategies.get(symbol) or 0
+    if wired_viable_n is not None:
+        x = min(x, wired_viable_n)
+    return (x or None), wired_viable_n
+
+
 def _symbol_strategies_tested_today(symbol: str) -> int:
     """Distinct strategy tags evaluated for this symbol today (0 if none / day rolled)."""
     if _symbol_strategy_scans_day != ist_now().strftime("%Y-%m-%d"):
@@ -25166,11 +25185,8 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
                 or _scheduler_last_results.get(k, {}).get("status")
             ),
             "last_checked_at_utc": _scheduler_last_results.get(k, {}).get("checked_at_utc"),
-            "last_strategies_tested": (
-                (len(_symbol_strategy_scans.get(k, set()) & _viable_tags) if _viable_tags else None)
-                or (min(_scheduler_last_visit_strategies.get(k) or 0, _wired_viable_n or 0) or None)
-            ),  # B-1282: x counts only tags inside the same N set, so x <= N always
-            "strategies_applicable": _wired_viable_n,
+            "last_strategies_tested": _row_strategies_tested(k, _viable_tags, _wired_viable_n)[0],
+            "strategies_applicable": _row_strategies_tested(k, _viable_tags, _wired_viable_n)[1],
             "asset_class": asset_class,
             "data_source": data_source,
             "mcx_proxy_for": mcx_proxy_for,
