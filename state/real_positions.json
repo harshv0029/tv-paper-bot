@@ -1,3 +1,20 @@
 {
-  "open_real_positions": []
+  "open_real_positions": [
+    {
+      "symbol": "GILT10BETA.NS",
+      "kotak_trading_symbol": "GILT10BETA-EQ",
+      "qty": 17,
+      "entry_price": 26.19,
+      "entry_order_id": "261019000311579",
+      "opened_at": 1792398361.4863641,
+      "day": "2026-10-19",
+      "sl_order_id": "261019000599089",
+      "sl_trigger_price": 25.93,
+      "target_order_id": null,
+      "target_price": 26.97,
+      "exit_legs_json": null,
+      "protection_degraded_since": null,
+      "strategy": null
+    }
+  ]
 }
