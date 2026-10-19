@@ -20276,6 +20276,12 @@ def reconcile_scheduler_check_counts_from_journal():
         print(f"[reconcile] restored {len(counts)} symbol check-count(s) from journal")
 
 
+def _is_real_ticker_check_key(key: str) -> bool:
+    """B-1271: True for a plain ticker/index key (e.g. 'RELIANCE.NS'); False
+    for derivative-leg keys such as 'X:RSI2FO', 'X:STRIKE', 'X:OPT'."""
+    return ":" not in (key or "")
+
+
 def _record_scheduler_check(key: str):
     """Bumps key's today-count, resetting everyone's count first if the
     IST calendar day has rolled over since the last check. Also records
@@ -25191,7 +25197,13 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     #     answers "how much scanning has happened today."
     scanned_today_count = sum(1 for r in check_counts_today_rows if r["checks_today"] > 0)
     scanned_today_total = len(check_counts_today_rows)
-    total_checks_today = sum(r["checks_today"] for r in check_counts_today_rows)
+    # B-1271: headline counts only REAL ticker visits (equity/index keys, no
+    # ":" suffix). Derivative legs (":RSI2FO" per option contract, ":STRIKE",
+    # ":OPT") are visits to ~1.5k synthetic keys that dominated the sum, so
+    # they are reported separately and stay in the per-asset rows/Upstash mirror.
+    total_checks_today = sum(
+        r["checks_today"] for r in check_counts_today_rows if _is_real_ticker_check_key(r["symbol"]))
+    total_checks_incl_derivative_legs = sum(r["checks_today"] for r in check_counts_today_rows)
 
     # F&O per-strike feed (kotak_fo_candle_feed.py, system #2 - see that
     # module's own docstring) is a genuinely separate scanning universe
@@ -25239,6 +25251,8 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "scanned_today_count": scanned_today_count,
         "scanned_today_total": scanned_today_total,
         "total_checks_today": total_checks_today,
+        "total_checks_incl_derivative_legs": total_checks_incl_derivative_legs,
+        "derivative_leg_checks_today": total_checks_incl_derivative_legs - total_checks_today,
         "checks_last_30s": checks_in_last_seconds(30),
         "fo_subscribed_instruments": fo_subscribed_instruments,
         "fo_connected": fo_status["connected"],
