@@ -55,7 +55,7 @@ def test_cup_gate_follows_floor_and_is_scanned():
         finally:
             object.__setattr__(d, "metrics", orig)
     src = inspect.getsource(main._cup_cheat_long_1h_try_entry)
-    assert src.index("_record_strategy_scan") < src.index("cup_cheat_3c_entry_signal") < src.index("_is_strategy_viable_for_real_money")
+    assert src.index("_record_strategy_scan") < src.index("cup_cheat_3c_entry_signal") < src.index("_is_strategy_wired")
     assert "_record_blocked_trigger" in src and "_maybe_place_real_swing_entry" in src and "initial_stop_loss" in src
     assert "_cup_cheat_long_1h_try_entry" in inspect.getsource(main._run_long_swing_1h_pass)
     assert "CUP_CHEAT_LONG_LIVE_CELLS" in inspect.getsource(main._run_swing_scan_pass)
@@ -82,8 +82,10 @@ def test_cup_exit_and_try_entry(monkeypatch):
     conn.execute("CREATE TABLE signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close)")
     conn.execute("CREATE TABLE trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload)")
     monkeypatch.setattr(main, "_is_strategy_viable_for_real_money", lambda *a, **k: False)
+    monkeypatch.setattr(main, "_is_strategy_wired", lambda *a, **k: False)
     assert main._cup_cheat_long_1h_try_entry(conn, "ABC.NS", df, 100000, 0.01) is None and not calls
     assert conn.execute("SELECT COUNT(*) FROM signal_state_swing").fetchone()[0] == 0
     monkeypatch.setattr(main, "_is_strategy_viable_for_real_money", lambda *a, **k: True)
+    monkeypatch.setattr(main, "_is_strategy_wired", lambda *a, **k: True)
     assert main._cup_cheat_long_1h_try_entry(conn, "ABC.NS", df, 100000, 0.01) == tag and len(calls) == 1
     assert conn.execute("SELECT initial_stop_loss FROM signal_state_swing").fetchone()[0] == 90.0

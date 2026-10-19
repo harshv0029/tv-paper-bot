@@ -5485,13 +5485,13 @@ def _swingminrr_try_entry(conn, symbol, df, capital, risk_pct, today, fx, rs_per
     PFnet is below the floor is skipped (falls through to the existing VCP path). Paper row + trades row + real
     mirror (SL placed with the entry; PFnet gate inside) follow the island/brk20 pattern."""
     for tag in SWINGMINRR_TAGS:
-        if tag == SWINGMINRR_BASE_TAG and _is_strategy_viable_for_real_money("minervini_vcp_be3r", check_switch=False):
+        if tag == SWINGMINRR_BASE_TAG and _is_strategy_wired("minervini_vcp_be3r"):
             continue  # the existing, viable be3r path keeps ungated VCP signals; base only replaces it if be3r is closed
         _record_strategy_scan(tag)
         sig = swingminrr_vcp_entry_signal(df, tag, rs_percentile=rs_percentile)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -5605,7 +5605,7 @@ def _gapfade_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
         sig = gapfade_long_entry_signal(df, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -5794,7 +5794,7 @@ def _chan_shape_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> boo
         sig = chan_shape_long_entry_signal(df, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -5984,7 +5984,7 @@ def _pl1d_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bool:
         sig = pl1d_long_entry_signal(df, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -6681,7 +6681,7 @@ def _oneil_swing_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> bo
         sig = oneil_swing_entry_signal(df, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         # a stop-out inside the 2-session window must not re-enter the same week's signal
@@ -13359,6 +13359,20 @@ def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: b
     return strat.is_viable() is True
 
 
+def _is_strategy_wired(strategy_tag: str | None) -> bool:
+    """B-1284: scan-side wiring (paper signals, scan counts, 'Wired' labels). Wired = registry PFnet >= floor and hold
+    <= 30 trading days, OR already in the explorer stack. Real entry still needs _is_strategy_viable_for_real_money
+    (explorer stack + switch). Replay-owed tags stay closed."""
+    if _is_strategy_viable_for_real_money(strategy_tag, check_switch=False):
+        return True
+    registry_name = _STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy_tag or "")
+    if not registry_name or strategy_tag in REPLAY_OWED_TAGS:
+        return False
+    import strategy_registry as sr
+    strat = next((x for x in sr.REGISTRY if x.name == registry_name), None)
+    return bool(strat is not None and strat.is_wired())
+
+
 _STACK_LABEL_RE = re.compile(r"^pfnet\(\s*([0-9.]+)\s*-\s*([0-9.]+)\s*\)\s*,\s*min\(\s*([0-9]+)\s*\)\s*,\s*maxhold\(\s*([0-9.]+|any)\s*\)")
 
 
@@ -17821,7 +17835,7 @@ def _banner_extras() -> dict:
         pass
     try:
         wired = [t for t in _STRATEGY_TAG_TO_REGISTRY_NAME]
-        open_n = sum(1 for t in wired if _is_strategy_viable_for_real_money(t, check_switch=False))
+        open_n = sum(1 for t in wired if _is_strategy_wired(t))
         out["wired_strategies"] = len(wired)
         out["wired_gate_open"] = open_n
         out["wired_gate_closed"] = len(wired) - open_n
@@ -22218,7 +22232,7 @@ def _month_effect_short_try_entry(conn, symbol, df15, capital, risk_pct, today, 
         sig = month_effect_short_entry_signal(sig_df, atr_mult)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         stop_loss = month_effect_short_stop(entry_price, sig["atr"], atr_mult)
@@ -22306,7 +22320,7 @@ def _sector_fade_short_try_entry(conn, symbol, df, capital, risk_pct, today, fx)
     entry_price = float(df["Close"].iloc[-1])
     for tag, (atr_mult, _hold) in SECTOR_FADE_SHORT_CELLS.items():
         _record_strategy_scan(tag)
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # picked (trigger), gate closed now: no position opened
             continue
         stop_loss = sector_rotation_fade_short_stop(entry_price, atr_v, atr_mult)
@@ -22513,7 +22527,7 @@ def _tasuki_short_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> s
     atr_v = _compute_atr_value(df, 14)
     entry_price = float(df["Close"].iloc[-1])
     cells = list(TASUKI_SHORT_CELLS.items())
-    viable = [c for c in cells if _is_strategy_viable_for_real_money(c[0], check_switch=False)]
+    viable = [c for c in cells if _is_strategy_wired(c[0])]
     for tag, atr_mult in (viable or cells[:1]):
         stop_loss = tasuki_short_stop(entry_price, atr_v, atr_mult)
         if stop_loss is None or stop_loss <= entry_price:
@@ -22637,7 +22651,7 @@ def _swingminrr_gate_short_try_entry(conn, symbol, df1h, capital, risk_pct, toda
     if qty <= 0:
         return None
     # first VIABLE cell owns the symbol (one row per symbol); none viable (replay owed) -> the gate cell, as before B-985
-    tag = next((t for t in SWINGMINRR_SHORT_1H_CELLS if _is_strategy_viable_for_real_money(t, check_switch=False)),
+    tag = next((t for t in SWINGMINRR_SHORT_1H_CELLS if _is_strategy_wired(t)),
                SWINGMINRR_GATE_SHORT_1H_TAG)
     conn.execute(
         "INSERT INTO signal_state_swing_short (symbol, strategy, entry_day, entry_price, initial_stop_loss, qty, "
@@ -22734,7 +22748,7 @@ def _macddiv_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) ->
         sig = macddiv_long_cell_signal(df1h, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -22813,7 +22827,7 @@ def _envelope_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) -
         sig = envelope_fade_entry_signal(df1h, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]
@@ -22886,7 +22900,7 @@ def _cup_cheat_long_1h_try_entry(conn, symbol, df1h, capital, risk_pct, fx=1.0) 
         sig = cup_cheat_3c_entry_signal(df1h, tag)
         if not sig:
             continue
-        if not _is_strategy_viable_for_real_money(tag, check_switch=False):
+        if not _is_strategy_wired(tag):
             _record_blocked_trigger(tag)  # fired, gate closed now: no position opened
             continue
         entry_price, stop_loss = sig["entry_price"], sig["stop_loss"]

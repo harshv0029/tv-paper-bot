@@ -108,7 +108,7 @@ def test_scan_wiring_last_with_real_mirror_and_exit_branch():
     assert 'pos["strategy"] in ONEIL_SWING_CELLS' in src
     ent = inspect.getsource(main._oneil_swing_try_entry)
     assert "_maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, tag)" in ent
-    assert "_is_strategy_viable_for_real_money(tag" in ent
+    assert "_is_strategy_wired(tag" in ent
     assert not any("ONEIL_TRADING_ENABLED" in n.upper() for n in dir(main))  # no new kill switch
 
 
@@ -119,6 +119,7 @@ def test_blocked_trigger_recorded_when_gate_closed(monkeypatch):
     main._strategy_blocked_triggers.clear()
     monkeypatch.setattr(main, "oneil_swing_entry_signal", lambda df, t: {"entry_price": 10.0, "stop_loss": 9.0, "atr_at_entry": 1.0})
     monkeypatch.setattr(main, "_is_strategy_viable_for_real_money", lambda t, check_switch=True: False)
+    monkeypatch.setattr(main, "_is_strategy_wired", lambda t, check_switch=True: False)
     before = main._strategy_scan_counts.get(tag, 0)
     assert main._oneil_swing_try_entry(None, "X.NS", None, 100000, 0.01, "2026-10-14", 1.0) in (False, None)
     assert main._strategy_scan_counts.get(tag, 0) > before
@@ -129,6 +130,7 @@ def test_other_families_scan_first_then_gate_on_trigger(monkeypatch):
     """B-1250: gapfade / chan_shape / pl1d / macddiv loops record the scan and count a blocked trigger when the gate is closed."""
     import main
     monkeypatch.setattr(main, "_is_strategy_viable_for_real_money", lambda t, check_switch=True: False)
+    monkeypatch.setattr(main, "_is_strategy_wired", lambda t, check_switch=True: False)
     fake = {"entry_price": 10.0, "stop_loss": 9.0, "atr_at_entry": 1.0}
     cases = [("_gapfade_try_entry", "GAPFADE_TAGS", "gapfade_long_entry_signal", (None, "X.NS", None, 1e5, 0.01, "2026-10-14", 1.0)),
              ("_chan_shape_try_entry", "CHAN_SHAPE_CELLS", "chan_shape_long_entry_signal", None),
