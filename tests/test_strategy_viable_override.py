@@ -1,3 +1,4 @@
+import pytest
 import asyncio
 import os
 import tempfile
@@ -40,10 +41,11 @@ def test_stack_set_undo_restore_and_cap(monkeypatch):
     for _ in range(15):
         out = _post({"action": "set", "names": [b.name]})
     assert len(out["stack"]) == main.VIABLE_STACK_SIZE == 10
-    _post({"action": "undo"})
-    while main.strategy_viable_stack_get()["stack"]:
+    while len(main.strategy_viable_stack_get()["stack"]) > 1:
         _post({"action": "undo"})
-    assert a.is_viable() is False and b.is_viable() is False
+    with pytest.raises(Exception):  # the stack is never emptied (user 2026-10-20)
+        _post({"action": "undo"})
+    assert len(main.strategy_viable_stack_get()["stack"]) == 1
 
 
 def test_stack_table_is_mirrored():

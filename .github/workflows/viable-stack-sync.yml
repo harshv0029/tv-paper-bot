@@ -25,6 +25,7 @@ jobs:
         run: |
           curl -sSL -m 60 --retry 2 "https://tv-paper-bot-gdan.onrender.com/strategy-viable-stack?full=1" -o /tmp/stack.json || exit 0
           jq -e '.stack' /tmp/stack.json > /dev/null || { echo "bad response, skipping"; exit 0; }
+          jq -e '.stack | length > 0' /tmp/stack.json > /dev/null || { echo "empty stack, keeping the git backup"; exit 0; }
           jq '{size, stack}' /tmp/stack.json > /tmp/stack_norm.json
           mkdir -p docs
           if [ -f docs/viable_stack.json ] && cmp -s /tmp/stack_norm.json docs/viable_stack.json; then echo "unchanged"; exit 0; fi
