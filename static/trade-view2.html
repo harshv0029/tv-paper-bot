@@ -28,7 +28,6 @@
   .err{color:var(--down);font-size:12px;}
   footer{margin-top:12px;color:var(--muted);font-size:10.5px;line-height:1.6;}
   a{color:var(--accent);}
-.symchip{display:inline-block;margin:1px 3px 1px 0;padding:1px 6px;border:1px solid #8884;border-radius:10px;font-size:11px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -38,19 +37,20 @@
   <input id="q" placeholder="Filter text (symbol, strategy...)" size="28">
   <select id="cat"><option value="">All categories</option></select>
   <select id="wired"><option value="">Wired + not wired</option><option value="1">Wired only</option><option value="0">Not wired only</option></select>
+  <button id="prev">&lt; Prev</button> <button id="next">Next &gt;</button>
   <span class="dim" id="count"></span>
 </div>
 <div class="wrap"><table><thead id="head"></thead><tbody id="body"><tr><td class="dim">Loading...</td></tr></tbody></table></div>
 <footer id="notes"></footer>
 <script>
 const ORIGIN = window.location.origin;
-const KEY = "by_strategy";
-const COLS = [{"k": "sr", "h": "Sr no", "num": true}, {"k": "category", "h": "Category"}, {"k": "strategy", "h": "PFnet&ge;1 strategy"}, {"k": "symbols", "h": "Symbols"}, {"k": "scans_today", "h": "Total scans today", "num": true}, {"k": "scans_1h", "h": "Scans last 1 hr", "num": true}, {"k": "scans_30s", "h": "Scans last 30 s", "num": true}, {"k": "triggers_total", "h": "Triggers fired till date", "num": true}, {"k": "entries_total", "h": "Trade entries till date", "num": true}, {"k": "triggers_today", "h": "Triggers fired today", "num": true}, {"k": "entries_today", "h": "Trade entries today", "num": true}, {"k": "pct_profitable", "h": "% profitable trades", "num": true}];
+const KEY = "by_symbol";
+const COLS = [{"k": "sr", "h": "Sr no", "num": true}, {"k": "category", "h": "Category"}, {"k": "strategy", "h": "PFnet&ge;1 strategy"}, {"k": "symbol", "h": "Symbol"}, {"k": "scans_today", "h": "Total scans today", "num": true}, {"k": "scans_1h", "h": "Scans last 1 hr", "num": true}, {"k": "scans_30s", "h": "Scans last 30 s", "num": true}, {"k": "triggers_total", "h": "Triggers fired till date", "num": true}, {"k": "entries_total", "h": "Trade entries till date", "num": true}, {"k": "triggers_today", "h": "Triggers fired today", "num": true}, {"k": "entries_today", "h": "Trade entries today", "num": true}, {"k": "pct_profitable", "h": "% profitable trades", "num": true}];
 let rows = [], sortKey = null, sortDir = 1;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function cell(c, r) {
   const v = r[c.k];
-  if (c.k === "symbols") return `<td class="syms mono">${v && v.length ? v.map(x => `<span class="symchip">${esc(x)}</span>`).join("") : '<span class="dim">-</span>'}</td>`;
+  if (c.k === "symbols") return `<td class="syms mono">${v && v.length ? esc(v.join(", ")) : '<span class="dim">-</span>'}</td>`;
   if (c.k === "strategy") return `<td class="tag">${esc(v)} <span class="pill ${r.wired ? "w" : "n"}">${r.wired ? "wired" : "not wired"}</span></td>`;
   if (c.k === "pct_profitable") return `<td class="num mono ${v == null ? "dim" : v >= 50 ? "up" : "down"}">${v == null ? "-" : v + "%"}</td>`;
   if (c.num) return `<td class="num mono">${v == null ? "-" : v}</td>`;
@@ -60,34 +60,40 @@ function renderHead() {
   document.getElementById("head").innerHTML = "<tr>" + COLS.map(c => `<th class="${c.num ? "num" : ""}" data-k="${c.k}">${c.h}${sortKey === c.k ? (sortDir > 0 ? " ▲" : " ▼") : ""}</th>`).join("") + "</tr>";
   document.querySelectorAll("th").forEach(th => th.onclick = () => { const k = th.dataset.k; sortDir = sortKey === k ? -sortDir : 1; sortKey = k; render(); });
 }
+let offset = 0, total = 0, PAGE = 200, cross = {};
 function render() {
-  const q = document.getElementById("q").value.toLowerCase(), cat = document.getElementById("cat").value, w = document.getElementById("wired").value;
-  let list = rows.filter(r => (!cat || r.category === cat) && (w === "" || String(r.wired ? 1 : 0) === w) &&
-    (!q || (r.strategy + " " + r.category + " " + (r.symbol || "") + " " + (r.symbols || []).join(" ")).toLowerCase().includes(q)));
-  if (sortKey) list = list.slice().sort((a, b) => { const x = a[sortKey], y = b[sortKey]; if (x == null) return 1; if (y == null) return -1; return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * sortDir; });
+  if (sortKey) rows = rows.slice().sort((a, b) => { const x = a[sortKey], y = b[sortKey]; if (x == null) return 1; if (y == null) return -1; return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * sortDir; });
   renderHead();
-  document.getElementById("count").textContent = list.length + " rows";
-  document.getElementById("body").innerHTML = list.map(r => "<tr>" + COLS.map(c => cell(c, r)).join("") + "</tr>").join("") || '<tr><td class="dim">No rows</td></tr>';
+  document.getElementById("count").textContent = total + " rows (" + (cross.n_symbols || 0) + " symbols x " + (cross.n_strategies || 0) + " strategy rows)  |  showing " + (total ? offset + 1 : 0) + "-" + Math.min(offset + PAGE, total);
+  document.getElementById("body").innerHTML = rows.map(r => "<tr>" + COLS.map(c => cell(c, r)).join("") + "</tr>").join("") || '<tr><td class="dim">No rows</td></tr>';
+  document.getElementById("prev").disabled = offset <= 0;
+  document.getElementById("next").disabled = offset + PAGE >= total;
 }
 async function refresh() {
   try {
-    const res = await fetch(`${ORIGIN}/strategy-symbol-matrix`);
+    const q = encodeURIComponent(document.getElementById("q").value), cat = encodeURIComponent(document.getElementById("cat").value), w = document.getElementById("wired").value;
+    const res = await fetch(`${ORIGIN}/strategy-symbol-cross?q=${q}&cat=${cat}&wired=${w === "" ? -1 : w}&order=strategy&offset=${offset}&limit=${PAGE}`);
     if (!res.ok) throw new Error("HTTP " + res.status);
-    const d = await res.json();
-    rows = d[KEY] || [];
-    const sel = document.getElementById("cat"), cur = sel.value;
-    const cats = [...new Set(rows.map(r => r.category))].sort();
-    sel.innerHTML = '<option value="">All categories</option>' + cats.map(c => `<option ${c === cur ? "selected" : ""}>${esc(c)}</option>`).join("");
-    document.getElementById("notes").innerHTML = (d.notes || []).map(esc).join("<br>");
+    cross = await res.json(); rows = cross.rows || []; total = cross.total || 0;
+    const sel = document.getElementById("cat");
+    if (sel.options.length < 2) {
+      const m = await (await fetch(`${ORIGIN}/strategy-symbol-matrix`)).json();
+      const cats = [...new Set((m.by_strategy || []).map(r => r.category))].sort();
+      sel.innerHTML = '<option value="">All categories</option>' + cats.map(c => `<option>${esc(c)}</option>`).join("");
+      document.getElementById("notes").innerHTML = (m.notes || []).concat(["Every symbol is crossed with every PFnet>=1 strategy row; cells with no scan or trade yet show 0."]).map(esc).join("<br>");
+    }
     document.getElementById("last-update").textContent = "Last update: " + new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " IST";
     render();
   } catch (e) {
     document.getElementById("body").innerHTML = `<tr><td class="err">Load failed: ${esc(e.message)}</td></tr>`;
   }
 }
-document.getElementById("q").oninput = render;
-document.getElementById("cat").onchange = render;
-document.getElementById("wired").onchange = render;
+function reset() { offset = 0; refresh(); }
+document.getElementById("q").oninput = reset;
+document.getElementById("cat").onchange = reset;
+document.getElementById("wired").onchange = reset;
+document.getElementById("prev").onclick = () => { offset = Math.max(0, offset - PAGE); refresh(); };
+document.getElementById("next").onclick = () => { offset += PAGE; refresh(); };
 renderHead();
 refresh();
 setInterval(refresh, 10000);
