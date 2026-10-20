@@ -8646,7 +8646,8 @@ def _clear_protection_degraded_short(conn, symbol: str) -> None:
     _sync_real_positions_short_external(conn)
 
 
-def _open_positions_reserved_risk_inr(conn, exclude_symbol: str | None = None) -> float:
+def _open_positions_reserved_risk_inr(conn, exclude_symbol: str | None = None,
+                                      today_str: str | None = None) -> float:
     """Sum, across every currently-open PAPER position, of that
     position's OWN worst-case loss if it hit its original stop right now
     - the "aggregate open risk" gap found in review (2026-09-10): the
@@ -8675,14 +8676,27 @@ def _open_positions_reserved_risk_inr(conn, exclude_symbol: str | None = None) -
     original allocation, but this stays conservative (the original
     allocation) rather than assume a trail will hold. exclude_symbol lets
     the caller's own about-to-be-opened symbol (which has no signal_state
-    row yet at the point this runs) be left out without a special case."""
+    row yet at the point this runs) be left out without a special case.
+
+    B-1252 (3): when today_str is given, a STALE row (signal_state.day is not
+    today, intraday rows never carry overnight) with no matching real_positions
+    row is a leftover paper ghost, not live exposure, and is excluded from the
+    reserve. Rows with a real position are always kept. The 2% cap is unchanged."""
     rows = conn.execute(
-        "SELECT symbol, entry_price, stop_loss, initial_stop_loss, qty, fx_to_inr "
+        "SELECT symbol, day, entry_price, stop_loss, initial_stop_loss, qty, fx_to_inr "
         "FROM signal_state WHERE status = 'long'"
     ).fetchall()
+    real_syms = set()
+    if today_str:
+        try:
+            real_syms = {x["symbol"] for x in conn.execute("SELECT symbol FROM real_positions").fetchall()}
+        except Exception:
+            real_syms = None  # cannot tell: keep every row (conservative)
     total = 0.0
     for r in rows:
         if exclude_symbol and r["symbol"] == exclude_symbol:
+            continue
+        if today_str and r["day"] != today_str and real_syms is not None and r["symbol"] not in real_syms:
             continue
         stop = r["initial_stop_loss"] or r["stop_loss"]
         if stop is None or r["qty"] is None:
@@ -11003,7 +11017,7 @@ def _auto_signal_core(
         # daily limit." Deliberately does NOT touch `halted` itself or
         # force any existing position closed - only new entries are
         # gated here.
-        open_reserved_risk_inr = _open_positions_reserved_risk_inr(conn, exclude_symbol=symbol)
+        open_reserved_risk_inr = _open_positions_reserved_risk_inr(conn, exclude_symbol=symbol, today_str=today_str)
         # B-1252 (2026-10-14, user: scan first, the money check sits AFTER the trigger):
         # the gate no longer returns before the signal is evaluated. The flag is acted
         # on once a trigger fires (blocked trigger counted, no order), so every symbol
@@ -17228,6 +17242,37 @@ def _aggregate_risk_line(v) -> str:
     return (f"daily risk room = {_fmt_inr(room)} (cap {_fmt_inr(cap)}, realized loss "
             f"{_fmt_inr(lost or 0.0)}, other open positions' reserved risk {_fmt_inr(res)}); "
             f"need = any trade risk > 0, so no new entry")
+
+
+def _entry_why_for(key: str, v: dict) -> dict:
+    """B-1252 (1): per-symbol 'why no entry' row. Ratios only: no balances, no INR."""
+    act = v.get("action_taken") or v.get("status")
+    gate = None
+    ratio = None
+    if (act or "") == "blocked_aggregate_open_risk":
+        gate = "aggregate_open_risk"
+        cap = v.get("daily_loss_cap_inr")
+        if cap:
+            ratio = {"reserved_vs_cap": round(((v.get("open_reserved_risk_inr") or 0.0)
+                                               + (v.get("realized_loss_today_inr") or 0.0)) / cap, 3),
+                     "cap_ratio": 1.0}
+    elif (act or "") == "blocked_daily_loss_cap":
+        gate = "daily_loss_cap"
+    elif act and _is_non_green_action(act):
+        gate = "other_blocker"
+    return {"display": _display_name(key), "status": act, "gate": gate, "ratio": ratio,
+            "entered": bool(act and str(act).startswith("entered"))}
+
+
+@app.get("/entry-why")
+def entry_why():
+    """No-token, no-balance per-symbol 'why no entry' for the long engine."""
+    out = {}
+    for k, v in list(_scheduler_last_results.items()):
+        if k.endswith(":STRIKE") or not isinstance(v, dict):
+            continue
+        out[k] = _entry_why_for(k, v)
+    return {"as_of_ist": ist_now().strftime("%Y-%m-%d %H:%M:%S"), "symbols": out}
 
 
 def _is_non_green_action(action) -> bool:
