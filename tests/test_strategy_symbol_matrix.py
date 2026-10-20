@@ -82,3 +82,15 @@ def test_endpoint_and_pages():
     for p in ("/trade-view2", "/trade-view3"):
         r = cl.get(p)
         assert r.status_code == 200 and "strategy-symbol-matrix" in r.text
+
+
+def test_cross_is_full_m_by_n_and_paged():
+    import main
+    out = main._strategy_symbol_cross(limit=5)
+    assert out["total"] == out["n_symbols"] * out["n_strategies"] > 0 or out["total"] >= out["n_symbols"]
+    assert len(out["rows"]) == 5
+    first = out["rows"][0]["symbol"]
+    syms = {r["symbol"] for r in main._strategy_symbol_cross(limit=1000)["rows"]}
+    assert first in syms
+    nxt = main._strategy_symbol_cross(offset=5, limit=5)["rows"]
+    assert nxt[0]["sr"] == 6
