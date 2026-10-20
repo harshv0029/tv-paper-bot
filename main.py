@@ -23817,6 +23817,60 @@ def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max
     return max(float(initial_stop), float(running_max_close) - mult * float(atr_at_entry))
 
 
+def _log_sl_fills_from_kotak(conn, order_rows) -> int:
+    """B-1285 part 1: a stop-loss that executes at Kotak leaves no 'B' real_trades row, so win % never
+    counted SL closes. Kotak's order book is ground truth: every COMPLETE order whose nOrdNo is a resting
+    SL this app logged (real_order_events leg in sl/short_sl, event placed/moved) gets ONE
+    leg='sl', event='filled' row (new_state 'filled @ Rs<avgPrc>', trnsTp in detail), idempotent per
+    order id. The per-tag win-rate reader derives closed SL trades from these rows."""
+    n = 0
+    try:
+        sl_ids = {str(r[0]) for r in conn.execute(
+            "SELECT order_id FROM real_order_events WHERE leg IN ('sl','short_sl') AND event IN ('placed','moved') "
+            "AND order_id IS NOT NULL").fetchall()}
+        done = {str(r[0]) for r in conn.execute(
+            "SELECT order_id FROM real_order_events WHERE leg='sl' AND event='filled' AND order_id IS NOT NULL").fetchall()}
+        for row in order_rows or []:
+            oid = str(row.get("nOrdNo") or "")
+            if not oid or oid not in sl_ids or oid in done:
+                continue
+            if str(row.get("ordSt", "")).strip().lower() != "complete":
+                continue
+            try:
+                avg = float(row.get("avgPrc") or 0)
+            except (TypeError, ValueError):
+                continue
+            if avg <= 0:
+                continue
+            tsym = row.get("trdSym") or ""
+            conn.execute(
+                "INSERT INTO real_order_events (ts, symbol, kotak_trading_symbol, leg, event, order_id, "
+                "prev_state, new_state, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (time.time(), tsym.rsplit("-", 1)[0] + ".NS" if tsym else None, tsym, "sl", "filled", oid,
+                 "resting", f"filled @ Rs{avg:.2f}",
+                 f"reason: stop-loss executed at Kotak (counted in win %) | trnsTp={row.get('trnsTp','')} qty={row.get('qty','')}"))
+            done.add(oid)
+            n += 1
+        if n:
+            conn.commit()
+            sync_generic_tables_external(only=("real_order_events",))
+    except Exception as e:
+        print(f"[order_log] SL-fill logging failed (non-fatal): {e}")
+    return n
+
+
+def _sl_fills_today(conn, since_ts) -> list:
+    """(symbol, fill_price, trnsTp) for each SL fill row logged since since_ts, oldest first."""
+    import re as _re2
+    out = []
+    for r in conn.execute("SELECT symbol, new_state, detail FROM real_order_events WHERE leg='sl' AND event='filled' "
+                          "AND ts >= ? ORDER BY ts", (since_ts,)).fetchall():
+        m = _re2.search(r"Rs\s?([0-9]+(?:\.[0-9]+)?)", str(r[1] or ""))
+        if m and r[0]:
+            out.append((r[0], float(m.group(1)), "S" if "trnsTp=S" in str(r[2] or "") else "B"))
+    return out
+
+
 def _log_unlogged_kotak_orders(conn, order_rows) -> int:
     """B-307: Kotak's order book is ground truth, so every order in it must have an
     app log row (reason rule). Any Kotak order whose nOrdNo has no real_order_events
@@ -25807,6 +25861,21 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
                 _w[1] += 1
                 if _pnl > 0:
                     _w[0] += 1
+        # B-1285: SL exits at Kotak write no 'B' real_trades row; close still-open legs from the logged SL fills.
+        with closing(get_db()) as _c2:
+            _fills = _sl_fills_today(_c2, since_ts)
+        for _sym, _fpx, _xs in _fills:
+            for _k in [k for k in _open_legs if k[0] == _sym]:
+                _s0, _p0, _q0 = _open_legs[_k]
+                if not _p0 or _xs == _s0:
+                    continue
+                _open_legs.pop(_k)
+                _pnl = (_fpx - _p0) * _q0 if _s0 == "B" else (_p0 - _fpx) * _q0
+                _w = real_closed_wins.setdefault(_k[1], [0, 0])
+                _w[1] += 1
+                if _pnl > 0:
+                    _w[0] += 1
+                break
     except Exception:
         pass
 
@@ -28096,6 +28165,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             _align_swing_sl_rows_to_kotak(conn, order_rows)
         except Exception as e:
             print(f"[reconcile] swing SL align-to-Kotak failed (non-fatal): {e}")
+        _log_sl_fills_from_kotak(conn, order_rows)
         _log_unlogged_kotak_orders(conn, order_rows)
         governance_backfilled_swing = []
         # 2026-10-07: no SL placement while the exchange is closed (Kotak rejects them
