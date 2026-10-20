@@ -26337,6 +26337,22 @@ def _matrix_symbol_universe(extra=()):
     return sorted(x for x in u if isinstance(x, str) and x)
 
 
+def _pfnet_doc_and_backtest(registry_name):
+    """(documented/research PFnet, main.py-function-replay PFnet) for the trade-view columns (user 2026-10-20).
+    Documented = the registry value (research run / documentation). Backtest = that value only when its run_ref says it came
+    from a replay that called the real main.py functions; otherwise None ("not replayed through main.py yet")."""
+    try:
+        import strategy_registry as _sr
+        d = next((x for x in _sr.REGISTRY if x.name == registry_name), None)
+        if d is None:
+            return None, None
+        ref = (d.metrics.run_ref or "").lower()
+        replayed = "main.py" in ref or "main-replay" in ref or "main_replay" in ref
+        return d.metrics.pfnet, (d.metrics.pfnet if replayed else None)
+    except Exception:
+        return None, None
+
+
 def _strategy_symbol_cross(q="", cat="", wired=None, offset=0, limit=200, order="symbol"):
     """Full M x N cross (every symbol x every PFnet>=floor strategy row), paged server-side.
     Reuses the by_strategy rows for N and the by_symbol rows for the measured cells; cells with no data show zeros."""
@@ -26352,6 +26368,7 @@ def _strategy_symbol_cross(q="", cat="", wired=None, offset=0, limit=200, order=
             "triggers_today": 0, "entries_today": 0, "closed": 0, "wins": 0, "pct_profitable": None}
     rows, n = [], 0
     sr = 0
+    _pf_cache = {}
     pairs = ((sym, st) for sym in syms for st in strat) if order != "strategy" else ((sym, st) for st in strat for sym in syms)
     for sym, st in pairs:
         if True:
@@ -26363,8 +26380,12 @@ def _strategy_symbol_cross(q="", cat="", wired=None, offset=0, limit=200, order=
                 continue
             if n >= offset and len(rows) < limit:
                 m = measured.get((st["strategy"], st["category"], sym), zero)
+                _pf = _pf_cache.get(st.get("registry_name"))
+                if _pf is None:
+                    _pf = _pf_cache[st.get("registry_name")] = _pfnet_doc_and_backtest(st.get("registry_name"))
                 rows.append({"sr": n + 1, "symbol": sym, "category": st["category"], "strategy": st["strategy"],
                              "registry_name": st.get("registry_name"), "pfnet": st.get("pfnet"), "wired": st["wired"],
+                             "pfnet_doc": _pf[0], "pfnet_backtest": _pf[1],
                              **{k: m[k] for k in zero}})
             n += 1
     return {"total": n, "n_symbols": len(syms), "n_strategies": len(strat), "offset": offset,
