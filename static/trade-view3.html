@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trade View 3 - by symbol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#080b0f;--panel:#12181f;--panel-2:#161e27;--border:#232d3a;--text:#e7ecf2;--muted:#7c8a9c;--up:#22c55e;--down:#ef4444;--accent:#3b82f6;--warn:#f59e0b;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;padding:16px;}
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  h1{font-size:16px;font-weight:700;margin:0 0 3px;}
+  .sub{color:var(--muted);font-size:11px;margin-bottom:12px;}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
+  .bar input,.bar select{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;}
+  .wrap{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:auto;max-height:78vh;}
+  table{border-collapse:collapse;width:100%;font-size:11.5px;}
+  th{position:sticky;top:0;background:var(--panel-2);color:var(--muted);text-transform:uppercase;font-size:9.5px;letter-spacing:.05em;padding:8px 10px;text-align:left;cursor:pointer;white-space:nowrap;border-bottom:1px solid var(--border);}
+  th.num,td.num{text-align:right;}
+  td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+  td.syms{max-width:420px;color:var(--muted);font-size:10.5px;word-break:break-word;}
+  .tag{font-weight:600;}
+  .pill{display:inline-block;padding:1px 7px;border-radius:20px;font-size:9.5px;font-weight:700;}
+  .pill.w{background:rgba(34,197,94,.14);color:var(--up);} .pill.n{background:rgba(245,158,11,.14);color:var(--warn);}
+  .up{color:var(--up);} .down{color:var(--down);} .dim{color:var(--muted);}
+  .err{color:var(--down);font-size:12px;}
+  footer{margin-top:12px;color:var(--muted);font-size:10.5px;line-height:1.6;}
+  a{color:var(--accent);}
+</style>
+</head>
+<body>
+<h1>Trade View 3 - by symbol</h1>
+<div class="sub">Read-only. Strategies clearing the PFnet floor only. Refreshes every 10s. <span id="last-update"></span> · <a href="/trade-view">Trade view</a> · <a href="/trade-view2">view2</a> · <a href="/trade-view3">view3</a></div>
+<div class="bar">
+  <input id="q" placeholder="Filter text (symbol, strategy...)" size="28">
+  <select id="cat"><option value="">All categories</option></select>
+  <select id="wired"><option value="">Wired + not wired</option><option value="1">Wired only</option><option value="0">Not wired only</option></select>
+  <span class="dim" id="count"></span>
+</div>
+<div class="wrap"><table><thead id="head"></thead><tbody id="body"><tr><td class="dim">Loading...</td></tr></tbody></table></div>
+<footer id="notes"></footer>
+<script>
+const ORIGIN = window.location.origin;
+const KEY = "by_symbol";
+const COLS = [{"k": "sr", "h": "Sr no", "num": true}, {"k": "symbol", "h": "Symbol"}, {"k": "category", "h": "Category"}, {"k": "strategy", "h": "PFnet&ge;1 strategy"}, {"k": "scans_today", "h": "Total scans today", "num": true}, {"k": "scans_1h", "h": "Scans last 1 hr", "num": true}, {"k": "scans_30s", "h": "Scans last 30 s", "num": true}, {"k": "triggers_total", "h": "Triggers fired till date", "num": true}, {"k": "entries_total", "h": "Trade entries till date", "num": true}, {"k": "triggers_today", "h": "Triggers fired today", "num": true}, {"k": "entries_today", "h": "Trade entries today", "num": true}, {"k": "pct_profitable", "h": "% profitable trades", "num": true}];
+let rows = [], sortKey = null, sortDir = 1;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function cell(c, r) {
+  const v = r[c.k];
+  if (c.k === "symbols") return `<td class="syms mono">${v && v.length ? esc(v.join(", ")) : '<span class="dim">-</span>'}</td>`;
+  if (c.k === "strategy") return `<td class="tag">${esc(v)} <span class="pill ${r.wired ? "w" : "n"}">${r.wired ? "wired" : "not wired"}</span></td>`;
+  if (c.k === "pct_profitable") return `<td class="num mono ${v == null ? "dim" : v >= 50 ? "up" : "down"}">${v == null ? "-" : v + "%"}</td>`;
+  if (c.num) return `<td class="num mono">${v == null ? "-" : v}</td>`;
+  return `<td>${v == null ? "-" : esc(v)}</td>`;
+}
+function renderHead() {
+  document.getElementById("head").innerHTML = "<tr>" + COLS.map(c => `<th class="${c.num ? "num" : ""}" data-k="${c.k}">${c.h}${sortKey === c.k ? (sortDir > 0 ? " ▲" : " ▼") : ""}</th>`).join("") + "</tr>";
+  document.querySelectorAll("th").forEach(th => th.onclick = () => { const k = th.dataset.k; sortDir = sortKey === k ? -sortDir : 1; sortKey = k; render(); });
+}
+function render() {
+  const q = document.getElementById("q").value.toLowerCase(), cat = document.getElementById("cat").value, w = document.getElementById("wired").value;
+  let list = rows.filter(r => (!cat || r.category === cat) && (w === "" || String(r.wired ? 1 : 0) === w) &&
+    (!q || (r.strategy + " " + r.category + " " + (r.symbol || "") + " " + (r.symbols || []).join(" ")).toLowerCase().includes(q)));
+  if (sortKey) list = list.slice().sort((a, b) => { const x = a[sortKey], y = b[sortKey]; if (x == null) return 1; if (y == null) return -1; return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * sortDir; });
+  renderHead();
+  document.getElementById("count").textContent = list.length + " rows";
+  document.getElementById("body").innerHTML = list.map(r => "<tr>" + COLS.map(c => cell(c, r)).join("") + "</tr>").join("") || '<tr><td class="dim">No rows</td></tr>';
+}
+async function refresh() {
+  try {
+    const res = await fetch(`${ORIGIN}/strategy-symbol-matrix`);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const d = await res.json();
+    rows = d[KEY] || [];
+    const sel = document.getElementById("cat"), cur = sel.value;
+    const cats = [...new Set(rows.map(r => r.category))].sort();
+    sel.innerHTML = '<option value="">All categories</option>' + cats.map(c => `<option ${c === cur ? "selected" : ""}>${esc(c)}</option>`).join("");
+    document.getElementById("notes").innerHTML = (d.notes || []).map(esc).join("<br>");
+    document.getElementById("last-update").textContent = "Last update: " + new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " IST";
+    render();
+  } catch (e) {
+    document.getElementById("body").innerHTML = `<tr><td class="err">Load failed: ${esc(e.message)}</td></tr>`;
+  }
+}
+document.getElementById("q").oninput = render;
+document.getElementById("cat").onchange = render;
+document.getElementById("wired").onchange = render;
+renderHead();
+refresh();
+setInterval(refresh, 10000);
+</script>
+</body>
+</html>
