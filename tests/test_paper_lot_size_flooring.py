@@ -68,8 +68,17 @@ def _run(symbol, future_result):
 def test_gold_entry_qty_floors_to_a_whole_lot():
     result = _run("GC=F", ({"lot_size": 10, "underlying": "GOLDM"}, None))
     assert result["action_taken"] == "entered_long"
-    assert result["entry"]["qty"] % 10 == 0
-    assert result["entry"]["qty"] > 0
+    lot_oz = main._paper_lot_in_proxy_units("GC=F", 10)
+    n = result["entry"]["qty"] / lot_oz
+    assert result["entry"]["qty"] > 0 and abs(n - round(n)) < 1e-4
+
+
+def test_paper_lot_converted_to_proxy_units():
+    # GOLDM lot 100 g = 3.2151 troy oz; SILVERM lot 5 kg = 160.75 oz; CRUDEOILM 10 bbl unchanged
+    assert abs(main._paper_lot_in_proxy_units("GC=F", 100) - 3.21507) < 1e-4
+    assert abs(main._paper_lot_in_proxy_units("SI=F", 5) - 160.754) < 1e-2
+    assert main._paper_lot_in_proxy_units("CL=F", 10) == 10.0
+    assert main._paper_lot_in_proxy_units("^NSEI", 75) == 75.0
 
 
 def test_nifty_entry_qty_floors_to_a_whole_lot():
