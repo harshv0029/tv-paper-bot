@@ -61,3 +61,12 @@ def test_visit_count_driven_by_distinct_tags_and_gap_by_category():
     r = main.symbol_strategy_coverage("AAA.NS")
     flat = [t for v in r["not_evaluated_by_category"].values() for t in v]
     assert set(flat) <= set(r["viable_not_tested_today"])
+
+
+def test_note_symbol_strategy_scan_for_fo_cells():
+    _reset()
+    main._note_symbol_strategy_scan("NIFTY", "gap_and_go")
+    main._note_symbol_strategy_scan("NIFTY", "gap_and_go_short")
+    assert main._symbol_strategy_scans["NIFTY"] == {"gap_and_go", "gap_and_go_short"}
+    assert main._current_scan_symbol.get() is None
+    assert main._symbol_strategies_tested_today("NIFTY") == 2
