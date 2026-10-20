@@ -33,3 +33,19 @@ def _reset_viable_stack_state():
     yield
     if _m is not None and _db_path is not None:
         _m.DB_PATH = _db_path  # a test that swaps in a temp DB (stack rows) must not leak it
+
+
+@pytest.fixture(autouse=True)
+def _scan_gate_ignores_todays_calendar(monkeypatch):
+    """_run_swing_scan / _scheduler_tick skip on NSE holidays and weekends.
+    Tests that exercise them must not depend on the day the suite runs, so
+    the no-argument ("today") form is pinned open. Explicit-date calls (the
+    calendar tests) still hit the real function."""
+    try:
+        import main
+    except Exception:
+        return
+    real = main.is_nse_trading_day
+    monkeypatch.setattr(
+        main, "is_nse_trading_day",
+        lambda date=None: True if date is None else real(date))

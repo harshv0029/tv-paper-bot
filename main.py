@@ -36,6 +36,7 @@ import os  # noqa: E402
 
 _cap_malloc_arenas()
 import base64
+import collections
 import contextvars
 import datetime as dt
 import hashlib
@@ -3321,7 +3322,24 @@ def options_backtest_endpoint(
     }
 
 
-IST_OFFSET_MIN = 330  # UTC+5:30, no holiday calendar
+IST_OFFSET_MIN = 330  # UTC+5:30
+# B-1291: NSE trading holidays (docs/MARKET_HOLIDAYS.md). Used ONLY to skip NEW-entry scans; never
+# gates protection/SL sync/reconcile/exit paths. Muhurat 2026-11-08 (Sunday special session) is not listed.
+NSE_HOLIDAYS_2026 = frozenset({"2026-10-20", "2026-11-10", "2026-11-24", "2026-12-25"})
+
+
+def is_nse_trading_day(date=None) -> bool:
+    """Weekday and not an NSE holiday. date: dt.date/datetime/ISO str; default today IST. Fails open (True)."""
+    try:
+        if date is None:
+            date = dt.datetime.utcnow() + dt.timedelta(minutes=IST_OFFSET_MIN)
+        if isinstance(date, str):
+            date = dt.date.fromisoformat(date[:10])
+        if date.weekday() >= 5:
+            return False
+        return date.strftime("%Y-%m-%d") not in NSE_HOLIDAYS_2026
+    except Exception:
+        return True
 # ORB_STRATEGY_PREFIX moved to constants.py (imported at top of this file) -
 # this used to be a second definition site for the same value, found during
 # the 2026-09-04 structure-split verification pass.
@@ -16742,6 +16760,8 @@ def _run_index_swing_option_scan(conn):
             if df is None or len(df) < 50:
                 continue
             spot = float(df["Close"].iloc[-1])
+            for _t in ("gap_and_go", "gap_and_go_short"):  # B-1274: per-symbol coverage for index option cells
+                _note_symbol_strategy_scan(sym, _t)
             if gap_and_go_entry_signal(df):
                 _maybe_place_real_fo_call_entry(conn, sym, spot, "gap_and_go")
             elif gap_and_go_entry_signal_short(df):
@@ -16961,6 +16981,7 @@ def _run_fo_strike_setup_scan(conn):
             except Exception:
                 sig = None
             rec["scanned"][tag] = rec["scanned"].get(tag, 0) + 1
+            _note_symbol_strategy_scan(d["underlying"], tag)  # B-1274: per-underlying coverage for strike setups
             if sig and fired is None:
                 fired = (tag, sig)
                 rec["last_signal"] = {"tag": tag, "ts": now}
@@ -20391,6 +20412,19 @@ _symbol_strategy_scans_day: str = ""
 _current_scan_symbol: contextvars.ContextVar = contextvars.ContextVar("current_scan_symbol", default=None)
 
 
+def _note_symbol_strategy_scan(sym, tag):
+    """B-1274: attribute one evaluated tag to `sym` (set marker before, reset in finally). Per-symbol coverage only:
+    does NOT touch the global per-tag scan counters (strike loops would inflate scans_today per strike). Never raises."""
+    try:
+        _tok = _current_scan_symbol.set(sym)
+        try:
+            _record_symbol_strategy_scan(tag)
+        finally:
+            _current_scan_symbol.reset(_tok)
+    except Exception:
+        pass
+
+
 def _scan_visit(symbols):
     """Iterate symbols, marking each as the current visit symbol (for per-symbol strategy-scan attribution) while its
     loop body runs; marker is cleared afterwards. Pure pass-through otherwise (no filtering, no reordering)."""
@@ -20468,6 +20502,32 @@ def _symbol_strategies_tested_today(symbol: str) -> int:
     return len(_symbol_strategy_scans.get(symbol, ()))
 
 
+# Trade view2/3 (2026-10-20): bounded in-memory per-(tag, symbol) scan stats - today's count plus a capped deque of
+# recent timestamps (1h / 30s windows). Memory only (resets on restart; the persisted per-symbol tag set above is the
+# fallback for "scanned today at least once"). No per-tick DB writes.
+_PAIR_SCAN_RECENT_MAX = 400
+_PAIR_SCAN_WINDOW_SEC = 3600
+_pair_scan_stats: dict = {}  # (tag, symbol) -> [count_today, deque[timestamps]]
+_pair_scan_day: str = ""
+
+
+def _record_pair_scan(tag: str, sym: str, today_str: str):
+    global _pair_scan_day
+    if today_str != _pair_scan_day:
+        _pair_scan_stats.clear()
+        _pair_scan_day = today_str
+    rec = _pair_scan_stats.get((tag, sym))
+    if rec is None:
+        rec = _pair_scan_stats[(tag, sym)] = [0, collections.deque(maxlen=_PAIR_SCAN_RECENT_MAX)]
+    now = time.time()
+    rec[0] += 1
+    dq = rec[1]
+    dq.append(now)
+    cutoff = now - _PAIR_SCAN_WINDOW_SEC
+    while dq and dq[0] < cutoff:
+        dq.popleft()
+
+
 def _record_symbol_strategy_scan(tag: str):
     """Adds tag to the current visit symbol's set, if a marker is set. Never raises."""
     global _symbol_strategy_scans_day
@@ -20480,6 +20540,7 @@ def _record_symbol_strategy_scan(tag: str):
             _symbol_strategy_scans.clear()
             _symbol_strategy_scans_day = today_str
         _symbol_strategy_scans.setdefault(sym, set()).add(tag)
+        _record_pair_scan(tag, sym, today_str)
         _symbol_scans_kick_sync()
     except Exception:
         pass
@@ -24371,6 +24432,8 @@ def _run_swing_scan(conn):
         _restore_strategy_scan_counts(conn)
     except Exception as e:
         print(f"[SWING] scan-count restore failed (non-fatal): {e}")
+    if not is_nse_trading_day():
+        return  # B-1291: NSE holiday - no new swing entries (exits/SL sync run elsewhere)
     first_pass = not conn.execute("SELECT 1 FROM swing_scan_log WHERE scan_date = ?", (today,)).fetchone()
     if not first_pass and (not _nse_equity_market_open_now() or time.time() - _swing_last_pass_ts < SWING_PASS_INTERVAL_SEC):
         return
@@ -24594,6 +24657,10 @@ async def _scheduler_tick():
         s for s in all_symbols
         if s not in open_equity_symbols and s not in EVIDENCED_SYMBOLS and s not in open_real_symbols
     ]
+    if not is_nse_trading_day():
+        # B-1291: NSE holiday - drop NEW-entry .NS candidates only. Open positions (open_*_symbols),
+        # MCX/other-market symbols and all protection/exit paths are untouched.
+        flat_symbols = [s for s in flat_symbols if not s.endswith(".NS")]
     if flat_symbols:
         n = len(flat_symbols)
         batch_size = min(live_batch_size, n)
@@ -24609,6 +24676,8 @@ async def _scheduler_tick():
     # way flat_symbols is, not scanned unconditionally like an already-
     # open position.
     evidenced_flat = set() if trading_paused else (EVIDENCED_SYMBOLS - open_equity_symbols)
+    if not is_nse_trading_day():
+        evidenced_flat = {s for s in evidenced_flat if not s.endswith(".NS")}  # B-1291
 
     # Always: every symbol with an open equity position (time-critical
     # stop/target/eod check) + every symbol with an open REAL position
@@ -26105,6 +26174,132 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
     counts = {"viable_total": len(rows) - _n_closed, "live_wired": _n_live, "wired_gate_closed": _n_closed,
               "research_only": len(rows) - _n_live - _n_closed}
     return {"strategies": rows, "counts": counts, "as_of_epoch": time.time()}
+
+
+_MATRIX_CACHE: list = [0.0, None]
+
+
+def _matrix_outcomes():
+    """(entries, closed) keyed by (tag, symbol): entries -> [total, today]; closed -> [wins, closed_n], all history.
+    Paper `trades` (long, avg-cost replay; swing entries use raw_payload.entry_reason) plus MCX real_fo_trades entries."""
+    since_ts = ist_midnight_epoch(ist_now())
+    entries: dict = {}
+    closed: dict = {}
+    with closing(get_db()) as conn:
+        rows = conn.execute(
+            "SELECT symbol, action, qty, price, fx_to_inr, strategy, raw_payload, ts FROM trades ORDER BY ts").fetchall()
+        book: dict = {}
+        for t in rows:
+            b = book.setdefault(t["symbol"], {"qty": 0.0, "avg": 0.0, "tag": None})
+            px = t["price"] * (t["fx_to_inr"] or 1.0)
+            if t["action"] == "buy":
+                tag = t["strategy"]
+                if tag == SWING_STRATEGY_TAG:
+                    try:
+                        tag = (json.loads(t["raw_payload"]) or {}).get("entry_reason") or tag
+                    except (TypeError, ValueError):
+                        pass
+                nq = b["qty"] + t["qty"]
+                b["avg"] = ((b["qty"] * b["avg"]) + (t["qty"] * px)) / nq if nq else 0.0
+                b["qty"], b["tag"] = nq, tag
+                e = entries.setdefault((tag, t["symbol"]), [0, 0])
+                e[0] += 1
+                if t["ts"] >= since_ts:
+                    e[1] += 1
+            elif b["tag"]:
+                pnl = (px - b["avg"]) * min(t["qty"], b["qty"])
+                b["qty"] = max(0.0, b["qty"] - t["qty"])
+                w = closed.setdefault((b["tag"], t["symbol"]), [0, 0])
+                w[1] += 1
+                if pnl > 0:
+                    w[0] += 1
+        try:
+            mcx = {c[0] for c in _MCX_DAILY_CELLS}
+            for r in conn.execute("SELECT leg_key, detail, ts FROM real_fo_trades WHERE status='confirmed' AND side='B'").fetchall():
+                m = re.search(r"strategy_tag=(\S+)", r["detail"] or "")
+                if m and m.group(1) in mcx:
+                    e = entries.setdefault((m.group(1), r["leg_key"] or "?"), [0, 0])
+                    e[0] += 1
+                    if r["ts"] >= since_ts:
+                        e[1] += 1
+        except Exception:
+            pass
+    return entries, closed
+
+
+def _strategy_symbol_matrix_compute():
+    now = time.time()
+    today = ist_now().strftime("%Y-%m-%d")
+    act = _strategy_scan_activity_compute(True)["strategies"]
+    entries, closed = _matrix_outcomes()
+    strat_rows = [r for r in act if r.get("status") != "wired_gate_closed"]
+    day_ok = _symbol_strategy_scans_day == today
+    syms_by_tag: dict = {}
+    if day_ok:
+        for sym, tags in list(_symbol_strategy_scans.items()):
+            for t in tags:
+                syms_by_tag.setdefault(t, set()).add(sym)
+    for (t, sym) in list(entries):
+        syms_by_tag.setdefault(t, set()).add(sym)
+    pair_day_ok = _pair_scan_day == today
+
+    def pair_metrics(tag, sym):
+        rec = _pair_scan_stats.get((tag, sym)) if pair_day_ok else None
+        if rec:
+            ts = list(rec[1])
+            n_today, n1h = rec[0], sum(1 for x in ts if x >= now - 3600)
+            n30 = sum(1 for x in ts if x >= now - 30)
+        elif day_ok and tag in (_symbol_strategy_scans.get(sym) or ()):
+            n_today, n1h, n30 = 1, 0, 0  # persisted set only: scanned >=1x today, window counts lost on restart
+        else:
+            n_today = n1h = n30 = 0
+        e = entries.get((tag, sym), [0, 0])
+        c = closed.get((tag, sym), [0, 0])
+        return {"scans_today": n_today, "scans_1h": n1h, "scans_30s": n30,
+                "triggers_total": e[0], "entries_total": e[0], "triggers_today": e[1], "entries_today": e[1],
+                "closed": c[1], "wins": c[0]}
+
+    def agg(ms):
+        keys = ("scans_today", "scans_1h", "scans_30s", "triggers_total", "entries_total", "triggers_today",
+                "entries_today", "closed", "wins")
+        return {k: sum(m[k] for m in ms) for k in keys}
+
+    def pct(d):
+        return round(100.0 * d["wins"] / d["closed"], 1) if d["closed"] else None
+
+    by_strategy, by_symbol = [], []
+    for r in strat_rows:
+        tag = r["strategy_tag"]
+        wired = bool(r.get("scan_wired"))
+        syms = sorted(syms_by_tag.get(tag, ()))
+        per = {s: pair_metrics(tag, s) for s in syms}
+        for cat in (r.get("categories") or ["unknown"]):
+            tot = agg(list(per.values()))
+            if wired:  # wired tags: the per-tag counter is authoritative for scans (covers scans not attributed to a symbol)
+                tot["scans_today"] = max(tot["scans_today"], r.get("scans_today") or 0)
+                tot["scans_30s"] = max(tot["scans_30s"], r.get("scans_last_30s") or 0)
+            base = {"category": cat, "strategy": tag, "registry_name": r.get("registry_name"), "pfnet": r.get("pfnet"),
+                    "wired": wired}
+            by_strategy.append({**base, "symbols": syms, "n_symbols": len(syms), **tot, "pct_profitable": pct(tot)})
+            for s in syms:
+                by_symbol.append({**base, "symbol": s, **per[s], "pct_profitable": pct(per[s])})
+    for i, row in enumerate(by_strategy, 1):
+        row["sr"] = i
+    for i, row in enumerate(by_symbol, 1):
+        row["sr"] = i
+    return {"by_strategy": by_strategy, "by_symbol": by_symbol, "as_of_epoch": now, "day": today,
+            "notes": ["Scan windows (today/1h/30s) are in-memory and reset on restart; a symbol seen only in the persisted tag set counts as 1 scan.",
+                      "Symbols = symbols this strategy has been scanned on today or has traded (no static per-strategy universe exists).",
+                      "Triggers = entries (no separate trigger log exists); % profitable = paper-trade closes in profit / closes (long, avg-cost); MCX real entries have no close data."]}
+
+
+@app.get("/strategy-symbol-matrix")
+def strategy_symbol_matrix():
+    """Read-only data for /trade-view2 (by_strategy) and /trade-view3 (by_symbol). Cached ~30s; no account data."""
+    if _MATRIX_CACHE[1] is None or time.time() - _MATRIX_CACHE[0] > 30:
+        _MATRIX_CACHE[1] = _strategy_symbol_matrix_compute()
+        _MATRIX_CACHE[0] = time.time()
+    return _MATRIX_CACHE[1]
 
 
 @app.get("/strategy-info")
@@ -28783,3 +28978,14 @@ def trade_view():
     pulls live from /daily-summary + /history client-side, same pattern
     as /live."""
     return FileResponse("static/trade-view.html", headers={"Cache-Control": "no-store, max-age=0"})  # stale cached copies hid the sort/filter fixes
+
+
+@app.get("/trade-view2")
+def trade_view2():
+    return FileResponse("static/trade-view2.html", headers={"Cache-Control": "no-store, max-age=0"})
+
+
+@app.get("/trade-view3")
+def trade_view3():
+    return FileResponse("static/trade-view3.html", headers={"Cache-Control": "no-store, max-age=0"})
+
