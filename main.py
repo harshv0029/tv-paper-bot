@@ -25096,6 +25096,10 @@ async def _scheduler_tick():
             pass
         print(f"[memory] tick {_scheduler_tick_count}: rss_mb={_process_rss_mb()}, "
               f"data_cache_entries={len(_DATA_CACHE)}, watchlist_size={len(WATCHLIST)}")
+        try:
+            _memory_pressure_check()
+        except Exception:  # noqa: BLE001
+            pass
         _hr = _rss_headroom()
         if _hr["rss_pct"] is not None and _hr["rss_pct"] > RSS_ALARM_PCT:
             print(f"[memory] ALARM: rss_mb={_hr['rss_mb']} is {_hr['rss_pct']}% of "
@@ -27054,6 +27058,34 @@ def _process_rss_mb() -> float | None:
 
 RSS_LIMIT_MB = 2048  # B-1288: Render plan memory limit
 RSS_ALARM_PCT = 85.0
+RSS_WARN_PCT = 75.0  # B-1288: early warning + cache trim
+_MEMORY_STATE = {"level": "ok", "trims": 0, "last_trim_ts": None, "last_trim_freed_entries": 0}
+
+
+def _memory_pressure_check(now_mb=None, trim=True) -> dict:
+    """B-1288: level from CURRENT rss (falls back to peak). At >= RSS_WARN_PCT log a warning and clear ONLY
+    the re-fetchable _DATA_CACHE (never positions, orders or SL state), then gc."""
+    if now_mb is None:
+        now_mb = _current_rss_mb()
+    if now_mb is None:
+        now_mb = _process_rss_mb()
+    pct = round(now_mb / RSS_LIMIT_MB * 100, 1) if now_mb is not None else None
+    level = "ok" if pct is None or pct < RSS_WARN_PCT else ("alarm" if pct > RSS_ALARM_PCT else "warn")
+    _MEMORY_STATE["level"] = level
+    if level != "ok" and trim:
+        try:
+            n = len(_DATA_CACHE)
+            _DATA_CACHE.clear()
+            import gc
+            gc.collect()
+            _MEMORY_STATE.update(trims=_MEMORY_STATE["trims"] + 1, last_trim_ts=time.time(),
+                                 last_trim_freed_entries=n)
+            print(f"[memory] {level.upper()}: rss_now_mb={now_mb} ({pct}% of {RSS_LIMIT_MB}); "
+                  f"cleared {n} data-cache entries")
+        except Exception as e:  # noqa: BLE001
+            print(f"[memory] trim failed (non-fatal): {e}")
+    return {"memory_level": level, "memory_pct_now": pct, "memory_warn_pct": RSS_WARN_PCT,
+            "memory_trims": _MEMORY_STATE["trims"]}
 
 
 def _rss_headroom(rss_mb=None) -> dict:
@@ -27077,7 +27109,8 @@ def _current_rss_mb() -> float | None:
 
 @app.get("/health")
 def health():
-    return {"status": "alive", "time": time.time(), **_rss_headroom()}
+    return {"status": "alive", "time": time.time(), **_rss_headroom(),
+            **_memory_pressure_check(trim=False)}
 
 
 @app.get("/watchlist")
