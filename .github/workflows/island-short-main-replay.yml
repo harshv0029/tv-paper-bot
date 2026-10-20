@@ -1,0 +1,78 @@
+name: Island reversal SHORT main.py-function replay (B-891)
+
+# Backlog B-891 (replay half). Replays EVERY tag in main.ISLAND_SHORT_TAGS (short, 1d, ATR 1.5 stop always attached) by
+# IMPORTING and CALLING the real main.island_short_entry_signal + main.brk20_min_rr_exit_reason(direction="short") (the
+# function main._island_short_exit_adapter wraps; the adapter itself is also called on a trade sample as a cross-check)
+# on the FULL universe (main._load_nse_universe_from_file(), not main.NSE_FULL_UNIVERSE), 5y of 1d bars, strict FIFO,
+# short-aware PnL, cost = main.ROUND_TRIP_COST_PCT (0.8%). Merge prints PFnet gross/net, win %, avg hold (bars + trading
+# hours), n and exit-reason breakdown next to the registry numbers (island_oos_1d_run_38221645245.json nonovl v2 cells).
+# Matrix = 4 short tags x 4 shards = 16 jobs. Validation only: wires nothing, no kill switch, main.py untouched.
+# Register the replay numbers as-is (pass or fail); only a result >= PFNET_LIVE_FLOOR could ever justify wiring.
+# Dispatch last (big matrix). Expected runtime ~1-2 h per job.
+on:
+  workflow_dispatch:
+    inputs:
+      adapter_checks:
+        description: "Trades per tag per shard cross-checked through main._island_short_exit_adapter"
+        default: "25"
+      symbol_limit:
+        description: "Smoke only: cap symbols per shard (blank = full universe; a capped run is NOT a result)"
+        default: ""
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix:
+        tag:
+          - reversal__island_turn1cr__short__1d__atr1d5_within8__nonovl__v2
+          - reversal__island_px20__short__1d__atr1d5_within8__nonovl__v2
+          - reversal__island_none__short__1d__atr1d5_within8__nonovl__v2
+          - reversal__island_gap05__short__1d__atr1d5_within8__nonovl__v2
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - env:
+          TAG: ${{ matrix.tag }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "4"
+          INTERVAL: "1d"
+          PERIOD: "5y"
+          ADAPTER_CHECKS: ${{ inputs.adapter_checks }}
+          SYMBOL_LIMIT: ${{ inputs.symbol_limit }}
+        run: python3 scripts/island_short_main_replay.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: island-short-main-replay-${{ strategy.job-index }}
+          path: out/
+          retention-days: 7
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: island-short-main-replay-*
+          merge-multiple: true
+      - run: python3 scripts/island_short_main_replay.py merge shards island_short_all.json | tee island_short_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: island-short-main-replay-results
+          path: |
+            island_short_all.json
+            island_short_table.txt
