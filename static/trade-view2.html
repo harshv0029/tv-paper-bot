@@ -43,6 +43,9 @@
 <div class="wrap"><table><thead id="head"></thead><tbody id="body"><tr><td class="dim">Loading...</td></tr></tbody></table></div>
 <footer id="notes"></footer>
 <script>
+/* Memory guard (user 2026-10-20: page hung the laptop): skip DOM rebuilds when the HTML string is unchanged, so the 10s poll does not reparse/relayout identical content. */
+(function(){var d=Object.getOwnPropertyDescriptor(Element.prototype,"innerHTML");if(!d||!d.set)return;Object.defineProperty(Element.prototype,"innerHTML",{get:d.get,set:function(v){if(typeof v==="string"&&this.__h===v&&this.__n===this.childNodes.length)return;d.set.call(this,v);this.__h=typeof v==="string"?v:undefined;this.__n=this.childNodes.length;},configurable:true});})();
+
 const ORIGIN = window.location.origin;
 const KEY = "by_symbol";
 const COLS = [{"k": "sr", "h": "Sr no", "num": true}, {"k": "category", "h": "Category"}, {"k": "strategy", "h": "PFnet&ge;1 strategy"}, {"k": "pfnet_doc", "h": "PFnet (theory/docs)", "num": true}, {"k": "pfnet_backtest", "h": "PFnet (backtest, main.py)", "num": true}, {"k": "symbol", "h": "Symbol"}, {"k": "scans_today", "h": "Total scans today", "num": true}, {"k": "scans_1h", "h": "Scans last 1 hr", "num": true}, {"k": "scans_30s", "h": "Scans last 30 s", "num": true}, {"k": "triggers_total", "h": "Triggers fired till date", "num": true}, {"k": "entries_total", "h": "Trade entries till date", "num": true}, {"k": "triggers_today", "h": "Triggers fired today", "num": true}, {"k": "entries_today", "h": "Trade entries today", "num": true}, {"k": "pct_profitable", "h": "% profitable trades", "num": true}];
@@ -60,7 +63,7 @@ function renderHead() {
   document.getElementById("head").innerHTML = "<tr>" + COLS.map(c => `<th class="${c.num ? "num" : ""}" data-k="${c.k}">${c.h}${sortKey === c.k ? (sortDir > 0 ? " ▲" : " ▼") : ""}</th>`).join("") + "</tr>";
   document.querySelectorAll("th").forEach(th => th.onclick = () => { const k = th.dataset.k; sortDir = sortKey === k ? -sortDir : 1; sortKey = k; render(); });
 }
-let offset = 0, total = 0, PAGE = 200, cross = {};
+let offset = 0, total = 0, PAGE = 100, cross = {};
 function render() {
   if (sortKey) rows = rows.slice().sort((a, b) => { const x = a[sortKey], y = b[sortKey]; if (x == null) return 1; if (y == null) return -1; return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * sortDir; });
   renderHead();
@@ -89,14 +92,16 @@ async function refresh() {
   }
 }
 function reset() { offset = 0; refresh(); }
-document.getElementById("q").oninput = reset;
+document.getElementById("q").oninput = () => { clearTimeout(_qt); _qt = setTimeout(reset, 400); };
 document.getElementById("cat").onchange = reset;
 document.getElementById("wired").onchange = reset;
 document.getElementById("prev").onclick = () => { offset = Math.max(0, offset - PAGE); refresh(); };
 document.getElementById("next").onclick = () => { offset += PAGE; refresh(); };
 renderHead();
 refresh();
-setInterval(refresh, 10000);
+let _busy = false, _qt = null;
+setInterval(() => { if (document.hidden || _busy) return; _busy = true; refresh().finally(() => { _busy = false; }); }, 15000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 </script>
 </body>
 </html>
