@@ -1315,3 +1315,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Result:** replay PFnet / n: sma_crossover gc 2.287/31, supertrend gc 2.346/17, bollinger si 2.496/17, supertrend cl 1.432/11, rsi ng 1.525/13, bollinger ng short 1.881/19, keltner ng short 1.500/22, donchian cl 0.820/16 (research 1.157, below floor so unwired). Samples are 11-31 trades on one proxy symbol each: thin.
 - **Surprise / reuse:** a research PFnet just above the floor (1.157) did not survive the real-code replay; always replay through main before wiring. Atrnone cells are safe only because the option premium trailing SL is attached at entry; Kotak's position can lag the fill, so entry now retries the SL a few seconds instead of waiting for the 30s tick.
 - **Profit-booking / exit takeaway:** these cells exit on signal drop (daily), the premium trailing SL is the only intraday protection; do not remove it.
+
+## pl1d SHORT mirrors (B-1001, 2026-10-20 IST)
+- Mechanism: short mirror of the 1d starc-band fade and gap runaway, stop = entry + k x ATR14 on every trade, 20-bar max hold.
+- Result (run 39429939927, full 2680, real main.py functions, 0.8% cost): starc fade short PFnet 0.597 / win 35.3% / n=23845; gap runaway short PFnet 0.522 / win 42.9% / n=9809. Both below the floor, registered RESEARCH.
+- What surprised: stop-loss exits have PFnet 0.0 on every trade (starc: 13476 of 23845 trades stopped in about 6 bars); only the 20-bar timeout survivors win (PFnet 13.7 and 1.46). Same shape as the other shorts: the bull-window market punishes shorts early and the edge only shows for those that survive.
+- Reuse: sweep the ATR stop multiple wider before judging; do not wire a short whose stops are 55% of trades at PFnet 0.
+- Profit-booking / exit takeaway: the profit comes from holding the full 20 bars, not from early exits; a tighter stop destroys it.
