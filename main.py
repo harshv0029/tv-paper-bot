@@ -25735,6 +25735,7 @@ def _viable_stack_rows(c, full: bool = False) -> list:
 
 
 _VIABLE_STACK_RECOVER_LAST = 0.0
+_VIABLE_STACK_RECOVER_LOCK = threading.Lock()
 _VIABLE_STACK_REDIS_KEY = "tv_paper_bot:viable_stack:direct:v1"
 _VIABLE_STACK_MIRROR_STATE = {"last_push_ok": None, "last_push_ts": None, "last_error": None, "last_restore": None}
 
@@ -25827,9 +25828,22 @@ def _ensure_viable_stack_hydrated():
         if time.time() - _VIABLE_STACK_RECOVER_LAST < 20:
             return
         _VIABLE_STACK_RECOVER_LAST = time.time()
-        if not _restore_viable_stack_direct():
-            hydrate_generic_tables_from_external()
-            _restore_viable_stack_from_git_file()
+
+        def _recover():
+            if not _VIABLE_STACK_RECOVER_LOCK.acquire(blocking=False):
+                return  # a recovery is already in flight
+            try:
+                if not _restore_viable_stack_direct():
+                    hydrate_generic_tables_from_external()
+                    _restore_viable_stack_from_git_file()
+            finally:
+                _VIABLE_STACK_RECOVER_LOCK.release()
+        if os.environ.get("PYTEST_CURRENT_TEST"):
+            _recover()
+        else:
+            # B-1301: the generic hydrate is dozens of Upstash calls; run off the request/tick thread so an empty stack
+            # can never stall /strategy-viable-stack or the entry gate (live 2026-10-20: every read timed out at 30 s).
+            threading.Thread(target=_recover, name="viable-stack-recover", daemon=True).start()
     except Exception as e:  # noqa: BLE001
         print(f"[VIABLE-STACK] hydrate retry failed: {e}")
 
