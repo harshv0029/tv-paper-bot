@@ -26306,7 +26306,7 @@ def _matrix_symbol_universe(extra=()):
     return sorted(x for x in u if isinstance(x, str) and x)
 
 
-def _strategy_symbol_cross(q="", cat="", wired=None, offset=0, limit=200):
+def _strategy_symbol_cross(q="", cat="", wired=None, offset=0, limit=200, order="symbol"):
     """Full M x N cross (every symbol x every PFnet>=floor strategy row), paged server-side.
     Reuses the by_strategy rows for N and the by_symbol rows for the measured cells; cells with no data show zeros."""
     if _MATRIX_CACHE[1] is None or time.time() - _MATRIX_CACHE[0] > 30:
@@ -26321,8 +26321,9 @@ def _strategy_symbol_cross(q="", cat="", wired=None, offset=0, limit=200):
             "triggers_today": 0, "entries_today": 0, "closed": 0, "wins": 0, "pct_profitable": None}
     rows, n = [], 0
     sr = 0
-    for sym in syms:
-        for st in strat:
+    pairs = ((sym, st) for sym in syms for st in strat) if order != "strategy" else ((sym, st) for st in strat for sym in syms)
+    for sym, st in pairs:
+        if True:
             if cat and st["category"] != cat:
                 continue
             if wired is not None and bool(st["wired"]) != bool(wired):
@@ -26340,10 +26341,10 @@ def _strategy_symbol_cross(q="", cat="", wired=None, offset=0, limit=200):
 
 
 @app.get("/strategy-symbol-cross")
-def strategy_symbol_cross(q: str = "", cat: str = "", wired: int = -1, offset: int = 0, limit: int = 200):
+def strategy_symbol_cross(q: str = "", cat: str = "", wired: int = -1, offset: int = 0, limit: int = 200, order: str = "symbol"):
     """Read-only M x N grid for /trade-view3 (symbols x PFnet>=floor strategies), paged. No account data."""
     limit = max(1, min(int(limit), 1000))
-    return _strategy_symbol_cross(q, cat, None if wired < 0 else bool(wired), max(0, int(offset)), limit)
+    return _strategy_symbol_cross(q, cat, None if wired < 0 else bool(wired), max(0, int(offset)), limit, order)
 
 
 @app.get("/strategy-symbol-matrix")
