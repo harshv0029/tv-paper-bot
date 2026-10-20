@@ -48,3 +48,16 @@ def test_coverage_endpoint_uses_set():
         main._record_strategy_scan("power_play")
     r = main.symbol_strategy_coverage("AAA.NS")
     assert r["tested_today"] == 1 and r["tested_tags"] == ["power_play"]
+
+
+def test_visit_count_driven_by_distinct_tags_and_gap_by_category():
+    _reset()
+    main._scheduler_last_visit_strategies.pop("AAA.NS", None)
+    for _ in main._scan_visit(["AAA.NS"]):
+        for t in ("a", "b", "c", "d"):
+            main._record_strategy_scan(t)
+    assert main._sync_visit_strategy_count("AAA.NS", 1) == 4  # set (4) beats legacy floor (1)
+    assert main._sync_visit_strategy_count("ZZZ.NS", 3) == 3  # no set -> legacy floor
+    r = main.symbol_strategy_coverage("AAA.NS")
+    flat = [t for v in r["not_evaluated_by_category"].values() for t in v]
+    assert set(flat) <= set(r["viable_not_tested_today"])
