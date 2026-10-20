@@ -12727,7 +12727,12 @@ def _load_etf_universe_from_file() -> list[str]:
 
 
 ETF_SYMBOLS = frozenset(_load_etf_universe_from_file())
-_etf_extra = [s for s in sorted(ETF_SYMBOLS) if s not in set(NSE_FULL_UNIVERSE)]
+# User 2026-10-20: "unwire all the ETF symbols... no more trading will happen from today onwards with ETF...
+# exclude that from the list". ETF_SYMBOLS stays (classification, futures exclusion, managing any position
+# already open); ETFs are no longer appended to the trading universe and no new ETF entry opens. Not an
+# env kill switch: flip this constant only on an explicit user ask.
+ETF_TRADING_ENABLED = False
+_etf_extra = [s for s in sorted(ETF_SYMBOLS) if ETF_TRADING_ENABLED and s not in set(NSE_FULL_UNIVERSE)]
 NSE_FULL_UNIVERSE = list(NSE_FULL_UNIVERSE) + _etf_extra
 print(f"[etf_universe] added {len(_etf_extra)} liquid ETFs to NSE_FULL_UNIVERSE")
 
@@ -12744,6 +12749,8 @@ _etf_range_cache: dict = {}
 def _etf_entry_range_ok(symbol: str) -> tuple[bool, str]:
     if symbol not in ETF_SYMBOLS:
         return True, "not_etf"
+    if not ETF_TRADING_ENABLED:
+        return False, "ETF trading disabled (user 2026-10-20)"
     import time as _t
     day = int((_t.time() + IST_OFFSET_MIN * 60) // 86400)
     hit = _etf_range_cache.get(symbol)
@@ -22682,7 +22689,7 @@ def _swing_short_symbol_blocked(conn, symbol) -> bool:
 def _tasuki_short_try_entry(conn, symbol, df, capital, risk_pct, today, fx) -> str | None:
     """Opens at most one PAPER tasuki short (ETFs only) and offers the real mirror. First VIABLE cell wins; when none is
     viable (replay owed) the first cell still paper-trades for evidence and the real leg refuses it at its own gate."""
-    if symbol not in ETF_SYMBOLS or _swing_short_symbol_blocked(conn, symbol):
+    if not ETF_TRADING_ENABLED or symbol not in ETF_SYMBOLS or _swing_short_symbol_blocked(conn, symbol):
         return None
     if not tasuki_short_signal(df):
         return None

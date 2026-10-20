@@ -97,6 +97,7 @@ def test_entry_etf_only_stop_above_and_real_mirror_offered_with_tag(monkeypatch)
     monkeypatch.setattr(main, "_maybe_place_real_swing_short_entry", lambda *a, **k: calls.append(a))
     etf = sorted(main.ETF_SYMBOLS)[0] if main.ETF_SYMBOLS else "TESTETF.NS"
     monkeypatch.setattr(main, "ETF_SYMBOLS", frozenset({etf}))
+    monkeypatch.setattr(main, "ETF_TRADING_ENABLED", True)
     df = _series(TASUKI)
     with closing(main.get_db()) as conn:
         assert main._tasuki_short_try_entry(conn, "RELIANCE.NS", df, 1_000_000.0, 1.0, "2024-03-01", 1.0) is None  # not an ETF
@@ -130,6 +131,7 @@ def test_pass_manages_tasuki_exit_and_entry(monkeypatch):
     monkeypatch.setattr(main, "sector_rotation_fade_short_picks", lambda dfs, L, N: [])
     etf = "TESTETF.NS"
     monkeypatch.setattr(main, "ETF_SYMBOLS", frozenset({etf}))
+    monkeypatch.setattr(main, "ETF_TRADING_ENABLED", True)
     df = _series(TASUKI)
     with closing(main.get_db()) as conn:
         main._run_short_swing_pass(conn, {etf: df}, 1_000_000.0, "2024-03-01", set())
