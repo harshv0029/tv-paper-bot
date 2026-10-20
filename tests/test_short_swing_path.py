@@ -66,6 +66,26 @@ def test_every_wired_cell_is_registered_short_and_viable():
         assert main._is_strategy_viable_for_real_money(tag, check_switch=False) is (tag not in main.REPLAY_OWED_TAGS)  # replay-verified (run 38318986997); real leg still held by the product constant
 
 
+def test_b1031a_hold_hours_derive_from_raw_bars_and_gate_ignores_hours_field():
+    """B-1031(a): run 38318986997 stored avg_held_hours as bars x 24.0; readers must use bars x 6.25 (market hours).
+    main._replay_verified_tags reads only n/pfnet (never hours); the registry loader derives hours from avg_held_bars."""
+    import json, glob, os, inspect
+    assert "avg_held_hours" not in inspect.getsource(main._replay_verified_tags)
+    f = glob.glob(os.path.join(os.path.dirname(main.__file__), "docs", "backtest_data", "*38318986997*"))[0]
+    import strategy_registry_main_replay as smr
+    raw = {r["tag"]: r["metrics"] for r in json.load(open(f))["rows"]}
+    built = {d.name: d for d in sr.REGISTRY if d.metrics and "38318986997" in (d.metrics.run_ref or "")}
+    checked = 0
+    for tag, m in raw.items():
+        d = built.get(smr.mr_name(tag))
+        if d is None or m.get("avg_held_bars") is None:
+            continue
+        assert abs(d.metrics.avg_held_hrs - m["avg_held_bars"] * sr.TRADING_HOURS_PER_DAY) < 1e-6
+        assert d.metrics.avg_held_hrs < (m.get("avg_held_hours") or 0) or m["avg_held_bars"] == 0  # not the 24h-based figure
+        checked += 1
+    assert checked
+
+
 def test_gate_closes_below_floor():
     tag = main.SHORT_SWING_TAGS[0]
     strat = next(s for s in sr.REGISTRY if s.name == tag)
