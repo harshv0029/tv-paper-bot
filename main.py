@@ -11431,8 +11431,8 @@ def _auto_signal_core(
                     result["action_taken"] = "skipped_no_lot_size"
                     result["detail"] = err
                     return result
-                lot_size = future["lot_size"]
-                qty = float(math.floor(qty / lot_size) * lot_size)
+                lot_size = _paper_lot_in_proxy_units(symbol, future["lot_size"])
+                qty = round(float(math.floor(qty / lot_size + 1e-9) * lot_size), 6)
 
             # A trade sized to a few rupees isn't a real position - guard
             # against dust-sized fills from float rounding rather than
@@ -16163,6 +16163,21 @@ _INDEX_TO_FO_UNDERLYING = {
 # an options-mini-contract like the MCX names are, since SENSEX futures
 # trade under their own full-size pSymbolName).
 _PAPER_LOT_SIZE_UNDERLYING = {**_INDEX_TO_FO_UNDERLYING, "^BSESN": "SENSEX"}
+
+_GRAMS_PER_TROY_OZ = 31.1034768
+
+
+def _paper_lot_in_proxy_units(symbol: str, lot_size) -> float:
+    """B-1269: Kotak lLotSize is in the MCX contract's own unit (GOLDM = 100 GRAMS, SILVERM = 5 KG,
+    CRUDEOILM = 10 barrels) but paper qty on the COMEX proxies is in TROY OUNCES (GC=F, SI=F) or
+    barrels (CL=F). Flooring an oz qty to a multiple of the raw lot made paper gold 100 oz (~3.1 kg,
+    31x a real lot) and paper silver 5 oz (1/32 of a real lot). Convert the lot to proxy units first."""
+    lot = float(lot_size)
+    if symbol == "GC=F":
+        return lot / _GRAMS_PER_TROY_OZ
+    if symbol == "SI=F":
+        return lot * 1000.0 / _GRAMS_PER_TROY_OZ
+    return lot
 
 # ---------------------------------------------------------------------------
 # F&O chain monitoring (2026-09-16, explicit user request: "start
