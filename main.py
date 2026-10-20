@@ -20445,6 +20445,18 @@ def _row_strategies_tested(symbol: str, viable_tags, wired_viable_n):
     return (x or None), wired_viable_n
 
 
+def _sync_visit_strategy_count(symbol: str, floor_add: int = 0) -> int:
+    """B-1274 stage 1: the per-asset visit count is driven by the distinct (symbol, tag) set; the legacy +N
+    increments remain only as a floor when the set is empty. Display only. Never raises."""
+    try:
+        n = _symbol_strategies_tested_today(symbol)
+        legacy = _scheduler_last_visit_strategies.get(symbol, 0) + floor_add
+        _scheduler_last_visit_strategies[symbol] = max(n, legacy)
+        return _scheduler_last_visit_strategies[symbol]
+    except Exception:
+        return 0
+
+
 def _symbol_strategies_tested_today(symbol: str) -> int:
     """Distinct strategy tags evaluated for this symbol today (0 if none / day rolled)."""
     if _symbol_strategy_scans_day != ist_now().strftime("%Y-%m-%d"):
@@ -24636,7 +24648,7 @@ async def _scheduler_tick():
         }
         _record_scheduler_check(symbol)
         _record_intraday_strategy_scan(cfg)  # B-423: counter only, no order logic
-        _scheduler_last_visit_strategies[symbol] = _scheduler_last_visit_strategies.get(symbol, 0) + 1
+        _sync_visit_strategy_count(symbol, 1)
         try:
             result = await asyncio.to_thread(
                 _auto_signal_core,
@@ -24728,8 +24740,7 @@ async def _scheduler_tick():
             # only (its own asset_class check), same narrowing the long
             # side's _maybe_place_real_entry already does.
             _record_short_strategy_scans()  # B-423: counter only
-            _scheduler_last_visit_strategies[cfg["symbol"]] = (
-                _scheduler_last_visit_strategies.get(cfg["symbol"], 0) + len(_INTRADAY_SHORT_SCAN_TAGS))
+            _sync_visit_strategy_count(cfg["symbol"], len(_INTRADAY_SHORT_SCAN_TAGS))
             try:
                 short_result = _short_signal_core(
                     symbol=cfg["symbol"], capital=scheduler_capital_inr,
@@ -25730,6 +25741,19 @@ _SWING_SL_RULES = {
 }
 
 
+def _coverage_gap_by_category(wired, tested_set, reg) -> dict:
+    """B-1274 stage 1: wired applicable cells NOT evaluated today, grouped by registry category. Read-only."""
+    out: dict = {}
+    for t in wired:
+        if t in tested_set:
+            continue
+        d = reg.get(_STRATEGY_TAG_TO_REGISTRY_NAME[t])
+        cats = sorted(c.value for c in d.categories) if d is not None else ["unregistered"]
+        for c in cats:
+            out.setdefault(c, []).append(t)
+    return out
+
+
 @app.get("/symbol-strategy-coverage")
 def symbol_strategy_coverage(symbol: str):
     """B-1274 stage 1 (read-only, cheap): for one symbol, wired viable (PFnet >= floor) strategy tags vs. the distinct
@@ -25755,6 +25779,7 @@ def symbol_strategy_coverage(symbol: str):
         "tested_today": len(tested),
         "tested_tags": tested,
         "viable_not_tested_today": [t for t in wired if t not in tested_set],
+        "not_evaluated_by_category": _coverage_gap_by_category(wired, tested_set, _reg),
     }
 
 
