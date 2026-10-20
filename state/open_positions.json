@@ -1,24 +1,4 @@
 {
-  "synced_at_utc": "2026-10-19T15:52:59Z",
-  "open_positions": [
-    {
-      "symbol": "GILT10BETA.NS",
-      "qty": 17.0,
-      "entry_price_native": 26.19,
-      "stop_loss_native": 25.93,
-      "initial_stop_loss_native": 25.93,
-      "target_native": 26.97,
-      "fx_to_inr": 1.0,
-      "notional_inr": 445.23,
-      "orb_high_native": null,
-      "orb_low_native": null,
-      "entry_ts": 1792398364.8578598,
-      "interval": "5m",
-      "strategy": "orb-universal-score",
-      "sma_fast": 9,
-      "sma_slow": 21,
-      "entry_regime": null,
-      "real_entry_reason": "no real-entry attempt logged for this symbol today"
-    }
-  ]
+  "synced_at_utc": "2026-10-20T08:20:25Z",
+  "open_positions": []
 }
