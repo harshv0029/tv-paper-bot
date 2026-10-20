@@ -16,3 +16,6 @@ Code: `_oneil_swing_try_entry` follows this order (scan, signal, gate). Other ce
 
 ## Viability stack is never emptied (user 2026-10-20 IST)
 The explorer viability stack (`strategy_viable_stack`) always holds up to 10 conditions (`VIABLE_STACK_SIZE`) and can never be empty after a restart. Recovery order on an empty table: Upstash restore, then the git-synced `docs/viable_stack.json`. The entry gate and explorer call it on every read (throttled 20 s). Undo refuses to remove the last entry, and `viable-stack-sync.yml` never overwrites the git backup with an empty stack. The newest entry stays the live viability definition.
+
+## Reply footer is 8 items (user 2026-10-20 IST)
+Item 1 is "Subagents" (one line per subagent, its task and status; "none running" if there are none). Then: (2) New strategies (pfnet >= 1) wired end to end today = x; (3) Completed; (4) Decisions; (5) Next actionables; (6) Input required; (7) Backlog %; (8) Context.
