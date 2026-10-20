@@ -897,7 +897,7 @@ function displayName(symbol) { return TICKER_LABELS[symbol] || symbol; }
 function scanTagFor(actionTaken, strategiesTested, applicable) {
   const a = actionTaken || "";
   // User 2026-10-13: "No signal" -> "No signal (x signals checked)", x = signal checks done today for this row.
-  if (a === "no_signal" && strategiesTested != null) return { cls: "none", label: `No signal (${strategiesTested}${applicable ? " of " + applicable : ""} strategies tested)` };
+  if (a === "no_signal" && strategiesTested != null) return { cls: "none", label: `No signal (${applicable ? Math.min(strategiesTested, applicable) : strategiesTested}${applicable ? " of " + applicable : ""} strategies tested)` };  // B-1282: x never exceeds N
   if (a.startsWith("entered")) return { cls: "entered", label: a.replace("entered_", "") };
   if (a.startsWith("exited")) return { cls: "exited", label: a.replace("exited_", "") };
   if (a.includes("blocked") || a.includes("insufficient") || a.includes("budget_too_small") || a.includes("no_qualifying")) {
