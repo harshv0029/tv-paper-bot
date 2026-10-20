@@ -28,6 +28,7 @@
   .err{color:var(--down);font-size:12px;}
   footer{margin-top:12px;color:var(--muted);font-size:10.5px;line-height:1.6;}
   a{color:var(--accent);}
+.symchip{display:inline-block;margin:1px 3px 1px 0;padding:1px 6px;border:1px solid #8884;border-radius:10px;font-size:11px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -49,7 +50,7 @@ let rows = [], sortKey = null, sortDir = 1;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function cell(c, r) {
   const v = r[c.k];
-  if (c.k === "symbols") return `<td class="syms mono">${v && v.length ? esc(v.join(", ")) : '<span class="dim">-</span>'}</td>`;
+  if (c.k === "symbols") return `<td class="syms mono">${v && v.length ? v.map(x => `<span class="symchip">${esc(x)}</span>`).join("") : '<span class="dim">-</span>'}</td>`;
   if (c.k === "strategy") return `<td class="tag">${esc(v)} <span class="pill ${r.wired ? "w" : "n"}">${r.wired ? "wired" : "not wired"}</span></td>`;
   if (c.k === "pct_profitable") return `<td class="num mono ${v == null ? "dim" : v >= 50 ? "up" : "down"}">${v == null ? "-" : v + "%"}</td>`;
   if (c.num) return `<td class="num mono">${v == null ? "-" : v}</td>`;
