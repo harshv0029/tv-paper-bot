@@ -20612,14 +20612,72 @@ def _symbol_scans_push_now() -> None:
     _upstash_set(_SYMBOL_SCANS_REDIS_KEY, json.dumps({"day": today_str, "scans": snap}))
 
 
+# Trade view2/3 per-(strategy, symbol) scan counts (user 2026-10-20: "view2 and view3 are to be stored... restart might
+# happen anytime... keep them stored till mid night"). One zlib+base64 JSON blob {day, pairs:{tag:{sym:count}}} under the
+# same hydrate-before-push discipline as the per-symbol set above. Same IST day only, so it vanishes at the 00:00 rollover.
+# Restored counts are ADDED to the scans recorded since the restart; the 1h/30s windows are not persisted (they restart empty).
+_PAIR_SCANS_REDIS_KEY = "tv_paper_bot:pair_scan_counts:v1"
+_pair_scans_hydrated = False
+
+
+def _pair_scans_encode(day: str, stats: dict) -> str:
+    import base64, zlib
+    pairs: dict = {}
+    for (tag, sym), rec in list(stats.items()):
+        pairs.setdefault(tag, {})[sym] = rec[0]
+    raw = json.dumps({"day": day, "pairs": pairs}, separators=(",", ":")).encode()
+    return base64.b64encode(zlib.compress(raw, 6)).decode()
+
+
+def _pair_scans_decode(blob: str) -> dict:
+    import base64, zlib
+    return json.loads(zlib.decompress(base64.b64decode(blob)).decode())
+
+
+def _pair_scans_hydrate_now() -> bool:
+    """Add today's persisted per-pair counts into memory. True iff Upstash was reached."""
+    global _pair_scan_day
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return False
+    raw = _upstash_get(_PAIR_SCANS_REDIS_KEY)
+    today_str = ist_now().strftime("%Y-%m-%d")
+    if raw:
+        saved = _pair_scans_decode(raw)
+        if saved.get("day") == today_str:
+            if _pair_scan_day != today_str:
+                _pair_scan_stats.clear()
+                _pair_scan_day = today_str
+            for tag, by_sym in (saved.get("pairs") or {}).items():
+                for sym, n in by_sym.items():
+                    rec = _pair_scan_stats.get((tag, sym))
+                    if rec is None:
+                        rec = _pair_scan_stats[(tag, sym)] = [0, collections.deque(maxlen=_PAIR_SCAN_RECENT_MAX)]
+                    rec[0] += int(n)
+    return True
+
+
+def _pair_scans_push_now() -> None:
+    today_str = ist_now().strftime("%Y-%m-%d")
+    if _pair_scan_day != today_str:
+        return
+    _upstash_set(_PAIR_SCANS_REDIS_KEY, _pair_scans_encode(today_str, _pair_scan_stats))
+
+
 def _symbol_scans_sync_worker() -> None:
-    global _symbol_scans_hydrated
+    global _symbol_scans_hydrated, _pair_scans_hydrated
     try:
         if not _symbol_scans_hydrated:
             if _symbol_scans_hydrate_now():
                 _symbol_scans_hydrated = True
         if _symbol_scans_hydrated:  # never overwrite the remote copy before restoring from it
             _symbol_scans_push_now()
+        try:
+            if not _pair_scans_hydrated and _pair_scans_hydrate_now():
+                _pair_scans_hydrated = True
+            if _pair_scans_hydrated:
+                _pair_scans_push_now()
+        except Exception as e:
+            print(f"[pair_scans] sync failed (non-fatal): {e}")
     except Exception as e:
         print(f"[symbol_scans] sync failed (non-fatal): {e}")
     finally:
