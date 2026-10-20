@@ -25735,6 +25735,54 @@ def _viable_stack_rows(c, full: bool = False) -> list:
 
 
 _VIABLE_STACK_RECOVER_LAST = 0.0
+_VIABLE_STACK_REDIS_KEY = "tv_paper_bot:viable_stack:direct:v1"
+_VIABLE_STACK_MIRROR_STATE = {"last_push_ok": None, "last_push_ts": None, "last_error": None, "last_restore": None}
+
+
+def _viable_stack_push_direct() -> bool:
+    """B-1299: write the whole stack to ONE dedicated Upstash key (independent of the generic mirror's hydrated-set and
+    hash logic) and read it back to verify. Records the outcome in _VIABLE_STACK_MIRROR_STATE; never raises."""
+    st = _VIABLE_STACK_MIRROR_STATE
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            raise RuntimeError("Upstash not configured")
+        with closing(get_db()) as c:
+            rows = [{"created_at": r[0], "label": r[1], "names": r[2]} for r in
+                    c.execute("SELECT created_at, label, names FROM strategy_viable_stack ORDER BY id").fetchall()]
+        if not rows:
+            return False  # never overwrite the remote copy with an empty stack
+        payload = json.dumps(rows)
+        _upstash_set(_VIABLE_STACK_REDIS_KEY, payload)
+        ok = _upstash_get(_VIABLE_STACK_REDIS_KEY) == payload
+        st.update(last_push_ok=ok, last_push_ts=time.time(), last_error=None if ok else "read-back mismatch")
+        return ok
+    except Exception as e:  # noqa: BLE001
+        st.update(last_push_ok=False, last_push_ts=time.time(), last_error=str(e)[:200])
+        print(f"[VIABLE-STACK] direct push failed: {e}")
+        return False
+
+
+def _restore_viable_stack_direct() -> int:
+    """Re-insert the stack from the dedicated key when the table is empty. Never raises."""
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            return 0
+        raw = _upstash_get(_VIABLE_STACK_REDIS_KEY)
+        if not raw:
+            return 0
+        rows = json.loads(raw)[-VIABLE_STACK_SIZE:]
+        with closing(get_db()) as c:
+            if c.execute("SELECT COUNT(*) FROM strategy_viable_stack").fetchone()[0]:
+                return 0
+            for r in rows:
+                c.execute("INSERT INTO strategy_viable_stack (created_at, label, names) VALUES (?,?,?)",
+                          (r["created_at"], r["label"], r["names"]))
+            c.commit()
+        _VIABLE_STACK_MIRROR_STATE["last_restore"] = f"{len(rows)} rows from direct key at {time.time():.0f}"
+        return len(rows)
+    except Exception as e:  # noqa: BLE001
+        _VIABLE_STACK_MIRROR_STATE["last_error"] = f"restore: {str(e)[:160]}"
+        return 0
 _VIABLE_STACK_GIT_RESTORE_IN_TESTS = False
 
 
@@ -25773,12 +25821,15 @@ def _ensure_viable_stack_hydrated():
         with closing(get_db()) as _c:
             _n = _c.execute("SELECT COUNT(*) FROM strategy_viable_stack").fetchone()[0]
         if _n:
+            if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None:
+                _viable_stack_push_direct()  # first sight after a deploy: make sure the dedicated key holds it
             return
         if time.time() - _VIABLE_STACK_RECOVER_LAST < 20:
             return
         _VIABLE_STACK_RECOVER_LAST = time.time()
-        hydrate_generic_tables_from_external()
-        _restore_viable_stack_from_git_file()
+        if not _restore_viable_stack_direct():
+            hydrate_generic_tables_from_external()
+            _restore_viable_stack_from_git_file()
     except Exception as e:  # noqa: BLE001
         print(f"[VIABLE-STACK] hydrate retry failed: {e}")
 
@@ -25790,7 +25841,8 @@ def strategy_viable_stack_get(full: int = 0):
     _ensure_viable_stack_hydrated()
     _load_viable_overrides()
     with closing(get_db()) as c:
-        return {"size": VIABLE_STACK_SIZE, "stack": _viable_stack_rows(c, bool(full))}
+        return {"size": VIABLE_STACK_SIZE, "stack": _viable_stack_rows(c, bool(full)),
+                "mirror": dict(_VIABLE_STACK_MIRROR_STATE)}
 
 
 @app.post("/strategy-viable-override")
@@ -25843,6 +25895,7 @@ async def strategy_viable_override(request: Request):
         sync_generic_tables_external(only=("strategy_viable_stack",))
     except Exception as e:
         print(f"[viable_stack] mirror failed (non-fatal): {e}")
+    _viable_stack_push_direct()
     active = _load_viable_overrides()
     with closing(get_db()) as c:
         return {"action": action, "active_count": len(active), "stack": _viable_stack_rows(c)}
