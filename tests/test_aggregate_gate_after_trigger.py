@@ -30,3 +30,13 @@ def test_chan_entries_skipped_when_gate_closed():
     c = _core()
     assert "and not agg_blocked:\n            _chan_l = " in c
     assert "and not agg_blocked:\n            _gap_l = " in c
+
+
+def test_blocked_line_explains_risk_not_unknown_need():
+    import main
+    line = main._aggregate_risk_line({"daily_loss_cap_inr": 200.0, "open_reserved_risk_inr": 200.0,
+                                      "realized_loss_today_inr": 0.0})
+    assert "need = unknown" not in line and "risk room = Rs 0" in line
+    assert "cap" in main._aggregate_risk_line({})
+    c = _core()
+    assert 'result["daily_loss_cap_inr"]' in c
