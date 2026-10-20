@@ -26293,6 +26293,59 @@ def _strategy_symbol_matrix_compute():
                       "Triggers = entries (no separate trigger log exists); % profitable = paper-trade closes in profit / closes (long, avg-cost); MCX real entries have no close data."]}
 
 
+def _matrix_symbol_universe(extra=()):
+    """M: every symbol the bot can scan - watchlist + live NSE universe + F&O underlyings + anything seen/traded today."""
+    u = set(extra)
+    for cfg in WATCHLIST:
+        u.add(cfg["symbol"])
+    u.update(NSE_FULL_UNIVERSE or [])
+    try:
+        u.update(FO_MONITORED_UNDERLYINGS.keys() if isinstance(FO_MONITORED_UNDERLYINGS, dict) else FO_MONITORED_UNDERLYINGS)
+    except Exception:
+        pass
+    return sorted(x for x in u if isinstance(x, str) and x)
+
+
+def _strategy_symbol_cross(q="", cat="", wired=None, offset=0, limit=200):
+    """Full M x N cross (every symbol x every PFnet>=floor strategy row), paged server-side.
+    Reuses the by_strategy rows for N and the by_symbol rows for the measured cells; cells with no data show zeros."""
+    if _MATRIX_CACHE[1] is None or time.time() - _MATRIX_CACHE[0] > 30:
+        _MATRIX_CACHE[1] = _strategy_symbol_matrix_compute()
+        _MATRIX_CACHE[0] = time.time()
+    base = _MATRIX_CACHE[1]
+    strat = base["by_strategy"]
+    measured = {(r["strategy"], r["category"], r["symbol"]): r for r in base["by_symbol"]}
+    syms = _matrix_symbol_universe(extra={r["symbol"] for r in base["by_symbol"]})
+    q = (q or "").strip().lower()
+    zero = {"scans_today": 0, "scans_1h": 0, "scans_30s": 0, "triggers_total": 0, "entries_total": 0,
+            "triggers_today": 0, "entries_today": 0, "closed": 0, "wins": 0, "pct_profitable": None}
+    rows, n = [], 0
+    sr = 0
+    for sym in syms:
+        for st in strat:
+            if cat and st["category"] != cat:
+                continue
+            if wired is not None and bool(st["wired"]) != bool(wired):
+                continue
+            if q and q not in (sym + " " + st["strategy"] + " " + st["category"]).lower():
+                continue
+            if n >= offset and len(rows) < limit:
+                m = measured.get((st["strategy"], st["category"], sym), zero)
+                rows.append({"sr": n + 1, "symbol": sym, "category": st["category"], "strategy": st["strategy"],
+                             "registry_name": st.get("registry_name"), "pfnet": st.get("pfnet"), "wired": st["wired"],
+                             **{k: m[k] for k in zero}})
+            n += 1
+    return {"total": n, "n_symbols": len(syms), "n_strategies": len(strat), "offset": offset,
+            "limit": limit, "rows": rows, "day": base["day"], "as_of_epoch": base["as_of_epoch"]}
+
+
+@app.get("/strategy-symbol-cross")
+def strategy_symbol_cross(q: str = "", cat: str = "", wired: int = -1, offset: int = 0, limit: int = 200):
+    """Read-only M x N grid for /trade-view3 (symbols x PFnet>=floor strategies), paged. No account data."""
+    limit = max(1, min(int(limit), 1000))
+    return _strategy_symbol_cross(q, cat, None if wired < 0 else bool(wired), max(0, int(offset)), limit)
+
+
 @app.get("/strategy-symbol-matrix")
 def strategy_symbol_matrix():
     """Read-only data for /trade-view2 (by_strategy) and /trade-view3 (by_symbol). Cached ~30s; no account data."""
