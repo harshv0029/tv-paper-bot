@@ -1,0 +1,109 @@
+name: B-779b chan_kalman top picks main.py replay (full NSE universe)
+
+# Research-only, read-only. Prepared by B-779(b); NOT dispatched. Replays the top-ranked research-only viables from
+# docs/WIRING_PLAN_RESEARCH_VIABLES.md that main.py can already express, by importing and CALLING the real main.py
+# functions bar by bar (scripts/intraday_flatten_rerun.py families chan_kalman_main_long / chan_kalman_main):
+#   main.chan_kalman_series / chan_flatten_masks / chan_kalman_band_{long,short}_entry_signal / _exit_reason.
+# Universe: main._load_nse_universe_from_file() (full NSE, NOT main.NSE_FULL_UNIVERSE). Candle: 5m (60d yfinance cap).
+# Cost: 0.8% round trip (comparable to registry; set cost_pct to stress). Every stop is the ATR stop inside the real
+# entry/exit pair (always-on stop); forced flat 15:15 IST via the fl1515 mask.
+# Picks (registry tags to compare against, merge prints orig_pfnet, pfnet, pfgross, win, n, hold_hrs, exit-reason breakdown):
+#   #1 chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2
+#   #3 chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2
+#   #4 chan_kalman__band__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2
+# (#2/#5 are the __v1 no-flatten twins; main.py's exits always flatten, so they are not expressible and are skipped.)
+# The matrix replays the whole ve/z/ATR grid per side (harness design); the TOP3 step below filters to the three picks
+# and the full table stays in the artifact. Dispatch order per CLAUDE.md: big matrix, only when no gate/safety run is queued.
+on:
+  workflow_dispatch:
+    inputs:
+      maxsym:
+        description: 'cap symbols for a pilot (0 = full universe)'
+        default: '0'
+      cost_pct:
+        description: 'round-trip cost percent (blank = main.ROUND_TRIP_COST_PCT 0.8)'
+        required: false
+        default: ''
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [chan_kalman_main_long, chan_kalman_main]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run shard
+        env:
+          FAMILY: ${{ matrix.family }}
+          UNI: full
+          INTERVAL: 5m
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "4"
+          MAXSYM: ${{ inputs.maxsym }}
+          COST_PCT: ${{ inputs.cost_pct }}
+          OUT_DIR: out
+        run: |
+          set -o pipefail
+          python3 scripts/intraday_flatten_rerun.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: b779b-${{ matrix.family }}-${{ matrix.shard }}
+          path: out/flat_*.json
+
+  merge:
+    needs: run
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: b779b-*
+          path: shards
+          merge-multiple: true
+      - name: Merge, print all cells
+        env:
+          OUT: b779b_results.json
+        run: |
+          set -o pipefail
+          python3 scripts/intraday_flatten_rerun.py --merge shards/flat_*.json | tee merge.txt
+      - name: TOP3 comparison vs registry
+        run: |
+          python3 - <<'PY' | tee top3.txt
+          import json
+          r = json.load(open("b779b_results.json"))["results"]
+          picks = [
+            "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
+            "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+            "chan_kalman__band__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
+          ]
+          for t in picks:
+              row = next((v for k, v in r.items() if k.split("|")[0] == t), None)
+              if not row:
+                  print("MISSING", t); continue
+              o = row.get("orig") or {}
+              print("TOP3", t)
+              print("  replay  pfnet", row["pfnet"], "pfgross", row["pfgross"], "win", row["win_pct"], "n", row["n"],
+                    "avg_held_hrs", row["avg_held_hrs"], "exits", json.dumps(row["exit_reasons"], default=str))
+              print("  registry pfnet", o.get("pfnet"), "pfgross", o.get("pfgross"), "win", o.get("win_pct"), "n", o.get("n"),
+                    "avg_held_hrs", o.get("avg_held_hrs"))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: b779b-results
+          path: |
+            b779b_results.json
+            merge.txt
+            top3.txt
