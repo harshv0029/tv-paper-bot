@@ -11011,6 +11011,8 @@ def _auto_signal_core(
         agg_blocked = loss_so_far + open_reserved_risk_inr >= daily_loss_cap
         if agg_blocked:
             result["open_reserved_risk_inr"] = round(open_reserved_risk_inr, 2)
+            result["realized_loss_today_inr"] = round(loss_so_far, 2)
+            result["daily_loss_cap_inr"] = round(daily_loss_cap, 2)
 
         if not is_trading_enabled(conn):
             result["action_taken"] = "trading_paused"
@@ -17205,6 +17207,21 @@ def _funds_line(available, need) -> str:
     return f"available = {a}, need = {n}"
 
 
+def _aggregate_risk_line(v) -> str:
+    """B-1252: plain-language reason for blocked_aggregate_open_risk (risk cap, not cash).
+    Need is the trade's own risk, which is only sized after the gate, so it is stated as
+    'any risk > 0' because the gate is closed (realized loss + reserved risk >= cap)."""
+    cap = v.get("daily_loss_cap_inr")
+    res = v.get("open_reserved_risk_inr")
+    lost = v.get("realized_loss_today_inr")
+    if cap is None or res is None:
+        return "daily risk cap reached (realized loss + open positions' reserved risk >= cap)"
+    room = max(0.0, cap - (lost or 0.0) - res)
+    return (f"daily risk room = {_fmt_inr(room)} (cap {_fmt_inr(cap)}, realized loss "
+            f"{_fmt_inr(lost or 0.0)}, other open positions' reserved risk {_fmt_inr(res)}); "
+            f"need = any trade risk > 0, so no new entry")
+
+
 def _is_non_green_action(action) -> bool:
     a = (action or "").lower()
     return any(m in a for m in _NON_GREEN_ACTION_MARKERS)
@@ -17226,6 +17243,13 @@ def signal_funds():
         # agrees with the "insufficient capital" label it sits under.
         used = v.get("available_capital_inr")
         shown = used if used is not None else available
+        if (act or "") == "blocked_aggregate_open_risk":
+            # B-1252: this block is about the 2% daily RISK cap, not cash. Explain it in
+            # risk terms instead of a misleading "available = X, need = unknown".
+            equity[k] = {"display": _display_name(k), "action": act, "need_inr": None,
+                         "available_inr": None, "kotak_cash_inr": available,
+                         "line": _aggregate_risk_line(v)}
+            continue
         equity[k] = {"display": _display_name(k), "action": act, "need_inr": need,
                      "available_inr": shown, "kotak_cash_inr": available,
                      "line": _funds_line(shown, need)}
