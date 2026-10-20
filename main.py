@@ -13459,6 +13459,7 @@ def _load_viable_overrides() -> set:
     metrics on every load; only a legacy entry with no criteria uses its saved name list."""
     import strategy_registry as sr
     try:
+        _ensure_viable_stack_hydrated()
         with closing(get_db()) as c:
             row = c.execute("SELECT names, label FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
         crit = _stack_criteria(row[1]) if row else None
@@ -25684,15 +25685,51 @@ def _viable_stack_rows(c, full: bool = False) -> list:
     return rows
 
 
+_VIABLE_STACK_RECOVER_LAST = 0.0
+_VIABLE_STACK_GIT_RESTORE_IN_TESTS = False
+
+
+def _restore_viable_stack_from_git_file() -> int:
+    """Last-resort restore (user 2026-10-20: the stack must never be empty after a restart): re-insert the rows of the
+    git-synced docs/viable_stack.json (committed every 5 min by viable-stack-sync.yml, shipped with the deploy) when the
+    Upstash restore left the table empty. Returns rows restored; never raises."""
+    if os.environ.get("PYTEST_CURRENT_TEST") and not _VIABLE_STACK_GIT_RESTORE_IN_TESTS:
+        return 0  # keep the shared test DB free of the real git-synced stack
+    try:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "viable_stack.json")
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        rows = [r for r in (data.get("stack") if isinstance(data, dict) else data) or [] if r.get("names") is not None]
+        rows = sorted(rows, key=lambda r: r.get("created_at") or 0)[-VIABLE_STACK_SIZE:]
+        with closing(get_db()) as c:
+            if c.execute("SELECT COUNT(*) FROM strategy_viable_stack").fetchone()[0]:
+                return 0
+            for r in rows:
+                c.execute("INSERT INTO strategy_viable_stack (created_at, label, names) VALUES (?,?,?)",
+                          (r.get("created_at") or time.time(), str(r.get("label") or "restored from git")[:120],
+                           json.dumps(r.get("names") or [])))
+            c.commit()
+        return len(rows)
+    except Exception as e:  # noqa: BLE001
+        print(f"[VIABLE-STACK] git restore skipped: {e}")
+        return 0
+
+
 def _ensure_viable_stack_hydrated():
-    """B-1282: after a Render restart the stack table can be empty until the Upstash restore lands; when it is, try the
-    restore now (idempotent: the generic hydrate skips tables that already hold rows) so the explorer / entry gate never
-    silently fall back to the PFnet floor."""
+    """B-1282 / B-1299: the stack must never be empty after a restart. When the table is empty, restore from Upstash
+    first, then from the git-synced docs/viable_stack.json. Throttled to once per 20 s so the entry gate can call it on
+    every check; once rows exist it is a single COUNT."""
+    global _VIABLE_STACK_RECOVER_LAST
     try:
         with closing(get_db()) as _c:
             _n = _c.execute("SELECT COUNT(*) FROM strategy_viable_stack").fetchone()[0]
-        if _n == 0:
-            hydrate_generic_tables_from_external()
+        if _n:
+            return
+        if time.time() - _VIABLE_STACK_RECOVER_LAST < 20:
+            return
+        _VIABLE_STACK_RECOVER_LAST = time.time()
+        hydrate_generic_tables_from_external()
+        _restore_viable_stack_from_git_file()
     except Exception as e:  # noqa: BLE001
         print(f"[VIABLE-STACK] hydrate retry failed: {e}")
 
@@ -25740,6 +25777,8 @@ async def strategy_viable_override(request: Request):
             top = c.execute("SELECT id FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
             if top is None:
                 raise HTTPException(status_code=400, detail="stack is empty")
+            if c.execute("SELECT COUNT(*) FROM strategy_viable_stack").fetchone()[0] <= 1:
+                raise HTTPException(status_code=400, detail="the last stack entry cannot be removed (stack is never emptied)")
             c.execute("DELETE FROM strategy_viable_stack WHERE id = ?", (top[0],))
         else:
             row = c.execute("SELECT names, label FROM strategy_viable_stack WHERE id = ?", (body.get("id"),)).fetchone()
