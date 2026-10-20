@@ -1,0 +1,179 @@
+name: pl1d SHORT mirrors 1d ATR x max-hold sweep, main.py fns (B-1295)
+
+# Backlog B-1295. Research only (wires nothing, no kill switch). Sweeps ATR stop multiple x max-hold for the two registered
+# 1d short mirrors (starc__fade_full__short__1d__atr2d5_h20__v2, gap__runaway__short__1d__atr4_h20__v2) on the FULL universe
+# (main._load_nse_universe_from_file() via the shared 1d/5y loader), calling the REAL main.pl1d_short_entry_signal /
+# main.pl1d_short_exit_reason (cells registered in-process only into main.PL1D_SHORT_CELLS), cost main.ROUND_TRIP_COST_PCT,
+# ATR stop on every trade, strict FIFO. Matrix = ATR value x shard (default 5 x 8 = 40 jobs); each job runs both rules x all
+# holds. Each cell is its own tag: <family>__short__1d__atr<k>_h<hold>__v2 (atr 2.5 = atr2d5), unchanged rule logic so v2.
+# Every metric is kept (PFnet gross/net, win%, avg hold bars+hours, n, exit-reason breakdown); viability derived at read time.
+# Research matrix: dispatch ONLY when no Deploy Gate / safety run is queued. Output artifact pl1d-short-sweep-results.
+on:
+  workflow_dispatch:
+    inputs:
+      atrs:
+        description: "ATR stop multiples, comma separated"
+        default: "2,2.5,3,4,5"
+      holds:
+        description: "max-hold in trading days, comma separated (<=30)"
+        default: "10,20,30"
+      nshards:
+        description: "Shards per ATR value"
+        default: "8"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - id: p
+        env:
+          ATRS: ${{ inputs.atrs }}
+          NSHARDS: ${{ inputs.nshards }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          atrs = [a.strip() for a in os.environ["ATRS"].split(",") if a.strip()]
+          n = int(os.environ["NSHARDS"])
+          print("matrix=" + json.dumps({"include": [{"atr": a, "shard": s} for a in atrs for s in range(n)]}))
+          PY
+
+  replay:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay (real main.py functions)
+        env:
+          ATR: ${{ matrix.atr }}
+          HOLDS: ${{ inputs.holds }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: ${{ inputs.nshards }}
+        run: |
+          cat > sweep_run.py <<'PY'
+          import json, os, sys
+          ROOT = os.getcwd()
+          sys.path.insert(0, ROOT)
+          sys.path.insert(0, os.path.join(ROOT, "scripts"))
+          import main as m
+          import brk20_replay as br
+          import bar_hygiene as bh
+          import chan_shape_macddiv_main_replay as base
+          import pl1d_short_main_replay as pr
+
+          RULES = {"starc_fade": "starc__fade_full", "gap_runaway": "gap__runaway"}
+
+          def tok(x):  # 2.5 -> 2d5, 4 -> 4
+              x = float(x)
+              s = str(int(x)) if x == int(x) else repr(x)
+              return s.replace(".", "d")
+
+          atr = float(os.environ["ATR"])
+          holds = [int(h) for h in os.environ["HOLDS"].split(",") if h.strip()]
+          assert all(1 <= h <= 30 for h in holds), "hold must be 1..30 trading days"
+          shard, nshards = int(os.environ["SHARD"]), int(os.environ["NSHARDS"])
+          cost = m.ROUND_TRIP_COST_PCT / 100.0
+          specs = {}
+          for rule, fam in RULES.items():
+              for h in holds:
+                  tag = f"{fam}__short__1d__atr{tok(atr)}_h{h}__v2"
+                  m.PL1D_SHORT_CELLS[tag] = (rule, atr, h)  # in-process only
+                  specs[tag] = {"rule": rule, "atr": atr, "hold": h}
+          tags = list(specs)
+          frames, dropped = bh.clean_frames(base.load_frames(m, "chan_shape", shard, nshards, None))
+          aggs = {t: br.agg_new() for t in tags}
+          for sym, df in frames.items():
+              try:
+                  res = pr.replay_symbol(m, df, tags, cost)
+              except Exception as ex:
+                  print("ERROR", sym, ex)
+                  continue
+              for t, trs in res.items():
+                  br.agg_add(aggs[t], trs)
+          out = {"family": "pl1d_short_sweep", "interval": "1d", "period": "5y", "shard": shard, "nshards": nshards,
+                 "n_symbols": len(frames), "bars_dropped_glitch": dropped, "cost_round_trip_pct": m.ROUND_TRIP_COST_PCT,
+                 "synthetic": False, "direction": "short", "specs": specs,
+                 "cells": {t: {"raw": a} for t, a in aggs.items()}}
+          os.makedirs("out", exist_ok=True)
+          path = f"out/pl1d_sweep_a{tok(atr)}_s{shard}.json"
+          json.dump(out, open(path, "w"), indent=1)
+          for t, a in aggs.items():
+              mt = br.agg_metrics(a)
+              print(t, "n", mt["n"], "pfnet", mt["pfnet"], "win", mt["win_pct"], "hold", mt["avg_held_bars"])
+          print("wrote", path)
+          PY
+          python3 sweep_run.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pl1d-short-sweep-a${{ matrix.atr }}-s${{ matrix.shard }}
+          path: out/
+          retention-days: 7
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: pl1d-short-sweep-a*
+          merge-multiple: true
+      - name: Merge shards (exact, from raw sums)
+        run: |
+          cat > sweep_merge.py <<'PY'
+          import glob, json, os, sys
+          sys.path.insert(0, os.getcwd())
+          sys.path.insert(0, os.path.join(os.getcwd(), "scripts"))
+          import brk20_replay as br
+          tags, specs, meta, dropped = {}, {}, {}, 0
+          for f in sorted(glob.glob("shards/**/pl1d_sweep_*.json", recursive=True)):
+              r = json.load(open(f))
+              dropped += r.get("bars_dropped_glitch", 0)
+              specs.update(r.get("specs", {}))
+              for t, c in r["cells"].items():
+                  e = tags.setdefault(t, {"agg": br.agg_new(), "n_symbols": 0, "shards": 0})
+                  br.agg_merge(e["agg"], c["raw"])
+                  e["n_symbols"] += r["n_symbols"]
+                  e["shards"] += 1
+              meta = {k: r[k] for k in ("family", "interval", "period", "cost_round_trip_pct", "synthetic", "direction")}
+          rows = []
+          for t, e in sorted(tags.items()):
+              mt = br.agg_metrics(e["agg"])
+              mt["avg_held_hours"] = round(mt["avg_held_bars"] * 6.25, 1)
+              rows.append({"tag": t, "spec": specs.get(t), "n_symbols": e["n_symbols"], "shards": e["shards"], "metrics": mt})
+          out = {**meta, "bars_dropped_glitch": dropped,
+                 "note": "avg_held_hours = avg_held_bars x 6.25; short P&L = (entry-cover)/entry; every metric kept, viability derived at read time",
+                 "rows": rows}
+          json.dump(out, open("pl1d_short_sweep_all.json", "w"), indent=1)
+          with open("pl1d_short_sweep_table.txt", "w") as fh:
+              for r in rows:
+                  mt = r["metrics"]
+                  line = " ".join(str(x) for x in (r["tag"], "n", mt["n"], "pfnet", mt["pfnet"], "pfgross", mt["pfgross"],
+                                                   "win", mt["win_pct"], "hold_bars", mt["avg_held_bars"],
+                                                   "hold_h", mt["avg_held_hours"], mt["exit_reasons"]))
+                  print(line)
+                  fh.write(line + "\n")
+          PY
+          python3 sweep_merge.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pl1d-short-sweep-results
+          path: |
+            pl1d_short_sweep_all.json
+            pl1d_short_sweep_table.txt
