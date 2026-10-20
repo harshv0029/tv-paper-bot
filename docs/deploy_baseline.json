@@ -1,8 +1,8 @@
 {
   "note": "Deploy Gate baseline - see docs/DEPLOY_GATE_RULES.md. Updated automatically by deploy-gate.yml every time a candidate passes the gate. Seeded 2026-09-03 from the trailing-stop-threshold-backtest.yml run's own 0.5R row (the config actually live on main at seed time), so the first real gate run compares against the truth, not a placeholder.",
-  "seeded_at_utc": "2026-10-20T05:18:14Z",
+  "seeded_at_utc": "2026-10-20T05:50:39Z",
   "seeded_from": "deploy-gate.yml",
-  "commit": "e55d686fbdfa6c038c3df1da9645cb1f07c19990",
+  "commit": "6e0ec2e9305f1c9b4d618b3e321779f49e74d307",
   "sample": {
     "symbols": [
       "^NSEI",
