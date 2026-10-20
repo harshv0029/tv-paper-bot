@@ -7,6 +7,7 @@ def test_non_etf_passes():
 
 def test_etf_range_gate(monkeypatch):
     import pandas as pd
+    monkeypatch.setattr(main, "ETF_TRADING_ENABLED", True)
     sym = sorted(main.ETF_SYMBOLS)[0]
 
     def mk(rng):
@@ -27,6 +28,11 @@ def test_etf_fail_closed(monkeypatch):
     assert main._etf_entry_range_ok(sym)[0] is False
 
 
-def test_all_etfs_in_universe():
+def test_etfs_unwired_from_trading(monkeypatch):
+    """User 2026-10-20: no ETF trading from today; ETFs are out of the universe and entries are refused."""
+    assert main.ETF_TRADING_ENABLED is False
     assert len(main.ETF_SYMBOLS) >= 150
-    assert set(main.ETF_SYMBOLS) <= set(main.NSE_FULL_UNIVERSE)
+    assert not (set(main.ETF_SYMBOLS) & set(main.NSE_FULL_UNIVERSE))
+    assert not (set(main.ETF_SYMBOLS) & set(main.SWING_WATCHLIST))
+    ok, why = main._etf_entry_range_ok(sorted(main.ETF_SYMBOLS)[0])
+    assert ok is False and "disabled" in why
