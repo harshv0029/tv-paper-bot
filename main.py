@@ -16863,7 +16863,11 @@ def _run_mcx_daily_scan(conn, force: bool = False):
             _mcx_daily_scan_day = today  # one full rotation done (banner)
     for tag, sym, strat, params in cells:
         try:
-            _record_strategy_scan(tag)
+            _tok = _current_scan_symbol.set(sym)  # B-1274: per-symbol coverage for MCX cells
+            try:
+                _record_strategy_scan(tag)
+            finally:
+                _current_scan_symbol.reset(_tok)
             df = fetch_ohlc(sym, "2y", "1d")
             if df is None or len(df) < 60:
                 continue
