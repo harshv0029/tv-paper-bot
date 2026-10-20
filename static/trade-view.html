@@ -383,6 +383,9 @@
   </table></div>
 </div>
 <script>
+/* Memory guard (user 2026-10-20: page hung the laptop): skip DOM rebuilds when the HTML string is unchanged, so the 10s poll does not reparse/relayout identical content. */
+(function(){var d=Object.getOwnPropertyDescriptor(Element.prototype,"innerHTML");if(!d||!d.set)return;Object.defineProperty(Element.prototype,"innerHTML",{get:d.get,set:function(v){if(typeof v==="string"&&this.__h===v&&this.__n===this.childNodes.length)return;d.set.call(this,v);this.__h=typeof v==="string"?v:undefined;this.__n=this.childNodes.length;},configurable:true});})();
+
 (function(){
   var CATS=["buy","short_sell","swing","futures","options","options_multi","bidirectional"];
   // Standard category names (user 2026-10-13). Display labels only; internal keys unchanged.
@@ -2395,17 +2398,24 @@ async function refresh() {
   }
 }
 
-const REFRESH_SECONDS = 10;
+const REFRESH_SECONDS = 15;
 let secondsLeft = REFRESH_SECONDS;
+let _ticking = false;
+
+// Pause polling in a hidden tab and never start a new round while the previous one is still in flight (both piled up requests and memory).
+function runRound() {
+  if (_ticking) return;
+  _ticking = true;
+  Promise.allSettled([refresh(), refreshScanner(), refreshControlStatus(), refreshRealPnl()]).finally(() => { _ticking = false; });
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { secondsLeft = REFRESH_SECONDS; runRound(); } });
 
 function tickCountdown() {
+  if (document.hidden || _ticking) return;
   secondsLeft -= 1;
   if (secondsLeft <= 0) {
     secondsLeft = REFRESH_SECONDS;
-    refresh();
-    refreshScanner();
-    refreshControlStatus();
-    refreshRealPnl();
+    runRound();
   }
   document.getElementById("countdown").textContent = secondsLeft;
 }
