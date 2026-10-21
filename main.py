@@ -28986,10 +28986,13 @@ def _start_reconcile_job(adopt: str | None) -> dict:
             while not done.wait(5):
                 fr = sys._current_frames().get(me)
                 if fr is not None:
-                    top = traceback.extract_stack(fr)[-4:]
+                    stk = traceback.extract_stack(fr)
+                    app = [f for f in stk if f.filename.endswith(
+                        ("main.py", "kotak_neo.py", "kotak_real_orders.py"))][-3:]
                     job["samples"].append(
                         [round(time.time() - job["started"], 1)]
-                        + [f"{f.name}:{f.lineno}" for f in top])
+                        + [f"{f.name}:{f.lineno}" for f in app]
+                        + [f"{f.name}:{f.lineno}" for f in stk[-2:]])
                     del job["samples"][:-60]
 
         threading.Thread(target=_sample, daemon=True).start()
