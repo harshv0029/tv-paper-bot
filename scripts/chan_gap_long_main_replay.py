@@ -29,6 +29,8 @@ sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import brk20_replay as br  # noqa: E402
 
+CAP_KEY = "chan_gap__buy_on_gap__long__1d__atr4d0cap5_top10__v1"  # B-1331 live-today variant (first cell, capped)
+FIT_TAG = "chan_gap__buy_on_gap__long__1d__fit5_top10__v1"  # B-1331 rule: first cell (PFnet order) whose stop fits 5%
 NEED = 92  # CHAN_GAP_STD_WINDOW + 2 completed bars before the trade day
 HOURS_PER_BAR = 6.25
 
@@ -50,6 +52,11 @@ def day_candidates(m, df):
             if not stop > 0:
                 continue
             res[t] = (stop,) + tuple(m.chan_gap_exit_reason(bar, o, stop, "long"))
+        # B-1331: what live trades today = the first cell's stop capped at REAL_INTRADAY_MAX_STOP_PCT below entry
+        first_mult = next(iter(m.CHAN_GAP_LONG_CELLS.values()))
+        cap = max(o - first_mult * sig["atr_at_entry"], o * (1 - m.REAL_INTRADAY_MAX_STOP_PCT))
+        if cap > 0:
+            res[CAP_KEY] = (cap,) + tuple(m.chan_gap_exit_reason(bar, o, cap, "long"))
         out.append((dates[k], {k2: sig[k2] for k2 in ("entry_price", "atr_at_entry", "score", "gap")}, res))
     return out
 
@@ -117,7 +124,8 @@ def merge(d, out_path=None):
                                   "short_mirror")}
         for c in r["candidates"]:
             by_date.setdefault(c["date"], {})[c["symbol"]] = c
-    aggs = {t: br.agg_new() for t in m.CHAN_GAP_LONG_CELLS}
+    aggs = {t: br.agg_new() for t in (*m.CHAN_GAP_LONG_CELLS, CAP_KEY, FIT_TAG)}
+    fit_cells = {}
     for date in sorted(by_date):
         day = by_date[date]
         for s in m.chan_gap_select_top({s: c["sig"] for s, c in day.items()}, "long"):
@@ -125,18 +133,27 @@ def merge(d, out_path=None):
             for t, v in day[s]["res"].items():
                 g = (v[2] - ep) / ep
                 br.agg_add(aggs[t], [{"gross": g, "net": g - cost, "held": 1, "reason": v[1]}])
+            atr = day[s]["sig"]["atr_at_entry"]
+            fit = next((t for t, mult in m.CHAN_GAP_LONG_CELLS.items()
+                        if t in day[s]["res"] and mult * atr <= m.REAL_INTRADAY_MAX_STOP_PCT * ep), None)
+            fit_cells[fit] = fit_cells.get(fit, 0) + 1
+            if fit:
+                v = day[s]["res"][fit]
+                g = (v[2] - ep) / ep
+                br.agg_add(aggs[FIT_TAG], [{"gross": g, "net": g - cost, "held": 1, "reason": v[1]}])
     rows = []
     for t, a in sorted(aggs.items()):
         mt = br.agg_metrics(a)
         mt["avg_held_hours"] = round(mt["avg_held_bars"] * HOURS_PER_BAR, 1)
         rows.append({"tag": t, "n_symbols": nsym, "shards": len(files), "metrics": mt})
-    out = {**meta, "note": "entry at the open, exit stop-or-close (no 15:10 flatten / late-entry modelled); schema read by "
+    out = {**meta, "fit5_cell_counts": {str(k): v for k, v in fit_cells.items()}, "note": "entry at the open, exit stop-or-close (no 15:10 flatten / late-entry modelled); schema read by "
            "main._replay_verified_tags", "rows": rows}
     json.dump(out, open(out_path or os.path.join(d, "replay_all.json"), "w"), indent=1)
     for r in rows:
         mt = r["metrics"]
         print(r["tag"], "n", mt["n"], "pfnet", mt["pfnet"], "pfgross", mt["pfgross"], "win", mt["win_pct"],
               "hold_h", mt["avg_held_hours"], mt["exit_reasons"])
+    print("fit5 cell picks (None = skipped):", fit_cells)
     return out
 
 
