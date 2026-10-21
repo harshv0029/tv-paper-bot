@@ -19,3 +19,6 @@ The explorer viability stack (`strategy_viable_stack`) always holds up to 10 con
 
 ## Reply footer is 8 items (user 2026-10-20 IST)
 Item 1 is "Subagents" (one line per subagent, its task and status; "none running" if there are none). Then: (2) New strategies (pfnet >= 1) wired end to end today = x; (3) Completed; (4) Decisions; (5) Next actionables; (6) Input required; (7) Backlog %; (8) Context.
+
+## Read the rejection reason, then change the next order accordingly (user 2026-10-21 IST)
+Every rejected real order's reason (Kotak `rejRsn`, surfaced as `detail`) must be read and the NEXT request must be built from it. Re-sending the identical order after a rejection is a bug. Each known reason maps to a specific change: price outside the valid range / circuit breach -> move the price inside the band (B-1304); T1/CAS transition -> the existing T1/market-retry paths; margin/limit -> do not retry blindly, protect another way. An unknown reason is logged with the reason and escalated (alarm), never silently retried unchanged. Incident: UNIONBANK 21 Oct 2026, three identical 159.67 SL requests, all rejected "Circuit breach", position naked from 09:16 IST. Applies to entry, SL, target and exit paths of every category.
