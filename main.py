@@ -20227,6 +20227,40 @@ REAL_PNL_CACHE_TTL_SECONDS = 300  # 5 min - same reasoning as REAL_CAPITAL_CACHE
 _real_trades_cache = {"value": None, "fetched_at": 0.0, "error": None, "day": None}
 
 
+# B-1315 remainder (2026-10-21): Kotak positions() carry no brokerage/STT, so the loss budget read only gross P&L and let
+# charges push a day past its cap. Statutory rates (Oct 2024 schedule) as fractions of turnover: (sell-side STT/CTT,
+# exchange txn both sides, buy-side stamp). SEBI fee both sides; GST 18% on exchange + SEBI. Brokerage is plan-specific
+# and not in Kotak's position fields, so it is left out (the estimate errs low, never invents a fee).
+_CHARGE_RATES = {
+    "eq_intraday": (0.00025, 0.0000297, 0.00003),
+    "eq_delivery": (0.001, 0.0000297, 0.00015),
+    "nse_option": (0.001, 0.0003503, 0.00003),
+    "nse_future": (0.0002, 0.0000173, 0.00002),
+    "mcx_option": (0.0005, 0.000418, 0.00003),
+    "mcx_future": (0.0001, 0.000021, 0.00002),
+}
+_SEBI_FEE_RATE = 0.000001
+_GST_RATE = 0.18
+
+
+def _estimate_statutory_charges_inr(seg: str, trdsym: str, prod: str, buy_amt: float, sell_amt: float) -> float:
+    """Estimated STT/CTT + exchange + SEBI + stamp + GST for one realized leg pair (brokerage excluded)."""
+    seg, sym = str(seg or ""), str(trdsym or "").upper()
+    is_opt = sym.endswith("CE") or sym.endswith("PE")
+    if seg.startswith("mcx"):
+        kind = "mcx_option" if is_opt else "mcx_future"
+    elif seg == "nse_fo" or seg == "bse_fo":
+        kind = "nse_option" if is_opt else "nse_future"
+    else:
+        kind = "eq_delivery" if str(prod or "").upper() == "CNC" else "eq_intraday"
+    stt, txn, stamp = _CHARGE_RATES[kind]
+    turnover = buy_amt + sell_amt
+    exch = txn * turnover
+    sebi = _SEBI_FEE_RATE * turnover
+    sell_tax = stt * (turnover if kind == "eq_delivery" else sell_amt)  # delivery STT is charged on both sides
+    return round(sell_tax + exch + sebi + stamp * buy_amt + _GST_RATE * (exch + sebi), 2)
+
+
 def _refresh_real_trades_cache():
     """Never raises - stores the error string instead, same pattern as
     _refresh_real_capital_cache, so a transient Kotak failure can't crash
@@ -20270,6 +20304,8 @@ def _refresh_real_trades_cache():
                     "entry_price_native": round(buy_amt / qty, 2) if qty else None,
                     "exit_price_native": round(sell_amt / qty, 2) if qty else None,
                     "qty": qty, "pnl_inr": round(sell_amt - buy_amt, 2),
+                    "charges_est_inr": _estimate_statutory_charges_inr(
+                        row.get("exSeg"), row.get("trdSym") or row.get("sym"), row.get("prod"), buy_amt, sell_amt),
                 })
             except (TypeError, ValueError):
                 continue
@@ -20313,7 +20349,7 @@ def get_real_pnl_today_inr(since_ts: float | None = None):
         return None
     if since_ts is not None:
         trades = [t for t in trades if t["exit_time_utc"] >= since_ts]
-    return sum(t["pnl_inr"] for t in trades)
+    return sum(t["pnl_inr"] - t.get("charges_est_inr", 0.0) for t in trades)  # B-1315: net of estimated charges
 
 
 def get_real_capital_deployed_inr() -> float | None:

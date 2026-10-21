@@ -1327,3 +1327,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Mechanism: option entries and risk-cut exits are market orders, so the bid/ask spread is paid on both legs on top of the 0.8% cost model; on a strike with few buyers and sellers that alone can exceed the 3% initial stop.
 - Fit: every option entry path now goes through `_real_fo_buy_contract`, which skips when Kotak's spread is over 5% of mid. Kotak's `quote_type="all"` field names are not yet confirmed live, so an unread quote does not block; check the confirmed log rows after the next entry.
 - Profit-booking / exit takeaway: the spread is a guaranteed loss on every round trip, so a strike that is cheap to enter but wide to exit is a losing trade before the setup plays out; prefer liquid (near-ATM, current-week) strikes.
+
+
+## Charges in the daily loss cap (B-1315, 2026-10-21)
+- Mechanism: Kotak positions() give gross buy/sell amounts only; statutory charges (option STT 0.1% of sell premium, exchange 0.035% of option turnover, stamp, SEBI, GST) never reached the loss cap.
+- Size: on a Rs6k option round trip they are ~Rs11, about 8% of a Rs130 daily cap, so a cap read gross lets a day lose more than intended.
+- Fix: estimated statutory charges are netted from the real P&L that gates entries; brokerage is left out until the plan rate is confirmed from a contract note.
+- Profit-booking / exit takeaway: on thin option premiums, charges are a fixed drag of ~0.2% of turnover per round trip; a target smaller than that books a net loss.
