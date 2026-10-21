@@ -719,7 +719,7 @@ def _tick_size_for(kotak_trading_symbol: str) -> float:
     return tick
 
 
-def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+def _place_real_stop_loss_once(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
     """Places a REAL resting stop-loss sell order at Kotak for an already-
     open real position, so the stop fires at the exchange even if this app
     or Render's process is down between scheduler ticks. See this
@@ -793,6 +793,56 @@ def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: flo
     return {"ok": True, "order_id": str(order_id), "raw_response": resp,
             "trigger_price": trigger_price, "limit_price": limit_price,
             "status_confirmed": status["status"] in ("trigger pending", "open", "complete")}
+
+
+_PRICE_BAND_PCTS = (0.10, 0.05, 0.02)
+
+
+def _is_price_range_rejection(detail) -> bool:
+    d = str(detail or "").lower()
+    return "valid price range" in d or "circuit breach" in d
+
+
+def _reference_prices(kotak_trading_symbol: str):
+    """(previous close, last price) from yfinance, or (None, None). Only used after a
+    price-band rejection, never on the normal path."""
+    try:
+        import yfinance as yf
+        sym = kotak_trading_symbol.rsplit("-", 1)[0] + ".NS"
+        fi = yf.Ticker(sym).fast_info
+        return float(fi["previous_close"]), float(fi["last_price"])
+    except Exception:
+        return None, None
+
+
+def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+    """B-1304 (UNIONBANK 2026-10-21 09:16 IST, live): an SL whose trigger sat below the
+    day's lower price band (159.67 vs a ~162.6 floor after a gap up) was rejected with
+    "Order price is outside the valid price range" and the position stayed naked. On that
+    rejection only, retry at the tightest-band floor that is still below the market
+    (prev close x (1 - band) x 1.003, bands 10/5/2%), so a stop rests instead of nothing.
+    The stop is only ever raised toward the market, never above 0.5% under last price."""
+    res = _place_real_stop_loss_once(kotak_trading_symbol, qty, trigger_price)
+    if res.get("ok") or not _is_price_range_rejection(res.get("detail")):
+        return res
+    prev, last = _reference_prices(kotak_trading_symbol)
+    if not prev or not last:
+        return res
+    tick = _tick_size_for(kotak_trading_symbol)
+    tried = {round(float(trigger_price), 2)}
+    for band in _PRICE_BAND_PCTS:
+        cand = _round_to_tick(prev * (1 - band) * 1.003, tick)
+        if cand <= trigger_price or cand in tried or cand >= last * 0.995:
+            continue
+        tried.add(cand)
+        r2 = _place_real_stop_loss_once(kotak_trading_symbol, qty, cand)
+        if r2.get("ok"):
+            r2["band_clamped_from"] = trigger_price
+            return r2
+        res = r2
+        if not _is_price_range_rejection(r2.get("detail")):
+            break
+    return res
 
 
 def _in_closing_session() -> bool:
