@@ -16735,6 +16735,12 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
     if feed_high is not None and feed_high > peak:
         peak = feed_high  # tick-built candle high catches spikes between 30s polls
     prev_trigger = float(row["sl_trigger_price"] or 0)
+    # B-1321: the resting SL is a limit order 5% under its trigger; a premium already below
+    # that limit cannot fill it, so cut at market instead of trusting the stuck order.
+    if ltp is not None and prev_trigger > 0 and ltp < prev_trigger * 0.95:
+        _close_real_fo_option_leg(conn, row, f"risk cut: premium {ltp} gapped below the SL limit ({prev_trigger * 0.95:.2f}); resting SL cannot fill")
+        _fo_sl_unprotected_since.pop(leg_key, None)
+        return "gap_through_exit"
     # user 2026-10-08: 3% initial stop below entry; once the premium is 1% above entry,
     # trail 1% below the highest LTP since entry; the trigger never lowers.
     entry = float(row["entry_price"])

@@ -161,3 +161,21 @@ def test_b1320_unreadable_kotak_with_no_sl_is_risk_cut_after_window(monkeypatch)
         assert main._sync_real_fo_option_sl(c, "TCS:CALL").startswith("kotak_unreadable") and not closed
         main._fo_sl_unprotected_since["TCS:CALL"] = time.time() - main.FO_OPTION_SL_FAIL_EXIT_SECONDS - 1
         assert main._sync_real_fo_option_sl(c, "TCS:CALL") == "risk_cut_exit" and closed
+
+
+def test_b1321_premium_below_sl_limit_is_market_exited(monkeypatch):
+    import kotak_real_fo_orders as kfo, time
+    _db(); closed = []
+    with closing(main.get_db()) as c:
+        c.execute("INSERT INTO real_fo_positions (leg_key, underlying, strategy_tag, kotak_trading_symbol, instrument_token, exchange_segment, "
+                  "expiry, strike, lot_size, qty, entry_price, entry_order_id, opened_at, day, peak_price, sl_trigger_price) "
+                  "VALUES ('TCS:CALL','TCS','single_leg_swing_call','TCS26OCT4000CE','1','nse_fo','2099-01-01',4000,175,175,100,'E',?, 'd', 100, 97)",
+                  (time.time() - 1000,))
+        c.commit()
+        monkeypatch.setattr(kfo, "fetch_kotak_option_state", lambda s: {"ok": True, "net_qty": 175, "live_sls": []})
+        monkeypatch.setattr(main, "_option_ltp", lambda r: 90.0)  # 97 * 0.95 = 92.15 > 90
+        monkeypatch.setattr(main, "_option_feed_high_since", lambda conn, r: None)
+        monkeypatch.setattr(main, "_close_real_fo_option_leg", lambda conn, row, why: closed.append(why))
+        import nse_fo_chain
+        monkeypatch.setattr(nse_fo_chain, "must_force_close_before_expiry", lambda u, e: False)
+        assert main._sync_real_fo_option_sl(c, "TCS:CALL") == "gap_through_exit" and closed
