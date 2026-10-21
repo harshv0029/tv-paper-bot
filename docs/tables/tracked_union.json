@@ -72,12 +72,12 @@
    "is_short": 0,
    "kotak_trading_symbol": "WIPRO-EQ",
    "opened_at": null,
-   "owner": "intraday",
+   "owner": "swing",
    "qty": 1,
    "sl_trigger_price": null,
    "source": "position",
-   "stop_loss": null,
-   "strategy": null,
+   "stop_loss": 186.86,
+   "strategy": "swing_rerouted_orphan",
    "symbol": null
   },
   {
@@ -88,12 +88,12 @@
    "is_short": 0,
    "kotak_trading_symbol": "YESBANK-EQ",
    "opened_at": null,
-   "owner": "intraday",
+   "owner": "swing",
    "qty": 20,
    "sl_trigger_price": null,
    "source": "position",
-   "stop_loss": null,
-   "strategy": null,
+   "stop_loss": 16.22,
+   "strategy": "swing_rerouted_orphan",
    "symbol": null
   }
  ]
