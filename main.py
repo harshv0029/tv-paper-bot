@@ -25848,18 +25848,84 @@ def _restore_viable_stack_direct() -> int:
 _VIABLE_STACK_GIT_RESTORE_IN_TESTS = False
 
 
-def _restore_viable_stack_from_git_file() -> int:
-    """Last-resort restore (user 2026-10-20: the stack must never be empty after a restart): re-insert the rows of the
-    git-synced docs/viable_stack.json (committed every 5 min by viable-stack-sync.yml, shipped with the deploy) when the
-    Upstash restore left the table empty. Returns rows restored; never raises."""
-    if os.environ.get("PYTEST_CURRENT_TEST") and not _VIABLE_STACK_GIT_RESTORE_IN_TESTS:
-        return 0  # keep the shared test DB free of the real git-synced stack
+_VIABLE_STACK_GIT_BRANCH = "data-viable-stack"
+_VIABLE_STACK_GIT_PATH = "docs/viable_stack.json"
+
+
+def _push_viable_stack_to_git() -> bool:
+    """B-1312: commit the stack to a side branch (never main: a push to main redeploys Render) on every Explorer save,
+    so a restart/deploy can never lose it. Needs env GITHUB_SYNC_TOKEN (contents:write); no-op without it. Never raises."""
+    token = os.environ.get("GITHUB_SYNC_TOKEN")
+    if not token:
+        return False
+    try:
+        repo = os.environ.get("GITHUB_SYNC_REPO", "harshv0029/tv-paper-bot")
+        with closing(get_db()) as c:
+            rows = [{"id": r[0], "created_at": r[1], "label": r[2], "names": json.loads(r[3])} for r in
+                    c.execute("SELECT id, created_at, label, names FROM strategy_viable_stack ORDER BY id DESC").fetchall()]
+        if not rows:
+            return False  # never blank the git copy
+        body = json.dumps({"size": VIABLE_STACK_SIZE, "stack": rows}, indent=2)
+        hdr = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+        api = f"https://api.github.com/repos/{repo}"
+        cur = requests.get(f"{api}/contents/{_VIABLE_STACK_GIT_PATH}", params={"ref": _VIABLE_STACK_GIT_BRANCH},
+                           headers=hdr, timeout=10)
+        if cur.status_code == 404:
+            base = requests.get(f"{api}/git/ref/heads/main", headers=hdr, timeout=10)
+            base.raise_for_status()
+            mk = requests.post(f"{api}/git/refs", headers=hdr, timeout=10, json={
+                "ref": f"refs/heads/{_VIABLE_STACK_GIT_BRANCH}", "sha": base.json()["object"]["sha"]})
+            if mk.status_code not in (201, 422):
+                mk.raise_for_status()
+            cur = requests.get(f"{api}/contents/{_VIABLE_STACK_GIT_PATH}", params={"ref": _VIABLE_STACK_GIT_BRANCH},
+                               headers=hdr, timeout=10)
+        payload = {"message": f"viable stack saved ({len(rows)} entries)",
+                   "content": base64.b64encode(body.encode()).decode(), "branch": _VIABLE_STACK_GIT_BRANCH}
+        if cur.status_code == 200:
+            payload["sha"] = cur.json().get("sha")
+        requests.put(f"{api}/contents/{_VIABLE_STACK_GIT_PATH}", headers=hdr, json=payload, timeout=15).raise_for_status()
+        _VIABLE_STACK_MIRROR_STATE["last_git_push"] = f"ok at {time.time():.0f}"
+        return True
+    except Exception as e:  # noqa: BLE001
+        _VIABLE_STACK_MIRROR_STATE["last_git_push"] = f"failed: {str(e)[:160]}"
+        print(f"[VIABLE-STACK] git push failed: {e}")
+        return False
+
+
+def _viable_stack_git_rows() -> list:
+    """Rows from the shipped docs/viable_stack.json and the side branch's public raw copy; the one with the newest
+    entry wins. Never raises."""
+    def _rows(data):
+        rs = [r for r in ((data.get("stack") if isinstance(data, dict) else data) or []) if r.get("names") is not None]
+        return sorted(rs, key=lambda r: r.get("created_at") or 0)
+    cands = []
     try:
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "viable_stack.json")
         with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-        rows = [r for r in (data.get("stack") if isinstance(data, dict) else data) or [] if r.get("names") is not None]
-        rows = sorted(rows, key=lambda r: r.get("created_at") or 0)[-VIABLE_STACK_SIZE:]
+            cands.append(_rows(json.load(f)))
+    except Exception as e:  # noqa: BLE001
+        print(f"[VIABLE-STACK] shipped git file unreadable: {e}")
+    if not os.environ.get("PYTEST_CURRENT_TEST"):
+        try:
+            repo = os.environ.get("GITHUB_SYNC_REPO", "harshv0029/tv-paper-bot")
+            r = requests.get(f"https://raw.githubusercontent.com/{repo}/{_VIABLE_STACK_GIT_BRANCH}/{_VIABLE_STACK_GIT_PATH}",
+                             timeout=8)
+            if r.status_code == 200:
+                cands.append(_rows(r.json()))
+        except Exception as e:  # noqa: BLE001
+            print(f"[VIABLE-STACK] side-branch fetch skipped: {e}")
+    cands = [c for c in cands if c]
+    return max(cands, key=lambda c: c[-1].get("created_at") or 0) if cands else []
+
+
+def _restore_viable_stack_from_git_file() -> int:
+    """Last-resort restore (user 2026-10-20: the stack must never be empty after a restart): re-insert the newest git
+    copy (side branch written on every save, or the docs/viable_stack.json shipped with the deploy) when the Upstash
+    restore left the table empty. Returns rows restored; never raises."""
+    if os.environ.get("PYTEST_CURRENT_TEST") and not _VIABLE_STACK_GIT_RESTORE_IN_TESTS:
+        return 0  # keep the shared test DB free of the real git-synced stack
+    try:
+        rows = _viable_stack_git_rows()[-VIABLE_STACK_SIZE:]
         with closing(get_db()) as c:
             if c.execute("SELECT COUNT(*) FROM strategy_viable_stack").fetchone()[0]:
                 return 0
@@ -25971,6 +26037,7 @@ async def strategy_viable_override(request: Request):
     except Exception as e:
         print(f"[viable_stack] mirror failed (non-fatal): {e}")
     _viable_stack_push_direct()
+    threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
     active = _load_viable_overrides()
     with closing(get_db()) as c:
         return {"action": action, "active_count": len(active), "stack": _viable_stack_rows(c)}
