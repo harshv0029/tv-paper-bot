@@ -75,7 +75,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": null,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 186.86,
    "strategy": "swing_rerouted_orphan",
    "symbol": "WIPRO.NS"
@@ -91,7 +91,7 @@
    "owner": "swing",
    "qty": 20,
    "sl_trigger_price": null,
-   "source": "position",
+   "source": "position+holding",
    "stop_loss": 16.22,
    "strategy": "swing_rerouted_orphan",
    "symbol": "YESBANK.NS"
