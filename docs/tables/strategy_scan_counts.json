@@ -3,7 +3,17 @@
     {
       "day": "2026-10-21",
       "tag": "universal_score",
-      "n": 920
+      "n": 1023
+    },
+    {
+      "day": "2026-10-21",
+      "tag": "range_short_staged_ladder",
+      "n": 1025
+    },
+    {
+      "day": "2026-10-21",
+      "tag": "trend_down_momentum_short",
+      "n": 1025
     },
     {
       "day": "2026-10-21",
@@ -49,6 +59,11 @@
       "day": "2026-10-21",
       "tag": "belt__hold__long__1d__atr6_h20__v1",
       "n": 3
+    },
+    {
+      "day": "2026-10-21",
+      "tag": "bollinger_mean_reversion__si__long__1d__atrnone__v1",
+      "n": 1
     },
     {
       "day": "2026-10-21",
@@ -118,132 +133,132 @@
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 165
+      "n": 169
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 165
+      "n": 169
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 165
+      "n": 169
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 165
+      "n": 169
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 165
+      "n": 169
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 165
+      "n": 169
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 165
+      "n": 169
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 165
+      "n": 169
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 165
+      "n": 169
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
       "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 164
+      "n": 168
     },
     {
       "day": "2026-10-21",
@@ -1102,11 +1117,6 @@
     },
     {
       "day": "2026-10-21",
-      "tag": "range_short_staged_ladder",
-      "n": 922
-    },
-    {
-      "day": "2026-10-21",
       "tag": "retrace__40_60_trend__long__1d__atr4_h20__v1",
       "n": 3
     },
@@ -1202,6 +1212,11 @@
     },
     {
       "day": "2026-10-21",
+      "tag": "rsi_reversal__ng__long__1d__atrnone__v1",
+      "n": 1
+    },
+    {
+      "day": "2026-10-21",
       "tag": "sector_rotation__fade__short__1d__atr1d5_h10_l5_n1__v1",
       "n": 6
     },
@@ -1293,7 +1308,7 @@
     {
       "day": "2026-10-21",
       "tag": "sma_crossover__gc__long__1d__atrnone__v1",
-      "n": 2
+      "n": 3
     },
     {
       "day": "2026-10-21",
@@ -1392,8 +1407,13 @@
     },
     {
       "day": "2026-10-21",
+      "tag": "supertrend__cl__long__1d__atrnone__v1",
+      "n": 1
+    },
+    {
+      "day": "2026-10-21",
       "tag": "supertrend__gc__long__1d__atrnone__v1",
-      "n": 2
+      "n": 3
     },
     {
       "day": "2026-10-21",
@@ -1444,11 +1464,6 @@
       "day": "2026-10-21",
       "tag": "three__outside__long__1d__atr6_h20__v1",
       "n": 3
-    },
-    {
-      "day": "2026-10-21",
-      "tag": "trend_down_momentum_short",
-      "n": 922
     },
     {
       "day": "2026-10-21",
@@ -1509,22 +1524,7 @@
       "day": "2026-10-21",
       "tag": "weekly__reversal__long__1d__atr6_h20__v1",
       "n": 3
-    },
-    {
-      "day": "2026-10-21",
-      "tag": "bollinger_mean_reversion__si__long__1d__atrnone__v1",
-      "n": 1
-    },
-    {
-      "day": "2026-10-21",
-      "tag": "supertrend__cl__long__1d__atrnone__v1",
-      "n": 1
-    },
-    {
-      "day": "2026-10-21",
-      "tag": "rsi_reversal__ng__long__1d__atrnone__v1",
-      "n": 1
     }
   ],
-  "synced_at_utc": "2026-10-21T10:08:52Z"
+  "synced_at_utc": "2026-10-21T14:09:38Z"
 }
