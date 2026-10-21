@@ -28947,7 +28947,7 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
 
 
 @app.post("/kotak-neo/reconcile-real-positions")
-def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = None):
+def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = None, background: int = 0):
     """Token-gated HTTP surface for _reconcile_real_positions_core - see
     that function's own docstring for the full reasoning. Kept as a thin
     wrapper (2026-09-28) so the token check stays exactly where it always
@@ -28955,7 +28955,63 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
     (set_trading_control's resume branch) can invoke the core logic
     directly without one."""
     _require_kotak_token(request)
+    if background:
+        return _start_reconcile_job(adopt)
     return _reconcile_real_positions_core(adopt)
+
+
+# B-1311: the reconcile call outlived every 60 s client timeout (0 bytes x4)
+# while read-only calls answered in seconds. Running it off the request and
+# sampling its stack shows WHERE it spends the time, and lets the workflow
+# poll instead of failing on app latency.
+_reconcile_job: dict = {"state": "idle"}
+_reconcile_job_lock = threading.Lock()
+
+
+def _start_reconcile_job(adopt: str | None) -> dict:
+    import sys
+    import traceback
+    with _reconcile_job_lock:
+        if _reconcile_job.get("state") == "running":
+            return dict(_reconcile_job, already_running=True)
+        _reconcile_job.clear()
+        _reconcile_job.update(state="running", started=time.time(), samples=[])
+    job = _reconcile_job
+
+    def _run():
+        me = threading.get_ident()
+        done = threading.Event()
+
+        def _sample():
+            while not done.wait(5):
+                fr = sys._current_frames().get(me)
+                if fr is not None:
+                    top = traceback.extract_stack(fr)[-4:]
+                    job["samples"].append(
+                        [round(time.time() - job["started"], 1)]
+                        + [f"{f.name}:{f.lineno}" for f in top])
+                    del job["samples"][:-60]
+
+        threading.Thread(target=_sample, daemon=True).start()
+        try:
+            job["result"] = _reconcile_real_positions_core(adopt)
+            job["state"] = "done"
+        except Exception as e:
+            job["error"] = f"{type(e).__name__}: {e}"
+            job["state"] = "failed"
+        finally:
+            done.set()
+            job["finished"] = time.time()
+            job["seconds"] = round(job["finished"] - job["started"], 1)
+
+    threading.Thread(target=_run, daemon=True, name="reconcile-job").start()
+    return dict(job)
+
+
+@app.get("/kotak-neo/reconcile-status")
+def kotak_neo_reconcile_status(request: Request):
+    _require_kotak_token(request)
+    return dict(_reconcile_job)
 
 
 @app.post("/kotak-neo/close-position")
