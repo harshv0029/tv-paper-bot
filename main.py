@@ -8550,6 +8550,13 @@ def _place_real_stop_loss_with_retry(kotak_trading_symbol: str, qty: float, trig
         result = kotak_real_orders.place_real_stop_loss(kotak_trading_symbol, qty, trigger_price)
         if result.get("ok"):
             return result
+        # B-1305: a Kotak rejection is never resent unchanged; only transient failures retry.
+        kind = result["rejection_kind"] = kotak_real_orders.classify_rejection(result.get("detail"))
+        if kind != "transient":
+            if kind == "unknown":
+                print(f"[ALARM] SL for {kotak_trading_symbol} rejected for an unrecognised reason, "
+                      f"not resent unchanged: {result.get('detail')}")
+            return result
         if attempt < attempts:
             time.sleep(2)
     return result
@@ -8567,6 +8574,13 @@ def _place_real_stop_loss_with_retry_short(kotak_trading_symbol: str, qty: float
     for attempt in range(1, attempts + 1):
         result = kotak_real_orders.place_real_short_stop_loss(kotak_trading_symbol, qty, trigger_price)
         if result.get("ok"):
+            return result
+        # B-1305: a Kotak rejection is never resent unchanged; only transient failures retry.
+        kind = result["rejection_kind"] = kotak_real_orders.classify_rejection(result.get("detail"))
+        if kind != "transient":
+            if kind == "unknown":
+                print(f"[ALARM] SL for {kotak_trading_symbol} rejected for an unrecognised reason, "
+                      f"not resent unchanged: {result.get('detail')}")
             return result
         if attempt < attempts:
             time.sleep(2)
