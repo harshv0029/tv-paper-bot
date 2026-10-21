@@ -39,6 +39,7 @@ committed to the repo, never logged, never returned by any endpoint:
                             every 30 seconds.
 """
 import os
+import threading
 import time
 
 import pyotp
@@ -112,6 +113,38 @@ def login():
     return client
 
 
+# B-1306 (2026-10-21): every Kotak call did a full TOTP login of its own, no
+# reuse and no serialisation. At the 09:15 open the protect pass runs every
+# tick and each position needs several calls, so dozens of simultaneous
+# logins piled up (Kotak throttles repeated TOTP codes), tied up every
+# worker thread and left even pure-SQLite endpoints hanging. One shared
+# session, re-used for a short TTL and logged in under a lock, fixes that.
+_SESSION_TTL_SECONDS = 600
+_session_lock = threading.Lock()
+_session_client = None
+_session_at = 0.0
+
+
+def invalidate_session():
+    global _session_client
+    with _session_lock:
+        _session_client = None
+
+
+def shared_login():
+    """READ-ONLY paths only (order placement keeps login()'s fresh session).
+    Authenticated NeoAPI client, shared for _SESSION_TTL_SECONDS. A
+    failed login is never cached; call invalidate_session() after an auth
+    error to force a fresh one."""
+    global _session_client, _session_at
+    with _session_lock:
+        if _session_client is not None and time.time() - _session_at < _SESSION_TTL_SECONDS:
+            return _session_client
+        client = login()
+        _session_client, _session_at = client, time.time()
+        return client
+
+
 # --- Phase 2: read-only account data (2026-09-03) ---------------------------
 # Explicit user instruction: "do phase 2" - read-only market/account data,
 # still no order placement. Each function below logs in fresh (no session
@@ -124,20 +157,20 @@ def login():
 def holdings():
     """Current portfolio holdings for the real account. Read-only - places
     no order. Returns the SDK's own response shape unmodified."""
-    return login().holdings()
+    return shared_login().holdings()
 
 
 def positions():
     """Current open positions for the real account. Read-only - places no
     order. Returns the SDK's own response shape unmodified."""
-    return login().positions()
+    return shared_login().positions()
 
 
 def limits():
     """Available margin/funds across all segments for the real account.
     Read-only - places no order. Returns the SDK's own response shape
     unmodified."""
-    return login().limits()
+    return shared_login().limits()
 
 
 def order_report(order_id: str | None = None):
@@ -152,7 +185,7 @@ def order_report(order_id: str | None = None):
     own docs are the source, not a verified live response) - read the raw
     response via GET /kotak-neo/order-report first rather than assuming a
     key name."""
-    return login().order_report(order_id=order_id)
+    return shared_login().order_report(order_id=order_id)
 
 
 def trade_report():
@@ -160,7 +193,7 @@ def trade_report():
     realised real-money P&L (B-59, 2026-10-06). Read-only - places no
     order. Returns the SDK's own response shape unmodified; field names
     are NOT assumed - inspect via the audit workflow's key listing first."""
-    return login().trade_report()  # SDK 3.0.1 signature takes no arguments (verified by inspect)
+    return shared_login().trade_report()  # SDK 3.0.1 signature takes no arguments (verified by inspect)
 
 
 # Live Render OOM/slowness incident (2026-09-16):
@@ -273,7 +306,7 @@ def quotes(instrument_tokens, quote_type="ltp"):
     call against it can. Never guess an index token name into
     kotak_live_feed.py's _INDEX_TOKENS without confirming it here first,
     same discipline as every other Kotak field-name claim this session."""
-    return login().quotes(instrument_tokens=instrument_tokens, quote_type=quote_type)
+    return shared_login().quotes(instrument_tokens=instrument_tokens, quote_type=quote_type)
 
 
 def margin_required(exchange_segment, instrument_token, transaction_type, quantity,
