@@ -144,3 +144,20 @@ def test_b817_short_cover_buy_fills_not_listed_known_gap():
     with closing(main.get_db()) as c:
         rows = [{"nOrdNo": "3", "trdSym": "W-EQ", "trnsTp": "B", "ordSt": "complete", "fldQty": "10", "avgPrc": "50", "ordDtTm": f"{day} 12:00:00", "prcTp": "SL"}]
         assert main._kotak_exit_fills_today(rows, set(), c) == []
+
+
+def test_b1320_unreadable_kotak_with_no_sl_is_risk_cut_after_window(monkeypatch):
+    import kotak_real_fo_orders as kfo, time
+    _db(); closed = []
+    with closing(main.get_db()) as c:
+        c.execute("INSERT INTO real_fo_positions (leg_key, underlying, strategy_tag, kotak_trading_symbol, instrument_token, exchange_segment, "
+                  "expiry, strike, lot_size, qty, entry_price, entry_order_id, opened_at, day, peak_price) "
+                  "VALUES ('TCS:CALL','TCS','single_leg_swing_call','TCS26OCT4000CE','1','nse_fo','2099-01-01',4000,175,175,100,'E',?, 'd', 100)",
+                  (time.time() - 1000,))
+        c.commit()
+        monkeypatch.setattr(kfo, "fetch_kotak_option_state", lambda s: {"ok": False, "detail": "down"})
+        monkeypatch.setattr(main, "_close_real_fo_option_leg", lambda conn, row, why: closed.append(why))
+        main._fo_sl_unprotected_since.pop("TCS:CALL", None)
+        assert main._sync_real_fo_option_sl(c, "TCS:CALL").startswith("kotak_unreadable") and not closed
+        main._fo_sl_unprotected_since["TCS:CALL"] = time.time() - main.FO_OPTION_SL_FAIL_EXIT_SECONDS - 1
+        assert main._sync_real_fo_option_sl(c, "TCS:CALL") == "risk_cut_exit" and closed

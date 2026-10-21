@@ -16702,6 +16702,14 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
     sym = row["kotak_trading_symbol"]
     st = kotak_real_fo_orders.fetch_kotak_option_state(sym)
     if not st["ok"]:
+        # B-1320: an unreadable Kotak state must not hide an unprotected leg forever.
+        # Only legs we have no SL on count; the timer is cleared as soon as a SL is confirmed.
+        if not row["sl_order_id"]:
+            since = _fo_sl_unprotected_since.setdefault(leg_key, time.time())
+            if time.time() - since >= FO_OPTION_SL_FAIL_EXIT_SECONDS:
+                _close_real_fo_option_leg(conn, row, f"risk cut: Kotak state unreadable and no SL on record for {FO_OPTION_SL_FAIL_EXIT_SECONDS}s")
+                _fo_sl_unprotected_since.pop(leg_key, None)
+                return "risk_cut_exit"
         return f"kotak_unreadable: {st['detail']}"
     # Kotak shows no open qty: stopped out / closed elsewhere -> close our row.
     if st["net_qty"] <= 0:
