@@ -13414,9 +13414,16 @@ def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: b
         # explorer button). Bypasses the PFnet floor and replay-owed hold; the ALL TRADING switch above, the SL on
         # every entry and the Kotak backcheck still apply.
         return True
+    if REAL_ENTRY_REQUIRES_EXPLORER_STACK and not sr.VIABLE_STACK_ACTIVE:
+        # 2026-10-21 user: "for live money trade entry it should come from active viable condition from explorer table".
+        # No stack loaded (empty table, restore not done) = no real entry; PFnet >= 1 alone only wires scanning.
+        return False
     if strategy_tag in REPLAY_OWED_TAGS:
         return False
     return strat.is_viable() is True
+
+
+REAL_ENTRY_REQUIRES_EXPLORER_STACK = True  # 2026-10-21 user rule (not a switch: tests that check the registry gate unset it)
 
 
 def _is_strategy_wired(strategy_tag: str | None) -> bool:
