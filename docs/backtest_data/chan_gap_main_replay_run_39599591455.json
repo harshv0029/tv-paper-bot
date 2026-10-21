@@ -1,0 +1,127 @@
+{
+ "source": "actions run 39599591455 (chan-gap-main-replay.yml, B-1331, collected from merge job log; artifact blob blocked by sandbox proxy)",
+ "cost_pct": 0.8,
+ "fit5_cell_counts": {
+  "None": 835,
+  "chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1": 225,
+  "chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1": 82,
+  "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1": 46
+ },
+ "rows": [
+  {
+   "tag": "chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1",
+   "metrics": {
+    "n": 1188,
+    "pfnet": 1.3681484063448333,
+    "pfgross": 2.8998806717010512,
+    "win_pct": 43.18,
+    "avg_held_bars": 1.0,
+    "avg_held_hours": 6.25,
+    "exit_reasons": {
+     "close": {
+      "n": 1131,
+      "pfnet": 1.9466008474959464,
+      "win_pct": 45.36
+     },
+     "stop": {
+      "n": 57,
+      "pfnet": 0.0,
+      "win_pct": 0.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1",
+   "metrics": {
+    "n": 1188,
+    "pfnet": 1.4092574225727228,
+    "pfgross": 3.0238424790137923,
+    "win_pct": 43.6,
+    "avg_held_bars": 1.0,
+    "avg_held_hours": 6.25,
+    "exit_reasons": {
+     "close": {
+      "n": 1173,
+      "pfnet": 1.5715638549292037,
+      "win_pct": 44.16
+     },
+     "stop": {
+      "n": 15,
+      "pfnet": 0.0,
+      "win_pct": 0.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1",
+   "metrics": {
+    "n": 1188,
+    "pfnet": 1.4446399811038761,
+    "pfgross": 3.1543940775760633,
+    "win_pct": 43.6,
+    "avg_held_bars": 1.0,
+    "avg_held_hours": 6.25,
+    "exit_reasons": {
+     "close": {
+      "n": 1187,
+      "pfnet": 1.445778853098852,
+      "win_pct": 43.64
+     },
+     "stop": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1d__atr4d0cap5_top10__v1",
+   "metrics": {
+    "n": 1188,
+    "pfnet": 1.4114596033883504,
+    "pfgross": 3.0685005532880343,
+    "win_pct": 43.01,
+    "avg_held_bars": 1.0,
+    "avg_held_hours": 6.25,
+    "exit_reasons": {
+     "close": {
+      "n": 1103,
+      "pfnet": 2.3852731485994405,
+      "win_pct": 46.33
+     },
+     "stop": {
+      "n": 85,
+      "pfnet": 0.0,
+      "win_pct": 0.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "chan_gap__buy_on_gap__long__1d__fit5_top10__v1",
+   "metrics": {
+    "n": 353,
+    "pfnet": 1.24201379815292,
+    "pfgross": 3.0549053566152087,
+    "win_pct": 52.12,
+    "avg_held_bars": 1.0,
+    "avg_held_hours": 6.25,
+    "exit_reasons": {
+     "close": {
+      "n": 332,
+      "pfnet": 1.9021482218885,
+      "win_pct": 55.42
+     },
+     "stop": {
+      "n": 21,
+      "pfnet": 0.0,
+      "win_pct": 0.0
+     }
+    }
+   }
+  }
+ ]
+}

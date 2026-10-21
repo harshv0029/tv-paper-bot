@@ -169,3 +169,5 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | chan_kalman__band_mr__short__15m__atr4d0_cst0d3_hold40_ve1d0e4_z1d0_fl1515__v2 |  |  |  | 1.47 | 49211 |  | no research twin |
 | chan_kalman__band_mr__short__15m__atr2d5_cst0d3_hold40_ve1d0e4_z1d0_fl1515__v2 |  |  |  | 1.43 | 49804 |  | no research twin |
 | chan_kalman__band_mr__short__15m__atr1d5_cst0d3_hold40_ve1d0e4_z1d0_fl1515__v2 |  |  |  | 1.40 | 50501 |  | no research twin |
+| chan_gap__buy_on_gap_mr__long__1d__atr4d0cap5_top10__v1 |  |  |  | 1.41 | 1188 |  | no research twin |
+| chan_gap__buy_on_gap_mr__long__1d__fit5_top10__v1 |  |  |  | 1.24 | 353 |  | no research twin |
