@@ -41,5 +41,5 @@ def test_backcheck_is_category_agnostic_swing_and_option_symbols():
 
 def test_exits_are_market_and_stops_are_trigger_gated_sl():
     assert 'order_type="MKT"' in inspect.getsource(kotak_real_orders)
-    assert 'order_type="SL"' in inspect.getsource(kotak_real_orders.place_real_stop_loss)
+    assert 'order_type="SL"' in inspect.getsource(kotak_real_orders._place_real_stop_loss_once)
     assert 'order_type="SL"' in inspect.getsource(kotak_real_orders.place_real_short_stop_loss)
