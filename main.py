@@ -13560,6 +13560,7 @@ def _real_today_spent_inr(conn) -> float:
 
 
 _T1_HOLDINGS_MARKER = "T1 holdings"  # exact substring Kotak's own RMS rejection uses
+_target_backfill_t1_rejected: set = set()  # B-1329: (symbol, IST day) whose backfill target Kotak T1-rejected
 # Found live 2026-09-09 (MEDICAMEQ.NS - Medicamen Biotech Ltd, actually a
 # regulatory Trade-to-Trade/T2T-segment stock, not just Kotak's own T1-
 # holdings RMS check): the SAME same-day-sell restriction can surface
@@ -28916,9 +28917,17 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             # tick (matches the original entry-time placement's own
             # no-retry convention, see kotak_real_orders' "Real resting
             # target" docstring).
-            if not r["target_order_id"]:
+            _tgt_day_key = (r["symbol"], ist_now().strftime("%Y-%m-%d"))
+            if not r["target_order_id"] and _tgt_day_key in _target_backfill_t1_rejected:
+                backfill_entry["target_placed"] = False
+                backfill_entry["target_failure_detail"] = "B-1329 skipped: Kotak rejected this target today (T1, SL holds the qty)"
+            elif not r["target_order_id"]:
                 import kotak_real_orders
                 target_result = kotak_real_orders.place_real_target(r["kotak_trading_symbol"], r["qty"], target)
+                if not target_result.get("ok") and _T1_HOLDINGS_MARKER in str(target_result.get("detail") or ""):
+                    # B-1329: the resting SL already holds the full qty, so Kotak rejects the target on every
+                    # 5-min pass (ITC x4 on 2026-10-21). Try once per symbol per day; the tick poll books profit.
+                    _target_backfill_t1_rejected.add(_tgt_day_key)
                 if target_result.get("ok"):
                     conn.execute(
                         "UPDATE real_positions SET target_order_id = ?, target_price = ? WHERE symbol = ?",
