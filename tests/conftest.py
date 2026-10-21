@@ -49,3 +49,16 @@ def _scan_gate_ignores_todays_calendar(monkeypatch):
     monkeypatch.setattr(
         main, "is_nse_trading_day",
         lambda date=None: True if date is None else real(date))
+
+
+@pytest.fixture(autouse=True)
+def _option_pool_open_except_its_own_tests(request, monkeypatch):
+    """B-1314's option-pool gate rejects the placeholder tags many option-mechanics tests use; those tests exercise
+    SL/sizing, not the pool, so the gate is opened for them. tests/test_option_pool_gate.py tests the real gate."""
+    if request.node.module.__name__.endswith("test_option_pool_gate"):
+        return
+    try:
+        import main
+    except Exception:
+        return
+    monkeypatch.setattr(main, "_option_pool_allows", lambda tag: True)
