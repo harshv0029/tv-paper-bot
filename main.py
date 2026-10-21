@@ -19550,6 +19550,16 @@ _GENERIC_MIRROR_TABLES = (
     "strategy_viable_stack",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
+# B-1302: audit/log/counter tables (tier 2/3) are unloaded from Upstash and kept in
+# git instead (table-git-sync.yml, every 5 min -> docs/tables/<name>.json), restored
+# from the public raw file when the local table is empty. Safety-critical tables
+# (positions, kill switches, settings, viable stack) stay in Upstash.
+_GENERIC_MIRROR_GIT_TIER = ("swing_scan_log", "signal_shadow_log",
+                            "strategy_scan_counts", "short_trades_closed",
+                            "strategy_viable_stack")
+_GENERIC_MIRROR_UPSTASH_TABLES = tuple(t for t in _GENERIC_MIRROR_TABLES
+                                       if t not in _GENERIC_MIRROR_GIT_TIER)
+_git_tier_hydrated: set = set()
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
 _generic_mirror_hydrated: set = set()
 _generic_mirror_last_hash: dict = {}
@@ -19614,12 +19624,51 @@ def _generic_hydrate_table(conn, table: str) -> bool:
     return True
 
 
+def hydrate_git_tier_tables() -> int:
+    """B-1302: restores empty git-tier tables from docs/tables/<name>.json on the
+    public repo (raw read). A 200 or 404 counts as reached; network errors retry."""
+    repo = os.environ.get("GITHUB_SYNC_REPO", "harshv0029/tv-paper-bot")
+    for table in _GENERIC_MIRROR_GIT_TIER:
+        if table in _git_tier_hydrated:
+            continue
+        try:
+            with closing(get_db()) as conn:
+                if conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] > 0:
+                    _git_tier_hydrated.add(table)
+                    continue
+                resp = requests.get(
+                    f"https://raw.githubusercontent.com/{repo}/main/docs/tables/{table}.json", timeout=6)
+                if resp.status_code == 404:
+                    _git_tier_hydrated.add(table)
+                    continue
+                resp.raise_for_status()
+                rows = (resp.json() or {}).get("rows") or []
+                cols = _generic_mirror_table_columns(conn, table)
+                for row in rows:
+                    keep = {k: v for k, v in row.items() if k in cols}
+                    if keep:
+                        conn.execute(f"INSERT OR REPLACE INTO {table} ({','.join(keep)}) VALUES ({','.join('?' for _ in keep)})",
+                                     tuple(keep.values()))
+                conn.commit()
+                _git_tier_hydrated.add(table)
+                if rows:
+                    print(f"[table_mirror] restored {len(rows)} row(s) into {table} from git")
+        except Exception as e:
+            print(f"[table_mirror] git hydrate {table} failed (non-fatal, will retry): {e}")
+    return len(_git_tier_hydrated)
+
+
 def hydrate_generic_tables_from_external() -> int:
     """Startup (and retried per tick until it succeeds) restore for every table
-    in _GENERIC_MIRROR_TABLES. Returns how many tables are now hydrated."""
+    in _GENERIC_MIRROR_UPSTASH_TABLES (git-tier tables restore from git).
+    Returns how many tables are now hydrated."""
+    try:
+        hydrate_git_tier_tables()
+    except Exception as e:
+        print(f"[table_mirror] git tier hydrate failed (non-fatal): {e}")
     if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
         return 0
-    for table in _GENERIC_MIRROR_TABLES:
+    for table in _GENERIC_MIRROR_UPSTASH_TABLES:
         if table in _generic_mirror_hydrated:
             continue
         try:
@@ -19636,10 +19685,10 @@ def sync_generic_tables_external(only=None) -> int:
     Returns how many tables were pushed this call."""
     if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
         return 0
-    if len(_generic_mirror_hydrated) < len(_GENERIC_MIRROR_TABLES):
+    if len(_generic_mirror_hydrated) < len(_GENERIC_MIRROR_UPSTASH_TABLES):
         hydrate_generic_tables_from_external()
     pushed = 0
-    for table in _GENERIC_MIRROR_TABLES:
+    for table in _GENERIC_MIRROR_UPSTASH_TABLES:
         if only is not None and table not in only:
             continue
         if table not in _generic_mirror_hydrated:
@@ -27904,6 +27953,16 @@ def sl_snapshots_endpoint():
             r["latest_sl"] = json.loads(r.pop("latest_sl_json") or "null")
         except Exception:
             r["latest_sl"] = None
+    return {"count": len(rows), "rows": rows}
+
+
+@app.get("/table-export/{name}")
+def table_export_endpoint(name: str):
+    """B-1302: read-only dump of a git-tier table, read by table-git-sync.yml every 5 min."""
+    if name not in _GENERIC_MIRROR_GIT_TIER:
+        raise HTTPException(status_code=404, detail="not a git-tier table")
+    with closing(get_db()) as conn:
+        rows = [dict(r) for r in conn.execute(f"SELECT * FROM {name}").fetchall()]
     return {"count": len(rows), "rows": rows}
 
 

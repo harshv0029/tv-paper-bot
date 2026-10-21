@@ -1,0 +1,52 @@
+name: Table Git Sync
+
+# B-1302 (user 2026-10-21): audit/log/counter tables are unloaded from Upstash and
+# kept in git. Every 5 min the live server's /table-export/<name> is written to
+# docs/tables/<name>.json; main.py restores an empty table from that file at startup.
+# READ-ONLY toward Kotak. An empty server answer never blanks a non-empty git copy.
+on:
+  schedule:
+    - cron: "*/5 3-10 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: table-git-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export git-tier tables
+        run: |
+          mkdir -p docs/tables
+          curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" || true
+          echo
+          for t in swing_scan_log signal_shadow_log strategy_scan_counts short_trades_closed strategy_viable_stack; do
+            if ! curl -sS --retry 4 --retry-delay 5 --retry-connrefused -m 45 \
+                 "https://tv-paper-bot-gdan.onrender.com/table-export/$t" -o /tmp/$t.json \
+               || ! jq -e '.rows' /tmp/$t.json > /dev/null; then
+              echo "skip $t (fetch failed)"; continue
+            fi
+            f=docs/tables/$t.json
+            if [ "$(jq '.rows|length' /tmp/$t.json)" = "0" ] && [ -f $f ] && [ "$(jq '.rows|length' $f)" != "0" ]; then
+              echo "$t: server empty, keeping git copy"; continue
+            fi
+            if [ -f $f ] && [ "$(jq -S .rows /tmp/$t.json)" = "$(jq -S .rows $f)" ]; then
+              echo "$t: no change"; continue
+            fi
+            jq --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '{rows: .rows, synced_at_utc: $ts}' /tmp/$t.json > $f
+          done
+      - name: Commit if changed
+        run: |
+          git config user.name "tv-paper-bot journal sync"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/tables
+          if git diff --cached --quiet; then echo "nothing to commit"; else
+            git commit -m "Sync git-tier tables ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push
+          fi
