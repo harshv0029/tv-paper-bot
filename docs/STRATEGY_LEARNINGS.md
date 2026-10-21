@@ -1322,3 +1322,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - What surprised: stop-loss exits have PFnet 0.0 on every trade (starc: 13476 of 23845 trades stopped in about 6 bars); only the 20-bar timeout survivors win (PFnet 13.7 and 1.46). Same shape as the other shorts: the bull-window market punishes shorts early and the edge only shows for those that survive.
 - Reuse: sweep the ATR stop multiple wider before judging; do not wire a short whose stops are 55% of trades at PFnet 0.
 - Profit-booking / exit takeaway: the profit comes from holding the full 20 bars, not from early exits; a tighter stop destroys it.
+
+## Option bid/ask spread gate (B-1328, 2026-10-21 IST)
+- Mechanism: option entries and risk-cut exits are market orders, so the bid/ask spread is paid on both legs on top of the 0.8% cost model; on a strike with few buyers and sellers that alone can exceed the 3% initial stop.
+- Fit: every option entry path now goes through `_real_fo_buy_contract`, which skips when Kotak's spread is over 5% of mid. Kotak's `quote_type="all"` field names are not yet confirmed live, so an unread quote does not block; check the confirmed log rows after the next entry.
+- Profit-booking / exit takeaway: the spread is a guaranteed loss on every round trip, so a strike that is cheap to enter but wide to exit is a losing trade before the setup plays out; prefer liquid (near-ATM, current-week) strikes.
