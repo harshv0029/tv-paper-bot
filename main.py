@@ -14383,6 +14383,13 @@ def _maybe_place_real_entry(conn, symbol: str):
         return
 
     import kotak_real_orders
+    if paper_row and paper_row["stop_loss"]:
+        _sl_ok, _sl_why = kotak_real_orders.stop_placeable_for_entry(
+            kotak_symbol, _cap_real_intraday_stop(ltp, paper_row["stop_loss"]), ltp)
+        if not _sl_ok:  # B-1308: no trade without a placeable SL
+            _lra_tag(conn, symbol, "B", "skipped_stop_outside_price_band", kotak_trading_symbol=kotak_symbol,
+                     price_est=ltp, detail=_sl_why)
+            return
     result = kotak_real_orders.place_real_entry(kotak_symbol, qty, ltp)
     if result.get("ok"):
         now = time.time()
@@ -21672,6 +21679,12 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         return
 
     import kotak_real_orders
+    if paper_stop_loss:
+        _sl_ok, _sl_why = kotak_real_orders.stop_placeable_for_entry(kotak_symbol, float(paper_stop_loss), ltp)
+        if not _sl_ok:  # B-1308: no trade without a placeable SL
+            _log_real_attempt(conn, symbol, "B", "skipped_stop_outside_price_band", kotak_trading_symbol=kotak_symbol,
+                              price_est=ltp, detail=_sl_why, strategy=strategy)
+            return
     result = kotak_real_orders.place_real_entry(kotak_symbol, qty, ltp)
     if not result.get("ok"):
         print(f"[REAL SWING] entry FAILED for {kotak_symbol}: {result.get('detail')}")

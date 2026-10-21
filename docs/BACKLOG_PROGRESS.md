@@ -16,7 +16,7 @@ Total rows: 1086 | closed: 460 | not closed: 626
 | CLOSED | 74 |
 | PARTIAL | 70 |
 | BLOCKED | 63 |
-| OPEN | 56 |
+| OPEN | 55 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | PENDING | 12 |
@@ -58,6 +58,7 @@ Total rows: 1086 | closed: 460 | not closed: 626
 | RULE | 1 |
 | OWED | 1 |
 | NEEDS-OWNER | 1 |
+| PRE-ENTRY | 1 |
 | KOTAK | 1 |
 | RECONCILE | 1 |
 | VIABLE | 1 |
@@ -534,7 +535,7 @@ Total rows: 1086 | closed: 460 | not closed: 626
 | B-1289 | P1 | OPEN | 2026-10-20 00:25 IST: subagent fixes merged to the working branch, full suite 2077 passed (date-dependent m... | blocked, awaiting, waiting |
 | B-1290 | P1 | FIXED-LOCAL | Render memory target ~1024 MB of 2048 |  |
 | B-1305 | P1 | OPEN | Apply the read-the-rejection-reason rule to every other order path: short buy-stop above the upper band, ta... |  |
-| B-1308 | P1 | OPEN | 2026-10-21 |  |
+| B-1308 | P1 | PRE-ENTRY | 2026-10-21 | pending |
 | B-1310 | P1 | OPEN | 2026-10-21 | needs |
 | B-1327 | P1 | TABLE-GIT-SYNC | 2026-10-21 | open:, verify, needs |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
