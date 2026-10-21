@@ -40,9 +40,24 @@ def test_b417_entry_unwound_when_sl_cannot_be_placed(monkeypatch):
     """No trade without SL: SL failure right after the fill closes the leg immediately."""
     _db(); closed = []
     _patch_buy(monkeypatch, "sl_failed", closed)
+    monkeypatch.setattr(main, "FO_ENTRY_SL_FAIL_RETRY_WINDOW_S", 0.0)
     with closing(main.get_db()) as c:
         main._real_fo_buy_contract(c, "TCS:CALL", "TCS", dict(CONTRACT), "single_leg_swing_call", "single_leg_swing_call", "t")
     assert closed and "entry unwound" in closed[0]
+
+
+def test_b1318_failed_entry_sl_is_retried_before_unwind(monkeypatch):
+    """A transient first SL failure is retried within the window; a later success keeps the position."""
+    _db(); closed = []; calls = []
+    _patch_buy(monkeypatch, "sl_failed", closed)
+    def _sl(conn, leg, reason=""):
+        calls.append(reason)
+        return "sl_failed" if len(calls) < 3 else "placed"
+    monkeypatch.setattr(main, "_sync_real_fo_option_sl", _sl)
+    monkeypatch.setattr(main, "FO_ENTRY_SL_FAIL_RETRY_SLEEP_S", 0.0)
+    with closing(main.get_db()) as c:
+        main._real_fo_buy_contract(c, "TCS:CALL", "TCS", dict(CONTRACT), "single_leg_swing_call", "single_leg_swing_call", "t")
+    assert len(calls) == 3 and not closed
 
 
 def _sync(monkeypatch, entry, peak, ltp):
