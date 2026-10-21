@@ -9,6 +9,9 @@ import strategy_registry as sr
 # Registered research variants of a family whose live tag is already mapped.
 # They are viable on paper but the live engine runs the mapped sibling.
 VARIANT_OF_WIRED = {
+    # B-1331: replays of the wired atr4d0 cell's capped-5% live stop and the (unwired) fit-in-5% selection rule.
+    "chan_gap__buy_on_gap_mr__long__1d__atr4d0cap5_top10__v1": "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1",
+    "chan_gap__buy_on_gap_mr__long__1d__fit5_top10__v1": "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1",
     # B-413: the live gap_and_go tags now map to hold30; the 52-symbol legacy row is its variant.
     "gap_and_go_swing": "gap_and_go__swing__long__1d__hold30__v1",
     "gap_and_go__swing__long__1d__hold60__v1": "gap_and_go__swing__long__1d__hold30__v1",
