@@ -16471,6 +16471,18 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
                               price_est=contract["premium"], qty=qty, detail=loss_check["detail"])
         return
 
+    # B-1317: size the entry risk on the whole lot (qty x premium x max stop %),
+    # not per unit, and refuse when it exceeds what is left of today's loss budget.
+    _cap = loss_check.get("cap_inr")
+    if _cap is not None and loss_check.get("real_pnl_today") is not None:
+        _left = _cap + min(loss_check["real_pnl_today"], 0.0)
+        _risk = qty * contract["premium"] * FO_STRIKE_TRAIL_MAX_PCT / 100.0
+        if _risk > _left:
+            _log_real_fo_attempt(conn, leg_key, "B", "skipped_entry_risk_over_loss_budget",
+                                  kotak_trading_symbol=contract["kotak_trading_symbol"],
+                                  price_est=contract["premium"], qty=qty,
+                                  detail=f"B-1317 lot risk Rs{_risk:.2f} (qty {qty} x {contract['premium']} x {FO_STRIKE_TRAIL_MAX_PCT}%) > budget left Rs{_left:.2f}")
+            return
     import kotak_real_fo_orders
     margin_check = kotak_real_fo_orders.check_margin_affordable(
         exchange_segment=contract["exchange_segment"], instrument_token=contract["instrument_token"],
@@ -20144,18 +20156,22 @@ def _refresh_real_trades_cache():
         trades = []
         for row in rows:
             try:
-                if row.get("exSeg") != "nse_cm":
-                    continue
+                # B-1315: every segment (equity, NSE/MCX F&O), and the matched
+                # part of a partly closed position, so the loss budget counts
+                # what Kotak books (JIO option loss was missing: equity-only).
                 fl_buy = float(row.get("flBuyQty", 0) or 0)
                 fl_sell = float(row.get("flSellQty", 0) or 0)
-                if fl_buy == 0 or fl_buy != fl_sell:
-                    continue  # not fully squared off - open/unrealized, not today's realized P&L
+                if fl_buy == 0 or fl_sell == 0:
+                    continue  # nothing closed yet - open/unrealized only
                 hs_up_tm = str(row.get("hsUpTm", ""))
                 if not hs_up_tm.startswith(today_str):
                     continue
                 buy_amt = float(row.get("buyAmt", 0) or 0)
                 sell_amt = float(row.get("sellAmt", 0) or 0)
-                qty = fl_buy
+                qty = min(fl_buy, fl_sell)
+                if fl_buy != fl_sell:  # partial close: realize only the matched qty at average prices
+                    buy_amt = buy_amt / fl_buy * qty
+                    sell_amt = sell_amt / fl_sell * qty
                 # hsUpTm is Kotak's own IST wall-clock string - convert to
                 # a UTC epoch so since_ts filtering (IST-midnight-based,
                 # like every other "today" cutoff in this file) compares
