@@ -1,0 +1,26 @@
+{
+ "run_id": 39626212667,
+ "workflow": "mcx-live-replay.yml",
+ "source": "scripts/mcx_live_replay.py (calls main._mcx_daily_flags)",
+ "note": "transcribed from the job log (artifact download blocked by proxy); underlying-only replay, option-premium trailing SL not simulated",
+ "cells": {
+  "donchian_breakout__gc__long__1d__atrnone__v1": {
+   "pfnet": 1.37,
+   "n": 20,
+   "registry_pfnet": 1.229,
+   "registry_n": 22
+  },
+  "rsi_reversal__si__long__1d__atrnone__v1": {
+   "pfnet": 3.174,
+   "n": 16,
+   "registry_pfnet": 4.098,
+   "registry_n": 17
+  },
+  "rsi_reversal__ng__short__1d__atrnone__v1": {
+   "pfnet": 2.605,
+   "n": 14,
+   "registry_pfnet": 2.281,
+   "registry_n": 14
+  }
+ }
+}
