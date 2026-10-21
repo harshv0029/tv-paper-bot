@@ -2530,5 +2530,48 @@
     "governance_backfilled_swing": [],
     "unprotected_positions_count": 0,
     "unprotected_positions": []
+  },
+  {
+    "reconciled_at_utc": 1792570777.166565,
+    "real_balance_inr": 8496.934790000001,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "holdings_unprotected": [],
+    "swing_past_time_limit": [],
+    "holdings_healed": [],
+    "holdings_checked": 4,
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 2,
+    "adopted": [
+      {
+        "symbol": "WIPRO.NS",
+        "kotak_trading_symbol": "WIPRO-EQ",
+        "qty": 1,
+        "entry_price": 188.75,
+        "entry_order_id": "261021000144947",
+        "side": "long",
+        "table": "real_positions_swing"
+      },
+      {
+        "symbol": "YESBANK.NS",
+        "kotak_trading_symbol": "YESBANK-EQ",
+        "qty": 20,
+        "entry_price": 16.38,
+        "entry_order_id": "261021000238854",
+        "side": "long",
+        "table": "real_positions_swing"
+      }
+    ],
+    "governance_backfilled_count": 0,
+    "governance_backfilled": [],
+    "governance_backfilled_short_count": 0,
+    "governance_backfilled_short": [],
+    "governance_backfilled_swing_count": 0,
+    "governance_backfilled_swing": [],
+    "unprotected_positions_count": 0,
+    "unprotected_positions": []
   }
 ]
