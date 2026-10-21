@@ -16403,12 +16403,33 @@ def _maybe_place_real_fo_option_entry(conn, symbol: str, spot: float, strategy_t
     )
 
 
+_OPTION_POOL_CATEGORIES = ("buy", "options")
+
+
+def _option_pool_allows(strategy_tag: str | None) -> bool:
+    """B-1314 (user 2026-10-21): a single-leg option position may only be opened by an option strategy or an
+    intraday buy strategy. A strategy registered ONLY in swing, short_sell, futures or bidirectional is excluded;
+    unrecognised tags fail closed."""
+    registry_name = _STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy_tag or "")
+    if not registry_name:
+        return False
+    import strategy_registry as sr
+    strat = next((x for x in sr.REGISTRY if x.name == registry_name), None)
+    if strat is None:
+        return False
+    cats = {getattr(c, "value", c) for c in strat.categories}
+    return bool(cats & set(_OPTION_POOL_CATEGORIES))
+
+
 def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict, strategy_tag, tag_col: str,
                           reason: str, trail_dist: float | None = None, budget_inr: float | None = None):
     """Shared real BUY of ONE resolved option contract (caps, loss budget,
     margin check, order, row insert, initial trailing SL). Used by the index
     mirror (ATM strike) and the per-strike setup scan (the strike whose own
     candles fired a viable setup)."""
+    if not _option_pool_allows(strategy_tag):
+        _log_real_fo_attempt(conn, leg_key, "B", "skipped_not_option_pool", detail=f"B-1314 strategy_tag={strategy_tag}")
+        return
     qty = contract["lot_size"]
     if budget_inr and contract["premium"] > 0:
         # user 2026-10-08: size from the money available in the account (lots that fit
