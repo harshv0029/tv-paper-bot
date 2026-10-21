@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trade View 4 - live flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#080b0f;--panel:#12181f;--panel-2:#161e27;--border:#232d3a;--text:#e7ecf2;--muted:#7c8a9c;--up:#22c55e;--down:#ef4444;--accent:#3b82f6;--warn:#f59e0b;--idle:#475569;--violet:#a78bfa;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;padding:16px;}
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  h1{font-size:16px;font-weight:700;margin:0 0 3px;}
+  .sub{color:var(--muted);font-size:11px;margin-bottom:12px;}
+  a{color:var(--accent);}
+  .dim{color:var(--muted);} .up{color:var(--up);} .down{color:var(--down);}
+  #stage{position:relative;}
+  /* "where to where" line */
+  #now{background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  #now .arrow{color:var(--muted);} #now b{font-weight:700;}
+  .step{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--panel-2);border:1px solid var(--border);}
+  .step.on{border-color:var(--accent);color:#fff;background:rgba(59,130,246,.22);}
+  .box{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 11px;position:relative;transition:border-color .3s,box-shadow .3s;}
+  .box.hot{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 18px rgba(59,130,246,.25);}
+  .box h2{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 8px;display:flex;justify-content:space-between;gap:8px;}
+  .box h2 .n{color:var(--text);text-transform:none;letter-spacing:0;}
+  /* 0 monitoring */
+  #mon{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:12px;margin-bottom:12px;}
+  .led{width:10px;height:10px;border-radius:50%;background:var(--idle);display:inline-block;margin-right:6px;vertical-align:-1px;}
+  .led.ok{background:var(--up);box-shadow:0 0 8px var(--up);} .led.bad{background:var(--down);box-shadow:0 0 8px var(--down);}
+  .led.pulse{animation:pulse .7s ease-out;}
+  @keyframes pulse{0%{transform:scale(2);}100%{transform:scale(1);}}
+  /* 1 sequence lane */
+  #seqBox{margin-bottom:12px;}
+  #lane{display:flex;gap:6px;overflow-x:auto;padding:14px 2px 8px;position:relative;scroll-behavior:smooth;}
+  .sym{flex:0 0 auto;font-size:11px;padding:5px 9px;border-radius:7px;border:1px solid var(--border);background:var(--panel-2);white-space:nowrap;transition:all .4s;}
+  .sym small{display:block;font-size:9px;color:var(--muted);}
+  .sym.done{opacity:.45;} .sym.cur{border-color:var(--accent);background:rgba(59,130,246,.25);color:#fff;transform:translateY(-3px);box-shadow:0 0 14px rgba(59,130,246,.45);}
+  .sym.held{border-color:var(--up);}
+  #cursor{position:absolute;top:2px;width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);transition:left .6s ease-in-out;margin-left:-5px;}
+  /* 2-5 grid */
+  #grid{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:16px;margin-bottom:12px;}
+  @media (max-width:860px){#grid{grid-template-columns:1fr;}}
+  #grid .box{min-height:220px;}
+  .row{font-size:11px;padding:3px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:6px;align-items:center;}
+  .row:last-child{border-bottom:0;}
+  .row .s{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tag{font-size:10.5px;padding:3px 7px;border-radius:6px;background:var(--panel-2);border:1px solid var(--border);display:inline-block;margin:0 4px 4px 0;transition:all .4s;}
+  .tag.flash{border-color:var(--violet);background:rgba(167,139,250,.25);color:#fff;}
+  .chip{font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:20px;white-space:nowrap;}
+  .c-entry{background:rgba(34,197,94,.15);color:var(--up);} .c-exit{background:rgba(59,130,246,.15);color:var(--accent);}
+  .c-block{background:rgba(245,158,11,.15);color:var(--warn);} .c-err{background:rgba(239,68,68,.15);color:var(--down);}
+  .c-none{background:rgba(124,138,156,.12);color:var(--muted);}
+  .dot{position:absolute;width:9px;height:9px;border-radius:50%;pointer-events:none;z-index:5;margin:-4.5px 0 0 -4.5px;}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);margin:0 0 10px;}
+  .legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:var(--c);}
+  .feed{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:8px 12px;max-height:40vh;overflow:auto;}
+  .feed h2{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:2px 0 6px;}
+  .ev{font-size:11.5px;padding:4px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;animation:fadein .6s;}
+  .ev .t{color:var(--muted);min-width:64px;}
+  @keyframes fadein{from{background:rgba(59,130,246,.18);}to{background:transparent;}}
+  .subtabs{display:flex;gap:8px;margin-bottom:12px;}
+  .subtabs button{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font:600 12px 'Inter',sans-serif;cursor:pointer;}
+  .subtabs button.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  #treeBox{margin-bottom:12px;}
+  #treeWrap{overflow:auto;max-height:70vh;}
+  #tree text{font-family:'IBM Plex Mono',monospace;font-size:10.5px;fill:var(--text);}
+  #tree text.m{fill:var(--muted);font-size:9.5px;}
+  #tree .edge{fill:none;stroke:var(--border);stroke-width:1.2;}
+  #tree .edge.live{stroke:var(--violet);stroke-opacity:.75;stroke-width:1.6;}
+  #tree .edge.pos{stroke:var(--up);stroke-width:1.6;}
+  #tree rect.nd{fill:var(--panel-2);stroke:var(--border);rx:6;}
+  #tree rect.nd.live{stroke:var(--violet);} #tree rect.nd.root{stroke:var(--accent);fill:rgba(59,130,246,.18);}
+  #tree rect.nd.pos{stroke:var(--up);fill:rgba(34,197,94,.12);} #tree rect.nd.bad{stroke:var(--down);fill:rgba(239,68,68,.12);}
+  #tree rect.nd.hit{fill:rgba(167,139,250,.35);}
+  #dt{display:grid;grid-template-columns:minmax(0,1.1fr) 46px minmax(0,1fr);gap:0 0;align-items:center;}
+  .g{position:relative;margin:0 0 18px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel-2);font-size:11.5px;}
+  .g::after{content:"yes ↓";position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);font-size:9.5px;color:var(--up);}
+  .g.last::after{content:"";}
+  .g .q{font-weight:600;} .g .k{font-size:9.5px;color:var(--muted);}
+  .g.real{border-style:dashed;}
+  .no{height:1px;background:var(--border);position:relative;margin-bottom:18px;}
+  .no::before{content:"no →";position:absolute;top:-13px;left:8px;font-size:9.5px;color:var(--warn);}
+  .no.held::before{content:"yes →";color:var(--accent);}
+  .leaf{margin:0 0 18px;padding:6px 10px;border-radius:8px;font-size:11px;border:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;}
+  .leaf b{font-family:'IBM Plex Mono',monospace;}
+  .leaf.l-block{border-color:rgba(245,158,11,.5);} .leaf.l-err{border-color:rgba(239,68,68,.5);} .leaf.l-exit{border-color:rgba(59,130,246,.5);} .leaf.l-entry{border-color:rgba(34,197,94,.6);}
+  .g.cur,.leaf.cur{box-shadow:0 0 0 2px var(--accent),0 0 16px rgba(59,130,246,.4);animation:pulse2 1.2s ease-in-out infinite;}
+  @keyframes pulse2{50%{box-shadow:0 0 0 2px var(--accent),0 0 4px rgba(59,130,246,.2);}}
+  @media (max-width:600px){#dt{grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr);}}
+  footer{margin-top:12px;color:var(--muted);font-size:10.5px;line-height:1.6;}
+</style>
+</head>
+<body>
+<h1>Live algo flow</h1>
+<div class="sub">The bot's real work, end to end: monitoring tick → symbol in the round-robin → strategies run on it → decision → order placement → position and its stop. Updates every 2s. <a href="/trade-view#v1" target="_top">view1</a> · <a href="/trade-view#v2" target="_top">view2</a> · <a href="/trade-view#v3" target="_top">view3</a> · <a href="/trade-view#v4" target="_top">view4</a></div>
+
+<div class="subtabs"><button data-p="pipe" class="on">Pipeline</button><button data-p="tree">Tree · how it all connects</button></div>
+<div id="pTree" class="pane" style="display:none">
+  <div class="box" id="treeBox"><h2>Live project tree: monitoring → category → strategy → symbols scanned now → open position <span class="n mono" id="treeN"></span></h2>
+    <div id="treeWrap"><svg id="tree" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="dim" style="font-size:10.5px;margin-top:6px">Strategy rows: every viable strategy (PFnet ≥ floor) from <span class="mono">/strategy-scan-activity</span>, plus any engine tag seen scanning in the last 2 min. A bright branch scanned in the last 2 min; each dot is one real scan running down its branch.</div>
+  </div>
+</div>
+<div id="pPipe" class="pane">
+<div id="now" class="mono"><span class="dim">now:</span>
+  <span class="step" id="sMon">monitoring</span><span class="arrow">→</span>
+  <span class="step" id="sSym">-</span><span class="arrow">→</span>
+  <span class="step" id="sTag">-</span><span class="arrow">→</span>
+  <span class="step" id="sDec">-</span><span class="arrow">→</span>
+  <span class="step" id="sOrd">order</span><span class="arrow">→</span>
+  <span class="step" id="sPos">position + SL</span>
+</div>
+
+<div id="stage">
+  <div class="box mono" id="mon">
+    <span><i class="led" id="led"></i><b id="beatTxt">0 · Monitoring: connecting…</b></span>
+    <span>checks/30s <b id="c30">-</b></span>
+    <span>strategy scans/2 min <b id="s2m">-</b></span>
+    <span>checks today <b id="ctoday">-</b></span>
+    <span>stop check <b id="prot">-</b></span>
+    <span class="dim">IST <b id="clock">-</b></span>
+  </div>
+
+  <div class="box" id="seqBox"><h2>1 · Round-robin sequence (real order) <span class="n mono" id="seqN"></span></h2>
+    <div id="lane"><i id="cursor"></i></div>
+  </div>
+
+  <div class="legend">
+    <span style="--c:var(--violet)">strategy scan</span><span style="--c:var(--muted)">no signal</span><span style="--c:var(--up)">entry</span>
+    <span style="--c:var(--accent)">exit</span><span style="--c:var(--warn)">blocked / skipped / stop</span><span style="--c:var(--down)">error / failed / unprotected</span>
+  </div>
+
+  <div id="grid">
+    <div class="box" id="nTag"><h2>2 · Strategies running <span class="n mono" id="tagN"></span></h2><div class="dim mono" id="tagSym" style="font-size:11px;margin-bottom:6px"></div><div id="tagList"></div></div>
+    <div class="box" id="nDec"><h2>3 · Decision <span class="n mono" id="dN"></span></h2><div id="dList"></div></div>
+    <div class="box" id="nOrd"><h2>4 · Order placement today <span class="n mono" id="oN"></span></h2><div id="oList"></div></div>
+    <div class="box" id="nPos"><h2>5 · Open positions + SL <span class="n mono" id="pN"></span></h2><div id="pList"></div></div>
+  </div>
+</div>
+
+</div>
+<div class="feed"><h2>Live event stream</h2><div id="feed"><div class="dim" style="font-size:11px">waiting for the first scan…</div></div></div>
+
+<div class="box" id="dtBox" style="margin-top:12px"><h2>Decision tree (live) · where each symbol's latest check stopped <span class="n mono" id="dtN"></span></h2>
+  <div id="dt"></div>
+  <div class="dim" style="font-size:10.5px;margin-top:8px">Counts are each symbol's latest check (<span class="mono">/scheduler-attempts</span>, every 5s); the latest decision pulses. Gates 10–12 are the real-money mirror (PFnet ≥ floor and explorer stack, the one real-trading switch, Kotak entry with its SL); their counts come from today's real order log and the stop backcheck.</div>
+</div>
+
+<footer>Sources (read-only, nothing here places or changes an order): <span class="mono">/algo-live-flow</span> and <span class="mono">/scheduler-pipeline</span> every 2s, <span class="mono">/real-order-log</span> 3s, <span class="mono">/real-protection-status</span> 5s, <span class="mono">/real-open-positions</span> 20s. Every dot is one real event: a strategy scan on a symbol, a decision, or a real order moving to its position.</footer>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const istTime = ts => ts ? new Date(ts * 1000).toLocaleTimeString("en-IN", {timeZone: "Asia/Kolkata", hour12: false}) : "-";
+  const getJSON = u => fetch(u, {cache: "no-store"}).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  const COL = {entry: "var(--up)", exit: "var(--accent)", block: "var(--warn)", err: "var(--down)", none: "var(--muted)", tag: "var(--violet)"};
+  function kind(r) {
+    const a = String(r.action_taken || r.status || "");
+    if (/error/.test(a) || /error/.test(r.status || "")) return "err";
+    if (/^entered|^setup_/.test(a)) return "entry";
+    if (/^exited|^partial_booked/.test(a)) return "exit";
+    if (/^(blocked|cost_uneconomic|invalid_stop|no_new_entr|skipped|halted)/.test(a)) return "block";
+    return "none";
+  }
+  const label = r => r.action_taken && r.action_taken !== "none" ? r.action_taken : (r.status || "checked");
+  function flash(id) { const e = $(id); if (!e) return; e.classList.add("hot"); setTimeout(() => e.classList.remove("hot"), 600); }
+  function setStep(id, text, on) { const e = $(id); if (text != null) e.textContent = text; e.classList.toggle("on", !!on); }
+
+  // a dot flying between element centres (elements or ids), one hop at a time
+  function fly(path, color, ms) {
+    if (document.hidden) return;
+    const st = $("stage"), sb = st.getBoundingClientRect();
+    const pts = path.map(p => typeof p === "string" ? $(p) : p).filter(Boolean).map(el => {
+      const b = el.getBoundingClientRect(); return {left: (b.left - sb.left + b.width / 2) + "px", top: (b.top - sb.top + b.height / 2) + "px"};
+    });
+    if (pts.length < 2) return;
+    const d = document.createElement("i");
+    d.className = "dot"; d.style.background = color; d.style.boxShadow = "0 0 10px " + color;
+    st.appendChild(d);
+    d.animate(pts, {duration: (ms || 600) * (pts.length - 1), easing: "ease-in-out"}).onfinish = () => {
+      d.remove(); const last = path[path.length - 1]; if (typeof last === "string") flash(last);
+    };
+  }
+
+  const feed = [];
+  function pushFeed(ts, html) {
+    feed.unshift({ts, html}); feed.length = Math.min(feed.length, 100);
+    $("feed").innerHTML = feed.map(e => `<div class="ev mono"><span class="t">${istTime(e.ts)}</span><span>${e.html}</span></div>`).join("");
+  }
+
+  // ---- 0 + 1 + 2: monitoring tick, real round-robin lane, real strategy scans ----
+  let lastTick = 0, lastScanTs = 0, firstFlow = true, laneKey = "";
+  async function pollFlow() {
+    try {
+      const d = await getJSON("/algo-live-flow?window=120&before=8&after=40");
+      const age = d.last_tick_ts ? d.server_time_utc - d.last_tick_ts : null;
+      const alive = age != null && age < 3 * (d.scheduler_interval_seconds || 30);
+      const ticked = d.last_tick_ts && d.last_tick_ts !== lastTick;
+      $("led").className = "led " + (alive ? "ok" : "bad") + (ticked ? " pulse" : "");
+      $("beatTxt").textContent = "0 · Monitoring: " + (alive ? `alive, tick ${Math.round(age)}s ago` : age == null ? "no tick yet" : `silent ${Math.round(age)}s`);
+      setStep("sMon", alive ? "monitoring ✓" : "monitoring ✗", alive);
+      if (ticked && !firstFlow) fly(["mon", "seqBox"], "var(--accent)", 500);
+      lastTick = d.last_tick_ts;
+
+      // lane: the real symbol order, cursor dot sits on the symbol being / about to be scanned
+      const cc = d.currently_checking;
+      const seq = d.sequence || [];
+      $("seqN").textContent = `${d.flat_count} flat symbols · ${(d.held || []).length} held · cursor ${d.rr_cursor}`;
+      const key = seq.map(s => s.symbol).join(",");
+      const lane = $("lane");
+      if (key !== laneKey) {
+        laneKey = key;
+        lane.innerHTML = '<i id="cursor"></i>' + seq.map(s => `<span class="sym ${s.offset < 0 ? "done" : ""}" data-s="${esc(s.symbol)}">${esc(s.display || s.symbol)}<small>${esc(s.strategy || "")}</small></span>`).join("") +
+          (d.held || []).map(s => `<span class="sym held" data-s="${esc(s)}">${esc(s)}<small>held · managed every tick</small></span>`).join("");
+      }
+      const curSym = cc ? cc.symbol : (seq.find(s => s.offset === 0) || {}).symbol;
+      let curEl = null;
+      lane.querySelectorAll(".sym").forEach(e => { const on = e.dataset.s === curSym; e.classList.toggle("cur", on); if (on) curEl = e; });
+      if (curEl) {
+        $("cursor").style.left = (curEl.offsetLeft + curEl.offsetWidth / 2) + "px";
+        lane.scrollLeft = Math.max(0, curEl.offsetLeft - lane.clientWidth / 3);
+      }
+      setStep("sSym", curSym ? (cc ? "scanning " : "next ") + curSym : "-", !!cc);
+
+      // strategies: real (tag, symbol) scans from the server, newest first
+      const ev = d.scan_events || [];
+      scanEvents = ev;
+      $("s2m").textContent = ev.length;
+      const fresh = ev.filter(e => e.ts > lastScanTs).reverse();
+      if (ev.length) lastScanTs = Math.max(lastScanTs, ev[0].ts);
+      const focus = cc ? cc.symbol : (ev[0] || {}).symbol;
+      const tags = [...new Set(ev.filter(e => e.symbol === focus).map(e => e.tag))];
+      $("tagSym").textContent = focus ? `on ${focus}` : "no scans in the last 2 min";
+      $("tagN").textContent = tags.length ? `${tags.length} tags` : "";
+      $("tagList").innerHTML = tags.map(t => `<span class="tag mono" data-t="${esc(t)}">${esc(t)}</span>`).join("");
+      setStep("sTag", tags[0] || "-", fresh.length > 0);
+      if (!firstFlow) fresh.slice(-10).forEach((e, i) => setTimeout(() => {
+        const src = lane.querySelector(`.sym[data-s="${CSS.escape(e.symbol)}"]`) || "seqBox";
+        const dst = $("tagList").querySelector(`.tag[data-t="${CSS.escape(e.tag)}"]`);
+        if (dst) { dst.classList.add("flash"); setTimeout(() => dst.classList.remove("flash"), 700); }
+        fly([src, dst || "nTag"], COL.tag, 550);
+        treeDot(e.tag, e.symbol);
+        pushFeed(e.ts, `strategy <b>${esc(e.tag)}</b> on <b>${esc(e.symbol)}</b>`);
+      }, i * 180));
+      if (!document.hidden && $("pTree").style.display !== "none") drawTree();
+      firstFlow = false;
+    } catch (e) {
+      $("led").className = "led bad"; $("beatTxt").textContent = "0 · Monitoring: server unreachable (" + e.message + ")";
+    }
+  }
+
+  // ---- 3: decisions per symbol check ----
+  let lastDec = 0, firstDec = true;
+  async function pollDecisions() {
+    try {
+      const d = await getJSON("/scheduler-pipeline?recent=12&next_n=1");
+      $("c30").textContent = d.checks_last_30s ?? "-";
+      $("ctoday").textContent = d.total_checks_incl_derivative_legs ?? d.total_checks_today ?? "-";
+      const lc = d.last_checked || [];
+      $("dN").textContent = lc.length ? `last ${lc.length}` : "";
+      $("dList").innerHTML = lc.map(r => `<div class="row"><span class="s">${esc(r.display || r.symbol)} <span class="dim">${istTime(r.checked_at_utc)}</span></span><span class="chip c-${kind(r)}">${esc(label(r))}</span></div>`).join("") || '<div class="dim" style="font-size:11px">no checks yet</div>';
+      const fresh = lc.filter(r => (r.checked_at_utc || 0) > lastDec).reverse();
+      if (lc.length) lastDec = Math.max(lastDec, ...lc.map(r => r.checked_at_utc || 0));
+      if (fresh.length) { const k = kind(fresh[fresh.length - 1]); setStep("sDec", label(fresh[fresh.length - 1]), k !== "none"); }
+      if (lc[0]) { dtCur = gateOf(lc[0]); if (typeof drawDT === "function") drawDT(); }
+      if (!firstDec) fresh.slice(-6).forEach((r, i) => setTimeout(() => {
+        const k = kind(r);
+        fly(k === "entry" || k === "exit" ? ["nTag", "nDec", "nOrd"] : ["nTag", "nDec"], COL[k], 600);
+        pushFeed(r.checked_at_utc, `decision <b>${esc(r.display || r.symbol)}</b> → <span class="chip c-${k}">${esc(label(r))}</span>${r.detail ? ' <span class="dim">' + esc(String(r.detail).slice(0, 90)) + "</span>" : ""}`);
+      }, 400 + i * 250));
+      firstDec = false;
+    } catch (e) {}
+  }
+
+  // ---- 4: real order placement (leg/event/prev_state/new_state) ----
+  let lastOrd = 0, firstOrd = true;
+  const ordKind = e => /fail/.test(e.event || "") ? "err" : e.leg === "entry" ? "entry" : (e.leg === "exit" || e.leg === "target") ? "exit" : e.leg === "sl" ? "block" : "none";
+  async function pollOrders() {
+    try {
+      const d = await getJSON("/real-order-log?days=1");
+      const ev = d.events || [];
+      $("oN").textContent = ev.length ? String(ev.length) : "";
+      dtReal = {placed: ev.filter(e => e.leg === "entry" && /placed|confirmed/.test(e.event || "")).length, failed: ev.filter(e => e.leg === "entry" && /fail/.test(e.event || "")).length, sl: ev.filter(e => e.leg === "sl").length};
+      $("oList").innerHTML = ev.slice(0, 10).map(e => `<div class="row"><span class="s">${esc(e.symbol)} <span class="dim">${istTime(e.ts)}</span></span><span class="chip c-${ordKind(e)}">${esc((e.leg || "") + " " + (e.event || ""))}</span></div>`).join("") || '<div class="dim" style="font-size:11px">no real orders today</div>';
+      const fresh = ev.filter(e => (e.ts || 0) > lastOrd).reverse();
+      if (ev.length) lastOrd = Math.max(lastOrd, ...ev.map(e => e.ts || 0));
+      if (fresh.length) setStep("sOrd", `${fresh[fresh.length - 1].leg} ${fresh[fresh.length - 1].event}`, true);
+      if (!firstOrd) fresh.slice(-4).forEach((e, i) => setTimeout(() => {
+        fly(["nDec", "nOrd", "nPos"], COL[ordKind(e)], 650);
+        pushFeed(e.ts, `order <b>${esc(e.symbol)}</b> ${esc(e.leg || "")} ${esc(e.event || "")}: ${esc(e.prev_state || "none")} → <b>${esc(e.new_state || "")}</b> <span class="dim">${esc(String(e.detail || "").slice(0, 100))}</span>`);
+      }, i * 300));
+      firstOrd = false;
+    } catch (e) {}
+  }
+
+  // ---- 5: open positions and whether each has a live stop at Kotak ----
+  let unprot = new Set();
+  async function pollProtection() {
+    try {
+      const d = await getJSON("/real-protection-status");
+      const u = d.unprotected_positions || [];
+      unprot = new Set(u.map(p => p.kotak_trading_symbol));
+      const ago = d.checked_at ? Math.round(Date.now() / 1000 - d.checked_at) : null;
+      const purge = d.exchange_purge_window;
+      $("prot").innerHTML = d.stale ? `<span class="down">stale${ago != null ? " " + Math.round(ago / 60) + "m" : ""}</span>`
+        : (u.length ? `<span class="${purge ? "dim" : "down"}">${u.length} unprotected${purge ? " (after 15:15 exchange cancel)" : ""}</span>` : `<span class="up">all stopped · ${Math.round(ago / 60)}m ago</span>`);
+      setStep("sPos", u.length && !purge ? `${u.length} unprotected` : "position + SL", !!u.length && !purge);
+    } catch (e) {}
+  }
+  async function pollPositions() {
+    try {
+      const d = await getJSON("/real-open-positions");
+      const ps = d.open_real_positions || [];
+      openPos = ps;
+      $("pN").textContent = ps.length ? String(ps.length) : "";
+      $("pList").innerHTML = ps.map(p => {
+        const bad = unprot.has(p.kotak_trading_symbol), pnl = p.unrealized_pnl_inr;
+        return `<div class="row"><span class="s"><i class="led ${bad ? "bad" : "ok"}"></i>${esc(p.symbol)} <span class="dim">${esc(p.side || "")} ${esc(p.qty)} · ${esc(p.strategy || "untagged")}</span></span><span class="${pnl > 0 ? "up" : pnl < 0 ? "down" : "dim"}">${pnl != null ? "₹" + Number(pnl).toFixed(0) : "-"}</span></div>`;
+      }).join("") || '<div class="dim" style="font-size:11px">no open real positions</div>';
+    } catch (e) {}
+  }
+
+
+  // ---------------- Tree view ----------------
+  document.querySelectorAll(".subtabs button").forEach(b => b.onclick = () => {
+    document.querySelectorAll(".subtabs button").forEach(x => x.classList.toggle("on", x === b));
+    $("pTree").style.display = b.dataset.p === "tree" ? "" : "none";
+    $("pPipe").style.display = b.dataset.p === "pipe" ? "" : "none";
+    try { localStorage.setItem("v4pane", b.dataset.p); } catch (e) {}
+    if (b.dataset.p === "tree") drawTree();
+  });
+  try { const p = new URLSearchParams(location.search).get("pane") || localStorage.getItem("v4pane"); if (p === "tree") document.querySelector('.subtabs button[data-p="tree"]').click(); } catch (e) {}
+
+  const CAT = {buy: "Buy (intraday long)", short_sell: "Short sell", swing: "Swing", futures: "Futures / MCX", options: "Options", bidirectional: "Bidirectional", other: "Other engines"};
+  function catOf(tag) {
+    if (/^(universal_score|orb-universal-score)/.test(tag)) return "buy";
+    if (/^(range_short|trend_down_momentum_short|failed_breakout_short|gap_and_go_short)/.test(tag)) return "short_sell";
+    if (/^(gap_and_go|minervini|order_block|volume_profile|orb-swing)/.test(tag)) return "swing";
+    if (/mcx|^single_leg/.test(tag)) return "futures";
+    if (/__short__/.test(tag)) return "short_sell";
+    if (/__long__/.test(tag)) return "buy";
+    if (/__bidirectional__/.test(tag)) return "bidirectional";
+    return "other";
+  }
+  let strategies = [], scanEvents = [], openPos = [], lastTreeTs = 0;
+  async function pollActivity() {
+    try { const d = await getJSON("/strategy-scan-activity"); strategies = d.strategies || []; if (!document.hidden && $("pTree").style.display !== "none") drawTree(); } catch (e) {}
+  }
+  const NS = "http://www.w3.org/2000/svg";
+  const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  const short = (t, n) => t.length > n ? t.slice(0, n - 1) + "…" : t;
+  let nodePos = {};
+  function drawTree() {
+    const svg = $("tree");
+    // rows: strategy tag -> {cat, info, symbols[]}
+    const rows = {};
+    strategies.forEach(s => { (s.categories && s.categories.length ? s.categories : [catOf(s.strategy_tag)]).forEach(c => { rows[c + "|" + s.strategy_tag] = {cat: c, tag: s.strategy_tag, info: s, syms: []}; }); });
+    const recent = {};
+    scanEvents.forEach(e => { (recent[e.tag] = recent[e.tag] || []); if (!recent[e.tag].includes(e.symbol)) recent[e.tag].push(e.symbol); });
+    Object.keys(recent).forEach(tag => {
+      const keys = Object.keys(rows).filter(k => rows[k].tag === tag);
+      if (!keys.length) { const c = catOf(tag); rows[c + "|" + tag] = {cat: c, tag, info: null, syms: []}; keys.push(c + "|" + tag); }
+      keys.forEach(k => rows[k].syms = recent[tag].slice(0, 4));
+    });
+    const posBy = {};
+    openPos.forEach(p => { (posBy[p.strategy || ""] = posBy[p.strategy || ""] || []).push(p); });
+    const order = Object.keys(CAT);
+    const list = Object.values(rows).sort((a, b) => order.indexOf(a.cat) - order.indexOf(b.cat) || (b.syms.length - a.syms.length) || ((b.info || {}).pfnet || 0) - ((a.info || {}).pfnet || 0));
+    const RH = 24, X = [10, 150, 330, 690, 860], W = [118, 160, 340, 150, 170];
+    const rowH = r => Math.max(1, r.syms.length, (posBy[r.tag] || []).length) * RH;
+    let y = 10; const placed = [];
+    list.forEach(r => { placed.push({r, y, h: rowH(r)}); y += rowH(r) + 4; });
+    const H = Math.max(y + 10, 120);
+    svg.setAttribute("width", X[4] + W[4] + 10); svg.setAttribute("height", H);
+    const oldDots = svg.querySelector("#dots");  // keep dots already in flight across the 2s redraw
+    svg.innerHTML = ""; nodePos = {};
+    const gE = el("g", {}), gN = el("g", {}); svg.appendChild(gE); svg.appendChild(gN);
+    svg.appendChild(oldDots || el("g", {id: "dots"}));
+    const node = (key, x, yc, w, label, sub, cls) => {
+      nodePos[key] = {x, y: yc, w};
+      gN.appendChild(el("rect", {class: "nd " + (cls || ""), x, y: yc - 10, width: w, height: 20, rx: 6, "data-k": key}));
+      const t = el("text", {x: x + 6, y: yc + 3.5}); t.textContent = short(label, Math.floor(w / 6.4)); gN.appendChild(t);
+      if (sub) { const m = el("text", {class: "m", x: x + w + 4, y: yc + 3.5}); m.textContent = sub; gN.appendChild(m); }
+    };
+    const edge = (a, b, cls) => {
+      const A = nodePos[a], B = nodePos[b], x1 = A.x + A.w, x2 = B.x, mx = (x1 + x2) / 2;
+      const p = el("path", {class: "edge " + (cls || ""), d: `M${x1},${A.y} C${mx},${A.y} ${mx},${B.y} ${x2},${B.y}`, "data-e": a + ">" + b});
+      gE.appendChild(p);
+    };
+    node("root", X[0], H / 2, W[0], "Monitoring tick", null, "root");
+    const catY = {};
+    placed.forEach(p => { (catY[p.r.cat] = catY[p.r.cat] || []).push(p.y + p.h / 2); });
+    Object.keys(catY).forEach(c => {
+      const ys = catY[c], yc = (ys[0] + ys[ys.length - 1]) / 2;
+      const live = placed.some(p => p.r.cat === c && p.r.syms.length);
+      node("c:" + c, X[1], yc, W[1], CAT[c] || c, null, live ? "live" : "");
+      edge("root", "c:" + c, live ? "live" : "");
+    });
+    let liveN = 0;
+    placed.forEach(({r, y: ry, h}) => {
+      const sk = "s:" + r.cat + "|" + r.tag, yc = ry + h / 2, live = r.syms.length > 0; if (live) liveN++;
+      const i = r.info, sub = i ? `PF ${i.pfnet ?? "-"} · ${i.scans_today ?? 0} scans · ${i.successful_entries_today ?? 0} entries` : "engine";
+      node(sk, X[2], yc, W[2], r.tag, null, live ? "live" : "");
+      edge("c:" + r.cat, sk, live ? "live" : "");
+      const meta = el("text", {class: "m", x: X[2] + 6, y: yc + 21}); if (h > RH) { meta.textContent = sub; gN.appendChild(meta); } else { nodePos[sk].sub = sub; }
+      r.syms.forEach((sy, j) => { const k = "y:" + r.tag + "|" + sy, yy = ry + RH / 2 + j * RH; node(k, X[3], yy, W[3], sy, null, "live"); edge(sk, k, "live"); });
+      (posBy[r.tag] || []).forEach((p, j) => {
+        const k = "p:" + r.tag + "|" + p.symbol, yy = ry + RH / 2 + j * RH, bad = unprot.has(p.kotak_trading_symbol);
+        node(k, X[4], yy, W[4], `${p.symbol} ${p.side || ""} ${p.qty}`, null, bad ? "bad" : "pos");
+        edge(r.syms[j] ? "y:" + r.tag + "|" + r.syms[j] : sk, k, "pos");
+      });
+      if (h <= RH && !r.syms.length && !(posBy[r.tag] || []).length) { const m = el("text", {class: "m", x: X[3], y: yc + 3.5}); m.textContent = sub; gN.appendChild(m); }
+    });
+    // untagged open positions hang off the root so nothing real is hidden
+    (posBy[""] || []).forEach((p, j) => { const k = "p:|" + p.symbol; node(k, X[4], 10 + RH / 2 + j * RH, W[4], `${p.symbol} ${p.side || ""} ${p.qty} (untagged)`, null, unprot.has(p.kotak_trading_symbol) ? "bad" : "pos"); edge("root", k, "pos"); });
+    $("treeN").textContent = `${list.length} strategy rows · ${liveN} scanning now · ${openPos.length} open`;
+  }
+  // a dot running root -> category -> strategy -> symbol, along the real drawn edges
+  function treeDot(tag, sym) {
+    if (document.hidden || $("pTree").style.display === "none") return;
+    const cat = Object.keys(nodePos).find(k => k.startsWith("s:") && k.endsWith("|" + tag));
+    if (!cat) return;
+    const c = cat.slice(2).split("|")[0];
+    const chain = ["root", "c:" + c, cat, "y:" + tag + "|" + sym].filter(k => nodePos[k]);
+    const svg = $("tree"), g = svg.querySelector("#dots"); if (!g) return;
+    const paths = []; for (let i = 0; i < chain.length - 1; i++) { const p = svg.querySelector(`path[data-e="${CSS.escape(chain[i] + ">" + chain[i + 1])}"]`); if (p) paths.push(p); }
+    if (!paths.length) return;
+    const dot = el("circle", {r: 4, fill: "#a78bfa"}); dot.style.filter = "drop-shadow(0 0 4px #a78bfa)"; g.appendChild(dot);
+    let i = 0, t0 = null; const seg = 420;
+    const step = ts => {
+      if (t0 == null) t0 = ts;
+      const f = Math.min(1, (ts - t0) / seg), p = paths[i], L = p.getTotalLength(), pt = p.getPointAtLength(L * f);
+      dot.setAttribute("cx", pt.x); dot.setAttribute("cy", pt.y);
+      if (f < 1) return requestAnimationFrame(step);
+      if (++i < paths.length) { t0 = null; return requestAnimationFrame(step); }
+      dot.remove(); const r = svg.querySelector(`rect[data-k="${CSS.escape(chain[chain.length - 1])}"]`);
+      if (r) { r.classList.add("hit"); setTimeout(() => r.classList.remove("hit"), 600); }
+    };
+    requestAnimationFrame(step);
+  }
+  pollActivity(); setInterval(pollActivity, 5000);
+
+  // ---------------- Decision tree ----------------
+  // gate id, question, the scheduler action_taken/status strings that stop there, the leaf shown on the "no" side
+  const GATES = [
+    ["mkt", "Market open for this symbol?", s => /^(pre_open|closed|closed_weekend|waiting_for_opening_range|no_intraday_data_yet)$/.test(s), "wait (market closed / no bars yet)", "none"],
+    ["data", "Price data fetched OK?", s => /error/.test(s), "skip this tick (data error)", "err"],
+    ["held", "Symbol flat (no open position on it)?", s => /^(holding|exited|partial_booked|skipped_existing)/.test(s), "manage open position: trail SL / book / exit", "exit"],
+    ["time", "Inside the entry window (not near 15:14 square-off, not halted)?", s => /^no_new_entr/.test(s), "no new entry (time window)", "block"],
+    ["sig", "Did a strategy signal fire?", s => /^(no_signal|none|checked|no_setup)/.test(s) || s === "", "no signal → next symbol", "none"],
+    ["stop", "Is the stop-loss valid?", s => s === "invalid_stop_skipped", "skip (invalid stop)", "block"],
+    ["cost", "Is the trade worth its costs?", s => s === "cost_uneconomic_skipped", "skip (cost uneconomic)", "block"],
+    ["risk", "Inside daily-loss and open-risk caps?", s => /^blocked_/.test(s), "blocked (risk cap)", "block"],
+    ["paper", "Paper entry taken", s => /^(entered|setup_)/.test(s), null, "entry"],
+    ["viable", "Strategy PFnet ≥ floor and in the explorer stack?", null, "paper only (not viable for real money)", "block", false, true],
+    ["switch", "Real-trading switch ON?", null, "paper only (switch off)", "block", false, true],
+    ["kotak", "Kotak entry placed with its SL", null, null, "entry", false, true],
+  ];
+  function gateOf(r) {
+    const a = String((r.action_taken && r.action_taken !== "none") ? r.action_taken : (r.status || ""));
+    for (const g of GATES) if (g[2] && g[2](a)) return g[0];
+    return "sig";
+  }
+  let dtCounts = {}, dtCur = null, dtReal = {placed: 0, failed: 0, sl: 0};
+  function drawDT() {
+    const total = Object.values(dtCounts).reduce((a, b) => a + b, 0);
+    $("dtN").textContent = `${total} symbols`;
+    $("dt").innerHTML = GATES.map((g, i) => {
+      const [id, q, , leaf, k, heldYes, real] = g, n = dtCounts[id] || 0, last = i === GATES.length - 1;
+      const gate = `<div class="g ${real ? "real" : ""} ${last ? "last" : ""} ${dtCur === id && !leaf ? "cur" : ""}"><div class="k">${i + 1}${real ? " · real money" : ""}</div><div class="q">${esc(q)}</div>${!leaf ? `<div class="k">${id === "kotak" ? `${dtReal.placed} entries placed · ${dtReal.failed} failed · ${dtReal.sl} SL events today` : `${n} symbols reached here`}</div>` : ""}</div>`;
+      if (!leaf) return gate + "<div></div><div></div>";
+      const cnt = real ? "" : `<b>${n}</b>`;
+      return gate + `<div class="no ${heldYes ? "held" : ""}"></div><div class="leaf l-${k} ${dtCur === id ? "cur" : ""}"><span>${esc(leaf)}</span>${cnt}</div>`;
+    }).join("");
+  }
+  async function pollDT() {
+    try {
+      const d = await getJSON("/scheduler-attempts");
+      const c = {};
+      Object.values(d || {}).forEach(r => { const g = gateOf(r); c[g] = (c[g] || 0) + 1; });
+      dtCounts = c; drawDT();
+    } catch (e) {}
+  }
+  pollDT(); setInterval(pollDT, 5000);
+
+  setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString("en-IN", {timeZone: "Asia/Kolkata", hour12: false}); }, 1000);
+  pollFlow(); pollDecisions(); pollOrders(); pollProtection().then(pollPositions);
+  setInterval(pollFlow, 2000);
+  setInterval(pollDecisions, 2000);
+  setInterval(pollOrders, 3000);
+  setInterval(pollProtection, 5000);
+  setInterval(pollPositions, 20000);
+</script>
+</body>
+</html>
