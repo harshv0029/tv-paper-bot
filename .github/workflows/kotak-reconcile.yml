@@ -83,6 +83,7 @@ jobs:
             curl -sS -m 30 "$B/kotak-neo/reconcile-status?token=${KOTAK_NEO_API_TOKEN}" -o /tmp/status.json || continue
             S=$(jq -r '.state // empty' /tmp/status.json 2>/dev/null)
             echo "poll $i state=$S"
+            jq -c '{seconds, samples: (.samples[-2:])}' /tmp/status.json 2>/dev/null || true
             [[ "$S" == "done" || "$S" == "failed" ]] && break
           done
           jq -c '{state, seconds, error, samples: (.samples[-8:])}' /tmp/status.json || true
