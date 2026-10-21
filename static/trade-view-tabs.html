@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trade View</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#080b0f;--panel:#12181f;--border:#232d3a;--text:#e7ecf2;--muted:#7c8a9c;--accent:#3b82f6;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;}
+  /* fixed tab bar: never scrolls; only the view below it does */
+  #tabs{position:fixed;top:0;left:0;right:0;height:48px;display:flex;gap:8px;align-items:center;padding:0 16px;
+        background:var(--panel);border-bottom:1px solid var(--border);z-index:10;}
+  #tabs button{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;
+               padding:7px 16px;font:600 13px 'Inter',sans-serif;cursor:pointer;}
+  #tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  #views{position:fixed;top:48px;left:0;right:0;bottom:0;}
+  #views iframe{display:none;width:100%;height:100%;border:0;background:var(--bg);}
+  #views iframe.on{display:block;}
+</style>
+</head>
+<body>
+<nav id="tabs">
+  <button data-v="v1">View 1</button>
+  <button data-v="v2">View 2</button>
+  <button data-v="v3">View 3</button>
+</nav>
+<div id="views">
+  <iframe id="v1" title="View 1" data-src="/trade-view1"></iframe>
+  <iframe id="v2" title="View 2" data-src="/trade-view2"></iframe>
+  <iframe id="v3" title="View 3" data-src="/trade-view3"></iframe>
+</div>
+<script>
+  // Each view keeps its own page and 10s polling; a view loads on its first click, then stays loaded so switching is instant.
+  function show(v) {
+    if (!document.getElementById(v)) v = "v1";
+    document.querySelectorAll("#views iframe").forEach(f => {
+      const on = f.id === v;
+      if (on && !f.src) f.src = f.dataset.src + location.search;
+      f.classList.toggle("on", on);
+    });
+    document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+    if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v);
+  }
+  document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => show(b.dataset.v));
+  window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+  show(location.hash.slice(1) || "v1");
+</script>
+</body>
+</html>

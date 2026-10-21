@@ -1341,3 +1341,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Result (run 39599591455, full universe, main.py functions, n 1188): capped-5% `chan_gap__buy_on_gap_mr__long__1d__atr4d0cap5_top10__v1` PFnet 1.411 (85 stop-outs) vs uncapped 1.445. The "pick the cell whose stop fits 5%" rule `..._fit5_top10__v1` was 1.242 on only 353 trades, because it skipped the 70% of days where no stop fits, and those were winners.
 - Surprise: a tighter forced stop barely hurt the strategy (the edge is the close-out, not the stop), while filtering on stop width threw away good trades.
 - Profit-booking / exit takeaway: on a same-day gap reversal, keep the trade and cap the stop; don't skip entries just because the textbook stop is too wide.
+
+## 2026-10-21 - MCX cells added by the 1.0 floor (B-1333): live-function replay
+- Mechanism: daily Donchian breakout gold long, RSI reversal silver long, RSI reversal natural gas short; became wired when the leftover 1.1 MCX threshold was retired.
+- Replay (run 39626212667, real `main._mcx_daily_flags`): gold Donchian 1.370 n20 (registry 1.229), silver RSI 3.174 n16 (4.098), NG RSI short 2.605 n14 (2.281). All clear 1.0.
+- Surprise: the live function moves PFnet both ways vs research (silver -0.9, gold/NG up), so research numbers are a guide, not a fact. n is thin (14-20 trades in 5y): treat sizes cautiously.
+- Profit-booking / exit takeaway: the replay is underlying-only; real trades use the option-premium trailing SL, which is not simulated, so live exits can differ - compare the first live MCX fills against these numbers.
