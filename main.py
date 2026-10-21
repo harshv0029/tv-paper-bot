@@ -14194,6 +14194,18 @@ def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
     )
 
 
+REAL_INTRADAY_MAX_STOP_PCT = 0.05
+# 2026-10-21 (live: CANBK stop 17% and BANKBARODA 15% below entry, both
+# outside NSE's price band, Kotak rejected, bot exited flat within minutes):
+# a real intraday long's resting stop is never wider than this below the
+# entry. Paper keeps its own stop; only what is sent to Kotak is capped.
+
+
+def _cap_real_intraday_stop(entry_price: float, stop_price: float) -> float:
+    floor = entry_price * (1 - REAL_INTRADAY_MAX_STOP_PCT)
+    return round(max(float(stop_price), floor), 2)
+
+
 def _maybe_place_real_entry(conn, symbol: str):
     """Mirrors a paper "entered_long" as a REAL buy, ONLY when every gate
     holds. Called from _scheduler_loop right after _auto_signal_core
@@ -14439,7 +14451,7 @@ def _maybe_place_real_entry(conn, symbol: str):
         sl_confirmed = False
         if paper_row and paper_row["stop_loss"]:
             sl_result = kotak_real_orders.place_real_stop_loss(
-                kotak_symbol, real_qty, round(paper_row["stop_loss"], 2)
+                kotak_symbol, real_qty, _cap_real_intraday_stop(real_entry_price, paper_row["stop_loss"])
             )
             if sl_result.get("ok"):
                 sl_confirmed = True
