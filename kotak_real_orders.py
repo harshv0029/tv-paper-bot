@@ -307,8 +307,7 @@ def place_real_entry(kotak_trading_symbol: str, qty: int, ltp: float) -> dict:
 
     status = _confirm_order_status(order_id)
     if status["status"] == "rejected":
-        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
-                "raw_response": resp, "status_check": status["row"]}
+        return _rejected_result(order_id, status, resp)
 
     fill_confirmed = status["avg_price"] is not None and status["filled_qty"] is not None
     return {
@@ -364,8 +363,7 @@ def place_real_short_entry(kotak_trading_symbol: str, qty: int, ltp: float, prod
 
     status = _confirm_order_status(order_id)
     if status["status"] == "rejected":
-        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
-                "raw_response": resp, "status_check": status["row"]}
+        return _rejected_result(order_id, status, resp)
 
     fill_confirmed = status["avg_price"] is not None and status["filled_qty"] is not None
     return {
@@ -410,8 +408,7 @@ def place_real_short_cover(kotak_trading_symbol: str, qty: int, product: str = "
 
     status = _confirm_order_status(order_id)
     if status["status"] == "rejected":
-        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
-                "raw_response": resp, "status_check": status["row"]}
+        return _rejected_result(order_id, status, resp)
 
     fill_confirmed = status["avg_price"] is not None and status["filled_qty"] is not None
     return {
@@ -462,8 +459,7 @@ def place_real_exit(kotak_trading_symbol: str, qty: int) -> dict:
 
     status = _confirm_order_status(order_id)
     if status["status"] == "rejected":
-        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
-                "raw_response": resp, "status_check": status["row"]}
+        return _rejected_result(order_id, status, resp)
 
     fill_confirmed = status["avg_price"] is not None and status["filled_qty"] is not None
     return {
@@ -787,8 +783,7 @@ def _place_real_stop_loss_once(kotak_trading_symbol: str, qty: int, trigger_pric
         time.sleep(1.5)
         status = _confirm_order_status(order_id)
     if status["status"] == "rejected":
-        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
-                "raw_response": resp, "status_check": status["row"]}
+        return _rejected_result(order_id, status, resp)
 
     return {"ok": True, "order_id": str(order_id), "raw_response": resp,
             "trigger_price": trigger_price, "limit_price": limit_price,
@@ -796,6 +791,17 @@ def _place_real_stop_loss_once(kotak_trading_symbol: str, qty: int, trigger_pric
 
 
 _PRICE_BAND_PCTS = (0.10, 0.05, 0.02)
+
+
+def _rejected_result(order_id, status, resp) -> dict:
+    """B-1305: every Kotak-rejected order comes back with its reason classified, and an
+    unrecognised reason is alarmed in the log rather than passing silently."""
+    detail = f"order {order_id} rejected: {status['detail']}"
+    kind = classify_rejection(detail)
+    if kind == "unknown":
+        print(f"[ALARM] Kotak rejected order {order_id} for an unrecognised reason: {status['detail']}")
+    return {"ok": False, "detail": detail, "rejection_kind": kind,
+            "raw_response": resp, "status_check": status["row"]}
 
 
 def classify_rejection(detail) -> str:
@@ -1072,8 +1078,7 @@ def _place_real_short_stop_loss_once(kotak_trading_symbol: str, qty: int, trigge
 
     status = _confirm_order_status(order_id)
     if status["status"] == "rejected":
-        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
-                "raw_response": resp, "status_check": status["row"]}
+        return _rejected_result(order_id, status, resp)
 
     return {"ok": True, "order_id": str(order_id), "raw_response": resp,
             "trigger_price": trigger_price, "limit_price": limit_price}
@@ -1117,8 +1122,7 @@ def place_real_target(kotak_trading_symbol: str, qty: int, target_price: float) 
 
     status = _confirm_order_status(order_id)
     if status["status"] == "rejected":
-        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
-                "raw_response": resp, "status_check": status["row"]}
+        return _rejected_result(order_id, status, resp)
 
     return {"ok": True, "order_id": str(order_id), "raw_response": resp, "target_price": target_price}
 
@@ -1155,8 +1159,7 @@ def place_real_short_target(kotak_trading_symbol: str, qty: int, target_price: f
 
     status = _confirm_order_status(order_id)
     if status["status"] == "rejected":
-        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}",
-                "raw_response": resp, "status_check": status["row"]}
+        return _rejected_result(order_id, status, resp)
 
     return {"ok": True, "order_id": str(order_id), "raw_response": resp, "target_price": target_price}
 
