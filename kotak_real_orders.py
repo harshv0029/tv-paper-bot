@@ -798,6 +798,27 @@ def _place_real_stop_loss_once(kotak_trading_symbol: str, qty: int, trigger_pric
 _PRICE_BAND_PCTS = (0.10, 0.05, 0.02)
 
 
+def classify_rejection(detail) -> str:
+    """B-1305 (read the rejection reason, then change the next order): map a failed
+    order's detail to what the next request may do. "transient" = Kotak never rejected
+    it (login, network, no order id), so an identical resend is fine; "price_band" = move
+    the price inside the band; "t1" / "cas" = the existing T1 and CAS paths; "margin" =
+    do not resend, protect another way; "unknown" = alarm, never resend unchanged."""
+    d = str(detail or "")
+    low = d.lower()
+    if " rejected" not in low:
+        return "transient"
+    if _is_price_range_rejection(d):
+        return "price_band"
+    if "T1 holdings" in d or "Trade-to-Trade" in d:
+        return "t1"
+    if is_cas_transition_rejection(d):
+        return "cas"
+    if "margin" in low or "insufficient" in low or "fund" in low:
+        return "margin"
+    return "unknown"
+
+
 def _is_price_range_rejection(detail) -> bool:
     d = str(detail or "").lower()
     return "valid price range" in d or "circuit breach" in d
@@ -986,6 +1007,35 @@ def ensure_resting_sl(kotak_trading_symbol: str, qty: int, trigger_price: float)
 
 
 def place_real_short_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float, product: str = "MIS") -> dict:
+    """B-1305: short mirror of B-1304's band retry. A buy-stop above the day's upper
+    price band is rejected ("outside the valid price range" / "circuit breach") and the
+    short stays naked. On that rejection only, retry at the tightest upper-band ceiling
+    still above the market (prev close x (1 + band) x 0.997, bands 10/5/2%). The stop is
+    only ever lowered toward the market, never below 0.5% over last price."""
+    res = _place_real_short_stop_loss_once(kotak_trading_symbol, qty, trigger_price, product)
+    if res.get("ok") or not _is_price_range_rejection(res.get("detail")):
+        return res
+    prev, last = _reference_prices(kotak_trading_symbol)
+    if not prev or not last:
+        return res
+    tick = _tick_size_for(kotak_trading_symbol)
+    tried = {round(float(trigger_price), 2)}
+    for band in _PRICE_BAND_PCTS:
+        cand = _round_to_tick(prev * (1 + band) * 0.997, tick)
+        if cand >= trigger_price or cand in tried or cand <= last * 1.005:
+            continue
+        tried.add(cand)
+        r2 = _place_real_short_stop_loss_once(kotak_trading_symbol, qty, cand, product)
+        if r2.get("ok"):
+            r2["band_clamped_from"] = trigger_price
+            return r2
+        res = r2
+        if not _is_price_range_rejection(r2.get("detail")):
+            break
+    return res
+
+
+def _place_real_short_stop_loss_once(kotak_trading_symbol: str, qty: int, trigger_price: float, product: str = "MIS") -> dict:
     """Short mirror of place_real_stop_loss (2026-09-29) - a resting
     BUY-stop (transaction_type="B") that triggers ABOVE the short's entry
     price, to cover the position if it moves against it. Same order_type
