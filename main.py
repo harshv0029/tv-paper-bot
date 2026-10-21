@@ -16344,6 +16344,7 @@ FO_OPTION_INITIAL_STOP_PCT = 3.0  # user 2026-10-08: initial SL 3% below entry p
 FO_OPTION_TRAIL_ARM_PCT = 1.0     # trailing starts once premium is 1% above entry
 FO_OPTION_TRAIL_PCT = 1.0         # then SL = highest LTP since entry minus 1%
 FO_OPTION_SL_FAIL_EXIT_SECONDS = 180
+FO_OPTION_SL_LIMIT_OFFSET_PCT = 5.0  # B-1323: kotak_real_fo_orders.place_real_fo_stop_loss limit = trigger x 0.95
 FO_ENTRY_SL_RETRIES = 4  # B-1270: SL retries right after an entry fill while Kotak's position is not yet visible
 FO_ENTRY_SL_RETRY_SLEEP_S = 2.0
 FO_ENTRY_SL_FAIL_RETRY_WINDOW_S = 60.0  # B-1318: retry a failed entry SL this long before unwinding
@@ -16478,13 +16479,22 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
     _cap = loss_check.get("cap_inr")
     if _cap is not None and loss_check.get("real_pnl_today") is not None:
         _left = _cap + min(loss_check["real_pnl_today"], 0.0)
-        _risk = qty * contract["premium"] * FO_STRIKE_TRAIL_MAX_PCT / 100.0
-        if _risk > _left:
+        # B-1323: worst case is the initial stop PLUS the SL-limit offset (the stop is a limit 5% under
+        # its trigger, so a gap can fill that far below), not the 3% stop alone; shrink the lots to fit
+        # what is left of the budget instead of skipping the trade.
+        _risk_pct = max(FO_STRIKE_TRAIL_MAX_PCT, FO_OPTION_INITIAL_STOP_PCT) + FO_OPTION_SL_LIMIT_OFFSET_PCT
+        _unit_risk = contract["lot_size"] * contract["premium"] * _risk_pct / 100.0
+        _lots_fit = int(_left // _unit_risk) if _unit_risk > 0 else 0
+        if _lots_fit < 1:
+            _risk = _unit_risk
             _log_real_fo_attempt(conn, leg_key, "B", "skipped_entry_risk_over_loss_budget",
                                   kotak_trading_symbol=contract["kotak_trading_symbol"],
                                   price_est=contract["premium"], qty=qty,
-                                  detail=f"B-1317 lot risk Rs{_risk:.2f} (qty {qty} x {contract['premium']} x {FO_STRIKE_TRAIL_MAX_PCT}%) > budget left Rs{_left:.2f}")
+                                  detail=f"B-1323 1-lot risk Rs{_risk:.2f} (lot {contract['lot_size']} x {contract['premium']} x {_risk_pct}%) > budget left Rs{_left:.2f}")
             return
+        if _lots_fit * contract["lot_size"] < qty:
+            qty = _lots_fit * contract["lot_size"]
+            notional_inr = qty * contract["premium"]
     import kotak_real_fo_orders
     margin_check = kotak_real_fo_orders.check_margin_affordable(
         exchange_segment=contract["exchange_segment"], instrument_token=contract["instrument_token"],
@@ -16646,10 +16656,21 @@ def _close_real_fo_option_leg(conn, row, reason: str):
     )
     print(f"[REAL F&O] SELL {leg_key} FAILED {row['kotak_trading_symbol']}: {result.get('detail')} "
           f"- POSITION STILL OPEN, NEEDS ATTENTION")
+    # B-1324: the exit failed after the resting SLs were cancelled above, so the leg is now naked;
+    # re-place the trailing SL at once instead of waiting for the next 30s tick.
+    if cancelled and leg_key not in _fo_restoring_sl:
+        _fo_restoring_sl.add(leg_key)  # guard: the sync below can itself try to close (gap/risk cut)
+        try:
+            _sync_real_fo_option_sl(conn, leg_key, reason="SL restored after a failed exit")
+        except Exception as _e:
+            print(f"[REAL F&O] SL restore after failed exit raised for {leg_key}: {_e}")
+        finally:
+            _fo_restoring_sl.discard(leg_key)
     return False
 
 
 _fo_sl_unprotected_since: dict = {}
+_fo_restoring_sl: set = set()
 
 
 def _option_ltp(row) -> float | None:
