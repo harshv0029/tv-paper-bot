@@ -65,36 +65,36 @@
    "symbol": "UNIONBANK.NS"
   },
   {
-   "day": null,
-   "entry_order_id": null,
+   "day": "2026-10-21",
+   "entry_order_id": "261021000144947",
    "entry_price": 188.75,
    "first_seen_day": "2026-10-21",
    "is_short": 0,
    "kotak_trading_symbol": "WIPRO-EQ",
-   "opened_at": null,
+   "opened_at": 1792572788.4076676,
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 164.42,
    "source": "position",
    "stop_loss": 156.79999651227678,
    "strategy": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
-   "symbol": null
+   "symbol": "WIPRO.NS"
   },
   {
-   "day": null,
-   "entry_order_id": null,
+   "day": "2026-10-21",
+   "entry_order_id": "261021000238854",
    "entry_price": 16.38,
    "first_seen_day": "2026-10-21",
    "is_short": 0,
    "kotak_trading_symbol": "YESBANK-EQ",
-   "opened_at": null,
+   "opened_at": 1792572790.506289,
    "owner": "swing",
    "qty": 20,
    "sl_trigger_price": 15.24,
    "source": "position",
    "stop_loss": 14.314642974308558,
    "strategy": "starc__fade_full__long__1d__atr2d5_h20__v1",
-   "symbol": null
+   "symbol": "YESBANK.NS"
   }
  ]
 }
