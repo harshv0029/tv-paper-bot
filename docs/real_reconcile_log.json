@@ -2385,5 +2385,115 @@
     "governance_backfilled_swing": [],
     "unprotected_positions_count": 0,
     "unprotected_positions": []
+  },
+  {
+    "reconciled_at_utc": 1792564221.7556763,
+    "real_balance_inr": 8022.584790000001,
+    "qty_corrected_count": 0,
+    "qty_corrected": [],
+    "holdings_unprotected": [],
+    "swing_past_time_limit": [],
+    "holdings_healed": [],
+    "holdings_checked": 4,
+    "removed_ghost_count": 0,
+    "removed_ghosts": [],
+    "untracked_open_positions_count": 0,
+    "untracked_open_positions": [],
+    "adopted_count": 4,
+    "adopted": [
+      {
+        "symbol": "ITC.NS",
+        "kotak_trading_symbol": "ITC-EQ",
+        "qty": 1,
+        "entry_price": 264.05,
+        "entry_order_id": "261021000121674",
+        "sl_order_id": "261021000290028",
+        "sl_trigger_price": 261.4,
+        "target_order_id": null,
+        "target_price": null,
+        "side": "long"
+      },
+      {
+        "symbol": "JIOFIN.NS",
+        "kotak_trading_symbol": "JIOFIN-EQ",
+        "qty": 1,
+        "entry_price": 215.59,
+        "entry_order_id": "261021000129383",
+        "sl_order_id": "261021000132131",
+        "sl_trigger_price": 193.18,
+        "target_order_id": null,
+        "target_price": null,
+        "side": "long"
+      },
+      {
+        "symbol": "WIPRO.NS",
+        "kotak_trading_symbol": "WIPRO-EQ",
+        "qty": 1,
+        "entry_price": 188.75,
+        "entry_order_id": "261021000144947",
+        "sl_order_id": "261021000186089",
+        "sl_trigger_price": 164.42,
+        "target_order_id": null,
+        "target_price": null,
+        "side": "long"
+      },
+      {
+        "symbol": "YESBANK.NS",
+        "kotak_trading_symbol": "YESBANK-EQ",
+        "qty": 20,
+        "entry_price": 16.38,
+        "entry_order_id": "261021000238854",
+        "sl_order_id": "261021000240403",
+        "sl_trigger_price": 15.24,
+        "target_order_id": null,
+        "target_price": null,
+        "side": "long"
+      }
+    ],
+    "governance_backfilled_count": 4,
+    "governance_backfilled": [
+      {
+        "symbol": "ITC.NS",
+        "entry_price": 264.05,
+        "stop_loss": 261.41,
+        "target": 271.97,
+        "qty": 1,
+        "target_placed": false,
+        "target_failure_detail": "order 261021000376269 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "JIOFIN.NS",
+        "entry_price": 215.59,
+        "stop_loss": 213.43,
+        "target": 222.07,
+        "qty": 1,
+        "target_placed": false,
+        "target_failure_detail": "order 261021000377674 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "WIPRO.NS",
+        "entry_price": 188.75,
+        "stop_loss": 186.86,
+        "target": 194.42,
+        "qty": 1,
+        "target_placed": false,
+        "target_failure_detail": "order 261021000378886 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      },
+      {
+        "symbol": "YESBANK.NS",
+        "entry_price": 16.38,
+        "stop_loss": 16.22,
+        "target": 16.86,
+        "qty": 20,
+        "target_placed": false,
+        "target_failure_detail": "order 261021000380156 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across segment across product "
+      }
+    ],
+    "governance_backfilled_short_count": 0,
+    "governance_backfilled_short": [],
+    "governance_backfilled_swing_count": 0,
+    "governance_backfilled_swing": [],
+    "unprotected_positions_count": 0,
+    "unprotected_positions": []
   }
 ]
