@@ -40,7 +40,7 @@ jobs:
           import json
           try: rows=json.load(open("/tmp/o.json")).get("data") or []
           except Exception as e: rows=[]; print("o unreadable",type(e).__name__)
-          sel=[r for r in rows if any(k in str(r.get("trdSym","")) for k in ("RVNL","SAIL"))]
+          sel=[r for r in rows if any(k in str(r.get("trdSym","")) for k in ("RVNL","SAIL","JIO"))]
           sel.sort(key=lambda r: str(r.get("ordDtTm","")))
           print("RVNL/SAIL order rows:",len(sel))
           for r in sel:
@@ -53,7 +53,7 @@ jobs:
           # endpoints are token-free and already public; filtered to those symbols only.
           import json, subprocess, datetime
           IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
-          SYMS = ("RVNL", "SAIL", "DRREDDY", "VBL", "INDHOTEL")
+          SYMS = ("RVNL", "SAIL", "DRREDDY", "VBL", "INDHOTEL", "JIO")
           B = "https://tv-paper-bot-gdan.onrender.com"
           def get(path):
               out = subprocess.run(["curl", "-sS", "--retry", "3", "--retry-delay", "10", "-m", "90", B + path], capture_output=True, text=True).stdout
