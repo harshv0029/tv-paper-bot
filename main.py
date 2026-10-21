@@ -15849,6 +15849,10 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
     if not paper_row or not paper_row["stop_loss"]:
         return
     new_stop = round(paper_row["stop_loss"], 2)
+    if real_row["entry_price"]:
+        # B-1330: same 5% cap as the entry SL (B-1307); uncapped, a missing SL was re-placed at the paper stop
+        # 15% below entry, outside the price band, and Kotak rejected it again on every tick.
+        new_stop = _cap_real_intraday_stop(real_row["entry_price"], new_stop)
     current_sl_price = real_row["sl_trigger_price"]
 
     if current_sl_price is not None and new_stop <= current_sl_price:

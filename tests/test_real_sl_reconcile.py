@@ -99,18 +99,19 @@ def test_real_sl_order_is_live_false_for_an_unrecognized_status():
 
 # ---- _maybe_sync_real_stop_loss: reconciliation wired in -------------------
 
-def _insert_open_real_position(conn, sl_order_id="SL-OLD", sl_trigger_price=97.0):
+def _insert_open_real_position(conn, sl_order_id="SL-OLD", sl_trigger_price=97.0, entry=100.0):
+    # entry 100: the paper stops 97/98 sit inside the B-1330 5% real-stop cap, so these tests exercise the sync, not the cap
     conn.execute(
         "INSERT INTO real_positions (symbol, kotak_trading_symbol, qty, entry_price, "
         "entry_order_id, opened_at, day, sl_order_id, sl_trigger_price) VALUES "
-        "('ASHOKLEY.NS', 'ASHOKLEY-EQ', 2, 162.64, 'E1', ?, ?, ?, ?)",
-        (main.time.time(), main.ist_now().strftime("%Y-%m-%d"), sl_order_id, sl_trigger_price),
+        "('ASHOKLEY.NS', 'ASHOKLEY-EQ', 2, ?, 'E1', ?, ?, ?, ?)",
+        (entry, main.time.time(), main.ist_now().strftime("%Y-%m-%d"), sl_order_id, sl_trigger_price),
     )
     conn.execute(
         "INSERT INTO signal_state (symbol, day, status, entry_price, stop_loss, "
         "initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval) VALUES "
-        "('ASHOKLEY.NS', ?, 'long', 162.64, 97.0, 97.0, 163.35, 2, ?, 1.0, '5m')",
-        (main.ist_now().strftime("%Y-%m-%d"), main.time.time()),
+        "('ASHOKLEY.NS', ?, 'long', ?, 97.0, 97.0, 163.35, 2, ?, 1.0, '5m')",
+        (main.ist_now().strftime("%Y-%m-%d"), entry, main.time.time()),
     )
     conn.commit()
 
@@ -307,7 +308,7 @@ def test_sync_stop_loss_sizes_the_fresh_sl_off_the_corrected_qty():
 def test_t1_restricted_symbol_escalates_to_forced_exit_once_timeout_exceeded():
     _fresh_db()
     with closing(main.get_db()) as conn:
-        _insert_open_real_position(conn, sl_order_id=None, sl_trigger_price=None)
+        _insert_open_real_position(conn, sl_order_id=None, sl_trigger_price=None, entry=162.64)
         conn.execute(
             "UPDATE real_positions SET protection_degraded_since = ? WHERE symbol = 'ASHOKLEY.NS'",
             (main.time.time() - 9999,),  # far past any capital tier's timeout
@@ -389,7 +390,7 @@ def test_an_unreadable_reconcile_check_leaves_existing_state_untouched():
 def test_no_fresh_sl_attempted_when_kotak_shows_the_position_already_closed():
     _fresh_db()
     with closing(main.get_db()) as conn:
-        _insert_open_real_position(conn, sl_order_id=None, sl_trigger_price=None)
+        _insert_open_real_position(conn, sl_order_id=None, sl_trigger_price=None, entry=162.64)
         with patch("kotak_neo.positions", return_value=_KOTAK_POSITIONS_FLAT), \
              patch("kotak_real_orders.cancel_real_order") as mock_cancel, \
              patch("kotak_real_orders.place_real_stop_loss") as mock_place:
@@ -405,7 +406,7 @@ def test_fresh_sl_still_attempted_when_kotak_confirms_the_position_is_open():
     # that blocks the existing working path.
     _fresh_db()
     with closing(main.get_db()) as conn:
-        _insert_open_real_position(conn, sl_order_id=None, sl_trigger_price=None)
+        _insert_open_real_position(conn, sl_order_id=None, sl_trigger_price=None, entry=162.64)
         with patch("kotak_neo.positions", return_value=_KOTAK_POSITIONS_HOLDS_2), \
              patch("kotak_real_orders.cancel_existing_resting_sl", return_value=None), \
              patch("kotak_real_orders.place_real_stop_loss",
@@ -423,7 +424,7 @@ def test_fresh_sl_still_attempted_when_the_open_check_itself_is_unreadable():
     # than one more retry next tick.
     _fresh_db()
     with closing(main.get_db()) as conn:
-        _insert_open_real_position(conn, sl_order_id=None, sl_trigger_price=None)
+        _insert_open_real_position(conn, sl_order_id=None, sl_trigger_price=None, entry=162.64)
         with patch("kotak_neo.positions", side_effect=Exception("network hiccup")), \
              patch("kotak_real_orders.cancel_existing_resting_sl", return_value=None), \
              patch("kotak_real_orders.place_real_stop_loss",
@@ -441,3 +442,20 @@ def _no_orphan_reroute(monkeypatch):
     # (B-68) has its own tests in test_orphan_reroute_to_swing.py.
     import main as _m
     monkeypatch.setattr(_m, "_reroute_orphan_intraday_to_swing", lambda conn, row: False)
+
+
+def test_tick_resync_caps_a_wide_paper_stop_at_5pct_below_entry():
+    # B-1330 (live 2026-10-21: ITC/JIOFIN/CANBK paper stops ~15% below entry, outside NSE's price band): the
+    # tick re-placement of a missing SL is capped like the entry SL (B-1307), so Kotak does not reject it again.
+    _fresh_db()
+    with closing(main.get_db()) as conn:
+        _insert_open_real_position(conn, sl_order_id=None, sl_trigger_price=None, entry=162.64)
+        with patch("kotak_neo.order_report", return_value={"data": []}), \
+             patch("kotak_real_orders.cancel_existing_resting_sl", return_value=None), \
+             patch("kotak_real_orders.place_real_stop_loss",
+                   return_value={"ok": True, "order_id": "SL-NEW", "trigger_price": 154.51}) as mock_place, \
+             patch.object(main.time, "sleep", return_value=None), \
+             patch.object(main, "_maybe_place_real_exit"):
+            main._maybe_sync_real_stop_loss(conn, "ASHOKLEY.NS")
+        assert mock_place.called
+        assert mock_place.call_args[0][2] == round(162.64 * 0.95, 2)  # not the paper stop 97.0
