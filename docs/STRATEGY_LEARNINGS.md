@@ -1327,3 +1327,17 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Mechanism: option entries and risk-cut exits are market orders, so the bid/ask spread is paid on both legs on top of the 0.8% cost model; on a strike with few buyers and sellers that alone can exceed the 3% initial stop.
 - Fit: every option entry path now goes through `_real_fo_buy_contract`, which skips when Kotak's spread is over 5% of mid. Kotak's `quote_type="all"` field names are not yet confirmed live, so an unread quote does not block; check the confirmed log rows after the next entry.
 - Profit-booking / exit takeaway: the spread is a guaranteed loss on every round trip, so a strike that is cheap to enter but wide to exit is a losing trade before the setup plays out; prefer liquid (near-ATM, current-week) strikes.
+
+
+## Charges in the daily loss cap (B-1315, 2026-10-21)
+- Mechanism: Kotak positions() give gross buy/sell amounts only; statutory charges (option STT 0.1% of sell premium, exchange 0.035% of option turnover, stamp, SEBI, GST) never reached the loss cap.
+- Size: on a Rs6k option round trip they are ~Rs11, about 8% of a Rs130 daily cap, so a cap read gross lets a day lose more than intended.
+- Fix: estimated statutory charges are netted from the real P&L that gates entries; brokerage is left out until the plan rate is confirmed from a contract note.
+- Profit-booking / exit takeaway: on thin option premiums, charges are a fixed drag of ~0.2% of turnover per round trip; a target smaller than that books a net loss.
+
+
+## Chan buy-on-gap stop cap vs stop-fit rule (B-1331, 2026-10-21)
+- Mechanism: the atr4d0 cell's stop (4 x daily ATR, 12-16% on volatile names) is outside the NSE price band, so the real stop is capped at 5% below entry. That capped variant had never been backtested.
+- Result (run 39599591455, full universe, main.py functions, n 1188): capped-5% `chan_gap__buy_on_gap_mr__long__1d__atr4d0cap5_top10__v1` PFnet 1.411 (85 stop-outs) vs uncapped 1.445. The "pick the cell whose stop fits 5%" rule `..._fit5_top10__v1` was 1.242 on only 353 trades, because it skipped the 70% of days where no stop fits, and those were winners.
+- Surprise: a tighter forced stop barely hurt the strategy (the edge is the close-out, not the stop), while filtering on stop width threw away good trades.
+- Profit-booking / exit takeaway: on a same-day gap reversal, keep the trade and cap the stop; don't skip entries just because the textbook stop is too wide.

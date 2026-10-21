@@ -518,8 +518,8 @@ def merge_run(paths):
     import universe_pin as up
     json.dump({"universe_symbols": uni, "fetched_symbols": up.merge_fetched(parts), "owed": ["role-swapped filter-as-trigger ordering", "B-481 IPO base (no listing dates)", "B-482 group stocks (no industry map)", "4h/1h not applicable (daily/weekly rules)"], "results": res},
               open(out, "w"), indent=0, default=lambda o_: o_.item() if hasattr(o_, "item") else str(o_))
-    ok = sorted([(m["pfnet"], m["n"], t) for t, m in res.items() if m["pfnet"] and m["pfnet"] >= 1.1 and m["n"] >= 300], reverse=True)
-    print(f"universe_symbols={uni} cells={len(res)} viable(PFnet>=1.1,n>=300)={len(ok)}")
+    ok = sorted([(m["pfnet"], m["n"], t) for t, m in res.items() if m["pfnet"] and m["pfnet"] >= 1.0 and m["n"] >= 300], reverse=True)
+    print(f"universe_symbols={uni} cells={len(res)} viable(PFnet>=1.0,n>=300)={len(ok)}")
     for pf, n, t in ok[:60]:
         m = res[t]
         print(f"{t} pfnet={pf} pfgross={m['pfgross']} win={m['win_pct']} n={n} hold={m['avg_held_bars']} reasons={json.dumps(m['exit_reasons'], default=str)}")

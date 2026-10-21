@@ -11,7 +11,7 @@ _SECTOR_REF = "sector-rotation-backtest.yml run 38068129079 (2026-10-10 IST, dai
 _MCX_REF = "sector-rotation-backtest.yml run 38068186964 (scripts/mcx_strategy_sweep.py, 2026-10-10 IST, yfinance GC/SI/CL/NG/HG proxies, cost 0.8%)"
 
 # cells wired into main._run_mcx_daily_scan (_MCX_DAILY_CELLS); keep in sync
-_MCX_LIVE_WIRED = set()  # filled from docs/mcx_live_cells.json below (cells whose ATR-stopped variants also clear 1.1)
+_MCX_LIVE_WIRED = set()  # filled from docs/mcx_live_cells.json below (cells whose ATR-stopped variants also clear PFNET_LIVE_FLOOR)
 
 try:  # generated MCX live list (scripts/gen_mcx_live_cells.py) - same file main.py trades from
     with open(os.path.join(_DOCS, "mcx_live_cells.json")) as _mf:
