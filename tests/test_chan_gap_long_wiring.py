@@ -109,7 +109,8 @@ def test_replay_script_smoke_synthetic(tmp_path):
                         cwd=root, env={**env, "PYTHONPATH": root}, capture_output=True, text=True, timeout=300)
     assert r2.returncode == 0, r2.stderr[-800:]
     rows = json.load(open(tmp_path / "all.json"))["rows"]
-    assert [x["tag"] for x in rows] == sorted(TAGS)
+    extra = {"chan_gap__buy_on_gap__long__1d__atr4d0cap5_top10__v1", "chan_gap__buy_on_gap__long__1d__fit5_top10__v1"}
+    assert [x["tag"] for x in rows] == sorted({*TAGS, *extra})  # B-1331 rows: live capped stop + fit-in-5% rule
     assert all("metrics" in x and "n" in x["metrics"] for x in rows)
     import shutil
     shutil.rmtree(os.path.join(root, "out"), ignore_errors=True)
