@@ -19738,6 +19738,16 @@ def hydrate_git_tier_tables() -> int:
                     continue
                 resp.raise_for_status()
                 rows = (resp.json() or {}).get("rows") or []
+                if table in _GIT_TIER_PUSH_TABLES:  # B-1327: Render's own pushes live on the state-sync branch
+                    try:
+                        side = requests.get(f"https://raw.githubusercontent.com/{repo}/{_TRACKED_UNION_GIT_BRANCH}/docs/tables/{table}.json",
+                                            timeout=6)
+                        if side.status_code == 200:
+                            seen = {_order_event_key(r) for r in rows}
+                            rows = rows + [{k: v for k, v in r.items() if k != "id"}  # ids differ across a wipe: let SQLite assign
+                                           for r in ((side.json() or {}).get("rows") or []) if _order_event_key(r) not in seen]
+                    except Exception as _e:  # noqa: BLE001
+                        print(f"[table_mirror] side-branch read {table} skipped: {_e}")
                 cols = _generic_mirror_table_columns(conn, table)
                 for row in rows:
                     keep = {k: v for k, v in row.items() if k in cols}
@@ -25277,6 +25287,8 @@ async def _scheduler_tick():
             _reconcile_real_positions_core(adopt="*")
         except Exception as e:
             print(f"[unprotected_backcheck] in-process reconcile failed (non-fatal, external cron still covers this): {e}")
+        for _gt in _GIT_TIER_PUSH_TABLES:  # B-1327: in-process git copy of the order log, ~5 min
+            threading.Thread(target=_git_tier_push_side_branch, args=(_gt,), name=f"git-tier-push-{_gt}", daemon=True).start()
 
     # 2026-10-08: trailing SL / heal for every open real single-strike option
     # (Kotak read first inside). Runs every tick; reuses the F&O switch.
@@ -27996,6 +28008,64 @@ def _tracked_union_git_push() -> bool:
     put.raise_for_status()
     _tracked_union_git_last_hash = digest
     return True
+
+
+_GIT_TIER_PUSH_TABLES = ("real_order_events",)
+_git_tier_push_last_hash: dict = {}
+
+
+def _order_event_key(r: dict) -> tuple:
+    # ids restart after a wipe, so rows are matched on content, never on id
+    return (r.get("ts"), r.get("symbol"), r.get("leg"), r.get("event"), r.get("order_id"))
+
+
+def _git_tier_push_side_branch(name: str) -> bool:
+    """B-1327: GitHub's */5 schedule for table-git-sync.yml fired once on 2026-10-21, so the order log reached git only on
+    manual runs. Render now writes docs/tables/<name>.json to the `state-sync` branch itself (never main: a push to main
+    redeploys Render). APPEND-ONLY: the branch copy is merged with the local rows on content, so a wiped or partial local
+    table can never drop a row from git. Only after the table's git restore ran. Needs GITHUB_SYNC_TOKEN. Never raises."""
+    token = os.environ.get("GITHUB_SYNC_TOKEN")
+    if not token or name not in _git_tier_hydrated:
+        return False
+    try:
+        with closing(get_db()) as conn:
+            local = [dict(r) for r in conn.execute(f"SELECT * FROM {name}").fetchall()]
+        digest = hashlib.sha256(json.dumps(local, sort_keys=True, default=str).encode()).hexdigest()
+        if not local or digest == _git_tier_push_last_hash.get(name):
+            return False
+        repo = os.environ.get("GITHUB_SYNC_REPO", "harshv0029/tv-paper-bot")
+        hdr = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+        api = f"https://api.github.com/repos/{repo}"
+        path = f"docs/tables/{name}.json"
+        cur = requests.get(f"{api}/contents/{path}", params={"ref": _TRACKED_UNION_GIT_BRANCH}, headers=hdr, timeout=10)
+        if cur.status_code == 404 and \
+                requests.get(f"{api}/git/ref/heads/{_TRACKED_UNION_GIT_BRANCH}", headers=hdr, timeout=10).status_code == 404:
+            base = requests.get(f"{api}/git/ref/heads/main", headers=hdr, timeout=10)
+            base.raise_for_status()
+            requests.post(f"{api}/git/refs", headers=hdr, timeout=10, json={
+                "ref": f"refs/heads/{_TRACKED_UNION_GIT_BRANCH}", "sha": base.json()["object"]["sha"]})
+        sha, remote = None, []
+        if cur.status_code == 200:
+            sha = cur.json().get("sha")
+            remote = (json.loads(base64.b64decode(cur.json().get("content") or "").decode() or "{}").get("rows") or [])
+        elif cur.status_code != 404:
+            cur.raise_for_status()
+        merged = {_order_event_key(r): r for r in remote}
+        for r in local:
+            merged.setdefault(_order_event_key(r), r)
+        rows = sorted(merged.values(), key=lambda r: (r.get("ts") or 0))
+        body = json.dumps({"rows": rows, "synced_at_utc": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")},
+                          indent=1, default=str)
+        payload = {"message": f"{name} {len(rows)} row(s)", "content": base64.b64encode(body.encode()).decode(),
+                   "branch": _TRACKED_UNION_GIT_BRANCH}
+        if sha:
+            payload["sha"] = sha
+        requests.put(f"{api}/contents/{path}", headers=hdr, json=payload, timeout=15).raise_for_status()
+        _git_tier_push_last_hash[name] = digest
+        return True
+    except Exception as e:  # noqa: BLE001
+        print(f"[table_mirror] side-branch push {name} failed (non-fatal): {e}")
+        return False
 
 
 async def _tracked_union_memory_loop():
