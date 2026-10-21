@@ -504,7 +504,7 @@ Total rows: 1082 | closed: 457 | not closed: 625
 | B-1282 | P0 | OPEN | User dashboard findings 2026-10-16: (a) "123 of 61 strategies tested" x>N; (b) ETF "budget too small, avail... | open:, blocked |
 | B-1306 | P0 | OPEN | 2026-10-21 ~09:18 and ~09:24 IST: /real-protection-status (pure SQLite read) timed out at 30 s with 0 bytes... | open:, pending |
 | B-1309 | P0 | KOTAK | 2026-10-21 | owed, verify, needs |
-| B-1311 | P0 | RECONCILE | 2026-10-21 10:25 IST | pending |
+| B-1311 | P0 | RECONCILE | 2026-10-21 10:25 IST | owed |
 | B-1312 | P0 | VIABLE | 2026-10-21 11:10 IST | owed, pending, needs |
 | B-1313 | P0 | OPEN | 2026-10-21 11:25 IST | owed |
 | B-1314 | P0 | USER | 2026-10-21 11:35 IST | blocked, pending |
