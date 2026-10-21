@@ -815,6 +815,30 @@ def _reference_prices(kotak_trading_symbol: str):
         return None, None
 
 
+def stop_placeable_for_entry(kotak_trading_symbol: str, stop: float, ltp: float):
+    """B-1308 (no trade without SL): before a real buy, confirm a stop can rest inside the
+    day's price band. The stop rests as-is when it is within 10% of the previous close;
+    otherwise place_real_stop_loss's B-1304 retry raises it to a band floor, which only
+    works if that floor is still under the market (< 0.995 x ltp). When neither holds,
+    (False, why) and the caller skips the entry. Unknown reference close -> (True, ...):
+    the B-1304 retry and the 5-min backcheck still apply, and a yfinance hiccup must not
+    block every entry."""
+    prev, last = _reference_prices(kotak_trading_symbol)
+    px = float(ltp or last or 0)
+    if not prev or px <= 0:
+        return True, "no reference close; band retry applies"
+    stop = float(stop)
+    if stop >= prev * (1 - _PRICE_BAND_PCTS[0]) * 1.003:
+        return True, "stop inside the price band"
+    tick = _tick_size_for(kotak_trading_symbol)
+    for band in _PRICE_BAND_PCTS:
+        cand = _round_to_tick(prev * (1 - band) * 1.003, tick)
+        if stop < cand < px * 0.995:
+            return True, f"stop {stop:.2f} will be raised to band floor {cand:.2f}"
+    return False, (f"stop {stop:.2f} is below the price band (prev close {prev:.2f}) and no band "
+                   f"floor fits under ltp {px:.2f}; Kotak would reject every SL")
+
+
 def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
     """B-1304 (UNIONBANK 2026-10-21 09:16 IST, live): an SL whose trigger sat below the
     day's lower price band (159.67 vs a ~162.6 floor after a gap up) was rejected with
