@@ -203,7 +203,7 @@ def place_real_fo_stop_loss(kotak_trading_symbol: str, exchange_segment: str, qt
         time.sleep(1.5)
         status = _kro._confirm_order_status(order_id)
     if status["status"] == "rejected":
-        return {"ok": False, "detail": f"order {order_id} rejected: {status['detail']}", "raw_response": resp}
+        return _kro._rejected_result(order_id, status, resp)
     return {"ok": True, "order_id": str(order_id), "trigger_price": trigger, "limit_price": limit_price,
             "raw_response": resp}
 
