@@ -58,7 +58,7 @@ Total rows: 1086 | closed: 462 | not closed: 624
 | RULE | 1 |
 | OWED | 1 |
 | NEEDS-OWNER | 1 |
-| SL | 1 |
+| REMAINDER | 1 |
 | KOTAK | 1 |
 | RECONCILE | 1 |
 | VIABLE | 1 |
@@ -534,7 +534,7 @@ Total rows: 1086 | closed: 462 | not closed: 624
 | B-1288 | P1 | OPEN | Render memory limit is 2 GB (user, 2026-10-19) | owed |
 | B-1289 | P1 | OPEN | 2026-10-20 00:25 IST: subagent fixes merged to the working branch, full suite 2077 passed (date-dependent m... | blocked, awaiting, waiting |
 | B-1290 | P1 | FIXED-LOCAL | Render memory target ~1024 MB of 2048 |  |
-| B-1305 | P1 | SL | Apply the read-the-rejection-reason rule to every other order path: short buy-stop above the upper band, ta... | open:, pending |
+| B-1305 | P1 | REMAINDER | Apply the read-the-rejection-reason rule to every other order path: short buy-stop above the upper band, ta... | pending |
 | B-1310 | P1 | OPEN | 2026-10-21 | needs |
 | B-1327 | P1 | TABLE-GIT-SYNC | 2026-10-21 | open:, verify, needs |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
