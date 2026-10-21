@@ -63,7 +63,7 @@ def _res(syms, rows):
 def test_pin_compare_identical_and_different():
     a = _res(["A", "B"], [("t1", 10, 1.2), ("t2", 5, 0.5)])
     assert pc.compare(a, _res(["A", "B"], [("t1", 10, 1.2), ("t2", 5, 0.5)]))["identical"]
-    drift = pc.compare(a, _res(["A", "B", "C"], [("t1", 12, 1.0), ("t2", 5, 0.5)]))
+    drift = pc.compare(a, _res(["A", "B", "C"], [("t1", 12, 0.9), ("t2", 5, 0.5)]))
     assert not drift["identical"] and drift["symbols"]["equal"] is False
     assert drift["n_differs"] == 1 and drift["crossed_floor"][0]["tag"] == "t1"
     same_set_bar_drift = pc.compare(a, _res(["A", "B"], [("t1", 10, 1.15), ("t2", 5, 0.5)]))

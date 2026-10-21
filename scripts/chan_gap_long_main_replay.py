@@ -48,6 +48,8 @@ def day_candidates(m, df):
         bar = df.iloc[k]
         res = {}
         for t, mult in m.CHAN_GAP_LONG_CELLS.items():
+            if isinstance(mult, str):
+                continue  # rule cells (cap5/fit5) are computed below / in merge
             stop = o - mult * sig["atr_at_entry"]
             if not stop > 0:
                 continue
@@ -124,7 +126,7 @@ def merge(d, out_path=None):
                                   "short_mirror")}
         for c in r["candidates"]:
             by_date.setdefault(c["date"], {})[c["symbol"]] = c
-    aggs = {t: br.agg_new() for t in (*m.CHAN_GAP_LONG_CELLS, CAP_KEY, FIT_TAG)}
+    aggs = {t: br.agg_new() for t in (*m.CHAN_GAP_LONG_CELLS, CAP_KEY, FIT_TAG)}  # rule cells are CAP_KEY / FIT_TAG
     fit_cells = {}
     for date in sorted(by_date):
         day = by_date[date]
@@ -135,7 +137,7 @@ def merge(d, out_path=None):
                 br.agg_add(aggs[t], [{"gross": g, "net": g - cost, "held": 1, "reason": v[1]}])
             atr = day[s]["sig"]["atr_at_entry"]
             fit = next((t for t, mult in m.CHAN_GAP_LONG_CELLS.items()
-                        if t in day[s]["res"] and mult * atr <= m.REAL_INTRADAY_MAX_STOP_PCT * ep), None)
+                        if not isinstance(mult, str) and t in day[s]["res"] and mult * atr <= m.REAL_INTRADAY_MAX_STOP_PCT * ep), None)
             fit_cells[fit] = fit_cells.get(fit, 0) + 1
             if fit:
                 v = day[s]["res"][fit]

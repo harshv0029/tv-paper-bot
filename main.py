@@ -11777,10 +11777,35 @@ def _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interv
 # close of the latest completed bar, stop anchored to the open as in the research). Exit = ATR stop or the 15:10 flatten
 # (research: close). Every entry carries its stop; the real mirror unwinds if the SL cannot rest. Gate closed by
 # REPLAY_OWED_TAGS until scripts/chan_gap_main_replay.py is on file. Buy engine only.
-CHAN_GAP_LONG_CELLS = {  # tag -> ATR stop multiple, PFnet descending (first VIABLE cell opens, else the first for paper)
-    "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1": 4.0,
-    "chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1": 2.5,
-    "chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1": 1.5,
+CHAN_GAP_LONG_CELLS = {  # tag -> stop rule, PFnet descending (first VIABLE cell opens, else the first for paper)
+    "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1": 4.0,  # ATR multiple (1.445)
+    # B-1331 (user 2026-10-21: wiring has one condition, PFnet >= 1): replay run 39599591455, main.py functions
+    "chan_gap__buy_on_gap__long__1d__atr4d0cap5_top10__v1": "cap5",  # 4 x ATR, capped 5% below entry (1.411)
+    "chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1": 2.5,  # (1.41)
+    "chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1": 1.5,  # (1.364)
+    "chan_gap__buy_on_gap__long__1d__fit5_top10__v1": "fit5",  # first ATR cell whose stop fits 5%, else no entry (1.242)
+}
+CHAN_GAP_STOP_CAP_PCT = 0.05  # the 5% of the cap5/fit5 rules (= REAL_INTRADAY_MAX_STOP_PCT when replayed)
+
+
+def chan_gap_stop_for(tag: str, entry: float, atr: float):
+    """Stop price for one chan gap cell, or None when the cell's rule takes no trade (fit5 with no fitting stop)."""
+    rule = CHAN_GAP_LONG_CELLS[tag]
+    if not isinstance(rule, str):
+        return entry - rule * atr
+    mults = [m for m in CHAN_GAP_LONG_CELLS.values() if not isinstance(m, str)]
+    if rule == "cap5":
+        return max(entry - mults[0] * atr, entry * (1 - CHAN_GAP_STOP_CAP_PCT))
+    if rule == "fit5":
+        fit = next((m for m in mults if m * atr <= CHAN_GAP_STOP_CAP_PCT * entry), None)
+        return None if fit is None else entry - fit * atr
+    return None
+
+
+# B-1331: the cap5/fit5 replays are registered under their `_mr` (main.py replay) names
+CHAN_GAP_REGISTRY_NAME = {
+    "chan_gap__buy_on_gap__long__1d__atr4d0cap5_top10__v1": "chan_gap__buy_on_gap_mr__long__1d__atr4d0cap5_top10__v1",
+    "chan_gap__buy_on_gap__long__1d__fit5_top10__v1": "chan_gap__buy_on_gap_mr__long__1d__fit5_top10__v1",
 }
 CHAN_GAP_ENTRY_CUTOFF_MIN = 10 * 60 + 15
 CHAN_GAP_FIRST_BAR_DONE_MIN = 9 * 60 + 20
@@ -11900,7 +11925,9 @@ def _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, in
     liq_ok, _ = _liquidity_gate(df)
     if not liq_ok or _likely_lower_circuit_locked(df, today_str):
         return None
-    stop_loss = sig["entry_price"] - CHAN_GAP_LONG_CELLS[tag] * sig["atr_at_entry"]
+    stop_loss = chan_gap_stop_for(tag, sig["entry_price"], sig["atr_at_entry"])
+    if stop_loss is None:
+        return None  # fit5: no ATR stop fits 5% today, the rule takes no trade
     stop_dist = last_close - stop_loss
     if stop_loss <= 0 or stop_dist <= 0:
         return None
@@ -13041,7 +13068,7 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "orb-range-short": "range_short_staged_ladder",
     **{_t: _t for _t in CHAN_SHORT_CELLS},
     **{_t: _t for _t in CHAN_LONG_CELLS},
-    **{_t: _t for _t in CHAN_GAP_LONG_CELLS},
+    **{_t: CHAN_GAP_REGISTRY_NAME.get(_t, _t) for _t in CHAN_GAP_LONG_CELLS},
     # Swing's own real-entry call sites pass a plain label (see
     # _maybe_place_real_swing_entry's call sites), not an ORB-prefixed
     # tag - "minervini_vcp" maps to minervini_trend_template_vcp per that
@@ -26604,6 +26631,11 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
             rule = "trailing premium SL"
         if rule is None:
             rule = _SWING_SL_RULES.get(tag)
+        _cg = CHAN_GAP_LONG_CELLS.get(tag)
+        if _cg == "cap5":  # B-1331 rule cells
+            rule = "4.0xATR stop capped 5% below entry"
+        elif _cg == "fit5":
+            rule = "first ATR stop (4.0/2.5/1.5x) within 5%, else no entry"
         return {"sl_pct": round(sum(pcts) / len(pcts), 2) if pcts else None, "sl_open_n": len(pcts), "sl_rule": rule}
 
     _mcx_tags = {c[0] for c in _MCX_DAILY_CELLS}
