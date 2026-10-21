@@ -72,3 +72,16 @@ def _option_pool_open_except_its_own_tests(request, monkeypatch):
     except Exception:
         return
     monkeypatch.setattr(main, "_option_pool_allows", lambda tag: True)
+
+
+@pytest.fixture(autouse=True)
+def _option_spread_unread_by_default(request, monkeypatch):
+    """B-1328: _real_fo_buy_contract reads the live bid/ask; tests must never reach Kotak. Unread = no gate."""
+    if request.node.fspath.basename == "test_option_spread_gate.py":
+        return
+    try:
+        import nse_fo_chain
+    except Exception:
+        return
+    monkeypatch.setattr(nse_fo_chain, "fetch_option_liquidity",
+                        lambda c: {"bid": None, "ask": None, "open_interest": None, "volume": None})
