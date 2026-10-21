@@ -36,6 +36,16 @@ def _reset_viable_stack_state():
 
 
 @pytest.fixture(autouse=True)
+def _no_live_viable_stack_restore(request, monkeypatch):
+    """B-1325: the stack restore pulls the owner's LIVE explorer stack (Upstash, then git) into the test DB, after
+    which every viability test follows whatever stack was last saved. Only the restore's own tests may reach out."""
+    if request.node.fspath.basename == "test_viable_stack_never_empty.py":
+        return
+    import main
+    monkeypatch.setattr(main, "_ensure_viable_stack_hydrated", lambda *a, **k: None)
+
+
+@pytest.fixture(autouse=True)
 def _scan_gate_ignores_todays_calendar(monkeypatch):
     """_run_swing_scan / _scheduler_tick skip on NSE holidays and weekends.
     Tests that exercise them must not depend on the day the suite runs, so
