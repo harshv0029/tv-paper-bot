@@ -366,8 +366,8 @@ def merge_run(paths):
     out = os.path.join(ROOT, "docs", "oneil_research_results.json")
     import universe_pin as up
     json.dump({"universe_symbols": uni, "universe_requested": req, "fetched_symbols": up.merge_fetched(parts), "results": res}, open(out, "w"), indent=0, default=lambda o: o.item() if hasattr(o, "item") else str(o))
-    ok = sorted([(m["pfnet"], m["n"], t) for t, m in res.items() if m["pfnet"] and m["pfnet"] >= 1.1 and m["n"] >= 300], reverse=True)
-    print(f"universe_symbols={uni}/{req} cells={len(res)} viable(PFnet>=1.1,n>=300)={len(ok)}")
+    ok = sorted([(m["pfnet"], m["n"], t) for t, m in res.items() if m["pfnet"] and m["pfnet"] >= 1.0 and m["n"] >= 300], reverse=True)
+    print(f"universe_symbols={uni}/{req} cells={len(res)} viable(PFnet>=1.0,n>=300)={len(ok)}")
     for pf, n, t in ok[:40]:
         m = res[t]
         print(f"{t} pfnet={pf} win={m['win_pct']} n={n} hold={m['avg_held_bars']} reasons={json.dumps(m['exit_reasons'], default=str)}")

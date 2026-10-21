@@ -33,7 +33,7 @@ def _f(r, *keys):
     return None
 
 
-def analyse(doc, floor=1.1):
+def analyse(doc, floor=1.0):
     out = []
     for tag, r in _rows(doc):
         net, gross = _f(r, "pfnet_net", "pfnet"), _f(r, "pfnet_gross")
@@ -53,7 +53,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("path")
     ap.add_argument("--json")
-    ap.add_argument("--floor", type=float, default=1.1)
+    ap.add_argument("--floor", type=float, default=1.0)
     a = ap.parse_args(argv)
     rows = analyse(json.load(open(a.path)), a.floor)
     for r in rows:

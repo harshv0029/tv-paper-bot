@@ -18,13 +18,13 @@ def test_bucketing_bands_and_multicategory():
     reg = [_s("a", (C.SWING, C.BUY), 1.2, 0.5), _s("b", (C.SWING,), 1.7, 10), _s("c", (C.SWING,), 2.5, 31),
            _s("d", (C.SWING,), 0.95, 5), _s("e", (C.SWING,), 1.35, None), _s("f", (C.SWING,), 1.1, 3)]
     r = sr.bucket_viable_strategies(reg)
-    assert _find(r, "swing", "a") == [("1.1-1.3", "<=1d")]
-    assert _find(r, "buy", "a") == [("1.1-1.3", "<=1d")]  # repeated per category
+    assert _find(r, "swing", "a") == [("1.0-1.3", "<=1d")]
+    assert _find(r, "buy", "a") == [("1.0-1.3", "<=1d")]  # repeated per category
     assert _find(r, "swing", "b") == [("1.6-2.0", "7-15d")]
     assert _find(r, "swing", "c") == [("2.0+", ">30d")]
     assert _find(r, "swing", "d") == []  # below floor, not viable
     assert _find(r, "swing", "e") == [("1.3-1.6", sr.HOLD_UNRECORDED)]
-    assert _find(r, "swing", "f") == [("1.1-1.3", "1-3d")]  # boundary 3d -> 1-3d
+    assert _find(r, "swing", "f") == [("1.0-1.3", "1-3d")]  # boundary 3d -> 1-3d
     assert r["swing"]["count"] == 5 and r["short_sell"]["count"] == 0
 
 

@@ -1,6 +1,6 @@
 """Compare two merged research results for reproducibility (B-841 / B-851).
 
-Usage: python3 scripts/pin_compare.py <A dir|json> <B dir|json> [--tol 1e-6] [--floor 1.1] [--json out.json]
+Usage: python3 scripts/pin_compare.py <A dir|json> <B dir|json> [--tol 1e-6] [--floor 1.0] [--json out.json]
                                        [--require-identical]
 Each side is a merged result JSON (or a directory holding one) with "rows" [{tag, n, pfnet, ...}] and, for
 pin-aware runs, "fetched_symbols". Reports: symbol-set equality, tags only on one side, n differences, max/mean
@@ -26,7 +26,7 @@ def load_result(path):
     raise SystemExit(f"no merged result with rows[] under {path}")
 
 
-def compare(a, b, tol=1e-6, floor=1.1):
+def compare(a, b, tol=1e-6, floor=1.0):
     ra = {r["tag"]: r for r in a["rows"]}
     rb = {r["tag"]: r for r in b["rows"]}
     sa, sb = a.get("fetched_symbols"), b.get("fetched_symbols")
@@ -64,7 +64,7 @@ def main(argv=None):
     ap.add_argument("a")
     ap.add_argument("b")
     ap.add_argument("--tol", type=float, default=1e-6)
-    ap.add_argument("--floor", type=float, default=1.1)
+    ap.add_argument("--floor", type=float, default=1.0)
     ap.add_argument("--json")
     ap.add_argument("--require-identical", action="store_true")
     args = ap.parse_args(argv)
