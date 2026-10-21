@@ -77,7 +77,7 @@ def test_sl_trails_up_with_peak_and_never_down():
         assert row["peak_price"] == 150.0 and row["sl_trigger_price"] == 148.5
         # premium falls back: peak stays, desired trigger does not drop
         with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value=_state(sls=[{"order_id": "S2", "trigger": 105.0, "qty": 25}])), \
-             patch("main._option_ltp", return_value=120.0), \
+             patch("main._option_ltp", return_value=145.0), \
              patch("main.kotak_real_orders_closing_session", return_value=False), \
              patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "adopted_existing", "order_id": "S2", "trigger_price": 105.0}) as ens:
             main._sync_real_fo_option_sl(conn, "NIFTY:PUT")
