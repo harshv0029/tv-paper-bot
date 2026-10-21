@@ -16346,6 +16346,8 @@ FO_OPTION_TRAIL_PCT = 1.0         # then SL = highest LTP since entry minus 1%
 FO_OPTION_SL_FAIL_EXIT_SECONDS = 180
 FO_ENTRY_SL_RETRIES = 4  # B-1270: SL retries right after an entry fill while Kotak's position is not yet visible
 FO_ENTRY_SL_RETRY_SLEEP_S = 2.0
+FO_ENTRY_SL_FAIL_RETRY_WINDOW_S = 60.0  # B-1318: retry a failed entry SL this long before unwinding
+FO_ENTRY_SL_FAIL_RETRY_SLEEP_S = 5.0
 
 
 def _maybe_place_real_fo_call_entry(conn, symbol: str, spot: float, strategy_tag: str | None):
@@ -16540,6 +16542,17 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
             _log_real_fo_attempt(conn, leg_key, "B", "sl_pending_position_not_visible", kotak_trading_symbol=contract["kotak_trading_symbol"],
                                  qty=qty, detail="reason: no SL yet, Kotak position not visible after retries; 30s tick retries, 180s risk cut backstop")
             print(f"[REAL F&O] ALARM {leg_key} entry has NO stop-loss yet (position not visible at Kotak)")
+        # B-1318: a first SL failure (transient reject, no order id, unreadable Kotak) must not dump the entry at once;
+        # keep retrying the stop for FO_ENTRY_SL_FAIL_RETRY_WINDOW_S before unwinding (the position stays naked only that long).
+        _t0 = time.time()
+        while (_sl_status in ("sl_failed", "sl_exception") or str(_sl_status).startswith("kotak_unreadable")) \
+                and time.time() - _t0 < FO_ENTRY_SL_FAIL_RETRY_WINDOW_S:
+            time.sleep(FO_ENTRY_SL_FAIL_RETRY_SLEEP_S)
+            try:
+                _sl_status = _sync_real_fo_option_sl(conn, leg_key, reason="initial protective SL retry after a failed placement")
+            except Exception as _e:
+                _sl_status = "sl_exception"
+                print(f"[REAL F&O] SL fail-retry raised for {leg_key}: {_e}")
         if _sl_status in ("sl_failed", "sl_exception") or str(_sl_status).startswith("kotak_unreadable"):
             _row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone()
             if _row:
