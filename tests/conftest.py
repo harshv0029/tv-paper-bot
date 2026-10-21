@@ -85,3 +85,19 @@ def _option_spread_unread_by_default(request, monkeypatch):
         return
     monkeypatch.setattr(nse_fo_chain, "fetch_option_liquidity",
                         lambda c: {"bid": None, "ask": None, "open_interest": None, "volume": None})
+
+
+@pytest.fixture(autouse=True)
+def _registry_gate_without_stack_in_tests(request, monkeypatch):
+    """2026-10-21: live real entry needs the explorer stack. Most gate tests check the registry PFnet path with no stack
+    saved, so they run with the old fallback; test_real_entry_needs_explorer_stack.py checks the live rule itself."""
+    if request.node.fspath.basename == "test_real_entry_needs_explorer_stack.py":
+        return
+    try:
+        import main
+    except Exception:
+        return
+    # a test that re-imports main leaves older test modules holding the previous module object: patch both
+    for _m in {id(main): main, id(getattr(request.module, "main", main)): getattr(request.module, "main", main)}.values():
+        if hasattr(_m, "REAL_ENTRY_REQUIRES_EXPLORER_STACK"):
+            monkeypatch.setattr(_m, "REAL_ENTRY_REQUIRES_EXPLORER_STACK", False)

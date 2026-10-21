@@ -14,6 +14,8 @@ _DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtes
 _RUNS = (
     ("chan_gap_main_replay_run_38501321543.json", "chan-gap-main-replay.yml run 38501321543 (1d, cost 0.8%, main.py functions, ATR stop attached)",
      "scripts/chan_gap_main_replay.py", sr.AssetClass.EQUITY_INTRADAY, sr.TradeCategory.BUY),
+    ("chan_gap_main_replay_run_39599591455.json", "chan-gap-main-replay.yml run 39599591455 (B-1331: live capped-5% stop + fit-in-5% rule; 1d, cost 0.8%, main.py functions)",
+     "scripts/chan_gap_long_main_replay.py", sr.AssetClass.EQUITY_INTRADAY, sr.TradeCategory.BUY),
     ("pl1d_short_main_replay_run_38501324353_partial.json", "pl1d-short-main-replay.yml run 38501324353 (1d, cost 0.8%, main.py functions; PARTIAL: 2 cells from the job log)",
      "scripts/pl1d_short_main_replay.py", sr.AssetClass.EQUITY_SWING, sr.TradeCategory.SHORT_SELL),
     ("chan_gap_short_main_replay_run_38502123279.json", "chan-gap-short-main-replay.yml run 38502123279 (1d, cost 0.8%, main.py functions; only the atr1d5 cell was emitted)",

@@ -55,6 +55,35 @@
 "bollinger_mean_reversion",
 {},
 1.166
+],
+[
+"rsi_reversal__ng__short__1d__atrnone__v1",
+"NG=F",
+"rsi_reversal",
+{
+"rsi_period": 14,
+"oversold": 30,
+"overbought": 70
+},
+1.047
+],
+[
+"donchian_breakout__gc__long__1d__atrnone__v1",
+"GC=F",
+"donchian_breakout",
+{},
+1.025
+],
+[
+"rsi_reversal__si__long__1d__atrnone__v1",
+"SI=F",
+"rsi_reversal",
+{
+"rsi_period": 14,
+"oversold": 30,
+"overbought": 70
+},
+1.019
 ]
 ]
 }

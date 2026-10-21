@@ -18,8 +18,9 @@ TAGS = [
 
 
 def test_tags_mapping_registry_and_owed():
-    assert list(main.CHAN_GAP_LONG_CELLS) == TAGS
-    assert list(main.CHAN_GAP_LONG_CELLS.values()) == [4.0, 2.5, 1.5]
+    atr_cells = {t: v for t, v in main.CHAN_GAP_LONG_CELLS.items() if not isinstance(v, str)}  # B-1331 adds cap5/fit5 rules
+    assert list(atr_cells) == TAGS
+    assert list(atr_cells.values()) == [4.0, 2.5, 1.5]
     names = {d.name for d in sr.REGISTRY}
     for t in TAGS:
         assert t in names
@@ -109,7 +110,8 @@ def test_replay_script_smoke_synthetic(tmp_path):
                         cwd=root, env={**env, "PYTHONPATH": root}, capture_output=True, text=True, timeout=300)
     assert r2.returncode == 0, r2.stderr[-800:]
     rows = json.load(open(tmp_path / "all.json"))["rows"]
-    assert [x["tag"] for x in rows] == sorted(TAGS)
+    extra = {"chan_gap__buy_on_gap__long__1d__atr4d0cap5_top10__v1", "chan_gap__buy_on_gap__long__1d__fit5_top10__v1"}
+    assert [x["tag"] for x in rows] == sorted({*TAGS, *extra})  # B-1331 rows: live capped stop + fit-in-5% rule
     assert all("metrics" in x and "n" in x["metrics"] for x in rows)
     import shutil
     shutil.rmtree(os.path.join(root, "out"), ignore_errors=True)
@@ -121,3 +123,17 @@ def test_chan_gap_short_gate_open_and_has_mr_row():
     assert t not in main.REPLAY_OWED_TAGS
     assert main._is_strategy_viable_for_real_money(t, check_switch=False)
     assert t.replace("short_on_gap__short", "short_on_gap_mr__short") in {d.name for d in sr.REGISTRY}
+
+
+def test_b1331_cap5_and_fit5_are_wired_with_their_own_stop_rules():
+    """User 2026-10-21: wiring has one condition, PFnet >= 1 - cap5 (1.411) and fit5 (1.242) are wired like atr4d0 (>5% stop)."""
+    cap = "chan_gap__buy_on_gap__long__1d__atr4d0cap5_top10__v1"
+    fit = "chan_gap__buy_on_gap__long__1d__fit5_top10__v1"
+    for t in (cap, fit, "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1"):
+        assert t in main.CHAN_GAP_LONG_CELLS and t not in main.REPLAY_OWED_TAGS and main._is_strategy_wired(t)
+    assert main._STRATEGY_TAG_TO_REGISTRY_NAME[cap].startswith("chan_gap__buy_on_gap_mr__")
+    assert main.chan_gap_stop_for(cap, 100.0, 3.0) == 95.0  # 4 x ATR = 12% capped at 5%
+    assert main.chan_gap_stop_for(cap, 100.0, 1.0) == 96.0  # 4% fits, uncapped
+    assert main.chan_gap_stop_for(fit, 100.0, 1.0) == 96.0  # 4 x ATR fits
+    assert main.chan_gap_stop_for(fit, 100.0, 3.0) == 95.5  # only 1.5 x ATR fits
+    assert main.chan_gap_stop_for(fit, 100.0, 4.0) is None  # nothing fits: no trade

@@ -11777,10 +11777,35 @@ def _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interv
 # close of the latest completed bar, stop anchored to the open as in the research). Exit = ATR stop or the 15:10 flatten
 # (research: close). Every entry carries its stop; the real mirror unwinds if the SL cannot rest. Gate closed by
 # REPLAY_OWED_TAGS until scripts/chan_gap_main_replay.py is on file. Buy engine only.
-CHAN_GAP_LONG_CELLS = {  # tag -> ATR stop multiple, PFnet descending (first VIABLE cell opens, else the first for paper)
-    "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1": 4.0,
-    "chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1": 2.5,
-    "chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1": 1.5,
+CHAN_GAP_LONG_CELLS = {  # tag -> stop rule, PFnet descending (first VIABLE cell opens, else the first for paper)
+    "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1": 4.0,  # ATR multiple (1.445)
+    # B-1331 (user 2026-10-21: wiring has one condition, PFnet >= 1): replay run 39599591455, main.py functions
+    "chan_gap__buy_on_gap__long__1d__atr4d0cap5_top10__v1": "cap5",  # 4 x ATR, capped 5% below entry (1.411)
+    "chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1": 2.5,  # (1.41)
+    "chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1": 1.5,  # (1.364)
+    "chan_gap__buy_on_gap__long__1d__fit5_top10__v1": "fit5",  # first ATR cell whose stop fits 5%, else no entry (1.242)
+}
+CHAN_GAP_STOP_CAP_PCT = 0.05  # the 5% of the cap5/fit5 rules (= REAL_INTRADAY_MAX_STOP_PCT when replayed)
+
+
+def chan_gap_stop_for(tag: str, entry: float, atr: float):
+    """Stop price for one chan gap cell, or None when the cell's rule takes no trade (fit5 with no fitting stop)."""
+    rule = CHAN_GAP_LONG_CELLS[tag]
+    if not isinstance(rule, str):
+        return entry - rule * atr
+    mults = [m for m in CHAN_GAP_LONG_CELLS.values() if not isinstance(m, str)]
+    if rule == "cap5":
+        return max(entry - mults[0] * atr, entry * (1 - CHAN_GAP_STOP_CAP_PCT))
+    if rule == "fit5":
+        fit = next((m for m in mults if m * atr <= CHAN_GAP_STOP_CAP_PCT * entry), None)
+        return None if fit is None else entry - fit * atr
+    return None
+
+
+# B-1331: the cap5/fit5 replays are registered under their `_mr` (main.py replay) names
+CHAN_GAP_REGISTRY_NAME = {
+    "chan_gap__buy_on_gap__long__1d__atr4d0cap5_top10__v1": "chan_gap__buy_on_gap_mr__long__1d__atr4d0cap5_top10__v1",
+    "chan_gap__buy_on_gap__long__1d__fit5_top10__v1": "chan_gap__buy_on_gap_mr__long__1d__fit5_top10__v1",
 }
 CHAN_GAP_ENTRY_CUTOFF_MIN = 10 * 60 + 15
 CHAN_GAP_FIRST_BAR_DONE_MIN = 9 * 60 + 20
@@ -11900,7 +11925,9 @@ def _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, in
     liq_ok, _ = _liquidity_gate(df)
     if not liq_ok or _likely_lower_circuit_locked(df, today_str):
         return None
-    stop_loss = sig["entry_price"] - CHAN_GAP_LONG_CELLS[tag] * sig["atr_at_entry"]
+    stop_loss = chan_gap_stop_for(tag, sig["entry_price"], sig["atr_at_entry"])
+    if stop_loss is None:
+        return None  # fit5: no ATR stop fits 5% today, the rule takes no trade
     stop_dist = last_close - stop_loss
     if stop_loss <= 0 or stop_dist <= 0:
         return None
@@ -13041,7 +13068,7 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "orb-range-short": "range_short_staged_ladder",
     **{_t: _t for _t in CHAN_SHORT_CELLS},
     **{_t: _t for _t in CHAN_LONG_CELLS},
-    **{_t: _t for _t in CHAN_GAP_LONG_CELLS},
+    **{_t: CHAN_GAP_REGISTRY_NAME.get(_t, _t) for _t in CHAN_GAP_LONG_CELLS},
     # Swing's own real-entry call sites pass a plain label (see
     # _maybe_place_real_swing_entry's call sites), not an ORB-prefixed
     # tag - "minervini_vcp" maps to minervini_trend_template_vcp per that
@@ -13414,9 +13441,16 @@ def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: b
         # explorer button). Bypasses the PFnet floor and replay-owed hold; the ALL TRADING switch above, the SL on
         # every entry and the Kotak backcheck still apply.
         return True
+    if REAL_ENTRY_REQUIRES_EXPLORER_STACK and not sr.VIABLE_STACK_ACTIVE:
+        # 2026-10-21 user: "for live money trade entry it should come from active viable condition from explorer table".
+        # No stack loaded (empty table, restore not done) = no real entry; PFnet >= 1 alone only wires scanning.
+        return False
     if strategy_tag in REPLAY_OWED_TAGS:
         return False
     return strat.is_viable() is True
+
+
+REAL_ENTRY_REQUIRES_EXPLORER_STACK = True  # 2026-10-21 user rule (not a switch: tests that check the registry gate unset it)
 
 
 def _is_strategy_wired(strategy_tag: str | None) -> bool:
@@ -20227,6 +20261,40 @@ REAL_PNL_CACHE_TTL_SECONDS = 300  # 5 min - same reasoning as REAL_CAPITAL_CACHE
 _real_trades_cache = {"value": None, "fetched_at": 0.0, "error": None, "day": None}
 
 
+# B-1315 remainder (2026-10-21): Kotak positions() carry no brokerage/STT, so the loss budget read only gross P&L and let
+# charges push a day past its cap. Statutory rates (Oct 2024 schedule) as fractions of turnover: (sell-side STT/CTT,
+# exchange txn both sides, buy-side stamp). SEBI fee both sides; GST 18% on exchange + SEBI. Brokerage is plan-specific
+# and not in Kotak's position fields, so it is left out (the estimate errs low, never invents a fee).
+_CHARGE_RATES = {
+    "eq_intraday": (0.00025, 0.0000297, 0.00003),
+    "eq_delivery": (0.001, 0.0000297, 0.00015),
+    "nse_option": (0.001, 0.0003503, 0.00003),
+    "nse_future": (0.0002, 0.0000173, 0.00002),
+    "mcx_option": (0.0005, 0.000418, 0.00003),
+    "mcx_future": (0.0001, 0.000021, 0.00002),
+}
+_SEBI_FEE_RATE = 0.000001
+_GST_RATE = 0.18
+
+
+def _estimate_statutory_charges_inr(seg: str, trdsym: str, prod: str, buy_amt: float, sell_amt: float) -> float:
+    """Estimated STT/CTT + exchange + SEBI + stamp + GST for one realized leg pair (brokerage excluded)."""
+    seg, sym = str(seg or ""), str(trdsym or "").upper()
+    is_opt = sym.endswith("CE") or sym.endswith("PE")
+    if seg.startswith("mcx"):
+        kind = "mcx_option" if is_opt else "mcx_future"
+    elif seg == "nse_fo" or seg == "bse_fo":
+        kind = "nse_option" if is_opt else "nse_future"
+    else:
+        kind = "eq_delivery" if str(prod or "").upper() == "CNC" else "eq_intraday"
+    stt, txn, stamp = _CHARGE_RATES[kind]
+    turnover = buy_amt + sell_amt
+    exch = txn * turnover
+    sebi = _SEBI_FEE_RATE * turnover
+    sell_tax = stt * (turnover if kind == "eq_delivery" else sell_amt)  # delivery STT is charged on both sides
+    return round(sell_tax + exch + sebi + stamp * buy_amt + _GST_RATE * (exch + sebi), 2)
+
+
 def _refresh_real_trades_cache():
     """Never raises - stores the error string instead, same pattern as
     _refresh_real_capital_cache, so a transient Kotak failure can't crash
@@ -20270,6 +20338,8 @@ def _refresh_real_trades_cache():
                     "entry_price_native": round(buy_amt / qty, 2) if qty else None,
                     "exit_price_native": round(sell_amt / qty, 2) if qty else None,
                     "qty": qty, "pnl_inr": round(sell_amt - buy_amt, 2),
+                    "charges_est_inr": _estimate_statutory_charges_inr(
+                        row.get("exSeg"), row.get("trdSym") or row.get("sym"), row.get("prod"), buy_amt, sell_amt),
                 })
             except (TypeError, ValueError):
                 continue
@@ -20313,7 +20383,7 @@ def get_real_pnl_today_inr(since_ts: float | None = None):
         return None
     if since_ts is not None:
         trades = [t for t in trades if t["exit_time_utc"] >= since_ts]
-    return sum(t["pnl_inr"] for t in trades)
+    return sum(t["pnl_inr"] - t.get("charges_est_inr", 0.0) for t in trades)  # B-1315: net of estimated charges
 
 
 def get_real_capital_deployed_inr() -> float | None:
@@ -26561,6 +26631,11 @@ def _strategy_scan_activity_compute(include_unwired: bool = False):
             rule = "trailing premium SL"
         if rule is None:
             rule = _SWING_SL_RULES.get(tag)
+        _cg = CHAN_GAP_LONG_CELLS.get(tag)
+        if _cg == "cap5":  # B-1331 rule cells
+            rule = "4.0xATR stop capped 5% below entry"
+        elif _cg == "fit5":
+            rule = "first ATR stop (4.0/2.5/1.5x) within 5%, else no entry"
         return {"sl_pct": round(sum(pcts) / len(pcts), 2) if pcts else None, "sl_open_n": len(pcts), "sl_rule": rule}
 
     _mcx_tags = {c[0] for c in _MCX_DAILY_CELLS}

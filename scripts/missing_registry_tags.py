@@ -23,6 +23,14 @@ NAME_KEYS = ("tag", "name", "strategy")
 EXPLAINED_PREFIX = {"sizing__": "account-level position-sizing simulation (geo-mean equity / drawdown / ruin), no PFnet, win % or trade metrics"}
 
 
+def _mr_name(tag):
+    try:
+        from strategy_registry_main_replay import mr_name
+        return mr_name(tag)
+    except Exception:
+        return tag
+
+
 def norm(tag):
     """Spelling variants of one raw tag in the registry: a `|full`/`|n200` universe suffix (pattern cells) and an `_rn<run>` rerun suffix."""
     return re.sub(r"_rn\d+(?=__v\d+$)", "", tag.split("|", 1)[0])
@@ -52,7 +60,9 @@ def scan(data_dir, registry_names):
         except (ValueError, OSError) as ex:
             skipped.append({"file": os.path.basename(f), "reason": str(ex)[:120]})
             continue
-        miss = sorted(t for t in tags if t not in registry_names and norm(t) not in reg_norm)
+        # a main.py-replay row is registered under its `_mr` name (strategy_registry_main_replay.mr_name)
+        miss = sorted(t for t in tags if t not in registry_names and norm(t) not in reg_norm
+                      and _mr_name(t) not in registry_names)
         explained = [t for t in miss if any(t.startswith(p) for p in EXPLAINED_PREFIX)]
         per_file[os.path.basename(f)] = {"tags": len(tags), "missing": [t for t in miss if t not in explained], "explained": explained}
     return per_file, skipped

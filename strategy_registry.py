@@ -2986,7 +2986,7 @@ _extend_with_sweeps()
 
 
 # ---- Viable-strategy bucketing (read-time derived; B-815) -------------------
-PFNET_BUCKET_BANDS = ((1.1, 1.3, "1.1-1.3"), (1.3, 1.6, "1.3-1.6"), (1.6, 2.0, "1.6-2.0"), (2.0, None, "2.0+"))
+PFNET_BUCKET_BANDS = ((1.0, 1.3, "1.0-1.3"), (1.3, 1.6, "1.3-1.6"), (1.6, 2.0, "1.6-2.0"), (2.0, None, "2.0+"))
 HOLD_DAY_BANDS = ((0, 1, "<=1d"), (1, 3, "1-3d"), (3, 7, "3-7d"), (7, 15, "7-15d"), (15, 30, "15-30d"), (30, None, ">30d"))
 HOLD_UNRECORDED = "hold not recorded"
 
@@ -2995,7 +2995,7 @@ def _pfnet_band(pfnet: float) -> str:
     for lo, hi, label in PFNET_BUCKET_BANDS:
         if pfnet >= lo and (hi is None or pfnet < hi):
             return label
-    return PFNET_BUCKET_BANDS[0][2]  # floor was lowered below 1.1: lump with the lowest band
+    return PFNET_BUCKET_BANDS[0][2]  # below the lowest band (floor lowered further): lump with it
 
 
 def _hold_band(avg_held_hrs: Optional[float]) -> str:
