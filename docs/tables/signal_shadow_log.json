@@ -329,7 +329,106 @@
       "taken": 0,
       "reason": "real entry: strategy below PFnet floor",
       "hard_gate": 1
+    },
+    {
+      "id": 31,
+      "ts": 1792576780.5625966,
+      "day": "2026-10-21",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "HINDCOPPER.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 32,
+      "ts": 1792576782.2505474,
+      "day": "2026-10-21",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "ITC.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 33,
+      "ts": 1792576782.316758,
+      "day": "2026-10-21",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "ITC.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 34,
+      "ts": 1792576788.6206045,
+      "day": "2026-10-21",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "YESBANK.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 35,
+      "ts": 1792576788.6405144,
+      "day": "2026-10-21",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "YESBANK.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 36,
+      "ts": 1792576788.704222,
+      "day": "2026-10-21",
+      "strategy_tag": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
+      "symbol": "WIPRO.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 37,
+      "ts": 1792576788.7253695,
+      "day": "2026-10-21",
+      "strategy_tag": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
+      "symbol": "WIPRO.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 38,
+      "ts": 1792577152.9988601,
+      "day": "2026-10-21",
+      "strategy_tag": "envelope__0d05_fade__long__1h__atr6_h30__v1",
+      "symbol": "IDEA.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 39,
+      "ts": 1792577153.0185585,
+      "day": "2026-10-21",
+      "strategy_tag": "envelope__0d05_fade__long__1h__atr6_h30__v1",
+      "symbol": "IDEA.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
     }
   ],
-  "synced_at_utc": "2026-10-21T08:47:44Z"
+  "synced_at_utc": "2026-10-21T10:08:52Z"
 }
