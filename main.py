@@ -16345,6 +16345,7 @@ FO_OPTION_TRAIL_ARM_PCT = 1.0     # trailing starts once premium is 1% above ent
 FO_OPTION_TRAIL_PCT = 1.0         # then SL = highest LTP since entry minus 1%
 FO_OPTION_SL_FAIL_EXIT_SECONDS = 180
 FO_OPTION_SL_LIMIT_OFFSET_PCT = 5.0  # B-1323: kotak_real_fo_orders.place_real_fo_stop_loss limit = trigger x 0.95
+FO_OPTION_MAX_SPREAD_PCT = 5.0  # B-1328: skip an option entry whose bid/ask spread is wider than this % of mid
 FO_ENTRY_SL_RETRIES = 4  # B-1270: SL retries right after an entry fill while Kotak's position is not yet visible
 FO_ENTRY_SL_RETRY_SLEEP_S = 2.0
 FO_ENTRY_SL_FAIL_RETRY_WINDOW_S = 60.0  # B-1318: retry a failed entry SL this long before unwinding
@@ -16433,6 +16434,26 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
     if not _option_pool_allows(strategy_tag):
         _log_real_fo_attempt(conn, leg_key, "B", "skipped_not_option_pool", detail=f"B-1314 strategy_tag={strategy_tag}")
         return
+    # B-1328: every option entry and every risk-cut exit is a MARKET order, so a wide bid/ask on a thin strike
+    # is paid twice (half-spread in, half-spread out) on top of costs. Skip when Kotak shows the spread wider
+    # than FO_OPTION_MAX_SPREAD_PCT of mid. The quote shape is not yet confirmed live, so an unreadable quote
+    # does not block (it would halt every option entry); it is logged on the confirmed row instead.
+    _spread_note = "spread unread"
+    try:
+        import nse_fo_chain as _nfc
+        _liq = _nfc.fetch_option_liquidity(contract)
+        _bid, _ask = _liq.get("bid"), _liq.get("ask")
+        if _bid and _ask and _bid > 0 and _ask >= _bid:
+            _spread_pct = (_ask - _bid) / ((_ask + _bid) / 2.0) * 100.0
+            _spread_note = f"spread {_spread_pct:.1f}% (bid {_bid} ask {_ask})"
+            if _spread_pct > FO_OPTION_MAX_SPREAD_PCT:
+                _log_real_fo_attempt(conn, leg_key, "B", "skipped_spread_too_wide",
+                                     kotak_trading_symbol=contract.get("kotak_trading_symbol"),
+                                     price_est=contract.get("premium"),
+                                     detail=f"B-1328 {_spread_note} > {FO_OPTION_MAX_SPREAD_PCT}%")
+                return
+    except Exception as _e:
+        _spread_note = f"spread unread ({_e})"
     qty = contract["lot_size"]
     if budget_inr and contract["premium"] > 0:
         # user 2026-10-08: size from the money available in the account (lots that fit
@@ -16524,7 +16545,7 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
             conn, leg_key, "B", "confirmed", kotak_trading_symbol=contract["kotak_trading_symbol"],
             qty=qty, price_est=contract["premium"], notional_inr=notional_inr,
             order_id=result["order_id"], raw_response=result.get("raw_response"),
-            detail=f"reason: {reason}; trailing SL follows",
+            detail=f"reason: {reason}; {_spread_note}; trailing SL follows",
         )
         # CLAUDE.md 2026-10-11 "no trade without SL or SLM ever": an entry whose stop cannot be
         # placed is unwound at once, not left naked for the 180s tick grace. "fresh_entry_awaiting_position"
