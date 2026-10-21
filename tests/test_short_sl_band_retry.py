@@ -64,3 +64,13 @@ def test_retry_wrapper_retries_transient(monkeypatch):
                         lambda *a: calls.append(a) or {"ok": False, "detail": "place_order raised: reset"})
     main._place_real_stop_loss_with_retry_short("X-EQ", 1, 105.0, attempts=3)
     assert len(calls) == 3
+
+
+def test_every_rejection_carries_its_kind_and_unknown_alarms(capsys):
+    r = kro._rejected_result("7", {"detail": "brand new reason", "row": {}}, {})
+    assert r["rejection_kind"] == "unknown" and not r["ok"]
+    assert "[ALARM]" in capsys.readouterr().out
+    r = kro._rejected_result("8", {"detail": "Circuit breach", "row": {}}, {})
+    assert r["rejection_kind"] == "price_band"
+    src = open("kotak_real_orders.py").read() + open("kotak_real_fo_orders.py").read()
+    assert src.count("rejected: {status['detail']}") == 1  # only inside _rejected_result
