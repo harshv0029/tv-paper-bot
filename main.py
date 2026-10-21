@@ -19626,9 +19626,11 @@ _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 # git instead (table-git-sync.yml, every 5 min -> docs/tables/<name>.json), restored
 # from the public raw file when the local table is empty. Safety-critical tables
 # (positions, kill switches, settings, viable stack) stay in Upstash.
+# B-1309: real_order_events moved here - Upstash 403 left the order log unmirrored, so every
+# restart wiped the day's reasons (0 events on 2026-10-21). Git is the durable tier that works.
 _GENERIC_MIRROR_GIT_TIER = ("swing_scan_log", "signal_shadow_log",
                             "strategy_scan_counts", "short_trades_closed",
-                            "strategy_viable_stack")
+                            "strategy_viable_stack", "real_order_events")
 _GENERIC_MIRROR_UPSTASH_TABLES = tuple(t for t in _GENERIC_MIRROR_TABLES
                                        if t not in _GENERIC_MIRROR_GIT_TIER)
 _git_tier_hydrated: set = set()

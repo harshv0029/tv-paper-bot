@@ -26,7 +26,7 @@ jobs:
           mkdir -p docs/tables
           curl -sS -m 60 "https://tv-paper-bot-gdan.onrender.com/health" || true
           echo
-          for t in swing_scan_log signal_shadow_log strategy_scan_counts short_trades_closed strategy_viable_stack; do
+          for t in swing_scan_log signal_shadow_log strategy_scan_counts short_trades_closed strategy_viable_stack real_order_events; do
             if ! curl -sS --retry 4 --retry-delay 5 --retry-connrefused -m 45 \
                  "https://tv-paper-bot-gdan.onrender.com/table-export/$t" -o /tmp/$t.json \
                || ! jq -e '.rows' /tmp/$t.json > /dev/null; then
