@@ -16702,6 +16702,14 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
     sym = row["kotak_trading_symbol"]
     st = kotak_real_fo_orders.fetch_kotak_option_state(sym)
     if not st["ok"]:
+        # B-1320: an unreadable Kotak state must not hide an unprotected leg forever.
+        # Only legs we have no SL on count; the timer is cleared as soon as a SL is confirmed.
+        if not row["sl_order_id"]:
+            since = _fo_sl_unprotected_since.setdefault(leg_key, time.time())
+            if time.time() - since >= FO_OPTION_SL_FAIL_EXIT_SECONDS:
+                _close_real_fo_option_leg(conn, row, f"risk cut: Kotak state unreadable and no SL on record for {FO_OPTION_SL_FAIL_EXIT_SECONDS}s")
+                _fo_sl_unprotected_since.pop(leg_key, None)
+                return "risk_cut_exit"
         return f"kotak_unreadable: {st['detail']}"
     # Kotak shows no open qty: stopped out / closed elsewhere -> close our row.
     if st["net_qty"] <= 0:
@@ -16727,6 +16735,12 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
     if feed_high is not None and feed_high > peak:
         peak = feed_high  # tick-built candle high catches spikes between 30s polls
     prev_trigger = float(row["sl_trigger_price"] or 0)
+    # B-1321: the resting SL is a limit order 5% under its trigger; a premium already below
+    # that limit cannot fill it, so cut at market instead of trusting the stuck order.
+    if ltp is not None and prev_trigger > 0 and ltp < prev_trigger * 0.95:
+        _close_real_fo_option_leg(conn, row, f"risk cut: premium {ltp} gapped below the SL limit ({prev_trigger * 0.95:.2f}); resting SL cannot fill")
+        _fo_sl_unprotected_since.pop(leg_key, None)
+        return "gap_through_exit"
     # user 2026-10-08: 3% initial stop below entry; once the premium is 1% above entry,
     # trail 1% below the highest LTP since entry; the trigger never lowers.
     entry = float(row["entry_price"])
