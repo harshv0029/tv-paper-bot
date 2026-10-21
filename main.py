@@ -25861,6 +25861,47 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
     }
 
 
+@app.get("/algo-live-flow")
+def algo_live_flow(window: int = 120, before: int = 8, after: int = 30):
+    """View 4 (user 2026-10-21): the real round-robin symbol sequence around the live cursor, plus every real
+    (strategy tag, symbol) scan in the last `window` seconds from _pair_scan_stats. Memory reads + one signal_state
+    SELECT (same as _scheduler_peek_next_batch); read-only, never touches order logic."""
+    now = time.time()
+    window = max(5, min(int(window), 600))
+    try:
+        with closing(get_db()) as conn:
+            held = {r["symbol"] for r in conn.execute("SELECT symbol FROM signal_state WHERE status = 'long'").fetchall()}
+    except Exception:
+        held = set()
+    tag_of = {cfg["symbol"]: cfg.get("strategy", "universal_score") for cfg in WATCHLIST}
+    flat = [cfg["symbol"] for cfg in WATCHLIST if cfg["symbol"] not in held]
+    m = len(flat)
+    seq = []
+    if m:
+        cur = _scheduler_rr_cursor % m
+        for off in range(-min(before, m), min(after, m)):
+            s = flat[(cur + off) % m]
+            seq.append({"symbol": s, "display": _display_name(s), "strategy": tag_of.get(s), "offset": off})
+    events = []
+    cutoff = now - window
+    for (tag, sym), rec in list(_pair_scan_stats.items()):
+        dq = rec[1]
+        if not dq or dq[-1] < cutoff:
+            continue
+        for ts in reversed(dq):
+            if ts < cutoff:
+                break
+            events.append({"ts": ts, "tag": tag, "symbol": sym})
+    events.sort(key=lambda e: e["ts"], reverse=True)
+    return {
+        "sequence": seq, "flat_count": m, "held": sorted(held), "rr_cursor": _scheduler_rr_cursor,
+        "currently_checking": _scheduler_currently_checking,
+        "scan_events": events[:400], "window_seconds": window,
+        "last_tick_ts": _scheduler_last_tick_ts, "server_time_utc": now,
+        "scheduler_interval_seconds": SCHEDULER_INTERVAL_SECONDS,
+    }
+
+
 @app.get("/trade-history")
 def trade_history(days: int = 1):
     """Every closed trade in the last `days` IST calendar days (default:
@@ -29808,4 +29849,10 @@ def trade_view2():
 @app.get("/trade-view3")
 def trade_view3():
     return FileResponse("static/trade-view3.html", headers={"Cache-Control": "no-store, max-age=0"})
+
+
+@app.get("/trade-view4")
+def trade_view4():
+    """Live end-to-end flow (user 2026-10-21): queue -> scan -> decision -> real order -> open position/stop, animated. Read-only."""
+    return FileResponse("static/trade-view4.html", headers={"Cache-Control": "no-store, max-age=0"})
 
