@@ -28127,6 +28127,9 @@ def table_export_endpoint(name: str):
     """B-1302: read-only dump of a git-tier table, read by table-git-sync.yml every 5 min."""
     if name not in _GENERIC_MIRROR_GIT_TIER:
         raise HTTPException(status_code=404, detail="not a git-tier table")
+    # B-1326: never export before the git restore ran, or a partial post-restart table would replace the git history
+    if name not in _git_tier_hydrated:
+        raise HTTPException(status_code=503, detail="table not yet restored from git")
     with closing(get_db()) as conn:
         rows = [dict(r) for r in conn.execute(f"SELECT * FROM {name}").fetchall()]
     return {"count": len(rows), "rows": rows}
