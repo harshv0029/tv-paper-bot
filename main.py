@@ -29786,6 +29786,12 @@ def live():
 
 
 @app.get("/trade-view")
+def trade_view_tabs():
+    """Single trade-view page (user 2026-10-21): fixed View 1/2/3 buttons on top, the chosen view scrolls below them."""
+    return FileResponse("static/trade-view-tabs.html", headers={"Cache-Control": "no-store, max-age=0"})
+
+
+@app.get("/trade-view1")
 def trade_view():
     """Self-refreshing candlestick chart for whatever position(s) are
     currently open, with entry/stop/target/opening-range lines overlaid -
