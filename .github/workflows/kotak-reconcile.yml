@@ -73,9 +73,20 @@ jobs:
           if [[ -n "$ADOPT" ]]; then
             URL="${URL}&adopt=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$ADOPT")"
           fi
+          # B-1311: start the job in the background, then poll, so a slow
+          # reconcile never fails the run on a client timeout.
+          B=https://tv-paper-bot-gdan.onrender.com
           curl -sS --retry 3 --retry-delay 10 --retry-connrefused -m 60 -X POST \
-            "$URL" \
-            -o /tmp/reconcile-result.json
+            "${URL}&background=1" -o /tmp/start.json || true
+          for i in $(seq 1 40); do
+            sleep 15
+            curl -sS -m 30 "$B/kotak-neo/reconcile-status?token=${KOTAK_NEO_API_TOKEN}" -o /tmp/status.json || continue
+            S=$(jq -r '.state // empty' /tmp/status.json 2>/dev/null)
+            echo "poll $i state=$S"
+            [[ "$S" == "done" || "$S" == "failed" ]] && break
+          done
+          jq -c '{state, seconds, error, samples: (.samples[-8:])}' /tmp/status.json || true
+          jq '.result // {error: (.error // "reconcile did not finish in 10 min")}' /tmp/status.json > /tmp/reconcile-result.json
           cat /tmp/reconcile-result.json
           echo
 
