@@ -1370,3 +1370,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Reality: the scheduler logged only 260 symbol checks against 3992 the day before. The 5-minute Kotak reconcile ran inline on the event loop and stalled on Upstash (403), starving the entry scan and freezing the web server (502 at 10:02 IST).
 - Lesson: before reading a quiet day as "no setups", compare scan volume with a normal day. Zero signals on a fraction of the normal scans is an outage, not a market verdict. Any blocking I/O in the scheduler tick (Kotak, Upstash, git) belongs in a worker thread with a bounded wait.
 - Profit-booking / exit takeaway: a starved scheduler also delays trailing-stop updates and exits, so scan health protects open profit as well as new entries.
+
+## 2026-10-23: the backup store went dark because of our own upload volume (B-1341)
+- What happened: Upstash's free database was suspended at its 10 GB/month bandwidth cap after only about 1.1 lakh commands. Since then no state survived a Render restart, and every call to the store returned 403.
+- Cause: a dashboard scan-set blob of several MB was re-uploaded uncompressed every 60 seconds whether it had changed or not, alongside other per-tick whole-object pushes.
+- Lesson: on a metered store, budget bytes as well as calls. Compress, skip unchanged uploads, throttle anything that isn't safety-critical, and meter usage per key so the next hog shows up before the cap.
+- Profit-booking / exit takeaway: losing the store can lose a position's strategy identity and stop context on restart. Protect the safety-critical state's budget so it is never starved by dashboard data.

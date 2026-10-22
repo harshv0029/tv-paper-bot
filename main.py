@@ -556,14 +556,39 @@ def _sync_check_counts_external(day: str, counts: dict) -> None:
     if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
         return
     try:
+        body = json.dumps({"day": day, "counts": counts}).encode("utf-8")
         requests.post(
             f"{UPSTASH_REDIS_REST_URL}/set/{_CHECK_COUNTS_REDIS_KEY}",
             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
-            data=json.dumps({"day": day, "counts": counts}).encode("utf-8"),
+            data=body,
             timeout=5,
         )
+        _upstash_meter(_CHECK_COUNTS_REDIS_KEY, len(body), "set")
     except Exception as e:
         print(f"[check_counts_external] sync failed (non-fatal): {e}")
+
+
+_CHECK_COUNTS_SYNC_SEC = 300  # B-1341: was a full post every ~30 s tick (~100 MB/day); a restart loses <= 5 min of counts
+_check_counts_last_sync = 0.0
+_check_counts_last_digest = None
+
+
+def _maybe_sync_check_counts_external() -> None:
+    """Throttled, skip-if-unchanged wrapper the scheduler tick calls. Never raises."""
+    global _check_counts_last_sync, _check_counts_last_digest
+    try:
+        now = time.time()
+        if now - _check_counts_last_sync < _CHECK_COUNTS_SYNC_SEC:
+            return
+        digest = hashlib.sha256(json.dumps([_scheduler_check_counts_day, _scheduler_check_counts],
+                                           sort_keys=True).encode()).hexdigest()
+        _check_counts_last_sync = now
+        if digest == _check_counts_last_digest:
+            return
+        _sync_check_counts_external(_scheduler_check_counts_day, _scheduler_check_counts)
+        _check_counts_last_digest = digest
+    except Exception as e:
+        print(f"[check_counts_external] throttled sync failed (non-fatal): {e}")
 
 
 def hydrate_check_counts_from_external() -> tuple[str, dict] | None:
@@ -19739,10 +19764,38 @@ _git_tier_hydrated: set = set()
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
 _generic_mirror_hydrated: set = set()
 _generic_mirror_last_hash: dict = {}
+# B-1341: positions, trades, signal state and kill switches push on every change (restart safety). Everything else in
+# the Upstash tier pushes at most every _GENERIC_MIRROR_SLOW_SEC on the tick path; an explicit only=(...) call is immediate.
+_GENERIC_MIRROR_SLOW_TABLES = ("nse_straddle_state", "signal_state_fo_options", "tracked_union",
+                               "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags", "swing_done_today")
+_GENERIC_MIRROR_SLOW_SEC = 300
+_generic_mirror_last_push_ts: dict = {}
 
 
 def _generic_mirror_key(table: str, suffix: str) -> str:
     return f"tv_paper_bot:tbl:{table}:v1:{suffix}"
+
+
+# B-1341 (2026-10-23): the free Upstash DB was SUSPENDED for its 10 GB/month bandwidth cap (only ~1.1 lakh commands),
+# so payload size, not request count, is the budget. Every byte sent or received is metered per key family here
+# (GET /upstash-usage) so the next hog is visible before the cap, not after.
+_upstash_usage: dict = {}
+_upstash_usage_day = ""
+
+
+def _upstash_meter(key: str, nbytes: int, op: str) -> None:
+    global _upstash_usage_day
+    try:
+        day = ist_now().strftime("%Y-%m-%d")
+        if day != _upstash_usage_day:
+            _upstash_usage.clear()
+            _upstash_usage_day = day
+        fam = re.sub(r":c\d+$|:\d{4}-\d{2}-\d{2}", "", str(key))
+        rec = _upstash_usage.setdefault(fam, {"get_ops": 0, "get_bytes": 0, "set_ops": 0, "set_bytes": 0})
+        rec[f"{op}_ops"] += 1
+        rec[f"{op}_bytes"] += int(nbytes)
+    except Exception:
+        pass
 
 
 def _upstash_get(key: str):
@@ -19750,6 +19803,7 @@ def _upstash_get(key: str):
         f"{UPSTASH_REDIS_REST_URL}/get/{key}",
         headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"}, timeout=10,
     )
+    _upstash_meter(key, len(resp.content or b""), "get")
     resp.raise_for_status()
     return resp.json().get("result")
 
@@ -19760,6 +19814,7 @@ def _upstash_set(key: str, value: str) -> None:
         headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"},
         data=value.encode("utf-8"), timeout=10,
     )
+    _upstash_meter(key, len(value), "set")
     resp.raise_for_status()
 
 
@@ -19896,6 +19951,9 @@ def sync_generic_tables_external(only=None) -> int:
             continue
         if table not in _generic_mirror_hydrated:
             continue  # never overwrite a remote copy we haven't restored from yet
+        if (only is None and table in _GENERIC_MIRROR_SLOW_TABLES
+                and time.time() - _generic_mirror_last_push_ts.get(table, 0.0) < _GENERIC_MIRROR_SLOW_SEC):
+            continue
         try:
             with closing(get_db()) as conn:
                 rows = [dict(r) for r in conn.execute(f"SELECT * FROM {table}").fetchall()]
@@ -19910,6 +19968,7 @@ def sync_generic_tables_external(only=None) -> int:
             _upstash_set(_generic_mirror_key(table, "meta"),
                          json.dumps({"chunks": len(chunks), "rows": len(rows), "synced_at": time.time()}))
             _generic_mirror_last_hash[table] = digest
+            _generic_mirror_last_push_ts[table] = time.time()
             pushed += 1
         except Exception as e:
             print(f"[table_mirror] sync {table} failed (non-fatal): {e}")
@@ -20934,7 +20993,9 @@ def _record_symbol_strategy_scan(tag: str):
 # hydrated (union-merged, same IST day only) once per process, pushed at most every _SYMBOL_SCANS_SYNC_SEC from a
 # daemon thread so scan loops never wait on the network.
 _SYMBOL_SCANS_REDIS_KEY = "tv_paper_bot:symbol_strategy_scans:v1"
-_SYMBOL_SCANS_SYNC_SEC = 60
+_SYMBOL_SCANS_SYNC_SEC = 300  # B-1341: was 60 s of an uncompressed multi-MB blob, the main cause of the 10 GB/month cap
+_symbol_scans_last_digest = None
+_pair_scans_last_digest = None
 _symbol_scans_hydrated = False
 _symbol_scans_last_sync = 0.0
 _symbol_scans_sync_lock = threading.Lock()
@@ -20948,7 +21009,7 @@ def _symbol_scans_hydrate_now() -> bool:
     raw = _upstash_get(_SYMBOL_SCANS_REDIS_KEY)
     today_str = ist_now().strftime("%Y-%m-%d")
     if raw:
-        saved = json.loads(raw)
+        saved = json.loads(raw) if raw.lstrip().startswith("{") else _pair_scans_decode(raw)  # B-1341: zlib+b64 now
         if saved.get("day") == today_str:
             if _symbol_strategy_scans_day != today_str:
                 _symbol_strategy_scans.clear()
@@ -20959,9 +21020,16 @@ def _symbol_scans_hydrate_now() -> bool:
 
 
 def _symbol_scans_push_now() -> None:
+    global _symbol_scans_last_digest
+    import base64, zlib
     today_str = ist_now().strftime("%Y-%m-%d")
-    snap = {s: sorted(t) for s, t in list(_symbol_strategy_scans.items())}
-    _upstash_set(_SYMBOL_SCANS_REDIS_KEY, json.dumps({"day": today_str, "scans": snap}))
+    snap = {s: sorted(t) for s, t in sorted(_symbol_strategy_scans.items())}
+    raw = json.dumps({"day": today_str, "scans": snap}, separators=(",", ":")).encode()
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest == _symbol_scans_last_digest:
+        return  # B-1341: unchanged, nothing to send
+    _upstash_set(_SYMBOL_SCANS_REDIS_KEY, base64.b64encode(zlib.compress(raw, 6)).decode())
+    _symbol_scans_last_digest = digest
 
 
 # Trade view2/3 per-(strategy, symbol) scan counts (user 2026-10-20: "view2 and view3 are to be stored... restart might
@@ -21010,9 +21078,15 @@ def _pair_scans_hydrate_now() -> bool:
 
 def _pair_scans_push_now() -> None:
     today_str = ist_now().strftime("%Y-%m-%d")
+    global _pair_scans_last_digest
     if _pair_scan_day != today_str:
         return
-    _upstash_set(_PAIR_SCANS_REDIS_KEY, _pair_scans_encode(today_str, _pair_scan_stats))
+    blob = _pair_scans_encode(today_str, _pair_scan_stats)
+    digest = hashlib.sha256(blob.encode()).hexdigest()
+    if digest == _pair_scans_last_digest:
+        return  # B-1341: unchanged, nothing to send
+    _upstash_set(_PAIR_SCANS_REDIS_KEY, blob)
+    _pair_scans_last_digest = digest
 
 
 def _symbol_scans_sync_worker() -> None:
@@ -25388,7 +25462,7 @@ async def _scheduler_tick():
     # module comment for why), after every check this tick has made -
     # keeps the "distinct scanned" dict surviving a restart at ANY
     # cadence, not just ones slower than journal-sync's 15-min interval.
-    _sync_check_counts_external(_scheduler_check_counts_day, _scheduler_check_counts)
+    _maybe_sync_check_counts_external()
 
     global _scheduler_tick_count
     _scheduler_tick_count += 1
@@ -26360,6 +26434,16 @@ async def strategy_viable_override(request: Request):
     active = _load_viable_overrides()
     with closing(get_db()) as c:
         return {"action": action, "active_count": len(active), "stack": _viable_stack_rows(c)}
+
+
+@app.get("/upstash-usage")
+def upstash_usage():
+    """B-1341: no-token, sizes only. Bytes/ops sent to and read from Upstash today (IST), per key family, since the
+    last restart. Free tier cap is 10 GB/month bandwidth (~330 MB/day); budget well under that."""
+    fams = {k: dict(v) for k, v in _upstash_usage.items()}
+    tot = sum(v["get_bytes"] + v["set_bytes"] for v in fams.values())
+    return {"day": _upstash_usage_day, "total_bytes": tot, "daily_budget_bytes": 330_000_000,
+            "families": dict(sorted(fams.items(), key=lambda kv: -(kv[1]["get_bytes"] + kv[1]["set_bytes"])))}
 
 
 @app.get("/entry-funnel")
