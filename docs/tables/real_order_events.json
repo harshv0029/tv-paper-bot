@@ -2243,7 +2243,67 @@
    "prev_state": "short 20 (app row)",
    "new_state": "no short at Kotak; row removed, no order sent",
    "detail": "reason: emergency: no resting stop for 1871s (tolerance 60s)"
+  },
+  {
+   "id": 188,
+   "ts": 1792700189.320689,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'XUAEZ-04b5b194-a2a6-4f67-9de5-e2aedc59dd02| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f0621a75010 and pBufHndl : 0x7f0688d69980 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+  },
+  {
+   "id": 189,
+   "ts": 1792700223.9274848,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'XUAEZ-bd309fb7-8507-4b40-adb8-e1bc52eb971d| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7fdb09c80010 and pBufHndl : 0x7fdae8d456b0 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+  },
+  {
+   "id": 190,
+   "ts": 1792700257.7471967,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'XUAEZ-38989500-6c6a-4448-b3f4-94d4bc8833fc| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f0621a75010 and pBufHndl : 0x7f0688d69980 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+  },
+  {
+   "id": 191,
+   "ts": 1792700291.462206,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'XUAEZ-062a6414-5980-4e7c-b8e0-85b62b04d9bf| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f6f04021010 and pBufHndl : 0x7f6f18d44f00 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+  },
+  {
+   "id": 192,
+   "ts": 1792700325.4038637,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": "GSEC5IETF-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'XUAEZ-a9ce82e1-e8fd-4f0b-8f43-7437a8cd70c2| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f0621a75010 and pBufHndl : 0x7f0688d69980 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
   }
  ],
- "synced_at_utc": "2026-10-22T20:03:24Z"
+ "synced_at_utc": "2026-10-22T20:22:29Z"
 }
