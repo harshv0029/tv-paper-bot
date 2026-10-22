@@ -1390,3 +1390,11 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Why it fits this system: every option entry and risk-cut exit is a market order, so the spread is paid twice, on top of the 0.8% cost model; low-premium strikes turn that into a near-certain loss.
 - Not replayable: option backtests carry no bid/ask or tick data, so this is a structural filter, not a tuned parameter.
 - Profit-booking / exit takeaway: size the stop from the instrument's tick and spread first; a stop tighter than the noise books a guaranteed small loss instead of protecting a trade.
+
+## B-1339 (2026-10-23 IST): multi-day shorts need futures, and futures need capital
+
+- Mechanism: Kotak rejects NRML cash-equity shorts (B-967), so a short held overnight can only be a stock future (or SLB). The brk20 short 1d signal is strong on cash (registry PFnet 3.9-10.3, n=39-189).
+- Fit for this system: one stock-futures lot needs about Rs 1-3 lakh margin, and an ATR4 stop on one lot risks tens of thousands of rupees. The account holds a few thousand rupees, so the live path could never place an order. Not built; revisit at about Rs 2.5 lakh capital.
+- Research kept ready: brk20 replay now takes universe=fno and a cost override (own tags, main_replay_fno / costX), so the F&O-only, futures-cost number exists before capital does.
+- Reuse next time: check lot-size margin and one-lot stop risk against the account BEFORE building any futures or new-instrument route; a strong signal is worthless if one unit exceeds the loss budget.
+- Profit-booking / exit takeaway: a short signal that cannot be held overnight is worth nothing as a swing; route it to an instrument the account can afford (a long put, B-1343) or leave it as research.
