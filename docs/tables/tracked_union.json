@@ -41,7 +41,7 @@
       "source": "holding",
       "entry_price": 65.5,
       "stop_loss": 63.93,
-      "sl_trigger_price": 64.7,
+      "sl_trigger_price": 63.93,
       "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
       "entry_order_id": "261016000301591",
       "opened_at": 1792130369.5525527,
@@ -70,7 +70,7 @@
       "qty": 1,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 188.75,
       "stop_loss": 186.86,
       "sl_trigger_price": null,
@@ -79,23 +79,7 @@
       "opened_at": 1792578447.972194,
       "day": "2026-10-21",
       "first_seen_day": "2026-10-21"
-    },
-    {
-      "kotak_trading_symbol": "YESBANK-EQ",
-      "symbol": "YESBANK.NS",
-      "qty": 20,
-      "is_short": 0,
-      "owner": "swing",
-      "source": "position",
-      "entry_price": 16.38,
-      "stop_loss": 16.22,
-      "sl_trigger_price": null,
-      "strategy": "swing_rerouted_orphan",
-      "entry_order_id": "261021000238854",
-      "opened_at": 1792578447.971936,
-      "day": "2026-10-21",
-      "first_seen_day": "2026-10-21"
     }
   ],
-  "synced_at_utc": "2026-10-21T13:42:35Z"
+  "synced_at_utc": "2026-10-22T13:43:22Z"
 }
