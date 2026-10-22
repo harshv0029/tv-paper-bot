@@ -37,3 +37,33 @@ def test_algo_live_flow_returns_real_sequence_and_scan_events():
     assert d["flat_count"] == len(d["sequence"]) or len(d["sequence"]) <= 38
     assert {"symbol", "strategy", "offset"} <= set(d["sequence"][0])
     assert {"ts": d["scan_events"][0]["ts"], "tag": "unit_tag", "symbol": "UNIT.NS"} in d["scan_events"]
+
+
+def test_algo_live_flow_burst_cannot_crowd_out_other_symbols_and_reports_daily_coverage():
+    """B-1336: a 180-cell daily burst on one symbol used to fill the 400-event cap; each symbol is now capped and
+    today's distinct-tag coverage plus swing-pass skips are returned."""
+    now = main.time.time()
+    keys = [(f"burst_{i}", "BURST.NS") for i in range(180)] + [("rr_tag", "QUIET.NS")]
+    for k in keys:
+        main._pair_scan_stats[k] = [1, main.collections.deque([now])]
+    day = main.ist_now().strftime("%Y-%m-%d")
+    saved_day, saved_scans = main._symbol_strategy_scans_day, dict(main._symbol_strategy_scans)
+    main._symbol_strategy_scans_day = day
+    main._symbol_strategy_scans.update({"BURST.NS": {f"burst_{i}" for i in range(180)}, "QUIET.NS": {"rr_tag"}})
+    main._note_swing_skipped("SKIP.NS", "daily fetch failed")
+    try:
+        d = TestClient(main.app).get("/algo-live-flow").json()
+    finally:
+        for k in keys:
+            main._pair_scan_stats.pop(k, None)
+        main._symbol_strategy_scans.clear()
+        main._symbol_strategy_scans.update(saved_scans)
+        main._symbol_strategy_scans_day = saved_day
+        main._swing_skipped_today["syms"].pop("SKIP.NS", None)
+    assert d["window_scans_by_symbol"]["BURST.NS"] == 180
+    assert sum(1 for e in d["scan_events"] if e["symbol"] == "BURST.NS") <= 40
+    assert any(e["symbol"] == "QUIET.NS" for e in d["scan_events"])
+    assert d["tested_today_by_symbol"]["BURST.NS"] == 180 and d["tested_today_by_symbol"]["QUIET.NS"] == 1
+    assert d["tested_today_max"] >= 180
+    assert d["swing_skipped_today"]["SKIP.NS"] == "daily fetch failed"
+    assert 'id="tagCov"' in open("static/trade-view4.html").read()

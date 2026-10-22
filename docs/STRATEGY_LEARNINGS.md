@@ -1347,3 +1347,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Replay (run 39626212667, real `main._mcx_daily_flags`): gold Donchian 1.370 n20 (registry 1.229), silver RSI 3.174 n16 (4.098), NG RSI short 2.605 n14 (2.281). All clear 1.0.
 - Surprise: the live function moves PFnet both ways vs research (silver -0.9, gold/NG up), so research numbers are a guide, not a fact. n is thin (14-20 trades in 5y): treat sizes cautiously.
 - Profit-booking / exit takeaway: the replay is underlying-only; real trades use the option-premium trailing SL, which is not simulated, so live exits can differ - compare the first live MCX fills against these numbers.
+
+## 2026-10-22: carried-over swing stop fires at the open; sold shares linger in holdings (YESBANK)
+- What happened: YESBANK 20 (avg 16.38) carried a trailed stop of 16.22 overnight. The exchange purges resting orders at 15:15, so the bot re-placed it at 09:17; the stock opened below 16.22 on a -1% market day, so the SL fired at once and sold all 20 @ 16.22 (~Rs3 loss before charges).
+- What broke: holdings() keeps shares sold today until T+1. The netting of today's sells relied only on positions(); when that call failed, the heal saw "20 held, no SL" and sent 3 SELL SLs on sold shares (Kotak T1 check rejected them).
+- Reuse next time: check two Kotak sources for "sold today" (positions() and the order book's complete sells); never act on holdings() alone during market hours. A Kotak call that times out may still have placed the order (WIPRO 09:16), so re-read the order book before any re-send.
+- Profit-booking / exit takeaway: a trailed swing stop that sits above the next day's open becomes a market-open exit at the stop price; on a gap-down day that is the intended protection, but a stop trailed to within ~1% of price on a Rs16 stock gives almost no room, so trail width on very low-priced names should be judged in ticks and ATR, not percent alone.
