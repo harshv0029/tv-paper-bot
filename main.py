@@ -16432,6 +16432,13 @@ FO_OPTION_TRAIL_PCT = 1.0         # then SL = highest LTP since entry minus 1%
 FO_OPTION_SL_FAIL_EXIT_SECONDS = 180
 FO_OPTION_SL_LIMIT_OFFSET_PCT = 5.0  # B-1323: kotak_real_fo_orders.place_real_fo_stop_loss limit = trigger x 0.95
 FO_OPTION_MAX_SPREAD_PCT = 5.0  # B-1328: skip an option entry whose bid/ask spread is wider than this % of mid
+# B-1310 (JIOFIN 217.5 CE, 21 Oct: bought 2.54, stopped 2.51 the same minute): the stop must sit outside the noise
+# the entry itself pays. Skip when the spread exceeds half the stop distance (the market BUY lands at the ask and
+# the stop is measured from there, so a spread >= the stop is a stop-out on the first quote), or when the stop is
+# fewer than FO_OPTION_MIN_STOP_TICKS price ticks (a 3% stop on a 2.5 premium is ~1 tick: one print triggers it).
+FO_OPTION_MAX_SPREAD_TO_STOP = 0.5
+FO_OPTION_TICK = 0.05
+FO_OPTION_MIN_STOP_TICKS = 3
 FO_ENTRY_SL_RETRIES = 4  # B-1270: SL retries right after an entry fill while Kotak's position is not yet visible
 FO_ENTRY_SL_RETRY_SLEEP_S = 2.0
 FO_ENTRY_SL_FAIL_RETRY_WINDOW_S = 60.0  # B-1318: retry a failed entry SL this long before unwinding
@@ -16524,6 +16531,16 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
     # is paid twice (half-spread in, half-spread out) on top of costs. Skip when Kotak shows the spread wider
     # than FO_OPTION_MAX_SPREAD_PCT of mid. The quote shape is not yet confirmed live, so an unreadable quote
     # does not block (it would halt every option entry); it is logged on the confirmed row instead.
+    _prem = float(contract.get("premium") or 0)
+    _stop_dist = trail_dist if trail_dist else _prem * FO_OPTION_INITIAL_STOP_PCT / 100.0
+    _stop_pct = (_stop_dist / _prem * 100.0) if _prem > 0 else 0.0
+    if _prem > 0 and _stop_dist < FO_OPTION_MIN_STOP_TICKS * FO_OPTION_TICK:
+        _log_real_fo_attempt(conn, leg_key, "B", "skipped_stop_inside_ticks",
+                             kotak_trading_symbol=contract.get("kotak_trading_symbol"), price_est=_prem,
+                             detail=f"B-1310 stop {_stop_dist:.3f} < {FO_OPTION_MIN_STOP_TICKS} ticks of {FO_OPTION_TICK} "
+                                    f"(premium {_prem})")
+        return
+    _spread_cap_pct = min(FO_OPTION_MAX_SPREAD_PCT, _stop_pct * FO_OPTION_MAX_SPREAD_TO_STOP) if _stop_pct else FO_OPTION_MAX_SPREAD_PCT
     _spread_note = "spread unread"
     try:
         import nse_fo_chain as _nfc
@@ -16532,11 +16549,12 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
         if _bid and _ask and _bid > 0 and _ask >= _bid:
             _spread_pct = (_ask - _bid) / ((_ask + _bid) / 2.0) * 100.0
             _spread_note = f"spread {_spread_pct:.1f}% (bid {_bid} ask {_ask})"
-            if _spread_pct > FO_OPTION_MAX_SPREAD_PCT:
+            if _spread_pct > _spread_cap_pct:
                 _log_real_fo_attempt(conn, leg_key, "B", "skipped_spread_too_wide",
                                      kotak_trading_symbol=contract.get("kotak_trading_symbol"),
                                      price_est=contract.get("premium"),
-                                     detail=f"B-1328 {_spread_note} > {FO_OPTION_MAX_SPREAD_PCT}%")
+                                     detail=f"B-1328/B-1310 {_spread_note} > {_spread_cap_pct:.2f}% "
+                                            f"(min of {FO_OPTION_MAX_SPREAD_PCT}% and half the {_stop_pct:.2f}% stop)")
                 return
     except Exception as _e:
         _spread_note = f"spread unread ({_e})"
@@ -29666,6 +29684,11 @@ def kotak_neo_reconcile_real_positions(request: Request, adopt: str | None = Non
 # poll instead of failing on app latency.
 _reconcile_job: dict = {"state": "idle"}
 _reconcile_job_lock = threading.Lock()
+# B-1313: the job lives in process memory, so a Render restart mid-run flips the status back to "idle" with no
+# result. Every status carries this process's start time so the workflow can tell "restarted mid-run" (and
+# re-start the job once) from "never started". Safety does not depend on it: the scheduler tick runs the same
+# reconcile in-process every ~5 min.
+_PROCESS_STARTED_TS = time.time()
 
 
 def _start_reconcile_job(adopt: str | None) -> dict:
@@ -29675,7 +29698,7 @@ def _start_reconcile_job(adopt: str | None) -> dict:
         if _reconcile_job.get("state") == "running":
             return dict(_reconcile_job, already_running=True)
         _reconcile_job.clear()
-        _reconcile_job.update(state="running", started=time.time(), samples=[])
+        _reconcile_job.update(state="running", started=time.time(), samples=[], process_started=_PROCESS_STARTED_TS)
     job = _reconcile_job
 
     def _run():
@@ -29714,7 +29737,7 @@ def _start_reconcile_job(adopt: str | None) -> dict:
 @app.get("/kotak-neo/reconcile-status")
 def kotak_neo_reconcile_status(request: Request):
     _require_kotak_token(request)
-    return dict(_reconcile_job)
+    return dict(_reconcile_job, process_started=_PROCESS_STARTED_TS)
 
 
 @app.post("/kotak-neo/close-position")
