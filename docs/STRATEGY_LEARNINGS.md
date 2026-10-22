@@ -1358,3 +1358,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - What happened: the 09:16 IST WIPRO SL request timed out after 30 s and was logged "sl failed", but Kotak had placed it (trigger 186.86, trigger pending at 09:16:44).
 - Lesson: after any timeout, re-read the order book before reporting a failure or sending again. A blind re-send risks a duplicate stop, which means a double sell.
 - Profit-booking / exit takeaway: a stop Kotak already holds is real protection. Adopt it, and never stack a second sell on the same shares.
+
+## 2026-10-22: Kotak will not hold an overnight cash-equity short (B-967)
+- Test: a 1-share IDEA-EQ SELL with product NRML at 10:15 IST (run 39724116793, order 261022000219219). Kotak RMS rejected it: "Short selling in NRML is not allowed. Instead, select MIS, CO or BO product type for intraday short selling."
+- Fit for this system: a cash-equity short can only be intraday (MIS), and must be covered before the broker's square-off. Every multi-day short swing cell (sector_rotation fade, brk20 short swing) can never trade cash equity at Kotak. `SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED` stays False for good.
+- Reuse next time: a multi-day short needs a product that allows it, i.e. stock futures, or SLB borrowing. Futures mean lot-size capital and different costs, so the cell must be re-validated on futures before any wiring (B-1339).
+- Profit-booking / exit takeaway: an intraday short must book its profit or loss the same day. Never design a short exit that relies on holding it overnight in cash equity.
