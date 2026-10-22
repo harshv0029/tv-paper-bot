@@ -78,11 +78,24 @@ jobs:
           B=https://tv-paper-bot-gdan.onrender.com
           curl -sS --retry 3 --retry-delay 10 --retry-connrefused -m 60 -X POST \
             "${URL}&background=1" -o /tmp/start.json || true
+          # B-1313: a Render restart mid-run resets the in-memory job to idle (no result). Detect it by the
+          # process start time changing (or idle after we started) and restart the job ONCE.
+          BOOT=$(jq -r '.process_started // empty' /tmp/start.json 2>/dev/null)
+          RESTARTS=0
           for i in $(seq 1 40); do
             sleep 15
             curl -sS -m 30 "$B/kotak-neo/reconcile-status?token=${KOTAK_NEO_API_TOKEN}" -o /tmp/status.json || continue
             S=$(jq -r '.state // empty' /tmp/status.json 2>/dev/null)
+            NOWBOOT=$(jq -r '.process_started // empty' /tmp/status.json 2>/dev/null)
             echo "poll $i state=$S"
+            if [[ "$S" == "idle" || ( -n "$BOOT" && -n "$NOWBOOT" && "$NOWBOOT" != "$BOOT" ) ]] && [[ "$RESTARTS" -lt 1 ]]; then
+              echo "::warning::server restarted or lost the job mid-run (state=$S, boot $BOOT -> $NOWBOOT); restarting the reconcile once"
+              RESTARTS=1
+              curl -sS --retry 3 --retry-delay 10 --retry-connrefused -m 60 -X POST \
+                "${URL}&background=1" -o /tmp/start.json || true
+              BOOT=$(jq -r '.process_started // empty' /tmp/start.json 2>/dev/null)
+              continue
+            fi
             jq -c '{seconds, samples: (.samples[-2:])}' /tmp/status.json 2>/dev/null || true
             [[ "$S" == "done" || "$S" == "failed" ]] && break
           done

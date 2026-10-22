@@ -1383,3 +1383,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - What surprised: a monthly cap gives no warning until the store is already dark, so the guard must be daily and must count across restarts.
 - Reuse: any free-tier external dependency (Upstash, Render, Actions minutes) gets a metered daily budget, a status endpoint and a failing scheduled check.
 - Profit-booking / exit takeaway: no direct trade effect; it protects stops and position records across restarts, which protects booked and open profit.
+
+## 2026-10-23: an option stop inside the market's own noise is not a stop (B-1310)
+- Mechanism: JIOFIN 217.5 CE was bought at 2.54 and stopped at 2.51 the same minute. A 3% stop on a 2.54 premium is 0.076, about 1.5 price ticks, and a market BUY fills at the ask, so the first bid print can trigger it.
+- Fix: option entries are skipped when the stop is under 3 ticks (0.05 each) or the bid/ask spread is more than half the stop %.
+- Why it fits this system: every option entry and risk-cut exit is a market order, so the spread is paid twice, on top of the 0.8% cost model; low-premium strikes turn that into a near-certain loss.
+- Not replayable: option backtests carry no bid/ask or tick data, so this is a structural filter, not a tuned parameter.
+- Profit-booking / exit takeaway: size the stop from the instrument's tick and spread first; a stop tighter than the noise books a guaranteed small loss instead of protecting a trade.
