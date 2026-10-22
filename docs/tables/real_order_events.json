@@ -2183,7 +2183,67 @@
    "prev_state": "short 20",
    "new_state": "short 20 (cover failed)",
    "detail": "reason: emergency: no resting stop for 1384s (tolerance 60s) | no order id in response: {'stCode': 1041, 'errMsg': 'Market order rejected: Last Traded Price (LTP) not available for this instrument. Please try placing a limit order', 'stat': 'Not_Ok'}"
+  },
+  {
+   "id": 183,
+   "ts": 1792699189.347151,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": "YESBANK-EQ",
+   "leg": "sl",
+   "event": "emergency_exit_triggered",
+   "order_id": null,
+   "prev_state": "unprotected for 1670s",
+   "new_state": "forcing full cover",
+   "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
+  },
+  {
+   "id": 184,
+   "ts": 1792699189.6087515,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": "YESBANK-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 20",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: emergency: no resting stop for 1670s (tolerance 60s)"
+  },
+  {
+   "id": 185,
+   "ts": 1792699192.9820633,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": "YESBANK-EQ",
+   "leg": "short_cover",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "short 20",
+   "new_state": "short 20 (cover failed)",
+   "detail": "reason: emergency: no resting stop for 1670s (tolerance 60s) | no order id in response: {'stCode': 1041, 'errMsg': 'Market order rejected: Last Traded Price (LTP) not available for this instrument. Please try placing a limit order', 'stat': 'Not_Ok'}"
+  },
+  {
+   "id": 186,
+   "ts": 1792699390.1261477,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": "YESBANK-EQ",
+   "leg": "sl",
+   "event": "emergency_exit_triggered",
+   "order_id": null,
+   "prev_state": "unprotected for 1871s",
+   "new_state": "forcing full cover",
+   "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
+  },
+  {
+   "id": 187,
+   "ts": 1792699391.5692341,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": "YESBANK-EQ",
+   "leg": "short_cover",
+   "event": "stale_row_cleared",
+   "order_id": null,
+   "prev_state": "short 20 (app row)",
+   "new_state": "no short at Kotak; row removed, no order sent",
+   "detail": "reason: emergency: no resting stop for 1871s (tolerance 60s)"
   }
  ],
- "synced_at_utc": "2026-10-22T19:55:59Z"
+ "synced_at_utc": "2026-10-22T20:03:24Z"
 }
