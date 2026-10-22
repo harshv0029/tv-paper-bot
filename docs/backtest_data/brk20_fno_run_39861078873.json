@@ -1,0 +1,69 @@
+{
+ "cost_round_trip_pct": 0.3,
+ "universe": "fno",
+ "period": "5y",
+ "synthetic": false,
+ "note": "transcribed from run 39861078873's logs (artifact brk20-all): shard 0 log shows 35/35 symbols loaded, 0 fetch errors; all 6 shards passed the new no-symbol-loaded guard. 210 = F&O underlyings in the universe (6 x ~35). Zero entries because ATR4 x RR4 needs 16 ATR of room to the 60-bar low, which large F&O names rarely give",
+ "rows": [
+  {
+   "tag": "brk20_min_rr__main_replay_fno__short__1d__atr4_be1_cost0d3_rr3d5__v1",
+   "interval": "1d",
+   "direction": "short",
+   "n_symbols": 210,
+   "shards": 6,
+   "metrics": {
+    "n": 0,
+    "pfnet": null,
+    "pfgross": null,
+    "win_pct": 0.0,
+    "avg_held_bars": 0.0,
+    "exit_reasons": {}
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay_fno__short__1d__atr4_be1_cost0d3_rr4__v1",
+   "interval": "1d",
+   "direction": "short",
+   "n_symbols": 210,
+   "shards": 6,
+   "metrics": {
+    "n": 0,
+    "pfnet": null,
+    "pfgross": null,
+    "win_pct": 0.0,
+    "avg_held_bars": 0.0,
+    "exit_reasons": {}
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay_fno__short__1d__atr4_cost0d3_rr3d5__v1",
+   "interval": "1d",
+   "direction": "short",
+   "n_symbols": 210,
+   "shards": 6,
+   "metrics": {
+    "n": 0,
+    "pfnet": null,
+    "pfgross": null,
+    "win_pct": 0.0,
+    "avg_held_bars": 0.0,
+    "exit_reasons": {}
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay_fno__short__1d__atr4_cost0d3_rr4__v1",
+   "interval": "1d",
+   "direction": "short",
+   "n_symbols": 210,
+   "shards": 6,
+   "metrics": {
+    "n": 0,
+    "pfnet": null,
+    "pfgross": null,
+    "win_pct": 0.0,
+    "avg_held_bars": 0.0,
+    "exit_reasons": {}
+   }
+  }
+ ]
+}

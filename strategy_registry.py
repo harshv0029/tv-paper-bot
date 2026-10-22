@@ -2925,6 +2925,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_bk.build())
         import strategy_registry_brk20_isoos as _bki
         REGISTRY.extend(_bki.build())
+        import strategy_registry_brk20_fno as _bkf
+        REGISTRY.extend(_bkf.build())
         import strategy_registry_elderpat as _ep
         REGISTRY.extend(_ep.build())
         import strategy_registry_dirsys_oneilnonovl as _dn

@@ -1397,4 +1397,7 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Fit for this system: one stock-futures lot needs about Rs 1-3 lakh margin, and an ATR4 stop on one lot risks tens of thousands of rupees. The account holds a few thousand rupees, so the live path could never place an order. Not built; revisit at about Rs 2.5 lakh capital.
 - Research kept ready: brk20 replay now takes universe=fno and a cost override (own tags, main_replay_fno / costX), so the F&O-only, futures-cost number exists before capital does.
 - Reuse next time: check lot-size margin and one-lot stop risk against the account BEFORE building any futures or new-instrument route; a strong signal is worthless if one unit exceeds the loss budget.
-- Profit-booking / exit takeaway: a short signal that cannot be held overnight is worth nothing as a swing; route it to an instrument the account can afford (a long put, B-1343) or leave it as research.
+- RESULT (runs 39861078873, 39861349630): on the 210 F&O underlyings the same signal loses before costs in all 9 swept cells (PFnet 0.45-0.75, gross 0.52-0.86). The cash edge lives in small caps that have no futures or options. Closed B-1339 and B-1343.
+- Surprise: a zero-trade run looked like a broken fetch; it was the rule (16 ATR of room never happens in large caps). Read the entry rule before blaming the data, and keep the harness printing loaded/error counts.
+- Reuse next time: before routing any cash-equity edge to F&O, rerun it on the F&O universe first; universe composition can be the whole edge.
+- Profit-booking / exit takeaway: a short signal that cannot be held overnight is worth nothing as a swing; and an edge confined to small caps cannot be moved into derivatives, so keep it as research.
