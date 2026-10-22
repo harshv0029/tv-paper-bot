@@ -38,9 +38,26 @@ def fmt(v) -> str:
     return str(int(v)) if v.is_integer() else str(v).replace(".", "d")
 
 
-def make_tag(direction: str, interval: str, atr, rr, be=None) -> str:
-    params = f"atr{fmt(atr)}" + (f"_be{fmt(be)}" if be is not None else "") + f"_rr{fmt(rr)}"
-    return f"brk20_min_rr__main_replay__{direction}__{interval}__{params}__v1"
+def make_tag(direction: str, interval: str, atr, rr, be=None, universe: str = "full", cost_pct=None) -> str:
+    """B-1339: universe=fno (NSE stock-futures underlyings only) is its own variant; a cost override is its
+    own param (alphabetical: atr, be, cost, rr), so a futures-cost run never shares a tag with the cash run."""
+    params = (f"atr{fmt(atr)}" + (f"_be{fmt(be)}" if be is not None else "")
+              + (f"_cost{fmt(cost_pct)}" if cost_pct is not None else "") + f"_rr{fmt(rr)}")
+    variant = "main_replay" if universe == "full" else f"main_replay_{universe}"
+    return f"brk20_min_rr__{variant}__{direction}__{interval}__{params}__v1"
+
+
+def universe_symbols(m, universe: str):
+    """full = main._load_nse_universe_from_file(); fno = its intersection with nse_fo_chain.STOCK_FO_UNDERLYINGS
+    (B-1339: a multi-day short can only be held overnight as a stock future, Kotak rejects NRML cash shorts)."""
+    syms = sorted(set(m._load_nse_universe_from_file()))
+    if universe == "fno":
+        import nse_fo_chain
+        fo = set(nse_fo_chain.STOCK_FO_UNDERLYINGS)
+        syms = [s for s in syms if s.split(".")[0].upper() in fo]
+    elif universe != "full":
+        raise SystemExit(f"bad universe {universe}")
+    return syms
 
 
 # ------------------------------------------------------------------ exact-mergeable aggregation
@@ -163,10 +180,10 @@ def fetch_interval(m, sym, interval):
     return out.reset_index(drop=True)
 
 
-def load_frames(m, interval, shard, nshards, limit=None):
+def load_frames(m, interval, shard, nshards, limit=None, universe="full"):
     if os.environ.get("SYNTHETIC") == "1":
         return {f"SYN{k}": synthetic_frame(k) for k in range(limit or 5)}
-    syms = sorted(set(m._load_nse_universe_from_file()))
+    syms = universe_symbols(m, universe)
     syms = syms[shard::nshards]
     if limit:
         syms = syms[:limit]
@@ -190,9 +207,13 @@ def run():
     cells = json.loads(os.environ.get("CELLS") or '[{"atr":3,"rr":4,"be":null}]')
     shard, nshards = int(os.environ.get("SHARD", "0")), int(os.environ.get("NSHARDS", "1"))
     limit = int(os.environ["SYMBOL_LIMIT"]) if os.environ.get("SYMBOL_LIMIT") else None
-    cost = m.ROUND_TRIP_COST_PCT / 100.0
-    frames = load_frames(m, interval, shard, nshards, limit)
-    aggs = {make_tag(direction, interval, c["atr"], c["rr"], c.get("be")): agg_new() for c in cells}
+    universe = os.environ.get("UNIVERSE") or "full"
+    cost_override = float(os.environ["COST_PCT"]) if os.environ.get("COST_PCT") else None
+    cost_pct = cost_override if cost_override is not None else m.ROUND_TRIP_COST_PCT
+    cost = cost_pct / 100.0
+    frames = load_frames(m, interval, shard, nshards, limit, universe)
+    tag = lambda c: make_tag(direction, interval, c["atr"], c["rr"], c.get("be"), universe, cost_override)
+    aggs = {tag(c): agg_new() for c in cells}
     for sym, df in frames.items():
         for c in cells:
             try:
@@ -200,13 +221,13 @@ def run():
             except Exception as ex:
                 print("ERROR", sym, c, ex)
                 continue
-            agg_add(aggs[make_tag(direction, interval, c["atr"], c["rr"], c.get("be"))], trades)
+            agg_add(aggs[tag(c)], trades)
     res = {"interval": interval, "direction": direction, "shard": shard, "nshards": nshards,
-           "n_symbols": len(frames), "cost_round_trip_pct": m.ROUND_TRIP_COST_PCT,
+           "n_symbols": len(frames), "cost_round_trip_pct": cost_pct, "universe": universe,
            "period": PERIOD_BY_INTERVAL[interval], "synthetic": os.environ.get("SYNTHETIC") == "1",
            "bar_constants_in_bars": {k: getattr(m, k) for k in dir(m) if k.startswith("BRK20_") and k.isupper()},
            "note": "bar-count constants are BARS of this interval (1h/15m: hours/quarter-hours, not days)",
-           "cells": {t: {"cell": next(c for c in cells if make_tag(direction, interval, c["atr"], c["rr"], c.get("be")) == t),
+           "cells": {t: {"cell": next(c for c in cells if tag(c) == t),
                          "raw": a} for t, a in aggs.items()}}
     os.makedirs("out", exist_ok=True)
     path = f"out/brk20_{interval}_{direction}_s{shard}.json"
@@ -228,7 +249,7 @@ def merge(d):
             agg_merge(e["agg"], c["raw"])
             e["n_symbols"] += r["n_symbols"]
             e["shards"] += 1
-        meta = {k: r[k] for k in ("cost_round_trip_pct", "period", "synthetic", "bar_constants_in_bars", "note")}
+        meta = {k: r.get(k) for k in ("cost_round_trip_pct", "universe", "period", "synthetic", "bar_constants_in_bars", "note")}
     rows = []
     for t, e in sorted(tags.items()):
         rows.append({"tag": t, **{k: e[k] for k in ("cell", "interval", "direction", "n_symbols", "shards")},
