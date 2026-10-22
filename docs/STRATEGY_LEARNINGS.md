@@ -1370,3 +1370,16 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Reality: the scheduler logged only 260 symbol checks against 3992 the day before. The 5-minute Kotak reconcile ran inline on the event loop and stalled on Upstash (403), starving the entry scan and freezing the web server (502 at 10:02 IST).
 - Lesson: before reading a quiet day as "no setups", compare scan volume with a normal day. Zero signals on a fraction of the normal scans is an outage, not a market verdict. Any blocking I/O in the scheduler tick (Kotak, Upstash, git) belongs in a worker thread with a bounded wait.
 - Profit-booking / exit takeaway: a starved scheduler also delays trailing-stop updates and exits, so scan health protects open profit as well as new entries.
+
+## 2026-10-23: the backup store went dark because of our own upload volume (B-1341)
+- What happened: Upstash's free database was suspended at its 10 GB/month bandwidth cap after only about 1.1 lakh commands. Since then no state survived a Render restart, and every call to the store returned 403.
+- Cause: a dashboard scan-set blob of several MB was re-uploaded uncompressed every 60 seconds whether it had changed or not, alongside other per-tick whole-object pushes.
+- Lesson: on a metered store, budget bytes as well as calls. Compress, skip unchanged uploads, throttle anything that isn't safety-critical, and meter usage per key so the next hog shows up before the cap.
+- Profit-booking / exit takeaway: losing the store can lose a position's strategy identity and stop context on restart. Protect the safety-critical state's budget so it is never starved by dashboard data.
+
+## 2026-10-23: a free backup store needs a daily budget, not a monthly surprise (B-1342)
+- Mechanism: the bot meters every byte and command it sends to Upstash, keeps today's total across restarts, and backs off its own non-critical writes at 60% / pauses them at 90% of 1/30 of the monthly free cap, and slows them 6x outside NSE hours.
+- Why it fits this system: the backup exists to protect real-money state through Render restarts; dashboard counters were eating the budget that positions and kill switches need. Tiering the writers keeps the money-critical backups alive.
+- What surprised: a monthly cap gives no warning until the store is already dark, so the guard must be daily and must count across restarts.
+- Reuse: any free-tier external dependency (Upstash, Render, Actions minutes) gets a metered daily budget, a status endpoint and a failing scheduled check.
+- Profit-booking / exit takeaway: no direct trade effect; it protects stops and position records across restarts, which protects booked and open profit.
