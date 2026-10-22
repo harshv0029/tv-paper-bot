@@ -81,20 +81,20 @@
    "symbol": "WIPRO.NS"
   },
   {
-   "day": null,
-   "entry_order_id": null,
+   "day": "2026-10-23",
+   "entry_order_id": "261022000026856",
    "entry_price": 16.22,
    "first_seen_day": "2026-10-23",
    "is_short": 1,
    "kotak_trading_symbol": "YESBANK-EQ",
-   "opened_at": null,
+   "opened_at": 1792697390.6400332,
    "owner": "short",
    "qty": 20,
    "sl_trigger_price": null,
    "source": "position",
    "stop_loss": null,
    "strategy": null,
-   "symbol": null
+   "symbol": "YESBANK.NS"
   }
  ]
 }
