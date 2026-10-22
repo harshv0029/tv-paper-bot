@@ -19844,23 +19844,35 @@ def hydrate_git_tier_tables() -> int:
     return len(_git_tier_hydrated)
 
 
-def hydrate_generic_tables_from_external() -> int:
+# B-1306/B-1311 (2026-10-22): a push for a not-yet-restored table used to re-run the whole restore synchronously, so
+# with Upstash failing every order-event log line (and the reconcile / 09:15 protection calling it) stalled for minutes
+# (live 09:25 IST: reconcile stuck 3+ min in _upstash_get). A push now retries the restore only for its own tables, at
+# most once per _GENERIC_HYDRATE_RETRY_SEC, and a restore pass stops at the first network/HTTP failure.
+_GENERIC_HYDRATE_RETRY_SEC = 60
+_generic_hydrate_last_try: dict = {}
+
+
+def hydrate_generic_tables_from_external(only=None) -> int:
     """Startup (and retried per tick until it succeeds) restore for every table
     in _GENERIC_MIRROR_UPSTASH_TABLES (git-tier tables restore from git).
-    Returns how many tables are now hydrated."""
-    try:
-        hydrate_git_tier_tables()
-    except Exception as e:
-        print(f"[table_mirror] git tier hydrate failed (non-fatal): {e}")
+    `only` limits the pass to those tables (no git tier). Returns how many tables are now hydrated."""
+    if only is None:
+        try:
+            hydrate_git_tier_tables()
+        except Exception as e:
+            print(f"[table_mirror] git tier hydrate failed (non-fatal): {e}")
     if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
         return 0
     for table in _GENERIC_MIRROR_UPSTASH_TABLES:
-        if table in _generic_mirror_hydrated:
+        if table in _generic_mirror_hydrated or (only is not None and table not in only):
             continue
         try:
             with closing(get_db()) as conn:
                 if _generic_hydrate_table(conn, table):
                     _generic_mirror_hydrated.add(table)
+        except requests.exceptions.RequestException as e:
+            print(f"[table_mirror] Upstash unreachable at {table} ({type(e).__name__}); stopping this pass, will retry")
+            break
         except Exception as e:
             print(f"[table_mirror] hydrate {table} failed (non-fatal, will retry): {e}")
     return len(_generic_mirror_hydrated)
@@ -19871,8 +19883,13 @@ def sync_generic_tables_external(only=None) -> int:
     Returns how many tables were pushed this call."""
     if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
         return 0
-    if len(_generic_mirror_hydrated) < len(_GENERIC_MIRROR_UPSTASH_TABLES):
-        hydrate_generic_tables_from_external()
+    need = [t for t in _GENERIC_MIRROR_UPSTASH_TABLES
+            if t not in _generic_mirror_hydrated and (only is None or t in only)]
+    if need:
+        key = tuple(sorted(need))
+        if time.time() - _generic_hydrate_last_try.get(key, 0.0) >= _GENERIC_HYDRATE_RETRY_SEC:
+            _generic_hydrate_last_try[key] = time.time()
+            hydrate_generic_tables_from_external(only=set(need))
     pushed = 0
     for table in _GENERIC_MIRROR_UPSTASH_TABLES:
         if only is not None and table not in only:
@@ -20773,6 +20790,20 @@ def _note_symbol_strategy_scan(sym, tag):
             _record_symbol_strategy_scan(tag)
         finally:
             _current_scan_symbol.reset(_tok)
+    except Exception:
+        pass
+
+
+# B-1336: symbols the daily swing pass skipped today (no frame -> none of its daily cells ran), shown on View 4.
+_swing_skipped_today: dict = {"day": "", "syms": {}}
+
+
+def _note_swing_skipped(symbol, why):
+    try:
+        day = ist_now().strftime("%Y-%m-%d")
+        if _swing_skipped_today["day"] != day:
+            _swing_skipped_today["day"], _swing_skipped_today["syms"] = day, {}
+        _swing_skipped_today["syms"][symbol] = why
     except Exception:
         pass
 
@@ -22087,8 +22118,10 @@ def _run_swing_scan_pass(conn):
                 df = fetch_ohlc(symbol, "2y", "1d")
         except Exception as e:
             print(f"[SWING] fetch_ohlc failed for {symbol}: {e}")
+            _note_swing_skipped(symbol, "daily fetch failed")
             continue
         if df is None or len(df) < 50:
+            _note_swing_skipped(symbol, "under 50 daily bars")
             continue
         # B-419: signals are defined on COMPLETED daily bars (as backtested). A pass run during the session
         # must not see today's still-forming bar, so repeat passes give the same answer as the first one.
@@ -22098,6 +22131,7 @@ def _run_swing_scan_pass(conn):
         except Exception:
             pass
         if len(df) < 50:
+            _note_swing_skipped(symbol, "under 50 completed daily bars")
             continue
         dfs[symbol] = df
 
@@ -25407,7 +25441,10 @@ async def _scheduler_tick():
     _open_window = (_t_ist.weekday() < 5 and (9, 15) <= (_t_ist.hour, _t_ist.minute) < (9, 30))
     if _open_window or _scheduler_tick_count % _UNPROTECTED_BACKCHECK_EVERY_N_TICKS == 0:
         try:
-            _reconcile_real_positions_core(adopt="*")
+            # B-1340: in a worker thread, still awaited (same ordering as before), so a slow Kotak/Upstash call cannot
+            # freeze the event loop: on 22 Oct an inline stall starved the entry scan (260 symbol checks vs 3992 the day
+            # before) and Render answered 502.
+            await asyncio.to_thread(_reconcile_real_positions_core, adopt="*")
         except Exception as e:
             print(f"[unprotected_backcheck] in-process reconcile failed (non-fatal, external cron still covers this): {e}")
         for _gt in _GIT_TIER_PUSH_TABLES:  # B-1327: in-process git copy of the order log, ~5 min
@@ -25920,10 +25957,29 @@ def algo_live_flow(window: int = 120, before: int = 8, after: int = 30):
                 break
             events.append({"ts": ts, "tag": tag, "symbol": sym})
     events.sort(key=lambda e: e["ts"], reverse=True)
+    # B-1336: the window count is "scans in the last `window` s", not coverage. Count per symbol before the 400 cap
+    # (a daily-pass burst of ~180 cells per symbol used to fill the cap) and send each symbol's distinct tags tested
+    # TODAY, so View 4 can show real daily coverage next to the live window.
+    window_by_symbol = {}
+    for e in events:
+        window_by_symbol[e["symbol"]] = window_by_symbol.get(e["symbol"], 0) + 1
+    per_sym_cap, kept, capped = 40, {}, []
+    for e in events:
+        k = kept.get(e["symbol"], 0)
+        if k < per_sym_cap:
+            kept[e["symbol"]] = k + 1
+            capped.append(e)
+    day_ok = _symbol_strategy_scans_day == ist_now().strftime("%Y-%m-%d")
+    tested_today = {sym: len(tags) for sym, tags in list(_symbol_strategy_scans.items())} if day_ok else {}
+    sk = _swing_skipped_today if _swing_skipped_today.get("day") == ist_now().strftime("%Y-%m-%d") else {"syms": {}}
     return {
         "sequence": seq, "flat_count": m, "held": sorted(held), "rr_cursor": _scheduler_rr_cursor,
         "currently_checking": _scheduler_currently_checking,
-        "scan_events": events[:400], "window_seconds": window,
+        "scan_events": capped[:400], "window_seconds": window,
+        "window_scans_by_symbol": window_by_symbol,
+        "tested_today_by_symbol": tested_today,
+        "tested_today_max": max(tested_today.values()) if tested_today else 0,
+        "swing_skipped_today": dict(sk["syms"]),
         "last_tick_ts": _scheduler_last_tick_ts, "server_time_utc": now,
         "scheduler_interval_seconds": SCHEDULER_INTERVAL_SECONDS,
     }
@@ -27715,6 +27771,9 @@ def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: 
            and str(r.get("prcTp", "")).upper() in ("SL", "SL-M")
            and str(r.get("ordSt", r.get("stat", ""))).lower() not in terminal for r in order_rows):
         return {"status": "already_protected - nothing placed"}
+    # B-1337: never place a SELL SL on shares Kotak's order book shows sold today (holdings() lists them until T+1)
+    if _today_complete_delivery_sells(order_rows, {kotak_trading_symbol}).get(kotak_trading_symbol, 0) >= (held.get("qty") or 0) > 0:
+        return {"status": "sold_today - nothing placed (Kotak order book shows a complete sell covering the holding)"}
     import kotak_real_orders
     symbol = f"{held['symbol']}.NS"
     # 2026-10-06 (explicit user instruction): exchange DAY orders lapse at the
@@ -27971,6 +28030,10 @@ def _kotak_holdings_open_by_trdsym() -> dict | None:
     # positions() already shows the sell. Net today's fills out so the app closes
     # its row from Kotak's truth instead of re-protecting/re-selling a sold stock.
     # Fetch failure -> unnetted (treated as held, the fail-safe direction).
+    # B-1337 (2026-10-22, YESBANK): when positions() failed, the sold shares stayed "held" and the heal sent 3 SELL SLs
+    # on shares already sold at 09:17 (T1-rejected). Today's COMPLETE delivery sells in the order book are a second
+    # Kotak source; the larger of the two sold counts is netted, so either source alone is enough.
+    sold_pos: dict = {}
     try:
         import kotak_neo
         presp = kotak_neo.positions()
@@ -27983,12 +28046,44 @@ def _kotak_holdings_open_by_trdsym() -> dict | None:
                 continue
             sold = float(prow.get("flSellQty", 0) or 0) - float(prow.get("flBuyQty", 0) or 0)
             if sold > 0:
-                out[tsym]["qty"] = int(out[tsym]["qty"] - sold)
-                if out[tsym]["qty"] <= 0:
-                    del out[tsym]
+                sold_pos[tsym] = sold
     except Exception:
         pass
+    sold_ob: dict = {}
+    try:
+        import kotak_neo
+        oresp = kotak_neo.order_report()
+        orows = oresp.get("data") if isinstance(oresp, dict) else None
+        sold_ob = _today_complete_delivery_sells(orows or [], set(out))
+    except Exception:
+        pass
+    for tsym in set(sold_pos) | set(sold_ob):
+        sold = max(sold_pos.get(tsym, 0), sold_ob.get(tsym, 0))
+        if tsym in out and sold > 0:
+            out[tsym]["qty"] = int(out[tsym]["qty"] - sold)
+            if out[tsym]["qty"] <= 0:
+                del out[tsym]
     return out
+
+
+def _today_complete_delivery_sells(order_rows, trd_syms) -> dict:
+    """B-1337: {trdSym: filled qty} of today's COMPLETE SELL orders (any price type: a triggered SL reads as L)
+    that are not intraday (MIS), for the given trading symbols. Kotak's order book only holds today's orders."""
+    sold: dict = {}
+    for r in order_rows or []:
+        try:
+            if not isinstance(r, dict) or r.get("trdSym") not in trd_syms or r.get("trnsTp") != "S":
+                continue
+            if str(r.get("ordSt", r.get("stat", ""))).lower() != "complete":
+                continue
+            if str(r.get("prod", "")).upper() in ("MIS", "INTRADAY"):
+                continue
+            q = float(r.get("fldQty") or r.get("qty") or 0)
+            if q > 0:
+                sold[r["trdSym"]] = sold.get(r["trdSym"], 0) + q
+        except (TypeError, ValueError):
+            continue
+    return sold
 
 
 _TRACKED_UNION_JOURNAL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "tables", "tracked_union.json")

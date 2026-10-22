@@ -766,10 +766,18 @@ def _place_real_stop_loss_once(kotak_trading_symbol: str, qty: int, trigger_pric
             trigger_price=str(trigger_price),
         )
     except Exception as e:
+        found = _adopt_sl_after_lost_ack(kotak_trading_symbol, trigger_price)
+        if found:
+            found["detail"] = f"place_order raised: {e}; adopted the SL Kotak placed anyway"
+            return found
         return {"ok": False, "detail": f"place_order raised: {e}"}
 
     order_id = resp.get("nOrdNo") if isinstance(resp, dict) else None
     if not order_id:
+        found = _adopt_sl_after_lost_ack(kotak_trading_symbol, trigger_price)
+        if found:
+            found["raw_response"] = resp
+            return found
         return {"ok": False, "detail": f"no order id in response: {resp}", "raw_response": resp}
 
     status = _confirm_order_status(order_id)
@@ -789,6 +797,39 @@ def _place_real_stop_loss_once(kotak_trading_symbol: str, qty: int, trigger_pric
             "trigger_price": trigger_price, "limit_price": limit_price,
             "status_confirmed": status["status"] in ("trigger pending", "open", "complete")}
 
+
+
+_LOST_ACK_RECHECKS = (2.0, 5.0, 10.0)
+
+
+def _adopt_sl_after_lost_ack(kotak_trading_symbol: str, trigger_price: float):
+    """B-1338 (WIPRO 2026-10-22 09:16 IST, live): place_order timed out after 30 s, the
+    app logged "sl failed", yet Kotak had placed the SL (trigger pending). A lost ack is
+    not a failed order. Re-read the order book a few times and, if a live SELL SL rests
+    on this symbol at this trigger, return it as placed, so no caller re-sends a
+    duplicate stop. Returns None when no such order shows up."""
+    for wait in _LOST_ACK_RECHECKS:
+        time.sleep(wait)
+        try:
+            rows = kotak_neo.login().order_report().get("data") or []
+        except Exception:
+            continue
+        for row in rows:
+            if row.get("trdSym") != kotak_trading_symbol or row.get("trnsTp") != "S":
+                continue
+            if str(row.get("prcTp", "")).upper() not in ("SL", "SL-M"):
+                continue
+            if str(row.get("ordSt", "")).lower() in _TERMINAL_ORDER_STATUSES:
+                continue
+            try:
+                trg = float(row.get("trgPrc") or 0)
+            except (TypeError, ValueError):
+                continue
+            if row.get("nOrdNo") and abs(trg - float(trigger_price)) <= 0.05:
+                return {"ok": True, "order_id": str(row["nOrdNo"]), "raw_response": None,
+                        "trigger_price": trg, "limit_price": trg, "status_confirmed": True,
+                        "adopted_after_lost_ack": True}
+    return None
 
 _PRICE_BAND_PCTS = (0.10, 0.05, 0.02)
 
