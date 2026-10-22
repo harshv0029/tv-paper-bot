@@ -188,15 +188,23 @@ def load_frames(m, interval, shard, nshards, limit=None, universe="full"):
     if limit:
         syms = syms[:limit]
     period = PERIOD_BY_INTERVAL[interval]
-    out = {}
+    out, errs, short = {}, [], 0
     for s in syms:
         try:
             raw = fetch_interval(m, s, interval)
-        except Exception:
+        except Exception as ex:
+            errs.append(f"{s}: {type(ex).__name__}: {ex}")
             continue
         if raw is None or len(raw) < MIN_BARS + 3:
+            short += 1
             continue
         out[s] = raw.reset_index(drop=True)
+    # B-1339: a silent all-fail fetch produced n=0 cells once (run 39853287437); always say why symbols dropped
+    print(f"fetch: {len(syms)} symbols, {len(out)} loaded, {short} too short/empty, {len(errs)} errors")
+    for e in errs[:5]:
+        print("fetch error", e)
+    if syms and not out:
+        raise SystemExit("no symbol loaded - refusing to write an all-zero result")
     return out
 
 
