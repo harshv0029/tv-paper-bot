@@ -16,7 +16,7 @@ Total rows: 1093 | closed: 464 | not closed: 629
 | CLOSED | 78 |
 | PARTIAL | 70 |
 | BLOCKED | 63 |
-| OPEN | 55 |
+| OPEN | 52 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | PENDING | 12 |
@@ -44,6 +44,7 @@ Total rows: 1093 | closed: 464 | not closed: 629
 | UNKNOWN | 2 |
 | FIXED-LOCAL | 2 |
 | KOTAK | 2 |
+| RECONCILE | 2 |
 | DONE-MEASURED | 1 |
 | BLOCKED-ON-RUN | 1 |
 | HARNESS-RUN-DONE | 1 |
@@ -59,7 +60,8 @@ Total rows: 1093 | closed: 464 | not closed: 629
 | RULE | 1 |
 | OWED | 1 |
 | NEEDS-OWNER | 1 |
-| RECONCILE | 1 |
+| CODE | 1 |
+| JIOFIN | 1 |
 | VIABLE | 1 |
 | REAL | 1 |
 | B-1319 | 1 |
@@ -86,7 +88,7 @@ Total rows: 1093 | closed: 464 | not closed: 629
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
 | B-1302 | P0 | OPEN | User 2026-10-21 IST: "set the priority order of items stored in Upstash, or move them to git on a 5-min syn... | open:, needs |
-| B-1341 | P0 | OWNER-ACTION | 2026-10-23 00:25 IST | verify, owner, awaiting, waiting |
+| B-1341 | P0 | OWNER-ACTION | 2026-10-23 00:25 IST | verify, owner |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
 ## waiting-on-workflow/deploy (397)
@@ -506,8 +508,8 @@ Total rows: 1093 | closed: 464 | not closed: 629
 | B-1306 | P0 | OPEN | 2026-10-21 ~09:18 and ~09:24 IST: /real-protection-status (pure SQLite read) timed out at 30 s with 0 bytes... | owed, open:, pending |
 | B-1309 | P0 | KOTAK | 2026-10-21 | owed, verify, needs |
 | B-1311 | P0 | RECONCILE | 2026-10-21 10:25 IST | owed, verify |
-| B-1312 | P0 | VIABLE | 2026-10-21 11:10 IST | owed, pending, needs |
-| B-1313 | P0 | OPEN | 2026-10-21 11:25 IST | owed |
+| B-1312 | P0 | VIABLE | 2026-10-21 11:10 IST | owed, needs |
+| B-1313 | P0 | RECONCILE | 2026-10-21 11:25 IST | owed, awaiting, waiting |
 | B-1314 | P0 | USER | 2026-10-21 11:35 IST | blocked, pending |
 | B-1316 | P0 | OPEN | 2026-10-21 | owed |
 | B-1317 | P0 | USER | 2026-10-21 | pending |
@@ -516,7 +518,7 @@ Total rows: 1093 | closed: 464 | not closed: 629
 | B-1328 | P0 | B-1319 | 2026-10-21 | owed, verify |
 | B-1330 | P0 | ITC | 2026-10-21 |  |
 | B-1340 | P0 | USER | 2026-10-22 21:45 IST | blocked, verify, needs, owner, follow-up, awaiting, waiting |
-| B-1342 | P0 | BUILT | 2026-10-23 01:05 IST | verify, owner, awaiting, waiting |
+| B-1342 | P0 | BUILT | 2026-10-23 01:05 IST | verify, owner |
 | B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, remaining, needs |
 | B-850 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (Elder >=1.1 cells validation across candle sizes; also covers B-852) |  |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... |  |
@@ -533,10 +535,10 @@ Total rows: 1093 | closed: 464 | not closed: 629
 | B-1253 | P1 | OPEN | 2026-10-14 15:56 IST: Render banner says critical infrastructure work on 15 Oct 06:30 IST (01:00 UTC); expe... | pending, verify |
 | B-1271 | P1 | OPEN | 2026-10-14 22:40 IST: user flagged the dashboard "461675 total checks run today" as inflated / not a real t... |  |
 | B-1285 | P1 | OPEN | Funnel: show attempts = blocked + placed + failed per tag (failed not counted today); stop-loss exits at Ko... | blocked |
-| B-1288 | P1 | OPEN | Render memory limit is 2 GB (user, 2026-10-19) | owed |
+| B-1288 | P1 | CODE | Render memory limit is 2 GB (user, 2026-10-19) | owed |
 | B-1289 | P1 | OPEN | 2026-10-20 00:25 IST: subagent fixes merged to the working branch, full suite 2077 passed (date-dependent m... | blocked, awaiting, waiting |
 | B-1290 | P1 | FIXED-LOCAL | Render memory target ~1024 MB of 2048 |  |
-| B-1310 | P1 | OPEN | 2026-10-21 | needs |
+| B-1310 | P1 | JIOFIN | 2026-10-21 | verify, needs, awaiting, waiting |
 | B-1327 | P1 | TABLE-GIT-SYNC | 2026-10-21 | open:, verify, needs |
 | B-1337 | P1 | KOTAK | 2026-10-22 09:35 IST | blocked, follow-up, awaiting, waiting |
 | B-1338 | P1 | WIPRO-EQ | 2026-10-22 09:35 IST | pending, verify, awaiting, waiting |
