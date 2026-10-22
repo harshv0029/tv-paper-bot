@@ -133,7 +133,7 @@
   </div>
 
   <div id="grid">
-    <div class="box" id="nTag"><h2>2 · Strategies running <span class="n mono" id="tagN"></span></h2><div class="dim mono" id="tagSym" style="font-size:11px;margin-bottom:6px"></div><div id="tagList"></div></div>
+    <div class="box" id="nTag"><h2>2 · Strategies running <span class="n mono" id="tagN"></span></h2><div class="dim mono" id="tagSym" style="font-size:11px;margin-bottom:6px"></div><div id="tagList"></div><div class="dim mono" id="tagCov" style="font-size:10.5px;margin-top:6px"></div></div>
     <div class="box" id="nDec"><h2>3 · Decision <span class="n mono" id="dN"></span></h2><div id="dList"></div></div>
     <div class="box" id="nOrd"><h2>4 · Order placement today <span class="n mono" id="oN"></span></h2><div id="oList"></div></div>
     <div class="box" id="nPos"><h2>5 · Open positions + SL <span class="n mono" id="pN"></span></h2><div id="pList"></div></div>
@@ -233,7 +233,12 @@
       const focus = cc ? cc.symbol : (ev[0] || {}).symbol;
       const tags = [...new Set(ev.filter(e => e.symbol === focus).map(e => e.tag))];
       $("tagSym").textContent = focus ? `on ${focus}` : "no scans in the last 2 min";
-      $("tagN").textContent = tags.length ? `${tags.length} tags` : "";
+      $("tagN").textContent = tags.length ? `${tags.length} tags in last 2 min` : "";
+      // B-1336: the 2-min count is a live window, not coverage; show the symbol's distinct tags tested TODAY too
+      const tt = d.tested_today_by_symbol || {}, tmax = d.tested_today_max || 0, skip = d.swing_skipped_today || {};
+      const skN = Object.keys(skip).length;
+      $("tagCov").innerHTML = (focus ? `today: <b>${tt[focus] || 0}</b> of ${tmax} strategies tested on ${esc(focus)} (most on any symbol). ` : "") +
+        (skN ? `<span class="down">swing pass skipped ${skN} today: ${Object.entries(skip).slice(0, 8).map(([k, v]) => esc(k) + " (" + esc(v) + ")").join(", ")}${skN > 8 ? " …" : ""}</span>` : "swing pass skipped none today.");
       $("tagList").innerHTML = tags.map(t => `<span class="tag mono" data-t="${esc(t)}">${esc(t)}</span>`).join("");
       setStep("sTag", tags[0] || "-", fresh.length > 0);
       if (!firstFlow) fresh.slice(-10).forEach((e, i) => setTimeout(() => {

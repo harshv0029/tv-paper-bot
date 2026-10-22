@@ -51,7 +51,7 @@ def test_backcheck_cadence_constant_is_a_sane_positive_tick_count():
 def test_scheduler_tick_source_calls_reconcile_gated_by_the_cadence_constant():
     src = inspect.getsource(main._scheduler_tick)
     assert "_UNPROTECTED_BACKCHECK_EVERY_N_TICKS" in src
-    assert '_reconcile_real_positions_core(adopt="*")' in src
+    assert 'asyncio.to_thread(_reconcile_real_positions_core, adopt="*")' in src  # B-1340: off the event loop, still awaited
 
 
 _FIXTURE = pd.DataFrame([

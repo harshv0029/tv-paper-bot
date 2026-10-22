@@ -1347,3 +1347,26 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Replay (run 39626212667, real `main._mcx_daily_flags`): gold Donchian 1.370 n20 (registry 1.229), silver RSI 3.174 n16 (4.098), NG RSI short 2.605 n14 (2.281). All clear 1.0.
 - Surprise: the live function moves PFnet both ways vs research (silver -0.9, gold/NG up), so research numbers are a guide, not a fact. n is thin (14-20 trades in 5y): treat sizes cautiously.
 - Profit-booking / exit takeaway: the replay is underlying-only; real trades use the option-premium trailing SL, which is not simulated, so live exits can differ - compare the first live MCX fills against these numbers.
+
+## 2026-10-22: carried-over swing stop fires at the open; sold shares linger in holdings (YESBANK)
+- What happened: YESBANK 20 (avg 16.38) carried a trailed stop of 16.22 overnight. The exchange purges resting orders at 15:15, so the bot re-placed it at 09:17; the stock opened below 16.22 on a -1% market day, so the SL fired at once and sold all 20 @ 16.22 (~Rs3 loss before charges).
+- What broke: holdings() keeps shares sold today until T+1. The netting of today's sells relied only on positions(); when that call failed, the heal saw "20 held, no SL" and sent 3 SELL SLs on sold shares (Kotak T1 check rejected them).
+- Reuse next time: check two Kotak sources for "sold today" (positions() and the order book's complete sells); never act on holdings() alone during market hours. A Kotak call that times out may still have placed the order (WIPRO 09:16), so re-read the order book before any re-send.
+- Profit-booking / exit takeaway: a trailed swing stop that sits above the next day's open becomes a market-open exit at the stop price; on a gap-down day that is the intended protection, but a stop trailed to within ~1% of price on a Rs16 stock gives almost no room, so trail width on very low-priced names should be judged in ticks and ATR, not percent alone.
+
+## 2026-10-22: a timed-out Kotak order is not a failed order (WIPRO, B-1338)
+- What happened: the 09:16 IST WIPRO SL request timed out after 30 s and was logged "sl failed", but Kotak had placed it (trigger 186.86, trigger pending at 09:16:44).
+- Lesson: after any timeout, re-read the order book before reporting a failure or sending again. A blind re-send risks a duplicate stop, which means a double sell.
+- Profit-booking / exit takeaway: a stop Kotak already holds is real protection. Adopt it, and never stack a second sell on the same shares.
+
+## 2026-10-22: Kotak will not hold an overnight cash-equity short (B-967)
+- Test: a 1-share IDEA-EQ SELL with product NRML at 10:15 IST (run 39724116793, order 261022000219219). Kotak RMS rejected it: "Short selling in NRML is not allowed. Instead, select MIS, CO or BO product type for intraday short selling."
+- Fit for this system: a cash-equity short can only be intraday (MIS), and must be covered before the broker's square-off. Every multi-day short swing cell (sector_rotation fade, brk20 short swing) can never trade cash equity at Kotak. `SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED` stays False for good.
+- Reuse next time: a multi-day short needs a product that allows it, i.e. stock futures, or SLB borrowing. Futures mean lot-size capital and different costs, so the cell must be re-validated on futures before any wiring (B-1339).
+- Profit-booking / exit takeaway: an intraday short must book its profit or loss the same day. Never design a short exit that relies on holding it overnight in cash equity.
+
+## 2026-10-22: "no setup fired" can mean "nothing was scanned" (B-1340)
+- Symptom: zero entries all day; /entry-funnel said "no setup fired today" in every category.
+- Reality: the scheduler logged only 260 symbol checks against 3992 the day before. The 5-minute Kotak reconcile ran inline on the event loop and stalled on Upstash (403), starving the entry scan and freezing the web server (502 at 10:02 IST).
+- Lesson: before reading a quiet day as "no setups", compare scan volume with a normal day. Zero signals on a fraction of the normal scans is an outage, not a market verdict. Any blocking I/O in the scheduler tick (Kotak, Upstash, git) belongs in a worker thread with a bounded wait.
+- Profit-booking / exit takeaway: a starved scheduler also delays trailing-stop updates and exits, so scan health protects open profit as well as new entries.
