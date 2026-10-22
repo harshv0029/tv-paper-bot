@@ -428,7 +428,194 @@
       "taken": 0,
       "reason": "real entry: strategy below PFnet floor",
       "hard_gate": 1
+    },
+    {
+      "id": 40,
+      "ts": 1792661731.2281015,
+      "day": "2026-10-22",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "HINDCOPPER.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 41,
+      "ts": 1792661767.1061625,
+      "day": "2026-10-22",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "IRFC.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 42,
+      "ts": 1792661768.00721,
+      "day": "2026-10-22",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "IRFC.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 43,
+      "ts": 1792661883.0388288,
+      "day": "2026-10-22",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "SAIL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 44,
+      "ts": 1792661883.8200128,
+      "day": "2026-10-22",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "SAIL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 45,
+      "ts": 1792661885.1730466,
+      "day": "2026-10-22",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "HINDCOPPER.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 46,
+      "ts": 1792661886.832243,
+      "day": "2026-10-22",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "IRFC.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 47,
+      "ts": 1792661888.252452,
+      "day": "2026-10-22",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "IRFC.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 48,
+      "ts": 1792661890.1344786,
+      "day": "2026-10-22",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "SAIL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 49,
+      "ts": 1792661891.3331845,
+      "day": "2026-10-22",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "SAIL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 50,
+      "ts": 1792662442.3345518,
+      "day": "2026-10-22",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "HINDCOPPER.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 51,
+      "ts": 1792662444.330032,
+      "day": "2026-10-22",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "IRFC.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 52,
+      "ts": 1792662444.9424314,
+      "day": "2026-10-22",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "IRFC.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 53,
+      "ts": 1792662446.6401563,
+      "day": "2026-10-22",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "SAIL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 54,
+      "ts": 1792662447.7070763,
+      "day": "2026-10-22",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "SAIL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 55,
+      "ts": 1792663671.1625903,
+      "day": "2026-10-22",
+      "strategy_tag": "envelope__0d05_fade__long__1h__atr6_h30__v1",
+      "symbol": "SWIGGY.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 56,
+      "ts": 1792663671.2195842,
+      "day": "2026-10-22",
+      "strategy_tag": "envelope__0d05_fade__long__1h__atr6_h30__v1",
+      "symbol": "SWIGGY.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
     }
   ],
-  "synced_at_utc": "2026-10-21T10:08:52Z"
+  "synced_at_utc": "2026-10-22T13:43:08Z"
 }
