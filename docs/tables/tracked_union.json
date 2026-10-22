@@ -74,27 +74,11 @@
    "opened_at": 1792578447.972194,
    "owner": "swing",
    "qty": 1,
-   "sl_trigger_price": null,
+   "sl_trigger_price": 186.86,
    "source": "holding",
    "stop_loss": 186.86,
    "strategy": "swing_rerouted_orphan",
    "symbol": "WIPRO.NS"
-  },
-  {
-   "day": "2026-10-21",
-   "entry_order_id": "261021000238854",
-   "entry_price": 16.38,
-   "first_seen_day": "2026-10-21",
-   "is_short": 0,
-   "kotak_trading_symbol": "YESBANK-EQ",
-   "opened_at": 1792578447.971936,
-   "owner": "swing",
-   "qty": 20,
-   "sl_trigger_price": 16.22,
-   "source": "holding",
-   "stop_loss": 14.27,
-   "strategy": "swing_rerouted_orphan",
-   "symbol": "YESBANK.NS"
   }
  ]
 }
