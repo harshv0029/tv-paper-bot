@@ -1847,7 +1847,79 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261023000000177 rejected: Adapter is Logged Off"
+  },
+  {
+   "id": 155,
+   "ts": 1792697528.8324034,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": "YESBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (replacement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261023000000178 rejected: Adapter is Logged Off"
+  },
+  {
+   "id": 156,
+   "ts": 1792697714.986864,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": "YESBANK-EQ",
+   "leg": "sl",
+   "event": "emergency_exit_triggered",
+   "order_id": null,
+   "prev_state": "unprotected for 200s",
+   "new_state": "forcing full cover",
+   "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
+  },
+  {
+   "id": 157,
+   "ts": 1792697715.2590847,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": "YESBANK-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 20",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: emergency: no resting stop for 200s (tolerance 60s)"
+  },
+  {
+   "id": 158,
+   "ts": 1792697718.8683536,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": "YESBANK-EQ",
+   "leg": "short_cover",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "short 20",
+   "new_state": "short 20 (cover failed)",
+   "detail": "reason: emergency: no resting stop for 200s (tolerance 60s) | no order id in response: {'stCode': 1041, 'errMsg': 'Market order rejected: Last Traded Price (LTP) not available for this instrument. Please try placing a limit order', 'stat': 'Not_Ok'}"
+  },
+  {
+   "id": 159,
+   "ts": 1792697793.9966862,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": "YESBANK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261023000000178",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 01:02:03 B SL qty 20 trg 16.38 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+   "id": 160,
+   "ts": 1792697793.9970186,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": "YESBANK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261023000000177",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 00:59:58 B SL qty 20 trg 16.38 status rejected rejRsn Adapter is Logged Off"
   }
  ],
- "synced_at_utc": "2026-10-22T19:30:09Z"
+ "synced_at_utc": "2026-10-22T19:36:40Z"
 }
