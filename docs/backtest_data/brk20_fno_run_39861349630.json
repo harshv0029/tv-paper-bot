@@ -1,0 +1,345 @@
+{
+ "cost_round_trip_pct": 0.3,
+ "universe": "fno",
+ "period": "5y",
+ "synthetic": false,
+ "note": "transcribed verbatim from the aggregate log of run 39861349630 (artifact brk20-all id 12461612709); 6 shards, 210 F&O underlyings; futures approximated as cash-price tracking, cost 0.3% round trip (statutory + slippage + one roll). atr4_rr3 n=1 has no loss so PFnet is undefined (stored as None, registered as 0 with n=1).",
+ "rows": [
+  {
+   "tag": "brk20_min_rr__main_replay_fno__short__1d__atr2_cost0d3_rr1__v1",
+   "interval": "1d",
+   "direction": "short",
+   "n_symbols": 210,
+   "shards": 6,
+   "metrics": {
+    "n": 1932,
+    "pfnet": 0.590511452319611,
+    "pfgross": 0.6785938808047087,
+    "win_pct": 30.23,
+    "avg_held_bars": 9.58,
+    "exit_reasons": {
+     "stop_loss": {
+      "n": 277,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.91
+     },
+     "rule_exit": {
+      "n": 1599,
+      "pfnet": 0.6773021430588899,
+      "win_pct": 33.02,
+      "avg_held_bars": 9.9
+     },
+     "max_hold_timeout": {
+      "n": 45,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 11,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 17.09
+     }
+    }
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay_fno__short__1d__atr2_cost0d3_rr2__v1",
+   "interval": "1d",
+   "direction": "short",
+   "n_symbols": 210,
+   "shards": 6,
+   "metrics": {
+    "n": 878,
+    "pfnet": 0.5507658292416167,
+    "pfgross": 0.635224835043076,
+    "win_pct": 28.47,
+    "avg_held_bars": 9.2,
+    "exit_reasons": {
+     "stop_loss": {
+      "n": 135,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.73
+     },
+     "rule_exit": {
+      "n": 718,
+      "pfnet": 0.6161099826994725,
+      "win_pct": 31.34,
+      "avg_held_bars": 9.48
+     },
+     "max_hold_timeout": {
+      "n": 23,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 26.5
+     }
+    }
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay_fno__short__1d__atr2_cost0d3_rr3__v1",
+   "interval": "1d",
+   "direction": "short",
+   "n_symbols": 210,
+   "shards": 6,
+   "metrics": {
+    "n": 299,
+    "pfnet": 0.7538506511061838,
+    "pfgross": 0.8644122263365676,
+    "win_pct": 31.77,
+    "avg_held_bars": 9.71,
+    "exit_reasons": {
+     "stop_loss": {
+      "n": 47,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.83
+     },
+     "rule_exit": {
+      "n": 237,
+      "pfnet": 0.8013698341017839,
+      "win_pct": 33.76,
+      "avg_held_bars": 9.57
+     },
+     "max_hold_timeout": {
+      "n": 13,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 26.5
+     }
+    }
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay_fno__short__1d__atr3_cost0d3_rr1__v1",
+   "interval": "1d",
+   "direction": "short",
+   "n_symbols": 210,
+   "shards": 6,
+   "metrics": {
+    "n": 1327,
+    "pfnet": 0.5416021956256486,
+    "pfgross": 0.6231306833992696,
+    "win_pct": 28.79,
+    "avg_held_bars": 9.41,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 1262,
+      "pfnet": 0.4283160125425906,
+      "win_pct": 27.34,
+      "avg_held_bars": 8.96
+     },
+     "max_hold_timeout": {
+      "n": 32,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     },
+     "stop_loss": {
+      "n": 28,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.54
+     },
+     "data_end_forced_close": {
+      "n": 5,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 17.8
+     }
+    }
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay_fno__short__1d__atr3_cost0d3_rr2__v1",
+   "interval": "1d",
+   "direction": "short",
+   "n_symbols": 210,
+   "shards": 6,
+   "metrics": {
+    "n": 299,
+    "pfnet": 0.7384226062867064,
+    "pfgross": 0.845171407989098,
+    "win_pct": 31.77,
+    "avg_held_bars": 9.77,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 276,
+      "pfnet": 0.5011994200996966,
+      "win_pct": 28.99,
+      "avg_held_bars": 8.83
+     },
+     "max_hold_timeout": {
+      "n": 13,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 26.5
+     },
+     "stop_loss": {
+      "n": 8,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.62
+     }
+    }
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay_fno__short__1d__atr3_cost0d3_rr3__v1",
+   "interval": "1d",
+   "direction": "short",
+   "n_symbols": 210,
+   "shards": 6,
+   "metrics": {
+    "n": 47,
+    "pfnet": 0.4466444965569435,
+    "pfgross": 0.5187508775577692,
+    "win_pct": 27.66,
+    "avg_held_bars": 9.47,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 44,
+      "pfnet": 0.3247650304681643,
+      "win_pct": 27.27,
+      "avg_held_bars": 9.09
+     },
+     "stop_loss": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 7.0
+     },
+     "max_hold_timeout": {
+      "n": 1,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay_fno__short__1d__atr4_cost0d3_rr1__v1",
+   "interval": "1d",
+   "direction": "short",
+   "n_symbols": 210,
+   "shards": 6,
+   "metrics": {
+    "n": 877,
+    "pfnet": 0.5554011364753266,
+    "pfgross": 0.6405511656570828,
+    "win_pct": 28.85,
+    "avg_held_bars": 9.35,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 847,
+      "pfnet": 0.39142586366614146,
+      "win_pct": 26.92,
+      "avg_held_bars": 8.76
+     },
+     "max_hold_timeout": {
+      "n": 23,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 26.5
+     },
+     "stop_loss": {
+      "n": 5,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 2.2
+     }
+    }
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay_fno__short__1d__atr4_cost0d3_rr2__v1",
+   "interval": "1d",
+   "direction": "short",
+   "n_symbols": 210,
+   "shards": 6,
+   "metrics": {
+    "n": 89,
+    "pfnet": 0.5178208530588488,
+    "pfgross": 0.5935371161787352,
+    "win_pct": 25.84,
+    "avg_held_bars": 9.01,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 83,
+      "pfnet": 0.25711643880942214,
+      "win_pct": 22.89,
+      "avg_held_bars": 8.18
+     },
+     "max_hold_timeout": {
+      "n": 3,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 1,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 24.0
+     },
+     "stop_loss": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.0
+     }
+    }
+   }
+  },
+  {
+   "tag": "brk20_min_rr__main_replay_fno__short__1d__atr4_cost0d3_rr3__v1",
+   "interval": "1d",
+   "direction": "short",
+   "n_symbols": 210,
+   "shards": 6,
+   "metrics": {
+    "n": 1,
+    "pfnet": null,
+    "pfgross": null,
+    "win_pct": 100.0,
+    "avg_held_bars": 10.0,
+    "exit_reasons": {
+     "rule_exit": {
+      "n": 1,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 10.0
+     }
+    }
+   }
+  }
+ ]
+}
