@@ -1463,7 +1463,91 @@
    "prev_state": null,
    "new_state": "rejected",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 21-Oct-2026 10:35:59 S L qty 1 trg 0.00 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,No Holdings Present  for entity account-XUAEZ across exchange across"
+  },
+  {
+   "id": 123,
+   "ts": 1792640774.657351,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | no order id in response: {'error': ApiException('(0)\\nReason: Request timeout after 30 seconds\\n')}"
+  },
+  {
+   "id": 124,
+   "ts": 1792640825.954694,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": "YESBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261022000026856",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs16.22",
+   "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during swing governance backfill"
+  },
+  {
+   "id": 125,
+   "ts": 1792640874.9841812,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261022000031248",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs126.73",
+   "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during swing governance backfill"
+  },
+  {
+   "id": 126,
+   "ts": 1792640930.608258,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261022000035886",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs164.29",
+   "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during swing governance backfill"
+  },
+  {
+   "id": 127,
+   "ts": 1792640979.4433336,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261022000039982",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs389.85",
+   "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during swing governance backfill"
+  },
+  {
+   "id": 128,
+   "ts": 1792641028.432992,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": "GSEC5IETF-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261022000043739",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs63.93",
+   "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during swing governance backfill"
+  },
+  {
+   "id": 129,
+   "ts": 1792641145.285172,
+   "symbol": "YESBANK.NS",
+   "kotak_trading_symbol": "YESBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261022000051586 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-XUAEZ across exchange across segment across product "
   }
  ],
- "synced_at_utc": "2026-10-21T18:38:01Z"
+ "synced_at_utc": "2026-10-22T03:53:09Z"
 }
