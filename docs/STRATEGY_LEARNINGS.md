@@ -1353,3 +1353,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - What broke: holdings() keeps shares sold today until T+1. The netting of today's sells relied only on positions(); when that call failed, the heal saw "20 held, no SL" and sent 3 SELL SLs on sold shares (Kotak T1 check rejected them).
 - Reuse next time: check two Kotak sources for "sold today" (positions() and the order book's complete sells); never act on holdings() alone during market hours. A Kotak call that times out may still have placed the order (WIPRO 09:16), so re-read the order book before any re-send.
 - Profit-booking / exit takeaway: a trailed swing stop that sits above the next day's open becomes a market-open exit at the stop price; on a gap-down day that is the intended protection, but a stop trailed to within ~1% of price on a Rs16 stock gives almost no room, so trail width on very low-priced names should be judged in ticks and ATR, not percent alone.
+
+## 2026-10-22: a timed-out Kotak order is not a failed order (WIPRO, B-1338)
+- What happened: the 09:16 IST WIPRO SL request timed out after 30 s and was logged "sl failed", but Kotak had placed it (trigger 186.86, trigger pending at 09:16:44).
+- Lesson: after any timeout, re-read the order book before reporting a failure or sending again. A blind re-send risks a duplicate stop, which means a double sell.
+- Profit-booking / exit takeaway: a stop Kotak already holds is real protection. Adopt it, and never stack a second sell on the same shares.
