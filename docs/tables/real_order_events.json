@@ -1691,7 +1691,19 @@
    "prev_state": null,
    "new_state": "rejected",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 22-Oct-2026 09:22:20 S SL qty 20 trg 14.81 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:40.00, Available:20.00  for entity account-XUAEZ across exchang"
+  },
+  {
+   "id": 142,
+   "ts": 1792663949.8847296,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "aligned_to_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "63.93",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-10-22T07:22:31Z"
+ "synced_at_utc": "2026-10-22T10:13:19Z"
 }
