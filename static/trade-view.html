@@ -247,6 +247,7 @@
      unnoticed - never render "everything's fine" off data that might no
      longer be true. -->
 <div id="unprotected-banner" style="display:none;"></div>
+<div id="upstash-banner" class="mono" style="display:none;padding:6px 10px;margin:4px 0;border-radius:6px;font-weight:600;"></div>
 
 <div class="log-panel">
   <div class="log-head">
@@ -2332,6 +2333,18 @@ async function refresh() {
     fetchJSON(`${ORIGIN}/signal-funds`).then(f => { window._sigFunds = f; }).catch(() => { window._sigFunds = null; })
       .then(() => fetchJSON(`${ORIGIN}/fo-entry-diagnosis`)).then(renderFoDiagnosis).catch(() => renderFoDiagnosis(null));
     fetchJSON(`${ORIGIN}/entry-funnel`).then(renderEntryFunnel).catch(() => renderEntryFunnel(null));
+    // B-1342: Upstash daily budget red flag (hidden while status is ok).
+    fetchJSON(`${ORIGIN}/upstash-usage`).then(u => {
+      const el = document.getElementById("upstash-banner");
+      if (!el || !u || u.status === "ok") { if (el) el.style.display = "none"; return; }
+      const top = Object.keys(u.families || {})[0] || "-";
+      el.style.display = "block";
+      el.style.background = u.status === "critical" ? "#b00020" : "#b26a00";
+      el.style.color = "#fff";
+      el.textContent = `Upstash backup ${u.status.toUpperCase()}: ${u.bytes_pct}% of daily bandwidth, ${u.ops_pct}% of daily commands used. `
+        + (u.status === "critical" ? "Non-critical backups paused; positions/orders still backed up. " : "Non-critical backups slowed. ")
+        + `Top user: ${top}`;
+    }).catch(() => {});
     fetchJSON(`${ORIGIN}/strategy-viable-buckets`).then(renderViableBuckets).catch(() => renderViableBuckets(null));
     // BUG found live 2026-09-08 (explicit user finding: "current balance
     // is 1596 as of now but wrong here" - showing -Rs942.61 instead):

@@ -1,0 +1,35 @@
+name: Upstash Usage Check (daily red flag)
+
+# B-1342: the free Upstash DB was suspended once for its 10 GB/month bandwidth cap. The bot meters every byte and
+# command it sends (GET /upstash-usage, persisted across restarts) and throttles non-critical writes itself; this
+# job is the daily, outside check. It FAILS (GitHub emails the owner) when today's usage is at "conserve" (>= 60% of
+# the daily budget) or "critical" (>= 90%), or when the endpoint can't be read. Run history = the daily record.
+on:
+  schedule:
+    - cron: "40 10 * * *"   # 16:10 IST, after the NSE close
+    - cron: "25 17 * * *"   # 22:55 IST, end of the evening
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read today's Upstash usage and flag it
+        run: |
+          set -u
+          BODY=$(curl -sS --max-time 90 --retry 3 --retry-delay 20 https://tv-paper-bot-gdan.onrender.com/upstash-usage) || { echo "::error::endpoint unreachable"; exit 1; }
+          echo "$BODY" > usage.json
+          cat > flag.py <<'PY'
+          import json, sys
+          d = json.load(open("usage.json"))
+          mb = d["total_bytes"] / 1e6
+          print("day %s status %s: %.1f MB = %s%% of %.0f MB, %s cmds = %s%% of %s" % (
+              d["day"], d["status"], mb, d["bytes_pct"], d["daily_budget_bytes"] / 1e6,
+              d["total_ops"], d["ops_pct"], d["daily_budget_ops"]))
+          for fam, r in list(d["families"].items())[:10]:
+              print("  %s: %.2f MB, %d cmds" % (fam, (r["get_bytes"] + r["set_bytes"]) / 1e6, r["get_ops"] + r["set_ops"]))
+          if d["status"] != "ok":
+              print("::error::Upstash daily usage is %s - the top family above is the hog" % d["status"].upper())
+              sys.exit(1)
+          PY
+          python3 flag.py || exit 1
