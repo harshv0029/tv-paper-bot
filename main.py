@@ -578,7 +578,8 @@ def _maybe_sync_check_counts_external() -> None:
     global _check_counts_last_sync, _check_counts_last_digest
     try:
         now = time.time()
-        if now - _check_counts_last_sync < _CHECK_COUNTS_SYNC_SEC:
+        ival = _upstash_noncritical_interval(_CHECK_COUNTS_SYNC_SEC)  # B-1342
+        if ival is None or now - _check_counts_last_sync < ival:
             return
         digest = hashlib.sha256(json.dumps([_scheduler_check_counts_day, _scheduler_check_counts],
                                            sort_keys=True).encode()).hexdigest()
@@ -19781,6 +19782,22 @@ def _generic_mirror_key(table: str, suffix: str) -> str:
 # (GET /upstash-usage) so the next hog is visible before the cap, not after.
 _upstash_usage: dict = {}
 _upstash_usage_day = ""
+# B-1342: daily guard. Free tier = 10 GB/month bandwidth and 500k commands/month, so ~1/30 of each per IST day.
+# Today's counts are persisted to Upstash every _UPSTASH_USAGE_PERSIST_SEC (a restart keeps the day's total), and
+# as usage climbs the NON-critical writers (scan blobs, check counts, slow mirror tables, F&O candles) back off:
+# >= 60% of the daily budget -> 6x slower ("conserve"), >= 90% -> paused ("critical", red flag). Real-money tables
+# (positions, order events, kill switches, SL state) are never throttled by this guard.
+_UPSTASH_DAILY_BYTES_BUDGET = 330_000_000
+_UPSTASH_DAILY_OPS_BUDGET = 16_000
+_UPSTASH_CONSERVE_FRAC = 0.6
+_UPSTASH_CRITICAL_FRAC = 0.9
+_UPSTASH_CONSERVE_SLOWDOWN = 6
+_UPSTASH_USAGE_KEY = "tv_paper_bot:upstash_usage:v1"
+_UPSTASH_USAGE_PERSIST_SEC = 300
+_upstash_usage_base: dict = {}  # today's counts from earlier processes, restored from Upstash
+_upstash_usage_base_day = ""
+_upstash_usage_last_persist = 0.0
+_upstash_budget_last_level = 0
 
 
 def _upstash_meter(key: str, nbytes: int, op: str) -> None:
@@ -19789,6 +19806,8 @@ def _upstash_meter(key: str, nbytes: int, op: str) -> None:
         day = ist_now().strftime("%Y-%m-%d")
         if day != _upstash_usage_day:
             _upstash_usage.clear()
+            if _upstash_usage_base_day != day:
+                _upstash_usage_base.clear()
             _upstash_usage_day = day
         fam = re.sub(r":c\d+$|:\d{4}-\d{2}-\d{2}", "", str(key))
         rec = _upstash_usage.setdefault(fam, {"get_ops": 0, "get_bytes": 0, "set_ops": 0, "set_bytes": 0})
@@ -19796,6 +19815,79 @@ def _upstash_meter(key: str, nbytes: int, op: str) -> None:
         rec[f"{op}_bytes"] += int(nbytes)
     except Exception:
         pass
+
+
+def _upstash_usage_totals() -> tuple:
+    """(families, total_bytes, total_ops) for today: earlier processes (restored) + this process."""
+    fams: dict = {}
+    for src in (_upstash_usage_base if _upstash_usage_base_day == _upstash_usage_day else {}, _upstash_usage):
+        for fam, rec in list(src.items()):
+            agg = fams.setdefault(fam, {"get_ops": 0, "get_bytes": 0, "set_ops": 0, "set_bytes": 0})
+            for k in agg:
+                agg[k] += int(rec.get(k, 0) or 0)
+    tot_b = sum(v["get_bytes"] + v["set_bytes"] for v in fams.values())
+    tot_o = sum(v["get_ops"] + v["set_ops"] for v in fams.values())
+    return fams, tot_b, tot_o
+
+
+def _upstash_budget_level() -> int:
+    """0 ok, 1 conserve, 2 critical - by the larger of bytes and commands used vs today's budget."""
+    _, b, o = _upstash_usage_totals()
+    frac = max(b / _UPSTASH_DAILY_BYTES_BUDGET, o / _UPSTASH_DAILY_OPS_BUDGET)
+    return 2 if frac >= _UPSTASH_CRITICAL_FRAC else 1 if frac >= _UPSTASH_CONSERVE_FRAC else 0
+
+
+_UPSTASH_OFF_HOURS_SLOWDOWN = 6  # B-1342: outside NSE hours (and weekends) dashboard-only state changes slowly
+
+
+def _upstash_in_market_hours() -> bool:
+    """Weekday 09:00-15:45 IST (NSE session plus a small buffer either side)."""
+    now_local = ist_now()
+    if now_local.weekday() >= 5:
+        return False
+    m = now_local.hour * 60 + now_local.minute
+    return 9 * 60 <= m <= 15 * 60 + 45
+
+
+def _upstash_noncritical_interval(base_sec: float):
+    """Interval a non-critical writer should use now, or None to skip it entirely (critical).
+    Slower when the daily budget is >= 60% used and again outside market hours; never applied to real-money state."""
+    lvl = _upstash_budget_level()
+    if lvl >= 2:
+        return None
+    ival = base_sec * (_UPSTASH_CONSERVE_SLOWDOWN if lvl == 1 else 1)
+    return ival if _upstash_in_market_hours() else ival * _UPSTASH_OFF_HOURS_SLOWDOWN
+
+
+def _upstash_usage_persist(force: bool = False) -> None:
+    """Restore today's earlier counts once per day per process, then save the running total. Never raises."""
+    global _upstash_usage_base_day, _upstash_usage_last_persist, _upstash_budget_last_level
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            return
+        now = time.time()
+        if not force and now - _upstash_usage_last_persist < _UPSTASH_USAGE_PERSIST_SEC:
+            return
+        _upstash_usage_last_persist = now
+        day = ist_now().strftime("%Y-%m-%d")
+        if _upstash_usage_base_day != day:
+            raw = _upstash_get(_UPSTASH_USAGE_KEY)
+            prev = json.loads(raw) if raw else {}
+            _upstash_usage_base.clear()
+            if prev.get("day") == day:
+                _upstash_usage_base.update(prev.get("families") or {})
+            _upstash_usage_base_day = day
+            if not _upstash_usage_day:
+                _upstash_meter(_UPSTASH_USAGE_KEY, 0, "get")
+        fams, b, o = _upstash_usage_totals()
+        _upstash_set(_UPSTASH_USAGE_KEY, json.dumps({"day": day, "families": fams}, separators=(",", ":")))
+        lvl = _upstash_budget_level()
+        if lvl != _upstash_budget_last_level:
+            print(f"[upstash_budget] {'RED FLAG ' if lvl == 2 else ''}level {_upstash_budget_last_level}->{lvl}: "
+                  f"{b / 1e6:.1f} MB / {_UPSTASH_DAILY_BYTES_BUDGET / 1e6:.0f} MB, {o} / {_UPSTASH_DAILY_OPS_BUDGET} cmds")
+            _upstash_budget_last_level = lvl
+    except Exception as e:
+        print(f"[upstash_budget] persist failed (non-fatal): {e}")
 
 
 def _upstash_get(key: str):
@@ -19951,9 +20043,10 @@ def sync_generic_tables_external(only=None) -> int:
             continue
         if table not in _generic_mirror_hydrated:
             continue  # never overwrite a remote copy we haven't restored from yet
-        if (only is None and table in _GENERIC_MIRROR_SLOW_TABLES
-                and time.time() - _generic_mirror_last_push_ts.get(table, 0.0) < _GENERIC_MIRROR_SLOW_SEC):
-            continue
+        if only is None and table in _GENERIC_MIRROR_SLOW_TABLES:
+            ival = _upstash_noncritical_interval(_GENERIC_MIRROR_SLOW_SEC)  # B-1342: backs off near the daily cap
+            if ival is None or time.time() - _generic_mirror_last_push_ts.get(table, 0.0) < ival:
+                continue
         try:
             with closing(get_db()) as conn:
                 rows = [dict(r) for r in conn.execute(f"SELECT * FROM {table}").fetchall()]
@@ -19989,6 +20082,20 @@ def hydrate_fo_option_candles_from_external() -> int:
     except Exception as e:
         print(f"[fo_candle_journal] restore failed (non-fatal): {e}")
         return 0
+
+
+_FO_CANDLES_SYNC_SEC = 300  # B-1342: was every tick (a days-index GET each ~30 s even with nothing to push)
+_fo_candles_last_sync = 0.0
+
+
+def _maybe_sync_fo_option_candles_external() -> int:
+    """Scheduler-tick wrapper: throttled and budget/market-hours aware (B-1342). Explicit calls stay immediate."""
+    global _fo_candles_last_sync
+    ival = _upstash_noncritical_interval(_FO_CANDLES_SYNC_SEC)
+    if ival is None or time.time() - _fo_candles_last_sync < ival:
+        return 0
+    _fo_candles_last_sync = time.time()
+    return sync_fo_option_candles_external()
 
 
 def sync_fo_option_candles_external() -> int:
@@ -21117,7 +21224,8 @@ def _symbol_scans_kick_sync(force: bool = False) -> None:
         if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
             return
         now = time.time()
-        if not force and now - _symbol_scans_last_sync < _SYMBOL_SCANS_SYNC_SEC:
+        ival = _upstash_noncritical_interval(_SYMBOL_SCANS_SYNC_SEC)  # B-1342
+        if not force and (ival is None or now - _symbol_scans_last_sync < ival):
             return
         if not _symbol_scans_sync_lock.acquire(blocking=False):
             return
@@ -25471,9 +25579,10 @@ async def _scheduler_tick():
     except Exception as e:
         print(f"[table_mirror] tick sync failed (non-fatal): {e}")
     try:
-        await asyncio.to_thread(sync_fo_option_candles_external)
+        await asyncio.to_thread(_maybe_sync_fo_option_candles_external)
     except Exception as e:
         print(f"[fo_candle_journal] tick sync failed (non-fatal): {e}")
+    await asyncio.to_thread(_upstash_usage_persist)  # B-1342: daily Upstash budget guard (never raises)
     if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0:
         # B-1288a: return freed pages to the OS (glibc fragmentation after big pandas scans)
         try:
@@ -26438,11 +26547,19 @@ async def strategy_viable_override(request: Request):
 
 @app.get("/upstash-usage")
 def upstash_usage():
-    """B-1341: no-token, sizes only. Bytes/ops sent to and read from Upstash today (IST), per key family, since the
-    last restart. Free tier cap is 10 GB/month bandwidth (~330 MB/day); budget well under that."""
-    fams = {k: dict(v) for k, v in _upstash_usage.items()}
-    tot = sum(v["get_bytes"] + v["set_bytes"] for v in fams.values())
-    return {"day": _upstash_usage_day, "total_bytes": tot, "daily_budget_bytes": 330_000_000,
+    """B-1341/B-1342: no-token, sizes only. Bytes/commands sent to and read from Upstash today (IST), per key family,
+    across restarts (persisted every 5 min). status: ok (<60% of the daily budget), conserve (>=60%, non-critical
+    writers 6x slower), critical (>=90%, non-critical writers paused - red flag). Free tier: 10 GB + 500k cmds/month."""
+    fams, tot, ops = _upstash_usage_totals()
+    lvl = _upstash_budget_level()
+    return {"day": _upstash_usage_day or ist_now().strftime("%Y-%m-%d"),
+            "status": ("ok", "conserve", "critical")[lvl],
+            "market_hours": _upstash_in_market_hours(),
+            "total_bytes": tot, "daily_budget_bytes": _UPSTASH_DAILY_BYTES_BUDGET,
+            "bytes_pct": round(100 * tot / _UPSTASH_DAILY_BYTES_BUDGET, 1),
+            "total_ops": ops, "daily_budget_ops": _UPSTASH_DAILY_OPS_BUDGET,
+            "ops_pct": round(100 * ops / _UPSTASH_DAILY_OPS_BUDGET, 1),
+            "restored_from_earlier_processes": _upstash_usage_base_day == _upstash_usage_day and bool(_upstash_usage_base),
             "families": dict(sorted(fams.items(), key=lambda kv: -(kv[1]["get_bytes"] + kv[1]["set_bytes"])))}
 
 

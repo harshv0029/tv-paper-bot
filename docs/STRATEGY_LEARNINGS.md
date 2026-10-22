@@ -1376,3 +1376,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Cause: a dashboard scan-set blob of several MB was re-uploaded uncompressed every 60 seconds whether it had changed or not, alongside other per-tick whole-object pushes.
 - Lesson: on a metered store, budget bytes as well as calls. Compress, skip unchanged uploads, throttle anything that isn't safety-critical, and meter usage per key so the next hog shows up before the cap.
 - Profit-booking / exit takeaway: losing the store can lose a position's strategy identity and stop context on restart. Protect the safety-critical state's budget so it is never starved by dashboard data.
+
+## 2026-10-23: a free backup store needs a daily budget, not a monthly surprise (B-1342)
+- Mechanism: the bot meters every byte and command it sends to Upstash, keeps today's total across restarts, and backs off its own non-critical writes at 60% / pauses them at 90% of 1/30 of the monthly free cap, and slows them 6x outside NSE hours.
+- Why it fits this system: the backup exists to protect real-money state through Render restarts; dashboard counters were eating the budget that positions and kill switches need. Tiering the writers keeps the money-critical backups alive.
+- What surprised: a monthly cap gives no warning until the store is already dark, so the guard must be daily and must count across restarts.
+- Reuse: any free-tier external dependency (Upstash, Render, Actions minutes) gets a metered daily budget, a status endpoint and a failing scheduled check.
+- Profit-booking / exit takeaway: no direct trade effect; it protects stops and position records across restarts, which protects booked and open profit.
