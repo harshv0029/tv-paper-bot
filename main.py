@@ -25441,7 +25441,10 @@ async def _scheduler_tick():
     _open_window = (_t_ist.weekday() < 5 and (9, 15) <= (_t_ist.hour, _t_ist.minute) < (9, 30))
     if _open_window or _scheduler_tick_count % _UNPROTECTED_BACKCHECK_EVERY_N_TICKS == 0:
         try:
-            _reconcile_real_positions_core(adopt="*")
+            # B-1340: in a worker thread, still awaited (same ordering as before), so a slow Kotak/Upstash call cannot
+            # freeze the event loop: on 22 Oct an inline stall starved the entry scan (260 symbol checks vs 3992 the day
+            # before) and Render answered 502.
+            await asyncio.to_thread(_reconcile_real_positions_core, adopt="*")
         except Exception as e:
             print(f"[unprotected_backcheck] in-process reconcile failed (non-fatal, external cron still covers this): {e}")
         for _gt in _GIT_TIER_PUSH_TABLES:  # B-1327: in-process git copy of the order log, ~5 min

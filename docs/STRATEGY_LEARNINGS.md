@@ -1364,3 +1364,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Fit for this system: a cash-equity short can only be intraday (MIS), and must be covered before the broker's square-off. Every multi-day short swing cell (sector_rotation fade, brk20 short swing) can never trade cash equity at Kotak. `SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED` stays False for good.
 - Reuse next time: a multi-day short needs a product that allows it, i.e. stock futures, or SLB borrowing. Futures mean lot-size capital and different costs, so the cell must be re-validated on futures before any wiring (B-1339).
 - Profit-booking / exit takeaway: an intraday short must book its profit or loss the same day. Never design a short exit that relies on holding it overnight in cash equity.
+
+## 2026-10-22: "no setup fired" can mean "nothing was scanned" (B-1340)
+- Symptom: zero entries all day; /entry-funnel said "no setup fired today" in every category.
+- Reality: the scheduler logged only 260 symbol checks against 3992 the day before. The 5-minute Kotak reconcile ran inline on the event loop and stalled on Upstash (403), starving the entry scan and freezing the web server (502 at 10:02 IST).
+- Lesson: before reading a quiet day as "no setups", compare scan volume with a normal day. Zero signals on a fraction of the normal scans is an outage, not a market verdict. Any blocking I/O in the scheduler tick (Kotak, Upstash, git) belongs in a worker thread with a bounded wait.
+- Profit-booking / exit takeaway: a starved scheduler also delays trailing-stop updates and exits, so scan health protects open profit as well as new entries.
