@@ -16,7 +16,7 @@ Total rows: 1089 | closed: 463 | not closed: 626
 | CLOSED | 77 |
 | PARTIAL | 70 |
 | BLOCKED | 63 |
-| OPEN | 57 |
+| OPEN | 56 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | PENDING | 12 |
@@ -42,6 +42,7 @@ Total rows: 1089 | closed: 463 | not closed: 626
 | DONE-BUILT | 2 |
 | UNKNOWN | 2 |
 | FIXED-LOCAL | 2 |
+| KOTAK | 2 |
 | OWNER-ACTION | 1 |
 | DONE-MEASURED | 1 |
 | BLOCKED-ON-RUN | 1 |
@@ -58,7 +59,6 @@ Total rows: 1089 | closed: 463 | not closed: 626
 | RULE | 1 |
 | OWED | 1 |
 | NEEDS-OWNER | 1 |
-| KOTAK | 1 |
 | RECONCILE | 1 |
 | VIABLE | 1 |
 | REAL | 1 |
@@ -535,7 +535,7 @@ Total rows: 1089 | closed: 463 | not closed: 626
 | B-1290 | P1 | FIXED-LOCAL | Render memory target ~1024 MB of 2048 |  |
 | B-1310 | P1 | OPEN | 2026-10-21 | needs |
 | B-1327 | P1 | TABLE-GIT-SYNC | 2026-10-21 | open:, verify, needs |
-| B-1337 | P1 | OPEN | 2026-10-22 09:35 IST | blocked |
+| B-1337 | P1 | KOTAK | 2026-10-22 09:35 IST | blocked, follow-up, awaiting, waiting |
 | B-1338 | P1 | OPEN | 2026-10-22 09:35 IST | pending, verify |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
