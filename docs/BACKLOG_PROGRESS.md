@@ -541,7 +541,7 @@ Total rows: 1096 | closed: 467 | not closed: 629
 | B-1327 | P1 | TABLE-GIT-SYNC | 2026-10-21 | open:, verify, needs |
 | B-1337 | P1 | KOTAK | 2026-10-22 09:35 IST | blocked, follow-up, awaiting, waiting |
 | B-1338 | P1 | WIPRO-EQ | 2026-10-22 09:35 IST | pending, verify, awaiting, waiting |
-| B-1344 | P1 | USER | 2026-10-23 04:10 IST | owed, pending, needs |
+| B-1344 | P1 | USER | 2026-10-23 04:10 IST | owed, needs |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
