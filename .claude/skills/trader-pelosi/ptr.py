@@ -365,7 +365,7 @@ def describe(row):
         what += " (%s)" % row["ticker"]
     if row.get("option"):
         o = row["option"]
-        what += ": %s%d %s options, $%g strike, expires %s" % (
+        what += ": %s%d %s options, ₹%g strike, expires %s" % (
             "exercised " if o.get("exercised") else "", o["contracts"], o["kind"],
             o["strike"], o["expires"])
     elif row.get("shares"):

@@ -7,13 +7,13 @@
     python3 alerts.py add --from-plan                # stop, target and flat-by-close from trader/plan.json
     python3 alerts.py add --symbol TSLA --stop 358.32
     python3 alerts.py add --symbol TSLA --target 370.04
-    python3 alerts.py add --at 15:55 --label "flat by close" --before-close
+    python3 alerts.py add --at 15:10 --label "flat by close" --before-close
     python3 alerts.py add --symbol KO --pct 3
     python3 alerts.py add --opening-bell
     python3 alerts.py check                          # rings what hit, once; exit 1 if nothing rang
-    python3 alerts.py check --now "2026-10-19 15:55" --offline tests/fixtures/trader-alerts
+    python3 alerts.py check --now "2026-10-19 15:10" --offline tests/fixtures/trader-alerts
     python3 alerts.py list
-    python3 alerts.py reset tsla-plan-stop
+    python3 alerts.py reset reliance-plan-stop
 
 Rule types:
   above / target  the price is at or above "price"
@@ -23,7 +23,7 @@ Rule types:
   opening_bell    the NYSE opened today (rings once per trading day)
   time            the India (IST) clock passed "at" (HH:MM) on a trading day
                   (rings once per trading day); "before_close": true moves it
-                  3 hours earlier on a 1:00 p.m. early close, so a 15:55
+                  3 hours earlier on a 1:00 p.m. early close, so a 15:10
                   "flat by close" rings at 12:55 on those days
 
 A rule with "date" is only watched on that India (IST) date (rules from a plan
@@ -70,7 +70,7 @@ NYSE_HOLIDAYS = {  # NSE trading holidays (name kept for compatibility); mirrors
     "2026-12-25": "Christmas",
 }
 NYSE_EARLY_CLOSE = {}  # NSE has no scheduled early closes (Muhurat trading is a special evening session, not modelled)
-CALENDAR_YEARS = (2026, 2027)
+CALENDAR_YEARS = (2026,)  # NSE 2027 holidays not loaded yet: dates in 2027 are reported as calendar-unknown
 OPEN = datetime.time(9, 15)  # NSE cash/F&O open, IST
 CLOSE = datetime.time(15, 30)  # NSE close, IST
 EARLY = datetime.time(13, 0)
@@ -155,7 +155,7 @@ def market_status(now_utc):
     nd = d if (s and local.time() < s[0]) else d + datetime.timedelta(days=1)
     for _ in range(15):
         if session(nd):
-            st["next_open"] = "%s 09:30" % nd.isoformat()
+            st["next_open"] = "%s 09:15" % nd.isoformat()
             break
         nd += datetime.timedelta(days=1)
     return st
@@ -366,7 +366,7 @@ def validate(rule):
     if t == "pct_move" and not isinstance(rule.get("pct"), (int, float)):
         raise AlertError("rule %s needs a numeric pct" % rule.get("id"))
     if t == "time" and _hhmm(rule.get("at")) is None:
-        raise AlertError("rule %s needs \"at\" as a India time (IST) like \"15:55\"" % rule.get("id"))
+        raise AlertError("rule %s needs \"at\" as a India time (IST) like \"15:10\"" % rule.get("id"))
     if rule.get("date") and not re.match(r"^\d{4}-\d{2}-\d{2}$", str(rule["date"])):
         raise AlertError("rule %s: date must be YYYY-MM-DD" % rule.get("id"))
 
@@ -441,7 +441,7 @@ def evaluate(rules, quotes, status, state, now_utc):
             if hit and rid not in rung:
                 word = "at or above" if typ == "above" else "at or below"
                 label = {"stop": "stop", "target": "target"}.get(r["type"], "alert level")
-                rings.append({"id": rid, "symbol": sym, "message": "%s %s $%.2f: %s your %s $%s%s."
+                rings.append({"id": rid, "symbol": sym, "message": "%s %s ₹%.2f: %s your %s ₹%s%s."
                               % (sym, "is" if status["open"] else "last", p, word, label, _n(r["price"]),
                                  (" (" + r["note"] + ")") if r.get("note") else "")})
                 rung[rid] = stamp
@@ -455,7 +455,7 @@ def evaluate(rules, quotes, status, state, now_utc):
             want = r.get("direction")
             hit = abs(move) >= r["pct"] and (not want or (want == "up") == (move > 0))
             if hit and not _rang_today(rung.get(rid), today):
-                rings.append({"id": rid, "symbol": sym, "message": "%s moved %+.2f%% to $%.2f (from $%.2f)."
+                rings.append({"id": rid, "symbol": sym, "message": "%s moved %+.2f%% to ₹%.2f (from ₹%.2f)."
                               % (sym, move, p, float(ref))})
                 rung[rid] = stamp
     state["last_check"] = stamp
@@ -480,9 +480,9 @@ def rules_from_plan(plan, cfg_flat_by=None):
         label = plan.get("%s_label" % key)
         out.append({"id": "%s-plan-%s" % (sym.lower(), key), "symbol": sym, "type": typ, "price": float(v),
                     "note": word + (": " + label if label else "")})
-    flat = plan.get("flat_by") or cfg_flat_by or "15:55"
+    flat = plan.get("flat_by") or cfg_flat_by or "15:10"
     if _hhmm(flat) is None:
-        raise AlertError("the plan's flat_by %r is not a time like 15:55" % flat)
+        raise AlertError("the plan's flat_by %r is not a time like 15:10" % flat)
     out.append({"id": "%s-flat-by" % sym.lower(), "symbol": sym, "type": "time", "at": flat,
                 "label": "flat by close", "before_close": True})
     if plan.get("date"):
@@ -545,8 +545,8 @@ def cmd_quote(a):
             if q:
                 chg = ""
                 if q.get("prev_close"):
-                    chg = " (%+.2f%% vs prev close $%.2f)" % (100.0 * (q["price"] / q["prev_close"] - 1), q["prev_close"])
-                print("%-6s $%.2f%s  %s  [%s]" % (s, q["price"], chg, q.get("time", ""), q["source"]))
+                    chg = " (%+.2f%% vs prev close ₹%.2f)" % (100.0 * (q["price"] / q["prev_close"] - 1), q["prev_close"])
+                print("%-6s ₹%.2f%s  %s  [%s]" % (s, q["price"], chg, q.get("time", ""), q["source"]))
         for e in errors:
             print("error: " + e)
         if a.write and quotes:
@@ -581,7 +581,7 @@ def cmd_check(a):
             print("ALERT " + r["message"])
         if not rings:
             print("Nothing hit. %d rule(s) watched today%s." % (
-                len(watched), (", " + ", ".join("%s $%.2f" % (s, quotes[s]["price"]) for s in syms if s in quotes))
+                len(watched), (", " + ", ".join("%s ₹%.2f" % (s, quotes[s]["price"]) for s in syms if s in quotes))
                 if quotes else ""))
         for e in errors:
             print("error: " + e)
@@ -618,7 +618,7 @@ def cmd_add(a):
         rule = {"id": a.id or "opening-bell", "type": "opening_bell"}
     elif a.at:
         if _hhmm(a.at) is None:
-            raise AlertError("--at wants a India time (IST) like 15:55")
+            raise AlertError("--at wants a India time (IST) like 15:10")
         rule = {"id": a.id or ("time-%s" % a.at.replace(":", "")), "type": "time", "at": a.at,
                 "label": a.label or "time alert"}
         if a.symbol:

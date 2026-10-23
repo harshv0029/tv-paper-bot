@@ -1,19 +1,15 @@
 ---
 name: trader-broker
 description: >-
-  Order Executor. Sends approved orders to your broker, paper trading by
-  default, never without your yes. Shows each order as a plain ticket (a
-  bracket shows its stop-loss, take-profit and the max loss at the stop)
-  plus the exact JSON for Alpaca's place_stock_order, records your yes word
-  for word, then Claude's own Allow once / Deny card asks again. Builds the
-  sell ticket that closes a day trade by your flat-by time, records fills,
-  and logs each trade's max loss so trader-risk can hold the daily limit.
-  Covers setting up Alpaca's official MCP server in Claude Desktop (paper by
-  default, keys in env vars, never in chat), the Interactive Brokers
-  connector, and setting order tools to "Needs approval". Use when the user
-  says "place the order", "buy it", "execute", "send it to my broker",
-  "close my position", "flatten", "get me out", "connect Alpaca", "set up
-  paper trading", or after /trader-risk passes.
+  Kotak Order Ticket (draft only). Turns an approved, risk-checked order into
+  the exact Kotak Neo place_order legs (entry, SL-M stop, target limit) for
+  NSE/BSE/MCX with segment nse_cm/nse_fo/mcx_fo and product MIS/CNC/NRML,
+  refuses any entry without a stop-loss, records your yes and the fills,
+  and builds the flatten ticket by your flat-by time. It NEVER sends an
+  order: the live tv-paper-bot (main.py / kotak_real_orders.py) is the only
+  real-order path. Use when the user says "draft the order", "show the
+  Kotak ticket", "what would the order look like", "close my position",
+  "flatten", "record the fill", or after /trader-risk passes.
 argument-hint: "[order number]"
 ---
 
@@ -22,8 +18,9 @@ argument-hint: "[order number]"
 > **India / Kotak adaptation (tv-paper-bot, 2026-10-23).** Adapted for NSE/Kotak from Jakeschincariol/day-trader-skill (MIT, see `../TRADER_SKILLS_LICENSE`).
 > Times are IST (UTC+5:30, no DST); session 09:15-15:30 IST (MCX 09:00-23:30); NSE holidays mirror `main.NSE_HOLIDAYS_2026`; amounts are ₹.
 > Use Yahoo `.NS` symbols (RELIANCE.NS, TCS.NS; indices ^NSEI, ^NSEBANK). Cost model: ~0.8% round trip (brokerage 0.20%/side + STT, exchange, SEBI, stamp, GST).
+> Worked examples below are upstream US runs re-labelled, kept to show the output shape: their numbers are not Indian prices.
 > House rules: no trade without SL/SL-M; check long AND short; this skill never places an order - the live bot (`main.py` / `kotak_real_orders.py`) is the only real-order path.
-> Not yet ported (backlog B-1345): Alpaca ticket JSON; for Kotak use exchange_segment nse_cm/nse_fo/mcx_fo, product MIS/CNC/NRML, order type L/MKT/SL/SL-M. Never connect a broker MCP to place orders.
+> Ported (B-1345): default broker is `kotak` (config `broker`, `segment` nse_cm|bse_cm|nse_fo|bse_fo|mcx_fo|cde_fo, `product` MIS|CNC|NRML). Tickets show Kotak legs in `neo_api_client.place_order` field names (Yahoo RELIANCE.NS -> RELIANCE-EQ); an entry with no stop is REFUSED; Kotak cash has no OCO bracket, so the SL-M and target legs are separate and the other is cancelled on fill. "yes" records approval of the DRAFT only. The Alpaca/IBKR sections below are kept from upstream for reference and must not be connected here: never add a broker MCP or Kotak credentials to Claude.
 
 The Order Executor is the only skill in this pack that can lead to a real
 order, so it is the strictest. An order reaches the market only after three
@@ -165,7 +162,7 @@ that draft orders to Needs approval too.
   (`alerts.py add --from-plan`). The bracket's own orders do the stopping.
 - When the stop-loss or the take-profit fills, record it:
   `ticket.py fill --symbol RELIANCE.NS --side sell --qty 8 --price 358.32`.
-- By `flat_by` (15:55 India (IST)), anything still open gets closed:
+- By `flat_by` (15:10 India (IST)), anything still open gets closed:
   1. Ask Alpaca how many shares are held: `get_open_position` (read only).
   2. `ticket.py flatten --symbol RELIANCE.NS --qty 8` writes a market sell for those
      shares to `trader/orders.json`.
@@ -184,8 +181,8 @@ ORDER 1 of 1, PAPER account, Alpaca
   BUY 8 RELIANCE.NS, market, good for today
   stop-loss 358.32
   take-profit 370.04
-  max loss about $46.88 if the stop fills at 358.32 (it can fill worse in a fast market)
-  why: opening-range breakout on RELIANCE.NS: 8 shares, bound by your $50 max loss per trade (8 x 5.86 = $46.88 at the stop)
+  max loss about ₹46.88 if the stop fills at 358.32 (it can fill worse in a fast market)
+  why: opening-range breakout on RELIANCE.NS: 8 shares, bound by your ₹50 max loss per trade (8 x 5.86 = ₹46.88 at the stop)
   READY: trader-risk PASS, waiting for your yes
   Claude will call place_stock_order with exactly:
     {"symbol": "RELIANCE.NS", "side": "buy", "qty": "8", "type": "market", "time_in_force": "day",

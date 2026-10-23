@@ -29,7 +29,7 @@ Sources, one request each per ticker:
     price against yesterday's close:
     https://query2.finance.yahoo.com/v8/finance/chart/<TICKER>?range=1d&interval=5m
 
-Times print in India time (IST) (ET). State: trader/state/news.json remembers
+Times print in India time (IST) (IST). State: trader/state/news.json remembers
 what you have seen (30 days), so an item shows once. Offline: --offline DIR
 reads yahoo-<TICKER>.xml, chart-<TICKER>.json, sec-<FORM>-<CIK>.xml and
 company_tickers.json from DIR. The tests use it.
@@ -49,10 +49,14 @@ import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
-YAHOO = "https://feeds.finance.yahoo.com/rss/2.0/headline?s=%s&region=US&lang=en-US"
+YAHOO = "https://feeds.finance.yahoo.com/rss/2.0/headline?s=%s&region=IN&lang=en-IN"
+NSE_HOME = "https://www.nseindia.com/"
+NSE_ANN = "https://www.nseindia.com/api/corporate-announcements?index=equities&symbol=%s"
+NSE_IMPORTANT = re.compile(r"financial result|outcome of board|acquisition|amalgamation|merger|resignation|appointment|insolvency|default|credit rating|buy ?back|dividend|bonus|split|fraud|search|raid|penalty|order", re.I)
 CHART = "https://%s.finance.yahoo.com/v8/finance/chart/%s?range=1d&interval=5m"
 SEC_FEED = ("https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=%s&type=%s"
             "&dateb=&owner=include&count=%d&output=atom")
@@ -84,7 +88,7 @@ KEYWORDS = [
     ("risk", r"\brecall\b|\bbankrupt|\bdefault\b|\bdelist|\bhack|\bbreach\b|\boutage\b"),
     ("halt", r"\bhalt(?:s|ed)?\b|\btrading (?:pause|suspen)"),
     ("regulatory", r"\bFDA\b|\bapproval\b|\bapproves\b|\bclinical\b|\bFTC\b|\bDOJ\b"),
-    ("macro", r"\bFed\b|\bFOMC\b|\bCPI\b|\binflation\b|\bjobs report\b|\bpayrolls\b|\btariffs?\b|\bfutures\b"),
+    ("macro", r"\bRBI\b|\brepo rate\b|\bMPC\b|\bSEBI\b|\bGST\b|\bbudget\b|\bFII\b|\bDII\b|\bFed\b|\bFOMC\b|\bCPI\b|\binflation\b|\bjobs report\b|\bpayrolls\b|\btariffs?\b|\bfutures\b"),
 ]
 
 
@@ -183,7 +187,78 @@ class Fetcher(object):
 
 
 def yahoo_symbol(ticker):
-    return ticker.upper().replace(".", "-")
+    """India: bare NSE symbols -> Yahoo .NS (RELIANCE -> RELIANCE.NS); .NS/.BO/^index pass through."""
+    t = ticker.upper().strip()
+    return t if (t.startswith("^") or t.endswith(".NS") or t.endswith(".BO")) else t + ".NS"
+
+
+def nse_symbol(ticker):
+    t = ticker.upper().strip()
+    for suf in (".NS", ".BO"):
+        if t.endswith(suf):
+            return t[:-len(suf)]
+    return t
+
+
+_NSE_OPENER = []
+
+
+def nse_get(url, name, offline=None):
+    """GET an nseindia.com API with the cookies its home page sets (it answers 401/403 without them).
+    Best effort: NSE throttles and blocks some cloud IPs; errors come back as NewsError."""
+    if offline:
+        path = os.path.join(offline, name)
+        if not os.path.isfile(path):
+            raise NewsError("offline: no file %s" % path)
+        with open(path, "rb") as fh:
+            return fh.read()
+    import http.cookiejar
+    hdr = [("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/124.0 Safari/537.36"), ("Accept", "application/json,text/html;q=0.9,*/*;q=0.8"),
+           ("Accept-Language", "en-IN,en;q=0.9"), ("Referer", NSE_HOME)]
+    try:
+        if not _NSE_OPENER:
+            op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+            op.addheaders = hdr
+            op.open(NSE_HOME, timeout=20).read()
+            _NSE_OPENER.append(op)
+        with _NSE_OPENER[0].open(url, timeout=30) as resp:
+            data = resp.read()
+            if resp.headers.get("Content-Encoding") == "gzip":
+                data = gzip.decompress(data)
+            return data
+    except urllib.error.HTTPError as exc:
+        raise NewsError("NSE answered HTTP %s for %s" % (exc.code, url))
+    except (urllib.error.URLError, OSError) as exc:
+        raise NewsError("could not reach nseindia.com: %s" % getattr(exc, "reason", exc))
+
+
+def parse_nse_announcements(data, ticker):
+    """NSE corporate-announcements JSON -> items (times are IST; stored as UTC like every other item)."""
+    try:
+        rows = json.loads(data.decode("utf-8") if isinstance(data, bytes) else data)
+    except ValueError as exc:
+        raise NewsError("NSE announcements for %s are not JSON: %s" % (ticker, exc))
+    if isinstance(rows, dict):
+        rows = rows.get("data") or []
+    out = []
+    for r in rows or []:
+        desc = str(r.get("desc") or "").strip()
+        text = str(r.get("attchmntText") or "").strip()
+        when = None
+        for fmt in ("%d-%b-%Y %H:%M:%S", "%d-%b-%Y %H:%M"):
+            try:
+                when = _dt.datetime.strptime(str(r.get("an_dt") or r.get("sort_date") or ""), fmt).replace(
+                    tzinfo=_dt.timezone(_dt.timedelta(hours=5, minutes=30))).astimezone(_dt.timezone.utc)
+                break
+            except ValueError:
+                continue
+        rid = r.get("seq_id") or "%s|%s|%s" % (ticker, r.get("an_dt"), desc)
+        out.append({"id": "nse:%s" % rid, "source": "NSE announcements", "kind": "filing", "form": desc or "announcement",
+                    "ticker": ticker, "title": "%s: %s" % (r.get("sm_name") or ticker, desc or "announcement"),
+                    "summary": text[:400], "items": [], "important": bool(NSE_IMPORTANT.search(desc + " " + text)),
+                    "link": r.get("attchmntFile") or "", "time": when})
+    return out
 
 
 def cik_map(fetcher, state):
@@ -369,7 +444,7 @@ def fingerprint(it):
 
 # ---------------------------------------------------------------- the check
 
-def collect(fetcher, watch, state, sec=True, forms=("8-K",), count=10, errors=None):
+def collect(fetcher, watch, state, sec=True, forms=("8-K",), count=10, errors=None, nse=True):
     errors = [] if errors is None else errors
     items = []
     for t in sorted(watch):
@@ -377,6 +452,15 @@ def collect(fetcher, watch, state, sec=True, forms=("8-K",), count=10, errors=No
             items += parse_rss(fetcher.get(YAHOO % yahoo_symbol(t), "yahoo-%s.xml" % t), t)
         except NewsError as exc:
             errors.append("headlines for %s: %s" % (t, exc))
+    if nse:
+        for t in sorted(watch):
+            if t.startswith("^"):
+                continue
+            try:
+                items += parse_nse_announcements(
+                    nse_get(NSE_ANN % urllib.parse.quote(nse_symbol(t)), "nse-%s.json" % nse_symbol(t), fetcher.offline), t)
+            except NewsError as exc:
+                errors.append("NSE announcements for %s: %s" % (t, exc))
     if sec:
         try:
             ciks = cik_map(fetcher, state)
@@ -430,7 +514,7 @@ def render_moves(moves, move_pct=MOVE_PCT):
     out = []
     for m in moves:
         flag = "MOVING" if abs(m["pct"]) >= move_pct else ""
-        when = (" at %s ET" % to_eastern(m["time"]).strftime("%H:%M")) if m.get("time") else ""
+        when = (" at %s IST" % to_eastern(m["time"]).strftime("%H:%M")) if m.get("time") else ""
         out.append("%-6s %s %+.2f%% vs yesterday's close %s%s  %s" % (
             m["ticker"], "{:,.2f}".format(m["price"]), m["pct"], "{:,.2f}".format(m["prev_close"]),
             when, flag))
@@ -479,7 +563,9 @@ def main(argv=None):
     ap.add_argument("--hours", type=float, default=48, help="ignore items older than this")
     ap.add_argument("--all", action="store_true", help="show seen items too")
     ap.add_argument("--forms", default="8-K", help="SEC forms to watch, comma separated")
-    ap.add_argument("--no-sec", action="store_true", help="headlines only")
+    ap.add_argument("--no-sec", action="store_true", help="(kept for upstream compatibility) skip SEC")
+    ap.add_argument("--us", action="store_true", help="also read SEC EDGAR 8-Ks (US companies only)")
+    ap.add_argument("--no-nse", action="store_true", help="skip NSE corporate announcements")
     ap.add_argument("--no-moves", action="store_true", help="skip the price line per ticker")
     ap.add_argument("--move-pct", type=float, default=MOVE_PCT, help="flag a move this big (percent)")
     ap.add_argument("--user-agent", help="SEC User-Agent: \"Your Name you@example.com\"")
@@ -504,14 +590,14 @@ def main(argv=None):
     state = load_json(args.state) or {}
     errors = []
     ua = sec_user_agent(args.user_agent, args.config)
-    sec = not args.no_sec
+    sec = args.us and not args.no_sec
     if sec and not ua and not args.offline:
         errors.append("SEC filings skipped: set sec_user_agent in trader/config.json or "
                       "SEC_USER_AGENT (\"Your Name you@example.com\") to include them")
         sec = False
     fetcher = Fetcher(ua, offline=args.offline)
     forms = [f.strip().upper() for f in args.forms.split(",") if f.strip()]
-    items = collect(fetcher, watch, state, sec=sec, forms=forms, errors=errors)
+    items = collect(fetcher, watch, state, sec=sec, forms=forms, errors=errors, nse=not args.no_nse)
     items = dedupe(tag(items, watch))
     shown = select(items, state, now, hours=args.hours, show_all=args.all)
     moves = [] if args.no_moves else collect_moves(fetcher, watch, errors)
