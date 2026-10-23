@@ -70,3 +70,19 @@ def test_hydrate_merges_side_branch(monkeypatch, tmp_path):
     with main.closing(main.get_db()) as c:
         got = sorted(r[0] for r in c.execute("SELECT order_id FROM real_order_events").fetchall())
     assert got == ["o1", "o2"]
+
+
+def test_push_loop_is_independent_of_scheduler_tick(monkeypatch):
+    """B-1349: the order-log push runs on its own wall-clock thread; a failing push never kills the loop."""
+    calls = []
+    monkeypatch.setattr(main, "_git_tier_push_side_branch", lambda n: calls.append(n) or (_ for _ in ()).throw(RuntimeError("x")))
+    sleeps = []
+    main._git_tier_push_loop(sleep=sleeps.append, rounds=3)
+    assert calls == ["real_order_events"] * 3 and sleeps == [60] * 3
+    import inspect
+    assert "_git_tier_push_side_branch" not in inspect.getsource(main._scheduler_tick)
+
+
+def test_health_shows_order_log_push_age(monkeypatch):
+    monkeypatch.setattr(main, "_git_tier_push_last_ok", {"real_order_events": main.time.time() - 30})
+    assert 29 <= main.health()["order_log_git_push_age_s"] <= 31
