@@ -1,0 +1,74 @@
+name: O'Neil cup-handle + B-831 mirror non-overlap + IS/OOS (B-818 / B-831)
+
+# Research only, read-only (no Kotak, no orders, no registry writes). scripts/oneil_cup_nonoverlap.py.
+# sets=cup : B-818 top 1d oneil_cup_handle cells of run 38193479637 (h60, chase 5/10, rs80 / rsqual1, atr3 AND
+#            avg1 negative control; avg1 inflates PFnet, rank on atr3), BOTH directions -> 16 cells.
+# sets=b831: scripts/oneil_nonoverlap.py cells pivot_tight, leaders, exit_six WITH the short mirror (long side
+#            reproduces run 38242267159 on the same data; short side is the owed both-directions run).
+# Method: every signal bar's trade simulated on its own with the UNCHANGED engines (oneil_research.simulate /
+# oneil_ext_research.simulate_x), then strict FIFO one position per symbol per cell (macddiv_nonoverlap helpers),
+# IS/OOS split by entry bar. FULL universe via main._load_nse_universe_from_file() (3 interleaved shards, RS rank
+# within the shard sample exactly as run 38193479637). 0.8% round trip, stop on every trade.
+# New tags only: <old minus __v1>__nonovl__v2 / _nonovl_segis__v2 / _nonovl_segoos__v2 (old tags untouched).
+# Output: merged JSON (PFnet net/gross, win %, hold, n, raw-before-FIFO, PFnet ex top-5, top-5 trades, original n
+# and PFnet for comparison) + TSV with the same columns as docs/backtest_data/oneil_1d_run_38193479637.tsv,
+# also printed in the log between BEGIN/END markers.
+# Candle size: cup/handle, pivot and RS rules are daily-bar constructs (CFG bar counts); 1m-4h not applicable.
+# Jobs: 3 shards + 1 merge = 4. Dispatch per CLAUDE.md urgency order (research matrix: only when no gate is queued).
+on:
+  workflow_dispatch:
+    inputs:
+      sets:
+        description: "Comma list: cup (B-818), b831 (B-831 cells + short mirror)"
+        default: "cup,b831"
+      split_date:
+        description: "IS/OOS boundary YYYY-MM-DD (entry before = IS). Blank = split_frac"
+        default: ""
+      split_frac:
+        description: "In-sample fraction of each symbol's time span when split_date is blank"
+        default: "0.6"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Run shard
+        run: |
+          set -o pipefail
+          python3 scripts/oneil_cup_nonoverlap.py run --shard ${{ matrix.shard }} --nshards 3 --sets "${{ inputs.sets }}" --split_date "${{ inputs.split_date }}" --split_frac "${{ inputs.split_frac }}" --out out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oneil-cup-nonovl-${{ matrix.shard }}
+          path: out/oneil_cup_nonovl_*.json
+          retention-days: 3
+
+  merge:
+    needs: run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+      - name: Merge and print
+        run: python3 scripts/oneil_cup_nonoverlap.py merge shards --json oneil_cup_nonoverlap_results_1d.json --tsv oneil_cup_nonoverlap_1d.tsv
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oneil-cup-nonoverlap-results-1d
+          path: |
+            oneil_cup_nonoverlap_results_1d.json
+            oneil_cup_nonoverlap_1d.tsv
