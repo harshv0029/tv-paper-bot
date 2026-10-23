@@ -1,3 +1,4 @@
+import asyncio
 """B-1356: a freeze or memory spike must name the code that was running, in the log, before Render kills the bot."""
 from unittest.mock import patch
 
@@ -30,7 +31,7 @@ def test_loop_never_raises():
 
 
 def test_health_shows_loop_lag():
-    h = main.health()
+    h = asyncio.run(main.health())
     assert "loop_lag_s" in h and "watchdog_alarms" in h
 
 
