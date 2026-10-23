@@ -67,20 +67,26 @@
     const t = probs.length ? "PROBLEM: " + probs.join(" · ") : okTxt;
     document.getElementById("sysTxt").textContent = t; el.title = t;
   }
+  let busy = false;
   async function pollHealth() {
+    if (busy) return;  // B-1359: never stack /health calls
+    busy = true;
     let h;
     try {
-      const r = await fetch("/health", {cache: "no-store"});
+      const r = await fetch("/health", {cache: "no-store", signal: AbortSignal.timeout(15000)});
       if (!r.ok) throw new Error("HTTP " + r.status);
       h = await r.json(); downSince = null;
     } catch (e) {
+      busy = false;
       downSince = downSince || Date.now();
       return paint([`Render unreachable since ${ist(downSince)} IST (${e.message || "no answer"}) - views show frozen data`]);
     }
+    busy = false;
     const probs = [];
     if (h.upstash_ok === false) probs.push(`Upstash down: ${h.upstash_error || "error"}`);
     if (h.loop_lag_s >= 15) probs.push(`bot frozen ${Math.round(h.loop_lag_s)}s`);
     if (h.rss_pct >= 75) probs.push(`memory ${h.rss_pct}%`);
+    if (h.threadpool_total && h.threadpool_used >= h.threadpool_total) probs.push(`bot busy: all ${h.threadpool_total} workers stuck, pages hang`);
     if (h.order_log_git_push_age_s > 600) probs.push(`order log not in git for ${Math.round(h.order_log_git_push_age_s / 60)}m`);
     paint(probs, `System OK · Render up · Upstash ${h.upstash_ok == null ? "not checked yet" : "ok"} · mem ${h.rss_pct ?? "-"}%`);
   }

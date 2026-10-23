@@ -1,3 +1,4 @@
+import asyncio
 import main
 
 
@@ -19,6 +20,6 @@ def test_warn_trims_cache_only():
 def test_alarm_level_and_health_no_trim():
     assert main._memory_pressure_check(1900.0)["memory_level"] == "alarm"
     main._DATA_CACHE["y"] = 1
-    h = main.health()
+    h = asyncio.run(main.health())
     assert "memory_level" in h and "y" in main._DATA_CACHE
     main._DATA_CACHE.pop("y", None)

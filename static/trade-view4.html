@@ -161,11 +161,22 @@
   const istTime = ts => ts ? new Date(ts * 1000).toLocaleTimeString("en-IN", {timeZone: "Asia/Kolkata", hour12: false}) : "-";
   // B-1357: every request records success/failure, so a dead Render or a failing endpoint shows red, never stale "all clear".
   const net = {};
+  // B-1359: one request per endpoint at a time, 20 s timeout. Polls every 2-5 s used to stack up behind a slow endpoint
+  // until all of the bot's worker threads were busy and every page hung (23-Oct 16:48 IST).
+  const inflight = {};
   const getJSON = u => {
     const k = u.split("?")[0];
-    return fetch(u, {cache: "no-store"}).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    if (inflight[k]) {
+      const s = Math.round((Date.now() - inflight[k]) / 1000);
+      if (s >= 15) { const n = net[k] || (net[k] = {ok: null}); n.failSince = n.failSince || inflight[k]; n.err = `no answer for ${s}s`; }
+      return Promise.reject(new Error("previous request still running"));
+    }
+    inflight[k] = Date.now();
+    const ac = new AbortController(), t = setTimeout(() => ac.abort(), 20000);
+    return fetch(u, {cache: "no-store", signal: ac.signal}).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(j => { net[k] = {ok: Date.now(), failSince: null, err: null}; return j; },
-            e => { const n = net[k] || (net[k] = {ok: null}); n.failSince = n.failSince || Date.now(); n.err = e.message || "unreachable"; throw e; });
+            e => { const n = net[k] || (net[k] = {ok: null}); n.failSince = n.failSince || Date.now(); n.err = e.name === "AbortError" ? "timed out after 20s" : (e.message || "unreachable"); throw e; })
+      .finally(() => { clearTimeout(t); delete inflight[k]; });
   };
   let health = null, healthAt = 0;
   async function pollHealth() {
@@ -184,12 +195,14 @@
       if (h.upstash_ok === false) probs.push(`Upstash failing: ${h.upstash_error || "error"}${h.upstash_last_ok_at ? " · last ok " + ist(h.upstash_last_ok_at * 1000) + " IST" : ""}`);
       if (h.loop_lag_s >= 15) probs.push(`bot frozen ${Math.round(h.loop_lag_s)}s (event loop lag)`);
       if (h.rss_pct >= 75) probs.push(`memory ${h.rss_pct}% of Render limit`);
+      if (h.threadpool_total && h.threadpool_used >= h.threadpool_total) probs.push(`all ${h.threadpool_total} worker threads stuck - data endpoints hang`);
       if (h.order_log_git_push_age_s != null && h.order_log_git_push_age_s > 600) probs.push(`order log not pushed to git for ${Math.round(h.order_log_git_push_age_s / 60)}m`);
       const c = (ok, t) => `<span class="${ok ? "up" : "down"}">${t}</span>`;
       items.push(c(true, "Render up"),
         c(h.upstash_ok !== false, h.upstash_ok == null ? "Upstash: not checked yet" : h.upstash_ok ? "Upstash ok" : "Upstash DOWN"),
         c(!(h.loop_lag_s >= 15), `loop lag ${h.loop_lag_s ?? "-"}s`),
         c(!(h.rss_pct >= 75), `mem ${h.rss_pct ?? "-"}%`),
+        c(!(h.threadpool_total && h.threadpool_used >= h.threadpool_total), `workers ${h.threadpool_used ?? "-"}/${h.threadpool_total ?? "-"}`),
         c(!(h.watchdog_alarms > 0), `watchdog alarms ${h.watchdog_alarms ?? "-"}`),
         c(!(h.order_log_git_push_age_s > 600), `order-log push ${h.order_log_git_push_age_s == null ? "-" : Math.round(h.order_log_git_push_age_s) + "s ago"}`));
     }
@@ -356,6 +369,7 @@
         : (u.length ? `<span class="${purge ? "dim" : "down"}">${u.length} unprotected${purge ? " (after 15:15 exchange cancel)" : ""}</span>` : `<span class="up">all stopped · ${Math.round(ago / 60)}m ago</span>`);
       setStep("sPos", u.length && !purge ? `${u.length} unprotected` : "position + SL", !!u.length && !purge);
     } catch (e) {
+      if (e.message === "previous request still running" && (Date.now() - inflight["/real-protection-status"]) < 15000) return;
       $("prot").innerHTML = `<span class="down">unknown (${esc(e.message || "unreachable")})</span>`;
     }
   }
