@@ -25,10 +25,11 @@ Kept here because CLAUDE.md is not edited from sessions; it has the same standin
 | 23-Oct: in-process unprotected backcheck did not complete for 45+ min (status null) because it ran every 10 scan ticks (B-1354) | Own daemon thread every 300 s, single-flight lock | `tests/test_inprocess_unprotected_backcheck_cadence.py` |
 | 23-Oct: NATIONALUM exit reason lost: written 8 s before a restart, git push was every 60 s (B-1350, B-1355) | Every order event wakes the git push thread immediately | `tests/test_git_tier_side_branch_push.py` |
 | 23-Oct: Render killed the bot twice (09:22, 13:19 IST) after minutes of silence, with no error in the log (B-1346, B-1356) | Watchdog thread: alarms at >= 15 s loop lag or RSS warn level, prints every thread's app stack, trims the data cache | `tests/test_watchdog.py` |
+| 23-Oct: Upstash suspended / Render down but trade-view4 showed no error (B-1357) | Upstash PING probe in /health; view4 System strip polls /health and turns red with the cause; no silent catch on the stop check | `tests/test_upstash_probe_and_view4_health.py` |
 | 21-Oct: GitHub cron is unreliable (table-git-sync fired 0-2 times a day) | Every must-run safety job is in-process first; crons are a secondary audit layer only | CLAUDE.md 2026-09-30 in-process-first rule |
 
 ## Daily check (coordinator)
 - `/health`: memory_level ok, rss_pct < 75, order_log_git_push_age_s < 300 in market hours.
 - `/real-protection-status`: stale false in market hours.
-- `/health`: loop_lag_s < 15, watchdog_alarms not rising; any `[watchdog] ALARM` line in the Render log names the code to fix.
+- `/health`: upstash_ok true, loop_lag_s < 15, watchdog_alarms not rising; any `[watchdog] ALARM` line in the Render log names the code to fix.
 - `/upstash-usage`: status ok. The 16:10 IST workflow must be green.

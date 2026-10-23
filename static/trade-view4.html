@@ -89,12 +89,17 @@
   .g.cur,.leaf.cur{box-shadow:0 0 0 2px var(--accent),0 0 16px rgba(59,130,246,.4);animation:pulse2 1.2s ease-in-out infinite;}
   @keyframes pulse2{50%{box-shadow:0 0 0 2px var(--accent),0 0 4px rgba(59,130,246,.2);}}
   @media (max-width:600px){#dt{grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr);}}
+  #sys{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;margin-bottom:10px;}
+  #sys.bad{border-color:var(--down);box-shadow:0 0 0 1px var(--down);}
+  #sys b.st{font-weight:600;}
   footer{margin-top:12px;color:var(--muted);font-size:10.5px;line-height:1.6;}
 </style>
 </head>
 <body>
 <h1>Live algo flow</h1>
 <div class="sub">The bot's real work, end to end: monitoring tick → symbol in the round-robin → strategies run on it → decision → order placement → position and its stop. Updates every 2s. <a href="/trade-view#v1" target="_top">view1</a> · <a href="/trade-view#v2" target="_top">view2</a> · <a href="/trade-view#v3" target="_top">view3</a> · <a href="/trade-view#v4" target="_top">view4</a></div>
+
+<div class="box mono" id="sys"><span><i class="led" id="sysLed"></i><b id="sysTxt">System: checking…</b></span><span id="sysItems"></span></div>
 
 <div class="subtabs"><button data-p="pipe" class="on">Pipeline</button><button data-p="tree">Tree · how it all connects</button></div>
 <div id="pTree" class="pane" style="display:none">
@@ -148,13 +153,51 @@
   <div class="dim" style="font-size:10.5px;margin-top:8px">Counts are each symbol's latest check (<span class="mono">/scheduler-attempts</span>, every 5s); the latest decision pulses. Gates 10–12 are the real-money mirror (PFnet ≥ floor and explorer stack, the one real-trading switch, Kotak entry with its SL); their counts come from today's real order log and the stop backcheck.</div>
 </div>
 
-<footer>Sources (read-only, nothing here places or changes an order): <span class="mono">/algo-live-flow</span> and <span class="mono">/scheduler-pipeline</span> every 2s, <span class="mono">/real-order-log</span> 3s, <span class="mono">/real-protection-status</span> 5s, <span class="mono">/real-open-positions</span> 20s. Every dot is one real event: a strategy scan on a symbol, a decision, or a real order moving to its position.</footer>
+<footer>Sources (read-only, nothing here places or changes an order): <span class="mono">/algo-live-flow</span> and <span class="mono">/scheduler-pipeline</span> every 2s, <span class="mono">/real-order-log</span> 3s, <span class="mono">/real-protection-status</span> 5s, <span class="mono">/real-open-positions</span> 20s, <span class="mono">/health</span> 5s (Render, Upstash, freeze, memory: red when any fails). Every dot is one real event: a strategy scan on a symbol, a decision, or a real order moving to its position.</footer>
 
 <script>
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const istTime = ts => ts ? new Date(ts * 1000).toLocaleTimeString("en-IN", {timeZone: "Asia/Kolkata", hour12: false}) : "-";
-  const getJSON = u => fetch(u, {cache: "no-store"}).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  // B-1357: every request records success/failure, so a dead Render or a failing endpoint shows red, never stale "all clear".
+  const net = {};
+  const getJSON = u => {
+    const k = u.split("?")[0];
+    return fetch(u, {cache: "no-store"}).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(j => { net[k] = {ok: Date.now(), failSince: null, err: null}; return j; },
+            e => { const n = net[k] || (net[k] = {ok: null}); n.failSince = n.failSince || Date.now(); n.err = e.message || "unreachable"; throw e; });
+  };
+  let health = null, healthAt = 0;
+  async function pollHealth() {
+    try { health = await getJSON("/health"); healthAt = Date.now(); } catch (e) {}
+    renderSys();
+  }
+  function renderSys() {
+    const now = Date.now(), probs = [], items = [];
+    const ist = ms => new Date(ms).toLocaleTimeString("en-IN", {timeZone: "Asia/Kolkata", hour12: false});
+    const failing = Object.entries(net).filter(([, v]) => v.failSince);
+    const renderDown = net["/health"] && net["/health"].failSince;
+    if (renderDown) probs.push(`Render unreachable since ${ist(renderDown)} IST (${net["/health"].err}) - figures below are frozen at their last good value`);
+    else failing.forEach(([k, v]) => probs.push(`${k} failing since ${ist(v.failSince)} IST (${v.err})`));
+    if (health && !renderDown) {
+      const h = health;
+      if (h.upstash_ok === false) probs.push(`Upstash failing: ${h.upstash_error || "error"}${h.upstash_last_ok_at ? " · last ok " + ist(h.upstash_last_ok_at * 1000) + " IST" : ""}`);
+      if (h.loop_lag_s >= 15) probs.push(`bot frozen ${Math.round(h.loop_lag_s)}s (event loop lag)`);
+      if (h.rss_pct >= 75) probs.push(`memory ${h.rss_pct}% of Render limit`);
+      if (h.order_log_git_push_age_s != null && h.order_log_git_push_age_s > 600) probs.push(`order log not pushed to git for ${Math.round(h.order_log_git_push_age_s / 60)}m`);
+      const c = (ok, t) => `<span class="${ok ? "up" : "down"}">${t}</span>`;
+      items.push(c(true, "Render up"),
+        c(h.upstash_ok !== false, h.upstash_ok == null ? "Upstash: not checked yet" : h.upstash_ok ? "Upstash ok" : "Upstash DOWN"),
+        c(!(h.loop_lag_s >= 15), `loop lag ${h.loop_lag_s ?? "-"}s`),
+        c(!(h.rss_pct >= 75), `mem ${h.rss_pct ?? "-"}%`),
+        c(!(h.watchdog_alarms > 0), `watchdog alarms ${h.watchdog_alarms ?? "-"}`),
+        c(!(h.order_log_git_push_age_s > 600), `order-log push ${h.order_log_git_push_age_s == null ? "-" : Math.round(h.order_log_git_push_age_s) + "s ago"}`));
+    }
+    $("sys").classList.toggle("bad", probs.length > 0);
+    $("sysLed").className = "led " + (probs.length ? "bad" : health ? "ok" : "");
+    $("sysTxt").innerHTML = probs.length ? `<span class="down">PROBLEM: ${probs.map(esc).join(" · ")}</span>` : (health ? "System OK" : "System: checking…");
+    $("sysItems").innerHTML = items.join(" · ");
+  }
   const COL = {entry: "var(--up)", exit: "var(--accent)", block: "var(--warn)", err: "var(--down)", none: "var(--muted)", tag: "var(--violet)"};
   function kind(r) {
     const a = String(r.action_taken || r.status || "");
@@ -312,7 +355,9 @@
       $("prot").innerHTML = d.stale ? `<span class="down">stale${ago != null ? " " + Math.round(ago / 60) + "m" : ""}</span>`
         : (u.length ? `<span class="${purge ? "dim" : "down"}">${u.length} unprotected${purge ? " (after 15:15 exchange cancel)" : ""}</span>` : `<span class="up">all stopped · ${Math.round(ago / 60)}m ago</span>`);
       setStep("sPos", u.length && !purge ? `${u.length} unprotected` : "position + SL", !!u.length && !purge);
-    } catch (e) {}
+    } catch (e) {
+      $("prot").innerHTML = `<span class="down">unknown (${esc(e.message || "unreachable")})</span>`;
+    }
   }
   async function pollPositions() {
     try {
@@ -497,6 +542,7 @@
   setInterval(pollOrders, 3000);
   setInterval(pollProtection, 5000);
   setInterval(pollPositions, 20000);
+  pollHealth(); setInterval(pollHealth, 5000);
 </script>
 </body>
 </html>

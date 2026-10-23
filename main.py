@@ -27905,7 +27905,9 @@ def _current_rss_mb() -> float | None:
 def health():
     return {"status": "alive", "time": time.time(), **_rss_headroom(),
             **_memory_pressure_check(trim=False), **_git_tier_push_status(),
-            "loop_lag_s": round(time.time() - _loop_heartbeat_ts, 1), "watchdog_alarms": _WATCHDOG_STATE["alarms"]}
+            "loop_lag_s": round(time.time() - _loop_heartbeat_ts, 1), "watchdog_alarms": _WATCHDOG_STATE["alarms"],
+            "upstash_ok": _UPSTASH_PROBE["ok"], "upstash_error": _UPSTASH_PROBE["error"],
+            "upstash_checked_at": _UPSTASH_PROBE["checked_at"], "upstash_last_ok_at": _UPSTASH_PROBE["last_ok_at"]}
 
 
 @app.get("/watchlist")
@@ -28661,6 +28663,34 @@ def _watchdog_check(now=None, rss_mb=None) -> dict | None:
     return info
 
 
+_UPSTASH_PROBE_EVERY_SECONDS = 300
+_UPSTASH_PROBE = {"ok": None, "checked_at": None, "last_ok_at": None, "error": None}
+
+
+def _upstash_probe(now=None) -> dict:
+    """B-1357 (2026-10-23): the Upstash mirror writes never read the HTTP status, so a suspended DB (403) failed
+    silently and the dashboard showed nothing wrong. One PING every 5 min (~290 commands/day) records whether
+    Upstash answers; /health and trade-view4 show it red when it does not. Never raises."""
+    now = time.time() if now is None else now
+    _UPSTASH_PROBE["checked_at"] = now
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        _UPSTASH_PROBE.update(ok=False, error="not configured")
+        return _UPSTASH_PROBE
+    try:
+        r = requests.get(f"{UPSTASH_REDIS_REST_URL}/ping",
+                         headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"}, timeout=5)
+        _upstash_meter("ping", len(r.content or b""), "get")
+        ok = r.status_code == 200
+        _UPSTASH_PROBE.update(ok=ok, error=None if ok else f"HTTP {r.status_code}: {str(r.text)[:160]}")
+    except Exception as e:  # noqa: BLE001
+        _UPSTASH_PROBE.update(ok=False, error=f"{type(e).__name__}: {str(e)[:160]}")
+    if _UPSTASH_PROBE["ok"]:
+        _UPSTASH_PROBE["last_ok_at"] = now
+    else:
+        print(f"[upstash-probe] FAIL {_UPSTASH_PROBE['error']}")
+    return _UPSTASH_PROBE
+
+
 def _watchdog_loop(sleep=time.sleep, rounds=None):
     n = 0
     while rounds is None or n < rounds:
@@ -28668,6 +28698,11 @@ def _watchdog_loop(sleep=time.sleep, rounds=None):
             _watchdog_check()
         except Exception as e:  # noqa: BLE001
             print(f"[watchdog] check failed (non-fatal): {e}")
+        try:
+            if time.time() - (_UPSTASH_PROBE["checked_at"] or 0) >= _UPSTASH_PROBE_EVERY_SECONDS:
+                _upstash_probe()
+        except Exception as e:  # noqa: BLE001
+            print(f"[upstash-probe] failed (non-fatal): {e}")
         n += 1
         sleep(_WATCHDOG_EVERY_SECONDS)
 
