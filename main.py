@@ -13494,13 +13494,14 @@ REAL_ENTRY_REQUIRES_EXPLORER_STACK = True  # 2026-10-21 user rule (not a switch:
 
 
 def _is_strategy_wired(strategy_tag: str | None) -> bool:
-    """B-1284: scan-side wiring (paper signals, scan counts, 'Wired' labels). Wired = registry PFnet >= floor and hold
-    <= 30 trading days, OR already in the explorer stack. Real entry still needs _is_strategy_viable_for_real_money
-    (explorer stack + switch). Replay-owed tags stay closed."""
+    """B-1344 (user 2026-10-23): scan-side wiring (monitoring: paper signals, scan counts, 'Wired' labels) has ONE
+    condition, registry PFnet >= floor (net of costs, before income tax), OR already in the explorer stack. No hold
+    or replay-owed condition here; those, the explorer-stack criteria and the switch belong to real ENTRY only
+    (_is_strategy_viable_for_real_money, the last step before a trade)."""
     if _is_strategy_viable_for_real_money(strategy_tag, check_switch=False):
         return True
     registry_name = _STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy_tag or "")
-    if not registry_name or strategy_tag in REPLAY_OWED_TAGS:
+    if not registry_name:
         return False
     import strategy_registry as sr
     strat = next((x for x in sr.REGISTRY if x.name == registry_name), None)
