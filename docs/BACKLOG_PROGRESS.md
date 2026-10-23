@@ -15,7 +15,7 @@ Total rows: 1109 | closed: 500 | not closed: 609
 | CLOSED | 82 |
 | DONE-PENDING-VERIFY | 79 |
 | BLOCKED | 63 |
-| OPEN | 53 |
+| OPEN | 52 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -73,6 +73,7 @@ Total rows: 1109 | closed: 500 | not closed: 609
 | WIPRO-EQ | 1 |
 | NATIONALUM | 1 |
 | FROM | 1 |
+| SPAWNED | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -91,8 +92,8 @@ Total rows: 1109 | closed: 500 | not closed: 609
 |---|---|---|---|---|
 | B-1302 | P0 | OPEN | User 2026-10-21 IST: "set the priority order of items stored in Upstash, or move them to git on a 5-min syn... | open:, needs |
 | B-1346 | P0 | OPEN | 2026-10-23 11:35 IST | blocked, owner |
-| B-1356 | P0 | OWNER-ACTION | 2026-10-23 16:05 IST | owner, awaiting, waiting |
-| B-1357 | P0 | OWNER-ACTION | 2026-10-23 16:20 IST | owed, owner, follow-up, awaiting, waiting |
+| B-1356 | P0 | OWNER-ACTION | 2026-10-23 16:05 IST | owner |
+| B-1357 | P0 | OWNER-ACTION | 2026-10-23 16:20 IST | owed, owner, follow-up |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
 ## waiting-on-workflow/deploy (366)
@@ -490,7 +491,7 @@ Total rows: 1109 | closed: 500 | not closed: 609
 | B-1328 | P0 | B-1319 | 2026-10-21 | owed, verify |
 | B-1330 | P0 | ITC | 2026-10-21 |  |
 | B-1340 | P0 | USER | 2026-10-22 21:45 IST | blocked, verify, needs, owner, follow-up |
-| B-1355 | P0 | FROM | 2026-10-23 15:55 IST | awaiting, waiting |
+| B-1355 | P0 | FROM | 2026-10-23 15:55 IST |  |
 | B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, remaining, needs |
 | B-850 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (Elder >=1.1 cells validation across candle sizes; also covers B-852) |  |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... |  |
@@ -517,7 +518,7 @@ Total rows: 1109 | closed: 500 | not closed: 609
 | B-1344 | P1 | USER | 2026-10-23 04:10 IST | owed, needs |
 | B-1350 | P1 | NATIONALUM | 2026-10-23 12:30 IST | owed, open:, needs, owner |
 | B-1351 | P1 | OPEN | 2026-10-23 12:30 IST |  |
-| B-1358 | P1 | OPEN | 2026-10-23 16:25 IST |  |
+| B-1358 | P1 | SPAWNED | 2026-10-23 16:25 IST | awaiting, waiting |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
