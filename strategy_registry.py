@@ -368,6 +368,7 @@ REGISTRY: list[StrategyDef] = [
         metrics=Metrics(
             pfnet=0.908, pfgross=1.147, win_rate_pct=34.56, n_trades=327,
             avg_net_inr=-73.83,
+            avg_held_hrs=95.0, avg_held_bars=15.2, avg_held_raw_unit="1d bars",  # B-420 2026-10-23 IST: same run's avg held 15.2 trading days (docs/MINERVINI_VCP_RESEARCH_LOG.md Part 3 table, run 36566995254) x TRADING_HOURS_PER_DAY
             universe="full_2680 (2362/2680 fetched)",
             run_ref="minervini-vcp-validation-replay.yml run 36566995254 (2026-09-29, calls the real main.py functions)",
         ),
@@ -874,6 +875,7 @@ REGISTRY: list[StrategyDef] = [
         metrics=Metrics(
             pfnet=0.014, pfgross=0.015, win_rate_pct=42.08, n_trades=701,
             avg_net_inr=-49132.23,
+            avg_held_hrs=113.75, avg_held_bars=18.2, avg_held_raw_unit="1d bars",  # B-420 2026-10-23 IST: same run's avg held 18.2 trading days (evidence text of run 36603511866) x TRADING_HOURS_PER_DAY
             universe="full_2680 (2362/2680 fetched)",
             run_ref="minervini-vcp-short-validation-replay.yml run 36603511866 (2026-09-29, calls the real main.py functions)",
         ),
@@ -908,6 +910,7 @@ REGISTRY: list[StrategyDef] = [
         metrics=Metrics(
             pfnet=0.479, pfgross=0.580, win_rate_pct=36.00, n_trades=50,
             avg_net_inr=-401.18,
+            avg_held_hrs=150.0, avg_held_bars=24.0, avg_held_raw_unit="1d bars",  # B-420 2026-10-23 IST: same run's avg held 24.0 trading days (evidence text of run 36605194832) x TRADING_HOURS_PER_DAY
             universe="full_2680 (2366/2680 fetched)",
             run_ref="power-play-short-validation-replay.yml run 36605194832 (2026-09-29, calls the real main.py functions)",
         ),
@@ -941,6 +944,7 @@ REGISTRY: list[StrategyDef] = [
         metrics=Metrics(
             pfnet=0.119, pfgross=0.139, win_rate_pct=36.65, n_trades=12285,
             avg_net_inr=-6730.43,
+            avg_held_hrs=86.875, avg_held_bars=13.9, avg_held_raw_unit="1d bars",  # B-420 2026-10-23 IST: same run's avg held 13.9 trading days (evidence text of run 36605198734) x TRADING_HOURS_PER_DAY
             universe="full_2680 (2366/2680 fetched)",
             run_ref="idea4-short-validation-replay.yml run 36605198734 (2026-09-29, calls the real main.py functions)",
         ),
@@ -981,6 +985,7 @@ REGISTRY: list[StrategyDef] = [
         metrics=Metrics(
             pfnet=0.557, pfgross=0.670, win_rate_pct=25.98, n_trades=4576,
             avg_net_inr=-471.81,
+            avg_held_hrs=168.75, avg_held_bars=27.0, avg_held_raw_unit="1d bars",  # B-420 2026-10-23 IST: same run's avg held 27.0 trading days (evidence text of run 36613045246) x TRADING_HOURS_PER_DAY
             universe="full_2680 (2366/2680 fetched)",
             run_ref="gap-and-go-short-validation-replay.yml run 36613045246 (2026-09-29, calls the real main.py functions)",
         ),
@@ -1020,6 +1025,7 @@ REGISTRY: list[StrategyDef] = [
         metrics=Metrics(
             pfnet=0.657, pfgross=0.827, win_rate_pct=34.88, n_trades=20879,
             avg_net_inr=-549.84,
+            avg_held_hrs=102.5, avg_held_bars=16.4, avg_held_raw_unit="1d bars",  # B-420 2026-10-23 IST: same run's avg held 16.4 trading days (evidence text of run 36712440006) x TRADING_HOURS_PER_DAY
             universe="full_2680 (2366/2680 fetched)",
             run_ref="failed-breakout-short-validation-replay.yml run 36712440006 (2026-09-30, calls the real main.py functions)",
         ),

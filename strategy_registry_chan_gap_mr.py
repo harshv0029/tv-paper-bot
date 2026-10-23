@@ -44,6 +44,8 @@ def build():
                 seen.add(name)
                 bars = m.get("avg_held_bars")
                 hrs = m.get("avg_held_hours")
+                if hrs is None and bars is not None:  # B-420: derive market hours from the SAME row's raw 1d bar count (never guessed)
+                    hrs = float(bars) * sr.TRADING_HOURS_PER_DAY
                 out.append(sr.StrategyDef(
                     name=name, asset_class=ac, categories=(cat,), timeframe="1d", status=sr.StrategyStatus.RESEARCH, entry_fn=None,
                     metrics=sr.Metrics(pfnet=float(m["pfnet"]), pfgross=float(m["pfgross"]), win_rate_pct=float(m["win_pct"]),
