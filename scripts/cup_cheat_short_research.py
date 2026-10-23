@@ -8,10 +8,22 @@ symmetric in log space; a plain sign flip would break the ratios. Stop = entry +
 (no trade without SL). Entry convention as the long port: signal close. Own tag family
 `base__cup_cheat_3c__short__1h__atr<k>_h<N>__v1`; NOT registered or ported until a main.py function + full-universe replay exist
 (owed, backlog B-1210). Rule constants are the long rule's, verbatim.
+
+B-1190/B-1210 (2026-10-23 IST): DataFrame wrappers for the full-universe short replay (scripts/cup_cheat_main_replay.py with
+DIRECTION=short). main.py has NO short cup-cheat function, so that replay is RESEARCH-SIDE: entry = cup_cheat_short_entry_signal
+(sell short at the signal close, buy-to-cover stop = entry + k x ATR14, always above entry), exit = cup_cheat_short_exit_reason,
+the exact mirror of main.cup_cheat_3c_exit_reason (gap-aware stop: fill bar at the stop, later bars at max(stop, open); else the
+close of the hold-th bar). The long rule has no fixed profit target (timeout-only upside), so neither does the mirror. Same 9
+cells as main.CUP_CHEAT_1H_CELLS (ATR 2.5/4/6 x hold 6/18/30), own tags with dir=short.
 """
 import numpy as np
 
 MIN_BARS = 71
+CUP_CHEAT_SHORT_1H_CELLS = {
+    f"base__cup_cheat_3c__short__1h__atr{fa}_h{h}__v1": (k, h)
+    for fa, k in (("2d5", 2.5), ("4", 4.0), ("6", 6.0))
+    for h in (6, 18, 30)
+}
 
 
 def recip_ohlc(h, l, c):
@@ -57,3 +69,39 @@ def cup_cheat_short_signal(h, l, c, atr_mult: float = 4.0):
         return None
     px = float(c[-1])
     return {"entry_price": px, "stop_loss": px + atr_mult * atr, "atr_at_entry": atr, "direction": "short"}
+
+
+def _hlc(df):
+    return tuple(df[x].to_numpy(dtype=float) for x in ("High", "Low", "Close"))
+
+
+def cup_cheat_short_fires_df(df) -> bool:
+    """DataFrame form of cup_cheat_short_fires (tag-independent), evaluated at the last bar."""
+    return cup_cheat_short_fires(*_hlc(df))
+
+
+def cup_cheat_short_entry_signal(df, tag: str):
+    """None when no signal / unknown tag. Sell short at the signal close; the buy-to-cover stop is always ABOVE entry."""
+    cfg = CUP_CHEAT_SHORT_1H_CELLS.get(tag)
+    if cfg is None:
+        return None
+    sig = cup_cheat_short_signal(*_hlc(df), atr_mult=cfg[0])
+    if not sig or not (sig["stop_loss"] > sig["entry_price"] > 0):
+        return None
+    sig["risk"] = sig["stop_loss"] - sig["entry_price"]
+    return sig
+
+
+def cup_cheat_short_exit_reason(df, entry_pos: int, stop: float, hold: int):
+    """Mirror of main.cup_cheat_3c_exit_reason for a SHORT entered at the close of bar entry_pos, checked on the last bar j:
+    gap-aware buy-to-cover stop (high >= stop: fill bar at the stop, later bars at max(stop, open)), else the close of the
+    hold-th bar after entry. (reason, px) or None while open."""
+    j = len(df) - 1
+    if j <= entry_pos:
+        return None
+    o, h, c = (float(df[x].iloc[j]) for x in ("Open", "High", "Close"))
+    if h >= stop:
+        return "cup_cheat_short_stop_loss", (float(stop) if j == entry_pos + 1 else max(float(stop), o))
+    if j - entry_pos >= hold:
+        return "cup_cheat_short_max_hold_timeout", c
+    return None
