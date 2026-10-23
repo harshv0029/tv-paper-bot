@@ -460,4 +460,53 @@ jobs:
           symbol_rows.sort(key=lambda x: x[1]["pf_gross"], reverse=True)
           for sym, row in symbol_rows:
               _print_row(sym, row)
+
+          # B-420 (2026-10-23 IST): persist every measured field (n, win %, PFnet/PFgross,
+          # avg net/gross, cost drag, avg hold in 1d bars and market hours, exit-reason
+          # breakdown) so the registry can be completed from a committed artifact
+          # (docs/backtest_data/minervini_tt_research_run_<run id>.tsv/.json). Output only:
+          # the strategy logic above is unchanged.
+          import json, os
+          RUN_ID = os.environ.get("GITHUB_RUN_ID", "local")
+          REGISTRY_TAG = {"tt_generic_breakout": "minervini_trend_template_generic_breakout", "tt_vcp": ""}
+          UNIVERSE = f"full_2680 ({len(raw_by_symbol)}/{len(SYMBOLS)} fetched)"
+          HRS_PER_DAY = 6.25  # strategy_registry.TRADING_HOURS_PER_DAY
+
+          def _fmt(x):
+              return "inf" if x == float("inf") else (round(x, 4) if isinstance(x, float) else x)
+
+          out_rows = []
+          for variant in ("tt_generic_breakout", "tt_vcp"):
+              variant_trades = [t for t in all_trades if t["variant"] == variant]
+              buckets = [("ALL", variant_trades)] + [
+                  (reason, [t for t in variant_trades if t["exit_reason"] == reason])
+                  for reason in sorted(set(t["exit_reason"] for t in variant_trades))]
+              for bucket, trades in buckets:
+                  row = _metrics_row(trades)
+                  out_rows.append({
+                      "registry_tag": REGISTRY_TAG[variant], "variant": variant, "bucket": bucket,
+                      "n": row["n"], "win_pct": _fmt(row["win_rate"]), "pfnet": _fmt(row["pf_net"]),
+                      "pfgross": _fmt(row["pf_gross"]), "avg_net_inr": _fmt(row["avg_net"]),
+                      "avg_gross_inr": _fmt(row["avg_gross"]), "cost_drag_pct": _fmt(row["cost_drag_pct"]),
+                      "avg_held_bars_1d": _fmt(row["avg_held_days"]),
+                      "avg_held_hrs": _fmt(row["avg_held_days"] * HRS_PER_DAY),
+                      "universe": UNIVERSE, "run_id": RUN_ID,
+                  })
+          os.makedirs("out", exist_ok=True)
+          cols = list(out_rows[0].keys())
+          with open(f"out/minervini_tt_research_run_{RUN_ID}.tsv", "w") as fh:
+              fh.write("\t".join(cols) + "\n")
+              for r in out_rows:
+                  fh.write("\t".join(str(r[c]) for c in cols) + "\n")
+          with open(f"out/minervini_tt_research_run_{RUN_ID}.json", "w") as fh:
+              json.dump({"workflow": "swing-minervini-trend-template-vcp-research.yml", "run_id": RUN_ID,
+                         "interval": INTERVAL, "period": PERIOD, "universe": UNIVERSE,
+                         "cost_model": DEFAULT_COST_MODEL, "rows": out_rows}, fh, indent=1)
+          print(f"\nwrote out/minervini_tt_research_run_{RUN_ID}.tsv/.json ({len(out_rows)} rows)")
           PYEOF
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: minervini-tt-research-results
+          path: out/
+          retention-days: 30

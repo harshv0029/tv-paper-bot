@@ -166,6 +166,75 @@ def tool_input(order):
     return out
 
 
+# ---------------------------------------------------------------- Kotak Neo (India) ticket
+# Draft only. Field names match neo_api_client.place_order as used by kotak_real_orders.py in this repo.
+# House rules (tv-paper-bot): no trade without an SL/SL-M leg; this skill never sends an order - the live
+# bot (main.py / kotak_real_orders.py) is the only real-order path, so a ticket is for reading and checking.
+KOTAK_SEGMENTS = ("nse_cm", "bse_cm", "nse_fo", "bse_fo", "mcx_fo", "cde_fo")
+KOTAK_PRODUCTS = ("MIS", "CNC", "NRML")
+
+
+def kotak_trading_symbol(symbol):
+    """Yahoo RELIANCE.NS / RELIANCE.BO / RELIANCE -> Kotak cash symbol RELIANCE-EQ (F&O symbols pass through)."""
+    s = str(symbol or "").upper().strip()
+    for suf in (".NS", ".BO"):
+        if s.endswith(suf):
+            s = s[:-len(suf)]
+    return s if ("-" in s or any(c.isdigit() for c in s[-6:])) else s + "-EQ"
+
+
+def kotak_legs(order, segment="nse_cm", product="MIS"):
+    """Alpaca-shaped order -> list of Kotak place_order argument dicts: entry, then the protective SL-M,
+    then the target limit (Kotak has no native bracket for cash, so the three legs are separate orders and
+    the SL/target must be cancelled when the other fills). Raises ValueError when there is no stop."""
+    if segment not in KOTAK_SEGMENTS or product not in KOTAK_PRODUCTS:
+        raise ValueError("segment must be one of %s, product one of %s" % (KOTAK_SEGMENTS, KOTAK_PRODUCTS))
+    side = str(order.get("side", "")).lower()
+    tt, exit_tt = ("B", "S") if side == "buy" else ("S", "B")
+    qty = _str_num(order.get("qty") or 0)
+    typ = str(order.get("type", "market")).lower()
+    sym = kotak_trading_symbol(order.get("symbol"))
+    base = {"exchange_segment": segment, "product": product, "validity": "DAY", "trading_symbol": sym,
+            "quantity": qty, "amo": "NO", "disclosed_quantity": "0", "market_protection": "0", "pf": "N"}
+    entry = dict(base, transaction_type=tt, order_type="L" if typ == "limit" else "MKT",
+                 price=_str_num(order.get("limit_price")) if typ == "limit" else "0", trigger_price="0")
+    stop = order.get("stop_loss_stop_price") or order.get("stop_price")
+    is_exit = str(order.get("intent", "")).lower() == "exit"  # set by `flatten`; closing a position needs no new SL
+    if not stop and not is_exit:
+        raise ValueError("no stop-loss on this order: house rule 'no trade without SL or SL-M' - refused")
+    legs = [entry]
+    if stop:
+        legs.append(dict(base, transaction_type=exit_tt, order_type="SL-M", price="0", trigger_price=_str_num(stop)))
+    tp = order.get("take_profit_limit_price")
+    if tp:
+        legs.append(dict(base, transaction_type=exit_tt, order_type="L", price=_str_num(tp), trigger_price="0"))
+    return legs
+
+
+def _kotak_lines(order, cfg):
+    out = ["  DRAFT ONLY - not sent. Real orders go only through the live bot (main.py / kotak_real_orders.py).",
+           "  Kotak Neo place_order legs (%s, %s):" % (cfg.get("segment", "nse_cm"), cfg.get("product", "MIS"))]
+    try:
+        legs = kotak_legs(order, cfg.get("segment", "nse_cm"), cfg.get("product", "MIS"))
+    except ValueError as e:
+        return out + ["  REFUSED: %s" % e]
+    for i, leg in enumerate(legs):
+        name = ("entry", "stop-loss (SL-M)", "target")[i] if i < 3 else "leg"
+        out.append("    %s: %s" % (name, json.dumps(leg, separators=(",", ":"))))
+    if len(legs) > 1:
+        out.append("  Kotak cash has no OCO bracket: when the SL or the target fills, cancel the other leg.")
+    out.append("  Costs ~0.8%% round trip (brokerage 0.20%%/side + STT, exchange, SEBI, stamp, GST).")
+    return out
+
+
+
+def _safe_kotak_legs(order, cfg):
+    try:
+        return kotak_legs(order, cfg.get("segment", "nse_cm"), cfg.get("product", "MIS"))
+    except ValueError as e:
+        return {"refused": str(e)}
+
+
 def _money(v):
     f = float(v)
     s = "{:,.2f}".format(f)
@@ -341,10 +410,10 @@ def kind_of(order, rv):
 
 def render(order, idx, total, cfg, risk, state, today):
     ready, label, rv = status_of(order, risk, state, today)
-    broker = str(cfg.get("broker", "alpaca")).lower()
+    broker = str(cfg.get("broker", "kotak")).lower()
     paper = cfg.get("paper", True)
     acct = "PAPER account" if paper else "LIVE ACCOUNT, REAL MONEY"
-    lines = ["ORDER %d of %d, %s, %s" % (idx, total, acct, "Interactive Brokers" if broker == "ibkr" else "Alpaca")]
+    lines = ["ORDER %d of %d, %s, %s" % (idx, total, acct, {"ibkr": "Interactive Brokers", "alpaca": "Alpaca"}.get(broker, "Kotak Neo"))]
     for part in plain_parts(order):
         lines.append("  " + part)
     if order.get("why"):
@@ -352,7 +421,9 @@ def render(order, idx, total, cfg, risk, state, today):
     lines.append("  " + label)
     for w in (rv or {}).get("warnings", []):
         lines.append("  note: " + w)
-    if broker == "ibkr":
+    if broker == "kotak":
+        lines.extend(_kotak_lines(order, cfg))
+    elif broker == "ibkr":
         lines.append("  Claude drafts this with the Interactive Brokers connector. IBKR sends it to your")
         lines.append("  IBKR account, and it only goes to the market after you approve it there.")
     else:
@@ -362,7 +433,9 @@ def render(order, idx, total, cfg, risk, state, today):
         if is_bracket(order):
             lines.append("  Alpaca places the entry, then the stop-loss and the take-profit as two orders")
             lines.append("  that cancel each other: when one fills, the other is canceled.")
-    if ready:
+    if ready and broker == "kotak":
+        lines.append("  Reply \"yes\" to record your approval of this draft; nothing is sent to Kotak.")
+    elif ready:
         lines.append("  Reply \"yes\" to place this one order, or \"no\" to skip it.")
         if broker != "ibkr":
             lines.append("  Claude's own card then asks again: Allow once places it, Deny stops it.")
@@ -374,8 +447,8 @@ def ticket_json(order, idx, cfg, risk, state, today):
     loss, stop = max_loss(order)
     return {"index": idx, "ready": ready, "status": label, "plain": plain(order),
             "fingerprint": fingerprint(order), "paper": bool(cfg.get("paper", True)),
-            "broker": cfg.get("broker", "alpaca"), "tool": "place_stock_order",
-            "tool_input": tool_input(order), "why": order.get("why", ""),
+            "broker": cfg.get("broker", "kotak"), "tool": "place_stock_order",
+            "tool_input": tool_input(order), "kotak_legs": _safe_kotak_legs(order, cfg), "why": order.get("why", ""),
             "bracket": is_bracket(order), "max_loss": loss, "stop": stop}
 
 
@@ -502,11 +575,14 @@ def cmd_approve(a):
            "symbol": str(order.get("symbol", "")).upper(), "side": order.get("side"),
            "qty": order.get("qty"), "kind": kind_of(order, rv), "max_loss": loss, "stop": stop,
            "plain": plain(order), "status": "approved", "reply": a.reply,
-           "paper": bool(cfg.get("paper", True)), "broker": cfg.get("broker", "alpaca")}
+           "paper": bool(cfg.get("paper", True)), "broker": cfg.get("broker", "kotak")}
     state.setdefault("orders", []).append(rec)
     write_json(a.state, state)
     print("Recorded your yes for order %d: %s." % (a.index, plain(order)))
-    if str(cfg.get("broker", "alpaca")).lower() == "ibkr":
+    if str(cfg.get("broker", "kotak")).lower() == "kotak":
+        print("\n".join(_kotak_lines(order, cfg)))
+        print("Approval recorded for the draft only. Nothing was sent to Kotak; the live bot is the only real-order path.")
+    elif str(cfg.get("broker", "kotak")).lower() == "ibkr":
         print("Now draft it with the Interactive Brokers connector; approve it in your IBKR account.")
     else:
         print("Now call place_stock_order with exactly:")
@@ -592,8 +668,8 @@ def cmd_flatten(a):
                               "%s) and pass --qty if you do hold some" % (sym, a.portfolio, sym))
     plan = read_json(a.plan, "plan", required=False) or {}
     flat_by = (plan.get("flat_by") if str(plan.get("symbol", "")).upper() == sym else None) \
-        or cfg.get("flat_by") or "15:55"
-    order = {"symbol": sym, "side": "sell", "qty": _str_num(qty), "type": "market", "time_in_force": "day",
+        or cfg.get("flat_by") or "15:10"
+    order = {"intent": "exit", "symbol": sym, "side": "sell", "qty": _str_num(qty), "type": "market", "time_in_force": "day",
              "why": "flat by %s India (IST): closes the %s day trade before the close (qty from %s)"
              % (flat_by, sym, source)}
     old = read_json(a.orders, "orders", required=False)

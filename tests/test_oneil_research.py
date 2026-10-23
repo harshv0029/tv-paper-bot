@@ -150,3 +150,114 @@ def test_workflow_matrix_within_limits():
     shards = len(re.findall(r"shard: \[([^\]]*)\]", wf)[0].split(","))
     tfs = len(re.findall(r'tf: \[([^\]]*)\]', wf)[0].split(","))
     assert shards <= 4 and shards * tfs + tfs <= 8
+
+
+# ---------------- B-489 / B-491 stop 5-10% x target 15-25% + 8-week min-hold sweep (EXIT_SET=stoptgt)
+def _one_sig(n, at=29):
+    sig = np.zeros(n, bool)
+    sig[at] = True
+    return sig
+
+
+def test_stoptgt_exit_set_shape_and_unique_grammar_tags():
+    ex = orx.EXIT_SETS["stoptgt"]
+    assert len(ex) == 5 + 15 + 15
+    assert {v for m, v in ex if m == "pct"} == {5.0, 6.0, 7.0, 8.0, 10.0}
+    assert orx.EXIT_SETS["base"] == orx.EXITS_BASE and orx.EXITS == orx.EXITS_BASE  # default env unchanged
+    for tf in ("1d", "1w"):
+        tags = set()
+        for d in ("long", "short"):
+            for mode, val in ex:
+                mh = orx.MH_BARS[tf] if mode == "tgtmh" else 0
+                t = orx.tag_for("oneil_pivot", "breakout", d, tf, 0.05, "none", mode, val, 60, mh)
+                assert GRAMMAR.match(t), t
+                tags.add(t)
+        assert len(tags) == 2 * len(ex)
+    # legacy tgt20 tag == the swept 8% stop / 20% target tag (same definition, reproduces run 38193479637)
+    a = orx.tag_for("oneil_pivot", "breakout", "long", "1d", 0.05, "none", "tgt", 20.0, 40)
+    b = orx.tag_for("oneil_pivot", "breakout", "long", "1d", 0.05, "none", "tgt", (8.0, 20.0, 0), 40)
+    assert a == b and "_pct8_" in a and "_tgt20_" in a
+    m = orx.tag_for("oneil_pivot", "breakout", "long", "1d", 0.05, "none", "tgtmh", (5.0, 15.0, 1), 60, 40)
+    assert "_mh40_" in m and "pct5" in m and "tgt15" in m
+    assert "_mh8_" in orx.tag_for("oneil_pivot", "breakout", "short", "1w", None, "none", "tgtmh", (6.0, 25.0, 1), 12, 8)
+
+
+def test_pct_stop_sweep_levels_long_and_short():
+    for sp in orx.STOPS_SWEEP:
+        # long: slide 1% per bar -> stop fills at entry*(1-sp%) (within one bar's step)
+        path = [100] * 30 + [100 - k for k in range(0, 15)] + [85] * 30
+        o, h, l, c = _flat_then(path)
+        rows = orx.simulate(_one_sig(len(c)), o, h, l, c, np.full(len(c), 2.0), 40, "pct", sp, 1, 0.0, 3)
+        assert rows[0][3] == "stop" and abs(rows[0][1] + sp / 100.0) < 0.011, (sp, rows[0])
+        # short: buy-to-cover sp% ABOVE entry
+        path = [100] * 30 + [100 + k for k in range(0, 15)] + [115] * 30
+        o, h, l, c = _flat_then(path)
+        rows = orx.simulate(_one_sig(len(c)), o, h, l, c, np.full(len(c), 2.0), 40, "pct", sp, -1, 0.0, 3)
+        assert rows[0][3] == "stop" and abs(rows[0][1] + sp / 100.0) < 0.011, (sp, rows[0])
+
+
+def test_target_sweep_and_stop_combo():
+    path = [100] * 30 + [100 + 2 * k for k in range(0, 20)] + [140] * 30
+    o, h, l, c = _flat_then(path)
+    for tp in orx.TARGETS_SWEEP:
+        rows = orx.simulate(_one_sig(len(c)), o, h, l, c, np.full(len(c), 2.0), 40, "tgt", (5.0, tp, 0), 1, 0.0, 3)
+        assert rows[0][3] == "target" and tp / 100.0 - 1e-9 <= rows[0][1] < tp / 100.0 + 0.021, (tp, rows[0])  # gap fills at open
+    # short target mirror
+    path = [100] * 30 + [100 - 2 * k for k in range(0, 20)] + [60] * 30
+    o, h, l, c = _flat_then(path)
+    rows = orx.simulate(_one_sig(len(c)), o, h, l, c, np.full(len(c), 2.0), 40, "tgt", (7.0, 15.0, 0), -1, 0.0, 3)
+    assert rows[0][3] == "target" and 0.15 - 1e-9 <= rows[0][1] < 0.171
+
+
+def test_minhold_target_inside_8_weeks_holds_to_week8_close():
+    # +20% hit on bar e+5 (inside 40 bars) -> NOT sold; held to bar e+39 and exits at that close
+    path = [100] * 30 + [100, 105, 110, 115, 118, 121] + [130] * 34 + [126] * 40
+    o, h, l, c = _flat_then(path)
+    sig = _one_sig(len(c))
+    rows = orx.simulate(sig, o, h, l, c, np.full(len(c), 2.0), 60, "tgtmh", (8.0, 20.0, 1), 1, 0.008, 3, mh=40)
+    net, gross, held, reason = rows[0]
+    assert reason == "mh_exit" and held == 40 and abs(gross - (c[30 + 39] / 100.0 - 1)) < 1e-12
+    # same path without the min-hold rule books the target early
+    base = orx.simulate(sig, o, h, l, c, np.full(len(c), 2.0), 60, "tgt", (8.0, 20.0, 0), 1, 0.008, 3)
+    assert base[0][3] == "target" and base[0][2] == 6
+
+
+def test_minhold_stop_still_live_and_late_target_taken_normally():
+    # target hit early, then collapse through the 8% stop before week 8 -> stop exit
+    path = [100] * 30 + [100, 110, 121, 115, 100, 90] + [90] * 70
+    o, h, l, c = _flat_then(path)
+    rows = orx.simulate(_one_sig(len(c)), o, h, l, c, np.full(len(c), 2.0), 60, "tgtmh", (8.0, 20.0, 1), 1, 0.0, 3, mh=40)
+    assert rows[0][3] == "stop" and rows[0][1] <= -0.08 + 1e-9  # gap through the stop fills at the open
+    # target first reached after week 8 (bar e+45) -> ordinary target exit
+    path = [100] * 30 + [100] * 45 + [125] + [125] * 30
+    o, h, l, c = _flat_then(path)
+    rows = orx.simulate(_one_sig(len(c)), o, h, l, c, np.full(len(c), 2.0), 60, "tgtmh", (8.0, 20.0, 1), 1, 0.0, 3, mh=40)
+    assert rows[0][3] == "target" and rows[0][2] == 46
+
+
+def test_minhold_short_mirror_and_weekly_bars():
+    path = [100] * 30 + [100, 90, 82, 79] + [75] * 4 + [77] * 20
+    o, h, l, c = _flat_then(path)
+    rows = orx.simulate(_one_sig(len(c)), o, h, l, c, np.full(len(c), 2.0), 12, "tgtmh", (8.0, 20.0, 1), -1, 0.0, 2, mh=8)
+    assert rows[0][3] == "mh_exit" and rows[0][2] == 8 and abs(rows[0][1] - 0.25) < 1e-9
+
+
+def test_minhold_requires_hold_longer_than_window():
+    import pytest
+    o, h, l, c = _flat_then([100] * 80)
+    with pytest.raises(ValueError):
+        orx.simulate(_one_sig(80), o, h, l, c, np.full(80, 2.0), 40, "tgtmh", (8.0, 20.0, 1), 1, 0.0, 3, mh=40)
+
+
+def test_process_symbol_stoptgt_emits_mh_only_on_long_holds(monkeypatch):
+    monkeypatch.setattr(orx, "EXITS", orx.EXITS_STOPTGT)
+    monkeypatch.setenv("PATTERNS", "0")
+    o, h, l, c, v = _series(600, seed=3)
+    v[::25] = 1e7  # volume spikes so breakouts fire
+    df = pd.DataFrame({"Open": o, "High": h, "Low": l, "Close": c, "Volume": v}, index=pd.RangeIndex(600))
+    cells = {}
+    orx.process_symbol(df, pd.Series(np.full(600, 85.0)), orx.CFG["1d"], 0.008, "1d", cells)
+    mh_tags = [t for t in cells if "_mh40_" in t]
+    assert mh_tags and all("_h60_" in t for t in mh_tags)
+    assert any("_pct5_" in t and "tgt" not in t for t in cells)
+    assert not any("atr" in t for t in cells)

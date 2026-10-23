@@ -13,11 +13,12 @@ RS rank (B-483): 12-month return percentile (1-99) across the symbols loaded in 
 shards => an unbiased ~1/N sample of the universe; stated honestly, not the exact full-universe rank).
 Filter: rsnone | rs80 (long RS>=80, short RS<=30).
 Exit modes (all with a stop): atr2/atr3 fixed ATR stop (compare), pct7/pct8 O'Neil percentage stop (B-489),
-tgt20 = 8% stop + 20% target (B-491), trl1 = ATR3 initial then trailing stop under the latest confirmed swing
+tgt20 = 8% stop + 20% target (B-491; EXIT_SET=stoptgt sweeps
+stop 5/6/7/8/10 x target 15/20/25 plus the 8-week min-hold variant, tag param mh40 on 1d / mh8 on 1w), trl1 = ATR3 initial then trailing stop under the latest confirmed swing
 low (B-493), avg1 = NEGATIVE CONTROL for B-502 (adds a 2nd unit 1.5 ATR against, same stop; the live engine
 invariant is never-average-down, this only measures what it would have cost).
 Tag: <family>__<variant>__<dir>__<tf>__<params sorted>__v1 ; decimals written d.
-Env: TF (1d|1w), SHARD, NSHARDS, MAXSYM (debug). Output docs/oneil_research_<tf>_s<shard>.json (cell sums);
+Env: TF (1d|1w), EXIT_SET (base|stoptgt), SHARD, NSHARDS, MAXSYM (debug). Output docs/oneil_research_<tf>_s<shard>.json (cell sums);
 `--merge files...` pools shards and prints pfnet/win%/n/avg hold/exit-reason breakdown.
 """
 import json
@@ -44,7 +45,21 @@ CFG = {
 }
 CHASES = (0.05, 0.10)
 RS_FILTERS = ("none", "80")
-EXITS = (("atr", 2.0), ("atr", 3.0), ("pct", 7.0), ("pct", 8.0), ("tgt", 20.0), ("trl", 3.0), ("avg", 3.0))
+EXITS_BASE = (("atr", 2.0), ("atr", 3.0), ("pct", 7.0), ("pct", 8.0), ("tgt", 20.0), ("trl", 3.0), ("avg", 3.0))
+# B-489/B-491 stop/target sweep (EXIT_SET=stoptgt): O'Neil percentage stop 5/6/7/8/10% (short: buy-to-cover that %
+# above entry), profit target 15/20/25% at every stop, and the O'Neil min-hold rule as its own variant: if the
+# target is reached within the first 8 weeks (40 daily bars / 8 weekly bars), do NOT sell, hold to the end of
+# week 8 and exit at that bar's close ("mh_exit"); the initial stop stays live throughout. A target reached after
+# week 8 is taken normally. ("tgt", 20.0) keeps its legacy meaning (8% stop, 20% target, no min-hold), so
+# pct8_tgt20 tags reproduce run 38193479637's definition exactly.
+STOPS_SWEEP = (5.0, 6.0, 7.0, 8.0, 10.0)
+TARGETS_SWEEP = (15.0, 20.0, 25.0)
+MH_BARS = {"1d": 40, "1w": 8}  # 8 weeks in bars for each candle size
+EXITS_STOPTGT = (tuple(("pct", s) for s in STOPS_SWEEP)
+                 + tuple(("tgt", (s, t, 0)) for s in STOPS_SWEEP for t in TARGETS_SWEEP)
+                 + tuple(("tgtmh", (s, t, 1)) for s in STOPS_SWEEP for t in TARGETS_SWEEP))
+EXIT_SETS = {"base": EXITS_BASE, "stoptgt": EXITS_STOPTGT}
+EXITS = EXIT_SETS[os.environ.get("EXIT_SET", "base")]
 VOL_MULT = 1.5
 FLAT_RANGE = 0.12
 ADV_MIN = 0.30
@@ -159,8 +174,20 @@ def entry_signals(o, h, l, c, v, rs, cfg):
 
 
 # ---------- simulation ----------
-def simulate(sig, o, h, l, c, atr, hold, mode, val, side, cost, swing_w):
-    """Non-overlapping trades. Returns list of (net_ret, gross_ret, held_bars, reason). Always has a stop."""
+def tgt_params(mode, val):
+    """(stop_pct, target_pct, use_minhold) for a tgt/tgtmh exit; legacy ("tgt", 20.0) = 8% stop, 20% target."""
+    if mode == "tgt" and not isinstance(val, tuple):
+        return 8.0, float(val), 0
+    s, t, m = val
+    return float(s), float(t), int(m)
+
+
+def simulate(sig, o, h, l, c, atr, hold, mode, val, side, cost, swing_w, mh=0):
+    """Non-overlapping trades. Returns list of (net_ret, gross_ret, held_bars, reason). Always has a stop.
+    mh (bars) only applies to mode "tgtmh": a target hit before bar e+mh is not taken; the trade is held to the
+    close of bar e+mh-1 (stop still live) and exits there as "mh_exit"."""
+    if mode == "tgtmh" and (mh <= 0 or hold <= mh):
+        raise ValueError("tgtmh needs 0 < mh < hold")
     res = []
     n = len(c)
     nxt = 0
@@ -174,14 +201,17 @@ def simulate(sig, o, h, l, c, atr, hold, mode, val, side, cost, swing_w):
         last = min(e + hold - 1, n - 1)
         if last - e + 1 < hold:
             continue
+        target = None
         if mode == "pct":
             stop = ent * (1 - side * val / 100.0)
-        elif mode == "tgt":
-            stop = ent * (1 - side * 0.08)
+        elif mode in ("tgt", "tgtmh"):
+            sp, tp, _ = tgt_params(mode, val)
+            stop = ent * (1 - side * sp / 100.0)
+            target = ent * (1 + side * tp / 100.0)
         else:  # atr / trl / avg
             stop = ent - side * val * atr[t]
         init_stop = stop
-        target = ent * (1 + side * 0.20) if mode == "tgt" else None
+        mh_armed = False
         add_px = ent - side * 1.5 * atr[t] if mode == "avg" else None
         add_done = False
         exitp, jx, reason = c[last], last, "timeout"
@@ -201,7 +231,17 @@ def simulate(sig, o, h, l, c, atr, hold, mode, val, side, cost, swing_w):
                 exitp, jx = max(stop, o[j]), j
                 reason = "trail_stop" if stop < init_stop else "stop"
                 break
-            if target is not None:
+            if mh_armed and j == e + mh - 1:
+                exitp, jx, reason = c[j], j, "mh_exit"
+                break
+            if target is not None and not mh_armed:
+                hit = (side == 1 and h[j] >= target) or (side == -1 and l[j] <= target)
+                if hit and mode == "tgtmh" and j - e < mh:
+                    mh_armed = True  # O'Neil: +target inside 8 weeks -> hold to week 8 before deciding
+                    if j == e + mh - 1:
+                        exitp, jx, reason = c[j], j, "mh_exit"
+                        break
+                    continue
                 if side == 1 and h[j] >= target:
                     exitp, jx, reason = max(target, o[j]), j, "target"
                     break
@@ -244,7 +284,7 @@ def acc_add(cells, tag, rows):
         r[1] += net
 
 
-def tag_for(fam, var, d, tf, ch, rsf, mode, val, hold):
+def tag_for(fam, var, d, tf, ch, rsf, mode, val, hold, mh=0):
     p = {"h": hold, "rs": rsf if rsf == "none" else f"{rsf}"}
     if ch is not None:
         p["chase"] = int(round(ch * 100))
@@ -252,9 +292,12 @@ def tag_for(fam, var, d, tf, ch, rsf, mode, val, hold):
         p["atr"] = val
     elif mode == "pct":
         p["pct"] = int(val)
-    elif mode == "tgt":
-        p["pct"] = 8
-        p["tgt"] = int(val)
+    elif mode in ("tgt", "tgtmh"):
+        sp, tp, _ = tgt_params(mode, val)
+        p["pct"] = int(sp)
+        p["tgt"] = int(tp)
+        if mode == "tgtmh":
+            p["mh"] = int(mh)
     elif mode == "trl":
         p["atr"] = val
         p["trl"] = 1
@@ -275,9 +318,12 @@ def process_symbol(df, rs_series, cfg, cost, tf, cells):
         side = 1 if d == "long" else -1
         for hold in cfg["holds"]:
             for mode, val in EXITS:
-                rows = simulate(sg, o, h, l, c, atr, hold, mode, val, side, cost, cfg["swing"])
+                mh = MH_BARS[tf] if mode == "tgtmh" else 0
+                if mode == "tgtmh" and hold <= mh:
+                    continue  # min-hold rule only distinct when the max hold outlasts 8 weeks
+                rows = simulate(sg, o, h, l, c, atr, hold, mode, val, side, cost, cfg["swing"], mh)
                 if rows:
-                    acc_add(cells, tag_for(fam, var, d, tf, ch, rsf, mode, val, hold), rows)
+                    acc_add(cells, tag_for(fam, var, d, tf, ch, rsf, mode, val, hold, mh), rows)
 
 
 def finalize(cells, min_n=30):

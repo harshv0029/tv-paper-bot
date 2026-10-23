@@ -7,7 +7,7 @@ description: >-
   that CLOSES above the range high, or above a level you give it (like a
   20-day high from the scanner), with an optional volume check. Says waiting
   and how far, triggered with the time and the price, expired, or not open
-  yet, and writes trader/entry.json for /trader-exit. Long side only. It never
+  yet, and writes trader/entry.json for /trader-exit. Long and short (MIS). It never
   places an order. Use when the user says "tell me when to get in", "watch
   RELIANCE.NS", "has it broken out", "did it break the opening range", "entry
   signal", "time my entry", "check my watchlist", or after /trader-scanner
@@ -20,8 +20,9 @@ argument-hint: "[TICKER] [--setup orb|level] [--interval 5m|1m]"
 > **India / Kotak adaptation (tv-paper-bot, 2026-10-23).** Adapted for NSE/Kotak from Jakeschincariol/day-trader-skill (MIT, see `../TRADER_SKILLS_LICENSE`).
 > Times are IST (UTC+5:30, no DST); session 09:15-15:30 IST (MCX 09:00-23:30); NSE holidays mirror `main.NSE_HOLIDAYS_2026`; amounts are ₹.
 > Use Yahoo `.NS` symbols (RELIANCE.NS, TCS.NS; indices ^NSEI, ^NSEBANK). Cost model: ~0.8% round trip (brokerage 0.20%/side + STT, exchange, SEBI, stamp, GST).
+> Worked examples below are upstream US runs re-labelled, kept to show the output shape: their numbers are not Indian prices.
 > House rules: no trade without SL/SL-M; check long AND short; this skill never places an order - the live bot (`main.py` / `kotak_real_orders.py`) is the only real-order path.
-> Not yet ported (backlog B-1345): short side where the original is long-only; 2027 NSE holidays.
+> Ported (B-1345): IST/NSE session (09:15-15:30, default no entries before 09:30 or after 15:00), ₹, `.NS` symbols, and a SHORT mirror: `--side sell` triggers on the first 5m bar that CLOSES below the opening-range low (or your level); entry.json carries `side`. MIS intraday only for shorts. 2027 NSE holidays are not loaded yet (2027 dates report calendar-unknown).
 
 The Entry Timer turns a setup into one moment: the bar that confirms it. It
 reads bars, 1-minute or 5-minute, and waits for each one to finish. A price
@@ -103,16 +104,16 @@ RELIANCE.NS, Monday 2026-10-19, 5-minute bars. The opening range is 354.47 to
 362.18. At 10:12 the 10:10 bar is still open, so it waits:
 
 ```
-WAITING  last close $361.68 (10:05 bar), $0.50 under the range high $362.18 (-0.14%).
-The 10:10 bar is still forming ($364.18 so far, closes 10:15 AM); it does not count until it closes.
+WAITING  last close ₹361.68 (10:05 bar), ₹0.50 under the range high ₹362.18 (-0.14%).
+The 10:10 bar is still forming (₹364.18 so far, closes 10:15 AM); it does not count until it closes.
 ```
 
 At 10:15 the bar has closed:
 
 ```
-RELIANCE.NS  Mon 2026-10-19 10:15 ET  opening-range breakout (15-minute range) on 5-minute bars (Yahoo, free, can lag)
-Opening range 9:30-9:45: high $362.18, low $354.47 (3 of 3 bars).
-TRIGGERED 10:15 AM at $364.18: the 10:10 bar (bar 8) closed above the range high $362.18 (+0.55%).
+RELIANCE.NS  Mon 2026-10-19 10:15 IST  opening-range breakout (15-minute range) on 5-minute bars (Yahoo, free, can lag)
+Opening range 9:30-9:45: high ₹362.18, low ₹354.47 (3 of 3 bars).
+TRIGGERED 10:15 AM at ₹364.18: the 10:10 bar (bar 8) closed above the range high ₹362.18 (+0.55%).
 This is the moment to get in, if you take the trade. Nothing was placed.
 Next: set the stop and target BEFORE you buy: /trader-exit (exit.py plan --from trader/entry.json).
 ```
@@ -126,7 +127,7 @@ and the trigger moves to 10:35 AM at 365.75 (the 10:30 bar, 7.98x).
   and can lag. Say so when a minute matters.
 - A signal is information, not an order, and not a promise. Nothing here
   promises winning trades or money.
-- Long side only. v2 plans longs only. If the user wants a short, say that.
+- Long and short (MIS). v2 plans longs only. If the user wants a short, say that.
 - One trigger per setup per day: the first close above. Later closes do not
   reset it.
 - Never call an entry early because a bar looks like it will close above.

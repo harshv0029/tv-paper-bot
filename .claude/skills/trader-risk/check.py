@@ -71,8 +71,8 @@ DEFAULTS = {
     "budget": None, "cash_buffer_pct": 10, "max_position_pct": 75, "max_order_usd": 4000,
     "min_order_usd": 5, "max_loss_per_trade_usd": 50, "max_daily_loss_usd": 150, "max_trades_per_day": 3,
     "max_orders_per_day": 10, "min_reward_risk": 1.0, "require_stop": True,
-    "no_entries_before": "09:45", "no_entries_after": "15:30", "flat_by": "15:55",
-    "paper": True, "blocked": [], "allow_options": False, "allow_margin": False, "allow_short": False,
+    "no_entries_before": "09:30", "no_entries_after": "15:00", "flat_by": "15:10",
+    "paper": True, "blocked": [], "allow_options": False, "allow_margin": False, "allow_short": True,  # India port: MIS intraday shorts allowed; CNC shorts are not possible in cash
     "pdt_guard": False,
 }
 ALPACA_FIELDS = ("symbol", "side", "qty", "notional", "type", "time_in_force", "limit_price",
@@ -98,7 +98,7 @@ NYSE_HOLIDAYS = {  # NSE trading holidays (name kept for compatibility); mirrors
     "2026-12-25": "Christmas",
 }
 NYSE_EARLY_CLOSE = {}  # NSE has no scheduled early closes (Muhurat trading is a special evening session, not modelled)
-CALENDAR_YEARS = (2026, 2027)
+CALENDAR_YEARS = (2026,)  # NSE 2027 holidays not loaded yet: dates in 2027 are reported as calendar-unknown
 OPEN = datetime.time(9, 15)  # NSE cash/F&O open, IST
 CLOSE = datetime.time(15, 30)  # NSE close, IST
 EARLY = datetime.time(13, 0)

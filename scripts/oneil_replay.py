@@ -89,6 +89,8 @@ def parse_tag(tag):
     if "atr" in p and "trl" in p:
         mode = "trl"
     elif "tgt" in p:
+        if p.get("pct", 8.0) != 8.0 or "mh" in p:  # B-489/B-491 stoptgt sweep tags: replay v1 only knows pct8_tgt
+            raise ValueError(f"replay v1 supports only pct8_tgt<k> (no mh); unsupported: {tag}")
         mode = "tgt"
     elif "pct" in p:
         mode = "pct"

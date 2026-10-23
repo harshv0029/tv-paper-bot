@@ -17,7 +17,7 @@ def test_mult_tag():
 def test_long_trail_stop_hit():
     df = _df([100] * 3 + [110] * 3 + [100] * 5)
     r = lab.simulate(df, 1, "long", 100, 90, 1.0, 2.0, 60, 0.008)
-    assert r is not None and r[3] == "stop_or_trail" and r[1] == r[0] - 0.008
+    assert r is not None and r[3] == "trail_stop" and r[1] == r[0] - 0.008
 
 
 def test_short_max_hold_and_sign():
@@ -35,3 +35,10 @@ def test_summarize_fields():
     s = lab.summarize([0.1, -0.05], [0.09, -0.06], [3, 5], ["max_hold", "stop_or_trail"], 2680, 0.008)
     assert s["n"] == 2 and s["universe_size"] == 2680 and s["pfnet_gross"] > s["pfnet"]
     assert set(s["exits"]) == {"max_hold", "stop_or_trail"}
+    assert s["exit_detail"]["max_hold"]["n"] == 1 and s["exit_detail"]["stop_or_trail"]["win_pct"] == 0.0
+
+
+def test_initial_stop_vs_trail_split():
+    df = _df([100] * 3 + [80] * 5)
+    r = lab.simulate(df, 1, "long", 100, 90, 1.0, 30.0, 60, 0.0)
+    assert r[3] == "initial_stop"

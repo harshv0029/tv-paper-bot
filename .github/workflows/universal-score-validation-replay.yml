@@ -84,6 +84,8 @@ jobs:
           import numpy as np
           import pandas as pd
           import main as m
+          sys.path.insert(0, "scripts")
+          import research_hold_summary as _hs  # B-420 output helper (no strategy logic)
           
           # ---- validation_replay.py content starts here (tested locally against
           # synthetic data before this workflow existed - see PR description) ----
@@ -395,6 +397,8 @@ jobs:
                   skipped.append((sym, f"replay_error: {e}"))
                   print(f"ERROR {sym}: {e}")
                   continue
+              _ts_arr = np.array([x.timestamp() for x in _prep(raw)["ts_local"]])  # B-420: bar index -> held_bars
+              _hs.attach_held_bars(trades, _ts_arr)
               tag = "evidenced" if sym in EVIDENCED else "unevidenced"
               for t in trades:
                   t["symbol_group"] = tag
@@ -475,4 +479,18 @@ jobs:
               print(f"\nApprox daily Sharpe (net, pooled, {len(daily_returns)} trading days): {sharpe:.2f}")
           else:
               print("\nApprox daily Sharpe: insufficient day-level variance to compute")
+          # B-420: machine-readable summary, hold in market bars (5m)
+          _univ = f"52_symbol_sample ({len(SYMBOLS) - len(skipped)}/{len(SYMBOLS)} replayed)"
+          _hs.write_summary([
+              _hs.summarize("universal_score", all_trades, _univ, bar_minutes=5),
+              _hs.summarize("universal_score|trend", [t for t in all_trades if t["regime"] == "trend"], _univ, bar_minutes=5),
+              _hs.summarize("universal_score|range", [t for t in all_trades if t["regime"] == "range"], _univ, bar_minutes=5),
+          ])
           PYEOF
+
+      - uses: actions/upload-artifact@v4  # B-420: n, win_pct, pfnet, pfgross, avg_held_bars, avg_held_hrs, exits, universe, run_id
+        if: always()
+        with:
+          name: b420-hold-summary
+          path: b420_out/
+          retention-days: 90
