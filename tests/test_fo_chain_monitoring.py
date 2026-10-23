@@ -32,7 +32,7 @@ def test_five_underlyings_monitored():
 
 def test_scheduler_tick_calls_fo_chain_monitoring_snapshot():
     src = inspect.getsource(main._scheduler_tick)
-    assert "_fo_chain_monitoring_snapshot(conn)" in src
+    assert "asyncio.to_thread(_fo_chain_monitoring_snapshot_own_conn)" in src  # B-1361: off the event loop
 
 
 def test_snapshot_is_never_gated_by_real_trading_switches():

@@ -25159,6 +25159,12 @@ def _run_swing_scan_own_conn():
         return _run_swing_scan(c)
 
 
+def _fo_chain_monitoring_snapshot_own_conn():
+    """Thread-safe wrapper (B-1361): the snapshot calls Kotak quotes(), so it runs off the event loop on its own conn."""
+    with closing(get_db()) as c:
+        return _fo_chain_monitoring_snapshot(c)
+
+
 _swing_scan_task = None
 
 
@@ -25254,8 +25260,8 @@ async def _scheduler_tick():
         except Exception as e:
             print(f"[REAL SWING] retry pass failed (non-fatal, intraday tick continues): {e}")
 
-        try:
-            _fo_chain_monitoring_snapshot(conn)
+        try:  # B-1361: off the event loop; its Kotak quotes() call froze /health 16 s at boot
+            await asyncio.to_thread(_fo_chain_monitoring_snapshot_own_conn)
         except Exception as e:
             print(f"[FO_MONITOR] snapshot failed (non-fatal, intraday tick continues): {e}")
 
@@ -25390,7 +25396,7 @@ async def _scheduler_tick():
     # Hoisted once per tick, not per symbol - get_scheduler_capital_inr()
     # is TTL-cached internally anyway, but this avoids re-checking cache
     # freshness once per symbol in the loop below for no benefit.
-    scheduler_capital_inr = get_scheduler_capital_inr()
+    scheduler_capital_inr = await asyncio.to_thread(get_scheduler_capital_inr)  # B-1361: Kotak limits() froze the loop 31 s
 
     for symbol in _scan_visit(symbols_this_tick):
         cfg = watchlist_by_symbol.get(symbol)
