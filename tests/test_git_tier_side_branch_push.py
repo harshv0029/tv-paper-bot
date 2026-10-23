@@ -100,3 +100,15 @@ def test_order_event_wakes_git_push_immediately(monkeypatch, tmp_path):
     assert main._git_tier_push_wake.is_set()
     main._git_tier_push_wait(0)
     assert not main._git_tier_push_wake.is_set()
+
+
+def test_unchanged_log_counts_as_in_sync(monkeypatch, tmp_path):
+    """B-1360: after the close no new order events arrive; an unchanged, already-pushed log is in sync, not stale."""
+    put = _setup(monkeypatch, tmp_path, [{"ts": 2.0, "symbol": "B", "leg": "exit", "event": "confirmed", "order_id": "o2"}], [])
+    monkeypatch.setattr(main, "_git_tier_push_last_ok", {})
+    assert main._git_tier_push_side_branch("real_order_events") is True
+    main._git_tier_push_last_ok["real_order_events"] = main.time.time() - 3600
+    put.clear()
+    assert main._git_tier_push_side_branch("real_order_events") is False
+    assert not put  # nothing re-pushed
+    assert main._git_tier_push_status()["order_log_git_push_age_s"] < 5
