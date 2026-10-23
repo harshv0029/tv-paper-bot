@@ -21,7 +21,7 @@ Total rows: 1112 | closed: 500 | not closed: 612
 | HARNESS-BUILT-RUN-PENDING | 15 |
 | PENDING | 12 |
 | BUILT-DISPATCH-OWED | 12 |
-| BUILT-ON-BRANCH | 7 |
+| BUILT-ON-BRANCH | 6 |
 | OPEN-PARKED | 6 |
 | BUILT | 5 |
 | USER | 5 |
@@ -76,6 +76,7 @@ Total rows: 1112 | closed: 500 | not closed: 612
 | SPAWNED | 1 |
 | FOUND | 1 |
 | B-1359 | 1 |
+| WATCHDOG | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -93,12 +94,12 @@ Total rows: 1112 | closed: 500 | not closed: 612
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
 | B-1302 | P0 | OPEN | User 2026-10-21 IST: "set the priority order of items stored in Upstash, or move them to git on a 5-min syn... | open:, needs |
-| B-1346 | P0 | OPEN | 2026-10-23 11:35 IST | blocked, owner |
+| B-1346 | P0 | OPEN | 2026-10-23 11:35 IST | owed, blocked, owner |
 | B-1356 | P0 | OWNER-ACTION | 2026-10-23 16:05 IST | owner |
 | B-1357 | P0 | OWNER-ACTION | 2026-10-23 16:20 IST | owed, owner, follow-up |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (367)
+## waiting-on-workflow/deploy (366)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -272,7 +273,6 @@ Total rows: 1112 | closed: 500 | not closed: 612
 | B-817 | P1 | DONE-PENDING-VERIFY | Trade-view Remarks for Kotak order-book exit fills (DABUR 2026-10-12 IST showed only "exit fill from Kotak ... | owed, remaining, pending, verify, follow-up |
 | B-830 | P1 | DONE-PENDING-VERIFY | O'Neil extension run 38207070547 (2026-10-12 IST, cost 0.8%, ~2166 symbols): 564 cells (1d 282, 1w 282; eac... | pending |
 | B-867 | P1 | BUILT-ON-BRANCH | 2026-10-12 | owed, pending |
-| B-1361 | P1 | BUILT-ON-BRANCH | 2026-10-23 18:50 IST | verify, awaiting, waiting |
 | B-289 | P2 | BUILT-ON-BRANCH |  | owed, not merged, follow-up |
 | B-312 | P2 | DONE-PENDING-VERIFY | GMRAIRPORT duplicate SL attempt 2026-10-08 (Kotak SL snapshot, 9:18 AM IST): reconcile placed SL 2610080000... | owed, pending, verify |
 | B-313 | P2 | DONE-PENDING-VERIFY | Overnight phantom SHORT emergency-cover loop (journal real_order_log, 08-Oct 1:00-1:43 AM IST, market close... | owed, pending, verify |
@@ -470,7 +470,7 @@ Total rows: 1112 | closed: 500 | not closed: 612
 | B-1297 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: trade-view pages hang the laptop browser | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | pending, verify |
 
-## ready-to-build (113)
+## ready-to-build (114)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -524,6 +524,7 @@ Total rows: 1112 | closed: 500 | not closed: 612
 | B-1351 | P1 | OPEN | 2026-10-23 12:30 IST |  |
 | B-1358 | P1 | SPAWNED | 2026-10-23 16:25 IST |  |
 | B-1360 | P1 | B-1359 | 2026-10-23 17:58 IST | open:, verify |
+| B-1361 | P1 | WATCHDOG | 2026-10-23 18:50 IST | owed, verify |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
