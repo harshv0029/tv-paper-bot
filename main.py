@@ -25875,6 +25875,8 @@ async def _start_scheduler():
         threading.Thread(target=_git_tier_push_loop, name="git-tier-push", daemon=True).start()  # B-1349
         threading.Thread(target=_unprotected_backcheck_loop, name="unprotected-backcheck", daemon=True).start()  # B-1354
         if not os.environ.get("PYTEST_CURRENT_TEST"):  # the heartbeat stops with each test app, so it would alarm
+            global _loop_heartbeat_ts
+            _loop_heartbeat_ts = time.time()  # B-1361: the stamp dates from import; startup hydration made it look like a freeze
             threading.Thread(target=_watchdog_loop, name="watchdog", daemon=True).start()  # B-1356
     asyncio.create_task(_sl_snapshot_loop())
     # Kotak Neo live tick feed (2026-09-04) - display data only, isolated
@@ -27928,6 +27930,8 @@ async def health():
     return {"status": "alive", "time": time.time(), **_rss_headroom(), **_threadpool_status(),
             **_memory_pressure_check(trim=False), **_git_tier_push_status(),
             "loop_lag_s": round(time.time() - _loop_heartbeat_ts, 1), "watchdog_alarms": _WATCHDOG_STATE["alarms"],
+            # B-1361: Render logs are not readable from the dev container, so /health carries the alarm stacks itself
+            "watchdog_first_alarm": _WATCHDOG_STATE.get("first_alarm"), "watchdog_last_alarm": _WATCHDOG_STATE["last_alarm"],
             "upstash_ok": _UPSTASH_PROBE["ok"], "upstash_error": _UPSTASH_PROBE["error"],
             "upstash_checked_at": _UPSTASH_PROBE["checked_at"], "upstash_last_ok_at": _UPSTASH_PROBE["last_ok_at"]}
 
@@ -28639,7 +28643,7 @@ _WATCHDOG_EVERY_SECONDS = 5
 _WATCHDOG_LOOP_LAG_WARN_SECONDS = 15
 _loop_heartbeat_ts = time.time()
 _BACKGROUND_THREADS_STARTED = False
-_WATCHDOG_STATE: dict = {"alarms": 0, "last_alarm": None}
+_WATCHDOG_STATE: dict = {"alarms": 0, "first_alarm": None, "last_alarm": None}
 
 
 async def _loop_heartbeat():
@@ -28689,6 +28693,8 @@ def _watchdog_check(now=None, rss_mb=None) -> dict | None:
     info = {"ts": now, "loop_lag_s": lag, "rss_mb": rss_mb, "rss_pct": pct, "threadpool": f"{used}/{total}",
             "threads": _busy_thread_stacks()}
     _WATCHDOG_STATE["alarms"] += 1
+    if _WATCHDOG_STATE.get("first_alarm") is None:  # B-1361: the first alarm of a burst names what froze the loop
+        _WATCHDOG_STATE["first_alarm"] = info
     _WATCHDOG_STATE["last_alarm"] = info
     print(f"[watchdog] ALARM loop_lag_s={lag} rss_mb={rss_mb} ({pct}%) threadpool={used}/{total} threads={info['threads']}")
     if pct is not None and pct >= RSS_WARN_PCT:
