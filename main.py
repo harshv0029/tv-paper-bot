@@ -25691,8 +25691,7 @@ async def _scheduler_tick():
             await asyncio.to_thread(_reconcile_real_positions_core, adopt="*")
         except Exception as e:
             print(f"[unprotected_backcheck] in-process reconcile failed (non-fatal, external cron still covers this): {e}")
-        for _gt in _GIT_TIER_PUSH_TABLES:  # B-1327: in-process git copy of the order log, ~5 min
-            threading.Thread(target=_git_tier_push_side_branch, args=(_gt,), name=f"git-tier-push-{_gt}", daemon=True).start()
+        # B-1349: the order-log git push now has its own thread (_git_tier_push_loop), not this tick block.
 
     # 2026-10-08: trailing SL / heal for every open real single-strike option
     # (Kotak read first inside). Runs every tick; reuses the F&O switch.
@@ -25858,6 +25857,7 @@ async def _start_scheduler():
     reconcile_scheduler_check_counts_from_journal()
     asyncio.create_task(_scheduler_loop())
     asyncio.create_task(_tracked_union_memory_loop())
+    threading.Thread(target=_git_tier_push_loop, name="git-tier-push", daemon=True).start()  # B-1349
     asyncio.create_task(_sl_snapshot_loop())
     # Kotak Neo live tick feed (2026-09-04) - display data only, isolated
     # in its own task so a failure here (missing/misconfigured creds, a
@@ -27891,7 +27891,7 @@ def _current_rss_mb() -> float | None:
 @app.get("/health")
 def health():
     return {"status": "alive", "time": time.time(), **_rss_headroom(),
-            **_memory_pressure_check(trim=False)}
+            **_memory_pressure_check(trim=False), **_git_tier_push_status()}
 
 
 @app.get("/watchlist")
@@ -28588,10 +28588,36 @@ def _git_tier_push_side_branch(name: str) -> bool:
             payload["sha"] = sha
         requests.put(f"{api}/contents/{path}", headers=hdr, json=payload, timeout=15).raise_for_status()
         _git_tier_push_last_hash[name] = digest
+        _git_tier_push_last_ok[name] = time.time()
         return True
     except Exception as e:  # noqa: BLE001
         print(f"[table_mirror] side-branch push {name} failed (non-fatal): {e}")
         return False
+
+
+_GIT_TIER_PUSH_EVERY_SECONDS = 60
+_git_tier_push_last_ok: dict = {}
+
+
+def _git_tier_push_loop(sleep=time.sleep, rounds=None):
+    """B-1349 (2026-10-23): the order-log push used to ride the scheduler tick, after an awaited Kotak reconcile with no
+    timeout, so a slow tick or a hung reconcile stopped it (last push 09:27 IST while orders kept coming). It now has
+    its own daemon thread on a wall clock: every 60 s, push only if the table changed. Never raises."""
+    n = 0
+    while rounds is None or n < rounds:
+        for name in _GIT_TIER_PUSH_TABLES:
+            try:
+                _git_tier_push_side_branch(name)
+            except Exception as e:  # noqa: BLE001
+                print(f"[table_mirror] git push loop {name} failed (non-fatal): {e}")
+        n += 1
+        sleep(_GIT_TIER_PUSH_EVERY_SECONDS)
+
+
+def _git_tier_push_status() -> dict:
+    """B-1349: /health shows how old the last successful order-log push is, so a stall is visible, not silent."""
+    ts = _git_tier_push_last_ok.get("real_order_events")
+    return {"order_log_git_push_age_s": round(time.time() - ts) if ts else None}
 
 
 async def _tracked_union_memory_loop():
