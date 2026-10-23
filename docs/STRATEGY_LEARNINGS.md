@@ -1429,3 +1429,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Supporting evidence (fixed-stop proxy, same entry, run 38245172228): widening the stop from 1.5 to 3 ATR moves timeout survivors from 31% to 58% of trades and PFnet from 1.155 to 1.363. The edge again sits in trades that survive to the time exit.
 - Reuse: the sweep lab now splits initial_stop vs trail_stop and logs per-reason PFnet, so the next run answers exit questions from the log without fetching an artifact. Replay the atr4 trail through main.minervini_vcp_exit_reason (close-based) before changing the live 2.0 constant.
 - Profit-booking / exit takeaway: on Minervini VCP longs, a wider ATR trail (3-4 x) lets winners reach the time exit and earns more per day held; a tight 1.5-2 x trail books small gains too early. Do not tighten it to "lock in" profit.
+
+## NATIONALUM chan_kalman band long, live 2026-10-23 (B-1347)
+
+- **What happened (Kotak order book):** BUY 3 CNC at Rs300.00 at 09:19:46 IST, entered by `chan_kalman__band__long__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2`. SL trigger Rs293.05 placed 09:19:58 IST. SL cancelled and 3 sold at Rs300.10 at 09:22:27 IST. Gross +Rs0.30, net about -Rs7 after the ~0.8% round-trip cost.
+- **Why it matters:** a 2.7-minute round trip on a 5m-bar strategy cannot clear costs. A +0.03% move against a 0.8% cost hurdle is a guaranteed net loss. Also, the exit reached Kotak with no app reason row (B-1350), so we cannot tell whether the strategy's own exit fired inside its first bar.
+- **Reuse next time:** for small CNC tickets (Rs900), fixed costs dominate. Any exit path that can fire within the first bar of a 5m strategy should be checked against the cost hurdle in the backtest's exit-reason breakdown.
+- **Profit-booking / exit takeaway:** never book a "profit" smaller than the round-trip cost. An exit within minutes at roughly entry price is a cost loss. Treat it as a defect to root-cause (B-1350), not as a scratch trade.
