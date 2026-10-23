@@ -4,8 +4,8 @@
     python3 scan.py universe                          # Nasdaq Trader lists -> trader/universe.txt
     python3 scan.py daily                             # before the open: daily setups -> trader/watchlist.json
     python3 scan.py daily --symbols TSLA,NVDA,AMD     # or --watchlist FILE, or --limit 200
-    python3 scan.py orb                               # after 9:50 AM ET: opening-range breakouts so far
-    python3 scan.py orb --at 10:15 --or-minutes 15    # cut the clock at 10:15 AM ET
+    python3 scan.py orb                               # after 9:50 AM IST: opening-range breakouts so far
+    python3 scan.py orb --at 10:15 --or-minutes 15    # cut the clock at 10:15 AM IST
     python3 scan.py orb --offline wall5m.json.gz --now "2026-10-19 10:15" --min-price 0
 
 universe  Downloads Nasdaq Trader's symbol directories (nasdaqlisted.txt and
@@ -47,12 +47,12 @@ orb       Opening-range breakouts, 5-minute bars. The range is the first
           bar's close time. Stage 2 fetches at most --max-confirm (200) charts,
           the most traded candidates first (price x volume so far), and says
           so when it stops short. A chart is usable only when every 5-minute
-          bar from 9:30 to the cutoff is there (a missing bar is a halt or no
+          bar from 9:15 to the cutoff is there (a missing bar is a halt or no
           trades). Floors: --min-price 5 (last close), --min-volume 0.
 
 Bars: null closes are dropped, a bar off the 5-minute grid (the live tick,
 like 10:49:45) is dropped, and a bar counts only once it is complete
-(start + 5 minutes <= the clock). Times are India (IST) (ET). --now pins the
+(start + 5 minutes <= the clock). Times are India (IST). --now pins the
 clock ("2026-10-19 10:15", India time (IST); ...Z for UTC).
 
 Yahoo's endpoints are free, unofficial and can lag. query2 first, query1 on
@@ -62,7 +62,7 @@ requests (--pause). Partial results are reported as partial.
 --offline PATH reads files instead of the network: universe wants a folder
 with nasdaqlisted.txt and otherlisted.txt; daily and orb take a folder of
 <T>.json v8 chart files or spark responses, or one file that is a spark
-response, a v8 chart, or a bundle {"TSLA": <v8 json>, ...}. .json.gz is fine.
+response, a v8 chart, or a bundle {"RELIANCE.NS": <v8 json>, ...}. .json.gz is fine.
 
 A scan is a list of charts that match a rule, not a list of stocks to buy.
 Exit code 0 when the scan found something, 1 when it did not or could not run.
@@ -100,7 +100,7 @@ NYSE_HOLIDAYS = {  # NSE trading holidays (name kept for compatibility); mirrors
     "2026-12-25": "Christmas",
 }
 NYSE_EARLY_CLOSE = {}  # NSE has no scheduled early closes (Muhurat trading is a special evening session, not modelled)
-CALENDAR_YEARS = (2026, 2027)
+CALENDAR_YEARS = (2026,)  # NSE 2027 holidays not loaded yet: dates in 2027 are reported as calendar-unknown
 OPEN = datetime.time(9, 15)  # NSE cash/F&O open, IST
 CLOSE = datetime.time(15, 30)  # NSE close, IST
 EARLY = datetime.time(13, 0)
@@ -238,7 +238,30 @@ def yahoo_get(path):
 
 
 def to_yahoo(sym):
-    return sym.upper().replace(".", "-")
+    """India: bare NSE symbols get Yahoo's .NS suffix (RELIANCE -> RELIANCE.NS); .NS/.BO and ^indices pass through."""
+    s = sym.upper().strip()
+    if s.startswith("^") or s.endswith(".NS") or s.endswith(".BO"):
+        return s
+    return s + ".NS"
+
+
+NSE_UNIVERSE_FILE = os.environ.get("NSE_UNIVERSE_FILE", "docs/nse_universe.json")  # Kotak scrip master, EQ series
+
+
+def load_nse_universe(path=NSE_UNIVERSE_FILE):
+    """tv-paper-bot's docs/nse_universe.json (pulled from Kotak's own scrip master; same file as
+    main._load_nse_universe_from_file). Returns [(symbol, name)]."""
+    if not os.path.exists(path):
+        raise ScanError("no %s: run from the tv-paper-bot repo root, set NSE_UNIVERSE_FILE, or pass --us" % path)
+    with open(path, encoding="utf-8") as fh:
+        doc = json.load(fh)
+    syms = doc.get("symbols") if isinstance(doc, dict) else doc
+    out = []
+    for x in syms or []:
+        x = str(x).upper().strip()
+        if x and x not in [o[0] for o in out[-1:]]:
+            out.append((x, x[:-3] if x.endswith(".NS") else x))
+    return out, doc.get("fetched_at_utc") if isinstance(doc, dict) else None
 
 
 def spark_path(symbols, rng, interval):
@@ -578,7 +601,7 @@ def session_bars(series, day, cutoff):
 
 
 def usable(bars, day, cutoff, n_range):
-    """Every slot from 9:30 to the cutoff is there, and at least the range."""
+    """Every slot from 9:15 to the cutoff is there, and at least the range."""
     want = int((cutoff - slot(day, 0)).total_seconds() // (BAR_MIN * 60))
     s = session(day)
     if s:
@@ -615,7 +638,7 @@ def orb_hit(bars, n_range):
 
 
 def orb_window(now_utc, at, or_minutes, until, explicit_day=None):
-    """-> (day, cutoff naive ET) or raise ScanError with the plain message."""
+    """-> (day, cutoff naive IST) or raise ScanError with the plain message."""
     now = to_eastern(now_utc)
     day = explicit_day or now.date()
     if or_minutes < BAR_MIN or or_minutes % BAR_MIN or or_minutes > 120:
@@ -631,22 +654,22 @@ def orb_window(now_utc, at, or_minutes, until, explicit_day=None):
     if at is not None:
         cutoff = datetime.datetime.combine(day, at)
         if explicit_day is None and cutoff > now + datetime.timedelta(seconds=59):
-            raise ScanError("--at %s is later than now (%s ET)." % (at.strftime("%H:%M"), clock_label(now)))
+            raise ScanError("--at %s is later than now (%s IST)." % (at.strftime("%H:%M"), clock_label(now)))
         if cutoff > close_dt:
             raise ScanError("--at %s is after the %s close on %s." % (at.strftime("%H:%M"), clock_label(close_dt),
                                                                        day_label(day)))
     else:
         cutoff = now.replace(second=0, microsecond=0)
         if cutoff >= close_dt:
-            raise ScanError("The market closed at %s ET on %s. Replay the session with --at 10:15."
+            raise ScanError("The market closed at %s IST on %s. Replay the session with --at 10:15."
                             % (clock_label(close_dt), day_label(day)))
     if cutoff < first_close:
-        raise ScanError("It is %s ET: the %d-minute opening range runs 9:30 to %s and the first bar after it "
+        raise ScanError("It is %s IST: the %d-minute opening range runs 9:15 to %s and the first bar after it "
                         "closes at %s. Run orb again after %s."
                         % (clock_label(cutoff), or_minutes, clock_label(range_end), clock_label(first_close),
                            clock_label(first_close)))
     if until is not None and cutoff.time() > until:
-        raise ScanError("It is %s ET, after %s, your last time for new entries (no_entries_after): an "
+        raise ScanError("It is %s IST, after %s, your last time for new entries (no_entries_after): an "
                         "opening-range breakout found now is expired. Run orb tomorrow after %s, or replay "
                         "today with --at 10:15." % (clock_label(cutoff), until.strftime("%H:%M"),
                                                       clock_label(first_close)))
@@ -802,13 +825,31 @@ def write_json(path, doc):
 
 
 def money(x):
-    return "${:,.2f}".format(x)
+    return "₹{:,.2f}".format(x)
 
 
 # ---------------------------------------------------------------- commands
 
 def cmd_universe(a):
     t0 = time.time()
+    if not getattr(a, "us", False):
+        kept, fetched = load_nse_universe(a.nse_file)
+        if not a.no_write:
+            d = os.path.dirname(a.out)
+            if d:
+                os.makedirs(d, exist_ok=True)
+            with open(a.out, "w", encoding="utf-8") as fh:
+                for sym, name in kept:
+                    fh.write("%s|%s\n" % (sym, name))
+        if a.json:
+            print(json.dumps({"count": len(kept), "source": a.nse_file, "fetched_at_utc": fetched,
+                              "out": None if a.no_write else a.out, "seconds": round(time.time() - t0, 1)}, indent=2))
+        else:
+            print("NSE EQ universe from %s (Kotak scrip master, fetched %s UTC): %s symbols." % (
+                a.nse_file, fetched or "?", "{:,}".format(len(kept))))
+            if not a.no_write:
+                print("Wrote %s (one SYMBOL|Name a line)." % a.out)
+        return 0 if kept else 1
     texts = {}
     for k, fname in enumerate(NASDAQ_FILES):
         if a.offline:
@@ -841,7 +882,7 @@ def cmd_universe(a):
                           "seconds": round(time.time() - t0, 1)}, indent=2))
     else:
         print("Nasdaq Trader symbol directories%s: %s rows." % (
-            (", files of %s ET" % created) if created else "", "{:,}".format(counts.get("rows", 0))))
+            (", files of %s IST" % created) if created else "", "{:,}".format(counts.get("rows", 0))))
         print("Kept %s US-listed common stocks, ordinary shares and ADRs." % "{:,}".format(len(kept)))
         print("Dropped: " + ", ".join("%s %s" % ("{:,}".format(v), k)
                                       for k, v in sorted(dropped.items(), key=lambda kv: -kv[1])) + ".")
@@ -877,9 +918,9 @@ def cmd_daily(a):
         print(json.dumps(dict(doc, counts=counts, seconds=round(time.time() - t0, 1)), indent=2))
         return 0 if hits else 1
     local = to_eastern(now)
-    print("Daily scan, %s ET, closes through %s (Yahoo spark, daily closes only)." % (
+    print("Daily scan, %s IST, closes through %s (Yahoo spark, daily closes only)." % (
         local.strftime("%a %Y-%m-%d %H:%M"), last_date.isoformat() if last_date else "nothing"))
-    print("Fetched %s of %s charts%s. %s passed the liquidity filter ($%s+ and %s+ shares)%s; "
+    print("Fetched %s of %s charts%s. %s passed the liquidity filter (₹%s+ and %s+ shares)%s; "
           "%s scanned." % ("{:,}".format(counts["fetched"]), "{:,}".format(len(symbols)),
                            (" (%s failed or had no data)" % "{:,}".format(nfailed)) if nfailed else "",
                            "{:,}".format(counts["fetched"] - counts["illiquid"]), _n(a.min_price),
@@ -914,7 +955,7 @@ def cmd_orb(a):
     now = parse_now(a.now)
     at = parse_hhmm(a.at) if a.at else None
     cfg = read_config(a.config)
-    until = parse_hhmm(a.until or cfg.get("no_entries_after") or "15:30", "--until")
+    until = parse_hhmm(a.until or cfg.get("no_entries_after") or "15:00", "--until")
     data = failed = None
     explicit_day = None
     offline_syms = None
@@ -952,7 +993,7 @@ def cmd_orb(a):
     failed = dict(failed or {})
     failed.update(failed2)
     nfailed = len([s for s in symbols if s in failed])
-    as_of = "%s %s ET" % (day.isoformat(), cutoff.strftime("%H:%M"))
+    as_of = "%s %s IST" % (day.isoformat(), cutoff.strftime("%H:%M"))
     doc = {"created_by": "trader-scanner", "created_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "mode": "orb",
            "as_of": as_of, "universe": len(symbols), "scanned": counts["scanned"], "failed": nfailed,
            "unconfirmed": counts["unconfirmed"], "source": "yahoo", "or_minutes": a.or_minutes,
@@ -965,7 +1006,7 @@ def cmd_orb(a):
     if a.json:
         print(json.dumps(dict(doc, counts=counts, seconds=round(time.time() - t0, 1)), indent=2))
         return 0 if hits else 1
-    print("Opening-range breakout scan, %s %s ET: %d-minute range (9:30 to %s), 5-minute bars, Yahoo."
+    print("Opening-range breakout scan, %s %s IST: %d-minute range (9:15 to %s), 5-minute bars, Yahoo."
           % (day_label(day), clock_label(cutoff), a.or_minutes, clock_label(slot(day, a.or_minutes // BAR_MIN))))
     print("Fetched %s of %s charts%s; %s usable%s; %s candidates, %s confirmed with real highs and lows."
           % ("{:,}".format(counts["fetched"]), "{:,}".format(len(symbols)),
@@ -1003,7 +1044,9 @@ def main(argv=None):
 
     p = sub.add_parser("universe", help="download Nasdaq Trader's lists -> trader/universe.txt")
     p.add_argument("--out", default=DEFAULT_UNIVERSE)
-    p.add_argument("--offline", metavar="DIR", help="a folder with nasdaqlisted.txt and otherlisted.txt")
+    p.add_argument("--offline", metavar="DIR", help="(with --us) a folder with nasdaqlisted.txt and otherlisted.txt")
+    p.add_argument("--us", action="store_true", help="upstream US universe from Nasdaq Trader instead of NSE")
+    p.add_argument("--nse-file", default=NSE_UNIVERSE_FILE, help="NSE universe JSON (default docs/nse_universe.json)")
     p.add_argument("--no-write", action="store_true")
     p.add_argument("--pause", type=float, default=PAUSE)
     p.add_argument("--json", action="store_true")

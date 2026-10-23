@@ -129,7 +129,7 @@ def _date(s):
 
 
 def facts_for(companyfacts, concept, unit_hint=None):
-    """Raw facts for one us-gaap concept (USD, or USD/shares for EPS)."""
+    """Raw facts for one us-gaap concept (INR, or INR/shares for EPS)."""
     node = companyfacts.get("facts", {}).get("us-gaap", {}).get(concept)
     if not node:
         return []
@@ -194,7 +194,7 @@ def quarterly(facts, derive_q4=True):
 
 def series(companyfacts, key, derive_q4=True):
     """Quarterly series for a metric, trying its concepts in order and filling gaps."""
-    unit = "USD/shares" if key == "eps_diluted" else "USD"
+    unit = "INR/shares" if key == "eps_diluted" else "INR"
     merged, used = {}, []
     for concept in CONCEPTS[key]:
         q = quarterly(facts_for(companyfacts, concept, unit), derive_q4)
@@ -238,9 +238,19 @@ def analyse(companyfacts, quarters=6, name=None):
     concepts = {}
     for key in CONCEPTS:
         s[key], concepts[key] = series(companyfacts, key, derive_q4=True)
+    out = analyse_series(s, quarters, name or companyfacts.get("entityName"))
+    out.update(cik=str(companyfacts.get("cik", "")).zfill(10), concepts=concepts)
+    return out
+
+
+def analyse_series(s, quarters=6, name=None):
+    """The report from per-concept series {end_date: {"value", "start", "fp", "fy", "filed", "form"}};
+    shared by the SEC (US) and NSE (India) paths."""
+    for k in ("revenue", "gross_profit", "cost_of_revenue", "operating_income", "net_income", "eps_diluted"):
+        s.setdefault(k, {})
     rev = s["revenue"]
     if not rev and not s["net_income"]:
-        raise FactsError("no quarterly revenue or net income in the XBRL facts")
+        raise FactsError("no quarterly revenue or net income in the reported facts")
     ends = sorted(set(rev) | set(s["net_income"]), reverse=True)[:quarters]
     rows = []
     for end in ends:
@@ -273,9 +283,86 @@ def analyse(companyfacts, quarters=6, name=None):
             ttm[key] = sum(s[key][e]["value"] for e in last4)
     if "eps_diluted" in ttm:
         ttm["eps_diluted"] = round(ttm["eps_diluted"], 2)
-    return {"entity": name or companyfacts.get("entityName"),
-            "cik": str(companyfacts.get("cik", "")).zfill(10),
-            "rows": rows, "ttm": ttm, "concepts": concepts}
+    return {"entity": name, "cik": "", "rows": rows, "ttm": ttm, "concepts": {}}
+
+
+# ---------------------------------------------------------------- India (NSE)
+NSE_HOME = "https://www.nseindia.com/"
+NSE_RESULTS = "https://www.nseindia.com/api/results-comparision?symbol=%s"
+LAKH = 1e5  # NSE result filings report amounts in Rs lakh
+
+
+def _num(v):
+    try:
+        return float(str(v).replace(",", "").strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _first(row, *keys):
+    for k in keys:
+        v = _num(row.get(k))
+        if v is not None:
+            return v
+    return None
+
+
+def nse_fetch(url, name, offline=None):
+    if offline:
+        path = os.path.join(offline, name)
+        if not os.path.isfile(path):
+            raise FactsError("offline: no file %s" % path)
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    import http.cookiejar
+    import urllib.request
+    op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    op.addheaders = [("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                                    "Chrome/124.0 Safari/537.36"), ("Accept", "application/json,*/*;q=0.8"),
+                     ("Accept-Language", "en-IN,en;q=0.9"), ("Referer", NSE_HOME)]
+    try:
+        op.open(NSE_HOME, timeout=20).read()
+        with op.open(url, timeout=30) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception as exc:  # NSE throttles/blocks some IPs: report, never crash
+        raise FactsError("NSE results for %s unavailable: %s" % (url, exc))
+
+
+def nse_series(doc, consolidated=True):
+    """NSE results-comparision JSON -> series dict for analyse_series. Field names are read tolerantly
+    (re_net_sale / re_total_inc, re_net_profit / re_pro_loss_aft_tax, re_dil_eps / re_basic_eps,
+    re_pro_bef_int_n_excep / re_pro_loss_bef_tax) because NSE varies them; amounts Rs lakh -> Rs."""
+    rows = (doc or {}).get("resCmpData") or (doc if isinstance(doc, list) else [])
+    want = "C" if consolidated else "S"
+    picked = [r for r in rows if str(r.get("re_res_type") or r.get("re_consolidated") or "").upper()[:1] == want] or rows
+    s = {k: {} for k in ("revenue", "gross_profit", "cost_of_revenue", "operating_income", "net_income", "eps_diluted")}
+    for r in picked:
+        try:
+            end = _dt.datetime.strptime(str(r.get("re_to_dt")), "%d-%b-%Y").date().isoformat()
+        except ValueError:
+            continue
+        try:
+            start = _dt.datetime.strptime(str(r.get("re_from_dt")), "%d-%b-%Y").date().isoformat()
+        except ValueError:
+            start = None
+        meta = {"start": start, "fp": "Q", "fy": end[:4], "filed": r.get("re_broadcast_dt") or r.get("re_create_dt"),
+                "form": "NSE result (%s)" % ("consolidated" if want == "C" else "standalone")}
+        for key, keys, scale in (("revenue", ("re_net_sale", "re_total_inc", "re_tot_inc"), LAKH),
+                                 ("operating_income", ("re_pro_bef_int_n_excep", "re_pro_loss_bef_tax"), LAKH),
+                                 ("net_income", ("re_net_profit", "re_pro_loss_aft_tax", "re_con_pro_loss"), LAKH),
+                                 ("eps_diluted", ("re_dil_eps", "re_diluted_eps", "re_basic_eps"), 1.0)):
+            v = _first(r, *keys)
+            if v is not None:
+                s[key][end] = dict(meta, value=v * scale)
+    return s
+
+
+def nse_symbol(t):
+    t = t.upper().strip()
+    for suf in (".NS", ".BO"):
+        if t.endswith(suf):
+            t = t[:-len(suf)]
+    return t
 
 
 def stale_note(result, filings):
@@ -301,7 +388,7 @@ def changes(result):
     out = []
 
     def money(v):
-        return "n/a" if v is None else "$%.2fB" % (v / 1e9) if abs(v) >= 1e9 else "$%.1fM" % (v / 1e6)
+        return "n/a" if v is None else "₹%.2fB" % (v / 1e9) if abs(v) >= 1e9 else "₹%.1fM" % (v / 1e6)
 
     label = "Quarter ending %s%s" % (cur["end"], " (derived from the 10-K)" if cur["derived"] else "")
     line = "%s: revenue %s" % (label, money(cur["revenue"]))
@@ -311,7 +398,7 @@ def changes(result):
     if cur["net_income_yoy"] is not None:
         line += " (%+.1f%%)" % cur["net_income_yoy"]
     if cur["eps_diluted"] is not None:
-        line += ", diluted EPS $%.2f" % cur["eps_diluted"]
+        line += ", diluted EPS ₹%.2f" % cur["eps_diluted"]
         if cur["eps_yoy"] is not None:
             line += " (%+.1f%%)" % cur["eps_yoy"]
     out.append(line + ".")
@@ -384,9 +471,10 @@ def latest_filings(submissions, cik, fetcher=None):
 # ---------------------------------------------------------------- output
 
 def _m(v):
+    """Rupees -> Rs crore (1 crore = 1e7)."""
     if v is None:
         return "-"
-    return "{:,.0f}".format(v / 1e6)
+    return "{:,.0f}".format(v / 1e7)
 
 
 def _p(v):
@@ -398,8 +486,11 @@ def _pm(v):
 
 
 def render(ticker, result, filings):
-    out = ["%s (%s), CIK %s. US$ millions except EPS. Source: SEC XBRL company facts." % (
-        result["entity"], ticker, result["cik"]), ""]
+    if result.get("cik"):
+        out = ["%s (%s), CIK %s. Rs crore except EPS. Source: SEC XBRL company facts." % (
+            result["entity"], ticker, result["cik"]), ""]
+    else:
+        out = ["%s. Rs crore except EPS (Rs). Source: NSE quarterly results; 'oper' = profit before tax/exceptionals." % ticker, ""]
     out.append("%-11s %-9s %10s %8s %7s %7s %7s %10s %8s %7s" % (
         "quarter end", "fiscal", "revenue", "rev yoy", "gross", "oper", "net",
         "net inc", "EPS dil", "EPS yoy"))
@@ -413,9 +504,9 @@ def render(ticker, result, filings):
     if t:
         out.append("")
         out.append("Last 4 quarters: revenue %s, net income %s, diluted EPS %s." % (
-            "₹" + _m(t.get("revenue")) + "M" if t.get("revenue") is not None else "-",
-            "₹" + _m(t.get("net_income")) + "M" if t.get("net_income") is not None else "-",
-            "$%.2f" % t["eps_diluted"] if t.get("eps_diluted") is not None else "-"))
+            "₹" + _m(t.get("revenue")) + " cr" if t.get("revenue") is not None else "-",
+            "₹" + _m(t.get("net_income")) + " cr" if t.get("net_income") is not None else "-",
+            "₹%.2f" % t["eps_diluted"] if t.get("eps_diluted") is not None else "-"))
     out.append("")
     out.append("What changed:")
     for line in changes(result):
@@ -478,10 +569,14 @@ def main(argv=None):
     ap.add_argument("--config", default="trader/config.json")
     ap.add_argument("--offline", metavar="DIR")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--us", action="store_true", help="US company via SEC EDGAR (upstream path)")
+    ap.add_argument("--standalone", action="store_true", help="NSE: standalone instead of consolidated results")
     args = ap.parse_args(argv)
     if not args.tickers and not args.cik:
         ap.print_help()
         return 2
+    if not args.us and not args.cik:
+        return main_nse(args)
     ua = user_agent(args.user_agent, args.config)
     if not ua and not args.offline:
         print("facts: " + UA_HELP, file=sys.stderr)
@@ -541,6 +636,27 @@ def main(argv=None):
             fh.write("\n")
         if not args.json:
             print("wrote %s (%d companies)" % (args.metrics, len(existing)))
+    return 0 if results and not failed else (1 if results else 2)
+
+
+def main_nse(args):
+    """India: quarterly results from NSE (results-comparision API), consolidated by default."""
+    results, failed = [], 0
+    for t in args.tickers:
+        sym = nse_symbol(t)
+        try:
+            doc = nse_fetch(NSE_RESULTS % sym, "nse-results-%s.json" % sym, args.offline)
+            result = analyse_series(nse_series(doc, consolidated=not args.standalone), args.quarters, sym)
+        except FactsError as exc:
+            print("facts: %s: %s" % (sym, exc), file=sys.stderr)
+            failed += 1
+            continue
+        results.append({"ticker": sym, "result": result, "filings": None, "changes": changes(result), "note": None})
+        if not args.json:
+            sys.stdout.write(render(sym, result, None))
+            sys.stdout.write("\n")
+    if args.json:
+        print(json.dumps(results, indent=2))
     return 0 if results and not failed else (1 if results else 2)
 
 

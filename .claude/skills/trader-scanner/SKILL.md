@@ -2,7 +2,7 @@
 name: trader-scanner
 description: >-
   Chart Scanner. Scans thousands of charts for setups: opening-range
-  breakouts, flags, oversold bounces. Builds the list of US-listed common
+  breakouts, flags, oversold bounces. Builds the list of NSE-listed common
   stocks, ordinary shares and ADRs from Nasdaq Trader's symbol directories,
   runs a pre-market scan of daily closes (20-day closing-high breakout, bull
   flag, reclaimed the 20-day average, oversold, oversold bounce) and an
@@ -20,8 +20,9 @@ argument-hint: "[universe | daily | orb] [--at HH:MM]"
 > **India / Kotak adaptation (tv-paper-bot, 2026-10-23).** Adapted for NSE/Kotak from Jakeschincariol/day-trader-skill (MIT, see `../TRADER_SKILLS_LICENSE`).
 > Times are IST (UTC+5:30, no DST); session 09:15-15:30 IST (MCX 09:00-23:30); NSE holidays mirror `main.NSE_HOLIDAYS_2026`; amounts are ₹.
 > Use Yahoo `.NS` symbols (RELIANCE.NS, TCS.NS; indices ^NSEI, ^NSEBANK). Cost model: ~0.8% round trip (brokerage 0.20%/side + STT, exchange, SEBI, stamp, GST).
+> Worked examples below are upstream US runs re-labelled, kept to show the output shape: their numbers are not Indian prices.
 > House rules: no trade without SL/SL-M; check long AND short; this skill never places an order - the live bot (`main.py` / `kotak_real_orders.py`) is the only real-order path.
-> Not yet ported (backlog B-1345): universe still from Nasdaq Trader; pass NSE symbols (NIFTY 200 / `main._load_nse_universe_from_file()`) explicitly.
+> Ported (B-1345): `scan.py universe` now writes the NSE EQ universe (~2,688 symbols) from `docs/nse_universe.json`, the Kotak scrip-master file the bot itself uses (`--nse-file` to override, `--us` for the upstream Nasdaq list). Bare symbols map to Yahoo `.NS`. For NIFTY 200-only scans pass `--symbols` or a watchlist file. Scans are long setups; check the short mirror (20-day closing-low breakdown, overbought) by hand until a short scan is added.
 
 The Chart Scanner is the first step of a day trade. It reads thousands of
 free charts and lists the ones that match a rule. That is all it does. A scan
@@ -36,8 +37,8 @@ the scanner does not change that. It only saves you from flipping through
 python3 "${CLAUDE_SKILL_DIR}/scan.py" universe                       # -> trader/universe.txt
 python3 "${CLAUDE_SKILL_DIR}/scan.py" daily                          # before the open -> trader/watchlist.json
 python3 "${CLAUDE_SKILL_DIR}/scan.py" daily --symbols RELIANCE.NS,NVDA,AMD  # or --watchlist FILE, --limit 200
-python3 "${CLAUDE_SKILL_DIR}/scan.py" orb                            # after 9:50 AM ET -> trader/watchlist.json
-python3 "${CLAUDE_SKILL_DIR}/scan.py" orb --at 10:15                 # cut the clock at 10:15 AM ET
+python3 "${CLAUDE_SKILL_DIR}/scan.py" orb                            # after 9:50 AM IST -> trader/watchlist.json
+python3 "${CLAUDE_SKILL_DIR}/scan.py" orb --at 10:15                 # cut the clock at 10:15 AM IST
 python3 "${CLAUDE_SKILL_DIR}/scan.py" orb --watchlist trader/watchlist.json --json
 ```
 
@@ -63,7 +64,7 @@ nasdaqtrader.com/dynamic/SymDir and keeps a row when, in this order:
 
 1. It is not a test issue, not an ETF, not NextShares.
 2. It is a plain ticker: 1 to 5 letters, or 1 to 4 letters plus one class
-   letter after a dot (BRK.B). A `$` preferred (ABR$D) is out, and so is a
+   letter after a dot (BRK.B). A `₹` preferred (ABR₹D) is out, and so is a
    `.U`, `.W` or `.R` suffix (units, warrants, rights).
 3. Out, whatever else the name says: warrants; SPAC units and rights ("Units,
    each consisting of", "Rights to receive"); notes, ETNs, debentures; a %
@@ -129,7 +130,7 @@ spark requests, then 200 v8 charts): 2,448 usable charts, 1,782 candidates,
 the 200 most traded checked, 119 of those broke out. For a fast answer, scan
 the daily watchlist or a list of names you trade (`--watchlist`, `--symbols`).
 
-A chart is usable only when every 5-minute bar from 9:30 to the cutoff is
+A chart is usable only when every 5-minute bar from 9:15 to the cutoff is
 there; a missing bar means a halt or a thin stock. Null closes are dropped,
 a bar off the 5-minute grid (the live tick, like 10:58:07) is dropped, and a
 bar counts only once it is complete (start + 5 minutes). Before 9:50 AM, on a
@@ -151,7 +152,7 @@ are in the calendar.
 1. Once a week or so: `scan.py universe`.
 2. Before the open: `scan.py daily`. Tell the user the counts (fetched,
    liquid, scanned, hits) and the top few by setup.
-3. After 9:50 AM ET (10:15 is the classic): `scan.py orb`. Tell the user how
+3. After 9:50 AM IST (10:15 is the classic): `scan.py orb`. Tell the user how
    many usable charts broke their range and when, and that a later hit is
    closer to the price now.
 4. The user picks one chart. Hand it on: `/trader-news TICKER` (what is moving
@@ -166,13 +167,13 @@ Monday Oct 19 2026, scan at 10:15 AM over the reel's 234-ticker wall
 python3 scan.py orb --offline wall5m-2026-10-19.json.gz --now "2026-10-19 10:15" --min-price 0
 Fetched 233 of 234 charts (1 failed or had no data); 231 usable; 95 candidates, 95 confirmed with real highs and lows.
 42 of 231 charts closed above their opening-range high by 10:15 AM:
-   9:50 AM  AMC         $2.97  range 2.90 to 2.96  +0.50% over
+   9:50 AM  AMC         ₹2.97  range 2.90 to 2.96  +0.50% over
   ...
-  10:15 AM  RELIANCE.NS      $364.18  range 354.47 to 362.18  +0.55% over
+  10:15 AM  RELIANCE.NS      ₹364.18  range 354.47 to 362.18  +0.55% over
 ```
 
-The reel's wall had no price floor (AMC at $2.97 is one of the 42), hence
-`--min-price 0`; with the default $5 floor it is 41. RELIANCE.NS's range is the 9:30
+The reel's wall had no price floor (AMC at ₹2.97 is one of the 42), hence
+`--min-price 0`; with the default ₹5 floor it is 41. RELIANCE.NS's range is the 9:30
 to 9:40 bars, high 362.18, low 354.47; the 10:10 bar closed at 364.18, 0.55 %
 over the high, at 10:15 AM. The user picks RELIANCE.NS and Claude hands it to
 `/trader-news RELIANCE.NS`, then `/trader-entry RELIANCE.NS`. In the reel the universe was

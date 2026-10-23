@@ -19,8 +19,9 @@ argument-hint: "[tickers]"
 > **India / Kotak adaptation (tv-paper-bot, 2026-10-23).** Adapted for NSE/Kotak from Jakeschincariol/day-trader-skill (MIT, see `../TRADER_SKILLS_LICENSE`).
 > Times are IST (UTC+5:30, no DST); session 09:15-15:30 IST (MCX 09:00-23:30); NSE holidays mirror `main.NSE_HOLIDAYS_2026`; amounts are ₹.
 > Use Yahoo `.NS` symbols (RELIANCE.NS, TCS.NS; indices ^NSEI, ^NSEBANK). Cost model: ~0.8% round trip (brokerage 0.20%/side + STT, exchange, SEBI, stamp, GST).
+> Worked examples below are upstream US runs re-labelled, kept to show the output shape: their numbers are not Indian prices.
 > House rules: no trade without SL/SL-M; check long AND short; this skill never places an order - the live bot (`main.py` / `kotak_real_orders.py`) is the only real-order path.
-> Not yet ported (backlog B-1345): SEC EDGAR XBRL is US-only; NSE financial results not wired yet.
+> Ported (B-1345): default source is **NSE quarterly results** (nseindia.com `results-comparision` API, consolidated; `--standalone` for standalone), amounts converted from Rs lakh and shown in Rs crore; YoY and TTM use the same maths as upstream. NSE field names are read tolerantly and the endpoint may throttle or block some IPs, so verify a surprising number against the filing on nseindia.com. SEC EDGAR only with `--us`. Unverified live (built without network access).
 
 Earnings move stocks more than anything else on the calendar, and the press
 release is written to put the best number first. This skill reads the numbers
@@ -99,17 +100,17 @@ email. It refuses to call SEC without one.
 ## Example: the reel's stock
 
 `facts.py RELIANCE.NS` (run 2026-10-20): quarter ending 2026-06-30 (Q2 2026),
-revenue $28.24B, +25.5% against a year earlier, net income $1.11B (-4.9%),
-diluted EPS $0.32 (-3.0%); gross margin 16.8% (-4.3 points on the quarter
-before), operating margin 1.4%; last four quarters $103.6B revenue and $1.08
+revenue ₹28.24B, +25.5% against a year earlier, net income ₹1.11B (-4.9%),
+diluted EPS ₹0.32 (-3.0%); gross margin 16.8% (-4.3 points on the quarter
+before), operating margin 1.4%; last four quarters ₹103.6B revenue and ₹1.08
 EPS. The tool flags that net income is above operating income, so gains
 outside the business are inside it. Latest 10-Q filed 2026-07-23. Monday's
 headlines said Reliance reports this week, so the summary ends: "The next report
 is days away. A day trade that closes before the bell is not exposed to it;
 anything held overnight is."
 
-`facts.py AAPL` (2026-10-13): revenue $109.42B, +16.4% against a year
-earlier, diluted EPS $2.02 (+28.7%). For Coca-Cola the tool noted that SEC's
+`facts.py AAPL` (2026-10-13): revenue ₹109.42B, +16.4% against a year
+earlier, diluted EPS ₹2.02 (+28.7%). For Coca-Cola the tool noted that SEC's
 facts stopped at 2026-04-03 while the 10-Q for 2026-07-03 was already filed,
 so the summary read that 10-Q directly.
 

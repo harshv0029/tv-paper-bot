@@ -1407,3 +1407,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - What broke: `is_wired()` had quietly picked up a 30-day hold condition and `_is_strategy_wired()` a replay-owed block, so long-hold PFnet >= 1 cells were never monitored and produced no trigger evidence.
 - Reuse: never add an entry-side filter to the wiring function; put it in `_is_strategy_viable_for_real_money`.
 - Profit-booking / exit takeaway: monitoring more PFnet >= 1 cells costs nothing in real money and gives trigger counts that show which cells deserve an entry slot.
+
+## Day-trader skill pack, India port (2026-10-23 IST, B-1345)
+- Mechanism: 11 chat-side helpers (scan, news, entry/exit timing, sizing, risk check, Monte-Carlo replay, order ticket). Ported to NSE/IST/₹ and Kotak draft tickets; long AND short (MIS).
+- Fit: research and manual-check aid only. Its ORB entry (close above/below the 15-min range) is not a registered strategy and has no PFnet here, so it must never drive real money; any idea from it goes through the normal full-universe replay first.
+- Reuse: the exit planner's "mirror prices around the entry" trick makes a short plan from long maths with correct rounding; Kotak cash has no OCO bracket, so SL-M and target are separate legs.
+- Profit-booking / exit takeaway: the pack's default flat-by was moved to 15:10 IST because the exchange cancels resting orders at 15:15 and the bot squares off at 15:14.

@@ -6,10 +6,10 @@ description: >-
   the whole shares that fit inside four limits (max loss per trade, position
   cap, max order, cash after your buffer), says which limit decided it, and
   writes ONE bracket order (entry, stop-loss, take-profit) to
-  trader/orders.json in the exact shape of Alpaca's place_stock_order. A stop
+  trader/orders.json in a broker-neutral shape that trader-broker turns into Kotak Neo legs. A stop
   too far away for your max loss is a plain refusal, not a smaller order.
   Nothing is placed. Use when the user says "how many shares", "size this
-  trade", "how much should I buy", "I have $5,000", "I only want to risk $50
+  trade", "how much should I buy", "I have Rs 50,000", "I only want to risk ₹50
   a trade", "set my rules", "keep 10% in cash", or after /trader-exit writes
   a plan.
 argument-hint: "[budget in dollars]"
@@ -20,8 +20,9 @@ argument-hint: "[budget in dollars]"
 > **India / Kotak adaptation (tv-paper-bot, 2026-10-23).** Adapted for NSE/Kotak from Jakeschincariol/day-trader-skill (MIT, see `../TRADER_SKILLS_LICENSE`).
 > Times are IST (UTC+5:30, no DST); session 09:15-15:30 IST (MCX 09:00-23:30); NSE holidays mirror `main.NSE_HOLIDAYS_2026`; amounts are ₹.
 > Use Yahoo `.NS` symbols (RELIANCE.NS, TCS.NS; indices ^NSEI, ^NSEBANK). Cost model: ~0.8% round trip (brokerage 0.20%/side + STT, exchange, SEBI, stamp, GST).
+> Worked examples below are upstream US runs re-labelled, kept to show the output shape: their numbers are not Indian prices.
 > House rules: no trade without SL/SL-M; check long AND short; this skill never places an order - the live bot (`main.py` / `kotak_real_orders.py`) is the only real-order path.
-> Not yet ported (backlog B-1345): short side where the original is long-only; 2027 NSE holidays.
+> Ported (B-1345): ₹ amounts (the `*_usd` config keys are read as rupees), flat-by 15:10 IST, and short sizing (`side: sell`: stop above, target below, risk = stop - entry). Cash limit uses full notional even for MIS (conservative; Kotak MIS margin is lower). Add ~0.8% round-trip costs to your max-loss thinking. 2027 NSE holidays are not loaded yet (2027 dates report calendar-unknown).
 
 The Budget Manager turns a plan ("buy RELIANCE.NS at 364.18, stop 358.32") into an
 exact order ("buy 8 shares"), inside rules the user sets once. The stop
@@ -62,10 +63,10 @@ If `trader/config.json` does not exist, copy `config.example.json` into
 - **cash_buffer_pct**: how much always stays in cash (default 10).
 - **max_loss_per_trade_usd**: the most one trade may lose if the stop fills at the stop (default 50).
 - **max_position_pct**, **max_order_usd**, **min_order_usd**: the biggest position (75% of the
-  budget), the biggest order ($4,000) and the smallest order ($5).
+  budget), the biggest order (₹4,000) and the smallest order (₹5).
 - The day limits trader-risk enforces: **max_daily_loss_usd** (150), **max_trades_per_day** (3),
   **min_reward_risk** (1.0), **require_stop** (true), **no_entries_before** / **no_entries_after**
-  ("09:45" / "15:30") and **flat_by** ("15:55"), all India (IST) time.
+  ("09:45" / "15:30") and **flat_by** ("15:10"), all India (IST) time.
 - **blocked**: tickers they never want to trade.
 - Keep **paper** true until they have watched it work on a paper account.
 
@@ -107,28 +108,28 @@ promise: in a fast market it can fill below the stop. Then hand over to
 
 RELIANCE.NS on Monday 2026-10-19. Opening-range breakout: entry 364.18 at 10:15 AM,
 stop 358.32 (the opening-range midpoint), target 370.04 (1R). Risk 5.86 a
-share. The example config: $5,000 budget, 10% cash buffer, $50 max loss.
+share. The example config: ₹5,000 budget, 10% cash buffer, ₹50 max loss.
 
 | limit | the math | shares |
 | --- | --- | --- |
-| max loss | $50 / 5.86 | **8 (decides it)** |
-| position cap | 75% of $5,000 = $3,750 / 364.18 | 10 |
-| max order | $4,000 / 364.18 | 10 |
-| cash | $5,000 minus $500 = $4,500 / 364.18 | 12 |
+| max loss | ₹50 / 5.86 | **8 (decides it)** |
+| position cap | 75% of ₹5,000 = ₹3,750 / 364.18 | 10 |
+| max order | ₹4,000 / 364.18 | 10 |
+| cash | ₹5,000 minus ₹500 = ₹4,500 / 364.18 | 12 |
 
-8 shares = $2,913.44. Max loss at the stop: 8 x 5.86 = $46.88. It writes:
+8 shares = ₹2,913.44. Max loss at the stop: 8 x 5.86 = ₹46.88. It writes:
 
 ```json
 {"symbol": "RELIANCE.NS", "side": "buy", "qty": "8", "type": "market", "time_in_force": "day",
  "order_class": "bracket", "take_profit_limit_price": "370.04", "stop_loss_stop_price": "358.32",
- "why": "opening-range breakout on RELIANCE.NS: 8 shares, bound by your $50 max loss per trade (8 x 5.86 = $46.88 at the stop)",
+ "why": "opening-range breakout on RELIANCE.NS: 8 shares, bound by your ₹50 max loss per trade (8 x 5.86 = ₹46.88 at the stop)",
  "plan": {"entry": 364.18, "stop": 358.32, "target": 370.04, "risk_per_share": 5.86, "max_loss": 46.88,
-          "setup": "orb", "entry_time": "10:15 AM", "flat_by": "15:55"}}
+          "setup": "orb", "entry_time": "10:15 AM", "flat_by": "15:10"}}
 ```
 
 `why` and `plan` are notes for trader-risk and trader-broker. They are never
 sent to Alpaca. With the stop at 300.00 instead, one share would risk 64.18,
-more than the $50 max loss: no order. At 10:52 the real quote was 366.48, so
+more than the ₹50 max loss: no order. At 10:52 the real quote was 366.48, so
 the same plan sizes to 6 shares at 8.16 a share, and reward:risk falls to
 0.44: refused, because the move it was waiting for has mostly happened.
 
@@ -140,7 +141,7 @@ top, weights are renormalised to 100, any stock over `max_position_pct` is
 pinned at the cap and its excess shared out, slices under the minimum order
 are dropped, and amounts round to whole dollars so nothing is left idle by
 accident. With `"max_position_pct": 25` and `"fractional": true`, the example
-file gives AAPL $1,250 (capped), AXP $1,119, GOOGL $823, KO $708, BAC $600.
+file gives AAPL ₹1,250 (capped), AXP ₹1,119, GOOGL ₹823, KO ₹708, BAC ₹600.
 With `"fractional": false` (the example config) it buys whole shares and
 needs prices (`--prices trader/prices.json`). These are plain buys with no stop: trader-risk blocks them while
 `require_stop` is true and counts each one against `max_trades_per_day`. Use

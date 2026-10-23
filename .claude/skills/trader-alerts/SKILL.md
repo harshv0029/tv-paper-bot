@@ -10,7 +10,7 @@ description: >-
   York time itself, fetches free delayed quotes (Yahoo chart JSON, Stooq
   CSV) one ticker at a time, and writes trader/prices.json for sizing and the
   risk check. Use when the user says "alert me when", "tell me if RELIANCE.NS hits",
-  "watch my stop", "watch my trade", "remind me to close by 3:55", "is the
+  "watch my stop", "watch my trade", "remind me to close by 3:10", "is the
   market open", "when does the market open", "get me a price", or right
   after /trader-exit writes a plan.
 argument-hint: "[ticker] [price]"
@@ -21,8 +21,9 @@ argument-hint: "[ticker] [price]"
 > **India / Kotak adaptation (tv-paper-bot, 2026-10-23).** Adapted for NSE/Kotak from Jakeschincariol/day-trader-skill (MIT, see `../TRADER_SKILLS_LICENSE`).
 > Times are IST (UTC+5:30, no DST); session 09:15-15:30 IST (MCX 09:00-23:30); NSE holidays mirror `main.NSE_HOLIDAYS_2026`; amounts are ₹.
 > Use Yahoo `.NS` symbols (RELIANCE.NS, TCS.NS; indices ^NSEI, ^NSEBANK). Cost model: ~0.8% round trip (brokerage 0.20%/side + STT, exchange, SEBI, stamp, GST).
+> Worked examples below are upstream US runs re-labelled, kept to show the output shape: their numbers are not Indian prices.
 > House rules: no trade without SL/SL-M; check long AND short; this skill never places an order - the live bot (`main.py` / `kotak_real_orders.py`) is the only real-order path.
-> Not yet ported (backlog B-1345): short side where the original is long-only; 2027 NSE holidays.
+> Ported (B-1345): IST clock, NSE open 09:15 / close 15:30, NSE 2026 holidays, no early closes, default flat-by alert 15:10 IST, ₹ quotes for `.NS` symbols. 2027 NSE holidays are not loaded yet (2027 dates report calendar-unknown).
 
 Price Alerts watches the numbers so the user does not have to stare at a
 chart. An alert is information, never an order: when a stop alert rings,
@@ -38,16 +39,16 @@ python3 "${CLAUDE_SKILL_DIR}/alerts.py" add --from-plan                # stop, t
 python3 "${CLAUDE_SKILL_DIR}/alerts.py" add --opening-bell
 python3 "${CLAUDE_SKILL_DIR}/alerts.py" add --symbol RELIANCE.NS --stop 358.32
 python3 "${CLAUDE_SKILL_DIR}/alerts.py" add --symbol RELIANCE.NS --target 370.04
-python3 "${CLAUDE_SKILL_DIR}/alerts.py" add --at 15:55 --label "flat by close" --before-close
+python3 "${CLAUDE_SKILL_DIR}/alerts.py" add --at 15:10 --label "flat by close" --before-close
 python3 "${CLAUDE_SKILL_DIR}/alerts.py" add --symbol KO --pct 3
 python3 "${CLAUDE_SKILL_DIR}/alerts.py" check                          # exit 0 = something rang
 python3 "${CLAUDE_SKILL_DIR}/alerts.py" quote RELIANCE.NS --write             # -> trader/prices.json
 python3 "${CLAUDE_SKILL_DIR}/alerts.py" quote --holdings --write       # portfolio + plan tickers
 python3 "${CLAUDE_SKILL_DIR}/alerts.py" list
-python3 "${CLAUDE_SKILL_DIR}/alerts.py" reset tsla-plan-stop
+python3 "${CLAUDE_SKILL_DIR}/alerts.py" reset reliance-plan-stop
 ```
 
-`--now "2026-10-19 15:55"` pins the clock (India (IST) time); `--offline DIR`
+`--now "2026-10-19 15:10"` pins the clock (India (IST) time); `--offline DIR`
 reads saved quote files instead of the network.
 
 ## What it reads and writes
@@ -67,13 +68,13 @@ reads saved quote files instead of the network.
 | `above` / `target` | price at or above `price` | after `reset`, or on its own if `"rearm": true` and the price fell back |
 | `below` / `stop` | price at or below `price` | same |
 | `pct_move` | moved `pct` percent from the previous close (or `ref`), optional `direction` up or down | once per day at most |
-| `time` | the India (IST) clock passed `at` ("15:55") on a trading day | once per trading day |
+| `time` | the India (IST) clock passed `at` ("15:10") on a trading day | once per trading day |
 | `opening_bell` | the NSE is open | once per trading day |
 
 A rule with `"date"` is watched on that India (IST) date only; `--from-plan`
 rules carry the plan's date, so yesterday's stop never rings today. A `time`
 rule with `"before_close": true` moves 3 hours earlier on a 1:00 p.m. early
-close, so "flat by close" at 15:55 rings at 12:55 on those days.
+close, so "flat by close" at 15:10 rings at 12:55 on those days.
 
 ## Quotes
 
@@ -124,19 +125,19 @@ holiday list is unknown.
 ## Example: the reel
 
 RELIANCE.NS on Monday 2026-10-19: entry 364.18 at 10:15 AM, stop 358.32, target
-370.04, flat by 15:55. `add --from-plan` writes `tsla-plan-stop`,
-`tsla-plan-target` and `tsla-flat-by` for that day. A `check` at 10:53 reads
+370.04, flat by 15:10. `add --from-plan` writes `reliance-plan-stop`,
+`reliance-plan-target` and `reliance-flat-by` for that day. A `check` at 10:53 reads
 the real 10:52 quote, 366.48, between the stop and the target:
 
 ```
 NSE OPEN (2026-10-19 10:53 India (IST), regular session).
-Nothing hit. 3 rule(s) watched today, RELIANCE.NS $366.48.
+Nothing hit. 3 rule(s) watched today, RELIANCE.NS ₹366.48.
 ```
 
-At 3:55 PM:
+At 3:10 PM:
 
 ```
-ALERT Flat by close: it is 15:55 India (IST) (set for 15:55), the market closes at 16:00. If RELIANCE.NS is still
+ALERT Flat by close: it is 15:10 India (IST) (set for 15:10), the market closes at 16:00. If RELIANCE.NS is still
 open, close it: trader-broker flatten --symbol RELIANCE.NS builds the sell ticket, then trader-risk and your yes.
 ```
 
