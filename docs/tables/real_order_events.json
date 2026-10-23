@@ -4727,7 +4727,19 @@
    "prev_state": "none (retry)",
    "new_state": "resting SELL trigger Rs120.91",
    "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs120.91"
+  },
+  {
+   "id": 395,
+   "ts": 1792765903.0176795,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261023000730430",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs164.80",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs164.80"
   }
  ],
- "synced_at_utc": "2026-10-23T14:31:19Z"
+ "synced_at_utc": "2026-10-23T14:31:46Z"
 }
