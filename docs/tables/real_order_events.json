@@ -4631,7 +4631,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000713540 rejected: 16387 : Security is not allowed to trade in this market  "
+  },
+  {
+   "id": 387,
+   "ts": 1792762299.1575284,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000713609 rejected: 16387 : Security is not allowed to trade in this market  "
   }
  ],
- "synced_at_utc": "2026-10-23T13:31:31Z"
+ "synced_at_utc": "2026-10-23T13:31:42Z"
 }
