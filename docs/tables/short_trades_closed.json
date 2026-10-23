@@ -1,17 +1,4 @@
 {
-  "rows": [
-    {
-      "id": 1,
-      "ts": 1792741600.6512086,
-      "symbol": "YESBANK.NS",
-      "qty": 20.0,
-      "entry_price": 16.22,
-      "exit_price": 15.67,
-      "fx_to_inr": 1.0,
-      "pnl_inr": 10.999999999999979,
-      "exit_reason": "target_hit",
-      "strategy": "range_short"
-    }
-  ],
-  "synced_at_utc": "2026-10-23T07:47:00Z"
+  "rows": [],
+  "synced_at_utc": "2026-10-21T03:50:33Z"
 }
