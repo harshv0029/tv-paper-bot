@@ -1436,3 +1436,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Why it matters:** a 2.7-minute round trip on a 5m-bar strategy cannot clear costs. A +0.03% move against a 0.8% cost hurdle is a guaranteed net loss. Also, the exit reached Kotak with no app reason row (B-1350), so we cannot tell whether the strategy's own exit fired inside its first bar.
 - **Reuse next time:** for small CNC tickets (Rs900), fixed costs dominate. Any exit path that can fire within the first bar of a 5m strategy should be checked against the cost hurdle in the backtest's exit-reason breakdown.
 - **Profit-booking / exit takeaway:** never book a "profit" smaller than the round-trip cost. An exit within minutes at roughly entry price is a cost loss. Treat it as a defect to root-cause (B-1350), not as a scratch trade.
+
+### 2026-10-23: NATIONALUM exit during a frozen process (B-1350)
+- What happened: the SL cancel + SELL went out at 09:22:27 IST while the Render process had been silent for 5 min (CPU starved), 8 s before Render restarted it. The reason row was written but lived only in local SQLite and was wiped.
+- Lesson: a reason that is not durable within seconds is not a reason on record. Order reasons now push to git on every event (B-1355).
+- Profit-booking / exit takeaway: an exit decided by a starved process may act on stale prices; keep the CPU fix (B-1348) and treat any exit while the app log is silent as suspect when auditing P&L.
