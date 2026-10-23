@@ -4619,7 +4619,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000713475 rejected: 16387 : Security is not allowed to trade in this market  "
+  },
+  {
+   "id": 386,
+   "ts": 1792762288.8733175,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000713540 rejected: 16387 : Security is not allowed to trade in this market  "
   }
  ],
- "synced_at_utc": "2026-10-23T13:31:21Z"
+ "synced_at_utc": "2026-10-23T13:31:31Z"
 }
