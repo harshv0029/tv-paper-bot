@@ -86,3 +86,16 @@ def test_push_loop_is_independent_of_scheduler_tick(monkeypatch):
 def test_health_shows_order_log_push_age(monkeypatch):
     monkeypatch.setattr(main, "_git_tier_push_last_ok", {"real_order_events": main.time.time() - 30})
     assert 29 <= main.health()["order_log_git_push_age_s"] <= 31
+
+
+def test_order_event_wakes_git_push_immediately(monkeypatch, tmp_path):
+    """B-1355: logging an order event wakes the git push thread at once (not after up to 60 s)."""
+    monkeypatch.setattr(main, "DB_PATH", str(tmp_path / "w.db"))
+    main.init_db()
+    monkeypatch.setattr(main, "sync_generic_tables_external", lambda **k: None)
+    main._git_tier_push_wake.clear()
+    with main.closing(main.get_db()) as c:
+        main._log_real_order_event(c, "X.NS", "exit", "intent", reason="test")
+    assert main._git_tier_push_wake.is_set()
+    main._git_tier_push_wait(0)
+    assert not main._git_tier_push_wake.is_set()

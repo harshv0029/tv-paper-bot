@@ -13922,6 +13922,9 @@ def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, o
         sync_generic_tables_external(only=("real_order_events",))
     except Exception as e:
         print(f"[order_log] immediate mirror failed (tick sync will retry): {e}")
+    # B-1355: the order log is git-tier, so the Upstash call above does not carry it. Wake the git push thread now:
+    # NATIONALUM 23-Oct sold at 09:22:27 IST, Render restarted at 09:22:35, and the last git push was 09:21:26.
+    _git_tier_push_wake.set()
 
 
 _DEFAULT_ORDER_REASONS = {
@@ -25860,8 +25863,14 @@ async def _start_scheduler():
     reconcile_scheduler_check_counts_from_journal()
     asyncio.create_task(_scheduler_loop())
     asyncio.create_task(_tracked_union_memory_loop())
-    threading.Thread(target=_git_tier_push_loop, name="git-tier-push", daemon=True).start()  # B-1349
-    threading.Thread(target=_unprotected_backcheck_loop, name="unprotected-backcheck", daemon=True).start()  # B-1354
+    asyncio.create_task(_loop_heartbeat())  # B-1356
+    global _BACKGROUND_THREADS_STARTED
+    if not _BACKGROUND_THREADS_STARTED:  # once per process: a test's repeated startups must not stack copies
+        _BACKGROUND_THREADS_STARTED = True
+        threading.Thread(target=_git_tier_push_loop, name="git-tier-push", daemon=True).start()  # B-1349
+        threading.Thread(target=_unprotected_backcheck_loop, name="unprotected-backcheck", daemon=True).start()  # B-1354
+        if not os.environ.get("PYTEST_CURRENT_TEST"):  # the heartbeat stops with each test app, so it would alarm
+            threading.Thread(target=_watchdog_loop, name="watchdog", daemon=True).start()  # B-1356
     asyncio.create_task(_sl_snapshot_loop())
     # Kotak Neo live tick feed (2026-09-04) - display data only, isolated
     # in its own task so a failure here (missing/misconfigured creds, a
@@ -27895,7 +27904,10 @@ def _current_rss_mb() -> float | None:
 @app.get("/health")
 def health():
     return {"status": "alive", "time": time.time(), **_rss_headroom(),
-            **_memory_pressure_check(trim=False), **_git_tier_push_status()}
+            **_memory_pressure_check(trim=False), **_git_tier_push_status(),
+            "loop_lag_s": round(time.time() - _loop_heartbeat_ts, 1), "watchdog_alarms": _WATCHDOG_STATE["alarms"],
+            "upstash_ok": _UPSTASH_PROBE["ok"], "upstash_error": _UPSTASH_PROBE["error"],
+            "upstash_checked_at": _UPSTASH_PROBE["checked_at"], "upstash_last_ok_at": _UPSTASH_PROBE["last_ok_at"]}
 
 
 @app.get("/watchlist")
@@ -28599,6 +28611,102 @@ def _git_tier_push_side_branch(name: str) -> bool:
         return False
 
 
+_WATCHDOG_EVERY_SECONDS = 5
+_WATCHDOG_LOOP_LAG_WARN_SECONDS = 15
+_loop_heartbeat_ts = time.time()
+_BACKGROUND_THREADS_STARTED = False
+_WATCHDOG_STATE: dict = {"alarms": 0, "last_alarm": None}
+
+
+async def _loop_heartbeat():
+    """B-1356: proves the event loop is alive; the watchdog thread measures how stale this stamp gets."""
+    global _loop_heartbeat_ts
+    while True:
+        _loop_heartbeat_ts = time.time()
+        await asyncio.sleep(1)
+
+
+def _busy_thread_stacks(limit=4) -> list:
+    """Top app frames of every thread, so a freeze or memory spike names the code that was running."""
+    import sys
+    import traceback
+    out = []
+    names = {t.ident: t.name for t in threading.enumerate()}
+    for ident, fr in sys._current_frames().items():
+        if ident == threading.get_ident():
+            continue
+        app = [f"{f.name}:{f.lineno}" for f in traceback.extract_stack(fr)
+               if f.filename.endswith(("main.py", "kotak_neo.py", "kotak_real_orders.py", "strategy_registry.py"))]
+        if app:
+            out.append(f"{names.get(ident, ident)}: " + " > ".join(app[-limit:]))
+    return out
+
+
+def _watchdog_check(now=None, rss_mb=None) -> dict | None:
+    """B-1356 (2026-10-23): Render killed the bot twice (09:22, 13:19 IST) after minutes of log silence, with no
+    Python error, so the cause was invisible. From its own thread (alive while the event loop is frozen): if the loop
+    heartbeat is >= 15 s stale or memory is at the warn level, print the loop lag, RSS and every thread's app stack,
+    and trim the re-fetchable data cache. The next kill then explains itself in the Render log. Never raises."""
+    now = time.time() if now is None else now
+    lag = round(now - _loop_heartbeat_ts, 1)
+    if rss_mb is None:
+        rss_mb = _current_rss_mb() or _process_rss_mb()
+    pct = round(rss_mb / RSS_LIMIT_MB * 100, 1) if rss_mb else None
+    if lag < _WATCHDOG_LOOP_LAG_WARN_SECONDS and (pct is None or pct < RSS_WARN_PCT):
+        return None
+    info = {"ts": now, "loop_lag_s": lag, "rss_mb": rss_mb, "rss_pct": pct, "threads": _busy_thread_stacks()}
+    _WATCHDOG_STATE["alarms"] += 1
+    _WATCHDOG_STATE["last_alarm"] = info
+    print(f"[watchdog] ALARM loop_lag_s={lag} rss_mb={rss_mb} ({pct}%) threads={info['threads']}")
+    if pct is not None and pct >= RSS_WARN_PCT:
+        _memory_pressure_check(now_mb=rss_mb, trim=True)
+    return info
+
+
+_UPSTASH_PROBE_EVERY_SECONDS = 300
+_UPSTASH_PROBE = {"ok": None, "checked_at": None, "last_ok_at": None, "error": None}
+
+
+def _upstash_probe(now=None) -> dict:
+    """B-1357 (2026-10-23): the Upstash mirror writes never read the HTTP status, so a suspended DB (403) failed
+    silently and the dashboard showed nothing wrong. One PING every 5 min (~290 commands/day) records whether
+    Upstash answers; /health and trade-view4 show it red when it does not. Never raises."""
+    now = time.time() if now is None else now
+    _UPSTASH_PROBE["checked_at"] = now
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        _UPSTASH_PROBE.update(ok=False, error="not configured")
+        return _UPSTASH_PROBE
+    try:
+        r = requests.get(f"{UPSTASH_REDIS_REST_URL}/ping",
+                         headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"}, timeout=5)
+        _upstash_meter("ping", len(r.content or b""), "get")
+        ok = r.status_code == 200
+        _UPSTASH_PROBE.update(ok=ok, error=None if ok else f"HTTP {r.status_code}: {str(r.text)[:160]}")
+    except Exception as e:  # noqa: BLE001
+        _UPSTASH_PROBE.update(ok=False, error=f"{type(e).__name__}: {str(e)[:160]}")
+    if _UPSTASH_PROBE["ok"]:
+        _UPSTASH_PROBE["last_ok_at"] = now
+    else:
+        print(f"[upstash-probe] FAIL {_UPSTASH_PROBE['error']}")
+    return _UPSTASH_PROBE
+
+
+def _watchdog_loop(sleep=time.sleep, rounds=None):
+    n = 0
+    while rounds is None or n < rounds:
+        try:
+            _watchdog_check()
+        except Exception as e:  # noqa: BLE001
+            print(f"[watchdog] check failed (non-fatal): {e}")
+        try:
+            if time.time() - (_UPSTASH_PROBE["checked_at"] or 0) >= _UPSTASH_PROBE_EVERY_SECONDS:
+                _upstash_probe()
+        except Exception as e:  # noqa: BLE001
+            print(f"[upstash-probe] failed (non-fatal): {e}")
+        n += 1
+        sleep(_WATCHDOG_EVERY_SECONDS)
+
+
 _UNPROTECTED_BACKCHECK_EVERY_SECONDS = 300
 _unprotected_backcheck_lock = threading.Lock()
 
@@ -28632,9 +28740,15 @@ def _unprotected_backcheck_loop(sleep=time.sleep, rounds=None):
 
 _GIT_TIER_PUSH_EVERY_SECONDS = 60
 _git_tier_push_last_ok: dict = {}
+_git_tier_push_wake = threading.Event()  # B-1355: set by _log_real_order_event for an immediate push
 
 
-def _git_tier_push_loop(sleep=time.sleep, rounds=None):
+def _git_tier_push_wait(seconds):
+    _git_tier_push_wake.wait(seconds)
+    _git_tier_push_wake.clear()
+
+
+def _git_tier_push_loop(sleep=_git_tier_push_wait, rounds=None):
     """B-1349 (2026-10-23): the order-log push used to ride the scheduler tick, after an awaited Kotak reconcile with no
     timeout, so a slow tick or a hung reconcile stopped it (last push 09:27 IST while orders kept coming). It now has
     its own daemon thread on a wall clock: every 60 s, push only if the table changed. Never raises."""
