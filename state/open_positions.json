@@ -1,24 +1,4 @@
 {
-  "synced_at_utc": "2026-10-22T14:00:37Z",
-  "open_positions": [
-    {
-      "symbol": "PHOENIXLTD.NS",
-      "qty": 1.0,
-      "entry_price_native": 1865.300048828125,
-      "stop_loss_native": 1857.7143293108259,
-      "initial_stop_loss_native": 1857.7143293108259,
-      "target_native": 1880.47,
-      "fx_to_inr": 1.0,
-      "notional_inr": 1865.3,
-      "orb_high_native": null,
-      "orb_low_native": 1858.0,
-      "entry_ts": 1792570880.6671665,
-      "interval": "5m",
-      "strategy": "orb-universal-score",
-      "sma_fast": 9,
-      "sma_slow": 21,
-      "entry_regime": "range",
-      "real_entry_reason": "no real-entry attempt logged for this symbol today"
-    }
-  ]
+  "synced_at_utc": "2026-10-23T08:20:22Z",
+  "open_positions": []
 }
