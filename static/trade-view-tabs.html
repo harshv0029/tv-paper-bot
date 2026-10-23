@@ -16,6 +16,13 @@
   #tabs button{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;
                padding:7px 16px;font:600 13px 'Inter',sans-serif;cursor:pointer;}
   #tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  /* B-1358: system health pill on the shell, so EVERY view shows Render/Upstash/freeze/memory problems in red */
+  #sys{margin-left:auto;min-width:0;max-width:60%;display:flex;align-items:center;gap:6px;font:600 12px 'Inter',sans-serif;
+       color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--border);border-radius:8px;padding:6px 10px;}
+  #sys span{overflow:hidden;text-overflow:ellipsis;}
+  #sys i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--muted);}
+  #sys.ok{color:#22c55e;} #sys.ok i{background:#22c55e;}
+  #sys.bad{color:#fff;background:#b91c1c;border-color:#ef4444;} #sys.bad i{background:#fff;}
   #views{position:fixed;top:48px;left:0;right:0;bottom:0;}
   #views iframe{display:none;width:100%;height:100%;border:0;background:var(--bg);}
   #views iframe.on{display:block;}
@@ -27,6 +34,7 @@
   <button data-v="v2">View 2</button>
   <button data-v="v3">View 3</button>
   <button data-v="v4">View 4 · Live</button>
+  <div id="sys" title="System health"><i></i><span id="sysTxt">checking…</span></div>
 </nav>
 <div id="views">
   <iframe id="v1" title="View 1" data-src="/trade-view1"></iframe>
@@ -49,6 +57,34 @@
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => show(b.dataset.v));
   window.addEventListener("hashchange", () => show(location.hash.slice(1)));
   show(location.hash.slice(1) || "v1");
+
+  // B-1358: poll /health every 5 s; red with the cause when Render, Upstash, the event loop, memory or the order-log push fails.
+  let downSince = null;
+  const ist = ms => new Date(ms).toLocaleTimeString("en-IN", {timeZone: "Asia/Kolkata", hour12: false});
+  function paint(probs, okTxt) {
+    const el = document.getElementById("sys");
+    el.className = probs.length ? "bad" : "ok";
+    const t = probs.length ? "PROBLEM: " + probs.join(" · ") : okTxt;
+    document.getElementById("sysTxt").textContent = t; el.title = t;
+  }
+  async function pollHealth() {
+    let h;
+    try {
+      const r = await fetch("/health", {cache: "no-store"});
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      h = await r.json(); downSince = null;
+    } catch (e) {
+      downSince = downSince || Date.now();
+      return paint([`Render unreachable since ${ist(downSince)} IST (${e.message || "no answer"}) - views show frozen data`]);
+    }
+    const probs = [];
+    if (h.upstash_ok === false) probs.push(`Upstash down: ${h.upstash_error || "error"}`);
+    if (h.loop_lag_s >= 15) probs.push(`bot frozen ${Math.round(h.loop_lag_s)}s`);
+    if (h.rss_pct >= 75) probs.push(`memory ${h.rss_pct}%`);
+    if (h.order_log_git_push_age_s > 600) probs.push(`order log not in git for ${Math.round(h.order_log_git_push_age_s / 60)}m`);
+    paint(probs, `System OK · Render up · Upstash ${h.upstash_ok == null ? "not checked yet" : "ok"} · mem ${h.rss_pct ?? "-"}%`);
+  }
+  pollHealth(); setInterval(pollHealth, 5000);
 </script>
 </body>
 </html>
