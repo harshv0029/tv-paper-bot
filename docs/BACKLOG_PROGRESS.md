@@ -15,13 +15,13 @@ Total rows: 1103 | closed: 495 | not closed: 608
 | CLOSED | 79 |
 | DONE-PENDING-VERIFY | 79 |
 | BLOCKED | 63 |
-| OPEN | 54 |
+| OPEN | 53 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
 | PENDING | 12 |
 | BUILT-DISPATCH-OWED | 12 |
-| BUILT-ON-BRANCH | 6 |
+| BUILT-ON-BRANCH | 7 |
 | OPEN-PARKED | 6 |
 | BUILT | 6 |
 | USER | 5 |
@@ -92,7 +92,7 @@ Total rows: 1103 | closed: 495 | not closed: 608
 | B-1346 | P0 | OPEN | 2026-10-23 11:35 IST | owner |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (366)
+## waiting-on-workflow/deploy (367)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -266,6 +266,7 @@ Total rows: 1103 | closed: 495 | not closed: 608
 | B-817 | P1 | DONE-PENDING-VERIFY | Trade-view Remarks for Kotak order-book exit fills (DABUR 2026-10-12 IST showed only "exit fill from Kotak ... | owed, remaining, pending, verify, follow-up |
 | B-830 | P1 | DONE-PENDING-VERIFY | O'Neil extension run 38207070547 (2026-10-12 IST, cost 0.8%, ~2166 symbols): 564 cells (1d 282, 1w 282; eac... | pending |
 | B-867 | P1 | BUILT-ON-BRANCH | 2026-10-12 | owed, pending |
+| B-1350 | P1 | BUILT-ON-BRANCH | 2026-10-23 12:30 IST | owed, open:, needs, owner |
 | B-289 | P2 | BUILT-ON-BRANCH |  | owed, not merged, follow-up |
 | B-312 | P2 | DONE-PENDING-VERIFY | GMRAIRPORT duplicate SL attempt 2026-10-08 (Kotak SL snapshot, 9:18 AM IST): reconcile placed SL 2610080000... | owed, pending, verify |
 | B-313 | P2 | DONE-PENDING-VERIFY | Overnight phantom SHORT emergency-cover loop (journal real_order_log, 08-Oct 1:00-1:43 AM IST, market close... | owed, pending, verify |
@@ -463,7 +464,7 @@ Total rows: 1103 | closed: 495 | not closed: 608
 | B-1297 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: trade-view pages hang the laptop browser | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | pending, verify |
 
-## ready-to-build (111)
+## ready-to-build (110)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -513,7 +514,6 @@ Total rows: 1103 | closed: 495 | not closed: 608
 | B-1337 | P1 | KOTAK | 2026-10-22 09:35 IST | blocked, follow-up, awaiting, waiting |
 | B-1338 | P1 | WIPRO-EQ | 2026-10-22 09:35 IST | pending, verify, awaiting, waiting |
 | B-1344 | P1 | USER | 2026-10-23 04:10 IST | owed, needs |
-| B-1350 | P1 | OPEN | 2026-10-23 12:30 IST | owed, needs, owner |
 | B-1351 | P1 | OPEN | 2026-10-23 12:30 IST |  |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |

@@ -14976,6 +14976,14 @@ def _maybe_place_real_partial_exit(conn, symbol: str, staged_exit: dict):
     # resting (so it could not have filled), and only THEN is it safe to
     # sell leg_qty at market ourselves.
     already_filled_at_kotak = False
+    # B-1350: write the reason BEFORE any Kotak cancel/sell, so a crash or a lost
+    # post-call log can never leave a Kotak order with no app reason row.
+    _log_real_order_event(
+        conn, symbol, f"staged_{leg_name}", "intent", kotak_trading_symbol=row["kotak_trading_symbol"],
+        prev_state=f"long {row['qty']} @ Rs{row['entry_price']:.2f}",
+        new_state=f"cancel resting target/SL, then SELL {leg_qty} for staged leg {leg_name}",
+        reason=f"staged profit-booking leg {leg_name} reached",
+    )
     if row["target_order_id"]:
         cancel_result = kotak_real_orders.cancel_real_order(row["target_order_id"])
         if not cancel_result.get("ok"):
@@ -16023,6 +16031,14 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         return
 
     import kotak_real_orders
+    # B-1350: reason row BEFORE the Kotak cancel/replace (see _maybe_place_real_partial_exit).
+    _log_real_order_event(
+        conn, symbol, "sl", "move_intent", kotak_trading_symbol=real_row["kotak_trading_symbol"],
+        order_id=real_row["sl_order_id"],
+        prev_state=f"Rs{current_sl_price:.2f}" if current_sl_price is not None else "none",
+        new_state=f"cancel resting SL, then place SL at Rs{new_stop:.2f}",
+        reason="trailing stop-loss tightened",
+    )
     if real_row["sl_order_id"]:
         cancel_result = kotak_real_orders.cancel_real_order(real_row["sl_order_id"])
         if not cancel_result.get("ok"):
