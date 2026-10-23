@@ -32,6 +32,25 @@ def test_probe_never_raises_on_network_error(monkeypatch):
     assert p["ok"] is False and "timeout" in p["error"]
 
 
+def test_probe_retries_one_timeout(monkeypatch):
+    """B-1360: a single ReadTimeout (live 17:55 IST, during the boot restore) must not paint Upstash red."""
+    monkeypatch.setattr(main, "UPSTASH_REDIS_REST_URL", "https://x")
+    monkeypatch.setattr(main, "UPSTASH_REDIS_REST_TOKEN", "t")
+    ok = MagicMock(status_code=200, content=b"PONG", text="PONG")
+    with patch.object(main.requests, "get", side_effect=[OSError("ReadTimeout"), ok]) as g:
+        p = main._upstash_probe(now=400.0)
+    assert p["ok"] is True and g.call_count == 2
+
+
+def test_probe_does_not_retry_http_error(monkeypatch):
+    monkeypatch.setattr(main, "UPSTASH_REDIS_REST_URL", "https://x")
+    monkeypatch.setattr(main, "UPSTASH_REDIS_REST_TOKEN", "t")
+    r = MagicMock(status_code=403, content=b"x", text="suspended")
+    with patch.object(main.requests, "get", return_value=r) as g:
+        main._upstash_probe(now=500.0)
+    assert g.call_count == 1
+
+
 def test_health_exposes_upstash_status():
     h = asyncio.run(main.health())
     for k in ("upstash_ok", "upstash_error", "upstash_checked_at", "upstash_last_ok_at"):
