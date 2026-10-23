@@ -2678,7 +2678,7 @@
     },
     {
       "id": 224,
-      "ts": 1792738745.642293,
+      "ts": 1792740825.5666368,
       "symbol": "BANKINDIA.NS",
       "kotak_trading_symbol": null,
       "leg": "exit",
@@ -2690,7 +2690,7 @@
     },
     {
       "id": 225,
-      "ts": 1792738745.6477058,
+      "ts": 1792740825.572459,
       "symbol": "COALINDIA.NS",
       "kotak_trading_symbol": null,
       "leg": "exit",
@@ -2702,7 +2702,7 @@
     },
     {
       "id": 226,
-      "ts": 1792738745.6530864,
+      "ts": 1792740825.5782568,
       "symbol": "GSEC5IETF.NS",
       "kotak_trading_symbol": null,
       "leg": "exit",
@@ -2714,7 +2714,7 @@
     },
     {
       "id": 227,
-      "ts": 1792738745.6583252,
+      "ts": 1792740825.5838997,
       "symbol": "UNIONBANK.NS",
       "kotak_trading_symbol": null,
       "leg": "exit",
@@ -2726,7 +2726,7 @@
     },
     {
       "id": 228,
-      "ts": 1792738745.663699,
+      "ts": 1792740825.5895603,
       "symbol": "WIPRO.NS",
       "kotak_trading_symbol": null,
       "leg": "exit",
@@ -2737,5 +2737,5 @@
       "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
     }
   ],
-  "synced_at_utc": "2026-10-23T07:00:46Z"
+  "synced_at_utc": "2026-10-23T07:47:00Z"
 }
