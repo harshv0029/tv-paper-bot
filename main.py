@@ -25683,12 +25683,15 @@ async def _scheduler_tick():
     # the first action of the day is covering open positions with an SL.
     _t_ist = ist_now()
     _open_window = (_t_ist.weekday() < 5 and (9, 15) <= (_t_ist.hour, _t_ist.minute) < (9, 30))
-    if _open_window or _scheduler_tick_count % _UNPROTECTED_BACKCHECK_EVERY_N_TICKS == 0:
+    # B-1354: the ~5-min backcheck itself runs on its own wall-clock thread (_unprotected_backcheck_loop); a full
+    # scan tick can take many minutes on a starved CPU, so "every N ticks" left /real-protection-status null for 45+
+    # min on 23-Oct. The tick only adds the 09:15-09:30 every-tick protect pass, sharing the same single-flight lock.
+    if _open_window:
         try:
             # B-1340: in a worker thread, still awaited (same ordering as before), so a slow Kotak/Upstash call cannot
             # freeze the event loop: on 22 Oct an inline stall starved the entry scan (260 symbol checks vs 3992 the day
             # before) and Render answered 502.
-            await asyncio.to_thread(_reconcile_real_positions_core, adopt="*")
+            await asyncio.to_thread(_unprotected_backcheck_once)
         except Exception as e:
             print(f"[unprotected_backcheck] in-process reconcile failed (non-fatal, external cron still covers this): {e}")
         # B-1349: the order-log git push now has its own thread (_git_tier_push_loop), not this tick block.
@@ -25858,6 +25861,7 @@ async def _start_scheduler():
     asyncio.create_task(_scheduler_loop())
     asyncio.create_task(_tracked_union_memory_loop())
     threading.Thread(target=_git_tier_push_loop, name="git-tier-push", daemon=True).start()  # B-1349
+    threading.Thread(target=_unprotected_backcheck_loop, name="unprotected-backcheck", daemon=True).start()  # B-1354
     asyncio.create_task(_sl_snapshot_loop())
     # Kotak Neo live tick feed (2026-09-04) - display data only, isolated
     # in its own task so a failure here (missing/misconfigured creds, a
@@ -28593,6 +28597,37 @@ def _git_tier_push_side_branch(name: str) -> bool:
     except Exception as e:  # noqa: BLE001
         print(f"[table_mirror] side-branch push {name} failed (non-fatal): {e}")
         return False
+
+
+_UNPROTECTED_BACKCHECK_EVERY_SECONDS = 300
+_unprotected_backcheck_lock = threading.Lock()
+
+
+def _unprotected_backcheck_once() -> bool:
+    """B-1354: one Kotak-first reconcile + unprotected check (adopt="*"), single-flight so the 5-min thread and the
+    09:15-09:30 tick pass never run it twice at once. False when a run is already in progress."""
+    if not _unprotected_backcheck_lock.acquire(blocking=False):
+        return False
+    try:
+        _reconcile_real_positions_core(adopt="*")
+        return True
+    finally:
+        _unprotected_backcheck_lock.release()
+
+
+def _unprotected_backcheck_loop(sleep=time.sleep, rounds=None):
+    """B-1354 (2026-10-23): CLAUDE.md requires the unprotected-position backcheck every 5 min, enforced in-process.
+    It rode the scheduler tick ("every 10 ticks"), but one tick scans hundreds of symbols and can take minutes, so on
+    23-Oct the check did not complete for 45+ min (status null) until the external workflow ran. Now its own daemon
+    thread on a wall clock. Never raises."""
+    n = 0
+    while rounds is None or n < rounds:
+        try:
+            _unprotected_backcheck_once()
+        except Exception as e:  # noqa: BLE001
+            print(f"[unprotected_backcheck] 5-min reconcile failed (non-fatal, external cron still covers this): {e}")
+        n += 1
+        sleep(_UNPROTECTED_BACKCHECK_EVERY_SECONDS)
 
 
 _GIT_TIER_PUSH_EVERY_SECONDS = 60
