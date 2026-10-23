@@ -87,6 +87,8 @@ jobs:
           import numpy as np
           import pandas as pd
           import main as m
+          sys.path.insert(0, "scripts")
+          import research_hold_summary as _hs  # B-420 output helper (no strategy logic)
 
           SHARD_INDEX = int(os.environ["SHARD_INDEX"])
           SHARD_COUNT = int(os.environ["SHARD_COUNT"])
@@ -323,6 +325,7 @@ jobs:
               if raw is None or len(raw) < 50:
                   continue
               fetched += 1
+              _ts_arr = np.array([x.timestamp() for x in _prep(raw)["ts_local"]])  # B-420: bar index -> held_bars
               for thr in RSI_THRESHOLDS:
                   try:
                       trades, skips = replay_symbol_rsi_short(
@@ -332,6 +335,7 @@ jobs:
                   except Exception as e:
                       print(f"ERROR {sym} rsi>={thr}: {e}")
                       continue
+                  _hs.attach_held_bars(trades, _ts_arr)
                   all_trades_by_thr[thr].extend(trades)
                   all_skips_by_thr[thr].update(skips)
           for thr in RSI_THRESHOLDS:
@@ -358,6 +362,8 @@ jobs:
     needs: replay
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4  # B-420: for scripts/research_hold_summary.py (runs before download, so no clean-up clash)
+
       - uses: actions/download-artifact@v4
         with:
           pattern: shard-*-result
@@ -369,6 +375,9 @@ jobs:
           python3 - <<'PYEOF'
           import glob
           import json
+          import sys
+          sys.path.insert(0, "scripts")
+          import research_hold_summary as _hs  # B-420
 
           RSI_THRESHOLDS = ["65.0", "70.0", "75.0", "80.0"]
           all_trades_by_thr = {t: [] for t in RSI_THRESHOLDS}
@@ -443,4 +452,15 @@ jobs:
               symbol_rows.sort(key=lambda x: x[1], reverse=True)
               for sym, pf_gross, trs in symbol_rows[:15]:
                   _metrics(trs, sym)
+          # B-420: machine-readable summary, hold in market bars (5m)
+          _univ = f"full_universe ({total_fetched}/{total_universe} fetched)"
+          _hs.write_summary([_hs.summarize(f"rsi_overbought_fade_{int(float(t))}", all_trades_by_thr[t], _univ, bar_minutes=5)
+                             for t in RSI_THRESHOLDS])
           PYEOF
+
+      - uses: actions/upload-artifact@v4  # B-420: n, win_pct, pfnet, pfgross, avg_held_bars, avg_held_hrs, exits, universe, run_id
+        if: always()
+        with:
+          name: b420-hold-summary
+          path: b420_out/
+          retention-days: 90
