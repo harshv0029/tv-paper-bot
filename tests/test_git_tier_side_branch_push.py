@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 
@@ -85,7 +86,7 @@ def test_push_loop_is_independent_of_scheduler_tick(monkeypatch):
 
 def test_health_shows_order_log_push_age(monkeypatch):
     monkeypatch.setattr(main, "_git_tier_push_last_ok", {"real_order_events": main.time.time() - 30})
-    assert 29 <= main.health()["order_log_git_push_age_s"] <= 31
+    assert 29 <= asyncio.run(main.health())["order_log_git_push_age_s"] <= 31
 
 
 def test_order_event_wakes_git_push_immediately(monkeypatch, tmp_path):

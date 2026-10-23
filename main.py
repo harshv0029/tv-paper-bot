@@ -25864,6 +25864,11 @@ async def _start_scheduler():
     asyncio.create_task(_scheduler_loop())
     asyncio.create_task(_tracked_union_memory_loop())
     asyncio.create_task(_loop_heartbeat())  # B-1356
+    try:  # B-1359: 40 workers filled up on 23-Oct and every `def` endpoint hung; 80 buys headroom while the watchdog names the stuck code
+        import anyio.to_thread
+        anyio.to_thread.current_default_thread_limiter().total_tokens = 80
+    except Exception as e:  # noqa: BLE001
+        print(f"[threadpool] could not raise worker limit (non-fatal): {e}")
     global _BACKGROUND_THREADS_STARTED
     if not _BACKGROUND_THREADS_STARTED:  # once per process: a test's repeated startups must not stack copies
         _BACKGROUND_THREADS_STARTED = True
@@ -27901,9 +27906,26 @@ def _current_rss_mb() -> float | None:
         return None
 
 
+def _threadpool_status() -> dict:
+    """B-1359: how many of the 40 worker threads (every plain `def` endpoint runs on one) are in use, and what the
+    busy threads are running. A full pool hangs every endpoint while the event loop itself is fine (23-Oct 16:48 IST:
+    /health timed out three times while a 404 answered in 1 s)."""
+    try:
+        import anyio.to_thread
+        lim = anyio.to_thread.current_default_thread_limiter()
+        used, total = lim.borrowed_tokens, lim.total_tokens
+    except Exception:  # noqa: BLE001 (no running anyio loop, e.g. called from a thread)
+        used = total = None
+    out = {"threadpool_used": used, "threadpool_total": total}
+    if used is not None and total and used >= total * 0.75:
+        out["busy_threads"] = _busy_thread_stacks()
+    return out
+
+
 @app.get("/health")
-def health():
-    return {"status": "alive", "time": time.time(), **_rss_headroom(),
+async def health():
+    # B-1359: async so /health never queues behind a full worker-thread pool; every call below is in-memory.
+    return {"status": "alive", "time": time.time(), **_rss_headroom(), **_threadpool_status(),
             **_memory_pressure_check(trim=False), **_git_tier_push_status(),
             "loop_lag_s": round(time.time() - _loop_heartbeat_ts, 1), "watchdog_alarms": _WATCHDOG_STATE["alarms"],
             "upstash_ok": _UPSTASH_PROBE["ok"], "upstash_error": _UPSTASH_PROBE["error"],
@@ -28623,6 +28645,12 @@ async def _loop_heartbeat():
     global _loop_heartbeat_ts
     while True:
         _loop_heartbeat_ts = time.time()
+        try:  # B-1359: the watchdog thread cannot read the anyio limiter itself, so the loop records it
+            import anyio.to_thread
+            _lim = anyio.to_thread.current_default_thread_limiter()
+            _WATCHDOG_STATE["threadpool_used"], _WATCHDOG_STATE["threadpool_total"] = _lim.borrowed_tokens, _lim.total_tokens
+        except Exception:  # noqa: BLE001
+            pass
         await asyncio.sleep(1)
 
 
@@ -28652,12 +28680,15 @@ def _watchdog_check(now=None, rss_mb=None) -> dict | None:
     if rss_mb is None:
         rss_mb = _current_rss_mb() or _process_rss_mb()
     pct = round(rss_mb / RSS_LIMIT_MB * 100, 1) if rss_mb else None
-    if lag < _WATCHDOG_LOOP_LAG_WARN_SECONDS and (pct is None or pct < RSS_WARN_PCT):
+    used, total = _WATCHDOG_STATE.get("threadpool_used"), _WATCHDOG_STATE.get("threadpool_total")
+    pool_full = bool(total) and used is not None and used >= total  # B-1359: every `def` endpoint now hangs
+    if lag < _WATCHDOG_LOOP_LAG_WARN_SECONDS and (pct is None or pct < RSS_WARN_PCT) and not pool_full:
         return None
-    info = {"ts": now, "loop_lag_s": lag, "rss_mb": rss_mb, "rss_pct": pct, "threads": _busy_thread_stacks()}
+    info = {"ts": now, "loop_lag_s": lag, "rss_mb": rss_mb, "rss_pct": pct, "threadpool": f"{used}/{total}",
+            "threads": _busy_thread_stacks()}
     _WATCHDOG_STATE["alarms"] += 1
     _WATCHDOG_STATE["last_alarm"] = info
-    print(f"[watchdog] ALARM loop_lag_s={lag} rss_mb={rss_mb} ({pct}%) threads={info['threads']}")
+    print(f"[watchdog] ALARM loop_lag_s={lag} rss_mb={rss_mb} ({pct}%) threadpool={used}/{total} threads={info['threads']}")
     if pct is not None and pct >= RSS_WARN_PCT:
         _memory_pressure_check(now_mb=rss_mb, trim=True)
     return info
