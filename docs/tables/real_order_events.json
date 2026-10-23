@@ -2447,7 +2447,139 @@
    "prev_state": null,
    "new_state": "rejected",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 07:38:00 S SL qty 1 trg 173.42 status rejected rejRsn 16387 : Security is not allowed to trade in this market  "
+  },
+  {
+   "id": 205,
+   "ts": 1792727138.0452633,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261023000018166",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs126.73",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs126.73"
+  },
+  {
+   "id": 206,
+   "ts": 1792727154.9535196,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261023000019512",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs165.06",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs159.67"
+  },
+  {
+   "id": 207,
+   "ts": 1792727164.7178736,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261023000020461",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs186.86",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs186.86"
+  },
+  {
+   "id": 208,
+   "ts": 1792727174.6695051,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261023000021578",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs389.85",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs389.84"
+  },
+  {
+   "id": 209,
+   "ts": 1792727184.5456038,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": "GSEC5IETF-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261023000022630",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs63.93",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs63.93"
+  },
+  {
+   "id": 210,
+   "ts": 1792727184.7112179,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 211,
+   "ts": 1792727184.720919,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 212,
+   "ts": 1792727184.733833,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 213,
+   "ts": 1792727184.7442567,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 214,
+   "ts": 1792727184.7571337,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 215,
+   "ts": 1792727323.250159,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261023000018970",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 23-Oct-2026 09:15:43 S SL qty 1 trg 159.67 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :159.67,  Low Price Range"
   }
  ],
- "synced_at_utc": "2026-10-23T02:13:17Z"
+ "synced_at_utc": "2026-10-23T03:48:49Z"
 }
