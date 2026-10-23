@@ -1,3 +1,4 @@
+import asyncio
 import main
 
 
@@ -12,7 +13,7 @@ def test_alarm_threshold_math():
 
 
 def test_health_keys():
-    h = main.health()
+    h = asyncio.run(main.health())
     for k in ("status", "time", "rss_mb", "rss_limit_mb", "rss_pct"):
         assert k in h
     assert h["rss_limit_mb"] == 2048
