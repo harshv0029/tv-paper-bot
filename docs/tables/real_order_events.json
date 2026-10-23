@@ -4751,7 +4751,19 @@
    "prev_state": "none (retry)",
    "new_state": "resting SELL trigger Rs175.88",
    "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs175.88"
+  },
+  {
+   "id": 397,
+   "ts": 1792765985.64233,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261023000730774",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs373.20",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs373.22"
   }
  ],
- "synced_at_utc": "2026-10-23T14:32:41Z"
+ "synced_at_utc": "2026-10-23T14:33:08Z"
 }
