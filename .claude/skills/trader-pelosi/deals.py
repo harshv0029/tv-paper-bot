@@ -14,6 +14,8 @@ some IPs; a failure is printed as a note, never a crash. It never trades and nev
   python3 deals.py check --tickers RELIANCE TCS  # flag rows in these stocks
   python3 deals.py check --days 30 --json
   python3 deals.py check --offline DIR           # DIR/largedeal.json and DIR/pit.json, no network
+  python3 deals.py check --week                  # this IST week's bulk/block deals (historical endpoints)
+  python3 deals.py check --from 2026-10-01 --to 2026-10-23   # any date range (offline: hist_bulk/hist_block.json)
 """
 import argparse
 import datetime as _dt
@@ -24,6 +26,7 @@ import sys
 
 NSE_HOME = "https://www.nseindia.com/"
 LARGE_DEALS = "https://www.nseindia.com/api/snapshot-capital-market-largedeal"
+HIST = "https://www.nseindia.com/api/historical/%s-deals?from=%s&to=%s"
 PIT = "https://www.nseindia.com/api/corporates-pit?index=equities&from_date=%s&to_date=%s"
 IST = _dt.timezone(_dt.timedelta(hours=5, minutes=30))
 
@@ -67,7 +70,8 @@ def _f(v):
 
 
 def _rid(*parts):
-    return hashlib.sha1("|".join(str(p) for p in parts).encode("utf-8")).hexdigest()[:16]
+    # upper-cased so "22-Oct-2026" (snapshot) and "22-OCT-2026" (historical) dedupe to one id
+    return hashlib.sha1("|".join(str(p).strip().upper() for p in parts).encode("utf-8")).hexdigest()[:16]
 
 
 def parse_large_deals(doc):
@@ -84,6 +88,55 @@ def parse_large_deals(doc):
                         "qty": qty, "price": px,
                         "value_cr": round(qty * px / 1e7, 2) if qty and px else None})
     return out
+
+
+def _g(r, *keys):
+    for k in keys:
+        if r.get(k) not in (None, ""):
+            return r.get(k)
+    return None
+
+
+def parse_hist_deals(doc, kind):
+    """api/historical/{bulk,block}-deals -> rows in the parse_large_deals shape (same id scheme)."""
+    rows = doc.get("data") if isinstance(doc, dict) else doc
+    out = []
+    for r in rows or []:
+        if not isinstance(r, dict):
+            continue
+        d, sym = _g(r, "BD_DT_DATE", "date", "mTd"), _g(r, "BD_SYMBOL", "symbol")
+        who, rq = _g(r, "BD_CLIENT_NAME", "clientName", "client"), _g(r, "BD_QTY_TRD", "qty", "quantity")
+        qty, px = _f(rq), _f(_g(r, "BD_TP_WATP", "watp", "price"))
+        side = str(_g(r, "BD_BUY_SELL", "buySell", "buy_sell") or "").upper()
+        out.append({"id": _rid(kind, d, sym, who, side, rq), "kind": kind, "date": d,
+                    "symbol": str(sym or "").upper(), "company": _g(r, "BD_SCRIP_NAME", "name", "scripName"),
+                    "who": who, "role": "client",
+                    "side": "buy" if side.startswith("B") else "sell" if side.startswith("S") else side.lower(),
+                    "qty": qty, "price": px, "value_cr": round(qty * px / 1e7, 2) if qty and px else None,
+                    "remarks": _g(r, "BD_REMARKS", "remarks")})
+    return out
+
+
+def _day(s):
+    for fmt in ("%d-%b-%Y", "%d-%m-%Y", "%Y-%m-%d", "%d %b %Y"):
+        try:
+            return _dt.datetime.strptime(str(s).strip().title(), fmt).date()
+        except ValueError:
+            pass
+    return _dt.date.min
+
+
+def date_range(args, today):
+    """(from, to) dates for --week / --from/--to, else None (snapshot mode)."""
+    if args.week:
+        return today - _dt.timedelta(days=today.weekday()), today
+    if args.frm or args.to:
+        to = _dt.date.fromisoformat(args.to) if args.to else today
+        frm = _dt.date.fromisoformat(args.frm) if args.frm else to - _dt.timedelta(days=to.weekday())
+        if frm > to:
+            raise DealsError("--from %s is after --to %s" % (frm, to))
+        return frm, to
+    return None
 
 
 def parse_pit(doc):
@@ -151,9 +204,22 @@ def cmd_check(args):
     today = _dt.datetime.now(IST).date() if not args.today else _dt.date.fromisoformat(args.today)
     notes, rows = [], []
     try:
-        rows += parse_large_deals(nse_json(LARGE_DEALS, "largedeal.json", args.offline))
-    except DealsError as e:
+        rng = date_range(args, today)
+    except (DealsError, ValueError) as e:
         notes.append(str(e))
+        rng = None
+    if rng:
+        f, t = rng[0].strftime("%d-%m-%Y"), rng[1].strftime("%d-%m-%Y")
+        for kind in ("bulk", "block"):
+            try:
+                rows += parse_hist_deals(nse_json(HIST % (kind, f, t), "hist_%s.json" % kind, args.offline), kind)
+            except DealsError as e:
+                notes.append(str(e))
+    else:
+        try:
+            rows += parse_large_deals(nse_json(LARGE_DEALS, "largedeal.json", args.offline))
+        except DealsError as e:
+            notes.append(str(e))
     if not args.no_insider:
         frm = (today - _dt.timedelta(days=args.days)).strftime("%d-%m-%Y")
         try:
@@ -163,15 +229,23 @@ def cmd_check(args):
     state = load_state(args.state)
     seen = state.setdefault("seen", {})
     watch = watch_symbols(args)
-    new = [r for r in rows if args.all or r["id"] not in seen]
+    new = [r for r in rows if args.all or rng or r["id"] not in seen]
     for r in new:
         r["watched"] = r["symbol"] in watch
-    new.sort(key=lambda r: (not r["watched"], r["kind"] != "insider", -(r.get("value_cr") or 0)))
-    if args.json:
-        print(json.dumps({"date_ist": today.isoformat(), "new": new[:args.limit], "notes": notes}, indent=2))
+    if rng:
+        new.sort(key=lambda r: (_day(r.get("date")), r.get("value_cr") or 0), reverse=True)
     else:
-        print("NSE bulk/block deals + insider (PIT) trades, %s IST: %d new%s." % (
-            today.isoformat(), len(new), (", %d in your stocks" % sum(r["watched"] for r in new)) if watch else ""))
+        new.sort(key=lambda r: (not r["watched"], r["kind"] != "insider", -(r.get("value_cr") or 0)))
+    span = ("%s..%s" % (rng[0].isoformat(), rng[1].isoformat())) if rng else None
+    if args.json:
+        out = {"date_ist": today.isoformat(), "new": new[:args.limit], "notes": notes}
+        if span:
+            out["range"] = span
+        print(json.dumps(out, indent=2))
+    else:
+        print("NSE bulk/block deals + insider (PIT) trades, %s IST: %d %s%s." % (
+            today.isoformat(), len(new), ("in " + span) if span else "new",
+            (", %d in your stocks" % sum(r["watched"] for r in new)) if watch else ""))
         for r in new[:args.limit]:
             print(("* " if r["watched"] else "  ") + describe(r))
         for n in notes:
@@ -197,6 +271,9 @@ def main(argv=None):
     p.add_argument("--all", action="store_true", help="show already-seen rows too")
     p.add_argument("--limit", type=int, default=50)
     p.add_argument("--state", default="trader/state/deals.json")
+    p.add_argument("--week", action="store_true", help="Monday of this IST week..today (implies --all)")
+    p.add_argument("--from", dest="frm", metavar="YYYY-MM-DD", help="range start (historical endpoints)")
+    p.add_argument("--to", metavar="YYYY-MM-DD", help="range end (default today)")
     p.add_argument("--today", help="YYYY-MM-DD (IST), for reproducible runs")
     p.add_argument("--offline", metavar="DIR")
     p.add_argument("--dry-run", action="store_true")
