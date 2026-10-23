@@ -49,6 +49,22 @@
    "symbol": "GSEC5IETF.NS"
   },
   {
+   "day": "2026-10-23",
+   "entry_order_id": "261023000038422",
+   "entry_price": 300.0,
+   "first_seen_day": "2026-10-23",
+   "is_short": 0,
+   "kotak_trading_symbol": "NATIONALUM-EQ",
+   "opened_at": 1792727389.8284976,
+   "owner": "intraday",
+   "qty": 3,
+   "sl_trigger_price": 293.05,
+   "source": "position",
+   "stop_loss": null,
+   "strategy": "chan_kalman__band__long__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
+   "symbol": "NATIONALUM.NS"
+  },
+  {
    "day": "2026-10-08",
    "entry_order_id": "261008000123602",
    "entry_price": 172.65,
