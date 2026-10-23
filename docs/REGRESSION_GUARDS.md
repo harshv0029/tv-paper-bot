@@ -12,8 +12,10 @@ Add a row the same day as any new incident fix. Read this before touching Upstas
 | 23-Oct: order-log git push stalled after 09:27 IST because it rode the scheduler tick behind an awaited reconcile (B-1349) | Own daemon thread, every 60 s on a wall clock; `/health` shows `order_log_git_push_age_s` | `tests/test_git_tier_side_branch_push.py` |
 | 23-Oct: a Kotak cancel/sell with no app reason row (NATIONALUM, B-1350) | Reason row written BEFORE every Kotak cancel/sell in partial-exit and SL-sync | `tests/test_reason_logged_before_kotak_call.py`, `tests/test_real_exit_reason_logged.py` |
 | 23-Oct: Deploy Gate merge conflict in docs/tables/*.json | Never dispatch `table-git-sync.yml` on the working branch; Render pushes the order log to `state-sync` itself | Process rule (this file) |
+| 23-Oct: in-process unprotected backcheck did not complete for 45+ min (status null) because it ran every 10 scan ticks (B-1354) | Own daemon thread every 300 s, single-flight lock | `tests/test_inprocess_unprotected_backcheck_cadence.py` |
 | 21-Oct: GitHub cron is unreliable (table-git-sync fired 0-2 times a day) | Every must-run safety job is in-process first; crons are a secondary audit layer only | CLAUDE.md 2026-09-30 in-process-first rule |
 
 ## Daily check (coordinator)
 - `/health`: memory_level ok, rss_pct < 75, order_log_git_push_age_s < 300 in market hours.
+- `/real-protection-status`: stale false in market hours.
 - `/upstash-usage`: status ok. The 16:10 IST workflow must be green.
