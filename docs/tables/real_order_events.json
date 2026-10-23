@@ -4739,7 +4739,19 @@
    "prev_state": "none (retry)",
    "new_state": "resting SELL trigger Rs164.80",
    "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs164.80"
+  },
+  {
+   "id": 396,
+   "ts": 1792765959.5841243,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261023000730559",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs175.88",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs175.88"
   }
  ],
- "synced_at_utc": "2026-10-23T14:31:46Z"
+ "synced_at_utc": "2026-10-23T14:32:41Z"
 }
