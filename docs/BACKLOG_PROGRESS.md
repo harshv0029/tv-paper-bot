@@ -15,7 +15,7 @@ Total rows: 1103 | closed: 495 | not closed: 608
 | CLOSED | 79 |
 | DONE-PENDING-VERIFY | 79 |
 | BLOCKED | 63 |
-| OPEN | 53 |
+| OPEN | 52 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -71,6 +71,7 @@ Total rows: 1103 | closed: 495 | not closed: 608
 | TABLE-GIT-SYNC | 1 |
 | JIOFIN26OCT217 | 1 |
 | WIPRO-EQ | 1 |
+| FOUND | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -489,7 +490,7 @@ Total rows: 1103 | closed: 495 | not closed: 608
 | B-1330 | P0 | ITC | 2026-10-21 |  |
 | B-1340 | P0 | USER | 2026-10-22 21:45 IST | blocked, verify, needs, owner, follow-up, awaiting, waiting |
 | B-1342 | P0 | BUILT | 2026-10-23 01:05 IST | verify, owner |
-| B-1349 | P0 | OPEN | 2026-10-23 12:30 IST | owed, needs |
+| B-1349 | P0 | FOUND | 2026-10-23 12:30 IST | owed, needs, awaiting, waiting |
 | B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, remaining, needs |
 | B-850 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (Elder >=1.1 cells validation across candle sizes; also covers B-852) |  |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... |  |
