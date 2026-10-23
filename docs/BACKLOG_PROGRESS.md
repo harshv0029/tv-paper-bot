@@ -277,7 +277,7 @@ Total rows: 1096 | closed: 492 | not closed: 604
 | B-400 | P2 | DONE-PENDING-VERIFY | User 2026-10-11 IST: "remove the unwired ones from the list - viable strategies table". /strategy-scan-acti... | owed, pending, verify, needs |
 | B-409 | P2 | DONE-PENDING-VERIFY | User 2026-10-11 IST: remove the "Strategy leaderboard (backtest research, not live trades)" block from the ... | owed, pending, verify |
 | B-411 | P2 | DONE-PENDING-VERIFY | User 2026-10-11 IST: Viable strategies scan & entry activity table could not be sorted or filtered | owed, pending, verify, needs |
-| B-420 | P2 | PENDING | 2026-10-11 IST, B-416 audit result (registry, 31,713 entries; 18,894 have no metrics block): of those with ... | owed, blocked, pending |
+| B-420 | P2 | PENDING | 2026-10-11 IST, B-416 audit result (registry, 31,713 entries; 18,894 have no metrics block): of those with ... | owed, blocked, pending, needs |
 | B-431 | P2 | PENDING | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | owed, pending, needs |
 | B-437 | P2 | BLOCKED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | owed, blocked, needs |
 | B-441 | P2 | PENDING | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | owed, pending |
