@@ -1,16 +1,16 @@
 ---
 name: trader-pelosi
 description: >-
-  The Pelosi Tracker. Watches the stock trades members of Congress must
-  disclose under the STOCK Act: reads the House Clerk's public Periodic
-  Transaction Reports (PTRs) as soon as they are posted, alerts once per new
-  filing, and turns each PDF into clean rows (who, owner, stock, ticker,
-  buy or sell, options strike and expiry, trade date, amount range, how many
-  days it took to disclose). Flags trades in stocks you hold. Senate reports
-  are covered by a documented manual route. Use when the user says "what is
-  Pelosi buying", "track Nancy Pelosi", "Congress trades", "politician stock
-  trades", "did any congressman buy X", "alert me when Pelosi files", or
-  "run the Pelosi skill".
+  India Smart-Money Tracker (the Pelosi skill, ported). Watches who is
+  buying and selling Indian stocks in public NSE data: bulk deals (one
+  client >= 0.5% of a company in a day), block deals (>= Rs 10 crore) and
+  SEBI PIT insider disclosures (promoters, directors, KMP). Shows only new
+  rows, IST dates, value in Rs crore, and flags rows in stocks you hold or
+  watch. Read-only, never trades. Use when the user says "who is buying",
+  "bulk deals", "block deals", "insider trades", "promoter buying",
+  "smart money", "what is Pelosi buying" (India equivalent), or "run the
+  Pelosi skill". The upstream US Congress PTR reader (ptr.py) is kept for
+  US stocks only.
 argument-hint: "[member name] [--read]"
 ---
 
@@ -19,8 +19,9 @@ argument-hint: "[member name] [--read]"
 > **India / Kotak adaptation (tv-paper-bot, 2026-10-23).** Adapted for NSE/Kotak from Jakeschincariol/day-trader-skill (MIT, see `../TRADER_SKILLS_LICENSE`).
 > Times are IST (UTC+5:30, no DST); session 09:15-15:30 IST (MCX 09:00-23:30); NSE holidays mirror `main.NSE_HOLIDAYS_2026`; amounts are ₹.
 > Use Yahoo `.NS` symbols (RELIANCE.NS, TCS.NS; indices ^NSEI, ^NSEBANK). Cost model: ~0.8% round trip (brokerage 0.20%/side + STT, exchange, SEBI, stamp, GST).
+> Worked examples below are upstream US runs re-labelled, kept to show the output shape: their numbers are not Indian prices.
 > House rules: no trade without SL/SL-M; check long AND short; this skill never places an order - the live bot (`main.py` / `kotak_real_orders.py`) is the only real-order path.
-> Not yet ported (backlog B-1345): US Congress PTRs have no Indian equivalent; to be repurposed to NSE bulk/block deals and SAST/PIT insider disclosures.
+> Ported (B-1345): **use `deals.py`** - `python3 "${CLAUDE_SKILL_DIR}/deals.py" check [--tickers RELIANCE TCS] [--days 7] [--json]` reads NSE bulk/block deals (`api/snapshot-capital-market-largedeal`) and SEBI PIT insider trades (`api/corporates-pit`), dedupes by state file `trader/state/deals.json`, and stars rows in your portfolio/watchlist. `--week` (Monday of the current IST week to today) or `--from YYYY-MM-DD --to YYYY-MM-DD` switches to NSE's historical endpoints (`api/historical/bulk-deals` and `api/historical/block-deals`, offline files `hist_bulk.json` / `hist_block.json`) and lists every deal in the range, newest date first then by value, e.g. "this week's bulk deals". Best effort (NSE cookie handshake; may throttle or block some IPs; unverified live, built offline). A bulk or insider buy is context, never an entry on its own. The sections below describe the original US `ptr.py`.
 
 Members of Congress have to report their trades, their spouse's and their
 dependent children's. The House Clerk posts every report as a PDF and lists
@@ -54,7 +55,7 @@ python3 "${CLAUDE_SKILL_DIR}/ptr.py" --help
   Clerk's site, with its DocID and link. Third-party trackers are fine for
   browsing but can be off (Capitol Trades showed Pelosi's trade dates one day
   earlier than her PTRs). The PTR wins.
-- **Amounts are ranges.** "$1,000,001 - $5,000,000", never "$3 million".
+- **Amounts are ranges.** "₹1,000,001 - ₹5,000,000", never "₹3 million".
 - **Owner matters.** SP is the spouse, JT joint, DC a dependent child, blank
   the member. Pelosi's 2026 trades are all SP: Paul Pelosi.
 - **Say the delay.** Each row shows how many days passed between the trade
@@ -104,12 +105,12 @@ the PDF when a report runs over several pages.
 ```
 NEW Periodic Transaction Report: Hon. Nancy Pelosi (CA11) filed 2026-08-21, doc 20035143
   - spouse purchase, Bloom Energy Corporation Class A Common Stock (BE): 100 call
-    options, $100 strike, expires 2027-06-17, $1,000,001 - $5,000,000, traded
+    options, ₹100 strike, expires 2027-06-17, ₹1,000,001 - ₹5,000,000, traded
     2026-07-24, disclosed 28 days later
 ```
 
 The same PTR also shows 10,000 and 5,000 BE shares, a second block of 100 BE
-calls on 07/28, Intel shares and 50 Intel calls ($50 strike, 6/17/27), and a
+calls on 07/28, Intel shares and 50 Intel calls (₹50 strike, 6/17/27), and a
 private real estate LLC with no ticker. Her other 2026 PTRs: 20033725
 (01/23), 20034836 (06/23, Intel and Uber calls) and 20035553 (10/02, a real
 estate LLC). Then: "This is a public disclosure filed 28 days after the trade.

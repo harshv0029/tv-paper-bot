@@ -8,7 +8,7 @@ description: >-
   cent, and sets the target at 2R (or 1R, or your price). Refuses a stop at or
   above the entry, a target at or below it, or a stop too tight to survive the
   spread, and says why. Writes trader/plan.json for the Time Machine, the
-  Budget Manager and Price Alerts. Long side only. Use when the user says
+  Budget Manager and Price Alerts. Long and short (MIS). Use when the user says
   "where's my stop", "set my stop and target", "plan the exit", "when do I get
   out", "stop loss", "what's my R", "risk reward", or right after
   /trader-entry triggers, before /trader-timemachine.
@@ -20,8 +20,9 @@ argument-hint: "[--stop or-mid|or-low|price:X|pct:X|atr:K] [--target 2R|1R|price
 > **India / Kotak adaptation (tv-paper-bot, 2026-10-23).** Adapted for NSE/Kotak from Jakeschincariol/day-trader-skill (MIT, see `../TRADER_SKILLS_LICENSE`).
 > Times are IST (UTC+5:30, no DST); session 09:15-15:30 IST (MCX 09:00-23:30); NSE holidays mirror `main.NSE_HOLIDAYS_2026`; amounts are ₹.
 > Use Yahoo `.NS` symbols (RELIANCE.NS, TCS.NS; indices ^NSEI, ^NSEBANK). Cost model: ~0.8% round trip (brokerage 0.20%/side + STT, exchange, SEBI, stamp, GST).
+> Worked examples below are upstream US runs re-labelled, kept to show the output shape: their numbers are not Indian prices.
 > House rules: no trade without SL/SL-M; check long AND short; this skill never places an order - the live bot (`main.py` / `kotak_real_orders.py`) is the only real-order path.
-> Not yet ported (backlog B-1345): short side where the original is long-only; 2027 NSE holidays.
+> Ported (B-1345): ₹, IST, default flat-by 15:10 IST (before the exchange's 15:15 resting-order cancel and the bot's 15:14 square-off), and SHORT plans (`side: sell` from entry.json or `--side sell`): stop above the entry (OR midpoint/high, price, pct, ATR), target below, computed by mirroring the long maths so rounding stays away from the entry. 2027 NSE holidays are not loaded yet (2027 dates report calendar-unknown).
 
 The Exit Planner decides how a trade ends before it starts. The stop is where
 the setup has failed. The target is where you take what you came for. Both
@@ -40,7 +41,7 @@ python3 "${CLAUDE_SKILL_DIR}/exit.py" plan --symbol RELIANCE.NS --entry 364.18 -
 python3 "${CLAUDE_SKILL_DIR}/exit.py" show                          # the current trader/plan.json
 ```
 
-Other flags: `--flat-by 15:55`, `--json`, `--now "2026-10-19 10:15"` (New
+Other flags: `--flat-by 15:10`, `--json`, `--now "2026-10-19 10:15"` (New
 York time), `--entry PRICE` with a waiting entry.json to plan ahead, `--setup
 level`, `--offline FILE` (a saved Yahoo chart JSON for an ATR stop).
 
@@ -49,7 +50,7 @@ level`, `--offline FILE` (a saved Yahoo chart JSON for an ATR stop).
 | file | what |
 | --- | --- |
 | `trader/entry.json` | the trigger from trader-entry: symbol, entry price, time, bar, opening range |
-| `trader/config.json` | `flat_by` (15:55) and `min_reward_risk` (1.0: a note here, trader-risk enforces it) |
+| `trader/config.json` | `flat_by` (15:10) and `min_reward_risk` (1.0: a note here, trader-risk enforces it) |
 | Yahoo chart API | only for an `atr:K` stop: the session's bars up to the entry bar, free and unofficial |
 | `trader/plan.json` | with `--write`: entry, stop and its rule, target and its R, risk a share, reward:risk, flat by. trader-timemachine, trader-budget and trader-alerts read it |
 
@@ -72,7 +73,7 @@ A level setup has no opening range to lean on, so it needs a stop you name.
   below it. A risk under 0.05% of the price: too tight to survive the
   spread, normal wiggle would stop you out. An entry.json that has not
   triggered (unless you give `--entry`). A short: v2 plans longs only.
-- **Flat by.** 15:55 by default (or `flat_by` in the config). Out by then,
+- **Flat by.** 15:10 by default (or `flat_by` in the config). Out by then,
   win or lose, no overnight hold. On a 1:00 p.m. early close it moves up to
   12:55. An entry at or after the flat-by time is refused.
 
@@ -100,16 +101,16 @@ or-mid --target 1R --write`:
 
 ```
 Exit plan: RELIANCE.NS long, Mon 2026-10-19, opening-range breakout on 5-minute bars
-  Entry         $364.18 at 10:15 AM (bar 8)
-  Stop          $358.32  opening-range midpoint: ($362.18 + $354.47) / 2 = $358.325, rounded down
-  Target        $370.04  1R (one times the risk)
-  Risk a share  $5.86 (1.61% of the entry)
+  Entry         ₹364.18 at 10:15 AM (bar 8)
+  Stop          ₹358.32  opening-range midpoint: (₹362.18 + ₹354.47) / 2 = ₹358.325, rounded down
+  Target        ₹370.04  1R (one times the risk)
+  Risk a share  ₹5.86 (1.61% of the entry)
   Reward:risk   1.0
-  Flat by       15:55 ET, win or lose: no overnight hold
+  Flat by       15:10 IST, win or lose: no overnight hold
 ```
 
 The default 2R target would be 364.18 + 2 x 5.86 = 375.90. trader-budget then
-sizes it: a $50 max loss per trade buys floor(50 / 5.86) = 8 shares.
+sizes it: a ₹50 max loss per trade buys floor(50 / 5.86) = 8 shares.
 
 ## Rules
 
@@ -119,7 +120,7 @@ sizes it: a $50 max loss per trade buys floor(50 / 5.86) = 8 shares.
   never prints a P&L or a return.
 - Nothing here promises winning trades or money. A 1R target is not a
   prediction that the price gets there.
-- Long side only. v2 plans longs only.
+- Long and short (MIS). v2 plans longs only.
 
 ## What it never does
 

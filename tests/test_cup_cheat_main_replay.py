@@ -98,3 +98,114 @@ def test_short_signal_has_stop_above_entry():
             assert sig["stop_loss"] > sig["entry_price"] and sig["direction"] == "short"
             return
     raise AssertionError("no short signal")
+
+
+# ---- B-1190/B-1210 (2026-10-23 IST): short mirror replay (research-side; main.py has no short cup-cheat function) ----
+
+def _dome(seed, tail=60):
+    return _recip_df(_cup(seed, tail=tail))
+
+
+def _brute_short(df, tags, cost):
+    df = df.reset_index(drop=True)
+    out, free = {t: [] for t in tags}, {t: 0 for t in tags}
+    for k in range(cr.MIN_BARS - 1, len(df) - 1):
+        sub = df.iloc[:k + 1]
+        for t in tags:
+            if k < free[t]:
+                continue
+            sig = sr.cup_cheat_short_entry_signal(sub, t)
+            if sig:
+                tr = cr.cup_trade(app, df, k, sig, t, cost, "short")
+                out[t].append(tr)
+                free[t] = tr["exit_i"] + 1
+    return out
+
+
+def test_short_tags_follow_grammar_and_mirror_long_cells():
+    assert len(sr.CUP_CHEAT_SHORT_1H_CELLS) == len(app.CUP_CHEAT_1H_CELLS) == 9
+    for t, cfg in sr.CUP_CHEAT_SHORT_1H_CELLS.items():
+        assert t.startswith("base__cup_cheat_3c__short__1h__atr") and t.endswith("__v1")
+        assert app.CUP_CHEAT_1H_CELLS[t.replace("__short__", "__long__")] == cfg
+
+
+def test_short_prefilter_is_exact_trades_happen_and_no_averaging():
+    tags = list(sr.CUP_CHEAT_SHORT_1H_CELLS)
+    total = 0
+    for seed in range(6):
+        df = _dome(seed)
+        a = cr.replay_symbol(app, df, tags, 0.008, "short")
+        b = _brute_short(df, tags, 0.008)
+        for t in tags:
+            assert [(x["entry_i"], x["exit_i"], x["reason"]) for x in a[t]] == [(x["entry_i"], x["exit_i"], x["reason"]) for x in b[t]]
+            assert all(abs(x["net"] - (x["gross"] - 0.008)) < 1e-12 for x in a[t])
+            # no averaging / pyramiding: each new short opens only after the previous one is covered
+            for p, q in zip(a[t], a[t][1:]):
+                assert q["entry_i"] > p["exit_i"]
+            total += len(a[t])
+    assert total > 0, "vacuous: no short trades"
+
+
+def test_short_entry_stop_always_above_entry_every_cell():
+    seen = 0
+    for seed in range(4):
+        dome = _dome(seed)
+        for t in range(70, len(dome)):
+            sub = dome.iloc[:t + 1]
+            for tag, (k, _h) in sr.CUP_CHEAT_SHORT_1H_CELLS.items():
+                sig = sr.cup_cheat_short_entry_signal(sub, tag)
+                if sig:
+                    assert sig["direction"] == "short"
+                    assert sig["stop_loss"] > sig["entry_price"]
+                    assert abs(sig["stop_loss"] - sig["entry_price"] - k * sig["atr_at_entry"]) < 1e-9
+                    seen += 1
+    assert seen > 0, "vacuous"
+    assert sr.cup_cheat_short_entry_signal(_dome(0), "not_a_tag") is None
+
+
+def _bars(rows):
+    return pd.DataFrame(rows, columns=["Open", "High", "Low", "Close"]).assign(Volume=1000.0)
+
+
+def test_short_exit_stop_above_covers_at_stop_or_gap_open_and_loses():
+    entry = [100, 100.5, 99.5, 100]
+    # fill bar touches the stop -> cover at the stop
+    df = _bars([entry, [100, 105.5, 99, 104]])
+    assert sr.cup_cheat_short_exit_reason(df, 0, 105.0, 30) == ("cup_cheat_short_stop_loss", 105.0)
+    # later bar gaps above the stop -> cover at the (worse) open, never below the stop
+    df = _bars([entry, [100, 101, 99, 100], [107, 108, 106, 107]])
+    reason, px = sr.cup_cheat_short_exit_reason(df, 0, 105.0, 30)
+    assert reason == "cup_cheat_short_stop_loss" and px == 107.0
+    tr = cr._trade(100.0, px, 2, reason, 0.008, 1, 2, "short")
+    assert tr["gross"] < 0 and abs(tr["gross"] - (-0.07)) < 1e-12
+    # a low below entry never triggers the short's stop
+    df = _bars([entry, [100, 101, 80, 85]])
+    assert sr.cup_cheat_short_exit_reason(df, 0, 105.0, 30) is None
+
+
+def test_short_timeout_profit_when_price_falls_below_entry():
+    """The mirror has no fixed target (nor does the long rule): the upside is the hold-th close, which profits when BELOW entry."""
+    rows = [[100, 100.5, 99.5, 100]] + [[100 - i, 100.5 - i, 99 - i, 99.5 - i] for i in range(1, 7)]
+    df = _bars(rows)
+    for j in range(1, 6):
+        assert sr.cup_cheat_short_exit_reason(df.iloc[:j + 1], 0, 105.0, 6) is None
+    reason, px = sr.cup_cheat_short_exit_reason(df, 0, 105.0, 6)
+    assert reason == "cup_cheat_short_max_hold_timeout" and px < 100.0
+    tr = cr._trade(100.0, px, 6, reason, 0.008, 1, 6, "short")
+    assert tr["gross"] > 0 and abs(tr["gross"] - (100.0 - px) / 100.0) < 1e-12
+
+
+def test_long_replay_default_direction_unchanged():
+    assert cr._rule(app, "long")[0] is app.CUP_CHEAT_1H_CELLS
+    import pytest
+    with pytest.raises(ValueError):
+        cr._rule(app, "sideways")
+
+
+def test_workflow_has_direction_input_and_research_side_note():
+    p = R / ".github/workflows/cup-cheat-main-replay.yml"
+    txt = p.read_text()
+    wf = yaml.safe_load(txt)
+    on = wf.get("on", wf.get(True))
+    assert on["workflow_dispatch"]["inputs"]["direction"]["options"] == ["long", "short"]
+    assert "DIRECTION: ${{ inputs.direction }}" in txt and "RESEARCH-SIDE" in txt

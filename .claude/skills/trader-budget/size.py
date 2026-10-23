@@ -71,16 +71,16 @@ DEFAULTS = {
     "max_orders_per_day": 10,
     "min_reward_risk": 1.0,
     "require_stop": True,
-    "no_entries_before": "09:45",
-    "no_entries_after": "15:30",
-    "flat_by": "15:55",
+    "no_entries_before": "09:30",
+    "no_entries_after": "15:00",
+    "flat_by": "15:10",
     "fractional": False,
     "broker": "alpaca",
     "paper": True,
     "blocked": [],
     "allow_options": False,
     "allow_margin": False,
-    "allow_short": False,
+    "allow_short": True,  # India port: MIS intraday short is allowed (squared off same day)
     "pdt_guard": False,
 }
 EPS = 1e-9
@@ -307,8 +307,9 @@ def size_trade(plan, cfg, budget=None, limit=None, price=None, cash=None, today=
     if not sym:
         raise SizeError("the plan has no symbol (run trader-exit)")
     side = str(plan.get("side") or "buy").strip().lower()
-    if side != "buy":
-        raise SizeError("this pack sizes long (buy) day trades only; the plan says %r" % side)
+    if side not in ("buy", "sell"):
+        raise SizeError("side must be buy or sell (India port: sell = MIS intraday short); the plan says %r" % side)
+    is_short = side == "sell"
     if today and plan.get("date") and str(plan["date"]) != today:
         raise SizeError("the plan is for %s and today is %s in India (IST): make a new plan with trader-exit"
                         % (plan["date"], today))
@@ -330,19 +331,29 @@ def size_trade(plan, cfg, budget=None, limit=None, price=None, cash=None, today=
 
     if limit is not None:
         ref, ref_from = round_cent(limit), "limit"
-    elif price is not None and round_cent(price) > round_cent(entry_plan):
+    elif price is not None and ((round_cent(price) < round_cent(entry_plan)) if is_short
+                                else (round_cent(price) > round_cent(entry_plan))):
         ref, ref_from = round_cent(price), "price"
     else:
         ref, ref_from = round_cent(entry_plan), "plan"
     stop, target = round_cent(stop), round_cent(target)
-    if stop >= ref:
-        raise SizeError("the stop %s is not below the entry %s; a long trade needs its stop underneath"
-                        % (_price(stop), _price(ref)))
-    if target <= ref:
-        raise SizeError("the target %s is not above the entry %s: the move has already happened. "
-                        "Skip it or make a new plan with trader-exit" % (_price(target), _price(ref)))
-    risk_c = int(round((ref - stop) * 100))
-    reward_c = int(round((target - ref) * 100))
+    if is_short:
+        if stop <= ref:
+            raise SizeError("the stop %s is not above the entry %s; a short needs its stop overhead"
+                            % (_price(stop), _price(ref)))
+        if target >= ref:
+            raise SizeError("the target %s is not below the entry %s: the move has already happened. "
+                            "Skip it or make a new plan with trader-exit" % (_price(target), _price(ref)))
+    else:
+        if stop >= ref:
+            raise SizeError("the stop %s is not below the entry %s; a long trade needs its stop underneath"
+                            % (_price(stop), _price(ref)))
+        if target <= ref:
+            raise SizeError("the target %s is not above the entry %s: the move has already happened. "
+                            "Skip it or make a new plan with trader-exit" % (_price(target), _price(ref)))
+    sign = -1 if is_short else 1
+    risk_c = int(round(sign * (ref - stop) * 100))
+    reward_c = int(round(sign * (target - ref) * 100))
     risk = risk_c / 100.0
 
     cash_buffer = round(budget * buf_pct / 100.0, 2)
@@ -379,7 +390,7 @@ def size_trade(plan, cfg, budget=None, limit=None, price=None, cash=None, today=
     refusal = None
     if qty == 0:
         if bound[0] == "max loss":
-            refusal = ("one share risks %s (entry %s minus stop %s), more than your %s max loss per trade. "
+            refusal = ("one share risks %s (entry %s vs stop %s), more than your %s max loss per trade. "
                        "No order. Skip this trade, or plan a closer stop with trader-exit."
                        % (money(risk), _price(ref), _price(stop), money(max_loss)))
         else:
@@ -393,7 +404,7 @@ def size_trade(plan, cfg, budget=None, limit=None, price=None, cash=None, today=
         refusal = ("%d share%s of %s is %s, under your %s minimum order. No order."
                    % (qty, "" if qty == 1 else "s", sym, money(cost), money(c["min_order_usd"])))
     return {
-        "symbol": sym, "side": "buy", "setup": plan.get("setup", ""), "date": plan.get("date"),
+        "symbol": sym, "side": side, "setup": plan.get("setup", ""), "date": plan.get("date"),
         "entry_time": plan.get("entry_time", ""), "entry_plan": round_cent(entry_plan),
         "entry": ref, "entry_from": ref_from, "stop": stop, "target": target,
         "risk_per_share": risk, "reward_risk": round(reward_c / float(risk_c), 2),
@@ -409,7 +420,7 @@ def bracket_order(s):
     """The one proposed order, Alpaca place_stock_order fields (strings) plus why and plan."""
     if s["refusal"] or s["qty"] <= 0:
         return None
-    o = {"symbol": s["symbol"], "side": "buy", "qty": str(int(s["qty"])), "type": s["order_type"],
+    o = {"symbol": s["symbol"], "side": s.get("side", "buy"), "qty": str(int(s["qty"])), "type": s["order_type"],
          "time_in_force": "day"}
     if s["order_type"] == "limit":
         o["limit_price"] = _price(s["entry"])
@@ -443,7 +454,7 @@ def plan_report(s, order, notes=()):
         lines.append(n)
     src = {"plan": "the plan's entry", "price": "the latest price, above the plan's entry",
            "limit": "your limit price"}[s["entry_from"]]
-    lines.append("Sized at %s (%s). Risk %s a share (entry %s minus stop %s). Reward:risk %.2f."
+    lines.append("Sized at %s (%s). Risk %s a share (entry %s vs stop %s). Reward:risk %.2f."
                  % (_price(s["entry"]), src, _price(s["risk_per_share"]), _price(s["entry"]), _price(s["stop"]),
                     s["reward_risk"]))
     lines.append("")
@@ -641,10 +652,10 @@ def size(rows, cfg, budget=None, prices=None, whole=None, cents=False, top=None)
             break
         worst = min(small, key=lambda r: (r["source_weight"], r["ticker"]))
         if whole and shares is not None and shares[worst["ticker"]] == 0 and prices.get(worst["ticker"], 0) > 0:
-            reason = ("one share costs $%s, more than its slice; it cannot be bought in whole shares"
+            reason = ("one share costs ₹%s, more than its slice; it cannot be bought in whole shares"
                       % _num(prices[worst["ticker"]]))
         else:
-            reason = "its slice ($%s) is under your $%s minimum order" % (
+            reason = "its slice (₹%s) is under your ₹%s minimum order" % (
                 _num(dollars[worst["ticker"]]), _num(min_order))
         dropped.append({"ticker": worst["ticker"], "reason": reason})
         keep = [r for r in keep if r["ticker"] != worst["ticker"]]

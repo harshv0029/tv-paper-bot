@@ -13468,7 +13468,7 @@ def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: b
     if not registry_name:
         return False
     import strategy_registry as sr
-    strat = next((s for s in sr.REGISTRY if s.name == registry_name), None)
+    strat = _registry_entry(registry_name)
     if strat is None:
         return False
     # 2026-10-12 user thumb rule: nothing is wired or declared viable until it is backtested by us. A live port not yet
@@ -13504,7 +13504,7 @@ def _is_strategy_wired(strategy_tag: str | None) -> bool:
     if not registry_name:
         return False
     import strategy_registry as sr
-    strat = next((x for x in sr.REGISTRY if x.name == registry_name), None)
+    strat = _registry_entry(registry_name)
     return bool(strat is not None and strat.is_wired())
 
 
@@ -13542,6 +13542,25 @@ def _names_meeting_criteria(crit: dict) -> set:
     return out
 
 
+_VIABLE_OVERRIDES_CACHE: dict = {}
+
+
+def _registry_entry(registry_name: str):
+    """B-1348: name -> StrategyDef via a dict rebuilt only when the registry list changes (was a linear scan of ~41k
+    entries on every gate call). Returns the first entry with that name, as next(...) did."""
+    import strategy_registry as sr
+    key = (id(sr.REGISTRY), len(sr.REGISTRY))
+    if _REGISTRY_INDEX.get("key") != key:
+        idx = {}
+        for d in sr.REGISTRY:
+            idx.setdefault(d.name, d)
+        _REGISTRY_INDEX.update(key=key, idx=idx)
+    return _REGISTRY_INDEX["idx"].get(registry_name)
+
+
+_REGISTRY_INDEX: dict = {}
+
+
 def _load_viable_overrides() -> set:
     """Refresh strategy_registry.VIABLE_OVERRIDES from the (Upstash-mirrored) newest stack entry; never raises.
     The entry's 3-factor criteria (PFnet range, min sample, max hold) are re-derived against the registry's stored
@@ -13551,8 +13570,15 @@ def _load_viable_overrides() -> set:
         _ensure_viable_stack_hydrated()
         with closing(get_db()) as c:
             row = c.execute("SELECT names, label FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
-        crit = _stack_criteria(row[1]) if row else None
-        names = _names_meeting_criteria(crit) if crit else (set(json.loads(row[0])) if row else set())
+        # B-1348: the scan calls this per tag per symbol; re-deriving the criteria over the ~41k-entry registry each time
+        # saturated Render's CPU. Same result, recomputed only when the stack row or the registry list changes.
+        key = (tuple(row) if row else None, id(sr.REGISTRY), len(sr.REGISTRY))
+        if _VIABLE_OVERRIDES_CACHE.get("key") == key:
+            names = _VIABLE_OVERRIDES_CACHE["names"]
+        else:
+            crit = _stack_criteria(row[1]) if row else None
+            names = _names_meeting_criteria(crit) if crit else (set(json.loads(row[0])) if row else set())
+            _VIABLE_OVERRIDES_CACHE.update(key=key, names=names)
         sr.VIABLE_OVERRIDES.clear()
         sr.VIABLE_OVERRIDES.update(names)
         sr.VIABLE_STACK_ACTIVE = row is not None
@@ -16512,7 +16538,7 @@ def _option_pool_allows(strategy_tag: str | None) -> bool:
     if not registry_name:
         return False
     import strategy_registry as sr
-    strat = next((x for x in sr.REGISTRY if x.name == registry_name), None)
+    strat = _registry_entry(registry_name)
     if strat is None:
         return False
     cats = {getattr(c, "value", c) for c in strat.categories}

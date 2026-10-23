@@ -2,7 +2,7 @@
 """B-791: read the Minervini sweep artifact (docs/minervini_sweep_results_<uni>_<tf>.json, written by
 scripts/minervini_sweep_lab.py) and print what the stored TSV could not: the confirmed universe size, the
 exit-reason breakdown per cell, and PFnet per day held against the live minervini_vcp tag
-(minervini_vcp__atrtrail__long__1d__atr1d5_h60__v1, PFnet 0.908). Research reading aid only.
+(nearest cell minervini_vcp__atrtrail__long__1d__atr2_h60__v1, see LIVE_TAG_HINT). Research reading aid only.
 
 Fetch the artifact first:  gh run download 38147956271 -n minervini-sweep-1d -D art/
 Usage: python3 scripts/minervini_sweep_compare.py art/minervini_sweep_results_full_1d.json [--json out.json]
@@ -16,7 +16,10 @@ import argparse
 import json
 import sys
 
-LIVE_TAG_HINT = "atr1d5"
+# B-791 (2026-10-23 IST): the live minervini_vcp exit (main.minervini_vcp_exit_reason) trails at
+# MINERVINI_ATR_STOP_MULT = 2.0 x entry ATR on CLOSES, so the nearest sweep cell is atr2, not atr1d5 (the
+# matching 0.908 PFnet of the atr1d5 cell vs the live registry entry is a coincidence: n 3845 vs 327).
+LIVE_TAG_HINT = "atr2"
 
 
 def _rows(doc):
@@ -33,7 +36,7 @@ def _f(r, *keys):
     return None
 
 
-def analyse(doc, floor=1.0):
+def analyse(doc, floor=1.1):
     out = []
     for tag, r in _rows(doc):
         net, gross = _f(r, "pfnet_net", "pfnet"), _f(r, "pfnet_gross")
@@ -44,7 +47,7 @@ def analyse(doc, floor=1.0):
         edge_per_bar = round((net - 1.0) / held, 4) if net and held else None
         out.append({"tag": tag, "n": _f(r, "n"), "pfnet": net, "pfgross": gross, "win_pct": _f(r, "win_pct"),
                     "avg_held_bars": held, "universe_size": _f(r, "universe_size"),
-                    "exit_share_pct": share, "excess_pf_per_held_bar": edge_per_bar,
+                    "exit_share_pct": share, "exit_detail": r.get("exit_detail") or {}, "excess_pf_per_held_bar": edge_per_bar,
                     "clears_floor": bool(net is not None and net >= floor)})
     return out
 
@@ -53,7 +56,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("path")
     ap.add_argument("--json")
-    ap.add_argument("--floor", type=float, default=1.0)
+    ap.add_argument("--floor", type=float, default=1.1)  # PFNET_LIVE_FLOOR (2026-10-11)
     a = ap.parse_args(argv)
     rows = analyse(json.load(open(a.path)), a.floor)
     for r in rows:

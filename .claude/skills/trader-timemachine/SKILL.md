@@ -21,8 +21,9 @@ argument-hint: "[path to plan.json, or TICKER]"
 > **India / Kotak adaptation (tv-paper-bot, 2026-10-23).** Adapted for NSE/Kotak from Jakeschincariol/day-trader-skill (MIT, see `../TRADER_SKILLS_LICENSE`).
 > Times are IST (UTC+5:30, no DST); session 09:15-15:30 IST (MCX 09:00-23:30); NSE holidays mirror `main.NSE_HOLIDAYS_2026`; amounts are ₹.
 > Use Yahoo `.NS` symbols (RELIANCE.NS, TCS.NS; indices ^NSEI, ^NSEBANK). Cost model: ~0.8% round trip (brokerage 0.20%/side + STT, exchange, SEBI, stamp, GST).
+> Worked examples below are upstream US runs re-labelled, kept to show the output shape: their numbers are not Indian prices.
 > House rules: no trade without SL/SL-M; check long AND short; this skill never places an order - the live bot (`main.py` / `kotak_real_orders.py`) is the only real-order path.
-> Not yet ported (backlog B-1345): short side where the original is long-only; 2027 NSE holidays.
+> Ported (B-1345): replays NSE 5m sessions of 75 bars (09:15-15:30 IST); long and short plans (it already handled `side: sell`); add ~0.8% round-trip cost when reading average R. 2027 NSE holidays are not loaded yet (2027 dates report calendar-unknown).
 
 The Time Machine sits between the plan and the money. trader-exit has set
 the entry, the stop and the target. Before anything is sized or sent, this
@@ -38,7 +39,7 @@ good-looking replay does not change that.
 ```bash
 python3 "${CLAUDE_SKILL_DIR}/timemachine.py" run                    # trader/plan.json, 10,000 replays, seed 19
 python3 "${CLAUDE_SKILL_DIR}/timemachine.py" run --write            # also save trader/timemachine.json
-python3 "${CLAUDE_SKILL_DIR}/timemachine.py" run --until 15:55      # end each replay at your flat-by time
+python3 "${CLAUDE_SKILL_DIR}/timemachine.py" run --until 15:10      # end each replay at your flat-by time
 python3 "${CLAUDE_SKILL_DIR}/timemachine.py" run --json
 python3 "${CLAUDE_SKILL_DIR}/timemachine.py" run --symbol RELIANCE.NS --date 2026-10-19 \
     --entry 364.18 --stop 358.32 --target 370.04 --entry-time "10:15 AM"
@@ -106,7 +107,7 @@ grid). A live in-progress bar is never used.
 
 1. Make sure `trader/plan.json` is today's plan from `/trader-exit`. If there
    is none, run that first, or pass the plan as flags.
-2. Run `timemachine.py run --write`. Add `--until 15:55` when the plan has a
+2. Run `timemachine.py run --write`. Add `--until 15:10` when the plan has a
    flat-by time, so "neither" means still open at the time you would get out.
 3. Tell the user, in this order: the four odds, the median and the 5 to 95
    range of the price at the close, the average R, the history line, then the

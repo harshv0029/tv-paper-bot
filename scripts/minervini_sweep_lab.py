@@ -47,7 +47,9 @@ def simulate(df, i, direction, entry, stop0, atr, atr_mult, maxh, cost):
         if hit:
             px = min(stop, o[j]) if direction == "long" else max(stop, o[j])
             g = sgn * (px / ent - 1)
-            return g, g - cost, j - e + 1, "stop_or_trail"
+            # B-791: split the old pooled "stop_or_trail" so the exit breakdown can tell the structural
+            # initial stop (never ratcheted) from the ATR trail (ratcheted past stop0) - per-reason PFnet below.
+            return g, g - cost, j - e + 1, ("initial_stop" if stop == stop0 else "trail_stop")
         if direction == "long":
             ext = max(ext, c[j])
             stop = max(stop, ext - atr_mult * atr)
@@ -69,9 +71,16 @@ def summarize(gross, net, held, reasons, universe_n, cost):
     exits = {}
     for r in reasons:
         exits[r] = exits.get(r, 0) + 1
+    held_a, rs = np.asarray(held, float), np.asarray(reasons)
+    exit_detail = {}
+    for r in exits:
+        m = rs == r
+        exit_detail[r] = {"n": int(m.sum()), "pfnet": pf(net[m]), "pfnet_gross": pf(gross[m]),
+                          "win_pct": round(float((net[m] > 0).mean() * 100), 1),
+                          "avg_held_bars": round(float(held_a[m].mean()), 2)}
     return {"pfnet_gross": pf(gross), "pfnet": pf(net), "win_pct": round(float((net > 0).mean() * 100), 1),
             "n": int(len(net)), "avg_net_pct": round(float(net.mean() * 100), 3),
-            "avg_held_bars": round(float(np.mean(held)), 2), "exits": exits,
+            "avg_held_bars": round(float(np.mean(held)), 2), "exits": exits, "exit_detail": exit_detail,
             "universe_size": int(universe_n), "cost_round_trip": cost}
 
 
@@ -135,8 +144,9 @@ def main_run():
             res[tag] = s
     out = os.path.join(ROOT, "docs", f"minervini_sweep_results_{uni}_{interval}.json")
     json.dump({"results": res}, open(out, "w"), indent=1)
+    print("universe_size", len(syms), "(requested, ETFs excluded)", flush=True)
     for t, v in sorted(res.items()):
-        print(t, v["pfnet_gross"], v["pfnet"], v["win_pct"], v["n"], v["avg_held_bars"])
+        print(t, v["pfnet_gross"], v["pfnet"], v["win_pct"], v["n"], v["avg_held_bars"], json.dumps(v["exit_detail"]))
 
 
 if __name__ == "__main__":

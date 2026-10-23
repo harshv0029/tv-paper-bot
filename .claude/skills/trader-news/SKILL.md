@@ -18,8 +18,9 @@ argument-hint: "[tickers]"
 > **India / Kotak adaptation (tv-paper-bot, 2026-10-23).** Adapted for NSE/Kotak from Jakeschincariol/day-trader-skill (MIT, see `../TRADER_SKILLS_LICENSE`).
 > Times are IST (UTC+5:30, no DST); session 09:15-15:30 IST (MCX 09:00-23:30); NSE holidays mirror `main.NSE_HOLIDAYS_2026`; amounts are ₹.
 > Use Yahoo `.NS` symbols (RELIANCE.NS, TCS.NS; indices ^NSEI, ^NSEBANK). Cost model: ~0.8% round trip (brokerage 0.20%/side + STT, exchange, SEBI, stamp, GST).
+> Worked examples below are upstream US runs re-labelled, kept to show the output shape: their numbers are not Indian prices.
 > House rules: no trade without SL/SL-M; check long AND short; this skill never places an order - the live bot (`main.py` / `kotak_real_orders.py`) is the only real-order path.
-> Not yet ported (backlog B-1345): SEC 8-K feed is US-only; NSE corporate announcements not wired yet, Yahoo .NS headlines work.
+> Ported (B-1345): sources are Yahoo headlines (region IN, bare symbols -> `.NS`) and **NSE corporate announcements** (nseindia.com API, cookie handshake via the home page; best effort, NSE may throttle or block some IPs, failures show as notes). SEC 8-Ks only with `--us`. Macro tags include RBI/MPC/SEBI/GST/budget/FII-DII. Times shown in IST.
 
 A chart can look perfect and still be about to gap on an earnings date, a
 halt or a lawsuit. Before a setup becomes a trade, this skill reads the two
@@ -84,7 +85,7 @@ morning before the open.
 
 ## Example: the reel
 
-Monday 2026-10-19, RELIANCE.NS broke its opening range at 10:15 AM ET. The check at
+Monday 2026-10-19, RELIANCE.NS broke its opening range at 10:15 AM IST. The check at
 10:15 (Yahoo Finance's RELIANCE.NS feed, 16 headlines since 8:00) leads with the
 morning's real stories: "Meta and Musk earnings and September pending home
 sales: What to Watch" (8:00, earnings), "Reliance-SpaceX Merger Mania Strikes
@@ -92,7 +93,7 @@ Wall Street Ahead of Earnings" (8:04, earnings, deal), "Tech Stock Rebound
 Nudges US Equity Futures Mostly Higher Pre-Bell" (8:02, macro). The brief:
 "Reliance reports this week, so the stock can gap overnight; today's trade is
 in and out before the close. No new 8-K." At 10:52 the price line reads
-`RELIANCE.NS 366.48 +3.31% vs yesterday's close 354.72 at 10:52 ET  MOVING`. When a
+`RELIANCE.NS 366.48 +3.31% vs yesterday's close 354.72 at 10:52 IST  MOVING`. When a
 ticker has no news, say so rather than padding the brief.
 
 ## What it never does
