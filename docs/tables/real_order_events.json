@@ -4247,7 +4247,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000693228 rejected: Adapter is Not Ready"
+  },
+  {
+   "id": 355,
+   "ts": 1792757482.2513874,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000693311 rejected: Adapter is Not Ready"
   }
  ],
- "synced_at_utc": "2026-10-23T12:11:14Z"
+ "synced_at_utc": "2026-10-23T12:11:25Z"
 }
