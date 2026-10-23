@@ -51,3 +51,11 @@ def test_health_keeps_first_and_last_alarm(monkeypatch):
     assert h["watchdog_alarms"] == 2
     assert h["watchdog_first_alarm"]["loop_lag_s"] == 20.0 and h["watchdog_last_alarm"]["loop_lag_s"] == 40.0
     assert isinstance(h["watchdog_first_alarm"]["threads"], list)
+
+
+def test_scheduler_tick_keeps_kotak_calls_off_the_loop():
+    """B-1361: live first/last alarm stacks showed quotes() and limits() running on MainThread, freezing /health 16-31 s."""
+    import inspect
+    src = inspect.getsource(main._scheduler_tick)
+    assert "await asyncio.to_thread(get_scheduler_capital_inr)" in src
+    assert "_fo_chain_monitoring_snapshot(conn)" not in src
