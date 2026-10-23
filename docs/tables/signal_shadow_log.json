@@ -615,7 +615,51 @@
       "taken": 0,
       "reason": "real entry: strategy below PFnet floor",
       "hard_gate": 1
+    },
+    {
+      "id": 57,
+      "ts": 1792742482.8867655,
+      "day": "2026-10-23",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "CANBK.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 58,
+      "ts": 1792742482.8998938,
+      "day": "2026-10-23",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "CANBK.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 59,
+      "ts": 1792742482.9140694,
+      "day": "2026-10-23",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "IRFC.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 60,
+      "ts": 1792742482.9284582,
+      "day": "2026-10-23",
+      "strategy_tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "symbol": "IRFC.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
     }
   ],
-  "synced_at_utc": "2026-10-22T13:43:08Z"
+  "synced_at_utc": "2026-10-23T08:03:21Z"
 }
