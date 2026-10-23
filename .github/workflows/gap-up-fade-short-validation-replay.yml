@@ -166,6 +166,7 @@ jobs:
                               position["entry_label"], closes[i], dates[i], reason,
                               position["entry_cost"], held_minutes, cost_model,
                           ))
+                          trades[-1]["held_bars"] = i - position["entry_idx"]  # B-420: market bars, not wall-clock
                           position = None
 
                   if position is None:
@@ -194,6 +195,7 @@ jobs:
                       position["entry_label"], closes[-1], dates[-1], "data_end_forced_close",
                       position["entry_cost"], held_minutes, cost_model,
                   ))
+                  trades[-1]["held_bars"] = (n - 1) - position["entry_idx"]  # B-420
               return trades
 
 
@@ -239,6 +241,8 @@ jobs:
     needs: replay
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4  # B-420: for scripts/research_hold_summary.py (runs before download, so no clean-up clash)
+
       - uses: actions/download-artifact@v4
         with:
           pattern: shard-*-result
@@ -250,6 +254,9 @@ jobs:
           python3 - <<'PYEOF'
           import glob
           import json
+          import sys
+          sys.path.insert(0, "scripts")
+          import research_hold_summary as _hs  # B-420
 
           all_trades = []
           per_symbol_trade_count = {}
@@ -306,4 +313,17 @@ jobs:
           print("\n=== Top 15 symbols by trade count ===")
           for sym, cnt in sorted(per_symbol_trade_count.items(), key=lambda kv: -kv[1])[:15]:
               print(f"{sym}: {cnt} trades")
+          # B-420: machine-readable summary, hold in market bars (5m); avg_held_minutes above is wall-clock incl. overnight
+          _univ = f"full_universe ({total_fetched}/{total_universe} fetched)"
+          _rows = [_hs.summarize("gap_up_fade_short", all_trades, _univ, bar_minutes=5)]
+          for _r, _ts in sorted(by_reason.items(), key=lambda kv: -len(kv[1])):
+              _rows.append(_hs.summarize(f"gap_up_fade_short|{_r}", _ts, _univ, bar_minutes=5))
+          _hs.write_summary(_rows)
           PYEOF
+
+      - uses: actions/upload-artifact@v4  # B-420: n, win_pct, pfnet, pfgross, avg_held_bars, avg_held_hrs, exits, universe, run_id
+        if: always()
+        with:
+          name: b420-hold-summary
+          path: b420_out/
+          retention-days: 90
