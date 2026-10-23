@@ -1,5 +1,10 @@
-name: cup 3C cheat 1h LONG main.py-function replay (B-1210)
+name: cup 3C cheat 1h main.py-function replay, long or short mirror (B-1210)
 
+# direction=short (B-1190/B-1210, 2026-10-23 IST): the inverted-cup / bear cheat SHORT mirror is RESEARCH-SIDE. main.py has
+# no short cup-cheat function, so entry/exit come from scripts/cup_cheat_short_research.py (long rule on the reciprocal
+# series; sell short at the signal close, buy-to-cover stop = entry + k x ATR14 always above entry; gap-aware stop, else the
+# hold-th close). Same 9 (ATR 2.5/4/6 x hold 6/18/30) cells, own tags base__cup_cheat_3c__short__1h__atr<k>_h<N>__v1, same
+# full universe / 1h 730d / cost / FIFO. A short cell can only go live after a main.py port + replay of that port.
 # Backlog B-1210. Replays all 9 tags of main.CUP_CHEAT_1H_CELLS (long) by IMPORTING and CALLING the real main.py
 # functions (cup_cheat_3c_fires/entry_signal, cup_cheat_3c_exit_reason) on the FULL universe (_load_nse_universe_from_file),
 # cost = main.ROUND_TRIP_COST_PCT, 1h bars, yfinance 730d cap, glitch bars cleaned. Commit the merged JSON as
@@ -7,6 +12,12 @@ name: cup 3C cheat 1h LONG main.py-function replay (B-1210)
 # only when no gate/safety run is queued. Validation only; wires nothing, no kill switch.
 on:
   workflow_dispatch:
+    inputs:
+      direction:
+        description: "long (real main.py functions) or short (research-side inverted-cup mirror)"
+        type: choice
+        options: [long, short]
+        default: long
 
 jobs:
   replay:
@@ -26,10 +37,11 @@ jobs:
       - env:
           SHARD: ${{ matrix.shard }}
           NSHARDS: "8"
+          DIRECTION: ${{ inputs.direction }}
         run: python3 scripts/cup_cheat_main_replay.py run
       - uses: actions/upload-artifact@v4
         with:
-          name: cup-cheat-main-replay-s${{ matrix.shard }}
+          name: cup-cheat-main-replay-${{ inputs.direction }}-s${{ matrix.shard }}
           path: out/
           retention-days: 7
 
@@ -46,12 +58,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: shards
-          pattern: cup-cheat-main-replay-s*
+          pattern: cup-cheat-main-replay-${{ inputs.direction }}-s*
           merge-multiple: true
       - run: python3 scripts/cup_cheat_main_replay.py merge shards cupcheat_all.json | tee cupcheat_table.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: cup-cheat-main-replay-results
+          name: cup-cheat-main-replay-${{ inputs.direction }}-results
           path: |
             cupcheat_all.json
             cupcheat_table.txt
