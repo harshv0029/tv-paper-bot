@@ -4763,7 +4763,19 @@
    "prev_state": "none (retry)",
    "new_state": "resting SELL trigger Rs373.20",
    "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs373.22"
+  },
+  {
+   "id": 398,
+   "ts": 1792766012.3535316,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": "GSEC5IETF-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261023000730902",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs63.93",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs63.93"
   }
  ],
- "synced_at_utc": "2026-10-23T14:33:08Z"
+ "synced_at_utc": "2026-10-23T14:33:35Z"
 }
