@@ -181,12 +181,12 @@ class StrategyDef:
         return self.metrics.pfnet >= floor
 
     def is_wired(self, floor: float = PFNET_LIVE_FLOOR) -> Optional[bool]:
-        """B-1284 (user 2026-10-19): wiring for scanning = PFnet >= floor AND avg hold <= 30 trading days
-        (None hold fails). Independent of the explorer stack, which governs real ENTRY only."""
+        """B-1344 (user 2026-10-23: "just one condition for wiring, PFnet before tax >= 1, nothing else"): wiring for
+        scanning/monitoring = PFnet >= floor ONLY (PFnet is net of trading costs and charges, before income tax).
+        Supersedes B-1284's 30-day hold condition. Independent of the explorer stack, which governs real ENTRY only."""
         if self.metrics is None:
             return None
-        m = self.metrics
-        return bool(m.pfnet >= floor and m.avg_held_hrs is not None and m.avg_held_hrs <= 30 * TRADING_HOURS_PER_DAY)
+        return bool(self.metrics.pfnet >= floor)
 
 
 # 2026-10-12 user: "quality, not quantity" - the viable TABLES list only strategies with PFnet >= floor, at least
@@ -2925,6 +2925,8 @@ def _extend_with_sweeps():
         REGISTRY.extend(_bk.build())
         import strategy_registry_brk20_isoos as _bki
         REGISTRY.extend(_bki.build())
+        import strategy_registry_brk20_fno as _bkf
+        REGISTRY.extend(_bkf.build())
         import strategy_registry_elderpat as _ep
         REGISTRY.extend(_ep.build())
         import strategy_registry_dirsys_oneilnonovl as _dn

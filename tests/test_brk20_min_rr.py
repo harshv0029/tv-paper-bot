@@ -206,3 +206,21 @@ def test_plan_matrix_default_and_cap():
     assert {"atr": 3.0, "rr": 3.0, "be": 1.0} in cells
     with pytest.raises(SystemExit):
         P.build({"NSHARDS": "30"})
+
+
+def test_b1339_fno_universe_and_cost_override_are_their_own_tags(monkeypatch):
+    """B-1339: futures-route research runs (F&O-underlying universe, futures cost) never share a cash tag."""
+    import importlib, sys, os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+    R = importlib.import_module("brk20_replay")
+    assert R.make_tag("short", "1d", 4, 4) == "brk20_min_rr__main_replay__short__1d__atr4_rr4__v1"
+    assert (R.make_tag("short", "1d", 4, 4, 1, "fno", 0.3)
+            == "brk20_min_rr__main_replay_fno__short__1d__atr4_be1_cost0d3_rr4__v1")
+
+    class M:
+        @staticmethod
+        def _load_nse_universe_from_file():
+            return ["RELIANCE.NS", "SOMESMALLCAP.NS", "TCS.NS"]
+    syms = R.universe_symbols(M, "fno")
+    assert "SOMESMALLCAP.NS" not in syms and "RELIANCE.NS" in syms
+    assert R.universe_symbols(M, "full") == sorted(M._load_nse_universe_from_file())
