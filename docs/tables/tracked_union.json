@@ -60,7 +60,7 @@
    "qty": 1,
    "sl_trigger_price": 165.06,
    "source": "holding",
-   "stop_loss": 164.0,
+   "stop_loss": 164.8,
    "strategy": "order_block_delta",
    "symbol": "UNIONBANK.NS"
   },
