@@ -3875,7 +3875,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000676659 rejected: 16387 : Security is not allowed to trade in this market  "
+  },
+  {
+   "id": 324,
+   "ts": 1792753330.8723507,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000676772 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :383.55,  Low Price Range:385.00 High Price Range:408.80  for entity account-XUAEZ across exchange across segment across product "
   }
  ],
- "synced_at_utc": "2026-10-23T11:01:50Z"
+ "synced_at_utc": "2026-10-23T11:02:14Z"
 }
