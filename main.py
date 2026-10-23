@@ -28596,6 +28596,8 @@ def _git_tier_push_side_branch(name: str) -> bool:
             local = [dict(r) for r in conn.execute(f"SELECT * FROM {name}").fetchall()]
         digest = hashlib.sha256(json.dumps(local, sort_keys=True, default=str).encode()).hexdigest()
         if not local or digest == _git_tier_push_last_hash.get(name):
+            if digest == _git_tier_push_last_hash.get(name):
+                _git_tier_push_last_ok[name] = time.time()  # B-1360: unchanged since the last push = in sync, not stale
             return False
         repo = os.environ.get("GITHUB_SYNC_REPO", "harshv0029/tv-paper-bot")
         hdr = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
@@ -28707,14 +28709,16 @@ def _upstash_probe(now=None) -> dict:
     if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
         _UPSTASH_PROBE.update(ok=False, error="not configured")
         return _UPSTASH_PROBE
-    try:
-        r = requests.get(f"{UPSTASH_REDIS_REST_URL}/ping",
-                         headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"}, timeout=5)
-        _upstash_meter("ping", len(r.content or b""), "get")
-        ok = r.status_code == 200
-        _UPSTASH_PROBE.update(ok=ok, error=None if ok else f"HTTP {r.status_code}: {str(r.text)[:160]}")
-    except Exception as e:  # noqa: BLE001
-        _UPSTASH_PROBE.update(ok=False, error=f"{type(e).__name__}: {str(e)[:160]}")
+    for attempt in range(2):  # B-1360: one slow reply (a 5 s ReadTimeout during the boot restore) is not an outage
+        try:
+            r = requests.get(f"{UPSTASH_REDIS_REST_URL}/ping",
+                             headers={"Authorization": f"Bearer {UPSTASH_REDIS_REST_TOKEN}"}, timeout=5)
+            _upstash_meter("ping", len(r.content or b""), "get")
+            ok = r.status_code == 200
+            _UPSTASH_PROBE.update(ok=ok, error=None if ok else f"HTTP {r.status_code}: {str(r.text)[:160]}")
+            break  # an HTTP answer (even 403) is definitive; only a network error is retried
+        except Exception as e:  # noqa: BLE001
+            _UPSTASH_PROBE.update(ok=False, error=f"{type(e).__name__}: {str(e)[:160]}")
     if _UPSTASH_PROBE["ok"]:
         _UPSTASH_PROBE["last_ok_at"] = now
     else:
