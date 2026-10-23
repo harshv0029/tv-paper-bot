@@ -7,6 +7,11 @@ name: Kotak Real P&L Audit
 # guessed); phase 2 will add per-symbol realised P&L once they are known.
 on:
   workflow_dispatch:
+    inputs:
+      symbols:
+        description: "Comma-separated trdSym substrings to print order rows for (blank = legacy RVNL/SAIL/DRREDDY/VBL/INDHOTEL/JIO)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -19,6 +24,7 @@ jobs:
       - name: Fetch trade book and order book, print schema only
         env:
           KOTAK_NEO_API_TOKEN: ${{ secrets.KOTAK_NEO_API_TOKEN }}
+          AUDIT_SYMS: ${{ github.event.inputs.symbols }}
         run: |
           B=https://tv-paper-bot-gdan.onrender.com
           curl -sS -m 90 "$B/health" || true; echo
@@ -40,7 +46,7 @@ jobs:
           import json
           try: rows=json.load(open("/tmp/o.json")).get("data") or []
           except Exception as e: rows=[]; print("o unreadable",type(e).__name__)
-          sel=[r for r in rows if any(k in str(r.get("trdSym","")) for k in ("RVNL","SAIL","JIO"))]
+          sel=[r for r in rows if any(k in str(r.get("trdSym","")) for k in (tuple(x.strip().upper() for x in __import__("os").environ.get("AUDIT_SYMS","").split(",") if x.strip()) or ("RVNL","SAIL","JIO")))]
           sel.sort(key=lambda r: str(r.get("ordDtTm","")))
           print("RVNL/SAIL order rows:",len(sel))
           for r in sel:
@@ -53,7 +59,8 @@ jobs:
           # endpoints are token-free and already public; filtered to those symbols only.
           import json, subprocess, datetime
           IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
-          SYMS = ("RVNL", "SAIL", "DRREDDY", "VBL", "INDHOTEL", "JIO")
+          import os
+          SYMS = tuple(x.strip().upper() for x in os.environ.get("AUDIT_SYMS", "").split(",") if x.strip()) or ("RVNL", "SAIL", "DRREDDY", "VBL", "INDHOTEL", "JIO")
           B = "https://tv-paper-bot-gdan.onrender.com"
           def get(path):
               out = subprocess.run(["curl", "-sS", "--retry", "3", "--retry-delay", "10", "-m", "90", B + path], capture_output=True, text=True).stdout
