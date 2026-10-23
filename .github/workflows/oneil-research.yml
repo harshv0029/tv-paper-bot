@@ -15,9 +15,21 @@ name: O'Neil research batch (B-460 B-466 B-473 B-483 B-488 B-489 B-491 B-493 B-5
 # naming grammar (never pooled); the merge prints PFnet net, win %, n, avg hold and exit-reason breakdown
 # and uploads docs/oneil_research_results.json. Shards are interleaved, so RS rank is the percentile
 # within a shard's ~1/3 sample of the universe (stated, not the exact full-universe rank).
+# Input exit_set (B-489/B-491, 2026-10-23 IST): "base" (default) = the exits above, unchanged. "stoptgt" replaces
+# them with the O'Neil stop/target sweep: pct stop 5/6/7/8/10% (short: buy-to-cover % above entry); target
+# 15/20/25% at every stop; and the 8-week min-hold variant (target hit inside 8 weeks -> hold to week 8, exit at
+# that close; tag mh40 on 1d, mh8 on 1w; only on holds longer than 8 weeks: 1d h60, 1w h12/h26). Same 8 jobs;
+# ~3.6x (1d) / ~4.3x (1w) the simulate calls of the base set, but signal detection dominates: local synthetic
+# timing 0.41s -> 0.54s per 8 symbols (~1.3x wall). pct7/pct8 and pct8_tgt20 reproduce base-run tags.
 # Dispatch order per CLAUDE.md: big matrix, so only when no gate/safety run is queued.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      exit_set:
+        description: "base | stoptgt (B-489/B-491 stop 5-10% x target 15-25% + 8-week min-hold sweep)"
+        type: choice
+        options: ["base", "stoptgt"]
+        default: "base"
 
 jobs:
   scan:
@@ -37,12 +49,13 @@ jobs:
       - name: Scan shard
         env:
           TF: ${{ matrix.tf }}
+          EXIT_SET: ${{ inputs.exit_set || 'base' }}
           SHARD: ${{ matrix.shard }}
           NSHARDS: "3"
         run: python3 scripts/oneil_research.py
       - uses: actions/upload-artifact@v4
         with:
-          name: oneil-${{ matrix.tf }}-s${{ matrix.shard }}
+          name: oneil-${{ inputs.exit_set || 'base' }}-${{ matrix.tf }}-s${{ matrix.shard }}
           path: docs/oneil_research_${{ matrix.tf }}_s${{ matrix.shard }}.json
 
   merge:
@@ -60,14 +73,14 @@ jobs:
       - run: pip install -q -r requirements.txt
       - uses: actions/download-artifact@v4
         with:
-          pattern: oneil-${{ matrix.tf }}-s*
+          pattern: oneil-${{ inputs.exit_set || 'base' }}-${{ matrix.tf }}-s*
           path: shards
           merge-multiple: true
       - name: Merge shards and report
         run: python3 scripts/oneil_research.py --merge shards/oneil_research_${{ matrix.tf }}_s*.json | tee merge_${{ matrix.tf }}.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: oneil-results-${{ matrix.tf }}
+          name: oneil-results-${{ inputs.exit_set || 'base' }}-${{ matrix.tf }}
           path: |
             docs/oneil_research_results.json
             merge_${{ matrix.tf }}.txt
