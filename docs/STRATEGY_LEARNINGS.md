@@ -1401,3 +1401,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Surprise: a zero-trade run looked like a broken fetch; it was the rule (16 ATR of room never happens in large caps). Read the entry rule before blaming the data, and keep the harness printing loaded/error counts.
 - Reuse next time: before routing any cash-equity edge to F&O, rerun it on the F&O universe first; universe composition can be the whole edge.
 - Profit-booking / exit takeaway: a short signal that cannot be held overnight is worth nothing as a swing; and an edge confined to small caps cannot be moved into derivatives, so keep it as research.
+
+## Wiring vs entry are two different gates (2026-10-23 IST, B-1344)
+- Mechanism: wiring = monitoring (scan, paper signal, trigger counts) and has ONE condition, registry PFnet >= 1 (net of costs, before income tax). Real entry is the last step and adds the explorer stack (PFnet range, min trades, max hold), replay-owed block and the switch.
+- What broke: `is_wired()` had quietly picked up a 30-day hold condition and `_is_strategy_wired()` a replay-owed block, so long-hold PFnet >= 1 cells were never monitored and produced no trigger evidence.
+- Reuse: never add an entry-side filter to the wiring function; put it in `_is_strategy_viable_for_real_money`.
+- Profit-booking / exit takeaway: monitoring more PFnet >= 1 cells costs nothing in real money and gives trigger counts that show which cells deserve an entry slot.
