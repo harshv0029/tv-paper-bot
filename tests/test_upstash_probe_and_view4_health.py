@@ -42,3 +42,8 @@ def test_view4_polls_health_and_never_hides_a_failed_stop_check():
     assert 'getJSON("/health")' in src and "Render unreachable since" in src and "Upstash DOWN" in src
     i = src.index("async function pollProtection")
     assert "catch (e) {}" not in src[i:src.index("async function pollPositions")]
+
+
+def test_tabs_shell_shows_system_health_for_every_view():
+    src = (Path(__file__).resolve().parent.parent / "static" / "trade-view-tabs.html").read_text()
+    assert 'fetch("/health"' in src and "Render unreachable since" in src and "Upstash down" in src
