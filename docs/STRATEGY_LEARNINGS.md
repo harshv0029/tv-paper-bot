@@ -1413,3 +1413,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Fit: research and manual-check aid only. Its ORB entry (close above/below the 15-min range) is not a registered strategy and has no PFnet here, so it must never drive real money; any idea from it goes through the normal full-universe replay first.
 - Reuse: the exit planner's "mirror prices around the entry" trick makes a short plan from long maths with correct rounding; Kotak cash has no OCO bracket, so SL-M and target are separate legs.
 - Profit-booking / exit takeaway: the pack's default flat-by was moved to 15:10 IST because the exchange cancels resting orders at 15:15 and the bot squares off at 15:14.
+
+## O'Neil averaging-down "negative control" beat no-averaging (2026-10-23 IST, B-502, run 38193479637)
+- Mechanism: the avg1 cells add a second unit after a drop, as a deliberate control expected to lose.
+- Result: avg1 beat the matched no-averaging cell in every pairing (median PFnet +0.46 1d long, +0.88 1w long, +0.20/+0.33 short). Most "best" O'Neil cells are avg1 cells (flatbase 1w 8.71 vs 6.70 without; cup_handle 1d 2.55 vs 2.04). Weekly short viability almost disappears without avg1 (only saucer keeps ~26 thin cells, n~33).
+- Fit: the engine invariant stays never-average-down. Averaging down raises PFnet by doubling exposure on losers that later recover inside a 30-day hold; it hides tail risk (a stock that keeps falling costs two units) and the per-trade stop no longer bounds the loss. Not wired; any future proposal needs a drawdown/tail measure, not PFnet alone.
+- Also: on O'Neil longs, 8% stops (-0.03/-0.31 median PFnet 1d/1w), +20% target (-0.15/-0.29) and the swing-low trail (-0.14/-0.04) all lost to the plain ATR3 stop with timeout.
+- Profit-booking / exit takeaway: for O'Neil base breakouts, a wide ATR3 stop held to the timeout books more than an early +20% target or a tight percent stop; quote no-averaging cells when ranking.
