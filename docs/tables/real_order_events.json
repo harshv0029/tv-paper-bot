@@ -3023,7 +3023,43 @@
    "prev_state": null,
    "new_state": "held - no sell placed",
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 253,
+   "ts": 1792749424.026138,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000657135 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
+  },
+  {
+   "id": 254,
+   "ts": 1792749433.0568843,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000657286 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
+  },
+  {
+   "id": 255,
+   "ts": 1792749443.620237,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261023000657425 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   }
  ],
- "synced_at_utc": "2026-10-23T09:56:44Z"
+ "synced_at_utc": "2026-10-23T09:57:43Z"
 }
