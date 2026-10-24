@@ -45,6 +45,7 @@ an actual live bug - see _fo_rows) is a plain LIST too, not the
 /kotak-neo/search-scrip diagnostic wrapper.
 """
 import datetime as dt
+import time
 
 import kotak_neo
 
@@ -209,7 +210,30 @@ def _to_float(v):
         return None
 
 
+# B-1362 (2026-10-24): the SDK's search_scrip re-parses the whole segment scrip master with pd.read_csv on every call
+# (only the CSV bytes are cached). The F&O snapshot made ~20 such calls in a row, and the parse holds the GIL, so
+# the event loop froze ~18 s each time on Render's small CPU (/health watchdog stacks). Contract lists do not
+# change intraday, so the exact-match rows are kept for 30 min within one IST date; errors are never cached.
+_FO_ROWS_CACHE_TTL_SECONDS = 30 * 60
+_fo_rows_cache: dict = {}
+
+
+def _ist_date() -> dt.date:
+    return (dt.datetime.utcnow() + dt.timedelta(hours=5, minutes=30)).date()
+
+
 def _fo_rows(underlying: str, option_type: str | None = None):
+    key = (underlying.upper(), option_type)
+    hit = _fo_rows_cache.get(key)
+    if hit and hit[0] == _ist_date() and time.time() - hit[1] < _FO_ROWS_CACHE_TTL_SECONDS:
+        return list(hit[2]), None
+    rows, err = _fo_rows_uncached(underlying, option_type)
+    if rows and err is None:
+        _fo_rows_cache[key] = (_ist_date(), time.time(), list(rows))
+    return rows, err
+
+
+def _fo_rows_uncached(underlying: str, option_type: str | None = None):
     fo_symbol = underlying.upper()
     segment = _UNDERLYING_TO_SEGMENT.get(fo_symbol)
     if segment is None:
