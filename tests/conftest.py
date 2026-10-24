@@ -101,3 +101,10 @@ def _registry_gate_without_stack_in_tests(request, monkeypatch):
     for _m in {id(main): main, id(getattr(request.module, "main", main)): getattr(request.module, "main", main)}.values():
         if hasattr(_m, "REAL_ENTRY_REQUIRES_EXPLORER_STACK"):
             monkeypatch.setattr(_m, "REAL_ENTRY_REQUIRES_EXPLORER_STACK", False)
+
+
+@pytest.fixture(autouse=True)
+def _clear_fo_rows_cache():
+    """B-1362: nse_fo_chain caches search_scrip rows; tests patch search_scrip with different data, so start empty."""
+    import nse_fo_chain
+    nse_fo_chain._fo_rows_cache.clear()
