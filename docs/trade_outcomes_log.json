@@ -2849,5 +2849,33 @@
     "rr_target": 3.0,
     "rr_achieved": 1.03,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "SBIN.NS",
+    "exit_time_utc": 1793007892.754064,
+    "entry_price_native": 960.9000244140625,
+    "exit_price_native": 958.4500122070312,
+    "currency": "INR",
+    "qty": 204.0,
+    "pnl_inr": 0.0,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "eod_squareoff",
+    "rr_target": 3.0,
+    "rr_achieved": -0.25,
+    "strategy": null
+  },
+  {
+    "symbol": "TCS.NS",
+    "exit_time_utc": 1793007923.3513887,
+    "entry_price_native": 2532.300048828125,
+    "exit_price_native": 2532.89990234375,
+    "currency": "INR",
+    "qty": 77.0,
+    "pnl_inr": 46.19,
+    "pnl_pct_of_capital": 0.012,
+    "exit_reason": "eod_squareoff",
+    "rr_target": 3.0,
+    "rr_achieved": 0.02,
+    "strategy": "orb-15m-sma9-21"
   }
 ]
