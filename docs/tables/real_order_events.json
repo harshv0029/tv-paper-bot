@@ -7511,7 +7511,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261026000718294 rejected: Adapter is Logged Off"
+  },
+  {
+   "id": 626,
+   "ts": 1793032508.1054044,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261026000718312",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 22:03:00 S SL qty 1 trg 164.80 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+   "id": 627,
+   "ts": 1793032508.1055923,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261026000718294",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 22:02:48 S SL qty 8 trg 126.73 status rejected rejRsn Adapter is Logged Off"
   }
  ],
- "synced_at_utc": "2026-10-26T16:35:05Z"
+ "synced_at_utc": "2026-10-26T16:36:14Z"
 }
