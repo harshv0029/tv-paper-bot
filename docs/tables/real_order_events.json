@@ -7799,7 +7799,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'XUAEZ-4f4f9493-25b3-49d8-9e62-fc2e872a9bf8| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7ff4cc01c010 and pBufHndl : 0x7ff510d45450 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
+  },
+  {
+   "id": 651,
+   "ts": 1793045079.303693,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'XUAEZ-d0afd520-8e7e-427d-bab6-0b84fb3d4e4d| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7f7ddb17f010 and pBufHndl : 0x7f7dbcd456b0 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
   }
  ],
- "synced_at_utc": "2026-10-26T20:04:05Z"
+ "synced_at_utc": "2026-10-26T20:04:42Z"
 }
