@@ -25353,6 +25353,10 @@ async def _scheduler_tick():
                 _swing_sl_trail_last_day = _today_ist
             except Exception as e:
                 print(f"[REAL SWING] daily SL trail/mirror failed (non-fatal, retries next tick): {e}")
+        try:  # B-1369: entry-day stop breached -> cancel open sells, then market sell (every tick, in session)
+            await _real_off_loop(_swing_entry_stop_breach_sweep)
+        except Exception as e:
+            print(f"[REAL SWING] breach sweep failed (non-fatal): {e}")
         try:
             await _real_off_loop(_retry_pending_real_swing_orders)
         except Exception as e:
@@ -28207,8 +28211,9 @@ def kotak_neo_holdings(request: Request):
 # COALINDIA); these seed the floor once so the next 09:15 placement uses the entry-day number again.
 _SWING_ENTRY_STOP_SEED = {
     "UNIONBANK.NS": 162.88, "COALINDIA.NS": 398.35, "GSEC5IETF.NS": 64.70, "WIPRO.NS": 164.42,
-    # BANKINDIA.NS entry-day stop was 126.73 but it last traded Rs126.32 (26-Oct): restoring it sells the holding at
-    # the next open, a real-money action left to the owner (B-1367). Until then its floor is the stop on record.
+    # Owner 26-Oct ~20:30 IST: "if the entry day SL is crossed then immediately close the trade". BANKINDIA last
+    # traded Rs126.32 < 126.73, so the breach sweep closes it at the next session.
+    "BANKINDIA.NS": 126.73,
 }
 
 
@@ -28256,17 +28261,63 @@ def _swing_live_ltp(symbol: str) -> float:
 
 
 def _swing_stop_breached_exit(conn, symbol: str, stop: float, ltp: float) -> bool:
-    """B-1367: the market is at/below the fixed stop, so a resting SELL-SL cannot sit under it. The stop has been hit:
-    exit at market (09:15 thumb rule: where an SL cannot be placed, cut the risk) instead of lowering the stop."""
+    """B-1367/B-1369: the market is at/below the fixed entry-day stop, so the stop has been hit. Owner rule (26-Oct):
+    close immediately - (1) read Kotak holdings + the whole live order book, (2) cancel every open sell on the symbol
+    (the current SL included), (3) only then a market SELL for Kotak's held qty. Never lowers the stop. Returns True
+    when the breach was handled (sell sent, or waiting on a cancel this pass), so the caller places no SL."""
     # stop >= ltp * 0.999 is exactly where _swing_stop_below_price used to LOWER the stop 1% under the market
     if not (ltp > 0 and stop > 0 and stop >= ltp * 0.999):
         return False
     _n = ist_now()
     if _n.weekday() >= 5 or not (dt.time(9, 15) <= _n.time() < dt.time(15, 15)):
         return False  # outside the session a market sell is rejected; the 09:15 pass handles it
-    _maybe_place_real_swing_exit(conn, symbol, reason=(
-        f"entry-day stop Rs{stop:.2f} breached (live Rs{ltp:.2f}); the stop is never lowered, so the holding is sold"))
+    row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+    if not row:
+        return False
+    import kotak_real_orders
+    trd = row["kotak_trading_symbol"]
+    why = f"entry-day stop Rs{stop:.2f} breached (live Rs{ltp:.2f}); the stop is never lowered, so the holding is sold"
+    held = _kotak_holdings_open_by_trdsym()  # step 1: Kotak first
+    if held is None:
+        _log_real_order_event(conn, symbol, "exit", "breach_exit_deferred", kotak_trading_symbol=trd,
+                              new_state="holdings unreadable - retry next pass", reason=why)
+        return True
+    if trd not in held:
+        return False  # Kotak shows nothing held; the reconcile clears the row
+    cxl = kotak_real_orders.cancel_all_open_sells(trd)  # step 2: whole book read, every open sell cancelled
+    if not cxl.get("ok"):
+        _log_real_order_event(conn, symbol, "exit", "breach_exit_deferred", kotak_trading_symbol=trd,
+                              new_state="open sell order(s) not yet cancelled - no market sell sent (no double sell)",
+                              detail=str(cxl)[:200], reason=why)
+        return True
+    if cxl.get("cancelled"):
+        _log_real_order_event(conn, symbol, "sl", "cancelled", kotak_trading_symbol=trd,
+                              order_id=",".join(cxl["cancelled"])[:60], new_state="cancelled before the breach exit",
+                              reason=why)
+    qty = int(held[trd].get("qty") or 0)
+    conn.execute("UPDATE real_positions_swing SET qty = ?, sl_order_id = NULL WHERE symbol = ?",
+                 (qty or row["qty"], symbol))  # Kotak's held qty wins
+    conn.commit()
+    _maybe_place_real_swing_exit(conn, symbol, reason=why)  # step 3: market SELL
     return True
+
+
+def _swing_entry_stop_breach_sweep(conn) -> list:
+    """B-1369: every tick (~30 s, off the event loop) check each real swing long against its ENTRY-DAY stop, whether or
+    not an SL is resting: a resting SL-limit can be gapped through and sit unfilled, so a breach is closed at market."""
+    out = []
+    for r in conn.execute("SELECT symbol FROM real_positions_swing").fetchall():
+        sym = r["symbol"]
+        stop = _swing_entry_stop(conn, sym)
+        if not stop:
+            continue
+        ltp = _swing_live_ltp(sym)
+        try:
+            if _swing_stop_breached_exit(conn, sym, stop, ltp):
+                out.append(sym)
+        except Exception as e:  # noqa: BLE001
+            print(f"[REAL SWING] breach sweep failed for {sym} (non-fatal): {e}")
+    return out
 
 
 def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: list,
