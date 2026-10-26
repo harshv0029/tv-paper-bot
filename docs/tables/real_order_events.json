@@ -7379,7 +7379,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261026000707146 rejected: Adapter is Logged Off"
+  },
+  {
+   "id": 616,
+   "ts": 1793027504.3408003,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261026000707199 rejected: Adapter is Logged Off"
   }
  ],
- "synced_at_utc": "2026-10-26T15:11:35Z"
+ "synced_at_utc": "2026-10-26T15:11:47Z"
 }
