@@ -54,22 +54,75 @@ def test_heal_carries_floor_not_the_lowered_stop():
     assert placed["trg"] == 126.73
 
 
-def test_breached_stop_exits_at_market_in_session_instead_of_lowering():
+def _row(c, sym="X.NS"):
+    c.execute("INSERT INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, opened_at, day, "
+              "stop_loss, sl_order_id, strategy) VALUES (?,'X-EQ',8,134.39,0,'2026-10-09',120.91,'OLD1','s')", (sym,))
+    c.commit()
+
+
+def test_breached_stop_reads_book_cancels_all_sells_then_market_sells():
+    """B-1369 owner rule: read the whole Kotak book, cancel the current SL (every open sell), THEN market sell."""
     _fresh_db()
-    with main.closing(main.get_db()) as c, \
-            patch("main._maybe_place_real_swing_exit") as ex, \
-            patch("main.ist_now", return_value=main.dt.datetime(2026, 10, 27, 9, 15, 5)):
-        assert main._swing_stop_breached_exit(c, "X.NS", 126.73, 126.32) is True
-        ex.assert_called_once()
-        assert "never lowered" in ex.call_args.kwargs["reason"]
-    with main.closing(main.get_db()) as c, patch("main._maybe_place_real_swing_exit") as ex, \
-            patch("main.ist_now", return_value=main.dt.datetime(2026, 10, 27, 15, 21)):
-        assert main._swing_stop_breached_exit(c, "X.NS", 126.73, 126.32) is False  # CAS session: no market sell
+    calls = []
+    with main.closing(main.get_db()) as c:
+        _row(c)
+        with patch("main._kotak_holdings_open_by_trdsym", return_value={"X-EQ": {"qty": 8}}), \
+                patch("kotak_real_orders.cancel_all_open_sells",
+                      side_effect=lambda t: calls.append("cancel") or {"ok": True, "cancelled": ["OLD1"]}), \
+                patch("main._maybe_place_real_swing_exit",
+                      side_effect=lambda conn, sym, reason=None: calls.append(("sell", reason))), \
+                patch("main.ist_now", return_value=main.dt.datetime(2026, 10, 27, 9, 15, 5)):
+            assert main._swing_stop_breached_exit(c, "X.NS", 126.73, 126.32) is True
+        r = c.execute("SELECT qty, sl_order_id FROM real_positions_swing WHERE symbol='X.NS'").fetchone()
+    assert calls[0] == "cancel" and calls[1][0] == "sell" and "never lowered" in calls[1][1]
+    assert r["sl_order_id"] is None and r["qty"] == 8
+
+
+def test_breach_sends_no_market_sell_while_an_sell_is_still_open():
+    _fresh_db()
+    with main.closing(main.get_db()) as c:
+        _row(c)
+        with patch("main._kotak_holdings_open_by_trdsym", return_value={"X-EQ": {"qty": 8}}), \
+                patch("kotak_real_orders.cancel_all_open_sells", return_value={"ok": False, "remaining": ["OLD1"]}), \
+                patch("main._maybe_place_real_swing_exit") as ex, \
+                patch("main.ist_now", return_value=main.dt.datetime(2026, 10, 27, 10, 0)):
+            assert main._swing_stop_breached_exit(c, "X.NS", 126.73, 126.0) is True
         ex.assert_not_called()
-    with main.closing(main.get_db()) as c, patch("main._maybe_place_real_swing_exit") as ex, \
-            patch("main.ist_now", return_value=main.dt.datetime(2026, 10, 27, 10, 0)):
-        assert main._swing_stop_breached_exit(c, "X.NS", 126.73, 140.0) is False
+
+
+def test_no_breach_action_outside_session_or_above_stop():
+    _fresh_db()
+    with main.closing(main.get_db()) as c:
+        _row(c)
+        with patch("kotak_real_orders.cancel_all_open_sells") as cx, patch("main._maybe_place_real_swing_exit") as ex:
+            with patch("main.ist_now", return_value=main.dt.datetime(2026, 10, 27, 15, 21)):
+                assert main._swing_stop_breached_exit(c, "X.NS", 126.73, 126.32) is False  # CAS session
+            with patch("main.ist_now", return_value=main.dt.datetime(2026, 10, 27, 10, 0)):
+                assert main._swing_stop_breached_exit(c, "X.NS", 126.73, 140.0) is False
+        cx.assert_not_called()
         ex.assert_not_called()
+
+
+def test_cancel_all_open_sells_confirms_book_is_clear():
+    import kotak_real_orders as kro
+    book = [{"trdSym": "X-EQ", "trnsTp": "S", "prcTp": "SL", "ordSt": "trigger pending", "nOrdNo": "1"},
+            {"trdSym": "X-EQ", "trnsTp": "S", "prcTp": "L", "ordSt": "open", "nOrdNo": "2"},
+            {"trdSym": "X-EQ", "trnsTp": "S", "prcTp": "SL", "ordSt": "cancelled", "nOrdNo": "3"},
+            {"trdSym": "Y-EQ", "trnsTp": "S", "prcTp": "SL", "ordSt": "open", "nOrdNo": "4"}]
+    reads = [book, [dict(r, ordSt="cancelled") if r["nOrdNo"] in ("1", "2") else r for r in book]]
+
+    class _C:
+        def order_report(self):
+            return {"data": reads.pop(0)}
+    with patch("kotak_neo.login", return_value=_C()), \
+            patch.object(kro, "cancel_real_order", return_value={"ok": True}) as cr:
+        res = kro.cancel_all_open_sells("X-EQ")
+    assert res["ok"] and sorted(res["cancelled"]) == ["1", "2"] and cr.call_count == 2
+
+
+def test_breach_sweep_runs_every_tick():
+    src = inspect.getsource(main._scheduler_tick)
+    assert "_real_off_loop(_swing_entry_stop_breach_sweep)" in src
 
 
 def test_backfill_floors_the_stop_and_table_is_mirrored():
