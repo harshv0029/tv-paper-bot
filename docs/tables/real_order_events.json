@@ -5147,7 +5147,19 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "resting SELL trigger Rs120.91",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
+  },
+  {
+   "id": 425,
+   "ts": 1792989155.9973986,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261026000029095",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs164.80",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
   }
  ],
- "synced_at_utc": "2026-10-26T04:32:33Z"
+ "synced_at_utc": "2026-10-26T04:32:39Z"
 }
