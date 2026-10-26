@@ -7547,7 +7547,19 @@
    "prev_state": null,
    "new_state": "rejected",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 22:05:17 S SL qty 8 trg 126.73 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+   "id": 630,
+   "ts": 1793039434.5960002,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261027000000001",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs126.75",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs126.73"
   }
  ],
- "synced_at_utc": "2026-10-26T18:23:44Z"
+ "synced_at_utc": "2026-10-26T18:30:38Z"
 }
