@@ -17792,6 +17792,7 @@ def _straddle_signal_core(conn, fo_underlying: str, vol_signal, halted: bool, is
             _log_real_fo_attempt(
                 conn, f"{fo_underlying}:STRADDLE-{right}", "B", "skipped_strategy_not_viable",
                 kotak_trading_symbol=c["kotak_trading_symbol"], price_est=c["premium"], qty=qty,
+                detail="strategy_tag=long_straddle",
             )
         return
 
@@ -26766,8 +26767,41 @@ def _live_entry_gate_summary(conn) -> dict:
         "active_names": len(sr.VIABLE_OVERRIDES),
         "wiring_pfnet_floor": sr.PFNET_LIVE_FLOOR,
         "replay_owed_tags": len(REPLAY_OWED_TAGS),
+        "rejected_today": _viability_rejections_today(conn),
         "checked_at": time.time(),
     }
+
+
+def _viability_rejections_today(conn, day: str | None = None) -> dict:
+    """B-1372 (user 2026-10-26: "a counter of entry fired during the day but rejected by viability condition, in
+    view 4"): today's (IST) real-entry attempts that _is_strategy_viable_for_real_money turned away, per strategy.
+    Read from real_trades / real_fo_trades (status skipped_strategy_not_viable), both in the Upstash mirror, so the
+    count survives a Render restart. `count` is every rejected attempt (a symbol re-firing on later ticks counts
+    again); `symbols` is distinct symbols/legs."""
+    day = day or ist_now().strftime("%Y-%m-%d")
+    by = {}
+    try:
+        for strat, side, sym in conn.execute(
+                "SELECT strategy, side, symbol FROM real_trades WHERE day = ? AND status = 'skipped_strategy_not_viable'",
+                (day,)).fetchall():
+            r = by.setdefault((str(strat or "unknown"), "equity"), {"count": 0, "syms": set(), "sides": set()})
+            r["count"] += 1; r["syms"].add(sym); r["sides"].add(side)
+    except Exception:
+        pass
+    try:
+        for leg, side, detail in conn.execute(
+                "SELECT leg_key, side, detail FROM real_fo_trades WHERE day = ? AND status = 'skipped_strategy_not_viable'",
+                (day,)).fetchall():
+            m = re.search(r"strategy_tag=(\S+)", str(detail or ""))
+            r = by.setdefault((m.group(1) if m else "unknown", "fo"), {"count": 0, "syms": set(), "sides": set()})
+            r["count"] += 1; r["syms"].add(str(leg).split(":")[0]); r["sides"].add(side)
+    except Exception:
+        pass
+    rows = sorted(({"strategy": k[0], "segment": k[1], "count": v["count"], "symbols": len(v["syms"]),
+                    "sides": "".join(sorted(x for x in v["sides"] if x))} for k, v in by.items()),
+                  key=lambda r: (-r["count"], r["strategy"]))
+    return {"day": day, "total": sum(r["count"] for r in rows),
+            "symbols": len({(k[1], x) for k, v in by.items() for x in v["syms"]}), "by_strategy": rows}
 
 
 @app.post("/strategy-viable-override")
