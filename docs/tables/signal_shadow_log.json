@@ -659,7 +659,205 @@
       "taken": 0,
       "reason": "real entry: strategy below PFnet floor",
       "hard_gate": 1
+    },
+    {
+      "id": 61,
+      "ts": 1793001962.058509,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "ABCAPITAL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 62,
+      "ts": 1793001962.0768502,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "ABCAPITAL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 63,
+      "ts": 1793001962.0958853,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "ATGL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 64,
+      "ts": 1793001962.1142385,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "CONCOR.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 65,
+      "ts": 1793001962.1342459,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "CONCOR.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 66,
+      "ts": 1793001962.154876,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "EXIDEIND.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 67,
+      "ts": 1793001962.174707,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "HINDCOPPER.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 68,
+      "ts": 1793001962.192027,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "SWIGGY.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 69,
+      "ts": 1793001962.2051635,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "SWIGGY.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 70,
+      "ts": 1793002287.3146265,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "ABCAPITAL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 71,
+      "ts": 1793002287.3304164,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "ABCAPITAL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 72,
+      "ts": 1793002287.3816993,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "ATGL.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 73,
+      "ts": 1793002287.398091,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "CONCOR.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 74,
+      "ts": 1793002287.4116876,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "CONCOR.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 75,
+      "ts": 1793002287.476691,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "EXIDEIND.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 76,
+      "ts": 1793002287.493113,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "HINDCOPPER.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 77,
+      "ts": 1793002287.5102715,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "SWIGGY.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "option leg: strategy below PFnet floor",
+      "hard_gate": 1
+    },
+    {
+      "id": 78,
+      "ts": 1793002287.5240972,
+      "day": "2026-10-26",
+      "strategy_tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "symbol": "SWIGGY.NS",
+      "direction": "long",
+      "taken": 0,
+      "reason": "real entry: strategy below PFnet floor",
+      "hard_gate": 1
     }
   ],
-  "synced_at_utc": "2026-10-23T08:03:21Z"
+  "synced_at_utc": "2026-10-26T08:14:10Z"
 }
