@@ -7715,7 +7715,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000000070 rejected: Adapter is Logged Off"
+  },
+  {
+   "id": 644,
+   "ts": 1793040557.1001756,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": "GSEC5IETF-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000000071 rejected: Adapter is Logged Off"
   }
  ],
- "synced_at_utc": "2026-10-26T18:49:08Z"
+ "synced_at_utc": "2026-10-26T18:49:20Z"
 }
