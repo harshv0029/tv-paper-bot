@@ -13,9 +13,9 @@ Total rows: 1121 | closed: 502 | not closed: 619
 | CLOSED-AS-EXPLAINED | 125 |
 | HARNESS-BUILT-AWAITING-RUN | 99 |
 | CLOSED | 83 |
-| DONE-PENDING-VERIFY | 80 |
+| DONE-PENDING-VERIFY | 81 |
 | BLOCKED | 63 |
-| OPEN | 50 |
+| OPEN | 49 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -105,7 +105,7 @@ Total rows: 1121 | closed: 502 | not closed: 619
 | B-1370 | P1 | OWNER-ACTION | 2026-10-26 21:05 IST | owed, owner |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (367)
+## waiting-on-workflow/deploy (368)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -131,6 +131,7 @@ Total rows: 1121 | closed: 502 | not closed: 619
 | B-392 | P0 | DONE-PENDING-VERIFY | User 2026-10-11 IST: "when I toggle ALL TRADING to OFF it should stop new trades immediately and close the ... | owed, pending, verify |
 | B-404 | P0 | DONE-PENDING-VERIFY | User 2026-10-11 IST (explicit; this is the user's own ask, so it satisfies the "ask before adding a kill sw... | owed, pending, verify, needs |
 | B-410 | P0 | DONE-PENDING-VERIFY | B-404 delivered 2026-10-11 IST: per-category real-trading toggles (real_enabled_equity / _swing / _fo) as K... | owed, pending, verify |
+| B-1316 | P0 | DONE-PENDING-VERIFY | 2026-10-21 | owed, pending |
 | B-19 | P1 | DONE-PENDING-VERIFY | User: leave until 8am 6 Oct 2026. Suspected T1/settlement rejection (unconfirmed) | pending, verify |
 | B-31 | P1 | DONE-PENDING-VERIFY | Deploy Gate #321 passed: gifted-bell merged to main (4863323), 2026-10-05. Remaining: confirm OB/VP appear ... | remaining, pending, verify, needs, unverified |
 | B-46 | P1 | DONE-PENDING-VERIFY | 2026-10-11 IST closure pass: Code + tests/test_holdings_fallback.py on main; remaining check (NYKAA-like ho... | owed, remaining, pending, verify, needs |
@@ -477,7 +478,7 @@ Total rows: 1121 | closed: 502 | not closed: 619
 | B-1297 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: trade-view pages hang the laptop browser | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | pending, verify |
 
-## ready-to-build (116)
+## ready-to-build (115)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -494,7 +495,6 @@ Total rows: 1121 | closed: 502 | not closed: 619
 | B-1311 | P0 | RECONCILE | 2026-10-21 10:25 IST | owed, verify |
 | B-1312 | P0 | VIABLE | 2026-10-21 11:10 IST | owed, needs |
 | B-1314 | P0 | USER | 2026-10-21 11:35 IST | blocked, pending |
-| B-1316 | P0 | OPEN | 2026-10-21 | owed |
 | B-1317 | P0 | USER | 2026-10-21 | pending |
 | B-1318 | P0 | USER | 2026-10-21 | owed, pending |
 | B-1322 | P0 | JIOFIN26OCT217 | 2026-10-21 | open:, verify, needs |
