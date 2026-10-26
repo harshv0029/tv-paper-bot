@@ -7355,7 +7355,19 @@
    "prev_state": null,
    "new_state": "rejected",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 15:30:28 S SL qty 1 trg 164.80 status rejected rejRsn OMS: Order Rejected due to CAS session end"
+  },
+  {
+   "id": 614,
+   "ts": 1793012886.395808,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-10-26T10:04:04Z"
+ "synced_at_utc": "2026-10-26T11:08:09Z"
 }
