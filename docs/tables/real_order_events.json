@@ -7427,7 +7427,67 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261026000707267 rejected: Adapter is Logged Off"
+  },
+  {
+   "id": 615,
+   "ts": 1793027662.4222968,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261026000707199",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 20:41:40 S SL qty 1 trg 164.80 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+   "id": 616,
+   "ts": 1793027662.4225674,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261026000707240",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 20:42:03 S SL qty 2 trg 398.35 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+   "id": 617,
+   "ts": 1793027662.4225914,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261026000707223",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 20:41:52 S SL qty 1 trg 175.12 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+   "id": 618,
+   "ts": 1793027662.422604,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": "GSEC5IETF-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261026000707267",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 20:42:15 S SL qty 2 trg 64.70 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+   "id": 619,
+   "ts": 1793027662.4226153,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261026000707146",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 26-Oct-2026 20:41:01 S SL qty 8 trg 126.73 status rejected rejRsn Adapter is Logged Off"
   }
  ],
- "synced_at_utc": "2026-10-26T15:14:19Z"
+ "synced_at_utc": "2026-10-26T15:15:26Z"
 }
