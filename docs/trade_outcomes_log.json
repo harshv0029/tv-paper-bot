@@ -2821,5 +2821,33 @@
     "rr_target": 3.0,
     "rr_achieved": -0.04,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "TMPV.NS",
+    "exit_time_utc": 1792989013.4822843,
+    "entry_price_native": 260.25,
+    "exit_price_native": 263.8500061035156,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 3.55,
+    "pnl_pct_of_capital": 0.001,
+    "exit_reason": "target_hit",
+    "rr_target": 3.0,
+    "rr_achieved": 2.66,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "ICICIBANK.NS",
+    "exit_time_utc": 1792990787.460505,
+    "entry_price_native": 1383.300048828125,
+    "exit_price_native": 1389.9000244140625,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": 6.6,
+    "pnl_pct_of_capital": 0.002,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": 1.03,
+    "strategy": "orb-universal-score"
   }
 ]
