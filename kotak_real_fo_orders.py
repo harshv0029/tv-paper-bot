@@ -174,6 +174,34 @@ def _tick_round(price: float, down: bool = False) -> float:
     return round(max(steps, 1) * OPTION_TICK, 2)
 
 
+def option_entry_sl_placeable(premium: float, stop_pct: float, bid=None, ltp=None, lower_band=None):
+    """B-1316 (JIOFIN26OCT217.5CE, 21 Oct: bought 2.54, unwound 12 s later, no SL ever rested): before a
+    real option BUY, prove the initial SELL SL that place_real_fo_stop_loss will send is placeable, using
+    its own rounding (trigger to the nearest 0.05 tick, limit 5% under it rounded down). (False, why) when:
+    the trigger is not at least one tick under the entry premium (a sub-tick stop rounds onto the entry),
+    the trigger is at/above the market (bid or ltp: a sell SL must trigger below the last price, and one at
+    the bid fires on the first print), the limit is not a positive tick strictly under the trigger (premium
+    so low it floors at 0.05), or the limit sits under a known lower price band. Pure; no Kotak call."""
+    prem = float(premium or 0)
+    if prem <= 0:
+        return False, f"premium {premium} not positive"
+    raw = prem * (1 - float(stop_pct) / 100.0)
+    if raw <= 0:
+        return False, f"stop {raw:.3f} at or below 0"
+    trigger = _tick_round(raw)
+    limit_price = _tick_round(trigger * 0.95, down=True)
+    if trigger > prem - OPTION_TICK + 1e-9:
+        return False, f"trigger {trigger} rounds to within a tick of entry {prem} ({stop_pct}% = {prem - raw:.3f})"
+    refs = [float(x) for x in (bid, ltp) if x and float(x) > 0]
+    if refs and trigger >= min(refs) - 1e-9:
+        return False, f"trigger {trigger} not below market (bid/ltp {min(refs)}); Kotak rejects or it fires at once"
+    if trigger * 0.95 < OPTION_TICK or limit_price >= trigger:
+        return False, f"limit {limit_price} not a positive tick under trigger {trigger}"
+    if lower_band and limit_price < float(lower_band):
+        return False, f"limit {limit_price} below lower price band {lower_band}"
+    return True, f"SL trigger {trigger} limit {limit_price} placeable"
+
+
 def place_real_fo_stop_loss(kotak_trading_symbol: str, exchange_segment: str, qty: int,
                             trigger_price: float, product: str = "NRML") -> dict:
     """Resting SELL SL (limit-behind-trigger) for a long option. Limit sits 5%
