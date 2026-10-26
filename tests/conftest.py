@@ -108,3 +108,18 @@ def _clear_fo_rows_cache():
     """B-1362: nse_fo_chain caches search_scrip rows; tests patch search_scrip with different data, so start empty."""
     import nse_fo_chain
     nse_fo_chain._fo_rows_cache.clear()
+
+
+@pytest.fixture(autouse=True)
+def _swing_session_open_in_tests(request, monkeypatch):
+    """B-1373: real swing entries are blocked outside NSE hours; existing swing tests assume an open session, so stub it
+    open (test_swing_entry_market_closed.py checks the closed case itself)."""
+    if request.node.fspath.basename == "test_swing_entry_market_closed.py":
+        return
+    try:
+        import main
+    except Exception:
+        return
+    for _m in {id(main): main, id(getattr(request.module, "main", main)): getattr(request.module, "main", main)}.values():
+        if hasattr(_m, "_swing_real_entry_session_open"):
+            monkeypatch.setattr(_m, "_swing_real_entry_session_open", lambda: True)
