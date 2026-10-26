@@ -99,6 +99,8 @@
 <h1>Live algo flow</h1>
 <div class="sub">The bot's real work, end to end: monitoring tick → symbol in the round-robin → strategies run on it → decision → order placement → position and its stop. Updates every 2s. <a href="/trade-view#v1" target="_top">view1</a> · <a href="/trade-view#v2" target="_top">view2</a> · <a href="/trade-view#v3" target="_top">view3</a> · <a href="/trade-view#v4" target="_top">view4</a></div>
 
+<div class="box mono" id="viaBox" style="margin-bottom:10px;font-size:11.5px;line-height:1.6"><b>Live viability condition (real-money entry gate, read from the running bot every 15 s)</b><div id="viaTxt" class="dim">loading…</div></div>
+
 <div class="box mono" id="sys"><span><i class="led" id="sysLed"></i><b id="sysTxt">System: checking…</b></span><span id="sysItems"></span></div>
 
 <div class="subtabs"><button data-p="pipe" class="on">Pipeline</button><button data-p="tree">Tree · how it all connects</button></div>
@@ -557,6 +559,24 @@
   setInterval(pollProtection, 5000);
   setInterval(pollPositions, 20000);
   pollHealth(); setInterval(pollHealth, 5000);
+  // B-1370: live viability condition, from the same /strategy-viable-stack the bot's entry gate uses
+  async function pollViability() {
+    const ist = ms => new Date(ms).toLocaleString("en-IN", {timeZone: "Asia/Kolkata", hour12: false});
+    try {
+      const d = await getJSON("/strategy-viable-stack"), a = (d.stack || [])[0], g = d.live_gate || {};
+      const c = a && a.criteria, ok = (b, t) => `<span class="${b ? "up" : "down"}">${t}</span>`;
+      const def = !a ? ok(false, "NONE loaded - no real entry can open")
+        : (c ? `PFnet ${c.pf_min}–${c.pf_max} · min ${c.min_trades} trades · max avg hold ${c.max_hold_hrs == null ? "any" : c.max_hold_hrs + " h"}` : (a.label || "saved list"))
+          + ` · <b>${a.count}</b> strategies pass · saved ${ist(a.created_at * 1000)} IST`;
+      $("viaTxt").innerHTML =
+        `1. Active definition (newest saved in View 1): ${def}<br>` +
+        `2. ALL TRADING switch: ${g.trading_enabled == null ? "unknown" : ok(g.trading_enabled, g.trading_enabled ? "ON" : "OFF - no new real trades")}` +
+        ` · 3. Real entry needs the definition loaded: ${g.requires_explorer_stack ? (g.stack_active ? ok(true, "loaded (" + g.active_names + " strategies)") : ok(false, "NOT loaded")) : "no"}<br>` +
+        `4. Scanning/wiring floor: PFnet ≥ ${g.wiring_pfnet_floor} · 5. Replay-owed tags (blocked from real money until replayed): ${g.replay_owed_tags}` +
+        ` · 6. Every entry carries a stop-loss<br><span class="dim">checked ${ist(Date.now())} IST · backup: ${d.mirror && d.mirror.last_restore ? d.mirror.last_restore : "-"}</span>`;
+    } catch (e) { $("viaTxt").innerHTML = `<span class="down">could not read /strategy-viable-stack (${e.message})</span>`; }
+  }
+  pollViability(); setInterval(pollViability, 15000);
 </script>
 </body>
 </html>
