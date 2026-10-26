@@ -47,6 +47,7 @@ import os
 import re
 import resource
 import sqlite3
+import concurrent.futures
 import threading
 import time
 from contextlib import closing
@@ -28782,7 +28783,28 @@ def _unprotected_backcheck_loop(sleep=time.sleep, rounds=None):
         except Exception as e:  # noqa: BLE001
             print(f"[unprotected_backcheck] 5-min reconcile failed (non-fatal, external cron still covers this): {e}")
         n += 1
-        sleep(_UNPROTECTED_BACKCHECK_EVERY_SECONDS)
+        sleep(_unprotected_backcheck_next_sleep())
+
+
+_OPEN_PROTECT_EVERY_SECONDS = 20
+
+
+def _unprotected_backcheck_next_sleep(now_ist=None) -> float:
+    """B-1363 (2026-10-26): on 26-Oct the 5 overnight holdings got their SLs only at 09:18:46 IST, because the 09:15
+    protect pass rode the scheduler tick (which ran swing-exit retries first) and this thread's plain 300 s cadence
+    happened to land late. On weekdays this thread now wakes at 09:15:01 IST sharp and repeats every 20 s until 09:30,
+    so protect-first never waits on the tick or on where the 5-min cycle falls."""
+    n = now_ist or dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
+    base = float(_UNPROTECTED_BACKCHECK_EVERY_SECONDS)
+    if n.weekday() >= 5:
+        return base
+    open_at = n.replace(hour=9, minute=15, second=1, microsecond=0)
+    window_end = n.replace(hour=9, minute=30, second=0, microsecond=0)
+    if open_at <= n < window_end:
+        return float(_OPEN_PROTECT_EVERY_SECONDS)
+    if n < open_at:
+        return max(1.0, min(base, (open_at - n).total_seconds()))
+    return base
 
 
 _GIT_TIER_PUSH_EVERY_SECONDS = 60
@@ -29885,11 +29907,19 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
             pending_h = _find_unprotected_open_positions(
                 {k: {"qty": v["qty"], "is_short": False} for k, v in swing_holdings.items()
                  if k not in kotak_open_by_trdsym}, order_rows)
-            for u in pending_h:
+            # B-1363 (user 2026-10-26: "It must be done before 9:16am"): each heal is ~13 s of Kotak round trips,
+            # so 5 holdings in series took 56 s. Heal them in parallel (each opens its own DB connection).
+            def _heal_one(u):
                 trd = u["kotak_trading_symbol"]
-                res = _heal_swing_holding_core(trd, swing_holdings[trd], order_rows)
-                holdings_healed.append({"kotak_trading_symbol": trd, "sl_ok": res.get("sl_ok"),
-                                        "stop": res.get("stop"), "error": res.get("error")})
+                try:
+                    res = _heal_swing_holding_core(trd, swing_holdings[trd], order_rows)
+                except Exception as e:  # noqa: BLE001
+                    res = {"error": f"heal raised: {e}"}
+                return {"kotak_trading_symbol": trd, "sl_ok": res.get("sl_ok"),
+                        "stop": res.get("stop"), "error": res.get("error")}
+            if pending_h:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(pending_h))) as _pool:
+                    holdings_healed.extend(_pool.map(_heal_one, pending_h))
             if holdings_healed:
                 fresh = kotak_neo.order_report()
                 order_rows = (fresh.get("data") or []) if isinstance(fresh, dict) else order_rows
