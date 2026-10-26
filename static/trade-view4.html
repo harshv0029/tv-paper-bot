@@ -560,6 +560,13 @@
   setInterval(pollPositions, 20000);
   pollHealth(); setInterval(pollHealth, 5000);
   // B-1370: live viability condition, from the same /strategy-viable-stack the bot's entry gate uses
+  // B-1372: entries that fired today but were turned away by the viability gate (survives restarts)
+  function rejHtml(r) {
+    if (!r) return "";
+    const top = (r.by_strategy || []).slice(0, 8).map(x => `${x.strategy}${x.segment === "fo" ? " (F&O)" : ""}: <b>${x.count}</b> (${x.symbols} sym)`).join(" · ");
+    return `7. Entries fired today but REJECTED by viability: <b class="${r.total ? "down" : "up"}">${r.total}</b>` +
+      (r.total ? ` across ${r.symbols} symbols · ${top}${(r.by_strategy || []).length > 8 ? " · …" : ""}` : "") + "<br>";
+  }
   async function pollViability() {
     const ist = ms => new Date(ms).toLocaleString("en-IN", {timeZone: "Asia/Kolkata", hour12: false});
     try {
@@ -573,7 +580,7 @@
         `2. ALL TRADING switch: ${g.trading_enabled == null ? "unknown" : ok(g.trading_enabled, g.trading_enabled ? "ON" : "OFF - no new real trades")}` +
         ` · 3. Real entry needs the definition loaded: ${g.requires_explorer_stack ? (g.stack_active ? ok(true, "loaded (" + g.active_names + " strategies)") : ok(false, "NOT loaded")) : "no"}<br>` +
         `4. Scanning/wiring floor: PFnet ≥ ${g.wiring_pfnet_floor} · 5. Replay-owed tags (blocked from real money until replayed): ${g.replay_owed_tags}` +
-        ` · 6. Every entry carries a stop-loss<br><span class="dim">checked ${ist(Date.now())} IST · backup: ${d.mirror && d.mirror.last_restore ? d.mirror.last_restore : "-"}</span>`;
+        ` · 6. Every entry carries a stop-loss<br>` + rejHtml(g.rejected_today) + `<span class="dim">checked ${ist(Date.now())} IST · backup: ${d.mirror && d.mirror.last_restore ? d.mirror.last_restore : "-"}</span>`;
     } catch (e) { $("viaTxt").innerHTML = `<span class="down">could not read /strategy-viable-stack (${e.message})</span>`; }
   }
   pollViability(); setInterval(pollViability, 15000);
