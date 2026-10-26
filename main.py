@@ -26712,7 +26712,27 @@ def strategy_viable_stack_get(full: int = 0):
     _load_viable_overrides()
     with closing(get_db()) as c:
         return {"size": VIABLE_STACK_SIZE, "stack": _viable_stack_rows(c, bool(full)),
-                "mirror": dict(_VIABLE_STACK_MIRROR_STATE)}
+                "mirror": dict(_VIABLE_STACK_MIRROR_STATE), "live_gate": _live_entry_gate_summary(c)}
+
+
+def _live_entry_gate_summary(conn) -> dict:
+    """B-1370 (user 2026-10-26: "show the live viability condition on view 4, updated with latest code and
+    condition"): every condition _is_strategy_viable_for_real_money checks right now, read from the running process
+    (not a hardcoded copy), so View 4 always shows what the live bot is actually using."""
+    import strategy_registry as sr
+    try:
+        trading_on = bool(is_trading_enabled(conn))
+    except Exception:
+        trading_on = None
+    return {
+        "trading_enabled": trading_on,
+        "requires_explorer_stack": bool(REAL_ENTRY_REQUIRES_EXPLORER_STACK),
+        "stack_active": bool(sr.VIABLE_STACK_ACTIVE),
+        "active_names": len(sr.VIABLE_OVERRIDES),
+        "wiring_pfnet_floor": sr.PFNET_LIVE_FLOOR,
+        "replay_owed_tags": len(REPLAY_OWED_TAGS),
+        "checked_at": time.time(),
+    }
 
 
 @app.post("/strategy-viable-override")
