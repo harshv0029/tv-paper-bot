@@ -1,3 +1,4 @@
+import datetime
 """Tests for the 2026-09-30 in-process unprotected-position backcheck
 (second live incident of the MFSL.NS pattern: TCS.NS and INDIANB.NS both
 sat with NO live resting stop-loss at Kotak for a real stretch of market
@@ -44,7 +45,11 @@ def test_backcheck_runs_on_its_own_5_min_wall_clock_thread():
     assert main._UNPROTECTED_BACKCHECK_EVERY_SECONDS <= 300
     reconcile_mock = MagicMock(return_value={"unprotected_positions_count": 0})
     sleeps = []
-    with patch("main._reconcile_real_positions_core", reconcile_mock):
+    real_next = main._unprotected_backcheck_next_sleep
+    eleven_am = datetime.datetime(2026, 10, 27, 11, 0, tzinfo=datetime.timezone(datetime.timedelta(hours=5, minutes=30)))
+    # B-1363: fixed mid-session clock; inside 09:15-09:30 IST the loop deliberately runs every 20 s instead.
+    with patch("main._reconcile_real_positions_core", reconcile_mock), \
+            patch("main._unprotected_backcheck_next_sleep", lambda: real_next(eleven_am)):
         main._unprotected_backcheck_loop(sleep=sleeps.append, rounds=3)
     assert reconcile_mock.call_count == 3 and sleeps == [300] * 3
     reconcile_mock.assert_called_with(adopt="*")
@@ -105,7 +110,9 @@ def test_tick_outside_the_open_window_does_not_run_the_backcheck():
     original_count = main._scheduler_tick_count
     try:
         main._scheduler_tick_count = 1  # + 1 = 2, not a multiple of the cadence
-        _run_tick_with_heavy_mocks(reconcile_mock)
+        # Fixed 11:00 IST weekday: at a real 09:15-09:30 IST run time the tick's open-window pass would fire.
+        with patch("main.ist_now", return_value=datetime.datetime(2026, 10, 27, 11, 0)):
+            _run_tick_with_heavy_mocks(reconcile_mock)
     finally:
         main._scheduler_tick_count = original_count
     reconcile_mock.assert_not_called()
