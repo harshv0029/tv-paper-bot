@@ -28782,7 +28782,28 @@ def _unprotected_backcheck_loop(sleep=time.sleep, rounds=None):
         except Exception as e:  # noqa: BLE001
             print(f"[unprotected_backcheck] 5-min reconcile failed (non-fatal, external cron still covers this): {e}")
         n += 1
-        sleep(_UNPROTECTED_BACKCHECK_EVERY_SECONDS)
+        sleep(_unprotected_backcheck_next_sleep())
+
+
+_OPEN_PROTECT_EVERY_SECONDS = 20
+
+
+def _unprotected_backcheck_next_sleep(now_ist=None) -> float:
+    """B-1363 (2026-10-26): on 26-Oct the 5 overnight holdings got their SLs only at 09:18:46 IST, because the 09:15
+    protect pass rode the scheduler tick (which ran swing-exit retries first) and this thread's plain 300 s cadence
+    happened to land late. On weekdays this thread now wakes at 09:15:05 IST sharp and repeats every 20 s until 09:30,
+    so protect-first never waits on the tick or on where the 5-min cycle falls."""
+    n = now_ist or dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
+    base = float(_UNPROTECTED_BACKCHECK_EVERY_SECONDS)
+    if n.weekday() >= 5:
+        return base
+    open_at = n.replace(hour=9, minute=15, second=5, microsecond=0)
+    window_end = n.replace(hour=9, minute=30, second=0, microsecond=0)
+    if open_at <= n < window_end:
+        return float(_OPEN_PROTECT_EVERY_SECONDS)
+    if n < open_at:
+        return max(1.0, min(base, (open_at - n).total_seconds()))
+    return base
 
 
 _GIT_TIER_PUSH_EVERY_SECONDS = 60
