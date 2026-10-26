@@ -60,6 +60,7 @@ on:
       - "docs/attempt_log.json"
       - "docs/real_trade_log.json"
       - "docs/real_order_log.json"
+      - "docs/render_restart_log.json"
   schedule:
     # UTC 3:00-10:55 = IST 8:30-16:25, every 15 min, Mon-Fri - same market-
     # hours window as live-signals.yml, coarser interval (this job is
@@ -259,6 +260,22 @@ jobs:
           mv /tmp/real_order_log_merged.json docs/real_order_log.json
           echo "real_order_log.json now has $(jq 'length' docs/real_order_log.json) entries"
 
+      - name: Append Render restart events to the restart log
+        run: |
+          # B-1371: durable git copy of /restart-history (Upstash keeps the last 500), deduped by boot_ts.
+          curl -sS --retry 2 --retry-delay 5 -m 30 \
+            "https://tv-paper-bot-gdan.onrender.com/restart-history?limit=500" \
+            -o /tmp/restart-history.json || echo '{"events":[]}' > /tmp/restart-history.json
+          mkdir -p docs
+          test -f docs/render_restart_log.json || echo '[]' > docs/render_restart_log.json
+          jq -s '
+            (.[0] // []) as $existing |
+            ((.[1].events // []) | map(select(.boot_ts != null))) as $new |
+            ($existing + $new) | group_by(.boot_ts) | map(.[0]) | sort_by(.boot_ts)
+          ' docs/render_restart_log.json /tmp/restart-history.json > /tmp/render_restart_merged.json \
+            && mv /tmp/render_restart_merged.json docs/render_restart_log.json || true
+          echo "render_restart_log.json now has $(jq 'length' docs/render_restart_log.json) restarts"
+
       - name: Append newly-closed trades to the outcome history
         run: |
           test -f docs/trade_outcomes_log.json || echo '[]' > docs/trade_outcomes_log.json
@@ -319,7 +336,7 @@ jobs:
             state/real_trading_control.json state/real_positions.json state/real_trades_today.json \
             state/scheduler_check_counts.json \
             docs/trade_outcomes_log.json docs/attempt_log.json docs/real_trade_log.json \
-            docs/real_order_log.json
+            docs/real_order_log.json docs/render_restart_log.json
           if git diff --cached --quiet; then
             echo "No change - nothing to commit."
           else

@@ -28128,7 +28128,8 @@ def _threadpool_status() -> dict:
 @app.get("/health")
 async def health():
     # B-1359: async so /health never queues behind a full worker-thread pool; every call below is in-memory.
-    return {"status": "alive", "time": time.time(), **_rss_headroom(), **_threadpool_status(),
+    return {"status": "alive", "time": time.time(), "boot_ist": _ist_str(_BOOT_TS),
+            "uptime_min": round((time.time() - _BOOT_TS) / 60, 1), "commit": _render_commit(), **_rss_headroom(), **_threadpool_status(),
             **_memory_pressure_check(trim=False), **_git_tier_push_status(),
             "loop_lag_s": round(time.time() - _loop_heartbeat_ts, 1), "watchdog_alarms": _WATCHDOG_STATE["alarms"],
             # B-1361: Render logs are not readable from the dev container, so /health carries the alarm stacks itself
@@ -29056,8 +29057,138 @@ def _watchdog_loop(sleep=time.sleep, rounds=None):
                 _upstash_probe()
         except Exception as e:  # noqa: BLE001
             print(f"[upstash-probe] failed (non-fatal): {e}")
+        try:
+            _restart_tracker_tick()  # B-1371
+        except Exception as e:  # noqa: BLE001
+            print(f"[restart-tracker] failed (non-fatal): {e}")
         n += 1
         sleep(_WATCHDOG_EVERY_SECONDS)
+
+
+# B-1371 (2026-10-26, user: "keep track of restart by render so that u can optimise the code further"): Render's
+# free tier keeps no restart history the bot can read, and SQLite dies with each restart. The watchdog thread (alive
+# even when the event loop is frozen) writes a heartbeat to Upstash every minute; the first tick after a boot reads the
+# previous run's last heartbeat and logs a restart event with its downtime, last RSS/peak, loop lag, watchdog alarms
+# and a cause guess. /restart-history serves it and journal-sync copies it to docs/render_restart_log.json in git.
+_RESTART_HEARTBEAT_KEY = "restart_tracker:heartbeat"
+_RESTART_EVENTS_KEY = "restart_tracker:events"
+_RESTART_HEARTBEAT_EVERY_SECONDS = 60
+_RESTART_EVENTS_CAP = 500
+_BOOT_TS = time.time()
+_RESTART_STATE = {"boot_logged": False, "last_beat": 0.0, "peak_rss_now": 0.0, "last_event": None}
+
+
+def _render_commit() -> str | None:
+    c = os.environ.get("RENDER_GIT_COMMIT")
+    return c[:12] if c else None
+
+
+def _ist_str(ts) -> str | None:
+    if not ts:
+        return None
+    return (dt.datetime.utcfromtimestamp(float(ts)) + dt.timedelta(hours=5, minutes=30)).strftime("%Y-%m-%d %H:%M:%S IST")
+
+
+def _in_nse_session(ts) -> bool:
+    t = dt.datetime.utcfromtimestamp(float(ts)) + dt.timedelta(hours=5, minutes=30)
+    return t.weekday() < 5 and (9, 15) <= (t.hour, t.minute) < (15, 30)
+
+
+def _restart_cause(prev: dict | None, commit: str | None) -> str:
+    """Best guess from the previous run's last heartbeat; Render itself gives the bot no reason."""
+    if not prev:
+        return "unknown_no_prior_heartbeat"
+    if commit and prev.get("commit") and commit != prev.get("commit"):
+        return "deploy"
+    rss = prev.get("rss_now_mb") or 0
+    if rss and rss / RSS_LIMIT_MB * 100 >= 85:
+        return "oom_suspect"
+    if (prev.get("loop_lag_s") or 0) >= _WATCHDOG_LOOP_LAG_WARN_SECONDS or (prev.get("threadpool_used") or 0) >= (prev.get("threadpool_total") or 10**9):
+        return "freeze_suspect"
+    return "platform_or_unknown"
+
+
+def _restart_event(prev: dict | None, now: float, commit: str | None) -> dict:
+    last_alive = (prev or {}).get("last_alive_ts")
+    prev_boot = (prev or {}).get("boot_ts")
+    return {"boot_ts": _BOOT_TS, "boot_ist": _ist_str(_BOOT_TS), "logged_ist": _ist_str(now), "commit": commit,
+            "cause_guess": _restart_cause(prev, commit), "in_market_hours": _in_nse_session(_BOOT_TS),
+            "prev_commit": (prev or {}).get("commit"), "prev_boot_ist": _ist_str(prev_boot),
+            "prev_last_alive_ist": _ist_str(last_alive),
+            "prev_uptime_min": round((last_alive - prev_boot) / 60, 1) if last_alive and prev_boot else None,
+            "downtime_s_max": round(_BOOT_TS - last_alive, 1) if last_alive else None,
+            "prev_rss_now_mb": (prev or {}).get("rss_now_mb"), "prev_peak_rss_mb": (prev or {}).get("peak_rss_mb"),
+            "prev_loop_lag_s": (prev or {}).get("loop_lag_s"), "prev_watchdog_alarms": (prev or {}).get("watchdog_alarms"),
+            "prev_threadpool": f"{(prev or {}).get('threadpool_used')}/{(prev or {}).get('threadpool_total')}",
+            "prev_last_alarm": (prev or {}).get("last_alarm")}
+
+
+def _restart_tracker_tick(now=None, get=None, put=None) -> dict | None:
+    """One watchdog-thread pass: log the boot once, then refresh the heartbeat every minute. Returns the boot event
+    when it is logged on this pass. Never raises past the caller's try."""
+    now = time.time() if now is None else now
+    get = get or _upstash_get
+    put = put or _upstash_set
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN) and get is _upstash_get:
+        return None
+    rss_now = _current_rss_mb() or 0.0
+    _RESTART_STATE["peak_rss_now"] = max(_RESTART_STATE["peak_rss_now"], rss_now)
+    logged = None
+    if not _RESTART_STATE["boot_logged"]:
+        raw = get(_RESTART_HEARTBEAT_KEY)
+        prev = json.loads(raw) if raw else None
+        if prev and prev.get("boot_ts") == _BOOT_TS:
+            prev = None  # our own beat (re-entry after a failed append); keep the boot logged once
+        ev = _restart_event(prev, now, _render_commit())
+        raw_ev = get(_RESTART_EVENTS_KEY)
+        events = json.loads(raw_ev) if raw_ev else []
+        if not any(e.get("boot_ts") == _BOOT_TS for e in events):
+            events = (events + [ev])[-_RESTART_EVENTS_CAP:]
+            put(_RESTART_EVENTS_KEY, json.dumps(events))
+        _RESTART_STATE.update(boot_logged=True, last_event=ev)
+        print(f"[restart-tracker] boot logged: cause={ev['cause_guess']} downtime_s_max={ev['downtime_s_max']} "
+              f"prev_rss_now_mb={ev['prev_rss_now_mb']} prev_loop_lag_s={ev['prev_loop_lag_s']}")
+        logged = ev
+    if now - _RESTART_STATE["last_beat"] >= _RESTART_HEARTBEAT_EVERY_SECONDS or logged:
+        alarm = _WATCHDOG_STATE.get("last_alarm") or {}
+        beat = {"boot_ts": _BOOT_TS, "last_alive_ts": now, "commit": _render_commit(), "rss_now_mb": rss_now,
+                "peak_rss_mb": _process_rss_mb(), "loop_lag_s": round(now - _loop_heartbeat_ts, 1),
+                "watchdog_alarms": _WATCHDOG_STATE["alarms"],
+                "threadpool_used": _WATCHDOG_STATE.get("threadpool_used"),
+                "threadpool_total": _WATCHDOG_STATE.get("threadpool_total"),
+                "last_alarm": {k: alarm.get(k) for k in ("ts", "loop_lag_s", "rss_mb", "threadpool")} if alarm else None}
+        put(_RESTART_HEARTBEAT_KEY, json.dumps(beat))
+        _RESTART_STATE["last_beat"] = now
+    return logged
+
+
+def _restart_summary(events: list, now=None) -> dict:
+    now = time.time() if now is None else now
+    by_cause, today, week, mkt = {}, 0, 0, 0
+    today_ist = _ist_str(now)[:10]
+    for e in events:
+        by_cause[e.get("cause_guess")] = by_cause.get(e.get("cause_guess"), 0) + 1
+        if (e.get("boot_ist") or "")[:10] == today_ist:
+            today += 1
+        if now - (e.get("boot_ts") or 0) <= 7 * 86400:
+            week += 1
+            mkt += 1 if e.get("in_market_hours") else 0
+    return {"total": len(events), "today_ist": today, "last_7d": week, "last_7d_in_market_hours": mkt,
+            "by_cause": by_cause}
+
+
+@app.get("/restart-history")
+def restart_history(limit: int = 100):
+    """B-1371: Render restarts, newest first, with downtime and the previous run's last RSS/lag/alarms. No token: no
+    account data. Reads Upstash, so it works right after a restart."""
+    try:
+        raw = _upstash_get(_RESTART_EVENTS_KEY) if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN else None
+        events = json.loads(raw) if raw else []
+    except Exception as e:  # noqa: BLE001
+        return {"error": f"{type(e).__name__}: {str(e)[:160]}", "events": []}
+    return {"boot_ist": _ist_str(_BOOT_TS), "uptime_min": round((time.time() - _BOOT_TS) / 60, 1),
+            "commit": _render_commit(), "summary": _restart_summary(events),
+            "events": list(reversed(events))[:max(1, min(int(limit), _RESTART_EVENTS_CAP))]}
 
 
 _UNPROTECTED_BACKCHECK_EVERY_SECONDS = 300
