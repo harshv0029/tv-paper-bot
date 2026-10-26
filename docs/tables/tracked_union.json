@@ -8,7 +8,7 @@
       "owner": "swing",
       "source": "holding",
       "entry_price": 134.39,
-      "stop_loss": 120.91,
+      "stop_loss": 115.72,
       "sl_trigger_price": 120.91,
       "strategy": "order_block_delta",
       "entry_order_id": "261009000196477",
@@ -72,7 +72,7 @@
       "owner": "swing",
       "source": "holding",
       "entry_price": 188.75,
-      "stop_loss": 175.88,
+      "stop_loss": 175.12,
       "sl_trigger_price": 175.88,
       "strategy": "swing_rerouted_orphan",
       "entry_order_id": "261021000144947",
@@ -81,5 +81,5 @@
       "first_seen_day": "2026-10-21"
     }
   ],
-  "synced_at_utc": "2026-10-26T08:15:24Z"
+  "synced_at_utc": "2026-10-26T15:13:12Z"
 }
