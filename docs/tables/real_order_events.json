@@ -4931,7 +4931,19 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "resting SELL trigger Rs175.88",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
+  },
+  {
+   "id": 412,
+   "ts": 1792986567.3472478,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261026000030991",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs373.20",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
   }
  ],
- "synced_at_utc": "2026-10-26T03:49:16Z"
+ "synced_at_utc": "2026-10-26T03:49:30Z"
 }
