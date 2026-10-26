@@ -4919,7 +4919,19 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "resting SELL trigger Rs164.80",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
+  },
+  {
+   "id": 411,
+   "ts": 1792986553.3179367,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261026000030120",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs175.88",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
   }
  ],
- "synced_at_utc": "2026-10-26T03:49:03Z"
+ "synced_at_utc": "2026-10-26T03:49:16Z"
 }
