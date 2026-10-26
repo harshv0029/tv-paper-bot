@@ -21150,6 +21150,27 @@ _pair_scan_stats: dict = {}  # (tag, symbol) -> [count_today, deque[timestamps]]
 _pair_scan_day: str = ""
 
 
+# B-1351: a pair's deque was only pruned when that same pair was scanned again, so every pair hit once (the daily swing
+# pass, ~180 cells per symbol, or a restored Upstash count) kept a ~1 KB deque all day. Every _PAIR_SCAN_IDLE_SWEEP_SEC
+# a deque whose newest timestamp is past the 1h window is swapped for the shared empty tuple (readers only ever count
+# timestamps inside 1h, so nothing they show changes); the count rec[0] is kept. A new scan re-creates the deque.
+_PAIR_SCAN_IDLE_SWEEP_SEC = 300
+_pair_scan_last_sweep = 0.0
+
+
+def _pair_scan_drop_idle(now: float) -> int:
+    """Free the deque of every pair with no scan in the last _PAIR_SCAN_WINDOW_SEC. Returns how many were freed."""
+    global _pair_scan_last_sweep
+    _pair_scan_last_sweep = now
+    cutoff, n = now - _PAIR_SCAN_WINDOW_SEC, 0
+    for rec in list(_pair_scan_stats.values()):
+        dq = rec[1]
+        if isinstance(dq, collections.deque) and (not dq or dq[-1] < cutoff):
+            rec[1] = ()
+            n += 1
+    return n
+
+
 def _record_pair_scan(tag: str, sym: str, today_str: str):
     global _pair_scan_day
     if today_str != _pair_scan_day:
@@ -21157,10 +21178,14 @@ def _record_pair_scan(tag: str, sym: str, today_str: str):
         _pair_scan_day = today_str
     rec = _pair_scan_stats.get((tag, sym))
     if rec is None:
-        rec = _pair_scan_stats[(tag, sym)] = [0, collections.deque(maxlen=_PAIR_SCAN_RECENT_MAX)]
+        rec = _pair_scan_stats[(tag, sym)] = [0, ()]
     now = time.time()
+    if now - _pair_scan_last_sweep >= _PAIR_SCAN_IDLE_SWEEP_SEC:
+        _pair_scan_drop_idle(now)
     rec[0] += 1
     dq = rec[1]
+    if not isinstance(dq, collections.deque):
+        dq = rec[1] = collections.deque(maxlen=_PAIR_SCAN_RECENT_MAX)
     dq.append(now)
     cutoff = now - _PAIR_SCAN_WINDOW_SEC
     while dq and dq[0] < cutoff:
@@ -21268,7 +21293,7 @@ def _pair_scans_hydrate_now() -> bool:
                 for sym, n in by_sym.items():
                     rec = _pair_scan_stats.get((tag, sym))
                     if rec is None:
-                        rec = _pair_scan_stats[(tag, sym)] = [0, collections.deque(maxlen=_PAIR_SCAN_RECENT_MAX)]
+                        rec = _pair_scan_stats[(tag, sym)] = [0, ()]  # B-1351: deque made on the next real scan
                     rec[0] += int(n)
     return True
 
