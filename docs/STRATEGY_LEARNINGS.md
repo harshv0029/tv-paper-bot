@@ -1448,3 +1448,11 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Why it matters here:** a lowered stop is a bigger loss than the backtest allowed. The validated exit is "entry stop, ratchet up only"; lowering it is an untested strategy.
 - **Rule now:** the entry-day stop is stored once (swing_entry_stop, Upstash-mirrored) and is a floor for every placement. If the price is already at/below it in session, the stop is hit and the holding is sold at market. It is never lowered.
 - **Profit-booking / exit takeaway:** honour the stop you entered with; a "rescue" by widening the stop turns a planned -1R into an unplanned larger loss (BANKINDIA would have exited near 126.7 on 23-Oct; it sits at 126.32 with a 115.72 stop).
+
+## 2026-10-26: option entry unwound because its SL could not rest (B-1316)
+
+- **What happened (Kotak):** JIOFIN26OCT217.5CE bought 2350 @2.54 09:52:36 IST, sold @2.51 12 s later (~Rs70 loss); no SL ever rested at Kotak.
+- **Root cause from code:** the initial option SL is entry x 0.97, rounded to the 0.05 tick (2.54 -> 2.4638 -> 2.45), i.e. 1-2 ticks under the ENTRY ESTIMATE (the chain premium, not the fill), with the limit 5% under it. At a Rs2.5 premium a 1-2 tick spread puts that trigger at or above the bid/last price right after the market buy, so Kotak rejects the SELL SL (or it fires on the first print); pre-B-1318 the first `sl_failed` unwound the leg at once. Price bands are not the binding limit at this premium; tick granularity and the spread are.
+- **Fix:** `kotak_real_fo_orders.option_entry_sl_placeable` replays the SL's own rounding before every option BUY (`_real_fo_buy_contract`, all option paths): trigger at least 1 tick under entry, below the live bid, limit a positive tick under the trigger, above any known band. Otherwise the buy is skipped with `skipped_option_stop_not_placeable`.
+- **Reuse:** always validate a stop with the exact rounding the order path applies, against the bid, before the entry; never buy what must be unwound.
+- **Profit-booking / exit takeaway:** a stop within one or two ticks of a cheap option's entry is not a stop, it is a guaranteed spread-plus-cost loss; skip the trade instead.

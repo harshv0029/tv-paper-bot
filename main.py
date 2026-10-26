@@ -16630,6 +16630,16 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
                 return
     except Exception as _e:
         _spread_note = f"spread unread ({_e})"
+        _bid = None
+    # B-1316: prove the initial protective SL (the 3% trigger _sync_real_fo_option_sl places, with
+    # place_real_fo_stop_loss's own tick rounding) can rest before buying; never buy what must be unwound.
+    import kotak_real_fo_orders as _krfo
+    _slp_ok, _slp_why = _krfo.option_entry_sl_placeable(_prem, FO_OPTION_INITIAL_STOP_PCT, bid=_bid)
+    if not _slp_ok:
+        _log_real_fo_attempt(conn, leg_key, "B", "skipped_option_stop_not_placeable",
+                             kotak_trading_symbol=contract.get("kotak_trading_symbol"), price_est=_prem,
+                             detail=f"B-1316 {_slp_why}")
+        return
     qty = contract["lot_size"]
     if budget_inr and contract["premium"] > 0:
         # user 2026-10-08: size from the money available in the account (lots that fit
