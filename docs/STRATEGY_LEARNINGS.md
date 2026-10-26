@@ -1441,3 +1441,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - What happened: the SL cancel + SELL went out at 09:22:27 IST while the Render process had been silent for 5 min (CPU starved), 8 s before Render restarted it. The reason row was written but lived only in local SQLite and was wiped.
 - Lesson: a reason that is not durable within seconds is not a reason on record. Order reasons now push to git on every event (B-1355).
 - Profit-booking / exit takeaway: an exit decided by a starved process may act on stale prices; keep the CPU fix (B-1348) and treat any exit while the app log is silent as suspect when auditing P&L.
+
+## 2026-10-26: swing stops were silently lowered (B-1367)
+
+- **What happened:** entry-day stops on 5 swing holdings drifted down over two weeks (BANKINDIA 126.73 -> 120.91 -> stored 115.72; COALINDIA 398.35 -> 373.20). Three paths did it: a heal fallback that recomputed close - 2.5 x ATR on ANY rejection (a 15:21 IST CAS-session reject counts), the align step adopting a lower SL that something else had placed, and the "stop at/above market -> reset 1% under live" rule.
+- **Why it matters here:** a lowered stop is a bigger loss than the backtest allowed. The validated exit is "entry stop, ratchet up only"; lowering it is an untested strategy.
+- **Rule now:** the entry-day stop is stored once (swing_entry_stop, Upstash-mirrored) and is a floor for every placement. If the price is already at/below it in session, the stop is hit and the holding is sold at market. It is never lowered.
+- **Profit-booking / exit takeaway:** honour the stop you entered with; a "rescue" by widening the stop turns a planned -1R into an unplanned larger loss (BANKINDIA would have exited near 126.7 on 23-Oct; it sits at 126.32 with a 115.72 stop).

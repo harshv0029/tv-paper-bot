@@ -523,6 +523,36 @@ def cancel_existing_resting_sl(kotak_trading_symbol: str) -> dict:
     return {"cancelled": cancelled, "detail": None}
 
 
+def cancel_all_open_sells(kotak_trading_symbol: str) -> dict:
+    """B-1369 (2026-10-26, owner: "read whole book which is active on Kotak, then cancel current SL for that symbol,
+    then place market order to close"): step 1 + 2 of a stop-breach close. Reads Kotak's live order book, cancels
+    EVERY non-terminal SELL on the symbol (SL, SL-M and plain limit: a converted stop or target also reserves the
+    shares, so a market sell would be rejected or double-sell), then re-reads the book to confirm none is still live.
+    ok=True only when the book was read and nothing open remains; the caller sends the market sell only then.
+    Never raises."""
+    def _open_sells():
+        report = kotak_neo.login().order_report()
+        rows = report.get("data") if isinstance(report, dict) else None
+        if rows is None or not isinstance(rows, list):
+            raise ValueError("order_report returned no data list")
+        return [r for r in rows if r.get("trdSym") == kotak_trading_symbol and r.get("trnsTp") == "S"
+                and str(r.get("ordSt", "")).strip().lower() not in _TERMINAL_ORDER_STATUSES and r.get("nOrdNo")]
+    try:
+        found = _open_sells()
+    except Exception as e:
+        return {"ok": False, "cancelled": [], "remaining": None, "detail": f"could not read order book: {e}"}
+    cancelled, failed = [], []
+    for r in found:
+        res = cancel_real_order(str(r["nOrdNo"]))
+        (cancelled if res.get("ok") else failed).append(str(r["nOrdNo"]))
+    try:
+        remaining = [str(r["nOrdNo"]) for r in _open_sells()] if found else []
+    except Exception as e:
+        return {"ok": False, "cancelled": cancelled, "remaining": None, "detail": f"could not re-read order book: {e}"}
+    return {"ok": not remaining, "cancelled": cancelled, "failed": failed, "remaining": remaining,
+            "detail": None if not remaining else "open sell order(s) still live after cancel"}
+
+
 def cancel_existing_resting_sl_short(kotak_trading_symbol: str) -> dict:
     """Short mirror of cancel_existing_resting_sl (2026-09-30, explicit
     user instruction to bring short positions' per-tick SL sync to full

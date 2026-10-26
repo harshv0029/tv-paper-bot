@@ -112,17 +112,21 @@ def test_heal_core_restores_previous_day_trailed_stop():
     assert place.call_args[0][:3] == ("NYKAA-EQ", 1, 331.5)
 
 
-def test_heal_core_recomputes_when_carried_stop_rejected():
+def test_heal_core_never_lowers_a_rejected_carried_stop():
+    """B-1367 (2026-10-26): the old fallback recomputed a LOWER stop on any rejection and stored it (23-Oct CAS-session
+    rejects lowered BANKINDIA 126.73 -> 120.91). A rejected stop now stays put for the retry; nothing lower is placed."""
     import numpy as np, pandas as pd
     _swing_db()
     with closing(main.get_db()) as conn:
         conn.execute("UPDATE real_positions_swing SET sl_trigger_price = 331.5 WHERE symbol='NYKAA.NS'")
         conn.commit()
     df = pd.DataFrame({"Close": [300.0, 310.0]})
-    results = [{"ok": False, "detail": "rejected"}, {"ok": True, "order_id": "N3", "trigger_price": 290.0}]
     with patch.object(main, "fetch_ohlc", return_value=df), \
          patch.object(main, "_swing_atr", return_value=np.array([8.0])), \
          patch.object(main, "_sync_real_positions_swing_external"), \
-         patch("kotak_real_orders.place_real_stop_loss", side_effect=results) as place:
+         patch.object(main, "_swing_live_ltp", return_value=0.0), \
+         patch("kotak_real_orders.place_real_stop_loss", return_value={"ok": False, "detail": "rejected"}) as place:
         res = main._heal_swing_holding_core("NYKAA-EQ", {"qty": 1, "avg_price": 340.0, "symbol": "NYKAA"}, [])
-    assert place.call_count == 2 and res["sl_ok"] and res["stop"] == 290.0
+    assert place.call_count == 1 and not res["sl_ok"] and res["stop"] == 331.5
+    with closing(main.get_db()) as conn:
+        assert conn.execute("SELECT stop_loss FROM real_positions_swing WHERE symbol='NYKAA.NS'").fetchone()[0] != 290.0

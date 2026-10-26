@@ -330,6 +330,9 @@ def hydrate_real_positions_short_from_external() -> bool:
 _REAL_POSITIONS_SWING_REDIS_KEY = "tv_paper_bot:real_positions_swing:v1"
 
 
+_SWING_MIRROR_HYDRATED: set = set()
+
+
 def _sync_real_positions_swing_external(conn) -> None:
     """Swing mirror of _sync_real_positions_external - see the module
     comment just above for why this exists. Best-effort and silent, same
@@ -337,6 +340,11 @@ def _sync_real_positions_swing_external(conn) -> None:
     real trading, the write has already committed to SQLite."""
     if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
         return
+    if _REAL_POSITIONS_SWING_REDIS_KEY not in _SWING_MIRROR_HYDRATED and not os.environ.get("PYTEST_CURRENT_TEST"):
+        # B-1364: never push before this process restored the remote copy; a push right after a restart
+        # overwrote Upstash with an empty table and the swing rows were lost for good.
+        if not hydrate_real_positions_swing_from_external():
+            return
     try:
         rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions_swing").fetchall()]
         payload = json.dumps({"synced_at": time.time(), "rows": rows})
@@ -372,6 +380,7 @@ def hydrate_real_positions_swing_from_external() -> bool:
     except Exception as e:
         print(f"[real_positions_swing_external] hydrate failed (non-fatal): {e}")
         return False
+    _SWING_MIRROR_HYDRATED.add(_REAL_POSITIONS_SWING_REDIS_KEY)  # B-1364: Upstash reached; pushes are safe from now on
     rows = json.loads(raw).get("rows", []) if raw else []
     if rows:
         with closing(get_db()) as conn:
@@ -411,6 +420,11 @@ _SIGNAL_STATE_SWING_REDIS_KEY = "tv_paper_bot:signal_state_swing:v1"
 def _sync_signal_state_swing_external(conn) -> None:
     if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
         return
+    if _SIGNAL_STATE_SWING_REDIS_KEY not in _SWING_MIRROR_HYDRATED and not os.environ.get("PYTEST_CURRENT_TEST"):
+        # B-1364: never push before this process restored the remote copy; a push right after a restart
+        # overwrote Upstash with an empty table and the swing rows were lost for good.
+        if not hydrate_signal_state_swing_from_external():
+            return
     try:
         rows = [dict(r) for r in conn.execute("SELECT * FROM signal_state_swing").fetchall()]
         requests.post(
@@ -441,6 +455,7 @@ def hydrate_signal_state_swing_from_external() -> bool:
     except Exception as e:
         print(f"[signal_state_swing_external] hydrate failed (non-fatal): {e}")
         return False
+    _SWING_MIRROR_HYDRATED.add(_SIGNAL_STATE_SWING_REDIS_KEY)  # B-1364: Upstash reached; pushes are safe from now on
     rows = json.loads(raw).get("rows", []) if raw else []
     if rows:
         with closing(get_db()) as conn:
@@ -716,6 +731,16 @@ def init_db():
                 created_at REAL NOT NULL,
                 label TEXT,
                 names TEXT NOT NULL                     -- JSON list of registry names
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS swing_entry_stop (
+                symbol TEXT PRIMARY KEY,               -- B-1367: the swing long's ENTRY-DAY stop, never lowered
+                entry_stop REAL NOT NULL,
+                set_at REAL NOT NULL,
+                source TEXT
             )
             """
         )
@@ -19812,7 +19837,7 @@ _GENERIC_MIRROR_TABLES = (
     "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags",
     "swing_done_today", "strategy_scan_counts", "signal_shadow_log",
     "signal_state_swing_short", "real_positions_swing_short",
-    "strategy_viable_stack",
+    "strategy_viable_stack", "swing_entry_stop",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 # B-1302: audit/log/counter tables (tier 2/3) are unloaded from Upstash and kept in
@@ -21989,6 +22014,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     real_qty = int(result["qty"])
     real_entry_price = result["fill_price"]
     paper_stop_loss = _swing_stop_below_price(paper_stop_loss, real_entry_price)  # fill slipped below the stop
+    _swing_entry_stop_record(conn, symbol, paper_stop_loss, "real swing entry (entry-day stop)", replace=True)  # B-1367
     now = time.time()
     conn.execute(
         "INSERT INTO real_positions_swing (symbol, kotak_trading_symbol, qty, entry_price, "
@@ -22077,6 +22103,9 @@ def _maybe_sync_real_swing_stop_loss(conn):
             if refreshed is None:
                 continue  # today's open not available yet; retry next tick
             stop_px = refreshed
+        stop_px = _swing_stop_floored(conn, row["symbol"], stop_px)  # B-1367: never below the entry-day stop
+        if _swing_stop_breached_exit(conn, row["symbol"], stop_px, _swing_live_ltp(row["symbol"])):
+            continue
         try:
             import kotak_live_feed
             _t = kotak_live_feed.get_live_ticks().get(row["symbol"]) or {}
@@ -25096,6 +25125,61 @@ def _ensure_gap_and_go_state_for_held(conn) -> list:
     return out
 
 
+_ob_state_last_day = None
+
+
+def _ensure_order_block_state_for_held(conn) -> list:
+    """B-1364 (2026-10-26): BANKINDIA/UNIONBANK/COALINDIA are real order_block_delta holdings whose signal_state_swing
+    rows were lost (unguarded Upstash mirror push after a restart), so their chandelier trail/max-hold exit never ran
+    ('retry_refused_no_paper_exit'). Re-derive the exit state honestly from daily bars: entry_day/entry_price from the
+    real row, initial stop = the entry-day stop (swing_entry_stop) or the row's stop, ATR14 frozen at the entry day
+    (same _compute_atr_value the entry signal uses), running max close since entry. Once per IST day; never places
+    an order itself."""
+    global _ob_state_last_day
+    today = ist_now().strftime("%Y-%m-%d")
+    if _ob_state_last_day == today:
+        return []
+    out = []
+    for row in conn.execute("SELECT * FROM real_positions_swing WHERE strategy = 'order_block_delta'").fetchall():
+        sym = row["symbol"]
+        if conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone():
+            continue
+        try:
+            df = fetch_ohlc(sym, "1y", "1d")
+            df = df.reset_index() if "Date" not in df.columns else df
+            dates = df["Date"].astype(str).str[:10]
+            upto = df[dates <= row["day"]]
+            atr = _compute_atr_value(upto, 14) if len(upto) > 20 else None
+            since = df[dates >= row["day"]]
+            run_max = float(since["Close"].max()) if len(since) else float(row["entry_price"])
+        except Exception as e:
+            print(f"[SWING] order_block state derivation failed for {sym}: {e}")
+            continue
+        if not atr or atr <= 0:
+            out.append({"symbol": sym, "derived": False})
+            continue
+        stop = _swing_entry_stop(conn, sym) or float(row["stop_loss"] or 0)
+        if stop <= 0:
+            continue
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, gap_low, "
+            "qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) VALUES (?, 'order_block_delta', ?, ?, ?, ?, ?, ?, "
+            "1.0, ?, ?) ON CONFLICT(symbol) DO NOTHING",
+            (sym, row["day"], float(row["entry_price"]), stop, stop, row["qty"], row["opened_at"] or time.time(),
+             float(atr), run_max))
+        if not conn.execute("SELECT 1 FROM positions WHERE symbol = ? AND qty > 0", (sym,)).fetchone():
+            apply_paper_trade(conn, sym, "buy", row["qty"], float(row["entry_price"]))
+        conn.commit()
+        _sync_signal_state_swing_external(conn)
+        _log_real_order_event(
+            conn, sym, "reroute", "order_block_state_restored", kotak_trading_symbol=row["kotak_trading_symbol"],
+            new_state=f"entry {row['day']} @ Rs{float(row['entry_price']):.2f}, stop Rs{stop:.2f}, ATR Rs{atr:.2f}, peak close Rs{run_max:.2f}",
+            reason="B-1364: paper swing exit state was lost; re-derived from daily bars so the order_block_delta trail/max-hold exit runs again")
+        out.append({"symbol": sym, "derived": True})
+    _ob_state_last_day = today
+    return out
+
+
 SWING_PASS_INTERVAL_SEC = 900  # B-419: repeat swing pass every 15 min during market hours
 _swing_last_pass_ts = 0.0
 
@@ -25219,14 +25303,24 @@ def _chan_long_flatten_due(symbol: str) -> bool:
                               (symbol, *CHAN_INTRADAY_LONG_TAGS)).fetchone())
 
 
+async def _real_off_loop(fn, *args, **kwargs):
+    """B-1365: run fn(conn, *args, **kwargs) in a worker thread with its own DB connection, so a Kotak/yfinance call
+    inside it can never freeze the event loop (and with it /health and Render's health check)."""
+    def _run():
+        with closing(get_db()) as _c:
+            return fn(_c, *args, **kwargs)
+    return await asyncio.to_thread(_run)
+
+
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
 
     with closing(get_db()) as conn:
         if _nse_equity_market_open_now():
-            try:
-                _ensure_gap_and_go_state_for_held(conn)
+            try:  # B-1365: off the event loop (Kotak/yfinance calls froze /health -> Render restarts)
+                await _real_off_loop(_ensure_gap_and_go_state_for_held)
+                await _real_off_loop(_ensure_order_block_state_for_held)  # B-1364
             except Exception as e:
                 print(f"[SWING] gap_and_go state restore failed (non-fatal): {e}")
         try:
@@ -25249,15 +25343,22 @@ async def _scheduler_tick():
             print(f"[CHAN_GAP] scan launch failed (non-fatal): {e}")
         global _swing_sl_trail_last_day
         _today_ist = ist_now().strftime("%Y-%m-%d")
+        # B-1365 (2026-10-26): these place/cancel real orders (Kotak login, order_report, place) and ran ON the event
+        # loop: live watchdog showed MainThread in _maybe_sync_real_swing_stop_loss > ensure_resting_sl with 37 s loop
+        # lag, so /health stopped answering and Render restarted the bot ~every 20 min. Now in a worker thread.
         if _swing_sl_trail_last_day != _today_ist and _nse_equity_market_open_now():
             try:
-                _sync_swing_resting_sl_to_strategy(conn)
-                _sync_signal_state_swing_external(conn)
+                await _real_off_loop(_sync_swing_resting_sl_to_strategy)
+                await _real_off_loop(_sync_signal_state_swing_external)
                 _swing_sl_trail_last_day = _today_ist
             except Exception as e:
                 print(f"[REAL SWING] daily SL trail/mirror failed (non-fatal, retries next tick): {e}")
+        try:  # B-1369: entry-day stop breached -> cancel open sells, then market sell (every tick, in session)
+            await _real_off_loop(_swing_entry_stop_breach_sweep)
+        except Exception as e:
+            print(f"[REAL SWING] breach sweep failed (non-fatal): {e}")
         try:
-            _retry_pending_real_swing_orders(conn)
+            await _real_off_loop(_retry_pending_real_swing_orders)
         except Exception as e:
             print(f"[REAL SWING] retry pass failed (non-fatal, intraday tick continues): {e}")
 
@@ -25267,7 +25368,7 @@ async def _scheduler_tick():
             print(f"[FO_MONITOR] snapshot failed (non-fatal, intraday tick continues): {e}")
 
         try:
-            _run_fo_options_scan(conn)
+            await _real_off_loop(_run_fo_options_scan)  # B-1365: off the event loop
         except Exception as e:
             print(f"[FO_RSI2] scan failed (non-fatal, intraday tick continues): {e}")
 
@@ -25479,30 +25580,25 @@ async def _scheduler_tick():
             try:
                 action_taken = result.get("action_taken", "")
                 if action_taken == "entered_long":
-                    with closing(get_db()) as real_conn:
-                        _maybe_place_real_entry(real_conn, cfg["symbol"])
+                    await _real_off_loop(_maybe_place_real_entry, cfg["symbol"])
                 elif action_taken.startswith("exited_"):
-                    with closing(get_db()) as real_conn:
-                        _maybe_place_real_exit(real_conn, cfg["symbol"], reason=f"intraday paper exit: {action_taken}")
+                    await _real_off_loop(_maybe_place_real_exit, cfg["symbol"], reason=f"intraday paper exit: {action_taken}")
                 elif action_taken.startswith("partial_booked_"):
                     # Staged profit-booking ladder (2026-09-09 architecture
                     # revamp) - the paper side already booked one leg (see
                     # _execute_staged_leg_exit); mirror it as a REAL partial
                     # sell for the SAME leg qty, same isolation principle as
                     # every other real-order mirror in this block.
-                    with closing(get_db()) as real_conn:
-                        _maybe_place_real_partial_exit(real_conn, cfg["symbol"], result.get("staged_exit") or {})
+                    await _real_off_loop(_maybe_place_real_partial_exit, cfg["symbol"], result.get("staged_exit") or {})
                 elif _chan_long_flatten_due(cfg["symbol"]):
                     # B-960: exchange cancels resting orders at 15:15 IST, so flat by our own market sell first.
-                    with closing(get_db()) as real_conn:
-                        _maybe_place_real_exit(real_conn, cfg["symbol"], reason="flatten_1515")
+                    await _real_off_loop(_maybe_place_real_exit, cfg["symbol"], reason="flatten_1515")
                 else:
                     # Position still open (or never was one) - sync any
                     # real resting stop-loss to the paper trail's latest
                     # level. A no-op unless a real position is actually
                     # open for this symbol (see _maybe_sync_real_stop_loss).
-                    with closing(get_db()) as real_conn:
-                        _maybe_sync_real_stop_loss(real_conn, cfg["symbol"])
+                    await _real_off_loop(_maybe_sync_real_stop_loss, cfg["symbol"])
             except Exception as e:
                 print(f"[real_orders] unexpected error for {cfg['symbol']}: {e}")
 
@@ -25533,23 +25629,18 @@ async def _scheduler_tick():
                 if short_action == "holding_short" or short_action.startswith("exited_short_"):
                     _scan_only_intraday_cells(cfg["symbol"], "short")  # B-1274 stage 2: entry chain was skipped for a held symbol
                 if short_action == "entered_short":
-                    with closing(get_db()) as real_conn:
-                        _maybe_place_real_short_entry(real_conn, cfg["symbol"])
+                    await _real_off_loop(_maybe_place_real_short_entry, cfg["symbol"])
                     # 2026-10-08: a short signal on an index buys a single-strike PUT.
                     if cfg["symbol"] in _REAL_OPTION_UNDERLYING:
                         _e = short_result.get("entry") or {}
-                        with closing(get_db()) as fo_conn:
-                            _maybe_place_real_fo_put_entry(fo_conn, cfg["symbol"], _e.get("price"), _e.get("strategy"))
+                        await _real_off_loop(_maybe_place_real_fo_put_entry, cfg["symbol"], _e.get("price"), _e.get("strategy"))
                 elif short_action.startswith("exited_short_"):
-                    with closing(get_db()) as real_conn:
-                        _maybe_place_real_short_exit(real_conn, cfg["symbol"], reason=f"short paper exit: {short_action}")
+                    await _real_off_loop(_maybe_place_real_short_exit, cfg["symbol"], reason=f"short paper exit: {short_action}")
                     if cfg["symbol"] in _REAL_OPTION_UNDERLYING:
-                        with closing(get_db()) as fo_conn:
-                            _maybe_place_real_fo_put_exit(fo_conn, cfg["symbol"], reason=f"paper index short exit: {short_action}")
+                        await _real_off_loop(_maybe_place_real_fo_put_exit, cfg["symbol"], reason=f"paper index short exit: {short_action}")
                 elif _chan_short_flatten_due(cfg["symbol"]):
                     # B-914: exchange cancels resting orders at 15:15 IST, so flat by our own market cover first.
-                    with closing(get_db()) as real_conn:
-                        _maybe_place_real_short_exit(real_conn, cfg["symbol"], reason="flatten_1515")
+                    await _real_off_loop(_maybe_place_real_short_exit, cfg["symbol"], reason="flatten_1515")
                 else:
                     # 2026-09-30, explicit user instruction ("make short
                     # positions equally mirrored as done in buy
@@ -25558,8 +25649,7 @@ async def _scheduler_tick():
                     # was the missing short-side mirror (previously a
                     # short's resting SL was only ever re-checked on the
                     # 5-min reconcile pass, not this ~30s tick).
-                    with closing(get_db()) as real_conn:
-                        _maybe_sync_real_stop_loss_short(real_conn, cfg["symbol"])
+                    await _real_off_loop(_maybe_sync_real_stop_loss_short, cfg["symbol"])
             except Exception as e:
                 print(f"[real_short_orders] unexpected error for {cfg['symbol']}: {e}")
 
@@ -25573,18 +25663,15 @@ async def _scheduler_tick():
                 if cfg["symbol"] in _REAL_OPTION_UNDERLYING:
                     fo_underlying = _REAL_OPTION_UNDERLYING[cfg["symbol"]]
                     if action_taken == "entered_long":
-                        with closing(get_db()) as fo_conn:
-                            _maybe_place_real_fo_call_entry(fo_conn, cfg["symbol"], result.get("last_close"), result.get("strategy"))
+                        await _real_off_loop(_maybe_place_real_fo_call_entry, cfg["symbol"], result.get("last_close"), result.get("strategy"))
                     elif action_taken.startswith("exited_"):
-                        with closing(get_db()) as fo_conn:
-                            _maybe_place_real_fo_call_exit(fo_conn, cfg["symbol"], reason=f"paper index long exit: {action_taken}")
+                        await _real_off_loop(_maybe_place_real_fo_call_exit, cfg["symbol"], reason=f"paper index long exit: {action_taken}")
                     if cfg["symbol"] in _INDEX_TO_FO_UNDERLYING:
-                      with closing(get_db()) as fo_conn:
-                        _straddle_signal_core(
-                            fo_conn, fo_underlying, result.get("vol_contraction_signal"),
-                            result.get("halted_for_day", False), result.get("is_squareoff_time", False),
-                            result.get("last_close"),
-                        )
+                      await _real_off_loop(
+                          _straddle_signal_core, fo_underlying, result.get("vol_contraction_signal"),
+                          result.get("halted_for_day", False), result.get("is_squareoff_time", False),
+                          result.get("last_close"),
+                      )
             except Exception as e:
                 print(f"[real_fo_orders] unexpected error for {cfg['symbol']}: {e}")
         except Exception as e:
@@ -26530,6 +26617,54 @@ def _restore_viable_stack_from_git_file() -> int:
         return 0
 
 
+def _viable_stack_merge_remote() -> int:
+    """B-1366 (2026-10-26): union the local stack with the dedicated Upstash key and the git copies (side branch +
+    shipped file), keyed by (created_at, label), then rewrite the table in created_at order so the NEWEST save is the
+    active definition whichever source held it. Returns rows added; never raises."""
+    try:
+        remote = []
+        try:
+            if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN and not os.environ.get("PYTEST_CURRENT_TEST"):
+                raw = _upstash_get(_VIABLE_STACK_REDIS_KEY)
+                for r in (json.loads(raw) if raw else []):
+                    remote.append((r.get("created_at"), r.get("label"), r.get("names")))
+        except Exception as e:  # noqa: BLE001
+            print(f"[VIABLE-STACK] merge: direct key unreadable: {e}")
+        if not os.environ.get("PYTEST_CURRENT_TEST") or _VIABLE_STACK_GIT_RESTORE_IN_TESTS:
+            for r in _viable_stack_git_rows():
+                remote.append((r.get("created_at"), r.get("label"), r.get("names")))
+        with closing(get_db()) as c:
+            local = [(r[0], r[1], r[2]) for r in
+                     c.execute("SELECT created_at, label, names FROM strategy_viable_stack ORDER BY id").fetchall()]
+            seen = {(round(float(a or 0), 3), str(b or "")) for a, b, _ in local}
+            added = []
+            for ca, label, names in remote:
+                if not ca or names is None:
+                    continue
+                k = (round(float(ca), 3), str(label or ""))
+                if k in seen:
+                    continue
+                seen.add(k)
+                added.append((float(ca), str(label or "restored")[:120], names if isinstance(names, str) else json.dumps(names)))
+            if not added:
+                return 0
+            rows = sorted(local + added, key=lambda r: float(r[0] or 0))[-VIABLE_STACK_SIZE:]
+            c.execute("DELETE FROM strategy_viable_stack")
+            for r in rows:
+                c.execute("INSERT INTO strategy_viable_stack (created_at, label, names) VALUES (?,?,?)", r)
+            c.commit()
+        _VIABLE_STACK_MIRROR_STATE["last_restore"] = f"merged {len(added)} newer/missing row(s) at {time.time():.0f}"
+        print(f"[VIABLE-STACK] merged {len(added)} row(s) from durable copies; newest save is active")
+        try:
+            sync_generic_tables_external(only=("strategy_viable_stack",))
+        except Exception:
+            pass
+        return len(added)
+    except Exception as e:  # noqa: BLE001
+        print(f"[VIABLE-STACK] merge failed (non-fatal): {e}")
+        return 0
+
+
 def _ensure_viable_stack_hydrated():
     """B-1282 / B-1299: the stack must never be empty after a restart. When the table is empty, restore from Upstash
     first, then from the git-synced docs/viable_stack.json. Throttled to once per 20 s so the entry gate can call it on
@@ -26540,6 +26675,10 @@ def _ensure_viable_stack_hydrated():
             _n = _c.execute("SELECT COUNT(*) FROM strategy_viable_stack").fetchone()[0]
         if _n:
             if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None:
+                # B-1366: merge every durable copy BEFORE pushing. The blind push here overwrote the dedicated key with a
+                # stale restore (git-tier table copy), so the owner's 26-Oct 10:28 IST save was lost at the 10:37 restart.
+                if _viable_stack_merge_remote():
+                    threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
                 _viable_stack_push_direct()  # first sight after a deploy: make sure the dedicated key holds it
             return
         if time.time() - _VIABLE_STACK_RECOVER_LAST < 20:
@@ -28066,6 +28205,121 @@ def kotak_neo_holdings(request: Request):
         return {"error": str(e)}
 
 
+# B-1367 (2026-10-26, owner: "the x% set as exit price on the entry day ... should not be altered later"): entry-day
+# stops of the holdings open on 26-Oct, read from the git order log (first SL placed after each entry). The 23-Oct
+# 15:21 IST CAS-session rejection made the heal fallback REWRITE them lower (BANKINDIA 126.73 -> 120.91, WIPRO,
+# COALINDIA); these seed the floor once so the next 09:15 placement uses the entry-day number again.
+_SWING_ENTRY_STOP_SEED = {
+    "UNIONBANK.NS": 162.88, "COALINDIA.NS": 398.35, "GSEC5IETF.NS": 64.70, "WIPRO.NS": 164.42,
+    # Owner 26-Oct ~20:30 IST: "if the entry day SL is crossed then immediately close the trade". BANKINDIA last
+    # traded Rs126.32 < 126.73, so the breach sweep closes it at the next session.
+    "BANKINDIA.NS": 126.73,
+}
+
+
+def _swing_entry_stop_record(conn, symbol: str, stop, source: str, replace: bool = False) -> None:
+    """Store a swing long's entry-day stop. replace=True only at a NEW real entry; every other caller keeps the first
+    value. Never raises."""
+    try:
+        if not stop or float(stop) <= 0:
+            return
+        verb = "INSERT OR REPLACE" if replace else "INSERT OR IGNORE"
+        conn.execute(f"{verb} INTO swing_entry_stop (symbol, entry_stop, set_at, source) VALUES (?,?,?,?)",
+                     (symbol, round(float(stop), 2), time.time(), source))
+        conn.commit()
+    except Exception as e:  # noqa: BLE001
+        print(f"[swing_entry_stop] record failed for {symbol} (non-fatal): {e}")
+
+
+def _swing_entry_stop(conn, symbol: str):
+    """The entry-day stop (seeded for the 26-Oct holdings), or None. Never raises."""
+    try:
+        if symbol in _SWING_ENTRY_STOP_SEED and not os.environ.get("PYTEST_CURRENT_TEST"):
+            _swing_entry_stop_record(conn, symbol, _SWING_ENTRY_STOP_SEED[symbol], "seed: entry-day stop from git order log")
+        r = conn.execute("SELECT entry_stop FROM swing_entry_stop WHERE symbol = ?", (symbol,)).fetchone()
+        return float(r[0]) if r else None
+    except Exception:
+        return None
+
+
+def _swing_stop_floored(conn, symbol: str, stop) -> float:
+    """B-1367: a swing long's stop may rise (strategy trail) but never fall below its entry-day stop."""
+    floor = _swing_entry_stop(conn, symbol)
+    try:
+        stop = float(stop or 0)
+    except (TypeError, ValueError):
+        stop = 0.0
+    return round(max(stop, floor or 0.0), 2)
+
+
+def _swing_live_ltp(symbol: str) -> float:
+    try:
+        import kotak_live_feed
+        return float((kotak_live_feed.get_live_ticks().get(symbol) or {}).get("ltp") or 0)
+    except Exception:
+        return 0.0
+
+
+def _swing_stop_breached_exit(conn, symbol: str, stop: float, ltp: float) -> bool:
+    """B-1367/B-1369: the market is at/below the fixed entry-day stop, so the stop has been hit. Owner rule (26-Oct):
+    close immediately - (1) read Kotak holdings + the whole live order book, (2) cancel every open sell on the symbol
+    (the current SL included), (3) only then a market SELL for Kotak's held qty. Never lowers the stop. Returns True
+    when the breach was handled (sell sent, or waiting on a cancel this pass), so the caller places no SL."""
+    # stop >= ltp * 0.999 is exactly where _swing_stop_below_price used to LOWER the stop 1% under the market
+    if not (ltp > 0 and stop > 0 and stop >= ltp * 0.999):
+        return False
+    _n = ist_now()
+    if _n.weekday() >= 5 or not (dt.time(9, 15) <= _n.time() < dt.time(15, 15)):
+        return False  # outside the session a market sell is rejected; the 09:15 pass handles it
+    row = conn.execute("SELECT * FROM real_positions_swing WHERE symbol = ?", (symbol,)).fetchone()
+    if not row:
+        return False
+    import kotak_real_orders
+    trd = row["kotak_trading_symbol"]
+    why = f"entry-day stop Rs{stop:.2f} breached (live Rs{ltp:.2f}); the stop is never lowered, so the holding is sold"
+    held = _kotak_holdings_open_by_trdsym()  # step 1: Kotak first
+    if held is None:
+        _log_real_order_event(conn, symbol, "exit", "breach_exit_deferred", kotak_trading_symbol=trd,
+                              new_state="holdings unreadable - retry next pass", reason=why)
+        return True
+    if trd not in held:
+        return False  # Kotak shows nothing held; the reconcile clears the row
+    cxl = kotak_real_orders.cancel_all_open_sells(trd)  # step 2: whole book read, every open sell cancelled
+    if not cxl.get("ok"):
+        _log_real_order_event(conn, symbol, "exit", "breach_exit_deferred", kotak_trading_symbol=trd,
+                              new_state="open sell order(s) not yet cancelled - no market sell sent (no double sell)",
+                              detail=str(cxl)[:200], reason=why)
+        return True
+    if cxl.get("cancelled"):
+        _log_real_order_event(conn, symbol, "sl", "cancelled", kotak_trading_symbol=trd,
+                              order_id=",".join(cxl["cancelled"])[:60], new_state="cancelled before the breach exit",
+                              reason=why)
+    qty = int(held[trd].get("qty") or 0)
+    conn.execute("UPDATE real_positions_swing SET qty = ?, sl_order_id = NULL WHERE symbol = ?",
+                 (qty or row["qty"], symbol))  # Kotak's held qty wins
+    conn.commit()
+    _maybe_place_real_swing_exit(conn, symbol, reason=why)  # step 3: market SELL
+    return True
+
+
+def _swing_entry_stop_breach_sweep(conn) -> list:
+    """B-1369: every tick (~30 s, off the event loop) check each real swing long against its ENTRY-DAY stop, whether or
+    not an SL is resting: a resting SL-limit can be gapped through and sit unfilled, so a breach is closed at market."""
+    out = []
+    for r in conn.execute("SELECT symbol FROM real_positions_swing").fetchall():
+        sym = r["symbol"]
+        stop = _swing_entry_stop(conn, sym)
+        if not stop:
+            continue
+        ltp = _swing_live_ltp(sym)
+        try:
+            if _swing_stop_breached_exit(conn, sym, stop, ltp):
+                out.append(sym)
+        except Exception as e:  # noqa: BLE001
+            print(f"[REAL SWING] breach sweep failed for {sym} (non-fatal): {e}")
+    return out
+
+
 def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: list,
                              strategy: str = "holding_atr_stop") -> dict:
     """Place a protective SL for ONE delivery holding that has no live resting
@@ -28095,6 +28349,10 @@ def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: 
         prev = conn.execute("SELECT sl_trigger_price, stop_loss FROM real_positions_swing WHERE symbol = ?",
                             (symbol,)).fetchone()
     carried = max(float(prev["sl_trigger_price"] or 0), float(prev["stop_loss"] or 0)) if prev else 0.0
+    with closing(get_db()) as conn:
+        _floor = _swing_entry_stop(conn, symbol)
+    if _floor:
+        carried = max(carried, _floor)  # B-1367: never below the entry-day stop
     atr_last = None
     if carried > 0:
         stop = round(carried, 2)
@@ -28118,21 +28376,13 @@ def _heal_swing_holding_core(kotak_trading_symbol: str, held: dict, order_rows: 
                 (symbol, kotak_trading_symbol, held["qty"], held["avg_price"], None, time.time(),
                  ist_now().strftime("%Y-%m-%d"), stop, strategy),
             )
+        _swing_entry_stop_record(conn, symbol, stop, "heal: first stop on record for this holding")
+        if _swing_stop_breached_exit(conn, symbol, stop, _swing_live_ltp(symbol)):
+            return {"symbol": symbol, "qty": held["qty"], "stop": stop, "status": "stop breached - market exit sent"}
         sl = kotak_real_orders.ensure_resting_sl(kotak_trading_symbol, held["qty"], stop)
-        if not sl.get("ok") and carried > 0:
-            # Carried stop rejected (typically a gap below it at the open):
-            # recompute from the latest close with the same ATR rule so the
-            # position is never left naked (user: "U recompute", 2026-10-06).
-            try:
-                df = fetch_ohlc(symbol, "6mo", "1d")
-                atr_l = float(_swing_atr(df)[-1])
-                alt = round(float(df["Close"].iloc[-1]) - SWING_ATR_STOP_MULT * atr_l, 2)
-                if atr_l > 0 and 0 < alt < stop:
-                    stop = alt
-                    sl = kotak_real_orders.ensure_resting_sl(kotak_trading_symbol, held["qty"], stop)
-                    conn.execute("UPDATE real_positions_swing SET stop_loss = ? WHERE symbol = ?", (stop, symbol))
-            except Exception as e:
-                print(f"[heal] recompute fallback failed for {kotak_trading_symbol}: {e}")
+        # B-1367 (2026-10-26): the old fallback here recomputed a LOWER stop on ANY rejection and stored it; a
+        # 15:21 IST CAS-session rejection on 23-Oct lowered BANKINDIA/WIPRO/COALINDIA for good. A rejected stop now
+        # stays where it is and is retried (and a breached one exits above); it is never lowered.
         if sl.get("ok"):
             conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                          (sl["order_id"], sl["trigger_price"], symbol))
