@@ -211,7 +211,7 @@ def test_scan_interval_guard_uses_module_level_timestamp():
 def test_scheduler_tick_calls_fo_options_scan():
     import inspect
     src = inspect.getsource(main._scheduler_tick)
-    assert "_run_fo_options_scan(conn)" in src
+    assert "_real_off_loop(_run_fo_options_scan)" in src  # B-1365: off the event loop
 
 
 def test_scan_records_a_scheduler_check_for_each_flat_leg_considered():

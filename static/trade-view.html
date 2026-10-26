@@ -374,6 +374,7 @@
     <button id="sx-wire" title="Pushes this table as the new viable definition (stack of 10, newest on top) and opens the real-money entry gate for it.">Make this set viable category and live wiring</button>
     <button id="sx-unwire" title="Pops the top definition so the previous one becomes active.">Undo (previous definition)</button>
     <select id="sx-stack" title="Viable-definition stack, newest first"></select>
+    <div id="sx-live" class="scan-idle" title="Live viability definition the bot is using right now (re-read from the server every 30 s)">Live viability definition: loading…</div>
     <button id="sx-restore">Restore selected</button>
     <button id="sx-rename" title="Name the selected stack entry (e.g. legacy one showing N strategies)">Rename selected</button>
     <span id="sx-msg" style="color:#64748b"></span>
@@ -423,6 +424,9 @@
     }).catch(function(){document.getElementById("sx-body").innerHTML="<tr><td colspan='9' class='scan-idle'>Load failed.</td></tr>";});
   }
   function stackUi(st){
+    // B-1366: show the definition the LIVE bot is actually using (top of its stack), refreshed every 30 s
+    var lv=document.getElementById("sx-live"), a=(st||[])[0];
+    if(lv){lv.textContent=a?("Live viability definition (bot is using now): "+((a.criteria)?("PFnet "+a.criteria.pf_min+"-"+a.criteria.pf_max+", min "+a.criteria.min_trades+" trades, max avg hold "+(a.criteria.max_hold_hrs==null?"any":a.criteria.max_hold_hrs+" h")):(a.label||"saved list"))+" | "+a.count+" strategies pass | saved "+new Date(a.created_at*1000).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+" IST | checked "+new Date().toLocaleTimeString("en-IN",{timeZone:"Asia/Kolkata"})+" IST"):"Live viability definition: NONE loaded - no real entries can open";}
     var sel=document.getElementById("sx-stack");
     sel.innerHTML=st.map(function(e,i){var lbl=(e.label&&e.label.indexOf("pfnet(")===0)?e.label:e.count+" strategies";return '<option value="'+e.id+'">'+(i===0?"ACTIVE - ":"#"+(i+1)+" - ")+lbl+", "+new Date(e.created_at*1000).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})+" IST</option>";}).join("")||"<option>stack empty</option>";
   }
@@ -434,6 +438,7 @@
       .catch(function(e){msg.textContent="Failed: "+e.message;});
   }
   (function loadStack(n){fetch("/strategy-viable-stack").then(function(r){return r.json();}).then(function(d){if(!(d.stack||[]).length&&n<3){return setTimeout(function(){loadStack(n+1);},4000);}stackUi(d.stack);}).catch(function(){});})(0);  // B-1282: retry while Upstash restore is still landing after a restart
+  setInterval(function(){fetch("/strategy-viable-stack").then(function(r){return r.json();}).then(function(d){if((d.stack||[]).length)stackUi(d.stack);}).catch(function(){});},30000);  // B-1366: live view follows the bot
   document.getElementById("sx-wire").addEventListener("click",function(){
     var names=[].slice.call(document.querySelectorAll("#sx-body tr")).map(function(tr){return tr.children[1]&&tr.children[1].textContent;}).filter(Boolean);
     if(!names.length){document.getElementById("sx-msg").textContent="Press Show first.";return;}
