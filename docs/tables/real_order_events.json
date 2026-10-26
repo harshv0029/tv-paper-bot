@@ -6995,7 +6995,19 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261026000651013 rejected: OMS: Order Rejected due to CAS session end"
+  },
+  {
+   "id": 584,
+   "ts": 1793008749.0192232,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261026000652043 rejected: OMS: Order Rejected due to CAS session end"
   }
  ],
- "synced_at_utc": "2026-10-26T09:58:16Z"
+ "synced_at_utc": "2026-10-26T09:59:12Z"
 }
