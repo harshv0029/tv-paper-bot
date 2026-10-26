@@ -13,7 +13,7 @@ Total rows: 1121 | closed: 501 | not closed: 620
 | CLOSED-AS-EXPLAINED | 125 |
 | HARNESS-BUILT-AWAITING-RUN | 99 |
 | CLOSED | 82 |
-| DONE-PENDING-VERIFY | 80 |
+| DONE-PENDING-VERIFY | 79 |
 | BLOCKED | 63 |
 | OPEN | 52 |
 | P2 | 42 |
@@ -21,7 +21,7 @@ Total rows: 1121 | closed: 501 | not closed: 620
 | HARNESS-BUILT-RUN-PENDING | 15 |
 | PENDING | 12 |
 | BUILT-DISPATCH-OWED | 12 |
-| OWNER-ACTION | 7 |
+| OWNER-ACTION | 8 |
 | BUILT-ON-BRANCH | 6 |
 | OPEN-PARKED | 6 |
 | BUILT | 5 |
@@ -90,7 +90,7 @@ Total rows: 1121 | closed: 501 | not closed: 620
 | Info | 1 | 0 |
 | P? | 21 | 19 |
 
-## needs-owner (9)
+## needs-owner (10)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -102,9 +102,10 @@ Total rows: 1121 | closed: 501 | not closed: 620
 | B-1366 | P0 | OWNER-ACTION | 2026-10-26 18:55 IST | verify, owner |
 | B-1367 | P0 | OWNER-ACTION | 2026-10-26 18:55 IST | pending, verify, owner |
 | B-1369 | P0 | OWNER-ACTION | 2026-10-26 20:30 IST | verify, owner |
+| B-1370 | P1 | OWNER-ACTION | 2026-10-26 21:05 IST | owed, owner |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (367)
+## waiting-on-workflow/deploy (366)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -278,7 +279,6 @@ Total rows: 1121 | closed: 501 | not closed: 620
 | B-817 | P1 | DONE-PENDING-VERIFY | Trade-view Remarks for Kotak order-book exit fills (DABUR 2026-10-12 IST showed only "exit fill from Kotak ... | owed, remaining, pending, verify, follow-up |
 | B-830 | P1 | DONE-PENDING-VERIFY | O'Neil extension run 38207070547 (2026-10-12 IST, cost 0.8%, ~2166 symbols): 564 cells (1d 282, 1w 282; eac... | pending |
 | B-867 | P1 | BUILT-ON-BRANCH | 2026-10-12 | owed, pending |
-| B-1370 | P1 | DONE-PENDING-VERIFY | 2026-10-26 21:05 IST | owed, pending, owner |
 | B-289 | P2 | BUILT-ON-BRANCH |  | owed, not merged, follow-up |
 | B-312 | P2 | DONE-PENDING-VERIFY | GMRAIRPORT duplicate SL attempt 2026-10-08 (Kotak SL snapshot, 9:18 AM IST): reconcile placed SL 2610080000... | owed, pending, verify |
 | B-313 | P2 | DONE-PENDING-VERIFY | Overnight phantom SHORT emergency-cover loop (journal real_order_log, 08-Oct 1:00-1:43 AM IST, market close... | owed, pending, verify |
