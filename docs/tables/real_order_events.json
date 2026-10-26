@@ -7691,7 +7691,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000000068 rejected: Adapter is Logged Off"
+  },
+  {
+   "id": 642,
+   "ts": 1793040533.0704021,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000000069 rejected: Adapter is Logged Off"
   }
  ],
- "synced_at_utc": "2026-10-26T18:48:44Z"
+ "synced_at_utc": "2026-10-26T18:48:56Z"
 }
