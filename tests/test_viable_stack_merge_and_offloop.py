@@ -18,15 +18,15 @@ def test_merge_makes_the_newest_saved_definition_active():
                   (1792559921.69, "pfnet(1.04-100), min(30), maxhold(6)", json.dumps([])))
         c.commit()
     git_rows = [{"created_at": 1792559921.69, "label": "pfnet(1.04-100), min(30), maxhold(6)", "names": []},
-                {"created_at": 1793018299.87, "label": "pfnet(1.04-100), min(30), maxhold(12.5)", "names": []}]
+                {"created_at": 4102444800.0, "label": "pfnet(1.04-100), min(30), maxhold(12.5)", "names": []}]
     with patch.object(main, "_VIABLE_STACK_GIT_RESTORE_IN_TESTS", True), \
-            patch("main._viable_stack_git_rows", return_value=git_rows), \
-            patch("main.sync_generic_tables_external"):
+            patch.object(main, "_viable_stack_git_rows", return_value=git_rows), \
+            patch.object(main, "sync_generic_tables_external"):
         assert main._viable_stack_merge_remote() == 1
         assert main._viable_stack_merge_remote() == 0  # idempotent
     with main.closing(main.get_db()) as c:
-        top = c.execute("SELECT label FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()[0]
-    assert "maxhold(12.5)" in top
+        rows = c.execute("SELECT id, created_at, label FROM strategy_viable_stack ORDER BY id DESC").fetchall()
+    assert "maxhold(12.5)" in rows[0][2], ([tuple(r) for r in rows], main.DB_PATH, main.VIABLE_STACK_SIZE)
 
 
 def test_first_sight_merges_before_pushing():
