@@ -4955,7 +4955,67 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "resting SELL trigger Rs63.93",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
+  },
+  {
+   "id": 414,
+   "ts": 1792986774.5940864,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 415,
+   "ts": 1792986774.6000636,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 416,
+   "ts": 1792986774.6055655,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 417,
+   "ts": 1792986774.6112437,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 418,
+   "ts": 1792986774.6189573,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   }
  ],
- "synced_at_utc": "2026-10-26T03:52:53Z"
+ "synced_at_utc": "2026-10-26T03:52:59Z"
 }
