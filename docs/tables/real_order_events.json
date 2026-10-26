@@ -7787,7 +7787,19 @@
    "prev_state": null,
    "new_state": "rejected",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 00:19:01 S SL qty 2 trg 398.35 status rejected rejRsn Adapter is Logged Off"
+  },
+  {
+   "id": 650,
+   "ts": 1793045035.7762177,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'stCode': 13, 'errMsg': 'error from core', 'stat': 'XUAEZ-4f4f9493-25b3-49d8-9e62-fc2e872a9bf8| Put Order Request : \\nThis is From addRqDontStore\\n pMnmHndl : 0x7ff4cc01c010 and pBufHndl : 0x7ff510d45450 ##### Error Code 11 Error Code : 11  Reason : Message build error Data: 0'}"
   }
  ],
- "synced_at_utc": "2026-10-26T20:03:19Z"
+ "synced_at_utc": "2026-10-26T20:04:05Z"
 }
