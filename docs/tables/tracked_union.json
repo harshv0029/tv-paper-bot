@@ -9,7 +9,7 @@
       "source": "holding",
       "entry_price": 134.39,
       "stop_loss": 120.91,
-      "sl_trigger_price": 126.73,
+      "sl_trigger_price": 120.91,
       "strategy": "order_block_delta",
       "entry_order_id": "261009000196477",
       "opened_at": 1791522706.9950182,
@@ -25,7 +25,7 @@
       "source": "holding",
       "entry_price": 409.5,
       "stop_loss": 373.22,
-      "sl_trigger_price": 389.85,
+      "sl_trigger_price": 373.2,
       "strategy": "order_block_delta",
       "entry_order_id": "261009000196783",
       "opened_at": 1791522728.415014,
@@ -57,7 +57,7 @@
       "source": "holding",
       "entry_price": 172.65,
       "stop_loss": 164.8,
-      "sl_trigger_price": 165.06,
+      "sl_trigger_price": 164.8,
       "strategy": "order_block_delta",
       "entry_order_id": "261008000123602",
       "opened_at": 1791432981.9336588,
@@ -73,7 +73,7 @@
       "source": "holding",
       "entry_price": 188.75,
       "stop_loss": 175.88,
-      "sl_trigger_price": 186.86,
+      "sl_trigger_price": 175.88,
       "strategy": "swing_rerouted_orphan",
       "entry_order_id": "261021000144947",
       "opened_at": 1792578447.972194,
@@ -81,5 +81,5 @@
       "first_seen_day": "2026-10-21"
     }
   ],
-  "synced_at_utc": "2026-10-23T13:19:28Z"
+  "synced_at_utc": "2026-10-26T08:15:24Z"
 }
