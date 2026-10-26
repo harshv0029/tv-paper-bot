@@ -7607,7 +7607,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000000006 rejected: Adapter is Logged Off"
+  },
+  {
+   "id": 635,
+   "ts": 1793039643.5312018,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-10-26T18:32:10Z"
+ "synced_at_utc": "2026-10-26T18:34:07Z"
 }
