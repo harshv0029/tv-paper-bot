@@ -7,6 +7,10 @@ name: month-effect short main.py-function replay (B-965)
 # Cost = main.ROUND_TRIP_COST_PCT. Output artifact month-effect-all (month_effect_main_replay_all.json): per tag n, win %,
 # PFnet gross/net, avg hold, exit reasons. Commit the merged file as docs/backtest_data/month_effect_main_replay_run_<id>.json
 # to let main._replay_verified_tags() clear the 15m tags. Big matrix: dispatch only when no gate is queued.
+# B-1396b: the aggregate job's merge step also prints ONE `RESULTS_JSON: {...}` log line (run_id, source, rows[].metrics
+# with every measured field) so the result can be saved from the job log when the artifact cannot be downloaded.
+# 15m caveat: yfinance serves only the last 60 days of 15m bars; the September-1 event (plus the Aug-31 bars its ATR14
+# needs) leaves that window around 2026-10-30, after which the 15m cells replay to n=0.
 on:
   workflow_dispatch:
     inputs:

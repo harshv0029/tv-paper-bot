@@ -32,8 +32,14 @@ jobs:
       - id: p
         env:
           NSHARDS: ${{ inputs.nshards }}
+        # B-1396c: run 38451258979 wrote `matrix=` (empty) because plan crashed inside $(...) on a missing pandas import,
+        # so replay's fromJSON failed and no shard ran. plan is stdlib-only now; capture it first and fail loudly here.
         run: |
-          echo "matrix=$(python3 scripts/tasuki_swingminrr_short_main_replay.py plan)" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          M="$(python3 scripts/tasuki_swingminrr_short_main_replay.py plan)"
+          echo "plan: $M"
+          python3 -c 'import json,sys; m=json.loads(sys.argv[1]); assert m["include"], "empty matrix"' "$M"
+          echo "matrix=$M" >> "$GITHUB_OUTPUT"
 
   replay:
     needs: plan
@@ -62,8 +68,8 @@ jobs:
           path: out/
 
   aggregate:
-    needs: replay
-    if: always()
+    needs: [plan, replay]
+    if: always() && needs.plan.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -71,12 +77,14 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -q numpy pandas
+      - run: mkdir -p out
       - uses: actions/download-artifact@v4
+        continue-on-error: true  # zero shard artifacts -> merge below fails loudly with the reason
         with:
           path: out
           pattern: tsm-*
           merge-multiple: true
-      - name: Merge shards (exact, from raw sums)
+      - name: Merge shards (exact, from raw sums; prints RESULTS_JSON, fails on zero shards)
         run: python3 scripts/tasuki_swingminrr_short_main_replay.py merge out
       - uses: actions/upload-artifact@v4
         with:

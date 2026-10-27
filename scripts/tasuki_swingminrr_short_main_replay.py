@@ -10,7 +10,13 @@ FILL: signal_close (default, = live: the scan enters at the signal bar's close) 
 Each tag replayed INDEPENDENTLY (own position book per tag). Bar-count constants are bars of the candle in use.
 
 Modes: run (env GROUP tasuki|swm1h, SHARD, NSHARDS, SYMBOL_LIMIT, SYNTHETIC=1 smoke) -> out/tsm_<group>_s<shard>.json ;
-merge <dir> -> <dir>/tsm_all.json (rows[].metrics, the shape main._replay_verified_tags reads); plan.
+merge <dir> -> <dir>/tsm_all.json (rows[].metrics, the shape main._replay_verified_tags reads) + one stdout line
+`RESULTS_JSON: {...}`; plan (stdlib only, B-1396c).
+
+B-1396c root cause (run 38451258979): the plan job installs no requirements, but this file imported pandas and brk20_replay
+(numpy/pandas) at module top, so `plan` crashed, `$(...)` swallowed the error, the job wrote `matrix=` (empty), the replay
+job's `fromJSON('')` failed before any shard started, and aggregate (if: always()) found no artifacts. Fix: heavy imports are
+lazy (plan needs only the stdlib), the workflow validates the plan output, merge creates its dir and fails on zero shards.
 """
 import glob
 import json
@@ -18,13 +24,16 @@ import os
 import sys
 import warnings
 
-import pandas as pd
-
 warnings.filterwarnings("ignore")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
-import brk20_replay as B  # noqa: E402  (exact-mergeable aggregation helpers)
+
+
+def _B():
+    """Lazy: brk20_replay pulls numpy/pandas, which the plan job does not install (B-1396c)."""
+    import brk20_replay as B  # exact-mergeable aggregation helpers
+    return B
 
 MIN_BARS = 62
 WINDOW = 200
@@ -90,6 +99,8 @@ def replay_symbol(m, df, tag, spec, cost, fill="signal_close"):
 
 
 def load_frames(m, group, shard, nshards, limit=None):
+    import pandas as pd
+    B = _B()
     if os.environ.get("SYNTHETIC") == "1":
         return {f"SYN{k}": B.synthetic_frame(k) for k in range(limit or 3)}
     g = GROUPS[group]
@@ -97,22 +108,30 @@ def load_frames(m, group, shard, nshards, limit=None):
     syms = sorted(set(pool))[shard::nshards]
     if limit:
         syms = syms[:limit]
-    out = {}
+    out, errs, short = {}, [], 0
     for s in syms:
         try:
             raw = m.fetch_ohlc(s, g["period"], g["interval"])
-        except Exception:
+        except Exception as ex:
+            errs.append(f"{s}: {type(ex).__name__}: {ex}")
             continue
-        if raw is None or len(raw) < MIN_BARS + 3:
-            continue
-        if group == "swm1h":
+        if raw is not None and group == "swm1h":
             raw = m._hourly_with_str_date(raw, now_naive=pd.Timestamp("2100-01-01"))
+        if raw is None or len(raw) < MIN_BARS + 3:
+            short += 1
+            continue
         out[s] = raw.reset_index(drop=True)
+    print(f"fetch {group} s{shard}/{nshards}: {len(syms)} symbols, {len(out)} loaded, {short} too short/empty, {len(errs)} errors")
+    for e in errs[:5]:
+        print("fetch error", e)
+    if syms and not out:
+        raise SystemExit("no symbol loaded - refusing to write an all-zero shard")
     return out
 
 
 def run():
     import main as m
+    B = _B()
     specs = tag_specs(m)
     group = os.environ.get("GROUP", "tasuki")
     tags = [t for t, s in specs.items() if s["group"] == group]
@@ -143,9 +162,22 @@ def run():
     print("wrote", path)
 
 
+def results_payload(out, source):
+    """The one-line RESULTS_JSON payload, in the rows[].metrics shape main._replay_verified_tags reads; every measured
+    field (incl. exit-reason breakdown, spec, n_symbols, shards, fill/cost meta) is kept, never trimmed."""
+    meta = {k: v for k, v in out.items() if k != "rows"}
+    return {"run_id": None, "source": source, **meta, "rows": out["rows"]}
+
+
 def merge(d):
+    B = _B()
+    os.makedirs(d, exist_ok=True)
+    files = sorted(glob.glob(os.path.join(d, "tsm_*_s*.json")))
+    if not files:
+        raise SystemExit(f"merge: zero shard files (tsm_*_s*.json) in {d!r} - the replay matrix produced nothing; refusing to "
+                         "write an empty result (B-1396c)")
     tags, meta = {}, {}
-    for f in sorted(glob.glob(os.path.join(d, "tsm_*_s*.json"))):
+    for f in files:
         r = json.load(open(f))
         for t, c in r["cells"].items():
             e = tags.setdefault(t, {"spec": c["spec"], "agg": B.agg_new(), "n_symbols": 0, "shards": 0, "bh": r["bar_hours"]})
@@ -158,18 +190,25 @@ def merge(d):
         mt = B.agg_metrics(e["agg"])
         mt["avg_held_hours"] = round(mt["avg_held_bars"] * e["bh"], 1)
         rows.append({"tag": t, "spec": e["spec"], "n_symbols": e["n_symbols"], "shards": e["shards"], "metrics": mt})
-    out = {**meta, "rows": rows}
-    json.dump(out, open(os.path.join(d, "tsm_all.json"), "w"), indent=1)
+    if not rows:
+        raise SystemExit("merge: shard files held no cells - refusing to write an empty result")
+    out = {**meta, "shard_files": len(files), "rows": rows}
+    with open(os.path.join(d, "tsm_all.json"), "w") as fh:
+        json.dump(out, fh, indent=1)
     for r in rows:
         mt = r["metrics"]
         print(r["tag"], "n", mt["n"], "pfnet", mt["pfnet"], "pfgross", mt["pfgross"], "win", mt["win_pct"],
               "hold_bars", mt["avg_held_bars"], mt["exit_reasons"])
+    src = "scripts/tasuki_swingminrr_short_main_replay.py (real main.py fns; tasuki=ETF_SYMBOLS 1d, swm1h=full NSE 1h)"
+    print("RESULTS_JSON: " + json.dumps(results_payload(out, src), separators=(",", ":")))
     return out
 
 
 def plan(env=None):
     e = env if env is not None else os.environ
-    ns = int(e.get("NSHARDS", "8"))
+    ns = int(e.get("NSHARDS") or "8")
+    if ns < 1:
+        raise ValueError(f"NSHARDS must be >= 1, got {ns}")
     inc = [{"group": "tasuki", "shard": 0, "nshards": 1}]
     inc += [{"group": "swm1h", "shard": s, "nshards": ns} for s in range(ns)]
     return {"include": inc}

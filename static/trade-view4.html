@@ -183,7 +183,16 @@
   let health = null, healthAt = 0, restarts = null;
   // B-1393: Render restarts today (IST), from /restart-history's Upstash log, so it survives the restart it counts
   async function pollRestarts() {
-    try { const r = await getJSON("/restart-history?limit=20"); restarts = r.summary || null; restarts.causes = (r.events || []).filter(e => (e.boot_ist || "").slice(0, 10) === (r.boot_ist || "").slice(0, 10)).map(e => `${(e.boot_ist || "").slice(11, 16)} ${e.cause_guess}`); } catch (e) {}
+    // User 2026-10-28: "Render restarts today X (code push a, crash b)", X = a + b. A deploy is a code push; every other
+    // cause (oom_suspect, freeze_suspect, platform_or_unknown, unknown_no_prior_heartbeat) counts as a crash.
+    try {
+      const r = await getJSON("/restart-history?limit=100");
+      const day = (r.boot_ist || "").slice(0, 10);
+      const today = (r.events || []).filter(e => (e.boot_ist || "").slice(0, 10) === day);
+      const push = today.filter(e => e.cause_guess === "deploy").length;
+      restarts = {total: today.length, push, crash: today.length - push,
+                  crashes: today.filter(e => e.cause_guess !== "deploy").map(e => `${(e.boot_ist || "").slice(11, 16)} ${e.cause_guess}`)};
+    } catch (e) {}
     renderSys();
   }
   async function pollHealth() {
@@ -212,7 +221,7 @@
         c(!(h.threadpool_total && h.threadpool_used >= h.threadpool_total), `workers ${h.threadpool_used ?? "-"}/${h.threadpool_total ?? "-"}`),
         c(!(h.watchdog_alarms > 0), `watchdog alarms ${h.watchdog_alarms ?? "-"}`),
         c(!(h.order_log_git_push_age_s > 600), `order-log push ${h.order_log_git_push_age_s == null ? "-" : Math.round(h.order_log_git_push_age_s) + "s ago"}`),
-        c(!(restarts && restarts.today_ist > 0 && (restarts.causes || []).some(x => !/deploy$/.test(x))), `Render restarts today ${restarts ? restarts.today_ist : "-"}${restarts && restarts.causes && restarts.causes.length ? " (" + restarts.causes.join(", ") + " IST)" : ""}`));
+        c(!(restarts && restarts.crash > 0), restarts ? `Render restarts today ${restarts.total} (code push ${restarts.push}, crash ${restarts.crash}${restarts.crash ? ": " + restarts.crashes.join(", ") + " IST" : ""})` : "Render restarts today -"));
     }
     $("sys").classList.toggle("bad", probs.length > 0);
     $("sysLed").className = "led " + (probs.length ? "bad" : health ? "ok" : "");
@@ -613,6 +622,7 @@
         `2. ALL TRADING switch: ${g.trading_enabled == null ? "unknown" : ok(g.trading_enabled, g.trading_enabled ? "ON" : "OFF - no new real trades")}` +
         ` · 3. Real entry needs the definition loaded: ${g.requires_explorer_stack ? (g.stack_active ? ok(true, "loaded (" + g.active_names + " strategies)") : ok(false, "NOT loaded")) : "no"}<br>` +
         `4. Scanning/wiring floor: PFnet ≥ ${g.wiring_pfnet_floor} · 5. Replay-owed tags (blocked from real money until replayed): ${g.replay_owed_tags}` +
+        (g.replay_failed_tags != null ? ` · replayed below floor (blocked): ${g.replay_failed_tags}` : "") +
         ` · 6. Every entry carries a stop-loss<br>` + rejHtml(g.rejected_today) + unlockHtml(g.unlock_hint) + `<span class="dim">checked ${ist(Date.now())} IST · backup: ${d.mirror && d.mirror.last_restore ? d.mirror.last_restore : "-"}</span>`;
     } catch (e) { $("viaTxt").innerHTML = `<span class="down">could not read /strategy-viable-stack (${e.message})</span>`; }
   }

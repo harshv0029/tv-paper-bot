@@ -10,10 +10,17 @@ def _wait(pred, secs=5):
 
 
 def test_background_reconcile_returns_at_once_and_stores_result(monkeypatch):
-    monkeypatch.setattr(main, "_reconcile_real_positions_core", lambda adopt=None: {"ok": adopt})
+    import threading
+    release = threading.Event()  # B-1396: the instant stub could finish before the "running" check (flaky race)
+
+    def _core(adopt=None):
+        release.wait(5)
+        return {"ok": adopt}
+    monkeypatch.setattr(main, "_reconcile_real_positions_core", _core)
     main._reconcile_job.clear()
     first = main._start_reconcile_job("*")
     assert first["state"] == "running"
+    release.set()
     _wait(lambda: main._reconcile_job.get("state") != "running")
     assert main._reconcile_job["state"] == "done"
     assert main._reconcile_job["result"] == {"ok": "*"}
