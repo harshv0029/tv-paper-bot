@@ -8819,7 +8819,19 @@
    "prev_state": null,
    "new_state": "held - no sell placed",
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 736,
+   "ts": 1793094329.234034,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261027000830934 rejected: OMS: Trading session is in Transition to CAS session"
   }
  ],
- "synced_at_utc": "2026-10-27T09:14:18Z"
+ "synced_at_utc": "2026-10-27T09:45:32Z"
 }
