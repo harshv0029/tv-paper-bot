@@ -20349,7 +20349,7 @@ def get_sentiment_signals():
     token gate - read-only, no account/order data, same precedent as
     /runtime-settings."""
     today_str = ist_now().strftime("%Y-%m-%d")
-    data = sentiment_signals.get_latest_sentiment(today_str)
+    data = sentiment_signals.get_latest_sentiment(today_str, wait=True)  # B-1392: worker thread, may wait
     proxies = {cfg["symbol"]: sentiment_signals.sentiment_proxy_for(cfg["symbol"]) for cfg in WATCHLIST}
     return {
         "today_ist_date": today_str,
