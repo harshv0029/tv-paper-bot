@@ -22239,6 +22239,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         )
         conn.commit()
         _sync_real_positions_swing_external(conn)
+        _sync_signal_state_swing_external(conn)  # B-1381: the paper exit state must survive a restart too
         print(f"[REAL SWING] SL resting @ Rs{sl_result['trigger_price']:.2f} for {kotak_symbol} "
               f"(order {sl_result['order_id']})")
         _log_real_order_event(
@@ -22249,6 +22250,7 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     else:
         conn.commit()
         _sync_real_positions_swing_external(conn)
+        _sync_signal_state_swing_external(conn)  # B-1381
         print(f"[REAL SWING] SL placement FAILED for {kotak_symbol}: {sl_result.get('detail')} "
               f"- position open at Kotak with NO resting stop - unwinding at market (no trade without SL)")
         _log_real_order_event(
@@ -25361,6 +25363,87 @@ def _ensure_order_block_state_for_held(conn) -> list:
     return out
 
 
+_orphan_1h_state_last_day = None
+
+
+def _swing_1h_entry_bar(df1h, opened_at: float):
+    """'YYYY-MM-DD HH:MM' of the last hourly bar that had COMPLETED when the real entry opened (the bar the live 1h
+    pass saw as its last bar: _hourly_with_str_date drops a bar whose start + 1h is after now), else None."""
+    if df1h is None or len(df1h) == 0 or not opened_at:
+        return None
+    t = pd.Timestamp(dt.datetime.utcfromtimestamp(float(opened_at)) + dt.timedelta(minutes=IST_OFFSET_MIN))
+    starts = pd.to_datetime(df1h["Date"].astype(str))
+    done = df1h["Date"].astype(str)[(starts + pd.Timedelta(hours=1) <= t).to_numpy()]
+    return str(done.iloc[-1]) if len(done) else None
+
+
+def _ensure_1h_swing_state_for_orphans(conn, fetch=None) -> list:
+    """B-1381 (2026-10-27): a real swing holding opened by a 1h long cell (macddiv / envelope / cup-cheat) whose
+    signal_state_swing row was lost (entries were never pushed to the Upstash mirror, so a restart before the next
+    daily mirror push dropped the row: GSEC5IETF 2026-10-16) got no strategy exit at all. Re-create the exit state from
+    the real row and hourly bars, so _run_long_swing_1h_pass (the owning engine) evaluates that cell's OWN exit rule
+    again: entry bar = last hourly bar completed at the real fill time, entry price = real fill, initial stop = the
+    entry-day stop (swing_entry_stop) or the real row's stored stop. Places no order and never changes a resting stop
+    (the restored stop is the entry stop, so the daily ratchet can only keep or raise it). Kotak holdings/positions
+    are read first; a symbol Kotak does not show as held is skipped. Once per IST day."""
+    global _orphan_1h_state_last_day
+    today = ist_now().strftime("%Y-%m-%d")
+    if _orphan_1h_state_last_day == today:
+        return []
+    fetch = fetch or fetch_ohlc
+    live_1h = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS)
+    orphans = [r for r in conn.execute("SELECT * FROM real_positions_swing").fetchall()
+               if not conn.execute("SELECT 1 FROM signal_state_swing WHERE symbol = ?", (r["symbol"],)).fetchone()]
+    if not orphans:
+        _orphan_1h_state_last_day = today
+        return []
+    held = _kotak_holdings_open_by_trdsym()
+    if held is None:
+        return []  # unknown is not "not held": retry next tick
+    out = []
+    for row in orphans:
+        sym, strat = row["symbol"], row["strategy"]
+        if strat not in live_1h:
+            if strat not in ("order_block_delta", "gap_and_go"):  # those have their own restore (B-1364 / NYKAA)
+                out.append({"symbol": sym, "derived": False, "why": f"no 1h state rebuild for strategy {strat!r}"})
+            continue
+        if row["kotak_trading_symbol"] not in held and _kotak_symbol_still_open(row["kotak_trading_symbol"]) is not True:
+            out.append({"symbol": sym, "derived": False, "why": "not held at Kotak"})
+            continue
+        try:
+            df = _hourly_with_str_date(fetch(sym, "60d", "1h"))
+            entry_bar = _swing_1h_entry_bar(df, row["opened_at"])
+        except Exception as e:
+            print(f"[SWING LONG 1h] orphan state derivation failed for {sym}: {e}")
+            continue
+        stop = _swing_entry_stop(conn, sym) or float(row["stop_loss"] or 0)
+        entry = float(row["entry_price"] or 0)
+        if not entry_bar or not (0 < stop < entry):
+            _log_real_order_event(
+                conn, sym, "reroute", "swing_1h_state_not_derivable", kotak_trading_symbol=row["kotak_trading_symbol"],
+                new_state="no exit state restored; resting SL keeps protecting",
+                reason=f"B-1381: {strat} entry bar or entry stop could not be derived honestly (bar {entry_bar}, stop {stop})")
+            out.append({"symbol": sym, "derived": False, "why": "entry bar/stop not derivable"})
+            continue
+        conn.execute(
+            "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, initial_stop_loss, gap_low, "
+            "qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, 1.0, NULL, ?) "
+            "ON CONFLICT(symbol) DO NOTHING",
+            (sym, strat, entry_bar, entry, stop, int(row["qty"]), float(row["opened_at"]), entry))
+        if not conn.execute("SELECT 1 FROM positions WHERE symbol = ? AND qty > 0", (sym,)).fetchone():
+            apply_paper_trade(conn, sym, "buy", int(row["qty"]), entry)  # so the paper exit has a position to close
+        conn.commit()
+        _sync_signal_state_swing_external(conn)
+        _log_real_order_event(
+            conn, sym, "reroute", "swing_1h_state_restored", kotak_trading_symbol=row["kotak_trading_symbol"],
+            new_state=f"{strat}: entry bar {entry_bar} @ Rs{entry:.2f}, stop Rs{stop:.2f}",
+            reason="B-1381: paper swing exit state was lost; rebuilt from the real row and hourly bars so the 1h "
+                   "engine evaluates this cell's own exit rule again (no order placed by the rebuild)")
+        out.append({"symbol": sym, "derived": True, "entry_day": entry_bar, "stop": stop})
+    _orphan_1h_state_last_day = today
+    return out
+
+
 SWING_PASS_INTERVAL_SEC = 900  # B-419: repeat swing pass every 15 min during market hours
 _swing_last_pass_ts = 0.0
 
@@ -25414,6 +25497,10 @@ def _run_swing_scan(conn):
             for sym in before ^ after:
                 conn.execute("INSERT OR IGNORE INTO swing_done_today (day, symbol) VALUES (?, ?)", (today, sym))
             conn.commit()
+            if before != after:
+                # B-1381: entries never pushed signal_state_swing to Upstash (only exits/heals and one daily push did),
+                # so a restart after an entry lost the row and its strategy exit (GSEC5IETF 2026-10-16).
+                _sync_signal_state_swing_external(conn)
             _persist_strategy_scan_counts(conn)
         except Exception as e:
             print(f"[SWING] post-pass bookkeeping failed (non-fatal): {e}")
@@ -25502,6 +25589,7 @@ async def _scheduler_tick():
             try:  # B-1365: off the event loop (Kotak/yfinance calls froze /health -> Render restarts)
                 await _real_off_loop(_ensure_gap_and_go_state_for_held)
                 await _real_off_loop(_ensure_order_block_state_for_held)  # B-1364
+                await _real_off_loop(_ensure_1h_swing_state_for_orphans)  # B-1381
             except Exception as e:
                 print(f"[SWING] gap_and_go state restore failed (non-fatal): {e}")
         try:
