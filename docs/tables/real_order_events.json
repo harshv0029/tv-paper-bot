@@ -10643,7 +10643,31 @@
    "prev_state": "unprotected for 1906s",
    "new_state": "forcing full cover",
    "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
+  },
+  {
+   "id": 888,
+   "ts": 1793131210.562504,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 2",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: emergency: no resting stop for 1906s (tolerance 60s)"
+  },
+  {
+   "id": 889,
+   "ts": 1793131214.1897435,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "short_cover",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "short 2",
+   "new_state": "short 2 (cover failed)",
+   "detail": "reason: emergency: no resting stop for 1906s (tolerance 60s) | no order id in response: {'stCode': 1041, 'errMsg': 'Market order rejected: Last Traded Price (LTP) not available for this instrument. Please try placing a limit order', 'stat': 'Not_Ok'}"
   }
  ],
- "synced_at_utc": "2026-10-27T20:00:13Z"
+ "synced_at_utc": "2026-10-27T20:00:21Z"
 }
