@@ -16,7 +16,7 @@ Total rows: 1141 | closed: 514 | not closed: 627
 | DONE-PENDING-VERIFY | 77 |
 | BLOCKED | 63 |
 | P2 | 41 |
-| OPEN | 39 |
+| OPEN | 38 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
 | PENDING | 12 |
@@ -24,7 +24,7 @@ Total rows: 1141 | closed: 514 | not closed: 627
 | DEPLOYED | 11 |
 | OWNER-ACTION | 9 |
 | P1 | 8 |
-| P0 | 7 |
+| P0 | 8 |
 | OPEN-PARKED | 6 |
 | USER | 6 |
 | BUILT-ON-BRANCH | 5 |
@@ -617,7 +617,7 @@ Total rows: 1141 | closed: 514 | not closed: 627
 | B-881 | P0 | READY-TO-BUILD | 2026-10-12 IST USER THUMB RULE: nothing is wired or declared viable until WE backtest it through the real m... | owed |
 | B-883 | P0 | PARTIAL | 2026-10-12 IST B-881 island replay RUN (island-main-replay.yml run 38309068649, main.py functions, 1d 5y, c... | owed |
 | B-886 | P0 | PARTIAL | 2026-10-13 IST B-881 swing-min-RR + short-swing main.py replay DONE (swing-short-main-replay.yml run 383189... | owed, owner |
-| B-914 | P0 | OPEN | chan_kalman short wiring, next steps after the B-913 step-1 port (main.py chan_kalman_series / chan_atr14 /... | remaining |
+| B-914 | P0 | P0 | DEPLOYED (all steps done: port main.py:6316/6337, real-main.py replay run 38390561217, wiring 6460c22f/8657... | remaining |
 | B-963 | P0 | WIRED-PENDING-DEPLOY | THUMB: sector_rotation fade SHORT 1d wired into the short-swing engine (paper live, real leg held) | pending, owner |
 | B-965 | P0 | TODO | BUILD the unbuilt families (253 stack-clearing registry rows, 17 families, no entry code), ranked by PFnet:... | remaining, needs, todo |
 | B-969 | P0 | WIRED-PENDING-REPLAY | WIRED (paper-only, B-965 child): tasuki gap SHORT 1d, ETF universe, cells atr6/atr4/atr2d5 h3 (tags tasuki_... | owed, pending, needs |
