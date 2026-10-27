@@ -57,7 +57,7 @@ def test_unlock_hint_gives_loosest_factor_values(monkeypatch):
             "reg_b": types.SimpleNamespace(pfnet=0.9, n_trades=40, avg_held_hrs=300.0)}
     monkeypatch.setattr(main, "_STRATEGY_TAG_TO_REGISTRY_NAME", {"tag_a": "reg_a", "tag_b": "reg_b", "tag_c": "reg_c"})
     monkeypatch.setattr(main, "_registry_entry", lambda n: types.SimpleNamespace(metrics=mets[n]) if n in mets else None)
-    monkeypatch.setattr(main, "REPLAY_OWED_TAGS", set())
+    monkeypatch.setattr(main, "REPLAY_OWED_TAGS", {"tag_b"})
     c = _db()
     _stack(c, "pfnet(1.1-99), min(100), maxhold(100)")
     rej = {"by_strategy": [{"strategy": "tag_b", "segment": "equity", "count": 5},
@@ -67,6 +67,7 @@ def test_unlock_hint_gives_loosest_factor_values(monkeypatch):
     by = {e["strategy"]: e for e in h["per_strategy"]}
     assert by["tag_a"]["changes"] == ["pf_min"] and by["tag_a"]["needs"]["pf_min"] == 1.05
     assert set(by["tag_b"]["changes"]) == {"pf_min", "min_trades", "max_hold_hrs"}
+    assert by["tag_b"]["fixable"] is True and by["tag_b"]["replay_owed"] is True  # stack membership bypasses replay-owed
     assert by["tag_b"]["needs"]["min_trades"] == 40 and by["tag_b"]["needs"]["max_hold_hrs"] == 300.0
     assert by["tag_c"]["fixable"] is False and by["tag_c"]["note"] == "no registry entry"
     assert h["easiest"]["strategy"] == "tag_a"
