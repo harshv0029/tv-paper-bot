@@ -26798,7 +26798,7 @@ def _live_entry_gate_summary(conn) -> dict:
         trading_on = bool(is_trading_enabled(conn))
     except Exception:
         trading_on = None
-    return {
+    out = {
         "trading_enabled": trading_on,
         "requires_explorer_stack": bool(REAL_ENTRY_REQUIRES_EXPLORER_STACK),
         "stack_active": bool(sr.VIABLE_STACK_ACTIVE),
@@ -26808,6 +26808,8 @@ def _live_entry_gate_summary(conn) -> dict:
         "rejected_today": _viability_rejections_today(conn),
         "checked_at": time.time(),
     }
+    out["unlock_hint"] = _viability_unlock_hint(conn, out["rejected_today"])
+    return out
 
 
 def _viability_rejections_today(conn, day: str | None = None) -> dict:
@@ -26840,6 +26842,55 @@ def _viability_rejections_today(conn, day: str | None = None) -> dict:
                   key=lambda r: (-r["count"], r["strategy"]))
     return {"day": day, "total": sum(r["count"] for r in rows),
             "symbols": len({(k[1], x) for k, v in by.items() for x in v["syms"]}), "by_strategy": rows}
+
+
+def _viability_unlock_hint(conn, rejected: dict) -> dict:
+    """B-1374 (user 2026-10-27: "change pfnet/min_trade/max_hold to x so that u can add at least 1 more trade"): for
+    each strategy the viability gate turned away today, the loosest values of the active 3-factor definition (PFnet
+    range, min backtested trades, max avg hold hours) that would have let it in, read from its stored registry
+    metrics. `easiest` is the one needing the fewest factor changes (then the smallest PFnet drop, then the most
+    rejected attempts). A guide only: nothing here changes the live definition."""
+    crit = None
+    try:
+        row = conn.execute("SELECT label FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
+        crit = _stack_criteria(row[0]) if row else None
+    except Exception:
+        pass
+    per = []
+    for r in (rejected or {}).get("by_strategy", []):
+        tag = r["strategy"]
+        e = {"strategy": tag, "segment": r.get("segment"), "count": r["count"], "fixable": False}
+        reg = _STRATEGY_TAG_TO_REGISTRY_NAME.get(tag)
+        strat = _registry_entry(reg) if reg else None
+        m = strat.metrics if strat is not None else None
+        if m is None or m.pfnet is None:
+            e["note"] = "no registry entry" if strat is None else "no backtest metrics"
+            per.append(e)
+            continue
+        e.update(registry=reg, pfnet=m.pfnet, n_trades=m.n_trades or 0, hold_hrs=m.avg_held_hrs)
+        if tag in REPLAY_OWED_TAGS:
+            e["note"] = "replay owed (the 3 factors cannot admit it)"
+            per.append(e)
+            continue
+        e["fixable"] = True
+        if crit is None:
+            e["needs"], e["changes"] = {}, []
+            e["note"] = "no 3-factor definition active: save one that includes it in View 1"
+            per.append(e)
+            continue
+        needs = {"pf_min": min(crit["pf_min"], m.pfnet), "pf_max": max(crit["pf_max"], m.pfnet),
+                 "min_trades": min(crit["min_trades"], e["n_trades"]),
+                 "max_hold_hrs": crit["max_hold_hrs"] if crit["max_hold_hrs"] is None or (
+                     m.avg_held_hrs is not None and m.avg_held_hrs <= crit["max_hold_hrs"]) else (
+                     None if m.avg_held_hrs is None else m.avg_held_hrs)}
+        e["needs"] = needs
+        e["changes"] = [k for k in ("pf_min", "pf_max", "min_trades", "max_hold_hrs") if needs[k] != crit[k]]
+        if not e["changes"]:
+            e["note"] = "already passes the active definition (rejected by another rule: switch, stack not loaded)"
+        per.append(e)
+    fix = [e for e in per if e["fixable"] and e.get("changes")]
+    easiest = min(fix, key=lambda e: (len(e["changes"]), crit["pf_min"] - e["needs"]["pf_min"], -e["count"])) if fix else None
+    return {"criteria": crit, "per_strategy": per, "easiest": easiest}
 
 
 @app.post("/strategy-viable-override")
