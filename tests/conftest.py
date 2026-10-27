@@ -39,7 +39,7 @@ def _reset_viable_stack_state():
 def _no_live_viable_stack_restore(request, monkeypatch):
     """B-1325: the stack restore pulls the owner's LIVE explorer stack (Upstash, then git) into the test DB, after
     which every viability test follows whatever stack was last saved. Only the restore's own tests may reach out."""
-    if request.node.fspath.basename == "test_viable_stack_never_empty.py":
+    if request.node.fspath.basename in ("test_viable_stack_never_empty.py", "test_b1379_pileup_and_sl_lock.py"):
         return
     import main
     monkeypatch.setattr(main, "_ensure_viable_stack_hydrated", lambda *a, **k: None)
@@ -123,3 +123,12 @@ def _swing_session_open_in_tests(request, monkeypatch):
     for _m in {id(main): main, id(getattr(request.module, "main", main)): getattr(request.module, "main", main)}.values():
         if hasattr(_m, "_swing_real_entry_session_open"):
             monkeypatch.setattr(_m, "_swing_real_entry_session_open", lambda: True)
+
+
+@pytest.fixture(autouse=True)
+def _reset_recent_sl_placed():
+    """B-1379: kotak_real_orders remembers SLs it placed in the last few seconds; never carry that between tests."""
+    import kotak_real_orders as _kro
+    _kro._RECENT_SL_PLACED.clear()
+    yield
+    _kro._RECENT_SL_PLACED.clear()
