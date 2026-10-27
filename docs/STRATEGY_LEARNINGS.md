@@ -1488,3 +1488,10 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **What surprised:** trades that reach the max-hold timeout are profitable (PFnet 1.1-4.5) and every stop-loss exit loses; wider stops and the longer hold improve PFnet steadily, but gross PF of 1.05-1.16 leaves almost nothing after 0.8% cost.
 - **Reuse:** the monotone gain with wider ATR and longer hold says the edge is drift, not the shape signal; a hold-20/atr6 sweep is the only lever worth one more run, and only if gross PF moves well above 1.2.
 - **Profit-booking / exit takeaway:** do not book early: the timeout exits carry all the profit; the stop is the cost. Stay closed for real money.
+
+## tasuki gap ETF short 1d + swingminrr brk20 short 1h through main.py (B-1396c, run 40575438117, 2026-10-28 IST)
+
+- **Result:** tasuki atr2d5/4/6 h3 on 157 ETFs: net 1.327, gross 2.86, win 43.9%, n 82, all three identical (only 1 stop hit in 82, so the ATR multiple never mattered); registry research said 2.079/1.651. swingminrr brk20 gate short 1h: net 0.592 (n 2174), gatetarget 0.529 (n 2178); research said 1.702/1.561.
+- **What broke:** the 1h swingminrr shorts collapse on the live path (gross 0.65-0.72, below 1 even before cost), as macddiv did: research-port PFnets above 1.5 on 1h cells have now failed twice in the real replay. Timeouts carry big profit (PFnet 10-20) but 40% of trades stop out first.
+- **Reuse:** treat any 1h research PFnet as unproven until the main.py replay runs; tasuki's edge is small-sample (n 82) and ETF-only, so size it small if it ever goes live.
+- **Profit-booking / exit takeaway:** tasuki makes its money by holding the full 3 days (timeout exits PFnet 1.66); the stop is almost never hit, so do not tighten it to "protect" profit.
