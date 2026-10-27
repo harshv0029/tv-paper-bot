@@ -1,6 +1,8 @@
 """B-1396b: month_effect_main_replay.py prints ONE `RESULTS_JSON: {...}` line in the layout main._replay_verified_tags()
 reads, so the coordinator can save the result from the run log (the artifact is not downloadable). Offline, no network."""
 import json
+
+import pandas as pd
 import os
 import sys
 
@@ -76,3 +78,42 @@ def test_results_json_feeds_replay_verified_tags(tmp_path, monkeypatch):
 
 def test_results_json_bad_run_id_is_null():
     assert R.results_json({"rows": []}, "abc")["run_id"] is None
+
+
+# ---- B-1396c: run 40572995313 returned n=0 in every cell (fetch_ohlc's RangeIndex read as 1970 dates; 15m period
+# "60d" rejected by Yahoo). These would have caught it.
+import pytest  # noqa: E402
+
+
+@pytest.mark.parametrize("interval", ["15m", "1d"])
+def test_synthetic_month_start_event_produces_trades(interval, tmp_path, monkeypatch, capsys):
+    """fetch_ohlc-shaped bars (RangeIndex + "Date") containing a September-1 event must yield >=1 trade per cell."""
+    df = R.synthetic_frame(interval)
+    assert isinstance(df.index, pd.RangeIndex) and "Date" in df.columns
+    for tag, spec in R.cell_specs(main, interval).items():
+        trades = R.replay_symbol(main, df, spec, main.ROUND_TRIP_COST_PCT / 100.0)
+        assert len(trades) >= 1, (interval, tag)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("SYNTHETIC", "1")
+    monkeypatch.setenv("INTERVAL", interval)
+    R.run()
+    out = R.merge(str(tmp_path / "out"))
+    assert all(r["metrics"]["n"] >= 1 for r in out["rows"])
+
+
+def test_entry_signal_reads_date_column_not_rangeindex():
+    df = R.synthetic_frame("15m")
+    first = next(i for i in range(1, len(df)) if df["Date"].iloc[i].month == 9 and df["Date"].iloc[i - 1].month == 8)
+    assert main.month_effect_short_entry_signal(df.iloc[:first + 1], 6.0) is not None
+    assert main.month_effect_short_entry_signal(df.iloc[:first], 6.0) is None
+
+
+def test_merge_fails_when_total_n_is_zero(tmp_path):
+    _shard(str(tmp_path), "15m", {})
+    _shard(str(tmp_path), "1d", {})
+    with pytest.raises(SystemExit):
+        R.merge(str(tmp_path))
+
+
+def test_15m_fetch_stays_inside_yahoo_60_day_limit():
+    assert R.INTRADAY_LOOKBACK_DAYS < 60
