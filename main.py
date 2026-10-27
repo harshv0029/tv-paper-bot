@@ -26001,6 +26001,10 @@ async def _start_scheduler():
     except Exception as e:
         print(f"[table_mirror] startup hydrate skipped (non-fatal, retried per tick): {e}")
     try:
+        await asyncio.wait_for(asyncio.to_thread(_startup_merge_viable_stack), timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
+    except Exception as e:
+        print(f"[VIABLE-STACK] startup merge skipped (non-fatal, retried on first read): {e}")
+    try:
         await asyncio.wait_for(asyncio.to_thread(hydrate_fo_option_candles_from_external),
                                timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
     except Exception as e:
@@ -26610,9 +26614,12 @@ _VIABLE_STACK_REDIS_KEY = "tv_paper_bot:viable_stack:direct:v1"
 _VIABLE_STACK_MIRROR_STATE = {"last_push_ok": None, "last_push_ts": None, "last_error": None, "last_restore": None}
 
 
-def _viable_stack_push_direct() -> bool:
+def _viable_stack_push_direct(allow_drop: bool = False) -> bool:
     """B-1299: write the whole stack to ONE dedicated Upstash key (independent of the generic mirror's hydrated-set and
-    hash logic) and read it back to verify. Records the outcome in _VIABLE_STACK_MIRROR_STATE; never raises."""
+    hash logic) and read it back to verify. Records the outcome in _VIABLE_STACK_MIRROR_STATE; never raises.
+    B-1375: unless allow_drop (only the owner's own save/undo/restore endpoint), the push is a UNION with what the key
+    already holds, so an automatic push from a stale post-restart table can never erase a newer saved definition
+    (live 2026-10-27 08:32 IST: the key was overwritten with the 21-Oct row alone)."""
     st = _VIABLE_STACK_MIRROR_STATE
     try:
         if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
@@ -26622,6 +26629,19 @@ def _viable_stack_push_direct() -> bool:
                     c.execute("SELECT created_at, label, names FROM strategy_viable_stack ORDER BY id").fetchall()]
         if not rows:
             return False  # never overwrite the remote copy with an empty stack
+        if not allow_drop:
+            try:
+                raw = _upstash_get(_VIABLE_STACK_REDIS_KEY)
+                seen = {(round(float(r["created_at"] or 0), 3), str(r["label"] or "")) for r in rows}
+                for r in (json.loads(raw) if raw else []):
+                    k = (round(float(r.get("created_at") or 0), 3), str(r.get("label") or ""))
+                    if r.get("created_at") and r.get("names") is not None and k not in seen:
+                        seen.add(k)
+                        rows.append({"created_at": r["created_at"], "label": r.get("label"), "names": r["names"]})
+                rows = sorted(rows, key=lambda r: float(r["created_at"] or 0))[-VIABLE_STACK_SIZE:]
+            except Exception as e:  # noqa: BLE001
+                print(f"[VIABLE-STACK] push union read failed, not pushing: {e}")
+                return False
         payload = json.dumps(rows)
         _upstash_set(_VIABLE_STACK_REDIS_KEY, payload)
         ok = _upstash_get(_VIABLE_STACK_REDIS_KEY) == payload
@@ -26747,6 +26767,18 @@ def _restore_viable_stack_from_git_file() -> int:
     except Exception as e:  # noqa: BLE001
         print(f"[VIABLE-STACK] git restore skipped: {e}")
         return 0
+
+
+def _startup_merge_viable_stack() -> int:
+    """B-1375 (user 2026-10-27: View 4 showed the 21-Oct 1.04/6 h definition after a restart although 1.02/12.5 h was
+    saved 26-Oct 22:47 IST): the generic mirror restores an OLD table copy, and the newer saves were merged back only on
+    the first read, so until then the entry gate AND View 4 used the stale rule. Merge every durable copy at startup,
+    before the scheduler or any page reads it, and drop the cached override set so the gate re-derives it."""
+    added = _viable_stack_merge_remote()
+    _VIABLE_OVERRIDES_CACHE.clear()
+    if added:
+        print(f"[VIABLE-STACK] startup merge added {added} newer row(s)")
+    return added
 
 
 def _viable_stack_merge_remote() -> int:
@@ -27002,7 +27034,7 @@ async def strategy_viable_override(request: Request):
         sync_generic_tables_external(only=("strategy_viable_stack",))
     except Exception as e:
         print(f"[viable_stack] mirror failed (non-fatal): {e}")
-    _viable_stack_push_direct()
+    _viable_stack_push_direct(allow_drop=True)
     threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
     active = _load_viable_overrides()
     with closing(get_db()) as c:
