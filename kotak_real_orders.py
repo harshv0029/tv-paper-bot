@@ -204,6 +204,7 @@ distinct from a manual/mobile order's ordSrc "ADMINCPPAPI_MOB"/algId
 this sweep filters on that tag too, not just symbol+side+order-type -
 only ever cancels an order THIS app itself placed, never a manual one.
 """
+import threading
 import time
 
 import kotak_neo
@@ -937,7 +938,32 @@ def stop_placeable_for_entry(kotak_trading_symbol: str, stop: float, ltp: float)
                    f"floor fits under ltp {px:.2f}; Kotak would reject every SL")
 
 
+_SL_SYMBOL_LOCKS: dict = {}
+_SL_SYMBOL_LOCKS_GUARD = threading.Lock()
+_RECENT_SL_PLACED: dict = {}  # trdSym -> {"order_id", "trigger", "qty", "ts"}
+_RECENT_SL_WINDOW_S = 20.0
+
+
+def _sl_symbol_lock(kotak_trading_symbol: str) -> "threading.RLock":
+    """B-1379 (live 2026-10-27 09:15 IST): two protect paths placed a SELL SL for the same holding within 1 s (WIPRO
+    14237/14353, COALINDIA, GSEC5IETF), each having scanned an order book that did not yet show the other's order, so
+    Kotak RMS rejected the extras ("T1 holdings ... Used:4, Available:2"). One lock per symbol makes scan-then-act
+    atomic inside this process."""
+    with _SL_SYMBOL_LOCKS_GUARD:
+        return _SL_SYMBOL_LOCKS.setdefault(kotak_trading_symbol, threading.RLock())
+
+
 def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+    with _sl_symbol_lock(kotak_trading_symbol):
+        res = _place_real_stop_loss_unlocked(kotak_trading_symbol, qty, trigger_price)
+        if res.get("ok") and res.get("order_id"):
+            _RECENT_SL_PLACED[kotak_trading_symbol] = {"order_id": str(res["order_id"]), "qty": int(qty),
+                                                       "trigger": float(res.get("trigger_price") or trigger_price),
+                                                       "ts": time.time()}
+        return res
+
+
+def _place_real_stop_loss_unlocked(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
     """B-1304 (UNIONBANK 2026-10-21 09:16 IST, live): an SL whose trigger sat below the
     day's lower price band (159.67 vs a ~162.6 floor after a gap up) was rejected with
     "Order price is outside the valid price range" and the position stayed naked. On that
@@ -1004,6 +1030,11 @@ def cancel_converted_stop_orders(kotak_trading_symbol: str, stale_trigger: float
 
 
 def ensure_resting_sl(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+    with _sl_symbol_lock(kotak_trading_symbol):
+        return _ensure_resting_sl_unlocked(kotak_trading_symbol, qty, trigger_price)
+
+
+def _ensure_resting_sl_unlocked(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
     """Scan-then-act SL placement for LONG (swing) positions (2026-10-07, explicit
     user instruction after live rejects: "before placing any new order request you
     need to scan existing order list, then either place new, or cancel current plus
@@ -1051,6 +1082,13 @@ def ensure_resting_sl(kotak_trading_symbol: str, qty: int, trigger_price: float)
         except (TypeError, ValueError):
             continue
         live.append({"order_id": str(oid), "trigger": trg, "qty": q})
+
+    # B-1379: an SL this process placed seconds ago may not be in the order book yet; count it as live so a second
+    # caller adopts or replaces it instead of placing a duplicate that RMS rejects.
+    recent = _RECENT_SL_PLACED.get(kotak_trading_symbol)
+    if (recent and time.time() - recent["ts"] < _RECENT_SL_WINDOW_S
+            and not any(str(r.get("nOrdNo")) == recent["order_id"] for r in rows)):
+        live.append({"order_id": recent["order_id"], "trigger": recent["trigger"], "qty": recent["qty"]})
 
     desired = _round_to_tick(trigger_price, _tick_size_for(kotak_trading_symbol))
     if live:

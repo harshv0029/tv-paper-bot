@@ -13587,6 +13587,7 @@ def _names_meeting_criteria(crit: dict) -> set:
 
 
 _VIABLE_OVERRIDES_CACHE: dict = {}
+_VIABLE_OVERRIDES_TTL_S = 3.0
 
 
 def _registry_entry(registry_name: str):
@@ -13610,6 +13611,14 @@ def _load_viable_overrides() -> set:
     The entry's 3-factor criteria (PFnet range, min sample, max hold) are re-derived against the registry's stored
     metrics on every load; only a legacy entry with no criteria uses its saved name list."""
     import strategy_registry as sr
+    # B-1379 (live 2026-10-27 09:15-09:45 IST, OOM restart 09:20): the gate calls this per tag per symbol, and ~50
+    # worker threads sat here at once (COUNT + SELECT + set clear/refill each call). Reuse the derived set for a few
+    # seconds; a saved definition still applies within OVERRIDES_TTL_S. Bypassed under pytest (tests write the table
+    # directly and expect the next call to see it).
+    _now = time.time()
+    if (not os.environ.get("PYTEST_CURRENT_TEST") and "names" in _VIABLE_OVERRIDES_CACHE
+            and _now - _VIABLE_OVERRIDES_CACHE.get("ts", 0) < _VIABLE_OVERRIDES_TTL_S):
+        return sr.VIABLE_OVERRIDES
     try:
         _ensure_viable_stack_hydrated()
         with closing(get_db()) as c:
@@ -13623,8 +13632,10 @@ def _load_viable_overrides() -> set:
             crit = _stack_criteria(row[1]) if row else None
             names = _names_meeting_criteria(crit) if crit else (set(json.loads(row[0])) if row else set())
             _VIABLE_OVERRIDES_CACHE.update(key=key, names=names)
-        sr.VIABLE_OVERRIDES.clear()
-        sr.VIABLE_OVERRIDES.update(names)
+        _VIABLE_OVERRIDES_CACHE["ts"] = _now
+        if sr.VIABLE_OVERRIDES != names:  # B-1379: never empty the shared set under a concurrent reader when unchanged
+            sr.VIABLE_OVERRIDES.clear()
+            sr.VIABLE_OVERRIDES.update(names)
         sr.VIABLE_STACK_ACTIVE = row is not None
     except Exception:
         pass
@@ -21109,12 +21120,91 @@ def _note_symbol_strategy_scan(sym, tag):
 _swing_skipped_today: dict = {"day": "", "syms": {}}
 
 
+# B-1376: durable in Upstash (one small JSON key) so a Render restart does not blank View 4's skipped list.
+_SWING_SKIPPED_REDIS_KEY = "tv_paper_bot:swing_skipped_today:v1"
+_swing_skipped_push_lock = threading.Lock()
+_swing_skipped_push_state = {"running": False, "dirty": False}
+
+
+def _swing_skipped_push() -> bool:
+    """Write today's skipped map to its Upstash key. Best-effort; never raises."""
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            return False
+        snap = {"day": _swing_skipped_today.get("day") or "", "syms": dict(_swing_skipped_today.get("syms") or {})}
+        if not snap["day"]:
+            return False
+        _upstash_set(_SWING_SKIPPED_REDIS_KEY, json.dumps(snap, separators=(",", ":")))
+        return True
+    except Exception as e:  # noqa: BLE001
+        print(f"[swing_skipped] push failed (non-fatal): {e}")
+        return False
+
+
+def _swing_skipped_flush_loop():
+    st = _swing_skipped_push_state
+    while True:
+        with _swing_skipped_push_lock:
+            if not st["dirty"]:
+                st["running"] = False
+                return
+            st["dirty"] = False
+        _swing_skipped_push()
+        time.sleep(2.0)  # coalesce a burst of skips in one swing pass into a few writes
+
+
+def _swing_skipped_schedule_push():
+    """Mark dirty and start one coalescing background writer if none is running, so the swing scan never waits on
+    Upstash. Never raises."""
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            return
+        st = _swing_skipped_push_state
+        with _swing_skipped_push_lock:
+            st["dirty"] = True
+            if st["running"]:
+                return
+            st["running"] = True
+        threading.Thread(target=_swing_skipped_flush_loop, name="swing-skipped-push", daemon=True).start()
+    except Exception:
+        _swing_skipped_push_state["running"] = False
+
+
+def hydrate_swing_skipped_from_external() -> int:
+    """Restore today's skipped map from Upstash at startup; a stored map from an earlier IST day is ignored. Merges
+    with anything already noted in this process. Returns symbols restored; never raises."""
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            return 0
+        raw = _upstash_get(_SWING_SKIPPED_REDIS_KEY)
+        if not raw:
+            return 0
+        data = json.loads(raw)
+        day = ist_now().strftime("%Y-%m-%d")
+        if not isinstance(data, dict) or data.get("day") != day or not isinstance(data.get("syms"), dict):
+            return 0
+        if _swing_skipped_today.get("day") != day:
+            _swing_skipped_today["day"], _swing_skipped_today["syms"] = day, {}
+        added = 0
+        for sym, why in data["syms"].items():
+            if sym not in _swing_skipped_today["syms"]:
+                _swing_skipped_today["syms"][sym] = why
+                added += 1
+        return added
+    except Exception as e:  # noqa: BLE001
+        print(f"[swing_skipped] restore failed (non-fatal): {e}")
+        return 0
+
+
 def _note_swing_skipped(symbol, why):
     try:
         day = ist_now().strftime("%Y-%m-%d")
         if _swing_skipped_today["day"] != day:
             _swing_skipped_today["day"], _swing_skipped_today["syms"] = day, {}
+        if _swing_skipped_today["syms"].get(symbol) == why:
+            return  # unchanged: no write
         _swing_skipped_today["syms"][symbol] = why
+        _swing_skipped_schedule_push()
     except Exception:
         pass
 
@@ -26001,6 +26091,13 @@ async def _start_scheduler():
     except Exception as e:
         print(f"[table_mirror] startup hydrate skipped (non-fatal, retried per tick): {e}")
     try:
+        _n_sk = await asyncio.wait_for(asyncio.to_thread(hydrate_swing_skipped_from_external),
+                                       timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
+        if _n_sk:
+            print(f"[swing_skipped] restored {_n_sk} skipped symbol(s) from Upstash")
+    except Exception as e:
+        print(f"[swing_skipped] startup restore skipped (non-fatal): {e}")
+    try:
         await asyncio.wait_for(asyncio.to_thread(_startup_merge_viable_stack), timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
     except Exception as e:
         print(f"[VIABLE-STACK] startup merge skipped (non-fatal, retried on first read): {e}")
@@ -26610,6 +26707,7 @@ def _viable_stack_rows(c, full: bool = False) -> list:
 
 _VIABLE_STACK_RECOVER_LAST = 0.0
 _VIABLE_STACK_RECOVER_LOCK = threading.Lock()
+_VIABLE_STACK_FIRST_SIGHT_LOCK = threading.Lock()
 _VIABLE_STACK_REDIS_KEY = "tv_paper_bot:viable_stack:direct:v1"
 _VIABLE_STACK_MIRROR_STATE = {"last_push_ok": None, "last_push_ts": None, "last_error": None, "last_restore": None}
 
@@ -26681,9 +26779,27 @@ _VIABLE_STACK_GIT_BRANCH = "data-viable-stack"
 _VIABLE_STACK_GIT_PATH = "docs/viable_stack.json"
 
 
-def _push_viable_stack_to_git() -> bool:
+def _viable_stack_union_git(rows: list, cur) -> list:
+    """B-1377: union local rows with the remote copy's rows by (round(created_at,3), label); keep the newest
+    VIABLE_STACK_SIZE by created_at, newest first. Raises when the remote copy cannot be read/decoded."""
+    data = json.loads(base64.b64decode(cur.json().get("content") or "").decode() or "[]")
+    remote = (data.get("stack") if isinstance(data, dict) else data) or []
+    seen = {(round(float(r["created_at"] or 0), 3), str(r["label"] or "")) for r in rows}
+    out = list(rows)
+    for r in remote:
+        k = (round(float(r.get("created_at") or 0), 3), str(r.get("label") or ""))
+        if r.get("created_at") and r.get("names") is not None and k not in seen:
+            seen.add(k)
+            out.append({"id": r.get("id"), "created_at": r["created_at"], "label": r.get("label"), "names": r["names"]})
+    return sorted(out, key=lambda r: float(r["created_at"] or 0), reverse=True)[:VIABLE_STACK_SIZE]
+
+
+def _push_viable_stack_to_git(allow_drop: bool = False) -> bool:
     """B-1312: commit the stack to a side branch (never main: a push to main redeploys Render) on every Explorer save,
-    so a restart/deploy can never lose it. Needs env GITHUB_SYNC_TOKEN (contents:write); no-op without it. Never raises."""
+    so a restart/deploy can never lose it. Needs env GITHUB_SYNC_TOKEN (contents:write); no-op without it. Never raises.
+    B-1377: unless allow_drop (only the owner's own save/undo/restore endpoint), the push is a UNION with the remote
+    copy (same rule as _viable_stack_push_direct for the Redis key), so a stale instance can never overwrite a newer
+    saved definition; if the remote copy cannot be read (anything but 404 not-found) the push is skipped."""
     token = os.environ.get("GITHUB_SYNC_TOKEN")
     if not token:
         return False
@@ -26708,6 +26824,19 @@ def _push_viable_stack_to_git() -> bool:
                 mk.raise_for_status()
             cur = requests.get(f"{api}/contents/{_VIABLE_STACK_GIT_PATH}", params={"ref": _VIABLE_STACK_GIT_BRANCH},
                                headers=hdr, timeout=10)
+        if not allow_drop:
+            if cur.status_code == 200:
+                try:
+                    rows = _viable_stack_union_git(rows, cur)
+                except Exception as e:  # noqa: BLE001
+                    _VIABLE_STACK_MIRROR_STATE["last_git_push"] = f"skipped: remote unreadable: {str(e)[:120]}"
+                    print(f"[VIABLE-STACK] side-branch push union read failed, not pushing: {e}")
+                    return False
+            elif cur.status_code != 404:
+                _VIABLE_STACK_MIRROR_STATE["last_git_push"] = f"skipped: remote read HTTP {cur.status_code}"
+                print(f"[VIABLE-STACK] side-branch push skipped: remote read HTTP {cur.status_code}")
+                return False
+            body = json.dumps({"size": VIABLE_STACK_SIZE, "stack": rows}, indent=2)
         payload = {"message": f"viable stack saved ({len(rows)} entries)",
                    "content": base64.b64encode(body.encode()).decode(), "branch": _VIABLE_STACK_GIT_BRANCH}
         if cur.status_code == 200:
@@ -26838,12 +26967,18 @@ def _ensure_viable_stack_hydrated():
         with closing(get_db()) as _c:
             _n = _c.execute("SELECT COUNT(*) FROM strategy_viable_stack").fetchone()[0]
         if _n:
-            if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None:
-                # B-1366: merge every durable copy BEFORE pushing. The blind push here overwrote the dedicated key with a
-                # stale restore (git-tier table copy), so the owner's 26-Oct 10:28 IST save was lost at the 10:37 restart.
-                if _viable_stack_merge_remote():
-                    threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
-                _viable_stack_push_direct()  # first sight after a deploy: make sure the dedicated key holds it
+            # B-1379: single-flight. At the 09:20 restart ~34 threads entered this first-sight merge+push at once.
+            if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None and _VIABLE_STACK_FIRST_SIGHT_LOCK.acquire(blocking=False):
+                try:
+                    if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None:
+                        # B-1366: merge every durable copy BEFORE pushing. The blind push here overwrote the dedicated
+                        # key with a stale restore, so the owner's 26-Oct 10:28 IST save was lost at the 10:37 restart.
+                        if _viable_stack_merge_remote():
+                            threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
+                        if not _viable_stack_push_direct():  # first sight after a deploy: the key must hold it
+                            _VIABLE_STACK_MIRROR_STATE["last_push_ok"] = False  # tried once; never re-enter per call
+                finally:
+                    _VIABLE_STACK_FIRST_SIGHT_LOCK.release()
             return
         if time.time() - _VIABLE_STACK_RECOVER_LAST < 20:
             return
@@ -27035,7 +27170,7 @@ async def strategy_viable_override(request: Request):
     except Exception as e:
         print(f"[viable_stack] mirror failed (non-fatal): {e}")
     _viable_stack_push_direct(allow_drop=True)
-    threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
+    threading.Thread(target=_push_viable_stack_to_git, kwargs={"allow_drop": True}, daemon=True).start()
     active = _load_viable_overrides()
     with closing(get_db()) as c:
         return {"action": action, "active_count": len(active), "stack": _viable_stack_rows(c)}
@@ -27244,6 +27379,7 @@ def symbol_strategy_coverage(symbol: str):
 
 
 _SCAN_ACTIVITY_CACHE: dict = {}
+_SCAN_ACTIVITY_LOCK = threading.Lock()
 
 
 @app.get("/strategy-scan-activity")
@@ -27253,9 +27389,19 @@ def strategy_scan_activity(include_unwired: bool = False):
     hit = _SCAN_ACTIVITY_CACHE.get(include_unwired)
     if hit and _t.time() - hit[0] < 30:
         return hit[1]
-    out = _strategy_scan_activity_compute(include_unwired)
-    _SCAN_ACTIVITY_CACHE[include_unwired] = (_t.time(), out)
-    return out
+    # B-1379: single-flight. On a starved CPU one compute outlived the 30 s cache, so every View 4 poll started another
+    # (live 27-Oct: dozens at once, worker pool 57/80, rss 82%). While one runs, others get the last result.
+    if not _SCAN_ACTIVITY_LOCK.acquire(blocking=hit is None):
+        return hit[1]
+    try:
+        hit = _SCAN_ACTIVITY_CACHE.get(include_unwired)
+        if hit and _t.time() - hit[0] < 30:
+            return hit[1]
+        out = _strategy_scan_activity_compute(include_unwired)
+        _SCAN_ACTIVITY_CACHE[include_unwired] = (_t.time(), out)
+        return out
+    finally:
+        _SCAN_ACTIVITY_LOCK.release()
 
 
 def _strategy_scan_activity_compute(include_unwired: bool = False):
