@@ -8099,7 +8099,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000003141 rejected: 16387 : Security is not allowed to trade in this market  "
+  },
+  {
+   "id": 676,
+   "ts": 1793070410.345771,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261027000003141",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 08:31:23 S SL qty 8 trg 126.73 status rejected rejRsn 16387 : Security is not allowed to trade in this market  "
+  },
+  {
+   "id": 677,
+   "ts": 1793070410.3460793,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261027000003152",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 08:31:34 S SL qty 1 trg 164.80 status rejected rejRsn 16387 : Security is not allowed to trade in this market  "
   }
  ],
- "synced_at_utc": "2026-10-27T03:01:30Z"
+ "synced_at_utc": "2026-10-27T03:07:37Z"
 }
