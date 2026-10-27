@@ -13,7 +13,7 @@ Total rows: 1133 | closed: 512 | not closed: 621
 | CLOSED-AS-EXPLAINED | 126 |
 | HARNESS-BUILT-AWAITING-RUN | 99 |
 | CLOSED | 83 |
-| DONE-PENDING-VERIFY | 83 |
+| DONE-PENDING-VERIFY | 82 |
 | BLOCKED | 63 |
 | OPEN | 46 |
 | P2 | 42 |
@@ -79,6 +79,7 @@ Total rows: 1133 | closed: 512 | not closed: 621
 | WATCHDOG | 1 |
 | RESIDUAL | 1 |
 | OBSERVABILITY | 1 |
+| LIVE | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -107,7 +108,7 @@ Total rows: 1133 | closed: 512 | not closed: 621
 | B-1370 | P1 | OWNER-ACTION | 2026-10-26 21:05 IST | owed, owner |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (370)
+## waiting-on-workflow/deploy (369)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -134,7 +135,6 @@ Total rows: 1133 | closed: 512 | not closed: 621
 | B-404 | P0 | DONE-PENDING-VERIFY | User 2026-10-11 IST (explicit; this is the user's own ask, so it satisfies the "ask before adding a kill sw... | owed, pending, verify, needs |
 | B-410 | P0 | DONE-PENDING-VERIFY | B-404 delivered 2026-10-11 IST: per-category real-trading toggles (real_enabled_equity / _swing / _fo) as K... | owed, pending, verify |
 | B-1377 | P0 | DONE-PENDING-VERIFY | 2026-10-27 09:20 IST | pending |
-| B-1379 | P0 | DONE-PENDING-VERIFY | 2026-10-27 09:55 IST | pending |
 | B-19 | P1 | DONE-PENDING-VERIFY | User: leave until 8am 6 Oct 2026. Suspected T1/settlement rejection (unconfirmed) | pending, verify |
 | B-31 | P1 | DONE-PENDING-VERIFY | Deploy Gate #321 passed: gifted-bell merged to main (4863323), 2026-10-05. Remaining: confirm OB/VP appear ... | remaining, pending, verify, needs, unverified |
 | B-46 | P1 | DONE-PENDING-VERIFY | 2026-10-11 IST closure pass: Code + tests/test_holdings_fallback.py on main; remaining check (NYKAA-like ho... | owed, remaining, pending, verify, needs |
@@ -482,7 +482,7 @@ Total rows: 1133 | closed: 512 | not closed: 621
 | B-1297 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: trade-view pages hang the laptop browser | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | pending, verify |
 
-## ready-to-build (114)
+## ready-to-build (115)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -509,6 +509,7 @@ Total rows: 1133 | closed: 512 | not closed: 621
 | B-1355 | P0 | FROM | 2026-10-23 15:55 IST |  |
 | B-1359 | P0 | FOUND | 2026-10-23 17:05 IST | verify |
 | B-1363 | P0 | P0 | DEPLOYED 2026-10-26 (92c38c40 on main, confirmed 18:50 IST) | verify, follow-up |
+| B-1379 | P0 | LIVE | 2026-10-27 09:55 IST |  |
 | B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, remaining, needs |
 | B-850 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (Elder >=1.1 cells validation across candle sizes; also covers B-852) |  |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... |  |
