@@ -10211,7 +10211,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1380: no SL before 09:15 IST (exchange rejects it)"
+  },
+  {
+   "id": 852,
+   "ts": 1793125939.2868578,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 8 @ Rs134.39",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: order_block_delta paper swing exit: trail_stop_hit"
   }
  ],
- "synced_at_utc": "2026-10-27T18:31:21Z"
+ "synced_at_utc": "2026-10-27T18:32:22Z"
 }
