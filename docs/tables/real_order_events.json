@@ -8903,7 +8903,19 @@
    "prev_state": null,
    "new_state": "rejected",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 15:15:24 S SL qty 8 trg 126.73 status rejected rejRsn OMS: Trading session is in Transition to CAS session"
+  },
+  {
+   "id": 743,
+   "ts": 1793094643.4713113,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261027000843956 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   }
  ],
- "synced_at_utc": "2026-10-27T09:50:35Z"
+ "synced_at_utc": "2026-10-27T09:50:46Z"
 }
