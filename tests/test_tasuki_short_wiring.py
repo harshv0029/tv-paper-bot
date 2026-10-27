@@ -55,14 +55,16 @@ def test_cells_tags_gate_mapping_and_registry():
         assert "__short__1d__" in tag and "atrnone" not in tag
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[tag] == tag
         assert tag in names                                   # registered with real metrics
-        assert tag in main.REPLAY_OWED_TAGS                   # no main.py-calling replay on file yet
+        # B-1396c: main.py replay 40575438117 on file (PFnet 1.327 >= floor): no longer owed
+        assert tag not in main.REPLAY_OWED_TAGS and tag in main._replay_verified_tags()
         assert main.tasuki_short_stop(100.0, 2.0, mult) == 100.0 + mult * 2.0
     assert main.SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED is False
 
 
-def test_replay_owed_closes_real_gate():
-    tag = next(iter(main.TASUKI_SHORT_CELLS))
-    assert main._is_strategy_viable_for_real_money(tag, check_switch=False) is False
+def test_real_short_leg_stays_closed_without_overnight_product():
+    # B-1396c: the replay cleared the floor, so the viability gate no longer holds it as owed; the real overnight
+    # short is still refused by _maybe_place_real_swing_short_entry while the NRML short product is unconfirmed (B-912).
+    assert main.SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED is False
 
 
 def test_no_stop_no_entry():

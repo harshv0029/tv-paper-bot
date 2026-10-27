@@ -14,7 +14,7 @@ def test_cells_registered_mapped_owed_and_closed():
     assert set(main.SWINGMINRR_SHORT_1H_CELLS) == {G, GT}
     for t in (G, GT):
         assert t in names and main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t
-        assert t in main.REPLAY_OWED_TAGS
+        assert t in main.REPLAY_FAILED_TAGS  # B-1396c: main.py replay 40575438117 below floor
         assert main._is_strategy_viable_for_real_money(t, check_switch=False) is False
     assert main.SWINGMINRR_SHORT_1H_CELLS[GT] == 4.0 and main.SWINGMINRR_SHORT_1H_CELLS[G] is None
     assert main.SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED is False
