@@ -9359,7 +9359,19 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261027000871312 rejected: OMS: Order Rejected due to CAS session end"
+  },
+  {
+   "id": 781,
+   "ts": 1793095132.4883506,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000871494 rejected: OMS: Order Rejected due to CAS session end"
   }
  ],
- "synced_at_utc": "2026-10-27T09:58:50Z"
+ "synced_at_utc": "2026-10-27T09:58:57Z"
 }
