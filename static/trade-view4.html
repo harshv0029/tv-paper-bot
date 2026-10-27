@@ -124,7 +124,7 @@
   <div class="box mono" id="mon">
     <span><i class="led" id="led"></i><b id="beatTxt">0 · Monitoring: connecting…</b></span>
     <span>checks/30s <b id="c30">-</b></span>
-    <span>strategy scans/2 min <b id="s2m">-</b></span>
+    <span>strategy scans, last 2 min (live) <b id="s2m">-</b></span>
     <span>checks today <b id="ctoday">-</b></span>
     <span>stop check <b id="prot">-</b></span>
     <span class="dim">IST <b id="clock">-</b></span>
@@ -140,7 +140,7 @@
   </div>
 
   <div id="grid">
-    <div class="box" id="nTag"><h2>2 · Strategies running <span class="n mono" id="tagN"></span></h2><div class="dim mono" id="tagSym" style="font-size:11px;margin-bottom:6px"></div><div id="tagList"></div><div class="dim mono" id="tagCov" style="font-size:10.5px;margin-top:6px"></div></div>
+    <div class="box" id="nTag"><h2>2 · Strategies running <span class="n mono" id="tagN"></span></h2><div class="dim mono" id="tagSym" style="font-size:11px;margin-bottom:6px"></div><div id="tagList"></div><div class="dim mono" id="tagCov" style="font-size:10.5px;margin-top:6px"></div><details id="covBox" style="margin-top:6px;font-size:10.5px"><summary class="mono">per-symbol checks today (IST) <span id="covN"></span></summary><div id="covList" class="mono" style="max-height:220px;overflow:auto"></div></details></div>
     <div class="box" id="nDec"><h2>3 · Decision <span class="n mono" id="dN"></span></h2><div id="dList"></div></div>
     <div class="box" id="nOrd"><h2>4 · Order placement today <span class="n mono" id="oN"></span></h2><div id="oList"></div></div>
     <div class="box" id="nPos"><h2>5 · Open positions + SL <span class="n mono" id="pN"></span></h2><div id="pList"></div></div>
@@ -155,7 +155,7 @@
   <div class="dim" style="font-size:10.5px;margin-top:8px">Counts are each symbol's latest check (<span class="mono">/scheduler-attempts</span>, every 5s); the latest decision pulses. Gates 10–12 are the real-money mirror (PFnet ≥ floor and explorer stack, the one real-trading switch, Kotak entry with its SL); their counts come from today's real order log and the stop backcheck.</div>
 </div>
 
-<footer>Sources (read-only, nothing here places or changes an order): <span class="mono">/algo-live-flow</span> and <span class="mono">/scheduler-pipeline</span> every 2s, <span class="mono">/real-order-log</span> 3s, <span class="mono">/real-protection-status</span> 5s, <span class="mono">/real-open-positions</span> 20s, <span class="mono">/health</span> 5s (Render, Upstash, freeze, memory: red when any fails). Every dot is one real event: a strategy scan on a symbol, a decision, or a real order moving to its position.</footer>
+<footer>Sources (read-only, nothing here places or changes an order): <span class="mono">/algo-live-flow</span> (last 2 min, live) and <span class="mono">/scheduler-pipeline</span> every 2s, <span class="mono">/symbol-check-counts-today</span> 15s (per-symbol counts for the whole IST day, survive restarts), <span class="mono">/real-order-log</span> 3s, <span class="mono">/real-protection-status</span> 5s, <span class="mono">/real-open-positions</span> 20s, <span class="mono">/health</span> 5s (Render, Upstash, freeze, memory: red when any fails). Every dot is one real event: a strategy scan on a symbol, a decision, or a real order moving to its position.</footer>
 
 <script>
   const $ = id => document.getElementById(id);
@@ -291,12 +291,9 @@
       const focus = cc ? cc.symbol : (ev[0] || {}).symbol;
       const tags = [...new Set(ev.filter(e => e.symbol === focus).map(e => e.tag))];
       $("tagSym").textContent = focus ? `on ${focus}` : "no scans in the last 2 min";
-      $("tagN").textContent = tags.length ? `${tags.length} tags in last 2 min` : "";
-      // B-1336: the 2-min count is a live window, not coverage; show the symbol's distinct tags tested TODAY too
-      const tt = d.tested_today_by_symbol || {}, tmax = d.tested_today_max || 0, skip = d.swing_skipped_today || {};
-      const skN = Object.keys(skip).length;
-      $("tagCov").innerHTML = (focus ? `today: <b>${tt[focus] || 0}</b> of ${tmax} strategies tested on ${esc(focus)} (most on any symbol). ` : "") +
-        (skN ? `<span class="down">swing pass skipped ${skN} today: ${Object.entries(skip).slice(0, 8).map(([k, v]) => esc(k) + " (" + esc(v) + ")").join(", ")}${skN > 8 ? " …" : ""}</span>` : "swing pass skipped none today.");
+      $("tagN").textContent = tags.length ? `${tags.length} tags in last 2 min (live)` : "";
+      // B-1336: the 2-min list above is a live window, not coverage; per-day counts come from /symbol-check-counts-today
+      covFocus = focus || null; renderCov();
       $("tagList").innerHTML = tags.map(t => `<span class="tag mono" data-t="${esc(t)}">${esc(t)}</span>`).join("");
       setStep("sTag", tags[0] || "-", fresh.length > 0);
       if (!firstFlow) fresh.slice(-10).forEach((e, i) => setTimeout(() => {
@@ -312,6 +309,22 @@
     } catch (e) {
       $("led").className = "led bad"; $("beatTxt").textContent = "0 · Monitoring: server unreachable (" + e.message + ")";
     }
+  }
+
+  // ---- B-1336: per-symbol coverage for the whole IST day (durable, Upstash-restored counters), not the 2-min window ----
+  let cov = null, covFocus = null;
+  async function pollCov() {
+    try { cov = await getJSON("/symbol-check-counts-today"); renderCov(); } catch (e) {}
+  }
+  function renderCov() {
+    if (!cov) { $("tagCov").textContent = "today (IST): loading…"; return; }
+    const by = cov.by_symbol || {}, mx = cov.strategies_tested_max || 0, skip = cov.swing_skipped_today || {};
+    const skN = Object.keys(skip).length, r = covFocus ? (by[covFocus] || {}) : null;
+    $("tagCov").innerHTML = (r ? `today (IST ${esc(cov.day_ist)}) on ${esc(covFocus)}: <b>${r.strategies_tested || 0}</b> of ${mx} strategies tested (most on any symbol), ${r.strategy_scans || 0} strategy scans, ${r.scheduler_checks || 0} scheduler checks. ` : `today (IST ${esc(cov.day_ist)}): ${cov.symbols} symbols checked, ${cov.strategies_tested_min}-${mx} strategies tested per symbol. `) +
+      (skN ? `<span class="down">swing pass skipped ${skN} today: ${Object.entries(skip).slice(0, 8).map(([k, v]) => esc(k) + " (" + esc(v) + ")").join(", ")}${skN > 8 ? " …" : ""}</span>` : "swing pass skipped none today.");
+    const rows = Object.entries(by).sort((a, b) => a[1].strategies_tested - b[1].strategies_tested || a[0].localeCompare(b[0]));
+    $("covN").textContent = `${rows.length} symbols, fewest first`;
+    $("covList").innerHTML = rows.map(([k, v]) => `<div class="row"><span class="s">${esc(k)}</span><span>${v.strategies_tested} of ${mx} tested · ${v.strategy_scans} scans · ${v.scheduler_checks} checks</span></div>`).join("") || '<div class="dim">no checks yet today</div>';
   }
 
   // ---- 3: decisions per symbol check ----
@@ -552,6 +565,7 @@
   pollDT(); setInterval(pollDT, 5000);
 
   setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString("en-IN", {timeZone: "Asia/Kolkata", hour12: false}); }, 1000);
+  pollCov(); setInterval(pollCov, 15000);
   pollFlow(); pollDecisions(); pollOrders(); pollProtection().then(pollPositions);
   setInterval(pollFlow, 2000);
   setInterval(pollDecisions, 2000);
