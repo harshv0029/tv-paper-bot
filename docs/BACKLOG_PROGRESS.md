@@ -88,10 +88,10 @@ Total rows: 1143 | closed: 515 | not closed: 628
 |---|---|---|
 | P0 | 116 | 72 |
 | P1 | 433 | 248 |
-| P2 | 455 | 227 |
+| P2 | 454 | 226 |
 | P3 | 114 | 59 |
 | Info | 1 | 0 |
-| P? | 24 | 22 |
+| P? | 25 | 23 |
 
 ## needs-owner (9)
 
@@ -595,7 +595,6 @@ Total rows: 1143 | closed: 515 | not closed: 628
 | B-1329 | P2 | T1 | 2026-10-21 |  |
 | B-1380 | P2 | KOTAK | 2026-10-27 09:55 IST | owed, pending |
 | B-1384 | P2 | SWING | 2026-10-27 14:25 IST | awaiting, waiting |
-| B-1391 | P2 | USER | 2026-10-27 21:40 IST | awaiting, waiting |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 | B-1250 | P? | UNKNOWN |  |  |
 | B-1252b | P? | OPEN | Status 2026-10-20 IST: aggregate-gate "why" now reported by /signal-funds (commit c70374a, deployed via gat... |  |
@@ -607,7 +606,8 @@ Total rows: 1143 | closed: 515 | not closed: 628
 | B-1331 | P? | B-1307 | 2026-10-21 | needs |
 | B-1388 | P? | F | 2026-10-27 17:15 IST | verify, follow-up |
 | B-1389 | P? | B-1388 | 2026-10-27 19:10 IST | follow-up, awaiting, waiting |
-| B-1390 | P? | USER | 2026-10-27 21:15 IST | owed, awaiting, waiting |
+| B-1390 | P? | USER | 2026-10-27 21:15 IST | owed |
+| B-1391 | P? | USER | 2026-10-27 21:40 IST | awaiting, waiting |
 
 ## research-queue (127)
 
