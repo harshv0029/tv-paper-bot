@@ -953,7 +953,19 @@ def _sl_symbol_lock(kotak_trading_symbol: str) -> "threading.RLock":
         return _SL_SYMBOL_LOCKS.setdefault(kotak_trading_symbol, threading.RLock())
 
 
+def _before_equity_open() -> bool:
+    """B-1380: before 09:15 IST NSE cash takes no SL order (pre-open is limit-only), so Kotak rejects every one with
+    '16387: Security is not allowed to trade in this market' (17 rejects 07:37-08:55 IST on 2026-10-27)."""
+    import datetime as _dt
+    n = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=5, minutes=30)))
+    return n.hour * 60 + n.minute < 9 * 60 + 15
+
+
 def place_real_stop_loss(kotak_trading_symbol: str, qty: int, trigger_price: float) -> dict:
+    if _before_equity_open():
+        # Same failure shape as a Kotak reject, so callers behave exactly as before, minus the doomed order.
+        return {"ok": False, "order_id": None, "trigger_price": trigger_price, "action": "skipped_pre_open",
+                "detail": "B-1380: no SL before 09:15 IST (exchange rejects it)", "raw_response": None}
     with _sl_symbol_lock(kotak_trading_symbol):
         res = _place_real_stop_loss_unlocked(kotak_trading_symbol, qty, trigger_price)
         if res.get("ok") and res.get("order_id"):
