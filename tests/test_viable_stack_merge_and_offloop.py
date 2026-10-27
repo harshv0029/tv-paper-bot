@@ -32,7 +32,7 @@ def test_merge_makes_the_newest_saved_definition_active():
 def test_first_sight_merges_before_pushing():
     src = inspect.getsource(main)  # conftest stubs the function itself
     src = src[src.index("def _ensure_viable_stack_hydrated"):]
-    assert src.index("_viable_stack_merge_remote()") < src.index("_viable_stack_push_direct()  # first sight")
+    assert src.index("_viable_stack_merge_remote()") < src.index("_viable_stack_push_direct():  # first sight")
 
 
 def test_scheduler_tick_runs_real_order_work_off_the_event_loop():
