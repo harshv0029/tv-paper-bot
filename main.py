@@ -3702,28 +3702,10 @@ def deployed_notional(conn) -> float:
     account. entry_price is native currency; fx_to_inr (captured at entry)
     converts it to INR so USD positions (SPY etc.) don't get sized as if
     $1 == Rs 1."""
-    # B-896: `capital` at every sizing site is Kotak's limits()["Net"], which
-    # Kotak has ALREADY reduced by the margin of every open real position.
-    # Counting a real-mirrored paper row's notional here as well subtracted
-    # that capital twice and starved new real entries. Only the paper qty NOT
-    # backed by a real row (real_positions* tables, aligned to Kotak on every
-    # 5-min reconcile) still counts here, so each rupee is counted once.
-    def _real_qty(real_table):
-        try:
-            return {r["symbol"]: float(r["qty"] or 0) for r in
-                    conn.execute(f"SELECT symbol, qty FROM {real_table}").fetchall()}
-        except Exception:
-            return {}
-
-    def _paper_only(rows, real_table):
-        real = _real_qty(real_table)
-        return sum(max(0.0, float(r["qty"] or 0) - real.get(r["symbol"], 0.0)) * r["entry_price"] * r["fx_to_inr"]
-                   for r in rows)
-
     rows = conn.execute(
-        "SELECT symbol, qty, entry_price, fx_to_inr FROM signal_state WHERE status = 'long'"
+        "SELECT qty, entry_price, fx_to_inr FROM signal_state WHERE status = 'long'"
     ).fetchall()
-    equity_notional = _paper_only(rows, "real_positions")
+    equity_notional = sum(r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in rows)
     opt_rows = conn.execute(
         "SELECT contracts, entry_premium, fx_to_inr FROM option_state"
     ).fetchall()
@@ -3740,22 +3722,22 @@ def deployed_notional(conn) -> float:
     # of those call sites being missed. See the swing engine's own module
     # comment (above SWING_STRATEGY_TAG, below) for the fuller reasoning.
     swing_rows = conn.execute(
-        "SELECT symbol, qty, entry_price, fx_to_inr FROM signal_state_swing"
+        "SELECT qty, entry_price, fx_to_inr FROM signal_state_swing"
     ).fetchall()
-    swing_notional = _paper_only(swing_rows, "real_positions_swing")
+    swing_notional = sum(r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in swing_rows)
     # 2026-09-29: an open short ties up capital the exact same way an open
     # long does (this account has no separate margin pool - one shared Rs
     # 2L capital figure covers every open position regardless of
     # direction), so signal_state_short's own notional counts against the
     # same cap, same reasoning as the swing engine's inclusion just above.
     short_rows = conn.execute(
-        "SELECT symbol, qty, entry_price, fx_to_inr FROM signal_state_short WHERE status = 'short'"
+        "SELECT qty, entry_price, fx_to_inr FROM signal_state_short WHERE status = 'short'"
     ).fetchall()
-    short_notional = _paper_only(short_rows, "real_positions_short")
+    short_notional = sum(r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in short_rows)
     try:  # B-871: open short-swing positions tie up capital in the same shared pool
-        swing_short_notional = _paper_only(conn.execute(
-            "SELECT symbol, qty, entry_price, fx_to_inr FROM signal_state_swing_short").fetchall(),
-            "real_positions_swing_short")
+        swing_short_notional = sum(
+            r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in conn.execute(
+                "SELECT qty, entry_price, fx_to_inr FROM signal_state_swing_short").fetchall())
     except Exception:
         swing_short_notional = 0.0
     return equity_notional + option_notional + swing_notional + short_notional + swing_short_notional
