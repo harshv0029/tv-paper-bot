@@ -8651,7 +8651,19 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs72.74",
    "detail": "reason: swing entry signal from strategy gap_and_go passed the PFnet gate"
+  },
+  {
+   "id": 722,
+   "ts": 1793089559.6631277,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261027000627583",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs68.29",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-10-27T08:25:49Z"
+ "synced_at_utc": "2026-10-27T08:26:03Z"
 }
