@@ -33,22 +33,6 @@
    "symbol": "COALINDIA.NS"
   },
   {
-   "day": "2026-10-16",
-   "entry_order_id": "261016000301591",
-   "entry_price": 65.5,
-   "first_seen_day": "2026-10-16",
-   "is_short": 0,
-   "kotak_trading_symbol": "GSEC5IETF-EQ",
-   "opened_at": 1792130369.5525527,
-   "owner": "swing",
-   "qty": 2,
-   "sl_trigger_price": 64.7,
-   "source": "holding",
-   "stop_loss": 63.93,
-   "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-   "symbol": "GSEC5IETF.NS"
-  },
-  {
    "day": "2026-10-08",
    "entry_order_id": "261008000123602",
    "entry_price": 172.65,
