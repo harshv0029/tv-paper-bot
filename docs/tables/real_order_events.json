@@ -10235,7 +10235,19 @@
    "prev_state": "long 8 @ Rs134.39",
    "new_state": "still open (exit attempt failed)",
    "detail": "reason: order_block_delta paper swing exit: trail_stop_hit | no order id in response: {'stCode': 1041, 'errMsg': 'Market order rejected: Last Traded Price (LTP) not available for this instrument. Please try placing a limit order', 'stat': 'Not_Ok'}"
+  },
+  {
+   "id": 854,
+   "ts": 1793125953.776456,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 1 @ Rs72.74",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: gap_and_go paper swing exit: gap_filled"
   }
  ],
- "synced_at_utc": "2026-10-27T18:32:30Z"
+ "synced_at_utc": "2026-10-27T18:32:37Z"
 }
