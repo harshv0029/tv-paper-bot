@@ -14179,6 +14179,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
     _load_viable_overrides()
     if not _is_strategy_viable_for_real_money(strategy_tag):
         _log_real_attempt(conn, symbol, "S", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
+                          strategy=strategy_tag,
                           detail=f"strategy {strategy_tag!r} no longer viable on the fresh stack re-check just before the order")
         return
 
@@ -14188,6 +14189,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         _log_real_attempt(
             conn, symbol, "S", "failed", kotak_trading_symbol=kotak_symbol, price_est=ltp,
             detail=result.get("detail"), raw_response=result.get("raw_response"),
+            strategy=strategy_tag,  # B-1285: failed entries count per tag in /entry-funnel
         )
         print(f"[REAL SHORT] entry FAILED for {kotak_symbol}: {result.get('detail')}")
         _flag_if_t1_restricted(conn, symbol, result.get("detail"))
@@ -14735,6 +14737,7 @@ def _maybe_place_real_entry(conn, symbol: str):
         _log_real_attempt(
             conn, symbol, "B", "failed", kotak_trading_symbol=kotak_symbol, price_est=ltp,
             detail=result.get("detail"), raw_response=result.get("raw_response"),
+            strategy=strategy_tag,  # B-1285: failed entries count per tag in /entry-funnel
         )
         print(f"[REAL TRADE] BUY FAILED {kotak_symbol}: {result.get('detail')}")
         _log_real_order_event(
@@ -26901,7 +26904,7 @@ def entry_funnel():
     day = ist_now().strftime("%Y-%m-%d")
     cats = ["buy", "short_sell", "swing", "bidirectional", "futures", "options"]
     out = {c: {"viable_strategies": 0, "scans_today": 0, "paper_entries_today": 0,
-               "attempts": {}, "placed": 0, "blocked": 0, "_fired": set(), "_strats": {}} for c in cats}
+               "attempts": {}, "placed": 0, "blocked": 0, "failed": 0, "_fired": set(), "_strats": {}} for c in cats}
     tag_cats = {}
 
     def _srow(c, tag):
@@ -26945,37 +26948,36 @@ def entry_funnel():
     finally:
         conn.close()
     for strat, side, status, n, syms in rows:
+        st = str(status)
+        _skipped = st.startswith("skipped")
+        _is_placed = st in ("confirmed", "placed", "filled", "ok") or st.startswith(("placed", "filled", "ok", "confirmed"))
+        if not strat and not _skipped:
+            continue  # B-1285: untagged order rows are exits, partial exits, force-closes, reconciles - not entry attempts
         cs = tag_cats.get(strat) or [("short_sell" if str(side).upper().startswith("S") else "buy")]
+        _short_tag = "short" in re.split(r"[_\-]+", str(strat or "").lower())
         for c in cs:
+            if not _skipped and c != "bidirectional":
+                _entry_side = "S" if (c == "short_sell" or _short_tag) else "B"
+                if not str(side).upper().startswith(_entry_side):
+                    continue  # B-1282/B-1285: a long's sell or a short's cover is an exit, not an entry attempt
             o = out[c]
             o["_fired"].add(strat)  # any real-entry attempt means that strategy's setup fired
-            d = o["attempts"].setdefault(str(status), {"attempts": 0, "symbols": 0})
+            d = o["attempts"].setdefault(st, {"attempts": 0, "symbols": 0})
             d["attempts"] += n
             d["symbols"] += syms
             _r = _srow(c, strat)
-            _r["attempts"] += n
             _r["symbols_fired"] += syms
-            if str(status).startswith("skipped"):
-                _r["skip_reasons"][str(status)] = _r["skip_reasons"].get(str(status), 0) + n
-            _is_placed = str(status) in ("confirmed", "placed", "filled", "ok") or str(status).startswith(("placed", "filled", "ok"))
-            if _is_placed and not (c == "short_sell" and side == "B"):  # B-1282: a real order logs 'confirmed'; a short's cover (side B) is not an entry
-                _r["placed"] += n
-            elif str(status).startswith("skipped"):
-                _r["blocked"] += n
-            key = "placed" if (_is_placed and not (c == "short_sell" and side == "B")) else (
-                "blocked" if str(status).startswith("skipped") else None)
-            if key:
-                o[key] += n
-            elif not _is_placed:  # B-1285: rejected/errored attempts were counted nowhere
-                _r["failed"] += n
-                o["failed"] = o.get("failed", 0) + n
+            if _skipped:
+                _r["skip_reasons"][st] = _r["skip_reasons"].get(st, 0) + n
+            key = "blocked" if _skipped else ("placed" if _is_placed else "failed")  # B-1285: rejected/errored = failed
+            _r[key] += n
+            o[key] += n
     for c, o in out.items():
-        o.setdefault("failed", 0)
         o["attempts_total"] = o["placed"] + o["blocked"] + o["failed"]
         o["strategies_fired"] = len(o.pop("_fired"))
         _all = sorted(o.pop("_strats").values(), key=lambda r: r["strategy"])
-        for _r in _all:  # B-1285: per-tag attempts_total = placed + blocked + failed
-            _r["attempts_total"] = _r["placed"] + _r["blocked"] + _r["failed"]
+        for _r in _all:  # B-1285: per-tag attempts = attempts_total = placed + blocked + failed (exits excluded)
+            _r["attempts_total"] = _r["attempts"] = _r["placed"] + _r["blocked"] + _r["failed"]
         o["strategies"] = [r for r in _all if r["fired"] or r["attempts"] or r.get("blocked_triggers")]
         o["no_signal_strategies"] = [{"strategy": r["strategy"], "scans": r["scans"]}
                                      for r in _all if not (r["fired"] or r["attempts"] or r.get("blocked_triggers"))]

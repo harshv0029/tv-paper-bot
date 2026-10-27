@@ -1124,12 +1124,12 @@ function renderEntryFunnel(d) {
   const esc = x => String(x).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   body.innerHTML = Object.entries(d.categories).map(([cat, c]) => {
     const sk = r => Object.entries(r.skip_reasons || {}).map(([k, v]) => `${esc(k)} ×${v}`).join("<br>") || "-";
-    const rows = (c.strategies || []).map(r => `<tr><td>${esc(r.strategy)}</td><td class="num">${r.scans}</td><td class="num">${r.fired}</td><td class="num">${r.placed}</td><td class="num">${r.blocked}</td><td>${sk(r)}</td><td class="num">${r.attempts}</td><td class="num">${r.symbols_fired}</td></tr>`).join("");
+    const rows = (c.strategies || []).map(r => `<tr><td>${esc(r.strategy)}</td><td class="num">${r.scans}</td><td class="num">${r.fired}</td><td class="num">${r.placed}</td><td class="num">${r.blocked}</td><td class="num">${r.failed || 0}</td><td>${sk(r)}</td><td class="num">${r.attempts}</td><td class="num">${r.symbols_fired}</td></tr>`).join("");
     const ns = c.no_signal_strategies || [];
-    const nsRow = (ns.length ? `<tr><td colspan="8"><b>No signal (${ns.length} strategies tested)</b></td></tr>` : "") + ns.map(r => `<tr><td>${esc(r.strategy)}</td><td class="num">${r.scans}</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td>No signal</td><td class="num">0</td><td class="num">0</td></tr>`).join("");
+    const nsRow = (ns.length ? `<tr><td colspan="9"><b>No signal (${ns.length} strategies tested)</b></td></tr>` : "") + ns.map(r => `<tr><td>${esc(r.strategy)}</td><td class="num">${r.scans}</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td>No signal</td><td class="num">0</td><td class="num">0</td></tr>`).join("");
     return `<div style="margin:8px 0"><b>${esc(({short_sell:"Short sell",buy:"Intraday buy",swing:"Swing",futures:"Futures",options:"Option - single strike",options_multi:"Option - one plus strike",bidirectional:"Others"})[cat] || cat)}</b> — ${esc(c.verdict)}<br>
-      ${c.viable_strategies} viable · ${c.strategies_fired || 0} fired · ${c.scans_today} scans · ${c.paper_entries_today} paper entries · ${c.placed} real placed · ${c.blocked} real blocked
-      <table class="counts"><thead><tr><th>Strategy name</th><th class="num">Scan count</th><th class="num">Count of fired</th><th class="num">Real orders placed</th><th class="num">Blocked orders</th><th>Skip reasons</th><th class="num">Attempts of firing</th><th class="num">Symbols fired</th></tr></thead><tbody>${rows}${nsRow}</tbody></table></div>`;
+      ${c.viable_strategies} viable · ${c.strategies_fired || 0} fired · ${c.scans_today} scans · ${c.paper_entries_today} paper entries · ${c.placed} real placed · ${c.blocked} real blocked · ${c.failed || 0} real failed
+      <table class="counts"><thead><tr><th>Strategy name</th><th class="num">Scan count</th><th class="num">Count of fired</th><th class="num">Real orders placed</th><th class="num">Blocked orders</th><th class="num">Failed orders</th><th>Skip reasons</th><th class="num">Attempts (placed + blocked + failed)</th><th class="num">Symbols fired</th></tr></thead><tbody>${rows}${nsRow}</tbody></table></div>`;
   }).join("");
 }
 function renderViableBuckets(d) {
