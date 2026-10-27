@@ -182,7 +182,12 @@ FO_UNIVERSE_RESOLVE_GRACE_SECONDS = 60
 # hammering search_scrip on a flaky connection the way
 # kotak_live_feed.py's own TOKEN_MAP_CACHE_TTL fix addressed for equities.
 UNIVERSE_REFRESH_SECONDS = 4 * 60 * 60  # 4h
-_universe_cache = {"value": None, "resolved_at": 0.0}
+_universe_cache = {"value": None, "resolved_at": 0.0, "partial": False}
+# B-1388: the full (index + 210 stock) resolve runs in the background while the socket streams; the stream
+# reconnects onto the new universe once it lands, instead of going dark for the ~10-min resolve.
+_bg_resolve = {"task": None, "failed_at": 0.0, "swapped": False}
+BG_RESOLVE_RETRY_SECONDS = 5 * 60
+INDEX_ONLY_RESOLVE_TIMEOUT_SECONDS = 180
 
 # Live finding (2026-09-22): STOCK_FO_UNDERLYINGS is a fixed alphabetical
 # tuple and resolve_fo_universe() always walked it start-to-end - so once
@@ -334,7 +339,7 @@ def _resolve_underlying_legs(kotak_name: str, spot: float, band: int, expiry_cla
 
 
 def resolve_fo_universe(deadline: float | None = None, stock_offset: int = 0,
-                         previous_universe: dict | None = None) -> dict:
+                         previous_universe: dict | None = None, index_only: bool = False) -> dict:
     """{(exchange_segment, instrument_token): descriptor} for every leg
     this feed subscribes to: the 3 index underlyings at
     nse_fo_chain.DEFAULT_ATM_STRIKE_BAND (weekly+monthly) plus all 210
@@ -402,6 +407,12 @@ def resolve_fo_universe(deadline: float | None = None, stock_offset: int = 0,
             kotak_name, spot, INDEX_ATM_STRIKE_BAND, INDEX_EXPIRY_CLASSES,
             universe, unresolved,
         )
+
+    if index_only:
+        # B-1388: cold-start fast path - index legs only, so the socket connects in about a minute; the stock
+        # legs follow from a background resolve while streaming (_background_full_resolve).
+        _feed_status["unresolved_legs"] = unresolved + ["stocks:deferred_to_background_resolve"]
+        return universe
 
     stock_underlyings = nse_fo_chain.STOCK_FO_UNDERLYINGS
     n_stocks = len(stock_underlyings)
@@ -570,6 +581,64 @@ def _set_phase(phase: str) -> None:
     _feed_status["phase_since_utc"] = time.time()
 
 
+async def _resolve_full_universe(main_mod):
+    """The full resolve (heavy lock, deadline, stock-offset rotation), storing the result in _universe_cache."""
+    stock_offset = _stock_resolve_offset["value"]
+    async with main_mod._heavy_startup_resolve_lock:
+        if _bg_resolve["task"] is None:
+            _set_phase("resolving_universe")
+        resolve_deadline = time.time() + FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS
+        universe = await asyncio.wait_for(
+            asyncio.to_thread(
+                resolve_fo_universe, deadline=resolve_deadline,
+                stock_offset=stock_offset, previous_universe=_universe_cache["value"],
+            ),
+            timeout=FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS + FO_UNIVERSE_RESOLVE_GRACE_SECONDS,
+        )
+    _universe_cache["value"] = universe
+    _universe_cache["resolved_at"] = time.time()
+    _universe_cache["partial"] = False
+    n_stocks = len(nse_fo_chain.STOCK_FO_UNDERLYINGS)
+    if n_stocks:
+        stock_names = set(nse_fo_chain.STOCK_FO_UNDERLYINGS)
+        deadline_exceeded = sum(
+            1 for entry in _feed_status["unresolved_legs"]
+            if entry.endswith(":deadline_exceeded")
+            and entry[:-len(":deadline_exceeded")] in stock_names
+        )
+        attempted = n_stocks - deadline_exceeded
+        _stock_resolve_offset["value"] = (stock_offset + attempted) % n_stocks
+    return universe
+
+
+async def _background_full_resolve(main_mod):
+    try:
+        await _resolve_full_universe(main_mod)
+        _bg_resolve["swapped"] = True
+    except Exception as e:
+        _bg_resolve["failed_at"] = time.time()
+        _feed_status["last_error"] = f"background resolve: {str(e) or type(e).__name__}"
+
+
+def background_resolve_step(main_mod, now=None) -> bool:
+    """B-1388, called per stream wake-up: starts the background full resolve when due (partial index-only
+    universe, or universe_refresh_due) and not already running or recently failed. Returns True once a finished
+    resolve has replaced the cached universe, so the caller reconnects onto it."""
+    now = time.time() if now is None else now
+    task = _bg_resolve["task"]
+    if task is not None and task.done():
+        _bg_resolve["task"] = None
+        if _bg_resolve["swapped"]:
+            _bg_resolve["swapped"] = False
+            return True
+        return False
+    if task is None and (_universe_cache["partial"] or universe_refresh_due()) \
+            and now - _bg_resolve["failed_at"] >= BG_RESOLVE_RETRY_SECONDS:
+        _bg_resolve["task"] = asyncio.ensure_future(_background_full_resolve(main_mod))
+        _feed_status["background_resolves"] = _feed_status.get("background_resolves", 0) + 1
+    return False
+
+
 async def run_fo_candle_feed():
     """The background task main.py's startup event launches alongside
     (never instead of) kotak_live_feed.run_feed. Runs forever until the
@@ -581,87 +650,28 @@ async def run_fo_candle_feed():
     backoff = RESTART_BACKOFF_MIN_SECONDS
     while True:
         try:
-            cache_age = time.time() - _universe_cache["resolved_at"]
-            if _universe_cache["value"] is None or cache_age > UNIVERSE_REFRESH_SECONDS or universe_refresh_due():
-                # asyncio.to_thread (2026-09-16, live Render restart-loop
-                # fix): resolve_fo_universe() does a blocking search_scrip
-                # call per underlying/expiry-class across all ~213
-                # underlyings (3 index + 210 stock) - at Kotak's own
-                # documented 10 req/sec REST cap that's tens of seconds to
-                # minutes of pure synchronous I/O. Called bare (no await)
-                # inside this coroutine, that blocks the WHOLE asyncio
-                # event loop - the same loop uvicorn uses to serve every
-                # HTTP request, including Render's own health check -  on
-                # every process start (this cache is always None right
-                # after a restart) and every 4h refresh. A blocked health
-                # check reads as a dead app to Render, which restarts the
-                # process, which blocks the loop again on the next boot -
-                # an unbounded restart loop, exactly what was observed
-                # live. main.py's own _scheduler_tick already establishes
-                # this exact pattern (asyncio.to_thread wrapping
-                # _auto_signal_core) for the same reason - this call site
-                # just never got it.
-                #
-                # main._heavy_startup_resolve_lock (2026-09-16, live OOM
-                # follow-up): to_thread alone fixed the event-loop block
-                # but let this resolve run at the SAME TIME as kotak_
-                # live_feed's own heavy resolve_tokens() - see that
-                # lock's own docstring for why their peak memory usage
-                # stacking, rather than being accidentally serialized as
-                # before, is the live incident's actual root cause.
-                #
-                # asyncio.wait_for (2026-09-16, same-day follow-up): a
-                # live check afterward found BOTH feeds stuck forever at
-                # "never even started" (connected: false,
-                # started_at_utc: null) - the shared lock above has no
-                # timeout of its own, so if kotak_neo's underlying
-                # search_scrip/login calls hang at a network layer that
-                # ignores their own timeouts (same failure mode already
-                # found and fixed for the Upstash hydration calls), the
-                # feed holding the lock never releases it, and the OTHER
-                # feed then waits forever too - a hang in either feed
-                # now stalls both, which is strictly worse than before
-                # the lock existed. Bounding this resolve with a hard
-                # deadline means the lock can never be held forever:
-                # on timeout this raises TimeoutError, caught by this
-                # loop's own outer except below exactly like any other
-                # failure - backoff, retry, same as always.
-                # _stock_resolve_offset / previous_universe (2026-09-22,
-                # live finding): without these, a deadline-truncated
-                # resolve always starts STOCK_FO_UNDERLYINGS over from
-                # "360ONE" next cycle too, so the same alphabetical tail
-                # (confirmed live: PAGEIND..ZYDUSLIFE, ~64 names) never
-                # once gets attempted - see _stock_resolve_offset's own
-                # comment. Passing this cycle's offset in and rotating it
-                # forward by however many stocks actually got attempted
-                # means the NEXT cycle resumes there instead; passing the
-                # still-cached universe in as previous_universe means a
-                # stock that isn't this cycle's turn keeps its
-                # last-known-good legs instead of dropping to unresolved.
-                stock_offset = _stock_resolve_offset["value"]
-                _set_phase("waiting_lock")
-                async with main._heavy_startup_resolve_lock:
-                    _set_phase("resolving_universe")
-                    resolve_deadline = time.time() + FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS
-                    universe = await asyncio.wait_for(
-                        asyncio.to_thread(
-                            resolve_fo_universe, deadline=resolve_deadline,
-                            stock_offset=stock_offset, previous_universe=_universe_cache["value"],
-                        ),
-                        timeout=FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS + FO_UNIVERSE_RESOLVE_GRACE_SECONDS,
-                    )
+            if _universe_cache["value"] is None:
+                # B-1388: cold start - index legs only (no heavy lock: a few calls), connect at once; the stock
+                # legs arrive from the background resolve below while the socket streams.
+                _set_phase("resolving_index_legs")
+                universe = await asyncio.wait_for(
+                    asyncio.to_thread(resolve_fo_universe, index_only=True,
+                                      deadline=time.time() + INDEX_ONLY_RESOLVE_TIMEOUT_SECONDS),
+                    timeout=INDEX_ONLY_RESOLVE_TIMEOUT_SECONDS + FO_UNIVERSE_RESOLVE_GRACE_SECONDS,
+                )
                 _universe_cache["value"] = universe
                 _universe_cache["resolved_at"] = time.time()
-                n_stocks = len(nse_fo_chain.STOCK_FO_UNDERLYINGS)
-                if n_stocks:
-                    stock_names = set(nse_fo_chain.STOCK_FO_UNDERLYINGS)
-                    deadline_exceeded = sum(
-                        1 for entry in _feed_status["unresolved_legs"]
-                        if entry.endswith(":deadline_exceeded")
-                        and entry[:-len(":deadline_exceeded")] in stock_names
-                    )
-                    attempted = n_stocks - deadline_exceeded
-                    _stock_resolve_offset["value"] = (stock_offset + attempted) % n_stocks
+                _universe_cache["partial"] = True
+                if not universe:
+                    # no index leg resolved (spot lookups failed): fall back to the full foreground resolve
+                    _set_phase("waiting_lock")
+                    universe = await _resolve_full_universe(main)
+            elif _bg_resolve["task"] is None and (time.time() - _universe_cache["resolved_at"] > UNIVERSE_REFRESH_SECONDS
+                                                  or universe_refresh_due()) and not _universe_cache["partial"]:
+                # Not streaming (reconnect after a failure) and the universe is stale: resolve in the foreground
+                # as before. While streaming, refreshes run in the background instead (background_resolve_step).
+                _set_phase("waiting_lock")
+                universe = await _resolve_full_universe(main)
             else:
                 universe = _universe_cache["value"]
             _feed_status["subscribed_instruments"] = len(universe)
@@ -691,10 +701,9 @@ async def run_fo_candle_feed():
                 backoff = RESTART_BACKOFF_MIN_SECONDS
                 refresh_now = False
                 async for first in ws:
-                    if universe_refresh_due():
-                        # B-865: reconnect with a freshly resolved universe
-                        # (ATM drift / expiry roll) instead of streaming a
-                        # stale one for the socket's whole life.
+                    if background_resolve_step(main):
+                        # B-865/B-1388: reconnect onto the freshly resolved universe (stock legs after a cold
+                        # start, ATM drift, expiry roll); the resolve itself ran in the background while streaming.
                         refresh_now = True
                         break
                     # B-1382: take every queued tick in this wake-up (the SDK queue is unbounded) and open the DB
