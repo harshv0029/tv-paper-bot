@@ -564,6 +564,6 @@ def test_universe_missing_an_index_is_retried_in_minutes_not_hours():
 
 def test_message_loop_checks_refresh_and_clears_connected_when_stream_ends():
     src = inspect.getsource(feed.run_fo_candle_feed)
-    assert "background_resolve_step(main)" in src.split("async for first in ws:")[1]
+    assert "background_resolve_step(main)" in src.split("ticks.__anext__()")[1]
     assert "universe_refresh_due()" in inspect.getsource(feed.background_resolve_step)
     assert "stream_ended_without_error" in src
