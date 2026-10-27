@@ -77,4 +77,7 @@ def test_first_sight_push_failure_is_not_retried_per_call(monkeypatch):
     [t.start() for t in ts]
     [t.join() for t in ts]
     main._ensure_viable_stack_hydrated()
+    with main.closing(main.get_db()) as c:  # never leave a stack row behind: later tests would see an active stack
+        c.execute("DELETE FROM strategy_viable_stack WHERE label = 'x' AND created_at = 1.0")
+        c.commit()
     assert n == {"merge": 1, "push": 1}
