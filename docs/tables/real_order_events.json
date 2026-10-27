@@ -8591,7 +8591,31 @@
    "prev_state": null,
    "new_state": "held - no sell placed",
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 716,
+   "ts": 1793086667.4739835,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": "GSEC5IETF-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261027000421417",
+   "prev_state": "resting @ Rs64.7",
+   "new_state": "cancelled (position exiting)",
+   "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
+  },
+  {
+   "id": 717,
+   "ts": 1793086667.481897,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": "GSEC5IETF-EQ",
+   "leg": "exit",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "long 2 @ Rs65.50",
+   "new_state": "market SELL about to be sent to Kotak",
+   "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
   }
  ],
- "synced_at_utc": "2026-10-27T07:26:49Z"
+ "synced_at_utc": "2026-10-27T07:37:50Z"
 }
