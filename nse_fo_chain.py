@@ -342,7 +342,7 @@ def select_nse_future(underlying: str):
     }, None
 
 
-def select_nse_option_contract(underlying: str, spot: float, right: str):
+def select_nse_option_contract(underlying: str, spot: float, right: str, expiry_ok=None):
     """Nearest-ATM strike, nearest valid-DTE-window expiry, for
     `underlying`'s `right` ('call'/'put'). Returns (contract_dict, None)
     or (None, reason_str). Mirrors options_pricing.py's
@@ -382,6 +382,12 @@ def select_nse_option_contract(underlying: str, spot: float, right: str):
 
     today = dt.date.today()
     candidates = [(exp, (exp - today).days) for exp in by_expiry if (exp - today).days >= 0]
+    if expiry_ok is not None:
+        # B-1386/B-1384: caller-side expiry filter (the option hold window); the nearest expiry that passes is used,
+        # which rolls to the next month when the near expiry cannot cover the hold.
+        candidates = [(exp, dte) for exp, dte in candidates if expiry_ok(exp)]
+        if not candidates:
+            return None, "no_expiry_fits_hold"
     in_window = [(exp, dte) for exp, dte in candidates if OPTIONS_MIN_DTE <= dte <= OPTIONS_MAX_DTE]
     pool = in_window or candidates
     if not pool:
