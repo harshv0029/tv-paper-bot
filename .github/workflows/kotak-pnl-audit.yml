@@ -187,7 +187,7 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add docs/sl_snapshots
           if git diff --cached --quiet; then echo "nothing to commit"; else
-            git commit -m "SL snapshot $(TZ=Asia/Kolkata date +%Y-%m-%d) (audit run)"
+            git commit -m "SL snapshot $(TZ=Asia/Kolkata date +%Y-%m-%d) (audit run) [skip render]"
             git pull --rebase origin "${GITHUB_REF_NAME}" && git push
           fi
   entries:
