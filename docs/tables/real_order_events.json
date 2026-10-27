@@ -10451,7 +10451,19 @@
    "prev_state": "short 2",
    "new_state": "short 2 (cover failed)",
    "detail": "reason: emergency: no resting stop for 566s (tolerance 60s) | no order id in response: {'stCode': 1041, 'errMsg': 'Market order rejected: Last Traded Price (LTP) not available for this instrument. Please try placing a limit order', 'stat': 'Not_Ok'}"
+  },
+  {
+   "id": 872,
+   "ts": 1793130084.860628,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "sl",
+   "event": "emergency_exit_triggered",
+   "order_id": null,
+   "prev_state": "unprotected for 784s",
+   "new_state": "forcing full cover",
+   "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
   }
  ],
- "synced_at_utc": "2026-10-27T19:37:57Z"
+ "synced_at_utc": "2026-10-27T19:41:28Z"
 }
