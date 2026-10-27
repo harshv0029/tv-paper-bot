@@ -8759,7 +8759,19 @@
    "prev_state": "none",
    "new_state": "resting BUY trigger Rs402.35",
    "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during short governance backfill"
+  },
+  {
+   "id": 730,
+   "ts": 1793091966.615788,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "entry",
+   "event": "confirmed",
+   "order_id": "261027000718961",
+   "prev_state": "no position",
+   "new_state": "long 2 @ Rs36.76",
+   "detail": "reason: swing entry signal from strategy order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-10-27T09:02:34Z"
+ "synced_at_utc": "2026-10-27T09:06:10Z"
 }
