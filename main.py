@@ -21610,6 +21610,11 @@ async def _scheduler_loop():
             await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
 
 
+def _swing_real_entry_session_open() -> bool:
+    """B-1373: real swing entries only during NSE regular hours on a trading day (own name so tests can stub it)."""
+    return bool(is_nse_trading_day() and _nse_equity_market_open_now())
+
+
 def _nse_equity_market_open_now() -> bool:
     """True during NSE cash-equity regular trading hours (9:15-15:30 IST,
     Mon-Fri) - 2026-09-22, real-order retry build. SWING_WATCHLIST is NSE
@@ -21894,6 +21899,12 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     other entry failure, just not pre-filtered here."""
     if not is_real_swing_trading_enabled():
         return  # expected default state - not logged, this isn't an "attempt"
+    if not _swing_real_entry_session_open():
+        # B-1373: the first swing pass of each IST day runs just after midnight; a real entry (shares or the option
+        # leg) is never attempted while NSE is closed. Checked before the PFnet gate so the B-1372 counter only
+        # counts in-session rejections.
+        _log_real_attempt(conn, symbol, "B", "skipped_market_closed", strategy=strategy)
+        return
 
     _maybe_place_swing_option_leg(conn, symbol, strategy)  # B-417: single-strike call beside the shares
 
