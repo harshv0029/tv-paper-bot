@@ -7967,7 +7967,19 @@
    "prev_state": null,
    "new_state": "rejected",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 07:38:34 S SL qty 1 trg 175.12 status rejected rejRsn 16387 : Security is not allowed to trade in this market  "
+  },
+  {
+   "id": 665,
+   "ts": 1793068542.1861074,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000002222 rejected: 16387 : Security is not allowed to trade in this market  "
   }
  ],
- "synced_at_utc": "2026-10-27T02:35:25Z"
+ "synced_at_utc": "2026-10-27T02:36:09Z"
 }
