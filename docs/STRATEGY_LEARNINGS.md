@@ -1456,3 +1456,11 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Fix:** `kotak_real_fo_orders.option_entry_sl_placeable` replays the SL's own rounding before every option BUY (`_real_fo_buy_contract`, all option paths): trigger at least 1 tick under entry, below the live bid, limit a positive tick under the trigger, above any known band. Otherwise the buy is skipped with `skipped_option_stop_not_placeable`.
 - **Reuse:** always validate a stop with the exact rounding the order path applies, against the bid, before the entry; never buy what must be unwound.
 - **Profit-booking / exit takeaway:** a stop within one or two ticks of a cheap option's entry is not a stop, it is a guaranteed spread-plus-cost loss; skip the trade instead.
+
+## Swing short min R:R and protective stop audit (B-842, 2026-10-27 IST)
+
+- **Mechanism checked:** the short-swing engine already places a BUY stop with every real short (or unwinds it), heals a missing stop every 5 min from Kotak's own order book, and keeps its rows in Upstash. Min R:R lives as an entry gate (room to the prior 60-bar low >= rr x risk) on the brk20 cells, and as a BUY target = entry - 4R only on the 1h gatetarget cell.
+- **Fit:** an overnight NSE cash short still has no confirmed Kotak product (B-912), so the real leg stays closed; paper runs.
+- **What surprised:** adding a target to a gate-only cell lowers PFnet (1h: gate 1.702 vs gatetarget 1.561, run 38249384880); the room filter alone captures the R:R edge.
+- **Reuse:** treat "min R:R" as a property of the validated variant (gate vs target), never bolt a target onto a cell that was validated without one.
+- **Profit-booking / exit takeaway:** for brk20 shorts, let the stop / EMA13 / timeout run rather than booking at a fixed 4R; a fixed target gives up more on the big runners than it saves.

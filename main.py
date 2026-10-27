@@ -3702,10 +3702,28 @@ def deployed_notional(conn) -> float:
     account. entry_price is native currency; fx_to_inr (captured at entry)
     converts it to INR so USD positions (SPY etc.) don't get sized as if
     $1 == Rs 1."""
+    # B-896: `capital` at every sizing site is Kotak's limits()["Net"], which
+    # Kotak has ALREADY reduced by the margin of every open real position.
+    # Counting a real-mirrored paper row's notional here as well subtracted
+    # that capital twice and starved new real entries. Only the paper qty NOT
+    # backed by a real row (real_positions* tables, aligned to Kotak on every
+    # 5-min reconcile) still counts here, so each rupee is counted once.
+    def _real_qty(real_table):
+        try:
+            return {r["symbol"]: float(r["qty"] or 0) for r in
+                    conn.execute(f"SELECT symbol, qty FROM {real_table}").fetchall()}
+        except Exception:
+            return {}
+
+    def _paper_only(rows, real_table):
+        real = _real_qty(real_table)
+        return sum(max(0.0, float(r["qty"] or 0) - real.get(r["symbol"], 0.0)) * r["entry_price"] * r["fx_to_inr"]
+                   for r in rows)
+
     rows = conn.execute(
-        "SELECT qty, entry_price, fx_to_inr FROM signal_state WHERE status = 'long'"
+        "SELECT symbol, qty, entry_price, fx_to_inr FROM signal_state WHERE status = 'long'"
     ).fetchall()
-    equity_notional = sum(r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in rows)
+    equity_notional = _paper_only(rows, "real_positions")
     opt_rows = conn.execute(
         "SELECT contracts, entry_premium, fx_to_inr FROM option_state"
     ).fetchall()
@@ -3722,22 +3740,22 @@ def deployed_notional(conn) -> float:
     # of those call sites being missed. See the swing engine's own module
     # comment (above SWING_STRATEGY_TAG, below) for the fuller reasoning.
     swing_rows = conn.execute(
-        "SELECT qty, entry_price, fx_to_inr FROM signal_state_swing"
+        "SELECT symbol, qty, entry_price, fx_to_inr FROM signal_state_swing"
     ).fetchall()
-    swing_notional = sum(r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in swing_rows)
+    swing_notional = _paper_only(swing_rows, "real_positions_swing")
     # 2026-09-29: an open short ties up capital the exact same way an open
     # long does (this account has no separate margin pool - one shared Rs
     # 2L capital figure covers every open position regardless of
     # direction), so signal_state_short's own notional counts against the
     # same cap, same reasoning as the swing engine's inclusion just above.
     short_rows = conn.execute(
-        "SELECT qty, entry_price, fx_to_inr FROM signal_state_short WHERE status = 'short'"
+        "SELECT symbol, qty, entry_price, fx_to_inr FROM signal_state_short WHERE status = 'short'"
     ).fetchall()
-    short_notional = sum(r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in short_rows)
+    short_notional = _paper_only(short_rows, "real_positions_short")
     try:  # B-871: open short-swing positions tie up capital in the same shared pool
-        swing_short_notional = sum(
-            r["qty"] * r["entry_price"] * r["fx_to_inr"] for r in conn.execute(
-                "SELECT qty, entry_price, fx_to_inr FROM signal_state_swing_short").fetchall())
+        swing_short_notional = _paper_only(conn.execute(
+            "SELECT symbol, qty, entry_price, fx_to_inr FROM signal_state_swing_short").fetchall(),
+            "real_positions_swing_short")
     except Exception:
         swing_short_notional = 0.0
     return equity_notional + option_notional + swing_notional + short_notional + swing_short_notional
@@ -25983,6 +26001,10 @@ async def _start_scheduler():
     except Exception as e:
         print(f"[table_mirror] startup hydrate skipped (non-fatal, retried per tick): {e}")
     try:
+        await asyncio.wait_for(asyncio.to_thread(_startup_merge_viable_stack), timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
+    except Exception as e:
+        print(f"[VIABLE-STACK] startup merge skipped (non-fatal, retried on first read): {e}")
+    try:
         await asyncio.wait_for(asyncio.to_thread(hydrate_fo_option_candles_from_external),
                                timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
     except Exception as e:
@@ -26417,6 +26439,46 @@ def algo_live_flow(window: int = 120, before: int = 8, after: int = 30):
     }
 
 
+def _symbol_check_counts_today() -> dict:
+    """B-1336: per-symbol coverage for the current IST day, read from the durable per-day counters (each already
+    Upstash-mirrored and restored after a Render restart): distinct strategy tags tested (_symbol_strategy_scans,
+    B-1278), total strategy scans (sum of _pair_scan_stats counts, trade view2/3 mirror) and scheduler checks
+    (_scheduler_check_counts, keys 'SYM' or 'SYM:LEG' folded to SYM). A counter from a previous IST day counts 0.
+    Display only; never touches order logic."""
+    today = ist_now().strftime("%Y-%m-%d")
+    out: dict = {}
+
+    def row(sym):
+        return out.setdefault(sym, {"strategies_tested": 0, "strategy_scans": 0, "scheduler_checks": 0})
+
+    if _symbol_strategy_scans_day == today:
+        for sym, tags in list(_symbol_strategy_scans.items()):
+            row(sym)["strategies_tested"] = len(tags)
+    if _pair_scan_day == today:
+        for (_tag, sym), rec in list(_pair_scan_stats.items()):
+            row(sym)["strategy_scans"] += int(rec[0] or 0)
+    if _scheduler_check_counts_day == today:
+        for key, n in list(_scheduler_check_counts.items()):
+            row(str(key).split(":", 1)[0])["scheduler_checks"] += int(n or 0)
+    return {"day_ist": today, "by_symbol": out}
+
+
+@app.get("/symbol-check-counts-today")
+def symbol_check_counts_today():
+    """B-1336: View 4's per-symbol counts for the whole IST day (not /algo-live-flow's 2-minute, 400-event window)."""
+    d = _symbol_check_counts_today()
+    by = d["by_symbol"]
+    tested = [r["strategies_tested"] for r in by.values()]
+    return {
+        **d,
+        "symbols": len(by),
+        "strategies_tested_max": max(tested) if tested else 0,
+        "strategies_tested_min": min(tested) if tested else 0,
+        "swing_skipped_today": dict(_swing_skipped_today["syms"]) if _swing_skipped_today.get("day") == d["day_ist"] else {},
+        "server_time_utc": time.time(),
+    }
+
+
 @app.get("/trade-history")
 def trade_history(days: int = 1):
     """Every closed trade in the last `days` IST calendar days (default:
@@ -26552,9 +26614,12 @@ _VIABLE_STACK_REDIS_KEY = "tv_paper_bot:viable_stack:direct:v1"
 _VIABLE_STACK_MIRROR_STATE = {"last_push_ok": None, "last_push_ts": None, "last_error": None, "last_restore": None}
 
 
-def _viable_stack_push_direct() -> bool:
+def _viable_stack_push_direct(allow_drop: bool = False) -> bool:
     """B-1299: write the whole stack to ONE dedicated Upstash key (independent of the generic mirror's hydrated-set and
-    hash logic) and read it back to verify. Records the outcome in _VIABLE_STACK_MIRROR_STATE; never raises."""
+    hash logic) and read it back to verify. Records the outcome in _VIABLE_STACK_MIRROR_STATE; never raises.
+    B-1375: unless allow_drop (only the owner's own save/undo/restore endpoint), the push is a UNION with what the key
+    already holds, so an automatic push from a stale post-restart table can never erase a newer saved definition
+    (live 2026-10-27 08:32 IST: the key was overwritten with the 21-Oct row alone)."""
     st = _VIABLE_STACK_MIRROR_STATE
     try:
         if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
@@ -26564,6 +26629,19 @@ def _viable_stack_push_direct() -> bool:
                     c.execute("SELECT created_at, label, names FROM strategy_viable_stack ORDER BY id").fetchall()]
         if not rows:
             return False  # never overwrite the remote copy with an empty stack
+        if not allow_drop:
+            try:
+                raw = _upstash_get(_VIABLE_STACK_REDIS_KEY)
+                seen = {(round(float(r["created_at"] or 0), 3), str(r["label"] or "")) for r in rows}
+                for r in (json.loads(raw) if raw else []):
+                    k = (round(float(r.get("created_at") or 0), 3), str(r.get("label") or ""))
+                    if r.get("created_at") and r.get("names") is not None and k not in seen:
+                        seen.add(k)
+                        rows.append({"created_at": r["created_at"], "label": r.get("label"), "names": r["names"]})
+                rows = sorted(rows, key=lambda r: float(r["created_at"] or 0))[-VIABLE_STACK_SIZE:]
+            except Exception as e:  # noqa: BLE001
+                print(f"[VIABLE-STACK] push union read failed, not pushing: {e}")
+                return False
         payload = json.dumps(rows)
         _upstash_set(_VIABLE_STACK_REDIS_KEY, payload)
         ok = _upstash_get(_VIABLE_STACK_REDIS_KEY) == payload
@@ -26689,6 +26767,18 @@ def _restore_viable_stack_from_git_file() -> int:
     except Exception as e:  # noqa: BLE001
         print(f"[VIABLE-STACK] git restore skipped: {e}")
         return 0
+
+
+def _startup_merge_viable_stack() -> int:
+    """B-1375 (user 2026-10-27: View 4 showed the 21-Oct 1.04/6 h definition after a restart although 1.02/12.5 h was
+    saved 26-Oct 22:47 IST): the generic mirror restores an OLD table copy, and the newer saves were merged back only on
+    the first read, so until then the entry gate AND View 4 used the stale rule. Merge every durable copy at startup,
+    before the scheduler or any page reads it, and drop the cached override set so the gate re-derives it."""
+    added = _viable_stack_merge_remote()
+    _VIABLE_OVERRIDES_CACHE.clear()
+    if added:
+        print(f"[VIABLE-STACK] startup merge added {added} newer row(s)")
+    return added
 
 
 def _viable_stack_merge_remote() -> int:
@@ -26944,7 +27034,7 @@ async def strategy_viable_override(request: Request):
         sync_generic_tables_external(only=("strategy_viable_stack",))
     except Exception as e:
         print(f"[viable_stack] mirror failed (non-fatal): {e}")
-    _viable_stack_push_direct()
+    _viable_stack_push_direct(allow_drop=True)
     threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
     active = _load_viable_overrides()
     with closing(get_db()) as c:
