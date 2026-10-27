@@ -6,9 +6,22 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 
 | Replay tag | Research tag | Research PFnet | Research n | Replay PFnet | Replay n | Delta | Flag |
 |---|---|---|---|---|---|---|---|
+| month__effect_mr__short__15m__atr6_h25__v1 | month__effect__short__15m__atr6_h25__v1 | 2.89 | 202 | 1.44 | 2401 | -1.44 | replay lower |
 | bollinger_mean_reversion__si_mr__long__1d__atrnone__v1 | bollinger_mean_reversion__si__long__1d__atrnone__v1 | 3.66 | 17 | 2.50 | 17 | -1.16 | replay lower |
+| month__effect_mr__short__15m__atr4_h25__v1 | month__effect__short__15m__atr4_h25__v1 | 2.40 | 202 | 1.28 | 2401 | -1.12 | replay lower |
+| swingminrr__brk20_gate_mr__short__1h__atr3_rr4__v1 | swingminrr__brk20_gate__short__1h__atr3_rr4__v1 | 1.70 | 2267 | 0.59 | 2174 | -1.11 | replay lower |
+| swingminrr__brk20_gatetarget_mr__short__1h__atr3_rr4__v1 | swingminrr__brk20_gatetarget__short__1h__atr3_rr4__v1 | 1.56 | 2293 | 0.53 | 2178 | -1.03 | replay lower |
+| macddiv__line_any_mr__long__1h__atr1d5_w5__nonovl__v2 | macddiv__line_any__long__1h__atr1d5_w5__nonovl__v2 | 1.40 | 64580 | 0.64 | 64482 | -0.76 | replay lower |
+| tasuki__gap_etf_mr__short__1d__atr6_h3__v1 | tasuki__gap_etf__short__1d__atr6_h3__v1 | 2.08 | 81 | 1.33 | 82 | -0.75 | replay lower |
+| macddiv__line_any_mr__long__1h__atr2_w5__nonovl__v2 | macddiv__line_any__long__1h__atr2_w5__nonovl__v2 | 1.42 | 61955 | 0.69 | 61797 | -0.73 | replay lower |
+| macddiv__line_any_mr__long__1h__atr3_w5__nonovl__v2 | macddiv__line_any__long__1h__atr3_w5__nonovl__v2 | 1.46 | 58015 | 0.73 | 57802 | -0.73 | replay lower |
+| month__effect_mr__short__15m__atr2d5_h25__v1 | month__effect__short__15m__atr2d5_h25__v1 | 1.70 | 202 | 1.06 | 2401 | -0.64 | replay lower |
+| month__effect_mr__short__15m__atr6_h125__v1 | month__effect__short__15m__atr6_h125__v1 | 1.30 | 202 | 0.69 | 2401 | -0.62 | replay lower |
 | supertrend__cl_mr__long__1d__atrnone__v1 | supertrend__cl__long__1d__atrnone__v1 | 2.00 | 12 | 1.43 | 11 | -0.56 | replay lower |
+| macddiv__hist_any_mr__long__1h__atr3_w5__nonovl__v2 | macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 | 1.14 | 93056 | 0.68 | 92829 | -0.46 | replay lower |
 | donchian_breakout__cl_mr__long__1d__atrnone__v1 | donchian_breakout__cl__long__1d__atrnone__v1 | 1.16 | 17 | 0.82 | 16 | -0.34 | replay lower |
+| tasuki__gap_etf_mr__short__1d__atr2d5_h3__v1 | tasuki__gap_etf__short__1d__atr2d5_h3__v1 | 1.65 | 81 | 1.33 | 82 | -0.32 | replay lower |
+| tasuki__gap_etf_mr__short__1d__atr4_h3__v1 | tasuki__gap_etf__short__1d__atr4_h3__v1 | 1.65 | 81 | 1.33 | 82 | -0.32 | replay lower |
 | gap__runaway_mr__long__1d__atr4_h20__v1 | gap__runaway__long__1d__atr4_h20__v1 | 1.46 | 1087 | 1.20 | 12898 | -0.26 | close |
 | base__cup_cheat_3c_mr__long__1h__atr4_h30__v1 | base__cup_cheat_3c__long__1h__atr4_h30__v1 | 1.24 | 130 | 0.99 | 3073 | -0.25 | close |
 | base__cup_cheat_3c_mr__long__1h__atr6_h30__v1 | base__cup_cheat_3c__long__1h__atr6_h30__v1 | 1.18 | 130 | 1.00 | 3061 | -0.18 | close |
@@ -36,12 +49,16 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | envelope__0d05_fade_mr__long__1h__atr4_h18__v1 | envelope__0d05_fade__long__1h__atr4_h18__v1 | 0.97 | 2252 | 1.00 | 47983 | 0.03 | close |
 | starc__fade_full_mr__long__1d__atr2d5_h20__v1 | starc__fade_full__long__1d__atr2d5_h20__v1 | 1.19 | 9221 | 1.22 | 9093 | 0.03 | close |
 | envelope__0d05_fade_mr__long__1h__atr6_h30__v1 | envelope__0d05_fade__long__1h__atr6_h30__v1 | 1.15 | 2041 | 1.18 | 42102 | 0.03 | close |
+| chan_shape__mom_mr_mr__long__1d__atr4d0_hold10__nonovl__v2 | chan_shape__mom_mr__long__1d__atr4d0_hold10__nonovl__v2 | 0.85 | 42581 | 0.89 | 48369 | 0.04 | close |
 | bollinger_mean_reversion__ng_mr__short__1d__atrnone__v1 | bollinger_mean_reversion__ng__short__1d__atrnone__v1 | 1.84 | 19 | 1.88 | 19 | 0.04 | close |
+| chan_shape__mom_mr_mr__long__1d__atr2d5_hold10__nonovl__v2 | chan_shape__mom_mr__long__1d__atr2d5_hold10__nonovl__v2 | 0.81 | 44184 | 0.85 | 49520 | 0.04 | close |
 | chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.35 | 8634 | 1.39 | 9049 | 0.04 | close |
 | chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.28 | 8953 | 1.32 | 9368 | 0.04 | close |
 | chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2 | 1.42 | 8365 | 1.46 | 8770 | 0.05 | close |
 | keltner_channel_breakout__ng_mr__short__1d__atrnone__v1 | keltner_channel_breakout__ng__short__1d__atrnone__v1 | 1.45 | 24 | 1.50 | 22 | 0.05 | close |
+| chan_shape__mom_mr_mr__long__1d__atr1d5_hold10__nonovl__v2 | chan_shape__mom_mr__long__1d__atr1d5_hold10__nonovl__v2 | 0.75 | 50354 | 0.80 | 53997 | 0.05 | close |
 | chan_kalman__band_mr__short__15m__atr1d5_hold40_ve1d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr1d5_hold40_ve1d0e4_z1d0_fl1515__v2 | 0.57 | 44359 | 0.61 | 50476 | 0.05 | close |
+| month__effect_mr__short__1d__atr6_h5__v1 | month__effect__short__1d__atr6_h5__v1 | 0.31 | 954 | 0.36 | 10068 | 0.05 | close |
 | envelope__0d05_fade_mr__long__1h__atr4_h30__v1 | envelope__0d05_fade__long__1h__atr4_h30__v1 | 1.08 | 2209 | 1.13 | 45800 | 0.05 | close |
 | chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr2d5_hold40_ve1d0e4_z1d0_fl1515__v2 | 0.58 | 43465 | 0.64 | 49779 | 0.05 | close |
 | chan_kalman__band_mr__short__15m__atr4d0_hold40_ve1d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__15m__atr4d0_hold40_ve1d0e4_z1d0_fl1515__v2 | 0.60 | 42789 | 0.65 | 49187 | 0.05 | close |
@@ -50,7 +67,10 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2 | 0.93 | 10267 | 1.00 | 11157 | 0.07 | close |
 | chan_kalman__band_mr__short__15m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2 | 0.94 | 10168 | 1.01 | 11077 | 0.07 | close |
 | chan_kalman__band_mr__short__5m__atr1d5_hold40_ve1d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr1d5_hold40_ve1d0e4_z1d0_fl1515__v2 | 0.67 | 54738 | 0.74 | 65371 | 0.07 | close |
+| chan_shape__mom_mr_mr__long__1d__atr2d5_hold5__nonovl__v2 | chan_shape__mom_mr__long__1d__atr2d5_hold5__nonovl__v2 | 0.67 | 66012 | 0.75 | 66639 | 0.08 | close |
+| chan_shape__mom_mr_mr__long__1d__atr1d5_hold5__nonovl__v2 | chan_shape__mom_mr__long__1d__atr1d5_hold5__nonovl__v2 | 0.64 | 70086 | 0.72 | 68654 | 0.08 | close |
 | chan_kalman__band_mr__short__5m__atr2d5_hold40_ve1d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr2d5_hold40_ve1d0e4_z1d0_fl1515__v2 | 0.69 | 53768 | 0.77 | 64718 | 0.08 | close |
+| chan_shape__mom_mr_mr__long__1d__atr4d0_hold5__nonovl__v2 | chan_shape__mom_mr__long__1d__atr4d0_hold5__nonovl__v2 | 0.69 | 65350 | 0.77 | 66290 | 0.08 | close |
 | chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z1d0_fl1515__v2 | chan_kalman__band__short__5m__atr4d0_hold40_ve1d0e4_z1d0_fl1515__v2 | 0.70 | 53126 | 0.78 | 64190 | 0.08 | close |
 | envelope__0d05_fade_mr__long__1h__atr2d5_h30__v1 | envelope__0d05_fade__long__1h__atr2d5_h30__v1 | 0.94 | 2501 | 1.03 | 52966 | 0.09 | close |
 | chan_kalman__band_mr__short__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2 | 1.23 | 11577 | 1.35 | 13153 | 0.12 | close |
@@ -183,3 +203,6 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | chan_kalman__band_mr__short__15m__atr1d5_cst0d3_hold40_ve1d0e4_z1d0_fl1515__v2 |  |  |  | 1.40 | 50501 |  | no research twin |
 | chan_gap__buy_on_gap_mr__long__1d__atr4d0cap5_top10__v1 |  |  |  | 1.41 | 1188 |  | no research twin |
 | chan_gap__buy_on_gap_mr__long__1d__fit5_top10__v1 |  |  |  | 1.24 | 353 |  | no research twin |
+| month__effect_mr__short__1d__atr2d5_h1__v1 |  |  |  | 0.42 | 10068 |  | no research twin |
+| month__effect_mr__short__1d__atr4_h1__v1 |  |  |  | 0.42 | 10068 |  | no research twin |
+| month__effect_mr__short__1d__atr6_h1__v1 |  |  |  | 0.42 | 10068 |  | no research twin |

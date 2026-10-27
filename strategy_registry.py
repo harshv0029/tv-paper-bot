@@ -2959,6 +2959,11 @@ def _extend_with_sweeps():
     except Exception:
         pass
     try:
+        import strategy_registry_b1396 as _b1396  # B-1396: replays that closed the replay-owed tags, as `_mr` rows
+        REGISTRY.extend(_b1396.build())
+    except Exception:
+        pass
+    try:
         import strategy_registry_envelope_mr as _envmr
         REGISTRY.extend(_envmr.build())
     except Exception:
