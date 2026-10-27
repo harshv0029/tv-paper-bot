@@ -10319,7 +10319,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1380: no SL before 09:15 IST (exchange rejects it)"
+  },
+  {
+   "id": 861,
+   "ts": 1793129314.2531137,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (replacement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000000082 rejected: Adapter is Logged Off"
   }
  ],
- "synced_at_utc": "2026-10-27T18:56:10Z"
+ "synced_at_utc": "2026-10-27T19:28:37Z"
 }
