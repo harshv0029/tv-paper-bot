@@ -13,9 +13,9 @@ Total rows: 1130 | closed: 512 | not closed: 618
 | CLOSED-AS-EXPLAINED | 126 |
 | HARNESS-BUILT-AWAITING-RUN | 99 |
 | CLOSED | 83 |
-| DONE-PENDING-VERIFY | 80 |
+| DONE-PENDING-VERIFY | 83 |
 | BLOCKED | 63 |
-| OPEN | 47 |
+| OPEN | 44 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -106,7 +106,7 @@ Total rows: 1130 | closed: 512 | not closed: 618
 | B-1370 | P1 | OWNER-ACTION | 2026-10-26 21:05 IST | owed, owner |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (367)
+## waiting-on-workflow/deploy (370)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -132,6 +132,7 @@ Total rows: 1130 | closed: 512 | not closed: 618
 | B-392 | P0 | DONE-PENDING-VERIFY | User 2026-10-11 IST: "when I toggle ALL TRADING to OFF it should stop new trades immediately and close the ... | owed, pending, verify |
 | B-404 | P0 | DONE-PENDING-VERIFY | User 2026-10-11 IST (explicit; this is the user's own ask, so it satisfies the "ask before adding a kill sw... | owed, pending, verify, needs |
 | B-410 | P0 | DONE-PENDING-VERIFY | B-404 delivered 2026-10-11 IST: per-category real-trading toggles (real_enabled_equity / _swing / _fo) as K... | owed, pending, verify |
+| B-1377 | P0 | DONE-PENDING-VERIFY | 2026-10-27 09:20 IST | pending |
 | B-19 | P1 | DONE-PENDING-VERIFY | User: leave until 8am 6 Oct 2026. Suspected T1/settlement rejection (unconfirmed) | pending, verify |
 | B-31 | P1 | DONE-PENDING-VERIFY | Deploy Gate #321 passed: gifted-bell merged to main (4863323), 2026-10-05. Remaining: confirm OB/VP appear ... | remaining, pending, verify, needs, unverified |
 | B-46 | P1 | DONE-PENDING-VERIFY | 2026-10-11 IST closure pass: Code + tests/test_holdings_fallback.py on main; remaining check (NYKAA-like ho... | owed, remaining, pending, verify, needs |
@@ -281,6 +282,8 @@ Total rows: 1130 | closed: 512 | not closed: 618
 | B-830 | P1 | DONE-PENDING-VERIFY | O'Neil extension run 38207070547 (2026-10-12 IST, cost 0.8%, ~2166 symbols): 564 cells (1d 282, 1w 282; eac... | pending |
 | B-867 | P1 | BUILT-ON-BRANCH | 2026-10-12 | owed, pending |
 | B-1371 | P1 | DONE-PENDING-VERIFY | 2026-10-26 23:20 IST | pending, owner |
+| B-1376 | P1 | DONE-PENDING-VERIFY | 2026-10-27 09:20 IST | pending |
+| B-1378 | P1 | DONE-PENDING-VERIFY | 2026-10-27 09:20 IST | blocked, pending, follow-up |
 | B-289 | P2 | BUILT-ON-BRANCH |  | owed, not merged, follow-up |
 | B-312 | P2 | DONE-PENDING-VERIFY | GMRAIRPORT duplicate SL attempt 2026-10-08 (Kotak SL snapshot, 9:18 AM IST): reconcile placed SL 2610080000... | owed, pending, verify |
 | B-313 | P2 | DONE-PENDING-VERIFY | Overnight phantom SHORT emergency-cover loop (journal real_order_log, 08-Oct 1:00-1:43 AM IST, market close... | owed, pending, verify |
@@ -478,7 +481,7 @@ Total rows: 1130 | closed: 512 | not closed: 618
 | B-1297 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: trade-view pages hang the laptop browser | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | pending, verify |
 
-## ready-to-build (114)
+## ready-to-build (111)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -505,7 +508,6 @@ Total rows: 1130 | closed: 512 | not closed: 618
 | B-1355 | P0 | FROM | 2026-10-23 15:55 IST |  |
 | B-1359 | P0 | FOUND | 2026-10-23 17:05 IST | verify |
 | B-1363 | P0 | P0 | DEPLOYED 2026-10-26 (92c38c40 on main, confirmed 18:50 IST) | verify, follow-up |
-| B-1377 | P0 | OPEN | 2026-10-27 09:20 IST |  |
 | B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, remaining, needs |
 | B-850 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (Elder >=1.1 cells validation across candle sizes; also covers B-852) |  |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... |  |
@@ -532,8 +534,6 @@ Total rows: 1130 | closed: 512 | not closed: 618
 | B-1361 | P1 | WATCHDOG | 2026-10-23 18:50 IST | owed, verify |
 | B-1362 | P1 | RESIDUAL | 2026-10-24 20:25 IST | owed |
 | B-1364 | P1 | P1 | DEPLOYED 2026-10-26 20:53 IST (Deploy Gate; main has e52fd5f2; /health watchdog_alarms 0, loop_lag 1.0s; /s... | verify |
-| B-1376 | P1 | OPEN | 2026-10-27 09:20 IST |  |
-| B-1378 | P1 | OPEN | 2026-10-27 09:20 IST | blocked, follow-up |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
