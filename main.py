@@ -19913,8 +19913,34 @@ _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 _GENERIC_MIRROR_GIT_TIER = ("swing_scan_log", "signal_shadow_log",
                             "strategy_scan_counts", "short_trades_closed",
                             "strategy_viable_stack", "real_order_events")
-_GENERIC_MIRROR_UPSTASH_TABLES = tuple(t for t in _GENERIC_MIRROR_TABLES
-                                       if t not in _GENERIC_MIRROR_GIT_TIER)
+# B-1302 tiers: T1 safety-critical tables (kill switches, positions, signal state, stops) restore and push FIRST in
+# every pass, so a restart or a pass cut short by an Upstash failure still covers real-money state; T2 audit/log
+# tables (trades, real_trades, ...) follow; T3 counters/caches are _GENERIC_MIRROR_SLOW_TABLES (pushed at most every
+# 300 s) or the git tier. real_positions / real_positions_swing / signal_state_swing / runtime_settings /
+# strategy_viable_stack have their own dedicated mirrors and are not in this generic loop.
+_GENERIC_MIRROR_T1 = ("trading_control", "real_trading_control", "positions", "signal_state", "signal_state_short",
+                      "real_fo_positions", "option_state", "signal_state_swing_short", "real_positions_swing_short",
+                      "swing_entry_stop")
+_GENERIC_MIRROR_UPSTASH_TABLES = tuple(sorted((t for t in _GENERIC_MIRROR_TABLES if t not in _GENERIC_MIRROR_GIT_TIER),
+                                              key=lambda t: 0 if t in _GENERIC_MIRROR_T1 else 1))  # stable: T1 first
+# B-1302: loud /health alarm when the mirror itself gets an auth/suspension answer (401/403) from Upstash, separate
+# from the 5-min PING probe, so a failing push/restore is visible within one tick. Cleared by the next good push.
+_GENERIC_MIRROR_AUTH_ALARM: dict = {"active": False, "status": None, "table": None, "op": None, "at": None,
+                                    "count": 0, "error": None}
+
+
+def _generic_mirror_note_error(table: str, op: str, e: Exception) -> None:
+    status = getattr(getattr(e, "response", None), "status_code", None)
+    if status in (401, 403):
+        _GENERIC_MIRROR_AUTH_ALARM.update(active=True, status=status, table=table, op=op, at=time.time(),
+                                          count=_GENERIC_MIRROR_AUTH_ALARM["count"] + 1, error=str(e)[:200])
+        print(f"[table_mirror] ALARM Upstash HTTP {status} on {op} {table}: real-money state is NOT backed up")
+
+
+def _generic_mirror_note_ok() -> None:
+    if _GENERIC_MIRROR_AUTH_ALARM["active"]:
+        _GENERIC_MIRROR_AUTH_ALARM["active"] = False
+        print("[table_mirror] Upstash auth alarm cleared (push succeeded)")
 _git_tier_hydrated: set = set()
 _GENERIC_MIRROR_CHUNK_CHARS = 600_000
 _generic_mirror_hydrated: set = set()
@@ -20172,6 +20198,7 @@ def hydrate_generic_tables_from_external(only=None) -> int:
                 if _generic_hydrate_table(conn, table):
                     _generic_mirror_hydrated.add(table)
         except requests.exceptions.RequestException as e:
+            _generic_mirror_note_error(table, "restore", e)
             print(f"[table_mirror] Upstash unreachable at {table} ({type(e).__name__}); stopping this pass, will retry")
             break
         except Exception as e:
@@ -20216,8 +20243,10 @@ def sync_generic_tables_external(only=None) -> int:
                          json.dumps({"chunks": len(chunks), "rows": len(rows), "synced_at": time.time()}))
             _generic_mirror_last_hash[table] = digest
             _generic_mirror_last_push_ts[table] = time.time()
+            _generic_mirror_note_ok()
             pushed += 1
         except Exception as e:
+            _generic_mirror_note_error(table, "push", e)
             print(f"[table_mirror] sync {table} failed (non-fatal): {e}")
     return pushed
 
@@ -28759,7 +28788,9 @@ async def health():
             # B-1361: Render logs are not readable from the dev container, so /health carries the alarm stacks itself
             "watchdog_first_alarm": _WATCHDOG_STATE.get("first_alarm"), "watchdog_last_alarm": _WATCHDOG_STATE["last_alarm"],
             "upstash_ok": _UPSTASH_PROBE["ok"], "upstash_error": _UPSTASH_PROBE["error"],
-            "upstash_checked_at": _UPSTASH_PROBE["checked_at"], "upstash_last_ok_at": _UPSTASH_PROBE["last_ok_at"]}
+            "upstash_checked_at": _UPSTASH_PROBE["checked_at"], "upstash_last_ok_at": _UPSTASH_PROBE["last_ok_at"],
+            "mirror_auth_alarm": _GENERIC_MIRROR_AUTH_ALARM["active"],  # B-1302: loud flag, details below
+            "mirror_auth_alarm_detail": dict(_GENERIC_MIRROR_AUTH_ALARM)}
 
 
 @app.get("/watchlist")
