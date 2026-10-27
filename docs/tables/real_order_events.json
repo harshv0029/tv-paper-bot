@@ -8831,7 +8831,79 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261027000830934 rejected: OMS: Trading session is in Transition to CAS session"
+  },
+  {
+   "id": 737,
+   "ts": 1793094632.8006384,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 738,
+   "ts": 1793094632.8077059,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 739,
+   "ts": 1793094632.8165538,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 740,
+   "ts": 1793094632.8234591,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 741,
+   "ts": 1793094632.8292532,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 742,
+   "ts": 1793094632.8375776,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261027000830934",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 15:15:24 S SL qty 8 trg 126.73 status rejected rejRsn OMS: Trading session is in Transition to CAS session"
   }
  ],
- "synced_at_utc": "2026-10-27T09:45:32Z"
+ "synced_at_utc": "2026-10-27T09:50:35Z"
 }
