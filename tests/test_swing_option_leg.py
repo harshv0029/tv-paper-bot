@@ -20,7 +20,7 @@ def test_entry_buys_call_with_swing_tag(monkeypatch):
     monkeypatch.setattr(main, "SWING_REAL_ENTRY_CUTOFF_MIN", 24 * 60)
     import kotak_live_feed, nse_fo_chain
     monkeypatch.setattr(kotak_live_feed, "get_live_ticks", lambda: {"TCS.NS": {"ltp": 4000.0}})
-    monkeypatch.setattr(nse_fo_chain, "select_nse_option_contract", lambda u, s, r: ({"expiry": "2099-01-01", "premium": 50.0, "lot_size": 175}, None))
+    monkeypatch.setattr(nse_fo_chain, "select_nse_option_contract", lambda u, s, r, expiry_ok=None: ({"expiry": "2099-01-01", "premium": 50.0, "lot_size": 175}, None))
     monkeypatch.setattr(nse_fo_chain, "must_force_close_before_expiry", lambda u, e: False)
     monkeypatch.setattr(nse_fo_chain, "fetch_option_liquidity", lambda c: {"bid": 49.5, "ask": 50.5, "open_interest": 1e6, "volume": 1e5})
     monkeypatch.setattr(main, "_real_fo_buy_contract", lambda *a, **k: calls.append(a))
@@ -37,7 +37,7 @@ def test_entry_skipped_and_logged_when_illiquid_or_data_missing(monkeypatch):
     monkeypatch.setattr(main, "_log_real_fo_attempt", lambda *a, **k: logs.append((a, k)))
     import kotak_live_feed, nse_fo_chain
     monkeypatch.setattr(kotak_live_feed, "get_live_ticks", lambda: {"TCS.NS": {"ltp": 4000.0}})
-    monkeypatch.setattr(nse_fo_chain, "select_nse_option_contract", lambda u, s, r: ({"expiry": "2099-01-01", "premium": 50.0, "lot_size": 175}, None))
+    monkeypatch.setattr(nse_fo_chain, "select_nse_option_contract", lambda u, s, r, expiry_ok=None: ({"expiry": "2099-01-01", "premium": 50.0, "lot_size": 175}, None))
     monkeypatch.setattr(nse_fo_chain, "must_force_close_before_expiry", lambda u, e: False)
     monkeypatch.setattr(nse_fo_chain, "fetch_option_liquidity", lambda c: {"bid": None, "ask": None, "open_interest": None, "volume": None})
     monkeypatch.setattr(main, "_real_fo_buy_contract", lambda *a, **k: calls.append(a))
