@@ -1271,9 +1271,13 @@ function renderScannedBanner(p) {
   const foCount = p.fo_subscribed_instruments;
   const foConnected = p.fo_connected;
   const allTotal = p.all_assets_tracked_total;
-  el.textContent = `${totalChecks} ticker checks run today` +
+  // B-1271: every figure here is an EVALUATION (candles present, rule run), never a bare visit.
+  el.textContent = `${totalChecks} equity/index ticker evaluations today` +
     (typeof p.derivative_leg_checks_today === 'number' && p.derivative_leg_checks_today > 0
-      ? ` (+${p.derivative_leg_checks_today} option/F&O leg visits)` : '') +
+      ? ` (+${p.derivative_leg_checks_today} option/F&O leg evaluations` +
+        (typeof p.derivative_leg_visits_skipped_today === 'number' && p.derivative_leg_visits_skipped_today > 0
+          ? `; ${p.derivative_leg_visits_skipped_today} leg visits skipped, no candles/expiry` : '') + ')'
+      : '') +
     (typeof distinct === 'number' && typeof total === 'number'
       ? ` (${distinct} / ${total} distinct stocks/assets scanned at least once)`
       : '') +

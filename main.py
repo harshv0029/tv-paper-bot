@@ -17995,13 +17995,16 @@ def _run_fo_options_scan(conn):
     for (exchange_segment, instrument_token), descriptor in universe.items():
         if descriptor["kind"] != "option" or instrument_token in open_tokens:
             continue
-        _record_scheduler_check(f"{descriptor['kotak_trading_symbol']}:RSI2FO")
         if nse_fo_chain.must_force_close_before_expiry(descriptor["underlying"], descriptor["expiry"]):
+            _record_scheduler_skipped_visit()  # B-1271: visited, nothing evaluated
             continue  # too close to physical settlement to open a fresh position on this leg
 
         df = kotak_fo_candle_feed.read_fo_candles_as_df(instrument_token)
         if df is None:
+            _record_scheduler_skipped_visit()  # B-1271: no candles, nothing evaluated
             continue
+        # B-1271: a check is counted only once candles exist and the entry rule is actually evaluated
+        _record_scheduler_check(f"{descriptor['kotak_trading_symbol']}:RSI2FO")
         signal = fo_option_strategy.rsi2_mean_reversion_entry_signal(df)
         if signal is None:
             continue
@@ -21000,6 +21003,26 @@ def _record_scheduler_check(key: str):
     cutoff = now - _RECENT_CHECK_RETENTION_SECONDS
     while _recent_check_timestamps and _recent_check_timestamps[0] < cutoff:
         _recent_check_timestamps.pop(0)
+
+
+# B-1271: derivative-leg visits that were skipped before any evaluation
+# (force-close window, no candles). Counted apart from _scheduler_check_counts
+# so the "checks" figures mean evaluations, not visits. Resets per IST day.
+_scheduler_skipped_visits: dict = {"day": "", "n": 0}
+
+
+def _record_scheduler_skipped_visit():
+    today_str = ist_now().strftime("%Y-%m-%d")
+    if _scheduler_skipped_visits["day"] != today_str:
+        _scheduler_skipped_visits["day"] = today_str
+        _scheduler_skipped_visits["n"] = 0
+    _scheduler_skipped_visits["n"] += 1
+
+
+def _scheduler_skipped_visits_today() -> int:
+    if _scheduler_skipped_visits["day"] != ist_now().strftime("%Y-%m-%d"):
+        return 0
+    return _scheduler_skipped_visits["n"]
 
 
 def checks_in_last_seconds(seconds: float = _RECENT_CHECK_WINDOW_SECONDS) -> int:
@@ -26312,6 +26335,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "total_checks_today": total_checks_today,
         "total_checks_incl_derivative_legs": total_checks_incl_derivative_legs,
         "derivative_leg_checks_today": total_checks_incl_derivative_legs - total_checks_today,
+        "derivative_leg_visits_skipped_today": _scheduler_skipped_visits_today(),
         "checks_last_30s": checks_in_last_seconds(30),
         "fo_subscribed_instruments": fo_subscribed_instruments,
         "fo_connected": fo_status["connected"],
