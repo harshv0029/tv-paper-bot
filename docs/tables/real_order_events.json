@@ -10259,7 +10259,19 @@
    "prev_state": "long 1 @ Rs72.74",
    "new_state": "still open (exit attempt failed)",
    "detail": "reason: gap_and_go paper swing exit: gap_filled | no order id in response: {'stCode': 1041, 'errMsg': 'Market order rejected: Last Traded Price (LTP) not available for this instrument. Please try placing a limit order', 'stat': 'Not_Ok'}"
+  },
+  {
+   "id": 856,
+   "ts": 1793127318.5874722,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1380: no SL before 09:15 IST (exchange rejects it)"
   }
  ],
- "synced_at_utc": "2026-10-27T18:55:08Z"
+ "synced_at_utc": "2026-10-27T18:55:22Z"
 }
