@@ -51,7 +51,7 @@ jobs:
           mkdir -p "run-${{ inputs.run_id }}"
           cp -r out/. "run-${{ inputs.run_id }}/"
           git add "run-${{ inputs.run_id }}"
-          git commit -m "artifacts of run ${{ inputs.run_id }} (${{ inputs.pattern }})" || echo "nothing new"
+          git commit -m "artifacts of run ${{ inputs.run_id }} (${{ inputs.pattern }}) [skip render]" || echo "nothing new"
           git push origin data/run-artifacts
       - name: Print (optional)
         if: ${{ inputs.print == 'true' }}
