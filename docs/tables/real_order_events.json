@@ -8543,7 +8543,19 @@
    "prev_state": "resting SELL trigger Rs63.93",
    "new_state": "resting SELL trigger Rs64.70",
    "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 trail rule raised the stop from Rs63.93 to Rs64.70 | daily macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 stop ratchet (replaced; Kotak order book scanned first)"
+  },
+  {
+   "id": 713,
+   "ts": 1793083096.743289,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   }
  ],
- "synced_at_utc": "2026-10-27T06:38:06Z"
+ "synced_at_utc": "2026-10-27T06:38:20Z"
 }
