@@ -21269,6 +21269,25 @@ def hydrate_swing_skipped_from_external() -> int:
         return 0
 
 
+SWING_FETCH_RETRY_PAUSE_S = 2.0
+
+
+def _short_fetch_error(e) -> str:
+    """B-1391: compact 'Type: message' for a failed daily fetch (HTTPException detail when present)."""
+    msg = getattr(e, "detail", None) or str(e) or ""
+    msg = " ".join(str(msg).split())
+    return f"{type(e).__name__}: {msg[:90]}" if msg else type(e).__name__
+
+
+def _clear_swing_skipped(symbol):
+    try:
+        if _swing_skipped_today.get("day") == ist_now().strftime("%Y-%m-%d") and \
+                _swing_skipped_today["syms"].pop(symbol, None) is not None:
+            _swing_skipped_schedule_push()
+    except Exception:
+        pass
+
+
 def _note_swing_skipped(symbol, why):
     try:
         day = ist_now().strftime("%Y-%m-%d")
@@ -22719,10 +22738,15 @@ def _run_swing_scan_pass(conn):
         from concurrent.futures import ThreadPoolExecutor
 
         def _pf(sym):
-            try:
-                return sym, fetch_ohlc(sym, "2y", "1d"), None
-            except Exception as e:  # noqa: BLE001
-                return sym, None, e
+            # B-1391: one retry after a short pause - a burst of consecutive symbols failing together (live
+            # 2026-10-27: AUBANK..BAJFINANCE) is a transient Yahoo throttle, not bad symbols.
+            for _attempt in (0, 1):
+                try:
+                    return sym, fetch_ohlc(sym, "2y", "1d"), None
+                except Exception as e:  # noqa: BLE001
+                    if _attempt:
+                        return sym, None, e
+                    time.sleep(SWING_FETCH_RETRY_PAUSE_S)
         with ThreadPoolExecutor(max_workers=8) as _ex:
             for sym, d, err in _ex.map(_pf, list(SWING_WATCHLIST)):
                 _prefetched[sym] = (d, err)
@@ -22743,11 +22767,13 @@ def _run_swing_scan_pass(conn):
                 df = fetch_ohlc(symbol, "2y", "1d")
         except Exception as e:
             print(f"[SWING] fetch_ohlc failed for {symbol}: {e}")
-            _note_swing_skipped(symbol, "daily fetch failed")
+            # B-1391: keep the actual error (type + short text) so the dashboard says WHY, not just "failed".
+            _note_swing_skipped(symbol, f"daily fetch failed ({_short_fetch_error(e)})")
             continue
         if df is None or len(df) < 50:
             _note_swing_skipped(symbol, "under 50 daily bars")
             continue
+        _clear_swing_skipped(symbol)  # B-1391: a later good fetch removes an earlier pass's skip
         # B-419: signals are defined on COMPLETED daily bars (as backtested). A pass run during the session
         # must not see today's still-forming bar, so repeat passes give the same answer as the first one.
         try:
