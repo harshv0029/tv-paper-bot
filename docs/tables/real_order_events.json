@@ -9683,7 +9683,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000887267 rejected: RMS:Recon in progress..."
+  },
+  {
+   "id": 808,
+   "ts": 1793096780.9743092,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000887317 rejected: RMS:Recon in progress..."
   }
  ],
- "synced_at_utc": "2026-10-27T10:26:11Z"
+ "synced_at_utc": "2026-10-27T10:26:25Z"
 }
