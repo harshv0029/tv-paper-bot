@@ -8615,7 +8615,19 @@
    "prev_state": "long 2 @ Rs65.50",
    "new_state": "market SELL about to be sent to Kotak",
    "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
+  },
+  {
+   "id": 718,
+   "ts": 1793086675.4902449,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": "GSEC5IETF-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261027000527886",
+   "prev_state": "long 2 @ Rs65.50",
+   "new_state": "closed",
+   "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 paper swing exit: macddiv_max_hold_timeout"
   }
  ],
- "synced_at_utc": "2026-10-27T07:37:50Z"
+ "synced_at_utc": "2026-10-27T07:37:58Z"
 }
