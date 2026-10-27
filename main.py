@@ -13602,6 +13602,7 @@ def _names_meeting_criteria(crit: dict) -> set:
 
 
 _VIABLE_OVERRIDES_CACHE: dict = {}
+_VIABLE_OVERRIDES_TTL_S = 3.0
 
 
 def _registry_entry(registry_name: str):
@@ -13625,6 +13626,14 @@ def _load_viable_overrides() -> set:
     The entry's 3-factor criteria (PFnet range, min sample, max hold) are re-derived against the registry's stored
     metrics on every load; only a legacy entry with no criteria uses its saved name list."""
     import strategy_registry as sr
+    # B-1379 (live 2026-10-27 09:15-09:45 IST, OOM restart 09:20): the gate calls this per tag per symbol, and ~50
+    # worker threads sat here at once (COUNT + SELECT + set clear/refill each call). Reuse the derived set for a few
+    # seconds; a saved definition still applies within OVERRIDES_TTL_S. Bypassed under pytest (tests write the table
+    # directly and expect the next call to see it).
+    _now = time.time()
+    if (not os.environ.get("PYTEST_CURRENT_TEST") and "names" in _VIABLE_OVERRIDES_CACHE
+            and _now - _VIABLE_OVERRIDES_CACHE.get("ts", 0) < _VIABLE_OVERRIDES_TTL_S):
+        return sr.VIABLE_OVERRIDES
     try:
         _ensure_viable_stack_hydrated()
         with closing(get_db()) as c:
@@ -13638,8 +13647,10 @@ def _load_viable_overrides() -> set:
             crit = _stack_criteria(row[1]) if row else None
             names = _names_meeting_criteria(crit) if crit else (set(json.loads(row[0])) if row else set())
             _VIABLE_OVERRIDES_CACHE.update(key=key, names=names)
-        sr.VIABLE_OVERRIDES.clear()
-        sr.VIABLE_OVERRIDES.update(names)
+        _VIABLE_OVERRIDES_CACHE["ts"] = _now
+        if sr.VIABLE_OVERRIDES != names:  # B-1379: never empty the shared set under a concurrent reader when unchanged
+            sr.VIABLE_OVERRIDES.clear()
+            sr.VIABLE_OVERRIDES.update(names)
         sr.VIABLE_STACK_ACTIVE = row is not None
     except Exception:
         pass
@@ -26711,6 +26722,7 @@ def _viable_stack_rows(c, full: bool = False) -> list:
 
 _VIABLE_STACK_RECOVER_LAST = 0.0
 _VIABLE_STACK_RECOVER_LOCK = threading.Lock()
+_VIABLE_STACK_FIRST_SIGHT_LOCK = threading.Lock()
 _VIABLE_STACK_REDIS_KEY = "tv_paper_bot:viable_stack:direct:v1"
 _VIABLE_STACK_MIRROR_STATE = {"last_push_ok": None, "last_push_ts": None, "last_error": None, "last_restore": None}
 
@@ -26970,12 +26982,18 @@ def _ensure_viable_stack_hydrated():
         with closing(get_db()) as _c:
             _n = _c.execute("SELECT COUNT(*) FROM strategy_viable_stack").fetchone()[0]
         if _n:
-            if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None:
-                # B-1366: merge every durable copy BEFORE pushing. The blind push here overwrote the dedicated key with a
-                # stale restore (git-tier table copy), so the owner's 26-Oct 10:28 IST save was lost at the 10:37 restart.
-                if _viable_stack_merge_remote():
-                    threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
-                _viable_stack_push_direct()  # first sight after a deploy: make sure the dedicated key holds it
+            # B-1379: single-flight. At the 09:20 restart ~34 threads entered this first-sight merge+push at once.
+            if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None and _VIABLE_STACK_FIRST_SIGHT_LOCK.acquire(blocking=False):
+                try:
+                    if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None:
+                        # B-1366: merge every durable copy BEFORE pushing. The blind push here overwrote the dedicated
+                        # key with a stale restore, so the owner's 26-Oct 10:28 IST save was lost at the 10:37 restart.
+                        if _viable_stack_merge_remote():
+                            threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
+                        if not _viable_stack_push_direct():  # first sight after a deploy: the key must hold it
+                            _VIABLE_STACK_MIRROR_STATE["last_push_ok"] = False  # tried once; never re-enter per call
+                finally:
+                    _VIABLE_STACK_FIRST_SIGHT_LOCK.release()
             return
         if time.time() - _VIABLE_STACK_RECOVER_LAST < 20:
             return
@@ -27376,6 +27394,7 @@ def symbol_strategy_coverage(symbol: str):
 
 
 _SCAN_ACTIVITY_CACHE: dict = {}
+_SCAN_ACTIVITY_LOCK = threading.Lock()
 
 
 @app.get("/strategy-scan-activity")
@@ -27385,9 +27404,19 @@ def strategy_scan_activity(include_unwired: bool = False):
     hit = _SCAN_ACTIVITY_CACHE.get(include_unwired)
     if hit and _t.time() - hit[0] < 30:
         return hit[1]
-    out = _strategy_scan_activity_compute(include_unwired)
-    _SCAN_ACTIVITY_CACHE[include_unwired] = (_t.time(), out)
-    return out
+    # B-1379: single-flight. On a starved CPU one compute outlived the 30 s cache, so every View 4 poll started another
+    # (live 27-Oct: dozens at once, worker pool 57/80, rss 82%). While one runs, others get the last result.
+    if not _SCAN_ACTIVITY_LOCK.acquire(blocking=hit is None):
+        return hit[1]
+    try:
+        hit = _SCAN_ACTIVITY_CACHE.get(include_unwired)
+        if hit and _t.time() - hit[0] < 30:
+            return hit[1]
+        out = _strategy_scan_activity_compute(include_unwired)
+        _SCAN_ACTIVITY_CACHE[include_unwired] = (_t.time(), out)
+        return out
+    finally:
+        _SCAN_ACTIVITY_LOCK.release()
 
 
 def _strategy_scan_activity_compute(include_unwired: bool = False):
