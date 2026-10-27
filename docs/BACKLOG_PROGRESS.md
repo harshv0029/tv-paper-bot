@@ -12,10 +12,10 @@ Total rows: 1125 | closed: 503 | not closed: 622
 | PARTIAL | 138 |
 | CLOSED-AS-EXPLAINED | 125 |
 | HARNESS-BUILT-AWAITING-RUN | 99 |
-| DONE-PENDING-VERIFY | 84 |
+| DONE-PENDING-VERIFY | 85 |
 | CLOSED | 83 |
 | BLOCKED | 63 |
-| OPEN | 47 |
+| OPEN | 46 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -106,7 +106,7 @@ Total rows: 1125 | closed: 503 | not closed: 622
 | B-1370 | P1 | OWNER-ACTION | 2026-10-26 21:05 IST | owed, owner |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (371)
+## waiting-on-workflow/deploy (372)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -280,6 +280,7 @@ Total rows: 1125 | closed: 503 | not closed: 622
 | B-817 | P1 | DONE-PENDING-VERIFY | Trade-view Remarks for Kotak order-book exit fills (DABUR 2026-10-12 IST showed only "exit fill from Kotak ... | owed, remaining, pending, verify, follow-up |
 | B-830 | P1 | DONE-PENDING-VERIFY | O'Neil extension run 38207070547 (2026-10-12 IST, cost 0.8%, ~2166 symbols): 564 cells (1d 282, 1w 282; eac... | pending |
 | B-867 | P1 | BUILT-ON-BRANCH | 2026-10-12 | owed, pending |
+| B-896 | P1 | DONE-PENDING-VERIFY | Verify whether deployed_notional() double-counts: sizing capital is Kotak's net available cash (already red... | pending, verify, needs |
 | B-1271 | P1 | DONE-PENDING-VERIFY | 2026-10-27 IST DONE-PENDING-DEPLOY (part 2): root cause - _run_fo_options_scan called _record_scheduler_che... | pending |
 | B-1285 | P1 | DONE-PENDING-VERIFY | Funnel: show attempts = blocked + placed + failed per tag (failed not counted today); stop-loss exits at Ko... | owed, blocked, pending, needs, owner |
 | B-1371 | P1 | DONE-PENDING-VERIFY | 2026-10-26 23:20 IST | pending, owner |
@@ -482,7 +483,7 @@ Total rows: 1125 | closed: 503 | not closed: 622
 | B-1297 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: trade-view pages hang the laptop browser | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | pending, verify |
 
-## ready-to-build (114)
+## ready-to-build (113)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -513,7 +514,6 @@ Total rows: 1125 | closed: 503 | not closed: 622
 | B-850 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (Elder >=1.1 cells validation across candle sizes; also covers B-852) |  |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... |  |
 | B-868 | P1 | DONE-ON-BRANCH | 2026-10-12 | blocked, pending |
-| B-896 | P1 | OPEN | Verify whether deployed_notional() double-counts: sizing capital is Kotak's net available cash (already red... | verify, needs |
 | B-916 | P1 | P1 | ready-to-build |  |
 | B-1003 | P1 | RULE | STANDING RULE (user, 2026-10-14 IST): always use subagents to keep closing open backlog items, and assign e... |  |
 | B-1041 | P1 | OWED | BUY-category registry row for chan_gap buy_on_gap long cells (CHAN_GAP_LONG_CELLS: chan_gap__buy_on_gap__lo... | owed |
