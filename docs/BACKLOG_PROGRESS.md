@@ -16,7 +16,7 @@ Total rows: 1142 | closed: 515 | not closed: 627
 | DONE-PENDING-VERIFY | 77 |
 | BLOCKED | 63 |
 | P2 | 41 |
-| OPEN | 38 |
+| OPEN | 37 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
 | PENDING | 12 |
@@ -25,8 +25,8 @@ Total rows: 1142 | closed: 515 | not closed: 627
 | OWNER-ACTION | 9 |
 | P1 | 8 |
 | P0 | 8 |
+| USER | 7 |
 | OPEN-PARKED | 6 |
-| USER | 6 |
 | BUILT-ON-BRANCH | 5 |
 | PARKED-REASONED | 4 |
 | WIRED-PENDING-REPLAY | 4 |
@@ -87,11 +87,11 @@ Total rows: 1142 | closed: 515 | not closed: 627
 | Priority | All | Not closed |
 |---|---|---|
 | P0 | 116 | 72 |
-| P1 | 434 | 249 |
-| P2 | 456 | 228 |
+| P1 | 433 | 248 |
+| P2 | 454 | 226 |
 | P3 | 114 | 59 |
 | Info | 1 | 0 |
-| P? | 21 | 19 |
+| P? | 24 | 22 |
 
 ## needs-owner (9)
 
@@ -540,7 +540,6 @@ Total rows: 1142 | closed: 515 | not closed: 627
 | B-1364 | P1 | P1 | DEPLOYED 2026-10-26 20:53 IST (Deploy Gate; main has e52fd5f2; /health watchdog_alarms 0, loop_lag 1.0s; /s... | verify |
 | B-1386 | P1 | USER | 2026-10-27 15:00 IST | awaiting, waiting |
 | B-1387 | P1 | REAL | 2026-10-27 15:00 IST | verify, awaiting, waiting |
-| B-1388 | P1 | F | 2026-10-27 17:15 IST | verify, follow-up |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
@@ -596,8 +595,6 @@ Total rows: 1142 | closed: 515 | not closed: 627
 | B-1329 | P2 | T1 | 2026-10-21 |  |
 | B-1380 | P2 | KOTAK | 2026-10-27 09:55 IST | owed, pending |
 | B-1384 | P2 | SWING | 2026-10-27 14:25 IST | awaiting, waiting |
-| B-1389 | P2 | B-1388 | 2026-10-27 19:10 IST | follow-up, awaiting, waiting |
-| B-1390 | P2 | OPEN | 2026-10-27 21:15 IST | owed |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 | B-1250 | P? | UNKNOWN |  |  |
 | B-1252b | P? | OPEN | Status 2026-10-20 IST: aggregate-gate "why" now reported by /signal-funds (commit c70374a, deployed via gat... |  |
@@ -607,6 +604,9 @@ Total rows: 1142 | closed: 515 | not closed: 627
 | B-1313 | P? | RECONCILE | 2026-10-21 11:25 IST | owed |
 | B-1315 | P? | REAL | 2026-10-21 | owed, pending, verify |
 | B-1331 | P? | B-1307 | 2026-10-21 | needs |
+| B-1388 | P? | F | 2026-10-27 17:15 IST | verify, follow-up |
+| B-1389 | P? | B-1388 | 2026-10-27 19:10 IST | follow-up, awaiting, waiting |
+| B-1390 | P? | USER | 2026-10-27 21:15 IST | owed, awaiting, waiting |
 
 ## research-queue (127)
 
