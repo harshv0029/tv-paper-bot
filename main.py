@@ -26868,16 +26868,17 @@ def _viability_unlock_hint(conn, rejected: dict) -> dict:
             per.append(e)
             continue
         e.update(registry=reg, pfnet=m.pfnet, n_trades=m.n_trades or 0, hold_hrs=m.avg_held_hrs)
-        if tag in REPLAY_OWED_TAGS:
-            e["note"] = "replay owed (the 3 factors cannot admit it)"
-            per.append(e)
-            continue
-        e["fixable"] = True
         if crit is None:
-            e["needs"], e["changes"] = {}, []
+            # Legacy name-list definition: adding the name admits it (the list bypasses the replay-owed hold).
+            e["fixable"], e["needs"], e["changes"] = True, {}, []
             e["note"] = "no 3-factor definition active: save one that includes it in View 1"
             per.append(e)
             continue
+        # Meeting the active definition puts the name in VIABLE_OVERRIDES, which the gate checks BEFORE the
+        # replay-owed hold, so a replay-owed tag is still admitted by the 3 factors alone (live 2026-10-27: macddiv).
+        e["fixable"] = True
+        if tag in REPLAY_OWED_TAGS:
+            e["replay_owed"] = True
         needs = {"pf_min": min(crit["pf_min"], m.pfnet), "pf_max": max(crit["pf_max"], m.pfnet),
                  "min_trades": min(crit["min_trades"], e["n_trades"]),
                  "max_hold_hrs": crit["max_hold_hrs"] if crit["max_hold_hrs"] is None or (

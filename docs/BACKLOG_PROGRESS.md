@@ -12,10 +12,10 @@ Total rows: 1125 | closed: 503 | not closed: 622
 | PARTIAL | 138 |
 | CLOSED-AS-EXPLAINED | 125 |
 | HARNESS-BUILT-AWAITING-RUN | 99 |
-| DONE-PENDING-VERIFY | 84 |
+| DONE-PENDING-VERIFY | 85 |
 | CLOSED | 83 |
 | BLOCKED | 63 |
-| OPEN | 47 |
+| OPEN | 46 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -106,7 +106,7 @@ Total rows: 1125 | closed: 503 | not closed: 622
 | B-1370 | P1 | OWNER-ACTION | 2026-10-26 21:05 IST | owed, owner |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (371)
+## waiting-on-workflow/deploy (372)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -280,6 +280,7 @@ Total rows: 1125 | closed: 503 | not closed: 622
 | B-817 | P1 | DONE-PENDING-VERIFY | Trade-view Remarks for Kotak order-book exit fills (DABUR 2026-10-12 IST showed only "exit fill from Kotak ... | owed, remaining, pending, verify, follow-up |
 | B-830 | P1 | DONE-PENDING-VERIFY | O'Neil extension run 38207070547 (2026-10-12 IST, cost 0.8%, ~2166 symbols): 564 cells (1d 282, 1w 282; eac... | pending |
 | B-867 | P1 | BUILT-ON-BRANCH | 2026-10-12 | owed, pending |
+| B-1252 | P1 | DONE-PENDING-VERIFY | User 14 Oct 2026 14:51 IST: every long-engine row shows "BLOCKED AGGREGATE OPEN RISK ... available = X, nee... | remaining, blocked, pending, needs |
 | B-1271 | P1 | DONE-PENDING-VERIFY | 2026-10-27 IST DONE-PENDING-DEPLOY (part 2): root cause - _run_fo_options_scan called _record_scheduler_che... | pending |
 | B-1285 | P1 | DONE-PENDING-VERIFY | Funnel: show attempts = blocked + placed + failed per tag (failed not counted today); stop-loss exits at Ko... | owed, blocked, pending, needs, owner |
 | B-1371 | P1 | DONE-PENDING-VERIFY | 2026-10-26 23:20 IST | pending, owner |
@@ -482,7 +483,7 @@ Total rows: 1125 | closed: 503 | not closed: 622
 | B-1297 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: trade-view pages hang the laptop browser | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | pending, verify |
 
-## ready-to-build (114)
+## ready-to-build (113)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -521,7 +522,6 @@ Total rows: 1125 | closed: 503 | not closed: 622
 | B-1181 | P1 | BUILT-DISPATCH-OWED | tasuki gap SHORT + LONG mirror: candle-size (1d, 4h, 1h, 15m, 5m) x ATR {2.5, 4, 6} x universe {etf, full},... | owed |
 | B-1241 | P1 | OPEN | chan-nonoverlap 4h re-run (B-806) results, run 38510016719 (2026-10-14 09:44 IST, artifact chan-nonoverlap-... |  |
 | B-1249 | P1 | NEEDS-OWNER | O'Neil 1w long cells (flatbase 3.921 / newhigh 2.484 / pivot 2.177, deployed 14 Oct 2026 via Deploy Gate ru... | owed, verify, needs, owner |
-| B-1252 | P1 | OPEN | User 14 Oct 2026 14:51 IST: every long-engine row shows "BLOCKED AGGREGATE OPEN RISK ... available = X, nee... | remaining, blocked, needs |
 | B-1253 | P1 | OPEN | 2026-10-14 15:56 IST: Render banner says critical infrastructure work on 15 Oct 06:30 IST (01:00 UTC); expe... | pending, verify |
 | B-1288 | P1 | CODE | Render memory limit is 2 GB (user, 2026-10-19) | owed |
 | B-1289 | P1 | OPEN | 2026-10-20 00:25 IST: subagent fixes merged to the working branch, full suite 2077 passed (date-dependent m... | blocked, awaiting, waiting |
