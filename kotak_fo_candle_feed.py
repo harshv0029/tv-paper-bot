@@ -52,6 +52,7 @@ from contextlib import closing
 
 import pandas as pd
 
+import kotak_live_feed
 import kotak_neo
 import nse_fo_chain
 
@@ -480,6 +481,35 @@ def apply_tick(instrument_token: str, price: float, ts: float, descriptor: dict,
     return completed
 
 
+def process_fo_ticks(messages, universe: dict, scrip_cls) -> int:
+    """B-1382: apply a batch of feed messages to the in-progress candles. One DB connection per batch, opened only
+    if some tick closes its instrument's candle. Returns how many ticks were applied."""
+    now = time.time()
+    bucket = _bucket_start(now)
+    conn = None
+    applied = 0
+    try:
+        for message in messages:
+            if not isinstance(message, scrip_cls):
+                continue
+            _feed_status["ticks_received"] += 1
+            _feed_status["last_tick_ts"] = now
+            tok = str(message.instrument_token)
+            descriptor = universe.get((message.exchange_segment, tok))
+            if descriptor is None:
+                continue
+            existing = _in_progress_candles.get(tok)
+            if conn is None and existing is not None and existing["bucket_start_ts"] != bucket:
+                import main
+                conn = main.get_db()
+            apply_tick(tok, message.last_traded_price, now, descriptor, conn=conn)
+            applied += 1
+    finally:
+        if conn is not None:
+            conn.close()
+    return applied
+
+
 MIN_BARS_FOR_SIGNAL_CHECK = 40  # see read_fo_candles_as_df's own docstring
 
 
@@ -660,25 +690,16 @@ async def run_fo_candle_feed():
                 _feed_status["connect_count"] += 1
                 backoff = RESTART_BACKOFF_MIN_SECONDS
                 refresh_now = False
-                async for message in ws:
+                async for first in ws:
                     if universe_refresh_due():
                         # B-865: reconnect with a freshly resolved universe
                         # (ATM drift / expiry roll) instead of streaming a
                         # stale one for the socket's whole life.
                         refresh_now = True
                         break
-                    if isinstance(message, SFeedScrip):
-                        _feed_status["ticks_received"] += 1
-                        _feed_status["last_tick_ts"] = time.time()
-                        key = (message.exchange_segment, str(message.instrument_token))
-                        descriptor = universe.get(key)
-                        if descriptor is None:
-                            continue
-                        with closing(main.get_db()) as conn:
-                            apply_tick(
-                                str(message.instrument_token), message.last_traded_price,
-                                time.time(), descriptor, conn=conn,
-                            )
+                    # B-1382: take every queued tick in this wake-up (the SDK queue is unbounded) and open the DB
+                    # only when a tick closes a candle, not once per tick.
+                    process_fo_ticks(kotak_live_feed.drain_pending(ws, first), universe, SFeedScrip)
                 # B-865: the stream ended without raising (SDK gave up
                 # reconnecting, or we broke out for a refresh). The old code
                 # left connected=True here, a stale "healthy" reading.
