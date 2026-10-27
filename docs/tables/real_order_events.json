@@ -8999,7 +8999,19 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "none (placement failed)",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261027000850960 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
+  },
+  {
+   "id": 751,
+   "ts": 1793094793.5469801,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | no order id in response: {'error': ApiException('(0)\\nReason: Request timeout after 30 seconds\\n')}"
   }
  ],
- "synced_at_utc": "2026-10-27T09:52:31Z"
+ "synced_at_utc": "2026-10-27T09:53:16Z"
 }
