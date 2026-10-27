@@ -5,7 +5,7 @@
  "interval": "1d",
  "cost": "ROUND_TRIP_COST_PCT 0.8%",
  "stop": "none (atrnone; option premium trailing SL attached live)",
- "note": "pfgross/win_pct/avg_held_hrs not in the reported table (None); registry_* are the research sweep row, for comparison only",
+ "note": "pfgross not in the artifact (None); win_pct/avg_held_hrs filled 2026-10-27 (B-1385) from artifact mcx-live-replay-results of this run (avg_held_hrs = avg_held_days x 6.25, the 1d rate in scripts/mcx_strategy_sweep.py); registry_* are the research sweep row, for comparison only",
  "rows": [
   {
    "tag": "sma_crossover__gc__long__1d__atrnone__v1",
@@ -13,12 +13,16 @@
    "n": 31,
    "pfnet": 2.287,
    "pfgross": null,
-   "win_pct": null,
-   "avg_held_hrs": null,
+   "win_pct": 38.7,
+   "avg_held_hrs": 147.56,
    "registry_pfnet": 2.139,
    "registry_n": 33,
    "registry_win_pct": 39.4,
-   "registry_avg_held_hrs": 147.16
+   "registry_avg_held_hrs": 147.16,
+   "avg_held_days": 23.61,
+   "exits": {
+    "signal_drop": 31
+   }
   },
   {
    "tag": "supertrend__gc__long__1d__atrnone__v1",
@@ -26,12 +30,16 @@
    "n": 17,
    "pfnet": 2.346,
    "pfgross": null,
-   "win_pct": null,
-   "avg_held_hrs": null,
+   "win_pct": 52.9,
+   "avg_held_hrs": 264.0,
    "registry_pfnet": 2.131,
    "registry_n": 18,
    "registry_win_pct": 50.0,
-   "registry_avg_held_hrs": 256.25
+   "registry_avg_held_hrs": 256.25,
+   "avg_held_days": 42.24,
+   "exits": {
+    "signal_drop": 17
+   }
   },
   {
    "tag": "bollinger_mean_reversion__si__long__1d__atrnone__v1",
@@ -39,12 +47,17 @@
    "n": 17,
    "pfnet": 2.496,
    "pfgross": null,
-   "win_pct": null,
-   "avg_held_hrs": null,
+   "win_pct": 70.6,
+   "avg_held_hrs": 83.06,
    "registry_pfnet": 3.659,
    "registry_n": 17,
    "registry_win_pct": 70.6,
-   "registry_avg_held_hrs": 81.99
+   "registry_avg_held_hrs": 81.99,
+   "avg_held_days": 13.29,
+   "exits": {
+    "end_of_data": 1,
+    "signal_drop": 16
+   }
   },
   {
    "tag": "supertrend__cl__long__1d__atrnone__v1",
@@ -52,12 +65,16 @@
    "n": 11,
    "pfnet": 1.432,
    "pfgross": null,
-   "win_pct": null,
-   "avg_held_hrs": null,
+   "win_pct": 36.4,
+   "avg_held_hrs": 248.88,
    "registry_pfnet": 1.995,
    "registry_n": 12,
    "registry_win_pct": 41.7,
-   "registry_avg_held_hrs": 255.73
+   "registry_avg_held_hrs": 255.73,
+   "avg_held_days": 39.82,
+   "exits": {
+    "signal_drop": 11
+   }
   },
   {
    "tag": "donchian_breakout__cl__long__1d__atrnone__v1",
@@ -65,12 +82,16 @@
    "n": 16,
    "pfnet": 0.82,
    "pfgross": null,
-   "win_pct": null,
-   "avg_held_hrs": null,
+   "win_pct": 37.5,
+   "avg_held_hrs": 126.94,
    "registry_pfnet": 1.157,
    "registry_n": 17,
    "registry_win_pct": 41.2,
-   "registry_avg_held_hrs": 143.01
+   "registry_avg_held_hrs": 143.01,
+   "avg_held_days": 20.31,
+   "exits": {
+    "signal_drop": 16
+   }
   },
   {
    "tag": "rsi_reversal__ng__long__1d__atrnone__v1",
@@ -78,12 +99,16 @@
    "n": 13,
    "pfnet": 1.525,
    "pfgross": null,
-   "win_pct": null,
-   "avg_held_hrs": null,
+   "win_pct": 53.8,
+   "avg_held_hrs": 300.94,
    "registry_pfnet": 1.691,
    "registry_n": 14,
    "registry_win_pct": 57.1,
-   "registry_avg_held_hrs": 295.54
+   "registry_avg_held_hrs": 295.54,
+   "avg_held_days": 48.15,
+   "exits": {
+    "signal_drop": 13
+   }
   },
   {
    "tag": "bollinger_mean_reversion__ng__short__1d__atrnone__v1",
@@ -91,12 +116,17 @@
    "n": 19,
    "pfnet": 1.881,
    "pfgross": null,
-   "win_pct": null,
-   "avg_held_hrs": null,
+   "win_pct": 73.7,
+   "avg_held_hrs": 85.88,
    "registry_pfnet": 1.844,
    "registry_n": 19,
    "registry_win_pct": 73.7,
-   "registry_avg_held_hrs": 84.87
+   "registry_avg_held_hrs": 84.87,
+   "avg_held_days": 13.74,
+   "exits": {
+    "end_of_data": 1,
+    "signal_drop": 18
+   }
   },
   {
    "tag": "keltner_channel_breakout__ng__short__1d__atrnone__v1",
@@ -104,12 +134,16 @@
    "n": 22,
    "pfnet": 1.5,
    "pfgross": null,
-   "win_pct": null,
-   "avg_held_hrs": null,
+   "win_pct": 40.9,
+   "avg_held_hrs": 100.88,
    "registry_pfnet": 1.453,
    "registry_n": 24,
    "registry_win_pct": 41.7,
-   "registry_avg_held_hrs": 99.74
+   "registry_avg_held_hrs": 99.74,
+   "avg_held_days": 16.14,
+   "exits": {
+    "signal_drop": 22
+   }
   }
  ]
 }
