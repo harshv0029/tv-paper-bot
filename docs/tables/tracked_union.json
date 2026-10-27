@@ -17,38 +17,6 @@
    "symbol": "BANKINDIA.NS"
   },
   {
-   "day": "2026-10-28",
-   "entry_order_id": "261027000045864",
-   "entry_price": 398.35,
-   "first_seen_day": "2026-10-28",
-   "is_short": 1,
-   "kotak_trading_symbol": "COALINDIA-EQ",
-   "opened_at": 1793129158.8124247,
-   "owner": "short",
-   "qty": 2,
-   "sl_trigger_price": null,
-   "source": "position",
-   "stop_loss": null,
-   "strategy": null,
-   "symbol": "COALINDIA.NS"
-  },
-  {
-   "day": "2026-10-28",
-   "entry_order_id": "261027000527886",
-   "entry_price": 65.12,
-   "first_seen_day": "2026-10-28",
-   "is_short": 1,
-   "kotak_trading_symbol": "GSEC5IETF-EQ",
-   "opened_at": 1793129158.812192,
-   "owner": "short",
-   "qty": 2,
-   "sl_trigger_price": null,
-   "source": "position",
-   "stop_loss": null,
-   "strategy": null,
-   "symbol": "GSEC5IETF.NS"
-  },
-  {
    "day": "2026-10-27",
    "entry_order_id": "261027000627287",
    "entry_price": 72.74,
@@ -59,7 +27,7 @@
    "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 68.29,
-   "source": "position+holding",
+   "source": "holding",
    "stop_loss": 68.28606769016811,
    "strategy": "gap_and_go",
    "symbol": "NHPC.NS"
@@ -75,7 +43,7 @@
    "owner": "swing",
    "qty": 2,
    "sl_trigger_price": null,
-   "source": "position+holding",
+   "source": "holding",
    "stop_loss": 28.908567156110493,
    "strategy": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
    "symbol": "SUZLON.NS"
