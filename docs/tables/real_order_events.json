@@ -9107,7 +9107,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000865130 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
+  },
+  {
+   "id": 760,
+   "ts": 1793095023.6482115,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000865597 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   }
  ],
- "synced_at_utc": "2026-10-27T09:56:56Z"
+ "synced_at_utc": "2026-10-27T09:57:07Z"
 }
