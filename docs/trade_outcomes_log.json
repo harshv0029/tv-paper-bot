@@ -2877,5 +2877,61 @@
     "rr_target": 3.0,
     "rr_achieved": 0.02,
     "strategy": "orb-15m-sma9-21"
+  },
+  {
+    "symbol": "PFC.NS",
+    "exit_time_utc": 1793076910.1848307,
+    "entry_price_native": 313.1499938964844,
+    "exit_price_native": 311.1499938964844,
+    "currency": "INR",
+    "qty": 2.0,
+    "pnl_inr": -4.0,
+    "pnl_pct_of_capital": -0.001,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": -1.24,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "GSEC5IETF.NS",
+    "exit_time_utc": 1793086661.0424159,
+    "entry_price_native": null,
+    "exit_price_native": 65.48999786376953,
+    "currency": "INR",
+    "qty": 2.0,
+    "pnl_inr": 0.0,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "macddiv_max_hold_timeout",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": null
+  },
+  {
+    "symbol": "M&MFIN.NS",
+    "exit_time_utc": 1793087523.231719,
+    "entry_price_native": null,
+    "exit_price_native": 264.2421851227102,
+    "currency": "INR",
+    "qty": 3.0,
+    "pnl_inr": -38.12,
+    "pnl_pct_of_capital": -0.01,
+    "exit_reason": "macddiv_stop_loss",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
+  },
+  {
+    "symbol": "POLICYBZR.NS",
+    "exit_time_utc": 1793090227.251015,
+    "entry_price_native": 1019.0,
+    "exit_price_native": 1009.2999877929688,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": -9.7,
+    "pnl_pct_of_capital": -0.002,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": -1.45,
+    "strategy": "orb-universal-score"
   }
 ]
