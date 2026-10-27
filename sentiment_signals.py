@@ -42,6 +42,7 @@ external feed must never silently halt trading, only forgo one advisory
 input to it.
 """
 import re
+import threading
 import time
 
 import requests
@@ -49,6 +50,7 @@ import requests
 _RAW_BASE = "https://raw.githubusercontent.com/harshv0029/tv-paper-bot/main/docs/sentiment_log"
 _CACHE_TTL_SECONDS = 600  # 10 min - well inside the routine's own fastest (30min) cadence
 _cache: dict = {"fetched_at": 0.0, "date": None, "data": None}
+_refresh_lock = threading.Lock()  # B-1392: one background refresh at a time
 
 # Direct Yahoo-ticker matches (symbols the sentiment log names exactly as
 # WATCHLIST already spells them) plus the two NSE indices under their
@@ -123,7 +125,26 @@ def _fetch_file(date_str: str) -> str | None:
     return resp.text
 
 
-def get_latest_sentiment(today_ist_date_str: str) -> dict:
+def get_latest_sentiment(today_ist_date_str: str, wait: bool = False) -> dict:
+    """B-1392 (2026-10-27): never fetch on the caller's thread. The scheduler tick calls this from the bot's main
+    loop, and two 10 s-timeout GETs froze it for 16-18 s (watchdog alarms 22:23 and 23:15 IST). A stale or missing
+    cache starts one background refresh and returns what is cached now (empty = fail open, as before)."""
+    now = time.time()
+    if _cache["data"] is not None and _cache["date"] == today_ist_date_str and (now - _cache["fetched_at"]) < _CACHE_TTL_SECONDS:
+        return _cache["data"]
+    if wait:
+        return _refresh_sentiment(today_ist_date_str)
+    if _refresh_lock.acquire(blocking=False):
+        def _run():
+            try:
+                _refresh_sentiment(today_ist_date_str)
+            finally:
+                _refresh_lock.release()
+        threading.Thread(target=_run, name="sentiment-refresh", daemon=True).start()
+    return _cache["data"] or {"as_of_date": None, "signals": {}, "source": None}
+
+
+def _refresh_sentiment(today_ist_date_str: str) -> dict:
     """{"as_of_date": ..., "signals": {symbol: "Bullish"|"Bearish"|"Neutral"}}
     for the most recent day (today, falling back to yesterday if today's
     file doesn't exist yet - e.g. before the first scan of the day has
@@ -131,9 +152,6 @@ def get_latest_sentiment(today_ist_date_str: str) -> dict:
     a fetch/parse failure returns {"as_of_date": None, "signals": {}} so
     callers (allows_entry) fail open by construction."""
     now = time.time()
-    if _cache["data"] is not None and _cache["date"] == today_ist_date_str and (now - _cache["fetched_at"]) < _CACHE_TTL_SECONDS:
-        return _cache["data"]
-
     import datetime as _dt
     try:
         d = _dt.datetime.strptime(today_ist_date_str, "%Y-%m-%d").date()
