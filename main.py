@@ -22030,6 +22030,30 @@ def _sector_cap_blocks(conn, symbol, qty, price):
     return None
 
 
+def _real_swing_qty_by_risk(conn, symbol, ltp: float, stop_loss, short: bool = False) -> int:
+    """B-1387: real-money swing size from Kotak's own fresh Net, never from the paper size. The paper qty is sized
+    against capital minus deployed_notional(), which still counts paper-only positions (strategies gated off real
+    money, paper option rows) that never touched the Kotak account, so real buys were starved (NHPC 2026-10-27 IST:
+    Net Rs8,849.87, stop distance Rs4.45 -> 9 shares by the formula, 1 bought). Kotak's Net already excludes the
+    margin of every open real position, so it is the whole available pool here; same formula otherwise
+    (CAPITAL_TRANCHES cap, per-symbol risk_pct, stop-out cluster halving). Returns 0 when no stop is known."""
+    try:
+        stop = float(stop_loss or 0)
+    except (TypeError, ValueError):
+        return 0
+    dist = (stop - ltp) if short else (ltp - stop)
+    if stop <= 0 or ltp <= 0 or dist <= 0:
+        return 0
+    _refresh_real_capital_cache()  # Kotak-first: fresh Net immediately before the order decision
+    capital = get_scheduler_capital_inr()
+    usable = max(0.0, capital) / CAPITAL_TRANCHES
+    risk_pct = NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)["risk_pct"]
+    qty = min(usable * risk_pct / 100 / dist, usable / ltp)
+    if _swing_stopout_cluster(conn):
+        qty *= SWING_CLUSTER_SIZE_FACTOR
+    return int(math.floor(qty))
+
+
 def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, paper_stop_loss, strategy):
     """Mirrors a paper swing "gap_and_go" entry as a REAL buy, ONLY when
     every gate holds. Called from _run_swing_scan right after the paper
@@ -22155,12 +22179,14 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     real_capital_for_sizing = get_scheduler_capital_inr()
     max_by_cap = math.floor(remaining_cap_inr / ltp) if ltp > 0 else 0
     max_by_capital = math.floor(real_capital_for_sizing / ltp) if ltp > 0 else 0
-    qty = int(min(paper_qty, max_by_cap, max_by_capital))
+    # B-1387: size from real Kotak capital (risk formula), not the paper qty, when the stop is known.
+    risk_qty = _real_swing_qty_by_risk(conn, symbol, ltp, paper_stop_loss) if paper_stop_loss else paper_qty
+    qty = int(min(risk_qty, max_by_cap, max_by_capital))
     if qty <= 0:
         _log_real_attempt(
             conn, symbol, "B", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
             price_est=ltp, strategy=strategy,
-            detail=f"paper qty {paper_qty}, 1 share = Rs{ltp:.2f} - capped to 0 by "
+            detail=f"paper qty {paper_qty}, real risk qty {risk_qty}, 1 share = Rs{ltp:.2f} - capped to 0 by "
                    f"remaining daily cap Rs{remaining_cap_inr:.2f} (max {max_by_cap}) "
                    f"and/or real capital Rs{real_capital_for_sizing:.2f} (max {max_by_capital})",
         )
@@ -24323,7 +24349,8 @@ def _maybe_place_real_swing_short_entry(conn, symbol, paper_qty, paper_entry_pri
                               detail=f"live Rs{ltp:.2f} is {dev:.1f}% from the signal entry Rs{paper_entry_price:.2f}")
             return
     remaining = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
-    qty = int(min(paper_qty, math.floor(remaining / ltp), math.floor(get_scheduler_capital_inr() / ltp)))
+    risk_qty = _real_swing_qty_by_risk(conn, symbol, ltp, paper_stop_loss, short=True) if paper_stop_loss else paper_qty  # B-1387
+    qty = int(min(risk_qty, math.floor(remaining / ltp), math.floor(get_scheduler_capital_inr() / ltp)))
     if qty <= 0:
         _log_real_attempt(conn, symbol, "S", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
                           price_est=ltp, strategy=strategy)
