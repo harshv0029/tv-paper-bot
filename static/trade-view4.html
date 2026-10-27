@@ -567,6 +567,18 @@
     return `7. Entries fired today but REJECTED by viability: <b class="${r.total ? "down" : "up"}">${r.total}</b>` +
       (r.total ? ` across ${r.symbols} symbols · ${top}${(r.by_strategy || []).length > 8 ? " · …" : ""}` : "") + "<br>";
   }
+  // B-1374: what to change in the 3-factor definition (PFnet / min trades / max hold) to let at least 1 rejected entry in
+  function unlockHtml(h) {
+    if (!h || !(h.per_strategy || []).length) return "";
+    const f = (k, v) => k === "max_hold_hrs" ? (v == null ? "any" : (+v).toFixed(1) + " h") : k === "min_trades" ? v : (+v).toFixed(2);
+    const lbl = {pf_min: "PFnet min", pf_max: "PFnet max", min_trades: "min trades", max_hold_hrs: "max hold"};
+    const c = h.criteria, chg = e => e.changes.map(k => `${lbl[k]} ${f(k, c[k])} → <b>${f(k, e.needs[k])}</b>`).join(", ");
+    const one = e => !e.fixable || !e.changes || !e.changes.length || !c ? `${e.strategy}: ${e.note || "-"}`
+      : `${e.strategy} (PFnet ${(+e.pfnet).toFixed(2)}, ${e.n_trades} trades, hold ${e.hold_hrs == null ? "?" : (+e.hold_hrs).toFixed(1) + " h"}): ${chg(e)}`;
+    const ez = h.easiest;
+    return `&nbsp;&nbsp;↳ To let at least 1 more trade in: ${ez ? `<b class="up">${ez.strategy}</b> needs ${chg(ez)} (${ez.count} rejected today)` : `<span class="dim">no change to the 3 factors would admit any (see reasons)</span>`}` +
+      `<br>&nbsp;&nbsp;<span class="dim">per strategy: ${h.per_strategy.slice(0, 8).map(one).join(" · ")}</span><br>`;
+  }
   async function pollViability() {
     const ist = ms => new Date(ms).toLocaleString("en-IN", {timeZone: "Asia/Kolkata", hour12: false});
     try {
@@ -580,7 +592,7 @@
         `2. ALL TRADING switch: ${g.trading_enabled == null ? "unknown" : ok(g.trading_enabled, g.trading_enabled ? "ON" : "OFF - no new real trades")}` +
         ` · 3. Real entry needs the definition loaded: ${g.requires_explorer_stack ? (g.stack_active ? ok(true, "loaded (" + g.active_names + " strategies)") : ok(false, "NOT loaded")) : "no"}<br>` +
         `4. Scanning/wiring floor: PFnet ≥ ${g.wiring_pfnet_floor} · 5. Replay-owed tags (blocked from real money until replayed): ${g.replay_owed_tags}` +
-        ` · 6. Every entry carries a stop-loss<br>` + rejHtml(g.rejected_today) + `<span class="dim">checked ${ist(Date.now())} IST · backup: ${d.mirror && d.mirror.last_restore ? d.mirror.last_restore : "-"}</span>`;
+        ` · 6. Every entry carries a stop-loss<br>` + rejHtml(g.rejected_today) + unlockHtml(g.unlock_hint) + `<span class="dim">checked ${ist(Date.now())} IST · backup: ${d.mirror && d.mirror.last_restore ? d.mirror.last_restore : "-"}</span>`;
     } catch (e) { $("viaTxt").innerHTML = `<span class="down">could not read /strategy-viable-stack (${e.message})</span>`; }
   }
   pollViability(); setInterval(pollViability, 15000);
