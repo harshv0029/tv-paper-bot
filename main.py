@@ -28484,6 +28484,56 @@ def _threadpool_status() -> dict:
     return out
 
 
+_MEM_BREAKDOWN_STATE: dict = {"ts": 0.0, "out": None}
+_MEM_BREAKDOWN_LOCK = threading.Lock()
+
+
+def _memory_breakdown() -> dict:
+    """B-1382 (live 2026-10-27: OOM restart every ~20 min from 09:15 IST, rss ~600 MB -> 2 GB at ~80 MB/min while the
+    worker pool stayed 0-3/80, so not a request pile-up): what is holding memory. Objects by type (count), and every
+    module-level container of this module by element count with a shallow byte size. Read-only, single-flight, cached
+    60 s (a gc walk over millions of objects is itself expensive)."""
+    import gc
+    import sys as _sys
+    from collections import Counter
+    if time.time() - _MEM_BREAKDOWN_STATE["ts"] < 60 and _MEM_BREAKDOWN_STATE["out"]:
+        return _MEM_BREAKDOWN_STATE["out"]
+    if not _MEM_BREAKDOWN_LOCK.acquire(blocking=False):
+        return _MEM_BREAKDOWN_STATE["out"] or {"busy": True}
+    try:
+        objs = gc.get_objects()
+        by_type = Counter(type(o).__name__ for o in objs).most_common(25)
+        n_objs = len(objs)
+        del objs
+        containers = []
+        for name, val in list(globals().items()):
+            if isinstance(val, (dict, list, set, tuple)) and not name.startswith("__"):
+                try:
+                    containers.append((name, len(val), _sys.getsizeof(val)))
+                except Exception:  # noqa: BLE001
+                    pass
+        containers.sort(key=lambda r: -r[1])
+        frames = 0
+        try:
+            import pandas as _pd
+            frames = sum(1 for o in gc.get_objects() if isinstance(o, _pd.DataFrame))
+        except Exception:  # noqa: BLE001
+            pass
+        out = {"ts": time.time(), "rss_now_mb": _current_rss_mb(), "gc_objects": n_objs, "dataframes": frames,
+               "threads": threading.active_count(), "by_type": by_type,
+               "largest_globals": [{"name": n, "len": l, "shallow_bytes": b} for n, l, b in containers[:30]]}
+        _MEM_BREAKDOWN_STATE.update(ts=time.time(), out=out)
+        return out
+    finally:
+        _MEM_BREAKDOWN_LOCK.release()
+
+
+@app.get("/memory-breakdown")
+def memory_breakdown():
+    """B-1382: no-token read-only memory census (see _memory_breakdown)."""
+    return _memory_breakdown()
+
+
 @app.get("/health")
 async def health():
     # B-1359: async so /health never queues behind a full worker-thread pool; every call below is in-memory.
