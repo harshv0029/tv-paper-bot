@@ -13512,41 +13512,50 @@ def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: b
     no validated metrics yet - since the whole point is real money only
     goes where there's actual evidence of clearing breakeven, never an
     unmeasured strategy treated as innocent-until-proven-unprofitable."""
+    return _viability_verdict(strategy_tag, check_switch)[0]
+
+
+def _viability_verdict(strategy_tag: str | None, check_switch: bool = True) -> tuple:
+    """(allowed, reason) behind _is_strategy_viable_for_real_money. B-1390 (user 2026-10-27: what does "rejected by
+    another rule" mean?): the reason is stamped on every skipped_strategy_not_viable row so View 4 shows why, not a
+    guess. Reasons: no_tag, switch_off, unmapped_tag, no_registry_entry, no_metrics, override, no_stack, replay_owed,
+    below_floor, viable."""
     if not strategy_tag:
-        return False
+        return False, "no_tag"
     # 2026-10-11 user: the ALL TRADING toggle must stop NEW real trades in EVERY category immediately. Every
     # new-entry path (intraday, short, swing, options, MCX, strikes) calls this function, so the switch is enforced here.
     try:
         if check_switch:
             with closing(get_db()) as _kc:
                 if not is_trading_enabled(_kc):
-                    return False
+                    return False, "switch_off"
     except Exception:
         pass
     registry_name = _STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy_tag)
     if not registry_name:
-        return False
+        return False, "unmapped_tag"
     import strategy_registry as sr
     strat = _registry_entry(registry_name)
     if strat is None:
-        return False
+        return False, "no_registry_entry"
     # 2026-10-12 user thumb rule: nothing is wired or declared viable until it is backtested by us. A live port not yet
     # replayed through the real main.py functions stays closed.
     if strat.metrics is None:
-        return False
+        return False, "no_metrics"
     _load_viable_overrides()
     if registry_name in sr.VIABLE_OVERRIDES:
         # 2026-10-13 user: "make this set viable category and live wiring ... without any restriction" (trade-view
         # explorer button). Bypasses the PFnet floor and replay-owed hold; the ALL TRADING switch above, the SL on
         # every entry and the Kotak backcheck still apply.
-        return True
+        return True, "override"
     if REAL_ENTRY_REQUIRES_EXPLORER_STACK and not sr.VIABLE_STACK_ACTIVE:
         # 2026-10-21 user: "for live money trade entry it should come from active viable condition from explorer table".
         # No stack loaded (empty table, restore not done) = no real entry; PFnet >= 1 alone only wires scanning.
-        return False
+        return False, "no_stack"
     if strategy_tag in REPLAY_OWED_TAGS:
-        return False
-    return strat.is_viable() is True
+        return False, "replay_owed"
+    ok = strat.is_viable() is True
+    return ok, ("viable" if ok else "below_floor")
 
 
 REAL_ENTRY_REQUIRES_EXPLORER_STACK = True  # 2026-10-21 user rule (not a switch: tests that check the registry gate unset it)
@@ -13943,9 +13952,23 @@ def _recover_strategy_for_untracked_position(conn, kotak_trading_symbol: str, si
     return None
 
 
+def _stamp_viability_reason(detail, strategy_tag):
+    """B-1390: append `viability_reason=<reason>` (recomputed at the moment of the skip) to a rejection row's detail."""
+    try:
+        reason = _viability_verdict(strategy_tag)[1]
+        if reason in ("viable", "override"):
+            reason = "unknown"  # gate passes now: the call site used another check (e.g. check_switch=False path)
+    except Exception:
+        reason = "unknown"
+    tail = f"viability_reason={reason}"
+    return f"{detail} {tail}" if detail else tail
+
+
 def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,
                        price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None,
                        strategy=None):
+    if status == "skipped_strategy_not_viable":
+        detail = _stamp_viability_reason(detail, strategy)
     conn.execute(
         "INSERT INTO real_trades (ts, day, symbol, kotak_trading_symbol, side, qty, price_est, "
         "notional_inr, status, order_id, detail, raw_response, strategy) "
@@ -14068,6 +14091,9 @@ def _real_fo_today_spent_inr(conn) -> float:
 
 def _log_real_fo_attempt(conn, leg_key, side, status, kotak_trading_symbol=None, qty=None,
                           price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None):
+    if status == "skipped_strategy_not_viable":
+        _m = re.search(r"strategy_tag=(\S+)", str(detail or ""))
+        detail = _stamp_viability_reason(detail, _m.group(1) if _m else None)
     conn.execute(
         "INSERT INTO real_fo_trades (ts, day, leg_key, kotak_trading_symbol, side, qty, price_est, "
         "notional_inr, status, order_id, detail, raw_response) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -21243,6 +21269,25 @@ def hydrate_swing_skipped_from_external() -> int:
         return 0
 
 
+SWING_FETCH_RETRY_PAUSE_S = 2.0
+
+
+def _short_fetch_error(e) -> str:
+    """B-1391: compact 'Type: message' for a failed daily fetch (HTTPException detail when present)."""
+    msg = getattr(e, "detail", None) or str(e) or ""
+    msg = " ".join(str(msg).split())
+    return f"{type(e).__name__}: {msg[:90]}" if msg else type(e).__name__
+
+
+def _clear_swing_skipped(symbol):
+    try:
+        if _swing_skipped_today.get("day") == ist_now().strftime("%Y-%m-%d") and \
+                _swing_skipped_today["syms"].pop(symbol, None) is not None:
+            _swing_skipped_schedule_push()
+    except Exception:
+        pass
+
+
 def _note_swing_skipped(symbol, why):
     try:
         day = ist_now().strftime("%Y-%m-%d")
@@ -22693,10 +22738,15 @@ def _run_swing_scan_pass(conn):
         from concurrent.futures import ThreadPoolExecutor
 
         def _pf(sym):
-            try:
-                return sym, fetch_ohlc(sym, "2y", "1d"), None
-            except Exception as e:  # noqa: BLE001
-                return sym, None, e
+            # B-1391: one retry after a short pause - a burst of consecutive symbols failing together (live
+            # 2026-10-27: AUBANK..BAJFINANCE) is a transient Yahoo throttle, not bad symbols.
+            for _attempt in (0, 1):
+                try:
+                    return sym, fetch_ohlc(sym, "2y", "1d"), None
+                except Exception as e:  # noqa: BLE001
+                    if _attempt:
+                        return sym, None, e
+                    time.sleep(SWING_FETCH_RETRY_PAUSE_S)
         with ThreadPoolExecutor(max_workers=8) as _ex:
             for sym, d, err in _ex.map(_pf, list(SWING_WATCHLIST)):
                 _prefetched[sym] = (d, err)
@@ -22717,11 +22767,13 @@ def _run_swing_scan_pass(conn):
                 df = fetch_ohlc(symbol, "2y", "1d")
         except Exception as e:
             print(f"[SWING] fetch_ohlc failed for {symbol}: {e}")
-            _note_swing_skipped(symbol, "daily fetch failed")
+            # B-1391: keep the actual error (type + short text) so the dashboard says WHY, not just "failed".
+            _note_swing_skipped(symbol, f"daily fetch failed ({_short_fetch_error(e)})")
             continue
         if df is None or len(df) < 50:
             _note_swing_skipped(symbol, "under 50 daily bars")
             continue
+        _clear_swing_skipped(symbol)  # B-1391: a later good fetch removes an earlier pass's skip
         # B-419: signals are defined on COMPLETED daily bars (as backtested). A pass run during the session
         # must not see today's still-forming bar, so repeat passes give the same answer as the first one.
         try:
@@ -27290,11 +27342,14 @@ def _viability_rejections_today(conn, day: str | None = None) -> dict:
     day = day or ist_now().strftime("%Y-%m-%d")
     by = {}
     try:
-        for strat, side, sym in conn.execute(
-                "SELECT strategy, side, symbol FROM real_trades WHERE day = ? AND status = 'skipped_strategy_not_viable'",
+        for strat, side, sym, det in conn.execute(
+                "SELECT strategy, side, symbol, detail FROM real_trades WHERE day = ? AND status = 'skipped_strategy_not_viable'",
                 (day,)).fetchall():
-            r = by.setdefault((str(strat or "unknown"), "equity"), {"count": 0, "syms": set(), "sides": set()})
+            r = by.setdefault((str(strat or "unknown"), "equity"), {"count": 0, "syms": set(), "sides": set(), "reasons": {}})
             r["count"] += 1; r["syms"].add(sym); r["sides"].add(side)
+            _rn = re.search(r"viability_reason=(\S+)", str(det or ""))
+            _rk = _rn.group(1) if _rn else "not_recorded"
+            r["reasons"][_rk] = r["reasons"].get(_rk, 0) + 1
     except Exception:
         pass
     try:
@@ -27302,12 +27357,16 @@ def _viability_rejections_today(conn, day: str | None = None) -> dict:
                 "SELECT leg_key, side, detail FROM real_fo_trades WHERE day = ? AND status = 'skipped_strategy_not_viable'",
                 (day,)).fetchall():
             m = re.search(r"strategy_tag=(\S+)", str(detail or ""))
-            r = by.setdefault((m.group(1) if m else "unknown", "fo"), {"count": 0, "syms": set(), "sides": set()})
+            r = by.setdefault((m.group(1) if m else "unknown", "fo"), {"count": 0, "syms": set(), "sides": set(), "reasons": {}})
             r["count"] += 1; r["syms"].add(str(leg).split(":")[0]); r["sides"].add(side)
+            _rn = re.search(r"viability_reason=(\S+)", str(detail or ""))
+            _rk = _rn.group(1) if _rn else "not_recorded"
+            r["reasons"][_rk] = r["reasons"].get(_rk, 0) + 1
     except Exception:
         pass
     rows = sorted(({"strategy": k[0], "segment": k[1], "count": v["count"], "symbols": len(v["syms"]),
-                    "sides": "".join(sorted(x for x in v["sides"] if x))} for k, v in by.items()),
+                    "sides": "".join(sorted(x for x in v["sides"] if x)), "reasons": dict(v["reasons"])}
+                   for k, v in by.items()),
                   key=lambda r: (-r["count"], r["strategy"]))
     return {"day": day, "total": sum(r["count"] for r in rows),
             "symbols": len({(k[1], x) for k, v in by.items() for x in v["syms"]}), "by_strategy": rows}
@@ -27328,7 +27387,8 @@ def _viability_unlock_hint(conn, rejected: dict) -> dict:
     per = []
     for r in (rejected or {}).get("by_strategy", []):
         tag = r["strategy"]
-        e = {"strategy": tag, "segment": r.get("segment"), "count": r["count"], "fixable": False}
+        e = {"strategy": tag, "segment": r.get("segment"), "count": r["count"], "fixable": False,
+             "reasons": dict(r.get("reasons") or {})}
         reg = _STRATEGY_TAG_TO_REGISTRY_NAME.get(tag)
         strat = _registry_entry(reg) if reg else None
         m = strat.metrics if strat is not None else None
@@ -27356,7 +27416,11 @@ def _viability_unlock_hint(conn, rejected: dict) -> dict:
         e["needs"] = needs
         e["changes"] = [k for k in ("pf_min", "pf_max", "min_trades", "max_hold_hrs") if needs[k] != crit[k]]
         if not e["changes"]:
-            e["note"] = "already passes the active definition (rejected by another rule: switch, stack not loaded)"
+            # B-1390: the stamped reasons (recorded at skip time) replace the old guess. Rows logged before the stamp
+            # existed read not_recorded.
+            _rs = ", ".join(f"{k} x{v}" for k, v in sorted(e["reasons"].items(), key=lambda kv: -kv[1]))
+            e["note"] = ("passes the active definition now; rejected at the time because: " + _rs) if _rs else \
+                "passes the active definition now; reason not recorded"
         per.append(e)
     fix = [e for e in per if e["fixable"] and e.get("changes")]
     easiest = min(fix, key=lambda e: (len(e["changes"]), crit["pf_min"] - e["needs"]["pf_min"], -e["count"])) if fix else None
