@@ -2933,5 +2933,61 @@
     "rr_target": 3.0,
     "rr_achieved": -1.45,
     "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "M&MFIN.NS",
+    "exit_time_utc": 1793092614.9119065,
+    "entry_price_native": 263.45001220703125,
+    "exit_price_native": 263.79998779296875,
+    "currency": "INR",
+    "qty": 4.0,
+    "pnl_inr": -35.98,
+    "pnl_pct_of_capital": -0.009,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": 0.27,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "AMBUJACEM.NS",
+    "exit_time_utc": 1793092634.6620383,
+    "entry_price_native": 351.45001220703125,
+    "exit_price_native": 353.0,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": -5.43,
+    "pnl_pct_of_capital": -0.001,
+    "exit_reason": "stop_hit",
+    "rr_target": 3.0,
+    "rr_achieved": 0.91,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "M&MFIN.NS",
+    "exit_time_utc": 1793094382.2306588,
+    "entry_price_native": 260.70001220703125,
+    "exit_price_native": 260.8,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": -10.79,
+    "pnl_pct_of_capital": -0.003,
+    "exit_reason": "eod_squareoff",
+    "rr_target": 3.0,
+    "rr_achieved": 0.07,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "COALINDIA.NS",
+    "exit_time_utc": 1793096864.7930388,
+    "entry_price_native": null,
+    "exit_price_native": 398.0,
+    "currency": "INR",
+    "qty": 2.0,
+    "pnl_inr": 0.0,
+    "pnl_pct_of_capital": 0.0,
+    "exit_reason": "trail_stop_hit",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": null
   }
 ]
