@@ -1495,3 +1495,11 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **What broke:** the 1h swingminrr shorts collapse on the live path (gross 0.65-0.72, below 1 even before cost), as macddiv did: research-port PFnets above 1.5 on 1h cells have now failed twice in the real replay. Timeouts carry big profit (PFnet 10-20) but 40% of trades stop out first.
 - **Reuse:** treat any 1h research PFnet as unproven until the main.py replay runs; tasuki's edge is small-sample (n 82) and ETF-only, so size it small if it ever goes live.
 - **Profit-booking / exit takeaway:** tasuki makes its money by holding the full 3 days (timeout exits PFnet 1.66); the stop is almost never hit, so do not tighten it to "protect" profit.
+
+## month-effect short through main.py (B-1396b, run 40580498404, 2026-10-28 IST)
+
+- **Result:** 15m (2706 symbols, n 2401 per cell): atr6 h25 1.444 (win 61.6%), atr4 h25 1.281, atr2d5 h25 1.058 (all three clear the 1.0 floor), atr6 h125 0.687 (fails). 1d over 5 years (n 10068): 0.36-0.42 in every cell.
+- **What broke first:** the live code read bar dates from `df.index`, but `fetch_ohlc` keeps them in a "Date" column, so every bar read as 1970 and the September-1 signal never fired, in the replay AND the live paper engine. Also, 15m requests over 60 days fail silently in yfinance. A replay that reports n=0 must fail the job, never pass as a result.
+- **What surprised:** the 15m "pass" is ONE market day (all 2401 trades on Sept 1, highly correlated), while the 5-year daily version loses badly. Treat it as unproven.
+- **Reuse:** read bar times through a helper that understands fetch_ohlc's Date column; give every replay an n=0 failure; for calendar effects, count distinct event dates, not trades.
+- **Profit-booking / exit takeaway:** on the 15m cells the wider ATR6 stop with a 25-bar exit did best (stops cost, timeouts pay); a 125-bar hold gives the gain back. Keep it paper-only until a second Sept-1 confirms.

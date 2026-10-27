@@ -35,6 +35,9 @@ VARIANT_OF_WIRED = {
     **{f"oneil_flatbase__breakout__long__1w__{p}__v2": "oneil_flatbase__breakout__long__1w__atr3_chase10_h26_rsnone__v2"
        for p in ("atr3_avg1_chase10_h12_rsnone", "atr3_avg1_chase10_h26_rsnone", "atr3_chase10_h26_rsnone_trl1")},
     "oneil_flatbase__breakout__short__1w__atr3_chase10_h26_rsnone__v2": "oneil_flatbase__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
+    # B-1396: main.py replay rows of wired cells (the live engine runs the research-tag cell)
+    **{f"tasuki__gap_etf_mr__short__1d__atr{a}_h3__v1": f"tasuki__gap_etf__short__1d__atr{a}_h3__v1" for a in ("2d5", "4", "6")},
+    **{f"month__effect_mr__short__15m__atr{a}_h25__v1": f"month__effect__short__15m__atr{a}_h25__v1" for a in ("2d5", "4", "6")},
 }
 
 
