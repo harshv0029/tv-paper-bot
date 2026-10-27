@@ -13503,6 +13503,8 @@ def _build_trade_thesis(strategy_tag: str | None, entry_price: float, sl_trigger
 # Live ports whose entry/exit code has NOT yet been replayed through the real main.py functions (backlog: replay owed).
 # Remove a tag only when its main.py-calling full-universe replay is registered. Derived-at-read-time viability is untouched.
 REPLAY_OWED_TAGS: frozenset = frozenset()  # filled below once the tag tuples exist
+# B-1396: replayed through main.py but below PFNET_LIVE_FLOOR. No longer owed (the replay is on file), still closed.
+REPLAY_FAILED_TAGS: frozenset = frozenset()
 
 
 def _is_strategy_viable_for_real_money(strategy_tag: str | None, check_switch: bool = True) -> bool:
@@ -13519,6 +13521,7 @@ def _viability_verdict(strategy_tag: str | None, check_switch: bool = True) -> t
     """(allowed, reason) behind _is_strategy_viable_for_real_money. B-1390 (user 2026-10-27: what does "rejected by
     another rule" mean?): the reason is stamped on every skipped_strategy_not_viable row so View 4 shows why, not a
     guess. Reasons: no_tag, switch_off, unmapped_tag, no_registry_entry, no_metrics, override, no_stack, replay_owed,
+    replay_below_floor (B-1396),
     below_floor, viable."""
     if not strategy_tag:
         return False, "no_tag"
@@ -13554,6 +13557,8 @@ def _viability_verdict(strategy_tag: str | None, check_switch: bool = True) -> t
         return False, "no_stack"
     if strategy_tag in REPLAY_OWED_TAGS:
         return False, "replay_owed"
+    if strategy_tag in REPLAY_FAILED_TAGS:
+        return False, "replay_below_floor"
     ok = strat.is_viable() is True
     return ok, ("viable" if ok else "below_floor")
 
@@ -23316,19 +23321,33 @@ REPLAY_OWED_TAGS = frozenset(ISLAND_ALL_TAGS) | frozenset(SWINGMINRR_TAGS) | fro
 def _replay_verified_tags() -> frozenset:
     """Tags whose main.py-calling full-universe replay (docs/backtest_data/*main_replay_run_*.json, rows[].metrics)
     cleared PFNET_LIVE_FLOOR with at least one trade (user 2026-10-15: n>=30 is not a wiring constraint, PFnet floor only). Derived at read time; a missing/unreadable file verifies nothing."""
+    import strategy_registry as _sr
+    return frozenset(t for t, n, pf in _replay_rows() if n >= 1 and pf >= _sr.PFNET_LIVE_FLOOR)
+
+
+def _replay_rows() -> list:
+    """(tag, n, pfnet) per row of every docs/backtest_data/*main_replay_run_*.json. Rows keep metrics either nested
+    (rows[].metrics.{n,pfnet}) or flat (rows[].{n,pfnet}, e.g. the macddiv file); B-1396 reads both, since the flat
+    file was silently ignored and its 4 tags stayed "owed" after their replay was on file."""
     import glob as _g
     import json as _j
-    import strategy_registry as _sr
-    ok = set()
+    out = []
     for f in sorted(_g.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data", "*main_replay_run_*.json"))):
         try:
             for r in _j.load(open(f)).get("rows", []):
-                m = r.get("metrics") or {}
-                if (m.get("n") or 0) >= 1 and (m.get("pfnet") or 0) >= _sr.PFNET_LIVE_FLOOR:
-                    ok.add(r["tag"])
+                m = r.get("metrics") if isinstance(r.get("metrics"), dict) else r
+                out.append((r["tag"], int(m.get("n") or 0), float(m.get("pfnet") or 0)))
         except Exception:
             continue
-    return frozenset(ok)
+    return out
+
+
+def _replay_failed_tags() -> frozenset:
+    """B-1396: tags with a main.py replay on file (n >= 1) and no file clearing PFNET_LIVE_FLOOR. The replay is done,
+    so they are no longer owed; the real gate keeps them closed as replay_below_floor. Derived at read time, so a
+    changed floor or a newer passing run re-decides them without code changes."""
+    replayed = {t for t, n, _pf in _replay_rows() if n >= 1}
+    return frozenset(replayed - _replay_verified_tags())
 
 
 REPLAY_OWED_TAGS = REPLAY_OWED_TAGS - _replay_verified_tags()
@@ -24253,6 +24272,8 @@ REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | frozenset(SWINGMINRR_SHORT_1H_CELLS)) - _
 # scripts/chan_gap_main_replay.py output is on file. No new kill switch.
 _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(CHAN_GAP_SHORT_TAG, CHAN_GAP_SHORT_TAG)
 REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | {CHAN_GAP_SHORT_TAG}) - _replay_verified_tags()
+REPLAY_FAILED_TAGS = REPLAY_OWED_TAGS & _replay_failed_tags()  # B-1396: replay done, below floor: closed, not owed
+REPLAY_OWED_TAGS = REPLAY_OWED_TAGS - REPLAY_FAILED_TAGS
 CHAN_GAP_SCAN_START_MIN = 9 * 60 + 16
 CHAN_GAP_SCAN_END_MIN = 10 * 60 + 30
 _chan_gap_short_scan_day = None
@@ -27331,6 +27352,7 @@ def _live_entry_gate_summary(conn) -> dict:
         "active_names": len(sr.VIABLE_OVERRIDES),
         "wiring_pfnet_floor": sr.PFNET_LIVE_FLOOR,
         "replay_owed_tags": len(REPLAY_OWED_TAGS),
+        "replay_failed_tags": len(REPLAY_FAILED_TAGS),
         "rejected_today": _viability_rejections_today(conn),
         "checked_at": time.time(),
     }
@@ -27413,6 +27435,8 @@ def _viability_unlock_hint(conn, rejected: dict) -> dict:
         e["fixable"] = True
         if tag in REPLAY_OWED_TAGS:
             e["replay_owed"] = True
+        if tag in REPLAY_FAILED_TAGS:
+            e["replay_below_floor"] = True
         needs = {"pf_min": min(crit["pf_min"], m.pfnet), "pf_max": max(crit["pf_max"], m.pfnet),
                  "min_trades": min(crit["min_trades"], e["n_trades"]),
                  "max_hold_hrs": crit["max_hold_hrs"] if crit["max_hold_hrs"] is None or (

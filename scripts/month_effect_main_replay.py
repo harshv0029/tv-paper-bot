@@ -148,11 +148,38 @@ def merge(d):
                      "shards": e["shards"], "metrics": mt})
     out = {**meta, "rows": rows}
     json.dump(out, open(os.path.join(d, "month_effect_main_replay_all.json"), "w"), indent=1)
+    # B-1396b: the artifact is not downloadable by the coordinator, so the merged result is also printed on ONE log line
+    # in the layout main._replay_verified_tags() reads (commit as docs/backtest_data/month_effect_main_replay_run_<id>.json).
+    print("RESULTS_JSON: " + json.dumps(results_json(out, os.environ.get("GITHUB_RUN_ID")), separators=(",", ":")))
     for r in rows:
         mt = r["metrics"]
         print(r["tag"], "n", mt["n"], "pfnet", mt["pfnet"], "pfgross", mt["pfgross"], "win", mt["win_pct"],
               "hold_bars", mt["avg_held_bars"], mt["exit_reasons"])
     return out
+
+
+def results_json(merged, run_id=None):
+    """Merged replay -> the *main_replay_run_*.json layout: {"run_id", "source", "rows": [{"tag", "metrics", ...}]}.
+    Every measured field is kept (n, pfnet, pfgross, win_pct, avg_held_hours, avg_held_bars, avg_net/gross_pct,
+    exit_reasons) plus each row's interval/spec/n_symbols/shards; 15m and 1d rows stay separate tags (never merged)."""
+    try:
+        rid = int(run_id) if run_id not in (None, "") else None
+    except (TypeError, ValueError):
+        rid = None
+    rows = []
+    for r in merged.get("rows", []):
+        mt = dict(r.get("metrics") or {})
+        for k in ("n", "pfnet", "pfgross", "win_pct", "avg_held_hours"):
+            mt.setdefault(k, None)
+        rows.append({"tag": r["tag"], "interval": r.get("interval"), "spec": r.get("spec"),
+                     "n_symbols": r.get("n_symbols"), "shards": r.get("shards"), "metrics": mt})
+    return {"run_id": rid,
+            "source": "scripts/month_effect_main_replay.py via .github/workflows/month-effect-main-replay.yml "
+                      "(B-965/B-1396b): real main.month_effect_short_entry_signal/_stop/_exit_reason, full NSE universe "
+                      "(main._load_nse_universe_from_file), entry=next-bar open, gap-aware stop, cost "
+                      f"{merged.get('cost_round_trip_pct')}% round trip",
+            "cost_round_trip_pct": merged.get("cost_round_trip_pct"), "synthetic": merged.get("synthetic"),
+            "note": merged.get("note"), "rows": rows}
 
 
 def plan(env=None):
