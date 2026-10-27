@@ -33,6 +33,22 @@
    "symbol": "COALINDIA.NS"
   },
   {
+   "day": "2026-10-27",
+   "entry_order_id": "261027000627287",
+   "entry_price": 72.74,
+   "first_seen_day": "2026-10-27",
+   "is_short": 0,
+   "kotak_trading_symbol": "NHPC-EQ",
+   "opened_at": 1793089546.0480351,
+   "owner": "swing",
+   "qty": 1,
+   "sl_trigger_price": 68.29,
+   "source": "position",
+   "stop_loss": 68.28606769016811,
+   "strategy": "gap_and_go",
+   "symbol": "NHPC.NS"
+  },
+  {
    "day": "2026-10-08",
    "entry_order_id": "261008000123602",
    "entry_price": 172.65,
