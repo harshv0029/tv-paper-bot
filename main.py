@@ -14179,6 +14179,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
     _load_viable_overrides()
     if not _is_strategy_viable_for_real_money(strategy_tag):
         _log_real_attempt(conn, symbol, "S", "skipped_strategy_not_viable", kotak_trading_symbol=kotak_symbol,
+                          strategy=strategy_tag,
                           detail=f"strategy {strategy_tag!r} no longer viable on the fresh stack re-check just before the order")
         return
 
@@ -14188,6 +14189,7 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         _log_real_attempt(
             conn, symbol, "S", "failed", kotak_trading_symbol=kotak_symbol, price_est=ltp,
             detail=result.get("detail"), raw_response=result.get("raw_response"),
+            strategy=strategy_tag,  # B-1285: failed entries count per tag in /entry-funnel
         )
         print(f"[REAL SHORT] entry FAILED for {kotak_symbol}: {result.get('detail')}")
         _flag_if_t1_restricted(conn, symbol, result.get("detail"))
@@ -14735,6 +14737,7 @@ def _maybe_place_real_entry(conn, symbol: str):
         _log_real_attempt(
             conn, symbol, "B", "failed", kotak_trading_symbol=kotak_symbol, price_est=ltp,
             detail=result.get("detail"), raw_response=result.get("raw_response"),
+            strategy=strategy_tag,  # B-1285: failed entries count per tag in /entry-funnel
         )
         print(f"[REAL TRADE] BUY FAILED {kotak_symbol}: {result.get('detail')}")
         _log_real_order_event(
@@ -17992,13 +17995,16 @@ def _run_fo_options_scan(conn):
     for (exchange_segment, instrument_token), descriptor in universe.items():
         if descriptor["kind"] != "option" or instrument_token in open_tokens:
             continue
-        _record_scheduler_check(f"{descriptor['kotak_trading_symbol']}:RSI2FO")
         if nse_fo_chain.must_force_close_before_expiry(descriptor["underlying"], descriptor["expiry"]):
+            _record_scheduler_skipped_visit()  # B-1271: visited, nothing evaluated
             continue  # too close to physical settlement to open a fresh position on this leg
 
         df = kotak_fo_candle_feed.read_fo_candles_as_df(instrument_token)
         if df is None:
+            _record_scheduler_skipped_visit()  # B-1271: no candles, nothing evaluated
             continue
+        # B-1271: a check is counted only once candles exist and the entry rule is actually evaluated
+        _record_scheduler_check(f"{descriptor['kotak_trading_symbol']}:RSI2FO")
         signal = fo_option_strategy.rsi2_mean_reversion_entry_signal(df)
         if signal is None:
             continue
@@ -20997,6 +21003,26 @@ def _record_scheduler_check(key: str):
     cutoff = now - _RECENT_CHECK_RETENTION_SECONDS
     while _recent_check_timestamps and _recent_check_timestamps[0] < cutoff:
         _recent_check_timestamps.pop(0)
+
+
+# B-1271: derivative-leg visits that were skipped before any evaluation
+# (force-close window, no candles). Counted apart from _scheduler_check_counts
+# so the "checks" figures mean evaluations, not visits. Resets per IST day.
+_scheduler_skipped_visits: dict = {"day": "", "n": 0}
+
+
+def _record_scheduler_skipped_visit():
+    today_str = ist_now().strftime("%Y-%m-%d")
+    if _scheduler_skipped_visits["day"] != today_str:
+        _scheduler_skipped_visits["day"] = today_str
+        _scheduler_skipped_visits["n"] = 0
+    _scheduler_skipped_visits["n"] += 1
+
+
+def _scheduler_skipped_visits_today() -> int:
+    if _scheduler_skipped_visits["day"] != ist_now().strftime("%Y-%m-%d"):
+        return 0
+    return _scheduler_skipped_visits["n"]
 
 
 def checks_in_last_seconds(seconds: float = _RECENT_CHECK_WINDOW_SECONDS) -> int:
@@ -26309,6 +26335,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "total_checks_today": total_checks_today,
         "total_checks_incl_derivative_legs": total_checks_incl_derivative_legs,
         "derivative_leg_checks_today": total_checks_incl_derivative_legs - total_checks_today,
+        "derivative_leg_visits_skipped_today": _scheduler_skipped_visits_today(),
         "checks_last_30s": checks_in_last_seconds(30),
         "fo_subscribed_instruments": fo_subscribed_instruments,
         "fo_connected": fo_status["connected"],
@@ -26771,7 +26798,7 @@ def _live_entry_gate_summary(conn) -> dict:
         trading_on = bool(is_trading_enabled(conn))
     except Exception:
         trading_on = None
-    return {
+    out = {
         "trading_enabled": trading_on,
         "requires_explorer_stack": bool(REAL_ENTRY_REQUIRES_EXPLORER_STACK),
         "stack_active": bool(sr.VIABLE_STACK_ACTIVE),
@@ -26781,6 +26808,8 @@ def _live_entry_gate_summary(conn) -> dict:
         "rejected_today": _viability_rejections_today(conn),
         "checked_at": time.time(),
     }
+    out["unlock_hint"] = _viability_unlock_hint(conn, out["rejected_today"])
+    return out
 
 
 def _viability_rejections_today(conn, day: str | None = None) -> dict:
@@ -26813,6 +26842,55 @@ def _viability_rejections_today(conn, day: str | None = None) -> dict:
                   key=lambda r: (-r["count"], r["strategy"]))
     return {"day": day, "total": sum(r["count"] for r in rows),
             "symbols": len({(k[1], x) for k, v in by.items() for x in v["syms"]}), "by_strategy": rows}
+
+
+def _viability_unlock_hint(conn, rejected: dict) -> dict:
+    """B-1374 (user 2026-10-27: "change pfnet/min_trade/max_hold to x so that u can add at least 1 more trade"): for
+    each strategy the viability gate turned away today, the loosest values of the active 3-factor definition (PFnet
+    range, min backtested trades, max avg hold hours) that would have let it in, read from its stored registry
+    metrics. `easiest` is the one needing the fewest factor changes (then the smallest PFnet drop, then the most
+    rejected attempts). A guide only: nothing here changes the live definition."""
+    crit = None
+    try:
+        row = conn.execute("SELECT label FROM strategy_viable_stack ORDER BY id DESC LIMIT 1").fetchone()
+        crit = _stack_criteria(row[0]) if row else None
+    except Exception:
+        pass
+    per = []
+    for r in (rejected or {}).get("by_strategy", []):
+        tag = r["strategy"]
+        e = {"strategy": tag, "segment": r.get("segment"), "count": r["count"], "fixable": False}
+        reg = _STRATEGY_TAG_TO_REGISTRY_NAME.get(tag)
+        strat = _registry_entry(reg) if reg else None
+        m = strat.metrics if strat is not None else None
+        if m is None or m.pfnet is None:
+            e["note"] = "no registry entry" if strat is None else "no backtest metrics"
+            per.append(e)
+            continue
+        e.update(registry=reg, pfnet=m.pfnet, n_trades=m.n_trades or 0, hold_hrs=m.avg_held_hrs)
+        if tag in REPLAY_OWED_TAGS:
+            e["note"] = "replay owed (the 3 factors cannot admit it)"
+            per.append(e)
+            continue
+        e["fixable"] = True
+        if crit is None:
+            e["needs"], e["changes"] = {}, []
+            e["note"] = "no 3-factor definition active: save one that includes it in View 1"
+            per.append(e)
+            continue
+        needs = {"pf_min": min(crit["pf_min"], m.pfnet), "pf_max": max(crit["pf_max"], m.pfnet),
+                 "min_trades": min(crit["min_trades"], e["n_trades"]),
+                 "max_hold_hrs": crit["max_hold_hrs"] if crit["max_hold_hrs"] is None or (
+                     m.avg_held_hrs is not None and m.avg_held_hrs <= crit["max_hold_hrs"]) else (
+                     None if m.avg_held_hrs is None else m.avg_held_hrs)}
+        e["needs"] = needs
+        e["changes"] = [k for k in ("pf_min", "pf_max", "min_trades", "max_hold_hrs") if needs[k] != crit[k]]
+        if not e["changes"]:
+            e["note"] = "already passes the active definition (rejected by another rule: switch, stack not loaded)"
+        per.append(e)
+    fix = [e for e in per if e["fixable"] and e.get("changes")]
+    easiest = min(fix, key=lambda e: (len(e["changes"]), crit["pf_min"] - e["needs"]["pf_min"], -e["count"])) if fix else None
+    return {"criteria": crit, "per_strategy": per, "easiest": easiest}
 
 
 @app.post("/strategy-viable-override")
@@ -26901,7 +26979,7 @@ def entry_funnel():
     day = ist_now().strftime("%Y-%m-%d")
     cats = ["buy", "short_sell", "swing", "bidirectional", "futures", "options"]
     out = {c: {"viable_strategies": 0, "scans_today": 0, "paper_entries_today": 0,
-               "attempts": {}, "placed": 0, "blocked": 0, "_fired": set(), "_strats": {}} for c in cats}
+               "attempts": {}, "placed": 0, "blocked": 0, "failed": 0, "_fired": set(), "_strats": {}} for c in cats}
     tag_cats = {}
 
     def _srow(c, tag):
@@ -26945,37 +27023,36 @@ def entry_funnel():
     finally:
         conn.close()
     for strat, side, status, n, syms in rows:
+        st = str(status)
+        _skipped = st.startswith("skipped")
+        _is_placed = st in ("confirmed", "placed", "filled", "ok") or st.startswith(("placed", "filled", "ok", "confirmed"))
+        if not strat and not _skipped:
+            continue  # B-1285: untagged order rows are exits, partial exits, force-closes, reconciles - not entry attempts
         cs = tag_cats.get(strat) or [("short_sell" if str(side).upper().startswith("S") else "buy")]
+        _short_tag = "short" in re.split(r"[_\-]+", str(strat or "").lower())
         for c in cs:
+            if not _skipped and c != "bidirectional":
+                _entry_side = "S" if (c == "short_sell" or _short_tag) else "B"
+                if not str(side).upper().startswith(_entry_side):
+                    continue  # B-1282/B-1285: a long's sell or a short's cover is an exit, not an entry attempt
             o = out[c]
             o["_fired"].add(strat)  # any real-entry attempt means that strategy's setup fired
-            d = o["attempts"].setdefault(str(status), {"attempts": 0, "symbols": 0})
+            d = o["attempts"].setdefault(st, {"attempts": 0, "symbols": 0})
             d["attempts"] += n
             d["symbols"] += syms
             _r = _srow(c, strat)
-            _r["attempts"] += n
             _r["symbols_fired"] += syms
-            if str(status).startswith("skipped"):
-                _r["skip_reasons"][str(status)] = _r["skip_reasons"].get(str(status), 0) + n
-            _is_placed = str(status) in ("confirmed", "placed", "filled", "ok") or str(status).startswith(("placed", "filled", "ok"))
-            if _is_placed and not (c == "short_sell" and side == "B"):  # B-1282: a real order logs 'confirmed'; a short's cover (side B) is not an entry
-                _r["placed"] += n
-            elif str(status).startswith("skipped"):
-                _r["blocked"] += n
-            key = "placed" if (_is_placed and not (c == "short_sell" and side == "B")) else (
-                "blocked" if str(status).startswith("skipped") else None)
-            if key:
-                o[key] += n
-            elif not _is_placed:  # B-1285: rejected/errored attempts were counted nowhere
-                _r["failed"] += n
-                o["failed"] = o.get("failed", 0) + n
+            if _skipped:
+                _r["skip_reasons"][st] = _r["skip_reasons"].get(st, 0) + n
+            key = "blocked" if _skipped else ("placed" if _is_placed else "failed")  # B-1285: rejected/errored = failed
+            _r[key] += n
+            o[key] += n
     for c, o in out.items():
-        o.setdefault("failed", 0)
         o["attempts_total"] = o["placed"] + o["blocked"] + o["failed"]
         o["strategies_fired"] = len(o.pop("_fired"))
         _all = sorted(o.pop("_strats").values(), key=lambda r: r["strategy"])
-        for _r in _all:  # B-1285: per-tag attempts_total = placed + blocked + failed
-            _r["attempts_total"] = _r["placed"] + _r["blocked"] + _r["failed"]
+        for _r in _all:  # B-1285: per-tag attempts = attempts_total = placed + blocked + failed (exits excluded)
+            _r["attempts_total"] = _r["attempts"] = _r["placed"] + _r["blocked"] + _r["failed"]
         o["strategies"] = [r for r in _all if r["fired"] or r["attempts"] or r.get("blocked_triggers")]
         o["no_signal_strategies"] = [{"strategy": r["strategy"], "scans": r["scans"]}
                                      for r in _all if not (r["fired"] or r["attempts"] or r.get("blocked_triggers"))]
