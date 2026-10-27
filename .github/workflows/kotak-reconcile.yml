@@ -153,6 +153,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No change - nothing to commit"
           else
-            git commit -m "Kotak reconciliation: $(jq -r '"\(.qty_corrected_count) qty fix(es), \(.removed_ghost_count) ghost(s) removed, \(.untracked_open_positions_count) untracked"' /tmp/reconcile-result.json)"
+            git commit -m "Kotak reconciliation: $(jq -r '"\(.qty_corrected_count) qty fix(es), \(.removed_ghost_count) ghost(s) removed, \(.untracked_open_positions_count) untracked"' /tmp/reconcile-result.json) [skip render]"
             git pull --rebase origin "${GITHUB_REF_NAME}" && git push
           fi
