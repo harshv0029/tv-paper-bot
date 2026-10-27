@@ -8735,7 +8735,19 @@
    "prev_state": null,
    "new_state": "held - no sell placed",
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 728,
+   "ts": 1793091743.2530057,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": "GSEC5IETF-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261027000709191 rejected: RMS:Rule: Assigned basket  for entity account-XUAEZ across exchange across segment across product "
   }
  ],
- "synced_at_utc": "2026-10-27T08:51:40Z"
+ "synced_at_utc": "2026-10-27T09:02:26Z"
 }
