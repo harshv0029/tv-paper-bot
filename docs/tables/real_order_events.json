@@ -9635,7 +9635,19 @@
    "prev_state": null,
    "new_state": "rejected",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 15:28:48 S SL qty 8 trg 126.73 status rejected rejRsn OMS: Order Rejected due to CAS session end"
+  },
+  {
+   "id": 804,
+   "ts": 1793096662.508716,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000886865 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :126.73,  Low Price Range:127.07 High Price Range:134.91  for entity account-XUAEZ across exchange across segment across product "
   }
  ],
- "synced_at_utc": "2026-10-27T10:24:05Z"
+ "synced_at_utc": "2026-10-27T10:24:50Z"
 }
