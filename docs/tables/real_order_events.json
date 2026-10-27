@@ -10571,7 +10571,19 @@
    "prev_state": "unprotected for 1401s",
    "new_state": "forcing full cover",
    "detail": "reason: automatic sl emergency_exit_triggered by the real-order engine | protection_degraded_since timeout (60s) exceeded"
+  },
+  {
+   "id": 882,
+   "ts": 1793130709.8791811,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 2",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: emergency: no resting stop for 1401s (tolerance 60s)"
   }
  ],
- "synced_at_utc": "2026-10-27T19:51:48Z"
+ "synced_at_utc": "2026-10-27T19:51:56Z"
 }
