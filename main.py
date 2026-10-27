@@ -26681,9 +26681,27 @@ _VIABLE_STACK_GIT_BRANCH = "data-viable-stack"
 _VIABLE_STACK_GIT_PATH = "docs/viable_stack.json"
 
 
-def _push_viable_stack_to_git() -> bool:
+def _viable_stack_union_git(rows: list, cur) -> list:
+    """B-1377: union local rows with the remote copy's rows by (round(created_at,3), label); keep the newest
+    VIABLE_STACK_SIZE by created_at, newest first. Raises when the remote copy cannot be read/decoded."""
+    data = json.loads(base64.b64decode(cur.json().get("content") or "").decode() or "[]")
+    remote = (data.get("stack") if isinstance(data, dict) else data) or []
+    seen = {(round(float(r["created_at"] or 0), 3), str(r["label"] or "")) for r in rows}
+    out = list(rows)
+    for r in remote:
+        k = (round(float(r.get("created_at") or 0), 3), str(r.get("label") or ""))
+        if r.get("created_at") and r.get("names") is not None and k not in seen:
+            seen.add(k)
+            out.append({"id": r.get("id"), "created_at": r["created_at"], "label": r.get("label"), "names": r["names"]})
+    return sorted(out, key=lambda r: float(r["created_at"] or 0), reverse=True)[:VIABLE_STACK_SIZE]
+
+
+def _push_viable_stack_to_git(allow_drop: bool = False) -> bool:
     """B-1312: commit the stack to a side branch (never main: a push to main redeploys Render) on every Explorer save,
-    so a restart/deploy can never lose it. Needs env GITHUB_SYNC_TOKEN (contents:write); no-op without it. Never raises."""
+    so a restart/deploy can never lose it. Needs env GITHUB_SYNC_TOKEN (contents:write); no-op without it. Never raises.
+    B-1377: unless allow_drop (only the owner's own save/undo/restore endpoint), the push is a UNION with the remote
+    copy (same rule as _viable_stack_push_direct for the Redis key), so a stale instance can never overwrite a newer
+    saved definition; if the remote copy cannot be read (anything but 404 not-found) the push is skipped."""
     token = os.environ.get("GITHUB_SYNC_TOKEN")
     if not token:
         return False
@@ -26708,6 +26726,19 @@ def _push_viable_stack_to_git() -> bool:
                 mk.raise_for_status()
             cur = requests.get(f"{api}/contents/{_VIABLE_STACK_GIT_PATH}", params={"ref": _VIABLE_STACK_GIT_BRANCH},
                                headers=hdr, timeout=10)
+        if not allow_drop:
+            if cur.status_code == 200:
+                try:
+                    rows = _viable_stack_union_git(rows, cur)
+                except Exception as e:  # noqa: BLE001
+                    _VIABLE_STACK_MIRROR_STATE["last_git_push"] = f"skipped: remote unreadable: {str(e)[:120]}"
+                    print(f"[VIABLE-STACK] side-branch push union read failed, not pushing: {e}")
+                    return False
+            elif cur.status_code != 404:
+                _VIABLE_STACK_MIRROR_STATE["last_git_push"] = f"skipped: remote read HTTP {cur.status_code}"
+                print(f"[VIABLE-STACK] side-branch push skipped: remote read HTTP {cur.status_code}")
+                return False
+            body = json.dumps({"size": VIABLE_STACK_SIZE, "stack": rows}, indent=2)
         payload = {"message": f"viable stack saved ({len(rows)} entries)",
                    "content": base64.b64encode(body.encode()).decode(), "branch": _VIABLE_STACK_GIT_BRANCH}
         if cur.status_code == 200:
@@ -27035,7 +27066,7 @@ async def strategy_viable_override(request: Request):
     except Exception as e:
         print(f"[viable_stack] mirror failed (non-fatal): {e}")
     _viable_stack_push_direct(allow_drop=True)
-    threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
+    threading.Thread(target=_push_viable_stack_to_git, kwargs={"allow_drop": True}, daemon=True).start()
     active = _load_viable_overrides()
     with closing(get_db()) as c:
         return {"action": action, "active_count": len(active), "stack": _viable_stack_rows(c)}
