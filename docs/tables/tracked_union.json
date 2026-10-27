@@ -9,7 +9,7 @@
       "source": "holding",
       "entry_price": 134.39,
       "stop_loss": 115.72,
-      "sl_trigger_price": 120.91,
+      "sl_trigger_price": 126.73,
       "strategy": "order_block_delta",
       "entry_order_id": "261009000196477",
       "opened_at": 1791522706.9950182,
@@ -25,7 +25,7 @@
       "source": "holding",
       "entry_price": 409.5,
       "stop_loss": 373.22,
-      "sl_trigger_price": 373.2,
+      "sl_trigger_price": 398.35,
       "strategy": "order_block_delta",
       "entry_order_id": "261009000196783",
       "opened_at": 1791522728.415014,
@@ -33,20 +33,20 @@
       "first_seen_day": "2026-10-09"
     },
     {
-      "kotak_trading_symbol": "GSEC5IETF-EQ",
-      "symbol": "GSEC5IETF.NS",
-      "qty": 2,
+      "kotak_trading_symbol": "NHPC-EQ",
+      "symbol": "NHPC.NS",
+      "qty": 1,
       "is_short": 0,
       "owner": "swing",
-      "source": "holding",
-      "entry_price": 65.5,
-      "stop_loss": 63.93,
-      "sl_trigger_price": 63.93,
-      "strategy": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-      "entry_order_id": "261016000301591",
-      "opened_at": 1792130369.5525527,
-      "day": "2026-10-16",
-      "first_seen_day": "2026-10-16"
+      "source": "position",
+      "entry_price": 72.74,
+      "stop_loss": 68.28606769016811,
+      "sl_trigger_price": 68.29,
+      "strategy": "gap_and_go",
+      "entry_order_id": "261027000627287",
+      "opened_at": 1793089546.0480351,
+      "day": "2026-10-27",
+      "first_seen_day": "2026-10-27"
     },
     {
       "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -73,7 +73,7 @@
       "source": "holding",
       "entry_price": 188.75,
       "stop_loss": 175.12,
-      "sl_trigger_price": 175.88,
+      "sl_trigger_price": 175.12,
       "strategy": "swing_rerouted_orphan",
       "entry_order_id": "261021000144947",
       "opened_at": 1792578447.972194,
@@ -81,5 +81,5 @@
       "first_seen_day": "2026-10-21"
     }
   ],
-  "synced_at_utc": "2026-10-26T15:13:12Z"
+  "synced_at_utc": "2026-10-27T08:28:54Z"
 }
