@@ -53,8 +53,9 @@ def test_fo_and_equity_heavy_resolves_never_overlap():
 
 def test_run_fo_candle_feed_source_uses_the_shared_lock():
     import inspect
-    src = inspect.getsource(fo_feed.run_fo_candle_feed)
-    assert "async with main._heavy_startup_resolve_lock:" in src
+    src = inspect.getsource(fo_feed._resolve_full_universe)  # B-1388: the full resolve moved out of run_fo_candle_feed
+    assert "async with main_mod._heavy_startup_resolve_lock:" in src
+    assert "_resolve_full_universe(main)" in inspect.getsource(fo_feed.run_fo_candle_feed)
 
 
 def test_run_feed_source_uses_the_shared_lock():

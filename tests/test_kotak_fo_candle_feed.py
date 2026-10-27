@@ -310,7 +310,7 @@ def test_run_fo_candle_feed_resolves_the_universe_off_the_event_loop():
     # asyncio.to_thread) by name in source, AND functionally: a concurrent
     # asyncio task must be able to make progress WHILE resolve_fo_universe
     # is still running, not just after it returns.
-    src = inspect.getsource(feed.run_fo_candle_feed)
+    src = inspect.getsource(feed.run_fo_candle_feed) + inspect.getsource(feed._resolve_full_universe)  # B-1388 split
     # asyncio.to_thread(resolve_fo_universe) is now wrapped in
     # asyncio.wait_for (2026-09-16/17, live "both feeds stuck forever"
     # follow-up - see FO_UNIVERSE_RESOLVE_TIMEOUT_SECONDS's own
@@ -564,5 +564,6 @@ def test_universe_missing_an_index_is_retried_in_minutes_not_hours():
 
 def test_message_loop_checks_refresh_and_clears_connected_when_stream_ends():
     src = inspect.getsource(feed.run_fo_candle_feed)
-    assert "universe_refresh_due()" in src.split("async for first in ws:")[1]
+    assert "background_resolve_step(main)" in src.split("async for first in ws:")[1]
+    assert "universe_refresh_due()" in inspect.getsource(feed.background_resolve_step)
     assert "stream_ended_without_error" in src
