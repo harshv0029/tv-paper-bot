@@ -188,6 +188,7 @@ _universe_cache = {"value": None, "resolved_at": 0.0, "partial": False}
 _bg_resolve = {"task": None, "failed_at": 0.0, "swapped": False}
 BG_RESOLVE_RETRY_SECONDS = 5 * 60
 INDEX_ONLY_RESOLVE_TIMEOUT_SECONDS = 180
+STREAM_IDLE_WAKE_SECONDS = 5.0  # B-1389: max wait between background-resolve checks on a silent stream
 
 # Live finding (2026-09-22): STOCK_FO_UNDERLYINGS is a fixed alphabetical
 # tuple and resolve_fo_universe() always walked it start-to-end - so once
@@ -700,12 +701,24 @@ async def run_fo_candle_feed():
                 _feed_status["connect_count"] += 1
                 backoff = RESTART_BACKOFF_MIN_SECONDS
                 refresh_now = False
-                async for first in ws:
+                ticks = ws.__aiter__()
+                while True:
+                    # B-1389: wake every STREAM_IDLE_WAKE_SECONDS even with no ticks (after 15:30 IST nothing
+                    # ticks), so a finished background resolve is swapped in instead of waiting for the next
+                    # tick. Safe: the SDK's __anext__ is a queue.get, so a timed-out wait drops no message.
+                    try:
+                        first = await asyncio.wait_for(ticks.__anext__(), timeout=STREAM_IDLE_WAKE_SECONDS)
+                    except asyncio.TimeoutError:
+                        first = None
+                    except StopAsyncIteration:
+                        break
                     if background_resolve_step(main):
                         # B-865/B-1388: reconnect onto the freshly resolved universe (stock legs after a cold
                         # start, ATM drift, expiry roll); the resolve itself ran in the background while streaming.
                         refresh_now = True
                         break
+                    if first is None:
+                        continue
                     # B-1382: take every queued tick in this wake-up (the SDK queue is unbounded) and open the DB
                     # only when a tick closes a candle, not once per tick.
                     process_fo_ticks(kotak_live_feed.drain_pending(ws, first), universe, SFeedScrip)
