@@ -187,3 +187,16 @@ def test_entry_bar_is_last_completed_hourly_bar():
     assert main._swing_1h_entry_bar(df, OPENED_AT) == "2026-10-16 10:15"
     assert main._swing_1h_entry_bar(df, _ist_epoch("2026-10-16 09:30")) is None
     assert main._swing_1h_entry_bar(df, 0) is None
+
+
+def test_1h_pass_also_visits_held_symbols_outside_watchlist():
+    """B-1381: GSEC5IETF (not in NIFTY-200) holds a macddiv 1h row; its exit must be evaluated."""
+    import sqlite3
+    import main
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE signal_state_swing (symbol TEXT PRIMARY KEY, strategy TEXT)")
+    tag = main.MACDDIV_LONG_LIVE_CELLS[0]
+    conn.executemany("INSERT INTO signal_state_swing VALUES (?, ?)",
+                     [("GSEC5IETF.NS", tag), ("WIPRO.NS", tag), ("XYZ.NS", "gap_and_go")])
+    out = main._with_held_1h_long_symbols(conn, ["WIPRO.NS", "TCS.NS"])
+    assert out == ["WIPRO.NS", "TCS.NS", "GSEC5IETF.NS"]

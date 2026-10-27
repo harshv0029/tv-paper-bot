@@ -15,7 +15,7 @@ Total rows: 1134 | closed: 512 | not closed: 622
 | CLOSED | 83 |
 | DONE-PENDING-VERIFY | 83 |
 | BLOCKED | 63 |
-| OPEN | 46 |
+| OPEN | 45 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -47,6 +47,7 @@ Total rows: 1134 | closed: 512 | not closed: 622
 | FIXED-LOCAL | 2 |
 | KOTAK | 2 |
 | RECONCILE | 2 |
+| REAL | 2 |
 | JIOFIN26OCT217 | 2 |
 | DONE-MEASURED | 1 |
 | BLOCKED-ON-RUN | 1 |
@@ -64,7 +65,6 @@ Total rows: 1134 | closed: 512 | not closed: 622
 | CODE | 1 |
 | JIOFIN | 1 |
 | VIABLE | 1 |
-| REAL | 1 |
 | B-1319 | 1 |
 | T1 | 1 |
 | ITC | 1 |
@@ -135,6 +135,7 @@ Total rows: 1134 | closed: 512 | not closed: 622
 | B-404 | P0 | DONE-PENDING-VERIFY | User 2026-10-11 IST (explicit; this is the user's own ask, so it satisfies the "ask before adding a kill sw... | owed, pending, verify, needs |
 | B-410 | P0 | DONE-PENDING-VERIFY | B-404 delivered 2026-10-11 IST: per-category real-trading toggles (real_enabled_equity / _swing / _fo) as K... | owed, pending, verify |
 | B-1377 | P0 | DONE-PENDING-VERIFY | 2026-10-27 09:20 IST | pending |
+| B-1382 | P0 | DONE-PENDING-VERIFY | 2026-10-27 11:40 IST | pending |
 | B-19 | P1 | DONE-PENDING-VERIFY | User: leave until 8am 6 Oct 2026. Suspected T1/settlement rejection (unconfirmed) | pending, verify |
 | B-31 | P1 | DONE-PENDING-VERIFY | Deploy Gate #321 passed: gifted-bell merged to main (4863323), 2026-10-05. Remaining: confirm OB/VP appear ... | remaining, pending, verify, needs, unverified |
 | B-46 | P1 | DONE-PENDING-VERIFY | 2026-10-11 IST closure pass: Code + tests/test_holdings_fallback.py on main; remaining check (NYKAA-like ho... | owed, remaining, pending, verify, needs |
@@ -285,7 +286,6 @@ Total rows: 1134 | closed: 512 | not closed: 622
 | B-867 | P1 | BUILT-ON-BRANCH | 2026-10-12 | owed, pending |
 | B-1371 | P1 | DONE-PENDING-VERIFY | 2026-10-26 23:20 IST | pending, owner |
 | B-1376 | P1 | DONE-PENDING-VERIFY | 2026-10-27 09:20 IST | pending |
-| B-1381 | P1 | DONE-PENDING-VERIFY | 2026-10-27 09:55 IST | pending, owner |
 | B-289 | P2 | BUILT-ON-BRANCH |  | owed, not merged, follow-up |
 | B-312 | P2 | DONE-PENDING-VERIFY | GMRAIRPORT duplicate SL attempt 2026-10-08 (Kotak SL snapshot, 9:18 AM IST): reconcile placed SL 2610080000... | owed, pending, verify |
 | B-313 | P2 | DONE-PENDING-VERIFY | Overnight phantom SHORT emergency-cover loop (journal real_order_log, 08-Oct 1:00-1:43 AM IST, market close... | owed, pending, verify |
@@ -511,7 +511,6 @@ Total rows: 1134 | closed: 512 | not closed: 622
 | B-1359 | P0 | FOUND | 2026-10-23 17:05 IST | verify |
 | B-1363 | P0 | P0 | DEPLOYED 2026-10-26 (92c38c40 on main, confirmed 18:50 IST) | verify, follow-up |
 | B-1379 | P0 | LIVE | 2026-10-27 09:55 IST |  |
-| B-1382 | P0 | OPEN | 2026-10-27 11:40 IST |  |
 | B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, remaining, needs |
 | B-850 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (Elder >=1.1 cells validation across candle sizes; also covers B-852) |  |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... |  |
@@ -539,6 +538,7 @@ Total rows: 1134 | closed: 512 | not closed: 622
 | B-1362 | P1 | RESIDUAL | 2026-10-24 20:25 IST | owed |
 | B-1364 | P1 | P1 | DEPLOYED 2026-10-26 20:53 IST (Deploy Gate; main has e52fd5f2; /health watchdog_alarms 0, loop_lag 1.0s; /s... | verify |
 | B-1378 | P1 | OBSERVABILITY | 2026-10-27 09:20 IST | blocked, follow-up |
+| B-1381 | P1 | REAL | 2026-10-27 09:55 IST | pending, owner, follow-up |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
