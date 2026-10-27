@@ -17,6 +17,38 @@
    "symbol": "BANKINDIA.NS"
   },
   {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": null,
+   "first_seen_day": "2026-10-27",
+   "is_short": 0,
+   "kotak_trading_symbol": "NHPC-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "position",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
+  },
+  {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": null,
+   "first_seen_day": "2026-10-27",
+   "is_short": 0,
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "opened_at": null,
+   "owner": "untracked",
+   "qty": 2,
+   "sl_trigger_price": null,
+   "source": "position",
+   "stop_loss": null,
+   "strategy": null,
+   "symbol": null
+  },
+  {
    "day": "2026-10-08",
    "entry_order_id": "261008000123602",
    "entry_price": 172.65,
