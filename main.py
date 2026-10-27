@@ -23413,14 +23413,24 @@ for _t in MONTH_EFFECT_SHORT_CELLS:
 REPLAY_OWED_TAGS = REPLAY_OWED_TAGS | (frozenset(MONTH_EFFECT_SHORT_TAGS) - _replay_verified_tags())
 
 
+def _month_effect_bar_times(df) -> pd.DatetimeIndex:
+    """Bar timestamps of a frame, IST calendar. B-1396c: fetch_ohlc returns a RangeIndex with the time in a "Date"
+    column; reading df.index there gave 1970-01-01 for every bar, so the September-1 signal could never fire (replay
+    n=0 on 1d and 15m, and the live paper pass the same). Prefers the "Date" column, else a DatetimeIndex."""
+    t = pd.DatetimeIndex(pd.to_datetime(df["Date"])) if "Date" in getattr(df, "columns", ()) else pd.DatetimeIndex(df.index)
+    if t.tz is not None:
+        t = t.tz_convert("Asia/Kolkata")
+    return t
+
+
 def month_effect_short_entry_signal(df, atr_mult: float, month: int = MONTH_EFFECT_SHORT_MONTH):
-    """True-signal check on the LAST bar of df (any intraday frame with a DatetimeIndex): it is the first bar of a new
-    calendar `month` (pattern_lab r_calendar: first = month changed vs the previous bar). Returns
-    {signal_pos, atr, atr_mult, close} or None. The stop is derived by month_effect_short_stop; ATR must be valid."""
+    """True-signal check on the LAST bar of df (a frame with a "Date" column, as fetch_ohlc returns, or a DatetimeIndex):
+    it is the first bar of a new calendar `month` (pattern_lab r_calendar: first = month changed vs the previous bar).
+    Returns {signal_pos, atr, atr_mult, close} or None. The stop is derived by month_effect_short_stop; ATR must be valid."""
     n = len(df)
     if n < 16 or not atr_mult or atr_mult <= 0:
         return None
-    idx = pd.DatetimeIndex(df.index)
+    idx = _month_effect_bar_times(df)
     if idx[-1].month != month or idx[-2].month == idx[-1].month:
         return None
     atr = chan_atr14(df["High"].to_numpy(float), df["Low"].to_numpy(float), df["Close"].to_numpy(float))
@@ -23483,7 +23493,7 @@ def _month_effect_short_try_entry(conn, symbol, df15, capital, risk_pct, today, 
             return None
     if conn.execute("SELECT 1 FROM signal_state WHERE symbol = ? AND status = 'long'", (symbol,)).fetchone():
         return None
-    idx = pd.DatetimeIndex(df15.index)
+    idx = _month_effect_bar_times(df15)
     firsts = [i for i in range(1, len(idx)) if idx[i].month == MONTH_EFFECT_SHORT_MONTH and idx[i - 1].month != idx[i].month]
     if not firsts:
         return None
