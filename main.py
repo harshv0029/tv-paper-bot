@@ -26435,6 +26435,46 @@ def algo_live_flow(window: int = 120, before: int = 8, after: int = 30):
     }
 
 
+def _symbol_check_counts_today() -> dict:
+    """B-1336: per-symbol coverage for the current IST day, read from the durable per-day counters (each already
+    Upstash-mirrored and restored after a Render restart): distinct strategy tags tested (_symbol_strategy_scans,
+    B-1278), total strategy scans (sum of _pair_scan_stats counts, trade view2/3 mirror) and scheduler checks
+    (_scheduler_check_counts, keys 'SYM' or 'SYM:LEG' folded to SYM). A counter from a previous IST day counts 0.
+    Display only; never touches order logic."""
+    today = ist_now().strftime("%Y-%m-%d")
+    out: dict = {}
+
+    def row(sym):
+        return out.setdefault(sym, {"strategies_tested": 0, "strategy_scans": 0, "scheduler_checks": 0})
+
+    if _symbol_strategy_scans_day == today:
+        for sym, tags in list(_symbol_strategy_scans.items()):
+            row(sym)["strategies_tested"] = len(tags)
+    if _pair_scan_day == today:
+        for (_tag, sym), rec in list(_pair_scan_stats.items()):
+            row(sym)["strategy_scans"] += int(rec[0] or 0)
+    if _scheduler_check_counts_day == today:
+        for key, n in list(_scheduler_check_counts.items()):
+            row(str(key).split(":", 1)[0])["scheduler_checks"] += int(n or 0)
+    return {"day_ist": today, "by_symbol": out}
+
+
+@app.get("/symbol-check-counts-today")
+def symbol_check_counts_today():
+    """B-1336: View 4's per-symbol counts for the whole IST day (not /algo-live-flow's 2-minute, 400-event window)."""
+    d = _symbol_check_counts_today()
+    by = d["by_symbol"]
+    tested = [r["strategies_tested"] for r in by.values()]
+    return {
+        **d,
+        "symbols": len(by),
+        "strategies_tested_max": max(tested) if tested else 0,
+        "strategies_tested_min": min(tested) if tested else 0,
+        "swing_skipped_today": dict(_swing_skipped_today["syms"]) if _swing_skipped_today.get("day") == d["day_ist"] else {},
+        "server_time_utc": time.time(),
+    }
+
+
 @app.get("/trade-history")
 def trade_history(days: int = 1):
     """Every closed trade in the last `days` IST calendar days (default:
