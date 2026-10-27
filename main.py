@@ -21109,12 +21109,91 @@ def _note_symbol_strategy_scan(sym, tag):
 _swing_skipped_today: dict = {"day": "", "syms": {}}
 
 
+# B-1376: durable in Upstash (one small JSON key) so a Render restart does not blank View 4's skipped list.
+_SWING_SKIPPED_REDIS_KEY = "tv_paper_bot:swing_skipped_today:v1"
+_swing_skipped_push_lock = threading.Lock()
+_swing_skipped_push_state = {"running": False, "dirty": False}
+
+
+def _swing_skipped_push() -> bool:
+    """Write today's skipped map to its Upstash key. Best-effort; never raises."""
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            return False
+        snap = {"day": _swing_skipped_today.get("day") or "", "syms": dict(_swing_skipped_today.get("syms") or {})}
+        if not snap["day"]:
+            return False
+        _upstash_set(_SWING_SKIPPED_REDIS_KEY, json.dumps(snap, separators=(",", ":")))
+        return True
+    except Exception as e:  # noqa: BLE001
+        print(f"[swing_skipped] push failed (non-fatal): {e}")
+        return False
+
+
+def _swing_skipped_flush_loop():
+    st = _swing_skipped_push_state
+    while True:
+        with _swing_skipped_push_lock:
+            if not st["dirty"]:
+                st["running"] = False
+                return
+            st["dirty"] = False
+        _swing_skipped_push()
+        time.sleep(2.0)  # coalesce a burst of skips in one swing pass into a few writes
+
+
+def _swing_skipped_schedule_push():
+    """Mark dirty and start one coalescing background writer if none is running, so the swing scan never waits on
+    Upstash. Never raises."""
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            return
+        st = _swing_skipped_push_state
+        with _swing_skipped_push_lock:
+            st["dirty"] = True
+            if st["running"]:
+                return
+            st["running"] = True
+        threading.Thread(target=_swing_skipped_flush_loop, name="swing-skipped-push", daemon=True).start()
+    except Exception:
+        _swing_skipped_push_state["running"] = False
+
+
+def hydrate_swing_skipped_from_external() -> int:
+    """Restore today's skipped map from Upstash at startup; a stored map from an earlier IST day is ignored. Merges
+    with anything already noted in this process. Returns symbols restored; never raises."""
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            return 0
+        raw = _upstash_get(_SWING_SKIPPED_REDIS_KEY)
+        if not raw:
+            return 0
+        data = json.loads(raw)
+        day = ist_now().strftime("%Y-%m-%d")
+        if not isinstance(data, dict) or data.get("day") != day or not isinstance(data.get("syms"), dict):
+            return 0
+        if _swing_skipped_today.get("day") != day:
+            _swing_skipped_today["day"], _swing_skipped_today["syms"] = day, {}
+        added = 0
+        for sym, why in data["syms"].items():
+            if sym not in _swing_skipped_today["syms"]:
+                _swing_skipped_today["syms"][sym] = why
+                added += 1
+        return added
+    except Exception as e:  # noqa: BLE001
+        print(f"[swing_skipped] restore failed (non-fatal): {e}")
+        return 0
+
+
 def _note_swing_skipped(symbol, why):
     try:
         day = ist_now().strftime("%Y-%m-%d")
         if _swing_skipped_today["day"] != day:
             _swing_skipped_today["day"], _swing_skipped_today["syms"] = day, {}
+        if _swing_skipped_today["syms"].get(symbol) == why:
+            return  # unchanged: no write
         _swing_skipped_today["syms"][symbol] = why
+        _swing_skipped_schedule_push()
     except Exception:
         pass
 
@@ -26000,6 +26079,13 @@ async def _start_scheduler():
                                timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
     except Exception as e:
         print(f"[table_mirror] startup hydrate skipped (non-fatal, retried per tick): {e}")
+    try:
+        _n_sk = await asyncio.wait_for(asyncio.to_thread(hydrate_swing_skipped_from_external),
+                                       timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
+        if _n_sk:
+            print(f"[swing_skipped] restored {_n_sk} skipped symbol(s) from Upstash")
+    except Exception as e:
+        print(f"[swing_skipped] startup restore skipped (non-fatal): {e}")
     try:
         await asyncio.wait_for(asyncio.to_thread(_startup_merge_viable_stack), timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
     except Exception as e:
