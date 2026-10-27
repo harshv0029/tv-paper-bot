@@ -9419,7 +9419,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000872411 rejected: OMS: Order Rejected due to CAS session end"
+  },
+  {
+   "id": 786,
+   "ts": 1793095163.3206005,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000872811 rejected: OMS: Order Rejected due to CAS session end"
   }
  ],
- "synced_at_utc": "2026-10-27T09:59:20Z"
+ "synced_at_utc": "2026-10-27T09:59:27Z"
 }
