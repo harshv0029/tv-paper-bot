@@ -9335,7 +9335,19 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261027000870279 rejected: OMS: Order Rejected due to CAS session end"
+  },
+  {
+   "id": 779,
+   "ts": 1793095117.2477992,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261027000870813 rejected: OMS: Order Rejected due to CAS session end"
   }
  ],
- "synced_at_utc": "2026-10-27T09:58:30Z"
+ "synced_at_utc": "2026-10-27T09:58:40Z"
 }
