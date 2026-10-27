@@ -1480,3 +1480,11 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **What broke:** the research harness's PFnet did not survive the move to the live code path; the gap (about 0.7) is far larger than sampling noise, so the research port and the live port differ (signal timing or exits). This file also stored metrics flat, so the gate never read it and the cells sat as "replay owed" for 2 weeks after the replay was done.
 - **Reuse:** trust only the main.py replay for a go/no-go; store replay rows with nested `metrics` (or keep `_replay_rows` reading both shapes); treat a research-vs-live gap above 0.2 PFnet as a port bug to find before any further sweep.
 - **Profit-booking / exit takeaway:** gross PF about 1.0 means no exit change rescues these cells at 0.8% cost; leave them closed for real money.
+
+## chan_shape mom_mr long 1d through the real main.py path (B-1396a, run 40572999957, 2026-10-28 IST)
+
+- **What ran:** the 6 wired `chan_shape__mom_mr__long__1d__*__nonovl__v2` cells, live main.py entry/exit, full NSE (2416 symbols with data), 5y daily, 0.8% cost, strict FIFO.
+- **Result (net / gross / win% / n / avg hold days):** atr1d5 h10 0.802/1.052/36.5/53997/8.0; atr1d5 h5 0.720/1.045/37.5/68654/4.5; atr2d5 h10 0.848/1.100/40.3/49520/9.3; atr2d5 h5 0.749/1.085/38.9/66639/4.9; atr4d0 h10 0.891/1.162/41.3/48369/9.8; atr4d0 h5 0.770/1.122/39.2/66290/5.0. None clears 1.1.
+- **What surprised:** trades that reach the max-hold timeout are profitable (PFnet 1.1-4.5) and every stop-loss exit loses; wider stops and the longer hold improve PFnet steadily, but gross PF of 1.05-1.16 leaves almost nothing after 0.8% cost.
+- **Reuse:** the monotone gain with wider ATR and longer hold says the edge is drift, not the shape signal; a hold-20/atr6 sweep is the only lever worth one more run, and only if gross PF moves well above 1.2.
+- **Profit-booking / exit takeaway:** do not book early: the timeout exits carry all the profit; the stop is the cost. Stay closed for real money.
