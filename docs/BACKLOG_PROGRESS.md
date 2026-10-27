@@ -16,7 +16,7 @@ Total rows: 1140 | closed: 511 | not closed: 629
 | DONE-PENDING-VERIFY | 77 |
 | BLOCKED | 63 |
 | P2 | 42 |
-| OPEN | 41 |
+| OPEN | 40 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
 | PENDING | 12 |
@@ -63,6 +63,7 @@ Total rows: 1140 | closed: 511 | not closed: 629
 | OWED | 1 |
 | NEEDS-OWNER | 1 |
 | CODE | 1 |
+| FIX | 1 |
 | JIOFIN | 1 |
 | VIABLE | 1 |
 | B-1319 | 1 |
@@ -96,7 +97,7 @@ Total rows: 1140 | closed: 511 | not closed: 629
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
-| B-1302 | P0 | OPEN | User 2026-10-21 IST: "set the priority order of items stored in Upstash, or move them to git on a 5-min syn... | open:, needs |
+| B-1302 | P0 | FIX | User 2026-10-21 IST: "set the priority order of items stored in Upstash, or move them to git on a 5-min syn... | open:, needs, awaiting, waiting |
 | B-1356 | P0 | OWNER-ACTION | 2026-10-23 16:05 IST | owner |
 | B-1357 | P0 | OWNER-ACTION | 2026-10-23 16:20 IST | owed, owner, follow-up |
 | B-1365 | P0 | OWNER-ACTION | 2026-10-26 18:55 IST | verify, owner |
