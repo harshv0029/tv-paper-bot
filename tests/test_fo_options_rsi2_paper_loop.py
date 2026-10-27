@@ -225,11 +225,10 @@ def test_scan_records_a_scheduler_check_for_each_flat_leg_considered():
             main._fo_options_scan_last_ts = 0.0
             with closing(main.get_db()) as conn:
                 main._run_fo_options_scan(conn)
-        # Recorded even though this leg didn't fire a signal - "checked"
-        # means the scheduler looked at it this tick, same semantics
-        # _record_scheduler_check already has for equity/options-overlay
-        # symbols, not "a signal fired".
-        assert main._scheduler_check_counts.get("NIFTY26OCT24500CE:RSI2FO") == 1
+        # B-1271: no candles means nothing was evaluated, so it is NOT a
+        # check; it is counted as a skipped visit instead.
+        assert main._scheduler_check_counts.get("NIFTY26OCT24500CE:RSI2FO") is None
+        assert main._scheduler_skipped_visits_today() >= 1
     finally:
         _restore_db(old_path)
 
