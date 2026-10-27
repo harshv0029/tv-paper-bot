@@ -8747,7 +8747,19 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261027000709191 rejected: RMS:Rule: Assigned basket  for entity account-XUAEZ across exchange across segment across product "
+  },
+  {
+   "id": 729,
+   "ts": 1793091751.1797862,
+   "symbol": "COALINDIA.NS",
+   "kotak_trading_symbol": "COALINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261027000709618",
+   "prev_state": "none",
+   "new_state": "resting BUY trigger Rs402.35",
+   "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during short governance backfill"
   }
  ],
- "synced_at_utc": "2026-10-27T09:02:26Z"
+ "synced_at_utc": "2026-10-27T09:02:34Z"
 }
