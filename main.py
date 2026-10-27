@@ -11128,21 +11128,17 @@ def _auto_signal_core(
 
         # B-960: chan_kalman band long (buy engine, 5m only, no new entries from 15:00 IST). Gated by the registry/PFnet
         # check inside; falls through to the regular strategy when no cell fires.
-        # B-1378: chan paths are evaluated even while the aggregate open-risk gate is closed; a fired cell is
-        # counted as a blocked trigger inside and places nothing (falls through, like an unfired cell).
-        if interval == "5m" and mins_now < CHAN_LONG_ENTRY_CUTOFF_MIN:
+        if interval == "5m" and mins_now < CHAN_LONG_ENTRY_CUTOFF_MIN and not agg_blocked:
             _chan_l = _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
                                            risk_per_trade_pct, fx_to_inr, currency, result,
-                                           require_real_tradability=require_real_tradability,
-                                           agg_blocked=agg_blocked)
+                                           require_real_tradability=require_real_tradability)
             if _chan_l is not None:
                 return _chan_l
         # B-982: chan_gap buy-on-gap (09:20-10:15 IST, top-10 ranked at the first completed bar); paper always, real gated.
-        if interval == "5m":
+        if interval == "5m" and not agg_blocked:
             _gap_l = _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
                                               risk_per_trade_pct, fx_to_inr, currency, result,
-                                              require_real_tradability=require_real_tradability, mins_now=mins_now,
-                                              agg_blocked=agg_blocked)
+                                              require_real_tradability=require_real_tradability, mins_now=mins_now)
             if _gap_l is not None:
                 return _gap_l
 
@@ -11772,8 +11768,7 @@ def _chan_long_manage(row, df, ts_utc, interval, mins_now, exit_price, halted):
 
 
 def _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
-                         risk_per_trade_pct, fx_to_inr, currency, result, require_real_tradability=False,
-                         agg_blocked=False):
+                         risk_per_trade_pct, fx_to_inr, currency, result, require_real_tradability=False):
     """Paper chan_kalman long entry (buy engine). Returns the result dict when it entered, else None (caller falls through).
     Every entry carries its protective stop (stop = close - atr_mult*ATR); the real mirror unwinds if the SL cannot rest."""
     sig, tag = None, None
@@ -11803,11 +11798,6 @@ def _chan_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interv
     _qs = ",".join("?" * len(CHAN_LONG_CELLS))
     if conn.execute(f"SELECT 1 FROM trades WHERE symbol = ? AND action = 'buy' AND ts >= ? AND strategy IN ({_qs})",
                     (symbol, ist_midnight_epoch(ist_now()), *CHAN_LONG_CELLS)).fetchone():
-        return None
-    if agg_blocked:
-        # B-1378 (B-1252 pattern): fired, but the aggregate open-risk cap is closed: counted, no order, fall through.
-        _record_blocked_trigger(tag)
-        result.setdefault("blocked_aggregate_open_risk_triggers", []).append(tag)
         return None
     liq_ok, _ = _liquidity_gate(df)
     if not liq_ok or _likely_lower_circuit_locked(df, today_str):
@@ -11988,7 +11978,7 @@ def _chan_gap_manage(row, df, mins_now, exit_price, halted):
 
 def _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, interval, capital,
                              risk_per_trade_pct, fx_to_inr, currency, result, require_real_tradability=False,
-                             mins_now=None, universe=None, agg_blocked=False):
+                             mins_now=None, universe=None):
     """Paper chan_gap buy-on-gap entry (buy engine). Returns result when it entered/skipped, else None (fall through)."""
     if interval != "5m" or not symbol.endswith(".NS"):
         return None
@@ -12015,11 +12005,6 @@ def _chan_gap_long_try_entry(conn, symbol, df, ts_utc, last_close, today_str, in
     _qs = ",".join("?" * len(CHAN_GAP_LONG_CELLS))
     if conn.execute(f"SELECT 1 FROM trades WHERE symbol = ? AND action = 'buy' AND ts >= ? AND strategy IN ({_qs})",
                     (symbol, ist_midnight_epoch(ist_now()), *CHAN_GAP_LONG_CELLS)).fetchone():
-        return None
-    if agg_blocked:
-        # B-1378 (B-1252 pattern): fired, but the aggregate open-risk cap is closed: counted, no order, fall through.
-        _record_blocked_trigger(tag)
-        result.setdefault("blocked_aggregate_open_risk_triggers", []).append(tag)
         return None
     liq_ok, _ = _liquidity_gate(df)
     if not liq_ok or _likely_lower_circuit_locked(df, today_str):

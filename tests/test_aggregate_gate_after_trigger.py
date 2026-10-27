@@ -26,11 +26,10 @@ def test_trigger_with_closed_gate_counts_blocked_and_places_nothing():
     assert m.start() < c.index("        if entry_signal:\n            # Stop is the strategy's own technical level")
 
 
-def test_chan_entries_evaluated_and_get_gate_flag():
-    # B-1378: chan paths are no longer skipped while the gate is closed; they get the flag and count blocked triggers.
+def test_chan_entries_skipped_when_gate_closed():
     c = _core()
-    assert "not agg_blocked" not in c
-    assert c.count("agg_blocked=agg_blocked") == 2
+    assert "and not agg_blocked:\n            _chan_l = " in c
+    assert "and not agg_blocked:\n            _gap_l = " in c
 
 
 def test_blocked_line_explains_risk_not_unknown_need():
