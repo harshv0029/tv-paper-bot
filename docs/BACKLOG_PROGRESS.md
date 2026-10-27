@@ -15,7 +15,7 @@ Total rows: 1139 | closed: 521 | not closed: 618
 | CLOSED | 92 |
 | DONE-PENDING-VERIFY | 80 |
 | BLOCKED | 63 |
-| OPEN | 46 |
+| OPEN | 45 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -47,6 +47,7 @@ Total rows: 1139 | closed: 521 | not closed: 618
 | UNKNOWN | 2 |
 | FIXED-LOCAL | 2 |
 | RECONCILE | 2 |
+| REAL | 2 |
 | JIOFIN26OCT217 | 2 |
 | DONE-MEASURED | 1 |
 | BLOCKED-ON-RUN | 1 |
@@ -64,7 +65,6 @@ Total rows: 1139 | closed: 521 | not closed: 618
 | CODE | 1 |
 | JIOFIN | 1 |
 | VIABLE | 1 |
-| REAL | 1 |
 | B-1319 | 1 |
 | T1 | 1 |
 | ITC | 1 |
@@ -503,7 +503,7 @@ Total rows: 1139 | closed: 521 | not closed: 618
 | B-1355 | P0 | FROM | 2026-10-23 15:55 IST |  |
 | B-1359 | P0 | FOUND | 2026-10-23 17:05 IST | verify |
 | B-1363 | P0 | P0 | DEPLOYED 2026-10-26 (92c38c40 on main, confirmed 18:50 IST) | verify, follow-up |
-| B-1383 | P0 | RESTART | 2026-10-27 14:25 IST | owed, needs, follow-up |
+| B-1383 | P0 | RESTART | 2026-10-27 14:25 IST | owed, follow-up |
 | B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, remaining, needs |
 | B-850 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (Elder >=1.1 cells validation across candle sizes; also covers B-852) |  |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... |  |
@@ -530,7 +530,7 @@ Total rows: 1139 | closed: 521 | not closed: 618
 | B-1362 | P1 | RESIDUAL | 2026-10-24 20:25 IST | owed |
 | B-1364 | P1 | P1 | DEPLOYED 2026-10-26 20:53 IST (Deploy Gate; main has e52fd5f2; /health watchdog_alarms 0, loop_lag 1.0s; /s... | verify |
 | B-1386 | P1 | OPEN | 2026-10-27 15:00 IST |  |
-| B-1387 | P1 | OPEN | 2026-10-27 15:00 IST | verify |
+| B-1387 | P1 | REAL | 2026-10-27 15:00 IST | verify, awaiting, waiting |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
