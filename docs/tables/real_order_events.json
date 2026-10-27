@@ -9671,7 +9671,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000887187 rejected: 16418 : Order with Invalid attributes rejected by the system"
+  },
+  {
+   "id": 807,
+   "ts": 1793096768.6709096,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000887267 rejected: RMS:Recon in progress..."
   }
  ],
- "synced_at_utc": "2026-10-27T10:25:49Z"
+ "synced_at_utc": "2026-10-27T10:26:11Z"
 }
