@@ -23069,7 +23069,7 @@ def _run_swing_scan_pass(conn):
     except Exception as e:
         print(f"[SWING SHORT 1h] pass failed (non-fatal): {e}")
     try:  # B-984: 1h LONG leg (macddiv line cells); same long swing table, hourly bars
-        _run_long_swing_1h_pass(conn, list(dfs), capital, today, _done_syms)
+        _run_long_swing_1h_pass(conn, _with_held_1h_long_symbols(conn, list(dfs)), capital, today, _done_syms)
     except Exception as e:
         print(f"[SWING LONG 1h] pass failed (non-fatal): {e}")
 
@@ -23986,6 +23986,21 @@ def _scan_only_1h_long_cells(df1h, count: bool, evaluate: bool):
         _scan_cell(t, (lambda t=t: envelope_fade_entry_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
     for t in CUP_CHEAT_LONG_LIVE_CELLS:
         _scan_cell(t, (lambda t=t: cup_cheat_3c_entry_signal(df1h, t)) if evaluate else None, count=count, blocked=evaluate)
+
+
+def _with_held_1h_long_symbols(conn, symbols: list) -> list:
+    """B-1381: `symbols` plus every symbol holding an open 1h long-cell swing row. The pass only visited SWING_WATCHLIST
+    (NIFTY-200), so a held symbol outside it (GSEC5IETF, an ETF) never had its strategy exit evaluated."""
+    out, seen = list(symbols), set(symbols)
+    try:
+        cells = set(MACDDIV_LONG_LIVE_CELLS) | set(ENVELOPE_LONG_LIVE_CELLS) | set(CUP_CHEAT_LONG_LIVE_CELLS)
+        for r in conn.execute("SELECT symbol, strategy FROM signal_state_swing").fetchall():
+            if r[1] in cells and r[0] not in seen:
+                out.append(r[0])
+                seen.add(r[0])
+    except Exception as e:
+        print(f"[SWING LONG 1h] held-symbol lookup failed (non-fatal): {e}")
+    return out
 
 
 def _run_long_swing_1h_pass(conn, symbols, capital, today, done_syms, fetch=None):

@@ -96,6 +96,26 @@ _TOKEN_MAP_CACHE_TTL_SECONDS = 24 * 60 * 60
 _token_map_cache = {"value": None, "resolved_at": 0.0}
 
 
+# B-1382: the SDK's feed client queues every parsed tick in an UNBOUNDED asyncio.Queue, and `async for message in ws`
+# takes one message per event-loop wake-up while the receiver can enqueue a whole frame of them. With the loop busy
+# (seconds of lag in market hours) the queue grew to ~240k SFeedScrip (+~480k DepthLevel) objects and Render
+# OOM-restarted every ~20 min (2026-10-27). Consumers now take everything already queued in the same wake-up.
+def drain_pending(ws, first) -> list:
+    """`first` plus every message already waiting in `ws`'s queue, without awaiting. Never raises."""
+    out = [first]
+    q = getattr(ws, "_message_queue", None)
+    if q is None:
+        return out
+    try:
+        while True:
+            out.append(q.get_nowait())
+    except asyncio.QueueEmpty:
+        pass
+    except Exception:
+        pass
+    return out
+
+
 def get_live_ticks() -> dict:
     """A snapshot copy - callers never get a reference into the live dict
     a background task is still mutating."""
@@ -367,16 +387,17 @@ async def run_feed(watchlist_symbols: list):
                 _feed_status["started_at_utc"] = time.time()
                 _feed_status["last_error"] = None
                 backoff = RESTART_BACKOFF_MIN_SECONDS  # a real connection succeeded - reset the backoff
-                async for message in ws:
-                    if isinstance(message, SFeedScrip):
-                        key = reverse_lookup.get((message.exchange_segment, str(message.instrument_token)))
-                        if key:
-                            _live_ticks[key] = {
-                                "ltp": message.last_traded_price,
-                                "trading_symbol": message.trading_symbol,
-                                "instrument_token": str(message.instrument_token),
-                                "updated_at_utc": time.time(),
-                            }
+                async for first in ws:
+                    for message in drain_pending(ws, first):  # B-1382
+                        if isinstance(message, SFeedScrip):
+                            key = reverse_lookup.get((message.exchange_segment, str(message.instrument_token)))
+                            if key:
+                                _live_ticks[key] = {
+                                    "ltp": message.last_traded_price,
+                                    "trading_symbol": message.trading_symbol,
+                                    "instrument_token": str(message.instrument_token),
+                                    "updated_at_utc": time.time(),
+                                }
         except Exception as e:
             _feed_status["connected"] = False
             _feed_status["last_error"] = str(e)
