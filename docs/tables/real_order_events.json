@@ -8531,7 +8531,19 @@
    "prev_state": null,
    "new_state": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2: entry bar 2026-10-16 10:15 @ Rs65.50, stop Rs64.70",
    "detail": "reason: B-1381: paper swing exit state was lost; rebuilt from the real row and hourly bars so the 1h engine evaluates this cell's own exit rule again (no order placed by the rebuild)"
+  },
+  {
+   "id": 712,
+   "ts": 1793083083.1689622,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": "GSEC5IETF-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261027000421417",
+   "prev_state": "resting SELL trigger Rs63.93",
+   "new_state": "resting SELL trigger Rs64.70",
+   "detail": "reason: macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 trail rule raised the stop from Rs63.93 to Rs64.70 | daily macddiv__hist_any__long__1h__atr3_w5__nonovl__v2 stop ratchet (replaced; Kotak order book scanned first)"
   }
  ],
- "synced_at_utc": "2026-10-27T06:37:41Z"
+ "synced_at_utc": "2026-10-27T06:38:06Z"
 }
