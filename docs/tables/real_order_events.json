@@ -9647,7 +9647,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000886865 rejected: RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :126.73,  Low Price Range:127.07 High Price Range:134.91  for entity account-XUAEZ across exchange across segment across product "
+  },
+  {
+   "id": 805,
+   "ts": 1793096717.022017,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000887058 rejected: 16418 : Order with Invalid attributes rejected by the system"
   }
  ],
- "synced_at_utc": "2026-10-27T10:24:50Z"
+ "synced_at_utc": "2026-10-27T10:25:20Z"
 }
