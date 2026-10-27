@@ -280,7 +280,7 @@ Total rows: 1125 | closed: 503 | not closed: 622
 | B-817 | P1 | DONE-PENDING-VERIFY | Trade-view Remarks for Kotak order-book exit fills (DABUR 2026-10-12 IST showed only "exit fill from Kotak ... | owed, remaining, pending, verify, follow-up |
 | B-830 | P1 | DONE-PENDING-VERIFY | O'Neil extension run 38207070547 (2026-10-12 IST, cost 0.8%, ~2166 symbols): 564 cells (1d 282, 1w 282; eac... | pending |
 | B-867 | P1 | BUILT-ON-BRANCH | 2026-10-12 | owed, pending |
-| B-896 | P1 | DONE-PENDING-VERIFY | Verify whether deployed_notional() double-counts: sizing capital is Kotak's net available cash (already red... | pending, verify, needs |
+| B-1252 | P1 | DONE-PENDING-VERIFY | User 14 Oct 2026 14:51 IST: every long-engine row shows "BLOCKED AGGREGATE OPEN RISK ... available = X, nee... | remaining, blocked, pending, needs |
 | B-1271 | P1 | DONE-PENDING-VERIFY | 2026-10-27 IST DONE-PENDING-DEPLOY (part 2): root cause - _run_fo_options_scan called _record_scheduler_che... | pending |
 | B-1285 | P1 | DONE-PENDING-VERIFY | Funnel: show attempts = blocked + placed + failed per tag (failed not counted today); stop-loss exits at Ko... | owed, blocked, pending, needs, owner |
 | B-1371 | P1 | DONE-PENDING-VERIFY | 2026-10-26 23:20 IST | pending, owner |
@@ -514,6 +514,7 @@ Total rows: 1125 | closed: 503 | not closed: 622
 | B-850 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (Elder >=1.1 cells validation across candle sizes; also covers B-852) |  |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... |  |
 | B-868 | P1 | DONE-ON-BRANCH | 2026-10-12 | blocked, pending |
+| B-896 | P1 | OPEN | Verify whether deployed_notional() double-counts: sizing capital is Kotak's net available cash (already red... | verify, needs |
 | B-916 | P1 | P1 | ready-to-build |  |
 | B-1003 | P1 | RULE | STANDING RULE (user, 2026-10-14 IST): always use subagents to keep closing open backlog items, and assign e... |  |
 | B-1041 | P1 | OWED | BUY-category registry row for chan_gap buy_on_gap long cells (CHAN_GAP_LONG_CELLS: chan_gap__buy_on_gap__lo... | owed |
@@ -521,7 +522,6 @@ Total rows: 1125 | closed: 503 | not closed: 622
 | B-1181 | P1 | BUILT-DISPATCH-OWED | tasuki gap SHORT + LONG mirror: candle-size (1d, 4h, 1h, 15m, 5m) x ATR {2.5, 4, 6} x universe {etf, full},... | owed |
 | B-1241 | P1 | OPEN | chan-nonoverlap 4h re-run (B-806) results, run 38510016719 (2026-10-14 09:44 IST, artifact chan-nonoverlap-... |  |
 | B-1249 | P1 | NEEDS-OWNER | O'Neil 1w long cells (flatbase 3.921 / newhigh 2.484 / pivot 2.177, deployed 14 Oct 2026 via Deploy Gate ru... | owed, verify, needs, owner |
-| B-1252 | P1 | OPEN | User 14 Oct 2026 14:51 IST: every long-engine row shows "BLOCKED AGGREGATE OPEN RISK ... available = X, nee... | remaining, blocked, needs |
 | B-1253 | P1 | OPEN | 2026-10-14 15:56 IST: Render banner says critical infrastructure work on 15 Oct 06:30 IST (01:00 UTC); expe... | pending, verify |
 | B-1288 | P1 | CODE | Render memory limit is 2 GB (user, 2026-10-19) | owed |
 | B-1289 | P1 | OPEN | 2026-10-20 00:25 IST: subagent fixes merged to the working branch, full suite 2077 passed (date-dependent m... | blocked, awaiting, waiting |
