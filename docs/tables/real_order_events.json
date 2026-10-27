@@ -9695,7 +9695,127 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261027000887317 rejected: RMS:Recon in progress..."
+  },
+  {
+   "id": 809,
+   "ts": 1793096954.8417609,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261027000887035",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 15:55:03 S SL qty 1 trg 172.66 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :172.66,  Low Price Range"
+  },
+  {
+   "id": 810,
+   "ts": 1793096954.841997,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261027000886865",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 15:54:16 S SL qty 8 trg 126.73 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :126.73,  Low Price Range"
+  },
+  {
+   "id": 811,
+   "ts": 1793096954.8420181,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261027000887187",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 15:55:42 S SL qty 1 trg 185.97 status rejected rejRsn 16418 : Order with Invalid attributes rejected by the system"
+  },
+  {
+   "id": 812,
+   "ts": 1793096954.8420336,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261027000886993",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 15:54:53 S SL qty 1 trg 164.80 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :164.80,  Low Price Range"
+  },
+  {
+   "id": 813,
+   "ts": 1793096954.842046,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261027000887232",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 15:55:54 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :68.29,  Low Price Range:"
+  },
+  {
+   "id": 814,
+   "ts": 1793096954.8421082,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261027000887058",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 15:55:11 S SL qty 1 trg 178.11 status rejected rejRsn 16418 : Order with Invalid attributes rejected by the system"
+  },
+  {
+   "id": 815,
+   "ts": 1793096954.8421245,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261027000887317",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 15:56:17 S SL qty 2 trg 28.91 status rejected rejRsn RMS:Recon in progress..."
+  },
+  {
+   "id": 816,
+   "ts": 1793096954.8421328,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261027000887267",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 15:56:04 S SL qty 1 trg 69.36 status rejected rejRsn RMS:Recon in progress..."
+  },
+  {
+   "id": 817,
+   "ts": 1793096954.8421397,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261027000887125",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 15:55:25 S SL qty 1 trg 175.12 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :175.12,  Low Price Range"
+  },
+  {
+   "id": 818,
+   "ts": 1793096954.8421497,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261027000887158",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 27-Oct-2026 15:55:35 S SL qty 1 trg 180.28 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :180.28,  Low Price Range"
   }
  ],
- "synced_at_utc": "2026-10-27T10:26:25Z"
+ "synced_at_utc": "2026-10-27T10:29:32Z"
 }
