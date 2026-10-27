@@ -130,5 +130,8 @@ def _reset_recent_sl_placed():
     """B-1379: kotak_real_orders remembers SLs it placed in the last few seconds; never carry that between tests."""
     import kotak_real_orders as _kro
     _kro._RECENT_SL_PLACED.clear()
+    _orig_pre_open = _kro._before_equity_open
+    _kro._before_equity_open = lambda: False  # B-1380: clock-independent; tests that need it patch it back
     yield
+    _kro._before_equity_open = _orig_pre_open
     _kro._RECENT_SL_PLACED.clear()
