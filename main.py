@@ -17001,6 +17001,9 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
     if row["expiry"] and _nfc.must_force_close_before_expiry(row["underlying"], row["expiry"]):
         _close_real_fo_option_leg(conn, row, "force close before expiry/physical-settlement window")
         return "expiry_force_close"
+    if str(row["strategy_tag"]).startswith("single_leg_swing_") and _swing_option_hold_exceeded(conn, row):
+        _close_real_fo_option_leg(conn, row, "B-1386 hold window reached: market hours since entry >= strategy hold hours")
+        return "hold_window_exit"
     qty = int(st["net_qty"])
     ltp = _option_ltp(row)
     peak = float(row["peak_price"] or row["entry_price"])
@@ -21799,6 +21802,64 @@ def _swing_option_underlying(symbol):
     return base if nse_fo_chain.is_physically_settled(base) else None
 
 
+SWING_OPTION_MIN_HOLD_HOURS = 6.25  # B-1386: one full NSE session; an expiry leaving less is never bought
+
+
+def _nse_market_hours_between(start, end) -> float:
+    """NSE cash-session hours (09:15-15:30 IST on trading days) between two naive IST datetimes."""
+    if end <= start:
+        return 0.0
+    total, day = 0.0, start.date()
+    while day <= end.date():
+        if is_nse_trading_day(day):
+            o = dt.datetime.combine(day, dt.time(9, 15))
+            c = dt.datetime.combine(day, dt.time(15, 30))
+            lo, hi = max(o, start), min(c, end)
+            if hi > lo:
+                total += (hi - lo).total_seconds() / 3600.0
+        day += dt.timedelta(days=1)
+    return total
+
+
+def _option_hours_to_expiry(underlying: str, expiry, now=None) -> float:
+    """B-1386: market hours an option bought now can still be held. A physically settled stock option is force-closed
+    once within PHYSICAL_SETTLEMENT_FORCE_CLOSE_DAYS_BEFORE_EXPIRY days of expiry, so its last holdable session is the
+    day before that window; a cash-settled one can be held to 15:30 IST on expiry day."""
+    import nse_fo_chain
+    exp = expiry if isinstance(expiry, dt.date) else dt.date.fromisoformat(str(expiry)[:10])
+    if nse_fo_chain.is_physically_settled(underlying):
+        exp = exp - dt.timedelta(days=nse_fo_chain.PHYSICAL_SETTLEMENT_FORCE_CLOSE_DAYS_BEFORE_EXPIRY + 1)
+    now = now or ist_now().replace(tzinfo=None)
+    return _nse_market_hours_between(now, dt.datetime.combine(exp, dt.time(15, 30)))
+
+
+def _strategy_hold_hours(strategy_tag) -> float | None:
+    """B-1386: the strategy's backtested average hold (registry avg_held_hrs) - the viability hold hours. None when
+    unknown. gap_and_go_swing's legacy row has none, so its full-universe successor's is used (same as the dashboard)."""
+    import strategy_registry as sr
+    name = _STRATEGY_TAG_TO_REGISTRY_NAME.get(strategy_tag) or strategy_tag
+    strat = _registry_entry(name) if name else None
+    if strat is not None and name == "gap_and_go_swing" and (strat.metrics is None or strat.metrics.avg_held_hrs is None):
+        strat = _registry_entry("gap_and_go__swing__long__1d__hold30__v1")
+    m = getattr(strat, "metrics", None)
+    return float(m.avg_held_hrs) if m is not None and m.avg_held_hrs else None
+
+
+def _swing_option_hold_exceeded(conn, row, now=None) -> bool:
+    """B-1386: a swing option leg is held at most min(hours to expiry, strategy hold hours). The expiry side is the
+    existing force close; this is the strategy side: market hours since entry >= the owning swing strategy's hold."""
+    try:
+        sym = f"{row['underlying']}.NS"
+        st = conn.execute("SELECT strategy FROM signal_state_swing WHERE symbol = ?", (sym,)).fetchone()
+        hold = _strategy_hold_hours(st["strategy"]) if st else None
+        if not hold:
+            return False
+        opened = dt.datetime.utcfromtimestamp(float(row["opened_at"])) + dt.timedelta(minutes=IST_OFFSET_MIN)
+        return _nse_market_hours_between(opened, now or ist_now().replace(tzinfo=None)) >= hold
+    except Exception:
+        return False
+
+
 def _maybe_place_swing_option_leg(conn, symbol, strategy):
     """B-417 (user 2026-10-11, 'in addition'): a viable swing entry on an F&O stock ALSO buys ONE
     single-strike ATM call (single leg), beside the shares position. Always carries the initial SL and
@@ -21828,9 +21889,18 @@ def _maybe_place_swing_option_leg(conn, symbol, strategy):
         if spot <= 0:
             _log_real_fo_attempt(conn, leg_key, "B", "skipped_no_live_tick")
             return
-        contract, err = nse_fo_chain.select_nse_option_contract(fo_u, spot, "call")
+        # B-1386/B-1384: hold window = min(market hours to expiry, strategy hold hours). Take the nearest expiry
+        # that covers the full hold (rolls to next month in expiry week); else the nearest leaving one session.
+        need = _strategy_hold_hours(strategy)
+        contract, err = nse_fo_chain.select_nse_option_contract(
+            fo_u, spot, "call", expiry_ok=(lambda e: _option_hours_to_expiry(fo_u, e) >= need) if need else
+            (lambda e: _option_hours_to_expiry(fo_u, e) >= SWING_OPTION_MIN_HOLD_HOURS))
+        if contract is None and err == "no_expiry_fits_hold" and need:
+            contract, err = nse_fo_chain.select_nse_option_contract(
+                fo_u, spot, "call", expiry_ok=lambda e: _option_hours_to_expiry(fo_u, e) >= SWING_OPTION_MIN_HOLD_HOURS)
         if contract is None:
-            _log_real_fo_attempt(conn, leg_key, "B", "skipped_no_contract", detail=err)
+            _log_real_fo_attempt(conn, leg_key, "B", "skipped_no_contract",
+                                 detail=f"{err}; strategy hold {need} h, min {SWING_OPTION_MIN_HOLD_HOURS} h")
             return
         if nse_fo_chain.must_force_close_before_expiry(fo_u, contract["expiry"]):
             _log_real_fo_attempt(conn, leg_key, "B", "skipped_too_close_to_expiry", detail=f"expiry {contract['expiry']}")
