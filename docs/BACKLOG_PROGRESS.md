@@ -12,10 +12,10 @@ Total rows: 1126 | closed: 504 | not closed: 622
 | PARTIAL | 138 |
 | CLOSED-AS-EXPLAINED | 126 |
 | HARNESS-BUILT-AWAITING-RUN | 99 |
-| DONE-PENDING-VERIFY | 85 |
+| DONE-PENDING-VERIFY | 87 |
 | CLOSED | 83 |
 | BLOCKED | 63 |
-| OPEN | 46 |
+| OPEN | 44 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -106,7 +106,7 @@ Total rows: 1126 | closed: 504 | not closed: 622
 | B-1370 | P1 | OWNER-ACTION | 2026-10-26 21:05 IST | owed, owner |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
 
-## waiting-on-workflow/deploy (372)
+## waiting-on-workflow/deploy (374)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -280,6 +280,7 @@ Total rows: 1126 | closed: 504 | not closed: 622
 | B-817 | P1 | DONE-PENDING-VERIFY | Trade-view Remarks for Kotak order-book exit fills (DABUR 2026-10-12 IST showed only "exit fill from Kotak ... | owed, remaining, pending, verify, follow-up |
 | B-830 | P1 | DONE-PENDING-VERIFY | O'Neil extension run 38207070547 (2026-10-12 IST, cost 0.8%, ~2166 symbols): 564 cells (1d 282, 1w 282; eac... | pending |
 | B-867 | P1 | BUILT-ON-BRANCH | 2026-10-12 | owed, pending |
+| B-896 | P1 | DONE-PENDING-VERIFY | Verify whether deployed_notional() double-counts: sizing capital is Kotak's net available cash (already red... | pending, verify, needs |
 | B-1252 | P1 | DONE-PENDING-VERIFY | User 14 Oct 2026 14:51 IST: every long-engine row shows "BLOCKED AGGREGATE OPEN RISK ... available = X, nee... | remaining, blocked, pending, needs |
 | B-1271 | P1 | DONE-PENDING-VERIFY | 2026-10-27 IST DONE-PENDING-DEPLOY (part 2): root cause - _run_fo_options_scan called _record_scheduler_che... | pending |
 | B-1285 | P1 | DONE-PENDING-VERIFY | Funnel: show attempts = blocked + placed + failed per tag (failed not counted today); stop-loss exits at Ko... | owed, blocked, pending, needs, owner |
@@ -423,6 +424,7 @@ Total rows: 1126 | closed: 504 | not closed: 622
 | B-813 | P2 | DONE-PENDING-VERIFY | Matrix-cap fix (2026-10-12 IST, s00 subagent): GitHub caps a matrix at ~40 jobs; three research workflows w... | pending |
 | B-816 | P2 | DONE-PENDING-VERIFY | Trade-view: viable-strategies panel now shows "last data change" (hash of value columns, client localStorag... | owed, pending |
 | B-1221 | P2 | DONE-PENDING-VERIFY | pl1d SHORT main.py replay (run 38501324353, 1d, cost 0.8%): only 2 of the cells were readable from the job ... | owed, remaining, pending, verify, needs |
+| B-1336 | P2 | DONE-PENDING-VERIFY | 2026-10-22 00:10 IST | owed, pending, verify |
 | B-438 | P3 | BLOCKED | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | owed, blocked, needs |
 | B-439 | P3 | PENDING | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | owed, pending |
 | B-442 | P3 | PENDING | 2026-10-11 IST, source: Ernest Chan, Algorithmic Trading (docs/ on main; extracted by 4 readers) | owed, pending |
@@ -483,7 +485,7 @@ Total rows: 1126 | closed: 504 | not closed: 622
 | B-1297 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: trade-view pages hang the laptop browser | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | pending, verify |
 
-## ready-to-build (113)
+## ready-to-build (111)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -514,7 +516,6 @@ Total rows: 1126 | closed: 504 | not closed: 622
 | B-850 | P1 | DISPATCH-READY | 2026-10-12 IST DISPATCH-READY 2026-10-12 (Elder >=1.1 cells validation across candle sizes; also covers B-852) |  |
 | B-853 | P1 | OPEN | Options category shows no index call/put buys: added read-only no-token GET /fo-entry-diagnosis (per underl... |  |
 | B-868 | P1 | DONE-ON-BRANCH | 2026-10-12 | blocked, pending |
-| B-896 | P1 | OPEN | Verify whether deployed_notional() double-counts: sizing capital is Kotak's net available cash (already red... | verify, needs |
 | B-916 | P1 | P1 | ready-to-build |  |
 | B-1003 | P1 | RULE | STANDING RULE (user, 2026-10-14 IST): always use subagents to keep closing open backlog items, and assign e... |  |
 | B-1041 | P1 | OWED | BUY-category registry row for chan_gap buy_on_gap long cells (CHAN_GAP_LONG_CELLS: chan_gap__buy_on_gap__lo... | owed |
@@ -590,7 +591,6 @@ Total rows: 1126 | closed: 504 | not closed: 622
 | B-1120 | P2 | BUILT-DISPATCH-OWED | Flatten FAILED-cell re-test at real MIS cost (owed from B-792: "MIS costs, 4h"): 122 of 200 _fl1515__v2 reg... | owed, needs |
 | B-1232 | P2 | OPEN | Register the tags the B-1231 report finds in saved results but not in the registry (416 unique at first run) |  |
 | B-1329 | P2 | T1 | 2026-10-21 |  |
-| B-1336 | P2 | OPEN | 2026-10-22 00:10 IST | verify |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 | B-1250 | P? | UNKNOWN |  |  |
 | B-1252b | P? | OPEN | Status 2026-10-20 IST: aggregate-gate "why" now reported by /signal-funds (commit c70374a, deployed via gat... |  |
