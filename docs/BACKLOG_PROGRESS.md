@@ -15,7 +15,7 @@ Total rows: 1139 | closed: 521 | not closed: 618
 | CLOSED | 92 |
 | DONE-PENDING-VERIFY | 80 |
 | BLOCKED | 63 |
-| OPEN | 45 |
+| OPEN | 43 |
 | P2 | 42 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -24,8 +24,8 @@ Total rows: 1139 | closed: 521 | not closed: 618
 | OWNER-ACTION | 9 |
 | BUILT-ON-BRANCH | 6 |
 | OPEN-PARKED | 6 |
+| USER | 6 |
 | BUILT | 5 |
-| USER | 5 |
 | PARKED-REASONED | 4 |
 | WIRED-PENDING-REPLAY | 4 |
 | PARKED | 3 |
@@ -78,6 +78,7 @@ Total rows: 1139 | closed: 521 | not closed: 618
 | WATCHDOG | 1 |
 | RESIDUAL | 1 |
 | RESTART | 1 |
+| SWING | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -529,7 +530,7 @@ Total rows: 1139 | closed: 521 | not closed: 618
 | B-1361 | P1 | WATCHDOG | 2026-10-23 18:50 IST | owed, verify |
 | B-1362 | P1 | RESIDUAL | 2026-10-24 20:25 IST | owed |
 | B-1364 | P1 | P1 | DEPLOYED 2026-10-26 20:53 IST (Deploy Gate; main has e52fd5f2; /health watchdog_alarms 0, loop_lag 1.0s; /s... | verify |
-| B-1386 | P1 | OPEN | 2026-10-27 15:00 IST |  |
+| B-1386 | P1 | USER | 2026-10-27 15:00 IST | awaiting, waiting |
 | B-1387 | P1 | REAL | 2026-10-27 15:00 IST | verify, awaiting, waiting |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
@@ -585,7 +586,7 @@ Total rows: 1139 | closed: 521 | not closed: 618
 | B-1232 | P2 | OPEN | Register the tags the B-1231 report finds in saved results but not in the registry (416 unique at first run) |  |
 | B-1329 | P2 | T1 | 2026-10-21 |  |
 | B-1380 | P2 | KOTAK | 2026-10-27 09:55 IST | owed, pending |
-| B-1384 | P2 | OPEN | 2026-10-27 14:25 IST |  |
+| B-1384 | P2 | SWING | 2026-10-27 14:25 IST | awaiting, waiting |
 | B-1385 | P2 | OPEN | 2026-10-27 14:25 IST |  |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 | B-1250 | P? | UNKNOWN |  |  |
