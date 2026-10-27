@@ -8519,7 +8519,19 @@
    "prev_state": null,
    "new_state": "held - no sell placed",
    "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
+  },
+  {
+   "id": 711,
+   "ts": 1793083058.2440865,
+   "symbol": "GSEC5IETF.NS",
+   "kotak_trading_symbol": "GSEC5IETF-EQ",
+   "leg": "reroute",
+   "event": "swing_1h_state_restored",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2: entry bar 2026-10-16 10:15 @ Rs65.50, stop Rs64.70",
+   "detail": "reason: B-1381: paper swing exit state was lost; rebuilt from the real row and hourly bars so the 1h engine evaluates this cell's own exit rule again (no order placed by the rebuild)"
   }
  ],
- "synced_at_utc": "2026-10-27T06:37:34Z"
+ "synced_at_utc": "2026-10-27T06:37:41Z"
 }
