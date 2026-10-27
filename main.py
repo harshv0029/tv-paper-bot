@@ -19147,6 +19147,7 @@ def get_real_open_positions():
         kotak_rows = positions_resp.get("data") or [] if isinstance(positions_resp, dict) else []
         our_trdsyms = ({r["kotak_trading_symbol"] for r in rows} | {r["kotak_trading_symbol"] for r in short_rows}
                        | {r["kotak_trading_symbol"] for r in swing_rows})
+        _gross_holdings = _kotak_holdings_gross_qty() if kotak_rows else {}
         for kr in kotak_rows:
             try:
                 if kr.get("exSeg") != "nse_cm":
@@ -19154,6 +19155,10 @@ def get_real_open_positions():
                 fl_buy = float(kr.get("flBuyQty", 0) or 0)
                 fl_sell = float(kr.get("flSellQty", 0) or 0)
                 net_qty = fl_buy - fl_sell
+                if net_qty < 0 and kr.get("trdSym") in _gross_holdings:
+                    # B-1395: a delivery holding sold today is net-short in positions() until T+1, not a short
+                    # (same netting as reconcile's B-306). GSEC5IETF/COALINDIA showed as untracked shorts.
+                    net_qty += min(-net_qty, _gross_holdings[kr.get("trdSym")])
                 if net_qty == 0:
                     continue  # fully squared off - not an open position
                 trd_sym = kr.get("trdSym")
