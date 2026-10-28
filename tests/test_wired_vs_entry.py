@@ -17,6 +17,7 @@ def test_replay_owed_tag_still_wired_for_scanning_but_not_entry(monkeypatch):
                if n in by_name and by_name[n].metrics is not None and by_name[n].metrics.pfnet >= sr.PFNET_LIVE_FLOOR)
     monkeypatch.setattr(main, "REPLAY_OWED_TAGS", frozenset(main.REPLAY_OWED_TAGS) | {tag})
     monkeypatch.setattr(sr, "VIABLE_OVERRIDES", set())
+    monkeypatch.setattr(main, "_load_viable_overrides", lambda: sr.VIABLE_OVERRIDES)  # no reload from a stack another test saved
     monkeypatch.setattr(sr, "VIABLE_STACK_ACTIVE", True)
     assert main._is_strategy_wired(tag) is True
     assert main._is_strategy_viable_for_real_money(tag, check_switch=False) is False

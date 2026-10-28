@@ -198,6 +198,7 @@ def test_gap_and_go_swing_and_power_play_are_the_only_viable_strategies_in_the_r
         # B-1396: main.py replays registered as `_mr` rows (runs 40575438117, 40580498404)
         *(f"tasuki__gap_etf_mr__short__1d__atr{a}_h3__v1" for a in ("2d5", "4", "6")),
         *(f"month__effect_mr__short__15m__atr{a}_h25__v1" for a in ("2d5", "4", "6")),
+        "gaps__common_fade_mr__long__1d__atr3_nb5__v1", "gaps__exhaust_fade_mr__long__1d__atr3_nb5__v1",  # B-1396d run 40623860743
     }
     assert not any(n.startswith("rsi_reversal__") for n in viable)
 

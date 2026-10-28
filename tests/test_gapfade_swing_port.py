@@ -37,11 +37,14 @@ def test_signal_parity_with_research():
         assert fired > 0
 
 
-def test_unknown_tag_and_tags_replay_owed():
+def test_unknown_tag_and_tags_replay_verified():
+    # B-1396d: main.py replay run 40623860743 (full universe, 1d 5y) cleared the floor for both tags.
     assert main.gapfade_long_entry_signal(_bars(), "nope") is None
     for t in main.GAPFADE_TAGS:
-        assert t in main.REPLAY_OWED_TAGS
+        assert t in main._replay_verified_tags()
+        assert t not in main.REPLAY_OWED_TAGS and t not in main.REPLAY_FAILED_TAGS
         assert t in main._STRATEGY_TAG_TO_REGISTRY_NAME
+    assert not main.REPLAY_OWED_TAGS  # B-1396: every owed tag now has a main.py replay on file
 
 
 def test_exit_adapter_stop_rule_timeout():
