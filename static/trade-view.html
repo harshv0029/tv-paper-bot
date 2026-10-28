@@ -405,7 +405,7 @@
       if(x==null&&y==null)return 0; if(x==null)return 1; if(y==null)return -1;
       return (typeof x==="string"?x.localeCompare(y):x-y)*dir;});
     document.getElementById("sx-body").innerHTML=rows.length?rows.map(function(r,i){
-      return "<tr><td class='num'>"+(i+1)+"</td><td>"+esc(r.name)+"</td><td>"+esc(r.categories.map(function(c){return CATLAB[c]||c;}).join(", "))+"</td><td>"+esc(r.timeframe)+"</td><td class='num'>"+f(r.pfnet,2)+"</td><td class='num'>"+f(r.win_rate_pct,1)+"</td><td class='num'>"+(r.n_trades==null?"\u2014":r.n_trades)+"</td><td class='num'>"+f(r.avg_held_hrs,1)+"</td><td>"+(r.override?"viable (set by you)":"")+"</td></tr>";
+      return "<tr><td class='num'>"+(i+1)+"</td><td>"+esc(r.name)+"</td><td>"+esc(r.categories.map(function(c){return CATLAB[c]||c;}).join(", "))+"</td><td>"+esc(r.timeframe)+"</td><td class='num'>"+f(r.pfnet,2)+"</td><td class='num'>"+f(r.win_rate_pct,1)+"</td><td class='num'>"+(r.n_trades==null?"\u2014":r.n_trades)+"</td><td class='num'>"+f(r.avg_held_hrs,1)+"</td><td>"+(r.override?"viable (set by you)":"")+(r.replay_failed?" <span style='color:#d32f2f;font-weight:600' title='Replay through the live main.py code is below the PFnet floor. Real money still follows your View 1 set.'>replay failed (PFnet "+f(r.replay_pfnet,2)+")</span>":"")+"</td></tr>";
     }).join(""):"<tr><td colspan='9' class='scan-idle'>No strategy matches.</td></tr>";
     [].slice.call(document.querySelectorAll("#sx-head th[data-k]")).forEach(function(th){
       th.textContent=th.getAttribute("data-t")+(th.getAttribute("data-k")===k?(dir<0?" \u25BC":" \u25B2"):"");});

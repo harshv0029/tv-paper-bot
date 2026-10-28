@@ -1503,3 +1503,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **What surprised:** the 15m "pass" is ONE market day (all 2401 trades on Sept 1, highly correlated), while the 5-year daily version loses badly. Treat it as unproven.
 - **Reuse:** read bar times through a helper that understands fetch_ohlc's Date column; give every replay an n=0 failure; for calendar effects, count distinct event dates, not trades.
 - **Profit-booking / exit takeaway:** on the 15m cells the wider ATR6 stop with a 25-bar exit did best (stops cost, timeouts pay); a 125-bar hold gives the gain back. Keep it paper-only until a second Sept-1 confirms.
+
+### 2026-10-28 - macddiv 1h long: research vs replay, owner keeps View 1 control (B-1398)
+- Research PFnet 1.40-1.46 (n 58k-93k) came entirely from the in-sample half (2.17-2.21); out-of-sample 0.47-0.56. The main.py replay (run 38550669732) landed 0.64-0.73, gross PF 1.01-1.09, so costs (0.8%) turn a near-zero gross edge into a ~30% loss per unit risked.
+- Lesson: a pooled research PFnet that hides an IS/OOS split of 2.2 vs 0.5 is curve-fit; always read the segoos row before trusting the headline.
+- Owner decision: View 1 (VIABLE_OVERRIDES) still decides real money; the explorer now shows "replay failed" so the choice is made with the evidence visible.
+- Profit-booking / exit takeaway: with gross PF ~1.05, no exit tweak can clear 0.8% costs; this family needs a better entry, not a better exit.
