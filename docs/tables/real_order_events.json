@@ -10847,7 +10847,43 @@
    "prev_state": "none (retry)",
    "new_state": "resting SELL trigger Rs126.73",
    "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs126.73"
+  },
+  {
+   "id": 905,
+   "ts": 1793159154.5639503,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261028000016827",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs166.64",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs164.80"
+  },
+  {
+   "id": 906,
+   "ts": 1793159157.830041,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261028000016827",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs166.64",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs164.80"
+  },
+  {
+   "id": 907,
+   "ts": 1793159160.5810952,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261028000017899",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs175.12",
+   "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during swing governance backfill"
   }
  ],
- "synced_at_utc": "2026-10-28T03:45:56Z"
+ "synced_at_utc": "2026-10-28T03:46:03Z"
 }
