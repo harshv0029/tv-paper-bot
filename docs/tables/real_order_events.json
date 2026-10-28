@@ -10679,7 +10679,43 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1380: no SL before 09:15 IST (exchange rejects it)"
+  },
+  {
+   "id": 891,
+   "ts": 1793155902.5902503,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1380: no SL before 09:15 IST (exchange rejects it)"
+  },
+  {
+   "id": 892,
+   "ts": 1793155906.5342994,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1380: no SL before 09:15 IST (exchange rejects it)"
+  },
+  {
+   "id": 893,
+   "ts": 1793155910.6215312,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1380: no SL before 09:15 IST (exchange rejects it)"
   }
  ],
- "synced_at_utc": "2026-10-28T02:51:45Z"
+ "synced_at_utc": "2026-10-28T02:52:03Z"
 }
