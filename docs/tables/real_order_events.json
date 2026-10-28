@@ -10667,7 +10667,19 @@
    "prev_state": "short 2",
    "new_state": "short 2 (cover failed)",
    "detail": "reason: emergency: no resting stop for 1906s (tolerance 60s) | no order id in response: {'stCode': 1041, 'errMsg': 'Market order rejected: Last Traded Price (LTP) not available for this instrument. Please try placing a limit order', 'stat': 'Not_Ok'}"
+  },
+  {
+   "id": 890,
+   "ts": 1793155899.0172923,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1380: no SL before 09:15 IST (exchange rejects it)"
   }
  ],
- "synced_at_utc": "2026-10-28T02:51:38Z"
+ "synced_at_utc": "2026-10-28T02:51:45Z"
 }
