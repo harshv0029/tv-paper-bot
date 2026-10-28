@@ -776,5 +776,52 @@
       "rss_mb": 920.6,
       "threadpool": "0/80"
     }
+  },
+  {
+    "boot_ts": 1793198653.6139784,
+    "boot_ist": "2026-10-28 20:14:13 IST",
+    "logged_ist": "2026-10-28 20:14:54 IST",
+    "commit": "e66999edf49f",
+    "cause_guess": "deploy",
+    "in_market_hours": false,
+    "prev_commit": "6d000dc3f630",
+    "prev_boot_ist": "2026-10-28 14:12:16 IST",
+    "prev_last_alive_ist": "2026-10-28 20:14:36 IST",
+    "prev_uptime_min": 362.3,
+    "downtime_s_max": -23.2,
+    "prev_rss_now_mb": 739.7,
+    "prev_peak_rss_mb": 1154.3,
+    "prev_loop_lag_s": 1.9,
+    "prev_watchdog_alarms": 2,
+    "prev_threadpool": "0/80",
+    "prev_last_alarm": {
+      "ts": 1793178923.8197732,
+      "loop_lag_s": 23.4,
+      "rss_mb": 1007.9,
+      "threadpool": "0/80"
+    },
+    "prev_first_alarm_threads": null,
+    "prev_last_alarm_threads": null
+  },
+  {
+    "boot_ts": 1793203367.2085714,
+    "boot_ist": "2026-10-28 21:32:47 IST",
+    "logged_ist": "2026-10-28 21:33:28 IST",
+    "commit": "8908116c9d04",
+    "cause_guess": "deploy",
+    "in_market_hours": false,
+    "prev_commit": "e66999edf49f",
+    "prev_boot_ist": "2026-10-28 20:14:13 IST",
+    "prev_last_alive_ist": "2026-10-28 21:32:58 IST",
+    "prev_uptime_min": 78.7,
+    "downtime_s_max": -11.2,
+    "prev_rss_now_mb": 559.1,
+    "prev_peak_rss_mb": 902.1,
+    "prev_loop_lag_s": 0.3,
+    "prev_watchdog_alarms": 0,
+    "prev_threadpool": "0/80",
+    "prev_last_alarm": null,
+    "prev_first_alarm_threads": [],
+    "prev_last_alarm_threads": []
   }
 ]
