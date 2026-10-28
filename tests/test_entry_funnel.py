@@ -75,3 +75,34 @@ def test_entry_funnel_attempts_equal_placed_blocked_failed_and_skip_exits(monkey
     assert (srow["placed"], srow["failed"], srow["attempts"]) == (1, 0, 1)
     assert ss["attempts_total"] == 1 and "None" not in [r["strategy"] for r in ss["strategies"]]
     assert d["buy"]["attempts_total"] == 0 and d["buy"]["failed"] == 0
+
+
+def test_b1408_exit_and_cover_rows_are_not_entries(monkeypatch):
+    """B-1408: NHPC's short cover (side B, tag gap_and_go) read as a 'placed' swing entry and a swing SELL exit with
+    a short-looking tag read as a 'failed' short entry. Exit-path rows are marked and never counted."""
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    main.DB_PATH = path
+    main.init_db()
+    monkeypatch.setattr(main, "strategy_scan_activity", lambda include_unwired=False: {"strategies": [
+        {"strategy_tag": "gap_and_go", "categories": ["swing"], "status": "live_wired", "scans_today": 3,
+         "successful_entries_today": 0},
+        {"strategy_tag": "ob__x__short__1d", "categories": ["short_sell"], "status": "live_wired", "scans_today": 3,
+         "successful_entries_today": 0}]})
+    conn = main.get_db()
+    main._log_real_attempt(conn, "NHPC.NS", "B", "confirmed", strategy="gap_and_go", leg="exit")
+    main._log_real_attempt(conn, "XYZ.NS", "S", "failed", detail="rejected", strategy="ob__x__short__1d", leg="exit")
+    conn.commit()
+    assert conn.execute("SELECT detail FROM real_trades WHERE symbol='XYZ.NS'").fetchone()[0] == "[exit] rejected"
+    conn.close()
+    d = main.entry_funnel()["categories"]
+    assert (d["swing"]["placed"], d["swing"]["failed"]) == (0, 0)
+    assert (d["short_sell"]["placed"], d["short_sell"]["failed"]) == (0, 0)
+
+
+def test_b1408_every_exit_path_marks_its_row():
+    import inspect
+    for fn in (main._maybe_place_real_short_exit, main._maybe_place_real_swing_exit, main._maybe_place_real_swing_short_exit):
+        src = inspect.getsource(fn)
+        for call in src.split("_log_real_attempt(")[1:]:
+            assert 'leg="exit"' in call.split("\n\n")[0][:600], fn.__name__

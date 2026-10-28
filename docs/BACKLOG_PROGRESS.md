@@ -600,7 +600,7 @@ Total rows: 1165 | closed: 531 | not closed: 634
 | B-1329 | P2 | T1 | 2026-10-21 |  |
 | B-1380 | P2 | KOTAK | 2026-10-27 09:55 IST | owed, pending |
 | B-1384 | P2 | SWING | 2026-10-27 14:25 IST | awaiting, waiting |
-| B-1408 | P2 | OPEN | 2026-10-28 14:30 IST | owed |
+| B-1408 | P2 | OPEN | 2026-10-28 14:30 IST | owed, awaiting, waiting |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 | B-1250 | P? | UNKNOWN |  |  |
 | B-1252b | P? | OPEN | Status 2026-10-20 IST: aggregate-gate "why" now reported by /signal-funds (commit c70374a, deployed via gat... |  |

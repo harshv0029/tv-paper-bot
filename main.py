@@ -13979,11 +13979,18 @@ def _stamp_viability_reason(detail, strategy_tag):
     return f"{detail} {tail}" if detail else tail
 
 
+REAL_EXIT_ROW_MARK = "[exit]"
+
+
 def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,
                        price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None,
-                       strategy=None):
+                       strategy=None, leg=None):
     if status == "skipped_strategy_not_viable":
         detail = _stamp_viability_reason(detail, strategy)
+    if leg == "exit":
+        # B-1408: exit/cover rows carry their position's strategy tag, so /entry-funnel cannot tell them from entries
+        # by tag or side (NHPC's cover read as a 'placed' gap_and_go entry, 2026-10-28). Mark them explicitly.
+        detail = REAL_EXIT_ROW_MARK + (f" {detail}" if detail else "")
     conn.execute(
         "INSERT INTO real_trades (ts, day, symbol, kotak_trading_symbol, side, qty, price_est, "
         "notional_inr, status, order_id, detail, raw_response, strategy) "
@@ -14402,7 +14409,7 @@ def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
     _log_real_attempt(
         conn, symbol, "B", "confirmed", kotak_trading_symbol=real_row["kotak_trading_symbol"],
         qty=real_row["qty"], price_est=result.get("fill_price"), order_id=result["order_id"],
-        raw_response=result.get("raw_response"), strategy=real_row["strategy"],
+        raw_response=result.get("raw_response"), strategy=real_row["strategy"], leg="exit",
     )
     print(f"[REAL SHORT] BUY-TO-COVER {real_row['qty']} {real_row['kotak_trading_symbol']} "
           f"(order {result['order_id']})")
@@ -22128,7 +22135,7 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
             conn, symbol, "S", "skipped_already_closed_at_kotak", kotak_trading_symbol=row["kotak_trading_symbol"],
             qty=row["qty"], strategy=row["strategy"],
             detail="Kotak shows no open position for this symbol - stale real_positions_swing row "
-                   "cleared without a second sell",
+                   "cleared without a second sell", leg="exit",
         )
         print(f"[REAL SWING] SKIPPED duplicate exit for {row['kotak_trading_symbol']} - "
               f"Kotak already shows it closed, stale local row cleared instead of re-selling")
@@ -22169,7 +22176,7 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
             notional_inr=exit_qty * result["fill_price"] if result.get("fill_price") else None,
             order_id=result["order_id"], raw_response=result.get("raw_response"),
             detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
-            strategy=row["strategy"],
+            strategy=row["strategy"], leg="exit",
         )
         conn.commit()
         _sync_real_positions_swing_external(conn)
@@ -22188,7 +22195,7 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
         _log_real_attempt(
             conn, symbol, "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
             qty=row["qty"], detail=result.get("detail"), raw_response=result.get("raw_response"),
-            strategy=row["strategy"],
+            strategy=row["strategy"], leg="exit",
         )
         _why_log(
             conn, symbol, "exit", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
@@ -24719,14 +24726,14 @@ def _maybe_place_real_swing_short_exit(conn, symbol, reason: str = None):
         conn.execute("DELETE FROM real_positions_swing_short WHERE symbol = ?", (symbol,))
         _log_real_attempt(conn, symbol, "B", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
                           qty=int(res["qty"]), price_est=res.get("fill_price"), order_id=res["order_id"],
-                          raw_response=res.get("raw_response"), strategy=row["strategy"])
+                          raw_response=res.get("raw_response"), strategy=row["strategy"], leg="exit")
         conn.commit()
         _why(conn, symbol, "short_cover", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
              order_id=res["order_id"], prev_state=f"short {row['qty']}", new_state="closed")
     else:
         _log_real_attempt(conn, symbol, "B", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
                           qty=row["qty"], detail=res.get("detail"), raw_response=res.get("raw_response"),
-                          strategy=row["strategy"])
+                          strategy=row["strategy"], leg="exit")
         _why(conn, symbol, "short_cover", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
              prev_state=f"short {row['qty']}", new_state="still open (cover failed; stop re-placed by heal)",
              detail=res.get("detail"))
@@ -27682,7 +27689,8 @@ def entry_funnel():
     try:
         rows = conn.execute(
             "SELECT strategy, side, status, COUNT(*), COUNT(DISTINCT symbol) FROM real_trades "
-            "WHERE day = ? GROUP BY strategy, side, status", (day,)).fetchall()
+            "WHERE day = ? AND (detail IS NULL OR detail NOT LIKE ?) GROUP BY strategy, side, status",
+            (day, REAL_EXIT_ROW_MARK + "%")).fetchall()  # B-1408: exit/cover rows are never entry attempts
     finally:
         conn.close()
     for strat, side, status, n, syms in rows:
