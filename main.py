@@ -27829,7 +27829,7 @@ def real_positions_sl_today():
     day0 = ist_now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
     out = []
     with closing(get_db()) as c:
-        def _one(r, category, side, strat_stop, target, tag):
+        def _one(r, category, side, strat_stop, target, tag, initial_stop=None):
             kotak_sl = r["sl_trigger_price"] if r["sl_order_id"] else None
             ev = c.execute(
                 "SELECT ts, new_state FROM real_order_events WHERE symbol = ? AND leg = 'sl' AND event IN ('placed','moved') "
@@ -27847,6 +27847,21 @@ def real_positions_sl_today():
             else:
                 ok, status = True, "yes - fixed stop, no update needed"
             last = ev[-1] if ev else None
+            # B-1410: the SL as placed at Kotak on the entry day (first 'sl placed' event that day), else the strategy's
+            # frozen initial stop.
+            eday_sl, eday_src = None, None
+            try:
+                d0 = (dt.datetime.strptime(str(r["day"]), "%Y-%m-%d") - dt.timedelta(minutes=IST_OFFSET_MIN)).replace(
+                    tzinfo=dt.timezone.utc).timestamp()  # entry day's IST midnight
+                first = c.execute("SELECT new_state FROM real_order_events WHERE symbol = ? AND leg = 'sl' AND event = 'placed' "
+                                  "AND ts >= ? AND ts < ? ORDER BY ts LIMIT 1", (r["symbol"], d0, d0 + 86400)).fetchone()
+                m = re.search(r"Rs\s?([0-9]+(?:\.[0-9]+)?)", (first["new_state"] or "")) if first else None
+                if m:
+                    eday_sl, eday_src = round(float(m.group(1)), 2), "kotak"
+            except Exception:
+                pass
+            if eday_sl is None and initial_stop is not None:
+                eday_sl, eday_src = round(float(initial_stop), 2), "strategy"
             out.append({
                 "symbol": r["symbol"], "category": category, "side": side, "strategy": tag, "qty": r["qty"],
                 "entry_price": r["entry_price"], "target_price": target, "sl_type": kind,
@@ -27854,6 +27869,7 @@ def real_positions_sl_today():
                 "kotak_sl_trigger": kotak_sl, "sl_updates_today": len(ev),
                 "last_sl_update_ist": (dt.datetime.fromtimestamp(last["ts"], dt.timezone.utc) + dt.timedelta(hours=5, minutes=30)).strftime("%H:%M") if last else None,
                 "sl_as_per_strategy": ok, "sl_status": status,
+                "entry_day": r.get("day"), "entry_day_sl": eday_sl, "entry_day_sl_source": eday_src,
             })
 
         def _rows(sql):
@@ -27861,16 +27877,32 @@ def real_positions_sl_today():
                 return [dict(x) for x in c.execute(sql).fetchall()]
             except Exception:
                 return []
-        for r in _rows("SELECT p.*, s.stop_loss AS ss, s.target AS st FROM real_positions p "
+        for r in _rows("SELECT p.*, s.stop_loss AS ss, s.target AS st, s.initial_stop_loss AS isl FROM real_positions p "
                        "LEFT JOIN signal_state s ON s.symbol = p.symbol AND s.status = 'long'"):
-            _one(r, "buy", "long", r.get("ss"), r.get("target_price") or r.get("st"), r.get("strategy"))
-        for r in _rows("SELECT p.*, s.stop_loss AS ss, s.target AS st FROM real_positions_short p "
+            _one(r, "buy", "long", r.get("ss"), r.get("target_price") or r.get("st"), r.get("strategy"), r.get("isl"))
+        for r in _rows("SELECT p.*, s.stop_loss AS ss, s.target AS st, s.initial_stop_loss AS isl FROM real_positions_short p "
                        "LEFT JOIN signal_state_short s ON s.symbol = p.symbol"):
-            _one(r, "short_sell", "short", r.get("ss"), r.get("st"), r.get("strategy"))
-        for r in _rows("SELECT * FROM real_positions_swing"):
-            _one(r, "swing", "long", r.get("stop_loss"), None, r.get("strategy"))
-        for r in _rows("SELECT * FROM real_positions_swing_short"):
-            _one(r, "swing_short", "short", r.get("stop_loss"), None, r.get("strategy"))
+            _one(r, "short_sell", "short", r.get("ss"), r.get("st"), r.get("strategy"), r.get("isl"))
+        for r in _rows("SELECT p.*, s.initial_stop_loss AS isl FROM real_positions_swing p "
+                       "LEFT JOIN signal_state_swing s ON s.symbol = p.symbol"):
+            _one(r, "swing", "long", r.get("stop_loss"), None, r.get("strategy"), r.get("isl"))
+        for r in _rows("SELECT p.*, s.initial_stop_loss AS isl FROM real_positions_swing_short p "
+                       "LEFT JOIN signal_state_swing_short s ON s.symbol = p.symbol"):
+            _one(r, "swing_short", "short", r.get("stop_loss"), None, r.get("strategy"), r.get("isl"))
+    # B-1410: profit per row at the last price (live feed first, one time budget; blank if not priced in time).
+    try:
+        px = _open_positions_prices([o["symbol"] for o in out], {cfg["symbol"]: cfg for cfg in WATCHLIST})
+    except Exception:
+        px = {}
+    for o in out:
+        cur = px.get(o["symbol"])
+        o["current_price"] = round(float(cur), 2) if cur else None
+        try:
+            sign = -1 if o["side"] == "short" else 1
+            o["profit_inr"] = round(sign * (float(cur) - float(o["entry_price"])) * int(o["qty"]), 2) if cur else None
+            o["profit_pct"] = round(sign * (float(cur) / float(o["entry_price"]) - 1) * 100, 2) if cur else None
+        except (TypeError, ValueError, ZeroDivisionError):
+            o["profit_inr"] = o["profit_pct"] = None
     return {"positions": out, "as_of_epoch": time.time(),
             "note": "Target blank = the strategy exits by its own rule (no resting target order)."}
 
