@@ -11531,7 +11531,19 @@
    "prev_state": null,
    "new_state": "rejected",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:31:54 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-XUAEZ across exchange "
+  },
+  {
+   "id": 962,
+   "ts": 1793176981.2211196,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   }
  ],
- "synced_at_utc": "2026-10-28T08:42:59Z"
+ "synced_at_utc": "2026-10-28T08:43:08Z"
 }
