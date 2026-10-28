@@ -6,6 +6,8 @@ name: chan_shape LONG 1d main.py-function replay (B-965)
 # main._replay_verified_tags() reads: commit the merged JSON as docs/backtest_data/chan_shape_main_replay_run_<run id>.json.
 # Until a file clearing the floor (n >= 30) is on file the tags stay in REPLAY_OWED_TAGS (real-money gate closed).
 # Long only (short mirror is its own registered tag family). Validation only; wires nothing, no kill switch.
+# B-1396a: the merge step also prints ONE log line `RESULTS_JSON: {...}` (same schema, compact) so the coordinator can
+# save the results from the job LOG (artifacts are not downloadable from the session).
 # Registry *_y2021/_y2023 tags are calendar-year slices of the same rule and are NOT replayed (cannot be traded forward).
 on:
   workflow_dispatch:
@@ -51,7 +53,8 @@ jobs:
           path: shards
           pattern: chan_shape-main-replay-s*
           merge-multiple: true
-      - run: python3 scripts/chan_shape_macddiv_main_replay.py merge shards chan_shape_all.json | tee chan_shape_table.txt
+      - name: Merge shards and print RESULTS_JSON line
+        run: python3 scripts/chan_shape_macddiv_main_replay.py merge shards chan_shape_all.json | tee chan_shape_table.txt
       - uses: actions/upload-artifact@v4
         with:
           name: chan_shape-main-replay-results

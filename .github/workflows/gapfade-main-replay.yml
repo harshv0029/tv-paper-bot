@@ -1,0 +1,68 @@
+name: gaps fade LONG 1d main.py-function replay (B-1396d)
+
+# Backlog B-1396d. The two main.GAPFADE_TAGS (gaps__exhaust_fade__long__1d__atr3_nb5__v1, gaps__common_fade__long__1d__atr3_nb5__v1)
+# are REPLAY_OWED (real-money gate closed) until this replay is on file. It IMPORTS and CALLS the live functions the swing scan
+# uses (main.gapfade_long_entry_signal, main._gapfade_exit_adapter) on the FULL universe (_load_nse_universe_from_file, NOT
+# NSE_FULL_UNIVERSE), 1d bars 5y via yfinance, ATR stop on every entry, cost = main.ROUND_TRIP_COST_PCT (0.8%), fill at the
+# signal close, gap-aware stop, FIFO non-overlapping per symbol per tag. The merge job prints ONE `RESULTS_JSON: {...}` line;
+# commit it as docs/backtest_data/gapfade_main_replay_run_<run id>.json (main._replay_verified_tags reads rows[].metrics) and
+# register both tags pass or fail. BIG MATRIX (8 shards): dispatch only when no Deploy Gate / safety run is queued or running.
+# Validation only; wires nothing, no kill switch. Expected runtime ~25-45 min per shard (yfinance fetch dominated).
+on:
+  workflow_dispatch:
+    inputs:
+      symbol_limit:
+        description: "Symbols per shard (blank = full universe; a number = smoke only, NOT a result)"
+        required: false
+        default: ""
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - env:
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: "8"
+          SYMBOL_LIMIT: ${{ inputs.symbol_limit }}
+        run: python3 scripts/gapfade_main_replay.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gapfade-main-replay-s${{ matrix.shard }}
+          path: out/
+          retention-days: 7
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: gapfade-main-replay-s*
+          merge-multiple: true
+      - env:
+          RUN_ID: ${{ github.run_id }}
+        run: python3 scripts/gapfade_main_replay.py merge shards gapfade_main_replay_all.json | tee gapfade_table.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gapfade-main-replay-results
+          path: |
+            gapfade_main_replay_all.json
+            gapfade_table.txt

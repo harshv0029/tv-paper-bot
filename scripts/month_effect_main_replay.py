@@ -49,7 +49,7 @@ def replay_symbol(m, df, spec, cost):
     n = len(df)
     if n < 40:
         return []
-    idx = pd.DatetimeIndex(df.index)
+    idx = m._month_effect_bar_times(df)  # B-1396c: same timestamps the live entry reads ("Date" column, IST)
     o = df["Open"].to_numpy(float)
     out, nxt = [], 0
     cand = [i for i in range(16, n - 1) if idx[i].month == m.MONTH_EFFECT_SHORT_MONTH and idx[i - 1].month != idx[i].month]
@@ -78,24 +78,59 @@ def replay_symbol(m, df, spec, cost):
     return out
 
 
+INTRADAY_LOOKBACK_DAYS = 59  # B-1396c: yfinance period="60d" for 15m resolved to ~70 days and Yahoo rejected it
+#                               ("must be within the last 60 days"), so 15m is fetched by explicit start/end instead.
+
+
+def synthetic_frame(interval):
+    """fetch_ohlc-shaped frame (RangeIndex + "Date" column) that CONTAINS a September-1 month-start event."""
+    if interval == "15m":
+        days = pd.bdate_range("2026-08-17", "2026-09-30")
+        ts = [d + pd.Timedelta(hours=9, minutes=15) + pd.Timedelta(minutes=15 * k) for d in days for k in range(25)]
+        idx = pd.DatetimeIndex(ts).tz_localize("Asia/Kolkata")
+    else:
+        idx = pd.bdate_range("2021-01-01", periods=1300)
+    rng = np.random.default_rng(1)
+    c = 100 + np.cumsum(rng.normal(0, 0.3, len(idx)))
+    return pd.DataFrame({"Date": idx, "Open": c, "High": c + 0.5, "Low": c - 0.5, "Close": c, "Volume": 1000.0})
+
+
+def fetch_frame(m, sym, interval):
+    """1d -> main.fetch_ohlc (the live fetch). 15m -> yfinance start/end inside the 60-day limit, normalised to the
+    same fetch_ohlc shape (RangeIndex + "Date" column, OHLC NaN rows dropped)."""
+    if interval != "15m":
+        return m.fetch_ohlc(sym, PERIOD[interval], interval)
+    import yfinance as yf
+    end = pd.Timestamp.now("UTC")
+    df = yf.download(sym, start=(end - pd.Timedelta(days=INTRADAY_LOOKBACK_DAYS)).to_pydatetime(),
+                     end=end.to_pydatetime(), interval="15m", progress=False)
+    if df is None or df.empty:
+        raise RuntimeError(f"no 15m data for {sym}")
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+    df = df.reset_index()
+    date_col = "Date" if "Date" in df.columns else "Datetime"
+    return df.rename(columns={date_col: "Date"}).dropna(subset=["Open", "High", "Low", "Close"]).reset_index(drop=True)
+
+
 def load_frames(m, interval, shard, nshards, limit=None):
     if os.environ.get("SYNTHETIC") == "1":
-        idx = pd.date_range("2026-08-01 09:15", periods=900, freq="15min") if interval == "15m" else pd.bdate_range("2021-01-01", periods=1300)
-        rng = np.random.default_rng(1)
-        c = 100 + np.cumsum(rng.normal(0, 0.3, len(idx)))
-        df = pd.DataFrame({"Open": c, "High": c + 0.5, "Low": c - 0.5, "Close": c, "Volume": 1000.0}, index=idx)
-        return {"SYN0": df}
+        return {"SYN0": synthetic_frame(interval)}
     syms = sorted(set(m._load_nse_universe_from_file()))[shard::nshards]
     if limit:
         syms = syms[:limit]
-    out = {}
+    out, fails = {}, 0
     for s in syms:
         try:
-            raw = m.fetch_ohlc(s, PERIOD[interval], interval)
-        except Exception:
+            raw = fetch_frame(m, s, interval)
+        except Exception as ex:
+            fails += 1
+            if fails <= 3:
+                print("FETCH_FAIL", s, interval, str(ex)[:200])
             continue
         if raw is not None and len(raw) >= 40:
             out[s] = raw
+    print(f"fetched {len(out)}/{len(syms)} symbols ({fails} failed) interval={interval}")
     return out
 
 
@@ -148,11 +183,42 @@ def merge(d):
                      "shards": e["shards"], "metrics": mt})
     out = {**meta, "rows": rows}
     json.dump(out, open(os.path.join(d, "month_effect_main_replay_all.json"), "w"), indent=1)
+    # B-1396b: the artifact is not downloadable by the coordinator, so the merged result is also printed on ONE log line
+    # in the layout main._replay_verified_tags() reads (commit as docs/backtest_data/month_effect_main_replay_run_<id>.json).
+    print("RESULTS_JSON: " + json.dumps(results_json(out, os.environ.get("GITHUB_RUN_ID")), separators=(",", ":")))
     for r in rows:
         mt = r["metrics"]
         print(r["tag"], "n", mt["n"], "pfnet", mt["pfnet"], "pfgross", mt["pfgross"], "win", mt["win_pct"],
               "hold_bars", mt["avg_held_bars"], mt["exit_reasons"])
+    total = sum((r["metrics"].get("n") or 0) for r in rows)
+    if total == 0:
+        # B-1396c: run 40572995313 "succeeded" with n=0 in every cell (nothing was tested). A silent zero never passes.
+        raise SystemExit(f"FAIL: total n=0 across {len(rows)} cells - the replay tested nothing (fetch/signal bug)")
     return out
+
+
+def results_json(merged, run_id=None):
+    """Merged replay -> the *main_replay_run_*.json layout: {"run_id", "source", "rows": [{"tag", "metrics", ...}]}.
+    Every measured field is kept (n, pfnet, pfgross, win_pct, avg_held_hours, avg_held_bars, avg_net/gross_pct,
+    exit_reasons) plus each row's interval/spec/n_symbols/shards; 15m and 1d rows stay separate tags (never merged)."""
+    try:
+        rid = int(run_id) if run_id not in (None, "") else None
+    except (TypeError, ValueError):
+        rid = None
+    rows = []
+    for r in merged.get("rows", []):
+        mt = dict(r.get("metrics") or {})
+        for k in ("n", "pfnet", "pfgross", "win_pct", "avg_held_hours"):
+            mt.setdefault(k, None)
+        rows.append({"tag": r["tag"], "interval": r.get("interval"), "spec": r.get("spec"),
+                     "n_symbols": r.get("n_symbols"), "shards": r.get("shards"), "metrics": mt})
+    return {"run_id": rid,
+            "source": "scripts/month_effect_main_replay.py via .github/workflows/month-effect-main-replay.yml "
+                      "(B-965/B-1396b): real main.month_effect_short_entry_signal/_stop/_exit_reason, full NSE universe "
+                      "(main._load_nse_universe_from_file), entry=next-bar open, gap-aware stop, cost "
+                      f"{merged.get('cost_round_trip_pct')}% round trip",
+            "cost_round_trip_pct": merged.get("cost_round_trip_pct"), "synthetic": merged.get("synthetic"),
+            "note": merged.get("note"), "rows": rows}
 
 
 def plan(env=None):

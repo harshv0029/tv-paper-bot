@@ -47,7 +47,7 @@ def test_tag_registered_mapped_and_replay_owed():
     names = {s.name for s in sr.REGISTRY}
     assert TAG in names
     assert main._STRATEGY_TAG_TO_REGISTRY_NAME[TAG] == TAG
-    assert TAG in main.REPLAY_OWED_TAGS
+    assert TAG in main.REPLAY_FAILED_TAGS  # B-1396c: main.py replay 40575438117 PFnet 0.592, below floor
     assert main._is_strategy_viable_for_real_money(TAG, check_switch=False) is False
     assert main.SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED is False
 

@@ -394,3 +394,22 @@ def test_current_price_none_when_fetch_ohlc_fails_not_a_crash():
     assert pos["unrealized_pnl_pct"] is None
     # invested_inr must still compute - it doesn't depend on a live price
     assert pos["invested_inr"] == 874.2
+
+
+def test_sold_delivery_holding_is_not_shown_as_an_untracked_short():
+    # B-1395: a holding sold today is net-short in positions() until T+1 while holdings() still lists it
+    # (GSEC5IETF/COALINDIA 2026-10-28). It is not a short and must not be listed as one.
+    _fresh_db()
+    fake_kotak_neo = MagicMock()
+    fake_kotak_neo.positions.return_value = {
+        "data": [{"exSeg": "nse_cm", "trdSym": "COALINDIA-EQ", "flBuyQty": "0", "flSellQty": "2", "sellAmt": "796.7"}],
+    }
+    fake_kotak_neo.holdings.return_value = {
+        "data": [{"exchangeSegment": "nse_cm", "symbol": "COALINDIA", "series": "EQ", "quantity": 2}],
+    }
+    fake_kotak_neo.order_report.return_value = {"data": []}
+    fake_df = pd.DataFrame({"Close": [398.0]})
+    with patch.dict("sys.modules", {"kotak_neo": fake_kotak_neo}), patch("main.fetch_ohlc", return_value=fake_df):
+        result = main.get_real_open_positions()
+
+    assert [p for p in result["open_real_positions"] if p["side"] == "short"] == []
