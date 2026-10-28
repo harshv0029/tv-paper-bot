@@ -11003,7 +11003,31 @@
    "prev_state": "long 1 @ Rs72.74",
    "new_state": "market SELL about to be sent to Kotak",
    "detail": "reason: retry of paper swing exit already recorded: gap_filled"
+  },
+  {
+   "id": 918,
+   "ts": 1793159210.5498073,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "exit",
+   "event": "confirmed",
+   "order_id": "261028000022249",
+   "prev_state": "long 1 @ Rs72.74",
+   "new_state": "closed",
+   "detail": "reason: retry of paper swing exit already recorded: gap_filled"
+  },
+  {
+   "id": 919,
+   "ts": 1793159210.5582483,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   }
  ],
- "synced_at_utc": "2026-10-28T03:46:47Z"
+ "synced_at_utc": "2026-10-28T03:46:54Z"
 }
