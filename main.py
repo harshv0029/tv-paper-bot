@@ -20248,7 +20248,9 @@ def hydrate_git_tier_tables() -> int:
                     try:
                         side = requests.get(f"https://raw.githubusercontent.com/{repo}/{_TRACKED_UNION_GIT_BRANCH}/docs/tables/{table}.json",
                                             timeout=6)
-                        if side.status_code == 200:
+                        if side.status_code == 200 and table == "strategy_scan_counts":  # B-1407: higher count wins
+                            rows = _git_tier_merge_rows(table, rows, (side.json() or {}).get("rows") or [])
+                        elif side.status_code == 200:
                             seen = {_order_event_key(r) for r in rows}
                             rows = rows + [{k: v for k, v in r.items() if k != "id"}  # ids differ across a wipe: let SQLite assign
                                            for r in ((side.json() or {}).get("rows") or []) if _order_event_key(r) not in seen]
@@ -29814,13 +29816,33 @@ def _tracked_union_git_push() -> bool:
     return True
 
 
-_GIT_TIER_PUSH_TABLES = ("real_order_events",)
+# B-1407: strategy_scan_counts joins the side-branch push. GitHub fired table-git-sync.yml hours apart (main's copy was
+# from the previous evening at the 2026-10-28 14:12 IST restart), so a restart zeroed the day's scan counts.
+_GIT_TIER_PUSH_TABLES = ("real_order_events", "strategy_scan_counts")
 _git_tier_push_last_hash: dict = {}
+_SCAN_COUNTS_GIT_KEEP_DAYS = 14  # bounds the side-branch file (~300 rows/day)
 
 
 def _order_event_key(r: dict) -> tuple:
     # ids restart after a wipe, so rows are matched on content, never on id
     return (r.get("ts"), r.get("symbol"), r.get("leg"), r.get("event"), r.get("order_id"))
+
+
+def _git_tier_merge_rows(name: str, remote: list, local: list) -> list:
+    """Order events: append-only union on content. Scan counts: one row per (day, tag), the higher count wins (a counter
+    only grows within a day, so the larger value is the newer one), last _SCAN_COUNTS_GIT_KEEP_DAYS days only."""
+    if name == "strategy_scan_counts":
+        merged: dict = {}
+        for r in list(remote) + list(local):
+            k = (r.get("day"), r.get("tag"))
+            if k not in merged or int(r.get("n") or 0) > int(merged[k].get("n") or 0):
+                merged[k] = {"day": r.get("day"), "tag": r.get("tag"), "n": int(r.get("n") or 0)}
+        cutoff = (ist_now() - dt.timedelta(days=_SCAN_COUNTS_GIT_KEEP_DAYS)).strftime("%Y-%m-%d")
+        return sorted((r for r in merged.values() if (r["day"] or "") >= cutoff), key=lambda r: (r["day"], r["tag"]))
+    out = {_order_event_key(r): r for r in remote}
+    for r in local:
+        out.setdefault(_order_event_key(r), r)
+    return sorted(out.values(), key=lambda r: (r.get("ts") or 0))
 
 
 def _git_tier_push_side_branch(name: str) -> bool:
@@ -29856,10 +29878,7 @@ def _git_tier_push_side_branch(name: str) -> bool:
             remote = (json.loads(base64.b64decode(cur.json().get("content") or "").decode() or "{}").get("rows") or [])
         elif cur.status_code != 404:
             cur.raise_for_status()
-        merged = {_order_event_key(r): r for r in remote}
-        for r in local:
-            merged.setdefault(_order_event_key(r), r)
-        rows = sorted(merged.values(), key=lambda r: (r.get("ts") or 0))
+        rows = _git_tier_merge_rows(name, remote, local)
         body = json.dumps({"rows": rows, "synced_at_utc": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")},
                           indent=1, default=str)
         payload = {"message": f"{name} {len(rows)} row(s)", "content": base64.b64encode(body.encode()).decode(),
@@ -30190,6 +30209,11 @@ def _git_tier_push_loop(sleep=_git_tier_push_wait, rounds=None):
     while rounds is None or n < rounds:
         for name in _GIT_TIER_PUSH_TABLES:
             try:
+                if name == "strategy_scan_counts" and name in _git_tier_hydrated:
+                    # B-1407: intraday/short scans count in memory between swing passes; flush them first. Only after the
+                    # git restore ran, or the restore would see a non-empty table and skip.
+                    with closing(get_db()) as _c:
+                        _persist_strategy_scan_counts(_c)
                 _git_tier_push_side_branch(name)
             except Exception as e:  # noqa: BLE001
                 print(f"[table_mirror] git push loop {name} failed (non-fatal): {e}")
