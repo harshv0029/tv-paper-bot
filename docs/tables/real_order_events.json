@@ -11315,7 +11315,19 @@
    "prev_state": "resting @ Rs73.26",
    "new_state": "cancelled (position covering)",
    "detail": "reason: short paper exit: exited_short_stop_hit"
+  },
+  {
+   "id": 944,
+   "ts": 1793169995.0341403,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "short_cover",
+   "event": "confirmed",
+   "order_id": "261028000378742",
+   "prev_state": "short 1",
+   "new_state": "no position",
+   "detail": "reason: short paper exit: exited_short_stop_hit"
   }
  ],
- "synced_at_utc": "2026-10-28T06:46:33Z"
+ "synced_at_utc": "2026-10-28T06:46:41Z"
 }
