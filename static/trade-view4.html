@@ -622,7 +622,7 @@
         `2. ALL TRADING switch: ${g.trading_enabled == null ? "unknown" : ok(g.trading_enabled, g.trading_enabled ? "ON" : "OFF - no new real trades")}` +
         ` · 3. Real entry needs the definition loaded: ${g.requires_explorer_stack ? (g.stack_active ? ok(true, "loaded (" + g.active_names + " strategies)") : ok(false, "NOT loaded")) : "no"}<br>` +
         `4. Scanning/wiring floor: PFnet ≥ ${g.wiring_pfnet_floor} · 5. Replay-owed tags (blocked from real money until replayed): ${g.replay_owed_tags}` +
-        (g.replay_failed_tags != null ? ` · replayed below floor (blocked): ${g.replay_failed_tags}` : "") +
+        (g.replay_failed_tags != null ? ` · replayed below floor (blocked unless in your View 1 set): ${g.replay_failed_tags}` : "") +
         ` · 6. Every entry carries a stop-loss<br>` + rejHtml(g.rejected_today) + unlockHtml(g.unlock_hint) + `<span class="dim">checked ${ist(Date.now())} IST · backup: ${d.mirror && d.mirror.last_restore ? d.mirror.last_restore : "-"}</span>`;
     } catch (e) { $("viaTxt").innerHTML = `<span class="down">could not read /strategy-viable-stack (${e.message})</span>`; }
   }
