@@ -10799,7 +10799,19 @@
    "prev_state": null,
    "new_state": "entry 2026-10-09 @ Rs134.39, stop Rs126.73, ATR Rs3.52, peak close Rs138.04",
    "detail": "reason: B-1364: paper swing exit state was lost; re-derived from daily bars so the order_block_delta trail/max-hold exit runs again"
+  },
+  {
+   "id": 901,
+   "ts": 1793159131.5428507,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261028000014823",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs119.17",
+   "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during swing governance backfill"
   }
  ],
- "synced_at_utc": "2026-10-28T03:45:16Z"
+ "synced_at_utc": "2026-10-28T03:45:35Z"
 }
