@@ -19,17 +19,17 @@
   {
    "day": null,
    "entry_order_id": null,
-   "entry_price": 72.53,
+   "entry_price": 73.26,
    "first_seen_day": "2026-10-28",
    "is_short": 0,
    "kotak_trading_symbol": "NHPC-EQ",
    "opened_at": null,
-   "owner": "short",
+   "owner": "swing",
    "qty": 1,
    "sl_trigger_price": 73.26,
    "source": "position",
-   "stop_loss": null,
-   "strategy": "gap_and_go",
+   "stop_loss": 68.29,
+   "strategy": "swing_rerouted_orphan",
    "symbol": null
   },
   {
