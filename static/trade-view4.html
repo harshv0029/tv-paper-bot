@@ -155,7 +155,7 @@
   <div class="dim" style="font-size:10.5px;margin-top:8px">Counts are each symbol's latest check (<span class="mono">/scheduler-attempts</span>, every 5s); the latest decision pulses. Gates 10–12 are the real-money mirror (PFnet ≥ floor and explorer stack, the one real-trading switch, Kotak entry with its SL); their counts come from today's real order log and the stop backcheck.</div>
 </div>
 
-<footer>Sources (read-only, nothing here places or changes an order): <span class="mono">/algo-live-flow</span> (last 2 min, live) and <span class="mono">/scheduler-pipeline</span> every 2s, <span class="mono">/symbol-check-counts-today</span> 15s (per-symbol counts for the whole IST day, survive restarts), <span class="mono">/real-order-log</span> 3s, <span class="mono">/real-protection-status</span> 5s, <span class="mono">/real-open-positions</span> 20s, <span class="mono">/health</span> 5s (Render, Upstash, freeze, memory: red when any fails). Every dot is one real event: a strategy scan on a symbol, a decision, or a real order moving to its position.</footer>
+<footer>Sources (read-only, nothing here places or changes an order): <span class="mono">/algo-live-flow</span> (last 2 min, live) and <span class="mono">/scheduler-pipeline</span> every 2s, <span class="mono">/symbol-check-counts-today</span> 15s (per-symbol counts for the whole IST day, survive restarts), <span class="mono">/real-order-log</span> 3s, <span class="mono">/real-protection-status</span> 5s, <span class="mono">/real-open-positions</span> 20s, <span class="mono">/health</span> 5s (Render, Upstash, freeze, memory: red when any fails), <span class="mono">/restart-history</span> 60s (Render restarts today, IST; red when any was not a deploy). Every dot is one real event: a strategy scan on a symbol, a decision, or a real order moving to its position.</footer>
 
 <script>
   const $ = id => document.getElementById(id);
@@ -180,7 +180,21 @@
             e => { const n = net[k] || (net[k] = {ok: null}); n.failSince = n.failSince || Date.now(); n.err = e.name === "AbortError" ? "timed out after 20s" : (e.message || "unreachable"); throw e; })
       .finally(() => { clearTimeout(t); delete inflight[k]; });
   };
-  let health = null, healthAt = 0;
+  let health = null, healthAt = 0, restarts = null;
+  // B-1393: Render restarts today (IST), from /restart-history's Upstash log, so it survives the restart it counts
+  async function pollRestarts() {
+    // User 2026-10-28: "Render restarts today X (code push a, crash b)", X = a + b. A deploy is a code push; every other
+    // cause (oom_suspect, freeze_suspect, platform_or_unknown, unknown_no_prior_heartbeat) counts as a crash.
+    try {
+      const r = await getJSON("/restart-history?limit=100");
+      const day = (r.boot_ist || "").slice(0, 10);
+      const today = (r.events || []).filter(e => (e.boot_ist || "").slice(0, 10) === day);
+      const push = today.filter(e => e.cause_guess === "deploy").length;
+      restarts = {total: today.length, push, crash: today.length - push,
+                  crashes: today.filter(e => e.cause_guess !== "deploy").map(e => `${(e.boot_ist || "").slice(11, 16)} ${e.cause_guess}`)};
+    } catch (e) {}
+    renderSys();
+  }
   async function pollHealth() {
     try { health = await getJSON("/health"); healthAt = Date.now(); } catch (e) {}
     renderSys();
@@ -206,7 +220,8 @@
         c(!(h.rss_pct >= 75), `mem ${h.rss_pct ?? "-"}%`),
         c(!(h.threadpool_total && h.threadpool_used >= h.threadpool_total), `workers ${h.threadpool_used ?? "-"}/${h.threadpool_total ?? "-"}`),
         c(!(h.watchdog_alarms > 0), `watchdog alarms ${h.watchdog_alarms ?? "-"}`),
-        c(!(h.order_log_git_push_age_s > 600), `order-log push ${h.order_log_git_push_age_s == null ? "-" : Math.round(h.order_log_git_push_age_s) + "s ago"}`));
+        c(!(h.order_log_git_push_age_s > 600), `order-log push ${h.order_log_git_push_age_s == null ? "-" : Math.round(h.order_log_git_push_age_s) + "s ago"}`),
+        c(!(restarts && restarts.crash > 0), restarts ? `Render restarts today ${restarts.total} (code push ${restarts.push}, crash ${restarts.crash}${restarts.crash ? ": " + restarts.crashes.join(", ") + " IST" : ""})` : "Render restarts today -"));
     }
     $("sys").classList.toggle("bad", probs.length > 0);
     $("sysLed").className = "led " + (probs.length ? "bad" : health ? "ok" : "");
@@ -573,6 +588,7 @@
   setInterval(pollProtection, 5000);
   setInterval(pollPositions, 20000);
   pollHealth(); setInterval(pollHealth, 5000);
+  pollRestarts(); setInterval(pollRestarts, 60000);
   // B-1370: live viability condition, from the same /strategy-viable-stack the bot's entry gate uses
   // B-1372: entries that fired today but were turned away by the viability gate (survives restarts)
   function rejHtml(r) {
@@ -606,6 +622,7 @@
         `2. ALL TRADING switch: ${g.trading_enabled == null ? "unknown" : ok(g.trading_enabled, g.trading_enabled ? "ON" : "OFF - no new real trades")}` +
         ` · 3. Real entry needs the definition loaded: ${g.requires_explorer_stack ? (g.stack_active ? ok(true, "loaded (" + g.active_names + " strategies)") : ok(false, "NOT loaded")) : "no"}<br>` +
         `4. Scanning/wiring floor: PFnet ≥ ${g.wiring_pfnet_floor} · 5. Replay-owed tags (blocked from real money until replayed): ${g.replay_owed_tags}` +
+        (g.replay_failed_tags != null ? ` · replayed below floor (blocked): ${g.replay_failed_tags}` : "") +
         ` · 6. Every entry carries a stop-loss<br>` + rejHtml(g.rejected_today) + unlockHtml(g.unlock_hint) + `<span class="dim">checked ${ist(Date.now())} IST · backup: ${d.mirror && d.mirror.last_restore ? d.mirror.last_restore : "-"}</span>`;
     } catch (e) { $("viaTxt").innerHTML = `<span class="down">could not read /strategy-viable-stack (${e.message})</span>`; }
   }

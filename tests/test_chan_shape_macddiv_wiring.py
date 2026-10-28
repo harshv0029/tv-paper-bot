@@ -31,7 +31,7 @@ def test_cells_map_one_to_one_to_registry_rows_and_are_owed():
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t
         assert t in _REG and _REG[t].metrics is not None
         assert "__long__" in t
-        assert t in main.REPLAY_OWED_TAGS  # no main.py-calling replay on file yet
+        assert t in main.REPLAY_OWED_TAGS or t in main.REPLAY_FAILED_TAGS  # B-1396: owed, or replayed below floor
         assert main._is_strategy_viable_for_real_money(t, check_switch=False) is False
 
 
@@ -127,7 +127,8 @@ def test_macddiv_live_cells_are_nonovl_line_only_and_gate_closed():
     assert set(main.MACDDIV_LONG_LIVE_CELLS) <= set(main.MACDDIV_LONG_CELLS)
     assert len(main.MACDDIV_LONG_LIVE_CELLS) == 4
     assert all(("line_any" in t or "hist_any" in t) and "nonovl" in t and "segis" not in t for t in main.MACDDIV_LONG_LIVE_CELLS)
-    assert all(t in main.REPLAY_OWED_TAGS or t in main._replay_verified_tags() for t in main.MACDDIV_LONG_LIVE_CELLS)
+    assert all(t in main.REPLAY_OWED_TAGS or t in main.REPLAY_FAILED_TAGS or t in main._replay_verified_tags()
+               for t in main.MACDDIV_LONG_LIVE_CELLS)
     assert all(main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == t for t in main.MACDDIV_LONG_LIVE_CELLS)
 
 

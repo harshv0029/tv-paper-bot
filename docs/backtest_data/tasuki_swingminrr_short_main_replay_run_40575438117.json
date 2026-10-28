@@ -1,0 +1,212 @@
+{
+ "run_id": 40575438117,
+ "source": "scripts/tasuki_swingminrr_short_main_replay.py (real main.py fns; tasuki=ETF_SYMBOLS 1d, swm1h=full NSE 1h); transcribed from aggregate job 122443531144 RESULTS_JSON log line",
+ "fill_model": "signal_close",
+ "cost_round_trip_pct": 0.8,
+ "synthetic": false,
+ "note": "tags replayed independently; bar constants are bars of the candle in use",
+ "shard_files": 17,
+ "rows": [
+  {
+   "tag": "swingminrr__brk20_gate__short__1h__atr3_rr4__v1",
+   "spec": {
+    "group": "swm1h",
+    "rr": null
+   },
+   "n_symbols": 2538,
+   "shards": 16,
+   "metrics": {
+    "n": 2174,
+    "win_pct": 49.49,
+    "pfnet": 0.5919541168366039,
+    "pfgross": 0.7201508040222163,
+    "avg_net_pct": -2.1993,
+    "avg_gross_pct": -1.3993,
+    "avg_held_bars": 23.4,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 871,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 12.11
+     },
+     "max_hold_timeout": {
+      "n": 1298,
+      "pfnet": 20.657895983581724,
+      "win_pct": 82.74,
+      "avg_held_bars": 31.0
+     },
+     "data_end_forced_close": {
+      "n": 5,
+      "pfnet": 0.7263237949122409,
+      "win_pct": 40.0,
+      "avg_held_bars": 17.0
+     }
+    },
+    "avg_held_hours": 23.4
+   }
+  },
+  {
+   "tag": "swingminrr__brk20_gatetarget__short__1h__atr3_rr4__v1",
+   "spec": {
+    "group": "swm1h",
+    "rr": 4.0
+   },
+   "n_symbols": 2538,
+   "shards": 16,
+   "metrics": {
+    "n": 2178,
+    "win_pct": 50.37,
+    "pfnet": 0.5292016445982893,
+    "pfgross": 0.6536391271658829,
+    "avg_net_pct": -2.5241,
+    "avg_gross_pct": -1.7241,
+    "avg_held_bars": 21.71,
+    "exit_reasons": {
+     "stop_hit": {
+      "n": 861,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 11.97
+     },
+     "max_hold_timeout": {
+      "n": 938,
+      "pfnet": 10.266573748899713,
+      "win_pct": 76.87,
+      "avg_held_bars": 31.0
+     },
+     "target_hit": {
+      "n": 374,
+      "pfnet": null,
+      "win_pct": 100.0,
+      "avg_held_bars": 20.86
+     },
+     "data_end_forced_close": {
+      "n": 5,
+      "pfnet": 0.7263237949122409,
+      "win_pct": 40.0,
+      "avg_held_bars": 17.0
+     }
+    },
+    "avg_held_hours": 21.7
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf__short__1d__atr2d5_h3__v1",
+   "spec": {
+    "group": "tasuki",
+    "atr": 2.5
+   },
+   "n_symbols": 157,
+   "shards": 1,
+   "metrics": {
+    "n": 82,
+    "win_pct": 43.9,
+    "pfnet": 1.3268393455525627,
+    "pfgross": 2.864411319276066,
+    "avg_net_pct": 0.3273,
+    "avg_gross_pct": 1.1273,
+    "avg_held_bars": 2.94,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 79,
+      "pfnet": 1.658503608533785,
+      "win_pct": 45.57,
+      "avg_held_bars": 3.0
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 0.5
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.0
+     }
+    },
+    "avg_held_hours": 70.6
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf__short__1d__atr4_h3__v1",
+   "spec": {
+    "group": "tasuki",
+    "atr": 4.0
+   },
+   "n_symbols": 157,
+   "shards": 1,
+   "metrics": {
+    "n": 82,
+    "win_pct": 43.9,
+    "pfnet": 1.3268393455525627,
+    "pfgross": 2.864411319276066,
+    "avg_net_pct": 0.3273,
+    "avg_gross_pct": 1.1273,
+    "avg_held_bars": 2.94,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 79,
+      "pfnet": 1.658503608533785,
+      "win_pct": 45.57,
+      "avg_held_bars": 3.0
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 0.5
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.0
+     }
+    },
+    "avg_held_hours": 70.6
+   }
+  },
+  {
+   "tag": "tasuki__gap_etf__short__1d__atr6_h3__v1",
+   "spec": {
+    "group": "tasuki",
+    "atr": 6.0
+   },
+   "n_symbols": 157,
+   "shards": 1,
+   "metrics": {
+    "n": 82,
+    "win_pct": 43.9,
+    "pfnet": 1.3268393455525627,
+    "pfgross": 2.864411319276066,
+    "avg_net_pct": 0.3273,
+    "avg_gross_pct": 1.1273,
+    "avg_held_bars": 2.94,
+    "exit_reasons": {
+     "max_hold_timeout": {
+      "n": 79,
+      "pfnet": 1.658503608533785,
+      "win_pct": 45.57,
+      "avg_held_bars": 3.0
+     },
+     "data_end_forced_close": {
+      "n": 2,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 0.5
+     },
+     "stop_hit": {
+      "n": 1,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.0
+     }
+    },
+    "avg_held_hours": 70.6
+   }
+  }
+ ]
+}

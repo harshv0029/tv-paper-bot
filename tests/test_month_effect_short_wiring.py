@@ -45,12 +45,18 @@ def test_cells_tags_and_gate_mapping():
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[tag] == tag
         assert tag in names                       # registered with real metrics (never merged with atrnone cells)
         assert "atrnone" not in tag               # no-stop cells are not wired (no trade without SL)
-        assert tag in main.REPLAY_OWED_TAGS       # gate closed until a main.py-calling replay is on file
+        # B-1396b: main.py replay 40580498404 on file: no tag is owed any more; atr2d5/4/6 h25 verified, atr6 h125 failed
+        assert tag not in main.REPLAY_OWED_TAGS
 
 
-def test_gate_closed_for_real_money_while_replay_owed():
+def test_replay_split_and_real_leg_closed_without_overnight_product():
+    verified = {"month__effect__short__15m__atr4_h25__v1", "month__effect__short__15m__atr6_h25__v1",
+                "month__effect__short__15m__atr2d5_h25__v1"}  # PFnet 1.281 / 1.444 / 1.058 vs floor 1.0
     for tag in main.MONTH_EFFECT_SHORT_CELLS:
-        assert main._is_strategy_viable_for_real_money(tag, check_switch=False) is False
+        assert (tag in main._replay_verified_tags()) == (tag in verified)
+        assert (tag in main.REPLAY_FAILED_TAGS) == (tag not in verified)
+    # real entries go through _maybe_place_real_swing_short_entry, closed until the NRML short product is confirmed
+    assert main.SHORT_SWING_OVERNIGHT_PRODUCT_CONFIRMED is False
 
 
 def test_signal_only_on_first_bar_of_september():

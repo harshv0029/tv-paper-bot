@@ -16,6 +16,8 @@ Modes (argv[1]):
          -> out/<family>_s<shard>.json (raw sums)
   merge  python3 scripts/chan_shape_macddiv_main_replay.py merge DIR [OUT.json] -> rows[] with metrics (n, pfnet, ...)
          in the schema main._replay_verified_tags() reads (docs/backtest_data/*main_replay_run_*.json).
+         Also prints ONE line `RESULTS_JSON: {...}` (compact, same schema) so the coordinator can copy the results from the
+         job LOG into docs/backtest_data/<family>_main_replay_run_<run id>.json without downloading the artifact (B-1396a).
 """
 import glob
 import json
@@ -183,11 +185,40 @@ def merge(d, out_path=None):
     out = {**meta, "note": "avg_held_hours = avg_held_bars x market hours per bar; schema read by main._replay_verified_tags",
            "rows": rows}
     json.dump(out, open(out_path or os.path.join(d, "replay_all.json"), "w"), indent=1)
+    print(results_json_line(out))
     for r in rows:
         mt = r["metrics"]
         print(r["tag"], "n", mt["n"], "pfnet", mt["pfnet"], "pfgross", mt["pfgross"], "win", mt["win_pct"],
               "hold_h", mt["avg_held_hours"], mt["exit_reasons"])
     return out
+
+
+WORKFLOW = {"chan_shape": ".github/workflows/chan-shape-main-replay.yml"}
+
+
+def results_doc(out, run_id=None):
+    """Compact docs/backtest_data row doc (main._replay_verified_tags schema) from merge() output. Keeps every measured
+    field (n, pfnet, pfgross, win %, avg net/gross %, held bars/days/hours, exit-reason breakdown); avg_held_days =
+    avg_held_bars x hours per bar / 6.25 (market hours per NSE day), so for 1d bars it equals avg_held_bars."""
+    if run_id is None:
+        rid = os.environ.get("GITHUB_RUN_ID")
+        run_id = int(rid) if rid and rid.isdigit() else None
+    fam = out.get("family", "")
+    src = (f"{WORKFLOW.get(fam, 'chan_shape_macddiv_main_replay')} + scripts/chan_shape_macddiv_main_replay.py: "
+           f"real main.py fns ({'chan_shape_long_entry_signal + chan_shape_exit_reason' if fam == 'chan_shape' else 'macddiv_long_cell_signal + macddiv_long_exit_reason'}), "
+           "full universe main._load_nse_universe_from_file(), cost main.ROUND_TRIP_COST_PCT, strict FIFO per symbol per tag")
+    rows = []
+    for r in out.get("rows", []):
+        mt = dict(r["metrics"])
+        mt["avg_held_days"] = round(float(mt.get("avg_held_bars") or 0.0) * HOURS_PER_BAR.get(fam, 6.25) / 6.25, 2)
+        rows.append({"tag": r["tag"], "n_symbols": r.get("n_symbols"), "shards": r.get("shards"), "metrics": mt})
+    meta = {k: out[k] for k in ("family", "interval", "period", "cost_round_trip_pct", "synthetic", "direction")
+            if k in out}
+    return {"run_id": run_id, "source": src, **meta, "rows": rows}
+
+
+def results_json_line(out, run_id=None):
+    return "RESULTS_JSON: " + json.dumps(results_doc(out, run_id), separators=(",", ":"), sort_keys=False)
 
 
 if __name__ == "__main__":

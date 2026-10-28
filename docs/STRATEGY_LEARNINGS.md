@@ -1472,3 +1472,34 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - **Outlier, chan_tsm lookback_sign long atr4d0_hold25_lb150 (net 3.03, gross 3.543, n=52451):** registered with its real metrics because of the keep-all-data rule. The raw JSON points to a data artifact rather than an edge. Its exit mix (max_hold 40412 / stop 12039), average hold (22.15 bars) and win rate (38.2%) are almost the same as lb50 (38.9%, 22.27 bars, net 0.80) and lb300 (37.4%, 22.2 bars, net 0.723). Yet its average net per trade is +7.96%, against -0.79% for lb50 and -1.07% for lb300. The five cells around it also lose about 1% a trade: atr1d5 and atr2d5 at the same lb150/hold25 (0.669 and 0.733, -1.08% and -1.00%) and the lb150 short mirror (0.723, -1.11%). Those two long cells use the same entry signal with tighter stops. If lb150 had a real edge, it would show up there too. The same win rate with a per-trade mean nearly 9 points higher means a handful of huge winners, almost certainly bad or unadjusted prices (a split or a bad tick) in one shard that only this stop/hold combination happened to ride. Its notes field is tagged SUSPECTED DATA ARTIFACT. Its PFnet passes the viable floor numerically, but the tag has no `_STRATEGY_TAG_TO_REGISTRY_NAME` mapping, so no scan or real entry can use it. Before it is trusted, re-run this cell alone and dump its top 20 trades by net %.
 - **Reuse:** when one cell beats its neighbours by 3-4x while win rate, exit mix and hold match them, compare avg_net_pct and inspect the top trades before believing it. A real edge moves win rate or exit mix too; a jump in the mean alone points to the data.
 - **Profit-booking / exit takeaway:** Chan's 4h signals do not survive 0.8% round-trip costs with any stop or hold tried here; no profit-booking change fixes a gross PF of 1.0-1.16. If these families come back, try lower-cost execution or a higher timeframe, not tighter exits.
+
+## macddiv 1h long through the real main.py path (B-1396, run 38550669732, read 2026-10-28 IST)
+
+- **What ran:** the 4 wired `macddiv__*__long__1h__*_w5__nonovl__v2` cells replayed through the live main.py functions on the full NSE universe, 0.8% cost, FIFO non-overlap (file `docs/backtest_data/macddiv_main_replay_run_38550669732.json`).
+- **Result (net PF / n):** hist_any atr3 0.681 / 92829; line_any atr1d5 0.644 / 64482; atr2 0.687 / 61797; atr3 0.734 / 57802. Gross PF about 1.01. All below the 1.1 floor, against 1.14-1.46 in the research harness (B-812).
+- **What broke:** the research harness's PFnet did not survive the move to the live code path; the gap (about 0.7) is far larger than sampling noise, so the research port and the live port differ (signal timing or exits). This file also stored metrics flat, so the gate never read it and the cells sat as "replay owed" for 2 weeks after the replay was done.
+- **Reuse:** trust only the main.py replay for a go/no-go; store replay rows with nested `metrics` (or keep `_replay_rows` reading both shapes); treat a research-vs-live gap above 0.2 PFnet as a port bug to find before any further sweep.
+- **Profit-booking / exit takeaway:** gross PF about 1.0 means no exit change rescues these cells at 0.8% cost; leave them closed for real money.
+
+## chan_shape mom_mr long 1d through the real main.py path (B-1396a, run 40572999957, 2026-10-28 IST)
+
+- **What ran:** the 6 wired `chan_shape__mom_mr__long__1d__*__nonovl__v2` cells, live main.py entry/exit, full NSE (2416 symbols with data), 5y daily, 0.8% cost, strict FIFO.
+- **Result (net / gross / win% / n / avg hold days):** atr1d5 h10 0.802/1.052/36.5/53997/8.0; atr1d5 h5 0.720/1.045/37.5/68654/4.5; atr2d5 h10 0.848/1.100/40.3/49520/9.3; atr2d5 h5 0.749/1.085/38.9/66639/4.9; atr4d0 h10 0.891/1.162/41.3/48369/9.8; atr4d0 h5 0.770/1.122/39.2/66290/5.0. None clears 1.1.
+- **What surprised:** trades that reach the max-hold timeout are profitable (PFnet 1.1-4.5) and every stop-loss exit loses; wider stops and the longer hold improve PFnet steadily, but gross PF of 1.05-1.16 leaves almost nothing after 0.8% cost.
+- **Reuse:** the monotone gain with wider ATR and longer hold says the edge is drift, not the shape signal; a hold-20/atr6 sweep is the only lever worth one more run, and only if gross PF moves well above 1.2.
+- **Profit-booking / exit takeaway:** do not book early: the timeout exits carry all the profit; the stop is the cost. Stay closed for real money.
+
+## tasuki gap ETF short 1d + swingminrr brk20 short 1h through main.py (B-1396c, run 40575438117, 2026-10-28 IST)
+
+- **Result:** tasuki atr2d5/4/6 h3 on 157 ETFs: net 1.327, gross 2.86, win 43.9%, n 82, all three identical (only 1 stop hit in 82, so the ATR multiple never mattered); registry research said 2.079/1.651. swingminrr brk20 gate short 1h: net 0.592 (n 2174), gatetarget 0.529 (n 2178); research said 1.702/1.561.
+- **What broke:** the 1h swingminrr shorts collapse on the live path (gross 0.65-0.72, below 1 even before cost), as macddiv did: research-port PFnets above 1.5 on 1h cells have now failed twice in the real replay. Timeouts carry big profit (PFnet 10-20) but 40% of trades stop out first.
+- **Reuse:** treat any 1h research PFnet as unproven until the main.py replay runs; tasuki's edge is small-sample (n 82) and ETF-only, so size it small if it ever goes live.
+- **Profit-booking / exit takeaway:** tasuki makes its money by holding the full 3 days (timeout exits PFnet 1.66); the stop is almost never hit, so do not tighten it to "protect" profit.
+
+## month-effect short through main.py (B-1396b, run 40580498404, 2026-10-28 IST)
+
+- **Result:** 15m (2706 symbols, n 2401 per cell): atr6 h25 1.444 (win 61.6%), atr4 h25 1.281, atr2d5 h25 1.058 (all three clear the 1.0 floor), atr6 h125 0.687 (fails). 1d over 5 years (n 10068): 0.36-0.42 in every cell.
+- **What broke first:** the live code read bar dates from `df.index`, but `fetch_ohlc` keeps them in a "Date" column, so every bar read as 1970 and the September-1 signal never fired, in the replay AND the live paper engine. Also, 15m requests over 60 days fail silently in yfinance. A replay that reports n=0 must fail the job, never pass as a result.
+- **What surprised:** the 15m "pass" is ONE market day (all 2401 trades on Sept 1, highly correlated), while the 5-year daily version loses badly. Treat it as unproven.
+- **Reuse:** read bar times through a helper that understands fetch_ohlc's Date column; give every replay an n=0 failure; for calendar effects, count distinct event dates, not trades.
+- **Profit-booking / exit takeaway:** on the 15m cells the wider ATR6 stop with a 25-bar exit did best (stops cost, timeouts pay); a 125-bar hold gives the gain back. Keep it paper-only until a second Sept-1 confirms.

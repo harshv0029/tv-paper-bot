@@ -1,0 +1,281 @@
+{
+ "run_id": 40580498404,
+ "source": "scripts/month_effect_main_replay.py via .github/workflows/month-effect-main-replay.yml (B-965/B-1396b): real main.month_effect_short_entry_signal/_stop/_exit_reason, full NSE universe, entry=next-bar open, gap-aware stop, cost 0.8% round trip; transcribed from aggregate job 122459835884 RESULTS_JSON",
+ "cost_round_trip_pct": 0.8,
+ "synthetic": false,
+ "note": "entry=next-bar open; bar constants are bars of the stated candle; 15m window holds ONE Sept-1 event (all 2401 trades on one session: a single market-day sample)",
+ "rows": [
+  {
+   "tag": "month__effect__short__15m__atr2d5_h25__v1",
+   "interval": "15m",
+   "spec": {
+    "atr": 2.5,
+    "hold": 25
+   },
+   "n_symbols": 2706,
+   "shards": 8,
+   "metrics": {
+    "n": 2401,
+    "win_pct": 53.98,
+    "pfnet": 1.0576760215877128,
+    "pfgross": 2.611228327830553,
+    "avg_net_pct": 0.049,
+    "avg_gross_pct": 0.849,
+    "avg_held_bars": 20.26,
+    "exit_reasons": {
+     "max_hold": {
+      "n": 1656,
+      "pfnet": 8.287878302028354,
+      "win_pct": 78.26,
+      "avg_held_bars": 25.0
+     },
+     "stop": {
+      "n": 745,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 9.73
+     }
+    },
+    "avg_held_hours": 5.1
+   }
+  },
+  {
+   "tag": "month__effect__short__15m__atr4_h25__v1",
+   "interval": "15m",
+   "spec": {
+    "atr": 4.0,
+    "hold": 25
+   },
+   "n_symbols": 2706,
+   "shards": 8,
+   "metrics": {
+    "n": 2401,
+    "win_pct": 59.43,
+    "pfnet": 1.2809487757348976,
+    "pfgross": 2.9937963977493562,
+    "avg_net_pct": 0.2174,
+    "avg_gross_pct": 1.0174,
+    "avg_held_bars": 22.65,
+    "exit_reasons": {
+     "max_hold": {
+      "n": 1971,
+      "pfnet": 5.074407783122831,
+      "win_pct": 72.4,
+      "avg_held_bars": 25.0
+     },
+     "stop": {
+      "n": 430,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 11.9
+     }
+    },
+    "avg_held_hours": 5.7
+   }
+  },
+  {
+   "tag": "month__effect__short__15m__atr6_h125__v1",
+   "interval": "15m",
+   "spec": {
+    "atr": 6.0,
+    "hold": 125
+   },
+   "n_symbols": 2706,
+   "shards": 8,
+   "metrics": {
+    "n": 2401,
+    "win_pct": 45.15,
+    "pfnet": 0.6868464573935642,
+    "pfgross": 1.1365354761888784,
+    "avg_net_pct": -0.5954,
+    "avg_gross_pct": 0.2046,
+    "avg_held_bars": 99.54,
+    "exit_reasons": {
+     "stop": {
+      "n": 881,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 55.6
+     },
+     "max_hold": {
+      "n": 1520,
+      "pfnet": 5.723127486288321,
+      "win_pct": 71.32,
+      "avg_held_bars": 125.0
+     }
+    },
+    "avg_held_hours": 24.9
+   }
+  },
+  {
+   "tag": "month__effect__short__15m__atr6_h25__v1",
+   "interval": "15m",
+   "spec": {
+    "atr": 6.0,
+    "hold": 25
+   },
+   "n_symbols": 2706,
+   "shards": 8,
+   "metrics": {
+    "n": 2401,
+    "win_pct": 61.6,
+    "pfnet": 1.4438218520604538,
+    "pfgross": 3.3966238317894724,
+    "avg_net_pct": 0.3116,
+    "avg_gross_pct": 1.1116,
+    "avg_held_bars": 23.91,
+    "exit_reasons": {
+     "max_hold": {
+      "n": 2174,
+      "pfnet": 3.394920764345682,
+      "win_pct": 68.03,
+      "avg_held_bars": 25.0
+     },
+     "stop": {
+      "n": 227,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 13.5
+     }
+    },
+    "avg_held_hours": 6.0
+   }
+  },
+  {
+   "tag": "month__effect__short__1d__atr2d5_h1__v1",
+   "interval": "1d",
+   "spec": {
+    "atr": 2.5,
+    "hold": 1
+   },
+   "n_symbols": 2657,
+   "shards": 8,
+   "metrics": {
+    "n": 10068,
+    "win_pct": 35.82,
+    "pfnet": 0.41524757448752087,
+    "pfgross": 1.1357076497661174,
+    "avg_net_pct": -0.6973,
+    "avg_gross_pct": 0.1027,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "max_hold": {
+      "n": 9903,
+      "pfnet": 0.4724921615928633,
+      "win_pct": 36.41,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 165,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    },
+    "avg_held_hours": 6.2
+   }
+  },
+  {
+   "tag": "month__effect__short__1d__atr4_h1__v1",
+   "interval": "1d",
+   "spec": {
+    "atr": 4.0,
+    "hold": 1
+   },
+   "n_symbols": 2657,
+   "shards": 8,
+   "metrics": {
+    "n": 10068,
+    "win_pct": 35.83,
+    "pfnet": 0.4169270417274161,
+    "pfgross": 1.142755560752764,
+    "avg_net_pct": -0.6926,
+    "avg_gross_pct": 0.1074,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "max_hold": {
+      "n": 10037,
+      "pfnet": 0.4312844320634465,
+      "win_pct": 35.94,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 31,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    },
+    "avg_held_hours": 6.2
+   }
+  },
+  {
+   "tag": "month__effect__short__1d__atr6_h1__v1",
+   "interval": "1d",
+   "spec": {
+    "atr": 6.0,
+    "hold": 1
+   },
+   "n_symbols": 2657,
+   "shards": 8,
+   "metrics": {
+    "n": 10068,
+    "win_pct": 35.84,
+    "pfnet": 0.4171304292632377,
+    "pfgross": 1.1436004492286151,
+    "avg_net_pct": -0.692,
+    "avg_gross_pct": 0.108,
+    "avg_held_bars": 1.0,
+    "exit_reasons": {
+     "max_hold": {
+      "n": 10062,
+      "pfnet": 0.4199427682148647,
+      "win_pct": 35.86,
+      "avg_held_bars": 1.0
+     },
+     "stop": {
+      "n": 6,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 1.0
+     }
+    },
+    "avg_held_hours": 6.2
+   }
+  },
+  {
+   "tag": "month__effect__short__1d__atr6_h5__v1",
+   "interval": "1d",
+   "spec": {
+    "atr": 6.0,
+    "hold": 5
+   },
+   "n_symbols": 2657,
+   "shards": 8,
+   "metrics": {
+    "n": 10068,
+    "win_pct": 38.31,
+    "pfnet": 0.3562050836854067,
+    "pfgross": 0.5579532650175577,
+    "avg_net_pct": -1.9083,
+    "avg_gross_pct": -1.1083,
+    "avg_held_bars": 4.98,
+    "exit_reasons": {
+     "max_hold": {
+      "n": 9879,
+      "pfnet": 0.40803893526933294,
+      "win_pct": 39.04,
+      "avg_held_bars": 5.0
+     },
+     "stop": {
+      "n": 189,
+      "pfnet": 0.0,
+      "win_pct": 0.0,
+      "avg_held_bars": 3.85
+     }
+    },
+    "avg_held_hours": 31.1
+   }
+  }
+ ]
+}
