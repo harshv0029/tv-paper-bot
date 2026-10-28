@@ -1519,3 +1519,7 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 ## B-1401 (2026-10-28): stop scanning non-viable intraday engines
 - orb-universal-score (PFnet 0.05), orb-range-short (0.21) and orb-trend-short (0.09) were still evaluated every tick on every symbol only to be rejected by the real-money gate. Scanning now follows the same viability verdict, so CPU goes to engines that can trade, and the View 4 "rejected" list stops filling with them.
 - Profit-booking / exit takeaway: exits and stop management for any position already open under these tags are unchanged; only new-entry scanning stops.
+
+## B-1402 (2026-10-28): daily SL-vs-strategy check in View 4
+- Each active position now shows whether the Kotak SL trigger matches the strategy's own stop (intraday: paper stop in signal_state/_short; swing: real_positions_swing.stop_loss). A Kotak SL lagging a trailed strategy stop gives back profit the strategy already locked in, so it shows red.
+- Profit-booking / exit takeaway: a trailing stop only books profit if the broker-side SL actually follows it; check this column during the session, and any red "behind" row is a missed trail to root-cause.
