@@ -1523,3 +1523,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 ## B-1402 (2026-10-28): daily SL-vs-strategy check in View 4
 - Each active position now shows whether the Kotak SL trigger matches the strategy's own stop (intraday: paper stop in signal_state/_short; swing: real_positions_swing.stop_loss). A Kotak SL lagging a trailed strategy stop gives back profit the strategy already locked in, so it shows red.
 - Profit-booking / exit takeaway: a trailing stop only books profit if the broker-side SL actually follows it; check this column during the session, and any red "behind" row is a missed trail to root-cause.
+
+## B-1405: an adopted (orphan) holding must never be treated as an entry signal (2026-10-28)
+- What happened: NHPC's reroute created a paper swing row tagged `swing_rerouted_orphan` dated today. Once the real share was sold, the entry-retry loop saw "paper open, no real row" and kept trying to buy it again (9 share + 9 option-leg attempts). Only the PFnet gate (fails closed on an unregistered tag) stopped a real buy.
+- Lesson: a retry/mirror loop must check WHY a paper row exists. Rows created by adoption or reroute describe a holding, not a signal, and must be excluded from any entry path explicitly, not just by luck of a gate.
+- Profit-booking / exit takeaway: once a position is closed at Kotak, every leftover local row for it must be inert; a stale row that can re-enter turns a booked exit back into unplanned exposure.

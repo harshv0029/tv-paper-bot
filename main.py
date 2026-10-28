@@ -22256,6 +22256,11 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
     other entry failure, just not pre-filtered here."""
     if not is_real_swing_trading_enabled():
         return  # expected default state - not logged, this isn't an "attempt"
+    if strategy == ORPHAN_SWING_STRATEGY_TAG:
+        # B-1405: an orphan tag marks an ADOPTED holding, never an entry signal. Once its real row is closed
+        # (sold at Kotak), the leftover paper row must not re-buy it (NHPC 2026-10-28: 9 share + 9 option-leg
+        # attempts, all stopped only by the PFnet gate).
+        return
     if not _swing_real_entry_session_open():
         # B-1373: the first swing pass of each IST day runs just after midnight; a real entry (shares or the option
         # leg) is never attempted while NSE is closed. Checked before the PFnet gate so the B-1372 counter only
