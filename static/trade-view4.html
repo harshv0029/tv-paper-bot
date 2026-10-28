@@ -148,6 +148,11 @@
 </div>
 
 </div>
+<div class="box" id="slBox" style="margin:12px 0;overflow-x:auto"><h2>Active positions · SL check today (IST) <span class="n mono" id="slN"></span></h2>
+  <table class="mono" style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="text-align:left;border-bottom:1px solid #8884">
+    <th>Sr no.</th><th>Active position</th><th>Entry price</th><th>Qty</th><th>Category</th><th>Target price</th><th>Type of SL</th><th>SL updated today as per strategy?</th></tr></thead>
+    <tbody id="slRows"><tr><td colspan="8" class="dim">loading…</td></tr></tbody></table>
+  <div class="dim mono" id="slNote" style="font-size:10.5px;margin-top:4px"></div></div>
 <div class="feed"><h2>Live event stream</h2><div id="feed"><div class="dim" style="font-size:11px">waiting for the first scan…</div></div></div>
 
 <div class="box" id="dtBox" style="margin-top:12px"><h2>Decision tree (live) · where each symbol's latest check stopped <span class="n mono" id="dtN"></span></h2>
@@ -417,6 +422,24 @@
   }
 
 
+  // B-1402: active positions with SL type and whether today's SL matches the strategy's own stop rule.
+  const SLCAT = {buy: "Buy (intraday)", short_sell: "Short sell", swing: "Swing", swing_short: "Swing short"};
+  async function pollSlTable() {
+    try {
+      const d = await getJSON("/real-positions-sl-today");
+      const ps = d.positions || [], rs = v => v == null ? "-" : "₹" + Number(v).toFixed(2);
+      $("slN").textContent = ps.length ? String(ps.length) : "";
+      $("slRows").innerHTML = ps.map((p, i) => {
+        const c = p.sl_as_per_strategy === true ? "up" : p.sl_as_per_strategy === false ? "down" : "dim";
+        const sl = `Kotak SL ${rs(p.kotak_sl_trigger)} · strategy stop ${rs(p.strategy_stop)}${p.last_sl_update_ist ? " · last update " + esc(p.last_sl_update_ist) + " IST" : ""}`;
+        return `<tr style="border-bottom:1px solid #8882"><td>${i + 1}</td><td>${esc(p.symbol)} <span class="dim">${esc(p.strategy || "")}</span></td><td>${rs(p.entry_price)}</td><td>${esc(p.qty)}</td>` +
+          `<td>${esc(SLCAT[p.category] || p.category)}</td><td>${p.target_price != null ? rs(p.target_price) : '<span class="dim">rule exit</span>'}</td>` +
+          `<td>${esc(p.sl_type)}</td><td class="${c}">${esc(p.sl_status)}<div class="dim" style="font-size:10px">${sl}</div></td></tr>`;
+      }).join("") || '<tr><td colspan="8" class="dim">no active real positions</td></tr>';
+      $("slNote").textContent = d.note || "";
+    } catch (e) {}
+  }
+
   // ---------------- Tree view ----------------
   document.querySelectorAll(".subtabs button").forEach(b => b.onclick = () => {
     document.querySelectorAll(".subtabs button").forEach(x => x.classList.toggle("on", x === b));
@@ -587,6 +610,7 @@
   setInterval(pollOrders, 3000);
   setInterval(pollProtection, 5000);
   setInterval(pollPositions, 20000);
+  pollSlTable(); setInterval(pollSlTable, 15000);
   pollHealth(); setInterval(pollHealth, 5000);
   pollRestarts(); setInterval(pollRestarts, 60000);
   // B-1370: live viability condition, from the same /strategy-viable-stack the bot's entry gate uses

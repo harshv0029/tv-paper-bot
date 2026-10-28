@@ -27714,6 +27714,75 @@ _SWING_SL_RULES = {
 }
 
 
+def _sl_kind(category: str, tag: str | None) -> str:
+    """B-1402: 'trail' or 'fixed' for an open real position's stop, from the strategy's own stop rule. Intraday long/short
+    engines trail (staged ladder) except the chan_kalman cells (fixed stop); swing reads _SWING_SL_RULES."""
+    tag = tag or ""
+    if category in ("buy", "short_sell"):
+        return "fixed" if (tag in CHAN_LONG_CELLS or tag in CHAN_GAP_LONG_CELLS or tag in CHAN_SHORT_CELLS) else "trail"
+    rule = _SWING_SL_RULES.get(tag)
+    if not rule:
+        return "unknown"
+    if "trail" in rule and "no trail" not in rule:
+        return "trail"
+    return "fixed (moves to breakeven)" if "moves to entry" in rule else "fixed"
+
+
+@app.get("/real-positions-sl-today")
+def real_positions_sl_today():
+    """B-1402 (user 2026-10-28, View 4): one row per active real position - entry, qty, category, target, SL type
+    (trail/fixed) and whether today's SL is where the strategy's own stop rule says it should be. Reads this app's tables
+    only (aligned to Kotak by every 5-min reconcile), so it answers fast; Kotak's order book stays the ground truth."""
+    tick = 0.05
+    day0 = ist_now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+    out = []
+    with closing(get_db()) as c:
+        def _one(r, category, side, strat_stop, target, tag):
+            kotak_sl = r["sl_trigger_price"] if r["sl_order_id"] else None
+            ev = c.execute(
+                "SELECT ts, new_state FROM real_order_events WHERE symbol = ? AND leg = 'sl' AND event IN ('placed','moved') "
+                "AND ts >= ? ORDER BY ts", (r["symbol"], day0)).fetchall()
+            kind = _sl_kind(category, tag)
+            if kotak_sl is None:
+                ok, status = False, "NO - no live SL at Kotak"
+            elif strat_stop is None:
+                ok, status = None, "SL live; strategy stop not stored"
+            elif (side == "long" and kotak_sl < strat_stop - tick) or (side == "short" and kotak_sl > strat_stop + tick):
+                ok, status = False, f"NO - Kotak SL Rs{kotak_sl:.2f} behind strategy stop Rs{float(strat_stop):.2f}"
+            elif kind == "trail":
+                ok, status = True, (f"yes - SL updated {len(ev)}x today, in line with the trail" if ev
+                                    else "yes - in line (trail condition not met today, no move needed)")
+            else:
+                ok, status = True, "yes - fixed stop, no update needed"
+            last = ev[-1] if ev else None
+            out.append({
+                "symbol": r["symbol"], "category": category, "side": side, "strategy": tag, "qty": r["qty"],
+                "entry_price": r["entry_price"], "target_price": target, "sl_type": kind,
+                "strategy_stop": round(float(strat_stop), 2) if strat_stop is not None else None,
+                "kotak_sl_trigger": kotak_sl, "sl_updates_today": len(ev),
+                "last_sl_update_ist": (dt.datetime.fromtimestamp(last["ts"], dt.timezone.utc) + dt.timedelta(hours=5, minutes=30)).strftime("%H:%M") if last else None,
+                "sl_as_per_strategy": ok, "sl_status": status,
+            })
+
+        def _rows(sql):
+            try:
+                return [dict(x) for x in c.execute(sql).fetchall()]
+            except Exception:
+                return []
+        for r in _rows("SELECT p.*, s.stop_loss AS ss, s.target AS st FROM real_positions p "
+                       "LEFT JOIN signal_state s ON s.symbol = p.symbol AND s.status = 'long'"):
+            _one(r, "buy", "long", r.get("ss"), r.get("target_price") or r.get("st"), r.get("strategy"))
+        for r in _rows("SELECT p.*, s.stop_loss AS ss, s.target AS st FROM real_positions_short p "
+                       "LEFT JOIN signal_state_short s ON s.symbol = p.symbol"):
+            _one(r, "short_sell", "short", r.get("ss"), r.get("st"), r.get("strategy"))
+        for r in _rows("SELECT * FROM real_positions_swing"):
+            _one(r, "swing", "long", r.get("stop_loss"), None, r.get("strategy"))
+        for r in _rows("SELECT * FROM real_positions_swing_short"):
+            _one(r, "swing_short", "short", r.get("stop_loss"), None, r.get("strategy"))
+    return {"positions": out, "as_of_epoch": time.time(),
+            "note": "Target blank = the strategy exits by its own rule (no resting target order)."}
+
+
 def _coverage_gap_by_category(wired, tested_set, reg) -> dict:
     """B-1274 stage 1: wired applicable cells NOT evaluated today, grouped by registry category. Read-only."""
     out: dict = {}
