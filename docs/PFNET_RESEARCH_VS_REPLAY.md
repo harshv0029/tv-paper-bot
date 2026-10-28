@@ -36,6 +36,7 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.67 | 988 | 1.65 | 1019 | -0.03 | close |
 | chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.62 | 1014 | 1.59 | 1046 | -0.02 | close |
 | base__cup_cheat_3c_mr__long__1h__atr4_h18__v1 | base__cup_cheat_3c__long__1h__atr4_h18__v1 | 0.90 | 133 | 0.88 | 3124 | -0.02 | close |
+| gaps__exhaust_fade_mr__long__1d__atr3_nb5__v1 | gaps__exhaust_fade__long__1d__atr3_nb5__v1 | 1.25 | 4404 | 1.23 | 4059 | -0.02 | close |
 | chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.25 | 1187 | 1.23 | 1234 | -0.02 | close |
 | chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.47 | 1038 | 1.45 | 1069 | -0.01 | close |
 | chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | chan_kalman__band__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2 | 1.20 | 1220 | 1.19 | 1266 | -0.01 | close |
@@ -82,6 +83,7 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | swingminrr__minervini_vcp_gate_mr__long__1d__atr1d5_rr4__v1 | swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1 | 2.70 | 49 | 2.85 | 51 | 0.15 | close |
 | sma_crossover__gc_mr__long__1d__atrnone__v1 | sma_crossover__gc__long__1d__atrnone__v1 | 2.14 | 33 | 2.29 | 31 | 0.15 | close |
 | envelope__0d05_fade_mr__short__1h__atr2d5_h30__v1 | envelope__0d05_fade__short__1h__atr2d5_h30__v1 | 0.47 | 3840 | 0.63 | 81565 | 0.15 | close |
+| gaps__common_fade_mr__long__1d__atr3_nb5__v1 | gaps__common_fade__long__1d__atr3_nb5__v1 | 1.12 | 5413 | 1.29 | 5241 | 0.16 | close |
 | envelope__0d05_fade_mr__short__1h__atr4_h30__v1 | envelope__0d05_fade__short__1h__atr4_h30__v1 | 0.48 | 3319 | 0.64 | 68797 | 0.17 | close |
 | envelope__0d05_fade_mr__short__1h__atr6_h30__v1 | envelope__0d05_fade__short__1h__atr6_h30__v1 | 0.46 | 3025 | 0.64 | 60941 | 0.18 | close |
 | base__cup_cheat_3c_mr__long__1h__atr2d5_h6__v1 | base__cup_cheat_3c__long__1h__atr2d5_h6__v1 | 0.30 | 153 | 0.49 | 3462 | 0.19 | close |

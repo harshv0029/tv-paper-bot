@@ -38,6 +38,7 @@ VARIANT_OF_WIRED = {
     # B-1396: main.py replay rows of wired cells (the live engine runs the research-tag cell)
     **{f"tasuki__gap_etf_mr__short__1d__atr{a}_h3__v1": f"tasuki__gap_etf__short__1d__atr{a}_h3__v1" for a in ("2d5", "4", "6")},
     **{f"month__effect_mr__short__15m__atr{a}_h25__v1": f"month__effect__short__15m__atr{a}_h25__v1" for a in ("2d5", "4", "6")},
+    **{f"gaps__{v}_mr__long__1d__atr3_nb5__v1": f"gaps__{v}__long__1d__atr3_nb5__v1" for v in ("common_fade", "exhaust_fade")},  # B-1396d
 }
 
 

@@ -20,6 +20,9 @@ _RUNS = (
     ("month_effect_main_replay_run_40580498404.json",
      "month-effect-main-replay.yml run 40580498404 (15m: one Sept-1 session; 1d: 5y; full NSE, cost 0.8%)",
      "scripts/month_effect_main_replay.py", sr.AssetClass.EQUITY_SWING, sr.TradeCategory.SHORT_SELL),
+    ("gapfade_main_replay_run_40623860743.json",
+     "gapfade-main-replay.yml run 40623860743 (1d 5y, 2,412 symbols full NSE, cost 0.8%, FIFO)",
+     "scripts/gapfade_main_replay.py", sr.AssetClass.EQUITY_SWING, sr.TradeCategory.SWING),
 )
 _HOURS_PER_BAR = {"15m": 0.25, "1h": 1.0}
 

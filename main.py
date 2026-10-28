@@ -11218,6 +11218,11 @@ def _auto_signal_core(
             orb_high, orb_low = float(cur_bar["High"]), structural_low  # for result/signal_state display only
             entry_reason = f"bullish_engulfing_trend{trend_sma}"
 
+        elif not _intraday_engine_scan_enabled("orb-universal-score"):
+            # B-1401 (user 2026-10-28 "exclude them from the scanning"): below the viability criteria, so not scanned.
+            entry_signal = False
+            entry_reason = "universal_score_not_viable"
+            result["scan_skipped"] = "orb-universal-score not viable"
         else:  # universal_score - 2026-09-09 architecture revamp, the WATCHLIST default
             volume_ok, vol_avg = _volume_confirms(df["Volume"].to_numpy(dtype=float))
             current_volume = float(df["Volume"].iloc[-1]) if len(df) else None
@@ -12447,6 +12452,11 @@ def _short_signal_core(
         # why TREND was added here, mirroring _auto_signal_core's own
         # long-side router exactly). RANGE keeps its existing VWAP-spike
         # mirror unchanged; TREND is the new 8-factor bearish-score mirror.
+        # B-1401 (user 2026-10-28): an engine below the viability criteria is not scanned (re-opens when it qualifies).
+        _regime_tag = RANGE_SHORT_STRATEGY_TAG if market_regime == "range" else TREND_SHORT_STRATEGY_TAG
+        if not _intraday_engine_scan_enabled(_regime_tag):
+            result.update(action_taken="no_signal", scan_skipped=f"{_regime_tag} not viable")
+            return result
         if market_regime == "range":
             strategy_tag = RANGE_SHORT_STRATEGY_TAG
             short_entry = _vwap_mean_reversion_short_entry(today_df)
@@ -14975,6 +14985,8 @@ def _real_held_qty_short(kotak_trading_symbol: str) -> float | None:
             fl_sell = float(row.get("flSellQty", 0) or 0)
         except (TypeError, ValueError):
             return None
+        if _is_delivery_sell_not_short(row, fl_buy - fl_sell):
+            continue  # B-1403: a sold delivery holding is never short qty
         return fl_sell - fl_buy
     return 0.0
 
@@ -15627,6 +15639,8 @@ def _kotak_symbol_still_open_short(kotak_trading_symbol: str) -> bool | None:
             fl_sell = float(row.get("flSellQty", 0) or 0)
         except (TypeError, ValueError):
             continue
+        if _is_delivery_sell_not_short(row, fl_buy - fl_sell):
+            continue  # B-1403
         if fl_sell > 0 and fl_sell != fl_buy:
             return True
     return False
@@ -19164,6 +19178,8 @@ def get_real_open_positions():
                     # B-1395: a delivery holding sold today is net-short in positions() until T+1, not a short
                     # (same netting as reconcile's B-306). GSEC5IETF/COALINDIA showed as untracked shorts.
                     net_qty += min(-net_qty, _gross_holdings[kr.get("trdSym")])
+                if _is_delivery_sell_not_short(kr, net_qty):
+                    net_qty = 0  # B-1403
                 if net_qty == 0:
                     continue  # fully squared off - not an open position
                 trd_sym = kr.get("trdSym")
@@ -21616,10 +21632,23 @@ def _record_strategy_scan(tag: str):
         recent.pop(0)
 
 
+def _intraday_engine_scan_enabled(tag: str) -> bool:
+    """B-1401 (user 2026-10-28: orb-range-short / orb-universal-score "do not cross the required viability criteria, so
+    exclude them from the scanning"): an intraday engine is scanned only while its tag passes the same viability verdict
+    the real-money gate uses (View 1 set, replay, floor), read at call time so a changed definition re-opens it. Entry
+    scanning only: exits, trailing SLs and open-position management never call this. Fails closed; never raises."""
+    try:
+        return bool(_viability_verdict(tag, check_switch=False)[0])
+    except Exception:
+        return False
+
+
 def _record_intraday_strategy_scan(cfg: dict):
     """B-423: count one long intraday scan under the symbol's engine tag.
     Counter only; never raises, never touches order logic."""
     try:
+        if cfg.get("strategy", "universal_score") == "universal_score" and not _intraday_engine_scan_enabled("orb-universal-score"):
+            return  # B-1401: not scanned, so not counted
         _record_strategy_scan(cfg.get("strategy", "universal_score"))
     except Exception:
         pass
@@ -21633,8 +21662,9 @@ _INTRADAY_SHORT_SCAN_TAGS = ("range_short_staged_ladder", "trend_down_momentum_s
 def _record_short_strategy_scans():
     """B-423: count one short scan under each short engine tag. Counter only."""
     try:
-        for t in _INTRADAY_SHORT_SCAN_TAGS:
-            _record_strategy_scan(t)
+        for t, ot in zip(_INTRADAY_SHORT_SCAN_TAGS, (RANGE_SHORT_STRATEGY_TAG, TREND_SHORT_STRATEGY_TAG)):
+            if _intraday_engine_scan_enabled(ot):  # B-1401: a non-viable engine is not scanned, so not counted
+                _record_strategy_scan(t)
     except Exception:
         pass
 
@@ -27690,6 +27720,75 @@ _SWING_SL_RULES = {
 }
 
 
+def _sl_kind(category: str, tag: str | None) -> str:
+    """B-1402: 'trail' or 'fixed' for an open real position's stop, from the strategy's own stop rule. Intraday long/short
+    engines trail (staged ladder) except the chan_kalman cells (fixed stop); swing reads _SWING_SL_RULES."""
+    tag = tag or ""
+    if category in ("buy", "short_sell"):
+        return "fixed" if (tag in CHAN_LONG_CELLS or tag in CHAN_GAP_LONG_CELLS or tag in CHAN_SHORT_CELLS) else "trail"
+    rule = _SWING_SL_RULES.get(tag)
+    if not rule:
+        return "unknown"
+    if "trail" in rule and "no trail" not in rule:
+        return "trail"
+    return "fixed (moves to breakeven)" if "moves to entry" in rule else "fixed"
+
+
+@app.get("/real-positions-sl-today")
+def real_positions_sl_today():
+    """B-1402 (user 2026-10-28, View 4): one row per active real position - entry, qty, category, target, SL type
+    (trail/fixed) and whether today's SL is where the strategy's own stop rule says it should be. Reads this app's tables
+    only (aligned to Kotak by every 5-min reconcile), so it answers fast; Kotak's order book stays the ground truth."""
+    tick = 0.05
+    day0 = ist_now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+    out = []
+    with closing(get_db()) as c:
+        def _one(r, category, side, strat_stop, target, tag):
+            kotak_sl = r["sl_trigger_price"] if r["sl_order_id"] else None
+            ev = c.execute(
+                "SELECT ts, new_state FROM real_order_events WHERE symbol = ? AND leg = 'sl' AND event IN ('placed','moved') "
+                "AND ts >= ? ORDER BY ts", (r["symbol"], day0)).fetchall()
+            kind = _sl_kind(category, tag)
+            if kotak_sl is None:
+                ok, status = False, "NO - no live SL at Kotak"
+            elif strat_stop is None:
+                ok, status = None, "SL live; strategy stop not stored"
+            elif (side == "long" and kotak_sl < strat_stop - tick) or (side == "short" and kotak_sl > strat_stop + tick):
+                ok, status = False, f"NO - Kotak SL Rs{kotak_sl:.2f} behind strategy stop Rs{float(strat_stop):.2f}"
+            elif kind == "trail":
+                ok, status = True, (f"yes - SL updated {len(ev)}x today, in line with the trail" if ev
+                                    else "yes - in line (trail condition not met today, no move needed)")
+            else:
+                ok, status = True, "yes - fixed stop, no update needed"
+            last = ev[-1] if ev else None
+            out.append({
+                "symbol": r["symbol"], "category": category, "side": side, "strategy": tag, "qty": r["qty"],
+                "entry_price": r["entry_price"], "target_price": target, "sl_type": kind,
+                "strategy_stop": round(float(strat_stop), 2) if strat_stop is not None else None,
+                "kotak_sl_trigger": kotak_sl, "sl_updates_today": len(ev),
+                "last_sl_update_ist": (dt.datetime.fromtimestamp(last["ts"], dt.timezone.utc) + dt.timedelta(hours=5, minutes=30)).strftime("%H:%M") if last else None,
+                "sl_as_per_strategy": ok, "sl_status": status,
+            })
+
+        def _rows(sql):
+            try:
+                return [dict(x) for x in c.execute(sql).fetchall()]
+            except Exception:
+                return []
+        for r in _rows("SELECT p.*, s.stop_loss AS ss, s.target AS st FROM real_positions p "
+                       "LEFT JOIN signal_state s ON s.symbol = p.symbol AND s.status = 'long'"):
+            _one(r, "buy", "long", r.get("ss"), r.get("target_price") or r.get("st"), r.get("strategy"))
+        for r in _rows("SELECT p.*, s.stop_loss AS ss, s.target AS st FROM real_positions_short p "
+                       "LEFT JOIN signal_state_short s ON s.symbol = p.symbol"):
+            _one(r, "short_sell", "short", r.get("ss"), r.get("st"), r.get("strategy"))
+        for r in _rows("SELECT * FROM real_positions_swing"):
+            _one(r, "swing", "long", r.get("stop_loss"), None, r.get("strategy"))
+        for r in _rows("SELECT * FROM real_positions_swing_short"):
+            _one(r, "swing_short", "short", r.get("stop_loss"), None, r.get("strategy"))
+    return {"positions": out, "as_of_epoch": time.time(),
+            "note": "Target blank = the strategy exits by its own rule (no resting target order)."}
+
+
 def _coverage_gap_by_category(wired, tested_set, reg) -> dict:
     """B-1274 stage 1: wired applicable cells NOT evaluated today, grouped by registry category. Read-only."""
     out: dict = {}
@@ -29360,6 +29459,14 @@ def kotak_neo_limits(request: Request):
         return {"error": str(e)}
 
 
+def _is_delivery_sell_not_short(row, net_qty) -> bool:
+    """B-1403 (NHPC 28 Oct 2026): a net-short nse_cm row with product CNC is a DELIVERY holding sold today, never a short
+    (every real intraday short this app places is MIS, and a cash-segment delivery short cannot be held). The B-306
+    holdings() netting misses it when holdings() errors or does not list the shares (T1), so the reconcile adopted a
+    phantom short, its BUY stop filled (11:39 IST) and bought 1 share back. Kotak's own product field decides here."""
+    return net_qty < 0 and str((row or {}).get("prod", "")).upper() == "CNC"
+
+
 def _kotak_holdings_gross_qty() -> dict:
     """{trdSym: qty} straight from holdings(), NOT netted against today's sells
     (B-306). Empty on any failure (then no netting happens: fail-safe)."""
@@ -30436,6 +30543,8 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 # against the holding, never adopt a phantom short (NYKAA 3:33 PM
                 # IST BUY SL + BUY exit, both rejected).
                 net_qty += min(-net_qty, _gross_holdings[row.get("trdSym")])
+            if _is_delivery_sell_not_short(row, net_qty):
+                net_qty = 0  # B-1403: a sold delivery holding, not a short
             if net_qty == 0:
                 continue  # fully squared off - not an open position
             trd_sym = row.get("trdSym")
