@@ -11435,7 +11435,55 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261028000396303 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-XUAEZ across exchange across segment across product "
+  },
+  {
+   "id": 954,
+   "ts": 1793170906.7656157,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261028000392624",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:28:20 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-XUAEZ across exchange "
+  },
+  {
+   "id": 955,
+   "ts": 1793170906.7669792,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261028000396303",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:31:40 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-XUAEZ across exchange "
+  },
+  {
+   "id": 956,
+   "ts": 1793170906.767046,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261028000390313",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 28-Oct-2026 12:26:33 S SL qty 1 trg 68.29 status rejected rejRsn RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-XUAEZ across exchange "
+  },
+  {
+   "id": 957,
+   "ts": 1793170917.9311483,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261028000396506 rejected: RMS:Rule: Check T1 holdings including TT/BE/Z/T/TS ,Used:2.00, Available:1.00  for entity account-XUAEZ across exchange across segment across product "
   }
  ],
- "synced_at_utc": "2026-10-28T07:01:48Z"
+ "synced_at_utc": "2026-10-28T07:02:01Z"
 }
