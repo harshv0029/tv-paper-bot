@@ -94,7 +94,8 @@ def test_order_event_wakes_git_push_immediately(monkeypatch, tmp_path):
     monkeypatch.setattr(main, "DB_PATH", str(tmp_path / "w.db"))
     main.init_db()
     monkeypatch.setattr(main, "sync_generic_tables_external", lambda **k: None)
-    main._git_tier_push_wake.clear()
+    # Fresh Event: a push thread started by an earlier test in this process could consume the shared one.
+    monkeypatch.setattr(main, "_git_tier_push_wake", main.threading.Event())
     with main.closing(main.get_db()) as c:
         main._log_real_order_event(c, "X.NS", "exit", "intent", reason="test")
     assert main._git_tier_push_wake.is_set()

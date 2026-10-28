@@ -26995,6 +26995,12 @@ def strategy_explorer(categories: str = "", pf_min: float = None, pf_max: float 
     import strategy_registry as sr
     ov = set(_load_viable_overrides())
     cats = {c.strip() for c in categories.split(",") if c.strip()}
+    # B-1398 (user 2026-10-28 "Keep B"): View 1 keeps the final say over a failed replay; the row only shows the replay.
+    rp = {}
+    for t, n, pf in _replay_rows():
+        if n >= 1:
+            k = _STRATEGY_TAG_TO_REGISTRY_NAME.get(t, t)
+            rp[k] = max(rp.get(k, pf), pf)
     rows = []
     for d in sr.REGISTRY:
         m = d.metrics
@@ -27014,7 +27020,8 @@ def strategy_explorer(categories: str = "", pf_min: float = None, pf_max: float 
         rows.append({"name": d.name, "categories": dcats, "timeframe": d.timeframe,
                      "pfnet": m.pfnet, "win_rate_pct": m.win_rate_pct, "n_trades": m.n_trades,
                      "avg_held_hrs": m.avg_held_hrs, "universe": m.universe,
-                     "override": d.name in ov})
+                     "override": d.name in ov, "replay_pfnet": rp.get(d.name),
+                     "replay_failed": d.name in rp and rp[d.name] < sr.PFNET_LIVE_FLOOR})
     rows.sort(key=lambda r: -r["pfnet"])
     return {"total": len(rows), "rows": rows[:max(1, min(limit, 5000))],
             "categories_available": [c.value for c in sr.TradeCategory]}
