@@ -1515,3 +1515,7 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Exit mix: the rule exit carries it (PFnet 1.39 / 1.37 on ~97% of trades); stops are 1.5% / 5% of trades; 30-day timeouts are rare but very profitable.
 - Lesson: a short-hold daily strategy whose research and replay agree within about 0.15 PFnet is the kind worth wiring; a large IS/OOS gap (macddiv) predicts the replay failing.
 - Profit-booking / exit takeaway: book on the rule exit (gap-fill / mean reversion) in about 3-4 days; do not widen the stop, since stops are rare and the edge is the quick reversion.
+
+## B-1401 (2026-10-28): stop scanning non-viable intraday engines
+- orb-universal-score (PFnet 0.05), orb-range-short (0.21) and orb-trend-short (0.09) were still evaluated every tick on every symbol only to be rejected by the real-money gate. Scanning now follows the same viability verdict, so CPU goes to engines that can trade, and the View 4 "rejected" list stops filling with them.
+- Profit-booking / exit takeaway: exits and stop management for any position already open under these tags are unchanged; only new-entry scanning stops.

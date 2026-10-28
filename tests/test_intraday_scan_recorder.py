@@ -1,3 +1,4 @@
+import pytest
 import main
 
 
@@ -16,3 +17,9 @@ def test_short_scan_recorded_under_both_short_tags():
     main._record_short_strategy_scans()
     for t in ("range_short_staged_ladder", "trend_down_momentum_short"):
         assert main._strategy_scan_counts[t] == 1
+
+
+@pytest.fixture(autouse=True)
+def _b1401_scan_open(monkeypatch):
+    """B-1401 skips non-viable intraday engines; these tests exercise the engine itself, so keep it scanned."""
+    monkeypatch.setattr(main, "_intraday_engine_scan_enabled", lambda tag: True)

@@ -238,3 +238,9 @@ def test_range_position_never_exits_via_confidence_decay():
         )
     assert result["action_taken"] != "exited_range_confidence_weakened"
     assert not hasattr(main, "RANGE_CONFIDENCE_DECAY_Z")
+
+
+@pytest.fixture(autouse=True)
+def _b1401_scan_open(monkeypatch):
+    """B-1401 skips non-viable intraday engines; these tests exercise the engine itself, so keep it scanned."""
+    monkeypatch.setattr(main, "_intraday_engine_scan_enabled", lambda tag: True)
