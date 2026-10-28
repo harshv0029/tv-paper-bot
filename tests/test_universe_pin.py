@@ -41,12 +41,18 @@ def fake_run(monkeypatch):
 
 
 def _shards(tmp, fail, pin="", tol=0.002):
+    real = sys.modules.get("main")
     sys.modules["main"] = _fake_main(fail)
     try:
         for sh in (0, 1):
             er._main_shard(_args(tmp, pin, shard=sh, tol=tol))
     finally:
-        del sys.modules["main"]
+        # B-1400: restore the real main module; deleting it made later test files import a second copy, so their
+        # patches hit one copy while the code under test read the other.
+        if real is not None:
+            sys.modules["main"] = real
+        else:
+            del sys.modules["main"]
     return [json.load(open(tmp / f"x_{sh}.json")) for sh in (0, 1)]
 
 
