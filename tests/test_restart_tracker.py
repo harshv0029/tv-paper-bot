@@ -56,3 +56,16 @@ def test_summary_counts_and_ist():
                  "by_cause": {"deploy": 1, "oom_suspect": 1}}
     assert main._ist_str(now).endswith("IST") and main._ist_str(now).startswith("2026-10-26 23:")
     assert main._in_nse_session(now - 12 * 3600)  # 11:08 IST Monday
+
+
+def test_b1406_alarm_thread_stacks_survive_a_restart(monkeypatch):
+    data, get, put = _store()
+    _reset(monkeypatch, 1000.0)
+    alarm = {"ts": 1005.0, "loop_lag_s": 20.8, "rss_mb": 920.0, "threadpool": "0/80", "threads": ["MainThread: a:1 > b:2"]}
+    monkeypatch.setattr(main, "_WATCHDOG_STATE", {**main._WATCHDOG_STATE, "alarms": 1, "first_alarm": alarm, "last_alarm": alarm})
+    main._restart_tracker_tick(now=1010.0, get=get, put=put)
+    beat = json.loads(data[main._RESTART_HEARTBEAT_KEY])
+    assert beat["first_alarm_threads"] == ["MainThread: a:1 > b:2"] and beat["last_alarm_threads"] == ["MainThread: a:1 > b:2"]
+    _reset(monkeypatch, 2000.0)
+    ev = main._restart_tracker_tick(now=2010.0, get=get, put=put)
+    assert ev["prev_first_alarm_threads"] == ["MainThread: a:1 > b:2"]

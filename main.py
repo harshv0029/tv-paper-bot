@@ -18912,6 +18912,50 @@ def get_real_trading_control(request: Request):
     }
 
 
+OPEN_POSITIONS_PRICE_BUDGET_S = 6.0
+
+
+def _open_positions_prices(symbols, watchlist_by_symbol, budget_s: float | None = None) -> dict:
+    """B-1394: last price per symbol for /real-open-positions. Kotak live-feed LTP first (no network); the rest are
+    fetched concurrently with one overall time budget, so a slow Yahoo/Kotak night can no longer push the endpoint past
+    the dashboard's 20 s timeout. A symbol not priced in time is simply None (row still shown, P&L blank)."""
+    import concurrent.futures as _cf
+    out: dict = {}
+    syms = list(dict.fromkeys(s for s in symbols if s))
+    try:
+        import kotak_live_feed
+        ticks = kotak_live_feed.get_live_ticks() or {}
+    except Exception:
+        ticks = {}
+    for s in syms:
+        try:
+            ltp = float((ticks.get(s) or {}).get("ltp") or 0)
+        except (TypeError, ValueError):
+            ltp = 0
+        if ltp > 0:
+            out[s] = ltp
+    todo = [s for s in syms if s not in out]
+    if not todo:
+        return out
+
+    def _one(sym):
+        cfg = watchlist_by_symbol.get(sym, {}) or {}
+        return float(fetch_ohlc(sym, "1d", cfg.get("interval", "5m"))["Close"].iloc[-1])
+
+    ex = _cf.ThreadPoolExecutor(max_workers=min(8, len(todo)))
+    try:
+        futs = {ex.submit(_one, s): s for s in todo}
+        done, _ = _cf.wait(futs, timeout=OPEN_POSITIONS_PRICE_BUDGET_S if budget_s is None else budget_s)
+        for f in done:
+            try:
+                out[futs[f]] = f.result()
+            except Exception:
+                pass
+    finally:
+        ex.shutdown(wait=False)
+    return out
+
+
 @app.get("/real-open-positions")
 def get_real_open_positions():
     """Currently-OPEN real (Kotak) positions, with a LIVE current price and
@@ -18970,12 +19014,14 @@ def get_real_open_positions():
         # _maybe_place_real_swing_entry's own call sites).
         swing_rows = [dict(r) for r in conn.execute("SELECT * FROM real_positions_swing").fetchall()]
 
+    # B-1394: one concurrent, time-boxed price pass instead of a serial fetch_ohlc per row
+    _open_px = _open_positions_prices([r["symbol"] for r in rows + short_rows + swing_rows], watchlist_by_symbol)
     result = []
     for r in rows:
         current_price = None
         try:
             cfg = watchlist_by_symbol.get(r["symbol"], {})
-            current_price = float(fetch_ohlc(r["symbol"], "1d", cfg.get("interval", "5m"))["Close"].iloc[-1])
+            current_price = _open_px.get(r["symbol"])
         except Exception:
             pass
         invested_inr = round(r["entry_price"] * r["qty"], 2)
@@ -19066,7 +19112,7 @@ def get_real_open_positions():
         current_price = None
         try:
             cfg = watchlist_by_symbol.get(r["symbol"], {})
-            current_price = float(fetch_ohlc(r["symbol"], "1d", cfg.get("interval", "5m"))["Close"].iloc[-1])
+            current_price = _open_px.get(r["symbol"])
         except Exception:
             pass
         invested_inr = round(r["entry_price"] * r["qty"], 2)
@@ -19118,7 +19164,7 @@ def get_real_open_positions():
         current_price = None
         try:
             cfg = watchlist_by_symbol.get(r["symbol"], {})
-            current_price = float(fetch_ohlc(r["symbol"], "1d", cfg.get("interval", "5m"))["Close"].iloc[-1])
+            current_price = _open_px.get(r["symbol"])
         except Exception:
             pass
         invested_inr = round(r["entry_price"] * r["qty"], 2)
@@ -29997,7 +30043,9 @@ def _restart_event(prev: dict | None, now: float, commit: str | None) -> dict:
             "prev_rss_now_mb": (prev or {}).get("rss_now_mb"), "prev_peak_rss_mb": (prev or {}).get("peak_rss_mb"),
             "prev_loop_lag_s": (prev or {}).get("loop_lag_s"), "prev_watchdog_alarms": (prev or {}).get("watchdog_alarms"),
             "prev_threadpool": f"{(prev or {}).get('threadpool_used')}/{(prev or {}).get('threadpool_total')}",
-            "prev_last_alarm": (prev or {}).get("last_alarm")}
+            "prev_last_alarm": (prev or {}).get("last_alarm"),
+            "prev_first_alarm_threads": (prev or {}).get("first_alarm_threads"),
+            "prev_last_alarm_threads": (prev or {}).get("last_alarm_threads")}
 
 
 def _restart_tracker_tick(now=None, get=None, put=None) -> dict | None:
@@ -30033,7 +30081,11 @@ def _restart_tracker_tick(now=None, get=None, put=None) -> dict | None:
                 "watchdog_alarms": _WATCHDOG_STATE["alarms"],
                 "threadpool_used": _WATCHDOG_STATE.get("threadpool_used"),
                 "threadpool_total": _WATCHDOG_STATE.get("threadpool_total"),
-                "last_alarm": {k: alarm.get(k) for k in ("ts", "loop_lag_s", "rss_mb", "threadpool")} if alarm else None}
+                "last_alarm": {k: alarm.get(k) for k in ("ts", "loop_lag_s", "rss_mb", "threadpool")} if alarm else None,
+                # B-1406: keep the frozen threads' app stacks across a restart (they were in-memory only, so a
+                # pre-deploy alarm could never be explained afterwards)
+                "first_alarm_threads": ((_WATCHDOG_STATE.get("first_alarm") or {}).get("threads") or [])[:8],
+                "last_alarm_threads": (alarm.get("threads") or [])[:8] if alarm else []}
         put(_RESTART_HEARTBEAT_KEY, json.dumps(beat))
         _RESTART_STATE["last_beat"] = now
     return logged
