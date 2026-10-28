@@ -251,3 +251,9 @@ def test_short_signal_core_trend_regime_no_signal_on_a_clean_uptrend(monkeypatch
         require_real_tradability=False,
     )
     assert result["action_taken"] == "no_signal", result
+
+
+@pytest.fixture(autouse=True)
+def _b1401_scan_open(monkeypatch):
+    """B-1401 skips non-viable intraday engines; these tests exercise the engine itself, so keep it scanned."""
+    monkeypatch.setattr(main, "_intraday_engine_scan_enabled", lambda tag: True)

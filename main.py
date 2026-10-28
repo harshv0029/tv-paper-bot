@@ -11218,6 +11218,11 @@ def _auto_signal_core(
             orb_high, orb_low = float(cur_bar["High"]), structural_low  # for result/signal_state display only
             entry_reason = f"bullish_engulfing_trend{trend_sma}"
 
+        elif not _intraday_engine_scan_enabled("orb-universal-score"):
+            # B-1401 (user 2026-10-28 "exclude them from the scanning"): below the viability criteria, so not scanned.
+            entry_signal = False
+            entry_reason = "universal_score_not_viable"
+            result["scan_skipped"] = "orb-universal-score not viable"
         else:  # universal_score - 2026-09-09 architecture revamp, the WATCHLIST default
             volume_ok, vol_avg = _volume_confirms(df["Volume"].to_numpy(dtype=float))
             current_volume = float(df["Volume"].iloc[-1]) if len(df) else None
@@ -12447,6 +12452,11 @@ def _short_signal_core(
         # why TREND was added here, mirroring _auto_signal_core's own
         # long-side router exactly). RANGE keeps its existing VWAP-spike
         # mirror unchanged; TREND is the new 8-factor bearish-score mirror.
+        # B-1401 (user 2026-10-28): an engine below the viability criteria is not scanned (re-opens when it qualifies).
+        _regime_tag = RANGE_SHORT_STRATEGY_TAG if market_regime == "range" else TREND_SHORT_STRATEGY_TAG
+        if not _intraday_engine_scan_enabled(_regime_tag):
+            result.update(action_taken="no_signal", scan_skipped=f"{_regime_tag} not viable")
+            return result
         if market_regime == "range":
             strategy_tag = RANGE_SHORT_STRATEGY_TAG
             short_entry = _vwap_mean_reversion_short_entry(today_df)
@@ -21616,10 +21626,23 @@ def _record_strategy_scan(tag: str):
         recent.pop(0)
 
 
+def _intraday_engine_scan_enabled(tag: str) -> bool:
+    """B-1401 (user 2026-10-28: orb-range-short / orb-universal-score "do not cross the required viability criteria, so
+    exclude them from the scanning"): an intraday engine is scanned only while its tag passes the same viability verdict
+    the real-money gate uses (View 1 set, replay, floor), read at call time so a changed definition re-opens it. Entry
+    scanning only: exits, trailing SLs and open-position management never call this. Fails closed; never raises."""
+    try:
+        return bool(_viability_verdict(tag, check_switch=False)[0])
+    except Exception:
+        return False
+
+
 def _record_intraday_strategy_scan(cfg: dict):
     """B-423: count one long intraday scan under the symbol's engine tag.
     Counter only; never raises, never touches order logic."""
     try:
+        if cfg.get("strategy", "universal_score") == "universal_score" and not _intraday_engine_scan_enabled("orb-universal-score"):
+            return  # B-1401: not scanned, so not counted
         _record_strategy_scan(cfg.get("strategy", "universal_score"))
     except Exception:
         pass
@@ -21633,8 +21656,9 @@ _INTRADAY_SHORT_SCAN_TAGS = ("range_short_staged_ladder", "trend_down_momentum_s
 def _record_short_strategy_scans():
     """B-423: count one short scan under each short engine tag. Counter only."""
     try:
-        for t in _INTRADAY_SHORT_SCAN_TAGS:
-            _record_strategy_scan(t)
+        for t, ot in zip(_INTRADAY_SHORT_SCAN_TAGS, (RANGE_SHORT_STRATEGY_TAG, TREND_SHORT_STRATEGY_TAG)):
+            if _intraday_engine_scan_enabled(ot):  # B-1401: a non-viable engine is not scanned, so not counted
+                _record_strategy_scan(t)
     except Exception:
         pass
 
