@@ -11291,7 +11291,19 @@
    "prev_state": "none",
    "new_state": "resting BUY trigger Rs73.26",
    "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during short governance backfill"
+  },
+  {
+   "id": 942,
+   "ts": 1793169982.9542668,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 1",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: short paper exit: exited_short_stop_hit"
   }
  ],
- "synced_at_utc": "2026-10-28T06:46:19Z"
+ "synced_at_utc": "2026-10-28T06:46:27Z"
 }
