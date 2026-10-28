@@ -11111,7 +11111,19 @@
    "prev_state": "resting",
    "new_state": "filled @ Rs73.26",
    "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=B qty=1"
+  },
+  {
+   "id": 927,
+   "ts": 1793167831.0915458,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "reroute",
+   "event": "moved_to_swing",
+   "order_id": null,
+   "prev_state": "intraday table (no strategy, no SL, no target)",
+   "new_state": "swing table, stop Rs68.29 (from previous resting stop-loss logged for this symbol)",
+   "detail": "reason: orphan holding in the intraday table; swing engine owns it so no intraday emergency/EOD sell"
   }
  ],
- "synced_at_utc": "2026-10-28T06:10:21Z"
+ "synced_at_utc": "2026-10-28T06:10:34Z"
 }
