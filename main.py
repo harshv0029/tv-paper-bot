@@ -30043,7 +30043,9 @@ def _restart_event(prev: dict | None, now: float, commit: str | None) -> dict:
             "prev_rss_now_mb": (prev or {}).get("rss_now_mb"), "prev_peak_rss_mb": (prev or {}).get("peak_rss_mb"),
             "prev_loop_lag_s": (prev or {}).get("loop_lag_s"), "prev_watchdog_alarms": (prev or {}).get("watchdog_alarms"),
             "prev_threadpool": f"{(prev or {}).get('threadpool_used')}/{(prev or {}).get('threadpool_total')}",
-            "prev_last_alarm": (prev or {}).get("last_alarm")}
+            "prev_last_alarm": (prev or {}).get("last_alarm"),
+            "prev_first_alarm_threads": (prev or {}).get("first_alarm_threads"),
+            "prev_last_alarm_threads": (prev or {}).get("last_alarm_threads")}
 
 
 def _restart_tracker_tick(now=None, get=None, put=None) -> dict | None:
@@ -30079,7 +30081,11 @@ def _restart_tracker_tick(now=None, get=None, put=None) -> dict | None:
                 "watchdog_alarms": _WATCHDOG_STATE["alarms"],
                 "threadpool_used": _WATCHDOG_STATE.get("threadpool_used"),
                 "threadpool_total": _WATCHDOG_STATE.get("threadpool_total"),
-                "last_alarm": {k: alarm.get(k) for k in ("ts", "loop_lag_s", "rss_mb", "threadpool")} if alarm else None}
+                "last_alarm": {k: alarm.get(k) for k in ("ts", "loop_lag_s", "rss_mb", "threadpool")} if alarm else None,
+                # B-1406: keep the frozen threads' app stacks across a restart (they were in-memory only, so a
+                # pre-deploy alarm could never be explained afterwards)
+                "first_alarm_threads": ((_WATCHDOG_STATE.get("first_alarm") or {}).get("threads") or [])[:8],
+                "last_alarm_threads": (alarm.get("threads") or [])[:8] if alarm else []}
         put(_RESTART_HEARTBEAT_KEY, json.dumps(beat))
         _RESTART_STATE["last_beat"] = now
     return logged
