@@ -79,7 +79,7 @@ def test_push_loop_is_independent_of_scheduler_tick(monkeypatch):
     monkeypatch.setattr(main, "_git_tier_push_side_branch", lambda n: calls.append(n) or (_ for _ in ()).throw(RuntimeError("x")))
     sleeps = []
     main._git_tier_push_loop(sleep=sleeps.append, rounds=3)
-    assert calls == ["real_order_events"] * 3 and sleeps == [60] * 3
+    assert calls == list(main._GIT_TIER_PUSH_TABLES) * 3 and sleeps == [60] * 3
     import inspect
     assert "_git_tier_push_side_branch" not in inspect.getsource(main._scheduler_tick)
 

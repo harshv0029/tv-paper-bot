@@ -13479,6 +13479,31 @@ _TRADE_THESIS_DEFAULT = {
 }
 
 
+_TRADE_THESIS_ORPHAN = {
+    "why": "This holding was found at Kotak with no live strategy row and was adopted by the swing engine so it keeps a "
+           "stop-loss; it was not opened by a fresh entry signal.",
+    "hold": "No strategy hold limit applies; it is held until its stop-loss is hit or it is exited by hand.",
+    "close_expectation": "Closes when the protective stop-loss is hit.",
+    "weak_signal": "Treated as unfavourable only when price reaches the protective stop-loss.",
+}
+
+
+def _trade_thesis_components_for(strategy_tag: str | None) -> dict:
+    """B-1409: grammar tags (family__variant__dir__tf__params__vN) fall back to their family's thesis with the exact
+    variant named, instead of the 'could not be identified' default (SUZLON's order_block_delta__exitinval... tag)."""
+    if strategy_tag in _TRADE_THESIS_COMPONENTS:
+        return _TRADE_THESIS_COMPONENTS[strategy_tag]
+    if strategy_tag == "swing_rerouted_orphan":
+        return _TRADE_THESIS_ORPHAN
+    family = str(strategy_tag or "").split("__")[0]
+    if "__" in str(strategy_tag or "") and family in _TRADE_THESIS_COMPONENTS:
+        base = dict(_TRADE_THESIS_COMPONENTS[family])
+        base["why"] = (base["why"] + f" This position runs the registered variant {strategy_tag}; its own exit "
+                       "parameters (named in that tag) apply and can differ from the family's base exit described here.")
+        return base
+    return _TRADE_THESIS_DEFAULT
+
+
 def _build_trade_thesis(strategy_tag: str | None, entry_price: float, sl_trigger_price: float | None,
                          target_price: float | None, tracked: bool) -> str:
     """See _TRADE_THESIS_COMPONENTS' own module comment - one paragraph
@@ -13488,7 +13513,7 @@ def _build_trade_thesis(strategy_tag: str | None, entry_price: float, sl_trigger
     heal/exit logic is actually managing this position (source ==
     "bot_tracked") or not (a Kotak position this app has no active
     tracking row for)."""
-    c = _TRADE_THESIS_COMPONENTS.get(strategy_tag, _TRADE_THESIS_DEFAULT)
+    c = _trade_thesis_components_for(strategy_tag)
     entry_sentence = f"Entry price was Rs{entry_price:.2f}"
     entry_sentence += f", with an initial stop at Rs{sl_trigger_price:.2f}." if sl_trigger_price else "."
     target_sentence = (
@@ -13979,11 +14004,18 @@ def _stamp_viability_reason(detail, strategy_tag):
     return f"{detail} {tail}" if detail else tail
 
 
+REAL_EXIT_ROW_MARK = "[exit]"
+
+
 def _log_real_attempt(conn, symbol, side, status, kotak_trading_symbol=None, qty=None,
                        price_est=None, notional_inr=None, order_id=None, detail=None, raw_response=None,
-                       strategy=None):
+                       strategy=None, leg=None):
     if status == "skipped_strategy_not_viable":
         detail = _stamp_viability_reason(detail, strategy)
+    if leg == "exit":
+        # B-1408: exit/cover rows carry their position's strategy tag, so /entry-funnel cannot tell them from entries
+        # by tag or side (NHPC's cover read as a 'placed' gap_and_go entry, 2026-10-28). Mark them explicitly.
+        detail = REAL_EXIT_ROW_MARK + (f" {detail}" if detail else "")
     conn.execute(
         "INSERT INTO real_trades (ts, day, symbol, kotak_trading_symbol, side, qty, price_est, "
         "notional_inr, status, order_id, detail, raw_response, strategy) "
@@ -14402,7 +14434,7 @@ def _maybe_place_real_short_exit(conn, symbol: str, reason: str = None):
     _log_real_attempt(
         conn, symbol, "B", "confirmed", kotak_trading_symbol=real_row["kotak_trading_symbol"],
         qty=real_row["qty"], price_est=result.get("fill_price"), order_id=result["order_id"],
-        raw_response=result.get("raw_response"), strategy=real_row["strategy"],
+        raw_response=result.get("raw_response"), strategy=real_row["strategy"], leg="exit",
     )
     print(f"[REAL SHORT] BUY-TO-COVER {real_row['qty']} {real_row['kotak_trading_symbol']} "
           f"(order {result['order_id']})")
@@ -20248,7 +20280,9 @@ def hydrate_git_tier_tables() -> int:
                     try:
                         side = requests.get(f"https://raw.githubusercontent.com/{repo}/{_TRACKED_UNION_GIT_BRANCH}/docs/tables/{table}.json",
                                             timeout=6)
-                        if side.status_code == 200:
+                        if side.status_code == 200 and table == "strategy_scan_counts":  # B-1407: higher count wins
+                            rows = _git_tier_merge_rows(table, rows, (side.json() or {}).get("rows") or [])
+                        elif side.status_code == 200:
                             seen = {_order_event_key(r) for r in rows}
                             rows = rows + [{k: v for k, v in r.items() if k != "id"}  # ids differ across a wipe: let SQLite assign
                                            for r in ((side.json() or {}).get("rows") or []) if _order_event_key(r) not in seen]
@@ -22126,7 +22160,7 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
             conn, symbol, "S", "skipped_already_closed_at_kotak", kotak_trading_symbol=row["kotak_trading_symbol"],
             qty=row["qty"], strategy=row["strategy"],
             detail="Kotak shows no open position for this symbol - stale real_positions_swing row "
-                   "cleared without a second sell",
+                   "cleared without a second sell", leg="exit",
         )
         print(f"[REAL SWING] SKIPPED duplicate exit for {row['kotak_trading_symbol']} - "
               f"Kotak already shows it closed, stale local row cleared instead of re-selling")
@@ -22167,7 +22201,7 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
             notional_inr=exit_qty * result["fill_price"] if result.get("fill_price") else None,
             order_id=result["order_id"], raw_response=result.get("raw_response"),
             detail=None if result["fill_price_confirmed"] else "fill not yet confirmed by Kotak",
-            strategy=row["strategy"],
+            strategy=row["strategy"], leg="exit",
         )
         conn.commit()
         _sync_real_positions_swing_external(conn)
@@ -22186,7 +22220,7 @@ def _maybe_place_real_swing_exit(conn, symbol, reason: str = None):
         _log_real_attempt(
             conn, symbol, "S", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
             qty=row["qty"], detail=result.get("detail"), raw_response=result.get("raw_response"),
-            strategy=row["strategy"],
+            strategy=row["strategy"], leg="exit",
         )
         _why_log(
             conn, symbol, "exit", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
@@ -24717,14 +24751,14 @@ def _maybe_place_real_swing_short_exit(conn, symbol, reason: str = None):
         conn.execute("DELETE FROM real_positions_swing_short WHERE symbol = ?", (symbol,))
         _log_real_attempt(conn, symbol, "B", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
                           qty=int(res["qty"]), price_est=res.get("fill_price"), order_id=res["order_id"],
-                          raw_response=res.get("raw_response"), strategy=row["strategy"])
+                          raw_response=res.get("raw_response"), strategy=row["strategy"], leg="exit")
         conn.commit()
         _why(conn, symbol, "short_cover", "confirmed", kotak_trading_symbol=row["kotak_trading_symbol"],
              order_id=res["order_id"], prev_state=f"short {row['qty']}", new_state="closed")
     else:
         _log_real_attempt(conn, symbol, "B", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
                           qty=row["qty"], detail=res.get("detail"), raw_response=res.get("raw_response"),
-                          strategy=row["strategy"])
+                          strategy=row["strategy"], leg="exit")
         _why(conn, symbol, "short_cover", "failed", kotak_trading_symbol=row["kotak_trading_symbol"],
              prev_state=f"short {row['qty']}", new_state="still open (cover failed; stop re-placed by heal)",
              detail=res.get("detail"))
@@ -27680,7 +27714,8 @@ def entry_funnel():
     try:
         rows = conn.execute(
             "SELECT strategy, side, status, COUNT(*), COUNT(DISTINCT symbol) FROM real_trades "
-            "WHERE day = ? GROUP BY strategy, side, status", (day,)).fetchall()
+            "WHERE day = ? AND (detail IS NULL OR detail NOT LIKE ?) GROUP BY strategy, side, status",
+            (day, REAL_EXIT_ROW_MARK + "%")).fetchall()  # B-1408: exit/cover rows are never entry attempts
     finally:
         conn.close()
     for strat, side, status, n, syms in rows:
@@ -29814,13 +29849,33 @@ def _tracked_union_git_push() -> bool:
     return True
 
 
-_GIT_TIER_PUSH_TABLES = ("real_order_events",)
+# B-1407: strategy_scan_counts joins the side-branch push. GitHub fired table-git-sync.yml hours apart (main's copy was
+# from the previous evening at the 2026-10-28 14:12 IST restart), so a restart zeroed the day's scan counts.
+_GIT_TIER_PUSH_TABLES = ("real_order_events", "strategy_scan_counts")
 _git_tier_push_last_hash: dict = {}
+_SCAN_COUNTS_GIT_KEEP_DAYS = 14  # bounds the side-branch file (~300 rows/day)
 
 
 def _order_event_key(r: dict) -> tuple:
     # ids restart after a wipe, so rows are matched on content, never on id
     return (r.get("ts"), r.get("symbol"), r.get("leg"), r.get("event"), r.get("order_id"))
+
+
+def _git_tier_merge_rows(name: str, remote: list, local: list) -> list:
+    """Order events: append-only union on content. Scan counts: one row per (day, tag), the higher count wins (a counter
+    only grows within a day, so the larger value is the newer one), last _SCAN_COUNTS_GIT_KEEP_DAYS days only."""
+    if name == "strategy_scan_counts":
+        merged: dict = {}
+        for r in list(remote) + list(local):
+            k = (r.get("day"), r.get("tag"))
+            if k not in merged or int(r.get("n") or 0) > int(merged[k].get("n") or 0):
+                merged[k] = {"day": r.get("day"), "tag": r.get("tag"), "n": int(r.get("n") or 0)}
+        cutoff = (ist_now() - dt.timedelta(days=_SCAN_COUNTS_GIT_KEEP_DAYS)).strftime("%Y-%m-%d")
+        return sorted((r for r in merged.values() if (r["day"] or "") >= cutoff), key=lambda r: (r["day"], r["tag"]))
+    out = {_order_event_key(r): r for r in remote}
+    for r in local:
+        out.setdefault(_order_event_key(r), r)
+    return sorted(out.values(), key=lambda r: (r.get("ts") or 0))
 
 
 def _git_tier_push_side_branch(name: str) -> bool:
@@ -29856,10 +29911,7 @@ def _git_tier_push_side_branch(name: str) -> bool:
             remote = (json.loads(base64.b64decode(cur.json().get("content") or "").decode() or "{}").get("rows") or [])
         elif cur.status_code != 404:
             cur.raise_for_status()
-        merged = {_order_event_key(r): r for r in remote}
-        for r in local:
-            merged.setdefault(_order_event_key(r), r)
-        rows = sorted(merged.values(), key=lambda r: (r.get("ts") or 0))
+        rows = _git_tier_merge_rows(name, remote, local)
         body = json.dumps({"rows": rows, "synced_at_utc": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")},
                           indent=1, default=str)
         payload = {"message": f"{name} {len(rows)} row(s)", "content": base64.b64encode(body.encode()).decode(),
@@ -30190,6 +30242,11 @@ def _git_tier_push_loop(sleep=_git_tier_push_wait, rounds=None):
     while rounds is None or n < rounds:
         for name in _GIT_TIER_PUSH_TABLES:
             try:
+                if name == "strategy_scan_counts" and name in _git_tier_hydrated:
+                    # B-1407: intraday/short scans count in memory between swing passes; flush them first. Only after the
+                    # git restore ran, or the restore would see a non-empty table and skip.
+                    with closing(get_db()) as _c:
+                        _persist_strategy_scan_counts(_c)
                 _git_tier_push_side_branch(name)
             except Exception as e:  # noqa: BLE001
                 print(f"[table_mirror] git push loop {name} failed (non-fatal): {e}")
