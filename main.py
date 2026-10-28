@@ -13479,6 +13479,31 @@ _TRADE_THESIS_DEFAULT = {
 }
 
 
+_TRADE_THESIS_ORPHAN = {
+    "why": "This holding was found at Kotak with no live strategy row and was adopted by the swing engine so it keeps a "
+           "stop-loss; it was not opened by a fresh entry signal.",
+    "hold": "No strategy hold limit applies; it is held until its stop-loss is hit or it is exited by hand.",
+    "close_expectation": "Closes when the protective stop-loss is hit.",
+    "weak_signal": "Treated as unfavourable only when price reaches the protective stop-loss.",
+}
+
+
+def _trade_thesis_components_for(strategy_tag: str | None) -> dict:
+    """B-1409: grammar tags (family__variant__dir__tf__params__vN) fall back to their family's thesis with the exact
+    variant named, instead of the 'could not be identified' default (SUZLON's order_block_delta__exitinval... tag)."""
+    if strategy_tag in _TRADE_THESIS_COMPONENTS:
+        return _TRADE_THESIS_COMPONENTS[strategy_tag]
+    if strategy_tag == "swing_rerouted_orphan":
+        return _TRADE_THESIS_ORPHAN
+    family = str(strategy_tag or "").split("__")[0]
+    if "__" in str(strategy_tag or "") and family in _TRADE_THESIS_COMPONENTS:
+        base = dict(_TRADE_THESIS_COMPONENTS[family])
+        base["why"] = (base["why"] + f" This position runs the registered variant {strategy_tag}; its own exit "
+                       "parameters (named in that tag) apply and can differ from the family's base exit described here.")
+        return base
+    return _TRADE_THESIS_DEFAULT
+
+
 def _build_trade_thesis(strategy_tag: str | None, entry_price: float, sl_trigger_price: float | None,
                          target_price: float | None, tracked: bool) -> str:
     """See _TRADE_THESIS_COMPONENTS' own module comment - one paragraph
@@ -13488,7 +13513,7 @@ def _build_trade_thesis(strategy_tag: str | None, entry_price: float, sl_trigger
     heal/exit logic is actually managing this position (source ==
     "bot_tracked") or not (a Kotak position this app has no active
     tracking row for)."""
-    c = _TRADE_THESIS_COMPONENTS.get(strategy_tag, _TRADE_THESIS_DEFAULT)
+    c = _trade_thesis_components_for(strategy_tag)
     entry_sentence = f"Entry price was Rs{entry_price:.2f}"
     entry_sentence += f", with an initial stop at Rs{sl_trigger_price:.2f}." if sl_trigger_price else "."
     target_sentence = (
