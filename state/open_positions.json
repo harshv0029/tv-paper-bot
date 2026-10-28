@@ -1,24 +1,4 @@
 {
-  "synced_at_utc": "2026-10-27T15:11:56Z",
-  "open_positions": [
-    {
-      "symbol": "AMBUJACEM.NS",
-      "qty": 1.0,
-      "entry_price_native": 351.45001220703125,
-      "stop_loss_native": 349.741079057966,
-      "initial_stop_loss_native": 349.741079057966,
-      "target_native": 354.87,
-      "fx_to_inr": 1.0,
-      "notional_inr": 351.45,
-      "orb_high_native": null,
-      "orb_low_native": 350.5,
-      "entry_ts": 1793089037.8689487,
-      "interval": "5m",
-      "strategy": "orb-universal-score",
-      "sma_fast": 9,
-      "sma_slow": 21,
-      "entry_regime": "range",
-      "real_entry_reason": "no real-entry attempt logged for this symbol today"
-    }
-  ]
+  "synced_at_utc": "2026-10-28T09:24:58Z",
+  "open_positions": []
 }
