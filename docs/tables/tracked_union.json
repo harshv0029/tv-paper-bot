@@ -17,34 +17,18 @@
       "first_seen_day": "2026-10-09"
     },
     {
-      "kotak_trading_symbol": "NHPC-EQ",
-      "symbol": "NHPC.NS",
-      "qty": 1,
-      "is_short": 0,
-      "owner": "swing",
-      "source": "position",
-      "entry_price": 72.74,
-      "stop_loss": 68.28606769016811,
-      "sl_trigger_price": 68.29,
-      "strategy": "gap_and_go",
-      "entry_order_id": "261027000627287",
-      "opened_at": 1793105151.5425556,
-      "day": "2026-10-27",
-      "first_seen_day": "2026-10-27"
-    },
-    {
       "kotak_trading_symbol": "SUZLON-EQ",
       "symbol": "SUZLON.NS",
       "qty": 2,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 36.76,
       "stop_loss": 28.908567156110493,
-      "sl_trigger_price": null,
+      "sl_trigger_price": 33.33,
       "strategy": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
       "entry_order_id": "261027000718961",
-      "opened_at": 1793105152.7374601,
+      "opened_at": 1793124003.4157405,
       "day": "2026-10-27",
       "first_seen_day": "2026-10-27"
     },
@@ -57,7 +41,7 @@
       "source": "holding",
       "entry_price": 172.65,
       "stop_loss": 164.8,
-      "sl_trigger_price": 164.8,
+      "sl_trigger_price": 166.64,
       "strategy": "order_block_delta",
       "entry_order_id": "261008000123602",
       "opened_at": 1791432981.9336588,
@@ -81,5 +65,5 @@
       "first_seen_day": "2026-10-21"
     }
   ],
-  "synced_at_utc": "2026-10-27T14:48:37Z"
+  "synced_at_utc": "2026-10-28T09:07:00Z"
 }
