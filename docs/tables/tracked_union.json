@@ -24,12 +24,12 @@
    "is_short": 0,
    "kotak_trading_symbol": "NHPC-EQ",
    "opened_at": null,
-   "owner": "intraday",
+   "owner": "swing",
    "qty": 1,
    "sl_trigger_price": null,
    "source": "position",
-   "stop_loss": null,
-   "strategy": null,
+   "stop_loss": 68.29,
+   "strategy": "swing_rerouted_orphan",
    "symbol": null
   },
   {
