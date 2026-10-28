@@ -1509,3 +1509,9 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - Lesson: a pooled research PFnet that hides an IS/OOS split of 2.2 vs 0.5 is curve-fit; always read the segoos row before trusting the headline.
 - Owner decision: View 1 (VIABLE_OVERRIDES) still decides real money; the explorer now shows "replay failed" so the choice is made with the evidence visible.
 - Profit-booking / exit takeaway: with gross PF ~1.05, no exit tweak can clear 0.8% costs; this family needs a better entry, not a better exit.
+
+### 2026-10-28 - gaps fade LONG 1d: main.py replay confirms research (B-1396d)
+- Run 40623860743, real main.gapfade_long_entry_signal + _gapfade_exit_adapter, 2,412 symbols, 1d 5y, 0.8% cost: common_fade atr3_nb5 PFnet 1.286 (n 5,241, win 40.4%, hold 3.4 d); exhaust_fade atr3_nb5 PFnet 1.226 (n 4,059, win 37.0%, hold 3.7 d). Research was 1.121 / 1.246, so the port is faithful (unlike macddiv, where replay fell to 0.7).
+- Exit mix: the rule exit carries it (PFnet 1.39 / 1.37 on ~97% of trades); stops are 1.5% / 5% of trades; 30-day timeouts are rare but very profitable.
+- Lesson: a short-hold daily strategy whose research and replay agree within about 0.15 PFnet is the kind worth wiring; a large IS/OOS gap (macddiv) predicts the replay failing.
+- Profit-booking / exit takeaway: book on the rule exit (gap-fill / mean reversion) in about 3-4 days; do not widen the stop, since stops are rare and the edge is the quick reversion.
