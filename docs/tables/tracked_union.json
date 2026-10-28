@@ -17,6 +17,22 @@
    "symbol": "BANKINDIA.NS"
   },
   {
+   "day": null,
+   "entry_order_id": null,
+   "entry_price": 72.53,
+   "first_seen_day": "2026-10-28",
+   "is_short": 1,
+   "kotak_trading_symbol": "NHPC-EQ",
+   "opened_at": null,
+   "owner": "short",
+   "qty": 1,
+   "sl_trigger_price": null,
+   "source": "position",
+   "stop_loss": null,
+   "strategy": "gap_and_go",
+   "symbol": null
+  },
+  {
    "day": "2026-10-27",
    "entry_order_id": "261027000718961",
    "entry_price": 36.76,
