@@ -10787,7 +10787,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1380: no SL before 09:15 IST (exchange rejects it)"
+  },
+  {
+   "id": 900,
+   "ts": 1793159113.3358696,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "reroute",
+   "event": "order_block_state_restored",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "entry 2026-10-09 @ Rs134.39, stop Rs126.73, ATR Rs3.52, peak close Rs138.04",
+   "detail": "reason: B-1364: paper swing exit state was lost; re-derived from daily bars so the order_block_delta trail/max-hold exit runs again"
   }
  ],
- "synced_at_utc": "2026-10-28T03:27:44Z"
+ "synced_at_utc": "2026-10-28T03:45:16Z"
 }
