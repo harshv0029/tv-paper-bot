@@ -14985,6 +14985,8 @@ def _real_held_qty_short(kotak_trading_symbol: str) -> float | None:
             fl_sell = float(row.get("flSellQty", 0) or 0)
         except (TypeError, ValueError):
             return None
+        if _is_delivery_sell_not_short(row, fl_buy - fl_sell):
+            continue  # B-1403: a sold delivery holding is never short qty
         return fl_sell - fl_buy
     return 0.0
 
@@ -15637,6 +15639,8 @@ def _kotak_symbol_still_open_short(kotak_trading_symbol: str) -> bool | None:
             fl_sell = float(row.get("flSellQty", 0) or 0)
         except (TypeError, ValueError):
             continue
+        if _is_delivery_sell_not_short(row, fl_buy - fl_sell):
+            continue  # B-1403
         if fl_sell > 0 and fl_sell != fl_buy:
             return True
     return False
@@ -19174,6 +19178,8 @@ def get_real_open_positions():
                     # B-1395: a delivery holding sold today is net-short in positions() until T+1, not a short
                     # (same netting as reconcile's B-306). GSEC5IETF/COALINDIA showed as untracked shorts.
                     net_qty += min(-net_qty, _gross_holdings[kr.get("trdSym")])
+                if _is_delivery_sell_not_short(kr, net_qty):
+                    net_qty = 0  # B-1403
                 if net_qty == 0:
                     continue  # fully squared off - not an open position
                 trd_sym = kr.get("trdSym")
@@ -29453,6 +29459,14 @@ def kotak_neo_limits(request: Request):
         return {"error": str(e)}
 
 
+def _is_delivery_sell_not_short(row, net_qty) -> bool:
+    """B-1403 (NHPC 28 Oct 2026): a net-short nse_cm row with product CNC is a DELIVERY holding sold today, never a short
+    (every real intraday short this app places is MIS, and a cash-segment delivery short cannot be held). The B-306
+    holdings() netting misses it when holdings() errors or does not list the shares (T1), so the reconcile adopted a
+    phantom short, its BUY stop filled (11:39 IST) and bought 1 share back. Kotak's own product field decides here."""
+    return net_qty < 0 and str((row or {}).get("prod", "")).upper() == "CNC"
+
+
 def _kotak_holdings_gross_qty() -> dict:
     """{trdSym: qty} straight from holdings(), NOT netted against today's sells
     (B-306). Empty on any failure (then no netting happens: fail-safe)."""
@@ -30529,6 +30543,8 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 # against the holding, never adopt a phantom short (NYKAA 3:33 PM
                 # IST BUY SL + BUY exit, both rejected).
                 net_qty += min(-net_qty, _gross_holdings[row.get("trdSym")])
+            if _is_delivery_sell_not_short(row, net_qty):
+                net_qty = 0  # B-1403: a sold delivery holding, not a short
             if net_qty == 0:
                 continue  # fully squared off - not an open position
             trd_sym = row.get("trdSym")
