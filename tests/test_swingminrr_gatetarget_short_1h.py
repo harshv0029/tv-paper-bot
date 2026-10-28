@@ -9,7 +9,10 @@ GT = "swingminrr__brk20_gatetarget__short__1h__atr3_rr4__v1"
 G = "swingminrr__brk20_gate__short__1h__atr3_rr4__v1"
 
 
-def test_cells_registered_mapped_owed_and_closed():
+def test_cells_registered_mapped_owed_and_closed(monkeypatch):
+    # No View 1 override for these tags here (another test in the same process may leave one loaded).
+    monkeypatch.setattr(sr, "VIABLE_OVERRIDES", set())
+    monkeypatch.setattr(main, "_load_viable_overrides", lambda: sr.VIABLE_OVERRIDES)
     names = {s.name for s in sr.REGISTRY}
     assert set(main.SWINGMINRR_SHORT_1H_CELLS) == {G, GT}
     for t in (G, GT):
