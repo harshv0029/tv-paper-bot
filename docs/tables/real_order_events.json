@@ -10919,7 +10919,31 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs68.29",
    "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during swing governance backfill"
+  },
+  {
+   "id": 911,
+   "ts": 1793159176.3022275,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261028000019126",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs68.29",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs68.29"
+  },
+  {
+   "id": 912,
+   "ts": 1793159179.6988027,
+   "symbol": "NHPC.NS",
+   "kotak_trading_symbol": "NHPC-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261028000019126",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs68.29",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs68.29"
   }
  ],
- "synced_at_utc": "2026-10-28T03:46:17Z"
+ "synced_at_utc": "2026-10-28T03:46:24Z"
 }
