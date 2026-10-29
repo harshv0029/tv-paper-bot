@@ -721,7 +721,8 @@ async def run_fo_candle_feed():
                         continue
                     # B-1382: take every queued tick in this wake-up (the SDK queue is unbounded) and open the DB
                     # only when a tick closes a candle, not once per tick.
-                    process_fo_ticks(kotak_live_feed.drain_pending(ws, first), universe, SFeedScrip)
+                    # B-1424: candle persistence (SQLite commit) runs off the event loop; a 17 s lock wait froze it.
+                    await asyncio.to_thread(process_fo_ticks, kotak_live_feed.drain_pending(ws, first), universe, SFeedScrip)
                 # B-865: the stream ended without raising (SDK gave up
                 # reconnecting, or we broke out for a refresh). The old code
                 # left connected=True here, a stale "healthy" reading.

@@ -25736,6 +25736,13 @@ def _ltp_trail_stop(peak_ltp: float, r: float, initial_stop: float) -> float:
     return round(max(float(initial_stop), float(peak_ltp) - ORPHAN_SWING_TRAIL_R_MULT * float(r)), 2)
 
 
+def _swing_ltp_trail_on_thread() -> list:
+    """B-1424: one swing LTP trail pass on a worker thread with its own DB connection."""
+    with _SCAN_DECISION_LOCK:
+        with closing(get_db()) as conn:
+            return _sync_swing_ltp_trail(conn)
+
+
 def _sync_swing_ltp_trail(conn) -> list:
     """RVNL/DRREDDY (rerouted orphan swing rows): trail the REAL resting SL to
     peak live LTP - 1R, ratchet up only (user, 2026-10-07). Follows the thumb
@@ -26785,8 +26792,9 @@ async def _scheduler_tick():
     # Kotak/network hiccup here must never block the rest of the scan.
     if _scheduler_tick_count % SWING_LTP_TRAIL_EVERY_N_TICKS == 0:
         try:
-            with closing(get_db()) as _trail_conn:
-                _sync_swing_ltp_trail(_trail_conn)
+            # B-1424: off the event loop. The pass reads Kotak holdings and places SLs (the watchdog caught 18-21 s
+            # freezes here); serialized with the per-symbol scans by _SCAN_DECISION_LOCK.
+            await asyncio.to_thread(_swing_ltp_trail_on_thread)
         except Exception as e:
             print(f"[SWING LTP TRAIL] pass failed (non-fatal): {e}")
     # 2026-10-08 thumb rule (B-315): the exchange wipes every resting order
@@ -30476,7 +30484,8 @@ def _busy_thread_stacks(limit=4) -> list:
             # The event-loop thread: its innermost frames from ANY file (json encoding, pandas, a lock wait or the
             # selector), so a freeze outside our own code is still named.
             inner = [f"{os.path.basename(f.filename)}:{f.name}:{f.lineno}" for f in stack[-limit:]]
-            out.append(f"{names.get(ident, ident)} (event loop): " + " > ".join((app[-2:] + ["|"] if app else []) + inner))
+            # B-1424: 5 app frames, so the async caller that made the blocking call is named, not just the callee.
+            out.append(f"{names.get(ident, ident)} (event loop): " + " > ".join((app[-5:] + ["|"] if app else []) + inner))
         elif app:
             out.append(f"{names.get(ident, ident)}: " + " > ".join(app[-limit:]))
     return out
