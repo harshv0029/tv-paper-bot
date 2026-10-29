@@ -49,12 +49,18 @@ def main():
     for i, (_c, fs) in enumerate(bins):
         d = os.path.join(work, f"s{i}")
         os.makedirs(d)
-        subprocess.run(f"tar --exclude=.git --exclude=.claude/worktrees --exclude=paper_trades.db -cf - . | tar -xf - -C {d}",
+        # B-1419 (2026-10-29): book PDFs/EPUBs are not read by any test; skipping them saves ~60 MB per shard.
+        subprocess.run(f"tar --exclude=.git --exclude=.claude/worktrees --exclude=paper_trades.db "
+                       f"--exclude='*.pdf' --exclude='*.epub' -cf - . | tar -xf - -C {d}",
                        shell=True, cwd=ROOT, check=True)
+        # Each shard's tempfile.mkstemp() DBs go to its own folder, removed with the shard (the shared /tmp had
+        # piled up 73k leftover 1.2 MB test DBs, 20.7 GB, and filled the disk).
+        os.makedirs(os.path.join(d, "_tmp"))
+        env = {**os.environ, "TMPDIR": os.path.join(d, "_tmp"), "SUITE_PRIVATE_TMP": "1"}
         log = open(os.path.join(a.out, f"shard{i}.log"), "w")
         procs.append((i, d, log, subprocess.Popen(
             [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", f"--junitxml={d}/junit.xml", *fs],
-            cwd=d, stdout=log, stderr=subprocess.STDOUT)))
+            cwd=d, env=env, stdout=log, stderr=subprocess.STDOUT)))
     ok = True
     new_times = dict(times)
     for i, d, log, p in procs:

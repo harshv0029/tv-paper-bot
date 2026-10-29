@@ -5,6 +5,7 @@ Extracted from main.py as part of the docs/PROJECT_STRUCTURE_PLAN.md Phase 1
 module split - pure code motion (bodies/docstrings unchanged from their
 original main.py definitions), not a logic change.
 """
+import threading
 import time
 
 import pandas as pd
@@ -28,6 +29,19 @@ _CACHE_TTL_SECONDS = 180  # re-fetch at most every 3 minutes per (symbol, period
 # without still holding a stale-but-not-yet-expired copy of the entire
 # watchlist.
 _MAX_CACHE_ENTRIES = 400
+# B-1419: the scheduler prefetches a tick's symbols from a thread pool, so the
+# cache dict is read and pruned by several threads at once. The lock covers
+# only dict access, never the network call.
+_CACHE_LOCK = threading.RLock()
+# yfinance >= 1.x keeps per-call download state (multi._DownloadCtx); older
+# versions share module globals (shared._DFS) across calls, so serialize there.
+_YF_CALL_LOCK = None
+try:
+    import yfinance.multi as _yf_multi
+    if not hasattr(_yf_multi, "_DownloadCtx"):
+        _YF_CALL_LOCK = threading.Lock()
+except Exception:  # noqa: BLE001
+    _YF_CALL_LOCK = threading.Lock()
 
 
 def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
@@ -49,27 +63,32 @@ def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
     key = (symbol, period, interval)
     now = time.time()
 
-    cached = _DATA_CACHE.get(key)
-    if cached and (now - cached[0]) < _CACHE_TTL_SECONDS:
-        return cached[1].copy()
+    with _CACHE_LOCK:
+        cached = _DATA_CACHE.get(key)
+        if cached and (now - cached[0]) < _CACHE_TTL_SECONDS:
+            return cached[1].copy()
 
-    # Prune everything past its TTL before adding a new entry - keeps
-    # _DATA_CACHE bounded to roughly "what's been fetched in the last TTL
-    # window," not "everything ever fetched since the process started."
-    expired_keys = [k for k, (ts, _) in _DATA_CACHE.items() if (now - ts) >= _CACHE_TTL_SECONDS]
-    for k in expired_keys:
-        del _DATA_CACHE[k]
-
-    # Hard cap, on top of the TTL prune above (2026-09-08) - see
-    # _MAX_CACHE_ENTRIES' own comment for why TTL pruning alone isn't
-    # enough at this watchlist size. Oldest-first eviction, same as a
-    # simple LRU by insertion time.
-    if len(_DATA_CACHE) >= _MAX_CACHE_ENTRIES:
-        oldest_keys = sorted(_DATA_CACHE, key=lambda k: _DATA_CACHE[k][0])
-        for k in oldest_keys[: len(_DATA_CACHE) - _MAX_CACHE_ENTRIES + 1]:
+        # Prune everything past its TTL before adding a new entry - keeps
+        # _DATA_CACHE bounded to roughly "what's been fetched in the last TTL
+        # window," not "everything ever fetched since the process started."
+        expired_keys = [k for k, (ts, _) in _DATA_CACHE.items() if (now - ts) >= _CACHE_TTL_SECONDS]
+        for k in expired_keys:
             del _DATA_CACHE[k]
 
-    df = yf.download(symbol, period=period, interval=interval, progress=False)
+        # Hard cap, on top of the TTL prune above (2026-09-08) - see
+        # _MAX_CACHE_ENTRIES' own comment for why TTL pruning alone isn't
+        # enough at this watchlist size. Oldest-first eviction, same as a
+        # simple LRU by insertion time.
+        if len(_DATA_CACHE) >= _MAX_CACHE_ENTRIES:
+            oldest_keys = sorted(_DATA_CACHE, key=lambda k: _DATA_CACHE[k][0])
+            for k in oldest_keys[: len(_DATA_CACHE) - _MAX_CACHE_ENTRIES + 1]:
+                del _DATA_CACHE[k]
+
+    if _YF_CALL_LOCK is not None:
+        with _YF_CALL_LOCK:
+            df = yf.download(symbol, period=period, interval=interval, progress=False)
+    else:
+        df = yf.download(symbol, period=period, interval=interval, progress=False)
     if df.empty:
         raise HTTPException(
             status_code=404,
@@ -82,7 +101,8 @@ def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
     df = df.rename(columns={date_col: "Date"}).dropna(subset=["Open", "High", "Low", "Close"])
     df = df.reset_index(drop=True)
 
-    _DATA_CACHE[key] = (now, df)
+    with _CACHE_LOCK:
+        _DATA_CACHE[key] = (now, df)
     return df.copy()
 
 
