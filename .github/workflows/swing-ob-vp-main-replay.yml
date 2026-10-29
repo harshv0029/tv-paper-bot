@@ -15,6 +15,8 @@ name: Swing OB + VP main.py replay (B-30)
 # SELL SL at max(strategy stop, prev close x 0.9 x 1.003) (a stop below the ~10% daily band is
 # rejected, so the live stop is the band floor), triggered intraday on the bar's Low and filled at
 # min(Open, trigger). The strategy's own close-based exit still runs after it. Blank = baseline.
+# "intraday" = resting stop at the strategy stop only (no band); "band_only" = resting stop at the
+# band floor only, strategy stop checked on the close (the candidate live design, B-1413).
 on:
   workflow_dispatch:
     inputs:
@@ -23,7 +25,7 @@ on:
         required: false
         default: ""
       band_cap:
-        description: "'live' = resting stop floored at the daily price band, intraday trigger (B-1413); blank = baseline"
+        description: "live | intraday | band_only (B-1413 resting-stop models); blank = baseline"
         required: false
         default: ""
 
@@ -67,7 +69,8 @@ jobs:
               m.ORDER_BLOCK_ATR_TRAIL_MULT = float(os.environ["TRAIL"])
               m.VP_ATR_TRAIL_MULT = float(os.environ["TRAIL"])
               print("TRAIL override", os.environ["TRAIL"])
-          BAND = os.environ.get("BAND") == "live"
+          BAND_MODE = os.environ.get("BAND") or ""
+          BAND = BAND_MODE in ("live", "intraday", "band_only")
           TRAIL_MULT = m.ORDER_BLOCK_ATR_TRAIL_MULT if STRAT == "ob" else m.VP_ATR_TRAIL_MULT
           print("BAND cap", BAND, "trail", TRAIL_MULT)
           WIN = 150
@@ -94,9 +97,10 @@ jobs:
                   win = df.iloc[max(0, i + 1 - WIN):i + 1]
                   if pos is not None and BAND and i > pos["idx"]:
                       strat_stop = max(pos["stop"], pos["rmc"] - TRAIL_MULT * pos["atr"])
-                      trig = max(strat_stop, closes[i - 1] * 0.9 * 1.003)
+                      floor = closes[i - 1] * 0.9 * 1.003
+                      trig = {"live": max(strat_stop, floor), "intraday": strat_stop, "band_only": floor}[BAND_MODE]
                       if lows[i] <= trig:
-                          why = "band_floor_stop_hit" if trig > strat_stop else "resting_stop_hit"
+                          why = "band_floor_stop_hit" if trig == floor and floor > strat_stop else "resting_stop_hit"
                           out.append(fin(pos, float(min(opens[i], trig)), i, why)); pos = None
                           continue
                   if pos is not None:
