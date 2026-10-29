@@ -12719,7 +12719,19 @@
    "prev_state": null,
    "new_state": "rejected",
    "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 29-Oct-2026 09:16:06 S SL qty 2 trg 28.91 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :28.91,  Low Price Range:"
+  },
+  {
+   "id": 1061,
+   "ts": 1793246020.5635192,
+   "symbol": "JSWENERGY.NS",
+   "kotak_trading_symbol": "JSWENERGY-EQ",
+   "leg": "short_entry",
+   "event": "confirmed",
+   "order_id": "261029000055858",
+   "prev_state": "no position",
+   "new_state": "short 3 @ Rs504.15",
+   "detail": "reason: paper short entry signal from strategy chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 passed the PFnet gate"
   }
  ],
- "synced_at_utc": "2026-10-29T03:47:43Z"
+ "synced_at_utc": "2026-10-29T03:53:43Z"
 }
