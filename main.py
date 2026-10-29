@@ -26074,16 +26074,42 @@ async def _real_off_loop(fn, *args, **kwargs):
     return await asyncio.to_thread(_run)
 
 
+_SCAN_SECTION_STATS: dict = {}  # section -> {"n", "wall", "cpu"} over the current window (B-1419 timing)
+_SCAN_SECTION_WINDOW = 200  # reset after this many symbol scans so the numbers stay recent
+
+
+def _timed_call(section: str, fn, *args, **kwargs):
+    """B-1419: wall and CPU (thread_time) of one call, summed per section for /scheduler-status scan_sections."""
+    w0, c0 = time.time(), time.thread_time()
+    try:
+        return fn(*args, **kwargs)
+    finally:
+        st = _SCAN_SECTION_STATS.setdefault(section, {"n": 0, "wall": 0.0, "cpu": 0.0})
+        st["n"] += 1
+        st["wall"] += time.time() - w0
+        st["cpu"] += time.thread_time() - c0
+
+
+def _scan_sections_summary() -> dict:
+    return {k: {"n": v["n"], "avg_wall_s": round(v["wall"] / v["n"], 3), "avg_cpu_s": round(v["cpu"] / v["n"], 3)}
+            for k, v in _SCAN_SECTION_STATS.items() if v["n"]}
+
+
 def _real_on_thread(fn, *args, **kwargs):
     """B-1419: same as _real_off_loop, for code already running in a worker thread (own DB connection per call)."""
-    with closing(get_db()) as _c:
-        return fn(_c, *args, **kwargs)
+    def _run():
+        with closing(get_db()) as _c:
+            return fn(_c, *args, **kwargs)
+    return _timed_call("real_mirror", _run)
 
 
 # B-1419: one decision at a time across the scan tick and the 5m-bar sweep, so the daily-loss / position caps and
 # a symbol's paper/real state can never be raced by two scanners.
 _SCAN_DECISION_LOCK = threading.Lock()
 _SCAN_LAST_DONE: dict = {}  # symbol -> epoch of its last finished equity scan (tick or bar sweep)
+# B-1419 (live 29-Oct 14:26 IST): sharing the lock 50/50 with the sweep slowed the tick (open positions) from ~80 s to
+# ~215 s. The tick marks itself as waiting; the sweep yields before each symbol while it is, so the tick goes first.
+_TICK_WANTS_SCAN = {"n": 0}
 
 
 def _scan_equity_symbol_sync(symbol: str, cfg, scheduler_capital_inr, live_daily_risk_pct, live_rr,
@@ -26096,7 +26122,14 @@ def _scan_equity_symbol_sync(symbol: str, cfg, scheduler_capital_inr, live_daily
         _current_scan_symbol.set(symbol)
     except Exception:  # noqa: BLE001
         pass
+    if _SCAN_SECTION_STATS.get("symbol_total", {}).get("n", 0) >= _SCAN_SECTION_WINDOW:
+        _SCAN_SECTION_STATS.clear()
+    _lw0 = time.time()
     with _SCAN_DECISION_LOCK:
+        _lw = _SCAN_SECTION_STATS.setdefault("lock_wait", {"n": 0, "wall": 0.0, "cpu": 0.0})
+        _lw["n"] += 1
+        _lw["wall"] += time.time() - _lw0
+        _sym_w0, _sym_c0 = time.time(), time.thread_time()
         if not cfg:
             # A symbol can be IN symbols_this_tick (open_equity_symbols/
             # open_real_symbols, both sourced from DB state, not
@@ -26122,7 +26155,7 @@ def _scan_equity_symbol_sync(symbol: str, cfg, scheduler_capital_inr, live_daily
         _record_intraday_strategy_scan(cfg)  # B-423: counter only, no order logic
         _sync_visit_strategy_count(symbol, 1)
         try:
-            result = _auto_signal_core(
+            result = _timed_call("long_engine", _auto_signal_core,
                 symbol=cfg["symbol"], capital=scheduler_capital_inr,
                 daily_risk_pct=live_daily_risk_pct,
                 risk_per_trade_pct=cfg["risk_pct"],
@@ -26208,7 +26241,7 @@ def _scan_equity_symbol_sync(symbol: str, cfg, scheduler_capital_inr, live_daily
             _record_short_strategy_scans()  # B-423: counter only
             _sync_visit_strategy_count(cfg["symbol"], len(_INTRADAY_SHORT_SCAN_TAGS))
             try:
-                short_result = _short_signal_core(
+                short_result = _timed_call("short_engine", _short_signal_core,
                     symbol=cfg["symbol"], capital=scheduler_capital_inr,
                     daily_risk_pct=live_daily_risk_pct, risk_per_trade_pct=cfg["risk_pct"],
                     stop_pct=cfg["stop_pct"], rr=live_rr,
@@ -26277,6 +26310,10 @@ def _scan_equity_symbol_sync(symbol: str, cfg, scheduler_capital_inr, live_daily
         finally:
             _scheduler_currently_checking = None
         _SCAN_LAST_DONE[symbol] = time.time()
+        _st = _SCAN_SECTION_STATS.setdefault("symbol_total", {"n": 0, "wall": 0.0, "cpu": 0.0})
+        _st["n"] += 1
+        _st["wall"] += time.time() - _sym_w0
+        _st["cpu"] += time.thread_time() - _sym_c0
 
 
 BAR_SWEEP_SETTLE_SECONDS = 20  # Yahoo publishes the closed 5m bar a few seconds after the boundary
@@ -26292,6 +26329,13 @@ def _seconds_to_next_bar_sweep(now: float | None = None) -> float:
     if nxt - BAR_SWEEP_BAR_SECONDS > now:  # still inside the settle gap of the bar that just closed
         nxt -= BAR_SWEEP_BAR_SECONDS
     return max(1.0, nxt - now)
+
+
+def _bar_sweep_owns_flat_nse() -> bool:
+    """True while the 5m-bar sweep is responsible for flat NSE equities: NSE session open and the sweep is not
+    failing (an errored last sweep hands the round-robin back to the tick)."""
+    last = _BAR_SWEEP_STATS.get("last") or {}
+    return bool(is_nse_trading_day() and _nse_equity_market_open_now() and last.get("status") != "error")
 
 
 def _bar_sweep_candidates(bar_close: float) -> list:
@@ -26329,6 +26373,8 @@ async def _bar_sweep_once(now: float | None = None) -> dict:
     stats["prefetch"] = await asyncio.to_thread(_prefetch_tick_ohlc, [*syms, UNIVERSAL_REFERENCE_INDEX])
     by_symbol = {c["symbol"]: c for c in WATCHLIST}
     for sym in syms:
+        while _TICK_WANTS_SCAN["n"] > 0 and time.time() < deadline:
+            await asyncio.sleep(0.2)  # tick (open positions) first
         if time.time() >= deadline:
             break
         if _SCAN_LAST_DONE.get(sym, 0.0) >= bar_close:
@@ -26514,6 +26560,10 @@ async def _scheduler_tick():
         # B-1291: NSE holiday - drop NEW-entry .NS candidates only. Open positions (open_*_symbols),
         # MCX/other-market symbols and all protection/exit paths are untouched.
         flat_symbols = [s for s in flat_symbols if not s.endswith(".NS")]
+    if _bar_sweep_owns_flat_nse():
+        # B-1419: the 5m-bar sweep scans every flat NSE equity once per bar; the tick keeps open/evidenced symbols
+        # (managed every tick) plus non-NSE round-robin, so open positions are not slowed by a 35-symbol batch.
+        flat_symbols = [s for s in flat_symbols if not s.endswith(".NS")]
     if flat_symbols:
         n = len(flat_symbols)
         batch_size = min(live_batch_size, n)
@@ -26560,8 +26610,12 @@ async def _scheduler_tick():
 
     for symbol in _scan_visit(symbols_this_tick):
         cfg = watchlist_by_symbol.get(symbol)
-        await asyncio.to_thread(_scan_equity_symbol_sync, symbol, cfg, scheduler_capital_inr, live_daily_risk_pct,
-                                live_rr, live_max_hold_minutes)
+        _TICK_WANTS_SCAN["n"] += 1
+        try:
+            await asyncio.to_thread(_scan_equity_symbol_sync, symbol, cfg, scheduler_capital_inr, live_daily_risk_pct,
+                                    live_rr, live_max_hold_minutes)
+        finally:
+            _TICK_WANTS_SCAN["n"] -= 1
     _scan_seconds = round(time.time() - _scan_t0, 2)
 
     # Options overlay - real calls/puts on the symbols with a live
@@ -26929,6 +26983,7 @@ def scheduler_status():
         "last_tick_ago_seconds": round(time.time() - _scheduler_last_tick_ts, 1) if _scheduler_last_tick_ts else None,
         "tick_timing": _tick_timing_summary(),  # B-1419
         "bar_sweep": _BAR_SWEEP_STATS,  # B-1419 option A
+        "scan_sections": _scan_sections_summary(),  # B-1419: where a symbol's scan time goes
         "last_error": _scheduler_last_error,
         "checks_last_30s": checks_in_last_seconds(30),
         "scheduler_capital_inr": _real_capital_cache["value"],
