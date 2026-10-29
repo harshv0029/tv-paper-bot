@@ -19861,8 +19861,14 @@ _SCHEDULER_TICK_TIMING: dict = {"last": None, "recent": []}
 _SCHEDULER_TICK_TIMING_KEEP = 20
 
 
+def _scan_prefetch_intervals() -> list:
+    """B-1419 (live 29-Oct 14:53 IST): every bar size a symbol's scan fetches. The 15m chan short cells fetch 5d/15m
+    per symbol; only 5m was prefetched, so short_engine waited ~0.8 s/symbol on Yahoo (0.02 s CPU)."""
+    return ["5m", *sorted(set(CHAN_SHORT_CELL_INTERVAL.values()) - {"5m"})]
+
+
 def _prefetch_tick_ohlc(symbols, period: str = "5d", interval: str = "5m",
-                        workers: int | None = None) -> dict:
+                        workers: int | None = None, intervals=None, timeout: float | None = None) -> dict:
     """B-1419: warm fetch_ohlc's 180 s cache for this tick's symbols from a bounded
     thread pool. Read-only (no DB, no orders); a failed fetch is just counted, the
     per-symbol scan then fetches (and reports) it itself exactly as before."""
@@ -19870,14 +19876,16 @@ def _prefetch_tick_ohlc(symbols, period: str = "5d", interval: str = "5m",
     syms = list(dict.fromkeys(symbols))
     if not syms:
         return {"symbols": 0, "ok": 0, "failed": 0, "seconds": 0.0}
+    ivs = list(intervals) if intervals else [interval]
     t0 = time.time()
     ok = failed = 0
     n_workers = max(1, min(int(workers or SCAN_PREFETCH_WORKERS), len(syms)))
     pool = _cf.ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="scan-prefetch")
     try:
-        futs = [pool.submit(fetch_ohlc, s, period, interval) for s in syms]
+        # Symbol-major order, so a timeout still leaves whole symbols warm rather than one bar size of everything.
+        futs = [pool.submit(fetch_ohlc, s, period, iv) for s in syms for iv in ivs]
         try:
-            for f in _cf.as_completed(futs, timeout=SCAN_PREFETCH_TIMEOUT_SECONDS):
+            for f in _cf.as_completed(futs, timeout=timeout or SCAN_PREFETCH_TIMEOUT_SECONDS):
                 try:
                     f.result()
                     ok += 1
@@ -19887,7 +19895,7 @@ def _prefetch_tick_ohlc(symbols, period: str = "5d", interval: str = "5m",
             failed += sum(1 for f in futs if not f.done())
     finally:
         pool.shutdown(wait=False, cancel_futures=True)
-    return {"symbols": len(syms), "ok": ok, "failed": failed, "seconds": round(time.time() - t0, 2)}
+    return {"symbols": len(syms), "intervals": ivs, "ok": ok, "failed": failed, "seconds": round(time.time() - t0, 2)}
 
 
 def _record_tick_timing(entry: dict) -> None:
@@ -26318,6 +26326,7 @@ def _scan_equity_symbol_sync(symbol: str, cfg, scheduler_capital_inr, live_daily
 
 BAR_SWEEP_SETTLE_SECONDS = 20  # Yahoo publishes the closed 5m bar a few seconds after the boundary
 BAR_SWEEP_BAR_SECONDS = 300
+BAR_SWEEP_PREFETCH_TIMEOUT_SECONDS = 150
 _BAR_SWEEP_STATS: dict = {"last": None, "sweeps_today": 0, "day": None}
 
 
@@ -26370,7 +26379,10 @@ async def _bar_sweep_once(now: float | None = None) -> dict:
     syms = _bar_sweep_candidates(bar_close)
     stats["candidates"] = len(syms)
     t0 = time.time()
-    stats["prefetch"] = await asyncio.to_thread(_prefetch_tick_ohlc, [*syms, UNIVERSAL_REFERENCE_INDEX])
+    # 200 symbols x 2 bar sizes at the 4-download cap is ~2 min; 60 s timed out 123 of 201 (14:45 IST bar).
+    stats["prefetch"] = await asyncio.to_thread(_prefetch_tick_ohlc, [*syms, UNIVERSAL_REFERENCE_INDEX],
+                                                intervals=_scan_prefetch_intervals(),
+                                                timeout=BAR_SWEEP_PREFETCH_TIMEOUT_SECONDS)
     by_symbol = {c["symbol"]: c for c in WATCHLIST}
     for sym in syms:
         while _TICK_WANTS_SCAN["n"] > 0 and time.time() < deadline:
@@ -26603,7 +26615,8 @@ async def _scheduler_tick():
     _prefetch = {"symbols": 0, "ok": 0, "failed": 0, "seconds": 0.0}
     try:
         _prefetch = await asyncio.to_thread(
-            _prefetch_tick_ohlc, [*sorted(symbols_this_tick), UNIVERSAL_REFERENCE_INDEX])
+            _prefetch_tick_ohlc, [*sorted(symbols_this_tick), UNIVERSAL_REFERENCE_INDEX],
+            intervals=_scan_prefetch_intervals())
     except Exception as e:  # noqa: BLE001
         print(f"[scheduler] prefetch failed (non-fatal, per-symbol fetch still runs): {e}")
     _scan_t0 = time.time()
