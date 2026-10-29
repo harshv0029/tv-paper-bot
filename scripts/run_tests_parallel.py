@@ -32,7 +32,35 @@ def _shards(files, n, times):
     return bins
 
 
+STALE_DB_MIN_FREE_GB = 3.0
+STALE_DB_AGE_SECONDS = 2 * 3600
+
+
+def _sweep_stale_temp_dbs(tmp="/tmp", min_free_gb=STALE_DB_MIN_FREE_GB, age_s=STALE_DB_AGE_SECONDS, now=None):
+    """B-1421: event = a suite run starts while the disk is low. Removes leftover tmp*.db test DBs in the shared /tmp
+    older than 2 h (a suite takes ~4 min, so nothing live is that old). Does nothing while free space is healthy."""
+    if shutil.disk_usage(tmp).free / 1e9 >= min_free_gb:
+        return 0
+    now = now or time.time()
+    freed = n = 0
+    for f in os.listdir(tmp):
+        if not (f.startswith("tmp") and (f.endswith(".db") or f.endswith((".db-wal", ".db-shm", ".db-journal")))):
+            continue
+        p = os.path.join(tmp, f)
+        try:
+            st = os.stat(p)
+            if os.path.isfile(p) and now - st.st_mtime > age_s:
+                os.remove(p)
+                freed += st.st_size
+                n += 1
+        except OSError:
+            pass
+    print(f"[disk] low space: removed {n} stale test DBs from {tmp}, freed {freed / 1e9:.2f} GB")
+    return n
+
+
 def main():
+    _sweep_stale_temp_dbs()
     ap = argparse.ArgumentParser()
     ap.add_argument("-n", type=int, default=os.cpu_count() or 4)
     ap.add_argument("--out", default=tempfile.gettempdir())
