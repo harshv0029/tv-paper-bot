@@ -19849,6 +19849,65 @@ def reconcile_real_trades_today_from_journal():
 
 
 SCHEDULER_INTERVAL_SECONDS = 30
+# B-1419: a tick scanned its ~40 symbols one after another, each doing its own
+# 5d/5m Yahoo fetch first, so one tick took ~2 min and each NIFTY 200 name was
+# looked at only every ~14 min (most 5m signal bars missed). The tick now
+# fetches its symbols' bars in parallel threads up front (cache warm-up only);
+# every signal decision and real order still runs one symbol at a time, so the
+# daily-loss / position caps cannot race.
+SCAN_PREFETCH_WORKERS = 8
+SCAN_PREFETCH_TIMEOUT_SECONDS = 60
+_SCHEDULER_TICK_TIMING: dict = {"last": None, "recent": []}
+_SCHEDULER_TICK_TIMING_KEEP = 20
+
+
+def _prefetch_tick_ohlc(symbols, period: str = "5d", interval: str = "5m",
+                        workers: int | None = None) -> dict:
+    """B-1419: warm fetch_ohlc's 180 s cache for this tick's symbols from a bounded
+    thread pool. Read-only (no DB, no orders); a failed fetch is just counted, the
+    per-symbol scan then fetches (and reports) it itself exactly as before."""
+    import concurrent.futures as _cf
+    syms = list(dict.fromkeys(symbols))
+    if not syms:
+        return {"symbols": 0, "ok": 0, "failed": 0, "seconds": 0.0}
+    t0 = time.time()
+    ok = failed = 0
+    n_workers = max(1, min(int(workers or SCAN_PREFETCH_WORKERS), len(syms)))
+    pool = _cf.ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="scan-prefetch")
+    try:
+        futs = [pool.submit(fetch_ohlc, s, period, interval) for s in syms]
+        try:
+            for f in _cf.as_completed(futs, timeout=SCAN_PREFETCH_TIMEOUT_SECONDS):
+                try:
+                    f.result()
+                    ok += 1
+                except Exception:  # noqa: BLE001
+                    failed += 1
+        except _cf.TimeoutError:
+            failed += sum(1 for f in futs if not f.done())
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+    return {"symbols": len(syms), "ok": ok, "failed": failed, "seconds": round(time.time() - t0, 2)}
+
+
+def _record_tick_timing(entry: dict) -> None:
+    """B-1419: keep the last few tick timings for /scheduler-status (in memory; recomputed every tick)."""
+    _SCHEDULER_TICK_TIMING["last"] = entry
+    rec = _SCHEDULER_TICK_TIMING["recent"]
+    rec.append(entry)
+    del rec[:-_SCHEDULER_TICK_TIMING_KEEP]
+
+
+def _tick_timing_summary() -> dict:
+    rec = [r for r in _SCHEDULER_TICK_TIMING["recent"] if r.get("tick_seconds") is not None]
+    avg = round(sum(r["tick_seconds"] for r in rec) / len(rec), 1) if rec else None
+    return {"last": _SCHEDULER_TICK_TIMING["last"], "avg_tick_seconds_recent": avg, "n_recent": len(rec)}
+
+
+def _scheduler_sleep_after_tick(tick_seconds: float) -> float:
+    """B-1419: the tick used to sleep a fixed 30 s AFTER a ~2 min scan; now it sleeps
+    only what is left of the 30 s interval (at least 1 s, so the loop still yields)."""
+    return max(1.0, SCHEDULER_INTERVAL_SECONDS - max(0.0, tick_seconds))
 SCHEDULER_DAILY_RISK_PCT = 2.0  # DEFAULT (fallback) - account-wide daily loss cap, live-editable below
 SCHEDULER_RR = 3.0  # DEFAULT (fallback) - 1:3 minimum reward:risk, live-editable below
 
@@ -26017,6 +26076,7 @@ async def _real_off_loop(fn, *args, **kwargs):
 
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
+    _tick_t0 = time.time()  # B-1419
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
 
     with closing(get_db()) as conn:
@@ -26204,6 +26264,15 @@ async def _scheduler_tick():
     # freshness once per symbol in the loop below for no benefit.
     scheduler_capital_inr = await asyncio.to_thread(get_scheduler_capital_inr)  # B-1361: Kotak limits() froze the loop 31 s
 
+    # B-1419: parallel bar fetch for the whole tick (+ the universal-score reference index).
+    _prefetch = {"symbols": 0, "ok": 0, "failed": 0, "seconds": 0.0}
+    try:
+        _prefetch = await asyncio.to_thread(
+            _prefetch_tick_ohlc, [*sorted(symbols_this_tick), UNIVERSAL_REFERENCE_INDEX])
+    except Exception as e:  # noqa: BLE001
+        print(f"[scheduler] prefetch failed (non-fatal, per-symbol fetch still runs): {e}")
+    _scan_t0 = time.time()
+
     for symbol in _scan_visit(symbols_this_tick):
         cfg = watchlist_by_symbol.get(symbol)
         if not cfg:
@@ -26318,7 +26387,10 @@ async def _scheduler_tick():
             _record_short_strategy_scans()  # B-423: counter only
             _sync_visit_strategy_count(cfg["symbol"], len(_INTRADAY_SHORT_SCAN_TAGS))
             try:
-                short_result = _short_signal_core(
+                # B-1419: in a worker thread like _auto_signal_core (it ran ON the event loop,
+                # fetch included, freezing /health and the watchdog), still awaited in order.
+                short_result = await asyncio.to_thread(
+                    _short_signal_core,
                     symbol=cfg["symbol"], capital=scheduler_capital_inr,
                     daily_risk_pct=live_daily_risk_pct, risk_per_trade_pct=cfg["risk_pct"],
                     stop_pct=cfg["stop_pct"], rr=live_rr,
@@ -26386,6 +26458,7 @@ async def _scheduler_tick():
             }
         finally:
             _scheduler_currently_checking = None
+    _scan_seconds = round(time.time() - _scan_t0, 2)
 
     # Options overlay - real calls/puts on the symbols with a live
     # yfinance chain (OPTIONS_ELIGIBLE_SYMBOLS), using that same
@@ -26505,7 +26578,14 @@ async def _scheduler_tick():
         print(f"[REAL F&O] option SL tick failed or timed out (non-fatal): {e}")
 
     _scheduler_last_tick_ts = time.time()
-    await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
+    _tick_seconds = round(_scheduler_last_tick_ts - _tick_t0, 2)
+    _record_tick_timing({
+        "ended_ist": ist_now().strftime("%H:%M:%S IST"), "tick_seconds": _tick_seconds,
+        "symbols": len(symbols_this_tick), "rr_batch": len(rr_batch),
+        "prefetch": _prefetch, "equity_scan_seconds": _scan_seconds,
+        "per_symbol_seconds": round(_scan_seconds / len(symbols_this_tick), 2) if symbols_this_tick else None,
+    })
+    await asyncio.sleep(_scheduler_sleep_after_tick(_tick_seconds))
 
 
 STARTUP_HYDRATION_TIMEOUT_SECONDS = 15  # see _start_scheduler's own asyncio.wait_for comment
@@ -26742,6 +26822,7 @@ def scheduler_status():
         "interval_seconds": SCHEDULER_INTERVAL_SECONDS,
         "last_tick_ts": _scheduler_last_tick_ts,
         "last_tick_ago_seconds": round(time.time() - _scheduler_last_tick_ts, 1) if _scheduler_last_tick_ts else None,
+        "tick_timing": _tick_timing_summary(),  # B-1419
         "last_error": _scheduler_last_error,
         "checks_last_30s": checks_in_last_seconds(30),
         "scheduler_capital_inr": _real_capital_cache["value"],
