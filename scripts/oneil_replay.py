@@ -49,6 +49,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import oneil_research as orx  # noqa: E402  (CFG constants, clean_bars, rs matrix, optional cross-check only)
+import swing_bandcap as bc  # noqa: E402  (B-1417 shared live resting-stop model)
 
 CFG = orx.CFG
 VOL_MULT, FLAT_RANGE, ADV_MIN, DEPTH_MAX = orx.VOL_MULT, orx.FLAT_RANGE, orx.ADV_MIN, orx.DEPTH_MAX
@@ -182,8 +183,11 @@ def _main_app():
     return app
 
 
-def replay_symbol(df, rs_series, spec, cost, slip=0.0, use_main=False):
-    """use_main=True (B-1070) routes detector, ATR, stop, trailing ratchet and exit through main.py's oneil_* functions
+def replay_symbol(df, rs_series, spec, cost, slip=0.0, use_main=False, band_cap="off"):
+    """band_cap (B-1417): "off" = unchanged. "live" = the resting stop Kotak holds, raised to the 10% DAILY band floor,
+    checked intraday from the bar after entry - only meaningful on daily bars, so a 1w spec refuses it (the live 1w
+    O'Neil cells are replayed on daily bars by scripts/swing_classic_main_replay.py FAMILY=oneil instead).
+    use_main=True (B-1070) routes detector, ATR, stop, trailing ratchet and exit through main.py's oneil_* functions
     (avg-down add stays here: negative control, never live). Returns list of dict(net, gross, held, reason, entry_bar). Non-overlapping, hold fully available only."""
     cfg = CFG[spec["tf"]]
     o, h, l, c = (df[x].to_numpy(float) for x in ("Open", "High", "Low", "Close"))
@@ -194,6 +198,10 @@ def replay_symbol(df, rs_series, spec, cost, slip=0.0, use_main=False):
     side = 1 if spec["dir"] == "long" else -1
     hold, mode, val = spec["hold"], spec["mode"], spec["val"]
     sw = cfg["swing"]
+    band = bc.normalize_mode(band_cap) != "off"
+    if band and spec["tf"] != "1d":
+        raise ValueError(f"band_cap={band_cap} needs daily bars (the band is daily); {spec['tag']} is {spec['tf']}: "
+                         "use scripts/swing_classic_main_replay.py FAMILY=oneil")
     rs_thr = None if spec["rs"] in ("none", "") else spec["rs"]
     out, t, n = [], 0, len(c)
     while t < n - 1:
@@ -225,6 +233,11 @@ def replay_symbol(df, rs_series, spec, cost, slip=0.0, use_main=False):
         add_done = False
         exitp, jx, reason = c[last], last, "timeout"
         for j in range(e, last + 1):
+            if band and j > e:
+                hit = bc.resting_stop_exit(band_cap, spec["dir"], stop, c[j - 1], o[j], l[j], h[j])
+                if hit:
+                    exitp, jx, reason = hit[0], j, hit[1]
+                    break
             if use_main:
                 if mode == "trl":
                     stop = app.oneil_trail_stop(spec["dir"], h, l, e, j, sw, stop)
@@ -377,7 +390,7 @@ def load_data(syms, tf, cfg):
 
 def run_specs(specs, data, cost, slip=0.0, crosscheck=False, use_main=False):
     """Replay every spec on every symbol of one timeframe. Returns (cells, crosscheck_notes)."""
-    cells = {s["tag"]: new_cell() for s in specs}
+    cells = {bc.band_tag(s["tag"], s.get("band_cap", "off")): new_cell() for s in specs}
     notes = []
     if not data:
         return cells, notes
@@ -386,8 +399,9 @@ def run_specs(specs, data, cost, slip=0.0, crosscheck=False, use_main=False):
     rs_all = orx.rs_rank_matrix(closes, CFG[tf]["rs_lb"])
     for i, (sym, df) in enumerate(data.items()):
         for sp in specs:
-            trades = replay_symbol(df, rs_all[sym], sp, cost, slip, use_main)
-            add_trades(cells[sp["tag"]], trades)
+            mode = sp.get("band_cap", "off")
+            trades = replay_symbol(df, rs_all[sym], sp, cost, slip, use_main, mode)
+            add_trades(cells[bc.band_tag(sp["tag"], mode)], trades)
             if crosscheck and trades:
                 notes.extend(_crosscheck(sp, sym, df, rs_all[sym], cost, trades))
         if i % 100 == 0:
@@ -421,9 +435,12 @@ def main_run():
     if interval:   # B-786: replay the same rules at another candle size, each its own tag; bar counts mean BARS
         tags = [retag_tf(t, interval) for t in tags]
     use_main = os.environ.get("USE_MAIN", "1") != "0"
+    band_cap = bc.mode_from_env()  # B-1417: off (default, unchanged) | live (1d specs only)
     if use_main:   # B-1070: the main.py-calling run is a NEW tag set (v1 -> v2); v1 results stay untouched
         tags = [re.sub(r"__v1$", "__v2", t) for t in tags]
     specs = [parse_tag(t) for t in tags]
+    for sp in specs:
+        sp["band_cap"] = band_cap
     period_override = (os.environ.get("PERIOD") or "").strip()
     shard, nsh = int(os.environ.get("SHARD", "0")), int(os.environ.get("NSHARDS", "1"))
     cost = app.ROUND_TRIP_COST_PCT / 100.0

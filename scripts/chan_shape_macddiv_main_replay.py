@@ -33,6 +33,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import brk20_replay as br  # noqa: E402  (exact-mergeable aggregation helpers)
+import swing_bandcap as bc  # noqa: E402  (B-1417 shared live resting-stop model)
 
 MIN_BARS = 60
 HOURS_PER_BAR = {"chan_shape": 6.25, "macddiv": 1.0}  # 1d bar = 6.25 market hours; 1h bar = 1
@@ -48,23 +49,37 @@ def _trade(ep, xp, held, reason, cost, entry_i, exit_i):
     return {"gross": g, "net": g - cost, "held": held, "reason": reason, "entry_i": entry_i, "exit_i": exit_i}
 
 
-def chan_shape_trade(m, df, k, sig, tag, dates, cost):
+def _band_hit(band, df, j, stop):
+    """B-1417: the live resting stop (frozen stop, raised to the 10% band floor off the previous SESSION close),
+    triggered intraday on bar j. band = (mode, prev_session_close array) or None (off: never)."""
+    if band is None:
+        return None
+    return bc.resting_stop_exit(band[0], "long", stop, band[1][j], float(df["Open"].iloc[j]), float(df["Low"].iloc[j]),
+                                float(df["High"].iloc[j]))
+
+
+def chan_shape_trade(m, df, k, sig, tag, dates, cost, band=None):
     n = len(df)
     ep, stop0 = sig["entry_price"], sig["stop_loss"]
     hold = m.CHAN_SHAPE_CELLS[tag][1]
     for j in range(k + 1, n):
+        hit = _band_hit(band, df, j, stop0)  # entry at the close of k, so the stop rests from bar k+1
+        if hit:
+            return _trade(ep, hit[0], j - k, hit[1], cost, k + 1, j)
         reason, px = m.chan_shape_exit_reason(df.iloc[:j + 1], dates[k], stop0, hold)
         if reason:
             return _trade(ep, px, j - k, reason, cost, k + 1, j)
     return _trade(ep, float(df["Close"].iloc[-1]), n - 1 - k, "data_end_forced_close", cost, k + 1, n - 1)
 
 
-def replay_symbol(m, df, family, tags, cost):
+def replay_symbol(m, df, family, tags, cost, band_cap="off"):
+    """band_cap (B-1417, scripts/swing_bandcap.py): "off" = unchanged; "live" = live resting-stop model."""
     df = df.reset_index(drop=True)
     n = len(df)
     out = {t: [] for t in tags}
     if n < MIN_BARS + 3:
         return out
+    band = (band_cap, bc.prev_session_close(df)) if bc.normalize_mode(band_cap) != "off" else None
     dates = df["Date"].astype(str).to_numpy() if "Date" in df.columns else None
     free = {t: 0 for t in tags}
     for k in range(MIN_BARS - 1, n - 1):
@@ -76,9 +91,9 @@ def replay_symbol(m, df, family, tags, cost):
             if not sig:
                 continue
             if family == "chan_shape":
-                tr = chan_shape_trade(m, df, k, sig, tag, dates, cost)
+                tr = chan_shape_trade(m, df, k, sig, tag, dates, cost, band)
             else:
-                tr = macddiv_trade_full(m, df, k, sig, tag, cost)
+                tr = macddiv_trade_full(m, df, k, sig, tag, cost, band)
                 if tr is None:
                     continue
             out[tag].append(tr)
@@ -86,7 +101,7 @@ def replay_symbol(m, df, family, tags, cost):
     return out
 
 
-def macddiv_trade_full(m, df, k, sig, tag, cost):
+def macddiv_trade_full(m, df, k, sig, tag, cost, band=None):
     """Fill at the open of bar k+1; first exit event from the REAL macddiv_long_exit_reason; its exit bar index is found
     by walking the same function forward bar by bar (so held/exit_i are the real exit bar, not a guess)."""
     n = len(df)
@@ -96,6 +111,9 @@ def macddiv_trade_full(m, df, k, sig, tag, cost):
         return None
     fill = k + 1
     for j in range(fill, n):
+        hit = _band_hit(band, df, j, stop) if j > fill else None  # the stop rests after the fill bar
+        if hit:
+            return _trade(ep, hit[0], j - fill + 1, hit[1], cost, fill, j)
         reason, px = m.macddiv_long_exit_reason(df.iloc[:j + 1], fill, stop)
         if reason:
             return _trade(ep, px, j - fill + 1, reason, cost, fill, j)
@@ -139,12 +157,13 @@ def run():
     shard, nshards = int(os.environ.get("SHARD", "0")), int(os.environ.get("NSHARDS", "1"))
     limit = int(os.environ["SYMBOL_LIMIT"]) if os.environ.get("SYMBOL_LIMIT") else None
     cost = m.ROUND_TRIP_COST_PCT / 100.0
+    band_cap = bc.mode_from_env()  # B-1417: off (default, unchanged) | live (results under rsbandfloor tags)
     tags = tags_for(m, family)
     frames = load_frames(m, family, shard, nshards, limit)
     aggs = {t: br.agg_new() for t in tags}
     for sym, df in frames.items():
         try:
-            res = replay_symbol(m, df, family, tags, cost)
+            res = replay_symbol(m, df, family, tags, cost, band_cap)
         except Exception as ex:
             print("ERROR", sym, ex)
             continue
@@ -154,7 +173,8 @@ def run():
            "nshards": nshards, "n_symbols": len(frames), "cost_round_trip_pct": m.ROUND_TRIP_COST_PCT,
            "synthetic": os.environ.get("SYNTHETIC") == "1", "direction": "long",
            "short_mirror": "owed: registered as its own tag family, not run here",
-           "cells": {t: {"raw": a} for t, a in aggs.items()}}
+           "band_cap": band_cap,
+           "cells": {bc.band_tag(t, band_cap): {"raw": a} for t, a in aggs.items()}}
     os.makedirs("out", exist_ok=True)
     path = f"out/{family}_s{shard}.json"
     json.dump(out, open(path, "w"), indent=1)
