@@ -126,6 +126,7 @@
     <span>checks/30s <b id="c30">-</b></span>
     <span>strategy scans, last 2 min (live) <b id="s2m">-</b></span>
     <span>checks today <b id="ctoday">-</b></span>
+    <span>checks yesterday <b id="cyday">-</b><span class="dim" id="cydayNote"></span></span>
     <span>stop check <b id="prot">-</b></span>
     <span class="dim">IST <b id="clock">-</b></span>
   </div>
@@ -359,6 +360,9 @@
       const d = await getJSON("/scheduler-pipeline?recent=12&next_n=1");
       $("c30").textContent = d.checks_last_30s ?? "-";
       $("ctoday").textContent = d.total_checks_incl_derivative_legs ?? d.total_checks_today ?? "-";
+      const py = d.checks_previous_day || {};  // B-1423: last day before today with a saved total
+      $("cyday").textContent = py.total ?? "-";
+      $("cydayNote").textContent = py.day && !py.is_yesterday ? " (" + py.day + ")" : "";
       const lc = d.last_checked || [];
       $("dN").textContent = lc.length ? `last ${lc.length}` : "";
       $("dList").innerHTML = lc.map(r => `<div class="row"><span class="s">${esc(r.display || r.symbol)} <span class="dim">${istTime(r.checked_at_utc)}</span></span><span class="chip c-${kind(r)}">${esc(label(r))}</span></div>`).join("") || '<div class="dim" style="font-size:11px">no checks yet</div>';
