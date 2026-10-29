@@ -12659,7 +12659,43 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs33.67",
    "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during swing governance backfill"
+  },
+  {
+   "id": 1056,
+   "ts": 1793245582.3413827,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261029000020785",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs33.67",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs28.91"
+  },
+  {
+   "id": 1057,
+   "ts": 1793245586.0645545,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261029000020785",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs33.67",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs28.91"
+  },
+  {
+   "id": 1058,
+   "ts": 1793245586.0806873,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "exit",
+   "event": "retry_refused_no_paper_exit",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "held - no sell placed",
+   "detail": "reason: paper swing row is missing but no paper swing exit is on record; a missing row is not an exit decision, so the real holding is kept with its stop-loss"
   }
  ],
- "synced_at_utc": "2026-10-29T03:46:22Z"
+ "synced_at_utc": "2026-10-29T03:46:29Z"
 }
