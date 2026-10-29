@@ -14135,7 +14135,43 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261029000860736 rejected: 16387 : Security is not allowed to trade in this market  "
+  },
+  {
+   "id": 1179,
+   "ts": 1793278327.1040154,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261029000860232",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 29-Oct-2026 18:17:16 S SL qty 8 trg 126.73 status rejected rejRsn 16387 : Security is not allowed to trade in this market  "
+  },
+  {
+   "id": 1180,
+   "ts": 1793278327.118979,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261029000860599",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 29-Oct-2026 18:18:48 S SL qty 1 trg 165.18 status rejected rejRsn RMS:Rule: Check circuit limit including square off order exceeds : Circuit breach, Order Price :165.18,  Low Price Range"
+  },
+  {
+   "id": 1181,
+   "ts": 1793278327.1190288,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261029000860736",
+   "prev_state": null,
+   "new_state": "rejected",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 29-Oct-2026 18:19:27 S SL qty 2 trg 33.67 status rejected rejRsn 16387 : Security is not allowed to trade in this market  "
   }
  ],
- "synced_at_utc": "2026-10-29T12:49:35Z"
+ "synced_at_utc": "2026-10-29T12:52:51Z"
 }
