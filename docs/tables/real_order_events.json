@@ -12791,7 +12791,43 @@
    "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
    "new_state": "resting SELL trigger Rs175.12",
    "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
+  },
+  {
+   "id": 1067,
+   "ts": 1793250634.7840862,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261029000017748",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs126.73",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
+  },
+  {
+   "id": 1068,
+   "ts": 1793250635.0026183,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261029000017319",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs164.80",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
+  },
+  {
+   "id": 1069,
+   "ts": 1793250635.0432694,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261029000020785",
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "resting SELL trigger Rs33.67",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over"
   }
  ],
- "synced_at_utc": "2026-10-29T05:10:38Z"
+ "synced_at_utc": "2026-10-29T05:10:51Z"
 }
