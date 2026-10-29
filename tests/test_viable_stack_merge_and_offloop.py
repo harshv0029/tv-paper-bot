@@ -36,8 +36,8 @@ def test_first_sight_merges_before_pushing():
 
 
 def test_scheduler_tick_runs_real_order_work_off_the_event_loop():
-    src = inspect.getsource(main._scheduler_tick)
+    src = (inspect.getsource(main._scheduler_tick) + inspect.getsource(main._scan_equity_symbol_sync))
     for fn in ("_retry_pending_real_swing_orders", "_sync_swing_resting_sl_to_strategy", "_run_fo_options_scan",
                "_maybe_sync_real_stop_loss", "_maybe_place_real_entry", "_maybe_sync_real_stop_loss_short"):
         assert f"{fn}(conn" not in src and f"{fn}(real_conn" not in src, fn
-        assert f"_real_off_loop({fn}" in src, fn
+        assert f"_real_off_loop({fn}" in src or f"_real_on_thread({fn}" in src, fn

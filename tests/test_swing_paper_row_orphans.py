@@ -179,7 +179,7 @@ def test_entries_and_scan_push_the_paper_swing_mirror():
     src = inspect.getsource(main._maybe_place_real_swing_entry)
     assert src.count("_sync_signal_state_swing_external(conn)") >= 2
     assert "_sync_signal_state_swing_external(conn)" in inspect.getsource(main._run_swing_scan)
-    assert "_real_off_loop(_ensure_1h_swing_state_for_orphans)" in inspect.getsource(main._scheduler_tick)
+    assert "_real_off_loop(_ensure_1h_swing_state_for_orphans)" in (inspect.getsource(main._scheduler_tick) + inspect.getsource(main._scan_equity_symbol_sync))
 
 
 def test_entry_bar_is_last_completed_hourly_bar():
