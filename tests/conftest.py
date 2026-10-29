@@ -167,3 +167,34 @@ def _remove_module_temp_dbs():
                 os.remove(f)
         except OSError:
             pass
+
+
+# B-1421 (2026-10-29, user: "keep a scheduler which is event based to clean that db automatically"): event = the pytest
+# session ends. Every *.db file THIS pytest process created through tempfile.mkstemp is recorded and removed when the
+# session finishes, in any mode (plain pytest on the shared /tmp included). Exact paths only, so a concurrent pytest
+# run's DBs are never touched.
+import tempfile as _tf_b1421
+
+_B1421_CREATED: set = set()
+_b1421_orig_mkstemp = _tf_b1421.mkstemp
+
+
+def _b1421_mkstemp(*a, **kw):
+    fd, path = _b1421_orig_mkstemp(*a, **kw)
+    if str(path).endswith(".db"):
+        _B1421_CREATED.add(str(path))
+    return fd, path
+
+
+_tf_b1421.mkstemp = _b1421_mkstemp
+
+
+def pytest_sessionfinish(session, exitstatus):
+    import os
+    for p in list(_B1421_CREATED):
+        for f in (p, p + "-wal", p + "-shm", p + "-journal"):
+            try:
+                os.remove(f)
+            except OSError:
+                pass
+    _B1421_CREATED.clear()
