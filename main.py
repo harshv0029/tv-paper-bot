@@ -19849,6 +19849,65 @@ def reconcile_real_trades_today_from_journal():
 
 
 SCHEDULER_INTERVAL_SECONDS = 30
+# B-1419: a tick scanned its ~40 symbols one after another, each doing its own
+# 5d/5m Yahoo fetch first, so one tick took ~2 min and each NIFTY 200 name was
+# looked at only every ~14 min (most 5m signal bars missed). The tick now
+# fetches its symbols' bars in parallel threads up front (cache warm-up only);
+# every signal decision and real order still runs one symbol at a time, so the
+# daily-loss / position caps cannot race.
+SCAN_PREFETCH_WORKERS = 8
+SCAN_PREFETCH_TIMEOUT_SECONDS = 60
+_SCHEDULER_TICK_TIMING: dict = {"last": None, "recent": []}
+_SCHEDULER_TICK_TIMING_KEEP = 20
+
+
+def _prefetch_tick_ohlc(symbols, period: str = "5d", interval: str = "5m",
+                        workers: int | None = None) -> dict:
+    """B-1419: warm fetch_ohlc's 180 s cache for this tick's symbols from a bounded
+    thread pool. Read-only (no DB, no orders); a failed fetch is just counted, the
+    per-symbol scan then fetches (and reports) it itself exactly as before."""
+    import concurrent.futures as _cf
+    syms = list(dict.fromkeys(symbols))
+    if not syms:
+        return {"symbols": 0, "ok": 0, "failed": 0, "seconds": 0.0}
+    t0 = time.time()
+    ok = failed = 0
+    n_workers = max(1, min(int(workers or SCAN_PREFETCH_WORKERS), len(syms)))
+    pool = _cf.ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="scan-prefetch")
+    try:
+        futs = [pool.submit(fetch_ohlc, s, period, interval) for s in syms]
+        try:
+            for f in _cf.as_completed(futs, timeout=SCAN_PREFETCH_TIMEOUT_SECONDS):
+                try:
+                    f.result()
+                    ok += 1
+                except Exception:  # noqa: BLE001
+                    failed += 1
+        except _cf.TimeoutError:
+            failed += sum(1 for f in futs if not f.done())
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+    return {"symbols": len(syms), "ok": ok, "failed": failed, "seconds": round(time.time() - t0, 2)}
+
+
+def _record_tick_timing(entry: dict) -> None:
+    """B-1419: keep the last few tick timings for /scheduler-status (in memory; recomputed every tick)."""
+    _SCHEDULER_TICK_TIMING["last"] = entry
+    rec = _SCHEDULER_TICK_TIMING["recent"]
+    rec.append(entry)
+    del rec[:-_SCHEDULER_TICK_TIMING_KEEP]
+
+
+def _tick_timing_summary() -> dict:
+    rec = [r for r in _SCHEDULER_TICK_TIMING["recent"] if r.get("tick_seconds") is not None]
+    avg = round(sum(r["tick_seconds"] for r in rec) / len(rec), 1) if rec else None
+    return {"last": _SCHEDULER_TICK_TIMING["last"], "avg_tick_seconds_recent": avg, "n_recent": len(rec)}
+
+
+def _scheduler_sleep_after_tick(tick_seconds: float) -> float:
+    """B-1419: the tick used to sleep a fixed 30 s AFTER a ~2 min scan; now it sleeps
+    only what is left of the 30 s interval (at least 1 s, so the loop still yields)."""
+    return max(1.0, SCHEDULER_INTERVAL_SECONDS - max(0.0, tick_seconds))
 SCHEDULER_DAILY_RISK_PCT = 2.0  # DEFAULT (fallback) - account-wide daily loss cap, live-editable below
 SCHEDULER_RR = 3.0  # DEFAULT (fallback) - 1:3 minimum reward:risk, live-editable below
 
@@ -26017,6 +26076,7 @@ async def _real_off_loop(fn, *args, **kwargs):
 
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
+    _tick_t0 = time.time()  # B-1419
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
 
     with closing(get_db()) as conn:
@@ -26204,6 +26264,15 @@ async def _scheduler_tick():
     # freshness once per symbol in the loop below for no benefit.
     scheduler_capital_inr = await asyncio.to_thread(get_scheduler_capital_inr)  # B-1361: Kotak limits() froze the loop 31 s
 
+    # B-1419: parallel bar fetch for the whole tick (+ the universal-score reference index).
+    _prefetch = {"symbols": 0, "ok": 0, "failed": 0, "seconds": 0.0}
+    try:
+        _prefetch = await asyncio.to_thread(
+            _prefetch_tick_ohlc, [*sorted(symbols_this_tick), UNIVERSAL_REFERENCE_INDEX])
+    except Exception as e:  # noqa: BLE001
+        print(f"[scheduler] prefetch failed (non-fatal, per-symbol fetch still runs): {e}")
+    _scan_t0 = time.time()
+
     for symbol in _scan_visit(symbols_this_tick):
         cfg = watchlist_by_symbol.get(symbol)
         if not cfg:
@@ -26318,7 +26387,10 @@ async def _scheduler_tick():
             _record_short_strategy_scans()  # B-423: counter only
             _sync_visit_strategy_count(cfg["symbol"], len(_INTRADAY_SHORT_SCAN_TAGS))
             try:
-                short_result = _short_signal_core(
+                # B-1419: in a worker thread like _auto_signal_core (it ran ON the event loop,
+                # fetch included, freezing /health and the watchdog), still awaited in order.
+                short_result = await asyncio.to_thread(
+                    _short_signal_core,
                     symbol=cfg["symbol"], capital=scheduler_capital_inr,
                     daily_risk_pct=live_daily_risk_pct, risk_per_trade_pct=cfg["risk_pct"],
                     stop_pct=cfg["stop_pct"], rr=live_rr,
@@ -26386,6 +26458,7 @@ async def _scheduler_tick():
             }
         finally:
             _scheduler_currently_checking = None
+    _scan_seconds = round(time.time() - _scan_t0, 2)
 
     # Options overlay - real calls/puts on the symbols with a live
     # yfinance chain (OPTIONS_ELIGIBLE_SYMBOLS), using that same
@@ -26505,7 +26578,14 @@ async def _scheduler_tick():
         print(f"[REAL F&O] option SL tick failed or timed out (non-fatal): {e}")
 
     _scheduler_last_tick_ts = time.time()
-    await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)
+    _tick_seconds = round(_scheduler_last_tick_ts - _tick_t0, 2)
+    _record_tick_timing({
+        "ended_ist": ist_now().strftime("%H:%M:%S IST"), "tick_seconds": _tick_seconds,
+        "symbols": len(symbols_this_tick), "rr_batch": len(rr_batch),
+        "prefetch": _prefetch, "equity_scan_seconds": _scan_seconds,
+        "per_symbol_seconds": round(_scan_seconds / len(symbols_this_tick), 2) if symbols_this_tick else None,
+    })
+    await asyncio.sleep(_scheduler_sleep_after_tick(_tick_seconds))
 
 
 STARTUP_HYDRATION_TIMEOUT_SECONDS = 15  # see _start_scheduler's own asyncio.wait_for comment
@@ -26742,6 +26822,7 @@ def scheduler_status():
         "interval_seconds": SCHEDULER_INTERVAL_SECONDS,
         "last_tick_ts": _scheduler_last_tick_ts,
         "last_tick_ago_seconds": round(time.time() - _scheduler_last_tick_ts, 1) if _scheduler_last_tick_ts else None,
+        "tick_timing": _tick_timing_summary(),  # B-1419
         "last_error": _scheduler_last_error,
         "checks_last_30s": checks_in_last_seconds(30),
         "scheduler_capital_inr": _real_capital_cache["value"],
@@ -27499,16 +27580,24 @@ def _ensure_viable_stack_hydrated():
         if _n:
             # B-1379: single-flight. At the 09:20 restart ~34 threads entered this first-sight merge+push at once.
             if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None and _VIABLE_STACK_FIRST_SIGHT_LOCK.acquire(blocking=False):
-                try:
-                    if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None:
-                        # B-1366: merge every durable copy BEFORE pushing. The blind push here overwrote the dedicated
-                        # key with a stale restore, so the owner's 26-Oct 10:28 IST save was lost at the 10:37 restart.
-                        if _viable_stack_merge_remote():
-                            threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
-                        if not _viable_stack_push_direct():  # first sight after a deploy: the key must hold it
-                            _VIABLE_STACK_MIRROR_STATE["last_push_ok"] = False  # tried once; never re-enter per call
-                finally:
-                    _VIABLE_STACK_FIRST_SIGHT_LOCK.release()
+                def _first_sight():
+                    try:
+                        if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None:
+                            # B-1366: merge every durable copy BEFORE pushing. The blind push here overwrote the dedicated
+                            # key with a stale restore, so the owner's 26-Oct 10:28 IST save was lost at the 10:37 restart.
+                            if _viable_stack_merge_remote():
+                                threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
+                            if not _viable_stack_push_direct():  # first sight after a deploy: the key must hold it
+                                _VIABLE_STACK_MIRROR_STATE["last_push_ok"] = False  # tried once; never re-enter per call
+                    finally:
+                        _VIABLE_STACK_FIRST_SIGHT_LOCK.release()
+                if os.environ.get("PYTEST_CURRENT_TEST"):
+                    _first_sight()
+                else:
+                    # B-1418 (live 2026-10-29 10:58 IST): run inline, these Upstash reads/writes froze the event loop for
+                    # 16 s when the first caller after a boot was on it. The local table already has rows, so the caller
+                    # does not need to wait for the merge/push.
+                    threading.Thread(target=_first_sight, name="viable-stack-first-sight", daemon=True).start()
             return
         if time.time() - _VIABLE_STACK_RECOVER_LAST < 20:
             return
@@ -29190,6 +29279,7 @@ async def health():
             **_memory_pressure_check(trim=False), **_git_tier_push_status(),
             "loop_lag_s": round(time.time() - _loop_heartbeat_ts, 1), "watchdog_alarms": _WATCHDOG_STATE["alarms"],
             "watchdog_alarms_today": _watchdog_alarms_today(),
+            "watchdog_alarm_events_today": _watchdog_alarm_events_today(),
             # B-1361: Render logs are not readable from the dev container, so /health carries the alarm stacks itself
             "watchdog_first_alarm": _WATCHDOG_STATE.get("first_alarm"), "watchdog_last_alarm": _WATCHDOG_STATE["last_alarm"],
             "upstash_ok": _UPSTASH_PROBE["ok"], "upstash_error": _UPSTASH_PROBE["error"],
@@ -30044,7 +30134,10 @@ _BACKGROUND_THREADS_STARTED = False
 _WATCHDOG_STATE: dict = {"alarms": 0, "first_alarm": None, "last_alarm": None}
 # User 2026-10-29: the dashboard's "watchdog alarms" counted since this process booted, not for the IST calendar day,
 # and a restart reset it. Today's count is kept per IST day and mirrored to Upstash so a restart does not lose it.
-_WATCHDOG_DAY: dict = {"day": None, "n": 0, "hydrated": False}
+_WATCHDOG_DAY: dict = {"day": None, "n": 0, "hydrated": False, "events": []}
+_WATCHDOG_DAY_EVENTS_KEEP = 20
+# B-1418: one freeze is ONE alarm. The watchdog checks every 5 s, so a 40 s stall used to count 8 alarms.
+_WATCHDOG_IN_ALARM: dict = {"on": False}
 _WATCHDOG_DAY_KEY = "watchdog:alarms_day"
 
 
@@ -30068,25 +30161,37 @@ def _watchdog_day_hydrate(get=None) -> None:
         if _WATCHDOG_DAY["day"] != today:
             _WATCHDOG_DAY.update(day=today, n=0)
         _WATCHDOG_DAY["n"] += int(saved.get("n") or 0)
+        _WATCHDOG_DAY["events"] = (list(saved.get("events") or []) + _WATCHDOG_DAY["events"])[-_WATCHDOG_DAY_EVENTS_KEEP:]
     _WATCHDOG_DAY["hydrated"] = True
 
 
-def _watchdog_day_bump(now=None, put=None) -> None:
+def _watchdog_day_bump(now=None, put=None, info=None) -> None:
+    """Count one alarm episode for today's IST day and keep what froze (B-1418), so the reason survives a restart."""
     day = _ist_day(now)
     if _WATCHDOG_DAY["day"] != day:
-        _WATCHDOG_DAY.update(day=day, n=0)
+        _WATCHDOG_DAY.update(day=day, n=0, events=[])
     _WATCHDOG_DAY["n"] += 1
+    if info:
+        ev = {"ts": info.get("ts"), "ist": (dt.datetime.utcfromtimestamp(info.get("ts") or time.time())
+                                           + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime("%H:%M:%S IST"),
+              "loop_lag_s": info.get("loop_lag_s"), "rss_pct": info.get("rss_pct"), "threadpool": info.get("threadpool"),
+              "threads": [t for t in (info.get("threads") or []) if not t.startswith("ThreadPoolExecutor")][:4]}
+        _WATCHDOG_DAY["events"] = (_WATCHDOG_DAY.get("events") or [])[-(_WATCHDOG_DAY_EVENTS_KEEP - 1):] + [ev]
     put = put or _upstash_set
     if put is _upstash_set and not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
         return
     try:
-        put(_WATCHDOG_DAY_KEY, json.dumps({"day": day, "n": _WATCHDOG_DAY["n"]}))
+        put(_WATCHDOG_DAY_KEY, json.dumps({"day": day, "n": _WATCHDOG_DAY["n"], "events": _WATCHDOG_DAY.get("events") or []}))
     except Exception as e:  # noqa: BLE001
         print(f"[watchdog] could not save today's alarm count (non-fatal): {e}")
 
 
 def _watchdog_alarms_today(now=None) -> int:
     return _WATCHDOG_DAY["n"] if _WATCHDOG_DAY["day"] == _ist_day(now) else 0
+
+
+def _watchdog_alarm_events_today(now=None) -> list:
+    return list(_WATCHDOG_DAY.get("events") or []) if _WATCHDOG_DAY["day"] == _ist_day(now) else []
 
 
 async def _loop_heartbeat():
@@ -30132,11 +30237,14 @@ def _watchdog_check(now=None, rss_mb=None) -> dict | None:
     used, total = _WATCHDOG_STATE.get("threadpool_used"), _WATCHDOG_STATE.get("threadpool_total")
     pool_full = bool(total) and used is not None and used >= total  # B-1359: every `def` endpoint now hangs
     if lag < _WATCHDOG_LOOP_LAG_WARN_SECONDS and (pct is None or pct < RSS_WARN_PCT) and not pool_full:
+        _WATCHDOG_IN_ALARM["on"] = False
         return None
     info = {"ts": now, "loop_lag_s": lag, "rss_mb": rss_mb, "rss_pct": pct, "threadpool": f"{used}/{total}",
             "threads": _busy_thread_stacks()}
-    _WATCHDOG_STATE["alarms"] += 1
-    _watchdog_day_bump(now)
+    if not _WATCHDOG_IN_ALARM["on"]:  # B-1418: count the episode once, not every 5 s check while it lasts
+        _WATCHDOG_IN_ALARM["on"] = True
+        _WATCHDOG_STATE["alarms"] += 1
+        _watchdog_day_bump(now, info=info)
     if _WATCHDOG_STATE.get("first_alarm") is None:  # B-1361: the first alarm of a burst names what froze the loop
         _WATCHDOG_STATE["first_alarm"] = info
     _WATCHDOG_STATE["last_alarm"] = info
