@@ -17,22 +17,6 @@
    "symbol": "BANKINDIA.NS"
   },
   {
-   "day": "2026-10-29",
-   "entry_order_id": "261029000055858",
-   "entry_price": 504.15,
-   "first_seen_day": "2026-10-29",
-   "is_short": 1,
-   "kotak_trading_symbol": "JSWENERGY-EQ",
-   "opened_at": 1793246019.3000107,
-   "owner": "short",
-   "qty": 3,
-   "sl_trigger_price": 504.15,
-   "source": "position",
-   "stop_loss": null,
-   "strategy": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-   "symbol": "JSWENERGY.NS"
-  },
-  {
    "day": "2026-10-27",
    "entry_order_id": "261027000718961",
    "entry_price": 36.76,
