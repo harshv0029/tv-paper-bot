@@ -10,7 +10,7 @@ def test_loop_waits_with_idle_timeout_and_checks_bg_resolve_before_ticks():
     src = inspect.getsource(feed.run_fo_candle_feed)
     loop = src.split("ticks = ws.__aiter__()")[1]
     assert "asyncio.wait_for(ticks.__anext__(), timeout=STREAM_IDLE_WAKE_SECONDS)" in loop
-    assert loop.index("background_resolve_step(main)") < loop.index("process_fo_ticks(")
+    assert loop.index("background_resolve_step(main)") < loop.index("process_fo_ticks")
     assert "except StopAsyncIteration" in loop
     assert 0 < feed.STREAM_IDLE_WAKE_SECONDS <= 10
 
