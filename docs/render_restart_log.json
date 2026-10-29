@@ -1042,5 +1042,64 @@
     "prev_last_alarm": null,
     "prev_first_alarm_threads": [],
     "prev_last_alarm_threads": []
+  },
+  {
+    "boot_ts": 1793266985.5777056,
+    "boot_ist": "2026-10-29 15:13:05 IST",
+    "logged_ist": "2026-10-29 15:13:48 IST",
+    "commit": "464c47e319cf",
+    "cause_guess": "deploy",
+    "in_market_hours": true,
+    "prev_commit": "879a54a9720c",
+    "prev_boot_ist": "2026-10-29 14:43:23 IST",
+    "prev_last_alive_ist": "2026-10-29 15:12:58 IST",
+    "prev_uptime_min": 29.6,
+    "downtime_s_max": 7.1,
+    "prev_rss_now_mb": 618.3,
+    "prev_peak_rss_mb": 929.5,
+    "prev_loop_lag_s": 0.8,
+    "prev_watchdog_alarms": 3,
+    "prev_threadpool": "0/80",
+    "prev_last_alarm": {
+      "ts": 1793266342.6973767,
+      "loop_lag_s": 28.6,
+      "rss_mb": 641.7,
+      "threadpool": "0/80"
+    },
+    "prev_first_alarm_threads": [
+      "unprotected-backcheck: _unprotected_backcheck_loop:30644",
+      "git-tier-push: _git_tier_push_loop:30695 > _git_tier_push_wait:30674",
+      "asyncio_2: _run_swing_scan:25987 > _run_swing_scan_pass:23517 > _run_long_swing_1h_pass:24491 > fetch_ohlc:97",
+      "asyncio_1: search_scrip:257",
+      "MainThread (event loop): _place_real_stop_loss_once:814 > _confirm_order_status:232 > | > http11.py:handle_request:106 > http11.py:_receive_response_headers:177 > http11.py:_receive_event:217 > sync.py:read:128"
+    ],
+    "prev_last_alarm_threads": [
+      "unprotected-backcheck: _unprotected_backcheck_loop:30644",
+      "git-tier-push: _git_tier_push_loop:30690 > _persist_strategy_scan_counts:25960",
+      "asyncio_2: _fo_chain_monitoring_snapshot_own_conn:26012 > _fo_chain_monitoring_snapshot:16641 > quotes:309",
+      "asyncio_0: _run_swing_scan:25987 > _run_swing_scan_pass:23513 > _run_short_swing_1h_pass:24201 > fetch_ohlc:97",
+      "MainThread (event loop): kotak_fo_candle_feed.py:run_fo_candle_feed:724 > kotak_fo_candle_feed.py:process_fo_ticks:517 > kotak_fo_candle_feed.py:apply_tick:482 > kotak_fo_candle_feed.py:_persist_candle:452"
+    ]
+  },
+  {
+    "boot_ts": 1793277973.4134247,
+    "boot_ist": "2026-10-29 18:16:13 IST",
+    "logged_ist": "2026-10-29 18:16:56 IST",
+    "commit": "6e6f672f6169",
+    "cause_guess": "deploy",
+    "in_market_hours": false,
+    "prev_commit": "464c47e319cf",
+    "prev_boot_ist": "2026-10-29 15:13:05 IST",
+    "prev_last_alive_ist": "2026-10-29 18:16:36 IST",
+    "prev_uptime_min": 183.5,
+    "downtime_s_max": -23.2,
+    "prev_rss_now_mb": 686.8,
+    "prev_peak_rss_mb": 1057.7,
+    "prev_loop_lag_s": 0.8,
+    "prev_watchdog_alarms": 0,
+    "prev_threadpool": "0/80",
+    "prev_last_alarm": null,
+    "prev_first_alarm_threads": [],
+    "prev_last_alarm_threads": []
   }
 ]
