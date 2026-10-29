@@ -29186,6 +29186,7 @@ async def health():
             "uptime_min": round((time.time() - _BOOT_TS) / 60, 1), "commit": _render_commit(), **_rss_headroom(), **_threadpool_status(),
             **_memory_pressure_check(trim=False), **_git_tier_push_status(),
             "loop_lag_s": round(time.time() - _loop_heartbeat_ts, 1), "watchdog_alarms": _WATCHDOG_STATE["alarms"],
+            "watchdog_alarms_today": _watchdog_alarms_today(),
             # B-1361: Render logs are not readable from the dev container, so /health carries the alarm stacks itself
             "watchdog_first_alarm": _WATCHDOG_STATE.get("first_alarm"), "watchdog_last_alarm": _WATCHDOG_STATE["last_alarm"],
             "upstash_ok": _UPSTASH_PROBE["ok"], "upstash_error": _UPSTASH_PROBE["error"],
@@ -30038,6 +30039,51 @@ _WATCHDOG_LOOP_LAG_WARN_SECONDS = 15
 _loop_heartbeat_ts = time.time()
 _BACKGROUND_THREADS_STARTED = False
 _WATCHDOG_STATE: dict = {"alarms": 0, "first_alarm": None, "last_alarm": None}
+# User 2026-10-29: the dashboard's "watchdog alarms" counted since this process booted, not for the IST calendar day,
+# and a restart reset it. Today's count is kept per IST day and mirrored to Upstash so a restart does not lose it.
+_WATCHDOG_DAY: dict = {"day": None, "n": 0, "hydrated": False}
+_WATCHDOG_DAY_KEY = "watchdog:alarms_day"
+
+
+def _ist_day(ts=None) -> str:
+    t = time.time() if ts is None else ts
+    return (dt.datetime.utcfromtimestamp(t) + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime("%Y-%m-%d")
+
+
+def _watchdog_day_hydrate(get=None) -> None:
+    """Once per process, from the watchdog thread: restore today's alarm count saved by the previous run."""
+    if _WATCHDOG_DAY["hydrated"]:
+        return
+    get = get or _upstash_get
+    if get is _upstash_get and not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        _WATCHDOG_DAY["hydrated"] = True
+        return
+    raw = get(_WATCHDOG_DAY_KEY)  # raises on a failed read -> retried next watchdog pass
+    saved = json.loads(raw) if raw else {}
+    today = _ist_day()
+    if saved.get("day") == today:
+        if _WATCHDOG_DAY["day"] != today:
+            _WATCHDOG_DAY.update(day=today, n=0)
+        _WATCHDOG_DAY["n"] += int(saved.get("n") or 0)
+    _WATCHDOG_DAY["hydrated"] = True
+
+
+def _watchdog_day_bump(now=None, put=None) -> None:
+    day = _ist_day(now)
+    if _WATCHDOG_DAY["day"] != day:
+        _WATCHDOG_DAY.update(day=day, n=0)
+    _WATCHDOG_DAY["n"] += 1
+    put = put or _upstash_set
+    if put is _upstash_set and not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return
+    try:
+        put(_WATCHDOG_DAY_KEY, json.dumps({"day": day, "n": _WATCHDOG_DAY["n"]}))
+    except Exception as e:  # noqa: BLE001
+        print(f"[watchdog] could not save today's alarm count (non-fatal): {e}")
+
+
+def _watchdog_alarms_today(now=None) -> int:
+    return _WATCHDOG_DAY["n"] if _WATCHDOG_DAY["day"] == _ist_day(now) else 0
 
 
 async def _loop_heartbeat():
@@ -30087,6 +30133,7 @@ def _watchdog_check(now=None, rss_mb=None) -> dict | None:
     info = {"ts": now, "loop_lag_s": lag, "rss_mb": rss_mb, "rss_pct": pct, "threadpool": f"{used}/{total}",
             "threads": _busy_thread_stacks()}
     _WATCHDOG_STATE["alarms"] += 1
+    _watchdog_day_bump(now)
     if _WATCHDOG_STATE.get("first_alarm") is None:  # B-1361: the first alarm of a burst names what froze the loop
         _WATCHDOG_STATE["first_alarm"] = info
     _WATCHDOG_STATE["last_alarm"] = info
@@ -30129,6 +30176,10 @@ def _upstash_probe(now=None) -> dict:
 def _watchdog_loop(sleep=time.sleep, rounds=None):
     n = 0
     while rounds is None or n < rounds:
+        try:
+            _watchdog_day_hydrate()
+        except Exception as e:  # noqa: BLE001
+            print(f"[watchdog] today's alarm count not restored yet (retrying): {e}")
         try:
             _watchdog_check()
         except Exception as e:  # noqa: BLE001
