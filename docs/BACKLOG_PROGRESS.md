@@ -551,7 +551,7 @@ Total rows: 1179 | closed: 536 | not closed: 643
 | B-1417 | P1 | OPEN | 2026-10-29 10:55 IST | owed, needs |
 | B-1418 | P1 | OPEN | 2026-10-29 11:08 IST | awaiting, waiting |
 | B-1419 | P1 | OPEN | 2026-10-29 12:45 IST | blocked, needs, awaiting, waiting |
-| B-1422 | P1 | OPEN | 2026-10-29 14:09 IST | owed, awaiting, waiting |
+| B-1422 | P1 | OPEN | 2026-10-29 14:09 IST | owed |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |

@@ -94,7 +94,7 @@ def test_tick_wiring_source():
     assert "await asyncio.to_thread(_scan_equity_symbol_sync" in tick  # one worker-thread hop per symbol
     sync = src[src.index("def _scan_equity_symbol_sync("):src.index("BAR_SWEEP_SETTLE_SECONDS = 20")]
     assert "with _SCAN_DECISION_LOCK:" in sync and "await" not in sync
-    assert "short_result = _short_signal_core(" in sync and "_real_on_thread(_maybe_place_real_entry" in sync
+    assert "short_result = _timed_call(\"short_engine\", _short_signal_core," in sync and "_real_on_thread(_maybe_place_real_entry" in sync
     assert "await asyncio.sleep(_scheduler_sleep_after_tick(_tick_seconds))" in tick
     assert "await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)\n" not in tick.split("for symbol in _scan_visit")[1]
 
@@ -199,3 +199,49 @@ def test_b1422_total_yahoo_downloads_capped():
             t.join()
     assert 1 < peak[0] <= data_fetch._YF_MAX_CONCURRENT
     data_fetch._DATA_CACHE.clear()
+
+
+def test_sweep_yields_to_a_waiting_tick(monkeypatch):
+    monkeypatch.setattr(main, "_nse_equity_market_open_now", lambda: True)
+    monkeypatch.setattr(main, "is_nse_trading_day", lambda *a, **k: True)
+    monkeypatch.setattr(main, "is_trading_enabled", lambda c: True)
+    monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 1.0)
+    monkeypatch.setattr(main, "_prefetch_tick_ohlc", lambda syms: {})
+    monkeypatch.setattr(main, "WATCHLIST", [{"symbol": "A.NS"}])
+    monkeypatch.setattr(main, "_SCAN_LAST_DONE", {})
+    clock = {"t": _B + 20.0}
+    monkeypatch.setattr(main.time, "time", lambda: clock["t"])
+    main._TICK_WANTS_SCAN["n"] = 1
+    scanned = []
+
+    async def fake_sleep(s):
+        clock["t"] += s
+        if clock["t"] > _B + 22:
+            main._TICK_WANTS_SCAN["n"] = 0  # tick finished its symbol
+    monkeypatch.setattr(main.asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(main, "_scan_equity_symbol_sync", lambda sym, *a: scanned.append((sym, clock["t"])))
+    try:
+        asyncio.run(main._bar_sweep_once(now=_B + 20))
+    finally:
+        main._TICK_WANTS_SCAN["n"] = 0
+    assert scanned and scanned[0][1] > _B + 22  # waited for the tick first
+
+
+def test_tick_hands_flat_nse_to_the_sweep_in_session(monkeypatch):
+    monkeypatch.setattr(main, "_nse_equity_market_open_now", lambda: True)
+    monkeypatch.setattr(main, "is_nse_trading_day", lambda *a, **k: True)
+    monkeypatch.setitem(main._BAR_SWEEP_STATS, "last", None)
+    assert main._bar_sweep_owns_flat_nse()
+    monkeypatch.setitem(main._BAR_SWEEP_STATS, "last", {"status": "error"})
+    assert not main._bar_sweep_owns_flat_nse()  # a failing sweep gives the round-robin back to the tick
+    monkeypatch.setattr(main, "_nse_equity_market_open_now", lambda: False)
+    monkeypatch.setitem(main._BAR_SWEEP_STATS, "last", None)
+    assert not main._bar_sweep_owns_flat_nse()
+
+
+def test_section_timing_recorded():
+    main._SCAN_SECTION_STATS.clear()
+    main._timed_call("x", lambda: sum(range(1000)))
+    summ = main._scan_sections_summary()
+    assert summ["x"]["n"] == 1 and summ["x"]["avg_wall_s"] >= 0
+    main._SCAN_SECTION_STATS.clear()
