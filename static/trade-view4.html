@@ -192,7 +192,9 @@
     // cause (oom_suspect, freeze_suspect, platform_or_unknown, unknown_no_prior_heartbeat) counts as a crash.
     try {
       const r = await getJSON("/restart-history?limit=100");
-      const day = (r.boot_ist || "").slice(0, 10);
+      // User 2026-10-29: "today" is the IST calendar date, not the day the current process booted (before the first
+      // restart of a morning that showed yesterday's 8 deploys).
+      const day = new Date().toLocaleDateString("en-CA", {timeZone: "Asia/Kolkata"});
       const today = (r.events || []).filter(e => (e.boot_ist || "").slice(0, 10) === day);
       const push = today.filter(e => e.cause_guess === "deploy").length;
       restarts = {total: today.length, push, crash: today.length - push,
@@ -224,7 +226,7 @@
         c(!(h.loop_lag_s >= 15), `loop lag ${h.loop_lag_s ?? "-"}s`),
         c(!(h.rss_pct >= 75), `mem ${h.rss_pct ?? "-"}%`),
         c(!(h.threadpool_total && h.threadpool_used >= h.threadpool_total), `workers ${h.threadpool_used ?? "-"}/${h.threadpool_total ?? "-"}`),
-        c(!(h.watchdog_alarms > 0), `watchdog alarms ${h.watchdog_alarms ?? "-"}`),
+        c(!((h.watchdog_alarms_today ?? h.watchdog_alarms) > 0), `watchdog alarms today ${h.watchdog_alarms_today ?? h.watchdog_alarms ?? "-"}`),
         c(!(h.order_log_git_push_age_s > 600), `order-log push ${h.order_log_git_push_age_s == null ? "-" : Math.round(h.order_log_git_push_age_s) + "s ago"}`),
         c(!(restarts && restarts.crash > 0), restarts ? `Render restarts today ${restarts.total} (code push ${restarts.push}, crash ${restarts.crash}${restarts.crash ? ": " + restarts.crashes.join(", ") + " IST" : ""})` : "Render restarts today -"));
     }

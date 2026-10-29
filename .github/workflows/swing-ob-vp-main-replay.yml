@@ -11,11 +11,19 @@ name: Swing OB + VP main.py replay (B-30)
 # B-26 (2026-10-07): optional `trail_mult` input overrides ORDER_BLOCK_ATR_TRAIL_MULT /
 # VP_ATR_TRAIL_MULT on the imported main module (the real exit fns read it fresh) to
 # sweep a wider trail; blank = baseline (B-30 behaviour unchanged).
+# B-1413 (2026-10-29): optional `band_cap` = "live" models what Kotak actually holds: a resting
+# SELL SL at max(strategy stop, prev close x 0.9 x 1.003) (a stop below the ~10% daily band is
+# rejected, so the live stop is the band floor), triggered intraday on the bar's Low and filled at
+# min(Open, trigger). The strategy's own close-based exit still runs after it. Blank = baseline.
 on:
   workflow_dispatch:
     inputs:
       trail_mult:
         description: "ATR trail multiple override (blank = baseline 3.0)"
+        required: false
+        default: ""
+      band_cap:
+        description: "'live' = resting stop floored at the daily price band, intraday trigger (B-1413); blank = baseline"
         required: false
         default: ""
 
@@ -38,6 +46,7 @@ jobs:
           STRAT: ${{ matrix.strat }}
           SHARD: ${{ matrix.shard }}
           TRAIL: ${{ inputs.trail_mult }}
+          BAND: ${{ inputs.band_cap }}
         run: |
           python3 - <<'PYEOF'
           import os, sys, json
@@ -58,6 +67,9 @@ jobs:
               m.ORDER_BLOCK_ATR_TRAIL_MULT = float(os.environ["TRAIL"])
               m.VP_ATR_TRAIL_MULT = float(os.environ["TRAIL"])
               print("TRAIL override", os.environ["TRAIL"])
+          BAND = os.environ.get("BAND") == "live"
+          TRAIL_MULT = m.ORDER_BLOCK_ATR_TRAIL_MULT if STRAT == "ob" else m.VP_ATR_TRAIL_MULT
+          print("BAND cap", BAND, "trail", TRAIL_MULT)
           WIN = 150
           CAP, RISK_PCT = 400000.0, 1.0
           CM = {"brokerage_pct": 0.0020, "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
@@ -74,10 +86,19 @@ jobs:
               df = df.reset_index(drop=True)
               n = len(df)
               closes = df["Close"].to_numpy(dtype=float)
+              lows = df["Low"].to_numpy(dtype=float)
+              opens = df["Open"].to_numpy(dtype=float)
               dates = df["Date"].astype(str).to_numpy()
               out, pos = [], None
               for i in range(min_bars, n):
                   win = df.iloc[max(0, i + 1 - WIN):i + 1]
+                  if pos is not None and BAND and i > pos["idx"]:
+                      strat_stop = max(pos["stop"], pos["rmc"] - TRAIL_MULT * pos["atr"])
+                      trig = max(strat_stop, closes[i - 1] * 0.9 * 1.003)
+                      if lows[i] <= trig:
+                          why = "band_floor_stop_hit" if trig > strat_stop else "resting_stop_hit"
+                          out.append(fin(pos, float(min(opens[i], trig)), i, why)); pos = None
+                          continue
                   if pos is not None:
                       reason, pos["rmc"] = exit_fn(win, pos["day"], pos["stop"], pos["atr"], pos["rmc"])
                       if reason:
@@ -139,7 +160,7 @@ jobs:
         run: |
           python3 - <<'PYEOF'
           import json, glob
-          reg = {"ob": 1.062, "vp": 1.025}
+          reg = {"ob": 1.105, "vp": 1.076}  # B-26 trail 6.0 (live setting)
           for st in ("ob", "vp"):
               t = []
               for f in glob.glob(f"out/{st}_*.json"):
