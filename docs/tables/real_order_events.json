@@ -12563,7 +12563,31 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs164.80",
    "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during swing governance backfill"
+  },
+  {
+   "id": 1048,
+   "ts": 1793245552.695727,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261029000017748",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs126.73",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs126.73"
+  },
+  {
+   "id": 1049,
+   "ts": 1793245556.181796,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261029000017748",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs126.73",
+   "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs126.73"
   }
  ],
- "synced_at_utc": "2026-10-29T03:45:51Z"
+ "synced_at_utc": "2026-10-29T03:46:00Z"
 }
