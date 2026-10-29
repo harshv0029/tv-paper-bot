@@ -29,7 +29,7 @@ def _df(n=320, seed=3, drift=0.0005):
 
 
 def test_tags_follow_grammar_unique_and_cover_entry_sets():
-    tags = [ef.cell_tag(k, c) for k in ef.ENTRY_SETS for c in ef.CELLS]
+    tags = [ef.cell_tag(k, c, version=1) for k in ef.ENTRY_SETS for c in ef.CELLS]
     assert len(tags) == len(set(tags)) == len(ef.ENTRY_SETS) * len(ef.CELLS)
     for t in tags:
         assert re.fullmatch(r"[a-z0-9_]+", t) and t.endswith("__v1")
@@ -177,3 +177,70 @@ def test_real_collect_signals_runs_against_main_functions():
     df = _df(n=200)
     for key in ef.ENTRY_SETS:
         assert isinstance(ef.collect_signals(df, key), list)
+
+
+# ---- B-1416: main.py-replay-matching mode (default) vs legacy overlapping sim -------------------
+def _flat_df(n=200, px=100.0):
+    idx = pd.bdate_range("2024-01-01", periods=n)
+    return pd.DataFrame({"Open": px, "High": px * 1.005, "Low": px * 0.995, "Close": px, "Volume": 1e5},
+                        index=idx)
+
+
+def _inval6():
+    return next(c for c in ef.CELLS if c["kind"] == "inval" and c["atr"] == 6.0 and c["sig"] == "ema13w")
+
+
+def test_default_mode_matches_main_replay_and_tags_are_v2():
+    assert ef.MATCH_MAIN_REPLAY is True
+    t = ef.cell_tag("ob_long", _inval6())
+    assert t == "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v2"
+    assert ef.cell_tag("ob_long", _inval6(), version=1).endswith("__v1")
+
+
+def test_match_mode_one_position_per_symbol_and_legacy_overlaps():
+    df = _flat_df()
+    sig = lambda d, key: [80, 85, 90, 111, 140] if key == "ob_long" else []  # noqa: E731
+    tag2 = ef.cell_tag("ob_long", _inval6(), version=2)
+    tag1 = ef.cell_tag("ob_long", _inval6(), version=1)
+    a2, a1 = {}, {}
+    ef.process_symbol(df, a2, 0.008, sigfn=sig, match=True)
+    ef.process_symbol(df, a1, 0.008, sigfn=sig, match=False)
+    # flat prices: every trade runs the 30-bar max hold. Match: 80 (exits 110), 111 (exits 141) -> 2;
+    # signals 85/90 (inside trade 1) and 140 (inside trade 2) are skipped, as in the main.py replay.
+    assert a2[tag2]["n"] == 2 and a2[tag2]["reasons"]["max_hold_timeout"]["n"] == 2
+    assert a1[tag1]["n"] == 5  # legacy: every signal is its own (overlapping) trade
+
+
+def test_match_mode_reenters_on_exit_bar():
+    df = _flat_df()
+    tag2 = ef.cell_tag("ob_long", _inval6(), version=2)
+    a = {}
+    ef.process_symbol(df, a, 0.008, sigfn=lambda d, key: [80, 110] if key == "ob_long" else [], match=True)
+    assert a[tag2]["n"] == 2  # 80 exits on bar 110; the replay checks exit before entry on that bar
+
+
+def test_match_mode_force_closes_at_data_end_instead_of_dropping():
+    df = _flat_df(n=200)
+    tag2 = ef.cell_tag("ob_long", _inval6(), version=2)
+    a, b = {}, {}
+    sig = lambda d, key: [190] if key == "ob_long" else []  # noqa: E731
+    ef.process_symbol(df, a, 0.008, sigfn=sig, match=True)
+    ef.process_symbol(df, b, 0.008, sigfn=sig, match=False)
+    assert a[tag2]["reasons"]["data_end_forced_close"]["n"] == 1 and a[tag2]["hold_sum"] == 9
+    assert b[ef.cell_tag("ob_long", _inval6(), version=1)]["n"] == 0
+
+
+def test_replay_sizing_and_itemized_cost_match_workflow_formula():
+    # slice 200000 (4 lakh / 2 tranches), 1% risk = 2000; stop distance 12 -> qty min(166.6, 2000) = 166
+    assert ef.replay_qty(100.0, 12.0, 2) == 166
+    assert ef.replay_qty(100.0, 0.5, 2) == 2000            # notional cap binds
+    assert ef.replay_qty(150000.0, 12.0, 2) == 1           # floor(200000 / 150000)
+    assert ef.replay_qty(300000.0, 12.0, 2) == 0           # cannot buy one share -> no trade
+    g, c = ef.replay_trade_inr(100.0, 0.10, 166, 1)
+    assert abs(g - 1660.0) < 1e-6
+    side = 0.002 + 0.0000297 + 0.000001
+    buy = 16600 * (side + 0.001 + 0.00015 + 0.0005) + 16600 * side * 0.18
+    sell = 18260 * (side + 0.001 + 0.0005) + 18260 * side * 0.18
+    assert abs(c - (buy + sell + 15.93 * 1.18)) < 1e-6
+    # on a small 6xATR-sized position the flat DP charge alone is ~0.11% of notional
+    assert 15.93 * 1.18 / 16600 > 0.001
