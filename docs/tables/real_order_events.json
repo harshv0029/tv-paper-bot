@@ -14111,7 +14111,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261029000860232 rejected: 16387 : Security is not allowed to trade in this market  "
+  },
+  {
+   "id": 1177,
+   "ts": 1793278156.699337,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'error': ApiException('(0)\\nReason: Request timeout after 30 seconds\\n')}"
   }
  ],
- "synced_at_utc": "2026-10-29T12:47:42Z"
+ "synced_at_utc": "2026-10-29T12:49:20Z"
 }
