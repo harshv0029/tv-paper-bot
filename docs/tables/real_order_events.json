@@ -13067,7 +13067,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261029000789680 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
+  },
+  {
+   "id": 1090,
+   "ts": 1793267454.0149002,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261029000790378 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   }
  ],
- "synced_at_utc": "2026-10-29T09:50:46Z"
+ "synced_at_utc": "2026-10-29T09:50:57Z"
 }
