@@ -27,6 +27,8 @@ import pandas as pd
 warnings.filterwarnings("ignore")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import swing_bandcap as bc  # noqa: E402  (B-1417 shared live resting-stop model)
 
 PERIOD_BY_INTERVAL = {"1d": "5y", "4h": "730d", "1h": "730d", "15m": "60d", "5m": "60d"}  # 4h = 1h x 730d resampled (B-1151)
 MIN_BARS = 62  # brk20_min_rr_entry_signal needs 62 bars (60-bar room window + signal bar + 1)
@@ -124,8 +126,11 @@ def agg_metrics(a):
 
 
 # ------------------------------------------------------------------ replay (calls the real main.py fns)
-def replay_symbol(m, df, direction, atr, rr, be, cost):
-    """One symbol, one cell. Returns trade dicts {gross, net, held, reason}."""
+def replay_symbol(m, df, direction, atr, rr, be, cost, band_cap="off"):
+    """One symbol, one cell. Returns trade dicts {gross, net, held, reason}.
+    band_cap (B-1417, scripts/swing_bandcap.py): "off" = unchanged; "live" = the resting stop Kotak holds (the frozen
+    initial stop, raised to the 10% band floor / lowered to the band ceiling for a short) is checked intraday from the
+    bar after the fill bar, before the real exit fn."""
     df = df.reset_index(drop=True)
     n = len(df)
     if n < MIN_BARS + 3:
@@ -134,9 +139,18 @@ def replay_symbol(m, df, direction, atr, rr, be, cost):
     closes = df["Close"].to_numpy(float)
     dates = df["Date"].astype(str).to_numpy()
     sgn = 1.0 if direction == "long" else -1.0
+    band = bc.normalize_mode(band_cap) != "off"
+    if band:
+        lows, highs, prevc = df["Low"].to_numpy(float), df["High"].to_numpy(float), bc.prev_session_close(df)
     out, pos = [], None
     for k in range(MIN_BARS - 1, n):
         sub = df.iloc[:k + 1]
+        if pos is not None and band and k > pos["idx"]:
+            hit = bc.resting_stop_exit(band_cap, direction, pos["stop0"], prevc[k], opens[k], lows[k], highs[k])
+            if hit:
+                g = sgn * (hit[0] - pos["ep"]) / pos["ep"]
+                out.append({"gross": g, "net": g - cost, "held": k - pos["idx"] + 1, "reason": hit[1]})
+                pos = None
         if pos is not None:
             reason, px = m.brk20_min_rr_exit_reason(sub, pos["day"], pos["ep"], pos["stop0"], direction, be)
             if reason:
@@ -219,19 +233,20 @@ def run():
     cost_override = float(os.environ["COST_PCT"]) if os.environ.get("COST_PCT") else None
     cost_pct = cost_override if cost_override is not None else m.ROUND_TRIP_COST_PCT
     cost = cost_pct / 100.0
+    band_cap = bc.mode_from_env()  # B-1417: off (default, unchanged) | live; live results carry the rsbandfloor param
     frames = load_frames(m, interval, shard, nshards, limit, universe)
-    tag = lambda c: make_tag(direction, interval, c["atr"], c["rr"], c.get("be"), universe, cost_override)
+    tag = lambda c: bc.band_tag(make_tag(direction, interval, c["atr"], c["rr"], c.get("be"), universe, cost_override), band_cap)
     aggs = {tag(c): agg_new() for c in cells}
     for sym, df in frames.items():
         for c in cells:
             try:
-                trades = replay_symbol(m, df, direction, c["atr"], c["rr"], c.get("be"), cost)
+                trades = replay_symbol(m, df, direction, c["atr"], c["rr"], c.get("be"), cost, band_cap)
             except Exception as ex:
                 print("ERROR", sym, c, ex)
                 continue
             agg_add(aggs[tag(c)], trades)
     res = {"interval": interval, "direction": direction, "shard": shard, "nshards": nshards,
-           "n_symbols": len(frames), "cost_round_trip_pct": cost_pct, "universe": universe,
+           "n_symbols": len(frames), "cost_round_trip_pct": cost_pct, "universe": universe, "band_cap": band_cap,
            "period": PERIOD_BY_INTERVAL[interval], "synthetic": os.environ.get("SYNTHETIC") == "1",
            "bar_constants_in_bars": {k: getattr(m, k) for k in dir(m) if k.startswith("BRK20_") and k.isupper()},
            "note": "bar-count constants are BARS of this interval (1h/15m: hours/quarter-hours, not days)",
