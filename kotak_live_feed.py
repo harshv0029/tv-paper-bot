@@ -169,8 +169,9 @@ def _resolve_mcx_tokens(client, watchlist_symbols: list) -> dict:
     call costs the same as a filtered one and avoids downloading the same
     large CSV three times for three symbols.
 
-    For each of GC=F/SI=F/CL=F, picks the real contract with the
-    EARLIEST lExpiryDate that hasn't already passed - MCX futures have
+    For each of GC=F/SI=F/CL=F, picks the contract via the shared
+    nse_fo_chain.pick_mcx_future (B-1269): the EARLIEST lExpiryDate more than
+    MCX_ROLL_DAYS from expiry, else the nearest not yet passed - MCX futures have
     many concurrent expiry months per underlying (GOLD alone had 05Feb2027
     and 05Apr2027 contracts live simultaneously, confirmed 2026-09-04);
     the nearest one is the conventional "current" contract a price-action
@@ -186,12 +187,9 @@ def _resolve_mcx_tokens(client, watchlist_symbols: list) -> dict:
         return {}
 
     import datetime as _dt
-    from nse_fo_chain import MCX_ROLL_DAYS
-    _ist = _dt.timezone(_dt.timedelta(hours=5, minutes=30))
+    from nse_fo_chain import pick_mcx_future, _IST
     now_ts = time.time()
-    today_ist = _dt.datetime.fromtimestamp(now_ts, _ist).date()
-    nearest_by_kotak_name = {}
-    fallback_by_kotak_name = {}  # nearest non-expired, used only if nothing is left after rolling
+    candidates_by_kotak_name = {}
     for row in all_mcx:
         name = row.get("pSymbolName")
         if name not in wanted.values():
@@ -210,19 +208,14 @@ def _resolve_mcx_tokens(client, watchlist_symbols: list) -> dict:
         exp = row.get("lExpiryDate")
         if not isinstance(exp, (int, float)) or exp <= now_ts:
             continue  # skip malformed rows and already-expired contracts
-        fb = fallback_by_kotak_name.get(name)
-        if fb is None or exp < fb["lExpiryDate"]:
-            fallback_by_kotak_name[name] = row
-        # ROLL (B-1269): skip a contract within MCX_ROLL_DAYS of expiry, take the next one.
-        if (_dt.datetime.fromtimestamp(exp, _ist).date() - today_ist).days <= MCX_ROLL_DAYS:
-            continue
-        current_best = nearest_by_kotak_name.get(name)
-        if current_best is None or exp < current_best["lExpiryDate"]:
-            nearest_by_kotak_name[name] = row
+        candidates_by_kotak_name.setdefault(name, []).append(
+            (_dt.datetime.fromtimestamp(exp, _IST).date(), row))
+    # ROLL (B-1269): the SAME shared picker the real-order path (select_nse_future) uses.
+    nearest_by_kotak_name = {n: pick_mcx_future(c) for n, c in candidates_by_kotak_name.items()}
 
     resolved = {}
     for watchlist_sym, kotak_name in wanted.items():
-        row = nearest_by_kotak_name.get(kotak_name) or fallback_by_kotak_name.get(kotak_name)
+        row = nearest_by_kotak_name.get(kotak_name)
         if row and row.get("pSymbol") is not None:
             resolved[watchlist_sym] = ("mcx_fo", str(row["pSymbol"]))
     return resolved
