@@ -19,13 +19,14 @@ def test_retries_at_upper_band_ceiling(monkeypatch):
                                            "detail": "Order price is outside the valid price range"})
     r = kro.place_real_short_stop_loss("X-EQ", 1, 118.0)
     assert r["ok"] and r["band_clamped_from"] == 118.0
-    assert calls[0] == 118.0 and 104 * 1.005 < calls[1] < 118.0
+    # B-1411: the 10% ceiling is applied before the first send, so no doomed order at 118 reaches Kotak
+    assert len(calls) == 1 and 104 * 1.005 < calls[0] < 118.0
 
 
 def test_other_rejection_not_retried(monkeypatch):
     calls = _setup(monkeypatch, lambda t: {"ok": False, "detail": "insufficient margin"})
     r = kro.place_real_short_stop_loss("X-EQ", 1, 118.0)
-    assert not r["ok"] and calls == [118.0]
+    assert not r["ok"] and len(calls) == 1  # B-1411: pre-clamped once, never retried on a non-band reject
 
 
 def test_never_lowered_to_the_market(monkeypatch):
