@@ -22,8 +22,9 @@ def _bars(closes, start="2024-01-01", spread=0.5):
 def test_tags_exact_and_registered_to_themselves():
     assert VP == "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1"
     assert OB == "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1"
-    assert main._STRATEGY_TAG_TO_REGISTRY_NAME[VP] == VP
-    assert main._STRATEGY_TAG_TO_REGISTRY_NAME[OB] == OB
+    # B-1413: gated on the band-floor main.py replay rows (what Kotak can actually hold)
+    assert main._STRATEGY_TAG_TO_REGISTRY_NAME[VP] == "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v1"
+    assert main._STRATEGY_TAG_TO_REGISTRY_NAME[OB] == "order_block_delta__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v1"
     # legacy tags still recognised for already-open positions
     assert "order_block_delta" in main._STRATEGY_TAG_TO_REGISTRY_NAME
     assert "volume_profile_poc" in main._STRATEGY_TAG_TO_REGISTRY_NAME
