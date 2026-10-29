@@ -43,3 +43,32 @@ def test_first_sight_stack_sync_runs_off_the_calling_thread():
     src = open(main.__file__).read()  # conftest stubs the function itself, so read its source text
     body = src[src.index("def _ensure_viable_stack_hydrated"):src.index("def _ensure_viable_stack_hydrated") + 4000]
     assert "threading.Thread(target=_first_sight" in body
+
+
+def test_b1422_stacks_name_the_event_loop_thread_and_skip_uvicorn_main():
+    import threading
+    import main
+    out = []
+    t = threading.Thread(target=lambda: out.extend(main._busy_thread_stacks()))
+    t.start()
+    t.join()
+    loop_rows = [r for r in out if "(event loop)" in r]
+    assert len(loop_rows) == 1  # the main thread is always reported, with its innermost frames
+    assert all("uvicorn" not in r for r in out if "(event loop)" not in r)
+
+
+def test_b1422_event_keeps_loop_thread_first():
+    import main
+    info = {"loop_lag_s": 16.7, "rss_pct": 40, "threadpool": "0/80",
+            "threads": ["ThreadPoolExecutor-2_0: _pf:1", "asyncio_0: _run_swing_scan:2", "scan-prefetch_0: x:1",
+                        "MainThread (event loop): base_events.py:_run_once:1"]}
+    import copy
+    before = copy.deepcopy(main._WATCHDOG_DAY)
+    try:
+        main._watchdog_day_bump(now=1793262086.0, put=lambda k, v: None, info=info)
+        ev = main._WATCHDOG_DAY["events"][-1]
+    finally:
+        main._WATCHDOG_DAY.clear()
+        main._WATCHDOG_DAY.update(before)
+    assert ev["threads"][0].startswith("MainThread (event loop)")
+    assert not any(t.startswith(("ThreadPoolExecutor", "scan-prefetch")) for t in ev["threads"])

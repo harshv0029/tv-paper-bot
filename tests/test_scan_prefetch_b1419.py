@@ -177,3 +177,25 @@ def test_scan_decision_lock_serialises_scanners(monkeypatch):
         t.join()
     assert peak[0] == 1
     assert main._scheduler_last_results["X.NS"]["status"] == "error"
+
+
+def test_b1422_total_yahoo_downloads_capped():
+    data_fetch._DATA_CACHE.clear()
+    active, peak, lock = [0], [0], threading.Lock()
+
+    def slow_download(sym, period, interval, progress):
+        with lock:
+            active[0] += 1
+            peak[0] = max(peak[0], active[0])
+        time.sleep(0.03)
+        with lock:
+            active[0] -= 1
+        return _df()
+    with patch.object(data_fetch.yf, "download", side_effect=slow_download):
+        ts = [threading.Thread(target=data_fetch.fetch_ohlc, args=(f"Z{i}.NS", "5d", "5m")) for i in range(16)]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
+    assert 1 < peak[0] <= data_fetch._YF_MAX_CONCURRENT
+    data_fetch._DATA_CACHE.clear()

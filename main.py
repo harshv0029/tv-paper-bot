@@ -30281,7 +30281,8 @@ def _watchdog_day_bump(now=None, put=None, info=None) -> None:
         ev = {"ts": info.get("ts"), "ist": (dt.datetime.utcfromtimestamp(info.get("ts") or time.time())
                                            + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime("%H:%M:%S IST"),
               "loop_lag_s": info.get("loop_lag_s"), "rss_pct": info.get("rss_pct"), "threadpool": info.get("threadpool"),
-              "threads": [t for t in (info.get("threads") or []) if not t.startswith("ThreadPoolExecutor")][:4]}
+              "threads": sorted((t for t in (info.get("threads") or []) if not t.startswith(("ThreadPoolExecutor", "scan-prefetch"))),
+                               key=lambda t: "(event loop)" not in t)[:5]}  # B-1422: the loop thread first
         _WATCHDOG_DAY["events"] = (_WATCHDOG_DAY.get("events") or [])[-(_WATCHDOG_DAY_EVENTS_KEEP - 1):] + [ev]
     put = put or _upstash_set
     if put is _upstash_set and not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
@@ -30320,12 +30321,23 @@ def _busy_thread_stacks(limit=4) -> list:
     import traceback
     out = []
     names = {t.ident: t.name for t in threading.enumerate()}
+    # B-1422: match OUR files by full path. endswith("main.py") also matched uvicorn/main.py, so on 29-Oct 13:51 IST
+    # the frozen loop thread showed only "main:410 > run:577" (uvicorn) and hid what it was really doing.
+    here = os.path.dirname(os.path.abspath(__file__))
+    ours = {os.path.join(here, f) for f in ("main.py", "kotak_neo.py", "kotak_real_orders.py", "strategy_registry.py",
+                                            "data_fetch.py")}
+    main_ident = threading.main_thread().ident
     for ident, fr in sys._current_frames().items():
         if ident == threading.get_ident():
             continue
-        app = [f"{f.name}:{f.lineno}" for f in traceback.extract_stack(fr)
-               if f.filename.endswith(("main.py", "kotak_neo.py", "kotak_real_orders.py", "strategy_registry.py"))]
-        if app:
+        stack = traceback.extract_stack(fr)
+        app = [f"{f.name}:{f.lineno}" for f in stack if os.path.abspath(f.filename) in ours]
+        if ident == main_ident:
+            # The event-loop thread: its innermost frames from ANY file (json encoding, pandas, a lock wait or the
+            # selector), so a freeze outside our own code is still named.
+            inner = [f"{os.path.basename(f.filename)}:{f.name}:{f.lineno}" for f in stack[-limit:]]
+            out.append(f"{names.get(ident, ident)} (event loop): " + " > ".join((app[-2:] + ["|"] if app else []) + inner))
+        elif app:
             out.append(f"{names.get(ident, ident)}: " + " > ".join(app[-limit:]))
     return out
 
