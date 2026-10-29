@@ -19093,9 +19093,124 @@ def _open_positions_prices(symbols, watchlist_by_symbol, budget_s: float | None 
     return out
 
 
+# B-1394 (2026-10-29): overall time budget for GET /real-open-positions. The build (DB rows, Kotak positions()/
+# holdings(), prices) runs on a worker; past the budget, or when a Kotak call is slow/fails, the endpoint serves the
+# last complete answer (in memory, mirrored to Upstash so a restart keeps it) flagged stale with its IST as_of.
+# DISPLAY ONLY: no real-order path ever reads this cache (they all fetch Kotak fresh, 2026-09-30 rule).
+REAL_OPEN_POSITIONS_BUDGET_S = 12.0
+REAL_OPEN_POSITIONS_KOTAK_CALL_TIMEOUT_S = 5.0
+_REAL_OPEN_POSITIONS_REDIS_KEY = "tv_paper_bot:real_open_positions_last_good:v1"
+_real_open_positions_last_good: dict = {"payload": None, "as_of": None}
+_real_open_positions_lock = threading.Lock()
+_real_open_positions_build_state: dict = {"fut": None, "last_push": 0.0}
+_real_open_positions_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="rop-build")
+
+
+def _rop_call_with_timeout(fn, timeout_s: float):
+    """(ok, value) for fn() bounded by timeout_s; ok False on timeout or exception. The worker is abandoned, never
+    joined, so a hung Kotak call cannot hold the endpoint."""
+    ex = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="rop-call")
+    try:
+        return True, ex.submit(fn).result(timeout=timeout_s)
+    except Exception:
+        return False, None
+    finally:
+        ex.shutdown(wait=False)
+
+
+def _rop_as_of_ist() -> str:
+    return ist_now().strftime("%Y-%m-%d %H:%M:%S") + " IST"
+
+
+def _rop_push_last_good(force: bool = False) -> bool:
+    """Mirror the last-good payload to Upstash (throttled like other non-critical dashboard state). Never raises."""
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            return False
+        snap = dict(_real_open_positions_last_good)
+        if not snap.get("payload"):
+            return False
+        if not force:
+            ival = _upstash_noncritical_interval(60.0)
+            if ival is None or time.time() - _real_open_positions_build_state["last_push"] < ival:
+                return False
+        _real_open_positions_build_state["last_push"] = time.time()
+        _upstash_set(_REAL_OPEN_POSITIONS_REDIS_KEY, json.dumps(snap, separators=(",", ":"), default=str))
+        return True
+    except Exception as e:  # noqa: BLE001
+        print(f"[real_open_positions] last-good push failed (non-fatal): {e}")
+        return False
+
+
+def hydrate_real_open_positions_last_good_from_external() -> int:
+    """Restore the last-good /real-open-positions payload from Upstash at startup (only if this process has none yet).
+    Returns rows restored; never raises."""
+    try:
+        if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+            return 0
+        raw = _upstash_get(_REAL_OPEN_POSITIONS_REDIS_KEY)
+        if not raw:
+            return 0
+        data = json.loads(raw)
+        payload = data.get("payload") if isinstance(data, dict) else None
+        if not isinstance(payload, dict) or not isinstance(payload.get("open_real_positions"), list):
+            return 0
+        with _real_open_positions_lock:
+            if _real_open_positions_last_good.get("payload") is None:
+                _real_open_positions_last_good["payload"] = payload
+                _real_open_positions_last_good["as_of"] = data.get("as_of")
+        return len(payload["open_real_positions"])
+    except Exception as e:  # noqa: BLE001
+        print(f"[real_open_positions] last-good restore failed (non-fatal): {e}")
+        return 0
+
+
+def _rop_build_and_store():
+    payload, complete = _real_open_positions_build()
+    if complete:
+        with _real_open_positions_lock:
+            _real_open_positions_last_good["payload"] = payload
+            _real_open_positions_last_good["as_of"] = _rop_as_of_ist()
+        if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
+            threading.Thread(target=_rop_push_last_good, name="rop-push", daemon=True).start()
+    return payload, complete
+
+
 @app.get("/real-open-positions")
 def get_real_open_positions():
-    """Currently-OPEN real (Kotak) positions, with a LIVE current price and
+    """B-1394 wrapper: answers within REAL_OPEN_POSITIONS_BUDGET_S. A complete fresh build is returned (and becomes
+    the last-good copy); otherwise the last-good copy is returned with stale=true and its IST as_of. With no last-good
+    copy, a partial fresh build (Kotak part missing) is returned with partial=true, or 503 if nothing finished.
+    One build runs at a time: a poll that arrives while one is still running waits on that same build."""
+    with _real_open_positions_lock:
+        fut = _real_open_positions_build_state["fut"]
+        if fut is None or fut.done():
+            fut = _real_open_positions_executor.submit(_rop_build_and_store)
+            _real_open_positions_build_state["fut"] = fut
+    payload, complete, reason = None, False, None
+    try:
+        payload, complete = fut.result(timeout=REAL_OPEN_POSITIONS_BUDGET_S)
+        if not complete:
+            reason = "a Kotak positions/holdings call was slow or failed"
+    except concurrent.futures.TimeoutError:
+        reason = f"build exceeded the {REAL_OPEN_POSITIONS_BUDGET_S:.0f}s budget"
+    except Exception as e:  # noqa: BLE001
+        reason = f"build failed: {type(e).__name__}: {e}"
+    if payload is not None and complete:
+        return {**payload, "stale": False, "as_of": _rop_as_of_ist()}
+    with _real_open_positions_lock:
+        cached, cached_as_of = _real_open_positions_last_good.get("payload"), _real_open_positions_last_good.get("as_of")
+    if cached is not None:
+        return {**cached, "stale": True, "as_of": cached_as_of, "stale_reason": reason}
+    if payload is not None:
+        return {**payload, "stale": False, "partial": True, "as_of": _rop_as_of_ist(), "stale_reason": reason}
+    raise HTTPException(status_code=503, detail=f"/real-open-positions unavailable ({reason}); no last-good copy yet")
+
+
+def _real_open_positions_build():
+    """Returns (payload, complete). complete is False when a Kotak positions()/holdings() call timed out or failed.
+
+    Currently-OPEN real (Kotak) positions, with a LIVE current price and
     computed unrealized P&L per row - no token required, same reasoning as
     /real-pnl-today's own split-out from /real-trading-control (read-only
     display data, not the enable/disable switch or a control action).
@@ -19343,13 +19458,35 @@ def get_real_open_positions():
     # reconcile endpoint's own `adopt` param). Best-effort: a Kotak fetch
     # failure here still returns the bot-tracked rows above, same
     # graceful-degradation the rest of this endpoint already has."""
+    # B-1394: each Kotak call is time-boxed; a slow/failed one marks the build incomplete (caller serves last-good).
+    complete = True
+    _tk = REAL_OPEN_POSITIONS_KOTAK_CALL_TIMEOUT_S
     try:
-        import kotak_neo
-        positions_resp = kotak_neo.positions()
+        import kotak_neo as _kn_rop
+        _ok_pos, positions_resp = _rop_call_with_timeout(_kn_rop.positions, _tk)
+    except Exception:
+        _ok_pos, positions_resp = False, None
+    _ok_hold, _holdings_open = _rop_call_with_timeout(_kotak_holdings_open_by_trdsym, _tk)
+    if not _ok_pos or not isinstance(positions_resp, dict) or not _ok_hold or _holdings_open is None:
+        complete = False
+    _kotak_rows_pre = positions_resp.get("data") or [] if isinstance(positions_resp, dict) else []
+    _our_pre = ({r["kotak_trading_symbol"] for r in rows} | {r["kotak_trading_symbol"] for r in short_rows}
+                | {r["kotak_trading_symbol"] for r in swing_rows})
+    _ext_syms = []
+    for _kr in _kotak_rows_pre if isinstance(_kotak_rows_pre, list) else []:
+        _t = _kr.get("trdSym") if isinstance(_kr, dict) else None
+        if _t and _t not in _our_pre and _kr.get("exSeg") == "nse_cm":
+            _ext_syms.append(_t[:-3] + ".NS" if _t.endswith("-EQ") else f"{_t}.NS")
+    for _t, _h in (_holdings_open or {}).items():
+        if _t not in _our_pre:
+            _ext_syms.append(f"{_h['symbol']}.NS")
+    _ext_px = _open_positions_prices(_ext_syms, {}) if _ext_syms else {}
+    try:
+        if positions_resp is None:
+            raise RuntimeError("Kotak positions() unavailable")
         kotak_rows = positions_resp.get("data") or [] if isinstance(positions_resp, dict) else []
-        our_trdsyms = ({r["kotak_trading_symbol"] for r in rows} | {r["kotak_trading_symbol"] for r in short_rows}
-                       | {r["kotak_trading_symbol"] for r in swing_rows})
-        _gross_holdings = _kotak_holdings_gross_qty() if kotak_rows else {}
+        our_trdsyms = _our_pre
+        _gross_holdings = (_rop_call_with_timeout(_kotak_holdings_gross_qty, _tk)[1] or {}) if kotak_rows else {}
         for kr in kotak_rows:
             try:
                 if kr.get("exSeg") != "nse_cm":
@@ -19384,11 +19521,7 @@ def get_real_open_positions():
                     buy_amt = float(kr.get("buyAmt", 0) or 0)
                     avg_price = round(buy_amt / fl_buy, 2) if fl_buy else None
                 bare_symbol = trd_sym[:-3] + ".NS" if trd_sym.endswith("-EQ") else f"{trd_sym}.NS"
-                current_price = None
-                try:
-                    current_price = float(fetch_ohlc(bare_symbol, "1d", "5m")["Close"].iloc[-1])
-                except Exception:
-                    pass
+                current_price = _ext_px.get(bare_symbol)
                 invested_inr = round(avg_price * qty_abs, 2) if avg_price is not None else None
                 unrealized_pnl_inr = None
                 if current_price is not None and avg_price is not None:
@@ -19455,15 +19588,11 @@ def get_real_open_positions():
     # no tracked row too. Display only; never adopted/ordered here.
     try:
         listed = {r["kotak_trading_symbol"] for r in result}
-        for trd_sym, h in (_kotak_holdings_open_by_trdsym() or {}).items():
+        for trd_sym, h in (_holdings_open or {}).items():
             if trd_sym in listed:
                 continue
             bare_symbol = f"{h['symbol']}.NS"
-            current_price = None
-            try:
-                current_price = float(fetch_ohlc(bare_symbol, "1d", "5m")["Close"].iloc[-1])
-            except Exception:
-                pass
+            current_price = _ext_px.get(bare_symbol)
             avg = h["avg_price"]
             invested = round(avg * h["qty"], 2) if avg else None
             pnl = round((current_price - avg) * h["qty"], 2) if (avg and current_price is not None) else None
@@ -19493,7 +19622,7 @@ def get_real_open_positions():
             r.get("target_price"), tracked=(r.get("source") == "bot_tracked"),
         )
 
-    return {"open_real_positions": result, "count": len(result)}
+    return {"open_real_positions": result, "count": len(result)}, complete
 
 
 def _exchange_purge_window(now_ist=None) -> bool:
@@ -26943,6 +27072,13 @@ async def _start_scheduler():
                                timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
     except Exception as e:
         print(f"[table_mirror] startup hydrate skipped (non-fatal, retried per tick): {e}")
+    try:
+        _n_rop = await asyncio.wait_for(asyncio.to_thread(hydrate_real_open_positions_last_good_from_external),
+                                        timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
+        if _n_rop:
+            print(f"[real_open_positions] restored last-good copy ({_n_rop} row(s)) from Upstash")
+    except Exception as e:
+        print(f"[real_open_positions] startup restore skipped (non-fatal): {e}")
     try:
         _n_sk = await asyncio.wait_for(asyncio.to_thread(hydrate_swing_skipped_from_external),
                                        timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)

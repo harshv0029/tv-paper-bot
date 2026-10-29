@@ -427,10 +427,12 @@
       const ps = d.open_real_positions || [];
       openPos = ps;
       $("pN").textContent = ps.length ? String(ps.length) : "";
-      $("pList").innerHTML = ps.map(p => {
+      // B-1394: Kotak slow/failed -> the endpoint serves its last-good copy; say so instead of an error banner.
+      const staleNote = d.stale ? `<div class="dim" style="font-size:11px">stale, as of ${esc(String(d.as_of || "?").slice(11, 16))} IST</div>` : "";
+      $("pList").innerHTML = staleNote + (ps.map(p => {
         const bad = unprot.has(p.kotak_trading_symbol), pnl = p.unrealized_pnl_inr;
         return `<div class="row"><span class="s"><i class="led ${bad ? "bad" : "ok"}"></i>${esc(p.symbol)} <span class="dim">${esc(p.side || "")} ${esc(p.qty)} · ${esc(p.strategy || "untagged")}</span></span><span class="${pnl > 0 ? "up" : pnl < 0 ? "down" : "dim"}">${pnl != null ? "₹" + Number(pnl).toFixed(0) : "-"}</span></div>`;
-      }).join("") || '<div class="dim" style="font-size:11px">no open real positions</div>';
+      }).join("") || '<div class="dim" style="font-size:11px">no open real positions</div>');
     } catch (e) {}
   }
 
