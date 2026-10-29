@@ -604,8 +604,72 @@ def _maybe_sync_check_counts_external() -> None:
             return
         _sync_check_counts_external(_scheduler_check_counts_day, _scheduler_check_counts)
         _check_counts_last_digest = digest
+        if _scheduler_check_counts_day:  # B-1423: today's running total, so it survives as "yesterday" tomorrow
+            _check_totals_merge({_scheduler_check_counts_day: sum(_scheduler_check_counts.values())})
+            _check_totals_push()
     except Exception as e:
         print(f"[check_counts_external] throttled sync failed (non-fatal): {e}")
+
+
+# B-1423 (user, 29-Oct: "below checks today add checks yesterday"): the per-symbol counts above are overwritten on
+# the IST day rollover, so yesterday's total was lost. Each day's total (all checks, derivative legs included - the
+# same figure the dashboard's "checks today" shows) is kept in this durable map: updated with the throttled counts
+# sync, written at the rollover, restored at startup. docs/check_totals_daily.json is the git backfill (28-Oct from
+# the state/scheduler_check_counts.json journal at 21:43 IST).
+_CHECK_TOTALS_REDIS_KEY = "tv_paper_bot:scheduler_check_totals_daily:v1"
+_CHECK_TOTALS_KEEP_DAYS = 14
+_check_totals_daily: dict = {}
+_CHECK_TOTALS_BACKFILL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "check_totals_daily.json")
+
+
+def _check_totals_merge(src: dict) -> None:
+    """Keep the larger total per day (a count only grows within a day), last _CHECK_TOTALS_KEEP_DAYS days."""
+    for day, total in (src or {}).items():
+        try:
+            total = int(total)
+        except (TypeError, ValueError):
+            continue
+        if total > int(_check_totals_daily.get(day, 0) or 0):
+            _check_totals_daily[day] = total
+    for day in sorted(_check_totals_daily)[:-_CHECK_TOTALS_KEEP_DAYS]:
+        del _check_totals_daily[day]
+
+
+def _check_totals_push() -> None:
+    """Best-effort Upstash write of the daily totals map. Never raises."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return
+    try:
+        _upstash_set(_CHECK_TOTALS_REDIS_KEY, json.dumps(_check_totals_daily, sort_keys=True))
+    except Exception as e:  # noqa: BLE001
+        print(f"[check_totals] sync failed (non-fatal): {e}")
+
+
+def hydrate_check_totals_daily() -> int:
+    """Startup: git backfill first, then Upstash (merge keeps the larger total per day). Never raises."""
+    try:
+        with open(_CHECK_TOTALS_BACKFILL_PATH) as f:
+            _check_totals_merge(json.load(f))
+    except Exception:  # noqa: BLE001
+        pass
+    if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
+        try:
+            raw = _upstash_get(_CHECK_TOTALS_REDIS_KEY)
+            if raw:
+                _check_totals_merge(json.loads(raw))
+        except Exception as e:  # noqa: BLE001
+            print(f"[check_totals] hydrate failed (non-fatal): {e}")
+    return len(_check_totals_daily)
+
+
+def _checks_previous_day(today: str) -> dict:
+    """The most recent day before `today` with a recorded total: {"day", "total", "is_yesterday"} or {}."""
+    prior = sorted(d for d in _check_totals_daily if d < today)
+    if not prior:
+        return {}
+    day = prior[-1]
+    yday = (dt.date.fromisoformat(today) - dt.timedelta(days=1)).isoformat()
+    return {"day": day, "total": int(_check_totals_daily[day]), "is_yesterday": day == yday}
 
 
 def hydrate_check_counts_from_external() -> tuple[str, dict] | None:
@@ -21309,6 +21373,9 @@ def _record_scheduler_check(key: str):
     global _scheduler_check_counts_day
     today_str = ist_now().strftime("%Y-%m-%d")
     if today_str != _scheduler_check_counts_day:
+        if _scheduler_check_counts_day and _scheduler_check_counts:  # B-1423: keep the closing day's total
+            _check_totals_merge({_scheduler_check_counts_day: sum(_scheduler_check_counts.values())})
+            threading.Thread(target=_check_totals_push, name="check-totals-push", daemon=True).start()
         _scheduler_check_counts.clear()
         _scheduler_check_counts_day = today_str
     _scheduler_check_counts[key] = _scheduler_check_counts.get(key, 0) + 1
@@ -26840,6 +26907,10 @@ async def _start_scheduler():
         _real_positions_swing_hydrated = False
         _external_rr_cursor, _external_check_counts = None, None
     try:
+        await asyncio.wait_for(asyncio.to_thread(hydrate_check_totals_daily), timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
+    except Exception as e:  # noqa: BLE001
+        print(f"[check_totals] startup hydrate skipped (non-fatal): {e}")
+    try:
         await asyncio.wait_for(asyncio.to_thread(hydrate_signal_state_swing_from_external),
                                timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
     except Exception as e:
@@ -27232,6 +27303,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "total_checks_today": total_checks_today,
         "total_checks_incl_derivative_legs": total_checks_incl_derivative_legs,
         "derivative_leg_checks_today": total_checks_incl_derivative_legs - total_checks_today,
+        "checks_previous_day": _checks_previous_day(ist_now().strftime("%Y-%m-%d")),  # B-1423
         "derivative_leg_visits_skipped_today": _scheduler_skipped_visits_today(),
         "checks_last_30s": checks_in_last_seconds(30),
         "fo_subscribed_instruments": fo_subscribed_instruments,
