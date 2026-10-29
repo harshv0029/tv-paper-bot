@@ -149,6 +149,10 @@
 </div>
 
 </div>
+<!-- B-1420: capital card - free cash (the sizing capital) vs capital tied in open real positions. Read-only. -->
+<div class="box" id="capBox" style="margin:12px 0"><h2>Capital · free vs tied in open positions</h2>
+  <div class="mono" id="capLine" style="font-size:12px">loading…</div>
+  <div class="dim mono" style="font-size:10.5px;margin-top:4px">Free cash = Kotak live free balance (new positions are sized to it). Tied = entry price x qty over open buy, short and swing positions.</div></div>
 <div class="box" id="slBox" style="margin:12px 0;overflow-x:auto"><h2>Active positions · SL check today (IST) <span class="n mono" id="slN"></span></h2>
   <table class="mono" style="width:100%;border-collapse:collapse;font-size:11.5px"><thead><tr style="text-align:left;border-bottom:1px solid #8884">
     <th>Sr no.</th><th>Active position</th><th>Entry price</th><th>LTP</th><th>Qty</th><th>Category</th><th>Target price</th><th>Entry day SL</th><th>Profit amt</th><th>Profit %</th><th>Type of SL</th><th>SL updated today as per strategy?</th><th>Expected exit (as per strategy)</th></tr></thead>
@@ -453,6 +457,10 @@
           `<td>${p.expected_exit ? esc(p.expected_exit) : "-"}<div class="dim" style="font-size:10px">${esc(p.expected_exit_basis || "")}</div></td></tr>`;
       }).join("") || '<tr><td colspan="13" class="dim">no active real positions</td></tr>';
       $("slNote").textContent = d.note || "";
+      // B-1420: capital card from the same poll
+      const cp = d.capital || {}, inr = v => v == null ? "-" : "₹" + Number(v).toLocaleString("en-IN", {maximumFractionDigits: 2});
+      $("capLine").innerHTML = `Free cash ${inr(cp.free_cash_inr)} · Tied in ${esc(cp.open_positions ?? 0)} open ${inr(cp.tied_inr)} · Total ${inr(cp.total_inr)} · Tied ${cp.tied_pct == null ? "-" : Number(cp.tied_pct).toFixed(1) + "%"}` +
+        (cp.free_cash_inr == null ? ' <span class="dim">(free cash not yet fetched from Kotak)</span>' : "");
     } catch (e) {}
   }
 

@@ -28415,8 +28415,32 @@ def real_positions_sl_today():
             o["profit_pct"] = round(sign * (float(cur) / float(o["entry_price"]) - 1) * 100, 2) if cur else None
         except (TypeError, ValueError, ZeroDivisionError):
             o["profit_inr"] = o["profit_pct"] = None
-    return {"positions": out, "as_of_epoch": time.time(),
+    return {"positions": out, "as_of_epoch": time.time(), "capital": _capital_split(out),
             "note": "Target blank = the strategy exits by its own rule (no resting target order)."}
+
+
+def _capital_split(positions) -> dict:
+    """B-1420 (View 4, read-only): free cash = scheduler_capital_inr (Kotak live free balance, the capital new positions
+    are sized to) vs capital tied in open real positions (sum of entry price x qty over every active row: buy, short,
+    swing, swing short). Shorts count at entry notional, not broker margin. Display only; sizing is unchanged."""
+    tied = 0.0
+    for p in positions or []:
+        try:
+            tied += float(p["entry_price"]) * int(p["qty"])
+        except (KeyError, TypeError, ValueError):
+            pass
+    tied = round(tied, 2)
+    free = _real_capital_cache.get("value")
+    try:
+        free = round(float(free), 2) if free is not None else None
+    except (TypeError, ValueError):
+        free = None
+    total = round(free + tied, 2) if free is not None else None
+    tied_pct = round(100 * tied / total, 2) if total else None
+    return {"free_cash_inr": free, "tied_inr": tied, "total_inr": total, "tied_pct": tied_pct,
+            "open_positions": len(positions or []),
+            "free_cash_source": "kotak_neo_real_account" if free is not None else "not_yet_fetched",
+            "free_cash_fetched_at_utc": _real_capital_cache.get("fetched_at") or None}
 
 
 def _coverage_gap_by_category(wired, tested_set, reg) -> dict:
