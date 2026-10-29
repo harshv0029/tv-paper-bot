@@ -14219,7 +14219,31 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1380: no SL before 09:15 IST (exchange rejects it)"
+  },
+  {
+   "id": 1186,
+   "ts": 1793304039.0524578,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1380: no SL before 09:15 IST (exchange rejects it)"
+  },
+  {
+   "id": 1187,
+   "ts": 1793304044.68499,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1380: no SL before 09:15 IST (exchange rejects it)"
   }
  ],
- "synced_at_utc": "2026-10-29T20:00:42Z"
+ "synced_at_utc": "2026-10-29T20:00:51Z"
 }
