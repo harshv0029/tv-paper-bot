@@ -141,3 +141,29 @@ def _reset_recent_sl_placed():
     _kro._reference_prices = _orig_ref
     _kro._RECENT_SL_PLACED.clear()
     _kro._BAND_REF_CACHE.clear()
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _remove_module_temp_dbs():
+    """B-1419: tests create DBs with tempfile.mkstemp(suffix=".db") and never delete them (73k files filled the disk).
+    Under scripts/run_tests_parallel.py each shard has a private TMPDIR, so at the end of each test module the DBs it
+    created there are removed (never the one main.DB_PATH still points at). Off outside the runner (shared /tmp)."""
+    import glob
+    import os
+    import tempfile
+    import time as _t
+    t0 = _t.time() - 1
+    yield
+    if os.environ.get("SUITE_PRIVATE_TMP") != "1":
+        return
+    try:
+        import main as _m
+        keep = os.path.abspath(str(getattr(_m, "DB_PATH", "")))
+    except Exception:
+        keep = ""
+    for f in glob.glob(os.path.join(tempfile.gettempdir(), "tmp*.db*")):
+        try:
+            if os.path.abspath(f).split(".db")[0] + ".db" != keep and os.path.getmtime(f) >= t0:
+                os.remove(f)
+        except OSError:
+            pass
