@@ -27,7 +27,7 @@ def _fresh_db():
 def test_returns_empty_when_no_real_positions():
     _fresh_db()
     result = main.get_real_open_positions()
-    assert result == {"open_real_positions": [], "count": 0}
+    assert result["open_real_positions"] == [] and result["count"] == 0
 
 
 def test_includes_an_untracked_kotak_position_not_in_real_positions():

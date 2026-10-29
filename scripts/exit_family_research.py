@@ -24,6 +24,18 @@ PFnet = sum(net wins) / |sum(net losses)|. Overlapping signals are allowed (each
 independently; >= MIN_SIGNAL_GAP bars apart per symbol per entry set). A trade whose full hold
 window runs past the end of data is dropped (no truncated-exit bias).
 
+B-1416 (2026-10-29): the legacy settings above (overlapping signals, equal-notional 0.8% cost, truncated
+trades dropped; run 38140914889, tags __v1) inflated OB / VP exitinval to 1.166 / 1.268 vs 1.074 / 1.089
+in the main.py replay (swing-ob-vp-main-replay.yml, run 40820614764). The DEFAULT is now
+MATCH_MAIN_REPLAY=True, which reproduces that replay's book-keeping: one position per symbol per cell
+(a signal is taken only once the previous trade has exited; re-entry allowed on the exit bar), every
+signal bar collected (no 5-bar gap), 1%-risk sizing on a Rs 4 lakh / CAPITAL_TRANCHES slice
+(qty = floor(min(risk / stop distance, slice / price)), skipped when qty is 0 or notional < Rs 100),
+itemized Kotak costs + DP charge (REPLAY_COST), and a trade still open at the end of data is force-closed
+at the last close instead of dropped. Tags in this mode end in __v2 (new tags; the __v1 numbers stay
+registered). `run --legacy-sim` restores the old behaviour and the __v1 tags.
+See docs/B1416_SIM_VS_REPLAY_ROOT_CAUSE.md.
+
 Owed / not covered (flagged, not skipped silently): candle-size sweep (this is 1d only; yfinance
 caps intraday history, 4h needs a 1h resample); order_block / volume_profile short mirrors (no
 live short entry function exists in main.py, so no honest short entry source).
@@ -51,6 +63,15 @@ MAX_HOLD = 30
 MIN_BARS = 160
 PAD_ATR = 0.1
 TF = "1d"
+
+# B-1416: True = match the main.py replay (swing-ob-vp-main-replay.yml) book-keeping; False = legacy sim.
+MATCH_MAIN_REPLAY = True
+REPLAY_CAPITAL = 400000.0
+REPLAY_RISK_PCT = 1.0
+# same itemized cost model as swing-ob-vp-main-replay.yml (per side, fraction of notional)
+REPLAY_COST = {"brokerage_pct": 0.0020, "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
+               "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
+               "gst_pct": 0.18, "slippage_pct": 0.0005, "dp_charge_flat": 15.93}
 
 # entry set key -> (tag family, direction)
 ENTRY_SETS = {
@@ -90,12 +111,15 @@ def _fmt(v):
     return str(v)
 
 
-def cell_tag(entry_key, cell):
-    """<family>__<variant>__<dir>__<tf>__<params>__v1 ; params = alphabetical key+value."""
+def cell_tag(entry_key, cell, version=None):
+    """<family>__<variant>__<dir>__<tf>__<params>__v<N> ; params = alphabetical key+value.
+    v1 = legacy overlapping sim (run 38140914889); v2 = main.py-replay-matching sim (B-1416)."""
     fam, d = ENTRY_SETS[entry_key]
     skip = {"kind", "variant"}
     params = "_".join(f"{k}{_fmt(cell[k])}" for k in sorted(cell) if k not in skip)
-    return f"{fam}__{cell['variant']}__{d}__{TF}__{params}__v1"
+    if version is None:
+        version = 2 if MATCH_MAIN_REPLAY else 1
+    return f"{fam}__{cell['variant']}__{d}__{TF}__{params}__v{version}"
 
 
 # ----------------------------------------------------------------------------- indicators
@@ -171,9 +195,25 @@ def _res(entry, exit_px, held, reason):
     return ((exit_px - entry) / abs(entry), held, reason)
 
 
-def simulate(S, i0, cell):
+def initial_stop(S, i0, cell):
+    """Oriented initial stop for an entry at the close of bar i0; "rejected" when a structural
+    stop does not sit below entry; None when ATR is unusable."""
+    atr = S["atr"][i0]
+    if not np.isfinite(atr) or atr <= 0:
+        return None
+    entry = S["c"][i0]
+    if cell["kind"] == "struct":
+        lo = float(np.min(S["l"][max(0, i0 - cell["sw"] + 1): i0 + 1]))
+        stop = lo - PAD_ATR * atr
+        return stop if stop < entry else "rejected"
+    return entry - cell["atr"] * atr
+
+
+def simulate(S, i0, cell, force_close_at_end=False):
     """Replay one entry (at close of bar i0) under one exit cell.
-    Returns (gross_return, hold_bars, reason), "rejected", or None (unusable)."""
+    Returns (gross_return, hold_bars, reason), "rejected", or None (unusable).
+    force_close_at_end=False (legacy): a trade whose hold window runs past the data is dropped (None).
+    True (main.py replay): it runs to the last bar and is closed there as data_end_forced_close."""
     o, h, l, c = S["o"], S["h"], S["l"], S["c"]
     n = len(c)
     atr = S["atr"][i0]
@@ -182,19 +222,15 @@ def simulate(S, i0, cell):
     entry = c[i0]
     kind = cell["kind"]
     hold = cell["hold"]
-    if i0 + hold > n - 1:
+    if i0 + hold > n - 1 and not (force_close_at_end and i0 < n - 1):
         return None
-    if kind == "struct":
-        lo = float(np.min(l[max(0, i0 - cell["sw"] + 1): i0 + 1]))
-        stop = lo - PAD_ATR * atr
-        if not stop < entry:
-            return "rejected"
-    else:
-        stop = entry - cell["atr"] * atr
+    stop = initial_stop(S, i0, cell)
+    if stop == "rejected":
+        return "rejected"
     init = stop
     runmax = entry
     w = cell.get("w", 1)
-    for j in range(i0 + 1, i0 + hold + 1):
+    for j in range(i0 + 1, min(i0 + hold, n - 1) + 1):
         if o[j] <= stop:
             return _res(entry, o[j], j - i0, "stop_hit" if stop == init else "trail_stop_hit")
         if l[j] <= stop:
@@ -227,7 +263,40 @@ def simulate(S, i0, cell):
                 return _res(entry, c[j], j - i0, "signal_invalidation")
         if j - i0 >= hold:
             return _res(entry, c[j], j - i0, "time_stop" if kind == "time" else "max_hold_timeout")
+    if force_close_at_end:
+        return _res(entry, c[n - 1], n - 1 - i0, "data_end_forced_close")
     return None
+
+
+def replay_leg_cost(qty, px, buy):
+    """One side's itemized cost in INR, identical to swing-ob-vp-main-replay.yml's cost()."""
+    cm = REPLAY_COST
+    notional = qty * px
+    b = notional * cm["brokerage_pct"]
+    e = notional * cm["exchange_txn_pct"]
+    s = notional * cm["sebi_fee_pct"]
+    tax = notional * (cm["stt_buy_pct"] if buy else cm["stt_sell_pct"]) + (notional * cm["stamp_duty_buy_pct"] if buy else 0)
+    return b + e + s + tax + (b + e + s) * cm["gst_pct"] + notional * cm["slippage_pct"]
+
+
+def replay_qty(entry_px, stop_dist, tranches):
+    """1%-risk sizing of the main.py replay: slice = capital / tranches; qty = floor(min(slice x
+    risk% / stop distance, slice / price)); 0 when it cannot be sized (the replay then takes no trade)."""
+    if not (stop_dist > 0 and entry_px > 0):
+        return 0
+    cap = min(REPLAY_CAPITAL, REPLAY_CAPITAL / tranches)
+    qty = int(np.floor(min(cap * REPLAY_RISK_PCT / 100 / stop_dist, cap / entry_px)))
+    return qty if qty > 0 and qty * entry_px >= 100 else 0
+
+
+def replay_trade_inr(entry_px, gross_ret, qty, sign):
+    """(gross_inr, cost_inr) for one trade under the replay cost model (DP charge per trade, as the
+    replay's fin() applies it)."""
+    exit_px = entry_px * (1 + sign * gross_ret)
+    gross = gross_ret * entry_px * qty
+    cost = (replay_leg_cost(qty, entry_px, sign > 0) + replay_leg_cost(qty, exit_px, sign < 0)
+            + REPLAY_COST["dp_charge_flat"] * (1 + REPLAY_COST["gst_pct"]))
+    return gross, cost
 
 
 # ----------------------------------------------------------------------------- accumulation
@@ -286,10 +355,14 @@ def merge_acc(a, b):
 
 
 # ----------------------------------------------------------------------------- signals
-def collect_signals(df, key):
+def collect_signals(df, key, min_gap=None):
     """Call the REAL live entry function on every bar's trailing window. The prefilters only skip
-    bars where the real function provably returns None (necessary conditions)."""
+    bars where the real function provably returns None (necessary conditions). min_gap defaults to
+    1 (every signal bar; the per-cell one-position filter decides) when MATCH_MAIN_REPLAY, else the
+    legacy MIN_SIGNAL_GAP."""
     import main as m
+    if min_gap is None:
+        min_gap = 1 if MATCH_MAIN_REPLAY else MIN_SIGNAL_GAP
     fn = {"ob_long": m.order_block_entry_signal, "vp_long": m.volume_profile_poc_entry_signal,
           "gg_long": m.gap_and_go_entry_signal, "gg_short": m.gap_and_go_entry_signal_short}[key]
     c = df["Close"].to_numpy(float)
@@ -299,7 +372,7 @@ def collect_signals(df, key):
     out = []
     last = -10 ** 9
     for i in range(60, n - 1):
-        if i - last < MIN_SIGNAL_GAP:
+        if i - last < min_gap:
             continue
         if key == "gg_long" and not (o[i] / c[i - 1] - 1) * 100 >= m.SWING_GAP_PCT_THRESHOLD:
             continue
@@ -320,9 +393,18 @@ def collect_signals(df, key):
     return out
 
 
-def process_symbol(df, accs, cost, sigfn=collect_signals):
+def process_symbol(df, accs, cost, sigfn=collect_signals, match=None):
     """df: DatetimeIndex + Open/High/Low/Close/Volume (+ optional Date col). Runs all entry sets x
-    all exit cells for one symbol, adding into accs[tag]."""
+    all exit cells for one symbol, adding into accs[tag].
+    match (default MATCH_MAIN_REPLAY): one position per symbol per cell, force-close at data end,
+    1%-risk INR sizing + itemized replay costs (`cost` unused). Legacy (match=False): overlapping
+    trades, equal-notional returns net of the flat `cost` fraction."""
+    if match is None:
+        match = MATCH_MAIN_REPLAY
+    tranches = None
+    if match:
+        import main as m
+        tranches = m.CAPITAL_TRANCHES
     prepared = {}
     for key, (_fam, d) in ENTRY_SETS.items():
         idxs = sigfn(df, key)
@@ -333,13 +415,25 @@ def process_symbol(df, accs, cost, sigfn=collect_signals):
             prepared[sign] = prepare(df, sign)
         S = prepared[sign]
         for cell in CELLS:
-            acc = accs.setdefault(cell_tag(key, cell), new_acc())
+            acc = accs.setdefault(cell_tag(key, cell, version=2 if match else 1), new_acc())
+            free_at = -1  # first bar a new position may open (match mode)
             for i in idxs:
-                r = simulate(S, i, cell)
+                if match and i < free_at:
+                    continue  # still holding the previous trade: the replay never sees this signal
+                r = simulate(S, i, cell, force_close_at_end=match)
                 if r == "rejected":
                     acc["rejected"] += 1
                 elif r is not None:
-                    add_trade(acc, r[0], r[1], r[2], cost)
+                    if not match:
+                        add_trade(acc, r[0], r[1], r[2], cost)
+                        continue
+                    entry_px = abs(float(S["c"][i]))
+                    qty = replay_qty(entry_px, float(S["c"][i] - initial_stop(S, i, cell)), tranches)
+                    if qty <= 0:
+                        continue  # the replay cannot size it, so it never opens
+                    g, tc = replay_trade_inr(entry_px, r[0], qty, sign)
+                    add_trade(acc, g, r[1], r[2], tc)
+                    free_at = i + r[1]  # exit is checked before entry on a bar: re-entry allowed on it
 
 
 # ----------------------------------------------------------------------------- driver
@@ -388,24 +482,25 @@ def run(shard, shards, out, limit=None):
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with open(out, "w") as f:
         json.dump({"shard": shard, "shards": shards, "universe_total": total, "symbols_processed": done,
-                   "accs": accs}, f)
+                   "sim_mode": "match_main_replay" if MATCH_MAIN_REPLAY else "legacy", "accs": accs}, f)
     print("wrote", out)
 
 
 def merge(dirpath, out):
-    accs, done, total = {}, 0, 0
+    accs, done, total, modes = {}, 0, 0, set()
     for p in sorted(glob.glob(os.path.join(dirpath, "**", "*.json"), recursive=True)):
         with open(p) as fh:
             j = json.load(fh)
         if "accs" not in j:
             continue
         done += j["symbols_processed"]
+        modes.add(j.get("sim_mode", "legacy"))
         total = j["universe_total"]
         for tag, a in j["accs"].items():
             merge_acc(accs.setdefault(tag, new_acc()), a)
     res = {t: summarize(a) for t, a in sorted(accs.items())}
     doc = {"universe": "full NSE (main._load_nse_universe_from_file)", "universe_total": total,
-           "symbols_processed": done, "tf": TF, "cost_round_trip_pct": 0.8,
+           "symbols_processed": done, "tf": TF, "cost_round_trip_pct": 0.8, "sim_mode": sorted(modes),
            "backlog": ["B-529", "B-538", "B-493", "B-740"],
            "owed": ["candle-size sweep (1d only)",
                     "order_block/volume_profile short mirrors (no live short entry fn)"],
@@ -429,11 +524,15 @@ if __name__ == "__main__":
     r.add_argument("--shards", type=int, default=4)
     r.add_argument("--out", required=True)
     r.add_argument("--limit", type=int, default=None)
+    r.add_argument("--legacy-sim", action="store_true",
+                   help="legacy overlapping / equal-notional 0.8%% sim (run 38140914889, __v1 tags)")
     g = sub.add_parser("merge")
     g.add_argument("--dir", required=True)
     g.add_argument("--out", required=True)
     a = ap.parse_args()
     if a.cmd == "run":
+        if a.legacy_sim:
+            MATCH_MAIN_REPLAY = False
         run(a.shard, a.shards, a.out, a.limit)
     else:
         merge(a.dir, a.out)
