@@ -1528,3 +1528,8 @@ Main.py-calling replay (run 38502123279) holds up: PFnet 1.314 vs research row; 
 - What happened: NHPC's reroute created a paper swing row tagged `swing_rerouted_orphan` dated today. Once the real share was sold, the entry-retry loop saw "paper open, no real row" and kept trying to buy it again (9 share + 9 option-leg attempts). Only the PFnet gate (fails closed on an unregistered tag) stopped a real buy.
 - Lesson: a retry/mirror loop must check WHY a paper row exists. Rows created by adoption or reroute describe a holding, not a signal, and must be excluded from any entry path explicitly, not just by luck of a gate.
 - Profit-booking / exit takeaway: once a position is closed at Kotak, every leftover local row for it must be inert; a stale row that can re-enter turns a booked exit back into unplanned exposure.
+
+## 2026-10-29 - Overnight swing stops vs the daily price band (BANKINDIA, SUZLON)
+- What happened: at the 09:15 IST open, Kotak rejected the strategy stops BANKINDIA 115.72 and SUZLON 28.91 as 'Circuit breach': NSE accepts no order outside the day's band (here prev close +/-10%). The B-1304 retry re-placed them at the band floor (119.97, 33.67), which was accepted.
+- Lesson: a stop wider than the daily band cannot rest at the exchange. The real protection is the band floor, tighter than the backtest assumed, so wide-ATR swing strategies (order_block_delta 6xATR) are traded live with a different stop than the one validated. Pre-clamp before sending, and replay with the band-capped stop (B-1413).
+- Profit-booking / exit takeaway: on a position whose stop sits beyond the band, the live exit comes sooner than the backtest's; judge its live P&L against a band-capped replay, not the registry PFnet.
