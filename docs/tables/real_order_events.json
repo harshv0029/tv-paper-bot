@@ -13619,7 +13619,43 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261029000810874 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
+  },
+  {
+   "id": 1136,
+   "ts": 1793267824.47304,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261029000811019 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
+  },
+  {
+   "id": 1137,
+   "ts": 1793267824.698858,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261029000811021 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
+  },
+  {
+   "id": 1138,
+   "ts": 1793267826.916724,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261029000811150 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   }
  ],
- "synced_at_utc": "2026-10-29T09:57:07Z"
+ "synced_at_utc": "2026-10-29T09:57:14Z"
 }
