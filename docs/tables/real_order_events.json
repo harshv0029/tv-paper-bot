@@ -14123,7 +14123,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | no order id in response: {'error': ApiException('(0)\\nReason: Request timeout after 30 seconds\\n')}"
+  },
+  {
+   "id": 1178,
+   "ts": 1793278172.0634825,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261029000860736 rejected: 16387 : Security is not allowed to trade in this market  "
   }
  ],
- "synced_at_utc": "2026-10-29T12:49:20Z"
+ "synced_at_utc": "2026-10-29T12:49:35Z"
 }
