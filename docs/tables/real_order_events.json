@@ -12887,7 +12887,55 @@
    "prev_state": "resting SELL trigger Rs185.35",
    "new_state": "resting SELL trigger Rs185.80",
    "detail": "reason: peak live price Rs190.35 - 1R (Rs4.55) raised the stop from Rs185.35 | LTP trail (replaced; Kotak holdings and order book read first)"
+  },
+  {
+   "id": 1075,
+   "ts": 1793267342.7299938,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1076,
+   "ts": 1793267342.740397,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1077,
+   "ts": 1793267342.7527277,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
+  },
+  {
+   "id": 1078,
+   "ts": 1793267342.760994,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": null,
+   "leg": "sl",
+   "event": "cleared_no_live_sl_at_kotak",
+   "order_id": null,
+   "prev_state": null,
+   "new_state": "none",
+   "detail": "reason: Kotak order book is ground truth; this app's swing SL record was rewritten to match it"
   }
  ],
- "synced_at_utc": "2026-10-29T09:43:49Z"
+ "synced_at_utc": "2026-10-29T09:49:06Z"
 }
