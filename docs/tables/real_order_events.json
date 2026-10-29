@@ -12551,7 +12551,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs119.97",
    "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during swing governance backfill"
+  },
+  {
+   "id": 1047,
+   "ts": 1793245547.7592797,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261029000017319",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs164.80",
+   "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during swing governance backfill"
   }
  ],
- "synced_at_utc": "2026-10-29T03:45:41Z"
+ "synced_at_utc": "2026-10-29T03:45:51Z"
 }
