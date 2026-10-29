@@ -12995,7 +12995,19 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261029000786536 rejected: OMS: Trading session is in Transition to CAS session"
+  },
+  {
+   "id": 1084,
+   "ts": 1793267398.1898842,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261029000786864 rejected: OMS: Trading session is in Transition to CAS session"
   }
  ],
- "synced_at_utc": "2026-10-29T09:49:56Z"
+ "synced_at_utc": "2026-10-29T09:50:05Z"
 }
