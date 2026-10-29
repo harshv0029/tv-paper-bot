@@ -604,8 +604,72 @@ def _maybe_sync_check_counts_external() -> None:
             return
         _sync_check_counts_external(_scheduler_check_counts_day, _scheduler_check_counts)
         _check_counts_last_digest = digest
+        if _scheduler_check_counts_day:  # B-1423: today's running total, so it survives as "yesterday" tomorrow
+            _check_totals_merge({_scheduler_check_counts_day: sum(_scheduler_check_counts.values())})
+            _check_totals_push()
     except Exception as e:
         print(f"[check_counts_external] throttled sync failed (non-fatal): {e}")
+
+
+# B-1423 (user, 29-Oct: "below checks today add checks yesterday"): the per-symbol counts above are overwritten on
+# the IST day rollover, so yesterday's total was lost. Each day's total (all checks, derivative legs included - the
+# same figure the dashboard's "checks today" shows) is kept in this durable map: updated with the throttled counts
+# sync, written at the rollover, restored at startup. docs/check_totals_daily.json is the git backfill (28-Oct from
+# the state/scheduler_check_counts.json journal at 21:43 IST).
+_CHECK_TOTALS_REDIS_KEY = "tv_paper_bot:scheduler_check_totals_daily:v1"
+_CHECK_TOTALS_KEEP_DAYS = 14
+_check_totals_daily: dict = {}
+_CHECK_TOTALS_BACKFILL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "check_totals_daily.json")
+
+
+def _check_totals_merge(src: dict) -> None:
+    """Keep the larger total per day (a count only grows within a day), last _CHECK_TOTALS_KEEP_DAYS days."""
+    for day, total in (src or {}).items():
+        try:
+            total = int(total)
+        except (TypeError, ValueError):
+            continue
+        if total > int(_check_totals_daily.get(day, 0) or 0):
+            _check_totals_daily[day] = total
+    for day in sorted(_check_totals_daily)[:-_CHECK_TOTALS_KEEP_DAYS]:
+        del _check_totals_daily[day]
+
+
+def _check_totals_push() -> None:
+    """Best-effort Upstash write of the daily totals map. Never raises."""
+    if not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
+        return
+    try:
+        _upstash_set(_CHECK_TOTALS_REDIS_KEY, json.dumps(_check_totals_daily, sort_keys=True))
+    except Exception as e:  # noqa: BLE001
+        print(f"[check_totals] sync failed (non-fatal): {e}")
+
+
+def hydrate_check_totals_daily() -> int:
+    """Startup: git backfill first, then Upstash (merge keeps the larger total per day). Never raises."""
+    try:
+        with open(_CHECK_TOTALS_BACKFILL_PATH) as f:
+            _check_totals_merge(json.load(f))
+    except Exception:  # noqa: BLE001
+        pass
+    if UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN:
+        try:
+            raw = _upstash_get(_CHECK_TOTALS_REDIS_KEY)
+            if raw:
+                _check_totals_merge(json.loads(raw))
+        except Exception as e:  # noqa: BLE001
+            print(f"[check_totals] hydrate failed (non-fatal): {e}")
+    return len(_check_totals_daily)
+
+
+def _checks_previous_day(today: str) -> dict:
+    """The most recent day before `today` with a recorded total: {"day", "total", "is_yesterday"} or {}."""
+    prior = sorted(d for d in _check_totals_daily if d < today)
+    if not prior:
+        return {}
+    day = prior[-1]
+    yday = (dt.date.fromisoformat(today) - dt.timedelta(days=1)).isoformat()
+    return {"day": day, "total": int(_check_totals_daily[day]), "is_yesterday": day == yday}
 
 
 def hydrate_check_counts_from_external() -> tuple[str, dict] | None:
@@ -19861,8 +19925,14 @@ _SCHEDULER_TICK_TIMING: dict = {"last": None, "recent": []}
 _SCHEDULER_TICK_TIMING_KEEP = 20
 
 
+def _scan_prefetch_intervals() -> list:
+    """B-1419 (live 29-Oct 14:53 IST): every bar size a symbol's scan fetches. The 15m chan short cells fetch 5d/15m
+    per symbol; only 5m was prefetched, so short_engine waited ~0.8 s/symbol on Yahoo (0.02 s CPU)."""
+    return ["5m", *sorted(set(CHAN_SHORT_CELL_INTERVAL.values()) - {"5m"})]
+
+
 def _prefetch_tick_ohlc(symbols, period: str = "5d", interval: str = "5m",
-                        workers: int | None = None) -> dict:
+                        workers: int | None = None, intervals=None, timeout: float | None = None) -> dict:
     """B-1419: warm fetch_ohlc's 180 s cache for this tick's symbols from a bounded
     thread pool. Read-only (no DB, no orders); a failed fetch is just counted, the
     per-symbol scan then fetches (and reports) it itself exactly as before."""
@@ -19870,14 +19940,16 @@ def _prefetch_tick_ohlc(symbols, period: str = "5d", interval: str = "5m",
     syms = list(dict.fromkeys(symbols))
     if not syms:
         return {"symbols": 0, "ok": 0, "failed": 0, "seconds": 0.0}
+    ivs = list(intervals) if intervals else [interval]
     t0 = time.time()
     ok = failed = 0
     n_workers = max(1, min(int(workers or SCAN_PREFETCH_WORKERS), len(syms)))
     pool = _cf.ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="scan-prefetch")
     try:
-        futs = [pool.submit(fetch_ohlc, s, period, interval) for s in syms]
+        # Symbol-major order, so a timeout still leaves whole symbols warm rather than one bar size of everything.
+        futs = [pool.submit(fetch_ohlc, s, period, iv) for s in syms for iv in ivs]
         try:
-            for f in _cf.as_completed(futs, timeout=SCAN_PREFETCH_TIMEOUT_SECONDS):
+            for f in _cf.as_completed(futs, timeout=timeout or SCAN_PREFETCH_TIMEOUT_SECONDS):
                 try:
                     f.result()
                     ok += 1
@@ -19887,7 +19959,7 @@ def _prefetch_tick_ohlc(symbols, period: str = "5d", interval: str = "5m",
             failed += sum(1 for f in futs if not f.done())
     finally:
         pool.shutdown(wait=False, cancel_futures=True)
-    return {"symbols": len(syms), "ok": ok, "failed": failed, "seconds": round(time.time() - t0, 2)}
+    return {"symbols": len(syms), "intervals": ivs, "ok": ok, "failed": failed, "seconds": round(time.time() - t0, 2)}
 
 
 def _record_tick_timing(entry: dict) -> None:
@@ -21301,6 +21373,9 @@ def _record_scheduler_check(key: str):
     global _scheduler_check_counts_day
     today_str = ist_now().strftime("%Y-%m-%d")
     if today_str != _scheduler_check_counts_day:
+        if _scheduler_check_counts_day and _scheduler_check_counts:  # B-1423: keep the closing day's total
+            _check_totals_merge({_scheduler_check_counts_day: sum(_scheduler_check_counts.values())})
+            threading.Thread(target=_check_totals_push, name="check-totals-push", daemon=True).start()
         _scheduler_check_counts.clear()
         _scheduler_check_counts_day = today_str
     _scheduler_check_counts[key] = _scheduler_check_counts.get(key, 0) + 1
@@ -26318,6 +26393,7 @@ def _scan_equity_symbol_sync(symbol: str, cfg, scheduler_capital_inr, live_daily
 
 BAR_SWEEP_SETTLE_SECONDS = 20  # Yahoo publishes the closed 5m bar a few seconds after the boundary
 BAR_SWEEP_BAR_SECONDS = 300
+BAR_SWEEP_PREFETCH_TIMEOUT_SECONDS = 150
 _BAR_SWEEP_STATS: dict = {"last": None, "sweeps_today": 0, "day": None}
 
 
@@ -26370,7 +26446,10 @@ async def _bar_sweep_once(now: float | None = None) -> dict:
     syms = _bar_sweep_candidates(bar_close)
     stats["candidates"] = len(syms)
     t0 = time.time()
-    stats["prefetch"] = await asyncio.to_thread(_prefetch_tick_ohlc, [*syms, UNIVERSAL_REFERENCE_INDEX])
+    # 200 symbols x 2 bar sizes at the 4-download cap is ~2 min; 60 s timed out 123 of 201 (14:45 IST bar).
+    stats["prefetch"] = await asyncio.to_thread(_prefetch_tick_ohlc, [*syms, UNIVERSAL_REFERENCE_INDEX],
+                                                intervals=_scan_prefetch_intervals(),
+                                                timeout=BAR_SWEEP_PREFETCH_TIMEOUT_SECONDS)
     by_symbol = {c["symbol"]: c for c in WATCHLIST}
     for sym in syms:
         while _TICK_WANTS_SCAN["n"] > 0 and time.time() < deadline:
@@ -26603,7 +26682,8 @@ async def _scheduler_tick():
     _prefetch = {"symbols": 0, "ok": 0, "failed": 0, "seconds": 0.0}
     try:
         _prefetch = await asyncio.to_thread(
-            _prefetch_tick_ohlc, [*sorted(symbols_this_tick), UNIVERSAL_REFERENCE_INDEX])
+            _prefetch_tick_ohlc, [*sorted(symbols_this_tick), UNIVERSAL_REFERENCE_INDEX],
+            intervals=_scan_prefetch_intervals())
     except Exception as e:  # noqa: BLE001
         print(f"[scheduler] prefetch failed (non-fatal, per-symbol fetch still runs): {e}")
     _scan_t0 = time.time()
@@ -26826,6 +26906,10 @@ async def _start_scheduler():
         _real_positions_short_hydrated = False
         _real_positions_swing_hydrated = False
         _external_rr_cursor, _external_check_counts = None, None
+    try:
+        await asyncio.wait_for(asyncio.to_thread(hydrate_check_totals_daily), timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
+    except Exception as e:  # noqa: BLE001
+        print(f"[check_totals] startup hydrate skipped (non-fatal): {e}")
     try:
         await asyncio.wait_for(asyncio.to_thread(hydrate_signal_state_swing_from_external),
                                timeout=STARTUP_HYDRATION_TIMEOUT_SECONDS)
@@ -27219,6 +27303,7 @@ def scheduler_pipeline(recent: int = 10, next_n: int = 5):
         "total_checks_today": total_checks_today,
         "total_checks_incl_derivative_legs": total_checks_incl_derivative_legs,
         "derivative_leg_checks_today": total_checks_incl_derivative_legs - total_checks_today,
+        "checks_previous_day": _checks_previous_day(ist_now().strftime("%Y-%m-%d")),  # B-1423
         "derivative_leg_visits_skipped_today": _scheduler_skipped_visits_today(),
         "checks_last_30s": checks_in_last_seconds(30),
         "fo_subscribed_instruments": fo_subscribed_instruments,
