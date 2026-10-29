@@ -132,7 +132,7 @@ def test_bar_sweep_scans_every_unscanned_equity_once(monkeypatch):
     monkeypatch.setattr(main, "is_nse_trading_day", lambda *a, **k: True)
     monkeypatch.setattr(main, "is_trading_enabled", lambda c: True)
     monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 10000.0)
-    monkeypatch.setattr(main, "_prefetch_tick_ohlc", lambda syms: {"symbols": len(syms)})
+    monkeypatch.setattr(main, "_prefetch_tick_ohlc", lambda syms, **k: {"symbols": len(syms)})
     monkeypatch.setattr(main, "WATCHLIST", [{"symbol": s} for s in ("A.NS", "B.NS", "C.NS", "^NSEI")])
     monkeypatch.setattr(main, "_SCAN_LAST_DONE", {"B.NS": _B + 1})
     import time as _t
@@ -206,7 +206,7 @@ def test_sweep_yields_to_a_waiting_tick(monkeypatch):
     monkeypatch.setattr(main, "is_nse_trading_day", lambda *a, **k: True)
     monkeypatch.setattr(main, "is_trading_enabled", lambda c: True)
     monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 1.0)
-    monkeypatch.setattr(main, "_prefetch_tick_ohlc", lambda syms: {})
+    monkeypatch.setattr(main, "_prefetch_tick_ohlc", lambda syms, **k: {})
     monkeypatch.setattr(main, "WATCHLIST", [{"symbol": "A.NS"}])
     monkeypatch.setattr(main, "_SCAN_LAST_DONE", {})
     clock = {"t": _B + 20.0}
@@ -245,3 +245,13 @@ def test_section_timing_recorded():
     summ = main._scan_sections_summary()
     assert summ["x"]["n"] == 1 and summ["x"]["avg_wall_s"] >= 0
     main._SCAN_SECTION_STATS.clear()
+
+
+def test_prefetch_covers_every_bar_size_the_scan_uses():
+    ivs = main._scan_prefetch_intervals()
+    assert ivs[0] == "5m" and "15m" in ivs  # 15m chan short cells
+    seen = []
+    with patch("main.fetch_ohlc", side_effect=lambda s, p, i: seen.append((s, i)) or _df()):
+        out = main._prefetch_tick_ohlc(["A.NS", "B.NS"], intervals=ivs, workers=2)
+    assert sorted(seen) == sorted((s, i) for s in ("A.NS", "B.NS") for i in ivs)
+    assert out["ok"] == 2 * len(ivs) and out["intervals"] == ivs
