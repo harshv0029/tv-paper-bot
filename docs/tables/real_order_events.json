@@ -12731,7 +12731,19 @@
    "prev_state": "no position",
    "new_state": "short 3 @ Rs504.15",
    "detail": "reason: paper short entry signal from strategy chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2 passed the PFnet gate"
+  },
+  {
+   "id": 1062,
+   "ts": 1793246031.4171443,
+   "symbol": "JSWENERGY.NS",
+   "kotak_trading_symbol": "JSWENERGY-EQ",
+   "leg": "short_sl",
+   "event": "placed",
+   "order_id": "261029000056625",
+   "prev_state": "none",
+   "new_state": "resting BUY trigger Rs504.15",
+   "detail": "reason: resting buy-stop placed so the open short is protected"
   }
  ],
- "synced_at_utc": "2026-10-29T03:53:43Z"
+ "synced_at_utc": "2026-10-29T03:53:57Z"
 }
