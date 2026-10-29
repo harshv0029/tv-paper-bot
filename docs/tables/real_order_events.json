@@ -12743,7 +12743,19 @@
    "prev_state": "none",
    "new_state": "resting BUY trigger Rs504.15",
    "detail": "reason: resting buy-stop placed so the open short is protected"
+  },
+  {
+   "id": 1063,
+   "ts": 1793246053.556025,
+   "symbol": "JSWENERGY.NS",
+   "kotak_trading_symbol": "JSWENERGY-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261029000056625",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs504.15",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=B qty=3"
   }
  ],
- "synced_at_utc": "2026-10-29T03:53:57Z"
+ "synced_at_utc": "2026-10-29T03:55:15Z"
 }
