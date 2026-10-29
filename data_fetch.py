@@ -33,6 +33,11 @@ _MAX_CACHE_ENTRIES = 400
 # cache dict is read and pruned by several threads at once. The lock covers
 # only dict access, never the network call.
 _CACHE_LOCK = threading.RLock()
+# B-1422: at most this many Yahoo downloads (fetch + pandas parse) run at once across every caller (swing
+# prefetch pool, scan-tick prefetch, 5m-bar sweep). Eight parallel parses starved the event loop's thread of the
+# GIL for 16.7 s on 29-Oct 13:51 IST (watchdog), so total download concurrency is capped, not per pool.
+_YF_MAX_CONCURRENT = 4
+_FETCH_SLOTS = threading.BoundedSemaphore(_YF_MAX_CONCURRENT)
 # yfinance >= 1.x keeps per-call download state (multi._DownloadCtx); older
 # versions share module globals (shared._DFS) across calls, so serialize there.
 _YF_CALL_LOCK = None
@@ -84,11 +89,12 @@ def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
             for k in oldest_keys[: len(_DATA_CACHE) - _MAX_CACHE_ENTRIES + 1]:
                 del _DATA_CACHE[k]
 
-    if _YF_CALL_LOCK is not None:
-        with _YF_CALL_LOCK:
+    with _FETCH_SLOTS:
+        if _YF_CALL_LOCK is not None:
+            with _YF_CALL_LOCK:
+                df = yf.download(symbol, period=period, interval=interval, progress=False)
+        else:
             df = yf.download(symbol, period=period, interval=interval, progress=False)
-    else:
-        df = yf.download(symbol, period=period, interval=interval, progress=False)
     if df.empty:
         raise HTTPException(
             status_code=404,

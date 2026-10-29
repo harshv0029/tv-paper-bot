@@ -3,7 +3,7 @@ import main
 
 
 def test_scheduler_tick_runs_swing_scan_in_thread():
-    src = inspect.getsource(main._scheduler_tick)
+    src = (inspect.getsource(main._scheduler_tick) + inspect.getsource(main._scan_equity_symbol_sync))
     assert "asyncio.to_thread(_run_swing_scan_own_conn)" in src
     assert "_run_swing_scan(conn)" not in src
 

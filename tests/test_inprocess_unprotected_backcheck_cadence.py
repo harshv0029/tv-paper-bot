@@ -57,7 +57,7 @@ def test_backcheck_runs_on_its_own_5_min_wall_clock_thread():
 
 def test_backcheck_thread_is_started_at_startup():
     assert "_unprotected_backcheck_loop" in inspect.getsource(main)
-    src = inspect.getsource(main._scheduler_tick)
+    src = (inspect.getsource(main._scheduler_tick) + inspect.getsource(main._scan_equity_symbol_sync))
     assert "% _UNPROTECTED_BACKCHECK_EVERY_N_TICKS" not in src  # no tick-count dependency any more
     assert "asyncio.to_thread(_unprotected_backcheck_once)" in src  # 09:15-09:30 pass, off the event loop
 

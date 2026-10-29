@@ -57,6 +57,6 @@ def test_health_keeps_first_and_last_alarm(monkeypatch):
 def test_scheduler_tick_keeps_kotak_calls_off_the_loop():
     """B-1361: live first/last alarm stacks showed quotes() and limits() running on MainThread, freezing /health 16-31 s."""
     import inspect
-    src = inspect.getsource(main._scheduler_tick)
+    src = (inspect.getsource(main._scheduler_tick) + inspect.getsource(main._scan_equity_symbol_sync))
     assert "await asyncio.to_thread(get_scheduler_capital_inr)" in src
     assert "_fo_chain_monitoring_snapshot(conn)" not in src

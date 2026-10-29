@@ -81,7 +81,7 @@ def test_push_loop_is_independent_of_scheduler_tick(monkeypatch):
     main._git_tier_push_loop(sleep=sleeps.append, rounds=3)
     assert calls == list(main._GIT_TIER_PUSH_TABLES) * 3 and sleeps == [60] * 3
     import inspect
-    assert "_git_tier_push_side_branch" not in inspect.getsource(main._scheduler_tick)
+    assert "_git_tier_push_side_branch" not in (inspect.getsource(main._scheduler_tick) + inspect.getsource(main._scan_equity_symbol_sync))
 
 
 def test_health_shows_order_log_push_age(monkeypatch):
