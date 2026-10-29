@@ -14300,6 +14300,12 @@ def _maybe_place_real_short_entry(conn, symbol: str):
                           detail=f"strategy {strategy_tag!r} no longer viable on the fresh stack re-check just before the order")
         return
 
+    _close_why = _real_entry_stop_too_close("short", ltp, paper_row["stop_loss"] if paper_row else None)
+    if _close_why:  # B-1414
+        _log_real_attempt(conn, symbol, "S", "skipped_stop_too_close", kotak_trading_symbol=kotak_symbol,
+                          price_est=ltp, detail=_close_why, strategy=strategy_tag)
+        return
+
     import kotak_real_orders
     result = kotak_real_orders.place_real_short_entry(kotak_symbol, qty, ltp)
     if not result.get("ok"):
@@ -14340,6 +14346,12 @@ def _maybe_place_real_short_entry(conn, symbol: str):
         reason=f"paper short entry signal from strategy {real_strategy or 'unknown'} passed the PFnet gate",
     )
     _log_signal_shadow(conn, real_strategy, symbol, "short", True, "real short entry placed")
+    if paper_row and paper_row["stop_loss"] and real_entry_price and float(real_entry_price) >= float(paper_row["stop_loss"]):
+        # B-1414: say so plainly; the SL is still placed (no trade without SL), and it will likely fire at once.
+        _log_real_order_event(
+            conn, symbol, "short_entry", "filled_at_stop", kotak_trading_symbol=kotak_symbol, order_id=result["order_id"],
+            prev_state=f"short {real_qty} @ Rs{float(real_entry_price):.2f}", new_state=f"stop Rs{float(paper_row['stop_loss']):.2f} already reached",
+            reason="the market moved past the strategy stop between the live tick and the fill")
 
     if paper_row and paper_row["stop_loss"]:
         sl_result = kotak_real_orders.place_real_short_stop_loss(
@@ -14454,6 +14466,27 @@ REAL_INTRADAY_MAX_STOP_PCT = 0.05
 def _cap_real_intraday_stop(entry_price: float, stop_price: float) -> float:
     floor = entry_price * (1 - REAL_INTRADAY_MAX_STOP_PCT)
     return round(max(float(stop_price), floor), 2)
+
+
+REAL_ENTRY_MIN_STOP_DIST_PCT = 0.5
+# B-1414 (live 2026-10-29 09:23 IST, JSWENERGY): a real short priced off a 501.80 tick filled at 504.15, exactly the
+# paper stop (5m close + 1.5 x ATR), so its buy-stop fired 12 s later: flat gross, costs lost. The gap between the
+# tick and the fill (~0.47%) can erase a stop that close. A real intraday entry whose strategy stop is nearer than
+# this to the live price is skipped (paper keeps the trade); a stop already at/through the price always is.
+
+
+def _real_entry_stop_too_close(side: str, ltp: float, stop) -> "str | None":
+    try:
+        ltp, stop = float(ltp or 0), float(stop or 0)
+    except (TypeError, ValueError):
+        return None
+    if ltp <= 0 or stop <= 0:
+        return None
+    dist_pct = ((stop - ltp) if side == "short" else (ltp - stop)) / ltp * 100
+    if dist_pct < REAL_ENTRY_MIN_STOP_DIST_PCT:
+        return (f"strategy stop Rs{stop:.2f} is {dist_pct:.2f}% from live Rs{ltp:.2f} (< {REAL_ENTRY_MIN_STOP_DIST_PCT}%): "
+                f"the fill could land at the stop and be stopped out at once for a cost-only loss")
+    return None
 
 
 def _maybe_place_real_entry(conn, symbol: str):
@@ -14599,6 +14632,11 @@ def _maybe_place_real_entry(conn, symbol: str):
 
     import kotak_real_orders
     if paper_row and paper_row["stop_loss"]:
+        _close_why = _real_entry_stop_too_close("long", ltp, _cap_real_intraday_stop(ltp, paper_row["stop_loss"]))
+        if _close_why:  # B-1414
+            _lra_tag(conn, symbol, "B", "skipped_stop_too_close", kotak_trading_symbol=kotak_symbol,
+                     price_est=ltp, detail=_close_why)
+            return
         _sl_ok, _sl_why = kotak_real_orders.stop_placeable_for_entry(
             kotak_symbol, _cap_real_intraday_stop(ltp, paper_row["stop_loss"]), ltp)
         if not _sl_ok:  # B-1308: no trade without a placeable SL
@@ -22571,6 +22609,37 @@ def _maybe_place_real_swing_entry(conn, symbol, paper_qty, paper_entry_price, pa
         _maybe_place_real_swing_exit(conn, symbol, reason="entry_sl_failed_unwind")
 
 
+def _log_swing_ensure_sl_result(conn, symbol: str, kotak_trading_symbol: str, res: dict, stop_px: float,
+                                why: str, prev_state: str = "none") -> None:
+    """B-1412 (live 2026-10-29 09:15 IST: BANKINDIA's band-floor SL 119.97 was cancelled and replaced by 126.73 with
+    no cancel in the log, and SUZLON's retry logged 'placed at its stored stop Rs28.91' for a 33.67 order): one place
+    that logs what ensure_resting_sl actually did at Kotak - every cancelled order with its reason, an adopted live
+    order as 'adopted' (not 'placed'), and the real trigger next to the strategy stop when the band moved it."""
+    trg = float(res.get("trigger_price") or 0)
+    action = res.get("action")
+    band_note = ""
+    if res.get("band_clamped_from") is not None:
+        band_note = (f"; strategy stop Rs{float(res['band_clamped_from']):.2f} is outside the day's price band, "
+                     f"so the stop rests at the band floor Rs{trg:.2f}")
+    if action == "adopted_existing":
+        _log_real_order_event(
+            conn, symbol, "sl", "adopted", kotak_trading_symbol=kotak_trading_symbol, order_id=res.get("order_id"),
+            prev_state="live SL at Kotak", new_state=f"resting SELL trigger Rs{trg:.2f}",
+            reason=f"{why}; a live SELL SL at Rs{trg:.2f} already covers the position (target stop Rs{stop_px:.2f}), adopted, nothing placed")
+        return
+    cancelled = list(res.get("cancelled") or [])
+    for oid in cancelled:
+        _log_real_order_event(
+            conn, symbol, "sl", "cancelled", kotak_trading_symbol=kotak_trading_symbol, order_id=oid,
+            prev_state="resting SELL SL", new_state="cancelled",
+            reason=f"replaced by a higher stop Rs{trg:.2f} (the stop only ratchets up; target stop Rs{stop_px:.2f})")
+    _log_real_order_event(
+        conn, symbol, "sl", "placed", kotak_trading_symbol=kotak_trading_symbol, order_id=res.get("order_id"),
+        prev_state=(f"live SL {', '.join(cancelled)} below the target stop" if cancelled else prev_state),
+        new_state=f"resting SELL trigger Rs{trg:.2f}",
+        reason=f"{why}; placed at Rs{trg:.2f} (target stop Rs{stop_px:.2f}){band_note}")
+
+
 def _maybe_sync_real_swing_stop_loss(conn):
     """Daily retry for any open real_positions_swing row still missing its
     resting stop-loss (sl_order_id NULL) - e.g. the placement attempt in
@@ -22629,12 +22698,9 @@ def _maybe_sync_real_swing_stop_loss(conn):
             _sync_real_positions_swing_external(conn)
             print(f"[REAL SWING] SL resting @ Rs{sl_result['trigger_price']:.2f} for "
                   f"{row['kotak_trading_symbol']} (order {sl_result['order_id']}, retried)")
-            _log_real_order_event(
-                conn, row["symbol"], "sl", "placed", kotak_trading_symbol=row["kotak_trading_symbol"],
-                order_id=sl_result["order_id"], prev_state="none (retry)",
-                new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f}",
-                reason=f"swing position had no resting stop-loss; placed at its stored stop Rs{stop_px:.2f}",
-            )
+            _log_swing_ensure_sl_result(conn, row["symbol"], row["kotak_trading_symbol"], sl_result, stop_px,
+                                        "swing position had no resting stop-loss in the app's row (retry)",
+                                        prev_state="none (retry)")
         else:
             print(f"[REAL SWING] SL retry FAILED for {row['kotak_trading_symbol']}: "
                   f"{sl_result.get('detail')} - still unprotected, will retry next day's scan")
@@ -25231,10 +25297,17 @@ def _log_unlogged_kotak_orders(conn, order_rows) -> int:
             if not oid or oid in known:
                 continue
             tsym = row.get("trdSym") or ""
-            detail = (f"reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or "
-                      f"manually); Kotak facts: {row.get('ordDtTm','')} {row.get('trnsTp','')} {row.get('prcTp','')} "
-                      f"qty {row.get('qty','')} trg {row.get('trgPrc','')} status {row.get('ordSt','')} "
-                      f"rejRsn {str(row.get('rejRsn') or '')[:120]}")
+            facts = (f"Kotak facts: {row.get('ordDtTm','')} {row.get('trnsTp','')} {row.get('prcTp','')} "
+                     f"qty {row.get('qty','')} trg {row.get('trgPrc','')} status {row.get('ordSt','')} "
+                     f"rejRsn {str(row.get('rejRsn') or '')[:120]}")
+            try:
+                import kotak_real_orders as _kro
+                known_why = _kro.order_reason(oid)  # B-1411: this process sent it and knows why it was replaced
+            except Exception:
+                known_why = None
+            detail = (f"reason: {known_why}; {facts}" if known_why else
+                      f"reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or "
+                      f"manually); {facts}")
             conn.execute(
                 "INSERT INTO real_order_events (ts, symbol, kotak_trading_symbol, leg, event, order_id, "
                 "prev_state, new_state, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -27885,7 +27958,8 @@ def real_positions_sl_today():
             _one(r, "short_sell", "short", r.get("ss"), r.get("st"), r.get("strategy"), r.get("isl"))
         for r in _rows("SELECT p.*, s.initial_stop_loss AS isl FROM real_positions_swing p "
                        "LEFT JOIN signal_state_swing s ON s.symbol = p.symbol"):
-            _one(r, "swing", "long", r.get("stop_loss"), None, r.get("strategy"), r.get("isl"))
+            # B-1412: the stop the bot actually rests is the stored stop floored at the entry-day stop (B-1367)
+            _one(r, "swing", "long", _swing_stop_floored(c, r["symbol"], r.get("stop_loss")), None, r.get("strategy"), r.get("isl"))
         for r in _rows("SELECT p.*, s.initial_stop_loss AS isl FROM real_positions_swing_short p "
                        "LEFT JOIN signal_state_swing_short s ON s.symbol = p.symbol"):
             _one(r, "swing_short", "short", r.get("stop_loss"), None, r.get("strategy"), r.get("isl"))
@@ -31278,9 +31352,10 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                              if _nse_equity_market_open_now() else [])
         for r in _swing_missing_sl:
             import kotak_real_orders
-            sl_result = kotak_real_orders.ensure_resting_sl(
-                r["kotak_trading_symbol"], r["qty"], round(r["stop_loss"], 2)
-            )
+            # B-1412: the same stop the per-tick retry uses (stored stop floored at the entry-day stop), so the two
+            # paths never fight over two different levels (BANKINDIA 2026-10-29: 115.72 here vs 126.73 there).
+            _bf_stop = _swing_stop_floored(conn, r["symbol"], r["stop_loss"])
+            sl_result = kotak_real_orders.ensure_resting_sl(r["kotak_trading_symbol"], r["qty"], _bf_stop)
             backfill_entry = {
                 "symbol": r["symbol"], "entry_price": r["entry_price"],
                 "stop_loss": r["stop_loss"], "qty": r["qty"],
@@ -31290,12 +31365,8 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                     "UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
                     (sl_result["order_id"], sl_result["trigger_price"], r["symbol"]),
                 )
-                _log_real_order_event(
-                    conn, r["symbol"], "sl", "placed", kotak_trading_symbol=r["kotak_trading_symbol"],
-                    order_id=sl_result["order_id"], prev_state="none",
-                    new_state=f"resting SELL trigger Rs{sl_result['trigger_price']:.2f}",
-                    detail="placed synchronously during swing governance backfill",
-                )
+                _log_swing_ensure_sl_result(conn, r["symbol"], r["kotak_trading_symbol"], sl_result, _bf_stop,
+                                            "swing position had no resting stop-loss (5-min governance backfill)")
                 backfill_entry["sl_order_id"] = sl_result["order_id"]
                 backfill_entry["sl_placed"] = True
             else:
