@@ -30,6 +30,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import brk20_replay as B  # noqa: E402  (exact-mergeable aggregation helpers)
+import swing_bandcap as bc  # noqa: E402  (B-1417 shared live resting-stop model)
 
 PERIOD = "5y"
 INTERVAL = "1d"
@@ -50,8 +51,11 @@ def _exit_price(direction, reason, stop0, o, c):
     return c
 
 
-def replay_symbol(m, df, tag, spec, cost, fill="signal_close", vcp_gate=None):
-    """One symbol, one tag. Returns trade dicts {gross, net, held, reason}."""
+def replay_symbol(m, df, tag, spec, cost, fill="signal_close", vcp_gate=None, band_cap="off"):
+    """One symbol, one tag. Returns trade dicts {gross, net, held, reason}.
+    band_cap (B-1417, scripts/swing_bandcap.py): "off" = unchanged; "live" = the frozen resting stop Kotak holds
+    (raised to the 10% band floor for a long, lowered to the band ceiling for a short), triggered intraday from the bar
+    after entry, checked before the real exit fn."""
     df = df.reset_index(drop=True)
     n = len(df)
     if n < MIN_BARS + 3 or "Date" not in df.columns:
@@ -60,9 +64,18 @@ def replay_symbol(m, df, tag, spec, cost, fill="signal_close", vcp_gate=None):
     sgn = 1.0 if direction == "long" else -1.0
     opens, closes = df["Open"].to_numpy(float), df["Close"].to_numpy(float)
     dates = df["Date"].astype(str).str[:10].to_numpy()
+    band = bc.normalize_mode(band_cap) != "off"
+    if band:
+        lows, highs, prevc = df["Low"].to_numpy(float), df["High"].to_numpy(float), bc.prev_session_close(df)
     out, pos, blocked = [], None, -1
     for k in range(MIN_BARS - 1, n):
         sub = df.iloc[:k + 1]
+        if pos is not None and band and k > pos["sig"]:
+            hit = bc.resting_stop_exit(band_cap, direction, pos["stop0"], prevc[k], opens[k], lows[k], highs[k])
+            if hit:
+                g = sgn * (hit[0] - pos["ep"]) / pos["ep"]
+                out.append({"gross": g, "net": g - cost, "held": k - pos["sig"], "reason": hit[1]})
+                pos, blocked = None, k
         if pos is not None and k > pos["sig"]:
             if direction == "long":
                 reason, _ = m._swingminrr_exit_adapter(sub, pos["day"], pos["stop0"], pos["atr"], pos["ep"])
@@ -128,6 +141,7 @@ def run():
     shard, nshards = int(os.environ.get("SHARD", "0")), int(os.environ.get("NSHARDS", "1"))
     limit = int(os.environ["SYMBOL_LIMIT"]) if os.environ.get("SYMBOL_LIMIT") else None
     cost = m.ROUND_TRIP_COST_PCT / 100.0
+    band_cap = bc.mode_from_env()  # B-1417: off (default, unchanged) | live (results under rsbandfloor tags)
     frames = load_frames(m, shard, nshards, limit)
     aggs = {t: B.agg_new() for t in tags}
     for sym, df in frames.items():
@@ -138,7 +152,7 @@ def run():
             return cache.setdefault(len(sub), bool(m.minervini_vcp_entry_signal(sub)))
         for t in tags:
             try:
-                tr = replay_symbol(m, df, t, specs[t], cost, fill, gate if specs[t]["dir"] == "long" else None)
+                tr = replay_symbol(m, df, t, specs[t], cost, fill, gate if specs[t]["dir"] == "long" else None, band_cap)
             except Exception as ex:
                 print("ERROR", sym, t, ex)
                 continue
@@ -147,7 +161,8 @@ def run():
            "cost_round_trip_pct": m.ROUND_TRIP_COST_PCT, "period": PERIOD, "interval": INTERVAL,
            "synthetic": os.environ.get("SYNTHETIC") == "1",
            "note": "tags replayed independently; bar constants are 1d bars; vcp rs_percentile=None",
-           "cells": {t: {"spec": specs[t], "raw": a} for t, a in aggs.items()}}
+           "band_cap": band_cap,
+           "cells": {bc.band_tag(t, band_cap): {"spec": specs[t], "raw": a} for t, a in aggs.items()}}
     os.makedirs("out", exist_ok=True)
     path = f"out/swingshort_{group}_s{shard}.json"
     json.dump(res, open(path, "w"), indent=1)

@@ -1,0 +1,95 @@
+name: Swing band_cap live resting-stop replay (B-1417)
+
+# Backlog B-1417 (generalises B-1413's OB/VP band_cap='live'). For every other LIVE swing family, replays every live tag
+# TWICE on the same full-universe data through the family's own main.py-calling replay (REAL main.py entry/exit fns,
+# never a reimplementation): band_cap=off (the existing model) and the chosen band_cap (default live = what Kotak rests:
+# the strategy's stop, raised to the 10% daily band floor prev_close x 0.9 x 1.003 - lowered to the ceiling
+# prev_close x 1.1 x 0.997 for a short - triggered intraday on the low/high, filled at min/max(open, trigger)).
+# Shared model: scripts/swing_bandcap.py. Driver: scripts/swing_bandcap_replay.py.
+# Families: power_play, primary_base, gap_and_go, oneil (1w live cells on daily bars), brk20 (live long 1d atr4 rr4),
+# chan_shape (1d), macddiv (1h, daily band off the previous session close), short_swing (brk20 1d short cells).
+# Universe = main._load_nse_universe_from_file() (full NSE). Cost = main.ROUND_TRIP_COST_PCT (0.8% round trip).
+# Output: artifact swing-bandcap-all (swing_bandcap_all.json: per tag n, win %, PFnet gross/net, avg hold, exit
+# reasons, off AND live) + a one-line-per-tag summary and a RESULTS_JSON line in the aggregate job log.
+# Live-mode results are NEW tags (rsbandfloor param), never a rename. Big matrix: dispatch only when no gate is queued.
+on:
+  workflow_dispatch:
+    inputs:
+      strategies:
+        description: "all, or a comma list of: power_play,primary_base,gap_and_go,oneil,brk20,chan_shape,macddiv,short_swing"
+        required: false
+        default: "all"
+      band_cap:
+        description: "live (resting stop + 10% band floor) or off (baseline only)"
+        required: false
+        default: "live"
+      nshards:
+        description: "Universe shards per family"
+        required: false
+        default: "8"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - id: p
+        env:
+          STRATEGIES: ${{ inputs.strategies }}
+          NSHARDS: ${{ inputs.nshards }}
+        run: echo "matrix=$(python3 scripts/swing_bandcap_replay.py plan)" >> "$GITHUB_OUTPUT"
+
+  replay:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay off vs band_cap (real main.py functions)
+        env:
+          FAMILY: ${{ matrix.family }}
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: ${{ matrix.nshards }}
+          BAND_CAP: ${{ inputs.band_cap }}
+        run: python3 scripts/swing_bandcap_replay.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bandcap-${{ matrix.family }}-s${{ matrix.shard }}
+          path: out/
+          retention-days: 14
+
+  aggregate:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: bandcap-*
+          merge-multiple: true
+      - name: Pooled off vs live per tag (one line per tag)
+        run: python3 scripts/swing_bandcap_replay.py merge shards swing_bandcap_all.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: swing-bandcap-all
+          path: swing_bandcap_all.json
+          retention-days: 30

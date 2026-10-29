@@ -30,6 +30,12 @@ def _reset_viable_stack_state():
             _m._SCAN_ACTIVITY_CACHE.clear()  # B-1276 30s cache must not leak across tests
     except Exception:
         pass
+    try:
+        if _m is not None:  # B-1394 last-good /real-open-positions copy must not leak across tests
+            _m._real_open_positions_last_good.update(payload=None, as_of=None)
+            _m._real_open_positions_build_state["fut"] = None
+    except Exception:
+        pass
     yield
     if _m is not None and _db_path is not None:
         _m.DB_PATH = _db_path  # a test that swaps in a temp DB (stack rows) must not leak it

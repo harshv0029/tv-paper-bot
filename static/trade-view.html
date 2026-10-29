@@ -248,6 +248,7 @@
      longer be true. -->
 <div id="unprotected-banner" style="display:none;"></div>
 <div id="upstash-banner" class="mono" style="display:none;padding:6px 10px;margin:4px 0;border-radius:6px;font-weight:600;"></div>
+<div id="rop-stale-note" class="mono" style="display:none;padding:2px 10px;margin:2px 0;font-size:12px;opacity:.8;"></div>
 
 <div class="log-panel">
   <div class="log-head">
@@ -2337,6 +2338,14 @@ async function refresh() {
       fetchJSON(`${ORIGIN}/strategy-scan-activity?include_unwired=true`).catch(() => null),
       fetchJSON(`${ORIGIN}/strategy-tag-map`).then(m => { window._tagMap = m; try { localStorage.setItem("tagmap_cache", JSON.stringify(m)); } catch (e) {} }).catch(() => { try { window._tagMap = JSON.parse(localStorage.getItem("tagmap_cache")); } catch (e) {} }),
     ]);
+    {  // B-1394: /real-open-positions served its last-good copy (Kotak slow/failed); display only
+      const el = document.getElementById("rop-stale-note");
+      if (el) {
+        const stale = openRealPositions && openRealPositions.stale;
+        el.style.display = stale ? "block" : "none";
+        el.textContent = stale ? `Open real positions: stale, as of ${String(openRealPositions.as_of || "?").slice(11, 16)} IST` : "";
+      }
+    }
     renderUnprotectedBanner(protectionStatus);
     renderStrategyScanActivity(strategyScanActivity);
     fetchJSON(`${ORIGIN}/signal-funds`).then(f => { window._sigFunds = f; }).catch(() => { window._sigFunds = null; })

@@ -195,6 +195,31 @@ OPTIONS_MIN_DTE = 1
 # is skipped for NEW scans/entries and the next expiry is used (CRUDEOIL/CRUDEOILM expire
 # 15 Oct 2026). A constant, not an env switch. An OPEN position keeps its own stored contract.
 MCX_ROLL_DAYS = 2
+_IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
+
+
+def ist_today() -> dt.date:
+    """Today's date in IST (Render runs UTC, whose date lags IST until 05:30 IST)."""
+    return dt.datetime.now(_IST).date()
+
+
+def pick_mcx_future(candidates, today=None):
+    """THE single MCX futures contract picker (B-1269), shared by the live price-feed
+    scan (kotak_live_feed._resolve_mcx_tokens) and every real/paper entry resolver
+    (select_nse_future), so the scan and the order path never disagree.
+
+    `candidates`: iterable of (expiry_date: dt.date, row) for ONE underlying's FUTCOM
+    contracts. Expired contracts (expiry before `today`, IST) are dropped. Returns the
+    nearest contract more than MCX_ROLL_DAYS calendar days from expiry; if none exists,
+    the nearest non-expired one (never nothing when a live contract exists). None if
+    no candidate is live. For NEW scans/entries only: an open position keeps the
+    trading symbol stored on its own row and is never re-resolved through this."""
+    today = today or ist_today()
+    live = [(exp, row) for exp, row in candidates if (exp - today).days >= 0]
+    if not live:
+        return None
+    rolled = [t for t in live if (t[0] - today).days > MCX_ROLL_DAYS]
+    return min(rolled or live, key=lambda t: t[0])[1]
 OPTIONS_MAX_DTE = 10  # same near-week window options_pricing.py already uses for US chains
 
 
@@ -332,9 +357,17 @@ def select_nse_future(underlying: str):
             with_dte.append((dte, exp, r))
     if not with_dte:
         return None, "no_upcoming_future"
-    # Roll only MCX commodity futures (FUTCOM); NSE futures keep nearest-expiry behaviour.
-    rolled = [t for t in with_dte if not (t[2].get("pInstType") == "FUTCOM" and t[0] <= MCX_ROLL_DAYS)]
-    dte, exp, row = min(rolled or with_dte, key=lambda t: t[0])
+    # Roll only MCX commodity futures (FUTCOM) via the shared picker; NSE futures keep
+    # nearest-expiry behaviour.
+    mcx = [(e, r) for _d, e, r in with_dte if r.get("pInstType") == "FUTCOM"]
+    if mcx:
+        row = pick_mcx_future(mcx)
+        if row is None:
+            return None, "no_upcoming_future"
+        exp = next(e for _d, e, r in with_dte if r is row)
+        dte = (exp - ist_today()).days
+    else:
+        dte, exp, row = min(with_dte, key=lambda t: t[0])
     return {
         "underlying": underlying, "kotak_trading_symbol": row["pTrdSymbol"],
         "instrument_token": str(row["pSymbol"]), "exchange_segment": _UNDERLYING_TO_SEGMENT[underlying.upper()],

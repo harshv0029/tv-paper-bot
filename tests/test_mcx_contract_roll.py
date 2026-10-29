@@ -48,7 +48,7 @@ def test_only_expiring_contract_falls_back():
 
 
 def _fut_rows(days, inst="FUTCOM"):
-    t = dt.date.today()
+    t = nf.ist_today() if inst == "FUTCOM" else dt.date.today()  # MCX roll uses the IST date (B-1269)
     return [{"pInstType": inst, "pExpiryDate": (t + dt.timedelta(days=d)).strftime("%d%b%Y"), "pSymbol": str(d),
              "pTrdSymbol": f"X{d}", "lLotSize": 10} for d in days]
 
