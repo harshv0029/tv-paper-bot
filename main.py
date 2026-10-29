@@ -28239,14 +28239,104 @@ def _sl_kind(category: str, tag: str | None) -> str:
     return "fixed (moves to breakeven)" if "moves to entry" in rule else "fixed"
 
 
+# B-1425 (user 2026-10-29, View 4): each open position's expected exit date per its own strategy's time stop. The
+# strategy can exit sooner (stop, target, rule exit); this is the latest date its max-hold rule keeps it open.
+_BARS_PER_SESSION = {"1m": 375, "5m": 75, "15m": 25, "1h": 7, "4h": 2, "1d": 1}
+
+
+def _strategy_hold_spec(tag):
+    """(hold count, timeframe) for a swing strategy tag, from the same constants/cells its exit function reads; None if
+    the tag has no known time stop."""
+    if not tag:
+        return None
+    legacy = {"gap_and_go": SWING_GAP_AND_GO_MAX_HOLD_DAYS, "orb-swing-gap-and-go": SWING_GAP_AND_GO_MAX_HOLD_DAYS,
+              ORPHAN_SWING_STRATEGY_TAG: SWING_GAP_AND_GO_MAX_HOLD_DAYS,
+              "minervini_vcp": MINERVINI_MAX_HOLD_DAYS, "minervini_vcp_livermore": MINERVINI_MAX_HOLD_DAYS,
+              "primary_base": MINERVINI_MAX_HOLD_DAYS, "minervini_vcp_be3r": MINERVINI_MAX_HOLD_DAYS,
+              "power_play": POWER_PLAY_MAX_HOLD_DAYS, "order_block_delta": ORDER_BLOCK_MAX_HOLD_DAYS,
+              "volume_profile_poc": VP_MAX_HOLD_DAYS}
+    if tag in legacy:
+        return legacy[tag], "1d"
+    if tag in SWING_EXITINVAL_TAGS:
+        return SWING_EXITINVAL_MAX_HOLD_DAYS, "1d"
+    parts = tag.split("__")
+    tf = parts[3] if len(parts) >= 5 else "1d"
+    if tag in PL1D_CELLS:
+        return int(PL1D_CELLS[tag][2]), tf
+    if tag in CHAN_SHAPE_CELLS:
+        return int(CHAN_SHAPE_CELLS[tag][1]), tf
+    if tag in _PATTERN_LIVE_TAGS:
+        return int(_PATTERN_LIVE_TAGS[tag][2]), tf
+    if tag == SECTOR_ROT_TAG:
+        return SECTOR_ROT_HOLD_DAYS, "1d"
+    if tag in GAPFADE_TAGS:
+        return GAPFADE_MAX_HOLD_BARS, tf
+    if tag in SWINGMINRR_TAGS:
+        return SWINGMINRR_MAX_HOLD_BARS, tf
+    if tag in MACDDIV_LONG_LIVE_CELLS:
+        return MACDDIV_MAX_HOLD_BARS, tf
+    if tag in SWINGMINRR_SHORT_1H_CELLS:
+        return SWINGMINRR_GATE_SHORT_1H_MAX_HOLD, tf
+    if tag == BRK20_SWING_TAG or tag in ISLAND_ALL_TAGS or tag in BRK20_SHORT_SWING_ATR_OF_TAG:
+        return BRK20_MAX_HOLD_BARS, tf
+    if len(parts) >= 5:
+        m = re.search(r"(?:^|_)(?:h|hold)(\d+)(?:_|$)", parts[4])
+        if m:
+            return int(m.group(1)), tf
+    return None
+
+
+def _add_nse_trading_days(day: str, n: int) -> str:
+    d = dt.date.fromisoformat(str(day)[:10])
+    while n > 0:
+        d += dt.timedelta(days=1)
+        if is_nse_trading_day(d):
+            n -= 1
+    return d.isoformat()
+
+
+def _expected_exit_for_position(category, tag, entry_day, opened_at=None, cfg=None) -> dict:
+    """{expected_exit, expected_exit_basis}: intraday rows exit today by the square-off (or sooner by max-hold minutes);
+    swing rows by entry day + the strategy's max hold in NSE trading days (bars converted per session)."""
+    try:
+        if category in ("buy", "short_sell"):
+            sq = int((cfg or {}).get("squareoff_min") or 914)
+            day = ist_now().date()
+            when = dt.datetime.combine(day, dt.time(sq // 60, sq % 60))
+            basis = f"intraday square-off {sq // 60:02d}:{sq % 60:02d} IST"
+            mh = (cfg or {}).get("max_hold_minutes")
+            if opened_at and mh:
+                t = dt.datetime.utcfromtimestamp(float(opened_at)) + dt.timedelta(minutes=IST_OFFSET_MIN + float(mh))
+                if t < when:
+                    when, basis = t, f"max hold {int(float(mh))} min"
+            return {"expected_exit": when.strftime("%Y-%m-%d %H:%M") + " IST", "expected_exit_basis": basis}
+        spec = _strategy_hold_spec(tag)
+        if spec is None or not entry_day:
+            return {"expected_exit": None, "expected_exit_basis": "exits by its own rule (no time stop known)"}
+        n, tf = spec
+        if tf == "1w":
+            days, unit = n * 5, f"{n} weeks"
+        else:
+            per = _BARS_PER_SESSION.get(tf, 1)
+            days = max(1, -(-int(n) // per))
+            unit = f"{n} trading days" if per == 1 else f"{n} x {tf} bars (~{days} trading days)"
+        return {"expected_exit": _add_nse_trading_days(entry_day, days),
+                "expected_exit_basis": f"max hold {unit}; earlier on stop/target/rule exit"}
+    except Exception as e:
+        return {"expected_exit": None, "expected_exit_basis": f"unavailable ({type(e).__name__})"}
+
+
 @app.get("/real-positions-sl-today")
 def real_positions_sl_today():
     """B-1402 (user 2026-10-28, View 4): one row per active real position - entry, qty, category, target, SL type
     (trail/fixed) and whether today's SL is where the strategy's own stop rule says it should be. Reads this app's tables
     only (aligned to Kotak by every 5-min reconcile), so it answers fast; Kotak's order book stays the ground truth."""
     tick = 0.05
-    day0 = ist_now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+    # B-1425: ist_now() is naive IST; pin it to IST before .timestamp() (a UTC host read it as UTC midnight = 05:30 IST)
+    day0 = ist_now().replace(hour=0, minute=0, second=0, microsecond=0,
+                             tzinfo=dt.timezone(dt.timedelta(minutes=IST_OFFSET_MIN))).timestamp()
     out = []
+    _wl_by_sym = {cfg["symbol"]: cfg for cfg in WATCHLIST}
     with closing(get_db()) as c:
         def _one(r, category, side, strat_stop, target, tag, initial_stop=None):
             kotak_sl = r["sl_trigger_price"] if r["sl_order_id"] else None
@@ -28289,6 +28379,8 @@ def real_positions_sl_today():
                 "last_sl_update_ist": (dt.datetime.fromtimestamp(last["ts"], dt.timezone.utc) + dt.timedelta(hours=5, minutes=30)).strftime("%H:%M") if last else None,
                 "sl_as_per_strategy": ok, "sl_status": status,
                 "entry_day": r.get("day"), "entry_day_sl": eday_sl, "entry_day_sl_source": eday_src,
+                **_expected_exit_for_position(category, tag, r.get("sed") or r.get("day"), r.get("opened_at"),
+                                              _wl_by_sym.get(r["symbol"])),
             })
 
         def _rows(sql):
@@ -28302,11 +28394,11 @@ def real_positions_sl_today():
         for r in _rows("SELECT p.*, s.stop_loss AS ss, s.target AS st, s.initial_stop_loss AS isl FROM real_positions_short p "
                        "LEFT JOIN signal_state_short s ON s.symbol = p.symbol"):
             _one(r, "short_sell", "short", r.get("ss"), r.get("st"), r.get("strategy"), r.get("isl"))
-        for r in _rows("SELECT p.*, s.initial_stop_loss AS isl FROM real_positions_swing p "
+        for r in _rows("SELECT p.*, s.initial_stop_loss AS isl, s.entry_day AS sed FROM real_positions_swing p "
                        "LEFT JOIN signal_state_swing s ON s.symbol = p.symbol"):
             # B-1412: the stop the bot actually rests is the stored stop floored at the entry-day stop (B-1367)
             _one(r, "swing", "long", _swing_stop_floored(c, r["symbol"], r.get("stop_loss")), None, r.get("strategy"), r.get("isl"))
-        for r in _rows("SELECT p.*, s.initial_stop_loss AS isl FROM real_positions_swing_short p "
+        for r in _rows("SELECT p.*, s.initial_stop_loss AS isl, s.entry_day AS sed FROM real_positions_swing_short p "
                        "LEFT JOIN signal_state_swing_short s ON s.symbol = p.symbol"):
             _one(r, "swing_short", "short", r.get("stop_loss"), None, r.get("strategy"), r.get("isl"))
     # B-1410: profit per row at the last price (live feed first, one time budget; blank if not priced in time).
