@@ -27499,16 +27499,24 @@ def _ensure_viable_stack_hydrated():
         if _n:
             # B-1379: single-flight. At the 09:20 restart ~34 threads entered this first-sight merge+push at once.
             if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None and _VIABLE_STACK_FIRST_SIGHT_LOCK.acquire(blocking=False):
-                try:
-                    if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None:
-                        # B-1366: merge every durable copy BEFORE pushing. The blind push here overwrote the dedicated
-                        # key with a stale restore, so the owner's 26-Oct 10:28 IST save was lost at the 10:37 restart.
-                        if _viable_stack_merge_remote():
-                            threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
-                        if not _viable_stack_push_direct():  # first sight after a deploy: the key must hold it
-                            _VIABLE_STACK_MIRROR_STATE["last_push_ok"] = False  # tried once; never re-enter per call
-                finally:
-                    _VIABLE_STACK_FIRST_SIGHT_LOCK.release()
+                def _first_sight():
+                    try:
+                        if _VIABLE_STACK_MIRROR_STATE["last_push_ok"] is None:
+                            # B-1366: merge every durable copy BEFORE pushing. The blind push here overwrote the dedicated
+                            # key with a stale restore, so the owner's 26-Oct 10:28 IST save was lost at the 10:37 restart.
+                            if _viable_stack_merge_remote():
+                                threading.Thread(target=_push_viable_stack_to_git, daemon=True).start()
+                            if not _viable_stack_push_direct():  # first sight after a deploy: the key must hold it
+                                _VIABLE_STACK_MIRROR_STATE["last_push_ok"] = False  # tried once; never re-enter per call
+                    finally:
+                        _VIABLE_STACK_FIRST_SIGHT_LOCK.release()
+                if os.environ.get("PYTEST_CURRENT_TEST"):
+                    _first_sight()
+                else:
+                    # B-1418 (live 2026-10-29 10:58 IST): run inline, these Upstash reads/writes froze the event loop for
+                    # 16 s when the first caller after a boot was on it. The local table already has rows, so the caller
+                    # does not need to wait for the merge/push.
+                    threading.Thread(target=_first_sight, name="viable-stack-first-sight", daemon=True).start()
             return
         if time.time() - _VIABLE_STACK_RECOVER_LAST < 20:
             return
@@ -29190,6 +29198,7 @@ async def health():
             **_memory_pressure_check(trim=False), **_git_tier_push_status(),
             "loop_lag_s": round(time.time() - _loop_heartbeat_ts, 1), "watchdog_alarms": _WATCHDOG_STATE["alarms"],
             "watchdog_alarms_today": _watchdog_alarms_today(),
+            "watchdog_alarm_events_today": _watchdog_alarm_events_today(),
             # B-1361: Render logs are not readable from the dev container, so /health carries the alarm stacks itself
             "watchdog_first_alarm": _WATCHDOG_STATE.get("first_alarm"), "watchdog_last_alarm": _WATCHDOG_STATE["last_alarm"],
             "upstash_ok": _UPSTASH_PROBE["ok"], "upstash_error": _UPSTASH_PROBE["error"],
@@ -30044,7 +30053,10 @@ _BACKGROUND_THREADS_STARTED = False
 _WATCHDOG_STATE: dict = {"alarms": 0, "first_alarm": None, "last_alarm": None}
 # User 2026-10-29: the dashboard's "watchdog alarms" counted since this process booted, not for the IST calendar day,
 # and a restart reset it. Today's count is kept per IST day and mirrored to Upstash so a restart does not lose it.
-_WATCHDOG_DAY: dict = {"day": None, "n": 0, "hydrated": False}
+_WATCHDOG_DAY: dict = {"day": None, "n": 0, "hydrated": False, "events": []}
+_WATCHDOG_DAY_EVENTS_KEEP = 20
+# B-1418: one freeze is ONE alarm. The watchdog checks every 5 s, so a 40 s stall used to count 8 alarms.
+_WATCHDOG_IN_ALARM: dict = {"on": False}
 _WATCHDOG_DAY_KEY = "watchdog:alarms_day"
 
 
@@ -30068,25 +30080,37 @@ def _watchdog_day_hydrate(get=None) -> None:
         if _WATCHDOG_DAY["day"] != today:
             _WATCHDOG_DAY.update(day=today, n=0)
         _WATCHDOG_DAY["n"] += int(saved.get("n") or 0)
+        _WATCHDOG_DAY["events"] = (list(saved.get("events") or []) + _WATCHDOG_DAY["events"])[-_WATCHDOG_DAY_EVENTS_KEEP:]
     _WATCHDOG_DAY["hydrated"] = True
 
 
-def _watchdog_day_bump(now=None, put=None) -> None:
+def _watchdog_day_bump(now=None, put=None, info=None) -> None:
+    """Count one alarm episode for today's IST day and keep what froze (B-1418), so the reason survives a restart."""
     day = _ist_day(now)
     if _WATCHDOG_DAY["day"] != day:
-        _WATCHDOG_DAY.update(day=day, n=0)
+        _WATCHDOG_DAY.update(day=day, n=0, events=[])
     _WATCHDOG_DAY["n"] += 1
+    if info:
+        ev = {"ts": info.get("ts"), "ist": (dt.datetime.utcfromtimestamp(info.get("ts") or time.time())
+                                           + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime("%H:%M:%S IST"),
+              "loop_lag_s": info.get("loop_lag_s"), "rss_pct": info.get("rss_pct"), "threadpool": info.get("threadpool"),
+              "threads": [t for t in (info.get("threads") or []) if not t.startswith("ThreadPoolExecutor")][:4]}
+        _WATCHDOG_DAY["events"] = (_WATCHDOG_DAY.get("events") or [])[-(_WATCHDOG_DAY_EVENTS_KEEP - 1):] + [ev]
     put = put or _upstash_set
     if put is _upstash_set and not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
         return
     try:
-        put(_WATCHDOG_DAY_KEY, json.dumps({"day": day, "n": _WATCHDOG_DAY["n"]}))
+        put(_WATCHDOG_DAY_KEY, json.dumps({"day": day, "n": _WATCHDOG_DAY["n"], "events": _WATCHDOG_DAY.get("events") or []}))
     except Exception as e:  # noqa: BLE001
         print(f"[watchdog] could not save today's alarm count (non-fatal): {e}")
 
 
 def _watchdog_alarms_today(now=None) -> int:
     return _WATCHDOG_DAY["n"] if _WATCHDOG_DAY["day"] == _ist_day(now) else 0
+
+
+def _watchdog_alarm_events_today(now=None) -> list:
+    return list(_WATCHDOG_DAY.get("events") or []) if _WATCHDOG_DAY["day"] == _ist_day(now) else []
 
 
 async def _loop_heartbeat():
@@ -30132,11 +30156,14 @@ def _watchdog_check(now=None, rss_mb=None) -> dict | None:
     used, total = _WATCHDOG_STATE.get("threadpool_used"), _WATCHDOG_STATE.get("threadpool_total")
     pool_full = bool(total) and used is not None and used >= total  # B-1359: every `def` endpoint now hangs
     if lag < _WATCHDOG_LOOP_LAG_WARN_SECONDS and (pct is None or pct < RSS_WARN_PCT) and not pool_full:
+        _WATCHDOG_IN_ALARM["on"] = False
         return None
     info = {"ts": now, "loop_lag_s": lag, "rss_mb": rss_mb, "rss_pct": pct, "threadpool": f"{used}/{total}",
             "threads": _busy_thread_stacks()}
-    _WATCHDOG_STATE["alarms"] += 1
-    _watchdog_day_bump(now)
+    if not _WATCHDOG_IN_ALARM["on"]:  # B-1418: count the episode once, not every 5 s check while it lasts
+        _WATCHDOG_IN_ALARM["on"] = True
+        _WATCHDOG_STATE["alarms"] += 1
+        _watchdog_day_bump(now, info=info)
     if _WATCHDOG_STATE.get("first_alarm") is None:  # B-1361: the first alarm of a burst names what froze the loop
         _WATCHDOG_STATE["first_alarm"] = info
     _WATCHDOG_STATE["last_alarm"] = info
