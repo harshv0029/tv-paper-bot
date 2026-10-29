@@ -12647,7 +12647,19 @@
    "prev_state": "none (retry)",
    "new_state": "resting SELL trigger Rs175.12",
    "detail": "reason: swing position had no resting stop-loss; placed at its stored stop Rs175.12"
+  },
+  {
+   "id": 1055,
+   "ts": 1793245577.4317434,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261029000020785",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs33.67",
+   "detail": "reason: resting stop-loss placed so the open position is protected | placed synchronously during swing governance backfill"
   }
  ],
- "synced_at_utc": "2026-10-29T03:46:14Z"
+ "synced_at_utc": "2026-10-29T03:46:22Z"
 }
