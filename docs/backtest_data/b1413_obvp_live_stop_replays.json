@@ -1,0 +1,120 @@
+{
+ "backlog": "B-1413",
+ "date_ist": "2026-10-29",
+ "workflow": "swing-ob-vp-main-replay.yml",
+ "universe": "full NSE (main._load_nse_universe_from_file), daily/5y, LONG, 4 shards",
+ "cost_model": "brokerage 0.20%/side + STT/exchange/SEBI/stamp/GST + 0.05% slippage + DP Rs15.93",
+ "runs": [
+  {
+   "run": 40818729237,
+   "exit": "chandelier trail 6.0",
+   "band_cap": "live",
+   "ob": {
+    "n": 33232,
+    "win": 36.3,
+    "pfnet": 0.958,
+    "pfgross": 1.138,
+    "held_d": 20.3,
+    "avg_net": -48.8
+   },
+   "vp": {
+    "n": 58526,
+    "win": 16.6,
+    "pfnet": 0.811,
+    "pfgross": 1.247,
+    "held_d": 9.1,
+    "avg_net": -440.3
+   }
+  },
+  {
+   "run": 40819741108,
+   "exit": "chandelier trail 6.0",
+   "band_cap": "intraday",
+   "ob": {
+    "n": 32431,
+    "win": 37.1,
+    "pfnet": 0.991,
+    "pfgross": 1.173,
+    "held_d": 21.1,
+    "avg_net": -10.9
+   },
+   "vp": {
+    "n": 58211,
+    "win": 16.4,
+    "pfnet": 0.817,
+    "pfgross": 1.253,
+    "held_d": 9.3,
+    "avg_net": -429.2
+   }
+  },
+  {
+   "run": 40819738646,
+   "exit": "chandelier trail 6.0",
+   "band_cap": "band_only",
+   "ob": {
+    "n": 32205,
+    "win": 39.0,
+    "pfnet": 1.001,
+    "pfgross": 1.181,
+    "held_d": 22.0,
+    "avg_net": 1.6
+   },
+   "vp": {
+    "n": 47791,
+    "win": 24.3,
+    "pfnet": 0.993,
+    "pfgross": 1.341,
+    "held_d": 12.7,
+    "avg_net": -20.5
+   }
+  },
+  {
+   "run": 40820614764,
+   "exit": "exitinval (live)",
+   "band_cap": "",
+   "ob": {
+    "n": 33214,
+    "win": 39.4,
+    "pfnet": 1.074,
+    "pfgross": 1.331,
+    "held_d": 22.3,
+    "avg_net": 26.6
+   },
+   "vp": {
+    "n": 38396,
+    "win": 38.5,
+    "pfnet": 1.089,
+    "pfgross": 1.392,
+    "held_d": 21.5,
+    "avg_net": 34.1
+   }
+  },
+  {
+   "run": 40820611445,
+   "exit": "exitinval (live)",
+   "band_cap": "live",
+   "ob": {
+    "n": 34499,
+    "win": 37.3,
+    "pfnet": 0.966,
+    "pfgross": 1.199,
+    "held_d": 20.7,
+    "avg_net": -12.4
+   },
+   "vp": {
+    "n": 39414,
+    "win": 37.2,
+    "pfnet": 1.006,
+    "pfgross": 1.286,
+    "held_d": 20.3,
+    "avg_net": 2.3
+   }
+  }
+ ],
+ "registry_reference": {
+  "ob_trail6d0": 1.105,
+  "vp_trail6d0": 1.076,
+  "ob_exitinval_research_sim": 1.166,
+  "vp_exitinval_research_sim": 1.268
+ }
+}
