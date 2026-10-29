@@ -91,6 +91,111 @@ def test_tick_wiring_source():
     src = open(main.__file__).read()
     tick = src[src.index("async def _scheduler_tick():"):src.index("STARTUP_HYDRATION_TIMEOUT_SECONDS = 15")]
     assert "_prefetch_tick_ohlc" in tick
-    assert "await asyncio.to_thread(\n                    _short_signal_core," in tick
+    assert "await asyncio.to_thread(_scan_equity_symbol_sync" in tick  # one worker-thread hop per symbol
+    sync = src[src.index("def _scan_equity_symbol_sync("):src.index("BAR_SWEEP_SETTLE_SECONDS = 20")]
+    assert "with _SCAN_DECISION_LOCK:" in sync and "await" not in sync
+    assert "short_result = _short_signal_core(" in sync and "_real_on_thread(_maybe_place_real_entry" in sync
     assert "await asyncio.sleep(_scheduler_sleep_after_tick(_tick_seconds))" in tick
     assert "await asyncio.sleep(SCHEDULER_INTERVAL_SECONDS)\n" not in tick.split("for symbol in _scan_visit")[1]
+
+
+# ---- option A: 5m-bar sweep ----
+import asyncio  # noqa: E402
+
+_B = 1793260800  # an exact 5-minute epoch boundary
+
+
+def test_next_bar_sweep_timing():
+    assert _B % 300 == 0
+    assert main._seconds_to_next_bar_sweep(_B) == 20          # boundary -> wait for the settle
+    assert main._seconds_to_next_bar_sweep(_B + 10) == 10
+    assert main._seconds_to_next_bar_sweep(_B + 25) == 295    # just swept -> next bar
+    assert main._seconds_to_next_bar_sweep(_B + 299) == 21
+
+
+def test_candidates_skip_symbols_already_scanned_this_bar(monkeypatch):
+    monkeypatch.setattr(main, "WATCHLIST", [{"symbol": "A.NS"}, {"symbol": "B.NS"}, {"symbol": "GC=F"}])
+    monkeypatch.setattr(main, "_SCAN_LAST_DONE", {"A.NS": _B + 5, "B.NS": _B - 5})
+    assert main._bar_sweep_candidates(_B) == ["B.NS"]
+
+
+def test_bar_sweep_does_nothing_when_market_closed(monkeypatch):
+    monkeypatch.setattr(main, "_nse_equity_market_open_now", lambda: False)
+    called = []
+    monkeypatch.setattr(main, "_scan_equity_symbol_sync", lambda *a, **k: called.append(a))
+    st = asyncio.run(main._bar_sweep_once(now=_B + 20))
+    assert st["status"] == "market_closed" and not called
+
+
+def test_bar_sweep_scans_every_unscanned_equity_once(monkeypatch):
+    monkeypatch.setattr(main, "_nse_equity_market_open_now", lambda: True)
+    monkeypatch.setattr(main, "is_nse_trading_day", lambda *a, **k: True)
+    monkeypatch.setattr(main, "is_trading_enabled", lambda c: True)
+    monkeypatch.setattr(main, "get_scheduler_capital_inr", lambda: 10000.0)
+    monkeypatch.setattr(main, "_prefetch_tick_ohlc", lambda syms: {"symbols": len(syms)})
+    monkeypatch.setattr(main, "WATCHLIST", [{"symbol": s} for s in ("A.NS", "B.NS", "C.NS", "^NSEI")])
+    monkeypatch.setattr(main, "_SCAN_LAST_DONE", {"B.NS": _B + 1})
+    import time as _t
+    monkeypatch.setattr(main.time, "time", lambda: _B + 20)
+    seen = []
+
+    def fake_scan(sym, cfg, cap, risk, rr, hold):
+        seen.append((sym, cfg["symbol"], cap))
+        main._SCAN_LAST_DONE[sym] = _B + 30
+    monkeypatch.setattr(main, "_scan_equity_symbol_sync", fake_scan)
+    st = asyncio.run(main._bar_sweep_once(now=_B + 20))
+    assert [s for s, _, _ in seen] == ["A.NS", "C.NS"] and all(c == 10000.0 for _, _, c in seen)
+    assert st["status"] == "complete" and st["candidates"] == 2 and st["covered"] == 2
+    assert st["bar_close_ist"].endswith("IST")
+
+
+def test_bar_sweep_task_is_started_and_reported():
+    src = open(main.__file__).read()
+    assert "asyncio.create_task(_bar_sweep_loop())" in src
+    assert '"bar_sweep": _BAR_SWEEP_STATS' in src
+
+
+def test_scan_decision_lock_serialises_scanners(monkeypatch):
+    """Two scanners (tick + bar sweep) never run a symbol's decision code at the same time."""
+    active, peak, lock = [0], [0], threading.Lock()
+
+    def fake_core(**kw):
+        with lock:
+            active[0] += 1
+            peak[0] = max(peak[0], active[0])
+        time.sleep(0.02)
+        with lock:
+            active[0] -= 1
+        raise RuntimeError("stop after the long engine")
+    monkeypatch.setattr(main, "_auto_signal_core", fake_core)
+    cfg = {**main.NSE_STOCK_DEFAULT_PARAMS, "symbol": "X.NS"}
+    ts = [threading.Thread(target=main._scan_equity_symbol_sync, args=("X.NS", cfg, 1.0, 2.0, 3.0, 0))
+          for _ in range(4)]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    assert peak[0] == 1
+    assert main._scheduler_last_results["X.NS"]["status"] == "error"
+
+
+def test_b1422_total_yahoo_downloads_capped():
+    data_fetch._DATA_CACHE.clear()
+    active, peak, lock = [0], [0], threading.Lock()
+
+    def slow_download(sym, period, interval, progress):
+        with lock:
+            active[0] += 1
+            peak[0] = max(peak[0], active[0])
+        time.sleep(0.03)
+        with lock:
+            active[0] -= 1
+        return _df()
+    with patch.object(data_fetch.yf, "download", side_effect=slow_download):
+        ts = [threading.Thread(target=data_fetch.fetch_ohlc, args=(f"Z{i}.NS", "5d", "5m")) for i in range(16)]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
+    assert 1 < peak[0] <= data_fetch._YF_MAX_CONCURRENT
+    data_fetch._DATA_CACHE.clear()

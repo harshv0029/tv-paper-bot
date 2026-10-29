@@ -73,7 +73,7 @@ def test_scheduler_tick_source_falls_back_instead_of_skipping_unwatchlisted_symb
     # - this exact bug already happened once from an unrelated, seemingly
     # safe change (the NIFTY 200 restriction), so a plain code-presence
     # check is cheap insurance against it happening a second time.
-    src = inspect.getsource(main._scheduler_tick)
+    src = (inspect.getsource(main._scheduler_tick) + inspect.getsource(main._scan_equity_symbol_sync))
     assert "NSE_STOCK_DEFAULT_PARAMS" in src
     assert "if not cfg:\n            continue" not in src.replace("            continue", "continue")
 

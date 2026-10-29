@@ -26074,6 +26074,291 @@ async def _real_off_loop(fn, *args, **kwargs):
     return await asyncio.to_thread(_run)
 
 
+def _real_on_thread(fn, *args, **kwargs):
+    """B-1419: same as _real_off_loop, for code already running in a worker thread (own DB connection per call)."""
+    with closing(get_db()) as _c:
+        return fn(_c, *args, **kwargs)
+
+
+# B-1419: one decision at a time across the scan tick and the 5m-bar sweep, so the daily-loss / position caps and
+# a symbol's paper/real state can never be raced by two scanners.
+_SCAN_DECISION_LOCK = threading.Lock()
+_SCAN_LAST_DONE: dict = {}  # symbol -> epoch of its last finished equity scan (tick or bar sweep)
+
+
+def _scan_equity_symbol_sync(symbol: str, cfg, scheduler_capital_inr, live_daily_risk_pct, live_rr,
+                             live_max_hold_minutes) -> None:
+    """B-1419: one equity symbol's whole scan (long engine + real mirror, short engine + real mirror, F&O mirror),
+    run in ONE worker thread. It used to hop between the event loop and worker threads ~6 times per symbol; with the
+    loop ~1 s behind, that waiting, not the strategy maths (~0.03 s), was most of the 1.23 s per symbol seen live."""
+    global _scheduler_currently_checking, _scheduler_last_error
+    try:
+        _current_scan_symbol.set(symbol)
+    except Exception:  # noqa: BLE001
+        pass
+    with _SCAN_DECISION_LOCK:
+        if not cfg:
+            # A symbol can be IN symbols_this_tick (open_equity_symbols/
+            # open_real_symbols, both sourced from DB state, not
+            # WATCHLIST) while no longer having a WATCHLIST entry at all -
+            # confirmed live 2026-09-21: GENCON.NS sat open, completely
+            # unmanaged (no stop/target/squareoff check, no real stop-loss
+            # sync, no exit) for ~10 days after the NIFTY 200 universe
+            # restriction dropped it from WATCHLIST while its position was
+            # still open. `continue` here silently threw away exactly the
+            # open-position coverage the comments above this loop promise
+            # ("must never depend on..."), for this one case - a symbol
+            # leaving WATCHLIST while a position is open was never
+            # exercised before (WATCHLIST had only ever grown, never
+            # shrunk, until that restriction). Falls back to the same
+            # conservative NSE_STOCK_DEFAULT_PARAMS a brand-new unproven
+            # symbol gets, rather than abandoning management of a real
+            # open position.
+            cfg = {**NSE_STOCK_DEFAULT_PARAMS, "symbol": symbol}
+        _scheduler_currently_checking = {
+            "symbol": symbol, "kind": "equity", "started_at_utc": time.time(),
+        }
+        _record_scheduler_check(symbol)
+        _record_intraday_strategy_scan(cfg)  # B-423: counter only, no order logic
+        _sync_visit_strategy_count(symbol, 1)
+        try:
+            result = _auto_signal_core(
+                symbol=cfg["symbol"], capital=scheduler_capital_inr,
+                daily_risk_pct=live_daily_risk_pct,
+                risk_per_trade_pct=cfg["risk_pct"],
+                stop_pct=cfg["stop_pct"], rr=live_rr,
+                orb_minutes=cfg["orb_minutes"], sma_fast=cfg["sma_fast"], sma_slow=cfg["sma_slow"],
+                interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
+                close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
+                trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
+                # 2026-09-09 architecture revamp, explicit user instruction:
+                # "revamp all of the strategy architecture from beginning" +
+                # "full universe now" - the universal multi-factor scoring
+                # engine (see _compute_universal_entry_score) is now THE
+                # live entry trigger for every WATCHLIST symbol, replacing
+                # the old per-symbol orb_breakout/bullish_engulfing choice.
+                # No WATCHLIST entry sets its own "strategy" field (grep
+                # confirms none do), so this default is what actually governs
+                # literally every symbol - a per-symbol override remains
+                # possible (WATCHLIST's own "strategy" field still works) for
+                # deliberately pinning a symbol back to the old engine.
+                strategy=cfg.get("strategy", "universal_score"),
+                trend_sma=cfg.get("trend_sma", 0), volume_confirm=cfg.get("volume_confirm", False),
+                max_hold_minutes=live_max_hold_minutes,
+                # 2026-09-09, explicit user instruction: "stop using SMA
+                # and replace it with EMA with immediate effect
+                # everywhere" - THIS is the live scheduler's own call
+                # site, the one that actually decides every real WATCHLIST
+                # symbol's trend read; a per-symbol "ma_type" WATCHLIST
+                # field still overrides this fallback if ever set.
+                ma_type=cfg.get("ma_type", "ema"),
+                # require_real_tradability (2026-09-22, see _auto_signal_core's
+                # own docstring) - True only for NSE equities, the exact same
+                # universe _maybe_place_real_entry below itself targets (its
+                # own asset_class != "nse_equity" check skips everything
+                # else) - a symbol real trading can't touch at all yet
+                # (indices/commodities/US) has no real gate to replicate.
+                require_real_tradability=cfg["symbol"].endswith(".NS"),
+            )
+            _scheduler_last_results[cfg["symbol"]] = {"checked_at_utc": time.time(), **result}
+            if result.get("open_position") or str(result.get("action_taken", "")).startswith("exited_"):
+                _scan_only_intraday_cells(cfg["symbol"], "long")  # B-1274 stage 2: entry chain was skipped for a held symbol
+
+            # Stage 3: mirror this SAME decision as a real order, only
+            # for the equity path (options/MCX are out of stage 3 v1 -
+            # explicit user instruction). Deliberately AFTER the paper
+            # result is already recorded, in its own try/except that
+            # can never propagate - a real-order hiccup must never look
+            # like a paper-trading scheduler failure or block the next
+            # symbol's tick.
+            try:
+                action_taken = result.get("action_taken", "")
+                if action_taken == "entered_long":
+                    _real_on_thread(_maybe_place_real_entry, cfg["symbol"])
+                elif action_taken.startswith("exited_"):
+                    _real_on_thread(_maybe_place_real_exit, cfg["symbol"], reason=f"intraday paper exit: {action_taken}")
+                elif action_taken.startswith("partial_booked_"):
+                    # Staged profit-booking ladder (2026-09-09 architecture
+                    # revamp) - the paper side already booked one leg (see
+                    # _execute_staged_leg_exit); mirror it as a REAL partial
+                    # sell for the SAME leg qty, same isolation principle as
+                    # every other real-order mirror in this block.
+                    _real_on_thread(_maybe_place_real_partial_exit, cfg["symbol"], result.get("staged_exit") or {})
+                elif _chan_long_flatten_due(cfg["symbol"]):
+                    # B-960: exchange cancels resting orders at 15:15 IST, so flat by our own market sell first.
+                    _real_on_thread(_maybe_place_real_exit, cfg["symbol"], reason="flatten_1515")
+                else:
+                    # Position still open (or never was one) - sync any
+                    # real resting stop-loss to the paper trail's latest
+                    # level. A no-op unless a real position is actually
+                    # open for this symbol (see _maybe_sync_real_stop_loss).
+                    _real_on_thread(_maybe_sync_real_stop_loss, cfg["symbol"])
+            except Exception as e:
+                print(f"[real_orders] unexpected error for {cfg['symbol']}: {e}")
+
+            # RANGE-regime short mirror (2026-09-29, explicit user
+            # instruction to implement short selling). Own try/except,
+            # same isolation principle as every other block here - a
+            # short-scan hiccup must never block the long path above or
+            # the next symbol's tick. Runs for every WATCHLIST symbol
+            # (paper), same as the long scan; real-order mirroring inside
+            # _maybe_place_real_short_entry itself narrows to NSE equity
+            # only (its own asset_class check), same narrowing the long
+            # side's _maybe_place_real_entry already does.
+            _record_short_strategy_scans()  # B-423: counter only
+            _sync_visit_strategy_count(cfg["symbol"], len(_INTRADAY_SHORT_SCAN_TAGS))
+            try:
+                short_result = _short_signal_core(
+                    symbol=cfg["symbol"], capital=scheduler_capital_inr,
+                    daily_risk_pct=live_daily_risk_pct, risk_per_trade_pct=cfg["risk_pct"],
+                    stop_pct=cfg["stop_pct"], rr=live_rr,
+                    sma_fast=cfg["sma_fast"], sma_slow=cfg["sma_slow"],
+                    interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
+                    close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
+                    trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
+                    max_hold_minutes=live_max_hold_minutes, ma_type=cfg.get("ma_type", "ema"),
+                    require_real_tradability=cfg["symbol"].endswith(".NS"),
+                )
+                short_action = short_result.get("action_taken", "")
+                if short_action == "holding_short" or short_action.startswith("exited_short_"):
+                    _scan_only_intraday_cells(cfg["symbol"], "short")  # B-1274 stage 2: entry chain was skipped for a held symbol
+                if short_action == "entered_short":
+                    _real_on_thread(_maybe_place_real_short_entry, cfg["symbol"])
+                    # 2026-10-08: a short signal on an index buys a single-strike PUT.
+                    if cfg["symbol"] in _REAL_OPTION_UNDERLYING:
+                        _e = short_result.get("entry") or {}
+                        _real_on_thread(_maybe_place_real_fo_put_entry, cfg["symbol"], _e.get("price"), _e.get("strategy"))
+                elif short_action.startswith("exited_short_"):
+                    _real_on_thread(_maybe_place_real_short_exit, cfg["symbol"], reason=f"short paper exit: {short_action}")
+                    if cfg["symbol"] in _REAL_OPTION_UNDERLYING:
+                        _real_on_thread(_maybe_place_real_fo_put_exit, cfg["symbol"], reason=f"paper index short exit: {short_action}")
+                elif _chan_short_flatten_due(cfg["symbol"]):
+                    # B-914: exchange cancels resting orders at 15:15 IST, so flat by our own market cover first.
+                    _real_on_thread(_maybe_place_real_short_exit, cfg["symbol"], reason="flatten_1515")
+                else:
+                    # 2026-09-30, explicit user instruction ("make short
+                    # positions equally mirrored as done in buy
+                    # positions") - the long side's own else-branch above
+                    # syncs its trailing stop to Kotak every tick; this
+                    # was the missing short-side mirror (previously a
+                    # short's resting SL was only ever re-checked on the
+                    # 5-min reconcile pass, not this ~30s tick).
+                    _real_on_thread(_maybe_sync_real_stop_loss_short, cfg["symbol"])
+            except Exception as e:
+                print(f"[real_short_orders] unexpected error for {cfg['symbol']}: {e}")
+
+            # Real F&O (2026-09-07, extended to MCX same day per
+            # explicit user instruction "also mcx") - NIFTY/BANKNIFTY/
+            # GC=F/SI=F/CL=F only (see _INDEX_TO_FO_UNDERLYING). Same
+            # isolation principle: its
+            # own try/except, never able to break the equity mirror
+            # above or the next symbol's tick.
+            try:
+                if cfg["symbol"] in _REAL_OPTION_UNDERLYING:
+                    fo_underlying = _REAL_OPTION_UNDERLYING[cfg["symbol"]]
+                    if action_taken == "entered_long":
+                        _real_on_thread(_maybe_place_real_fo_call_entry, cfg["symbol"], result.get("last_close"), result.get("strategy"))
+                    elif action_taken.startswith("exited_"):
+                        _real_on_thread(_maybe_place_real_fo_call_exit, cfg["symbol"], reason=f"paper index long exit: {action_taken}")
+                    if cfg["symbol"] in _INDEX_TO_FO_UNDERLYING:
+                      _real_on_thread(
+                          _straddle_signal_core, fo_underlying, result.get("vol_contraction_signal"),
+                          result.get("halted_for_day", False), result.get("is_squareoff_time", False),
+                          result.get("last_close"),
+                      )
+            except Exception as e:
+                print(f"[real_fo_orders] unexpected error for {cfg['symbol']}: {e}")
+        except Exception as e:
+            _scheduler_last_error = f"{cfg['symbol']}: {e}"
+            _scheduler_last_results[cfg["symbol"]] = {
+                "checked_at_utc": time.time(), "symbol": cfg["symbol"],
+                "status": "error", "detail": str(e),
+            }
+        finally:
+            _scheduler_currently_checking = None
+        _SCAN_LAST_DONE[symbol] = time.time()
+
+
+BAR_SWEEP_SETTLE_SECONDS = 20  # Yahoo publishes the closed 5m bar a few seconds after the boundary
+BAR_SWEEP_BAR_SECONDS = 300
+_BAR_SWEEP_STATS: dict = {"last": None, "sweeps_today": 0, "day": None}
+
+
+def _seconds_to_next_bar_sweep(now: float | None = None) -> float:
+    """B-1419 option A: seconds until the next 5m bar boundary + settle (IST bars start at :15/:20/..., i.e. every
+    300 s of epoch time since IST is UTC+5:30, a whole number of 5-minute steps)."""
+    now = time.time() if now is None else now
+    nxt = (int(now) // BAR_SWEEP_BAR_SECONDS + 1) * BAR_SWEEP_BAR_SECONDS + BAR_SWEEP_SETTLE_SECONDS
+    if nxt - BAR_SWEEP_BAR_SECONDS > now:  # still inside the settle gap of the bar that just closed
+        nxt -= BAR_SWEEP_BAR_SECONDS
+    return max(1.0, nxt - now)
+
+
+def _bar_sweep_candidates(bar_close: float) -> list:
+    """Every NSE equity on the watchlist not already scanned since this bar closed (the tick may have just done it)."""
+    return [c["symbol"] for c in WATCHLIST
+            if str(c.get("symbol", "")).endswith(".NS") and _SCAN_LAST_DONE.get(c["symbol"], 0.0) < bar_close]
+
+
+async def _bar_sweep_once(now: float | None = None) -> dict:
+    """B-1419 option A (user: "run a and b in parallel threads"): right after each 5m bar closes, scan every NSE
+    equity once, in parallel with the round-robin tick. Bars are fetched in parallel; each symbol's decision runs
+    through the same _scan_equity_symbol_sync under _SCAN_DECISION_LOCK, so orders and caps stay one-at-a-time.
+    Stops at the next bar boundary and reports how far it got."""
+    now = time.time() if now is None else now
+    bar_close = (int(now) // BAR_SWEEP_BAR_SECONDS) * BAR_SWEEP_BAR_SECONDS
+    deadline = bar_close + BAR_SWEEP_BAR_SECONDS
+    stats = {"bar_close_ist": (dt.datetime.utcfromtimestamp(bar_close) + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime("%H:%M IST"),
+             "status": "skipped", "candidates": 0, "scanned": 0, "seconds": 0.0, "prefetch": None}
+    if not (is_nse_trading_day() and _nse_equity_market_open_now()):
+        stats["status"] = "market_closed"
+        return stats
+
+    def _settings():
+        with closing(get_db()) as c:
+            return (is_trading_enabled(c), get_runtime_setting(c, "daily_risk_pct"), get_runtime_setting(c, "rr"),
+                    get_runtime_setting(c, "max_hold_minutes"))
+    enabled, risk_pct, rr, max_hold = await asyncio.to_thread(_settings)
+    if not enabled:
+        stats["status"] = "trading_paused"
+        return stats
+    capital = await asyncio.to_thread(get_scheduler_capital_inr)
+    syms = _bar_sweep_candidates(bar_close)
+    stats["candidates"] = len(syms)
+    t0 = time.time()
+    stats["prefetch"] = await asyncio.to_thread(_prefetch_tick_ohlc, [*syms, UNIVERSAL_REFERENCE_INDEX])
+    by_symbol = {c["symbol"]: c for c in WATCHLIST}
+    for sym in syms:
+        if time.time() >= deadline:
+            break
+        if _SCAN_LAST_DONE.get(sym, 0.0) >= bar_close:
+            continue  # the tick got there first
+        await asyncio.to_thread(_scan_equity_symbol_sync, sym, by_symbol.get(sym), capital, risk_pct, rr, max_hold)
+        stats["scanned"] += 1
+    stats["seconds"] = round(time.time() - t0, 1)
+    done = sum(1 for s_ in syms if _SCAN_LAST_DONE.get(s_, 0.0) >= bar_close)
+    stats["covered"] = done
+    stats["status"] = "complete" if done >= len(syms) else "ran_out_of_bar"
+    return stats
+
+
+async def _bar_sweep_loop():
+    """B-1419 option A: own task next to _scheduler_loop; never dies (same pattern as _scheduler_loop)."""
+    while True:
+        await asyncio.sleep(_seconds_to_next_bar_sweep())
+        try:
+            st = await _bar_sweep_once()
+        except Exception as e:  # noqa: BLE001
+            st = {"status": "error", "detail": str(e)[:200]}
+            print(f"[bar_sweep] failed (non-fatal): {e}")
+        day = ist_now().strftime("%Y-%m-%d")
+        if _BAR_SWEEP_STATS["day"] != day:
+            _BAR_SWEEP_STATS.update({"day": day, "sweeps_today": 0})
+        if st.get("status") in ("complete", "ran_out_of_bar"):
+            _BAR_SWEEP_STATS["sweeps_today"] += 1
+        _BAR_SWEEP_STATS["last"] = st
+
+
 async def _scheduler_tick():
     global _scheduler_last_tick_ts, _scheduler_rr_cursor, _scheduler_currently_checking
     _tick_t0 = time.time()  # B-1419
@@ -26275,189 +26560,8 @@ async def _scheduler_tick():
 
     for symbol in _scan_visit(symbols_this_tick):
         cfg = watchlist_by_symbol.get(symbol)
-        if not cfg:
-            # A symbol can be IN symbols_this_tick (open_equity_symbols/
-            # open_real_symbols, both sourced from DB state, not
-            # WATCHLIST) while no longer having a WATCHLIST entry at all -
-            # confirmed live 2026-09-21: GENCON.NS sat open, completely
-            # unmanaged (no stop/target/squareoff check, no real stop-loss
-            # sync, no exit) for ~10 days after the NIFTY 200 universe
-            # restriction dropped it from WATCHLIST while its position was
-            # still open. `continue` here silently threw away exactly the
-            # open-position coverage the comments above this loop promise
-            # ("must never depend on..."), for this one case - a symbol
-            # leaving WATCHLIST while a position is open was never
-            # exercised before (WATCHLIST had only ever grown, never
-            # shrunk, until that restriction). Falls back to the same
-            # conservative NSE_STOCK_DEFAULT_PARAMS a brand-new unproven
-            # symbol gets, rather than abandoning management of a real
-            # open position.
-            cfg = {**NSE_STOCK_DEFAULT_PARAMS, "symbol": symbol}
-        _scheduler_currently_checking = {
-            "symbol": symbol, "kind": "equity", "started_at_utc": time.time(),
-        }
-        _record_scheduler_check(symbol)
-        _record_intraday_strategy_scan(cfg)  # B-423: counter only, no order logic
-        _sync_visit_strategy_count(symbol, 1)
-        try:
-            result = await asyncio.to_thread(
-                _auto_signal_core,
-                symbol=cfg["symbol"], capital=scheduler_capital_inr,
-                daily_risk_pct=live_daily_risk_pct,
-                risk_per_trade_pct=cfg["risk_pct"],
-                stop_pct=cfg["stop_pct"], rr=live_rr,
-                orb_minutes=cfg["orb_minutes"], sma_fast=cfg["sma_fast"], sma_slow=cfg["sma_slow"],
-                interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
-                close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
-                trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
-                # 2026-09-09 architecture revamp, explicit user instruction:
-                # "revamp all of the strategy architecture from beginning" +
-                # "full universe now" - the universal multi-factor scoring
-                # engine (see _compute_universal_entry_score) is now THE
-                # live entry trigger for every WATCHLIST symbol, replacing
-                # the old per-symbol orb_breakout/bullish_engulfing choice.
-                # No WATCHLIST entry sets its own "strategy" field (grep
-                # confirms none do), so this default is what actually governs
-                # literally every symbol - a per-symbol override remains
-                # possible (WATCHLIST's own "strategy" field still works) for
-                # deliberately pinning a symbol back to the old engine.
-                strategy=cfg.get("strategy", "universal_score"),
-                trend_sma=cfg.get("trend_sma", 0), volume_confirm=cfg.get("volume_confirm", False),
-                max_hold_minutes=live_max_hold_minutes,
-                # 2026-09-09, explicit user instruction: "stop using SMA
-                # and replace it with EMA with immediate effect
-                # everywhere" - THIS is the live scheduler's own call
-                # site, the one that actually decides every real WATCHLIST
-                # symbol's trend read; a per-symbol "ma_type" WATCHLIST
-                # field still overrides this fallback if ever set.
-                ma_type=cfg.get("ma_type", "ema"),
-                # require_real_tradability (2026-09-22, see _auto_signal_core's
-                # own docstring) - True only for NSE equities, the exact same
-                # universe _maybe_place_real_entry below itself targets (its
-                # own asset_class != "nse_equity" check skips everything
-                # else) - a symbol real trading can't touch at all yet
-                # (indices/commodities/US) has no real gate to replicate.
-                require_real_tradability=cfg["symbol"].endswith(".NS"),
-            )
-            _scheduler_last_results[cfg["symbol"]] = {"checked_at_utc": time.time(), **result}
-            if result.get("open_position") or str(result.get("action_taken", "")).startswith("exited_"):
-                _scan_only_intraday_cells(cfg["symbol"], "long")  # B-1274 stage 2: entry chain was skipped for a held symbol
-
-            # Stage 3: mirror this SAME decision as a real order, only
-            # for the equity path (options/MCX are out of stage 3 v1 -
-            # explicit user instruction). Deliberately AFTER the paper
-            # result is already recorded, in its own try/except that
-            # can never propagate - a real-order hiccup must never look
-            # like a paper-trading scheduler failure or block the next
-            # symbol's tick.
-            try:
-                action_taken = result.get("action_taken", "")
-                if action_taken == "entered_long":
-                    await _real_off_loop(_maybe_place_real_entry, cfg["symbol"])
-                elif action_taken.startswith("exited_"):
-                    await _real_off_loop(_maybe_place_real_exit, cfg["symbol"], reason=f"intraday paper exit: {action_taken}")
-                elif action_taken.startswith("partial_booked_"):
-                    # Staged profit-booking ladder (2026-09-09 architecture
-                    # revamp) - the paper side already booked one leg (see
-                    # _execute_staged_leg_exit); mirror it as a REAL partial
-                    # sell for the SAME leg qty, same isolation principle as
-                    # every other real-order mirror in this block.
-                    await _real_off_loop(_maybe_place_real_partial_exit, cfg["symbol"], result.get("staged_exit") or {})
-                elif _chan_long_flatten_due(cfg["symbol"]):
-                    # B-960: exchange cancels resting orders at 15:15 IST, so flat by our own market sell first.
-                    await _real_off_loop(_maybe_place_real_exit, cfg["symbol"], reason="flatten_1515")
-                else:
-                    # Position still open (or never was one) - sync any
-                    # real resting stop-loss to the paper trail's latest
-                    # level. A no-op unless a real position is actually
-                    # open for this symbol (see _maybe_sync_real_stop_loss).
-                    await _real_off_loop(_maybe_sync_real_stop_loss, cfg["symbol"])
-            except Exception as e:
-                print(f"[real_orders] unexpected error for {cfg['symbol']}: {e}")
-
-            # RANGE-regime short mirror (2026-09-29, explicit user
-            # instruction to implement short selling). Own try/except,
-            # same isolation principle as every other block here - a
-            # short-scan hiccup must never block the long path above or
-            # the next symbol's tick. Runs for every WATCHLIST symbol
-            # (paper), same as the long scan; real-order mirroring inside
-            # _maybe_place_real_short_entry itself narrows to NSE equity
-            # only (its own asset_class check), same narrowing the long
-            # side's _maybe_place_real_entry already does.
-            _record_short_strategy_scans()  # B-423: counter only
-            _sync_visit_strategy_count(cfg["symbol"], len(_INTRADAY_SHORT_SCAN_TAGS))
-            try:
-                # B-1419: in a worker thread like _auto_signal_core (it ran ON the event loop,
-                # fetch included, freezing /health and the watchdog), still awaited in order.
-                short_result = await asyncio.to_thread(
-                    _short_signal_core,
-                    symbol=cfg["symbol"], capital=scheduler_capital_inr,
-                    daily_risk_pct=live_daily_risk_pct, risk_per_trade_pct=cfg["risk_pct"],
-                    stop_pct=cfg["stop_pct"], rr=live_rr,
-                    sma_fast=cfg["sma_fast"], sma_slow=cfg["sma_slow"],
-                    interval="5m", tz_offset_min=cfg["tz_offset_min"], open_min=cfg["open_min"],
-                    close_min=cfg["close_min"], squareoff_min=cfg["squareoff_min"],
-                    trade_weekends=cfg["trade_weekends"], currency=cfg["currency"],
-                    max_hold_minutes=live_max_hold_minutes, ma_type=cfg.get("ma_type", "ema"),
-                    require_real_tradability=cfg["symbol"].endswith(".NS"),
-                )
-                short_action = short_result.get("action_taken", "")
-                if short_action == "holding_short" or short_action.startswith("exited_short_"):
-                    _scan_only_intraday_cells(cfg["symbol"], "short")  # B-1274 stage 2: entry chain was skipped for a held symbol
-                if short_action == "entered_short":
-                    await _real_off_loop(_maybe_place_real_short_entry, cfg["symbol"])
-                    # 2026-10-08: a short signal on an index buys a single-strike PUT.
-                    if cfg["symbol"] in _REAL_OPTION_UNDERLYING:
-                        _e = short_result.get("entry") or {}
-                        await _real_off_loop(_maybe_place_real_fo_put_entry, cfg["symbol"], _e.get("price"), _e.get("strategy"))
-                elif short_action.startswith("exited_short_"):
-                    await _real_off_loop(_maybe_place_real_short_exit, cfg["symbol"], reason=f"short paper exit: {short_action}")
-                    if cfg["symbol"] in _REAL_OPTION_UNDERLYING:
-                        await _real_off_loop(_maybe_place_real_fo_put_exit, cfg["symbol"], reason=f"paper index short exit: {short_action}")
-                elif _chan_short_flatten_due(cfg["symbol"]):
-                    # B-914: exchange cancels resting orders at 15:15 IST, so flat by our own market cover first.
-                    await _real_off_loop(_maybe_place_real_short_exit, cfg["symbol"], reason="flatten_1515")
-                else:
-                    # 2026-09-30, explicit user instruction ("make short
-                    # positions equally mirrored as done in buy
-                    # positions") - the long side's own else-branch above
-                    # syncs its trailing stop to Kotak every tick; this
-                    # was the missing short-side mirror (previously a
-                    # short's resting SL was only ever re-checked on the
-                    # 5-min reconcile pass, not this ~30s tick).
-                    await _real_off_loop(_maybe_sync_real_stop_loss_short, cfg["symbol"])
-            except Exception as e:
-                print(f"[real_short_orders] unexpected error for {cfg['symbol']}: {e}")
-
-            # Real F&O (2026-09-07, extended to MCX same day per
-            # explicit user instruction "also mcx") - NIFTY/BANKNIFTY/
-            # GC=F/SI=F/CL=F only (see _INDEX_TO_FO_UNDERLYING). Same
-            # isolation principle: its
-            # own try/except, never able to break the equity mirror
-            # above or the next symbol's tick.
-            try:
-                if cfg["symbol"] in _REAL_OPTION_UNDERLYING:
-                    fo_underlying = _REAL_OPTION_UNDERLYING[cfg["symbol"]]
-                    if action_taken == "entered_long":
-                        await _real_off_loop(_maybe_place_real_fo_call_entry, cfg["symbol"], result.get("last_close"), result.get("strategy"))
-                    elif action_taken.startswith("exited_"):
-                        await _real_off_loop(_maybe_place_real_fo_call_exit, cfg["symbol"], reason=f"paper index long exit: {action_taken}")
-                    if cfg["symbol"] in _INDEX_TO_FO_UNDERLYING:
-                      await _real_off_loop(
-                          _straddle_signal_core, fo_underlying, result.get("vol_contraction_signal"),
-                          result.get("halted_for_day", False), result.get("is_squareoff_time", False),
-                          result.get("last_close"),
-                      )
-            except Exception as e:
-                print(f"[real_fo_orders] unexpected error for {cfg['symbol']}: {e}")
-        except Exception as e:
-            _scheduler_last_error = f"{cfg['symbol']}: {e}"
-            _scheduler_last_results[cfg["symbol"]] = {
-                "checked_at_utc": time.time(), "symbol": cfg["symbol"],
-                "status": "error", "detail": str(e),
-            }
-        finally:
-            _scheduler_currently_checking = None
+        await asyncio.to_thread(_scan_equity_symbol_sync, symbol, cfg, scheduler_capital_inr, live_daily_risk_pct,
+                                live_rr, live_max_hold_minutes)
     _scan_seconds = round(time.time() - _scan_t0, 2)
 
     # Options overlay - real calls/puts on the symbols with a live
@@ -26751,6 +26855,7 @@ async def _start_scheduler():
             print(f"[check_counts_external] restored {len(_ext_counts)} symbol check-count(s) from Upstash")
     reconcile_scheduler_check_counts_from_journal()
     asyncio.create_task(_scheduler_loop())
+    asyncio.create_task(_bar_sweep_loop())  # B-1419 option A
     asyncio.create_task(_tracked_union_memory_loop())
     asyncio.create_task(_loop_heartbeat())  # B-1356
     try:  # B-1359: 40 workers filled up on 23-Oct and every `def` endpoint hung; 80 buys headroom while the watchdog names the stuck code
@@ -26823,6 +26928,7 @@ def scheduler_status():
         "last_tick_ts": _scheduler_last_tick_ts,
         "last_tick_ago_seconds": round(time.time() - _scheduler_last_tick_ts, 1) if _scheduler_last_tick_ts else None,
         "tick_timing": _tick_timing_summary(),  # B-1419
+        "bar_sweep": _BAR_SWEEP_STATS,  # B-1419 option A
         "last_error": _scheduler_last_error,
         "checks_last_30s": checks_in_last_seconds(30),
         "scheduler_capital_inr": _real_capital_cache["value"],
@@ -30175,7 +30281,8 @@ def _watchdog_day_bump(now=None, put=None, info=None) -> None:
         ev = {"ts": info.get("ts"), "ist": (dt.datetime.utcfromtimestamp(info.get("ts") or time.time())
                                            + dt.timedelta(minutes=IST_OFFSET_MIN)).strftime("%H:%M:%S IST"),
               "loop_lag_s": info.get("loop_lag_s"), "rss_pct": info.get("rss_pct"), "threadpool": info.get("threadpool"),
-              "threads": [t for t in (info.get("threads") or []) if not t.startswith("ThreadPoolExecutor")][:4]}
+              "threads": sorted((t for t in (info.get("threads") or []) if not t.startswith(("ThreadPoolExecutor", "scan-prefetch"))),
+                               key=lambda t: "(event loop)" not in t)[:5]}  # B-1422: the loop thread first
         _WATCHDOG_DAY["events"] = (_WATCHDOG_DAY.get("events") or [])[-(_WATCHDOG_DAY_EVENTS_KEEP - 1):] + [ev]
     put = put or _upstash_set
     if put is _upstash_set and not (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN):
@@ -30214,12 +30321,23 @@ def _busy_thread_stacks(limit=4) -> list:
     import traceback
     out = []
     names = {t.ident: t.name for t in threading.enumerate()}
+    # B-1422: match OUR files by full path. endswith("main.py") also matched uvicorn/main.py, so on 29-Oct 13:51 IST
+    # the frozen loop thread showed only "main:410 > run:577" (uvicorn) and hid what it was really doing.
+    here = os.path.dirname(os.path.abspath(__file__))
+    ours = {os.path.join(here, f) for f in ("main.py", "kotak_neo.py", "kotak_real_orders.py", "strategy_registry.py",
+                                            "data_fetch.py")}
+    main_ident = threading.main_thread().ident
     for ident, fr in sys._current_frames().items():
         if ident == threading.get_ident():
             continue
-        app = [f"{f.name}:{f.lineno}" for f in traceback.extract_stack(fr)
-               if f.filename.endswith(("main.py", "kotak_neo.py", "kotak_real_orders.py", "strategy_registry.py"))]
-        if app:
+        stack = traceback.extract_stack(fr)
+        app = [f"{f.name}:{f.lineno}" for f in stack if os.path.abspath(f.filename) in ours]
+        if ident == main_ident:
+            # The event-loop thread: its innermost frames from ANY file (json encoding, pandas, a lock wait or the
+            # selector), so a freeze outside our own code is still named.
+            inner = [f"{os.path.basename(f.filename)}:{f.name}:{f.lineno}" for f in stack[-limit:]]
+            out.append(f"{names.get(ident, ident)} (event loop): " + " > ".join((app[-2:] + ["|"] if app else []) + inner))
+        elif app:
             out.append(f"{names.get(ident, ident)}: " + " > ".join(app[-limit:]))
     return out
 

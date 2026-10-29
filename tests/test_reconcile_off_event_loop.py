@@ -6,7 +6,7 @@ import main
 
 
 def test_scheduler_tick_runs_reconcile_in_worker_thread():
-    src = inspect.getsource(main._scheduler_tick)
+    src = (inspect.getsource(main._scheduler_tick) + inspect.getsource(main._scan_equity_symbol_sync))
     assert "asyncio.to_thread(_unprotected_backcheck_once)" in src
     assert "\n            _reconcile_real_positions_core(adopt=" not in src
     assert "\n            _unprotected_backcheck_once()" not in src
