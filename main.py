@@ -13210,8 +13210,11 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     "volume_profile_poc": "volume_profile_poc__bounce__long__1d__trail6d0__v1",
     # 2026-10-11: exit-family research run 38140914889 (exitinval: 6 ATR stop + weekly EMA13 turn + 30d hold).
     # New OB/VP entries carry these tags; the legacy tags above stay for already-open positions.
-    "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
-    "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+    # B-1413 (2026-10-29): gated on the REAL main.py replay with the stop Kotak can actually hold (6xATR stop
+    # floored at the ~10% daily band, triggered intraday): OB 0.966 (under PFNET_LIVE_FLOOR 1.0, so new OB entries
+    # close) / VP 1.006 (still clears it). Research-sim rows (1.166 / 1.268) stay registered; open positions unaffected.
+    "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v1",
+    "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1": "order_block_delta__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v1",
     # 2026-10-12 B-798 (user: "wire if it fulfils viable definition"): brk20_min_rr LONG 1d atr4_rr4, the tag IS
     # the pooled registry name (PFnet 2.659, n=218; IS 3.43 / OOS 1.72). Gated by PFnet >= floor like all others.
     "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1": "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1",

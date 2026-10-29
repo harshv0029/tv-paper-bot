@@ -15,6 +15,8 @@ name: Swing OB + VP main.py replay (B-30)
 # SELL SL at max(strategy stop, prev close x 0.9 x 1.003) (a stop below the ~10% daily band is
 # rejected, so the live stop is the band floor), triggered intraday on the bar's Low and filled at
 # min(Open, trigger). The strategy's own close-based exit still runs after it. Blank = baseline.
+# "intraday" = resting stop at the strategy stop only (no band); "band_only" = resting stop at the
+# band floor only, strategy stop checked on the close (the candidate live design, B-1413).
 on:
   workflow_dispatch:
     inputs:
@@ -22,8 +24,12 @@ on:
         description: "ATR trail multiple override (blank = baseline 3.0)"
         required: false
         default: ""
+      exit_family:
+        description: "'exitinval' = the live OB/VP exit since 2026-10-11 (main._swing_exitinval_adapter, frozen 6xATR stop); blank = chandelier trail"
+        required: false
+        default: ""
       band_cap:
-        description: "'live' = resting stop floored at the daily price band, intraday trigger (B-1413); blank = baseline"
+        description: "live | intraday | band_only (B-1413 resting-stop models); blank = baseline"
         required: false
         default: ""
 
@@ -47,6 +53,7 @@ jobs:
           SHARD: ${{ matrix.shard }}
           TRAIL: ${{ inputs.trail_mult }}
           BAND: ${{ inputs.band_cap }}
+          EXITFAM: ${{ inputs.exit_family }}
         run: |
           python3 - <<'PYEOF'
           import os, sys, json
@@ -67,10 +74,18 @@ jobs:
               m.ORDER_BLOCK_ATR_TRAIL_MULT = float(os.environ["TRAIL"])
               m.VP_ATR_TRAIL_MULT = float(os.environ["TRAIL"])
               print("TRAIL override", os.environ["TRAIL"])
-          BAND = os.environ.get("BAND") == "live"
+          BAND_MODE = os.environ.get("BAND") or ""
+          BAND = BAND_MODE in ("live", "intraday", "band_only")
           TRAIL_MULT = m.ORDER_BLOCK_ATR_TRAIL_MULT if STRAT == "ob" else m.VP_ATR_TRAIL_MULT
           print("BAND cap", BAND, "trail", TRAIL_MULT)
           WIN = 150
+          EXITINVAL = os.environ.get("EXITFAM") == "exitinval"
+          if EXITINVAL:
+              exit_fn = m._swing_exitinval_adapter
+              TRAIL_MULT = 1e9  # frozen stop, never trails
+              max_hold = m.SWING_EXITINVAL_MAX_HOLD_DAYS
+              WIN = 250  # the weekly EMA13 flags need >= 30 completed weeks in the window
+              print("EXIT family exitinval")
           CAP, RISK_PCT = 400000.0, 1.0
           CM = {"brokerage_pct": 0.0020, "exchange_txn_pct": 0.0000297, "sebi_fee_pct": 0.000001,
                 "stamp_duty_buy_pct": 0.00015, "stt_buy_pct": 0.001, "stt_sell_pct": 0.001,
@@ -94,19 +109,25 @@ jobs:
                   win = df.iloc[max(0, i + 1 - WIN):i + 1]
                   if pos is not None and BAND and i > pos["idx"]:
                       strat_stop = max(pos["stop"], pos["rmc"] - TRAIL_MULT * pos["atr"])
-                      trig = max(strat_stop, closes[i - 1] * 0.9 * 1.003)
+                      floor = closes[i - 1] * 0.9 * 1.003
+                      trig = {"live": max(strat_stop, floor), "intraday": strat_stop, "band_only": floor}[BAND_MODE]
                       if lows[i] <= trig:
-                          why = "band_floor_stop_hit" if trig > strat_stop else "resting_stop_hit"
+                          why = "band_floor_stop_hit" if trig == floor and floor > strat_stop else "resting_stop_hit"
                           out.append(fin(pos, float(min(opens[i], trig)), i, why)); pos = None
                           continue
                   if pos is not None:
                       reason, pos["rmc"] = exit_fn(win, pos["day"], pos["stop"], pos["atr"], pos["rmc"])
                       if reason:
-                          out.append(fin(pos, float(closes[i]), i, reason)); pos = None
+                          xp = float(closes[i])
+                          if reason == "stop_hit":  # exitinval intrabar stop: filled at the stop (or a gap-down open)
+                              xp = float(min(opens[i], pos["stop"]))
+                          out.append(fin(pos, xp, i, reason)); pos = None
                   if pos is None:
                       sig = entry_fn(win)
                       if sig:
                           ep, sl = sig["entry_price"], sig["stop_loss"]
+                          if EXITINVAL:
+                              sl = m.swing_exitinval_stop(ep, sig["atr_at_entry"])
                           dist = ep - sl
                           if dist <= 0: continue
                           cap = min(CAP, CAP / m.CAPITAL_TRANCHES)
@@ -160,7 +181,7 @@ jobs:
         run: |
           python3 - <<'PYEOF'
           import json, glob
-          reg = {"ob": 1.105, "vp": 1.076}  # B-26 trail 6.0 (live setting)
+          reg = {"ob": 1.105, "vp": 1.076}  # B-26 trail 6.0 (legacy tags); exitinval tags: OB 1.166 / VP 1.268
           for st in ("ob", "vp"):
               t = []
               for f in glob.glob(f"out/{st}_*.json"):

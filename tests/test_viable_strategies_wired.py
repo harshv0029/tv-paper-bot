@@ -46,9 +46,16 @@ VARIANT_OF_WIRED = {
 # entry family (the best PFnet one); the rest are registered variants of that wired sibling.
 _EF_SIBLING = {
     "gap_and_go": "gap_and_go__swing__long__1d__hold30__v1",
-    "volume_profile_poc": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
-    "order_block_delta": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+    # B-1413: the live exitinval tags are gated on their band-floor main.py replay rows
+    "volume_profile_poc": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v1",
+    "order_block_delta": "order_block_delta__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v1",
 }
+# B-1413 live-stop model rows (research measurements of the wired OB/VP tags, not separate strategies)
+VARIANT_OF_WIRED.update({
+    "order_block_delta__retest__long__1d__rsbandonly_trail6d0__v1": "order_block_delta__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v1",
+    "order_block_delta__exitinval__long__1d__atr6d0_hold30_rsintraday_sigema13w__v1": "order_block_delta__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v1",
+    "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_rsintraday_sigema13w__v1": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v1",
+})
 for _s in sr.REGISTRY:
     if _s.source.startswith("scripts/exit_family_research.py"):
         VARIANT_OF_WIRED.setdefault(_s.name, _EF_SIBLING[_s.name.split("__")[0] if not _s.name.startswith("gg__") else "gap_and_go"])
