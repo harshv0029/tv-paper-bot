@@ -15,7 +15,7 @@ def test_bump_counts_today_and_persists():
     main._watchdog_day_bump(t, put=lambda k, v: saved.__setitem__(k, v))
     main._watchdog_day_bump(t + 60, put=lambda k, v: saved.__setitem__(k, v))
     assert main._watchdog_alarms_today(t) == 2
-    assert json.loads(saved[main._WATCHDOG_DAY_KEY]) == {"day": "2026-10-29", "n": 2}
+    assert json.loads(saved[main._WATCHDOG_DAY_KEY]) == {"day": "2026-10-29", "n": 2, "events": []}
 
 
 def test_new_ist_day_starts_at_zero():

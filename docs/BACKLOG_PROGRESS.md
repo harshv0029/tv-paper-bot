@@ -87,8 +87,8 @@ Total rows: 1175 | closed: 535 | not closed: 640
 | Priority | All | Not closed |
 |---|---|---|
 | P0 | 118 | 72 |
-| P1 | 452 | 257 |
-| P2 | 464 | 229 |
+| P1 | 453 | 258 |
+| P2 | 463 | 228 |
 | P3 | 115 | 59 |
 | Info | 1 | 0 |
 | P? | 25 | 23 |
@@ -549,6 +549,7 @@ Total rows: 1175 | closed: 535 | not closed: 640
 | B-1412 | P1 | OPEN | 2026-10-29 09:30 IST | awaiting, waiting |
 | B-1414 | P1 | OPEN | 2026-10-29 09:40 IST | awaiting, waiting |
 | B-1417 | P1 | OPEN | 2026-10-29 10:55 IST | owed, needs |
+| B-1418 | P1 | OPEN | 2026-10-29 11:08 IST | awaiting, waiting |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
@@ -606,7 +607,6 @@ Total rows: 1175 | closed: 535 | not closed: 640
 | B-1384 | P2 | SWING | 2026-10-27 14:25 IST | awaiting, waiting |
 | B-1408 | P2 | OPEN | 2026-10-28 14:30 IST | owed |
 | B-1416 | P2 | OPEN | 2026-10-29 10:55 IST |  |
-| B-1418 | P2 | OPEN | 2026-10-29 11:08 IST |  |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 | B-1250 | P? | UNKNOWN |  |  |
 | B-1252b | P? | OPEN | Status 2026-10-20 IST: aggregate-gate "why" now reported by /signal-funds (commit c70374a, deployed via gat... |  |

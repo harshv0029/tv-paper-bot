@@ -41,6 +41,9 @@ def _patch(monkeypatch, statuses, calls, closed):
     monkeypatch.setattr(main, "_real_loss_budget", lambda c: {"ok": True, "real_pnl_today": 0.0, "detail": ""})
     monkeypatch.setattr(main, "_log_real_fo_attempt", lambda *a, **k: None)
     monkeypatch.setattr(main.time, "sleep", lambda s: None)
+    # B-1418: with sleep stubbed, the 60 s failed-SL retry window spun flat out on a wall clock and printed millions of
+    # lines once the status list ran out (filled the disk twice on 2026-10-29). These tests check the unwind decision only.
+    monkeypatch.setattr(main, "FO_ENTRY_SL_FAIL_RETRY_WINDOW_S", 0.0)
     monkeypatch.setattr(kfo, "check_margin_affordable", lambda **k: {"ok": True})
     monkeypatch.setattr(kfo, "place_real_fo_entry", lambda *a, **k: {"ok": True, "order_id": "E1"})
     it = iter(statuses)
