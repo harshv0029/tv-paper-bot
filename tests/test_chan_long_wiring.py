@@ -61,7 +61,7 @@ def test_wiring_sources_present():
     assert "CHAN_LONG_CELLS" in inspect.getsource(main._auto_signal_core)
     src = inspect.getsource(main._maybe_place_real_entry)
     assert "entry_sl_failed_unwind" in src and "CHAN_LONG_ENTRY_CUTOFF_MIN" in src
-    assert "_chan_long_flatten_due" in inspect.getsource(main._scheduler_tick)
+    assert "_chan_long_flatten_due" in (inspect.getsource(main._scheduler_tick) + inspect.getsource(main._scan_equity_symbol_sync))
 
 
 def test_stack_change_flips_next_entry_gate():

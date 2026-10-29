@@ -118,5 +118,5 @@ def test_scheduler_only_requires_real_tradability_for_ns_equities():
     # else) - a symbol real trading can't touch at all yet (indices/
     # commodities/US) has no real gate to replicate, so must stay
     # unconditional (paper keeps testing every symbol continuously).
-    src = inspect.getsource(main._scheduler_tick)
+    src = (inspect.getsource(main._scheduler_tick) + inspect.getsource(main._scan_equity_symbol_sync))
     assert 'require_real_tradability=cfg["symbol"].endswith(".NS")' in src

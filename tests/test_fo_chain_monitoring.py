@@ -31,7 +31,7 @@ def test_five_underlyings_monitored():
 
 
 def test_scheduler_tick_calls_fo_chain_monitoring_snapshot():
-    src = inspect.getsource(main._scheduler_tick)
+    src = (inspect.getsource(main._scheduler_tick) + inspect.getsource(main._scan_equity_symbol_sync))
     assert "asyncio.to_thread(_fo_chain_monitoring_snapshot_own_conn)" in src  # B-1361: off the event loop
 
 

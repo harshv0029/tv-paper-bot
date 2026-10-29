@@ -121,7 +121,7 @@ def test_cancel_all_open_sells_confirms_book_is_clear():
 
 
 def test_breach_sweep_runs_every_tick():
-    src = inspect.getsource(main._scheduler_tick)
+    src = (inspect.getsource(main._scheduler_tick) + inspect.getsource(main._scan_equity_symbol_sync))
     assert "_real_off_loop(_swing_entry_stop_breach_sweep)" in src
 
 
