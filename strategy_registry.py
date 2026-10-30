@@ -3168,6 +3168,11 @@ def _extend_with_sweeps():
         REGISTRY.extend(_b1417.build())
     except Exception:
         pass
+    try:
+        import strategy_registry_b1427 as _b1427  # B-1427: gap_and_go exit-family main.py replay, run 41013761661
+        REGISTRY.extend(_b1427.build())
+    except Exception:
+        pass
 
 
 _extend_with_sweeps()
