@@ -34,6 +34,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import brk20_replay as br  # noqa: E402  (exact-mergeable aggregation helpers)
+import swing_bandcap as bc  # noqa: E402  (B-1426 shared live resting-stop model)
 
 CHUNKS = ("gap05", "v1", "segis", "segoos", "nonovl")
 MIN_BARS = 22
@@ -75,12 +76,18 @@ def collect_signals(m, df, tag):
     return sigs
 
 
-def run_trade(m, df, k, sig, dates, cost):
-    """Fill at signal close; exits from bar k+1 via the real exit fn. Returns (trade, exit_bar)."""
+def run_trade(m, df, k, sig, dates, cost, band=None):
+    """Fill at signal close; exits from bar k+1 via the real exit fn. Returns (trade, exit_bar).
+    band (B-1426): live resting stop = the frozen stop0 (main._swing_strategy_stop_level returns it for island tags),
+    checked intraday from bar k+1 BEFORE the real exit fn."""
     n = len(df)
     ep, stop0 = sig["entry_price"], sig["stop_loss"]
     fill_day = dates[k + 1]
     for j in range(k + 1, n):
+        hit = bc.band_hit(band, df, j, stop0, "long")
+        if hit:
+            g = (hit[0] - ep) / ep
+            return {"gross": g, "net": g - cost, "held": j - k, "reason": hit[1], "entry_i": k + 1}, j
         reason, px = m.brk20_min_rr_exit_reason(df.iloc[:j + 1], fill_day, ep, stop0, "long")
         if reason:
             g = (px - ep) / ep
@@ -89,11 +96,13 @@ def run_trade(m, df, k, sig, dates, cost):
     return {"gross": g, "net": g - cost, "held": n - 1 - k, "reason": "data_end_forced_close", "entry_i": k + 1}, n - 1
 
 
-def replay_symbol(m, df, tags, cost, split_ts=None):
-    """{tag: [trades]} for one symbol. Signals are computed once per filter variant (via its first tag)."""
+def replay_symbol(m, df, tags, cost, split_ts=None, band_cap="off"):
+    """{tag: [trades]} for one symbol. Signals are computed once per filter variant (via its first tag).
+    band_cap (B-1426, scripts/swing_bandcap.py): "off" = unchanged; "live" = the live resting-stop model."""
     df = df.reset_index(drop=True)
     if len(df) < MIN_BARS + 3:
         return {t: [] for t in tags}
+    band = bc.make_band(df, band_cap)
     dates = df["Date"].astype(str).to_numpy()
     idx = pd.to_datetime(dates)
     sig_cache, fifo_cache, out = {}, {}, {}
@@ -106,14 +115,14 @@ def replay_symbol(m, df, tags, cost, split_ts=None):
         trades = []
         if mode == "overlap":
             for k, s in sorted(sigs.items()):
-                trades.append(run_trade(m, df, k, s, dates, cost)[0])
+                trades.append(run_trade(m, df, k, s, dates, cost, band)[0])
         else:
             if flt not in fifo_cache:
                 lst, free = [], 0
                 for k, s in sorted(sigs.items()):
                     if k < free:
                         continue
-                    tr, free = run_trade(m, df, k, s, dates, cost)
+                    tr, free = run_trade(m, df, k, s, dates, cost, band)
                     lst.append(tr)
                 fifo_cache[flt] = lst
             trades = fifo_cache[flt]

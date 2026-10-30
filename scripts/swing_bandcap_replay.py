@@ -13,6 +13,16 @@ Families (FAMILY env):
   chan_shape   -> chan_shape_macddiv_main_replay, main.CHAN_SHAPE_CELLS (1d)
   macddiv      -> chan_shape_macddiv_main_replay, main.MACDDIV_LONG_CELLS (1h; the daily band off the previous session)
   short_swing  -> swing_short_main_replay, main.SHORT_SWING_TAGS (1d brk20 short cells, BUY stop, band CEILING)
+B-1426 additions (each live-wired in main._run_swing_scan_pass; tags exactly as the live scan iterates them):
+  island       -> island_main_replay, the strict-FIFO tags of main.ISLAND_ALL_TAGS (gap05 nonovl + ISLAND_SWING_TAGS;
+                  the v1 / segis / segoos rows are reporting views of the same rules and never own a live position)
+  gapfade      -> gapfade_main_replay, main.GAPFADE_TAGS (1d, glitch bars cleaned as in its baseline replay)
+  pl1d         -> pl1d_main_replay, main.PL1D_CELLS (1d, cleaned)
+  swingminrr   -> swing_short_main_replay, main.SWINGMINRR_TAGS (VCP long 1d, the exact minervini_vcp prefilter gate)
+  tasuki_short -> tasuki_swingminrr_short_main_replay, main.TASUKI_SHORT_CELLS (1d, ETF universe, BUY stop, CEILING)
+  swm1h_short  -> tasuki_swingminrr_short_main_replay, main.SWINGMINRR_SHORT_1H_CELLS (1h, daily band, CEILING)
+  envelope     -> envelope_main_replay, main.ENVELOPE_LONG_LIVE_CELLS (1h, cleaned, daily band off the prior session)
+  cup_cheat    -> cup_cheat_main_replay, main.CUP_CHEAT_LONG_LIVE_CELLS (1h, cleaned)
 Universe = main._load_nse_universe_from_file() (full). Cost = main.ROUND_TRIP_COST_PCT (0.8% round trip).
 
 Modes: run   (env FAMILY, SHARD, NSHARDS, BAND_CAP, SYMBOL_LIMIT, SYNTHETIC=1 smoke) -> out/bandcap_<family>_s<shard>.json
@@ -30,16 +40,30 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-FAMILIES = ("power_play", "primary_base", "gap_and_go", "oneil", "brk20", "chan_shape", "macddiv", "short_swing")
+FAMILIES = ("power_play", "primary_base", "gap_and_go", "oneil", "brk20", "chan_shape", "macddiv", "short_swing",
+            "island", "gapfade", "pl1d", "swingminrr", "tasuki_short", "swm1h_short", "envelope", "cup_cheat")
 CLASSIC = ("power_play", "primary_base", "gap_and_go", "oneil")  # == swing_classic_main_replay.FAMILIES (tested)
 MEMO_FNS = ("power_play_entry_signal", "primary_base_entry_signal", "gap_and_go_entry_signal", "oneil_swing_entry_signal",
-            "brk20_min_rr_entry_signal", "chan_shape_long_entry_signal", "macddiv_long_cell_signal")
-br = cs = bc = cl = ss = None
+            "brk20_min_rr_entry_signal", "chan_shape_long_entry_signal", "macddiv_long_cell_signal",
+            # B-1426
+            "island_bottom_signal_on_last_bar", "island_swing_entry_signal", "gapfade_long_entry_signal",
+            "pl1d_long_entry_signal", "minervini_vcp_entry_signal", "swingminrr_vcp_entry_signal",
+            "tasuki_short_signal", "swingminrr_gate_short_entry_signal", "envelope_fade_entry_signal",
+            "cup_cheat_3c_fires", "cup_cheat_3c_entry_signal")
+TSM_GROUP = {"tasuki_short": "tasuki", "swm1h_short": "swm1h"}  # driver family -> tasuki_swingminrr_short GROUP
+br = cs = bc = cl = ss = ir = gf = pl = tsm = env = cup = bh = None
 
 
 def _load_mods():
     """Heavy imports (numpy/pandas via the family replays) only for run/merge, so `plan` runs on a bare runner."""
-    global br, cs, bc, cl, ss
+    global br, cs, bc, cl, ss, ir, gf, pl, tsm, env, cup, bh
+    import bar_hygiene as bh  # noqa: F811
+    import cup_cheat_main_replay as cup  # noqa: F811
+    import envelope_main_replay as env  # noqa: F811
+    import gapfade_main_replay as gf  # noqa: F811
+    import island_main_replay as ir  # noqa: F811
+    import pl1d_main_replay as pl  # noqa: F811
+    import tasuki_swingminrr_short_main_replay as tsm  # noqa: F811
     import brk20_replay as br  # noqa: F811
     import chan_shape_macddiv_main_replay as cs  # noqa: F811
     import swing_bandcap as bc  # noqa: F811
@@ -72,6 +96,13 @@ def family_tags(m, family):
         return [m.BRK20_SWING_TAG]
     if family in ("chan_shape", "macddiv"):
         return cs.tags_for(m, family)
+    if family == "island":
+        return [t for t in m.ISLAND_ALL_TAGS if ir.mode_of(t) == "fifo"]
+    live = {"gapfade": "GAPFADE_TAGS", "pl1d": "PL1D_CELLS", "swingminrr": "SWINGMINRR_TAGS",
+            "tasuki_short": "TASUKI_SHORT_CELLS", "swm1h_short": "SWINGMINRR_SHORT_1H_CELLS",
+            "envelope": "ENVELOPE_LONG_LIVE_CELLS", "cup_cheat": "CUP_CHEAT_LONG_LIVE_CELLS"}
+    if family in live:
+        return list(getattr(m, live[family]))
     return list(m.SHORT_SWING_TAGS)
 
 
@@ -84,6 +115,17 @@ def load(m, family, shard, nshards, limit):
         return br.load_frames(m, "1d", shard, nshards, limit)
     if family in ("chan_shape", "macddiv"):
         return cs.load_frames(m, family, shard, nshards, limit)
+    if family == "island":
+        return ir.load_frames(m, "1d", "5y", shard, nshards, limit)
+    # same loaders + bar-hygiene cleaning as each family's own baseline replay, so band_cap=off reproduces it
+    if family == "gapfade":
+        return bh.clean_frames(br.load_frames(m, "1d", shard, nshards, limit))[0]
+    if family == "pl1d":
+        return bh.clean_frames(cs.load_frames(m, "chan_shape", shard, nshards, limit))[0]
+    if family in ("envelope", "cup_cheat"):
+        return bh.clean_frames(cs.load_frames(m, "macddiv", shard, nshards, limit))[0]
+    if family in TSM_GROUP:
+        return tsm.load_frames(m, TSM_GROUP[family], shard, nshards, limit)
     return ss.load_frames(m, shard, nshards, limit)
 
 
@@ -96,7 +138,26 @@ def replay(m, family, df, tags, cost, mode):
         return {tags[0]: br.replay_symbol(m, df, "long", m.BRK20_SWING_ATR_MULT, m.BRK20_SWING_MIN_RR, None, cost, mode)}
     if family in ("chan_shape", "macddiv"):
         return cs.replay_symbol(m, df, family, tags, cost, mode)
+    if family == "island":
+        return ir.replay_symbol(m, df, tags, cost, None, mode)
+    if family == "gapfade":
+        return gf.replay_symbol(m, df, tags, cost, mode)
+    if family == "pl1d":
+        return pl.replay_symbol(m, df, tags, cost, mode)
+    if family == "envelope":
+        return env.replay_symbol(m, df, tags, cost, mode)
+    if family == "cup_cheat":
+        return cup.replay_symbol(m, df, tags, cost, "long", mode)
+    if family in TSM_GROUP:
+        specs = tsm.tag_specs(m)
+        return {t: tsm.replay_symbol(m, df, t, specs[t], cost, "signal_close", mode) for t in tags}
     specs = ss.tag_specs(m)
+    if family == "swingminrr":
+        # the exact prefilter swing_short_main_replay.run uses: swingminrr_vcp_entry_signal is None whenever
+        # minervini_vcp_entry_signal is (rs=None). Memoised by MemoMain, so the off and live passes share it.
+        def gate(sub):
+            return bool(m.minervini_vcp_entry_signal(sub))
+        return {t: ss.replay_symbol(m, df, t, specs[t], cost, "signal_close", gate, mode) for t in tags}
     return {t: ss.replay_symbol(m, df, t, specs[t], cost, "signal_close", None, mode) for t in tags}
 
 
@@ -161,7 +222,7 @@ def merge(d, out_path=None):
             live = br.agg_metrics(pooled[(t, md)]) if md else None
             rows.append({"tag": t, "family": fam_of[t], "band_cap": md, "band_tag": bc.band_tag(t, md or "off"),
                          "n_symbols": nsym.get(t, 0), "off": off, "live": live})
-    res = {"backlog": "B-1417", "cost_round_trip_pct": 0.8, "run_id": os.environ.get("GITHUB_RUN_ID"),
+    res = {"backlog": "B-1417/B-1426", "cost_round_trip_pct": 0.8, "run_id": os.environ.get("GITHUB_RUN_ID"),
            "universe": "main._load_nse_universe_from_file() (full NSE)", "rows": rows}
     json.dump(res, open(out_path or os.path.join(d, "swing_bandcap_all.json"), "w"), indent=1)
     print("SUMMARY tag | n off/live | win% off/live | PFnet off/live | live tag")

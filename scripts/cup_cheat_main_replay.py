@@ -39,6 +39,7 @@ import bar_hygiene as bh  # noqa: E402
 import brk20_replay as br  # noqa: E402
 import chan_shape_macddiv_main_replay as base  # noqa: E402
 import cup_cheat_short_research as short_rule  # noqa: E402
+import swing_bandcap as bc  # noqa: E402  (B-1426 shared live resting-stop model)
 
 MIN_BARS = 71
 INTERVAL = ("1h", "730d")
@@ -77,20 +78,26 @@ def _trade(ep, xp, held, reason, cost, entry_i, exit_i, direction="long"):
     return {"gross": g, "net": g - cost, "held": held, "reason": reason, "entry_i": entry_i, "exit_i": exit_i}
 
 
-def cup_trade(m, df, k, sig, tag, cost, direction="long"):
+def cup_trade(m, df, k, sig, tag, cost, direction="long", band=None):
+    """band (B-1426, swing_bandcap.make_band): live resting stop = the frozen stop0 (band floor / ceiling off the
+    previous SESSION close on 1h bars), checked intraday from bar k+1 BEFORE the exit fn. None = unchanged."""
     cells, _fires, _entry, exit_fn = _rule(m, direction)
     n = len(df)
     _kmult, hold = cells[tag]
     ep, stop0 = sig["entry_price"], sig["stop_loss"]
     for j in range(k + 1, n):
+        hit = bc.band_hit(band, df, j, stop0, direction)
+        if hit:
+            return _trade(ep, hit[0], j - k, hit[1], cost, k + 1, j, direction)
         res = exit_fn(df.iloc[:j + 1], k, stop0, hold)
         if res:
             return _trade(ep, res[1], j - k, res[0], cost, k + 1, j, direction)
     return _trade(ep, float(df["Close"].iloc[-1]), n - 1 - k, "data_end_forced_close", cost, k + 1, n - 1, direction)
 
 
-def replay_symbol(m, df, tags, cost, direction="long"):
-    """Strict FIFO per symbol per tag: a new entry only after the previous trade's exit bar (no averaging, no pyramiding)."""
+def replay_symbol(m, df, tags, cost, direction="long", band_cap="off"):
+    """Strict FIFO per symbol per tag: a new entry only after the previous trade's exit bar (no averaging, no pyramiding).
+    band_cap (B-1426, scripts/swing_bandcap.py): "off" = unchanged; "live" = the live resting-stop model."""
     _cells, fires, entry_fn, _exit = _rule(m, direction)
     df = df.reset_index(drop=True)
     n = len(df)
@@ -98,6 +105,7 @@ def replay_symbol(m, df, tags, cost, direction="long"):
     if n < MIN_BARS + 3:
         return out
     cand = _candidates(df, direction)
+    band = bc.make_band(df, band_cap)
     free = {t: 0 for t in tags}
     for k in np.flatnonzero(cand[:n - 1]):
         k = int(k)
@@ -112,7 +120,7 @@ def replay_symbol(m, df, tags, cost, direction="long"):
             sig = entry_fn(sub, tag)
             if not sig:
                 continue
-            tr = cup_trade(m, df, k, sig, tag, cost, direction)
+            tr = cup_trade(m, df, k, sig, tag, cost, direction, band)
             out[tag].append(tr)
             free[tag] = tr["exit_i"] + 1
     return out
