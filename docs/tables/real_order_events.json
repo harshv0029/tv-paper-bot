@@ -14495,7 +14495,19 @@
    "prev_state": "resting SELL trigger Rs189.39",
    "new_state": "resting SELL trigger Rs190.11",
    "detail": "reason: peak live price Rs194.66 - 1R (Rs4.55) raised the stop from Rs189.39 | LTP trail (replaced; Kotak holdings and order book read first)"
+  },
+  {
+   "id": 1209,
+   "ts": 1793335278.539716,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "sl",
+   "event": "filled",
+   "order_id": "261030000017334",
+   "prev_state": "resting",
+   "new_state": "filled @ Rs33.67",
+   "detail": "reason: stop-loss executed at Kotak (counted in win %) | trnsTp=S qty=2"
   }
  ],
- "synced_at_utc": "2026-10-30T04:23:23Z"
+ "synced_at_utc": "2026-10-30T04:41:36Z"
 }
