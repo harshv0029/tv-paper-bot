@@ -15359,7 +15359,19 @@
    "prev_state": "resting SELL trigger Rs192.89",
    "new_state": "unchanged/unknown",
    "detail": "reason: LTP trail wanted Rs193.76 (peak Rs198.31 - 1R) but the replace failed | order 261030000557590 rejected: OMS: Order Rejected due to CAS session end"
+  },
+  {
+   "id": 1281,
+   "ts": 1793354367.2449985,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261030000557824 rejected: OMS: Order Rejected due to CAS session end"
   }
  ],
- "synced_at_utc": "2026-10-30T09:59:15Z"
+ "synced_at_utc": "2026-10-30T09:59:30Z"
 }
