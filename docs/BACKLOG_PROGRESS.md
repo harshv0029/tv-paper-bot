@@ -22,13 +22,13 @@ Total rows: 1195 | closed: 552 | not closed: 643
 | PENDING | 12 |
 | BUILT-DISPATCH-OWED | 12 |
 | DEPLOYED | 11 |
-| OWNER-ACTION | 9 |
+| OWNER-ACTION | 10 |
 | P1 | 8 |
 | P0 | 8 |
-| BUILT | 8 |
 | USER | 8 |
 | OPEN-PARKED | 6 |
 | BUILT-ON-BRANCH | 5 |
+| BUILT | 5 |
 | PARKED-REASONED | 4 |
 | WIRED-PENDING-REPLAY | 4 |
 | PARKED | 3 |
@@ -48,6 +48,7 @@ Total rows: 1195 | closed: 552 | not closed: 643
 | RECONCILE | 2 |
 | REAL | 2 |
 | JIOFIN26OCT217 | 2 |
+| FOUND | 2 |
 | DONE-MEASURED | 1 |
 | BLOCKED-ON-RUN | 1 |
 | HARNESS-RUN-DONE | 1 |
@@ -73,7 +74,6 @@ Total rows: 1195 | closed: 552 | not closed: 643
 | NATIONALUM | 1 |
 | FROM | 1 |
 | SPAWNED | 1 |
-| FOUND | 1 |
 | B-1359 | 1 |
 | WATCHDOG | 1 |
 | RESIDUAL | 1 |
@@ -81,6 +81,7 @@ Total rows: 1195 | closed: 552 | not closed: 643
 | SWING | 1 |
 | F | 1 |
 | B-1388 | 1 |
+| RESEARCH-SIM | 1 |
 
 ## Counts by priority (all rows / not closed)
 
@@ -93,7 +94,7 @@ Total rows: 1195 | closed: 552 | not closed: 643
 | Info | 1 | 0 |
 | P? | 25 | 23 |
 
-## needs-owner (9)
+## needs-owner (10)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -103,6 +104,7 @@ Total rows: 1195 | closed: 552 | not closed: 643
 | B-1366 | P0 | OWNER-ACTION | 2026-10-26 18:55 IST | verify, owner |
 | B-1367 | P0 | OWNER-ACTION | 2026-10-26 18:55 IST | pending, verify, owner |
 | B-1369 | P0 | OWNER-ACTION | 2026-10-26 20:30 IST | verify, owner |
+| B-1437 | P0 | OWNER-ACTION | 2026-10-30 13:40 IST | owed, verify |
 | B-1351 | P1 | OWNER-ACTION | 2026-10-23 12:30 IST |  |
 | B-1370 | P1 | OWNER-ACTION | 2026-10-26 21:05 IST | owed, owner |
 | B-54 | P? | OWNER-ACTION | P1 OWNER-ACTION | owner |
@@ -475,7 +477,7 @@ Total rows: 1195 | closed: 552 | not closed: 643
 | B-1297 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: trade-view pages hang the laptop browser | owed, pending, verify, needs |
 | B-1298 | P? | DONE-PENDING-VERIFY | User 2026-10-20 IST: Trade View 2/3 data must survive a restart and stay stored until midnight | pending, verify |
 
-## ready-to-build (144)
+## ready-to-build (143)
 
 | ID | Pri | Status | Title | Owed keywords |
 |---|---|---|---|---|
@@ -508,7 +510,6 @@ Total rows: 1195 | closed: 552 | not closed: 643
 | B-1359 | P0 | FOUND | 2026-10-23 17:05 IST | verify |
 | B-1363 | P0 | P0 | DEPLOYED 2026-10-26 (92c38c40 on main, confirmed 18:50 IST) | verify, follow-up |
 | B-1383 | P0 | RESTART | 2026-10-27 14:25 IST | owed, follow-up |
-| B-1437 | P0 | BUILT | 2026-10-30 13:40 IST | owed, verify |
 | B-417 | P1 | P1 | DEPLOYED 2026-10-11 12:46 IST (main 6c84001c); verify on next live occurrence | owed, pending, verify, needs |
 | B-419 | P1 | P1 | DEPLOYED 2026-10-11 12:57 IST (main 16158170); verify on next live occurrence | owed, pending, verify, needs |
 | B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, remaining, needs |
@@ -548,11 +549,11 @@ Total rows: 1195 | closed: 552 | not closed: 643
 | B-1412 | P1 | OPEN | 2026-10-29 09:30 IST | awaiting, waiting |
 | B-1414 | P1 | OPEN | 2026-10-29 09:40 IST | awaiting, waiting |
 | B-1422 | P1 | OPEN | 2026-10-29 14:09 IST | owed |
-| B-1427 | P1 | BUILT | 2026-10-30 07:55 IST | owed |
+| B-1427 | P1 | RESEARCH-SIM | 2026-10-30 07:55 IST | owed, verify |
 | B-1428 | P1 | BUILT | 2026-10-30 09:25 IST | owed, open:, pending |
 | B-1429 | P1 | BUILT | 2026-10-30 09:35 IST | owed, pending |
 | B-1430 | P1 | BUILT | 2026-10-30 09:45 IST | owed, remaining, pending, verify, follow-up |
-| B-1438 | P1 | BUILT | 2026-10-30 13:53 IST | owed |
+| B-1438 | P1 | FOUND | 2026-10-30 13:53 IST | owed, verify |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
