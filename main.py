@@ -72,6 +72,7 @@ from constants import (
     OPTIONS_MAX_SPREAD_PCT, OPTIONS_STOP_PCT, OPTIONS_STRATEGY_TAG,
 )
 from data_fetch import fetch_ohlc, get_fx_to_inr, _DATA_CACHE, _CACHE_TTL_SECONDS
+import data_fetch  # B-1419: _PINNED_FRAMES / cache_entry_time for the bar sweep
 import sentiment_signals
 from options_pricing import (
     _norm_cdf, bs_price, parse_legs, run_options_backtest, _bs_delta,
@@ -20269,8 +20270,18 @@ def _scan_prefetch_intervals() -> list:
     return ["5m", *sorted(set(CHAN_SHORT_CELL_INTERVAL.values()) - {"5m"})]
 
 
+def _prefetch_one_frame(symbol: str, period: str, interval: str):
+    """(fetch time, frame) for one prefetch key; the time is the shared cache entry's own, so a pinned copy expires
+    exactly when the cached one would."""
+    t0 = time.time()
+    df = fetch_ohlc(symbol, period, interval)
+    ts = data_fetch.cache_entry_time(symbol, period, interval)
+    return (ts if ts is not None else t0), df
+
+
 def _prefetch_tick_ohlc(symbols, period: str = "5d", interval: str = "5m",
-                        workers: int | None = None, intervals=None, timeout: float | None = None) -> dict:
+                        workers: int | None = None, intervals=None, timeout: float | None = None,
+                        collect: dict | None = None) -> dict:
     """B-1419: warm fetch_ohlc's 180 s cache for this tick's symbols from a bounded
     thread pool. Read-only (no DB, no orders); a failed fetch is just counted, the
     per-symbol scan then fetches (and reports) it itself exactly as before."""
@@ -20285,12 +20296,16 @@ def _prefetch_tick_ohlc(symbols, period: str = "5d", interval: str = "5m",
     pool = _cf.ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="scan-prefetch")
     try:
         # Symbol-major order, so a timeout still leaves whole symbols warm rather than one bar size of everything.
-        futs = [pool.submit(fetch_ohlc, s, period, iv) for s in syms for iv in ivs]
+        keys = [(s, period, iv) for s in syms for iv in ivs]
+        futs = [pool.submit(_prefetch_one_frame, *k) for k in keys]
+        key_of = dict(zip(futs, keys))
         try:
             for f in _cf.as_completed(futs, timeout=timeout or SCAN_PREFETCH_TIMEOUT_SECONDS):
                 try:
-                    f.result()
+                    fetched_at, df = f.result()
                     ok += 1
+                    if collect is not None:  # B-1419: the bar sweep pins these for its own scan (data_fetch._PINNED_FRAMES)
+                        collect[key_of[f]] = (fetched_at, df)
                 except Exception:  # noqa: BLE001
                     failed += 1
         except _cf.TimeoutError:
@@ -26860,9 +26875,28 @@ async def _bar_sweep_once(now: float | None = None) -> dict:
     stats["candidates"] = len(syms)
     t0 = time.time()
     # 200 symbols x 2 bar sizes at the 4-download cap is ~2 min; 60 s timed out 123 of 201 (14:45 IST bar).
+    # B-1419: pin the prefetched frames for this sweep's own scan. ~200 symbols x 2 bar sizes filled the 400-entry
+    # shared cache, so oldest-first eviction removed each next symbol before it was scanned (71/187 covered, live
+    # 30-Oct 12:04 IST). The pin is task-scoped (asyncio.to_thread copies the context), same key and TTL.
+    pinned: dict = {}
     stats["prefetch"] = await asyncio.to_thread(_prefetch_tick_ohlc, [*syms, UNIVERSAL_REFERENCE_INDEX],
                                                 intervals=_scan_prefetch_intervals(),
-                                                timeout=BAR_SWEEP_PREFETCH_TIMEOUT_SECONDS)
+                                                timeout=BAR_SWEEP_PREFETCH_TIMEOUT_SECONDS, collect=pinned)
+    stats["prefetch"]["pinned"] = len(pinned)
+    _pin_token = data_fetch._PINNED_FRAMES.set(pinned)
+    try:
+        await _bar_sweep_scan(syms, bar_close, deadline, stats, capital, risk_pct, rr, max_hold)
+    finally:
+        data_fetch._PINNED_FRAMES.reset(_pin_token)
+        pinned.clear()
+    stats["seconds"] = round(time.time() - t0, 1)
+    done = sum(1 for s_ in syms if _SCAN_LAST_DONE.get(s_, 0.0) >= bar_close)
+    stats["covered"] = done
+    stats["status"] = "complete" if done >= len(syms) else "ran_out_of_bar"
+    return stats
+
+
+async def _bar_sweep_scan(syms, bar_close, deadline, stats, capital, risk_pct, rr, max_hold) -> None:
     by_symbol = {c["symbol"]: c for c in WATCHLIST}
     for sym in syms:
         while _TICK_WANTS_SCAN["n"] > 0 and time.time() < deadline:
@@ -26873,11 +26907,6 @@ async def _bar_sweep_once(now: float | None = None) -> dict:
             continue  # the tick got there first
         await asyncio.to_thread(_scan_equity_symbol_sync, sym, by_symbol.get(sym), capital, risk_pct, rr, max_hold)
         stats["scanned"] += 1
-    stats["seconds"] = round(time.time() - t0, 1)
-    done = sum(1 for s_ in syms if _SCAN_LAST_DONE.get(s_, 0.0) >= bar_close)
-    stats["covered"] = done
-    stats["status"] = "complete" if done >= len(syms) else "ran_out_of_bar"
-    return stats
 
 
 async def _bar_sweep_loop():

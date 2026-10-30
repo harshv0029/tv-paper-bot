@@ -5,6 +5,7 @@ Extracted from main.py as part of the docs/PROJECT_STRUCTURE_PLAN.md Phase 1
 module split - pure code motion (bodies/docstrings unchanged from their
 original main.py definitions), not a logic change.
 """
+import contextvars
 import threading
 import time
 
@@ -49,6 +50,23 @@ except Exception:  # noqa: BLE001
     _YF_CALL_LOCK = threading.Lock()
 
 
+# B-1419 (live 30-Oct 12:04 IST: sweep ran_out_of_bar, 71/187 scanned): the 5m-bar sweep prefetches ~200 symbols x
+# 2 bar sizes (~400 frames) into a cache capped at _MAX_CACHE_ENTRIES (400), shared with the tick, swing and F&O
+# fetches. Oldest-first eviction dropped exactly the next symbols the sweep was about to scan, and each inline
+# re-download evicted the one after it, so nearly every scanned symbol waited on Yahoo again (~1.2 s/symbol). The
+# sweep now pins its own prefetched frames for its own scan: task-scoped (a ContextVar, copied into
+# asyncio.to_thread workers), same key and same TTL as the shared cache, released when the sweep ends. Other callers
+# never see the pins, so their data freshness is unchanged.
+_PINNED_FRAMES: contextvars.ContextVar = contextvars.ContextVar("data_fetch_pinned_frames", default=None)
+
+
+def cache_entry_time(symbol: str, period: str, interval: str):
+    """Fetch time of the shared cache entry for this key, or None."""
+    with _CACHE_LOCK:
+        hit = _DATA_CACHE.get((symbol, period, interval))
+    return hit[0] if hit else None
+
+
 def _prune_multitasking_tasks() -> int:
     """Memory leak fix (live 30-Oct-2026, ~52k dead Thread objects at 1.68 GB RSS): yf.download(threads=True) runs
     through the `multitasking` package, which appends every Thread it makes to the global config["TASKS"] list and
@@ -86,6 +104,12 @@ def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
     leaving behind a DataFrame that would otherwise sit in memory forever."""
     key = (symbol, period, interval)
     now = time.time()
+
+    pins = _PINNED_FRAMES.get()
+    if pins:
+        pinned = pins.get(key)
+        if pinned and (now - pinned[0]) < _CACHE_TTL_SECONDS:
+            return pinned[1].copy()
 
     with _CACHE_LOCK:
         cached = _DATA_CACHE.get(key)
