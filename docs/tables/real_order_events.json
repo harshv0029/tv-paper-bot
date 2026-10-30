@@ -14567,7 +14567,19 @@
    "prev_state": "resting SELL trigger Rs190.91",
    "new_state": "resting SELL trigger Rs191.25",
    "detail": "reason: peak live price Rs195.80 - 1R (Rs4.55) raised the stop from Rs190.91 | LTP trail (replaced; Kotak holdings and order book read first)"
+  },
+  {
+   "id": 1215,
+   "ts": 1793342955.200892,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261030000339375",
+   "prev_state": "resting SELL trigger Rs191.25",
+   "new_state": "resting SELL trigger Rs191.74",
+   "detail": "reason: peak live price Rs196.29 - 1R (Rs4.55) raised the stop from Rs191.25 | LTP trail (replaced; Kotak holdings and order book read first)"
   }
  ],
- "synced_at_utc": "2026-10-30T06:34:39Z"
+ "synced_at_utc": "2026-10-30T06:49:18Z"
 }
