@@ -14423,7 +14423,19 @@
    "prev_state": "no position",
    "new_state": "short 1 @ Rs365.50",
    "detail": "reason: paper short entry signal from strategy chan_gap__short_on_gap__short__1d__atr1d5_top10__v1 passed the PFnet gate"
+  },
+  {
+   "id": 1203,
+   "ts": 1793332496.989642,
+   "symbol": "DABUR.NS",
+   "kotak_trading_symbol": "DABUR-EQ",
+   "leg": "short_sl",
+   "event": "placed",
+   "order_id": "261030000045502",
+   "prev_state": "none",
+   "new_state": "resting BUY trigger Rs383.05",
+   "detail": "reason: resting buy-stop placed so the open short is protected"
   }
  ],
- "synced_at_utc": "2026-10-30T03:54:48Z"
+ "synced_at_utc": "2026-10-30T03:55:02Z"
 }
