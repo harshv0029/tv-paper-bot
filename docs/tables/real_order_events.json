@@ -14435,7 +14435,19 @@
    "prev_state": "none",
    "new_state": "resting BUY trigger Rs383.05",
    "detail": "reason: resting buy-stop placed so the open short is protected"
+  },
+  {
+   "id": 1204,
+   "ts": 1793332517.1679904,
+   "symbol": "DABUR.NS",
+   "kotak_trading_symbol": "DABUR-EQ",
+   "leg": "sl",
+   "event": "moved",
+   "order_id": "261030000046290",
+   "prev_state": "none",
+   "new_state": "Rs383.03",
+   "detail": "reason: stop-loss moved to follow the trailing stop"
   }
  ],
- "synced_at_utc": "2026-10-30T03:55:02Z"
+ "synced_at_utc": "2026-10-30T03:55:21Z"
 }
