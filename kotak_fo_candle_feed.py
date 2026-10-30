@@ -493,6 +493,20 @@ def apply_tick(instrument_token: str, price: float, ts: float, descriptor: dict,
     return completed
 
 
+# B-1432: tick batches ran via asyncio.to_thread, i.e. on the loop's SHARED default executor, which also carries the
+# long scan jobs (swing / chan-gap scans, yfinance prefetch, _fo_tick_steps orphaned past its wait_for). While those
+# hold every worker, the batch waits in the executor queue and the SDK's unbounded tick queue keeps growing
+# (live 30-Oct: SFeedScrip 0 -> 7.9k, DepthLevel 15.8k, +1.8 MB/min RSS). A dedicated single worker keeps tick
+# processing independent of that pool; one worker keeps batches serialized exactly as before.
+_FO_TICK_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="fo-ticks")
+
+
+async def offload_process_fo_ticks(messages, universe: dict, scrip_cls) -> int:
+    """process_fo_ticks off the event loop on _FO_TICK_EXECUTOR (never the shared default executor)."""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(_FO_TICK_EXECUTOR, process_fo_ticks, messages, universe, scrip_cls)
+
+
 def process_fo_ticks(messages, universe: dict, scrip_cls) -> int:
     """B-1382: apply a batch of feed messages to the in-progress candles. One DB connection per batch, opened only
     if some tick closes its instrument's candle. Returns how many ticks were applied."""
@@ -692,7 +706,7 @@ async def run_fo_candle_feed():
             client = kotak_neo.login()
             _set_phase("subscribing")
 
-            async with client.create_websocket() as ws:
+            async with kotak_live_feed.retiring(client.create_websocket()) as ws:
                 await ws.subscribe_scrips(ws_tokens)
                 _set_phase("streaming")
                 _feed_status["connected"] = True
@@ -722,7 +736,8 @@ async def run_fo_candle_feed():
                     # B-1382: take every queued tick in this wake-up (the SDK queue is unbounded) and open the DB
                     # only when a tick closes a candle, not once per tick.
                     # B-1424: candle persistence (SQLite commit) runs off the event loop; a 17 s lock wait froze it.
-                    await asyncio.to_thread(process_fo_ticks, kotak_live_feed.drain_pending(ws, first), universe, SFeedScrip)
+                    # B-1432: own executor, not asyncio.to_thread's shared one (see _FO_TICK_EXECUTOR).
+                    await offload_process_fo_ticks(kotak_live_feed.drain_pending(ws, first), universe, SFeedScrip)
                 # B-865: the stream ended without raising (SDK gave up
                 # reconnecting, or we broke out for a refresh). The old code
                 # left connected=True here, a stale "healthy" reading.
