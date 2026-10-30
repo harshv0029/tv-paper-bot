@@ -47,6 +47,8 @@ interval (5 min) that's a small fraction of a trading day.
 """
 import asyncio
 import concurrent.futures
+import logging
+import sqlite3
 import time
 from contextlib import closing
 
@@ -55,6 +57,8 @@ import pandas as pd
 import kotak_live_feed
 import kotak_neo
 import nse_fo_chain
+
+logger = logging.getLogger(__name__)
 
 CANDLE_INTERVAL_SECONDS = 300  # 5-minute bars - matches this app's dominant intraday bar size
 
@@ -115,6 +119,12 @@ _feed_status = {
     "last_tick_ts": None,
     "last_disconnect_reason": None,
     "refresh_reconnects": 0,
+    # B-1434: SQLite errors while persisting completed candles (kept pending, retried next batch, never
+    # allowed to end the stream).
+    "persist_errors": 0,
+    "last_persist_error": None,
+    "pending_candles": 0,
+    "dropped_candles": 0,
 }
 
 # {instrument_token: {"bucket_start_ts", "open", "high", "low", "close", "tick_count"}}
@@ -507,32 +517,66 @@ async def offload_process_fo_ticks(messages, universe: dict, scrip_cls) -> int:
     return await loop.run_in_executor(_FO_TICK_EXECUTOR, process_fo_ticks, messages, universe, scrip_cls)
 
 
-def process_fo_ticks(messages, universe: dict, scrip_cls) -> int:
-    """B-1382: apply a batch of feed messages to the in-progress candles. One DB connection per batch, opened only
-    if some tick closes its instrument's candle. Returns how many ticks were applied."""
-    now = time.time()
-    bucket = _bucket_start(now)
+# B-1434: completed candles not yet committed (a SQLite error, e.g. "database is locked" after get_db's 30 s
+# timeout, hit the batch that closed them). Retried at the start of the next batch; INSERT OR IGNORE makes a
+# repeat insert harmless. Capped so a DB that stays down cannot grow memory without bound (oldest dropped, counted).
+_pending_candles: list = []
+MAX_PENDING_CANDLES = 20000
+
+
+def _flush_pending_candles() -> None:
+    """B-1434: persist every pending completed candle. A sqlite3 error stops this flush, keeps the unwritten
+    candles pending for the next batch and is recorded in _feed_status - it never propagates, so a locked DB
+    can no longer tear down the websocket (live 30-Oct: 7 reconnects in ~2 h, exception:OperationalError)."""
+    if not _pending_candles:
+        _feed_status["pending_candles"] = 0
+        return
     conn = None
-    applied = 0
     try:
-        for message in messages:
-            if not isinstance(message, scrip_cls):
-                continue
-            _feed_status["ticks_received"] += 1
-            _feed_status["last_tick_ts"] = now
-            tok = str(message.instrument_token)
-            descriptor = universe.get((message.exchange_segment, tok))
-            if descriptor is None:
-                continue
-            existing = _in_progress_candles.get(tok)
-            if conn is None and existing is not None and existing["bucket_start_ts"] != bucket:
-                import main
-                conn = main.get_db()
-            apply_tick(tok, message.last_traded_price, now, descriptor, conn=conn)
-            applied += 1
+        import main
+        conn = main.get_db()
+        while _pending_candles:
+            tok, descriptor, bar = _pending_candles[0]
+            _persist_candle(conn, tok, descriptor, bar)
+            _pending_candles.pop(0)
+    except sqlite3.Error as e:
+        _feed_status["persist_errors"] = _feed_status.get("persist_errors", 0) + 1
+        _feed_status["last_persist_error"] = f"{type(e).__name__}: {e} ({time.strftime('%H:%M:%S', time.gmtime())} UTC)"
+        logger.warning("fo candle persist failed, %d candle(s) kept pending: %s", len(_pending_candles), e)
+        overflow = len(_pending_candles) - MAX_PENDING_CANDLES
+        if overflow > 0:
+            del _pending_candles[:overflow]
+            _feed_status["dropped_candles"] = _feed_status.get("dropped_candles", 0) + overflow
     finally:
         if conn is not None:
-            conn.close()
+            try:
+                conn.close()
+            except sqlite3.Error:
+                pass
+        _feed_status["pending_candles"] = len(_pending_candles)
+
+
+def process_fo_ticks(messages, universe: dict, scrip_cls) -> int:
+    """B-1382: apply a batch of feed messages to the in-progress candles. One DB connection per batch, opened only
+    if a candle completed (or one is still pending from an earlier failed batch). Returns how many ticks were
+    applied. B-1434: completed candles are queued and flushed after the batch; a DB error keeps them pending
+    instead of raising out of the stream loop."""
+    now = time.time()
+    applied = 0
+    for message in messages:
+        if not isinstance(message, scrip_cls):
+            continue
+        _feed_status["ticks_received"] += 1
+        _feed_status["last_tick_ts"] = now
+        tok = str(message.instrument_token)
+        descriptor = universe.get((message.exchange_segment, tok))
+        if descriptor is None:
+            continue
+        completed = apply_tick(tok, message.last_traded_price, now, descriptor)
+        if completed is not None:
+            _pending_candles.append((tok, descriptor, completed))
+        applied += 1
+    _flush_pending_candles()
     return applied
 
 
