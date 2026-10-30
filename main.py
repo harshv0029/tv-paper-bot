@@ -1666,7 +1666,7 @@ def history(symbol: str, period: str = "6mo", interval: str = "1d"):
                 recent history - Yahoo limits how far back intraday data goes)
     """
     _resample_4h = interval == "4h"  # B-1281: yfinance has no 4h; build it from 1h bars
-    df = yf.download(symbol, period=period, interval="1h" if _resample_4h else interval, progress=False)
+    df = yf.download(symbol, period=period, interval="1h" if _resample_4h else interval, progress=False, threads=False)
     if _resample_4h and not df.empty:
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
@@ -1675,7 +1675,7 @@ def history(symbol: str, period: str = "6mo", interval: str = "1d"):
     if df.empty and interval.endswith(("m", "h")) and period in ("1d", "2d"):
         # "fetch failed: 404" root cause (user 2026-10-11): period=1d intraday is EMPTY whenever there is no session
         # yet today (weekends, holidays, pre-open) or Yahoo throttles; retry on 5d and keep the latest session only.
-        df = yf.download(symbol, period="5d", interval=interval, progress=False)
+        df = yf.download(symbol, period="5d", interval=interval, progress=False, threads=False)
         if not df.empty:
             _last_day = df.index[-1].date()
             df = df[[ts.date() == _last_day for ts in df.index]]
@@ -13146,7 +13146,7 @@ def _etf_entry_range_ok(symbol: str) -> tuple[bool, str]:
     if hit and hit[0] == day:
         return hit[1], hit[2]
     try:
-        df = yf.download(symbol, period="3mo", interval="1d", progress=False, auto_adjust=False)
+        df = yf.download(symbol, period="3mo", interval="1d", progress=False, auto_adjust=False, threads=False)
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
         df = df.dropna()
