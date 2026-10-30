@@ -14,7 +14,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from strategy_registry import PFNET_LIVE_FLOOR  # noqa: E402  2026-10-30 user: wiring floor 1.0, never the old 1.1
 
 # B-791 (2026-10-23 IST): the live minervini_vcp exit (main.minervini_vcp_exit_reason) trails at
 # MINERVINI_ATR_STOP_MULT = 2.0 x entry ATR on CLOSES, so the nearest sweep cell is atr2, not atr1d5 (the
@@ -36,7 +40,7 @@ def _f(r, *keys):
     return None
 
 
-def analyse(doc, floor=1.1):
+def analyse(doc, floor=PFNET_LIVE_FLOOR):
     out = []
     for tag, r in _rows(doc):
         net, gross = _f(r, "pfnet_net", "pfnet"), _f(r, "pfnet_gross")
@@ -56,7 +60,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("path")
     ap.add_argument("--json")
-    ap.add_argument("--floor", type=float, default=1.1)  # PFNET_LIVE_FLOOR (2026-10-11)
+    ap.add_argument("--floor", type=float, default=PFNET_LIVE_FLOOR)
     a = ap.parse_args(argv)
     rows = analyse(json.load(open(a.path)), a.floor)
     for r in rows:
