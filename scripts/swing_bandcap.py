@@ -92,6 +92,20 @@ def prev_session_close(df) -> np.ndarray:
     return out
 
 
+def make_band(df, mode):
+    """B-1426: (mode, prev_session_close array) when mode is live, else None (off: the replay is unchanged). Build it
+    on the SAME reset-index frame the replay walks."""
+    return (normalize_mode(mode), prev_session_close(df)) if normalize_mode(mode) != "off" else None
+
+
+def band_hit(band, df, j, strat_stop, side="long"):
+    """B-1426: resting_stop_exit on bar j of df for a make_band() context; None when band is None (off)."""
+    if band is None:
+        return None
+    return resting_stop_exit(band[0], side, strat_stop, band[1][j], float(df["Open"].iloc[j]),
+                             float(df["Low"].iloc[j]), float(df["High"].iloc[j]))
+
+
 def band_tag(tag: str, mode) -> str:
     """off -> tag unchanged. live -> the same tag with the `rsbandfloor` param inserted alphabetically into the params
     field (naming grammar: family__variant__dir__tf__params__...), a NEW tag, never a rename. A legacy tag without the

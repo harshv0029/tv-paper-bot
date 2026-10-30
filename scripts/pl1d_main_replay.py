@@ -23,29 +23,37 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import brk20_replay as br  # noqa: E402
 import bar_hygiene as bh  # noqa: E402
 import chan_shape_macddiv_main_replay as base  # noqa: E402
+import swing_bandcap as bc  # noqa: E402  (B-1426 shared live resting-stop model)
 
 MIN_BARS = 60
 HOURS_PER_BAR = 6.25
 INTERVAL = ("1d", "5y")
 
 
-def pl1d_trade(m, df, k, sig, tag, dates, cost):
+def pl1d_trade(m, df, k, sig, tag, dates, cost, band=None):
+    """band (B-1426, swing_bandcap.make_band): live resting stop = the frozen stop0, checked intraday from bar k+1
+    BEFORE the real exit fn. None = unchanged."""
     n = len(df)
     ep, stop0 = sig["entry_price"], sig["stop_loss"]
     hold = m.PL1D_CELLS[tag][2]
     for j in range(k + 1, n):
+        hit = bc.band_hit(band, df, j, stop0, "long")
+        if hit:
+            return base._trade(ep, hit[0], j - k, hit[1], cost, k + 1, j)
         reason, px = m.pl1d_exit_reason(df.iloc[:j + 1], dates[k], stop0, hold)
         if reason:
             return base._trade(ep, px, j - k, reason, cost, k + 1, j)
     return base._trade(ep, float(df["Close"].iloc[-1]), n - 1 - k, "data_end_forced_close", cost, k + 1, n - 1)
 
 
-def replay_symbol(m, df, tags, cost):
+def replay_symbol(m, df, tags, cost, band_cap="off"):
+    """band_cap (B-1426, scripts/swing_bandcap.py): "off" = unchanged; "live" = the live resting-stop model."""
     df = df.reset_index(drop=True)
     n = len(df)
     out = {t: [] for t in tags}
     if n < MIN_BARS + 3:
         return out
+    band = bc.make_band(df, band_cap)
     dates = df["Date"].astype(str).to_numpy()
     free = {t: 0 for t in tags}
     for k in range(MIN_BARS - 1, n - 1):
@@ -56,7 +64,7 @@ def replay_symbol(m, df, tags, cost):
             sig = m.pl1d_long_entry_signal(sub, tag)
             if not sig:
                 continue
-            tr = pl1d_trade(m, df, k, sig, tag, dates, cost)
+            tr = pl1d_trade(m, df, k, sig, tag, dates, cost, band)
             out[tag].append(tr)
             free[tag] = tr["exit_i"] + 1
     return out

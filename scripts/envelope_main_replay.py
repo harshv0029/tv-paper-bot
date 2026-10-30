@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bar_hygiene as bh  # noqa: E402
 import brk20_replay as br  # noqa: E402
 import chan_shape_macddiv_main_replay as base  # noqa: E402
+import swing_bandcap as bc  # noqa: E402  (B-1426 shared live resting-stop model)
 
 MIN_BARS = 60
 INTERVAL = ("1h", "730d")
@@ -55,24 +56,32 @@ def _trade(ep, xp, held, reason, cost, entry_i, exit_i, sgn):
     return {"gross": g, "net": g - cost, "held": held, "reason": reason, "entry_i": entry_i, "exit_i": exit_i}
 
 
-def envelope_trade(m, df, k, sig, tag, cost):
+def envelope_trade(m, df, k, sig, tag, cost, band=None):
+    """band (B-1426, swing_bandcap.make_band): live resting stop = the frozen stop0 (SELL stop raised to the band floor
+    for a long, BUY stop lowered to the band ceiling for a short; daily band off the previous SESSION close on 1h bars),
+    checked intraday from bar k+1 BEFORE the real exit fn. None = unchanged."""
     n = len(df)
     direction, _kmult, hold = m.ENVELOPE_1H_CELLS[tag]
     ep, stop0 = sig["entry_price"], sig["stop_loss"]
     sgn = 1.0 if direction == "long" else -1.0
     for j in range(k + 1, n):
+        hit = bc.band_hit(band, df, j, stop0, direction)
+        if hit:
+            return _trade(ep, hit[0], j - k, hit[1], cost, k + 1, j, sgn)
         res = m.envelope_fade_exit_reason(df.iloc[:j + 1], direction, k, stop0, hold)
         if res:
             return _trade(ep, res[1], j - k, res[0], cost, k + 1, j, sgn)
     return _trade(ep, float(df["Close"].iloc[-1]), n - 1 - k, "data_end_forced_close", cost, k + 1, n - 1, sgn)
 
 
-def replay_symbol(m, df, tags, cost):
+def replay_symbol(m, df, tags, cost, band_cap="off"):
+    """band_cap (B-1426, scripts/swing_bandcap.py): "off" = unchanged; "live" = the live resting-stop model."""
     df = df.reset_index(drop=True)
     n = len(df)
     out = {t: [] for t in tags}
     if n < MIN_BARS + 3:
         return out
+    band = bc.make_band(df, band_cap)
     cand = _candidates(df)
     free = {t: 0 for t in tags}
     for k in np.flatnonzero(cand[:n - 1]):
@@ -86,7 +95,7 @@ def replay_symbol(m, df, tags, cost):
             sig = m.envelope_fade_entry_signal(sub, tag)
             if not sig:
                 continue
-            tr = envelope_trade(m, df, k, sig, tag, cost)
+            tr = envelope_trade(m, df, k, sig, tag, cost, band)
             out[tag].append(tr)
             free[tag] = tr["exit_i"] + 1
     return out

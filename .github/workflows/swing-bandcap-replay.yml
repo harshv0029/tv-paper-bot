@@ -8,6 +8,9 @@ name: Swing band_cap live resting-stop replay (B-1417)
 # Shared model: scripts/swing_bandcap.py. Driver: scripts/swing_bandcap_replay.py.
 # Families: power_play, primary_base, gap_and_go, oneil (1w live cells on daily bars), brk20 (live long 1d atr4 rr4),
 # chan_shape (1d), macddiv (1h, daily band off the previous session close), short_swing (brk20 1d short cells).
+# B-1426 adds: island (FIFO live tags), gapfade, pl1d, swingminrr (VCP long), tasuki_short (ETF 1d, ceiling),
+# swm1h_short (1h, ceiling), envelope (1h live long cells), cup_cheat (1h live long cells). With strategies=all the
+# matrix is 16 families x nshards jobs: dispatch a comma list (or a small nshards) when Actions is busy.
 # Universe = main._load_nse_universe_from_file() (full NSE). Cost = main.ROUND_TRIP_COST_PCT (0.8% round trip).
 # Output: artifact swing-bandcap-all (swing_bandcap_all.json: per tag n, win %, PFnet gross/net, avg hold, exit
 # reasons, off AND live) + a one-line-per-tag summary and a RESULTS_JSON line in the aggregate job log.
@@ -16,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       strategies:
-        description: "all, or a comma list of: power_play,primary_base,gap_and_go,oneil,brk20,chan_shape,macddiv,short_swing"
+        description: "all, or a comma list of: power_play,primary_base,gap_and_go,oneil,brk20,chan_shape,macddiv,short_swing,island,gapfade,pl1d,swingminrr,tasuki_short,swm1h_short,envelope,cup_cheat"
         required: false
         default: "all"
       band_cap:
