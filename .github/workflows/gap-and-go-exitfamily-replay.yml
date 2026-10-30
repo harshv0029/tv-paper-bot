@@ -34,7 +34,10 @@ jobs:
       - id: p
         env:
           NSHARDS: ${{ inputs.nshards }}
-        run: echo "matrix=$(python3 scripts/gap_and_go_exitfamily_replay.py plan)" >> "$GITHUB_OUTPUT"
+        run: |
+          pip install -q numpy
+          m=$(python3 scripts/gap_and_go_exitfamily_replay.py plan)
+          echo "matrix=$m" >> "$GITHUB_OUTPUT"
 
   replay:
     needs: plan
