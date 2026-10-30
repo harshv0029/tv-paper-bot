@@ -211,6 +211,15 @@ STREAM_IDLE_WAKE_SECONDS = 5.0  # B-1389: max wait between background-resolve ch
 # the last one left off instead of restarting at "360ONE" every time.
 _stock_resolve_offset = {"value": 0}
 
+# B-1433: a 600 s resolve covers only ~74 of the 210 stocks live (30-Oct), and the rotated offset above only
+# advanced on the NEXT 4h refresh - so ~136 stocks sat unsubscribed ("deadline_exceeded") for 4 h after every
+# boot/refresh. When a full resolve ends with stocks it never attempted, another background round is due
+# (after CONTINUATION_GAP_SECONDS; still one sequential resolve at a time, heavy lock released between rounds),
+# continuing from the rotated offset until every stock has had an attempt this cycle. Each round carries the
+# earlier rounds' legs forward (previous_universe), so already-resolved instruments keep streaming.
+_resolve_continuation = {"due": False, "attempted": 0, "rounds": 0, "last_done_at": 0.0}
+CONTINUATION_GAP_SECONDS = 30
+
 
 # B-865: while the websocket stays connected the top-of-loop refresh check in
 # run_fo_candle_feed never runs again (the loop only iterates on a disconnect),
@@ -667,6 +676,16 @@ async def _resolve_full_universe(main_mod):
         )
         attempted = n_stocks - deadline_exceeded
         _stock_resolve_offset["value"] = (stock_offset + attempted) % n_stocks
+        # B-1433: count stocks attempted across this cycle's rounds; another round is due until all were tried.
+        prior = _resolve_continuation["attempted"] if _resolve_continuation["due"] else 0
+        cumulative = prior + attempted
+        more = deadline_exceeded > 0 and attempted > 0 and cumulative < n_stocks
+        _resolve_continuation.update(due=more, attempted=cumulative if more else 0,
+                                     rounds=_resolve_continuation["rounds"] + 1 if more else 0,
+                                     last_done_at=time.time())
+        _feed_status["resolve_continuation"] = {
+            "due": more, "stocks_attempted_this_cycle": min(cumulative, n_stocks), "of": n_stocks,
+        }
     return universe
 
 
@@ -691,7 +710,9 @@ def background_resolve_step(main_mod, now=None) -> bool:
             _bg_resolve["swapped"] = False
             return True
         return False
-    if task is None and (_universe_cache["partial"] or universe_refresh_due()) \
+    continuation_due = _resolve_continuation["due"] \
+        and now - _resolve_continuation["last_done_at"] >= CONTINUATION_GAP_SECONDS
+    if task is None and (_universe_cache["partial"] or continuation_due or universe_refresh_due()) \
             and now - _bg_resolve["failed_at"] >= BG_RESOLVE_RETRY_SECONDS:
         _bg_resolve["task"] = asyncio.ensure_future(_background_full_resolve(main_mod))
         _feed_status["background_resolves"] = _feed_status.get("background_resolves", 0) + 1
