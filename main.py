@@ -7587,6 +7587,149 @@ def swing_obvp_exit_fn(strategy: str):
     return None
 
 
+# ---- B-1427: alternative exit families for the gap_and_go entry (RESEARCH-STAGE PORT, NOT WIRED) ----
+# Faithful port of scripts/exit_family_research.py simulate() kinds "inval" (sig elder / ema13w) and
+# "exhaust" (x roc / volclimax), long orientation, so a replay can call REAL main.py code
+# (scripts/gap_and_go_exitfamily_replay.py) instead of the research sim (run 40951289638). Constants and
+# arithmetic are copied verbatim from that file: ATR = _atr_array(.., 14) (SMA TR) at the entry bar;
+# initial stop = entry - atr_mult x ATR; per bar after entry, in order: (1) open <= stop -> fill at open,
+# low <= stop -> fill at stop ("stop_hit" while the stop is the initial one, else "trail_stop_hit");
+# (2) running max close updated with today's close; exhaust only: stop = max(stop, runmax - trail x ATR);
+# (3) exhaust only, when close > entry: ROC / volume-climax exhaustion -> fill at close "exhaustion_exit";
+# inval: signal onset (flag[j] and not flag[j-1]) -> fill at close "signal_invalidation";
+# (4) held >= hold -> fill at close "max_hold_timeout". NOT referenced by any scan, entry, SL-sync or real-order
+# path; no registry gate opens from these until a replay calling them is reported (B-1427).
+EXITFAMILY_ATR_N = 14
+EXITFAMILY_ELDER_EMA_SPAN = 13
+EXITFAMILY_ROC_LOOKBACK = 10
+EXITFAMILY_ROC_MIN = 0.15
+EXITFAMILY_ROC_PEAK_WINDOW = 5
+EXITFAMILY_VOL_AVG_N = 20
+EXITFAMILY_VOL_CLIMAX_MULT = 3
+GAP_AND_GO_EXITFAMILY_CELLS = {
+    "gap_and_go__exitinval__long__1d__atr6d0_hold30_sigelder__v2":
+        {"kind": "inval", "atr": 6.0, "sig": "elder", "hold": 30},
+    "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_trail6d0_xroc__v2":
+        {"kind": "exhaust", "atr": 2.5, "trail": 6.0, "x": "roc", "hold": 30},
+    "gap_and_go__exitinval__long__1d__atr6d0_hold30_sigema13w__v2":
+        {"kind": "inval", "atr": 6.0, "sig": "ema13w", "hold": 30},
+    "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_trail6d0_xvolclimax__v2":
+        {"kind": "exhaust", "atr": 2.5, "trail": 6.0, "x": "volclimax", "hold": 30},
+    "gap_and_go__exitinval__long__1d__atr2d5_hold30_sigelder__v2":
+        {"kind": "inval", "atr": 2.5, "sig": "elder", "hold": 30},
+}
+
+
+def exitfamily_atr_at_entry(df: pd.DataFrame) -> float:
+    """ATR14 (SMA of true range, main._atr_array) on the entry bar = the last row of df (sim prepare())."""
+    if len(df) == 0:
+        return float("nan")
+    a = _atr_array(df["High"].to_numpy(float), df["Low"].to_numpy(float), df["Close"].to_numpy(float),
+                   EXITFAMILY_ATR_N)
+    return float(a[-1])
+
+
+def exitfamily_initial_stop(entry_price: float, atr_at_entry: float, cell: dict) -> float:
+    return float(entry_price) - float(cell["atr"]) * float(atr_at_entry)
+
+
+def daily_elder_bear_flags(closes, highs) -> np.ndarray:
+    """Elder-ray bear onset input (sim prepare()): daily EMA13 (span 13, adjust=False) falling AND the high
+    below it. EMA seeds at the first row of the frame passed in, like the sim (pass the full history)."""
+    c = np.asarray(closes, float)
+    h = np.asarray(highs, float)
+    ema = pd.Series(c).ewm(span=EXITFAMILY_ELDER_EMA_SPAN, adjust=False).mean().to_numpy()
+    return np.r_[False, ema[1:] < ema[:-1]] & (h < ema)
+
+
+def exitfamily_stop_level(cell: dict, initial_stop: float, atr_at_entry: float, running_max_close) -> float:
+    """The stop the cell's own rule uses for the next bar (what a resting SL would carry): inval = the frozen
+    initial stop; exhaust = chandelier max(initial, running max close - trail x ATR)."""
+    if cell["kind"] == "exhaust" and running_max_close is not None and atr_at_entry:
+        return max(float(initial_stop), float(running_max_close) - float(cell["trail"]) * float(atr_at_entry))
+    return float(initial_stop)
+
+
+def exitfamily_walk(df: pd.DataFrame, entry_day: str, entry_price: float, atr_at_entry: float, cell: dict) -> dict:
+    """Replays every bar after entry_day in df (oldest first, full history so the EMAs seed like the sim).
+    Returns {"reason", "fill", "held", "stop", "running_max"}; reason None = still open (fill None)."""
+    dates = (df["Date"] if "Date" in df.columns else pd.Series(df.index)).astype(str).str[:10].to_numpy()
+    o = df["Open"].to_numpy(float)
+    h = df["High"].to_numpy(float)
+    l = df["Low"].to_numpy(float)
+    c = df["Close"].to_numpy(float)
+    entry = float(entry_price)
+    atr = float(atr_at_entry)
+    stop = exitfamily_initial_stop(entry, atr, cell)
+    init = stop
+    runmax = entry
+    kind = cell["kind"]
+    out = {"reason": None, "fill": None, "held": 0, "stop": stop, "running_max": runmax}
+    if len(df) == 0:
+        return out
+    flag = roc = vavg = v = None
+    if kind == "inval":
+        if cell["sig"] == "elder":
+            flag = daily_elder_bear_flags(c, h)
+        elif cell["sig"] == "ema13w":
+            flag = weekly_ema13_down_flags(df["Date"] if "Date" in df.columns else df.index, c)
+        else:
+            raise ValueError(f"unported inval sig {cell['sig']!r}")
+    elif kind == "exhaust":
+        v = df["Volume"].to_numpy(float)
+        k = EXITFAMILY_ROC_LOOKBACK
+        roc = np.full(len(c), np.nan)
+        roc[k:] = (c[k:] - c[:-k]) / np.abs(c[:-k])
+        vavg = pd.Series(v).rolling(EXITFAMILY_VOL_AVG_N).mean().shift(1).to_numpy()
+    else:
+        raise ValueError(f"unported exit kind {kind!r}")
+    held = 0
+    ed = str(entry_day)[:10]
+
+    def _done(reason, fill):
+        out.update(reason=reason, fill=float(fill), held=held, stop=stop, running_max=runmax)
+        return out
+
+    for j in range(len(df)):
+        if dates[j] <= ed:
+            continue
+        held += 1
+        if o[j] <= stop:
+            return _done("stop_hit" if stop == init else "trail_stop_hit", o[j])
+        if l[j] <= stop:
+            return _done("stop_hit" if stop == init else "trail_stop_hit", stop)
+        runmax = max(runmax, c[j])
+        if kind == "exhaust":
+            stop = max(stop, runmax - cell["trail"] * atr)
+            if c[j] > entry:
+                w = EXITFAMILY_ROC_PEAK_WINDOW
+                if cell["x"] == "roc":
+                    hit = bool(j >= w and np.isfinite(roc[j - w:j + 1]).all() and roc[j - 1] >= EXITFAMILY_ROC_MIN
+                               and roc[j - 1] >= np.max(roc[j - w:j]) and roc[j] < roc[j - 1])
+                elif cell["x"] == "volclimax":
+                    va = vavg[j]
+                    hit = bool(np.isfinite(va) and va > 0 and v[j] >= EXITFAMILY_VOL_CLIMAX_MULT * va and c[j] < o[j])
+                else:
+                    raise ValueError(f"unported exhaust x {cell['x']!r}")
+                if hit:
+                    return _done("exhaustion_exit", c[j])
+        elif j >= 1 and flag[j] and not flag[j - 1]:
+            return _done("signal_invalidation", c[j])
+        if held >= cell["hold"]:
+            return _done("max_hold_timeout", c[j])
+    out.update(held=held, stop=stop, running_max=runmax)
+    return out
+
+
+def exitfamily_exit_reason(
+    df: pd.DataFrame, entry_day: str, entry_price: float, atr_at_entry: float, running_max_close: float,
+    cell: dict,
+) -> tuple:
+    """Same signature style as swing_exitinval_exit_reason (+ the cell): (reason_or_None, running_max_close)."""
+    r = exitfamily_walk(df, entry_day, entry_price, atr_at_entry, cell)
+    return r["reason"], max(float(running_max_close or entry_price), float(r["running_max"]))
+
+
 # ---- Power Play short mirror ("power fade") --------------------------------
 #
 # 2026-09-29, explicit user instruction ("Prep short mirror for others
