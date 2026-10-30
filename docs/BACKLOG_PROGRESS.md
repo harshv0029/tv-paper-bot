@@ -15,7 +15,7 @@ Total rows: 1188 | closed: 546 | not closed: 642
 | HARNESS-BUILT-AWAITING-RUN | 99 |
 | DONE-PENDING-VERIFY | 77 |
 | BLOCKED | 63 |
-| OPEN | 46 |
+| OPEN | 45 |
 | P2 | 41 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -26,8 +26,8 @@ Total rows: 1188 | closed: 546 | not closed: 642
 | P1 | 8 |
 | P0 | 8 |
 | USER | 8 |
+| BUILT | 7 |
 | OPEN-PARKED | 6 |
-| BUILT | 6 |
 | BUILT-ON-BRANCH | 5 |
 | PARKED-REASONED | 4 |
 | WIRED-PENDING-REPLAY | 4 |
@@ -508,7 +508,7 @@ Total rows: 1188 | closed: 546 | not closed: 642
 | B-1359 | P0 | FOUND | 2026-10-23 17:05 IST | verify |
 | B-1363 | P0 | P0 | DEPLOYED 2026-10-26 (92c38c40 on main, confirmed 18:50 IST) | verify, follow-up |
 | B-1383 | P0 | RESTART | 2026-10-27 14:25 IST | owed, follow-up |
-| B-1431 | P0 | OPEN | 2026-10-30 10:15 IST |  |
+| B-1431 | P0 | BUILT | 2026-10-30 10:15 IST | owed |
 | B-417 | P1 | P1 | DEPLOYED 2026-10-11 12:46 IST (main 6c84001c); verify on next live occurrence | owed, pending, verify, needs |
 | B-419 | P1 | P1 | DEPLOYED 2026-10-11 12:57 IST (main 16158170); verify on next live occurrence | owed, pending, verify, needs |
 | B-588 | P1 | PARTIAL | 2026-10-11 IST, source: Alexander Elder, Trading for a Living (docs/ on main; 4 readers) | owed, remaining, needs |
@@ -550,9 +550,9 @@ Total rows: 1188 | closed: 546 | not closed: 642
 | B-1419 | P1 | OPEN | 2026-10-29 12:45 IST | remaining, blocked, needs, waiting |
 | B-1422 | P1 | OPEN | 2026-10-29 14:09 IST | owed |
 | B-1427 | P1 | BUILT | 2026-10-30 07:55 IST |  |
-| B-1428 | P1 | BUILT | 2026-10-30 09:25 IST | owed, open: |
+| B-1428 | P1 | BUILT | 2026-10-30 09:25 IST | owed, open:, pending |
 | B-1429 | P1 | BUILT | 2026-10-30 09:35 IST | owed, pending |
-| B-1430 | P1 | BUILT | 2026-10-30 09:45 IST | owed, remaining, verify, follow-up |
+| B-1430 | P1 | BUILT | 2026-10-30 09:45 IST | owed, remaining, pending, verify, follow-up |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
