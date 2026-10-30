@@ -56,6 +56,15 @@ VARIANT_OF_WIRED.update({
     "order_block_delta__exitinval__long__1d__atr6d0_hold30_rsintraday_sigema13w__v1": "order_block_delta__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v1",
     "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_rsintraday_sigema13w__v1": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v1",
 })
+# B-1417 (run 40952500265): band_cap=live (rsbandfloor) measurements of wired swing tags, each its own research row,
+# allowlisted against the registry row its live tag's gate reads today.
+import json as _json, os as _os
+# B-1426: run 40990174070 (second band_cap run) allowlisted the same way.
+for _rid in ("40952500265", "40990174070"):
+    _B1417 = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "docs", "backtest_data", f"swing_bandcap_run_{_rid}.json")
+    for _r in _json.load(open(_B1417))["rows"]:
+        if _r["tag"] in main._STRATEGY_TAG_TO_REGISTRY_NAME:
+            VARIANT_OF_WIRED.setdefault(_r["band_tag"], main._STRATEGY_TAG_TO_REGISTRY_NAME[_r["tag"]])
 for _s in sr.REGISTRY:
     if _s.source.startswith("scripts/exit_family_research.py"):
         VARIANT_OF_WIRED.setdefault(_s.name, _EF_SIBLING[_s.name.split("__")[0] if not _s.name.startswith("gg__") else "gap_and_go"])

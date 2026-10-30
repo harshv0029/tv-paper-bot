@@ -37,7 +37,8 @@ def test_gate_opens_for_two_longs_only():
     for r in _ROWS:
         ok = main._is_strategy_viable_for_real_money(r["tag"], check_switch=False)
         wired = r["tag"] in main.ENVELOPE_LONG_LIVE_CELLS
-        assert ok == (wired and r["pfnet"] >= sr.PFNET_LIVE_FLOOR), r["tag"]
+        # B-1426: a band_cap=live re-measurement below the floor closes the gate (REPLAY_FAILED_TAGS)
+        assert ok == (wired and r["pfnet"] >= sr.PFNET_LIVE_FLOOR and r["tag"] not in main.REPLAY_FAILED_TAGS), r["tag"]
     for t in LIVE:
         assert main._STRATEGY_TAG_TO_REGISTRY_NAME[t] == _mr(t)
         assert t not in main.REPLAY_OWED_TAGS

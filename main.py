@@ -7587,6 +7587,149 @@ def swing_obvp_exit_fn(strategy: str):
     return None
 
 
+# ---- B-1427: alternative exit families for the gap_and_go entry (RESEARCH-STAGE PORT, NOT WIRED) ----
+# Faithful port of scripts/exit_family_research.py simulate() kinds "inval" (sig elder / ema13w) and
+# "exhaust" (x roc / volclimax), long orientation, so a replay can call REAL main.py code
+# (scripts/gap_and_go_exitfamily_replay.py) instead of the research sim (run 40951289638). Constants and
+# arithmetic are copied verbatim from that file: ATR = _atr_array(.., 14) (SMA TR) at the entry bar;
+# initial stop = entry - atr_mult x ATR; per bar after entry, in order: (1) open <= stop -> fill at open,
+# low <= stop -> fill at stop ("stop_hit" while the stop is the initial one, else "trail_stop_hit");
+# (2) running max close updated with today's close; exhaust only: stop = max(stop, runmax - trail x ATR);
+# (3) exhaust only, when close > entry: ROC / volume-climax exhaustion -> fill at close "exhaustion_exit";
+# inval: signal onset (flag[j] and not flag[j-1]) -> fill at close "signal_invalidation";
+# (4) held >= hold -> fill at close "max_hold_timeout". NOT referenced by any scan, entry, SL-sync or real-order
+# path; no registry gate opens from these until a replay calling them is reported (B-1427).
+EXITFAMILY_ATR_N = 14
+EXITFAMILY_ELDER_EMA_SPAN = 13
+EXITFAMILY_ROC_LOOKBACK = 10
+EXITFAMILY_ROC_MIN = 0.15
+EXITFAMILY_ROC_PEAK_WINDOW = 5
+EXITFAMILY_VOL_AVG_N = 20
+EXITFAMILY_VOL_CLIMAX_MULT = 3
+GAP_AND_GO_EXITFAMILY_CELLS = {
+    "gap_and_go__exitinval__long__1d__atr6d0_hold30_sigelder__v2":
+        {"kind": "inval", "atr": 6.0, "sig": "elder", "hold": 30},
+    "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_trail6d0_xroc__v2":
+        {"kind": "exhaust", "atr": 2.5, "trail": 6.0, "x": "roc", "hold": 30},
+    "gap_and_go__exitinval__long__1d__atr6d0_hold30_sigema13w__v2":
+        {"kind": "inval", "atr": 6.0, "sig": "ema13w", "hold": 30},
+    "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_trail6d0_xvolclimax__v2":
+        {"kind": "exhaust", "atr": 2.5, "trail": 6.0, "x": "volclimax", "hold": 30},
+    "gap_and_go__exitinval__long__1d__atr2d5_hold30_sigelder__v2":
+        {"kind": "inval", "atr": 2.5, "sig": "elder", "hold": 30},
+}
+
+
+def exitfamily_atr_at_entry(df: pd.DataFrame) -> float:
+    """ATR14 (SMA of true range, main._atr_array) on the entry bar = the last row of df (sim prepare())."""
+    if len(df) == 0:
+        return float("nan")
+    a = _atr_array(df["High"].to_numpy(float), df["Low"].to_numpy(float), df["Close"].to_numpy(float),
+                   EXITFAMILY_ATR_N)
+    return float(a[-1])
+
+
+def exitfamily_initial_stop(entry_price: float, atr_at_entry: float, cell: dict) -> float:
+    return float(entry_price) - float(cell["atr"]) * float(atr_at_entry)
+
+
+def daily_elder_bear_flags(closes, highs) -> np.ndarray:
+    """Elder-ray bear onset input (sim prepare()): daily EMA13 (span 13, adjust=False) falling AND the high
+    below it. EMA seeds at the first row of the frame passed in, like the sim (pass the full history)."""
+    c = np.asarray(closes, float)
+    h = np.asarray(highs, float)
+    ema = pd.Series(c).ewm(span=EXITFAMILY_ELDER_EMA_SPAN, adjust=False).mean().to_numpy()
+    return np.r_[False, ema[1:] < ema[:-1]] & (h < ema)
+
+
+def exitfamily_stop_level(cell: dict, initial_stop: float, atr_at_entry: float, running_max_close) -> float:
+    """The stop the cell's own rule uses for the next bar (what a resting SL would carry): inval = the frozen
+    initial stop; exhaust = chandelier max(initial, running max close - trail x ATR)."""
+    if cell["kind"] == "exhaust" and running_max_close is not None and atr_at_entry:
+        return max(float(initial_stop), float(running_max_close) - float(cell["trail"]) * float(atr_at_entry))
+    return float(initial_stop)
+
+
+def exitfamily_walk(df: pd.DataFrame, entry_day: str, entry_price: float, atr_at_entry: float, cell: dict) -> dict:
+    """Replays every bar after entry_day in df (oldest first, full history so the EMAs seed like the sim).
+    Returns {"reason", "fill", "held", "stop", "running_max"}; reason None = still open (fill None)."""
+    dates = (df["Date"] if "Date" in df.columns else pd.Series(df.index)).astype(str).str[:10].to_numpy()
+    o = df["Open"].to_numpy(float)
+    h = df["High"].to_numpy(float)
+    l = df["Low"].to_numpy(float)
+    c = df["Close"].to_numpy(float)
+    entry = float(entry_price)
+    atr = float(atr_at_entry)
+    stop = exitfamily_initial_stop(entry, atr, cell)
+    init = stop
+    runmax = entry
+    kind = cell["kind"]
+    out = {"reason": None, "fill": None, "held": 0, "stop": stop, "running_max": runmax}
+    if len(df) == 0:
+        return out
+    flag = roc = vavg = v = None
+    if kind == "inval":
+        if cell["sig"] == "elder":
+            flag = daily_elder_bear_flags(c, h)
+        elif cell["sig"] == "ema13w":
+            flag = weekly_ema13_down_flags(df["Date"] if "Date" in df.columns else df.index, c)
+        else:
+            raise ValueError(f"unported inval sig {cell['sig']!r}")
+    elif kind == "exhaust":
+        v = df["Volume"].to_numpy(float)
+        k = EXITFAMILY_ROC_LOOKBACK
+        roc = np.full(len(c), np.nan)
+        roc[k:] = (c[k:] - c[:-k]) / np.abs(c[:-k])
+        vavg = pd.Series(v).rolling(EXITFAMILY_VOL_AVG_N).mean().shift(1).to_numpy()
+    else:
+        raise ValueError(f"unported exit kind {kind!r}")
+    held = 0
+    ed = str(entry_day)[:10]
+
+    def _done(reason, fill):
+        out.update(reason=reason, fill=float(fill), held=held, stop=stop, running_max=runmax)
+        return out
+
+    for j in range(len(df)):
+        if dates[j] <= ed:
+            continue
+        held += 1
+        if o[j] <= stop:
+            return _done("stop_hit" if stop == init else "trail_stop_hit", o[j])
+        if l[j] <= stop:
+            return _done("stop_hit" if stop == init else "trail_stop_hit", stop)
+        runmax = max(runmax, c[j])
+        if kind == "exhaust":
+            stop = max(stop, runmax - cell["trail"] * atr)
+            if c[j] > entry:
+                w = EXITFAMILY_ROC_PEAK_WINDOW
+                if cell["x"] == "roc":
+                    hit = bool(j >= w and np.isfinite(roc[j - w:j + 1]).all() and roc[j - 1] >= EXITFAMILY_ROC_MIN
+                               and roc[j - 1] >= np.max(roc[j - w:j]) and roc[j] < roc[j - 1])
+                elif cell["x"] == "volclimax":
+                    va = vavg[j]
+                    hit = bool(np.isfinite(va) and va > 0 and v[j] >= EXITFAMILY_VOL_CLIMAX_MULT * va and c[j] < o[j])
+                else:
+                    raise ValueError(f"unported exhaust x {cell['x']!r}")
+                if hit:
+                    return _done("exhaustion_exit", c[j])
+        elif j >= 1 and flag[j] and not flag[j - 1]:
+            return _done("signal_invalidation", c[j])
+        if held >= cell["hold"]:
+            return _done("max_hold_timeout", c[j])
+    out.update(held=held, stop=stop, running_max=runmax)
+    return out
+
+
+def exitfamily_exit_reason(
+    df: pd.DataFrame, entry_day: str, entry_price: float, atr_at_entry: float, running_max_close: float,
+    cell: dict,
+) -> tuple:
+    """Same signature style as swing_exitinval_exit_reason (+ the cell): (reason_or_None, running_max_close)."""
+    r = exitfamily_walk(df, entry_day, entry_price, atr_at_entry, cell)
+    return r["reason"], max(float(running_max_close or entry_price), float(r["running_max"]))
+
+
 # ---- Power Play short mirror ("power fade") --------------------------------
 #
 # 2026-09-29, explicit user instruction ("Prep short mirror for others
@@ -8313,6 +8456,24 @@ NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES = 0
 # exit still fires at the unmodified squareoff_min (see is_squareoff_time
 # below) - only the entry gate reads 1 minute earlier.
 ENTRY_CUTOFF_BEFORE_SQUAREOFF_MINUTES = 1
+
+
+def _capital_known(capital) -> bool:
+    """B-1428: True only for a usable, positive capital figure. get_scheduler_capital_inr() returns 0.0 until Kotak
+    limits() has succeeded once since the restart (and Kotak's Net itself can read 0 or below). With capital <= 0 the
+    signal cores divided by it ("GC=F: float division by zero" at the 30-Oct open, from the overnight MCX-proxy scan
+    right after the 02:12 IST deploy) and, once that was guarded, a 0 daily-loss cap would read as 'halted' and force-
+    exit every open position. Callers skip NEW entries and leave the daily-loss halt unevaluated instead; open positions
+    keep their own stop / target / square-off management."""
+    try:
+        return capital is not None and float(capital) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _pct_of_capital(amount: float, capital) -> float | None:
+    """100 * amount / capital rounded to 3 dp, or None when capital is unknown (B-1428). Display-only, never sizes."""
+    return round(100 * amount / capital, 3) if _capital_known(capital) else None
 
 
 def _target_move_pct(target: float, last_close: float) -> float:
@@ -10310,7 +10471,7 @@ def _options_signal_core(
         realized_today = today_realized_pnl(conn, since_ts)
         daily_loss_cap = capital * daily_risk_pct / 100
         remaining_budget = max(0.0, daily_loss_cap - max(0.0, -realized_today))
-        halted = remaining_budget <= 0
+        halted = _capital_known(capital) and remaining_budget <= 0  # B-1428: unknown capital is not a loss halt
 
         try:
             fx_to_inr = get_fx_to_inr(currency)
@@ -10381,7 +10542,7 @@ def _options_signal_core(
                     "target": row["target_premium"], "rr_target": rr, "rr_achieved": rr_achieved,
                     "strike": row["strike"], "expiry": row["expiry"],
                     "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
-                    "pnl_pct_of_capital": round(100 * pnl_inr / capital, 3),
+                    "pnl_pct_of_capital": _pct_of_capital(pnl_inr, capital),
                 }
                 apply_paper_trade(conn, opt_symbol, "sell", qty, exit_premium)
                 conn.execute(
@@ -10400,6 +10561,9 @@ def _options_signal_core(
         # ---- look for a new entry ----
         if halted:
             result["action_taken"] = "blocked_daily_loss_cap"
+            return result
+        if not _capital_known(capital):
+            result["action_taken"] = "skipped_capital_unavailable"  # B-1428: no sizing off an unknown balance
             return result
         if not is_trading_enabled(conn):
             result["action_taken"] = "trading_paused"
@@ -10741,7 +10905,7 @@ def _auto_signal_core(
         daily_loss_cap = capital * daily_risk_pct / 100
         loss_so_far = max(0.0, -realized_today)
         remaining_budget = max(0.0, daily_loss_cap - loss_so_far)
-        halted = remaining_budget <= 0
+        halted = _capital_known(capital) and remaining_budget <= 0  # B-1428: unknown capital is not a loss halt
 
         try:
             fx_to_inr = get_fx_to_inr(currency)
@@ -10841,7 +11005,7 @@ def _auto_signal_core(
             "sma_fast": sma_f, "sma_slow": sma_s, "trend": trend,
             "capital": capital, "daily_loss_cap": daily_loss_cap,
             "realized_today": round(realized_today, 2),
-            "realized_today_pct": round(100 * realized_today / capital, 3),
+            "realized_today_pct": _pct_of_capital(realized_today, capital),
             "budget_remaining": round(remaining_budget, 2),
             "halted_for_day": halted, "action_taken": "none",
             "is_squareoff_time": is_squareoff_time, "vol_contraction_signal": vol_contraction_signal,
@@ -11130,7 +11294,7 @@ def _auto_signal_core(
                     "leading_target_active": current_target > row["target"],
                     "rr_target": rr, "rr_achieved": rr_achieved,
                     "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
-                    "pnl_pct_of_capital": round(100 * pnl_inr / capital, 3),
+                    "pnl_pct_of_capital": _pct_of_capital(pnl_inr, capital),
                 }
                 apply_paper_trade(conn, symbol, "sell", qty, exit_price)
                 conn.execute(
@@ -11152,6 +11316,9 @@ def _auto_signal_core(
         # ---- look for a new entry ----
         if halted:
             result["action_taken"] = "blocked_daily_loss_cap"
+            return result
+        if not _capital_known(capital):
+            result["action_taken"] = "skipped_capital_unavailable"  # B-1428: no sizing off an unknown balance
             return result
 
         # Aggregate open-risk gate (2026-09-10, found in review) - see
@@ -11623,6 +11790,11 @@ def _auto_signal_core(
                     result["detail"] = err
                     return result
                 lot_size = _paper_lot_in_proxy_units(symbol, future["lot_size"])
+                if not lot_size or lot_size <= 0:
+                    # B-1428: a contract row with lLotSize 0 (e.g. a fresh contract) must skip, not divide by zero.
+                    result["action_taken"] = "skipped_no_lot_size"
+                    result["detail"] = f"lot_size={future.get('lot_size')!r}"
+                    return result
                 qty = round(float(math.floor(qty / lot_size + 1e-9) * lot_size), 6)
 
             # A trade sized to a few rupees isn't a real position - guard
@@ -11674,7 +11846,7 @@ def _auto_signal_core(
                 "strategy": strategy_tag, "entry_reason": entry_reason,
                 "stop_loss": stop_loss, "target": target, "rr_target": rr,
                 "risk_amount_inr": round(risk_amount_inr, 2),
-                "risk_pct_of_capital": round(100 * risk_amount_inr / capital, 3),
+                "risk_pct_of_capital": _pct_of_capital(risk_amount_inr, capital),
                 "notional_native": round(qty * last_close, 2), "notional_inr": round(notional_inr, 2),
                 "reallocated_from": result.get("reallocated_from"),
                 "exit_legs": exit_legs,
@@ -12360,7 +12532,7 @@ def _short_signal_core(
         realized_today = today_realized_pnl(conn, since_ts)
         daily_loss_cap = capital * daily_risk_pct / 100
         loss_so_far = max(0.0, -realized_today)
-        halted = loss_so_far >= daily_loss_cap
+        halted = _capital_known(capital) and loss_so_far >= daily_loss_cap  # B-1428: unknown capital is not a loss halt
 
         try:
             fx_to_inr = get_fx_to_inr(currency)
@@ -12469,6 +12641,9 @@ def _short_signal_core(
 
         if is_squareoff_time or halted:
             result["action_taken"] = "no_new_entry_squareoff_or_halted"
+            return result
+        if not _capital_known(capital):
+            result["action_taken"] = "skipped_capital_unavailable"  # B-1428: no sizing off an unknown balance
             return result
 
         # B-914: chan_kalman band short (only when its registry entry is viable; otherwise paper stays on the old engines).
@@ -14330,16 +14505,19 @@ def _maybe_place_real_short_entry(conn, symbol: str):
             return
 
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
+    # B-1430: real size from real exposure only (Kotak Net), not the paper qty shrunk by paper-only notional.
+    basis_qty, basis_why = _real_intraday_qty_basis(
+        symbol, strategy_tag, paper_qty, ltp, paper_row["stop_loss"] if paper_row else None, short=True)
     remaining_cap_inr = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
     real_capital_for_sizing = get_scheduler_capital_inr()
     max_by_cap = math.floor(remaining_cap_inr / ltp) if ltp > 0 else 0
     max_by_capital = math.floor(real_capital_for_sizing / ltp) if ltp > 0 else 0
-    qty = int(min(paper_qty, max_by_cap, max_by_capital))
+    qty = int(min(basis_qty, max_by_cap, max_by_capital))
     if qty <= 0:
         _log_real_attempt(
             conn, symbol, "S", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
             price_est=ltp,
-            detail=f"paper qty {paper_qty}, 1 share = Rs{ltp:.2f} - capped to 0 by "
+            detail=f"{basis_why}, 1 share = Rs{ltp:.2f} - capped to 0 by "
                    f"remaining daily cap Rs{remaining_cap_inr:.2f} (max {max_by_cap}) "
                    f"and/or real capital Rs{real_capital_for_sizing:.2f} (max {max_by_capital})",
         )
@@ -14652,16 +14830,19 @@ def _maybe_place_real_entry(conn, symbol: str):
             return
 
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
+    # B-1430: real size from real exposure only (Kotak Net), not the paper qty shrunk by paper-only notional.
+    basis_qty, basis_why = _real_intraday_qty_basis(
+        symbol, strategy_tag, paper_qty, ltp, paper_row["stop_loss"] if paper_row else None, short=False)
     remaining_cap_inr = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
     real_capital_for_sizing = get_scheduler_capital_inr()
     max_by_cap = math.floor(remaining_cap_inr / ltp) if ltp > 0 else 0
     max_by_capital = math.floor(real_capital_for_sizing / ltp) if ltp > 0 else 0
-    qty = int(min(paper_qty, max_by_cap, max_by_capital))
+    qty = int(min(basis_qty, max_by_cap, max_by_capital))
     if qty <= 0:
         _lra_tag(
             conn, symbol, "B", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
             price_est=ltp,
-            detail=f"paper qty {paper_qty}, 1 share = Rs{ltp:.2f} - capped to 0 by "
+            detail=f"{basis_why}, 1 share = Rs{ltp:.2f} - capped to 0 by "
                    f"remaining daily cap Rs{remaining_cap_inr:.2f} (max {max_by_cap}) "
                    f"and/or real capital Rs{real_capital_for_sizing:.2f} (max {max_by_capital})",
         )
@@ -14773,7 +14954,12 @@ def _maybe_place_real_entry(conn, symbol: str):
             (symbol, kotak_symbol, real_qty, real_entry_price, result["order_id"], now,
              ist_now().strftime("%Y-%m-%d"), json.dumps(real_exit_legs) if real_exit_legs else None, real_strategy),
         )
-        qty_reason = _describe_real_qty_sizing(paper_qty, max_by_cap, max_by_capital, qty)
+        if basis_why == "paper qty":
+            qty_reason = _describe_real_qty_sizing(paper_qty, max_by_cap, max_by_capital, qty)
+        else:  # B-1430: say plainly the size came from real capital, not the paper qty
+            qty_reason = (f"sized from real Kotak capital by the 1%-risk formula: {basis_qty} "
+                          f"(paper qty {paper_qty}), requested {qty} after daily cap (room for {max_by_cap}) "
+                          f"and real capital (room for {max_by_capital})")
         if not result["fill_price_confirmed"]:
             qty_reason += "; fill not yet confirmed by Kotak - using requested qty/estimated LTP"
         _log_real_attempt(
@@ -16072,6 +16258,26 @@ def _reroute_orphan_intraday_to_swing(conn, real_row) -> bool:
     return True
 
 
+def _real_stop_on_tick(kotak_trading_symbol: str, raw_stop: float) -> float:
+    """B-1429: the trigger Kotak will actually hold for a stop at `raw_stop`.
+    kotak_real_orders rounds every SL trigger with _round_to_tick(price,
+    _tick_size_for(symbol)) right before place_order, so a per-tick sync that
+    compares the RAW paper stop (e.g. 383.03) with the stored, already-rounded
+    trigger (383.05) sees a phantom "favorable move", cancels the live stop and
+    re-places the very same 383.05 order (live DABUR short, 30 Oct 09:25 IST:
+    ~3 s with no stop). Comparing on this value makes a sub-tick trail a no-op.
+    Same helper as placement, so the compare equals what Kotak will hold."""
+    import kotak_real_orders
+    try:
+        tick = kotak_real_orders._tick_size_for(kotak_trading_symbol)
+        out = kotak_real_orders._round_to_tick(float(raw_stop), tick)
+        if isinstance(tick, (int, float)) and isinstance(out, (int, float)):
+            return float(out)
+    except Exception:
+        pass
+    return round(round(float(raw_stop) / 0.05) * 0.05, 2)  # _round_to_tick's own formula, default tick
+
+
 def _maybe_sync_real_stop_loss(conn, symbol: str):
     """Keeps a real position's RESTING stop-loss order at Kotak in step
     with the paper trailing stop _auto_signal_core just ratcheted (see
@@ -16227,9 +16433,10 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         # B-1330: same 5% cap as the entry SL (B-1307); uncapped, a missing SL was re-placed at the paper stop
         # 15% below entry, outside the price band, and Kotak rejected it again on every tick.
         new_stop = _cap_real_intraday_stop(real_row["entry_price"], new_stop)
+    new_stop = _real_stop_on_tick(real_row["kotak_trading_symbol"], new_stop)  # B-1429: compare on Kotak's tick
     current_sl_price = real_row["sl_trigger_price"]
 
-    if current_sl_price is not None and new_stop <= current_sl_price:
+    if current_sl_price is not None and new_stop <= current_sl_price + 0.001:
         _note_sl_loosen_attempt(symbol, False, new_stop, current_sl_price)
         return  # no upward move since the last sync - nothing to do
 
@@ -16330,13 +16537,14 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         conn.commit()
         _clear_protection_degraded(conn, symbol)  # a live resting SL exists again - stop the clock
         _sync_real_positions_external(conn)
-        print(f"[REAL TRADE] trailing SL moved to Rs{new_stop:.2f} for {real_row['kotak_trading_symbol']} "
+        _accepted = float(sl_result.get("trigger_price") or new_stop)  # B-1429: what Kotak holds
+        print(f"[REAL TRADE] trailing SL moved to Rs{_accepted:.2f} for {real_row['kotak_trading_symbol']} "
               f"(order {sl_result['order_id']})")
         _log_real_order_event(
             conn, symbol, "sl", "moved", kotak_trading_symbol=real_row["kotak_trading_symbol"],
             order_id=sl_result["order_id"],
             prev_state=f"Rs{current_sl_price:.2f}" if current_sl_price is not None else "none",
-            new_state=f"Rs{new_stop:.2f}",
+            new_state=f"Rs{_accepted:.2f}",
         )
     else:
         # Old order is already cancelled (or never existed) and the
@@ -16486,13 +16694,13 @@ def _maybe_sync_real_stop_loss_short(conn, symbol: str):
     ).fetchone()
     if not paper_row or not paper_row["stop_loss"]:
         return
-    new_stop = round(paper_row["stop_loss"], 2)
+    new_stop = _real_stop_on_tick(real_row["kotak_trading_symbol"], round(paper_row["stop_loss"], 2))  # B-1429
     current_sl_price = real_row["sl_trigger_price"]
 
     # A short's stop only ever trails DOWN (toward entry) - the mirror of
     # the long side's "only ever moves the resting stop UP" - so no
     # favorable move means the new stop hasn't gotten any LOWER.
-    if current_sl_price is not None and new_stop >= current_sl_price:
+    if current_sl_price is not None and new_stop >= current_sl_price - 0.001:
         _note_sl_loosen_attempt(symbol, True, new_stop, current_sl_price)
         return
 
@@ -16527,13 +16735,14 @@ def _maybe_sync_real_stop_loss_short(conn, symbol: str):
         )
         conn.commit()
         _clear_protection_degraded_short(conn, symbol)
-        print(f"[REAL SHORT] trailing SL moved to Rs{new_stop:.2f} for {real_row['kotak_trading_symbol']} "
+        _accepted = float(sl_result.get("trigger_price") or new_stop)  # B-1429: what Kotak holds
+        print(f"[REAL SHORT] trailing SL moved to Rs{_accepted:.2f} for {real_row['kotak_trading_symbol']} "
               f"(order {sl_result['order_id']})")
         _log_real_order_event(
             conn, symbol, "sl", "moved", kotak_trading_symbol=real_row["kotak_trading_symbol"],
             order_id=sl_result["order_id"],
             prev_state=f"Rs{current_sl_price:.2f}" if current_sl_price is not None else "none",
-            new_state=f"Rs{new_stop:.2f}",
+            new_state=f"Rs{_accepted:.2f}",
         )
     else:
         conn.execute("UPDATE real_positions_short SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
@@ -22598,6 +22807,46 @@ def _sector_cap_blocks(conn, symbol, qty, price):
     return None
 
 
+def _real_qty_by_risk(ltp: float, stop_loss, risk_pct: float, short: bool = False) -> int:
+    """B-1430: the 1%-of-usable risk formula applied to REAL capital only. Kotak's fresh limits Net already
+    excludes the margin of every open real position, so it is the whole available pool: usable =
+    Net / CAPITAL_TRANCHES (no deployed_notional() subtraction, which counts paper-only rows that never touched
+    the Kotak account), qty = floor(min(usable x risk_pct% / stop distance, usable / ltp)). 0 when the stop is
+    unknown or on the wrong side of the price."""
+    try:
+        stop = float(stop_loss or 0)
+        ltp = float(ltp or 0)
+    except (TypeError, ValueError):
+        return 0
+    dist = (stop - ltp) if short else (ltp - stop)
+    if stop <= 0 or ltp <= 0 or dist <= 0:
+        return 0
+    _refresh_real_capital_cache()  # Kotak-first: fresh Net immediately before the order decision
+    usable = max(0.0, get_scheduler_capital_inr()) / CAPITAL_TRANCHES
+    return int(math.floor(min(usable * float(risk_pct) / 100 / dist, usable / ltp)))
+
+
+# B-1430: paper qty for these tags already carries a signal-confidence multiplier (_confidence_size_multiplier
+# in the ORB long/short engines), so the real order keeps mirroring the paper qty for them rather than the
+# plain risk formula. Every other intraday tag is sized by the plain formula on the paper side too.
+_REAL_QTY_FROM_PAPER_TAGS = frozenset({"orb-universal-score", "orb-trend-short", "orb-range-short"})
+
+
+def _real_intraday_qty_basis(symbol, strategy_tag, paper_qty, ltp: float, paper_stop, short: bool):
+    """B-1430: the qty a real intraday entry starts from, before the daily-cap / capital caps. The paper qty was
+    sized against capital minus deployed_notional(), which subtracts PAPER-ONLY rows (paper positions the real
+    gate refused, paper option rows) from Kotak's REAL Net, so real entries were sized down by exposure that does
+    not exist at Kotak (DABUR short 2026-10-30 IST: Net Rs9,621, stop Rs17.53 away -> 2 shares by the formula,
+    1 sold). Real size now depends on real exposure only; paper sizing (and its deployed_notional guard against
+    overspending paper) is unchanged. Returns (qty, why)."""
+    if strategy_tag in _REAL_QTY_FROM_PAPER_TAGS or not paper_stop:
+        return paper_qty, "paper qty"
+    cfg = next((c for c in WATCHLIST if c.get("symbol") == symbol), None) or \
+        NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
+    risk_qty = _real_qty_by_risk(ltp, paper_stop, float(cfg.get("risk_pct", 1.0)), short=short)
+    return risk_qty, f"real-capital risk qty {risk_qty} (paper qty {paper_qty})"
+
+
 def _real_swing_qty_by_risk(conn, symbol, ltp: float, stop_loss, short: bool = False) -> int:
     """B-1387: real-money swing size from Kotak's own fresh Net, never from the paper size. The paper qty is sized
     against capital minus deployed_notional(), which still counts paper-only positions (strategies gated off real
@@ -23797,6 +24046,31 @@ def _replay_failed_tags() -> frozenset:
     return frozenset(replayed - _replay_verified_tags())
 
 
+def _bandcap_live_failed_tags() -> frozenset:
+    """B-1426: tags whose band_cap=live (Kotak resting-stop model: stop raised to the 10% band floor, intraday trigger)
+    re-measurement in docs/backtest_data/swing_bandcap_run_*.json lands below PFNET_LIVE_FLOOR. The NEWEST run holding a
+    tag decides it (run id order). The live model is what Kotak actually rests, so it supersedes an older band_cap=off
+    replay for the real-money ENTRY gate only (REPLAY_FAILED_TAGS); exits/SL management never read this. Derived at read
+    time: a changed floor or a newer passing band_cap run re-opens a tag with no code change."""
+    import glob as _g
+    import json as _j
+    import strategy_registry as _sr
+    latest = {}
+    for f in _g.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data", "swing_bandcap_run_*.json")):
+        try:
+            d = _j.load(open(f))
+            rid = int(d.get("run_id") or 0)
+            for r in d.get("rows", []):
+                m = r.get("live") or {}
+                if m.get("pfnet") is None or int(m.get("n") or 0) < 1:
+                    continue
+                if r["tag"] not in latest or rid >= latest[r["tag"]][0]:
+                    latest[r["tag"]] = (rid, float(m["pfnet"]))
+        except Exception:
+            continue
+    return frozenset(t for t, (_rid, pf) in latest.items() if pf < _sr.PFNET_LIVE_FLOOR)
+
+
 REPLAY_OWED_TAGS = REPLAY_OWED_TAGS - _replay_verified_tags()
 for _t in ONEIL_SWING_CELLS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row; main.py replay run 38517583883
@@ -24730,6 +25004,9 @@ REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | frozenset(SWINGMINRR_SHORT_1H_CELLS)) - _
 _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(CHAN_GAP_SHORT_TAG, CHAN_GAP_SHORT_TAG)
 REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | {CHAN_GAP_SHORT_TAG}) - _replay_verified_tags()
 REPLAY_FAILED_TAGS = REPLAY_OWED_TAGS & _replay_failed_tags()  # B-1396: replay done, below floor: closed, not owed
+# B-1426: band_cap=live re-measurement below the floor closes the ENTRY gate the same way (envelope/cup_cheat 1h cells whose
+# band_cap=off replay cleared 1.0 but the live resting-stop model does not). Only mapped (wired) tags; no new switch.
+REPLAY_FAILED_TAGS = REPLAY_FAILED_TAGS | (_bandcap_live_failed_tags() & frozenset(_STRATEGY_TAG_TO_REGISTRY_NAME))
 REPLAY_OWED_TAGS = REPLAY_OWED_TAGS - REPLAY_FAILED_TAGS
 CHAN_GAP_SCAN_START_MIN = 9 * 60 + 16
 CHAN_GAP_SCAN_END_MIN = 10 * 60 + 30
