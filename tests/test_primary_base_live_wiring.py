@@ -88,7 +88,7 @@ def test_run_swing_scan_falls_through_to_gap_and_go_when_primary_base_does_not_f
         main._run_swing_scan(conn)
         row = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = 'NOPRIMARYBASE.NS'").fetchone()
         assert row is not None
-        assert row["strategy"] == "gap_and_go"
+        assert row["strategy"] == main.GAP_AND_GO_XROC_LIVE_TAG  # B-1427: gap_and_go entries open under the xroc exit tag
 
 
 def test_run_swing_scan_prefers_primary_base_over_livermore_on_the_same_symbol(monkeypatch):

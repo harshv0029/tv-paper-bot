@@ -104,7 +104,7 @@ def test_scan_only_swing_long_cells_cover_every_chain_tag(monkeypatch):
         main._scan_only_swing_long_cells(d, 50.0, count=True, evaluate=True)
     got = main._symbol_strategy_scans["X.NS"]
     want = ({"power_play", "primary_base", "gap_and_go", "minervini_vcp_livermore", "minervini_vcp", "minervini_vcp_be3r",
-             main.SWING_EXITINVAL_VP_TAG, main.SWING_EXITINVAL_OB_TAG, main.BRK20_SWING_TAG}
+             main.SWING_EXITINVAL_VP_TAG, main.SWING_EXITINVAL_OB_TAG, main.BRK20_SWING_TAG, main.GAP_AND_GO_XROC_LIVE_TAG}
             | set(main.ISLAND_ALL_TAGS) | set(main.SWINGMINRR_TAGS) | set(main.CHAN_SHAPE_CELLS) | set(main.PL1D_CELLS)
             | set(main.GAPFADE_TAGS) | set(main.ONEIL_SWING_CELLS))
     assert got == want

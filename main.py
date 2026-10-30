@@ -7731,6 +7731,64 @@ def exitfamily_exit_reason(
     return r["reason"], max(float(running_max_close or entry_price), float(r["running_max"]))
 
 
+# ---- B-1427 (2026-10-30 IST): gap_and_go x xroc exhaustion exit, WIRED into the live swing engine --------------------
+# The main.py-calling replay (gap-and-go-exitfamily-replay.yml run 41013761661, full NSE 2678 symbols, 0.8% cost) put the
+# xroc cell at PFnet 1.225 (band off) / 1.209 (band live) vs the live gap_and_go exit 1.136 / 1.097 in the same run, with the
+# shortest hold (10.6 vs 15.7 bars). Same ENTRY (gap_and_go_entry_signal), so NEW gap_and_go entries are recorded under the
+# band-live tag below and exited by exitfamily_exit_reason; positions already open under "gap_and_go" keep the old exit.
+# Stop: initial entry - 2.5 x ATR14 (exitfamily_atr_at_entry on the entry bar), chandelier trail 6 x ATR off the running max
+# close (exitfamily_stop_level); Kotak raises it to the 10% band floor at placement (kotak_real_orders._preclamp_long_stop,
+# B-1411), which is the replay's band_cap=live model. Gate reads this tag's own rsbandfloor registry row (PFnet 1.209).
+GAP_AND_GO_XROC_RESEARCH_TAG = "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_trail6d0_xroc__v2"
+GAP_AND_GO_XROC_LIVE_TAG = "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_rsbandfloor_trail6d0_xroc__v2"
+GAP_AND_GO_EXITFAMILY_LIVE_CELLS = {GAP_AND_GO_XROC_LIVE_TAG: GAP_AND_GO_EXITFAMILY_CELLS[GAP_AND_GO_XROC_RESEARCH_TAG]}
+
+
+def gap_and_go_exitfamily_entry_signal(df: pd.DataFrame, tag: str = GAP_AND_GO_XROC_LIVE_TAG) -> dict | None:
+    """gap_and_go_entry_signal on the last row, with the exit cell's own stop: entry - atr x ATR14 at the entry bar
+    (exitfamily_atr_at_entry, as the replay). None when no signal, unknown tag, or unusable ATR (the replay drops such an
+    entry too). Stop always set (no trade without SL)."""
+    cell = GAP_AND_GO_EXITFAMILY_LIVE_CELLS.get(tag)
+    if cell is None:
+        return None
+    sig = gap_and_go_entry_signal(df)
+    if not sig:
+        return None
+    atr = exitfamily_atr_at_entry(df)
+    if not (np.isfinite(atr) and atr > 0):
+        return None
+    px = float(sig["entry_price"])
+    stop = exitfamily_initial_stop(px, atr, cell)
+    if not (0 < stop < px):
+        return None
+    return {"entry_price": px, "stop_loss": float(stop), "atr_at_entry": float(atr), "gap_low": sig["gap_low"],
+            "risk": px - stop, "direction": "long"}
+
+
+def _gap_and_go_exitfamily_atr(entry_price, initial_stop, atr_at_entry, cell) -> float:
+    """Frozen ATR of the position; recovered from (entry - initial stop) / atr mult when the column is missing."""
+    try:
+        a = float(atr_at_entry or 0.0)
+    except (TypeError, ValueError):
+        a = 0.0
+    if a > 0:
+        return a
+    try:
+        return max(0.0, (float(entry_price) - float(initial_stop)) / float(cell["atr"]))
+    except (TypeError, ValueError, ZeroDivisionError):
+        return 0.0
+
+
+def _gap_and_go_exitfamily_exit_adapter(df, entry_day, initial_stop, atr_at_entry, running_max_close, tag, entry_price):
+    """Swing exit fn signature (reason, new_running_max) for a GAP_AND_GO_EXITFAMILY_LIVE_CELLS position: replays every
+    COMPLETED daily bar after entry_day through exitfamily_exit_reason (first exit event wins)."""
+    cell = GAP_AND_GO_EXITFAMILY_LIVE_CELLS[tag]
+    if len(df) == 0:
+        return None, running_max_close
+    atr = _gap_and_go_exitfamily_atr(entry_price, initial_stop, atr_at_entry, cell)
+    return exitfamily_exit_reason(df, entry_day, float(entry_price), atr, running_max_close, cell)
+
+
 # ---- Power Play short mirror ("power fade") --------------------------------
 #
 # 2026-09-29, explicit user instruction ("Prep short mirror for others
@@ -13455,6 +13513,9 @@ _STRATEGY_TAG_TO_REGISTRY_NAME = {
     # close) / VP 1.006 (still clears it). Research-sim rows (1.166 / 1.268) stay registered; open positions unaffected.
     "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v1",
     "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1": "order_block_delta__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v1",
+    # B-1427 (2026-10-30): new gap_and_go entries carry the xroc exit tag, which IS its own band-live registry row
+    # (main.py replay run 41013761661, PFnet 1.209, n=11961). Old "gap_and_go" positions keep the mapping above.
+    **{_t: _t for _t in GAP_AND_GO_EXITFAMILY_LIVE_CELLS},
     # 2026-10-12 B-798 (user: "wire if it fulfils viable definition"): brk20_min_rr LONG 1d atr4_rr4, the tag IS
     # the pooled registry name (PFnet 2.659, n=218; IS 3.43 / OOS 1.72). Gated by PFnet >= floor like all others.
     "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1": "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1",
@@ -22398,6 +22459,7 @@ def _scan_only_swing_long_cells(df, rs_percentile=None, count: bool = True, eval
         ("power_play", lambda: power_play_entry_signal(df)),
         ("primary_base", lambda: primary_base_entry_signal(df)),
         ("gap_and_go", lambda: gap_and_go_entry_signal(df)),
+        (GAP_AND_GO_XROC_LIVE_TAG, lambda: gap_and_go_exitfamily_entry_signal(df, GAP_AND_GO_XROC_LIVE_TAG)),
         ("minervini_vcp_livermore", lambda: minervini_vcp_entry_signal_livermore_confirmed(df, rs_percentile=rs)),
         ("minervini_vcp", lambda: minervini_vcp_entry_signal(df, rs_percentile=rs)),
         ("minervini_vcp_be3r", lambda: minervini_vcp_entry_signal(df, rs_percentile=rs)),
@@ -23692,6 +23754,15 @@ def _run_swing_scan_pass(conn):
                     conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
                                  (new_running_max, symbol))
                     conn.commit()
+            elif pos["strategy"] in GAP_AND_GO_EXITFAMILY_LIVE_CELLS:
+                # B-1427: gap_and_go entries since the xroc wiring; the old "gap_and_go" tag keeps the else branch.
+                reason, new_running_max = _gap_and_go_exitfamily_exit_adapter(
+                    df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
+                    pos["strategy"], pos["entry_price"])
+                if not reason:
+                    conn.execute("UPDATE signal_state_swing SET running_max_close = ? WHERE symbol = ?",
+                                 (new_running_max, symbol))
+                    conn.commit()
             elif pos["strategy"] in CHAN_SHAPE_CELLS:
                 reason, new_running_max = _chan_shape_exit_adapter(
                     df, pos["entry_day"], pos["initial_stop_loss"], pos["atr_at_entry"], pos["running_max_close"],
@@ -23831,8 +23902,13 @@ def _run_swing_scan_pass(conn):
                 print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
             continue
 
+        # B-1427 (2026-10-30): the gap_and_go ENTRY now opens under the xroc exhaustion-exit tag (main.py replay run
+        # 41013761661: band-live PFnet 1.209 vs 1.097 for the old exit, hold 10.6 vs 15.7 bars). One entry per symbol,
+        # never a second competing gap_and_go row; the stop is the cell's 2.5 x ATR14 stop, atr_at_entry stored for the trail.
         _record_strategy_scan("gap_and_go")
-        signal = gap_and_go_entry_signal(df)
+        _gg_tag = GAP_AND_GO_XROC_LIVE_TAG
+        _record_strategy_scan(_gg_tag)
+        signal = gap_and_go_exitfamily_entry_signal(df, _gg_tag)
         if signal:
             entry_price = signal["entry_price"]
             stop_loss = signal["stop_loss"]
@@ -23841,20 +23917,23 @@ def _run_swing_scan_pass(conn):
                 continue
             conn.execute(
                 "INSERT INTO signal_state_swing (symbol, strategy, entry_day, entry_price, "
-                "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (symbol, "gap_and_go", today, entry_price, stop_loss, signal["gap_low"], qty, time.time(), fx),
+                "initial_stop_loss, gap_low, qty, entry_ts, fx_to_inr, atr_at_entry, running_max_close) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (symbol, _gg_tag, today, entry_price, stop_loss, signal["gap_low"], qty, time.time(), fx,
+                 signal["atr_at_entry"], entry_price),
             )
             apply_paper_trade(conn, symbol, "buy", qty, entry_price)
             conn.execute(
                 "INSERT INTO trades (ts, symbol, action, qty, price, fx_to_inr, strategy, raw_payload) "
                 "VALUES (?, ?, 'buy', ?, ?, ?, ?, ?)",
                 (time.time(), symbol, qty, entry_price, fx, SWING_STRATEGY_TAG,
-                 json.dumps({"entry_reason": "gap_and_go", "stop_loss": stop_loss, "gap_low": signal["gap_low"]})),
+                 json.dumps({"entry_reason": _gg_tag, "stop_loss": stop_loss, "gap_low": signal["gap_low"],
+                             "atr_at_entry": signal["atr_at_entry"]})),
             )
             conn.commit()
-            print(f"[SWING] entry {symbol} (gap_and_go) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
+            print(f"[SWING] entry {symbol} ({_gg_tag}) qty={qty} @ {entry_price:.2f} stop={stop_loss:.2f}")
             try:
-                _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, "gap_and_go")
+                _maybe_place_real_swing_entry(conn, symbol, qty, entry_price, stop_loss, _gg_tag)
             except Exception as e:
                 print(f"[REAL SWING] entry mirror failed for {symbol} (non-fatal, paper entry already recorded): {e}")
             continue
@@ -25840,6 +25919,13 @@ def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max
     (same arithmetic as minervini_vcp_exit_reason & co.); gap_and_go (and any
     unknown tag) = its frozen initial stop. Pure; never guesses a multiplier
     for an unrecognised strategy."""
+    cell = GAP_AND_GO_EXITFAMILY_LIVE_CELLS.get(strategy)
+    if cell is not None:
+        # B-1427: the cell's own stop (exhaust: chandelier max(initial, running max close - 6 x ATR)), the level the
+        # replay rested before raising it to the 10% band floor; Kotak placement applies that floor (_preclamp_long_stop).
+        if not atr_at_entry or running_max_close is None:
+            return float(initial_stop)
+        return exitfamily_stop_level(cell, float(initial_stop), float(atr_at_entry), float(running_max_close))
     mult = {
         "minervini_vcp": MINERVINI_ATR_STOP_MULT,
         "minervini_vcp_livermore": MINERVINI_ATR_STOP_MULT,
@@ -28708,6 +28794,9 @@ def strategy_viable_buckets():
 _SWING_SL_RULES = {
     "gap_and_go": f"entry - {SWING_ATR_STOP_MULT:g}xATR, frozen (no trail)",
     "orb-swing-gap-and-go": f"entry - {SWING_ATR_STOP_MULT:g}xATR, frozen (no trail)",
+    **{_t: f"entry - {_c['atr']:g}xATR14(simple mean), then trails {_c['trail']:g}xATR below peak close "
+           f"(exit also on 10-day ROC exhaustion above entry, {_c['hold']}-bar max hold)"
+       for _t, _c in GAP_AND_GO_EXITFAMILY_LIVE_CELLS.items()},
     "power_play": f"consolidation low, then trails {POWER_PLAY_ATR_STOP_MULT:g}xATR below peak close",
     "primary_base": f"base low, then trails {MINERVINI_ATR_STOP_MULT:g}xATR below peak close",
     "minervini_vcp": f"final-leg low, then trails {MINERVINI_ATR_STOP_MULT:g}xATR below peak close",
@@ -28769,6 +28858,8 @@ def _strategy_hold_spec(tag):
         return legacy[tag], "1d"
     if tag in SWING_EXITINVAL_TAGS:
         return SWING_EXITINVAL_MAX_HOLD_DAYS, "1d"
+    if tag in GAP_AND_GO_EXITFAMILY_LIVE_CELLS:
+        return int(GAP_AND_GO_EXITFAMILY_LIVE_CELLS[tag]["hold"]), "1d"
     parts = tag.split("__")
     tf = parts[3] if len(parts) >= 5 else "1d"
     if tag in PL1D_CELLS:
@@ -30339,7 +30430,23 @@ def _swing_stop_floored(conn, symbol: str, stop) -> float:
         stop = float(stop or 0)
     except (TypeError, ValueError):
         stop = 0.0
-    return round(max(stop, floor or 0.0), 2)
+    return round(max(stop, floor or 0.0, _swing_exitfamily_trail_floor(conn, symbol) or 0.0), 2)
+
+
+def _swing_exitfamily_trail_floor(conn, symbol: str):
+    """B-1427: for a GAP_AND_GO_EXITFAMILY_LIVE_CELLS position, the cell's current chandelier stop (initial 2.5 x ATR
+    raised to running max close - 6 x ATR), so the 09:15 re-place after the exchange's 15:15 cancel comes back at the
+    TRAILED level, as the replay rests it every day, not at the row's stored initial stop. None for any other tag (their
+    behaviour is unchanged). Only ever raises a stop. Never raises."""
+    try:
+        st = conn.execute("SELECT strategy, initial_stop_loss, atr_at_entry, running_max_close, entry_price "
+                          "FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
+        if not st or st[0] not in GAP_AND_GO_EXITFAMILY_LIVE_CELLS or st[1] is None:
+            return None
+        atr = _gap_and_go_exitfamily_atr(st[4], st[1], st[2], GAP_AND_GO_EXITFAMILY_LIVE_CELLS[st[0]])
+        return float(_swing_strategy_stop_level(st[0], st[1], atr or None, st[3]))
+    except Exception:
+        return None
 
 
 def _swing_live_ltp(symbol: str) -> float:
@@ -31597,7 +31704,7 @@ def _note_sl_loosen_attempt(symbol: str, is_short: bool, new_stop, current_sl) -
 # Max-hold constants are in TRADING days; x1.5 + 3 converts conservatively to calendar days.
 def _swing_time_limit_calendar_days(strategy) -> int:
     s = str(strategy or "")
-    td = SWING_GAP_AND_GO_MAX_HOLD_DAYS if s == "gap_and_go" else (
+    td = SWING_GAP_AND_GO_MAX_HOLD_DAYS if (s == "gap_and_go" or s in GAP_AND_GO_EXITFAMILY_LIVE_CELLS) else (
         MINERVINI_MAX_HOLD_DAYS if s == "minervini_vcp" else SWING_MAX_HOLD_DAYS)
     return int(td * 1.5) + 3
 

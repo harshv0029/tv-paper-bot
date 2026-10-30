@@ -548,7 +548,7 @@ Total rows: 1194 | closed: 551 | not closed: 643
 | B-1412 | P1 | OPEN | 2026-10-29 09:30 IST | awaiting, waiting |
 | B-1414 | P1 | OPEN | 2026-10-29 09:40 IST | awaiting, waiting |
 | B-1422 | P1 | OPEN | 2026-10-29 14:09 IST | owed |
-| B-1427 | P1 | BUILT | 2026-10-30 07:55 IST |  |
+| B-1427 | P1 | BUILT | 2026-10-30 07:55 IST | owed |
 | B-1428 | P1 | BUILT | 2026-10-30 09:25 IST | owed, open:, pending |
 | B-1429 | P1 | BUILT | 2026-10-30 09:35 IST | owed, pending |
 | B-1430 | P1 | BUILT | 2026-10-30 09:45 IST | owed, remaining, pending, verify, follow-up |
