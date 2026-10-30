@@ -208,3 +208,9 @@ Flag: |delta| > 0.3 means the two disagree and is worth re-investigating. Both t
 | month__effect_mr__short__1d__atr2d5_h1__v1 |  |  |  | 0.42 | 10068 |  | no research twin |
 | month__effect_mr__short__1d__atr4_h1__v1 |  |  |  | 0.42 | 10068 |  | no research twin |
 | month__effect_mr__short__1d__atr6_h1__v1 |  |  |  | 0.42 | 10068 |  | no research twin |
+| chan_shape__mom_mr__long__1d__atr1d5_hold10_rsbandfloor__nonovl__v2 |  |  |  | 0.80 | 54111 |  | no research twin |
+| chan_shape__mom_mr__long__1d__atr1d5_hold5_rsbandfloor__nonovl__v2 |  |  |  | 0.72 | 68727 |  | no research twin |
+| chan_shape__mom_mr__long__1d__atr2d5_hold10_rsbandfloor__nonovl__v2 |  |  |  | 0.84 | 49876 |  | no research twin |
+| chan_shape__mom_mr__long__1d__atr2d5_hold5_rsbandfloor__nonovl__v2 |  |  |  | 0.74 | 66856 |  | no research twin |
+| chan_shape__mom_mr__long__1d__atr4d0_hold10_rsbandfloor__nonovl__v2 |  |  |  | 0.86 | 48888 |  | no research twin |
+| chan_shape__mom_mr__long__1d__atr4d0_hold5_rsbandfloor__nonovl__v2 |  |  |  | 0.75 | 66580 |  | no research twin |

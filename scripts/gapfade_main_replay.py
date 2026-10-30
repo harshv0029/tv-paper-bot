@@ -37,6 +37,7 @@ sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bar_hygiene as bh  # noqa: E402
 import brk20_replay as br  # noqa: E402
+import swing_bandcap as bc  # noqa: E402  (B-1426 shared live resting-stop model)
 
 INTERVAL = ("1d", "5y")
 MIN_BARS = 30  # warm-up: 5 vol bars + gap bar + 5 nb bars + a settled ATR(14)
@@ -80,13 +81,18 @@ def trade_metrics(ep, xp, held, reason, cost, entry_i, exit_i):
     return {"gross": g, "net": g - cost, "held": int(held), "reason": reason, "entry_i": entry_i, "exit_i": exit_i}
 
 
-def gapfade_trade(m, df, k, sig, cost):
+def gapfade_trade(m, df, k, sig, cost, band=None):
+    """band (B-1426, swing_bandcap.make_band): live resting stop = the frozen stop0 (main._swing_strategy_stop_level
+    returns it for gapfade tags), checked intraday from bar k+1 BEFORE the real exit adapter. None = unchanged."""
     n = len(df)
     ep, stop0, atr = sig["entry_price"], sig["stop_loss"], sig["atr_at_entry"]
     entry_day = str(df["Date"].iloc[k])[:10]
     o, c = df["Open"].to_numpy(float), df["Close"].to_numpy(float)
     running = ep
     for j in range(k + 1, n):
+        hit = bc.band_hit(band, df, j, stop0, "long")
+        if hit:
+            return trade_metrics(ep, hit[0], j - k, hit[1], cost, k + 1, j)
         reason, running = m._gapfade_exit_adapter(df.iloc[:j + 1], entry_day, stop0, atr, running)
         if reason:
             xp = min(o[j], stop0) if reason == "gapfade_stop_loss" else c[j]
@@ -94,13 +100,15 @@ def gapfade_trade(m, df, k, sig, cost):
     return trade_metrics(ep, c[-1], n - 1 - k, "data_end_forced_close", cost, k + 1, n - 1)
 
 
-def replay_symbol(m, df, tags, cost):
-    """Strict FIFO per symbol per tag: a new entry only after the previous trade's exit bar."""
+def replay_symbol(m, df, tags, cost, band_cap="off"):
+    """Strict FIFO per symbol per tag: a new entry only after the previous trade's exit bar.
+    band_cap (B-1426, scripts/swing_bandcap.py): "off" = unchanged; "live" = the live resting-stop model."""
     df = _prep(df)
     n = len(df)
     out = {t: [] for t in tags}
     if n < MIN_BARS + 3:
         return out
+    band = bc.make_band(df, band_cap)
     cand = _candidates(df, m.GAPFADE_NBARS)
     free = {t: 0 for t in tags}
     for k in np.flatnonzero(cand[:n - 1]):
@@ -114,7 +122,7 @@ def replay_symbol(m, df, tags, cost):
             sig = m.gapfade_long_entry_signal(sub, tag)
             if not sig:
                 continue
-            tr = gapfade_trade(m, df, k, sig, cost)
+            tr = gapfade_trade(m, df, k, sig, cost, band)
             out[tag].append(tr)
             free[tag] = tr["exit_i"] + 1
     return out

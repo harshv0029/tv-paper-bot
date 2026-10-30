@@ -3163,6 +3163,11 @@ def _extend_with_sweeps():
         REGISTRY.extend(_b1248.build())
     except Exception:
         pass
+    try:
+        import strategy_registry_b1417 as _b1417  # B-1417: swing band_cap=live (rsbandfloor) rows, run 40952500265
+        REGISTRY.extend(_b1417.build())
+    except Exception:
+        pass
 
 
 _extend_with_sweeps()

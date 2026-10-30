@@ -8,8 +8,9 @@ confirmed real_trades row's own `detail` field (previously always None on
 a clean fill) so it reaches the Kotak Order Ledger via /kotak-neo/real-trades
 without any separate lookup.
 
-_insert_paper_signal below sets no `strategy` column, so it defaults to
-NULL - which fails the 2026-09-30 PFnet >= 1 real-money gate
+_insert_paper_signal below tags the row 'orb-universal-score' (B-1430: a
+confidence-sized ORB tag, so the real order still mirrors the paper qty
+these tests reason about); that tag fails the 2026-09-30 PFnet >= 1 real-money gate
 (_is_strategy_viable_for_real_money) added after this file. That gate is
 orthogonal to what these tests actually check (qty-sizing arithmetic), so
 each entry-flow test below patches it to True rather than fabricating an
@@ -44,8 +45,8 @@ def _enable_real_trading(conn):
 def _insert_paper_signal(conn, symbol, qty, stop_loss=90.0, target=130.0):
     conn.execute(
         "INSERT INTO signal_state (symbol, day, status, entry_price, stop_loss, "
-        "initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval) "
-        "VALUES (?, '2026-09-23', 'long', 100.0, ?, ?, ?, ?, ?, 1.0, '5m')",
+        "initial_stop_loss, target, qty, entry_ts, fx_to_inr, interval, strategy) "
+        "VALUES (?, '2026-09-23', 'long', 100.0, ?, ?, ?, ?, ?, 1.0, '5m', 'orb-universal-score')",
         (symbol, stop_loss, stop_loss, target, qty, main.time.time()),
     )
     conn.commit()

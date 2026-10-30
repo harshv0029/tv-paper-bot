@@ -1,0 +1,86 @@
+name: gap_and_go exit-family real main.py replay (B-1427)
+
+# Backlog B-1427. The research sim (scripts/exit_family_research.py, run 40951289638) ranked five gap_and_go
+# exit-family cells above the live gap_and_go exit; research-sim numbers never open a gate (B-1416/B-1417). This replays
+# those cells calling REAL main.py functions only: main.gap_and_go_entry_signal + main.exitfamily_walk (port of the
+# sim's inval elder/ema13w and exhaust roc/volclimax exits, main.GAP_AND_GO_EXITFAMILY_CELLS), with the live
+# gap_and_go exit (main.gap_and_go_exit_reason) as the CONTROL tag in the same run. One position per symbol, flat 0.8%
+# round-trip cost (swing_classic_main_replay convention), band_cap off AND live (scripts/swing_bandcap.py, B-1417 model).
+# Universe = main._load_nse_universe_from_file() (full NSE). Daily bars, 5y. Driver: scripts/gap_and_go_exitfamily_replay.py.
+# Output: artifact gap-and-go-exitfamily-all + one SUMMARY line per tag and a RESULTS_JSON line in the merge job log.
+# Live-mode results are NEW tags (rsbandfloor param), never a rename. Research matrix: dispatch only when no gate is queued.
+on:
+  workflow_dispatch:
+    inputs:
+      band_cap:
+        description: "live (resting stop + 10% band floor) or off (baseline only)"
+        required: false
+        default: "live"
+      nshards:
+        description: "Universe shards"
+        required: false
+        default: "8"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - id: p
+        env:
+          NSHARDS: ${{ inputs.nshards }}
+        run: echo "matrix=$(python3 scripts/gap_and_go_exitfamily_replay.py plan)" >> "$GITHUB_OUTPUT"
+
+  replay:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - name: Replay control + exit-family tags, off vs band_cap (real main.py functions)
+        env:
+          SHARD: ${{ matrix.shard }}
+          NSHARDS: ${{ matrix.nshards }}
+          BAND_CAP: ${{ inputs.band_cap }}
+        run: python3 scripts/gap_and_go_exitfamily_replay.py run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ggxf-s${{ matrix.shard }}
+          path: out/
+          retention-days: 14
+
+  merge:
+    needs: replay
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          path: shards
+          pattern: ggxf-*
+          merge-multiple: true
+      - name: Pooled off vs live per tag (one SUMMARY line per tag + RESULTS_JSON)
+        run: python3 scripts/gap_and_go_exitfamily_replay.py merge shards gap_and_go_exitfamily_all.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gap-and-go-exitfamily-all
+          path: gap_and_go_exitfamily_all.json
+          retention-days: 30

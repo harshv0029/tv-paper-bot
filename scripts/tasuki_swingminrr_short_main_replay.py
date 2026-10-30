@@ -48,15 +48,26 @@ def tag_specs(m):
     return specs
 
 
-def replay_symbol(m, df, tag, spec, cost, fill="signal_close"):
-    """One symbol, one tag (always SHORT). Returns trade dicts {gross, net, held, reason}."""
+def replay_symbol(m, df, tag, spec, cost, fill="signal_close", band_cap="off"):
+    """One symbol, one tag (always SHORT). Returns trade dicts {gross, net, held, reason}.
+    band_cap (B-1426, scripts/swing_bandcap.py): "off" = unchanged; "live" = the frozen BUY stop Kotak rests, lowered to
+    the 10% band CEILING off the previous SESSION close (1h bars use the daily band), triggered intraday on the high from
+    the bar after entry, checked BEFORE the real exit fn (as short_swing in B-1417)."""
+    import swing_bandcap as bc  # lazy: numpy, and the plan job installs nothing (B-1396c)
     df = df.reset_index(drop=True)
     n = len(df)
     if n < MIN_BARS + 3:
         return []
     opens, closes = df["Open"].to_numpy(float), df["Close"].to_numpy(float)
+    band = bc.make_band(df, band_cap)
     out, pos, blocked = [], None, -1
     for k in range(MIN_BARS - 1, n):
+        if pos is not None and k > pos["sig"]:
+            hit = bc.band_hit(band, df, k, pos["stop0"], "short")
+            if hit:
+                g = -(hit[0] - pos["ep"]) / pos["ep"]
+                out.append({"gross": g, "net": g - cost, "held": k - pos["sig"], "reason": hit[1]})
+                pos, blocked = None, k
         if pos is not None and k > pos["sig"]:
             bars = df.iloc[pos["sig"] + 1:k + 1]
             if spec["group"] == "tasuki":
