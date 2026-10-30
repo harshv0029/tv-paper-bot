@@ -17,6 +17,22 @@
    "symbol": "BANKINDIA.NS"
   },
   {
+   "day": "2026-10-30",
+   "entry_order_id": "261030000045113",
+   "entry_price": 365.5,
+   "first_seen_day": "2026-10-30",
+   "is_short": 1,
+   "kotak_trading_symbol": "DABUR-EQ",
+   "opened_at": 1793332484.1944313,
+   "owner": "short",
+   "qty": 1,
+   "sl_trigger_price": 383.05,
+   "source": "position",
+   "stop_loss": null,
+   "strategy": "chan_gap__short_on_gap__short__1d__atr1d5_top10__v1",
+   "symbol": "DABUR.NS"
+  },
+  {
    "day": "2026-10-27",
    "entry_order_id": "261027000718961",
    "entry_price": 36.76,
