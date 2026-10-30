@@ -14591,7 +14591,31 @@
    "prev_state": "resting SELL trigger Rs191.74",
    "new_state": "resting SELL trigger Rs191.83",
    "detail": "reason: peak live price Rs196.38 - 1R (Rs4.55) raised the stop from Rs191.74 | LTP trail (replaced; Kotak holdings and order book read first)"
+  },
+  {
+   "id": 1217,
+   "ts": 1793344758.6422358,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "kotak",
+   "event": "kotak_order_not_in_app_log",
+   "order_id": "261030000367996",
+   "prev_state": null,
+   "new_state": "trigger pending",
+   "detail": "reason: UNLOGGED - no app log row for this Kotak order (placed outside a logging path or manually); Kotak facts: 30-Oct-2026 12:49:13 S SL qty 1 trg 192.05 status trigger pending rejRsn --"
+  },
+  {
+   "id": 1218,
+   "ts": 1793344758.737615,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "trailed",
+   "order_id": "261030000367996",
+   "prev_state": "resting SELL trigger Rs191.83",
+   "new_state": "resting SELL trigger Rs192.05",
+   "detail": "reason: peak live price Rs196.60 - 1R (Rs4.55) raised the stop from Rs191.83 | LTP trail (replaced; Kotak holdings and order book read first)"
   }
  ],
- "synced_at_utc": "2026-10-30T06:54:14Z"
+ "synced_at_utc": "2026-10-30T07:19:22Z"
 }
