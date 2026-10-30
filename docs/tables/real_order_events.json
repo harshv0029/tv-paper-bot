@@ -14351,7 +14351,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs168.35",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs168.35 already covers the position (target stop Rs164.80), adopted, nothing placed"
+  },
+  {
+   "id": 1197,
+   "ts": 1793331961.7641037,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261030000016627",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs175.12",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs175.12 (target stop Rs175.12)"
   }
  ],
- "synced_at_utc": "2026-10-30T03:46:03Z"
+ "synced_at_utc": "2026-10-30T03:46:11Z"
 }
