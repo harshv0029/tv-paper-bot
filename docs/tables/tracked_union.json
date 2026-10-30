@@ -17,20 +17,20 @@
       "first_seen_day": "2026-10-09"
     },
     {
-      "kotak_trading_symbol": "SUZLON-EQ",
-      "symbol": "SUZLON.NS",
-      "qty": 2,
-      "is_short": 0,
-      "owner": "swing",
-      "source": "holding",
-      "entry_price": 36.76,
-      "stop_loss": 28.908567156110493,
-      "sl_trigger_price": 33.67,
-      "strategy": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
-      "entry_order_id": "261027000718961",
-      "opened_at": 1793124003.4157405,
-      "day": "2026-10-27",
-      "first_seen_day": "2026-10-27"
+      "kotak_trading_symbol": "DABUR-EQ",
+      "symbol": "DABUR.NS",
+      "qty": 1,
+      "is_short": 1,
+      "owner": "short",
+      "source": "position",
+      "entry_price": 365.5,
+      "stop_loss": null,
+      "sl_trigger_price": 383.05,
+      "strategy": "chan_gap__short_on_gap__short__1d__atr1d5_top10__v1",
+      "entry_order_id": "261030000045113",
+      "opened_at": 1793332484.1944313,
+      "day": "2026-10-30",
+      "first_seen_day": "2026-10-30"
     },
     {
       "kotak_trading_symbol": "UNIONBANK-EQ",
@@ -41,7 +41,7 @@
       "source": "holding",
       "entry_price": 172.65,
       "stop_loss": 164.8,
-      "sl_trigger_price": 164.8,
+      "sl_trigger_price": 168.35,
       "strategy": "order_block_delta",
       "entry_order_id": "261008000123602",
       "opened_at": 1791432981.9336588,
@@ -57,7 +57,7 @@
       "source": "holding",
       "entry_price": 188.75,
       "stop_loss": 175.12,
-      "sl_trigger_price": 185.8,
+      "sl_trigger_price": 192.89,
       "strategy": "swing_rerouted_orphan",
       "entry_order_id": "261021000144947",
       "opened_at": 1792578447.972194,
@@ -65,5 +65,5 @@
       "first_seen_day": "2026-10-21"
     }
   ],
-  "synced_at_utc": "2026-10-29T16:01:33Z"
+  "synced_at_utc": "2026-10-30T09:15:57Z"
 }
