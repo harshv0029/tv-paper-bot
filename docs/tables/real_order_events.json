@@ -14363,7 +14363,43 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs175.12",
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs175.12 (target stop Rs175.12)"
+  },
+  {
+   "id": 1198,
+   "ts": 1793331969.2739,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261030000017334",
+   "prev_state": "none (retry)",
+   "new_state": "resting SELL trigger Rs33.67",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); placed at Rs33.67 (target stop Rs33.67)"
+  },
+  {
+   "id": 1199,
+   "ts": 1793331972.8317077,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261030000017334",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs33.67",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs33.67 already covers the position (target stop Rs33.67), adopted, nothing placed"
+  },
+  {
+   "id": 1200,
+   "ts": 1793331974.8598654,
+   "symbol": "SUZLON.NS",
+   "kotak_trading_symbol": "SUZLON-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261030000017334",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs33.67",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); a live SELL SL at Rs33.67 already covers the position (target stop Rs33.67), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-10-30T03:46:11Z"
+ "synced_at_utc": "2026-10-30T03:46:18Z"
 }
