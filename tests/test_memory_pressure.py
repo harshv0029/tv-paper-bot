@@ -11,6 +11,7 @@ def test_ok_no_trim():
 
 def test_warn_trims_cache_only():
     main._DATA_CACHE["x"] = 1
+    main._MEMORY_STATE["last_trim_ts"] = None
     before = main._MEMORY_STATE["trims"]
     r = main._memory_pressure_check(1600.0)
     assert r["memory_level"] == "warn" and not main._DATA_CACHE
@@ -23,3 +24,20 @@ def test_alarm_level_and_health_no_trim():
     h = asyncio.run(main.health())
     assert "memory_level" in h and "y" in main._DATA_CACHE
     main._DATA_CACHE.pop("y", None)
+
+
+def test_trim_thrash_guard_b1437():
+    """B-1437: under sustained pressure the data cache is cleared at most once per _MEMORY_TRIM_MIN_GAP_S."""
+    import time
+    main._MEMORY_STATE["last_trim_ts"] = None
+    main._DATA_CACHE["a"] = 1
+    before = main._MEMORY_STATE["trims"]
+    main._memory_pressure_check(1900.0)
+    assert not main._DATA_CACHE and main._MEMORY_STATE["trims"] == before + 1
+    main._DATA_CACHE["b"] = 1
+    assert main._memory_pressure_check(1900.0)["memory_level"] == "alarm"
+    assert "b" in main._DATA_CACHE and main._MEMORY_STATE["trims"] == before + 1  # guarded
+    main._MEMORY_STATE["last_trim_ts"] = time.time() - main._MEMORY_TRIM_MIN_GAP_S - 1
+    main._memory_pressure_check(1900.0)
+    assert not main._DATA_CACHE and main._MEMORY_STATE["trims"] == before + 2
+    main._MEMORY_STATE["last_trim_ts"] = None

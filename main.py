@@ -17498,6 +17498,7 @@ _FO_STRIKE_SHADOW_STRATEGIES = (
 # was skipped. Served by GET /fo-strike-monitoring. In-memory by design: it is
 # recomputed every 5-min scan (a pure derived view, not state read back later).
 _fo_strike_monitor: dict = {}
+_fo_strike_eval_cache: dict = {}  # B-1437: token -> fingerprint + outcome of its last NON-firing evaluation
 _fo_strike_monitor_meta: dict = {"last_scan_ts": None, "viable_tags": [], "real_enabled": None,
                                  "entry_window_open": None, "scans_today": 0, "day": ""}
 
@@ -17713,11 +17714,14 @@ def _run_fo_strike_setup_scan(conn):
         "SELECT kotak_trading_symbol, underlying FROM real_fo_positions WHERE strategy_tag LIKE 'strike_setup_%'").fetchall()}
     held = {r[0] for r in conn.execute("SELECT kotak_trading_symbol FROM real_fo_positions").fetchall()}
     seen = set()
+    seen_tokens = set()
+    viable_key = tuple(tg for tg, _ in viable)
     for (segment, token), d in kotak_fo_candle_feed.get_cached_fo_universe().items():
         if d["kind"] != "option" or d["underlying"] not in _FO_STRIKE_SCAN_UNDERLYINGS:
             continue
         sym = d["kotak_trading_symbol"]
         seen.add(sym)
+        seen_tokens.add(token)
         rec = _fo_strike_monitor.setdefault(sym, {"scanned": {}, "last_signal": None})
         if rec.get("day") != today:
             rec.update(day=today, scanned={}, last_signal=None)
@@ -17726,19 +17730,58 @@ def _run_fo_strike_setup_scan(conn):
         if d["expiry"] and str(d["expiry"])[:10] < today:
             rec["status"] = "expired_series"  # stale cache: never trade it
             continue
+        # B-1437: every setup + shadow rule here is a pure function of the strike's COMPLETED candles
+        # (append-only table), so an unchanged candle fingerprint since the last NON-firing evaluation
+        # (same viable tag set) replays that outcome and its counters instead of re-reading the frame
+        # and re-running 13 rules. A fired setup is never cached (its trade path depends on live state).
+        fp = kotak_fo_candle_feed.fo_candle_fingerprint(token, conn)  # B-1437: taken right before the decision
+        if fp is not None and fp[0] < 30:
+            rec["candles"] = fp[0]
+            rec["status"] = "warming_up_need_30_candles"
+            continue
+        ck = _fo_strike_eval_cache.get(token)
+        if fp is not None and ck is not None and ck["fp"] == fp and ck["viable"] == viable_key:
+            rec["candles"] = fp[0]
+            age = time.time() - fp[1]  # == now - df["Date"].iloc[-1]
+            rec["last_candle_age_s"] = round(age)
+            if ck["last_close"] is not None:
+                rec["lot_size"], rec["last_close"] = d["lot_size"], ck["last_close"]
+            if age > 900:
+                rec["status"] = "no_fresh_candle"
+                continue
+            if ck["hits"] is not None:  # was fully evaluated, nothing fired: replay counters
+                for tag, _fn in viable:
+                    rec["scanned"][tag] = rec["scanned"].get(tag, 0) + 1
+                    _note_symbol_strategy_scan(d["underlying"], tag)
+                shadow = rec.setdefault("shadow", {})
+                for _st, _hit in ck["hits"].items():
+                    _c = shadow.setdefault(_st, {"scans": 0, "signals": 0})
+                    _c["scans"] += 1
+                    _c["signals"] += int(_hit)
+                rec["last_eval_ts"] = now
+                _record_scheduler_check(f"{sym}:STRIKE")
+                _scheduler_last_results[f"{sym}:STRIKE"] = {
+                    "status": "checked", "checked_at_utc": now, "action_taken": "no_setup"}
+                rec["status"] = "monitored_no_setup"
+                continue
+        _fo_strike_eval_cache.pop(token, None)
         df = kotak_fo_candle_feed.read_fo_candles_as_df(token)
         rec["candles"] = 0 if df is None else len(df)
         if df is None or len(df) < 30:
             rec["status"] = "warming_up_need_30_candles"
             continue
+        _ck = {"fp": fp, "viable": viable_key, "last_close": None, "hits": None}
         age = (pd.Timestamp.now(tz="UTC") - df["Date"].iloc[-1]).total_seconds()
         rec["last_candle_age_s"] = round(age)
         try:  # B-868: lets /signal-funds price 1 lot (lot_size x premium) for the "need" figure
             rec["lot_size"], rec["last_close"] = d["lot_size"], float(df["Close"].iloc[-1])
+            _ck["last_close"] = rec["last_close"]
         except Exception:
             pass
         if age > 900:
             rec["status"] = "no_fresh_candle"  # dropped out of the band
+            if fp is not None:
+                _fo_strike_eval_cache[token] = _ck  # same candles -> age only grows -> stays stale
             continue
         fired = None
         for tag, fn in viable:
@@ -17755,15 +17798,20 @@ def _run_fo_strike_setup_scan(conn):
         # option-premium PFnet yet, so they fail the real-money gate (fail closed): evaluated and recorded
         # here as SHADOW signals only (no order), building the evidence for a premium backtest.
         shadow = rec.setdefault("shadow", {})
+        _hits = {}
         for _st, _pr in _FO_STRIKE_SHADOW_STRATEGIES:
             try:
                 _fl = add_strategy_signal(df, _st, dict(_pr))["long"].fillna(False).astype(bool)
                 _hit = bool(len(_fl) > 1 and _fl.iloc[-1] and not _fl.iloc[-2])
             except Exception:
                 _hit = False
+            _hits[_st] = _hit
             _c = shadow.setdefault(_st, {"scans": 0, "signals": 0})
             _c["scans"] += 1
             _c["signals"] += int(_hit)
+        if fired is None and fp is not None:
+            _ck["hits"] = _hits
+            _fo_strike_eval_cache[token] = _ck  # fp taken BEFORE the read: never newer than df
         rec["last_eval_ts"] = now
         # surface in the per-asset "checks today / last checked" table (one check per scan pass)
         _record_scheduler_check(f"{sym}:STRIKE")
@@ -17812,6 +17860,8 @@ def _run_fo_strike_setup_scan(conn):
     for sym in list(_fo_strike_monitor):
         if sym not in seen:
             _fo_strike_monitor.pop(sym, None)  # strike left the feed (rolled / out of band)
+    for tok in [t for t in _fo_strike_eval_cache if t not in seen_tokens]:
+        _fo_strike_eval_cache.pop(tok, None)  # B-1437: bounded by the current feed
 
 
 @app.get("/fo-strike-monitoring")
@@ -18311,6 +18361,7 @@ def _straddle_signal_core(conn, fo_underlying: str, vol_signal, halted: bool, is
 
 FO_OPTIONS_SCAN_INTERVAL_SECONDS = 300  # matches kotak_fo_candle_feed.CANDLE_INTERVAL_SECONDS - no point scanning faster than a new candle bar can complete
 _fo_options_scan_last_ts = 0.0
+_fo_rsi2_no_signal_fp: dict = {}  # B-1437: token -> candle fingerprint of its last no-signal RSI2 evaluation
 
 
 def _open_fo_option_paper_position(conn, instrument_token: str, exchange_segment: str, descriptor: dict, signal: dict):
@@ -18431,6 +18482,11 @@ def _run_fo_options_scan(conn):
         _manage_open_fo_option_position(conn, row, descriptors_by_token.get(row["instrument_token"]))
 
     open_tokens = {row["instrument_token"] for row in open_rows}
+    # B-1437: open positions above are ALWAYS managed (fresh read every pass). For new entries, the
+    # RSI2 rule is a pure function of the token's COMPLETED candles (fo_option_candles is append-only),
+    # so a token whose candle set is unchanged since its last no-signal evaluation, or that has fewer
+    # than MIN_LOOKBACK_BARS candles (the rule returns None on those), is not re-read: same decision,
+    # no sqlite read / DataFrame build. Unknown token (no fingerprint) -> plain read, as before.
     for (exchange_segment, instrument_token), descriptor in universe.items():
         if descriptor["kind"] != "option" or instrument_token in open_tokens:
             continue
@@ -18438,6 +18494,11 @@ def _run_fo_options_scan(conn):
             _record_scheduler_skipped_visit()  # B-1271: visited, nothing evaluated
             continue  # too close to physical settlement to open a fresh position on this leg
 
+        fp = kotak_fo_candle_feed.fo_candle_fingerprint(instrument_token, conn)  # B-1437
+        if fp is not None and (fp[0] < fo_option_strategy.MIN_LOOKBACK_BARS
+                               or _fo_rsi2_no_signal_fp.get(instrument_token) == fp):
+            _record_scheduler_check(f"{descriptor['kotak_trading_symbol']}:RSI2FO")  # same count as a read
+            continue  # identical candles / too short -> rule returns None, exactly as a fresh read would
         df = kotak_fo_candle_feed.read_fo_candles_as_df(instrument_token)
         if df is None:
             _record_scheduler_skipped_visit()  # B-1271: no candles, nothing evaluated
@@ -18445,9 +18506,16 @@ def _run_fo_options_scan(conn):
         # B-1271: a check is counted only once candles exist and the entry rule is actually evaluated
         _record_scheduler_check(f"{descriptor['kotak_trading_symbol']}:RSI2FO")
         signal = fo_option_strategy.rsi2_mean_reversion_entry_signal(df)
+        del df
         if signal is None:
+            if fp is not None:
+                _fo_rsi2_no_signal_fp[instrument_token] = fp  # fp taken BEFORE the read: never newer than df
             continue
+        _fo_rsi2_no_signal_fp.pop(instrument_token, None)
         _open_fo_option_paper_position(conn, instrument_token, exchange_segment, descriptor, signal)
+    live = {tok for (_seg, tok) in universe}
+    for tok in [t for t in _fo_rsi2_no_signal_fp if t not in live]:
+        _fo_rsi2_no_signal_fp.pop(tok, None)  # bounded by the current universe
 
 
 # Explicit user decision (2026-09-16, AskUserQuestion) on how long the
@@ -29970,6 +30038,7 @@ RSS_LIMIT_MB = 2048  # B-1288: Render plan memory limit
 RSS_ALARM_PCT = 85.0
 RSS_WARN_PCT = 75.0  # B-1288: early warning + cache trim
 _MEMORY_STATE = {"level": "ok", "trims": 0, "last_trim_ts": None, "last_trim_freed_entries": 0}
+_MEMORY_TRIM_MIN_GAP_S = 300  # B-1437: at most one _DATA_CACHE clear per 5 min under pressure
 
 
 def _memory_pressure_check(now_mb=None, trim=True) -> dict:
@@ -29982,6 +30051,9 @@ def _memory_pressure_check(now_mb=None, trim=True) -> dict:
     pct = round(now_mb / RSS_LIMIT_MB * 100, 1) if now_mb is not None else None
     level = "ok" if pct is None or pct < RSS_WARN_PCT else ("alarm" if pct > RSS_ALARM_PCT else "warn")
     _MEMORY_STATE["level"] = level
+    _last = _MEMORY_STATE.get("last_trim_ts")
+    if level != "ok" and trim and _last is not None and time.time() - _last < _MEMORY_TRIM_MIN_GAP_S:
+        trim = False  # B-1437 thrash guard: clearing every tick forced a full refetch each tick (more churn, not less)
     if level != "ok" and trim:
         try:
             n = len(_DATA_CACHE)

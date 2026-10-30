@@ -644,6 +644,31 @@ def read_fo_candles_as_df(instrument_token: str) -> pd.DataFrame | None:
     return df[["Date", "Open", "High", "Low", "Close", "Volume"]].reset_index(drop=True)
 
 
+def fo_candle_fingerprint(instrument_token, conn=None):
+    """B-1437: (completed_candle_count, last_bucket_start_ts) for one token, or None when it has no
+    candles or the query fails (callers then fall back to the plain read_fo_candles_as_df).
+
+    One indexed aggregate (UNIQUE(instrument_token, bucket_start_ts)), no rows materialised, no
+    DataFrame. fo_option_candles is append-only (INSERT OR IGNORE of completed bars; nothing updates
+    or deletes a row), so an unchanged fingerprint means read_fo_candles_as_df would return the exact
+    same frame. The 5-min option scans use it to skip re-reading and re-evaluating a token whose
+    candle set has not changed: at a ~2300-option universe that was thousands of full sqlite reads +
+    DataFrame builds per pass (native-heap churn, Render RSS 983 -> 1915 MB on 2026-10-30)."""
+    sql = ("SELECT COUNT(*), MAX(bucket_start_ts) FROM fo_option_candles WHERE instrument_token = ?")
+    try:
+        if conn is None:
+            import main  # deferred - avoids a circular import at module load time
+            with closing(main.get_db()) as c:
+                row = c.execute(sql, (str(instrument_token),)).fetchone()
+        else:
+            row = conn.execute(sql, (str(instrument_token),)).fetchone()
+        if not row or not row[0]:
+            return None
+        return int(row[0]), float(row[1])
+    except Exception:
+        return None
+
+
 def _set_phase(phase: str) -> None:
     _feed_status["phase"] = phase
     _feed_status["phase_since_utc"] = time.time()
