@@ -47,6 +47,8 @@ interval (5 min) that's a small fraction of a trading day.
 """
 import asyncio
 import concurrent.futures
+import logging
+import sqlite3
 import time
 from contextlib import closing
 
@@ -55,6 +57,8 @@ import pandas as pd
 import kotak_live_feed
 import kotak_neo
 import nse_fo_chain
+
+logger = logging.getLogger(__name__)
 
 CANDLE_INTERVAL_SECONDS = 300  # 5-minute bars - matches this app's dominant intraday bar size
 
@@ -115,6 +119,12 @@ _feed_status = {
     "last_tick_ts": None,
     "last_disconnect_reason": None,
     "refresh_reconnects": 0,
+    # B-1434: SQLite errors while persisting completed candles (kept pending, retried next batch, never
+    # allowed to end the stream).
+    "persist_errors": 0,
+    "last_persist_error": None,
+    "pending_candles": 0,
+    "dropped_candles": 0,
 }
 
 # {instrument_token: {"bucket_start_ts", "open", "high", "low", "close", "tick_count"}}
@@ -200,6 +210,15 @@ STREAM_IDLE_WAKE_SECONDS = 5.0  # B-1389: max wait between background-resolve ch
 # stocks got a real attempt last cycle, so the next cycle picks up where
 # the last one left off instead of restarting at "360ONE" every time.
 _stock_resolve_offset = {"value": 0}
+
+# B-1433: a 600 s resolve covers only ~74 of the 210 stocks live (30-Oct), and the rotated offset above only
+# advanced on the NEXT 4h refresh - so ~136 stocks sat unsubscribed ("deadline_exceeded") for 4 h after every
+# boot/refresh. When a full resolve ends with stocks it never attempted, another background round is due
+# (after CONTINUATION_GAP_SECONDS; still one sequential resolve at a time, heavy lock released between rounds),
+# continuing from the rotated offset until every stock has had an attempt this cycle. Each round carries the
+# earlier rounds' legs forward (previous_universe), so already-resolved instruments keep streaming.
+_resolve_continuation = {"due": False, "attempted": 0, "rounds": 0, "last_done_at": 0.0}
+CONTINUATION_GAP_SECONDS = 30
 
 
 # B-865: while the websocket stays connected the top-of-loop refresh check in
@@ -493,32 +512,80 @@ def apply_tick(instrument_token: str, price: float, ts: float, descriptor: dict,
     return completed
 
 
-def process_fo_ticks(messages, universe: dict, scrip_cls) -> int:
-    """B-1382: apply a batch of feed messages to the in-progress candles. One DB connection per batch, opened only
-    if some tick closes its instrument's candle. Returns how many ticks were applied."""
-    now = time.time()
-    bucket = _bucket_start(now)
+# B-1432: tick batches ran via asyncio.to_thread, i.e. on the loop's SHARED default executor, which also carries the
+# long scan jobs (swing / chan-gap scans, yfinance prefetch, _fo_tick_steps orphaned past its wait_for). While those
+# hold every worker, the batch waits in the executor queue and the SDK's unbounded tick queue keeps growing
+# (live 30-Oct: SFeedScrip 0 -> 7.9k, DepthLevel 15.8k, +1.8 MB/min RSS). A dedicated single worker keeps tick
+# processing independent of that pool; one worker keeps batches serialized exactly as before.
+_FO_TICK_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="fo-ticks")
+
+
+async def offload_process_fo_ticks(messages, universe: dict, scrip_cls) -> int:
+    """process_fo_ticks off the event loop on _FO_TICK_EXECUTOR (never the shared default executor)."""
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(_FO_TICK_EXECUTOR, process_fo_ticks, messages, universe, scrip_cls)
+
+
+# B-1434: completed candles not yet committed (a SQLite error, e.g. "database is locked" after get_db's 30 s
+# timeout, hit the batch that closed them). Retried at the start of the next batch; INSERT OR IGNORE makes a
+# repeat insert harmless. Capped so a DB that stays down cannot grow memory without bound (oldest dropped, counted).
+_pending_candles: list = []
+MAX_PENDING_CANDLES = 20000
+
+
+def _flush_pending_candles() -> None:
+    """B-1434: persist every pending completed candle. A sqlite3 error stops this flush, keeps the unwritten
+    candles pending for the next batch and is recorded in _feed_status - it never propagates, so a locked DB
+    can no longer tear down the websocket (live 30-Oct: 7 reconnects in ~2 h, exception:OperationalError)."""
+    if not _pending_candles:
+        _feed_status["pending_candles"] = 0
+        return
     conn = None
-    applied = 0
     try:
-        for message in messages:
-            if not isinstance(message, scrip_cls):
-                continue
-            _feed_status["ticks_received"] += 1
-            _feed_status["last_tick_ts"] = now
-            tok = str(message.instrument_token)
-            descriptor = universe.get((message.exchange_segment, tok))
-            if descriptor is None:
-                continue
-            existing = _in_progress_candles.get(tok)
-            if conn is None and existing is not None and existing["bucket_start_ts"] != bucket:
-                import main
-                conn = main.get_db()
-            apply_tick(tok, message.last_traded_price, now, descriptor, conn=conn)
-            applied += 1
+        import main
+        conn = main.get_db()
+        while _pending_candles:
+            tok, descriptor, bar = _pending_candles[0]
+            _persist_candle(conn, tok, descriptor, bar)
+            _pending_candles.pop(0)
+    except sqlite3.Error as e:
+        _feed_status["persist_errors"] = _feed_status.get("persist_errors", 0) + 1
+        _feed_status["last_persist_error"] = f"{type(e).__name__}: {e} ({time.strftime('%H:%M:%S', time.gmtime())} UTC)"
+        logger.warning("fo candle persist failed, %d candle(s) kept pending: %s", len(_pending_candles), e)
+        overflow = len(_pending_candles) - MAX_PENDING_CANDLES
+        if overflow > 0:
+            del _pending_candles[:overflow]
+            _feed_status["dropped_candles"] = _feed_status.get("dropped_candles", 0) + overflow
     finally:
         if conn is not None:
-            conn.close()
+            try:
+                conn.close()
+            except sqlite3.Error:
+                pass
+        _feed_status["pending_candles"] = len(_pending_candles)
+
+
+def process_fo_ticks(messages, universe: dict, scrip_cls) -> int:
+    """B-1382: apply a batch of feed messages to the in-progress candles. One DB connection per batch, opened only
+    if a candle completed (or one is still pending from an earlier failed batch). Returns how many ticks were
+    applied. B-1434: completed candles are queued and flushed after the batch; a DB error keeps them pending
+    instead of raising out of the stream loop."""
+    now = time.time()
+    applied = 0
+    for message in messages:
+        if not isinstance(message, scrip_cls):
+            continue
+        _feed_status["ticks_received"] += 1
+        _feed_status["last_tick_ts"] = now
+        tok = str(message.instrument_token)
+        descriptor = universe.get((message.exchange_segment, tok))
+        if descriptor is None:
+            continue
+        completed = apply_tick(tok, message.last_traded_price, now, descriptor)
+        if completed is not None:
+            _pending_candles.append((tok, descriptor, completed))
+        applied += 1
+    _flush_pending_candles()
     return applied
 
 
@@ -609,6 +676,16 @@ async def _resolve_full_universe(main_mod):
         )
         attempted = n_stocks - deadline_exceeded
         _stock_resolve_offset["value"] = (stock_offset + attempted) % n_stocks
+        # B-1433: count stocks attempted across this cycle's rounds; another round is due until all were tried.
+        prior = _resolve_continuation["attempted"] if _resolve_continuation["due"] else 0
+        cumulative = prior + attempted
+        more = deadline_exceeded > 0 and attempted > 0 and cumulative < n_stocks
+        _resolve_continuation.update(due=more, attempted=cumulative if more else 0,
+                                     rounds=_resolve_continuation["rounds"] + 1 if more else 0,
+                                     last_done_at=time.time())
+        _feed_status["resolve_continuation"] = {
+            "due": more, "stocks_attempted_this_cycle": min(cumulative, n_stocks), "of": n_stocks,
+        }
     return universe
 
 
@@ -633,7 +710,9 @@ def background_resolve_step(main_mod, now=None) -> bool:
             _bg_resolve["swapped"] = False
             return True
         return False
-    if task is None and (_universe_cache["partial"] or universe_refresh_due()) \
+    continuation_due = _resolve_continuation["due"] \
+        and now - _resolve_continuation["last_done_at"] >= CONTINUATION_GAP_SECONDS
+    if task is None and (_universe_cache["partial"] or continuation_due or universe_refresh_due()) \
             and now - _bg_resolve["failed_at"] >= BG_RESOLVE_RETRY_SECONDS:
         _bg_resolve["task"] = asyncio.ensure_future(_background_full_resolve(main_mod))
         _feed_status["background_resolves"] = _feed_status.get("background_resolves", 0) + 1
@@ -692,7 +771,7 @@ async def run_fo_candle_feed():
             client = kotak_neo.login()
             _set_phase("subscribing")
 
-            async with client.create_websocket() as ws:
+            async with kotak_live_feed.retiring(client.create_websocket()) as ws:
                 await ws.subscribe_scrips(ws_tokens)
                 _set_phase("streaming")
                 _feed_status["connected"] = True
@@ -722,7 +801,8 @@ async def run_fo_candle_feed():
                     # B-1382: take every queued tick in this wake-up (the SDK queue is unbounded) and open the DB
                     # only when a tick closes a candle, not once per tick.
                     # B-1424: candle persistence (SQLite commit) runs off the event loop; a 17 s lock wait froze it.
-                    await asyncio.to_thread(process_fo_ticks, kotak_live_feed.drain_pending(ws, first), universe, SFeedScrip)
+                    # B-1432: own executor, not asyncio.to_thread's shared one (see _FO_TICK_EXECUTOR).
+                    await offload_process_fo_ticks(kotak_live_feed.drain_pending(ws, first), universe, SFeedScrip)
                 # B-865: the stream ended without raising (SDK gave up
                 # reconnecting, or we broke out for a refresh). The old code
                 # left connected=True here, a stale "healthy" reading.
