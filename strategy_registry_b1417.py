@@ -53,7 +53,10 @@ def build():
                 metrics=sr.Metrics(
                     pfnet=float(m["pfnet"]), pfgross=float(m.get("pfgross") or 0), win_rate_pct=float(m.get("win_pct") or 0),
                     n_trades=int(m["n"]), avg_held_hrs=None if bars is None else float(bars) * per_bar,
-                    avg_held_bars=None if bars is None else float(bars), avg_held_raw_unit=unit if bars is not None else "",
+                    # 1w tags: the replay's hold is in daily bars; store it in the tag's own (weekly) bars so
+                    # avg_held_bars x market_hours_per_bar("1w") == avg_held_hrs.
+                    avg_held_bars=None if bars is None else (float(bars) / 5 if _tf(r) == "1w" and per_bar != 1.0 else float(bars)),
+                    avg_held_raw_unit=("1w bars (daily count / 5)" if _tf(r) == "1w" and per_bar != 1.0 else unit) if bars is not None else "",
                     universe=f"NSE full universe ({r.get('n_symbols')} symbols with data)", run_ref=_REF),
                 source=_SRC,
                 evidence=(f"{_REF}: raw docs/backtest_data/{_FN}: live PFnet {m['pfnet']}, gross {m.get('pfgross')}, win "
