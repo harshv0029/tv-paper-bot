@@ -14315,7 +14315,19 @@
    "prev_state": "live SL at Kotak",
    "new_state": "resting SELL trigger Rs126.73",
    "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs126.73 already covers the position (target stop Rs126.73), adopted, nothing placed"
+  },
+  {
+   "id": 1194,
+   "ts": 1793331947.1521866,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261030000015603",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs168.35",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs168.35 (target stop Rs164.80); strategy stop Rs164.80 is outside the day's price band, so the stop rests at the band floor Rs168.35"
   }
  ],
- "synced_at_utc": "2026-10-30T03:45:47Z"
+ "synced_at_utc": "2026-10-30T03:45:55Z"
 }
