@@ -8458,6 +8458,24 @@ NO_ENTRY_WINDOW_AFTER_OPEN_MINUTES = 0
 ENTRY_CUTOFF_BEFORE_SQUAREOFF_MINUTES = 1
 
 
+def _capital_known(capital) -> bool:
+    """B-1428: True only for a usable, positive capital figure. get_scheduler_capital_inr() returns 0.0 until Kotak
+    limits() has succeeded once since the restart (and Kotak's Net itself can read 0 or below). With capital <= 0 the
+    signal cores divided by it ("GC=F: float division by zero" at the 30-Oct open, from the overnight MCX-proxy scan
+    right after the 02:12 IST deploy) and, once that was guarded, a 0 daily-loss cap would read as 'halted' and force-
+    exit every open position. Callers skip NEW entries and leave the daily-loss halt unevaluated instead; open positions
+    keep their own stop / target / square-off management."""
+    try:
+        return capital is not None and float(capital) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _pct_of_capital(amount: float, capital) -> float | None:
+    """100 * amount / capital rounded to 3 dp, or None when capital is unknown (B-1428). Display-only, never sizes."""
+    return round(100 * amount / capital, 3) if _capital_known(capital) else None
+
+
 def _target_move_pct(target: float, last_close: float) -> float:
     """Gross % move from last_close to target - long-only entries only, so
     target is always meant to sit above last_close by construction. Used as
@@ -10453,7 +10471,7 @@ def _options_signal_core(
         realized_today = today_realized_pnl(conn, since_ts)
         daily_loss_cap = capital * daily_risk_pct / 100
         remaining_budget = max(0.0, daily_loss_cap - max(0.0, -realized_today))
-        halted = remaining_budget <= 0
+        halted = _capital_known(capital) and remaining_budget <= 0  # B-1428: unknown capital is not a loss halt
 
         try:
             fx_to_inr = get_fx_to_inr(currency)
@@ -10524,7 +10542,7 @@ def _options_signal_core(
                     "target": row["target_premium"], "rr_target": rr, "rr_achieved": rr_achieved,
                     "strike": row["strike"], "expiry": row["expiry"],
                     "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
-                    "pnl_pct_of_capital": round(100 * pnl_inr / capital, 3),
+                    "pnl_pct_of_capital": _pct_of_capital(pnl_inr, capital),
                 }
                 apply_paper_trade(conn, opt_symbol, "sell", qty, exit_premium)
                 conn.execute(
@@ -10543,6 +10561,9 @@ def _options_signal_core(
         # ---- look for a new entry ----
         if halted:
             result["action_taken"] = "blocked_daily_loss_cap"
+            return result
+        if not _capital_known(capital):
+            result["action_taken"] = "skipped_capital_unavailable"  # B-1428: no sizing off an unknown balance
             return result
         if not is_trading_enabled(conn):
             result["action_taken"] = "trading_paused"
@@ -10884,7 +10905,7 @@ def _auto_signal_core(
         daily_loss_cap = capital * daily_risk_pct / 100
         loss_so_far = max(0.0, -realized_today)
         remaining_budget = max(0.0, daily_loss_cap - loss_so_far)
-        halted = remaining_budget <= 0
+        halted = _capital_known(capital) and remaining_budget <= 0  # B-1428: unknown capital is not a loss halt
 
         try:
             fx_to_inr = get_fx_to_inr(currency)
@@ -10984,7 +11005,7 @@ def _auto_signal_core(
             "sma_fast": sma_f, "sma_slow": sma_s, "trend": trend,
             "capital": capital, "daily_loss_cap": daily_loss_cap,
             "realized_today": round(realized_today, 2),
-            "realized_today_pct": round(100 * realized_today / capital, 3),
+            "realized_today_pct": _pct_of_capital(realized_today, capital),
             "budget_remaining": round(remaining_budget, 2),
             "halted_for_day": halted, "action_taken": "none",
             "is_squareoff_time": is_squareoff_time, "vol_contraction_signal": vol_contraction_signal,
@@ -11273,7 +11294,7 @@ def _auto_signal_core(
                     "leading_target_active": current_target > row["target"],
                     "rr_target": rr, "rr_achieved": rr_achieved,
                     "pnl_native": round(pnl_native, 2), "pnl_inr": round(pnl_inr, 2),
-                    "pnl_pct_of_capital": round(100 * pnl_inr / capital, 3),
+                    "pnl_pct_of_capital": _pct_of_capital(pnl_inr, capital),
                 }
                 apply_paper_trade(conn, symbol, "sell", qty, exit_price)
                 conn.execute(
@@ -11295,6 +11316,9 @@ def _auto_signal_core(
         # ---- look for a new entry ----
         if halted:
             result["action_taken"] = "blocked_daily_loss_cap"
+            return result
+        if not _capital_known(capital):
+            result["action_taken"] = "skipped_capital_unavailable"  # B-1428: no sizing off an unknown balance
             return result
 
         # Aggregate open-risk gate (2026-09-10, found in review) - see
@@ -11766,6 +11790,11 @@ def _auto_signal_core(
                     result["detail"] = err
                     return result
                 lot_size = _paper_lot_in_proxy_units(symbol, future["lot_size"])
+                if not lot_size or lot_size <= 0:
+                    # B-1428: a contract row with lLotSize 0 (e.g. a fresh contract) must skip, not divide by zero.
+                    result["action_taken"] = "skipped_no_lot_size"
+                    result["detail"] = f"lot_size={future.get('lot_size')!r}"
+                    return result
                 qty = round(float(math.floor(qty / lot_size + 1e-9) * lot_size), 6)
 
             # A trade sized to a few rupees isn't a real position - guard
@@ -11817,7 +11846,7 @@ def _auto_signal_core(
                 "strategy": strategy_tag, "entry_reason": entry_reason,
                 "stop_loss": stop_loss, "target": target, "rr_target": rr,
                 "risk_amount_inr": round(risk_amount_inr, 2),
-                "risk_pct_of_capital": round(100 * risk_amount_inr / capital, 3),
+                "risk_pct_of_capital": _pct_of_capital(risk_amount_inr, capital),
                 "notional_native": round(qty * last_close, 2), "notional_inr": round(notional_inr, 2),
                 "reallocated_from": result.get("reallocated_from"),
                 "exit_legs": exit_legs,
@@ -12503,7 +12532,7 @@ def _short_signal_core(
         realized_today = today_realized_pnl(conn, since_ts)
         daily_loss_cap = capital * daily_risk_pct / 100
         loss_so_far = max(0.0, -realized_today)
-        halted = loss_so_far >= daily_loss_cap
+        halted = _capital_known(capital) and loss_so_far >= daily_loss_cap  # B-1428: unknown capital is not a loss halt
 
         try:
             fx_to_inr = get_fx_to_inr(currency)
@@ -12612,6 +12641,9 @@ def _short_signal_core(
 
         if is_squareoff_time or halted:
             result["action_taken"] = "no_new_entry_squareoff_or_halted"
+            return result
+        if not _capital_known(capital):
+            result["action_taken"] = "skipped_capital_unavailable"  # B-1428: no sizing off an unknown balance
             return result
 
         # B-914: chan_kalman band short (only when its registry entry is viable; otherwise paper stays on the old engines).
