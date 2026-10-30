@@ -23657,6 +23657,10 @@ def _run_swing_scan_pass(conn):
         ).fetchone()
 
         if pos:
+            try:  # B-1438: last completed close, the "never above the market" reference for the trailed re-place
+                _SWING_LAST_CLOSE[symbol] = float(df["Close"].iloc[-1])
+            except Exception:
+                pass
             if pos["strategy"] in MACDDIV_LONG_LIVE_CELLS or pos["strategy"] in ENVELOPE_LONG_LIVE_CELLS or pos["strategy"] in CUP_CHEAT_LONG_LIVE_CELLS:
                 continue  # B-984/B-1264: 1h cell, managed by _run_long_swing_1h_pass on hourly bars
             # 2026-09-30: minervini_vcp_livermore uses the IDENTICAL
@@ -25913,12 +25917,24 @@ def _run_pattern_cell_entries(conn, dfs: dict, capital, today: str):
 _swing_sl_trail_last_day = None
 
 
-def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max_close):
+def _swing_strategy_stop_level(strategy, initial_stop, atr_at_entry, running_max_close, entry_price=None):
     """The stop a swing position's OWN strategy exit rule is currently using:
     chandelier strategies = max(initial stop, peak close - mult x frozen ATR)
     (same arithmetic as minervini_vcp_exit_reason & co.); gap_and_go (and any
     unknown tag) = its frozen initial stop. Pure; never guesses a multiplier
-    for an unrecognised strategy."""
+    for an unrecognised strategy. B-1438: minervini_vcp_be3r (breakeven ratchet,
+    minervini_vcp_exit_reason_breakeven) = entry once the peak close gained 3R,
+    only when entry_price is passed (else its initial stop, as before)."""
+    if strategy == "minervini_vcp_be3r":
+        try:
+            ep, ist = float(entry_price), float(initial_stop)
+            risk = ep - ist
+            if running_max_close is not None and risk > 0 and \
+                    float(running_max_close) - ep >= MINERVINI_BREAKEVEN_R_3 * risk:
+                return max(ist, ep)
+        except (TypeError, ValueError):
+            pass
+        return float(initial_stop)
     cell = GAP_AND_GO_EXITFAMILY_LIVE_CELLS.get(strategy)
     if cell is not None:
         # B-1427: the cell's own stop (exhaust: chandelier max(initial, running max close - 6 x ATR)), the level the
@@ -26245,7 +26261,8 @@ def _sync_swing_resting_sl_to_strategy(conn):
         if not st:
             continue
         target = round(_swing_strategy_stop_level(
-            st["strategy"], st["initial_stop_loss"], st["atr_at_entry"], st["running_max_close"]), 2)
+            st["strategy"], st["initial_stop_loss"], st["atr_at_entry"], st["running_max_close"],
+            entry_price=st["entry_price"]), 2)
         current = float(r["sl_trigger_price"] or r["stop_loss"])
         if target <= current + 0.05:
             continue
@@ -30430,23 +30447,61 @@ def _swing_stop_floored(conn, symbol: str, stop) -> float:
         stop = float(stop or 0)
     except (TypeError, ValueError):
         stop = 0.0
-    return round(max(stop, floor or 0.0, _swing_exitfamily_trail_floor(conn, symbol) or 0.0), 2)
+    return round(max(stop, floor or 0.0, _swing_trail_floor(conn, symbol) or 0.0), 2)
 
 
-def _swing_exitfamily_trail_floor(conn, symbol: str):
-    """B-1427: for a GAP_AND_GO_EXITFAMILY_LIVE_CELLS position, the cell's current chandelier stop (initial 2.5 x ATR
-    raised to running max close - 6 x ATR), so the 09:15 re-place after the exchange's 15:15 cancel comes back at the
-    TRAILED level, as the replay rests it every day, not at the row's stored initial stop. None for any other tag (their
-    behaviour is unchanged). Only ever raises a stop. Never raises."""
+# B-1438: long swing tags whose live exit trails the stop off the stored running_max_close (or ratchets it, be3r), with
+# _swing_strategy_stop_level returning exactly the level that exit compares against. Every other swing tag (gap_and_go,
+# brk20, island, swingminrr, gapfade, chan_shape, pl1d, oneil, pattern cells, sector rotation, OB/VP exitinval, the 1h
+# cells, every short swing cell) exits off its FROZEN initial stop, so the stored stop is already its strategy stop.
+SWING_TRAILING_STOP_TAGS = frozenset({
+    "minervini_vcp", "minervini_vcp_livermore", "primary_base", "minervini_vcp_be3r", "power_play",
+    "order_block_delta", "volume_profile_poc", ORPHAN_SWING_STRATEGY_TAG,
+})
+_SWING_LAST_CLOSE: dict = {}  # symbol -> last COMPLETED daily close seen by the swing exit loop (in-memory)
+_SWING_TRAIL_SKIP_LOGGED: dict = {}  # symbol -> IST day the "trail not above the market" skip was printed
+
+
+def _swing_is_trailing_tag(strategy) -> bool:
+    return strategy in SWING_TRAILING_STOP_TAGS or strategy in GAP_AND_GO_EXITFAMILY_LIVE_CELLS
+
+
+def _swing_trail_floor(conn, symbol: str):
+    """B-1438 (generalises B-1427's gap_and_go xroc floor): for a long swing position whose strategy TRAILS its stop,
+    that strategy's current stop (_swing_strategy_stop_level off the row's running_max_close), so a resting SL re-placed
+    after the exchange's 15:15 cancel (09:15 re-place, per-tick retry, 5-min backfill) comes back at the TRAILED level,
+    not at the row's stored initial stop. Raised by max() in _swing_stop_floored, so it only ever raises a stop.
+    None (= previous behaviour) for a non-trailing tag, missing data, a trail not above the initial stop, or a trail at
+    or above the reference price (min of the swing scan's last completed close and the live LTP; logged once a day).
+    With no reference price at all, a B-1427 exitfamily cell keeps its B-1427 level (its previous behaviour) and every
+    other tag keeps its stored stop. Never raises."""
     try:
         st = conn.execute("SELECT strategy, initial_stop_loss, atr_at_entry, running_max_close, entry_price "
                           "FROM signal_state_swing WHERE symbol = ?", (symbol,)).fetchone()
-        if not st or st[0] not in GAP_AND_GO_EXITFAMILY_LIVE_CELLS or st[1] is None:
+        if not st or st[1] is None or not _swing_is_trailing_tag(st[0]):
             return None
-        atr = _gap_and_go_exitfamily_atr(st[4], st[1], st[2], GAP_AND_GO_EXITFAMILY_LIVE_CELLS[st[0]])
-        return float(_swing_strategy_stop_level(st[0], st[1], atr or None, st[3]))
+        cell = GAP_AND_GO_EXITFAMILY_LIVE_CELLS.get(st[0])
+        atr = _gap_and_go_exitfamily_atr(st[4], st[1], st[2], cell) if cell is not None else st[2]
+        lvl = float(_swing_strategy_stop_level(st[0], st[1], atr or None, st[3], entry_price=st[4]))
+        if not lvl > float(st[1]):
+            return None
+        refs = [p for p in (_SWING_LAST_CLOSE.get(symbol), _swing_live_ltp(symbol)) if p and float(p) > 0]
+        if not refs:
+            return lvl if cell is not None else None
+        ref = min(float(p) for p in refs)
+        if lvl >= ref:
+            day = ist_now().strftime("%Y-%m-%d")
+            if _SWING_TRAIL_SKIP_LOGGED.get(symbol) != day:
+                _SWING_TRAIL_SKIP_LOGGED[symbol] = day
+                print(f"[REAL SWING] B-1438 {symbol} ({st[0]}): trailed stop Rs{lvl:.2f} is at/above the last price "
+                      f"Rs{ref:.2f}; re-placing at the previous (stored) stop instead of above the market")
+            return None
+        return lvl
     except Exception:
         return None
+
+
+_swing_exitfamily_trail_floor = _swing_trail_floor  # B-1427 name kept as an alias
 
 
 def _swing_live_ltp(symbol: str) -> float:
