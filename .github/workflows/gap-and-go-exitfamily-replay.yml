@@ -35,7 +35,7 @@ jobs:
         env:
           NSHARDS: ${{ inputs.nshards }}
         run: |
-          pip install -q numpy
+          pip install -q -r requirements.txt
           m=$(python3 scripts/gap_and_go_exitfamily_replay.py plan)
           echo "matrix=$m" >> "$GITHUB_OUTPUT"
 
