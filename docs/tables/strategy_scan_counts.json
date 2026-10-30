@@ -10853,7 +10853,7 @@
   {
    "day": "2026-10-30",
    "tag": "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1",
-   "n": 9912
+   "n": 10059
   },
   {
    "day": "2026-10-30",
@@ -11058,32 +11058,32 @@
   {
    "day": "2026-10-30",
    "tag": "chan_shape__mom_mr__long__1d__atr1d5_hold10__nonovl__v2",
-   "n": 9912
+   "n": 10059
   },
   {
    "day": "2026-10-30",
    "tag": "chan_shape__mom_mr__long__1d__atr1d5_hold5__nonovl__v2",
-   "n": 9912
+   "n": 10059
   },
   {
    "day": "2026-10-30",
    "tag": "chan_shape__mom_mr__long__1d__atr2d5_hold10__nonovl__v2",
-   "n": 9912
+   "n": 10059
   },
   {
    "day": "2026-10-30",
    "tag": "chan_shape__mom_mr__long__1d__atr2d5_hold5__nonovl__v2",
-   "n": 9912
+   "n": 10059
   },
   {
    "day": "2026-10-30",
    "tag": "chan_shape__mom_mr__long__1d__atr4d0_hold10__nonovl__v2",
-   "n": 9912
+   "n": 10059
   },
   {
    "day": "2026-10-30",
    "tag": "chan_shape__mom_mr__long__1d__atr4d0_hold5__nonovl__v2",
-   "n": 9912
+   "n": 10059
   },
   {
    "day": "2026-10-30",
@@ -11648,7 +11648,7 @@
   {
    "day": "2026-10-30",
    "tag": "gap__runaway__long__1d__atr4_h20__v1",
-   "n": 9937
+   "n": 10084
   },
   {
    "day": "2026-10-30",
@@ -11658,22 +11658,22 @@
   {
    "day": "2026-10-30",
    "tag": "gap_and_go",
-   "n": 10492
+   "n": 10641
   },
   {
    "day": "2026-10-30",
    "tag": "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_rsbandfloor_trail6d0_xroc__v2",
-   "n": 604
+   "n": 753
   },
   {
    "day": "2026-10-30",
    "tag": "gaps__common_fade__long__1d__atr3_nb5__v1",
-   "n": 9890
+   "n": 10036
   },
   {
    "day": "2026-10-30",
    "tag": "gaps__exhaust_fade__long__1d__atr3_nb5__v1",
-   "n": 9912
+   "n": 10059
   },
   {
    "day": "2026-10-30",
@@ -11818,17 +11818,17 @@
   {
    "day": "2026-10-30",
    "tag": "minervini_vcp",
-   "n": 10341
+   "n": 10490
   },
   {
    "day": "2026-10-30",
    "tag": "minervini_vcp_be3r",
-   "n": 10341
+   "n": 10490
   },
   {
    "day": "2026-10-30",
    "tag": "minervini_vcp_livermore",
-   "n": 10461
+   "n": 10611
   },
   {
    "day": "2026-10-30",
@@ -11868,22 +11868,22 @@
   {
    "day": "2026-10-30",
    "tag": "oneil_flatbase__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
-   "n": 9912
+   "n": 10058
   },
   {
    "day": "2026-10-30",
    "tag": "oneil_newhigh__first__long__1w__atr3_h26_rsnone__v2",
-   "n": 9912
+   "n": 10058
   },
   {
    "day": "2026-10-30",
    "tag": "oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
-   "n": 9911
+   "n": 10057
   },
   {
    "day": "2026-10-30",
    "tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
-   "n": 10037
+   "n": 10185
   },
   {
    "day": "2026-10-30",
@@ -11908,12 +11908,12 @@
   {
    "day": "2026-10-30",
    "tag": "power_play",
-   "n": 10515
+   "n": 10666
   },
   {
    "day": "2026-10-30",
    "tag": "primary_base",
-   "n": 10515
+   "n": 10666
   },
   {
    "day": "2026-10-30",
@@ -11933,77 +11933,77 @@
   {
    "day": "2026-10-30",
    "tag": "reversal__island__long__1d__atr1d5_within8__v1",
-   "n": 9866
+   "n": 10013
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_gap05__long__1d__atr1d5_within8__nonovl__v2",
-   "n": 9912
+   "n": 10059
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_gap05__long__1d__atr1d5_within8__segis__v2",
-   "n": 9912
+   "n": 10059
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_none__long__1d__atr1d5_within8__nonovl__v2",
-   "n": 9866
+   "n": 10013
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_none__long__1d__atr1d5_within8__segis__v2",
-   "n": 9866
+   "n": 10013
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_none__long__1d__atr1d5_within8__segoos__v2",
-   "n": 9866
+   "n": 10013
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_none__long__1d__atr1d5_within8__v1",
-   "n": 9866
+   "n": 10013
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2",
-   "n": 9866
+   "n": 10013
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_px20__long__1d__atr1d5_within8__segis__v2",
-   "n": 9866
+   "n": 10013
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_px20__long__1d__atr1d5_within8__segoos__v2",
-   "n": 9866
+   "n": 10013
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_px20__long__1d__atr1d5_within8__v1",
-   "n": 9866
+   "n": 10013
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2",
-   "n": 9912
+   "n": 10059
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__segis__v2",
-   "n": 9866
+   "n": 10013
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2",
-   "n": 9866
+   "n": 10013
   },
   {
    "day": "2026-10-30",
    "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__v1",
-   "n": 9866
+   "n": 10013
   },
   {
    "day": "2026-10-30",
@@ -12218,7 +12218,7 @@
   {
    "day": "2026-10-30",
    "tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
-   "n": 9912
+   "n": 10059
   },
   {
    "day": "2026-10-30",
@@ -12253,22 +12253,22 @@
   {
    "day": "2026-10-30",
    "tag": "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1",
-   "n": 1112
+   "n": 1129
   },
   {
    "day": "2026-10-30",
    "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1",
-   "n": 1112
+   "n": 1129
   },
   {
    "day": "2026-10-30",
    "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1",
-   "n": 1112
+   "n": 1129
   },
   {
    "day": "2026-10-30",
    "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1",
-   "n": 1112
+   "n": 1129
   },
   {
    "day": "2026-10-30",
@@ -12308,7 +12308,7 @@
   {
    "day": "2026-10-30",
    "tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
-   "n": 10341
+   "n": 10490
   },
   {
    "day": "2026-10-30",
@@ -12361,5 +12361,5 @@
    "n": 52
   }
  ],
- "synced_at_utc": "2026-10-30T09:49:52Z"
+ "synced_at_utc": "2026-10-30T09:50:09Z"
 }
