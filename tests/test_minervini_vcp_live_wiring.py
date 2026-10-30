@@ -168,7 +168,7 @@ def test_run_swing_scan_prefers_gap_and_go_over_minervini_on_the_same_symbol(mon
         main._run_swing_scan(conn)
         row = conn.execute("SELECT * FROM signal_state_swing WHERE symbol = 'BOTH.NS'").fetchone()
         assert row is not None
-        assert row["strategy"] == "gap_and_go"
+        assert row["strategy"] == main.GAP_AND_GO_XROC_LIVE_TAG  # B-1427: gap_and_go entries open under the xroc exit tag
 
 
 def test_run_swing_scan_updates_running_max_close_without_exiting(monkeypatch):

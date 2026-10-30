@@ -1,0 +1,227 @@
+{
+ "backlog": "B-1427",
+ "run_id": "41013761661",
+ "workflow": "gap-and-go-exitfamily-replay.yml",
+ "driver": "scripts/gap_and_go_exitfamily_replay.py (REAL main.gap_and_go_entry_signal + main.exitfamily_walk / exitfamily_exit_reason; control = main.gap_and_go_exit_reason via swing_classic_main_replay)",
+ "universe": "main._load_nse_universe_from_file() (full NSE)",
+ "n_symbols": 2678,
+ "cost_round_trip_pct": 0.8,
+ "interval": "1d",
+ "period": "5y",
+ "sim_reference_run": "40951289638",
+ "finished_ist": "2026-10-30",
+ "provenance": "Transcribed from the merge job's pooled SUMMARY / RESULTS_JSON as relayed by the coordinator session (the subagent could not fetch the artifact). From the summary: n, win_pct, pfnet, avg_held_bars (daily bars) for off and live of every row; the xroc cell's exit-reason figures (live: n + pfnet, win/hold for exhaustion_exit; off: n, pfnet where given); the control's live band_floor_stop_hit PFnet. NOT in the summary, left null: pfgross, avg_net_pct and every other exit-reason breakdown; complete them from the run's RESULTS_JSON artifact, never guessed.",
+ "tag_naming": "off rows are registered under off_tag (params + `rsintraday`: the cell's stop triggered intraday on the low, no band floor, B-1413 precedent) because the bare tag already holds the research-sim v2 metrics (run 40951289638) and is never overwritten; live rows under band_tag (`rsbandfloor`: stop raised to the 10% band floor). The control (gap_and_go / gap_and_go__rsbandfloor) re-measures tags already registered by B-1417 (run 40952500265) and is kept here only, not re-registered.",
+ "observations": [
+  "band_cap=live lowers PFnet in every cell (control band_floor_stop_hit PFnet 0.95); recorded, not acted on."
+ ],
+ "rows": [
+  {
+   "tag": "gap_and_go",
+   "control": true,
+   "family": "gap_and_go_control",
+   "band_cap": "live",
+   "off_tag": "gap_and_go",
+   "band_tag": "gap_and_go__rsbandfloor",
+   "n_symbols": 2678,
+   "off": {
+    "n": 11379,
+    "win_pct": 32.2,
+    "pfnet": 1.136,
+    "pfgross": null,
+    "avg_net_pct": null,
+    "avg_held_bars": 17.5,
+    "exit_reasons": null
+   },
+   "live": {
+    "n": 11526,
+    "win_pct": 31.9,
+    "pfnet": 1.097,
+    "pfgross": null,
+    "avg_net_pct": null,
+    "avg_held_bars": 15.7,
+    "exit_reasons": {
+     "band_floor_stop_hit": {
+      "pfnet": 0.95
+     }
+    }
+   }
+  },
+  {
+   "tag": "gap_and_go__exitinval__long__1d__atr6d0_hold30_sigelder__v2",
+   "control": false,
+   "family": "gap_and_go_exitinval",
+   "band_cap": "live",
+   "off_tag": "gap_and_go__exitinval__long__1d__atr6d0_hold30_rsintraday_sigelder__v2",
+   "band_tag": "gap_and_go__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigelder__v2",
+   "n_symbols": 2678,
+   "off": {
+    "n": 11327,
+    "win_pct": 37.3,
+    "pfnet": 1.235,
+    "pfgross": null,
+    "avg_net_pct": null,
+    "avg_held_bars": 16.7,
+    "exit_reasons": null
+   },
+   "live": {
+    "n": 11482,
+    "win_pct": 36.8,
+    "pfnet": 1.178,
+    "pfgross": null,
+    "avg_net_pct": null,
+    "avg_held_bars": 15.2,
+    "exit_reasons": null
+   }
+  },
+  {
+   "tag": "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_trail6d0_xroc__v2",
+   "control": false,
+   "family": "gap_and_go_exitexhaust",
+   "band_cap": "live",
+   "off_tag": "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_rsintraday_trail6d0_xroc__v2",
+   "band_tag": "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_rsbandfloor_trail6d0_xroc__v2",
+   "n_symbols": 2678,
+   "off": {
+    "n": 11909,
+    "win_pct": 55.5,
+    "pfnet": 1.225,
+    "pfgross": null,
+    "avg_net_pct": null,
+    "avg_held_bars": 11.1,
+    "exit_reasons": {
+     "exhaustion_exit": {
+      "n": 6253
+     },
+     "stop_hit": {
+      "n": 3955
+     },
+     "max_hold_timeout": {
+      "n": 1580,
+      "pfnet": 0.93
+     },
+     "trail_stop_hit": {
+      "n": 44,
+      "pfnet": 1.19
+     },
+     "data_end_forced_close": {
+      "n": 77
+     }
+    }
+   },
+   "live": {
+    "n": 11961,
+    "win_pct": 54.1,
+    "pfnet": 1.209,
+    "pfgross": null,
+    "avg_net_pct": null,
+    "avg_held_bars": 10.6,
+    "exit_reasons": {
+     "exhaustion_exit": {
+      "n": 5906,
+      "pfnet": 395,
+      "win_pct": 93.7,
+      "avg_held_bars": 6.5
+     },
+     "resting_stop_hit": {
+      "n": 3464,
+      "pfnet": 0.005
+     },
+     "max_hold_timeout": {
+      "n": 1435,
+      "pfnet": 1.05
+     },
+     "band_floor_stop_hit": {
+      "n": 1089,
+      "pfnet": 0.34
+     },
+     "data_end_forced_close": {
+      "n": 67,
+      "pfnet": 0.69
+     }
+    }
+   }
+  },
+  {
+   "tag": "gap_and_go__exitinval__long__1d__atr6d0_hold30_sigema13w__v2",
+   "control": false,
+   "family": "gap_and_go_exitinval",
+   "band_cap": "live",
+   "off_tag": "gap_and_go__exitinval__long__1d__atr6d0_hold30_rsintraday_sigema13w__v2",
+   "band_tag": "gap_and_go__exitinval__long__1d__atr6d0_hold30_rsbandfloor_sigema13w__v2",
+   "n_symbols": 2678,
+   "off": {
+    "n": 10812,
+    "win_pct": 42.4,
+    "pfnet": 1.181,
+    "pfgross": null,
+    "avg_net_pct": null,
+    "avg_held_bars": 24.7,
+    "exit_reasons": null
+   },
+   "live": {
+    "n": 11053,
+    "win_pct": 40.4,
+    "pfnet": 1.086,
+    "pfgross": null,
+    "avg_net_pct": null,
+    "avg_held_bars": 21.6,
+    "exit_reasons": null
+   }
+  },
+  {
+   "tag": "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_trail6d0_xvolclimax__v2",
+   "control": false,
+   "family": "gap_and_go_exitexhaust",
+   "band_cap": "live",
+   "off_tag": "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_rsintraday_trail6d0_xvolclimax__v2",
+   "band_tag": "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_rsbandfloor_trail6d0_xvolclimax__v2",
+   "n_symbols": 2678,
+   "off": {
+    "n": 11551,
+    "win_pct": 46.9,
+    "pfnet": 1.208,
+    "pfgross": null,
+    "avg_net_pct": null,
+    "avg_held_bars": 17.0,
+    "exit_reasons": null
+   },
+   "live": {
+    "n": 11632,
+    "win_pct": 45.9,
+    "pfnet": 1.188,
+    "pfgross": null,
+    "avg_net_pct": null,
+    "avg_held_bars": 15.9,
+    "exit_reasons": null
+   }
+  },
+  {
+   "tag": "gap_and_go__exitinval__long__1d__atr2d5_hold30_sigelder__v2",
+   "control": false,
+   "family": "gap_and_go_exitinval",
+   "band_cap": "live",
+   "off_tag": "gap_and_go__exitinval__long__1d__atr2d5_hold30_rsintraday_sigelder__v2",
+   "band_tag": "gap_and_go__exitinval__long__1d__atr2d5_hold30_rsbandfloor_sigelder__v2",
+   "n_symbols": 2678,
+   "off": {
+    "n": 11456,
+    "win_pct": 35.5,
+    "pfnet": 1.155,
+    "pfgross": null,
+    "avg_net_pct": null,
+    "avg_held_bars": 15.4,
+    "exit_reasons": null
+   },
+   "live": {
+    "n": 11557,
+    "win_pct": 35.7,
+    "pfnet": 1.152,
+    "pfgross": null,
+    "avg_net_pct": null,
+    "avg_held_bars": 14.4,
+    "exit_reasons": null
+   }
+  }
+ ]
+}

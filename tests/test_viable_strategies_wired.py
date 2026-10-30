@@ -65,6 +65,15 @@ for _rid in ("40952500265", "40990174070"):
     for _r in _json.load(open(_B1417))["rows"]:
         if _r["tag"] in main._STRATEGY_TAG_TO_REGISTRY_NAME:
             VARIANT_OF_WIRED.setdefault(_r["band_tag"], main._STRATEGY_TAG_TO_REGISTRY_NAME[_r["tag"]])
+# B-1427 (run 41013761661): main.py replay rows of the gap_and_go exit cells; the xroc band-live row is wired itself, the
+# other nine are registered variants of that wired sibling (one live exit per entry family).
+_B1427 = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "docs", "backtest_data",
+                       "gap_and_go_exitfamily_replay_41013761661.json")
+for _r in _json.load(open(_B1427))["rows"]:
+    if not _r["control"]:
+        for _n in (_r["off_tag"], _r["band_tag"]):
+            if _n != main.GAP_AND_GO_XROC_LIVE_TAG:
+                VARIANT_OF_WIRED.setdefault(_n, main.GAP_AND_GO_XROC_LIVE_TAG)
 for _s in sr.REGISTRY:
     if _s.source.startswith("scripts/exit_family_research.py"):
         VARIANT_OF_WIRED.setdefault(_s.name, _EF_SIBLING[_s.name.split("__")[0] if not _s.name.startswith("gg__") else "gap_and_go"])
