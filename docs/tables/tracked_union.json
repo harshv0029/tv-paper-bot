@@ -17,22 +17,6 @@
       "first_seen_day": "2026-10-09"
     },
     {
-      "kotak_trading_symbol": "DABUR-EQ",
-      "symbol": "DABUR.NS",
-      "qty": 1,
-      "is_short": 1,
-      "owner": "short",
-      "source": "position",
-      "entry_price": 365.5,
-      "stop_loss": null,
-      "sl_trigger_price": 383.05,
-      "strategy": "chan_gap__short_on_gap__short__1d__atr1d5_top10__v1",
-      "entry_order_id": "261030000045113",
-      "opened_at": 1793332484.1944313,
-      "day": "2026-10-30",
-      "first_seen_day": "2026-10-30"
-    },
-    {
       "kotak_trading_symbol": "UNIONBANK-EQ",
       "symbol": "UNIONBANK.NS",
       "qty": 1,
@@ -65,5 +49,5 @@
       "first_seen_day": "2026-10-21"
     }
   ],
-  "synced_at_utc": "2026-10-30T09:15:57Z"
+  "synced_at_utc": "2026-10-30T15:57:34Z"
 }
