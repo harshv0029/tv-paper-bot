@@ -1,4 +1,17 @@
 {
-  "rows": [],
-  "synced_at_utc": "2026-10-21T03:50:33Z"
+  "rows": [
+    {
+      "id": 1,
+      "ts": 1793353339.0144973,
+      "symbol": "DABUR.NS",
+      "qty": 1.0,
+      "entry_price": 369.04998779296875,
+      "exit_price": 367.0,
+      "fx_to_inr": 1.0,
+      "pnl_inr": 2.04998779296875,
+      "exit_reason": "flatten_1515",
+      "strategy": "chan_gap__short_on_gap__short__1d__atr1d5_top10__v1"
+    }
+  ],
+  "synced_at_utc": "2026-10-30T15:56:27Z"
 }
