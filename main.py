@@ -14505,16 +14505,19 @@ def _maybe_place_real_short_entry(conn, symbol: str):
             return
 
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
+    # B-1430: real size from real exposure only (Kotak Net), not the paper qty shrunk by paper-only notional.
+    basis_qty, basis_why = _real_intraday_qty_basis(
+        symbol, strategy_tag, paper_qty, ltp, paper_row["stop_loss"] if paper_row else None, short=True)
     remaining_cap_inr = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
     real_capital_for_sizing = get_scheduler_capital_inr()
     max_by_cap = math.floor(remaining_cap_inr / ltp) if ltp > 0 else 0
     max_by_capital = math.floor(real_capital_for_sizing / ltp) if ltp > 0 else 0
-    qty = int(min(paper_qty, max_by_cap, max_by_capital))
+    qty = int(min(basis_qty, max_by_cap, max_by_capital))
     if qty <= 0:
         _log_real_attempt(
             conn, symbol, "S", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
             price_est=ltp,
-            detail=f"paper qty {paper_qty}, 1 share = Rs{ltp:.2f} - capped to 0 by "
+            detail=f"{basis_why}, 1 share = Rs{ltp:.2f} - capped to 0 by "
                    f"remaining daily cap Rs{remaining_cap_inr:.2f} (max {max_by_cap}) "
                    f"and/or real capital Rs{real_capital_for_sizing:.2f} (max {max_by_capital})",
         )
@@ -14827,16 +14830,19 @@ def _maybe_place_real_entry(conn, symbol: str):
             return
 
     paper_qty = paper_row["qty"] if paper_row and paper_row["qty"] else 0
+    # B-1430: real size from real exposure only (Kotak Net), not the paper qty shrunk by paper-only notional.
+    basis_qty, basis_why = _real_intraday_qty_basis(
+        symbol, strategy_tag, paper_qty, ltp, paper_row["stop_loss"] if paper_row else None, short=False)
     remaining_cap_inr = _effective_real_daily_cap_inr(conn) - _real_today_spent_inr(conn)
     real_capital_for_sizing = get_scheduler_capital_inr()
     max_by_cap = math.floor(remaining_cap_inr / ltp) if ltp > 0 else 0
     max_by_capital = math.floor(real_capital_for_sizing / ltp) if ltp > 0 else 0
-    qty = int(min(paper_qty, max_by_cap, max_by_capital))
+    qty = int(min(basis_qty, max_by_cap, max_by_capital))
     if qty <= 0:
         _lra_tag(
             conn, symbol, "B", "skipped_insufficient_real_qty", kotak_trading_symbol=kotak_symbol,
             price_est=ltp,
-            detail=f"paper qty {paper_qty}, 1 share = Rs{ltp:.2f} - capped to 0 by "
+            detail=f"{basis_why}, 1 share = Rs{ltp:.2f} - capped to 0 by "
                    f"remaining daily cap Rs{remaining_cap_inr:.2f} (max {max_by_cap}) "
                    f"and/or real capital Rs{real_capital_for_sizing:.2f} (max {max_by_capital})",
         )
@@ -14948,7 +14954,12 @@ def _maybe_place_real_entry(conn, symbol: str):
             (symbol, kotak_symbol, real_qty, real_entry_price, result["order_id"], now,
              ist_now().strftime("%Y-%m-%d"), json.dumps(real_exit_legs) if real_exit_legs else None, real_strategy),
         )
-        qty_reason = _describe_real_qty_sizing(paper_qty, max_by_cap, max_by_capital, qty)
+        if basis_why == "paper qty":
+            qty_reason = _describe_real_qty_sizing(paper_qty, max_by_cap, max_by_capital, qty)
+        else:  # B-1430: say plainly the size came from real capital, not the paper qty
+            qty_reason = (f"sized from real Kotak capital by the 1%-risk formula: {basis_qty} "
+                          f"(paper qty {paper_qty}), requested {qty} after daily cap (room for {max_by_cap}) "
+                          f"and real capital (room for {max_by_capital})")
         if not result["fill_price_confirmed"]:
             qty_reason += "; fill not yet confirmed by Kotak - using requested qty/estimated LTP"
         _log_real_attempt(
@@ -22794,6 +22805,46 @@ def _sector_cap_blocks(conn, symbol, qty, price):
     except Exception as e:
         print(f"[SECTOR CAP] check failed (non-fatal, entry allowed): {e}")
     return None
+
+
+def _real_qty_by_risk(ltp: float, stop_loss, risk_pct: float, short: bool = False) -> int:
+    """B-1430: the 1%-of-usable risk formula applied to REAL capital only. Kotak's fresh limits Net already
+    excludes the margin of every open real position, so it is the whole available pool: usable =
+    Net / CAPITAL_TRANCHES (no deployed_notional() subtraction, which counts paper-only rows that never touched
+    the Kotak account), qty = floor(min(usable x risk_pct% / stop distance, usable / ltp)). 0 when the stop is
+    unknown or on the wrong side of the price."""
+    try:
+        stop = float(stop_loss or 0)
+        ltp = float(ltp or 0)
+    except (TypeError, ValueError):
+        return 0
+    dist = (stop - ltp) if short else (ltp - stop)
+    if stop <= 0 or ltp <= 0 or dist <= 0:
+        return 0
+    _refresh_real_capital_cache()  # Kotak-first: fresh Net immediately before the order decision
+    usable = max(0.0, get_scheduler_capital_inr()) / CAPITAL_TRANCHES
+    return int(math.floor(min(usable * float(risk_pct) / 100 / dist, usable / ltp)))
+
+
+# B-1430: paper qty for these tags already carries a signal-confidence multiplier (_confidence_size_multiplier
+# in the ORB long/short engines), so the real order keeps mirroring the paper qty for them rather than the
+# plain risk formula. Every other intraday tag is sized by the plain formula on the paper side too.
+_REAL_QTY_FROM_PAPER_TAGS = frozenset({"orb-universal-score", "orb-trend-short", "orb-range-short"})
+
+
+def _real_intraday_qty_basis(symbol, strategy_tag, paper_qty, ltp: float, paper_stop, short: bool):
+    """B-1430: the qty a real intraday entry starts from, before the daily-cap / capital caps. The paper qty was
+    sized against capital minus deployed_notional(), which subtracts PAPER-ONLY rows (paper positions the real
+    gate refused, paper option rows) from Kotak's REAL Net, so real entries were sized down by exposure that does
+    not exist at Kotak (DABUR short 2026-10-30 IST: Net Rs9,621, stop Rs17.53 away -> 2 shares by the formula,
+    1 sold). Real size now depends on real exposure only; paper sizing (and its deployed_notional guard against
+    overspending paper) is unchanged. Returns (qty, why)."""
+    if strategy_tag in _REAL_QTY_FROM_PAPER_TAGS or not paper_stop:
+        return paper_qty, "paper qty"
+    cfg = next((c for c in WATCHLIST if c.get("symbol") == symbol), None) or \
+        NSE_STOCK_PARAM_OVERRIDES.get(symbol, NSE_STOCK_DEFAULT_PARAMS)
+    risk_qty = _real_qty_by_risk(ltp, paper_stop, float(cfg.get("risk_pct", 1.0)), short=short)
+    return risk_qty, f"real-capital risk qty {risk_qty} (paper qty {paper_qty})"
 
 
 def _real_swing_qty_by_risk(conn, symbol, ltp: float, stop_loss, short: bool = False) -> int:
