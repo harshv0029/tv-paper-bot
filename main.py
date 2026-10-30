@@ -23940,6 +23940,31 @@ def _replay_failed_tags() -> frozenset:
     return frozenset(replayed - _replay_verified_tags())
 
 
+def _bandcap_live_failed_tags() -> frozenset:
+    """B-1426: tags whose band_cap=live (Kotak resting-stop model: stop raised to the 10% band floor, intraday trigger)
+    re-measurement in docs/backtest_data/swing_bandcap_run_*.json lands below PFNET_LIVE_FLOOR. The NEWEST run holding a
+    tag decides it (run id order). The live model is what Kotak actually rests, so it supersedes an older band_cap=off
+    replay for the real-money ENTRY gate only (REPLAY_FAILED_TAGS); exits/SL management never read this. Derived at read
+    time: a changed floor or a newer passing band_cap run re-opens a tag with no code change."""
+    import glob as _g
+    import json as _j
+    import strategy_registry as _sr
+    latest = {}
+    for f in _g.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data", "swing_bandcap_run_*.json")):
+        try:
+            d = _j.load(open(f))
+            rid = int(d.get("run_id") or 0)
+            for r in d.get("rows", []):
+                m = r.get("live") or {}
+                if m.get("pfnet") is None or int(m.get("n") or 0) < 1:
+                    continue
+                if r["tag"] not in latest or rid >= latest[r["tag"]][0]:
+                    latest[r["tag"]] = (rid, float(m["pfnet"]))
+        except Exception:
+            continue
+    return frozenset(t for t, (_rid, pf) in latest.items() if pf < _sr.PFNET_LIVE_FLOOR)
+
+
 REPLAY_OWED_TAGS = REPLAY_OWED_TAGS - _replay_verified_tags()
 for _t in ONEIL_SWING_CELLS:
     _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(_t, _t)  # 1:1, each cell its own registry row; main.py replay run 38517583883
@@ -24873,6 +24898,9 @@ REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | frozenset(SWINGMINRR_SHORT_1H_CELLS)) - _
 _STRATEGY_TAG_TO_REGISTRY_NAME.setdefault(CHAN_GAP_SHORT_TAG, CHAN_GAP_SHORT_TAG)
 REPLAY_OWED_TAGS = (REPLAY_OWED_TAGS | {CHAN_GAP_SHORT_TAG}) - _replay_verified_tags()
 REPLAY_FAILED_TAGS = REPLAY_OWED_TAGS & _replay_failed_tags()  # B-1396: replay done, below floor: closed, not owed
+# B-1426: band_cap=live re-measurement below the floor closes the ENTRY gate the same way (envelope/cup_cheat 1h cells whose
+# band_cap=off replay cleared 1.0 but the live resting-stop model does not). Only mapped (wired) tags; no new switch.
+REPLAY_FAILED_TAGS = REPLAY_FAILED_TAGS | (_bandcap_live_failed_tags() & frozenset(_STRATEGY_TAG_TO_REGISTRY_NAME))
 REPLAY_OWED_TAGS = REPLAY_OWED_TAGS - REPLAY_FAILED_TAGS
 CHAN_GAP_SCAN_START_MIN = 9 * 60 + 16
 CHAN_GAP_SCAN_END_MIN = 10 * 60 + 30

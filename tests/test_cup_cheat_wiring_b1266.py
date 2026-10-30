@@ -47,7 +47,9 @@ def test_cup_gate_follows_floor_and_is_scanned():
     reg = {d.name: d for d in sr.REGISTRY}
     for t in main.CUP_CHEAT_LONG_LIVE_CELLS:
         d = reg[main._STRATEGY_TAG_TO_REGISTRY_NAME[t]]
-        assert main._is_strategy_viable_for_real_money(t, check_switch=False) == (d.metrics.pfnet >= sr.PFNET_LIVE_FLOOR)
+        # B-1426: a band_cap=live re-measurement below the floor closes the gate (REPLAY_FAILED_TAGS)
+        assert main._is_strategy_viable_for_real_money(t, check_switch=False) == (
+            d.metrics.pfnet >= sr.PFNET_LIVE_FLOOR and t not in main.REPLAY_FAILED_TAGS)
         orig = d.metrics
         object.__setattr__(d, "metrics", dataclasses.replace(orig, pfnet=0.9943))
         try:
