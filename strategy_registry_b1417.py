@@ -9,15 +9,19 @@ JSON docs/backtest_data/swing_bandcap_run_40952500265.json). Nothing here change
 their existing registry names in main._STRATEGY_TAG_TO_REGISTRY_NAME. Viability stays derived at read time.
 
 Hold units: avg_held_bars is the replay's own bar count; macddiv cells run on 1h bars (1 market hour per bar), every other
-family on DAILY bars (the oneil `1w` cells are replayed on daily bars, see the workflow header), x TRADING_HOURS_PER_DAY."""
+family on DAILY bars (the oneil `1w` cells are replayed on daily bars, see the workflow header), x TRADING_HOURS_PER_DAY.
+
+B-1426 (2026-10-30 IST): the same loader also registers run 40990174070 (RUNS below; 1h envelope / cup_cheat / swingminrr
+short cells, 1d gapfade / island / pl1d / swingminrr / tasuki ETF short). Any `1h` tag's hold is in 1h bars (1 market hour
+per bar), so avg_held_bars x market_hours_per_bar(tf) == avg_held_hrs holds for every row."""
 import json
 import os
 
 import strategy_registry as sr
 
-_FN = "swing_bandcap_run_40952500265.json"
-_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data", _FN)
-_REF = "swing-bandcap-replay.yml run 40952500265 (2026-10-30 IST, band_cap=live, full NSE, cost 0.8%, REAL main.py fns)"
+_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "backtest_data")
+# (backlog id, run id); each run's raw RESULTS_JSON is docs/backtest_data/swing_bandcap_run_<run id>.json
+RUNS = (("B-1417", "40952500265"), ("B-1426", "40990174070"))
 _SRC = "scripts/swing_bandcap_replay.py + scripts/swing_bandcap.py (band_cap=live resting-stop model) over the family's main.py fns"
 
 
@@ -34,8 +38,17 @@ def _tf(row: dict) -> str:
 
 def build():
     out, seen = [], {x.name for x in sr.REGISTRY}
+    for bid, rid in RUNS:
+        out.extend(_build_run(bid, rid, seen))
+    return out
+
+
+def _build_run(bid: str, rid: str, seen: set):
+    out = []
+    _FN = f"swing_bandcap_run_{rid}.json"
+    _REF = f"swing-bandcap-replay.yml run {rid} (2026-10-30 IST, band_cap=live, full NSE, cost 0.8%, REAL main.py fns)"
     try:
-        d = json.load(open(_PATH))
+        d = json.load(open(os.path.join(_DIR, _FN)))
     except Exception:
         return out
     for r in d.get("rows", []):
@@ -45,8 +58,9 @@ def build():
                 continue
             seen.add(name)
             bars = m.get("avg_held_bars")
-            per_bar = 1.0 if r.get("family") == "macddiv" else sr.TRADING_HOURS_PER_DAY
-            unit = "1h bars" if r.get("family") == "macddiv" else "1d bars"
+            hourly = r.get("family") == "macddiv" or _tf(r) == "1h"
+            per_bar = 1.0 if hourly else sr.TRADING_HOURS_PER_DAY
+            unit = "1h bars" if hourly else "1d bars"
             out.append(sr.StrategyDef(
                 name=name, asset_class=sr.AssetClass.EQUITY_SWING, categories=_category(r), timeframe=_tf(r),
                 status=sr.StrategyStatus.RESEARCH, entry_fn=None,
@@ -64,7 +78,7 @@ def build():
                           f"{json.dumps(m.get('exit_reasons'), separators=(',', ':'))}. Same run band_cap=off of {r['tag']}: "
                           f"PFnet {off.get('pfnet')}, gross {off.get('pfgross')}, win {off.get('win_pct')}%, n={off.get('n')}, "
                           f"hold {off.get('avg_held_bars')} {unit}."),
-                notes=(f"B-1417 live resting-stop (10% band floor, intraday trigger) replay of {r['tag']}. Research row; "
+                notes=(f"{bid} live resting-stop (10% band floor, intraday trigger) replay of {r['tag']}. Research row; "
                        f"the off tag's own registry row stays unchanged.")))
         except Exception:
             continue
