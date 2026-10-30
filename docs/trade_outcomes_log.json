@@ -3227,5 +3227,61 @@
     "rr_target": 3.0,
     "rr_achieved": 0.21,
     "strategy": "orb-15m-sma9-21"
+  },
+  {
+    "symbol": "COALINDIA.NS",
+    "exit_time_utc": 1793336387.922034,
+    "entry_price_native": null,
+    "exit_price_native": 383.87067300769775,
+    "currency": "INR",
+    "qty": 1.0,
+    "pnl_inr": -775.87,
+    "pnl_pct_of_capital": -0.194,
+    "exit_reason": "macddiv_stop_loss",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
+  },
+  {
+    "symbol": "AMBUJACEM.NS",
+    "exit_time_utc": 1793344187.2945843,
+    "entry_price_native": null,
+    "exit_price_native": 350.3999938964844,
+    "currency": "INR",
+    "qty": 3.0,
+    "pnl_inr": -19.29,
+    "pnl_pct_of_capital": -0.005,
+    "exit_reason": "macddiv_max_hold_timeout",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-universal-score"
+  },
+  {
+    "symbol": "NATIONALUM.NS",
+    "exit_time_utc": 1793344405.2534423,
+    "entry_price_native": null,
+    "exit_price_native": 316.6000061035156,
+    "currency": "INR",
+    "qty": 3.0,
+    "pnl_inr": 46.38,
+    "pnl_pct_of_capital": 0.012,
+    "exit_reason": "macddiv_max_hold_timeout",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
+  },
+  {
+    "symbol": "NYKAA.NS",
+    "exit_time_utc": 1793344415.1152143,
+    "entry_price_native": null,
+    "exit_price_native": 350.25,
+    "currency": "INR",
+    "qty": 3.0,
+    "pnl_inr": 92.85,
+    "pnl_pct_of_capital": 0.023,
+    "exit_reason": "macddiv_max_hold_timeout",
+    "rr_target": null,
+    "rr_achieved": null,
+    "strategy": "orb-swing-gap-and-go"
   }
 ]
