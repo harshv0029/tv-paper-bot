@@ -14291,7 +14291,31 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs126.73",
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs126.73 (target stop Rs126.73)"
+  },
+  {
+   "id": 1192,
+   "ts": 1793331938.9046772,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261030000014524",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs126.73",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs126.73 already covers the position (target stop Rs126.73), adopted, nothing placed"
+  },
+  {
+   "id": 1193,
+   "ts": 1793331942.374036,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "adopted",
+   "order_id": "261030000014524",
+   "prev_state": "live SL at Kotak",
+   "new_state": "resting SELL trigger Rs126.73",
+   "detail": "reason: swing position had no resting stop-loss in the app's row (retry); a live SELL SL at Rs126.73 already covers the position (target stop Rs126.73), adopted, nothing placed"
   }
  ],
- "synced_at_utc": "2026-10-30T03:45:38Z"
+ "synced_at_utc": "2026-10-30T03:45:47Z"
 }
