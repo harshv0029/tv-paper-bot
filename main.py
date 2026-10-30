@@ -16247,6 +16247,26 @@ def _reroute_orphan_intraday_to_swing(conn, real_row) -> bool:
     return True
 
 
+def _real_stop_on_tick(kotak_trading_symbol: str, raw_stop: float) -> float:
+    """B-1429: the trigger Kotak will actually hold for a stop at `raw_stop`.
+    kotak_real_orders rounds every SL trigger with _round_to_tick(price,
+    _tick_size_for(symbol)) right before place_order, so a per-tick sync that
+    compares the RAW paper stop (e.g. 383.03) with the stored, already-rounded
+    trigger (383.05) sees a phantom "favorable move", cancels the live stop and
+    re-places the very same 383.05 order (live DABUR short, 30 Oct 09:25 IST:
+    ~3 s with no stop). Comparing on this value makes a sub-tick trail a no-op.
+    Same helper as placement, so the compare equals what Kotak will hold."""
+    import kotak_real_orders
+    try:
+        tick = kotak_real_orders._tick_size_for(kotak_trading_symbol)
+        out = kotak_real_orders._round_to_tick(float(raw_stop), tick)
+        if isinstance(tick, (int, float)) and isinstance(out, (int, float)):
+            return float(out)
+    except Exception:
+        pass
+    return round(round(float(raw_stop) / 0.05) * 0.05, 2)  # _round_to_tick's own formula, default tick
+
+
 def _maybe_sync_real_stop_loss(conn, symbol: str):
     """Keeps a real position's RESTING stop-loss order at Kotak in step
     with the paper trailing stop _auto_signal_core just ratcheted (see
@@ -16402,9 +16422,10 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         # B-1330: same 5% cap as the entry SL (B-1307); uncapped, a missing SL was re-placed at the paper stop
         # 15% below entry, outside the price band, and Kotak rejected it again on every tick.
         new_stop = _cap_real_intraday_stop(real_row["entry_price"], new_stop)
+    new_stop = _real_stop_on_tick(real_row["kotak_trading_symbol"], new_stop)  # B-1429: compare on Kotak's tick
     current_sl_price = real_row["sl_trigger_price"]
 
-    if current_sl_price is not None and new_stop <= current_sl_price:
+    if current_sl_price is not None and new_stop <= current_sl_price + 0.001:
         _note_sl_loosen_attempt(symbol, False, new_stop, current_sl_price)
         return  # no upward move since the last sync - nothing to do
 
@@ -16505,13 +16526,14 @@ def _maybe_sync_real_stop_loss(conn, symbol: str):
         conn.commit()
         _clear_protection_degraded(conn, symbol)  # a live resting SL exists again - stop the clock
         _sync_real_positions_external(conn)
-        print(f"[REAL TRADE] trailing SL moved to Rs{new_stop:.2f} for {real_row['kotak_trading_symbol']} "
+        _accepted = float(sl_result.get("trigger_price") or new_stop)  # B-1429: what Kotak holds
+        print(f"[REAL TRADE] trailing SL moved to Rs{_accepted:.2f} for {real_row['kotak_trading_symbol']} "
               f"(order {sl_result['order_id']})")
         _log_real_order_event(
             conn, symbol, "sl", "moved", kotak_trading_symbol=real_row["kotak_trading_symbol"],
             order_id=sl_result["order_id"],
             prev_state=f"Rs{current_sl_price:.2f}" if current_sl_price is not None else "none",
-            new_state=f"Rs{new_stop:.2f}",
+            new_state=f"Rs{_accepted:.2f}",
         )
     else:
         # Old order is already cancelled (or never existed) and the
@@ -16661,13 +16683,13 @@ def _maybe_sync_real_stop_loss_short(conn, symbol: str):
     ).fetchone()
     if not paper_row or not paper_row["stop_loss"]:
         return
-    new_stop = round(paper_row["stop_loss"], 2)
+    new_stop = _real_stop_on_tick(real_row["kotak_trading_symbol"], round(paper_row["stop_loss"], 2))  # B-1429
     current_sl_price = real_row["sl_trigger_price"]
 
     # A short's stop only ever trails DOWN (toward entry) - the mirror of
     # the long side's "only ever moves the resting stop UP" - so no
     # favorable move means the new stop hasn't gotten any LOWER.
-    if current_sl_price is not None and new_stop >= current_sl_price:
+    if current_sl_price is not None and new_stop >= current_sl_price - 0.001:
         _note_sl_loosen_attempt(symbol, True, new_stop, current_sl_price)
         return
 
@@ -16702,13 +16724,14 @@ def _maybe_sync_real_stop_loss_short(conn, symbol: str):
         )
         conn.commit()
         _clear_protection_degraded_short(conn, symbol)
-        print(f"[REAL SHORT] trailing SL moved to Rs{new_stop:.2f} for {real_row['kotak_trading_symbol']} "
+        _accepted = float(sl_result.get("trigger_price") or new_stop)  # B-1429: what Kotak holds
+        print(f"[REAL SHORT] trailing SL moved to Rs{_accepted:.2f} for {real_row['kotak_trading_symbol']} "
               f"(order {sl_result['order_id']})")
         _log_real_order_event(
             conn, symbol, "sl", "moved", kotak_trading_symbol=real_row["kotak_trading_symbol"],
             order_id=sl_result["order_id"],
             prev_state=f"Rs{current_sl_price:.2f}" if current_sl_price is not None else "none",
-            new_state=f"Rs{new_stop:.2f}",
+            new_state=f"Rs{_accepted:.2f}",
         )
     else:
         conn.execute("UPDATE real_positions_short SET sl_order_id = NULL WHERE symbol = ?", (symbol,))
