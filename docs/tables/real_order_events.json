@@ -14279,7 +14279,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | B-1380: no SL before 09:15 IST (exchange rejects it)"
+  },
+  {
+   "id": 1191,
+   "ts": 1793331933.9460523,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261030000014524",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs126.73",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs126.73 (target stop Rs126.73)"
   }
  ],
- "synced_at_utc": "2026-10-29T20:45:12Z"
+ "synced_at_utc": "2026-10-30T03:45:38Z"
 }
