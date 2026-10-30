@@ -14663,7 +14663,19 @@
    "prev_state": "resting SELL trigger Rs192.68",
    "new_state": "resting SELL trigger Rs192.89",
    "detail": "reason: peak live price Rs197.44 - 1R (Rs4.55) raised the stop from Rs192.68 | LTP trail (replaced; Kotak holdings and order book read first)"
+  },
+  {
+   "id": 1223,
+   "ts": 1793353093.1613324,
+   "symbol": "DABUR.NS",
+   "kotak_trading_symbol": "DABUR-EQ",
+   "leg": "sl",
+   "event": "found_dead_on_reconcile",
+   "order_id": "261030000094824",
+   "prev_state": "assumed resting",
+   "new_state": "dead at Kotak (rejected/cancelled, no fill)",
+   "detail": "reason: resting stop-loss was no longer live at Kotak; re-protecting the position"
   }
  ],
- "synced_at_utc": "2026-10-30T09:13:44Z"
+ "synced_at_utc": "2026-10-30T09:38:17Z"
 }
