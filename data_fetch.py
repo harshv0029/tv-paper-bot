@@ -49,6 +49,25 @@ except Exception:  # noqa: BLE001
     _YF_CALL_LOCK = threading.Lock()
 
 
+def _prune_multitasking_tasks() -> int:
+    """Memory leak fix (live 30-Oct-2026, ~52k dead Thread objects at 1.68 GB RSS): yf.download(threads=True) runs
+    through the `multitasking` package, which appends every Thread it makes to the global config["TASKS"] list and
+    never removes it. Our calls now pass threads=False; this drops any finished task some other caller left behind.
+    Returns how many were dropped. Never raises."""
+    try:
+        import multitasking as _mt
+        tasks = _mt.config.get("TASKS")
+        if not tasks:
+            return 0
+        alive = [t for t in list(tasks) if t.is_alive()]
+        n = len(tasks) - len(alive)
+        if n:
+            tasks[:] = alive
+        return n
+    except Exception:  # noqa: BLE001
+        return 0
+
+
 def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
     """Fetches OHLC data, cached briefly in memory so a sweep of many strategy
     params against the same symbol/period/interval only hits Yahoo Finance once,
@@ -92,9 +111,10 @@ def fetch_ohlc(symbol: str, period: str, interval: str) -> pd.DataFrame:
     with _FETCH_SLOTS:
         if _YF_CALL_LOCK is not None:
             with _YF_CALL_LOCK:
-                df = yf.download(symbol, period=period, interval=interval, progress=False)
+                df = yf.download(symbol, period=period, interval=interval, progress=False, threads=False)
         else:
-            df = yf.download(symbol, period=period, interval=interval, progress=False)
+            df = yf.download(symbol, period=period, interval=interval, progress=False, threads=False)
+    _prune_multitasking_tasks()
     if df.empty:
         raise HTTPException(
             status_code=404,
