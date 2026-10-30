@@ -45,7 +45,7 @@ def test_fetch_cache_survives_concurrent_threads():
     data_fetch._DATA_CACHE.clear()
     calls = []
 
-    def fake_download(sym, period, interval, progress):
+    def fake_download(sym, period, interval, progress, threads=True):
         calls.append(sym)
         time.sleep(0.01)
         return _df()
@@ -183,7 +183,7 @@ def test_b1422_total_yahoo_downloads_capped():
     data_fetch._DATA_CACHE.clear()
     active, peak, lock = [0], [0], threading.Lock()
 
-    def slow_download(sym, period, interval, progress):
+    def slow_download(sym, period, interval, progress, threads=True):
         with lock:
             active[0] += 1
             peak[0] = max(peak[0], active[0])
