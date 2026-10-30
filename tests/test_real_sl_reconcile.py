@@ -458,4 +458,4 @@ def test_tick_resync_caps_a_wide_paper_stop_at_5pct_below_entry():
              patch.object(main, "_maybe_place_real_exit"):
             main._maybe_sync_real_stop_loss(conn, "ASHOKLEY.NS")
         assert mock_place.called
-        assert mock_place.call_args[0][2] == round(162.64 * 0.95, 2)  # not the paper stop 97.0
+        assert mock_place.call_args[0][2] == 154.5  # 5% cap (154.51) on the 0.05 tick (B-1429), not the paper stop 97.0
