@@ -26,6 +26,7 @@ re-resolve tokens, re-subscribe) each time a request wakes the app back
 up, via the same startup event that launches it the first time.
 """
 import asyncio
+import contextlib
 import time
 
 import kotak_neo
@@ -114,6 +115,47 @@ def drain_pending(ws, first) -> list:
     except Exception:
         pass
     return out
+
+
+def retire_ws(ws) -> None:
+    """B-1432: called as a consumer leaves its stream, BEFORE the SDK client closes. The SDK auto-reconnects from its
+    own receive task (_handle_disconnect -> connect -> new receive task); if close() lands while that reconnect is
+    mid-flight it cancels only the NEW receive task, the old one's resubscribe hits the closed socket and recurses
+    into another reconnect, leaving a client nobody consumes whose unbounded queue grows forever. With reconnects
+    disabled that path returns at once; run_feed / run_fo_candle_feed reconnect with a fresh client. Never raises."""
+    try:
+        ws.max_reconnect_attempts = 0
+    except Exception:
+        pass
+
+
+def clear_ws_queues(ws) -> None:
+    """B-1432: drop any ticks still held by a closed SDK client so nothing referencing it keeps them. Never raises."""
+    q = getattr(ws, "_message_queue", None)
+    try:
+        while q is not None:
+            q.get_nowait()
+    except Exception:
+        pass
+    try:
+        if isinstance(getattr(ws, "_pending_latest_by_key", None), dict):
+            ws._pending_latest_by_key = {}
+    except Exception:
+        pass
+
+
+@contextlib.asynccontextmanager
+async def retiring(ws):
+    """`async with retiring(client.create_websocket()) as ws:` - the SDK client's own context manager plus
+    retire_ws on the way out (before close) and clear_ws_queues after close (B-1432)."""
+    try:
+        async with ws:
+            try:
+                yield ws
+            finally:
+                retire_ws(ws)
+    finally:
+        clear_ws_queues(ws)
 
 
 def get_live_ticks() -> dict:
@@ -374,7 +416,7 @@ async def run_feed(watchlist_symbols: list):
                 ws_tokens.append(WsToken(seg, tok))
                 reverse_lookup[(seg, tok)] = watchlist_sym
 
-            async with client.create_websocket() as ws:
+            async with retiring(client.create_websocket()) as ws:  # B-1432
                 await ws.subscribe_scrips(ws_tokens)
                 _feed_status["connected"] = True
                 _feed_status["started_at_utc"] = time.time()

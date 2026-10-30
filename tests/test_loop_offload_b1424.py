@@ -14,7 +14,9 @@ def test_scheduler_tick_runs_swing_trail_off_loop():
 
 def test_fo_feed_persists_candles_off_loop():
     src = inspect.getsource(kotak_fo_candle_feed.run_fo_candle_feed)
-    assert "asyncio.to_thread(process_fo_ticks" in src
+    # B-1432: own single-worker executor instead of asyncio.to_thread (still off the loop).
+    assert "await offload_process_fo_ticks(" in src
+    assert "run_in_executor(_FO_TICK_EXECUTOR, process_fo_ticks" in inspect.getsource(kotak_fo_candle_feed.offload_process_fo_ticks)
 
 
 def test_swing_trail_helper_uses_own_conn_and_decision_lock(monkeypatch):
