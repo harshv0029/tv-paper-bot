@@ -13929,7 +13929,217 @@
    "day": "2026-10-31",
    "tag": "weekly__reversal__long__1d__atr6_h20__v1",
    "n": 53
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "chan_shape__mom_mr__long__1d__atr1d5_hold10__nonovl__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "chan_shape__mom_mr__long__1d__atr1d5_hold5__nonovl__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "chan_shape__mom_mr__long__1d__atr2d5_hold10__nonovl__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "chan_shape__mom_mr__long__1d__atr2d5_hold5__nonovl__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "chan_shape__mom_mr__long__1d__atr4d0_hold10__nonovl__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "chan_shape__mom_mr__long__1d__atr4d0_hold5__nonovl__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "gap__runaway__long__1d__atr4_h20__v1",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "gap_and_go",
+   "n": 17
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_rsbandfloor_trail6d0_xroc__v2",
+   "n": 17
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "gaps__common_fade__long__1d__atr3_nb5__v1",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "gaps__exhaust_fade__long__1d__atr3_nb5__v1",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "minervini_vcp",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "minervini_vcp_be3r",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "minervini_vcp_livermore",
+   "n": 17
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "oneil_flatbase__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "oneil_newhigh__first__long__1w__atr3_h26_rsnone__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "power_play",
+   "n": 17
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "primary_base",
+   "n": 17
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island__long__1d__atr1d5_within8__v1",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_gap05__long__1d__atr1d5_within8__nonovl__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_gap05__long__1d__atr1d5_within8__segis__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_none__long__1d__atr1d5_within8__nonovl__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_none__long__1d__atr1d5_within8__segis__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_none__long__1d__atr1d5_within8__segoos__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_none__long__1d__atr1d5_within8__v1",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_px20__long__1d__atr1d5_within8__segis__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_px20__long__1d__atr1d5_within8__segoos__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_px20__long__1d__atr1d5_within8__v1",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__segis__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__v1",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+   "n": 16
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1",
+   "n": 2
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1",
+   "n": 2
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1",
+   "n": 2
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1",
+   "n": 2
+  },
+  {
+   "day": "2026-11-02",
+   "tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+   "n": 16
   }
  ],
- "synced_at_utc": "2026-10-30T18:30:03Z"
+ "synced_at_utc": "2026-11-01T18:32:47Z"
 }
