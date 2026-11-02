@@ -33,3 +33,14 @@ def test_summarize_and_write(tmp_path):
     assert rows[1]["n"] == 0 and rows[1]["avg_held_bars"] is None
     lines = open(tmp_path / "summary.tsv").read().splitlines()
     assert lines[0].split("\t") == list(hs.COLUMNS) and len(lines) == 3
+
+
+def test_median_stop_pct_b775():
+    trades = [
+        {"entry_price": 100.0, "initial_stop": 98.0, "net_pnl": 1.0, "gross_pnl": 1.0, "exit_reason": "x"},
+        {"entry_price": 200.0, "stop": 206.0, "net_pnl": -1.0, "gross_pnl": -1.0, "exit_reason": "x"},  # short
+        {"stop_pct": 1.0, "net_pnl": 1.0, "gross_pnl": 1.0, "exit_reason": "x"},
+        {"net_pnl": 1.0, "gross_pnl": 1.0, "exit_reason": "x"},  # no stop: ignored, never guessed
+    ]
+    assert hs.summarize("d", trades, "u", run_id="1")["median_stop_pct"] == 2.0
+    assert hs.summarize("d", trades[3:], "u", run_id="1")["median_stop_pct"] is None
