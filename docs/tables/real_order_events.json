@@ -15623,7 +15623,19 @@
    "prev_state": "none",
    "new_state": "resting SELL trigger Rs126.73",
    "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs126.73 (target stop Rs126.73)"
+  },
+  {
+   "id": 1303,
+   "ts": 1793591144.9632123,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261102000015714",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs167.90",
+   "detail": "reason: swing position had no resting stop-loss (5-min governance backfill); placed at Rs167.90 (target stop Rs164.80); strategy stop Rs164.80 is outside the day's price band, so the stop rests at the band floor Rs167.90"
   }
  ],
- "synced_at_utc": "2026-11-02T03:45:39Z"
+ "synced_at_utc": "2026-11-02T03:45:54Z"
 }
