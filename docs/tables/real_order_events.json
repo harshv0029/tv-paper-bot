@@ -15971,7 +15971,43 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261102000654465 rejected: OMS: Trading session is in Transition to CAS session"
+  },
+  {
+   "id": 1332,
+   "ts": 1793612787.5832694,
+   "symbol": "UNIONBANK.NS",
+   "kotak_trading_symbol": "UNIONBANK-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261102000654551 rejected: OMS: Trading session is in Transition to CAS session"
+  },
+  {
+   "id": 1333,
+   "ts": 1793612787.6300428,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261102000654548 rejected: OMS: Trading session is in Transition to CAS session"
+  },
+  {
+   "id": 1334,
+   "ts": 1793612790.2411168,
+   "symbol": "WIPRO.NS",
+   "kotak_trading_symbol": "WIPRO-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "no live resting SL at Kotak (holdings + order book checked first)",
+   "new_state": "none (placement failed)",
+   "detail": "reason: delivery holding found with no live SL; previous day's stop carried over | order 261102000654580 rejected: OMS: Trading session is in Transition to CAS session"
   }
  ],
- "synced_at_utc": "2026-11-02T09:46:27Z"
+ "synced_at_utc": "2026-11-02T09:46:43Z"
 }
