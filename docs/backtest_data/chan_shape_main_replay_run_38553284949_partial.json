@@ -1,0 +1,15 @@
+{
+ "run_id": 38553284949,
+ "source": "actions run 38553284949 (chan-shape-main-replay.yml, scripts/chan_shape_macddiv_main_replay.py: main.chan_shape_long_entry_signal + main.chan_shape_exit_reason, full NSE universe, cost 0.8%, FIFO). PARTIAL: only the best cell's PFnet and n were transcribed into backlog row B-1265 (2026-10-14); the other 5 cells were recorded only as a range (PFnet 0.73-0.86), and pfgross/win_pct/hold/exit reasons for every cell are owed from artifact chan_shape-main-replay-results (id 11887209982). The tag carries rid38553284949 because a later run (40572999957) of the same cell already owns the plain _mr tag.",
+ "family": "chan_shape",
+ "interval": "1d",
+ "cost_round_trip_pct": 0.8,
+ "partial": true,
+ "rows": [
+  {
+   "tag": "chan_shape__mom_mr__long__1d__atr4d0_hold10_rid38553284949__nonovl__v2",
+   "source_cell": "chan_shape__mom_mr__long__1d__atr4d0_hold10__nonovl__v2",
+   "metrics": {"n": 48019, "pfnet": 0.907, "pfgross": null, "win_pct": null, "avg_held_bars": null, "exit_reasons": null}
+  }
+ ]
+}

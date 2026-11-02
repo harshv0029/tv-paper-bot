@@ -33,7 +33,7 @@ def test_feed_candle_high_since_entry_raises_peak_and_trigger():
         opened = time.time() - 600
         _insert(conn, opened=opened, trig=None, peak=100.0)
         _candle(conn, opened + 60, 130.0)
-        assert abs(_run(conn, 105.0) - 130.0 * 0.99) < 1e-6
+        assert abs(_run(conn, 129.0) - 130.0 * 0.99) < 1e-6  # B-1322: LTP above the trigger (a SELL SL at/above LTP is refused)
         assert conn.execute("SELECT peak_price FROM real_fo_positions").fetchone()[0] == 130.0
 
 
@@ -53,5 +53,5 @@ def test_in_progress_candle_counts_and_no_feed_falls_back_to_ltp():
         _insert(conn, opened=opened, trig=None, peak=100.0)
         assert abs(_run(conn, 120.0) - 120.0 * 0.99) < 1e-6
         kfc._in_progress_candles["999"] = {"bucket_start_ts": opened + 120, "high": 150.0}
-        assert abs(_run(conn, 120.0) - 150.0 * 0.99) < 1e-6
+        assert abs(_run(conn, 149.0) - 150.0 * 0.99) < 1e-6
     kfc._in_progress_candles.clear()

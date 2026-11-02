@@ -105,7 +105,7 @@ class StrategyStatus(str, Enum):
 # Real breakeven after transaction costs. A strategy below this loses
 # money on average, however it ranks against its peers - see this
 # module's own docstring for why that distinction is load-bearing.
-PFNET_LIVE_FLOOR = 1.0  # 2026-10-14 user: wiring and viability have ONE condition, PFnet >= 1 (supersedes the 2026-10-11 1.1)
+PFNET_LIVE_FLOOR = 1.0  # 2026-11-03 user: wiring and viability need PFnet > 1.00 (strict; supersedes 2026-10-14 ">= 1" and 2026-10-11 1.1)
 
 
 # NSE cash session 09:15-15:30 IST = 6.25 market hours per trading day. Used only to
@@ -178,7 +178,7 @@ class StrategyDef:
             return None
         if VIABLE_STACK_ACTIVE:  # newest explorer stack is the definition (see main._load_viable_overrides)
             return self.name in VIABLE_OVERRIDES
-        return self.metrics.pfnet >= floor
+        return self.metrics.pfnet > floor
 
     def is_wired(self, floor: float = PFNET_LIVE_FLOOR) -> Optional[bool]:
         """B-1344 (user 2026-10-23: "just one condition for wiring, PFnet before tax >= 1, nothing else"): wiring for
@@ -186,7 +186,7 @@ class StrategyDef:
         Supersedes B-1284's 30-day hold condition. Independent of the explorer stack, which governs real ENTRY only."""
         if self.metrics is None:
             return None
-        return bool(self.metrics.pfnet >= floor)
+        return bool(self.metrics.pfnet > floor)
 
 
 # 2026-10-12 user: "quality, not quantity" - the viable TABLES list only strategies with PFnet >= floor, at least
@@ -200,7 +200,7 @@ def is_quality_viable(s: "StrategyDef", floor: float = PFNET_LIVE_FLOOR) -> bool
     m = s.metrics
     if VIABLE_STACK_ACTIVE:
         return bool(m is not None and s.name in VIABLE_OVERRIDES)
-    return bool(m is not None and m.pfnet >= floor and (m.n_trades or 0) >= QUALITY_MIN_TRADES
+    return bool(m is not None and m.pfnet > floor and (m.n_trades or 0) >= QUALITY_MIN_TRADES
                 and m.avg_held_hrs is not None and m.avg_held_hrs <= QUALITY_MAX_HOLD_HRS)
 
 
@@ -3146,6 +3146,11 @@ def _extend_with_sweeps():
     try:
         import strategy_registry_cup_cheat_mr as _cupmr
         REGISTRY.extend(_cupmr.build())
+    except Exception:
+        pass
+    try:
+        import strategy_registry_b1265 as _b1265
+        REGISTRY.extend(_b1265.build())
     except Exception:
         pass
     try:
