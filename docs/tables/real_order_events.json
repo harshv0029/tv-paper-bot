@@ -15719,7 +15719,19 @@
    "prev_state": "resting SELL trigger Rs179.01",
    "new_state": "resting SELL trigger Rs194.11",
    "detail": "reason: peak live price Rs198.66 - 1R (Rs4.55) raised the stop from Rs179.01 | LTP trail (replaced; Kotak holdings and order book read first)"
+  },
+  {
+   "id": 1311,
+   "ts": 1793591447.470449,
+   "symbol": "RELIANCE.NS",
+   "kotak_trading_symbol": "RELIANCE-EQ",
+   "leg": "short_cover",
+   "event": "intent",
+   "order_id": null,
+   "prev_state": "short 3",
+   "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
+   "detail": "reason: short paper exit: exited_short_flatten_1515"
   }
  ],
- "synced_at_utc": "2026-11-02T03:49:56Z"
+ "synced_at_utc": "2026-11-02T03:50:51Z"
 }
