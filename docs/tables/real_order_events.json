@@ -15659,7 +15659,19 @@
    "prev_state": "no position",
    "new_state": "long 1 @ Rs135.67",
    "detail": "reason: swing entry signal from strategy gap__runaway__long__1d__atr4_h20__v1 passed the PFnet gate"
+  },
+  {
+   "id": 1306,
+   "ts": 1793591300.579103,
+   "symbol": "IOC.NS",
+   "kotak_trading_symbol": "IOC-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261102000032139",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs123.21",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-02T03:48:08Z"
+ "synced_at_utc": "2026-11-02T03:48:24Z"
 }
