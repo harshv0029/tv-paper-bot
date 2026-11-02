@@ -112,6 +112,10 @@ def check_margin_affordable(exchange_segment: str, instrument_token: str, transa
     }
 
 
+from kotak_real_orders import _records_send  # noqa: E402  B-1448: every send logs its outcome + Kotak order id
+
+
+@_records_send("fo_entry", "real F&O market BUY entry")
 def place_real_fo_entry(kotak_trading_symbol: str, exchange_segment: str, qty: int, product: str = "NRML") -> dict:
     """Places a REAL market BUY on nse_fo/mcx_fo. Never raises - see this
     module's docstring."""
@@ -132,6 +136,7 @@ def place_real_fo_entry(kotak_trading_symbol: str, exchange_segment: str, qty: i
     return {"ok": True, "order_id": str(order_id), "raw_response": resp, "qty": qty}
 
 
+@_records_send("fo_exit", "real F&O market SELL exit")
 def place_real_fo_exit(kotak_trading_symbol: str, exchange_segment: str, qty: int, product: str = "NRML") -> dict:
     """Places a REAL market SELL to close an already-open F&O position.
     Same never-raises discipline. No gate of its own - same reasoning as
@@ -202,6 +207,7 @@ def option_entry_sl_placeable(premium: float, stop_pct: float, bid=None, ltp=Non
     return True, f"SL trigger {trigger} limit {limit_price} placeable"
 
 
+@_records_send("fo_sl", "resting SELL trailing stop-loss on an open option position")
 def place_real_fo_stop_loss(kotak_trading_symbol: str, exchange_segment: str, qty: int,
                             trigger_price: float, product: str = "NRML") -> dict:
     """Resting SELL SL (limit-behind-trigger) for a long option. Limit sits 5%

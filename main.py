@@ -14379,6 +14379,10 @@ def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, o
         reason = _default_order_reason(leg, event)
     if reason:
         detail = f"reason: {reason}" + (f" | {detail}" if detail else "")
+    try:  # B-1448: write queued Kotak-send outcomes first; this caller's own row covers its order id
+        _flush_pending_kotak_sends(conn, covered_order_id=order_id, commit=False)
+    except Exception as e:  # noqa: BLE001
+        print(f"[order_log] B-1448 pending-send flush failed (non-fatal): {e}")
     conn.execute(
         "INSERT INTO real_order_events (ts, symbol, kotak_trading_symbol, leg, event, order_id, "
         "prev_state, new_state, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -14395,6 +14399,95 @@ def _log_real_order_event(conn, symbol, leg, event, kotak_trading_symbol=None, o
     # B-1355: the order log is git-tier, so the Upstash call above does not carry it. Wake the git push thread now:
     # NATIONALUM 23-Oct sold at 09:22:27 IST, Render restarted at 09:22:35, and the last git push was 09:21:26.
     _git_tier_push_wake.set()
+
+
+# B-1448 (2026-11-02): 155 Kotak orders (mostly rejected SL retries) had no app log row, because callers log a
+# failed SL with order_id=None and the rejected order's id lived only in the result dict. kotak_real_orders now
+# reports every send it makes (place/cancel; entry, exit, SL, target, F&O) to this sink with the Kotak order id and
+# a reason. Rejections and errors are written at once (no caller ever logs a rejected order id). An ACCEPTED send is
+# held briefly: if the caller then logs its own row for that order id, the caller's row covers it (no duplicate);
+# otherwise it is written after _PENDING_KOTAK_SEND_MAX_AGE_S by the next log call, the scheduler tick or the
+# reconcile. The sink never blocks an order path: a write that cannot get the DB lock within 1 s stays queued.
+_PENDING_KOTAK_SENDS: list = []
+_PENDING_KOTAK_SENDS_LOCK = threading.Lock()
+_PENDING_KOTAK_SEND_MAX_AGE_S = 30.0
+
+
+def _write_kotak_send_row(conn, ev) -> None:
+    reason = ev.get("reason") or _default_order_reason(ev.get("leg"), ev.get("event"))
+    detail = f"reason: {reason}" + (f" | {ev['detail']}" if ev.get("detail") else "")
+    symbol, trdsym = ev.get("symbol"), ev.get("kotak_trading_symbol")
+    if not symbol and ev.get("order_id"):  # a cancel only knows the order id: take the symbol from its earlier row
+        prev = conn.execute("SELECT symbol, kotak_trading_symbol FROM real_order_events WHERE order_id = ? "
+                            "AND symbol IS NOT NULL AND symbol != '' ORDER BY id DESC LIMIT 1",
+                            (ev["order_id"],)).fetchone()
+        if prev:
+            symbol, trdsym = prev[0], trdsym or prev[1]
+    conn.execute(
+        "INSERT INTO real_order_events (ts, symbol, kotak_trading_symbol, leg, event, order_id, "
+        "prev_state, new_state, detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (ev.get("ts") or time.time(), symbol or "UNKNOWN", trdsym, ev.get("leg"),
+         ev.get("event"), ev.get("order_id"), "sent to Kotak", ev.get("new_state"), detail))
+
+
+def _flush_pending_kotak_sends(conn, covered_order_id=None, min_age=None, commit=True) -> int:
+    """Write queued send outcomes: every rejection/error, and every accepted send older than `min_age`
+    (default _PENDING_KOTAK_SEND_MAX_AGE_S). An accepted send whose order id equals `covered_order_id` (the
+    caller is logging its own row for it right now) is dropped instead. Returns rows written."""
+    age = _PENDING_KOTAK_SEND_MAX_AGE_S if min_age is None else min_age
+    now = time.time()
+    cov = str(covered_order_id) if covered_order_id else None
+    with _PENDING_KOTAK_SENDS_LOCK:
+        if not _PENDING_KOTAK_SENDS:
+            return 0
+        keep, write = [], []
+        for ev in _PENDING_KOTAK_SENDS:
+            if not ev.get("immediate") and cov and ev.get("order_id") == cov:
+                continue
+            if ev.get("immediate") or now - float(ev.get("ts") or 0) >= age:
+                write.append(ev)
+            else:
+                keep.append(ev)
+        _PENDING_KOTAK_SENDS[:] = keep
+    try:
+        for ev in write:
+            _write_kotak_send_row(conn, ev)
+        if write and commit:
+            conn.commit()
+    except Exception:
+        with _PENDING_KOTAK_SENDS_LOCK:  # keep them for the next flush, never lose an order's row
+            _PENDING_KOTAK_SENDS[:0] = write
+        raise
+    return len(write)
+
+
+def _kotak_send_sink(ev) -> None:
+    """Registered with kotak_real_orders.set_order_send_sink. Never raises into an order path."""
+    try:
+        with _PENDING_KOTAK_SENDS_LOCK:
+            _PENDING_KOTAK_SENDS.append(dict(ev))
+        if not ev.get("immediate"):
+            return
+        conn = sqlite3.connect(DB_PATH, timeout=1)
+        try:
+            n = _flush_pending_kotak_sends(conn)
+        finally:
+            conn.close()
+        if n:
+            try:
+                sync_generic_tables_external(only=("real_order_events",))
+            except Exception as e:  # noqa: BLE001
+                print(f"[order_log] immediate mirror failed (tick sync will retry): {e}")
+            _git_tier_push_wake.set()
+    except Exception as e:  # noqa: BLE001 - stays queued; the next log call / tick writes it
+        print(f"[order_log] B-1448 send sink deferred (non-fatal): {e}")
+
+
+try:
+    import kotak_real_orders as _kro_for_send_log
+    _kro_for_send_log.set_order_send_sink(_kotak_send_sink)
+except Exception as _e:  # noqa: BLE001
+    print(f"[order_log] B-1448 send sink not registered: {_e}")
 
 
 _DEFAULT_ORDER_REASONS = {
@@ -26143,6 +26236,10 @@ def _log_unlogged_kotak_orders(conn, order_rows) -> int:
     from Kotak's own fields, so the log can never silently miss an order. Runs every
     5-min reconcile; idempotent (the new row carries the order id)."""
     n = 0
+    try:  # B-1448: write any queued send outcome first, so an order this app sent is logged as sent, not UNLOGGED
+        _flush_pending_kotak_sends(conn, min_age=10.0)
+    except Exception as e:  # noqa: BLE001
+        print(f"[order_log] B-1448 pending-send flush failed (non-fatal): {e}")
     try:
         known = {r[0] for r in conn.execute("SELECT order_id FROM real_order_events WHERE order_id IS NOT NULL").fetchall()}
         for row in order_rows or []:
@@ -27228,6 +27325,12 @@ async def _scheduler_tick():
     watchlist_by_symbol = {cfg["symbol"]: cfg for cfg in WATCHLIST}
 
     with closing(get_db()) as conn:
+        try:  # B-1448: write Kotak-send outcomes no caller row covered (accepted sends > 30 s old, queued rejections)
+            if _flush_pending_kotak_sends(conn):
+                sync_generic_tables_external(only=("real_order_events",))
+                _git_tier_push_wake.set()
+        except Exception as e:  # noqa: BLE001
+            print(f"[order_log] B-1448 tick flush failed (non-fatal): {e}")
         if _nse_equity_market_open_now():
             try:  # B-1365: off the event loop (Kotak/yfinance calls froze /health -> Render restarts)
                 await _real_off_loop(_ensure_gap_and_go_state_for_held)
