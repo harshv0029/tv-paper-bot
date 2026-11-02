@@ -15935,7 +15935,19 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261102000654053 rejected: OMS: Trading session is in Transition to CAS session"
+  },
+  {
+   "id": 1329,
+   "ts": 1793612768.2578137,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": "RECLTD-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261102000654270 rejected: OMS: Trading session is in Transition to CAS session"
   }
  ],
- "synced_at_utc": "2026-11-02T09:46:01Z"
+ "synced_at_utc": "2026-11-02T09:46:11Z"
 }
