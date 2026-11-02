@@ -1003,6 +1003,7 @@ def classify_rejection(detail) -> str:
 # "order not in app log" pass logs the real reason instead of UNLOGGED. In-process only (a restart loses it,
 # and the reconcile then falls back to the plain UNLOGGED row, which still carries Kotak's own rejRsn).
 _ORDER_REASONS: dict = {}
+_ORDER_REASONS_MAX = 2000  # B-1447: insertion-ordered cap (oldest dropped); the reconcile reads today's book only
 
 
 def order_reason(order_id) -> "str | None":
@@ -1013,6 +1014,8 @@ def _note_rejected(res: dict, reason: str) -> None:
     oid = res.get("rejected_order_id")
     if oid:
         _ORDER_REASONS[str(oid)] = reason
+        while len(_ORDER_REASONS) > _ORDER_REASONS_MAX:
+            _ORDER_REASONS.pop(next(iter(_ORDER_REASONS)), None)
 
 
 _BAND_REF_CACHE: dict = {}  # trdSym -> (ts, prev_close, last)
