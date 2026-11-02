@@ -24,12 +24,45 @@ def _cap_malloc_arenas() -> None:
     standard fix for threaded Python on glibc and typically cuts RSS 20-40%. Must run before worker threads start.
     MALLOC_ARENA_MAX in the environment wins; non-glibc / failure is silently ignored."""
     try:
-        if os.environ.get("MALLOC_ARENA_MAX"):
-            return
         import ctypes
-        ctypes.CDLL("libc.so.6").mallopt(-8, 2)  # M_ARENA_MAX = -8
+        libc = ctypes.CDLL("libc.so.6")
+        if not os.environ.get("MALLOC_ARENA_MAX"):
+            libc.mallopt(-8, 2)  # M_ARENA_MAX = -8
+        # B-1447: a FIXED mmap threshold. glibc's default threshold is dynamic: once a large numpy/pandas buffer is
+        # freed it rises (up to 32 MB), so later buffers of that size are carved from the heap/arenas and stay pinned
+        # after free (fragmentation that ratchets RSS over a multi-day uptime). Fixed at 256 KB, large buffers are
+        # mmapped and return to the OS on free. MALLOC_MMAP_THRESHOLD_ in the environment wins.
+        if not os.environ.get("MALLOC_MMAP_THRESHOLD_"):
+            libc.mallopt(-3, 256 * 1024)  # M_MMAP_THRESHOLD = -3
     except Exception:
         pass
+
+
+_NATIVE_TRIM_STATE = {"trims": 0, "last_ts": None, "last_rss_before_mb": None, "last_rss_after_mb": None}
+
+
+def _statm_rss_mb():
+    try:
+        with open("/proc/self/statm") as f:
+            return round(int(f.read().split()[1]) * os.sysconf("SC_PAGE_SIZE") / 1048576, 1)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _trim_native_heap() -> bool:
+    """B-1447: gc.collect + glibc malloc_trim(0), returning freed heap pages to the OS. Guarded: non-glibc or any
+    failure is a silent no-op. Touches no app state, so no trading decision can change. True when it trimmed."""
+    try:
+        import gc
+        import ctypes
+        before = _statm_rss_mb()
+        gc.collect()
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+        _NATIVE_TRIM_STATE.update(trims=_NATIVE_TRIM_STATE["trims"] + 1, last_ts=time.time(),
+                                  last_rss_before_mb=before, last_rss_after_mb=_statm_rss_mb())
+        return True
+    except Exception:  # noqa: BLE001
+        return False
 
 
 import os  # noqa: E402
@@ -22077,6 +22110,39 @@ def _record_scheduler_check(key: str):
         _recent_check_timestamps.pop(0)
 
 
+# B-1447: _scheduler_last_results / _scheduler_last_visit_strategies are keyed per symbol AND per derivative leg
+# ("<option trdSym>:STRIKE", "<option trdSym>:RSI2FO"). Option contracts roll daily (ATM band) and weekly (expiry), so
+# over a multi-day uptime these two dicts collected every contract ever scanned and never dropped one. A derivative
+# leg (key with ":") whose last check is older than _DERIV_RESULT_MAX_AGE_S is dropped (display-only rows: /entry-why
+# and /signal-funds skip ":STRIKE", and every live leg is re-checked within one 5-min pass); a hard cap bounds the rest.
+_DERIV_RESULT_MAX_AGE_S = 24 * 3600
+_SCHEDULER_RESULTS_MAX = 8000
+
+
+def _prune_unbounded_scheduler_state(now=None) -> int:
+    """Drop stale derivative-leg rows from the per-key scheduler dicts. Equity / index / underlying keys (no ":" or a
+    ":OPT" underlying key) are never dropped by age. Returns rows dropped. Never touches positions, orders or SLs."""
+    now = time.time() if now is None else now
+    dropped = 0
+    for k, v in list(_scheduler_last_results.items()):
+        if ":" in k and not k.endswith(":OPT"):
+            ts = v.get("checked_at_utc") if isinstance(v, dict) else None
+            if ts is None or now - float(ts) > _DERIV_RESULT_MAX_AGE_S:
+                _scheduler_last_results.pop(k, None)
+                dropped += 1
+    if len(_scheduler_last_results) > _SCHEDULER_RESULTS_MAX:  # oldest derivative rows first
+        deriv = sorted((k for k in _scheduler_last_results if ":" in k and not k.endswith(":OPT")),
+                       key=lambda k: float((_scheduler_last_results.get(k) or {}).get("checked_at_utc") or 0))
+        for k in deriv[:len(_scheduler_last_results) - _SCHEDULER_RESULTS_MAX]:
+            _scheduler_last_results.pop(k, None)
+            dropped += 1
+    for k in list(_scheduler_last_visit_strategies):
+        if ":" in k and not k.endswith(":OPT") and k not in _scheduler_last_results and k not in _scheduler_check_counts:
+            _scheduler_last_visit_strategies.pop(k, None)
+            dropped += 1
+    return dropped
+
+
 # B-1271: derivative-leg visits that were skipped before any evaluation
 # (force-close window, no candles). Counted apart from _scheduler_check_counts
 # so the "checks" figures mean evaluations, not visits. Resets per IST day.
@@ -27600,12 +27666,10 @@ async def _scheduler_tick():
     if _scheduler_tick_count % _MEMORY_LOG_EVERY_N_TICKS == 0:
         # B-1288a: return freed pages to the OS (glibc fragmentation after big pandas scans)
         try:
-            import gc
-            import ctypes
-            gc.collect()
-            ctypes.CDLL("libc.so.6").malloc_trim(0)
+            _prune_unbounded_scheduler_state()  # B-1447: drop rolled-off derivative keys before the trim
         except Exception:  # noqa: BLE001
             pass
+        _trim_native_heap()
         print(f"[memory] tick {_scheduler_tick_count}: rss_mb={_process_rss_mb()}, "
               f"data_cache_entries={len(_DATA_CACHE)}, watchlist_size={len(WATCHLIST)}")
         try:
@@ -30402,8 +30466,7 @@ def _memory_pressure_check(now_mb=None, trim=True) -> dict:
         try:
             n = len(_DATA_CACHE)
             _DATA_CACHE.clear()
-            import gc
-            gc.collect()
+            _trim_native_heap()  # B-1447: gc + malloc_trim, so the cleared frames' pages actually leave RSS
             _MEMORY_STATE.update(trims=_MEMORY_STATE["trims"] + 1, last_trim_ts=time.time(),
                                  last_trim_freed_entries=n)
             print(f"[memory] {level.upper()}: rss_now_mb={now_mb} ({pct}% of {RSS_LIMIT_MB}); "
@@ -30449,6 +30512,51 @@ def _threadpool_status() -> dict:
     return out
 
 
+def _bounded_cache_sizes() -> dict:
+    """B-1447: entry counts of every long-lived cache across the modules this app runs (main's own globals are also
+    listed by largest_globals), plus the data cache's approximate frame bytes. Read-only; never raises."""
+    import sys as _sys
+    out = {}
+
+    def _n(label, obj):
+        try:
+            out[label] = len(obj)
+        except Exception:  # noqa: BLE001
+            pass
+
+    try:
+        with data_fetch._CACHE_LOCK:
+            frames = [v[1] for v in _DATA_CACHE.values()]
+        out["data_cache_entries"] = len(frames)
+        out["data_cache_mb"] = round(sum(int(f.memory_usage(index=True, deep=False).sum()) for f in frames) / 1048576, 1)
+        out["data_cache_max_entries"] = data_fetch._MAX_CACHE_ENTRIES
+    except Exception:  # noqa: BLE001
+        pass
+    for label, obj in (("scheduler_last_results", _scheduler_last_results),
+                       ("scheduler_last_visit_strategies", _scheduler_last_visit_strategies),
+                       ("scheduler_check_counts", _scheduler_check_counts),
+                       ("pair_scan_stats", _pair_scan_stats), ("symbol_strategy_scans", _symbol_strategy_scans),
+                       ("fo_strike_monitor", _fo_strike_monitor), ("fo_strike_eval_cache", _fo_strike_eval_cache),
+                       ("fo_rsi2_no_signal_fp", _fo_rsi2_no_signal_fp)):
+        _n(label, obj)
+    for mod, names in (("kotak_fo_candle_feed", ("_in_progress_candles", "_pending_candles")),
+                       ("kotak_live_feed", ("_live_ticks",)),
+                       ("fo_candle_journal", ("_last_hash", "_last_push_ts", "_last_fp")),
+                       ("kotak_real_orders", ("_ORDER_REASONS", "_BAND_REF_CACHE", "_RECENT_SL_PLACED")),
+                       ("nse_fo_chain", ("_fo_rows_cache",)), ("multitasking", ())):
+        m = _sys.modules.get(mod)
+        if m is None:
+            continue
+        for nm in names:
+            _n(f"{mod}.{nm}", getattr(m, nm, ()))
+        if mod == "multitasking":
+            try:
+                _n("multitasking.TASKS", m.config.get("TASKS") or ())
+            except Exception:  # noqa: BLE001
+                pass
+    return out
+
+
 _MEM_BREAKDOWN_STATE: dict = {"ts": 0.0, "out": None}
 _MEM_BREAKDOWN_LOCK = threading.Lock()
 
@@ -30485,7 +30593,8 @@ def _memory_breakdown() -> dict:
         except Exception:  # noqa: BLE001
             pass
         out = {"ts": time.time(), "rss_now_mb": _current_rss_mb(), "gc_objects": n_objs, "dataframes": frames,
-               "threads": threading.active_count(), "by_type": by_type,
+               "threads": threading.active_count(), "by_type": by_type, "bounded_caches": _bounded_cache_sizes(),
+               "native_trim": dict(_NATIVE_TRIM_STATE),
                "largest_globals": [{"name": n, "len": l, "shallow_bytes": b} for n, l, b in containers[:30]]}
         _MEM_BREAKDOWN_STATE.update(ts=time.time(), out=out)
         return out
@@ -32779,6 +32888,8 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
                 if not target_result.get("ok") and _T1_HOLDINGS_MARKER in str(target_result.get("detail") or ""):
                     # B-1329: the resting SL already holds the full qty, so Kotak rejects the target on every
                     # 5-min pass (ITC x4 on 2026-10-21). Try once per symbol per day; the tick poll books profit.
+                    for _old in [k for k in _target_backfill_t1_rejected if k[1] != _tgt_day_key[1]]:
+                        _target_backfill_t1_rejected.discard(_old)  # B-1447: only today's keys are ever read
                     _target_backfill_t1_rejected.add(_tgt_day_key)
                 if target_result.get("ok"):
                     conn.execute(
