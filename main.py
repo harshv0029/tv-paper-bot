@@ -21617,7 +21617,15 @@ def _roc_kpis_payload(today=None) -> dict:
     with closing(get_db()) as conn:
         rows = [dict(r) for r in conn.execute("SELECT day, trdsym, prod, source, seg, buy_qty, buy_amt, sell_qty, "
                                               "sell_amt FROM kotak_fill_ledger").fetchall()]
-    out = roc_kpis.roc_kpis(rows, today, charges_fn=_estimate_statutory_charges_inr)
+        try:  # B-1445: same-day round-trip side from this app's own entry records (never default long)
+            ev = [dict(r) for r in conn.execute("SELECT ts, kotak_trading_symbol, leg, event FROM real_order_events "
+                                                "WHERE leg IN ('entry', 'short_entry') AND event='confirmed'").fetchall()]
+            shorts = [dict(r) for r in conn.execute("SELECT kotak_trading_symbol, day FROM real_positions_short").fetchall()]
+            hints = roc_kpis.side_hints_from_app_records(ev, shorts)
+        except Exception as e:  # noqa: BLE001
+            print(f"[roc] side hints unavailable (non-fatal): {e}")
+            hints = {}
+    out = roc_kpis.roc_kpis(rows, today, charges_fn=_estimate_statutory_charges_inr, side_hints=hints)
     out["data_source"] = ("kotak_fill_ledger: Kotak positions() day fills captured on every P&L refresh (Kotak wins); "
                           "holdings open when the ledger began come from tracked_union. App order tables are not used: "
                           "they miss exchange-triggered stop-loss exits, so they cannot give a trustworthy realised P&L.")
