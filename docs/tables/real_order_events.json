@@ -17255,7 +17255,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261102000676997 rejected: OMS: Order Rejected due to CAS session end"
+  },
+  {
+   "id": 1439,
+   "ts": 1793613716.9852936,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": "RECLTD-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261102000677327 rejected: OMS: Order Rejected due to CAS session end"
   }
  ],
- "synced_at_utc": "2026-11-02T10:01:47Z"
+ "synced_at_utc": "2026-11-02T10:02:00Z"
 }
