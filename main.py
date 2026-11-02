@@ -1216,6 +1216,27 @@ def init_db():
             )
             """
         )
+        # B-1443 (2026-11-02): durable Kotak fill ledger for View 4's ROC KPIs. Kotak positions() is today-only, so
+        # each IST day's filled buy/sell qty and value per trading symbol + product is upserted here from Kotak's own
+        # numbers (never shrinks within a day), plus one-time 'opening' rows for holdings open when the ledger began
+        # (from tracked_union). No order ids. In _GENERIC_MIRROR_TABLES (Upstash) so a restart never loses it.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS kotak_fill_ledger (
+                day TEXT NOT NULL,
+                trdsym TEXT NOT NULL,
+                prod TEXT NOT NULL DEFAULT '',
+                source TEXT NOT NULL,            -- 'kotak_positions' | 'opening'
+                seg TEXT,
+                buy_qty REAL NOT NULL DEFAULT 0,
+                buy_amt REAL NOT NULL DEFAULT 0,
+                sell_qty REAL NOT NULL DEFAULT 0,
+                sell_amt REAL NOT NULL DEFAULT 0,
+                updated_at REAL,
+                PRIMARY KEY (day, trdsym, prod, source)
+            )
+            """
+        )
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS sl_order_snapshot (
@@ -20685,7 +20706,7 @@ _GENERIC_MIRROR_TABLES = (
     "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags",
     "swing_done_today", "strategy_scan_counts", "signal_shadow_log",
     "signal_state_swing_short", "real_positions_swing_short",
-    "strategy_viable_stack", "swing_entry_stop",
+    "strategy_viable_stack", "swing_entry_stop", "kotak_fill_ledger",
 )
 _GENERIC_MIRROR_ALWAYS_RESTORE = ("trading_control", "real_trading_control")
 # B-1302: audit/log/counter tables (tier 2/3) are unloaded from Upstash and kept in
@@ -20732,7 +20753,8 @@ _generic_mirror_last_hash: dict = {}
 # B-1341: positions, trades, signal state and kill switches push on every change (restart safety). Everything else in
 # the Upstash tier pushes at most every _GENERIC_MIRROR_SLOW_SEC on the tick path; an explicit only=(...) call is immediate.
 _GENERIC_MIRROR_SLOW_TABLES = ("nse_straddle_state", "signal_state_fo_options", "tracked_union",
-                               "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags", "swing_done_today")
+                               "sl_order_snapshot", "swing_ltp_peak", "user_strategy_tags", "swing_done_today",
+                               "kotak_fill_ledger")
 _GENERIC_MIRROR_SLOW_SEC = 300
 _generic_mirror_last_push_ts: dict = {}
 
@@ -21516,12 +21538,90 @@ def _refresh_real_trades_cache():
                 })
             except (TypeError, ValueError):
                 continue
+        try:  # B-1443: durable day-fill ledger for the ROC KPIs; never blocks the P&L cache
+            _capture_kotak_fill_ledger(rows)
+        except Exception as e:  # noqa: BLE001
+            print(f"[roc] fill ledger capture failed (non-fatal): {e}")
         _real_trades_cache["value"] = trades
         _real_trades_cache["fetched_at"] = time.time()
         _real_trades_cache["error"] = None
         _real_trades_cache["day"] = ist_now().strftime("%Y-%m-%d")
     except Exception as e:
         _real_trades_cache["error"] = str(e)
+
+
+def _capture_kotak_fill_ledger(position_rows: list, now_ist=None) -> int:
+    """B-1443: upsert today's per-symbol filled buy/sell qty/value from Kotak positions() rows into kotak_fill_ledger.
+    Kotak's day totals are cumulative, so a row is replaced only when its filled qty did not shrink (a partial or odd
+    response never erases a fuller capture). On the ledger's first ever capture, holdings already open (tracked_union,
+    entry before today) are stored once as 'opening' rows so their later exits have an entry. Returns rows written."""
+    now_ist = now_ist or ist_now()
+    today, hs_today = now_ist.strftime("%Y-%m-%d"), now_ist.strftime("%Y/%m/%d")
+    agg = {}
+    for row in position_rows or []:
+        try:
+            hs = str(row.get("hsUpTm") or "")
+            if hs and not hs.startswith(hs_today):
+                continue
+            bq, sq = float(row.get("flBuyQty", 0) or 0), float(row.get("flSellQty", 0) or 0)
+            if bq <= 0 and sq <= 0:
+                continue
+            k = (str(row.get("trdSym") or row.get("sym") or ""), str(row.get("prod") or "").upper())
+            if not k[0]:
+                continue
+            a = agg.setdefault(k, {"seg": row.get("exSeg"), "bq": 0.0, "ba": 0.0, "sq": 0.0, "sa": 0.0})
+            a["bq"] += bq
+            a["sq"] += sq
+            a["ba"] += float(row.get("buyAmt", 0) or 0)
+            a["sa"] += float(row.get("sellAmt", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+    n, ts = 0, time.time()
+    with closing(get_db()) as conn:
+        first = conn.execute("SELECT 1 FROM kotak_fill_ledger LIMIT 1").fetchone() is None
+        if first and agg:
+            for r in conn.execute("SELECT kotak_trading_symbol, qty, is_short, entry_price, day, first_seen_day "
+                                  "FROM tracked_union WHERE qty > 0 AND entry_price > 0").fetchall():
+                d0 = str(r["day"] or r["first_seen_day"] or "")[:10]
+                if not d0 or d0 >= today:
+                    continue
+                q, v = float(r["qty"]), float(r["qty"]) * float(r["entry_price"])
+                conn.execute("INSERT OR IGNORE INTO kotak_fill_ledger (day, trdsym, prod, source, seg, buy_qty, "
+                             "buy_amt, sell_qty, sell_amt, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                             (d0, r["kotak_trading_symbol"], "" if r["is_short"] else "CNC", "opening", None,
+                              0 if r["is_short"] else q, 0 if r["is_short"] else v,
+                              q if r["is_short"] else 0, v if r["is_short"] else 0, ts))
+                n += 1
+        for (sym, prod), a in agg.items():
+            old = conn.execute("SELECT buy_qty, sell_qty FROM kotak_fill_ledger WHERE day=? AND trdsym=? AND prod=? "
+                               "AND source='kotak_positions'", (today, sym, prod)).fetchone()
+            if old and (a["bq"] < old[0] or a["sq"] < old[1]):
+                continue
+            conn.execute("INSERT OR REPLACE INTO kotak_fill_ledger (day, trdsym, prod, source, seg, buy_qty, buy_amt, "
+                         "sell_qty, sell_amt, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                         (today, sym, prod, "kotak_positions", a["seg"], a["bq"], round(a["ba"], 2), a["sq"],
+                          round(a["sa"], 2), ts))
+            n += 1
+        conn.commit()
+    return n
+
+
+def _roc_kpis_payload(today=None) -> dict:
+    """B-1443: View 4 ROC KPIs from the durable Kotak fill ledger (see roc_kpis.py for every definition)."""
+    import roc_kpis
+    today = today or ist_now().date()
+    with closing(get_db()) as conn:
+        rows = [dict(r) for r in conn.execute("SELECT day, trdsym, prod, source, seg, buy_qty, buy_amt, sell_qty, "
+                                              "sell_amt FROM kotak_fill_ledger").fetchall()]
+    out = roc_kpis.roc_kpis(rows, today, charges_fn=_estimate_statutory_charges_inr)
+    out["data_source"] = ("kotak_fill_ledger: Kotak positions() day fills captured on every P&L refresh (Kotak wins); "
+                          "holdings open when the ledger began come from tracked_union. App order tables are not used: "
+                          "they miss exchange-triggered stop-loss exits, so they cannot give a trustworthy realised P&L.")
+    out["definition"] = ("ROC % = net realised P&L of real trades exited in the period (after estimated statutory "
+                         "charges; brokerage not included) / average daily deployed capital (entry value of every "
+                         "position held on each calendar day, time-weighted over the period's covered days). IST "
+                         "calendar months.")
+    return out
 
 
 def get_real_trades_today_list():
@@ -28942,6 +29042,21 @@ def _expected_exit_for_position(category, tag, entry_day, opened_at=None, cfg=No
                 "expected_exit_basis": f"max hold {unit}; earlier on stop/target/rule exit"}
     except Exception as e:
         return {"expected_exit": None, "expected_exit_basis": f"unavailable ({type(e).__name__})"}
+
+
+@app.get("/roc-kpis")
+def get_roc_kpis():
+    """B-1443 (View 4 capital block): return on deployed capital for last calendar month, month-to-date and rolling
+    30 days, plus per-trade return %, holding days and return/day. No token: closed-trade figures only, never order
+    ids or account details. Refreshes today's Kotak fills first (same 5-min TTL cache as /real-pnl-today)."""
+    try:
+        get_real_trades_today_list()
+    except Exception as e:  # noqa: BLE001
+        print(f"[roc] Kotak refresh failed (non-fatal, ledger as stored): {e}")
+    try:
+        return _roc_kpis_payload()
+    except Exception as e:  # noqa: BLE001
+        return {"error": f"{type(e).__name__}: {e}", "periods": {}, "closed_trades": []}
 
 
 @app.get("/real-positions-sl-today")

@@ -15,7 +15,7 @@ Total rows: 1200 | closed: 554 | not closed: 646
 | HARNESS-BUILT-AWAITING-RUN | 99 |
 | DONE-PENDING-VERIFY | 77 |
 | BLOCKED | 63 |
-| OPEN | 49 |
+| OPEN | 47 |
 | P2 | 41 |
 | DONE-MERGED | 22 |
 | HARNESS-BUILT-RUN-PENDING | 15 |
@@ -26,9 +26,9 @@ Total rows: 1200 | closed: 554 | not closed: 646
 | P1 | 8 |
 | P0 | 8 |
 | USER | 8 |
+| BUILT | 7 |
 | OPEN-PARKED | 6 |
 | BUILT-ON-BRANCH | 5 |
-| BUILT | 5 |
 | PARKED-REASONED | 4 |
 | WIRED-PENDING-REPLAY | 4 |
 | PARKED | 3 |
@@ -556,7 +556,7 @@ Total rows: 1200 | closed: 554 | not closed: 646
 | B-1430 | P1 | BUILT | 2026-10-30 09:45 IST | owed, remaining, pending, verify, follow-up |
 | B-1438 | P1 | FOUND | 2026-10-30 13:53 IST | owed, verify |
 | B-1441 | P1 | OPEN | 2026-11-02 18:50 IST |  |
-| B-1443 | P1 | OPEN | 2026-11-02 18:50 IST |  |
+| B-1443 | P1 | BUILT | 2026-11-02 18:50 IST | owed |
 | B-311 | P2 | PARKED | User deferred 'later' | blocked, owner |
 | B-834 | P2 | PARKED | Sub-250-n O'Neil cells >=1.1 (flagprice 1d/1w n=28-226, hft 1d n=119-126 and 1w n=124-127; 20 cells) are an... |  |
 | B-842 | P2 | OPEN | Bidirectional follow-up from the trade-management run: the short brk20_min_rr mirror (atr3_rr4 2.468) beats... | follow-up |
@@ -613,7 +613,7 @@ Total rows: 1200 | closed: 554 | not closed: 646
 | B-1380 | P2 | KOTAK | 2026-10-27 09:55 IST | owed, pending |
 | B-1384 | P2 | SWING | 2026-10-27 14:25 IST | awaiting, waiting |
 | B-1408 | P2 | OPEN | 2026-10-28 14:30 IST | owed |
-| B-1442 | P2 | OPEN | 2026-11-02 18:50 IST |  |
+| B-1442 | P2 | BUILT | 2026-11-02 18:50 IST | owed |
 | B-898 | P3 | OPEN | SENSEXBETA.NS has no Yahoo intraday bars today (scheduler_check_counts shows only 9 checks vs hundreds for ... | blocked, verify |
 | B-1250 | P? | UNKNOWN |  |  |
 | B-1252b | P? | OPEN | Status 2026-10-20 IST: aggregate-gate "why" now reported by /signal-funds (commit c70374a, deployed via gat... |  |
