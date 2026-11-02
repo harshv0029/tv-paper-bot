@@ -9,8 +9,18 @@ IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
 DAY = 86400
 
 
+# Freeze "now" at 12:00 IST today: an expiry at 23:30 IST "today" is already past between 23:30 and 24:00 IST,
+# which made test_only_expiring_contract_falls_back fail only in that half hour.
+_NOW = dt.datetime.now(IST).replace(hour=12, minute=0, second=0, microsecond=0)
+
+
+@pytest.fixture(autouse=True)
+def _frozen_now(monkeypatch):
+    monkeypatch.setattr(lf.time, "time", lambda: _NOW.timestamp())
+
+
 def _exp_ts(days):
-    d = (dt.datetime.now(IST) + dt.timedelta(days=days)).date()
+    d = (_NOW + dt.timedelta(days=days)).date()
     return dt.datetime(d.year, d.month, d.day, 23, 30, tzinfo=IST).timestamp()
 
 
