@@ -13932,13 +13932,868 @@
     },
     {
       "day": "2026-11-02",
-      "tag": "power_play",
+      "tag": "base__cup_cheat_3c__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "base__cup_cheat_3c__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "base__cup_cheat_3c__long__1h__atr2d5_h30__v1",
+      "n": 4843
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "base__cup_cheat_3c__long__1h__atr6_h30__v1",
+      "n": 4843
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "base__cup_handle__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "base__cup_handle__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "base__double_bottom_top__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "belt__hold__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "belt__hold__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "bollinger_mean_reversion__ng__short__1d__atrnone__v1",
+      "n": 118
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "bollinger_mean_reversion__si__long__1d__atrnone__v1",
+      "n": 119
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "breakout__pullback__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "brk20_min_rr__main_replay__short__1d__atr3_rr3__v1",
       "n": 4848
     },
     {
       "day": "2026-11-02",
-      "tag": "primary_base",
+      "tag": "brk20_min_rr__main_replay__short__1d__atr3_rr3d5__v1",
       "n": 4848
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "brk20_min_rr__main_replay__short__1d__atr3_rr4__v1",
+      "n": 4848
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "brk20_min_rr__main_replay__short__1d__atr4_rr3__v1",
+      "n": 4848
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "brk20_min_rr__main_replay__short__1d__atr4_rr3d5__v1",
+      "n": 4848
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "brk20_min_rr__main_replay__short__1d__atr4_rr4__v1",
+      "n": 4848
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "cci20__extreme_reversal__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "cci20__extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1",
+      "n": 2075
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1",
+      "n": 2075
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1",
+      "n": 2075
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_gap__buy_on_gap__long__1d__atr4d0cap5_top10__v1",
+      "n": 2075
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_gap__buy_on_gap__long__1d__fit5_top10__v1",
+      "n": 2075
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_gap__short_on_gap__short__1d__atr1d5_top10__v1",
+      "n": 1
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+      "n": 17915
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
+      "n": 17915
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
+      "n": 17915
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+      "n": 17915
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
+      "n": 17915
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
+      "n": 17915
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
+      "n": 17915
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
+      "n": 17915
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
+      "n": 17915
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+      "n": 17877
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
+      "n": 17909
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+      "n": 17877
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
+      "n": 17909
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
+      "n": 17877
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
+      "n": 17909
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
+      "n": 17909
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
+      "n": 17877
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+      "n": 17909
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
+      "n": 17909
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
+      "n": 17904
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
+      "n": 17904
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
+      "n": 17909
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
+      "n": 17904
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
+      "n": 17904
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
+      "n": 17909
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
+      "n": 17904
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_shape__mom_mr__long__1d__atr1d5_hold10__nonovl__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_shape__mom_mr__long__1d__atr1d5_hold5__nonovl__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_shape__mom_mr__long__1d__atr2d5_hold10__nonovl__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_shape__mom_mr__long__1d__atr2d5_hold5__nonovl__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_shape__mom_mr__long__1d__atr4d0_hold10__nonovl__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "chan_shape__mom_mr__long__1d__atr4d0_hold5__nonovl__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__cci20_extreme_reversal_x_fib_382_bounce__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__cci20_extreme_reversal_x_four_pct_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__cci20_extreme_reversal_x_gap_exhaustion_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__cci20_extreme_reversal_x_hammer_hanging__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__donchian_2wk_break_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__donchian_2wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__donchian_2wk_fade_x_envelope_0d03_break__long__1d__atr6_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__donchian_2wk_fade_x_envelope_0d03_break__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__donchian_2wk_fade_x_envelope_0d05_break__long__1d__atr6_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__donchian_2wk_fade_x_kicking__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__donchian_4wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__donchian_4wk_fade_x_starc_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__donchian_8wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__donchian_8wk_fade_x_envelope_0d05_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__donchian_8wk_fade_x_starc_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__donchian_8wk_fade_x_willr14_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__ema_9_21_cross_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__ema_9_21_cross_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__envelope_0d03_fade_x_envelope_0d03_break__long__1d__atr6_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__envelope_0d03_fade_x_envelope_0d03_break__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__envelope_0d03_fade_x_ma_4_9_18_align__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__envelope_0d03_fade_x_starc_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__envelope_0d05_fade_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__envelope_0d05_fade_x_four_pct_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__envelope_0d05_fade_x_lwma21_cross__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__envelope_0d05_fade_x_starc_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__fib_382_bounce_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__four_pct_reversal_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__four_pct_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__four_pct_reversal_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__four_pct_reversal_x_hammer_hanging__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__hammer_hanging_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__hammer_hanging_x_envelope_0d05_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__harami_ma10_x_starc_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__harami_x_four_pct_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__harami_x_keltner_raschke_break__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__harami_x_starc_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__kicking_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__lunar_full_new_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__lunar_full_new_x_ema_9_21_cross__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__lunar_full_new_x_four_pct_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__lunar_full_new_x_kama_cross__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__lunar_full_new_x_kicking__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__lunar_full_new_x_volume_confirmed_breakout__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__lwma21_cross_x_hammer_hanging__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__ma_4_9_18_align_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__pnf_box1pct_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__pnf_box2pct_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__psar_flip_di_x_keltner_raschke_break__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__psar_flip_di_x_pnf_box2pct__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__psar_flip_x_keltner_raschke_break__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__psar_flip_x_pnf_box2pct__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__roc12_zero_cross_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__soldiers_crows_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__starc_fade_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__starc_fade_x_envelope_0d05_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__three_inside_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__vp_value_area_reject_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "combo__weekly_reversal_x_envelope_0d05_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__2wk_break__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__2wk_fade__long__1d__atr4_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__2wk_fade__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__2wk_fade__long__1d__atr6_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__2wk_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__4wk_break__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__4wk_fade__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__4wk_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__8wk_break__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__8wk_break__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__8wk_fade__long__1d__atr2d5_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__8wk_fade__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__8wk_fade__long__1d__atr6_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian__8wk_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "donchian_breakout__gc__long__1d__atrnone__v1",
+      "n": 117
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "dragonfly__base__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "dragonfly__base__long__1d__atr6_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "dragonfly__base__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "ema__9_21_cross__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "engulfing__base__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "engulfing__ma10__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d03_break__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d03_break__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d03_fade__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d03_fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d05_break__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d05_break__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d05_fade__long__1d__atr2d5_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d05_fade__long__1d__atr4_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d05_fade__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d05_fade__long__1d__atr6_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d05_fade__long__1h__atr2d5_h30__v1",
+      "n": 4827
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d05_fade__long__1h__atr4_h30__v1",
+      "n": 4827
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d05_fade__long__1h__atr6_h18__v1",
+      "n": 4827
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d05_fade__long__1h__atr6_h30__v1",
+      "n": 4843
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d05_fade_etf__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "envelope__0d05_fade_etf__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "fib__382_bounce__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "fib__382_bounce__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "fib__500_bounce__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "fib__618_bounce__long__1d__atr2d5_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "fib__618_bounce__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "fib__618_bounce__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "four__pct_reversal__long__1d__atr2d5_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "four__pct_reversal__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "four__pct_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "gap__exhaustion_fade__long__1d__atr2d5_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "gap__exhaustion_fade__long__1d__atr4_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "gap__exhaustion_fade__long__1d__atr6_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "gap__runaway__long__1d__atr2d5_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "gap__runaway__long__1d__atr2d5_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "gap__runaway__long__1d__atr4_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "gap__runaway__long__1d__atr4_h20__v1",
+      "n": 4368
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "gap__runaway__long__1d__atr6_h10__v1",
+      "n": 24
     },
     {
       "day": "2026-11-02",
@@ -13952,8 +14807,153 @@
     },
     {
       "day": "2026-11-02",
-      "tag": "minervini_vcp_livermore",
-      "n": 4832
+      "tag": "gaps__common_fade__long__1d__atr3_nb5__v1",
+      "n": 4343
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "gaps__exhaust_fade__long__1d__atr3_nb5__v1",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "hammer__hanging__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "harami__base__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "harami__base__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "harami__ma10__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "invhammer__shootstar__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "kama__cross__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "keltner__raschke_break__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "keltner__raschke_break__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "keltner__raschke_pullback__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "keltner_channel_breakout__ng__short__1d__atrnone__v1",
+      "n": 120
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "key__reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "kicking__base__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "kicking__base__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "longleg__trend__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "lwma21__cross__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "ma__4_9_18_align__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
+      "n": 4792
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "macddiv__line_any__long__1h__atr1d5_w5__nonovl__v2",
+      "n": 4792
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "macddiv__line_any__long__1h__atr2_w5__nonovl__v2",
+      "n": 4792
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
+      "n": 4848
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "main__bollinger_mean_reversion__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "main__bollinger_mean_reversion__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "main__macd_cross__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "main__macd_cross__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "main__rsi_reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "main__supertrend__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "main__supertrend__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "matching__low_high__long__1d__atr6_h20__v1",
+      "n": 24
     },
     {
       "day": "2026-11-02",
@@ -13967,143 +14967,43 @@
     },
     {
       "day": "2026-11-02",
-      "tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
-      "n": 4741
+      "tag": "minervini_vcp_livermore",
+      "n": 4832
     },
     {
       "day": "2026-11-02",
-      "tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
-      "n": 4426
+      "tag": "month__effect__short__15m__atr2d5_h25__v1",
+      "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1",
-      "n": 4344
+      "tag": "month__effect__short__15m__atr4_h25__v1",
+      "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "reversal__island_gap05__long__1d__atr1d5_within8__nonovl__v2",
-      "n": 4344
+      "tag": "month__effect__short__15m__atr6_h125__v1",
+      "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "reversal__island_gap05__long__1d__atr1d5_within8__segis__v2",
-      "n": 4344
+      "tag": "month__effect__short__15m__atr6_h25__v1",
+      "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2",
-      "n": 4344
+      "tag": "morning__evening_star__long__1d__atr6_h20__v1",
+      "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2",
-      "n": 4344
+      "tag": "obv__breakout__long__1d__atr4_h20__v1",
+      "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "reversal__island_none__long__1d__atr1d5_within8__nonovl__v2",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "reversal__island__long__1d__atr1d5_within8__v1",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "reversal__island_none__long__1d__atr1d5_within8__v1",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "reversal__island_px20__long__1d__atr1d5_within8__v1",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__v1",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "reversal__island_none__long__1d__atr1d5_within8__segis__v2",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "reversal__island_none__long__1d__atr1d5_within8__segoos__v2",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "reversal__island_px20__long__1d__atr1d5_within8__segis__v2",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "reversal__island_px20__long__1d__atr1d5_within8__segoos__v2",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__segis__v2",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "chan_shape__mom_mr__long__1d__atr4d0_hold10__nonovl__v2",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "chan_shape__mom_mr__long__1d__atr2d5_hold10__nonovl__v2",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "chan_shape__mom_mr__long__1d__atr1d5_hold10__nonovl__v2",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "chan_shape__mom_mr__long__1d__atr4d0_hold5__nonovl__v2",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "chan_shape__mom_mr__long__1d__atr2d5_hold5__nonovl__v2",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "chan_shape__mom_mr__long__1d__atr1d5_hold5__nonovl__v2",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "gap__runaway__long__1d__atr4_h20__v1",
-      "n": 4368
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "gaps__exhaust_fade__long__1d__atr3_nb5__v1",
-      "n": 4344
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "gaps__common_fade__long__1d__atr3_nb5__v1",
-      "n": 4343
+      "tag": "obv__breakout__long__1d__atr6_h20__v1",
+      "n": 24
     },
     {
       "day": "2026-11-02",
@@ -14122,382 +15022,12 @@
     },
     {
       "day": "2026-11-02",
-      "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1",
-      "n": 531
+      "tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "n": 4426
     },
     {
       "day": "2026-11-02",
-      "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1",
-      "n": 531
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1",
-      "n": 531
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1",
-      "n": 531
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__kicking_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__donchian_4wk_fade_x_starc_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__donchian_8wk_fade_x_starc_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__starc_fade_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__envelope_0d05_fade_x_starc_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__starc_fade_x_envelope_0d05_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__envelope_0d03_fade_x_starc_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__donchian_8wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__soldiers_crows_x_lunar_full_new__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade_etf__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__lunar_full_new_x_kicking__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__donchian_8wk_fade_x_willr14_extreme_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__lunar_full_new_x_four_pct_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "gap__runaway__long__1d__atr2d5_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__four_pct_reversal_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__lunar_full_new_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__four_pct_reversal_x_hammer_hanging__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__donchian_4wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "envelope__0d05_fade_etf__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__pnf_box1pct_x_lunar_full_new__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__hammer_hanging_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__harami_x_starc_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__harami_ma10_x_starc_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__pnf_box2pct_x_lunar_full_new__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "dragonfly__base__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__cci20_extreme_reversal_x_hammer_hanging__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__8wk_fade__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__donchian_2wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__envelope_0d05_fade_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__lwma21_cross_x_hammer_hanging__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__donchian_8wk_fade_x_envelope_0d05_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__lunar_full_new_x_kama_cross__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade_etf__long__1d__atr6_h5__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade__long__1d__atr2d5_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "base__cup_cheat_3c__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__envelope_0d03_fade_x_envelope_0d03_break__long__1d__atr6_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__donchian_2wk_fade_x_kicking__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__roc12_zero_cross_x_lunar_full_new__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__ema_9_21_cross_x_lunar_full_new__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__cci20_extreme_reversal_x_gap_exhaustion_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "dragonfly__base__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "gap__runaway__long__1d__atr6_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__ma_4_9_18_align_x_lunar_full_new__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade__long__1d__atr6_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__donchian_2wk_fade_x_envelope_0d05_break__long__1d__atr6_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__four_pct_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade_etf__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__donchian_2wk_fade_x_envelope_0d03_break__long__1d__atr6_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "pnf__box2pct__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "envelope__0d05_break__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "four__pct_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "vp__ema_poc_pullback__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__vp_value_area_reject_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade__long__1d__atr4_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__envelope_0d03_fade_x_envelope_0d03_break__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "belt__hold__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "envelope__0d05_fade__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "cci20__extreme_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "base__cup_handle__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__2wk_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "gap__runaway__long__1d__atr2d5_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "fib__382_bounce__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade_etf__long__1d__atr4_h5__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__psar_flip_x_keltner_raschke_break__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "gap__runaway__long__1d__atr4_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__hammer_hanging_x_envelope_0d05_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__lunar_full_new_x_ema_9_21_cross__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "kicking__base__long__1d__atr6_h20__v1",
+      "tag": "pnf__box1pct__long__1d__atr4_h20__v1",
       "n": 24
     },
     {
@@ -14507,467 +15037,27 @@
     },
     {
       "day": "2026-11-02",
-      "tag": "combo__envelope_0d03_fade_x_ma_4_9_18_align__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "keltner__raschke_break__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "vp__value_area_break__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "envelope__0d03_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__harami_x_keltner_raschke_break__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade__long__1d__atr2d5_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "envelope__0d03_break__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "obv__breakout__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "main__bollinger_mean_reversion__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade__long__1d__atr6_h5__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "base__cup_cheat_3c__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__donchian_2wk_fade_x_envelope_0d03_break__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "vp__ema_poc_pullback__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__8wk_break__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "harami__base__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "gap__exhaustion_fade__long__1d__atr6_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "fib__618_bounce__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade_etf__long__1d__atr2d5_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade__long__1d__atr4_h5__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__2wk_fade__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__8wk_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "main__supertrend__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__8wk_fade__long__1d__atr2d5_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "roc12__zero_cross__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "retrace__40_60_trend__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "four__pct_reversal__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "main__bollinger_mean_reversion__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__envelope_0d05_fade_x_four_pct_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "psar__flip__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "ma__4_9_18_align__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "soldiers__crows__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "three__outside__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "vp__poc_reversion__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "star__doji__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "envelope__0d05_break__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "envelope__0d05_fade__long__1d__atr6_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "belt__hold__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__4wk_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
       "tag": "pnf__box2pct__long__1d__atr4_h20__v1",
       "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "fib__382_bounce__long__1d__atr4_h20__v1",
+      "tag": "pnf__box2pct__long__1d__atr6_h20__v1",
       "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "envelope__0d03_fade__long__1d__atr4_h20__v1",
-      "n": 24
+      "tag": "power_play",
+      "n": 4848
     },
     {
       "day": "2026-11-02",
-      "tag": "support__resistance_bounce__long__1d__atr6_h20__v1",
-      "n": 24
+      "tag": "primary_base",
+      "n": 4848
     },
     {
       "day": "2026-11-02",
-      "tag": "ema__9_21_cross__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "pnf__box1pct__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "base__double_bottom_top__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__psar_flip_di_x_keltner_raschke_break__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "main__macd_cross__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "gap__exhaustion_fade__long__1d__atr4_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "cci20__extreme_reversal__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__four_pct_reversal_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__2wk_break__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "lwma21__cross__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__2wk_fade__long__1d__atr6_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "vp__lvn_rr2__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "envelope__0d05_fade__long__1d__atr2d5_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "envelope__0d05_fade__long__1d__atr4_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "kama__cross__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "hammer__hanging__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "invhammer__shootstar__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "keltner__raschke_break__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "envelope__0d05_fade_etf__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__psar_flip_x_pnf_box2pct__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__cci20_extreme_reversal_x_fib_382_bounce__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "three__methods__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__4wk_break__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "vp__value_area_break__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__three_inside_x_lunar_full_new__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__cci20_extreme_reversal_x_four_pct_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "base__cup_handle__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "harami__base__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "engulfing__ma10__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "key__reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "keltner__raschke_pullback__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__ema_9_21_cross_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__8wk_break__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "harami__ma10__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__envelope_0d05_fade_x_lwma21_cross__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "engulfing__base__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "envelope__0d03_break__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "starc__fade__long__1d__atr2d5_h5__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__lunar_full_new_x_volume_confirmed_breakout__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "gap__exhaustion_fade__long__1d__atr2d5_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "obv__breakout__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "vp__poc_reversion__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "fib__618_bounce__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "vp__ema_poc_pullback__long__1d__atr2d5_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "weekly__reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "three__inside__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__4wk_fade__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "roc12__zero_cross__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "kicking__base__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "fib__500_bounce__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "breakout__pullback__long__1d__atr6_h20__v1",
+      "tag": "psar__flip__long__1d__atr6_h20__v1",
       "n": 24
     },
     {
@@ -14977,187 +15067,112 @@
     },
     {
       "day": "2026-11-02",
-      "tag": "combo__harami_x_four_pct_reversal__long__1d__atr6_h20__v1",
+      "tag": "retrace__40_60_trend__long__1d__atr6_h20__v1",
       "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "starc__fade_etf__long__1d__atr2d5_h5__v1",
+      "tag": "reversal__island__long__1d__atr1d5_within8__v1",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_gap05__long__1d__atr1d5_within8__nonovl__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_gap05__long__1d__atr1d5_within8__segis__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_none__long__1d__atr1d5_within8__nonovl__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_none__long__1d__atr1d5_within8__segis__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_none__long__1d__atr1d5_within8__segoos__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_none__long__1d__atr1d5_within8__v1",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_px20__long__1d__atr1d5_within8__segis__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_px20__long__1d__atr1d5_within8__segoos__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_px20__long__1d__atr1d5_within8__v1",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__segis__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__v1",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "roc12__zero_cross__long__1d__atr4_h20__v1",
       "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "morning__evening_star__long__1d__atr6_h20__v1",
+      "tag": "roc12__zero_cross__long__1d__atr6_h20__v1",
       "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "volume__confirmed_breakout__long__1d__atr6_h20__v1",
-      "n": 24
+      "tag": "rsi_reversal__ng__long__1d__atrnone__v1",
+      "n": 119
     },
     {
       "day": "2026-11-02",
-      "tag": "fib__618_bounce__long__1d__atr2d5_h20__v1",
-      "n": 24
+      "tag": "rsi_reversal__ng__short__1d__atrnone__v1",
+      "n": 118
     },
     {
       "day": "2026-11-02",
-      "tag": "main__supertrend__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "soldiers__crows__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__weekly_reversal_x_envelope_0d05_fade__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__2wk_fade__long__1d__atr4_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "four__pct_reversal__long__1d__atr2d5_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "separating__lines__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "dragonfly__base__long__1d__atr6_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "longleg__trend__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "main__macd_cross__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__fib_382_bounce_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "main__rsi_reversal__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__psar_flip_di_x_pnf_box2pct__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "matching__low_high__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "donchian__8wk_fade__long__1d__atr6_h10__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "support__resistance_bounce__long__1d__atr4_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "vp__value_area_reject__long__1d__atr6_h20__v1",
-      "n": 24
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "combo__donchian_2wk_break_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
-      "n": 24
+      "tag": "rsi_reversal__si__long__1d__atrnone__v1",
+      "n": 117
     },
     {
       "day": "2026-11-02",
       "tag": "sector_rotation__fade__short__1d__atr1d5_h10_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr1d5_h5_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr4d0_h5_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr6d0_h5_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr6d0_h10_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr2d5_h5_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr1d5_h20_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr2d5_h10_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr4d0_h10_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr2d5_h20_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr4d0_h20_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr6d0_h20_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr6d0_h1_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr4d0_h1_l5_n1__v1",
-      "n": 48
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "sector_rotation__fade__short__1d__atr2d5_h1_l5_n1__v1",
       "n": 48
     },
     {
@@ -15167,67 +15182,202 @@
     },
     {
       "day": "2026-11-02",
-      "tag": "tasuki__gap_etf__short__1d__atr6_h3__v1",
+      "tag": "sector_rotation__fade__short__1d__atr1d5_h20_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__fade__short__1d__atr1d5_h5_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__fade__short__1d__atr2d5_h10_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__fade__short__1d__atr2d5_h1_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__fade__short__1d__atr2d5_h20_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__fade__short__1d__atr2d5_h5_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__fade__short__1d__atr4d0_h10_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__fade__short__1d__atr4d0_h1_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__fade__short__1d__atr4d0_h20_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__fade__short__1d__atr4d0_h5_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__fade__short__1d__atr6d0_h10_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__fade__short__1d__atr6d0_h1_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__fade__short__1d__atr6d0_h20_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__fade__short__1d__atr6d0_h5_l5_n1__v1",
+      "n": 48
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
       "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "tasuki__gap_etf__short__1d__atr4_h3__v1",
+      "tag": "separating__lines__long__1d__atr6_h20__v1",
       "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "tasuki__gap_etf__short__1d__atr2d5_h3__v1",
+      "tag": "sma_crossover__gc__long__1d__atrnone__v1",
+      "n": 120
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "soldiers__crows__long__1d__atr4_h20__v1",
       "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "brk20_min_rr__main_replay__short__1d__atr4_rr4__v1",
-      "n": 4848
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "brk20_min_rr__main_replay__short__1d__atr4_rr3d5__v1",
-      "n": 4848
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "brk20_min_rr__main_replay__short__1d__atr4_rr3__v1",
-      "n": 4848
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "brk20_min_rr__main_replay__short__1d__atr3_rr4__v1",
-      "n": 4848
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "brk20_min_rr__main_replay__short__1d__atr3_rr3d5__v1",
-      "n": 4848
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "brk20_min_rr__main_replay__short__1d__atr3_rr3__v1",
-      "n": 4848
-    },
-    {
-      "day": "2026-11-02",
-      "tag": "month__effect__short__15m__atr6_h25__v1",
+      "tag": "soldiers__crows__long__1d__atr6_h20__v1",
       "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "month__effect__short__15m__atr4_h25__v1",
+      "tag": "star__doji__long__1d__atr6_h20__v1",
       "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "month__effect__short__15m__atr2d5_h25__v1",
+      "tag": "starc__fade__long__1d__atr2d5_h10__v1",
       "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "month__effect__short__15m__atr6_h125__v1",
+      "tag": "starc__fade__long__1d__atr2d5_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade__long__1d__atr2d5_h5__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade__long__1d__atr4_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade__long__1d__atr4_h5__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade__long__1d__atr6_h10__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade__long__1d__atr6_h5__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade_etf__long__1d__atr2d5_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade_etf__long__1d__atr2d5_h5__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade_etf__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade_etf__long__1d__atr4_h5__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade_etf__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade_etf__long__1d__atr6_h5__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "n": 4344
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "supertrend__cl__long__1d__atrnone__v1",
+      "n": 119
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "supertrend__gc__long__1d__atrnone__v1",
+      "n": 120
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "support__resistance_bounce__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "support__resistance_bounce__long__1d__atr6_h20__v1",
       "n": 24
     },
     {
@@ -15242,264 +15392,1474 @@
     },
     {
       "day": "2026-11-02",
-      "tag": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
-      "n": 4717
+      "tag": "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1",
+      "n": 531
     },
     {
       "day": "2026-11-02",
-      "tag": "macddiv__line_any__long__1h__atr2_w5__nonovl__v2",
-      "n": 4661
+      "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1",
+      "n": 531
     },
     {
       "day": "2026-11-02",
-      "tag": "macddiv__line_any__long__1h__atr1d5_w5__nonovl__v2",
-      "n": 4661
+      "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1",
+      "n": 531
     },
     {
       "day": "2026-11-02",
-      "tag": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
-      "n": 4661
+      "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1",
+      "n": 531
     },
     {
       "day": "2026-11-02",
-      "tag": "envelope__0d05_fade__long__1h__atr6_h30__v1",
-      "n": 4712
+      "tag": "tasuki__gap_etf__short__1d__atr2d5_h3__v1",
+      "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "envelope__0d05_fade__long__1h__atr4_h30__v1",
-      "n": 4697
+      "tag": "tasuki__gap_etf__short__1d__atr4_h3__v1",
+      "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "envelope__0d05_fade__long__1h__atr2d5_h30__v1",
-      "n": 4697
+      "tag": "tasuki__gap_etf__short__1d__atr6_h3__v1",
+      "n": 24
     },
     {
       "day": "2026-11-02",
-      "tag": "envelope__0d05_fade__long__1h__atr6_h18__v1",
-      "n": 4697
+      "tag": "three__inside__long__1d__atr6_h20__v1",
+      "n": 24
     },
     {
       "day": "2026-11-02",
+      "tag": "three__methods__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "three__outside__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "volume__confirmed_breakout__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "n": 4741
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "vp__ema_poc_pullback__long__1d__atr2d5_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "vp__ema_poc_pullback__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "vp__ema_poc_pullback__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "vp__lvn_rr2__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "vp__poc_reversion__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "vp__poc_reversion__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "vp__value_area_break__long__1d__atr4_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "vp__value_area_break__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "vp__value_area_reject__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-02",
+      "tag": "weekly__reversal__long__1d__atr6_h20__v1",
+      "n": 24
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "base__cup_cheat_3c__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "base__cup_cheat_3c__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
       "tag": "base__cup_cheat_3c__long__1h__atr2d5_h30__v1",
-      "n": 4712
+      "n": 404
     },
     {
-      "day": "2026-11-02",
+      "day": "2026-11-03",
       "tag": "base__cup_cheat_3c__long__1h__atr6_h30__v1",
-      "n": 4712
+      "n": 404
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 17181
+      "day": "2026-11-03",
+      "tag": "base__cup_handle__long__1d__atr4_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 17181
+      "day": "2026-11-03",
+      "tag": "base__cup_handle__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 17181
+      "day": "2026-11-03",
+      "tag": "base__double_bottom_top__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 17181
+      "day": "2026-11-03",
+      "tag": "belt__hold__long__1d__atr4_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 17181
+      "day": "2026-11-03",
+      "tag": "belt__hold__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band__long__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 17181
+      "day": "2026-11-03",
+      "tag": "breakout__pullback__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band__long__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 17181
+      "day": "2026-11-03",
+      "tag": "brk20_min_rr__main_replay__long__1d__atr4_rr4__v1",
+      "n": 394
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 17181
+      "day": "2026-11-03",
+      "tag": "brk20_min_rr__main_replay__short__1d__atr3_rr3__v1",
+      "n": 404
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band__long__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 17181
+      "day": "2026-11-03",
+      "tag": "brk20_min_rr__main_replay__short__1d__atr3_rr3d5__v1",
+      "n": 404
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 17175
+      "day": "2026-11-03",
+      "tag": "brk20_min_rr__main_replay__short__1d__atr3_rr4__v1",
+      "n": 404
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 17175
+      "day": "2026-11-03",
+      "tag": "brk20_min_rr__main_replay__short__1d__atr4_rr3__v1",
+      "n": 404
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 17175
+      "day": "2026-11-03",
+      "tag": "brk20_min_rr__main_replay__short__1d__atr4_rr3d5__v1",
+      "n": 404
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 17175
+      "day": "2026-11-03",
+      "tag": "brk20_min_rr__main_replay__short__1d__atr4_rr4__v1",
+      "n": 404
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 17170
+      "day": "2026-11-03",
+      "tag": "cci20__extreme_reversal__long__1d__atr4_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 17170
+      "day": "2026-11-03",
+      "tag": "cci20__extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__5m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 17170
+      "day": "2026-11-03",
+      "tag": "chan_shape__mom_mr__long__1d__atr1d5_hold10__nonovl__v2",
+      "n": 394
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__5m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 17170
+      "day": "2026-11-03",
+      "tag": "chan_shape__mom_mr__long__1d__atr1d5_hold5__nonovl__v2",
+      "n": 394
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__5m__atr1d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 17170
+      "day": "2026-11-03",
+      "tag": "chan_shape__mom_mr__long__1d__atr2d5_hold10__nonovl__v2",
+      "n": 394
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 17175
+      "day": "2026-11-03",
+      "tag": "chan_shape__mom_mr__long__1d__atr2d5_hold5__nonovl__v2",
+      "n": 394
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 17175
+      "day": "2026-11-03",
+      "tag": "chan_shape__mom_mr__long__1d__atr4d0_hold10__nonovl__v2",
+      "n": 394
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z2d0_fl1515__v2",
-      "n": 17175
+      "day": "2026-11-03",
+      "tag": "chan_shape__mom_mr__long__1d__atr4d0_hold5__nonovl__v2",
+      "n": 394
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 17175
+      "day": "2026-11-03",
+      "tag": "combo__cci20_extreme_reversal_x_fib_382_bounce__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 17143
+      "day": "2026-11-03",
+      "tag": "combo__cci20_extreme_reversal_x_four_pct_reversal__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__15m__atr1d5_hold40_ve10d0e4_z1d0_fl1515__v2",
-      "n": 17143
+      "day": "2026-11-03",
+      "tag": "combo__cci20_extreme_reversal_x_gap_exhaustion_fade__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__15m__atr4d0_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 17143
+      "day": "2026-11-03",
+      "tag": "combo__cci20_extreme_reversal_x_hammer_hanging__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_kalman__band_mr__short__15m__atr2d5_hold40_ve1d0e4_z2d0_fl1515__v2",
-      "n": 17143
+      "day": "2026-11-03",
+      "tag": "combo__donchian_2wk_break_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "supertrend__gc__long__1d__atrnone__v1",
-      "n": 44
+      "day": "2026-11-03",
+      "tag": "combo__donchian_2wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "sma_crossover__gc__long__1d__atrnone__v1",
-      "n": 44
+      "day": "2026-11-03",
+      "tag": "combo__donchian_2wk_fade_x_envelope_0d03_break__long__1d__atr6_h10__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "keltner_channel_breakout__ng__short__1d__atrnone__v1",
-      "n": 44
+      "day": "2026-11-03",
+      "tag": "combo__donchian_2wk_fade_x_envelope_0d03_break__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "bollinger_mean_reversion__si__long__1d__atrnone__v1",
-      "n": 44
+      "day": "2026-11-03",
+      "tag": "combo__donchian_2wk_fade_x_envelope_0d05_break__long__1d__atr6_h10__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "supertrend__cl__long__1d__atrnone__v1",
-      "n": 44
+      "day": "2026-11-03",
+      "tag": "combo__donchian_2wk_fade_x_kicking__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "rsi_reversal__ng__long__1d__atrnone__v1",
-      "n": 44
+      "day": "2026-11-03",
+      "tag": "combo__donchian_4wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_gap__short_on_gap__short__1d__atr1d5_top10__v1",
-      "n": 1
+      "day": "2026-11-03",
+      "tag": "combo__donchian_4wk_fade_x_starc_fade__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "bollinger_mean_reversion__ng__short__1d__atrnone__v1",
-      "n": 43
+      "day": "2026-11-03",
+      "tag": "combo__donchian_8wk_fade_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "rsi_reversal__ng__short__1d__atrnone__v1",
-      "n": 43
+      "day": "2026-11-03",
+      "tag": "combo__donchian_8wk_fade_x_envelope_0d05_fade__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "donchian_breakout__gc__long__1d__atrnone__v1",
-      "n": 43
+      "day": "2026-11-03",
+      "tag": "combo__donchian_8wk_fade_x_starc_fade__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_gap__buy_on_gap__long__1d__atr4d0_top10__v1",
-      "n": 2075
+      "day": "2026-11-03",
+      "tag": "combo__donchian_8wk_fade_x_willr14_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_gap__buy_on_gap__long__1d__atr4d0cap5_top10__v1",
-      "n": 2075
+      "day": "2026-11-03",
+      "tag": "combo__ema_9_21_cross_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_gap__buy_on_gap__long__1d__atr2d5_top10__v1",
-      "n": 2075
+      "day": "2026-11-03",
+      "tag": "combo__ema_9_21_cross_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_gap__buy_on_gap__long__1d__atr1d5_top10__v1",
-      "n": 2075
+      "day": "2026-11-03",
+      "tag": "combo__envelope_0d03_fade_x_envelope_0d03_break__long__1d__atr6_h10__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "chan_gap__buy_on_gap__long__1d__fit5_top10__v1",
-      "n": 2075
+      "day": "2026-11-03",
+      "tag": "combo__envelope_0d03_fade_x_envelope_0d03_break__long__1d__atr6_h20__v1",
+      "n": 2
     },
     {
-      "day": "2026-11-02",
-      "tag": "rsi_reversal__si__long__1d__atrnone__v1",
-      "n": 43
+      "day": "2026-11-03",
+      "tag": "combo__envelope_0d03_fade_x_ma_4_9_18_align__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__envelope_0d03_fade_x_starc_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__envelope_0d05_fade_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__envelope_0d05_fade_x_four_pct_reversal__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__envelope_0d05_fade_x_lwma21_cross__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__envelope_0d05_fade_x_starc_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__fib_382_bounce_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__four_pct_reversal_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__four_pct_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__four_pct_reversal_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__four_pct_reversal_x_hammer_hanging__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__hammer_hanging_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__hammer_hanging_x_envelope_0d05_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__harami_ma10_x_starc_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__harami_x_four_pct_reversal__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__harami_x_keltner_raschke_break__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__harami_x_starc_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__kicking_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__lunar_full_new_x_cci20_extreme_reversal__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__lunar_full_new_x_ema_9_21_cross__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__lunar_full_new_x_four_pct_reversal__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__lunar_full_new_x_kama_cross__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__lunar_full_new_x_kicking__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__lunar_full_new_x_volume_confirmed_breakout__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__lwma21_cross_x_hammer_hanging__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__ma_4_9_18_align_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__pnf_box1pct_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__pnf_box2pct_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__psar_flip_di_x_keltner_raschke_break__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__psar_flip_di_x_pnf_box2pct__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__psar_flip_x_keltner_raschke_break__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__psar_flip_x_pnf_box2pct__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__roc12_zero_cross_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__soldiers_crows_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__starc_fade_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__starc_fade_x_envelope_0d05_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__three_inside_x_lunar_full_new__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__vp_value_area_reject_x_donchian_8wk_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__weekly_reversal_x_donchian_2wk_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "combo__weekly_reversal_x_envelope_0d05_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__2wk_break__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__2wk_fade__long__1d__atr4_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__2wk_fade__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__2wk_fade__long__1d__atr6_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__2wk_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__4wk_break__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__4wk_fade__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__4wk_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__8wk_break__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__8wk_break__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__8wk_fade__long__1d__atr2d5_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__8wk_fade__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__8wk_fade__long__1d__atr6_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "donchian__8wk_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "dragonfly__base__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "dragonfly__base__long__1d__atr6_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "dragonfly__base__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "ema__9_21_cross__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "engulfing__base__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "engulfing__ma10__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d03_break__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d03_break__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d03_fade__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d03_fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d05_break__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d05_break__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d05_fade__long__1d__atr2d5_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d05_fade__long__1d__atr4_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d05_fade__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d05_fade__long__1d__atr6_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d05_fade__long__1h__atr2d5_h30__v1",
+      "n": 402
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d05_fade__long__1h__atr4_h30__v1",
+      "n": 402
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d05_fade__long__1h__atr6_h18__v1",
+      "n": 402
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d05_fade__long__1h__atr6_h30__v1",
+      "n": 404
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d05_fade_etf__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "envelope__0d05_fade_etf__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "fib__382_bounce__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "fib__382_bounce__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "fib__500_bounce__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "fib__618_bounce__long__1d__atr2d5_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "fib__618_bounce__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "fib__618_bounce__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "four__pct_reversal__long__1d__atr2d5_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "four__pct_reversal__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "four__pct_reversal__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "gap__exhaustion_fade__long__1d__atr2d5_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "gap__exhaustion_fade__long__1d__atr4_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "gap__exhaustion_fade__long__1d__atr6_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "gap__runaway__long__1d__atr2d5_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "gap__runaway__long__1d__atr2d5_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "gap__runaway__long__1d__atr4_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "gap__runaway__long__1d__atr4_h20__v1",
+      "n": 396
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "gap__runaway__long__1d__atr6_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "gap_and_go",
+      "n": 398
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "gap_and_go__exitexhaust__long__1d__atr2d5_hold30_rsbandfloor_trail6d0_xroc__v2",
+      "n": 398
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "gaps__common_fade__long__1d__atr3_nb5__v1",
+      "n": 392
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "gaps__exhaust_fade__long__1d__atr3_nb5__v1",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "hammer__hanging__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "harami__base__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "harami__base__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "harami__ma10__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "invhammer__shootstar__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "kama__cross__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "keltner__raschke_break__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "keltner__raschke_break__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "keltner__raschke_pullback__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "key__reversal__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "kicking__base__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "kicking__base__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "longleg__trend__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "lwma21__cross__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "ma__4_9_18_align__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "macddiv__hist_any__long__1h__atr3_w5__nonovl__v2",
+      "n": 404
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "macddiv__line_any__long__1h__atr1d5_w5__nonovl__v2",
+      "n": 404
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "macddiv__line_any__long__1h__atr2_w5__nonovl__v2",
+      "n": 404
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
+      "n": 404
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "main__bollinger_mean_reversion__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "main__bollinger_mean_reversion__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "main__macd_cross__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "main__macd_cross__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "main__rsi_reversal__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "main__supertrend__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "main__supertrend__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "matching__low_high__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "minervini_vcp",
+      "n": 396
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "minervini_vcp_be3r",
+      "n": 396
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "minervini_vcp_livermore",
+      "n": 398
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "month__effect__short__15m__atr2d5_h25__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "month__effect__short__15m__atr4_h25__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "month__effect__short__15m__atr6_h125__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "month__effect__short__15m__atr6_h25__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "morning__evening_star__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "obv__breakout__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "obv__breakout__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "oneil_flatbase__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "oneil_newhigh__first__long__1w__atr3_h26_rsnone__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "oneil_pivot__breakout__long__1w__atr3_chase10_h26_rsnone__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "n": 396
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "pnf__box1pct__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "pnf__box1pct__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "pnf__box2pct__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "pnf__box2pct__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "power_play",
+      "n": 404
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "primary_base",
+      "n": 404
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "psar__flip__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "retrace__40_60_trend__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "retrace__40_60_trend__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island__long__1d__atr1d5_within8__v1",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_gap05__long__1d__atr1d5_within8__nonovl__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_gap05__long__1d__atr1d5_within8__segis__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_none__long__1d__atr1d5_within8__nonovl__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_none__long__1d__atr1d5_within8__segis__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_none__long__1d__atr1d5_within8__segoos__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_none__long__1d__atr1d5_within8__v1",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_px20__long__1d__atr1d5_within8__nonovl__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_px20__long__1d__atr1d5_within8__segis__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_px20__long__1d__atr1d5_within8__segoos__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_px20__long__1d__atr1d5_within8__v1",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__nonovl__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__segis__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__segoos__v2",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "reversal__island_turn1cr__long__1d__atr1d5_within8__v1",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "roc12__zero_cross__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "roc12__zero_cross__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr1d5_h10_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr1d5_h1_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr1d5_h20_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr1d5_h5_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr2d5_h10_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr2d5_h1_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr2d5_h20_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr2d5_h5_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr4d0_h10_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr4d0_h1_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr4d0_h20_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr4d0_h5_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr6d0_h10_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr6d0_h1_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr6d0_h20_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__fade__short__1d__atr6d0_h5_l5_n1__v1",
+      "n": 4
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "sector_rotation__momentum_n200__long__1d__atr6d0_h20_l1_n5__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "separating__lines__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "soldiers__crows__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "soldiers__crows__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "star__doji__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade__long__1d__atr2d5_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade__long__1d__atr2d5_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade__long__1d__atr2d5_h5__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade__long__1d__atr4_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade__long__1d__atr4_h5__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade__long__1d__atr6_h10__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade__long__1d__atr6_h5__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade_etf__long__1d__atr2d5_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade_etf__long__1d__atr2d5_h5__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade_etf__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade_etf__long__1d__atr4_h5__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade_etf__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade_etf__long__1d__atr6_h5__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "starc__fade_full__long__1d__atr2d5_h20__v1",
+      "n": 394
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "support__resistance_bounce__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "support__resistance_bounce__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "swingminrr__brk20_gate__short__1h__atr3_rr4__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "swingminrr__brk20_gatetarget__short__1h__atr3_rr4__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "swingminrr__minervini_vcp_base__long__1d__atr1d5__v1",
+      "n": 46
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr2__v1",
+      "n": 46
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr3__v1",
+      "n": 46
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "swingminrr__minervini_vcp_gate__long__1d__atr1d5_rr4__v1",
+      "n": 46
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "tasuki__gap_etf__short__1d__atr2d5_h3__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "tasuki__gap_etf__short__1d__atr4_h3__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "tasuki__gap_etf__short__1d__atr6_h3__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "three__inside__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "three__methods__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "three__outside__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "volume__confirmed_breakout__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "volume_profile_poc__exitinval__long__1d__atr6d0_hold30_sigema13w__v1",
+      "n": 396
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "vp__ema_poc_pullback__long__1d__atr2d5_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "vp__ema_poc_pullback__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "vp__ema_poc_pullback__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "vp__lvn_rr2__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "vp__poc_reversion__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "vp__poc_reversion__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "vp__value_area_break__long__1d__atr4_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "vp__value_area_break__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "vp__value_area_reject__long__1d__atr6_h20__v1",
+      "n": 2
+    },
+    {
+      "day": "2026-11-03",
+      "tag": "weekly__reversal__long__1d__atr6_h20__v1",
+      "n": 2
     }
   ],
-  "synced_at_utc": "2026-11-02T10:13:37Z"
+  "synced_at_utc": "2026-11-02T20:22:08Z"
 }
