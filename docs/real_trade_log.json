@@ -11111,5 +11111,21 @@
     "detail": null,
     "raw_response": null,
     "strategy": "order_block_delta__exitinval__long__1d__atr6d0_hold30_sigema13w__v1"
+  },
+  {
+    "id": 1,
+    "ts": 1793633915.9321141,
+    "day": "2026-11-02",
+    "symbol": "__reconciled__",
+    "kotak_trading_symbol": null,
+    "side": "B",
+    "qty": null,
+    "price_est": null,
+    "notional_inr": 3911.92,
+    "status": "confirmed",
+    "order_id": null,
+    "detail": "restored today's already-spent Rs3911.92 from journal after a restart",
+    "raw_response": null,
+    "strategy": null
   }
 ]
