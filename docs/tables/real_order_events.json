@@ -15791,7 +15791,19 @@
    "prev_state": "no position",
    "new_state": "long 4 @ Rs287.15",
    "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 1317,
+   "ts": 1793606594.1528938,
+   "symbol": "RECLTD.NS",
+   "kotak_trading_symbol": "RECLTD-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261102000495447",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs279.25",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-02T08:03:00Z"
+ "synced_at_utc": "2026-11-02T08:03:19Z"
 }
