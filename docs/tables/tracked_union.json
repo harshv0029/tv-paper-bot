@@ -33,6 +33,22 @@
    "symbol": "IOC.NS"
   },
   {
+   "day": "2026-11-02",
+   "entry_order_id": "261102000488589",
+   "entry_price": 450.75,
+   "first_seen_day": "2026-11-02",
+   "is_short": 0,
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "opened_at": 1793606328.411552,
+   "owner": "swing",
+   "qty": 4,
+   "sl_trigger_price": 440.2,
+   "source": "position",
+   "stop_loss": 440.21311188083456,
+   "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
+   "symbol": "IRCTC.NS"
+  },
+  {
    "day": "2026-10-08",
    "entry_order_id": "261008000123602",
    "entry_price": 172.65,
