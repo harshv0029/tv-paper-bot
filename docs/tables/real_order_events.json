@@ -16103,7 +16103,19 @@
    "prev_state": "none (retry)",
    "new_state": "none (placement failed again)",
    "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261102000657483 rejected: OMS: Trading session is in Transition to CAS session"
+  },
+  {
+   "id": 1343,
+   "ts": 1793612970.5192084,
+   "symbol": "BANKINDIA.NS",
+   "kotak_trading_symbol": "BANKINDIA-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none (retry)",
+   "new_state": "none (placement failed again)",
+   "detail": "reason: swing stop-loss placement failed (e.g. market closed); retried every 5 minutes | order 261102000658089 rejected: OMS: Trading session is in Transition to CAS session"
   }
  ],
- "synced_at_utc": "2026-11-02T09:48:59Z"
+ "synced_at_utc": "2026-11-02T09:49:34Z"
 }
