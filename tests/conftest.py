@@ -204,3 +204,19 @@ def pytest_sessionfinish(session, exitstatus):
             except OSError:
                 pass
     _B1421_CREATED.clear()
+
+
+@pytest.fixture(autouse=True)
+def _cas_session_gate_off_by_default(monkeypatch):
+    """B-1444: SL (re)placement is skipped 15:15-09:15 IST (Kotak rejects SL/SL-M in the CAS session). That is
+    wall-clock dependent, so tests see an open session unless they patch the gate themselves (a test's own
+    monkeypatch runs after this and wins). Explicit-time calls of _exchange_purge_window still hit the real logic."""
+    import kotak_real_orders as _kro
+    monkeypatch.setattr(_kro, "_in_closing_session", lambda: False)
+    try:
+        import main
+    except Exception:
+        return
+    _orig = main._exchange_purge_window
+    monkeypatch.setattr(main, "_exchange_purge_window",
+                        lambda now_ist=None: _orig(now_ist) if now_ist is not None else False)
