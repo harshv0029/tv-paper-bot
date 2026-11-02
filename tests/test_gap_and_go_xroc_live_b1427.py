@@ -203,6 +203,6 @@ def test_scan_exit_dispatch_old_tag_unaffected_new_tag_exitfamily(monkeypatch):
 
 
 def test_dashboard_rules_hold_spec_and_time_limit():
-    assert main._sl_kind("swing", TAG) == "trail"
+    assert main._sl_kind("swing", TAG) == "Trail"
     assert main._strategy_hold_spec(TAG) == (30, "1d")
     assert main._swing_time_limit_calendar_days(TAG) == main._swing_time_limit_calendar_days("gap_and_go")
