@@ -15731,7 +15731,31 @@
    "prev_state": "short 3",
    "new_state": "cancel resting SL, then market BUY-to-cover to be sent to Kotak",
    "detail": "reason: short paper exit: exited_short_flatten_1515"
+  },
+  {
+   "id": 1312,
+   "ts": 1793591451.39552,
+   "symbol": "RELIANCE.NS",
+   "kotak_trading_symbol": "RELIANCE-EQ",
+   "leg": "sl",
+   "event": "cancelled",
+   "order_id": "261102000035573",
+   "prev_state": "resting @ Rs1249.9",
+   "new_state": "cancelled (position covering)",
+   "detail": "reason: short paper exit: exited_short_flatten_1515"
+  },
+  {
+   "id": 1313,
+   "ts": 1793591459.622786,
+   "symbol": "RELIANCE.NS",
+   "kotak_trading_symbol": "RELIANCE-EQ",
+   "leg": "short_cover",
+   "event": "confirmed",
+   "order_id": "261102000042981",
+   "prev_state": "short 3",
+   "new_state": "no position",
+   "detail": "reason: short paper exit: exited_short_flatten_1515"
   }
  ],
- "synced_at_utc": "2026-11-02T03:50:51Z"
+ "synced_at_utc": "2026-11-02T03:51:04Z"
 }
