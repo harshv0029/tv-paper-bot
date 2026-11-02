@@ -15767,7 +15767,19 @@
    "prev_state": "no position",
    "new_state": "long 4 @ Rs450.75",
    "detail": "reason: swing entry signal from strategy macddiv__line_any__long__1h__atr3_w5__nonovl__v2 passed the PFnet gate"
+  },
+  {
+   "id": 1315,
+   "ts": 1793606344.4057536,
+   "symbol": "IRCTC.NS",
+   "kotak_trading_symbol": "IRCTC-EQ",
+   "leg": "sl",
+   "event": "placed",
+   "order_id": "261102000488937",
+   "prev_state": "none",
+   "new_state": "resting SELL trigger Rs440.20",
+   "detail": "reason: resting stop-loss placed so the open position is protected"
   }
  ],
- "synced_at_utc": "2026-11-02T07:58:52Z"
+ "synced_at_utc": "2026-11-02T07:59:08Z"
 }
