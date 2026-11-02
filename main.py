@@ -27919,6 +27919,8 @@ async def _start_scheduler():
         _BACKGROUND_THREADS_STARTED = True
         threading.Thread(target=_git_tier_push_loop, name="git-tier-push", daemon=True).start()  # B-1349
         threading.Thread(target=_unprotected_backcheck_loop, name="unprotected-backcheck", daemon=True).start()  # B-1354
+        if not os.environ.get("PYTEST_CURRENT_TEST"):
+            threading.Thread(target=_open_protect_loop, name="open-protect", daemon=True).start()  # B-1363
         if not os.environ.get("PYTEST_CURRENT_TEST"):  # the heartbeat stops with each test app, so it would alarm
             global _loop_heartbeat_ts
             _loop_heartbeat_ts = time.time()  # B-1361: the stamp dates from import; startup hydration made it look like a freeze
@@ -32013,6 +32015,214 @@ def _unprotected_backcheck_next_sleep(now_ist=None) -> float:
     return base
 
 
+# B-1363 (2026-11-02, user: every overnight holding's SL must rest at Kotak BEFORE 09:16 IST). Evidence from the
+# order log (state-sync docs/tables/real_order_events.json): even with the 09:15:01 wake, 28-Oct placed BANKINDIA
+# 09:15:31, UNIONBANK 09:15:49, WIPRO 09:16:00, NHPC 09:16:11, SUZLON 09:16:29 (29-Oct SUZLON 09:16:17, 30-Oct
+# 09:16:09). Three causes: (1) the SLs came from the swing governance-backfill loop deep inside
+# _reconcile_real_positions_core, ~30 s of positions/holdings/align/unlogged-order work after the wake; (2) that loop
+# was serial; (3) each placement did 3-4 full TOTP logins (~12-14 s per SL). This dedicated thread arms at 09:14:55
+# IST (one login, pinned for the window; holdings and the swing rows/stops read in advance), fires at 09:15:00.5
+# with ONE fresh order book read, places every missing SL in parallel, and retries every 3 s until all are covered
+# or 09:20. The 5-min reconcile still runs after it as the second layer (ensure_resting_sl adopts what this placed).
+_OPEN_PROTECT_ARM_HMS = (9, 14, 55)
+_OPEN_PROTECT_FIRE_HMS = (9, 15, 0, 500_000)  # the exchange rejects SL orders before the 09:15:00 open
+_OPEN_PROTECT_GIVE_UP_HMS = (9, 20, 0)
+_OPEN_PROTECT_RETRY_SECONDS = 3
+_OPEN_PROTECT_PIN_SECONDS = 150
+_OPEN_PROTECT_MAX_WORKERS = 8
+_open_protect_last: dict = {}
+
+
+def _ist_now_aware() -> dt.datetime:
+    return dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30)))
+
+
+def _open_protect_next_arm(now_ist: dt.datetime) -> dt.datetime:
+    """When the open-protect pass should next start. Today 09:14:55 IST if that is still ahead on a weekday; NOW if
+    a restart lands inside 09:14:55-09:20 on a weekday (protect immediately, never wait a day); else the next
+    weekday's 09:14:55."""
+    arm = now_ist.replace(hour=_OPEN_PROTECT_ARM_HMS[0], minute=_OPEN_PROTECT_ARM_HMS[1],
+                          second=_OPEN_PROTECT_ARM_HMS[2], microsecond=0)
+    give_up = now_ist.replace(hour=_OPEN_PROTECT_GIVE_UP_HMS[0], minute=_OPEN_PROTECT_GIVE_UP_HMS[1],
+                              second=_OPEN_PROTECT_GIVE_UP_HMS[2], microsecond=0)
+    if now_ist.weekday() < 5:
+        if now_ist < arm:
+            return arm
+        if now_ist < give_up:
+            return now_ist
+    nxt = arm + dt.timedelta(days=1)
+    while nxt.weekday() >= 5:
+        nxt += dt.timedelta(days=1)
+    return nxt
+
+
+def _open_protect_fire_at(day_ist: dt.datetime) -> dt.datetime:
+    h, m, s, us = _OPEN_PROTECT_FIRE_HMS
+    return day_ist.replace(hour=h, minute=m, second=s, microsecond=us)
+
+
+def _open_protect_prearm() -> dict:
+    """09:14:55 IST: everything that does not need the open. One Kotak login pinned for the window, holdings
+    (governance step 1), and each swing row's floored stop. The order book (step 2) is read fresh at fire time."""
+    import kotak_neo
+    try:
+        kotak_neo.pin_order_session(kotak_neo.login(), _OPEN_PROTECT_PIN_SECONDS)
+    except Exception as e:  # noqa: BLE001 - placements then log in on their own, slower but still protected
+        print(f"[open_protect] pre-arm login failed (placements will log in themselves): {e}")
+    holdings = _kotak_holdings_open_by_trdsym()
+    rows = []
+    with closing(get_db()) as conn:
+        for r in conn.execute("SELECT * FROM real_positions_swing WHERE qty > 0").fetchall():
+            try:
+                stop = _swing_stop_floored(conn, r["symbol"], r["stop_loss"])
+            except Exception:  # noqa: BLE001
+                stop = r["stop_loss"]
+            rows.append({"symbol": r["symbol"], "kotak_trading_symbol": r["kotak_trading_symbol"],
+                         "qty": int(r["qty"]), "stop": stop})
+    return {"holdings": holdings, "rows": rows}
+
+
+def _open_protect_pending(plan: dict, order_rows: list) -> list:
+    """What still needs an SL: tracked swing rows (when holdings were readable, only those Kotak still holds) and
+    untracked holdings, minus anything a live SELL SL already covers in the fresh order book."""
+    holdings = plan.get("holdings")
+    rows = [r for r in plan.get("rows") or [] if r.get("stop")
+            and (holdings is None or r["kotak_trading_symbol"] in holdings)]
+    tracked = {r["kotak_trading_symbol"] for r in rows}
+    want = {r["kotak_trading_symbol"]: {"qty": r["qty"], "is_short": False} for r in rows}
+    for trd, h in (holdings or {}).items():
+        if trd not in want:
+            want[trd] = {"qty": h["qty"], "is_short": False}
+    naked = {u["kotak_trading_symbol"] for u in _find_unprotected_open_positions(want, order_rows)}
+    out = [dict(r, kind="swing_row") for r in rows if r["kotak_trading_symbol"] in naked]
+    out += [{"kind": "holding", "kotak_trading_symbol": trd, "held": holdings[trd]}
+            for trd in sorted(naked) if trd not in tracked and holdings and trd in holdings]
+    return out
+
+
+def _open_protect_place_one(item: dict, order_rows: list) -> dict:
+    import kotak_real_orders
+    try:
+        if item["kind"] == "swing_row":
+            return {"item": item, "res": kotak_real_orders.ensure_resting_sl(
+                item["kotak_trading_symbol"], item["qty"], item["stop"])}
+        return {"item": item, "heal": _heal_swing_holding_core(item["kotak_trading_symbol"], item["held"], order_rows)}
+    except Exception as e:  # noqa: BLE001
+        return {"item": item, "res": {"ok": False, "detail": f"placement raised: {e}"}}
+
+
+def _open_protect_place(plan: dict) -> dict:
+    """09:15:00.5 IST: one fresh order book read, then every missing SL in parallel (the per-symbol lock inside
+    ensure_resting_sl and its recent-placement memory stop a duplicate with the 5-min reconcile). DB writes and the
+    reasoned order-log lines are serial, on this thread."""
+    import kotak_neo
+    rep = kotak_neo.order_report()
+    order_rows = rep.get("data") if isinstance(rep, dict) else None
+    if not isinstance(order_rows, list):
+        return {"ok": False, "error": "order_report unreadable", "pending": None}
+    pending = _open_protect_pending(plan, order_rows)
+    results = []
+    if pending:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(_OPEN_PROTECT_MAX_WORKERS, len(pending))) as pool:
+            results = list(pool.map(lambda it: _open_protect_place_one(it, order_rows), pending))
+    failed = []
+    with closing(get_db()) as conn:
+        for out in results:
+            it = out["item"]
+            if it["kind"] == "holding":
+                h = out.get("heal") or {}
+                if not h.get("sl_ok") and "already_protected" not in str(h.get("status") or ""):
+                    failed.append(it["kotak_trading_symbol"])
+                continue
+            res = out.get("res") or {}
+            if res.get("ok"):
+                conn.execute("UPDATE real_positions_swing SET sl_order_id = ?, sl_trigger_price = ? WHERE symbol = ?",
+                             (res.get("order_id"), res.get("trigger_price"), it["symbol"]))
+                _log_swing_ensure_sl_result(conn, it["symbol"], it["kotak_trading_symbol"], res, it["stop"],
+                                            "09:15 IST open protect-first pass: overnight holding had no resting "
+                                            "stop-loss (the exchange cancels every resting order at 15:15 IST)")
+            else:
+                failed.append(it["kotak_trading_symbol"])
+                _log_real_order_event(conn, it["symbol"], "sl", "failed", kotak_trading_symbol=it["kotak_trading_symbol"],
+                                      prev_state="none", new_state="none (placement failed)",
+                                      detail=f"reason: 09:15 IST open protect-first pass; {res.get('detail')}")
+                _flag_if_t1_restricted(conn, it["symbol"], res.get("detail"))
+        try:
+            _heal_real_swing_short_sl(conn, order_rows)
+        except Exception as e:  # noqa: BLE001
+            print(f"[open_protect] short-swing heal failed (non-fatal): {e}")
+        conn.commit()
+        try:
+            _sync_real_positions_swing_external(conn)
+        except Exception as e:  # noqa: BLE001
+            print(f"[open_protect] swing mirror sync failed (non-fatal): {e}")
+    return {"ok": not failed, "pending": [p["kotak_trading_symbol"] for p in pending], "failed": failed}
+
+
+def _open_protect_run(now_fn=_ist_now_aware, sleep=time.sleep, prearm=None, place=None) -> dict:
+    """One trading day's open-protect pass: pre-arm, wait for 09:15:00.5 IST, place, retry every 3 s until every
+    holding is covered or 09:20 IST. Returns the last attempt's summary. Never raises."""
+    import kotak_neo
+    prearm = prearm or _open_protect_prearm
+    place = place or _open_protect_place
+    now = now_fn()
+    give_up = now.replace(hour=_OPEN_PROTECT_GIVE_UP_HMS[0], minute=_OPEN_PROTECT_GIVE_UP_HMS[1],
+                          second=_OPEN_PROTECT_GIVE_UP_HMS[2], microsecond=0)
+    try:
+        plan = prearm()
+    except Exception as e:  # noqa: BLE001
+        print(f"[open_protect] pre-arm failed (placement still attempted): {e}")
+        plan = {"holdings": None, "rows": []}
+    wait = (_open_protect_fire_at(now) - now_fn()).total_seconds()
+    if wait > 0:
+        sleep(wait)
+    summary: dict = {"ok": False, "attempts": 0}
+    try:
+        while True:
+            summary["attempts"] += 1
+            try:
+                out = place(plan)
+            except Exception as e:  # noqa: BLE001
+                out = {"ok": False, "error": str(e)}
+            summary.update({k: v for k, v in out.items() if k != "attempts"},
+                           finished_ist=now_fn().strftime("%H:%M:%S IST"))
+            if out.get("ok") or now_fn() >= give_up:
+                break
+            if summary["attempts"] % 10 == 0:  # holdings may have changed; re-read them and re-pin a fresh login
+                try:
+                    plan = prearm()
+                except Exception:  # noqa: BLE001
+                    pass
+            sleep(_OPEN_PROTECT_RETRY_SECONDS)
+    finally:
+        kotak_neo.unpin_order_session()
+    _open_protect_last.clear()
+    _open_protect_last.update(summary)
+    if not summary.get("ok"):
+        print(f"[UNPROTECTED-ALERT] 09:15 open protect pass ended without covering every holding: {summary}")
+    return summary
+
+
+def _open_protect_loop(now_fn=_ist_now_aware, sleep=time.sleep, rounds=None, run=None):
+    """B-1363: dedicated daemon thread. Sleeps to the next 09:14:55 IST weekday arm time, runs the pass, repeats.
+    Never raises."""
+    run = run or _open_protect_run
+    n = 0
+    while rounds is None or n < rounds:
+        try:
+            wait = (_open_protect_next_arm(now_fn()) - now_fn()).total_seconds()
+            if wait > 0:
+                sleep(wait)
+            import kotak_neo
+            if not kotak_neo.missing_credentials():
+                run(now_fn=now_fn, sleep=sleep)
+        except Exception as e:  # noqa: BLE001
+            print(f"[open_protect] pass failed (non-fatal; the 5-min reconcile still heals): {e}")
+        n += 1
+        if _open_protect_next_arm(now_fn()) <= now_fn():
+            sleep(60)  # a pass that ended early inside the window must not re-run back to back
+
+
 _GIT_TIER_PUSH_EVERY_SECONDS = 60
 _git_tier_push_last_ok: dict = {}
 _git_tier_push_wake = threading.Event()  # B-1355: set by _log_real_order_event for an immediate push
@@ -33035,12 +33245,23 @@ def _reconcile_real_positions_core(adopt: str | None = None) -> dict:
         # and the retries buried the real order book); the next in-hours reconcile does it.
         _swing_missing_sl = (conn.execute("SELECT * FROM real_positions_swing WHERE sl_order_id IS NULL").fetchall()
                              if _nse_equity_market_open_now() and not _exchange_purge_window() else [])  # B-1444
-        for r in _swing_missing_sl:
-            import kotak_real_orders
-            # B-1412: the same stop the per-tick retry uses (stored stop floored at the entry-day stop), so the two
-            # paths never fight over two different levels (BANKINDIA 2026-10-29: 115.72 here vs 126.73 there).
-            _bf_stop = _swing_stop_floored(conn, r["symbol"], r["stop_loss"])
-            sl_result = kotak_real_orders.ensure_resting_sl(r["kotak_trading_symbol"], r["qty"], _bf_stop)
+        import kotak_real_orders
+        # B-1412: the same stop the per-tick retry uses (stored stop floored at the entry-day stop), so the two
+        # paths never fight over two different levels (BANKINDIA 2026-10-29: 115.72 here vs 126.73 there).
+        _bf_stops = [_swing_stop_floored(conn, r["symbol"], r["stop_loss"]) for r in _swing_missing_sl]
+
+        def _bf_place(i):
+            # B-1363: was serial (~12-14 s per SL), so the 5th holding got its SL at 09:16:29 IST on 28-Oct.
+            try:
+                return kotak_real_orders.ensure_resting_sl(_swing_missing_sl[i]["kotak_trading_symbol"],
+                                                           _swing_missing_sl[i]["qty"], _bf_stops[i])
+            except Exception as e:  # noqa: BLE001
+                return {"ok": False, "detail": f"placement raised: {e}"}
+        _bf_results = []
+        if _swing_missing_sl:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(_swing_missing_sl))) as _bf_pool:
+                _bf_results = list(_bf_pool.map(_bf_place, range(len(_swing_missing_sl))))
+        for r, _bf_stop, sl_result in zip(_swing_missing_sl, _bf_stops, _bf_results):
             backfill_entry = {
                 "symbol": r["symbol"], "entry_price": r["entry_price"],
                 "stop_loss": r["stop_loss"], "qty": r["qty"],

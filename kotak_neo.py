@@ -79,6 +79,9 @@ def login():
     missing = missing_credentials()
     if missing:
         raise RuntimeError(f"Kotak Neo not configured - missing env var(s): {', '.join(missing)}")
+    pinned = _pinned_order_client()
+    if pinned is not None:
+        return pinned
 
     client = NeoAPI(
         environment="prod",
@@ -111,6 +114,34 @@ def login():
         raise RuntimeError("Kotak Neo login did not establish a session (no edit_token/edit_sid)")
 
     return client
+
+
+# B-1363 (2026-11-02): at the 09:15 IST open every SL placement did 3-4 full TOTP logins of its own (ensure scan,
+# place, verify), ~2-3 s each, so one SL took ~12-14 s and the 5 overnight holdings were not all covered until
+# 09:16:29 IST (SUZLON, 28-Oct). The open-protect thread logs in ONCE at 09:14:55 IST and pins that session for a
+# short, bounded window, so the placements at 09:15:00 reuse it. Expires on its own; unpin_order_session() clears it.
+_pinned_lock = threading.Lock()
+_pinned_client = None
+_pinned_until = 0.0
+
+
+def pin_order_session(client, seconds: float) -> None:
+    global _pinned_client, _pinned_until
+    with _pinned_lock:
+        _pinned_client, _pinned_until = client, time.time() + max(0.0, float(seconds))
+
+
+def unpin_order_session() -> None:
+    global _pinned_client, _pinned_until
+    with _pinned_lock:
+        _pinned_client, _pinned_until = None, 0.0
+
+
+def _pinned_order_client():
+    with _pinned_lock:
+        if _pinned_client is not None and time.time() < _pinned_until:
+            return _pinned_client
+        return None
 
 
 # B-1306 (2026-10-21): every Kotak call did a full TOTP login of its own, no
