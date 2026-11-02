@@ -245,9 +245,27 @@ def _report_send(leg: str, purpose: str, trdsym, res, order_id_hint=None) -> Non
         if not isinstance(res, dict):
             return
         detail = str(res.get("detail") or "")
-        if not res.get("ok") and detail.startswith("login failed"):
-            return
         rej_oid = res.get("rejected_order_id")
+        if not res.get("ok") and (detail.startswith("login failed") or detail.startswith("precheck failed")):
+            # B-1322: nothing reached Kotak (no token / a pre-send check refused the order), so there is no Kotak
+            # row either; without this the attempt left no trace at all (JIOFIN 21 Oct). One row per symbol, leg
+            # and cause per _REPEAT_WINDOW_S, so a token outage does not flood the log.
+            not_sent = "login" if detail.startswith("login failed") else "precheck"
+            key = (str(trdsym), leg, not_sent + detail[:60])
+            now = time.time()
+            first, cnt = _LAST_REJECTION.get(key, (0.0, 0))
+            if cnt and now - first <= _REPEAT_WINDOW_S:
+                _LAST_REJECTION[key] = (first, cnt + 1)
+                return
+            _LAST_REJECTION[key] = (now, 1)
+            sink = _SEND_SINK
+            if sink is not None:
+                sink({"symbol": _symbol_from_trdsym(trdsym), "kotak_trading_symbol": trdsym, "leg": leg,
+                      "event": "kotak_login_failed" if not_sent == "login" else "sl_precheck_failed",
+                      "order_id": None, "new_state": "not sent", "detail": detail[:200],
+                      "reason": f"{purpose}; NOT sent to Kotak ({'Kotak login failed' if not_sent == 'login' else 'pre-send check refused it'})",
+                      "immediate": True, "ts": now})
+            return
         if res.get("ok"):
             oid = res.get("order_id") or order_id_hint
             event, state = ("kotak_cancelled", "cancel accepted") if leg == "cancel" else ("kotak_placed", "accepted")
