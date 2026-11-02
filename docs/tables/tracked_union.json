@@ -22,13 +22,13 @@
       "qty": 1,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 135.67,
       "stop_loss": 123.2142835344587,
       "sl_trigger_price": 123.21,
       "strategy": "gap__runaway__long__1d__atr4_h20__v1",
       "entry_order_id": "261102000030918",
-      "opened_at": 1793591284.9900262,
+      "opened_at": 1793620635.7244444,
       "day": "2026-11-02",
       "first_seen_day": "2026-11-02"
     },
@@ -38,13 +38,13 @@
       "qty": 4,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 450.75,
       "stop_loss": 440.21311188083456,
       "sl_trigger_price": 440.2,
       "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
       "entry_order_id": "261102000488589",
-      "opened_at": 1793606328.411552,
+      "opened_at": 1793620636.9493418,
       "day": "2026-11-02",
       "first_seen_day": "2026-11-02"
     },
@@ -54,13 +54,13 @@
       "qty": 4,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 287.15,
       "stop_loss": 279.235471104135,
       "sl_trigger_price": 279.25,
       "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
       "entry_order_id": "261102000494771",
-      "opened_at": 1793606575.6015642,
+      "opened_at": 1793620638.1538227,
       "day": "2026-11-02",
       "first_seen_day": "2026-11-02"
     },
@@ -70,13 +70,13 @@
       "qty": 5,
       "is_short": 0,
       "owner": "swing",
-      "source": "position",
+      "source": "holding",
       "entry_price": 164.93,
       "stop_loss": 158.4723431840611,
       "sl_trigger_price": 158.47,
       "strategy": "macddiv__line_any__long__1h__atr3_w5__nonovl__v2",
       "entry_order_id": "261102000496077",
-      "opened_at": 1793606609.7225637,
+      "opened_at": 1793620639.3844962,
       "day": "2026-11-02",
       "first_seen_day": "2026-11-02"
     },
@@ -113,5 +113,5 @@
       "first_seen_day": "2026-10-21"
     }
   ],
-  "synced_at_utc": "2026-11-02T10:14:54Z"
+  "synced_at_utc": "2026-11-02T20:22:27Z"
 }
