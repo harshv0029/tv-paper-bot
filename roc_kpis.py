@@ -16,6 +16,11 @@ Definitions (shown to the user in the View 4 tooltip):
     Covered days are calendar days from the ledger's first Kotak day up to today; days before that are not invented.
   * Per trade: return % = (sell value - buy value) / buy value (mirror for a short: / sell value), holding days =
     exit day - entry day (0 for a same-day trade), return per day = return % / max(holding days, 1).
+  * B-1445 side of a same-day round trip: Kotak positions() day aggregates carry no fill order, so the side comes
+    from the order of fills when known: a ledger row's ``first_fill_side`` ('buy'/'sell', from Kotak trade/order book
+    timestamps) wins, else this app's own record of the entry (``side_hints[(trdsym, day)]`` built from
+    real_order_events 'entry'/'short_entry' confirmations and real_positions_short). First fill a sell -> short.
+    When the order is unknown the side is SIDE_UNKNOWN, never guessed as long. P&L is identical either way.
 """
 from __future__ import annotations
 
@@ -23,6 +28,46 @@ import datetime as dt
 from collections import defaultdict
 
 DAY = dt.timedelta(days=1)
+SIDE_UNKNOWN = "intraday (side unknown)"
+IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
+
+
+def side_hints_from_app_records(order_events=None, open_shorts=None) -> dict:
+    """B-1445: {(trdsym, 'YYYY-MM-DD' IST): 'long'|'short'} from this app's own records of what it entered.
+    order_events: dicts with ts (epoch s), kotak_trading_symbol, leg, event; the EARLIEST confirmed entry of the day
+    decides (leg 'short_entry' -> short, 'entry' -> long). open_shorts: dicts with kotak_trading_symbol, day."""
+    first = {}
+    for e in order_events or []:
+        try:
+            if str(e.get("event") or "") != "confirmed":
+                continue
+            leg = str(e.get("leg") or "")
+            side = "short" if leg == "short_entry" else "long" if leg == "entry" else None
+            sym = str(e.get("kotak_trading_symbol") or "")
+            if not side or not sym:
+                continue
+            ts = float(e["ts"])
+            k = (sym, dt.datetime.fromtimestamp(ts, IST).date().isoformat())
+            if k not in first or ts < first[k][0]:
+                first[k] = (ts, side)
+        except (TypeError, ValueError, KeyError):
+            continue
+    hints = {k: v[1] for k, v in first.items()}
+    for r in open_shorts or []:
+        sym, day = str(r.get("kotak_trading_symbol") or ""), str(r.get("day") or "")[:10]
+        if sym and day:
+            hints.setdefault((sym, day), "short")
+    return hints
+
+
+def _same_day_side(row: dict, sym: str, day: dt.date, side_hints) -> str:
+    f = str(row.get("first_fill_side") or "").lower()
+    if f in ("buy", "b"):
+        return "long"
+    if f in ("sell", "s"):
+        return "short"
+    h = (side_hints or {}).get((sym, day.isoformat()))
+    return h if h in ("long", "short") else SIDE_UNKNOWN
 
 
 def _d(s: str) -> dt.date:
@@ -40,16 +85,17 @@ def period_bounds(today: dt.date) -> dict:
     }
 
 
-def match_round_trips(ledger_rows: list, charges_fn=None) -> tuple[list, list, list]:
+def match_round_trips(ledger_rows: list, charges_fn=None, side_hints=None) -> tuple[list, list, list]:
     """FIFO-match ledger rows into closed trades. Returns (closed, open_lots, notes).
-    charges_fn(seg, trdsym, prod, buy_amt, sell_amt) -> INR; None means zero charges."""
+    charges_fn(seg, trdsym, prod, buy_amt, sell_amt) -> INR; None means zero charges.
+    side_hints: {(trdsym, day iso): 'long'|'short'} for same-day round trips (B-1445); see module docstring."""
     by_sym = defaultdict(list)
     for r in ledger_rows or []:
         by_sym[r["trdsym"]].append(r)
     closed, open_lots, notes = [], [], []  # notes reserved for data caveats
 
     def _close(sym, seg, prod, lot, qty, exit_day, exit_px, src):
-        long_ = lot["side"] == "long"
+        long_ = lot["side"] != "short"  # long or side-unknown: buy at lot px, sell at exit px (same P&L)
         buy_v = (lot["px"] if long_ else exit_px) * qty
         sell_v = (exit_px if long_ else lot["px"]) * qty
         ch = float(charges_fn(seg, sym, prod, buy_v, sell_v)) if charges_fn else 0.0
@@ -94,8 +140,13 @@ def match_round_trips(ledger_rows: list, charges_fn=None) -> tuple[list, list, l
             # 2) same-day round trip
             q = min(bq, sq)
             if q > 0:
-                same = {"side": "long", "qty": q, "px": bpx, "day": day}
-                _close(sym, seg, prod, same, q, day, spx, src)
+                side = _same_day_side(r, sym, day, side_hints)
+                if side == "short":
+                    same = {"side": "short", "qty": q, "px": spx, "day": day}
+                    _close(sym, seg, prod, same, q, day, bpx, src)
+                else:
+                    same = {"side": side, "qty": q, "px": bpx, "day": day}
+                    _close(sym, seg, prod, same, q, day, spx, src)
                 bq -= q
                 sq -= q
             # 3) remainder opens a new lot (step 1 left no opposite lot, step 2 left at most one side)
@@ -124,10 +175,10 @@ def _deployed_by_day(closed: list, open_lots: list, start: dt.date, end: dt.date
     return out
 
 
-def roc_kpis(ledger_rows: list, today: dt.date, charges_fn=None, trades_limit: int = 50) -> dict:
+def roc_kpis(ledger_rows: list, today: dt.date, charges_fn=None, trades_limit: int = 50, side_hints=None) -> dict:
     """The three ROC KPIs plus the per-trade list. Never invents data: a period with no covered day, or zero
     average deployed capital, returns roc_pct None with the reason."""
-    closed, open_lots, notes = match_round_trips(ledger_rows, charges_fn)
+    closed, open_lots, notes = match_round_trips(ledger_rows, charges_fn, side_hints)
     kotak_days = sorted({str(r["day"])[:10] for r in ledger_rows or [] if r.get("source") != "opening"})
     ledger_start = _d(kotak_days[0]) if kotak_days else None
     out = {"ledger_start": ledger_start.isoformat() if ledger_start else None, "as_of": today.isoformat(),
