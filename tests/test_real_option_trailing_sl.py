@@ -75,9 +75,9 @@ def test_sl_trails_up_with_peak_and_never_down():
             assert abs(ens.call_args[0][3] - 148.5) < 1e-6  # 150 * 0.99 (1% trail from peak)
         row = conn.execute("SELECT * FROM real_fo_positions").fetchone()
         assert row["peak_price"] == 150.0 and row["sl_trigger_price"] == 148.5
-        # premium falls back: peak stays, desired trigger does not drop
+        # premium falls back (still above the trigger: B-1322 refuses a SELL SL at/above LTP): peak stays, trigger does not drop
         with patch("kotak_real_fo_orders.fetch_kotak_option_state", return_value=_state(sls=[{"order_id": "S2", "trigger": 105.0, "qty": 25}])), \
-             patch("main._option_ltp", return_value=145.0), \
+             patch("main._option_ltp", return_value=149.0), \
              patch("main.kotak_real_orders_closing_session", return_value=False), \
              patch("kotak_real_fo_orders.ensure_option_trailing_sl", return_value={"ok": True, "action": "adopted_existing", "order_id": "S2", "trigger_price": 105.0}) as ens:
             main._sync_real_fo_option_sl(conn, "NIFTY:PUT")

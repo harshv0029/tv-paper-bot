@@ -14605,6 +14605,31 @@ def _log_real_fo_attempt(conn, leg_key, side, status, kotak_trading_symbol=None,
          json.dumps(raw_response, default=str) if raw_response is not None else None),
     )
     conn.commit()
+    if not str(status).startswith("skipped_"):
+        _mirror_fo_attempt_to_order_log(conn, leg_key, side, status, kotak_trading_symbol, order_id, detail)
+
+
+def _mirror_fo_attempt_to_order_log(conn, leg_key, side, status, kotak_trading_symbol, order_id, detail):
+    """B-1322 (JIOFIN26OCT217.5CE, 21 Oct: entry unwound 12 s after the fill, the reason log held nothing): the
+    F&O engine wrote only real_fo_trades, never real_order_events (the durable reasoned order log), so an option
+    entry, SL attempt or unwind left no reason there. Every non-skipped F&O attempt row (entry, SL placed/failed/
+    pre-check refused/exception, exits, unwinds, closes per Kotak) is now mirrored with its reason. Skipped_* gate
+    rows stay in real_fo_trades only (they are not orders). Never raises."""
+    try:
+        txt = str(detail or "")
+        reason = None
+        if txt.startswith("reason: "):
+            reason, _, txt = txt[len("reason: "):].partition("; ")
+        st = str(status)
+        if st.startswith("sl_"):
+            leg = "fo_sl"
+        else:
+            leg = "fo_entry" if side == "B" else "fo_exit"
+        _log_real_order_event(conn, leg_key, leg, st, kotak_trading_symbol=kotak_trading_symbol,
+                              order_id=str(order_id) if order_id else None, new_state=st,
+                              detail=txt or None, reason=reason or f"F&O {leg} {st}")
+    except Exception as e:  # noqa: BLE001 - logging never breaks an order path
+        print(f"[order_log] B-1322 F&O attempt mirror failed (non-fatal): {e}")
 
 
 def _describe_real_qty_sizing(paper_qty, max_by_cap, max_by_capital, qty):
@@ -17389,12 +17414,8 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
         # placed is unwound at once, not left naked for the 180s tick grace. "fresh_entry_awaiting_position"
         # (Kotak position not yet visible) cannot be unwound or protected yet; the 30s tick retries it
         # and the 180s risk-cut remains the backstop for that single case.
-        _sl_status = None
-        try:
-            _sl_status = _sync_real_fo_option_sl(conn, leg_key, reason="initial protective SL right after entry")
-        except Exception as _e:
-            _sl_status = "sl_exception"
-            print(f"[REAL F&O] initial SL raised for {leg_key}: {_e}")
+        _fo_last_sl_cause.pop(leg_key, None)
+        _sl_status = _entry_fo_sl_attempt(conn, leg_key, contract, qty, "initial protective SL right after entry")
         # B-1270: Kotak's position can lag the fill by a few seconds; retry the SL briefly here so the window without a stop is
         # seconds, not the next 30s tick. If the position is still invisible it cannot be unwound (a sell would be naked), so the
         # tick retry + 180s risk cut + 5-min backcheck remain the backstop and the alarm below is logged.
@@ -17402,11 +17423,8 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
             if _sl_status != "fresh_entry_awaiting_position":
                 break
             time.sleep(FO_ENTRY_SL_RETRY_SLEEP_S)
-            try:
-                _sl_status = _sync_real_fo_option_sl(conn, leg_key, reason="initial protective SL retry (position not yet visible at Kotak)")
-            except Exception as _e:
-                _sl_status = "sl_exception"
-                print(f"[REAL F&O] SL retry raised for {leg_key}: {_e}")
+            _sl_status = _entry_fo_sl_attempt(conn, leg_key, contract, qty,
+                                              "initial protective SL retry (position not yet visible at Kotak)")
         if _sl_status == "fresh_entry_awaiting_position":
             _log_real_fo_attempt(conn, leg_key, "B", "sl_pending_position_not_visible", kotak_trading_symbol=contract["kotak_trading_symbol"],
                                  qty=qty, detail="reason: no SL yet, Kotak position not visible after retries; 30s tick retries, 180s risk cut backstop")
@@ -17414,19 +17432,17 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
         # B-1318: a first SL failure (transient reject, no order id, unreadable Kotak) must not dump the entry at once;
         # keep retrying the stop for FO_ENTRY_SL_FAIL_RETRY_WINDOW_S before unwinding (the position stays naked only that long).
         _t0 = time.time()
-        while (_sl_status in ("sl_failed", "sl_exception") or str(_sl_status).startswith("kotak_unreadable")) \
-                and time.time() - _t0 < FO_ENTRY_SL_FAIL_RETRY_WINDOW_S:
+        while _fo_entry_sl_failed(_sl_status) and time.time() - _t0 < FO_ENTRY_SL_FAIL_RETRY_WINDOW_S:
             time.sleep(FO_ENTRY_SL_FAIL_RETRY_SLEEP_S)
-            try:
-                _sl_status = _sync_real_fo_option_sl(conn, leg_key, reason="initial protective SL retry after a failed placement")
-            except Exception as _e:
-                _sl_status = "sl_exception"
-                print(f"[REAL F&O] SL fail-retry raised for {leg_key}: {_e}")
-        if _sl_status in ("sl_failed", "sl_exception") or str(_sl_status).startswith("kotak_unreadable"):
+            _sl_status = _entry_fo_sl_attempt(conn, leg_key, contract, qty,
+                                              "initial protective SL retry after a failed placement")
+        if _fo_entry_sl_failed(_sl_status):
             _row = conn.execute("SELECT * FROM real_fo_positions WHERE leg_key = ?", (leg_key,)).fetchone()
             if _row:
+                # B-1322: the unwind carries the concrete cause, never a bare status (21 Oct had no reason at all).
+                _cause = _fo_last_sl_cause.get(leg_key) or f"status {_sl_status}, no further detail"
                 _close_real_fo_option_leg(
-                    conn, _row, f"entry unwound: protective trailing SL could not be placed ({_sl_status})")
+                    conn, _row, f"entry SL could not be placed: {_cause}; entry unwound (status {_sl_status})")
                 conn.commit()
         print(f"[REAL F&O] BUY {leg_key} {qty} {contract['kotak_trading_symbol']} (order {result['order_id']}) "
               f"~Rs{contract['premium']:.2f}")
@@ -17436,6 +17452,31 @@ def _real_fo_buy_contract(conn, leg_key: str, fo_underlying: str, contract: dict
             qty=qty, price_est=contract["premium"], detail=result.get("detail"), raw_response=result.get("raw_response"),
         )
         print(f"[REAL F&O] BUY CALL FAILED {contract['kotak_trading_symbol']}: {result.get('detail')}")
+
+
+_FO_ENTRY_SL_FAIL_STATUSES = ("sl_failed", "sl_exception", "sl_precheck_failed")
+
+
+def _fo_entry_sl_failed(status) -> bool:
+    """Entry-path SL statuses that mean "no stop rests and none is coming": retried, then unwound."""
+    return status in _FO_ENTRY_SL_FAIL_STATUSES or str(status).startswith("kotak_unreadable")
+
+
+def _entry_fo_sl_attempt(conn, leg_key: str, contract: dict, qty: int, why: str):
+    """One entry-path SL attempt. B-1322: an exception before/around the send used to be only printed, so an
+    unwind for it had no reason anywhere; it is now recorded (real_fo_trades + the reasoned order log) and kept
+    as the leg's last SL cause."""
+    try:
+        return _sync_real_fo_option_sl(conn, leg_key, reason=why)
+    except Exception as e:  # noqa: BLE001
+        _fo_last_sl_cause[leg_key] = f"exception before/around the SL send: {type(e).__name__}: {e}"
+        print(f"[REAL F&O] SL attempt raised for {leg_key}: {e}")
+        try:
+            _log_real_fo_attempt(conn, leg_key, "S", "sl_exception", kotak_trading_symbol=contract.get("kotak_trading_symbol"),
+                                 qty=qty, detail=f"reason: {why}; {_fo_last_sl_cause[leg_key]}")
+        except Exception as le:  # noqa: BLE001
+            print(f"[REAL F&O] sl_exception log failed for {leg_key}: {le}")
+        return "sl_exception"
 
 
 def _maybe_place_real_fo_call_exit(conn, symbol: str, reason: str = "UNSTATED"):
@@ -17529,6 +17570,11 @@ def _close_real_fo_option_leg(conn, row, reason: str):
 
 
 _fo_sl_unprotected_since: dict = {}
+# B-1322: leg_key -> the last concrete reason its SL could not be placed (Kotak unreadable, pre-check refusal,
+# Kotak/send error, exception). The entry path stamps it on the unwind so the reason is never blank.
+_fo_last_sl_cause: dict = {}
+_fo_sl_unreadable_logged: dict = {}  # leg_key -> ts of the last logged "Kotak unreadable" SL row (1 per 5 min)
+_FO_SL_UNREADABLE_LOG_EVERY_S = 300.0
 _fo_restoring_sl: set = set()
 
 
@@ -17582,6 +17628,13 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
     sym = row["kotak_trading_symbol"]
     st = kotak_real_fo_orders.fetch_kotak_option_state(sym)
     if not st["ok"]:
+        # B-1322: no SL can be decided (or sent) without Kotak's state; record why, so a leg left without a stop
+        # (or unwound for it) always has a reason row. Rate-limited: the 30s tick would repeat it otherwise.
+        _fo_last_sl_cause[leg_key] = f"Kotak state unreadable before the SL send ({st.get('detail')})"
+        if not row["sl_order_id"] and time.time() - _fo_sl_unreadable_logged.get(leg_key, 0.0) >= _FO_SL_UNREADABLE_LOG_EVERY_S:
+            _fo_sl_unreadable_logged[leg_key] = time.time()
+            _log_real_fo_attempt(conn, leg_key, "S", "sl_precheck_failed", kotak_trading_symbol=sym, qty=row["qty"],
+                                 detail=f"reason: {reason}; SL not sent: {_fo_last_sl_cause[leg_key]}")
         # B-1320: an unreadable Kotak state must not hide an unprotected leg forever.
         # Only legs we have no SL on count; the timer is cleared as soon as a SL is confirmed.
         if not row["sl_order_id"]:
@@ -17633,12 +17686,29 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
         desired = max(prev_trigger, entry * (1 - FO_OPTION_INITIAL_STOP_PCT / 100.0))
     if row["exchange_segment"] == "nse_fo" and kotak_real_orders_closing_session():
         return "skipped_closing_session"
-    res = kotak_real_fo_orders.ensure_option_trailing_sl(sym, row["exchange_segment"], qty, desired, st["live_sls"])
+    # B-1322: pre-check the SELL SL before any cancel/send. A trigger at/above the LTP (premium already at/under
+    # the stop, or a trail raised off a feed high the price has since left) is refused by Kotak/NSE, sometimes
+    # with no order id; replacing a live SL with it would cancel the good stop first. Keep a live SL as is;
+    # with none resting, record the refusal and fall through to the no-SL risk cut below.
+    _pc_ok, _pc_why, _pc_trig, _ = kotak_real_fo_orders.option_sl_precheck(desired, ltp)
+    if not _pc_ok:
+        live = st["live_sls"]
+        if live:
+            best = max(live, key=lambda o: o["trigger"])
+            conn.execute("UPDATE real_fo_positions SET peak_price = ?, sl_order_id = ?, sl_trigger_price = ? WHERE leg_key = ?",
+                         (peak, best["order_id"], best["trigger"], leg_key))
+            conn.commit()
+            _fo_sl_unprotected_since.pop(leg_key, None)
+            return "kept_existing_precheck_refused"
+        res = {"ok": False, "detail": f"SL pre-check refused, not sent: {_pc_why}", "precheck": True}
+    else:
+        res = kotak_real_fo_orders.ensure_option_trailing_sl(sym, row["exchange_segment"], qty, desired, st["live_sls"])
     if res.get("ok"):
         conn.execute("UPDATE real_fo_positions SET peak_price = ?, sl_order_id = ?, sl_trigger_price = ? WHERE leg_key = ?",
                      (peak, res["order_id"], res["trigger_price"], leg_key))
         conn.commit()
         _fo_sl_unprotected_since.pop(leg_key, None)
+        _fo_last_sl_cause.pop(leg_key, None)
         if res["action"] != "adopted_existing":
             _log_real_fo_attempt(conn, leg_key, "S", f"sl_{res['action']}", kotak_trading_symbol=sym, qty=qty,
                                  order_id=res["order_id"], price_est=res["trigger_price"],
@@ -17648,11 +17718,22 @@ def _sync_real_fo_option_sl(conn, leg_key: str, reason: str = "trailing sync") -
         conn.execute("UPDATE real_fo_positions SET sl_order_id = ?, sl_trigger_price = ? WHERE leg_key = ?",
                      (res["restored_order_id"], res["restored_trigger"], leg_key))
         conn.commit()
+        _log_real_fo_attempt(conn, leg_key, "S", "sl_replace_failed_old_restored", kotak_trading_symbol=sym, qty=qty,
+                             order_id=res["restored_order_id"], price_est=res["restored_trigger"],
+                             detail=f"reason: {reason}; raise to {desired:.2f} failed ({res.get('detail')}), old trigger restored")
         return "replace_failed_old_restored"
     # No SL rests and placement failed: cut the risk after a short grace.
     since = _fo_sl_unprotected_since.setdefault(leg_key, time.time())
-    _log_real_fo_attempt(conn, leg_key, "S", "sl_failed", kotak_trading_symbol=sym, qty=qty,
+    _fo_last_sl_cause[leg_key] = str(res.get("detail") or "SL placement failed with no detail from Kotak")
+    _log_real_fo_attempt(conn, leg_key, "S", "sl_precheck_failed" if res.get("precheck") else "sl_failed",
+                         kotak_trading_symbol=sym, qty=qty,
                          detail=f"reason: {reason}; SL placement failed: {res.get('detail')}")
+    if res.get("precheck"):
+        if time.time() - since >= FO_OPTION_SL_FAIL_EXIT_SECONDS:
+            _close_real_fo_option_leg(conn, row, f"risk cut: no SL could be placed for {FO_OPTION_SL_FAIL_EXIT_SECONDS}s ({res.get('detail')})")
+            _fo_sl_unprotected_since.pop(leg_key, None)
+            return "risk_cut_exit"
+        return "sl_precheck_failed"
     print(f"[REAL F&O] ALARM {leg_key} has NO stop-loss: {res.get('detail')}")
     if time.time() - since >= FO_OPTION_SL_FAIL_EXIT_SECONDS:
         _close_real_fo_option_leg(conn, row, f"risk cut: no SL could be placed for {FO_OPTION_SL_FAIL_EXIT_SECONDS}s ({res.get('detail')})")
