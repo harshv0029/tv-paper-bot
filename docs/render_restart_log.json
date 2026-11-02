@@ -1303,5 +1303,42 @@
     "prev_last_alarm": null,
     "prev_first_alarm_threads": [],
     "prev_last_alarm_threads": []
+  },
+  {
+    "boot_ts": 1793615738.3578892,
+    "boot_ist": "2026-11-02 16:05:38 IST",
+    "logged_ist": "2026-11-02 16:06:22 IST",
+    "commit": "e6356ed15319",
+    "cause_guess": "deploy",
+    "in_market_hours": false,
+    "prev_commit": "109d1de0ef6c",
+    "prev_boot_ist": "2026-10-30 14:42:59 IST",
+    "prev_last_alive_ist": "2026-11-02 16:05:47 IST",
+    "prev_uptime_min": 4402.8,
+    "downtime_s_max": -9.6,
+    "prev_rss_now_mb": 1213.5,
+    "prev_peak_rss_mb": 2043.5,
+    "prev_loop_lag_s": 0.0,
+    "prev_watchdog_alarms": 41,
+    "prev_threadpool": "4/80",
+    "prev_last_alarm": {
+      "ts": 1793614846.7062266,
+      "loop_lag_s": 0.6,
+      "rss_mb": 1573.1,
+      "threadpool": "0/80"
+    },
+    "prev_first_alarm_threads": [
+      "unprotected-backcheck: _unprotected_backcheck_loop:31530",
+      "git-tier-push: _git_tier_push_loop:31581 > _git_tier_push_wait:31560",
+      "asyncio_5: search_scrip:257",
+      "asyncio_4: get_scheduler_capital_inr:21242 > _refresh_real_capital_cache:21219 > limits:173",
+      "MainThread (event loop): base_events.py:run_until_complete:641 > base_events.py:run_forever:608 > base_events.py:_run_once:1898 > selectors.py:select:468"
+    ],
+    "prev_last_alarm_threads": [
+      "unprotected-backcheck: _unprotected_backcheck_loop:31530",
+      "git-tier-push: _git_tier_push_loop:31581 > _git_tier_push_wait:31560",
+      "asyncio_3: _real_on_thread:26777 > _timed_call:26764 > _run:26775 > _maybe_sync_real_stop_loss_short:16710",
+      "MainThread (event loop): base_events.py:run_until_complete:641 > base_events.py:run_forever:608 > base_events.py:_run_once:1937 > selectors.py:select:481"
+    ]
   }
 ]
