@@ -16583,7 +16583,19 @@
    "prev_state": "none",
    "new_state": "none (placement failed)",
    "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261102000662822 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
+  },
+  {
+   "id": 1383,
+   "ts": 1793613161.412035,
+   "symbol": "SAIL.NS",
+   "kotak_trading_symbol": "SAIL-EQ",
+   "leg": "sl",
+   "event": "failed",
+   "order_id": null,
+   "prev_state": "none",
+   "new_state": "none (placement failed)",
+   "detail": "reason: stop-loss placement was rejected or failed; position stays unprotected and is retried | order 261102000663056 rejected: OMS: SL AND SL-M ORDERS NOT ALLOWED IN CAS SESSION"
   }
  ],
- "synced_at_utc": "2026-11-02T09:52:42Z"
+ "synced_at_utc": "2026-11-02T09:52:57Z"
 }
